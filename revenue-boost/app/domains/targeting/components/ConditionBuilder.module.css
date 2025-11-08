@@ -1,0 +1,8 @@
+/**
+ * Condition Builder Styles
+ */
+
+.logicLabel {
+  text-align: center;
+  padding: var(--p-space-100) 0;
+}

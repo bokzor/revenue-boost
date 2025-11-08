@@ -1,0 +1,194 @@
+/* Desktop Stepper - Horizontal */
+.stepperDesktop {
+  display: block;
+}
+
+.stepperContainer {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  position: relative;
+  width: 100%;
+}
+
+.stepWrapper {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  z-index: 1;
+}
+
+.stepButton {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  transition: all 0.2s ease;
+  max-width: 120px;
+}
+
+.stepButton:hover {
+  transform: translateY(-2px);
+}
+
+.stepButton:focus {
+  outline: 2px solid var(--p-color-border-focus);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+.stepCircle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  background: var(--p-color-bg-surface);
+  border: 2px solid var(--p-color-border-subdued);
+}
+
+.stepActive .stepCircle {
+  background: var(--p-color-bg-fill-brand);
+  border-color: var(--p-color-border-brand);
+  box-shadow: 0 0 0 4px rgba(0, 91, 211, 0.1);
+}
+
+.stepCompleted .stepCircle {
+  background: var(--p-color-bg-fill-success);
+  border-color: var(--p-color-border-success);
+}
+
+/* Success checkmark styles */
+.successCheckmark {
+  color: white;
+  font-size: 20px;
+  font-weight: bold;
+  line-height: 1;
+}
+
+.successCheckmarkMobile {
+  color: white;
+  font-size: 16px;
+  font-weight: bold;
+  line-height: 1;
+}
+
+.stepUpcoming .stepCircle {
+  background: var(--p-color-bg-surface-secondary);
+  border-color: var(--p-color-border-subdued);
+}
+
+.stepNumber {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--p-color-text);
+}
+
+.stepActive .stepNumber {
+  color: white;
+}
+
+.stepLabel {
+  text-align: center;
+  max-width: 100px;
+  word-wrap: break-word;
+}
+
+.required {
+  color: var(--p-color-text-critical);
+  font-weight: 600;
+}
+
+/* Connector line between steps */
+.connector {
+  flex: 1;
+  height: 2px;
+  background: var(--p-color-border-subdued);
+  margin: 0 -4px;
+  margin-top: 28px;
+  position: relative;
+  z-index: 0;
+  transition: background 0.3s ease;
+}
+
+.connectorCompleted {
+  background: var(--p-color-border-success);
+}
+
+/* Mobile Stepper - Vertical */
+.stepperMobile {
+  display: none;
+}
+
+.stepButtonMobile {
+  width: 100%;
+  padding: 12px;
+  background: var(--p-color-bg-surface);
+  border: 1px solid var(--p-color-border-subdued);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+}
+
+.stepButtonMobile:hover {
+  background: var(--p-color-bg-surface-hover);
+  border-color: var(--p-color-border);
+}
+
+.stepActiveMobile {
+  background: var(--p-color-bg-fill-brand-secondary);
+  border-color: var(--p-color-border-brand);
+}
+
+.stepIconMobile {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Current step info box */
+.currentStepInfo {
+  padding: 16px;
+  background: var(--p-color-bg-surface-secondary);
+  border-radius: 8px;
+  border: 1px solid var(--p-color-border-subdued);
+}
+
+/* Responsive breakpoints */
+@media (max-width: 768px) {
+  .stepperDesktop {
+    display: none;
+  }
+
+  .stepperMobile {
+    display: block;
+  }
+}
+
+/* Tablet - smaller step labels */
+@media (max-width: 1024px) and (min-width: 769px) {
+  .stepLabel {
+    font-size: 12px;
+    max-width: 80px;
+  }
+
+  .stepCircle {
+    width: 36px;
+    height: 36px;
+  }
+
+  .stepNumber {
+    font-size: 14px;
+  }
+}

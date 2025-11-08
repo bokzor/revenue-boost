@@ -1,0 +1,463 @@
+/**
+ * Campaign Form with A/B Testing Integration (Refactored for SOLID Compliance)
+ *
+ * ARCHITECTURE:
+ * - Variants as Full Campaigns: Each variant (A, B, C, D) is a complete Campaign object
+ * - All variants share the same experimentId
+ * - Form manages an array of variant campaign data
+ * - Switching variants loads different campaign data
+ * - Submission creates multiple Campaign objects via ExperimentService
+ *
+ * SOLID IMPROVEMENTS:
+ * - Extracted A/B Testing UI into separate components (ABTestingPanel, VariantSelector, ExperimentConfigForm)
+ * - Extracted submission logic into useCampaignSubmission hook
+ * - Extracted navigation into WizardNavigationButtons component
+ * - Main component now <300 lines (down from 593)
+ * - Each extracted component/function <50 lines
+ * - Better separation of concerns and single responsibility
+ */
+
+import { useState, useCallback, useMemo, useEffect } from "react";
+import { Page, Layout, Card, Banner, Text, BlockStack } from "@shopify/polaris";
+import { useWizardState } from "~/shared/hooks/useWizardState";
+import type { CampaignFormData } from "~/shared/hooks/useWizardState";
+
+// Import extracted hooks for SOLID compliance
+import { useExperimentConfig } from "../hooks/useExperimentConfig";
+import { useCampaignSubmission } from "../hooks/useCampaignSubmission";
+
+// Import extracted A/B Testing components
+import { ABTestingPanel, ExperimentConfigForm, type VariantKey } from "./ab-testing";
+
+// Import wizard components
+import { WizardProgressIndicator, WizardNavigationButtons, type WizardStep } from "./wizard";
+
+// Import extracted step renderers
+import {
+  renderGoalStep,
+  renderDesignStep,
+  renderTargetingStep,
+  renderFrequencyStep,
+  renderScheduleStep,
+  type StepRendererProps,
+} from "../utils/step-renderers";
+
+// ============================================================================
+// CONSTANTS
+// ============================================================================
+
+const WIZARD_STEPS: WizardStep[] = [
+  {
+    id: "goal",
+    title: "Campaign Goal & Basics",
+    description: "Set your primary objective and basic campaign information",
+    isRequired: true,
+  },
+  {
+    id: "design",
+    title: "Template & Design",
+    description: "Choose a template and customize appearance with live preview",
+    isRequired: true,
+  },
+  {
+    id: "targeting",
+    title: "Targeting & Triggers",
+    description: "Define when to show and who should see your campaign",
+    isRequired: false,
+  },
+  {
+    id: "frequency",
+    title: "Frequency Capping",
+    description: "Control how often users see your campaigns",
+    isRequired: false,
+  },
+  {
+    id: "schedule",
+    title: "Schedule & Settings",
+    description: "Configure campaign status, priority, schedule, and tags",
+    isRequired: false,
+  },
+];
+
+// ============================================================================
+// TYPES
+// ============================================================================
+
+interface VariantCampaignData extends CampaignFormData {
+  variantKey: VariantKey;
+  isControl: boolean;
+  variantName?: string;
+  variantDescription?: string;
+}
+
+interface ExperimentData {
+  id: string;
+  name: string;
+  description?: string | null;
+  hypothesis?: string | null;
+  successMetric: string;
+  trafficAllocation: Record<string, number>;
+  confidenceLevel: number;
+  minimumSampleSize?: number | null;
+  minimumDetectableEffect: number;
+  startDate?: string | null;
+  endDate?: string | null;
+  plannedDuration?: number | null;
+  status: string;
+}
+
+interface CampaignFormWithABTestingProps {
+  campaignId?: string;
+  storeId: string;
+  onSave: (campaignData: CampaignFormData | CampaignFormData[]) => Promise<void>;
+  onCancel: () => void;
+  initialData?: Partial<CampaignFormData>;
+  shopDomain?: string;
+  experimentId?: string;
+  experimentData?: ExperimentData;
+  allVariants?: Array<{
+    id: string;
+    variantKey: string;
+    name: string;
+    isControl: boolean;
+  }>;
+  currentVariantKey?: string | null;
+}
+
+// ============================================================================
+// MAIN COMPONENT
+// ============================================================================
+
+export function CampaignFormWithABTesting({
+  campaignId,
+  storeId,
+  onSave,
+  onCancel,
+  initialData,
+  shopDomain,
+  experimentId,
+  experimentData,
+  allVariants,
+  currentVariantKey,
+}: CampaignFormWithABTestingProps) {
+  // ============================================================================
+  // STATE - Wizard Navigation
+  // ============================================================================
+
+  const [currentStep, setCurrentStep] = useState(0);
+
+  // ============================================================================
+  // STATE - A/B Testing
+  // ============================================================================
+
+  const [abTestingEnabled, setAbTestingEnabled] = useState(
+    initialData?.abTestingEnabled || !!experimentId || false
+  );
+
+  const [selectedVariant, setSelectedVariant] = useState<VariantKey>(
+    (currentVariantKey as VariantKey) || "A"
+  );
+
+  const [variantCount, setVariantCount] = useState<number>(
+    allVariants?.length || 2
+  );
+
+  // ============================================================================
+  // HOOKS - Extracted for SOLID compliance
+  // ============================================================================
+
+  const experimentConfig = useExperimentConfig({
+    experimentData,
+    initialVariantCount: variantCount,
+  });
+
+  const {
+    isSubmitting,
+    submitError,
+    submitSingleCampaign,
+    submitABTestCampaign,
+  } = useCampaignSubmission({ onSave });
+
+  // ============================================================================
+  // STATE - Variant Management (Isolated state for each variant)
+  // ============================================================================
+
+  const createInitialVariantData = useCallback((key: VariantKey, index: number): VariantCampaignData => ({
+    ...initialData,
+    variantKey: key,
+    isControl: index === 0,
+    variantName: `Variant ${key}`,
+    variantDescription: index === 0 ? "Control variant" : `Test variant ${key}`,
+    name: initialData?.name ? `${initialData.name} - Variant ${key}` : `Variant ${key}`,
+    contentConfig: initialData?.contentConfig || {},
+    designConfig: initialData?.designConfig || {},
+    discountConfig: initialData?.discountConfig || {},
+  } as VariantCampaignData), [initialData]);
+
+  // ============================================================================
+  // MEMOIZED VALUES - Stable references to prevent re-render loops
+  // ============================================================================
+
+  const stableVariantStateA = useMemo(() => createInitialVariantData("A", 0), [createInitialVariantData]);
+  const stableVariantStateB = useMemo(() => createInitialVariantData("B", 1), [createInitialVariantData]);
+  const stableVariantStateC = useMemo(() => createInitialVariantData("C", 2), [createInitialVariantData]);
+  const stableVariantStateD = useMemo(() => createInitialVariantData("D", 3), [createInitialVariantData]);
+
+  // ============================================================================
+  // WIZARD STATE HOOKS - Separate state for each variant
+  // ============================================================================
+
+  const wizardStateA = useWizardState(stableVariantStateA);
+  const wizardStateB = useWizardState(stableVariantStateB);
+  const wizardStateC = useWizardState(stableVariantStateC);
+  const wizardStateD = useWizardState(stableVariantStateD);
+
+  // Get current wizard state based on selected variant
+  const currentWizardState = useMemo(() => {
+    switch (selectedVariant) {
+      case "A": return wizardStateA;
+      case "B": return wizardStateB;
+      case "C": return wizardStateC;
+      case "D": return wizardStateD;
+      default: return wizardStateA;
+    }
+  }, [selectedVariant, wizardStateA, wizardStateB, wizardStateC, wizardStateD]);
+
+  const { wizardState, updateData, applyGoalDefaults, setTemplateType } = currentWizardState;
+
+  // ============================================================================
+  // EFFECTS - Sync with props
+  // ============================================================================
+
+  useEffect(() => {
+    if (allVariants && allVariants.length > 0) {
+      setVariantCount(allVariants.length);
+    }
+  }, [allVariants]);
+
+  useEffect(() => {
+    if (currentVariantKey) {
+      setSelectedVariant(currentVariantKey as VariantKey);
+    }
+  }, [currentVariantKey]);
+
+  useEffect(() => {
+    if (experimentId) {
+      setAbTestingEnabled(true);
+    }
+  }, [experimentId]);
+
+  // ============================================================================
+  // HANDLERS - Navigation
+  // ============================================================================
+
+  const handleStepChange = useCallback((stepIndex: number) => {
+    setCurrentStep(stepIndex);
+  }, []);
+
+  const handleNext = useCallback(() => {
+    if (currentStep < WIZARD_STEPS.length - 1) {
+      setCurrentStep(currentStep + 1);
+    }
+  }, [currentStep]);
+
+  const handlePrevious = useCallback(() => {
+    if (currentStep > 0) {
+      setCurrentStep(currentStep - 1);
+    }
+  }, [currentStep]);
+
+  // ============================================================================
+  // HANDLERS - A/B Testing
+  // ============================================================================
+
+  const handleAbTestingToggle = useCallback((enabled: boolean) => {
+    setAbTestingEnabled(enabled);
+    if (!enabled) {
+      setVariantCount(2);
+      setSelectedVariant("A");
+    }
+  }, []);
+
+  const handleVariantCountChange = useCallback((count: number) => {
+    setVariantCount(count);
+    experimentConfig.updateTrafficAllocation(count);
+  }, [experimentConfig]);
+
+  // ============================================================================
+  // HANDLERS - Save (refactored to use extracted hook)
+  // ============================================================================
+
+  const handleSave = useCallback(async () => {
+    try {
+      if (abTestingEnabled) {
+        const wizardStates = [wizardStateA, wizardStateB, wizardStateC, wizardStateD];
+        const metadata = experimentConfig.getExperimentMetadata();
+        await submitABTestCampaign(wizardStates, variantCount, metadata);
+      } else {
+        await submitSingleCampaign(wizardState);
+      }
+    } catch (error) {
+      // Error already handled in hook
+      console.error("Save failed:", error);
+    }
+  }, [
+    wizardState,
+    wizardStateA,
+    wizardStateB,
+    wizardStateC,
+    wizardStateD,
+    abTestingEnabled,
+    variantCount,
+    experimentConfig,
+    submitSingleCampaign,
+    submitABTestCampaign,
+  ]);
+
+  // ============================================================================
+  // COMPUTED VALUES
+  // ============================================================================
+
+  const isLastStep = currentStep === WIZARD_STEPS.length - 1;
+
+  // ============================================================================
+  // RENDER - Step Content (refactored to use extracted renderers)
+  // ============================================================================
+
+  const renderStepContent = () => {
+    const step = WIZARD_STEPS[currentStep];
+
+    const rendererProps: StepRendererProps = {
+      wizardState,
+      updateData,
+      applyGoalDefaults,
+      setTemplateType,
+      storeId,
+      shopDomain,
+      campaignId,
+      selectedVariant,
+      abTestingEnabled,
+    };
+
+    switch (step.id) {
+      case "goal":
+        return renderGoalStep(rendererProps);
+      case "design":
+        return renderDesignStep(rendererProps);
+      case "targeting":
+        return renderTargetingStep(rendererProps);
+      case "frequency":
+        return renderFrequencyStep(rendererProps);
+      case "schedule":
+        return renderScheduleStep(rendererProps);
+      default:
+        return null;
+    }
+  };
+
+  // ============================================================================
+  // MAIN RENDER
+  // ============================================================================
+
+  return (
+    <Page
+      fullWidth={true}
+      title={campaignId ? "Edit Campaign" : "Create Campaign"}
+      primaryAction={{
+        content: campaignId ? "Save Changes" : "Create Campaign",
+        onAction: handleSave,
+        loading: isSubmitting,
+      }}
+      secondaryActions={[
+        {
+          content: "Cancel",
+          onAction: onCancel,
+          destructive: true,
+        },
+      ]}
+    >
+      <Layout>
+        {/* Error Banner */}
+        {submitError && (
+          <Layout.Section>
+            <Banner tone="critical">
+              <Text as="p">{submitError}</Text>
+            </Banner>
+          </Layout.Section>
+        )}
+
+        {/* A/B Testing Panel - Extracted Component */}
+        <Layout.Section>
+          <ABTestingPanel
+            abTestingEnabled={abTestingEnabled}
+            onToggle={handleAbTestingToggle}
+            selectedVariant={selectedVariant}
+            onVariantSelect={setSelectedVariant}
+            variantCount={variantCount}
+            experimentId={experimentId}
+            experimentName={experimentData?.name}
+            currentVariantKey={currentVariantKey}
+          />
+        </Layout.Section>
+
+        {/* Experiment Configuration - Extracted Component */}
+        {abTestingEnabled && (
+          <Layout.Section>
+            <Card>
+              <div style={{ padding: "16px" }}>
+                <BlockStack gap="400">
+                  <ExperimentConfigForm
+                    experimentName={experimentConfig.experimentName}
+                    experimentDescription={experimentConfig.experimentDescription}
+                    experimentHypothesis={experimentConfig.experimentHypothesis}
+                    variantCount={variantCount}
+                    onNameChange={experimentConfig.setExperimentName}
+                    onDescriptionChange={experimentConfig.setExperimentDescription}
+                    onHypothesisChange={experimentConfig.setExperimentHypothesis}
+                    onVariantCountChange={handleVariantCountChange}
+                  />
+                </BlockStack>
+              </div>
+            </Card>
+          </Layout.Section>
+        )}
+
+        {/* Wizard Progress Indicator */}
+        <Layout.Section>
+          <Card>
+            <div style={{ padding: "16px" }}>
+              <WizardProgressIndicator
+                steps={WIZARD_STEPS}
+                currentStep={currentStep}
+                completedSteps={WIZARD_STEPS.map((_, index) => index <= currentStep)}
+                onStepClick={handleStepChange}
+              />
+            </div>
+          </Card>
+        </Layout.Section>
+
+        {/* Step Content */}
+        <Layout.Section>
+          <Card>
+            <div style={{ padding: "24px" }}>
+              {renderStepContent()}
+
+              {/* Navigation Buttons - Extracted Component */}
+              <WizardNavigationButtons
+                currentStep={currentStep}
+                totalSteps={WIZARD_STEPS.length}
+                isLastStep={isLastStep}
+                isSubmitting={isSubmitting}
+                campaignId={campaignId}
+                onPrevious={handlePrevious}
+                onNext={handleNext}
+                onSave={handleSave}
+              />
+            </div>
+          </Card>
+        </Layout.Section>
+      </Layout>
+    </Page>
+  );
+}
+

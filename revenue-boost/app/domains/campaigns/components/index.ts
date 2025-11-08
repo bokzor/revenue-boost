@@ -1,0 +1,29 @@
+/**
+ * Campaign Components Index
+ * 
+ * Centralized exports for all campaign-related components
+ */
+
+export { CampaignForm } from "./CampaignForm";
+export { CampaignFormWithABTesting } from "./CampaignFormWithABTesting";
+export { CampaignList } from "./CampaignList";
+export { CampaignDetail } from "./CampaignDetail";
+export { GoalCard } from "./GoalCard";
+export { GoalSelectorV2 } from "./GoalSelectorV2";
+export { ScheduleSettingsStep } from "./ScheduleSettingsStep";
+export { TagManager } from "./TagManager";
+export { TemplateCard } from "./TemplateCard";
+export { TemplateSelector } from "./TemplateSelector";
+export { WizardProgressIndicator } from "./WizardProgressIndicator";
+
+// Re-export sub-components
+export * from "./ab-testing";
+export * from "./form";
+export * from "./goals";
+export * from "./newsletter";
+export * from "./sales";
+export * from "./schedule";
+export * from "./sections";
+export * from "./steps";
+export * from "./templates";
+export * from "./wizard";

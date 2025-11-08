@@ -1,0 +1,24 @@
+import { defineConfig } from 'vitest/config';
+import tsconfigPaths from 'vite-tsconfig-paths';
+
+export default defineConfig({
+  plugins: [tsconfigPaths()],
+  test: {
+    globals: true,
+    environment: 'happy-dom',
+    include: ['tests/unit/**/*.test.ts', 'tests/unit/**/*.test.tsx'],
+    exclude: ['tests/e2e/**', 'node_modules/**'],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json', 'html'],
+      exclude: [
+        'node_modules/',
+        'build/',
+        'tests/e2e/',
+        '**/*.config.ts',
+        '**/*.d.ts',
+      ],
+    },
+  },
+});
+

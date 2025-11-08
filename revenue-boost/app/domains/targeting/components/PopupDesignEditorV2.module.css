@@ -1,0 +1,21 @@
+/* Sticky wrapper for Live Preview - scoped to Design editor only */
+.stickyPreview {
+  position: sticky;
+  top: var(--app-sticky-top, 20px);
+  z-index: 1;
+  align-self: flex-start;
+}
+
+/* Optional: container that allows the preview content to scroll within viewport */
+.stickyPreviewScrollable {
+  align-self: flex-start;
+  max-height: calc(100vh - var(--app-sticky-top, 20px));
+  overflow-y: auto;
+}
+
+@media (max-width: 768px) {
+  .stickyPreview {
+    position: static;
+    top: auto;
+  }
+}

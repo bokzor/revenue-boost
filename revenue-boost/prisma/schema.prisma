@@ -1,0 +1,218 @@
+// Revenue Boost MVP - Minimal Schema with TypeScript Safety
+// Focused on Campaign and A/B Testing core functionality
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Session {
+  id            String    @id
+  shop          String
+  state         String
+  isOnline      Boolean   @default(false)
+  scope         String?
+  expires       DateTime?
+  accessToken   String
+  userId        BigInt?
+  firstName     String?
+  lastName      String?
+  email         String?
+  accountOwner  Boolean   @default(false)
+  locale        String?
+  collaborator  Boolean?  @default(false)
+  emailVerified Boolean?  @default(false)
+}
+
+// ============================================================================
+// CORE MODELS
+// ============================================================================
+
+model Store {
+  id            String   @id @default(cuid())
+  shopifyDomain String   @unique
+  shopifyShopId BigInt   @unique
+  accessToken   String
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  campaigns   Campaign[]
+  experiments Experiment[]
+  templates   Template[]
+
+  @@index([shopifyDomain, isActive])
+  @@map("stores")
+}
+
+model Campaign {
+  id          String         @id @default(cuid())
+  storeId     String
+  name        String
+  description String?
+  goal        CampaignGoal
+  status      CampaignStatus @default(DRAFT)
+  priority    Int            @default(0)
+
+  // Template reference
+  templateId   String? // Reference to Template.id
+  templateType TemplateType // Template type enum for validation (required)
+
+  // JSON configurations with full TypeScript safety via Zod
+  contentConfig  Json @default("{}") // PopupContentConfig
+  designConfig   Json @default("{}") // PopupDesignConfig
+  targetRules    Json @default("{}") // TargetRulesConfig
+  discountConfig Json @default("{}") // DiscountConfig
+
+  // A/B Testing
+  experimentId String?
+  variantKey   VariantKey? // A, B, C, D
+  isControl    Boolean     @default(false)
+
+  // Schedule
+  startDate DateTime?
+  endDate   DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  // Relations
+  store      Store       @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  experiment Experiment? @relation(fields: [experimentId], references: [id], onDelete: SetNull)
+  template   Template?   @relation(fields: [templateId], references: [id], onDelete: SetNull)
+
+  @@index([storeId, status])
+  @@index([experimentId, variantKey])
+  @@index([goal, status])
+  @@index([priority])
+  @@map("campaigns")
+}
+
+model Experiment {
+  id          String           @id @default(cuid())
+  storeId     String
+  name        String
+  description String?
+  hypothesis  String?
+  status      ExperimentStatus @default(DRAFT)
+
+  // JSON configurations with full TypeScript safety via Zod
+  trafficAllocation Json @default("{}")
+  statisticalConfig Json @default("{}")
+  successMetrics    Json @default("{}")
+
+  // Timeline
+  startDate           DateTime?
+  endDate             DateTime?
+  plannedDurationDays Int?
+
+  // Results
+  winnerId         String?
+  winnerDeclaredAt DateTime?
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  store     Store      @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  campaigns Campaign[] // Variant campaigns
+
+  @@index([storeId, status])
+  @@index([status, startDate, endDate])
+  @@index([winnerId])
+  @@map("experiments")
+}
+
+model Template {
+  id           String         @id @default(cuid())
+  storeId      String? // NULL for global templates, set for store-specific templates
+  templateType TemplateType // Template type enum
+  name         String
+  description  String
+  category     String // Category grouping (popup, embedded, slide_out, etc.)
+  goals        CampaignGoal[] // Array of CampaignGoal values this template supports
+
+  // JSON configurations with full TypeScript safety via Zod (matching original field names)
+  contentConfig  Json @default("{}") // Default content values for this template
+  fields         Json @default("[]") // Array of TemplateField definitions (customizable fields)
+  targetRules    Json @default("{}") // TargetRulesConfig
+  discountConfig Json @default("{}") // DiscountConfig
+  designConfig   Json @default("{}") // TemplateDesign configuration
+
+  // Metadata
+  isDefault Boolean @default(false) // System template vs custom
+  isActive  Boolean @default(true)
+  priority  Int     @default(1)
+  icon      String? // Icon identifier
+  preview   String? // Preview image URL
+
+  // Performance tracking
+  conversionRate Float?
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  store     Store?     @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  campaigns Campaign[] // Campaigns using this template
+
+  @@index([storeId])
+  @@index([templateType])
+  @@index([category])
+  @@index([isActive])
+  @@index([priority])
+  @@index([goals])
+  @@map("templates")
+}
+
+// ============================================================================
+// ENUMS
+// ============================================================================
+
+enum CampaignGoal {
+  NEWSLETTER_SIGNUP
+  INCREASE_REVENUE
+  ENGAGEMENT
+}
+
+enum CampaignStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  ARCHIVED
+}
+
+enum ExperimentStatus {
+  DRAFT
+  RUNNING
+  PAUSED
+  COMPLETED
+  ARCHIVED
+}
+
+enum VariantKey {
+  A
+  B
+  C
+  D
+}
+
+enum TemplateType {
+  NEWSLETTER
+  SPIN_TO_WIN
+  FLASH_SALE
+  FREE_SHIPPING
+  EXIT_INTENT
+  CART_ABANDONMENT
+  PRODUCT_UPSELL
+  SOCIAL_PROOF
+  COUNTDOWN_TIMER
+  SCRATCH_CARD
+  ANNOUNCEMENT
+}

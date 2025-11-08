@@ -1,0 +1,114 @@
+/**
+ * Real-Time Preview Panel Styles
+ * Based on research: Live preview with simulated website background
+ */
+
+.previewPanel {
+  width: 100%;
+}
+
+.previewPanel.sticky {
+  position: sticky;
+  top: var(--p-space-400);
+}
+
+.previewContainer {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: var(--p-space-400);
+  background-color: var(--p-color-bg-surface-secondary);
+  border-radius: var(--p-border-radius-300);
+  min-height: 400px;
+}
+
+.previewFrame {
+  position: relative;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Simulated Website Background */
+.websiteBackground {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ffffff;
+  z-index: 1;
+}
+
+.websiteHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  background-color: #f6f6f7;
+  border-bottom: 1px solid #e1e3e5;
+}
+
+.websiteLogo {
+  width: 120px;
+  height: 32px;
+  background: linear-gradient(90deg, #d1d5db 0%, #9ca3af 100%);
+  border-radius: 4px;
+}
+
+.websiteNav {
+  display: flex;
+  gap: 16px;
+}
+
+.websiteNavItem {
+  width: 60px;
+  height: 20px;
+  background-color: #e5e7eb;
+  border-radius: 4px;
+}
+
+.websiteContent {
+  padding: 32px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.websiteContentBlock {
+  height: 80px;
+  background: linear-gradient(90deg, #f3f4f6 0%, #e5e7eb 100%);
+  border-radius: 8px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .previewContainer {
+    padding: var(--p-space-200);
+  }
+
+  .previewFrame {
+    transform: scale(0.8) !important;
+  }
+
+  .websiteHeader {
+    padding: 12px 16px;
+  }
+
+  .websiteLogo {
+    width: 80px;
+    height: 24px;
+  }
+
+  .websiteNavItem {
+    width: 40px;
+    height: 16px;
+  }
+
+  .websiteContent {
+    padding: 16px;
+    gap: 16px;
+  }
+
+  .websiteContentBlock {
+    height: 60px;
+  }
+}

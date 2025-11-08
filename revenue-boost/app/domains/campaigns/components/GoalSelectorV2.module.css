@@ -1,0 +1,225 @@
+/* Header */
+.header {
+  text-align: center;
+  max-width: 700px;
+  margin: 0 auto 32px;
+}
+
+/* Card Wrapper */
+.cardWrapper {
+  height: 100%;
+}
+
+/* Goal Card */
+.goalCard {
+  width: 100%;
+  height: 100%;
+  min-height: 280px;
+  padding: 24px;
+  background: var(--p-color-bg-surface);
+  border: 2px solid var(--p-color-border);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.goalCard:hover {
+  border-color: var(--p-color-border-brand);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
+}
+
+.goalCard:focus {
+  outline: 2px solid var(--p-color-border-focus);
+  outline-offset: 2px;
+}
+
+.goalCard.selected {
+  border-color: var(--p-color-border-success);
+  background: var(--p-color-bg-surface-success);
+  box-shadow: 0 0 0 3px rgba(0, 128, 96, 0.1);
+}
+
+.goalCard.selected:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 128, 96, 0.15);
+}
+
+/* Selected Badge */
+.selectedBadge {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 32px;
+  height: 32px;
+  background: var(--p-color-bg-fill-success);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  animation: scaleIn 0.2s ease;
+}
+
+/* Checkmark style */
+.checkmark {
+  font-size: 18px;
+  font-weight: bold;
+  line-height: 1;
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+/* Bottom Badge */
+.bottomBadge {
+  position: absolute;
+  bottom: 16px;
+  left: 16px;
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Icon Wrapper */
+.iconWrapper {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.goalCard:hover .iconWrapper {
+  transform: scale(1.05);
+}
+
+/* Benefits Container */
+.benefitsContainer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.benefitPill {
+  padding: 6px 12px;
+  background: var(--p-color-bg-surface-secondary);
+  border: 1px solid var(--p-color-border-subdued);
+  border-radius: 16px;
+  font-size: 13px;
+  color: var(--p-color-text);
+  transition: all 0.2s ease;
+}
+
+.goalCard:hover .benefitPill {
+  background: var(--p-color-bg-surface-tertiary);
+  border-color: var(--p-color-border);
+}
+
+.goalCard.selected .benefitPill {
+  background: var(--p-color-bg-fill-success-secondary);
+  border-color: var(--p-color-border-success);
+}
+
+/* Metrics */
+.metrics {
+  padding: 6px 12px;
+  background: var(--p-color-bg-fill-info-secondary);
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Confirmation Box */
+.confirmationBox {
+  padding: 20px;
+  background: linear-gradient(
+    135deg,
+    var(--p-color-bg-fill-success-secondary) 0%,
+    var(--p-color-bg-surface) 100%
+  );
+  border-radius: 12px;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.confirmationIcon {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: white;
+}
+
+/* Pro Tip */
+.proTip {
+  padding: 20px;
+  background: var(--p-color-bg-surface-secondary);
+  border-radius: 12px;
+  border-left: 4px solid var(--p-color-border-info);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .goalCard {
+    min-height: 240px;
+    padding: 20px;
+  }
+
+  .iconWrapper {
+    width: 48px;
+    height: 48px;
+  }
+
+  .benefitPill {
+    font-size: 12px;
+    padding: 4px 10px;
+  }
+
+  .confirmationIcon {
+    width: 48px;
+    height: 48px;
+  }
+}
+
+/* Tablet - 1 column */
+@media (max-width: 1024px) and (min-width: 769px) {
+  .goalCard {
+    min-height: 260px;
+  }
+}

@@ -1,0 +1,69 @@
+.card {
+  cursor: pointer;
+  transition: transform 0.2s ease;
+  border-radius: var(--p-border-radius-300);
+}
+
+.card:hover {
+  transform: translateY(-2px);
+}
+
+.card:focus-within {
+  outline: 2px solid var(--p-color-border-focus);
+  outline-offset: 2px;
+}
+
+.card.selected {
+  border: 2px solid var(--p-color-border-success);
+}
+
+.icon {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--p-border-radius-200);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease;
+}
+
+.card:hover .icon {
+  transform: scale(1.1);
+}
+
+.benefit {
+  padding: var(--p-space-100) var(--p-space-300);
+  background-color: var(--p-color-bg-surface-secondary);
+  border-radius: var(--p-border-radius-full);
+}
+
+.selectedBadge {
+  padding: var(--p-space-300);
+  background-color: var(--p-color-bg-success-subdued);
+  border-radius: var(--p-border-radius-200);
+  animation: slideIn 0.3s ease-out;
+}
+
+.checkmark {
+  width: 24px;
+  height: 24px;
+  background-color: var(--p-color-bg-success);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+

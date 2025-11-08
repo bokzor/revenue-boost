@@ -1,0 +1,43 @@
+/**
+ * Condition Row Styles
+ */
+
+.conditionRow {
+  background-color: var(--p-color-bg-surface);
+  border: 1px solid var(--p-color-border);
+  border-radius: var(--p-border-radius-200);
+  padding: var(--p-space-300);
+}
+
+.conditionType {
+  flex: 1;
+  min-width: 180px;
+}
+
+.operator {
+  flex: 1;
+  min-width: 150px;
+}
+
+.value {
+  flex: 1;
+  min-width: 150px;
+}
+
+.removeButton {
+  flex-shrink: 0;
+}
+
+/* Responsive: Stack on mobile */
+@media (max-width: 768px) {
+  .conditionRow > div {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .conditionType,
+  .operator,
+  .value {
+    min-width: 100%;
+  }
+}

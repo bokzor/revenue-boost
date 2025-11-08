@@ -1,0 +1,28 @@
+/**
+ * Conditional Trigger Panel Styles
+ */
+
+.radioOption {
+  padding: var(--p-space-300);
+  border: 2px solid var(--p-color-border);
+  border-radius: var(--p-border-radius-200);
+  cursor: pointer;
+  transition: all 150ms ease-in-out;
+}
+
+.radioOption:hover {
+  border-color: var(--p-color-border-hover);
+  background-color: var(--p-color-bg-surface-hover);
+}
+
+.radioOptionSelected {
+  border-color: var(--p-color-border-success);
+  background-color: var(--p-color-bg-surface-success);
+}
+
+.estimatedReach {
+  padding: var(--p-space-300);
+  background-color: var(--p-color-bg-surface-info);
+  border-radius: var(--p-border-radius-200);
+  border: 1px solid var(--p-color-border-info);
+}

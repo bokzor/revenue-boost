@@ -1,0 +1,287 @@
+/**
+ * Color Customization Panel Styles
+ * Based on research: Visual color pickers with swatches
+ */
+
+.colorPreview {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--p-border-radius-200);
+  border: 2px solid var(--p-color-border);
+  cursor: pointer;
+  transition: all 150ms ease-in-out;
+  flex-shrink: 0;
+}
+
+.colorPreview:hover {
+  border-color: var(--p-color-border-hover);
+  transform: scale(1.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.colorSwatch {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--p-border-radius-100);
+  border: 2px solid var(--p-color-border);
+  cursor: pointer;
+  transition: all 150ms ease-in-out;
+  background: none;
+  padding: 0;
+}
+
+.colorSwatch:hover {
+  border-color: var(--p-color-border-hover);
+  transform: scale(1.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.colorSwatch:active {
+  transform: scale(0.95);
+}
+
+.colorSwatch:focus {
+  outline: 2px solid var(--p-color-border-focus);
+  outline-offset: 2px;
+}
+
+/* Enhanced Preset Cards */
+.presetGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.presetCard {
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  background: #ffffff;
+}
+
+.presetCard:hover {
+  border-color: #3b82f6;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+}
+
+.presetCard.selected {
+  border-color: #3b82f6;
+  background: #eff6ff;
+  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.15);
+}
+
+.selectedBadge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 24px;
+  height: 24px;
+  background: #3b82f6;
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: bold;
+  border: 2px solid white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.presetPreview {
+  height: 120px;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 12px;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.presetContent {
+  text-align: center;
+  width: 100%;
+}
+
+.presetTitle {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  line-height: 1.3;
+}
+
+.presetDescription {
+  font-size: 14px;
+  opacity: 0.8;
+  margin-bottom: 12px;
+  line-height: 1.4;
+}
+
+.presetButton {
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-block;
+}
+
+.presetButton:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.presetInfo {
+  padding: 0 4px;
+}
+
+/* Brand Preview */
+.brandPreview {
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+  margin: 16px 0;
+}
+
+.brandPreviewContent {
+  padding: 24px;
+  text-align: center;
+  border: 1px solid;
+}
+
+.brandPreviewTitle {
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 12px;
+  line-height: 1.3;
+}
+
+.brandPreviewDescription {
+  font-size: 16px;
+  opacity: 0.85;
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
+.brandPreviewButton {
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-block;
+}
+
+.brandPreviewButton:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Loading States */
+.previewLoading {
+  position: relative;
+  pointer-events: none;
+}
+
+.previewLoading::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .presetGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .presetCard {
+    padding: 12px;
+  }
+
+  .presetPreview {
+    height: 100px;
+    padding: 12px;
+  }
+
+  .brandPreviewContent {
+    padding: 16px;
+  }
+}
+
+/* Animation Classes */
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.02);
+  }
+}
+
+/* Enhanced Focus States */
+.presetCard:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .presetCard {
+    border-width: 3px;
+  }
+
+  .colorSwatch,
+  .colorPreview {
+    border-width: 2px;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .colorPreview,
+  .colorSwatch,
+  .presetCard,
+  .presetButton,
+  .brandPreviewButton {
+    transition: none;
+  }
+
+  .presetCard:hover,
+  .colorPreview:hover,
+  .colorSwatch:hover {
+    transform: none;
+  }
+}

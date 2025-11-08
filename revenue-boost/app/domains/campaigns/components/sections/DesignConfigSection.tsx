@@ -1,0 +1,150 @@
+/**
+ * Design Configuration Section
+ *
+ * Form section for configuring popup design and appearance
+ */
+
+import { TextField, SelectField, FormGrid } from "../form";
+import type { DesignConfig } from "../../types/campaign";
+import { useFieldUpdater } from "~/shared/hooks/useFieldUpdater";
+
+export interface DesignConfigSectionProps {
+  design: Partial<DesignConfig>;
+  errors?: Record<string, string>;
+  onChange: (design: Partial<DesignConfig>) => void;
+}
+
+export function DesignConfigSection({
+  design,
+  onChange,
+}: DesignConfigSectionProps) {
+  const updateField = useFieldUpdater(design, onChange);
+
+  return (
+    <>
+      <FormGrid columns={2}>
+        <SelectField
+          label="Theme"
+          name="design.theme"
+          value={design.theme || "professional-blue"}
+          options={[
+            { label: "Professional Blue", value: "professional-blue" },
+            { label: "Vibrant Orange", value: "vibrant-orange" },
+            { label: "Elegant Purple", value: "elegant-purple" },
+            { label: "Minimal Gray", value: "minimal-gray" },
+          ]}
+          helpText="Pre-designed color scheme"
+          onChange={(value) => updateField("theme", value as DesignConfig["theme"])}
+        />
+
+        <SelectField
+          label="Position"
+          name="design.position"
+          value={design.position || "center"}
+          options={[
+            { label: "Center", value: "center" },
+            { label: "Top", value: "top" },
+            { label: "Bottom", value: "bottom" },
+            { label: "Left", value: "left" },
+            { label: "Right", value: "right" },
+          ]}
+          helpText="Popup position on screen"
+          onChange={(value) => updateField("position", value as DesignConfig["position"])}
+        />
+      </FormGrid>
+
+      <FormGrid columns={2}>
+        <SelectField
+          label="Size"
+          name="design.size"
+          value={design.size || "medium"}
+          options={[
+            { label: "Small", value: "small" },
+            { label: "Medium", value: "medium" },
+            { label: "Large", value: "large" },
+          ]}
+          helpText="Popup size"
+          onChange={(value) => updateField("size", value as DesignConfig["size"])}
+        />
+
+        <SelectField
+          label="Animation"
+          name="design.animation"
+          value={design.animation || "fade"}
+          options={[
+            { label: "Fade", value: "fade" },
+            { label: "Slide", value: "slide" },
+            { label: "Bounce", value: "bounce" },
+            { label: "None", value: "none" },
+          ]}
+          helpText="Entry animation"
+          onChange={(value) => updateField("animation", value as DesignConfig["animation"])}
+        />
+      </FormGrid>
+
+      <FormGrid columns={2}>
+        <TextField
+          label="Border Radius"
+          name="design.borderRadius"
+          value={design.borderRadius?.toString() || "8"}
+          placeholder="8"
+          helpText="Corner roundness (0-50)"
+          onChange={(value) => updateField("borderRadius", parseInt(value) || 8)}
+        />
+
+        <TextField
+          label="Overlay Opacity"
+          name="design.overlayOpacity"
+          value={design.overlayOpacity?.toString() || "0.8"}
+          placeholder="0.8"
+          helpText="Background overlay opacity (0-1)"
+          onChange={(value) => updateField("overlayOpacity", parseFloat(value) || 0.8)}
+        />
+      </FormGrid>
+
+      <h3>Custom Colors (Optional)</h3>
+      <p>Override theme colors with custom values</p>
+
+      <FormGrid columns={3}>
+        <TextField
+          label="Background Color"
+          name="design.backgroundColor"
+          value={design.backgroundColor || ""}
+          placeholder="#FFFFFF"
+          helpText="Hex color code"
+          onChange={(value) => updateField("backgroundColor", value || undefined)}
+        />
+
+        <TextField
+          label="Text Color"
+          name="design.textColor"
+          value={design.textColor || ""}
+          placeholder="#000000"
+          helpText="Hex color code"
+          onChange={(value) => updateField("textColor", value || undefined)}
+        />
+
+        <TextField
+          label="Button Color"
+          name="design.buttonColor"
+          value={design.buttonColor || ""}
+          placeholder="#3B82F6"
+          helpText="Hex color code"
+          onChange={(value) => updateField("buttonColor", value || undefined)}
+        />
+      </FormGrid>
+
+      <TextField
+        label="Custom CSS"
+        name="design.customCSS"
+        value={design.customCSS || ""}
+        placeholder=".popup { /* custom styles */ }"
+        helpText="Advanced: Add custom CSS for fine-tuned styling"
+        multiline
+        rows={4}
+        onChange={(value) => updateField("customCSS", value || undefined)}
+      />
+    </>
+  );
+}
+
