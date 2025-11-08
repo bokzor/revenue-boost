@@ -1,0 +1,70 @@
+{
+  "qualityPrinciples": {
+    "DRY": {
+      "description": "Don't Repeat Yourself",
+      "checks": [
+        "Search for duplicated code patterns",
+        "Look for similar functions that could be consolidated",
+        "Check for repeated logic across components"
+      ]
+    },
+    "YAGNI": {
+      "description": "You Aren't Gonna Need It",
+      "checks": [
+        "Remove unused code and imports",
+        "Avoid speculative features",
+        "Keep implementations simple and focused"
+      ]
+    },
+    "SOLID": {
+      "description": "SOLID Principles",
+      "checks": [
+        "Single Responsibility: Each module has one clear purpose",
+        "Open/Closed: Extend behavior without modifying existing code",
+        "Liskov Substitution: Maintain interface contracts",
+        "Interface Segregation: Keep interfaces focused",
+        "Dependency Inversion: Depend on abstractions"
+      ]
+    },
+    "COMPLETENESS": {
+      "description": "Complete all related changes",
+      "checks": [
+        "Update all callers of modified functions",
+        "Update all implementations of changed interfaces",
+        "Update affected tests",
+        "Update type definitions",
+        "Update documentation if needed"
+      ]
+    }
+  },
+  "validationSteps": [
+    {
+      "name": "Build",
+      "command": "npm run build",
+      "required": true,
+      "description": "Compile TypeScript and build the application"
+    },
+    {
+      "name": "Lint",
+      "command": "npm run lint",
+      "required": true,
+      "description": "Check code style and potential issues"
+    },
+    {
+      "name": "Type Check",
+      "command": "npm run typecheck",
+      "required": true,
+      "description": "Verify TypeScript types"
+    },
+    {
+      "name": "Tests",
+      "command": "npm run test:run",
+      "required": false,
+      "description": "Run test suite"
+    }
+  ],
+  "maxIterations": 5,
+  "autoFix": true,
+  "verboseOutput": true
+}
+
