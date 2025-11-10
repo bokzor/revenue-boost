@@ -4,3 +4,4 @@ public/build
 */*.yml
 .shopify
 tests/e2e/old
+extensions/storefront-popup/assets

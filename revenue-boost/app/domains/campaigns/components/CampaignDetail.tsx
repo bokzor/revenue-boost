@@ -11,9 +11,8 @@ import {
   Card,
   Text,
   Badge,
-  Button,
-  ButtonGroup,
-  Stack,
+  InlineStack,
+  BlockStack,
   Box,
   Divider,
   DescriptionList,
@@ -21,12 +20,10 @@ import {
   Banner,
   ProgressBar,
   DataTable,
-  Thumbnail,
   EmptyState,
   Spinner,
 } from '@shopify/polaris';
-import type { CampaignWithConfigs } from '~/domains/campaigns/types/campaign';
-import type { CampaignStatus, CampaignGoal, TemplateType } from '~/domains/campaigns/types/campaign';
+import type { CampaignWithConfigs , CampaignStatus, CampaignGoal, TemplateType } from '~/domains/campaigns/types/campaign';
 
 // ============================================================================
 // TYPES
@@ -78,18 +75,19 @@ export function CampaignDetail({
 
   // Helper functions
   const getStatusBadge = (status: CampaignStatus) => {
-    const statusConfig = {
-      DRAFT: { status: 'info' as const, children: 'Draft' },
-      ACTIVE: { status: 'success' as const, children: 'Active' },
-      PAUSED: { status: 'warning' as const, children: 'Paused' },
-      COMPLETED: { status: 'complete' as const, children: 'Completed' },
+    const statusConfig: Record<CampaignStatus, { tone: 'info' | 'success' | 'warning' | 'critical'; children: string }> = {
+      DRAFT: { tone: 'info', children: 'Draft' },
+      ACTIVE: { tone: 'success', children: 'Active' },
+      PAUSED: { tone: 'warning', children: 'Paused' },
+      ARCHIVED: { tone: 'critical', children: 'Archived' },
     };
-    
-    return statusConfig[status] || { status: 'info' as const, children: status };
+
+    return statusConfig[status] || { tone: 'info', children: status };
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+  const formatDate = (date: string | Date) => {
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    return dateObj.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
@@ -139,10 +137,10 @@ export function CampaignDetail({
       <Page>
         <Card>
           <Box padding="800">
-            <Stack alignment="center">
+            <BlockStack align="center">
               <Spinner size="large" />
               <Text variant="bodyMd" as="p">Loading campaign details...</Text>
-            </Stack>
+            </BlockStack>
           </Box>
         </Card>
       </Page>
@@ -162,7 +160,7 @@ export function CampaignDetail({
             }}
             image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
           >
-            <p>The campaign you're looking for doesn't exist or has been deleted.</p>
+            <p>The campaign you&apos;re looking for doesn&apos;t exist or has been deleted.</p>
           </EmptyState>
         </Card>
       </Page>
@@ -222,16 +220,16 @@ export function CampaignDetail({
 
   // Overview tab content
   const overviewContent = (
-    <Stack vertical spacing="loose">
+    <BlockStack gap="400">
       {/* Status Banner */}
       {isDraft && (
-        <Banner status="info">
+        <Banner tone="info">
           <p>This campaign is in draft mode. Activate it to start showing to customers.</p>
         </Banner>
       )}
 
       {isActive && (
-        <Banner status="success">
+        <Banner tone="success">
           <p>This campaign is currently active and showing to customers.</p>
         </Banner>
       )}
@@ -239,7 +237,7 @@ export function CampaignDetail({
       {/* Basic Information */}
       <Card>
         <Box padding="400">
-          <Stack vertical spacing="loose">
+          <BlockStack gap="400">
             <Text variant="headingMd" as="h3">Basic Information</Text>
             <Divider />
 
@@ -279,120 +277,120 @@ export function CampaignDetail({
                 },
               ]}
             />
-          </Stack>
+          </BlockStack>
         </Box>
       </Card>
 
       {/* Quick Metrics */}
       <Card>
         <Box padding="400">
-          <Stack vertical spacing="loose">
+          <BlockStack gap="400">
             <Text variant="headingMd" as="h3">Performance Summary</Text>
             <Divider />
 
-            <Stack distribution="fillEvenly">
-              <Stack vertical spacing="tight" alignment="center">
+            <InlineStack gap="400">
+              <BlockStack gap="200" align="center">
                 <Text variant="headingLg" as="p">{metrics.views.toLocaleString()}</Text>
-                <Text variant="bodySm" color="subdued" as="p">Views</Text>
-              </Stack>
+                <Text variant="bodySm" tone="subdued" as="p">Views</Text>
+              </BlockStack>
 
-              <Stack vertical spacing="tight" alignment="center">
+              <BlockStack gap="200" align="center">
                 <Text variant="headingLg" as="p">{metrics.conversions}</Text>
-                <Text variant="bodySm" color="subdued" as="p">Conversions</Text>
-              </Stack>
+                <Text variant="bodySm" tone="subdued" as="p">Conversions</Text>
+              </BlockStack>
 
-              <Stack vertical spacing="tight" alignment="center">
+              <BlockStack gap="200" align="center">
                 <Text variant="headingLg" as="p">{metrics.conversionRate.toFixed(2)}%</Text>
-                <Text variant="bodySm" color="subdued" as="p">Conversion Rate</Text>
-              </Stack>
+                <Text variant="bodySm" tone="subdued" as="p">Conversion Rate</Text>
+              </BlockStack>
 
-              <Stack vertical spacing="tight" alignment="center">
+              <BlockStack gap="200" align="center">
                 <Text variant="headingLg" as="p">{formatCurrency(metrics.revenue)}</Text>
-                <Text variant="bodySm" color="subdued" as="p">Revenue</Text>
-              </Stack>
-            </Stack>
-          </Stack>
+                <Text variant="bodySm" tone="subdued" as="p">Revenue</Text>
+              </BlockStack>
+            </InlineStack>
+          </BlockStack>
         </Box>
       </Card>
-    </Stack>
+    </BlockStack>
   );
 
   // Configuration tab content
   const configurationContent = (
-    <Stack vertical spacing="loose">
+    <BlockStack gap="400">
       {/* Content Configuration */}
       <Card>
         <Box padding="400">
-          <Stack vertical spacing="loose">
+          <BlockStack gap="400">
             <Text variant="headingMd" as="h3">Content Configuration</Text>
             <Divider />
 
             <Box padding="400" background="bg-surface-secondary">
-              <Text variant="bodyMd" as="pre" fontFamily="monospace">
+              <pre style={{ margin: 0, fontFamily: 'monospace', fontSize: '0.875rem' }}>
                 {JSON.stringify(campaign.contentConfig, null, 2)}
-              </Text>
+              </pre>
             </Box>
-          </Stack>
+          </BlockStack>
         </Box>
       </Card>
 
       {/* Design Configuration */}
       <Card>
         <Box padding="400">
-          <Stack vertical spacing="loose">
+          <BlockStack gap="400">
             <Text variant="headingMd" as="h3">Design Configuration</Text>
             <Divider />
 
             <Box padding="400" background="bg-surface-secondary">
-              <Text variant="bodyMd" as="pre" fontFamily="monospace">
+              <pre style={{ margin: 0, fontFamily: 'monospace', fontSize: '0.875rem' }}>
                 {JSON.stringify(campaign.designConfig, null, 2)}
-              </Text>
+              </pre>
             </Box>
-          </Stack>
+          </BlockStack>
         </Box>
       </Card>
 
       {/* Targeting Rules */}
       <Card>
         <Box padding="400">
-          <Stack vertical spacing="loose">
+          <BlockStack gap="400">
             <Text variant="headingMd" as="h3">Targeting Rules</Text>
             <Divider />
 
             <Box padding="400" background="bg-surface-secondary">
-              <Text variant="bodyMd" as="pre" fontFamily="monospace">
+              <pre style={{ margin: 0, fontFamily: 'monospace', fontSize: '0.875rem' }}>
                 {JSON.stringify(campaign.targetRules, null, 2)}
-              </Text>
+              </pre>
             </Box>
-          </Stack>
+          </BlockStack>
         </Box>
       </Card>
 
       {/* Discount Configuration */}
       <Card>
         <Box padding="400">
-          <Stack vertical spacing="loose">
+          <BlockStack gap="400">
             <Text variant="headingMd" as="h3">Discount Configuration</Text>
             <Divider />
 
             <Box padding="400" background="bg-surface-secondary">
-              <Text variant="bodyMd" as="pre" fontFamily="monospace">
+              <pre style={{ margin: 0, fontFamily: 'monospace', fontSize: '0.875rem' }}>
                 {JSON.stringify(campaign.discountConfig, null, 2)}
-              </Text>
+              </pre>
             </Box>
-          </Stack>
+          </BlockStack>
         </Box>
       </Card>
-    </Stack>
+    </BlockStack>
   );
 
   // Metrics tab content
   const metricsContent = (
-    <Stack vertical spacing="loose">
+    <BlockStack gap="400">
       {/* Performance Metrics */}
       <Card>
         <Box padding="400">
-          <Stack vertical spacing="loose">
+          <BlockStack gap="400">
             <Text variant="headingMd" as="h3">Performance Metrics</Text>
             <Divider />
 
@@ -408,48 +406,48 @@ export function CampaignDetail({
                 ['Total Clicks', metrics.clicks.toString(), '+9.8%'],
               ]}
             />
-          </Stack>
+          </BlockStack>
         </Box>
       </Card>
 
       {/* Conversion Funnel */}
       <Card>
         <Box padding="400">
-          <Stack vertical spacing="loose">
+          <BlockStack gap="400">
             <Text variant="headingMd" as="h3">Conversion Funnel</Text>
             <Divider />
 
-            <Stack vertical spacing="loose">
-              <Stack alignment="center" distribution="equalSpacing">
+            <BlockStack gap="400">
+              <InlineStack align="space-between">
                 <Text variant="bodyMd" as="p">Views</Text>
                 <Text variant="bodyMd" as="p">{metrics.views.toLocaleString()}</Text>
-              </Stack>
+              </InlineStack>
               <ProgressBar progress={100} size="small" />
 
-              <Stack alignment="center" distribution="equalSpacing">
+              <InlineStack align="space-between">
                 <Text variant="bodyMd" as="p">Clicks</Text>
                 <Text variant="bodyMd" as="p">{metrics.clicks}</Text>
-              </Stack>
+              </InlineStack>
               <ProgressBar progress={(metrics.clicks / metrics.views) * 100} size="small" />
 
-              <Stack alignment="center" distribution="equalSpacing">
+              <InlineStack align="space-between">
                 <Text variant="bodyMd" as="p">Conversions</Text>
                 <Text variant="bodyMd" as="p">{metrics.conversions}</Text>
-              </Stack>
+              </InlineStack>
               <ProgressBar progress={(metrics.conversions / metrics.views) * 100} size="small" />
-            </Stack>
-          </Stack>
+            </BlockStack>
+          </BlockStack>
         </Box>
       </Card>
-    </Stack>
+    </BlockStack>
   );
 
   // History tab content
   const historyContent = (
-    <Stack vertical spacing="loose">
+    <BlockStack gap="400">
       <Card>
         <Box padding="400">
-          <Stack vertical spacing="loose">
+          <BlockStack gap="400">
             <Text variant="headingMd" as="h3">Campaign History</Text>
             <Divider />
 
@@ -461,10 +459,10 @@ export function CampaignDetail({
                 [formatDate(campaign.createdAt), 'Created', 'Admin', 'Campaign created'],
               ]}
             />
-          </Stack>
+          </BlockStack>
         </Box>
       </Card>
-    </Stack>
+    </BlockStack>
   );
 
   // Get current tab content
@@ -493,7 +491,7 @@ export function CampaignDetail({
       secondaryActions={secondaryActions}
       titleMetadata={<Badge {...statusBadge} />}
     >
-      <Stack vertical spacing="loose">
+      <BlockStack gap="400">
         {/* Tabs */}
         <Card>
           <Tabs
@@ -506,7 +504,7 @@ export function CampaignDetail({
             </Box>
           </Tabs>
         </Card>
-      </Stack>
+      </BlockStack>
     </Page>
   );
 }

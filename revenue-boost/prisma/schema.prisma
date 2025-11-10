@@ -42,9 +42,10 @@ model Store {
   updatedAt     DateTime @updatedAt
 
   // Relations
-  campaigns   Campaign[]
-  experiments Experiment[]
-  templates   Template[]
+  campaigns        Campaign[]
+  experiments      Experiment[]
+  templates        Template[]
+  customerSegments CustomerSegment[]
 
   @@index([shopifyDomain, isActive])
   @@map("stores")
@@ -169,6 +170,30 @@ model Template {
   @@index([priority])
   @@index([goals])
   @@map("templates")
+}
+
+model CustomerSegment {
+  id          String  @id @default(cuid())
+  storeId     String? // NULL for global/system segments, set for store-specific custom segments
+  name        String
+  description String
+  conditions  Json    @default("[]") // JSON: SegmentCondition[]
+  icon        String? // Icon identifier (e.g., "👋", "🔄", "💎")
+  priority    Int     @default(1)
+  isDefault   Boolean @default(false) // System segment vs custom
+  isActive    Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  store Store? @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@unique([storeId, name])
+  @@unique([name, isDefault]) // For upserting global segments (storeId = null, isDefault = true)
+  @@index([storeId])
+  @@index([isActive])
+  @@index([isDefault])
+  @@map("customer_segments")
 }
 
 // ============================================================================

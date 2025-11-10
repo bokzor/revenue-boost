@@ -38,7 +38,7 @@ export function TagManager({ tags = [], onTagsChange }: TagManagerProps) {
     onTagsChange(newTags);
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (e.key === "Enter") {
       e.preventDefault();
       handleAddTag();

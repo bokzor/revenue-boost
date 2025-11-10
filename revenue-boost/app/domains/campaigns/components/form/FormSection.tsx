@@ -53,7 +53,7 @@ export interface FormGridProps {
 
 export function FormGrid({ columns = 2, gap = "loose", children }: FormGridProps) {
   const gridClass = `form-grid form-grid--${columns}-col form-grid--${gap}`;
-  
+
   return (
     <div className={gridClass}>
       {children}
@@ -123,15 +123,15 @@ export function FormActions({
       >
         {primaryLabel}
       </s-button>
-      
+
       {secondaryLabel && secondaryAction && (
         <s-button onClick={secondaryAction}>
           {secondaryLabel}
         </s-button>
       )}
-      
+
       {cancelUrl && (
-        <s-button url={cancelUrl}>
+        <s-button href={cancelUrl}>
           Cancel
         </s-button>
       )}
@@ -156,14 +156,14 @@ export interface StepIndicatorProps {
 
 export function StepIndicator({ steps, currentStep }: StepIndicatorProps) {
   const currentIndex = steps.findIndex(step => step.id === currentStep);
-  
+
   return (
     <div className="step-indicator">
       {steps.map((step, index) => {
         const isActive = step.id === currentStep;
         const isCompleted = step.completed || index < currentIndex;
         const status = isCompleted ? "complete" : isActive ? "current" : "incomplete";
-        
+
         return (
           <div key={step.id} className={`step step--${status}`}>
             <span className="step__number">{index + 1}</span>

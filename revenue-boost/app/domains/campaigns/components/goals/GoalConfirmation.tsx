@@ -1,6 +1,6 @@
 /**
  * GoalConfirmation - Goal Selection Confirmation Component
- * 
+ *
  * SOLID Compliance:
  * - Single Responsibility: Shows confirmation of selected goal
  * - <50 lines
@@ -26,7 +26,7 @@ export function GoalConfirmation({ selectedGoal }: GoalConfirmationProps) {
             className={styles.confirmationIcon}
             style={{ backgroundColor: selectedGoal.iconColor }}
           >
-            <Icon source={IconComponent} />
+            <Icon source={IconComponent as any} />
           </div>
           <BlockStack gap="200">
             <Text as="h3" variant="headingMd" fontWeight="semibold">

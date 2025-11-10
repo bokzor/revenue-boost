@@ -14,55 +14,49 @@ import type { FrequencyCappingConfig } from "~/domains/targeting/components";
 import type { DiscountConfig } from "~/domains/commerce/services/discounts/discount.server";
 
 // Import comprehensive enhanced triggers types
-import { EnhancedTriggersConfig } from "~/domains/targeting/types/enhanced-triggers.types";
-import type { AudienceTargetingConfig } from "~/domains/targeting/components/AudienceTargetingPanel";
+import type {
+  EnhancedTriggersConfig,
+  AudienceTargetingConfig,
+  PageTargetingConfig,
+  CampaignGoal,
+  TriggerType as CampaignTriggerType,
+  TemplateType,
+} from "~/domains/campaigns/types/campaign";
 
 // Import extracted modules for SOLID compliance
 import { validateStep as validateStepFn, type ValidationResult } from "./wizard/validators";
-import {
-  createDefaultCampaignData,
-  getPageTargetingDefaults,
-} from "./wizard/defaults";
+import { createDefaultCampaignData } from "./wizard/defaults";
 import { buildGoalUpdates, getRecommendedTemplateId } from "./wizard/goal-config";
 
-// Core small unions
-export type CampaignGoal =
-  | "NEWSLETTER_SIGNUP"
-  | "INCREASE_REVENUE"
-  | "ENGAGEMENT";
-export type TriggerType =
-  | "page_load"
-  | "exit_intent"
-  | "scroll_depth"
-  | "time_delay"
-  | "custom_event"
-  | (string & {});
-export type TemplateType =
-  | "cart_upsell"
-  | "pdp_cross_sell"
-  | "post_add_upsell"
-  | "newsletter-elegant"
-  | "flash-sale-modal"
-  | "scratch_card"
-  | "spin_to_win"
-  | (string & {});
+// Re-export types from canonical source
+export type { CampaignGoal, TemplateType };
 
-// Targeting and audience config
-export interface PageTargetingConfig {
-  enabled: boolean;
-  pages: string[];
-  customPatterns: string[];
-  excludePages: string[];
-}
+// Wizard-specific TriggerType (extends canonical with string for flexibility)
+export type TriggerType = CampaignTriggerType | (string & {});
 
+// Re-export types for convenience
+export type { PageTargetingConfig, AudienceTargetingConfig, EnhancedTriggersConfig };
+
+// Simplified TargetRulesConfig for wizard state (legacy compatibility)
 export interface TargetRulesConfig {
   enabled?: boolean;
   segments?: string[];
   [key: string]: unknown;
 }
 
-// Design
-type PopupDesignConfig = {
+// ============================================================================
+// WIZARD-SPECIFIC FORM STATE TYPES
+// ============================================================================
+// Note: These types are specific to the wizard form state and differ from
+// the canonical domain types in ~/domains/campaigns/types/campaign.ts
+// They represent form data structure, not the final domain model.
+
+/**
+ * Wizard-specific popup design form data
+ * This is a simplified subset used in the wizard form state,
+ * distinct from the full PopupDesignConfig in design-editor.types.ts
+ */
+export type PopupDesignFormData = {
   id: string;
   title: string;
   description: string;
@@ -77,7 +71,10 @@ type PopupDesignConfig = {
   overlayOpacity: number;
 };
 
-// Proper typed interfaces for campaign configuration
+/**
+ * Campaign content configuration for wizard form state
+ * Maps to ContentConfig in the domain model but with wizard-specific fields
+ */
 export interface CampaignContentConfig {
   headline?: string;
   subheadline?: string;
@@ -114,7 +111,7 @@ export interface CampaignTemplateConfig {
 }
 
 export interface CampaignDesignConfig {
-  popupDesign?: PopupDesignConfig;
+  popupDesign?: PopupDesignFormData;
   goal?: string;
   frequencyCapping?: FrequencyCappingConfig;
   budget?: number;
@@ -154,7 +151,7 @@ export interface CampaignFormData {
     conditions?: unknown[];
   }; // Trigger configuration (delay, frequencyCapping, etc.)
   // popupDesign is available both at top level (legacy) and nested in designConfig.popupDesign
-  popupDesign?: PopupDesignConfig; // Legacy support - also available in designConfig.popupDesign
+  popupDesign?: PopupDesignFormData; // Legacy support - also available in designConfig.popupDesign
   enhancedTriggers: EnhancedTriggersConfig;
   audienceTargeting: AudienceTargetingConfig;
   pageTargeting?: PageTargetingConfig;
@@ -235,22 +232,31 @@ export function useWizardState(initialData?: Partial<CampaignFormData>) {
 
   // Set template type and apply template-specific defaults
   const setTemplateType = useCallback(
-    (templateType: TemplateType, templateObject?: { contentDefaults?: Record<string, unknown> }) => {
+    (
+      templateType: TemplateType,
+      templateObject?: {
+        contentDefaults?: Record<string, unknown>;
+        targetRules?: Record<string, unknown>;
+        design?: Record<string, unknown>;
+      }
+    ) => {
       console.log("[useWizardState] Setting template type:", templateType, {
         hasTemplateObject: !!templateObject,
         hasContentDefaults: !!templateObject?.contentDefaults,
+        hasTargetRules: !!templateObject?.targetRules,
       });
 
-      // Use contentDefaults from the template object (from database)
+      // Use configuration from the template object (from database)
       const templateDefaults = templateObject?.contentDefaults || {};
+      const templateTargetRules = templateObject?.targetRules as any || {};
 
       console.log(
-        "[useWizardState] Applying template defaults from database:",
+        "[useWizardState] Applying template configuration from database:",
         templateType,
       );
 
-      // Get page targeting defaults for this template
-      const pageTargetingDefaults = getPageTargetingDefaults(templateType);
+      // Extract page targeting from template's targetRules (if available)
+      const pageTargetingFromTemplate = templateTargetRules?.pageTargeting;
 
       const next: Partial<CampaignFormData> = {
         templateType,
@@ -259,13 +265,17 @@ export function useWizardState(initialData?: Partial<CampaignFormData>) {
           ...state.data.contentConfig,
           ...templateDefaults,
         },
-        // Apply page targeting defaults
-        pageTargeting: pageTargetingDefaults,
+        // Apply page targeting from template's targetRules (from database)
+        // If template doesn't have page targeting, keep existing or use empty config
+        ...(pageTargetingFromTemplate && {
+          pageTargeting: pageTargetingFromTemplate,
+        }),
         // Note: enhancedTriggers are now set by TemplateStep.tsx using convertDatabaseTriggersAuto
       };
 
       console.log("[useWizardState] Applied template configuration:", {
         contentFields: Object.keys(templateDefaults || {}),
+        hasPageTargeting: !!pageTargetingFromTemplate,
         source: templateObject ? "database" : "none",
       });
 

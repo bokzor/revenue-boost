@@ -311,7 +311,7 @@ export const CustomCSSEditor: React.FC<CustomCSSEditorProps> = ({
                 </Text>
 
                 <InlineStack gap="200" wrap>
-                  {CSS_SNIPPETS.map((snippet: any) => (
+                  {CSS_SNIPPETS.map((snippet) => (
                     <Tooltip key={snippet.id} content={snippet.description}>
                       <Button
                         size="micro"

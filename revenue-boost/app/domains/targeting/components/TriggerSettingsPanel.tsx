@@ -48,7 +48,12 @@ export function TriggerSettingsPanel({
   const [recommendedTriggers, setRecommendedTriggers] = useState<TriggerType[]>(
     [],
   );
-  const [validationResult, setValidationResult] = useState<any>(null);
+  const [validationResult, setValidationResult] = useState<{
+    isValid: boolean;
+    errors: Array<{ message: string }>;
+    warnings: Array<{ message: string }>;
+    recommendations: string[];
+  } | null>(null);
 
   useEffect(() => {
     // Get recommended triggers for this goal
@@ -60,7 +65,13 @@ export function TriggerSettingsPanel({
   useEffect(() => {
     // Validate trigger configuration
     const validation = TriggerConfigManager.validateTriggerConfig(value);
-    setValidationResult(validation);
+    // Transform validation result to match our expected type
+    setValidationResult({
+      isValid: validation.valid,
+      errors: (validation.errors || []).map(err => ({ message: err })),
+      warnings: [],
+      recommendations: [],
+    });
   }, [value]);
 
   const handleTriggerTypeChange = (triggerType: TriggerType) => {
@@ -71,7 +82,7 @@ export function TriggerSettingsPanel({
   const handleConditionChange = (
     index: number,
     field: string,
-    conditionValue: any,
+    conditionValue: unknown,
   ) => {
     const newConditions = [...(value.conditions || [])];
     newConditions[index] = { ...newConditions[index], [field]: conditionValue };
@@ -448,7 +459,7 @@ export function TriggerSettingsPanel({
           {validationResult && !validationResult.isValid && (
             <Banner tone="critical" title="Configuration Issues">
               <BlockStack gap="200">
-                {validationResult.errors.map((error: any, index: number) => (
+                {validationResult.errors.map((error, index: number) => (
                   <InlineStack key={index} gap="100" align="center">
                     <Icon source={AlertCircleIcon} />
                     <Text as="p" variant="bodySm">
@@ -464,7 +475,7 @@ export function TriggerSettingsPanel({
             <Banner tone="warning" title="Recommendations">
               <BlockStack gap="200">
                 {validationResult.warnings.map(
-                  (warning: any, index: number) => (
+                  (warning, index: number) => (
                     <InlineStack key={index} gap="100" align="center">
                       <Icon source={AlertCircleIcon} />
                       <Text as="p" variant="bodySm">

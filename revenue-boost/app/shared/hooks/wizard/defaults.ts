@@ -1,69 +1,20 @@
 /**
  * Wizard Default State Factory
- * 
+ *
  * Extracted from useWizardState to follow SOLID principles:
  * - Single Responsibility: Only handles default state creation
  * - DRY: Centralized default values
+ *
+ * NOTE: Page targeting defaults have been removed - templates now define
+ * their own page targeting in the database (Template.targetRules.pageTargeting)
  */
 
-import type { CampaignFormData, TemplateType, PageTargetingConfig } from "../useWizardState";
+import type { CampaignFormData, PageTargetingConfig } from "../useWizardState";
 
-// Page targeting defaults for different template types
-export function getPageTargetingDefaults(templateType: TemplateType): PageTargetingConfig {
-  const defaults: Record<string, PageTargetingConfig> = {
-    cart_upsell: {
-      enabled: true,
-      pages: ["/cart", "/checkout"],
-      customPatterns: [],
-      excludePages: [],
-    },
-    pdp_cross_sell: {
-      enabled: true,
-      pages: ["/products/*"],
-      customPatterns: [],
-      excludePages: [],
-    },
-    post_add_upsell: {
-      enabled: true,
-      pages: ["/products/*", "/collections/*"],
-      customPatterns: [],
-      excludePages: [],
-    },
-    "newsletter-elegant": {
-      enabled: true,
-      pages: ["/", "/collections/*", "/products/*"],
-      customPatterns: [],
-      excludePages: ["/checkout", "/account"],
-    },
-    "flash-sale-modal": {
-      enabled: true,
-      pages: ["/", "/collections/*"],
-      customPatterns: [],
-      excludePages: ["/checkout"],
-    },
-    scratch_card: {
-      enabled: true,
-      pages: ["/", "/collections/*", "/products/*"],
-      customPatterns: [],
-      excludePages: ["/checkout"],
-    },
-    spin_to_win: {
-      enabled: true,
-      pages: ["/", "/collections/*", "/products/*"],
-      customPatterns: [],
-      excludePages: ["/checkout"],
-    },
-  };
-
-  return defaults[templateType] || {
-    enabled: false,
-    pages: [],
-    customPatterns: [],
-    excludePages: [],
-  };
-}
-
-// Default popup design configuration
+/**
+ * Default popup design form data for wizard
+ * Returns PopupDesignFormData (simplified wizard version)
+ */
 export function getDefaultPopupDesign() {
   return {
     id: "",

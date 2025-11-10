@@ -6,25 +6,9 @@
  * - Separation of Concerns: Isolates discount and design logic
  */
 
-import type { CampaignGoal, CampaignFormData } from "../useWizardState";
+import type { CampaignGoal, CampaignFormData, PopupDesignFormData } from "../useWizardState";
 import { getGoalDefaults } from "../../../lib/goal-defaults";
 import type { DiscountConfig } from "~/domains/commerce/services/discounts/discount.server";
-
-// PopupDesignConfig type from useWizardState
-type PopupDesignConfig = {
-  id: string;
-  title: string;
-  description: string;
-  buttonText: string;
-  backgroundColor: string;
-  textColor: string;
-  buttonColor: string;
-  buttonTextColor: string;
-  position: string;
-  size: string;
-  showCloseButton: boolean;
-  overlayOpacity: number;
-};
 
 // Build discount configuration from goal defaults
 export function buildDiscountConfig(
@@ -73,8 +57,8 @@ export function buildDiscountConfig(
 // Build design configuration from goal defaults
 export function buildDesignConfig(
   goal: CampaignGoal,
-  currentPopupDesign: PopupDesignConfig
-): PopupDesignConfig {
+  currentPopupDesign: PopupDesignFormData
+): PopupDesignFormData {
   const defaults = getGoalDefaults(goal);
 
   return {

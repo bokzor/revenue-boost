@@ -26,9 +26,10 @@ import { TemplateSelectorHeader } from "./templates/TemplateSelectorHeader";
 import { TemplateSelectorFooter } from "./templates/TemplateSelectorFooter";
 
 // Define a simplified template type for the selector
+import type { TemplateType } from "~/domains/campaigns/types/campaign";
 export interface SelectedTemplate {
   id: string;
-  templateType: string;
+  templateType: TemplateType;
   name: string;
   contentDefaults?: Record<string, unknown>;
   triggers?: Record<string, unknown>;
@@ -155,7 +156,7 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
         {processedTemplates.map(({ originalTemplate, processedTemplate }) => (
           <TemplateCard
             key={originalTemplate.id}
-            template={processedTemplate as any}
+            template={processedTemplate}
             isSelected={processedTemplate.templateId === selectedTemplateId}
             onClick={() => handleTemplateClick(originalTemplate)}
           />

@@ -24,10 +24,10 @@ import type {
   TemplateSection,
 } from "~/lib/content-config";
 import { TEMPLATE_SECTIONS } from "~/lib/content-config";
-import { PrizeListEditor } from "./PrizeListEditor";
+import { PrizeListEditor, type PrizeItem } from "./PrizeListEditor";
 import { WheelColorEditor } from "./WheelColorEditor";
 
-export type TemplateConfigValue = string | number | boolean | string[] | Record<string, unknown>;
+export type TemplateConfigValue = string | number | boolean | string[] | PrizeItem[] | Record<string, unknown>;
 
 export interface TemplateConfigFieldsProps {
   templateType: string;
@@ -88,7 +88,7 @@ export const TemplateConfigFields: React.FC<TemplateConfigFieldsProps> = ({
       return true;
     }
 
-    return (field.conditions as any[]).every((condition: any) => {
+    return field.conditions.every((condition) => {
       const fieldValue = config[condition.field];
       switch (condition.operator) {
         case "equals":
@@ -97,7 +97,7 @@ export const TemplateConfigFields: React.FC<TemplateConfigFieldsProps> = ({
           return fieldValue !== condition.value;
         case "contains":
           return (
-            Array.isArray(fieldValue) && fieldValue.includes(condition.value)
+            Array.isArray(fieldValue) && (fieldValue as any).includes(condition.value as any)
           );
         default:
           return true;
@@ -327,8 +327,8 @@ export const TemplateConfigFields: React.FC<TemplateConfigFieldsProps> = ({
               </Text>
             )}
             <PrizeListEditor
-              value={value as any}
-              onChange={(next: unknown[]) => handleFieldChange(field.id, next as any)}
+              value={value as string | PrizeItem[] | undefined}
+              onChange={(next: PrizeItem[]) => handleFieldChange(field.id, next)}
             />
           </div>
         );
@@ -348,8 +348,8 @@ export const TemplateConfigFields: React.FC<TemplateConfigFieldsProps> = ({
               </Text>
             )}
             <WheelColorEditor
-              value={value as any}
-              onChange={(next: string[]) => handleFieldChange(field.id, next as any)}
+              value={value as string | string[] | undefined}
+              onChange={(next: string[]) => handleFieldChange(field.id, next)}
             />
           </div>
         );

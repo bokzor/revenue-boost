@@ -7,6 +7,12 @@ import { FrequencyLimitsCard } from "./FrequencyLimitsCard";
 import { GlobalFrequencyCapCard } from "./GlobalFrequencyCapCard";
 import { FrequencyBestPracticesCard } from "./FrequencyBestPracticesCard";
 
+/**
+ * Frequency Capping Configuration
+ * Note: This is a UI-specific interface for the frequency capping panel.
+ * The actual frequency capping logic uses EnhancedTriggersConfig.frequency_capping
+ * from ~/domains/campaigns/types/campaign
+ */
 export interface FrequencyCappingConfig {
   enabled: boolean;
   maxViews: number;

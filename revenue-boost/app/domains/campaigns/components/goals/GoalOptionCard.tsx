@@ -1,6 +1,6 @@
 /**
  * GoalOptionCard - Individual Goal Card Component
- * 
+ *
  * SOLID Compliance:
  * - Single Responsibility: Renders a single goal option card
  * - <50 lines
@@ -48,7 +48,7 @@ export function GoalOptionCard({ option, isSelected, onClick }: GoalOptionCardPr
               style={{ backgroundColor: `${option.iconColor}15` }}
             >
               <div style={{ color: option.iconColor }}>
-                <Icon source={IconComponent} />
+                <Icon source={IconComponent as any} />
               </div>
             </div>
             <BlockStack gap="100">

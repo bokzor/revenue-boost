@@ -1,6 +1,6 @@
 /**
  * Design Step Content Component
- * 
+ *
  * Extracted from CampaignFormWithABTesting to follow SOLID principles:
  * - Single Responsibility: Only renders design step content
  * - Separation of Concerns: Isolated from parent form logic
@@ -11,7 +11,9 @@ import PopupDesignEditorV2 from "~/domains/popups/components/design/PopupDesignE
 import { deriveInitialConfig } from "~/lib/campaign-config";
 import type { CampaignGoal, TemplateType, CampaignFormData } from "~/shared/hooks/useWizardState";
 import type { DiscountConfig } from "~/domains/commerce/services/discounts/discount.server";
-import type { PopupDesignConfig } from "~/domains/popups/types/design-editor.types";
+import type { PopupDesignConfig, TemplateObject } from "~/domains/popups/types/design-editor.types";
+import type { EnhancedTriggersConfig } from "~/domains/campaigns/types/campaign";
+
 
 interface DesignStepContentProps {
   goal?: CampaignGoal;
@@ -24,7 +26,12 @@ interface DesignStepContentProps {
   discountConfig: DiscountConfig;
   onConfigChange: (config: PopupDesignConfig) => void;
   onDiscountChange: (config: DiscountConfig) => void;
-  onTemplateChange: (templateId: string, templateType: TemplateType, config: PopupDesignConfig) => void;
+  onTemplateChange: (
+    templateId: string,
+    templateType: TemplateType,
+    enhancedTriggers?: EnhancedTriggersConfig,
+    templateObject?: TemplateObject,
+  ) => void;
 }
 
 export function DesignStepContent({

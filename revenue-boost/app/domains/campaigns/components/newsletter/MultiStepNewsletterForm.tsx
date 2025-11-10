@@ -52,7 +52,7 @@ export const MultiStepNewsletterForm: React.FC<MultiStepNewsletterFormProps> = (
     preferences: [],
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     onSubmit?.(formData);
   };

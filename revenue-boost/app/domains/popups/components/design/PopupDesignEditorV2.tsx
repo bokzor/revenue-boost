@@ -38,7 +38,7 @@ import styles from "./PopupDesignEditorV2.module.css";
 import { getTemplateSections } from "./TemplateConfigFields";
 import type { ContentFieldDefinition } from "~/lib/content-config";
 import { DiscountSection } from "./DiscountSection";
-import { PrizeListEditor } from "./PrizeListEditor";
+import { PrizeListEditor, type PrizeItem } from "./PrizeListEditor";
 import { WheelColorEditor } from "./WheelColorEditor";
 
 import type {
@@ -50,6 +50,8 @@ import type {
   DiscountConfig,
   PendingTemplateChange,
 } from "~/domains/popups/types/design-editor.types";
+import type { TemplateType } from "~/shared/hooks/useWizardState";
+
 
 // Temporary stub for AnimationUtils until the real implementation is created
 const AnimationUtils = {
@@ -94,12 +96,12 @@ export interface PopupDesignEditorProps {
   initialConfig?: Partial<PopupDesignConfig>;
   initialTemplateId?: string;
   campaignGoal: string; // Required - must be valid CampaignGoal enum value
-  templateType?: string;
+  templateType?: TemplateType;
   storeId: string; // Required for template fetching
   onConfigChange: (config: PopupDesignConfig) => void;
   onTemplateChange?: (
     templateId: string,
-    templateType: string,
+    templateType: TemplateType,
     enhancedTriggers?: EnhancedTriggersConfig,
     templateObject?: TemplateObject,
   ) => void;
@@ -345,7 +347,7 @@ export const PopupDesignEditorV2: React.FC<PopupDesignEditorProps> = ({
 
   // Apply template selection (extracted for reuse)
   const applyTemplateSelection = useCallback(
-    async (templateId: string, templateType: string, templateObject?: TemplateObject) => {
+    async (templateId: string, templateType: TemplateType, templateObject?: TemplateObject) => {
       console.log("Applying template selection:", {
         templateId,
         templateType,
@@ -479,7 +481,7 @@ export const PopupDesignEditorV2: React.FC<PopupDesignEditorProps> = ({
         // Extract enhancedTriggers from the nested structure if present
         // Templates store triggers as: { enhancedTriggers: {...}, targetingRules: {...}, ... }
         const triggersToConvert =
-          fetchedTriggers.enhancedTriggers || fetchedTriggers;
+          (fetchedTriggers as any).enhancedTriggers || fetchedTriggers;
 
         const enhancedTriggers = convertDatabaseTriggersAuto(triggersToConvert);
         console.log(
@@ -555,7 +557,7 @@ export const PopupDesignEditorV2: React.FC<PopupDesignEditorProps> = ({
 
   // Wrapper to convert SelectedTemplate to TemplateObject
   const handleCampaignTemplateSelect = useCallback(
-    (selectedTemplate: { id: string; templateType: string; name: string; contentDefaults?: Record<string, unknown>; triggers?: Record<string, unknown>; design?: Record<string, unknown> }) => {
+    (selectedTemplate: { id: string; templateType: TemplateType; name: string; contentDefaults?: Record<string, unknown>; triggers?: Record<string, unknown>; design?: Record<string, unknown> }) => {
       const templateObject: TemplateObject = {
         id: selectedTemplate.id,
         name: selectedTemplate.name,
@@ -887,7 +889,7 @@ export const PopupDesignEditorV2: React.FC<PopupDesignEditorProps> = ({
       return true;
     }
 
-    return (field.conditions as any[]).every((condition: any) => {
+    return field.conditions.every((condition) => {
       const fieldValue =
         designConfig[condition.field as keyof PopupDesignConfig];
       switch (condition.operator) {
@@ -1053,9 +1055,9 @@ export const PopupDesignEditorV2: React.FC<PopupDesignEditorProps> = ({
               </Text>
             )}
             <PrizeListEditor
-              value={value as any}
-              onChange={(next: unknown[]) =>
-                handleConfigChange({ [field.id]: next as any })
+              value={value as string | PrizeItem[] | undefined}
+              onChange={(next: PrizeItem[]) =>
+                handleConfigChange({ [field.id]: next })
               }
             />
           </div>
@@ -1077,9 +1079,9 @@ export const PopupDesignEditorV2: React.FC<PopupDesignEditorProps> = ({
               </Text>
             )}
             <WheelColorEditor
-              value={value as any}
+              value={value as string | string[] | undefined}
               onChange={(next: string[]) =>
-                handleConfigChange({ [field.id]: next as any })
+                handleConfigChange({ [field.id]: next })
               }
             />
           </div>
@@ -1599,7 +1601,7 @@ export const PopupDesignEditorV2: React.FC<PopupDesignEditorProps> = ({
             <BlockStack gap="400">
               <Text as="p" variant="bodyMd">
                 Changing the template will reset some of your customizations to
-                match the new template's defaults.
+                match the new template&apos;s defaults.
               </Text>
               <Text as="p" variant="bodyMd" tone="subdued">
                 This includes design settings, content structure, and some

@@ -69,16 +69,16 @@ export default function NewCampaign() {
       // Use fetch to call our API routes instead of importing server services
       if (Array.isArray(campaignData)) {
         // A/B Testing: Create experiment with multiple variants
-        const firstVariant = campaignData[0] as any;
+        const firstVariant = campaignData[0];
 
         // Extract experiment metadata from first variant
         const experimentData = {
-          name: firstVariant.experimentName,
-          description: firstVariant.experimentDescription,
-          hypothesis: firstVariant.experimentHypothesis,
-          trafficAllocation: campaignData.reduce((acc, variant: any, index) => {
+          name: (firstVariant as { experimentName?: string }).experimentName,
+          description: (firstVariant as { experimentDescription?: string }).experimentDescription,
+          hypothesis: (firstVariant as { experimentHypothesis?: string }).experimentHypothesis,
+          trafficAllocation: campaignData.reduce((acc, variant, index) => {
             const key = ["A", "B", "C", "D"][index];
-            acc[key] = variant.trafficAllocation || Math.floor(100 / campaignData.length);
+            acc[key] = (variant as { trafficAllocation?: number }).trafficAllocation || Math.floor(100 / campaignData.length);
             return acc;
           }, {} as Record<string, number>),
           statisticalConfig: {
@@ -88,7 +88,7 @@ export default function NewCampaign() {
             maxDurationDays: 30,
           },
           successMetrics: {
-            primaryMetric: firstVariant.successMetric || "conversion_rate",
+            primaryMetric: (firstVariant as { successMetric?: string }).successMetric || "conversion_rate",
             secondaryMetrics: ["click_through_rate"],
           },
         };
@@ -107,7 +107,7 @@ export default function NewCampaign() {
         const { data: experiment } = await expResponse.json();
 
         // Create campaigns for each variant via API
-        const campaignPromises = campaignData.map(async (variant: any, index) => {
+        const campaignPromises = campaignData.map(async (variant, index) => {
           const campaignCreateData = {
             name: variant.name || `${experimentData.name} - Variant ${["A", "B", "C", "D"][index]}`,
             description: variant.description,

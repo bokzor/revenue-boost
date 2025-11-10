@@ -26,7 +26,7 @@ export function ABTestingSection({
   errors,
   onChange,
 }: ABTestingSectionProps) {
-  const updateField = useFieldUpdater(config, onChange);
+  const updateField = useFieldUpdater(config as unknown as Partial<Record<string, unknown>>, onChange as unknown as (updated: Partial<Record<string, unknown>>) => void);
 
   return (
     <>

@@ -22,13 +22,7 @@ import {
   Collapsible,
 } from "@shopify/polaris";
 import { SettingsIcon, InfoIcon } from "@shopify/polaris-icons";
-
-export interface PageTargetingConfig {
-  enabled: boolean;
-  pages: string[];
-  customPatterns: string[];
-  excludePages: string[];
-}
+import type { PageTargetingConfig } from "~/domains/campaigns/types/campaign";
 
 export interface PageTargetingPanelProps {
   config: PageTargetingConfig;
@@ -37,6 +31,9 @@ export interface PageTargetingPanelProps {
   disabled?: boolean;
 }
 
+// Re-export for convenience
+export type { PageTargetingConfig };
+
 const DEFAULT_CONFIG: PageTargetingConfig = {
   enabled: false,
   pages: [],
@@ -44,14 +41,9 @@ const DEFAULT_CONFIG: PageTargetingConfig = {
   excludePages: [],
 };
 
-// Template-specific default pages
-const TEMPLATE_DEFAULTS: Record<string, string[]> = {
-  cart_upsell: ["/cart", "/checkout"],
-  pdp_cross_sell: ["/products/*"],
-  post_add_upsell: ["/products/*", "/collections/*"],
-  "newsletter-elegant": ["/", "/collections/*", "/products/*"],
-  "flash-sale-modal": ["/", "/collections/*"],
-};
+// NOTE: Template-specific defaults have been removed.
+// Templates now define their own page targeting in the database
+// (Template.targetRules.pageTargeting)
 
 const PAGE_CHOICES = [
   { label: "Homepage (/)", value: "/" },
@@ -81,15 +73,11 @@ export const PageTargetingPanel: React.FC<PageTargetingPanelProps> = ({
 
   const handleEnableChange = useCallback(
     (enabled: boolean) => {
-      if (enabled && config.pages.length === 0 && templateType) {
-        // Auto-populate with template defaults
-        const defaultPages = TEMPLATE_DEFAULTS[templateType] || ["/"];
-        updateConfig({ enabled, pages: defaultPages });
-      } else {
-        updateConfig({ enabled });
-      }
+      // Simply enable/disable without auto-populating
+      // Template's page targeting should already be set from database
+      updateConfig({ enabled });
     },
-    [config.pages.length, templateType, updateConfig],
+    [updateConfig],
   );
 
   const handlePagesChange = useCallback(
@@ -121,21 +109,11 @@ export const PageTargetingPanel: React.FC<PageTargetingPanelProps> = ({
     [updateConfig],
   );
 
+  // NOTE: Template recommendations have been removed.
+  // Templates should define their own page targeting in the database.
+  // This function is kept for backward compatibility but returns null.
   const getTemplateRecommendation = () => {
-    if (!templateType) return null;
-
-    const recommendations = {
-      cart_upsell: "Recommended: Cart and checkout pages for maximum impact",
-      pdp_cross_sell: "Recommended: Product pages to show related items",
-      post_add_upsell:
-        "Recommended: Product and collection pages where customers browse",
-      "newsletter-elegant":
-        "Recommended: Homepage and browsing pages for new visitors",
-      "flash-sale-modal":
-        "Recommended: Homepage and collection pages for maximum visibility",
-    };
-
-    return recommendations[templateType as keyof typeof recommendations];
+    return null;
   };
 
   const getSelectedPagesCount = () => {

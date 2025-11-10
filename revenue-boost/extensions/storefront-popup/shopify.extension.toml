@@ -1,0 +1,9 @@
+name = "Revenue Boost Popups"
+type = "theme"
+uid = "725cd6d8-2f2b-91cb-b1be-3983c340fe6376935e80"
+
+[extension_points]
+# Auto-load snippet on all pages (zero merchant configuration)
+[[extension_points.liquid]]
+target = "body_end"
+resource = "snippets/popup-init.liquid"

@@ -1,11 +1,11 @@
 /**
  * Campaign List Component
- * 
+ *
  * A comprehensive list component for displaying campaigns with filtering,
  * sorting, and pagination capabilities.
  */
 
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Card,
   ResourceList,
@@ -16,15 +16,14 @@ import {
   ButtonGroup,
   Filters,
   ChoiceList,
-  TextField,
   Pagination,
   EmptyState,
   Spinner,
-  Stack,
+  InlineStack,
+  BlockStack,
   Box,
 } from '@shopify/polaris';
-import type { CampaignWithConfigs } from '~/domains/campaigns/types/campaign';
-import type { CampaignStatus, CampaignGoal, TemplateType } from '~/domains/campaigns/types/campaign';
+import type { CampaignWithConfigs , CampaignStatus, CampaignGoal, TemplateType } from '~/domains/campaigns/types/campaign';
 
 // ============================================================================
 // TYPES
@@ -70,7 +69,7 @@ export function CampaignList({
     templateType: [],
     searchQuery: '',
   });
-  
+
   const [sortBy, setSortBy] = useState<SortOption>('updatedAt');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [currentPage, setCurrentPage] = useState(1);
@@ -81,7 +80,7 @@ export function CampaignList({
     { label: 'Draft', value: 'DRAFT' },
     { label: 'Active', value: 'ACTIVE' },
     { label: 'Paused', value: 'PAUSED' },
-    { label: 'Completed', value: 'COMPLETED' },
+    { label: 'Archived', value: 'ARCHIVED' },
   ];
 
   const goalOptions = [
@@ -137,8 +136,8 @@ export function CampaignList({
 
     // Apply sorting
     filtered.sort((a, b) => {
-      let aValue: any;
-      let bValue: any;
+      let aValue: string | number | Date;
+      let bValue: string | number | Date;
 
       switch (sortBy) {
         case 'name':
@@ -183,7 +182,7 @@ export function CampaignList({
   );
 
   // Event handlers
-  const handleFiltersChange = (newFilters: any) => {
+  const handleFiltersChange = (newFilters: Partial<typeof filters>) => {
     setFilters(prev => ({ ...prev, ...newFilters }));
     setCurrentPage(1); // Reset to first page when filters change
   };
@@ -214,18 +213,19 @@ export function CampaignList({
 
   // Helper functions
   const getStatusBadge = (status: CampaignStatus) => {
-    const statusConfig = {
-      DRAFT: { status: 'info' as const, children: 'Draft' },
-      ACTIVE: { status: 'success' as const, children: 'Active' },
-      PAUSED: { status: 'warning' as const, children: 'Paused' },
-      COMPLETED: { status: 'complete' as const, children: 'Completed' },
+    const statusConfig: Record<CampaignStatus, { tone: 'info' | 'success' | 'warning' | 'critical'; children: string }> = {
+      DRAFT: { tone: 'info', children: 'Draft' },
+      ACTIVE: { tone: 'success', children: 'Active' },
+      PAUSED: { tone: 'warning', children: 'Paused' },
+      ARCHIVED: { tone: 'critical', children: 'Archived' },
     };
 
-    return statusConfig[status] || { status: 'info' as const, children: status };
+    return statusConfig[status] || { tone: 'info', children: status };
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+  const formatDate = (date: string | Date) => {
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    return dateObj.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
@@ -295,7 +295,7 @@ export function CampaignList({
               titleHidden
               choices={statusOptions}
               selected={filters.status}
-              onChange={(value) => handleFiltersChange({ status: value })}
+              onChange={(value) => handleFiltersChange({ status: value as CampaignStatus[] })}
               allowMultiple
             />
           ),
@@ -310,7 +310,7 @@ export function CampaignList({
               titleHidden
               choices={goalOptions}
               selected={filters.goal}
-              onChange={(value) => handleFiltersChange({ goal: value })}
+              onChange={(value) => handleFiltersChange({ goal: value as CampaignGoal[] })}
               allowMultiple
             />
           ),
@@ -324,7 +324,7 @@ export function CampaignList({
               titleHidden
               choices={templateTypeOptions}
               selected={filters.templateType}
-              onChange={(value) => handleFiltersChange({ templateType: value })}
+              onChange={(value) => handleFiltersChange({ templateType: value as TemplateType[] })}
               allowMultiple
             />
           ),
@@ -336,37 +336,37 @@ export function CampaignList({
   // Sort controls
   const sortControls = (
     <Box paddingBlockEnd="400">
-      <Stack alignment="center" distribution="equalSpacing">
+      <InlineStack align="space-between">
         <Text variant="bodyMd" as="p">
           {filteredAndSortedCampaigns.length} campaign{filteredAndSortedCampaigns.length !== 1 ? 's' : ''}
         </Text>
-        <ButtonGroup segmented>
+        <ButtonGroup variant="segmented">
           <Button
-            pressed={sortBy === 'name'}
+            variant={sortBy === 'name' ? 'primary' : undefined}
             onClick={() => handleSortChange('name')}
           >
-            Name {sortBy === 'name' && (sortDirection === 'asc' ? '↑' : '↓')}
+            {`Name ${sortBy === 'name' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}`}
           </Button>
           <Button
-            pressed={sortBy === 'updatedAt'}
+            variant={sortBy === 'updatedAt' ? 'primary' : undefined}
             onClick={() => handleSortChange('updatedAt')}
           >
-            Updated {sortBy === 'updatedAt' && (sortDirection === 'asc' ? '↑' : '↓')}
+            {`Updated ${sortBy === 'updatedAt' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}`}
           </Button>
           <Button
-            pressed={sortBy === 'status'}
+            variant={sortBy === 'status' ? 'primary' : undefined}
             onClick={() => handleSortChange('status')}
           >
-            Status {sortBy === 'status' && (sortDirection === 'asc' ? '↑' : '↓')}
+            {`Status ${sortBy === 'status' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}`}
           </Button>
           <Button
-            pressed={sortBy === 'priority'}
+            variant={sortBy === 'priority' ? 'primary' : undefined}
             onClick={() => handleSortChange('priority')}
           >
-            Priority {sortBy === 'priority' && (sortDirection === 'asc' ? '↑' : '↓')}
+            {`Priority ${sortBy === 'priority' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}`}
           </Button>
         </ButtonGroup>
-      </Stack>
+      </InlineStack>
     </Box>
   );
 
@@ -375,10 +375,10 @@ export function CampaignList({
     return (
       <Card>
         <Box padding="800">
-          <Stack alignment="center">
+          <BlockStack align="center">
             <Spinner size="large" />
             <Text variant="bodyMd" as="p">Loading campaigns...</Text>
-          </Stack>
+          </BlockStack>
         </Box>
       </Card>
     );
@@ -410,6 +410,7 @@ export function CampaignList({
         <Box padding="800">
           <EmptyState
             heading="No campaigns match your filters"
+            image=""
             action={{
               content: 'Clear filters',
               onAction: clearAllFilters,
@@ -432,60 +433,58 @@ export function CampaignList({
         resourceName={{ singular: 'campaign', plural: 'campaigns' }}
         items={paginatedCampaigns}
         renderItem={(campaign) => {
-          const { id, name, description, status, goal, templateType, priority, createdAt, updatedAt } = campaign;
+          const { id, name, description, status, goal, templateType, priority, updatedAt } = campaign;
           const statusBadge = getStatusBadge(status as CampaignStatus);
 
           return (
             <ResourceItem
               id={id}
-              onClick={onCampaignSelect ? () => onCampaignSelect(campaign) : undefined}
+              url={onCampaignSelect ? '#' : undefined}
+              onClick={() => { if (onCampaignSelect) onCampaignSelect(campaign); }}
               accessibilityLabel={`Campaign ${name}`}
             >
-              <Stack alignment="center" distribution="equalSpacing">
-                <Stack vertical spacing="tight">
-                  <Stack alignment="center" spacing="tight">
+              <InlineStack align="space-between">
+                <BlockStack gap="200">
+                  <InlineStack gap="200">
                     <Text variant="bodyMd" fontWeight="semibold" as="h3">
                       {name}
                     </Text>
                     <Badge {...statusBadge} />
                     {priority && priority > 0 && (
-                      <Badge status="attention">Priority {priority}</Badge>
+                      <Badge tone="attention">{`Priority ${priority}`}</Badge>
                     )}
-                  </Stack>
+                  </InlineStack>
 
                   {description && (
-                    <Text variant="bodySm" color="subdued" as="p">
+                    <Text variant="bodySm" tone="subdued" as="p">
                       {description}
                     </Text>
                   )}
 
-                  <Stack spacing="tight">
-                    <Text variant="bodySm" color="subdued" as="span">
+                  <InlineStack gap="200">
+                    <Text variant="bodySm" tone="subdued" as="span">
                       {getTemplateTypeLabel(templateType as TemplateType)}
                     </Text>
-                    <Text variant="bodySm" color="subdued" as="span">
+                    <Text variant="bodySm" tone="subdued" as="span">
                       •
                     </Text>
-                    <Text variant="bodySm" color="subdued" as="span">
+                    <Text variant="bodySm" tone="subdued" as="span">
                       Goal: {goal.replace('_', ' ').toLowerCase()}
                     </Text>
-                    <Text variant="bodySm" color="subdued" as="span">
+                    <Text variant="bodySm" tone="subdued" as="span">
                       •
                     </Text>
-                    <Text variant="bodySm" color="subdued" as="span">
+                    <Text variant="bodySm" tone="subdued" as="span">
                       Updated {formatDate(updatedAt)}
                     </Text>
-                  </Stack>
-                </Stack>
+                  </InlineStack>
+                </BlockStack>
 
-                <Stack spacing="tight">
+                <InlineStack gap="200">
                   {onCampaignEdit && (
                     <Button
                       size="slim"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onCampaignEdit(id);
-                      }}
+                      onClick={() => onCampaignEdit(id)}
                     >
                       Edit
                     </Button>
@@ -494,10 +493,7 @@ export function CampaignList({
                   {onCampaignDuplicate && (
                     <Button
                       size="slim"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onCampaignDuplicate(id);
-                      }}
+                      onClick={() => onCampaignDuplicate(id)}
                     >
                       Duplicate
                     </Button>
@@ -506,17 +502,14 @@ export function CampaignList({
                   {onCampaignDelete && (
                     <Button
                       size="slim"
-                      destructive
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onCampaignDelete(id);
-                      }}
+                      tone="critical"
+                      onClick={() => onCampaignDelete(id)}
                     >
                       Delete
                     </Button>
                   )}
-                </Stack>
-              </Stack>
+                </InlineStack>
+              </InlineStack>
             </ResourceItem>
           );
         }}
@@ -524,7 +517,7 @@ export function CampaignList({
 
       {totalPages > 1 && (
         <Box paddingBlockStart="400">
-          <Stack alignment="center">
+          <InlineStack align="center">
             <Pagination
               hasPrevious={currentPage > 1}
               onPrevious={() => setCurrentPage(prev => Math.max(1, prev - 1))}
@@ -532,7 +525,7 @@ export function CampaignList({
               onNext={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
               label={`Page ${currentPage} of ${totalPages}`}
             />
-          </Stack>
+          </InlineStack>
         </Box>
       )}
     </Card>

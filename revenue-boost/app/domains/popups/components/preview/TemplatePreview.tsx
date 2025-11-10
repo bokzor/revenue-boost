@@ -13,16 +13,23 @@ import React, {
   useImperativeHandle,
   useRef,
 } from "react";
-import { NewsletterPopup } from "~/domains/popups/components/NewsletterPopup";
+import { NewsletterPopup } from "~/domains/storefront/popups/NewsletterPopup";
 import { CountdownTimerBanner } from "~/domains/campaigns/components/sales/CountdownTimerBanner";
 import { FlashSaleModal } from "~/domains/campaigns/components/sales/FlashSaleModal";
-import { SocialProofPopup } from "../social-proof/SocialProofPopup";
+import { SocialProofPopup } from "~/domains/storefront/notifications/social-proof/SocialProofPopup";
 import { MultiStepNewsletterForm } from "~/domains/campaigns/components/newsletter/MultiStepNewsletterForm";
 import { TemplateTypeEnum } from "~/lib/template-types.enum";
-import { ProductUpsellPopup } from "~/domains/popups/components/ProductUpsellPopup";
-import { SpinToWinPopup } from "~/domains/popups/components/SpinToWinPopup";
-import { ScratchCardPopup } from "~/domains/popups/components/ScratchCardPopup";
-import { FreeShippingPopup } from "~/domains/popups/components/FreeShippingPopup";
+import { ProductUpsellPopup } from "~/domains/storefront/popups/ProductUpsellPopup";
+import { SpinToWinPopup } from "~/domains/storefront/popups/SpinToWinPopup";
+import { ScratchCardPopup } from "~/domains/storefront/popups/ScratchCardPopup";
+import { FreeShippingPopup } from "~/domains/storefront/popups/FreeShippingPopup";
+
+import type { NewsletterConfig } from "~/domains/storefront/popups/NewsletterPopup";
+import type { ProductUpsellConfig } from "~/domains/storefront/popups/ProductUpsellPopup";
+import type { SpinToWinConfig } from "~/domains/storefront/popups/SpinToWinPopup";
+import type { ScratchCardConfig } from "~/domains/storefront/popups/ScratchCardPopup";
+import type { FreeShippingConfig } from "~/domains/storefront/popups/FreeShippingPopup";
+import type { CountdownTimerConfig } from "~/domains/campaigns/components/sales/CountdownTimerBanner";
 
 export interface TemplatePreviewProps {
   templateType?: string;
@@ -65,7 +72,7 @@ const TemplatePreviewComponent = forwardRef<
   );
 
   // Memoize merged config to prevent re-renders with more stable dependencies
-  const mergedConfig: any = useMemo(() => {
+  const mergedConfig: Record<string, any> = useMemo(() => {
     if (!templateType) {
       return { ...config, ...designConfig };
     }
@@ -173,7 +180,7 @@ const TemplatePreviewComponent = forwardRef<
   );
 
   // Memoize upsell config with more stable approach using entire config hash
-  const upsellConfig = useMemo(() => {
+  const upsellConfig: ProductUpsellConfig = useMemo(() => {
     const config = {
       ...mergedConfig,
       id: "preview-upsell",
@@ -303,7 +310,16 @@ const TemplatePreviewComponent = forwardRef<
             style={{ display: "contents" }}
           >
             <NewsletterPopup
-              config={mergedConfig}
+              config={{
+                ...mergedConfig,
+                id: "preview-newsletter",
+                title: mergedConfig.headline || "Join our newsletter",
+                description: mergedConfig.subheadline || "",
+                buttonText: mergedConfig.submitButtonText || "Subscribe",
+                backgroundColor: mergedConfig.backgroundColor || "#FFFFFF",
+                textColor: mergedConfig.textColor || "#1A1A1A",
+                previewMode: true,
+              } as NewsletterConfig}
               isVisible={true}
               onClose={handleClose}
               campaignId="preview"
@@ -369,11 +385,8 @@ const TemplatePreviewComponent = forwardRef<
           <CountdownTimerBanner
             config={{
               ...mergedConfig,
-              endDate:
-                mergedConfig.endDate ||
-                new Date(Date.now() + 86400000).toISOString().split("T")[0],
-              endTime: mergedConfig.endTime || "23:59",
-            }}
+              endTime: (mergedConfig as any).endTime || "23:59",
+            } as CountdownTimerConfig}
             onClose={handleClose}
             previewMode={true}
           />
@@ -410,7 +423,7 @@ const TemplatePreviewComponent = forwardRef<
     // Spin-to-Win
     case TemplateTypeEnum.SPIN_TO_WIN: {
       // Normalize like storefront runtime
-      const lotteryConfig: any = {
+      const lotteryConfig: Record<string, unknown> = {
         ...mergedConfig,
         templateType: "lottery",
         previewMode: true,
@@ -448,7 +461,15 @@ const TemplatePreviewComponent = forwardRef<
             style={{ display: "contents" }}
           >
             <SpinToWinPopup
-              config={lotteryConfig}
+              config={{
+                id: "preview-spin",
+                title: mergedConfig.headline || "Spin & Win",
+                description: mergedConfig.subheadline || "",
+                buttonText: mergedConfig.submitButtonText || "Spin",
+                backgroundColor: mergedConfig.backgroundColor || "#FFFFFF",
+                textColor: mergedConfig.textColor || "#1A1A1A",
+                ...lotteryConfig,
+              } as SpinToWinConfig}
               isVisible={true}
               onClose={handleClose}
               renderInline={true}
@@ -474,10 +495,16 @@ const TemplatePreviewComponent = forwardRef<
           >
             <ScratchCardPopup
               config={{
+                id: "preview-scratch",
+                title: mergedConfig.headline || "Scratch & Win",
+                description: mergedConfig.subheadline || "",
+                buttonText: mergedConfig.submitButtonText || "Reveal",
+                backgroundColor: mergedConfig.backgroundColor || "#FFFFFF",
+                textColor: mergedConfig.textColor || "#1A1A1A",
                 ...mergedConfig,
                 templateType: "scratch_card",
                 previewMode: true,
-              }}
+              } as ScratchCardConfig}
               isVisible={true}
               onClose={handleClose}
               campaignId="preview"
@@ -580,27 +607,32 @@ const TemplatePreviewComponent = forwardRef<
           >
             <FreeShippingPopup
               config={{
-                ...mergedConfig,
-                freeShippingThreshold: mergedConfig.freeShippingThreshold || 75,
-                currentCartTotal: 30, // Mock cart total for preview (40% progress)
+                id: "preview-free-shipping",
+                title: mergedConfig.headline || "Free Shipping Progress",
+                description: mergedConfig.subheadline || "",
+                buttonText: mergedConfig.ctaText || "Shop more",
+                backgroundColor: mergedConfig.backgroundColor || "#FFFFFF",
+                textColor: mergedConfig.textColor || "#1A1A1A",
+                freeShippingThreshold: (mergedConfig as any).freeShippingThreshold || 75,
+                currentCartTotal: 30,
                 currency: "USD",
-                products: mockProducts.slice(0, mergedConfig.productCount || 3),
-                showProgress: mergedConfig.showProgress ?? true,
-                showProducts: mergedConfig.showProducts ?? true,
+                products: mockProducts.slice(0, (mergedConfig as any).productCount || 3),
+                showProgress: (mergedConfig as any).showProgress ?? true,
+                showProducts: (mergedConfig as any).showProducts ?? true,
                 progressColor:
-                  mergedConfig.progressColor ||
-                  mergedConfig.buttonColor ||
+                  (mergedConfig as any).progressColor ||
+                  (mergedConfig as any).buttonColor ||
                   "#28A745",
                 displayStyle:
-                  mergedConfig.displayStyle ||
-                  (mergedConfig.position === "top"
+                  (mergedConfig as any).displayStyle ||
+                  ((mergedConfig as any).position === "top"
                     ? "banner"
-                    : mergedConfig.position === "bottom"
+                    : (mergedConfig as any).position === "bottom"
                       ? "sticky"
                       : "modal"),
-                autoHide: mergedConfig.autoHide || false,
-                hideDelay: mergedConfig.hideDelay || 3,
-              }}
+                autoHide: (mergedConfig as any).autoHide || false,
+                hideDelay: (mergedConfig as any).hideDelay || 3,
+              } as FreeShippingConfig}
               isVisible={true}
               onClose={handleClose}
               onButtonClick={handleButtonClick}
@@ -647,11 +679,14 @@ const TemplatePreviewComponent = forwardRef<
             <NewsletterPopup
               config={{
                 ...mergedConfig,
-                headline: mergedConfig.headline || "Preview Mode",
-                subheadline:
-                  mergedConfig.subheadline || `Template: ${templateType}`,
-                submitButtonText: mergedConfig.submitButtonText || "Subscribe",
-              }}
+                id: "preview-fallback",
+                title: mergedConfig.headline || "Preview Mode",
+                description: mergedConfig.subheadline || `Template: ${templateType}`,
+                buttonText: mergedConfig.submitButtonText || "Subscribe",
+                backgroundColor: mergedConfig.backgroundColor || "#FFFFFF",
+                textColor: mergedConfig.textColor || "#1A1A1A",
+                previewMode: true,
+              } as NewsletterConfig}
               isVisible={true}
               onClose={handleClose}
               campaignId="preview"

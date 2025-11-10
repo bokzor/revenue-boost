@@ -10,7 +10,7 @@ interface TargetingStepProps {
   onChange: (updates: Partial<CampaignFormData>) => void;
 }
 
-export function TargetingStep(): JSX.Element {
+export function TargetingStep({ data, onChange }: TargetingStepProps): JSX.Element {
   // Placeholder for targeting configuration
   // TODO: Integrate targeting editors
   return (

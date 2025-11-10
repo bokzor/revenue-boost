@@ -188,7 +188,7 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
           >
             ⭐ Popular
           </button>
-          {(TEMPLATE_CATEGORIES as Array<{ id: string; name: string; icon: string }>).map((category) => (
+          {(TEMPLATE_CATEGORIES as unknown as Array<{ id: string; name: string; icon: string }>).map((category) => (
             <button
               key={category.id}
               className={`${styles.categoryTab} ${activeCategory === category.id ? styles.active : ""}`}
@@ -244,7 +244,7 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
               </div>
             ) : (
               <div className={styles.templateGrid}>
-                {templates.map((template: any) => {
+                {templates.map((template) => {
                   const isSelected =
                     selectedTemplate?.templateId === template.templateId;
 

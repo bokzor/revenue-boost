@@ -32,6 +32,12 @@ export type TemplateSection =
   | "products"
   | "advanced";
 
+export interface FieldCondition {
+  field: string;
+  operator: "equals" | "not_equals" | "contains" | "not_contains" | "greater_than" | "less_than";
+  value: unknown;
+}
+
 export interface ContentFieldDefinition {
   id: string;
   type: FieldType;
@@ -47,7 +53,7 @@ export interface ContentFieldDefinition {
     max?: number;
   };
   section?: TemplateSection;
-  conditions?: Record<string, unknown>;
+  conditions?: FieldCondition[];
   placeholder?: string;
   group?: string;
   advanced?: boolean;

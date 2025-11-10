@@ -7,10 +7,10 @@
 
 import React from "react";
 import { Card, Badge, Text, InlineStack, BlockStack } from "@shopify/polaris";
-import type { PopupTemplate } from "~/domains/popups/components/design/PopupTemplateLibrary";
+import type { ProcessedTemplate } from "../utils/template-processing";
 
 export interface TemplateCardProps {
-  template: PopupTemplate;
+  template: ProcessedTemplate;
   isSelected: boolean;
   onClick: () => void;
 }

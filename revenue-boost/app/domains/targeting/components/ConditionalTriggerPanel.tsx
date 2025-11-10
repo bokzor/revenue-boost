@@ -3,10 +3,10 @@ import { Card, BlockStack, Text, Checkbox, Button } from "@shopify/polaris";
 
 interface ConditionalTriggerPanelProps {
   showToAll?: boolean;
-  conditions?: Array<any>;
+  conditions?: Array<Record<string, unknown>>;
   logicOperator?: "AND" | "OR";
   onModeChange?: (showToAll: boolean) => void;
-  onConditionsChange?: (conditions: Array<any>) => void;
+  onConditionsChange?: (conditions: Array<Record<string, unknown>>) => void;
   onLogicOperatorChange?: (operator: "AND" | "OR") => void;
 }
 

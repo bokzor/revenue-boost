@@ -1,6 +1,6 @@
 /**
  * Targeting Step Content Component
- * 
+ *
  * Extracted from CampaignFormWithABTesting to follow SOLID principles:
  * - Single Responsibility: Only renders targeting step content
  * - Separation of Concerns: Isolated from parent form logic
@@ -10,7 +10,7 @@ import { Card, BlockStack, Text } from "@shopify/polaris";
 import { AdvancedTriggersEditor } from "~/domains/targeting/components/AdvancedTriggersEditor";
 import { AudienceTargetingPanel } from "~/domains/targeting/components/AudienceTargetingPanel";
 import type { EnhancedTriggerConfig } from "~/domains/targeting/types/enhanced-triggers.types";
-import type { AudienceTargetingConfig } from "~/domains/targeting/components/AudienceTargetingPanel";
+import type { AudienceTargetingConfig } from "~/domains/campaigns/types/campaign";
 
 interface TargetingStepContentProps {
   storeId: string;

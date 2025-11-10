@@ -1,14 +1,16 @@
 /**
  * Step Renderers - Extracted rendering logic for campaign wizard steps
- * 
+ *
  * SOLID Compliance:
  * - Single Responsibility: Each function renders one specific step
  * - Functions are <50 lines each
  * - Separated from main component for better testability
  */
 
-import type { CampaignFormData } from "~/shared/hooks/useWizardState";
+import type { CampaignFormData, TemplateType } from "~/shared/hooks/useWizardState";
 import type { CampaignGoal } from "@prisma/client";
+import type { PopupDesignConfig } from "~/domains/popups/types/design-editor.types";
+import type { EnhancedTriggersConfig } from "~/domains/campaigns/types/campaign";
 import {
   GoalStepContent,
   DesignStepContent,
@@ -25,7 +27,10 @@ export interface StepRendererProps {
   wizardState: CampaignFormData;
   updateData: (updates: Partial<CampaignFormData>) => void;
   applyGoalDefaults: (goal: CampaignGoal) => void;
-  setTemplateType: (templateType: string) => void;
+  setTemplateType: (
+    templateType: TemplateType,
+    templateObject?: { contentDefaults?: Record<string, unknown> }
+  ) => void;
   storeId: string;
   shopDomain?: string;
   campaignId?: string;
@@ -39,7 +44,7 @@ export interface StepRendererProps {
 
 export function renderGoalStep(props: StepRendererProps) {
   const { wizardState, updateData, applyGoalDefaults, selectedVariant, abTestingEnabled } = props;
-  
+
   return (
     <GoalStepContent
       storeId={props.storeId}
@@ -65,7 +70,7 @@ export function renderGoalStep(props: StepRendererProps) {
 
 export function renderDesignStep(props: StepRendererProps) {
   const { wizardState, updateData, setTemplateType, storeId, shopDomain, campaignId } = props;
-  
+
   return (
     <DesignStepContent
       goal={wizardState.goal}
@@ -77,22 +82,22 @@ export function renderDesignStep(props: StepRendererProps) {
       wizardState={wizardState}
       discountConfig={wizardState.discountConfig}
       onDiscountChange={(cfg) => updateData({ discountConfig: cfg })}
-      onConfigChange={(config) => {
+      onConfigChange={(config: PopupDesignConfig) => {
         updateData({
-          designConfig: { popupDesign: config },
+          designConfig: { popupDesign: config as unknown as any },
           contentConfig: {
-            headline: config.title,
-            subheadline: config.description,
-            ctaText: config.buttonText,
-            ctaLabel: config.buttonText,
+            headline: (config as any).title,
+            subheadline: (config as any).description,
+            ctaText: (config as any).buttonText,
+            ctaLabel: (config as any).buttonText,
             ...wizardState.contentConfig,
-            ...(config.content || {}),
+            ...(((config as any).content as Record<string, unknown>) || {}),
           },
         });
       }}
-      onTemplateChange={(templateId, templateType, config) => {
-        updateData({ templateId, templateType, templateConfig: config });
-        setTemplateType(templateType);
+      onTemplateChange={(templateId: string, templateType: TemplateType, enhancedTriggers?: EnhancedTriggersConfig, templateObject?: { contentConfig?: Record<string, unknown> }) => {
+        updateData({ templateId, templateType, enhancedTriggers });
+        setTemplateType(templateType, { contentDefaults: templateObject?.contentConfig });
       }}
     />
   );
@@ -100,7 +105,7 @@ export function renderDesignStep(props: StepRendererProps) {
 
 export function renderTargetingStep(props: StepRendererProps) {
   const { wizardState, updateData, storeId } = props;
-  
+
   return (
     <TargetingStepContent
       storeId={storeId}
@@ -114,7 +119,7 @@ export function renderTargetingStep(props: StepRendererProps) {
 
 export function renderFrequencyStep(props: StepRendererProps) {
   const { wizardState, updateData } = props;
-  
+
   return (
     <FrequencyStepContent
       config={wizardState.frequencyCapping}
@@ -125,7 +130,7 @@ export function renderFrequencyStep(props: StepRendererProps) {
 
 export function renderScheduleStep(props: StepRendererProps) {
   const { wizardState, updateData } = props;
-  
+
   return (
     <ScheduleStepContent
       status={wizardState.status}

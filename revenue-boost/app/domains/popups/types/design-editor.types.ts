@@ -1,10 +1,15 @@
 /**
  * Design Editor Type Definitions
- * 
+ *
  * Proper type definitions for the PopupDesignEditor component
  */
 
-import type { PopupConfig } from "~/domains/popups/components/BasePopup";
+import type { PopupConfig } from "~/domains/storefront/popups/BasePopup";
+import type {
+  EnhancedTriggersConfig,
+  DiscountConfig,
+  TemplateType,
+} from "~/domains/campaigns/types/campaign";
 
 /**
  * Animation settings for popup entrance, exit, hover, and attention effects
@@ -65,7 +70,7 @@ export interface MobileOptimizationConfig {
 export interface TemplateObject {
   id: string;
   name: string;
-  templateType: string;
+  templateType: TemplateType;
   category: string;
   description: string;
   preview?: string;
@@ -76,40 +81,8 @@ export interface TemplateObject {
   [key: string]: unknown;
 }
 
-/**
- * Enhanced triggers configuration
- */
-export interface EnhancedTriggersConfig {
-  enabled?: boolean;
-  page_load?: {
-    enabled: boolean;
-    delay?: number;
-  };
-  exit_intent?: {
-    enabled: boolean;
-    sensitivity?: "low" | "medium" | "high";
-  };
-  scroll_depth?: {
-    enabled: boolean;
-    percentage?: number;
-  };
-  [key: string]: unknown;
-}
-
-/**
- * Discount configuration
- * Note: Using "fixed_amount" to match campaign types
- */
-export interface DiscountConfig {
-  enabled: boolean;
-  type?: "percentage" | "fixed_amount" | "free_shipping" | "shared";
-  value?: number;
-  code?: string;
-  expiresInDays?: number;
-  minimumPurchase?: number;
-  deliveryMode?: "auto_apply_only" | "show_code_fallback" | "show_code_always";
-  [key: string]: unknown;
-}
+// Re-export types for convenience
+export type { EnhancedTriggersConfig, DiscountConfig };
 
 /**
  * Campaign context for smart recommendations
@@ -126,7 +99,7 @@ export interface CampaignContext {
  */
 export interface PendingTemplateChange {
   templateId: string;
-  templateType: string;
+  templateType: TemplateType;
   template?: TemplateObject;
 }
 

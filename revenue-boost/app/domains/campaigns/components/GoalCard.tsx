@@ -15,7 +15,7 @@ interface GoalCardProps {
 }
 
 export function GoalCard({ goal, isSelected, onSelect }: GoalCardProps) {
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
       onSelect();

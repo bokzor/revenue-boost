@@ -335,7 +335,7 @@ export function ColorCustomizationPanel({
   const popularPresets = useMemo(() => getPopularColorPresets(), []);
   const propertyGroups = useMemo(
     () =>
-      (TEMPLATE_SPECIFIC_GROUPS as Record<string, any>)[templateType as string] || COLOR_PROPERTY_GROUPS,
+      (TEMPLATE_SPECIFIC_GROUPS as any)[templateType as string] || COLOR_PROPERTY_GROUPS,
     [templateType],
   );
 
@@ -522,7 +522,7 @@ export function ColorCustomizationPanel({
           <BlockStack gap="300">
             <Box>
               <InlineStack gap="200" blockAlign="center">
-                <Icon source={group.icon} />
+                <Icon source={group.icon as any} />
                 <Text as="h4" variant="headingSm">
                   {group.title}
                 </Text>
@@ -637,7 +637,7 @@ export function ColorCustomizationPanel({
         {/* Header */}
         <Box>
           <InlineStack gap="200" blockAlign="center">
-            <Icon source={ColorIcon} />
+            <Icon source={ColorIcon as any} />
             <Text as="h3" variant="headingMd">
               Color Customization
             </Text>
@@ -807,9 +807,9 @@ export function ColorCustomizationPanel({
                       <div
                         className={styles.brandPreviewContent}
                         style={{
-                          backgroundColor: (brandSuggestions as any)?.backgroundColor,
-                          color: (brandSuggestions as any)?.textColor,
-                          borderColor: (brandSuggestions as any)?.borderColor,
+                          backgroundColor: (brandSuggestions as Record<string, string>)?.backgroundColor,
+                          color: (brandSuggestions as Record<string, string>)?.textColor,
+                          borderColor: (brandSuggestions as Record<string, string>)?.borderColor,
                         }}
                       >
                         <div className={styles.brandPreviewTitle}>
@@ -821,8 +821,8 @@ export function ColorCustomizationPanel({
                         <div
                           className={styles.brandPreviewButton}
                           style={{
-                            backgroundColor: (brandSuggestions as any)?.buttonColor,
-                            color: (brandSuggestions as any)?.buttonTextColor,
+                            backgroundColor: (brandSuggestions as Record<string, string>)?.buttonColor,
+                            color: (brandSuggestions as Record<string, string>)?.buttonTextColor,
                           }}
                         >
                           Call to Action

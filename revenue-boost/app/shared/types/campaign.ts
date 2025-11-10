@@ -11,11 +11,13 @@ export type {
   ContentConfig,
   BaseContentConfig,
   DesignConfig,
+  EnhancedTriggersConfig,
+  AudienceTargetingConfig,
+  PageTargetingConfig,
   TargetRulesConfig,
   DiscountConfig,
   BaseCampaign,
   CampaignWithConfigs,
-  EnhancedTriggersConfig,
 } from "~/domains/campaigns/types/campaign";
 
 export type {

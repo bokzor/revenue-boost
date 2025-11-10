@@ -1,9 +1,9 @@
 /**
  * Active Campaigns API Route (Storefront)
- * 
+ *
  * Public API endpoint for storefront to fetch active campaigns
  * This is used by the popup system to determine which campaigns to show
- * 
+ *
  * GET /api/campaigns/active?shop=store.myshopify.com
  */
 
@@ -12,7 +12,11 @@ import {
   type LoaderFunctionArgs,
 } from "react-router";
 import { storefrontCors } from "~/lib/cors.server";
-import { CampaignService } from "~/domains/campaigns/index.server";
+import {
+  CampaignService,
+  CampaignFilterService,
+  buildStorefrontContext,
+} from "~/domains/campaigns/index.server";
 import type { ApiCampaignData } from "~/lib/api-types";
 import { createApiResponse } from "~/lib/api-types";
 import { handleApiError } from "~/lib/api-error-handler.server";
@@ -49,17 +53,31 @@ export async function loader({ request }: LoaderFunctionArgs) {
     }
 
     const storeId = getStoreIdFromShop(shop);
-    const campaigns = await CampaignService.getActiveCampaigns(storeId);
+
+    // Build storefront context from request
+    const context = buildStorefrontContext(url.searchParams, request.headers);
+
+    // Get all active campaigns
+    const allCampaigns = await CampaignService.getActiveCampaigns(storeId);
+
+    // Filter campaigns based on context (server-side filtering)
+    const filteredCampaigns = CampaignFilterService.filterCampaigns(
+      allCampaigns,
+      context
+    );
 
     // Format campaigns for storefront consumption
-    const formattedCampaigns = campaigns.map(campaign => ({
+    // Only send client-side triggers, not full targetRules
+    const formattedCampaigns = filteredCampaigns.map(campaign => ({
       id: campaign.id,
       name: campaign.name,
       templateType: campaign.templateType,
       priority: campaign.priority,
       contentConfig: campaign.contentConfig,
       designConfig: campaign.designConfig,
-      targetRules: campaign.targetRules,
+      // Extract only client-side triggers
+      clientTriggers: extractClientTriggers(campaign.targetRules),
+      targetRules: {} as Record<string, unknown>,
       discountConfig: campaign.discountConfig,
     }));
 
@@ -72,5 +90,19 @@ export async function loader({ request }: LoaderFunctionArgs) {
   } catch (error) {
     return handleApiError(error, "GET /api/campaigns/active");
   }
+}
+
+/**
+ * Extract client-side triggers from targetRules
+ * Server-side rules (audience, page targeting) are already filtered
+ */
+function extractClientTriggers(targetRules: any) {
+  if (!targetRules) return {};
+
+  const { enhancedTriggers } = targetRules;
+
+  return {
+    enhancedTriggers: enhancedTriggers || {},
+  };
 }
 

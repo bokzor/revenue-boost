@@ -5,7 +5,7 @@
  * Provides backward compatibility for existing UI components.
  */
 
-import type { PopupConfig } from "~/domains/popups/components/BasePopup";
+import type { PopupConfig } from "~/domains/storefront/popups/BasePopup";
 import type { TemplateType } from "~/lib/unified-template-types";
 import {
   TemplateService,

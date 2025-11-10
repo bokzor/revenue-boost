@@ -18,6 +18,7 @@ export type {
   DesignConfig,
   EnhancedTriggersConfig,
   AudienceTargetingConfig,
+  PageTargetingConfig,
   TargetRulesConfig,
   DiscountConfig,
   BaseCampaign,
@@ -25,6 +26,16 @@ export type {
   CampaignCreateData,
   CampaignUpdateData,
 } from "./types/campaign.js";
+
+// Storefront context types
+export type {
+  StorefrontContext,
+} from "./types/storefront-context.js";
+
+export {
+  buildStorefrontContext,
+  validateStorefrontContext,
+} from "./types/storefront-context.js";
 
 // Experiment types
 export type {
@@ -57,6 +68,7 @@ export {
   DesignConfigSchema,
   EnhancedTriggersConfigSchema,
   AudienceTargetingConfigSchema,
+  PageTargetingConfigSchema,
   TargetRulesConfigSchema,
   DiscountConfigSchema,
   BaseCampaignSchema,
@@ -101,6 +113,10 @@ export {
 export {
   CampaignService,
 } from "./services/campaign.server.js";
+
+export {
+  CampaignFilterService,
+} from "./services/campaign-filter.server.js";
 
 export {
   ExperimentService,

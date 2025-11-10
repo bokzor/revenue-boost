@@ -1,31 +1,34 @@
-export { BasePopup } from "./BasePopup";
-export { ModalPopup } from "./ModalPopup";
-export { SlideInPopup } from "./SlideInPopup";
-export { BannerPopup } from "./BannerPopup";
-export { ProductUpsellPopup } from "./ProductUpsellPopup";
-export { MinimumBasketPopup } from "./MinimumBasketPopup";
-export { CartAbandonmentPopup } from "./CartAbandonmentPopup";
-export { FreeShippingPopup } from "./FreeShippingPopup";
-export { PopupManager } from "./PopupManager";
+/**
+ * Popup Components - Legacy Export
+ *
+ * Re-exports from new storefront location for backward compatibility.
+ * New code should import from ~/domains/storefront instead.
+ */
 
-export type { PopupConfig, BasePopupProps } from "./BasePopup";
-export type { ModalPopupProps } from "./ModalPopup";
-export type { SlideInPopupProps } from "./SlideInPopup";
-export type { BannerPopupProps } from "./BannerPopup";
+// Re-export from new storefront location
+export { BasePopup, ModalPopup, ProductUpsellPopup, MinimumBasketPopup, CartAbandonmentPopup, FreeShippingPopup } from "../../storefront/popups";
+export { SlideInPopup } from "../../storefront/slideins";
+export { BannerPopup } from "../../storefront/notifications";
+export { PopupManager } from "../../storefront/shared";
+
+export type { PopupConfig, BasePopupProps } from "../../storefront/popups/BasePopup";
+export type { ModalPopupProps } from "../../storefront/popups/ModalPopup";
+export type { SlideInPopupProps } from "../../storefront/slideins/SlideInPopup";
+export type { BannerPopupProps } from "../../storefront/notifications/BannerPopup";
 export type {
   ProductUpsellConfig,
   ProductUpsellPopupProps,
-} from "./ProductUpsellPopup";
+} from "../../storefront/popups/ProductUpsellPopup";
 export type {
   MinimumBasketConfig,
   MinimumBasketPopupProps,
-} from "./MinimumBasketPopup";
+} from "../../storefront/popups/MinimumBasketPopup";
 export type {
   CartAbandonmentConfig,
   CartAbandonmentPopupProps,
-} from "./CartAbandonmentPopup";
+} from "../../storefront/popups/CartAbandonmentPopup";
 export type {
   FreeShippingConfig,
   FreeShippingPopupProps,
-} from "./FreeShippingPopup";
-export type { PopupManagerProps, CampaignPopupConfig } from "./PopupManager";
+} from "../../storefront/popups/FreeShippingPopup";
+export type { PopupManagerProps, CampaignPopupConfig } from "../../storefront/shared/PopupManager";

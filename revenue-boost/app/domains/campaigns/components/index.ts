@@ -14,7 +14,6 @@ export { ScheduleSettingsStep } from "./ScheduleSettingsStep";
 export { TagManager } from "./TagManager";
 export { TemplateCard } from "./TemplateCard";
 export { TemplateSelector } from "./TemplateSelector";
-export { WizardProgressIndicator } from "./WizardProgressIndicator";
 
 // Re-export sub-components
 export * from "./ab-testing";

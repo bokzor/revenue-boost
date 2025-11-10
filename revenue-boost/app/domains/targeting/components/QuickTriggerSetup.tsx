@@ -277,7 +277,7 @@ export const QuickTriggerSetup: React.FC<QuickTriggerSetupProps> = ({
             </Text>
 
             <BlockStack gap="300">
-              {QUICK_TEMPLATES.map((template: any) => (
+              {QUICK_TEMPLATES.map((template) => (
                 <Card
                   key={template.id}
                   background={

@@ -375,12 +375,22 @@ export const AudienceTargetingConfigSchema = z.object({
 });
 
 /**
+ * Page Targeting Configuration Schema
+ */
+export const PageTargetingConfigSchema = z.object({
+  enabled: z.boolean().default(false),
+  pages: z.array(z.string()).default([]),
+  customPatterns: z.array(z.string()).default([]),
+  excludePages: z.array(z.string()).default([]),
+});
+
+/**
  * Target Rules Configuration Schema (matching original structure)
  */
 export const TargetRulesConfigSchema = z.object({
   enhancedTriggers: EnhancedTriggersConfigSchema.optional(),
   audienceTargeting: AudienceTargetingConfigSchema.optional(),
-
+  pageTargeting: PageTargetingConfigSchema.optional(),
 });
 
 /**
@@ -410,6 +420,7 @@ export const DiscountConfigSchema = z.object({
 export type DesignConfig = z.infer<typeof DesignConfigSchema>;
 export type EnhancedTriggersConfig = z.infer<typeof EnhancedTriggersConfigSchema>;
 export type AudienceTargetingConfig = z.infer<typeof AudienceTargetingConfigSchema>;
+export type PageTargetingConfig = z.infer<typeof PageTargetingConfigSchema>;
 export type TargetRulesConfig = z.infer<typeof TargetRulesConfigSchema>;
 export type DiscountConfig = z.infer<typeof DiscountConfigSchema>;
 

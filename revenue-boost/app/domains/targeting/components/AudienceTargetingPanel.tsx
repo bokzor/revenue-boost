@@ -8,7 +8,7 @@
  * - Preview matched audience
  */
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import {
   Card,
   BlockStack,
@@ -24,16 +24,9 @@ import { PlusIcon } from "@shopify/polaris-icons";
 import { SegmentSelector } from "./SegmentSelector";
 import { ConditionBuilder } from "./ConditionBuilder";
 import type { TriggerCondition, LogicOperator } from "./types";
+import type { AudienceTargetingConfig } from "~/domains/campaigns/types/campaign";
+import { toUiConfig, toDbConfig } from "~/domains/targeting/utils/condition-adapter";
 
-export interface AudienceTargetingConfig {
-  enabled: boolean;
-  segments: string[];
-  customRules: {
-    enabled: boolean;
-    conditions: TriggerCondition[];
-    logicOperator: LogicOperator;
-  };
-}
 
 export interface AudienceTargetingPanelProps {
   storeId: string;
@@ -41,6 +34,8 @@ export interface AudienceTargetingPanelProps {
   onConfigChange: (config: AudienceTargetingConfig) => void;
   disabled?: boolean;
 }
+
+// Note: The panel now strictly accepts AudienceTargetingConfig and adapts it for the UI
 
 export function AudienceTargetingPanel({
   storeId,
@@ -58,14 +53,24 @@ export function AudienceTargetingPanel({
     [config, onConfigChange],
   );
 
-  // Update custom rules helper
+  // Derive UI-friendly custom rules from DB config
+  const uiCustom = useMemo(() => toUiConfig(config), [config]);
+
+  // Update custom rules via adapter (UI -> DB)
   const updateCustomRules = useCallback(
-    (updates: Partial<AudienceTargetingConfig["customRules"]>) => {
+    (
+      updates: Partial<{
+        enabled: boolean;
+        conditions: TriggerCondition[];
+        logicOperator: LogicOperator;
+      }>,
+    ) => {
+      const nextUi = { ...uiCustom, ...updates };
       updateConfig({
-        customRules: { ...config.customRules, ...updates },
+        customRules: toDbConfig(nextUi),
       });
     },
-    [config.customRules, updateConfig],
+    [uiCustom, updateConfig],
   );
 
   // Add new condition
@@ -77,31 +82,32 @@ export function AudienceTargetingPanel({
       value: 0,
     };
 
+    const conditions = uiCustom.conditions || [];
     updateCustomRules({
-      conditions: [...config.customRules.conditions, newCondition],
+      conditions: [...conditions, newCondition],
     });
-  }, [config.customRules.conditions, updateCustomRules]);
+  }, [uiCustom.conditions, updateCustomRules]);
 
   // Update condition
   const handleUpdateCondition = useCallback(
     (id: string, updates: Partial<TriggerCondition>) => {
+      const conditions = uiCustom.conditions || [];
       updateCustomRules({
-        conditions: config.customRules.conditions.map((c) =>
-          c.id === id ? { ...c, ...updates } : c,
-        ),
+        conditions: conditions.map((c: TriggerCondition) => (c.id === id ? { ...c, ...updates } : c)),
       });
     },
-    [config.customRules.conditions, updateCustomRules],
+    [config?.customRules, updateCustomRules],
   );
 
   // Remove condition
   const handleRemoveCondition = useCallback(
     (id: string) => {
+      const conditions = uiCustom.conditions || [];
       updateCustomRules({
-        conditions: config.customRules.conditions.filter((c) => c.id !== id),
+        conditions: conditions.filter((c: TriggerCondition) => c.id !== id),
       });
     },
-    [config.customRules.conditions, updateCustomRules],
+    [config?.customRules, updateCustomRules],
   );
 
   const tabs = [
@@ -117,9 +123,9 @@ export function AudienceTargetingPanel({
     },
   ];
 
-  const hasSegments = config.segments.length > 0;
-  const hasCustomRules =
-    config.customRules.enabled && config.customRules.conditions.length > 0;
+  const segments = (config?.segments ?? []) as string[];
+  const hasSegments = segments.length > 0;
+  const hasCustomRules = uiCustom.enabled && (uiCustom.conditions?.length ?? 0) > 0;
   const hasTargeting = hasSegments || hasCustomRules;
 
   return (
@@ -156,7 +162,7 @@ export function AudienceTargetingPanel({
                 <Box paddingBlockStart="400">
                   <SegmentSelector
                     storeId={storeId}
-                    selectedSegments={config.segments}
+                    selectedSegments={config.segments ?? []}
                     onSegmentsChange={(segments) => updateConfig({ segments })}
                     disabled={disabled}
                   />
@@ -180,7 +186,7 @@ export function AudienceTargetingPanel({
 
                       <Checkbox
                         label="Enable custom rules"
-                        checked={config.customRules.enabled}
+                        checked={uiCustom.enabled}
                         onChange={(checked) =>
                           updateCustomRules({ enabled: checked })
                         }
@@ -188,12 +194,12 @@ export function AudienceTargetingPanel({
                       />
                     </InlineStack>
 
-                    {config.customRules.enabled && (
+                    {uiCustom.enabled && (
                       <BlockStack gap="400">
-                        {config.customRules.conditions.length > 0 ? (
+                        {uiCustom.conditions.length > 0 ? (
                           <ConditionBuilder
-                            conditions={config.customRules.conditions}
-                            logicOperator={config.customRules.logicOperator}
+                            conditions={uiCustom.conditions}
+                            logicOperator={uiCustom.logicOperator}
                             onUpdateCondition={handleUpdateCondition}
                             onRemoveCondition={handleRemoveCondition}
                             onLogicOperatorChange={(operator) =>
@@ -203,7 +209,7 @@ export function AudienceTargetingPanel({
                         ) : (
                           <Banner tone="info">
                             <Text as="p" variant="bodySm">
-                              No custom rules yet. Click "Add condition" to
+                              No custom rules yet. Click &quot;Add condition&quot; to
                               create your first targeting rule.
                             </Text>
                           </Banner>
@@ -243,7 +249,7 @@ export function AudienceTargetingPanel({
                     Segments:
                   </Text>
                   <Text as="span" variant="bodySm">
-                    {config.segments.length} selected
+                    {segments.length} selected
                   </Text>
                 </InlineStack>
               )}
@@ -254,8 +260,7 @@ export function AudienceTargetingPanel({
                     Custom Rules:
                   </Text>
                   <Text as="span" variant="bodySm">
-                    {config.customRules.conditions.length} condition(s) with{" "}
-                    {config.customRules.logicOperator} logic
+                    {uiCustom.conditions.length} condition(s) with {uiCustom.logicOperator} logic
                   </Text>
                 </InlineStack>
               )}

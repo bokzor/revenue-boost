@@ -412,7 +412,7 @@ export const PopupPreview = forwardRef<PopupPreviewRef, PopupPreviewProps>(
                     marginTop: "24px",
                   }}
                 >
-                  {[1, 2, 3, 4].map((i: any) => (
+                  {[1, 2, 3, 4].map((i) => (
                     <div
                       key={i}
                       style={{

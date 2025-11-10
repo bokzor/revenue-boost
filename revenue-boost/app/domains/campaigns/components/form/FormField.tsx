@@ -177,10 +177,9 @@ export function CheckboxField({
   return (
     <s-checkbox
       {...props}
+      label={label}
       onChange={(e) => onChange?.(e.currentTarget.checked)}
-    >
-      {label}
-    </s-checkbox>
+    />
   );
 }
 
