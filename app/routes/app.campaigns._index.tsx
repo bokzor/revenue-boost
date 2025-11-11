@@ -6,7 +6,7 @@
 
 import { data, type LoaderFunctionArgs } from "react-router";
 import { useLoaderData, useNavigate, useRevalidator } from "react-router";
-import { Page, Toast, Frame, Banner, InlineStack } from "@shopify/polaris";
+import { Page, Toast, Frame, Banner } from "@shopify/polaris";
 import { useState } from "react";
 
 import { authenticate } from "~/shopify.server";
@@ -61,7 +61,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
     }
 
     // Check setup status - simplified to avoid fetch issues
-    let setupComplete = true;
+    let setupComplete: boolean;
     try {
       // Just check if store exists for now
       const storeExists = !!storeId;
@@ -95,7 +95,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 // ============================================================================
 
 export default function CampaignsIndexPage() {
-  const { campaigns, experiments, storeId, setupComplete } = useLoaderData<typeof loader>();
+  const { campaigns, experiments, setupComplete } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
   const revalidator = useRevalidator();
 

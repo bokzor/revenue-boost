@@ -66,7 +66,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 // ============================================================================
 
 export default function CampaignDetailPage() {
-  const { campaign, storeId } = useLoaderData<typeof loader>();
+  const { campaign } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
   const revalidator = useRevalidator();
 

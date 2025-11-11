@@ -587,7 +587,7 @@ export function CampaignList({
                 {isExpanded && (
                   <Box paddingInlineStart="800" paddingBlockStart="200" paddingBlockEnd="200">
                     {group.variants.map((campaign) => {
-                      const { id, name, description, status, goal, templateType, priority, updatedAt } = campaign;
+                      const { id, name, description, status, goal, priority } = campaign;
                       const variantStatusBadge = getStatusBadge(status as CampaignStatus);
 
                       return (

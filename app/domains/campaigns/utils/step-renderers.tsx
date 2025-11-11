@@ -7,10 +7,8 @@
  * - Separated from main component for better testability
  */
 
-import type { CampaignFormData, TemplateType, PopupDesignFormData } from "~/shared/hooks/useWizardState";
+import type { CampaignFormData, TemplateType } from "~/shared/hooks/useWizardState";
 import type { CampaignGoal } from "@prisma/client";
-import type { PopupDesignConfig } from "~/domains/popups/types/design-editor.types";
-import type { EnhancedTriggersConfig } from "~/domains/campaigns/types/campaign";
 import {
   GoalStepContent,
   DesignStepContent,
@@ -38,24 +36,6 @@ export interface StepRendererProps {
   selectedVariant?: string;
   abTestingEnabled?: boolean;
 }
-
-function toPopupDesignFormData(config: PopupDesignConfig, prev?: PopupDesignFormData): PopupDesignFormData {
-  return {
-    id: config.id,
-    title: (config.headline as string) || prev?.title || "",
-    description: (config.subheadline as string) || prev?.description || "",
-    buttonText: (config.buttonText as string) || prev?.buttonText || "",
-    backgroundColor: config.backgroundColor || prev?.backgroundColor || "",
-    textColor: config.textColor || prev?.textColor || "",
-    buttonColor: config.buttonColor || prev?.buttonColor || "",
-    buttonTextColor: config.buttonTextColor || prev?.buttonTextColor || "",
-    position: config.position,
-    size: config.size,
-    showCloseButton: config.showCloseButton ?? prev?.showCloseButton ?? true,
-    overlayOpacity: config.overlayOpacity ?? prev?.overlayOpacity ?? 0.5,
-  };
-}
-
 // ============================================================================
 // STEP RENDERERS
 // ============================================================================

@@ -57,7 +57,7 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader }: PopupM
     return () => {
       mounted = false;
     };
-  }, [campaign.id, campaign.templateType]);
+  }, [campaign.id, campaign.templateType, loader, onShow]);
 
   if (loading) {
     return h("div", {

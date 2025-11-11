@@ -4,7 +4,7 @@
  * Form section for configuring cart abandonment popup content
  */
 
-import { TextField, CheckboxField, FormGrid, SelectField } from "../form";
+import { TextField, CheckboxField, FormGrid } from "../form";
 import { useFieldUpdater } from "~/shared/hooks/useFieldUpdater";
 import { DiscountSection } from "~/domains/popups/components/design/DiscountSection";
 import type { DiscountConfig } from "~/domains/popups/services/discounts/discount.server";

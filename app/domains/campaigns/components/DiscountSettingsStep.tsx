@@ -414,7 +414,7 @@ export function DiscountSettingsStep({
                     </Text>
                   </InlineStack>
                   <Text as="p" variant="bodySm" tone="subdued">
-                    • 10-15% discount and "Show code in popup" delivery
+                    • 10-15% discount and &#34;Show code in popup&#34; delivery
                     <br />
                     • 30-day expiry period
                     <br />• No minimum order amount for maximum signups

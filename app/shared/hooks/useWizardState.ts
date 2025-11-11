@@ -26,7 +26,7 @@ import type {
 // Import extracted modules for SOLID compliance
 import { validateStep as validateStepFn, type ValidationResult } from "./wizard/validators";
 import { createDefaultCampaignData } from "./wizard/defaults";
-import { buildGoalUpdates, getRecommendedTemplateId } from "./wizard/goal-config";
+import { buildGoalUpdates } from "./wizard/goal-config";
 
 // Re-export types from canonical source
 export type { CampaignGoal, TemplateType };
