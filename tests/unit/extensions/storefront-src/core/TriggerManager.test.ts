@@ -137,7 +137,7 @@ describe("TriggerManager", () => {
       };
 
       // Mock scroll depth as not met
-      vi.spyOn(manager as any, "checkScrollDepth").mockResolvedValue(false);
+      vi.spyOn(manager as unknown as { checkScrollDepth: () => Promise<boolean> }, "checkScrollDepth").mockResolvedValue(false);
 
       const result = await manager.evaluateTriggers(campaign);
 
@@ -166,7 +166,7 @@ describe("TriggerManager", () => {
       };
 
       // Mock scroll depth as not met
-      vi.spyOn(manager as any, "checkScrollDepth").mockResolvedValue(false);
+      vi.spyOn(manager as unknown as { checkScrollDepth: () => Promise<boolean> }, "checkScrollDepth").mockResolvedValue(false);
 
       const result = await manager.evaluateTriggers(campaign);
 

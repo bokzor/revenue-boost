@@ -232,7 +232,7 @@ export const PopupPreview = forwardRef<PopupPreviewRef, PopupPreviewProps>(
                   {config.imageUrl && (
                     <img
                       src={config.imageUrl}
-                      alt={config.title}
+                      alt={config.headline || "Popup"}
                       style={{
                         width: "60px",
                         height: "60px",
@@ -251,9 +251,9 @@ export const PopupPreview = forwardRef<PopupPreviewRef, PopupPreviewProps>(
                         lineHeight: "1.3",
                       }}
                     >
-                      {config.title}
+                      {config.headline}
                     </h3>
-                    {config.description && (
+                    {config.subheadline && (
                       <p
                         style={{
                           margin: 0,
@@ -263,7 +263,7 @@ export const PopupPreview = forwardRef<PopupPreviewRef, PopupPreviewProps>(
                           fontSize: "14px",
                         }}
                       >
-                        {config.description}
+                        {config.subheadline}
                       </p>
                     )}
                   </div>
@@ -280,7 +280,7 @@ export const PopupPreview = forwardRef<PopupPreviewRef, PopupPreviewProps>(
                     <div style={{ marginBottom: "20px", textAlign: "center" }}>
                       <img
                         src={config.imageUrl}
-                        alt={config.title}
+                        alt={config.headline || "Popup"}
                         style={{
                           maxWidth: "100%",
                           height: "auto",
@@ -303,7 +303,7 @@ export const PopupPreview = forwardRef<PopupPreviewRef, PopupPreviewProps>(
                       textAlign: "left",
                     }}
                   >
-                    {config.title}
+                    {config.headline}
                   </h3>
 
                   <p
@@ -317,7 +317,7 @@ export const PopupPreview = forwardRef<PopupPreviewRef, PopupPreviewProps>(
                       flex: 1,
                     }}
                   >
-                    {config.description}
+                    {config.subheadline}
                   </p>
                 </div>
 

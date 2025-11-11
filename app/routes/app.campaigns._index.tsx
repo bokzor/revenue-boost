@@ -1,19 +1,18 @@
 /**
  * Campaign List Page
- * 
+ *
  * Main page for displaying and managing campaigns with full CRUD operations
  */
 
 import { data, type LoaderFunctionArgs } from "react-router";
 import { useLoaderData, useNavigate, useRevalidator } from "react-router";
-import { Page, Button, Toast, Frame } from "@shopify/polaris";
+import { Page, Toast, Frame } from "@shopify/polaris";
 import { useState } from "react";
 
 import { authenticate } from "~/shopify.server";
 import { CampaignService } from "~/domains/campaigns";
 import { CampaignList } from "~/domains/campaigns/components";
 import type { CampaignWithConfigs } from "~/domains/campaigns/types/campaign";
-import { createApiResponse } from "~/lib/api-types";
 
 // ============================================================================
 // TYPES
@@ -31,7 +30,7 @@ interface LoaderData {
 export async function loader({ request }: LoaderFunctionArgs) {
   try {
     const { session } = await authenticate.admin(request);
-    
+
     if (!session?.shop) {
       throw new Error("No shop session found");
     }
@@ -46,7 +45,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
   } catch (error) {
     console.error("Failed to load campaigns:", error);
-    
+
     return data<LoaderData>({
       campaigns: [],
       storeId: "",
@@ -62,7 +61,7 @@ export default function CampaignsIndexPage() {
   const { campaigns, storeId } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
   const revalidator = useRevalidator();
-  
+
   // State for toast notifications
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [toastError, setToastError] = useState(false);
@@ -97,7 +96,7 @@ export default function CampaignsIndexPage() {
       }
 
       const { data: campaign } = await response.json();
-      
+
       // Create duplicate with modified name
       const duplicateData = {
         ...campaign,

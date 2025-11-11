@@ -21,6 +21,7 @@ import type { ApiCampaignData } from "~/lib/api-types";
 import { createApiResponse } from "~/lib/api-types";
 import { handleApiError } from "~/lib/api-error-handler.server";
 import { getStoreIdFromShop } from "~/lib/auth-helpers.server";
+import { getOrCreateVisitorId, createVisitorIdHeaders } from "~/lib/visitor-id.server";
 
 // ============================================================================
 // TYPES
@@ -39,7 +40,11 @@ interface ActiveCampaignsResponse {
 // ============================================================================
 
 export async function loader({ request }: LoaderFunctionArgs) {
-  const headers = storefrontCors();
+  // Get or create visitor ID from cookie
+  const visitorId = await getOrCreateVisitorId(request);
+
+  // Create headers with visitor ID cookie
+  const headers = await createVisitorIdHeaders(visitorId, storefrontCors());
 
   try {
     const url = new URL(request.url);
@@ -57,11 +62,14 @@ export async function loader({ request }: LoaderFunctionArgs) {
     // Build storefront context from request
     const context = buildStorefrontContext(url.searchParams, request.headers);
 
+    // Add visitor ID to context (for frequency capping)
+    context.visitorId = visitorId;
+
     // Get all active campaigns
     const allCampaigns = await CampaignService.getActiveCampaigns(storeId);
 
-    // Filter campaigns based on context (server-side filtering)
-    const filteredCampaigns = CampaignFilterService.filterCampaigns(
+    // Filter campaigns based on context (server-side filtering with Redis)
+    const filteredCampaigns = await CampaignFilterService.filterCampaigns(
       allCampaigns,
       context
     );

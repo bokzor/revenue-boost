@@ -4,13 +4,13 @@
  */
 
 // Popups
-export * from "./popups";
+export * from "./popups-new";
 
 // Slide-ins
 export * from "./slideins";
 
 // Notifications
-export * from "./notifications";
+export { BannerPopup } from "./notifications";
 
 // Shared utilities
 export * from "./shared";

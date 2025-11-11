@@ -6,6 +6,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import type { CampaignWithConfigs } from "~/domains/campaigns/types/campaign";
 import { CampaignService, CampaignFilterService } from "~/domains/campaigns/index.server";
 
 // Mock dependencies
@@ -46,15 +47,15 @@ describe("API: /api/campaigns/active - Integration Logic", () => {
       },
     ];
 
-    vi.mocked(CampaignService.getActiveCampaigns).mockResolvedValue(mockCampaigns as any);
-    vi.mocked(CampaignFilterService.filterCampaigns).mockReturnValue(mockCampaigns as any);
+    vi.mocked(CampaignService.getActiveCampaigns).mockResolvedValue(mockCampaigns as Partial<CampaignWithConfigs>[] as CampaignWithConfigs[]);
+    vi.mocked(CampaignFilterService.filterCampaigns).mockResolvedValue(mockCampaigns as Partial<CampaignWithConfigs>[] as CampaignWithConfigs[]);
 
     // Simulate what the loader does
     const storeId = "store-123";
     const context = { deviceType: "mobile" as const, pageUrl: "/" };
 
     const allCampaigns = await CampaignService.getActiveCampaigns(storeId);
-    const filtered = CampaignFilterService.filterCampaigns(allCampaigns, context);
+    const filtered = await CampaignFilterService.filterCampaigns(allCampaigns, context);
 
     expect(CampaignService.getActiveCampaigns).toHaveBeenCalledWith(storeId);
     expect(CampaignFilterService.filterCampaigns).toHaveBeenCalledWith(
@@ -85,20 +86,20 @@ describe("API: /api/campaigns/active - Integration Logic", () => {
       },
     };
 
-    const campaigns = [mobileCampaign, desktopCampaign] as any;
+    const campaigns = [mobileCampaign, desktopCampaign] as Partial<CampaignWithConfigs>[] as CampaignWithConfigs[];
     const context = { deviceType: "mobile" as const };
 
     // Use real filter service
     vi.mocked(CampaignFilterService.filterCampaigns).mockImplementation(
-      (camps, ctx) => {
-        return camps.filter((c: any) => {
+      async (camps) => {
+        return camps.filter((c) => {
           const segments = c.targetRules?.audienceTargeting?.segments || [];
           return segments.includes("Mobile User");
         });
       }
     );
 
-    const filtered = CampaignFilterService.filterCampaigns(campaigns, context);
+    const filtered = await CampaignFilterService.filterCampaigns(campaigns, context);
 
     expect(filtered).toHaveLength(1);
     expect(filtered[0].id).toBe("mobile-campaign");
@@ -130,8 +131,8 @@ describe("API: /api/campaigns/active - Integration Logic", () => {
     expect(clientTriggers.enhancedTriggers.page_load).toBeDefined();
 
     // Should not include server-side rules
-    expect((clientTriggers as any).audienceTargeting).toBeUndefined();
-    expect((clientTriggers as any).pageTargeting).toBeUndefined();
+    expect('audienceTargeting' in clientTriggers).toBe(false);
+    expect('pageTargeting' in clientTriggers).toBe(false);
   });
 });
 

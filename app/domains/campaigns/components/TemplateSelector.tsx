@@ -26,14 +26,14 @@ import { TemplateSelectorHeader } from "./templates/TemplateSelectorHeader";
 import { TemplateSelectorFooter } from "./templates/TemplateSelectorFooter";
 
 // Define a simplified template type for the selector
-import type { TemplateType } from "~/domains/campaigns/types/campaign";
+import type { TemplateType, ContentConfig, TargetRulesConfig, DesignConfig } from "~/domains/campaigns/types/campaign";
 export interface SelectedTemplate {
   id: string;
   templateType: TemplateType;
   name: string;
-  contentDefaults?: Record<string, unknown>;
-  triggers?: Record<string, unknown>;
-  design?: Record<string, unknown>;
+  contentConfig?: ContentConfig;
+  targetRules?: TargetRulesConfig;
+  designConfig?: DesignConfig;
 }
 
 export interface TemplateSelectorProps {
@@ -80,12 +80,12 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
     // Pass the full template object with all necessary data
     // IMPORTANT: Use unique template ID for proper selection (not templateType)
     const selectedTemplate: SelectedTemplate = {
-      id: template.id, // Use unique template ID for proper selection matching
+      id: template.id,
       templateType: template.templateType,
       name: template.name,
-      contentDefaults: template.contentConfig as Record<string, unknown>,
-      triggers: template.targetRules as Record<string, unknown>,
-      design: template.designConfig as Record<string, unknown>,
+      contentConfig: template.contentConfig as ContentConfig | undefined,
+      targetRules: template.targetRules as TargetRulesConfig | undefined,
+      designConfig: template.designConfig as DesignConfig | undefined,
     };
 
     onSelect(selectedTemplate);

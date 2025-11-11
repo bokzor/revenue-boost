@@ -1,0 +1,258 @@
+/**
+ * SocialProofPopup Component
+ *
+ * Social proof notification popup featuring:
+ * - Multiple notification types (purchase/visitor/review)
+ * - Notification rotation system
+ * - Configurable display duration
+ * - Position control (corners)
+ * - Slide-in/slide-out animations
+ * - Product images and details
+ * - Real-time visitor counts
+ */
+
+import React, { useState, useEffect, useCallback } from 'react';
+import type { PopupDesignConfig } from './types';
+import type { SocialProofContent } from '~/domains/campaigns/types/campaign';
+import { prefersReducedMotion } from './utils';
+
+export interface SocialProofNotification {
+  id: string;
+  type: 'purchase' | 'visitor' | 'review';
+  name?: string;
+  location?: string;
+  product?: string;
+  productImage?: string;
+  count?: number;
+  rating?: number;
+  timestamp?: Date;
+}
+
+/**
+ * SocialProofConfig - Extends both design config AND campaign content type
+ * All content fields come from SocialProofContent
+ * All design fields come from PopupDesignConfig
+ */
+export interface SocialProofConfig extends PopupDesignConfig, SocialProofContent {
+  // Storefront-specific fields only
+  // Note: displayDuration, messageTemplates, enablePurchaseNotifications, etc.
+  // all come from SocialProofContent
+}
+
+export interface SocialProofPopupProps {
+  config: SocialProofConfig;
+  isVisible: boolean;
+  onClose: () => void;
+  notifications?: SocialProofNotification[];
+}
+
+export const SocialProofPopup: React.FC<SocialProofPopupProps> = ({
+  config,
+  isVisible,
+  onClose,
+  notifications = [],
+}) => {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [shownCount, setShownCount] = useState(0);
+
+
+  const rotationInterval = (config.rotationInterval || 8) * 1000;
+
+  // Filter notifications based on config
+  const filteredNotifications = notifications.filter(notif => {
+    if (notif.type === 'purchase' && !config.enablePurchaseNotifications) return false;
+    if (notif.type === 'visitor' && !config.enableVisitorNotifications) return false;
+    if (notif.type === 'review' && !config.enableReviewNotifications) return false;
+
+    if (notif.type === 'visitor' && config.minVisitorCount && notif.count) {
+      if (notif.count < config.minVisitorCount) return false;
+    }
+
+    if (notif.type === 'review' && config.minReviewRating && notif.rating) {
+      if (notif.rating < config.minReviewRating) return false;
+    }
+
+    return true;
+  });
+
+  const currentNotification = filteredNotifications[currentIndex];
+
+  // Rotate notifications
+  useEffect(() => {
+    if (!isVisible || filteredNotifications.length === 0) return;
+    if (config.maxNotificationsPerSession && shownCount >= config.maxNotificationsPerSession) {
+      onClose();
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setIsAnimating(true);
+
+      setTimeout(() => {
+        setCurrentIndex((prev) => (prev + 1) % filteredNotifications.length);
+        setShownCount((prev) => prev + 1);
+        setIsAnimating(false);
+      }, 300);
+    }, rotationInterval);
+
+    return () => clearTimeout(timer);
+  }, [isVisible, currentIndex, filteredNotifications.length, rotationInterval, config.maxNotificationsPerSession, shownCount, onClose]);
+
+  const getPositionStyles = (): React.CSSProperties => {
+    const position = config.cornerPosition || 'bottom-left';
+    const base: React.CSSProperties = {
+      position: 'fixed',
+      zIndex: 10000,
+    };
+
+    switch (position) {
+      case 'bottom-left':
+        return { ...base, bottom: '20px', left: '20px' };
+      case 'bottom-right':
+        return { ...base, bottom: '20px', right: '20px' };
+      case 'top-left':
+        return { ...base, top: '20px', left: '20px' };
+      case 'top-right':
+        return { ...base, top: '20px', right: '20px' };
+      default:
+        return { ...base, bottom: '20px', left: '20px' };
+    }
+  };
+
+  const getMessage = useCallback((notification: SocialProofNotification): string => {
+    const templates = config.messageTemplates || {};
+
+    switch (notification.type) {
+      case 'purchase': {
+        const purchaseTemplate = templates.purchase || '{{name}} from {{location}} just purchased {{product}}';
+        return purchaseTemplate
+          .replace('{{name}}', notification.name || 'Someone')
+          .replace('{{location}}', notification.location || 'nearby')
+          .replace('{{product}}', notification.product || 'this item');
+      }
+
+      case 'visitor': {
+        const visitorTemplate = templates.visitor || '{{count}} people are viewing this right now';
+        return visitorTemplate.replace('{{count}}', String(notification.count || 0));
+      }
+
+      case 'review': {
+        const reviewTemplate = templates.review || '{{name}} gave this {{rating}} stars';
+        return reviewTemplate
+          .replace('{{name}}', notification.name || 'Someone')
+          .replace('{{rating}}', String(notification.rating || 5));
+      }
+
+      default:
+        return '';
+    }
+  }, [config.messageTemplates]);
+
+  const getIcon = (type: string): string => {
+    switch (type) {
+      case 'purchase':
+        return '🛍️';
+      case 'visitor':
+        return '👀';
+      case 'review':
+        return '⭐';
+      default:
+        return '✨';
+    }
+  };
+
+  if (!isVisible || !currentNotification || filteredNotifications.length === 0) {
+    return null;
+  }
+
+  const containerStyles: React.CSSProperties = {
+    ...getPositionStyles(),
+    backgroundColor: config.backgroundColor,
+    color: config.textColor,
+    borderRadius: `${config.borderRadius ?? 8}px`,
+    padding: '16px',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+    maxWidth: '350px',
+    display: 'flex',
+    gap: '12px',
+    alignItems: 'center',
+    opacity: isAnimating ? 0 : 1,
+    transform: isAnimating ? 'translateY(10px)' : 'translateY(0)',
+    transition: prefersReducedMotion() ? 'none' : 'opacity 0.3s, transform 0.3s',
+  };
+
+  const closeButtonStyles: React.CSSProperties = {
+    position: 'absolute',
+    top: '8px',
+    right: '8px',
+    background: 'transparent',
+    border: 'none',
+    color: config.textColor,
+    fontSize: '18px',
+    cursor: 'pointer',
+    opacity: 0.6,
+    padding: '2px 6px',
+    lineHeight: 1,
+  };
+
+  return (
+    <div style={containerStyles}>
+      {/* Close button */}
+      {config.showCloseButton !== false && (
+        <button
+          onClick={onClose}
+          style={closeButtonStyles}
+          aria-label="Close notification"
+          onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
+          onMouseLeave={(e) => e.currentTarget.style.opacity = '0.6'}
+        >
+          ×
+        </button>
+      )}
+
+      {/* Icon */}
+      <div style={{ fontSize: '24px', flexShrink: 0 }}>
+        {getIcon(currentNotification.type)}
+      </div>
+
+      {/* Product image */}
+      {config.showProductImage && currentNotification.productImage && (
+        <img
+          src={currentNotification.productImage}
+          alt={currentNotification.product || 'Product'}
+          style={{
+            width: '50px',
+            height: '50px',
+            objectFit: 'cover',
+            borderRadius: '6px',
+            flexShrink: 0,
+          }}
+        />
+      )}
+
+      {/* Message */}
+      <div style={{ flex: 1, fontSize: '14px', lineHeight: 1.4 }}>
+        {getMessage(currentNotification)}
+
+        {/* Timer */}
+        {config.showTimer && currentNotification.timestamp && (
+          <div style={{ fontSize: '12px', opacity: 0.7, marginTop: '4px' }}>
+            {getTimeAgo(currentNotification.timestamp)}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// Helper function to get time ago
+function getTimeAgo(date: Date): string {
+  const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
+
+  if (seconds < 60) return 'Just now';
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+  return `${Math.floor(seconds / 86400)}d ago`;
+}
+

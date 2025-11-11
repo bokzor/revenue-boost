@@ -25,7 +25,7 @@ export interface EnhancedTriggers {
   scroll_depth?: ScrollDepthTrigger;
   idle_timer?: IdleTimerTrigger;
   logic_operator?: "AND" | "OR";
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface PageLoadTrigger {

@@ -127,6 +127,21 @@ export const SocialProofPopup: React.FC<SocialProofPopupProps> = ({
     }
   }, [campaignId, providedNotifications, fetchNotifications]);
 
+  // Set up polling for real-time updates (every 60 seconds)
+  useEffect(() => {
+    if (providedNotifications) {
+      // Don't poll in preview mode
+      return;
+    }
+
+    const pollingInterval = setInterval(() => {
+      console.log("[SocialProofPopup] Polling for new notifications...");
+      fetchNotifications();
+    }, 60000); // Poll every 60 seconds
+
+    return () => clearInterval(pollingInterval);
+  }, [providedNotifications, fetchNotifications]);
+
   // Show next notification in queue
   const showNextNotification = useCallback(() => {
     // Check if we've reached the max display limit

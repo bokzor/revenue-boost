@@ -12,7 +12,7 @@
  * - Boundary detection
  */
 
-import React, { ReactNode } from "react";
+import React, { ReactNode, useEffect, useMemo, useState } from "react";
 
 export interface AffixProps {
   children: ReactNode;
@@ -31,17 +31,35 @@ export const Affix: React.FC<AffixProps> = ({
   offsetBottom,
   className,
   style,
+  disableBelowWidth,
 }) => {
-  // TODO: Implement actual affix logic with scroll listeners
-  // For now, just render children with sticky positioning
+  // Simple responsive disable: if viewport width is below threshold, render without sticky
+  const [enabled, setEnabled] = useState(true);
 
-  const affixStyle: React.CSSProperties = {
-    position: "sticky",
-    top: offsetTop,
-    bottom: offsetBottom,
-    zIndex: 100,
-    ...style,
-  };
+  useEffect(() => {
+    if (!disableBelowWidth) {
+      setEnabled(true);
+      return;
+    }
+    const check = () => setEnabled(window.innerWidth >= disableBelowWidth);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, [disableBelowWidth]);
+
+  const affixStyle: React.CSSProperties = useMemo(
+    () =>
+      enabled
+        ? {
+            position: "sticky",
+            top: offsetTop,
+            bottom: offsetBottom,
+            zIndex: 100,
+            ...style,
+          }
+        : { ...style },
+    [enabled, offsetTop, offsetBottom, style],
+  );
 
   return (
     <div className={className} style={affixStyle}>

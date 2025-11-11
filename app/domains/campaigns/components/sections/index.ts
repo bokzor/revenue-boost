@@ -25,6 +25,31 @@ export {
 } from "./FlashSaleContentSection";
 
 export {
+  CartAbandonmentContentSection,
+  type CartAbandonmentContentSectionProps,
+} from "./CartAbandonmentContentSection";
+
+export {
+  ProductUpsellContentSection,
+  type ProductUpsellContentSectionProps,
+} from "./ProductUpsellContentSection";
+
+export {
+  FreeShippingContentSection,
+  type FreeShippingContentSectionProps,
+} from "./FreeShippingContentSection";
+
+export {
+  SocialProofContentSection,
+  type SocialProofContentSectionProps,
+} from "./SocialProofContentSection";
+
+export {
+  AnnouncementContentSection,
+  type AnnouncementContentSectionProps,
+} from "./AnnouncementContentSection";
+
+export {
   DesignConfigSection,
   type DesignConfigSectionProps,
 } from "./DesignConfigSection";

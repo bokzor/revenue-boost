@@ -9,7 +9,7 @@ export interface ApiConfig {
 }
 
 export interface FetchCampaignsResponse {
-  campaigns: any[];
+  campaigns: unknown[];
   success: boolean;
 }
 
@@ -29,18 +29,18 @@ export class ApiClient {
   private getApiUrl(path: string): string {
     const base = this.config.apiUrl || "";
     const cleanPath = path.startsWith("/") ? path : `/${path}`;
-    
+
     if (base) {
       return `${base}${cleanPath}`;
     }
-    
+
     // Use app proxy (same domain)
     return `/apps/revenue-boost${cleanPath}`;
   }
 
-  async fetchActiveCampaigns(sessionId: string): Promise<FetchCampaignsResponse> {
+  async fetchActiveCampaigns(sessionId: string, visitorId?: string): Promise<FetchCampaignsResponse> {
     // Build storefront context
-    const context = this.buildStorefrontContext(sessionId);
+    const context = this.buildStorefrontContext(sessionId, visitorId);
 
     // Build URL with context params
     const params = new URLSearchParams({
@@ -59,6 +59,7 @@ export class ApiClient {
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: "include", // Include cookies for visitor ID
       });
 
       if (!response.ok) {
@@ -75,7 +76,7 @@ export class ApiClient {
     }
   }
 
-  private buildStorefrontContext(sessionId: string): Record<string, string> {
+  private buildStorefrontContext(sessionId: string, visitorId?: string): Record<string, string> {
     const context: Record<string, string> = {
       sessionId,
       pageUrl: window.location.pathname,
@@ -83,9 +84,16 @@ export class ApiClient {
       deviceType: this.detectDeviceType(),
     };
 
+    // Add visitor ID if available
+    if (visitorId) {
+      context.visitorId = visitorId;
+    }
+
     // Add cart info if available
-    if (typeof (window as any).Shopify !== "undefined") {
-      const shopify = (window as any).Shopify;
+    type ShopifyGlobal = { Shopify?: { cart?: { total_price: number; item_count: number } } };
+    const w = window as unknown as ShopifyGlobal;
+    if (typeof w.Shopify !== "undefined") {
+      const shopify = w.Shopify!;
       if (shopify.cart) {
         context.cartValue = String(shopify.cart.total_price / 100);
         context.cartItemCount = String(shopify.cart.item_count);
@@ -157,6 +165,30 @@ export class ApiClient {
       });
     } catch (error) {
       console.error("[Revenue Boost API] Failed to track event:", error);
+    }
+  }
+
+  async trackSocialProofEvent(event: {
+    eventType: 'page_view' | 'product_view' | 'add_to_cart';
+    productId?: string;
+    pageUrl?: string;
+    shop: string;
+  }): Promise<void> {
+    const url = this.getApiUrl("/api/social-proof/track");
+
+    try {
+      await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(event),
+      });
+    } catch (error) {
+      // Silent fail for social proof tracking
+      if (this.config.debug) {
+        console.error("[Revenue Boost API] Failed to track social proof event:", error);
+      }
     }
   }
 }

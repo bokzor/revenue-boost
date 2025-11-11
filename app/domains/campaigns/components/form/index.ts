@@ -9,10 +9,12 @@ export {
   TextField,
   SelectField,
   CheckboxField,
+  ColorField,
   type FormFieldProps,
   type TextFieldProps,
   type SelectFieldProps,
   type CheckboxFieldProps,
+  type ColorFieldProps,
   type SelectOption,
 } from "./FormField";
 

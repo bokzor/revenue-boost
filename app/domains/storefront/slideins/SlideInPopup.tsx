@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import type { PopupConfig } from "../popups/BasePopup";
+import type { PopupConfig } from "../popups-new/types";
 
 export interface SlideInPopupProps {
   config: PopupConfig & {
     slideDirection?: "left" | "right" | "bottom";
     width?: string;
     height?: string;
+    title?: string;
+    description?: string;
   };
   isVisible: boolean;
   onClose: () => void;

@@ -1,10 +1,10 @@
 /**
  * PopupManagerPreact - Preact-based popup manager for storefront
- * 
+ *
  * Renders popups using lazy-loaded components
  */
 
-import { h, render } from "preact";
+import { h, render, type ComponentType } from "preact";
 import { useState, useEffect } from "preact/hooks";
 import { ComponentLoader, type TemplateType } from "./component-loader";
 
@@ -26,7 +26,7 @@ export interface PopupManagerProps {
 }
 
 export function PopupManagerPreact({ campaign, onClose, onShow, loader }: PopupManagerProps) {
-  const [Component, setComponent] = useState<any>(null);
+  const [Component, setComponent] = useState<ComponentType<Record<string, unknown>> | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -37,9 +37,9 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader }: PopupM
       try {
         console.log("[PopupManager] Loading component for:", campaign.templateType);
         const comp = await loader.loadComponent(campaign.templateType);
-        
+
         if (mounted) {
-          setComponent(() => comp);
+          setComponent(() => comp as ComponentType<Record<string, unknown>>);
           setLoading(false);
           onShow?.(campaign.id);
         }
@@ -60,14 +60,14 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader }: PopupM
   }, [campaign.id, campaign.templateType]);
 
   if (loading) {
-    return h("div", { 
-      style: { 
-        position: "fixed", 
-        top: "50%", 
-        left: "50%", 
+    return h("div", {
+      style: {
+        position: "fixed",
+        top: "50%",
+        left: "50%",
         transform: "translate(-50%, -50%)",
-        zIndex: 999999 
-      } 
+        zIndex: 999999
+      }
     }, "Loading...");
   }
 

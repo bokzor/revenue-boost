@@ -1,9 +1,9 @@
 /**
  * useFieldUpdater Hook
- * 
+ *
  * Utility hook for creating type-safe field update functions
  * Eliminates duplicate updateField patterns across form components
- * 
+ *
  * @example
  * const updateField = useFieldUpdater(config, onChange);
  * updateField("fieldName", newValue);
@@ -13,12 +13,12 @@ import { useCallback } from "react";
 
 /**
  * Creates a type-safe field updater function
- * 
+ *
  * @param currentState - Current state object
  * @param onChange - Callback to update the state
  * @returns A function to update individual fields
  */
-export function useFieldUpdater<T extends Record<string, unknown>>(
+export function useFieldUpdater<T extends object>(
   currentState: Partial<T>,
   onChange: (updated: Partial<T>) => void
 ) {
@@ -33,12 +33,12 @@ export function useFieldUpdater<T extends Record<string, unknown>>(
 /**
  * Creates a type-safe nested field updater function
  * Useful for updating nested objects within a config
- * 
+ *
  * @param currentState - Current state object
  * @param onChange - Callback to update the state
  * @param nestedKey - Key of the nested object to update
  * @returns A function to update individual fields in the nested object
- * 
+ *
  * @example
  * const updateTrigger = useNestedFieldUpdater(
  *   targetRules,
@@ -48,7 +48,7 @@ export function useFieldUpdater<T extends Record<string, unknown>>(
  * updateTrigger("page_load", { enabled: true, delay: 1000 });
  */
 export function useNestedFieldUpdater<
-  T extends Record<string, unknown>,
+  T extends object,
   K extends keyof T
 >(
   currentState: Partial<T>,
@@ -62,7 +62,7 @@ export function useNestedFieldUpdater<
     ) => {
       const currentNested = (currentState[nestedKey] as Record<string, unknown> | undefined) || {};
       const currentField = (currentNested[field as string] as Record<string, unknown> | undefined) || {};
-      
+
       onChange({
         ...currentState,
         [nestedKey]: {

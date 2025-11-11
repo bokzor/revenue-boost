@@ -78,9 +78,29 @@ export const NewsletterContentSchema = BaseContentConfigSchema.extend({
   nameFieldRequired: z.boolean().default(false),
   nameFieldPlaceholder: z.string().optional(),
   consentFieldEnabled: z.boolean().default(false),
+  // Optional labels/placeholders for name fields and error handling used by UI
+  firstNameLabel: z.string().optional(),
+  lastNameLabel: z.string().optional(),
+  firstNamePlaceholder: z.string().optional(),
+  lastNamePlaceholder: z.string().optional(),
+  errorMessage: z.string().optional(),
+
   consentFieldRequired: z.boolean().default(false),
   consentFieldText: z.string().optional(),
 });
+
+/**
+ * Default wheel segments for Spin-to-Win
+ * Designed to be profitable with expected discount of ~9.75%
+ */
+const DEFAULT_SPIN_TO_WIN_SEGMENTS = [
+  { id: "segment-5-off", label: "5% OFF", probability: 0.35, color: "#10B981", discountType: "percentage" as const, discountValue: 5, discountCode: "SPIN5" },
+  { id: "segment-10-off", label: "10% OFF", probability: 0.25, color: "#3B82F6", discountType: "percentage" as const, discountValue: 10, discountCode: "SPIN10" },
+  { id: "segment-15-off", label: "15% OFF", probability: 0.15, color: "#F59E0B", discountType: "percentage" as const, discountValue: 15, discountCode: "SPIN15" },
+  { id: "segment-20-off", label: "20% OFF", probability: 0.10, color: "#EF4444", discountType: "percentage" as const, discountValue: 20, discountCode: "SPIN20" },
+  { id: "segment-free-shipping", label: "FREE SHIPPING", probability: 0.10, color: "#8B5CF6", discountType: "free_shipping" as const, discountCode: "FREESHIP" },
+  { id: "segment-try-again", label: "Try Again", probability: 0.05, color: "#6B7280" },
+];
 
 /**
  * Spin-to-Win specific content fields
@@ -89,6 +109,7 @@ export const SpinToWinContentSchema = BaseContentConfigSchema.extend({
   spinButtonText: z.string().default("Spin to Win!"),
   emailRequired: z.boolean().default(true),
   emailPlaceholder: z.string().default("Enter your email to spin"),
+  emailLabel: z.string().optional(),
   wheelSegments: z.array(z.object({
     id: z.string(),
     label: z.string(),
@@ -97,8 +118,15 @@ export const SpinToWinContentSchema = BaseContentConfigSchema.extend({
     discountType: z.enum(["percentage", "fixed_amount", "free_shipping"]).optional(),
     discountValue: z.number().min(0).optional(),
     discountCode: z.string().optional(),
-  })).min(2, "At least 2 wheel segments required"),
+  })).min(2, "At least 2 wheel segments required").default(DEFAULT_SPIN_TO_WIN_SEGMENTS),
   maxAttemptsPerUser: z.number().int().min(1).default(1),
+  // Advanced wheel configuration
+  wheelSize: z.number().int().min(200).max(800).default(400),
+  wheelBorderWidth: z.number().int().min(0).max(20).default(2),
+  wheelBorderColor: z.string().optional(),
+  spinDuration: z.number().int().min(1000).max(10000).default(4000),
+  minSpins: z.number().int().min(1).max(20).default(5),
+  loadingText: z.string().optional(),
 });
 
 /**
@@ -107,44 +135,94 @@ export const SpinToWinContentSchema = BaseContentConfigSchema.extend({
 export const FlashSaleContentSchema = BaseContentConfigSchema.extend({
   urgencyMessage: z.string().min(1, "Urgency message is required"),
   discountPercentage: z.number().min(0).max(100),
+  discountValue: z.number().min(0).optional(),
+  discountType: z.enum(["percentage", "fixed_amount"]).default("percentage"),
   originalPrice: z.number().min(0).optional(),
   salePrice: z.number().min(0).optional(),
   showCountdown: z.boolean().default(true),
+  endTime: z.string().optional(), // ISO date string
+
   countdownDuration: z.number().int().min(60).default(3600), // seconds
+  hideOnExpiry: z.boolean().default(true),
   showStockCounter: z.boolean().default(false),
   stockCount: z.number().int().min(0).optional(),
+  ctaUrl: z.string().optional(),
 });
 
 /**
  * Cart Abandonment specific content fields
  */
 export const CartAbandonmentContentSchema = BaseContentConfigSchema.extend({
-  cartRecoveryMessage: z.string().optional(),
-  discountOffered: z.boolean().default(false),
-  reminderText: z.string().optional(),
-  urgencyText: z.string().optional(),
+  showCartItems: z.boolean().default(true),
+  maxItemsToShow: z.number().int().min(1).max(10).default(3),
+  showCartTotal: z.boolean().default(true),
+  showUrgency: z.boolean().default(true),
+  urgencyTimer: z.number().int().min(60).max(3600).default(300), // seconds
+  urgencyMessage: z.string().optional(),
+  showStockWarnings: z.boolean().default(false),
+  stockWarningMessage: z.string().optional(),
+  ctaUrl: z.string().optional(),
+  saveForLaterText: z.string().optional(),
+  currency: z.string().default("USD"),
 });
 
 /**
  * Product Upsell specific content fields
  */
 export const ProductUpsellContentSchema = BaseContentConfigSchema.extend({
-  productIds: z.array(z.string()).min(1, "At least one product required"),
-  upsellType: z.enum(["related", "complementary", "bundle"]).default("related"),
-  upsellMessage: z.string().optional(),
-  bundleDiscount: z.number().min(0).max(100).optional(),
+  productSelectionMethod: z.enum(["ai", "manual", "collection"]).default("ai"),
+  selectedProducts: z.array(z.string()).optional(),
+  selectedCollection: z.string().optional(),
+  maxProducts: z.number().int().min(1).max(12).default(3),
+  layout: z.enum(["grid", "carousel", "card"]).default("grid"),
+  columns: z.number().int().min(1).max(4).default(2),
+  showPrices: z.boolean().default(true),
+  showCompareAtPrice: z.boolean().default(true),
+  showImages: z.boolean().default(true),
+  showRatings: z.boolean().default(false),
+  showReviewCount: z.boolean().default(false),
+  bundleDiscount: z.number().min(0).max(100).default(15),
+  bundleDiscountText: z.string().optional(),
+  multiSelect: z.boolean().default(true),
+  secondaryCtaLabel: z.string().optional(),
+  currency: z.string().default("USD"),
 });
 
 /**
  * Social Proof specific content fields
  */
 export const SocialProofContentSchema = BaseContentConfigSchema.extend({
-  notificationInterval: z.number().int().min(1000).default(5000), // milliseconds
-  maxNotifications: z.number().int().min(1).default(5),
-  socialProofText: z.string().optional(),
-  showCustomerNames: z.boolean().default(true),
-  showLocation: z.boolean().default(true),
+  enablePurchaseNotifications: z.boolean().default(true),
+  enableVisitorNotifications: z.boolean().default(false),
+  enableReviewNotifications: z.boolean().default(false),
+  purchaseMessageTemplate: z.string().optional(),
+  visitorMessageTemplate: z.string().optional(),
+  reviewMessageTemplate: z.string().optional(),
+  cornerPosition: z.enum(["bottom-left", "bottom-right", "top-left", "top-right"]).default("bottom-left"),
+  displayDuration: z.number().int().min(1).max(30).default(6), // seconds
+  rotationInterval: z.number().int().min(1).max(60).default(8), // seconds
+  maxNotificationsPerSession: z.number().int().min(1).max(20).default(5),
+  minVisitorCount: z.number().int().min(1).optional(),
+  minReviewRating: z.number().min(1).max(5).optional(),
+  messageTemplates: z.object({
+    purchase: z.string().optional(),
+    visitor: z.string().optional(),
+    review: z.string().optional(),
+  }).optional(),
+  showProductImage: z.boolean().default(true),
+  showTimer: z.boolean().default(true),
 });
+
+/**
+ * Default prizes for Scratch Card
+ * Designed to be profitable with expected discount of ~10.5%
+ */
+const DEFAULT_SCRATCH_CARD_PRIZES = [
+  { id: "prize-5-off", label: "5% OFF", probability: 0.40, discountCode: "SCRATCH5", discountPercentage: 5 },
+  { id: "prize-10-off", label: "10% OFF", probability: 0.30, discountCode: "SCRATCH10", discountPercentage: 10 },
+  { id: "prize-15-off", label: "15% OFF", probability: 0.20, discountCode: "SCRATCH15", discountPercentage: 15 },
+  { id: "prize-20-off", label: "20% OFF", probability: 0.10, discountCode: "SCRATCH20", discountPercentage: 20 },
+];
 
 /**
  * Scratch Card specific content fields
@@ -153,6 +231,7 @@ export const ScratchCardContentSchema = BaseContentConfigSchema.extend({
   scratchInstruction: z.string().default("Scratch to reveal your prize!"),
   emailRequired: z.boolean().default(true),
   emailPlaceholder: z.string().default("Enter your email"),
+  emailLabel: z.string().optional(),
   emailBeforeScratching: z.boolean().default(false),
   scratchThreshold: z.number().min(0).max(100).default(50),
   scratchRadius: z.number().min(5).max(100).default(20),
@@ -162,7 +241,52 @@ export const ScratchCardContentSchema = BaseContentConfigSchema.extend({
     probability: z.number().min(0).max(1),
     discountCode: z.string().optional(),
     discountPercentage: z.number().min(0).max(100).optional(),
-  })).min(1, "At least one prize required"),
+  })).min(1, "At least one prize required").default(DEFAULT_SCRATCH_CARD_PRIZES),
+});
+
+/**
+ * Free Shipping specific content fields
+ */
+export const FreeShippingContentSchema = BaseContentConfigSchema.extend({
+  freeShippingThreshold: z.number().min(0).default(75),
+  currency: z.string().default("USD"),
+  initialMessage: z.string().optional(),
+  progressMessage: z.string().optional(),
+  successTitle: z.string().optional(),
+  successSubhead: z.string().optional(),
+  showProducts: z.boolean().default(true),
+  maxProductsToShow: z.number().int().min(1).max(12).default(3),
+  productFilter: z.enum(["under_threshold", "all", "bestsellers"]).default("under_threshold"),
+  showProgress: z.boolean().default(true),
+  progressColor: z.string().optional(),
+  displayStyle: z.enum(["banner", "modal", "sticky"]).default("banner"),
+  autoHide: z.boolean().default(false),
+  hideDelay: z.number().int().min(1).max(30).default(3), // seconds
+});
+
+/**
+ * Countdown Timer specific content fields
+ */
+export const CountdownTimerContentSchema = BaseContentConfigSchema.extend({
+  endTime: z.string().optional(), // ISO date string
+  countdownDuration: z.number().int().min(60).default(3600), // seconds
+  hideOnExpiry: z.boolean().default(true),
+  showStockCounter: z.boolean().default(false),
+  stockCount: z.number().int().min(0).optional(),
+  sticky: z.boolean().default(true),
+  ctaUrl: z.string().optional(),
+  colorScheme: z.enum(["urgent", "success", "info", "custom"]).default("custom"),
+});
+
+/**
+ * Announcement specific content fields
+ */
+export const AnnouncementContentSchema = BaseContentConfigSchema.extend({
+  sticky: z.boolean().default(true),
+  icon: z.string().optional(),
+  ctaUrl: z.string().optional(),
+  ctaOpenInNewTab: z.boolean().default(false),
+  colorScheme: z.enum(["urgent", "success", "info", "custom"]).default("custom"),
 });
 
 /**
@@ -175,7 +299,10 @@ export type ContentConfig =
   | z.infer<typeof CartAbandonmentContentSchema>
   | z.infer<typeof ProductUpsellContentSchema>
   | z.infer<typeof SocialProofContentSchema>
-  | z.infer<typeof ScratchCardContentSchema>;
+  | z.infer<typeof ScratchCardContentSchema>
+  | z.infer<typeof FreeShippingContentSchema>
+  | z.infer<typeof CountdownTimerContentSchema>
+  | z.infer<typeof AnnouncementContentSchema>;
 
 // Export individual content types
 export type NewsletterContent = z.infer<typeof NewsletterContentSchema>;
@@ -185,6 +312,9 @@ export type CartAbandonmentContent = z.infer<typeof CartAbandonmentContentSchema
 export type ProductUpsellContent = z.infer<typeof ProductUpsellContentSchema>;
 export type SocialProofContent = z.infer<typeof SocialProofContentSchema>;
 export type ScratchCardContent = z.infer<typeof ScratchCardContentSchema>;
+export type FreeShippingContent = z.infer<typeof FreeShippingContentSchema>;
+export type CountdownTimerContent = z.infer<typeof CountdownTimerContentSchema>;
+export type AnnouncementContent = z.infer<typeof AnnouncementContentSchema>;
 
 // ============================================================================
 // TEMPLATE-TYPE TO SCHEMA MAPPING
@@ -214,13 +344,13 @@ export function getContentSchemaForTemplate(templateType?: TemplateType) {
     case "SOCIAL_PROOF":
       return SocialProofContentSchema;
     case "COUNTDOWN_TIMER":
-      return FlashSaleContentSchema; // Countdown timer uses flash sale fields
+      return CountdownTimerContentSchema;
     case "SCRATCH_CARD":
-      return ScratchCardContentSchema; // Scratch card has its own schema
+      return ScratchCardContentSchema;
     case "ANNOUNCEMENT":
-      return BaseContentConfigSchema; // Simple announcement
+      return AnnouncementContentSchema;
     case "FREE_SHIPPING":
-      return BaseContentConfigSchema; // Free shipping uses base fields
+      return FreeShippingContentSchema;
     default:
       return BaseContentConfigSchema;
   }
@@ -234,15 +364,32 @@ export function getContentSchemaForTemplate(templateType?: TemplateType) {
  * Design Configuration Schema
  */
 export const DesignConfigSchema = z.object({
+  // Layout
   theme: z.enum(["professional-blue", "vibrant-orange", "elegant-purple", "minimal-gray"]).default("professional-blue"),
   position: z.enum(["center", "top", "bottom", "left", "right"]).default("center"),
   size: z.enum(["small", "medium", "large"]).default("medium"),
   borderRadius: z.number().min(0).max(50).default(8),
+  animation: z.enum(["fade", "slide", "bounce", "none"]).default("fade"),
+
+  // Main colors
   backgroundColor: z.string().regex(/^#[0-9A-F]{6}$/i).optional(),
   textColor: z.string().regex(/^#[0-9A-F]{6}$/i).optional(),
+  accentColor: z.string().regex(/^#[0-9A-F]{6}$/i).optional(),
+
+  // Button colors
   buttonColor: z.string().regex(/^#[0-9A-F]{6}$/i).optional(),
-  overlayOpacity: z.number().min(0).max(1).default(0.8),
-  animation: z.enum(["fade", "slide", "bounce", "none"]).default("fade"),
+  buttonTextColor: z.string().regex(/^#[0-9A-F]{6}$/i).optional(),
+
+  // Input field colors
+  inputBackgroundColor: z.string().regex(/^#[0-9A-F]{6}$/i).optional(),
+  inputTextColor: z.string().regex(/^#[0-9A-F]{6}$/i).optional(),
+  inputBorderColor: z.string().regex(/^#[0-9A-F]{6}$/i).optional(),
+
+  // Overlay colors
+  overlayColor: z.string().regex(/^#[0-9A-F]{6}$/i).optional(),
+  overlayOpacity: z.number().min(0).max(1).default(0.5),
+
+  // Advanced
   customCSS: z.string().optional(),
 });
 
@@ -508,8 +655,13 @@ export const CampaignCreateDataSchema = z.object({
   status: CampaignStatusSchema.optional(),
   priority: z.number().int().min(0).optional(),
 
-  // Template reference (required)
-  templateId: z.cuid().optional(),
+  // Template reference (optional - can be CUID or system template identifier like SYSTEM_xxx)
+  templateId: z.union([
+    z.cuid(),
+    z.string().startsWith("SYSTEM_"),
+    z.literal(""),
+    z.undefined()
+  ]).optional().transform(val => val === "" ? undefined : val),
   templateType: TemplateTypeSchema, // Required for validation
 
   // JSON configurations
@@ -519,7 +671,11 @@ export const CampaignCreateDataSchema = z.object({
   discountConfig: DiscountConfigSchema.optional(),
 
   // A/B Testing
-  experimentId: z.cuid().optional(),
+  experimentId: z.union([
+    z.cuid(),
+    z.literal(""),
+    z.undefined()
+  ]).optional().transform(val => val === "" ? undefined : val),
   variantKey: z.enum(["A", "B", "C", "D"]).optional(),
   isControl: z.boolean().optional(),
 

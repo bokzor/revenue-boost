@@ -48,7 +48,7 @@ export function GoalOptionCard({ option, isSelected, onClick }: GoalOptionCardPr
               style={{ backgroundColor: `${option.iconColor}15` }}
             >
               <div style={{ color: option.iconColor }}>
-                <Icon source={IconComponent as any} />
+                <Icon source={IconComponent} />
               </div>
             </div>
             <BlockStack gap="100">

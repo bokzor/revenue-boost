@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import type { PopupConfig } from "../popups/BasePopup";
+import type { PopupConfig } from "../popups-new/types";
 import type { ExtendedColorConfig } from "~/domains/popups/color-customization.types";
 
 /**

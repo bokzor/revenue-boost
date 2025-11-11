@@ -5,11 +5,11 @@
 import { SocialProofPopup } from "../../../app/domains/storefront/notifications/social-proof/SocialProofPopup";
 
 (function register() {
-  const g = window as any;
+  const g = window as unknown as { RevenueBoostComponents?: Record<string, unknown>; console?: Console };
   g.RevenueBoostComponents = g.RevenueBoostComponents || {};
   g.RevenueBoostComponents["SOCIAL_PROOF"] = SocialProofPopup;
 
-  if (g.console && g.console.debug) {
+  if (typeof g.console?.debug === "function") {
     console.debug("[Revenue Boost] Social Proof popup registered");
   }
 })();

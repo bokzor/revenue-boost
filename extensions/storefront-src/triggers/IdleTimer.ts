@@ -1,6 +1,6 @@
 /**
  * IdleTimer
- * 
+ *
  * Detects when user has been idle (no activity) for a specified duration
  */
 
@@ -66,11 +66,11 @@ export class IdleTimer {
     }
 
     this.active = false;
-    
+
     // Remove activity listeners
     if (this.activityHandler) {
       this.config.events.forEach((event) => {
-        document.removeEventListener(event, this.activityHandler!, { passive: true } as any);
+        document.removeEventListener(event, this.activityHandler!, false);
       });
       this.activityHandler = null;
     }
@@ -116,6 +116,8 @@ export class IdleTimer {
       return;
     }
 
+    void e; // mark param as used to satisfy lint
+
     // Update last activity time
     this.lastActivityTime = Date.now();
 
@@ -148,7 +150,7 @@ export class IdleTimer {
 
     this.triggered = true;
     this.callback();
-    
+
     // Stop after trigger
     this.stop();
   }

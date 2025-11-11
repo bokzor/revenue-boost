@@ -1,6 +1,6 @@
 /**
  * useTemplates Hook - Fetches templates from API
- * 
+ *
  * SOLID Compliance:
  * - Single Responsibility: Only handles template fetching
  * - Extracted from TemplateSelector for better reusability
@@ -30,24 +30,38 @@ export function useTemplates(goal: CampaignGoal, storeId: string): UseTemplatesR
       try {
         const params = new URLSearchParams({ storeId, goal });
         const response = await fetch(`/api/templates?${params}`);
-        const data = await response.json();
+
+        // Handle non-OK HTTP status early
+        if (!response.ok) {
+          const text = await response.text();
+          console.error("Template API HTTP error:", response.status, text);
+          setError(`Failed to load templates (HTTP ${response.status})`);
+          setTemplates([]);
+          return;
+        }
+
+        const json = await response.json();
+        const payload = json?.data as { templates?: UnifiedTemplate[] } | undefined;
+        const safeTemplates: UnifiedTemplate[] = Array.isArray(payload?.templates)
+          ? (payload!.templates as UnifiedTemplate[])
+          : [];
 
         console.log("📦 Template API response:", {
-          success: data.success,
-          templatesCount: data.templates?.length || 0,
-          cached: data.meta?.cached,
-          responseTime: data.meta?.responseTime + "ms",
-          cacheStats: data.meta?.cacheStats,
+          success: json?.success,
+          templatesCount: safeTemplates.length,
+          timestamp: json?.timestamp,
         });
 
-        if (data.success) {
-          console.log(
-            `✅ Templates loaded: ${data.templates.length} templates ${data.meta?.cached ? "(from cache)" : "(from database)"}`
-          );
-          setTemplates(data.templates);
+        if (json?.success) {
+          const filtered = goal
+            ? safeTemplates.filter((t) => t.goals.includes(goal))
+            : safeTemplates;
+          console.log(`✅ Templates loaded: ${safeTemplates.length} templates (after goal filter: ${filtered.length})`);
+          setTemplates(filtered);
         } else {
-          console.error("Template API error:", data.error);
-          setError(data.error || "Failed to load templates");
+          console.error("Template API error:", json?.error);
+          setError(json?.error || "Failed to load templates");
+          setTemplates([]);
         }
       } catch (err) {
         console.error("Error fetching templates:", err);

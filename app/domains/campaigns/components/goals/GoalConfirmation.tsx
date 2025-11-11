@@ -26,7 +26,7 @@ export function GoalConfirmation({ selectedGoal }: GoalConfirmationProps) {
             className={styles.confirmationIcon}
             style={{ backgroundColor: selectedGoal.iconColor }}
           >
-            <Icon source={IconComponent as any} />
+            <Icon source={IconComponent} />
           </div>
           <BlockStack gap="200">
             <Text as="h3" variant="headingMd" fontWeight="semibold">

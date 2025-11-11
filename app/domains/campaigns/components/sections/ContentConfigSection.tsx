@@ -10,6 +10,12 @@ import type { TemplateType, ContentConfig } from "../../types/campaign";
 import { NewsletterContentSection } from "./NewsletterContentSection";
 import { SpinToWinContentSection } from "./SpinToWinContentSection";
 import { FlashSaleContentSection } from "./FlashSaleContentSection";
+import { CartAbandonmentContentSection } from "./CartAbandonmentContentSection";
+import { ProductUpsellContentSection } from "./ProductUpsellContentSection";
+import { FreeShippingContentSection } from "./FreeShippingContentSection";
+import { SocialProofContentSection } from "./SocialProofContentSection";
+import type { SocialProofContent as SPC } from "./SocialProofContentSection";
+import { AnnouncementContentSection } from "./AnnouncementContentSection";
 import { FormSection } from "../form";
 
 export interface ContentConfigSectionProps {
@@ -59,34 +65,47 @@ export function ContentConfigSection({
 
       case "CART_ABANDONMENT":
         return (
-          <div>
-            <p>Cart Abandonment content configuration</p>
-            {/* Will be implemented */}
-          </div>
+          <CartAbandonmentContentSection
+            content={content}
+            errors={errors}
+            onChange={onChange}
+          />
         );
 
       case "PRODUCT_UPSELL":
         return (
-          <div>
-            <p>Product Upsell content configuration</p>
-            {/* Will be implemented */}
-          </div>
+          <ProductUpsellContentSection
+            content={content}
+            errors={errors}
+            onChange={onChange}
+          />
+        );
+
+      case "FREE_SHIPPING":
+        return (
+          <FreeShippingContentSection
+            content={content}
+            errors={errors}
+            onChange={onChange}
+          />
         );
 
       case "SOCIAL_PROOF":
         return (
-          <div>
-            <p>Social Proof content configuration</p>
-            {/* Will be implemented */}
-          </div>
+          <SocialProofContentSection
+            content={content as Partial<SPC>}
+            errors={errors}
+            onChange={onChange as (c: Partial<SPC>) => void}
+          />
         );
 
       case "ANNOUNCEMENT":
         return (
-          <div>
-            <p>Announcement content configuration</p>
-            {/* Will be implemented */}
-          </div>
+          <AnnouncementContentSection
+            content={content}
+            errors={errors}
+            onChange={onChange}
+          />
         );
 
       default:

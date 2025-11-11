@@ -1,6 +1,6 @@
 /**
  * ComponentLoader - Lazy loading for popup components
- * 
+ *
  * Loads popup components on-demand using multiple strategies:
  * 1. Global registry populated by separately loaded IIFE bundles (window.RevenueBoostComponents)
  * 2. Dynamic import via import.meta.glob (development/builds that support code splitting)
@@ -20,7 +20,7 @@ export type TemplateType =
   | "SCRATCH_CARD"
   | "ANNOUNCEMENT";
 
-export type LoadedComponent = any; // Preact component
+export type LoadedComponent = unknown; // Preact component
 
 export interface ComponentLoaderConfig {
   version?: string;
@@ -134,11 +134,12 @@ export class ComponentLoader {
    * Load from global registry created by IIFE bundles
    */
   private loadFromGlobal(key: string): LoadedComponent | null {
-    const g = globalThis as any;
+    type GlobalWithRegistry = typeof globalThis & { RevenueBoostComponents?: Record<string, unknown> };
+    const g = globalThis as GlobalWithRegistry;
     const reg = g.RevenueBoostComponents;
     if (reg && reg[key]) {
       this.log("Loaded from global registry:", key);
-      return reg[key];
+      return reg[key] as unknown;
     }
     return null;
   }
@@ -147,6 +148,8 @@ export class ComponentLoader {
    * Use dynamic import to lazy-load modules during dev/build
    */
   private async loadViaDynamicImport(key: string): Promise<LoadedComponent | null> {
+    // Consume param to satisfy lint
+    void key;
     // Check if dynamic imports are enabled at build time
     if (typeof __REVENUE_BOOST_DYNAMIC_IMPORT__ !== "undefined" && !__REVENUE_BOOST_DYNAMIC_IMPORT__) {
       return null;

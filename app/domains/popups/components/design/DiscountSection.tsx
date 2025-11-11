@@ -21,8 +21,7 @@ import {
   Badge,
 } from "@shopify/polaris";
 import { SettingsIcon } from "@shopify/polaris-icons";
-// TODO: Create DiscountSettingsStep component
-// import { DiscountSettingsStep } from "~/domains/campaigns/components/DiscountSettingsStep";
+import { DiscountSettingsStep } from "~/domains/campaigns/components/DiscountSettingsStep";
 import type { DiscountConfig } from "~/domains/popups/services/discounts/discount.server";
 
 interface DiscountSectionProps {
@@ -195,6 +194,7 @@ export function DiscountSection({
                 variant="plain"
                 icon={SettingsIcon}
                 onClick={() => setShowAdvanced(true)}
+                data-testid="open-advanced-discount-settings"
               >
                 Advanced Settings
               </Button>
@@ -220,10 +220,7 @@ export function DiscountSection({
         }}
       >
         <Modal.Section>
-          <Text as="p" tone="subdued">
-            Advanced discount settings coming soon. The DiscountSettingsStep component needs to be created.
-          </Text>
-          {/* TODO: Uncomment when DiscountSettingsStep is created
+          <div data-testid="advanced-discount-settings-modal">
           <DiscountSettingsStep
             goal={goal}
             discountConfig={config}
@@ -231,7 +228,7 @@ export function DiscountSection({
               onConfigChange(newConfig);
             }}
           />
-          */}
+          </div>
         </Modal.Section>
       </Modal>
     </BlockStack>

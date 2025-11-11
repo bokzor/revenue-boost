@@ -1,290 +1,506 @@
 /**
- * Frequency Capping Service
+ * Frequency Capping Service (Redis-Based)
  *
  * Server-side service for tracking and enforcing frequency caps on campaign displays
- * Uses browser storage (sessionStorage/localStorage) for tracking
+ * Uses Redis for reliable, cross-device frequency tracking
+ *
+ * Features:
+ * - Session limits (max per session)
+ * - Time-based limits (hour, day, week, month)
+ * - Cooldown periods between displays
+ * - Global/cross-campaign limits
+ * - Graceful fallback when Redis unavailable
  */
 
+import { redis, REDIS_PREFIXES, REDIS_TTL } from "~/lib/redis.server";
 import type { CampaignWithConfigs } from "~/domains/campaigns/types/campaign";
 import type { StorefrontContext } from "~/domains/campaigns/types/storefront-context";
 
 /**
- * Storage keys for frequency capping
+ * Frequency capping rule configuration
  */
-const STORAGE_KEYS = {
-  SESSION_VIEWS: "rb_session_views",
-  DAILY_VIEWS: "rb_daily_views",
-  LAST_SHOWN: "rb_last_shown",
-} as const;
+export interface FrequencyCappingRule {
+  max_triggers_per_session?: number;
+  max_triggers_per_hour?: number;
+  max_triggers_per_day?: number;
+  max_triggers_per_week?: number;
+  max_triggers_per_month?: number;
+  cooldown_between_triggers?: number; // seconds
+  respect_global_limits?: boolean;
+  cross_campaign_limits?: {
+    max_per_session?: number;
+    max_per_day?: number;
+  };
+}
 
 /**
- * Frequency cap data structure
+ * Frequency cap check result
  */
-export interface FrequencyCapData {
-  sessionViews: Record<string, number>;
-  dailyViews: Record<string, { date: string; count: number }>;
-  lastShown: Record<string, number>;
+export interface FrequencyCapResult {
+  allowed: boolean;
+  reason?: string;
+  nextAllowedTime?: number;
+  currentCounts: {
+    session: number;
+    hour: number;
+    day: number;
+    week: number;
+    month: number;
+  };
+  globalCounts?: {
+    session: number;
+    day: number;
+  };
+  cooldownUntil?: number;
 }
 
 /**
  * Frequency Capping Service
- * Tracks campaign views and enforces frequency limits
+ * Tracks campaign views and enforces frequency limits using Redis
  */
 export class FrequencyCapService {
   /**
    * Check if a campaign should be shown based on frequency capping rules
+   *
+   * @param campaign - Campaign to check
+   * @param context - Storefront context with visitor/session info
+   * @returns Promise<FrequencyCapResult> - Whether campaign can be shown
+   */
+  static async checkFrequencyCapping(
+    campaign: CampaignWithConfigs,
+    context: StorefrontContext
+  ): Promise<FrequencyCapResult> {
+    try {
+      const rules = campaign.targetRules?.enhancedTriggers?.frequency_capping as FrequencyCappingRule | undefined;
+
+      // If no frequency capping configured, allow campaign
+      if (!rules) {
+        return { allowed: true, currentCounts: this.getEmptyCounts() };
+      }
+
+      const campaignId = campaign.id;
+      const identifier = context.visitorId || context.sessionId || 'anonymous';
+      const now = Date.now();
+
+      // Check cooldown first
+      const cooldownResult = await this.checkCooldown(identifier, campaignId, now);
+      if (!cooldownResult.allowed) {
+        return cooldownResult;
+      }
+
+      // Get current counts
+      const currentCounts = await this.getCurrentCounts(identifier, campaignId);
+
+      // Check individual campaign limits
+      const campaignResult = this.checkCampaignLimits(currentCounts, rules);
+      if (!campaignResult.allowed) {
+        return { ...campaignResult, currentCounts };
+      }
+
+      // Check global/cross-campaign limits
+      if (rules.respect_global_limits || rules.cross_campaign_limits) {
+        const globalResult = await this.checkGlobalLimits(
+          identifier,
+          campaignId,
+          rules.cross_campaign_limits
+        );
+        if (!globalResult.allowed) {
+          return { ...globalResult, currentCounts };
+        }
+      }
+
+      return {
+        allowed: true,
+        currentCounts,
+        globalCounts: rules.respect_global_limits
+          ? await this.getGlobalCounts(identifier)
+          : undefined,
+      };
+    } catch (error) {
+      console.error('Frequency capping check failed:', error);
+      // Fail open - allow display if frequency capping fails
+      return { allowed: true, currentCounts: this.getEmptyCounts() };
+    }
+  }
+
+  /**
+   * Record a campaign display for frequency capping
+   *
+   * @param campaignId - Campaign ID
+   * @param context - Storefront context with visitor/session info
+   * @param rules - Frequency capping rules
+   */
+  static async recordDisplay(
+    campaignId: string,
+    context: StorefrontContext,
+    rules?: FrequencyCappingRule
+  ): Promise<void> {
+    try {
+      const identifier = context.visitorId || context.sessionId || 'anonymous';
+      const now = Date.now();
+
+      // Record campaign-specific display
+      await this.recordCampaignDisplay(identifier, campaignId, now);
+
+      // Record global display if needed
+      if (rules?.respect_global_limits || rules?.cross_campaign_limits) {
+        await this.recordGlobalDisplay(identifier, now);
+      }
+
+      // Set cooldown if specified
+      if (rules?.cooldown_between_triggers) {
+        await this.setCooldown(identifier, campaignId, rules.cooldown_between_triggers, now);
+      }
+    } catch (error) {
+      console.error('Failed to record display for frequency capping:', error);
+      // Don't throw - recording failure shouldn't break popup display
+    }
+  }
+
+  /**
+   * Legacy method for backward compatibility
+   * @deprecated Use checkFrequencyCapping instead
    */
   static shouldShowCampaign(
     campaign: CampaignWithConfigs,
     context: StorefrontContext
   ): boolean {
-    const frequencyCapping = campaign.targetRules?.enhancedTriggers?.frequency_capping;
-
-    // If no frequency capping configured, allow campaign
-    if (!frequencyCapping) {
-      return true;
-    }
-
-    const campaignId = campaign.id;
-    const now = Date.now();
-
-    // Check session limit
-    if (frequencyCapping.max_triggers_per_session) {
-      const sessionViews = this.getSessionViews(campaignId);
-      if (sessionViews >= frequencyCapping.max_triggers_per_session) {
-        return false;
-      }
-    }
-
-    // Check daily limit
-    if (frequencyCapping.max_triggers_per_day) {
-      const dailyViews = this.getDailyViews(campaignId);
-      if (dailyViews >= frequencyCapping.max_triggers_per_day) {
-        return false;
-      }
-    }
-
-    // Check cooldown period
-    if (frequencyCapping.cooldown_between_triggers) {
-      const lastShown = this.getLastShown(campaignId);
-      if (lastShown) {
-        const timeSinceLastShown = now - lastShown;
-        const cooldownMs = frequencyCapping.cooldown_between_triggers * 1000; // Convert to ms
-        if (timeSinceLastShown < cooldownMs) {
-          return false;
-        }
-      }
-    }
-
+    // Synchronous fallback - always allow if Redis not available
+    // Real check should use async checkFrequencyCapping
     return true;
   }
 
   /**
-   * Record that a campaign was shown
+   * Legacy method for backward compatibility
+   * @deprecated Use recordDisplay instead
    */
   static recordView(campaignId: string): void {
+    // No-op - use async recordDisplay instead
+    console.warn('recordView is deprecated, use recordDisplay instead');
+  }
+
+  /**
+   * Check cooldown period
+   */
+  private static async checkCooldown(
+    identifier: string,
+    campaignId: string,
+    now: number
+  ): Promise<FrequencyCapResult> {
+    if (!redis) {
+      return {
+        allowed: true,
+        currentCounts: this.getEmptyCounts(),
+      };
+    }
+
+    const cooldownKey = `${REDIS_PREFIXES.COOLDOWN}:${identifier}:${campaignId}`;
+    const cooldownUntil = await redis.get(cooldownKey);
+
+    if (cooldownUntil && parseInt(cooldownUntil) > now) {
+      return {
+        allowed: false,
+        reason: 'In cooldown period',
+        nextAllowedTime: parseInt(cooldownUntil),
+        cooldownUntil: parseInt(cooldownUntil),
+        currentCounts: this.getEmptyCounts(),
+      };
+    }
+
+    return { allowed: true, currentCounts: this.getEmptyCounts() };
+  }
+
+  /**
+   * Set cooldown period
+   */
+  private static async setCooldown(
+    identifier: string,
+    campaignId: string,
+    cooldownSeconds: number,
+    now: number
+  ): Promise<void> {
+    if (!redis || cooldownSeconds <= 0) return;
+
+    const cooldownKey = `${REDIS_PREFIXES.COOLDOWN}:${identifier}:${campaignId}`;
+    const cooldownUntil = now + (cooldownSeconds * 1000);
+
+    await redis.setex(
+      cooldownKey,
+      cooldownSeconds,
+      cooldownUntil.toString()
+    );
+  }
+
+  /**
+   * Get current counts for a campaign
+   */
+  private static async getCurrentCounts(
+    identifier: string,
+    campaignId: string
+  ): Promise<FrequencyCapResult['currentCounts']> {
     const now = Date.now();
+    const baseKey = `${REDIS_PREFIXES.FREQUENCY_CAP}:${identifier}:${campaignId}`;
 
-    // Increment session views
-    this.incrementSessionViews(campaignId);
+    const [session, hour, day, week, month] = await Promise.all([
+      this.getTimeWindowCount(baseKey, 'session', now),
+      this.getTimeWindowCount(baseKey, 'hour', now),
+      this.getTimeWindowCount(baseKey, 'day', now),
+      this.getTimeWindowCount(baseKey, 'week', now),
+      this.getTimeWindowCount(baseKey, 'month', now),
+    ]);
 
-    // Increment daily views
-    this.incrementDailyViews(campaignId);
-
-    // Update last shown timestamp
-    this.updateLastShown(campaignId, now);
+    return { session, hour, day, week, month };
   }
 
   /**
-   * Get session views for a campaign
+   * Get global counts across all campaigns
    */
-  private static getSessionViews(campaignId: string): number {
-    if (typeof sessionStorage === "undefined") return 0;
+  private static async getGlobalCounts(identifier: string): Promise<{
+    session: number;
+    day: number;
+  }> {
+    const now = Date.now();
+    const baseKey = `${REDIS_PREFIXES.GLOBAL_FREQUENCY}:${identifier}`;
 
-    try {
-      const data = sessionStorage.getItem(STORAGE_KEYS.SESSION_VIEWS);
-      if (!data) return 0;
+    const [session, day] = await Promise.all([
+      this.getTimeWindowCount(baseKey, 'session', now),
+      this.getTimeWindowCount(baseKey, 'day', now),
+    ]);
 
-      const views: Record<string, number> = JSON.parse(data);
-      return views[campaignId] || 0;
-    } catch {
-      return 0;
+    return { session, day };
+  }
+
+  /**
+   * Check campaign-specific limits
+   */
+  private static checkCampaignLimits(
+    counts: FrequencyCapResult['currentCounts'],
+    rules: FrequencyCappingRule
+  ): Pick<FrequencyCapResult, 'allowed' | 'reason'> {
+    if (rules.max_triggers_per_session && counts.session >= rules.max_triggers_per_session) {
+      return {
+        allowed: false,
+        reason: `Session limit exceeded (${rules.max_triggers_per_session})`,
+      };
     }
-  }
 
-  /**
-   * Increment session views for a campaign
-   */
-  private static incrementSessionViews(campaignId: string): void {
-    if (typeof sessionStorage === "undefined") return;
-
-    try {
-      const data = sessionStorage.getItem(STORAGE_KEYS.SESSION_VIEWS);
-      const views: Record<string, number> = data ? JSON.parse(data) : {};
-
-      views[campaignId] = (views[campaignId] || 0) + 1;
-
-      sessionStorage.setItem(STORAGE_KEYS.SESSION_VIEWS, JSON.stringify(views));
-    } catch {
-      // Silently fail if storage is unavailable
+    if (rules.max_triggers_per_hour && counts.hour >= rules.max_triggers_per_hour) {
+      return {
+        allowed: false,
+        reason: `Hourly limit exceeded (${rules.max_triggers_per_hour})`,
+      };
     }
-  }
 
-  /**
-   * Get daily views for a campaign
-   */
-  private static getDailyViews(campaignId: string): number {
-    if (typeof localStorage === "undefined") return 0;
-
-    try {
-      const data = localStorage.getItem(STORAGE_KEYS.DAILY_VIEWS);
-      if (!data) return 0;
-
-      const views: Record<string, { date: string; count: number }> = JSON.parse(data);
-      const campaignData = views[campaignId];
-
-      if (!campaignData) return 0;
-
-      // Check if the stored date is today
-      const today = this.getTodayString();
-      if (campaignData.date !== today) {
-        return 0; // Reset if it's a new day
-      }
-
-      return campaignData.count;
-    } catch {
-      return 0;
+    if (rules.max_triggers_per_day && counts.day >= rules.max_triggers_per_day) {
+      return {
+        allowed: false,
+        reason: `Daily limit exceeded (${rules.max_triggers_per_day})`,
+      };
     }
+
+    if (rules.max_triggers_per_week && counts.week >= rules.max_triggers_per_week) {
+      return {
+        allowed: false,
+        reason: `Weekly limit exceeded (${rules.max_triggers_per_week})`,
+      };
+    }
+
+    if (rules.max_triggers_per_month && counts.month >= rules.max_triggers_per_month) {
+      return {
+        allowed: false,
+        reason: `Monthly limit exceeded (${rules.max_triggers_per_month})`,
+      };
+    }
+
+    return { allowed: true };
   }
 
   /**
-   * Increment daily views for a campaign
+   * Check global/cross-campaign limits
    */
-  private static incrementDailyViews(campaignId: string): void {
-    if (typeof localStorage === "undefined") return;
+  private static async checkGlobalLimits(
+    identifier: string,
+    campaignId: string,
+    crossCampaignLimits?: FrequencyCappingRule['cross_campaign_limits']
+  ): Promise<Pick<FrequencyCapResult, 'allowed' | 'reason' | 'globalCounts'>> {
+    if (!crossCampaignLimits) {
+      return { allowed: true };
+    }
+
+    const globalCounts = await this.getGlobalCounts(identifier);
+
+    if (
+      crossCampaignLimits.max_per_session &&
+      globalCounts.session >= crossCampaignLimits.max_per_session
+    ) {
+      return {
+        allowed: false,
+        reason: `Global session limit exceeded (${crossCampaignLimits.max_per_session})`,
+        globalCounts,
+      };
+    }
+
+    if (
+      crossCampaignLimits.max_per_day &&
+      globalCounts.day >= crossCampaignLimits.max_per_day
+    ) {
+      return {
+        allowed: false,
+        reason: `Global daily limit exceeded (${crossCampaignLimits.max_per_day})`,
+        globalCounts,
+      };
+    }
+
+    return { allowed: true, globalCounts };
+  }
+
+  /**
+   * Record campaign-specific display
+   */
+  private static async recordCampaignDisplay(
+    identifier: string,
+    campaignId: string,
+    now: number
+  ): Promise<void> {
+    const baseKey = `${REDIS_PREFIXES.FREQUENCY_CAP}:${identifier}:${campaignId}`;
+
+    await Promise.all([
+      this.incrementTimeWindowCount(baseKey, 'session', now, REDIS_TTL.SESSION),
+      this.incrementTimeWindowCount(baseKey, 'hour', now, REDIS_TTL.HOUR),
+      this.incrementTimeWindowCount(baseKey, 'day', now, REDIS_TTL.DAY),
+      this.incrementTimeWindowCount(baseKey, 'week', now, REDIS_TTL.WEEK),
+      this.incrementTimeWindowCount(baseKey, 'month', now, REDIS_TTL.MONTH),
+    ]);
+  }
+
+  /**
+   * Record global display
+   */
+  private static async recordGlobalDisplay(
+    identifier: string,
+    now: number
+  ): Promise<void> {
+    const baseKey = `${REDIS_PREFIXES.GLOBAL_FREQUENCY}:${identifier}`;
+
+    await Promise.all([
+      this.incrementTimeWindowCount(baseKey, 'session', now, REDIS_TTL.SESSION),
+      this.incrementTimeWindowCount(baseKey, 'day', now, REDIS_TTL.DAY),
+    ]);
+  }
+
+  /**
+   * Get count for a specific time window
+   */
+  private static async getTimeWindowCount(
+    baseKey: string,
+    window: string,
+    now: number
+  ): Promise<number> {
+    if (!redis) return 0;
+
+    const windowKey = `${baseKey}:${window}`;
+    const count = await redis.get(windowKey);
+    return count ? parseInt(count) : 0;
+  }
+
+  /**
+   * Increment count for a specific time window
+   */
+  private static async incrementTimeWindowCount(
+    baseKey: string,
+    window: string,
+    now: number,
+    ttlSeconds: number
+  ): Promise<void> {
+    if (!redis) return;
+
+    const windowKey = `${baseKey}:${window}`;
+
+    // Use pipeline for atomic operations
+    const pipeline = redis.pipeline();
+    pipeline.incr(windowKey);
+    pipeline.expire(windowKey, ttlSeconds);
+    await pipeline.exec();
+  }
+
+  /**
+   * Get empty counts structure
+   */
+  private static getEmptyCounts(): FrequencyCapResult['currentCounts'] {
+    return {
+      session: 0,
+      hour: 0,
+      day: 0,
+      week: 0,
+      month: 0,
+    };
+  }
+
+  /**
+   * Reset frequency capping for a user/session (useful for testing)
+   */
+  static async resetFrequencyCapping(
+    identifier: string,
+    campaignId?: string
+  ): Promise<void> {
+    if (!redis) return;
 
     try {
-      const data = localStorage.getItem(STORAGE_KEYS.DAILY_VIEWS);
-      const views: Record<string, { date: string; count: number }> = data ? JSON.parse(data) : {};
+      if (campaignId) {
+        // Reset specific campaign
+        const pattern = `${REDIS_PREFIXES.FREQUENCY_CAP}:${identifier}:${campaignId}:*`;
+        const keys = await redis.keys(pattern);
+        if (keys.length > 0) {
+          await redis.del(...keys);
+        }
 
-      const today = this.getTodayString();
-      const campaignData = views[campaignId];
-
-      if (!campaignData || campaignData.date !== today) {
-        // New day or first view
-        views[campaignId] = { date: today, count: 1 };
+        // Reset cooldown
+        const cooldownKey = `${REDIS_PREFIXES.COOLDOWN}:${identifier}:${campaignId}`;
+        await redis.del(cooldownKey);
       } else {
-        // Same day, increment count
-        views[campaignId].count += 1;
-      }
+        // Reset all campaigns for identifier
+        const patterns = [
+          `${REDIS_PREFIXES.FREQUENCY_CAP}:${identifier}:*`,
+          `${REDIS_PREFIXES.GLOBAL_FREQUENCY}:${identifier}:*`,
+          `${REDIS_PREFIXES.COOLDOWN}:${identifier}:*`,
+        ];
 
-      localStorage.setItem(STORAGE_KEYS.DAILY_VIEWS, JSON.stringify(views));
-    } catch {
-      // Silently fail if storage is unavailable
-    }
-  }
-
-  /**
-   * Get last shown timestamp for a campaign
-   */
-  private static getLastShown(campaignId: string): number | null {
-    if (typeof localStorage === "undefined") return null;
-
-    try {
-      const data = localStorage.getItem(STORAGE_KEYS.LAST_SHOWN);
-      if (!data) return null;
-
-      const timestamps: Record<string, number> = JSON.parse(data);
-      return timestamps[campaignId] || null;
-    } catch {
-      return null;
-    }
-  }
-
-  /**
-   * Update last shown timestamp for a campaign
-   */
-  private static updateLastShown(campaignId: string, timestamp: number): void {
-    if (typeof localStorage === "undefined") return;
-
-    try {
-      const data = localStorage.getItem(STORAGE_KEYS.LAST_SHOWN);
-      const timestamps: Record<string, number> = data ? JSON.parse(data) : {};
-
-      timestamps[campaignId] = timestamp;
-
-      localStorage.setItem(STORAGE_KEYS.LAST_SHOWN, JSON.stringify(timestamps));
-    } catch {
-      // Silently fail if storage is unavailable
-    }
-  }
-
-  /**
-   * Get today's date as a string (YYYY-MM-DD)
-   */
-  private static getTodayString(): string {
-    const now = new Date();
-    return now.toISOString().split("T")[0];
-  }
-
-  /**
-   * Clear all frequency cap data (useful for testing)
-   */
-  static clearAll(): void {
-    if (typeof sessionStorage !== "undefined") {
-      sessionStorage.removeItem(STORAGE_KEYS.SESSION_VIEWS);
-    }
-    if (typeof localStorage !== "undefined") {
-      localStorage.removeItem(STORAGE_KEYS.DAILY_VIEWS);
-      localStorage.removeItem(STORAGE_KEYS.LAST_SHOWN);
-    }
-  }
-
-  /**
-   * Clear frequency cap data for a specific campaign
-   */
-  static clearCampaign(campaignId: string): void {
-    // Clear session views
-    if (typeof sessionStorage !== "undefined") {
-      try {
-        const data = sessionStorage.getItem(STORAGE_KEYS.SESSION_VIEWS);
-        if (data) {
-          const views: Record<string, number> = JSON.parse(data);
-          delete views[campaignId];
-          sessionStorage.setItem(STORAGE_KEYS.SESSION_VIEWS, JSON.stringify(views));
+        for (const pattern of patterns) {
+          const keys = await redis.keys(pattern);
+          if (keys.length > 0) {
+            await redis.del(...keys);
+          }
         }
-      } catch {
-        // Silently fail
       }
+    } catch (error) {
+      console.error('Failed to reset frequency capping:', error);
     }
+  }
 
-    // Clear daily views
-    if (typeof localStorage !== "undefined") {
-      try {
-        const data = localStorage.getItem(STORAGE_KEYS.DAILY_VIEWS);
-        if (data) {
-          const views: Record<string, { date: string; count: number }> = JSON.parse(data);
-          delete views[campaignId];
-          localStorage.setItem(STORAGE_KEYS.DAILY_VIEWS, JSON.stringify(views));
-        }
-      } catch {
-        // Silently fail
-      }
-    }
+  /**
+   * Get frequency capping status for debugging
+   */
+  static async getFrequencyStatus(
+    identifier: string,
+    campaignId: string
+  ): Promise<{
+    counts: FrequencyCapResult['currentCounts'];
+    globalCounts: { session: number; day: number };
+    cooldownUntil?: number;
+  }> {
+    const [counts, globalCounts] = await Promise.all([
+      this.getCurrentCounts(identifier, campaignId),
+      this.getGlobalCounts(identifier),
+    ]);
 
-    // Clear last shown
-    if (typeof localStorage !== "undefined") {
-      try {
-        const data = localStorage.getItem(STORAGE_KEYS.LAST_SHOWN);
-        if (data) {
-          const timestamps: Record<string, number> = JSON.parse(data);
-          delete timestamps[campaignId];
-          localStorage.setItem(STORAGE_KEYS.LAST_SHOWN, JSON.stringify(timestamps));
-        }
-      } catch {
-        // Silently fail
-      }
-    }
+    const cooldownKey = `${REDIS_PREFIXES.COOLDOWN}:${identifier}:${campaignId}`;
+    const cooldownUntil = redis ? await redis.get(cooldownKey) : null;
+
+    return {
+      counts,
+      globalCounts,
+      cooldownUntil: cooldownUntil ? parseInt(cooldownUntil) : undefined,
+    };
   }
 }
 

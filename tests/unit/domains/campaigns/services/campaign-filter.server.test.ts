@@ -1,56 +1,93 @@
 /**
- * Campaign Filter Service Tests
+ * Campaign Filter Service Tests (Redis-Based)
  */
 
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
 import { CampaignFilterService } from "~/domains/campaigns/services/campaign-filter.server";
 import { FrequencyCapService } from "~/domains/targeting/services/frequency-cap.server";
 import type { StorefrontContext } from "~/domains/campaigns/types/storefront-context";
 import type { CampaignWithConfigs } from "~/domains/campaigns/types/campaign";
 
-// Mock storage for frequency capping tests
-const mockSessionStorage: Record<string, string> = {};
-const mockLocalStorage: Record<string, string> = {};
+// Mock Redis storage - shared across all tests
+const mockRedisStorage: Record<string, string> = {};
+
+// Mock Redis module BEFORE importing anything else
+vi.mock('~/lib/redis.server', () => {
+  // Use a getter to access the outer mockRedisStorage
+  const getStorage = () => mockRedisStorage;
+
+  return {
+    redis: {
+      get: vi.fn(async (key: string) => {
+        const storage = getStorage();
+        return storage[key] || null;
+      }),
+      set: vi.fn(async (key: string, value: string) => {
+        const storage = getStorage();
+        storage[key] = value;
+        return 'OK';
+      }),
+      setex: vi.fn(async (key: string, ttl: number, value: string) => {
+        const storage = getStorage();
+        storage[key] = value;
+        return 'OK';
+      }),
+      incr: vi.fn(async (key: string) => {
+        const storage = getStorage();
+        const current = parseInt(storage[key] || '0');
+        const newValue = current + 1;
+        storage[key] = newValue.toString();
+        return newValue;
+      }),
+      expire: vi.fn(async () => 1),
+      del: vi.fn(async (...keys: string[]) => {
+        const storage = getStorage();
+        keys.forEach(key => delete storage[key]);
+        return keys.length;
+      }),
+      keys: vi.fn(async (pattern: string) => {
+        const storage = getStorage();
+        const regex = new RegExp(pattern.replace(/\*/g, '.*'));
+        return Object.keys(storage).filter(key => regex.test(key));
+      }),
+      pipeline: vi.fn(() => {
+        const storage = getStorage();
+        const pipe: Record<string, unknown> = {};
+        pipe.incr = vi.fn((key: string) => {
+          const current = parseInt(storage[key] || '0');
+          storage[key] = (current + 1).toString();
+          return pipe;
+        });
+        pipe.expire = vi.fn(() => pipe);
+        pipe.exec = vi.fn(async () => [[null, 1], [null, 1]]);
+        return pipe;
+      }),
+    },
+    REDIS_PREFIXES: {
+      FREQUENCY_CAP: 'freq_cap',
+      GLOBAL_FREQUENCY: 'global_freq_cap',
+      COOLDOWN: 'cooldown',
+    },
+    REDIS_TTL: {
+      SESSION: 3600,
+      HOUR: 3600,
+      DAY: 86400,
+      WEEK: 604800,
+      MONTH: 2592000,
+    },
+  };
+});
 
 beforeEach(() => {
-  // Clear mocks
-  Object.keys(mockSessionStorage).forEach((key) => delete mockSessionStorage[key]);
-  Object.keys(mockLocalStorage).forEach((key) => delete mockLocalStorage[key]);
+  // Clear mock Redis storage
+  Object.keys(mockRedisStorage).forEach((key) => delete mockRedisStorage[key]);
 
-  // Mock sessionStorage
-  global.sessionStorage = {
-    getItem: vi.fn((key: string) => mockSessionStorage[key] || null),
-    setItem: vi.fn((key: string, value: string) => {
-      mockSessionStorage[key] = value;
-    }),
-    removeItem: vi.fn((key: string) => {
-      delete mockSessionStorage[key];
-    }),
-    clear: vi.fn(() => {
-      Object.keys(mockSessionStorage).forEach((key) => delete mockSessionStorage[key]);
-    }),
-    length: 0,
-    key: vi.fn(() => null),
-  } as Storage;
+  // Reset mock call counts
+  vi.clearAllMocks();
+});
 
-  // Mock localStorage
-  global.localStorage = {
-    getItem: vi.fn((key: string) => mockLocalStorage[key] || null),
-    setItem: vi.fn((key: string, value: string) => {
-      mockLocalStorage[key] = value;
-    }),
-    removeItem: vi.fn((key: string) => {
-      delete mockLocalStorage[key];
-    }),
-    clear: vi.fn(() => {
-      Object.keys(mockLocalStorage).forEach((key) => delete mockLocalStorage[key]);
-    }),
-    length: 0,
-    key: vi.fn(() => null),
-  } as Storage;
-
-  // Clear all frequency cap data
-  FrequencyCapService.clearAll();
+afterEach(() => {
+  vi.clearAllMocks();
 });
 
 describe("CampaignFilterService", () => {
@@ -230,13 +267,14 @@ describe("CampaignFilterService", () => {
   });
 
   describe("filterCampaigns", () => {
-    it("should apply all filters", () => {
+    it("should apply all filters", async () => {
       const context: StorefrontContext = {
         deviceType: "mobile",
         pageUrl: "/",
+        visitorId: "visitor-123",
       };
 
-      const filtered = CampaignFilterService.filterCampaigns(
+      const filtered = await CampaignFilterService.filterCampaigns(
         mockCampaigns,
         context
       );
@@ -245,13 +283,14 @@ describe("CampaignFilterService", () => {
       expect(filtered[0].id).toBe("campaign-1");
     });
 
-    it("should return empty array if no campaigns match", () => {
+    it("should return empty array if no campaigns match", async () => {
       const context: StorefrontContext = {
         deviceType: "tablet",
         pageUrl: "/checkout",
+        visitorId: "visitor-123",
       };
 
-      const filtered = CampaignFilterService.filterCampaigns(
+      const filtered = await CampaignFilterService.filterCampaigns(
         mockCampaigns,
         context
       );
@@ -259,19 +298,20 @@ describe("CampaignFilterService", () => {
       expect(filtered).toHaveLength(0);
     });
 
-    it("should handle empty campaigns array", () => {
+    it("should handle empty campaigns array", async () => {
       const context: StorefrontContext = {
         deviceType: "mobile",
+        visitorId: "visitor-123",
       };
 
-      const filtered = CampaignFilterService.filterCampaigns([], context);
+      const filtered = await CampaignFilterService.filterCampaigns([], context);
 
       expect(filtered).toHaveLength(0);
     });
   });
 
   describe("filterByFrequencyCapping", () => {
-    it("should allow campaigns with no frequency capping", () => {
+    it("should allow campaigns with no frequency capping", async () => {
       const campaigns: CampaignWithConfigs[] = [
         {
           id: "campaign-1",
@@ -280,15 +320,16 @@ describe("CampaignFilterService", () => {
           templateType: "NEWSLETTER",
           status: "ACTIVE",
           priority: 0,
-          targetRules: {} as any,
+          targetRules: {},
         } as CampaignWithConfigs,
       ];
 
       const context: StorefrontContext = {
         deviceType: "mobile",
+        visitorId: "visitor-123",
       };
 
-      const filtered = CampaignFilterService.filterByFrequencyCapping(
+      const filtered = await CampaignFilterService.filterByFrequencyCapping(
         campaigns,
         context
       );
@@ -296,7 +337,7 @@ describe("CampaignFilterService", () => {
       expect(filtered).toHaveLength(1);
     });
 
-    it("should filter campaigns that exceed session limit", () => {
+    it("should filter campaigns that exceed session limit", async () => {
       const campaigns: CampaignWithConfigs[] = [
         {
           id: "campaign-1",
@@ -317,13 +358,14 @@ describe("CampaignFilterService", () => {
 
       const context: StorefrontContext = {
         deviceType: "mobile",
+        visitorId: "visitor-123",
       };
 
       // Record 2 views (hit the limit)
-      FrequencyCapService.recordView("campaign-1");
-      FrequencyCapService.recordView("campaign-1");
+      await FrequencyCapService.recordDisplay("campaign-1", context, { max_triggers_per_session: 2 });
+      await FrequencyCapService.recordDisplay("campaign-1", context, { max_triggers_per_session: 2 });
 
-      const filtered = CampaignFilterService.filterByFrequencyCapping(
+      const filtered = await CampaignFilterService.filterByFrequencyCapping(
         campaigns,
         context
       );
@@ -331,7 +373,7 @@ describe("CampaignFilterService", () => {
       expect(filtered).toHaveLength(0);
     });
 
-    it("should filter campaigns that exceed daily limit", () => {
+    it("should filter campaigns that exceed daily limit", async () => {
       const campaigns: CampaignWithConfigs[] = [
         {
           id: "campaign-1",
@@ -352,14 +394,15 @@ describe("CampaignFilterService", () => {
 
       const context: StorefrontContext = {
         deviceType: "mobile",
+        visitorId: "visitor-123",
       };
 
       // Record 3 views (hit the limit)
-      FrequencyCapService.recordView("campaign-1");
-      FrequencyCapService.recordView("campaign-1");
-      FrequencyCapService.recordView("campaign-1");
+      await FrequencyCapService.recordDisplay("campaign-1", context, { max_triggers_per_day: 3 });
+      await FrequencyCapService.recordDisplay("campaign-1", context, { max_triggers_per_day: 3 });
+      await FrequencyCapService.recordDisplay("campaign-1", context, { max_triggers_per_day: 3 });
 
-      const filtered = CampaignFilterService.filterByFrequencyCapping(
+      const filtered = await CampaignFilterService.filterByFrequencyCapping(
         campaigns,
         context
       );
@@ -367,7 +410,7 @@ describe("CampaignFilterService", () => {
       expect(filtered).toHaveLength(0);
     });
 
-    it("should filter campaigns in cooldown period", () => {
+    it("should filter campaigns in cooldown period", async () => {
       const campaigns: CampaignWithConfigs[] = [
         {
           id: "campaign-1",
@@ -388,12 +431,13 @@ describe("CampaignFilterService", () => {
 
       const context: StorefrontContext = {
         deviceType: "mobile",
+        visitorId: "visitor-123",
       };
 
       // Record a view
-      FrequencyCapService.recordView("campaign-1");
+      await FrequencyCapService.recordDisplay("campaign-1", context, { cooldown_between_triggers: 60 });
 
-      const filtered = CampaignFilterService.filterByFrequencyCapping(
+      const filtered = await CampaignFilterService.filterByFrequencyCapping(
         campaigns,
         context
       );
@@ -401,7 +445,7 @@ describe("CampaignFilterService", () => {
       expect(filtered).toHaveLength(0);
     });
 
-    it("should allow campaigns after cooldown period", () => {
+    it("should allow campaigns after cooldown period", async () => {
       const campaigns: CampaignWithConfigs[] = [
         {
           id: "campaign-1",
@@ -422,15 +466,14 @@ describe("CampaignFilterService", () => {
 
       const context: StorefrontContext = {
         deviceType: "mobile",
+        visitorId: "visitor-123",
       };
 
-      // Set last shown to 2 seconds ago
+      // Set cooldown to 2 seconds ago (expired)
       const pastTimestamp = Date.now() - 2000;
-      mockLocalStorage["rb_last_shown"] = JSON.stringify({
-        "campaign-1": pastTimestamp,
-      });
+      mockRedisStorage["cooldown:visitor-123:campaign-1"] = pastTimestamp.toString();
 
-      const filtered = CampaignFilterService.filterByFrequencyCapping(
+      const filtered = await CampaignFilterService.filterByFrequencyCapping(
         campaigns,
         context
       );
@@ -438,7 +481,7 @@ describe("CampaignFilterService", () => {
       expect(filtered).toHaveLength(1);
     });
 
-    it("should filter multiple campaigns independently", () => {
+    it("should filter multiple campaigns independently", async () => {
       const campaigns: CampaignWithConfigs[] = [
         {
           id: "campaign-1",
@@ -474,12 +517,13 @@ describe("CampaignFilterService", () => {
 
       const context: StorefrontContext = {
         deviceType: "mobile",
+        visitorId: "visitor-123",
       };
 
       // Record view for campaign-1 only
-      FrequencyCapService.recordView("campaign-1");
+      await FrequencyCapService.recordDisplay("campaign-1", context, { max_triggers_per_session: 1 });
 
-      const filtered = CampaignFilterService.filterByFrequencyCapping(
+      const filtered = await CampaignFilterService.filterByFrequencyCapping(
         campaigns,
         context
       );
@@ -489,7 +533,7 @@ describe("CampaignFilterService", () => {
       expect(filtered[0].id).toBe("campaign-2");
     });
 
-    it("should integrate with filterCampaigns", () => {
+    it("should integrate with filterCampaigns", async () => {
       const campaigns: CampaignWithConfigs[] = [
         {
           id: "campaign-1",
@@ -514,17 +558,18 @@ describe("CampaignFilterService", () => {
 
       const context: StorefrontContext = {
         deviceType: "mobile",
+        visitorId: "visitor-123",
       };
 
       // First call should pass all filters
-      let filtered = CampaignFilterService.filterCampaigns(campaigns, context);
+      let filtered = await CampaignFilterService.filterCampaigns(campaigns, context);
       expect(filtered).toHaveLength(1);
 
       // Record a view
-      FrequencyCapService.recordView("campaign-1");
+      await FrequencyCapService.recordDisplay("campaign-1", context, { max_triggers_per_session: 1 });
 
       // Second call should be filtered out by frequency capping
-      filtered = CampaignFilterService.filterCampaigns(campaigns, context);
+      filtered = await CampaignFilterService.filterCampaigns(campaigns, context);
       expect(filtered).toHaveLength(0);
     });
   });

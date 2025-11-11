@@ -49,10 +49,17 @@ export type SocialProofNotification =
 
 // Extend the template config with additional runtime properties
 export interface SocialProofConfig extends Partial<TemplateSocialProofConfig> {
-  // Notification Types
+  // Notification Types (Tier 1 - Highest Impact)
   enablePurchaseNotifications: boolean;
   enableVisitorNotifications: boolean;
   enableReviewNotifications: boolean;
+
+  // Additional Notification Types (Tier 1 & 2)
+  enableSalesCountNotifications?: boolean; // "47 people bought this in last 24h"
+  enableLowStockAlerts?: boolean; // "Only 3 left in stock!"
+  enableTrendingNotifications?: boolean; // "🔥 Trending - 50+ views today"
+  enableCartActivityNotifications?: boolean; // "3 people added to cart recently"
+  enableRecentlyViewedNotifications?: boolean; // "15 people viewed this in last hour"
 
   // Display Settings
   position: "bottom-left" | "bottom-right" | "top-left" | "top-right";
@@ -64,6 +71,7 @@ export interface SocialProofConfig extends Partial<TemplateSocialProofConfig> {
   purchaseLookbackHours: number; // default: 48
   minVisitorCount: number; // default: 5
   minReviewRating: number; // default: 4.0
+  lowStockThreshold?: number; // default: 10
 
   // Privacy Settings
   anonymizeCustomerNames: boolean; // default: true

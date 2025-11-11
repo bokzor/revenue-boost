@@ -7,7 +7,7 @@
  * - Separated from main component for better testability
  */
 
-import type { CampaignFormData, TemplateType } from "~/shared/hooks/useWizardState";
+import type { CampaignFormData, TemplateType, PopupDesignFormData } from "~/shared/hooks/useWizardState";
 import type { CampaignGoal } from "@prisma/client";
 import type { PopupDesignConfig } from "~/domains/popups/types/design-editor.types";
 import type { EnhancedTriggersConfig } from "~/domains/campaigns/types/campaign";
@@ -36,6 +36,23 @@ export interface StepRendererProps {
   campaignId?: string;
   selectedVariant?: string;
   abTestingEnabled?: boolean;
+}
+
+function toPopupDesignFormData(config: PopupDesignConfig, prev?: PopupDesignFormData): PopupDesignFormData {
+  return {
+    id: config.id,
+    title: (config.headline as string) || prev?.title || "",
+    description: (config.subheadline as string) || prev?.description || "",
+    buttonText: (config.buttonText as string) || prev?.buttonText || "",
+    backgroundColor: config.backgroundColor || prev?.backgroundColor || "",
+    textColor: config.textColor || prev?.textColor || "",
+    buttonColor: config.buttonColor || prev?.buttonColor || "",
+    buttonTextColor: config.buttonTextColor || prev?.buttonTextColor || "",
+    position: config.position,
+    size: config.size,
+    showCloseButton: config.showCloseButton ?? prev?.showCloseButton ?? true,
+    overlayOpacity: config.overlayOpacity ?? prev?.overlayOpacity ?? 0.5,
+  };
 }
 
 // ============================================================================
@@ -83,15 +100,16 @@ export function renderDesignStep(props: StepRendererProps) {
       discountConfig={wizardState.discountConfig}
       onDiscountChange={(cfg) => updateData({ discountConfig: cfg })}
       onConfigChange={(config: PopupDesignConfig) => {
+        const nextPopupDesign = toPopupDesignFormData(config, wizardState.designConfig?.popupDesign);
         updateData({
-          designConfig: { popupDesign: config as unknown as any },
+          designConfig: { popupDesign: nextPopupDesign },
           contentConfig: {
-            headline: (config as any).title,
-            subheadline: (config as any).description,
-            ctaText: (config as any).buttonText,
-            ctaLabel: (config as any).buttonText,
+            headline: config.headline,
+            subheadline: config.subheadline,
+            ctaText: config.buttonText,
+            ctaLabel: config.buttonText,
             ...wizardState.contentConfig,
-            ...(((config as any).content as Record<string, unknown>) || {}),
+            ...(config.content || {}),
           },
         });
       }}

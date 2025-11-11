@@ -7,21 +7,12 @@
  */
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import type { PopupConfig } from "../popups/BasePopup";
-import { ModalPopup } from "../popups/ModalPopup";
+import type { PopupConfig } from "../popups-new/types";
 import { SlideInPopup } from "../slideins/SlideInPopup";
 import { BannerPopup } from "../notifications/BannerPopup";
-import { ProductUpsellPopup } from "../popups/ProductUpsellPopup";
-import { MinimumBasketPopup } from "../popups/MinimumBasketPopup";
-import { CartAbandonmentPopup } from "../popups/CartAbandonmentPopup";
-import { FreeShippingPopup } from "../popups/FreeShippingPopup";
-import { NewsletterPopup } from "../popups/NewsletterPopup";
-import { ScratchCardPopup, type ScratchCardConfig } from "../popups/ScratchCardPopup";
-import { SpinToWinPopup, type SpinToWinConfig } from "../popups/SpinToWinPopup";
-import { SocialProofPopup } from "../notifications/social-proof/SocialProofPopup";
-import { CountdownTimerBanner } from "~/domains/campaigns/components/sales/CountdownTimerBanner";
-import { FlashSaleModal } from "~/domains/campaigns/components/sales/FlashSaleModal";
-import { MultiStepNewsletterForm } from "~/domains/campaigns/components/newsletter/MultiStepNewsletterForm";
+import { NewsletterPopup, type NewsletterConfig } from "../popups-new/NewsletterPopup";
+import { ScratchCardPopup, type ScratchCardConfig } from "../popups-new/ScratchCardPopup";
+import { SpinToWinPopup, type SpinToWinConfig } from "../popups-new/SpinToWinPopup";
 import type { StorefrontCampaign } from "~/shared/types/campaign";
 import {
   PopupManagerCore,
@@ -324,13 +315,7 @@ export const PopupManager: React.FC<PopupManagerProps> = ({
   console.log("[PopupManagerReact] Rendering popup with type:", resolvedType);
 
   // Common props for all popup components
-  const commonProps = {
-    config: activeCampaign,
-    isVisible: true,
-    onClose: closePopup,
-    onButtonClick: handlePopupClick,
-    renderInline,
-  };
+
 
   // Render popup based on template type
   const renderPopup = () => {
@@ -340,32 +325,22 @@ export const PopupManager: React.FC<PopupManagerProps> = ({
       case "newsletter-elegant":
       case "newsletter-minimal":
         return (
-          <ModalPopup
-            {...commonProps}
+          <NewsletterPopup
+            isVisible={true}
+            onClose={closePopup}
             config={{
               ...activeCampaign,
-              title: activeCampaign.title || activeCampaign.name || "Popup",
-              description: activeCampaign.description || "",
-              buttonText: activeCampaign.buttonText || "Click Here",
+              headline: activeCampaign.contentConfig?.headline || activeCampaign.title || "Join our newsletter",
+              subheadline: activeCampaign.contentConfig?.subheadline || activeCampaign.description || "",
+              buttonText: activeCampaign.contentConfig?.buttonText || activeCampaign.buttonText || "Subscribe",
+              emailPlaceholder: (activeCampaign.contentConfig as any)?.emailPlaceholder || "Enter your email",
+              successMessage: activeCampaign.contentConfig?.successMessage || "Thanks!",
+              failureMessage: activeCampaign.contentConfig?.failureMessage || "Please try again",
               backgroundColor: activeCampaign.backgroundColor || "#FFFFFF",
               textColor: activeCampaign.textColor || "#000000",
-              position: ["left", "right", "center", "top", "bottom"].includes(
-                activeCampaign.position as string,
-              )
-                ? (activeCampaign.position as
-                    | "left"
-                    | "right"
-                    | "center"
-                    | "top"
-                    | "bottom")
-                : "center",
-              size:
-                activeCampaign.size === "small" ||
-                activeCampaign.size === "medium" ||
-                activeCampaign.size === "large"
-                  ? activeCampaign.size
-                  : "medium",
-            }}
+              buttonColor: activeCampaign.buttonColor || "#007BFF",
+              buttonTextColor: activeCampaign.buttonTextColor || "#FFFFFF",
+            } as unknown as NewsletterConfig}
           />
         );
 
@@ -373,78 +348,46 @@ export const PopupManager: React.FC<PopupManagerProps> = ({
       case "lottery":
         return (
           <SpinToWinPopup
-            {...commonProps}
-            config={
-              {
-                ...activeCampaign,
-                campaignId: activeCampaign.campaignId,
-                prizes: (activeCampaign.contentConfig as { prizes?: unknown[] })?.prizes || [],
-                headline:
-                  activeCampaign.contentConfig?.headline ||
-                  activeCampaign.title ||
-                  "Spin to Win!",
-                subheadline:
-                  activeCampaign.contentConfig?.subheadline ||
-                  activeCampaign.description ||
-                  "",
-                emailRequired:
-                  (activeCampaign.contentConfig as { emailRequired?: boolean })?.emailRequired ?? true,
-                emailPlaceholder:
-                  (activeCampaign.contentConfig as { emailPlaceholder?: string })?.emailPlaceholder ||
-                  "Enter your email",
-                spinButtonText:
-                  (activeCampaign.contentConfig as { spinButtonText?: string })?.spinButtonText || "Spin Now!",
-                successMessage:
-                  activeCampaign.contentConfig?.successMessage ||
-                  "Congratulations!",
-                failureMessage:
-                  activeCampaign.contentConfig?.failureMessage ||
-                  "Try again next time!",
-                backgroundColor: activeCampaign.backgroundColor || "#FFFFFF",
-                textColor: activeCampaign.textColor || "#000000",
-                buttonColor: activeCampaign.buttonColor || "#007BFF",
-                buttonTextColor: activeCampaign.buttonTextColor || "#FFFFFF",
-              } as unknown as SpinToWinConfig
-            }
-            onSpinComplete={async (data) => {
-              console.log("[PopupManager] Spin completed:", data);
-              // Don't close the popup - let user see the result
-              // The popup will handle showing the result and copy/apply buttons
-            }}
+            isVisible={true}
+            onClose={closePopup}
+            config={{
+              ...activeCampaign,
+              campaignId: activeCampaign.campaignId,
+              prizes: (activeCampaign.contentConfig as { prizes?: unknown[] })?.prizes || [],
+              headline: activeCampaign.contentConfig?.headline || activeCampaign.title || "Spin to Win!",
+              subheadline: activeCampaign.contentConfig?.subheadline || activeCampaign.description || "",
+              emailRequired: (activeCampaign.contentConfig as { emailRequired?: boolean })?.emailRequired ?? true,
+              emailPlaceholder: (activeCampaign.contentConfig as { emailPlaceholder?: string })?.emailPlaceholder || "Enter your email",
+              spinButtonText: (activeCampaign.contentConfig as { spinButtonText?: string })?.spinButtonText || "Spin Now!",
+              successMessage: activeCampaign.contentConfig?.successMessage || "Congratulations!",
+              failureMessage: activeCampaign.contentConfig?.failureMessage || "Try again next time!",
+              backgroundColor: activeCampaign.backgroundColor || "#FFFFFF",
+              textColor: activeCampaign.textColor || "#000000",
+              buttonColor: activeCampaign.buttonColor || "#007BFF",
+              buttonTextColor: activeCampaign.buttonTextColor || "#FFFFFF",
+            } as unknown as SpinToWinConfig}
           />
         );
 
       case "scratch-card":
         return (
           <ScratchCardPopup
-            {...commonProps}
-            config={
-              {
-                ...activeCampaign,
-                campaignId: activeCampaign.campaignId,
-                prizes: (activeCampaign.contentConfig as { prizes?: unknown[] })?.prizes || [],
-                headline:
-                  activeCampaign.contentConfig?.headline ||
-                  activeCampaign.title ||
-                  "Scratch to Win!",
-                subheadline:
-                  activeCampaign.contentConfig?.subheadline ||
-                  activeCampaign.description ||
-                  "",
-                emailRequired:
-                  (activeCampaign.contentConfig as { emailRequired?: boolean })?.emailRequired ?? true,
-                emailPlaceholder:
-                  (activeCampaign.contentConfig as { emailPlaceholder?: string })?.emailPlaceholder ||
-                  "Enter your email",
-                scratchInstruction:
-                  (activeCampaign.contentConfig as { scratchInstruction?: string })?.scratchInstruction ||
-                  "Scratch to reveal your prize!",
-                backgroundColor: activeCampaign.backgroundColor || "#FFFFFF",
-                textColor: activeCampaign.textColor || "#000000",
-                buttonColor: activeCampaign.buttonColor || "#007BFF",
-                buttonTextColor: activeCampaign.buttonTextColor || "#FFFFFF",
-              } as unknown as ScratchCardConfig
-            }
+            isVisible={true}
+            onClose={closePopup}
+            config={{
+              ...activeCampaign,
+              campaignId: activeCampaign.campaignId,
+              prizes: (activeCampaign.contentConfig as { prizes?: unknown[] })?.prizes || [],
+              headline: activeCampaign.contentConfig?.headline || activeCampaign.title || "Scratch to Win!",
+              subheadline: activeCampaign.contentConfig?.subheadline || activeCampaign.description || "",
+              emailRequired: (activeCampaign.contentConfig as { emailRequired?: boolean })?.emailRequired ?? true,
+              emailPlaceholder: (activeCampaign.contentConfig as { emailPlaceholder?: string })?.emailPlaceholder || "Enter your email",
+              scratchInstruction: (activeCampaign.contentConfig as { scratchInstruction?: string })?.scratchInstruction || "Scratch to reveal your prize!",
+              backgroundColor: activeCampaign.backgroundColor || "#FFFFFF",
+              textColor: activeCampaign.textColor || "#000000",
+              buttonColor: activeCampaign.buttonColor || "#007BFF",
+              buttonTextColor: activeCampaign.buttonTextColor || "#FFFFFF",
+            } as unknown as ScratchCardConfig}
           />
         );
 
@@ -452,7 +395,9 @@ export const PopupManager: React.FC<PopupManagerProps> = ({
       case "slide":
         return (
           <SlideInPopup
-            {...commonProps}
+            isVisible={true}
+            onClose={closePopup}
+            onButtonClick={handlePopupClick}
             config={{
               ...activeCampaign,
               title: activeCampaign.title || activeCampaign.name || "Popup",
@@ -460,6 +405,8 @@ export const PopupManager: React.FC<PopupManagerProps> = ({
               buttonText: activeCampaign.buttonText || "Click Here",
               backgroundColor: activeCampaign.backgroundColor || "#FFFFFF",
               textColor: activeCampaign.textColor || "#000000",
+              buttonColor: activeCampaign.buttonColor || "#3B82F6",
+              buttonTextColor: activeCampaign.buttonTextColor || "#FFFFFF",
               position: ["left", "right"].includes(
                 activeCampaign.position as string,
               )
@@ -478,7 +425,9 @@ export const PopupManager: React.FC<PopupManagerProps> = ({
       case "banner":
         return (
           <BannerPopup
-            {...commonProps}
+            isVisible={true}
+            onClose={closePopup}
+            onButtonClick={handlePopupClick}
             config={{
               ...activeCampaign,
               title: activeCampaign.title || activeCampaign.name || "Popup",
@@ -486,6 +435,8 @@ export const PopupManager: React.FC<PopupManagerProps> = ({
               buttonText: activeCampaign.buttonText || "Click Here",
               backgroundColor: activeCampaign.backgroundColor || "#FFFFFF",
               textColor: activeCampaign.textColor || "#000000",
+              buttonColor: activeCampaign.buttonColor || "#3B82F6",
+              buttonTextColor: activeCampaign.buttonTextColor || "#FFFFFF",
               position:
                 activeCampaign.position === "top" ||
                 activeCampaign.position === "bottom"
@@ -503,18 +454,20 @@ export const PopupManager: React.FC<PopupManagerProps> = ({
 
       default:
         return (
-          <ModalPopup
-            {...commonProps}
+          <NewsletterPopup
+            isVisible={true}
+            onClose={closePopup}
             config={{
               ...activeCampaign,
-              title: activeCampaign.title || activeCampaign.name || "Popup",
-              description: activeCampaign.description || "",
-              buttonText: activeCampaign.buttonText || "Click Here",
+              headline: activeCampaign.contentConfig?.headline || activeCampaign.title || "Welcome",
+              subheadline: activeCampaign.contentConfig?.subheadline || activeCampaign.description || "",
+              buttonText: activeCampaign.contentConfig?.buttonText || activeCampaign.buttonText || "Continue",
+              emailPlaceholder: (activeCampaign.contentConfig as any)?.emailPlaceholder || "Enter your email",
               backgroundColor: activeCampaign.backgroundColor || "#FFFFFF",
               textColor: activeCampaign.textColor || "#000000",
-              position: "center",
-              size: "medium",
-            }}
+              buttonColor: activeCampaign.buttonColor || "#007BFF",
+              buttonTextColor: activeCampaign.buttonTextColor || "#FFFFFF",
+            } as unknown as NewsletterConfig}
           />
         );
     }

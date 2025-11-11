@@ -1,6 +1,6 @@
 /**
  * CustomEventHandler
- * 
+ *
  * Handles custom JavaScript events for triggering popups
  * Allows developers to trigger popups programmatically
  */
@@ -11,7 +11,7 @@ export interface CustomEventConfig {
 
 export interface CustomEventData {
   eventName: string;
-  detail: any;
+  detail: unknown;
 }
 
 export type CustomEventCallback = (data: CustomEventData) => void;

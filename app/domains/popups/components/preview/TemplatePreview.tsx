@@ -13,23 +13,36 @@ import React, {
   useImperativeHandle,
   useRef,
 } from "react";
-import { NewsletterPopup } from "~/domains/storefront/popups/NewsletterPopup";
-import { CountdownTimerBanner } from "~/domains/campaigns/components/sales/CountdownTimerBanner";
-import { FlashSaleModal } from "~/domains/campaigns/components/sales/FlashSaleModal";
-import { SocialProofPopup } from "~/domains/storefront/notifications/social-proof/SocialProofPopup";
-import { MultiStepNewsletterForm } from "~/domains/campaigns/components/newsletter/MultiStepNewsletterForm";
-import { TemplateTypeEnum } from "~/lib/template-types.enum";
-import { ProductUpsellPopup } from "~/domains/storefront/popups/ProductUpsellPopup";
-import { SpinToWinPopup } from "~/domains/storefront/popups/SpinToWinPopup";
-import { ScratchCardPopup } from "~/domains/storefront/popups/ScratchCardPopup";
-import { FreeShippingPopup } from "~/domains/storefront/popups/FreeShippingPopup";
+// Import NEW popup components
+import {
+  NewsletterPopup,
+  SpinToWinPopup,
+  ScratchCardPopup,
+  FlashSalePopup,
+  CountdownTimerPopup,
+  CartAbandonmentPopup,
+  ProductUpsellPopup,
+  FreeShippingPopup,
+  SocialProofPopup,
+  AnnouncementPopup,
+} from "~/domains/storefront/popups-new";
 
-import type { NewsletterConfig } from "~/domains/storefront/popups/NewsletterPopup";
-import type { ProductUpsellConfig } from "~/domains/storefront/popups/ProductUpsellPopup";
-import type { SpinToWinConfig } from "~/domains/storefront/popups/SpinToWinPopup";
-import type { ScratchCardConfig } from "~/domains/storefront/popups/ScratchCardPopup";
-import type { FreeShippingConfig } from "~/domains/storefront/popups/FreeShippingPopup";
-import type { CountdownTimerConfig } from "~/domains/campaigns/components/sales/CountdownTimerBanner";
+// Import types
+import type {
+  NewsletterConfig,
+  SpinToWinConfig,
+  ScratchCardConfig,
+  FlashSaleConfig,
+  CountdownTimerConfig,
+  CartAbandonmentConfig,
+  ProductUpsellConfig,
+  FreeShippingConfig,
+  SocialProofConfig,
+  AnnouncementConfig,
+  Product,
+} from "~/domains/storefront/popups-new";
+
+import { TemplateTypeEnum } from "~/lib/template-types.enum";
 
 export interface TemplatePreviewProps {
   templateType?: string;
@@ -179,57 +192,7 @@ const TemplatePreviewComponent = forwardRef<
     [createPlaceholderSVG],
   );
 
-  // Memoize upsell config with more stable approach using entire config hash
-  const upsellConfig: ProductUpsellConfig = useMemo(() => {
-    const config = {
-      ...mergedConfig,
-      id: "preview-upsell",
-      title: mergedConfig.headline || "You Might Also Like",
-      description:
-        mergedConfig.subheadline || "Complete your look with these items",
-      buttonText:
-        mergedConfig.addToCartText || mergedConfig.buttonText || "Add to Cart",
-      backgroundColor: mergedConfig.backgroundColor || "#FFFFFF",
-      textColor: mergedConfig.textColor || "#1A1A1A",
-      buttonColor: mergedConfig.buttonColor || "#007BFF",
-      buttonTextColor: mergedConfig.buttonTextColor || "#FFFFFF",
-      products: mockProducts,
-      maxProducts: mergedConfig.maxProducts || 3,
-      // Use specific field names from template configuration
-      showPrices: mergedConfig.showProductPrice !== false,
-      showCompareAtPrice:
-        mergedConfig.showCompareAtPrice !== false &&
-        mergedConfig.showProductPrice !== false,
-      showImages: mergedConfig.showProductImage !== false,
-      // Use displayTemplate field name from configuration
-      layout: mergedConfig.displayTemplate || mergedConfig.layout || "grid",
-      columns: mergedConfig.columns || 2,
-    };
-
-    // Debug logging to identify re-render causes - throttled
-    if (
-      (templateType?.includes("upsell") ||
-        templateType?.includes("cart") ||
-        templateType === "product-recommendation") &&
-      renderCount.current % 5 === 1
-    ) {
-      console.log(
-        "🛒 [UpsellConfig] Re-creating config for templateType:",
-        templateType,
-        "render:",
-        renderCount.current,
-      );
-      console.log("🛒 [UpsellConfig] Stable config fields:", {
-        hasHeadline: !!mergedConfig.headline,
-        hasSubheadline: !!mergedConfig.subheadline,
-        hasColors: !!(mergedConfig.backgroundColor || mergedConfig.textColor),
-        layout: mergedConfig.displayTemplate || mergedConfig.layout,
-        maxProducts: mergedConfig.maxProducts || 3,
-      });
-    }
-
-    return config;
-  }, [templateType, mergedConfig, mockProducts]);
+  // Note: upsellConfig removed - now created inline in each template case
 
   // Preview container wrapper - creates positioning context for popups
   const PreviewContainer: React.FC<{ children: React.ReactNode }> = useCallback(
@@ -311,18 +274,54 @@ const TemplatePreviewComponent = forwardRef<
           >
             <NewsletterPopup
               config={{
-                ...mergedConfig,
                 id: "preview-newsletter",
-                title: mergedConfig.headline || "Join our newsletter",
-                description: mergedConfig.subheadline || "",
-                buttonText: mergedConfig.submitButtonText || "Subscribe",
+                headline: mergedConfig.headline || "Join Our Newsletter",
+                subheadline: mergedConfig.subheadline || "Get exclusive offers and updates",
                 backgroundColor: mergedConfig.backgroundColor || "#FFFFFF",
                 textColor: mergedConfig.textColor || "#1A1A1A",
+                buttonColor: mergedConfig.buttonColor || "#007BFF",
+                buttonTextColor: mergedConfig.buttonTextColor || "#FFFFFF",
+                inputBackgroundColor: mergedConfig.inputBackgroundColor || "#FFFFFF",
+                inputTextColor: mergedConfig.inputTextColor || "#1A1A1A",
+                inputBorderColor: mergedConfig.inputBorderColor || "#D1D5DB",
+                accentColor: mergedConfig.accentColor || "#007BFF",
+                position: mergedConfig.position || "center",
+                size: mergedConfig.size || "medium",
+                borderRadius: mergedConfig.borderRadius || 8,
+                animation: mergedConfig.animation || "fade",
                 previewMode: true,
+                showCloseButton: true,
+
+                // Email field
+                emailPlaceholder: mergedConfig.emailPlaceholder || "Enter your email",
+                emailLabel: mergedConfig.emailLabel,
+
+                // Name fields
+                nameFieldEnabled: mergedConfig.nameFieldEnabled || false,
+                nameFieldRequired: mergedConfig.nameFieldRequired || false,
+                firstNamePlaceholder: mergedConfig.firstNamePlaceholder || "First name",
+                lastNamePlaceholder: mergedConfig.lastNamePlaceholder || "Last name",
+
+                // Consent
+                consentFieldEnabled: mergedConfig.consentFieldEnabled || false,
+                consentFieldRequired: mergedConfig.consentFieldRequired || false,
+                consentFieldText: mergedConfig.consentFieldText || "I agree to receive marketing emails",
+
+                // Discount
+                discount: mergedConfig.discountEnabled ? {
+                  enabled: true,
+                  code: mergedConfig.discountCode || "WELCOME10",
+                  percentage: mergedConfig.discountValue || 10,
+                  type: "percentage",
+                } : undefined,
+
+                // Messages
+                submitButtonText: mergedConfig.submitButtonText || mergedConfig.buttonText || "Subscribe",
+                successTitle: mergedConfig.successTitle || "Thank you for subscribing!",
+                loadingText: mergedConfig.loadingText || "Subscribing...",
               } as NewsletterConfig}
               isVisible={true}
               onClose={handleClose}
-              campaignId="preview"
             />
           </div>
         </PreviewContainer>
@@ -336,10 +335,32 @@ const TemplatePreviewComponent = forwardRef<
           data-popup-preview
           style={{ display: "contents" }}
         >
-          <MultiStepNewsletterForm
-            config={mergedConfig}
+          <NewsletterPopup
+            config={{
+              id: "preview-newsletter-multi",
+              headline: mergedConfig.headline || "Join Our Newsletter",
+              subheadline: mergedConfig.subheadline || "Get exclusive offers and updates",
+              backgroundColor: mergedConfig.backgroundColor || "#FFFFFF",
+              textColor: mergedConfig.textColor || "#111827",
+              buttonColor: mergedConfig.buttonColor || "#3B82F6",
+              buttonTextColor: mergedConfig.buttonTextColor || "#FFFFFF",
+              accentColor: mergedConfig.accentColor || "#3B82F6",
+              inputBackgroundColor: mergedConfig.inputBackgroundColor || "#F9FAFB",
+              inputTextColor: mergedConfig.inputTextColor || "#111827",
+              inputBorderColor: mergedConfig.inputBorderColor || "#D1D5DB",
+              overlayColor: mergedConfig.overlayColor || "#000000",
+              overlayOpacity: mergedConfig.overlayOpacity || 0.5,
+              buttonText: mergedConfig.buttonText || "Subscribe",
+              emailPlaceholder: mergedConfig.emailPlaceholder || "Enter your email",
+              submitButtonText: mergedConfig.submitButtonText || "Subscribe",
+              successMessage:
+                mergedConfig.successMessage ||
+                "Thanks for subscribing! Check your inbox for a confirmation email.",
+              successTitle: mergedConfig.successTitle || "Thank you for subscribing!",
+              loadingText: mergedConfig.loadingText || "Subscribing...",
+            } as NewsletterConfig}
+            isVisible={true}
             onClose={handleClose}
-            previewMode={true}
           />
         </div>
       );
@@ -347,31 +368,56 @@ const TemplatePreviewComponent = forwardRef<
     // Flash Sale Modal
     case TemplateTypeEnum.FLASH_SALE:
       return (
-        <div
-          ref={setPreviewElementRef}
-          data-popup-preview
-          style={{ display: "contents" }}
-        >
-          <FlashSaleModal
-            config={{
-              headline:
-                mergedConfig.headline || "🔥 Flash Sale - Limited Time!",
-              subheadline:
-                mergedConfig.subheadline ||
-                "Get up to 50% off on selected items",
-              urgencyMessage: mergedConfig.urgencyMessage,
-              ctaText: mergedConfig.ctaText || "Shop Now",
-              ctaUrl: mergedConfig.ctaUrl || "/collections/sale",
-              discountPercentage: mergedConfig.discountPercentage,
-              showCountdown: mergedConfig.showCountdown !== false,
-              countdownDuration: mergedConfig.countdownDuration || 24,
-              showStockCounter: mergedConfig.showStockCounter || false,
-              stockCount: mergedConfig.stockCount,
-            }}
-            onClose={handleClose}
-            previewMode={true}
-          />
-        </div>
+        <PreviewContainer>
+          <div
+            ref={setPreviewElementRef}
+            data-popup-preview
+            style={{ display: "contents" }}
+          >
+            <FlashSalePopup
+              config={{
+                id: "preview-flash-sale",
+                headline: mergedConfig.headline || "🔥 Flash Sale - 30% OFF!",
+                subheadline: mergedConfig.subheadline || "Limited time offer - ends soon!",
+                backgroundColor: mergedConfig.backgroundColor || "#FF6B6B",
+                textColor: mergedConfig.textColor || "#FFFFFF",
+                buttonColor: mergedConfig.buttonColor || "#FFFFFF",
+                buttonTextColor: mergedConfig.buttonTextColor || "#FF6B6B",
+                accentColor: mergedConfig.accentColor || "rgba(255, 255, 255, 0.1)",
+                position: mergedConfig.position || "center",
+                size: mergedConfig.size || "medium",
+                borderRadius: mergedConfig.borderRadius || 8,
+                animation: mergedConfig.animation || "fade",
+                previewMode: true,
+
+                // Discount
+                discountPercentage: mergedConfig.discountPercentage || 30,
+                discountValue: mergedConfig.discountValue,
+                discountType: mergedConfig.discountType || "percentage",
+                originalPrice: mergedConfig.originalPrice,
+                salePrice: mergedConfig.salePrice,
+
+                // Countdown timer
+                showCountdown: mergedConfig.showCountdown !== false,
+                countdownDuration: mergedConfig.countdownDuration || 7200, // 2 hours in seconds
+                hideOnExpiry: mergedConfig.hideOnExpiry !== false,
+
+                // Stock counter
+                showStockCounter: mergedConfig.showStockCounter || false,
+                stockCount: mergedConfig.stockCount || 47,
+
+                // Urgency message
+                urgencyMessage: mergedConfig.urgencyMessage || "Hurry! Sale ends in:",
+
+                // CTA
+                ctaUrl: mergedConfig.ctaUrl || "/collections/sale",
+                buttonText: mergedConfig.buttonText || mergedConfig.ctaText || "Shop Now",
+              } as FlashSaleConfig}
+              isVisible={true}
+              onClose={handleClose}
+            />
+          </div>
+        </PreviewContainer>
       );
 
     // Countdown Timer Banner
@@ -382,13 +428,39 @@ const TemplatePreviewComponent = forwardRef<
           data-popup-preview
           style={{ display: "contents" }}
         >
-          <CountdownTimerBanner
+          <CountdownTimerPopup
             config={{
-              ...mergedConfig,
-              endTime: (mergedConfig as any).endTime || "23:59",
+              id: "preview-countdown",
+              headline: mergedConfig.headline || "⏰ Flash Sale Ends Soon!",
+              backgroundColor: mergedConfig.backgroundColor || "#222222",
+              textColor: mergedConfig.textColor || "#FFFFFF",
+              buttonColor: mergedConfig.buttonColor || "#FFD700",
+              buttonTextColor: mergedConfig.buttonTextColor || "#000000",
+              position: mergedConfig.position || "top",
+              size: mergedConfig.size || "small",
+              borderRadius: mergedConfig.borderRadius || 6,
+              previewMode: true,
+
+              // Timer
+              countdownDuration: mergedConfig.countdownDuration || 14400, // 4 hours in seconds
+              hideOnExpiry: mergedConfig.hideOnExpiry !== false,
+
+              // Stock counter
+              showStockCounter: mergedConfig.showStockCounter || false,
+              stockCount: mergedConfig.stockCount || 127,
+
+              // Banner specific
+              sticky: mergedConfig.sticky !== false,
+
+              // CTA
+              ctaUrl: mergedConfig.ctaUrl || "/collections/sale",
+              buttonText: mergedConfig.buttonText || mergedConfig.ctaText || "Shop Sale",
+
+              // Color scheme
+              colorScheme: mergedConfig.colorScheme || "custom",
             } as CountdownTimerConfig}
+            isVisible={true}
             onClose={handleClose}
-            previewMode={true}
           />
         </div>
       );
@@ -402,18 +474,58 @@ const TemplatePreviewComponent = forwardRef<
           style={{ display: "contents" }}
         >
           <SocialProofPopup
-            campaignId="preview"
-            config={mergedConfig}
+            config={{
+              id: "preview-social-proof",
+              headline: mergedConfig.headline || "Social Proof",
+              backgroundColor: mergedConfig.backgroundColor || "#111827",
+              textColor: mergedConfig.textColor || "#F3F4F6",
+              buttonColor: mergedConfig.buttonColor || "#FFFFFF",
+              buttonTextColor: mergedConfig.buttonTextColor || "#111827",
+              position: mergedConfig.position || "bottom",
+              size: mergedConfig.size || "small",
+              borderRadius: mergedConfig.borderRadius || 8,
+              previewMode: true,
+
+              // Notification types
+              enablePurchaseNotifications: mergedConfig.enablePurchaseNotifications !== false,
+              enableVisitorNotifications: mergedConfig.enableVisitorNotifications || false,
+              enableReviewNotifications: mergedConfig.enableReviewNotifications || false,
+
+              // Position
+              cornerPosition: mergedConfig.cornerPosition || "bottom-left",
+
+              // Timing
+              displayDuration: mergedConfig.displayDuration || 6,
+              rotationInterval: mergedConfig.rotationInterval || 8,
+              maxNotificationsPerSession: mergedConfig.maxNotificationsPerSession || 5,
+
+              // Display options
+              showProductImage: mergedConfig.showProductImage !== false,
+              showTimer: mergedConfig.showTimer !== false,
+
+              // Message templates
+              messageTemplates: mergedConfig.messageTemplates || {
+                purchase: "{{name}} from {{location}} just purchased {{product}}",
+                visitor: "{{count}} people are viewing this right now",
+                review: "{{name}} gave this {{rating}} stars",
+              },
+            } as SocialProofConfig}
+            isVisible={true}
+            onClose={handleClose}
             notifications={[
               {
                 id: "1",
                 type: "purchase",
-                customerName: "Sarah M.",
+                name: "Sarah M.",
                 location: "New York, NY",
-                productName: "Classic T-Shirt",
-                timeAgo: "2 minutes ago",
-                verified: true,
-                timestamp: Date.now(),
+                product: "Classic T-Shirt",
+                productImage: "https://via.placeholder.com/50",
+                timestamp: new Date(Date.now() - 120000), // 2 minutes ago
+              },
+              {
+                id: "2",
+                type: "visitor",
+                count: 47,
               },
             ]}
           />
@@ -422,35 +534,62 @@ const TemplatePreviewComponent = forwardRef<
 
     // Spin-to-Win
     case TemplateTypeEnum.SPIN_TO_WIN: {
-      // Normalize like storefront runtime
-      const lotteryConfig: Record<string, unknown> = {
-        ...mergedConfig,
-        templateType: "lottery",
-        previewMode: true,
-      };
-
-      // prizes provided as JSON string in admin → parse into array
-      if (typeof lotteryConfig.prizes === "string") {
+      // Parse prizes if provided as JSON string
+      let wheelSegments = mergedConfig.wheelSegments || mergedConfig.prizes || [];
+      if (typeof wheelSegments === "string") {
         try {
-          const parsed = JSON.parse(lotteryConfig.prizes);
-          if (Array.isArray(parsed)) lotteryConfig.prizes = parsed;
+          wheelSegments = JSON.parse(wheelSegments);
         } catch (_) {
-          // keep as-is; component will fallback safely
+          wheelSegments = [];
         }
       }
 
-      // wheelColors may be comma-separated → turn into array
-      if (typeof lotteryConfig.wheelColors === "string") {
-        lotteryConfig.wheelColors = lotteryConfig.wheelColors
-          .split(",")
-          .map((s: string) => s.trim())
-          .filter(Boolean);
-      }
-
-      // numeric coercion for consistency
-      if (lotteryConfig.spinDuration != null) {
-        const n = Number(lotteryConfig.spinDuration);
-        if (!Number.isNaN(n)) lotteryConfig.spinDuration = n;
+      // Ensure wheelSegments is an array with proper structure
+      if (!Array.isArray(wheelSegments) || wheelSegments.length === 0) {
+        // Provide default prizes for preview
+        wheelSegments = [
+          {
+            id: "prize-10",
+            label: "10% OFF",
+            probability: 0.30,
+            color: "#FF6B6B",
+            discountType: "percentage",
+            discountValue: 10,
+            discountCode: "SPIN10",
+          },
+          {
+            id: "prize-15",
+            label: "15% OFF",
+            probability: 0.20,
+            color: "#4ECDC4",
+            discountType: "percentage",
+            discountValue: 15,
+            discountCode: "SPIN15",
+          },
+          {
+            id: "prize-20",
+            label: "20% OFF",
+            probability: 0.10,
+            color: "#FFD93D",
+            discountType: "percentage",
+            discountValue: 20,
+            discountCode: "SPIN20",
+          },
+          {
+            id: "prize-shipping",
+            label: "Free Shipping",
+            probability: 0.25,
+            color: "#6BCF7F",
+            discountType: "free_shipping",
+            discountCode: "FREESHIP",
+          },
+          {
+            id: "prize-again",
+            label: "Try Again",
+            probability: 0.15,
+            color: "#95A5A6",
+          },
+        ];
       }
 
       return (
@@ -463,18 +602,46 @@ const TemplatePreviewComponent = forwardRef<
             <SpinToWinPopup
               config={{
                 id: "preview-spin",
-                title: mergedConfig.headline || "Spin & Win",
-                description: mergedConfig.subheadline || "",
-                buttonText: mergedConfig.submitButtonText || "Spin",
-                backgroundColor: mergedConfig.backgroundColor || "#FFFFFF",
-                textColor: mergedConfig.textColor || "#1A1A1A",
-                ...lotteryConfig,
+                headline: mergedConfig.headline || "Spin to Win!",
+                subheadline: mergedConfig.subheadline || "Try your luck for exclusive discounts",
+                backgroundColor: mergedConfig.backgroundColor || "#4A90E2",
+                textColor: mergedConfig.textColor || "#FFFFFF",
+                buttonColor: mergedConfig.buttonColor || "#FFD700",
+                buttonTextColor: mergedConfig.buttonTextColor || "#000000",
+                accentColor: mergedConfig.accentColor || "#EF4444",
+                position: mergedConfig.position || "center",
+                size: mergedConfig.size || "large",
+                borderRadius: mergedConfig.borderRadius || 8,
+                animation: mergedConfig.animation || "fade",
+                previewMode: true,
+
+                // Wheel configuration
+                wheelSegments,
+                wheelSize: mergedConfig.wheelSize || 400,
+                wheelBorderWidth: mergedConfig.wheelBorderWidth || 2,
+                wheelBorderColor: mergedConfig.wheelBorderColor || "#FFFFFF",
+
+                // Email capture
+                emailRequired: mergedConfig.emailRequired !== false,
+                emailPlaceholder: mergedConfig.emailPlaceholder || "Enter your email to spin",
+
+                // Button text
+                spinButtonText: mergedConfig.spinButtonText || mergedConfig.buttonText || "SPIN TO WIN!",
+
+                // Behavior
+                maxAttemptsPerUser: mergedConfig.maxAttemptsPerUser || 1,
+                spinDuration: Number(mergedConfig.spinDuration) || 4000,
+                minSpins: mergedConfig.minSpins || 5,
+
+                // Messages
+                successMessage: mergedConfig.successMessage || "🎉 You won {{prize}}!",
+                failureMessage: mergedConfig.failureMessage || "Thanks for playing!",
+                loadingText: mergedConfig.loadingText || "Spinning...",
               } as SpinToWinConfig}
               isVisible={true}
               onClose={handleClose}
-              renderInline={true}
-              onSpinComplete={async () => {
-                /* no-op in preview */
+              onSpin={async () => {
+                // Preview mode - no actual submission
               }}
             />
           </div>
@@ -485,7 +652,54 @@ const TemplatePreviewComponent = forwardRef<
     // Page Load triggers are now handled by the normalizer
 
     // Scratch Card
-    case TemplateTypeEnum.SCRATCH_CARD:
+    case TemplateTypeEnum.SCRATCH_CARD: {
+      // Parse prizes if provided as JSON string
+      let prizes = mergedConfig.prizes || [];
+      if (typeof prizes === "string") {
+        try {
+          prizes = JSON.parse(prizes);
+        } catch (_) {
+          prizes = [];
+        }
+      }
+
+      // Provide default prizes for preview if none configured
+      if (!Array.isArray(prizes) || prizes.length === 0) {
+        prizes = [
+          {
+            id: "prize-10",
+            label: "10% OFF",
+            probability: 0.40,
+            discountCode: "SCRATCH10",
+            discountValue: 10,
+            discountType: "percentage",
+          },
+          {
+            id: "prize-15",
+            label: "15% OFF",
+            probability: 0.30,
+            discountCode: "SCRATCH15",
+            discountValue: 15,
+            discountType: "percentage",
+          },
+          {
+            id: "prize-20",
+            label: "20% OFF",
+            probability: 0.20,
+            discountCode: "SCRATCH20",
+            discountValue: 20,
+            discountType: "percentage",
+          },
+          {
+            id: "prize-shipping",
+            label: "FREE SHIPPING",
+            probability: 0.10,
+            discountCode: "FREESHIP",
+            discountType: "free_shipping",
+          },
+        ];
+      }
+
       return (
         <PreviewContainer>
           <div
@@ -496,103 +710,159 @@ const TemplatePreviewComponent = forwardRef<
             <ScratchCardPopup
               config={{
                 id: "preview-scratch",
-                title: mergedConfig.headline || "Scratch & Win",
-                description: mergedConfig.subheadline || "",
-                buttonText: mergedConfig.submitButtonText || "Reveal",
+                headline: mergedConfig.headline || "Scratch & Win!",
+                subheadline: mergedConfig.subheadline || "Scratch to reveal your exclusive discount",
                 backgroundColor: mergedConfig.backgroundColor || "#FFFFFF",
                 textColor: mergedConfig.textColor || "#1A1A1A",
-                ...mergedConfig,
-                templateType: "scratch_card",
+                buttonColor: mergedConfig.buttonColor || "#22C55E",
+                buttonTextColor: mergedConfig.buttonTextColor || "#FFFFFF",
+                inputBackgroundColor: mergedConfig.inputBackgroundColor || "#FFFFFF",
+                inputTextColor: mergedConfig.inputTextColor || "#1A1A1A",
+                inputBorderColor: mergedConfig.inputBorderColor || "#D1D5DB",
+                accentColor: mergedConfig.accentColor || "#22C55E",
+                position: mergedConfig.position || "center",
+                size: mergedConfig.size || "medium",
+                borderRadius: mergedConfig.borderRadius || 8,
+                animation: mergedConfig.animation || "fade",
                 previewMode: true,
+
+                // Prizes
+                prizes,
+
+                // Email capture
+                emailRequired: mergedConfig.emailRequired !== false,
+                emailBeforeScratching: mergedConfig.emailBeforeScratching !== false,
+                emailPlaceholder: mergedConfig.emailPlaceholder || "Enter your email",
+
+                // Scratch card appearance
+                scratchCardWidth: mergedConfig.scratchCardWidth || 300,
+                scratchCardHeight: mergedConfig.scratchCardHeight || 200,
+                scratchCardBackgroundColor: mergedConfig.scratchCardBackgroundColor || "#FFFFFF",
+                scratchCardTextColor: mergedConfig.scratchCardTextColor || "#22C55E",
+                scratchOverlayColor: mergedConfig.scratchOverlayColor || "#C0C0C0",
+
+                // Scratch behavior
+                scratchThreshold: mergedConfig.scratchThreshold || 50,
+                scratchRadius: mergedConfig.scratchRadius || 20,
+
+                // Instructions
+                scratchInstruction: mergedConfig.scratchInstruction || "Scratch to reveal!",
+
+                // Messages
+                successMessage: mergedConfig.successMessage || "Congratulations! Your discount code:",
+                buttonText: mergedConfig.buttonText || "Continue",
               } as ScratchCardConfig}
               isVisible={true}
               onClose={handleClose}
-              campaignId="preview"
-              onScratchComplete={async () => {
-                /* no-op in preview */
+              onSubmit={async () => {
+                // Preview mode - no actual submission
+              }}
+            />
+          </div>
+        </PreviewContainer>
+      );
+    }
+
+    // Product Upsell
+    case TemplateTypeEnum.PRODUCT_UPSELL:
+    case "upsell-template":
+      return (
+        <PreviewContainer>
+          <div
+            ref={setPreviewElementRef}
+            data-popup-preview
+            style={{ display: "contents" }}
+          >
+            <ProductUpsellPopup
+              config={{
+                id: "preview-upsell",
+                headline: mergedConfig.headline || "Complete Your Order & Save 15%",
+                subheadline: mergedConfig.subheadline || "These items pair perfectly together",
+                backgroundColor: mergedConfig.backgroundColor || "#FFFFFF",
+                textColor: mergedConfig.textColor || "#1A1A1A",
+                buttonColor: mergedConfig.buttonColor || "#0EA5E9",
+                buttonTextColor: mergedConfig.buttonTextColor || "#FFFFFF",
+                inputBorderColor: mergedConfig.inputBorderColor || "#E5E7EB",
+                accentColor: mergedConfig.accentColor || "#0EA5E9",
+                position: mergedConfig.position || "center",
+                size: mergedConfig.size || "medium",
+                borderRadius: mergedConfig.borderRadius || 8,
+                animation: mergedConfig.animation || "fade",
+                previewMode: true,
+
+                // Display options
+                layout: mergedConfig.layout || "grid",
+                columns: mergedConfig.columns || 2,
+                showPrices: mergedConfig.showPrices !== false,
+                showCompareAtPrice: mergedConfig.showCompareAtPrice !== false,
+                showImages: mergedConfig.showImages !== false,
+                showRatings: mergedConfig.showRatings || false,
+                showReviewCount: mergedConfig.showReviewCount || false,
+
+                // Bundle discount
+                bundleDiscount: mergedConfig.bundleDiscount || 15,
+                bundleDiscountText: mergedConfig.bundleDiscountText || "Save 15% when you buy together!",
+
+                // Behavior
+                multiSelect: mergedConfig.multiSelect !== false,
+
+                // CTA
+                buttonText: mergedConfig.buttonText || mergedConfig.ctaText || "Add to Cart",
+                secondaryCtaLabel: mergedConfig.secondaryCtaLabel || "No thanks",
+
+                // Currency
+                currency: mergedConfig.currency || "USD",
+              } as ProductUpsellConfig}
+              isVisible={true}
+              onClose={handleClose}
+              products={mockProducts.slice(0, 3)}
+              onAddToCart={async () => {
+                // Preview mode - no actual submission
               }}
             />
           </div>
         </PreviewContainer>
       );
 
-    // Upsell Template
-    case "upsell-template":
-      return (
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            height: "400px",
-            backgroundColor: mergedConfig.backgroundColor || "#FFFFFF",
-            color: mergedConfig.textColor || "#1A1A1A",
-            padding: "20px",
-            textAlign: "center",
-          }}
-        >
-          <div>
-            <div
-              style={{
-                fontSize: "24px",
-                fontWeight: "bold",
-                marginBottom: "8px",
-              }}
-            >
-              {mergedConfig.headline || "Complete Your Look"}
-            </div>
-            <div style={{ fontSize: "14px", marginBottom: "20px" }}>
-              {mergedConfig.subheadline ||
-                "Customers who bought this also loved:"}
-            </div>
-            <div
-              style={{ display: "flex", gap: "12px", justifyContent: "center" }}
-            >
-              {[1, 2, 3].map((i) => (
-                <div
-                  key={i}
-                  style={{
-                    width: "100px",
-                    height: "100px",
-                    backgroundColor: "#F6F6F7",
-                    borderRadius: "8px",
-                  }}
-                />
-              ))}
-            </div>
-            <button
-              style={{
-                backgroundColor: mergedConfig.buttonColor || "#007BFF",
-                color: mergedConfig.buttonTextColor || "#FFFFFF",
-                padding: "12px 24px",
-                borderRadius: "6px",
-                border: "none",
-                fontSize: "16px",
-                fontWeight: 500,
-                cursor: "pointer",
-                marginTop: "20px",
-              }}
-            >
-              {mergedConfig.ctaText || "Add to Cart"}
-            </button>
-          </div>
-        </div>
-      );
-
-    // Announcement Slide
+    // Announcement Banner
     case TemplateTypeEnum.ANNOUNCEMENT:
       return (
         <div
-          style={{
-            backgroundColor: mergedConfig.backgroundColor || "#007BFF",
-            color: mergedConfig.textColor || "#FFFFFF",
-            padding: "16px 20px",
-            textAlign: "center",
-            fontSize: "14px",
-            fontWeight: 500,
-          }}
+          ref={setPreviewElementRef}
+          data-popup-preview
+          style={{ display: "contents" }}
         >
-          {mergedConfig.message || "New products just arrived! Shop now →"}
+          <AnnouncementPopup
+            config={{
+              id: "preview-announcement",
+              headline: mergedConfig.headline || mergedConfig.message || "🎉 Flash Sale: 25% OFF Everything - Today Only!",
+              subheadline: mergedConfig.subheadline,
+              backgroundColor: mergedConfig.backgroundColor || "#DC2626",
+              textColor: mergedConfig.textColor || "#FFFFFF",
+              buttonColor: mergedConfig.buttonColor || "#FFFFFF",
+              buttonTextColor: mergedConfig.buttonTextColor || "#DC2626",
+              position: mergedConfig.position || "top",
+              size: mergedConfig.size || "small",
+              borderRadius: mergedConfig.borderRadius || 6,
+              previewMode: true,
+
+              // Banner specific
+              sticky: mergedConfig.sticky !== false,
+
+              // Icon
+              icon: mergedConfig.icon,
+
+              // CTA
+              ctaUrl: mergedConfig.ctaUrl || "/collections/sale",
+              buttonText: mergedConfig.buttonText || mergedConfig.ctaText || "Shop Now",
+              ctaOpenInNewTab: mergedConfig.ctaOpenInNewTab || false,
+
+              // Color scheme
+              colorScheme: mergedConfig.colorScheme || "custom",
+            } as AnnouncementConfig}
+            isVisible={true}
+            onClose={handleClose}
+          />
         </div>
       );
 
@@ -608,43 +878,64 @@ const TemplatePreviewComponent = forwardRef<
             <FreeShippingPopup
               config={{
                 id: "preview-free-shipping",
-                title: mergedConfig.headline || "Free Shipping Progress",
-                description: mergedConfig.subheadline || "",
-                buttonText: mergedConfig.ctaText || "Shop more",
-                backgroundColor: mergedConfig.backgroundColor || "#FFFFFF",
-                textColor: mergedConfig.textColor || "#1A1A1A",
-                freeShippingThreshold: (mergedConfig as any).freeShippingThreshold || 75,
+                headline: mergedConfig.headline || "Free Shipping Progress",
+                subheadline: mergedConfig.subheadline,
+                backgroundColor: mergedConfig.backgroundColor || "#DCFCE7",
+                textColor: mergedConfig.textColor || "#14532D",
+                buttonColor: mergedConfig.buttonColor || "#10B981",
+                buttonTextColor: mergedConfig.buttonTextColor || "#FFFFFF",
+                inputBorderColor: mergedConfig.inputBorderColor || "#E5E7EB",
+                accentColor: mergedConfig.accentColor || "#10B981",
+                position: mergedConfig.position || "top",
+                size: mergedConfig.size || "small",
+                borderRadius: mergedConfig.borderRadius || 8,
+                previewMode: true,
+
+                // Threshold
+                freeShippingThreshold: mergedConfig.freeShippingThreshold || 75,
                 currentCartTotal: 30,
-                currency: "USD",
-                products: mockProducts.slice(0, (mergedConfig as any).productCount || 3),
-                showProgress: (mergedConfig as any).showProgress ?? true,
-                showProducts: (mergedConfig as any).showProducts ?? true,
-                progressColor:
-                  (mergedConfig as any).progressColor ||
-                  (mergedConfig as any).buttonColor ||
-                  "#28A745",
-                displayStyle:
-                  (mergedConfig as any).displayStyle ||
-                  ((mergedConfig as any).position === "top"
-                    ? "banner"
-                    : (mergedConfig as any).position === "bottom"
-                      ? "sticky"
-                      : "modal"),
-                autoHide: (mergedConfig as any).autoHide || false,
-                hideDelay: (mergedConfig as any).hideDelay || 3,
+
+                // Currency
+                currency: mergedConfig.currency || "USD",
+
+                // Messages
+                initialMessage: mergedConfig.initialMessage || "Add {{remaining}} more for FREE SHIPPING! 🚚",
+                progressMessage: mergedConfig.progressMessage || "You're {{percentage}}% there!",
+                successTitle: mergedConfig.successTitle || "You unlocked FREE SHIPPING! 🎉",
+                successSubhead: mergedConfig.successSubhead,
+
+                // Product recommendations
+                showProducts: mergedConfig.showProducts !== false,
+                maxProductsToShow: mergedConfig.maxProductsToShow || 3,
+                productFilter: mergedConfig.productFilter || "under_threshold",
+
+                // Progress bar
+                showProgress: mergedConfig.showProgress !== false,
+                progressColor: mergedConfig.progressColor || mergedConfig.accentColor || "#10B981",
+
+                // Display
+                displayStyle: mergedConfig.displayStyle || (
+                  mergedConfig.position === "top" ? "banner" :
+                  mergedConfig.position === "bottom" ? "sticky" :
+                  "modal"
+                ),
+                autoHide: mergedConfig.autoHide || false,
+                hideDelay: mergedConfig.hideDelay || 3,
               } as FreeShippingConfig}
               isVisible={true}
               onClose={handleClose}
-              onButtonClick={handleButtonClick}
-              onAddToCart={handleAddToCart}
-              onShopMore={handleButtonClick}
+              cartTotal={30}
+              products={mockProducts.slice(0, 3)}
+              onProductClick={() => {
+                // Preview mode - no action
+              }}
             />
           </div>
         </PreviewContainer>
       );
 
-    // Product Upsell Templates
-    case TemplateTypeEnum.PRODUCT_UPSELL:
+    // Cart Abandonment
+    case TemplateTypeEnum.CART_ABANDONMENT:
       return (
         <PreviewContainer>
           <div
@@ -652,12 +943,80 @@ const TemplatePreviewComponent = forwardRef<
             data-popup-preview
             style={{ display: "contents" }}
           >
-            <ProductUpsellPopup
-              config={upsellConfig}
+            <CartAbandonmentPopup
+              config={{
+                id: "preview-cart-abandonment",
+                headline: mergedConfig.headline || "You left something behind",
+                subheadline: mergedConfig.subheadline || "Complete your purchase before it's gone",
+                backgroundColor: mergedConfig.backgroundColor || "#FFF7ED",
+                textColor: mergedConfig.textColor || "#7C2D12",
+                buttonColor: mergedConfig.buttonColor || "#EA580C",
+                buttonTextColor: mergedConfig.buttonTextColor || "#FFFFFF",
+                inputBorderColor: mergedConfig.inputBorderColor || "#E5E7EB",
+                accentColor: mergedConfig.accentColor || "#FEF3C7",
+                position: mergedConfig.position || "center",
+                size: mergedConfig.size || "medium",
+                borderRadius: mergedConfig.borderRadius || 8,
+                animation: mergedConfig.animation || "fade",
+                previewMode: true,
+
+                // Cart display
+                showCartItems: mergedConfig.showCartItems !== false,
+                maxItemsToShow: mergedConfig.maxItemsToShow || 3,
+                showCartTotal: mergedConfig.showCartTotal !== false,
+
+                // Discount
+                discount: mergedConfig.discountEnabled ? {
+                  enabled: true,
+                  code: mergedConfig.discountCode || "CART10",
+                  percentage: mergedConfig.discountValue || 10,
+                  type: "percentage",
+                } : undefined,
+
+                // Urgency
+                showUrgency: mergedConfig.showUrgency !== false,
+                urgencyTimer: mergedConfig.urgencyTimer || 300, // 5 minutes
+                urgencyMessage: mergedConfig.urgencyMessage || "Complete your order in {{time}} to save 10%",
+
+                // Stock warnings
+                showStockWarnings: mergedConfig.showStockWarnings || false,
+                stockWarningMessage: mergedConfig.stockWarningMessage || "⚠️ Items in your cart are selling fast!",
+
+                // CTA
+                ctaUrl: mergedConfig.ctaUrl || "/checkout",
+                buttonText: mergedConfig.buttonText || mergedConfig.ctaText || "Resume Checkout",
+                saveForLaterText: mergedConfig.saveForLaterText || "Save for Later",
+
+                // Currency
+                currency: mergedConfig.currency || "USD",
+              } as CartAbandonmentConfig}
               isVisible={true}
               onClose={handleClose}
-              onButtonClick={handleButtonClick}
-              onAddToCart={handleAddToCart}
+              cartItems={[
+                {
+                  id: "1",
+                  title: "Classic T-Shirt",
+                  price: "29.99",
+                  quantity: 2,
+                  imageUrl: "https://via.placeholder.com/60",
+                  variantId: "variant-1",
+                },
+                {
+                  id: "2",
+                  title: "Denim Jeans",
+                  price: "79.99",
+                  quantity: 1,
+                  imageUrl: "https://via.placeholder.com/60",
+                  variantId: "variant-2",
+                },
+              ]}
+              cartTotal="139.97"
+              onResumeCheckout={() => {
+                // Preview mode - no action
+              }}
+              onSaveForLater={() => {
+                // Preview mode - no action
+              }}
             />
           </div>
         </PreviewContainer>
@@ -678,18 +1037,21 @@ const TemplatePreviewComponent = forwardRef<
           >
             <NewsletterPopup
               config={{
-                ...mergedConfig,
                 id: "preview-fallback",
-                title: mergedConfig.headline || "Preview Mode",
-                description: mergedConfig.subheadline || `Template: ${templateType}`,
-                buttonText: mergedConfig.submitButtonText || "Subscribe",
+                headline: mergedConfig.headline || "Preview Mode",
+                subheadline: mergedConfig.subheadline || `Template: ${templateType}`,
                 backgroundColor: mergedConfig.backgroundColor || "#FFFFFF",
                 textColor: mergedConfig.textColor || "#1A1A1A",
+                buttonColor: mergedConfig.buttonColor || "#007BFF",
+                buttonTextColor: mergedConfig.buttonTextColor || "#FFFFFF",
+                position: "center",
+                size: "medium",
                 previewMode: true,
+                emailPlaceholder: "Enter your email",
+                submitButtonText: mergedConfig.submitButtonText || "Subscribe",
               } as NewsletterConfig}
               isVisible={true}
               onClose={handleClose}
-              campaignId="preview"
             />
           </div>
         </PreviewContainer>

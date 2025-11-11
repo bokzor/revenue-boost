@@ -1,83 +1,103 @@
 import React, { useState, useCallback, useEffect } from "react";
 import { Text, Box, Badge, BlockStack } from "@shopify/polaris";
-import {
-  TEMPLATE_CATEGORIES,
-  getTemplatesByCategory,
-  getPopularTemplates,
-  getRecommendedTemplates,
-  searchTemplates,
-  type PopupTemplate,
-} from "./PopupTemplateLibrary";
-import { SmartTemplateRecommendations } from "./SmartTemplateRecommendations";
-import type { CampaignContext } from "~/domains/popups/services/recommendations/recommendations.server";
+import { getPopupTemplates } from "./PopupTemplateLibrary";
+import type { Template } from "~/domains/popups/services/templates.server";
 import styles from "./TemplateSelector.module.css";
+import { parseTemplateContentConfig } from "~/domains/templates/types/template";
+
+import type { DesignConfig, NewsletterContent, SpinToWinContent, FlashSaleContent, BaseContentConfig } from "~/domains/campaigns/types/campaign";
+
+// Preview helpers: typed content mappers and theme-based color defaults
+const THEME_DEFAULTS: Record<DesignConfig["theme"], { background: string; text: string; button: string }> = {
+  "professional-blue": { background: "#FFFFFF", text: "#1F2937", button: "#2563EB" },
+  "vibrant-orange": { background: "#FFFFFF", text: "#1F2937", button: "#F97316" },
+  "elegant-purple": { background: "#FFFFFF", text: "#111827", button: "#7C3AED" },
+  "minimal-gray": { background: "#F9FAFB", text: "#111827", button: "#111827" },
+};
+
+function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
+  const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return m ? { r: parseInt(m[1], 16), g: parseInt(m[2], 16), b: parseInt(m[3], 16) } : null;
+}
+
+function pickReadableTextColor(bgHex: string): string {
+  const rgb = hexToRgb(bgHex);
+  if (!rgb) return "#FFFFFF";
+  const yiq = (rgb.r * 299 + rgb.g * 587 + rgb.b * 114) / 1000;
+  return yiq >= 128 ? "#000000" : "#FFFFFF";
+}
+
+function getDesignPreviewColors(design: DesignConfig) {
+  const defaults = THEME_DEFAULTS[design.theme] ?? THEME_DEFAULTS["professional-blue"];
+  const backgroundColor = design.backgroundColor ?? defaults.background;
+  const textColor = design.textColor ?? defaults.text;
+  const buttonColor = design.buttonColor ?? defaults.button;
+  const buttonTextColor = pickReadableTextColor(buttonColor);
+  return { backgroundColor, textColor, buttonColor, buttonTextColor };
+}
+
+function getPreviewTexts(template: Template) {
+  const content = parseTemplateContentConfig(template.contentConfig, template.templateType);
+  switch (template.templateType) {
+    case "NEWSLETTER":
+    case "EXIT_INTENT": {
+      const c = content as NewsletterContent;
+      return {
+        title: c.headline ?? template.name,
+        button: c.submitButtonText ?? c.buttonText ?? c.ctaText ?? "Select",
+        description: template.description,
+      };
+    }
+    case "SPIN_TO_WIN":
+    case "SCRATCH_CARD": {
+      const c = content as SpinToWinContent;
+      return {
+        title: c.headline ?? template.name,
+        button: c.spinButtonText ?? c.buttonText ?? c.ctaText ?? "Select",
+        description: template.description,
+      };
+    }
+    case "FLASH_SALE":
+    case "COUNTDOWN_TIMER": {
+      const c = content as FlashSaleContent;
+      return {
+        title: c.headline ?? template.name,
+        button: c.ctaText ?? c.buttonText ?? "Shop now",
+        description: template.description,
+      };
+    }
+    default: {
+      const c = content as BaseContentConfig;
+      return {
+        title: c.headline ?? template.name,
+        button: c.ctaText ?? c.buttonText ?? "Select",
+        description: template.description,
+      };
+    }
+  }
+}
 
 export interface TemplateSelectorProps {
-  selectedTemplate: PopupTemplate | null;
-  onTemplateSelect: (template: PopupTemplate) => void;
-  campaignContext?: CampaignContext;
-  showRecommendations?: boolean;
-  designConfig?: Record<string, unknown>;
-  onPreviewElementReady?: (element: HTMLElement | null) => void;
-  isPreviewVisible?: boolean;
+  selectedTemplate: Template | null;
+  onTemplateSelect: (template: Template) => void;
+  storeId?: string;
   onPreviewVisibilityChange?: (visible: boolean) => void;
-  suggestedTemplateIds?: string[]; // Template IDs suggested for the goal
-  campaignGoal?: string; // The campaign goal (e.g., "NEWSLETTER_SIGNUP")
 }
 
 export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
   selectedTemplate,
   onTemplateSelect,
-  campaignContext,
-  showRecommendations = true,
+  storeId,
   onPreviewVisibilityChange,
-  suggestedTemplateIds = [],
-  campaignGoal,
 }) => {
-  // Show "Suggested" tab if we have suggested templates
-  const hasSuggestedTemplates = suggestedTemplateIds.length > 0;
-
-  const [activeCategory, setActiveCategory] = useState<string>(() => {
-    if (hasSuggestedTemplates) return "suggested";
-    if (showRecommendations && campaignContext) return "recommendations";
-    return "popular";
-  });
-  const [searchQuery] = useState("");
-  const [templates, setTemplates] = useState<PopupTemplate[]>([]);
+  const [templates, setTemplates] = useState<Template[]>([]);
   const [isLoadingTemplates, setIsLoadingTemplates] = useState(true);
 
-  const loadTemplatesForCategory = async (category: string) => {
+  const loadAllTemplates = async () => {
     setIsLoadingTemplates(true);
     try {
-      let loadedTemplates: PopupTemplate[] = [];
-
-      if (category === "suggested") {
-        // Get all templates first, then filter by suggested IDs
-        const allTemplates = await getPopularTemplates(); // Use popular as fallback
-        loadedTemplates = allTemplates.filter((t: PopupTemplate) =>
-          suggestedTemplateIds.includes(t.templateId),
-        );
-
-        // Sort to match the order of suggestedTemplateIds
-        loadedTemplates.sort((a: PopupTemplate, b: PopupTemplate) => {
-          return (
-            suggestedTemplateIds.indexOf(a.templateId) -
-            suggestedTemplateIds.indexOf(b.templateId)
-          );
-        });
-      } else if (category === "recommendations") {
-        loadedTemplates = await getRecommendedTemplates(campaignContext?.storeId);
-      } else if (category === "popular") {
-        loadedTemplates = await getPopularTemplates();
-      } else if (category === "search") {
-        loadedTemplates = await searchTemplates(searchQuery);
-      } else {
-        loadedTemplates = await getTemplatesByCategory(
-          category as PopupTemplate["category"],
-        );
-      }
-
-      setTemplates(loadedTemplates);
+      const all = await getPopupTemplates(storeId);
+      setTemplates(all);
     } catch (error) {
       console.error("Error loading templates:", error);
       setTemplates([]);
@@ -86,10 +106,10 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
     }
   };
 
-  // Load templates when category changes
+  // Load all templates once (or when store changes)
   useEffect(() => {
-    loadTemplatesForCategory(activeCategory);
-  }, [activeCategory, searchQuery, campaignContext]);
+    loadAllTemplates();
+  }, [storeId]);
 
   // Auto-select first template if none is selected
   useEffect(() => {
@@ -106,7 +126,7 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
   ]);
 
   const handleTemplateSelect = useCallback(
-    (template: PopupTemplate) => {
+    (template: Template) => {
       onTemplateSelect(template);
       // Auto-show preview when template is selected
       onPreviewVisibilityChange?.(true);
@@ -114,40 +134,6 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
     [onTemplateSelect, onPreviewVisibilityChange],
   );
 
-  const handleRecommendationSelect = useCallback(
-    (
-      template: PopupTemplate,
-      customizations?: {
-        suggestedTitle?: string;
-        suggestedDescription?: string;
-        suggestedButtonText?: string;
-        suggestedColors?: {
-          backgroundColor?: string;
-          buttonColor?: string;
-        };
-      },
-    ) => {
-      // Apply customizations to template if provided
-      if (customizations) {
-        const customizedTemplate = {
-          ...template,
-          title: customizations.suggestedTitle || template.title,
-          description:
-            customizations.suggestedDescription || template.description,
-          buttonText: customizations.suggestedButtonText || template.buttonText,
-          backgroundColor:
-            customizations.suggestedColors?.backgroundColor ||
-            template.backgroundColor,
-          buttonColor:
-            customizations.suggestedColors?.buttonColor || template.buttonColor,
-        };
-        onTemplateSelect(customizedTemplate);
-      } else {
-        onTemplateSelect(template);
-      }
-    },
-    [onTemplateSelect],
-  );
 
   return (
     <Box>
@@ -164,173 +150,93 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
           </Box>
         </div>
 
-        {/* Category Tabs */}
-        <div className={styles.categoryTabs}>
-          {hasSuggestedTemplates && (
-            <button
-              className={`${styles.categoryTab} ${styles.suggested} ${activeCategory === "suggested" ? styles.active : ""}`}
-              onClick={() => setActiveCategory("suggested")}
-            >
-              ✨ Suggested
-            </button>
-          )}
-          {showRecommendations && campaignContext && (
-            <button
-              className={`${styles.categoryTab} ${activeCategory === "recommendations" ? styles.active : ""}`}
-              onClick={() => setActiveCategory("recommendations")}
-            >
-              🤖 Smart Picks
-            </button>
-          )}
-          <button
-            className={`${styles.categoryTab} ${activeCategory === "popular" ? styles.active : ""}`}
-            onClick={() => setActiveCategory("popular")}
-          >
-            ⭐ Popular
-          </button>
-          {(TEMPLATE_CATEGORIES as unknown as Array<{ id: string; name: string; icon: string }>).map((category) => (
-            <button
-              key={category.id}
-              className={`${styles.categoryTab} ${activeCategory === category.id ? styles.active : ""}`}
-              onClick={() => setActiveCategory(category.id)}
-            >
-              {category.icon} {category.name}
-            </button>
-          ))}
-        </div>
       </BlockStack>
 
       <Box paddingBlockStart="400">
-        {activeCategory === "recommendations" && campaignContext ? (
-          <SmartTemplateRecommendations
-            campaignContext={{
-              goal: campaignContext.goal,
-              previousCampaigns: campaignContext.previousCampaigns,
-            }}
-            onTemplateSelect={handleRecommendationSelect}
-            selectedTemplate={selectedTemplate}
-            onPreviewVisibilityChange={onPreviewVisibilityChange}
-          />
+        {isLoadingTemplates ? (
+          <div className={styles.loadingState}>
+            <Text as="p" variant="bodyMd" tone="subdued">
+              Loading templates...
+            </Text>
+          </div>
+        ) : templates.length === 0 ? (
+          <div className={styles.emptyState}>
+            <Text as="p" variant="bodyMd" tone="subdued">
+              No templates found.
+            </Text>
+          </div>
         ) : (
-          <>
-            {/* Suggested templates banner */}
-            {activeCategory === "suggested" && campaignGoal && (
-              <div className={styles.suggestedBanner}>
-                <div className={styles.bannerHeader}>
-                  <span className={styles.bannerTitle}>
-                    ✨ Optimized for{" "}
-                    {campaignGoal.replace(/_/g, " ").toLowerCase()}
-                  </span>
-                  <Badge tone="success">Recommended</Badge>
-                </div>
-                <p className={styles.bannerDescription}>
-                  These templates are specifically designed to help you achieve
-                  your campaign goal with proven layouts and best practices.
-                </p>
-              </div>
-            )}
-            {/* Template List - One per line */}
-            {isLoadingTemplates ? (
-              <div className={styles.loadingState}>
-                <Text as="p" variant="bodyMd" tone="subdued">
-                  Loading templates...
-                </Text>
-              </div>
-            ) : templates.length === 0 ? (
-              <div className={styles.emptyState}>
-                <Text as="p" variant="bodyMd" tone="subdued">
-                  No templates found for this category.
-                </Text>
-              </div>
-            ) : (
-              <div className={styles.templateGrid}>
-                {templates.map((template) => {
-                  const isSelected =
-                    selectedTemplate?.templateId === template.templateId;
+          <div className={styles.templateGrid}>
+            {templates.map((template) => {
+              const texts = getPreviewTexts(template);
+              const colors = getDesignPreviewColors(template.designConfig);
 
-                  return (
+              const isSelected = selectedTemplate?.id === template.id;
+
+              return (
+                <div
+                  key={template.id}
+                  className={`${styles.templateCard} ${isSelected ? styles.selected : ""}`}
+                  onClick={() => handleTemplateSelect(template)}
+                >
+                  {/* Selected Badge */}
+                  {isSelected && <div className={styles.selectedBadge}>✓</div>}
+
+                  {/* Template Preview */}
+                  <div
+                    className={styles.templatePreview}
+                    style={{ backgroundColor: colors.backgroundColor }}
+                  >
                     <div
-                      key={template.templateId}
-                      className={`${styles.templateCard} ${isSelected ? styles.selected : ""}`}
-                      onClick={() => handleTemplateSelect(template)}
+                      className={styles.templatePreviewContent}
+                      style={{ color: colors.textColor }}
                     >
-                      {/* Selected Badge */}
-                      {isSelected && (
-                        <div className={styles.selectedBadge}>✓</div>
-                      )}
-
-                      {/* Template Preview */}
-                      <div
-                        className={styles.templatePreview}
-                        style={{ backgroundColor: template.backgroundColor }}
-                      >
-                        <div
-                          className={styles.templatePreviewContent}
-                          style={{ color: template.textColor }}
-                        >
-                          <div className={styles.templateTitle}>
-                            {template.title}
-                          </div>
-                          <div className={styles.templatePreviewDescription}>
-                            {template.description.substring(0, 60)}...
-                          </div>
-                          <div
-                            className={styles.templateButton}
-                            style={{
-                              backgroundColor: template.buttonColor,
-                              color: template.buttonTextColor,
-                            }}
-                          >
-                            {template.buttonText}
-                          </div>
-                        </div>
+                      <div className={styles.templateTitle}>{texts.title}</div>
+                      <div className={styles.templatePreviewDescription}>
+                        {template.description.substring(0, 60)}...
                       </div>
-
-                      {/* Template Info - Horizontal layout */}
-                      <div className={styles.templateInfo}>
-                        {/* Left side: Name and description */}
-                        <div className={styles.templateHeader}>
-                          <div
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "8px",
-                            }}
-                          >
-                            <span className={styles.templateName}>
-                              {template.name}
-                            </span>
-                            {template.isPopular && (
-                              <Badge tone="success" size="small">
-                                Popular
-                              </Badge>
-                            )}
-                          </div>
-                          <p className={styles.templateDescription}>
-                            {template.description}
-                          </p>
-                        </div>
-
-                        {/* Right side: Metadata */}
-                        <div className={styles.templateMeta}>
-                          <span className={styles.templateCategory}>
-                            {template.category}
-                          </span>
-
-                          {template.conversionRate && (
-                            <div className={styles.conversionRate}>
-                              <span>📈</span>
-                              <span>{template.conversionRate}% conversion</span>
-                            </div>
-                          )}
-                        </div>
+                      <div
+                        className={styles.templateButton}
+                        style={{ backgroundColor: colors.buttonColor, color: colors.buttonTextColor }}
+                      >
+                        {texts.button}
                       </div>
                     </div>
-                  );
-                })}
-              </div>
-            )}
-          </>
+                  </div>
+
+                  {/* Template Info - Horizontal layout */}
+                  <div className={styles.templateInfo}>
+                    {/* Left side: Name and description */}
+                    <div className={styles.templateHeader}>
+                      <div
+                        style={{ display: "flex", alignItems: "center", gap: "8px" }}
+                      >
+                        <span className={styles.templateName}>{template.name}</span>
+                        {template.isDefault && (
+                          <Badge tone="success" size="small">
+                            Popular
+                          </Badge>
+                        )}
+                      </div>
+                      <p className={styles.templateDescription}>{template.description}</p>
+                    </div>
+
+                    {/* Right side: Metadata */}
+                    <div className={styles.templateMeta}>
+                      <span className={styles.templateCategory}>{template.category}</span>
+
+                      {template.conversionRate && (
+                        <div className={styles.conversionRate}>
+                          <span>📈</span>
+                          <span>{template.conversionRate}% conversion</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         )}
       </Box>
     </Box>

@@ -4,7 +4,7 @@
  * Form section for configuring popup design and appearance
  */
 
-import { TextField, SelectField, FormGrid } from "../form";
+import { TextField, SelectField, FormGrid, ColorField } from "../form";
 import type { DesignConfig } from "../../types/campaign";
 import { useFieldUpdater } from "~/shared/hooks/useFieldUpdater";
 
@@ -82,57 +82,121 @@ export function DesignConfigSection({
         />
       </FormGrid>
 
+      <TextField
+        label="Border Radius"
+        name="design.borderRadius"
+        value={design.borderRadius?.toString() || "8"}
+        placeholder="8"
+        helpText="Corner roundness in pixels (0-50)"
+        onChange={(value) => updateField("borderRadius", parseInt(value) || 8)}
+      />
+
+      <h3>Custom Colors (Optional)</h3>
+      <p>Override theme colors with custom values. Leave empty to use theme defaults.</p>
+
+      <h4>Main Colors</h4>
+      <FormGrid columns={3}>
+        <ColorField
+          label="Background Color"
+          name="design.backgroundColor"
+          value={design.backgroundColor || ""}
+          placeholder="#FFFFFF"
+          helpText="Popup background"
+          onChange={(value) => updateField("backgroundColor", value || undefined)}
+        />
+
+        <ColorField
+          label="Text Color"
+          name="design.textColor"
+          value={design.textColor || ""}
+          placeholder="#000000"
+          helpText="Main text color"
+          onChange={(value) => updateField("textColor", value || undefined)}
+        />
+
+        <ColorField
+          label="Accent Color"
+          name="design.accentColor"
+          value={design.accentColor || ""}
+          placeholder="#3B82F6"
+          helpText="Highlights & accents"
+          onChange={(value) => updateField("accentColor", value || undefined)}
+        />
+      </FormGrid>
+
+      <h4>Button Colors</h4>
       <FormGrid columns={2}>
-        <TextField
-          label="Border Radius"
-          name="design.borderRadius"
-          value={design.borderRadius?.toString() || "8"}
-          placeholder="8"
-          helpText="Corner roundness (0-50)"
-          onChange={(value) => updateField("borderRadius", parseInt(value) || 8)}
+        <ColorField
+          label="Button Background"
+          name="design.buttonColor"
+          value={design.buttonColor || ""}
+          placeholder="#3B82F6"
+          helpText="Button background color"
+          onChange={(value) => updateField("buttonColor", value || undefined)}
+        />
+
+        <ColorField
+          label="Button Text"
+          name="design.buttonTextColor"
+          value={design.buttonTextColor || ""}
+          placeholder="#FFFFFF"
+          helpText="Button text color"
+          onChange={(value) => updateField("buttonTextColor", value || undefined)}
+        />
+      </FormGrid>
+
+      <h4>Input Field Colors</h4>
+      <FormGrid columns={3}>
+        <ColorField
+          label="Input Background"
+          name="design.inputBackgroundColor"
+          value={design.inputBackgroundColor || ""}
+          placeholder="#FFFFFF"
+          helpText="Input field background"
+          onChange={(value) => updateField("inputBackgroundColor", value || undefined)}
+        />
+
+        <ColorField
+          label="Input Text"
+          name="design.inputTextColor"
+          value={design.inputTextColor || ""}
+          placeholder="#000000"
+          helpText="Input field text"
+          onChange={(value) => updateField("inputTextColor", value || undefined)}
+        />
+
+        <ColorField
+          label="Input Border"
+          name="design.inputBorderColor"
+          value={design.inputBorderColor || ""}
+          placeholder="#D1D5DB"
+          helpText="Input field border"
+          onChange={(value) => updateField("inputBorderColor", value || undefined)}
+        />
+      </FormGrid>
+
+      <h4>Overlay Colors</h4>
+      <FormGrid columns={2}>
+        <ColorField
+          label="Overlay Color"
+          name="design.overlayColor"
+          value={design.overlayColor || ""}
+          placeholder="#000000"
+          helpText="Background overlay color"
+          onChange={(value) => updateField("overlayColor", value || undefined)}
         />
 
         <TextField
           label="Overlay Opacity"
           name="design.overlayOpacity"
-          value={design.overlayOpacity?.toString() || "0.8"}
-          placeholder="0.8"
-          helpText="Background overlay opacity (0-1)"
-          onChange={(value) => updateField("overlayOpacity", parseFloat(value) || 0.8)}
+          value={design.overlayOpacity?.toString() || "0.5"}
+          placeholder="0.5"
+          helpText="Overlay transparency (0-1)"
+          onChange={(value) => updateField("overlayOpacity", parseFloat(value) || 0.5)}
         />
       </FormGrid>
 
-      <h3>Custom Colors (Optional)</h3>
-      <p>Override theme colors with custom values</p>
-
-      <FormGrid columns={3}>
-        <TextField
-          label="Background Color"
-          name="design.backgroundColor"
-          value={design.backgroundColor || ""}
-          placeholder="#FFFFFF"
-          helpText="Hex color code"
-          onChange={(value) => updateField("backgroundColor", value || undefined)}
-        />
-
-        <TextField
-          label="Text Color"
-          name="design.textColor"
-          value={design.textColor || ""}
-          placeholder="#000000"
-          helpText="Hex color code"
-          onChange={(value) => updateField("textColor", value || undefined)}
-        />
-
-        <TextField
-          label="Button Color"
-          name="design.buttonColor"
-          value={design.buttonColor || ""}
-          placeholder="#3B82F6"
-          helpText="Hex color code"
-          onChange={(value) => updateField("buttonColor", value || undefined)}
-        />
-      </FormGrid>
+      <h3>Advanced Customization</h3>
 
       <TextField
         label="Custom CSS"

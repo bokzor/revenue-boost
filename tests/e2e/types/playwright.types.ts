@@ -4,7 +4,7 @@
  * Proper type definitions for Playwright test helpers
  */
 
-import { Page } from "@playwright/test";
+import type { Page } from "@playwright/test";
 
 // Re-export Page type for test helpers
 export type { Page } from "@playwright/test";

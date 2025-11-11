@@ -1,6 +1,6 @@
 /**
  * Goal Options Configuration
- * 
+ *
  * SOLID Compliance:
  * - Single Responsibility: Defines goal options data
  * - Extracted from GoalSelectorV2 component
@@ -10,12 +10,14 @@
 import { EmailIcon, CashDollarIcon, HeartIcon } from "@shopify/polaris-icons";
 import type { CampaignGoal } from "@prisma/client";
 
+import type { IconProps } from "@shopify/polaris";
+
 export interface GoalOption {
   id: CampaignGoal;
   title: string;
   subtitle: string;
   description: string;
-  icon: React.ComponentType;
+  icon: IconProps["source"];
   iconColor: string;
   benefits: string[];
   metrics: string;

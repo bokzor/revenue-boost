@@ -4,14 +4,14 @@
  * This uses NewsletterPopup as the default component
  */
 
-import { NewsletterPopup } from "../../../app/domains/storefront/popups/NewsletterPopup";
+import { NewsletterPopup } from "../../../app/domains/storefront/popups-new/NewsletterPopup";
 
 (function register() {
-  const g = window as any;
+  const g = window as unknown as { RevenueBoostComponents?: Record<string, unknown>; console?: Console };
   g.RevenueBoostComponents = g.RevenueBoostComponents || {};
   g.RevenueBoostComponents["EXIT_INTENT"] = NewsletterPopup;
 
-  if (g.console && g.console.debug) {
+  if (typeof g.console?.debug === "function") {
     console.debug("[Revenue Boost] Exit Intent popup registered");
   }
 })();

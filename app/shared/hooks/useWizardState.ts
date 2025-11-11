@@ -231,6 +231,18 @@ export function useWizardState(initialData?: Partial<CampaignFormData>) {
   );
 
   // Set template type and apply template-specific defaults
+  // Narrow unknown targetRules.pageTargeting to PageTargetingConfig
+  function isPageTargetingConfig(value: unknown): value is PageTargetingConfig {
+    if (!value || typeof value !== "object") return false;
+    const v = value as Record<string, unknown>;
+    return (
+      typeof v.enabled === "boolean" &&
+      Array.isArray(v.pages) &&
+      Array.isArray(v.customPatterns) &&
+      Array.isArray(v.excludePages)
+    );
+  }
+
   const setTemplateType = useCallback(
     (
       templateType: TemplateType,
@@ -248,7 +260,7 @@ export function useWizardState(initialData?: Partial<CampaignFormData>) {
 
       // Use configuration from the template object (from database)
       const templateDefaults = templateObject?.contentDefaults || {};
-      const templateTargetRules = templateObject?.targetRules as any || {};
+      const templateTargetRules = (templateObject?.targetRules as Record<string, unknown>) || {};
 
       console.log(
         "[useWizardState] Applying template configuration from database:",
@@ -256,7 +268,11 @@ export function useWizardState(initialData?: Partial<CampaignFormData>) {
       );
 
       // Extract page targeting from template's targetRules (if available)
-      const pageTargetingFromTemplate = templateTargetRules?.pageTargeting;
+      const pageTargetingFromTemplate = (templateTargetRules as { pageTargeting?: unknown })?.pageTargeting;
+
+      const pageTargetingPatch: Partial<CampaignFormData> = isPageTargetingConfig(pageTargetingFromTemplate)
+        ? { pageTargeting: pageTargetingFromTemplate }
+        : {};
 
       const next: Partial<CampaignFormData> = {
         templateType,
@@ -265,11 +281,8 @@ export function useWizardState(initialData?: Partial<CampaignFormData>) {
           ...state.data.contentConfig,
           ...templateDefaults,
         },
-        // Apply page targeting from template's targetRules (from database)
-        // If template doesn't have page targeting, keep existing or use empty config
-        ...(pageTargetingFromTemplate && {
-          pageTargeting: pageTargetingFromTemplate,
-        }),
+        // Apply page targeting from template's targetRules (from database) if valid
+        ...pageTargetingPatch,
         // Note: enhancedTriggers are now set by TemplateStep.tsx using convertDatabaseTriggersAuto
       };
 

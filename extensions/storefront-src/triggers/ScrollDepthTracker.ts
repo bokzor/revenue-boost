@@ -1,6 +1,6 @@
 /**
  * ScrollDepthTracker
- * 
+ *
  * Tracks scroll depth and triggers when user reaches a specific percentage
  */
 
@@ -54,9 +54,9 @@ export class ScrollDepthTracker {
     }
 
     this.active = false;
-    
+
     if (this.scrollHandler) {
-      window.removeEventListener("scroll", this.scrollHandler, { passive: true } as any);
+      window.removeEventListener("scroll", this.scrollHandler, false);
       this.scrollHandler = null;
     }
 
@@ -83,13 +83,13 @@ export class ScrollDepthTracker {
 
     // Calculate scroll percentage
     const scrollableHeight = scrollHeight - clientHeight;
-    
+
     if (scrollableHeight <= 0) {
       return 0;
     }
 
     const scrollPercentage = (scrollTop / scrollableHeight) * 100;
-    
+
     return Math.min(100, Math.max(0, Math.round(scrollPercentage)));
   }
 
@@ -116,6 +116,8 @@ export class ScrollDepthTracker {
     if (!this.active || this.triggered) {
       return;
     }
+
+    void e; // mark param as used to satisfy lint
 
     // Debounce scroll events
     if (this.debounceTimer) {
@@ -150,7 +152,7 @@ export class ScrollDepthTracker {
 
     this.triggered = true;
     this.callback();
-    
+
     // Stop listening after trigger
     this.stop();
   }

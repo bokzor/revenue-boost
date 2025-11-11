@@ -40,6 +40,7 @@ import type { ContentFieldDefinition } from "~/lib/content-config";
 import { DiscountSection } from "./DiscountSection";
 import { PrizeListEditor, type PrizeItem } from "./PrizeListEditor";
 import { WheelColorEditor } from "./WheelColorEditor";
+import { Affix } from "~/shared/components/ui/Affix";
 
 import type {
   AnimationSettings,
@@ -51,6 +52,8 @@ import type {
   PendingTemplateChange,
 } from "~/domains/popups/types/design-editor.types";
 import type { TemplateType } from "~/shared/hooks/useWizardState";
+import type { TargetRulesConfig, ContentConfig, DesignConfig } from "~/domains/campaigns/types/campaign";
+
 
 
 // Temporary stub for AnimationUtils until the real implementation is created
@@ -192,11 +195,10 @@ export const PopupDesignEditorV2: React.FC<PopupDesignEditorProps> = ({
         "[PopupDesignEditorV2] Initializing selectedTemplate for editing:",
         { initialTemplateId, templateType },
       );
-      // Set a minimal template object with templateId matching the templateType
-      // This ensures the selection indicator shows correctly
+      // Initialize with the actual template instance ID for correct selection
       setSelectedTemplate({
-        id: templateType,
-        templateId: templateType, // Use templateType for selection matching
+        id: initialTemplateId,
+        templateId: initialTemplateId, // instance ID
         name: templateType,
         templateType: templateType,
         category: templateType,
@@ -216,28 +218,34 @@ export const PopupDesignEditorV2: React.FC<PopupDesignEditorProps> = ({
     null,
   );
 
-  const [designConfig, setDesignConfig] = useState<PopupDesignConfig>({
-    id: "popup-design",
-    title: "Your Popup Title",
-    description: "Your popup description goes here.",
-    buttonText: "Click Here",
-    backgroundColor: "#FFFFFF",
-    textColor: "#333333",
-    buttonColor: "#007BFF",
-    buttonTextColor: "#FFFFFF",
-    position: "center",
-    size: "medium",
-    showCloseButton: true,
-    overlayOpacity: 0.6,
-    borderRadius: "8px",
-    boxShadow: "0 4px 20px rgba(0, 0, 0, 0.15)",
-    fontFamily: "system-ui, -apple-system, sans-serif",
-    fontSize: "14px",
-    customCSS: "",
-    fontWeight: "normal",
-    padding: "24px",
-    animations: defaultAnimations,
-    ...initialConfig,
+  const [designConfig, setDesignConfig] = useState<PopupDesignConfig>(() => {
+    return {
+      id: "popup-design",
+      // Content fields (using unified field names)
+      headline: (initialConfig as any)?.headline || "Your Popup Title",
+      subheadline: (initialConfig as any)?.subheadline || "Your popup description goes here.",
+      buttonText: (initialConfig as any)?.buttonText || (initialConfig as any)?.ctaText || "Click Here",
+      successMessage: (initialConfig as any)?.successMessage || "Thank you!",
+      // Design fields
+      backgroundColor: "#FFFFFF",
+      textColor: "#333333",
+      buttonColor: "#007BFF",
+      buttonTextColor: "#FFFFFF",
+      position: "center",
+      size: "medium",
+      showCloseButton: true,
+      overlayOpacity: 0.6,
+      borderRadius: "8px",
+      boxShadow: "0 4px 20px rgba(0, 0, 0, 0.15)",
+      fontFamily: "system-ui, -apple-system, sans-serif",
+      fontSize: "14px",
+      customCSS: "",
+      fontWeight: "normal",
+      padding: "24px",
+      animations: defaultAnimations,
+      // Apply all initial config (will override defaults above)
+      ...initialConfig,
+    };
   });
 
   // Update design config when initialConfig changes (for variant switching)
@@ -246,6 +254,7 @@ export const PopupDesignEditorV2: React.FC<PopupDesignEditorProps> = ({
       "[PopupDesignEditorV2] 🔄 initialConfig changed, updating design config:",
       initialConfig,
     );
+
     setDesignConfig((prev) => ({
       ...prev,
       ...initialConfig,
@@ -357,25 +366,17 @@ export const PopupDesignEditorV2: React.FC<PopupDesignEditorProps> = ({
       // Use the template object passed from TemplateSelector (already has all data from database)
       let fetchedDesign: Record<string, unknown> | null = null;
       let fetchedContent: Record<string, unknown> | null = null;
-      let fetchedTriggers: EnhancedTriggersConfig | null = null;
+      let fetchedTriggers: TargetRulesConfig | null = null;
       let template: TemplateObject | null = null;
 
       if (templateObject) {
         // Template object already has all the data we need from the database
         console.log("Using template object from selector (no API call needed)");
 
-        fetchedDesign =
-          typeof templateObject.design === "string"
-            ? JSON.parse(templateObject.design)
-            : templateObject.design || {};
-        fetchedContent =
-          typeof templateObject.contentDefaults === "string"
-            ? JSON.parse(templateObject.contentDefaults)
-            : templateObject.contentDefaults || {};
-        fetchedTriggers =
-          typeof templateObject.triggers === "string"
-            ? JSON.parse(templateObject.triggers)
-            : templateObject.triggers || null;
+        // Read from strongly-typed TemplateObject fields
+        fetchedDesign = (templateObject.designConfig || {}) as Record<string, unknown>;
+        fetchedContent = (templateObject.contentConfig || {}) as Record<string, unknown>;
+        fetchedTriggers = (templateObject.targetRules || null) as TargetRulesConfig | null;
 
         template = {
           id: templateObject.id,
@@ -420,18 +421,7 @@ export const PopupDesignEditorV2: React.FC<PopupDesignEditorProps> = ({
         ...designConfig,
         // Merge all content defaults from database (includes template-specific fields)
         ...(fetchedContent || {}),
-        // Override with design-specific fields
-        title:
-          fetchedContent?.headline || template?.title || designConfig.title,
-        description:
-          fetchedContent?.subheadline ||
-          template?.description ||
-          designConfig.description,
-        buttonText:
-          fetchedContent?.ctaText ||
-          fetchedContent?.ctaLabel ||
-          template?.buttonText ||
-          designConfig.buttonText,
+        // Design fields from template
         backgroundColor:
           (fetchedDesign?.backgroundColor ?? template?.backgroundColor) ||
           designConfig.backgroundColor,
@@ -557,16 +547,16 @@ export const PopupDesignEditorV2: React.FC<PopupDesignEditorProps> = ({
 
   // Wrapper to convert SelectedTemplate to TemplateObject
   const handleCampaignTemplateSelect = useCallback(
-    (selectedTemplate: { id: string; templateType: TemplateType; name: string; contentDefaults?: Record<string, unknown>; triggers?: Record<string, unknown>; design?: Record<string, unknown> }) => {
+    (selectedTemplate: { id: string; templateType: TemplateType; name: string; contentConfig?: ContentConfig; targetRules?: TargetRulesConfig; designConfig?: DesignConfig }) => {
       const templateObject: TemplateObject = {
         id: selectedTemplate.id,
         name: selectedTemplate.name,
         templateType: selectedTemplate.templateType,
         category: selectedTemplate.templateType,
         description: "",
-        contentConfig: selectedTemplate.contentDefaults,
-        designConfig: selectedTemplate.design,
-        targetRules: selectedTemplate.triggers,
+        contentConfig: selectedTemplate.contentConfig as any,
+        designConfig: selectedTemplate.designConfig as any,
+        targetRules: selectedTemplate.targetRules as any,
       };
       handleTemplateSelect(templateObject);
     },
@@ -1562,11 +1552,7 @@ export const PopupDesignEditorV2: React.FC<PopupDesignEditorProps> = ({
               data-affix-boundary
               style={{ position: "relative", alignSelf: "flex-start" }}
             >
-              {/* TODO: Add Affix component when available */}
-              <div
-                className={styles.stickyPreviewScrollable}
-                data-affix-scrollable
-              >
+              <Affix offsetTop={24} className={styles.stickyPreviewScrollable}>
                 <LivePreviewPanel
                   templateType={currentTemplateType}
                   config={debouncedConfig}
@@ -1575,8 +1561,8 @@ export const PopupDesignEditorV2: React.FC<PopupDesignEditorProps> = ({
                   shopDomain={shopDomain}
                   campaignId={campaignId}
                 />
+              </Affix>
               </div>
-            </div>
           </Layout.Section>
         </Layout>
 

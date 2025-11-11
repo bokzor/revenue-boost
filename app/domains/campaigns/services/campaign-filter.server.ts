@@ -128,28 +128,33 @@ export class CampaignFilterService {
   }
 
   /**
-   * Filter campaigns by frequency capping
+   * Filter campaigns by frequency capping (Redis-based)
    *
-   * Note: This is a server-side check that uses client-side storage data
-   * The actual enforcement happens on the client, but we can pre-filter
-   * campaigns that have already exceeded their limits based on context
+   * Server-side filtering using Redis to track frequency caps
+   * Ensures campaigns respect session, daily, and cooldown limits
    */
-  static filterByFrequencyCapping(
+  static async filterByFrequencyCapping(
     campaigns: CampaignWithConfigs[],
     context: StorefrontContext
-  ): CampaignWithConfigs[] {
-    return campaigns.filter((campaign) => {
-      return FrequencyCapService.shouldShowCampaign(campaign, context);
-    });
+  ): Promise<CampaignWithConfigs[]> {
+    const results = await Promise.all(
+      campaigns.map(async (campaign) => {
+        const result = await FrequencyCapService.checkFrequencyCapping(campaign, context);
+        return result.allowed ? campaign : null;
+      })
+    );
+
+    return results.filter((campaign): campaign is CampaignWithConfigs => campaign !== null);
   }
 
   /**
    * Apply all filters to campaigns
+   * Now async to support Redis-based frequency capping
    */
-  static filterCampaigns(
+  static async filterCampaigns(
     campaigns: CampaignWithConfigs[],
     context: StorefrontContext
-  ): CampaignWithConfigs[] {
+  ): Promise<CampaignWithConfigs[]> {
     let filtered = campaigns;
 
     // Apply device type filter
@@ -161,8 +166,8 @@ export class CampaignFilterService {
     // Apply audience segments filter
     filtered = this.filterByAudienceSegments(filtered, context);
 
-    // Apply frequency capping filter
-    filtered = this.filterByFrequencyCapping(filtered, context);
+    // Apply frequency capping filter (async - uses Redis)
+    filtered = await this.filterByFrequencyCapping(filtered, context);
 
     return filtered;
   }

@@ -3,19 +3,27 @@
  * Main entry point for the popup system
  */
 
-import { h } from "preact";
+import * as preact from "preact";
+import * as hooks from "preact/hooks";
 import { ApiClient } from "./core/api";
 import { session } from "./core/session";
 import { ComponentLoader } from "./core/component-loader";
-import { renderPopup } from "./core/PopupManagerPreact";
-import { TriggerManager } from "./core/TriggerManager";
+import { renderPopup, type StorefrontCampaign } from "./core/PopupManagerPreact";
+import { TriggerManager, type EnhancedTriggers } from "./core/TriggerManager";
+import { initCartTracking } from "./utils/cart-tracking";
 
 // Expose Preact globally for dynamic bundles
 if (typeof window !== "undefined") {
-  const preact = require("preact");
-  const hooks = require("preact/hooks");
+  // preact and hooks imported at module scope
 
-  (window as any).RevenueBoostPreact = {
+  type W = typeof window & {
+    RevenueBoostPreact?: Record<string, unknown>;
+    REVENUE_BOOST_CONFIG?: Partial<Config>;
+    ShopifyAnalytics?: { meta?: { product?: { id?: string | number } } };
+  };
+  const w = window as unknown as W;
+
+  w.RevenueBoostPreact = {
     h: preact.h,
     render: preact.render,
     Component: preact.Component,
@@ -27,7 +35,8 @@ if (typeof window !== "undefined") {
       useRef: hooks.useRef,
       useMemo: hooks.useMemo,
     },
-  };
+  } as Record<string, unknown>;
+
 
   console.log("[Revenue Boost] ⚛️ Preact runtime exposed globally");
 }
@@ -45,7 +54,8 @@ interface Config {
 }
 
 function getConfig(): Config {
-  const cfg = (window as any).REVENUE_BOOST_CONFIG || {};
+  type W2 = typeof window & { REVENUE_BOOST_CONFIG?: Partial<Config> };
+  const cfg = (window as unknown as W2).REVENUE_BOOST_CONFIG || {};
   return {
     apiUrl: cfg.apiUrl || "",
     shopDomain: cfg.shopDomain || "",
@@ -68,6 +78,12 @@ function waitForDOMReady(): Promise<void> {
     }
   });
 }
+
+type ClientCampaign = StorefrontCampaign & {
+  priority?: number;
+  clientTriggers?: { enhancedTriggers?: EnhancedTriggers };
+  [key: string]: unknown;
+};
 
 class RevenueBoostApp {
   private config = getConfig();
@@ -96,25 +112,36 @@ class RevenueBoostApp {
     console.log("[Revenue Boost] 🚀 Starting initialization...");
     console.log("[Revenue Boost] 📋 Config:", this.config);
     console.log("[Revenue Boost] 🔑 Session ID:", session.getSessionId());
+    console.log("[Revenue Boost] 👤 Visitor ID:", session.getVisitorId());
 
     // Wait for DOM
     await waitForDOMReady();
     this.log("DOM ready");
 
+    // Track page view for social proof
+    this.trackPageView();
+
+    // Initialize cart activity tracking
+    initCartTracking(this.api, this.config.shopDomain);
+
     // Fetch campaigns
     try {
-      const response = await this.api.fetchActiveCampaigns(session.getSessionId());
+      const response = await this.api.fetchActiveCampaigns(
+        session.getSessionId(),
+        session.getVisitorId()
+      );
       const { campaigns } = response;
+      const campaignList = campaigns as ClientCampaign[];
 
-      this.log(`Campaigns received: ${campaigns?.length || 0}`);
+      this.log(`Campaigns received: ${campaignList?.length || 0}`);
 
-      if (!campaigns || campaigns.length === 0) {
+      if (!campaignList || campaignList.length === 0) {
         this.log("No active campaigns");
         return;
       }
 
       // Setup campaigns
-      this.setupCampaigns(campaigns);
+      this.setupCampaigns(campaignList);
       this.initialized = true;
 
       console.log("[Revenue Boost] ✅ Initialization complete!");
@@ -123,7 +150,52 @@ class RevenueBoostApp {
     }
   }
 
-  private setupCampaigns(campaigns: any[]): void {
+  /**
+   * Track page view for social proof visitor counting
+   */
+  private async trackPageView(): Promise<void> {
+    try {
+      const productId = this.getProductIdFromPage();
+      const pageUrl = window.location.pathname;
+
+      await this.api.trackSocialProofEvent({
+        eventType: productId ? 'product_view' : 'page_view',
+        productId,
+        pageUrl,
+        shop: this.config.shopDomain,
+      });
+
+      this.log("Page view tracked for social proof");
+    } catch (error) {
+      // Silent fail - don't block initialization
+      this.log("Failed to track page view:", error);
+    }
+  }
+
+  /**
+   * Extract product ID from current page (if on product page)
+   */
+  private getProductIdFromPage(): string | undefined {
+    // Try to get product ID from Shopify global object
+    type SA = typeof window & { ShopifyAnalytics?: { meta?: { product?: { id?: string | number } } } };
+    const wx = window as unknown as SA;
+    if (typeof wx.ShopifyAnalytics !== 'undefined') {
+      const meta = wx.ShopifyAnalytics?.meta;
+      if (meta?.product?.id) {
+        return `gid://shopify/Product/${meta.product.id}`;
+      }
+    }
+
+    // Fallback: check if we're on a product page
+    if (window.location.pathname.includes('/products/')) {
+      // Product ID will be tracked via meta tags or other means
+      return undefined;
+    }
+
+    return undefined;
+  }
+
+  private setupCampaigns(campaigns: ClientCampaign[]): void {
     // Sort by priority
     const sorted = campaigns.sort((a, b) => (b.priority || 0) - (a.priority || 0));
 
@@ -155,7 +227,7 @@ class RevenueBoostApp {
     }
   }
 
-  private async showCampaign(campaign: any): Promise<void> {
+  private async showCampaign(campaign: ClientCampaign): Promise<void> {
     const isPreview = this.config.previewMode && this.config.previewId === campaign.id;
 
     // Preview mode: show immediately without trigger evaluation
@@ -183,7 +255,7 @@ class RevenueBoostApp {
     }
   }
 
-  private async renderCampaign(campaign: any): Promise<void> {
+  private async renderCampaign(campaign: ClientCampaign): Promise<void> {
     const isPreview = this.config.previewMode && this.config.previewId === campaign.id;
 
     // Mark as shown

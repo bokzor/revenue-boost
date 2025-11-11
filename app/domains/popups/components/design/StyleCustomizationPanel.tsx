@@ -93,25 +93,25 @@ export const StyleCustomizationPanel: React.FC<
           <FormLayout>
             <TextField
               autoComplete="off"
-              label="Popup Title"
-              value={config.title}
-              onChange={(value) => onStyleChange({ title: value })}
+              label="Headline"
+              value={config.headline || ""}
+              onChange={(value) => onStyleChange({ headline: value })}
               helpText="The main headline of your popup"
             />
 
             <TextField
               autoComplete="off"
-              label="Description"
-              value={config.description}
-              onChange={(value) => onStyleChange({ description: value })}
+              label="Subheadline"
+              value={config.subheadline || ""}
+              onChange={(value) => onStyleChange({ subheadline: value })}
               multiline={3}
-              helpText="Detailed message to convince visitors"
+              helpText="Supporting text below the headline"
             />
 
             <TextField
               autoComplete="off"
               label="Button Text"
-              value={config.buttonText}
+              value={config.buttonText || ""}
               onChange={(value) => onStyleChange({ buttonText: value })}
               helpText="Call-to-action button text"
             />
@@ -162,7 +162,7 @@ export const StyleCustomizationPanel: React.FC<
             <TextField
               autoComplete="off"
               label="Border Radius"
-              value={config.borderRadius || "8px"}
+              value={String(config.borderRadius ?? "8px")}
               onChange={(value) => onStyleChange({ borderRadius: value })}
               helpText="Controls how rounded the corners are (e.g., 8px, 16px)"
             />
@@ -170,7 +170,7 @@ export const StyleCustomizationPanel: React.FC<
             <TextField
               autoComplete="off"
               label="Padding"
-              value={config.padding || "24px"}
+              value={String(config.padding ?? "24px")}
               onChange={(value) => onStyleChange({ padding: value })}
               helpText="Internal spacing (e.g., 24px, 32px)"
             />

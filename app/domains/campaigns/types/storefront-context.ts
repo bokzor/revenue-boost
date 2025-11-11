@@ -22,6 +22,7 @@ export const StorefrontContextSchema = z.object({
   
   // Session Context
   sessionId: z.string().optional(),
+  visitorId: z.string().optional(), // Persistent visitor ID for frequency capping
   visitCount: z.number().int().positive().optional(),
   isReturningVisitor: z.boolean().optional(),
   

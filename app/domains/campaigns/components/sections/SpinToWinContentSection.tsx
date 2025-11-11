@@ -4,7 +4,7 @@
  * Form section for configuring spin-to-win gamification content
  */
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { TextField, CheckboxField, FormGrid } from "../form";
 import type { SpinToWinContentSchema } from "../../types/campaign";
 import { z } from "zod";
@@ -12,6 +12,74 @@ import { useFieldUpdater } from "~/shared/hooks/useFieldUpdater";
 
 type SpinToWinContent = z.infer<typeof SpinToWinContentSchema>;
 type WheelSegment = SpinToWinContent["wheelSegments"][0];
+
+/**
+ * Default wheel segments - designed to be profitable
+ *
+ * Probability breakdown:
+ * - 5% OFF: 35% chance (most common, low cost)
+ * - 10% OFF: 25% chance (moderate discount)
+ * - 15% OFF: 15% chance (good discount)
+ * - 20% OFF: 10% chance (great discount)
+ * - Free Shipping: 10% chance (alternative to discount)
+ * - Try Again: 5% chance (no prize, encourages re-engagement)
+ *
+ * Expected discount per spin: ~9.75%
+ * This is profitable as it's less than typical cart abandonment loss (15-20%)
+ */
+const DEFAULT_WHEEL_SEGMENTS: WheelSegment[] = [
+  {
+    id: "segment-5-off",
+    label: "5% OFF",
+    probability: 0.35,
+    color: "#10B981", // Green
+    discountType: "percentage",
+    discountValue: 5,
+    discountCode: "SPIN5",
+  },
+  {
+    id: "segment-10-off",
+    label: "10% OFF",
+    probability: 0.25,
+    color: "#3B82F6", // Blue
+    discountType: "percentage",
+    discountValue: 10,
+    discountCode: "SPIN10",
+  },
+  {
+    id: "segment-15-off",
+    label: "15% OFF",
+    probability: 0.15,
+    color: "#F59E0B", // Orange
+    discountType: "percentage",
+    discountValue: 15,
+    discountCode: "SPIN15",
+  },
+  {
+    id: "segment-20-off",
+    label: "20% OFF",
+    probability: 0.10,
+    color: "#EF4444", // Red
+    discountType: "percentage",
+    discountValue: 20,
+    discountCode: "SPIN20",
+  },
+  {
+    id: "segment-free-shipping",
+    label: "FREE SHIPPING",
+    probability: 0.10,
+    color: "#8B5CF6", // Purple
+    discountType: "free_shipping",
+    discountCode: "FREESHIP",
+  },
+  {
+    id: "segment-try-again",
+    label: "Try Again",
+    probability: 0.05,
+    color: "#6B7280", // Gray
+    // No discount for this segment
+  },
+];
 
 export interface SpinToWinContentSectionProps {
   content: Partial<SpinToWinContent>;
@@ -24,11 +92,21 @@ export function SpinToWinContentSection({
   errors,
   onChange,
 }: SpinToWinContentSectionProps) {
-  const [segments, setSegments] = useState<WheelSegment[]>(
-    content.wheelSegments || []
-  );
+  // Initialize with defaults if no segments provided
+  const initialSegments = content.wheelSegments && content.wheelSegments.length > 0
+    ? content.wheelSegments
+    : DEFAULT_WHEEL_SEGMENTS;
+
+  const [segments, setSegments] = useState<WheelSegment[]>(initialSegments);
 
   const updateField = useFieldUpdater(content, onChange);
+
+  // Initialize content with default segments on mount if empty
+  React.useEffect(() => {
+    if (!content.wheelSegments || content.wheelSegments.length === 0) {
+      updateField("wheelSegments", DEFAULT_WHEEL_SEGMENTS);
+    }
+  }, []); // Only run on mount
 
   const addSegment = () => {
     const newSegment: WheelSegment = {
@@ -105,10 +183,22 @@ export function SpinToWinContentSection({
           value={content.successMessage || ""}
           error={errors?.successMessage}
           required
-          placeholder="Congratulations! You won {prize}!"
+          placeholder="Congratulations! You won {{prize}}!"
+          helpText="Use {{prize}} and {{code}} as placeholders"
           onChange={(value) => updateField("successMessage", value)}
         />
 
+        <TextField
+          label="Failure Message"
+          name="content.failureMessage"
+          value={content.failureMessage || ""}
+          placeholder="Thanks for playing!"
+          helpText="Message when no prize is won (optional)"
+          onChange={(value) => updateField("failureMessage", value)}
+        />
+      </FormGrid>
+
+      <FormGrid columns={2}>
         <TextField
           label="Max Attempts Per User"
           name="content.maxAttemptsPerUser"
@@ -117,6 +207,15 @@ export function SpinToWinContentSection({
           placeholder="1"
           helpText="Number of spins allowed per user"
           onChange={(value) => updateField("maxAttemptsPerUser", parseInt(value) || 1)}
+        />
+
+        <TextField
+          label="Loading Text"
+          name="content.loadingText"
+          value={content.loadingText || ""}
+          placeholder="Spinning..."
+          helpText="Text shown while spinning (optional)"
+          onChange={(value) => updateField("loadingText", value)}
         />
       </FormGrid>
 
@@ -127,6 +226,57 @@ export function SpinToWinContentSection({
         helpText="Require email before allowing spin"
         onChange={(checked) => updateField("emailRequired", checked)}
       />
+
+      <h3>Wheel Configuration</h3>
+
+      <FormGrid columns={3}>
+        <TextField
+          label="Wheel Size (px)"
+          name="content.wheelSize"
+          value={content.wheelSize?.toString() || "400"}
+          placeholder="400"
+          helpText="Diameter of the wheel in pixels"
+          onChange={(value) => updateField("wheelSize", parseInt(value) || 400)}
+        />
+
+        <TextField
+          label="Wheel Border Width (px)"
+          name="content.wheelBorderWidth"
+          value={content.wheelBorderWidth?.toString() || "2"}
+          placeholder="2"
+          helpText="Border thickness around wheel"
+          onChange={(value) => updateField("wheelBorderWidth", parseInt(value) || 2)}
+        />
+
+        <TextField
+          label="Wheel Border Color"
+          name="content.wheelBorderColor"
+          value={content.wheelBorderColor || ""}
+          placeholder="#FFFFFF"
+          helpText="Hex color code for border"
+          onChange={(value) => updateField("wheelBorderColor", value)}
+        />
+      </FormGrid>
+
+      <FormGrid columns={2}>
+        <TextField
+          label="Spin Duration (ms)"
+          name="content.spinDuration"
+          value={content.spinDuration?.toString() || "4000"}
+          placeholder="4000"
+          helpText="How long the spin animation lasts (milliseconds)"
+          onChange={(value) => updateField("spinDuration", parseInt(value) || 4000)}
+        />
+
+        <TextField
+          label="Minimum Spins"
+          name="content.minSpins"
+          value={content.minSpins?.toString() || "5"}
+          placeholder="5"
+          helpText="Minimum number of full rotations"
+          onChange={(value) => updateField("minSpins", parseInt(value) || 5)}
+        />
+      </FormGrid>
 
       {/* Wheel Segments */}
       <div className="wheel-segments">

@@ -145,6 +145,27 @@ export function FlashSaleContentSection({
           onChange={(value) => updateField("stockCount", parseInt(value) || undefined)}
         />
       )}
+
+      <h3>Additional Options</h3>
+
+      <FormGrid columns={2}>
+        <TextField
+          label="CTA URL"
+          name="content.ctaUrl"
+          value={content.ctaUrl || ""}
+          placeholder="/collections/sale"
+          helpText="Where to send users when they click the button"
+          onChange={(value) => updateField("ctaUrl", value)}
+        />
+
+        <CheckboxField
+          label="Hide on Expiry"
+          name="content.hideOnExpiry"
+          checked={content.hideOnExpiry !== false}
+          helpText="Automatically hide popup when timer expires"
+          onChange={(checked) => updateField("hideOnExpiry", checked)}
+        />
+      </FormGrid>
     </>
   );
 }

@@ -1,6 +1,6 @@
 /**
  * CartEventListener
- * 
+ *
  * Listens for Shopify cart events (add to cart, cart drawer open, etc.)
  * Supports multiple Shopify themes and custom implementations
  */
@@ -16,7 +16,7 @@ export type CartEventType = "add_to_cart" | "cart_drawer_open" | "cart_update";
 
 export interface CartEventData {
   type: CartEventType;
-  detail: any;
+  detail: unknown;
 }
 
 export type CartEventCallback = (data: CartEventData) => void;
@@ -137,7 +137,7 @@ export class CartEventListener {
     // Check cart value threshold if tracking is enabled
     if (this.config.trackCartValue && eventType === "cart_update") {
       const cartValue = detail.total || 0;
-      
+
       if (cartValue < this.config.minCartValue || cartValue > this.config.maxCartValue) {
         return; // Don't trigger if outside threshold
       }
