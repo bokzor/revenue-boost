@@ -195,38 +195,19 @@ const TemplatePreviewComponent = forwardRef<
   // Note: upsellConfig removed - now created inline in each template case
 
   // Preview container wrapper - creates positioning context for popups
+  // Uses relative positioning to stay within the content area (not covering device chrome)
+  // No backdrop here - the BasePopup component handles its own backdrop
   const PreviewContainer: React.FC<{ children: React.ReactNode }> = useCallback(
     ({ children }) => (
       <div
         style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
+          position: "relative",
           width: "100%",
           height: "100%",
+          minHeight: "100%",
         }}
       >
-        {/* Simulated overlay for preview - fills entire container */}
-        <div
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            width: "100%",
-            height: "100%",
-            backgroundColor: "rgba(0, 0, 0, 0.5)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 1,
-          }}
-        >
-          {children}
-        </div>
+        {children}
       </div>
     ),
     [],

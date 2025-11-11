@@ -6,6 +6,17 @@
 
 import type { ApiClient } from '../core/api';
 
+
+function hasProductId(d: unknown): d is { productId: string | number } {
+  return (
+    d != null &&
+    typeof d === 'object' &&
+    'productId' in (d as Record<string, unknown>) &&
+    (typeof (d as { productId?: unknown }).productId === 'string' ||
+      typeof (d as { productId?: unknown }).productId === 'number')
+  );
+}
+
 /**
  * Initialize cart activity tracking
  * Listens for Shopify's add-to-cart events and tracks them
@@ -13,8 +24,9 @@ import type { ApiClient } from '../core/api';
 export function initCartTracking(api: ApiClient, shopDomain: string): void {
   // Method 1: Listen for Shopify's cart update events
   document.addEventListener('cart:updated', (event: Event) => {
-    const productId = (event as CustomEvent).detail?.productId;
-    if (productId) {
+    const detail = (event as CustomEvent<unknown>).detail;
+    if (hasProductId(detail)) {
+      const productId = String(detail.productId);
       trackAddToCart(api, shopDomain, productId);
     }
   });

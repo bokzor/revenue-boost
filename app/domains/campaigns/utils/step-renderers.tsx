@@ -86,36 +86,55 @@ export function renderGoalStep(props: StepRendererProps) {
 }
 
 export function renderDesignStep(props: StepRendererProps) {
-  const { wizardState, updateData, setTemplateType, storeId, shopDomain, campaignId } = props;
+  const { wizardState, updateData, storeId, shopDomain, campaignId, setTemplateType } = props;
+
+  // Convert wizard state designConfig to DesignConfig format
+  const designConfig: Partial<import("~/domains/campaigns/types/campaign").DesignConfig> = {
+    theme: "professional-blue",
+    position: "center",
+    size: "medium",
+    borderRadius: 8,
+    overlayOpacity: 0.5,
+    animation: "fade",
+    // Add any existing design config values
+    ...(wizardState.designConfig as any),
+  };
 
   return (
     <DesignStepContent
       goal={wizardState.goal}
-      templateId={wizardState.templateId}
       templateType={wizardState.templateType}
+      templateId={wizardState.templateId}
       storeId={storeId}
       shopDomain={shopDomain}
       campaignId={campaignId}
-      wizardState={wizardState}
-      discountConfig={wizardState.discountConfig}
-      onDiscountChange={(cfg) => updateData({ discountConfig: cfg })}
-      onConfigChange={(config: PopupDesignConfig) => {
-        const nextPopupDesign = toPopupDesignFormData(config, wizardState.designConfig?.popupDesign);
+      contentConfig={wizardState.contentConfig || {}}
+      designConfig={designConfig}
+      onContentChange={(content) => updateData({ contentConfig: content })}
+      onDesignChange={(design) => updateData({ designConfig: design as any })}
+      onTemplateSelect={(template) => {
+        // Ensure required base content fields exist even if the user doesn't edit them
+        // The UI shows placeholders, but the server schema requires real values
+        const baseDefaults: Record<string, unknown> = {
+          headline: "Welcome!",
+          buttonText: "Continue",
+          successMessage: "Thanks!",
+        };
+
+        const contentWithDefaults = {
+          ...baseDefaults,
+          ...(template.contentConfig || {}),
+        };
+
         updateData({
-          designConfig: { popupDesign: nextPopupDesign },
-          contentConfig: {
-            headline: config.headline,
-            subheadline: config.subheadline,
-            ctaText: config.buttonText,
-            ctaLabel: config.buttonText,
-            ...wizardState.contentConfig,
-            ...(config.content || {}),
-          },
+          templateId: template.id,
+          templateType: template.templateType,
+          contentConfig: contentWithDefaults,
+          designConfig: template.designConfig || {},
         });
-      }}
-      onTemplateChange={(templateId: string, templateType: TemplateType, enhancedTriggers?: EnhancedTriggersConfig, templateObject?: { contentConfig?: Record<string, unknown> }) => {
-        updateData({ templateId, templateType, enhancedTriggers });
-        setTemplateType(templateType, { contentDefaults: templateObject?.contentConfig });
+
+        // Also pass the hydrated defaults so setTemplateType merges the same values
+        setTemplateType(template.templateType, { contentDefaults: contentWithDefaults });
       }}
     />
   );

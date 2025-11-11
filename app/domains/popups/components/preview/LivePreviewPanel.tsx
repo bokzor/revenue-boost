@@ -49,26 +49,82 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
     }
   };
 
-  // Calculate scale factors to fit mobile/tablet in container without scrollbars
+  // Calculate scale factors for realistic device preview
+  // Goal: Make devices fit in container while showing relative sizes
   const getDeviceScale = () => {
-    if (device === "desktop") return zoom / 100;
-
-    const containerHeight = 600 - 40; // Container height minus padding (20px top + 20px bottom)
+    if (device === "desktop") {
+      // Desktop should fill the container at 100% zoom
+      return zoom / 100;
+    }
 
     if (device === "mobile") {
-      const mobileHeight = 667 + 24; // Device height (667px) + borders (12px * 2)
-      const maxScale = Math.min(0.8, (containerHeight - 20) / mobileHeight); // Leave some margin
-      return maxScale * (zoom / 100);
+      // Mobile: 375px device width + 24px borders = 399px
+      // Height: 667px + 24px borders = 691px
+      // At ~85% scale, mobile looks realistic and readable
+      return 0.85 * (zoom / 100);
     }
 
     if (device === "tablet") {
-      const tabletHeight = 1024 + 24; // Device height (1024px) + borders (12px * 2)
-      const maxScale = Math.min(0.5, (containerHeight - 20) / tabletHeight); // Leave some margin
+      // Tablet: 768px device width + 24px borders = 792px
+      // Height: 800px + 24px borders = 824px
+      // Container height: 850px, padding: 40px (20px top + 20px bottom)
+      // Available space: 810px
+      // At 100% zoom: 824px needs to fit in 810px → scale = 810/824 ≈ 0.98
+      // Use 0.95 for some margin
+      const containerHeight = 850 - 40; // 810px available
+      const tabletHeight = 824; // Total height with borders
+      const maxScale = Math.min(0.98, containerHeight / tabletHeight);
       return maxScale * (zoom / 100);
     }
 
     return zoom / 100;
   };
+
+  // Show placeholder if no template is selected
+  if (!templateType) {
+    return (
+      <div>
+        <Card>
+          <BlockStack gap="400">
+            {/* Header */}
+            <div>
+              <Text as="h3" variant="headingMd">
+                Live Preview
+              </Text>
+              <Text as="p" variant="bodySm" tone="subdued">
+                See how your campaign will look
+              </Text>
+            </div>
+
+            {/* Placeholder */}
+            <div
+              style={{
+                backgroundColor: "#F6F6F7",
+                borderRadius: "8px",
+                minHeight: "500px",
+                height: "700px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                textAlign: "center",
+                padding: "40px",
+              }}
+            >
+              <div>
+                <div style={{ fontSize: "64px", marginBottom: "16px" }}>📋</div>
+                <Text as="h3" variant="headingMd">
+                  No Template Selected
+                </Text>
+                <Text as="p" variant="bodySm" tone="subdued">
+                  Select a template from the Design step to see a live preview
+                </Text>
+              </div>
+            </div>
+          </BlockStack>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -168,35 +224,37 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
           {/* Preview Area */}
           <div
             style={{
-              backgroundColor: "#F6F6F7",
+              background: device === "desktop"
+                ? "#F6F6F7"
+                : "linear-gradient(135deg, #667eea 0%, #764ba2 100%)", // Gradient background for mobile/tablet to simulate desk/environment
               borderRadius: "8px",
-              padding:
-                device === "desktop" ? (zoom === 100 ? "0" : "20px") : "20px",
+              padding: device === "desktop"
+                ? (zoom === 100 ? "0" : "20px")
+                : device === "tablet"
+                  ? "20px" // Reduced padding for tablet to fit better
+                  : "30px",
               minHeight: "500px",
-              height: device === "desktop" ? "700px" : "600px", // More height for mobile/tablet
+              height: device === "desktop" ? "700px" : device === "tablet" ? "850px" : "650px",
               display: "flex",
-              alignItems: device === "desktop" ? "center" : "flex-start", // Top align for mobile/tablet
-              justifyContent: "center",
-              overflow: "hidden", // Always hidden to prevent scrollbars
+              alignItems: "center", // Always center vertically
+              justifyContent: "center", // Always center horizontally
+              overflow: "auto", // Allow scrolling if content overflows
               position: "relative",
-              transition: "opacity 0.2s ease, padding 0.2s ease",
+              transition: "all 0.3s ease",
             }}
           >
             <div
               style={{
                 transform: `scale(${getDeviceScale()})`,
-                transformOrigin:
-                  device === "desktop"
-                    ? zoom === 100
-                      ? "center center"
-                      : "top center"
-                    : "top center", // Top center for mobile/tablet like desktop
-                transition: "transform 0.2s ease",
+                transformOrigin: "center center", // Always center for proper scaling
+                transition: "transform 0.3s ease",
                 width: device === "desktop" && zoom === 100 ? "100%" : "auto",
-                maxWidth:
-                  device === "desktop" && zoom === 100 ? "100%" : "auto",
+                maxWidth: device === "desktop" && zoom === 100 ? "100%" : "auto",
                 height: device === "desktop" && zoom === 100 ? "100%" : "auto",
-                paddingTop: device !== "desktop" ? "10px" : "0", // Small top padding for mobile/tablet
+                filter: device !== "desktop" ? "drop-shadow(0 25px 50px rgba(0, 0, 0, 0.25))" : "none", // Add realistic shadow for devices
+                display: "flex", // Ensure proper centering
+                alignItems: "center",
+                justifyContent: "center",
               }}
             >
               <DeviceFrame device={device}>

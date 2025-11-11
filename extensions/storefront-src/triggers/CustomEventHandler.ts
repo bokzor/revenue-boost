@@ -16,6 +16,11 @@ export interface CustomEventData {
 
 export type CustomEventCallback = (data: CustomEventData) => void;
 
+
+function isObject(v: unknown): v is Record<string, unknown> {
+  return v != null && typeof v === 'object';
+}
+
 export class CustomEventHandler {
   private config: Required<CustomEventConfig>;
   private callback: CustomEventCallback | null = null;
@@ -127,8 +132,9 @@ export class CustomEventHandler {
       return;
     }
 
-    const customEvent = e as CustomEvent;
-    const detail = customEvent.detail || {};
+    const customEvent = e as CustomEvent<unknown>;
+    const rawDetail = customEvent.detail;
+    const detail = isObject(rawDetail) ? rawDetail : {};
 
     // Trigger callback
     this.callback({

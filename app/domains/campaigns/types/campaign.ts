@@ -246,6 +246,7 @@ export const ScratchCardContentSchema = BaseContentConfigSchema.extend({
 
 /**
  * Free Shipping specific content fields
+ * Simple banner with progress bar showing distance to free shipping threshold
  */
 export const FreeShippingContentSchema = BaseContentConfigSchema.extend({
   freeShippingThreshold: z.number().min(0).default(75),
@@ -254,9 +255,6 @@ export const FreeShippingContentSchema = BaseContentConfigSchema.extend({
   progressMessage: z.string().optional(),
   successTitle: z.string().optional(),
   successSubhead: z.string().optional(),
-  showProducts: z.boolean().default(true),
-  maxProductsToShow: z.number().int().min(1).max(12).default(3),
-  productFilter: z.enum(["under_threshold", "all", "bestsellers"]).default("under_threshold"),
   showProgress: z.boolean().default(true),
   progressColor: z.string().optional(),
   displayStyle: z.enum(["banner", "modal", "sticky"]).default("banner"),

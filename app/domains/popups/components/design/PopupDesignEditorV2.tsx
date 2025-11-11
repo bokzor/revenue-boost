@@ -1552,17 +1552,22 @@ export const PopupDesignEditorV2: React.FC<PopupDesignEditorProps> = ({
               data-affix-boundary
               style={{ position: "relative", alignSelf: "flex-start" }}
             >
-              <Affix offsetTop={24} className={styles.stickyPreviewScrollable}>
-                <LivePreviewPanel
-                  templateType={currentTemplateType}
-                  config={debouncedConfig}
-                  designConfig={{}}
-                  onPreviewElementReady={setPreviewElement}
-                  shopDomain={shopDomain}
-                  campaignId={campaignId}
-                />
+              <Affix disableBelowWidth={768} debug={true}>
+                <div
+                  className={styles.stickyPreviewScrollable}
+                  data-affix-scrollable
+                >
+                  <LivePreviewPanel
+                    templateType={currentTemplateType}
+                    config={debouncedConfig}
+                    designConfig={{}}
+                    onPreviewElementReady={setPreviewElement}
+                    shopDomain={shopDomain}
+                    campaignId={campaignId}
+                  />
+                </div>
               </Affix>
-              </div>
+            </div>
           </Layout.Section>
         </Layout>
 

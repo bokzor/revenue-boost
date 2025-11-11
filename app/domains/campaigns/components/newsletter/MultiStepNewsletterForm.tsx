@@ -1,9 +1,9 @@
 /**
  * MultiStepNewsletterForm Component (Stub)
- * 
+ *
  * TODO: This is a stub component created to fix build issues.
  * The actual implementation should be created based on requirements.
- * 
+ *
  * Expected features:
  * - Multi-step form for newsletter signup
  * - Email collection
@@ -109,6 +109,7 @@ export const MultiStepNewsletterForm: React.FC<MultiStepNewsletterFormProps> = (
       <form onSubmit={handleSubmit}>
         <div style={{ marginBottom: "16px" }}>
           <label
+            htmlFor="newsletter-email"
             style={{
               display: "block",
               marginBottom: "8px",
@@ -120,6 +121,7 @@ export const MultiStepNewsletterForm: React.FC<MultiStepNewsletterFormProps> = (
             Email Address
           </label>
           <input
+            id="newsletter-email"
             type="email"
             value={formData.email}
             onChange={(e) => setFormData({ ...formData, email: e.target.value })}

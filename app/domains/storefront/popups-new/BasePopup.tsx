@@ -85,19 +85,19 @@ export const BasePopup: React.FC<BasePopupProps> = ({
 
   if (!isVisible && !isExiting) return null;
 
-  const sizeDimensions = getSizeDimensions(config.size);
+  const sizeDimensions = getSizeDimensions(config.size, config.previewMode);
   const positionStyles = getPositionStyles(config.position);
   const animationClass = getAnimationClass(config.animation || 'fade', isExiting);
 
   const overlayStyles: React.CSSProperties = {
-    position: 'fixed',
+    position: config.previewMode ? 'absolute' : 'fixed', // Use absolute in preview to stay within container
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
     backgroundColor: config.overlayColor || 'rgba(0, 0, 0, 0.5)',
     opacity: config.overlayOpacity ?? 1,
-    zIndex: 9999,
+    zIndex: config.previewMode ? 1 : 9999, // Lower z-index in preview mode
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -113,7 +113,7 @@ export const BasePopup: React.FC<BasePopupProps> = ({
     padding: config.padding ?? '24px',
     boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
     outline: 'none',
-    maxHeight: '90vh',
+    maxHeight: config.previewMode ? '85%' : '90vh', // Use percentage in preview mode
     overflowY: 'auto',
   };
 

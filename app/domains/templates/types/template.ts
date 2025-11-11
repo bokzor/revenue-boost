@@ -16,6 +16,7 @@ import {
   NewsletterContentSchema,
   SpinToWinContentSchema,
   FlashSaleContentSchema,
+  FreeShippingContentSchema,
   getContentSchemaForTemplate,
   // Types
   type DesignConfig,
@@ -74,6 +75,7 @@ export const TemplateFieldSchema = z.object({
   category: z.enum(["content", "design", "behavior"]),
   section: z.enum([
     "content",
+    "design",
     "theme",
     "layout",
     "positioning",
@@ -240,6 +242,23 @@ export const SpinToWinTemplateSchema = BaseTemplateSchema.extend({
   discountConfig: DiscountConfigSchema.default({ enabled: false }),
 });
 
+// Free Shipping Template
+export const FreeShippingTemplateSchema = BaseTemplateSchema.extend({
+  templateType: z.literal("FREE_SHIPPING"),
+  contentConfig: FreeShippingContentSchema,
+  fields: z.array(TemplateFieldSchema).default([]),
+  targetRules: TargetRulesConfigSchema.default({}),
+  designConfig: DesignConfigSchema.default({
+    theme: "professional-blue",
+    position: "top",
+    size: "small",
+    borderRadius: 0,
+    overlayOpacity: 0,
+    animation: "slide"
+  }),
+  discountConfig: DiscountConfigSchema.default({ enabled: false }),
+});
+
 /**
  * Get the appropriate template schema for a template type
  * This ensures proper typing for contentConfig based on templateType
@@ -255,6 +274,8 @@ export function getTemplateSchemaForType(templateType: TemplateType) {
     case "SPIN_TO_WIN":
     case "SCRATCH_CARD": // Scratch card similar to spin-to-win
       return SpinToWinTemplateSchema;
+    case "FREE_SHIPPING":
+      return FreeShippingTemplateSchema;
     case "CART_ABANDONMENT":
       // Could add CartAbandonmentTemplateSchema if needed
       return TemplateWithConfigsSchema;

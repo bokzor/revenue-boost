@@ -177,6 +177,11 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
       const hue = index * (360 / segments.length);
       const baseColor = segment.color || `hsl(${hue}, 65%, 58%)`;
 
+      // Check if this is the winning segment
+      const isWinningSegment = hasSpun && wonPrize && segment.id === wonPrize.id;
+      const strokeColor = isWinningSegment ? '#FFD700' : '#FFFFFF'; // Gold for winner, white for others
+      const strokeWidth = isWinningSegment ? 8 : 3; // Thicker border for winner
+
       const textAngle = startAngle + segmentAngle / 2;
       const textRad = (textAngle - 90) * (Math.PI / 180);
       const textRadius = radius * 0.72;
@@ -188,8 +193,11 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
           <path
             d={pathData}
             fill={baseColor}
-            stroke="#FFFFFF"
-            strokeWidth={3}
+            stroke={strokeColor}
+            strokeWidth={strokeWidth}
+            style={{
+              transition: 'stroke 0.5s ease-out, stroke-width 0.5s ease-out',
+            }}
           />
           <text
             x={textX}
@@ -251,178 +259,170 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
         opacity: showContent ? 1 : 0,
         transition: `opacity ${animDuration}ms ease-out`,
       }}>
-        {!hasSpun ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '32px', alignItems: 'center' }}>
-            {/* Headline */}
-            <div style={{ textAlign: 'center' }}>
-              <h2 style={{
-                fontSize: '28px',
-                fontWeight: 700,
-                margin: '0 0 8px 0',
-                lineHeight: 1.3,
-                color: config.textColor || '#111827',
-                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-              }}>
-                {config.headline}
-              </h2>
-              {config.subheadline && (
-                <p style={{
-                  fontSize: '16px',
-                  margin: 0,
-                  color: config.textColor || '#6B7280',
-                  lineHeight: 1.5,
-                  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                }}>
-                  {config.subheadline}
-                </p>
-              )}
-            </div>
-
-            {/* Wheel - clean and minimal */}
-            <div style={{
-              position: 'relative',
-              width: wheelSize,
-              height: wheelSize,
-            }}>
-              <svg
-                ref={wheelRef}
-                width={wheelSize}
-                height={wheelSize}
-                viewBox={`0 0 ${wheelSize} ${wheelSize}`}
-                style={{
-                  transform: `rotate(${rotation}deg)`,
-                  transition: wheelTransition,
-                  filter: 'drop-shadow(0 4px 12px rgba(0, 0, 0, 0.1))',
-                }}
-              >
-                {renderWheel()}
-
-                {/* Simple center circle */}
-                <circle
-                  cx={radius}
-                  cy={radius}
-                  r={28}
-                  fill={accentColor}
-                  stroke="#FFFFFF"
-                  strokeWidth={3}
-                />
-              </svg>
-
-              {/* Minimal pointer */}
-              <div style={{
-                position: 'absolute',
-                top: -12,
-                left: '50%',
-                transform: 'translateX(-50%)',
-                width: 0,
-                height: 0,
-                borderLeft: '14px solid transparent',
-                borderRight: '14px solid transparent',
-                borderTop: `22px solid ${accentColor}`,
-                filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.15))',
-              }} />
-            </div>
-
-            {/* Email input - clean design */}
-            {config.emailRequired && (
-              <div style={{ width: '100%', maxWidth: '400px' }}>
-                {config.emailLabel && (
-                  <label style={{
-                    display: 'block',
-                    marginBottom: '8px',
-                    fontSize: '14px',
-                    fontWeight: 600,
-                    color: config.textColor || '#374151',
-                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                  }}>
-                    {config.emailLabel}
-                  </label>
-                )}
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  onFocus={() => setEmailFocused(true)}
-                  onBlur={() => setEmailFocused(false)}
-                  placeholder={config.emailPlaceholder || 'your@email.com'}
-                  style={getInputStyles(emailFocused, !!emailError)}
-                  disabled={isSpinning}
-                />
-                {emailError && (
-                  <p style={{
-                    color: '#EF4444',
-                    fontSize: '13px',
-                    margin: '6px 0 0 0',
-                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                  }}>
-                    {emailError}
-                  </p>
-                )}
-              </div>
-            )}
-
-            {/* Clean spin button */}
-            <button
-              onClick={handleSpin}
-              disabled={isSpinning}
-              style={buttonStyles}
-              onMouseEnter={(e) => {
-                if (!isSpinning) {
-                  e.currentTarget.style.transform = 'translateY(-1px)';
-                }
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)';
-              }}
-            >
-              {isSpinning ? (
-                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
-                  <span style={{
-                    width: '16px',
-                    height: '16px',
-                    border: '2px solid rgba(255,255,255,0.3)',
-                    borderTopColor: '#FFF',
-                    borderRadius: '50%',
-                    animation: 'spin 0.8s linear infinite'
-                  }} />
-                  {config.loadingText || 'Spinning...'}
-                </span>
-              ) : (
-                config.spinButtonText || config.buttonText || 'Spin the Wheel'
-              )}
-            </button>
-          </div>
-        ) : (
-          // Clean prize reveal
-          <div style={{
-            textAlign: 'center',
-            padding: '20px 0',
-          }}>
-            <div style={{
-              fontSize: '64px',
-              marginBottom: '20px',
-            }}>
-              {wonPrize?.discountCode ? '🎉' : '✨'}
-            </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '32px', alignItems: 'center' }}>
+          {/* Headline */}
+          <div style={{ textAlign: 'center' }}>
             <h2 style={{
-              fontSize: '26px',
+              fontSize: '28px',
               fontWeight: 700,
-              margin: '0 0 12px 0',
+              margin: '0 0 8px 0',
+              lineHeight: 1.3,
               color: config.textColor || '#111827',
               fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
             }}>
-              {wonPrize?.discountCode
-                ? (config.successMessage?.replace('{{prize}}', wonPrize.label).replace('{{code}}', wonPrize.discountCode) || `You won ${wonPrize.label}!`)
-                : (config.failureMessage || wonPrize?.label || 'Thanks for playing!')}
+              {hasSpun && wonPrize ? (
+                wonPrize.discountCode
+                  ? (config.successMessage?.replace('{{prize}}', wonPrize.label).replace('{{code}}', wonPrize.discountCode) || `You won ${wonPrize.label}!`)
+                  : (config.failureMessage || wonPrize.label || 'Thanks for playing!')
+              ) : (
+                config.headline
+              )}
             </h2>
+            {!hasSpun && config.subheadline && (
+              <p style={{
+                fontSize: '16px',
+                margin: 0,
+                color: config.textColor || '#6B7280',
+                lineHeight: 1.5,
+                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+              }}>
+                {config.subheadline}
+              </p>
+            )}
+          </div>
 
-            {wonPrize?.discountCode && (
+          {/* Wheel - always visible, with prize highlight */}
+          <div style={{
+            position: 'relative',
+            width: wheelSize,
+            height: wheelSize,
+          }}>
+            <svg
+              ref={wheelRef}
+              width={wheelSize}
+              height={wheelSize}
+              viewBox={`0 0 ${wheelSize} ${wheelSize}`}
+              style={{
+                transform: `rotate(${rotation}deg)`,
+                transition: wheelTransition,
+                filter: hasSpun
+                  ? 'drop-shadow(0 8px 24px rgba(0, 0, 0, 0.2))'
+                  : 'drop-shadow(0 4px 12px rgba(0, 0, 0, 0.1))',
+              }}
+            >
+              {renderWheel()}
+
+              {/* Simple center circle */}
+              <circle
+                cx={radius}
+                cy={radius}
+                r={28}
+                fill={accentColor}
+                stroke="#FFFFFF"
+                strokeWidth={3}
+              />
+            </svg>
+
+            {/* Minimal pointer */}
+            <div style={{
+              position: 'absolute',
+              top: -12,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              width: 0,
+              height: 0,
+              borderLeft: '14px solid transparent',
+              borderRight: '14px solid transparent',
+              borderTop: `22px solid ${accentColor}`,
+              filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.15))',
+              zIndex: 10,
+            }} />
+          </div>
+
+          {/* Email input or Prize details */}
+          {!hasSpun ? (
+            <>
+              {/* Email input - clean design */}
+              {config.emailRequired && (
+                <div style={{ width: '100%', maxWidth: '400px' }}>
+                  {config.emailLabel && (
+                    <label style={{
+                      display: 'block',
+                      marginBottom: '8px',
+                      fontSize: '14px',
+                      fontWeight: 600,
+                      color: config.textColor || '#374151',
+                      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                    }}>
+                      {config.emailLabel}
+                    </label>
+                  )}
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    onFocus={() => setEmailFocused(true)}
+                    onBlur={() => setEmailFocused(false)}
+                    placeholder={config.emailPlaceholder || 'your@email.com'}
+                    style={getInputStyles(emailFocused, !!emailError)}
+                    disabled={isSpinning}
+                  />
+                  {emailError && (
+                    <p style={{
+                      color: '#EF4444',
+                      fontSize: '13px',
+                      margin: '6px 0 0 0',
+                      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                    }}>
+                      {emailError}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Clean spin button */}
+              <button
+                onClick={handleSpin}
+                disabled={isSpinning}
+                style={buttonStyles}
+                onMouseEnter={(e) => {
+                  if (!isSpinning) {
+                    e.currentTarget.style.transform = 'translateY(-1px)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                }}
+              >
+                {isSpinning ? (
+                  <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+                    <span style={{
+                      width: '16px',
+                      height: '16px',
+                      border: '2px solid rgba(255,255,255,0.3)',
+                      borderTopColor: '#FFF',
+                      borderRadius: '50%',
+                      animation: 'spin 0.8s linear infinite'
+                    }} />
+                    {config.loadingText || 'Spinning...'}
+                  </span>
+                ) : (
+                  config.spinButtonText || config.buttonText || 'Spin the Wheel'
+                )}
+              </button>
+            </>
+          ) : (
+            // Prize details - shown below the wheel
+            wonPrize?.discountCode && (
               <div style={{
-                marginTop: '28px',
+                width: '100%',
+                maxWidth: '400px',
+                marginTop: '8px',
                 padding: '24px',
                 backgroundColor: '#F9FAFB',
                 borderRadius: `${borderRadius}px`,
                 border: '1px solid #E5E7EB',
+                animation: 'slideUp 0.5s ease-out',
               }}>
                 <p style={{
                   fontSize: '13px',
@@ -432,8 +432,9 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
                   textTransform: 'uppercase',
                   letterSpacing: '0.5px',
                   fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                  textAlign: 'center',
                 }}>
-                  Your Code
+                  Your Discount Code
                 </p>
                 <div style={{
                   display: 'flex',
@@ -480,6 +481,7 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
                     color: '#374151',
                     fontWeight: 500,
                     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                    textAlign: 'center',
                   }}>
                     {wonPrize.discountType === 'percentage' && `Save ${wonPrize.discountValue}%`}
                     {wonPrize.discountType === 'fixed_amount' && `Save $${wonPrize.discountValue}`}
@@ -487,14 +489,25 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
                   </p>
                 )}
               </div>
-            )}
-          </div>
-        )}
+            )
+          )}
+        </div>
       </div>
 
       <style>{`
         @keyframes spin {
           to { transform: rotate(360deg); }
+        }
+
+        @keyframes slideUp {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
         }
       `}</style>
     </BasePopup>

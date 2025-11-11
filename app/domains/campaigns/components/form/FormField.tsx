@@ -212,8 +212,10 @@ export function ColorField({
         {label}
       </label>
       <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
-        {/* Color preview swatch */}
-        <div
+        {/* Color preview swatch (interactive) */}
+        <button
+          type="button"
+          aria-label={`Choose color for ${label}`}
           style={{
             width: "40px",
             height: "40px",
@@ -222,6 +224,7 @@ export function ColorField({
             backgroundColor: value || placeholder,
             cursor: "pointer",
             flexShrink: 0,
+            padding: 0,
           }}
           onClick={() => {
             const input = document.getElementById(`${name}-picker`) as HTMLInputElement;

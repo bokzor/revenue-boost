@@ -7,7 +7,8 @@
 import type { ContentFieldDefinition } from "./content-config";
 
 /**
- * Common fields used across multiple templates
+ * Common content fields used across multiple templates
+ * Note: Design/color fields are handled separately in DesignConfigSection
  */
 const commonNewsletterFields: ContentFieldDefinition[] = [
   {

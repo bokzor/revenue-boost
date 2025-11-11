@@ -1,10 +1,9 @@
 /**
  * Campaign Components Index
- * 
+ *
  * Centralized exports for all campaign-related components
  */
 
-export { CampaignForm } from "./CampaignForm";
 export { CampaignFormWithABTesting } from "./CampaignFormWithABTesting";
 export { CampaignList } from "./CampaignList";
 export { CampaignDetail } from "./CampaignDetail";

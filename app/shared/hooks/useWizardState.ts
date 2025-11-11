@@ -301,25 +301,19 @@ export function useWizardState(initialData?: Partial<CampaignFormData>) {
   // NOTE: Triggers, audience, and frequency are now handled by templates via setTemplateType()
   const applyGoalDefaults = useCallback(
     (goal: CampaignGoal) => {
-      const recommendedTemplateId = getRecommendedTemplateId(goal);
-
       console.log("[useWizardState] Applying goal defaults for:", goal);
-      console.log("[useWizardState] Recommended template ID:", recommendedTemplateId);
 
       // Build and apply goal-specific updates using extracted module
       const updates = buildGoalUpdates(goal, state.data);
       updateData(updates);
 
-      console.log("[useWizardState] Goal defaults applied. Template ID set to:", recommendedTemplateId);
-      console.log("[useWizardState] Note: Triggers, audience, and frequency will be applied by template");
+      console.log("[useWizardState] Goal defaults applied");
+      console.log("[useWizardState] Note: User must select template in Design step");
 
-      // Auto-load template type for immediate preview if we have a recommended template
-      if (recommendedTemplateId) {
-        console.log("[useWizardState] Using template ID as type for preview:", recommendedTemplateId);
-        setTemplateType(recommendedTemplateId as TemplateType);
-      }
+      // Don't auto-load template - let user select in Design step
+      // This ensures preview only shows after explicit template selection
     },
-    [updateData, setTemplateType, state.data],
+    [updateData, state.data],
   );
 
   // Goal-based validation engine - now uses extracted validators

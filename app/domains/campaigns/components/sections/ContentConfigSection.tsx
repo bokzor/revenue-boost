@@ -16,7 +16,6 @@ import { FreeShippingContentSection } from "./FreeShippingContentSection";
 import { SocialProofContentSection } from "./SocialProofContentSection";
 import type { SocialProofContent as SPC } from "./SocialProofContentSection";
 import { AnnouncementContentSection } from "./AnnouncementContentSection";
-import { FormSection } from "../form";
 
 export interface ContentConfigSectionProps {
   templateType: TemplateType;
@@ -117,13 +116,6 @@ export function ContentConfigSection({
     }
   };
 
-  return (
-    <FormSection
-      title="Content Configuration"
-      description={`Configure the content for your ${templateType.toLowerCase().replace(/_/g, " ")} campaign`}
-    >
-      {renderContentForm()}
-    </FormSection>
-  );
+  return renderContentForm();
 }
 

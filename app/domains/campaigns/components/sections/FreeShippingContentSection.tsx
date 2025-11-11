@@ -16,9 +16,6 @@ export interface FreeShippingContent {
   progressMessage?: string;
   successTitle?: string;
   successSubhead?: string;
-  showProducts?: boolean;
-  maxProductsToShow?: number;
-  productFilter?: "under_threshold" | "all" | "bestsellers";
   showProgress?: boolean;
   progressColor?: string;
   displayStyle?: "banner" | "modal" | "sticky";
@@ -151,44 +148,6 @@ export function FreeShippingContentSection({
           />
         )}
       </FormGrid>
-
-      <h3>Product Recommendations</h3>
-
-      <CheckboxField
-        label="Show Product Recommendations"
-        name="content.showProducts"
-        checked={content.showProducts !== false}
-        helpText="Display products to help reach threshold"
-        onChange={(checked) => updateField("showProducts", checked)}
-      />
-
-      {content.showProducts && (
-        <>
-          <FormGrid columns={2}>
-            <TextField
-              label="Max Products to Show"
-              name="content.maxProductsToShow"
-              value={content.maxProductsToShow?.toString() || "3"}
-              placeholder="3"
-              helpText="Maximum number of products to display"
-              onChange={(value) => updateField("maxProductsToShow", parseInt(value) || 3)}
-            />
-
-            <SelectField
-              label="Product Filter"
-              name="content.productFilter"
-              value={content.productFilter || "under_threshold"}
-              options={[
-                { label: "Products Under Threshold", value: "under_threshold" },
-                { label: "All Products", value: "all" },
-                { label: "Bestsellers", value: "bestsellers" },
-              ]}
-              helpText="Which products to recommend"
-              onChange={(value) => updateField("productFilter", value as FreeShippingContent["productFilter"])}
-            />
-          </FormGrid>
-        </>
-      )}
 
       <h3>Display Options</h3>
 

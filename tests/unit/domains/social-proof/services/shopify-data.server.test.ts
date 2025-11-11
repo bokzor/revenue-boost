@@ -5,6 +5,8 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import type { Mock } from 'vitest';
+import type { PurchaseNotification } from "~/domains/storefront/notifications/social-proof/types";
 import type Redis from 'ioredis';
 import { ShopifyDataService } from '~/domains/social-proof/services/shopify-data.server';
 import prisma from '~/db.server';
@@ -78,12 +80,12 @@ describe('ShopifyDataService', () => {
 
       vi.mocked(getRedis).mockReturnValue(mockRedis as unknown as Redis);
 
-      vi.mocked(prisma.store.findUnique as unknown as any).mockResolvedValue({
+      (prisma.store.findUnique as unknown as Mock).mockResolvedValue({
         id: 'test-store',
         shopifyDomain: 'test-store.myshopify.com',
       });
 
-      vi.mocked(prisma.session.findFirst as unknown as any).mockResolvedValue({
+      (prisma.session.findFirst as unknown as Mock).mockResolvedValue({
         id: 'session-1',
         shop: 'test-store.myshopify.com',
         accessToken: 'test-token',
@@ -155,7 +157,7 @@ describe('ShopifyDataService', () => {
 
     it('should return empty array if no store found', async () => {
       vi.mocked(getRedis).mockReturnValue(null);
-      vi.mocked(prisma.store.findUnique as unknown as any).mockResolvedValue(null);
+      (prisma.store.findUnique as unknown as Mock).mockResolvedValue(null);
 
       const result = await ShopifyDataService.getRecentPurchases({
         storeId: 'non-existent',
@@ -168,12 +170,12 @@ describe('ShopifyDataService', () => {
 
     it('should handle Shopify API errors gracefully', async () => {
       vi.mocked(getRedis).mockReturnValue(null);
-      vi.mocked(prisma.store.findUnique as unknown as any).mockResolvedValue({
+      (prisma.store.findUnique as unknown as Mock).mockResolvedValue({
         id: 'test-store',
         shopifyDomain: 'test-store.myshopify.com',
       });
 
-      vi.mocked(prisma.session.findFirst as unknown as any).mockResolvedValue({
+      (prisma.session.findFirst as unknown as Mock).mockResolvedValue({
         id: 'session-1',
         shop: 'test-store.myshopify.com',
         accessToken: 'test-token',
@@ -198,7 +200,7 @@ describe('ShopifyDataService', () => {
 
   describe('getSalesCountNotification', () => {
     it('should return sales count notification', async () => {
-      const mockPurchases = Array(15).fill(null).map((_, i) => ({
+      const mockPurchases: PurchaseNotification[] = Array(15).fill(null).map((_, i) => ({
         id: `purchase-${i}`,
         type: 'purchase',
         customerName: `Customer ${i}`,
@@ -209,7 +211,7 @@ describe('ShopifyDataService', () => {
         timestamp: Date.now(),
       }));
 
-      vi.spyOn(ShopifyDataService, 'getRecentPurchases').mockResolvedValue(mockPurchases as any);
+      vi.spyOn(ShopifyDataService, 'getRecentPurchases').mockResolvedValue(mockPurchases);
 
       const result = await ShopifyDataService.getSalesCountNotification({
         storeId: 'test-store',
@@ -247,12 +249,12 @@ describe('ShopifyDataService', () => {
 
       vi.mocked(getRedis).mockReturnValue(mockRedis as unknown as Redis);
 
-      vi.mocked(prisma.store.findUnique as unknown as any).mockResolvedValue({
+      (prisma.store.findUnique as unknown as Mock).mockResolvedValue({
         id: 'test-store',
         shopifyDomain: 'test-store.myshopify.com',
       });
 
-      vi.mocked(prisma.session.findFirst as unknown as any).mockResolvedValue({
+      (prisma.session.findFirst as unknown as Mock).mockResolvedValue({
         id: 'session-1',
         shop: 'test-store.myshopify.com',
         accessToken: 'test-token',
@@ -306,12 +308,12 @@ describe('ShopifyDataService', () => {
 
       vi.mocked(getRedis).mockReturnValue(mockRedis as unknown as Redis);
 
-      vi.mocked(prisma.store.findUnique as unknown as any).mockResolvedValue({
+      (prisma.store.findUnique as unknown as Mock).mockResolvedValue({
         id: 'test-store',
         shopifyDomain: 'test-store.myshopify.com',
       });
 
-      vi.mocked(prisma.session.findFirst as unknown as any).mockResolvedValue({
+      (prisma.session.findFirst as unknown as Mock).mockResolvedValue({
         id: 'session-1',
         shop: 'test-store.myshopify.com',
         accessToken: 'test-token',

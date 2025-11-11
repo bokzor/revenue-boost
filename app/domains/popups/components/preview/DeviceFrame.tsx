@@ -84,7 +84,7 @@ export const DeviceFrame: React.FC<DeviceFrameProps> = ({
       <div
         style={{
           width: "768px",
-          height: "1024px",
+          height: "800px",
           border: "12px solid #1A1A1A",
           borderRadius: "24px",
           backgroundColor: "#FFFFFF",

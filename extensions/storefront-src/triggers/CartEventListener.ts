@@ -21,6 +21,11 @@ export interface CartEventData {
 
 export type CartEventCallback = (data: CartEventData) => void;
 
+function isCartUpdateDetail(v: unknown): v is { total?: number } {
+  return v != null && typeof v === "object" && typeof (v as { total?: unknown }).total === "number";
+}
+
+
 export class CartEventListener {
   private config: Required<CartEventConfig>;
   private callback: CartEventCallback | null = null;
@@ -131,12 +136,15 @@ export class CartEventListener {
       return;
     }
 
-    const customEvent = e as CustomEvent;
-    const detail = customEvent.detail || {};
+    const customEvent = e as CustomEvent<unknown>;
+    const detail = customEvent.detail;
 
     // Check cart value threshold if tracking is enabled
     if (this.config.trackCartValue && eventType === "cart_update") {
-      const cartValue = detail.total || 0;
+      let cartValue = 0;
+      if (isCartUpdateDetail(detail)) {
+        cartValue = detail.total ?? 0;
+      }
 
       if (cartValue < this.config.minCartValue || cartValue > this.config.maxCartValue) {
         return; // Don't trigger if outside threshold

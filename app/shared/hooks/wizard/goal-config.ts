@@ -79,7 +79,8 @@ export function buildGoalUpdates(
   currentData: CampaignFormData
 ): Partial<CampaignFormData> {
   const defaults = getGoalDefaults(goal);
-  const recommendedTemplateId = getRecommendedTemplateId(goal);
+  // Don't set templateId here - let user select template in Design step
+  // const recommendedTemplateId = getRecommendedTemplateId(goal);
 
   return {
     goal,
@@ -87,6 +88,6 @@ export function buildGoalUpdates(
     priority: defaults.campaign.priority,
     discountConfig: buildDiscountConfig(goal, currentData.discountConfig),
     popupDesign: buildDesignConfig(goal, currentData.popupDesign!),
-    templateId: recommendedTemplateId,
+    // templateId: recommendedTemplateId, // Removed - don't auto-set template
   };
 }

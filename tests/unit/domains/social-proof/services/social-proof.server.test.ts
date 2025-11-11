@@ -10,6 +10,7 @@ import { SocialProofService } from '~/domains/social-proof/services/social-proof
 import { ShopifyDataService } from '~/domains/social-proof/services/shopify-data.server';
 import { VisitorTrackingService } from '~/domains/social-proof/services/visitor-tracking.server';
 import { CampaignService } from '~/domains/campaigns/index.server';
+import type { PurchaseNotification, VisitorNotification, SocialProofNotification } from "~/domains/storefront/notifications/social-proof/types";
 
 // Mock Shopify server to avoid initialization errors
 vi.mock('~/shopify.server', () => ({
@@ -52,7 +53,7 @@ describe('SocialProofService', () => {
 
       vi.mocked(CampaignService.getCampaignById).mockResolvedValue(mockCampaign as Partial<CampaignWithConfigs> as CampaignWithConfigs);
 
-      const mockPurchases = [
+      const mockPurchases: PurchaseNotification[] = [
         {
           id: 'purchase-1',
           type: 'purchase',
@@ -65,7 +66,7 @@ describe('SocialProofService', () => {
         },
       ];
 
-      const mockVisitor = {
+      const mockVisitor: VisitorNotification = {
         id: 'visitor-1',
         type: 'visitor',
         count: 12,
@@ -74,7 +75,7 @@ describe('SocialProofService', () => {
         timestamp: Date.now(),
       };
 
-      const mockSalesCount = {
+      const mockSalesCount: SocialProofNotification = {
         id: 'sales-1',
         type: 'visitor',
         count: 15,
@@ -83,9 +84,9 @@ describe('SocialProofService', () => {
         timestamp: Date.now(),
       };
 
-      vi.mocked(ShopifyDataService.getRecentPurchases).mockResolvedValue(mockPurchases as any);
-      vi.mocked(VisitorTrackingService.getVisitorNotification).mockResolvedValue(mockVisitor as any);
-      vi.mocked(ShopifyDataService.getSalesCountNotification).mockResolvedValue(mockSalesCount as any);
+      vi.mocked(ShopifyDataService.getRecentPurchases).mockResolvedValue(mockPurchases);
+      vi.mocked(VisitorTrackingService.getVisitorNotification).mockResolvedValue(mockVisitor);
+      vi.mocked(ShopifyDataService.getSalesCountNotification).mockResolvedValue(mockSalesCount);
       vi.mocked(ShopifyDataService.getLowStockNotification).mockResolvedValue(null);
       vi.mocked(VisitorTrackingService.getTrendingNotification).mockResolvedValue(null);
       vi.mocked(VisitorTrackingService.getCartActivityNotification).mockResolvedValue(null);
@@ -125,7 +126,7 @@ describe('SocialProofService', () => {
 
       vi.mocked(CampaignService.getCampaignById).mockResolvedValue(mockCampaign as Partial<CampaignWithConfigs> as CampaignWithConfigs);
 
-      const mockVisitor = {
+      const mockVisitor: VisitorNotification = {
         id: 'visitor-1',
         type: 'visitor',
         count: 12,
@@ -134,7 +135,7 @@ describe('SocialProofService', () => {
         timestamp: Date.now(),
       };
 
-      vi.mocked(VisitorTrackingService.getVisitorNotification).mockResolvedValue(mockVisitor as any);
+      vi.mocked(VisitorTrackingService.getVisitorNotification).mockResolvedValue(mockVisitor);
 
       await SocialProofService.getNotifications({
         campaignId: 'campaign-123',
@@ -164,20 +165,28 @@ describe('SocialProofService', () => {
 
       // Return multiple notifications
       vi.mocked(ShopifyDataService.getRecentPurchases).mockResolvedValue([
-        { id: 'p1', type: 'purchase' },
-        { id: 'p2', type: 'purchase' },
-        { id: 'p3', type: 'purchase' },
-      ] as any);
+        { id: 'p1', type: 'purchase', customerName: 'A', location: 'L', productName: 'P', timeAgo: '1m', verified: true, timestamp: Date.now() },
+        { id: 'p2', type: 'purchase', customerName: 'B', location: 'L', productName: 'P', timeAgo: '1m', verified: true, timestamp: Date.now() },
+        { id: 'p3', type: 'purchase', customerName: 'C', location: 'L', productName: 'P', timeAgo: '1m', verified: true, timestamp: Date.now() },
+      ] satisfies PurchaseNotification[]);
 
       vi.mocked(VisitorTrackingService.getVisitorNotification).mockResolvedValue({
         id: 'v1',
         type: 'visitor',
-      } as any);
+        count: 5,
+        context: 'viewing this product right now',
+        trending: false,
+        timestamp: Date.now(),
+      } satisfies VisitorNotification);
 
       vi.mocked(ShopifyDataService.getSalesCountNotification).mockResolvedValue({
         id: 's1',
         type: 'visitor',
-      } as any);
+        count: 2,
+        context: 'bought this in the last 24 hours',
+        trending: false,
+        timestamp: Date.now(),
+      } satisfies SocialProofNotification);
 
       const result = await SocialProofService.getNotifications({
         campaignId: 'campaign-123',

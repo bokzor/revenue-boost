@@ -1,74 +1,142 @@
 /**
  * Design Step Content Component
  *
- * Extracted from CampaignFormWithABTesting to follow SOLID principles:
- * - Single Responsibility: Only renders design step content
- * - Separation of Concerns: Isolated from parent form logic
+ * Properly separated design step with:
+ * - ContentConfigSection for template-specific content fields
+ * - DesignConfigSection for universal design/color fields
  */
 
-import { Banner, Text } from "@shopify/polaris";
-import PopupDesignEditorV2 from "~/domains/popups/components/design/PopupDesignEditorV2";
-import { deriveInitialConfig } from "~/lib/campaign-config";
-import type { CampaignGoal, TemplateType, CampaignFormData } from "~/shared/hooks/useWizardState";
-import type { DiscountConfig } from "~/domains/commerce/services/discounts/discount.server";
-import type { PopupDesignConfig, TemplateObject } from "~/domains/popups/types/design-editor.types";
-import type { EnhancedTriggersConfig } from "~/domains/campaigns/types/campaign";
+import { Banner, Text, BlockStack, Card, Divider, Layout } from "@shopify/polaris";
+import { ContentConfigSection } from "../sections/ContentConfigSection";
+import { DesignConfigSection } from "../sections/DesignConfigSection";
+import { TemplateSelector, type SelectedTemplate } from "../TemplateSelector";
+import { LivePreviewPanel } from "~/domains/popups/components/preview/LivePreviewPanel";
+import { Affix } from "~/shared/components/ui/Affix";
+import type { CampaignGoal, TemplateType } from "~/shared/hooks/useWizardState";
+import type { ContentConfig, DesignConfig } from "~/domains/campaigns/types/campaign";
 
 
 interface DesignStepContentProps {
   goal?: CampaignGoal;
-  templateId?: string;
   templateType?: TemplateType;
+  templateId?: string;
   storeId: string;
   shopDomain?: string;
   campaignId?: string;
-  wizardState: CampaignFormData;
-  discountConfig: DiscountConfig;
-  onConfigChange: (config: PopupDesignConfig) => void;
-  onDiscountChange: (config: DiscountConfig) => void;
-  onTemplateChange: (
-    templateId: string,
-    templateType: TemplateType,
-    enhancedTriggers?: EnhancedTriggersConfig,
-    templateObject?: TemplateObject,
-  ) => void;
+  contentConfig: Partial<ContentConfig>;
+  designConfig: Partial<DesignConfig>;
+  onContentChange: (content: Partial<ContentConfig>) => void;
+  onDesignChange: (design: Partial<DesignConfig>) => void;
+  onTemplateSelect: (template: SelectedTemplate) => void;
 }
 
 export function DesignStepContent({
   goal,
-  templateId,
   templateType,
+  templateId,
   storeId,
   shopDomain,
   campaignId,
-  wizardState,
-  discountConfig,
-  onConfigChange,
-  onDiscountChange,
-  onTemplateChange,
+  contentConfig,
+  designConfig,
+  onContentChange,
+  onDesignChange,
+  onTemplateSelect,
 }: DesignStepContentProps) {
   if (!goal) {
     return (
-      <Banner tone="critical">
+      <Banner tone="warning">
         <Text as="p">Please select a campaign goal in the Basic Settings tab first.</Text>
       </Banner>
     );
   }
 
   return (
-    <PopupDesignEditorV2
-      initialConfig={deriveInitialConfig(wizardState)}
-      initialTemplateId={templateId}
-      campaignGoal={goal}
-      templateType={templateType}
-      storeId={storeId}
-      shopDomain={shopDomain}
-      campaignId={campaignId}
-      discountConfig={discountConfig}
-      onDiscountChange={onDiscountChange}
-      onConfigChange={onConfigChange}
-      onTemplateChange={onTemplateChange}
-    />
+    <Layout>
+      {/* Left Column - Template Selector & Configuration Forms */}
+      <Layout.Section variant="oneHalf">
+        <BlockStack gap="600">
+          {/* Template Selector - Always visible */}
+          <Card>
+            <BlockStack gap="400">
+              <Text as="h2" variant="headingMd">
+                Select Template
+              </Text>
+              <Text as="p" tone="subdued">
+                Choose a template optimized for your goal. Preview updates in real-time.
+              </Text>
+              <Divider />
+              <TemplateSelector
+                goal={goal}
+                storeId={storeId}
+                selectedTemplateId={templateId}
+                onSelect={onTemplateSelect}
+              />
+            </BlockStack>
+          </Card>
+
+          {/* Only show configuration if template is selected */}
+          {templateType && (
+            <>
+              {/* Content Configuration - Template-specific fields */}
+              <Card>
+            <BlockStack gap="400">
+              <Text as="h2" variant="headingMd">
+                Content Configuration
+              </Text>
+              <Text as="p" tone="subdued">
+                Customize the text, messages, and behavior for your {templateType.toLowerCase().replace(/_/g, ' ')} campaign
+              </Text>
+              <Divider />
+              <ContentConfigSection
+                templateType={templateType}
+                content={contentConfig}
+                onChange={onContentChange}
+              />
+            </BlockStack>
+          </Card>
+
+              {/* Design Configuration - Universal design/color fields */}
+              <DesignConfigSection
+                design={designConfig}
+                onChange={onDesignChange}
+              />
+            </>
+          )}
+        </BlockStack>
+      </Layout.Section>
+
+      {/* Right Column - Live Preview */}
+      <Layout.Section variant="oneHalf">
+        <div
+          data-affix-boundary
+          style={{ position: "relative", alignSelf: "flex-start" }}
+        >
+          <Affix disableBelowWidth={768}>
+            {templateType ? (
+              <LivePreviewPanel
+                templateType={templateType}
+                config={contentConfig}
+                designConfig={designConfig}
+                shopDomain={shopDomain}
+                campaignId={campaignId}
+              />
+            ) : (
+              <Card>
+                <BlockStack gap="400">
+                  <Text as="h3" variant="headingMd">
+                    Live Preview
+                  </Text>
+                  <Text as="p" tone="subdued">
+                    Select a template from the left to see a live preview here.
+                  </Text>
+                </BlockStack>
+              </Card>
+            )}
+          </Affix>
+        </div>
+      </Layout.Section>
+    </Layout>
   );
 }
 

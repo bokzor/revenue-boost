@@ -22,6 +22,10 @@ export const TemplateCard: React.FC<TemplateCardProps> = ({
 }) => {
   return (
     <div
+      role="button"
+      tabIndex={0}
+      aria-pressed={isSelected}
+      aria-label={`Select template ${template.name}`}
       onClick={() => {
         console.log(
           "TemplateCard clicked:",
@@ -29,6 +33,12 @@ export const TemplateCard: React.FC<TemplateCardProps> = ({
           template.templateId,
         );
         onClick();
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onClick();
+        }
       }}
       data-testid={`template-${template.templateId}`}
       style={{

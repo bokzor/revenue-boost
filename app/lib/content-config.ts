@@ -25,6 +25,7 @@ export type FieldType =
 
 export type TemplateSection =
   | "content"
+  | "design"
   | "theme"
   | "layout"
   | "positioning"
@@ -74,6 +75,12 @@ export const TEMPLATE_SECTIONS: Record<TemplateSection, TemplateSectionMetadata>
     title: "Content",
     description: "Main content and messaging",
     icon: "📝",
+    defaultOpen: true,
+  },
+  design: {
+    title: "Design & Colors",
+    description: "Color scheme and visual design",
+    icon: "🎨",
     defaultOpen: true,
   },
   theme: {

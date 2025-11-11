@@ -84,6 +84,14 @@ module.exports = {
       },
     },
 
+    // Tests: relax no-explicit-any to warn (app stays stricter in CLI when desired)
+    {
+      files: ["**/*.test.ts", "**/*.test.tsx", "tests/**/*.{ts,tsx}", "**/__tests__/**/*.{ts,tsx}"],
+      rules: {
+        "@typescript-eslint/no-explicit-any": "warn",
+      },
+    },
+
     // Node
     {
       files: [

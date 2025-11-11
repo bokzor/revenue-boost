@@ -1,6 +1,6 @@
 /**
  * TagManager - Component for managing campaign tags
- * 
+ *
  * SOLID Compliance:
  * - Single Responsibility: Only handles tag management
  * - Extracted from ScheduleSettingsStep for better reusability
@@ -38,18 +38,16 @@ export function TagManager({ tags = [], onTagsChange }: TagManagerProps) {
     onTagsChange(newTags);
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      handleAddTag();
-    }
+  const handleFormSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    handleAddTag();
   };
 
   return (
     <FormLayout>
       <InlineStack gap="200" align="start">
         <Box minWidth="300px">
-          <div onKeyDown={handleKeyDown}>
+          <form onSubmit={handleFormSubmit} noValidate>
             <TextField
               label="Add Tag"
               value={tagInput}
@@ -58,8 +56,7 @@ export function TagManager({ tags = [], onTagsChange }: TagManagerProps) {
               autoComplete="off"
               connectedRight={
                 <button
-                  type="button"
-                  onClick={handleAddTag}
+                  type="submit"
                   disabled={!tagInput.trim()}
                   style={{
                     padding: "8px 16px",
@@ -75,7 +72,7 @@ export function TagManager({ tags = [], onTagsChange }: TagManagerProps) {
                 </button>
               }
             />
-          </div>
+          </form>
         </Box>
       </InlineStack>
 
