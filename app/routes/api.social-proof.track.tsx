@@ -45,7 +45,7 @@ export async function action({ request }: ActionFunctionArgs) {
 
     // Get or create visitor ID
     const visitorId = await getOrCreateVisitorId(request);
-    const storeId = getStoreIdFromShop(shop);
+    const storeId = await getStoreIdFromShop(shop);
 
     // Track the event
     switch (eventType) {

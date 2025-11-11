@@ -63,15 +63,67 @@ function parseTemplateEntity(rawTemplate: Template): TemplateWithConfigs {
 }
 
 // ============================================================================
+// TEMPLATE CACHING
+// ============================================================================
+
+/**
+ * Simple in-memory cache for templates
+ * Templates rarely change, so caching provides significant performance improvement
+ */
+const templateCache = new Map<string, { data: TemplateWithConfigs[]; timestamp: number }>();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+function getCacheKey(storeId?: string, templateType?: TemplateType): string {
+  return `${storeId || 'global'}_${templateType || 'all'}`;
+}
+
+function getFromCache(key: string): TemplateWithConfigs[] | null {
+  const cached = templateCache.get(key);
+  if (!cached) return null;
+
+  const isExpired = Date.now() - cached.timestamp > CACHE_TTL;
+  if (isExpired) {
+    templateCache.delete(key);
+    return null;
+  }
+
+  return cached.data;
+}
+
+function setCache(key: string, data: TemplateWithConfigs[]): void {
+  templateCache.set(key, { data, timestamp: Date.now() });
+}
+
+/**
+ * Clear template cache (useful after template updates)
+ */
+export function clearTemplateCache(): void {
+  templateCache.clear();
+  console.log('[Template Cache] Cache cleared');
+}
+
+// ============================================================================
 // TEMPLATE SERVICE
 // ============================================================================
 
 export class TemplateService {
   /**
    * Get all templates for a store (including global templates)
+   * Uses in-memory caching for performance (5 minute TTL)
    */
   static async getAllTemplates(storeId?: string): Promise<TemplateWithConfigs[]> {
     try {
+      // Check cache first
+      const cacheKey = getCacheKey(storeId);
+      const cached = getFromCache(cacheKey);
+      if (cached) {
+        console.log(`[Template Cache] HIT for key: ${cacheKey} (${cached.length} templates)`);
+        return cached;
+      }
+
+      console.log(`[Template Cache] MISS for key: ${cacheKey}`);
+      const startTime = Date.now();
+
       const templates = await prisma.template.findMany({
         where: {
           ...globalOrStoreWhere(storeId),
@@ -83,7 +135,14 @@ export class TemplateService {
         ],
       });
 
-      return templates.map(parseTemplateEntity);
+      const result = templates.map(parseTemplateEntity);
+
+      console.log(`[Performance] Template query took ${Date.now() - startTime}ms (${result.length} templates)`);
+
+      // Cache the result
+      setCache(cacheKey, result);
+
+      return result;
     } catch (error) {
       throw new TemplateServiceError("FETCH_TEMPLATES_FAILED", "Failed to fetch templates", error);
     }
@@ -112,12 +171,24 @@ export class TemplateService {
 
   /**
    * Get templates by type
+   * Uses in-memory caching for performance (5 minute TTL)
    */
   static async getTemplatesByType(
     templateType: TemplateType,
     storeId?: string
   ): Promise<TemplateWithConfigs[]> {
     try {
+      // Check cache first
+      const cacheKey = getCacheKey(storeId, templateType);
+      const cached = getFromCache(cacheKey);
+      if (cached) {
+        console.log(`[Template Cache] HIT for key: ${cacheKey} (${cached.length} templates)`);
+        return cached;
+      }
+
+      console.log(`[Template Cache] MISS for key: ${cacheKey}`);
+      const startTime = Date.now();
+
       const templates = await prisma.template.findMany({
         where: {
           templateType,
@@ -130,7 +201,14 @@ export class TemplateService {
         ],
       });
 
-      return templates.map(parseTemplateEntity);
+      const result = templates.map(parseTemplateEntity);
+
+      console.log(`[Performance] Template query (type: ${templateType}) took ${Date.now() - startTime}ms (${result.length} templates)`);
+
+      // Cache the result
+      setCache(cacheKey, result);
+
+      return result;
     } catch (error) {
       throw new TemplateServiceError("FETCH_TEMPLATES_BY_TYPE_FAILED", "Failed to fetch templates by type", error);
     }
@@ -168,6 +246,9 @@ export class TemplateService {
             conversionRate: data.conversionRate,
           },
         });
+
+        // Clear cache after creating template
+        clearTemplateCache();
 
         return parseTemplateEntity(template);
     } catch (error) {

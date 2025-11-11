@@ -50,6 +50,41 @@ export class ExperimentService {
   }
 
   /**
+   * Get experiments by IDs
+   * Optimized query to fetch only specific experiments (avoids N+1 query)
+   */
+  static async getExperimentsByIds(
+    storeId: string,
+    experimentIds: string[]
+  ): Promise<ExperimentWithVariants[]> {
+    try {
+      if (experimentIds.length === 0) {
+        return [];
+      }
+
+      const experiments = await prisma.experiment.findMany({
+        where: {
+          storeId,
+          id: { in: experimentIds },
+        },
+        orderBy: { createdAt: "desc" },
+        include: EXPERIMENT_CAMPAIGNS_INCLUDE,
+      });
+
+      return experiments.map((exp) => ({
+        ...parseExperimentFields(exp),
+        variants: mapCampaignsToVariants(exp.campaigns),
+      }));
+    } catch (error) {
+      throw new ExperimentServiceError(
+        "FETCH_EXPERIMENTS_BY_IDS_FAILED",
+        "Failed to fetch experiments by IDs",
+        error
+      );
+    }
+  }
+
+  /**
    * Get experiment by ID
    */
   static async getExperimentById(

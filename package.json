@@ -3,7 +3,7 @@
   "private": true,
   "scripts": {
     "build": "react-router build",
-    "dev": "shopify app dev",
+    "dev": "npm run build:storefront && shopify app dev",
     "config:link": "shopify app config link",
     "generate": "shopify app generate",
     "deploy": "shopify app deploy",
@@ -23,6 +23,9 @@
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:run": "vitest run",
+    "test:e2e": "E2E_TEST_MODE=true playwright test",
+    "test:e2e:headed": "E2E_TEST_MODE=true playwright test --headed",
+    "test:e2e:debug": "E2E_TEST_MODE=true playwright test --debug",
     "build:storefront": "node scripts/build-storefront.js",
     "auggie:pre-commit": "node ../scripts/auggie-ci-integration.js pre-commit",
     "auggie:pr-review": "node ../scripts/auggie-ci-integration.js pr-review",
@@ -66,6 +69,7 @@
     "zod": "^4.1.12"
   },
   "devDependencies": {
+    "@playwright/test": "^1.56.1",
     "@shopify/api-codegen-preset": "^1.2.0",
     "@shopify/polaris-types": "^1.0.1",
     "@testing-library/react": "^16.3.0",

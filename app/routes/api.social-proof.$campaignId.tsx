@@ -41,7 +41,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       );
     }
 
-    const storeId = getStoreIdFromShop(shop);
+    const storeId = await getStoreIdFromShop(shop);
 
     // Fetch social proof notifications
     const notifications = await SocialProofService.getNotifications({

@@ -248,6 +248,33 @@ export function CampaignFormWithABTesting({
   }, [experimentId]);
 
   // ============================================================================
+  // EFFECTS - Goal Synchronization for A/B Testing
+  // ============================================================================
+
+  // Sync goal from Variant A to all other variants when A/B testing is enabled
+  // This ensures all variants share the same goal as per A/B testing requirements
+  useEffect(() => {
+    if (abTestingEnabled && wizardStateA.wizardState.goal) {
+      const goalFromA = wizardStateA.wizardState.goal;
+
+      // Update Variant B if it doesn't have the same goal
+      if (wizardStateB.wizardState.goal !== goalFromA) {
+        wizardStateB.updateData({ goal: goalFromA });
+      }
+
+      // Update Variant C if it doesn't have the same goal
+      if (wizardStateC.wizardState.goal !== goalFromA) {
+        wizardStateC.updateData({ goal: goalFromA });
+      }
+
+      // Update Variant D if it doesn't have the same goal
+      if (wizardStateD.wizardState.goal !== goalFromA) {
+        wizardStateD.updateData({ goal: goalFromA });
+      }
+    }
+  }, [abTestingEnabled, wizardStateA.wizardState.goal, wizardStateB, wizardStateC, wizardStateD]);
+
+  // ============================================================================
   // HANDLERS - Navigation
   // ============================================================================
 

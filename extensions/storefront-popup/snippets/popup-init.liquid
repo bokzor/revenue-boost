@@ -44,6 +44,12 @@
 
     window.REVENUE_BOOST_CONFIG.shopDomain = '{{ shop.permanent_domain }}';
     window.REVENUE_BOOST_CONFIG.debug = {{ debug_mode }};
+
+    // Bundle base URL - extract from popup-loader URL
+    // This will be something like: https://cdn.shopify.com/extensions/.../assets/
+    const loaderUrl = '{{ "popup-loader.bundle.js" | asset_url }}';
+    window.REVENUE_BOOST_CONFIG.bundleBaseUrl = loaderUrl.substring(0, loaderUrl.lastIndexOf('/') + 1);
+
     window.REVENUE_BOOST_CONFIG.customerId = {{ customer.id | json }};
     window.REVENUE_BOOST_CONFIG.customerEmail = {{ customer.email | json }};
     window.REVENUE_BOOST_CONFIG.customerTags = {{ customer.tags | json }};
@@ -99,8 +105,22 @@
     // Performance tracking
     window.REVENUE_BOOST_CONFIG.loadTime = Date.now();
 
+    // Always log initialization for debugging
+    console.log('[Revenue Boost] 🚀 Config loaded:', {
+      shopDomain: window.REVENUE_BOOST_CONFIG.shopDomain,
+      pageType: window.REVENUE_BOOST_CONFIG.pageType,
+      pageUrl: window.REVENUE_BOOST_CONFIG.pageUrl,
+      deviceType: window.REVENUE_BOOST_CONFIG.deviceType,
+      customerId: window.REVENUE_BOOST_CONFIG.customerId,
+      cartItemCount: window.REVENUE_BOOST_CONFIG.cartItemCount,
+      visitCount: window.REVENUE_BOOST_CONFIG.visitCount,
+      isReturningVisitor: window.REVENUE_BOOST_CONFIG.isReturningVisitor,
+      debug: window.REVENUE_BOOST_CONFIG.debug,
+      bundleBaseUrl: window.REVENUE_BOOST_CONFIG.bundleBaseUrl
+    });
+
     if (window.REVENUE_BOOST_CONFIG.debug) {
-      console.log('[Revenue Boost] Config loaded:', window.REVENUE_BOOST_CONFIG);
+      console.log('[Revenue Boost] 🔍 Full config:', window.REVENUE_BOOST_CONFIG);
     }
   })();
 </script>

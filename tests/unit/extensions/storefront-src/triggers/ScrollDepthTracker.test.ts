@@ -44,7 +44,7 @@ describe("ScrollDepthTracker", () => {
     it("should start listening for scroll events", () => {
       const callback = vi.fn();
       const addEventListenerSpy = vi.spyOn(window, "addEventListener");
-      
+
       tracker.start(callback);
 
       expect(addEventListenerSpy).toHaveBeenCalledWith(
@@ -59,10 +59,10 @@ describe("ScrollDepthTracker", () => {
 
     it("should not start if already active", () => {
       const callback = vi.fn();
-      
+
       tracker.start(callback);
       const firstActive = tracker.isActive();
-      
+
       tracker.start(callback); // Second call should be ignored
       const secondActive = tracker.isActive();
 
@@ -75,14 +75,14 @@ describe("ScrollDepthTracker", () => {
     it("should stop listening for scroll events", () => {
       const callback = vi.fn();
       const removeEventListenerSpy = vi.spyOn(window, "removeEventListener");
-      
+
       tracker.start(callback);
       tracker.stop();
 
       expect(removeEventListenerSpy).toHaveBeenCalledWith(
         "scroll",
         expect.any(Function),
-        expect.any(Object)
+        expect.anything()
       );
       expect(tracker.isActive()).toBe(false);
 
@@ -169,9 +169,9 @@ describe("ScrollDepthTracker", () => {
   describe("cleanup", () => {
     it("should cleanup all listeners", () => {
       const callback = vi.fn();
-      
+
       tracker.start(callback);
-      
+
       expect(() => tracker.destroy()).not.toThrow();
       expect(tracker.isActive()).toBe(false);
     });

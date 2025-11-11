@@ -57,7 +57,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
       );
     }
 
-    const storeId = getStoreIdFromShop(shop);
+    const storeId = await getStoreIdFromShop(shop);
 
     // Build storefront context from request
     const context = buildStorefrontContext(url.searchParams, request.headers);
@@ -67,12 +67,18 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
     // Get all active campaigns
     const allCampaigns = await CampaignService.getActiveCampaigns(storeId);
+    console.log(`[Active Campaigns API] Found ${allCampaigns.length} active campaigns for store ${storeId}`);
 
     // Filter campaigns based on context (server-side filtering with Redis)
     const filteredCampaigns = await CampaignFilterService.filterCampaigns(
       allCampaigns,
       context
     );
+    console.log(`[Active Campaigns API] After filtering: ${filteredCampaigns.length} campaigns`, {
+      pageType: context.pageType,
+      deviceType: context.deviceType,
+      visitorId: context.visitorId,
+    });
 
     // Format campaigns for storefront consumption
     // Only send client-side triggers, not full targetRules
@@ -93,6 +99,16 @@ export async function loader({ request }: LoaderFunctionArgs) {
       campaigns: formattedCampaigns,
       timestamp: new Date().toISOString(),
     };
+
+    console.log(`[Active Campaigns API] ✅ Returning ${formattedCampaigns.length} campaigns to storefront`);
+    if (formattedCampaigns.length > 0) {
+      console.log('[Active Campaigns API] Campaign details:', formattedCampaigns.map(c => ({
+        id: c.id,
+        name: c.name,
+        templateType: c.templateType,
+        priority: c.priority,
+      })));
+    }
 
     return data(response, { headers });
   } catch (error) {

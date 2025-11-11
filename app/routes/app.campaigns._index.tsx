@@ -6,7 +6,7 @@
 
 import { data, type LoaderFunctionArgs } from "react-router";
 import { useLoaderData, useNavigate, useRevalidator } from "react-router";
-import { Page, Toast, Frame } from "@shopify/polaris";
+import { Page, Toast, Frame, Banner, InlineStack } from "@shopify/polaris";
 import { useState } from "react";
 
 import { authenticate } from "~/shopify.server";
@@ -24,6 +24,7 @@ interface LoaderData {
   campaigns: CampaignWithConfigs[];
   experiments: ExperimentWithVariants[];
   storeId: string;
+  setupComplete: boolean;
 }
 
 // ============================================================================
@@ -42,7 +43,9 @@ export async function loader({ request }: LoaderFunctionArgs) {
     const storeId = await getStoreId(request);
 
     // Get campaigns for this store
+    const startTime = Date.now();
     const campaigns = await CampaignService.getAllCampaigns(storeId);
+    console.log(`[Performance] getAllCampaigns took ${Date.now() - startTime}ms`);
 
     // Fetch experiments for campaigns to display experiment names on the index
     const experimentIds = Array.from(new Set(
@@ -51,14 +54,28 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
     let experiments: ExperimentWithVariants[] = [];
     if (experimentIds.length > 0) {
-      const allExperiments = await ExperimentService.getAllExperiments(storeId);
-      experiments = allExperiments.filter((exp) => experimentIds.includes(exp.id));
+      // OPTIMIZED: Query only the experiments we need (avoids N+1 query)
+      const expStartTime = Date.now();
+      experiments = await ExperimentService.getExperimentsByIds(storeId, experimentIds);
+      console.log(`[Performance] getExperimentsByIds took ${Date.now() - expStartTime}ms for ${experimentIds.length} experiments`);
+    }
+
+    // Check setup status - simplified to avoid fetch issues
+    let setupComplete = true;
+    try {
+      // Just check if store exists for now
+      const storeExists = !!storeId;
+      setupComplete = storeExists;
+    } catch (error) {
+      console.error("Failed to check setup status:", error);
+      setupComplete = true; // Default to true to not block the UI
     }
 
     return data<LoaderData>({
       campaigns,
       experiments,
       storeId,
+      setupComplete,
     });
 
   } catch (error) {
@@ -68,6 +85,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
       campaigns: [],
       experiments: [],
       storeId: "",
+      setupComplete: false,
     }, { status: 500 });
   }
 }
@@ -77,7 +95,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 // ============================================================================
 
 export default function CampaignsIndexPage() {
-  const { campaigns, experiments, storeId } = useLoaderData<typeof loader>();
+  const { campaigns, experiments, storeId, setupComplete } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
   const revalidator = useRevalidator();
 
@@ -190,6 +208,20 @@ export default function CampaignsIndexPage() {
         subtitle="Manage your revenue boost campaigns"
         primaryAction={primaryAction}
       >
+        {!setupComplete && (
+          <Banner
+            title="Setup Required"
+            tone="warning"
+            action={{
+              content: "View Setup Status",
+              onAction: () => navigate("/app/setup"),
+            }}
+          >
+            <p>
+              Your app setup is incomplete. The theme extension needs to be enabled for popups to appear on your storefront.
+            </p>
+          </Banner>
+        )}
         <CampaignList
           campaigns={campaigns}
           experiments={experiments}

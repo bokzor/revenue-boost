@@ -682,9 +682,7 @@ export const CampaignCreateDataSchema = z.object({
   endDate: z.date().optional(),
 });
 
-export const CampaignUpdateDataSchema = CampaignCreateDataSchema.partial().extend({
-  id: z.cuid(),
-});
+export const CampaignUpdateDataSchema = CampaignCreateDataSchema.partial();
 
 // ============================================================================
 // TYPE EXPORTS

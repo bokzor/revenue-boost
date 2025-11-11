@@ -67,53 +67,79 @@ export class TriggerManager {
   async evaluateTriggers(campaign: Campaign): Promise<boolean> {
     const triggers = campaign.clientTriggers?.enhancedTriggers;
 
+    console.log("[Revenue Boost] 🎯 Evaluating triggers for campaign:", campaign.id);
+
     // If no triggers defined, show immediately
     if (!triggers || Object.keys(triggers).length === 0) {
+      console.log("[Revenue Boost] ✅ No triggers defined, showing campaign immediately");
       return true;
     }
 
     // Get logic operator (default: AND)
     const logicOperator = triggers.logic_operator || "AND";
+    console.log("[Revenue Boost] 🔗 Trigger logic operator:", logicOperator);
 
     // Evaluate each trigger
     const results: boolean[] = [];
+    const triggerResults: Record<string, boolean> = {};
 
     // Page Load Trigger
     if (triggers.page_load !== undefined) {
+      console.log("[Revenue Boost] 📄 Checking page_load trigger:", triggers.page_load);
       const result = await this.checkPageLoad(triggers.page_load);
+      triggerResults.page_load = result;
       results.push(result);
+      console.log(`[Revenue Boost] ${result ? "✅" : "❌"} page_load trigger ${result ? "passed" : "failed"}`);
     }
 
     // Scroll Depth Trigger
     if (triggers.scroll_depth !== undefined) {
+      console.log("[Revenue Boost] 📜 Checking scroll_depth trigger:", triggers.scroll_depth);
       const result = await this.checkScrollDepth(triggers.scroll_depth);
+      triggerResults.scroll_depth = result;
       results.push(result);
+      console.log(`[Revenue Boost] ${result ? "✅" : "❌"} scroll_depth trigger ${result ? "passed" : "failed"}`);
     }
 
     // Exit Intent Trigger
     if (triggers.exit_intent !== undefined) {
+      console.log("[Revenue Boost] 🚪 Checking exit_intent trigger:", triggers.exit_intent);
       const result = await this.checkExitIntent(triggers.exit_intent);
+      triggerResults.exit_intent = result;
       results.push(result);
+      console.log(`[Revenue Boost] ${result ? "✅" : "❌"} exit_intent trigger ${result ? "passed" : "failed"}`);
     }
 
     // Idle Timer Trigger
     if (triggers.idle_timer !== undefined) {
+      console.log("[Revenue Boost] ⏱️ Checking idle_timer trigger:", triggers.idle_timer);
       const result = await this.checkIdleTimer(triggers.idle_timer);
+      triggerResults.idle_timer = result;
       results.push(result);
+      console.log(`[Revenue Boost] ${result ? "✅" : "❌"} idle_timer trigger ${result ? "passed" : "failed"}`);
     }
 
     // If no enabled triggers, show immediately
     if (results.length === 0) {
+      console.log("[Revenue Boost] ⚠️ No enabled triggers found, showing campaign immediately");
       return true;
     }
 
     // Combine results based on logic operator
+    let finalResult: boolean;
     if (logicOperator === "OR") {
-      return results.some((r) => r === true);
+      finalResult = results.some((r) => r === true);
+      console.log("[Revenue Boost] 🔀 OR logic: At least one trigger must pass");
     } else {
       // AND logic
-      return results.every((r) => r === true);
+      finalResult = results.every((r) => r === true);
+      console.log("[Revenue Boost] 🔗 AND logic: All triggers must pass");
     }
+
+    console.log("[Revenue Boost] 📊 Trigger evaluation summary:", triggerResults);
+    console.log(`[Revenue Boost] ${finalResult ? "✅ CAMPAIGN WILL SHOW" : "❌ CAMPAIGN WILL NOT SHOW"} - Final result: ${finalResult}`);
+
+    return finalResult;
   }
 
   /**
@@ -121,15 +147,18 @@ export class TriggerManager {
    */
   private async checkPageLoad(trigger: PageLoadTrigger): Promise<boolean> {
     if (!trigger.enabled) {
+      console.log("[Revenue Boost] ⏭️ page_load trigger is disabled");
       return false;
     }
 
     const delay = trigger.delay || 0;
+    console.log(`[Revenue Boost] ⏳ page_load trigger waiting ${delay}ms before showing`);
 
     if (delay > 0) {
       await this.delay(delay);
     }
 
+    console.log("[Revenue Boost] ✅ page_load trigger delay completed");
     return true;
   }
 
@@ -138,21 +167,28 @@ export class TriggerManager {
    */
   private async checkScrollDepth(trigger: ScrollDepthTrigger): Promise<boolean> {
     if (!trigger.enabled) {
+      console.log("[Revenue Boost] ⏭️ scroll_depth trigger is disabled");
       return false;
     }
 
+    const depthPercentage = trigger.depth_percentage || 50;
+    const direction = trigger.direction || "down";
+    console.log(`[Revenue Boost] 📏 scroll_depth trigger waiting for ${depthPercentage}% scroll ${direction}`);
+
     return new Promise((resolve) => {
       this.scrollDepthTracker = new ScrollDepthTracker({
-        depthPercentage: trigger.depth_percentage || 50,
-        direction: trigger.direction || "down",
+        depthPercentage,
+        direction,
       });
 
       this.scrollDepthTracker.start(() => {
+        console.log(`[Revenue Boost] ✅ scroll_depth trigger detected: User scrolled ${depthPercentage}% ${direction}`);
         resolve(true);
       });
 
       // Check if already at depth
       if (this.scrollDepthTracker.hasReachedDepth()) {
+        console.log(`[Revenue Boost] ✅ scroll_depth trigger already met: User already at ${depthPercentage}% depth`);
         this.scrollDepthTracker.destroy();
         resolve(true);
       }
@@ -164,16 +200,22 @@ export class TriggerManager {
    */
   private async checkExitIntent(trigger: ExitIntentTrigger): Promise<boolean> {
     if (!trigger.enabled) {
+      console.log("[Revenue Boost] ⏭️ exit_intent trigger is disabled");
       return false;
     }
 
+    const sensitivity = trigger.sensitivity || "medium";
+    const delay = trigger.delay || 1000;
+    console.log(`[Revenue Boost] 🚪 exit_intent trigger waiting for exit intent (sensitivity: ${sensitivity}, delay: ${delay}ms)`);
+
     return new Promise((resolve) => {
       this.exitIntentDetector = new ExitIntentDetector({
-        sensitivity: trigger.sensitivity || "medium",
-        delay: trigger.delay || 1000,
+        sensitivity,
+        delay,
       });
 
       this.exitIntentDetector.start(() => {
+        console.log("[Revenue Boost] ✅ exit_intent trigger detected: User showed exit intent");
         resolve(true);
       });
     });
@@ -184,15 +226,20 @@ export class TriggerManager {
    */
   private async checkIdleTimer(trigger: IdleTimerTrigger): Promise<boolean> {
     if (!trigger.enabled) {
+      console.log("[Revenue Boost] ⏭️ idle_timer trigger is disabled");
       return false;
     }
 
+    const idleDuration = trigger.idle_duration || 30;
+    console.log(`[Revenue Boost] ⏱️ idle_timer trigger waiting for ${idleDuration}s of inactivity`);
+
     return new Promise((resolve) => {
       this.idleTimer = new IdleTimer({
-        idleDuration: (trigger.idle_duration || 30) * 1000, // Convert seconds to ms
+        idleDuration: idleDuration * 1000, // Convert seconds to ms
       });
 
       this.idleTimer.start(() => {
+        console.log(`[Revenue Boost] ✅ idle_timer trigger detected: User was idle for ${idleDuration}s`);
         resolve(true);
       });
     });

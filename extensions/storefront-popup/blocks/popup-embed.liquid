@@ -1,0 +1,54 @@
+{%- comment -%}
+  Revenue Boost App Block: Popup Embed
+  Allows merchants to manually place popup loader in theme editor (optional)
+  Note: The app embed (snippets/popup-init.liquid) auto-loads on all pages,
+  so this block is only needed if merchant wants manual control
+{%- endcomment -%}
+
+{% if block.settings.enabled %}
+  <div id="revenue-boost-embed" data-shop="{{ shop.permanent_domain }}" style="display: none;">
+    <script>
+      window.REVENUE_BOOST_CONFIG = window.REVENUE_BOOST_CONFIG || {};
+      window.REVENUE_BOOST_CONFIG.apiUrl = '{{ block.settings.api_url | default: '' }}';
+      window.REVENUE_BOOST_CONFIG.shopDomain = '{{ shop.permanent_domain }}';
+      window.REVENUE_BOOST_CONFIG.debug = {{ block.settings.debug_mode | default: false }};
+      window.REVENUE_BOOST_CONFIG.customerId = {{ customer.id | json }};
+      window.REVENUE_BOOST_CONFIG.customerEmail = {{ customer.email | json }};
+      window.REVENUE_BOOST_CONFIG.customerTags = {{ customer.tags | json }};
+      window.REVENUE_BOOST_CONFIG.cartToken = {{ cart.token | json }};
+      window.REVENUE_BOOST_CONFIG.pageType = '{{ request.page_type }}';
+      window.REVENUE_BOOST_CONFIG.pageUrl = '{{ request.path }}';
+    </script>
+    <script src="{{ 'popup-loader.bundle.js' | asset_url }}" defer></script>
+  </div>
+{% endif %}
+
+{% schema %}
+{
+  "name": "Revenue Boost Popups",
+  "target": "body",
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "enabled",
+      "label": "Enable popups",
+      "default": true,
+      "info": "Turn off to disable all popups on your store"
+    },
+    {
+      "type": "text",
+      "id": "api_url",
+      "label": "API URL (Advanced)",
+      "info": "Leave blank to use default. Only change if instructed by support."
+    },
+    {
+      "type": "checkbox",
+      "id": "debug_mode",
+      "label": "Debug mode",
+      "default": false,
+      "info": "Enable console logging for troubleshooting"
+    }
+  ]
+}
+{% endschema %}
+

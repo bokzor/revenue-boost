@@ -127,6 +127,7 @@ export interface CampaignFormData {
   contentConfig: CampaignContentConfig; // ✅ Properly typed
   templateId?: string;
   templateType?: TemplateType; // Template type for template-specific configuration
+  experimentId?: string; // A/B Testing experiment ID
   templateConfig?: CampaignTemplateConfig; // ✅ Properly typed
   targetRules: TargetRulesConfig;
   designConfig: CampaignDesignConfig; // ✅ Properly typed

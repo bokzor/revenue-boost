@@ -90,6 +90,9 @@ model Campaign {
   @@index([experimentId, variantKey])
   @@index([goal, status])
   @@index([priority])
+  // Performance optimization: Composite indexes for common query patterns
+  @@index([storeId, status, priority]) // Covering index for active campaigns with priority sort
+  @@index([templateId]) // For template-based queries
   @@map("campaigns")
 }
 
@@ -169,6 +172,10 @@ model Template {
   @@index([isActive])
   @@index([priority])
   @@index([goals])
+  // Performance optimization: Composite indexes for common query patterns
+  @@index([storeId, isActive, templateType]) // For filtered template queries
+  @@index([storeId, isActive, priority]) // For sorted template queries
+  @@index([isActive, priority]) // For global template queries
   @@map("templates")
 }
 

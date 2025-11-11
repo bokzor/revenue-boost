@@ -22,10 +22,12 @@ export class CampaignFilterService {
     context: StorefrontContext
   ): CampaignWithConfigs[] {
     if (!context.deviceType) {
+      console.log("[Revenue Boost] ⚠️ No device type in context, skipping device filter");
       return campaigns;
     }
 
     const device = context.deviceType!;
+    console.log(`[Revenue Boost] 📱 Filtering campaigns by device type: ${device}`);
 
     return campaigns.filter((campaign) => {
       const targeting = campaign.targetRules?.audienceTargeting;
@@ -57,7 +59,15 @@ export class CampaignFilterService {
       }
 
       // Check if campaign targets this specific device
-      return segments.includes(deviceSegment);
+      const matches = segments.includes(deviceSegment);
+
+      if (matches) {
+        console.log(`[Revenue Boost] ✅ Campaign "${campaign.name}" (${campaign.id}): Targets ${deviceSegment}`);
+      } else {
+        console.log(`[Revenue Boost] ❌ Campaign "${campaign.name}" (${campaign.id}): Does not target ${deviceSegment}`);
+      }
+
+      return matches;
     });
   }
 
@@ -69,8 +79,11 @@ export class CampaignFilterService {
     context: StorefrontContext
   ): CampaignWithConfigs[] {
     if (!context.pageUrl) {
+      console.log("[Revenue Boost] ⚠️ No page URL in context, skipping page targeting filter");
       return campaigns;
     }
+
+    console.log(`[Revenue Boost] 📄 Filtering campaigns by page targeting. Current page: ${context.pageUrl}`);
 
     return campaigns.filter((campaign) => {
       const pageTargeting = campaign.targetRules?.enhancedTriggers?.page_targeting;
@@ -87,10 +100,20 @@ export class CampaignFilterService {
         return true;
       }
 
+      console.log(`[Revenue Boost] 🎯 Campaign "${campaign.name}" (${campaign.id}) targets pages:`, targetPages);
+
       // Check if current page matches any target page
-      return targetPages.some((targetPage) => {
+      const matches = targetPages.some((targetPage) => {
         return this.matchesPagePattern(context.pageUrl!, targetPage);
       });
+
+      if (matches) {
+        console.log(`[Revenue Boost] ✅ Campaign "${campaign.name}" (${campaign.id}): Page MATCHED`);
+      } else {
+        console.log(`[Revenue Boost] ❌ Campaign "${campaign.name}" (${campaign.id}): Page does NOT match`);
+      }
+
+      return matches;
     });
   }
 
@@ -104,11 +127,16 @@ export class CampaignFilterService {
     // For now, we'll implement basic segment matching
     // This can be extended to query actual customer segments from DB
 
+    console.log("[Revenue Boost] 👥 Filtering campaigns by audience segments");
+    const contextSegments = this.getContextSegments(context);
+    console.log("[Revenue Boost] 📊 Visitor segments detected:", contextSegments);
+
     return campaigns.filter((campaign) => {
       const targeting = campaign.targetRules?.audienceTargeting;
 
       // If no audience targeting, include campaign
       if (!targeting || !targeting.enabled) {
+        console.log(`[Revenue Boost] ✅ Campaign "${campaign.name}" (${campaign.id}): No audience targeting, including`);
         return true;
       }
 
@@ -116,14 +144,23 @@ export class CampaignFilterService {
 
       // If no segments defined, include campaign
       if (segments.length === 0) {
+        console.log(`[Revenue Boost] ✅ Campaign "${campaign.name}" (${campaign.id}): No segments defined, including`);
         return true;
       }
 
-      // Check context-based segments
-      const contextSegments = this.getContextSegments(context);
+      console.log(`[Revenue Boost] 🎯 Campaign "${campaign.name}" (${campaign.id}) requires segments:`, segments);
 
       // Campaign matches if any of its segments match context segments
-      return segments.some((seg) => contextSegments.includes(seg));
+      const matches = segments.some((seg) => contextSegments.includes(seg));
+
+      if (matches) {
+        const matchedSegments = segments.filter((seg) => contextSegments.includes(seg));
+        console.log(`[Revenue Boost] ✅ Campaign "${campaign.name}" (${campaign.id}): MATCHED segments:`, matchedSegments);
+      } else {
+        console.log(`[Revenue Boost] ❌ Campaign "${campaign.name}" (${campaign.id}): NO MATCH - visitor segments don't match required segments`);
+      }
+
+      return matches;
     });
   }
 
@@ -155,19 +192,37 @@ export class CampaignFilterService {
     campaigns: CampaignWithConfigs[],
     context: StorefrontContext
   ): Promise<CampaignWithConfigs[]> {
+    console.log(`[Revenue Boost] 🔍 Starting campaign filtering. Total campaigns: ${campaigns.length}`);
+    console.log("[Revenue Boost] 📋 Campaign IDs:", campaigns.map(c => `${c.name} (${c.id})`));
+
     let filtered = campaigns;
 
     // Apply device type filter
+    console.log("\n[Revenue Boost] === DEVICE TYPE FILTER ===");
     filtered = this.filterByDeviceType(filtered, context);
+    console.log(`[Revenue Boost] After device filter: ${filtered.length} campaigns remaining\n`);
 
     // Apply page targeting filter
+    console.log("[Revenue Boost] === PAGE TARGETING FILTER ===");
     filtered = this.filterByPageTargeting(filtered, context);
+    console.log(`[Revenue Boost] After page targeting filter: ${filtered.length} campaigns remaining\n`);
 
     // Apply audience segments filter
+    console.log("[Revenue Boost] === AUDIENCE SEGMENTS FILTER ===");
     filtered = this.filterByAudienceSegments(filtered, context);
+    console.log(`[Revenue Boost] After audience segments filter: ${filtered.length} campaigns remaining\n`);
 
     // Apply frequency capping filter (async - uses Redis)
+    console.log("[Revenue Boost] === FREQUENCY CAPPING FILTER ===");
     filtered = await this.filterByFrequencyCapping(filtered, context);
+    console.log(`[Revenue Boost] After frequency capping filter: ${filtered.length} campaigns remaining\n`);
+
+    console.log(`[Revenue Boost] ✅ Filtering complete. Final campaigns: ${filtered.length}`);
+    if (filtered.length > 0) {
+      console.log("[Revenue Boost] 📋 Final campaign IDs:", filtered.map(c => `${c.name} (${c.id})`));
+    } else {
+      console.log("[Revenue Boost] ⚠️ No campaigns passed all filters");
+    }
 
     return filtered;
   }

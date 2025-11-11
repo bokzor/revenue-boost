@@ -72,11 +72,23 @@ export async function getStoreId(request: Request): Promise<string> {
  * Get store ID from shop parameter (for public/storefront endpoints)
  * This is used for public endpoints that don't require Shopify authentication
  *
- * @param shop - Shop domain (e.g., "store.myshopify.com" or "store")
- * @returns Store identifier without .myshopify.com suffix
+ * @param shop - Shop domain (e.g., "store.myshopify.com")
+ * @returns Database store ID (CUID)
  */
-export function getStoreIdFromShop(shop: string): string {
-  // Remove .myshopify.com suffix if present
-  return shop.replace('.myshopify.com', '');
+export async function getStoreIdFromShop(shop: string): Promise<string> {
+  // Normalize shop domain
+  const shopDomain = shop.includes('.myshopify.com') ? shop : `${shop}.myshopify.com`;
+
+  // Look up store in database
+  const store = await prisma.store.findUnique({
+    where: { shopifyDomain: shopDomain },
+    select: { id: true },
+  });
+
+  if (!store) {
+    throw new Error(`Store not found for shop: ${shopDomain}`);
+  }
+
+  return store.id;
 }
 
