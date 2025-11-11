@@ -93,7 +93,7 @@ export function Affix({
 
   const readOffsetTop = useCallback((): number => {
     if (typeof offsetTop === "number") return Math.max(0, offsetTop);
-    const css = getComputedStyle(document.documentElement).getPropertyValue(
+    const css = getComputedStyle(document.documentElement as Element).getPropertyValue(
       offsetVar,
     );
     const parsed = parseInt(css || "", 10);
@@ -105,7 +105,7 @@ export function Affix({
     if (!node) return window;
     let el: HTMLElement | null = node.parentElement;
     while (el && el !== document.body) {
-      const style = getComputedStyle(el);
+      const style = getComputedStyle(el as Element);
       const overflowY = style.overflowY;
       const overflow = style.overflow;
       if (
@@ -430,8 +430,8 @@ export function Affix({
 
     // Resize observers to react to layout changes
     const ro = new ResizeObserver(onResize);
-    if (containerRef.current) ro.observe(containerRef.current);
-    if (contentRef.current) ro.observe(contentRef.current);
+    if (containerRef.current) ro.observe(containerRef.current as Element);
+    if (contentRef.current) ro.observe(contentRef.current as Element);
 
     return () => {
       cancelAnimationFrame(raf);

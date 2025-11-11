@@ -10,6 +10,7 @@ import { Frame, Toast } from "@shopify/polaris";
 import { useState } from "react";
 
 import { authenticate } from "~/shopify.server";
+import { getStoreId } from "~/lib/auth-helpers.server";
 import { CampaignService } from "~/domains/campaigns";
 import { CampaignFormWithABTesting } from "~/domains/campaigns/components/CampaignFormWithABTesting";
 import type { CampaignWithConfigs } from "~/domains/campaigns/types/campaign";
@@ -42,12 +43,14 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       throw new Error("Campaign ID is required");
     }
 
+    const storeId = await getStoreId(request);
+
     // Get campaign details
-    const campaign = await CampaignService.getCampaignById(campaignId, session.shop);
+    const campaign = await CampaignService.getCampaignById(campaignId, storeId);
 
     return data<LoaderData>({
       campaign,
-      storeId: session.shop,
+      storeId,
       shopDomain: session.shop,
     });
 

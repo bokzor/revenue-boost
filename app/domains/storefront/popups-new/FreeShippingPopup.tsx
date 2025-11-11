@@ -1,18 +1,17 @@
 /**
  * FreeShippingPopup Component
  *
- * Free shipping threshold popup featuring:
+ * Simple free shipping threshold banner featuring:
  * - Progress bar showing cart value vs threshold
  * - Dynamic messaging based on cart value
  * - Success state when threshold reached
- * - Optional product recommendations to reach threshold
  * - Multiple display modes (banner/modal/sticky)
  * - Auto-hide option
  */
 
 import React, { useMemo, useCallback } from 'react';
 import { BasePopup } from './BasePopup';
-import type { PopupDesignConfig, Product } from './types';
+import type { PopupDesignConfig } from './types';
 import type { FreeShippingContent } from '~/domains/campaigns/types/campaign';
 import { formatCurrency } from './utils';
 
@@ -24,7 +23,6 @@ import { formatCurrency } from './utils';
 export interface FreeShippingConfig extends PopupDesignConfig, FreeShippingContent {
   // Storefront-specific fields only
   currentCartTotal?: number;
-  products?: Product[];
 
   // Note: freeShippingThreshold, initialMessage, progressMessage, etc.
   // all come from FreeShippingContent
@@ -35,8 +33,6 @@ export interface FreeShippingPopupProps {
   isVisible: boolean;
   onClose: () => void;
   cartTotal?: number;
-  products?: Product[];
-  onProductClick?: (product: Product) => void;
 }
 
 export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
@@ -44,8 +40,6 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
   isVisible,
   onClose,
   cartTotal: propCartTotal,
-  products: propProducts,
-  onProductClick,
 }) => {
   const cartTotal = propCartTotal ?? config.currentCartTotal ?? 0;
   const threshold = config.freeShippingThreshold;
@@ -57,20 +51,6 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
 
     return { remaining, percentage, hasReached };
   }, [cartTotal, threshold]);
-
-  const products = useMemo(() => {
-    const allProducts = propProducts || config.products || [];
-
-    if (config.productFilter === 'under_threshold') {
-      return allProducts.filter(p => parseFloat(p.price) <= remaining);
-    }
-
-    return allProducts;
-  }, [propProducts, config.products, config.productFilter, remaining]);
-
-  const displayProducts = config.maxProductsToShow
-    ? products.slice(0, config.maxProductsToShow)
-    : products;
 
   const getMessage = useCallback(() => {
     if (hasReached) {
@@ -158,50 +138,17 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
             </div>
           )}
 
-          {/* Product recommendations */}
-          {config.showProducts && !hasReached && displayProducts.length > 0 && (
-            <div style={{
-              display: 'flex',
-              gap: '12px',
-              overflowX: 'auto',
-              padding: '8px 0',
-            }}>
-              {displayProducts.map(product => (
-                <div
-                  key={product.id}
-                  onClick={() => onProductClick?.(product)}
-                  style={{
-                    minWidth: '120px',
-                    cursor: 'pointer',
-                    padding: '8px',
-                    backgroundColor: 'rgba(255,255,255,0.1)',
-                    borderRadius: '6px',
-                    transition: 'transform 0.2s',
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
-                  onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                >
-                  {product.imageUrl && (
-                    <img
-                      src={product.imageUrl}
-                      alt={product.title}
-                      style={{
-                        width: '100%',
-                        height: '80px',
-                        objectFit: 'cover',
-                        borderRadius: '4px',
-                        marginBottom: '6px',
-                      }}
-                    />
-                  )}
-                  <div style={{ fontSize: '12px', fontWeight: 600, marginBottom: '4px' }}>
-                    {product.title}
-                  </div>
-                  <div style={{ fontSize: '14px', fontWeight: 700 }}>
-                    {formatCurrency(product.price, config.currency)}
-                  </div>
-                </div>
-              ))}
+          {/* Progress message */}
+          {!hasReached && config.progressMessage && (
+            <div style={{ fontSize: '14px', opacity: 0.9, textAlign: 'center' }}>
+              {config.progressMessage.replace('{{percentage}}', Math.round(percentage).toString())}
+            </div>
+          )}
+
+          {/* Success subheading */}
+          {hasReached && config.successSubhead && (
+            <div style={{ fontSize: '14px', opacity: 0.9, textAlign: 'center' }}>
+              {config.successSubhead}
             </div>
           )}
         </div>
@@ -254,56 +201,6 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
               <p style={{ fontSize: '14px', marginTop: '8px', fontWeight: 600 }}>
                 {Math.round(percentage)}% there!
               </p>
-            </div>
-          )}
-
-          {/* Product recommendations */}
-          {config.showProducts && !hasReached && displayProducts.length > 0 && (
-            <div>
-              <h3 style={{ fontSize: '16px', fontWeight: 600, margin: '0 0 12px 0' }}>
-                Add one of these to qualify:
-              </h3>
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-                gap: '12px',
-              }}>
-                {displayProducts.map(product => (
-                  <div
-                    key={product.id}
-                    onClick={() => onProductClick?.(product)}
-                    style={{
-                      cursor: 'pointer',
-                      padding: '12px',
-                      border: `1px solid ${config.inputBorderColor || '#E5E7EB'}`,
-                      borderRadius: '8px',
-                      transition: 'border-color 0.2s',
-                    }}
-                    onMouseEnter={(e) => e.currentTarget.style.borderColor = config.accentColor || config.buttonColor}
-                    onMouseLeave={(e) => e.currentTarget.style.borderColor = config.inputBorderColor || '#E5E7EB'}
-                  >
-                    {product.imageUrl && (
-                      <img
-                        src={product.imageUrl}
-                        alt={product.title}
-                        style={{
-                          width: '100%',
-                          height: '120px',
-                          objectFit: 'cover',
-                          borderRadius: '6px',
-                          marginBottom: '8px',
-                        }}
-                      />
-                    )}
-                    <div style={{ fontSize: '14px', fontWeight: 600, marginBottom: '6px' }}>
-                      {product.title}
-                    </div>
-                    <div style={{ fontSize: '16px', fontWeight: 700 }}>
-                      {formatCurrency(product.price, config.currency)}
-                    </div>
-                  </div>
-                ))}
-              </div>
             </div>
           )}
         </div>

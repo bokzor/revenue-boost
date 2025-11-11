@@ -10,9 +10,11 @@ import { Page, Toast, Frame } from "@shopify/polaris";
 import { useState } from "react";
 
 import { authenticate } from "~/shopify.server";
-import { CampaignService } from "~/domains/campaigns";
+import { getStoreId } from "~/lib/auth-helpers.server";
+import { CampaignService, ExperimentService } from "~/domains/campaigns";
 import { CampaignList } from "~/domains/campaigns/components";
 import type { CampaignWithConfigs } from "~/domains/campaigns/types/campaign";
+import type { ExperimentWithVariants } from "~/domains/campaigns";
 
 // ============================================================================
 // TYPES
@@ -20,6 +22,7 @@ import type { CampaignWithConfigs } from "~/domains/campaigns/types/campaign";
 
 interface LoaderData {
   campaigns: CampaignWithConfigs[];
+  experiments: ExperimentWithVariants[];
   storeId: string;
 }
 
@@ -35,12 +38,27 @@ export async function loader({ request }: LoaderFunctionArgs) {
       throw new Error("No shop session found");
     }
 
+    // Resolve storeId from session
+    const storeId = await getStoreId(request);
+
     // Get campaigns for this store
-    const campaigns = await CampaignService.getAllCampaigns(session.shop);
+    const campaigns = await CampaignService.getAllCampaigns(storeId);
+
+    // Fetch experiments for campaigns to display experiment names on the index
+    const experimentIds = Array.from(new Set(
+      campaigns.map(c => c.experimentId).filter((id): id is string => Boolean(id))
+    ));
+
+    let experiments: ExperimentWithVariants[] = [];
+    if (experimentIds.length > 0) {
+      const allExperiments = await ExperimentService.getAllExperiments(storeId);
+      experiments = allExperiments.filter((exp) => experimentIds.includes(exp.id));
+    }
 
     return data<LoaderData>({
       campaigns,
-      storeId: session.shop,
+      experiments,
+      storeId,
     });
 
   } catch (error) {
@@ -48,6 +66,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
     return data<LoaderData>({
       campaigns: [],
+      experiments: [],
       storeId: "",
     }, { status: 500 });
   }
@@ -58,7 +77,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 // ============================================================================
 
 export default function CampaignsIndexPage() {
-  const { campaigns, storeId } = useLoaderData<typeof loader>();
+  const { campaigns, experiments, storeId } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
   const revalidator = useRevalidator();
 
@@ -95,7 +114,8 @@ export default function CampaignsIndexPage() {
         throw new Error("Failed to fetch campaign");
       }
 
-      const { data: campaign } = await response.json();
+      const body = await response.json();
+      const campaign = body?.data?.campaign ?? body?.data;
 
       // Create duplicate with modified name
       const duplicateData = {
@@ -172,6 +192,7 @@ export default function CampaignsIndexPage() {
       >
         <CampaignList
           campaigns={campaigns}
+          experiments={experiments}
           loading={revalidator.state === "loading"}
           onCampaignSelect={handleCampaignSelect}
           onCampaignEdit={handleCampaignEdit}

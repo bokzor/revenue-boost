@@ -24,6 +24,8 @@ import {
   Box,
 } from '@shopify/polaris';
 import type { CampaignWithConfigs , CampaignStatus, CampaignGoal, TemplateType } from '~/domains/campaigns/types/campaign';
+import type { ExperimentWithVariants } from '~/domains/campaigns/types/experiment';
+
 
 // ============================================================================
 // TYPES
@@ -31,6 +33,7 @@ import type { CampaignWithConfigs , CampaignStatus, CampaignGoal, TemplateType }
 
 interface CampaignListProps {
   campaigns: CampaignWithConfigs[];
+  experiments?: ExperimentWithVariants[];
   loading?: boolean;
   onCampaignSelect?: (campaign: CampaignWithConfigs) => void;
   onCampaignEdit?: (campaignId: string) => void;
@@ -55,6 +58,7 @@ type SortDirection = 'asc' | 'desc';
 
 export function CampaignList({
   campaigns,
+  experiments = [],
   loading = false,
   onCampaignSelect,
   onCampaignEdit,
@@ -74,6 +78,13 @@ export function CampaignList({
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+
+  // Map experimentId -> name for headers
+  const experimentNameById = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const exp of experiments) map.set(exp.id, exp.name);
+    return map;
+  }, [experiments]);
 
   // Filter options
   const statusOptions = [
@@ -173,13 +184,47 @@ export function CampaignList({
     return filtered;
   }, [campaigns, filters, sortBy, sortDirection]);
 
-  // Pagination
-  const totalPages = Math.ceil(filteredAndSortedCampaigns.length / itemsPerPage);
+  // Group experiments vs standalone (full set), then paginate top-level rows
+  const { experimentGroupsAll, regularCampaignsAll } = useMemo(() => {
+    const groupsMap = new Map<string, CampaignWithConfigs[]>();
+    const regular: CampaignWithConfigs[] = [];
+
+    for (const c of filteredAndSortedCampaigns) {
+      if (c.experimentId) {
+        const key = c.experimentId as string;
+        if (!groupsMap.has(key)) groupsMap.set(key, []);
+        groupsMap.get(key)!.push(c);
+      } else {
+        regular.push(c);
+      }
+    }
+
+    const groups = Array.from(groupsMap.entries()).map(([experimentId, variants]) => ({
+      experimentId,
+      variants: variants.sort((a, b) => ((a.variantKey || '').localeCompare(b.variantKey || ''))),
+    }));
+
+    return { experimentGroupsAll: groups, regularCampaignsAll: regular };
+  }, [filteredAndSortedCampaigns]);
+
+  // Build top-level rows for pagination: groups first, then standalone
+  const topLevelRows = useMemo(() => {
+    return [
+      ...experimentGroupsAll.map((g) => ({ type: 'group' as const, group: g })),
+      ...regularCampaignsAll.map((c) => ({ type: 'single' as const, campaign: c })),
+    ];
+  }, [experimentGroupsAll, regularCampaignsAll]);
+
+  const totalPages = Math.ceil(topLevelRows.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedCampaigns = filteredAndSortedCampaigns.slice(
-    startIndex,
-    startIndex + itemsPerPage
-  );
+  const pageRows = topLevelRows.slice(startIndex, startIndex + itemsPerPage);
+
+  const experimentGroups = pageRows
+    .filter((r) => r.type === 'group')
+    .map((r) => (r as { type: 'group'; group: { experimentId: string; variants: CampaignWithConfigs[] } }).group);
+  const regularCampaigns = pageRows
+    .filter((r) => r.type === 'single')
+    .map((r) => (r as { type: 'single'; campaign: CampaignWithConfigs }).campaign);
 
   // Event handlers
   const handleFiltersChange = (newFilters: Partial<typeof filters>) => {
@@ -338,7 +383,7 @@ export function CampaignList({
     <Box paddingBlockEnd="400">
       <InlineStack align="space-between">
         <Text variant="bodyMd" as="p">
-          {filteredAndSortedCampaigns.length} campaign{filteredAndSortedCampaigns.length !== 1 ? 's' : ''}
+          {topLevelRows.length} item{topLevelRows.length !== 1 ? 's' : ''}
         </Text>
         <ButtonGroup variant="segmented">
           <Button
@@ -429,91 +474,186 @@ export function CampaignList({
       {filterMarkup}
       {sortControls}
 
-      <ResourceList
-        resourceName={{ singular: 'campaign', plural: 'campaigns' }}
-        items={paginatedCampaigns}
-        renderItem={(campaign) => {
-          const { id, name, description, status, goal, templateType, priority, updatedAt } = campaign;
-          const statusBadge = getStatusBadge(status as CampaignStatus);
-
-          return (
-            <ResourceItem
-              id={id}
-              url={onCampaignSelect ? '#' : undefined}
-              onClick={() => { if (onCampaignSelect) onCampaignSelect(campaign); }}
-              accessibilityLabel={`Campaign ${name}`}
-            >
+      {experimentGroups.length > 0 && (
+        <>
+          <Box paddingBlockEnd="200">
+            <Text variant="bodyMd" fontWeight="semibold" as="h3">Experiments</Text>
+          </Box>
+          {experimentGroups.map((group) => (
+            <Box key={group.experimentId} paddingBlockEnd="400">
               <InlineStack align="space-between">
-                <BlockStack gap="200">
-                  <InlineStack gap="200">
-                    <Text variant="bodyMd" fontWeight="semibold" as="h3">
-                      {name}
-                    </Text>
-                    <Badge {...statusBadge} />
-                    {priority && priority > 0 && (
-                      <Badge tone="attention">{`Priority ${priority}`}</Badge>
-                    )}
-                  </InlineStack>
-
-                  {description && (
-                    <Text variant="bodySm" tone="subdued" as="p">
-                      {description}
-                    </Text>
-                  )}
-
-                  <InlineStack gap="200">
-                    <Text variant="bodySm" tone="subdued" as="span">
-                      {getTemplateTypeLabel(templateType as TemplateType)}
-                    </Text>
-                    <Text variant="bodySm" tone="subdued" as="span">
-                      •
-                    </Text>
-                    <Text variant="bodySm" tone="subdued" as="span">
-                      Goal: {goal.replace('_', ' ').toLowerCase()}
-                    </Text>
-                    <Text variant="bodySm" tone="subdued" as="span">
-                      •
-                    </Text>
-                    <Text variant="bodySm" tone="subdued" as="span">
-                      Updated {formatDate(updatedAt)}
-                    </Text>
-                  </InlineStack>
-                </BlockStack>
-
-                <InlineStack gap="200">
-                  {onCampaignEdit && (
-                    <Button
-                      size="slim"
-                      onClick={() => onCampaignEdit(id)}
-                    >
-                      Edit
-                    </Button>
-                  )}
-
-                  {onCampaignDuplicate && (
-                    <Button
-                      size="slim"
-                      onClick={() => onCampaignDuplicate(id)}
-                    >
-                      Duplicate
-                    </Button>
-                  )}
-
-                  {onCampaignDelete && (
-                    <Button
-                      size="slim"
-                      tone="critical"
-                      onClick={() => onCampaignDelete(id)}
-                    >
-                      Delete
-                    </Button>
-                  )}
-                </InlineStack>
+                <Text variant="bodyMd" fontWeight="semibold" as="h3">
+                  {experimentNameById.get(group.experimentId) ?? `Experiment ${group.experimentId}`}
+                </Text>
+                <Text variant="bodySm" tone="subdued" as="span">
+                  {group.variants
+                    .filter((v) => !!v.variantKey)
+                    .map((v) => `Variant ${v.variantKey}${v.isControl ? " (Control)" : ""}`)
+                    .join(" • ")}
+                </Text>
               </InlineStack>
-            </ResourceItem>
-          );
-        }}
-      />
+
+              <ResourceList
+                resourceName={{ singular: 'variant', plural: 'variants' }}
+                items={group.variants}
+                renderItem={(campaign) => {
+                  const { id, name, description, status, goal, templateType, priority, updatedAt } = campaign;
+                  const statusBadge = getStatusBadge(status as CampaignStatus);
+
+                  return (
+                    <ResourceItem
+                      id={id}
+                      url={onCampaignSelect ? '#' : undefined}
+                      onClick={() => { if (onCampaignSelect) onCampaignSelect(campaign); }}
+                      accessibilityLabel={`Campaign ${name}`}
+                    >
+                      <InlineStack align="space-between">
+                        <BlockStack gap="200">
+                          <InlineStack gap="200">
+                            <Text variant="bodyMd" fontWeight="semibold" as="h3">
+                              {name}
+                            </Text>
+                            <Badge {...statusBadge} />
+                            {campaign.experimentId && campaign.variantKey && (
+                              <Badge tone="info">
+                                {`Variant ${campaign.variantKey}${campaign.isControl ? " (Control)" : ""}`}
+                              </Badge>
+                            )}
+                            {priority && priority > 0 && (
+                              <Badge tone="attention">{`Priority ${priority}`}</Badge>
+                            )}
+                          </InlineStack>
+
+                          {description && (
+                            <Text variant="bodySm" tone="subdued" as="p">
+                              {description}
+                            </Text>
+                          )}
+
+                          <InlineStack gap="200">
+                            <Text variant="bodySm" tone="subdued" as="span">
+                              {getTemplateTypeLabel(templateType as TemplateType)}
+                            </Text>
+                            <Text variant="bodySm" tone="subdued" as="span">•</Text>
+                            <Text variant="bodySm" tone="subdued" as="span">
+                              Goal: {goal.replace('_', ' ').toLowerCase()}
+                            </Text>
+                            <Text variant="bodySm" tone="subdued" as="span">•</Text>
+                            <Text variant="bodySm" tone="subdued" as="span">
+                              Updated {formatDate(updatedAt)}
+                            </Text>
+                          </InlineStack>
+                        </BlockStack>
+
+                        <InlineStack gap="200">
+                          {onCampaignEdit && (
+                            <Button size="slim" onClick={() => onCampaignEdit(id)}>
+                              Edit
+                            </Button>
+                          )}
+                          {onCampaignDuplicate && (
+                            <Button size="slim" onClick={() => onCampaignDuplicate(id)}>
+                              Duplicate
+                            </Button>
+                          )}
+                          {onCampaignDelete && (
+                            <Button size="slim" tone="critical" onClick={() => onCampaignDelete(id)}>
+                              Delete
+                            </Button>
+                          )}
+                        </InlineStack>
+                      </InlineStack>
+                    </ResourceItem>
+                  );
+                }}
+              />
+            </Box>
+          ))}
+        </>
+      )}
+
+      {regularCampaigns.length > 0 && (
+        <>
+          {experimentGroups.length > 0 && (
+            <Box paddingBlockStart="200" paddingBlockEnd="200">
+              <Text variant="bodyMd" fontWeight="semibold" as="h3">Standalone campaigns</Text>
+            </Box>
+          )}
+          <ResourceList
+            resourceName={{ singular: 'campaign', plural: 'campaigns' }}
+            items={regularCampaigns}
+            renderItem={(campaign) => {
+              const { id, name, description, status, goal, templateType, priority, updatedAt } = campaign;
+              const statusBadge = getStatusBadge(status as CampaignStatus);
+              return (
+                <ResourceItem
+                  id={id}
+                  url={onCampaignSelect ? '#' : undefined}
+                  onClick={() => { if (onCampaignSelect) onCampaignSelect(campaign); }}
+                  accessibilityLabel={`Campaign ${name}`}
+                >
+                  <InlineStack align="space-between">
+                    <BlockStack gap="200">
+                      <InlineStack gap="200">
+                        <Text variant="bodyMd" fontWeight="semibold" as="h3">
+                          {name}
+                        </Text>
+                        <Badge {...statusBadge} />
+                        {campaign.experimentId && campaign.variantKey && (
+                          <Badge tone="info">
+                            {`Variant ${campaign.variantKey}${campaign.isControl ? " (Control)" : ""}`}
+                          </Badge>
+                        )}
+                        {priority && priority > 0 && (
+                          <Badge tone="attention">{`Priority ${priority}`}</Badge>
+                        )}
+                      </InlineStack>
+
+                      {description && (
+                        <Text variant="bodySm" tone="subdued" as="p">
+                          {description}
+                        </Text>
+                      )}
+
+                      <InlineStack gap="200">
+                        <Text variant="bodySm" tone="subdued" as="span">
+                          {getTemplateTypeLabel(templateType as TemplateType)}
+                        </Text>
+                        <Text variant="bodySm" tone="subdued" as="span">•</Text>
+                        <Text variant="bodySm" tone="subdued" as="span">
+                          Goal: {goal.replace('_', ' ').toLowerCase()}
+                        </Text>
+                        <Text variant="bodySm" tone="subdued" as="span">•</Text>
+                        <Text variant="bodySm" tone="subdued" as="span">
+                          Updated {formatDate(updatedAt)}
+                        </Text>
+                      </InlineStack>
+                    </BlockStack>
+
+                    <InlineStack gap="200">
+                      {onCampaignEdit && (
+                        <Button size="slim" onClick={() => onCampaignEdit(id)}>
+                          Edit
+                        </Button>
+                      )}
+                      {onCampaignDuplicate && (
+                        <Button size="slim" onClick={() => onCampaignDuplicate(id)}>
+                          Duplicate
+                        </Button>
+                      )}
+                      {onCampaignDelete && (
+                        <Button size="slim" tone="critical" onClick={() => onCampaignDelete(id)}>
+                          Delete
+                        </Button>
+                      )}
+                    </InlineStack>
+                  </InlineStack>
+                </ResourceItem>
+              );
+            }}
+          />
+        </>
+      )}
 
       {totalPages > 1 && (
         <Box paddingBlockStart="400">

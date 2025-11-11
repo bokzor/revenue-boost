@@ -885,11 +885,6 @@ const TemplatePreviewComponent = forwardRef<
                 successTitle: mergedConfig.successTitle || "You unlocked FREE SHIPPING! 🎉",
                 successSubhead: mergedConfig.successSubhead,
 
-                // Product recommendations
-                showProducts: mergedConfig.showProducts !== false,
-                maxProductsToShow: mergedConfig.maxProductsToShow || 3,
-                productFilter: mergedConfig.productFilter || "under_threshold",
-
                 // Progress bar
                 showProgress: mergedConfig.showProgress !== false,
                 progressColor: mergedConfig.progressColor || mergedConfig.accentColor || "#10B981",
@@ -906,10 +901,6 @@ const TemplatePreviewComponent = forwardRef<
               isVisible={true}
               onClose={handleClose}
               cartTotal={30}
-              products={mockProducts.slice(0, 3)}
-              onProductClick={() => {
-                // Preview mode - no action
-              }}
             />
           </div>
         </PreviewContainer>

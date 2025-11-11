@@ -104,7 +104,8 @@ export default function NewCampaign() {
           throw new Error("Failed to create experiment");
         }
 
-        const { data: experiment } = await expResponse.json();
+        const expBody = await expResponse.json();
+        const experiment = expBody?.data?.experiment ?? expBody?.data;
 
         // Create campaigns for each variant via API
         const campaignPromises = campaignData.map(async (variant, index) => {
@@ -182,7 +183,8 @@ export default function NewCampaign() {
           throw new Error("Failed to create campaign");
         }
 
-        const { data: campaign } = await response.json();
+        const body = await response.json();
+        const campaign = body?.data?.campaign ?? body?.data;
 
         // Redirect to campaign detail page
         navigate(`/app/campaigns/${campaign.id}`);

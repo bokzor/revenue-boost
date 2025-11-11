@@ -1,6 +1,6 @@
 /**
  * Campaign Detail Page
- * 
+ *
  * Individual campaign view with full details and management options
  */
 
@@ -10,6 +10,7 @@ import { Frame, Toast } from "@shopify/polaris";
 import { useState } from "react";
 
 import { authenticate } from "~/shopify.server";
+import { getStoreId } from "~/lib/auth-helpers.server";
 import { CampaignService } from "~/domains/campaigns";
 import { CampaignDetail } from "~/domains/campaigns/components";
 import type { CampaignWithConfigs } from "~/domains/campaigns/types/campaign";
@@ -30,7 +31,7 @@ interface LoaderData {
 export async function loader({ request, params }: LoaderFunctionArgs) {
   try {
     const { session } = await authenticate.admin(request);
-    
+
     if (!session?.shop) {
       throw new Error("No shop session found");
     }
@@ -40,17 +41,19 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       throw new Error("Campaign ID is required");
     }
 
+    const storeId = await getStoreId(request);
+
     // Get campaign details
-    const campaign = await CampaignService.getCampaignById(campaignId, session.shop);
+    const campaign = await CampaignService.getCampaignById(campaignId, storeId);
 
     return data<LoaderData>({
       campaign,
-      storeId: session.shop,
+      storeId,
     });
 
   } catch (error) {
     console.error("Failed to load campaign:", error);
-    
+
     return data<LoaderData>({
       campaign: null,
       storeId: "",
@@ -66,7 +69,7 @@ export default function CampaignDetailPage() {
   const { campaign, storeId } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
   const revalidator = useRevalidator();
-  
+
   // State for toast notifications
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [toastError, setToastError] = useState(false);
@@ -111,9 +114,10 @@ export default function CampaignDetailPage() {
         throw new Error("Failed to duplicate campaign");
       }
 
-      const { data: newCampaign } = await response.json();
+      const dupBody = await response.json();
+      const newCampaign = dupBody?.data?.campaign ?? dupBody?.data;
       showToast("Campaign duplicated successfully");
-      
+
       // Navigate to the new campaign
       navigate(`/app/campaigns/${newCampaign.id}`);
 
@@ -140,7 +144,7 @@ export default function CampaignDetailPage() {
       }
 
       showToast("Campaign deleted successfully");
-      
+
       // Navigate back to campaigns list
       navigate("/app/campaigns");
 
