@@ -6,6 +6,8 @@
 
 import { TextField, CheckboxField, FormGrid, SelectField } from "../form";
 import { useFieldUpdater } from "~/shared/hooks/useFieldUpdater";
+import { DiscountSection } from "~/domains/popups/components/design/DiscountSection";
+import type { DiscountConfig } from "~/domains/popups/services/discounts/discount.server";
 
 export interface FreeShippingContent {
   headline?: string;
@@ -25,14 +27,18 @@ export interface FreeShippingContent {
 
 export interface FreeShippingContentSectionProps {
   content: Partial<FreeShippingContent>;
+  discountConfig?: DiscountConfig;
   errors?: Record<string, string>;
   onChange: (content: Partial<FreeShippingContent>) => void;
+  onDiscountChange?: (config: DiscountConfig) => void;
 }
 
 export function FreeShippingContentSection({
   content,
+  discountConfig,
   errors,
   onChange,
+  onDiscountChange,
 }: FreeShippingContentSectionProps) {
   const updateField = useFieldUpdater(content, onChange);
 
@@ -184,6 +190,15 @@ export function FreeShippingContentSection({
           />
         )}
       </FormGrid>
+
+      {/* Discount Configuration (Optional - in addition to free shipping) */}
+      {onDiscountChange && (
+        <DiscountSection
+          goal="INCREASE_REVENUE"
+          discountConfig={discountConfig}
+          onConfigChange={onDiscountChange}
+        />
+      )}
     </>
   );
 }

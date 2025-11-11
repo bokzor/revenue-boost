@@ -16,19 +16,24 @@ import { FreeShippingContentSection } from "./FreeShippingContentSection";
 import { SocialProofContentSection } from "./SocialProofContentSection";
 import type { SocialProofContent as SPC } from "./SocialProofContentSection";
 import { AnnouncementContentSection } from "./AnnouncementContentSection";
+import type { DiscountConfig } from "~/domains/popups/services/discounts/discount.server";
 
 export interface ContentConfigSectionProps {
   templateType: TemplateType;
   content: Partial<ContentConfig>;
+  discountConfig?: DiscountConfig;
   errors?: Record<string, string>;
   onChange: (content: Partial<ContentConfig>) => void;
+  onDiscountChange?: (config: DiscountConfig) => void;
 }
 
 export function ContentConfigSection({
   templateType,
   content,
+  discountConfig,
   errors,
   onChange,
+  onDiscountChange,
 }: ContentConfigSectionProps) {
   const renderContentForm = () => {
     switch (templateType) {
@@ -37,8 +42,10 @@ export function ContentConfigSection({
         return (
           <NewsletterContentSection
             content={content}
+            discountConfig={discountConfig}
             errors={errors}
             onChange={onChange}
+            onDiscountChange={onDiscountChange}
           />
         );
 
@@ -57,8 +64,10 @@ export function ContentConfigSection({
         return (
           <FlashSaleContentSection
             content={content}
+            discountConfig={discountConfig}
             errors={errors}
             onChange={onChange}
+            onDiscountChange={onDiscountChange}
           />
         );
 
@@ -66,8 +75,10 @@ export function ContentConfigSection({
         return (
           <CartAbandonmentContentSection
             content={content}
+            discountConfig={discountConfig}
             errors={errors}
             onChange={onChange}
+            onDiscountChange={onDiscountChange}
           />
         );
 
@@ -84,8 +95,10 @@ export function ContentConfigSection({
         return (
           <FreeShippingContentSection
             content={content}
+            discountConfig={discountConfig}
             errors={errors}
             onChange={onChange}
+            onDiscountChange={onDiscountChange}
           />
         );
 

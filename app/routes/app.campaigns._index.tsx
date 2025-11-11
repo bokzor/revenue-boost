@@ -119,7 +119,14 @@ export default function CampaignsIndexPage() {
   };
 
   const handleCampaignEdit = (campaignId: string) => {
-    navigate(`/app/campaigns/${campaignId}/edit`);
+    console.log('[Campaign Index] handleCampaignEdit called with campaignId:', campaignId);
+    console.log('[Campaign Index] Attempting to navigate to:', `/app/campaigns/${campaignId}/edit`);
+    try {
+      navigate(`/app/campaigns/${campaignId}/edit`);
+      console.log('[Campaign Index] Navigate called successfully');
+    } catch (error) {
+      console.error('[Campaign Index] Error during navigation:', error);
+    }
   };
 
   const handleCampaignDuplicate = async (campaignId: string) => {

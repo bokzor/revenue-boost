@@ -6,6 +6,8 @@
 
 import { TextField, CheckboxField, FormGrid, SelectField } from "../form";
 import { useFieldUpdater } from "~/shared/hooks/useFieldUpdater";
+import { DiscountSection } from "~/domains/popups/components/design/DiscountSection";
+import type { DiscountConfig } from "~/domains/popups/services/discounts/discount.server";
 
 export interface CartAbandonmentContent {
   headline?: string;
@@ -26,14 +28,18 @@ export interface CartAbandonmentContent {
 
 export interface CartAbandonmentContentSectionProps {
   content: Partial<CartAbandonmentContent>;
+  discountConfig?: DiscountConfig;
   errors?: Record<string, string>;
   onChange: (content: Partial<CartAbandonmentContent>) => void;
+  onDiscountChange?: (config: DiscountConfig) => void;
 }
 
 export function CartAbandonmentContentSection({
   content,
+  discountConfig,
   errors,
   onChange,
+  onDiscountChange,
 }: CartAbandonmentContentSectionProps) {
   const updateField = useFieldUpdater(content, onChange);
 
@@ -177,6 +183,15 @@ export function CartAbandonmentContentSection({
         helpText="Secondary action text (optional)"
         onChange={(value) => updateField("saveForLaterText", value)}
       />
+
+      {/* Discount Configuration */}
+      {onDiscountChange && (
+        <DiscountSection
+          goal="CART_RECOVERY"
+          discountConfig={discountConfig}
+          onConfigChange={onDiscountChange}
+        />
+      )}
     </>
   );
 }

@@ -18,7 +18,7 @@ vi.mock('~/domains/campaigns', () => {
 
 import { getStoreId as getStoreIdMock } from '~/lib/auth-helpers.server';
 import { CampaignService } from '~/domains/campaigns';
-import { loader } from '~/routes/app.campaigns.$campaignId.edit';
+import { loader } from '~/routes/app.campaigns.$campaignId_.edit';
 
 describe('app.campaigns.$campaignId.edit loader', () => {
   beforeEach(() => {

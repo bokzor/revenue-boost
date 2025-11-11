@@ -18,6 +18,7 @@ import {
   FrequencyStepContent,
   ScheduleStepContent,
 } from "../components/steps";
+import { DiscountSettingsStep } from "../components/DiscountSettingsStep";
 
 // ============================================================================
 // TYPES
@@ -110,8 +111,10 @@ export function renderDesignStep(props: StepRendererProps) {
       campaignId={campaignId}
       contentConfig={wizardState.contentConfig || {}}
       designConfig={designConfig}
+      discountConfig={wizardState.discountConfig}
       onContentChange={(content) => updateData({ contentConfig: content })}
       onDesignChange={(design) => updateData({ designConfig: design as any })}
+      onDiscountChange={(config) => updateData({ discountConfig: config })}
       onTemplateSelect={(template) => {
         // Ensure required base content fields exist even if the user doesn't edit them
         // The UI shows placeholders, but the server schema requires real values
@@ -161,6 +164,18 @@ export function renderFrequencyStep(props: StepRendererProps) {
     <FrequencyStepContent
       config={wizardState.frequencyCapping}
       onConfigChange={(config) => updateData({ frequencyCapping: config })}
+    />
+  );
+}
+
+export function renderDiscountStep(props: StepRendererProps) {
+  const { wizardState, updateData } = props;
+
+  return (
+    <DiscountSettingsStep
+      goal={wizardState.goal}
+      discountConfig={wizardState.discountConfig}
+      onConfigChange={(config) => updateData({ discountConfig: config })}
     />
   );
 }

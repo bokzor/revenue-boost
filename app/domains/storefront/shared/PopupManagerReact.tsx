@@ -340,6 +340,20 @@ export const PopupManager: React.FC<PopupManagerProps> = ({
               textColor: activeCampaign.textColor || "#000000",
               buttonColor: activeCampaign.buttonColor || "#007BFF",
               buttonTextColor: activeCampaign.buttonTextColor || "#FFFFFF",
+              discount: activeCampaign.discountConfig?.enabled ? {
+                enabled: true,
+                code: activeCampaign.discountConfig.code || '',
+                percentage: (activeCampaign.discountConfig.valueType === "PERCENTAGE" || activeCampaign.discountConfig.type === "percentage")
+                  ? activeCampaign.discountConfig.value
+                  : undefined,
+                value: (activeCampaign.discountConfig.valueType === "FIXED_AMOUNT" || activeCampaign.discountConfig.type === "fixed_amount")
+                  ? activeCampaign.discountConfig.value
+                  : undefined,
+                type: activeCampaign.discountConfig.valueType || activeCampaign.discountConfig.type,
+                deliveryMode: activeCampaign.discountConfig.deliveryMode,
+                expiryDays: activeCampaign.discountConfig.expiryDays,
+                description: activeCampaign.discountConfig.description,
+              } : undefined,
             } as unknown as NewsletterConfig}
           />
         );
@@ -467,6 +481,20 @@ export const PopupManager: React.FC<PopupManagerProps> = ({
               textColor: activeCampaign.textColor || "#000000",
               buttonColor: activeCampaign.buttonColor || "#007BFF",
               buttonTextColor: activeCampaign.buttonTextColor || "#FFFFFF",
+              discount: activeCampaign.discountConfig?.enabled ? {
+                enabled: true,
+                code: activeCampaign.discountConfig.code || '',
+                percentage: (activeCampaign.discountConfig.valueType === "PERCENTAGE" || activeCampaign.discountConfig.type === "percentage")
+                  ? activeCampaign.discountConfig.value
+                  : undefined,
+                value: (activeCampaign.discountConfig.valueType === "FIXED_AMOUNT" || activeCampaign.discountConfig.type === "fixed_amount")
+                  ? activeCampaign.discountConfig.value
+                  : undefined,
+                type: activeCampaign.discountConfig.valueType || activeCampaign.discountConfig.type,
+                deliveryMode: activeCampaign.discountConfig.deliveryMode,
+                expiryDays: activeCampaign.discountConfig.expiryDays,
+                description: activeCampaign.discountConfig.description,
+              } : undefined,
             } as unknown as NewsletterConfig}
           />
         );

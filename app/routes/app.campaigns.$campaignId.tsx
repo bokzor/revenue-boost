@@ -86,8 +86,19 @@ export default function CampaignDetailPage() {
   };
 
   const handleEdit = () => {
+    console.log('[Campaign Detail] handleEdit called');
+    console.log('[Campaign Detail] Campaign:', campaign?.id, 'experimentId:', campaign?.experimentId);
     if (campaign) {
-      navigate(`/app/campaigns/${campaign.id}/edit`);
+      // If campaign is part of an A/B test, edit the experiment instead
+      if (campaign.experimentId) {
+        console.log('[Campaign Detail] Navigating to experiment edit:', `/app/experiments/${campaign.experimentId}/edit`);
+        navigate(`/app/experiments/${campaign.experimentId}/edit`);
+      } else {
+        console.log('[Campaign Detail] Navigating to campaign edit:', `/app/campaigns/${campaign.id}/edit`);
+        navigate(`/app/campaigns/${campaign.id}/edit`);
+      }
+    } else {
+      console.log('[Campaign Detail] No campaign found, cannot edit');
     }
   };
 

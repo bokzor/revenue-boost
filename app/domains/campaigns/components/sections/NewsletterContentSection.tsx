@@ -9,19 +9,25 @@ import { TextField, CheckboxField, FormGrid } from "../form";
 import type { NewsletterContentSchema } from "../../types/campaign";
 import { z } from "zod";
 import { useFieldUpdater } from "~/shared/hooks/useFieldUpdater";
+import { DiscountSection } from "~/domains/popups/components/design/DiscountSection";
+import type { DiscountConfig } from "~/domains/popups/services/discounts/discount.server";
 
 type NewsletterContent = z.infer<typeof NewsletterContentSchema>;
 
 export interface NewsletterContentSectionProps {
   content: Partial<NewsletterContent>;
+  discountConfig?: DiscountConfig;
   errors?: Record<string, string>;
   onChange: (content: Partial<NewsletterContent>) => void;
+  onDiscountChange?: (config: DiscountConfig) => void;
 }
 
 export function NewsletterContentSection({
   content,
+  discountConfig,
   errors,
   onChange,
+  onDiscountChange,
 }: NewsletterContentSectionProps) {
   const updateField = useFieldUpdater(content, onChange);
 
@@ -154,6 +160,15 @@ export function NewsletterContentSection({
             onChange={(value) => updateField("consentFieldText", value)}
           />
         </FormGrid>
+      )}
+
+      {/* Discount Configuration */}
+      {onDiscountChange && (
+        <DiscountSection
+          goal="NEWSLETTER_SIGNUP"
+          discountConfig={discountConfig}
+          onConfigChange={onDiscountChange}
+        />
       )}
     </>
   );

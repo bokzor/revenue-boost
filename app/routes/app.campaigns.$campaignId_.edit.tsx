@@ -31,22 +31,31 @@ interface LoaderData {
 // ============================================================================
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
+  console.log('[Campaign Edit Loader] Starting loader for campaignId:', params.campaignId);
+  console.log('[Campaign Edit Loader] Request URL:', request.url);
+
   try {
     const { session } = await authenticate.admin(request);
+    console.log('[Campaign Edit Loader] Session authenticated:', !!session);
 
     if (!session?.shop) {
+      console.error('[Campaign Edit Loader] No shop session found');
       throw new Error("No shop session found");
     }
 
     const campaignId = params.campaignId;
     if (!campaignId) {
+      console.error('[Campaign Edit Loader] Campaign ID is missing');
       throw new Error("Campaign ID is required");
     }
 
     const storeId = await getStoreId(request);
+    console.log('[Campaign Edit Loader] StoreId:', storeId);
 
     // Get campaign details
+    console.log('[Campaign Edit Loader] Fetching campaign by ID:', campaignId);
     const campaign = await CampaignService.getCampaignById(campaignId, storeId);
+    console.log('[Campaign Edit Loader] Campaign fetched:', campaign ? campaign.id : 'null');
 
     return data<LoaderData>({
       campaign,
@@ -55,7 +64,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     });
 
   } catch (error) {
-    console.error("Failed to load campaign for editing:", error);
+    console.error("[Campaign Edit Loader] Failed to load campaign for editing:", error);
 
     return data<LoaderData>({
       campaign: null,
@@ -70,12 +79,21 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 // ============================================================================
 
 export default function CampaignEditPage() {
+  console.log('[Campaign Edit Page] Component rendering');
   const { campaign, storeId, shopDomain } = useLoaderData<typeof loader>();
+  console.log('[Campaign Edit Page] Loaded data - campaign:', campaign?.id, 'storeId:', storeId);
   const navigate = useNavigate();
 
   // State for toast notifications
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [toastError, setToastError] = useState(false);
+
+  // Redirect to experiment edit page if campaign is part of an A/B test
+  if (campaign?.experimentId) {
+    console.log(`[Campaign Edit] Campaign ${campaign.id} is part of experiment ${campaign.experimentId}, redirecting...`);
+    navigate(`/app/experiments/${campaign.experimentId}/edit`);
+    return null;
+  }
 
   // Helper function to show toast
   const showToast = (message: string, isError = false) => {
@@ -194,15 +212,18 @@ export default function CampaignEditPage() {
 
   // If no campaign found, redirect back
   if (!campaign) {
+    console.log('[Campaign Edit Page] No campaign found, redirecting to campaigns list');
     navigate("/app/campaigns");
     return null;
   }
 
   const initialData = getInitialFormData();
   if (!initialData) {
+    console.log('[Campaign Edit Page] No initial data, returning null');
     return null;
   }
 
+  console.log('[Campaign Edit Page] Rendering form with campaign:', campaign.id);
   return (
     <Frame>
       <CampaignFormWithABTesting

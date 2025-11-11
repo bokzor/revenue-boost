@@ -8,19 +8,25 @@ import { TextField, CheckboxField, FormGrid } from "../form";
 import type { FlashSaleContentSchema } from "../../types/campaign";
 import { z } from "zod";
 import { useFieldUpdater } from "~/shared/hooks/useFieldUpdater";
+import { DiscountSection } from "~/domains/popups/components/design/DiscountSection";
+import type { DiscountConfig } from "~/domains/popups/services/discounts/discount.server";
 
 type FlashSaleContent = z.infer<typeof FlashSaleContentSchema>;
 
 export interface FlashSaleContentSectionProps {
   content: Partial<FlashSaleContent>;
+  discountConfig?: DiscountConfig;
   errors?: Record<string, string>;
   onChange: (content: Partial<FlashSaleContent>) => void;
+  onDiscountChange?: (config: DiscountConfig) => void;
 }
 
 export function FlashSaleContentSection({
   content,
+  discountConfig,
   errors,
   onChange,
+  onDiscountChange,
 }: FlashSaleContentSectionProps) {
   const updateField = useFieldUpdater(content, onChange);
 
@@ -166,6 +172,15 @@ export function FlashSaleContentSection({
           onChange={(checked) => updateField("hideOnExpiry", checked)}
         />
       </FormGrid>
+
+      {/* Discount Configuration */}
+      {onDiscountChange && (
+        <DiscountSection
+          goal="INCREASE_REVENUE"
+          discountConfig={discountConfig}
+          onConfigChange={onDiscountChange}
+        />
+      )}
     </>
   );
 }

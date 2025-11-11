@@ -86,6 +86,21 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader }: PopupM
       ...campaign.contentConfig,
       ...campaign.designConfig,
       id: campaign.id,
+      // Pass discount config if enabled
+      discount: campaign.discountConfig?.enabled ? {
+        enabled: true,
+        code: campaign.discountConfig.code || '',
+        percentage: (campaign.discountConfig.valueType === "PERCENTAGE" || campaign.discountConfig.type === "percentage")
+          ? campaign.discountConfig.value
+          : undefined,
+        value: (campaign.discountConfig.valueType === "FIXED_AMOUNT" || campaign.discountConfig.type === "fixed_amount")
+          ? campaign.discountConfig.value
+          : undefined,
+        type: campaign.discountConfig.valueType || campaign.discountConfig.type,
+        deliveryMode: campaign.discountConfig.deliveryMode,
+        expiryDays: campaign.discountConfig.expiryDays,
+        description: campaign.discountConfig.description,
+      } : undefined,
     },
     isVisible: true,
     onClose,

@@ -14,6 +14,7 @@ import { LivePreviewPanel } from "~/domains/popups/components/preview/LivePrevie
 import { Affix } from "~/shared/components/ui/Affix";
 import type { CampaignGoal, TemplateType } from "~/shared/hooks/useWizardState";
 import type { ContentConfig, DesignConfig } from "~/domains/campaigns/types/campaign";
+import type { DiscountConfig } from "~/domains/popups/services/discounts/discount.server";
 
 
 interface DesignStepContentProps {
@@ -25,8 +26,10 @@ interface DesignStepContentProps {
   campaignId?: string;
   contentConfig: Partial<ContentConfig>;
   designConfig: Partial<DesignConfig>;
+  discountConfig?: DiscountConfig;
   onContentChange: (content: Partial<ContentConfig>) => void;
   onDesignChange: (design: Partial<DesignConfig>) => void;
+  onDiscountChange?: (config: DiscountConfig) => void;
   onTemplateSelect: (template: SelectedTemplate) => void;
 }
 
@@ -39,8 +42,10 @@ export function DesignStepContent({
   campaignId,
   contentConfig,
   designConfig,
+  discountConfig,
   onContentChange,
   onDesignChange,
+  onDiscountChange,
   onTemplateSelect,
 }: DesignStepContentProps) {
   if (!goal) {
@@ -91,7 +96,9 @@ export function DesignStepContent({
               <ContentConfigSection
                 templateType={templateType}
                 content={contentConfig}
+                discountConfig={discountConfig}
                 onChange={onContentChange}
+                onDiscountChange={onDiscountChange}
               />
             </BlockStack>
           </Card>
