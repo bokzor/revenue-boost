@@ -124,7 +124,7 @@ export const EXPERIMENT_CAMPAIGNS_INCLUDE_EXTENDED = {
  * @example
  * return {
  *   ...parseExperimentFields(experiment),
- *   variants: mapCampaignsToVariants(experiment.campaigns)
+ *   variants: mapCampaignsToVariants(experiment.campaigns, parsed.trafficAllocation)
  * };
  */
 export function mapCampaignsToVariants(
@@ -133,20 +133,29 @@ export function mapCampaignsToVariants(
     name: string;
     variantKey: string | null;
     isControl: boolean;
-  }>
+    status: string;
+  }>,
+  trafficAllocation?: Record<string, number>
 ): Array<{
   id: string;
   variantKey: "A" | "B" | "C" | "D";
   name: string;
   isControl: boolean;
   trafficPercentage: number;
+  status: string;
 }> {
-  return campaigns.map((campaign) => ({
-    id: campaign.id,
-    variantKey: campaign.variantKey as "A" | "B" | "C" | "D",
-    name: campaign.name,
-    isControl: campaign.isControl,
-    trafficPercentage: 0, // Will be calculated from trafficAllocation
-  }));
+  return campaigns.map((campaign) => {
+    const variantKey = campaign.variantKey as "A" | "B" | "C" | "D";
+    const trafficPercentage = trafficAllocation?.[variantKey] || 0;
+
+    return {
+      id: campaign.id,
+      variantKey,
+      name: campaign.name,
+      isControl: campaign.isControl,
+      trafficPercentage,
+      status: campaign.status,
+    };
+  });
 }
 

@@ -40,10 +40,13 @@ export class ExperimentService {
         include: EXPERIMENT_CAMPAIGNS_INCLUDE,
       });
 
-      return experiments.map((exp) => ({
-        ...parseExperimentFields(exp),
-        variants: mapCampaignsToVariants(exp.campaigns),
-      }));
+      return experiments.map((exp) => {
+        const parsed = parseExperimentFields(exp);
+        return {
+          ...parsed,
+          variants: mapCampaignsToVariants(exp.campaigns, parsed.trafficAllocation),
+        };
+      });
     } catch (error) {
       throw new ExperimentServiceError("FETCH_EXPERIMENTS_FAILED", "Failed to fetch experiments", error);
     }
@@ -71,10 +74,13 @@ export class ExperimentService {
         include: EXPERIMENT_CAMPAIGNS_INCLUDE,
       });
 
-      return experiments.map((exp) => ({
-        ...parseExperimentFields(exp),
-        variants: mapCampaignsToVariants(exp.campaigns),
-      }));
+      return experiments.map((exp) => {
+        const parsed = parseExperimentFields(exp);
+        return {
+          ...parsed,
+          variants: mapCampaignsToVariants(exp.campaigns, parsed.trafficAllocation),
+        };
+      });
     } catch (error) {
       throw new ExperimentServiceError(
         "FETCH_EXPERIMENTS_BY_IDS_FAILED",
@@ -103,7 +109,7 @@ export class ExperimentService {
 
       return {
         ...parsed,
-        variants: mapCampaignsToVariants(experiment.campaigns),
+        variants: mapCampaignsToVariants(experiment.campaigns, parsed.trafficAllocation),
       };
     } catch (error) {
       throw new ExperimentServiceError("FETCH_EXPERIMENT_FAILED", "Failed to fetch experiment", error);
@@ -200,10 +206,13 @@ export class ExperimentService {
         },
       });
 
-      return experiments.map((exp) => ({
-        ...parseExperimentFields(exp),
-        variants: mapCampaignsToVariants(exp.campaigns),
-      }));
+      return experiments.map((exp) => {
+        const parsed = parseExperimentFields(exp);
+        return {
+          ...parsed,
+          variants: mapCampaignsToVariants(exp.campaigns, parsed.trafficAllocation),
+        };
+      });
     } catch (error) {
       throw new ExperimentServiceError("FETCH_RUNNING_EXPERIMENTS_FAILED", "Failed to fetch running experiments", error);
     }

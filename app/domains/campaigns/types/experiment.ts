@@ -120,6 +120,7 @@ export const ExperimentWithVariantsSchema = BaseExperimentSchema.extend({
     name: z.string(),
     isControl: z.boolean(),
     trafficPercentage: z.number().min(0).max(100),
+    status: z.string(), // Campaign status (DRAFT, ACTIVE, PAUSED, ARCHIVED)
   })),
 });
 
