@@ -10,8 +10,7 @@ import { data } from "react-router";
 import { z } from "zod";
 import prisma from "~/db.server";
 import { storefrontCors } from "~/lib/cors.server";
-import { getStoreIdFromShop } from "~/lib/auth-helpers.server";
-import { authenticate } from "~/shopify.server";
+import { getStoreIdFromShop, createAdminApiContext } from "~/lib/auth-helpers.server";
 import {
   getCampaignDiscountCode,
   parseDiscountConfig,
@@ -41,7 +40,7 @@ const LeadSubmissionSchema = z.object({
   utmSource: z.string().optional(),
   utmMedium: z.string().optional(),
   utmCampaign: z.string().optional(),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 export async function action({ request }: ActionFunctionArgs) {
@@ -49,14 +48,14 @@ export async function action({ request }: ActionFunctionArgs) {
   if (request.method === "OPTIONS") {
     return new Response(null, {
       status: 204,
-      headers: storefrontCors(request),
+      headers: storefrontCors(),
     });
   }
 
   if (request.method !== "POST") {
     return data(
       { success: false, error: "Method not allowed" },
-      { status: 405, headers: storefrontCors(request) }
+      { status: 405, headers: storefrontCors() }
     );
   }
 
@@ -66,7 +65,7 @@ export async function action({ request }: ActionFunctionArgs) {
     if (!shop) {
       return data(
         { success: false, error: "Missing shop parameter" },
-        { status: 400, headers: storefrontCors(request) }
+        { status: 400, headers: storefrontCors() }
       );
     }
 
@@ -100,7 +99,7 @@ export async function action({ request }: ActionFunctionArgs) {
     if (!campaign) {
       return data(
         { success: false, error: "Campaign not found or inactive" },
-        { status: 404, headers: storefrontCors(request) }
+        { status: 404, headers: storefrontCors() }
       );
     }
 
@@ -133,13 +132,24 @@ export async function action({ request }: ActionFunctionArgs) {
         },
         {
           status: 200,
-          headers: storefrontCors(request),
+          headers: storefrontCors(),
         }
       );
     }
 
-    // Authenticate with Shopify to get admin API access
-    const { admin } = await authenticate.public.appProxy(request);
+    // Create admin API context from store's access token
+    if (!campaign.store.accessToken) {
+      console.error("[Lead Submission] Store has no access token");
+      return data(
+        { success: false, error: "Store not properly configured" },
+        { status: 500, headers: storefrontCors() }
+      );
+    }
+
+    const admin = createAdminApiContext(
+      campaign.store.shopifyDomain,
+      campaign.store.accessToken
+    );
 
     // Sanitize customer data
     const customerData: CustomerUpsertData = sanitizeCustomerData({
@@ -255,7 +265,7 @@ export async function action({ request }: ActionFunctionArgs) {
       },
       {
         status: 200,
-        headers: storefrontCors(request),
+        headers: storefrontCors(),
       }
     );
   } catch (error) {
@@ -266,9 +276,9 @@ export async function action({ request }: ActionFunctionArgs) {
         {
           success: false,
           error: "Invalid request data",
-          errors: error.errors,
+          errors: error.issues,
         },
-        { status: 400, headers: storefrontCors(request) }
+        { status: 400, headers: storefrontCors() }
       );
     }
 
@@ -278,7 +288,7 @@ export async function action({ request }: ActionFunctionArgs) {
         error:
           error instanceof Error ? error.message : "Internal server error",
       },
-      { status: 500, headers: storefrontCors(request) }
+      { status: 500, headers: storefrontCors() }
     );
   }
 }
@@ -291,6 +301,10 @@ async function recordLeadEvents(
   leadId: string,
   leadData: z.infer<typeof LeadSubmissionSchema>
 ) {
+  // TODO: Implement popupEvent model in schema if needed
+  console.log("[Lead Events] Event recording skipped - popupEvent model not implemented");
+
+  /* Commented out until popupEvent model is added to schema
   try {
     // Record submission event
     await prisma.popupEvent.create({
@@ -333,6 +347,7 @@ async function recordLeadEvents(
     console.error("[Lead Submission] Error recording events:", error);
     // Don't fail the entire process if event recording fails
   }
+  */
 }
 
 function getClientIP(request: Request): string | null {

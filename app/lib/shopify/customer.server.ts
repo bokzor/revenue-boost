@@ -1,10 +1,10 @@
 /**
  * Shopify Customer Management
- * 
+ *
  * Handles customer creation, lookup, and updates via Shopify Admin GraphQL API
  */
 
-import type { AdminApiContext } from "@shopify/shopify-app-remix/server";
+import type { AdminApiContext } from "@shopify/shopify-app-react-router/server";
 
 export interface ShopifyCustomer {
   id: string;

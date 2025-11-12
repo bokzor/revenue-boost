@@ -4,7 +4,7 @@
  * Handles creation and retrieval of discount codes via Shopify Admin GraphQL API
  */
 
-import type { AdminApiContext } from "@shopify/shopify-app-remix/server";
+import type { AdminApiContext } from "@shopify/shopify-app-react-router/server";
 
 export interface DiscountCodeInput {
   title: string;

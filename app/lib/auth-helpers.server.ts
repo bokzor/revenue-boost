@@ -6,6 +6,7 @@
 
 import prisma from "~/db.server";
 import { authenticate, apiVersion } from "~/shopify.server";
+import type { AdminApiContext } from "@shopify/shopify-app-react-router/server";
 
 /**
  * Extract store ID from authenticated session
@@ -91,4 +92,39 @@ export async function getStoreIdFromShop(shop: string): Promise<string> {
 
   return store.id;
 }
+
+/**
+ * Create an Admin API context from an access token
+ * This is used for public endpoints that need to make Admin API calls
+ *
+ * @param shopDomain - Shop domain (e.g., "store.myshopify.com")
+ * @param accessToken - Shopify access token
+ * @returns AdminApiContext for making GraphQL calls
+ */
+export function createAdminApiContext(
+  shopDomain: string,
+  accessToken: string
+): AdminApiContext {
+  return {
+    graphql: async (query: string, options?: { variables?: Record<string, any> }) => {
+      const response = await fetch(
+        `https://${shopDomain}/admin/api/${apiVersion}/graphql.json`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Shopify-Access-Token": accessToken,
+          },
+          body: JSON.stringify({
+            query,
+            variables: options?.variables,
+          }),
+        }
+      );
+
+      return response;
+    },
+  } as AdminApiContext;
+}
+
 

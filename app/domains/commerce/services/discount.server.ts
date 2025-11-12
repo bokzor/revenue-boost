@@ -5,7 +5,7 @@
  * Integrates with Shopify Admin API to create real discount codes
  */
 
-import type { AdminApiContext } from "@shopify/shopify-app-remix/server";
+import type { AdminApiContext } from "@shopify/shopify-app-react-router/server";
 import {
   createDiscountCode,
   getDiscountCode,
@@ -93,11 +93,20 @@ export function getSuccessMessage(deliveryMode: DiscountDeliveryMode): string {
 }
 
 /**
- * Parse discount config from JSON string
+ * Parse discount config from JSON string or JsonValue
  */
-export function parseDiscountConfig(configString: string): DiscountConfig {
+export function parseDiscountConfig(configString: any): DiscountConfig {
   try {
-    const config = JSON.parse(configString || "{}");
+    // Handle different input types
+    let config: any;
+    if (typeof configString === 'string') {
+      config = JSON.parse(configString || "{}");
+    } else if (configString && typeof configString === 'object') {
+      config = configString;
+    } else {
+      config = {};
+    }
+
     const valueType = config.valueType || "PERCENTAGE";
 
     return {
@@ -105,7 +114,7 @@ export function parseDiscountConfig(configString: string): DiscountConfig {
       type: config.type || "shared",
       valueType: valueType,
       // Only set value for non-FREE_SHIPPING discounts
-      value: valueType === "FREE_SHIPPING" ? undefined : config.value || 10,
+      value: valueType !== "FREE_SHIPPING" ? (config.value || 10) : undefined,
       minimumAmount: config.minimumAmount,
       usageLimit: config.usageLimit,
       expiryDays: config.expiryDays || 30,
@@ -118,12 +127,11 @@ export function parseDiscountConfig(configString: string): DiscountConfig {
     };
   } catch (error) {
     console.error("[Discount Service] Error parsing discount config:", error);
-    const defaultValueType = "PERCENTAGE";
     return {
       enabled: true,
       type: "shared",
-      valueType: defaultValueType,
-      value: defaultValueType === "FREE_SHIPPING" ? undefined : 10,
+      valueType: "PERCENTAGE",
+      value: 10,
       deliveryMode: "show_code_fallback",
     };
   }
@@ -168,7 +176,9 @@ export async function getCampaignDiscountCode(
       };
     }
 
-    const discountConfig = JSON.parse(campaign.discountConfig || "{}");
+    const discountConfig = typeof campaign.discountConfig === 'string'
+      ? JSON.parse(campaign.discountConfig || "{}")
+      : (campaign.discountConfig || {});
 
     // Check for email-specific authorization mode
     if (config.deliveryMode === "show_in_popup_authorized_only" && leadEmail) {
