@@ -49,10 +49,11 @@ function parseTemplateEntity(rawTemplate: Template): TemplateWithConfigs {
     fields: parseJsonField(rawTemplate.fields, z.array(TemplateFieldSchema), []),
     targetRules: parseJsonField(rawTemplate.targetRules, TargetRulesConfigSchema, {}),
     designConfig: parseJsonField(rawTemplate.designConfig, DesignConfigSchema, {
-      theme: "professional-blue",
+      theme: "modern",
       position: "center",
       size: "medium",
       borderRadius: 8,
+      imagePosition: "left",
       overlayOpacity: 0.8,
       animation: "fade"
     }),

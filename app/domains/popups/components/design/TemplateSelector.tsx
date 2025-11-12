@@ -6,13 +6,20 @@ import styles from "./TemplateSelector.module.css";
 import { parseTemplateContentConfig } from "~/domains/templates/types/template";
 
 import type { DesignConfig, NewsletterContent, SpinToWinContent, FlashSaleContent, BaseContentConfig } from "~/domains/campaigns/types/campaign";
+import { NEWSLETTER_THEMES } from "~/config/color-presets";
 
 // Preview helpers: typed content mappers and theme-based color defaults
 const THEME_DEFAULTS: Record<DesignConfig["theme"], { background: string; text: string; button: string }> = {
-  "professional-blue": { background: "#FFFFFF", text: "#1F2937", button: "#2563EB" },
-  "vibrant-orange": { background: "#FFFFFF", text: "#1F2937", button: "#F97316" },
-  "elegant-purple": { background: "#FFFFFF", text: "#111827", button: "#7C3AED" },
-  "minimal-gray": { background: "#F9FAFB", text: "#111827", button: "#111827" },
+  "modern": { background: NEWSLETTER_THEMES.modern.background, text: NEWSLETTER_THEMES.modern.text, button: NEWSLETTER_THEMES.modern.primary },
+  "minimal": { background: NEWSLETTER_THEMES.minimal.background, text: NEWSLETTER_THEMES.minimal.text, button: NEWSLETTER_THEMES.minimal.primary },
+  "elegant": { background: NEWSLETTER_THEMES.elegant.background, text: NEWSLETTER_THEMES.elegant.text, button: NEWSLETTER_THEMES.elegant.primary },
+  "bold": { background: NEWSLETTER_THEMES.bold.background, text: NEWSLETTER_THEMES.bold.text, button: NEWSLETTER_THEMES.bold.primary },
+  "glass": { background: NEWSLETTER_THEMES.glass.background, text: NEWSLETTER_THEMES.glass.text, button: NEWSLETTER_THEMES.glass.primary },
+  "dark": { background: NEWSLETTER_THEMES.dark.background, text: NEWSLETTER_THEMES.dark.text, button: NEWSLETTER_THEMES.dark.primary },
+  "gradient": { background: NEWSLETTER_THEMES.gradient.background, text: NEWSLETTER_THEMES.gradient.text, button: NEWSLETTER_THEMES.gradient.primary },
+  "luxury": { background: NEWSLETTER_THEMES.luxury.background, text: NEWSLETTER_THEMES.luxury.text, button: NEWSLETTER_THEMES.luxury.primary },
+  "neon": { background: NEWSLETTER_THEMES.neon.background, text: NEWSLETTER_THEMES.neon.text, button: NEWSLETTER_THEMES.neon.primary },
+  "ocean": { background: NEWSLETTER_THEMES.ocean.background, text: NEWSLETTER_THEMES.ocean.text, button: NEWSLETTER_THEMES.ocean.primary },
 };
 
 function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
@@ -28,7 +35,7 @@ function pickReadableTextColor(bgHex: string): string {
 }
 
 function getDesignPreviewColors(design: DesignConfig) {
-  const defaults = THEME_DEFAULTS[design.theme] ?? THEME_DEFAULTS["professional-blue"];
+  const defaults = THEME_DEFAULTS[design.theme] ?? THEME_DEFAULTS["modern"];
   const backgroundColor = design.backgroundColor ?? defaults.background;
   const textColor = design.textColor ?? defaults.text;
   const buttonColor = design.buttonColor ?? defaults.button;

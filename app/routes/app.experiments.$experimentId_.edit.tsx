@@ -7,7 +7,7 @@
 import { data, type LoaderFunctionArgs } from "react-router";
 import { useLoaderData, useNavigate } from "react-router";
 import { Frame, Toast } from "@shopify/polaris";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 import { authenticate } from "~/shopify.server";
 import { getStoreId } from "~/lib/auth-helpers.server";
@@ -26,6 +26,7 @@ interface LoaderData {
   variants: CampaignWithConfigs[];
   storeId: string;
   shopDomain: string;
+  selectedVariant?: string | null;
 }
 
 // ============================================================================
@@ -60,14 +61,29 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       variantIds.map(id => CampaignService.getCampaignById(id, storeId))
     );
 
-    // Filter out any null results
-    const validVariants = variants.filter((v): v is CampaignWithConfigs => v !== null);
+    // Filter out any null results and sort by variantKey to ensure consistent order (A, B, C, etc.)
+    const validVariants = variants
+      .filter((v): v is CampaignWithConfigs => v !== null)
+      .sort((a, b) => {
+        const keyA = a.variantKey || '';
+        const keyB = b.variantKey || '';
+        return keyA.localeCompare(keyB);
+      });
+
+    // Get the variant query parameter if provided
+    const url = new URL(request.url);
+    const variantParam = url.searchParams.get('variant');
+
+    console.log('[Experiment Edit Loader] experimentId:', experimentId);
+    console.log('[Experiment Edit Loader] variantParam:', variantParam);
+    console.log('[Experiment Edit Loader] validVariants:', validVariants.map(v => ({ id: v.id, variantKey: v.variantKey })));
 
     return data<LoaderData>({
       experiment,
       variants: validVariants,
       storeId,
       shopDomain: session.shop,
+      selectedVariant: variantParam,
     });
 
   } catch (error) {
@@ -87,7 +103,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 // ============================================================================
 
 export default function ExperimentEditPage() {
-  const { experiment, variants, storeId, shopDomain } = useLoaderData<typeof loader>();
+  const { experiment, variants, storeId, shopDomain, selectedVariant } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [toastError, setToastError] = useState(false);
@@ -125,30 +141,41 @@ export default function ExperimentEditPage() {
   ) : null;
 
   // If no experiment found, redirect back
+  useEffect(() => {
+    if (!experiment || variants.length === 0) {
+      navigate("/app/campaigns");
+    }
+  }, [experiment, variants, navigate]);
+
   if (!experiment || variants.length === 0) {
-    navigate("/app/campaigns");
     return null;
   }
 
-  // Convert first variant to initial form data
-  // The form will load all variants and allow switching between them
-  const firstVariant = variants[0];
+  // Determine which variant to display initially
+  // If a variant is specified in the query parameter, use that; otherwise use Variant A (or first variant if A doesn't exist)
+  const targetVariant = selectedVariant
+    ? variants.find(v => v.variantKey === selectedVariant) || variants[0]
+    : variants.find(v => v.variantKey === 'A') || variants[0];
+
+  console.log('[Experiment Edit Page] selectedVariant param:', selectedVariant);
+  console.log('[Experiment Edit Page] targetVariant:', { id: targetVariant.id, variantKey: targetVariant.variantKey });
+  console.log('[Experiment Edit Page] all variants:', variants.map(v => ({ id: v.id, variantKey: v.variantKey })));
 
   const initialData: Partial<CampaignFormData> = {
     name: experiment.name,
     description: experiment.description || "",
-    templateType: firstVariant.templateType,
-    templateId: firstVariant.templateId || undefined,
-    goal: firstVariant.goal,
-    status: firstVariant.status,
-    priority: firstVariant.priority,
+    templateType: targetVariant.templateType,
+    templateId: targetVariant.templateId || undefined,
+    goal: targetVariant.goal,
+    status: targetVariant.status,
+    priority: targetVariant.priority,
     experimentId: experiment.id,
-    isControl: firstVariant.isControl,
-    variantKey: firstVariant.variantKey || "A",
-    contentConfig: firstVariant.contentConfig,
-    designConfig: firstVariant.designConfig,
-    targetRules: firstVariant.targetRules,
-    discountConfig: firstVariant.discountConfig || undefined,
+    isControl: targetVariant.isControl,
+    variantKey: targetVariant.variantKey || "A",
+    contentConfig: targetVariant.contentConfig,
+    designConfig: targetVariant.designConfig,
+    targetRules: targetVariant.targetRules,
+    discountConfig: targetVariant.discountConfig || undefined,
   };
 
   // Prepare experiment data
@@ -185,7 +212,7 @@ export default function ExperimentEditPage() {
         experimentId={experiment.id}
         experimentData={experimentData}
         allVariants={allVariantsInfo}
-        currentVariantKey={firstVariant.variantKey || "A"}
+        currentVariantKey={targetVariant.variantKey || "A"}
         onSave={handleSave}
         onCancel={handleCancel}
       />

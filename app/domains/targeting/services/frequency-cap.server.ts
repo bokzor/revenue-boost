@@ -78,18 +78,20 @@ export class FrequencyCapService {
         return { allowed: true, currentCounts: this.getEmptyCounts() };
       }
 
-      const campaignId = campaign.id;
+      // Use experimentId for tracking if campaign is part of an experiment
+      // This ensures all variants share the same frequency cap
+      const trackingKey = campaign.experimentId || campaign.id;
       const identifier = context.visitorId || context.sessionId || 'anonymous';
       const now = Date.now();
 
       // Check cooldown first
-      const cooldownResult = await this.checkCooldown(identifier, campaignId, now);
+      const cooldownResult = await this.checkCooldown(identifier, trackingKey, now);
       if (!cooldownResult.allowed) {
         return cooldownResult;
       }
 
       // Get current counts
-      const currentCounts = await this.getCurrentCounts(identifier, campaignId);
+      const currentCounts = await this.getCurrentCounts(identifier, trackingKey);
 
       // Check individual campaign limits
       const campaignResult = this.checkCampaignLimits(currentCounts, rules);
@@ -101,7 +103,7 @@ export class FrequencyCapService {
       if (rules.respect_global_limits || rules.cross_campaign_limits) {
         const globalResult = await this.checkGlobalLimits(
           identifier,
-          campaignId,
+          trackingKey,
           rules.cross_campaign_limits
         );
         if (!globalResult.allowed) {
@@ -126,12 +128,12 @@ export class FrequencyCapService {
   /**
    * Record a campaign display for frequency capping
    *
-   * @param campaignId - Campaign ID
+   * @param trackingKey - Experiment ID (if part of experiment) or Campaign ID
    * @param context - Storefront context with visitor/session info
    * @param rules - Frequency capping rules
    */
   static async recordDisplay(
-    campaignId: string,
+    trackingKey: string,
     context: StorefrontContext,
     rules?: FrequencyCappingRule
   ): Promise<void> {
@@ -140,7 +142,7 @@ export class FrequencyCapService {
       const now = Date.now();
 
       // Record campaign-specific display
-      await this.recordCampaignDisplay(identifier, campaignId, now);
+      await this.recordCampaignDisplay(identifier, trackingKey, now);
 
       // Record global display if needed
       if (rules?.respect_global_limits || rules?.cross_campaign_limits) {
@@ -149,7 +151,7 @@ export class FrequencyCapService {
 
       // Set cooldown if specified
       if (rules?.cooldown_between_triggers) {
-        await this.setCooldown(identifier, campaignId, rules.cooldown_between_triggers, now);
+        await this.setCooldown(identifier, trackingKey, rules.cooldown_between_triggers, now);
       }
     } catch (error) {
       console.error('Failed to record display for frequency capping:', error);
@@ -184,7 +186,7 @@ export class FrequencyCapService {
    */
   private static async checkCooldown(
     identifier: string,
-    campaignId: string,
+    trackingKey: string,
     now: number
   ): Promise<FrequencyCapResult> {
     if (!redis) {
@@ -194,7 +196,7 @@ export class FrequencyCapService {
       };
     }
 
-    const cooldownKey = `${REDIS_PREFIXES.COOLDOWN}:${identifier}:${campaignId}`;
+    const cooldownKey = `${REDIS_PREFIXES.COOLDOWN}:${identifier}:${trackingKey}`;
     const cooldownUntil = await redis.get(cooldownKey);
 
     if (cooldownUntil && parseInt(cooldownUntil) > now) {
@@ -215,13 +217,13 @@ export class FrequencyCapService {
    */
   private static async setCooldown(
     identifier: string,
-    campaignId: string,
+    trackingKey: string,
     cooldownSeconds: number,
     now: number
   ): Promise<void> {
     if (!redis || cooldownSeconds <= 0) return;
 
-    const cooldownKey = `${REDIS_PREFIXES.COOLDOWN}:${identifier}:${campaignId}`;
+    const cooldownKey = `${REDIS_PREFIXES.COOLDOWN}:${identifier}:${trackingKey}`;
     const cooldownUntil = now + (cooldownSeconds * 1000);
 
     await redis.setex(
@@ -232,14 +234,14 @@ export class FrequencyCapService {
   }
 
   /**
-   * Get current counts for a campaign
+   * Get current counts for a campaign or experiment
    */
   private static async getCurrentCounts(
     identifier: string,
-    campaignId: string
+    trackingKey: string
   ): Promise<FrequencyCapResult['currentCounts']> {
     const now = Date.now();
-    const baseKey = `${REDIS_PREFIXES.FREQUENCY_CAP}:${identifier}:${campaignId}`;
+    const baseKey = `${REDIS_PREFIXES.FREQUENCY_CAP}:${identifier}:${trackingKey}`;
 
     const [session, hour, day, week, month] = await Promise.all([
       this.getTimeWindowCount(baseKey, 'session', now),
@@ -320,7 +322,7 @@ export class FrequencyCapService {
    */
   private static async checkGlobalLimits(
     identifier: string,
-    campaignId: string,
+    trackingKey: string,
     crossCampaignLimits?: FrequencyCappingRule['cross_campaign_limits']
   ): Promise<Pick<FrequencyCapResult, 'allowed' | 'reason' | 'globalCounts'>> {
     if (!crossCampaignLimits) {
@@ -355,14 +357,14 @@ export class FrequencyCapService {
   }
 
   /**
-   * Record campaign-specific display
+   * Record campaign or experiment display
    */
   private static async recordCampaignDisplay(
     identifier: string,
-    campaignId: string,
+    trackingKey: string,
     now: number
   ): Promise<void> {
-    const baseKey = `${REDIS_PREFIXES.FREQUENCY_CAP}:${identifier}:${campaignId}`;
+    const baseKey = `${REDIS_PREFIXES.FREQUENCY_CAP}:${identifier}:${trackingKey}`;
 
     await Promise.all([
       this.incrementTimeWindowCount(baseKey, 'session', now, REDIS_TTL.SESSION),
@@ -441,21 +443,21 @@ export class FrequencyCapService {
    */
   static async resetFrequencyCapping(
     identifier: string,
-    campaignId?: string
+    trackingKey?: string
   ): Promise<void> {
     if (!redis) return;
 
     try {
-      if (campaignId) {
-        // Reset specific campaign
-        const pattern = `${REDIS_PREFIXES.FREQUENCY_CAP}:${identifier}:${campaignId}:*`;
+      if (trackingKey) {
+        // Reset specific campaign or experiment
+        const pattern = `${REDIS_PREFIXES.FREQUENCY_CAP}:${identifier}:${trackingKey}:*`;
         const keys = await redis.keys(pattern);
         if (keys.length > 0) {
           await redis.del(...keys);
         }
 
         // Reset cooldown
-        const cooldownKey = `${REDIS_PREFIXES.COOLDOWN}:${identifier}:${campaignId}`;
+        const cooldownKey = `${REDIS_PREFIXES.COOLDOWN}:${identifier}:${trackingKey}`;
         await redis.del(cooldownKey);
       } else {
         // Reset all campaigns for identifier
@@ -482,18 +484,18 @@ export class FrequencyCapService {
    */
   static async getFrequencyStatus(
     identifier: string,
-    campaignId: string
+    trackingKey: string
   ): Promise<{
     counts: FrequencyCapResult['currentCounts'];
     globalCounts: { session: number; day: number };
     cooldownUntil?: number;
   }> {
     const [counts, globalCounts] = await Promise.all([
-      this.getCurrentCounts(identifier, campaignId),
+      this.getCurrentCounts(identifier, trackingKey),
       this.getGlobalCounts(identifier),
     ]);
 
-    const cooldownKey = `${REDIS_PREFIXES.COOLDOWN}:${identifier}:${campaignId}`;
+    const cooldownKey = `${REDIS_PREFIXES.COOLDOWN}:${identifier}:${trackingKey}`;
     const cooldownUntil = redis ? await redis.get(cooldownKey) : null;
 
     return {

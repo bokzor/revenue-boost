@@ -1,6 +1,6 @@
 /**
  * Campaign Update Helpers - Extract update logic into focused functions
- * 
+ *
  * SOLID PRINCIPLES APPLIED:
  * ✅ Single Responsibility: Each function handles one aspect of updates
  * ✅ Open/Closed: Easy to add new update types without modifying existing code
@@ -8,8 +8,42 @@
  */
 
 import type { Prisma } from "@prisma/client";
-import type { CampaignUpdateData } from "../types/campaign";
+import type { CampaignUpdateData, DiscountConfig } from "../types/campaign";
 import { stringifyJsonField } from "../utils/json-helpers";
+import { generateDiscountCode } from "~/domains/popups/services/discounts/discount.server";
+
+/**
+ * Auto-generate discount code if enabled but no code provided
+ */
+function ensureDiscountCode(discountConfig?: DiscountConfig): DiscountConfig | undefined {
+  if (!discountConfig || !discountConfig.enabled) {
+    return discountConfig;
+  }
+
+  // If code already exists, return as-is
+  if (discountConfig.code) {
+    return discountConfig;
+  }
+
+  // Auto-generate code if enabled but missing
+  const type = (discountConfig.type || discountConfig.valueType?.toLowerCase()) as "percentage" | "fixed_amount" | "free_shipping";
+  const value = discountConfig.value || 10;
+  const prefix = discountConfig.prefix || "WELCOME";
+  const expiryDays = discountConfig.expiryDays || 30;
+
+  const generated = generateDiscountCode({
+    type,
+    value,
+    prefix,
+    expiresInDays: expiryDays,
+    usageLimit: discountConfig.usageLimit,
+  });
+
+  return {
+    ...discountConfig,
+    code: generated.code,
+  };
+}
 
 /**
  * Build basic field updates
@@ -69,7 +103,9 @@ export function buildConfigUpdates(
     updates.targetRules = stringifyJsonField(data.targetRules);
   }
   if (data.discountConfig !== undefined) {
-    updates.discountConfig = stringifyJsonField(data.discountConfig);
+    // Auto-generate discount code if needed
+    const discountConfig = ensureDiscountCode(data.discountConfig);
+    updates.discountConfig = stringifyJsonField(discountConfig);
   }
 
   return updates;

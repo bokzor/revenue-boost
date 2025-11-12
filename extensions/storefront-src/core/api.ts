@@ -127,6 +127,63 @@ export class ApiClient {
     return "desktop";
   }
 
+  async submitLead(data: {
+    email: string;
+    campaignId: string;
+    sessionId: string;
+    visitorId?: string;
+    consent?: boolean;
+    firstName?: string;
+    lastName?: string;
+    phone?: string;
+    metadata?: Record<string, unknown>;
+  }): Promise<{
+    success: boolean;
+    leadId?: string;
+    discountCode?: string | null;
+    error?: string;
+  }> {
+    const params = new URLSearchParams({
+      shop: this.config.shopDomain,
+    });
+
+    const url = `${this.getApiUrl("/api/leads/submit")}?${params.toString()}`;
+
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          ...data,
+          pageUrl: window.location.href,
+          referrer: document.referrer,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `HTTP ${response.status}`);
+      }
+
+      const result = await response.json();
+      this.log("Lead submitted successfully:", result);
+
+      return {
+        success: true,
+        leadId: result.leadId,
+        discountCode: result.discountCode,
+      };
+    } catch (error) {
+      console.error("[Revenue Boost API] Failed to submit lead:", error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Failed to submit lead",
+      };
+    }
+  }
+
   async recordFrequency(sessionId: string, campaignId: string): Promise<void> {
     const url = this.getApiUrl("/api/analytics/frequency");
 

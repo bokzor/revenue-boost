@@ -7,6 +7,8 @@
 import { h, render, type ComponentType } from "preact";
 import { useState, useEffect } from "preact/hooks";
 import { ComponentLoader, type TemplateType } from "./component-loader";
+import type { ApiClient } from "./api";
+import { session } from "./session";
 
 export interface StorefrontCampaign {
   id: string;
@@ -23,9 +25,10 @@ export interface PopupManagerProps {
   onClose: () => void;
   onShow?: (campaignId: string) => void;
   loader: ComponentLoader;
+  api: ApiClient;
 }
 
-export function PopupManagerPreact({ campaign, onClose, onShow, loader }: PopupManagerProps) {
+export function PopupManagerPreact({ campaign, onClose, onShow, loader, api }: PopupManagerProps) {
   const [Component, setComponent] = useState<ComponentType<Record<string, unknown>> | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -58,6 +61,34 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader }: PopupM
       mounted = false;
     };
   }, [campaign.id, campaign.templateType, loader, onShow]);
+
+  // Handle lead submission
+  const handleSubmit = async (data: { email: string; name?: string; gdprConsent?: boolean }) => {
+    try {
+      console.log("[PopupManager] Submitting lead:", data);
+
+      const result = await api.submitLead({
+        email: data.email,
+        campaignId: campaign.id,
+        sessionId: session.getSessionId(),
+        visitorId: session.getVisitorId(),
+        consent: data.gdprConsent,
+        firstName: data.name,
+      });
+
+      if (!result.success) {
+        throw new Error(result.error || "Failed to submit lead");
+      }
+
+      console.log("[PopupManager] Lead submitted successfully:", result);
+
+      // Return the discount code if available
+      return result.discountCode;
+    } catch (err) {
+      console.error("[PopupManager] Failed to submit lead:", err);
+      throw err;
+    }
+  };
 
   if (loading) {
     return h("div", {
@@ -104,6 +135,7 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader }: PopupM
     },
     isVisible: true,
     onClose,
+    onSubmit: handleSubmit,
     campaignId: campaign.id,
     renderInline: false,
   });
@@ -116,6 +148,7 @@ export function renderPopup(
   campaign: StorefrontCampaign,
   onClose: () => void,
   loader: ComponentLoader,
+  api: ApiClient,
   onShow?: (campaignId: string) => void
 ): () => void {
   // Create container
@@ -133,6 +166,7 @@ export function renderPopup(
       },
       onShow,
       loader,
+      api,
     }),
     container
   );

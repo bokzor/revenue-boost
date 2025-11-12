@@ -1,4 +1,327 @@
-"use strict";(()=>{var oe,m,de,et,B,ce,me,he,ve,ne,Z,K,tt,ee={},ye=[],ot=/acit|ex(?:s|g|n|p|$)|rph|grid|ows|mnc|ntw|ine[ch]|zoo|^ord|itera/i,V=Array.isArray;function D(e,t){for(var o in t)e[o]=t[o];return e}function ie(e){e&&e.parentNode&&e.parentNode.removeChild(e)}function G(e,t,o){var n,i,r,s={};for(r in t)r=="key"?n=t[r]:r=="ref"?i=t[r]:s[r]=t[r];if(arguments.length>2&&(s.children=arguments.length>3?oe.call(arguments,2):o),typeof e=="function"&&e.defaultProps!=null)for(r in e.defaultProps)s[r]===void 0&&(s[r]=e.defaultProps[r]);return j(e,s,n,i,null)}function j(e,t,o,n,i){var r={type:e,props:t,key:o,ref:n,__k:null,__:null,__b:0,__e:null,__c:null,constructor:void 0,__v:i??++de,__i:-1,__u:0};return i==null&&m.vnode!=null&&m.vnode(r),r}function S(e){return e.children}function E(e,t){this.props=e,this.context=t}function M(e,t){if(t==null)return e.__?M(e.__,e.__i+1):null;for(var o;t<e.__k.length;t++)if((o=e.__k[t])!=null&&o.__e!=null)return o.__e;return typeof e.type=="function"?M(e):null}function ge(e){var t,o;if((e=e.__)!=null&&e.__c!=null){for(e.__e=e.__c.base=null,t=0;t<e.__k.length;t++)if((o=e.__k[t])!=null&&o.__e!=null){e.__e=e.__c.base=o.__e;break}return ge(e)}}function ue(e){(!e.__d&&(e.__d=!0)&&B.push(e)&&!q.__r++||ce!=m.debounceRendering)&&((ce=m.debounceRendering)||me)(q)}function q(){for(var e,t,o,n,i,r,s,_=1;B.length;)B.length>_&&B.sort(he),e=B.shift(),_=B.length,e.__d&&(o=void 0,n=void 0,i=(n=(t=e).__v).__e,r=[],s=[],t.__P&&((o=D({},n)).__v=n.__v+1,m.vnode&&m.vnode(o),Ce(t.__P,o,n,t.__n,t.__P.namespaceURI,32&n.__u?[i]:null,r,i??M(n),!!(32&n.__u),s),o.__v=n.__v,o.__.__k[o.__i]=o,rt(r,o,s),n.__e=n.__=null,o.__e!=i&&ge(o)));q.__r=0}function be(e,t,o,n,i,r,s,_,c,l,d){var a,p,f,g,C,u,h,y=n&&n.__k||ye,R=t.length;for(c=nt(o,t,y,c,R),a=0;a<R;a++)(f=o.__k[a])!=null&&(p=f.__i==-1?ee:y[f.__i]||ee,f.__i=a,u=Ce(e,f,p,i,r,s,_,c,l,d),g=f.__e,f.ref&&p.ref!=f.ref&&(p.ref&&re(p.ref,null,f),d.push(f.ref,f.__c||g,f)),C==null&&g!=null&&(C=g),(h=!!(4&f.__u))||p.__k===f.__k?c=xe(f,c,e,h):typeof f.type=="function"&&u!==void 0?c=u:g&&(c=g.nextSibling),f.__u&=-7);return o.__e=C,c}function nt(e,t,o,n,i){var r,s,_,c,l,d=o.length,a=d,p=0;for(e.__k=new Array(i),r=0;r<i;r++)(s=t[r])!=null&&typeof s!="boolean"&&typeof s!="function"?(c=r+p,(s=e.__k[r]=typeof s=="string"||typeof s=="number"||typeof s=="bigint"||s.constructor==String?j(null,s,null,null,null):V(s)?j(S,{children:s},null,null,null):s.constructor==null&&s.__b>0?j(s.type,s.props,s.key,s.ref?s.ref:null,s.__v):s).__=e,s.__b=e.__b+1,_=null,(l=s.__i=it(s,o,c,a))!=-1&&(a--,(_=o[l])&&(_.__u|=2)),_==null||_.__v==null?(l==-1&&(i>d?p--:i<d&&p++),typeof s.type!="function"&&(s.__u|=4)):l!=c&&(l==c-1?p--:l==c+1?p++:(l>c?p--:p++,s.__u|=4))):e.__k[r]=null;if(a)for(r=0;r<d;r++)(_=o[r])!=null&&(2&_.__u)==0&&(_.__e==n&&(n=M(_)),Pe(_,_));return n}function xe(e,t,o,n){var i,r;if(typeof e.type=="function"){for(i=e.__k,r=0;i&&r<i.length;r++)i[r]&&(i[r].__=e,t=xe(i[r],t,o,n));return t}e.__e!=t&&(n&&(t&&e.type&&!t.parentNode&&(t=M(e)),o.insertBefore(e.__e,t||null)),t=e.__e);do t=t&&t.nextSibling;while(t!=null&&t.nodeType==8);return t}function W(e,t){return t=t||[],e==null||typeof e=="boolean"||(V(e)?e.some(function(o){W(o,t)}):t.push(e)),t}function it(e,t,o,n){var i,r,s,_=e.key,c=e.type,l=t[o],d=l!=null&&(2&l.__u)==0;if(l===null&&e.key==null||d&&_==l.key&&c==l.type)return o;if(n>(d?1:0)){for(i=o-1,r=o+1;i>=0||r<t.length;)if((l=t[s=i>=0?i--:r++])!=null&&(2&l.__u)==0&&_==l.key&&c==l.type)return s}return-1}function fe(e,t,o){t[0]=="-"?e.setProperty(t,o??""):e[t]=o==null?"":typeof o!="number"||ot.test(t)?o:o+"px"}function z(e,t,o,n,i){var r,s;e:if(t=="style")if(typeof o=="string")e.style.cssText=o;else{if(typeof n=="string"&&(e.style.cssText=n=""),n)for(t in n)o&&t in o||fe(e.style,t,"");if(o)for(t in o)n&&o[t]==n[t]||fe(e.style,t,o[t])}else if(t[0]=="o"&&t[1]=="n")r=t!=(t=t.replace(ve,"$1")),s=t.toLowerCase(),t=s in e||t=="onFocusOut"||t=="onFocusIn"?s.slice(2):t.slice(2),e.l||(e.l={}),e.l[t+r]=o,o?n?o.u=n.u:(o.u=ne,e.addEventListener(t,r?K:Z,r)):e.removeEventListener(t,r?K:Z,r);else{if(i=="http://www.w3.org/2000/svg")t=t.replace(/xlink(H|:h)/,"h").replace(/sName$/,"s");else if(t!="width"&&t!="height"&&t!="href"&&t!="list"&&t!="form"&&t!="tabIndex"&&t!="download"&&t!="rowSpan"&&t!="colSpan"&&t!="role"&&t!="popover"&&t in e)try{e[t]=o??"";break e}catch{}typeof o=="function"||(o==null||o===!1&&t[4]!="-"?e.removeAttribute(t):e.setAttribute(t,t=="popover"&&o==1?"":o))}}function pe(e){return function(t){if(this.l){var o=this.l[t.type+e];if(t.t==null)t.t=ne++;else if(t.t<o.u)return;return o(m.event?m.event(t):t)}}}function Ce(e,t,o,n,i,r,s,_,c,l){var d,a,p,f,g,C,u,h,y,R,T,P,N,w,O,k,F,A=t.type;if(t.constructor!=null)return null;128&o.__u&&(c=!!(32&o.__u),r=[_=t.__e=o.__e]),(d=m.__b)&&d(t);e:if(typeof A=="function")try{if(h=t.props,y="prototype"in A&&A.prototype.render,R=(d=A.contextType)&&n[d.__c],T=d?R?R.props.value:d.__:n,o.__c?u=(a=t.__c=o.__c).__=a.__E:(y?t.__c=a=new A(h,T):(t.__c=a=new E(h,T),a.constructor=A,a.render=st),R&&R.sub(a),a.props=h,a.state||(a.state={}),a.context=T,a.__n=n,p=a.__d=!0,a.__h=[],a._sb=[]),y&&a.__s==null&&(a.__s=a.state),y&&A.getDerivedStateFromProps!=null&&(a.__s==a.state&&(a.__s=D({},a.__s)),D(a.__s,A.getDerivedStateFromProps(h,a.__s))),f=a.props,g=a.state,a.__v=t,p)y&&A.getDerivedStateFromProps==null&&a.componentWillMount!=null&&a.componentWillMount(),y&&a.componentDidMount!=null&&a.__h.push(a.componentDidMount);else{if(y&&A.getDerivedStateFromProps==null&&h!==f&&a.componentWillReceiveProps!=null&&a.componentWillReceiveProps(h,T),!a.__e&&a.shouldComponentUpdate!=null&&a.shouldComponentUpdate(h,a.__s,T)===!1||t.__v==o.__v){for(t.__v!=o.__v&&(a.props=h,a.state=a.__s,a.__d=!1),t.__e=o.__e,t.__k=o.__k,t.__k.some(function(H){H&&(H.__=t)}),P=0;P<a._sb.length;P++)a.__h.push(a._sb[P]);a._sb=[],a.__h.length&&s.push(a);break e}a.componentWillUpdate!=null&&a.componentWillUpdate(h,a.__s,T),y&&a.componentDidUpdate!=null&&a.__h.push(function(){a.componentDidUpdate(f,g,C)})}if(a.context=T,a.props=h,a.__P=e,a.__e=!1,N=m.__r,w=0,y){for(a.state=a.__s,a.__d=!1,N&&N(t),d=a.render(a.props,a.state,a.context),O=0;O<a._sb.length;O++)a.__h.push(a._sb[O]);a._sb=[]}else do a.__d=!1,N&&N(t),d=a.render(a.props,a.state,a.context),a.state=a.__s;while(a.__d&&++w<25);a.state=a.__s,a.getChildContext!=null&&(n=D(D({},n),a.getChildContext())),y&&!p&&a.getSnapshotBeforeUpdate!=null&&(C=a.getSnapshotBeforeUpdate(f,g)),k=d,d!=null&&d.type===S&&d.key==null&&(k=Se(d.props.children)),_=be(e,V(k)?k:[k],t,o,n,i,r,s,_,c,l),a.base=t.__e,t.__u&=-161,a.__h.length&&s.push(a),u&&(a.__E=a.__=null)}catch(H){if(t.__v=null,c||r!=null)if(H.then){for(t.__u|=c?160:128;_&&_.nodeType==8&&_.nextSibling;)_=_.nextSibling;r[r.indexOf(_)]=null,t.__e=_}else{for(F=r.length;F--;)ie(r[F]);te(t)}else t.__e=o.__e,t.__k=o.__k,H.then||te(t);m.__e(H,t,o)}else r==null&&t.__v==o.__v?(t.__k=o.__k,t.__e=o.__e):_=t.__e=at(o.__e,t,o,n,i,r,s,c,l);return(d=m.diffed)&&d(t),128&t.__u?void 0:_}function te(e){e&&e.__c&&(e.__c.__e=!0),e&&e.__k&&e.__k.forEach(te)}function rt(e,t,o){for(var n=0;n<o.length;n++)re(o[n],o[++n],o[++n]);m.__c&&m.__c(t,e),e.some(function(i){try{e=i.__h,i.__h=[],e.some(function(r){r.call(i)})}catch(r){m.__e(r,i.__v)}})}function Se(e){return typeof e!="object"||e==null||e.__b&&e.__b>0?e:V(e)?e.map(Se):D({},e)}function at(e,t,o,n,i,r,s,_,c){var l,d,a,p,f,g,C,u=o.props,h=t.props,y=t.type;if(y=="svg"?i="http://www.w3.org/2000/svg":y=="math"?i="http://www.w3.org/1998/Math/MathML":i||(i="http://www.w3.org/1999/xhtml"),r!=null){for(l=0;l<r.length;l++)if((f=r[l])&&"setAttribute"in f==!!y&&(y?f.localName==y:f.nodeType==3)){e=f,r[l]=null;break}}if(e==null){if(y==null)return document.createTextNode(h);e=document.createElementNS(i,y,h.is&&h),_&&(m.__m&&m.__m(t,r),_=!1),r=null}if(y==null)u===h||_&&e.data==h||(e.data=h);else{if(r=r&&oe.call(e.childNodes),u=o.props||ee,!_&&r!=null)for(u={},l=0;l<e.attributes.length;l++)u[(f=e.attributes[l]).name]=f.value;for(l in u)if(f=u[l],l!="children"){if(l=="dangerouslySetInnerHTML")a=f;else if(!(l in h)){if(l=="value"&&"defaultValue"in h||l=="checked"&&"defaultChecked"in h)continue;z(e,l,null,f,i)}}for(l in h)f=h[l],l=="children"?p=f:l=="dangerouslySetInnerHTML"?d=f:l=="value"?g=f:l=="checked"?C=f:_&&typeof f!="function"||u[l]===f||z(e,l,f,u[l],i);if(d)_||a&&(d.__html==a.__html||d.__html==e.innerHTML)||(e.innerHTML=d.__html),t.__k=[];else if(a&&(e.innerHTML=""),be(t.type=="template"?e.content:e,V(p)?p:[p],t,o,n,y=="foreignObject"?"http://www.w3.org/1999/xhtml":i,r,s,r?r[0]:o.__k&&M(o,0),_,c),r!=null)for(l=r.length;l--;)ie(r[l]);_||(l="value",y=="progress"&&g==null?e.removeAttribute("value"):g!=null&&(g!==e[l]||y=="progress"&&!g||y=="option"&&g!=u[l])&&z(e,l,g,u[l],i),l="checked",C!=null&&C!=e[l]&&z(e,l,C,u[l],i))}return e}function re(e,t,o){try{if(typeof e=="function"){var n=typeof e.__u=="function";n&&e.__u(),n&&t==null||(e.__u=e(t))}else e.current=t}catch(i){m.__e(i,o)}}function Pe(e,t,o){var n,i;if(m.unmount&&m.unmount(e),(n=e.ref)&&(n.current&&n.current!=e.__e||re(n,null,t)),(n=e.__c)!=null){if(n.componentWillUnmount)try{n.componentWillUnmount()}catch(r){m.__e(r,t)}n.base=n.__P=null}if(n=e.__k)for(i=0;i<n.length;i++)n[i]&&Pe(n[i],t,o||typeof e.type!="function");o||ie(e.__e),e.__c=e.__=e.__e=void 0}function st(e,t,o){return this.constructor(e,o)}oe=ye.slice,m={__e:function(e,t,o,n){for(var i,r,s;t=t.__;)if((i=t.__c)&&!i.__)try{if((r=i.constructor)&&r.getDerivedStateFromError!=null&&(i.setState(r.getDerivedStateFromError(e)),s=i.__d),i.componentDidCatch!=null&&(i.componentDidCatch(e,n||{}),s=i.__d),s)return i.__E=i}catch(_){e=_}throw e}},de=0,et=function(e){return e!=null&&e.constructor==null},E.prototype.setState=function(e,t){var o;o=this.__s!=null&&this.__s!=this.state?this.__s:this.__s=D({},this.state),typeof e=="function"&&(e=e(D({},o),this.props)),e&&D(o,e),e!=null&&this.__v&&(t&&this._sb.push(t),ue(this))},E.prototype.forceUpdate=function(e){this.__v&&(this.__e=!0,e&&this.__h.push(e),ue(this))},E.prototype.render=S,B=[],me=typeof Promise=="function"?Promise.prototype.then.bind(Promise.resolve()):setTimeout,he=function(e,t){return e.__v.__b-t.__v.__b},q.__r=0,ve=/(PointerCapture)$|Capture$/i,ne=0,Z=pe(!1),K=pe(!0),tt=0;var $,b,ae,Ne,J=0,Ie=[],x=m,we=x.__b,ke=x.__r,Ee=x.diffed,Re=x.__c,Te=x.unmount,Fe=x.__;function le(e,t){x.__h&&x.__h(b,e,J||t),J=0;var o=b.__H||(b.__H={__:[],__h:[]});return e>=o.__.length&&o.__.push({}),o.__[e]}function I(e){return J=1,De(Oe,e)}function De(e,t,o){var n=le($++,2);if(n.t=e,!n.__c&&(n.__=[o?o(t):Oe(void 0,t),function(_){var c=n.__N?n.__N[0]:n.__[0],l=n.t(c,_);c!==l&&(n.__N=[l,n.__[1]],n.__c.setState({}))}],n.__c=b,!b.__f)){var i=function(_,c,l){if(!n.__c.__H)return!0;var d=n.__c.__H.__.filter(function(p){return!!p.__c});if(d.every(function(p){return!p.__N}))return!r||r.call(this,_,c,l);var a=n.__c.props!==_;return d.forEach(function(p){if(p.__N){var f=p.__[0];p.__=p.__N,p.__N=void 0,f!==p.__[0]&&(a=!0)}}),r&&r.call(this,_,c,l)||a};b.__f=!0;var r=b.shouldComponentUpdate,s=b.componentWillUpdate;b.componentWillUpdate=function(_,c,l){if(this.__e){var d=r;r=void 0,i(_,c,l),r=d}s&&s.call(this,_,c,l)},b.shouldComponentUpdate=i}return n.__N||n.__}function L(e,t){var o=le($++,3);!x.__s&&Le(o.__H,t)&&(o.__=e,o.u=t,b.__H.__h.push(o))}function Q(e,t){var o=le($++,7);return Le(o.__H,t)&&(o.__=e(),o.__H=t,o.__h=e),o.__}function U(e,t){return J=8,Q(function(){return e},t)}function lt(){for(var e;e=Ie.shift();)if(e.__P&&e.__H)try{e.__H.__h.forEach(Y),e.__H.__h.forEach(se),e.__H.__h=[]}catch(t){e.__H.__h=[],x.__e(t,e.__v)}}x.__b=function(e){b=null,we&&we(e)},x.__=function(e,t){e&&t.__k&&t.__k.__m&&(e.__m=t.__k.__m),Fe&&Fe(e,t)},x.__r=function(e){ke&&ke(e),$=0;var t=(b=e.__c).__H;t&&(ae===b?(t.__h=[],b.__h=[],t.__.forEach(function(o){o.__N&&(o.__=o.__N),o.u=o.__N=void 0})):(t.__h.forEach(Y),t.__h.forEach(se),t.__h=[],$=0)),ae=b},x.diffed=function(e){Ee&&Ee(e);var t=e.__c;t&&t.__H&&(t.__H.__h.length&&(Ie.push(t)!==1&&Ne===x.requestAnimationFrame||((Ne=x.requestAnimationFrame)||_t)(lt)),t.__H.__.forEach(function(o){o.u&&(o.__H=o.u),o.u=void 0})),ae=b=null},x.__c=function(e,t){t.some(function(o){try{o.__h.forEach(Y),o.__h=o.__h.filter(function(n){return!n.__||se(n)})}catch(n){t.some(function(i){i.__h&&(i.__h=[])}),t=[],x.__e(n,o.__v)}}),Re&&Re(e,t)},x.unmount=function(e){Te&&Te(e);var t,o=e.__c;o&&o.__H&&(o.__H.__.forEach(function(n){try{Y(n)}catch(i){t=i}}),o.__H=void 0,t&&x.__e(t,o.__v))};var Ae=typeof requestAnimationFrame=="function";function _t(e){var t,o=function(){clearTimeout(n),Ae&&cancelAnimationFrame(t),setTimeout(e)},n=setTimeout(o,35);Ae&&(t=requestAnimationFrame(o))}function Y(e){var t=b,o=e.__c;typeof o=="function"&&(e.__c=void 0,o()),b=t}function se(e){var t=b;e.__c=e.__(),b=t}function Le(e,t){return!e||e.length!==t.length||t.some(function(o,n){return o!==e[n]})}function Oe(e,t){return typeof t=="function"?t(e):t}function ft(e,t){for(var o in t)e[o]=t[o];return e}function Be(e,t){for(var o in e)if(o!=="__source"&&!(o in t))return!0;for(var n in t)if(n!=="__source"&&e[n]!==t[n])return!0;return!1}function He(e,t){this.props=e,this.context=t}(He.prototype=new E).isPureReactComponent=!0,He.prototype.shouldComponentUpdate=function(e,t){return Be(this.props,e)||Be(this.state,t)};var Me=m.__b;m.__b=function(e){e.type&&e.type.__f&&e.ref&&(e.props.ref=e.ref,e.ref=null),Me&&Me(e)};var Ut=typeof Symbol<"u"&&Symbol.for&&Symbol.for("react.forward_ref")||3911;var pt=m.__e;m.__e=function(e,t,o,n){if(e.then){for(var i,r=t;r=r.__;)if((i=r.__c)&&i.__c)return t.__e==null&&(t.__e=o.__e,t.__k=o.__k),i.__c(e,t)}pt(e,t,o,n)};var Ue=m.unmount;function qe(e,t,o){return e&&(e.__c&&e.__c.__H&&(e.__c.__H.__.forEach(function(n){typeof n.__c=="function"&&n.__c()}),e.__c.__H=null),(e=ft({},e)).__c!=null&&(e.__c.__P===o&&(e.__c.__P=t),e.__c.__e=!0,e.__c=null),e.__k=e.__k&&e.__k.map(function(n){return qe(n,t,o)})),e}function Ge(e,t,o){return e&&o&&(e.__v=null,e.__k=e.__k&&e.__k.map(function(n){return Ge(n,t,o)}),e.__c&&e.__c.__P===t&&(e.__e&&o.appendChild(e.__e),e.__c.__e=!0,e.__c.__P=o)),e}function _e(){this.__u=0,this.o=null,this.__b=null}function Ye(e){var t=e.__.__c;return t&&t.__a&&t.__a(e)}function X(){this.i=null,this.l=null}m.unmount=function(e){var t=e.__c;t&&t.__R&&t.__R(),t&&32&e.__u&&(e.type=null),Ue&&Ue(e)},(_e.prototype=new E).__c=function(e,t){var o=t.__c,n=this;n.o==null&&(n.o=[]),n.o.push(o);var i=Ye(n.__v),r=!1,s=function(){r||(r=!0,o.__R=null,i?i(_):_())};o.__R=s;var _=function(){if(!--n.__u){if(n.state.__a){var c=n.state.__a;n.__v.__k[0]=Ge(c,c.__c.__P,c.__c.__O)}var l;for(n.setState({__a:n.__b=null});l=n.o.pop();)l.forceUpdate()}};n.__u++||32&t.__u||n.setState({__a:n.__b=n.__v.__k[0]}),e.then(s,s)},_e.prototype.componentWillUnmount=function(){this.o=[]},_e.prototype.render=function(e,t){if(this.__b){if(this.__v.__k){var o=document.createElement("div"),n=this.__v.__k[0].__c;this.__v.__k[0]=qe(this.__b,o,n.__O=n.__P)}this.__b=null}var i=t.__a&&G(S,null,e.fallback);return i&&(i.__u&=-33),[G(S,null,t.__a?null:e.children),i]};var Ve=function(e,t,o){if(++o[1]===o[0]&&e.l.delete(t),e.props.revealOrder&&(e.props.revealOrder[0]!=="t"||!e.l.size))for(o=e.i;o;){for(;o.length>3;)o.pop()();if(o[1]<o[0])break;e.i=o=o[2]}};(X.prototype=new E).__a=function(e){var t=this,o=Ye(t.__v),n=t.l.get(e);return n[0]++,function(i){var r=function(){t.props.revealOrder?(n.push(i),Ve(t,e,n)):i()};o?o(r):r()}},X.prototype.render=function(e){this.i=null,this.l=new Map;var t=W(e.children);e.revealOrder&&e.revealOrder[0]==="b"&&t.reverse();for(var o=t.length;o--;)this.l.set(t[o],this.i=[1,0,this.i]);return e.children},X.prototype.componentDidUpdate=X.prototype.componentDidMount=function(){var e=this;this.l.forEach(function(t,o){Ve(e,o,t)})};var dt=typeof Symbol<"u"&&Symbol.for&&Symbol.for("react.element")||60103,mt=/^(?:accent|alignment|arabic|baseline|cap|clip(?!PathU)|color|dominant|fill|flood|font|glyph(?!R)|horiz|image(!S)|letter|lighting|marker(?!H|W|U)|overline|paint|pointer|shape|stop|strikethrough|stroke|text(?!L)|transform|underline|unicode|units|v|vector|vert|word|writing|x(?!C))[A-Z]/,ht=/^on(Ani|Tra|Tou|BeforeInp|Compo)/,vt=/[A-Z0-9]/g,yt=typeof document<"u",gt=function(e){return(typeof Symbol<"u"&&typeof Symbol()=="symbol"?/fil|che|rad/:/fil|che|ra/).test(e)};E.prototype.isReactComponent={},["componentWillMount","componentWillReceiveProps","componentWillUpdate"].forEach(function(e){Object.defineProperty(E.prototype,e,{configurable:!0,get:function(){return this["UNSAFE_"+e]},set:function(t){Object.defineProperty(this,e,{configurable:!0,writable:!0,value:t})}})});var We=m.event;function bt(){}function xt(){return this.cancelBubble}function Ct(){return this.defaultPrevented}m.event=function(e){return We&&(e=We(e)),e.persist=bt,e.isPropagationStopped=xt,e.isDefaultPrevented=Ct,e.nativeEvent=e};var Je,St={enumerable:!1,configurable:!0,get:function(){return this.class}},$e=m.vnode;m.vnode=function(e){typeof e.type=="string"&&(function(t){var o=t.props,n=t.type,i={},r=n.indexOf("-")===-1;for(var s in o){var _=o[s];if(!(s==="value"&&"defaultValue"in o&&_==null||yt&&s==="children"&&n==="noscript"||s==="class"||s==="className")){var c=s.toLowerCase();s==="defaultValue"&&"value"in o&&o.value==null?s="value":s==="download"&&_===!0?_="":c==="translate"&&_==="no"?_=!1:c[0]==="o"&&c[1]==="n"?c==="ondoubleclick"?s="ondblclick":c!=="onchange"||n!=="input"&&n!=="textarea"||gt(o.type)?c==="onfocus"?s="onfocusin":c==="onblur"?s="onfocusout":ht.test(s)&&(s=c):c=s="oninput":r&&mt.test(s)?s=s.replace(vt,"-$&").toLowerCase():_===null&&(_=void 0),c==="oninput"&&i[s=c]&&(s="oninputCapture"),i[s]=_}}n=="select"&&i.multiple&&Array.isArray(i.value)&&(i.value=W(o.children).forEach(function(l){l.props.selected=i.value.indexOf(l.props.value)!=-1})),n=="select"&&i.defaultValue!=null&&(i.value=W(o.children).forEach(function(l){l.props.selected=i.multiple?i.defaultValue.indexOf(l.props.value)!=-1:i.defaultValue==l.props.value})),o.class&&!o.className?(i.class=o.class,Object.defineProperty(i,"className",St)):(o.className&&!o.class||o.class&&o.className)&&(i.class=i.className=o.className),t.props=i})(e),e.$$typeof=dt,$e&&$e(e)};var ze=m.__r;m.__r=function(e){ze&&ze(e),Je=e.__c};var je=m.diffed;m.diffed=function(e){je&&je(e);var t=e.props,o=e.__e;o!=null&&e.type==="textarea"&&"value"in t&&t.value!==o.value&&(o.value=t.value==null?"":t.value),Je=null};var Pt=0;function v(e,t,o,n,i,r){t||(t={});var s,_,c=t;if("ref"in c)for(_ in c={},t)_=="ref"?s=t[_]:c[_]=t[_];var l={type:e,props:c,key:o,ref:s,__k:null,__:null,__b:0,__e:null,__c:null,constructor:void 0,__v:--Pt,__i:-1,__u:0,__source:i,__self:r};if(typeof e=="function"&&(s=e.defaultProps))for(_ in s)c[_]===void 0&&(c[_]=s[_]);return m.vnode&&m.vnode(l),l}var Qe=({notification:e,config:t,onDismiss:o,onClick:n})=>{let[i,r]=I(!1),[s,_]=I(!1),c=U(()=>{_(!0),setTimeout(()=>{o()},300)},[o]);L(()=>{let u=setTimeout(()=>r(!0),100);return()=>clearTimeout(u)},[]),L(()=>{let u=setTimeout(()=>{c()},t.displayDuration*1e3);return()=>clearTimeout(u)},[t.displayDuration,c]);let l=()=>{n&&n()},d=()=>{let u={position:"fixed",zIndex:999998};switch(t.position){case"bottom-left":return{...u,bottom:"20px",left:"20px"};case"bottom-right":return{...u,bottom:"20px",right:"20px"};case"top-left":return{...u,top:"20px",left:"20px"};case"top-right":return{...u,top:"20px",right:"20px"};default:return{...u,bottom:"20px",left:"20px"}}},a=u=>v(S,{children:[t.showIcons&&v("span",{style:{fontSize:"20px",marginRight:"8px"},children:"\u{1F6CD}\uFE0F"}),v("div",{style:{flex:1},children:[v("div",{style:{fontSize:"14px",fontWeight:"600",marginBottom:"4px",color:t.customerNameColor||t.textColor},children:[u.customerName," from ",u.location]}),v("div",{style:{fontSize:"13px",opacity:.8,marginBottom:"2px",color:t.actionTextColor||t.textColor},children:"just purchased:"}),v("div",{style:{fontSize:"13px",fontWeight:"500",color:t.productNameColor||t.textColor},children:u.productName}),v("div",{style:{fontSize:"12px",opacity:.6,marginTop:"4px",color:t.timestampColor||t.textColor},children:[u.timeAgo,t.showVerifiedBadge&&u.verified&&v("span",{style:{marginLeft:"6px",color:t.accentColor},children:"\u2713"})]})]}),u.productImage&&v("img",{src:u.productImage,alt:u.productName,style:{width:"48px",height:"48px",borderRadius:"6px",objectFit:"cover",marginLeft:"12px"}})]}),p=u=>v(S,{children:[t.showIcons&&v("span",{style:{fontSize:"20px",marginRight:"8px"},children:"\u{1F465}"}),v("div",{style:{flex:1},children:[v("div",{style:{fontSize:"14px",fontWeight:"600",marginBottom:"4px"},children:[u.count," ",u.count===1?"person":"people"]}),v("div",{style:{fontSize:"13px",opacity:.8},children:u.context}),u.trending&&v("div",{style:{fontSize:"12px",marginTop:"4px",color:t.accentColor,fontWeight:"500"},children:"\u{1F525} Trending"})]})]}),f=u=>v(S,{children:[t.showIcons&&v("span",{style:{fontSize:"20px",marginRight:"8px"},children:"\u2B50"}),v("div",{style:{flex:1},children:[v("div",{style:{fontSize:"14px",fontWeight:"600",marginBottom:"4px"},children:[u.rating.toFixed(1)," from ",u.reviewCount.toLocaleString()," ","reviews"]}),u.recentReview&&v(S,{children:[v("div",{style:{fontSize:"13px",opacity:.8,fontStyle:"italic",marginBottom:"2px"},children:['"',u.recentReview.text,'"']}),v("div",{style:{fontSize:"12px",opacity:.6},children:["- ",u.recentReview.author,t.showVerifiedBadge&&u.recentReview.verified&&v("span",{style:{marginLeft:"4px",color:t.accentColor},children:"\u2713"})]})]})]})]}),g=()=>{switch(e.type){case"purchase":return a(e);case"visitor":return p(e);case"review":return f(e);default:return null}};return v(S,{children:[v("div",{className:`social-proof-notification ${s?"social-proof-exit":i?"social-proof-enter":""}`,style:{...d(),width:"320px",maxWidth:"calc(100vw - 40px)",backgroundColor:t.notificationBackgroundColor||t.backgroundColor,color:t.textColor,borderRadius:"12px",boxShadow:"0 4px 16px rgba(0, 0, 0, 0.12)",padding:"16px",display:"flex",alignItems:"flex-start",cursor:n?"pointer":"default",transition:"transform 0.2s ease"},onClick:l,onMouseEnter:u=>{n&&(u.currentTarget.style.transform="translateY(-2px)")},onMouseLeave:u=>{u.currentTarget.style.transform="translateY(0)"},children:[g(),v("button",{onClick:u=>{u.stopPropagation(),c()},style:{position:"absolute",top:"8px",right:"8px",background:"transparent",border:"none",cursor:"pointer",padding:"4px",opacity:.5,fontSize:"16px",lineHeight:"1",color:t.textColor},onMouseEnter:u=>{u.currentTarget.style.opacity="1"},onMouseLeave:u=>{u.currentTarget.style.opacity="0.5"},"aria-label":"Dismiss notification",children:"\xD7"})]}),v("style",{children:`
+"use strict";
+(() => {
+  // global-preact:global-preact:react
+  if (typeof window === "undefined" || !window.RevenueBoostPreact) {
+    throw new Error("RevenueBoostPreact not found. Make sure main bundle is loaded first.");
+  }
+  var { h, Component, Fragment, render, createPortal } = window.RevenueBoostPreact;
+  var { useState, useEffect, useCallback, useRef, useMemo } = window.RevenueBoostPreact.hooks;
+
+  // global-preact:global-preact:preact/jsx-runtime
+  if (typeof window === "undefined" || !window.RevenueBoostPreact) {
+    throw new Error("RevenueBoostPreact not found. Make sure main bundle is loaded first.");
+  }
+  var options = window.RevenueBoostPreact.options || {};
+  var h2 = window.RevenueBoostPreact.h;
+  var vnodeId = 0;
+  function jsx(type, props, key, isStaticChildren, __source, __self) {
+    if (!props) props = {};
+    let normalizedProps = props;
+    let ref;
+    if ("ref" in props) {
+      normalizedProps = {};
+      for (let i in props) {
+        if (i === "ref") ref = props[i];
+        else normalizedProps[i] = props[i];
+      }
+    }
+    const vnode = {
+      type,
+      props: normalizedProps,
+      key: key !== void 0 ? key : null,
+      ref: ref !== void 0 ? ref : null,
+      __k: null,
+      __: null,
+      __b: 0,
+      __e: null,
+      __c: null,
+      constructor: void 0,
+      __v: --vnodeId,
+      __i: -1,
+      __u: 0,
+      __source,
+      __self
+    };
+    if (typeof type === "function" && (ref = type.defaultProps)) {
+      for (let i in ref) {
+        if (normalizedProps[i] === void 0) {
+          normalizedProps[i] = ref[i];
+        }
+      }
+    }
+    if (options.vnode) options.vnode(vnode);
+    return vnode;
+  }
+  var jsxs = jsx;
+  var Fragment2 = window.RevenueBoostPreact.Fragment;
+
+  // app/domains/storefront/notifications/social-proof/SocialProofNotification.tsx
+  var SocialProofNotificationComponent = ({ notification, config, onDismiss, onClick }) => {
+    const [isVisible, setIsVisible] = useState(false);
+    const [isExiting, setIsExiting] = useState(false);
+    const handleDismiss = useCallback(() => {
+      setIsExiting(true);
+      setTimeout(() => {
+        onDismiss();
+      }, 300);
+    }, [onDismiss]);
+    useEffect(() => {
+      const timer = setTimeout(() => setIsVisible(true), 100);
+      return () => clearTimeout(timer);
+    }, []);
+    useEffect(() => {
+      const timer = setTimeout(() => {
+        handleDismiss();
+      }, config.displayDuration * 1e3);
+      return () => clearTimeout(timer);
+    }, [config.displayDuration, handleDismiss]);
+    const handleClick = () => {
+      if (onClick) {
+        onClick();
+      }
+    };
+    const getPositionStyles = () => {
+      const base = {
+        position: "fixed",
+        zIndex: 999998
+      };
+      switch (config.position) {
+        case "bottom-left":
+          return { ...base, bottom: "20px", left: "20px" };
+        case "bottom-right":
+          return { ...base, bottom: "20px", right: "20px" };
+        case "top-left":
+          return { ...base, top: "20px", left: "20px" };
+        case "top-right":
+          return { ...base, top: "20px", right: "20px" };
+        default:
+          return { ...base, bottom: "20px", left: "20px" };
+      }
+    };
+    const renderPurchaseNotification = (notif) => /* @__PURE__ */ jsxs(Fragment2, { children: [
+      config.showIcons && /* @__PURE__ */ jsx("span", { style: { fontSize: "20px", marginRight: "8px" }, children: "\u{1F6CD}\uFE0F" }),
+      /* @__PURE__ */ jsxs("div", { style: { flex: 1 }, children: [
+        /* @__PURE__ */ jsxs(
+          "div",
+          {
+            style: {
+              fontSize: "14px",
+              fontWeight: "600",
+              marginBottom: "4px",
+              color: config.customerNameColor || config.textColor
+            },
+            children: [
+              notif.customerName,
+              " from ",
+              notif.location
+            ]
+          }
+        ),
+        /* @__PURE__ */ jsx(
+          "div",
+          {
+            style: {
+              fontSize: "13px",
+              opacity: 0.8,
+              marginBottom: "2px",
+              color: config.actionTextColor || config.textColor
+            },
+            children: "just purchased:"
+          }
+        ),
+        /* @__PURE__ */ jsx(
+          "div",
+          {
+            style: {
+              fontSize: "13px",
+              fontWeight: "500",
+              color: config.productNameColor || config.textColor
+            },
+            children: notif.productName
+          }
+        ),
+        /* @__PURE__ */ jsxs(
+          "div",
+          {
+            style: {
+              fontSize: "12px",
+              opacity: 0.6,
+              marginTop: "4px",
+              color: config.timestampColor || config.textColor
+            },
+            children: [
+              notif.timeAgo,
+              config.showVerifiedBadge && notif.verified && /* @__PURE__ */ jsx("span", { style: { marginLeft: "6px", color: config.accentColor }, children: "\u2713" })
+            ]
+          }
+        )
+      ] }),
+      notif.productImage && /* @__PURE__ */ jsx(
+        "img",
+        {
+          src: notif.productImage,
+          alt: notif.productName,
+          style: {
+            width: "48px",
+            height: "48px",
+            borderRadius: "6px",
+            objectFit: "cover",
+            marginLeft: "12px"
+          }
+        }
+      )
+    ] });
+    const renderVisitorNotification = (notif) => /* @__PURE__ */ jsxs(Fragment2, { children: [
+      config.showIcons && /* @__PURE__ */ jsx("span", { style: { fontSize: "20px", marginRight: "8px" }, children: "\u{1F465}" }),
+      /* @__PURE__ */ jsxs("div", { style: { flex: 1 }, children: [
+        /* @__PURE__ */ jsxs(
+          "div",
+          {
+            style: { fontSize: "14px", fontWeight: "600", marginBottom: "4px" },
+            children: [
+              notif.count,
+              " ",
+              notif.count === 1 ? "person" : "people"
+            ]
+          }
+        ),
+        /* @__PURE__ */ jsx("div", { style: { fontSize: "13px", opacity: 0.8 }, children: notif.context }),
+        notif.trending && /* @__PURE__ */ jsx(
+          "div",
+          {
+            style: {
+              fontSize: "12px",
+              marginTop: "4px",
+              color: config.accentColor,
+              fontWeight: "500"
+            },
+            children: "\u{1F525} Trending"
+          }
+        )
+      ] })
+    ] });
+    const renderReviewNotification = (notif) => /* @__PURE__ */ jsxs(Fragment2, { children: [
+      config.showIcons && /* @__PURE__ */ jsx("span", { style: { fontSize: "20px", marginRight: "8px" }, children: "\u2B50" }),
+      /* @__PURE__ */ jsxs("div", { style: { flex: 1 }, children: [
+        /* @__PURE__ */ jsxs(
+          "div",
+          {
+            style: { fontSize: "14px", fontWeight: "600", marginBottom: "4px" },
+            children: [
+              notif.rating.toFixed(1),
+              " from ",
+              notif.reviewCount.toLocaleString(),
+              " ",
+              "reviews"
+            ]
+          }
+        ),
+        notif.recentReview && /* @__PURE__ */ jsxs(Fragment2, { children: [
+          /* @__PURE__ */ jsxs(
+            "div",
+            {
+              style: {
+                fontSize: "13px",
+                opacity: 0.8,
+                fontStyle: "italic",
+                marginBottom: "2px"
+              },
+              children: [
+                '"',
+                notif.recentReview.text,
+                '"'
+              ]
+            }
+          ),
+          /* @__PURE__ */ jsxs("div", { style: { fontSize: "12px", opacity: 0.6 }, children: [
+            "- ",
+            notif.recentReview.author,
+            config.showVerifiedBadge && notif.recentReview.verified && /* @__PURE__ */ jsx("span", { style: { marginLeft: "4px", color: config.accentColor }, children: "\u2713" })
+          ] })
+        ] })
+      ] })
+    ] });
+    const renderNotificationContent = () => {
+      switch (notification.type) {
+        case "purchase":
+          return renderPurchaseNotification(notification);
+        case "visitor":
+          return renderVisitorNotification(notification);
+        case "review":
+          return renderReviewNotification(notification);
+        default:
+          return null;
+      }
+    };
+    const getAnimationClass = () => {
+      if (isExiting) return "social-proof-exit";
+      if (isVisible) return "social-proof-enter";
+      return "";
+    };
+    return /* @__PURE__ */ jsxs(Fragment2, { children: [
+      /* @__PURE__ */ jsxs(
+        "div",
+        {
+          className: `social-proof-notification ${getAnimationClass()}`,
+          style: {
+            ...getPositionStyles(),
+            width: "320px",
+            maxWidth: "calc(100vw - 40px)",
+            backgroundColor: config.notificationBackgroundColor || config.backgroundColor,
+            color: config.textColor,
+            borderRadius: "12px",
+            boxShadow: "0 4px 16px rgba(0, 0, 0, 0.12)",
+            padding: "16px",
+            display: "flex",
+            alignItems: "flex-start",
+            cursor: onClick ? "pointer" : "default",
+            transition: "transform 0.2s ease"
+          },
+          onClick: handleClick,
+          onMouseEnter: (e) => {
+            if (onClick) {
+              e.currentTarget.style.transform = "translateY(-2px)";
+            }
+          },
+          onMouseLeave: (e) => {
+            e.currentTarget.style.transform = "translateY(0)";
+          },
+          children: [
+            renderNotificationContent(),
+            /* @__PURE__ */ jsx(
+              "button",
+              {
+                onClick: (e) => {
+                  e.stopPropagation();
+                  handleDismiss();
+                },
+                style: {
+                  position: "absolute",
+                  top: "8px",
+                  right: "8px",
+                  background: "transparent",
+                  border: "none",
+                  cursor: "pointer",
+                  padding: "4px",
+                  opacity: 0.5,
+                  fontSize: "16px",
+                  lineHeight: "1",
+                  color: config.textColor
+                },
+                onMouseEnter: (e) => {
+                  e.currentTarget.style.opacity = "1";
+                },
+                onMouseLeave: (e) => {
+                  e.currentTarget.style.opacity = "0.5";
+                },
+                "aria-label": "Dismiss notification",
+                children: "\xD7"
+              }
+            )
+          ]
+        }
+      ),
+      /* @__PURE__ */ jsx("style", { children: `
         .social-proof-notification {
           /* Start invisible and off-screen, will be animated in */
           opacity: 0;
@@ -46,4 +369,327 @@
             font-size: 13px;
           }
         }
-      `})]})};var Xe={enablePurchaseNotifications:!0,enableVisitorNotifications:!0,enableReviewNotifications:!0,position:"bottom-left",displayDuration:5,rotationInterval:8,maxNotificationsPerSession:5,purchaseLookbackHours:48,minVisitorCount:5,minReviewRating:4,anonymizeCustomerNames:!0,showCustomerLocation:!0,backgroundColor:"#FFFFFF",textColor:"#1A1A1A",accentColor:"#10B981",showIcons:!0,showVerifiedBadge:!0,notificationBackgroundColor:"#F9FAFB",timestampColor:"#6B7280",actionTextColor:"#059669",customerNameColor:"#1F2937",productNameColor:"#3B82F6"};var Ke=({campaignId:e,config:t,notifications:o,onNotificationShow:n,onNotificationClick:i,onNotificationDismiss:r})=>{let s=Q(()=>({...Xe,...t}),[t]),[_,c]=I([]),[l,d]=I(null),[a,p]=I([]),[f,g]=I(0),[C,u]=I(!0),h=U(async()=>{try{u(!0);let N=[`/apps/split-pop/api/social-proof/${e}`,`/api/social-proof/${e}`],w=null,O=null;for(let k of N)try{console.log(`[SocialProofPopup] Attempting to fetch from ${k}`);let F=await fetch(k);if(!F.ok)throw new Error(`HTTP ${F.status}`);w=await F.json(),console.log(`[SocialProofPopup] Successfully fetched from ${k}`,w);break}catch(F){console.log(`[SocialProofPopup] Failed to fetch from ${k}:`,F),O=F;continue}if(!w)throw O||new Error("Failed to fetch notifications");if(w.success&&w.notifications&&w.notifications.length>0)console.log("[SocialProofPopup] Using API notifications:",w.notifications.length),c(w.notifications),p(w.notifications);else{console.log("[SocialProofPopup] API returned empty, using mock data");let k=Ze(s);c(k),p(k)}}catch(P){console.warn("[SocialProofPopup] Failed to fetch notifications, using mock data:",P);let N=Ze(s);console.log("[SocialProofPopup] Generated mock notifications:",N.length),c(N),p(N)}finally{u(!1)}},[e,s]);L(()=>{o?(c(o),p(o),u(!1)):h()},[e,o,h]),L(()=>{if(o)return;let P=setInterval(()=>{console.log("[SocialProofPopup] Polling for new notifications..."),h()},6e4);return()=>clearInterval(P)},[o,h]);let y=U(()=>{if(!(f>=s.maxNotificationsPerSession)&&a.length>0){let[P,...N]=a;d(P),p(N),g(w=>w+1),n&&n(P),N.length===0&&_.length>0&&p(_)}},[a,_,f,s.maxNotificationsPerSession,n]);L(()=>{if(console.log(`[SocialProofPopup] Rotation timer: isLoading=${C}, notifications=${_.length}, currentNotification=${l?.id}`),C||_.length===0){console.log(`[SocialProofPopup] Skipping rotation: isLoading=${C}, no notifications`);return}!l&&f===0&&(console.log("[SocialProofPopup] Showing first notification"),y());let P=setInterval(()=>{y()},s.rotationInterval*1e3);return()=>clearInterval(P)},[C,_,l,f,s.rotationInterval,y]);let R=()=>{l&&r&&r(l),d(null)},T=()=>{l&&i&&i(l)};return C||!l?(console.log(`[SocialProofPopup] Returning null: isLoading=${C}, currentNotification=${l?.id}`),null):(console.log("[SocialProofPopup] Rendering notification:",l.id),v(Qe,{notification:l,config:s,onDismiss:R,onClick:T}))};function Ze(e){let t=[];if(e.enablePurchaseNotifications){let o=[{id:"purchase-1",type:"purchase",customerName:"John D.",location:"New York, NY",productName:"Classic T-Shirt",timeAgo:"2 minutes ago",verified:!0,timestamp:Date.now()-12e4},{id:"purchase-2",type:"purchase",customerName:"Sarah M.",location:"Los Angeles, CA",productName:"Denim Jeans",timeAgo:"5 minutes ago",verified:!0,timestamp:Date.now()-3e5},{id:"purchase-3",type:"purchase",customerName:"Mike R.",location:"Chicago, IL",productName:"Sneakers",timeAgo:"12 minutes ago",verified:!0,timestamp:Date.now()-72e4}];t.push(...o)}if(e.enableVisitorNotifications){let o=[{id:"visitor-1",type:"visitor",count:23,context:"viewing this product",trending:!0,timestamp:Date.now()},{id:"visitor-2",type:"visitor",count:47,context:"shopping now",trending:!1,timestamp:Date.now()}];t.push(...o)}if(e.enableReviewNotifications){let o=[{id:"review-1",type:"review",rating:4.8,reviewCount:1234,recentReview:{text:"Love this product! Great quality.",author:"Emily K.",verified:!0},timestamp:Date.now()},{id:"review-2",type:"review",rating:4.9,reviewCount:856,recentReview:{text:"Exceeded my expectations!",author:"David L.",verified:!0},timestamp:Date.now()}];t.push(...o)}return Nt(t)}function Nt(e){let t=[...e];for(let o=t.length-1;o>0;o--){let n=Math.floor(Math.random()*(o+1));[t[o],t[n]]=[t[n],t[o]]}return t}(function(){let t=window;t.RevenueBoostComponents=t.RevenueBoostComponents||{},t.RevenueBoostComponents.SOCIAL_PROOF=Ke,typeof t.console?.debug=="function"&&console.debug("[Revenue Boost] Social Proof popup registered")})();})();
+      ` })
+    ] });
+  };
+
+  // app/domains/storefront/notifications/social-proof/types.ts
+  var DEFAULT_SOCIAL_PROOF_CONFIG = {
+    // Notification Types
+    enablePurchaseNotifications: true,
+    enableVisitorNotifications: true,
+    enableReviewNotifications: true,
+    // Display Settings
+    position: "bottom-left",
+    displayDuration: 5,
+    rotationInterval: 8,
+    maxNotificationsPerSession: 5,
+    // Data Settings
+    purchaseLookbackHours: 48,
+    minVisitorCount: 5,
+    minReviewRating: 4,
+    // Privacy Settings
+    anonymizeCustomerNames: true,
+    showCustomerLocation: true,
+    // Design Settings
+    backgroundColor: "#FFFFFF",
+    textColor: "#1A1A1A",
+    accentColor: "#10B981",
+    showIcons: true,
+    showVerifiedBadge: true,
+    // Enhanced color properties
+    notificationBackgroundColor: "#F9FAFB",
+    timestampColor: "#6B7280",
+    actionTextColor: "#059669",
+    customerNameColor: "#1F2937",
+    productNameColor: "#3B82F6"
+  };
+
+  // app/domains/storefront/notifications/social-proof/SocialProofPopup.tsx
+  var SocialProofPopup = ({
+    campaignId,
+    config: customConfig,
+    notifications: providedNotifications,
+    onNotificationShow,
+    onNotificationClick,
+    onNotificationDismiss
+  }) => {
+    const config = useMemo(
+      () => ({
+        ...DEFAULT_SOCIAL_PROOF_CONFIG,
+        ...customConfig
+      }),
+      [customConfig]
+    );
+    const [notifications, setNotifications] = useState(
+      []
+    );
+    const [currentNotification, setCurrentNotification] = useState(null);
+    const [notificationQueue, setNotificationQueue] = useState([]);
+    const [displayCount, setDisplayCount] = useState(0);
+    const [isLoading, setIsLoading] = useState(true);
+    const fetchNotifications = useCallback(async () => {
+      try {
+        setIsLoading(true);
+        const proxyBase = "/apps/split-pop";
+        const tryUrls = [
+          `${proxyBase}/api/social-proof/${campaignId}`,
+          `/api/social-proof/${campaignId}`
+        ];
+        let data = null;
+        let lastError = null;
+        for (const url of tryUrls) {
+          try {
+            console.log(`[SocialProofPopup] Attempting to fetch from ${url}`);
+            const res = await fetch(url);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            data = await res.json();
+            console.log(
+              `[SocialProofPopup] Successfully fetched from ${url}`,
+              data
+            );
+            break;
+          } catch (e) {
+            console.log(`[SocialProofPopup] Failed to fetch from ${url}:`, e);
+            lastError = e;
+            continue;
+          }
+        }
+        if (!data) throw lastError || new Error("Failed to fetch notifications");
+        if (data.success && data.notifications && data.notifications.length > 0) {
+          console.log(
+            `[SocialProofPopup] Using API notifications:`,
+            data.notifications.length
+          );
+          setNotifications(data.notifications);
+          setNotificationQueue(data.notifications);
+        } else {
+          console.log(`[SocialProofPopup] API returned empty, using mock data`);
+          const mockNotifications = generateMockNotifications(config);
+          setNotifications(mockNotifications);
+          setNotificationQueue(mockNotifications);
+        }
+      } catch (error) {
+        console.warn(
+          "[SocialProofPopup] Failed to fetch notifications, using mock data:",
+          error
+        );
+        const mockNotifications = generateMockNotifications(config);
+        console.log(
+          `[SocialProofPopup] Generated mock notifications:`,
+          mockNotifications.length
+        );
+        setNotifications(mockNotifications);
+        setNotificationQueue(mockNotifications);
+      } finally {
+        setIsLoading(false);
+      }
+    }, [campaignId, config]);
+    useEffect(() => {
+      if (providedNotifications) {
+        setNotifications(providedNotifications);
+        setNotificationQueue(providedNotifications);
+        setIsLoading(false);
+      } else {
+        fetchNotifications();
+      }
+    }, [campaignId, providedNotifications, fetchNotifications]);
+    useEffect(() => {
+      if (providedNotifications) {
+        return;
+      }
+      const pollingInterval = setInterval(() => {
+        console.log("[SocialProofPopup] Polling for new notifications...");
+        fetchNotifications();
+      }, 6e4);
+      return () => clearInterval(pollingInterval);
+    }, [providedNotifications, fetchNotifications]);
+    const showNextNotification = useCallback(() => {
+      if (displayCount >= config.maxNotificationsPerSession) {
+        return;
+      }
+      if (notificationQueue.length > 0) {
+        const [next, ...rest] = notificationQueue;
+        setCurrentNotification(next);
+        setNotificationQueue(rest);
+        setDisplayCount((prev) => prev + 1);
+        if (onNotificationShow) {
+          onNotificationShow(next);
+        }
+        if (rest.length === 0 && notifications.length > 0) {
+          setNotificationQueue(notifications);
+        }
+      }
+    }, [
+      notificationQueue,
+      notifications,
+      displayCount,
+      config.maxNotificationsPerSession,
+      onNotificationShow
+    ]);
+    useEffect(() => {
+      console.log(
+        `[SocialProofPopup] Rotation timer: isLoading=${isLoading}, notifications=${notifications.length}, currentNotification=${currentNotification?.id}`
+      );
+      if (isLoading || notifications.length === 0) {
+        console.log(
+          `[SocialProofPopup] Skipping rotation: isLoading=${isLoading}, no notifications`
+        );
+        return;
+      }
+      if (!currentNotification && displayCount === 0) {
+        console.log(`[SocialProofPopup] Showing first notification`);
+        showNextNotification();
+      }
+      const interval = setInterval(() => {
+        showNextNotification();
+      }, config.rotationInterval * 1e3);
+      return () => clearInterval(interval);
+    }, [
+      isLoading,
+      notifications,
+      currentNotification,
+      displayCount,
+      config.rotationInterval,
+      showNextNotification
+    ]);
+    const handleDismiss = () => {
+      if (currentNotification && onNotificationDismiss) {
+        onNotificationDismiss(currentNotification);
+      }
+      setCurrentNotification(null);
+    };
+    const handleClick = () => {
+      if (currentNotification && onNotificationClick) {
+        onNotificationClick(currentNotification);
+      }
+    };
+    if (isLoading || !currentNotification) {
+      console.log(
+        `[SocialProofPopup] Returning null: isLoading=${isLoading}, currentNotification=${currentNotification?.id}`
+      );
+      return null;
+    }
+    console.log(
+      `[SocialProofPopup] Rendering notification:`,
+      currentNotification.id
+    );
+    return /* @__PURE__ */ jsx(
+      SocialProofNotificationComponent,
+      {
+        notification: currentNotification,
+        config,
+        onDismiss: handleDismiss,
+        onClick: handleClick
+      }
+    );
+  };
+  function generateMockNotifications(config) {
+    const notifications = [];
+    if (config.enablePurchaseNotifications) {
+      const purchases = [
+        {
+          id: "purchase-1",
+          type: "purchase",
+          customerName: "John D.",
+          location: "New York, NY",
+          productName: "Classic T-Shirt",
+          timeAgo: "2 minutes ago",
+          verified: true,
+          timestamp: Date.now() - 12e4
+        },
+        {
+          id: "purchase-2",
+          type: "purchase",
+          customerName: "Sarah M.",
+          location: "Los Angeles, CA",
+          productName: "Denim Jeans",
+          timeAgo: "5 minutes ago",
+          verified: true,
+          timestamp: Date.now() - 3e5
+        },
+        {
+          id: "purchase-3",
+          type: "purchase",
+          customerName: "Mike R.",
+          location: "Chicago, IL",
+          productName: "Sneakers",
+          timeAgo: "12 minutes ago",
+          verified: true,
+          timestamp: Date.now() - 72e4
+        }
+      ];
+      notifications.push(...purchases);
+    }
+    if (config.enableVisitorNotifications) {
+      const visitors = [
+        {
+          id: "visitor-1",
+          type: "visitor",
+          count: 23,
+          context: "viewing this product",
+          trending: true,
+          timestamp: Date.now()
+        },
+        {
+          id: "visitor-2",
+          type: "visitor",
+          count: 47,
+          context: "shopping now",
+          trending: false,
+          timestamp: Date.now()
+        }
+      ];
+      notifications.push(...visitors);
+    }
+    if (config.enableReviewNotifications) {
+      const reviews = [
+        {
+          id: "review-1",
+          type: "review",
+          rating: 4.8,
+          reviewCount: 1234,
+          recentReview: {
+            text: "Love this product! Great quality.",
+            author: "Emily K.",
+            verified: true
+          },
+          timestamp: Date.now()
+        },
+        {
+          id: "review-2",
+          type: "review",
+          rating: 4.9,
+          reviewCount: 856,
+          recentReview: {
+            text: "Exceeded my expectations!",
+            author: "David L.",
+            verified: true
+          },
+          timestamp: Date.now()
+        }
+      ];
+      notifications.push(...reviews);
+    }
+    return shuffleArray(notifications);
+  }
+  function shuffleArray(array) {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+  }
+
+  // extensions/storefront-src/bundles/social-proof.ts
+  (function register() {
+    const g = window;
+    g.RevenueBoostComponents = g.RevenueBoostComponents || {};
+    g.RevenueBoostComponents["SOCIAL_PROOF"] = SocialProofPopup;
+    if (typeof g.console?.debug === "function") {
+      console.debug("[Revenue Boost] Social Proof popup registered");
+    }
+  })();
+})();
+//# sourceMappingURL=social-proof.bundle.js.map

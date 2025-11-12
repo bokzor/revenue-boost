@@ -1,1 +1,1873 @@
-"use strict";(()=>{var Qe=Object.defineProperty;var Xe=(t,e,i)=>e in t?Qe(t,e,{enumerable:!0,configurable:!0,writable:!0,value:i}):t[e]=i;var u=(t,e,i)=>Xe(t,typeof e!="symbol"?e+"":e,i);var j,m,ke,Ze,P,we,Se,Ie,Ee,ae,oe,re,et,N={},Pe=[],tt=/acit|ex(?:s|g|n|p|$)|rph|grid|ows|mnc|ntw|ine[ch]|zoo|^ord|itera/i,z=Array.isArray;function k(t,e){for(var i in e)t[i]=e[i];return t}function le(t){t&&t.parentNode&&t.parentNode.removeChild(t)}function R(t,e,i){var n,o,r,l={};for(r in e)r=="key"?n=e[r]:r=="ref"?o=e[r]:l[r]=e[r];if(arguments.length>2&&(l.children=arguments.length>3?j.call(arguments,2):i),typeof t=="function"&&t.defaultProps!=null)for(r in t.defaultProps)l[r]===void 0&&(l[r]=t.defaultProps[r]);return G(t,l,n,o,null)}function G(t,e,i,n,o){var r={type:t,props:e,key:i,ref:n,__k:null,__:null,__b:0,__e:null,__c:null,constructor:void 0,__v:o??++ke,__i:-1,__u:0};return o==null&&m.vnode!=null&&m.vnode(r),r}function H(t){return t.children}function x(t,e){this.props=t,this.context=e}function A(t,e){if(e==null)return t.__?A(t.__,t.__i+1):null;for(var i;e<t.__k.length;e++)if((i=t.__k[e])!=null&&i.__e!=null)return i.__e;return typeof t.type=="function"?A(t):null}function Re(t){var e,i;if((t=t.__)!=null&&t.__c!=null){for(t.__e=t.__c.base=null,e=0;e<t.__k.length;e++)if((i=t.__k[e])!=null&&i.__e!=null){t.__e=t.__c.base=i.__e;break}return Re(t)}}function be(t){(!t.__d&&(t.__d=!0)&&P.push(t)&&!q.__r++||we!=m.debounceRendering)&&((we=m.debounceRendering)||Se)(q)}function q(){for(var t,e,i,n,o,r,l,a=1;P.length;)P.length>a&&P.sort(Ie),t=P.shift(),a=P.length,t.__d&&(i=void 0,n=void 0,o=(n=(e=t).__v).__e,r=[],l=[],e.__P&&((i=k({},n)).__v=n.__v+1,m.vnode&&m.vnode(i),ce(e.__P,i,n,e.__n,e.__P.namespaceURI,32&n.__u?[o]:null,r,o??A(n),!!(32&n.__u),l),i.__v=n.__v,i.__.__k[i.__i]=i,Ae(r,i,l),n.__e=n.__=null,i.__e!=o&&Re(i)));q.__r=0}function De(t,e,i,n,o,r,l,a,p,c,d){var s,h,_,w,C,b,g,f=n&&n.__k||Pe,S=e.length;for(p=it(i,e,f,p,S),s=0;s<S;s++)(_=i.__k[s])!=null&&(h=_.__i==-1?N:f[_.__i]||N,_.__i=s,b=ce(t,_,h,o,r,l,a,p,c,d),w=_.__e,_.ref&&h.ref!=_.ref&&(h.ref&&ue(h.ref,null,_),d.push(_.ref,_.__c||w,_)),C==null&&w!=null&&(C=w),(g=!!(4&_.__u))||h.__k===_.__k?p=xe(_,p,t,g):typeof _.type=="function"&&b!==void 0?p=b:w&&(p=w.nextSibling),_.__u&=-7);return i.__e=C,p}function it(t,e,i,n,o){var r,l,a,p,c,d=i.length,s=d,h=0;for(t.__k=new Array(o),r=0;r<o;r++)(l=e[r])!=null&&typeof l!="boolean"&&typeof l!="function"?(p=r+h,(l=t.__k[r]=typeof l=="string"||typeof l=="number"||typeof l=="bigint"||l.constructor==String?G(null,l,null,null,null):z(l)?G(H,{children:l},null,null,null):l.constructor==null&&l.__b>0?G(l.type,l.props,l.key,l.ref?l.ref:null,l.__v):l).__=t,l.__b=t.__b+1,a=null,(c=l.__i=nt(l,i,p,s))!=-1&&(s--,(a=i[c])&&(a.__u|=2)),a==null||a.__v==null?(c==-1&&(o>d?h--:o<d&&h++),typeof l.type!="function"&&(l.__u|=4)):c!=p&&(c==p-1?h--:c==p+1?h++:(c>p?h--:h++,l.__u|=4))):t.__k[r]=null;if(s)for(r=0;r<d;r++)(a=i[r])!=null&&(2&a.__u)==0&&(a.__e==n&&(n=A(a)),Me(a,a));return n}function xe(t,e,i,n){var o,r;if(typeof t.type=="function"){for(o=t.__k,r=0;o&&r<o.length;r++)o[r]&&(o[r].__=t,e=xe(o[r],e,i,n));return e}t.__e!=e&&(n&&(e&&t.type&&!e.parentNode&&(e=A(t)),i.insertBefore(t.__e,e||null)),e=t.__e);do e=e&&e.nextSibling;while(e!=null&&e.nodeType==8);return e}function nt(t,e,i,n){var o,r,l,a=t.key,p=t.type,c=e[i],d=c!=null&&(2&c.__u)==0;if(c===null&&t.key==null||d&&a==c.key&&p==c.type)return i;if(n>(d?1:0)){for(o=i-1,r=i+1;o>=0||r<e.length;)if((c=e[l=o>=0?o--:r++])!=null&&(2&c.__u)==0&&a==c.key&&p==c.type)return l}return-1}function Ce(t,e,i){e[0]=="-"?t.setProperty(e,i??""):t[e]=i==null?"":typeof i!="number"||tt.test(e)?i:i+"px"}function W(t,e,i,n,o){var r,l;e:if(e=="style")if(typeof i=="string")t.style.cssText=i;else{if(typeof n=="string"&&(t.style.cssText=n=""),n)for(e in n)i&&e in i||Ce(t.style,e,"");if(i)for(e in i)n&&i[e]==n[e]||Ce(t.style,e,i[e])}else if(e[0]=="o"&&e[1]=="n")r=e!=(e=e.replace(Ee,"$1")),l=e.toLowerCase(),e=l in t||e=="onFocusOut"||e=="onFocusIn"?l.slice(2):e.slice(2),t.l||(t.l={}),t.l[e+r]=i,i?n?i.u=n.u:(i.u=ae,t.addEventListener(e,r?re:oe,r)):t.removeEventListener(e,r?re:oe,r);else{if(o=="http://www.w3.org/2000/svg")e=e.replace(/xlink(H|:h)/,"h").replace(/sName$/,"s");else if(e!="width"&&e!="height"&&e!="href"&&e!="list"&&e!="form"&&e!="tabIndex"&&e!="download"&&e!="rowSpan"&&e!="colSpan"&&e!="role"&&e!="popover"&&e in t)try{t[e]=i??"";break e}catch{}typeof i=="function"||(i==null||i===!1&&e[4]!="-"?t.removeAttribute(e):t.setAttribute(e,e=="popover"&&i==1?"":i))}}function Te(t){return function(e){if(this.l){var i=this.l[e.type+t];if(e.t==null)e.t=ae++;else if(e.t<i.u)return;return i(m.event?m.event(e):e)}}}function ce(t,e,i,n,o,r,l,a,p,c){var d,s,h,_,w,C,b,g,f,S,I,$,B,ye,V,L,ne,T=e.type;if(e.constructor!=null)return null;128&i.__u&&(p=!!(32&i.__u),r=[a=e.__e=i.__e]),(d=m.__b)&&d(e);e:if(typeof T=="function")try{if(g=e.props,f="prototype"in T&&T.prototype.render,S=(d=T.contextType)&&n[d.__c],I=d?S?S.props.value:d.__:n,i.__c?b=(s=e.__c=i.__c).__=s.__E:(f?e.__c=s=new T(g,I):(e.__c=s=new x(g,I),s.constructor=T,s.render=rt),S&&S.sub(s),s.props=g,s.state||(s.state={}),s.context=I,s.__n=n,h=s.__d=!0,s.__h=[],s._sb=[]),f&&s.__s==null&&(s.__s=s.state),f&&T.getDerivedStateFromProps!=null&&(s.__s==s.state&&(s.__s=k({},s.__s)),k(s.__s,T.getDerivedStateFromProps(g,s.__s))),_=s.props,w=s.state,s.__v=e,h)f&&T.getDerivedStateFromProps==null&&s.componentWillMount!=null&&s.componentWillMount(),f&&s.componentDidMount!=null&&s.__h.push(s.componentDidMount);else{if(f&&T.getDerivedStateFromProps==null&&g!==_&&s.componentWillReceiveProps!=null&&s.componentWillReceiveProps(g,I),!s.__e&&s.shouldComponentUpdate!=null&&s.shouldComponentUpdate(g,s.__s,I)===!1||e.__v==i.__v){for(e.__v!=i.__v&&(s.props=g,s.state=s.__s,s.__d=!1),e.__e=i.__e,e.__k=i.__k,e.__k.some(function(D){D&&(D.__=e)}),$=0;$<s._sb.length;$++)s.__h.push(s._sb[$]);s._sb=[],s.__h.length&&l.push(s);break e}s.componentWillUpdate!=null&&s.componentWillUpdate(g,s.__s,I),f&&s.componentDidUpdate!=null&&s.__h.push(function(){s.componentDidUpdate(_,w,C)})}if(s.context=I,s.props=g,s.__P=t,s.__e=!1,B=m.__r,ye=0,f){for(s.state=s.__s,s.__d=!1,B&&B(e),d=s.render(s.props,s.state,s.context),V=0;V<s._sb.length;V++)s.__h.push(s._sb[V]);s._sb=[]}else do s.__d=!1,B&&B(e),d=s.render(s.props,s.state,s.context),s.state=s.__s;while(s.__d&&++ye<25);s.state=s.__s,s.getChildContext!=null&&(n=k(k({},n),s.getChildContext())),f&&!h&&s.getSnapshotBeforeUpdate!=null&&(C=s.getSnapshotBeforeUpdate(_,w)),L=d,d!=null&&d.type===H&&d.key==null&&(L=He(d.props.children)),a=De(t,z(L)?L:[L],e,i,n,o,r,l,a,p,c),s.base=e.__e,e.__u&=-161,s.__h.length&&l.push(s),b&&(s.__E=s.__=null)}catch(D){if(e.__v=null,p||r!=null)if(D.then){for(e.__u|=p?160:128;a&&a.nodeType==8&&a.nextSibling;)a=a.nextSibling;r[r.indexOf(a)]=null,e.__e=a}else{for(ne=r.length;ne--;)le(r[ne]);se(e)}else e.__e=i.__e,e.__k=i.__k,D.then||se(e);m.__e(D,e,i)}else r==null&&e.__v==i.__v?(e.__k=i.__k,e.__e=i.__e):a=e.__e=ot(i.__e,e,i,n,o,r,l,p,c);return(d=m.diffed)&&d(e),128&e.__u?void 0:a}function se(t){t&&t.__c&&(t.__c.__e=!0),t&&t.__k&&t.__k.forEach(se)}function Ae(t,e,i){for(var n=0;n<i.length;n++)ue(i[n],i[++n],i[++n]);m.__c&&m.__c(e,t),t.some(function(o){try{t=o.__h,o.__h=[],t.some(function(r){r.call(o)})}catch(r){m.__e(r,o.__v)}})}function He(t){return typeof t!="object"||t==null||t.__b&&t.__b>0?t:z(t)?t.map(He):k({},t)}function ot(t,e,i,n,o,r,l,a,p){var c,d,s,h,_,w,C,b=i.props,g=e.props,f=e.type;if(f=="svg"?o="http://www.w3.org/2000/svg":f=="math"?o="http://www.w3.org/1998/Math/MathML":o||(o="http://www.w3.org/1999/xhtml"),r!=null){for(c=0;c<r.length;c++)if((_=r[c])&&"setAttribute"in _==!!f&&(f?_.localName==f:_.nodeType==3)){t=_,r[c]=null;break}}if(t==null){if(f==null)return document.createTextNode(g);t=document.createElementNS(o,f,g.is&&g),a&&(m.__m&&m.__m(e,r),a=!1),r=null}if(f==null)b===g||a&&t.data==g||(t.data=g);else{if(r=r&&j.call(t.childNodes),b=i.props||N,!a&&r!=null)for(b={},c=0;c<t.attributes.length;c++)b[(_=t.attributes[c]).name]=_.value;for(c in b)if(_=b[c],c!="children"){if(c=="dangerouslySetInnerHTML")s=_;else if(!(c in g)){if(c=="value"&&"defaultValue"in g||c=="checked"&&"defaultChecked"in g)continue;W(t,c,null,_,o)}}for(c in g)_=g[c],c=="children"?h=_:c=="dangerouslySetInnerHTML"?d=_:c=="value"?w=_:c=="checked"?C=_:a&&typeof _!="function"||b[c]===_||W(t,c,_,b[c],o);if(d)a||s&&(d.__html==s.__html||d.__html==t.innerHTML)||(t.innerHTML=d.__html),e.__k=[];else if(s&&(t.innerHTML=""),De(e.type=="template"?t.content:t,z(h)?h:[h],e,i,n,f=="foreignObject"?"http://www.w3.org/1999/xhtml":o,r,l,r?r[0]:i.__k&&A(i,0),a,p),r!=null)for(c=r.length;c--;)le(r[c]);a||(c="value",f=="progress"&&w==null?t.removeAttribute("value"):w!=null&&(w!==t[c]||f=="progress"&&!w||f=="option"&&w!=b[c])&&W(t,c,w,b[c],o),c="checked",C!=null&&C!=t[c]&&W(t,c,C,b[c],o))}return t}function ue(t,e,i){try{if(typeof t=="function"){var n=typeof t.__u=="function";n&&t.__u(),n&&e==null||(t.__u=t(e))}else t.current=e}catch(o){m.__e(o,i)}}function Me(t,e,i){var n,o;if(m.unmount&&m.unmount(t),(n=t.ref)&&(n.current&&n.current!=t.__e||ue(n,null,e)),(n=t.__c)!=null){if(n.componentWillUnmount)try{n.componentWillUnmount()}catch(r){m.__e(r,e)}n.base=n.__P=null}if(n=t.__k)for(o=0;o<n.length;o++)n[o]&&Me(n[o],e,i||typeof t.type!="function");i||le(t.__e),t.__c=t.__=t.__e=void 0}function rt(t,e,i){return this.constructor(t,i)}function O(t,e,i){var n,o,r,l;e==document&&(e=document.documentElement),m.__&&m.__(t,e),o=(n=typeof i=="function")?null:i&&i.__k||e.__k,r=[],l=[],ce(e,t=(!n&&i||e).__k=R(H,null,[t]),o||N,N,e.namespaceURI,!n&&i?[i]:o?null:e.firstChild?j.call(e.childNodes):null,r,!n&&i?i:o?o.__e:e.firstChild,n,l),Ae(r,t,l)}j=Pe.slice,m={__e:function(t,e,i,n){for(var o,r,l;e=e.__;)if((o=e.__c)&&!o.__)try{if((r=o.constructor)&&r.getDerivedStateFromError!=null&&(o.setState(r.getDerivedStateFromError(t)),l=o.__d),o.componentDidCatch!=null&&(o.componentDidCatch(t,n||{}),l=o.__d),l)return o.__E=o}catch(a){t=a}throw t}},ke=0,Ze=function(t){return t!=null&&t.constructor==null},x.prototype.setState=function(t,e){var i;i=this.__s!=null&&this.__s!=this.state?this.__s:this.__s=k({},this.state),typeof t=="function"&&(t=t(k({},i),this.props)),t&&k(i,t),t!=null&&this.__v&&(e&&this._sb.push(e),be(this))},x.prototype.forceUpdate=function(t){this.__v&&(this.__e=!0,t&&this.__h.push(t),be(this))},x.prototype.render=H,P=[],Se=typeof Promise=="function"?Promise.prototype.then.bind(Promise.resolve()):setTimeout,Ie=function(t,e){return t.__v.__b-e.__v.__b},q.__r=0,Ee=/(PointerCapture)$|Capture$/i,ae=0,oe=Te(!1),re=Te(!0),et=0;var F,v,de,Be,U=0,We=[],y=m,Le=y.__b,Ne=y.__r,Oe=y.diffed,Fe=y.__c,Ue=y.unmount,$e=y.__;function pe(t,e){y.__h&&y.__h(v,t,U||e),U=0;var i=v.__H||(v.__H={__:[],__h:[]});return t>=i.__.length&&i.__.push({}),i.__[t]}function M(t){return U=1,at(ze,t)}function at(t,e,i){var n=pe(F++,2);if(n.t=t,!n.__c&&(n.__=[i?i(e):ze(void 0,e),function(a){var p=n.__N?n.__N[0]:n.__[0],c=n.t(p,a);p!==c&&(n.__N=[c,n.__[1]],n.__c.setState({}))}],n.__c=v,!v.__f)){var o=function(a,p,c){if(!n.__c.__H)return!0;var d=n.__c.__H.__.filter(function(h){return!!h.__c});if(d.every(function(h){return!h.__N}))return!r||r.call(this,a,p,c);var s=n.__c.props!==a;return d.forEach(function(h){if(h.__N){var _=h.__[0];h.__=h.__N,h.__N=void 0,_!==h.__[0]&&(s=!0)}}),r&&r.call(this,a,p,c)||s};v.__f=!0;var r=v.shouldComponentUpdate,l=v.componentWillUpdate;v.componentWillUpdate=function(a,p,c){if(this.__e){var d=r;r=void 0,o(a,p,c),r=d}l&&l.call(this,a,p,c)},v.shouldComponentUpdate=o}return n.__N||n.__}function J(t,e){var i=pe(F++,3);!y.__s&&je(i.__H,e)&&(i.__=t,i.u=e,v.__H.__h.push(i))}function Ge(t){return U=5,K(function(){return{current:t}},[])}function K(t,e){var i=pe(F++,7);return je(i.__H,e)&&(i.__=t(),i.__H=e,i.__h=t),i.__}function qe(t,e){return U=8,K(function(){return t},e)}function lt(){for(var t;t=We.shift();)if(t.__P&&t.__H)try{t.__H.__h.forEach(Y),t.__H.__h.forEach(_e),t.__H.__h=[]}catch(e){t.__H.__h=[],y.__e(e,t.__v)}}y.__b=function(t){v=null,Le&&Le(t)},y.__=function(t,e){t&&e.__k&&e.__k.__m&&(t.__m=e.__k.__m),$e&&$e(t,e)},y.__r=function(t){Ne&&Ne(t),F=0;var e=(v=t.__c).__H;e&&(de===v?(e.__h=[],v.__h=[],e.__.forEach(function(i){i.__N&&(i.__=i.__N),i.u=i.__N=void 0})):(e.__h.forEach(Y),e.__h.forEach(_e),e.__h=[],F=0)),de=v},y.diffed=function(t){Oe&&Oe(t);var e=t.__c;e&&e.__H&&(e.__H.__h.length&&(We.push(e)!==1&&Be===y.requestAnimationFrame||((Be=y.requestAnimationFrame)||ct)(lt)),e.__H.__.forEach(function(i){i.u&&(i.__H=i.u),i.u=void 0})),de=v=null},y.__c=function(t,e){e.some(function(i){try{i.__h.forEach(Y),i.__h=i.__h.filter(function(n){return!n.__||_e(n)})}catch(n){e.some(function(o){o.__h&&(o.__h=[])}),e=[],y.__e(n,i.__v)}}),Fe&&Fe(t,e)},y.unmount=function(t){Ue&&Ue(t);var e,i=t.__c;i&&i.__H&&(i.__H.__.forEach(function(n){try{Y(n)}catch(o){e=o}}),i.__H=void 0,e&&y.__e(e,i.__v))};var Ve=typeof requestAnimationFrame=="function";function ct(t){var e,i=function(){clearTimeout(n),Ve&&cancelAnimationFrame(e),setTimeout(t)},n=setTimeout(i,35);Ve&&(e=requestAnimationFrame(i))}function Y(t){var e=v,i=t.__c;typeof i=="function"&&(t.__c=void 0,i()),v=e}function _e(t){var e=v;t.__c=t.__(),v=e}function je(t,e){return!t||t.length!==e.length||e.some(function(i,n){return i!==t[n]})}function ze(t,e){return typeof e=="function"?e(t):e}var Q=class{constructor(e){u(this,"config");this.config=e}log(...e){this.config.debug&&console.log("[Revenue Boost API]",...e)}getApiUrl(e){let i=this.config.apiUrl||"",n=e.startsWith("/")?e:`/${e}`;return i?`${i}${n}`:`/apps/revenue-boost${n}`}async fetchActiveCampaigns(e,i){let n=this.buildStorefrontContext(e,i),o=new URLSearchParams({shop:this.config.shopDomain,...n}),r=`${this.getApiUrl("/api/campaigns/active")}?${o.toString()}`;this.log("Fetching campaigns from:",r),this.log("Context:",n);try{let l=await fetch(r,{method:"GET",headers:{"Content-Type":"application/json"},credentials:"include"});if(!l.ok)throw new Error(`HTTP ${l.status}: ${l.statusText}`);let a=await l.json();return this.log("Campaigns received:",a),a}catch(l){throw console.error("[Revenue Boost API] Failed to fetch campaigns:",l),l}}buildStorefrontContext(e,i){let n={sessionId:e,pageUrl:window.location.pathname,pageType:this.detectPageType(),deviceType:this.detectDeviceType()};i&&(n.visitorId=i);let o=window;if(typeof o.Shopify<"u"){let r=o.Shopify;r.cart&&(n.cartValue=String(r.cart.total_price/100),n.cartItemCount=String(r.cart.item_count))}return n}detectPageType(){let e=window.location.pathname;return e==="/"||e===""?"home":e.includes("/products/")?"product":e.includes("/collections/")?"collection":e.includes("/cart")?"cart":e.includes("/checkout")?"checkout":"other"}detectDeviceType(){let e=navigator.userAgent.toLowerCase();return/android|webos|iphone|ipod|blackberry|iemobile|opera mini/i.test(e)?"mobile":/ipad|android(?!.*mobile)/i.test(e)?"tablet":"desktop"}async recordFrequency(e,i){let n=this.getApiUrl("/api/analytics/frequency");try{await fetch(n,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sessionId:e,campaignId:i,timestamp:Date.now()})})}catch(o){console.error("[Revenue Boost API] Failed to record frequency:",o)}}async trackEvent(e){let i=this.getApiUrl("/api/analytics/track");try{await fetch(i,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(e)})}catch(n){console.error("[Revenue Boost API] Failed to track event:",n)}}async trackSocialProofEvent(e){let i=this.getApiUrl("/api/social-proof/track");try{await fetch(i,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(e)})}catch(n){this.config.debug&&console.error("[Revenue Boost API] Failed to track social proof event:",n)}}};var he="revenue_boost_session",ge="revenue_boost_shown",Ye="revenue_boost_visitor",fe=class{constructor(){u(this,"sessionId");u(this,"visitorId");u(this,"shownCampaigns");this.sessionId=this.initSessionId(),this.visitorId=this.initVisitorId(),this.shownCampaigns=this.loadShownCampaigns(),this.incrementVisitCount()}initSessionId(){let e=sessionStorage.getItem(he);return e||(e=`session_${Date.now()}_${Math.random().toString(36).substr(2,9)}`,sessionStorage.setItem(he,e)),e}initVisitorId(){let e=localStorage.getItem(Ye);return e||(e=`visitor_${Date.now()}_${Math.random().toString(36).substr(2,9)}`,localStorage.setItem(Ye,e)),e}loadShownCampaigns(){let e=sessionStorage.getItem(ge);if(e)try{return new Set(JSON.parse(e))}catch{return new Set}return new Set}saveShownCampaigns(){sessionStorage.setItem(ge,JSON.stringify(Array.from(this.shownCampaigns)))}incrementVisitCount(){let e=parseInt(localStorage.getItem("revenue_boost_visit_count")||"0");localStorage.setItem("revenue_boost_visit_count",(e+1).toString())}getSessionId(){return this.sessionId}getVisitorId(){return this.visitorId}getVisitCount(){return parseInt(localStorage.getItem("revenue_boost_visit_count")||"1")}isReturningVisitor(){return this.getVisitCount()>1}wasShown(e){return this.shownCampaigns.has(e)}markShown(e){this.shownCampaigns.add(e),this.saveShownCampaigns()}getData(){return{sessionId:this.sessionId,visitorId:this.visitorId,visitCount:this.getVisitCount(),isReturningVisitor:this.isReturningVisitor(),shownCampaigns:Array.from(this.shownCampaigns)}}clear(){sessionStorage.removeItem(he),sessionStorage.removeItem(ge),this.shownCampaigns.clear(),this.sessionId=this.initSessionId()}},E=new fe;var X=class{constructor(e={}){u(this,"cache",new Map);u(this,"cfg");u(this,"loadingPromises",new Map);this.cfg={timeoutMs:8e3,debug:!1,...e}}log(...e){this.cfg.debug&&console.log("[Revenue Boost Loader]",...e)}async preloadComponents(e){let i=Array.from(new Set(e));await Promise.all(i.map(n=>this.loadComponent(n).catch(o=>{this.log("Preload failed for",n,o?.message||o)})))}async loadComponent(e){let i=e;if(this.cache.has(i))return this.log("Cache hit:",i),this.cache.get(i);if(this.loadingPromises.has(i))return this.log("Already loading:",i),this.loadingPromises.get(i);let n=this._loadComponentInternal(i);this.loadingPromises.set(i,n);try{let o=await n;return this.cache.set(i,o),o}finally{this.loadingPromises.delete(i)}}async _loadComponentInternal(e){let i=this.loadFromGlobal(e);if(i)return this.cache.set(e,i),i;try{let n=await this.loadViaDynamicImport(e);if(n)return this.cache.set(e,n),n}catch(n){this.log("Dynamic import failed for",e,n)}if(this.cfg.baseUrl)try{let n=await this.loadViaScript(e);if(n)return this.cache.set(e,n),n}catch(n){this.log("Script loading failed for",e,n)}throw new Error(`Component for template '${e}' not found`)}loadFromGlobal(e){let n=globalThis.RevenueBoostComponents;return n&&n[e]?(this.log("Loaded from global registry:",e),n[e]):null}async loadViaDynamicImport(e){return null}async loadViaScript(e){let i=this.getBundleName(e),n=`${this.cfg.baseUrl}/${i}?v=${this.cfg.version||"1"}`;return this.log("Loading script:",n),new Promise((o,r)=>{let l=setTimeout(()=>{r(new Error(`Timeout loading ${i}`))},this.cfg.timeoutMs),a=document.createElement("script");a.src=n,a.async=!0,a.onload=()=>{clearTimeout(l);let p=this.loadFromGlobal(e);p?o(p):r(new Error(`Component ${e} not registered after script load`))},a.onerror=()=>{clearTimeout(l),r(new Error(`Failed to load script: ${n}`))},document.head.appendChild(a)})}getBundleName(e){return`${e.toLowerCase().replace(/_/g,"-")}.bundle.js`}};function dt({campaign:t,onClose:e,onShow:i,loader:n}){let[o,r]=M(null),[l,a]=M(!0),[p,c]=M(null);return J(()=>{let d=!0;async function s(){try{console.log("[PopupManager] Loading component for:",t.templateType);let h=await n.loadComponent(t.templateType);d&&(r(()=>h),a(!1),i?.(t.id))}catch(h){console.error("[PopupManager] Failed to load component:",h),d&&(c(h instanceof Error?h.message:"Failed to load popup"),a(!1))}}return s(),()=>{d=!1}},[t.id,t.templateType]),l?R("div",{style:{position:"fixed",top:"50%",left:"50%",transform:"translate(-50%, -50%)",zIndex:999999}},"Loading..."):p?(console.error("[PopupManager] Error:",p),null):o?R(o,{config:{...t.contentConfig,...t.designConfig,id:t.id},isVisible:!0,onClose:e,campaignId:t.id,renderInline:!1}):null}function Je(t,e,i,n){let o=document.createElement("div");o.id=`revenue-boost-popup-${t.id}`,document.body.appendChild(o),O(R(dt,{campaign:t,onClose:()=>{e(),r()},onShow:n,loader:i}),o);function r(){O(null,o),o.remove()}return r}var Z=class{constructor(e={}){u(this,"config");u(this,"callback",null);u(this,"active",!1);u(this,"triggered",!1);u(this,"startTime",0);u(this,"mouseMoveHandler",null);this.config={sensitivity:e.sensitivity||"medium",delay:e.delay||1e3,mobileEnabled:e.mobileEnabled||!1}}start(e){this.active||this.isMobile()&&!this.config.mobileEnabled||(this.callback=e,this.active=!0,this.triggered=!1,this.startTime=Date.now(),this.mouseMoveHandler=this.handleMouseMove.bind(this),document.addEventListener("mousemove",this.mouseMoveHandler))}stop(){this.active&&(this.active=!1,this.mouseMoveHandler&&(document.removeEventListener("mousemove",this.mouseMoveHandler),this.mouseMoveHandler=null))}isActive(){return this.active}destroy(){this.stop(),this.callback=null}handleMouseMove(e){!this.active||this.triggered||Date.now()-this.startTime<this.config.delay||this.isExitIntent(e)&&this.trigger()}isExitIntent(e){let i=this.getSensitivityThreshold();return e.clientY<=i}getSensitivityThreshold(){switch(this.config.sensitivity){case"low":return 5;case"medium":return 20;case"high":return 50;default:return 20}}trigger(){this.triggered||!this.callback||(this.triggered=!0,this.callback(),this.stop())}isMobile(){return/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)}};var ee=class{constructor(e={}){u(this,"config");u(this,"callback",null);u(this,"active",!1);u(this,"triggered",!1);u(this,"scrollHandler",null);u(this,"debounceTimer",null);this.config={depthPercentage:e.depthPercentage||50,direction:e.direction||"down",debounceTime:e.debounceTime||100}}start(e){this.active||(this.callback=e,this.active=!0,this.triggered=!1,this.scrollHandler=this.handleScroll.bind(this),window.addEventListener("scroll",this.scrollHandler,{passive:!0}))}stop(){this.active&&(this.active=!1,this.scrollHandler&&(window.removeEventListener("scroll",this.scrollHandler,!1),this.scrollHandler=null),this.debounceTimer&&(clearTimeout(this.debounceTimer),this.debounceTimer=null))}isActive(){return this.active}getCurrentScrollDepth(){let e=window.scrollY||window.pageYOffset,i=document.documentElement.scrollHeight,n=window.innerHeight,o=i-n;if(o<=0)return 0;let r=e/o*100;return Math.min(100,Math.max(0,Math.round(r)))}hasReachedDepth(){return this.getCurrentScrollDepth()>=this.config.depthPercentage}destroy(){this.stop(),this.callback=null}handleScroll(e){!this.active||this.triggered||(this.debounceTimer&&clearTimeout(this.debounceTimer),this.debounceTimer=window.setTimeout(()=>{this.checkScrollDepth()},this.config.debounceTime))}checkScrollDepth(){!this.active||this.triggered||this.hasReachedDepth()&&this.trigger()}trigger(){this.triggered||!this.callback||(this.triggered=!0,this.callback(),this.stop())}};var te=class{constructor(e={}){u(this,"config");u(this,"callback",null);u(this,"active",!1);u(this,"triggered",!1);u(this,"timer",null);u(this,"lastActivityTime",0);u(this,"activityHandler",null);this.config={idleDuration:e.idleDuration||3e4,events:e.events||["mousemove","mousedown","keypress","scroll","touchstart","click"]}}start(e){this.active||(this.callback=e,this.active=!0,this.triggered=!1,this.lastActivityTime=Date.now(),this.activityHandler=this.handleActivity.bind(this),this.config.events.forEach(i=>{document.addEventListener(i,this.activityHandler,{passive:!0})}),this.resetTimer())}stop(){this.active&&(this.active=!1,this.activityHandler&&(this.config.events.forEach(e=>{document.removeEventListener(e,this.activityHandler,!1)}),this.activityHandler=null),this.timer!==null&&(clearTimeout(this.timer),this.timer=null))}isActive(){return this.active}getIdleTime(){return this.active?Date.now()-this.lastActivityTime:0}destroy(){this.stop(),this.callback=null}handleActivity(e){!this.active||this.triggered||(this.lastActivityTime=Date.now(),this.resetTimer())}resetTimer(){this.timer!==null&&clearTimeout(this.timer),this.timer=window.setTimeout(()=>{this.trigger()},this.config.idleDuration)}trigger(){this.triggered||!this.callback||(this.triggered=!0,this.callback(),this.stop())}};var ie=class{constructor(){u(this,"cleanupFunctions",[]);u(this,"exitIntentDetector",null);u(this,"scrollDepthTracker",null);u(this,"timeDelayHandler",null);u(this,"idleTimer",null);u(this,"cartEventListener",null);u(this,"customEventHandler",null)}async evaluateTriggers(e){let i=e.clientTriggers?.enhancedTriggers;if(console.log("[Revenue Boost] \u{1F3AF} Evaluating triggers for campaign:",e.id),!i||Object.keys(i).length===0)return console.log("[Revenue Boost] \u2705 No triggers defined, showing campaign immediately"),!0;let n=i.logic_operator||"AND";console.log("[Revenue Boost] \u{1F517} Trigger logic operator:",n);let o=[],r={};if(i.page_load!==void 0){console.log("[Revenue Boost] \u{1F4C4} Checking page_load trigger:",i.page_load);let a=await this.checkPageLoad(i.page_load);r.page_load=a,o.push(a),console.log(`[Revenue Boost] ${a?"\u2705":"\u274C"} page_load trigger ${a?"passed":"failed"}`)}if(i.scroll_depth!==void 0){console.log("[Revenue Boost] \u{1F4DC} Checking scroll_depth trigger:",i.scroll_depth);let a=await this.checkScrollDepth(i.scroll_depth);r.scroll_depth=a,o.push(a),console.log(`[Revenue Boost] ${a?"\u2705":"\u274C"} scroll_depth trigger ${a?"passed":"failed"}`)}if(i.exit_intent!==void 0){console.log("[Revenue Boost] \u{1F6AA} Checking exit_intent trigger:",i.exit_intent);let a=await this.checkExitIntent(i.exit_intent);r.exit_intent=a,o.push(a),console.log(`[Revenue Boost] ${a?"\u2705":"\u274C"} exit_intent trigger ${a?"passed":"failed"}`)}if(i.idle_timer!==void 0){console.log("[Revenue Boost] \u23F1\uFE0F Checking idle_timer trigger:",i.idle_timer);let a=await this.checkIdleTimer(i.idle_timer);r.idle_timer=a,o.push(a),console.log(`[Revenue Boost] ${a?"\u2705":"\u274C"} idle_timer trigger ${a?"passed":"failed"}`)}if(o.length===0)return console.log("[Revenue Boost] \u26A0\uFE0F No enabled triggers found, showing campaign immediately"),!0;let l;return n==="OR"?(l=o.some(a=>a===!0),console.log("[Revenue Boost] \u{1F500} OR logic: At least one trigger must pass")):(l=o.every(a=>a===!0),console.log("[Revenue Boost] \u{1F517} AND logic: All triggers must pass")),console.log("[Revenue Boost] \u{1F4CA} Trigger evaluation summary:",r),console.log(`[Revenue Boost] ${l?"\u2705 CAMPAIGN WILL SHOW":"\u274C CAMPAIGN WILL NOT SHOW"} - Final result: ${l}`),l}async checkPageLoad(e){if(!e.enabled)return console.log("[Revenue Boost] \u23ED\uFE0F page_load trigger is disabled"),!1;let i=e.delay||0;return console.log(`[Revenue Boost] \u23F3 page_load trigger waiting ${i}ms before showing`),i>0&&await this.delay(i),console.log("[Revenue Boost] \u2705 page_load trigger delay completed"),!0}async checkScrollDepth(e){if(!e.enabled)return console.log("[Revenue Boost] \u23ED\uFE0F scroll_depth trigger is disabled"),!1;let i=e.depth_percentage||50,n=e.direction||"down";return console.log(`[Revenue Boost] \u{1F4CF} scroll_depth trigger waiting for ${i}% scroll ${n}`),new Promise(o=>{this.scrollDepthTracker=new ee({depthPercentage:i,direction:n}),this.scrollDepthTracker.start(()=>{console.log(`[Revenue Boost] \u2705 scroll_depth trigger detected: User scrolled ${i}% ${n}`),o(!0)}),this.scrollDepthTracker.hasReachedDepth()&&(console.log(`[Revenue Boost] \u2705 scroll_depth trigger already met: User already at ${i}% depth`),this.scrollDepthTracker.destroy(),o(!0))})}async checkExitIntent(e){if(!e.enabled)return console.log("[Revenue Boost] \u23ED\uFE0F exit_intent trigger is disabled"),!1;let i=e.sensitivity||"medium",n=e.delay||1e3;return console.log(`[Revenue Boost] \u{1F6AA} exit_intent trigger waiting for exit intent (sensitivity: ${i}, delay: ${n}ms)`),new Promise(o=>{this.exitIntentDetector=new Z({sensitivity:i,delay:n}),this.exitIntentDetector.start(()=>{console.log("[Revenue Boost] \u2705 exit_intent trigger detected: User showed exit intent"),o(!0)})})}async checkIdleTimer(e){if(!e.enabled)return console.log("[Revenue Boost] \u23ED\uFE0F idle_timer trigger is disabled"),!1;let i=e.idle_duration||30;return console.log(`[Revenue Boost] \u23F1\uFE0F idle_timer trigger waiting for ${i}s of inactivity`),new Promise(n=>{this.idleTimer=new te({idleDuration:i*1e3}),this.idleTimer.start(()=>{console.log(`[Revenue Boost] \u2705 idle_timer trigger detected: User was idle for ${i}s`),n(!0)})})}delay(e){return new Promise(i=>{let n=setTimeout(i,e);this.cleanupFunctions.push(()=>clearTimeout(n))})}cleanup(){this.cleanupFunctions.forEach(e=>e()),this.cleanupFunctions=[],this.exitIntentDetector&&(this.exitIntentDetector.destroy(),this.exitIntentDetector=null),this.scrollDepthTracker&&(this.scrollDepthTracker.destroy(),this.scrollDepthTracker=null),this.timeDelayHandler&&(this.timeDelayHandler.destroy(),this.timeDelayHandler=null),this.idleTimer&&(this.idleTimer.destroy(),this.idleTimer=null),this.cartEventListener&&(this.cartEventListener.destroy(),this.cartEventListener=null),this.customEventHandler&&(this.customEventHandler.destroy(),this.customEventHandler=null)}};function _t(t){return t!=null&&typeof t=="object"&&"productId"in t&&(typeof t.productId=="string"||typeof t.productId=="number")}function Ke(t,e){document.addEventListener("cart:updated",n=>{let o=n.detail;if(_t(o)){let r=String(o.productId);me(t,e,r)}});let i=window.fetch;window.fetch=async function(...n){let[o,r]=n;if((typeof o=="string"?o:o.toString()).includes("/cart/add")&&r?.method==="POST")try{let a=await i.apply(this,n),c=await a.clone().json();if(c.id||c.product_id){let d=`gid://shopify/Product/${c.product_id||c.id}`;me(t,e,d)}return a}catch{return i.apply(this,n)}return i.apply(this,n)},document.addEventListener("submit",n=>{let o=n.target;if(o.action&&o.action.includes("/cart/add")){let l=new FormData(o).get("id");if(l){let a=`gid://shopify/Product/${l}`;me(t,e,a)}}}),console.log("[Revenue Boost] \u{1F6D2} Cart tracking initialized")}async function me(t,e,i){try{await t.trackSocialProofEvent({eventType:"add_to_cart",productId:i,shop:e}),console.log("[Revenue Boost] \u{1F6D2} Tracked add-to-cart:",i)}catch(n){console.debug("[Revenue Boost] Failed to track add-to-cart:",n)}}if(typeof window<"u"){let t=window;t.RevenueBoostPreact={h:R,render:O,Component:x,Fragment:H,hooks:{useState:M,useEffect:J,useCallback:qe,useRef:Ge,useMemo:K}},console.log("[Revenue Boost] \u269B\uFE0F Preact runtime exposed globally")}function pt(){let t=window.REVENUE_BOOST_CONFIG||{};return{apiUrl:t.apiUrl||"",shopDomain:t.shopDomain||"",debug:t.debug||!1,previewMode:t.previewMode||!1,previewId:t.previewId,sessionId:t.sessionId,visitCount:t.visitCount,isReturningVisitor:t.isReturningVisitor,deviceType:t.deviceType}}function ht(){return new Promise(t=>{document.readyState==="complete"||document.readyState==="interactive"?t():document.addEventListener("DOMContentLoaded",()=>t())})}var ve=class{constructor(){u(this,"config",pt());u(this,"api",new Q(this.config));u(this,"loader",new X({debug:this.config.debug,baseUrl:this.config.apiUrl?`${this.config.apiUrl}/bundles`:"/apps/revenue-boost/bundles",version:"1"}));u(this,"triggerManager",new ie);u(this,"initialized",!1);u(this,"cleanupFn",null)}log(...e){this.config.debug&&console.log("[Revenue Boost]",...e)}async init(){if(this.initialized){this.log("Already initialized");return}console.log("[Revenue Boost] \u{1F680} Starting initialization..."),console.log("[Revenue Boost] \u{1F4CB} Config:",this.config),console.log("[Revenue Boost] \u{1F511} Session ID:",E.getSessionId()),console.log("[Revenue Boost] \u{1F464} Visitor ID:",E.getVisitorId()),await ht(),this.log("DOM ready"),this.trackPageView(),Ke(this.api,this.config.shopDomain);try{let e=await this.api.fetchActiveCampaigns(E.getSessionId(),E.getVisitorId()),{campaigns:i}=e,n=i;if(this.log(`Campaigns received: ${n?.length||0}`),!n||n.length===0){this.log("No active campaigns");return}this.setupCampaigns(n),this.initialized=!0,console.log("[Revenue Boost] \u2705 Initialization complete!")}catch(e){console.error("[Revenue Boost] \u274C Error fetching campaigns:",e)}}async trackPageView(){try{let e=this.getProductIdFromPage(),i=window.location.pathname;await this.api.trackSocialProofEvent({eventType:e?"product_view":"page_view",productId:e,pageUrl:i,shop:this.config.shopDomain}),this.log("Page view tracked for social proof")}catch(e){this.log("Failed to track page view:",e)}}getProductIdFromPage(){let e=window;if(typeof e.ShopifyAnalytics<"u"){let i=e.ShopifyAnalytics?.meta;if(i?.product?.id)return`gid://shopify/Product/${i.product.id}`}window.location.pathname.includes("/products/")}setupCampaigns(e){let n=e.sort((r,l)=>(l.priority||0)-(r.priority||0)).filter(r=>this.config.previewMode&&this.config.previewId===r.id?!0:E.wasShown(r.id)?(this.log(`Campaign already shown: ${r.id}`),!1):!0);if(n.length===0){this.log("No campaigns to display");return}let o=n[0];this.log("Showing campaign:",o.name),this.config.previewMode&&this.config.previewId===o.id?setTimeout(()=>this.showCampaign(o),0):this.showCampaign(o)}async showCampaign(e){if(this.config.previewMode&&this.config.previewId===e.id){this.renderCampaign(e);return}this.log("Evaluating triggers for campaign:",e.name);try{await this.triggerManager.evaluateTriggers(e)?(this.log("Triggers passed, showing campaign"),this.renderCampaign(e)):this.log("Triggers not met, campaign not shown")}catch(n){console.error("[Revenue Boost] Error evaluating triggers:",n),this.renderCampaign(e)}}async renderCampaign(e){this.config.previewMode&&this.config.previewId===e.id||(E.markShown(e.id),await this.api.recordFrequency(E.getSessionId(),e.id)),this.cleanupFn=Je(e,()=>{this.log("Popup closed"),this.cleanupFn=null,this.triggerManager.cleanup()},this.loader,n=>{this.log("Popup shown:",n)})}},gt=new ve;gt.init().catch(t=>{console.error("[Revenue Boost] Initialization failed:",t)});})();
+"use strict";
+(() => {
+  var __defProp = Object.defineProperty;
+  var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+  var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
+
+  // node_modules/preact/dist/preact.module.js
+  var n;
+  var l;
+  var u;
+  var t;
+  var i;
+  var r;
+  var o;
+  var e;
+  var f;
+  var c;
+  var s;
+  var a;
+  var h;
+  var p = {};
+  var v = [];
+  var y = /acit|ex(?:s|g|n|p|$)|rph|grid|ows|mnc|ntw|ine[ch]|zoo|^ord|itera/i;
+  var w = Array.isArray;
+  function d(n2, l3) {
+    for (var u3 in l3) n2[u3] = l3[u3];
+    return n2;
+  }
+  function g(n2) {
+    n2 && n2.parentNode && n2.parentNode.removeChild(n2);
+  }
+  function _(l3, u3, t3) {
+    var i3, r3, o3, e3 = {};
+    for (o3 in u3) "key" == o3 ? i3 = u3[o3] : "ref" == o3 ? r3 = u3[o3] : e3[o3] = u3[o3];
+    if (arguments.length > 2 && (e3.children = arguments.length > 3 ? n.call(arguments, 2) : t3), "function" == typeof l3 && null != l3.defaultProps) for (o3 in l3.defaultProps) void 0 === e3[o3] && (e3[o3] = l3.defaultProps[o3]);
+    return m(l3, e3, i3, r3, null);
+  }
+  function m(n2, t3, i3, r3, o3) {
+    var e3 = { type: n2, props: t3, key: i3, ref: r3, __k: null, __: null, __b: 0, __e: null, __c: null, constructor: void 0, __v: null == o3 ? ++u : o3, __i: -1, __u: 0 };
+    return null == o3 && null != l.vnode && l.vnode(e3), e3;
+  }
+  function k(n2) {
+    return n2.children;
+  }
+  function x(n2, l3) {
+    this.props = n2, this.context = l3;
+  }
+  function S(n2, l3) {
+    if (null == l3) return n2.__ ? S(n2.__, n2.__i + 1) : null;
+    for (var u3; l3 < n2.__k.length; l3++) if (null != (u3 = n2.__k[l3]) && null != u3.__e) return u3.__e;
+    return "function" == typeof n2.type ? S(n2) : null;
+  }
+  function C(n2) {
+    var l3, u3;
+    if (null != (n2 = n2.__) && null != n2.__c) {
+      for (n2.__e = n2.__c.base = null, l3 = 0; l3 < n2.__k.length; l3++) if (null != (u3 = n2.__k[l3]) && null != u3.__e) {
+        n2.__e = n2.__c.base = u3.__e;
+        break;
+      }
+      return C(n2);
+    }
+  }
+  function M(n2) {
+    (!n2.__d && (n2.__d = true) && i.push(n2) && !$.__r++ || r != l.debounceRendering) && ((r = l.debounceRendering) || o)($);
+  }
+  function $() {
+    for (var n2, u3, t3, r3, o3, f3, c3, s3 = 1; i.length; ) i.length > s3 && i.sort(e), n2 = i.shift(), s3 = i.length, n2.__d && (t3 = void 0, r3 = void 0, o3 = (r3 = (u3 = n2).__v).__e, f3 = [], c3 = [], u3.__P && ((t3 = d({}, r3)).__v = r3.__v + 1, l.vnode && l.vnode(t3), O(u3.__P, t3, r3, u3.__n, u3.__P.namespaceURI, 32 & r3.__u ? [o3] : null, f3, null == o3 ? S(r3) : o3, !!(32 & r3.__u), c3), t3.__v = r3.__v, t3.__.__k[t3.__i] = t3, N(f3, t3, c3), r3.__e = r3.__ = null, t3.__e != o3 && C(t3)));
+    $.__r = 0;
+  }
+  function I(n2, l3, u3, t3, i3, r3, o3, e3, f3, c3, s3) {
+    var a3, h3, y3, w3, d3, g4, _3, m3 = t3 && t3.__k || v, b2 = l3.length;
+    for (f3 = P(u3, l3, m3, f3, b2), a3 = 0; a3 < b2; a3++) null != (y3 = u3.__k[a3]) && (h3 = -1 == y3.__i ? p : m3[y3.__i] || p, y3.__i = a3, g4 = O(n2, y3, h3, i3, r3, o3, e3, f3, c3, s3), w3 = y3.__e, y3.ref && h3.ref != y3.ref && (h3.ref && B(h3.ref, null, y3), s3.push(y3.ref, y3.__c || w3, y3)), null == d3 && null != w3 && (d3 = w3), (_3 = !!(4 & y3.__u)) || h3.__k === y3.__k ? f3 = A(y3, f3, n2, _3) : "function" == typeof y3.type && void 0 !== g4 ? f3 = g4 : w3 && (f3 = w3.nextSibling), y3.__u &= -7);
+    return u3.__e = d3, f3;
+  }
+  function P(n2, l3, u3, t3, i3) {
+    var r3, o3, e3, f3, c3, s3 = u3.length, a3 = s3, h3 = 0;
+    for (n2.__k = new Array(i3), r3 = 0; r3 < i3; r3++) null != (o3 = l3[r3]) && "boolean" != typeof o3 && "function" != typeof o3 ? (f3 = r3 + h3, (o3 = n2.__k[r3] = "string" == typeof o3 || "number" == typeof o3 || "bigint" == typeof o3 || o3.constructor == String ? m(null, o3, null, null, null) : w(o3) ? m(k, { children: o3 }, null, null, null) : null == o3.constructor && o3.__b > 0 ? m(o3.type, o3.props, o3.key, o3.ref ? o3.ref : null, o3.__v) : o3).__ = n2, o3.__b = n2.__b + 1, e3 = null, -1 != (c3 = o3.__i = L(o3, u3, f3, a3)) && (a3--, (e3 = u3[c3]) && (e3.__u |= 2)), null == e3 || null == e3.__v ? (-1 == c3 && (i3 > s3 ? h3-- : i3 < s3 && h3++), "function" != typeof o3.type && (o3.__u |= 4)) : c3 != f3 && (c3 == f3 - 1 ? h3-- : c3 == f3 + 1 ? h3++ : (c3 > f3 ? h3-- : h3++, o3.__u |= 4))) : n2.__k[r3] = null;
+    if (a3) for (r3 = 0; r3 < s3; r3++) null != (e3 = u3[r3]) && 0 == (2 & e3.__u) && (e3.__e == t3 && (t3 = S(e3)), D(e3, e3));
+    return t3;
+  }
+  function A(n2, l3, u3, t3) {
+    var i3, r3;
+    if ("function" == typeof n2.type) {
+      for (i3 = n2.__k, r3 = 0; i3 && r3 < i3.length; r3++) i3[r3] && (i3[r3].__ = n2, l3 = A(i3[r3], l3, u3, t3));
+      return l3;
+    }
+    n2.__e != l3 && (t3 && (l3 && n2.type && !l3.parentNode && (l3 = S(n2)), u3.insertBefore(n2.__e, l3 || null)), l3 = n2.__e);
+    do {
+      l3 = l3 && l3.nextSibling;
+    } while (null != l3 && 8 == l3.nodeType);
+    return l3;
+  }
+  function H(n2, l3) {
+    return l3 = l3 || [], null == n2 || "boolean" == typeof n2 || (w(n2) ? n2.some(function(n3) {
+      H(n3, l3);
+    }) : l3.push(n2)), l3;
+  }
+  function L(n2, l3, u3, t3) {
+    var i3, r3, o3, e3 = n2.key, f3 = n2.type, c3 = l3[u3], s3 = null != c3 && 0 == (2 & c3.__u);
+    if (null === c3 && null == n2.key || s3 && e3 == c3.key && f3 == c3.type) return u3;
+    if (t3 > (s3 ? 1 : 0)) {
+      for (i3 = u3 - 1, r3 = u3 + 1; i3 >= 0 || r3 < l3.length; ) if (null != (c3 = l3[o3 = i3 >= 0 ? i3-- : r3++]) && 0 == (2 & c3.__u) && e3 == c3.key && f3 == c3.type) return o3;
+    }
+    return -1;
+  }
+  function T(n2, l3, u3) {
+    "-" == l3[0] ? n2.setProperty(l3, null == u3 ? "" : u3) : n2[l3] = null == u3 ? "" : "number" != typeof u3 || y.test(l3) ? u3 : u3 + "px";
+  }
+  function j(n2, l3, u3, t3, i3) {
+    var r3, o3;
+    n: if ("style" == l3) if ("string" == typeof u3) n2.style.cssText = u3;
+    else {
+      if ("string" == typeof t3 && (n2.style.cssText = t3 = ""), t3) for (l3 in t3) u3 && l3 in u3 || T(n2.style, l3, "");
+      if (u3) for (l3 in u3) t3 && u3[l3] == t3[l3] || T(n2.style, l3, u3[l3]);
+    }
+    else if ("o" == l3[0] && "n" == l3[1]) r3 = l3 != (l3 = l3.replace(f, "$1")), o3 = l3.toLowerCase(), l3 = o3 in n2 || "onFocusOut" == l3 || "onFocusIn" == l3 ? o3.slice(2) : l3.slice(2), n2.l || (n2.l = {}), n2.l[l3 + r3] = u3, u3 ? t3 ? u3.u = t3.u : (u3.u = c, n2.addEventListener(l3, r3 ? a : s, r3)) : n2.removeEventListener(l3, r3 ? a : s, r3);
+    else {
+      if ("http://www.w3.org/2000/svg" == i3) l3 = l3.replace(/xlink(H|:h)/, "h").replace(/sName$/, "s");
+      else if ("width" != l3 && "height" != l3 && "href" != l3 && "list" != l3 && "form" != l3 && "tabIndex" != l3 && "download" != l3 && "rowSpan" != l3 && "colSpan" != l3 && "role" != l3 && "popover" != l3 && l3 in n2) try {
+        n2[l3] = null == u3 ? "" : u3;
+        break n;
+      } catch (n3) {
+      }
+      "function" == typeof u3 || (null == u3 || false === u3 && "-" != l3[4] ? n2.removeAttribute(l3) : n2.setAttribute(l3, "popover" == l3 && 1 == u3 ? "" : u3));
+    }
+  }
+  function F(n2) {
+    return function(u3) {
+      if (this.l) {
+        var t3 = this.l[u3.type + n2];
+        if (null == u3.t) u3.t = c++;
+        else if (u3.t < t3.u) return;
+        return t3(l.event ? l.event(u3) : u3);
+      }
+    };
+  }
+  function O(n2, u3, t3, i3, r3, o3, e3, f3, c3, s3) {
+    var a3, h3, p3, v3, y3, _3, m3, b2, S2, C3, M2, $3, P4, A4, H3, L2, T4, j4 = u3.type;
+    if (null != u3.constructor) return null;
+    128 & t3.__u && (c3 = !!(32 & t3.__u), o3 = [f3 = u3.__e = t3.__e]), (a3 = l.__b) && a3(u3);
+    n: if ("function" == typeof j4) try {
+      if (b2 = u3.props, S2 = "prototype" in j4 && j4.prototype.render, C3 = (a3 = j4.contextType) && i3[a3.__c], M2 = a3 ? C3 ? C3.props.value : a3.__ : i3, t3.__c ? m3 = (h3 = u3.__c = t3.__c).__ = h3.__E : (S2 ? u3.__c = h3 = new j4(b2, M2) : (u3.__c = h3 = new x(b2, M2), h3.constructor = j4, h3.render = E), C3 && C3.sub(h3), h3.props = b2, h3.state || (h3.state = {}), h3.context = M2, h3.__n = i3, p3 = h3.__d = true, h3.__h = [], h3._sb = []), S2 && null == h3.__s && (h3.__s = h3.state), S2 && null != j4.getDerivedStateFromProps && (h3.__s == h3.state && (h3.__s = d({}, h3.__s)), d(h3.__s, j4.getDerivedStateFromProps(b2, h3.__s))), v3 = h3.props, y3 = h3.state, h3.__v = u3, p3) S2 && null == j4.getDerivedStateFromProps && null != h3.componentWillMount && h3.componentWillMount(), S2 && null != h3.componentDidMount && h3.__h.push(h3.componentDidMount);
+      else {
+        if (S2 && null == j4.getDerivedStateFromProps && b2 !== v3 && null != h3.componentWillReceiveProps && h3.componentWillReceiveProps(b2, M2), !h3.__e && null != h3.shouldComponentUpdate && false === h3.shouldComponentUpdate(b2, h3.__s, M2) || u3.__v == t3.__v) {
+          for (u3.__v != t3.__v && (h3.props = b2, h3.state = h3.__s, h3.__d = false), u3.__e = t3.__e, u3.__k = t3.__k, u3.__k.some(function(n3) {
+            n3 && (n3.__ = u3);
+          }), $3 = 0; $3 < h3._sb.length; $3++) h3.__h.push(h3._sb[$3]);
+          h3._sb = [], h3.__h.length && e3.push(h3);
+          break n;
+        }
+        null != h3.componentWillUpdate && h3.componentWillUpdate(b2, h3.__s, M2), S2 && null != h3.componentDidUpdate && h3.__h.push(function() {
+          h3.componentDidUpdate(v3, y3, _3);
+        });
+      }
+      if (h3.context = M2, h3.props = b2, h3.__P = n2, h3.__e = false, P4 = l.__r, A4 = 0, S2) {
+        for (h3.state = h3.__s, h3.__d = false, P4 && P4(u3), a3 = h3.render(h3.props, h3.state, h3.context), H3 = 0; H3 < h3._sb.length; H3++) h3.__h.push(h3._sb[H3]);
+        h3._sb = [];
+      } else do {
+        h3.__d = false, P4 && P4(u3), a3 = h3.render(h3.props, h3.state, h3.context), h3.state = h3.__s;
+      } while (h3.__d && ++A4 < 25);
+      h3.state = h3.__s, null != h3.getChildContext && (i3 = d(d({}, i3), h3.getChildContext())), S2 && !p3 && null != h3.getSnapshotBeforeUpdate && (_3 = h3.getSnapshotBeforeUpdate(v3, y3)), L2 = a3, null != a3 && a3.type === k && null == a3.key && (L2 = V(a3.props.children)), f3 = I(n2, w(L2) ? L2 : [L2], u3, t3, i3, r3, o3, e3, f3, c3, s3), h3.base = u3.__e, u3.__u &= -161, h3.__h.length && e3.push(h3), m3 && (h3.__E = h3.__ = null);
+    } catch (n3) {
+      if (u3.__v = null, c3 || null != o3) if (n3.then) {
+        for (u3.__u |= c3 ? 160 : 128; f3 && 8 == f3.nodeType && f3.nextSibling; ) f3 = f3.nextSibling;
+        o3[o3.indexOf(f3)] = null, u3.__e = f3;
+      } else {
+        for (T4 = o3.length; T4--; ) g(o3[T4]);
+        z(u3);
+      }
+      else u3.__e = t3.__e, u3.__k = t3.__k, n3.then || z(u3);
+      l.__e(n3, u3, t3);
+    }
+    else null == o3 && u3.__v == t3.__v ? (u3.__k = t3.__k, u3.__e = t3.__e) : f3 = u3.__e = q(t3.__e, u3, t3, i3, r3, o3, e3, c3, s3);
+    return (a3 = l.diffed) && a3(u3), 128 & u3.__u ? void 0 : f3;
+  }
+  function z(n2) {
+    n2 && n2.__c && (n2.__c.__e = true), n2 && n2.__k && n2.__k.forEach(z);
+  }
+  function N(n2, u3, t3) {
+    for (var i3 = 0; i3 < t3.length; i3++) B(t3[i3], t3[++i3], t3[++i3]);
+    l.__c && l.__c(u3, n2), n2.some(function(u4) {
+      try {
+        n2 = u4.__h, u4.__h = [], n2.some(function(n3) {
+          n3.call(u4);
+        });
+      } catch (n3) {
+        l.__e(n3, u4.__v);
+      }
+    });
+  }
+  function V(n2) {
+    return "object" != typeof n2 || null == n2 || n2.__b && n2.__b > 0 ? n2 : w(n2) ? n2.map(V) : d({}, n2);
+  }
+  function q(u3, t3, i3, r3, o3, e3, f3, c3, s3) {
+    var a3, h3, v3, y3, d3, _3, m3, b2 = i3.props, k3 = t3.props, x3 = t3.type;
+    if ("svg" == x3 ? o3 = "http://www.w3.org/2000/svg" : "math" == x3 ? o3 = "http://www.w3.org/1998/Math/MathML" : o3 || (o3 = "http://www.w3.org/1999/xhtml"), null != e3) {
+      for (a3 = 0; a3 < e3.length; a3++) if ((d3 = e3[a3]) && "setAttribute" in d3 == !!x3 && (x3 ? d3.localName == x3 : 3 == d3.nodeType)) {
+        u3 = d3, e3[a3] = null;
+        break;
+      }
+    }
+    if (null == u3) {
+      if (null == x3) return document.createTextNode(k3);
+      u3 = document.createElementNS(o3, x3, k3.is && k3), c3 && (l.__m && l.__m(t3, e3), c3 = false), e3 = null;
+    }
+    if (null == x3) b2 === k3 || c3 && u3.data == k3 || (u3.data = k3);
+    else {
+      if (e3 = e3 && n.call(u3.childNodes), b2 = i3.props || p, !c3 && null != e3) for (b2 = {}, a3 = 0; a3 < u3.attributes.length; a3++) b2[(d3 = u3.attributes[a3]).name] = d3.value;
+      for (a3 in b2) if (d3 = b2[a3], "children" == a3) ;
+      else if ("dangerouslySetInnerHTML" == a3) v3 = d3;
+      else if (!(a3 in k3)) {
+        if ("value" == a3 && "defaultValue" in k3 || "checked" == a3 && "defaultChecked" in k3) continue;
+        j(u3, a3, null, d3, o3);
+      }
+      for (a3 in k3) d3 = k3[a3], "children" == a3 ? y3 = d3 : "dangerouslySetInnerHTML" == a3 ? h3 = d3 : "value" == a3 ? _3 = d3 : "checked" == a3 ? m3 = d3 : c3 && "function" != typeof d3 || b2[a3] === d3 || j(u3, a3, d3, b2[a3], o3);
+      if (h3) c3 || v3 && (h3.__html == v3.__html || h3.__html == u3.innerHTML) || (u3.innerHTML = h3.__html), t3.__k = [];
+      else if (v3 && (u3.innerHTML = ""), I("template" == t3.type ? u3.content : u3, w(y3) ? y3 : [y3], t3, i3, r3, "foreignObject" == x3 ? "http://www.w3.org/1999/xhtml" : o3, e3, f3, e3 ? e3[0] : i3.__k && S(i3, 0), c3, s3), null != e3) for (a3 = e3.length; a3--; ) g(e3[a3]);
+      c3 || (a3 = "value", "progress" == x3 && null == _3 ? u3.removeAttribute("value") : null != _3 && (_3 !== u3[a3] || "progress" == x3 && !_3 || "option" == x3 && _3 != b2[a3]) && j(u3, a3, _3, b2[a3], o3), a3 = "checked", null != m3 && m3 != u3[a3] && j(u3, a3, m3, b2[a3], o3));
+    }
+    return u3;
+  }
+  function B(n2, u3, t3) {
+    try {
+      if ("function" == typeof n2) {
+        var i3 = "function" == typeof n2.__u;
+        i3 && n2.__u(), i3 && null == u3 || (n2.__u = n2(u3));
+      } else n2.current = u3;
+    } catch (n3) {
+      l.__e(n3, t3);
+    }
+  }
+  function D(n2, u3, t3) {
+    var i3, r3;
+    if (l.unmount && l.unmount(n2), (i3 = n2.ref) && (i3.current && i3.current != n2.__e || B(i3, null, u3)), null != (i3 = n2.__c)) {
+      if (i3.componentWillUnmount) try {
+        i3.componentWillUnmount();
+      } catch (n3) {
+        l.__e(n3, u3);
+      }
+      i3.base = i3.__P = null;
+    }
+    if (i3 = n2.__k) for (r3 = 0; r3 < i3.length; r3++) i3[r3] && D(i3[r3], u3, t3 || "function" != typeof n2.type);
+    t3 || g(n2.__e), n2.__c = n2.__ = n2.__e = void 0;
+  }
+  function E(n2, l3, u3) {
+    return this.constructor(n2, u3);
+  }
+  function G(u3, t3, i3) {
+    var r3, o3, e3, f3;
+    t3 == document && (t3 = document.documentElement), l.__ && l.__(u3, t3), o3 = (r3 = "function" == typeof i3) ? null : i3 && i3.__k || t3.__k, e3 = [], f3 = [], O(t3, u3 = (!r3 && i3 || t3).__k = _(k, null, [u3]), o3 || p, p, t3.namespaceURI, !r3 && i3 ? [i3] : o3 ? null : t3.firstChild ? n.call(t3.childNodes) : null, e3, !r3 && i3 ? i3 : o3 ? o3.__e : t3.firstChild, r3, f3), N(e3, u3, f3);
+  }
+  n = v.slice, l = { __e: function(n2, l3, u3, t3) {
+    for (var i3, r3, o3; l3 = l3.__; ) if ((i3 = l3.__c) && !i3.__) try {
+      if ((r3 = i3.constructor) && null != r3.getDerivedStateFromError && (i3.setState(r3.getDerivedStateFromError(n2)), o3 = i3.__d), null != i3.componentDidCatch && (i3.componentDidCatch(n2, t3 || {}), o3 = i3.__d), o3) return i3.__E = i3;
+    } catch (l4) {
+      n2 = l4;
+    }
+    throw n2;
+  } }, u = 0, t = function(n2) {
+    return null != n2 && null == n2.constructor;
+  }, x.prototype.setState = function(n2, l3) {
+    var u3;
+    u3 = null != this.__s && this.__s != this.state ? this.__s : this.__s = d({}, this.state), "function" == typeof n2 && (n2 = n2(d({}, u3), this.props)), n2 && d(u3, n2), null != n2 && this.__v && (l3 && this._sb.push(l3), M(this));
+  }, x.prototype.forceUpdate = function(n2) {
+    this.__v && (this.__e = true, n2 && this.__h.push(n2), M(this));
+  }, x.prototype.render = k, i = [], o = "function" == typeof Promise ? Promise.prototype.then.bind(Promise.resolve()) : setTimeout, e = function(n2, l3) {
+    return n2.__v.__b - l3.__v.__b;
+  }, $.__r = 0, f = /(PointerCapture)$|Capture$/i, c = 0, s = F(false), a = F(true), h = 0;
+
+  // node_modules/preact/hooks/dist/hooks.module.js
+  var t2;
+  var r2;
+  var u2;
+  var i2;
+  var o2 = 0;
+  var f2 = [];
+  var c2 = l;
+  var e2 = c2.__b;
+  var a2 = c2.__r;
+  var v2 = c2.diffed;
+  var l2 = c2.__c;
+  var m2 = c2.unmount;
+  var s2 = c2.__;
+  function p2(n2, t3) {
+    c2.__h && c2.__h(r2, n2, o2 || t3), o2 = 0;
+    var u3 = r2.__H || (r2.__H = { __: [], __h: [] });
+    return n2 >= u3.__.length && u3.__.push({}), u3.__[n2];
+  }
+  function d2(n2) {
+    return o2 = 1, h2(D2, n2);
+  }
+  function h2(n2, u3, i3) {
+    var o3 = p2(t2++, 2);
+    if (o3.t = n2, !o3.__c && (o3.__ = [i3 ? i3(u3) : D2(void 0, u3), function(n3) {
+      var t3 = o3.__N ? o3.__N[0] : o3.__[0], r3 = o3.t(t3, n3);
+      t3 !== r3 && (o3.__N = [r3, o3.__[1]], o3.__c.setState({}));
+    }], o3.__c = r2, !r2.__f)) {
+      var f3 = function(n3, t3, r3) {
+        if (!o3.__c.__H) return true;
+        var u4 = o3.__c.__H.__.filter(function(n4) {
+          return !!n4.__c;
+        });
+        if (u4.every(function(n4) {
+          return !n4.__N;
+        })) return !c3 || c3.call(this, n3, t3, r3);
+        var i4 = o3.__c.props !== n3;
+        return u4.forEach(function(n4) {
+          if (n4.__N) {
+            var t4 = n4.__[0];
+            n4.__ = n4.__N, n4.__N = void 0, t4 !== n4.__[0] && (i4 = true);
+          }
+        }), c3 && c3.call(this, n3, t3, r3) || i4;
+      };
+      r2.__f = true;
+      var c3 = r2.shouldComponentUpdate, e3 = r2.componentWillUpdate;
+      r2.componentWillUpdate = function(n3, t3, r3) {
+        if (this.__e) {
+          var u4 = c3;
+          c3 = void 0, f3(n3, t3, r3), c3 = u4;
+        }
+        e3 && e3.call(this, n3, t3, r3);
+      }, r2.shouldComponentUpdate = f3;
+    }
+    return o3.__N || o3.__;
+  }
+  function y2(n2, u3) {
+    var i3 = p2(t2++, 3);
+    !c2.__s && C2(i3.__H, u3) && (i3.__ = n2, i3.u = u3, r2.__H.__h.push(i3));
+  }
+  function A2(n2) {
+    return o2 = 5, T2(function() {
+      return { current: n2 };
+    }, []);
+  }
+  function T2(n2, r3) {
+    var u3 = p2(t2++, 7);
+    return C2(u3.__H, r3) && (u3.__ = n2(), u3.__H = r3, u3.__h = n2), u3.__;
+  }
+  function q2(n2, t3) {
+    return o2 = 8, T2(function() {
+      return n2;
+    }, t3);
+  }
+  function j2() {
+    for (var n2; n2 = f2.shift(); ) if (n2.__P && n2.__H) try {
+      n2.__H.__h.forEach(z2), n2.__H.__h.forEach(B2), n2.__H.__h = [];
+    } catch (t3) {
+      n2.__H.__h = [], c2.__e(t3, n2.__v);
+    }
+  }
+  c2.__b = function(n2) {
+    r2 = null, e2 && e2(n2);
+  }, c2.__ = function(n2, t3) {
+    n2 && t3.__k && t3.__k.__m && (n2.__m = t3.__k.__m), s2 && s2(n2, t3);
+  }, c2.__r = function(n2) {
+    a2 && a2(n2), t2 = 0;
+    var i3 = (r2 = n2.__c).__H;
+    i3 && (u2 === r2 ? (i3.__h = [], r2.__h = [], i3.__.forEach(function(n3) {
+      n3.__N && (n3.__ = n3.__N), n3.u = n3.__N = void 0;
+    })) : (i3.__h.forEach(z2), i3.__h.forEach(B2), i3.__h = [], t2 = 0)), u2 = r2;
+  }, c2.diffed = function(n2) {
+    v2 && v2(n2);
+    var t3 = n2.__c;
+    t3 && t3.__H && (t3.__H.__h.length && (1 !== f2.push(t3) && i2 === c2.requestAnimationFrame || ((i2 = c2.requestAnimationFrame) || w2)(j2)), t3.__H.__.forEach(function(n3) {
+      n3.u && (n3.__H = n3.u), n3.u = void 0;
+    })), u2 = r2 = null;
+  }, c2.__c = function(n2, t3) {
+    t3.some(function(n3) {
+      try {
+        n3.__h.forEach(z2), n3.__h = n3.__h.filter(function(n4) {
+          return !n4.__ || B2(n4);
+        });
+      } catch (r3) {
+        t3.some(function(n4) {
+          n4.__h && (n4.__h = []);
+        }), t3 = [], c2.__e(r3, n3.__v);
+      }
+    }), l2 && l2(n2, t3);
+  }, c2.unmount = function(n2) {
+    m2 && m2(n2);
+    var t3, r3 = n2.__c;
+    r3 && r3.__H && (r3.__H.__.forEach(function(n3) {
+      try {
+        z2(n3);
+      } catch (n4) {
+        t3 = n4;
+      }
+    }), r3.__H = void 0, t3 && c2.__e(t3, r3.__v));
+  };
+  var k2 = "function" == typeof requestAnimationFrame;
+  function w2(n2) {
+    var t3, r3 = function() {
+      clearTimeout(u3), k2 && cancelAnimationFrame(t3), setTimeout(n2);
+    }, u3 = setTimeout(r3, 35);
+    k2 && (t3 = requestAnimationFrame(r3));
+  }
+  function z2(n2) {
+    var t3 = r2, u3 = n2.__c;
+    "function" == typeof u3 && (n2.__c = void 0, u3()), r2 = t3;
+  }
+  function B2(n2) {
+    var t3 = r2;
+    n2.__c = n2.__(), r2 = t3;
+  }
+  function C2(n2, t3) {
+    return !n2 || n2.length !== t3.length || t3.some(function(t4, r3) {
+      return t4 !== n2[r3];
+    });
+  }
+  function D2(n2, t3) {
+    return "function" == typeof t3 ? t3(n2) : t3;
+  }
+
+  // node_modules/preact/compat/dist/compat.module.js
+  function g3(n2, t3) {
+    for (var e3 in t3) n2[e3] = t3[e3];
+    return n2;
+  }
+  function E2(n2, t3) {
+    for (var e3 in n2) if ("__source" !== e3 && !(e3 in t3)) return true;
+    for (var r3 in t3) if ("__source" !== r3 && n2[r3] !== t3[r3]) return true;
+    return false;
+  }
+  function N2(n2, t3) {
+    this.props = n2, this.context = t3;
+  }
+  (N2.prototype = new x()).isPureReactComponent = true, N2.prototype.shouldComponentUpdate = function(n2, t3) {
+    return E2(this.props, n2) || E2(this.state, t3);
+  };
+  var T3 = l.__b;
+  l.__b = function(n2) {
+    n2.type && n2.type.__f && n2.ref && (n2.props.ref = n2.ref, n2.ref = null), T3 && T3(n2);
+  };
+  var A3 = "undefined" != typeof Symbol && Symbol.for && Symbol.for("react.forward_ref") || 3911;
+  var F3 = l.__e;
+  l.__e = function(n2, t3, e3, r3) {
+    if (n2.then) {
+      for (var u3, o3 = t3; o3 = o3.__; ) if ((u3 = o3.__c) && u3.__c) return null == t3.__e && (t3.__e = e3.__e, t3.__k = e3.__k), u3.__c(n2, t3);
+    }
+    F3(n2, t3, e3, r3);
+  };
+  var U = l.unmount;
+  function V2(n2, t3, e3) {
+    return n2 && (n2.__c && n2.__c.__H && (n2.__c.__H.__.forEach(function(n3) {
+      "function" == typeof n3.__c && n3.__c();
+    }), n2.__c.__H = null), null != (n2 = g3({}, n2)).__c && (n2.__c.__P === e3 && (n2.__c.__P = t3), n2.__c.__e = true, n2.__c = null), n2.__k = n2.__k && n2.__k.map(function(n3) {
+      return V2(n3, t3, e3);
+    })), n2;
+  }
+  function W(n2, t3, e3) {
+    return n2 && e3 && (n2.__v = null, n2.__k = n2.__k && n2.__k.map(function(n3) {
+      return W(n3, t3, e3);
+    }), n2.__c && n2.__c.__P === t3 && (n2.__e && e3.appendChild(n2.__e), n2.__c.__e = true, n2.__c.__P = e3)), n2;
+  }
+  function P3() {
+    this.__u = 0, this.o = null, this.__b = null;
+  }
+  function j3(n2) {
+    var t3 = n2.__.__c;
+    return t3 && t3.__a && t3.__a(n2);
+  }
+  function B3() {
+    this.i = null, this.l = null;
+  }
+  l.unmount = function(n2) {
+    var t3 = n2.__c;
+    t3 && t3.__R && t3.__R(), t3 && 32 & n2.__u && (n2.type = null), U && U(n2);
+  }, (P3.prototype = new x()).__c = function(n2, t3) {
+    var e3 = t3.__c, r3 = this;
+    null == r3.o && (r3.o = []), r3.o.push(e3);
+    var u3 = j3(r3.__v), o3 = false, i3 = function() {
+      o3 || (o3 = true, e3.__R = null, u3 ? u3(l3) : l3());
+    };
+    e3.__R = i3;
+    var l3 = function() {
+      if (!--r3.__u) {
+        if (r3.state.__a) {
+          var n3 = r3.state.__a;
+          r3.__v.__k[0] = W(n3, n3.__c.__P, n3.__c.__O);
+        }
+        var t4;
+        for (r3.setState({ __a: r3.__b = null }); t4 = r3.o.pop(); ) t4.forceUpdate();
+      }
+    };
+    r3.__u++ || 32 & t3.__u || r3.setState({ __a: r3.__b = r3.__v.__k[0] }), n2.then(i3, i3);
+  }, P3.prototype.componentWillUnmount = function() {
+    this.o = [];
+  }, P3.prototype.render = function(n2, e3) {
+    if (this.__b) {
+      if (this.__v.__k) {
+        var r3 = document.createElement("div"), o3 = this.__v.__k[0].__c;
+        this.__v.__k[0] = V2(this.__b, r3, o3.__O = o3.__P);
+      }
+      this.__b = null;
+    }
+    var i3 = e3.__a && _(k, null, n2.fallback);
+    return i3 && (i3.__u &= -33), [_(k, null, e3.__a ? null : n2.children), i3];
+  };
+  var H2 = function(n2, t3, e3) {
+    if (++e3[1] === e3[0] && n2.l.delete(t3), n2.props.revealOrder && ("t" !== n2.props.revealOrder[0] || !n2.l.size)) for (e3 = n2.i; e3; ) {
+      for (; e3.length > 3; ) e3.pop()();
+      if (e3[1] < e3[0]) break;
+      n2.i = e3 = e3[2];
+    }
+  };
+  function Z(n2) {
+    return this.getChildContext = function() {
+      return n2.context;
+    }, n2.children;
+  }
+  function Y(n2) {
+    var e3 = this, r3 = n2.h;
+    if (e3.componentWillUnmount = function() {
+      G(null, e3.v), e3.v = null, e3.h = null;
+    }, e3.h && e3.h !== r3 && e3.componentWillUnmount(), !e3.v) {
+      for (var u3 = e3.__v; null !== u3 && !u3.__m && null !== u3.__; ) u3 = u3.__;
+      e3.h = r3, e3.v = { nodeType: 1, parentNode: r3, childNodes: [], __k: { __m: u3.__m }, contains: function() {
+        return true;
+      }, insertBefore: function(n3, t3) {
+        this.childNodes.push(n3), e3.h.insertBefore(n3, t3);
+      }, removeChild: function(n3) {
+        this.childNodes.splice(this.childNodes.indexOf(n3) >>> 1, 1), e3.h.removeChild(n3);
+      } };
+    }
+    G(_(Z, { context: e3.context }, n2.__v), e3.v);
+  }
+  function $2(n2, e3) {
+    var r3 = _(Y, { __v: n2, h: e3 });
+    return r3.containerInfo = e3, r3;
+  }
+  (B3.prototype = new x()).__a = function(n2) {
+    var t3 = this, e3 = j3(t3.__v), r3 = t3.l.get(n2);
+    return r3[0]++, function(u3) {
+      var o3 = function() {
+        t3.props.revealOrder ? (r3.push(u3), H2(t3, n2, r3)) : u3();
+      };
+      e3 ? e3(o3) : o3();
+    };
+  }, B3.prototype.render = function(n2) {
+    this.i = null, this.l = /* @__PURE__ */ new Map();
+    var t3 = H(n2.children);
+    n2.revealOrder && "b" === n2.revealOrder[0] && t3.reverse();
+    for (var e3 = t3.length; e3--; ) this.l.set(t3[e3], this.i = [1, 0, this.i]);
+    return n2.children;
+  }, B3.prototype.componentDidUpdate = B3.prototype.componentDidMount = function() {
+    var n2 = this;
+    this.l.forEach(function(t3, e3) {
+      H2(n2, e3, t3);
+    });
+  };
+  var q3 = "undefined" != typeof Symbol && Symbol.for && Symbol.for("react.element") || 60103;
+  var G2 = /^(?:accent|alignment|arabic|baseline|cap|clip(?!PathU)|color|dominant|fill|flood|font|glyph(?!R)|horiz|image(!S)|letter|lighting|marker(?!H|W|U)|overline|paint|pointer|shape|stop|strikethrough|stroke|text(?!L)|transform|underline|unicode|units|v|vector|vert|word|writing|x(?!C))[A-Z]/;
+  var J2 = /^on(Ani|Tra|Tou|BeforeInp|Compo)/;
+  var K2 = /[A-Z0-9]/g;
+  var Q2 = "undefined" != typeof document;
+  var X = function(n2) {
+    return ("undefined" != typeof Symbol && "symbol" == typeof Symbol() ? /fil|che|rad/ : /fil|che|ra/).test(n2);
+  };
+  x.prototype.isReactComponent = {}, ["componentWillMount", "componentWillReceiveProps", "componentWillUpdate"].forEach(function(t3) {
+    Object.defineProperty(x.prototype, t3, { configurable: true, get: function() {
+      return this["UNSAFE_" + t3];
+    }, set: function(n2) {
+      Object.defineProperty(this, t3, { configurable: true, writable: true, value: n2 });
+    } });
+  });
+  var en = l.event;
+  function rn() {
+  }
+  function un() {
+    return this.cancelBubble;
+  }
+  function on() {
+    return this.defaultPrevented;
+  }
+  l.event = function(n2) {
+    return en && (n2 = en(n2)), n2.persist = rn, n2.isPropagationStopped = un, n2.isDefaultPrevented = on, n2.nativeEvent = n2;
+  };
+  var ln;
+  var cn = { enumerable: false, configurable: true, get: function() {
+    return this.class;
+  } };
+  var fn = l.vnode;
+  l.vnode = function(n2) {
+    "string" == typeof n2.type && (function(n3) {
+      var t3 = n3.props, e3 = n3.type, u3 = {}, o3 = -1 === e3.indexOf("-");
+      for (var i3 in t3) {
+        var l3 = t3[i3];
+        if (!("value" === i3 && "defaultValue" in t3 && null == l3 || Q2 && "children" === i3 && "noscript" === e3 || "class" === i3 || "className" === i3)) {
+          var c3 = i3.toLowerCase();
+          "defaultValue" === i3 && "value" in t3 && null == t3.value ? i3 = "value" : "download" === i3 && true === l3 ? l3 = "" : "translate" === c3 && "no" === l3 ? l3 = false : "o" === c3[0] && "n" === c3[1] ? "ondoubleclick" === c3 ? i3 = "ondblclick" : "onchange" !== c3 || "input" !== e3 && "textarea" !== e3 || X(t3.type) ? "onfocus" === c3 ? i3 = "onfocusin" : "onblur" === c3 ? i3 = "onfocusout" : J2.test(i3) && (i3 = c3) : c3 = i3 = "oninput" : o3 && G2.test(i3) ? i3 = i3.replace(K2, "-$&").toLowerCase() : null === l3 && (l3 = void 0), "oninput" === c3 && u3[i3 = c3] && (i3 = "oninputCapture"), u3[i3] = l3;
+        }
+      }
+      "select" == e3 && u3.multiple && Array.isArray(u3.value) && (u3.value = H(t3.children).forEach(function(n4) {
+        n4.props.selected = -1 != u3.value.indexOf(n4.props.value);
+      })), "select" == e3 && null != u3.defaultValue && (u3.value = H(t3.children).forEach(function(n4) {
+        n4.props.selected = u3.multiple ? -1 != u3.defaultValue.indexOf(n4.props.value) : u3.defaultValue == n4.props.value;
+      })), t3.class && !t3.className ? (u3.class = t3.class, Object.defineProperty(u3, "className", cn)) : (t3.className && !t3.class || t3.class && t3.className) && (u3.class = u3.className = t3.className), n3.props = u3;
+    })(n2), n2.$$typeof = q3, fn && fn(n2);
+  };
+  var an = l.__r;
+  l.__r = function(n2) {
+    an && an(n2), ln = n2.__c;
+  };
+  var sn = l.diffed;
+  l.diffed = function(n2) {
+    sn && sn(n2);
+    var t3 = n2.props, e3 = n2.__e;
+    null != e3 && "textarea" === n2.type && "value" in t3 && t3.value !== e3.value && (e3.value = null == t3.value ? "" : t3.value), ln = null;
+  };
+
+  // extensions/storefront-src/core/api.ts
+  var ApiClient = class {
+    constructor(config) {
+      __publicField(this, "config");
+      this.config = config;
+    }
+    log(...args) {
+      if (this.config.debug) {
+        console.log("[Revenue Boost API]", ...args);
+      }
+    }
+    getApiUrl(path) {
+      const base = this.config.apiUrl || "";
+      const cleanPath = path.startsWith("/") ? path : `/${path}`;
+      if (base) {
+        return `${base}${cleanPath}`;
+      }
+      return `/apps/revenue-boost${cleanPath}`;
+    }
+    async fetchActiveCampaigns(sessionId, visitorId) {
+      const context = this.buildStorefrontContext(sessionId, visitorId);
+      const params = new URLSearchParams({
+        shop: this.config.shopDomain,
+        ...context
+      });
+      const url = `${this.getApiUrl("/api/campaigns/active")}?${params.toString()}`;
+      this.log("Fetching campaigns from:", url);
+      this.log("Context:", context);
+      try {
+        const response = await fetch(url, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          credentials: "include"
+          // Include cookies for visitor ID
+        });
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        const data = await response.json();
+        this.log("Campaigns received:", data);
+        return data;
+      } catch (error) {
+        console.error("[Revenue Boost API] Failed to fetch campaigns:", error);
+        throw error;
+      }
+    }
+    buildStorefrontContext(sessionId, visitorId) {
+      const context = {
+        sessionId,
+        pageUrl: window.location.pathname,
+        pageType: this.detectPageType(),
+        deviceType: this.detectDeviceType()
+      };
+      if (visitorId) {
+        context.visitorId = visitorId;
+      }
+      const w3 = window;
+      if (typeof w3.Shopify !== "undefined") {
+        const shopify = w3.Shopify;
+        if (shopify.cart) {
+          context.cartValue = String(shopify.cart.total_price / 100);
+          context.cartItemCount = String(shopify.cart.item_count);
+        }
+      }
+      return context;
+    }
+    detectPageType() {
+      const path = window.location.pathname;
+      if (path === "/" || path === "") return "home";
+      if (path.includes("/products/")) return "product";
+      if (path.includes("/collections/")) return "collection";
+      if (path.includes("/cart")) return "cart";
+      if (path.includes("/checkout")) return "checkout";
+      return "other";
+    }
+    detectDeviceType() {
+      const ua = navigator.userAgent.toLowerCase();
+      if (/android|webos|iphone|ipod|blackberry|iemobile|opera mini/i.test(ua)) {
+        return "mobile";
+      }
+      if (/ipad|android(?!.*mobile)/i.test(ua)) {
+        return "tablet";
+      }
+      return "desktop";
+    }
+    async recordFrequency(sessionId, campaignId) {
+      const url = this.getApiUrl("/api/analytics/frequency");
+      try {
+        await fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            sessionId,
+            campaignId,
+            timestamp: Date.now()
+          })
+        });
+      } catch (error) {
+        console.error("[Revenue Boost API] Failed to record frequency:", error);
+      }
+    }
+    async trackEvent(event) {
+      const url = this.getApiUrl("/api/analytics/track");
+      try {
+        await fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(event)
+        });
+      } catch (error) {
+        console.error("[Revenue Boost API] Failed to track event:", error);
+      }
+    }
+    async trackSocialProofEvent(event) {
+      const url = this.getApiUrl("/api/social-proof/track");
+      try {
+        await fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(event)
+        });
+      } catch (error) {
+        if (this.config.debug) {
+          console.error("[Revenue Boost API] Failed to track social proof event:", error);
+        }
+      }
+    }
+  };
+
+  // extensions/storefront-src/core/session.ts
+  var SESSION_KEY = "revenue_boost_session";
+  var SHOWN_KEY = "revenue_boost_shown";
+  var VISITOR_KEY = "revenue_boost_visitor";
+  var SessionManager = class {
+    constructor() {
+      __publicField(this, "sessionId");
+      __publicField(this, "visitorId");
+      __publicField(this, "shownCampaigns");
+      this.sessionId = this.initSessionId();
+      this.visitorId = this.initVisitorId();
+      this.shownCampaigns = this.loadShownCampaigns();
+      this.incrementVisitCount();
+    }
+    initSessionId() {
+      let sessionId = sessionStorage.getItem(SESSION_KEY);
+      if (!sessionId) {
+        sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        sessionStorage.setItem(SESSION_KEY, sessionId);
+      }
+      return sessionId;
+    }
+    initVisitorId() {
+      let visitorId = localStorage.getItem(VISITOR_KEY);
+      if (!visitorId) {
+        visitorId = `visitor_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        localStorage.setItem(VISITOR_KEY, visitorId);
+      }
+      return visitorId;
+    }
+    loadShownCampaigns() {
+      const stored = sessionStorage.getItem(SHOWN_KEY);
+      if (stored) {
+        try {
+          return new Set(JSON.parse(stored));
+        } catch {
+          return /* @__PURE__ */ new Set();
+        }
+      }
+      return /* @__PURE__ */ new Set();
+    }
+    saveShownCampaigns() {
+      sessionStorage.setItem(
+        SHOWN_KEY,
+        JSON.stringify(Array.from(this.shownCampaigns))
+      );
+    }
+    incrementVisitCount() {
+      const count = parseInt(localStorage.getItem("revenue_boost_visit_count") || "0");
+      localStorage.setItem("revenue_boost_visit_count", (count + 1).toString());
+    }
+    getSessionId() {
+      return this.sessionId;
+    }
+    getVisitorId() {
+      return this.visitorId;
+    }
+    getVisitCount() {
+      return parseInt(localStorage.getItem("revenue_boost_visit_count") || "1");
+    }
+    isReturningVisitor() {
+      return this.getVisitCount() > 1;
+    }
+    wasShown(campaignId) {
+      return this.shownCampaigns.has(campaignId);
+    }
+    markShown(campaignId) {
+      this.shownCampaigns.add(campaignId);
+      this.saveShownCampaigns();
+    }
+    getData() {
+      return {
+        sessionId: this.sessionId,
+        visitorId: this.visitorId,
+        visitCount: this.getVisitCount(),
+        isReturningVisitor: this.isReturningVisitor(),
+        shownCampaigns: Array.from(this.shownCampaigns)
+      };
+    }
+    clear() {
+      sessionStorage.removeItem(SESSION_KEY);
+      sessionStorage.removeItem(SHOWN_KEY);
+      this.shownCampaigns.clear();
+      this.sessionId = this.initSessionId();
+    }
+  };
+  var session = new SessionManager();
+
+  // extensions/storefront-src/core/component-loader.ts
+  var ComponentLoader = class {
+    constructor(cfg = {}) {
+      __publicField(this, "cache", /* @__PURE__ */ new Map());
+      __publicField(this, "cfg");
+      __publicField(this, "loadingPromises", /* @__PURE__ */ new Map());
+      this.cfg = {
+        timeoutMs: 8e3,
+        debug: false,
+        ...cfg
+      };
+    }
+    log(...args) {
+      if (this.cfg.debug) {
+        console.log("[Revenue Boost Loader]", ...args);
+      }
+    }
+    /**
+     * Preload components (best-effort, ignores errors)
+     */
+    async preloadComponents(templateTypes) {
+      const unique = Array.from(new Set(templateTypes));
+      await Promise.all(
+        unique.map(
+          (type) => this.loadComponent(type).catch((err) => {
+            this.log("Preload failed for", type, err?.message || err);
+          })
+        )
+      );
+    }
+    /**
+     * Load component by template type
+     */
+    async loadComponent(templateType) {
+      const key = templateType;
+      if (this.cache.has(key)) {
+        this.log("Cache hit:", key);
+        return this.cache.get(key);
+      }
+      if (this.loadingPromises.has(key)) {
+        this.log("Already loading:", key);
+        return this.loadingPromises.get(key);
+      }
+      const loadPromise = this._loadComponentInternal(key);
+      this.loadingPromises.set(key, loadPromise);
+      try {
+        const component = await loadPromise;
+        this.cache.set(key, component);
+        return component;
+      } finally {
+        this.loadingPromises.delete(key);
+      }
+    }
+    async _loadComponentInternal(key) {
+      const fromGlobal = this.loadFromGlobal(key);
+      if (fromGlobal) {
+        this.cache.set(key, fromGlobal);
+        return fromGlobal;
+      }
+      try {
+        const fromDynamic = await this.loadViaDynamicImport(key);
+        if (fromDynamic) {
+          this.cache.set(key, fromDynamic);
+          return fromDynamic;
+        }
+      } catch (err) {
+        this.log("Dynamic import failed for", key, err);
+      }
+      if (this.cfg.baseUrl) {
+        try {
+          const fromScript = await this.loadViaScript(key);
+          if (fromScript) {
+            this.cache.set(key, fromScript);
+            return fromScript;
+          }
+        } catch (err) {
+          this.log("Script loading failed for", key, err);
+        }
+      }
+      throw new Error(`Component for template '${key}' not found`);
+    }
+    /**
+     * Load from global registry created by IIFE bundles
+     */
+    loadFromGlobal(key) {
+      const g4 = globalThis;
+      const reg = g4.RevenueBoostComponents;
+      if (reg && reg[key]) {
+        this.log("Loaded from global registry:", key);
+        return reg[key];
+      }
+      return null;
+    }
+    /**
+     * Use dynamic import to lazy-load modules during dev/build
+     */
+    async loadViaDynamicImport(key) {
+      void key;
+      if (true) {
+        return null;
+      }
+      this.log("Dynamic import not available in production");
+      return null;
+    }
+    /**
+     * Load component via external script tag
+     */
+    async loadViaScript(key) {
+      const bundleName = this.getBundleName(key);
+      const url = `${this.cfg.baseUrl}/${bundleName}?v=${this.cfg.version || "1"}`;
+      this.log("Loading script:", url);
+      return new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          reject(new Error(`Timeout loading ${bundleName}`));
+        }, this.cfg.timeoutMs);
+        const script = document.createElement("script");
+        script.src = url;
+        script.async = true;
+        script.onload = () => {
+          clearTimeout(timeout);
+          const component = this.loadFromGlobal(key);
+          if (component) {
+            resolve(component);
+          } else {
+            reject(new Error(`Component ${key} not registered after script load`));
+          }
+        };
+        script.onerror = () => {
+          clearTimeout(timeout);
+          reject(new Error(`Failed to load script: ${url}`));
+        };
+        document.head.appendChild(script);
+      });
+    }
+    getBundleName(key) {
+      return `${key.toLowerCase().replace(/_/g, "-")}.bundle.js`;
+    }
+  };
+
+  // extensions/storefront-src/core/PopupManagerPreact.tsx
+  function PopupManagerPreact({ campaign, onClose, onShow, loader }) {
+    const [Component, setComponent] = d2(null);
+    const [loading, setLoading] = d2(true);
+    const [error, setError] = d2(null);
+    y2(() => {
+      let mounted = true;
+      async function loadPopupComponent() {
+        try {
+          console.log("[PopupManager] Loading component for:", campaign.templateType);
+          const comp = await loader.loadComponent(campaign.templateType);
+          if (mounted) {
+            setComponent(() => comp);
+            setLoading(false);
+            onShow?.(campaign.id);
+          }
+        } catch (err) {
+          console.error("[PopupManager] Failed to load component:", err);
+          if (mounted) {
+            setError(err instanceof Error ? err.message : "Failed to load popup");
+            setLoading(false);
+          }
+        }
+      }
+      loadPopupComponent();
+      return () => {
+        mounted = false;
+      };
+    }, [campaign.id, campaign.templateType, loader, onShow]);
+    if (loading) {
+      return _("div", {
+        style: {
+          position: "fixed",
+          top: "50%",
+          left: "50%",
+          transform: "translate(-50%, -50%)",
+          zIndex: 999999
+        }
+      }, "Loading...");
+    }
+    if (error) {
+      console.error("[PopupManager] Error:", error);
+      return null;
+    }
+    if (!Component) {
+      return null;
+    }
+    return _(Component, {
+      config: {
+        ...campaign.contentConfig,
+        ...campaign.designConfig,
+        id: campaign.id,
+        // Pass discount config if enabled
+        discount: campaign.discountConfig?.enabled ? {
+          enabled: true,
+          code: campaign.discountConfig.code || "",
+          percentage: campaign.discountConfig.valueType === "PERCENTAGE" || campaign.discountConfig.type === "percentage" ? campaign.discountConfig.value : void 0,
+          value: campaign.discountConfig.valueType === "FIXED_AMOUNT" || campaign.discountConfig.type === "fixed_amount" ? campaign.discountConfig.value : void 0,
+          type: campaign.discountConfig.valueType || campaign.discountConfig.type,
+          deliveryMode: campaign.discountConfig.deliveryMode,
+          expiryDays: campaign.discountConfig.expiryDays,
+          description: campaign.discountConfig.description
+        } : void 0
+      },
+      isVisible: true,
+      onClose,
+      campaignId: campaign.id,
+      renderInline: false
+    });
+  }
+  function renderPopup(campaign, onClose, loader, onShow) {
+    const container = document.createElement("div");
+    container.id = `revenue-boost-popup-${campaign.id}`;
+    document.body.appendChild(container);
+    G(
+      _(PopupManagerPreact, {
+        campaign,
+        onClose: () => {
+          onClose();
+          cleanup();
+        },
+        onShow,
+        loader
+      }),
+      container
+    );
+    function cleanup() {
+      G(null, container);
+      container.remove();
+    }
+    return cleanup;
+  }
+
+  // extensions/storefront-src/triggers/ExitIntentDetector.ts
+  var ExitIntentDetector = class {
+    constructor(config = {}) {
+      __publicField(this, "config");
+      __publicField(this, "callback", null);
+      __publicField(this, "active", false);
+      __publicField(this, "triggered", false);
+      __publicField(this, "startTime", 0);
+      __publicField(this, "mouseMoveHandler", null);
+      this.config = {
+        sensitivity: config.sensitivity || "medium",
+        delay: config.delay || 1e3,
+        mobileEnabled: config.mobileEnabled || false
+      };
+    }
+    /**
+     * Start detecting exit intent
+     */
+    start(callback) {
+      if (this.active) {
+        return;
+      }
+      if (this.isMobile() && !this.config.mobileEnabled) {
+        return;
+      }
+      this.callback = callback;
+      this.active = true;
+      this.triggered = false;
+      this.startTime = Date.now();
+      this.mouseMoveHandler = this.handleMouseMove.bind(this);
+      document.addEventListener("mousemove", this.mouseMoveHandler);
+    }
+    /**
+     * Stop detecting exit intent
+     */
+    stop() {
+      if (!this.active) {
+        return;
+      }
+      this.active = false;
+      if (this.mouseMoveHandler) {
+        document.removeEventListener("mousemove", this.mouseMoveHandler);
+        this.mouseMoveHandler = null;
+      }
+    }
+    /**
+     * Check if detector is active
+     */
+    isActive() {
+      return this.active;
+    }
+    /**
+     * Cleanup and remove all listeners
+     */
+    destroy() {
+      this.stop();
+      this.callback = null;
+    }
+    /**
+     * Handle mouse move events
+     */
+    handleMouseMove(e3) {
+      if (!this.active || this.triggered) {
+        return;
+      }
+      const elapsed = Date.now() - this.startTime;
+      if (elapsed < this.config.delay) {
+        return;
+      }
+      if (this.isExitIntent(e3)) {
+        this.trigger();
+      }
+    }
+    /**
+     * Check if mouse movement indicates exit intent
+     */
+    isExitIntent(e3) {
+      const threshold = this.getSensitivityThreshold();
+      return e3.clientY <= threshold;
+    }
+    /**
+     * Get sensitivity threshold in pixels
+     */
+    getSensitivityThreshold() {
+      switch (this.config.sensitivity) {
+        case "low":
+          return 5;
+        // Very close to edge
+        case "medium":
+          return 20;
+        // Default
+        case "high":
+          return 50;
+        // Further from edge
+        default:
+          return 20;
+      }
+    }
+    /**
+     * Trigger the callback
+     */
+    trigger() {
+      if (this.triggered || !this.callback) {
+        return;
+      }
+      this.triggered = true;
+      this.callback();
+      this.stop();
+    }
+    /**
+     * Check if device is mobile
+     */
+    isMobile() {
+      return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+        navigator.userAgent
+      );
+    }
+  };
+
+  // extensions/storefront-src/triggers/ScrollDepthTracker.ts
+  var ScrollDepthTracker = class {
+    constructor(config = {}) {
+      __publicField(this, "config");
+      __publicField(this, "callback", null);
+      __publicField(this, "active", false);
+      __publicField(this, "triggered", false);
+      __publicField(this, "scrollHandler", null);
+      __publicField(this, "debounceTimer", null);
+      this.config = {
+        depthPercentage: config.depthPercentage || 50,
+        direction: config.direction || "down",
+        debounceTime: config.debounceTime || 100
+      };
+    }
+    /**
+     * Start tracking scroll depth
+     */
+    start(callback) {
+      if (this.active) {
+        return;
+      }
+      this.callback = callback;
+      this.active = true;
+      this.triggered = false;
+      this.scrollHandler = this.handleScroll.bind(this);
+      window.addEventListener("scroll", this.scrollHandler, { passive: true });
+    }
+    /**
+     * Stop tracking scroll depth
+     */
+    stop() {
+      if (!this.active) {
+        return;
+      }
+      this.active = false;
+      if (this.scrollHandler) {
+        window.removeEventListener("scroll", this.scrollHandler, false);
+        this.scrollHandler = null;
+      }
+      if (this.debounceTimer) {
+        clearTimeout(this.debounceTimer);
+        this.debounceTimer = null;
+      }
+    }
+    /**
+     * Check if tracker is active
+     */
+    isActive() {
+      return this.active;
+    }
+    /**
+     * Get current scroll depth percentage
+     */
+    getCurrentScrollDepth() {
+      const scrollTop = window.scrollY || window.pageYOffset;
+      const scrollHeight = document.documentElement.scrollHeight;
+      const clientHeight = window.innerHeight;
+      const scrollableHeight = scrollHeight - clientHeight;
+      if (scrollableHeight <= 0) {
+        return 0;
+      }
+      const scrollPercentage = scrollTop / scrollableHeight * 100;
+      return Math.min(100, Math.max(0, Math.round(scrollPercentage)));
+    }
+    /**
+     * Check if target depth has been reached
+     */
+    hasReachedDepth() {
+      const currentDepth = this.getCurrentScrollDepth();
+      return currentDepth >= this.config.depthPercentage;
+    }
+    /**
+     * Cleanup and remove all listeners
+     */
+    destroy() {
+      this.stop();
+      this.callback = null;
+    }
+    /**
+     * Handle scroll events (debounced)
+     */
+    handleScroll(e3) {
+      if (!this.active || this.triggered) {
+        return;
+      }
+      void e3;
+      if (this.debounceTimer) {
+        clearTimeout(this.debounceTimer);
+      }
+      this.debounceTimer = window.setTimeout(() => {
+        this.checkScrollDepth();
+      }, this.config.debounceTime);
+    }
+    /**
+     * Check if scroll depth threshold is met
+     */
+    checkScrollDepth() {
+      if (!this.active || this.triggered) {
+        return;
+      }
+      if (this.hasReachedDepth()) {
+        this.trigger();
+      }
+    }
+    /**
+     * Trigger the callback
+     */
+    trigger() {
+      if (this.triggered || !this.callback) {
+        return;
+      }
+      this.triggered = true;
+      this.callback();
+      this.stop();
+    }
+  };
+
+  // extensions/storefront-src/triggers/IdleTimer.ts
+  var IdleTimer = class {
+    constructor(config = {}) {
+      __publicField(this, "config");
+      __publicField(this, "callback", null);
+      __publicField(this, "active", false);
+      __publicField(this, "triggered", false);
+      __publicField(this, "timer", null);
+      __publicField(this, "lastActivityTime", 0);
+      __publicField(this, "activityHandler", null);
+      this.config = {
+        idleDuration: config.idleDuration || 3e4,
+        // Default 30 seconds
+        events: config.events || [
+          "mousemove",
+          "mousedown",
+          "keypress",
+          "scroll",
+          "touchstart",
+          "click"
+        ]
+      };
+    }
+    /**
+     * Start the idle timer
+     */
+    start(callback) {
+      if (this.active) {
+        return;
+      }
+      this.callback = callback;
+      this.active = true;
+      this.triggered = false;
+      this.lastActivityTime = Date.now();
+      this.activityHandler = this.handleActivity.bind(this);
+      this.config.events.forEach((event) => {
+        document.addEventListener(event, this.activityHandler, { passive: true });
+      });
+      this.resetTimer();
+    }
+    /**
+     * Stop the idle timer
+     */
+    stop() {
+      if (!this.active) {
+        return;
+      }
+      this.active = false;
+      if (this.activityHandler) {
+        this.config.events.forEach((event) => {
+          document.removeEventListener(event, this.activityHandler, false);
+        });
+        this.activityHandler = null;
+      }
+      if (this.timer !== null) {
+        clearTimeout(this.timer);
+        this.timer = null;
+      }
+    }
+    /**
+     * Check if timer is active
+     */
+    isActive() {
+      return this.active;
+    }
+    /**
+     * Get current idle time in milliseconds
+     */
+    getIdleTime() {
+      if (!this.active) {
+        return 0;
+      }
+      return Date.now() - this.lastActivityTime;
+    }
+    /**
+     * Cleanup and remove all listeners
+     */
+    destroy() {
+      this.stop();
+      this.callback = null;
+    }
+    /**
+     * Handle user activity
+     */
+    handleActivity(e3) {
+      if (!this.active || this.triggered) {
+        return;
+      }
+      void e3;
+      this.lastActivityTime = Date.now();
+      this.resetTimer();
+    }
+    /**
+     * Reset the idle timer
+     */
+    resetTimer() {
+      if (this.timer !== null) {
+        clearTimeout(this.timer);
+      }
+      this.timer = window.setTimeout(() => {
+        this.trigger();
+      }, this.config.idleDuration);
+    }
+    /**
+     * Trigger the callback
+     */
+    trigger() {
+      if (this.triggered || !this.callback) {
+        return;
+      }
+      this.triggered = true;
+      this.callback();
+      this.stop();
+    }
+  };
+
+  // extensions/storefront-src/core/TriggerManager.ts
+  var TriggerManager = class {
+    constructor() {
+      __publicField(this, "cleanupFunctions", []);
+      __publicField(this, "exitIntentDetector", null);
+      __publicField(this, "scrollDepthTracker", null);
+      __publicField(this, "timeDelayHandler", null);
+      __publicField(this, "idleTimer", null);
+      __publicField(this, "cartEventListener", null);
+      __publicField(this, "customEventHandler", null);
+    }
+    /**
+     * Evaluate all triggers for a campaign
+     * Returns true if campaign should be shown
+     */
+    async evaluateTriggers(campaign) {
+      const triggers = campaign.clientTriggers?.enhancedTriggers;
+      console.log("[Revenue Boost] \u{1F3AF} Evaluating triggers for campaign:", campaign.id);
+      if (!triggers || Object.keys(triggers).length === 0) {
+        console.log("[Revenue Boost] \u2705 No triggers defined, showing campaign immediately");
+        return true;
+      }
+      const logicOperator = triggers.logic_operator || "AND";
+      console.log("[Revenue Boost] \u{1F517} Trigger logic operator:", logicOperator);
+      const results = [];
+      const triggerResults = {};
+      if (triggers.page_load !== void 0) {
+        console.log("[Revenue Boost] \u{1F4C4} Checking page_load trigger:", triggers.page_load);
+        const result = await this.checkPageLoad(triggers.page_load);
+        triggerResults.page_load = result;
+        results.push(result);
+        console.log(`[Revenue Boost] ${result ? "\u2705" : "\u274C"} page_load trigger ${result ? "passed" : "failed"}`);
+      }
+      if (triggers.scroll_depth !== void 0) {
+        console.log("[Revenue Boost] \u{1F4DC} Checking scroll_depth trigger:", triggers.scroll_depth);
+        const result = await this.checkScrollDepth(triggers.scroll_depth);
+        triggerResults.scroll_depth = result;
+        results.push(result);
+        console.log(`[Revenue Boost] ${result ? "\u2705" : "\u274C"} scroll_depth trigger ${result ? "passed" : "failed"}`);
+      }
+      if (triggers.exit_intent !== void 0) {
+        console.log("[Revenue Boost] \u{1F6AA} Checking exit_intent trigger:", triggers.exit_intent);
+        const result = await this.checkExitIntent(triggers.exit_intent);
+        triggerResults.exit_intent = result;
+        results.push(result);
+        console.log(`[Revenue Boost] ${result ? "\u2705" : "\u274C"} exit_intent trigger ${result ? "passed" : "failed"}`);
+      }
+      if (triggers.idle_timer !== void 0) {
+        console.log("[Revenue Boost] \u23F1\uFE0F Checking idle_timer trigger:", triggers.idle_timer);
+        const result = await this.checkIdleTimer(triggers.idle_timer);
+        triggerResults.idle_timer = result;
+        results.push(result);
+        console.log(`[Revenue Boost] ${result ? "\u2705" : "\u274C"} idle_timer trigger ${result ? "passed" : "failed"}`);
+      }
+      if (results.length === 0) {
+        console.log("[Revenue Boost] \u26A0\uFE0F No enabled triggers found, showing campaign immediately");
+        return true;
+      }
+      let finalResult;
+      if (logicOperator === "OR") {
+        finalResult = results.some((r3) => r3 === true);
+        console.log("[Revenue Boost] \u{1F500} OR logic: At least one trigger must pass");
+      } else {
+        finalResult = results.every((r3) => r3 === true);
+        console.log("[Revenue Boost] \u{1F517} AND logic: All triggers must pass");
+      }
+      console.log("[Revenue Boost] \u{1F4CA} Trigger evaluation summary:", triggerResults);
+      console.log(`[Revenue Boost] ${finalResult ? "\u2705 CAMPAIGN WILL SHOW" : "\u274C CAMPAIGN WILL NOT SHOW"} - Final result: ${finalResult}`);
+      return finalResult;
+    }
+    /**
+     * Check page load trigger
+     */
+    async checkPageLoad(trigger) {
+      if (!trigger.enabled) {
+        console.log("[Revenue Boost] \u23ED\uFE0F page_load trigger is disabled");
+        return false;
+      }
+      const delay = trigger.delay || 0;
+      console.log(`[Revenue Boost] \u23F3 page_load trigger waiting ${delay}ms before showing`);
+      if (delay > 0) {
+        await this.delay(delay);
+      }
+      console.log("[Revenue Boost] \u2705 page_load trigger delay completed");
+      return true;
+    }
+    /**
+     * Check scroll depth trigger
+     */
+    async checkScrollDepth(trigger) {
+      if (!trigger.enabled) {
+        console.log("[Revenue Boost] \u23ED\uFE0F scroll_depth trigger is disabled");
+        return false;
+      }
+      const depthPercentage = trigger.depth_percentage || 50;
+      const direction = trigger.direction || "down";
+      console.log(`[Revenue Boost] \u{1F4CF} scroll_depth trigger waiting for ${depthPercentage}% scroll ${direction}`);
+      return new Promise((resolve) => {
+        this.scrollDepthTracker = new ScrollDepthTracker({
+          depthPercentage,
+          direction
+        });
+        this.scrollDepthTracker.start(() => {
+          console.log(`[Revenue Boost] \u2705 scroll_depth trigger detected: User scrolled ${depthPercentage}% ${direction}`);
+          resolve(true);
+        });
+        if (this.scrollDepthTracker.hasReachedDepth()) {
+          console.log(`[Revenue Boost] \u2705 scroll_depth trigger already met: User already at ${depthPercentage}% depth`);
+          this.scrollDepthTracker.destroy();
+          resolve(true);
+        }
+      });
+    }
+    /**
+     * Check exit intent trigger
+     */
+    async checkExitIntent(trigger) {
+      if (!trigger.enabled) {
+        console.log("[Revenue Boost] \u23ED\uFE0F exit_intent trigger is disabled");
+        return false;
+      }
+      const sensitivity = trigger.sensitivity || "medium";
+      const delay = trigger.delay || 1e3;
+      console.log(`[Revenue Boost] \u{1F6AA} exit_intent trigger waiting for exit intent (sensitivity: ${sensitivity}, delay: ${delay}ms)`);
+      return new Promise((resolve) => {
+        this.exitIntentDetector = new ExitIntentDetector({
+          sensitivity,
+          delay
+        });
+        this.exitIntentDetector.start(() => {
+          console.log("[Revenue Boost] \u2705 exit_intent trigger detected: User showed exit intent");
+          resolve(true);
+        });
+      });
+    }
+    /**
+     * Check idle timer trigger
+     */
+    async checkIdleTimer(trigger) {
+      if (!trigger.enabled) {
+        console.log("[Revenue Boost] \u23ED\uFE0F idle_timer trigger is disabled");
+        return false;
+      }
+      const idleDuration = trigger.idle_duration || 30;
+      console.log(`[Revenue Boost] \u23F1\uFE0F idle_timer trigger waiting for ${idleDuration}s of inactivity`);
+      return new Promise((resolve) => {
+        this.idleTimer = new IdleTimer({
+          idleDuration: idleDuration * 1e3
+          // Convert seconds to ms
+        });
+        this.idleTimer.start(() => {
+          console.log(`[Revenue Boost] \u2705 idle_timer trigger detected: User was idle for ${idleDuration}s`);
+          resolve(true);
+        });
+      });
+    }
+    /**
+     * Helper: Delay execution
+     */
+    delay(ms) {
+      return new Promise((resolve) => {
+        const timeout = setTimeout(resolve, ms);
+        this.cleanupFunctions.push(() => clearTimeout(timeout));
+      });
+    }
+    /**
+     * Cleanup all triggers
+     */
+    cleanup() {
+      this.cleanupFunctions.forEach((fn2) => fn2());
+      this.cleanupFunctions = [];
+      if (this.exitIntentDetector) {
+        this.exitIntentDetector.destroy();
+        this.exitIntentDetector = null;
+      }
+      if (this.scrollDepthTracker) {
+        this.scrollDepthTracker.destroy();
+        this.scrollDepthTracker = null;
+      }
+      if (this.timeDelayHandler) {
+        this.timeDelayHandler.destroy();
+        this.timeDelayHandler = null;
+      }
+      if (this.idleTimer) {
+        this.idleTimer.destroy();
+        this.idleTimer = null;
+      }
+      if (this.cartEventListener) {
+        this.cartEventListener.destroy();
+        this.cartEventListener = null;
+      }
+      if (this.customEventHandler) {
+        this.customEventHandler.destroy();
+        this.customEventHandler = null;
+      }
+    }
+  };
+
+  // extensions/storefront-src/utils/cart-tracking.ts
+  function hasProductId(d3) {
+    return d3 != null && typeof d3 === "object" && "productId" in d3 && (typeof d3.productId === "string" || typeof d3.productId === "number");
+  }
+  function initCartTracking(api, shopDomain) {
+    document.addEventListener("cart:updated", (event) => {
+      const detail = event.detail;
+      if (hasProductId(detail)) {
+        const productId = String(detail.productId);
+        trackAddToCart(api, shopDomain, productId);
+      }
+    });
+    const originalFetch = window.fetch;
+    window.fetch = async function(...args) {
+      const [url, options] = args;
+      const urlString = typeof url === "string" ? url : url.toString();
+      if (urlString.includes("/cart/add") && options?.method === "POST") {
+        try {
+          const response = await originalFetch.apply(this, args);
+          const clone = response.clone();
+          const data = await clone.json();
+          if (data.id || data.product_id) {
+            const productId = `gid://shopify/Product/${data.product_id || data.id}`;
+            trackAddToCart(api, shopDomain, productId);
+          }
+          return response;
+        } catch (error) {
+          return originalFetch.apply(this, args);
+        }
+      }
+      return originalFetch.apply(this, args);
+    };
+    document.addEventListener("submit", (event) => {
+      const form = event.target;
+      if (form.action && form.action.includes("/cart/add")) {
+        const formData = new FormData(form);
+        const productId = formData.get("id");
+        if (productId) {
+          const gid = `gid://shopify/Product/${productId}`;
+          trackAddToCart(api, shopDomain, gid);
+        }
+      }
+    });
+    console.log("[Revenue Boost] \u{1F6D2} Cart tracking initialized");
+  }
+  async function trackAddToCart(api, shopDomain, productId) {
+    try {
+      await api.trackSocialProofEvent({
+        eventType: "add_to_cart",
+        productId,
+        shop: shopDomain
+      });
+      console.log("[Revenue Boost] \u{1F6D2} Tracked add-to-cart:", productId);
+    } catch (error) {
+      console.debug("[Revenue Boost] Failed to track add-to-cart:", error);
+    }
+  }
+
+  // extensions/storefront-src/index.ts
+  if (typeof window !== "undefined") {
+    const w3 = window;
+    w3.RevenueBoostPreact = {
+      h: _,
+      render: G,
+      Component: x,
+      Fragment: k,
+      options: l,
+      createPortal: $2,
+      hooks: {
+        useState: d2,
+        useEffect: y2,
+        useCallback: q2,
+        useRef: A2,
+        useMemo: T2
+      }
+    };
+    console.log("[Revenue Boost] \u269B\uFE0F Preact runtime exposed globally");
+  }
+  function getConfig() {
+    const cfg = window.REVENUE_BOOST_CONFIG || {};
+    return {
+      apiUrl: cfg.apiUrl || "",
+      shopDomain: cfg.shopDomain || "",
+      debug: cfg.debug || false,
+      previewMode: cfg.previewMode || false,
+      previewId: cfg.previewId,
+      sessionId: cfg.sessionId,
+      visitCount: cfg.visitCount,
+      isReturningVisitor: cfg.isReturningVisitor,
+      deviceType: cfg.deviceType
+    };
+  }
+  function waitForDOMReady() {
+    return new Promise((resolve) => {
+      if (document.readyState === "complete" || document.readyState === "interactive") {
+        resolve();
+      } else {
+        document.addEventListener("DOMContentLoaded", () => resolve());
+      }
+    });
+  }
+  var RevenueBoostApp = class {
+    constructor() {
+      __publicField(this, "config", getConfig());
+      __publicField(this, "api", new ApiClient(this.config));
+      __publicField(this, "loader", new ComponentLoader({
+        debug: this.config.debug,
+        baseUrl: this.config.apiUrl ? `${this.config.apiUrl}/bundles` : "/apps/revenue-boost/bundles",
+        version: Date.now().toString()
+      }));
+      __publicField(this, "triggerManager", new TriggerManager());
+      __publicField(this, "initialized", false);
+      __publicField(this, "cleanupFn", null);
+    }
+    log(...args) {
+      if (this.config.debug) {
+        console.log("[Revenue Boost]", ...args);
+      }
+    }
+    async init() {
+      if (this.initialized) {
+        this.log("Already initialized");
+        return;
+      }
+      console.log("[Revenue Boost] \u{1F680} Starting initialization...");
+      console.log("[Revenue Boost] \u{1F4CB} Config:", this.config);
+      console.log("[Revenue Boost] \u{1F511} Session ID:", session.getSessionId());
+      console.log("[Revenue Boost] \u{1F464} Visitor ID:", session.getVisitorId());
+      await waitForDOMReady();
+      this.log("DOM ready");
+      this.trackPageView();
+      initCartTracking(this.api, this.config.shopDomain);
+      try {
+        const response = await this.api.fetchActiveCampaigns(
+          session.getSessionId(),
+          session.getVisitorId()
+        );
+        const { campaigns } = response;
+        const campaignList = campaigns;
+        this.log(`Campaigns received: ${campaignList?.length || 0}`);
+        if (!campaignList || campaignList.length === 0) {
+          this.log("No active campaigns");
+          return;
+        }
+        this.setupCampaigns(campaignList);
+        this.initialized = true;
+        console.log("[Revenue Boost] \u2705 Initialization complete!");
+      } catch (error) {
+        console.error("[Revenue Boost] \u274C Error fetching campaigns:", error);
+      }
+    }
+    /**
+     * Track page view for social proof visitor counting
+     */
+    async trackPageView() {
+      try {
+        const productId = this.getProductIdFromPage();
+        const pageUrl = window.location.pathname;
+        await this.api.trackSocialProofEvent({
+          eventType: productId ? "product_view" : "page_view",
+          productId,
+          pageUrl,
+          shop: this.config.shopDomain
+        });
+        this.log("Page view tracked for social proof");
+      } catch (error) {
+        this.log("Failed to track page view:", error);
+      }
+    }
+    /**
+     * Extract product ID from current page (if on product page)
+     */
+    getProductIdFromPage() {
+      const wx = window;
+      if (typeof wx.ShopifyAnalytics !== "undefined") {
+        const meta = wx.ShopifyAnalytics?.meta;
+        if (meta?.product?.id) {
+          return `gid://shopify/Product/${meta.product.id}`;
+        }
+      }
+      if (window.location.pathname.includes("/products/")) {
+        return void 0;
+      }
+      return void 0;
+    }
+    setupCampaigns(campaigns) {
+      const sorted = campaigns.sort((a3, b2) => (b2.priority || 0) - (a3.priority || 0));
+      const available = sorted.filter((campaign2) => {
+        const isPreview = this.config.previewMode && this.config.previewId === campaign2.id;
+        if (isPreview) return true;
+        if (session.wasShown(campaign2.id)) {
+          this.log(`Campaign already shown: ${campaign2.id}`);
+          return false;
+        }
+        return true;
+      });
+      if (available.length === 0) {
+        this.log("No campaigns to display");
+        return;
+      }
+      const campaign = available[0];
+      this.log("Showing campaign:", campaign.name);
+      if (this.config.previewMode && this.config.previewId === campaign.id) {
+        setTimeout(() => this.showCampaign(campaign), 0);
+      } else {
+        this.showCampaign(campaign);
+      }
+    }
+    async showCampaign(campaign) {
+      const isPreview = this.config.previewMode && this.config.previewId === campaign.id;
+      if (isPreview) {
+        this.renderCampaign(campaign);
+        return;
+      }
+      this.log("Evaluating triggers for campaign:", campaign.name);
+      try {
+        const shouldShow = await this.triggerManager.evaluateTriggers(campaign);
+        if (shouldShow) {
+          this.log("Triggers passed, showing campaign");
+          this.renderCampaign(campaign);
+        } else {
+          this.log("Triggers not met, campaign not shown");
+        }
+      } catch (error) {
+        console.error("[Revenue Boost] Error evaluating triggers:", error);
+        this.renderCampaign(campaign);
+      }
+    }
+    async renderCampaign(campaign) {
+      const isPreview = this.config.previewMode && this.config.previewId === campaign.id;
+      if (!isPreview) {
+        session.markShown(campaign.id);
+        const trackingKey = campaign.experimentId || campaign.id;
+        await this.api.recordFrequency(session.getSessionId(), trackingKey);
+      }
+      this.cleanupFn = renderPopup(
+        campaign,
+        () => {
+          this.log("Popup closed");
+          this.cleanupFn = null;
+          this.triggerManager.cleanup();
+        },
+        this.loader,
+        (campaignId) => {
+          this.log("Popup shown:", campaignId);
+        }
+      );
+    }
+  };
+  var app = new RevenueBoostApp();
+  app.init().catch((error) => {
+    console.error("[Revenue Boost] Initialization failed:", error);
+  });
+})();
+//# sourceMappingURL=popup-loader.bundle.js.map

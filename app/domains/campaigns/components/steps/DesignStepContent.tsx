@@ -106,6 +106,7 @@ export function DesignStepContent({
               {/* Design Configuration - Universal design/color fields */}
               <DesignConfigSection
                 design={designConfig}
+                templateType={templateType}
                 onChange={onDesignChange}
               />
             </>

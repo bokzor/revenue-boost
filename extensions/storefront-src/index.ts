@@ -5,6 +5,7 @@
 
 import * as preact from "preact";
 import * as hooks from "preact/hooks";
+import { createPortal } from "preact/compat";
 import { ApiClient } from "./core/api";
 import { session } from "./core/session";
 import { ComponentLoader } from "./core/component-loader";
@@ -28,6 +29,8 @@ if (typeof window !== "undefined") {
     render: preact.render,
     Component: preact.Component,
     Fragment: preact.Fragment,
+    options: preact.options,
+    createPortal: createPortal,
     hooks: {
       useState: hooks.useState,
       useEffect: hooks.useEffect,
@@ -82,6 +85,7 @@ function waitForDOMReady(): Promise<void> {
 type ClientCampaign = StorefrontCampaign & {
   priority?: number;
   clientTriggers?: { enhancedTriggers?: EnhancedTriggers };
+  experimentId?: string | null;
   [key: string]: unknown;
 };
 
@@ -91,7 +95,7 @@ class RevenueBoostApp {
   private loader = new ComponentLoader({
     debug: this.config.debug,
     baseUrl: this.config.apiUrl ? `${this.config.apiUrl}/bundles` : "/apps/revenue-boost/bundles",
-    version: "1",
+    version: Date.now().toString(),
   });
   private triggerManager = new TriggerManager();
   private initialized = false;
@@ -261,7 +265,9 @@ class RevenueBoostApp {
     // Mark as shown
     if (!isPreview) {
       session.markShown(campaign.id);
-      await this.api.recordFrequency(session.getSessionId(), campaign.id);
+      // Use experimentId for tracking if campaign is part of an experiment
+      const trackingKey = campaign.experimentId || campaign.id;
+      await this.api.recordFrequency(session.getSessionId(), trackingKey);
     }
 
     // Render popup
@@ -273,6 +279,7 @@ class RevenueBoostApp {
         this.triggerManager.cleanup();
       },
       this.loader,
+      this.api,
       (campaignId) => {
         this.log("Popup shown:", campaignId);
       }

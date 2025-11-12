@@ -37,6 +37,8 @@ interface CampaignListProps {
   loading?: boolean;
   onCampaignSelect?: (campaign: CampaignWithConfigs) => void;
   onCampaignEdit?: (campaignId: string) => void;
+  onExperimentSelect?: (experimentId: string) => void;
+  onExperimentEdit?: (experimentId: string, variantKey?: string) => void;
   onCampaignDelete?: (campaignId: string) => void;
   onCampaignDuplicate?: (campaignId: string) => void;
   onCreateNew?: () => void;
@@ -62,6 +64,8 @@ export function CampaignList({
   loading = false,
   onCampaignSelect,
   onCampaignEdit,
+  onExperimentSelect,
+  onExperimentEdit,
   onCampaignDelete,
   onCampaignDuplicate,
   onCreateNew,
@@ -505,23 +509,29 @@ export function CampaignList({
             const statusBadge = getStatusBadge(experimentStatus as CampaignStatus);
 
             return (
-              <Box key={group.experimentId}>
-                <ResourceItem
-                  id={group.experimentId}
-                  accessibilityLabel={`Experiment ${experimentName}`}
-                  onClick={() => {}}
-                >
+              <ResourceItem
+                id={group.experimentId}
+                accessibilityLabel={`Experiment ${experimentName}`}
+                onClick={() => {
+                  // Navigate to experiment detail/overview page
+                  if (onExperimentSelect && group.experimentId) {
+                    onExperimentSelect(group.experimentId);
+                  }
+                }}
+              >
                   <InlineStack align="space-between" blockAlign="center">
                     <InlineStack gap="300" blockAlign="center">
-                      <Button
-                        variant="plain"
-                        onClick={() => {
-                          toggleExperiment(group.experimentId);
-                        }}
-                        accessibilityLabel={isExpanded ? 'Collapse experiment' : 'Expand experiment'}
-                      >
-                        {isExpanded ? '▼' : '▶'}
-                      </Button>
+                      <div onClick={(e) => e.stopPropagation()}>
+                        <Button
+                          variant="plain"
+                          onClick={() => {
+                            toggleExperiment(group.experimentId);
+                          }}
+                          accessibilityLabel={isExpanded ? 'Collapse experiment' : 'Expand experiment'}
+                        >
+                          {isExpanded ? '▼' : '▶'}
+                        </Button>
+                      </div>
                       <BlockStack gap="200">
                         <InlineStack gap="200">
                           <Text variant="bodyMd" fontWeight="semibold" as="h3">
@@ -551,95 +561,112 @@ export function CampaignList({
                       </BlockStack>
                     </InlineStack>
 
-                    <InlineStack gap="200">
-                      {onCampaignEdit && (
-                        <Button
-                          size="slim"
-                          onClick={() => {
-                            // Edit the experiment, not individual campaigns
-                            if (group.experimentId) {
-                              onCampaignEdit(group.variants[0]?.id);
-                            }
-                          }}
-                        >
-                          Edit
-                        </Button>
-                      )}
-                      {onCampaignDelete && (
-                        <Button
-                          size="slim"
-                          tone="critical"
-                          onClick={() => {
-                            // Delete first variant (which will trigger experiment deletion)
-                            if (group.variants[0]) {
-                              onCampaignDelete(group.variants[0].id);
-                            }
-                          }}
-                        >
-                          Delete
-                        </Button>
-                      )}
-                    </InlineStack>
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <InlineStack gap="200">
+                        {onExperimentEdit && (
+                          <Button
+                            size="slim"
+                            onClick={() => {
+                              // Edit the experiment, not individual campaigns
+                              if (group.experimentId) {
+                                onExperimentEdit(group.experimentId);
+                              }
+                            }}
+                          >
+                            Edit
+                          </Button>
+                        )}
+                        {onCampaignDelete && (
+                          <Button
+                            size="slim"
+                            tone="critical"
+                            onClick={() => {
+                              // Delete first variant (which will trigger experiment deletion)
+                              if (group.variants[0]) {
+                                onCampaignDelete(group.variants[0].id);
+                              }
+                            }}
+                          >
+                            Delete
+                          </Button>
+                        )}
+                      </InlineStack>
+                    </div>
                   </InlineStack>
-                </ResourceItem>
 
-                {/* Expanded Variants */}
-                {isExpanded && (
-                  <Box paddingInlineStart="800" paddingBlockStart="200" paddingBlockEnd="200">
-                    {group.variants.map((campaign) => {
-                      const { id, name, description, status, goal, priority } = campaign;
-                      const variantStatusBadge = getStatusBadge(status as CampaignStatus);
+                  {/* Expanded Variants - rendered inside ResourceItem */}
+                  {isExpanded && (
+                    <Box paddingInlineStart="800" paddingBlockStart="400" paddingBlockEnd="200">
+                      {group.variants.map((campaign) => {
+                        const { id, name, description, status, goal, priority } = campaign;
+                        const variantStatusBadge = getStatusBadge(status as CampaignStatus);
 
-                      return (
-                        <Box key={id} paddingBlockEnd="200">
-                          <Card>
-                            <Box padding="400">
-                              <InlineStack align="space-between">
-                                <BlockStack gap="200">
-                                  <InlineStack gap="200">
-                                    <Text variant="bodyMd" fontWeight="medium" as="h4">
-                                      {name}
-                                    </Text>
-                                    <Badge {...variantStatusBadge} />
-                                    {campaign.variantKey && (
-                                      <Badge tone="info">
-                                        {`Variant ${campaign.variantKey}${campaign.isControl ? " (Control)" : ""}`}
-                                      </Badge>
+                        return (
+                          <Box key={id} paddingBlockEnd="200">
+                            <Card>
+                              <Box padding="400">
+                                <InlineStack align="space-between">
+                                  <BlockStack gap="200">
+                                    <InlineStack gap="200">
+                                      <Text variant="bodyMd" fontWeight="medium" as="h4">
+                                        {name}
+                                      </Text>
+                                      <Badge {...variantStatusBadge} />
+                                      {campaign.variantKey && (
+                                        <Badge tone="info">
+                                          {`Variant ${campaign.variantKey}${campaign.isControl ? " (Control)" : ""}`}
+                                        </Badge>
+                                      )}
+                                      {priority && priority > 0 && (
+                                        <Badge tone="attention">{`Priority ${priority}`}</Badge>
+                                      )}
+                                    </InlineStack>
+
+                                    {description && (
+                                      <Text variant="bodySm" tone="subdued" as="p">
+                                        {description}
+                                      </Text>
                                     )}
-                                    {priority && priority > 0 && (
-                                      <Badge tone="attention">{`Priority ${priority}`}</Badge>
-                                    )}
-                                  </InlineStack>
 
-                                  {description && (
-                                    <Text variant="bodySm" tone="subdued" as="p">
-                                      {description}
-                                    </Text>
-                                  )}
+                                    <InlineStack gap="200">
+                                      <Text variant="bodySm" tone="subdued" as="span">
+                                        Goal: {goal.replace('_', ' ').toLowerCase()}
+                                      </Text>
+                                    </InlineStack>
+                                  </BlockStack>
 
-                                  <InlineStack gap="200">
-                                    <Text variant="bodySm" tone="subdued" as="span">
-                                      Goal: {goal.replace('_', ' ').toLowerCase()}
-                                    </Text>
-                                  </InlineStack>
-                                </BlockStack>
-
-                                <InlineStack gap="200">
-                                  {onCampaignSelect && (
-                                    <Button size="slim" onClick={() => onCampaignSelect(campaign)}>
-                                      View
-                                    </Button>
-                                  )}
+                                  <div onClick={(e) => e.stopPropagation()}>
+                                    <InlineStack gap="200">
+                                      {onCampaignSelect && (
+                                        <Button size="slim" onClick={() => onCampaignSelect(campaign)}>
+                                          View
+                                        </Button>
+                                      )}
+                                      {onExperimentEdit && campaign.variantKey && (
+                                        <Button
+                                          size="slim"
+                                          onClick={() => {
+                                            console.log('[CampaignList] Edit Variant clicked for experimentId:', group.experimentId, 'variantKey:', campaign.variantKey);
+                                            // Edit this specific variant in the experiment
+                                            if (group.experimentId) {
+                                              onExperimentEdit(group.experimentId, campaign.variantKey || undefined);
+                                            }
+                                          }}
+                                        >
+                                          Edit Variant
+                                        </Button>
+                                      )}
+                                    </InlineStack>
+                                  </div>
                                 </InlineStack>
-                              </InlineStack>
-                            </Box>
-                          </Card>
-                        </Box>
-                      );
-                    })}
-                  </Box>
-                )}
-              </Box>
+                              </Box>
+                            </Card>
+                          </Box>
+                        );
+                      })}
+                    </Box>
+                  )}
+                </ResourceItem>
             );
           }
 

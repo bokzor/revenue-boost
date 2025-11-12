@@ -11,6 +11,7 @@ export type PopupPosition = "center" | "top" | "bottom" | "left" | "right";
 export type PopupSize = "small" | "medium" | "large";
 export type PopupAnimation = "fade" | "slide" | "bounce" | "none";
 export type DisplayMode = "modal" | "banner" | "slide-in" | "inline";
+export type ImagePosition = "left" | "right" | "top" | "bottom" | "none";
 
 /**
  * PopupDesignConfig - Pure design/visual properties
@@ -24,6 +25,7 @@ export interface PopupDesignConfig {
   // Design/Visual Properties
   backgroundColor: string;
   textColor: string;
+  descriptionColor?: string; // Specific color for description/subheadline text
   buttonColor: string;
   buttonTextColor: string;
   inputBackgroundColor?: string;
@@ -32,6 +34,8 @@ export interface PopupDesignConfig {
   accentColor?: string;
   overlayColor?: string;
   overlayOpacity?: number;
+  imageBgColor?: string; // Background color for image placeholder
+  successColor?: string; // Success state color
 
   // Layout Properties
   position: PopupPosition;
@@ -50,7 +54,9 @@ export interface PopupDesignConfig {
   fontWeight?: string;
   customCSS?: string;
   imageUrl?: string;
+  imagePosition?: ImagePosition;
   buttonUrl?: string;
+
   // Behavior Properties
   previewMode?: boolean;
   showCloseButton?: boolean;

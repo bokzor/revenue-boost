@@ -11,6 +11,7 @@ import type {
   CampaignUpdateData,
   CampaignWithConfigs,
   TemplateType,
+  DiscountConfig,
 } from "../types/campaign.js";
 import {
   validateCampaignCreateData,
@@ -27,10 +28,44 @@ import {
   CAMPAIGN_TEMPLATE_INCLUDE_EXTENDED,
   CAMPAIGN_EXPERIMENT_INCLUDE_EXTENDED,
 } from "~/lib/service-helpers.server";
+import { generateDiscountCode } from "~/domains/popups/services/discounts/discount.server";
 
 // ============================================================================
 // CAMPAIGN SERVICE
 // ============================================================================
+
+/**
+ * Auto-generate discount code if enabled but no code provided
+ */
+function ensureDiscountCode(discountConfig?: DiscountConfig): DiscountConfig | undefined {
+  if (!discountConfig || !discountConfig.enabled) {
+    return discountConfig;
+  }
+
+  // If code already exists, return as-is
+  if (discountConfig.code) {
+    return discountConfig;
+  }
+
+  // Auto-generate code if enabled but missing
+  const type = (discountConfig.type || discountConfig.valueType?.toLowerCase()) as "percentage" | "fixed_amount" | "free_shipping";
+  const value = discountConfig.value || 10;
+  const prefix = discountConfig.prefix || "WELCOME";
+  const expiryDays = discountConfig.expiryDays || 30;
+
+  const generated = generateDiscountCode({
+    type,
+    value,
+    prefix,
+    expiresInDays: expiryDays,
+    usageLimit: discountConfig.usageLimit,
+  });
+
+  return {
+    ...discountConfig,
+    code: generated.code,
+  };
+}
 
 export class CampaignService {
   /**
@@ -93,6 +128,9 @@ export class CampaignService {
     }
 
     try {
+      // Auto-generate discount code if needed
+      const discountConfig = ensureDiscountCode(data.discountConfig);
+
       const campaign = await prisma.campaign.create({
         data: {
           storeId,
@@ -110,7 +148,7 @@ export class CampaignService {
           contentConfig: stringifyJsonField(data.contentConfig || {}),
           designConfig: stringifyJsonField(data.designConfig || {}),
           targetRules: stringifyJsonField(data.targetRules || {}),
-          discountConfig: stringifyJsonField(data.discountConfig || {}),
+          discountConfig: stringifyJsonField(discountConfig || {}),
 
           // A/B Testing
           experimentId: data.experimentId,

@@ -105,6 +105,7 @@ export function DesignStep({ data, onChange, shopDomain }: DesignStepProps) {
               <Divider />
               <DesignConfigSection
                 design={toDesignConfig(data.designConfig?.popupDesign)}
+                templateType={data.templateType}
                 onChange={(design) =>
                   onChange({
                     designConfig: {

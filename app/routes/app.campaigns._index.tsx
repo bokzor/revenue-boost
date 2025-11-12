@@ -129,6 +129,20 @@ export default function CampaignsIndexPage() {
     }
   };
 
+  const handleExperimentSelect = (experimentId: string) => {
+    console.log('[Campaign Index] handleExperimentSelect called with experimentId:', experimentId);
+    navigate(`/app/experiments/${experimentId}`);
+  };
+
+  const handleExperimentEdit = (experimentId: string, variantKey?: string) => {
+    console.log('[Campaign Index] handleExperimentEdit called with experimentId:', experimentId, 'variantKey:', variantKey);
+    const url = variantKey
+      ? `/app/experiments/${experimentId}/edit?variant=${variantKey}`
+      : `/app/experiments/${experimentId}/edit`;
+    console.log('[Campaign Index] Navigating to:', url);
+    navigate(url);
+  };
+
   const handleCampaignDuplicate = async (campaignId: string) => {
     try {
       const response = await fetch(`/api/campaigns/${campaignId}`, {
@@ -235,6 +249,8 @@ export default function CampaignsIndexPage() {
           loading={revalidator.state === "loading"}
           onCampaignSelect={handleCampaignSelect}
           onCampaignEdit={handleCampaignEdit}
+          onExperimentSelect={handleExperimentSelect}
+          onExperimentEdit={handleExperimentEdit}
           onCampaignDelete={handleCampaignDelete}
           onCampaignDuplicate={handleCampaignDuplicate}
           onCreateNew={handleCreateNew}

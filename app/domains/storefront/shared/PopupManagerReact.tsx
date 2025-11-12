@@ -340,6 +340,9 @@ export const PopupManager: React.FC<PopupManagerProps> = ({
               textColor: activeCampaign.textColor || "#000000",
               buttonColor: activeCampaign.buttonColor || "#007BFF",
               buttonTextColor: activeCampaign.buttonTextColor || "#FFFFFF",
+              imageUrl: activeCampaign.imageUrl,
+              imagePosition: activeCampaign.imagePosition,
+              theme: (activeCampaign as any).theme,
               discount: activeCampaign.discountConfig?.enabled ? {
                 enabled: true,
                 code: activeCampaign.discountConfig.code || '',
@@ -481,6 +484,9 @@ export const PopupManager: React.FC<PopupManagerProps> = ({
               textColor: activeCampaign.textColor || "#000000",
               buttonColor: activeCampaign.buttonColor || "#007BFF",
               buttonTextColor: activeCampaign.buttonTextColor || "#FFFFFF",
+              imageUrl: activeCampaign.imageUrl,
+              imagePosition: activeCampaign.imagePosition,
+              theme: (activeCampaign as any).theme,
               discount: activeCampaign.discountConfig?.enabled ? {
                 enabled: true,
                 code: activeCampaign.discountConfig.code || '',

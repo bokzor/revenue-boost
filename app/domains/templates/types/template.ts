@@ -174,10 +174,11 @@ export const TemplateWithConfigsSchema = BaseTemplateSchema.extend({
   fields: z.array(TemplateFieldSchema).default([]), // Array of TemplateField definitions
   targetRules: TargetRulesConfigSchema.default({}), // Default trigger/targeting configuration
   designConfig: DesignConfigSchema.default({
-    theme: "professional-blue",
+    theme: "modern",
     position: "center",
     size: "medium",
     borderRadius: 8,
+    imagePosition: "left",
     overlayOpacity: 0.8,
     animation: "fade"
   }), // Default design configuration
@@ -198,10 +199,11 @@ export const NewsletterTemplateSchema = BaseTemplateSchema.extend({
   fields: z.array(TemplateFieldSchema).default([]),
   targetRules: TargetRulesConfigSchema.default({}),
   designConfig: DesignConfigSchema.default({
-    theme: "professional-blue",
+    theme: "modern",
     position: "center",
     size: "medium",
     borderRadius: 8,
+    imagePosition: "left",
     overlayOpacity: 0.8,
     animation: "fade"
   }),
@@ -215,10 +217,11 @@ export const FlashSaleTemplateSchema = BaseTemplateSchema.extend({
   fields: z.array(TemplateFieldSchema).default([]),
   targetRules: TargetRulesConfigSchema.default({}),
   designConfig: DesignConfigSchema.default({
-    theme: "professional-blue",
+    theme: "bold",
     position: "center",
     size: "medium",
     borderRadius: 8,
+    imagePosition: "left",
     overlayOpacity: 0.8,
     animation: "fade"
   }),
@@ -232,10 +235,11 @@ export const SpinToWinTemplateSchema = BaseTemplateSchema.extend({
   fields: z.array(TemplateFieldSchema).default([]),
   targetRules: TargetRulesConfigSchema.default({}),
   designConfig: DesignConfigSchema.default({
-    theme: "professional-blue",
+    theme: "gradient",
     position: "center",
     size: "medium",
     borderRadius: 8,
+    imagePosition: "left",
     overlayOpacity: 0.8,
     animation: "fade"
   }),
@@ -249,10 +253,11 @@ export const FreeShippingTemplateSchema = BaseTemplateSchema.extend({
   fields: z.array(TemplateFieldSchema).default([]),
   targetRules: TargetRulesConfigSchema.default({}),
   designConfig: DesignConfigSchema.default({
-    theme: "professional-blue",
+    theme: "minimal",
     position: "top",
     size: "small",
     borderRadius: 0,
+    imagePosition: "left",
     overlayOpacity: 0,
     animation: "slide"
   }),

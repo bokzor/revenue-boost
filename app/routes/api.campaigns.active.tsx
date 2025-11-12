@@ -93,6 +93,8 @@ export async function loader({ request }: LoaderFunctionArgs) {
       clientTriggers: extractClientTriggers(campaign.targetRules),
       targetRules: {} as Record<string, unknown>,
       discountConfig: campaign.discountConfig,
+      // Include experimentId for proper frequency capping tracking
+      experimentId: campaign.experimentId,
     }));
 
     const response: ActiveCampaignsResponse = {

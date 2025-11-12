@@ -1,6 +1,6 @@
 {
   "include": ["env.d.ts", "**/*.ts", "**/*.tsx", ".react-router/types/**/*"],
-  "exclude": ["tests/e2e/old"],
+  "exclude": ["tests/e2e/old", "docs"],
   "compilerOptions": {
     "lib": ["DOM", "DOM.Iterable", "ES2022"],
     "strict": true,

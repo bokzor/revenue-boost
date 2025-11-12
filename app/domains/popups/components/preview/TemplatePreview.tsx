@@ -258,6 +258,8 @@ const TemplatePreviewComponent = forwardRef<
                 id: "preview-newsletter",
                 headline: mergedConfig.headline || "Join Our Newsletter",
                 subheadline: mergedConfig.subheadline || "Get exclusive offers and updates",
+                buttonText: mergedConfig.buttonText || "Subscribe",
+                successMessage: mergedConfig.successMessage || "Thank you for subscribing!",
                 backgroundColor: mergedConfig.backgroundColor || "#FFFFFF",
                 textColor: mergedConfig.textColor || "#1A1A1A",
                 buttonColor: mergedConfig.buttonColor || "#007BFF",
@@ -266,6 +268,8 @@ const TemplatePreviewComponent = forwardRef<
                 inputTextColor: mergedConfig.inputTextColor || "#1A1A1A",
                 inputBorderColor: mergedConfig.inputBorderColor || "#D1D5DB",
                 accentColor: mergedConfig.accentColor || "#007BFF",
+                overlayColor: mergedConfig.overlayColor || "rgba(0, 0, 0, 1)",
+                overlayOpacity: mergedConfig.overlayOpacity ?? 0.6,
                 position: mergedConfig.position || "center",
                 size: mergedConfig.size || "medium",
                 borderRadius: mergedConfig.borderRadius || 8,
@@ -273,9 +277,15 @@ const TemplatePreviewComponent = forwardRef<
                 previewMode: true,
                 showCloseButton: true,
 
+                // Image settings
+                imageUrl: mergedConfig.imageUrl,
+                imagePosition: mergedConfig.imagePosition || "left",
+                theme: mergedConfig.theme,
+
                 // Email field
                 emailPlaceholder: mergedConfig.emailPlaceholder || "Enter your email",
                 emailLabel: mergedConfig.emailLabel,
+                emailRequired: true,
 
                 // Name fields
                 nameFieldEnabled: mergedConfig.nameFieldEnabled || false,
@@ -321,6 +331,10 @@ const TemplatePreviewComponent = forwardRef<
               id: "preview-newsletter-multi",
               headline: mergedConfig.headline || "Join Our Newsletter",
               subheadline: mergedConfig.subheadline || "Get exclusive offers and updates",
+              buttonText: mergedConfig.buttonText || "Subscribe",
+              successMessage:
+                mergedConfig.successMessage ||
+                "Thanks for subscribing! Check your inbox for a confirmation email.",
               backgroundColor: mergedConfig.backgroundColor || "#FFFFFF",
               textColor: mergedConfig.textColor || "#111827",
               buttonColor: mergedConfig.buttonColor || "#3B82F6",
@@ -331,15 +345,21 @@ const TemplatePreviewComponent = forwardRef<
               inputBorderColor: mergedConfig.inputBorderColor || "#D1D5DB",
               overlayColor: mergedConfig.overlayColor || "#000000",
               overlayOpacity: mergedConfig.overlayOpacity || 0.5,
-              buttonText: mergedConfig.buttonText || "Subscribe",
+              position: "center",
+              size: "medium",
+              imageUrl: mergedConfig.imageUrl,
+              imagePosition: mergedConfig.imagePosition || "left",
+              theme: mergedConfig.theme,
               emailPlaceholder: mergedConfig.emailPlaceholder || "Enter your email",
+              emailRequired: true,
+              nameFieldEnabled: false,
+              nameFieldRequired: false,
+              consentFieldEnabled: false,
+              consentFieldRequired: false,
               submitButtonText: mergedConfig.submitButtonText || "Subscribe",
-              successMessage:
-                mergedConfig.successMessage ||
-                "Thanks for subscribing! Check your inbox for a confirmation email.",
               successTitle: mergedConfig.successTitle || "Thank you for subscribing!",
-              loadingText: mergedConfig.loadingText || "Subscribing...",
-            } as NewsletterConfig}
+            }}
+
             isVisible={true}
             onClose={handleClose}
           />
@@ -1016,9 +1036,14 @@ const TemplatePreviewComponent = forwardRef<
                 textColor: mergedConfig.textColor || "#1A1A1A",
                 buttonColor: mergedConfig.buttonColor || "#007BFF",
                 buttonTextColor: mergedConfig.buttonTextColor || "#FFFFFF",
+                overlayColor: mergedConfig.overlayColor || "rgba(0, 0, 0, 1)",
+                overlayOpacity: mergedConfig.overlayOpacity ?? 0.6,
                 position: "center",
                 size: "medium",
                 previewMode: true,
+                imageUrl: mergedConfig.imageUrl,
+                imagePosition: mergedConfig.imagePosition || "left",
+                theme: mergedConfig.theme,
                 emailPlaceholder: "Enter your email",
                 submitButtonText: mergedConfig.submitButtonText || "Subscribe",
               } as NewsletterConfig}

@@ -1,6 +1,6 @@
 /**
  * App Setup Service
- * 
+ *
  * Handles automatic setup on app installation:
  * - Enables theme extension automatically
  * - Sets app URL metafield for storefront
@@ -15,7 +15,7 @@ import { CampaignService } from "~/domains/campaigns/services/campaign.server";
  * Setup app on installation
  * Auto-enables theme extension and creates welcome campaign
  * Zero-configuration setup for merchants
- * 
+ *
  * Note: Store creation is handled by getStoreId in auth-helpers.server.ts
  */
 export async function setupAppOnInstall(admin: any, shopDomain: string) {
@@ -52,7 +52,7 @@ export async function setupAppOnInstall(admin: any, shopDomain: string) {
     // 3. Create welcome campaign (ACTIVE by default) - only if store exists
     if (store) {
       await createWelcomeCampaign(store.id);
-      
+
       // 4. Mark setup as completed
       await markSetupCompleted(store.id);
     }
@@ -201,10 +201,11 @@ async function createWelcomeCampaign(storeId: string) {
         privacyNote: "We respect your privacy. Unsubscribe anytime.",
       },
       designConfig: {
-        theme: "professional-blue",
+        theme: "modern",
         position: "center",
         size: "medium",
         borderRadius: 8,
+        imagePosition: "left",
         animation: "fade",
         backgroundColor: "#ffffff",
         textColor: "#000000",

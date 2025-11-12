@@ -102,10 +102,11 @@ export function parseContentConfig(
  */
 export function parseDesignConfig(jsonValue: unknown): DesignConfig {
   return parseJsonField(jsonValue, DesignConfigSchema, {
-    theme: "professional-blue",
+    theme: "modern",
     position: "center",
     size: "medium",
     borderRadius: 8,
+    imagePosition: "left",
     overlayOpacity: 0.8,
     animation: "fade",
   });

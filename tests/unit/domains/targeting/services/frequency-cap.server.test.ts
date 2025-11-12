@@ -455,6 +455,253 @@ describe("FrequencyCapService", () => {
       expect(result.allowed).toBe(true);
     });
   });
+
+  describe("Experiment-based frequency capping", () => {
+    it("should use experimentId for tracking when campaign is part of experiment", async () => {
+      const variantA = createMockCampaign("campaign-a", {
+        max_triggers_per_session: 2,
+      });
+      variantA.experimentId = "experiment-1";
+      variantA.variantKey = "A";
+      variantA.isControl = true;
+
+      // Record a view for variant A
+      await FrequencyCapService.recordDisplay("experiment-1", mockContext, {
+        max_triggers_per_session: 2,
+      });
+
+      // Check if variant A is blocked (should be allowed - 1 view out of 2)
+      const resultA = await FrequencyCapService.checkFrequencyCapping(variantA, mockContext);
+      expect(resultA.allowed).toBe(true);
+      expect(resultA.currentCounts.session).toBe(1);
+
+      // The key should be using experiment-1, not campaign-a
+      const sessionKey = `freq_cap:visitor-123:experiment-1:session`;
+      expect(mockRedisStorage[sessionKey]).toBe("1");
+    });
+
+    it("should share frequency cap across all variants of same experiment", async () => {
+      const variantA = createMockCampaign("campaign-a", {
+        max_triggers_per_session: 3,
+      });
+      variantA.experimentId = "experiment-1";
+      variantA.variantKey = "A";
+      variantA.isControl = true;
+
+      const variantB = createMockCampaign("campaign-b", {
+        max_triggers_per_session: 3,
+      });
+      variantB.experimentId = "experiment-1";
+      variantB.variantKey = "B";
+      variantB.isControl = false;
+
+      // Record 2 views for variant A (using experiment ID)
+      await FrequencyCapService.recordDisplay("experiment-1", mockContext, {
+        max_triggers_per_session: 3,
+      });
+      await FrequencyCapService.recordDisplay("experiment-1", mockContext, {
+        max_triggers_per_session: 3,
+      });
+
+      // Check variant A - should show 2 views
+      const resultA = await FrequencyCapService.checkFrequencyCapping(variantA, mockContext);
+      expect(resultA.allowed).toBe(true);
+      expect(resultA.currentCounts.session).toBe(2);
+
+      // Check variant B - should ALSO show 2 views (shared counter)
+      const resultB = await FrequencyCapService.checkFrequencyCapping(variantB, mockContext);
+      expect(resultB.allowed).toBe(true);
+      expect(resultB.currentCounts.session).toBe(2);
+
+      // Record one more view (total 3, hitting the limit)
+      await FrequencyCapService.recordDisplay("experiment-1", mockContext, {
+        max_triggers_per_session: 3,
+      });
+
+      // Both variants should now be blocked
+      const resultA2 = await FrequencyCapService.checkFrequencyCapping(variantA, mockContext);
+      expect(resultA2.allowed).toBe(false);
+      expect(resultA2.reason).toContain("Session limit exceeded");
+
+      const resultB2 = await FrequencyCapService.checkFrequencyCapping(variantB, mockContext);
+      expect(resultB2.allowed).toBe(false);
+      expect(resultB2.reason).toContain("Session limit exceeded");
+    });
+
+    it("should share cooldown across all variants of same experiment", async () => {
+      const variantA = createMockCampaign("campaign-a", {
+        cooldown_between_triggers: 60,
+      });
+      variantA.experimentId = "experiment-1";
+      variantA.variantKey = "A";
+
+      const variantB = createMockCampaign("campaign-b", {
+        cooldown_between_triggers: 60,
+      });
+      variantB.experimentId = "experiment-1";
+      variantB.variantKey = "B";
+
+      // Record a view for the experiment
+      await FrequencyCapService.recordDisplay("experiment-1", mockContext, {
+        cooldown_between_triggers: 60,
+      });
+
+      // Both variants should be in cooldown
+      const resultA = await FrequencyCapService.checkFrequencyCapping(variantA, mockContext);
+      expect(resultA.allowed).toBe(false);
+      expect(resultA.reason).toBe("In cooldown period");
+
+      const resultB = await FrequencyCapService.checkFrequencyCapping(variantB, mockContext);
+      expect(resultB.allowed).toBe(false);
+      expect(resultB.reason).toBe("In cooldown period");
+
+      // Verify cooldown key uses experiment ID
+      const cooldownKey = `cooldown:visitor-123:experiment-1`;
+      expect(mockRedisStorage[cooldownKey]).toBeDefined();
+    });
+
+    it("should track daily limits per experiment, not per variant", async () => {
+      const variantA = createMockCampaign("campaign-a", {
+        max_triggers_per_day: 5,
+      });
+      variantA.experimentId = "experiment-1";
+      variantA.variantKey = "A";
+
+      const variantB = createMockCampaign("campaign-b", {
+        max_triggers_per_day: 5,
+      });
+      variantB.experimentId = "experiment-1";
+      variantB.variantKey = "B";
+
+      // Record 5 views for the experiment
+      for (let i = 0; i < 5; i++) {
+        await FrequencyCapService.recordDisplay("experiment-1", mockContext, {
+          max_triggers_per_day: 5,
+        });
+      }
+
+      // Both variants should be blocked
+      const resultA = await FrequencyCapService.checkFrequencyCapping(variantA, mockContext);
+      expect(resultA.allowed).toBe(false);
+      expect(resultA.reason).toContain("Daily limit exceeded");
+      expect(resultA.currentCounts.day).toBe(5);
+
+      const resultB = await FrequencyCapService.checkFrequencyCapping(variantB, mockContext);
+      expect(resultB.allowed).toBe(false);
+      expect(resultB.reason).toContain("Daily limit exceeded");
+      expect(resultB.currentCounts.day).toBe(5);
+    });
+
+    it("should use campaignId for non-experiment campaigns", async () => {
+      const campaign = createMockCampaign("campaign-solo", {
+        max_triggers_per_session: 2,
+      });
+      // No experimentId set
+
+      // Record a view
+      await FrequencyCapService.recordDisplay("campaign-solo", mockContext, {
+        max_triggers_per_session: 2,
+      });
+
+      // Check campaign
+      const result = await FrequencyCapService.checkFrequencyCapping(campaign, mockContext);
+      expect(result.allowed).toBe(true);
+      expect(result.currentCounts.session).toBe(1);
+
+      // Verify key uses campaign ID, not experiment ID
+      const sessionKey = `freq_cap:visitor-123:campaign-solo:session`;
+      expect(mockRedisStorage[sessionKey]).toBe("1");
+    });
+
+    it("should keep separate counters for different experiments", async () => {
+      const exp1VariantA = createMockCampaign("campaign-1a", {
+        max_triggers_per_session: 3,
+      });
+      exp1VariantA.experimentId = "experiment-1";
+      exp1VariantA.variantKey = "A";
+
+      const exp2VariantA = createMockCampaign("campaign-2a", {
+        max_triggers_per_session: 3,
+      });
+      exp2VariantA.experimentId = "experiment-2";
+      exp2VariantA.variantKey = "A";
+
+      // Record 2 views for experiment-1
+      await FrequencyCapService.recordDisplay("experiment-1", mockContext, {
+        max_triggers_per_session: 3,
+      });
+      await FrequencyCapService.recordDisplay("experiment-1", mockContext, {
+        max_triggers_per_session: 3,
+      });
+
+      // Record 1 view for experiment-2
+      await FrequencyCapService.recordDisplay("experiment-2", mockContext, {
+        max_triggers_per_session: 3,
+      });
+
+      // Check experiment-1 variant - should show 2 views
+      const result1 = await FrequencyCapService.checkFrequencyCapping(exp1VariantA, mockContext);
+      expect(result1.allowed).toBe(true);
+      expect(result1.currentCounts.session).toBe(2);
+
+      // Check experiment-2 variant - should show 1 view
+      const result2 = await FrequencyCapService.checkFrequencyCapping(exp2VariantA, mockContext);
+      expect(result2.allowed).toBe(true);
+      expect(result2.currentCounts.session).toBe(1);
+    });
+
+    it("should reset frequency capping by experiment ID", async () => {
+      const variantA = createMockCampaign("campaign-a", {
+        max_triggers_per_session: 2,
+      });
+      variantA.experimentId = "experiment-1";
+      variantA.variantKey = "A";
+
+      // Record 2 views (hit limit)
+      await FrequencyCapService.recordDisplay("experiment-1", mockContext, {
+        max_triggers_per_session: 2,
+      });
+      await FrequencyCapService.recordDisplay("experiment-1", mockContext, {
+        max_triggers_per_session: 2,
+      });
+
+      // Should be blocked
+      const result1 = await FrequencyCapService.checkFrequencyCapping(variantA, mockContext);
+      expect(result1.allowed).toBe(false);
+
+      // Reset using experiment ID
+      await FrequencyCapService.resetFrequencyCapping("visitor-123", "experiment-1");
+
+      // Should now be allowed
+      const result2 = await FrequencyCapService.checkFrequencyCapping(variantA, mockContext);
+      expect(result2.allowed).toBe(true);
+      expect(result2.currentCounts.session).toBe(0);
+    });
+
+    it("should get frequency status by experiment ID", async () => {
+      const variantA = createMockCampaign("campaign-a", {
+        max_triggers_per_session: 5,
+      });
+      variantA.experimentId = "experiment-1";
+      variantA.variantKey = "A";
+
+      // Record 3 views
+      await FrequencyCapService.recordDisplay("experiment-1", mockContext, {
+        max_triggers_per_session: 5,
+      });
+      await FrequencyCapService.recordDisplay("experiment-1", mockContext, {
+        max_triggers_per_session: 5,
+      });
+      await FrequencyCapService.recordDisplay("experiment-1", mockContext, {
+        max_triggers_per_session: 5,
+      });
+
+      // Get status using experiment ID
+      const status = await FrequencyCapService.getFrequencyStatus("visitor-123", "experiment-1");
+      expect(status.counts.session).toBe(3);
+      expect(status.counts.day).toBe(3);
+    });
+  });
 });
 
 

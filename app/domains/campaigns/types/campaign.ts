@@ -363,28 +363,41 @@ export function getContentSchemaForTemplate(templateType?: TemplateType) {
  */
 export const DesignConfigSchema = z.object({
   // Layout
-  theme: z.enum(["professional-blue", "vibrant-orange", "elegant-purple", "minimal-gray"]).default("professional-blue"),
+  theme: z.enum([
+    "modern", "minimal", "elegant", "bold", "glass", "dark", "gradient", "luxury", "neon", "ocean"
+  ]).default("modern"),
   position: z.enum(["center", "top", "bottom", "left", "right"]).default("center"),
   size: z.enum(["small", "medium", "large"]).default("medium"),
   borderRadius: z.number().min(0).max(50).default(8),
   animation: z.enum(["fade", "slide", "bounce", "none"]).default("fade"),
 
+  // Image settings
+  imageUrl: z.string().optional(),
+  imagePosition: z.enum(["left", "right", "top", "bottom", "none"]).default("left"),
+
   // Main colors
-  backgroundColor: z.string().regex(/^#[0-9A-F]{6}$/i).optional(),
-  textColor: z.string().regex(/^#[0-9A-F]{6}$/i).optional(),
-  accentColor: z.string().regex(/^#[0-9A-F]{6}$/i).optional(),
+  backgroundColor: z.string().optional(), // Supports gradients and rgba
+  textColor: z.string().optional(), // Supports rgba
+  descriptionColor: z.string().optional(), // Specific color for description/subheadline text
+  accentColor: z.string().optional(), // Supports rgba
 
   // Button colors
-  buttonColor: z.string().regex(/^#[0-9A-F]{6}$/i).optional(),
-  buttonTextColor: z.string().regex(/^#[0-9A-F]{6}$/i).optional(),
+  buttonColor: z.string().optional(), // Supports rgba
+  buttonTextColor: z.string().optional(), // Supports rgba
 
   // Input field colors
-  inputBackgroundColor: z.string().regex(/^#[0-9A-F]{6}$/i).optional(),
-  inputTextColor: z.string().regex(/^#[0-9A-F]{6}$/i).optional(),
-  inputBorderColor: z.string().regex(/^#[0-9A-F]{6}$/i).optional(),
+  inputBackgroundColor: z.string().optional(), // Supports rgba
+  inputTextColor: z.string().optional(), // Supports rgba
+  inputBorderColor: z.string().optional(), // Supports rgba
+
+  // Image colors
+  imageBgColor: z.string().optional(), // Background color for image placeholder
+
+  // State colors
+  successColor: z.string().optional(), // Success state color
 
   // Overlay colors
-  overlayColor: z.string().regex(/^#[0-9A-F]{6}$/i).optional(),
+  overlayColor: z.string().optional(), // Supports rgba
   overlayOpacity: z.number().min(0).max(1).default(0.5),
 
   // Advanced

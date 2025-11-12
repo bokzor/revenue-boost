@@ -1,4 +1,94 @@
-"use strict";(()=>{var ue,p,Te,Mt,$,ke,Me,De,Fe,le,re,ae,Dt,ie={},He=[],Ft=/acit|ex(?:s|g|n|p|$)|rph|grid|ows|mnc|ntw|ine[ch]|zoo|^ord|itera/i,Y=Array.isArray;function U(e,t){for(var n in t)e[n]=t[n];return e}function _e(e){e&&e.parentNode&&e.parentNode.removeChild(e)}function ee(e,t,n){var o,r,a,s={};for(a in t)a=="key"?o=t[a]:a=="ref"?r=t[a]:s[a]=t[a];if(arguments.length>2&&(s.children=arguments.length>3?ue.call(arguments,2):n),typeof e=="function"&&e.defaultProps!=null)for(a in e.defaultProps)s[a]===void 0&&(s[a]=e.defaultProps[a]);return G(e,s,o,r,null)}function G(e,t,n,o,r){var a={type:e,props:t,key:n,ref:o,__k:null,__:null,__b:0,__e:null,__c:null,constructor:void 0,__v:r??++Te,__i:-1,__u:0};return r==null&&p.vnode!=null&&p.vnode(a),a}function F(e){return e.children}function A(e,t){this.props=e,this.context=t}function q(e,t){if(t==null)return e.__?q(e.__,e.__i+1):null;for(var n;t<e.__k.length;t++)if((n=e.__k[t])!=null&&n.__e!=null)return n.__e;return typeof e.type=="function"?q(e):null}function Ne(e){var t,n;if((e=e.__)!=null&&e.__c!=null){for(e.__e=e.__c.base=null,t=0;t<e.__k.length;t++)if((n=e.__k[t])!=null&&n.__e!=null){e.__e=e.__c.base=n.__e;break}return Ne(e)}}function we(e){(!e.__d&&(e.__d=!0)&&$.push(e)&&!Q.__r++||ke!=p.debounceRendering)&&((ke=p.debounceRendering)||Me)(Q)}function Q(){for(var e,t,n,o,r,a,s,l=1;$.length;)$.length>l&&$.sort(De),e=$.shift(),l=$.length,e.__d&&(n=void 0,o=void 0,r=(o=(t=e).__v).__e,a=[],s=[],t.__P&&((n=U({},o)).__v=o.__v+1,p.vnode&&p.vnode(n),Le(t.__P,n,o,t.__n,t.__P.namespaceURI,32&o.__u?[r]:null,a,r??q(o),!!(32&o.__u),s),n.__v=o.__v,n.__.__k[n.__i]=n,At(a,n,s),o.__e=o.__=null,n.__e!=r&&Ne(n)));Q.__r=0}function Ae(e,t,n,o,r,a,s,l,_,u,f){var i,d,c,x,k,g,m,h=o&&o.__k||He,L=t.length;for(_=Ht(n,t,h,_,L),i=0;i<L;i++)(c=n.__k[i])!=null&&(d=c.__i==-1?ie:h[c.__i]||ie,c.__i=i,g=Le(e,c,d,r,a,s,l,_,u,f),x=c.__e,c.ref&&d.ref!=c.ref&&(d.ref&&ce(d.ref,null,c),f.push(c.ref,c.__c||x,c)),k==null&&x!=null&&(k=x),(m=!!(4&c.__u))||d.__k===c.__k?_=We(c,_,e,m):typeof c.type=="function"&&g!==void 0?_=g:x&&(_=x.nextSibling),c.__u&=-7);return n.__e=k,_}function Ht(e,t,n,o,r){var a,s,l,_,u,f=n.length,i=f,d=0;for(e.__k=new Array(r),a=0;a<r;a++)(s=t[a])!=null&&typeof s!="boolean"&&typeof s!="function"?(_=a+d,(s=e.__k[a]=typeof s=="string"||typeof s=="number"||typeof s=="bigint"||s.constructor==String?G(null,s,null,null,null):Y(s)?G(F,{children:s},null,null,null):s.constructor==null&&s.__b>0?G(s.type,s.props,s.key,s.ref?s.ref:null,s.__v):s).__=e,s.__b=e.__b+1,l=null,(u=s.__i=Nt(s,n,_,i))!=-1&&(i--,(l=n[u])&&(l.__u|=2)),l==null||l.__v==null?(u==-1&&(r>f?d--:r<f&&d++),typeof s.type!="function"&&(s.__u|=4)):u!=_&&(u==_-1?d--:u==_+1?d++:(u>_?d--:d++,s.__u|=4))):e.__k[a]=null;if(i)for(a=0;a<f;a++)(l=n[a])!=null&&(2&l.__u)==0&&(l.__e==o&&(o=q(l)),Oe(l,l));return o}function We(e,t,n,o){var r,a;if(typeof e.type=="function"){for(r=e.__k,a=0;r&&a<r.length;a++)r[a]&&(r[a].__=e,t=We(r[a],t,n,o));return t}e.__e!=t&&(o&&(t&&e.type&&!t.parentNode&&(t=q(e)),n.insertBefore(e.__e,t||null)),t=e.__e);do t=t&&t.nextSibling;while(t!=null&&t.nodeType==8);return t}function K(e,t){return t=t||[],e==null||typeof e=="boolean"||(Y(e)?e.some(function(n){K(n,t)}):t.push(e)),t}function Nt(e,t,n,o){var r,a,s,l=e.key,_=e.type,u=t[n],f=u!=null&&(2&u.__u)==0;if(u===null&&e.key==null||f&&l==u.key&&_==u.type)return n;if(o>(f?1:0)){for(r=n-1,a=n+1;r>=0||a<t.length;)if((u=t[s=r>=0?r--:a++])!=null&&(2&u.__u)==0&&l==u.key&&_==u.type)return s}return-1}function Re(e,t,n){t[0]=="-"?e.setProperty(t,n??""):e[t]=n==null?"":typeof n!="number"||Ft.test(t)?n:n+"px"}function J(e,t,n,o,r){var a,s;e:if(t=="style")if(typeof n=="string")e.style.cssText=n;else{if(typeof o=="string"&&(e.style.cssText=o=""),o)for(t in o)n&&t in n||Re(e.style,t,"");if(n)for(t in n)o&&n[t]==o[t]||Re(e.style,t,n[t])}else if(t[0]=="o"&&t[1]=="n")a=t!=(t=t.replace(Fe,"$1")),s=t.toLowerCase(),t=s in e||t=="onFocusOut"||t=="onFocusIn"?s.slice(2):t.slice(2),e.l||(e.l={}),e.l[t+a]=n,n?o?n.u=o.u:(n.u=le,e.addEventListener(t,a?ae:re,a)):e.removeEventListener(t,a?ae:re,a);else{if(r=="http://www.w3.org/2000/svg")t=t.replace(/xlink(H|:h)/,"h").replace(/sName$/,"s");else if(t!="width"&&t!="height"&&t!="href"&&t!="list"&&t!="form"&&t!="tabIndex"&&t!="download"&&t!="rowSpan"&&t!="colSpan"&&t!="role"&&t!="popover"&&t in e)try{e[t]=n??"";break e}catch{}typeof n=="function"||(n==null||n===!1&&t[4]!="-"?e.removeAttribute(t):e.setAttribute(t,t=="popover"&&n==1?"":n))}}function Pe(e){return function(t){if(this.l){var n=this.l[t.type+e];if(t.t==null)t.t=le++;else if(t.t<n.u)return;return n(p.event?p.event(t):t)}}}function Le(e,t,n,o,r,a,s,l,_,u){var f,i,d,c,x,k,g,m,h,L,N,T,z,V,w,R,B,D=t.type;if(t.constructor!=null)return null;128&n.__u&&(_=!!(32&n.__u),a=[l=t.__e=n.__e]),(f=p.__b)&&f(t);e:if(typeof D=="function")try{if(m=t.props,h="prototype"in D&&D.prototype.render,L=(f=D.contextType)&&o[f.__c],N=f?L?L.props.value:f.__:o,n.__c?g=(i=t.__c=n.__c).__=i.__E:(h?t.__c=i=new D(m,N):(t.__c=i=new A(m,N),i.constructor=D,i.render=Lt),L&&L.sub(i),i.props=m,i.state||(i.state={}),i.context=N,i.__n=o,d=i.__d=!0,i.__h=[],i._sb=[]),h&&i.__s==null&&(i.__s=i.state),h&&D.getDerivedStateFromProps!=null&&(i.__s==i.state&&(i.__s=U({},i.__s)),U(i.__s,D.getDerivedStateFromProps(m,i.__s))),c=i.props,x=i.state,i.__v=t,d)h&&D.getDerivedStateFromProps==null&&i.componentWillMount!=null&&i.componentWillMount(),h&&i.componentDidMount!=null&&i.__h.push(i.componentDidMount);else{if(h&&D.getDerivedStateFromProps==null&&m!==c&&i.componentWillReceiveProps!=null&&i.componentWillReceiveProps(m,N),!i.__e&&i.shouldComponentUpdate!=null&&i.shouldComponentUpdate(m,i.__s,N)===!1||t.__v==n.__v){for(t.__v!=n.__v&&(i.props=m,i.state=i.__s,i.__d=!1),t.__e=n.__e,t.__k=n.__k,t.__k.some(function(O){O&&(O.__=t)}),T=0;T<i._sb.length;T++)i.__h.push(i._sb[T]);i._sb=[],i.__h.length&&s.push(i);break e}i.componentWillUpdate!=null&&i.componentWillUpdate(m,i.__s,N),h&&i.componentDidUpdate!=null&&i.__h.push(function(){i.componentDidUpdate(c,x,k)})}if(i.context=N,i.props=m,i.__P=e,i.__e=!1,z=p.__r,V=0,h){for(i.state=i.__s,i.__d=!1,z&&z(t),f=i.render(i.props,i.state,i.context),w=0;w<i._sb.length;w++)i.__h.push(i._sb[w]);i._sb=[]}else do i.__d=!1,z&&z(t),f=i.render(i.props,i.state,i.context),i.state=i.__s;while(i.__d&&++V<25);i.state=i.__s,i.getChildContext!=null&&(o=U(U({},o),i.getChildContext())),h&&!d&&i.getSnapshotBeforeUpdate!=null&&(k=i.getSnapshotBeforeUpdate(c,x)),R=f,f!=null&&f.type===F&&f.key==null&&(R=ze(f.props.children)),l=Ae(e,Y(R)?R:[R],t,n,o,r,a,s,l,_,u),i.base=t.__e,t.__u&=-161,i.__h.length&&s.push(i),g&&(i.__E=i.__=null)}catch(O){if(t.__v=null,_||a!=null)if(O.then){for(t.__u|=_?160:128;l&&l.nodeType==8&&l.nextSibling;)l=l.nextSibling;a[a.indexOf(l)]=null,t.__e=l}else{for(B=a.length;B--;)_e(a[B]);se(t)}else t.__e=n.__e,t.__k=n.__k,O.then||se(t);p.__e(O,t,n)}else a==null&&t.__v==n.__v?(t.__k=n.__k,t.__e=n.__e):l=t.__e=Wt(n.__e,t,n,o,r,a,s,_,u);return(f=p.diffed)&&f(t),128&t.__u?void 0:l}function se(e){e&&e.__c&&(e.__c.__e=!0),e&&e.__k&&e.__k.forEach(se)}function At(e,t,n){for(var o=0;o<n.length;o++)ce(n[o],n[++o],n[++o]);p.__c&&p.__c(t,e),e.some(function(r){try{e=r.__h,r.__h=[],e.some(function(a){a.call(r)})}catch(a){p.__e(a,r.__v)}})}function ze(e){return typeof e!="object"||e==null||e.__b&&e.__b>0?e:Y(e)?e.map(ze):U({},e)}function Wt(e,t,n,o,r,a,s,l,_){var u,f,i,d,c,x,k,g=n.props,m=t.props,h=t.type;if(h=="svg"?r="http://www.w3.org/2000/svg":h=="math"?r="http://www.w3.org/1998/Math/MathML":r||(r="http://www.w3.org/1999/xhtml"),a!=null){for(u=0;u<a.length;u++)if((c=a[u])&&"setAttribute"in c==!!h&&(h?c.localName==h:c.nodeType==3)){e=c,a[u]=null;break}}if(e==null){if(h==null)return document.createTextNode(m);e=document.createElementNS(r,h,m.is&&m),l&&(p.__m&&p.__m(t,a),l=!1),a=null}if(h==null)g===m||l&&e.data==m||(e.data=m);else{if(a=a&&ue.call(e.childNodes),g=n.props||ie,!l&&a!=null)for(g={},u=0;u<e.attributes.length;u++)g[(c=e.attributes[u]).name]=c.value;for(u in g)if(c=g[u],u!="children"){if(u=="dangerouslySetInnerHTML")i=c;else if(!(u in m)){if(u=="value"&&"defaultValue"in m||u=="checked"&&"defaultChecked"in m)continue;J(e,u,null,c,r)}}for(u in m)c=m[u],u=="children"?d=c:u=="dangerouslySetInnerHTML"?f=c:u=="value"?x=c:u=="checked"?k=c:l&&typeof c!="function"||g[u]===c||J(e,u,c,g[u],r);if(f)l||i&&(f.__html==i.__html||f.__html==e.innerHTML)||(e.innerHTML=f.__html),t.__k=[];else if(i&&(e.innerHTML=""),Ae(t.type=="template"?e.content:e,Y(d)?d:[d],t,n,o,h=="foreignObject"?"http://www.w3.org/1999/xhtml":r,a,s,a?a[0]:n.__k&&q(n,0),l,_),a!=null)for(u=a.length;u--;)_e(a[u]);l||(u="value",h=="progress"&&x==null?e.removeAttribute("value"):x!=null&&(x!==e[u]||h=="progress"&&!x||h=="option"&&x!=g[u])&&J(e,u,x,g[u],r),u="checked",k!=null&&k!=e[u]&&J(e,u,k,g[u],r))}return e}function ce(e,t,n){try{if(typeof e=="function"){var o=typeof e.__u=="function";o&&e.__u(),o&&t==null||(e.__u=e(t))}else e.current=t}catch(r){p.__e(r,n)}}function Oe(e,t,n){var o,r;if(p.unmount&&p.unmount(e),(o=e.ref)&&(o.current&&o.current!=e.__e||ce(o,null,t)),(o=e.__c)!=null){if(o.componentWillUnmount)try{o.componentWillUnmount()}catch(a){p.__e(a,t)}o.base=o.__P=null}if(o=e.__k)for(r=0;r<o.length;r++)o[r]&&Oe(o[r],t,n||typeof e.type!="function");n||_e(e.__e),e.__c=e.__=e.__e=void 0}function Lt(e,t,n){return this.constructor(e,n)}ue=He.slice,p={__e:function(e,t,n,o){for(var r,a,s;t=t.__;)if((r=t.__c)&&!r.__)try{if((a=r.constructor)&&a.getDerivedStateFromError!=null&&(r.setState(a.getDerivedStateFromError(e)),s=r.__d),r.componentDidCatch!=null&&(r.componentDidCatch(e,o||{}),s=r.__d),s)return r.__E=r}catch(l){e=l}throw e}},Te=0,Mt=function(e){return e!=null&&e.constructor==null},A.prototype.setState=function(e,t){var n;n=this.__s!=null&&this.__s!=this.state?this.__s:this.__s=U({},this.state),typeof e=="function"&&(e=e(U({},n),this.props)),e&&U(n,e),e!=null&&this.__v&&(t&&this._sb.push(t),we(this))},A.prototype.forceUpdate=function(e){this.__v&&(this.__e=!0,e&&this.__h.push(e),we(this))},A.prototype.render=F,$=[],Me=typeof Promise=="function"?Promise.prototype.then.bind(Promise.resolve()):setTimeout,De=function(e,t){return e.__v.__b-t.__v.__b},Q.__r=0,Fe=/(PointerCapture)$|Capture$/i,le=0,re=Pe(!1),ae=Pe(!0),Dt=0;var X,C,pe,Ue,Z=0,Ke=[],S=p,Ie=S.__b,Be=S.__r,$e=S.diffed,je=S.__c,Ve=S.unmount,qe=S.__;function de(e,t){S.__h&&S.__h(C,e,Z||t),Z=0;var n=C.__H||(C.__H={__:[],__h:[]});return e>=n.__.length&&n.__.push({}),n.__[e]}function H(e){return Z=1,Xe(Je,e)}function Xe(e,t,n){var o=de(X++,2);if(o.t=e,!o.__c&&(o.__=[n?n(t):Je(void 0,t),function(l){var _=o.__N?o.__N[0]:o.__[0],u=o.t(_,l);_!==u&&(o.__N=[u,o.__[1]],o.__c.setState({}))}],o.__c=C,!C.__f)){var r=function(l,_,u){if(!o.__c.__H)return!0;var f=o.__c.__H.__.filter(function(d){return!!d.__c});if(f.every(function(d){return!d.__N}))return!a||a.call(this,l,_,u);var i=o.__c.props!==l;return f.forEach(function(d){if(d.__N){var c=d.__[0];d.__=d.__N,d.__N=void 0,c!==d.__[0]&&(i=!0)}}),a&&a.call(this,l,_,u)||i};C.__f=!0;var a=C.shouldComponentUpdate,s=C.componentWillUpdate;C.componentWillUpdate=function(l,_,u){if(this.__e){var f=a;a=void 0,r(l,_,u),a=f}s&&s.call(this,l,_,u)},C.shouldComponentUpdate=r}return o.__N||o.__}function j(e,t){var n=de(X++,3);!S.__s&&Ze(n.__H,t)&&(n.__=e,n.u=t,C.__H.__h.push(n))}function I(e){return Z=5,he(function(){return{current:e}},[])}function he(e,t){var n=de(X++,7);return Ze(n.__H,t)&&(n.__=e(),n.__H=t,n.__h=e),n.__}function W(e,t){return Z=8,he(function(){return e},t)}function zt(){for(var e;e=Ke.shift();)if(e.__P&&e.__H)try{e.__H.__h.forEach(te),e.__H.__h.forEach(fe),e.__H.__h=[]}catch(t){e.__H.__h=[],S.__e(t,e.__v)}}S.__b=function(e){C=null,Ie&&Ie(e)},S.__=function(e,t){e&&t.__k&&t.__k.__m&&(e.__m=t.__k.__m),qe&&qe(e,t)},S.__r=function(e){Be&&Be(e),X=0;var t=(C=e.__c).__H;t&&(pe===C?(t.__h=[],C.__h=[],t.__.forEach(function(n){n.__N&&(n.__=n.__N),n.u=n.__N=void 0})):(t.__h.forEach(te),t.__h.forEach(fe),t.__h=[],X=0)),pe=C},S.diffed=function(e){$e&&$e(e);var t=e.__c;t&&t.__H&&(t.__H.__h.length&&(Ke.push(t)!==1&&Ue===S.requestAnimationFrame||((Ue=S.requestAnimationFrame)||Ot)(zt)),t.__H.__.forEach(function(n){n.u&&(n.__H=n.u),n.u=void 0})),pe=C=null},S.__c=function(e,t){t.some(function(n){try{n.__h.forEach(te),n.__h=n.__h.filter(function(o){return!o.__||fe(o)})}catch(o){t.some(function(r){r.__h&&(r.__h=[])}),t=[],S.__e(o,n.__v)}}),je&&je(e,t)},S.unmount=function(e){Ve&&Ve(e);var t,n=e.__c;n&&n.__H&&(n.__H.__.forEach(function(o){try{te(o)}catch(r){t=r}}),n.__H=void 0,t&&S.__e(t,n.__v))};var Ye=typeof requestAnimationFrame=="function";function Ot(e){var t,n=function(){clearTimeout(o),Ye&&cancelAnimationFrame(t),setTimeout(e)},o=setTimeout(n,35);Ye&&(t=requestAnimationFrame(n))}function te(e){var t=C,n=e.__c;typeof n=="function"&&(e.__c=void 0,n()),C=t}function fe(e){var t=C;e.__c=e.__(),C=t}function Ze(e,t){return!e||e.length!==t.length||t.some(function(n,o){return n!==e[o]})}function Je(e,t){return typeof t=="function"?t(e):t}function Bt(e,t){for(var n in t)e[n]=t[n];return e}function Ge(e,t){for(var n in e)if(n!=="__source"&&!(n in t))return!0;for(var o in t)if(o!=="__source"&&e[o]!==t[o])return!0;return!1}function Qe(e,t){this.props=e,this.context=t}(Qe.prototype=new A).isPureReactComponent=!0,Qe.prototype.shouldComponentUpdate=function(e,t){return Ge(this.props,e)||Ge(this.state,t)};var et=p.__b;p.__b=function(e){e.type&&e.type.__f&&e.ref&&(e.props.ref=e.ref,e.ref=null),et&&et(e)};var hn=typeof Symbol<"u"&&Symbol.for&&Symbol.for("react.forward_ref")||3911;var $t=p.__e;p.__e=function(e,t,n,o){if(e.then){for(var r,a=t;a=a.__;)if((r=a.__c)&&r.__c)return t.__e==null&&(t.__e=n.__e,t.__k=n.__k),r.__c(e,t)}$t(e,t,n,o)};var tt=p.unmount;function st(e,t,n){return e&&(e.__c&&e.__c.__H&&(e.__c.__H.__.forEach(function(o){typeof o.__c=="function"&&o.__c()}),e.__c.__H=null),(e=Bt({},e)).__c!=null&&(e.__c.__P===n&&(e.__c.__P=t),e.__c.__e=!0,e.__c=null),e.__k=e.__k&&e.__k.map(function(o){return st(o,t,n)})),e}function ut(e,t,n){return e&&n&&(e.__v=null,e.__k=e.__k&&e.__k.map(function(o){return ut(o,t,n)}),e.__c&&e.__c.__P===t&&(e.__e&&n.appendChild(e.__e),e.__c.__e=!0,e.__c.__P=n)),e}function me(){this.__u=0,this.o=null,this.__b=null}function lt(e){var t=e.__.__c;return t&&t.__a&&t.__a(e)}function ne(){this.i=null,this.l=null}p.unmount=function(e){var t=e.__c;t&&t.__R&&t.__R(),t&&32&e.__u&&(e.type=null),tt&&tt(e)},(me.prototype=new A).__c=function(e,t){var n=t.__c,o=this;o.o==null&&(o.o=[]),o.o.push(n);var r=lt(o.__v),a=!1,s=function(){a||(a=!0,n.__R=null,r?r(l):l())};n.__R=s;var l=function(){if(!--o.__u){if(o.state.__a){var _=o.state.__a;o.__v.__k[0]=ut(_,_.__c.__P,_.__c.__O)}var u;for(o.setState({__a:o.__b=null});u=o.o.pop();)u.forceUpdate()}};o.__u++||32&t.__u||o.setState({__a:o.__b=o.__v.__k[0]}),e.then(s,s)},me.prototype.componentWillUnmount=function(){this.o=[]},me.prototype.render=function(e,t){if(this.__b){if(this.__v.__k){var n=document.createElement("div"),o=this.__v.__k[0].__c;this.__v.__k[0]=st(this.__b,n,o.__O=o.__P)}this.__b=null}var r=t.__a&&ee(F,null,e.fallback);return r&&(r.__u&=-33),[ee(F,null,t.__a?null:e.children),r]};var nt=function(e,t,n){if(++n[1]===n[0]&&e.l.delete(t),e.props.revealOrder&&(e.props.revealOrder[0]!=="t"||!e.l.size))for(n=e.i;n;){for(;n.length>3;)n.pop()();if(n[1]<n[0])break;e.i=n=n[2]}};(ne.prototype=new A).__a=function(e){var t=this,n=lt(t.__v),o=t.l.get(e);return o[0]++,function(r){var a=function(){t.props.revealOrder?(o.push(r),nt(t,e,o)):r()};n?n(a):a()}},ne.prototype.render=function(e){this.i=null,this.l=new Map;var t=K(e.children);e.revealOrder&&e.revealOrder[0]==="b"&&t.reverse();for(var n=t.length;n--;)this.l.set(t[n],this.i=[1,0,this.i]);return e.children},ne.prototype.componentDidUpdate=ne.prototype.componentDidMount=function(){var e=this;this.l.forEach(function(t,n){nt(e,n,t)})};var jt=typeof Symbol<"u"&&Symbol.for&&Symbol.for("react.element")||60103,Vt=/^(?:accent|alignment|arabic|baseline|cap|clip(?!PathU)|color|dominant|fill|flood|font|glyph(?!R)|horiz|image(!S)|letter|lighting|marker(?!H|W|U)|overline|paint|pointer|shape|stop|strikethrough|stroke|text(?!L)|transform|underline|unicode|units|v|vector|vert|word|writing|x(?!C))[A-Z]/,qt=/^on(Ani|Tra|Tou|BeforeInp|Compo)/,Yt=/[A-Z0-9]/g,Kt=typeof document<"u",Xt=function(e){return(typeof Symbol<"u"&&typeof Symbol()=="symbol"?/fil|che|rad/:/fil|che|ra/).test(e)};A.prototype.isReactComponent={},["componentWillMount","componentWillReceiveProps","componentWillUpdate"].forEach(function(e){Object.defineProperty(A.prototype,e,{configurable:!0,get:function(){return this["UNSAFE_"+e]},set:function(t){Object.defineProperty(this,e,{configurable:!0,writable:!0,value:t})}})});var ot=p.event;function Zt(){}function Jt(){return this.cancelBubble}function Gt(){return this.defaultPrevented}p.event=function(e){return ot&&(e=ot(e)),e.persist=Zt,e.isPropagationStopped=Jt,e.isDefaultPrevented=Gt,e.nativeEvent=e};var _t,Qt={enumerable:!1,configurable:!0,get:function(){return this.class}},rt=p.vnode;p.vnode=function(e){typeof e.type=="string"&&(function(t){var n=t.props,o=t.type,r={},a=o.indexOf("-")===-1;for(var s in n){var l=n[s];if(!(s==="value"&&"defaultValue"in n&&l==null||Kt&&s==="children"&&o==="noscript"||s==="class"||s==="className")){var _=s.toLowerCase();s==="defaultValue"&&"value"in n&&n.value==null?s="value":s==="download"&&l===!0?l="":_==="translate"&&l==="no"?l=!1:_[0]==="o"&&_[1]==="n"?_==="ondoubleclick"?s="ondblclick":_!=="onchange"||o!=="input"&&o!=="textarea"||Xt(n.type)?_==="onfocus"?s="onfocusin":_==="onblur"?s="onfocusout":qt.test(s)&&(s=_):_=s="oninput":a&&Vt.test(s)?s=s.replace(Yt,"-$&").toLowerCase():l===null&&(l=void 0),_==="oninput"&&r[s=_]&&(s="oninputCapture"),r[s]=l}}o=="select"&&r.multiple&&Array.isArray(r.value)&&(r.value=K(n.children).forEach(function(u){u.props.selected=r.value.indexOf(u.props.value)!=-1})),o=="select"&&r.defaultValue!=null&&(r.value=K(n.children).forEach(function(u){u.props.selected=r.multiple?r.defaultValue.indexOf(u.props.value)!=-1:r.defaultValue==u.props.value})),n.class&&!n.className?(r.class=n.class,Object.defineProperty(r,"className",Qt)):(n.className&&!n.class||n.class&&n.className)&&(r.class=r.className=n.className),t.props=r})(e),e.$$typeof=jt,rt&&rt(e)};var at=p.__r;p.__r=function(e){at&&at(e),_t=e.__c};var it=p.diffed;p.diffed=function(e){it&&it(e);var t=e.props,n=e.__e;n!=null&&e.type==="textarea"&&"value"in t&&t.value!==n.value&&(n.value=t.value==null?"":t.value),_t=null};function ct(e,t){if(t)switch(e){case"small":return{width:"50%",maxWidth:"400px"};case"medium":return{width:"65%",maxWidth:"600px"};case"large":return{width:"80%",maxWidth:"900px"};default:return{width:"65%",maxWidth:"600px"}}switch(e){case"small":return{width:"90%",maxWidth:"400px"};case"medium":return{width:"90%",maxWidth:"600px"};case"large":return{width:"90%",maxWidth:"900px"};default:return{width:"90%",maxWidth:"600px"}}}function pt(e){let t={position:"fixed",zIndex:1e4};switch(e){case"center":return{...t,top:"50%",left:"50%",transform:"translate(-50%, -50%)"};case"top":return{...t,top:"20px",left:"50%",transform:"translateX(-50%)"};case"bottom":return{...t,bottom:"20px",left:"50%",transform:"translateX(-50%)"};case"left":return{...t,top:"50%",left:"20px",transform:"translateY(-50%)"};case"right":return{...t,top:"50%",right:"20px",transform:"translateY(-50%)"};default:return{...t,top:"50%",left:"50%",transform:"translate(-50%, -50%)"}}}function ft(e,t=!1){return e==="none"?"":`${t?"popup-exit":"popup-enter"}-${e}`}function dt(){return`
+"use strict";
+(() => {
+  // global-preact:global-preact:react
+  if (typeof window === "undefined" || !window.RevenueBoostPreact) {
+    throw new Error("RevenueBoostPreact not found. Make sure main bundle is loaded first.");
+  }
+  var { h, Component, Fragment, render, createPortal } = window.RevenueBoostPreact;
+  var { useState, useEffect, useCallback, useRef, useMemo } = window.RevenueBoostPreact.hooks;
+
+  // app/domains/storefront/popups-new/utils.ts
+  function getSizeDimensions(size, previewMode) {
+    if (previewMode) {
+      switch (size) {
+        case "small":
+          return { width: "50%", maxWidth: "400px" };
+        case "medium":
+          return { width: "65%", maxWidth: "600px" };
+        case "large":
+          return { width: "80%", maxWidth: "900px" };
+        default:
+          return { width: "65%", maxWidth: "600px" };
+      }
+    }
+    switch (size) {
+      case "small":
+        return { width: "90%", maxWidth: "400px" };
+      case "medium":
+        return { width: "90%", maxWidth: "600px" };
+      case "large":
+        return { width: "90%", maxWidth: "900px" };
+      default:
+        return { width: "90%", maxWidth: "600px" };
+    }
+  }
+  function getPositionStyles(position) {
+    const baseStyles = {
+      position: "fixed",
+      zIndex: 1e4
+    };
+    switch (position) {
+      case "center":
+        return {
+          ...baseStyles,
+          top: "50%",
+          left: "50%",
+          transform: "translate(-50%, -50%)"
+        };
+      case "top":
+        return {
+          ...baseStyles,
+          top: "20px",
+          left: "50%",
+          transform: "translateX(-50%)"
+        };
+      case "bottom":
+        return {
+          ...baseStyles,
+          bottom: "20px",
+          left: "50%",
+          transform: "translateX(-50%)"
+        };
+      case "left":
+        return {
+          ...baseStyles,
+          top: "50%",
+          left: "20px",
+          transform: "translateY(-50%)"
+        };
+      case "right":
+        return {
+          ...baseStyles,
+          top: "50%",
+          right: "20px",
+          transform: "translateY(-50%)"
+        };
+      default:
+        return {
+          ...baseStyles,
+          top: "50%",
+          left: "50%",
+          transform: "translate(-50%, -50%)"
+        };
+    }
+  }
+  function getAnimationClass(animation, isExiting = false) {
+    if (animation === "none") return "";
+    const prefix = isExiting ? "popup-exit" : "popup-enter";
+    return `${prefix}-${animation}`;
+  }
+  function getAnimationKeyframes() {
+    return `
     @keyframes popup-enter-fade {
       from { opacity: 0; }
       to { opacity: 1; }
@@ -76,4 +166,524 @@
         animation: none !important;
       }
     }
-  `}function ht(e){return/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)}async function mt(e){try{if(navigator.clipboard&&navigator.clipboard.writeText)return await navigator.clipboard.writeText(e),!0;{let t=document.createElement("textarea");t.value=e,t.style.position="fixed",t.style.left="-999999px",document.body.appendChild(t),t.select();let n=document.execCommand("copy");return document.body.removeChild(t),n}}catch(t){return console.error("Failed to copy to clipboard:",t),!1}}function vt(){return typeof window>"u"?!1:window.matchMedia("(prefers-reduced-motion: reduce)").matches}var en=0;function y(e,t,n,o,r,a){t||(t={});var s,l,_=t;if("ref"in _)for(l in _={},t)l=="ref"?s=t[l]:_[l]=t[l];var u={type:e,props:_,key:n,ref:s,__k:null,__:null,__b:0,__e:null,__c:null,constructor:void 0,__v:--en,__i:-1,__u:0,__source:r,__self:a};if(typeof e=="function"&&(s=e.defaultProps))for(l in s)_[l]===void 0&&(_[l]=s[l]);return p.vnode&&p.vnode(u),u}var yt=({config:e,isVisible:t,onClose:n,children:o,className:r=""})=>{let[a,s]=H(!1),l=I(null),_=I(null),u=W(h=>{h.key==="Escape"&&e.closeOnEscape!==!1&&i()},[e.closeOnEscape]),f=W(h=>{h.target===h.currentTarget&&e.closeOnOverlayClick!==!1&&i()},[e.closeOnOverlayClick]),i=W(()=>{e.animation&&e.animation!=="none"&&!vt()?(s(!0),setTimeout(()=>{n(),s(!1)},300)):n()},[e.animation,n]);if(j(()=>{if(t)return document.addEventListener("keydown",u),()=>document.removeEventListener("keydown",u)},[t,u]),j(()=>{t?(_.current=document.activeElement,setTimeout(()=>l.current?.focus(),100)):_.current&&_.current.focus()},[t]),j(()=>{if(t&&e.autoCloseDelay&&e.autoCloseDelay>0){let h=setTimeout(i,e.autoCloseDelay*1e3);return()=>clearTimeout(h)}},[t,e.autoCloseDelay,i]),!t&&!a)return null;let d=ct(e.size,e.previewMode),c=pt(e.position),x=ft(e.animation||"fade",a),k={position:e.previewMode?"absolute":"fixed",top:0,left:0,right:0,bottom:0,backgroundColor:e.overlayColor||"rgba(0, 0, 0, 0.5)",opacity:e.overlayOpacity??1,zIndex:e.previewMode?1:9999,display:"flex",alignItems:"center",justifyContent:"center"},g={...c,width:e.maxWidth||d.width,maxWidth:e.maxWidth||d.maxWidth,backgroundColor:e.backgroundColor,color:e.textColor,borderRadius:`${e.borderRadius??8}px`,padding:e.padding??"24px",boxShadow:"0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",outline:"none",maxHeight:e.previewMode?"85%":"90vh",overflowY:"auto"},m={position:"absolute",top:"12px",right:"12px",background:"transparent",border:"none",fontSize:"24px",cursor:"pointer",color:e.textColor,opacity:.6,transition:"opacity 0.2s",padding:"4px 8px",lineHeight:1};return y(F,{children:[y("style",{children:dt()}),y("div",{style:k,onClick:f,role:"presentation","data-testid":"popup-overlay",children:y("div",{ref:l,className:`${r} ${x}`.trim(),style:g,role:"dialog","data-testid":"popup-container","aria-modal":"true","aria-label":e.ariaLabel||e.headline,"aria-describedby":e.ariaDescribedBy,tabIndex:-1,children:[e.showCloseButton!==!1&&y("button",{onClick:i,style:m,"aria-label":"Close popup","data-testid":"popup-close",onMouseEnter:h=>h.currentTarget.style.opacity="1",onMouseLeave:h=>h.currentTarget.style.opacity="0.6",children:"\xD7"}),o]})})]})};var bt=({config:e,isVisible:t,onClose:n,onSubmit:o,onReveal:r})=>{let[a,s]=H(""),[l,_]=H(""),[u,f]=H(!1),[i,d]=H(!1),[c,x]=H(0),[k,g]=H(!1),[m,h]=H(null),[L,N]=H(!1),T=I(null),z=I(null),V=I(!1),w=e.scratchCardWidth||300,R=e.scratchCardHeight||200,B=e.scratchThreshold||50,D=e.scratchRadius||20,O=W(()=>{let v=e.prizes||[],E=v.reduce((b,M)=>b+M.probability,0),P=Math.random()*E;for(let b of v)if(P-=b.probability,P<=0)return b;return v[0]},[e.prizes]);j(()=>{if(!T.current||!z.current||!u&&e.emailBeforeScratching)return;let v=T.current,E=z.current,P=v.getContext("2d"),b=E.getContext("2d");if(!P||!b)return;let M=O();h(M),b.fillStyle=e.scratchCardBackgroundColor||"#FFFFFF",b.fillRect(0,0,w,R),b.fillStyle=e.scratchCardTextColor||"#000000",b.font="bold 32px Arial",b.textAlign="center",b.textBaseline="middle",b.fillText(M.label,w/2,R/2),P.fillStyle=e.scratchOverlayColor||"#C0C0C0",P.fillRect(0,0,w,R),P.fillStyle="#FFFFFF",P.font="bold 18px Arial",P.textAlign="center",P.textBaseline="middle",P.fillText(e.scratchInstruction||"Scratch to reveal!",w/2,R/2),P.globalCompositeOperation="destination-out"},[u,e,w,R,O]);let ve=W(()=>{if(!T.current)return 0;let E=T.current.getContext("2d");if(!E)return 0;let b=E.getImageData(0,0,w,R).data,M=0;for(let oe=3;oe<b.length;oe+=4)b[oe]<128&&M++;return M/(w*R)*100},[w,R]),ye=W((v,E)=>{if(!T.current)return;let b=T.current.getContext("2d");if(!b)return;b.beginPath(),b.arc(v,E,D,0,2*Math.PI),b.fill();let M=ve();x(M),M>=B&&!k&&(g(!0),m&&r&&r(m))},[D,ve,B,k,m,r]),be=v=>{if(!T.current)return null;let P=T.current.getBoundingClientRect(),b,M;if("touches"in v){if(v.touches.length===0)return null;b=v.touches[0].clientX,M=v.touches[0].clientY}else b=v.clientX,M=v.clientY;return{x:b-P.left,y:M-P.top}},xe=v=>{v.preventDefault(),V.current=!0,d(!0);let E=be(v);E&&ye(E.x,E.y)},ge=v=>{if(!V.current)return;v.preventDefault();let E=be(v);E&&ye(E.x,E.y)},Ce=()=>{V.current=!1,d(!1)},xt=v=>xe(v),gt=v=>ge(v),Se=v=>Ce(),Ct=v=>xe(v),St=v=>ge(v),Et=v=>Ce(),kt=W(async v=>{if(v.preventDefault(),!ht(a)){_("Please enter a valid email address");return}_("");try{!e.previewMode&&o&&await o(a),f(!0)}catch{_("Something went wrong. Please try again.")}},[a,e.previewMode,o]),wt=W(async()=>{m?.discountCode&&await mt(m.discountCode)&&(N(!0),setTimeout(()=>N(!1),2e3))},[m]),Rt={width:"100%",padding:"12px 16px",fontSize:"16px",border:`1px solid ${e.inputBorderColor||"#D1D5DB"}`,borderRadius:`${e.borderRadius??8}px`,backgroundColor:e.inputBackgroundColor||"#FFFFFF",color:e.inputTextColor||"#1F2937",outline:"none"},Pt={width:"100%",padding:"14px 24px",fontSize:"16px",fontWeight:600,border:"none",borderRadius:`${e.borderRadius??8}px`,backgroundColor:e.buttonColor,color:e.buttonTextColor,cursor:"pointer"},Ee=e.emailRequired&&e.emailBeforeScratching&&!u,Tt=!Ee;return y(yt,{config:e,isVisible:t,onClose:n,children:y("div",{style:{display:"flex",flexDirection:"column",gap:"20px",alignItems:"center"},children:[y("div",{style:{textAlign:"center"},children:[y("h2",{style:{fontSize:"28px",fontWeight:700,margin:"0 0 8px 0"},children:e.headline}),e.subheadline&&y("p",{style:{fontSize:"16px",margin:0,opacity:.8},children:e.subheadline})]}),Ee?y("form",{onSubmit:kt,style:{width:"100%",maxWidth:"400px",display:"flex",flexDirection:"column",gap:"16px"},children:[y("div",{children:[e.emailLabel&&y("label",{style:{display:"block",marginBottom:"8px",fontSize:"14px",fontWeight:600},children:e.emailLabel}),y("input",{type:"email",value:a,onChange:v=>s(v.target.value),placeholder:e.emailPlaceholder||"Enter your email",style:Rt,required:!0}),l&&y("p",{style:{color:"#EF4444",fontSize:"14px",margin:"6px 0 0 0"},children:l})]}),y("button",{type:"submit",style:Pt,children:e.buttonText||"Continue"})]}):Tt&&y(F,{children:[y("div",{style:{position:"relative",width:w,height:R,borderRadius:"12px",overflow:"hidden",boxShadow:"0 4px 6px rgba(0,0,0,0.1)"},children:[y("canvas",{ref:z,width:w,height:R,style:{position:"absolute",top:0,left:0}}),y("canvas",{ref:T,width:w,height:R,onMouseDown:xt,onMouseMove:gt,onMouseUp:Se,onMouseLeave:Se,onTouchStart:Ct,onTouchMove:St,onTouchEnd:Et,style:{position:"absolute",top:0,left:0,cursor:i?"grabbing":"grab",touchAction:"none"}})]}),c>0&&c<B&&y("div",{style:{width:"100%",maxWidth:w},children:[y("div",{style:{height:"8px",backgroundColor:"#E5E7EB",borderRadius:"4px",overflow:"hidden"},children:y("div",{style:{height:"100%",width:`${c}%`,backgroundColor:e.accentColor||e.buttonColor,transition:"width 0.3s"}})}),y("p",{style:{fontSize:"12px",textAlign:"center",margin:"4px 0 0 0",opacity:.7},children:[Math.round(c),"% scratched"]})]}),k&&m?.discountCode&&y("div",{style:{marginTop:"16px",padding:"20px",backgroundColor:e.accentColor||"#F3F4F6",borderRadius:"12px",width:"100%",maxWidth:"400px"},children:[y("p",{style:{fontSize:"14px",margin:"0 0 12px 0",textAlign:"center",opacity:.8},children:e.successMessage||"Congratulations! Your discount code:"}),y("div",{style:{display:"flex",alignItems:"center",justifyContent:"center",gap:"12px",flexWrap:"wrap"},children:[y("code",{style:{fontSize:"24px",fontWeight:700,padding:"10px 20px",backgroundColor:e.backgroundColor,borderRadius:"8px",letterSpacing:"2px"},children:m.discountCode}),y("button",{onClick:wt,style:{padding:"10px 20px",fontSize:"14px",fontWeight:600,border:"none",borderRadius:"8px",backgroundColor:e.buttonColor,color:e.buttonTextColor,cursor:"pointer"},children:L?"\u2713 Copied!":"Copy"})]})]})]})]})})};(function(){let t=window;t.RevenueBoostComponents=t.RevenueBoostComponents||{},t.RevenueBoostComponents.SCRATCH_CARD=bt,typeof t.console?.debug=="function"&&console.debug("[Revenue Boost] Scratch Card popup registered")})();})();
+  `;
+  }
+  function validateEmail(email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  }
+  async function copyToClipboard(text) {
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+        return true;
+      } else {
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+        textArea.style.position = "fixed";
+        textArea.style.left = "-999999px";
+        document.body.appendChild(textArea);
+        textArea.select();
+        const success = document.execCommand("copy");
+        document.body.removeChild(textArea);
+        return success;
+      }
+    } catch (error) {
+      console.error("Failed to copy to clipboard:", error);
+      return false;
+    }
+  }
+  function prefersReducedMotion() {
+    if (typeof window === "undefined") return false;
+    return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  }
+
+  // global-preact:global-preact:preact/jsx-runtime
+  if (typeof window === "undefined" || !window.RevenueBoostPreact) {
+    throw new Error("RevenueBoostPreact not found. Make sure main bundle is loaded first.");
+  }
+  var options = window.RevenueBoostPreact.options || {};
+  var h2 = window.RevenueBoostPreact.h;
+  var vnodeId = 0;
+  function jsx(type, props, key, isStaticChildren, __source, __self) {
+    if (!props) props = {};
+    let normalizedProps = props;
+    let ref;
+    if ("ref" in props) {
+      normalizedProps = {};
+      for (let i in props) {
+        if (i === "ref") ref = props[i];
+        else normalizedProps[i] = props[i];
+      }
+    }
+    const vnode = {
+      type,
+      props: normalizedProps,
+      key: key !== void 0 ? key : null,
+      ref: ref !== void 0 ? ref : null,
+      __k: null,
+      __: null,
+      __b: 0,
+      __e: null,
+      __c: null,
+      constructor: void 0,
+      __v: --vnodeId,
+      __i: -1,
+      __u: 0,
+      __source,
+      __self
+    };
+    if (typeof type === "function" && (ref = type.defaultProps)) {
+      for (let i in ref) {
+        if (normalizedProps[i] === void 0) {
+          normalizedProps[i] = ref[i];
+        }
+      }
+    }
+    if (options.vnode) options.vnode(vnode);
+    return vnode;
+  }
+  var jsxs = jsx;
+  var Fragment2 = window.RevenueBoostPreact.Fragment;
+
+  // app/domains/storefront/popups-new/BasePopup.tsx
+  var BasePopup = ({
+    config,
+    isVisible,
+    onClose,
+    children,
+    className = ""
+  }) => {
+    const [isExiting, setIsExiting] = useState(false);
+    const popupRef = useRef(null);
+    const previousFocusRef = useRef(null);
+    const handleEscapeKey = useCallback((event) => {
+      if (event.key === "Escape" && config.closeOnEscape !== false) {
+        handleClose();
+      }
+    }, [config.closeOnEscape]);
+    const handleOverlayClick = useCallback((event) => {
+      if (event.target === event.currentTarget && config.closeOnOverlayClick !== false) {
+        handleClose();
+      }
+    }, [config.closeOnOverlayClick]);
+    const handleClose = useCallback(() => {
+      if (config.animation && config.animation !== "none" && !prefersReducedMotion()) {
+        setIsExiting(true);
+        setTimeout(() => {
+          onClose();
+          setIsExiting(false);
+        }, 300);
+      } else {
+        onClose();
+      }
+    }, [config.animation, onClose]);
+    useEffect(() => {
+      if (isVisible) {
+        document.addEventListener("keydown", handleEscapeKey);
+        return () => document.removeEventListener("keydown", handleEscapeKey);
+      }
+    }, [isVisible, handleEscapeKey]);
+    useEffect(() => {
+      if (isVisible) {
+        previousFocusRef.current = document.activeElement;
+        setTimeout(() => popupRef.current?.focus(), 100);
+      } else if (previousFocusRef.current) {
+        previousFocusRef.current.focus();
+      }
+    }, [isVisible]);
+    useEffect(() => {
+      if (isVisible && config.autoCloseDelay && config.autoCloseDelay > 0) {
+        const timer = setTimeout(handleClose, config.autoCloseDelay * 1e3);
+        return () => clearTimeout(timer);
+      }
+    }, [isVisible, config.autoCloseDelay, handleClose]);
+    if (!isVisible && !isExiting) return null;
+    const sizeDimensions = getSizeDimensions(config.size, config.previewMode);
+    const positionStyles = getPositionStyles(config.position);
+    const animationClass = getAnimationClass(config.animation || "fade", isExiting);
+    const overlayStyles = {
+      position: config.previewMode ? "absolute" : "fixed",
+      // Use absolute in preview to stay within container
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: config.overlayColor || "rgba(0, 0, 0, 0.5)",
+      opacity: config.overlayOpacity ?? 1,
+      zIndex: config.previewMode ? 1 : 9999,
+      // Lower z-index in preview mode
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center"
+    };
+    const popupStyles = {
+      ...positionStyles,
+      width: config.maxWidth || sizeDimensions.width,
+      maxWidth: config.maxWidth || sizeDimensions.maxWidth,
+      backgroundColor: config.backgroundColor,
+      color: config.textColor,
+      borderRadius: `${config.borderRadius ?? 8}px`,
+      padding: config.padding ?? "24px",
+      boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
+      outline: "none",
+      maxHeight: config.previewMode ? "85%" : "90vh",
+      // Use percentage in preview mode
+      overflowY: "auto"
+    };
+    const closeButtonStyles = {
+      position: "absolute",
+      top: "12px",
+      right: "12px",
+      background: "transparent",
+      border: "none",
+      fontSize: "24px",
+      cursor: "pointer",
+      color: config.textColor,
+      opacity: 0.6,
+      transition: "opacity 0.2s",
+      padding: "4px 8px",
+      lineHeight: 1
+    };
+    return /* @__PURE__ */ jsxs(Fragment2, { children: [
+      /* @__PURE__ */ jsx("style", { children: getAnimationKeyframes() }),
+      /* @__PURE__ */ jsx("div", { style: overlayStyles, onClick: handleOverlayClick, role: "presentation", "data-testid": "popup-overlay", children: /* @__PURE__ */ jsxs(
+        "div",
+        {
+          ref: popupRef,
+          className: `${className} ${animationClass}`.trim(),
+          style: popupStyles,
+          role: "dialog",
+          "data-testid": "popup-container",
+          "aria-modal": "true",
+          "aria-label": config.ariaLabel || config.headline,
+          "aria-describedby": config.ariaDescribedBy,
+          tabIndex: -1,
+          children: [
+            config.showCloseButton !== false && /* @__PURE__ */ jsx(
+              "button",
+              {
+                onClick: handleClose,
+                style: closeButtonStyles,
+                "aria-label": "Close popup",
+                "data-testid": "popup-close",
+                onMouseEnter: (e) => e.currentTarget.style.opacity = "1",
+                onMouseLeave: (e) => e.currentTarget.style.opacity = "0.6",
+                children: "\xD7"
+              }
+            ),
+            children
+          ]
+        }
+      ) })
+    ] });
+  };
+
+  // app/domains/storefront/popups-new/ScratchCardPopup.tsx
+  var ScratchCardPopup = ({
+    config,
+    isVisible,
+    onClose,
+    onSubmit,
+    onReveal
+  }) => {
+    const [email, setEmail] = useState("");
+    const [emailError, setEmailError] = useState("");
+    const [emailSubmitted, setEmailSubmitted] = useState(false);
+    const [isScratching, setIsScratching] = useState(false);
+    const [scratchPercentage, setScratchPercentage] = useState(0);
+    const [isRevealed, setIsRevealed] = useState(false);
+    const [wonPrize, setWonPrize] = useState(null);
+    const [copiedCode, setCopiedCode] = useState(false);
+    const canvasRef = useRef(null);
+    const prizeCanvasRef = useRef(null);
+    const isDrawingRef = useRef(false);
+    const cardWidth = config.scratchCardWidth || 300;
+    const cardHeight = config.scratchCardHeight || 200;
+    const threshold = config.scratchThreshold || 50;
+    const brushRadius = config.scratchRadius || 20;
+    const selectPrize = useCallback(() => {
+      const prizes = config.prizes || [];
+      const totalProbability = prizes.reduce((sum, p) => sum + p.probability, 0);
+      let random = Math.random() * totalProbability;
+      for (const prize of prizes) {
+        random -= prize.probability;
+        if (random <= 0) {
+          return prize;
+        }
+      }
+      return prizes[0];
+    }, [config.prizes]);
+    useEffect(() => {
+      if (!canvasRef.current || !prizeCanvasRef.current) return;
+      if (!emailSubmitted && config.emailBeforeScratching) return;
+      const canvas = canvasRef.current;
+      const prizeCanvas = prizeCanvasRef.current;
+      const ctx = canvas.getContext("2d");
+      const prizeCtx = prizeCanvas.getContext("2d");
+      if (!ctx || !prizeCtx) return;
+      const prize = selectPrize();
+      setWonPrize(prize);
+      prizeCtx.fillStyle = config.scratchCardBackgroundColor || "#FFFFFF";
+      prizeCtx.fillRect(0, 0, cardWidth, cardHeight);
+      prizeCtx.fillStyle = config.scratchCardTextColor || "#000000";
+      prizeCtx.font = "bold 32px Arial";
+      prizeCtx.textAlign = "center";
+      prizeCtx.textBaseline = "middle";
+      prizeCtx.fillText(prize.label, cardWidth / 2, cardHeight / 2);
+      ctx.fillStyle = config.scratchOverlayColor || "#C0C0C0";
+      ctx.fillRect(0, 0, cardWidth, cardHeight);
+      ctx.fillStyle = "#FFFFFF";
+      ctx.font = "bold 18px Arial";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(config.scratchInstruction || "Scratch to reveal!", cardWidth / 2, cardHeight / 2);
+      ctx.globalCompositeOperation = "destination-out";
+    }, [emailSubmitted, config, cardWidth, cardHeight, selectPrize]);
+    const calculateScratchPercentage = useCallback(() => {
+      if (!canvasRef.current) return 0;
+      const canvas = canvasRef.current;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return 0;
+      const imageData = ctx.getImageData(0, 0, cardWidth, cardHeight);
+      const pixels = imageData.data;
+      let transparentPixels = 0;
+      for (let i = 3; i < pixels.length; i += 4) {
+        if (pixels[i] < 128) {
+          transparentPixels++;
+        }
+      }
+      return transparentPixels / (cardWidth * cardHeight) * 100;
+    }, [cardWidth, cardHeight]);
+    const scratch = useCallback((x, y) => {
+      if (!canvasRef.current) return;
+      const canvas = canvasRef.current;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+      ctx.beginPath();
+      ctx.arc(x, y, brushRadius, 0, 2 * Math.PI);
+      ctx.fill();
+      const percentage = calculateScratchPercentage();
+      setScratchPercentage(percentage);
+      if (percentage >= threshold && !isRevealed) {
+        setIsRevealed(true);
+        if (wonPrize && onReveal) {
+          onReveal(wonPrize);
+        }
+      }
+    }, [brushRadius, calculateScratchPercentage, threshold, isRevealed, wonPrize, onReveal]);
+    const getCoordinates = (e) => {
+      if (!canvasRef.current) return null;
+      const canvas = canvasRef.current;
+      const rect = canvas.getBoundingClientRect();
+      let clientX, clientY;
+      if ("touches" in e) {
+        if (e.touches.length === 0) return null;
+        clientX = e.touches[0].clientX;
+        clientY = e.touches[0].clientY;
+      } else {
+        clientX = e.clientX;
+        clientY = e.clientY;
+      }
+      return {
+        x: clientX - rect.left,
+        y: clientY - rect.top
+      };
+    };
+    const handleStart = (e) => {
+      e.preventDefault();
+      isDrawingRef.current = true;
+      setIsScratching(true);
+      const coords = getCoordinates(e);
+      if (coords) {
+        scratch(coords.x, coords.y);
+      }
+    };
+    const handleMove = (e) => {
+      if (!isDrawingRef.current) return;
+      e.preventDefault();
+      const coords = getCoordinates(e);
+      if (coords) {
+        scratch(coords.x, coords.y);
+      }
+    };
+    const handleEnd = () => {
+      isDrawingRef.current = false;
+      setIsScratching(false);
+    };
+    const handleMouseStart = (e) => handleStart(e);
+    const handleMouseMove = (e) => handleMove(e);
+    const handleMouseEnd = (_e) => handleEnd();
+    const handleTouchStart = (e) => handleStart(e);
+    const handleTouchMove = (e) => handleMove(e);
+    const handleTouchEnd = (_e) => handleEnd();
+    const handleEmailSubmit = useCallback(async (e) => {
+      e.preventDefault();
+      if (!validateEmail(email)) {
+        setEmailError("Please enter a valid email address");
+        return;
+      }
+      setEmailError("");
+      try {
+        if (!config.previewMode && onSubmit) {
+          await onSubmit(email);
+        }
+        setEmailSubmitted(true);
+      } catch (error) {
+        setEmailError("Something went wrong. Please try again.");
+      }
+    }, [email, config.previewMode, onSubmit]);
+    const handleCopyCode = useCallback(async () => {
+      if (wonPrize?.discountCode) {
+        const success = await copyToClipboard(wonPrize.discountCode);
+        if (success) {
+          setCopiedCode(true);
+          setTimeout(() => setCopiedCode(false), 2e3);
+        }
+      }
+    }, [wonPrize]);
+    const inputStyles = {
+      width: "100%",
+      padding: "12px 16px",
+      fontSize: "16px",
+      border: `1px solid ${config.inputBorderColor || "#D1D5DB"}`,
+      borderRadius: `${config.borderRadius ?? 8}px`,
+      backgroundColor: config.inputBackgroundColor || "#FFFFFF",
+      color: config.inputTextColor || "#1F2937",
+      outline: "none"
+    };
+    const buttonStyles = {
+      width: "100%",
+      padding: "14px 24px",
+      fontSize: "16px",
+      fontWeight: 600,
+      border: "none",
+      borderRadius: `${config.borderRadius ?? 8}px`,
+      backgroundColor: config.buttonColor,
+      color: config.buttonTextColor,
+      cursor: "pointer"
+    };
+    const showEmailForm = config.emailRequired && config.emailBeforeScratching && !emailSubmitted;
+    const showScratchCard = !showEmailForm;
+    return /* @__PURE__ */ jsx(BasePopup, { config, isVisible, onClose, children: /* @__PURE__ */ jsxs("div", { style: { display: "flex", flexDirection: "column", gap: "20px", alignItems: "center" }, children: [
+      /* @__PURE__ */ jsxs("div", { style: { textAlign: "center" }, children: [
+        /* @__PURE__ */ jsx("h2", { style: { fontSize: "28px", fontWeight: 700, margin: "0 0 8px 0" }, children: config.headline }),
+        config.subheadline && /* @__PURE__ */ jsx("p", { style: { fontSize: "16px", margin: 0, opacity: 0.8 }, children: config.subheadline })
+      ] }),
+      showEmailForm ? (
+        // Email form
+        /* @__PURE__ */ jsxs("form", { onSubmit: handleEmailSubmit, style: { width: "100%", maxWidth: "400px", display: "flex", flexDirection: "column", gap: "16px" }, children: [
+          /* @__PURE__ */ jsxs("div", { children: [
+            config.emailLabel && /* @__PURE__ */ jsx("label", { style: { display: "block", marginBottom: "8px", fontSize: "14px", fontWeight: 600 }, children: config.emailLabel }),
+            /* @__PURE__ */ jsx(
+              "input",
+              {
+                type: "email",
+                value: email,
+                onChange: (e) => setEmail(e.target.value),
+                placeholder: config.emailPlaceholder || "Enter your email",
+                style: inputStyles,
+                required: true
+              }
+            ),
+            emailError && /* @__PURE__ */ jsx("p", { style: { color: "#EF4444", fontSize: "14px", margin: "6px 0 0 0" }, children: emailError })
+          ] }),
+          /* @__PURE__ */ jsx("button", { type: "submit", style: buttonStyles, children: config.buttonText || "Continue" })
+        ] })
+      ) : showScratchCard && // Scratch card
+      /* @__PURE__ */ jsxs(Fragment2, { children: [
+        /* @__PURE__ */ jsxs("div", { style: { position: "relative", width: cardWidth, height: cardHeight, borderRadius: "12px", overflow: "hidden", boxShadow: "0 4px 6px rgba(0,0,0,0.1)" }, children: [
+          /* @__PURE__ */ jsx(
+            "canvas",
+            {
+              ref: prizeCanvasRef,
+              width: cardWidth,
+              height: cardHeight,
+              style: { position: "absolute", top: 0, left: 0 }
+            }
+          ),
+          /* @__PURE__ */ jsx(
+            "canvas",
+            {
+              ref: canvasRef,
+              width: cardWidth,
+              height: cardHeight,
+              onMouseDown: handleMouseStart,
+              onMouseMove: handleMouseMove,
+              onMouseUp: handleMouseEnd,
+              onMouseLeave: handleMouseEnd,
+              onTouchStart: handleTouchStart,
+              onTouchMove: handleTouchMove,
+              onTouchEnd: handleTouchEnd,
+              style: {
+                position: "absolute",
+                top: 0,
+                left: 0,
+                cursor: isScratching ? "grabbing" : "grab",
+                touchAction: "none"
+              }
+            }
+          )
+        ] }),
+        scratchPercentage > 0 && scratchPercentage < threshold && /* @__PURE__ */ jsxs("div", { style: { width: "100%", maxWidth: cardWidth }, children: [
+          /* @__PURE__ */ jsx("div", { style: {
+            height: "8px",
+            backgroundColor: "#E5E7EB",
+            borderRadius: "4px",
+            overflow: "hidden"
+          }, children: /* @__PURE__ */ jsx("div", { style: {
+            height: "100%",
+            width: `${scratchPercentage}%`,
+            backgroundColor: config.accentColor || config.buttonColor,
+            transition: "width 0.3s"
+          } }) }),
+          /* @__PURE__ */ jsxs("p", { style: { fontSize: "12px", textAlign: "center", margin: "4px 0 0 0", opacity: 0.7 }, children: [
+            Math.round(scratchPercentage),
+            "% scratched"
+          ] })
+        ] }),
+        isRevealed && wonPrize?.discountCode && /* @__PURE__ */ jsxs("div", { style: { marginTop: "16px", padding: "20px", backgroundColor: config.accentColor || "#F3F4F6", borderRadius: "12px", width: "100%", maxWidth: "400px" }, children: [
+          /* @__PURE__ */ jsx("p", { style: { fontSize: "14px", margin: "0 0 12px 0", textAlign: "center", opacity: 0.8 }, children: config.successMessage || "Congratulations! Your discount code:" }),
+          /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "center", gap: "12px", flexWrap: "wrap" }, children: [
+            /* @__PURE__ */ jsx("code", { style: {
+              fontSize: "24px",
+              fontWeight: 700,
+              padding: "10px 20px",
+              backgroundColor: config.backgroundColor,
+              borderRadius: "8px",
+              letterSpacing: "2px"
+            }, children: wonPrize.discountCode }),
+            /* @__PURE__ */ jsx(
+              "button",
+              {
+                onClick: handleCopyCode,
+                style: {
+                  padding: "10px 20px",
+                  fontSize: "14px",
+                  fontWeight: 600,
+                  border: "none",
+                  borderRadius: "8px",
+                  backgroundColor: config.buttonColor,
+                  color: config.buttonTextColor,
+                  cursor: "pointer"
+                },
+                children: copiedCode ? "\u2713 Copied!" : "Copy"
+              }
+            )
+          ] })
+        ] })
+      ] })
+    ] }) });
+  };
+
+  // extensions/storefront-src/bundles/scratch-card.ts
+  (function register() {
+    const g = window;
+    g.RevenueBoostComponents = g.RevenueBoostComponents || {};
+    g.RevenueBoostComponents["SCRATCH_CARD"] = ScratchCardPopup;
+    if (typeof g.console?.debug === "function") {
+      console.debug("[Revenue Boost] Scratch Card popup registered");
+    }
+  })();
+})();
+//# sourceMappingURL=scratch-card.bundle.js.map

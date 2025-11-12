@@ -51,3 +51,5 @@ TRIGGER_ARCHITECTURE_ANALYSIS.md
 /prisma/seed.ts
 /prisma/template-data.ts
 /prisma/verify-seed.ts
+test-results
+playwright-report

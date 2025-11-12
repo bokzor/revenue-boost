@@ -23,6 +23,7 @@ export interface ApiCampaignData {
   designConfig: Record<string, unknown>;
   targetRules: Record<string, unknown>;
   discountConfig: Record<string, unknown>;
+  experimentId?: string | null;
   isActive?: boolean;
   createdAt?: string;
   updatedAt?: string;

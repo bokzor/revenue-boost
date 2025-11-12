@@ -185,6 +185,69 @@ export class CampaignFilterService {
   }
 
   /**
+   * Filter campaigns by A/B test variant assignment
+   *
+   * For campaigns that are part of an experiment, only return ONE variant per visitor
+   * Uses visitor ID to consistently assign the same variant to the same user
+   */
+  static filterByVariantAssignment(
+    campaigns: CampaignWithConfigs[],
+    context: StorefrontContext
+  ): CampaignWithConfigs[] {
+    console.log("[Revenue Boost] 🧪 Filtering campaigns by variant assignment");
+
+    // Group campaigns by experimentId
+    const experimentGroups = new Map<string, CampaignWithConfigs[]>();
+    const standaloneCampaigns: CampaignWithConfigs[] = [];
+
+    campaigns.forEach(campaign => {
+      if (campaign.experimentId) {
+        const existing = experimentGroups.get(campaign.experimentId) || [];
+        existing.push(campaign);
+        experimentGroups.set(campaign.experimentId, existing);
+      } else {
+        standaloneCampaigns.push(campaign);
+      }
+    });
+
+    // For each experiment, select ONE variant based on visitor ID
+    const selectedVariants: CampaignWithConfigs[] = [];
+
+    experimentGroups.forEach((variants, experimentId) => {
+      console.log(`[Revenue Boost] 🧪 Experiment ${experimentId}: ${variants.length} variants found`);
+      console.log(`[Revenue Boost] 📋 Variants:`, variants.map(v => `${v.name} (${v.variantKey})`));
+
+      // Use visitor ID to deterministically select a variant
+      // This ensures the same visitor always sees the same variant
+      const visitorId = context.visitorId || context.sessionId || 'anonymous';
+      const hash = this.hashString(visitorId + experimentId);
+      const selectedIndex = hash % variants.length;
+      const selected = variants[selectedIndex];
+
+      console.log(`[Revenue Boost] ✅ Selected variant: ${selected.name} (${selected.variantKey}) for visitor ${visitorId.substring(0, 8)}...`);
+      selectedVariants.push(selected);
+    });
+
+    const result = [...standaloneCampaigns, ...selectedVariants];
+    console.log(`[Revenue Boost] 🧪 After variant assignment: ${result.length} campaigns (${standaloneCampaigns.length} standalone + ${selectedVariants.length} experiment variants)\n`);
+
+    return result;
+  }
+
+  /**
+   * Simple string hash function for consistent variant assignment
+   */
+  private static hashString(str: string): number {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32bit integer
+    }
+    return Math.abs(hash);
+  }
+
+  /**
    * Apply all filters to campaigns
    * Now async to support Redis-based frequency capping
    */
@@ -211,6 +274,11 @@ export class CampaignFilterService {
     console.log("[Revenue Boost] === AUDIENCE SEGMENTS FILTER ===");
     filtered = this.filterByAudienceSegments(filtered, context);
     console.log(`[Revenue Boost] After audience segments filter: ${filtered.length} campaigns remaining\n`);
+
+    // Apply variant assignment filter (for A/B tests)
+    console.log("[Revenue Boost] === VARIANT ASSIGNMENT FILTER ===");
+    filtered = this.filterByVariantAssignment(filtered, context);
+    console.log(`[Revenue Boost] After variant assignment filter: ${filtered.length} campaigns remaining\n`);
 
     // Apply frequency capping filter (async - uses Redis)
     console.log("[Revenue Boost] === FREQUENCY CAPPING FILTER ===");

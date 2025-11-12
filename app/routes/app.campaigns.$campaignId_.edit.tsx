@@ -7,7 +7,7 @@
 import { data, type LoaderFunctionArgs } from "react-router";
 import { useLoaderData, useNavigate } from "react-router";
 import { Frame, Toast } from "@shopify/polaris";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 import { authenticate } from "~/shopify.server";
 import { getStoreId } from "~/lib/auth-helpers.server";
@@ -89,11 +89,12 @@ export default function CampaignEditPage() {
   const [toastError, setToastError] = useState(false);
 
   // Redirect to experiment edit page if campaign is part of an A/B test
-  if (campaign?.experimentId) {
-    console.log(`[Campaign Edit] Campaign ${campaign.id} is part of experiment ${campaign.experimentId}, redirecting...`);
-    navigate(`/app/experiments/${campaign.experimentId}/edit`);
-    return null;
-  }
+  useEffect(() => {
+    if (campaign?.experimentId) {
+      console.log(`[Campaign Edit] Campaign ${campaign.id} is part of experiment ${campaign.experimentId}, redirecting...`);
+      navigate(`/app/experiments/${campaign.experimentId}/edit`);
+    }
+  }, [campaign, navigate]);
 
   // Helper function to show toast
   const showToast = (message: string, isError = false) => {
@@ -211,9 +212,14 @@ export default function CampaignEditPage() {
   ) : null;
 
   // If no campaign found, redirect back
+  useEffect(() => {
+    if (!campaign) {
+      console.log('[Campaign Edit Page] No campaign found, redirecting to campaigns list');
+      navigate("/app/campaigns");
+    }
+  }, [campaign, navigate]);
+
   if (!campaign) {
-    console.log('[Campaign Edit Page] No campaign found, redirecting to campaigns list');
-    navigate("/app/campaigns");
     return null;
   }
 

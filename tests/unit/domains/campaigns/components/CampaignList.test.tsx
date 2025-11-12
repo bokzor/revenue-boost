@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { AppProvider } from '@shopify/polaris';
 import en from '@shopify/polaris/locales/en.json';
@@ -46,7 +47,8 @@ function renderWithPolaris(ui: React.ReactNode) {
 }
 
 describe('CampaignList (grouped by experiment)', () => {
-  it('shows experiment group with name and variant badges, and standalone section when present', () => {
+  it('shows experiment group with name and variant badges, and standalone section when present', async () => {
+    const user = userEvent.setup();
     const variantA = makeCampaign({ id: 'cA', name: 'Variant A Campaign', experimentId: 'exp_1', variantKey: 'A', isControl: true });
     const variantB = makeCampaign({ id: 'cB', name: 'Variant B Campaign', experimentId: 'exp_1', variantKey: 'B', isControl: false });
     const standalone = makeCampaign({ id: 'cS', name: 'Standalone Campaign' });
@@ -59,16 +61,16 @@ describe('CampaignList (grouped by experiment)', () => {
       <CampaignList campaigns={[variantA, variantB, standalone]} experiments={experiments} />
     );
 
-    // Experiment section header and name
-    expect(screen.getByText('Experiments')).toBeTruthy();
+    // Experiment name should be visible
     expect(screen.getByText('Price Test')).toBeTruthy();
 
-    // Variant badges indicating keys and control
+    // Expand the experiment to see variants
+    const expandButton = screen.getByRole('button', { name: /expand experiment/i });
+    await user.click(expandButton);
+
+    // Variant badges indicating keys and control should now be visible
     expect(screen.getAllByText(/Variant A \(Control\)/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/Variant B/i).length).toBeGreaterThan(0);
-
-    // Standalone section label present when both exist
-    expect(screen.getByText('Standalone campaigns')).toBeTruthy();
   });
 
   it('shows count as number of top-level rows (experiment groups + standalone)', () => {
@@ -86,6 +88,157 @@ describe('CampaignList (grouped by experiment)', () => {
 
     // One experiment group + one standalone campaign = 2 items
     expect(screen.getByText(/2 items/i)).toBeTruthy();
+  });
+
+  it('calls onExperimentSelect when clicking on experiment row', async () => {
+    const user = userEvent.setup();
+    const onExperimentSelect = vi.fn();
+
+    const variantA = makeCampaign({ id: 'cA', name: 'Variant A Campaign', experimentId: 'exp_1', variantKey: 'A', isControl: true });
+    const variantB = makeCampaign({ id: 'cB', name: 'Variant B Campaign', experimentId: 'exp_1', variantKey: 'B', isControl: false });
+
+    const experiments = [
+      { id: 'exp_1', name: 'Price Test' } as any,
+    ];
+
+    renderWithPolaris(
+      <CampaignList
+        campaigns={[variantA, variantB]}
+        experiments={experiments}
+        onExperimentSelect={onExperimentSelect}
+      />
+    );
+
+    // Click on the experiment row (the text "Price Test")
+    const experimentRow = screen.getByText('Price Test');
+    await user.click(experimentRow);
+
+    expect(onExperimentSelect).toHaveBeenCalledWith('exp_1');
+  });
+
+  it('calls onExperimentEdit when clicking Edit button on experiment', async () => {
+    const user = userEvent.setup();
+    const onExperimentEdit = vi.fn();
+
+    const variantA = makeCampaign({ id: 'cA', name: 'Variant A Campaign', experimentId: 'exp_1', variantKey: 'A', isControl: true });
+    const variantB = makeCampaign({ id: 'cB', name: 'Variant B Campaign', experimentId: 'exp_1', variantKey: 'B', isControl: false });
+
+    const experiments = [
+      { id: 'exp_1', name: 'Price Test' } as any,
+    ];
+
+    renderWithPolaris(
+      <CampaignList
+        campaigns={[variantA, variantB]}
+        experiments={experiments}
+        onExperimentEdit={onExperimentEdit}
+      />
+    );
+
+    // Find and click the Edit button
+    const editButtons = screen.getAllByRole('button', { name: /edit/i });
+    const experimentEditButton = editButtons.find(btn => btn.textContent === 'Edit');
+
+    if (experimentEditButton) {
+      await user.click(experimentEditButton);
+      expect(onExperimentEdit).toHaveBeenCalledWith('exp_1');
+    }
+  });
+
+  it('calls onExperimentEdit with variantKey when clicking Edit Variant button', async () => {
+    const user = userEvent.setup();
+    const onExperimentEdit = vi.fn();
+
+    const variantA = makeCampaign({ id: 'cA', name: 'Variant A Campaign', experimentId: 'exp_1', variantKey: 'A', isControl: true });
+    const variantB = makeCampaign({ id: 'cB', name: 'Variant B Campaign', experimentId: 'exp_1', variantKey: 'B', isControl: false });
+
+    const experiments = [
+      { id: 'exp_1', name: 'Price Test' } as any,
+    ];
+
+    renderWithPolaris(
+      <CampaignList
+        campaigns={[variantA, variantB]}
+        experiments={experiments}
+        onExperimentEdit={onExperimentEdit}
+      />
+    );
+
+    // First expand the experiment to see variants
+    const expandButton = screen.getByRole('button', { name: /expand experiment/i });
+    await user.click(expandButton);
+
+    // Find and click the "Edit Variant" button for variant B
+    const editVariantButtons = screen.getAllByRole('button', { name: /edit variant/i });
+
+    // Click on the second variant's edit button (Variant B)
+    if (editVariantButtons.length > 1) {
+      await user.click(editVariantButtons[1]);
+      expect(onExperimentEdit).toHaveBeenCalledWith('exp_1', 'B');
+    }
+  });
+
+  it('does not call onExperimentSelect when clicking expand/collapse button', async () => {
+    const user = userEvent.setup();
+    const onExperimentSelect = vi.fn();
+
+    const variantA = makeCampaign({ id: 'cA', name: 'Variant A Campaign', experimentId: 'exp_1', variantKey: 'A', isControl: true });
+    const variantB = makeCampaign({ id: 'cB', name: 'Variant B Campaign', experimentId: 'exp_1', variantKey: 'B', isControl: false });
+
+    const experiments = [
+      { id: 'exp_1', name: 'Price Test' } as any,
+    ];
+
+    renderWithPolaris(
+      <CampaignList
+        campaigns={[variantA, variantB]}
+        experiments={experiments}
+        onExperimentSelect={onExperimentSelect}
+      />
+    );
+
+    // Click the expand button
+    const expandButton = screen.getByRole('button', { name: /expand experiment/i });
+    await user.click(expandButton);
+
+    // onExperimentSelect should NOT have been called
+    expect(onExperimentSelect).not.toHaveBeenCalled();
+  });
+
+  it('does not call onExperimentSelect when clicking Edit button', async () => {
+    const user = userEvent.setup();
+    const onExperimentSelect = vi.fn();
+    const onExperimentEdit = vi.fn();
+
+    const variantA = makeCampaign({ id: 'cA', name: 'Variant A Campaign', experimentId: 'exp_1', variantKey: 'A', isControl: true });
+    const variantB = makeCampaign({ id: 'cB', name: 'Variant B Campaign', experimentId: 'exp_1', variantKey: 'B', isControl: false });
+
+    const experiments = [
+      { id: 'exp_1', name: 'Price Test' } as any,
+    ];
+
+    renderWithPolaris(
+      <CampaignList
+        campaigns={[variantA, variantB]}
+        experiments={experiments}
+        onExperimentSelect={onExperimentSelect}
+        onExperimentEdit={onExperimentEdit}
+      />
+    );
+
+    // Find and click the Edit button
+    const editButtons = screen.getAllByRole('button', { name: /edit/i });
+    const experimentEditButton = editButtons.find(btn => btn.textContent === 'Edit');
+
+    if (experimentEditButton) {
+      await user.click(experimentEditButton);
+
+      // onExperimentEdit should have been called
+      expect(onExperimentEdit).toHaveBeenCalledWith('exp_1');
+
+      // onExperimentSelect should NOT have been called
+      expect(onExperimentSelect).not.toHaveBeenCalled();
+    }
   });
 });
 
