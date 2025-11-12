@@ -7,6 +7,14 @@
   var { h, Component, Fragment, render, createPortal } = window.RevenueBoostPreact;
   var { useState, useEffect, useCallback, useRef, useMemo } = window.RevenueBoostPreact.hooks;
 
+  // global-preact:global-preact:react-dom
+  if (typeof window === "undefined" || !window.RevenueBoostPreact) {
+    throw new Error("RevenueBoostPreact not found. Make sure main bundle is loaded first.");
+  }
+  var render2 = window.RevenueBoostPreact.render;
+  var createPortal2 = window.RevenueBoostPreact.createPortal;
+  var global_preact_react_dom_default = { render: window.RevenueBoostPreact.render, createPortal: window.RevenueBoostPreact.createPortal };
+
   // global-preact:global-preact:preact/jsx-runtime
   if (typeof window === "undefined" || !window.RevenueBoostPreact) {
     throw new Error("RevenueBoostPreact not found. Make sure main bundle is loaded first.");
@@ -55,6 +63,407 @@
   var jsxs = jsx;
   var Fragment2 = window.RevenueBoostPreact.Fragment;
 
+  // app/domains/storefront/popups-new/PopupPortal.tsx
+  var ANIMATION_CHOREOGRAPHY = {
+    fade: {
+      backdrop: { delay: 0, duration: 200 },
+      content: { delay: 0, duration: 200 }
+    },
+    slide: {
+      backdrop: { delay: 0, duration: 150 },
+      content: { delay: 50, duration: 300 }
+    },
+    zoom: {
+      backdrop: { delay: 0, duration: 250 },
+      content: { delay: 0, duration: 300 }
+    },
+    bounce: {
+      backdrop: { delay: 0, duration: 200 },
+      content: { delay: 50, duration: 500 }
+    },
+    none: {
+      backdrop: { delay: 0, duration: 0 },
+      content: { delay: 0, duration: 0 }
+    }
+  };
+  var PopupPortal = ({
+    isVisible,
+    onClose,
+    children,
+    backdrop = {},
+    animation = { type: "fade" },
+    position = "center",
+    closeOnEscape = true,
+    closeOnBackdropClick = true,
+    previewMode = false,
+    ariaLabel,
+    ariaDescribedBy
+  }) => {
+    const [isExiting, setIsExiting] = useState(false);
+    const [isMounted, setIsMounted] = useState(false);
+    const previousFocusRef = useRef(null);
+    const contentRef = useRef(null);
+    const shadowHostRef = useRef(null);
+    const shadowRootRef = useRef(null);
+    const animationType = animation.type || "fade";
+    const choreography = ANIMATION_CHOREOGRAPHY[animationType];
+    const backdropTiming = {
+      delay: animation.backdropDelay ?? choreography.backdrop.delay,
+      duration: animation.duration ?? choreography.backdrop.duration
+    };
+    const contentTiming = {
+      delay: animation.contentDelay ?? choreography.content.delay,
+      duration: animation.duration ?? choreography.content.duration
+    };
+    const getBackdropColor = useCallback(() => {
+      const opacity = backdrop.opacity ?? 0.6;
+      const color = backdrop.color || "rgba(0, 0, 0, 1)";
+      if (color.startsWith("rgba")) {
+        const rgbaMatch = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*[\d.]+)?\)/);
+        if (rgbaMatch) {
+          return `rgba(${rgbaMatch[1]}, ${rgbaMatch[2]}, ${rgbaMatch[3]}, ${opacity})`;
+        }
+      }
+      if (color.startsWith("rgb")) {
+        const rgbMatch = color.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+        if (rgbMatch) {
+          return `rgba(${rgbMatch[1]}, ${rgbMatch[2]}, ${rgbMatch[3]}, ${opacity})`;
+        }
+      }
+      if (color.startsWith("#")) {
+        const hex = color.slice(1);
+        const r = parseInt(hex.slice(0, 2), 16);
+        const g = parseInt(hex.slice(2, 4), 16);
+        const b = parseInt(hex.slice(4, 6), 16);
+        return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+      }
+      return `rgba(0, 0, 0, ${opacity})`;
+    }, [backdrop.color, backdrop.opacity]);
+    const handleClose = useCallback(() => {
+      if (animationType !== "none") {
+        setIsExiting(true);
+        const maxDuration = Math.max(
+          backdropTiming.delay + backdropTiming.duration,
+          contentTiming.delay + contentTiming.duration
+        );
+        setTimeout(() => {
+          onClose();
+          setIsExiting(false);
+        }, maxDuration);
+      } else {
+        onClose();
+      }
+    }, [animationType, backdropTiming, contentTiming, onClose]);
+    useEffect(() => {
+      if (!isVisible || !closeOnEscape) return;
+      const handleEscape = (event) => {
+        if (event.key === "Escape") {
+          handleClose();
+        }
+      };
+      document.addEventListener("keydown", handleEscape);
+      return () => document.removeEventListener("keydown", handleEscape);
+    }, [isVisible, closeOnEscape, handleClose]);
+    const handleBackdropClick = useCallback(() => {
+      if (closeOnBackdropClick) {
+        handleClose();
+      }
+    }, [closeOnBackdropClick, handleClose]);
+    const handleContentClick = useCallback((e) => {
+      e.stopPropagation();
+    }, []);
+    useEffect(() => {
+      if (isVisible && !previewMode) {
+        previousFocusRef.current = document.activeElement;
+        if (contentRef.current) {
+          contentRef.current.focus();
+        }
+      }
+      return () => {
+        if (previousFocusRef.current && !previewMode) {
+          previousFocusRef.current.focus();
+        }
+      };
+    }, [isVisible, previewMode]);
+    useEffect(() => {
+      if (isVisible && !previewMode) {
+        document.body.style.overflow = "hidden";
+      } else {
+        document.body.style.overflow = "";
+      }
+      return () => {
+        document.body.style.overflow = "";
+      };
+    }, [isVisible, previewMode]);
+    useEffect(() => {
+      if (previewMode) return;
+      let host = document.getElementById("revenue-boost-popup-shadow-host");
+      if (!host) {
+        host = document.createElement("div");
+        host.id = "revenue-boost-popup-shadow-host";
+        host.style.cssText = "display: block; position: fixed; inset: 0; z-index: 9999; pointer-events: auto;";
+        document.body.appendChild(host);
+      }
+      if (!host.shadowRoot) {
+        const shadowRoot = host.attachShadow({ mode: "open" });
+        shadowRootRef.current = shadowRoot;
+        try {
+          const sheet = new CSSStyleSheet();
+          sheet.replaceSync(`
+          * {
+            box-sizing: border-box;
+          }
+        `);
+          shadowRoot.adoptedStyleSheets = [sheet];
+        } catch (e) {
+          console.warn("[PopupPortal] adoptedStyleSheets not supported, falling back to style tag");
+        }
+      } else {
+        shadowRootRef.current = host.shadowRoot;
+      }
+      shadowHostRef.current = host;
+      return () => {
+        if (host && host.parentNode) {
+          host.parentNode.removeChild(host);
+        }
+      };
+    }, [previewMode]);
+    useEffect(() => {
+      if (isVisible) {
+        setIsMounted(true);
+      } else if (!isExiting) {
+        setIsMounted(false);
+      }
+    }, [isVisible, isExiting]);
+    if (!isMounted && !isVisible) return null;
+    const prefersReducedMotion = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const effectiveAnimationType = prefersReducedMotion ? "none" : animationType;
+    const getAnimationClass = () => {
+      if (effectiveAnimationType === "none") return "";
+      const direction = isExiting ? "exit" : "enter";
+      return `popup-portal-${effectiveAnimationType}-${direction}`;
+    };
+    const backdropAnimationClass = getAnimationClass();
+    const contentAnimationClass = getAnimationClass();
+    const overlayStyles = {
+      position: "absolute",
+      inset: 0,
+      zIndex: 1,
+      pointerEvents: "auto"
+      // Enable pointer events in shadow DOM
+    };
+    const backdropStyles = {
+      position: "absolute",
+      inset: 0,
+      background: getBackdropColor(),
+      backdropFilter: backdrop.blur ? `blur(${backdrop.blur}px)` : void 0,
+      animationDelay: `${backdropTiming.delay}ms`,
+      animationDuration: `${backdropTiming.duration}ms`
+    };
+    const contentWrapperStyles = {
+      animationDelay: `${contentTiming.delay}ms`,
+      animationDuration: `${contentTiming.duration}ms`,
+      outline: "none"
+    };
+    const content = /* @__PURE__ */ jsxs("div", { style: overlayStyles, role: "presentation", children: [
+      /* @__PURE__ */ jsx("style", { dangerouslySetInnerHTML: { __html: `
+        * {
+          box-sizing: border-box;
+        }
+        ${getAnimationKeyframes(previewMode, position)}
+      ` } }),
+      /* @__PURE__ */ jsx(
+        "div",
+        {
+          className: backdropAnimationClass,
+          style: backdropStyles,
+          onClick: handleBackdropClick,
+          "aria-hidden": "true"
+        }
+      ),
+      /* @__PURE__ */ jsx(
+        "div",
+        {
+          ref: contentRef,
+          className: `popup-portal-dialog-wrapper ${contentAnimationClass}`,
+          style: contentWrapperStyles,
+          onClick: handleContentClick,
+          role: "dialog",
+          "aria-modal": "true",
+          "aria-label": ariaLabel,
+          "aria-describedby": ariaDescribedBy,
+          tabIndex: -1,
+          children
+        }
+      )
+    ] });
+    if (previewMode) {
+      return content;
+    }
+    if (shadowRootRef.current) {
+      return createPortal2(content, shadowRootRef.current);
+    }
+    return null;
+  };
+  function getAnimationKeyframes(previewMode, position) {
+    const alignMap = {
+      center: "center",
+      top: "flex-start",
+      bottom: "flex-end",
+      left: "flex-start",
+      right: "flex-end"
+    };
+    const justifyMap = {
+      center: "center",
+      top: "center",
+      bottom: "center",
+      left: "flex-start",
+      right: "flex-end"
+    };
+    return `
+    /* Base positioning for dialog wrapper */
+    .popup-portal-dialog-wrapper {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      padding: 1rem;
+      display: flex;
+      align-items: ${alignMap[position]};
+      justify-content: ${justifyMap[position]};
+    }
+
+    /* Fade animations */
+    @keyframes popup-portal-fade-enter {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    @keyframes popup-portal-fade-exit {
+      from { opacity: 1; }
+      to { opacity: 0; }
+    }
+    .popup-portal-fade-enter {
+      animation: popup-portal-fade-enter forwards;
+      animation-timing-function: ease-out;
+    }
+    .popup-portal-fade-exit {
+      animation: popup-portal-fade-exit forwards;
+      animation-timing-function: ease-in;
+    }
+
+    /* Slide animations */
+    @keyframes popup-portal-slide-enter {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    @keyframes popup-portal-slide-exit {
+      from {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      to {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+    }
+    .popup-portal-slide-enter {
+      animation: popup-portal-slide-enter forwards;
+      animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .popup-portal-slide-exit {
+      animation: popup-portal-slide-exit forwards;
+      animation-timing-function: cubic-bezier(0.7, 0, 0.84, 0);
+    }
+
+    /* Zoom animations */
+    @keyframes popup-portal-zoom-enter {
+      from {
+        opacity: 0;
+        transform: scale(0.95);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+    @keyframes popup-portal-zoom-exit {
+      from {
+        opacity: 1;
+        transform: scale(1);
+      }
+      to {
+        opacity: 0;
+        transform: scale(0.95);
+      }
+    }
+    .popup-portal-zoom-enter {
+      animation: popup-portal-zoom-enter forwards;
+      animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .popup-portal-zoom-exit {
+      animation: popup-portal-zoom-exit forwards;
+      animation-timing-function: cubic-bezier(0.7, 0, 0.84, 0);
+    }
+
+    /* Bounce animations */
+    @keyframes popup-portal-bounce-enter {
+      0% {
+        opacity: 0;
+        transform: scale(0.3);
+      }
+      50% {
+        opacity: 1;
+        transform: scale(1.05);
+      }
+      70% {
+        transform: scale(0.9);
+      }
+      100% {
+        transform: scale(1);
+      }
+    }
+    @keyframes popup-portal-bounce-exit {
+      from {
+        opacity: 1;
+        transform: scale(1);
+      }
+      to {
+        opacity: 0;
+        transform: scale(0.8);
+      }
+    }
+    .popup-portal-bounce-enter {
+      animation: popup-portal-bounce-enter forwards;
+      animation-timing-function: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    }
+    .popup-portal-bounce-exit {
+      animation: popup-portal-bounce-exit forwards;
+      animation-timing-function: ease-in;
+    }
+
+    /* Reduced motion */
+    @media (prefers-reduced-motion: reduce) {
+      .popup-portal-fade-enter,
+      .popup-portal-fade-exit,
+      .popup-portal-slide-enter,
+      .popup-portal-slide-exit,
+      .popup-portal-zoom-enter,
+      .popup-portal-zoom-exit,
+      .popup-portal-bounce-enter,
+      .popup-portal-bounce-exit {
+        animation: none !important;
+        opacity: 1 !important;
+        transform: none !important;
+      }
+    }
+  `;
+  }
+
   // app/domains/storefront/popups-new/NewsletterPopup.tsx
   var NewsletterPopup = ({
     config,
@@ -98,26 +507,6 @@
         return () => clearTimeout(timer);
       }
     }, [isVisible]);
-    useEffect(() => {
-      if (config.previewMode) return;
-      if (isVisible) {
-        document.body.style.overflow = "hidden";
-      } else {
-        document.body.style.overflow = "";
-      }
-      return () => {
-        document.body.style.overflow = "";
-      };
-    }, [isVisible, config.previewMode]);
-    useEffect(() => {
-      const handleEsc = (e) => {
-        if (e.key === "Escape" && isVisible) {
-          onClose();
-        }
-      };
-      window.addEventListener("keydown", handleEsc);
-      return () => window.removeEventListener("keydown", handleEsc);
-    }, [isVisible, onClose]);
     const validateForm = () => {
       const newErrors = {};
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -168,54 +557,32 @@
     const contentClass = showImage ? isVertical ? `vertical ${imageFirst ? "" : "reverse"}` : `horizontal ${imageFirst ? "" : "reverse"}` : "single-column";
     const isGlass = config.backgroundColor?.includes("rgba") && parseFloat(config.backgroundColor.match(/[\d.]+(?=\))/)?.[0] || "1") < 1;
     const hasGradientBg = config.backgroundColor?.includes("gradient");
-    const getBackdropColor = () => {
-      const opacity = config.overlayOpacity ?? 0.6;
-      const overlayColor = config.overlayColor || "rgba(0, 0, 0, 1)";
-      if (overlayColor.startsWith("rgba")) {
-        const rgbaMatch = overlayColor.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*[\d.]+)?\)/);
-        if (rgbaMatch) {
-          return `rgba(${rgbaMatch[1]}, ${rgbaMatch[2]}, ${rgbaMatch[3]}, ${opacity})`;
-        }
-      }
-      if (overlayColor.startsWith("rgb")) {
-        const rgbMatch = overlayColor.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
-        if (rgbMatch) {
-          return `rgba(${rgbMatch[1]}, ${rgbMatch[2]}, ${rgbMatch[3]}, ${opacity})`;
-        }
-      }
-      if (overlayColor.startsWith("#")) {
-        const hex = overlayColor.slice(1);
-        const r = parseInt(hex.slice(0, 2), 16);
-        const g = parseInt(hex.slice(2, 4), 16);
-        const b = parseInt(hex.slice(4, 6), 16);
-        return `rgba(${r}, ${g}, ${b}, ${opacity})`;
-      }
-      return `rgba(0, 0, 0, ${opacity})`;
-    };
-    return /* @__PURE__ */ jsxs(Fragment2, { children: [
-      /* @__PURE__ */ jsx("style", { children: `
-        .email-popup-overlay {
-          position: ${config.previewMode ? "absolute" : "fixed"};
-          inset: 0;
-          z-index: ${config.previewMode ? "1" : "9999"};
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 1rem;
-          animation: fadeIn 0.2s ease-out;
-        }
-
-        .email-popup-backdrop {
-          position: absolute;
-          inset: 0;
-          background: ${getBackdropColor()};
-          backdrop-filter: blur(4px);
-        }
+    return /* @__PURE__ */ jsxs(
+      PopupPortal,
+      {
+        isVisible,
+        onClose,
+        backdrop: {
+          color: config.overlayColor || "rgba(0, 0, 0, 1)",
+          opacity: config.overlayOpacity ?? 0.6,
+          blur: 4
+        },
+        animation: {
+          type: config.animation || "fade"
+        },
+        position: config.position || "center",
+        closeOnEscape: config.closeOnEscape !== false,
+        closeOnBackdropClick: config.closeOnOverlayClick !== false,
+        previewMode: config.previewMode,
+        ariaLabel: config.ariaLabel || title,
+        ariaDescribedBy: config.ariaDescribedBy,
+        children: [
+          /* @__PURE__ */ jsx("style", { children: `
 
         .email-popup-container {
           position: relative;
           width: 100%;
-          max-width: 100%;
+          max-width: 56rem;
           border-radius: ${typeof config.borderRadius === "number" ? config.borderRadius : parseFloat(config.borderRadius || "12")}px;
           overflow: hidden;
           box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
@@ -224,6 +591,8 @@
           /* Enable container queries */
           container-type: inline-size;
           container-name: popup;
+          /* Apply font family to entire popup */
+          font-family: ${config.fontFamily || "inherit"};
         }
 
         .email-popup-close {
@@ -302,21 +671,20 @@
         }
 
         .email-popup-title {
-          font-size: ${theme === "minimal" ? "1.5rem" : "1.875rem"};
-          font-weight: ${theme === "minimal" ? "300" : theme === "bold" || theme === "neon" ? "900" : "700"};
+          font-size: ${config.titleFontSize || config.fontSize || "1.875rem"};
+          font-weight: ${config.titleFontWeight || config.fontWeight || "700"};
           margin-bottom: 0.75rem;
           color: ${config.textColor || "#111827"};
           line-height: 1.2;
-          font-family: ${theme === "elegant" || theme === "luxury" ? "Georgia, serif" : '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'};
-          ${theme === "neon" ? "text-shadow: 0 0 20px currentColor, 0 0 40px currentColor;" : ""}
+          ${config.titleTextShadow ? `text-shadow: ${config.titleTextShadow};` : ""}
         }
 
         .email-popup-description {
-          font-size: ${theme === "minimal" ? "0.875rem" : "1rem"};
+          font-size: ${config.descriptionFontSize || config.fontSize || "1rem"};
           line-height: 1.6;
           margin-bottom: 1.5rem;
           color: ${config.descriptionColor || config.textColor || "#52525b"};
-          font-weight: ${theme === "bold" ? "500" : "400"};
+          font-weight: ${config.descriptionFontWeight || config.fontWeight || "400"};
         }
 
         .email-popup-form {
@@ -340,6 +708,8 @@
           font-size: 1rem;
           transition: all 0.2s;
           outline: none;
+          ${config.inputBackdropFilter ? `backdrop-filter: ${config.inputBackdropFilter};` : ""}
+          ${config.inputBoxShadow ? `box-shadow: ${config.inputBoxShadow};` : ""}
         }
 
         .email-popup-input:focus {
@@ -427,13 +797,12 @@
         }
 
         .email-popup-success-message {
-          font-size: ${theme === "minimal" ? "1.5rem" : "1.875rem"};
-          font-weight: ${theme === "minimal" ? "300" : theme === "bold" || theme === "neon" ? "900" : "700"};
+          font-size: ${config.titleFontSize || config.fontSize || "1.875rem"};
+          font-weight: ${config.titleFontWeight || config.fontWeight || "700"};
           color: ${config.textColor || "#111827"};
           margin-bottom: 1.5rem;
           line-height: 1.2;
-          font-family: ${theme === "elegant" || theme === "luxury" ? "Georgia, serif" : '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'};
-          ${theme === "neon" ? "text-shadow: 0 0 20px currentColor, 0 0 40px currentColor;" : ""}
+          ${config.titleTextShadow ? `text-shadow: ${config.titleTextShadow};` : ""}
         }
 
         .email-popup-discount {
@@ -554,108 +923,107 @@
 
 
       ` }),
-      /* @__PURE__ */ jsxs("div", { className: "email-popup-overlay", role: "dialog", "aria-modal": "true", "aria-labelledby": "popup-title", children: [
-        /* @__PURE__ */ jsx("div", { className: "email-popup-backdrop", onClick: onClose }),
-        /* @__PURE__ */ jsxs("div", { className: "email-popup-container", style: { background: hasGradientBg ? "transparent" : config.backgroundColor || "#ffffff" }, children: [
-          config.showCloseButton !== false && /* @__PURE__ */ jsx(
-            "button",
-            {
-              className: "email-popup-close",
-              onClick: onClose,
-              "aria-label": "Close popup",
-              children: /* @__PURE__ */ jsx("svg", { width: "24", height: "24", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", children: /* @__PURE__ */ jsx("path", { d: "M18 6L6 18M6 6l12 12" }) })
-            }
-          ),
-          /* @__PURE__ */ jsxs(
-            "div",
-            {
-              className: `email-popup-content ${contentClass}`,
-              children: [
-                showImage && imageUrl && /* @__PURE__ */ jsx("div", { className: "email-popup-image", children: /* @__PURE__ */ jsx("img", { src: imageUrl, alt: "" }) }),
-                /* @__PURE__ */ jsx("div", { className: "email-popup-form-section", children: !isSubmitted ? /* @__PURE__ */ jsxs(Fragment2, { children: [
-                  /* @__PURE__ */ jsx("h2", { id: "popup-title", className: "email-popup-title", children: title }),
-                  /* @__PURE__ */ jsx("p", { className: "email-popup-description", children: description }),
-                  /* @__PURE__ */ jsxs("form", { className: "email-popup-form", onSubmit: handleSubmit, children: [
-                    collectName && /* @__PURE__ */ jsxs("div", { className: "email-popup-input-wrapper", children: [
+          /* @__PURE__ */ jsxs("div", { className: "email-popup-container", style: { background: hasGradientBg ? "transparent" : config.backgroundColor || "#ffffff" }, children: [
+            config.showCloseButton !== false && /* @__PURE__ */ jsx(
+              "button",
+              {
+                className: "email-popup-close",
+                onClick: onClose,
+                "aria-label": "Close popup",
+                children: /* @__PURE__ */ jsx("svg", { width: "24", height: "24", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", children: /* @__PURE__ */ jsx("path", { d: "M18 6L6 18M6 6l12 12" }) })
+              }
+            ),
+            /* @__PURE__ */ jsxs(
+              "div",
+              {
+                className: `email-popup-content ${contentClass}`,
+                children: [
+                  showImage && imageUrl && /* @__PURE__ */ jsx("div", { className: "email-popup-image", children: /* @__PURE__ */ jsx("img", { src: imageUrl, alt: "" }) }),
+                  /* @__PURE__ */ jsx("div", { className: "email-popup-form-section", children: !isSubmitted ? /* @__PURE__ */ jsxs(Fragment2, { children: [
+                    /* @__PURE__ */ jsx("h2", { id: "popup-title", className: "email-popup-title", children: title }),
+                    /* @__PURE__ */ jsx("p", { className: "email-popup-description", children: description }),
+                    /* @__PURE__ */ jsxs("form", { className: "email-popup-form", onSubmit: handleSubmit, children: [
+                      collectName && /* @__PURE__ */ jsxs("div", { className: "email-popup-input-wrapper", children: [
+                        /* @__PURE__ */ jsx(
+                          "input",
+                          {
+                            type: "text",
+                            className: `email-popup-input ${errors.name ? "error" : ""}`,
+                            placeholder: config.nameFieldPlaceholder || "Your name",
+                            value: name,
+                            onChange: (e) => {
+                              setName(e.target.value);
+                              if (errors.name) setErrors({ ...errors, name: void 0 });
+                            },
+                            disabled: isSubmitting
+                          }
+                        ),
+                        errors.name && /* @__PURE__ */ jsx("div", { className: "email-popup-error", children: errors.name })
+                      ] }),
+                      /* @__PURE__ */ jsxs("div", { className: "email-popup-input-wrapper", children: [
+                        /* @__PURE__ */ jsx(
+                          "input",
+                          {
+                            type: "email",
+                            className: `email-popup-input ${errors.email ? "error" : ""}`,
+                            placeholder: config.emailPlaceholder || "Enter your email",
+                            value: email,
+                            onChange: (e) => {
+                              setEmail(e.target.value);
+                              if (errors.email) setErrors({ ...errors, email: void 0 });
+                            },
+                            disabled: isSubmitting,
+                            required: true
+                          }
+                        ),
+                        errors.email && /* @__PURE__ */ jsx("div", { className: "email-popup-error", children: errors.email })
+                      ] }),
+                      showGdprCheckbox && /* @__PURE__ */ jsxs("div", { className: "email-popup-checkbox-wrapper", children: [
+                        /* @__PURE__ */ jsx(
+                          "input",
+                          {
+                            type: "checkbox",
+                            id: "gdpr-consent",
+                            className: "email-popup-checkbox",
+                            checked: gdprConsent,
+                            onChange: (e) => {
+                              setGdprConsent(e.target.checked);
+                              if (errors.gdpr) setErrors({ ...errors, gdpr: void 0 });
+                            },
+                            disabled: isSubmitting
+                          }
+                        ),
+                        /* @__PURE__ */ jsx("label", { htmlFor: "gdpr-consent", className: "email-popup-checkbox-label", children: gdprLabel })
+                      ] }),
+                      errors.gdpr && /* @__PURE__ */ jsx("div", { className: "email-popup-error", children: errors.gdpr }),
                       /* @__PURE__ */ jsx(
-                        "input",
+                        "button",
                         {
-                          type: "text",
-                          className: `email-popup-input ${errors.name ? "error" : ""}`,
-                          placeholder: config.nameFieldPlaceholder || "Your name",
-                          value: name,
-                          onChange: (e) => {
-                            setName(e.target.value);
-                            if (errors.name) setErrors({ ...errors, name: void 0 });
-                          },
-                          disabled: isSubmitting
-                        }
-                      ),
-                      errors.name && /* @__PURE__ */ jsx("div", { className: "email-popup-error", children: errors.name })
-                    ] }),
-                    /* @__PURE__ */ jsxs("div", { className: "email-popup-input-wrapper", children: [
-                      /* @__PURE__ */ jsx(
-                        "input",
-                        {
-                          type: "email",
-                          className: `email-popup-input ${errors.email ? "error" : ""}`,
-                          placeholder: config.emailPlaceholder || "Enter your email",
-                          value: email,
-                          onChange: (e) => {
-                            setEmail(e.target.value);
-                            if (errors.email) setErrors({ ...errors, email: void 0 });
-                          },
+                          type: "submit",
+                          className: "email-popup-button",
                           disabled: isSubmitting,
-                          required: true
+                          children: isSubmitting ? /* @__PURE__ */ jsxs(Fragment2, { children: [
+                            /* @__PURE__ */ jsx("div", { className: "email-popup-spinner" }),
+                            "Subscribing..."
+                          ] }) : buttonText
                         }
-                      ),
-                      errors.email && /* @__PURE__ */ jsx("div", { className: "email-popup-error", children: errors.email })
-                    ] }),
-                    showGdprCheckbox && /* @__PURE__ */ jsxs("div", { className: "email-popup-checkbox-wrapper", children: [
-                      /* @__PURE__ */ jsx(
-                        "input",
-                        {
-                          type: "checkbox",
-                          id: "gdpr-consent",
-                          className: "email-popup-checkbox",
-                          checked: gdprConsent,
-                          onChange: (e) => {
-                            setGdprConsent(e.target.checked);
-                            if (errors.gdpr) setErrors({ ...errors, gdpr: void 0 });
-                          },
-                          disabled: isSubmitting
-                        }
-                      ),
-                      /* @__PURE__ */ jsx("label", { htmlFor: "gdpr-consent", className: "email-popup-checkbox-label", children: gdprLabel })
-                    ] }),
-                    errors.gdpr && /* @__PURE__ */ jsx("div", { className: "email-popup-error", children: errors.gdpr }),
-                    /* @__PURE__ */ jsx(
-                      "button",
-                      {
-                        type: "submit",
-                        className: "email-popup-button",
-                        disabled: isSubmitting,
-                        children: isSubmitting ? /* @__PURE__ */ jsxs(Fragment2, { children: [
-                          /* @__PURE__ */ jsx("div", { className: "email-popup-spinner" }),
-                          "Subscribing..."
-                        ] }) : buttonText
-                      }
-                    )
-                  ] })
-                ] }) : /* @__PURE__ */ jsxs("div", { className: "email-popup-success", children: [
-                  /* @__PURE__ */ jsx("div", { className: "email-popup-success-icon", children: /* @__PURE__ */ jsx("svg", { width: "32", height: "32", viewBox: "0 0 24 24", fill: "none", strokeWidth: "3", children: /* @__PURE__ */ jsx("polyline", { points: "20 6 9 17 4 12" }) }) }),
-                  /* @__PURE__ */ jsx("h3", { className: "email-popup-success-message", children: successMessage }),
-                  discountCode && /* @__PURE__ */ jsxs("div", { className: "email-popup-discount", children: [
-                    /* @__PURE__ */ jsx("p", { className: "email-popup-discount-label", children: "Your discount code:" }),
-                    /* @__PURE__ */ jsx("p", { className: "email-popup-discount-code", children: discountCode })
-                  ] })
-                ] }) })
-              ]
-            }
-          )
-        ] })
-      ] })
-    ] });
+                      )
+                    ] })
+                  ] }) : /* @__PURE__ */ jsxs("div", { className: "email-popup-success", children: [
+                    /* @__PURE__ */ jsx("div", { className: "email-popup-success-icon", children: /* @__PURE__ */ jsx("svg", { width: "32", height: "32", viewBox: "0 0 24 24", fill: "none", strokeWidth: "3", children: /* @__PURE__ */ jsx("polyline", { points: "20 6 9 17 4 12" }) }) }),
+                    /* @__PURE__ */ jsx("h3", { className: "email-popup-success-message", children: successMessage }),
+                    discountCode && /* @__PURE__ */ jsxs("div", { className: "email-popup-discount", children: [
+                      /* @__PURE__ */ jsx("p", { className: "email-popup-discount-label", children: "Your discount code:" }),
+                      /* @__PURE__ */ jsx("p", { className: "email-popup-discount-code", children: discountCode })
+                    ] })
+                  ] }) })
+                ]
+              }
+            )
+          ] })
+        ]
+      }
+    );
   };
 
   // extensions/storefront-src/bundles/newsletter.ts

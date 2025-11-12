@@ -66,14 +66,25 @@ export function NewsletterContentSection({
         />
 
         <TextField
-          label="Email Placeholder"
-          name="content.emailPlaceholder"
-          value={content.emailPlaceholder || "Enter your email"}
-          error={errors?.emailPlaceholder}
-          placeholder="Enter your email"
-          onChange={(value) => updateField("emailPlaceholder", value)}
+          label="Email Label"
+          name="content.emailLabel"
+          value={content.emailLabel || ""}
+          error={errors?.emailLabel}
+          placeholder="Email"
+          helpText="Label shown above email field"
+          onChange={(value) => updateField("emailLabel", value)}
         />
       </FormGrid>
+
+      <TextField
+        label="Email Placeholder"
+        name="content.emailPlaceholder"
+        value={content.emailPlaceholder || "Enter your email"}
+        error={errors?.emailPlaceholder}
+        placeholder="Enter your email"
+        helpText="Placeholder text inside email field"
+        onChange={(value) => updateField("emailPlaceholder", value)}
+      />
 
       <TextField
         label="Success Message"

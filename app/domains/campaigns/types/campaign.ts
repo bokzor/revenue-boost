@@ -360,6 +360,20 @@ export const DesignConfigSchema = z.object({
   overlayColor: z.string().optional(), // Supports rgba
   overlayOpacity: z.number().min(0).max(1).default(0.5),
 
+  // Typography
+  fontFamily: z.string().optional(),
+  fontSize: z.string().optional(),
+  fontWeight: z.string().optional(),
+  titleFontSize: z.string().optional(),
+  titleFontWeight: z.string().optional(),
+  titleTextShadow: z.string().optional(),
+  descriptionFontSize: z.string().optional(),
+  descriptionFontWeight: z.string().optional(),
+
+  // Input styling
+  inputBackdropFilter: z.string().optional(),
+  inputBoxShadow: z.string().optional(),
+
   // Advanced
   customCSS: z.string().optional(),
 });

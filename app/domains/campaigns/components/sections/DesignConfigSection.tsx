@@ -53,6 +53,16 @@ export function DesignConfigSection({
       inputBorderColor: designConfig.inputBorderColor,
       imageBgColor: designConfig.imageBgColor,
       successColor: designConfig.successColor,
+      // Typography
+      fontFamily: designConfig.fontFamily,
+      titleFontSize: designConfig.titleFontSize,
+      titleFontWeight: designConfig.titleFontWeight,
+      titleTextShadow: designConfig.titleTextShadow,
+      descriptionFontSize: designConfig.descriptionFontSize,
+      descriptionFontWeight: designConfig.descriptionFontWeight,
+      // Input styling
+      inputBackdropFilter: designConfig.inputBackdropFilter,
+      inputBoxShadow: designConfig.inputBoxShadow,
       imageUrl: `/newsletter-backgrounds/${themeKey}.png`, // Set default theme image
     });
     setCustomImageUrl(`/newsletter-backgrounds/${themeKey}.png`);

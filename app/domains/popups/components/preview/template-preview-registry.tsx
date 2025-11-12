@@ -56,17 +56,52 @@ export interface TemplatePreviewEntry {
  */
 function buildCommonConfig(mergedConfig: Record<string, any>, designConfig: Record<string, any>) {
   return {
+    // Main colors
     backgroundColor: mergedConfig.backgroundColor || designConfig.backgroundColor || "#FFFFFF",
     textColor: mergedConfig.textColor || designConfig.textColor || "#1A1A1A",
+    descriptionColor: mergedConfig.descriptionColor || designConfig.descriptionColor,
+    accentColor: mergedConfig.accentColor || designConfig.accentColor || "#007BFF",
+
+    // Button colors
     buttonColor: mergedConfig.buttonColor || designConfig.buttonColor || "#007BFF",
     buttonTextColor: mergedConfig.buttonTextColor || designConfig.buttonTextColor || "#FFFFFF",
-    accentColor: mergedConfig.accentColor || designConfig.accentColor || "#007BFF",
+
+    // Input colors
+    inputBackgroundColor: mergedConfig.inputBackgroundColor || designConfig.inputBackgroundColor,
+    inputTextColor: mergedConfig.inputTextColor || designConfig.inputTextColor,
+    inputBorderColor: mergedConfig.inputBorderColor || designConfig.inputBorderColor,
+
+    // Image colors
+    imageBgColor: mergedConfig.imageBgColor || designConfig.imageBgColor,
+
+    // State colors
+    successColor: mergedConfig.successColor || designConfig.successColor,
+
+    // Overlay
     overlayColor: mergedConfig.overlayColor || designConfig.overlayColor || "rgba(0, 0, 0, 1)",
     overlayOpacity: mergedConfig.overlayOpacity ?? designConfig.overlayOpacity ?? 0.6,
+
+    // Layout
     position: mergedConfig.position || designConfig.position || "center",
     size: mergedConfig.size || designConfig.size || "medium",
     borderRadius: mergedConfig.borderRadius ?? designConfig.borderRadius ?? 8,
     animation: mergedConfig.animation || designConfig.animation || "fade",
+
+    // Typography
+    fontFamily: mergedConfig.fontFamily || designConfig.fontFamily,
+    fontSize: mergedConfig.fontSize || designConfig.fontSize,
+    fontWeight: mergedConfig.fontWeight || designConfig.fontWeight,
+    titleFontSize: mergedConfig.titleFontSize || designConfig.titleFontSize,
+    titleFontWeight: mergedConfig.titleFontWeight || designConfig.titleFontWeight,
+    titleTextShadow: mergedConfig.titleTextShadow || designConfig.titleTextShadow,
+    descriptionFontSize: mergedConfig.descriptionFontSize || designConfig.descriptionFontSize,
+    descriptionFontWeight: mergedConfig.descriptionFontWeight || designConfig.descriptionFontWeight,
+
+    // Input styling
+    inputBackdropFilter: mergedConfig.inputBackdropFilter || designConfig.inputBackdropFilter,
+    inputBoxShadow: mergedConfig.inputBoxShadow || designConfig.inputBoxShadow,
+
+    // Preview mode
     previewMode: true,
     showCloseButton: true,
   };
@@ -80,16 +115,39 @@ export const TEMPLATE_PREVIEW_REGISTRY: Record<string, TemplatePreviewEntry> = {
     component: NewsletterPopup,
     buildConfig: (mergedConfig, designConfig): NewsletterConfig => ({
       id: "preview-newsletter",
+
+      // Content
       headline: mergedConfig.headline || "Join Our Newsletter",
       subheadline: mergedConfig.subheadline || "Get exclusive offers and updates",
+      submitButtonText: mergedConfig.submitButtonText || mergedConfig.buttonText || "Subscribe",
       buttonText: mergedConfig.buttonText || "Subscribe",
       successMessage: mergedConfig.successMessage || "Thank you for subscribing!",
+
+      // Email field
+      emailLabel: mergedConfig.emailLabel,
+      emailPlaceholder: mergedConfig.emailPlaceholder || "Enter your email",
+      emailRequired: mergedConfig.emailRequired ?? true,
+      emailErrorMessage: mergedConfig.emailErrorMessage,
+
+      // Name field
+      nameFieldEnabled: mergedConfig.nameFieldEnabled ?? false,
+      nameFieldRequired: mergedConfig.nameFieldRequired ?? false,
+      nameFieldPlaceholder: mergedConfig.nameFieldPlaceholder || "Your name",
+
+      // Consent field
+      consentFieldEnabled: mergedConfig.consentFieldEnabled ?? false,
+      consentFieldRequired: mergedConfig.consentFieldRequired ?? false,
+      consentFieldText: mergedConfig.consentFieldText || "I agree to receive marketing emails",
+
+      // Image
+      imageUrl: mergedConfig.imageUrl || designConfig.imageUrl,
+      imagePosition: mergedConfig.imagePosition || designConfig.imagePosition || "top",
+
+      // Discount (campaign stores as discountConfig, component expects discount)
+      discount: mergedConfig.discountConfig || mergedConfig.discount,
+
+      // All common config (colors, typography, layout)
       ...buildCommonConfig(mergedConfig, designConfig),
-      inputBackgroundColor: mergedConfig.inputBackgroundColor || "#FFFFFF",
-      inputTextColor: mergedConfig.inputTextColor || "#1A1A1A",
-      inputBorderColor: mergedConfig.inputBorderColor || "#D1D5DB",
-      imageUrl: mergedConfig.imageUrl,
-      imagePosition: mergedConfig.imagePosition || "top",
     } as NewsletterConfig),
   },
 

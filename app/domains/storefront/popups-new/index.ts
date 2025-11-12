@@ -14,7 +14,14 @@
  */
 
 // Base components
-export { BasePopup } from './BasePopup';
+export { BasePopup } from './BasePopup'; // @deprecated - Use PopupPortal instead
+export { PopupPortal } from './PopupPortal';
+export type {
+  PopupPortalProps,
+  BackdropConfig,
+  AnimationConfig,
+  AnimationType
+} from './PopupPortal';
 
 // Newsletter components
 export { NewsletterPopup } from './NewsletterPopup';

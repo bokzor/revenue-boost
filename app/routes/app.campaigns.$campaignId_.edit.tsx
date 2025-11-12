@@ -127,7 +127,13 @@ export default function CampaignEditPage() {
           logicOperator: "AND" as const,
         },
       },
-      frequencyCapping: {
+      pageTargeting: campaign.targetRules?.pageTargeting || {
+        enabled: false,
+        pages: [],
+        customPatterns: [],
+        excludePages: [],
+      },
+      frequencyCapping: campaign.targetRules?.frequencyCapping || {
         enabled: true,
         maxViews: 3,
         timeWindow: 24,
@@ -169,6 +175,7 @@ export default function CampaignEditPage() {
         targetRules: {
           enhancedTriggers: campaignData.enhancedTriggers,
           audienceTargeting: campaignData.audienceTargeting,
+          pageTargeting: campaignData.pageTargeting,
           frequencyCapping: campaignData.frequencyCapping,
         },
         discountConfig: campaignData.discountConfig,

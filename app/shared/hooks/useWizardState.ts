@@ -37,13 +37,6 @@ export type TriggerType = CampaignTriggerType | (string & {});
 // Re-export types for convenience
 export type { PageTargetingConfig, AudienceTargetingConfig, EnhancedTriggersConfig };
 
-// Simplified TargetRulesConfig for wizard state (legacy compatibility)
-export interface TargetRulesConfig {
-  enabled?: boolean;
-  segments?: string[];
-  [key: string]: unknown;
-}
-
 // ============================================================================
 // WIZARD-SPECIFIC FORM STATE TYPES
 // ============================================================================
@@ -129,7 +122,6 @@ export interface CampaignFormData {
   templateType?: TemplateType; // Template type for template-specific configuration
   experimentId?: string; // A/B Testing experiment ID
   templateConfig?: CampaignTemplateConfig; // ✅ Properly typed
-  targetRules: TargetRulesConfig;
   designConfig: CampaignDesignConfig; // ✅ Properly typed
   isSaving: boolean;
   // Basic campaign info

@@ -178,6 +178,18 @@ export interface ThemeColors {
   warning: string;
   imageBg?: string;
   descColor?: string;
+
+  // Typography
+  fontFamily?: string;
+  titleFontSize?: string;
+  titleFontWeight?: string;
+  titleTextShadow?: string;
+  descriptionFontSize?: string;
+  descriptionFontWeight?: string;
+
+  // Input styling
+  inputBackdropFilter?: string;
+  inputBoxShadow?: string;
   inputBorder?: string;
   timerBg?: string;
   timerText?: string;
@@ -207,6 +219,12 @@ export const NEWSLETTER_THEMES: Record<NewsletterThemeKey, ThemeColors> = {
     timerText: "#3b82f6",
     ctaBg: "#3b82f6",
     ctaText: "#ffffff",
+    // Typography
+    fontFamily: "inherit",
+    titleFontSize: "1.875rem",
+    titleFontWeight: "700",
+    descriptionFontSize: "1rem",
+    descriptionFontWeight: "400",
   },
   minimal: {
     background: "#fafafa",
@@ -224,6 +242,12 @@ export const NEWSLETTER_THEMES: Record<NewsletterThemeKey, ThemeColors> = {
     timerText: "#18181b",
     ctaBg: "#18181b",
     ctaText: "#ffffff",
+    // Typography
+    fontFamily: "inherit",
+    titleFontSize: "1.5rem",
+    titleFontWeight: "300",
+    descriptionFontSize: "0.875rem",
+    descriptionFontWeight: "400",
   },
   elegant: {
     background: "#fefce8",
@@ -236,6 +260,12 @@ export const NEWSLETTER_THEMES: Record<NewsletterThemeKey, ThemeColors> = {
     warning: "#dc2626",
     imageBg: "#fef3c7",
     descColor: "#78716c",
+    // Typography
+    fontFamily: "serif",
+    titleFontSize: "1.875rem",
+    titleFontWeight: "700",
+    descriptionFontSize: "1rem",
+    descriptionFontWeight: "400",
     inputBorder: "#e7e5e4",
     timerBg: "rgba(168, 85, 247, 0.1)",
     timerText: "#a855f7",
@@ -258,6 +288,12 @@ export const NEWSLETTER_THEMES: Record<NewsletterThemeKey, ThemeColors> = {
     timerText: "#ffffff",
     ctaBg: "#ffffff",
     ctaText: "#ec4899",
+    // Typography
+    fontFamily: "inherit",
+    titleFontSize: "1.875rem",
+    titleFontWeight: "900",
+    descriptionFontSize: "1rem",
+    descriptionFontWeight: "500",
   },
   glass: {
     background: "rgba(255, 255, 255, 0.7)",
@@ -276,6 +312,14 @@ export const NEWSLETTER_THEMES: Record<NewsletterThemeKey, ThemeColors> = {
     ctaBg: "#6366f1",
     ctaText: "#ffffff",
     blur: true,
+    // Typography
+    fontFamily: "inherit",
+    titleFontSize: "1.875rem",
+    titleFontWeight: "700",
+    descriptionFontSize: "1rem",
+    descriptionFontWeight: "400",
+    // Input styling
+    inputBackdropFilter: "blur(10px)",
   },
   dark: {
     background: "#111827",
@@ -293,6 +337,12 @@ export const NEWSLETTER_THEMES: Record<NewsletterThemeKey, ThemeColors> = {
     timerText: "#f9fafb",
     ctaBg: "#3b82f6",
     ctaText: "#ffffff",
+    // Typography
+    fontFamily: "inherit",
+    titleFontSize: "1.875rem",
+    titleFontWeight: "700",
+    descriptionFontSize: "1rem",
+    descriptionFontWeight: "400",
   },
   gradient: {
     background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
@@ -310,6 +360,14 @@ export const NEWSLETTER_THEMES: Record<NewsletterThemeKey, ThemeColors> = {
     timerText: "#ffffff",
     ctaBg: "#ffffff",
     ctaText: "#667eea",
+    // Typography
+    fontFamily: "inherit",
+    titleFontSize: "1.875rem",
+    titleFontWeight: "700",
+    descriptionFontSize: "1rem",
+    descriptionFontWeight: "400",
+    // Input styling
+    inputBackdropFilter: "blur(10px)",
   },
   luxury: {
     background: "#1a1a0a",
@@ -327,6 +385,12 @@ export const NEWSLETTER_THEMES: Record<NewsletterThemeKey, ThemeColors> = {
     timerText: "#d4af37",
     ctaBg: "#d4af37",
     ctaText: "#1a1a0a",
+    // Typography
+    fontFamily: "serif",
+    titleFontSize: "1.875rem",
+    titleFontWeight: "700",
+    descriptionFontSize: "1rem",
+    descriptionFontWeight: "400",
   },
   neon: {
     background: "#0a0a1f",
@@ -344,6 +408,15 @@ export const NEWSLETTER_THEMES: Record<NewsletterThemeKey, ThemeColors> = {
     timerText: "#00ffff",
     ctaBg: "#00ffff",
     ctaText: "#0a0a1f",
+    // Typography
+    fontFamily: "inherit",
+    titleFontSize: "1.875rem",
+    titleFontWeight: "900",
+    titleTextShadow: "0 0 20px currentColor, 0 0 40px currentColor",
+    descriptionFontSize: "1rem",
+    descriptionFontWeight: "400",
+    // Input styling
+    inputBoxShadow: "0 0 10px rgba(0, 255, 255, 0.1)",
   },
   ocean: {
     background: "#f0f9ff",
@@ -361,6 +434,12 @@ export const NEWSLETTER_THEMES: Record<NewsletterThemeKey, ThemeColors> = {
     timerText: "#0ea5e9",
     ctaBg: "#0ea5e9",
     ctaText: "#ffffff",
+    // Typography
+    fontFamily: "inherit",
+    titleFontSize: "1.875rem",
+    titleFontWeight: "700",
+    descriptionFontSize: "1rem",
+    descriptionFontWeight: "400",
   },
 };
 
@@ -444,6 +523,18 @@ export function themeColorsToDesignConfig(themeColors: ThemeColors): any {
 
     // State colors
     successColor: themeColors.success,
+
+    // Typography
+    fontFamily: themeColors.fontFamily,
+    titleFontSize: themeColors.titleFontSize,
+    titleFontWeight: themeColors.titleFontWeight,
+    titleTextShadow: themeColors.titleTextShadow,
+    descriptionFontSize: themeColors.descriptionFontSize,
+    descriptionFontWeight: themeColors.descriptionFontWeight,
+
+    // Input styling
+    inputBackdropFilter: themeColors.inputBackdropFilter,
+    inputBoxShadow: themeColors.inputBoxShadow,
   };
 }
 

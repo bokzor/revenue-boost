@@ -15,8 +15,8 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import type { PopupDesignConfig, DiscountConfig, ImagePosition } from './types';
 import type { NewsletterContent } from '~/domains/campaigns/types/campaign';
-import { validateEmail } from './utils';
-import type { NewsletterThemeKey } from '~/config/color-presets';
+
+import { PopupPortal } from './PopupPortal';
 
 /**
  * Newsletter-specific configuration
@@ -25,7 +25,17 @@ export interface NewsletterConfig extends PopupDesignConfig, NewsletterContent {
   discount?: DiscountConfig;
   successTitle?: string;
   successEmoji?: string;
-  theme?: NewsletterThemeKey;
+
+  // Typography (should be set by admin based on theme)
+  titleFontSize?: string;
+  titleFontWeight?: string;
+  titleTextShadow?: string;
+  descriptionFontSize?: string;
+  descriptionFontWeight?: string;
+
+  // Input styling (should be set by admin based on theme)
+  inputBackdropFilter?: string;
+  inputBoxShadow?: string;
 }
 
 export interface NewsletterPopupProps {
@@ -58,25 +68,17 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
   // Extract configuration with defaults
   const imagePosition: ImagePosition = config.imagePosition || 'left';
 
-  // Construct image URL - use app proxy for theme images
-  let imageUrl = config.imageUrl;
-  if (!imageUrl && config.theme) {
-    // Get shop domain from global config (set by popup-init.liquid)
-    const shopDomain = (window as any).REVENUE_BOOST_CONFIG?.shopDomain;
-    if (shopDomain) {
-      imageUrl = `https://${shopDomain}/apps/revenue-boost/assets/newsletter-backgrounds/${config.theme}.png`;
-    }
-  }
+  // Use image URL from config (set by admin)
+  const imageUrl = config.imageUrl;
 
   const title = config.headline || 'Join Our Newsletter';
   const description = config.subheadline || 'Subscribe to get special offers, free giveaways, and exclusive deals.';
-  const buttonText = config.buttonText || 'Subscribe';
+  const buttonText = config.submitButtonText || config.buttonText || 'Subscribe';
   const successMessage = config.successMessage || 'Thank you for subscribing!';
   const discountCode = config.discount?.enabled ? config.discount.code : undefined;
-  const showGdprCheckbox = config.consentFieldEnabled ?? true;
+  const showGdprCheckbox = config.consentFieldEnabled ?? false;
   const gdprLabel = config.consentFieldText || 'I agree to receive marketing emails and accept the privacy policy';
-  const collectName = config.nameFieldEnabled ?? true;
-  const theme = config.theme || 'modern';
+  const collectName = config.nameFieldEnabled ?? false;
 
   // Reset form when popup closes
   useEffect(() => {
@@ -92,50 +94,28 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
     }
   }, [isVisible]);
 
-  // Prevent body scroll when popup is open (but not in preview mode)
-  useEffect(() => {
-    // Don't lock scroll in preview mode
-    if (config.previewMode) return;
-
-    if (isVisible) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, [isVisible, config.previewMode]);
-
-  // Handle ESC key to close
-  useEffect(() => {
-    const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isVisible) {
-        onClose();
-      }
-    };
-    window.addEventListener('keydown', handleEsc);
-    return () => window.removeEventListener('keydown', handleEsc);
-  }, [isVisible, onClose]);
+  // Note: Scroll locking and ESC key handling are now handled by PopupPortal
 
   const validateForm = () => {
     const newErrors: { email?: string; name?: string; gdpr?: string } = {};
 
-    // Email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!email) {
-      newErrors.email = 'Email is required';
-    } else if (!emailRegex.test(email)) {
-      newErrors.email = 'Please enter a valid email';
+    // Email validation (only if required)
+    if (config.emailRequired !== false) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!email) {
+        newErrors.email = config.emailErrorMessage || 'Email is required';
+      } else if (!emailRegex.test(email)) {
+        newErrors.email = 'Please enter a valid email';
+      }
     }
 
-    // Name validation
-    if (collectName && !name.trim()) {
+    // Name validation (only if enabled and required)
+    if (config.nameFieldEnabled && config.nameFieldRequired && !name.trim()) {
       newErrors.name = 'Name is required';
     }
 
-    // GDPR validation
-    if (showGdprCheckbox && !gdprConsent) {
+    // Consent validation (only if enabled and required)
+    if (config.consentFieldEnabled && config.consentFieldRequired && !gdprConsent) {
       newErrors.gdpr = 'You must accept the terms to continue';
     }
 
@@ -194,65 +174,31 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
   // Detect gradient background
   const hasGradientBg = config.backgroundColor?.includes('gradient');
 
-  // Calculate backdrop background color with opacity
-  const getBackdropColor = () => {
-    const opacity = config.overlayOpacity ?? 0.6;
-    const overlayColor = config.overlayColor || 'rgba(0, 0, 0, 1)';
-
-    // If overlayColor is already rgba, extract RGB and apply opacity
-    if (overlayColor.startsWith('rgba')) {
-      const rgbaMatch = overlayColor.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*[\d.]+)?\)/);
-      if (rgbaMatch) {
-        return `rgba(${rgbaMatch[1]}, ${rgbaMatch[2]}, ${rgbaMatch[3]}, ${opacity})`;
-      }
-    }
-
-    // If overlayColor is rgb, convert to rgba with opacity
-    if (overlayColor.startsWith('rgb')) {
-      const rgbMatch = overlayColor.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
-      if (rgbMatch) {
-        return `rgba(${rgbMatch[1]}, ${rgbMatch[2]}, ${rgbMatch[3]}, ${opacity})`;
-      }
-    }
-
-    // If overlayColor is hex, convert to rgba
-    if (overlayColor.startsWith('#')) {
-      const hex = overlayColor.slice(1);
-      const r = parseInt(hex.slice(0, 2), 16);
-      const g = parseInt(hex.slice(2, 4), 16);
-      const b = parseInt(hex.slice(4, 6), 16);
-      return `rgba(${r}, ${g}, ${b}, ${opacity})`;
-    }
-
-    // Fallback to black with opacity
-    return `rgba(0, 0, 0, ${opacity})`;
-  };
-
   return (
-    <>
+    <PopupPortal
+      isVisible={isVisible}
+      onClose={onClose}
+      backdrop={{
+        color: config.overlayColor || 'rgba(0, 0, 0, 1)',
+        opacity: config.overlayOpacity ?? 0.6,
+        blur: 4,
+      }}
+      animation={{
+        type: config.animation || 'fade',
+      }}
+      position={config.position || 'center'}
+      closeOnEscape={config.closeOnEscape !== false}
+      closeOnBackdropClick={config.closeOnOverlayClick !== false}
+      previewMode={config.previewMode}
+      ariaLabel={config.ariaLabel || title}
+      ariaDescribedBy={config.ariaDescribedBy}
+    >
       <style>{`
-        .email-popup-overlay {
-          position: ${config.previewMode ? 'absolute' : 'fixed'};
-          inset: 0;
-          z-index: ${config.previewMode ? '1' : '9999'};
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 1rem;
-          animation: fadeIn 0.2s ease-out;
-        }
-
-        .email-popup-backdrop {
-          position: absolute;
-          inset: 0;
-          background: ${getBackdropColor()};
-          backdrop-filter: blur(4px);
-        }
 
         .email-popup-container {
           position: relative;
           width: 100%;
-          max-width: 100%;
+          max-width: 56rem;
           border-radius: ${typeof config.borderRadius === 'number' ? config.borderRadius : parseFloat(config.borderRadius || '12')}px;
           overflow: hidden;
           box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
@@ -261,6 +207,8 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
           /* Enable container queries */
           container-type: inline-size;
           container-name: popup;
+          /* Apply font family to entire popup */
+          font-family: ${config.fontFamily || 'inherit'};
         }
 
         .email-popup-close {
@@ -273,12 +221,13 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
           background: rgba(0, 0, 0, 0.1);
           border: none;
           cursor: pointer;
-          transition: background 0.2s;
-          color: ${config.textColor || '#000'};
+          transition: background 0.2s, color 0.2s;
+          color: ${config.descriptionColor || '#52525b'};
         }
 
         .email-popup-close:hover {
           background: rgba(0, 0, 0, 0.2);
+          color: ${config.descriptionColor || '#52525b'};
         }
 
         .email-popup-content {
@@ -339,21 +288,20 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
         }
 
         .email-popup-title {
-          font-size: ${theme === 'minimal' ? '1.5rem' : '1.875rem'};
-          font-weight: ${theme === 'minimal' ? '300' : theme === 'bold' || theme === 'neon' ? '900' : '700'};
+          font-size: ${config.titleFontSize || config.fontSize || '1.875rem'};
+          font-weight: ${config.titleFontWeight || config.fontWeight || '700'};
           margin-bottom: 0.75rem;
           color: ${config.textColor || '#111827'};
           line-height: 1.2;
-          font-family: ${theme === 'elegant' || theme === 'luxury' ? 'Georgia, serif' : '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'};
-          ${theme === 'neon' ? 'text-shadow: 0 0 20px currentColor, 0 0 40px currentColor;' : ''}
+          ${config.titleTextShadow ? `text-shadow: ${config.titleTextShadow};` : ''}
         }
 
         .email-popup-description {
-          font-size: ${theme === 'minimal' ? '0.875rem' : '1rem'};
+          font-size: ${config.descriptionFontSize || config.fontSize || '1rem'};
           line-height: 1.6;
           margin-bottom: 1.5rem;
-          color: ${config.descriptionColor || config.textColor || '#52525b'};
-          font-weight: ${theme === 'bold' ? '500' : '400'};
+          color: ${config.descriptionColor || '#52525b'};
+          font-weight: ${config.descriptionFontWeight || config.fontWeight || '400'};
         }
 
         .email-popup-form {
@@ -373,15 +321,22 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
           border-radius: 0.5rem;
           border: 2px solid ${config.inputBorderColor || '#d4d4d8'};
           background: ${config.inputBackgroundColor || '#ffffff'};
-          color: ${config.inputTextColor || config.textColor || '#111827'};
+          color: ${config.inputTextColor || '#111827'};
           font-size: 1rem;
           transition: all 0.2s;
           outline: none;
+          ${config.inputBackdropFilter ? `backdrop-filter: ${config.inputBackdropFilter};` : ''}
+          ${config.inputBoxShadow ? `box-shadow: ${config.inputBoxShadow};` : ''}
+        }
+
+        .email-popup-input::placeholder {
+          color: ${config.inputTextColor ? `${config.inputTextColor}80` : '#9ca3af'};
+          opacity: 1;
         }
 
         .email-popup-input:focus {
-          border-color: ${config.buttonColor || '#3b82f6'};
-          box-shadow: 0 0 0 3px ${config.buttonColor || '#3b82f6'}33;
+          border-color: ${config.accentColor || config.buttonColor || '#3b82f6'};
+          box-shadow: 0 0 0 3px ${config.accentColor || config.buttonColor || '#3b82f6'}33;
         }
 
         .email-popup-input.error {
@@ -392,6 +347,14 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
           color: #ef4444;
           font-size: 0.875rem;
           margin-top: 0.25rem;
+        }
+
+        .email-popup-label {
+          display: block;
+          font-size: 0.875rem;
+          font-weight: 500;
+          margin-bottom: 0.5rem;
+          color: ${config.textColor || '#111827'};
         }
 
         .email-popup-checkbox-wrapper {
@@ -409,8 +372,7 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
 
         .email-popup-checkbox-label {
           font-size: 0.875rem;
-          color: ${config.textColor || '#52525b'};
-          opacity: 0.8;
+          color: ${config.descriptionColor || '#52525b'};
           line-height: 1.4;
         }
 
@@ -464,35 +426,34 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
         }
 
         .email-popup-success-message {
-          font-size: ${theme === 'minimal' ? '1.5rem' : '1.875rem'};
-          font-weight: ${theme === 'minimal' ? '300' : theme === 'bold' || theme === 'neon' ? '900' : '700'};
+          font-size: ${config.titleFontSize || config.fontSize || '1.875rem'};
+          font-weight: ${config.titleFontWeight || config.fontWeight || '700'};
           color: ${config.textColor || '#111827'};
           margin-bottom: 1.5rem;
           line-height: 1.2;
-          font-family: ${theme === 'elegant' || theme === 'luxury' ? 'Georgia, serif' : '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'};
-          ${theme === 'neon' ? 'text-shadow: 0 0 20px currentColor, 0 0 40px currentColor;' : ''}
+          ${config.titleTextShadow ? `text-shadow: ${config.titleTextShadow};` : ''}
         }
 
         .email-popup-discount {
           display: inline-block;
           padding: 0.75rem 1.5rem;
           border-radius: 0.5rem;
-          border: 2px dashed currentColor;
-          background: ${config.inputBackgroundColor || '#f4f4f5'};
+          border: 2px dashed ${config.accentColor || config.buttonColor || '#3b82f6'};
+          background: ${config.accentColor ? `${config.accentColor}15` : config.inputBackgroundColor || '#f4f4f5'};
         }
 
         .email-popup-discount-label {
           font-size: 0.875rem;
           font-weight: 500;
           margin-bottom: 0.25rem;
-          color: ${config.textColor || '#111827'};
+          color: ${config.descriptionColor || '#52525b'};
         }
 
         .email-popup-discount-code {
           font-size: 1.5rem;
           font-weight: 700;
           letter-spacing: 0.05em;
-          color: ${config.textColor || '#111827'};
+          color: ${config.accentColor || config.buttonColor || config.textColor || '#111827'};
         }
 
         .email-popup-spinner {
@@ -592,10 +553,7 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
 
       `}</style>
 
-      <div className="email-popup-overlay" role="dialog" aria-modal="true" aria-labelledby="popup-title">
-        <div className="email-popup-backdrop" onClick={onClose} />
-
-        <div className="email-popup-container" style={{ background: hasGradientBg ? 'transparent' : config.backgroundColor || '#ffffff' }}>
+      <div className="email-popup-container" style={{ background: hasGradientBg ? 'transparent' : config.backgroundColor || '#ffffff' }}>
 
           {config.showCloseButton !== false && (
             <button
@@ -627,7 +585,11 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
                   <form className="email-popup-form" onSubmit={handleSubmit}>
                     {collectName && (
                       <div className="email-popup-input-wrapper">
+                        <label htmlFor="name-input" className="email-popup-label">
+                          Name
+                        </label>
                         <input
+                          id="name-input"
                           type="text"
                           className={`email-popup-input ${errors.name ? 'error' : ''}`}
                           placeholder={config.nameFieldPlaceholder || "Your name"}
@@ -637,13 +599,18 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
                             if (errors.name) setErrors({ ...errors, name: undefined });
                           }}
                           disabled={isSubmitting}
+                          required={config.nameFieldRequired}
                         />
                         {errors.name && <div className="email-popup-error">{errors.name}</div>}
                       </div>
                     )}
 
                     <div className="email-popup-input-wrapper">
+                      <label htmlFor="email-input" className="email-popup-label">
+                        {config.emailLabel || "Email"}
+                      </label>
                       <input
+                        id="email-input"
                         type="email"
                         className={`email-popup-input ${errors.email ? 'error' : ''}`}
                         placeholder={config.emailPlaceholder || "Enter your email"}
@@ -653,7 +620,7 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
                           if (errors.email) setErrors({ ...errors, email: undefined });
                         }}
                         disabled={isSubmitting}
-                        required
+                        required={config.emailRequired !== false}
                       />
                       {errors.email && <div className="email-popup-error">{errors.email}</div>}
                     </div>
@@ -670,6 +637,7 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
                             if (errors.gdpr) setErrors({ ...errors, gdpr: undefined });
                           }}
                           disabled={isSubmitting}
+                          required={config.consentFieldRequired}
                         />
                         <label htmlFor="gdpr-consent" className="email-popup-checkbox-label">
                           {gdprLabel}
@@ -713,8 +681,7 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
             </div>
           </div>
         </div>
-      </div>
-    </>
+    </PopupPortal>
   );
 };
 

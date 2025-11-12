@@ -122,6 +122,7 @@ export default function NewCampaign() {
             targetRules: {
               enhancedTriggers: variant.enhancedTriggers,
               audienceTargeting: variant.audienceTargeting,
+              pageTargeting: variant.pageTargeting,
               frequencyCapping: variant.frequencyCapping,
             },
             discountConfig: variant.discountConfig,
@@ -165,6 +166,7 @@ export default function NewCampaign() {
           targetRules: {
             enhancedTriggers: campaignData.enhancedTriggers,
             audienceTargeting: campaignData.audienceTargeting,
+            pageTargeting: campaignData.pageTargeting,
             frequencyCapping: campaignData.frequencyCapping,
           },
           discountConfig: campaignData.discountConfig,

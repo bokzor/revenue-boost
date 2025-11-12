@@ -104,7 +104,6 @@ export function createDefaultCampaignData(
 ): CampaignFormData {
   return {
     contentConfig: {},
-    targetRules: {},
     designConfig: {
       popupDesign: getDefaultPopupDesign(),
     },
