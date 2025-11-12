@@ -206,33 +206,44 @@ model CustomerSegment {
 }
 
 model Lead {
-  id               String   @id @default(cuid())
-  storeId          String
-  campaignId       String
-  email            String
-  firstName        String?
-  lastName         String?
-  phone            String?
-  marketingConsent Boolean  @default(false)
-  sessionId        String
-  visitorId        String?
-  discountCode     String?
-  userAgent        String?
-  ipAddress        String?
-  referrer         String?
-  metadata         String?  // JSON string
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  id                 String   @id @default(cuid())
+  storeId            String
+  campaignId         String
+  email              String
+  firstName          String?
+  lastName           String?
+  phone              String?
+  marketingConsent   Boolean  @default(false)
+  sessionId          String
+  visitorId          String?
+  shopifyCustomerId  BigInt?  // Numeric Shopify customer ID
+  discountCode       String?
+  discountId         String?  // Shopify discount GID
+  userAgent          String?
+  ipAddress          String?
+  referrer           String?
+  pageUrl            String?
+  pageTitle          String?
+  utmSource          String?
+  utmMedium          String?
+  utmCampaign        String?
+  metadata           String?  // JSON string
+  submittedAt        DateTime @default(now())
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
   store    Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
   campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
 
+  @@unique([storeId, campaignId, email])
   @@index([storeId])
   @@index([campaignId])
   @@index([email])
   @@index([sessionId])
   @@index([visitorId])
+  @@index([shopifyCustomerId])
   @@index([createdAt])
+  @@index([submittedAt])
   @@map("leads")
 }
 

@@ -53,3 +53,4 @@ TRIGGER_ARCHITECTURE_ANALYSIS.md
 /prisma/verify-seed.ts
 test-results
 playwright-report
+extensions/storefront-popup/assets
