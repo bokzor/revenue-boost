@@ -159,14 +159,15 @@ export function validateAudienceStep(data: CampaignFormData): ValidationResult {
     return result;
   }
 
-  if (!data.targetRules.enabled) {
+  // Validate audienceTargeting instead of legacy targetRules
+  if (!data.audienceTargeting?.enabled) {
     result.suggestions.push({
-      field: "targetRules.enabled",
+      field: "audienceTargeting.enabled",
       message: "Consider targeting specific audiences for better conversion rates",
     });
-  } else if (!data.targetRules.segments || data.targetRules.segments.length === 0) {
+  } else if (!data.audienceTargeting.segments || data.audienceTargeting.segments.length === 0) {
     result.warnings.push({
-      field: "targetRules.segments",
+      field: "audienceTargeting.segments",
       message: "Select audience segments for better targeting",
     });
   }

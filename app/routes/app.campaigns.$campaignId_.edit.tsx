@@ -116,7 +116,6 @@ export default function CampaignEditPage() {
       templateType: campaign.templateType,
       contentConfig: campaign.contentConfig,
       designConfig: campaign.designConfig,
-      targetRules: campaign.targetRules,
       enhancedTriggers: campaign.targetRules?.enhancedTriggers || {},
       audienceTargeting: {
         enabled: campaign.targetRules?.audienceTargeting?.enabled ?? false,
