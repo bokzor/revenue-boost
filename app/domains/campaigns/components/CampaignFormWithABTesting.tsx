@@ -386,12 +386,15 @@ export function CampaignFormWithABTesting({
   // MAIN RENDER
   // ============================================================================
 
+  // Determine if we're editing (either a campaign or an experiment)
+  const isEditing = !!(campaignId || experimentId);
+
   return (
     <Page
       fullWidth={true}
-      title={campaignId ? "Edit Campaign" : "Create Campaign"}
+      title={isEditing ? "Edit Campaign" : "Create Campaign"}
       primaryAction={{
-        content: campaignId ? "Save Changes" : "Create Campaign",
+        content: isEditing ? "Save Changes" : "Create Campaign",
         onAction: handleSave,
         loading: isSubmitting,
       }}
