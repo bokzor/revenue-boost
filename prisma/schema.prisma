@@ -168,16 +168,13 @@ model Template {
   store     Store?     @relation(fields: [storeId], references: [id], onDelete: Cascade)
   campaigns Campaign[] // Campaigns using this template
 
-  @@index([storeId])
-  @@index([templateType])
-  @@index([category])
-  @@index([isActive])
-  @@index([priority])
-  @@index([goals])
-  // Performance optimization: Composite indexes for common query patterns
-  @@index([storeId, isActive, templateType]) // For filtered template queries
-  @@index([storeId, isActive, priority]) // For sorted template queries
-  @@index([isActive, priority]) // For global template queries
+  // OPTIMIZED: Reduced from 9 to 5 indexes
+  // Composite indexes cover single-column queries via leftmost prefix rule
+  @@index([storeId, isActive, templateType]) // Covers: storeId, (storeId+isActive), (storeId+isActive+templateType)
+  @@index([storeId, isActive, priority])     // Covers: storeId, (storeId+isActive), (storeId+isActive+priority)
+  @@index([isActive, priority])              // For global template queries, covers: isActive, (isActive+priority)
+  @@index([goals])                           // Array field, needs separate index
+  @@index([category])                        // Frequently filtered, low cardinality
   @@map("templates")
 }
 
@@ -235,15 +232,14 @@ model Lead {
   store    Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
   campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
 
-  @@unique([storeId, campaignId, email])
-  @@index([storeId])
-  @@index([campaignId])
-  @@index([email])
-  @@index([sessionId])
-  @@index([visitorId])
-  @@index([shopifyCustomerId])
-  @@index([createdAt])
-  @@index([submittedAt])
+  // OPTIMIZED: Reduced from 8 to 5 indexes
+  // Composite indexes cover common query patterns
+  @@unique([storeId, campaignId, email])     // Unique constraint (also serves as index)
+  @@index([storeId, createdAt])              // Covers: storeId, (storeId+createdAt) - most common query
+  @@index([campaignId, submittedAt])         // Covers: campaignId, (campaignId+submittedAt) - campaign analytics
+  @@index([email])                           // Email lookups (high cardinality, needs separate index)
+  @@index([shopifyCustomerId])               // Customer lookups (frequently used for sync)
+  @@index([sessionId])                       // Session tracking (frequently used for deduplication)
   @@map("leads")
 }
 

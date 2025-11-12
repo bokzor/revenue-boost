@@ -57,7 +57,17 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
 
   // Extract configuration with defaults
   const imagePosition: ImagePosition = config.imagePosition || 'left';
-  const imageUrl = config.imageUrl || (config.theme ? `/newsletter-backgrounds/${config.theme}.png` : undefined);
+
+  // Construct image URL - use app proxy for theme images
+  let imageUrl = config.imageUrl;
+  if (!imageUrl && config.theme) {
+    // Get shop domain from global config (set by popup-init.liquid)
+    const shopDomain = (window as any).REVENUE_BOOST_CONFIG?.shopDomain;
+    if (shopDomain) {
+      imageUrl = `https://${shopDomain}/apps/revenue-boost/assets/newsletter-backgrounds/${config.theme}.png`;
+    }
+  }
+
   const title = config.headline || 'Join Our Newsletter';
   const description = config.subheadline || 'Subscribe to get special offers, free giveaways, and exclusive deals.';
   const buttonText = config.buttonText || 'Subscribe';

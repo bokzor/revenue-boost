@@ -1,8 +1,13 @@
 /**
  * GoalCard - Reusable goal selection card
+ *
+ * OPTIMIZED: Memoized to prevent unnecessary re-renders
+ * - Pure component (output depends only on props)
+ * - Wrapped with React.memo
+ * - useCallback for stable event handlers
  */
 
-import React from "react";
+import React, { useCallback } from "react";
 import { Card, Text, Badge, Icon, InlineStack, BlockStack } from "@shopify/polaris";
 import type { GoalOption } from "../config/goal-options.config";
 import { getDifficultyColor } from "../config/goal-options.config";
@@ -14,13 +19,13 @@ interface GoalCardProps {
   onSelect: () => void;
 }
 
-export function GoalCard({ goal, isSelected, onSelect }: GoalCardProps) {
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+export const GoalCard = React.memo(function GoalCard({ goal, isSelected, onSelect }: GoalCardProps) {
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
       onSelect();
     }
-  };
+  }, [onSelect]);
 
   return (
     <div
@@ -87,5 +92,5 @@ export function GoalCard({ goal, isSelected, onSelect }: GoalCardProps) {
       </Card>
     </div>
   );
-}
+});
 

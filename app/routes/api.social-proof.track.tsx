@@ -16,13 +16,7 @@ import { VisitorTrackingService } from "~/domains/social-proof/services/visitor-
 import { storefrontCors } from "~/lib/cors.server";
 import { getStoreIdFromShop } from "~/lib/auth-helpers.server";
 import { getOrCreateVisitorId } from "~/lib/visitor-id.server";
-
-interface TrackEventBody {
-  eventType: 'page_view' | 'product_view' | 'add_to_cart';
-  productId?: string;
-  pageUrl?: string;
-  shop: string;
-}
+import { validateTrackEvent } from "~/domains/social-proof/types/tracking";
 
 export async function action({ request }: ActionFunctionArgs) {
   if (request.method !== "POST") {
@@ -33,15 +27,26 @@ export async function action({ request }: ActionFunctionArgs) {
   }
 
   try {
-    const body: TrackEventBody = await request.json();
-    const { eventType, productId, pageUrl, shop } = body;
+    // Parse and validate request body
+    const rawBody = await request.json();
+    const validation = validateTrackEvent(rawBody);
 
-    if (!shop) {
+    if (!validation.success) {
+      const errorMessage = validation.error.issues
+        .map((err) => `${err.path.join('.')}: ${err.message}`)
+        .join(', ');
+
       return data(
-        { success: false, error: "Shop parameter is required" },
+        {
+          success: false,
+          error: "Invalid request data",
+          details: errorMessage
+        },
         { status: 400, headers: storefrontCors() }
       );
     }
+
+    const { eventType, productId, pageUrl, shop } = validation.data;
 
     // Get or create visitor ID
     const visitorId = await getOrCreateVisitorId(request);

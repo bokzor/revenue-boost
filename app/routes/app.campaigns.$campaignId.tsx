@@ -14,6 +14,7 @@ import { getStoreId } from "~/lib/auth-helpers.server";
 import { CampaignService } from "~/domains/campaigns";
 import { CampaignDetail } from "~/domains/campaigns/components";
 import type { CampaignWithConfigs } from "~/domains/campaigns/types/campaign";
+import { apiClient, getErrorMessage } from "~/lib/api-client";
 
 // ============================================================================
 // TYPES
@@ -113,20 +114,16 @@ export default function CampaignDetailPage() {
         status: "DRAFT",
       };
 
-      const response = await fetch("/api/campaigns", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(duplicateData),
-      });
+      const response = await apiClient.post<{ campaign: CampaignWithConfigs }>(
+        "/api/campaigns",
+        duplicateData
+      );
 
-      if (!response.ok) {
-        throw new Error("Failed to duplicate campaign");
+      const newCampaign = response.data?.campaign;
+      if (!newCampaign) {
+        throw new Error("Failed to create duplicate");
       }
 
-      const dupBody = await response.json();
-      const newCampaign = dupBody?.data?.campaign ?? dupBody?.data;
       showToast("Campaign duplicated successfully");
 
       // Navigate to the new campaign
@@ -134,7 +131,7 @@ export default function CampaignDetailPage() {
 
     } catch (error) {
       console.error("Failed to duplicate campaign:", error);
-      showToast("Failed to duplicate campaign", true);
+      showToast(getErrorMessage(error), true);
     }
   };
 
@@ -146,13 +143,7 @@ export default function CampaignDetailPage() {
     }
 
     try {
-      const response = await fetch(`/api/campaigns/${campaign.id}`, {
-        method: "DELETE",
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to delete campaign");
-      }
+      await apiClient.delete(`/api/campaigns/${campaign.id}`);
 
       showToast("Campaign deleted successfully");
 
@@ -161,7 +152,7 @@ export default function CampaignDetailPage() {
 
     } catch (error) {
       console.error("Failed to delete campaign:", error);
-      showToast("Failed to delete campaign", true);
+      showToast(getErrorMessage(error), true);
     }
   };
 
@@ -171,26 +162,16 @@ export default function CampaignDetailPage() {
     const newStatus = campaign.status === "ACTIVE" ? "PAUSED" : "ACTIVE";
 
     try {
-      const response = await fetch(`/api/campaigns/${campaign.id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          status: newStatus,
-        }),
+      await apiClient.put(`/api/campaigns/${campaign.id}`, {
+        status: newStatus,
       });
-
-      if (!response.ok) {
-        throw new Error("Failed to update campaign status");
-      }
 
       showToast(`Campaign ${newStatus.toLowerCase()} successfully`);
       revalidator.revalidate();
 
     } catch (error) {
       console.error("Failed to update campaign status:", error);
-      showToast("Failed to update campaign status", true);
+      showToast(getErrorMessage(error), true);
     }
   };
 

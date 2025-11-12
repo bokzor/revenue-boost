@@ -18,6 +18,7 @@ export interface StorefrontCampaign {
   designConfig: Record<string, unknown>;
   targetRules?: Record<string, unknown>;
   discountConfig?: Record<string, unknown>;
+  experimentId?: string | null;
 }
 
 export interface PopupManagerProps {

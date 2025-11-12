@@ -7,6 +7,7 @@ import { parseTemplateContentConfig } from "~/domains/templates/types/template";
 
 import type { DesignConfig, NewsletterContent, SpinToWinContent, FlashSaleContent, BaseContentConfig } from "~/domains/campaigns/types/campaign";
 import { NEWSLETTER_THEMES } from "~/config/color-presets";
+import { getDefaultButtonText } from "~/domains/templates/registry/template-registry";
 
 // Preview helpers: typed content mappers and theme-based color defaults
 const THEME_DEFAULTS: Record<DesignConfig["theme"], { background: string; text: string; button: string }> = {
@@ -43,45 +44,24 @@ function getDesignPreviewColors(design: DesignConfig) {
   return { backgroundColor, textColor, buttonColor, buttonTextColor };
 }
 
+// TODO: Refactor to not use any. Probably a better way to do it
 function getPreviewTexts(template: Template) {
   const content = parseTemplateContentConfig(template.contentConfig, template.templateType);
-  switch (template.templateType) {
-    case "NEWSLETTER":
-    case "EXIT_INTENT": {
-      const c = content as NewsletterContent;
-      return {
-        title: c.headline ?? template.name,
-        button: c.submitButtonText ?? c.buttonText ?? c.ctaText ?? "Select",
-        description: template.description,
-      };
-    }
-    case "SPIN_TO_WIN":
-    case "SCRATCH_CARD": {
-      const c = content as SpinToWinContent;
-      return {
-        title: c.headline ?? template.name,
-        button: c.spinButtonText ?? c.buttonText ?? c.ctaText ?? "Select",
-        description: template.description,
-      };
-    }
-    case "FLASH_SALE":
-    case "COUNTDOWN_TIMER": {
-      const c = content as FlashSaleContent;
-      return {
-        title: c.headline ?? template.name,
-        button: c.ctaText ?? c.buttonText ?? "Shop now",
-        description: template.description,
-      };
-    }
-    default: {
-      const c = content as BaseContentConfig;
-      return {
-        title: c.headline ?? template.name,
-        button: c.ctaText ?? c.buttonText ?? "Select",
-        description: template.description,
-      };
-    }
-  }
+  const c = content as BaseContentConfig;
+
+  // Extract button text from various possible fields
+  const buttonText =
+    (c as any).submitButtonText ??
+    (c as any).spinButtonText ??
+    (c as any).buttonText ??
+    (c as any).ctaText ??
+    getDefaultButtonText(template.templateType);
+
+  return {
+    title: c.headline ?? template.name,
+    button: buttonText,
+    description: template.description,
+  };
 }
 
 export interface TemplateSelectorProps {

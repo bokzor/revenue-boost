@@ -10,6 +10,7 @@
 import { useState, useEffect } from "react";
 import type { CampaignGoal } from "@prisma/client";
 import type { UnifiedTemplate } from "~/domains/popups/services/templates/unified-template-service.server";
+import { apiClient, getErrorMessage } from "~/lib/api-client";
 
 export interface UseTemplatesResult {
   templates: UnifiedTemplate[];
@@ -28,44 +29,34 @@ export function useTemplates(goal: CampaignGoal, storeId: string): UseTemplatesR
       setError(null);
 
       try {
-        const params = new URLSearchParams({ storeId, goal });
-        const response = await fetch(`/api/templates?${params}`);
+        const response = await apiClient.get<{ templates: UnifiedTemplate[] }>("/api/templates", {
+          params: { storeId, goal },
+        });
 
-        // Handle non-OK HTTP status early
-        if (!response.ok) {
-          const text = await response.text();
-          console.error("Template API HTTP error:", response.status, text);
-          setError(`Failed to load templates (HTTP ${response.status})`);
-          setTemplates([]);
-          return;
-        }
-
-        const json = await response.json();
-        const payload = json?.data as { templates?: UnifiedTemplate[] } | undefined;
-        const safeTemplates: UnifiedTemplate[] = Array.isArray(payload?.templates)
-          ? (payload!.templates as UnifiedTemplate[])
+        const safeTemplates: UnifiedTemplate[] = Array.isArray(response.data?.templates)
+          ? response.data.templates
           : [];
 
         console.log("📦 Template API response:", {
-          success: json?.success,
+          success: response.success,
           templatesCount: safeTemplates.length,
-          timestamp: json?.timestamp,
+          timestamp: response.timestamp,
         });
 
-        if (json?.success) {
+        if (response.success) {
           const filtered = goal
             ? safeTemplates.filter((t) => t.goals.includes(goal))
             : safeTemplates;
           console.log(`✅ Templates loaded: ${safeTemplates.length} templates (after goal filter: ${filtered.length})`);
           setTemplates(filtered);
         } else {
-          console.error("Template API error:", json?.error);
-          setError(json?.error || "Failed to load templates");
+          console.error("Template API error:", response.error);
+          setError(response.error || "Failed to load templates");
           setTemplates([]);
         }
       } catch (err) {
         console.error("Error fetching templates:", err);
-        setError("Failed to load templates");
+        setError(getErrorMessage(err));
       } finally {
         setLoading(false);
       }

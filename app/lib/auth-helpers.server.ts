@@ -9,6 +9,16 @@ import { authenticate, apiVersion } from "~/shopify.server";
 import type { AdminApiContext } from "@shopify/shopify-app-react-router/server";
 
 /**
+ * Shopify Session with access token
+ * Extends the base session type to include accessToken
+ */
+interface ShopifySessionWithToken {
+  shop: string;
+  accessToken: string;
+  [key: string]: unknown;
+}
+
+/**
  * Extract store ID from authenticated session
  * Converts shop domain to store identifier
  */
@@ -28,11 +38,12 @@ export async function getStoreId(request: Request): Promise<string> {
   // We need a numeric shop ID (BigInt) for our schema
   let shopNumericId: bigint | null = null;
   try {
+    const sessionWithToken = session as unknown as ShopifySessionWithToken;
     const resp = await fetch(`https://${shopDomain}/admin/api/${apiVersion}/graphql.json`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-Shopify-Access-Token': (session as any).accessToken,
+        'X-Shopify-Access-Token': sessionWithToken.accessToken,
       },
       body: JSON.stringify({ query: `query { shop { id } }` }),
     });

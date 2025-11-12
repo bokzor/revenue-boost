@@ -71,14 +71,14 @@ export function renderDesignStep(props: StepRendererProps) {
 
   // Convert wizard state designConfig to DesignConfig format
   const designConfig: Partial<import("~/domains/campaigns/types/campaign").DesignConfig> = {
-    theme: "professional-blue",
+    theme: "modern",
     position: "center",
     size: "medium",
     borderRadius: 8,
     overlayOpacity: 0.5,
     animation: "fade",
     // Add any existing design config values
-    ...(wizardState.designConfig as any),
+    ...(wizardState.designConfig as Partial<import("~/domains/campaigns/types/campaign").DesignConfig>),
   };
 
   return (
@@ -93,7 +93,7 @@ export function renderDesignStep(props: StepRendererProps) {
       designConfig={designConfig}
       discountConfig={wizardState.discountConfig}
       onContentChange={(content) => updateData({ contentConfig: content })}
-      onDesignChange={(design) => updateData({ designConfig: design as any })}
+      onDesignChange={(design) => updateData({ designConfig: design })}
       onDiscountChange={(config) => updateData({ discountConfig: config })}
       onTemplateSelect={(template) => {
         // Ensure required base content fields exist even if the user doesn't edit them

@@ -315,46 +315,6 @@ export type CountdownTimerContent = z.infer<typeof CountdownTimerContentSchema>;
 export type AnnouncementContent = z.infer<typeof AnnouncementContentSchema>;
 
 // ============================================================================
-// TEMPLATE-TYPE TO SCHEMA MAPPING
-// ============================================================================
-
-/**
- * Get the appropriate content schema for a template type
- */
-export function getContentSchemaForTemplate(templateType?: TemplateType) {
-  if (!templateType) {
-    return BaseContentConfigSchema;
-  }
-
-  switch (templateType) {
-    case "NEWSLETTER":
-      return NewsletterContentSchema;
-    case "SPIN_TO_WIN":
-      return SpinToWinContentSchema;
-    case "FLASH_SALE":
-      return FlashSaleContentSchema;
-    case "EXIT_INTENT":
-      return NewsletterContentSchema; // Exit intent uses newsletter fields
-    case "CART_ABANDONMENT":
-      return CartAbandonmentContentSchema;
-    case "PRODUCT_UPSELL":
-      return ProductUpsellContentSchema;
-    case "SOCIAL_PROOF":
-      return SocialProofContentSchema;
-    case "COUNTDOWN_TIMER":
-      return CountdownTimerContentSchema;
-    case "SCRATCH_CARD":
-      return ScratchCardContentSchema;
-    case "ANNOUNCEMENT":
-      return AnnouncementContentSchema;
-    case "FREE_SHIPPING":
-      return FreeShippingContentSchema;
-    default:
-      return BaseContentConfigSchema;
-  }
-}
-
-// ============================================================================
 // OTHER CONFIGURATION SCHEMAS
 // ============================================================================
 

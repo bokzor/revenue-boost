@@ -2,6 +2,10 @@
  * Campaign Management API Routes
  *
  * REST API endpoints for campaign CRUD operations
+ *
+ * PROTECTED: Rate limited to prevent abuse
+ * - GET: 120 requests/minute (authenticated)
+ * - POST/PUT/DELETE: 30 requests/minute (write operations)
  */
 
 import { CampaignService, CampaignCreateDataSchema, CampaignUpdateDataSchema } from "~/domains/campaigns";
@@ -10,9 +14,11 @@ import { validateData } from "~/lib/validation-helpers";
 import { createSuccessResponse, validateResourceExists } from "~/lib/api-helpers.server";
 import { handleApiError } from "~/lib/api-error-handler.server";
 import { getStoreId } from "~/lib/auth-helpers.server";
+import { withAuthRateLimit, withWriteRateLimit } from "~/lib/rate-limit-middleware.server";
 
-export async function loader({ request }: { request: Request }) {
-  try {
+export async function loader(args: { request: Request; params: any; context: any }) {
+  return withAuthRateLimit(args, async ({ request }) => {
+    try {
     const storeId = await getStoreId(request);
     const url = new URL(request.url);
     const templateType = url.searchParams.get("templateType");
@@ -27,14 +33,16 @@ export async function loader({ request }: { request: Request }) {
       campaigns = await CampaignService.getAllCampaigns(storeId);
     }
 
-    return createSuccessResponse({ campaigns });
-  } catch (error) {
-    return handleApiError(error, "GET /api/campaigns");
-  }
+      return createSuccessResponse({ campaigns });
+    } catch (error) {
+      return handleApiError(error, "GET /api/campaigns");
+    }
+  });
 }
 
-export async function action({ request }: { request: Request }) {
-  try {
+export async function action(args: { request: Request; params: any; context: any }) {
+  return withWriteRateLimit(args, async ({ request }) => {
+    try {
     const method = request.method;
     const storeId = await getStoreId(request);
     const url = new URL(request.url);
@@ -66,8 +74,9 @@ export async function action({ request }: { request: Request }) {
       return createSuccessResponse({ deleted: true });
     }
 
-    throw new Error(`Method ${method} not allowed`);
-  } catch (error) {
-    return handleApiError(error, `${request.method} /api/campaigns`);
-  }
+      throw new Error(`Method ${method} not allowed`);
+    } catch (error) {
+      return handleApiError(error, `${request.method} /api/campaigns`);
+    }
+  });
 }

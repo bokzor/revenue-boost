@@ -68,8 +68,15 @@
     const [isSubmitted, setIsSubmitted] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [errors, setErrors] = useState({});
+    const [generatedDiscountCode, setGeneratedDiscountCode] = useState(null);
     const imagePosition = config.imagePosition || "left";
-    const imageUrl = config.imageUrl || (config.theme ? `/newsletter-backgrounds/${config.theme}.png` : void 0);
+    let imageUrl = config.imageUrl;
+    if (!imageUrl && config.theme) {
+      const shopDomain = window.REVENUE_BOOST_CONFIG?.shopDomain;
+      if (shopDomain) {
+        imageUrl = `https://${shopDomain}/apps/revenue-boost/assets/newsletter-backgrounds/${config.theme}.png`;
+      }
+    }
     const title = config.headline || "Join Our Newsletter";
     const description = config.subheadline || "Subscribe to get special offers, free giveaways, and exclusive deals.";
     const buttonText = config.buttonText || "Subscribe";
@@ -161,6 +168,30 @@
     const contentClass = showImage ? isVertical ? `vertical ${imageFirst ? "" : "reverse"}` : `horizontal ${imageFirst ? "" : "reverse"}` : "single-column";
     const isGlass = config.backgroundColor?.includes("rgba") && parseFloat(config.backgroundColor.match(/[\d.]+(?=\))/)?.[0] || "1") < 1;
     const hasGradientBg = config.backgroundColor?.includes("gradient");
+    const getBackdropColor = () => {
+      const opacity = config.overlayOpacity ?? 0.6;
+      const overlayColor = config.overlayColor || "rgba(0, 0, 0, 1)";
+      if (overlayColor.startsWith("rgba")) {
+        const rgbaMatch = overlayColor.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*[\d.]+)?\)/);
+        if (rgbaMatch) {
+          return `rgba(${rgbaMatch[1]}, ${rgbaMatch[2]}, ${rgbaMatch[3]}, ${opacity})`;
+        }
+      }
+      if (overlayColor.startsWith("rgb")) {
+        const rgbMatch = overlayColor.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+        if (rgbMatch) {
+          return `rgba(${rgbMatch[1]}, ${rgbMatch[2]}, ${rgbMatch[3]}, ${opacity})`;
+        }
+      }
+      if (overlayColor.startsWith("#")) {
+        const hex = overlayColor.slice(1);
+        const r = parseInt(hex.slice(0, 2), 16);
+        const g = parseInt(hex.slice(2, 4), 16);
+        const b = parseInt(hex.slice(4, 6), 16);
+        return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+      }
+      return `rgba(0, 0, 0, ${opacity})`;
+    };
     return /* @__PURE__ */ jsxs(Fragment2, { children: [
       /* @__PURE__ */ jsx("style", { children: `
         .email-popup-overlay {
@@ -177,7 +208,7 @@
         .email-popup-backdrop {
           position: absolute;
           inset: 0;
-          background: rgba(0, 0, 0, ${config.overlayOpacity || 0.6});
+          background: ${getBackdropColor()};
           backdrop-filter: blur(4px);
         }
 

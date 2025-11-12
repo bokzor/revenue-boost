@@ -12,6 +12,7 @@ import type { SocialProofNotification } from "~/domains/storefront/notifications
 import { ShopifyDataService } from "./shopify-data.server";
 import { VisitorTrackingService } from "./visitor-tracking.server";
 import { CampaignService } from "~/domains/campaigns/index.server";
+import type { SocialProofContentConfig } from "../types/tracking";
 
 export interface GetNotificationsParams {
   campaignId: string;
@@ -23,6 +24,8 @@ export interface GetNotificationsParams {
 export class SocialProofService {
   /**
    * Get all social proof notifications for a campaign
+   *
+   * Optimized to run all enabled notification fetchers in parallel
    */
   static async getNotifications(
     params: GetNotificationsParams
@@ -35,86 +38,103 @@ export class SocialProofService {
       return [];
     }
 
-    const config = campaign.contentConfig as any;
-    const notifications: SocialProofNotification[] = [];
+    const config = campaign.contentConfig as SocialProofContentConfig;
+
+    // Build array of promises for all enabled notification types
+    // Using Promise.allSettled to handle individual failures gracefully
+    const notificationPromises: Promise<SocialProofNotification | SocialProofNotification[] | null>[] = [];
 
     // 1. Purchase Notifications (if enabled)
     if (config.enablePurchaseNotifications !== false) {
-      const purchases = await ShopifyDataService.getRecentPurchases({
-        storeId,
-        productId,
-        limit: 5,
-        hoursBack: config.purchaseLookbackHours || 48,
-      });
-      notifications.push(...purchases);
+      notificationPromises.push(
+        ShopifyDataService.getRecentPurchases({
+          storeId,
+          productId,
+          limit: 5,
+          hoursBack: config.purchaseLookbackHours || 48,
+        })
+      );
     }
 
     // 2. Visitor Count Notifications (if enabled)
     if (config.enableVisitorNotifications !== false) {
-      const visitorNotif = await VisitorTrackingService.getVisitorNotification({
-        storeId,
-        productId,
-        pageUrl,
-      });
-      if (visitorNotif) {
-        notifications.push(visitorNotif);
-      }
+      notificationPromises.push(
+        VisitorTrackingService.getVisitorNotification({
+          storeId,
+          productId,
+          pageUrl,
+        })
+      );
     }
 
     // 3. Sales Count Notifications (24-hour window)
     if (config.enableSalesCountNotifications !== false) {
-      const salesCount = await ShopifyDataService.getSalesCountNotification({
-        storeId,
-        productId,
-        hoursBack: 24,
-      });
-      if (salesCount) {
-        notifications.push(salesCount);
-      }
+      notificationPromises.push(
+        ShopifyDataService.getSalesCountNotification({
+          storeId,
+          productId,
+          hoursBack: 24,
+        })
+      );
     }
 
-    // 4. Low Stock Alerts (if enabled)
+    // 4. Low Stock Alerts (if enabled and productId present)
     if (config.enableLowStockAlerts !== false && productId) {
-      const lowStock = await ShopifyDataService.getLowStockNotification({
-        storeId,
-        productId,
-        threshold: config.lowStockThreshold || 10,
-      });
-      if (lowStock) {
-        notifications.push(lowStock);
-      }
+      notificationPromises.push(
+        ShopifyDataService.getLowStockNotification({
+          storeId,
+          productId,
+          threshold: config.lowStockThreshold || 10,
+        })
+      );
     }
 
-    // 5. Trending Product Notifications (if enabled)
+    // 5. Trending Product Notifications (if enabled and productId present)
     if (config.enableTrendingNotifications !== false && productId) {
-      const trending = await VisitorTrackingService.getTrendingNotification({
-        storeId,
-        productId,
-      });
-      if (trending) {
-        notifications.push(trending);
-      }
+      notificationPromises.push(
+        VisitorTrackingService.getTrendingNotification({
+          storeId,
+          productId,
+        })
+      );
     }
 
-    // 6. Cart Activity Notifications (if enabled)
+    // 6. Cart Activity Notifications (if enabled and productId present)
     if (config.enableCartActivityNotifications !== false && productId) {
-      const cartActivity = await VisitorTrackingService.getCartActivityNotification({
-        storeId,
-        productId,
-      });
-      if (cartActivity) {
-        notifications.push(cartActivity);
-      }
+      notificationPromises.push(
+        VisitorTrackingService.getCartActivityNotification({
+          storeId,
+          productId,
+        })
+      );
     }
 
-    // 7. Recently Viewed Notifications (if enabled)
+    // 7. Recently Viewed Notifications (if enabled and productId present)
     if (config.enableRecentlyViewedNotifications !== false && productId) {
-      const recentlyViewed = await VisitorTrackingService.getRecentlyViewedNotification({
-        storeId,
-        productId,
-      });
-      if (recentlyViewed) {
-        notifications.push(recentlyViewed);
+      notificationPromises.push(
+        VisitorTrackingService.getRecentlyViewedNotification({
+          storeId,
+          productId,
+        })
+      );
+    }
+
+    // Execute all promises in parallel
+    const results = await Promise.allSettled(notificationPromises);
+
+    // Collect successful results and flatten arrays
+    const notifications: SocialProofNotification[] = [];
+    for (const result of results) {
+      if (result.status === 'fulfilled' && result.value) {
+        // Handle both single notifications and arrays
+        if (Array.isArray(result.value)) {
+          notifications.push(...result.value);
+        } else {
+          notifications.push(result.value);
+        }
+      } else if (result.status === 'rejected') {
+        // Log errors but don't fail the entire request
+        console.error('[SocialProofService] Notification fetch failed:', result.reason);
       }
     }
 

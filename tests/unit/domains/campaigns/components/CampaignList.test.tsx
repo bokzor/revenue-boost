@@ -66,7 +66,7 @@ describe('CampaignList (grouped by experiment)', () => {
 
     // Expand the experiment to see variants
     const expandButton = screen.getByRole('button', { name: /expand experiment/i });
-    await user.click(expandButton);
+    await user.click(expandButton as Element);
 
     // Variant badges indicating keys and control should now be visible
     expect(screen.getAllByText(/Variant A \(Control\)/i).length).toBeGreaterThan(0);
@@ -111,7 +111,7 @@ describe('CampaignList (grouped by experiment)', () => {
 
     // Click on the experiment row (the text "Price Test")
     const experimentRow = screen.getByText('Price Test');
-    await user.click(experimentRow);
+    await user.click(experimentRow as Element);
 
     expect(onExperimentSelect).toHaveBeenCalledWith('exp_1');
   });
@@ -140,7 +140,7 @@ describe('CampaignList (grouped by experiment)', () => {
     const experimentEditButton = editButtons.find(btn => btn.textContent === 'Edit');
 
     if (experimentEditButton) {
-      await user.click(experimentEditButton);
+      await user.click(experimentEditButton as Element);
       expect(onExperimentEdit).toHaveBeenCalledWith('exp_1');
     }
   });
@@ -166,14 +166,14 @@ describe('CampaignList (grouped by experiment)', () => {
 
     // First expand the experiment to see variants
     const expandButton = screen.getByRole('button', { name: /expand experiment/i });
-    await user.click(expandButton);
+    await user.click(expandButton as Element);
 
     // Find and click the "Edit Variant" button for variant B
     const editVariantButtons = screen.getAllByRole('button', { name: /edit variant/i });
 
     // Click on the second variant's edit button (Variant B)
     if (editVariantButtons.length > 1) {
-      await user.click(editVariantButtons[1]);
+      await user.click(editVariantButtons[1] as Element);
       expect(onExperimentEdit).toHaveBeenCalledWith('exp_1', 'B');
     }
   });
@@ -199,7 +199,7 @@ describe('CampaignList (grouped by experiment)', () => {
 
     // Click the expand button
     const expandButton = screen.getByRole('button', { name: /expand experiment/i });
-    await user.click(expandButton);
+    await user.click(expandButton as Element);
 
     // onExperimentSelect should NOT have been called
     expect(onExperimentSelect).not.toHaveBeenCalled();
@@ -231,7 +231,7 @@ describe('CampaignList (grouped by experiment)', () => {
     const experimentEditButton = editButtons.find(btn => btn.textContent === 'Edit');
 
     if (experimentEditButton) {
-      await user.click(experimentEditButton);
+      await user.click(experimentEditButton as Element);
 
       // onExperimentEdit should have been called
       expect(onExperimentEdit).toHaveBeenCalledWith('exp_1');

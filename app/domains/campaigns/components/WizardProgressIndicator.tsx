@@ -8,9 +8,13 @@
  * - Checkmarks for completed steps
  * - Mobile-responsive (vertical on small screens)
  * - Accessible with ARIA labels
+ *
+ * OPTIMIZED: Memoized to prevent unnecessary re-renders
+ * - useMemo for expensive calculations
+ * - React.memo for component
  */
 
-import React from "react";
+import React, { useMemo } from "react";
 import {
   BlockStack,
   InlineStack,
@@ -34,15 +38,18 @@ interface WizardProgressIndicatorProps {
   onStepClick: (stepIndex: number) => void;
 }
 
-export function WizardProgressIndicator({
+export const WizardProgressIndicator = React.memo(function WizardProgressIndicator({
   steps,
   currentStep,
   completedSteps,
   onStepClick,
 }: WizardProgressIndicatorProps) {
-  // Calculate progress percentage
-  const completedCount = completedSteps.filter(Boolean).length;
-  const progressPercentage = Math.round((completedCount / steps.length) * 100);
+  // Memoize expensive calculations
+  const { completedCount, progressPercentage } = useMemo(() => {
+    const count = completedSteps.filter(Boolean).length;
+    const percentage = Math.round((count / steps.length) * 100);
+    return { completedCount: count, progressPercentage: percentage };
+  }, [completedSteps, steps.length]);
 
   return (
     <BlockStack gap="400">
@@ -203,4 +210,4 @@ export function WizardProgressIndicator({
       </div>
     </BlockStack>
   );
-}
+});

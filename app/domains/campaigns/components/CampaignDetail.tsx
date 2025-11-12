@@ -24,6 +24,7 @@ import {
   Spinner,
 } from '@shopify/polaris';
 import type { CampaignWithConfigs , CampaignStatus, CampaignGoal, TemplateType } from '~/domains/campaigns/types/campaign';
+import { getTemplateLabel } from '~/domains/templates/registry/template-registry';
 
 // ============================================================================
 // TYPES
@@ -103,23 +104,8 @@ export function CampaignDetail({
     }).format(amount);
   };
 
-  const getTemplateTypeLabel = (templateType: TemplateType) => {
-    const labels: Record<TemplateType, string> = {
-      NEWSLETTER: 'Newsletter',
-      SPIN_TO_WIN: 'Spin to Win',
-      FLASH_SALE: 'Flash Sale',
-      FREE_SHIPPING: 'Free Shipping',
-      EXIT_INTENT: 'Exit Intent',
-      CART_ABANDONMENT: 'Cart Abandonment',
-      PRODUCT_UPSELL: 'Product Upsell',
-      SOCIAL_PROOF: 'Social Proof',
-      COUNTDOWN_TIMER: 'Countdown Timer',
-      SCRATCH_CARD: 'Scratch Card',
-      ANNOUNCEMENT: 'Announcement',
-    };
-    
-    return labels[templateType] || templateType;
-  };
+  // Use template registry for labels
+  const getTemplateTypeLabel = getTemplateLabel;
 
   const getGoalLabel = (goal: CampaignGoal) => {
     const labels: Record<CampaignGoal, string> = {

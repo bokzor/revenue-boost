@@ -5,6 +5,8 @@
  * This is used by the popup system to determine which campaigns to show
  *
  * GET /api/campaigns/active?shop=store.myshopify.com
+ *
+ * PROTECTED: Rate limited to 60 requests/minute per IP (public endpoint)
  */
 
 import {
@@ -12,6 +14,7 @@ import {
   type LoaderFunctionArgs,
 } from "react-router";
 import { storefrontCors } from "~/lib/cors.server";
+import { withPublicRateLimit } from "~/lib/rate-limit-middleware.server";
 import {
   CampaignService,
   CampaignFilterService,
@@ -39,14 +42,15 @@ interface ActiveCampaignsResponse {
 // LOADER (GET /api/campaigns/active)
 // ============================================================================
 
-export async function loader({ request }: LoaderFunctionArgs) {
-  // Get or create visitor ID from cookie
-  const visitorId = await getOrCreateVisitorId(request);
+export async function loader(args: LoaderFunctionArgs) {
+  return withPublicRateLimit(args, async ({ request }) => {
+    // Get or create visitor ID from cookie
+    const visitorId = await getOrCreateVisitorId(request);
 
-  // Create headers with visitor ID cookie
-  const headers = await createVisitorIdHeaders(visitorId, storefrontCors());
+    // Create headers with visitor ID cookie
+    const headers = await createVisitorIdHeaders(visitorId, storefrontCors());
 
-  try {
+    try {
     const url = new URL(request.url);
     const shop = url.searchParams.get("shop");
 
@@ -112,10 +116,11 @@ export async function loader({ request }: LoaderFunctionArgs) {
       })));
     }
 
-    return data(response, { headers });
-  } catch (error) {
-    return handleApiError(error, "GET /api/campaigns/active");
-  }
+      return data(response, { headers });
+    } catch (error) {
+      return handleApiError(error, "GET /api/campaigns/active");
+    }
+  });
 }
 
 /**

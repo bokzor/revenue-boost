@@ -1,11 +1,12 @@
 /**
  * Redis Connection Module
- * 
+ *
  * Provides Redis client for server-side caching, frequency capping, and visitor tracking.
  * Gracefully handles missing Redis configuration by returning null.
  */
 
 import Redis from 'ioredis';
+import { getEnv } from './env.server';
 
 let redisClient: Redis | null = null;
 
@@ -15,7 +16,9 @@ let redisClient: Redis | null = null;
 function getRedisClient(): Redis | null {
   if (redisClient) return redisClient;
 
-  const redisUrl = process.env.REDIS_URL;
+  const env = getEnv();
+  const redisUrl = env.REDIS_URL;
+
   if (!redisUrl) {
     console.warn('⚠️  REDIS_URL not configured, Redis features will be disabled');
     console.warn('   Frequency capping and visitor tracking will not work properly');

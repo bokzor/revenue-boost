@@ -20,8 +20,8 @@ import {
   DesignConfigSchema,
   TargetRulesConfigSchema,
   DiscountConfigSchema,
-  getContentSchemaForTemplate,
 } from "../types/campaign.js";
+import { getContentSchemaForTemplate } from "~/domains/templates/registry/template-registry.js";
 import type {
   TrafficAllocation,
   StatisticalConfig,

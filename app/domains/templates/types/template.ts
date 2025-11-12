@@ -17,7 +17,6 @@ import {
   SpinToWinContentSchema,
   FlashSaleContentSchema,
   FreeShippingContentSchema,
-  getContentSchemaForTemplate,
   // Types
   type DesignConfig,
   type TargetRulesConfig,
@@ -26,6 +25,7 @@ import {
   type BaseContentConfig,
   type TemplateType
 } from "../../campaigns/types/campaign.js";
+import { getContentSchemaForTemplate } from "../registry/template-registry.js";
 
 // ============================================================================
 // TEMPLATE FIELD DEFINITIONS
@@ -267,33 +267,12 @@ export const FreeShippingTemplateSchema = BaseTemplateSchema.extend({
 /**
  * Get the appropriate template schema for a template type
  * This ensures proper typing for contentConfig based on templateType
+ * @deprecated Use template registry for schema lookups
  */
 export function getTemplateSchemaForType(templateType: TemplateType) {
-  switch (templateType) {
-    case "NEWSLETTER":
-    case "EXIT_INTENT": // Exit intent uses newsletter fields
-      return NewsletterTemplateSchema;
-    case "FLASH_SALE":
-    case "COUNTDOWN_TIMER": // Countdown timer uses flash sale fields
-      return FlashSaleTemplateSchema;
-    case "SPIN_TO_WIN":
-    case "SCRATCH_CARD": // Scratch card similar to spin-to-win
-      return SpinToWinTemplateSchema;
-    case "FREE_SHIPPING":
-      return FreeShippingTemplateSchema;
-    case "CART_ABANDONMENT":
-      // Could add CartAbandonmentTemplateSchema if needed
-      return TemplateWithConfigsSchema;
-    case "PRODUCT_UPSELL":
-      // Could add ProductUpsellTemplateSchema if needed
-      return TemplateWithConfigsSchema;
-    case "SOCIAL_PROOF":
-      // Could add SocialProofTemplateSchema if needed
-      return TemplateWithConfigsSchema;
-    case "ANNOUNCEMENT":
-    default:
-      return TemplateWithConfigsSchema;
-  }
+  // For backward compatibility, return TemplateWithConfigsSchema
+  // The registry handles content schema validation separately
+  return TemplateWithConfigsSchema;
 }
 
 /**

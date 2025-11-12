@@ -695,6 +695,42 @@
       }
       return "desktop";
     }
+    async submitLead(data) {
+      const params = new URLSearchParams({
+        shop: this.config.shopDomain
+      });
+      const url = `${this.getApiUrl("/api/leads/submit")}?${params.toString()}`;
+      try {
+        const response = await fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            ...data,
+            pageUrl: window.location.href,
+            referrer: document.referrer
+          })
+        });
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || `HTTP ${response.status}`);
+        }
+        const result = await response.json();
+        this.log("Lead submitted successfully:", result);
+        return {
+          success: true,
+          leadId: result.leadId,
+          discountCode: result.discountCode
+        };
+      } catch (error) {
+        console.error("[Revenue Boost API] Failed to submit lead:", error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : "Failed to submit lead"
+        };
+      }
+    }
     async recordFrequency(sessionId, campaignId) {
       const url = this.getApiUrl("/api/analytics/frequency");
       try {
@@ -973,7 +1009,7 @@
   };
 
   // extensions/storefront-src/core/PopupManagerPreact.tsx
-  function PopupManagerPreact({ campaign, onClose, onShow, loader }) {
+  function PopupManagerPreact({ campaign, onClose, onShow, loader, api }) {
     const [Component, setComponent] = d2(null);
     const [loading, setLoading] = d2(true);
     const [error, setError] = d2(null);
@@ -1001,6 +1037,27 @@
         mounted = false;
       };
     }, [campaign.id, campaign.templateType, loader, onShow]);
+    const handleSubmit = async (data) => {
+      try {
+        console.log("[PopupManager] Submitting lead:", data);
+        const result = await api.submitLead({
+          email: data.email,
+          campaignId: campaign.id,
+          sessionId: session.getSessionId(),
+          visitorId: session.getVisitorId(),
+          consent: data.gdprConsent,
+          firstName: data.name
+        });
+        if (!result.success) {
+          throw new Error(result.error || "Failed to submit lead");
+        }
+        console.log("[PopupManager] Lead submitted successfully:", result);
+        return result.discountCode;
+      } catch (err) {
+        console.error("[PopupManager] Failed to submit lead:", err);
+        throw err;
+      }
+    };
     if (loading) {
       return _("div", {
         style: {
@@ -1038,11 +1095,12 @@
       },
       isVisible: true,
       onClose,
+      onSubmit: handleSubmit,
       campaignId: campaign.id,
       renderInline: false
     });
   }
-  function renderPopup(campaign, onClose, loader, onShow) {
+  function renderPopup(campaign, onClose, loader, api, onShow) {
     const container = document.createElement("div");
     container.id = `revenue-boost-popup-${campaign.id}`;
     document.body.appendChild(container);
@@ -1054,7 +1112,8 @@
           cleanup();
         },
         onShow,
-        loader
+        loader,
+        api
       }),
       container
     );
@@ -1806,8 +1865,9 @@
       const available = sorted.filter((campaign2) => {
         const isPreview = this.config.previewMode && this.config.previewId === campaign2.id;
         if (isPreview) return true;
-        if (session.wasShown(campaign2.id)) {
-          this.log(`Campaign already shown: ${campaign2.id}`);
+        const trackingKey = campaign2.experimentId || campaign2.id;
+        if (session.wasShown(trackingKey)) {
+          this.log(`Campaign already shown: ${campaign2.id} (tracking key: ${trackingKey})`);
           return false;
         }
         return true;
@@ -1847,8 +1907,8 @@
     async renderCampaign(campaign) {
       const isPreview = this.config.previewMode && this.config.previewId === campaign.id;
       if (!isPreview) {
-        session.markShown(campaign.id);
         const trackingKey = campaign.experimentId || campaign.id;
+        session.markShown(trackingKey);
         await this.api.recordFrequency(session.getSessionId(), trackingKey);
       }
       this.cleanupFn = renderPopup(
@@ -1859,6 +1919,7 @@
           this.triggerManager.cleanup();
         },
         this.loader,
+        this.api,
         (campaignId) => {
           this.log("Popup shown:", campaignId);
         }

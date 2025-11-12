@@ -59,110 +59,85 @@ const commonNewsletterFields: ContentFieldDefinition[] = [
 ];
 
 /**
+ * Field registry for template types
+ * Maps template types to their specific field definitions
+ */
+const TEMPLATE_FIELD_REGISTRY: Record<string, ContentFieldDefinition[]> = {
+  NEWSLETTER: commonNewsletterFields,
+  EXIT_INTENT: commonNewsletterFields,
+  SPIN_TO_WIN: [
+    ...commonNewsletterFields,
+    {
+      id: "wheelColors",
+      type: "color-list",
+      label: "Wheel Colors",
+      description: "Colors for the wheel segments",
+      defaultValue: ["#FF6B6B", "#4ECDC4", "#45B7D1", "#FFA07A", "#98D8C8", "#F7DC6F"],
+      section: "theme",
+    },
+    {
+      id: "prizes",
+      type: "prize-list",
+      label: "Prizes",
+      description: "List of prizes on the wheel",
+      defaultValue: [],
+      section: "content",
+    },
+  ],
+  SCRATCH_CARD: [], // Will be populated below
+  FLASH_SALE: [], // Will be populated below
+  COUNTDOWN_TIMER: [], // Will be populated below
+  CART_ABANDONMENT: [], // Will be populated below
+  PRODUCT_UPSELL: commonNewsletterFields,
+  SOCIAL_PROOF: commonNewsletterFields,
+  FREE_SHIPPING: commonNewsletterFields,
+  ANNOUNCEMENT: commonNewsletterFields,
+};
+
+// Populate SCRATCH_CARD (same as SPIN_TO_WIN)
+TEMPLATE_FIELD_REGISTRY.SCRATCH_CARD = TEMPLATE_FIELD_REGISTRY.SPIN_TO_WIN;
+
+// Populate FLASH_SALE and COUNTDOWN_TIMER
+const flashSaleFields: ContentFieldDefinition[] = [
+  ...commonNewsletterFields,
+  {
+    id: "countdownDuration",
+    type: "number",
+    label: "Countdown Duration (minutes)",
+    description: "How long the countdown should run",
+    defaultValue: 30,
+    section: "behavior",
+    validation: { min: 1, max: 1440 },
+  } as ContentFieldDefinition,
+  {
+    id: "urgencyText",
+    type: "text",
+    label: "Urgency Text",
+    description: "Text to create urgency",
+    defaultValue: "Limited time offer!",
+    section: "content",
+  } as ContentFieldDefinition,
+];
+TEMPLATE_FIELD_REGISTRY.FLASH_SALE = flashSaleFields;
+TEMPLATE_FIELD_REGISTRY.COUNTDOWN_TIMER = flashSaleFields;
+
+// Populate CART_ABANDONMENT
+TEMPLATE_FIELD_REGISTRY.CART_ABANDONMENT = [
+  ...commonNewsletterFields,
+  {
+    id: "cartReminderText",
+    type: "text",
+    label: "Cart Reminder",
+    description: "Remind customers about their cart",
+    defaultValue: "You left items in your cart!",
+    section: "content",
+  } as ContentFieldDefinition,
+];
+
+/**
  * Get field definitions for a specific template type
  */
 export function getFieldsForTemplate(templateType: string): ContentFieldDefinition[] {
-  switch (templateType?.toUpperCase()) {
-    case "NEWSLETTER":
-    case "EXIT_INTENT":
-      return commonNewsletterFields;
-
-    case "SPIN_TO_WIN":
-    case "SCRATCH_CARD":
-      return [
-        ...commonNewsletterFields,
-        {
-          id: "wheelColors",
-          type: "color-list",
-          label: "Wheel Colors",
-          description: "Colors for the wheel segments",
-          defaultValue: ["#FF6B6B", "#4ECDC4", "#45B7D1", "#FFA07A", "#98D8C8", "#F7DC6F"],
-          section: "theme",
-        },
-        {
-          id: "prizes",
-          type: "prize-list",
-          label: "Prizes",
-          description: "List of prizes on the wheel",
-          defaultValue: [],
-          section: "content",
-        },
-      ];
-
-    case "FLASH_SALE":
-    case "COUNTDOWN_TIMER":
-      return [
-        ...commonNewsletterFields,
-        {
-          id: "countdownDuration",
-          type: "number",
-          label: "Countdown Duration (minutes)",
-          description: "How long the countdown should run",
-          defaultValue: 30,
-          section: "behavior",
-          validation: { min: 1, max: 1440 },
-        },
-        {
-          id: "urgencyText",
-          type: "text",
-          label: "Urgency Text",
-          description: "Text to create urgency",
-          defaultValue: "Limited time offer!",
-          section: "content",
-        },
-      ];
-
-    case "CART_ABANDONMENT":
-      return [
-        ...commonNewsletterFields,
-        {
-          id: "cartReminderText",
-          type: "text",
-          label: "Cart Reminder Text",
-          description: "Text reminding about abandoned cart",
-          defaultValue: "You left items in your cart!",
-          section: "content",
-        },
-      ];
-
-    case "PRODUCT_UPSELL":
-      return [
-        ...commonNewsletterFields,
-        {
-          id: "productIds",
-          type: "product-picker",
-          label: "Upsell Products",
-          description: "Products to recommend",
-          defaultValue: [],
-          section: "products",
-        },
-      ];
-
-    case "SOCIAL_PROOF":
-      return [
-        {
-          id: "notificationInterval",
-          type: "number",
-          label: "Notification Interval (ms)",
-          description: "Time between notifications",
-          defaultValue: 5000,
-          section: "behavior",
-          validation: { min: 1000 },
-        },
-        {
-          id: "maxNotifications",
-          type: "number",
-          label: "Max Notifications",
-          description: "Maximum number of notifications to show",
-          defaultValue: 5,
-          section: "behavior",
-          validation: { min: 1 },
-        },
-      ];
-
-    default:
-      // Return basic fields for unknown templates
-      return commonNewsletterFields;
-  }
+  const normalizedType = templateType?.toUpperCase();
+  return TEMPLATE_FIELD_REGISTRY[normalizedType] || commonNewsletterFields;
 }
-

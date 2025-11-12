@@ -85,13 +85,25 @@ export class PopupManagerCore {
     }
   }
 
+  /**
+   * Get tracking key for a campaign
+   * Uses experimentId if campaign is part of an A/B test, otherwise uses campaign.id
+   * This ensures all variants of an experiment are tracked together
+   */
+  private getTrackingKey(campaign: StorefrontCampaign): string {
+    return campaign.experimentId || campaign.id;
+  }
+
   canDisplayCampaign(campaign: StorefrontCampaign): boolean {
     if (campaign.previewMode) return true;
+
+    // Use tracking key (experimentId if available, otherwise campaign.id)
+    const trackingKey = this.getTrackingKey(campaign);
 
     // Check debounce
     try {
       if (typeof window !== "undefined") {
-        const until = parseInt(window.sessionStorage.getItem(`splitpop_recently_closed_until:${campaign.id}`) || "0");
+        const until = parseInt(window.sessionStorage.getItem(`splitpop_recently_closed_until:${trackingKey}`) || "0");
         if (until > Date.now()) return false;
       }
     } catch {
@@ -99,15 +111,19 @@ export class PopupManagerCore {
     }
 
     // Check if already displayed or in cooldown
-    return !this.state.displayedCampaigns.has(campaign.id) &&
-           !this.state.cooldownCampaigns.has(campaign.id);
+    // For A/B tests, this prevents showing ANY variant of the same experiment
+    return !this.state.displayedCampaigns.has(trackingKey) &&
+           !this.state.cooldownCampaigns.has(trackingKey);
   }
 
   async showPopup(campaign: StorefrontCampaign): Promise<boolean> {
     if (!this.canDisplayCampaign(campaign) || this.state.activeCampaign) return false;
 
+    // Use tracking key (experimentId if available, otherwise campaign.id)
+    const trackingKey = this.getTrackingKey(campaign);
+
     const newDisplayed = new Set(this.state.displayedCampaigns);
-    newDisplayed.add(campaign.id);
+    newDisplayed.add(trackingKey);
     this.state.displayedCampaigns = newDisplayed;
     this.saveDisplayedCampaigns(newDisplayed, this.state.cooldownCampaigns);
 
@@ -120,12 +136,14 @@ export class PopupManagerCore {
     if (!this.state.activeCampaign) return;
 
     const campaignId = this.state.activeCampaign.campaignId || this.state.activeCampaign.id;
+    // Use tracking key for debounce and cooldown (experimentId if available)
+    const trackingKey = this.getTrackingKey(this.state.activeCampaign);
 
     // Set debounce
     try {
       if (typeof window !== "undefined") {
         window.sessionStorage.setItem(
-          `splitpop_recently_closed_until:${this.state.activeCampaign.id}`,
+          `splitpop_recently_closed_until:${trackingKey}`,
           (Date.now() + 5000).toString()
         );
       }
@@ -138,12 +156,12 @@ export class PopupManagerCore {
     // Handle cooldown
     if (this.state.activeCampaign.cooldownMinutes) {
       const newCooldowns = new Set(this.state.cooldownCampaigns);
-      newCooldowns.add(campaignId);
+      newCooldowns.add(trackingKey);
       this.state.cooldownCampaigns = newCooldowns;
       this.saveDisplayedCampaigns(this.state.displayedCampaigns, newCooldowns);
 
       setTimeout(() => {
-        this.state.cooldownCampaigns.delete(campaignId);
+        this.state.cooldownCampaigns.delete(trackingKey);
       }, this.state.activeCampaign.cooldownMinutes * 60 * 1000);
     }
 

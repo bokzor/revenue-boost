@@ -25,6 +25,7 @@ import {
 } from '@shopify/polaris';
 import type { CampaignWithConfigs , CampaignStatus, CampaignGoal, TemplateType } from '~/domains/campaigns/types/campaign';
 import type { ExperimentWithVariants } from '~/domains/campaigns/types/experiment';
+import { getTemplateLabel, getTemplateOptions } from '~/domains/templates/registry/template-registry';
 
 
 // ============================================================================
@@ -119,19 +120,8 @@ export function CampaignList({
     { label: 'Engagement', value: 'ENGAGEMENT' },
   ];
 
-  const templateTypeOptions = [
-    { label: 'Newsletter', value: 'NEWSLETTER' },
-    { label: 'Spin to Win', value: 'SPIN_TO_WIN' },
-    { label: 'Flash Sale', value: 'FLASH_SALE' },
-    { label: 'Free Shipping', value: 'FREE_SHIPPING' },
-    { label: 'Exit Intent', value: 'EXIT_INTENT' },
-    { label: 'Cart Abandonment', value: 'CART_ABANDONMENT' },
-    { label: 'Product Upsell', value: 'PRODUCT_UPSELL' },
-    { label: 'Social Proof', value: 'SOCIAL_PROOF' },
-    { label: 'Countdown Timer', value: 'COUNTDOWN_TIMER' },
-    { label: 'Scratch Card', value: 'SCRATCH_CARD' },
-    { label: 'Announcement', value: 'ANNOUNCEMENT' },
-  ];
+  // Use template registry for options
+  const templateTypeOptions = getTemplateOptions();
 
   // Filter and sort campaigns
   const filteredAndSortedCampaigns = useMemo(() => {
@@ -296,23 +286,8 @@ export function CampaignList({
     });
   };
 
-  const getTemplateTypeLabel = (templateType: TemplateType) => {
-    const labels: Record<TemplateType, string> = {
-      NEWSLETTER: 'Newsletter',
-      SPIN_TO_WIN: 'Spin to Win',
-      FLASH_SALE: 'Flash Sale',
-      FREE_SHIPPING: 'Free Shipping',
-      EXIT_INTENT: 'Exit Intent',
-      CART_ABANDONMENT: 'Cart Abandonment',
-      PRODUCT_UPSELL: 'Product Upsell',
-      SOCIAL_PROOF: 'Social Proof',
-      COUNTDOWN_TIMER: 'Countdown Timer',
-      SCRATCH_CARD: 'Scratch Card',
-      ANNOUNCEMENT: 'Announcement',
-    };
-
-    return labels[templateType] || templateType;
-  };
+  // Use template registry for labels
+  const getTemplateTypeLabel = getTemplateLabel;
 
   // Filter components
   const appliedFilters = [];

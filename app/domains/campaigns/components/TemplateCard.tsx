@@ -3,9 +3,14 @@
  *
  * Displays a single template option with preview, metadata, and selection state.
  * Used in the template selection step of the campaign wizard.
+ *
+ * OPTIMIZED: Memoized to prevent unnecessary re-renders
+ * - Pure component (output depends only on props)
+ * - Wrapped with React.memo
+ * - useCallback for stable event handlers
  */
 
-import React from "react";
+import React, { useCallback } from "react";
 import { Card, Badge, Text, InlineStack, BlockStack } from "@shopify/polaris";
 import type { ProcessedTemplate } from "../utils/template-processing";
 
@@ -15,31 +20,34 @@ export interface TemplateCardProps {
   onClick: () => void;
 }
 
-export const TemplateCard: React.FC<TemplateCardProps> = ({
+export const TemplateCard = React.memo<TemplateCardProps>(({
   template,
   isSelected,
   onClick,
 }) => {
+  const handleClick = useCallback(() => {
+    console.log(
+      "TemplateCard clicked:",
+      template.name,
+      template.templateId,
+    );
+    onClick();
+  }, [template.name, template.templateId, onClick]);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      onClick();
+    }
+  }, [onClick]);
   return (
     <div
       role="button"
       tabIndex={0}
       aria-pressed={isSelected}
       aria-label={`Select template ${template.name}`}
-      onClick={() => {
-        console.log(
-          "TemplateCard clicked:",
-          template.name,
-          template.templateId,
-        );
-        onClick();
-      }}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          onClick();
-        }
-      }}
+      onClick={handleClick}
+      onKeyDown={handleKeyDown}
       data-testid={`template-${template.templateId}`}
       style={{
         cursor: "pointer",
@@ -143,4 +151,4 @@ export const TemplateCard: React.FC<TemplateCardProps> = ({
       </Card>
     </div>
   );
-};
+});

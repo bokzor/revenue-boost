@@ -15,6 +15,7 @@ import { CampaignService, ExperimentService } from "~/domains/campaigns";
 import { CampaignList } from "~/domains/campaigns/components";
 import type { CampaignWithConfigs } from "~/domains/campaigns/types/campaign";
 import type { ExperimentWithVariants } from "~/domains/campaigns";
+import { apiClient, getErrorMessage } from "~/lib/api-client";
 
 // ============================================================================
 // TYPES
@@ -145,16 +146,15 @@ export default function CampaignsIndexPage() {
 
   const handleCampaignDuplicate = async (campaignId: string) => {
     try {
-      const response = await fetch(`/api/campaigns/${campaignId}`, {
-        method: "GET",
-      });
+      // Fetch original campaign
+      const response = await apiClient.get<{ campaign: CampaignWithConfigs }>(
+        `/api/campaigns/${campaignId}`
+      );
 
-      if (!response.ok) {
-        throw new Error("Failed to fetch campaign");
+      const campaign = response.data?.campaign;
+      if (!campaign) {
+        throw new Error("Campaign not found");
       }
-
-      const body = await response.json();
-      const campaign = body?.data?.campaign ?? body?.data;
 
       // Create duplicate with modified name
       const duplicateData = {
@@ -163,24 +163,14 @@ export default function CampaignsIndexPage() {
         status: "DRAFT",
       };
 
-      const createResponse = await fetch("/api/campaigns", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(duplicateData),
-      });
-
-      if (!createResponse.ok) {
-        throw new Error("Failed to duplicate campaign");
-      }
+      await apiClient.post("/api/campaigns", duplicateData);
 
       showToast("Campaign duplicated successfully");
       revalidator.revalidate();
 
     } catch (error) {
       console.error("Failed to duplicate campaign:", error);
-      showToast("Failed to duplicate campaign", true);
+      showToast(getErrorMessage(error), true);
     }
   };
 
@@ -190,20 +180,14 @@ export default function CampaignsIndexPage() {
     }
 
     try {
-      const response = await fetch(`/api/campaigns/${campaignId}`, {
-        method: "DELETE",
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to delete campaign");
-      }
+      await apiClient.delete(`/api/campaigns/${campaignId}`);
 
       showToast("Campaign deleted successfully");
       revalidator.revalidate();
 
     } catch (error) {
       console.error("Failed to delete campaign:", error);
-      showToast("Failed to delete campaign", true);
+      showToast(getErrorMessage(error), true);
     }
   };
 

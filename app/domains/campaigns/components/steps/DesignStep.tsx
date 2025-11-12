@@ -1,17 +1,24 @@
 /**
  * DesignStep - Template selection and design customization
+ *
+ * REFACTORED: Now uses Context API for cleaner prop management
+ * - Uses useConfigField for contentConfig and designConfig
+ * - Uses useStoreInfo for shopDomain
+ * - No more prop drilling
  */
 
 import { Card, BlockStack, Text, Divider, Layout } from "@shopify/polaris";
 import { ContentConfigSection } from "../sections/ContentConfigSection";
 import { DesignConfigSection } from "../sections/DesignConfigSection";
 import { LivePreviewPanel } from "~/domains/popups/components/preview/LivePreviewPanel";
-import type { CampaignFormData, PopupDesignFormData } from "~/shared/hooks/useWizardState";
-import type { DesignConfig } from "~/domains/campaigns/types/campaign";
+import type { PopupDesignFormData } from "~/shared/hooks/useWizardState";
+import type { DesignConfig, ContentConfig } from "~/domains/campaigns/types/campaign";
+import { useConfigField, useFormField, useStoreInfo } from "../../context/CampaignFormContext";
 
+// Props interface kept for backward compatibility
 interface DesignStepProps {
-  data: Partial<CampaignFormData>;
-  onChange: (updates: Partial<CampaignFormData>) => void;
+  data?: any;
+  onChange?: any;
   shopDomain?: string;
 }
 function toDesignConfig(p?: PopupDesignFormData): Partial<DesignConfig> {
@@ -57,8 +64,15 @@ function mergePopupDesignChange(prev: PopupDesignFormData | undefined, change: P
 }
 
 
-export function DesignStep({ data, onChange, shopDomain }: DesignStepProps) {
-  if (!data.goal || !data.templateType) {
+export function DesignStep(_props?: DesignStepProps) {
+  // Use context hooks
+  const { shopDomain } = useStoreInfo();
+  const [goal] = useFormField("goal");
+  const [templateType] = useFormField("templateType");
+  const [contentConfig, updateContentConfig] = useConfigField<any>("contentConfig");
+  const [designConfig, updateDesignConfig] = useConfigField<any>("designConfig");
+
+  if (!goal || !templateType) {
     return (
       <Card>
         <BlockStack gap="400">
@@ -82,13 +96,13 @@ export function DesignStep({ data, onChange, shopDomain }: DesignStepProps) {
                 Content Configuration
               </Text>
               <Text as="p" tone="subdued">
-                Customize the text, messages, and behavior for your {data.templateType?.toLowerCase().replace(/_/g, ' ')} popup.
+                Customize the text, messages, and behavior for your {templateType?.toLowerCase().replace(/_/g, ' ')} popup.
               </Text>
               <Divider />
               <ContentConfigSection
-                templateType={data.templateType}
-                content={data.contentConfig || {}}
-                onChange={(content) => onChange({ contentConfig: content })}
+                templateType={templateType}
+                content={contentConfig}
+                onChange={updateContentConfig}
               />
             </BlockStack>
           </Card>
@@ -104,16 +118,12 @@ export function DesignStep({ data, onChange, shopDomain }: DesignStepProps) {
               </Text>
               <Divider />
               <DesignConfigSection
-                design={toDesignConfig(data.designConfig?.popupDesign)}
-                templateType={data.templateType}
-                onChange={(design) =>
-                  onChange({
-                    designConfig: {
-                      ...data.designConfig,
-                      popupDesign: mergePopupDesignChange(data.designConfig?.popupDesign, design),
-                    },
-                  })
-                }
+                design={toDesignConfig(designConfig?.popupDesign || designConfig)}
+                templateType={templateType}
+                onChange={(design) => {
+                  const merged = mergePopupDesignChange(designConfig?.popupDesign || designConfig, design);
+                  updateDesignConfig(designConfig?.popupDesign ? { ...designConfig, popupDesign: merged } : merged);
+                }}
               />
             </BlockStack>
           </Card>
@@ -124,11 +134,10 @@ export function DesignStep({ data, onChange, shopDomain }: DesignStepProps) {
       <Layout.Section variant="oneHalf">
         <div style={{ position: "sticky", top: "20px" }}>
           <LivePreviewPanel
-            templateType={data.templateType}
-            config={data.contentConfig || {}}
-            designConfig={data.designConfig?.popupDesign || {}}
+            templateType={templateType}
+            config={contentConfig}
+            designConfig={designConfig?.popupDesign || designConfig || {}}
             shopDomain={shopDomain}
-            campaignId={data.id}
           />
         </div>
       </Layout.Section>

@@ -64,7 +64,6 @@ export {
   CartAbandonmentContentSchema,
   ProductUpsellContentSchema,
   SocialProofContentSchema,
-  getContentSchemaForTemplate,
   DesignConfigSchema,
   EnhancedTriggersConfigSchema,
   AudienceTargetingConfigSchema,

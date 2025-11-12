@@ -11,10 +11,10 @@ import type {
   CampaignUpdateData
 } from "../types/campaign.js";
 import {
-  getContentSchemaForTemplate,
   CampaignCreateDataSchema,
   CampaignUpdateDataSchema,
 } from "../types/campaign.js";
+import { getContentSchemaForTemplate } from "~/domains/templates/registry/template-registry.js";
 import type {
   ExperimentCreateData,
   ExperimentUpdateData

@@ -1,6 +1,6 @@
 /**
  * Campaign Types - Backward Compatibility Export
- * 
+ *
  * Re-exports campaign types from the main campaign.ts file.
  * This file exists to maintain backward compatibility with existing imports.
  */
@@ -53,7 +53,6 @@ export {
   CartAbandonmentContentSchema,
   ProductUpsellContentSchema,
   SocialProofContentSchema,
-  getContentSchemaForTemplate,
   DesignConfigSchema,
   EnhancedTriggersConfigSchema,
   AudienceTargetingConfigSchema,

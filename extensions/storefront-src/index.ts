@@ -207,8 +207,12 @@ class RevenueBoostApp {
     const available = sorted.filter((campaign) => {
       const isPreview = this.config.previewMode && this.config.previewId === campaign.id;
       if (isPreview) return true;
-      if (session.wasShown(campaign.id)) {
-        this.log(`Campaign already shown: ${campaign.id}`);
+
+      // Use experimentId for tracking if campaign is part of an experiment
+      // This ensures all variants of the same experiment are tracked together
+      const trackingKey = campaign.experimentId || campaign.id;
+      if (session.wasShown(trackingKey)) {
+        this.log(`Campaign already shown: ${campaign.id} (tracking key: ${trackingKey})`);
         return false;
       }
       return true;
@@ -264,9 +268,10 @@ class RevenueBoostApp {
 
     // Mark as shown
     if (!isPreview) {
-      session.markShown(campaign.id);
       // Use experimentId for tracking if campaign is part of an experiment
+      // This ensures all variants of the same experiment are tracked together
       const trackingKey = campaign.experimentId || campaign.id;
+      session.markShown(trackingKey);
       await this.api.recordFrequency(session.getSessionId(), trackingKey);
     }
 
