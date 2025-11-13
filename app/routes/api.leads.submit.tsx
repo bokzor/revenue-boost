@@ -119,20 +119,90 @@ export async function action({ request }: ActionFunctionArgs) {
     });
 
     if (existingLead) {
-      console.log(
-        `[Lead Submission] Lead already exists: ${existingLead.id}`
+      console.log(`[Lead Submission] Lead already exists: ${existingLead.id}`);
+
+      // If a code already exists for this lead, return it immediately
+      if (existingLead.discountCode) {
+        return data(
+          {
+            success: true,
+            leadId: existingLead.id,
+            discountCode: existingLead.discountCode,
+            message: "Already subscribed to this campaign",
+          },
+          { status: 200, headers: storefrontCors() }
+        );
+      }
+
+      // Otherwise, try to generate a code now (retroactive issuance)
+      if (!campaign.store.accessToken) {
+        console.warn("[Lead Submission] Cannot retro-issue code: missing access token");
+        return data(
+          {
+            success: true,
+            leadId: existingLead.id,
+            discountCode: null,
+            message: "Already subscribed to this campaign",
+          },
+          { status: 200, headers: storefrontCors() }
+        );
+      }
+
+      const admin = createAdminApiContext(
+        campaign.store.shopifyDomain,
+        campaign.store.accessToken
       );
+
+      // Parse discount config and adjust for email-authorization mode
+      const discountConfig = parseDiscountConfig(campaign.discountConfig);
+      if (discountConfig.deliveryMode === "show_in_popup_authorized_only") {
+        discountConfig.authorizedEmail = validatedData.email;
+        discountConfig.requireEmailMatch = true;
+      }
+
+      const discountResult = await getCampaignDiscountCode(
+        admin,
+        storeId,
+        validatedData.campaignId,
+        discountConfig,
+        validatedData.email
+      );
+
+      if (discountResult.success && discountResult.discountCode) {
+        // Persist the newly created code on the existing lead
+        await prisma.lead.update({
+          where: { id: existingLead.id },
+          data: {
+            discountCode: discountResult.discountCode,
+            discountId: discountResult.discountId || null,
+          },
+        });
+
+        const deliveryMode = discountConfig.deliveryMode || "show_code_fallback";
+        const showCode = shouldShowDiscountCode(deliveryMode);
+
+        return data(
+          {
+            success: true,
+            leadId: existingLead.id,
+            discountCode: showCode ? discountResult.discountCode : undefined,
+            discountId: discountResult.discountId,
+            deliveryMode,
+            message: getSuccessMessage(deliveryMode),
+          },
+          { status: 200, headers: storefrontCors() }
+        );
+      }
+
+      // Failed to generate retroactive code; return existing lead without a code
       return data(
         {
           success: true,
           leadId: existingLead.id,
-          discountCode: existingLead.discountCode || null,
+          discountCode: null,
           message: "Already subscribed to this campaign",
         },
-        {
-          status: 200,
-          headers: storefrontCors(),
-        }
+        { status: 200, headers: storefrontCors() }
       );
     }
 

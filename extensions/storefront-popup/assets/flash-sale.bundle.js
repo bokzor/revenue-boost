@@ -924,13 +924,12 @@
       }
     );
   };
-  var FlashSalePopup_default = FlashSalePopup;
 
   // extensions/storefront-src/bundles/flash-sale.ts
   (function register() {
     const g = window;
     g.RevenueBoostComponents = g.RevenueBoostComponents || {};
-    g.RevenueBoostComponents["FLASH_SALE"] = FlashSalePopup_default;
+    g.RevenueBoostComponents["FLASH_SALE"] = FlashSalePopup;
     if (typeof g.console?.debug === "function") {
       console.debug("[Revenue Boost] Flash Sale popup registered");
     }
