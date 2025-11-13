@@ -784,16 +784,16 @@
 
   // extensions/storefront-src/core/session.ts
   var SESSION_KEY = "revenue_boost_session";
-  var SHOWN_KEY = "revenue_boost_shown";
+  var DISMISSED_KEY = "revenue_boost_dismissed";
   var VISITOR_KEY = "revenue_boost_visitor";
   var SessionManager = class {
     constructor() {
       __publicField(this, "sessionId");
       __publicField(this, "visitorId");
-      __publicField(this, "shownCampaigns");
+      __publicField(this, "dismissedCampaigns");
       this.sessionId = this.initSessionId();
       this.visitorId = this.initVisitorId();
-      this.shownCampaigns = this.loadShownCampaigns();
+      this.dismissedCampaigns = this.loadDismissedCampaigns();
       this.incrementVisitCount();
     }
     initSessionId() {
@@ -812,8 +812,8 @@
       }
       return visitorId;
     }
-    loadShownCampaigns() {
-      const stored = sessionStorage.getItem(SHOWN_KEY);
+    loadDismissedCampaigns() {
+      const stored = localStorage.getItem(DISMISSED_KEY);
       if (stored) {
         try {
           return new Set(JSON.parse(stored));
@@ -823,10 +823,10 @@
       }
       return /* @__PURE__ */ new Set();
     }
-    saveShownCampaigns() {
-      sessionStorage.setItem(
-        SHOWN_KEY,
-        JSON.stringify(Array.from(this.shownCampaigns))
+    saveDismissedCampaigns() {
+      localStorage.setItem(
+        DISMISSED_KEY,
+        JSON.stringify(Array.from(this.dismissedCampaigns))
       );
     }
     incrementVisitCount() {
@@ -845,12 +845,19 @@
     isReturningVisitor() {
       return this.getVisitCount() > 1;
     }
-    wasShown(campaignId) {
-      return this.shownCampaigns.has(campaignId);
+    /**
+     * Check if campaign was dismissed by user
+     * Server handles frequency capping via Redis
+     */
+    wasDismissed(campaignId) {
+      return this.dismissedCampaigns.has(campaignId);
     }
-    markShown(campaignId) {
-      this.shownCampaigns.add(campaignId);
-      this.saveShownCampaigns();
+    /**
+     * Mark campaign as dismissed (user clicked close button)
+     */
+    markDismissed(campaignId) {
+      this.dismissedCampaigns.add(campaignId);
+      this.saveDismissedCampaigns();
     }
     getData() {
       return {
@@ -858,13 +865,13 @@
         visitorId: this.visitorId,
         visitCount: this.getVisitCount(),
         isReturningVisitor: this.isReturningVisitor(),
-        shownCampaigns: Array.from(this.shownCampaigns)
+        dismissedCampaigns: Array.from(this.dismissedCampaigns)
       };
     }
     clear() {
       sessionStorage.removeItem(SESSION_KEY);
-      sessionStorage.removeItem(SHOWN_KEY);
-      this.shownCampaigns.clear();
+      localStorage.removeItem(DISMISSED_KEY);
+      this.dismissedCampaigns.clear();
       this.sessionId = this.initSessionId();
     }
   };
@@ -1102,22 +1109,11 @@
         throw err;
       }
     };
-    if (loading) {
-      return _("div", {
-        style: {
-          position: "fixed",
-          top: "50%",
-          left: "50%",
-          transform: "translate(-50%, -50%)",
-          zIndex: 999999
-        }
-      }, "Loading...");
+    if (loading || !Component) {
+      return null;
     }
     if (error) {
       console.error("[PopupManager] Error:", error);
-      return null;
-    }
-    if (!Component) {
       return null;
     }
     const currentCartTotal = (() => {
@@ -1874,6 +1870,13 @@
           this.log("No active campaigns");
           return;
         }
+        const templateTypes = campaignList.map((c3) => c3.templateType).filter(Boolean);
+        if (templateTypes.length > 0) {
+          this.log("Preloading popup components:", templateTypes);
+          this.loader.preloadComponents(templateTypes).catch((err) => {
+            this.log("Component preload failed (non-critical):", err);
+          });
+        }
         this.setupCampaigns(campaignList);
         this.initialized = true;
         console.log("[Revenue Boost] \u2705 Initialization complete!");
@@ -1921,8 +1924,8 @@
         const isPreview = this.config.previewMode && this.config.previewId === campaign2.id;
         if (isPreview) return true;
         const trackingKey = campaign2.experimentId || campaign2.id;
-        if (session.wasShown(trackingKey)) {
-          this.log(`Campaign already shown: ${campaign2.id} (tracking key: ${trackingKey})`);
+        if (session.wasDismissed(trackingKey)) {
+          this.log(`Campaign dismissed by user: ${campaign2.id} (tracking key: ${trackingKey})`);
           return false;
         }
         return true;
@@ -1963,13 +1966,16 @@
       const isPreview = this.config.previewMode && this.config.previewId === campaign.id;
       if (!isPreview) {
         const trackingKey = campaign.experimentId || campaign.id;
-        session.markShown(trackingKey);
         await this.api.recordFrequency(session.getSessionId(), trackingKey);
       }
       this.cleanupFn = renderPopup(
         campaign,
         () => {
           this.log("Popup closed");
+          if (!isPreview) {
+            const trackingKey = campaign.experimentId || campaign.id;
+            session.markDismissed(trackingKey);
+          }
           this.cleanupFn = null;
           this.triggerManager.cleanup();
         },

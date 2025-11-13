@@ -86,11 +86,23 @@
     const animationDuration = config.animationDuration ?? 500;
     const [internalDismissed, setInternalDismissed] = useState(false);
     const [celebrating, setCelebrating] = useState(false);
+    const [isEntering, setIsEntering] = useState(false);
+    const [isExiting, setIsExiting] = useState(false);
     const prevUnlockedRef = useRef(false);
     const currencyCodeRef = useRef(void 0);
+    const bannerRef = useRef(null);
     const remaining = Math.max(0, threshold - cartTotal);
     const progress = Math.min(1, Math.max(0, cartTotal / threshold));
     const state = cartTotal === 0 ? "empty" : remaining === 0 ? "unlocked" : remaining <= nearMissThreshold ? "near-miss" : "progress";
+    const handleClose = () => {
+      if (!dismissible) return;
+      setIsExiting(true);
+      setTimeout(() => {
+        setInternalDismissed(true);
+        onClose();
+        setIsExiting(false);
+      }, 300);
+    };
     const formatCurrency = (value) => {
       const code = currencyCodeRef.current;
       if (code && /^[A-Z]{3}$/.test(code)) {
@@ -101,6 +113,31 @@
       }
       return `${currency}${value.toFixed(2)}`;
     };
+    useEffect(() => {
+      if (isVisible && !internalDismissed) {
+        setIsEntering(true);
+        const timer = setTimeout(() => setIsEntering(false), 300);
+        return () => clearTimeout(timer);
+      }
+    }, [isVisible, internalDismissed]);
+    useEffect(() => {
+      if (!isVisible || internalDismissed || config.previewMode) return;
+      const updateBodyPadding = () => {
+        if (!bannerRef.current) return;
+        const height = bannerRef.current.offsetHeight;
+        if (barPosition === "top") {
+          document.body.style.paddingTop = `${height}px`;
+        } else {
+          document.body.style.paddingBottom = `${height}px`;
+        }
+      };
+      const timer = setTimeout(updateBodyPadding, 350);
+      return () => {
+        clearTimeout(timer);
+        document.body.style.paddingTop = "";
+        document.body.style.paddingBottom = "";
+      };
+    }, [isVisible, internalDismissed, barPosition, config.previewMode]);
     useEffect(() => {
       try {
         const w = window;
@@ -189,11 +226,7 @@
       }
       prevUnlockedRef.current = isUnlocked;
     }, [state, celebrateOnUnlock]);
-    const handleDismiss = () => {
-      setInternalDismissed(true);
-      onClose();
-    };
-    if (!isVisible || internalDismissed) {
+    if ((!isVisible || internalDismissed) && !isExiting) {
       return null;
     }
     const getProgressColor = () => {
@@ -222,15 +255,60 @@
           z-index: 9999;
           font-family: ${config.fontFamily || '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif'};
           box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-          transition: transform 0.3s ease-in-out;
         }
 
         .free-shipping-bar[data-position="top"] {
           top: 0;
+          animation: slideInFromTop 0.3s ease-out forwards;
         }
 
         .free-shipping-bar[data-position="bottom"] {
           bottom: 0;
+          animation: slideInFromBottom 0.3s ease-out forwards;
+        }
+
+        .free-shipping-bar.exiting[data-position="top"] {
+          animation: slideOutToTop 0.3s ease-in forwards;
+        }
+
+        .free-shipping-bar.exiting[data-position="bottom"] {
+          animation: slideOutToBottom 0.3s ease-in forwards;
+        }
+
+        @keyframes slideInFromTop {
+          from {
+            transform: translateY(-100%);
+          }
+          to {
+            transform: translateY(0);
+          }
+        }
+
+        @keyframes slideOutToTop {
+          from {
+            transform: translateY(0);
+          }
+          to {
+            transform: translateY(-100%);
+          }
+        }
+
+        @keyframes slideInFromBottom {
+          from {
+            transform: translateY(100%);
+          }
+          to {
+            transform: translateY(0);
+          }
+        }
+
+        @keyframes slideOutToBottom {
+          from {
+            transform: translateY(0);
+          }
+          to {
+            transform: translateY(100%);
+          }
         }
 
         .free-shipping-bar-content {
@@ -315,6 +393,11 @@
             transition: none;
           }
 
+          .free-shipping-bar[data-position="top"],
+          .free-shipping-bar[data-position="bottom"] {
+            animation: none !important;
+          }
+
           .free-shipping-bar[data-state="unlocked"] .free-shipping-bar-progress {
             animation: none;
           }
@@ -338,7 +421,8 @@
       /* @__PURE__ */ jsxs(
         "div",
         {
-          className: "free-shipping-bar",
+          ref: bannerRef,
+          className: `free-shipping-bar ${isExiting ? "exiting" : ""}`,
           "data-position": barPosition,
           "data-state": state,
           role: "region",
@@ -370,7 +454,7 @@
                 "button",
                 {
                   className: "free-shipping-bar-close",
-                  onClick: handleDismiss,
+                  onClick: handleClose,
                   "aria-label": "Dismiss shipping bar",
                   style: { color: config.textColor || "#111827" },
                   children: /* @__PURE__ */ jsx("svg", { width: "20", height: "20", viewBox: "0 0 20 20", fill: "none", xmlns: "http://www.w3.org/2000/svg", children: /* @__PURE__ */ jsx(

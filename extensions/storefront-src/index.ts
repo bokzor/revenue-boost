@@ -144,6 +144,15 @@ class RevenueBoostApp {
         return;
       }
 
+      // Preload popup components for faster display
+      const templateTypes = campaignList.map(c => c.templateType).filter(Boolean);
+      if (templateTypes.length > 0) {
+        this.log("Preloading popup components:", templateTypes);
+        this.loader.preloadComponents(templateTypes as any[]).catch(err => {
+          this.log("Component preload failed (non-critical):", err);
+        });
+      }
+
       // Setup campaigns
       this.setupCampaigns(campaignList);
       this.initialized = true;
@@ -203,7 +212,8 @@ class RevenueBoostApp {
     // Sort by priority
     const sorted = campaigns.sort((a, b) => (b.priority || 0) - (a.priority || 0));
 
-    // Filter already shown (except preview mode)
+    // Filter dismissed campaigns (except preview mode)
+    // Server handles frequency capping via Redis
     const available = sorted.filter((campaign) => {
       const isPreview = this.config.previewMode && this.config.previewId === campaign.id;
       if (isPreview) return true;
@@ -211,8 +221,10 @@ class RevenueBoostApp {
       // Use experimentId for tracking if campaign is part of an experiment
       // This ensures all variants of the same experiment are tracked together
       const trackingKey = campaign.experimentId || campaign.id;
-      if (session.wasShown(trackingKey)) {
-        this.log(`Campaign already shown: ${campaign.id} (tracking key: ${trackingKey})`);
+
+      // Only check if user dismissed this campaign (clicked close button)
+      if (session.wasDismissed(trackingKey)) {
+        this.log(`Campaign dismissed by user: ${campaign.id} (tracking key: ${trackingKey})`);
         return false;
       }
       return true;
@@ -266,12 +278,11 @@ class RevenueBoostApp {
   private async renderCampaign(campaign: ClientCampaign): Promise<void> {
     const isPreview = this.config.previewMode && this.config.previewId === campaign.id;
 
-    // Mark as shown
+    // Record frequency for server-side tracking (Redis)
     if (!isPreview) {
       // Use experimentId for tracking if campaign is part of an experiment
       // This ensures all variants of the same experiment are tracked together
       const trackingKey = campaign.experimentId || campaign.id;
-      session.markShown(trackingKey);
       await this.api.recordFrequency(session.getSessionId(), trackingKey);
     }
 
@@ -280,6 +291,13 @@ class RevenueBoostApp {
       campaign,
       () => {
         this.log("Popup closed");
+
+        // Mark as dismissed (user clicked close button)
+        if (!isPreview) {
+          const trackingKey = campaign.experimentId || campaign.id;
+          session.markDismissed(trackingKey);
+        }
+
         this.cleanupFn = null;
         this.triggerManager.cleanup();
       },

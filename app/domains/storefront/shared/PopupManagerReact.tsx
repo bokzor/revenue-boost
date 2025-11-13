@@ -179,7 +179,7 @@ export const PopupManager: React.FC<PopupManagerProps> = ({
   // React state management
   const [activeCampaign, setActiveCampaign] =
     useState<StorefrontCampaign | null>(null);
-  const [displayedCampaigns, setDisplayedCampaigns] = useState<Set<string>>(
+  const [dismissedCampaigns, setDismissedCampaigns] = useState<Set<string>>(
     new Set(),
   );
   const [cooldownCampaigns, setCooldownCampaigns] = useState<Set<string>>(
@@ -210,7 +210,7 @@ export const PopupManager: React.FC<PopupManagerProps> = ({
 
     // Sync initial state
     setActiveCampaign(coreRef.current.getActiveCampaign());
-    setDisplayedCampaigns(coreRef.current.getDisplayedCampaigns());
+    setDismissedCampaigns(coreRef.current.getDismissedCampaigns());
     setCooldownCampaigns(coreRef.current.getCooldownCampaigns());
 
     return () => {
@@ -224,7 +224,7 @@ export const PopupManager: React.FC<PopupManagerProps> = ({
     if (!coreRef.current) return;
 
     setActiveCampaign(coreRef.current.getActiveCampaign());
-    setDisplayedCampaigns(coreRef.current.getDisplayedCampaigns());
+    setDismissedCampaigns(coreRef.current.getDismissedCampaigns());
     setCooldownCampaigns(coreRef.current.getCooldownCampaigns());
   }, []);
 
@@ -235,8 +235,8 @@ export const PopupManager: React.FC<PopupManagerProps> = ({
     const originalSetActiveCampaign = coreRef.current.setActiveCampaign.bind(
       coreRef.current,
     );
-    const originalSetDisplayedCampaigns =
-      coreRef.current.setDisplayedCampaigns.bind(coreRef.current);
+    const originalSetDismissedCampaigns =
+      coreRef.current.setDismissedCampaigns.bind(coreRef.current);
     const originalSetCooldownCampaigns =
       coreRef.current.setCooldownCampaigns.bind(coreRef.current);
 
@@ -247,9 +247,9 @@ export const PopupManager: React.FC<PopupManagerProps> = ({
       setActiveCampaign(campaign);
     };
 
-    coreRef.current.setDisplayedCampaigns = (campaigns: Set<string>) => {
-      originalSetDisplayedCampaigns(campaigns);
-      setDisplayedCampaigns(campaigns);
+    coreRef.current.setDismissedCampaigns = (campaigns: Set<string>) => {
+      originalSetDismissedCampaigns(campaigns);
+      setDismissedCampaigns(campaigns);
     };
 
     coreRef.current.setCooldownCampaigns = (campaigns: Set<string>) => {

@@ -158,24 +158,13 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api }: P
     }
   };
 
-  if (loading) {
-    return h("div", {
-      style: {
-        position: "fixed",
-        top: "50%",
-        left: "50%",
-        transform: "translate(-50%, -50%)",
-        zIndex: 999999
-      }
-    }, "Loading...");
+  // Don't render anything while loading - this prevents showing "Loading..." to users
+  if (loading || !Component) {
+    return null;
   }
 
   if (error) {
     console.error("[PopupManager] Error:", error);
-    return null;
-  }
-
-  if (!Component) {
     return null;
   }
 

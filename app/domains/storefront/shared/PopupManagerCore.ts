@@ -1,5 +1,8 @@
 /**
  * PopupManager Core Logic - Simplified
+ *
+ * Note: Frequency capping (max views per session/day) is handled server-side via Redis.
+ * Client only tracks explicit user dismissals (close button clicks) and cooldowns.
  */
 
 import type { StorefrontCampaign } from "~/shared/types/campaign";
@@ -15,8 +18,8 @@ interface LegacyTriggerConfig {
 
 export interface PopupManagerState {
   activeCampaign: StorefrontCampaign | null;
-  displayedCampaigns: Set<string>;
-  cooldownCampaigns: Set<string>;
+  dismissedCampaigns: Set<string>; // User explicitly closed campaigns
+  cooldownCampaigns: Set<string>; // Campaigns in cooldown period
 }
 
 export interface PopupManagerCallbacks {
@@ -44,28 +47,28 @@ export class PopupManagerCore {
   constructor(config: PopupManagerConfig) {
     this.state = {
       activeCampaign: null,
-      displayedCampaigns: new Set(),
+      dismissedCampaigns: new Set(),
       cooldownCampaigns: new Set(),
     };
     this.callbacks = config.callbacks;
-    this.loadDisplayedCampaigns();
+    this.loadDismissedCampaigns();
   }
 
   getActiveCampaign() { return this.state.activeCampaign; }
-  getDisplayedCampaigns() { return this.state.displayedCampaigns; }
+  getDismissedCampaigns() { return this.state.dismissedCampaigns; }
   getCooldownCampaigns() { return this.state.cooldownCampaigns; }
 
   setActiveCampaign(campaign: StorefrontCampaign | null) { this.state.activeCampaign = campaign; }
-  setDisplayedCampaigns(campaigns: Set<string>) { this.state.displayedCampaigns = campaigns; }
+  setDismissedCampaigns(campaigns: Set<string>) { this.state.dismissedCampaigns = campaigns; }
   setCooldownCampaigns(campaigns: Set<string>) { this.state.cooldownCampaigns = campaigns; }
 
-  private loadDisplayedCampaigns() {
+  private loadDismissedCampaigns() {
     try {
       if (typeof window === "undefined") return;
-      const stored = window.localStorage.getItem("splitpop_displayed_campaigns");
+      const stored = window.localStorage.getItem("splitpop_dismissed_campaigns");
       if (stored) {
         const data = JSON.parse(stored);
-        this.state.displayedCampaigns = new Set(data.displayed || []);
+        this.state.dismissedCampaigns = new Set(data.dismissed || []);
         this.state.cooldownCampaigns = new Set(data.cooldowns || []);
       }
     } catch {
@@ -73,11 +76,11 @@ export class PopupManagerCore {
     }
   }
 
-  saveDisplayedCampaigns(displayed: Set<string>, cooldowns: Set<string>) {
+  saveDismissedCampaigns(dismissed: Set<string>, cooldowns: Set<string>) {
     try {
       if (typeof window === "undefined") return;
-      window.localStorage.setItem("splitpop_displayed_campaigns", JSON.stringify({
-        displayed: Array.from(displayed),
+      window.localStorage.setItem("splitpop_dismissed_campaigns", JSON.stringify({
+        dismissed: Array.from(dismissed),
         cooldowns: Array.from(cooldowns),
       }));
     } catch {
@@ -100,7 +103,7 @@ export class PopupManagerCore {
     // Use tracking key (experimentId if available, otherwise campaign.id)
     const trackingKey = this.getTrackingKey(campaign);
 
-    // Check debounce
+    // Check debounce (5 second cooldown after closing)
     try {
       if (typeof window !== "undefined") {
         const until = parseInt(window.sessionStorage.getItem(`splitpop_recently_closed_until:${trackingKey}`) || "0");
@@ -110,23 +113,17 @@ export class PopupManagerCore {
       // Ignore sessionStorage errors
     }
 
-    // Check if already displayed or in cooldown
-    // For A/B tests, this prevents showing ANY variant of the same experiment
-    return !this.state.displayedCampaigns.has(trackingKey) &&
+    // Check if user dismissed this campaign (clicked close button)
+    // Server handles frequency capping via Redis
+    return !this.state.dismissedCampaigns.has(trackingKey) &&
            !this.state.cooldownCampaigns.has(trackingKey);
   }
 
   async showPopup(campaign: StorefrontCampaign): Promise<boolean> {
     if (!this.canDisplayCampaign(campaign) || this.state.activeCampaign) return false;
 
-    // Use tracking key (experimentId if available, otherwise campaign.id)
-    const trackingKey = this.getTrackingKey(campaign);
-
-    const newDisplayed = new Set(this.state.displayedCampaigns);
-    newDisplayed.add(trackingKey);
-    this.state.displayedCampaigns = newDisplayed;
-    this.saveDisplayedCampaigns(newDisplayed, this.state.cooldownCampaigns);
-
+    // Server handles frequency capping via Redis
+    // Client just displays the campaign
     this.state.activeCampaign = campaign;
     if (campaign.campaignId) this.callbacks.onPopupShow?.(campaign.campaignId);
     return true;
@@ -136,10 +133,16 @@ export class PopupManagerCore {
     if (!this.state.activeCampaign) return;
 
     const campaignId = this.state.activeCampaign.campaignId || this.state.activeCampaign.id;
-    // Use tracking key for debounce and cooldown (experimentId if available)
+    // Use tracking key for debounce and dismissal (experimentId if available)
     const trackingKey = this.getTrackingKey(this.state.activeCampaign);
 
-    // Set debounce
+    // Mark campaign as dismissed (user clicked close button)
+    const newDismissed = new Set(this.state.dismissedCampaigns);
+    newDismissed.add(trackingKey);
+    this.state.dismissedCampaigns = newDismissed;
+    this.saveDismissedCampaigns(newDismissed, this.state.cooldownCampaigns);
+
+    // Set debounce (5 second cooldown)
     try {
       if (typeof window !== "undefined") {
         window.sessionStorage.setItem(
@@ -153,12 +156,12 @@ export class PopupManagerCore {
 
     this.callbacks.onPopupClose?.(campaignId);
 
-    // Handle cooldown
+    // Handle cooldown (if configured)
     if (this.state.activeCampaign.cooldownMinutes) {
       const newCooldowns = new Set(this.state.cooldownCampaigns);
       newCooldowns.add(trackingKey);
       this.state.cooldownCampaigns = newCooldowns;
-      this.saveDisplayedCampaigns(this.state.displayedCampaigns, newCooldowns);
+      this.saveDismissedCampaigns(this.state.dismissedCampaigns, newCooldowns);
 
       setTimeout(() => {
         this.state.cooldownCampaigns.delete(trackingKey);

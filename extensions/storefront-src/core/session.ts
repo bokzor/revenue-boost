@@ -1,13 +1,16 @@
 /**
  * Session Management
- * Tracks visitor sessions and popup display history
+ * Tracks visitor sessions and user dismissals
  *
  * Note: Visitor ID is managed server-side via cookies for security and persistence
  * The server will set rb_visitor_id cookie which persists for 90 days
+ *
+ * Frequency capping (max views per session/day) is handled server-side via Redis.
+ * Client only tracks explicit user dismissals (close button clicks).
  */
 
 const SESSION_KEY = "revenue_boost_session";
-const SHOWN_KEY = "revenue_boost_shown";
+const DISMISSED_KEY = "revenue_boost_dismissed";
 const VISITOR_KEY = "revenue_boost_visitor"; // Client-side backup
 
 export interface SessionData {
@@ -15,18 +18,18 @@ export interface SessionData {
   visitorId: string;
   visitCount: number;
   isReturningVisitor: boolean;
-  shownCampaigns: string[];
+  dismissedCampaigns: string[];
 }
 
 class SessionManager {
   private sessionId: string;
   private visitorId: string;
-  private shownCampaigns: Set<string>;
+  private dismissedCampaigns: Set<string>;
 
   constructor() {
     this.sessionId = this.initSessionId();
     this.visitorId = this.initVisitorId();
-    this.shownCampaigns = this.loadShownCampaigns();
+    this.dismissedCampaigns = this.loadDismissedCampaigns();
     this.incrementVisitCount();
   }
 
@@ -56,8 +59,8 @@ class SessionManager {
     return visitorId;
   }
 
-  private loadShownCampaigns(): Set<string> {
-    const stored = sessionStorage.getItem(SHOWN_KEY);
+  private loadDismissedCampaigns(): Set<string> {
+    const stored = localStorage.getItem(DISMISSED_KEY);
     if (stored) {
       try {
         return new Set(JSON.parse(stored));
@@ -68,10 +71,10 @@ class SessionManager {
     return new Set();
   }
 
-  private saveShownCampaigns(): void {
-    sessionStorage.setItem(
-      SHOWN_KEY,
-      JSON.stringify(Array.from(this.shownCampaigns))
+  private saveDismissedCampaigns(): void {
+    localStorage.setItem(
+      DISMISSED_KEY,
+      JSON.stringify(Array.from(this.dismissedCampaigns))
     );
   }
 
@@ -96,13 +99,20 @@ class SessionManager {
     return this.getVisitCount() > 1;
   }
 
-  wasShown(campaignId: string): boolean {
-    return this.shownCampaigns.has(campaignId);
+  /**
+   * Check if campaign was dismissed by user
+   * Server handles frequency capping via Redis
+   */
+  wasDismissed(campaignId: string): boolean {
+    return this.dismissedCampaigns.has(campaignId);
   }
 
-  markShown(campaignId: string): void {
-    this.shownCampaigns.add(campaignId);
-    this.saveShownCampaigns();
+  /**
+   * Mark campaign as dismissed (user clicked close button)
+   */
+  markDismissed(campaignId: string): void {
+    this.dismissedCampaigns.add(campaignId);
+    this.saveDismissedCampaigns();
   }
 
   getData(): SessionData {
@@ -111,14 +121,14 @@ class SessionManager {
       visitorId: this.visitorId,
       visitCount: this.getVisitCount(),
       isReturningVisitor: this.isReturningVisitor(),
-      shownCampaigns: Array.from(this.shownCampaigns),
+      dismissedCampaigns: Array.from(this.dismissedCampaigns),
     };
   }
 
   clear(): void {
     sessionStorage.removeItem(SESSION_KEY);
-    sessionStorage.removeItem(SHOWN_KEY);
-    this.shownCampaigns.clear();
+    localStorage.removeItem(DISMISSED_KEY);
+    this.dismissedCampaigns.clear();
     this.sessionId = this.initSessionId();
   }
 }

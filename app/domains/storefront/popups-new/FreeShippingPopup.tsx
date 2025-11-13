@@ -52,8 +52,11 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
 
   const [internalDismissed, setInternalDismissed] = useState(false);
   const [celebrating, setCelebrating] = useState(false);
+  const [isEntering, setIsEntering] = useState(false);
+  const [isExiting, setIsExiting] = useState(false);
   const prevUnlockedRef = useRef(false);
   const currencyCodeRef = useRef<string | undefined>(undefined);
+  const bannerRef = useRef<HTMLDivElement>(null);
 
   const remaining = Math.max(0, threshold - cartTotal);
   const progress = Math.min(1, Math.max(0, cartTotal / threshold));
@@ -67,6 +70,18 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
           ? "near-miss"
           : "progress";
 
+  // Handle close with exit animation
+  const handleClose = () => {
+    if (!dismissible) return;
+
+    setIsExiting(true);
+    setTimeout(() => {
+      setInternalDismissed(true);
+      onClose();
+      setIsExiting(false);
+    }, 300); // Match animation duration
+  };
+
   const formatCurrency = (value: number) => {
     const code = currencyCodeRef.current;
     if (code && /^[A-Z]{3}$/.test(code)) {
@@ -78,6 +93,40 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
     }
     return `${currency}${value.toFixed(2)}`;
   };
+
+  // Handle enter animation on mount
+  useEffect(() => {
+    if (isVisible && !internalDismissed) {
+      setIsEntering(true);
+      const timer = setTimeout(() => setIsEntering(false), 300);
+      return () => clearTimeout(timer);
+    }
+  }, [isVisible, internalDismissed]);
+
+  // Add body padding to prevent content overlap
+  useEffect(() => {
+    if (!isVisible || internalDismissed || config.previewMode) return;
+
+    const updateBodyPadding = () => {
+      if (!bannerRef.current) return;
+
+      const height = bannerRef.current.offsetHeight;
+      if (barPosition === 'top') {
+        document.body.style.paddingTop = `${height}px`;
+      } else {
+        document.body.style.paddingBottom = `${height}px`;
+      }
+    };
+
+    // Update padding after animation completes
+    const timer = setTimeout(updateBodyPadding, 350);
+
+    return () => {
+      clearTimeout(timer);
+      document.body.style.paddingTop = '';
+      document.body.style.paddingBottom = '';
+    };
+  }, [isVisible, internalDismissed, barPosition, config.previewMode]);
 
   // Read currency ISO from app embed if available
   useEffect(() => {
@@ -194,12 +243,8 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
     prevUnlockedRef.current = isUnlocked;
   }, [state, celebrateOnUnlock]);
 
-  const handleDismiss = () => {
-    setInternalDismissed(true);
-    onClose();
-  };
-
-  if (!isVisible || internalDismissed) {
+  // Don't render if not visible and not animating out
+  if ((!isVisible || internalDismissed) && !isExiting) {
     return null;
   }
 
@@ -234,15 +279,60 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
           z-index: 9999;
           font-family: ${config.fontFamily || '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif'};
           box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-          transition: transform 0.3s ease-in-out;
         }
 
         .free-shipping-bar[data-position="top"] {
           top: 0;
+          animation: slideInFromTop 0.3s ease-out forwards;
         }
 
         .free-shipping-bar[data-position="bottom"] {
           bottom: 0;
+          animation: slideInFromBottom 0.3s ease-out forwards;
+        }
+
+        .free-shipping-bar.exiting[data-position="top"] {
+          animation: slideOutToTop 0.3s ease-in forwards;
+        }
+
+        .free-shipping-bar.exiting[data-position="bottom"] {
+          animation: slideOutToBottom 0.3s ease-in forwards;
+        }
+
+        @keyframes slideInFromTop {
+          from {
+            transform: translateY(-100%);
+          }
+          to {
+            transform: translateY(0);
+          }
+        }
+
+        @keyframes slideOutToTop {
+          from {
+            transform: translateY(0);
+          }
+          to {
+            transform: translateY(-100%);
+          }
+        }
+
+        @keyframes slideInFromBottom {
+          from {
+            transform: translateY(100%);
+          }
+          to {
+            transform: translateY(0);
+          }
+        }
+
+        @keyframes slideOutToBottom {
+          from {
+            transform: translateY(0);
+          }
+          to {
+            transform: translateY(100%);
+          }
         }
 
         .free-shipping-bar-content {
@@ -327,6 +417,11 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
             transition: none;
           }
 
+          .free-shipping-bar[data-position="top"],
+          .free-shipping-bar[data-position="bottom"] {
+            animation: none !important;
+          }
+
           .free-shipping-bar[data-state="unlocked"] .free-shipping-bar-progress {
             animation: none;
           }
@@ -349,7 +444,8 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
       `}</style>
 
       <div
-        className="free-shipping-bar"
+        ref={bannerRef}
+        className={`free-shipping-bar ${isExiting ? 'exiting' : ''}`}
         data-position={barPosition}
         data-state={state}
         role="region"
@@ -383,7 +479,7 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
           {dismissible && (
             <button
               className="free-shipping-bar-close"
-              onClick={handleDismiss}
+              onClick={handleClose}
               aria-label="Dismiss shipping bar"
               style={{ color: config.textColor || '#111827' }}
             >
