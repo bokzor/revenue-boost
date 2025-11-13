@@ -15,7 +15,7 @@ import { getStoreId } from "~/lib/auth-helpers.server";
 import { CampaignFormWithABTesting } from "~/domains/campaigns/components/CampaignFormWithABTesting";
 import type { CampaignFormData } from "~/shared/hooks/useWizardState";
 import { useState } from "react";
-import { Modal } from "@shopify/polaris";
+import { Modal, Text } from "@shopify/polaris";
 
 
 // ============================================================================
@@ -266,7 +266,9 @@ export default function NewCampaign() {
           },
         ]}
       >
-        <div>This campaign is still a draft. Activate it now</div>
+        <div style={{ padding: 16 }}>
+          <Text as="p" variant="bodyMd">This campaign is still a draft. Activate it now</Text>
+        </div>
       </Modal>
     </>
   );

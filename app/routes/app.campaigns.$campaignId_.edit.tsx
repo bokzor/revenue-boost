@@ -6,7 +6,7 @@
 
 import { data, type LoaderFunctionArgs } from "react-router";
 import { useLoaderData, useNavigate } from "react-router";
-import { Frame, Toast, Modal } from "@shopify/polaris";
+import { Frame, Toast, Modal, Text } from "@shopify/polaris";
 import { useState, useEffect } from "react";
 
 import { authenticate } from "~/shopify.server";
@@ -297,7 +297,9 @@ export default function CampaignEditPage() {
           },
         ]}
       >
-        <div>This campaign is still a draft. Activate it now</div>
+        <div style={{ padding: 16 }}>
+          <Text as="p" variant="bodyMd">This campaign is still a draft. Activate it now</Text>
+        </div>
       </Modal>
 
       {toastMarkup}
