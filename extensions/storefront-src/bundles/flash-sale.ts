@@ -3,7 +3,7 @@
  * Registers the FlashSale popup component for storefront use
  */
 
-import FlashSalePopup from "../../../app/domains/storefront/popups-new/FlashSalePopup";
+import { FlashSalePopup } from "../../../app/domains/storefront/popups-new/FlashSalePopup";
 
 (function register() {
   const g = window as unknown as { RevenueBoostComponents?: Record<string, unknown>; console?: Console };

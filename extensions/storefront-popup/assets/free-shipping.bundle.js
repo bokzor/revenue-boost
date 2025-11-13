@@ -154,7 +154,8 @@
             window.fetch = originalFetch;
             w.__RB_FETCH_INTERCEPTED = false;
           }
-        } catch {
+        } catch (error) {
+          console.error("[FreeShippingPopup] Failed to restore fetch:", error);
         }
       };
     }, [isVisible]);
@@ -163,7 +164,7 @@
         const next = typeof propCartTotal === "number" ? propCartTotal : typeof config.currentCartTotal === "number" ? config.currentCartTotal : void 0;
         if (typeof next === "number") setCartTotal(next);
       }
-    }, [propCartTotal, config.currentCartTotal]);
+    }, [propCartTotal, config.currentCartTotal, config]);
     const getMessage = () => {
       const remainingFormatted = formatCurrency(remaining);
       switch (state) {

@@ -5,6 +5,7 @@
  */
 
 import type { ColorPreset, ColorTheme, ExtendedColorConfig } from "~/domains/popups/color-customization.types";
+import type { DesignConfig } from "~/domains/campaigns/types/campaign";
 
 /**
  * Default color presets
@@ -706,7 +707,7 @@ function getInputTextColor(secondary: string, themeText: string): string {
  * - imageBg → imageBgColor
  * - success → successColor
  */
-export function themeColorsToDesignConfig(themeColors: ThemeColors): ExtendedColorConfig {
+export function themeColorsToDesignConfig(themeColors: ThemeColors): ExtendedColorConfig & Partial<Pick<DesignConfig, 'descriptionColor' | 'imageBgColor' | 'fontFamily' | 'titleFontSize' | 'titleFontWeight' | 'titleTextShadow' | 'descriptionFontSize' | 'descriptionFontWeight' | 'inputBackdropFilter' | 'inputBoxShadow'>> {
   return {
     // Main colors
     backgroundColor: themeColors.background,
@@ -725,6 +726,18 @@ export function themeColorsToDesignConfig(themeColors: ThemeColors): ExtendedCol
 
     // Overlay
     overlayOpacity: 0.5,
+
+    // Additional DesignConfig fields
+    descriptionColor: themeColors.descColor,
+    imageBgColor: themeColors.imageBg,
+    fontFamily: themeColors.fontFamily,
+    titleFontSize: themeColors.titleFontSize,
+    titleFontWeight: themeColors.titleFontWeight,
+    titleTextShadow: themeColors.titleTextShadow,
+    descriptionFontSize: themeColors.descriptionFontSize,
+    descriptionFontWeight: themeColors.descriptionFontWeight,
+    inputBackdropFilter: themeColors.inputBackdropFilter,
+    inputBoxShadow: themeColors.inputBoxShadow,
   };
 }
 

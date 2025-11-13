@@ -164,7 +164,7 @@
       document.addEventListener("keydown", handleEscape);
       return () => document.removeEventListener("keydown", handleEscape);
     }, [isVisible, closeOnEscape, handleClose]);
-    const handleBackdropClick = useCallback(() => {
+    const handleBackdropClick = useCallback((e) => {
       if (closeOnBackdropClick) {
         handleClose();
       }
