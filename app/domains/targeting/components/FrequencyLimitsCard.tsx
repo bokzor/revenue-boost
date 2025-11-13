@@ -1,7 +1,8 @@
 /**
  * Frequency Limits Card Component
- * 
- * Configure maximum views, time window, and cooldown period
+ *
+ * Configure session/day limits and cooldown period
+ * Uses server format directly (max_triggers_per_session, max_triggers_per_day, cooldown_between_triggers)
  */
 
 import {
@@ -9,33 +10,30 @@ import {
   BlockStack,
   Text,
   TextField,
-  Select,
   Banner,
   Box,
-  InlineStack,
 } from "@shopify/polaris";
-import {
-  TIME_WINDOW_OPTIONS,
-  COOLDOWN_OPTIONS,
-} from "~/domains/targeting/utils/frequency-capping-helpers";
 
 interface FrequencyLimitsCardProps {
-  maxViews: number;
-  timeWindow: number;
-  cooldownHours?: number;
-  onMaxViewsChange: (value: string) => void;
-  onTimeWindowChange: (value: string) => void;
+  maxTriggersPerSession?: number;
+  maxTriggersPerDay?: number;
+  cooldownBetweenTriggers?: number; // in seconds
+  onMaxTriggersPerSessionChange: (value: string) => void;
+  onMaxTriggersPerDayChange: (value: string) => void;
   onCooldownChange: (value: string) => void;
 }
 
 export function FrequencyLimitsCard({
-  maxViews,
-  timeWindow,
-  cooldownHours = 0,
-  onMaxViewsChange,
-  onTimeWindowChange,
+  maxTriggersPerSession,
+  maxTriggersPerDay,
+  cooldownBetweenTriggers = 0,
+  onMaxTriggersPerSessionChange,
+  onMaxTriggersPerDayChange,
   onCooldownChange,
 }: FrequencyLimitsCardProps) {
+  // Convert seconds to hours for display
+  const cooldownHours = cooldownBetweenTriggers ? cooldownBetweenTriggers / 3600 : 0;
+
   return (
     <Card>
       <Box padding="400">
@@ -48,53 +46,64 @@ export function FrequencyLimitsCard({
             Control how often this popup can be shown to the same visitor
           </Text>
 
-          <InlineStack gap="400" blockAlign="end">
-            <div style={{ flex: 1 }}>
-              <TextField
-                label="Maximum views"
-                type="number"
-                value={maxViews.toString()}
-                onChange={onMaxViewsChange}
-                min={1}
-                autoComplete="off"
-                helpText="How many times can this popup be shown"
-              />
-            </div>
+          <TextField
+            label="Max triggers per session"
+            type="number"
+            value={maxTriggersPerSession?.toString() || ""}
+            onChange={onMaxTriggersPerSessionChange}
+            min={1}
+            autoComplete="off"
+            helpText="Maximum times this popup can show in a single browsing session (leave empty for unlimited)"
+            placeholder="Unlimited"
+          />
 
-            <div style={{ flex: 1 }}>
-              <Select
-                label="Time window"
-                options={TIME_WINDOW_OPTIONS}
-                value={timeWindow.toString()}
-                onChange={onTimeWindowChange}
-                helpText="Within what time period"
-              />
-            </div>
-          </InlineStack>
+          <TextField
+            label="Max triggers per day"
+            type="number"
+            value={maxTriggersPerDay?.toString() || ""}
+            onChange={onMaxTriggersPerDayChange}
+            min={1}
+            autoComplete="off"
+            helpText="Maximum times this popup can show in a 24-hour period (leave empty for unlimited)"
+            placeholder="Unlimited"
+          />
 
-          <div style={{ maxWidth: "300px" }}>
-            <Select
-              label="Cooldown period"
-              options={COOLDOWN_OPTIONS}
-              value={cooldownHours.toString()}
-              onChange={onCooldownChange}
-              helpText="Minimum time between popup displays"
-            />
-          </div>
+          <TextField
+            label="Cooldown between triggers (seconds)"
+            type="number"
+            value={cooldownBetweenTriggers?.toString() || ""}
+            onChange={onCooldownChange}
+            min={0}
+            autoComplete="off"
+            helpText="Minimum time between popup displays (0 = no cooldown)"
+            placeholder="0"
+          />
 
           <Banner tone="info">
             <p>
-              <strong>Current setting:</strong> This popup will be shown a
-              maximum of{" "}
-              <strong>
-                {maxViews} time{maxViews !== 1 ? "s" : ""}
-              </strong>{" "}
-              {TIME_WINDOW_OPTIONS.find(opt => opt.value === timeWindow.toString())?.label.toLowerCase() || "per day"} to each visitor.
-              {cooldownHours > 0 && (
+              <strong>Current setting:</strong>{" "}
+              {!maxTriggersPerSession && !maxTriggersPerDay ? (
+                <span>No frequency limits (popup can show unlimited times)</span>
+              ) : (
+                <>
+                  {maxTriggersPerSession && (
+                    <span>
+                      Max <strong>{maxTriggersPerSession}</strong> time{maxTriggersPerSession !== 1 ? "s" : ""} per session
+                    </span>
+                  )}
+                  {maxTriggersPerSession && maxTriggersPerDay && <span>, </span>}
+                  {maxTriggersPerDay && (
+                    <span>
+                      Max <strong>{maxTriggersPerDay}</strong> time{maxTriggersPerDay !== 1 ? "s" : ""} per day
+                    </span>
+                  )}
+                </>
+              )}
+              {cooldownBetweenTriggers && cooldownBetweenTriggers > 0 && (
                 <span>
                   {" "}
-                  With a <strong>{cooldownHours < 1 ? `${cooldownHours * 60} minute` : `${cooldownHours} hour`}</strong>{" "}
-                  cooldown between displays.
+                  with a <strong>{cooldownHours < 1 ? `${Math.round(cooldownHours * 60)} minute` : `${cooldownHours} hour`}</strong>{" "}
+                  cooldown between displays
                 </span>
               )}
             </p>

@@ -13,6 +13,11 @@ export interface FetchCampaignsResponse {
   success: boolean;
 }
 
+const SESSION_START_KEY = "revenue_boost_session_start_time";
+const PAGE_VIEWS_KEY = "revenue_boost_page_views";
+const PRODUCT_VIEWS_KEY = "revenue_boost_product_view_count";
+const ADDED_TO_CART_SESSION_KEY = "revenue_boost_added_to_cart";
+
 export class ApiClient {
   private config: ApiConfig;
 
@@ -77,16 +82,73 @@ export class ApiClient {
   }
 
   private buildStorefrontContext(sessionId: string, visitorId?: string): Record<string, string> {
+    const pageType = this.detectPageType();
+
     const context: Record<string, string> = {
       sessionId,
       pageUrl: window.location.pathname,
-      pageType: this.detectPageType(),
+      pageType,
       deviceType: this.detectDeviceType(),
     };
 
     // Add visitor ID if available
     if (visitorId) {
       context.visitorId = visitorId;
+    }
+
+    // Add visit and engagement metrics
+    try {
+      const ls = window.localStorage;
+      const ss = window.sessionStorage;
+      const now = Date.now();
+
+      // Visit count and returning visitor flag
+      const visitCountRaw = ls.getItem("revenue_boost_visit_count");
+      const visitCount = parseInt(visitCountRaw || "1", 10);
+      if (!Number.isNaN(visitCount)) {
+        context.visitCount = String(visitCount);
+        context.isReturningVisitor = String(visitCount > 1);
+      }
+
+      // Time on site (seconds since first session start in this tab)
+      let startTime = parseInt(ss.getItem(SESSION_START_KEY) || "", 10);
+      if (!startTime || Number.isNaN(startTime)) {
+        startTime = now;
+        ss.setItem(SESSION_START_KEY, String(startTime));
+      }
+      const timeOnSiteSeconds = Math.floor((now - startTime) / 1000);
+      if (timeOnSiteSeconds > 0) {
+        context.timeOnSite = String(timeOnSiteSeconds);
+      }
+
+      // Page views in this session
+      let pageViews = parseInt(ss.getItem(PAGE_VIEWS_KEY) || "0", 10);
+      pageViews += 1;
+      ss.setItem(PAGE_VIEWS_KEY, String(pageViews));
+      context.pageViews = String(pageViews);
+
+      // Mirror page type for segment rules
+      if (pageType) {
+        context.currentPageType = pageType;
+      }
+
+      // Product view count in this session
+      let productViewCount = parseInt(ss.getItem(PRODUCT_VIEWS_KEY) || "0", 10);
+      if (pageType === "product") {
+        productViewCount += 1;
+        ss.setItem(PRODUCT_VIEWS_KEY, String(productViewCount));
+      }
+      if (productViewCount > 0) {
+        context.productViewCount = String(productViewCount);
+      }
+
+      // Whether user added to cart in this session
+      const addedToCartFlag = ss.getItem(ADDED_TO_CART_SESSION_KEY);
+      if (addedToCartFlag === "true") {
+        context.addedToCartInSession = "true";
+      }
+    } catch {
+      // Ignore storage errors (e.g. disabled cookies)
     }
 
     // Add cart info if available

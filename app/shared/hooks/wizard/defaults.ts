@@ -10,6 +10,8 @@
  */
 
 import type { CampaignFormData, PageTargetingConfig } from "../useWizardState";
+import type { TemplateType } from "~/domains/campaigns/types/campaign";
+import { getFrequencyCappingDefaults } from "~/domains/campaigns/utils/frequency-defaults";
 
 /**
  * Default popup design form data for wizard
@@ -73,14 +75,20 @@ export function getDefaultPageTargeting(): PageTargetingConfig {
   };
 }
 
-// Default frequency capping configuration
-export function getDefaultFrequencyCapping() {
+// Default frequency capping configuration (server format)
+export function getDefaultFrequencyCapping(templateType?: TemplateType) {
+  // If templateType is provided, use template-specific defaults
+  if (templateType) {
+    return getFrequencyCappingDefaults(templateType);
+  }
+
+  // Fallback to generic defaults
   return {
     enabled: true,
-    maxViews: 3,
-    timeWindow: 24,
+    max_triggers_per_session: 1,
+    max_triggers_per_day: 3,
+    cooldown_between_triggers: 86400, // 24 hours
     respectGlobalCap: true,
-    cooldownHours: 0,
   };
 }
 

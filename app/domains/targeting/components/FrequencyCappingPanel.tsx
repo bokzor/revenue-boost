@@ -1,37 +1,48 @@
 /**
  * Frequency Capping Panel - Configure popup display frequency limits - Simplified
  */
-import { BlockStack } from "@shopify/polaris";
+import { BlockStack, Banner } from "@shopify/polaris";
 import { FrequencyCappingToggle } from "./FrequencyCappingToggle";
 import { FrequencyLimitsCard } from "./FrequencyLimitsCard";
 import { GlobalFrequencyCapCard } from "./GlobalFrequencyCapCard";
 import { FrequencyBestPracticesCard } from "./FrequencyBestPracticesCard";
+import type { TemplateType } from "~/domains/campaigns/types/campaign";
+import { getFrequencyCappingHelpText } from "~/domains/campaigns/utils/frequency-defaults";
 
 /**
  * Frequency Capping Configuration
- * Note: This is a UI-specific interface for the frequency capping panel.
- * The actual frequency capping logic uses EnhancedTriggersConfig.frequency_capping
- * from ~/domains/campaigns/types/campaign
+ * Matches the server format (EnhancedTriggersConfig.frequency_capping)
+ * Used throughout the app - single source of truth
  */
 export interface FrequencyCappingConfig {
-  enabled: boolean;
-  maxViews: number;
-  timeWindow: number;
-  respectGlobalCap: boolean;
-  cooldownHours?: number;
+  enabled: boolean; // UI-only field to toggle frequency capping on/off
+  max_triggers_per_session?: number;
+  max_triggers_per_day?: number;
+  cooldown_between_triggers?: number; // in seconds
+  respectGlobalCap?: boolean; // Whether to respect store-wide frequency limits
 }
 
 export interface FrequencyCappingPanelProps {
   config: FrequencyCappingConfig;
   onConfigChange: (config: FrequencyCappingConfig) => void;
+  templateType?: TemplateType;
 }
 
 export function FrequencyCappingPanel({
   config,
   onConfigChange,
+  templateType,
 }: FrequencyCappingPanelProps) {
+  const helpText = templateType ? getFrequencyCappingHelpText(templateType) : null;
+
   return (
     <BlockStack gap="400">
+      {helpText && (
+        <Banner tone="info">
+          {helpText}
+        </Banner>
+      )}
+
       <FrequencyCappingToggle
         enabled={config.enabled}
         onEnabledChange={(enabled) => onConfigChange({ ...config, enabled })}
@@ -40,25 +51,25 @@ export function FrequencyCappingPanel({
       {config.enabled && (
         <>
           <FrequencyLimitsCard
-            maxViews={config.maxViews}
-            timeWindow={config.timeWindow}
-            cooldownHours={config.cooldownHours}
-            onMaxViewsChange={(value) => {
-              const maxViews = Math.max(1, parseInt(value) || 1);
-              onConfigChange({ ...config, maxViews });
+            maxTriggersPerSession={config.max_triggers_per_session}
+            maxTriggersPerDay={config.max_triggers_per_day}
+            cooldownBetweenTriggers={config.cooldown_between_triggers}
+            onMaxTriggersPerSessionChange={(value) => {
+              const max_triggers_per_session = value ? Math.max(1, parseInt(value) || 1) : undefined;
+              onConfigChange({ ...config, max_triggers_per_session });
             }}
-            onTimeWindowChange={(value) => {
-              const timeWindow = parseInt(value);
-              onConfigChange({ ...config, timeWindow });
+            onMaxTriggersPerDayChange={(value) => {
+              const max_triggers_per_day = value ? Math.max(1, parseInt(value) || 1) : undefined;
+              onConfigChange({ ...config, max_triggers_per_day });
             }}
             onCooldownChange={(value) => {
-              const cooldownHours = parseFloat(value);
-              onConfigChange({ ...config, cooldownHours });
+              const cooldown_between_triggers = value ? Math.max(0, parseInt(value) || 0) : undefined;
+              onConfigChange({ ...config, cooldown_between_triggers });
             }}
           />
 
           <GlobalFrequencyCapCard
-            respectGlobalCap={config.respectGlobalCap}
+            respectGlobalCap={config.respectGlobalCap ?? true}
             onGlobalCapChange={(respectGlobalCap) => onConfigChange({ ...config, respectGlobalCap })}
           />
 

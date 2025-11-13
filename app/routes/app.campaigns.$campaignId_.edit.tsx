@@ -15,6 +15,7 @@ import { CampaignService } from "~/domains/campaigns";
 import { CampaignFormWithABTesting } from "~/domains/campaigns/components/CampaignFormWithABTesting";
 import type { CampaignWithConfigs } from "~/domains/campaigns/types/campaign";
 import type { CampaignFormData } from "~/shared/hooks/useWizardState";
+import type { FrequencyCappingConfig } from "~/domains/targeting/components";
 
 // ============================================================================
 // TYPES
@@ -137,13 +138,14 @@ export default function CampaignEditPage() {
         customPatterns: [],
         excludePages: [],
       },
-      frequencyCapping: campaign.targetRules?.frequencyCapping || {
-        enabled: true,
-        maxViews: 3,
-        timeWindow: 24,
-        respectGlobalCap: true,
-        cooldownHours: 0,
-      },
+      // Load frequency capping from server format (already matches UI format)
+      frequencyCapping: {
+        enabled: !!campaign.targetRules?.enhancedTriggers?.frequency_capping,
+        max_triggers_per_session: campaign.targetRules?.enhancedTriggers?.frequency_capping?.max_triggers_per_session,
+        max_triggers_per_day: campaign.targetRules?.enhancedTriggers?.frequency_capping?.max_triggers_per_day,
+        cooldown_between_triggers: campaign.targetRules?.enhancedTriggers?.frequency_capping?.cooldown_between_triggers,
+        respectGlobalCap: true, // Default to true
+      } as FrequencyCappingConfig,
       discountConfig: campaign.discountConfig,
       startDate: campaign.startDate ? campaign.startDate.toISOString() : "",
       endDate: campaign.endDate ? campaign.endDate.toISOString() : "",
@@ -167,6 +169,16 @@ export default function CampaignEditPage() {
         return;
       }
 
+      // Extract frequency capping fields (already in server format)
+      const { enabled, max_triggers_per_session, max_triggers_per_day, cooldown_between_triggers, respectGlobalCap } = campaignData.frequencyCapping;
+
+      // Only include frequency_capping if enabled
+      const frequency_capping = enabled ? {
+        max_triggers_per_session,
+        max_triggers_per_day,
+        cooldown_between_triggers,
+      } : undefined;
+
       const updateData = {
         name: campaignData.name,
         description: campaignData.description,
@@ -177,10 +189,12 @@ export default function CampaignEditPage() {
         contentConfig: campaignData.contentConfig,
         designConfig: campaignData.designConfig,
         targetRules: {
-          enhancedTriggers: campaignData.enhancedTriggers,
+          enhancedTriggers: {
+            ...campaignData.enhancedTriggers,
+            frequency_capping,
+          },
           audienceTargeting: campaignData.audienceTargeting,
           pageTargeting: campaignData.pageTargeting,
-          frequencyCapping: campaignData.frequencyCapping,
         },
         discountConfig: campaignData.discountConfig,
         startDate: campaignData.startDate,

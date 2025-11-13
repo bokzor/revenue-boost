@@ -157,6 +157,7 @@ export function renderFrequencyStep(props: StepRendererProps) {
     <FrequencyStepContent
       config={wizardState.frequencyCapping}
       onConfigChange={(config) => updateData({ frequencyCapping: config })}
+      templateType={wizardState.templateType}
     />
   );
 }

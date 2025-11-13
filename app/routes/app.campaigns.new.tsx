@@ -117,6 +117,16 @@ export default function NewCampaign() {
 
         // Create campaigns for each variant via API
         const campaignPromises = campaignData.map(async (variant, index) => {
+          // Extract frequency capping fields (already in server format)
+          const { enabled, max_triggers_per_session, max_triggers_per_day, cooldown_between_triggers, respectGlobalCap } = variant.frequencyCapping;
+
+          // Only include frequency_capping if enabled
+          const frequency_capping = enabled ? {
+            max_triggers_per_session,
+            max_triggers_per_day,
+            cooldown_between_triggers,
+          } : undefined;
+
           const campaignCreateData = {
             name: variant.name || `${experimentData.name} - Variant ${["A", "B", "C", "D"][index]}`,
             description: variant.description,
@@ -128,10 +138,12 @@ export default function NewCampaign() {
             contentConfig: variant.contentConfig,
             designConfig: variant.designConfig,
             targetRules: {
-              enhancedTriggers: variant.enhancedTriggers,
+              enhancedTriggers: {
+                ...variant.enhancedTriggers,
+                frequency_capping,
+              },
               audienceTargeting: variant.audienceTargeting,
               pageTargeting: variant.pageTargeting,
-              frequencyCapping: variant.frequencyCapping,
             },
             discountConfig: variant.discountConfig,
             experimentId: experiment.id,
@@ -165,6 +177,16 @@ export default function NewCampaign() {
         navigate(`/app/experiments/${experiment.id}`);
       } else {
         // Single campaign
+        // Extract frequency capping fields (already in server format)
+        const { enabled, max_triggers_per_session, max_triggers_per_day, cooldown_between_triggers, respectGlobalCap } = campaignData.frequencyCapping;
+
+        // Only include frequency_capping if enabled
+        const frequency_capping = enabled ? {
+          max_triggers_per_session,
+          max_triggers_per_day,
+          cooldown_between_triggers,
+        } : undefined;
+
         const campaignCreateData = {
           name: campaignData.name,
           description: campaignData.description,
@@ -176,10 +198,12 @@ export default function NewCampaign() {
           contentConfig: campaignData.contentConfig,
           designConfig: campaignData.designConfig,
           targetRules: {
-            enhancedTriggers: campaignData.enhancedTriggers,
+            enhancedTriggers: {
+              ...campaignData.enhancedTriggers,
+              frequency_capping,
+            },
             audienceTargeting: campaignData.audienceTargeting,
             pageTargeting: campaignData.pageTargeting,
-            frequencyCapping: campaignData.frequencyCapping,
           },
           discountConfig: campaignData.discountConfig,
           startDate: campaignData.startDate,

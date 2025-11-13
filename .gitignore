@@ -34,23 +34,10 @@ database.sqlite
 # React Router auto-generated files
 .react-router/
 
-# Documentation and project files (auto-generated)
-PROJECT_HISTORY.md
-ALL_BUNDLES_COMPLETE.md
-BUILD_SUCCESS.md
-IMPLEMENTATION_COMPLETE.md
-TRIGGER_ARCHITECTURE_ANALYSIS.md
-
 # Data files
 /app/data/
 
-# Scripts (if auto-generated)
-/scripts/
 
-# Seed and verification scripts
-/prisma/seed.ts
-/prisma/template-data.ts
-/prisma/verify-seed.ts
 test-results
 playwright-report
 extensions/storefront-popup/assets

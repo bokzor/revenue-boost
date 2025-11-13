@@ -626,13 +626,13 @@ export const FrequencyCappingConfigSchema = z.object({
 });
 
 /**
- * Target Rules Configuration Schema (matching original structure)
+ * Target Rules Configuration Schema
+ * Note: frequencyCapping is now stored in enhancedTriggers.frequency_capping (server format)
  */
 export const TargetRulesConfigSchema = z.object({
   enhancedTriggers: EnhancedTriggersConfigSchema.optional(),
   audienceTargeting: AudienceTargetingConfigSchema.optional(),
   pageTargeting: PageTargetingConfigSchema.optional(),
-  frequencyCapping: FrequencyCappingConfigSchema.optional(),
 });
 
 /**

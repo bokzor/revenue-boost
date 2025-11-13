@@ -25,7 +25,7 @@ import type {
 
 // Import extracted modules for SOLID compliance
 import { validateStep as validateStepFn, type ValidationResult } from "./wizard/validators";
-import { createDefaultCampaignData } from "./wizard/defaults";
+import { createDefaultCampaignData, getDefaultFrequencyCapping } from "./wizard/defaults";
 import { buildGoalUpdates } from "./wizard/goal-config";
 
 // Re-export types from canonical source
@@ -267,6 +267,9 @@ export function useWizardState(initialData?: Partial<CampaignFormData>) {
         ? { pageTargeting: pageTargetingFromTemplate }
         : {};
 
+      // Apply template-specific frequency capping defaults
+      const frequencyCappingDefaults = getDefaultFrequencyCapping(templateType);
+
       const next: Partial<CampaignFormData> = {
         templateType,
         // Apply content defaults from database template
@@ -276,6 +279,8 @@ export function useWizardState(initialData?: Partial<CampaignFormData>) {
         },
         // Apply page targeting from template's targetRules (from database) if valid
         ...pageTargetingPatch,
+        // Apply template-specific frequency capping defaults
+        frequencyCapping: frequencyCappingDefaults,
         // Note: enhancedTriggers are now set by TemplateStep.tsx using convertDatabaseTriggersAuto
       };
 

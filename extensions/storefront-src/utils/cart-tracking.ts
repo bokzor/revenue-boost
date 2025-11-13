@@ -89,6 +89,13 @@ async function trackAddToCart(
   productId: string
 ): Promise<void> {
   try {
+    // Mark that the user added to cart in this session for targeting (Active Shopper)
+    try {
+      window.sessionStorage.setItem('revenue_boost_added_to_cart', 'true');
+    } catch {
+      // Ignore storage errors
+    }
+
     await api.trackSocialProofEvent({
       eventType: 'add_to_cart',
       productId,
