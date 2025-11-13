@@ -233,6 +233,7 @@ async function createWelcomeCampaign(storeId: string) {
       },
       discountConfig: {
         enabled: false,
+        showInPreview: true,
       },
     });
 

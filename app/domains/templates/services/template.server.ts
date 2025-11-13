@@ -58,7 +58,8 @@ function parseTemplateEntity(rawTemplate: Template): TemplateWithConfigs {
       animation: "fade"
     }),
     discountConfig: parseJsonField(rawTemplate.discountConfig, DiscountConfigSchema, {
-      enabled: false
+      enabled: false,
+      showInPreview: true
     }),
   };
 }

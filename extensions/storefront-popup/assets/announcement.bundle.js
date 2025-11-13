@@ -479,22 +479,15 @@
     const [errors, setErrors] = useState({});
     const [generatedDiscountCode, setGeneratedDiscountCode] = useState(null);
     const imagePosition = config.imagePosition || "left";
-    let imageUrl = config.imageUrl;
-    if (!imageUrl && config.theme) {
-      const shopDomain = window.REVENUE_BOOST_CONFIG?.shopDomain;
-      if (shopDomain) {
-        imageUrl = `https://${shopDomain}/apps/revenue-boost/assets/newsletter-backgrounds/${config.theme}.png`;
-      }
-    }
+    const imageUrl = config.imageUrl;
     const title = config.headline || "Join Our Newsletter";
     const description = config.subheadline || "Subscribe to get special offers, free giveaways, and exclusive deals.";
-    const buttonText = config.buttonText || "Subscribe";
+    const buttonText = config.submitButtonText || config.buttonText || "Subscribe";
     const successMessage = config.successMessage || "Thank you for subscribing!";
     const discountCode = config.discount?.enabled ? config.discount.code : void 0;
-    const showGdprCheckbox = config.consentFieldEnabled ?? true;
+    const showGdprCheckbox = config.consentFieldEnabled ?? false;
     const gdprLabel = config.consentFieldText || "I agree to receive marketing emails and accept the privacy policy";
-    const collectName = config.nameFieldEnabled ?? true;
-    const theme = config.theme || "modern";
+    const collectName = config.nameFieldEnabled ?? false;
     useEffect(() => {
       if (!isVisible) {
         const timer = setTimeout(() => {
@@ -509,16 +502,18 @@
     }, [isVisible]);
     const validateForm = () => {
       const newErrors = {};
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!email) {
-        newErrors.email = "Email is required";
-      } else if (!emailRegex.test(email)) {
-        newErrors.email = "Please enter a valid email";
+      if (config.emailRequired !== false) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!email) {
+          newErrors.email = config.emailErrorMessage || "Email is required";
+        } else if (!emailRegex.test(email)) {
+          newErrors.email = "Please enter a valid email";
+        }
       }
-      if (collectName && !name.trim()) {
+      if (config.nameFieldEnabled && config.nameFieldRequired && !name.trim()) {
         newErrors.name = "Name is required";
       }
-      if (showGdprCheckbox && !gdprConsent) {
+      if (config.consentFieldEnabled && config.consentFieldRequired && !gdprConsent) {
         newErrors.gdpr = "You must accept the terms to continue";
       }
       setErrors(newErrors);
@@ -605,12 +600,13 @@
           background: rgba(0, 0, 0, 0.1);
           border: none;
           cursor: pointer;
-          transition: background 0.2s;
-          color: ${config.textColor || "#000"};
+          transition: background 0.2s, color 0.2s;
+          color: ${config.descriptionColor || "#52525b"};
         }
 
         .email-popup-close:hover {
           background: rgba(0, 0, 0, 0.2);
+          color: ${config.descriptionColor || "#52525b"};
         }
 
         .email-popup-content {
@@ -683,7 +679,7 @@
           font-size: ${config.descriptionFontSize || config.fontSize || "1rem"};
           line-height: 1.6;
           margin-bottom: 1.5rem;
-          color: ${config.descriptionColor || config.textColor || "#52525b"};
+          color: ${config.descriptionColor || "#52525b"};
           font-weight: ${config.descriptionFontWeight || config.fontWeight || "400"};
         }
 
@@ -704,7 +700,7 @@
           border-radius: 0.5rem;
           border: 2px solid ${config.inputBorderColor || "#d4d4d8"};
           background: ${config.inputBackgroundColor || "#ffffff"};
-          color: ${config.inputTextColor || config.textColor || "#111827"};
+          color: ${config.inputTextColor || "#111827"};
           font-size: 1rem;
           transition: all 0.2s;
           outline: none;
@@ -712,9 +708,14 @@
           ${config.inputBoxShadow ? `box-shadow: ${config.inputBoxShadow};` : ""}
         }
 
+        .email-popup-input::placeholder {
+          color: ${config.inputTextColor ? `${config.inputTextColor}80` : "#9ca3af"};
+          opacity: 1;
+        }
+
         .email-popup-input:focus {
-          border-color: ${config.buttonColor || "#3b82f6"};
-          box-shadow: 0 0 0 3px ${config.buttonColor || "#3b82f6"}33;
+          border-color: ${config.accentColor || config.buttonColor || "#3b82f6"};
+          box-shadow: 0 0 0 3px ${config.accentColor || config.buttonColor || "#3b82f6"}33;
         }
 
         .email-popup-input.error {
@@ -725,6 +726,14 @@
           color: #ef4444;
           font-size: 0.875rem;
           margin-top: 0.25rem;
+        }
+
+        .email-popup-label {
+          display: block;
+          font-size: 0.875rem;
+          font-weight: 500;
+          margin-bottom: 0.5rem;
+          color: ${config.textColor || "#111827"};
         }
 
         .email-popup-checkbox-wrapper {
@@ -742,8 +751,7 @@
 
         .email-popup-checkbox-label {
           font-size: 0.875rem;
-          color: ${config.textColor || "#52525b"};
-          opacity: 0.8;
+          color: ${config.descriptionColor || "#52525b"};
           line-height: 1.4;
         }
 
@@ -809,22 +817,22 @@
           display: inline-block;
           padding: 0.75rem 1.5rem;
           border-radius: 0.5rem;
-          border: 2px dashed currentColor;
-          background: ${config.inputBackgroundColor || "#f4f4f5"};
+          border: 2px dashed ${config.accentColor || config.buttonColor || "#3b82f6"};
+          background: ${config.accentColor ? `${config.accentColor}15` : config.inputBackgroundColor || "#f4f4f5"};
         }
 
         .email-popup-discount-label {
           font-size: 0.875rem;
           font-weight: 500;
           margin-bottom: 0.25rem;
-          color: ${config.textColor || "#111827"};
+          color: ${config.descriptionColor || "#52525b"};
         }
 
         .email-popup-discount-code {
           font-size: 1.5rem;
           font-weight: 700;
           letter-spacing: 0.05em;
-          color: ${config.textColor || "#111827"};
+          color: ${config.accentColor || config.buttonColor || config.textColor || "#111827"};
         }
 
         .email-popup-spinner {
@@ -944,9 +952,11 @@
                     /* @__PURE__ */ jsx("p", { className: "email-popup-description", children: description }),
                     /* @__PURE__ */ jsxs("form", { className: "email-popup-form", onSubmit: handleSubmit, children: [
                       collectName && /* @__PURE__ */ jsxs("div", { className: "email-popup-input-wrapper", children: [
+                        /* @__PURE__ */ jsx("label", { htmlFor: "name-input", className: "email-popup-label", children: "Name" }),
                         /* @__PURE__ */ jsx(
                           "input",
                           {
+                            id: "name-input",
                             type: "text",
                             className: `email-popup-input ${errors.name ? "error" : ""}`,
                             placeholder: config.nameFieldPlaceholder || "Your name",
@@ -955,15 +965,18 @@
                               setName(e.target.value);
                               if (errors.name) setErrors({ ...errors, name: void 0 });
                             },
-                            disabled: isSubmitting
+                            disabled: isSubmitting,
+                            required: config.nameFieldRequired
                           }
                         ),
                         errors.name && /* @__PURE__ */ jsx("div", { className: "email-popup-error", children: errors.name })
                       ] }),
                       /* @__PURE__ */ jsxs("div", { className: "email-popup-input-wrapper", children: [
+                        /* @__PURE__ */ jsx("label", { htmlFor: "email-input", className: "email-popup-label", children: config.emailLabel || "Email" }),
                         /* @__PURE__ */ jsx(
                           "input",
                           {
+                            id: "email-input",
                             type: "email",
                             className: `email-popup-input ${errors.email ? "error" : ""}`,
                             placeholder: config.emailPlaceholder || "Enter your email",
@@ -973,7 +986,7 @@
                               if (errors.email) setErrors({ ...errors, email: void 0 });
                             },
                             disabled: isSubmitting,
-                            required: true
+                            required: config.emailRequired !== false
                           }
                         ),
                         errors.email && /* @__PURE__ */ jsx("div", { className: "email-popup-error", children: errors.email })
@@ -990,7 +1003,8 @@
                               setGdprConsent(e.target.checked);
                               if (errors.gdpr) setErrors({ ...errors, gdpr: void 0 });
                             },
-                            disabled: isSubmitting
+                            disabled: isSubmitting,
+                            required: config.consentFieldRequired
                           }
                         ),
                         /* @__PURE__ */ jsx("label", { htmlFor: "gdpr-consent", className: "email-popup-checkbox-label", children: gdprLabel })

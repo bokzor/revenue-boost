@@ -125,6 +125,7 @@ export function parseTargetRules(jsonValue: unknown): TargetRulesConfig | null {
 export function parseDiscountConfig(jsonValue: unknown): DiscountConfig {
   return parseJsonField(jsonValue, DiscountConfigSchema, {
     enabled: false,
+    showInPreview: true,
   });
 }
 

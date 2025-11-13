@@ -29,6 +29,7 @@ export type DiscountDeliveryMode =
 
 export interface DiscountConfig {
   enabled?: boolean; // Whether discount is enabled for this campaign
+  showInPreview?: boolean; // Whether to show discount in campaign preview (NEW)
   type: "shared" | "single_use";
   valueType: "PERCENTAGE" | "FIXED_AMOUNT" | "FREE_SHIPPING";
   value?: number; // Optional for FREE_SHIPPING
@@ -111,6 +112,7 @@ export function parseDiscountConfig(configString: any): DiscountConfig {
 
     return {
       enabled: config.enabled !== false,
+      showInPreview: config.showInPreview !== false,
       type: config.type || "shared",
       valueType: valueType,
       // Only set value for non-FREE_SHIPPING discounts
@@ -129,6 +131,7 @@ export function parseDiscountConfig(configString: any): DiscountConfig {
     console.error("[Discount Service] Error parsing discount config:", error);
     return {
       enabled: true,
+      showInPreview: true,
       type: "shared",
       valueType: "PERCENTAGE",
       value: 10,

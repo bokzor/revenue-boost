@@ -468,11 +468,11 @@ export function CampaignFormWithABTesting({
 
         {/* Step Content */}
         <Layout.Section>
-          <Card>
-            <div style={{ padding: "24px" }}>
-              {renderStepContent()}
+          <BlockStack gap="600">
+            {renderStepContent()}
 
-              {/* Navigation Buttons - Extracted Component */}
+            {/* Navigation Buttons - Extracted Component */}
+            <Card>
               <WizardNavigationButtons
                 currentStep={currentStep}
                 totalSteps={WIZARD_STEPS.length}
@@ -483,8 +483,8 @@ export function CampaignFormWithABTesting({
                 onNext={handleNext}
                 onSave={handleSave}
               />
-            </div>
-          </Card>
+            </Card>
+          </BlockStack>
         </Layout.Section>
       </Layout>
     </Page>

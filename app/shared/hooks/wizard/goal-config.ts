@@ -1,6 +1,6 @@
 /**
  * Goal-based Configuration
- * 
+ *
  * Extracted from useWizardState to follow SOLID principles:
  * - Single Responsibility: Only handles goal-specific configuration
  * - Separation of Concerns: Isolates discount and design logic
@@ -25,6 +25,7 @@ export function buildDiscountConfig(
 
     return {
       enabled: false,
+      showInPreview: true,
       type: "shared" as const,
       valueType: "PERCENTAGE" as const,
       value: 10,
@@ -36,6 +37,7 @@ export function buildDiscountConfig(
 
   return {
     enabled: defaults.discount.enabled,
+    showInPreview: true,
     type: (defaults.discount.type === "percentage"
       ? "percentage"
       : "fixed_amount") as "percentage" | "fixed_amount" | "free_shipping" | "shared",

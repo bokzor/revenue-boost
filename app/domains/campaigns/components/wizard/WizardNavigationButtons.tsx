@@ -1,6 +1,6 @@
 /**
  * WizardNavigationButtons - Navigation Buttons for Wizard
- * 
+ *
  * SOLID Compliance:
  * - Single Responsibility: Renders navigation buttons
  * - <50 lines
@@ -30,34 +30,26 @@ export function WizardNavigationButtons({
   onSave,
 }: WizardNavigationButtonsProps) {
   return (
-    <div
-      style={{
-        marginTop: "32px",
-        paddingTop: "24px",
-        borderTop: "1px solid #E5E7EB",
-      }}
-    >
-      <InlineStack align="space-between">
-        <Button onClick={onPrevious} disabled={currentStep === 0}>
-          Previous
-        </Button>
+    <InlineStack align="space-between">
+      <Button onClick={onPrevious} disabled={currentStep === 0}>
+        Previous
+      </Button>
 
-        {isLastStep ? (
-          <Button
-            variant="primary"
-            onClick={onSave}
-            disabled={isSubmitting}
-            loading={isSubmitting}
-          >
-            {campaignId ? "Save Changes" : "Create Campaign"}
-          </Button>
-        ) : (
-          <Button variant="primary" onClick={onNext}>
-            Next
-          </Button>
-        )}
-      </InlineStack>
-    </div>
+      {isLastStep ? (
+        <Button
+          variant="primary"
+          onClick={onSave}
+          disabled={isSubmitting}
+          loading={isSubmitting}
+        >
+          {campaignId ? "Save Changes" : "Create Campaign"}
+        </Button>
+      ) : (
+        <Button variant="primary" onClick={onNext}>
+          Next
+        </Button>
+      )}
+    </InlineStack>
   );
 }
 

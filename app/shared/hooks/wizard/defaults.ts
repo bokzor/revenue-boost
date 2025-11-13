@@ -88,6 +88,7 @@ export function getDefaultFrequencyCapping() {
 export function getDefaultDiscountConfig(initialData?: Partial<CampaignFormData>) {
   return {
     enabled: false,
+    showInPreview: true,
     type: "shared" as const,
     valueType: "PERCENTAGE" as const,
     value: 10,

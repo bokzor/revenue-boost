@@ -40,6 +40,7 @@ export function DiscountSection({
   // Initialize with defaults if not provided
   const config: DiscountConfig = {
     enabled: discountConfig?.enabled !== false,
+    showInPreview: discountConfig?.showInPreview !== false,
     type: discountConfig?.type || "shared",
     valueType: discountConfig?.valueType || "PERCENTAGE",
     value:

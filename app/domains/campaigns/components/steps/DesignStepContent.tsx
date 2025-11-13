@@ -9,6 +9,7 @@
 import { Banner, Text, BlockStack, Card, Divider, Layout } from "@shopify/polaris";
 import { ContentConfigSection } from "../sections/ContentConfigSection";
 import { DesignConfigSection } from "../sections/DesignConfigSection";
+import { NewsletterContentSection } from "../sections/NewsletterContentSection";
 import { TemplateSelector, type SelectedTemplate } from "../TemplateSelector";
 import { LivePreviewPanel } from "~/domains/popups/components/preview/LivePreviewPanel";
 import { Affix } from "~/shared/components/ui/Affix";
@@ -83,32 +84,48 @@ export function DesignStepContent({
           {/* Only show configuration if template is selected */}
           {templateType && (
             <>
-              {/* Content Configuration - Template-specific fields */}
-              <Card>
-            <BlockStack gap="400">
-              <Text as="h2" variant="headingMd">
-                Content Configuration
-              </Text>
-              <Text as="p" tone="subdued">
-                Customize the text, messages, and behavior for your {templateType.toLowerCase().replace(/_/g, ' ')} campaign
-              </Text>
-              <Divider />
-              <ContentConfigSection
-                templateType={templateType}
-                content={contentConfig}
-                discountConfig={discountConfig}
-                onChange={onContentChange}
-                onDiscountChange={onDiscountChange}
-              />
-            </BlockStack>
-          </Card>
+              {/* Newsletter Template - Self-contained with Content, Discount, and Design */}
+              {(templateType === "NEWSLETTER" || templateType === "EXIT_INTENT") ? (
+                <>
+                  <NewsletterContentSection
+                    content={contentConfig}
+                    designConfig={designConfig}
+                    discountConfig={discountConfig}
+                    onChange={onContentChange}
+                    onDesignChange={onDesignChange}
+                    onDiscountChange={onDiscountChange}
+                  />
+                </>
+              ) : (
+                <>
+                  {/* Other Templates - Separate Content and Design sections */}
+                  <Card>
+                    <BlockStack gap="400">
+                      <Text as="h2" variant="headingMd">
+                        Content Configuration
+                      </Text>
+                      <Text as="p" tone="subdued">
+                        Customize the text, messages, and behavior for your {templateType.toLowerCase().replace(/_/g, ' ')} campaign
+                      </Text>
+                      <Divider />
+                      <ContentConfigSection
+                        templateType={templateType}
+                        content={contentConfig}
+                        discountConfig={discountConfig}
+                        onChange={onContentChange}
+                        onDiscountChange={onDiscountChange}
+                      />
+                    </BlockStack>
+                  </Card>
 
-              {/* Design Configuration - Universal design/color fields */}
-              <DesignConfigSection
-                design={designConfig}
-                templateType={templateType}
-                onChange={onDesignChange}
-              />
+                  {/* Design Configuration - Universal design/color fields */}
+                  <DesignConfigSection
+                    design={designConfig}
+                    templateType={templateType}
+                    onChange={onDesignChange}
+                  />
+                </>
+              )}
             </>
           )}
         </BlockStack>

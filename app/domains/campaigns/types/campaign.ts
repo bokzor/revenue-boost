@@ -542,6 +542,7 @@ export const TargetRulesConfigSchema = z.object({
  */
 export const DiscountConfigSchema = z.object({
   enabled: z.boolean().default(false),
+  showInPreview: z.boolean().default(true), // NEW: Show discount in preview
   type: z.enum(["percentage", "fixed_amount", "free_shipping", "shared"]).optional(),
   value: z.number().min(0).optional(),
   code: z.string().optional(),

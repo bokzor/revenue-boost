@@ -35,6 +35,7 @@ export function DiscountSettingsStep({
   // Initialize with defaults if not provided, preserving existing configuration
   const config: DiscountConfig = {
     enabled: discountConfig?.enabled !== false,
+    showInPreview: discountConfig?.showInPreview !== false,
     type: discountConfig?.type || "shared",
     valueType: discountConfig?.valueType || "PERCENTAGE",
     value:

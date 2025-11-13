@@ -52,10 +52,20 @@ export interface FormGridProps {
 }
 
 export function FormGrid({ columns = 2, gap = "loose", children }: FormGridProps) {
-  const gridClass = `form-grid form-grid--${columns}-col form-grid--${gap}`;
+  // Polaris spacing tokens: 400 = 16px
+  // Use same vertical gap as BlockStack gap="400" for consistency
+  const columnGap = gap === "tight" ? "12px" : "16px";
+  const rowGap = "16px"; // Match BlockStack gap="400"
 
   return (
-    <div className={gridClass}>
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: `repeat(${columns}, 1fr)`,
+        columnGap,
+        rowGap,
+      }}
+    >
       {children}
     </div>
   );

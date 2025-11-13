@@ -183,7 +183,8 @@ export const TemplateWithConfigsSchema = BaseTemplateSchema.extend({
     animation: "fade"
   }), // Default design configuration
   discountConfig: DiscountConfigSchema.default({
-    enabled: false
+    enabled: false,
+    showInPreview: true
   }), // Discount configuration
 });
 
@@ -207,7 +208,7 @@ export const NewsletterTemplateSchema = BaseTemplateSchema.extend({
     overlayOpacity: 0.8,
     animation: "fade"
   }),
-  discountConfig: DiscountConfigSchema.default({ enabled: false }),
+  discountConfig: DiscountConfigSchema.default({ enabled: false, showInPreview: true }),
 });
 
 // Flash Sale Template
@@ -225,7 +226,7 @@ export const FlashSaleTemplateSchema = BaseTemplateSchema.extend({
     overlayOpacity: 0.8,
     animation: "fade"
   }),
-  discountConfig: DiscountConfigSchema.default({ enabled: false }),
+  discountConfig: DiscountConfigSchema.default({ enabled: false, showInPreview: true }),
 });
 
 // Spin to Win Template
@@ -243,7 +244,7 @@ export const SpinToWinTemplateSchema = BaseTemplateSchema.extend({
     overlayOpacity: 0.8,
     animation: "fade"
   }),
-  discountConfig: DiscountConfigSchema.default({ enabled: false }),
+  discountConfig: DiscountConfigSchema.default({ enabled: false, showInPreview: true }),
 });
 
 // Free Shipping Template
@@ -261,7 +262,7 @@ export const FreeShippingTemplateSchema = BaseTemplateSchema.extend({
     overlayOpacity: 0,
     animation: "slide"
   }),
-  discountConfig: DiscountConfigSchema.default({ enabled: false }),
+  discountConfig: DiscountConfigSchema.default({ enabled: false, showInPreview: true }),
 });
 
 /**

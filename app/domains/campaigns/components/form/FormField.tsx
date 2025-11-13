@@ -207,18 +207,18 @@ export function ColorField({
   onChange,
 }: ColorFieldProps) {
   return (
-    <div className="color-field">
-      <label htmlFor={name} style={{ display: "block", marginBottom: "0.5rem", fontWeight: 500 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+      <label htmlFor={name} style={{ fontWeight: 500, fontSize: "0.8125rem" }}>
         {label}
       </label>
-      <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+      <div style={{ display: "flex", gap: "0.5rem", alignItems: "flex-start" }}>
         {/* Color preview swatch (interactive) */}
         <button
           type="button"
           aria-label={`Choose color for ${label}`}
           style={{
-            width: "40px",
-            height: "40px",
+            width: "36px",
+            height: "36px",
             borderRadius: "4px",
             border: "1px solid #D1D5DB",
             backgroundColor: value || placeholder,
