@@ -213,7 +213,7 @@ export function parseDiscountConfig(configString: any): DiscountConfig {
       freeGift: config.freeGift,
       combineWith: config.combineWith,
     };
-    
+
     return result;
   } catch (error) {
     console.error("[Discount Service] Error parsing discount config:", error);
@@ -476,6 +476,15 @@ export async function createEmailSpecificDiscount(
         if (createResult.customer) {
           customer = createResult.customer;
           customerId = customer.id;
+        } else if (createResult.errors?.some(err => err.includes("already been taken"))) {
+          // Race condition: customer was created between search and create
+          // Search again to get the customer ID
+          console.log(`[Discount Service] Customer already exists, searching again: ${email}`);
+          const retryResult = await findCustomerByEmail(admin, email);
+          if (retryResult.customer) {
+            customer = retryResult.customer;
+            customerId = customer.id;
+          }
         }
       }
     }
@@ -653,18 +662,18 @@ async function getCachedDiscount(
   codeKey: string
 ): Promise<{ code: string; id: string } | null> {
   if (!meta) return null;
-  
+
   const discountId = (meta as any)[idKey];
   const discountCode = (meta as any)[codeKey];
-  
+
   if (!discountId || !discountCode) return null;
-  
+
   const existing = await getDiscountCode(admin, discountId);
-  
+
   if (existing.discount && !existing.errors) {
     return { code: discountCode, id: discountId };
   }
-  
+
   return null;
 }
 
@@ -684,7 +693,7 @@ function generateDiscountCode(
   const timestamp = Date.now()
     .toString()
     .slice(-DISCOUNT_CODE_CONFIG.TIMESTAMP_LENGTH);
-    
+
   return `${prefix}${cleanName}${timestamp}`;
 }
 
@@ -704,7 +713,7 @@ function generateUniqueDiscountCode(prefix: string, email?: string): string {
     .toString(36)
     .substring(2, 2 + DISCOUNT_CODE_CONFIG.RANDOM_SUFFIX_LENGTH)
     .toUpperCase();
-    
+
   return `${prefix}${emailHash}${randomSuffix}`;
 }
 
@@ -718,6 +727,15 @@ async function getOrCreateTieredDiscount(
   existingConfig: DiscountMetadata,
   cartSubtotalCents?: number
 ): Promise<CampaignDiscountResult> {
+  /*
+   * NOTE [Tiered discounts]
+   * - We pre-create one discount code per tier with minimumRequirement=threshold. Shopify enforces
+   *   the threshold at checkout, so removing items after issuance invalidates higher-tier codes.
+   * - UX caveat: code may appear applied in cart even if checkout will later reject it below threshold.
+   * TODO: Provide a helper to re-evaluate/downgrade tier on cart updates and recommend using
+   *       /api/discounts.issue with cartSubtotalCents when issuing tiered discounts near checkout.
+   */
+
   const tiers = config.tiers!;
 
   // Check for existing tier codes in metadata
@@ -851,7 +869,7 @@ async function getOrCreateBogoDiscount(
     'bogoDiscountId',
     'bogoDiscountCode'
   );
-  
+
   if (cached) {
     console.log(`[Discount Service] Reusing existing BOGO discount: ${cached.code}`);
     return {
@@ -871,6 +889,16 @@ async function getOrCreateBogoDiscount(
 
   console.log(`[Discount Service] Creating BOGO discount: ${code}`);
 
+  // Validate that BOGO get has specific products/collections defined
+  if (!bogo.get.ids || bogo.get.ids.length === 0) {
+    console.error(`[Discount Service] BOGO discount requires specific product/collection IDs for 'get'`);
+    return {
+      success: false,
+      isNewDiscount: false,
+      errors: ["BOGO discount requires specific product or collection IDs for the 'get' reward"],
+    };
+  }
+
   const discountInput: DiscountCodeInput & { bxgy: any } = {
     title: `${campaign.name} - BOGO`,
     code,
@@ -881,20 +909,27 @@ async function getOrCreateBogoDiscount(
       : undefined,
     appliesOncePerCustomer: bogo.get.appliesOncePerOrder !== false,
     customerSelection: "ALL",
-    applicability: {
-      scope: bogo.buy.scope === "any" ? "all" : bogo.buy.scope,
-      productIds: bogo.buy.ids,
-      collectionIds: bogo.buy.scope === "collections" ? bogo.buy.ids : undefined,
-    },
     bxgy: {
       buy: {
         quantity: bogo.buy.quantity,
         value: bogo.buy.minSubtotalCents,
+        // Customer buys: can be "any" or specific products/collections
+        applicability: {
+          scope: bogo.buy.scope === "any" ? "all" : bogo.buy.scope,
+          productIds: bogo.buy.scope === "products" ? bogo.buy.ids : undefined,
+          collectionIds: bogo.buy.scope === "collections" ? bogo.buy.ids : undefined,
+        },
       },
       get: {
         quantity: bogo.get.quantity,
         discountPercentage: bogo.get.discount.kind === "percentage" ? bogo.get.discount.value : undefined,
         discountAmount: bogo.get.discount.kind === "fixed" ? bogo.get.discount.value : undefined,
+        // Customer gets: must be specific products/collections
+        applicability: {
+          scope: bogo.get.scope,
+          productIds: bogo.get.scope === "products" ? bogo.get.ids : undefined,
+          collectionIds: bogo.get.scope === "collections" ? bogo.get.ids : undefined,
+        },
       },
     },
   };
@@ -944,7 +979,7 @@ async function getOrCreateFreeGiftDiscount(
     'freeGiftDiscountId',
     'freeGiftDiscountCode'
   );
-  
+
   if (cached) {
     console.log(`[Discount Service] Reusing existing free gift discount: ${cached.code}`);
     return {
@@ -964,10 +999,31 @@ async function getOrCreateFreeGiftDiscount(
 
   console.log(`[Discount Service] Creating free gift discount: ${code}`);
 
-  const discountInput: DiscountCodeInput & { bxgy: any } = {
+  // Validate that free gift has either a product ID or variant ID defined
+  if (!freeGift.productId && !freeGift.variantId) {
+    console.error(`[Discount Service] Free gift discount requires either a product ID or variant ID`);
+    return {
+      success: false,
+      isNewDiscount: false,
+      errors: ["Free gift discount requires either a product ID or variant ID to be configured"],
+    };
+  }
+
+  // Use productId if available, otherwise extract product ID from variantId
+  // Shopify variant GIDs are in format: gid://shopify/ProductVariant/123
+  // We need product GID in format: gid://shopify/Product/456
+  // For BxGy discounts, we can use the productId directly if provided
+  const productIdToUse = freeGift.productId || freeGift.variantId;
+
+  // For free gift discounts, use a basic percentage discount (100% off) on the specific product
+  // with a minimum purchase requirement. This is simpler than BxGy and works for "any purchase".
+  // Note: BxGy doesn't support "buy anything" - it requires specific products/collections
+
+  const discountInput: DiscountCodeInput = {
     title: `${campaign.name} - Free Gift`,
     code,
     valueType: "PERCENTAGE",
+    value: 100, // 100% off = free
     usageLimit: config.usageLimit,
     minimumRequirement: freeGift.minSubtotalCents
       ? { greaterThanOrEqualToSubtotal: freeGift.minSubtotalCents / 100 }
@@ -977,20 +1033,14 @@ async function getOrCreateFreeGiftDiscount(
       : undefined,
     appliesOncePerCustomer: true,
     customerSelection: "ALL",
-    applicability: config.applicability,
-    bxgy: {
-      buy: {
-        quantity: 1, // Any purchase
-        value: freeGift.minSubtotalCents,
-      },
-      get: {
-        quantity: freeGift.quantity || 1,
-        discountPercentage: 100, // 100% off = free
-      },
+    // Apply discount only to the free gift product/variant
+    applicability: {
+      scope: "products",
+      productIds: [productIdToUse],
     },
   };
 
-  const result = await createBxGyDiscountCode(admin, discountInput);
+  const result = await createDiscountCode(admin, discountInput);
 
   if (result.errors || !result.discount) {
     console.error(`[Discount Service] Failed to create free gift discount:`, result.errors);

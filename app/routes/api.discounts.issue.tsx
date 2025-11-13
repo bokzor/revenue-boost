@@ -1,9 +1,9 @@
 /**
  * API Route: Discount Code Issuance
- * 
+ *
  * Dynamically issues discount codes for campaigns with tier selection.
  * Handles basic, tiered, BOGO, and free gift discounts.
- * 
+ *
  * Features:
  * - Smart tier selection based on cart subtotal
  * - Idempotency per session to prevent spam
@@ -78,7 +78,7 @@ export async function action({ request }: ActionFunctionArgs) {
     if (sessionId) {
       const cacheKey = `${sessionId}:${campaignId}`;
       const cached = sessionIssues.get(cacheKey);
-      
+
       if (cached && Date.now() - cached.timestamp < SESSION_TTL_MS) {
         console.log(`[Discount Issue] Reusing cached code for session ${sessionId}`);
         return data({
@@ -119,6 +119,12 @@ export async function action({ request }: ActionFunctionArgs) {
         { status: 400 }
       );
     }
+    // NOTE [Tiered discounts]: we select the highest eligible tier based on cartSubtotalCents.
+    // Shopify enforces each tier's minimum subtotal at checkout via minimumRequirement.
+    // This means if the cart shrinks after issuance, a higher-tier code will not qualify at checkout.
+    // TODO: Consider storefront cart listeners to downgrade/remove the code if subtotal drops
+    // below the selected tier threshold for better UX.
+
 
     // Get or create discount code via service (with tier selection)
     const result = await getCampaignDiscountCode(

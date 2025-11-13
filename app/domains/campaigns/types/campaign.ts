@@ -667,7 +667,7 @@ export const DiscountConfigSchema = z.object({
   description: z.string().optional(),
 
   // === ENHANCED FEATURES ===
-  
+
   // Applicability: Scope discount to specific products/collections
   applicability: z.object({
     scope: z.enum(["all", "products", "collections"]).default("all"),
@@ -851,9 +851,17 @@ export const CampaignCreateDataSchema = z.object({
   variantKey: z.enum(["A", "B", "C", "D"]).optional(),
   isControl: z.boolean().optional(),
 
-  // Schedule
-  startDate: z.date().optional(),
-  endDate: z.date().optional(),
+  // Schedule (coerce strings to dates for form compatibility, handle empty strings)
+  startDate: z.union([
+    z.coerce.date(),
+    z.literal(""),
+    z.undefined()
+  ]).optional().transform(val => val === "" ? undefined : val),
+  endDate: z.union([
+    z.coerce.date(),
+    z.literal(""),
+    z.undefined()
+  ]).optional().transform(val => val === "" ? undefined : val),
 });
 
 export const CampaignUpdateDataSchema = CampaignCreateDataSchema.partial();

@@ -141,6 +141,11 @@ export class ApiClient {
     success: boolean;
     leadId?: string;
     discountCode?: string | null;
+    freeGift?: {
+      variantId: string;
+      productId: string;
+      quantity: number;
+    };
     error?: string;
   }> {
     const params = new URLSearchParams({
@@ -174,6 +179,7 @@ export class ApiClient {
         success: true,
         leadId: result.leadId,
         discountCode: result.discountCode,
+        freeGift: result.freeGift,
       };
     } catch (error) {
       console.error("[Revenue Boost API] Failed to submit lead:", error);

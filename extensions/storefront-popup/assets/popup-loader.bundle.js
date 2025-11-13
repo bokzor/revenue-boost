@@ -721,7 +721,8 @@
         return {
           success: true,
           leadId: result.leadId,
-          discountCode: result.discountCode
+          discountCode: result.discountCode,
+          freeGift: result.freeGift
         };
       } catch (error) {
         console.error("[Revenue Boost API] Failed to submit lead:", error);
@@ -1052,6 +1053,49 @@
           throw new Error(result.error || "Failed to submit lead");
         }
         console.log("[PopupManager] Lead submitted successfully:", result);
+        if (result.freeGift) {
+          try {
+            console.log("[PopupManager] Adding free gift to cart:", result.freeGift);
+            const variantId = result.freeGift.variantId.split("/").pop() || result.freeGift.variantId;
+            const cartResponse = await fetch("/cart/add.js", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify({
+                items: [{
+                  id: variantId,
+                  quantity: result.freeGift.quantity
+                }]
+              })
+            });
+            if (!cartResponse.ok) {
+              console.error("[PopupManager] Failed to add free gift to cart:", await cartResponse.text());
+            } else {
+              console.log("[PopupManager] Free gift added to cart successfully");
+              document.dispatchEvent(new CustomEvent("cart:updated"));
+              document.dispatchEvent(new CustomEvent("cart.requestUpdate"));
+              if (typeof window !== "undefined") {
+                const w3 = window;
+                if (w3.Shopify?.theme?.cart) {
+                  w3.Shopify.theme.cart.getCart?.();
+                }
+                if (w3.theme?.cart) {
+                  w3.theme.cart.getCart?.();
+                }
+                fetch("/cart.js").then((res) => res.json()).then((cart) => {
+                  document.dispatchEvent(new CustomEvent("cart:refresh", { detail: cart }));
+                  const cartCount = document.querySelector(".cart-count, [data-cart-count], .cart__count");
+                  if (cartCount && cart.item_count !== void 0) {
+                    cartCount.textContent = String(cart.item_count);
+                  }
+                }).catch((err) => console.error("[PopupManager] Failed to fetch cart:", err));
+              }
+            }
+          } catch (cartError) {
+            console.error("[PopupManager] Error adding free gift to cart:", cartError);
+          }
+        }
         return result.discountCode;
       } catch (err) {
         console.error("[PopupManager] Failed to submit lead:", err);

@@ -83,6 +83,73 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api }: P
 
       console.log("[PopupManager] Lead submitted successfully:", result);
 
+      // If there's a free gift, add it to the cart
+      if (result.freeGift) {
+        try {
+          console.log("[PopupManager] Adding free gift to cart:", result.freeGift);
+
+          // Extract variant ID number from GID (e.g., "gid://shopify/ProductVariant/123" -> "123")
+          const variantId = result.freeGift.variantId.split('/').pop() || result.freeGift.variantId;
+
+          // Add to cart using Shopify's Cart API
+          const cartResponse = await fetch('/cart/add.js', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              items: [{
+                id: variantId,
+                quantity: result.freeGift.quantity,
+              }],
+            }),
+          });
+
+          if (!cartResponse.ok) {
+            console.error("[PopupManager] Failed to add free gift to cart:", await cartResponse.text());
+          } else {
+            console.log("[PopupManager] Free gift added to cart successfully");
+
+            // Trigger multiple cart update events for compatibility with different themes
+            document.dispatchEvent(new CustomEvent('cart:updated'));
+            document.dispatchEvent(new CustomEvent('cart.requestUpdate'));
+
+            // Trigger Shopify theme events
+            if (typeof window !== 'undefined') {
+              const w = window as any;
+
+              // Dawn theme and similar
+              if (w.Shopify?.theme?.cart) {
+                w.Shopify.theme.cart.getCart?.();
+              }
+
+              // Debut theme
+              if (w.theme?.cart) {
+                w.theme.cart.getCart?.();
+              }
+
+              // Fetch cart to trigger section rendering
+              fetch('/cart.js')
+                .then(res => res.json())
+                .then(cart => {
+                  // Dispatch with cart data
+                  document.dispatchEvent(new CustomEvent('cart:refresh', { detail: cart }));
+
+                  // Update cart count in header (common selector)
+                  const cartCount = document.querySelector('.cart-count, [data-cart-count], .cart__count');
+                  if (cartCount && cart.item_count !== undefined) {
+                    cartCount.textContent = String(cart.item_count);
+                  }
+                })
+                .catch(err => console.error("[PopupManager] Failed to fetch cart:", err));
+            }
+          }
+        } catch (cartError) {
+          console.error("[PopupManager] Error adding free gift to cart:", cartError);
+          // Don't fail the whole flow if cart addition fails
+        }
+      }
+
       // Return the discount code if available
       return result.discountCode;
     } catch (err) {

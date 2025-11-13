@@ -546,14 +546,39 @@ function buildItemsSelection(applicability?: DiscountCodeInput["applicability"])
   }
 
   if (applicability.scope === "products" && applicability.productIds?.length) {
-    return {
-      products: {
-        productVariantsToAdd: applicability.productIds.map(id => ({
-          id,
-          variants: { all: true }, // All variants of product
-        })),
-      },
-    };
+    // Separate product IDs from variant IDs
+    const productIds: string[] = [];
+    const variantIds: string[] = [];
+
+    applicability.productIds.forEach(id => {
+      if (id.includes('/ProductVariant/')) {
+        variantIds.push(id);
+      } else {
+        productIds.push(id);
+      }
+    });
+
+    // Build the products selection
+    const productsSelection: any = {};
+
+    // Add products (with all variants)
+    if (productIds.length > 0) {
+      productsSelection.productVariantsToAdd = productIds.map(id => ({
+        id,
+        variants: { all: true }, // All variants of product
+      }));
+    }
+
+    // Add specific variants
+    if (variantIds.length > 0) {
+      if (!productsSelection.productVariantsToAdd) {
+        productsSelection.productVariantsToAdd = [];
+      }
+      // For variant IDs, just add the variant ID string directly
+      productsSelection.productVariantsToAdd.push(...variantIds);
+    }
+
+    return { products: productsSelection };
   }
 
   if (applicability.scope === "collections" && applicability.collectionIds?.length) {
@@ -575,13 +600,30 @@ export async function createBxGyDiscountCode(
   admin: AdminApiContext,
   discountData: DiscountCodeInput & {
     bxgy: {
-      buy: { quantity: number; value?: number };
-      get: { quantity: number; discountPercentage?: number; discountAmount?: number };
+      buy: { quantity?: number; value?: number; applicability?: DiscountCodeInput["applicability"] };
+      get: { quantity: number; discountPercentage?: number; discountAmount?: number; applicability?: DiscountCodeInput["applicability"] };
     };
   }
 ): Promise<{ discount?: ShopifyDiscount; errors?: string[] }> {
   try {
     const { bxgy, applicability } = discountData;
+
+    // For BxGy, we can have different applicability for buy vs get
+    // e.g., buy any product (all), get specific free gift products
+    const buyApplicability = bxgy.buy.applicability || applicability;
+    const getApplicability = bxgy.get.applicability || applicability;
+
+    // Build customerBuys value
+    // - If quantity is set: use quantity
+    // - If value (minSubtotal) is set: use amount
+    // - If neither: don't set value (any purchase qualifies)
+    const customerBuysValue: any = {};
+    if (bxgy.buy.quantity) {
+      customerBuysValue.quantity = bxgy.buy.quantity.toString();
+    }
+    if (bxgy.buy.value) {
+      customerBuysValue.amount = (bxgy.buy.value / 100).toString(); // Convert cents to dollars
+    }
 
     const input = {
       title: discountData.title,
@@ -593,10 +635,8 @@ export async function createBxGyDiscountCode(
 
       // Customer buys condition
       customerBuys: {
-        value: {
-          quantity: bxgy.buy.quantity.toString(),
-        },
-        items: buildItemsSelection(applicability),
+        ...(Object.keys(customerBuysValue).length > 0 && { value: customerBuysValue }),
+        items: buildItemsSelection(buyApplicability),
       },
 
       // Customer gets benefit
@@ -611,11 +651,13 @@ export async function createBxGyDiscountCode(
               : { percentage: 1.0 }, // 100% off (free)
           },
         },
-        items: buildItemsSelection(applicability),
+        items: buildItemsSelection(getApplicability),
       },
 
       customerSelection: { all: true },
     };
+
+    console.log("[Shopify Discount] Creating BxGy discount with input:", JSON.stringify(input, null, 2));
 
     const response = await admin.graphql(DISCOUNT_CODE_BXGY_CREATE_MUTATION, {
       variables: {
@@ -625,11 +667,23 @@ export async function createBxGyDiscountCode(
 
     const data: any = await response.json();
 
+    // Log the full response for debugging
+    console.log("[Shopify Discount] BxGy GraphQL Response:", JSON.stringify(data, null, 2));
+
     if (data.data?.discountCodeBxgyCreate?.userErrors?.length > 0) {
+      console.error("[Shopify Discount] BxGy User Errors:", data.data.discountCodeBxgyCreate.userErrors);
       return {
         errors: data.data.discountCodeBxgyCreate.userErrors.map(
           (error: any) => error.message
         ),
+      };
+    }
+
+    // Check for GraphQL errors
+    if (data.errors) {
+      console.error("[Shopify Discount] BxGy GraphQL Errors:", data.errors);
+      return {
+        errors: data.errors.map((error: any) => error.message),
       };
     }
 
@@ -647,8 +701,9 @@ export async function createBxGyDiscountCode(
       };
     }
 
+    console.error("[Shopify Discount] BxGy No discount node returned. Full response:", JSON.stringify(data, null, 2));
     return {
-      errors: ["Failed to create BxGy discount code"],
+      errors: ["Failed to create BxGy discount code - no discount node returned"],
     };
   } catch (error) {
     console.error("[Shopify Discount] Error creating BxGy discount:", error);

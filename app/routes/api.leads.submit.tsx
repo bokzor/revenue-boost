@@ -250,6 +250,12 @@ export async function action({ request }: ActionFunctionArgs) {
       discountConfig.requireEmailMatch = true;
     }
 
+    // NOTE [Tiered discounts]: lead-based issuance does not include cart subtotal.
+    // If tiers are configured, selection may default to the first tier.
+    // Prefer issuing tiered discounts via /api/discounts.issue with cartSubtotalCents close to checkout/cart.
+    // TODO: When discountConfig.tiers?.length, consider deferring issuance to the cart-aware flow instead
+    // of issuing here, to avoid UX confusion when cart value changes after code generation.
+
     // Get or create discount code via Shopify Admin API
     const discountResult = await getCampaignDiscountCode(
       admin,
@@ -318,6 +324,18 @@ export async function action({ request }: ActionFunctionArgs) {
     const deliveryMode = discountConfig.deliveryMode || "show_code_fallback";
     const showCode = shouldShowDiscountCode(deliveryMode);
 
+    // Check if this is a free gift campaign and include product details
+    const freeGift = discountConfig.freeGift;
+    const freeGiftData = freeGift && (freeGift.variantId || freeGift.productId) ? {
+      variantId: freeGift.variantId || '',
+      productId: freeGift.productId || '',
+      quantity: freeGift.quantity || 1,
+    } : undefined;
+
+    if (freeGiftData) {
+      console.log('[Lead Submission] Free gift data:', freeGiftData);
+    }
+
     console.log(
       `[Lead Submission] ✅ Created lead ${lead.id} for campaign ${campaign.id} with discount code: ${discountResult.discountCode}`
     );
@@ -331,6 +349,7 @@ export async function action({ request }: ActionFunctionArgs) {
         isNewCustomer: customerResult.isNewCustomer,
         deliveryMode,
         message: getSuccessMessage(deliveryMode),
+        freeGift: freeGiftData, // Include free gift details for cart addition
       },
       {
         status: 200,
