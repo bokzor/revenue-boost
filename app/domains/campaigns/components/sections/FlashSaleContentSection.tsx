@@ -113,7 +113,7 @@ export function FlashSaleContentSection({
   return (
     <>
       {/* ========== CONTENT SECTION ========== */}
-      <Card>
+      <Card data-test-id="flash-sale-admin-form">
         <BlockStack gap="400">
           <BlockStack gap="200">
             <Text as="h3" variant="headingMd">

@@ -609,6 +609,10 @@
   };
 
   // extensions/storefront-src/core/api.ts
+  var SESSION_START_KEY = "revenue_boost_session_start_time";
+  var PAGE_VIEWS_KEY = "revenue_boost_page_views";
+  var PRODUCT_VIEWS_KEY = "revenue_boost_product_view_count";
+  var ADDED_TO_CART_SESSION_KEY = "revenue_boost_added_to_cart";
   var ApiClient = class {
     constructor(config) {
       __publicField(this, "config");
@@ -657,14 +661,55 @@
       }
     }
     buildStorefrontContext(sessionId, visitorId) {
+      const pageType = this.detectPageType();
       const context = {
         sessionId,
         pageUrl: window.location.pathname,
-        pageType: this.detectPageType(),
+        pageType,
         deviceType: this.detectDeviceType()
       };
       if (visitorId) {
         context.visitorId = visitorId;
+      }
+      try {
+        const ls = window.localStorage;
+        const ss = window.sessionStorage;
+        const now = Date.now();
+        const visitCountRaw = ls.getItem("revenue_boost_visit_count");
+        const visitCount = parseInt(visitCountRaw || "1", 10);
+        if (!Number.isNaN(visitCount)) {
+          context.visitCount = String(visitCount);
+          context.isReturningVisitor = String(visitCount > 1);
+        }
+        let startTime = parseInt(ss.getItem(SESSION_START_KEY) || "", 10);
+        if (!startTime || Number.isNaN(startTime)) {
+          startTime = now;
+          ss.setItem(SESSION_START_KEY, String(startTime));
+        }
+        const timeOnSiteSeconds = Math.floor((now - startTime) / 1e3);
+        if (timeOnSiteSeconds > 0) {
+          context.timeOnSite = String(timeOnSiteSeconds);
+        }
+        let pageViews = parseInt(ss.getItem(PAGE_VIEWS_KEY) || "0", 10);
+        pageViews += 1;
+        ss.setItem(PAGE_VIEWS_KEY, String(pageViews));
+        context.pageViews = String(pageViews);
+        if (pageType) {
+          context.currentPageType = pageType;
+        }
+        let productViewCount = parseInt(ss.getItem(PRODUCT_VIEWS_KEY) || "0", 10);
+        if (pageType === "product") {
+          productViewCount += 1;
+          ss.setItem(PRODUCT_VIEWS_KEY, String(productViewCount));
+        }
+        if (productViewCount > 0) {
+          context.productViewCount = String(productViewCount);
+        }
+        const addedToCartFlag = ss.getItem(ADDED_TO_CART_SESSION_KEY);
+        if (addedToCartFlag === "true") {
+          context.addedToCartInSession = "true";
+        }
+      } catch {
       }
       const w3 = window;
       if (typeof w3.Shopify !== "undefined") {
@@ -1773,6 +1818,10 @@
   }
   async function trackAddToCart(api, shopDomain, productId) {
     try {
+      try {
+        window.sessionStorage.setItem("revenue_boost_added_to_cart", "true");
+      } catch {
+      }
       await api.trackSocialProofEvent({
         eventType: "add_to_cart",
         productId,
