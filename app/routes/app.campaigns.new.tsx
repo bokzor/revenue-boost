@@ -14,6 +14,9 @@ import { authenticate } from "~/shopify.server";
 import { getStoreId } from "~/lib/auth-helpers.server";
 import { CampaignFormWithABTesting } from "~/domains/campaigns/components/CampaignFormWithABTesting";
 import type { CampaignFormData } from "~/shared/hooks/useWizardState";
+import { useState } from "react";
+import { Modal } from "@shopify/polaris";
+
 
 // ============================================================================
 // LOADER - Fetch necessary data for form
@@ -60,6 +63,11 @@ export async function action({ request }: ActionFunctionArgs) {
 export default function NewCampaign() {
   const loaderData = useLoaderData<typeof loader>();
   const navigate = useNavigate();
+  // Post-create activation modal state (single campaign)
+  const [activatePromptOpen, setActivatePromptOpen] = useState(false);
+  const [createdCampaignId, setCreatedCampaignId] = useState<string | null>(null);
+  const [activating, setActivating] = useState(false);
+
 
   const { storeId, shopDomain } = loaderData;
 
@@ -150,6 +158,10 @@ export default function NewCampaign() {
         await Promise.all(campaignPromises);
 
         // Redirect to experiment detail page
+        const shouldActivate = window.confirm("Activate all experiment variants now?");
+        if (shouldActivate) {
+          await fetch(`/api/experiments/${experiment.id}/activate-all`, { method: "POST" });
+        }
         navigate(`/app/experiments/${experiment.id}`);
       } else {
         // Single campaign
@@ -188,7 +200,13 @@ export default function NewCampaign() {
         const body = await response.json();
         const campaign = body?.data?.campaign ?? body?.data;
 
-        // Redirect to campaign detail page
+        // Post-create: if still DRAFT, prompt to activate via Polaris modal
+        if (campaign?.status === "DRAFT") {
+          setCreatedCampaignId(campaign.id);
+          setActivatePromptOpen(true);
+          return;
+        }
+        // Otherwise navigate to detail
         navigate(`/app/campaigns/${campaign.id}`);
       }
     } catch (error) {
@@ -202,12 +220,55 @@ export default function NewCampaign() {
   };
 
   return (
-    <CampaignFormWithABTesting
-      storeId={storeId}
-      shopDomain={shopDomain}
-      onSave={handleSave}
-      onCancel={handleCancel}
-    />
+    <>
+      <CampaignFormWithABTesting
+        storeId={storeId}
+        shopDomain={shopDomain}
+        onSave={handleSave}
+        onCancel={handleCancel}
+      />
+
+      <Modal
+        open={activatePromptOpen}
+        onClose={() => {
+          setActivatePromptOpen(false);
+          if (createdCampaignId) navigate(`/app/campaigns/${createdCampaignId}`);
+        }}
+        title="Activate Campaign"
+        primaryAction={{
+          content: "Activate now",
+          loading: activating,
+          onAction: async () => {
+            if (!createdCampaignId) return;
+            try {
+              setActivating(true);
+              await fetch(`/api/campaigns/${createdCampaignId}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ status: "ACTIVE" }),
+              });
+            } catch (e) {
+              // no-op, navigate regardless
+            } finally {
+              setActivating(false);
+              setActivatePromptOpen(false);
+              navigate(`/app/campaigns/${createdCampaignId}`);
+            }
+          },
+        }}
+        secondaryActions={[
+          {
+            content: "Not now",
+            onAction: () => {
+              setActivatePromptOpen(false);
+              if (createdCampaignId) navigate(`/app/campaigns/${createdCampaignId}`);
+            },
+          },
+        ]}
+      >
+        <div>This campaign is still a draft. Activate it now</div>
+      </Modal>
+    </>
   );
 }
 

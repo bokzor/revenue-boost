@@ -331,13 +331,25 @@ export async function createDiscountCode(
       },
     });
 
-    const data = await response.json();
+    const data: any = await response.json();
+
+    // Log full response for debugging
+    console.log("[Shopify Discount] GraphQL Response:", JSON.stringify(data, null, 2));
 
     if (data.data?.discountCodeBasicCreate?.userErrors?.length > 0) {
+      console.error("[Shopify Discount] User errors:", data.data.discountCodeBasicCreate.userErrors);
       return {
         errors: data.data.discountCodeBasicCreate.userErrors.map(
           (error: any) => error.message
         ),
+      };
+    }
+
+    // Check for GraphQL errors
+    if (data.errors) {
+      console.error("[Shopify Discount] GraphQL errors:", data.errors);
+      return {
+        errors: data.errors.map((error: any) => error.message),
       };
     }
 
@@ -355,6 +367,7 @@ export async function createDiscountCode(
       };
     }
 
+    console.error("[Shopify Discount] No discount node in response");
     return {
       errors: ["Failed to create discount code"],
     };
@@ -425,13 +438,25 @@ async function createFreeShippingDiscount(
       }
     );
 
-    const data = await response.json();
+    const data: any = await response.json();
+
+    // Log full response for debugging
+    console.log("[Shopify Discount] Free Shipping GraphQL Response:", JSON.stringify(data, null, 2));
 
     if (data.data?.discountCodeFreeShippingCreate?.userErrors?.length > 0) {
+      console.error("[Shopify Discount] Free shipping user errors:", data.data.discountCodeFreeShippingCreate.userErrors);
       return {
         errors: data.data.discountCodeFreeShippingCreate.userErrors.map(
           (error: any) => error.message
         ),
+      };
+    }
+
+    // Check for GraphQL errors
+    if (data.errors) {
+      console.error("[Shopify Discount] Free shipping GraphQL errors:", data.errors);
+      return {
+        errors: data.errors.map((error: any) => error.message),
       };
     }
 
@@ -450,6 +475,7 @@ async function createFreeShippingDiscount(
       };
     }
 
+    console.error("[Shopify Discount] No discount node in free shipping response");
     return {
       errors: ["Failed to create free shipping discount code"],
     };
@@ -482,7 +508,7 @@ export async function getDiscountCode(
       },
     });
 
-    const data = await response.json();
+    const data: any = await response.json();
     const discountNode = data.data?.codeDiscountNode;
 
     if (discountNode) {
@@ -597,7 +623,7 @@ export async function createBxGyDiscountCode(
       },
     });
 
-    const data = await response.json();
+    const data: any = await response.json();
 
     if (data.data?.discountCodeBxgyCreate?.userErrors?.length > 0) {
       return {

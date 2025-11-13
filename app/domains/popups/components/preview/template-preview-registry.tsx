@@ -214,7 +214,7 @@ export const TEMPLATE_PREVIEW_REGISTRY: Record<string, TemplatePreviewEntry> = {
 
       // All common config (colors, typography, layout)
       ...buildCommonConfig(mergedConfig, designConfig),
-    }),
+    }) as unknown as CountdownTimerConfig,
   },
 
   [TemplateTypeEnum.SOCIAL_PROOF]: {
@@ -249,7 +249,7 @@ export const TEMPLATE_PREVIEW_REGISTRY: Record<string, TemplatePreviewEntry> = {
 
       // All common config (colors, typography, layout)
       ...buildCommonConfig(mergedConfig, designConfig),
-    }),
+    }) as unknown as SocialProofConfig,
   },
 
   [TemplateTypeEnum.SPIN_TO_WIN]: {
@@ -281,7 +281,7 @@ export const TEMPLATE_PREVIEW_REGISTRY: Record<string, TemplatePreviewEntry> = {
 
       // All common config (colors, typography, layout)
       ...buildCommonConfig(mergedConfig, designConfig),
-    }),
+    }) as unknown as SpinToWinConfig,
   },
 
   [TemplateTypeEnum.SCRATCH_CARD]: {
@@ -309,7 +309,7 @@ export const TEMPLATE_PREVIEW_REGISTRY: Record<string, TemplatePreviewEntry> = {
 
       // All common config (colors, typography, layout)
       ...buildCommonConfig(mergedConfig, designConfig),
-    }),
+    }) as unknown as ScratchCardConfig,
   },
 };
 
@@ -347,7 +347,7 @@ TEMPLATE_PREVIEW_REGISTRY[TemplateTypeEnum.PRODUCT_UPSELL] = {
 
     // All common config (colors, typography, layout)
     ...buildCommonConfig(mergedConfig, designConfig),
-  }),
+  }) as unknown as ProductUpsellConfig,
 };
 
 TEMPLATE_PREVIEW_REGISTRY[TemplateTypeEnum.ANNOUNCEMENT] = {
@@ -372,7 +372,7 @@ TEMPLATE_PREVIEW_REGISTRY[TemplateTypeEnum.ANNOUNCEMENT] = {
 
     // All common config (colors, typography, layout)
     ...buildCommonConfig(mergedConfig, designConfig),
-  }),
+  }) as unknown as AnnouncementConfig,
 };
 
 TEMPLATE_PREVIEW_REGISTRY[TemplateTypeEnum.FREE_SHIPPING] = {
@@ -400,7 +400,7 @@ TEMPLATE_PREVIEW_REGISTRY[TemplateTypeEnum.FREE_SHIPPING] = {
 
     // All common config (colors, typography, layout)
     ...buildCommonConfig(mergedConfig, designConfig),
-  }),
+  }) as unknown as FreeShippingConfig,
 };
 
 TEMPLATE_PREVIEW_REGISTRY[TemplateTypeEnum.CART_ABANDONMENT] = {
@@ -431,7 +431,7 @@ TEMPLATE_PREVIEW_REGISTRY[TemplateTypeEnum.CART_ABANDONMENT] = {
 
     // All common config (colors, typography, layout)
     ...buildCommonConfig(mergedConfig, designConfig),
-  }),
+  }) as unknown as CartAbandonmentConfig,
 };
 
 /**

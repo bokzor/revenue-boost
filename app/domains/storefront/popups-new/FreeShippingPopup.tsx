@@ -147,7 +147,9 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
           window.fetch = originalFetch;
           w.__RB_FETCH_INTERCEPTED = false;
         }
-      } catch {}
+      } catch (error) {
+        console.error('[FreeShippingPopup] Failed to restore fetch:', error);
+      }
     };
   }, [isVisible]);
 
@@ -159,7 +161,7 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
         : (typeof config.currentCartTotal === 'number' ? config.currentCartTotal : undefined);
       if (typeof next === 'number') setCartTotal(next);
     }
-  }, [propCartTotal, config.currentCartTotal]);
+  }, [propCartTotal, config.currentCartTotal, config]);
 
 
   const getMessage = () => {

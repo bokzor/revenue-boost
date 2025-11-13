@@ -1,14 +1,21 @@
 /**
  * Design Configuration Section
  *
- * Handles all design and color settings for campaigns.
- * This component works with the DesignConfig type and is reusable across all templates.
+ * Handles all design and color settings for campaigns with template-aware control gating.
+ *
+ * Architecture:
+ * - Uses a superset DesignConfig schema that works for all templates
+ * - Gates UI controls based on template capabilities (design-capabilities.ts)
+ * - All tokens are persisted; unused ones are ignored by templates
+ * - Switching templates preserves design values
  */
 
-import { Card, BlockStack, Text, Divider, FormLayout, Select, TextField, Button, InlineStack } from "@shopify/polaris";
+import { Card, BlockStack, Text, Divider, Select, TextField, Banner } from "@shopify/polaris";
 import { ColorField, FormGrid } from "../form";
-import type { DesignConfig } from "~/domains/campaigns/types/campaign";
+import type { DesignConfig, TemplateType } from "~/domains/campaigns/types/campaign";
 import { NEWSLETTER_THEMES, themeColorsToDesignConfig, type NewsletterThemeKey } from "~/config/color-presets";
+import { ThemePresetSelector } from "../shared/ThemePresetSelector";
+import { getDesignCapabilities } from "~/domains/templates/registry/design-capabilities";
 import { useState } from "react";
 
 export interface DesignConfigSectionProps {
@@ -25,6 +32,31 @@ export function DesignConfigSection({
   templateType,
 }: DesignConfigSectionProps) {
   const [customImageUrl, setCustomImageUrl] = useState(design.imageUrl || "");
+
+  // Resolve design capabilities for this template (gates which controls to show)
+  const caps = templateType ? getDesignCapabilities(templateType as TemplateType) : undefined;
+
+  // Position/Size filtering based on capabilities
+  const ALL_POSITIONS = ["center", "top", "bottom", "left", "right"] as const;
+  const ALL_SIZES = ["small", "medium", "large"] as const;
+
+  const allowedPositions = caps?.supportsPosition ?? ALL_POSITIONS;
+  const allowedSizes = caps?.supportsSize ?? ALL_SIZES;
+
+  // Build filtered option lists
+  const positionOptions = [
+    { label: "Center", value: "center" },
+    { label: "Top", value: "top" },
+    { label: "Bottom", value: "bottom" },
+    { label: "Left", value: "left" },
+    { label: "Right", value: "right" },
+  ].filter(opt => allowedPositions.includes(opt.value as typeof allowedPositions[number]));
+
+  const sizeOptions = [
+    { label: "Small", value: "small" },
+    { label: "Medium", value: "medium" },
+    { label: "Large", value: "large" },
+  ].filter(opt => allowedSizes.includes(opt.value as typeof allowedSizes[number]));
 
   const updateField = <K extends keyof DesignConfig>(
     field: K,
@@ -83,57 +115,51 @@ export function DesignConfigSection({
         <Text as="p" tone="subdued">
           Customize the visual appearance of your campaign
         </Text>
+
+        {/* Info banner about gated controls */}
+        {templateType && caps && (
+          <Banner tone="info">
+            <Text as="p" variant="bodySm">
+              Some controls are hidden because this template doesn't use them. Your design settings are preserved and will reappear if you switch templates.
+            </Text>
+          </Banner>
+        )}
+
         <Divider />
 
-        {/* Theme & Layout */}
-        <FormGrid columns={3}>
-          <Select
-            label="Theme"
-            value={design.theme || "modern"}
-            options={[
-              { label: "Modern - Clean black & white", value: "modern" },
-              { label: "Minimal - Ultra-light, subtle accents", value: "minimal" },
-              { label: "Elegant - Warm yellow tones", value: "elegant" },
-              { label: "Bold - Vibrant gradient", value: "bold" },
-              { label: "Glass - Glassmorphism with blur", value: "glass" },
-              { label: "Dark - Dark mode optimized", value: "dark" },
-              { label: "Gradient - Purple gradient background", value: "gradient" },
-              { label: "Luxury - Gold on black, premium feel", value: "luxury" },
-              { label: "Neon - Cyberpunk glow effects", value: "neon" },
-              { label: "Ocean - Fresh blue/teal palette", value: "ocean" },
-            ]}
-            onChange={(value) => handleThemeChange(value as NewsletterThemeKey)}
-            helpText="Select a theme to automatically apply colors"
-          />
+        {/* Theme Presets (Swatches) */}
+        <ThemePresetSelector
+          title="Theme Presets"
+          helpText="Theme presets apply color tokens universally. Gradient themes are supported. Fine-tune individual colors below."
+          selected={(design.theme as NewsletterThemeKey) || "modern"}
+          onSelect={handleThemeChange}
+        />
 
+        <Divider />
+
+        {/* Position & Size */}
+        <FormGrid columns={2}>
           <Select
             label="Position"
             value={design.position || "center"}
-            options={[
-              { label: "Center", value: "center" },
-              { label: "Top", value: "top" },
-              { label: "Bottom", value: "bottom" },
-              { label: "Left", value: "left" },
-              { label: "Right", value: "right" },
-            ]}
+            options={positionOptions}
             onChange={(value) => updateField("position", value as DesignConfig["position"])}
+            helpText={caps?.supportsPosition ? "Position options filtered for this template" : undefined}
           />
 
           <Select
             label="Size"
             value={design.size || "medium"}
-            options={[
-              { label: "Small", value: "small" },
-              { label: "Medium", value: "medium" },
-              { label: "Large", value: "large" },
-            ]}
+            options={sizeOptions}
             onChange={(value) => updateField("size", value as DesignConfig["size"])}
+            helpText={caps?.supportsSize ? "Size options filtered for this template" : undefined}
           />
         </FormGrid>
 
         <Divider />
 
-        {/* Image Configuration */}
+        {/* Image Configuration - Only show if template supports images */}
+        {(caps?.usesImage !== false) && (
         <BlockStack gap="300">
           <Text as="h4" variant="headingSm">
             Background Image
@@ -220,10 +246,11 @@ export function DesignConfigSection({
             </div>
           )}
         </BlockStack>
+        )}
 
-        <Divider />
+        {(caps?.usesImage !== false) && <Divider />}
 
-        {/* Main Colors */}
+        {/* Main Colors - Always shown */}
         <BlockStack gap="300">
           <Text as="h4" variant="headingSm">
             Main Colors
@@ -258,30 +285,36 @@ export function DesignConfigSection({
             />
           </FormGrid>
 
+          {/* Accent and Success - Conditionally shown */}
           <FormGrid columns={2}>
-            <ColorField
-              label="Accent Color"
-              name="design.accentColor"
-              value={design.accentColor || "#007BFF"}
-              error={errors?.accentColor}
-              helpText="Accent and highlight color"
-              onChange={(value) => updateField("accentColor", value)}
-            />
+            {(caps?.usesAccent !== false) && (
+              <ColorField
+                label="Accent Color"
+                name="design.accentColor"
+                value={design.accentColor || "#007BFF"}
+                error={errors?.accentColor}
+                helpText="Accent and highlight color"
+                onChange={(value) => updateField("accentColor", value)}
+              />
+            )}
 
-            <ColorField
-              label="Success Color"
-              name="design.successColor"
-              value={design.successColor || "#10b981"}
-              error={errors?.successColor}
-              helpText="Success state color"
-              onChange={(value) => updateField("successColor", value)}
-            />
+            {(caps?.usesSuccessWarning !== false) && (
+              <ColorField
+                label="Success Color"
+                name="design.successColor"
+                value={design.successColor || "#10b981"}
+                error={errors?.successColor}
+                helpText="Success state color"
+                onChange={(value) => updateField("successColor", value)}
+              />
+            )}
           </FormGrid>
         </BlockStack>
 
         <Divider />
 
-        {/* Button Colors */}
+        {/* Button Colors - Only show if template uses buttons */}
+        {(caps?.usesButtons !== false) && (
         <BlockStack gap="300">
           <Text as="h4" variant="headingSm">
             Button Colors
@@ -307,10 +340,12 @@ export function DesignConfigSection({
             />
           </FormGrid>
         </BlockStack>
+        )}
 
-        <Divider />
+        {(caps?.usesButtons !== false) && <Divider />}
 
-        {/* Input Field Colors */}
+        {/* Input Field Colors - Only show if template uses inputs */}
+        {(caps?.usesInputs !== false) && (
         <BlockStack gap="300">
           <Text as="h4" variant="headingSm">
             Input Field Colors
@@ -356,10 +391,12 @@ export function DesignConfigSection({
             />
           </FormGrid>
         </BlockStack>
+        )}
 
-        <Divider />
+        {(caps?.usesInputs !== false) && <Divider />}
 
-        {/* Overlay Colors */}
+        {/* Overlay Colors - Only show if template uses overlay */}
+        {(caps?.usesOverlay !== false) && (
         <BlockStack gap="300">
           <Text as="h4" variant="headingSm">
             Overlay Settings
@@ -395,6 +432,7 @@ export function DesignConfigSection({
             />
           </FormGrid>
         </BlockStack>
+        )}
       </BlockStack>
     </Card>
   );

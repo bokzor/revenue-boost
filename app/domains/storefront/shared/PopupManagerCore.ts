@@ -213,7 +213,13 @@ export class PopupManagerCore {
     const triggerConfig = extractTriggerConfig(campaign);
     this.setupTriggerType(campaign, triggerConfig as unknown as LegacyTriggerConfig, removers);
 
-    this.triggersCleanup = () => removers.forEach(fn => { try { fn(); } catch {} });
+    this.triggersCleanup = () => removers.forEach(fn => {
+      try {
+        fn();
+      } catch (error) {
+        console.error('[PopupManagerCore] Failed to cleanup trigger:', error);
+      }
+    });
     return this.triggersCleanup;
   }
 

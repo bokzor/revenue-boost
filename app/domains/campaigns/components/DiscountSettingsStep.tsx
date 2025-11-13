@@ -5,7 +5,7 @@
  * Supports all discount types, delivery modes, and configurations
  */
 
-import React from "react";
+
 import {
   Card,
   Text,

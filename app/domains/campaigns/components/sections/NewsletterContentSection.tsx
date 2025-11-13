@@ -18,14 +18,11 @@ import {
   Collapsible,
   Button,
   InlineStack,
-  Icon,
-  Box,
 } from "@shopify/polaris";
 import { ChevronDownIcon, ChevronUpIcon } from "@shopify/polaris-icons";
 import { TextField, CheckboxField, FormGrid, ColorField } from "../form";
 import { GenericDiscountComponent } from "../form/GenericDiscountComponent";
-import type { NewsletterContentSchema } from "../../types/campaign";
-import type { DesignConfig } from "../../types/campaign";
+import type { NewsletterContentSchema, DesignConfig } from "../../types/campaign";
 import type { DiscountConfig } from "~/domains/popups/services/discounts/discount.server";
 import { z } from "zod";
 import { useFieldUpdater } from "~/shared/hooks/useFieldUpdater";

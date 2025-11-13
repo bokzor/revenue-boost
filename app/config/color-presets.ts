@@ -4,7 +4,7 @@
  * Predefined color schemes for different template types
  */
 
-import type { ColorPreset, ColorTheme } from "~/domains/popups/color-customization.types";
+import type { ColorPreset, ColorTheme, ExtendedColorConfig } from "~/domains/popups/color-customization.types";
 
 /**
  * Default color presets
@@ -706,15 +706,12 @@ function getInputTextColor(secondary: string, themeText: string): string {
  * - imageBg → imageBgColor
  * - success → successColor
  */
-export function themeColorsToDesignConfig(themeColors: ThemeColors): any {
+export function themeColorsToDesignConfig(themeColors: ThemeColors): ExtendedColorConfig {
   return {
     // Main colors
     backgroundColor: themeColors.background,
     textColor: themeColors.text,
-    descriptionColor: themeColors.descColor,
     accentColor: themeColors.primary,
-
-    // Button colors
     buttonColor: themeColors.ctaBg || themeColors.primary,
     buttonTextColor: themeColors.ctaText || "#FFFFFF",
 
@@ -723,23 +720,11 @@ export function themeColorsToDesignConfig(themeColors: ThemeColors): any {
     inputTextColor: getInputTextColor(themeColors.secondary, themeColors.text),
     inputBorderColor: themeColors.inputBorder || themeColors.border,
 
-    // Image colors
-    imageBgColor: themeColors.imageBg,
-
     // State colors
     successColor: themeColors.success,
 
-    // Typography
-    fontFamily: themeColors.fontFamily,
-    titleFontSize: themeColors.titleFontSize,
-    titleFontWeight: themeColors.titleFontWeight,
-    titleTextShadow: themeColors.titleTextShadow,
-    descriptionFontSize: themeColors.descriptionFontSize,
-    descriptionFontWeight: themeColors.descriptionFontWeight,
-
-    // Input styling
-    inputBackdropFilter: themeColors.inputBackdropFilter,
-    inputBoxShadow: themeColors.inputBoxShadow,
+    // Overlay
+    overlayOpacity: 0.5,
   };
 }
 

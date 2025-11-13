@@ -42,7 +42,7 @@ export interface NewsletterPopupProps {
   config: NewsletterConfig;
   isVisible: boolean;
   onClose: () => void;
-  onSubmit?: (data: NewsletterFormData) => Promise<void>;
+  onSubmit?: (data: NewsletterFormData) => Promise<string | undefined>;
 }
 
 export interface NewsletterFormData {
@@ -74,7 +74,14 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
   const title = config.headline || 'Join Our Newsletter';
   const description = config.subheadline || 'Subscribe to get special offers, free giveaways, and exclusive deals.';
   const buttonText = config.submitButtonText || config.buttonText || 'Subscribe';
-  const successMessage = config.successMessage || 'Thank you for subscribing!';
+  const deliveryMode = config.discount?.deliveryMode || 'show_code_fallback';
+  const successMessage =
+    config.successMessage ??
+    (deliveryMode === 'auto_apply_only'
+      ? 'Thanks for subscribing! Your discount will be automatically applied when you checkout.'
+      : deliveryMode === 'show_in_popup_authorized_only'
+      ? 'Thanks for subscribing! Your discount code is authorized for your email address only.'
+      : 'Thanks for subscribing! Your discount code is ready to use.');
   const discountCode = config.discount?.enabled ? config.discount.code : undefined;
   const showGdprCheckbox = config.consentFieldEnabled ?? false;
   const gdprLabel = config.consentFieldText || 'I agree to receive marketing emails and accept the privacy policy';
@@ -136,11 +143,12 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
         await new Promise(resolve => setTimeout(resolve, 1500));
         setIsSubmitted(true);
       } else if (onSubmit) {
-        await onSubmit({
+        const code = await onSubmit({
           email,
           name: collectName ? name : undefined,
           gdprConsent,
         });
+        if (code) setGeneratedDiscountCode(code);
         setIsSubmitted(true);
       } else {
         setIsSubmitted(true);
@@ -670,10 +678,10 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
                     </svg>
                   </div>
                   <h3 className="email-popup-success-message">{successMessage}</h3>
-                  {discountCode && (
+                  {(generatedDiscountCode || discountCode) && (
                     <div className="email-popup-discount">
                       <p className="email-popup-discount-label">Your discount code:</p>
-                      <p className="email-popup-discount-code">{discountCode}</p>
+                      <p className="email-popup-discount-code">{generatedDiscountCode || discountCode}</p>
                     </div>
                   )}
                 </div>

@@ -75,34 +75,70 @@ export function ProductPicker({
   const openPicker = useCallback(async () => {
     setIsLoading(true);
     try {
-      // Use App Bridge resource picker
-      // Note: This uses the new App Bridge intents API for resource selection
-      const resource = mode === "product" || mode === "variant" ? "Product" : "Collection";
-      
-      // Invoke the picker intent
-      const intentOptions: Record<string, any> = {
-        multiple: selectionType === "multiple",
-      };
-      if (selectedIds.length > 0) {
-        intentOptions.value = selectionType === "single" ? selectedIds[0] : selectedIds;
-      }
-      const result = await shopify.intents.invoke?.("select:shopify/" + resource, intentOptions);
+      // Use App Home Resource Picker API (not intents) for selecting Shopify resources
+      const type = mode === "product" ? "product" : mode === "collection" ? "collection" : "variant";
 
-      if (result && Array.isArray(result)) {
-        const newSelections: ProductPickerSelection[] = result.map((item: any) => ({
-          id: item.id,
-          title: item.title,
-          handle: item.handle,
-          images: item.images?.edges?.map((edge: any) => ({
-            originalSrc: edge.node.originalSrc || edge.node.url,
-            altText: edge.node.altText,
-          })),
-          variants: item.variants?.edges?.map((edge: any) => ({
-            id: edge.node.id,
-            title: edge.node.title,
-            price: edge.node.price,
-          })),
-        }));
+      // Prepare preselected ids if provided
+      const selectionIds = selectedIds.length > 0 ? selectedIds.map((id) => ({ id })) : undefined;
+
+      const selected = await shopify.resourcePicker({
+        type,
+        multiple: selectionType === "multiple",
+        ...(selectionIds ? { selectionIds } : {}),
+      });
+
+      if (selected && Array.isArray(selected)) {
+        const newSelections: ProductPickerSelection[] = (selected as unknown as Array<Record<string, unknown>>).map((item) => {
+          const base: ProductPickerSelection = {
+            id: item.id as string,
+            title: (item.title as string) || (item.displayName as string) || (item.handle as string) || "Untitled",
+            handle: item.handle as string,
+          };
+
+          // Normalize images (supports Resource Picker payload or GraphQL edges)
+          const images = Array.isArray(item.images)
+            ? (item.images as Array<Record<string, unknown>>).map((img) => ({
+                originalSrc: (img.originalSrc as string) || (img.url as string),
+                altText: img.altText as string,
+              }))
+            : item.image
+            ? [
+                {
+                  originalSrc: ((item.image as Record<string, unknown>).originalSrc as string) || ((item.image as Record<string, unknown>).url as string),
+                  altText: (item.image as Record<string, unknown>).altText as string,
+                },
+              ]
+            : (item.images as Record<string, unknown>)?.edges
+            ? ((item.images as Record<string, unknown>).edges as Array<Record<string, unknown>>).map((edge) => ({
+                originalSrc: ((edge.node as Record<string, unknown>).originalSrc as string) || ((edge.node as Record<string, unknown>).url as string),
+                altText: (edge.node as Record<string, unknown>).altText as string,
+              }))
+            : undefined;
+
+          // Normalize variants (supports Resource Picker payload or GraphQL edges)
+          const variants = Array.isArray(item.variants)
+            ? (item.variants as Array<Record<string, unknown>>)
+                .filter(Boolean)
+                .map((v) => ({
+                  id: v.id as string,
+                  title: (v.title as string) || (v.displayName as string),
+                  // Price in Resource Picker is Money (string); fallback to nested forms if present
+                  price: typeof v.price === "string" ? v.price : ((v.price as Record<string, unknown>)?.amount as string) || (v.price as string),
+                }))
+            : (item.variants as Record<string, unknown>)?.edges
+            ? ((item.variants as Record<string, unknown>).edges as Array<Record<string, unknown>>).map((edge) => ({
+                id: (edge.node as Record<string, unknown>).id as string,
+                title: (edge.node as Record<string, unknown>).title as string,
+                price: (edge.node as Record<string, unknown>).price as string,
+              }))
+            : undefined;
+
+          return {
+            ...base,
+            ...(images ? { images } : {}),
+            ...(variants ? { variants } : {}),
+          };
+        });
 
         setSelections(newSelections);
         onSelect(newSelections);

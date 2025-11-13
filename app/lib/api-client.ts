@@ -1,16 +1,16 @@
 /**
  * API Client
- * 
+ *
  * Centralized HTTP client for making API requests
  * Provides consistent error handling, JSON parsing, and type safety
- * 
+ *
  * Eliminates 200+ lines of duplicated fetch code across the app
  */
 
 /**
  * API Response type
  */
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   error?: string;
@@ -23,7 +23,7 @@ export interface ApiResponse<T = any> {
  */
 export interface RequestOptions {
   method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
-  body?: any;
+  body?: unknown;
   headers?: Record<string, string>;
   params?: Record<string, string | number | boolean | undefined>;
 }
@@ -35,7 +35,7 @@ export class ApiClientError extends Error {
   constructor(
     message: string,
     public status: number,
-    public response?: any
+    public response?: unknown
   ) {
     super(message);
     this.name = "ApiClientError";
@@ -55,7 +55,7 @@ export class ApiClient {
   /**
    * Make a GET request
    */
-  async get<T = any>(
+  async get<T = unknown>(
     url: string,
     options?: Omit<RequestOptions, "method" | "body">
   ): Promise<ApiResponse<T>> {
@@ -65,9 +65,9 @@ export class ApiClient {
   /**
    * Make a POST request
    */
-  async post<T = any>(
+  async post<T = unknown>(
     url: string,
-    body?: any,
+    body?: unknown,
     options?: Omit<RequestOptions, "method" | "body">
   ): Promise<ApiResponse<T>> {
     return this.request<T>(url, { ...options, method: "POST", body });
@@ -76,9 +76,9 @@ export class ApiClient {
   /**
    * Make a PUT request
    */
-  async put<T = any>(
+  async put<T = unknown>(
     url: string,
-    body?: any,
+    body?: unknown,
     options?: Omit<RequestOptions, "method" | "body">
   ): Promise<ApiResponse<T>> {
     return this.request<T>(url, { ...options, method: "PUT", body });
@@ -87,7 +87,7 @@ export class ApiClient {
   /**
    * Make a DELETE request
    */
-  async delete<T = any>(
+  async delete<T = unknown>(
     url: string,
     options?: Omit<RequestOptions, "method" | "body">
   ): Promise<ApiResponse<T>> {
@@ -97,9 +97,9 @@ export class ApiClient {
   /**
    * Make a PATCH request
    */
-  async patch<T = any>(
+  async patch<T = unknown>(
     url: string,
-    body?: any,
+    body?: unknown,
     options?: Omit<RequestOptions, "method" | "body">
   ): Promise<ApiResponse<T>> {
     return this.request<T>(url, { ...options, method: "PATCH", body });
@@ -108,7 +108,7 @@ export class ApiClient {
   /**
    * Core request method
    */
-  private async request<T = any>(
+  private async request<T = unknown>(
     url: string,
     options: RequestOptions = {}
   ): Promise<ApiResponse<T>> {
@@ -138,7 +138,7 @@ export class ApiClient {
       const response = await fetch(fullUrl, fetchOptions);
 
       // Parse JSON response
-      let data: any;
+      let data: unknown;
       const contentType = response.headers.get("content-type");
       if (contentType?.includes("application/json")) {
         data = await response.json();
@@ -148,8 +148,9 @@ export class ApiClient {
 
       // Handle non-OK responses
       if (!response.ok) {
+        const errorData = data as Record<string, unknown>;
         throw new ApiClientError(
-          data?.error || data?.message || `HTTP ${response.status}: ${response.statusText}`,
+          (errorData?.error as string) || (errorData?.message as string) || `HTTP ${response.status}: ${response.statusText}`,
           response.status,
           data
         );
@@ -175,7 +176,7 @@ export class ApiClient {
   /**
    * Build URL with query parameters
    */
-  private buildUrl(url: string, params?: Record<string, any>): string {
+  private buildUrl(url: string, params?: Record<string, string | number | boolean | undefined>): string {
     const fullUrl = this.baseUrl + url;
 
     if (!params) {
@@ -196,9 +197,9 @@ export class ApiClient {
   /**
    * Normalize API response to standard format
    */
-  private normalizeResponse<T>(data: any): ApiResponse<T> {
+  private normalizeResponse<T>(data: unknown): ApiResponse<T> {
     // If already in standard format
-    if (typeof data === "object" && "success" in data) {
+    if (typeof data === "object" && data !== null && "success" in data) {
       return data as ApiResponse<T>;
     }
 

@@ -17,8 +17,8 @@ import { useConfigField, useFormField, useStoreInfo } from "../../context/Campai
 
 // Props interface kept for backward compatibility
 interface DesignStepProps {
-  data?: any;
-  onChange?: any;
+  data?: unknown;
+  onChange?: (data: unknown) => void;
   shopDomain?: string;
 }
 function toDesignConfig(p?: PopupDesignFormData): Partial<DesignConfig> {
@@ -69,8 +69,8 @@ export function DesignStep(_props?: DesignStepProps) {
   const { shopDomain } = useStoreInfo();
   const [goal] = useFormField("goal");
   const [templateType] = useFormField("templateType");
-  const [contentConfig, updateContentConfig] = useConfigField<any>("contentConfig");
-  const [designConfig, updateDesignConfig] = useConfigField<any>("designConfig");
+  const [contentConfig, updateContentConfig] = useConfigField<ContentConfig>("contentConfig");
+  const [designConfig, updateDesignConfig] = useConfigField<DesignConfig>("designConfig");
 
   if (!goal || !templateType) {
     return (
@@ -118,11 +118,10 @@ export function DesignStep(_props?: DesignStepProps) {
               </Text>
               <Divider />
               <DesignConfigSection
-                design={toDesignConfig(designConfig?.popupDesign || designConfig)}
+                design={designConfig || {}}
                 templateType={templateType}
                 onChange={(design) => {
-                  const merged = mergePopupDesignChange(designConfig?.popupDesign || designConfig, design);
-                  updateDesignConfig(designConfig?.popupDesign ? { ...designConfig, popupDesign: merged } : merged);
+                  updateDesignConfig({ ...designConfig, ...design });
                 }}
               />
             </BlockStack>
@@ -136,7 +135,7 @@ export function DesignStep(_props?: DesignStepProps) {
           <LivePreviewPanel
             templateType={templateType}
             config={contentConfig}
-            designConfig={designConfig?.popupDesign || designConfig || {}}
+            designConfig={designConfig || {}}
             shopDomain={shopDomain}
           />
         </div>

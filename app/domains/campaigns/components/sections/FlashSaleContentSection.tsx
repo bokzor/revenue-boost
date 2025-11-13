@@ -17,13 +17,11 @@ import {
   Collapsible,
   Button,
   InlineStack,
-  Icon,
 } from "@shopify/polaris";
 import { ChevronDownIcon, ChevronUpIcon } from "@shopify/polaris-icons";
 import { TextField, CheckboxField, FormGrid, ColorField } from "../form";
 import { GenericDiscountComponent } from "../form/GenericDiscountComponent";
-import type { FlashSaleContentSchema } from "../../types/campaign";
-import type { DesignConfig } from "../../types/campaign";
+import type { FlashSaleContentSchema, DesignConfig } from "../../types/campaign";
 import type { DiscountConfig } from "~/domains/commerce/services/discount.server";
 import { z } from "zod";
 import { useFieldUpdater } from "~/shared/hooks/useFieldUpdater";
@@ -71,28 +69,28 @@ export function FlashSaleContentSection({
 
   // Nested field updaters for enhanced features
   const updateTimerField = (field: string, value: unknown) => {
-    const timer = (content.timer || {}) as any;
-    updateField("timer", { ...timer, [field]: value });
+    const timer = (content.timer || {}) as Record<string, unknown>;
+    updateField("timer", { ...timer, [field]: value } as Partial<FlashSaleContent>["timer"]);
   };
 
   const updateInventoryField = (field: string, value: unknown) => {
-    const inventory = (content.inventory || {}) as any;
-    updateField("inventory", { ...inventory, [field]: value });
+    const inventory = (content.inventory || {}) as Record<string, unknown>;
+    updateField("inventory", { ...inventory, [field]: value } as Partial<FlashSaleContent>["inventory"]);
   };
 
   const updateReserveField = (field: string, value: unknown) => {
-    const reserve = (content.reserve || {}) as any;
-    updateField("reserve", { ...reserve, [field]: value });
+    const reserve = (content.reserve || {}) as Record<string, unknown>;
+    updateField("reserve", { ...reserve, [field]: value } as Partial<FlashSaleContent>["reserve"]);
   };
 
   const updateCtaField = (field: string, value: unknown) => {
-    const cta = (content.cta || {}) as any;
-    updateField("cta", { ...cta, [field]: value });
+    const cta = (content.cta || {}) as Record<string, unknown>;
+    updateField("cta", { ...cta, [field]: value } as Partial<FlashSaleContent>["cta"]);
   };
 
   const updatePresentationField = (field: string, value: unknown) => {
-    const presentation = (content.presentation || {}) as any;
-    updateField("presentation", { ...presentation, [field]: value });
+    const presentation = (content.presentation || {}) as Record<string, unknown>;
+    updateField("presentation", { ...presentation, [field]: value } as Partial<FlashSaleContent>["presentation"]);
   };
 
   // Handle theme selection - applies all colors from the theme
@@ -260,7 +258,7 @@ export function FlashSaleContentSection({
               <BlockStack gap="300">
                 <Select
                   label="Timer Mode"
-                  value={(content.timer as any)?.mode || "duration"}
+                  value={(content.timer as Record<string, unknown>)?.mode as string || "duration"}
                   options={[
                     { label: "Duration - Fixed countdown from view", value: "duration" },
                     { label: "Fixed End - Absolute end time", value: "fixed_end" },
@@ -271,22 +269,22 @@ export function FlashSaleContentSection({
                   helpText="How the timer should behave"
                 />
 
-                {(content.timer as any)?.mode === "fixed_end" && (
+                {(content.timer as Record<string, unknown>)?.mode === "fixed_end" && (
                   <TextField
                     label="End Time (ISO Format)"
                     name="timer.endTimeISO"
-                    value={(content.timer as any)?.endTimeISO || ""}
+                    value={(content.timer as Record<string, unknown>)?.endTimeISO as string || ""}
                     placeholder="2025-12-31T23:59:59Z"
                     helpText="Absolute end time in ISO format"
                     onChange={(value) => updateTimerField("endTimeISO", value)}
                   />
                 )}
 
-                {(content.timer as any)?.mode === "personal" && (
+                {(content.timer as Record<string, unknown>)?.mode === "personal" && (
                   <TextField
                     label="Personal Window (seconds)"
                     name="timer.personalWindowSeconds"
-                    value={(content.timer as any)?.personalWindowSeconds?.toString() || "1800"}
+                    value={(content.timer as Record<string, unknown>)?.personalWindowSeconds?.toString() || "1800"}
                     placeholder="1800"
                     helpText="Countdown from first view (e.g., 1800 = 30 min)"
                     onChange={(value) => updateTimerField("personalWindowSeconds", parseInt(value) || 1800)}
@@ -296,7 +294,7 @@ export function FlashSaleContentSection({
                 <FormGrid columns={2}>
                   <Select
                     label="Timezone"
-                    value={(content.timer as any)?.timezone || "shop"}
+                    value={(content.timer as Record<string, unknown>)?.timezone as string || "shop"}
                     options={[
                       { label: "Shop Timezone", value: "shop" },
                       { label: "Visitor Timezone", value: "visitor" },
@@ -306,7 +304,7 @@ export function FlashSaleContentSection({
 
                   <Select
                     label="On Expire Action"
-                    value={(content.timer as any)?.onExpire || "auto_hide"}
+                    value={(content.timer as Record<string, unknown>)?.onExpire as string || "auto_hide"}
                     options={[
                       { label: "Auto Hide", value: "auto_hide" },
                       { label: "Collapse Timer", value: "collapse" },
@@ -316,11 +314,11 @@ export function FlashSaleContentSection({
                   />
                 </FormGrid>
 
-                {(content.timer as any)?.onExpire === "swap_message" && (
+                {(content.timer as Record<string, unknown>)?.onExpire === "swap_message" && (
                   <TextField
                     label="Expired Message"
                     name="timer.expiredMessage"
-                    value={(content.timer as any)?.expiredMessage || ""}
+                    value={(content.timer as Record<string, unknown>)?.expiredMessage as string || ""}
                     placeholder="Sale has ended. Check back soon!"
                     onChange={(value) => updateTimerField("expiredMessage", value)}
                   />
@@ -354,7 +352,7 @@ export function FlashSaleContentSection({
               <BlockStack gap="300">
                 <Select
                   label="Inventory Mode"
-                  value={(content.inventory as any)?.mode || "pseudo"}
+                  value={(content.inventory as Record<string, unknown>)?.mode as string || "pseudo"}
                   options={[
                     { label: "Pseudo - Simulated stock counter", value: "pseudo" },
                     { label: "Real - Live Shopify inventory", value: "real" },
@@ -363,11 +361,11 @@ export function FlashSaleContentSection({
                   helpText="Use real inventory or simulated stock"
                 />
 
-                {(content.inventory as any)?.mode === "pseudo" && (
+                {(content.inventory as Record<string, unknown>)?.mode === "pseudo" && (
                   <TextField
                     label="Pseudo Max Inventory"
                     name="inventory.pseudoMax"
-                    value={(content.inventory as any)?.pseudoMax?.toString() || "50"}
+                    value={(content.inventory as Record<string, unknown>)?.pseudoMax?.toString() || "50"}
                     placeholder="50"
                     helpText="Fake maximum inventory count"
                     onChange={(value) => updateInventoryField("pseudoMax", parseInt(value) || 50)}
@@ -378,14 +376,14 @@ export function FlashSaleContentSection({
                   <CheckboxField
                     label='Show "Only X Left"'
                     name="inventory.showOnlyXLeft"
-                    checked={(content.inventory as any)?.showOnlyXLeft !== false}
+                    checked={(content.inventory as Record<string, unknown>)?.showOnlyXLeft !== false}
                     onChange={(checked) => updateInventoryField("showOnlyXLeft", checked)}
                   />
 
                   <TextField
                     label="Show Threshold"
                     name="inventory.showThreshold"
-                    value={(content.inventory as any)?.showThreshold?.toString() || "10"}
+                    value={(content.inventory as Record<string, unknown>)?.showThreshold?.toString() || "10"}
                     placeholder="10"
                     helpText="Show warning when ≤ this value"
                     onChange={(value) => updateInventoryField("showThreshold", parseInt(value) || 10)}
@@ -394,7 +392,7 @@ export function FlashSaleContentSection({
 
                 <Select
                   label="Sold Out Behavior"
-                  value={(content.inventory as any)?.soldOutBehavior || "hide"}
+                  value={(content.inventory as Record<string, unknown>)?.soldOutBehavior as string || "hide"}
                   options={[
                     { label: "Hide Popup", value: "hide" },
                     { label: 'Show "You Missed It" Message', value: "missed_it" },
@@ -402,11 +400,11 @@ export function FlashSaleContentSection({
                   onChange={(value) => updateInventoryField("soldOutBehavior", value)}
                 />
 
-                {(content.inventory as any)?.soldOutBehavior === "missed_it" && (
+                {(content.inventory as Record<string, unknown>)?.soldOutBehavior === "missed_it" && (
                   <TextField
                     label="Sold Out Message"
                     name="inventory.soldOutMessage"
-                    value={(content.inventory as any)?.soldOutMessage || ""}
+                    value={(content.inventory as Record<string, unknown>)?.soldOutMessage as string || ""}
                     placeholder="This deal is sold out. Check back later!"
                     onChange={(value) => updateInventoryField("soldOutMessage", value)}
                   />
@@ -441,17 +439,17 @@ export function FlashSaleContentSection({
                 <CheckboxField
                   label="Enable Reservation Timer"
                   name="reserve.enabled"
-                  checked={(content.reserve as any)?.enabled || false}
+                  checked={(content.reserve as Record<string, unknown>)?.enabled as boolean || false}
                   helpText='"X minutes to claim this offer" timer'
                   onChange={(checked) => updateReserveField("enabled", checked)}
                 />
 
-                {(content.reserve as any)?.enabled && (
+                {Boolean((content.reserve as Record<string, unknown>)?.enabled) && (
                   <>
                     <TextField
                       label="Reservation Minutes"
                       name="reserve.minutes"
-                      value={(content.reserve as any)?.minutes?.toString() || "10"}
+                      value={(content.reserve as Record<string, unknown>)?.minutes?.toString() || "10"}
                       placeholder="10"
                       helpText="Minutes to claim the reserved offer"
                       onChange={(value) => updateReserveField("minutes", parseInt(value) || 10)}
@@ -460,7 +458,7 @@ export function FlashSaleContentSection({
                     <TextField
                       label="Reservation Label"
                       name="reserve.label"
-                      value={(content.reserve as any)?.label || ""}
+                      value={(content.reserve as Record<string, unknown>)?.label as string || ""}
                       placeholder="Offer reserved for:"
                       onChange={(value) => updateReserveField("label", value)}
                     />
@@ -468,7 +466,7 @@ export function FlashSaleContentSection({
                     <TextField
                       label="Disclaimer"
                       name="reserve.disclaimer"
-                      value={(content.reserve as any)?.disclaimer || ""}
+                      value={(content.reserve as Record<string, unknown>)?.disclaimer as string || ""}
                       placeholder="Inventory not guaranteed"
                       helpText="Optional disclaimer text"
                       onChange={(value) => updateReserveField("disclaimer", value)}
@@ -748,7 +746,7 @@ export function FlashSaleContentSection({
                 <FormGrid columns={2}>
                   <Select
                     label="Badge Style"
-                    value={(content.presentation as any)?.badgeStyle || "pill"}
+                    value={(content.presentation as Record<string, unknown>)?.badgeStyle as string || "pill"}
                     options={[
                       { label: "Pill", value: "pill" },
                       { label: "Tag", value: "tag" },
@@ -761,14 +759,14 @@ export function FlashSaleContentSection({
                   <CheckboxField
                     label="Show Timer in Popup"
                     name="presentation.showTimer"
-                    checked={(content.presentation as any)?.showTimer !== false}
+                    checked={(content.presentation as Record<string, unknown>)?.showTimer !== false}
                     onChange={(checked) => updatePresentationField("showTimer", checked)}
                   />
 
                   <CheckboxField
                     label="Show Inventory in Popup"
                     name="presentation.showInventory"
-                    checked={(content.presentation as any)?.showInventory !== false}
+                    checked={(content.presentation as Record<string, unknown>)?.showInventory !== false}
                     onChange={(checked) => updatePresentationField("showInventory", checked)}
                   />
                 </FormGrid>
@@ -793,9 +791,9 @@ export function FlashSaleContentSection({
                   <CheckboxField
                     label="Auto-Hide on Expire"
                     name="content.autoHideOnExpire"
-                    checked={(content as any).autoHideOnExpire || false}
+                    checked={(content as Record<string, unknown>).autoHideOnExpire as boolean || false}
                     helpText="Auto-hide 2 seconds after expiry"
-                    onChange={(checked) => (updateField as any)("autoHideOnExpire", checked)}
+                    onChange={(checked) => updateField("autoHideOnExpire", checked)}
                   />
                 </FormGrid>
               </BlockStack>

@@ -49,7 +49,7 @@ const CUSTOMER_SEARCH_QUERY = `
           firstName
           lastName
           phone
-          acceptsMarketing
+          emailMarketingConsent { marketingState }
           tags
           createdAt
           updatedAt
@@ -71,7 +71,7 @@ const CUSTOMER_CREATE_MUTATION = `
         firstName
         lastName
         phone
-        acceptsMarketing
+        emailMarketingConsent { marketingState }
         tags
         createdAt
         updatedAt
@@ -96,7 +96,7 @@ const CUSTOMER_UPDATE_MUTATION = `
         firstName
         lastName
         phone
-        acceptsMarketing
+        emailMarketingConsent { marketingState }
         tags
         createdAt
         updatedAt
@@ -123,13 +123,23 @@ export async function findCustomerByEmail(
       },
     });
 
-    const data = await response.json();
+    const data: any = await response.json();
     const edges = data.data?.customers?.edges || [];
 
     if (edges.length > 0) {
-      return {
-        customer: edges[0].node,
+      const node = edges[0].node;
+      const customer: ShopifyCustomer = {
+        id: node.id,
+        email: node.email,
+        firstName: node.firstName || undefined,
+        lastName: node.lastName || undefined,
+        phone: node.phone || undefined,
+        acceptsMarketing: node.emailMarketingConsent?.marketingState === "SUBSCRIBED",
+        tags: node.tags || [],
+        createdAt: node.createdAt,
+        updatedAt: node.updatedAt,
       };
+      return { customer };
     }
 
     return {
@@ -180,9 +190,13 @@ export async function createCustomer(
       },
     });
 
-    const responseData = await response.json();
+    const responseData: any = await response.json();
+
+    // Log full response for debugging
+    console.log("[Shopify Customer] GraphQL Response:", JSON.stringify(responseData, null, 2));
 
     if (responseData.data?.customerCreate?.userErrors?.length > 0) {
+      console.error("[Shopify Customer] User errors:", responseData.data.customerCreate.userErrors);
       return {
         errors: responseData.data.customerCreate.userErrors.map(
           (error: any) => error.message
@@ -190,13 +204,31 @@ export async function createCustomer(
       };
     }
 
-    const customer = responseData.data?.customerCreate?.customer;
-    if (customer) {
+    // Check for GraphQL errors
+    if (responseData.errors) {
+      console.error("[Shopify Customer] GraphQL errors:", responseData.errors);
       return {
-        customer,
+        errors: responseData.errors.map((error: any) => error.message),
       };
     }
 
+    const node = responseData.data?.customerCreate?.customer;
+    if (node) {
+      const mapped: ShopifyCustomer = {
+        id: node.id,
+        email: node.email,
+        firstName: node.firstName || undefined,
+        lastName: node.lastName || undefined,
+        phone: node.phone || undefined,
+        acceptsMarketing: node.emailMarketingConsent?.marketingState === "SUBSCRIBED",
+        tags: node.tags || [],
+        createdAt: node.createdAt,
+        updatedAt: node.updatedAt,
+      };
+      return { customer: mapped };
+    }
+
+    console.error("[Shopify Customer] No customer in response");
     return {
       errors: ["Failed to create customer"],
     };
@@ -245,7 +277,7 @@ export async function updateCustomer(
       },
     });
 
-    const responseData = await response.json();
+    const responseData: any = await response.json();
 
     if (responseData.data?.customerUpdate?.userErrors?.length > 0) {
       return {
@@ -255,11 +287,20 @@ export async function updateCustomer(
       };
     }
 
-    const customer = responseData.data?.customerUpdate?.customer;
-    if (customer) {
-      return {
-        customer,
+    const node = responseData.data?.customerUpdate?.customer;
+    if (node) {
+      const mapped: ShopifyCustomer = {
+        id: node.id,
+        email: node.email,
+        firstName: node.firstName || undefined,
+        lastName: node.lastName || undefined,
+        phone: node.phone || undefined,
+        acceptsMarketing: node.emailMarketingConsent?.marketingState === "SUBSCRIBED",
+        tags: node.tags || [],
+        createdAt: node.createdAt,
+        updatedAt: node.updatedAt,
       };
+      return { customer: mapped };
     }
 
     return {

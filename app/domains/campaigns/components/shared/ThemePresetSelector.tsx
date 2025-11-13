@@ -10,14 +10,14 @@ export interface ThemePresetSelectorProps {
 }
 
 function buildSwatchBackground(themeKey: NewsletterThemeKey): string {
-  const t: any = NEWSLETTER_THEMES[themeKey];
-  const bg = String(t.background || "#FFFFFF");
+  const t = NEWSLETTER_THEMES[themeKey];
+  const bg = t.background || "#FFFFFF";
   // If the theme background is itself a gradient, use it directly for the swatch
   if (bg.startsWith("linear-gradient")) {
     return bg;
   }
   const left = bg || t.secondary || "#FFFFFF";
-  const right = t.ctaBg || t.primary || t.accent || t.buttonColor || "#007BFF";
+  const right = t.ctaBg || t.primary || t.accent || "#007BFF";
   return `linear-gradient(90deg, ${left} 50%, ${right} 50%)`;
 }
 

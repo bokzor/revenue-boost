@@ -483,7 +483,8 @@
     const title = config.headline || "Join Our Newsletter";
     const description = config.subheadline || "Subscribe to get special offers, free giveaways, and exclusive deals.";
     const buttonText = config.submitButtonText || config.buttonText || "Subscribe";
-    const successMessage = config.successMessage || "Thank you for subscribing!";
+    const deliveryMode = config.discount?.deliveryMode || "show_code_fallback";
+    const successMessage = config.successMessage ?? (deliveryMode === "auto_apply_only" ? "Thanks for subscribing! Your discount will be automatically applied when you checkout." : deliveryMode === "show_in_popup_authorized_only" ? "Thanks for subscribing! Your discount code is authorized for your email address only." : "Thanks for subscribing! Your discount code is ready to use.");
     const discountCode = config.discount?.enabled ? config.discount.code : void 0;
     const showGdprCheckbox = config.consentFieldEnabled ?? false;
     const gdprLabel = config.consentFieldText || "I agree to receive marketing emails and accept the privacy policy";
@@ -528,11 +529,12 @@
           await new Promise((resolve) => setTimeout(resolve, 1500));
           setIsSubmitted(true);
         } else if (onSubmit) {
-          await onSubmit({
+          const code = await onSubmit({
             email,
             name: collectName ? name : void 0,
             gdprConsent
           });
+          if (code) setGeneratedDiscountCode(code);
           setIsSubmitted(true);
         } else {
           setIsSubmitted(true);
@@ -1026,9 +1028,9 @@
                   ] }) : /* @__PURE__ */ jsxs("div", { className: "email-popup-success", children: [
                     /* @__PURE__ */ jsx("div", { className: "email-popup-success-icon", children: /* @__PURE__ */ jsx("svg", { width: "32", height: "32", viewBox: "0 0 24 24", fill: "none", strokeWidth: "3", children: /* @__PURE__ */ jsx("polyline", { points: "20 6 9 17 4 12" }) }) }),
                     /* @__PURE__ */ jsx("h3", { className: "email-popup-success-message", children: successMessage }),
-                    discountCode && /* @__PURE__ */ jsxs("div", { className: "email-popup-discount", children: [
+                    (generatedDiscountCode || discountCode) && /* @__PURE__ */ jsxs("div", { className: "email-popup-discount", children: [
                       /* @__PURE__ */ jsx("p", { className: "email-popup-discount-label", children: "Your discount code:" }),
-                      /* @__PURE__ */ jsx("p", { className: "email-popup-discount-code", children: discountCode })
+                      /* @__PURE__ */ jsx("p", { className: "email-popup-discount-code", children: generatedDiscountCode || discountCode })
                     ] })
                   ] }) })
                 ]

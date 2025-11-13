@@ -14,7 +14,6 @@
 
 import { useState } from "react";
 import {
-  FormLayout,
   Select,
   TextField,
   Checkbox,
@@ -25,12 +24,9 @@ import {
   Text,
   InlineStack,
   Badge,
-  Collapsible,
-  Divider,
-  Icon,
   Banner,
 } from "@shopify/polaris";
-import { SettingsIcon, ChevronDownIcon, ChevronUpIcon, DeleteIcon, PlusIcon } from "@shopify/polaris-icons";
+import { SettingsIcon, DeleteIcon, PlusIcon } from "@shopify/polaris-icons";
 import { DiscountSettingsStep } from "~/domains/campaigns/components/DiscountSettingsStep";
 import { FormGrid, ProductPicker } from "~/domains/campaigns/components/form";
 import type { ProductPickerSelection } from "~/domains/campaigns/components/form";
@@ -48,9 +44,6 @@ export function GenericDiscountComponent({
   onConfigChange,
 }: GenericDiscountComponentProps) {
   const [showAdvanced, setShowAdvanced] = useState(false);
-  const [showTiered, setShowTiered] = useState(false);
-  const [showBogo, setShowBogo] = useState(false);
-  const [showFreeGift, setShowFreeGift] = useState(false);
   const [freeGiftVariants, setFreeGiftVariants] = useState<Array<{ id: string; title: string }>>();
 
   // Initialize with defaults if not provided
@@ -118,7 +111,7 @@ export function GenericDiscountComponent({
     updateConfig({ tiers: [...tiers, newTier] });
   };
 
-  const updateTier = (index: number, updates: any) => {
+  const updateTier = (index: number, updates: Partial<{ thresholdCents: number; discount: { kind: "percentage" | "fixed" | "free_shipping"; value: number } }>) => {
     const tiers = [...(config.tiers || [])];
     tiers[index] = { ...tiers[index], ...updates };
     updateConfig({ tiers });
@@ -161,9 +154,9 @@ export function GenericDiscountComponent({
     if (!bogo) return;
 
     const keys = path.split(".");
-    let current: any = bogo;
+    let current: Record<string, unknown> = bogo as Record<string, unknown>;
     for (let i = 0; i < keys.length - 1; i++) {
-      current = current[keys[i]];
+      current = current[keys[i]] as Record<string, unknown>;
     }
     current[keys[keys.length - 1]] = value;
     updateConfig({ bogo });
@@ -188,7 +181,7 @@ export function GenericDiscountComponent({
   const updateFreeGiftField = (field: string, value: unknown) => {
     const freeGift = config.freeGift ? { ...config.freeGift } : undefined;
     if (!freeGift) return;
-    (freeGift as any)[field] = value;
+    (freeGift as Record<string, unknown>)[field] = value;
     updateConfig({ freeGift });
   };
 
@@ -240,17 +233,42 @@ export function GenericDiscountComponent({
                     : "basic"
                 }
                 onChange={(value) => {
-                  // Clear all advanced types first
-                  updateConfig({ tiers: undefined, bogo: undefined, freeGift: undefined });
-                  
-                  // Enable selected type
+                  // Build a single new config to avoid stale merges across sequential updates
+                  const base = {
+                    ...config,
+                    tiers: undefined,
+                    bogo: undefined,
+                    freeGift: undefined,
+                  } as DiscountConfig;
+
                   if (value === "tiered") {
-                    addTier();
+                    base.tiers = [
+                      {
+                        thresholdCents: 5000,
+                        discount: { kind: "percentage" as const, value: 10 },
+                      },
+                    ];
                   } else if (value === "bogo") {
-                    toggleBogo(true);
+                    base.bogo = {
+                      buy: { scope: "any" as const, quantity: 1, ids: [] },
+                      get: {
+                        scope: "products" as const,
+                        ids: [],
+                        quantity: 1,
+                        discount: { kind: "free_product" as const, value: 100 },
+                        appliesOncePerOrder: true,
+                      },
+                    };
                   } else if (value === "free_gift") {
-                    toggleFreeGift(true);
+                    base.freeGift = {
+                      productId: "",
+                      variantId: "",
+                      quantity: 1,
+                      minSubtotalCents: 0,
+                    };
                   }
+
+                  onConfigChange(base);
                 }}
                 helpText="Choose your discount strategy"
               />
@@ -398,7 +416,7 @@ export function GenericDiscountComponent({
                             ]}
                             onChange={(kind) =>
                               updateTier(index, {
-                                discount: { ...tier.discount, kind: kind as any },
+                                discount: { ...tier.discount, kind: kind as "percentage" | "fixed" | "free_shipping" },
                               })
                             }
                           />

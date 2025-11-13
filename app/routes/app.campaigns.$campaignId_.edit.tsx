@@ -6,7 +6,7 @@
 
 import { data, type LoaderFunctionArgs } from "react-router";
 import { useLoaderData, useNavigate } from "react-router";
-import { Frame, Toast } from "@shopify/polaris";
+import { Frame, Toast, Modal } from "@shopify/polaris";
 import { useState, useEffect } from "react";
 
 import { authenticate } from "~/shopify.server";
@@ -87,6 +87,11 @@ export default function CampaignEditPage() {
   // State for toast notifications
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [toastError, setToastError] = useState(false);
+
+  // Post-save activation modal state
+  const [activatePromptOpen, setActivatePromptOpen] = useState(false);
+  const [activating, setActivating] = useState(false);
+  const [postSaveNavigateTo, setPostSaveNavigateTo] = useState<string | null>(null);
 
   // Redirect to experiment edit page if campaign is part of an A/B test
   useEffect(() => {
@@ -193,9 +198,16 @@ export default function CampaignEditPage() {
         throw new Error("Failed to update campaign");
       }
 
-      showToast("Campaign updated successfully");
+      const needsActivationPrompt = campaign.status === "DRAFT" && campaignData.status === "DRAFT";
 
-      // Redirect to campaign detail page
+      if (needsActivationPrompt) {
+        setPostSaveNavigateTo(`/app/campaigns/${campaign.id}`);
+        setActivatePromptOpen(true);
+        showToast("Campaign updated successfully");
+        return;
+      }
+
+      showToast("Campaign updated successfully");
       navigate(`/app/campaigns/${campaign.id}`);
 
     } catch (error) {
@@ -246,6 +258,48 @@ export default function CampaignEditPage() {
         onSave={handleSave}
         onCancel={handleCancel}
       />
+      <Modal
+        open={activatePromptOpen}
+        onClose={() => {
+          setActivatePromptOpen(false);
+          if (postSaveNavigateTo) navigate(postSaveNavigateTo);
+        }}
+        title="Activate Campaign"
+        primaryAction={{
+          content: "Activate now",
+          loading: activating,
+          onAction: async () => {
+            if (!campaign) return;
+            try {
+              setActivating(true);
+              await fetch(`/api/campaigns/${campaign.id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ status: "ACTIVE" }),
+              });
+              showToast("Campaign activated");
+            } catch (e) {
+              showToast("Failed to activate campaign", true);
+            } finally {
+              setActivating(false);
+              setActivatePromptOpen(false);
+              if (postSaveNavigateTo) navigate(postSaveNavigateTo);
+            }
+          },
+        }}
+        secondaryActions={[
+          {
+            content: "Not now",
+            onAction: () => {
+              setActivatePromptOpen(false);
+              if (postSaveNavigateTo) navigate(postSaveNavigateTo);
+            },
+          },
+        ]}
+      >
+        <div>This campaign is still a draft. Activate it now</div>
+      </Modal>
+
       {toastMarkup}
     </Frame>
   );

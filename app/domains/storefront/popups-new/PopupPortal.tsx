@@ -185,14 +185,14 @@ export const PopupPortal: React.FC<PopupPortalProps> = ({
   }, [isVisible, closeOnEscape, handleClose]);
 
   // Handle backdrop click
-  const handleBackdropClick = useCallback(() => {
+  const handleBackdropClick: React.MouseEventHandler<HTMLDivElement> = useCallback((e) => {
     if (closeOnBackdropClick) {
       handleClose();
     }
   }, [closeOnBackdropClick, handleClose]);
 
   // Prevent content click from closing
-  const handleContentClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+  const handleContentClick: React.MouseEventHandler<HTMLDivElement> = useCallback((e) => {
     e.stopPropagation();
   }, []);
 

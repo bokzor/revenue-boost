@@ -106,6 +106,7 @@ export interface DiscountConfig {
   type?: "percentage" | "fixed_amount" | "free_shipping";
   expiryDate?: string | Date;
   minimumPurchase?: number;
+  deliveryMode?: 'auto_apply_only' | 'show_code_fallback' | 'show_code_always' | 'show_in_popup_authorized_only';
 }
 
 export interface Product {
