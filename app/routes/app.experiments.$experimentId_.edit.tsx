@@ -174,7 +174,25 @@ export default function ExperimentEditPage() {
     variantKey: targetVariant.variantKey || "A",
     contentConfig: targetVariant.contentConfig,
     designConfig: targetVariant.designConfig,
-    targetRules: targetVariant.targetRules,
+    enhancedTriggers: targetVariant.targetRules?.enhancedTriggers || {},
+    audienceTargeting: targetVariant.targetRules?.audienceTargeting || {
+      enabled: false,
+      segments: [],
+      customRules: { enabled: false, conditions: [], logicOperator: "AND" as const },
+    },
+    pageTargeting: targetVariant.targetRules?.pageTargeting || {
+      enabled: false,
+      pages: [],
+      customPatterns: [],
+      excludePages: [],
+    },
+    frequencyCapping: targetVariant.targetRules?.frequencyCapping || {
+      enabled: true,
+      maxViews: 3,
+      timeWindow: 24,
+      respectGlobalCap: true,
+      cooldownHours: 0,
+    },
     discountConfig: targetVariant.discountConfig || undefined,
   };
 

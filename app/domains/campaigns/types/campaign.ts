@@ -517,12 +517,24 @@ export const PageTargetingConfigSchema = z.object({
 });
 
 /**
+ * Frequency Capping Configuration Schema
+ */
+export const FrequencyCappingConfigSchema = z.object({
+  enabled: z.boolean().default(true),
+  maxViews: z.number().int().min(1).default(3),
+  timeWindow: z.number().int().min(0).default(24), // hours
+  respectGlobalCap: z.boolean().default(true),
+  cooldownHours: z.number().min(0).default(0),
+});
+
+/**
  * Target Rules Configuration Schema (matching original structure)
  */
 export const TargetRulesConfigSchema = z.object({
   enhancedTriggers: EnhancedTriggersConfigSchema.optional(),
   audienceTargeting: AudienceTargetingConfigSchema.optional(),
   pageTargeting: PageTargetingConfigSchema.optional(),
+  frequencyCapping: FrequencyCappingConfigSchema.optional(),
 });
 
 /**
@@ -679,3 +691,4 @@ export type BaseCampaign = z.infer<typeof BaseCampaignSchema>;
 export type CampaignWithConfigs = z.infer<typeof CampaignWithConfigsSchema>;
 export type CampaignCreateData = z.infer<typeof CampaignCreateDataSchema>;
 export type CampaignUpdateData = z.infer<typeof CampaignUpdateDataSchema>;
+export type FrequencyCappingConfig = z.infer<typeof FrequencyCappingConfigSchema>;
