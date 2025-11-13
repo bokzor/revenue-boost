@@ -99,27 +99,16 @@ export function DesignStepContent({
                 </>
               ) : (
                 <>
-                  {/* Other Templates - Separate Content and Design sections */}
-                  <Card>
-                    <BlockStack gap="400">
-                      <Text as="h2" variant="headingMd">
-                        Content Configuration
-                      </Text>
-                      <Text as="p" tone="subdued">
-                        Customize the text, messages, and behavior for your {templateType.toLowerCase().replace(/_/g, ' ')} campaign
-                      </Text>
-                      <Divider />
-                      <ContentConfigSection
-                        templateType={templateType}
-                        content={contentConfig}
-                        discountConfig={discountConfig}
-                        onChange={onContentChange}
-                        onDiscountChange={onDiscountChange}
-                        designConfig={designConfig}
-                        onDesignChange={onDesignChange}
-                      />
-                    </BlockStack>
-                  </Card>
+                  {/* Other Templates - Content and Design sections without wrapper */}
+                  <ContentConfigSection
+                    templateType={templateType}
+                    content={contentConfig}
+                    discountConfig={discountConfig}
+                    onChange={onContentChange}
+                    onDiscountChange={onDiscountChange}
+                    designConfig={designConfig}
+                    onDesignChange={onDesignChange}
+                  />
 
                   {/* Design Configuration - Universal design/color fields */}
                   <DesignConfigSection

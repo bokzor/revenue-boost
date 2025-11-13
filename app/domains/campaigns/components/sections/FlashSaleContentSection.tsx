@@ -17,6 +17,9 @@ import {
   Collapsible,
   Button,
   InlineStack,
+  DatePicker,
+  Popover,
+  TextField as PolarisTextField,
 } from "@shopify/polaris";
 import { ChevronDownIcon, ChevronUpIcon } from "@shopify/polaris-icons";
 import { TextField, CheckboxField, FormGrid, ColorField } from "../form";
@@ -270,13 +273,11 @@ export function FlashSaleContentSection({
                 />
 
                 {(content.timer as Record<string, unknown>)?.mode === "fixed_end" && (
-                  <TextField
-                    label="End Time (ISO Format)"
-                    name="timer.endTimeISO"
+                  <DateTimePickerField
+                    label="End Time"
                     value={(content.timer as Record<string, unknown>)?.endTimeISO as string || ""}
-                    placeholder="2025-12-31T23:59:59Z"
-                    helpText="Absolute end time in ISO format"
-                    onChange={(value) => updateTimerField("endTimeISO", value)}
+                    onChange={(isoValue) => updateTimerField("endTimeISO", isoValue)}
+                    helpText="Select the absolute end time for the countdown"
                   />
                 )}
 
@@ -802,5 +803,206 @@ export function FlashSaleContentSection({
         </Card>
       )}
     </>
+  );
+}
+
+// Custom DateTimePicker component using Polaris DatePicker + time selects
+interface DateTimePickerFieldProps {
+  label: string;
+  value: string; // ISO string
+  onChange: (isoValue: string) => void;
+  helpText?: string;
+}
+
+function DateTimePickerField({ label, value, onChange, helpText }: DateTimePickerFieldProps) {
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
+
+  // Parse current value
+  const currentDate = value ? new Date(value) : new Date();
+  const selectedDate = value && !isNaN(currentDate.getTime()) ? {
+    year: currentDate.getFullYear(),
+    month: currentDate.getMonth(),
+    day: currentDate.getDate(),
+  } : undefined;
+
+  const currentHour = currentDate.getHours().toString().padStart(2, '0');
+  const currentMinute = currentDate.getMinutes().toString().padStart(2, '0');
+
+  // Generate hour options (00-23)
+  const hourOptions = Array.from({ length: 24 }, (_, i) => ({
+    label: i.toString().padStart(2, '0'),
+    value: i.toString().padStart(2, '0'),
+  }));
+
+  // Generate minute options (00, 15, 30, 45)
+  const minuteOptions = [
+    { label: '00', value: '00' },
+    { label: '15', value: '15' },
+    { label: '30', value: '30' },
+    { label: '45', value: '45' },
+  ];
+
+  const handleDateChange = (newDate: any) => {
+    try {
+      console.log('DatePicker returned:', newDate);
+
+      // Handle different return formats from DatePicker
+      let dateToUse;
+
+      if (newDate && typeof newDate === 'object') {
+        // If it's a range object with start/end, use the start date
+        if (newDate.start) {
+          dateToUse = newDate.start;
+        }
+        // If it's already a date object with year/month/day
+        else if (newDate.year !== undefined && newDate.month !== undefined && newDate.day !== undefined) {
+          dateToUse = new Date(newDate.year, newDate.month, newDate.day);
+        }
+        // If it's a Date object
+        else if (newDate instanceof Date) {
+          dateToUse = newDate;
+        }
+      }
+
+      if (!dateToUse) {
+        console.error('Could not parse date from DatePicker:', newDate);
+        return;
+      }
+
+      // Create the final date with current time
+      const finalDate = new Date(
+        dateToUse.getFullYear(),
+        dateToUse.getMonth(),
+        dateToUse.getDate(),
+        parseInt(currentHour),
+        parseInt(currentMinute)
+      );
+
+      // Validate the date
+      if (isNaN(finalDate.getTime())) {
+        console.error('Invalid final date created:', finalDate);
+        return;
+      }
+
+      onChange(finalDate.toISOString());
+      setDatePickerOpen(false);
+    } catch (error) {
+      console.error('Error handling date change:', error);
+    }
+  };
+
+  const handleTimeChange = (hour: string, minute: string) => {
+    try {
+      const baseDate = selectedDate ?
+        new Date(selectedDate.year, selectedDate.month, selectedDate.day) :
+        new Date();
+
+      const updatedDate = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate(), parseInt(hour), parseInt(minute));
+
+      // Validate the date
+      if (isNaN(updatedDate.getTime())) {
+        console.error('Invalid date created in time change');
+        return;
+      }
+
+      onChange(updatedDate.toISOString());
+    } catch (error) {
+      console.error('Error handling time change:', error);
+    }
+  };
+
+  const formatDateValue = () => {
+    if (!selectedDate) return "";
+    return `${selectedDate.year}-${(selectedDate.month + 1).toString().padStart(2, '0')}-${selectedDate.day.toString().padStart(2, '0')}`;
+  };
+
+  const formatDisplayValue = () => {
+    if (!value) return "";
+    return currentDate.toLocaleString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    });
+  };
+
+  return (
+    <div className="Polaris-Labelled">
+      <div className="Polaris-Labelled__LabelWrapper">
+        <div className="Polaris-Label">
+          <label className="Polaris-Label__Text">{label}</label>
+        </div>
+      </div>
+
+      <BlockStack gap="200">
+        {/* Date Picker Row */}
+        <BlockStack gap="100">
+          <Text as="p" variant="bodySm" fontWeight="medium">Date</Text>
+          <Popover
+            active={datePickerOpen}
+            activator={
+              <Button
+                onClick={() => setDatePickerOpen(!datePickerOpen)}
+                textAlign="left"
+                fullWidth
+              >
+                {formatDateValue() || "Select date"}
+              </Button>
+            }
+            onClose={() => setDatePickerOpen(false)}
+          >
+            <DatePicker
+              month={selectedDate?.month || new Date().getMonth()}
+              year={selectedDate?.year || new Date().getFullYear()}
+              selected={selectedDate}
+              onMonthChange={(month, year) => {
+                // Handle month/year navigation if needed
+              }}
+              onChange={handleDateChange}
+            />
+          </Popover>
+        </BlockStack>
+
+        {/* Time Picker Row */}
+        <BlockStack gap="100">
+          <Text as="p" variant="bodySm" fontWeight="medium">Time</Text>
+          <InlineStack gap="200">
+            <div style={{ flex: 1 }}>
+              <Select
+                label=""
+                options={hourOptions}
+                value={currentHour}
+                onChange={(hour) => handleTimeChange(hour, currentMinute)}
+                placeholder="Hour"
+              />
+            </div>
+            <div style={{ flex: 1 }}>
+              <Select
+                label=""
+                options={minuteOptions}
+                value={currentMinute}
+                onChange={(minute) => handleTimeChange(currentHour, minute)}
+                placeholder="Min"
+              />
+            </div>
+          </InlineStack>
+        </BlockStack>
+
+        {/* Display current selection */}
+        {value && (
+          <Text as="p" variant="bodySm" tone="subdued">
+            Selected: {formatDisplayValue()}
+          </Text>
+        )}
+
+        {helpText && (
+          <Text as="p" variant="bodySm" tone="subdued">
+            {helpText}
+          </Text>
+        )}
+      </BlockStack>
+    </div>
   );
 }
