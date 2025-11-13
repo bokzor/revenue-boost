@@ -239,16 +239,6 @@
     const [isExiting, setIsExiting] = useState(false);
     const popupRef = useRef(null);
     const previousFocusRef = useRef(null);
-    const handleEscapeKey = useCallback((event) => {
-      if (event.key === "Escape" && config.closeOnEscape !== false) {
-        handleClose();
-      }
-    }, [config.closeOnEscape]);
-    const handleOverlayClick = useCallback((event) => {
-      if (event.target === event.currentTarget && config.closeOnOverlayClick !== false) {
-        handleClose();
-      }
-    }, [config.closeOnOverlayClick]);
     const handleClose = useCallback(() => {
       if (config.animation && config.animation !== "none" && !prefersReducedMotion()) {
         setIsExiting(true);
@@ -260,6 +250,16 @@
         onClose();
       }
     }, [config.animation, onClose]);
+    const handleEscapeKey = useCallback((event) => {
+      if (event.key === "Escape" && config.closeOnEscape !== false) {
+        handleClose();
+      }
+    }, [config.closeOnEscape, handleClose]);
+    const handleOverlayClick = useCallback((event) => {
+      if (event.target === event.currentTarget && config.closeOnOverlayClick !== false) {
+        handleClose();
+      }
+    }, [config.closeOnOverlayClick, handleClose]);
     useEffect(() => {
       if (isVisible) {
         document.addEventListener("keydown", handleEscapeKey);
@@ -374,8 +374,11 @@
     const [isLoading, setIsLoading] = useState(false);
     const [showContent, setShowContent] = useState(false);
     const [hoveredProduct, setHoveredProduct] = useState(null);
-    const products = propProducts || config.products || [];
-    const displayProducts = config.maxProducts ? products.slice(0, config.maxProducts) : products;
+    const products = useMemo(() => propProducts || config.products || [], [propProducts, config.products]);
+    const displayProducts = useMemo(
+      () => config.maxProducts ? products.slice(0, config.maxProducts) : products,
+      [config.maxProducts, products]
+    );
     useEffect(() => {
       if (isVisible) {
         const timer = setTimeout(() => setShowContent(true), 50);

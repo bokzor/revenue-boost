@@ -297,19 +297,7 @@ export const PopupDesignEditorV2: React.FC<PopupDesignEditorProps> = ({
     ) {
       return true;
     }
-    // Show for templates that typically use discounts
-    if (
-      currentTemplateType &&
-      [
-        "newsletter-elegant",
-        "newsletter-minimal",
-        "exit-intent-newsletter",
-        "flash-sale-modal",
-        "exit-intent-offer",
-      ].includes(currentTemplateType)
-    ) {
-      return true;
-    }
+    // No template-specific whitelist needed; rely on goal-based logic above
     return false;
   }, [validatedCampaignGoal, currentTemplateType]);
 

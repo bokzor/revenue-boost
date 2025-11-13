@@ -113,11 +113,24 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api }: P
   }
 
   // Render the loaded component
+  // Inject initial cart total (from app embed) so FreeShipping bar can render correct progress
+  const currentCartTotal = (() => {
+    try {
+      const w: any = window as any;
+      const raw = w?.REVENUE_BOOST_CONFIG?.cartValue;
+      const n = typeof raw === 'string' ? parseFloat(raw) : (typeof raw === 'number' ? raw : 0);
+      return Number.isFinite(n) ? n : 0;
+    } catch {
+      return 0;
+    }
+  })();
+
   return h(Component, {
     config: {
       ...campaign.contentConfig,
       ...campaign.designConfig,
       id: campaign.id,
+      currentCartTotal,
       // Pass discount config if enabled
       discount: campaign.discountConfig?.enabled ? {
         enabled: true,

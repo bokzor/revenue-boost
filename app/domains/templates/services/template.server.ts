@@ -59,7 +59,9 @@ function parseTemplateEntity(rawTemplate: Template): TemplateWithConfigs {
     }),
     discountConfig: parseJsonField(rawTemplate.discountConfig, DiscountConfigSchema, {
       enabled: false,
-      showInPreview: true
+      showInPreview: true,
+      autoApplyMode: "ajax",
+      codePresentation: "show_code",
     }),
   };
 }

@@ -10,7 +10,7 @@
  * - Professional color palette
  */
 
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { BasePopup } from './BasePopup';
 import type { PopupDesignConfig, Prize } from './types';
 import type { SpinToWinContent } from '~/domains/campaigns/types/campaign';
@@ -58,7 +58,7 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
 
   const wheelSize = config.wheelSize || 380;
   const radius = wheelSize / 2;
-  const segments = config.wheelSegments || [];
+  const segments = useMemo(() => config.wheelSegments || [], [config.wheelSegments]);
   const segmentAngle = 360 / segments.length;
   const accentColor = config.accentColor || config.buttonColor || '#000000';
   const borderRadius = typeof config.borderRadius === 'string'

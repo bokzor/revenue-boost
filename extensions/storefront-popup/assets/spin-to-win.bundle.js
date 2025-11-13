@@ -257,16 +257,6 @@
     const [isExiting, setIsExiting] = useState(false);
     const popupRef = useRef(null);
     const previousFocusRef = useRef(null);
-    const handleEscapeKey = useCallback((event) => {
-      if (event.key === "Escape" && config.closeOnEscape !== false) {
-        handleClose();
-      }
-    }, [config.closeOnEscape]);
-    const handleOverlayClick = useCallback((event) => {
-      if (event.target === event.currentTarget && config.closeOnOverlayClick !== false) {
-        handleClose();
-      }
-    }, [config.closeOnOverlayClick]);
     const handleClose = useCallback(() => {
       if (config.animation && config.animation !== "none" && !prefersReducedMotion()) {
         setIsExiting(true);
@@ -278,6 +268,16 @@
         onClose();
       }
     }, [config.animation, onClose]);
+    const handleEscapeKey = useCallback((event) => {
+      if (event.key === "Escape" && config.closeOnEscape !== false) {
+        handleClose();
+      }
+    }, [config.closeOnEscape, handleClose]);
+    const handleOverlayClick = useCallback((event) => {
+      if (event.target === event.currentTarget && config.closeOnOverlayClick !== false) {
+        handleClose();
+      }
+    }, [config.closeOnOverlayClick, handleClose]);
     useEffect(() => {
       if (isVisible) {
         document.addEventListener("keydown", handleEscapeKey);
@@ -399,7 +399,7 @@
     const wheelRef = useRef(null);
     const wheelSize = config.wheelSize || 380;
     const radius = wheelSize / 2;
-    const segments = config.wheelSegments || [];
+    const segments = useMemo(() => config.wheelSegments || [], [config.wheelSegments]);
     const segmentAngle = 360 / segments.length;
     const accentColor = config.accentColor || config.buttonColor || "#000000";
     const borderRadius = typeof config.borderRadius === "string" ? parseFloat(config.borderRadius) || 16 : config.borderRadius ?? 16;

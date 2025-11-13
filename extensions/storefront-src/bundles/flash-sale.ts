@@ -1,14 +1,14 @@
 /**
  * Flash Sale Popup Bundle
- * Uses BannerPopup for flash sales
+ * Registers the FlashSale popup component for storefront use
  */
 
-import { BannerPopup } from "../../../app/domains/storefront/notifications/BannerPopup";
+import FlashSalePopup from "../../../app/domains/storefront/popups-new/FlashSalePopup";
 
 (function register() {
   const g = window as unknown as { RevenueBoostComponents?: Record<string, unknown>; console?: Console };
   g.RevenueBoostComponents = g.RevenueBoostComponents || {};
-  g.RevenueBoostComponents["FLASH_SALE"] = BannerPopup;
+  g.RevenueBoostComponents["FLASH_SALE"] = FlashSalePopup;
 
   if (typeof g.console?.debug === "function") {
     console.debug("[Revenue Boost] Flash Sale popup registered");

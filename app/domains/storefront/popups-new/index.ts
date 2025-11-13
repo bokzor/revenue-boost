@@ -1,9 +1,9 @@
 /**
  * Storefront Popup Components
- * 
+ *
  * Professional, zero-dependency popup components for Shopify storefronts.
  * All components are built with TypeScript, React hooks, and inline styles.
- * 
+ *
  * Features:
  * - Zero external dependencies (React only)
  * - Fully customizable via props
@@ -36,7 +36,10 @@ export type { ScratchCardConfig, ScratchCardPopupProps } from './ScratchCardPopu
 
 // Sales components
 export { FlashSalePopup } from './FlashSalePopup';
-export type { FlashSaleConfig, FlashSalePopupProps } from './FlashSalePopup';
+export type {
+  FlashSaleConfig,
+  FlashSalePopupProps
+} from './FlashSalePopup';
 
 export { CountdownTimerPopup } from './CountdownTimerPopup';
 export type { CountdownTimerConfig, CountdownTimerPopupProps } from './CountdownTimerPopup';
@@ -53,10 +56,10 @@ export { FreeShippingPopup } from './FreeShippingPopup';
 export type { FreeShippingConfig, FreeShippingPopupProps } from './FreeShippingPopup';
 
 export { SocialProofPopup } from './SocialProofPopup';
-export type { 
-  SocialProofConfig, 
-  SocialProofPopupProps, 
-  SocialProofNotification 
+export type {
+  SocialProofConfig,
+  SocialProofPopupProps,
+  SocialProofNotification
 } from './SocialProofPopup';
 
 export { AnnouncementPopup } from './AnnouncementPopup';

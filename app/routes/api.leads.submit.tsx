@@ -16,7 +16,6 @@ import {
   parseDiscountConfig,
   shouldShowDiscountCode,
   getSuccessMessage,
-  type DiscountDeliveryMode,
 } from "~/domains/commerce/services/discount.server";
 import {
   upsertCustomer,

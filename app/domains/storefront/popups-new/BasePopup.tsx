@@ -30,20 +30,6 @@ export const BasePopup: React.FC<BasePopupProps> = ({
   const popupRef = useRef<HTMLDivElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
 
-  // Handle ESC key press
-  const handleEscapeKey = useCallback((event: KeyboardEvent) => {
-    if (event.key === 'Escape' && config.closeOnEscape !== false) {
-      handleClose();
-    }
-  }, [config.closeOnEscape]);
-
-  // Handle overlay click
-  const handleOverlayClick = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
-    if (event.target === event.currentTarget && config.closeOnOverlayClick !== false) {
-      handleClose();
-    }
-  }, [config.closeOnOverlayClick]);
-
   // Handle close with animation
   const handleClose = useCallback(() => {
     if (config.animation && config.animation !== 'none' && !prefersReducedMotion()) {
@@ -56,6 +42,20 @@ export const BasePopup: React.FC<BasePopupProps> = ({
       onClose();
     }
   }, [config.animation, onClose]);
+
+  // Handle ESC key press
+  const handleEscapeKey = useCallback((event: KeyboardEvent) => {
+    if (event.key === 'Escape' && config.closeOnEscape !== false) {
+      handleClose();
+    }
+  }, [config.closeOnEscape, handleClose]);
+
+  // Handle overlay click
+  const handleOverlayClick = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
+    if (event.target === event.currentTarget && config.closeOnOverlayClick !== false) {
+      handleClose();
+    }
+  }, [config.closeOnOverlayClick, handleClose]);
 
   // Setup keyboard listener
   useEffect(() => {

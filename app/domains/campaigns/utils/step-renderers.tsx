@@ -28,7 +28,11 @@ export interface StepRendererProps {
   applyGoalDefaults: (goal: CampaignGoal) => void;
   setTemplateType: (
     templateType: TemplateType,
-    templateObject?: { contentDefaults?: Record<string, unknown> }
+    templateObject?: {
+      contentDefaults?: Record<string, unknown>;
+      targetRules?: Record<string, unknown>;
+      design?: Record<string, unknown>;
+    }
   ) => void;
   storeId: string;
   shopDomain?: string;
@@ -109,15 +113,24 @@ export function renderDesignStep(props: StepRendererProps) {
           ...(template.contentConfig || {}),
         };
 
+        // Extract enhanced triggers from the selected template (if provided)
+        // Templates store triggers under targetRules.enhancedTriggers in the DB
+        const enhancedFromTemplate = (template.targetRules as any)?.enhancedTriggers;
+
         updateData({
           templateId: template.id,
           templateType: template.templateType,
           contentConfig: contentWithDefaults,
           designConfig: template.designConfig || {},
+          // Apply template triggers so the Targeting step reflects the selection (e.g., Exit Intent)
+          ...(enhancedFromTemplate ? { enhancedTriggers: enhancedFromTemplate } : {}),
         });
 
-        // Also pass the hydrated defaults so setTemplateType merges the same values
-        setTemplateType(template.templateType, { contentDefaults: contentWithDefaults });
+        // Also pass hydrated defaults and targetRules so setTemplateType can merge (e.g., page targeting)
+        setTemplateType(template.templateType, {
+          contentDefaults: contentWithDefaults,
+          targetRules: template.targetRules as any,
+        });
       }}
     />
   );

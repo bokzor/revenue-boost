@@ -19,20 +19,17 @@ export interface FlashSaleConfig {
   subheadline?: string;
   urgencyMessage?: string;
   endTime?: string | Date;
-  discountCode?: string;
-  discountValue?: number;
   discountPercentage?: number;
-  discountType?: "percentage" | "fixed";
-  ctaText?: string;
+  buttonText?: string;
   ctaUrl?: string;
-  productImage?: string;
-  productTitle?: string;
   originalPrice?: number;
   salePrice?: number;
   showCountdown?: boolean;
   countdownDuration?: number;
   showStockCounter?: boolean;
-  stockCount?: number;
+  stockMessage?: string;
+  hideOnExpiry?: boolean;
+  autoHideOnExpire?: boolean;
 }
 
 export interface FlashSaleModalProps {
@@ -119,7 +116,7 @@ export const FlashSaleModal: React.FC<FlashSaleModalProps> = ({
           ⏰ Flash Sale Timer (TODO)
         </div>
 
-        {config.discountCode && (
+        {config.discountPercentage && (
           <div
             style={{
               backgroundColor: "#F5F5F5",
@@ -130,15 +127,15 @@ export const FlashSaleModal: React.FC<FlashSaleModalProps> = ({
             }}
           >
             <p style={{ margin: "0 0 4px 0", fontSize: "12px", color: "#666" }}>
-              Use code:
+              Discount:
             </p>
             <p style={{ margin: 0, fontSize: "20px", fontWeight: "bold", color: "#333" }}>
-              {config.discountCode}
+              {config.discountPercentage}% OFF
             </p>
           </div>
         )}
 
-        {config.ctaText && (
+        {config.buttonText && (
           <button
             onClick={onCtaClick}
             style={{
@@ -154,7 +151,7 @@ export const FlashSaleModal: React.FC<FlashSaleModalProps> = ({
               marginTop: "16px",
             }}
           >
-            {config.ctaText}
+            {config.buttonText}
           </button>
         )}
 

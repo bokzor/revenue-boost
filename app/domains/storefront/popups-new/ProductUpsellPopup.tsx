@@ -14,7 +14,7 @@
  * - Beautiful by default, fully customizable
  */
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { BasePopup } from './BasePopup';
 import type { PopupDesignConfig, Product } from './types';
 import type { ProductUpsellContent } from '~/domains/campaigns/types/campaign';
@@ -58,10 +58,11 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
   const [showContent, setShowContent] = useState(false);
   const [hoveredProduct, setHoveredProduct] = useState<string | null>(null);
 
-  const products = propProducts || config.products || [];
-  const displayProducts = config.maxProducts
-    ? products.slice(0, config.maxProducts)
-    : products;
+  const products = useMemo(() => propProducts || config.products || [], [propProducts, config.products]);
+  const displayProducts = useMemo(() =>
+    config.maxProducts ? products.slice(0, config.maxProducts) : products,
+    [config.maxProducts, products]
+  );
 
   // Animate content in
   useEffect(() => {

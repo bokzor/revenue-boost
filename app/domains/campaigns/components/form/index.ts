@@ -32,3 +32,9 @@ export {
   type Step,
 } from "./FormSection";
 
+export {
+  ProductPicker,
+  type ProductPickerProps,
+  type ProductPickerSelection,
+} from "./ProductPicker";
+

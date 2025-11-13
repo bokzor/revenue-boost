@@ -5,22 +5,20 @@
  * This is a stub to fix import errors
  */
 
-// Re-export DiscountConfig from campaign types
-export type { DiscountConfig } from "~/domains/campaigns/types/campaign";
+import type {
+  ContentDiscountType,
+} from "~/domains/campaigns/types/campaign";
 
-/**
- * Discount delivery mode - controls how customers receive their discount
- * These are the actual working values in the system
- */
-export type DiscountDeliveryMode =
-  | "auto_apply_only" // Most restrictive - must log in, no code shown
-  | "show_code_always" // Always show code immediately
-  | "show_in_popup_authorized_only" // Email authorization required - code only works with subscriber's email
-  | "show_code_fallback"; // Balanced - auto-apply if logged in, show code otherwise
+// Re-export types from campaign domain for consistency
+export type {
+  DiscountConfig,
+  DiscountDeliveryMode,
+  ContentDiscountType,
+} from "~/domains/campaigns/types/campaign";
 
 export interface DiscountCode {
   code: string;
-  type: "percentage" | "fixed_amount" | "free_shipping";
+  type: ContentDiscountType;
   value: number;
   expiresAt?: Date;
   usageLimit?: number;
@@ -28,7 +26,7 @@ export interface DiscountCode {
 }
 
 export interface DiscountGenerationOptions {
-  type: "percentage" | "fixed_amount" | "free_shipping";
+  type: ContentDiscountType;
   value: number;
   prefix?: string;
   length?: number;

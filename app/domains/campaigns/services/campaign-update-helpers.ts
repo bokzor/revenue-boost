@@ -10,39 +10,13 @@
 import type { Prisma } from "@prisma/client";
 import type { CampaignUpdateData, DiscountConfig } from "../types/campaign";
 import { stringifyJsonField } from "../utils/json-helpers";
-import { generateDiscountCode } from "~/domains/popups/services/discounts/discount.server";
+// Removed auto generation of discount codes at save time; codes are generated on lead submission
 
 /**
- * Auto-generate discount code if enabled but no code provided
+ * Preserve discount config as-is; codes are generated at lead submission time.
  */
 function ensureDiscountCode(discountConfig?: DiscountConfig): DiscountConfig | undefined {
-  if (!discountConfig || !discountConfig.enabled) {
-    return discountConfig;
-  }
-
-  // If code already exists, return as-is
-  if (discountConfig.code) {
-    return discountConfig;
-  }
-
-  // Auto-generate code if enabled but missing
-  const type = (discountConfig.type || discountConfig.valueType?.toLowerCase()) as "percentage" | "fixed_amount" | "free_shipping";
-  const value = discountConfig.value || 10;
-  const prefix = discountConfig.prefix || "WELCOME";
-  const expiryDays = discountConfig.expiryDays || 30;
-
-  const generated = generateDiscountCode({
-    type,
-    value,
-    prefix,
-    expiresInDays: expiryDays,
-    usageLimit: discountConfig.usageLimit,
-  });
-
-  return {
-    ...discountConfig,
-    code: generated.code,
-  };
+  return discountConfig;
 }
 
 /**

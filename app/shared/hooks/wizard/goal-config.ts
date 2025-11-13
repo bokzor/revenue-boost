@@ -32,18 +32,16 @@ export function buildDiscountConfig(
       expiryDays: 7,
       prefix: "SAVE",
       deliveryMode: "show_code_fallback" as const,
+      autoApplyMode: "ajax" as const,
+      codePresentation: "show_code" as const,
     };
   }
 
   return {
     enabled: defaults.discount.enabled,
     showInPreview: true,
-    type: (defaults.discount.type === "percentage"
-      ? "percentage"
-      : "fixed_amount") as "percentage" | "fixed_amount" | "free_shipping" | "shared",
-    valueType: (defaults.discount.type === "percentage"
-      ? "PERCENTAGE"
-      : "FIXED_AMOUNT") as "PERCENTAGE" | "FIXED_AMOUNT",
+    type: defaults.discount.singleUse ? "single_use" : "shared",
+    valueType: (defaults.discount.type === "percentage" ? "PERCENTAGE" : "FIXED_AMOUNT"),
     value: defaults.discount.value,
     expiryDays: defaults.discount.expiryDays,
     prefix: defaults.discount.prefix,
@@ -52,7 +50,8 @@ export function buildDiscountConfig(
       | "show_code_fallback"
       | "show_code_always",
     usageLimit: defaults.discount.singleUse ? 1 : undefined,
-    singleUse: defaults.discount.singleUse,
+    autoApplyMode: "ajax" as const,
+    codePresentation: "show_code" as const,
   };
 }
 

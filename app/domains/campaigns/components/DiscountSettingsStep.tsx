@@ -51,7 +51,8 @@ export function DiscountSettingsStep({
     storeInMetafield: discountConfig?.storeInMetafield,
     authorizedEmail: discountConfig?.authorizedEmail,
     requireEmailMatch: discountConfig?.requireEmailMatch,
-    singleUse: discountConfig?.singleUse,
+    autoApplyMode: discountConfig?.autoApplyMode || "ajax",
+    codePresentation: discountConfig?.codePresentation || "show_code",
   };
 
   const updateConfig = (updates: Partial<DiscountConfig>) => {
@@ -178,12 +179,15 @@ export function DiscountSettingsStep({
                   <Select
                     label="Discount Code Type"
                     options={getDiscountTypeOptions()}
-                    value={config.singleUse ? "single_use" : config.type}
+                    value={config.type === "single_use" ? "single_use" : "shared"}
                     onChange={(type) =>
-                      updateConfig({ type: "shared", singleUse: type === "single_use" })
+                      updateConfig({
+                        type: type as "shared" | "single_use",
+                        usageLimit: type === "single_use" ? 1 : config.usageLimit,
+                      })
                     }
                     helpText={
-                      config.singleUse
+                      config.type === "single_use"
                         ? "Unique code for each customer (e.g., WELCOME10-XYZ123)"
                         : "One code shared by all customers (e.g., WELCOME10)"
                     }

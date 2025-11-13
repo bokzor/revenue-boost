@@ -60,7 +60,7 @@ export const GOAL_DEFAULTS: Record<CampaignGoal, GoalDefaults> = {
       status: "DRAFT",
     },
     templates: {
-      recommended: ["newsletter-elegant", "newsletter-minimal", "exit-intent-newsletter"],
+      recommended: ["newsletter"],
       categories: ["newsletter", "exit-intent"],
     },
   },

@@ -14,7 +14,7 @@
  * Popup content remains fully autonomous - just renders inside the portal.
  */
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 
 export type AnimationType = 'fade' | 'slide' | 'zoom' | 'bounce' | 'none';
@@ -108,14 +108,15 @@ export const PopupPortal: React.FC<PopupPortalProps> = ({
   // Get animation timing
   const animationType = animation.type || 'fade';
   const choreography = ANIMATION_CHOREOGRAPHY[animationType];
-  const backdropTiming = {
+  const backdropTiming = useMemo(() => ({
     delay: animation.backdropDelay ?? choreography.backdrop.delay,
     duration: animation.duration ?? choreography.backdrop.duration,
-  };
-  const contentTiming = {
+  }), [animation.backdropDelay, animation.duration, choreography.backdrop.delay, choreography.backdrop.duration]);
+
+  const contentTiming = useMemo(() => ({
     delay: animation.contentDelay ?? choreography.content.delay,
     duration: animation.duration ?? choreography.content.duration,
-  };
+  }), [animation.contentDelay, animation.duration, choreography.content.delay, choreography.content.duration]);
 
   // Calculate backdrop color with opacity
   const getBackdropColor = useCallback(() => {
@@ -191,7 +192,7 @@ export const PopupPortal: React.FC<PopupPortalProps> = ({
   }, [closeOnBackdropClick, handleClose]);
 
   // Prevent content click from closing
-  const handleContentClick = useCallback((e: React.MouseEvent) => {
+  const handleContentClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     e.stopPropagation();
   }, []);
 

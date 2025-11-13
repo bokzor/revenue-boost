@@ -1076,11 +1076,22 @@
     if (!Component) {
       return null;
     }
+    const currentCartTotal = (() => {
+      try {
+        const w3 = window;
+        const raw = w3?.REVENUE_BOOST_CONFIG?.cartValue;
+        const n2 = typeof raw === "string" ? parseFloat(raw) : typeof raw === "number" ? raw : 0;
+        return Number.isFinite(n2) ? n2 : 0;
+      } catch {
+        return 0;
+      }
+    })();
     return _(Component, {
       config: {
         ...campaign.contentConfig,
         ...campaign.designConfig,
         id: campaign.id,
+        currentCartTotal,
         // Pass discount config if enabled
         discount: campaign.discountConfig?.enabled ? {
           enabled: true,

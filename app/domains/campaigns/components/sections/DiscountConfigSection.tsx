@@ -36,29 +36,29 @@ export function DiscountConfigSection({
           <FormGrid columns={2}>
             <SelectField
               label="Discount Type"
-              name="discount.type"
-              value={discount.type || "percentage"}
+              name="discount.valueType"
+              value={discount.valueType || "PERCENTAGE"}
               options={[
-                { label: "Percentage Off", value: "percentage" },
-                { label: "Fixed Amount Off", value: "fixed_amount" },
-                { label: "Free Shipping", value: "free_shipping" },
+                { label: "Percentage Off", value: "PERCENTAGE" },
+                { label: "Fixed Amount Off", value: "FIXED_AMOUNT" },
+                { label: "Free Shipping", value: "FREE_SHIPPING" },
               ]}
               required
               onChange={(value) =>
-                updateField("type", value as DiscountConfig["type"])
+                updateField("valueType", value as DiscountConfig["valueType"])
               }
             />
 
-            {discount.type !== "free_shipping" && (
+            {discount.valueType !== "FREE_SHIPPING" && (
               <TextField
                 label="Discount Value"
                 name="discount.value"
                 value={discount.value?.toString() || ""}
                 error={errors?.value}
                 required
-                placeholder={discount.type === "percentage" ? "10" : "5.00"}
+                placeholder={discount.valueType === "PERCENTAGE" ? "10" : "5.00"}
                 helpText={
-                  discount.type === "percentage"
+                  discount.valueType === "PERCENTAGE"
                     ? "Percentage (e.g., 10 for 10%)"
                     : "Amount in currency (e.g., 5.00)"
                 }
@@ -117,12 +117,12 @@ export function DiscountConfigSection({
 
             <TextField
               label="Minimum Purchase Amount"
-              name="discount.minPurchaseAmount"
-              value={discount.minPurchaseAmount?.toString() || ""}
+              name="discount.minimumAmount"
+              value={discount.minimumAmount?.toString() || ""}
               placeholder="25.00"
               helpText="Minimum order value required (optional)"
               onChange={(value) =>
-                updateField("minPurchaseAmount", parseFloat(value) || undefined)
+                updateField("minimumAmount", parseFloat(value) || undefined)
               }
             />
           </FormGrid>

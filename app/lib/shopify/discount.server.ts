@@ -25,6 +25,20 @@ export interface DiscountCodeInput {
   // Free shipping specific
   countries?: string[];
   excludeShippingRatesOver?: number;
+
+  // Product/collection scoping (ENHANCED)
+  applicability?: {
+    scope: "all" | "products" | "collections";
+    productIds?: string[]; // Shopify product GIDs
+    collectionIds?: string[]; // Shopify collection GIDs
+  };
+
+  // Combining rules
+  combinesWith?: {
+    orderDiscounts?: boolean;
+    productDiscounts?: boolean;
+    shippingDiscounts?: boolean;
+  };
 }
 
 export interface ShopifyDiscount {
@@ -156,6 +170,53 @@ const DISCOUNT_CODE_FREE_SHIPPING_CREATE_MUTATION = `
 `;
 
 /**
+ * GraphQL mutation for Buy X Get Y discounts
+ */
+const DISCOUNT_CODE_BXGY_CREATE_MUTATION = `
+  mutation discountCodeBxgyCreate($bxgyCodeDiscount: DiscountCodeBxgyInput!) {
+    discountCodeBxgyCreate(bxgyCodeDiscount: $bxgyCodeDiscount) {
+      codeDiscountNode {
+        id
+        codeDiscount {
+          ... on DiscountCodeBxgy {
+            title
+            codes(first: 10) {
+              nodes {
+                id
+                code
+              }
+            }
+            status
+            createdAt
+            updatedAt
+            customerBuys {
+              value {
+                ... on DiscountQuantity {
+                  quantity
+                }
+              }
+            }
+            customerGets {
+              value {
+                ... on DiscountOnQuantity {
+                  quantity {
+                    quantity
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      userErrors {
+        field
+        message
+      }
+    }
+  }
+`;
+
+/**
  * GraphQL query to get discount by ID
  */
 const DISCOUNT_CODE_GET_QUERY = `
@@ -216,9 +277,7 @@ export async function createDiscountCode(
                 appliesOnEachItem: false,
               },
             },
-      items: {
-        all: true,
-      },
+      items: buildItemsSelection(discountData.applicability),
     };
 
     // Build minimum requirement
@@ -447,6 +506,129 @@ export async function getDiscountCode(
     return {
       errors: [
         error instanceof Error ? error.message : "Failed to get discount code",
+      ],
+    };
+  }
+}
+
+/**
+ * Helper: Build items selection for customerGets/customerBuys
+ */
+function buildItemsSelection(applicability?: DiscountCodeInput["applicability"]) {
+  if (!applicability || applicability.scope === "all") {
+    return { all: true };
+  }
+
+  if (applicability.scope === "products" && applicability.productIds?.length) {
+    return {
+      products: {
+        productVariantsToAdd: applicability.productIds.map(id => ({
+          id,
+          variants: { all: true }, // All variants of product
+        })),
+      },
+    };
+  }
+
+  if (applicability.scope === "collections" && applicability.collectionIds?.length) {
+    return {
+      collections: {
+        add: applicability.collectionIds,
+      },
+    };
+  }
+
+  // Fallback to all
+  return { all: true };
+}
+
+/**
+ * Create a Buy X Get Y discount code
+ */
+export async function createBxGyDiscountCode(
+  admin: AdminApiContext,
+  discountData: DiscountCodeInput & {
+    bxgy: {
+      buy: { quantity: number; value?: number };
+      get: { quantity: number; discountPercentage?: number; discountAmount?: number };
+    };
+  }
+): Promise<{ discount?: ShopifyDiscount; errors?: string[] }> {
+  try {
+    const { bxgy, applicability } = discountData;
+
+    const input = {
+      title: discountData.title,
+      code: discountData.code,
+      startsAt: discountData.startsAt || new Date().toISOString(),
+      endsAt: discountData.endsAt,
+      usageLimit: discountData.usageLimit,
+      appliesOncePerCustomer: discountData.appliesOncePerCustomer || false,
+
+      // Customer buys condition
+      customerBuys: {
+        value: {
+          quantity: bxgy.buy.quantity.toString(),
+        },
+        items: buildItemsSelection(applicability),
+      },
+
+      // Customer gets benefit
+      customerGets: {
+        value: {
+          discountOnQuantity: {
+            quantity: bxgy.get.quantity.toString(),
+            effect: bxgy.get.discountPercentage
+              ? { percentage: bxgy.get.discountPercentage / 100 }
+              : bxgy.get.discountAmount
+              ? { discountAmount: { amount: bxgy.get.discountAmount.toString() } }
+              : { percentage: 1.0 }, // 100% off (free)
+          },
+        },
+        items: buildItemsSelection(applicability),
+      },
+
+      customerSelection: { all: true },
+    };
+
+    const response = await admin.graphql(DISCOUNT_CODE_BXGY_CREATE_MUTATION, {
+      variables: {
+        bxgyCodeDiscount: input,
+      },
+    });
+
+    const data = await response.json();
+
+    if (data.data?.discountCodeBxgyCreate?.userErrors?.length > 0) {
+      return {
+        errors: data.data.discountCodeBxgyCreate.userErrors.map(
+          (error: any) => error.message
+        ),
+      };
+    }
+
+    const discountNode = data.data?.discountCodeBxgyCreate?.codeDiscountNode;
+    if (discountNode) {
+      return {
+        discount: {
+          id: discountNode.id,
+          title: discountNode.codeDiscount.title,
+          codes: discountNode.codeDiscount.codes,
+          status: discountNode.codeDiscount.status,
+          createdAt: discountNode.codeDiscount.createdAt,
+          updatedAt: discountNode.codeDiscount.updatedAt,
+        },
+      };
+    }
+
+    return {
+      errors: ["Failed to create BxGy discount code"],
+    };
+  } catch (error) {
+    console.error("[Shopify Discount] Error creating BxGy discount:", error);
+    return {
+      errors: [
+        error instanceof Error ? error.message : "Failed to create BxGy discount",
       ],
     };
   }

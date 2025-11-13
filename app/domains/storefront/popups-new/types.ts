@@ -40,6 +40,7 @@ export interface PopupDesignConfig {
   // Layout Properties
   position: PopupPosition;
   size: PopupSize;
+  popupSize?: "compact" | "standard" | "wide" | "full"; // FlashSale-specific size
   borderRadius?: string | number;
   padding?: string | number;
   maxWidth?: string | number;

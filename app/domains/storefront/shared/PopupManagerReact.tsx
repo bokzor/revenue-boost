@@ -216,7 +216,8 @@ export const PopupManager: React.FC<PopupManagerProps> = ({
     return () => {
       coreRef.current?.cleanupTriggers();
     };
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only initialize once on mount
 
   // Sync state changes from core to React state
   const syncStateFromCore = useCallback(() => {
@@ -346,13 +347,13 @@ export const PopupManager: React.FC<PopupManagerProps> = ({
               discount: activeCampaign.discountConfig?.enabled ? {
                 enabled: true,
                 code: activeCampaign.discountConfig.code || '',
-                percentage: (activeCampaign.discountConfig.valueType === "PERCENTAGE" || activeCampaign.discountConfig.type === "percentage")
+                percentage: (activeCampaign.discountConfig.valueType === "PERCENTAGE")
                   ? activeCampaign.discountConfig.value
                   : undefined,
-                value: (activeCampaign.discountConfig.valueType === "FIXED_AMOUNT" || activeCampaign.discountConfig.type === "fixed_amount")
+                value: (activeCampaign.discountConfig.valueType === "FIXED_AMOUNT")
                   ? activeCampaign.discountConfig.value
                   : undefined,
-                type: activeCampaign.discountConfig.valueType || activeCampaign.discountConfig.type,
+                type: activeCampaign.discountConfig.valueType,
                 deliveryMode: activeCampaign.discountConfig.deliveryMode,
                 expiryDays: activeCampaign.discountConfig.expiryDays,
                 description: activeCampaign.discountConfig.description,
@@ -490,13 +491,13 @@ export const PopupManager: React.FC<PopupManagerProps> = ({
               discount: activeCampaign.discountConfig?.enabled ? {
                 enabled: true,
                 code: activeCampaign.discountConfig.code || '',
-                percentage: (activeCampaign.discountConfig.valueType === "PERCENTAGE" || activeCampaign.discountConfig.type === "percentage")
+                percentage: (activeCampaign.discountConfig.valueType === "PERCENTAGE")
                   ? activeCampaign.discountConfig.value
                   : undefined,
-                value: (activeCampaign.discountConfig.valueType === "FIXED_AMOUNT" || activeCampaign.discountConfig.type === "fixed_amount")
+                value: (activeCampaign.discountConfig.valueType === "FIXED_AMOUNT")
                   ? activeCampaign.discountConfig.value
                   : undefined,
-                type: activeCampaign.discountConfig.valueType || activeCampaign.discountConfig.type,
+                type: activeCampaign.discountConfig.valueType,
                 deliveryMode: activeCampaign.discountConfig.deliveryMode,
                 expiryDays: activeCampaign.discountConfig.expiryDays,
                 description: activeCampaign.discountConfig.description,

@@ -160,28 +160,6 @@ export class FrequencyCapService {
   }
 
   /**
-   * Legacy method for backward compatibility
-   * @deprecated Use checkFrequencyCapping instead
-   */
-  static shouldShowCampaign(
-    campaign: CampaignWithConfigs,
-    context: StorefrontContext
-  ): boolean {
-    // Synchronous fallback - always allow if Redis not available
-    // Real check should use async checkFrequencyCapping
-    return true;
-  }
-
-  /**
-   * Legacy method for backward compatibility
-   * @deprecated Use recordDisplay instead
-   */
-  static recordView(campaignId: string): void {
-    // No-op - use async recordDisplay instead
-    console.warn('recordView is deprecated, use recordDisplay instead');
-  }
-
-  /**
    * Check cooldown period
    */
   private static async checkCooldown(

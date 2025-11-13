@@ -56,6 +56,8 @@ export function DiscountSection({
     storeInMetafield: discountConfig?.storeInMetafield,
     authorizedEmail: discountConfig?.authorizedEmail,
     requireEmailMatch: discountConfig?.requireEmailMatch,
+    autoApplyMode: discountConfig?.autoApplyMode || "ajax",
+    codePresentation: discountConfig?.codePresentation || "show_code",
   };
 
   const updateConfig = (updates: Partial<DiscountConfig>) => {

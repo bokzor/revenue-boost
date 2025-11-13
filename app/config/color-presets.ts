@@ -129,6 +129,11 @@ export function getColorPresetsForTemplate(templateType?: string): ColorPreset[]
     return getNewsletterThemePresets();
   }
 
+  // Flash Sale templates use the new flash sale themes
+  if (templateType === "FLASH_SALE") {
+    return getFlashSaleThemePresets();
+  }
+
   const presetIds = TEMPLATE_PRESETS[templateType] || [];
   const presets = presetIds
     .map(id => COLOR_PRESETS.find(p => p.id === id))
@@ -443,6 +448,206 @@ export const NEWSLETTER_THEMES: Record<NewsletterThemeKey, ThemeColors> = {
   },
 };
 
+// ============================================
+// Flash Sale Themes
+// ============================================
+
+export type FlashSaleThemeKey =
+  | "urgent_red"
+  | "hot_deal"
+  | "midnight_sale"
+  | "neon_flash"
+  | "elegant_sale"
+  | "minimal_clean"
+  | "gradient_pop"
+  | "luxury_offer";
+
+export const FLASH_SALE_THEMES: Record<FlashSaleThemeKey, ThemeColors> = {
+  urgent_red: {
+    background: "#ffffff",
+    text: "#1f2937",
+    primary: "#ef4444",
+    secondary: "#fee2e2",
+    accent: "#dc2626",
+    border: "#fca5a5",
+    success: "#10b981",
+    warning: "#ef4444",
+    imageBg: "#fef2f2",
+    descColor: "#6b7280",
+    inputBorder: "#fca5a5",
+    timerBg: "rgba(239, 68, 68, 0.15)",
+    timerText: "#dc2626",
+    ctaBg: "#ef4444",
+    ctaText: "#ffffff",
+    fontFamily: "inherit",
+    titleFontSize: "2rem",
+    titleFontWeight: "800",
+    descriptionFontSize: "1rem",
+    descriptionFontWeight: "500",
+  },
+  hot_deal: {
+    background: "#fffbeb",
+    text: "#1f2937",
+    primary: "#f97316",
+    secondary: "#ffedd5",
+    accent: "#ea580c",
+    border: "#fdba74",
+    success: "#10b981",
+    warning: "#dc2626",
+    imageBg: "#fff7ed",
+    descColor: "#78716c",
+    inputBorder: "#fdba74",
+    timerBg: "rgba(249, 115, 22, 0.15)",
+    timerText: "#ea580c",
+    ctaBg: "#f97316",
+    ctaText: "#ffffff",
+    fontFamily: "inherit",
+    titleFontSize: "2rem",
+    titleFontWeight: "800",
+    descriptionFontSize: "1rem",
+    descriptionFontWeight: "500",
+  },
+  midnight_sale: {
+    background: "#0f172a",
+    text: "#f1f5f9",
+    primary: "#38bdf8",
+    secondary: "rgba(255, 255, 255, 0.08)",
+    accent: "#0ea5e9",
+    border: "rgba(56, 189, 248, 0.3)",
+    success: "#10b981",
+    warning: "#ef4444",
+    imageBg: "#1e293b",
+    descColor: "#cbd5e1",
+    inputBorder: "rgba(56, 189, 248, 0.3)",
+    timerBg: "rgba(56, 189, 248, 0.12)",
+    timerText: "#38bdf8",
+    ctaBg: "#38bdf8",
+    ctaText: "#0f172a",
+    fontFamily: "inherit",
+    titleFontSize: "2rem",
+    titleFontWeight: "700",
+    descriptionFontSize: "1rem",
+    descriptionFontWeight: "400",
+    inputBackdropFilter: "blur(8px)",
+  },
+  neon_flash: {
+    background: "#1a1a2e",
+    text: "#ffffff",
+    primary: "#fde047",
+    secondary: "rgba(253, 224, 71, 0.1)",
+    accent: "#facc15",
+    border: "rgba(253, 224, 71, 0.4)",
+    success: "#22c55e",
+    warning: "#ef4444",
+    imageBg: "#16213e",
+    descColor: "#e2e8f0",
+    inputBorder: "rgba(253, 224, 71, 0.4)",
+    timerBg: "rgba(253, 224, 71, 0.15)",
+    timerText: "#fde047",
+    ctaBg: "#fde047",
+    ctaText: "#1a1a2e",
+    fontFamily: "inherit",
+    titleFontSize: "2rem",
+    titleFontWeight: "800",
+    titleTextShadow: "0 0 20px rgba(253, 224, 71, 0.5)",
+    descriptionFontSize: "1rem",
+    descriptionFontWeight: "500",
+    inputBackdropFilter: "blur(8px)",
+    inputBoxShadow: "0 0 15px rgba(253, 224, 71, 0.2)",
+  },
+  elegant_sale: {
+    background: "#fffbf5",
+    text: "#1f2937",
+    primary: "#d97706",
+    secondary: "#fef3c7",
+    accent: "#b45309",
+    border: "#fcd34d",
+    success: "#059669",
+    warning: "#dc2626",
+    imageBg: "#fef9c3",
+    descColor: "#78716c",
+    inputBorder: "#fcd34d",
+    timerBg: "rgba(217, 119, 6, 0.1)",
+    timerText: "#b45309",
+    ctaBg: "#d97706",
+    ctaText: "#ffffff",
+    fontFamily: "inherit",
+    titleFontSize: "1.875rem",
+    titleFontWeight: "700",
+    descriptionFontSize: "1rem",
+    descriptionFontWeight: "400",
+  },
+  minimal_clean: {
+    background: "#ffffff",
+    text: "#111827",
+    primary: "#3b82f6",
+    secondary: "#f9fafb",
+    accent: "#2563eb",
+    border: "#e5e7eb",
+    success: "#10b981",
+    warning: "#ef4444",
+    imageBg: "#f3f4f6",
+    descColor: "#6b7280",
+    inputBorder: "#d1d5db",
+    timerBg: "rgba(59, 130, 246, 0.08)",
+    timerText: "#2563eb",
+    ctaBg: "#3b82f6",
+    ctaText: "#ffffff",
+    fontFamily: "inherit",
+    titleFontSize: "1.875rem",
+    titleFontWeight: "600",
+    descriptionFontSize: "1rem",
+    descriptionFontWeight: "400",
+  },
+  gradient_pop: {
+    background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+    text: "#ffffff",
+    primary: "#fbbf24",
+    secondary: "rgba(255, 255, 255, 0.15)",
+    accent: "#f59e0b",
+    border: "rgba(255, 255, 255, 0.3)",
+    success: "#34d399",
+    warning: "#f87171",
+    imageBg: "rgba(255, 255, 255, 0.1)",
+    descColor: "#f3f4f6",
+    inputBorder: "rgba(255, 255, 255, 0.3)",
+    timerBg: "rgba(251, 191, 36, 0.15)",
+    timerText: "#fbbf24",
+    ctaBg: "#fbbf24",
+    ctaText: "#1f2937",
+    fontFamily: "inherit",
+    titleFontSize: "2rem",
+    titleFontWeight: "700",
+    descriptionFontSize: "1rem",
+    descriptionFontWeight: "400",
+    inputBackdropFilter: "blur(10px)",
+    inputBoxShadow: "0 0 20px rgba(251, 191, 36, 0.15)",
+  },
+  luxury_offer: {
+    background: "#18181b",
+    text: "#fbbf24",
+    primary: "#fbbf24",
+    secondary: "rgba(251, 191, 36, 0.1)",
+    accent: "#f59e0b",
+    border: "rgba(251, 191, 36, 0.3)",
+    success: "#10b981",
+    warning: "#ef4444",
+    imageBg: "#27272a",
+    descColor: "#e5e5e5",
+    inputBorder: "rgba(251, 191, 36, 0.3)",
+    timerBg: "rgba(251, 191, 36, 0.12)",
+    timerText: "#fbbf24",
+    ctaBg: "#fbbf24",
+    ctaText: "#18181b",
+    fontFamily: "inherit",
+    titleFontSize: "2rem",
+    titleFontWeight: "700",
+    descriptionFontSize: "1rem",
+    descriptionFontWeight: "400",
+    inputBackdropFilter: "blur(8px)",
+  },
+};
+
 /**
  * Get theme colors for a specific newsletter theme
  */
@@ -588,6 +793,80 @@ function getNewsletterThemeDescription(theme: NewsletterThemeKey): string {
     ocean: "Fresh blue/teal palette",
   };
   return descriptions[theme] || "";
+}
+
+// ============================================
+// Flash Sale Theme Helpers
+// ============================================
+
+/**
+ * Get flash sale themes as ColorPreset format for ColorCustomizationPanel
+ */
+export function getFlashSaleThemePresets(): ColorPreset[] {
+  return Object.entries(FLASH_SALE_THEMES).map(([key, theme]) => ({
+    id: `flash-sale-${key}`,
+    name: key
+      .split("_")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" "),
+    description: getFlashSaleThemeDescription(key as FlashSaleThemeKey),
+    colors: themeColorsToDesignConfig(theme),
+    theme: getColorThemeForFlashSaleTheme(key as FlashSaleThemeKey),
+    isPopular: ["urgent_red", "hot_deal", "midnight_sale", "neon_flash"].includes(key),
+  }));
+}
+
+/**
+ * Map flash sale theme to ColorTheme
+ */
+function getColorThemeForFlashSaleTheme(theme: FlashSaleThemeKey): ColorTheme {
+  const mapping: Record<FlashSaleThemeKey, ColorTheme> = {
+    urgent_red: "vibrant",
+    hot_deal: "vibrant",
+    midnight_sale: "dark",
+    neon_flash: "playful",
+    elegant_sale: "elegant",
+    minimal_clean: "minimal",
+    gradient_pop: "vibrant",
+    luxury_offer: "elegant",
+  };
+  return mapping[theme];
+}
+
+/**
+ * Get description for flash sale theme
+ */
+function getFlashSaleThemeDescription(theme: FlashSaleThemeKey): string {
+  const descriptions: Record<FlashSaleThemeKey, string> = {
+    urgent_red: "Bold red urgency theme",
+    hot_deal: "Warm orange/yellow energy",
+    midnight_sale: "Dark mode with bright cyan",
+    neon_flash: "Cyberpunk yellow glow",
+    elegant_sale: "Sophisticated amber tones",
+    minimal_clean: "Clean white with blue accents",
+    gradient_pop: "Purple gradient with gold CTA",
+    luxury_offer: "Premium gold on black",
+  };
+  return descriptions[theme] || "";
+}
+
+/**
+ * Get theme colors for a specific flash sale theme
+ */
+export function getFlashSaleThemeColors(
+  theme: FlashSaleThemeKey,
+  customColors?: Partial<ThemeColors>
+): ThemeColors {
+  const baseTheme = FLASH_SALE_THEMES[theme];
+
+  if (!customColors) {
+    return baseTheme;
+  }
+
+  return {
+    ...baseTheme,
+    ...customColors,
+  };
 }
 
 

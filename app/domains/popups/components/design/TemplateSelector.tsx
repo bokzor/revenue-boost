@@ -96,7 +96,8 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
   // Load all templates once (or when store changes)
   useEffect(() => {
     loadAllTemplates();
-  }, [storeId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storeId]); // loadAllTemplates is stable, no need to include
 
   // Auto-select first template if none is selected
   useEffect(() => {

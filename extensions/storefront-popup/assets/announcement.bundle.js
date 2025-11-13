@@ -107,14 +107,14 @@
     const shadowRootRef = useRef(null);
     const animationType = animation.type || "fade";
     const choreography = ANIMATION_CHOREOGRAPHY[animationType];
-    const backdropTiming = {
+    const backdropTiming = useMemo(() => ({
       delay: animation.backdropDelay ?? choreography.backdrop.delay,
       duration: animation.duration ?? choreography.backdrop.duration
-    };
-    const contentTiming = {
+    }), [animation.backdropDelay, animation.duration, choreography.backdrop.delay, choreography.backdrop.duration]);
+    const contentTiming = useMemo(() => ({
       delay: animation.contentDelay ?? choreography.content.delay,
       duration: animation.duration ?? choreography.content.duration
-    };
+    }), [animation.contentDelay, animation.duration, choreography.content.delay, choreography.content.duration]);
     const getBackdropColor = useCallback(() => {
       const opacity = backdrop.opacity ?? 0.6;
       const color = backdrop.color || "rgba(0, 0, 0, 1)";

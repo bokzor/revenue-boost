@@ -81,6 +81,10 @@ module.exports = {
             ignore: ["^~"],
           },
         ],
+        // Disable prop-types validation for TypeScript files
+        // TypeScript provides compile-time type checking, making prop-types redundant
+        "react/prop-types": "off",
+        "react/display-name": "off",
       },
     },
 

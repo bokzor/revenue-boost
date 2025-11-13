@@ -37,10 +37,44 @@ export const TemplateTypeSchema = z.enum([
   "ANNOUNCEMENT"
 ]);
 
+/**
+ * Discount Type Enums
+ * Centralized discount-related enums for type safety
+ */
+
+// Main discount configuration enums (used in DiscountConfig)
+export const DiscountTypeSchema = z.enum(["shared", "single_use"]);
+
+export const DiscountValueTypeSchema = z.enum([
+  "PERCENTAGE",
+  "FIXED_AMOUNT",
+  "FREE_SHIPPING"
+]);
+
+export const DiscountDeliveryModeSchema = z.enum([
+  "auto_apply_only",
+  "show_code_fallback",
+  "show_code_always",
+  "show_in_popup_authorized_only"
+]);
+
+// Content-level discount type enum (used in template content configs like SpinToWin, FlashSale)
+// Lowercase for UI display purposes
+export const ContentDiscountTypeSchema = z.enum([
+  "percentage",
+  "fixed_amount",
+  "free_shipping"
+]);
+
 export type CampaignGoal = z.infer<typeof CampaignGoalSchema>;
 export type CampaignStatus = z.infer<typeof CampaignStatusSchema>;
 export type TemplateType = z.infer<typeof TemplateTypeSchema>;
 export const TemplateTypeEnum = TemplateTypeSchema.enum;
+
+export type DiscountType = z.infer<typeof DiscountTypeSchema>;
+export type DiscountValueType = z.infer<typeof DiscountValueTypeSchema>;
+export type DiscountDeliveryMode = z.infer<typeof DiscountDeliveryModeSchema>;
+export type ContentDiscountType = z.infer<typeof ContentDiscountTypeSchema>;
 
 // ============================================================================
 // BASE CONTENT CONFIGURATION
@@ -115,7 +149,7 @@ export const SpinToWinContentSchema = BaseContentConfigSchema.extend({
     label: z.string(),
     probability: z.number().min(0).max(1),
     color: z.string().optional(),
-    discountType: z.enum(["percentage", "fixed_amount", "free_shipping"]).optional(),
+    discountType: ContentDiscountTypeSchema.optional(),
     discountValue: z.number().min(0).optional(),
     discountCode: z.string().optional(),
   })).min(2, "At least 2 wheel segments required").default(DEFAULT_SPIN_TO_WIN_SEGMENTS),
@@ -131,22 +165,72 @@ export const SpinToWinContentSchema = BaseContentConfigSchema.extend({
 
 /**
  * Flash Sale specific content fields
+ * Enhanced with advanced timer modes, real-time inventory, and reservation features
  */
 export const FlashSaleContentSchema = BaseContentConfigSchema.extend({
   urgencyMessage: z.string().min(1, "Urgency message is required"),
   discountPercentage: z.number().min(0).max(100),
-  discountValue: z.number().min(0).optional(),
-  discountType: z.enum(["percentage", "fixed_amount"]).default("percentage"),
   originalPrice: z.number().min(0).optional(),
   salePrice: z.number().min(0).optional(),
   showCountdown: z.boolean().default(true),
   endTime: z.string().optional(), // ISO date string
-
   countdownDuration: z.number().int().min(60).default(3600), // seconds
   hideOnExpiry: z.boolean().default(true),
+  autoHideOnExpire: z.boolean().default(false),
   showStockCounter: z.boolean().default(false),
-  stockCount: z.number().int().min(0).optional(),
+  stockMessage: z.string().optional(),
   ctaUrl: z.string().optional(),
+
+  // === ENHANCED FEATURES ===
+
+  // Advanced timer configuration
+  timer: z.object({
+    mode: z.enum(["fixed_end", "duration", "personal", "stock_limited"]).default("duration"),
+    endTimeISO: z.string().optional(), // For fixed_end mode
+    durationSeconds: z.number().int().min(60).optional(), // For duration mode
+    personalWindowSeconds: z.number().int().min(60).optional(), // For personal mode (e.g., 30 min from first view)
+    timezone: z.enum(["shop", "visitor"]).default("shop"),
+    onExpire: z.enum(["auto_hide", "collapse", "swap_message"]).default("auto_hide"),
+    expiredMessage: z.string().optional(),
+  }).optional(),
+
+  // Real-time inventory tracking
+  inventory: z.object({
+    mode: z.enum(["real", "pseudo"]).default("pseudo"),
+    productIds: z.array(z.string()).optional(), // Shopify product GIDs
+    variantIds: z.array(z.string()).optional(), // Shopify variant GIDs
+    collectionIds: z.array(z.string()).optional(), // Shopify collection GIDs
+    pseudoMax: z.number().int().min(1).optional(), // For pseudo mode: fake max inventory
+    showOnlyXLeft: z.boolean().default(true),
+    showThreshold: z.number().int().min(1).default(10), // Show "Only X left" when ≤ this value
+    soldOutBehavior: z.enum(["hide", "missed_it"]).default("hide"),
+    soldOutMessage: z.string().optional(),
+  }).optional(),
+
+  // Soft reservation timer ("X minutes to claim this offer")
+  reserve: z.object({
+    enabled: z.boolean().default(false),
+    minutes: z.number().int().min(1).default(10),
+    label: z.string().optional(), // e.g., "Offer reserved for:"
+    disclaimer: z.string().optional(), // e.g., "Inventory not guaranteed"
+  }).optional(),
+
+  // CTA configuration
+  cta: z.object({
+    primaryLabel: z.string().default("Unlock Offer"),
+    primaryAction: z.enum(["apply", "navigate"]).default("apply"),
+    navigateUrl: z.string().optional(), // For navigate action
+    secondaryLabel: z.string().optional(),
+    secondaryUrl: z.string().optional(),
+  }).optional(),
+
+  // Presentation settings
+  presentation: z.object({
+    placement: z.enum(["center", "bottom_right", "bottom_left"]).default("center"),
+    badgeStyle: z.enum(["pill", "tag"]).default("pill"),
+    showTimer: z.boolean().default(true),
+    showInventory: z.boolean().default(true),
+  }).optional(),
 });
 
 /**
@@ -246,20 +330,33 @@ export const ScratchCardContentSchema = BaseContentConfigSchema.extend({
 
 /**
  * Free Shipping specific content fields
- * Simple banner with progress bar showing distance to free shipping threshold
+ * Progress bar showing distance to free shipping threshold with 4 states:
+ * - empty: Cart is empty
+ * - progress: Making progress toward threshold
+ * - near-miss: Very close to threshold (creates urgency)
+ * - unlocked: Threshold reached
  */
-export const FreeShippingContentSchema = BaseContentConfigSchema.extend({
-  freeShippingThreshold: z.number().min(0).default(75),
-  currency: z.string().default("USD"),
-  initialMessage: z.string().optional(),
-  progressMessage: z.string().optional(),
-  successTitle: z.string().optional(),
-  successSubhead: z.string().optional(),
-  showProgress: z.boolean().default(true),
-  progressColor: z.string().optional(),
-  displayStyle: z.enum(["banner", "modal", "sticky"]).default("banner"),
-  autoHide: z.boolean().default(false),
-  hideDelay: z.number().int().min(1).max(30).default(3), // seconds
+export const FreeShippingContentSchema = z.object({
+  // Threshold Configuration
+  threshold: z.number().min(0).default(75), // Renamed from freeShippingThreshold for consistency with mockup
+  currency: z.string().default("$"),
+  nearMissThreshold: z.number().min(0).default(10), // Amount remaining to trigger "near-miss" state
+
+  // State Messages
+  emptyMessage: z.string().default("Add items to unlock free shipping"),
+  progressMessage: z.string().default("You're {remaining} away from free shipping"),
+  nearMissMessage: z.string().default("Only {remaining} to go!"),
+  unlockedMessage: z.string().default("You've unlocked free shipping! 🎉"),
+
+  // Display Options
+  barPosition: z.enum(["top", "bottom"]).default("top"), // Renamed from 'position' to avoid conflict with PopupDesignConfig
+  dismissible: z.boolean().default(true),
+  showIcon: z.boolean().default(true),
+  celebrateOnUnlock: z.boolean().default(true),
+  animationDuration: z.number().int().min(100).max(2000).default(500), // milliseconds
+
+  // Preview-only (admin): cart total to simulate progress in Live Preview
+  previewCartTotal: z.number().min(0).default(0),
 });
 
 /**
@@ -328,6 +425,7 @@ export const DesignConfigSchema = z.object({
   ]).default("modern"),
   position: z.enum(["center", "top", "bottom", "left", "right"]).default("center"),
   size: z.enum(["small", "medium", "large"]).default("medium"),
+  popupSize: z.enum(["compact", "standard", "wide", "full"]).default("standard").optional(), // For FlashSale
   borderRadius: z.number().min(0).max(50).default(8),
   animation: z.enum(["fade", "slide", "bounce", "none"]).default("fade"),
 
@@ -539,27 +637,103 @@ export const TargetRulesConfigSchema = z.object({
 
 /**
  * Discount Configuration Schema
+ * Centralized discount configuration with proper enum types
+ * Enhanced with applicability scoping, tiers, BOGO, free gifts, and auto-apply
  */
 export const DiscountConfigSchema = z.object({
   enabled: z.boolean().default(false),
-  showInPreview: z.boolean().default(true), // NEW: Show discount in preview
-  type: z.enum(["percentage", "fixed_amount", "free_shipping", "shared"]).optional(),
+  showInPreview: z.boolean().default(true),
+
+  // Discount type and value
+  type: DiscountTypeSchema.optional(),
+  valueType: DiscountValueTypeSchema.optional(),
   value: z.number().min(0).optional(),
   code: z.string().optional(),
-  deliveryMode: z.enum(["auto_apply_only", "show_code_fallback", "show_code_always"]).optional(),
-  expiryDays: z.number().min(1).optional(),
-  minPurchaseAmount: z.number().min(0).optional(),
-  description: z.string().optional(),
-  // Additional properties used in the codebase
-  valueType: z.enum(["PERCENTAGE", "FIXED_AMOUNT", "FREE_SHIPPING"]).optional(),
-  minimumAmount: z.number().min(0).optional(),
-  usageLimit: z.number().int().min(1).optional(),
-  prefix: z.string().optional(),
+
+  // Delivery configuration
+  deliveryMode: DiscountDeliveryModeSchema.optional(),
   requireLogin: z.boolean().optional(),
   storeInMetafield: z.boolean().optional(),
   authorizedEmail: z.string().email().optional(),
   requireEmailMatch: z.boolean().optional(),
-  singleUse: z.boolean().optional(),
+
+  // Constraints
+  minimumAmount: z.number().min(0).optional(),
+  usageLimit: z.number().int().min(1).optional(),
+  expiryDays: z.number().min(1).optional(),
+
+  // Metadata
+  prefix: z.string().optional(),
+  description: z.string().optional(),
+
+  // === ENHANCED FEATURES ===
+  
+  // Applicability: Scope discount to specific products/collections
+  applicability: z.object({
+    scope: z.enum(["all", "products", "collections"]).default("all"),
+    productIds: z.array(z.string()).optional(), // Shopify product GIDs
+    collectionIds: z.array(z.string()).optional(), // Shopify collection GIDs
+  }).optional(),
+
+  // Tiered spend discounts: "Spend $50 get 15%, $100 get 25%"
+  tiers: z.array(z.object({
+    thresholdCents: z.number().int().min(0), // Subtotal threshold in cents
+    discount: z.object({
+      kind: z.enum(["percentage", "fixed", "free_shipping"]),
+      value: z.number().min(0).max(100), // Percentage (0-100) or fixed amount
+    }),
+  })).optional(),
+
+  // BOGO (Buy X Get Y): "Buy 2 get 1 free"
+  bogo: z.object({
+    buy: z.object({
+      scope: z.enum(["any", "products", "collections"]).default("any"),
+      ids: z.array(z.string()).optional(), // Product/collection GIDs
+      quantity: z.number().int().min(1),
+      minSubtotalCents: z.number().int().min(0).optional(),
+    }),
+    get: z.object({
+      scope: z.enum(["products", "collections"]),
+      ids: z.array(z.string()), // Product/collection GIDs (required)
+      quantity: z.number().int().min(1),
+      discount: z.object({
+        kind: z.enum(["percentage", "fixed", "free_product"]),
+        value: z.number().min(0).max(100), // Percentage or amount (100 = free)
+      }),
+      appliesOncePerOrder: z.boolean().default(true),
+    }),
+  }).optional(),
+
+  // Free gift with purchase
+  freeGift: z.object({
+    productId: z.string(), // Shopify product GID
+    variantId: z.string(), // Shopify variant GID
+    quantity: z.number().int().min(1).default(1),
+    minSubtotalCents: z.number().int().min(0).optional(),
+  }).optional(),
+
+  // Auto-apply mode for storefront
+  autoApplyMode: z.enum(["ajax", "redirect", "none"]).default("ajax"),
+
+  // Code presentation (show/hide code to user)
+  codePresentation: z.enum(["show_code", "hide_code"]).default("show_code"),
+
+  // Customer eligibility
+  customerEligibility: z.enum(["everyone", "logged_in", "segment"]).optional(),
+
+  // Discount combining/stacking rules
+  combineWith: z.object({
+    orderDiscounts: z.boolean().optional(),
+    productDiscounts: z.boolean().optional(),
+    shippingDiscounts: z.boolean().optional(),
+  }).optional(),
+
+  // Internal metadata (Shopify discount IDs, tier code mappings)
+  _meta: z.object({
+    createdDiscountIds: z.array(z.string()).optional(), // Shopify discount node IDs
+    tierCodeMappings: z.record(z.string(), z.string()).optional(), // { "5000": "CAMPAIGN-123-T50", ... }
+    lastSync: z.string().optional(), // ISO timestamp
+  }).optional(),
 });
 
 export type DesignConfig = z.infer<typeof DesignConfigSchema>;

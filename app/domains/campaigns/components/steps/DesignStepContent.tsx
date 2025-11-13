@@ -10,6 +10,7 @@ import { Banner, Text, BlockStack, Card, Divider, Layout } from "@shopify/polari
 import { ContentConfigSection } from "../sections/ContentConfigSection";
 import { DesignConfigSection } from "../sections/DesignConfigSection";
 import { NewsletterContentSection } from "../sections/NewsletterContentSection";
+import type { NewsletterContent } from "../sections/NewsletterContentSection";
 import { TemplateSelector, type SelectedTemplate } from "../TemplateSelector";
 import { LivePreviewPanel } from "~/domains/popups/components/preview/LivePreviewPanel";
 import { Affix } from "~/shared/components/ui/Affix";
@@ -88,10 +89,10 @@ export function DesignStepContent({
               {(templateType === "NEWSLETTER" || templateType === "EXIT_INTENT") ? (
                 <>
                   <NewsletterContentSection
-                    content={contentConfig}
+                    content={contentConfig as Partial<NewsletterContent>}
                     designConfig={designConfig}
                     discountConfig={discountConfig}
-                    onChange={onContentChange}
+                    onChange={onContentChange as (c: Partial<NewsletterContent>) => void}
                     onDesignChange={onDesignChange}
                     onDiscountChange={onDiscountChange}
                   />
@@ -114,6 +115,8 @@ export function DesignStepContent({
                         discountConfig={discountConfig}
                         onChange={onContentChange}
                         onDiscountChange={onDiscountChange}
+                        designConfig={designConfig}
+                        onDesignChange={onDesignChange}
                       />
                     </BlockStack>
                   </Card>

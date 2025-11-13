@@ -30,8 +30,10 @@ import type { DiscountConfig } from "~/domains/popups/services/discounts/discoun
 import { z } from "zod";
 import { useFieldUpdater } from "~/shared/hooks/useFieldUpdater";
 import { NEWSLETTER_THEMES, themeColorsToDesignConfig, type NewsletterThemeKey } from "~/config/color-presets";
+import { ThemePresetSelector } from "../shared/ThemePresetSelector";
 
-type NewsletterContent = z.infer<typeof NewsletterContentSchema>;
+
+export type NewsletterContent = z.infer<typeof NewsletterContentSchema>;
 
 export interface NewsletterContentSectionProps {
   content: Partial<NewsletterContent>;
@@ -307,26 +309,15 @@ export function NewsletterContentSection({
 
               <BlockStack gap="400">
               {/* Theme & Layout */}
-              <FormGrid columns={3}>
-                <Select
-                  label="Theme"
-                  value={designConfig.theme || "modern"}
-                  options={[
-                    { label: "Modern - Clean black & white", value: "modern" },
-                    { label: "Minimal - Ultra-light, subtle accents", value: "minimal" },
-                    { label: "Elegant - Warm yellow tones", value: "elegant" },
-                    { label: "Bold - Vibrant gradient", value: "bold" },
-                    { label: "Glass - Glassmorphism with blur", value: "glass" },
-                    { label: "Dark - Dark mode optimized", value: "dark" },
-                    { label: "Gradient - Purple gradient background", value: "gradient" },
-                    { label: "Luxury - Gold on black, premium feel", value: "luxury" },
-                    { label: "Neon - Cyberpunk glow effects", value: "neon" },
-                    { label: "Ocean - Fresh blue/teal palette", value: "ocean" },
-                  ]}
-                  onChange={(value) => handleThemeChange(value as NewsletterThemeKey)}
-                  helpText="Select a theme to automatically apply colors"
+              <BlockStack gap="200">
+                <Text as="h4" variant="headingSm">Theme</Text>
+                <ThemePresetSelector
+                  selected={(designConfig.theme as NewsletterThemeKey) || "modern"}
+                  onSelect={handleThemeChange}
                 />
+              </BlockStack>
 
+              <FormGrid columns={2}>
                 <Select
                   label="Position"
                   value={designConfig.position || "center"}

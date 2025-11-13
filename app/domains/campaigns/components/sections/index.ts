@@ -20,6 +20,12 @@ export {
 } from "./SpinToWinContentSection";
 
 export {
+  ScratchCardContentSection,
+  type ScratchCardContentSectionProps,
+} from "./ScratchCardContentSection";
+
+
+export {
   FlashSaleContentSection,
   type FlashSaleContentSectionProps,
 } from "./FlashSaleContentSection";

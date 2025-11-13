@@ -96,7 +96,7 @@ export function AudienceTargetingPanel({
         conditions: conditions.map((c: TriggerCondition) => (c.id === id ? { ...c, ...updates } : c)),
       });
     },
-    [config?.customRules, updateCustomRules],
+    [uiCustom.conditions, updateCustomRules],
   );
 
   // Remove condition
@@ -107,7 +107,7 @@ export function AudienceTargetingPanel({
         conditions: conditions.filter((c: TriggerCondition) => c.id !== id),
       });
     },
-    [config?.customRules, updateCustomRules],
+    [uiCustom.conditions, updateCustomRules],
   );
 
   const tabs = [

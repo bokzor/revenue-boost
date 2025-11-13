@@ -8,176 +8,16 @@
   var { useState, useEffect, useCallback, useRef, useMemo } = window.RevenueBoostPreact.hooks;
 
   // app/domains/storefront/popups-new/utils.ts
-  function getSizeDimensions(size, previewMode) {
-    if (previewMode) {
-      switch (size) {
-        case "small":
-          return { width: "50%", maxWidth: "400px" };
-        case "medium":
-          return { width: "65%", maxWidth: "600px" };
-        case "large":
-          return { width: "80%", maxWidth: "900px" };
-        default:
-          return { width: "65%", maxWidth: "600px" };
-      }
-    }
-    switch (size) {
-      case "small":
-        return { width: "90%", maxWidth: "400px" };
-      case "medium":
-        return { width: "90%", maxWidth: "600px" };
-      case "large":
-        return { width: "90%", maxWidth: "900px" };
-      default:
-        return { width: "90%", maxWidth: "600px" };
-    }
-  }
-  function getPositionStyles(position) {
-    const baseStyles = {
-      position: "fixed",
-      zIndex: 1e4
+  function debounce(func, wait) {
+    let timeout = null;
+    return function executedFunction(...args) {
+      const later = () => {
+        timeout = null;
+        func(...args);
+      };
+      if (timeout) clearTimeout(timeout);
+      timeout = setTimeout(later, wait);
     };
-    switch (position) {
-      case "center":
-        return {
-          ...baseStyles,
-          top: "50%",
-          left: "50%",
-          transform: "translate(-50%, -50%)"
-        };
-      case "top":
-        return {
-          ...baseStyles,
-          top: "20px",
-          left: "50%",
-          transform: "translateX(-50%)"
-        };
-      case "bottom":
-        return {
-          ...baseStyles,
-          bottom: "20px",
-          left: "50%",
-          transform: "translateX(-50%)"
-        };
-      case "left":
-        return {
-          ...baseStyles,
-          top: "50%",
-          left: "20px",
-          transform: "translateY(-50%)"
-        };
-      case "right":
-        return {
-          ...baseStyles,
-          top: "50%",
-          right: "20px",
-          transform: "translateY(-50%)"
-        };
-      default:
-        return {
-          ...baseStyles,
-          top: "50%",
-          left: "50%",
-          transform: "translate(-50%, -50%)"
-        };
-    }
-  }
-  function getAnimationClass(animation, isExiting = false) {
-    if (animation === "none") return "";
-    const prefix = isExiting ? "popup-exit" : "popup-enter";
-    return `${prefix}-${animation}`;
-  }
-  function getAnimationKeyframes() {
-    return `
-    @keyframes popup-enter-fade {
-      from { opacity: 0; }
-      to { opacity: 1; }
-    }
-    
-    @keyframes popup-exit-fade {
-      from { opacity: 1; }
-      to { opacity: 0; }
-    }
-    
-    @keyframes popup-enter-slide {
-      from { 
-        opacity: 0;
-        transform: translate(-50%, -60%);
-      }
-      to { 
-        opacity: 1;
-        transform: translate(-50%, -50%);
-      }
-    }
-    
-    @keyframes popup-exit-slide {
-      from { 
-        opacity: 1;
-        transform: translate(-50%, -50%);
-      }
-      to { 
-        opacity: 0;
-        transform: translate(-50%, -60%);
-      }
-    }
-    
-    @keyframes popup-enter-bounce {
-      0% { 
-        opacity: 0;
-        transform: translate(-50%, -50%) scale(0.3);
-      }
-      50% { 
-        transform: translate(-50%, -50%) scale(1.05);
-      }
-      70% { 
-        transform: translate(-50%, -50%) scale(0.9);
-      }
-      100% { 
-        opacity: 1;
-        transform: translate(-50%, -50%) scale(1);
-      }
-    }
-    
-    @keyframes popup-exit-bounce {
-      from { 
-        opacity: 1;
-        transform: translate(-50%, -50%) scale(1);
-      }
-      to { 
-        opacity: 0;
-        transform: translate(-50%, -50%) scale(0.3);
-      }
-    }
-    
-    .popup-enter-fade { animation: popup-enter-fade 0.3s ease-out; }
-    .popup-exit-fade { animation: popup-exit-fade 0.3s ease-in; }
-    .popup-enter-slide { animation: popup-enter-slide 0.3s ease-out; }
-    .popup-exit-slide { animation: popup-exit-slide 0.3s ease-in; }
-    .popup-enter-bounce { animation: popup-enter-bounce 0.5s ease-out; }
-    .popup-exit-bounce { animation: popup-exit-bounce 0.3s ease-in; }
-    
-    @media (prefers-reduced-motion: reduce) {
-      .popup-enter-fade,
-      .popup-enter-slide,
-      .popup-enter-bounce,
-      .popup-exit-fade,
-      .popup-exit-slide,
-      .popup-exit-bounce {
-        animation: none !important;
-      }
-    }
-  `;
-  }
-  function formatCurrency(amount, currency = "USD") {
-    const numAmount = typeof amount === "string" ? parseFloat(amount) : amount;
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency
-    }).format(numAmount);
-  }
-  function prefersReducedMotion() {
-    if (typeof window === "undefined") return false;
-    return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   }
 
   // global-preact:global-preact:preact/jsx-runtime
@@ -228,139 +68,6 @@
   var jsxs = jsx;
   var Fragment2 = window.RevenueBoostPreact.Fragment;
 
-  // app/domains/storefront/popups-new/BasePopup.tsx
-  var BasePopup = ({
-    config,
-    isVisible,
-    onClose,
-    children,
-    className = ""
-  }) => {
-    const [isExiting, setIsExiting] = useState(false);
-    const popupRef = useRef(null);
-    const previousFocusRef = useRef(null);
-    const handleEscapeKey = useCallback((event) => {
-      if (event.key === "Escape" && config.closeOnEscape !== false) {
-        handleClose();
-      }
-    }, [config.closeOnEscape]);
-    const handleOverlayClick = useCallback((event) => {
-      if (event.target === event.currentTarget && config.closeOnOverlayClick !== false) {
-        handleClose();
-      }
-    }, [config.closeOnOverlayClick]);
-    const handleClose = useCallback(() => {
-      if (config.animation && config.animation !== "none" && !prefersReducedMotion()) {
-        setIsExiting(true);
-        setTimeout(() => {
-          onClose();
-          setIsExiting(false);
-        }, 300);
-      } else {
-        onClose();
-      }
-    }, [config.animation, onClose]);
-    useEffect(() => {
-      if (isVisible) {
-        document.addEventListener("keydown", handleEscapeKey);
-        return () => document.removeEventListener("keydown", handleEscapeKey);
-      }
-    }, [isVisible, handleEscapeKey]);
-    useEffect(() => {
-      if (isVisible) {
-        previousFocusRef.current = document.activeElement;
-        setTimeout(() => popupRef.current?.focus(), 100);
-      } else if (previousFocusRef.current) {
-        previousFocusRef.current.focus();
-      }
-    }, [isVisible]);
-    useEffect(() => {
-      if (isVisible && config.autoCloseDelay && config.autoCloseDelay > 0) {
-        const timer = setTimeout(handleClose, config.autoCloseDelay * 1e3);
-        return () => clearTimeout(timer);
-      }
-    }, [isVisible, config.autoCloseDelay, handleClose]);
-    if (!isVisible && !isExiting) return null;
-    const sizeDimensions = getSizeDimensions(config.size, config.previewMode);
-    const positionStyles = getPositionStyles(config.position);
-    const animationClass = getAnimationClass(config.animation || "fade", isExiting);
-    const overlayStyles = {
-      position: config.previewMode ? "absolute" : "fixed",
-      // Use absolute in preview to stay within container
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: config.overlayColor || "rgba(0, 0, 0, 0.5)",
-      opacity: config.overlayOpacity ?? 1,
-      zIndex: config.previewMode ? 1 : 9999,
-      // Lower z-index in preview mode
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center"
-    };
-    const popupStyles = {
-      ...positionStyles,
-      width: config.maxWidth || sizeDimensions.width,
-      maxWidth: config.maxWidth || sizeDimensions.maxWidth,
-      backgroundColor: config.backgroundColor,
-      color: config.textColor,
-      borderRadius: `${config.borderRadius ?? 8}px`,
-      padding: config.padding ?? "24px",
-      boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
-      outline: "none",
-      maxHeight: config.previewMode ? "85%" : "90vh",
-      // Use percentage in preview mode
-      overflowY: "auto"
-    };
-    const closeButtonStyles = {
-      position: "absolute",
-      top: "12px",
-      right: "12px",
-      background: "transparent",
-      border: "none",
-      fontSize: "24px",
-      cursor: "pointer",
-      color: config.textColor,
-      opacity: 0.6,
-      transition: "opacity 0.2s",
-      padding: "4px 8px",
-      lineHeight: 1
-    };
-    return /* @__PURE__ */ jsxs(Fragment2, { children: [
-      /* @__PURE__ */ jsx("style", { children: getAnimationKeyframes() }),
-      /* @__PURE__ */ jsx("div", { style: overlayStyles, onClick: handleOverlayClick, role: "presentation", "data-testid": "popup-overlay", children: /* @__PURE__ */ jsxs(
-        "div",
-        {
-          ref: popupRef,
-          className: `${className} ${animationClass}`.trim(),
-          style: popupStyles,
-          role: "dialog",
-          "data-testid": "popup-container",
-          "aria-modal": "true",
-          "aria-label": config.ariaLabel || config.headline,
-          "aria-describedby": config.ariaDescribedBy,
-          tabIndex: -1,
-          children: [
-            config.showCloseButton !== false && /* @__PURE__ */ jsx(
-              "button",
-              {
-                onClick: handleClose,
-                style: closeButtonStyles,
-                "aria-label": "Close popup",
-                "data-testid": "popup-close",
-                onMouseEnter: (e) => e.currentTarget.style.opacity = "1",
-                onMouseLeave: (e) => e.currentTarget.style.opacity = "0.6",
-                children: "\xD7"
-              }
-            ),
-            children
-          ]
-        }
-      ) })
-    ] });
-  };
-
   // app/domains/storefront/popups-new/FreeShippingPopup.tsx
   var FreeShippingPopup = ({
     config,
@@ -368,114 +75,320 @@
     onClose,
     cartTotal: propCartTotal
   }) => {
-    const cartTotal = propCartTotal ?? config.currentCartTotal ?? 0;
-    const threshold = config.freeShippingThreshold;
-    const { remaining, percentage, hasReached } = useMemo(() => {
-      const remaining2 = Math.max(0, threshold - cartTotal);
-      const percentage2 = Math.min(100, cartTotal / threshold * 100);
-      const hasReached2 = cartTotal >= threshold;
-      return { remaining: remaining2, percentage: percentage2, hasReached: hasReached2 };
-    }, [cartTotal, threshold]);
-    const getMessage = useCallback(() => {
-      if (hasReached) {
-        return config.successTitle || "You unlocked FREE SHIPPING! \u{1F389}";
+    const [cartTotal, setCartTotal] = useState(propCartTotal ?? config.currentCartTotal ?? 0);
+    const threshold = config.threshold;
+    const barPosition = config.barPosition || "top";
+    const nearMissThreshold = config.nearMissThreshold ?? 10;
+    const currency = config.currency || "$";
+    const dismissible = config.dismissible ?? true;
+    const celebrateOnUnlock = config.celebrateOnUnlock ?? true;
+    const showIcon = config.showIcon ?? true;
+    const animationDuration = config.animationDuration ?? 500;
+    const [internalDismissed, setInternalDismissed] = useState(false);
+    const [celebrating, setCelebrating] = useState(false);
+    const prevUnlockedRef = useRef(false);
+    const currencyCodeRef = useRef(void 0);
+    const remaining = Math.max(0, threshold - cartTotal);
+    const progress = Math.min(1, Math.max(0, cartTotal / threshold));
+    const state = cartTotal === 0 ? "empty" : remaining === 0 ? "unlocked" : remaining <= nearMissThreshold ? "near-miss" : "progress";
+    const formatCurrency = (value) => {
+      const code = currencyCodeRef.current;
+      if (code && /^[A-Z]{3}$/.test(code)) {
+        try {
+          return new Intl.NumberFormat("en-US", { style: "currency", currency: code }).format(value);
+        } catch {
+        }
       }
-      const message = config.initialMessage || "Add {{remaining}} more for FREE SHIPPING! \u{1F69A}";
-      return message.replace("{{remaining}}", formatCurrency(remaining, config.currency)).replace("{{percentage}}", Math.round(percentage).toString());
-    }, [hasReached, remaining, percentage, config]);
-    const renderBanner = () => {
-      const bannerStyles = {
-        position: config.displayStyle === "sticky" ? "sticky" : "fixed",
-        [config.position === "bottom" ? "bottom" : "top"]: 0,
-        left: 0,
-        right: 0,
-        backgroundColor: hasReached ? "#10B981" : config.backgroundColor,
-        color: hasReached ? "#FFFFFF" : config.textColor,
-        padding: "16px 20px",
-        zIndex: 1e4,
-        boxShadow: "0 2px 8px rgba(0,0,0,0.1)"
-      };
-      const containerStyles = {
-        maxWidth: "1200px",
-        margin: "0 auto",
-        display: "flex",
-        flexDirection: "column",
-        gap: "12px"
-      };
-      const headerStyles = {
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center"
-      };
-      const closeButtonStyles = {
-        background: "transparent",
-        border: "none",
-        color: hasReached ? "#FFFFFF" : config.textColor,
-        fontSize: "24px",
-        cursor: "pointer",
-        padding: "0 8px",
-        opacity: 0.8,
-        lineHeight: 1
-      };
-      return /* @__PURE__ */ jsx("div", { style: bannerStyles, children: /* @__PURE__ */ jsxs("div", { style: containerStyles, children: [
-        /* @__PURE__ */ jsxs("div", { style: headerStyles, children: [
-          /* @__PURE__ */ jsx("div", { style: { fontWeight: 600, fontSize: "16px" }, children: getMessage() }),
-          config.showCloseButton !== false && /* @__PURE__ */ jsx(
-            "button",
-            {
-              onClick: onClose,
-              style: closeButtonStyles,
-              "aria-label": "Close banner",
-              onMouseEnter: (e) => e.currentTarget.style.opacity = "1",
-              onMouseLeave: (e) => e.currentTarget.style.opacity = "0.8",
-              children: "\xD7"
-            }
-          )
-        ] }),
-        config.showProgress !== false && !hasReached && /* @__PURE__ */ jsx("div", { style: {
-          height: "8px",
-          backgroundColor: "rgba(0,0,0,0.1)",
-          borderRadius: "4px",
-          overflow: "hidden"
-        }, children: /* @__PURE__ */ jsx("div", { style: {
-          height: "100%",
-          width: `${percentage}%`,
-          backgroundColor: config.progressColor || config.accentColor || "#10B981",
-          transition: "width 0.3s ease"
-        } }) }),
-        !hasReached && config.progressMessage && /* @__PURE__ */ jsx("div", { style: { fontSize: "14px", opacity: 0.9, textAlign: "center" }, children: config.progressMessage.replace("{{percentage}}", Math.round(percentage).toString()) }),
-        hasReached && config.successSubhead && /* @__PURE__ */ jsx("div", { style: { fontSize: "14px", opacity: 0.9, textAlign: "center" }, children: config.successSubhead })
-      ] }) });
+      return `${currency}${value.toFixed(2)}`;
     };
-    const renderModal = () => {
-      return /* @__PURE__ */ jsx(BasePopup, { config, isVisible, onClose, children: /* @__PURE__ */ jsxs("div", { style: { display: "flex", flexDirection: "column", gap: "20px", textAlign: "center" }, children: [
-        /* @__PURE__ */ jsx("div", { style: { fontSize: "48px" }, children: hasReached ? "\u{1F389}" : "\u{1F69A}" }),
-        /* @__PURE__ */ jsxs("div", { children: [
-          /* @__PURE__ */ jsx("h2", { style: { fontSize: "24px", fontWeight: 700, margin: "0 0 8px 0" }, children: getMessage() }),
-          !hasReached && config.progressMessage && /* @__PURE__ */ jsx("p", { style: { fontSize: "14px", margin: 0, opacity: 0.8 }, children: config.progressMessage.replace("{{percentage}}", Math.round(percentage).toString()) }),
-          hasReached && config.successSubhead && /* @__PURE__ */ jsx("p", { style: { fontSize: "16px", margin: 0, opacity: 0.8 }, children: config.successSubhead })
-        ] }),
-        config.showProgress !== false && !hasReached && /* @__PURE__ */ jsxs("div", { children: [
-          /* @__PURE__ */ jsx("div", { style: {
-            height: "12px",
-            backgroundColor: "#E5E7EB",
-            borderRadius: "6px",
-            overflow: "hidden"
-          }, children: /* @__PURE__ */ jsx("div", { style: {
-            height: "100%",
-            width: `${percentage}%`,
-            backgroundColor: config.progressColor || config.accentColor || "#10B981",
-            transition: "width 0.3s ease"
-          } }) }),
-          /* @__PURE__ */ jsxs("p", { style: { fontSize: "14px", marginTop: "8px", fontWeight: 600 }, children: [
-            Math.round(percentage),
-            "% there!"
-          ] })
-        ] })
-      ] }) });
+    useEffect(() => {
+      try {
+        const w = window;
+        const iso = w?.REVENUE_BOOST_CONFIG?.currency;
+        if (typeof iso === "string") {
+          currencyCodeRef.current = iso;
+        }
+      } catch {
+      }
+    }, []);
+    useEffect(() => {
+      if (!isVisible) return;
+      const refresh = async () => {
+        try {
+          const res = await fetch("/cart.js", { credentials: "same-origin" });
+          const cart = await res.json();
+          const cents = typeof cart?.subtotal_price === "number" ? cart.subtotal_price : Number(cart?.items_subtotal_price || 0) - Number(cart?.total_discount || 0);
+          const value = Number.isFinite(cents) ? Math.max(0, cents / 100) : 0;
+          setCartTotal(value);
+        } catch {
+        }
+      };
+      const debouncedRefresh = debounce(refresh, 300);
+      const eventNames = ["cart:update", "cart:change", "cart:updated", "theme:cart:update", "cart:item-added", "cart:add"];
+      eventNames.forEach((name) => document.addEventListener(name, debouncedRefresh));
+      if (propCartTotal == null && config.currentCartTotal == null) {
+        void refresh();
+      }
+      const w = window;
+      let originalFetch = null;
+      if (!w.__RB_FETCH_INTERCEPTED) {
+        try {
+          originalFetch = window.fetch.bind(window);
+          window.fetch = (async (...args) => {
+            const [url, opts] = args;
+            const urlStr = typeof url === "string" ? url : url?.toString?.();
+            const method = opts?.method ? String(opts.method).toUpperCase() : "GET";
+            const isCartMutation = !!urlStr && urlStr.includes("/cart") && method !== "GET";
+            const response = await originalFetch(...args);
+            if (isCartMutation) debouncedRefresh();
+            return response;
+          });
+          w.__RB_FETCH_INTERCEPTED = true;
+        } catch {
+        }
+      }
+      return () => {
+        eventNames.forEach((name) => document.removeEventListener(name, debouncedRefresh));
+        try {
+          if (originalFetch) {
+            window.fetch = originalFetch;
+            w.__RB_FETCH_INTERCEPTED = false;
+          }
+        } catch {
+        }
+      };
+    }, [isVisible]);
+    useEffect(() => {
+      if (config?.previewMode) {
+        const next = typeof propCartTotal === "number" ? propCartTotal : typeof config.currentCartTotal === "number" ? config.currentCartTotal : void 0;
+        if (typeof next === "number") setCartTotal(next);
+      }
+    }, [propCartTotal, config.currentCartTotal]);
+    const getMessage = () => {
+      const remainingFormatted = formatCurrency(remaining);
+      switch (state) {
+        case "empty":
+          return config.emptyMessage || "Add items to unlock free shipping";
+        case "unlocked":
+          return config.unlockedMessage || "You've unlocked free shipping! \u{1F389}";
+        case "near-miss":
+          return (config.nearMissMessage || "Only {remaining} to go!").replace("{remaining}", remainingFormatted);
+        case "progress":
+        default:
+          return (config.progressMessage || "You're {remaining} away from free shipping").replace("{remaining}", remainingFormatted);
+      }
     };
-    if (!isVisible) return null;
-    return config.displayStyle === "banner" || config.displayStyle === "sticky" ? renderBanner() : renderModal();
+    useEffect(() => {
+      const isUnlocked = state === "unlocked";
+      const wasLocked = prevUnlockedRef.current === false;
+      if (isUnlocked && wasLocked && celebrateOnUnlock) {
+        setCelebrating(true);
+        const timer = setTimeout(() => setCelebrating(false), 1e3);
+        return () => clearTimeout(timer);
+      }
+      prevUnlockedRef.current = isUnlocked;
+    }, [state, celebrateOnUnlock]);
+    const handleDismiss = () => {
+      setInternalDismissed(true);
+      onClose();
+    };
+    if (!isVisible || internalDismissed) {
+      return null;
+    }
+    const getProgressColor = () => {
+      if (state === "unlocked") return config.accentColor || "#10B981";
+      if (state === "near-miss") return "#F59E0B";
+      return config.accentColor || "#3B82F6";
+    };
+    const getIcon = () => {
+      if (!showIcon) return null;
+      switch (state) {
+        case "unlocked":
+          return "\u2713";
+        case "near-miss":
+          return "\u26A1";
+        default:
+          return "\u{1F69A}";
+      }
+    };
+    return /* @__PURE__ */ jsxs(Fragment2, { children: [
+      /* @__PURE__ */ jsx("style", { children: `
+        .free-shipping-bar {
+          position: fixed;
+          left: 0;
+          right: 0;
+          width: 100%;
+          z-index: 9999;
+          font-family: ${config.fontFamily || '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif'};
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+          transition: transform 0.3s ease-in-out;
+        }
+
+        .free-shipping-bar[data-position="top"] {
+          top: 0;
+        }
+
+        .free-shipping-bar[data-position="bottom"] {
+          bottom: 0;
+        }
+
+        .free-shipping-bar-content {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 1rem;
+          padding: 0.875rem 1.5rem;
+          position: relative;
+          overflow: hidden;
+        }
+
+        .free-shipping-bar-message {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          flex: 1;
+          z-index: 1;
+        }
+
+        .free-shipping-bar-icon {
+          font-size: 1.25rem;
+          line-height: 1;
+          flex-shrink: 0;
+        }
+
+        .free-shipping-bar-text {
+          font-size: 0.9375rem;
+          font-weight: 500;
+          line-height: 1.4;
+          margin: 0;
+        }
+
+        .free-shipping-bar-close {
+          background: transparent;
+          border: none;
+          cursor: pointer;
+          padding: 0.25rem;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          opacity: 0.6;
+          transition: opacity 0.2s;
+          z-index: 1;
+          flex-shrink: 0;
+        }
+
+        .free-shipping-bar-close:hover {
+          opacity: 1;
+        }
+
+        .free-shipping-bar-close:focus {
+          outline: 2px solid currentColor;
+          outline-offset: 2px;
+          opacity: 1;
+        }
+
+        .free-shipping-bar-progress {
+          position: absolute;
+          left: 0;
+          top: 0;
+          bottom: 0;
+          background: var(--shipping-bar-progress-bg);
+          transition: width ${animationDuration}ms ease-out;
+          z-index: 0;
+        }
+
+        .free-shipping-bar[data-state="unlocked"] .free-shipping-bar-progress {
+          animation: ${celebrating ? "celebrate 1s ease-in-out" : "none"};
+        }
+
+        @keyframes celebrate {
+          0%, 100% { transform: translateX(0); }
+          25% { transform: translateX(-5px); }
+          50% { transform: translateX(5px); }
+          75% { transform: translateX(-5px); }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .free-shipping-bar,
+          .free-shipping-bar-progress {
+            transition: none;
+          }
+
+          .free-shipping-bar[data-state="unlocked"] .free-shipping-bar-progress {
+            animation: none;
+          }
+        }
+
+        @media (max-width: 640px) {
+          .free-shipping-bar-content {
+            padding: 0.75rem 1rem;
+            gap: 0.75rem;
+          }
+
+          .free-shipping-bar-text {
+            font-size: 0.875rem;
+          }
+
+          .free-shipping-bar-icon {
+            font-size: 1.125rem;
+          }
+        }
+      ` }),
+      /* @__PURE__ */ jsxs(
+        "div",
+        {
+          className: "free-shipping-bar",
+          "data-position": barPosition,
+          "data-state": state,
+          role: "region",
+          "aria-live": "polite",
+          "aria-atomic": "true",
+          style: {
+            position: config?.previewMode ? "absolute" : void 0,
+            background: config.backgroundColor || "#ffffff",
+            color: config.textColor || "#111827",
+            ["--shipping-bar-progress-bg"]: getProgressColor()
+          },
+          children: [
+            /* @__PURE__ */ jsx(
+              "div",
+              {
+                className: "free-shipping-bar-progress",
+                style: {
+                  width: `${progress * 100}%`,
+                  opacity: state === "empty" ? 0 : state === "unlocked" ? 0.2 : 0.15
+                }
+              }
+            ),
+            /* @__PURE__ */ jsxs("div", { className: "free-shipping-bar-content", children: [
+              /* @__PURE__ */ jsxs("div", { className: "free-shipping-bar-message", children: [
+                showIcon && /* @__PURE__ */ jsx("span", { className: "free-shipping-bar-icon", "aria-hidden": "true", children: getIcon() }),
+                /* @__PURE__ */ jsx("p", { className: "free-shipping-bar-text", children: getMessage() })
+              ] }),
+              dismissible && /* @__PURE__ */ jsx(
+                "button",
+                {
+                  className: "free-shipping-bar-close",
+                  onClick: handleDismiss,
+                  "aria-label": "Dismiss shipping bar",
+                  style: { color: config.textColor || "#111827" },
+                  children: /* @__PURE__ */ jsx("svg", { width: "20", height: "20", viewBox: "0 0 20 20", fill: "none", xmlns: "http://www.w3.org/2000/svg", children: /* @__PURE__ */ jsx(
+                    "path",
+                    {
+                      d: "M15 5L5 15M5 5L15 15",
+                      stroke: "currentColor",
+                      strokeWidth: "2",
+                      strokeLinecap: "round",
+                      strokeLinejoin: "round"
+                    }
+                  ) })
+                }
+              )
+            ] })
+          ]
+        }
+      )
+    ] });
   };
 
   // extensions/storefront-src/bundles/free-shipping.ts

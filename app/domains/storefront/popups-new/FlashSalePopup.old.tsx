@@ -1,13 +1,16 @@
 /**
- * FlashSalePopup Component - Enhanced
+ * FlashSalePopup Component
  *
- * Complete redesign featuring:
- * - Multiple discount types (basic, tiered, BOGO, free gift)
- * - Advanced timer modes (duration, fixed_end, personal, stock_limited)
- * - Real-time inventory tracking via API
- * - Reservation timer countdown
- * - Enhanced expired states
- * - Responsive design with themes
+ * Redesigned flash sale popup featuring:
+ * - Live countdown timer with clean design
+ * - Auto-update every second
+ * - Auto-hide on timer expiry
+ * - Optional stock counter with animated dot
+ * - Circular discount display
+ * - "Limited Time" badge
+ * - Enhanced expired state
+ * - Themes handled through design config (like Newsletter)
+ * - Uses PopupPortal for consistent behavior
  */
 
 import React, { useState, useEffect } from 'react';
@@ -17,11 +20,11 @@ import { PopupPortal } from './PopupPortal';
 
 /**
  * FlashSale-specific configuration
+ * Extends both design config and content type
  */
 export interface FlashSaleConfig extends PopupDesignConfig, FlashSaleContent {
   // Storefront-specific fields
   ctaOpenInNewTab?: boolean;
-  discountConfig?: any; // Will contain tiers, BOGO, freeGift
 }
 
 export interface FlashSalePopupProps {
@@ -62,81 +65,25 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
   onCtaClick,
 }) => {
   const [timeRemaining, setTimeRemaining] = useState(() => {
-    // Determine end time based on timer mode
-    const timerMode = config.timer?.mode || 'duration';
-    
-    if (timerMode === 'fixed_end' && config.timer?.endTimeISO) {
-      return calculateTimeRemaining(config.timer.endTimeISO);
-    } else if (timerMode === 'personal' && config.timer?.personalWindowSeconds) {
-      const endDate = new Date(Date.now() + config.timer.personalWindowSeconds * 1000);
-      return calculateTimeRemaining(endDate);
-    } else if (config.endTime) {
+    if (config.endTime) {
       return calculateTimeRemaining(config.endTime);
     } else if (config.countdownDuration) {
       const endDate = new Date(Date.now() + config.countdownDuration * 1000);
       return calculateTimeRemaining(endDate);
     }
-    
     return { total: 0, days: 0, hours: 0, minutes: 0, seconds: 0 };
   });
 
   const [hasExpired, setHasExpired] = useState(false);
-  const [inventoryTotal, setInventoryTotal] = useState<number | null>(null);
-  const [reservationTime, setReservationTime] = useState<TimeRemaining | null>(null);
 
-  // Fetch inventory if configured
-  useEffect(() => {
-    if (!config.inventory || config.inventory.mode === 'pseudo') {
-      // Use pseudo inventory
-      if (config.inventory?.pseudoMax) {
-        setInventoryTotal(config.inventory.pseudoMax);
-      }
-      return;
-    }
-
-    // Fetch real inventory from API
-    const fetchInventory = async () => {
-      try {
-        const params = new URLSearchParams();
-        if (config.inventory?.productIds?.length) {
-          params.set('productIds', JSON.stringify(config.inventory.productIds));
-        }
-        if (config.inventory?.variantIds?.length) {
-          params.set('variantIds', JSON.stringify(config.inventory.variantIds));
-        }
-        if (config.inventory?.collectionIds?.length) {
-          params.set('collectionIds', JSON.stringify(config.inventory.collectionIds));
-        }
-
-        const response = await fetch(`/api/inventory?${params.toString()}`);
-        if (response.ok) {
-          const data = await response.json();
-          setInventoryTotal(data.total);
-        }
-      } catch (error) {
-        console.error('[FlashSalePopup] Failed to fetch inventory:', error);
-      }
-    };
-
-    fetchInventory();
-    const interval = setInterval(fetchInventory, 10000); // Refresh every 10s
-    return () => clearInterval(interval);
-  }, [config.inventory]);
-
-  // Update countdown timer
+  // Update countdown every second
   useEffect(() => {
     if (!config.showCountdown || hasExpired) return;
 
     const timer = setInterval(() => {
-      let newTime: TimeRemaining;
-      const timerMode = config.timer?.mode || 'duration';
+      let newTime;
 
-      if (timerMode === 'fixed_end' && config.timer?.endTimeISO) {
-        newTime = calculateTimeRemaining(config.timer.endTimeISO);
-      } else if (timerMode === 'personal' && config.timer?.personalWindowSeconds) {
-        const endDate = new Date(Date.now() + config.timer.personalWindowSeconds * 1000);
-        newTime = calculateTimeRemaining(endDate);
-      } else if (config.endTime) {
+      if (config.endTime) {
         newTime = calculateTimeRemaining(config.endTime);
       } else if (config.countdownDuration) {
         const endDate = new Date(Date.now() + config.countdownDuration * 1000);
@@ -153,9 +100,7 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
         if (onExpiry) {
           onExpiry();
         }
-        
-        const onExpireAction = config.timer?.onExpire || 'auto_hide';
-        if (onExpireAction === 'auto_hide' || config.hideOnExpiry || config.autoHideOnExpire) {
+        if (config.hideOnExpiry || config.autoHideOnExpire) {
           setTimeout(() => onClose(), config.autoHideOnExpire ? 2000 : 0);
         }
       }
@@ -163,26 +108,6 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
 
     return () => clearInterval(timer);
   }, [config, hasExpired, onExpiry, onClose]);
-
-  // Handle reservation timer
-  useEffect(() => {
-    if (!config.reserve?.enabled || !config.reserve?.minutes) return;
-
-    const reservationEnd = new Date(Date.now() + config.reserve.minutes * 60 * 1000);
-    
-    const updateReservation = () => {
-      const remaining = calculateTimeRemaining(reservationEnd);
-      setReservationTime(remaining);
-      
-      if (remaining.total <= 0) {
-        setReservationTime(null);
-      }
-    };
-
-    updateReservation();
-    const interval = setInterval(updateReservation, 1000);
-    return () => clearInterval(interval);
-  }, [config.reserve]);
 
   const handleCtaClick = () => {
     if (onCtaClick) {
@@ -200,48 +125,6 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
 
   if (!isVisible) return null;
 
-  // Check if sold out
-  const isSoldOut = inventoryTotal !== null && inventoryTotal <= 0;
-  if (isSoldOut && config.inventory?.soldOutBehavior === 'hide') {
-    return null;
-  }
-
-  // Determine discount display message
-  const getDiscountMessage = () => {
-    const dc = config.discountConfig;
-    
-    if (dc?.tiers?.length) {
-      // Tiered discount
-      const tiers = dc.tiers.map((t: any) => {
-        const threshold = (t.thresholdCents / 100).toFixed(0);
-        if (t.discount.kind === 'free_shipping') return `$${threshold} free ship`;
-        return `$${threshold} get ${t.discount.value}${t.discount.kind === 'percentage' ? '%' : '$'} off`;
-      });
-      return `Spend more, save more: ${tiers.join(', ')}`;
-    }
-    
-    if (dc?.bogo) {
-      const buy = dc.bogo.buy.quantity;
-      const get = dc.bogo.get.quantity;
-      if (dc.bogo.get.discount.kind === 'free_product') {
-        return `Buy ${buy} Get ${get} Free`;
-      }
-      return `Buy ${buy} Get ${get} at ${dc.bogo.get.discount.value}% off`;
-    }
-    
-    if (dc?.freeGift) {
-      const min = dc.freeGift.minSubtotalCents ? `over $${(dc.freeGift.minSubtotalCents / 100).toFixed(0)}` : '';
-      return `Free gift with purchase ${min}`.trim();
-    }
-    
-    // Basic discount
-    if (config.discountPercentage) {
-      return `${config.discountPercentage}% OFF`;
-    }
-    
-    return null;
-  };
-
   // Size configuration
   const popupSize = config.popupSize || 'standard';
   const maxWidth = popupSize === 'compact' ? '24rem' :
@@ -256,10 +139,6 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
 
   const discountSize = popupSize === 'compact' ? '6rem' :
                        popupSize === 'wide' || popupSize === 'full' ? '10rem' : '8rem';
-
-  const discountMessage = getDiscountMessage();
-  const showInventory = config.inventory?.showOnlyXLeft && inventoryTotal !== null && 
-                        inventoryTotal <= (config.inventory?.showThreshold || 10);
 
   return (
     <PopupPortal
@@ -303,7 +182,7 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
           background: rgba(0, 0, 0, 0.1);
           border: none;
           cursor: pointer;
-          transition: background 0.2s;
+          transition: background 0.2s, color 0.2s;
           color: ${config.descriptionColor || config.textColor || '#52525b'};
         }
 
@@ -344,15 +223,72 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
           color: ${config.descriptionColor || config.textColor || '#52525b'};
         }
 
-        .flash-sale-discount-message {
-          font-size: 1rem;
+        .flash-sale-discount {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: ${discountSize};
+          height: ${discountSize};
+          border-radius: 9999px;
+          margin-bottom: 2rem;
+          position: relative;
+          background: ${config.accentColor || '#ef4444'};
+          color: ${config.backgroundColor || '#ffffff'};
+        }
+
+        .flash-sale-discount::before {
+          content: '';
+          position: absolute;
+          inset: -4px;
+          border-radius: 9999px;
+          padding: 4px;
+          background: currentColor;
+          -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+          -webkit-mask-composite: xor;
+          mask-composite: exclude;
+          opacity: 0.3;
+        }
+
+        .flash-sale-discount-inner {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .flash-sale-discount-percent {
+          font-size: calc(${discountSize} * 0.4);
+          font-weight: 900;
+          line-height: 1;
+        }
+
+        .flash-sale-discount-label {
+          font-size: 0.875rem;
           font-weight: 600;
-          padding: 1rem 1.5rem;
-          border-radius: 0.5rem;
-          margin-bottom: 1.5rem;
-          background: ${config.accentColor ? `${config.accentColor}15` : 'rgba(239, 68, 68, 0.1)'};
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          opacity: 0.8;
+        }
+
+        .flash-sale-prices {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 1rem;
+          margin-bottom: 2rem;
+        }
+
+        .flash-sale-original-price {
+          font-size: 1.25rem;
+          text-decoration: line-through;
+          opacity: 0.6;
+          color: ${config.descriptionColor || config.textColor || '#52525b'};
+        }
+
+        .flash-sale-sale-price {
+          font-size: 2rem;
+          font-weight: 900;
           color: ${config.accentColor || '#ef4444'};
-          border: 2px solid ${config.accentColor ? `${config.accentColor}40` : 'rgba(239, 68, 68, 0.25)'};
         }
 
         .flash-sale-urgency {
@@ -368,7 +304,7 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
           display: flex;
           gap: 0.75rem;
           justify-content: center;
-          margin-bottom: 1.5rem;
+          margin-bottom: 2rem;
         }
 
         .flash-sale-timer-unit {
@@ -397,7 +333,7 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
           opacity: 0.8;
         }
 
-        .flash-sale-inventory {
+        .flash-sale-stock {
           display: inline-flex;
           align-items: center;
           gap: 0.5rem;
@@ -405,27 +341,17 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
           border-radius: 9999px;
           font-size: 0.875rem;
           font-weight: 600;
-          margin-bottom: 1.5rem;
+          margin-bottom: 2rem;
           background: ${config.accentColor ? `${config.accentColor}20` : 'rgba(239, 68, 68, 0.1)'};
           color: ${config.accentColor || '#ef4444'};
         }
 
-        .flash-sale-inventory-dot {
+        .flash-sale-stock-dot {
           width: 0.5rem;
           height: 0.5rem;
           border-radius: 9999px;
           background: ${config.accentColor || '#ef4444'};
           animation: pulse 2s infinite;
-        }
-
-        .flash-sale-reservation {
-          font-size: 0.875rem;
-          padding: 0.75rem 1rem;
-          border-radius: 0.5rem;
-          margin-bottom: 1rem;
-          background: rgba(59, 130, 246, 0.1);
-          color: #3b82f6;
-          border: 1px solid rgba(59, 130, 246, 0.3);
         }
 
         .flash-sale-cta {
@@ -448,19 +374,51 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
           box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
         }
 
+        .flash-sale-cta:active {
+          transform: translateY(0);
+        }
+
         .flash-sale-expired {
           padding: 2rem;
           text-align: center;
         }
 
-        .flash-sale-sold-out {
-          padding: 2rem;
-          text-align: center;
+        .flash-sale-expired-icon {
+          width: 4rem;
+          height: 4rem;
+          border-radius: 9999px;
+          background: rgba(255, 255, 255, 0.2);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin: 0 auto 1rem;
+        }
+
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+
+        @keyframes zoomIn {
+          from {
+            opacity: 0;
+            transform: scale(0.8);
+          }
+          to {
+            opacity: 1;
+            transform: scale(1);
+          }
         }
 
         @keyframes pulse {
           0%, 100% { opacity: 1; }
           50% { opacity: 0.5; }
+        }
+
+        @media (max-width: 768px) {
+          .flash-sale-content-wide {
+            text-align: center;
+          }
         }
 
         @media (max-width: 640px) {
@@ -469,6 +427,15 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
           }
 
           .flash-sale-headline {
+            font-size: 2rem;
+          }
+
+          .flash-sale-discount {
+            width: 7rem;
+            height: 7rem;
+          }
+
+          .flash-sale-discount-percent {
             font-size: 2rem;
           }
 
@@ -495,22 +462,20 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
           </svg>
         </button>
 
-        {isSoldOut && config.inventory?.soldOutBehavior === 'missed_it' ? (
-          <div className="flash-sale-sold-out">
-            <h3 style={{ marginBottom: '0.5rem', fontSize: '1.5rem', fontWeight: '700' }}>
-              You Missed It!
-            </h3>
-            <p style={{ opacity: 0.8 }}>
-              {config.inventory.soldOutMessage || 'This deal is sold out. Check back later!'}
-            </p>
-          </div>
-        ) : hasExpired ? (
+        {hasExpired ? (
           <div className="flash-sale-expired">
+            <div className="flash-sale-expired-icon">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+            </div>
             <h3 style={{ marginBottom: '0.5rem', fontSize: '1.5rem', fontWeight: '700' }}>
               Sale Ended
             </h3>
             <p style={{ opacity: 0.8 }}>
-              {config.timer?.expiredMessage || 'This flash sale has expired. Check back soon for more deals!'}
+              This flash sale has expired. Check back soon for more deals!
             </p>
           </div>
         ) : (
@@ -524,12 +489,32 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
             </h2>
 
             <p className="flash-sale-supporting">
-              {config.subheadline || "Limited time offer - Don't miss out!"}
+              {config.subheadline || 'Limited time offer - Don\'t miss out!'}
             </p>
 
-            {discountMessage && (
-              <div className="flash-sale-discount-message">
-                {discountMessage}
+            {config.discountPercentage && (
+              <div className="flash-sale-discount">
+                <div className="flash-sale-discount-inner">
+                  <div className="flash-sale-discount-percent">
+                    {config.discountPercentage}%
+                  </div>
+                  <div className="flash-sale-discount-label">OFF</div>
+                </div>
+              </div>
+            )}
+
+            {(config.originalPrice || config.salePrice) && (
+              <div className="flash-sale-prices">
+                {config.originalPrice && (
+                  <div className="flash-sale-original-price">
+                    ${config.originalPrice}
+                  </div>
+                )}
+                {config.salePrice && (
+                  <div className="flash-sale-sale-price">
+                    ${config.salePrice}
+                  </div>
+                )}
               </div>
             )}
 
@@ -539,7 +524,7 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
               </div>
             )}
 
-            {config.showCountdown && timeRemaining.total > 0 && (
+            {config.showCountdown && (
               <div className="flash-sale-timer">
                 {timeRemaining.days > 0 && (
                   <div className="flash-sale-timer-unit">
@@ -570,21 +555,10 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
               </div>
             )}
 
-            {showInventory && (
-              <div className="flash-sale-inventory">
-                <div className="flash-sale-inventory-dot" />
-                Only {inventoryTotal} left in stock!
-              </div>
-            )}
-
-            {reservationTime && reservationTime.total > 0 && (
-              <div className="flash-sale-reservation">
-                {config.reserve?.label || 'Offer reserved for:'} {reservationTime.minutes}:{String(reservationTime.seconds).padStart(2, '0')}
-                {config.reserve?.disclaimer && (
-                  <div style={{ fontSize: '0.75rem', marginTop: '0.25rem', opacity: 0.7 }}>
-                    {config.reserve.disclaimer}
-                  </div>
-                )}
+            {(config.showStockCounter && config.stockMessage) && (
+              <div className="flash-sale-stock">
+                <div className="flash-sale-stock-dot" />
+                {config.stockMessage}
               </div>
             )}
 
@@ -602,3 +576,4 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
 };
 
 export default FlashSalePopup;
+

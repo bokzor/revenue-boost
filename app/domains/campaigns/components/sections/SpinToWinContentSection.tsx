@@ -10,7 +10,7 @@ import type { SpinToWinContentSchema } from "../../types/campaign";
 import { z } from "zod";
 import { useFieldUpdater } from "~/shared/hooks/useFieldUpdater";
 
-type SpinToWinContent = z.infer<typeof SpinToWinContentSchema>;
+export type SpinToWinContent = z.infer<typeof SpinToWinContentSchema>;
 type WheelSegment = SpinToWinContent["wheelSegments"][0];
 
 /**
@@ -106,7 +106,8 @@ export function SpinToWinContentSection({
     if (!content.wheelSegments || content.wheelSegments.length === 0) {
       updateField("wheelSegments", DEFAULT_WHEEL_SEGMENTS);
     }
-  }, []); // Only run on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run on mount - intentionally ignoring dependencies
 
   const addSegment = () => {
     const newSegment: WheelSegment = {
@@ -282,7 +283,7 @@ export function SpinToWinContentSection({
       <div className="wheel-segments">
         <h3>Wheel Segments</h3>
         <p>Configure the prizes and probabilities for the wheel (minimum 2 segments required)</p>
-        
+
         {segments.map((segment, index) => (
           <s-section key={segment.id}>
             <h4>Segment {index + 1}</h4>
@@ -306,15 +307,15 @@ export function SpinToWinContentSection({
                 onChange={(value) => updateSegment(index, { probability: parseFloat(value) || 0 })}
               />
             </FormGrid>
-            
+
             {/* Additional segment fields will be added */}
-            
+
             <s-button onClick={() => removeSegment(index)} tone="critical">
               Remove Segment
             </s-button>
           </s-section>
         ))}
-        
+
         <s-button onClick={addSegment}>Add Segment</s-button>
       </div>
     </>

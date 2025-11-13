@@ -257,16 +257,6 @@
     const [isExiting, setIsExiting] = useState(false);
     const popupRef = useRef(null);
     const previousFocusRef = useRef(null);
-    const handleEscapeKey = useCallback((event) => {
-      if (event.key === "Escape" && config.closeOnEscape !== false) {
-        handleClose();
-      }
-    }, [config.closeOnEscape]);
-    const handleOverlayClick = useCallback((event) => {
-      if (event.target === event.currentTarget && config.closeOnOverlayClick !== false) {
-        handleClose();
-      }
-    }, [config.closeOnOverlayClick]);
     const handleClose = useCallback(() => {
       if (config.animation && config.animation !== "none" && !prefersReducedMotion()) {
         setIsExiting(true);
@@ -278,6 +268,16 @@
         onClose();
       }
     }, [config.animation, onClose]);
+    const handleEscapeKey = useCallback((event) => {
+      if (event.key === "Escape" && config.closeOnEscape !== false) {
+        handleClose();
+      }
+    }, [config.closeOnEscape, handleClose]);
+    const handleOverlayClick = useCallback((event) => {
+      if (event.target === event.currentTarget && config.closeOnOverlayClick !== false) {
+        handleClose();
+      }
+    }, [config.closeOnOverlayClick, handleClose]);
     useEffect(() => {
       if (isVisible) {
         document.addEventListener("keydown", handleEscapeKey);
