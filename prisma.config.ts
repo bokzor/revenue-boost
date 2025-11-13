@@ -1,13 +1,7 @@
-/**
- * Prisma Configuration
- * 
- * Modern Prisma configuration file (replaces deprecated package.json#prisma)
- * See: https://pris.ly/prisma-config
- */
+import { defineConfig } from "prisma/config";
 
-export default {
-  seed: {
-    command: 'tsx prisma/seed.ts',
+export default defineConfig({
+  migrations: {
+    seed: `tsx db/seed.ts`,
   },
-} as any;
-
+});

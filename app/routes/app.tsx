@@ -8,9 +8,15 @@ import en from "@shopify/polaris/locales/en.json";
 import "@shopify/polaris/build/esm/styles.css";
 
 import { authenticate } from "../shopify.server";
+import { authenticateWithMockBridge } from "../lib/mock-bridge-auth.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  await authenticate.admin(request);
+  // Support both real Shopify and mock-bridge authentication
+  const auth = await authenticateWithMockBridge(request, authenticate.admin);
+
+  if (auth.isMock) {
+    console.log("[Mock-Bridge] Mock session active for shop:", auth.session.shop);
+  }
 
   // eslint-disable-next-line no-undef
   return { apiKey: process.env.SHOPIFY_API_KEY || "" };

@@ -120,7 +120,7 @@ export function DesignConfigSection({
         {templateType && caps && (
           <Banner tone="info">
             <Text as="p" variant="bodySm">
-              Some controls are hidden because this template doesn't use them. Your design settings are preserved and will reappear if you switch templates.
+              Some controls are hidden because this template doesn&#39;t use them. Your design settings are preserved and will reappear if you switch templates.
             </Text>
           </Banner>
         )}
