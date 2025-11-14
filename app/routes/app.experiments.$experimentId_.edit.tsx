@@ -15,6 +15,7 @@ import { ExperimentService, CampaignService } from "~/domains/campaigns";
 import { CampaignFormWithABTesting } from "~/domains/campaigns/components/CampaignFormWithABTesting";
 import type { ExperimentWithVariants } from "~/domains/campaigns";
 import type { CampaignWithConfigs } from "~/domains/campaigns/types/campaign";
+import type { FrequencyCappingConfig } from "~/domains/targeting/components";
 import type { CampaignFormData } from "~/shared/hooks/useWizardState";
 
 // ============================================================================
@@ -186,13 +187,14 @@ export default function ExperimentEditPage() {
       customPatterns: [],
       excludePages: [],
     },
-    frequencyCapping: targetVariant.targetRules?.frequencyCapping || {
-      enabled: true,
-      maxViews: 3,
-      timeWindow: 24,
+    // Load frequency capping from server format (already matches UI format)
+    frequencyCapping: {
+      enabled: !!targetVariant.targetRules?.enhancedTriggers?.frequency_capping,
+      max_triggers_per_session: targetVariant.targetRules?.enhancedTriggers?.frequency_capping?.max_triggers_per_session,
+      max_triggers_per_day: targetVariant.targetRules?.enhancedTriggers?.frequency_capping?.max_triggers_per_day,
+      cooldown_between_triggers: targetVariant.targetRules?.enhancedTriggers?.frequency_capping?.cooldown_between_triggers,
       respectGlobalCap: true,
-      cooldownHours: 0,
-    },
+    } as FrequencyCappingConfig,
     discountConfig: targetVariant.discountConfig || undefined,
   };
 

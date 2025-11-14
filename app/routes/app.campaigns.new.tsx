@@ -16,7 +16,7 @@ import { CampaignFormWithABTesting } from "~/domains/campaigns/components/Campai
 import type { CampaignFormData } from "~/shared/hooks/useWizardState";
 import { useState } from "react";
 import { Modal, Text } from "@shopify/polaris";
-
+import type { UnifiedTemplate } from "~/domains/popups/services/templates/unified-template-service.server";
 
 // ============================================================================
 // LOADER - Fetch necessary data for form
@@ -69,10 +69,22 @@ export default function NewCampaign() {
   const [activating, setActivating] = useState(false);
 
 
-  const { storeId, shopDomain } = loaderData;
+  const { storeId, shopDomain, templates } = loaderData as {
+    storeId: string;
+    shopDomain: string;
+    templates: UnifiedTemplate[];
+    success: boolean;
+  };
 
   // Handle save - create campaign(s) via API
   const handleSave = async (campaignData: CampaignFormData | CampaignFormData[]) => {
+    console.log('[CampaignNew] handleSave called', {
+      isArray: Array.isArray(campaignData),
+      hasFrequencyCapping: Array.isArray(campaignData)
+        ? !!campaignData[0]?.frequencyCapping
+        : !!campaignData.frequencyCapping,
+    });
+
     try {
       // Use fetch to call our API routes instead of importing server services
       if (Array.isArray(campaignData)) {
@@ -211,18 +223,25 @@ export default function NewCampaign() {
           tags: campaignData.tags,
         };
 
+        console.log('[CampaignNew] POSTing /api/campaigns', campaignCreateData);
+
         const response = await fetch("/api/campaigns", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(campaignCreateData),
         });
 
+        console.log('[CampaignNew] /api/campaigns response', response.status);
+
         if (!response.ok) {
+          console.error('[CampaignNew] /api/campaigns failed', response.status);
           throw new Error("Failed to create campaign");
         }
 
         const body = await response.json();
         const campaign = body?.data?.campaign ?? body?.data;
+
+        console.log('[CampaignNew] created campaign', campaign?.id);
 
         // Post-create: if still DRAFT, prompt to activate via Polaris modal
         if (campaign?.status === "DRAFT") {
@@ -250,6 +269,7 @@ export default function NewCampaign() {
         shopDomain={shopDomain}
         onSave={handleSave}
         onCancel={handleCancel}
+        initialTemplates={templates}
       />
 
       <Modal
