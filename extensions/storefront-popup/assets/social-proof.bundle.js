@@ -59,6 +59,15 @@
   var SocialProofNotificationComponent = ({ notification, config, onDismiss, onClick }) => {
     const [isVisible, setIsVisible] = useState(false);
     const [isExiting, setIsExiting] = useState(false);
+    const colors = {
+      background: config.notificationBackgroundColor || config.backgroundColor || "#FFFFFF",
+      text: config.textColor || "#1F2937",
+      primary: config.customerNameColor || config.accentColor || config.textColor || "#111827",
+      secondary: "#F3F4F6",
+      success: config.accentColor || "#16A34A",
+      warning: "#F59E0B",
+      border: "#E5E7EB"
+    };
     const handleDismiss = useCallback(() => {
       setIsExiting(true);
       setTimeout(() => {
@@ -98,63 +107,37 @@
           return { ...base, bottom: "20px", left: "20px" };
       }
     };
-    const renderPurchaseNotification = (notif) => /* @__PURE__ */ jsxs(Fragment2, { children: [
-      config.showIcons && /* @__PURE__ */ jsx("span", { style: { fontSize: "20px", marginRight: "8px" }, children: "\u{1F6CD}\uFE0F" }),
-      /* @__PURE__ */ jsxs("div", { style: { flex: 1 }, children: [
-        /* @__PURE__ */ jsxs(
-          "div",
-          {
-            style: {
-              fontSize: "14px",
-              fontWeight: "600",
-              marginBottom: "4px",
-              color: config.customerNameColor || config.textColor
-            },
-            children: [
-              notif.customerName,
-              " from ",
+    const renderPurchaseNotification = (notif) => /* @__PURE__ */ jsxs("div", { className: "notification-content", children: [
+      config.showIcons && /* @__PURE__ */ jsx("div", { className: "notification-icon", children: "\u{1F6CD}\uFE0F" }),
+      /* @__PURE__ */ jsxs("div", { className: "notification-body", children: [
+        /* @__PURE__ */ jsxs("p", { className: "notification-text", children: [
+          /* @__PURE__ */ jsx("strong", { style: { color: colors.primary }, children: notif.customerName }),
+          config.showCustomerLocation !== false && notif.location && /* @__PURE__ */ jsxs(Fragment2, { children: [
+            " ",
+            /* @__PURE__ */ jsxs("span", { style: { color: colors.text, opacity: 0.8 }, children: [
+              "from ",
               notif.location
-            ]
-          }
-        ),
-        /* @__PURE__ */ jsx(
-          "div",
-          {
-            style: {
-              fontSize: "13px",
-              opacity: 0.8,
-              marginBottom: "2px",
-              color: config.actionTextColor || config.textColor
-            },
-            children: "just purchased:"
-          }
-        ),
-        /* @__PURE__ */ jsx(
-          "div",
-          {
-            style: {
-              fontSize: "13px",
-              fontWeight: "500",
-              color: config.productNameColor || config.textColor
-            },
-            children: notif.productName
-          }
-        ),
-        /* @__PURE__ */ jsxs(
-          "div",
-          {
-            style: {
-              fontSize: "12px",
-              opacity: 0.6,
-              marginTop: "4px",
-              color: config.timestampColor || config.textColor
-            },
-            children: [
-              notif.timeAgo,
-              config.showVerifiedBadge && notif.verified && /* @__PURE__ */ jsx("span", { style: { marginLeft: "6px", color: config.accentColor }, children: "\u2713" })
-            ]
-          }
-        )
+            ] })
+          ] }),
+          /* @__PURE__ */ jsx("br", {}),
+          /* @__PURE__ */ jsx("span", { style: { color: colors.text, opacity: 0.7 }, children: "just purchased:" }),
+          /* @__PURE__ */ jsx("br", {}),
+          /* @__PURE__ */ jsx("strong", { style: { color: colors.text }, children: notif.productName })
+        ] }),
+        /* @__PURE__ */ jsxs("div", { className: "notification-meta", style: { color: colors.text }, children: [
+          /* @__PURE__ */ jsx("span", { children: notif.timeAgo }),
+          config.showVerifiedBadge && notif.verified && /* @__PURE__ */ jsxs(
+            "span",
+            {
+              className: "verified-badge",
+              style: { background: colors.success, color: "#FFFFFF" },
+              children: [
+                /* @__PURE__ */ jsx("span", { children: "\u2713" }),
+                " Verified"
+              ]
+            }
+          )
+        ] })
       ] }),
       notif.productImage && /* @__PURE__ */ jsx(
         "img",
@@ -171,76 +154,103 @@
         }
       )
     ] });
-    const renderVisitorNotification = (notif) => /* @__PURE__ */ jsxs(Fragment2, { children: [
-      config.showIcons && /* @__PURE__ */ jsx("span", { style: { fontSize: "20px", marginRight: "8px" }, children: "\u{1F465}" }),
-      /* @__PURE__ */ jsxs("div", { style: { flex: 1 }, children: [
-        /* @__PURE__ */ jsxs(
-          "div",
-          {
-            style: { fontSize: "14px", fontWeight: "600", marginBottom: "4px" },
-            children: [
+    const renderVisitorNotification = (notif) => {
+      const contextText = notif.context;
+      const isLowStock = /left in stock!$/i.test(contextText);
+      if (isLowStock) {
+        return /* @__PURE__ */ jsxs("div", { className: "notification-content", children: [
+          config.showIcons && /* @__PURE__ */ jsx("div", { className: "notification-icon", children: "\u26A0\uFE0F" }),
+          /* @__PURE__ */ jsx("div", { className: "notification-body", children: /* @__PURE__ */ jsx("p", { className: "notification-text", children: /* @__PURE__ */ jsx("strong", { style: { color: colors.warning }, children: notif.count === 1 ? "Only 1 left in stock!" : `Only ${notif.count} left in stock!` }) }) })
+        ] });
+      }
+      return /* @__PURE__ */ jsxs("div", { className: "notification-content", children: [
+        config.showIcons && /* @__PURE__ */ jsx("div", { className: "notification-icon", children: "\u{1F465}" }),
+        /* @__PURE__ */ jsxs("div", { className: "notification-body", children: [
+          /* @__PURE__ */ jsxs("p", { className: "notification-text", children: [
+            /* @__PURE__ */ jsxs("strong", { style: { color: colors.primary }, children: [
               notif.count,
               " ",
               notif.count === 1 ? "person" : "people"
-            ]
-          }
-        ),
-        /* @__PURE__ */ jsx("div", { style: { fontSize: "13px", opacity: 0.8 }, children: notif.context }),
-        notif.trending && /* @__PURE__ */ jsx(
-          "div",
-          {
-            style: {
-              fontSize: "12px",
-              marginTop: "4px",
-              color: config.accentColor,
-              fontWeight: "500"
-            },
-            children: "\u{1F525} Trending"
-          }
-        )
-      ] })
-    ] });
-    const renderReviewNotification = (notif) => /* @__PURE__ */ jsxs(Fragment2, { children: [
-      config.showIcons && /* @__PURE__ */ jsx("span", { style: { fontSize: "20px", marginRight: "8px" }, children: "\u2B50" }),
-      /* @__PURE__ */ jsxs("div", { style: { flex: 1 }, children: [
-        /* @__PURE__ */ jsxs(
-          "div",
-          {
-            style: { fontSize: "14px", fontWeight: "600", marginBottom: "4px" },
-            children: [
-              notif.rating.toFixed(1),
-              " from ",
-              notif.reviewCount.toLocaleString(),
-              " ",
-              "reviews"
-            ]
-          }
-        ),
-        notif.recentReview && /* @__PURE__ */ jsxs(Fragment2, { children: [
-          /* @__PURE__ */ jsxs(
-            "div",
+            ] }),
+            /* @__PURE__ */ jsx("br", {}),
+            /* @__PURE__ */ jsx("span", { style: { color: colors.text, opacity: 0.8 }, children: contextText })
+          ] }),
+          notif.trending && /* @__PURE__ */ jsx("div", { className: "notification-meta", children: /* @__PURE__ */ jsxs(
+            "span",
             {
-              style: {
-                fontSize: "13px",
-                opacity: 0.8,
-                fontStyle: "italic",
-                marginBottom: "2px"
-              },
+              className: "trending-indicator",
+              style: { color: colors.warning },
               children: [
-                '"',
-                notif.recentReview.text,
-                '"'
+                /* @__PURE__ */ jsx("span", { children: "\u{1F525}" }),
+                " Trending"
               ]
             }
-          ),
-          /* @__PURE__ */ jsxs("div", { style: { fontSize: "12px", opacity: 0.6 }, children: [
-            "- ",
-            notif.recentReview.author,
-            config.showVerifiedBadge && notif.recentReview.verified && /* @__PURE__ */ jsx("span", { style: { marginLeft: "4px", color: config.accentColor }, children: "\u2713" })
-          ] })
+          ) })
         ] })
-      ] })
-    ] });
+      ] });
+    };
+    const renderReviewNotification = (notif) => {
+      const renderStars = (rating) => Array.from({ length: 5 }, (_, i) => /* @__PURE__ */ jsx(
+        "span",
+        {
+          style: {
+            color: i < rating ? "#FBBF24" : colors.border
+          },
+          children: "\u2605"
+        },
+        i
+      ));
+      return /* @__PURE__ */ jsxs("div", { className: "notification-content", children: [
+        config.showIcons && /* @__PURE__ */ jsx("div", { className: "notification-icon", children: "\u2B50" }),
+        /* @__PURE__ */ jsxs("div", { className: "notification-body", children: [
+          /* @__PURE__ */ jsxs("p", { className: "notification-text", children: [
+            /* @__PURE__ */ jsx("span", { className: "star-rating", children: renderStars(notif.rating) }),
+            /* @__PURE__ */ jsx("br", {}),
+            /* @__PURE__ */ jsx("strong", { style: { color: colors.primary }, children: notif.rating.toFixed(1) }),
+            " ",
+            /* @__PURE__ */ jsxs("span", { style: { color: colors.text, opacity: 0.8 }, children: [
+              "from ",
+              notif.reviewCount.toLocaleString(),
+              " reviews"
+            ] })
+          ] }),
+          notif.recentReview && /* @__PURE__ */ jsxs(
+            "div",
+            {
+              className: "review-quote",
+              style: {
+                background: colors.secondary,
+                borderLeft: `3px solid ${colors.primary}`
+              },
+              children: [
+                /* @__PURE__ */ jsxs("p", { className: "review-text", children: [
+                  '"',
+                  notif.recentReview.text,
+                  '"'
+                ] }),
+                /* @__PURE__ */ jsxs("div", { className: "review-author", children: [
+                  /* @__PURE__ */ jsxs("span", { children: [
+                    "\u2014 ",
+                    notif.recentReview.author
+                  ] }),
+                  config.showVerifiedBadge && notif.recentReview.verified && /* @__PURE__ */ jsxs(
+                    "span",
+                    {
+                      className: "verified-badge",
+                      style: { background: colors.success, color: "#FFFFFF" },
+                      children: [
+                        /* @__PURE__ */ jsx("span", { children: "\u2713" }),
+                        " Verified"
+                      ]
+                    }
+                  )
+                ] })
+              ]
+            }
+          )
+        ] })
+      ] });
+    };
     const renderNotificationContent = () => {
       switch (notification.type) {
         case "purchase":
@@ -267,25 +277,16 @@
             ...getPositionStyles(),
             width: "320px",
             maxWidth: "calc(100vw - 40px)",
-            backgroundColor: config.notificationBackgroundColor || config.backgroundColor,
-            color: config.textColor,
+            background: colors.background,
+            color: colors.text,
             borderRadius: "12px",
-            boxShadow: "0 4px 16px rgba(0, 0, 0, 0.12)",
+            boxShadow: "0 10px 40px rgba(0, 0, 0, 0.15), 0 4px 8px rgba(0, 0, 0, 0.1)",
             padding: "16px",
-            display: "flex",
-            alignItems: "flex-start",
             cursor: onClick ? "pointer" : "default",
-            transition: "transform 0.2s ease"
+            border: `1px solid ${colors.border}`,
+            transition: "transform 0.3s ease-out, opacity 0.3s ease-out"
           },
           onClick: handleClick,
-          onMouseEnter: (e) => {
-            if (onClick) {
-              e.currentTarget.style.transform = "translateY(-2px)";
-            }
-          },
-          onMouseLeave: (e) => {
-            e.currentTarget.style.transform = "translateY(0)";
-          },
           children: [
             renderNotificationContent(),
             /* @__PURE__ */ jsx(
@@ -306,7 +307,7 @@
                   opacity: 0.5,
                   fontSize: "16px",
                   lineHeight: "1",
-                  color: config.textColor
+                  color: colors.text
                 },
                 onMouseEnter: (e) => {
                   e.currentTarget.style.opacity = "1";
@@ -338,6 +339,10 @@
           animation: fadeOut 0.3s ease-out forwards;
         }
 
+        .social-proof-notification:hover {
+          transform: translateY(-2px);
+        }
+
         @keyframes slideInLeft {
           from {
             opacity: 0;
@@ -362,11 +367,102 @@
           }
         }
 
+        .notification-content {
+          display: flex;
+          align-items: flex-start;
+          gap: 12px;
+        }
+
+        .notification-icon {
+          flex-shrink: 0;
+          font-size: 24px;
+          line-height: 1;
+        }
+
+        .notification-body {
+          flex: 1;
+          min-width: 0;
+        }
+
+        .notification-text {
+          margin: 0;
+          font-size: 14px;
+          line-height: 1.5;
+        }
+
+        .notification-meta {
+          margin-top: 4px;
+          font-size: 12px;
+          opacity: 0.7;
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          flex-wrap: wrap;
+        }
+
+        .verified-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          font-size: 11px;
+          padding: 2px 6px;
+          border-radius: 4px;
+          font-weight: 500;
+        }
+
+        .trending-indicator {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          font-size: 12px;
+          font-weight: 600;
+        }
+
+        .star-rating {
+          display: inline-flex;
+          align-items: center;
+          gap: 2px;
+        }
+
+        .review-quote {
+          margin-top: 8px;
+          padding: 8px 12px;
+          border-radius: 8px;
+        }
+
+        .review-text {
+          font-style: italic;
+          font-size: 13px;
+          line-height: 1.4;
+          margin: 0 0 6px 0;
+        }
+
+        .review-author {
+          font-size: 12px;
+          font-weight: 500;
+          opacity: 0.8;
+          display: flex;
+          align-items: center;
+          gap: 4px;
+        }
+
         /* Mobile responsiveness */
         @media (max-width: 640px) {
           .social-proof-notification {
             width: calc(100vw - 40px) !important;
             font-size: 13px;
+          }
+
+          .notification-text {
+            font-size: 13px;
+          }
+
+          .notification-meta {
+            font-size: 11px;
+          }
+
+          .notification-icon {
+            font-size: 20px;
           }
         }
       ` })

@@ -1,6 +1,6 @@
 /**
  * Goal Step Content Component
- * 
+ *
  * Extracted from CampaignFormWithABTesting to follow SOLID principles:
  * - Single Responsibility: Only renders goal step content
  * - Separation of Concerns: Isolated from parent form logic
@@ -145,19 +145,23 @@ export function GoalStepContent({
             <FormLayout>
               <TextField
                 label="Campaign Name"
+                name="campaignName"
                 value={name || ""}
                 onChange={onNameChange}
                 placeholder="e.g., Summer Sale Campaign"
                 autoComplete="off"
                 requiredIndicator
+                data-test-id="campaign-name"
               />
               <TextField
                 label="Description"
+                name="campaignDescription"
                 value={description || ""}
                 onChange={onDescriptionChange}
                 placeholder="Describe your campaign objectives"
                 multiline={3}
                 autoComplete="off"
+                data-test-id="campaign-description"
               />
             </FormLayout>
           </BlockStack>

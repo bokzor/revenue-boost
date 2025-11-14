@@ -3,6 +3,12 @@ import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, waitFor, screen } from '@testing-library/react';
 
+// Mock Polaris Modal/Text to avoid AppProvider requirement in tests
+vi.mock('@shopify/polaris', () => ({
+  Modal: (props: any) => React.createElement('div', null, props.children),
+  Text: (props: any) => React.createElement('span', null, props.children),
+}));
+
 // Mock shopify.server to avoid environment check at import time
 vi.mock('~/shopify.server', () => ({
   authenticate: { admin: vi.fn().mockResolvedValue({ session: { shop: 'test.myshopify.com' } }) },
@@ -103,6 +109,9 @@ describe('NewCampaign route - creation redirects', () => {
       .mockResolvedValueOnce({ ok: true, json: async () => ({ success: true, data: { campaign: { id: 'c_A' } } }) })
       // POST /api/campaigns (B)
       .mockResolvedValueOnce({ ok: true, json: async () => ({ success: true, data: { campaign: { id: 'c_B' } } }) });
+
+    // Stub window.confirm so the test environment doesn't throw
+    (window as any).confirm = vi.fn().mockReturnValue(false);
 
     render(<NewCampaign />);
 

@@ -57,10 +57,11 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [showContent, setShowContent] = useState(false);
   const [hoveredProduct, setHoveredProduct] = useState<string | null>(null);
+  const [currentSlide, setCurrentSlide] = useState(0);
 
   const products = useMemo(() => propProducts || config.products || [], [propProducts, config.products]);
-  const displayProducts = useMemo(() =>
-    config.maxProducts ? products.slice(0, config.maxProducts) : products,
+  const displayProducts = useMemo(
+    () => (config.maxProducts ? products.slice(0, config.maxProducts) : products),
     [config.maxProducts, products]
   );
 
@@ -88,6 +89,17 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
     } else {
       setSelectedProducts(new Set([productId]));
     }
+  const handlePrevSlide = useCallback(() => {
+    if (displayProducts.length === 0) return;
+    setCurrentSlide((prev) => (prev - 1 + displayProducts.length) % displayProducts.length);
+  }, [displayProducts.length]);
+
+  const handleNextSlide = useCallback(() => {
+    if (displayProducts.length === 0) return;
+    setCurrentSlide((prev) => (prev + 1) % displayProducts.length);
+  }, [displayProducts.length]);
+
+
   }, [config.multiSelect]);
 
   const handleAddToCart = useCallback(async () => {
@@ -131,11 +143,41 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
     return savings;
   }, [selectedProducts, config.bundleDiscount, calculateTotal]);
 
+  const getSavingsPercent = (product: Product): number | null => {
+    if (product.savingsPercent != null) {
+      return product.savingsPercent;
+    }
+    if (!product.compareAtPrice) return null;
+    const price = parseFloat(product.price);
+    const compare = parseFloat(product.compareAtPrice);
+    if (!Number.isFinite(price) || !Number.isFinite(compare) || compare <= 0 || price >= compare) {
+      return null;
+    }
+    return Math.round((1 - price / compare) * 100);
+  };
+
   const calculateDiscountedTotal = useCallback(() => {
     const total = calculateTotal();
     const savings = calculateSavings();
     return savings ? total - savings : total;
   }, [calculateTotal, calculateSavings]);
+
+  const handlePrevSlide = useCallback(() => {
+    if (displayProducts.length === 0) return;
+    setCurrentSlide((prev) => (prev - 1 + displayProducts.length) % displayProducts.length);
+  }, [displayProducts.length]);
+
+  const handleNextSlide = useCallback(() => {
+    if (displayProducts.length === 0) return;
+    setCurrentSlide((prev) => (prev + 1) % displayProducts.length);
+  }, [displayProducts.length]);
+
+  const handleGoToSlide = useCallback((index: number) => {
+    if (index < 0 || index >= displayProducts.length) return;
+    setCurrentSlide(index);
+  }, [displayProducts.length]);
+
+
 
   // Enhanced default colors and settings
   const accentColor = config.accentColor || config.buttonColor || '#6366F1';
@@ -146,6 +188,9 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
   const imageHeight = config.imageAspectRatio === 'portrait' ? '280px'
     : config.imageAspectRatio === 'landscape' ? '180px'
       : '240px';
+  const textColor = config.textColor || '#111827';
+  const secondaryColor = config.inputBackgroundColor || '#F3F4F6';
+  const borderColor = config.inputBorderColor || 'rgba(148, 163, 184, 0.5)';
 
   const renderProduct = (product: Product, index: number) => {
     const isSelected = selectedProducts.has(product.id);
@@ -297,16 +342,18 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
                   }}>
                     {formatCurrency(product.compareAtPrice, config.currency)}
                   </span>
-                  <span style={{
-                    fontSize: '12px',
-                    fontWeight: 700,
-                    color: '#EF4444',
-                    backgroundColor: '#FEE2E2',
-                    padding: '2px 8px',
-                    borderRadius: '4px'
-                  }}>
-                    SAVE {Math.round((1 - parseFloat(product.price) / parseFloat(product.compareAtPrice)) * 100)}%
-                  </span>
+                  {getSavingsPercent(product) !== null && (
+                    <span style={{
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      color: config.buttonTextColor || '#FFFFFF',
+                      backgroundColor: config.accentColor || config.buttonColor || '#EF4444',
+                      padding: '2px 8px',
+                      borderRadius: '4px'
+                    }}>
+                      SAVE {getSavingsPercent(product)}%
+                    </span>
+                  )}
                 </>
               )}
             </div>
@@ -316,7 +363,9 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           <div style={{
             marginTop: '14px',
             padding: '10px 16px',
-            backgroundColor: isSelected ? accentColor : '#F3F4F6',
+            backgroundColor: isSelected
+              ? accentColor
+              : config.inputBackgroundColor || '#F3F4F6',
             color: isSelected ? '#FFFFFF' : config.textColor || '#374151',
             borderRadius: `${borderRadius - 4}px`,
             fontSize: '14px',
@@ -355,6 +404,409 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
     };
   };
 
+  const renderProductsSection = (): React.ReactNode => {
+    if (displayProducts.length === 0) {
+      return (
+        <div
+          style={{
+            padding: '40px 20px',
+            textAlign: 'center',
+            color: config.textColor || '#9CA3AF',
+          }}
+        >
+          <div style={{ fontSize: '48px', marginBottom: '16px' }}>📦</div>
+          <p>No products available</p>
+        </div>
+      );
+    }
+
+    if (config.layout === 'carousel') {
+      const product = displayProducts[Math.min(currentSlide, displayProducts.length - 1)];
+      const isSelected = selectedProducts.has(product.id);
+      const savingsPercent = getSavingsPercent(product);
+
+      return (
+        <div
+          style={{
+            position: 'relative',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            minHeight: 360,
+            padding: '24px 40px',
+            gap: '32px',
+          }}
+        >
+          {/* Previous button */}
+          <button
+            type="button"
+            onClick={handlePrevSlide}
+            aria-label="Previous product"
+            style={{
+              borderRadius: '9999px',
+              border: `1px solid ${config.inputBorderColor || '#E5E7EB'}`,
+              backgroundColor: config.inputBackgroundColor || '#F3F4F6',
+              width: 40,
+              height: 40,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+            }}
+          >
+            <span style={{ fontSize: 18 }}>‹</span>
+          </button>
+
+          {/* Main carousel product */}
+          <div
+            style={{
+              display: 'flex',
+              gap: '24px',
+              alignItems: 'center',
+              width: '100%',
+              maxWidth: 720,
+            }}
+          >
+            {config.showImages !== false && product.imageUrl && (
+              <div
+                style={{
+                  flex: 1,
+                  maxWidth: 280,
+                  aspectRatio: '1 / 1',
+                  borderRadius: 16,
+                  overflow: 'hidden',
+                  position: 'relative',
+                  backgroundColor: '#F9FAFB',
+                }}
+              >
+                <img
+                  src={product.imageUrl}
+                  alt={product.title}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
+                {savingsPercent !== null && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: 12,
+                      left: 12,
+                      padding: '4px 10px',
+                      borderRadius: 9999,
+                      backgroundColor: config.accentColor || config.buttonColor || '#22C55E',
+                      color: '#FFFFFF',
+                      fontSize: 12,
+                      fontWeight: 700,
+                    }}
+                  >
+                    SAVE {savingsPercent}%
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div
+              style={{
+                flex: 1,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 12,
+              }}
+            >
+              <h3
+                style={{
+                  fontSize: 20,
+                  fontWeight: 700,
+                  margin: 0,
+                  color: config.textColor || '#111827',
+                }}
+              >
+                {product.title}
+              </h3>
+
+              {config.showRatings && product.rating && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ color: '#F59E0B', fontSize: 14 }}>
+                    {'★'.repeat(Math.floor(product.rating))}
+                    {'☆'.repeat(5 - Math.floor(product.rating))}
+                  </div>
+                  {config.showReviewCount && product.reviewCount && (
+                    <span
+                      style={{
+                        fontSize: 13,
+                        color: config.textColor || '#6B7280',
+                      }}
+                    >
+                      ({product.reviewCount})
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {config.showPrices !== false && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span
+                    style={{
+                      fontSize: 22,
+                      fontWeight: 800,
+                      color: config.textColor || '#111827',
+                    }}
+                  >
+                    {formatCurrency(product.price, config.currency)}
+                  </span>
+                  {config.showCompareAtPrice && product.compareAtPrice && (
+                    <span
+                      style={{
+                        fontSize: 14,
+                        textDecoration: 'line-through',
+                        color: config.textColor || '#9CA3AF',
+                      }}
+                    >
+                      {formatCurrency(product.compareAtPrice, config.currency)}
+                    </span>
+                  )}
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={() => handleProductSelect(product.id)}
+                style={{
+                  marginTop: 8,
+                  padding: '10px 18px',
+                  borderRadius: 9999,
+                  border: `2px solid ${accentColor}`,
+                  backgroundColor: isSelected ? accentColor : 'transparent',
+                  color: isSelected ? '#FFFFFF' : accentColor,
+                  fontSize: 14,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 8,
+                }}
+              >
+                {isSelected ? 'Selected' : 'Select Product'}
+              </button>
+            </div>
+          </div>
+
+          {/* Next button */}
+          <button
+            type="button"
+            onClick={handleNextSlide}
+            aria-label="Next product"
+            style={{
+              borderRadius: '9999px',
+              border: `1px solid ${config.inputBorderColor || '#E5E7EB'}`,
+              backgroundColor: config.inputBackgroundColor || '#F3F4F6',
+              width: 40,
+              height: 40,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+            }}
+          >
+            <span style={{ fontSize: 18 }}>›</span>
+          </button>
+
+          {/* Dots */}
+          <div
+            style={{
+              position: 'absolute',
+              bottom: 8,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              display: 'flex',
+              gap: 6,
+            }}
+          >
+            {displayProducts.map((p, index) => (
+              <button
+                // eslint-disable-next-line react/no-array-index-key
+                key={index}
+                type="button"
+                onClick={() => handleGoToSlide(index)}
+                style={{
+                  width: index === currentSlide ? 18 : 8,
+                  height: 8,
+                  borderRadius: 9999,
+                  border: 'none',
+                  padding: 0,
+                  cursor: 'pointer',
+                  backgroundColor:
+                    index === currentSlide
+                      ? accentColor
+                      : config.inputBorderColor || '#E5E7EB',
+                }}
+              />
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    if (config.layout === 'card') {
+      return (
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 16,
+            marginBottom: 24,
+          }}
+        >
+          {displayProducts.map((product) => {
+            const isSelected = selectedProducts.has(product.id);
+            const savingsPercent = getSavingsPercent(product);
+
+            return (
+              <div
+                key={product.id}
+                style={{
+                  display: 'flex',
+                  gap: 16,
+                  alignItems: 'center',
+                  border: `2px solid ${
+                    isSelected ? accentColor : config.inputBorderColor || '#E5E7EB'
+                  }`,
+                  borderRadius: borderRadius,
+                  padding: '12px 16px',
+                  backgroundColor: config.backgroundColor || '#FFFFFF',
+                }}
+              >
+                {config.showImages !== false && product.imageUrl && (
+                  <div
+                    style={{
+                      width: 96,
+                      height: 96,
+                      borderRadius: 12,
+                      overflow: 'hidden',
+                      position: 'relative',
+                      backgroundColor: '#F9FAFB',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <img
+                      src={product.imageUrl}
+                      alt={product.title}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
+                    {savingsPercent !== null && (
+                      <div
+                        style={{
+                          position: 'absolute',
+                          top: 8,
+                          left: 8,
+                          padding: '2px 8px',
+                          borderRadius: 9999,
+                          backgroundColor:
+                            config.accentColor || config.buttonColor || '#22C55E',
+                          color: '#FFFFFF',
+                          fontSize: 11,
+                          fontWeight: 700,
+                        }}
+                      >
+                        SAVE {savingsPercent}%
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <h3
+                    style={{
+                      fontSize: 16,
+                      fontWeight: 600,
+                      margin: 0,
+                      marginBottom: 4,
+                      color: config.textColor || '#111827',
+                    }}
+                  >
+                    {product.title}
+                  </h3>
+
+                  {config.showRatings && product.rating && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                      <div style={{ color: '#F59E0B', fontSize: 14 }}>
+                        {'★'.repeat(Math.floor(product.rating))}
+                        {'☆'.repeat(5 - Math.floor(product.rating))}
+                      </div>
+                      {config.showReviewCount && product.reviewCount && (
+                        <span
+                          style={{
+                            fontSize: 13,
+                            color: config.textColor || '#6B7280',
+                          }}
+                        >
+                          ({product.reviewCount})
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  {config.showPrices !== false && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span
+                        style={{
+                          fontSize: 18,
+                          fontWeight: 700,
+                          color: config.textColor || '#111827',
+                        }}
+                      >
+                        {formatCurrency(product.price, config.currency)}
+                      </span>
+                      {config.showCompareAtPrice && product.compareAtPrice && (
+                        <span
+                          style={{
+                            fontSize: 14,
+                            textDecoration: 'line-through',
+                            color: config.textColor || '#9CA3AF',
+                          }}
+                        >
+                          {formatCurrency(product.compareAtPrice, config.currency)}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => handleProductSelect(product.id)}
+                  style={{
+                    padding: '10px 16px',
+                    borderRadius: 9999,
+                    border: `2px solid ${accentColor}`,
+                    backgroundColor: isSelected ? accentColor : 'transparent',
+                    color: isSelected ? '#FFFFFF' : accentColor,
+                    fontSize: 14,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 8,
+                  }}
+                >
+                  {isSelected ? 'Added' : 'Add'}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      );
+    }
+
+    // Default grid layout
+    return (
+      <div style={getGridStyles()}>
+        {displayProducts.map((product, index) => renderProduct(product, index))}
+      </div>
+    );
+  };
+
+
+
   const buttonStyles: React.CSSProperties = {
     width: '100%',
     padding: '16px 24px',
@@ -384,32 +836,43 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
       <div style={{
         display: 'flex',
         flexDirection: 'column',
-        gap: '24px',
+        gap: 0,
         opacity: showContent ? 1 : 0,
         transform: showContent ? 'translateY(0)' : 'translateY(10px)',
         transition: `all ${animDuration}ms cubic-bezier(0.4, 0, 0.2, 1)`,
       }}>
-        {/* Headline */}
-        <div style={{ textAlign: 'center', marginBottom: '4px' }}>
-          <h2 style={{
-            fontSize: '32px',
-            fontWeight: 800,
-            margin: '0 0 12px 0',
-            lineHeight: 1.2,
-            color: config.textColor || '#111827',
-            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-            letterSpacing: '-0.02em'
-          }}>
+        {/* Header */}
+        <div
+          style={{
+            padding: '48px 32px 32px',
+            textAlign: 'center',
+            borderBottom: `1px solid ${borderColor}`,
+          }}
+        >
+          <h2
+            style={{
+              fontSize: '30px',
+              fontWeight: 800,
+              margin: '0 0 8px 0',
+              lineHeight: 1.2,
+              color: textColor,
+              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+              letterSpacing: '-0.02em',
+            }}
+          >
             {config.headline}
           </h2>
           {config.subheadline && (
-            <p style={{
-              fontSize: '16px',
-              margin: 0,
-              color: config.textColor || '#6B7280',
-              lineHeight: 1.6,
-              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-            }}>
+            <p
+              style={{
+                fontSize: '16px',
+                margin: 0,
+                color: textColor,
+                opacity: 0.7,
+                lineHeight: 1.5,
+                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+              }}
+            >
               {config.subheadline}
             </p>
           )}
@@ -447,7 +910,7 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
               <div style={{
                 fontSize: '24px',
                 fontWeight: 800,
-                color: '#10B981',
+                color: config.successColor || accentColor || '#10B981',
                 marginTop: '8px'
               }}>
                 -{formatCurrency(savings, config.currency)} off
@@ -456,50 +919,43 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           </div>
         )}
 
-        {/* Products grid */}
-        {displayProducts.length > 0 ? (
-          <div style={getGridStyles()}>
-            {displayProducts.map((product, index) => renderProduct(product, index))}
-          </div>
-        ) : (
-          <div style={{
-            padding: '40px 20px',
-            textAlign: 'center',
-            color: config.textColor || '#9CA3AF'
-          }}>
-            <div style={{ fontSize: '48px', marginBottom: '16px' }}>📦</div>
-            <p>No products available</p>
-          </div>
-        )}
+        {/* Products grid / layout */}
+        {renderProductsSection()}
 
         {/* Selection summary */}
         {selectedProducts.size > 0 && (
-          <div style={{
-            padding: '20px',
-            background: `linear-gradient(135deg, ${accentColor}08 0%, ${accentColor}04 100%)`,
-            borderRadius: `${borderRadius}px`,
-            border: `2px solid ${accentColor}20`,
-            animation: 'fadeIn 0.3s ease-out'
-          }}>
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: savings ? '12px' : '0'
-            }}>
+          <div
+            style={{
+              padding: '24px 32px',
+              background: secondaryColor,
+              borderTop: `2px solid ${borderColor}`,
+              marginTop: '8px',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: savings ? '12px' : '0',
+              }}
+            >
               <div>
-                <div style={{
-                  fontSize: '14px',
-                  fontWeight: 600,
-                  color: config.textColor || '#6B7280',
-                  marginBottom: '4px'
-                }}>
+                <div
+                  style={{
+                    fontSize: '14px',
+                    fontWeight: 600,
+                    color: textColor,
+                    opacity: 0.7,
+                    marginBottom: '4px',
+                  }}
+                >
                   {selectedProducts.size} item{selectedProducts.size !== 1 ? 's' : ''} selected
                 </div>
                 {savings && (
                   <div style={{
                     fontSize: '12px',
-                    color: '#10B981',
+                    color: config.successColor || accentColor || '#10B981',
                     fontWeight: 600
                   }}>
                     You save {formatCurrency(savings, config.currency)}
@@ -560,10 +1016,22 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           ) : (
             <>
               <span style={{ fontSize: '18px' }}>🛒</span>
-              {config.buttonText || config.ctaText ||
-                (selectedProducts.size > 0
-                  ? `Add ${selectedProducts.size} to Cart`
-                  : 'Select Products')}
+              {(() => {
+                const count = selectedProducts.size;
+                const baseLabel = config.buttonText || config.ctaText;
+
+                if (baseLabel) {
+                  return baseLabel.includes('{count}')
+                    ? baseLabel.replace('{count}', String(count || 0))
+                    : baseLabel;
+                }
+
+                if (count > 0) {
+                  return `Add ${count} to Cart`;
+                }
+
+                return 'Select Products';
+              })()}
             </>
           )}
         </button>

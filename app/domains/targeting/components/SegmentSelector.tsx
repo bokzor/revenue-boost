@@ -48,8 +48,17 @@ export function SegmentSelector({
     fetch(`/api/segments?storeId=${storeId}`)
       .then((res) => res.json())
       .then((data) => {
-        if (data.segments) {
-          setSegments(data.segments);
+        // Support both plain list ({ segments }) and standardized API response
+        // ({ success, data: { segments } })
+        const segmentsPayload =
+          (data && data.data && Array.isArray(data.data.segments)
+            ? data.data.segments
+            : data && Array.isArray(data.segments)
+              ? data.segments
+              : []) as AudienceSegment[];
+
+        if (segmentsPayload.length > 0) {
+          setSegments(segmentsPayload);
         }
         setLoading(false);
       })

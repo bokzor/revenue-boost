@@ -17,6 +17,10 @@ import { Affix } from "~/shared/components/ui/Affix";
 import type { CampaignGoal, TemplateType } from "~/shared/hooks/useWizardState";
 import type { ContentConfig, DesignConfig } from "~/domains/campaigns/types/campaign";
 import type { DiscountConfig } from "~/domains/popups/services/discounts/discount.server";
+import type { UnifiedTemplate } from "../../hooks/useTemplates";
+
+import type { SpinToWinContent } from "~/domains/campaigns/types/campaign";
+import { getSpinToWinSliceColors } from "~/config/color-presets";
 
 
 interface DesignStepContentProps {
@@ -33,6 +37,7 @@ interface DesignStepContentProps {
   onDesignChange: (design: Partial<DesignConfig>) => void;
   onDiscountChange?: (config: DiscountConfig) => void;
   onTemplateSelect: (template: SelectedTemplate) => void;
+  initialTemplates?: UnifiedTemplate[];
 }
 
 export function DesignStepContent({
@@ -49,6 +54,7 @@ export function DesignStepContent({
   onDesignChange,
   onDiscountChange,
   onTemplateSelect,
+  initialTemplates,
 }: DesignStepContentProps) {
   if (!goal) {
     return (
@@ -78,6 +84,7 @@ export function DesignStepContent({
                 storeId={storeId}
                 selectedTemplateId={templateId}
                 onSelect={onTemplateSelect}
+                initialTemplates={initialTemplates}
               />
             </BlockStack>
           </Card>
@@ -115,6 +122,27 @@ export function DesignStepContent({
                     design={designConfig}
                     templateType={templateType}
                     onChange={onDesignChange}
+                    onThemeChange={(themeKey) => {
+                      if (templateType === "SPIN_TO_WIN") {
+                        const spinContent = contentConfig as Partial<SpinToWinContent>;
+                        const segments = spinContent.wheelSegments;
+                        if (!segments || segments.length === 0) {
+                          return;
+                        }
+
+                        const colors = getSpinToWinSliceColors(themeKey, segments.length);
+
+                        const updatedSegments = segments.map((segment, index) => ({
+                          ...segment,
+                          color: colors[index % colors.length],
+                        }));
+
+                        onContentChange({
+                          ...contentConfig,
+                          wheelSegments: updatedSegments,
+                        });
+                      }
+                    }}
                   />
                 </>
               )}

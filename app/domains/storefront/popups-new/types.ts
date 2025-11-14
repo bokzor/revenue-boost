@@ -120,6 +120,7 @@ export interface Product {
   description?: string;
   rating?: number;
   reviewCount?: number;
+  savingsPercent?: number;
 }
 
 export interface CartItem {

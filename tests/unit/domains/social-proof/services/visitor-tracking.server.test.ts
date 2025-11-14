@@ -11,7 +11,27 @@ import { getRedis } from '~/lib/redis.server';
 import Redis from "ioredis";
 
 // Mock dependencies
-vi.mock('~/lib/redis.server');
+vi.mock('~/lib/redis.server', () => {
+  const getRedis = vi.fn();
+  const REDIS_PREFIXES = {
+    FREQUENCY_CAP: 'freq_cap',
+    GLOBAL_FREQUENCY: 'global_freq_cap',
+    COOLDOWN: 'cooldown',
+    VISITOR: 'visitor',
+    PAGE_VIEW: 'pageview',
+    STATS: 'stats',
+    SESSION: 'session',
+  };
+  const REDIS_TTL = {
+    SESSION: 3600,
+    HOUR: 3600,
+    DAY: 86400,
+    WEEK: 604800,
+    MONTH: 2592000,
+    VISITOR: 7776000,
+  };
+  return { getRedis, REDIS_PREFIXES, REDIS_TTL };
+});
 
 describe('VisitorTrackingService', () => {
   beforeEach(() => {

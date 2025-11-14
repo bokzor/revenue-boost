@@ -31,7 +31,7 @@ export function WizardNavigationButtons({
 }: WizardNavigationButtonsProps) {
   return (
     <InlineStack align="space-between">
-      <Button onClick={onPrevious} disabled={currentStep === 0}>
+      <Button onClick={onPrevious} disabled={currentStep === 0} data-test-id="wizard-previous-btn">
         Previous
       </Button>
 
@@ -41,11 +41,12 @@ export function WizardNavigationButtons({
           onClick={onSave}
           disabled={isSubmitting}
           loading={isSubmitting}
+          data-test-id="wizard-save-btn"
         >
           {campaignId ? "Save Changes" : "Create Campaign"}
         </Button>
       ) : (
-        <Button variant="primary" onClick={onNext}>
+        <Button variant="primary" onClick={onNext} data-test-id="wizard-next-btn">
           Next
         </Button>
       )}

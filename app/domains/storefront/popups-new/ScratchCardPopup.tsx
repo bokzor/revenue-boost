@@ -32,6 +32,17 @@ export interface ScratchCardConfig extends PopupDesignConfig, ScratchCardContent
   scratchOverlayImage?: string;
   loadingText?: string;
 
+  // Typography (optional, can be set from design theme)
+  titleFontSize?: string;
+  titleFontWeight?: string;
+  titleTextShadow?: string;
+  descriptionFontSize?: string;
+  descriptionFontWeight?: string;
+
+  // Consent (GDPR-style checkbox)
+  showGdprCheckbox?: boolean;
+  gdprLabel?: string;
+
   // Note: prizes, emailRequired, emailPlaceholder, scratchThreshold, etc.
   // all come from ScratchCardContent
 }
@@ -53,6 +64,8 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
 }) => {
   const [email, setEmail] = useState('');
   const [emailError, setEmailError] = useState('');
+  const [gdprConsent, setGdprConsent] = useState(false);
+  const [gdprError, setGdprError] = useState('');
   const [emailSubmitted, setEmailSubmitted] = useState(false);
   const [isScratching, setIsScratching] = useState(false);
   const [scratchPercentage, setScratchPercentage] = useState(0);
@@ -69,23 +82,42 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
   const threshold = config.scratchThreshold || 50;
   const brushRadius = config.scratchRadius || 20;
 
-  // Select prize based on weighted probability
+  // Select prize based on weighted probability.
+  // Be defensive: if no prizes or invalid probabilities, fall back to a generic prize
   const selectPrize = useCallback((): Prize => {
     const prizes = config.prizes || [];
-    const totalProbability = prizes.reduce((sum, p) => sum + p.probability, 0);
+
+    // Fallback when no prizes are configured
+    if (!prizes.length) {
+      return {
+        id: 'default',
+        label: config.successMessage || 'You won! 🎉',
+        probability: 1,
+      };
+    }
+
+    const totalProbability = prizes.reduce((sum, p) => sum + (p.probability || 0), 0);
+
+    // If probabilities are all zero/invalid, fall back to the first prize
+    if (!totalProbability || !Number.isFinite(totalProbability)) {
+      return prizes[0];
+    }
+
     let random = Math.random() * totalProbability;
 
     for (const prize of prizes) {
-      random -= prize.probability;
+      const weight = prize.probability || 0;
+      random -= weight;
       if (random <= 0) {
         return prize;
       }
     }
 
+    // Fallback – should normally not be hit
     return prizes[0];
-  }, [config.prizes]);
+  }, [config.prizes, config.successMessage]);
 
-  // Initialize canvases
+  // Initialize canvases (prize + scratch overlay)
   useEffect(() => {
     if (!canvasRef.current || !prizeCanvasRef.current) return;
     if (!emailSubmitted && config.emailBeforeScratching) return;
@@ -97,28 +129,62 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
 
     if (!ctx || !prizeCtx) return;
 
-    // Draw prize on hidden canvas
+    // Reset transforms and clear previous content
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    prizeCtx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, cardWidth, cardHeight);
+    prizeCtx.clearRect(0, 0, cardWidth, cardHeight);
+
+    // Draw prize background (gradient similar to mockup)
+    if (config.scratchCardBackgroundColor) {
+      prizeCtx.fillStyle = config.scratchCardBackgroundColor;
+      prizeCtx.fillRect(0, 0, cardWidth, cardHeight);
+    } else {
+      const gradient = prizeCtx.createLinearGradient(0, 0, cardWidth, cardHeight);
+      gradient.addColorStop(0, config.accentColor || config.buttonColor || '#4f46e5');
+      gradient.addColorStop(1, config.buttonColor || config.accentColor || '#ec4899');
+      prizeCtx.fillStyle = gradient;
+      prizeCtx.fillRect(0, 0, cardWidth, cardHeight);
+    }
+
+    // Select and draw prize label
     const prize = selectPrize();
     setWonPrize(prize);
 
-    prizeCtx.fillStyle = config.scratchCardBackgroundColor || '#FFFFFF';
-    prizeCtx.fillRect(0, 0, cardWidth, cardHeight);
-    prizeCtx.fillStyle = config.scratchCardTextColor || '#000000';
-    prizeCtx.font = 'bold 32px Arial';
+    prizeCtx.fillStyle = config.scratchCardTextColor || '#ffffff';
+    prizeCtx.font = 'bold 32px system-ui, -apple-system, BlinkMacSystemFont, sans-serif';
     prizeCtx.textAlign = 'center';
     prizeCtx.textBaseline = 'middle';
     prizeCtx.fillText(prize.label, cardWidth / 2, cardHeight / 2);
 
     // Draw scratch overlay
+    ctx.globalCompositeOperation = 'source-over';
     ctx.fillStyle = config.scratchOverlayColor || '#C0C0C0';
     ctx.fillRect(0, 0, cardWidth, cardHeight);
 
-    // Add text to overlay
+    // Add scratch text on overlay
     ctx.fillStyle = '#FFFFFF';
-    ctx.font = 'bold 18px Arial';
+    ctx.font = '600 28px system-ui, -apple-system, BlinkMacSystemFont, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(config.scratchInstruction || 'Scratch to reveal!', cardWidth / 2, cardHeight / 2);
+    ctx.fillText(
+      config.scratchInstruction || 'Scratch to reveal!',
+      cardWidth / 2,
+      cardHeight / 2
+    );
+
+    // Add sparkles / pattern on overlay
+    ctx.globalAlpha = 0.3;
+    const sparkleColor = config.accentColor || config.buttonColor || '#FFFFFF';
+    ctx.fillStyle = sparkleColor;
+    for (let i = 0; i < 20; i++) {
+      const x = Math.random() * cardWidth;
+      const y = Math.random() * cardHeight;
+      ctx.beginPath();
+      ctx.arc(x, y, 2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
 
     // Set composite operation for erasing
     ctx.globalCompositeOperation = 'destination-out';
@@ -231,12 +297,23 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
   const handleEmailSubmit: React.FormEventHandler<HTMLFormElement> = useCallback(async (e) => {
     e.preventDefault();
 
+    let hasError = false;
+
     if (!validateEmail(email)) {
       setEmailError('Please enter a valid email address');
-      return;
+      hasError = true;
+    } else {
+      setEmailError('');
     }
 
-    setEmailError('');
+    if (config.showGdprCheckbox && !gdprConsent) {
+      setGdprError('You must accept the terms to continue');
+      hasError = true;
+    } else {
+      setGdprError('');
+    }
+
+    if (hasError) return;
 
     try {
       if (!config.previewMode && onSubmit) {
@@ -246,11 +323,11 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
     } catch (error) {
       setEmailError('Something went wrong. Please try again.');
     }
-  }, [email, config.previewMode, onSubmit]);
+  }, [email, gdprConsent, config.showGdprCheckbox, config.previewMode, onSubmit]);
 
   const handleCopyCode = useCallback(async () => {
     if (wonPrize?.discountCode) {
-      const success = await copyToClipboard(wonPrize.discountCode);
+      const success = await copyToClipboard(wonPrize?.discountCode ?? '');
       if (success) {
         setCopiedCode(true);
         setTimeout(() => setCopiedCode(false), 2000);
@@ -284,142 +361,613 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
   const showEmailForm = config.emailRequired && config.emailBeforeScratching && !emailSubmitted;
   const showScratchCard = !showEmailForm;
 
+  const imagePosition = config.imagePosition || 'left';
+  const showImage = !!config.imageUrl && imagePosition !== 'none';
+  const isVertical = imagePosition === 'left' || imagePosition === 'right';
+  const imageFirst = imagePosition === 'left' || imagePosition === 'top';
+
   return (
-    <BasePopup config={config} isVisible={isVisible} onClose={onClose}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', alignItems: 'center' }}>
-        {/* Headline */}
-        <div style={{ textAlign: 'center' }}>
-          <h2 style={{ fontSize: '28px', fontWeight: 700, margin: '0 0 8px 0' }}>
-            {config.headline}
-          </h2>
-          {config.subheadline && (
-            <p style={{ fontSize: '16px', margin: 0, opacity: 0.8 }}>
-              {config.subheadline}
-            </p>
-          )}
-        </div>
+    <BasePopup
+      config={config}
+      isVisible={isVisible}
+      onClose={onClose}
+      className="scratch-popup-container"
+    >
+      <div
+        className={`scratch-popup-content ${
+          !showImage ? 'single-column' : isVertical ? 'vertical' : 'horizontal'
+        } ${!imageFirst && showImage ? 'reverse' : ''}`}
+      >
+        {showImage && (
+          <div
+            className="scratch-popup-image"
+            style={{ background: config.imageBgColor || '#F3F4F6' }}
+          >
+            <img
+              src={config.imageUrl}
+              alt={config.headline || 'Scratch Card'}
+            />
+          </div>
+        )}
 
-        {showEmailForm ? (
-          // Email form
-          <form onSubmit={handleEmailSubmit} style={{ width: '100%', maxWidth: '400px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div>
-              {config.emailLabel && (
-                <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 600 }}>
-                  {config.emailLabel}
-                </label>
-              )}
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder={config.emailPlaceholder || 'Enter your email'}
-                style={inputStyles}
-                required
-              />
-              {emailError && (
-                <p style={{ color: '#EF4444', fontSize: '14px', margin: '6px 0 0 0' }}>
-                  {emailError}
-                </p>
-              )}
-            </div>
-            <button type="submit" style={buttonStyles}>
-              {config.buttonText || 'Continue'}
-            </button>
-          </form>
-        ) : showScratchCard && (
-          // Scratch card
-          <>
-            <div style={{ position: 'relative', width: cardWidth, height: cardHeight, borderRadius: '12px', overflow: 'hidden', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
-              {/* Prize canvas (hidden) */}
-              <canvas
-                ref={prizeCanvasRef}
-                width={cardWidth}
-                height={cardHeight}
-                style={{ position: 'absolute', top: 0, left: 0 }}
-              />
-
-              {/* Scratch overlay canvas */}
-              <canvas
-                ref={canvasRef}
-                width={cardWidth}
-                height={cardHeight}
-                onMouseDown={handleMouseStart}
-                onMouseMove={handleMouseMove}
-                onMouseUp={handleMouseEnd}
-                onMouseLeave={handleMouseEnd}
-                onTouchStart={handleTouchStart}
-                onTouchMove={handleTouchMove}
-                onTouchEnd={handleTouchEnd}
+        <div className="scratch-popup-form-section">
+          {/* Headline */}
+          <div style={{ textAlign: 'center' }}>
+            <h2
+              style={{
+                fontSize: config.titleFontSize || '28px',
+                fontWeight: config.titleFontWeight || 700,
+                margin: '0 0 8px 0',
+                textShadow: config.titleTextShadow,
+              }}
+            >
+              {config.headline}
+            </h2>
+            {config.subheadline && (
+              <p
                 style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  cursor: isScratching ? 'grabbing' : 'grab',
-                  touchAction: 'none',
+                  fontSize: config.descriptionFontSize || '16px',
+                  fontWeight: config.descriptionFontWeight || 400,
+                  margin: 0,
+                  opacity: 0.8,
+                  color: config.descriptionColor || config.textColor,
                 }}
-              />
-            </div>
-
-            {/* Progress indicator */}
-            {scratchPercentage > 0 && scratchPercentage < threshold && (
-              <div style={{ width: '100%', maxWidth: cardWidth }}>
-                <div style={{
-                  height: '8px',
-                  backgroundColor: '#E5E7EB',
-                  borderRadius: '4px',
-                  overflow: 'hidden'
-                }}>
-                  <div style={{
-                    height: '100%',
-                    width: `${scratchPercentage}%`,
-                    backgroundColor: config.accentColor || config.buttonColor,
-                    transition: 'width 0.3s',
-                  }} />
-                </div>
-                <p style={{ fontSize: '12px', textAlign: 'center', margin: '4px 0 0 0', opacity: 0.7 }}>
-                  {Math.round(scratchPercentage)}% scratched
-                </p>
-              </div>
+              >
+                {config.subheadline}
+              </p>
             )}
+          </div>
 
-            {/* Prize reveal */}
-            {isRevealed && wonPrize?.discountCode && (
-              <div style={{ marginTop: '16px', padding: '20px', backgroundColor: config.accentColor || '#F3F4F6', borderRadius: '12px', width: '100%', maxWidth: '400px' }}>
-                <p style={{ fontSize: '14px', margin: '0 0 12px 0', textAlign: 'center', opacity: 0.8 }}>
-                  {config.successMessage || 'Congratulations! Your discount code:'}
-                </p>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', flexWrap: 'wrap' }}>
-                  <code style={{
-                    fontSize: '24px',
-                    fontWeight: 700,
-                    padding: '10px 20px',
-                    backgroundColor: config.backgroundColor,
-                    borderRadius: '8px',
-                    letterSpacing: '2px'
-                  }}>
-                    {wonPrize.discountCode}
-                  </code>
-                  <button
-                    onClick={handleCopyCode}
+          {showEmailForm ? (
+            // Email form
+            <form
+              onSubmit={handleEmailSubmit}
+              style={{
+                width: '100%',
+                maxWidth: '400px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '16px',
+                margin: '0 auto',
+              }}
+            >
+              <div>
+                {config.emailLabel && (
+                  <label
                     style={{
-                      padding: '10px 20px',
+                      display: 'block',
+                      marginBottom: '8px',
                       fontSize: '14px',
                       fontWeight: 600,
-                      border: 'none',
-                      borderRadius: '8px',
-                      backgroundColor: config.buttonColor,
-                      color: config.buttonTextColor,
-                      cursor: 'pointer',
                     }}
                   >
-                    {copiedCode ? '✓ Copied!' : 'Copy'}
-                  </button>
-                </div>
+                    {config.emailLabel}
+                  </label>
+                )}
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder={config.emailPlaceholder || 'Enter your email'}
+                  style={inputStyles}
+                  className={`scratch-popup-input ${emailError ? 'error' : ''}`}
+                  required
+                />
+                {emailError && (
+                  <p className="scratch-popup-error" style={{ margin: '6px 0 0 0' }}>
+                    {emailError}
+                  </p>
+                )}
               </div>
-            )}
-          </>
-        )}
+              {config.showGdprCheckbox && (
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: '0.75rem',
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={gdprConsent}
+                    onChange={(e) => {
+                      setGdprConsent(e.target.checked);
+                      if (gdprError) setGdprError('');
+                    }}
+                    className="scratch-popup-checkbox"
+                    style={{
+                      borderColor: gdprError ? '#dc2626' : (config.inputBorderColor || '#d4d4d8'),
+                    }}
+                  />
+                  <div style={{ flex: 1 }}>
+                    <label
+                      style={{
+                        fontSize: '0.875rem',
+                        lineHeight: 1.6,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {config.gdprLabel || 'I agree to receive promotional emails'}
+                    </label>
+                    {gdprError && (
+                      <div className="scratch-popup-error">{gdprError}</div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <button type="submit" style={buttonStyles} className="scratch-popup-button">
+                {config.buttonText || 'Continue'}
+              </button>
+            </form>
+          ) : showScratchCard && (
+            // Scratch card
+            <>
+              <div
+                className={`scratch-card-container ${isRevealed ? 'revealed-animation' : ''}`}
+                style={{ maxWidth: cardWidth, height: cardHeight }}
+              >
+                {/* Prize canvas (hidden) */}
+                <canvas
+                  ref={prizeCanvasRef}
+                  width={cardWidth}
+                  height={cardHeight}
+                  style={{ position: 'absolute', top: 0, left: 0 }}
+                />
+
+                {/* Scratch overlay canvas */}
+                <canvas
+                  ref={canvasRef}
+                  width={cardWidth}
+                  height={cardHeight}
+                  onMouseDown={handleMouseStart}
+                  onMouseMove={handleMouseMove}
+                  onMouseUp={handleMouseEnd}
+                  onMouseLeave={handleMouseEnd}
+                  onTouchStart={handleTouchStart}
+                  onTouchMove={handleTouchMove}
+                  onTouchEnd={handleTouchEnd}
+                  className="scratch-card-canvas"
+                  style={{
+                    cursor: isScratching ? 'grabbing' : 'grab',
+                    touchAction: 'none',
+                  }}
+                />
+
+                {/* Code overlay inside card after reveal */}
+                {isRevealed && wonPrize && wonPrize.discountCode && (
+                  <div
+                    className="scratch-card-code-overlay"
+                    style={{
+                      position: 'absolute',
+                      inset: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      pointerEvents: 'none',
+                    }}
+                  >
+                    <div
+                      style={{
+                        padding: '0.75rem 1.5rem',
+                        background: 'rgba(255, 255, 255, 0.2)',
+                        borderRadius: '0.5rem',
+                        border: '2px dashed rgba(255, 255, 255, 0.5)',
+                        backdropFilter: 'blur(10px)',
+                        pointerEvents: 'auto',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontSize: '0.875rem',
+                          fontWeight: 500,
+                          color: '#ffffff',
+                          marginBottom: '0.25rem',
+                        }}
+                      >
+                        Code:
+                      </div>
+                      <div
+                        style={{
+                          fontSize: '1.5rem',
+                          fontWeight: 700,
+                          color: '#ffffff',
+                          letterSpacing: '0.1em',
+                        }}
+                      >
+                        {wonPrize?.discountCode ?? ''}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleCopyCode}
+                        className="scratch-popup-button"
+                        style={{
+                          width: 'auto',
+                          padding: '0.4rem 0.9rem',
+                          fontSize: '0.75rem',
+                          fontWeight: 600,
+                          borderRadius: '9999px',
+                          backgroundColor: config.buttonColor,
+                          color: config.buttonTextColor,
+                          border: 'none',
+                        }}
+                      >
+                        {copiedCode ? '\u2713 Copied!' : 'Copy'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Progress indicator */}
+              {scratchPercentage > 0 && scratchPercentage < threshold && (
+                <div style={{ width: '100%', maxWidth: cardWidth, margin: '0 auto' }}>
+                  <div
+                    style={{
+                      height: '8px',
+                      backgroundColor: '#E5E7EB',
+                      borderRadius: '4px',
+                      overflow: 'hidden',
+                    }}
+                  >
+                    <div
+                      style={{
+                        height: '100%',
+                        width: `${scratchPercentage}%`,
+                        backgroundColor: config.accentColor || config.buttonColor,
+                        transition: 'width 0.3s',
+                      }}
+                    />
+                  </div>
+                  <p
+                    className="scratch-progress"
+                    style={{ fontSize: '12px', marginTop: '4px' }}
+                  >
+                    {Math.round(scratchPercentage)}% revealed
+                  </p>
+                </div>
+              )}
+
+              {/* Prize reveal fallback (non-discount prizes) */}
+              {isRevealed && wonPrize && !wonPrize.discountCode && (
+                <div
+                  style={{
+                    marginTop: '16px',
+                    padding: '20px',
+                    backgroundColor: config.accentColor || '#F3F4F6',
+                    borderRadius: '12px',
+                    width: '100%',
+                    maxWidth: '400px',
+                    marginLeft: 'auto',
+                    marginRight: 'auto',
+                  }}
+                >
+                  <p
+                    style={{
+                      fontSize: '14px',
+                      margin: '0 0 12px 0',
+                      textAlign: 'center',
+                      opacity: 0.8,
+                    }}
+                  >
+                    {config.successMessage || `Congratulations! You won ${wonPrize.label}.`}
+                  </p>
+                </div>
+              )}
+
+              {/* Post-reveal email capture (mockup-style) */}
+              {isRevealed && config.emailRequired && !config.emailBeforeScratching && !emailSubmitted && (
+                <form
+                  onSubmit={handleEmailSubmit}
+                  style={{
+                    marginTop: '1.5rem',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '1rem',
+                    maxWidth: '400px',
+                    marginLeft: 'auto',
+                    marginRight: 'auto',
+                  }}
+                >
+                  <div>
+                    <label
+                      style={{
+                        display: 'block',
+                        fontSize: '0.875rem',
+                        fontWeight: 500,
+                        marginBottom: '0.5rem',
+                      }}
+                    >
+                      {config.emailLabel || 'Enter your email to claim your prize'}
+                    </label>
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder={config.emailPlaceholder || 'Enter your email'}
+                      style={inputStyles}
+                      className={`scratch-popup-input ${emailError ? 'error' : ''}`}
+                      required
+                    />
+                    {emailError && (
+                      <div className="scratch-popup-error">{emailError}</div>
+                    )}
+                    {config.showGdprCheckbox && (
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'flex-start',
+                          gap: '0.75rem',
+                          marginTop: '0.75rem',
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={gdprConsent}
+                          onChange={(e) => {
+                            setGdprConsent(e.target.checked);
+                            if (gdprError) setGdprError('');
+                          }}
+                          className="scratch-popup-checkbox"
+                          style={{
+                            borderColor: gdprError ? '#dc2626' : (config.inputBorderColor || '#d4d4d8'),
+                          }}
+                        />
+                        <div style={{ flex: 1 }}>
+                          <label
+                            style={{
+                              fontSize: '0.875rem',
+                              lineHeight: 1.6,
+                              cursor: 'pointer',
+                            }}
+                          >
+                            {config.gdprLabel || 'I agree to receive promotional emails'}
+                          </label>
+                          {gdprError && (
+                            <div className="scratch-popup-error">{gdprError}</div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="scratch-popup-button"
+                    style={{
+                      backgroundColor: config.buttonColor,
+                      color: config.buttonTextColor,
+                    }}
+                  >
+                    {config.buttonText || 'Claim Prize'}
+                  </button>
+                </form>
+              )}
+
+              {/* Success state after claiming prize */}
+              {emailSubmitted && !config.emailBeforeScratching && (
+                <div style={{ textAlign: 'center', padding: '2rem 0' }}>
+                  <div className="scratch-popup-success-icon">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="3">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  </div>
+                  <h3
+                    style={{
+                      fontSize: '1.875rem',
+                      fontWeight: 700,
+                      marginBottom: '0.75rem',
+                    }}
+                  >
+                    Prize Claimed!
+                  </h3>
+                  <p
+                    style={{
+                      color: config.descriptionColor || 'rgba(0,0,0,0.7)',
+                      lineHeight: 1.6,
+                    }}
+                  >
+                    Check your email for details on how to redeem your prize.
+                  </p>
+                </div>
+              )}
+            </>
+          )}
+        </div>
       </div>
+
+      <style>{`
+        .scratch-popup-container {
+          margin: 0 auto;
+        }
+
+        .scratch-popup-content {
+          display: flex;
+        }
+
+        .scratch-popup-content.horizontal {
+          flex-direction: column;
+        }
+
+        .scratch-popup-content.horizontal.reverse {
+          flex-direction: column-reverse;
+        }
+
+        .scratch-popup-content.vertical {
+          flex-direction: row;
+        }
+
+        .scratch-popup-content.vertical.reverse {
+          flex-direction: row-reverse;
+        }
+
+        .scratch-popup-content.single-column {
+          flex-direction: column;
+        }
+
+        .scratch-popup-image {
+          position: relative;
+          overflow: hidden;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .scratch-popup-image img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+
+        .scratch-popup-form-section {
+          padding: 2rem;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          gap: 1.25rem;
+        }
+
+        .scratch-card-container {
+          position: relative;
+          width: 100%;
+          max-width: 24rem;
+          margin: 0 auto 1.5rem;
+          border-radius: 0.75rem;
+          overflow: hidden;
+          box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.2);
+        }
+
+        .scratch-card-canvas {
+          position: absolute;
+          inset: 0;
+          cursor: pointer;
+          touch-action: none;
+        }
+
+        .scratch-progress {
+          font-size: 0.875rem;
+          text-align: center;
+          margin-top: 0.5rem;
+          opacity: 0.7;
+        }
+
+        .scratch-popup-input {
+          width: 100%;
+          padding: 0.625rem 0.75rem;
+          border-radius: 0.375rem;
+          border: 1px solid;
+          font-size: 0.875rem;
+          transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .scratch-popup-input:focus {
+          outline: none;
+          box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.08);
+        }
+
+        .scratch-popup-input.error {
+          border-color: #dc2626;
+        }
+
+        .scratch-popup-checkbox {
+          width: 1rem;
+          height: 1rem;
+          border-radius: 0.25rem;
+          border: 1px solid;
+          cursor: pointer;
+          flex-shrink: 0;
+        }
+
+        .scratch-popup-button {
+          width: 100%;
+          padding: 0.625rem 1rem;
+          border-radius: 0.375rem;
+          border: none;
+          font-weight: 500;
+          cursor: pointer;
+          transition: opacity 0.2s, transform 0.1s;
+          font-size: 0.875rem;
+        }
+
+        .scratch-popup-button:hover:not(:disabled) {
+          opacity: 0.9;
+        }
+
+        .scratch-popup-button:active:not(:disabled) {
+          transform: scale(0.98);
+        }
+
+        .scratch-popup-button:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+
+        .scratch-popup-error {
+          font-size: 0.875rem;
+          color: #dc2626;
+          margin-top: 0.25rem;
+        }
+
+        .scratch-popup-success-icon {
+          width: 4rem;
+          height: 4rem;
+          border-radius: 9999px;
+          background: #dcfce7;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin: 0 auto 1rem;
+        }
+
+        @keyframes pulse {
+          0%, 100% {
+            transform: scale(1);
+          }
+          50% {
+            transform: scale(1.05);
+          }
+        }
+
+        .revealed-animation {
+          animation: pulse 0.5s ease-out;
+        }
+
+        @media (min-width: 768px) {
+          .scratch-popup-content.horizontal .scratch-popup-image {
+            height: 16rem;
+          }
+
+          .scratch-popup-content.vertical .scratch-popup-image {
+            width: 50%;
+            height: auto;
+            min-height: 400px;
+          }
+
+          .scratch-popup-content.vertical .scratch-popup-form-section {
+            width: 50%;
+          }
+
+          .scratch-popup-form-section {
+            padding: 3.5rem 3rem;
+          }
+
+          .scratch-popup-content.single-column .scratch-popup-form-section {
+            max-width: 36rem;
+            margin: 0 auto;
+          }
+        }
+
+        @media (max-width: 767px) {
+          .scratch-popup-content.horizontal .scratch-popup-image,
+          .scratch-popup-content.vertical .scratch-popup-image {
+            height: 12rem;
+          }
+        }
+      `}</style>
     </BasePopup>
   );
 };

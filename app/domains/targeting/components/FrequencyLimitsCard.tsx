@@ -55,6 +55,7 @@ export function FrequencyLimitsCard({
             autoComplete="off"
             helpText="Maximum times this popup can show in a single browsing session (leave empty for unlimited)"
             placeholder="Unlimited"
+            data-test-id="frequency-max-triggers-per-session"
           />
 
           <TextField
@@ -66,6 +67,7 @@ export function FrequencyLimitsCard({
             autoComplete="off"
             helpText="Maximum times this popup can show in a 24-hour period (leave empty for unlimited)"
             placeholder="Unlimited"
+            data-test-id="frequency-max-triggers-per-day"
           />
 
           <TextField
@@ -77,6 +79,7 @@ export function FrequencyLimitsCard({
             autoComplete="off"
             helpText="Minimum time between popup displays (0 = no cooldown)"
             placeholder="0"
+            data-test-id="frequency-cooldown-between-triggers"
           />
 
           <Banner tone="info">

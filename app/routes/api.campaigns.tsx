@@ -49,8 +49,10 @@ export async function action(args: { request: Request; params: any; context: any
 
     if (method === "POST") {
       const rawData = await request.json();
+      console.log('[API /api/campaigns] POST payload', rawData);
       const validatedData = validateData(CampaignCreateDataSchema, rawData, "Campaign Create Data");
       const campaign = await CampaignService.createCampaign(storeId, validatedData);
+      console.log('[API /api/campaigns] created campaign', campaign?.id);
       return createSuccessResponse({ campaign }, 201);
     }
 

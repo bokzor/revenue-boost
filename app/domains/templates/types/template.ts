@@ -210,7 +210,16 @@ export const NewsletterTemplateSchema = BaseTemplateSchema.extend({
     overlayOpacity: 0.8,
     animation: "fade"
   }),
-  discountConfig: DiscountConfigSchema.default({ enabled: false, showInPreview: true, autoApplyMode: "ajax", codePresentation: "show_code" }),
+  discountConfig: DiscountConfigSchema.default({
+    enabled: false,
+    showInPreview: true,
+    valueType: "PERCENTAGE",
+    value: 10,
+    deliveryMode: "show_code_fallback",
+    autoApplyMode: "ajax",
+    codePresentation: "show_code",
+    expiryDays: 30,
+  }),
 });
 
 // Flash Sale Template
@@ -223,12 +232,22 @@ export const FlashSaleTemplateSchema = BaseTemplateSchema.extend({
     theme: "bold",
     position: "center",
     size: "medium",
+    popupSize: "wide",
     borderRadius: 8,
     imagePosition: "left",
     overlayOpacity: 0.8,
     animation: "fade"
   }),
-  discountConfig: DiscountConfigSchema.default({ enabled: false, showInPreview: true, autoApplyMode: "ajax", codePresentation: "show_code" }),
+  discountConfig: DiscountConfigSchema.default({
+    enabled: true,
+    showInPreview: true,
+    valueType: "PERCENTAGE",
+    value: 20,
+    deliveryMode: "show_code_always",
+    autoApplyMode: "ajax",
+    codePresentation: "show_code",
+    expiryDays: 3,
+  }),
 });
 
 // Spin to Win Template
@@ -264,7 +283,16 @@ export const FreeShippingTemplateSchema = BaseTemplateSchema.extend({
     overlayOpacity: 0,
     animation: "slide"
   }),
-  discountConfig: DiscountConfigSchema.default({ enabled: false, showInPreview: true, autoApplyMode: "ajax", codePresentation: "show_code" }),
+  discountConfig: DiscountConfigSchema.default({
+    enabled: true,
+    showInPreview: true,
+    valueType: "FREE_SHIPPING",
+    deliveryMode: "auto_apply_only",
+    autoApplyMode: "ajax",
+    codePresentation: "show_code",
+    expiryDays: 30,
+    minimumAmount: 75,
+  }),
 });
 
 /**

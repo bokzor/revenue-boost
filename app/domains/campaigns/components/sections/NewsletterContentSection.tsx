@@ -21,7 +21,7 @@ import {
 } from "@shopify/polaris";
 import { ChevronDownIcon, ChevronUpIcon } from "@shopify/polaris-icons";
 import { TextField, CheckboxField, FormGrid, ColorField } from "../form";
-import { GenericDiscountComponent } from "../form/GenericDiscountComponent";
+import { DiscountSection } from "~/domains/popups/components/design/DiscountSection";
 import type { NewsletterContentSchema, DesignConfig } from "../../types/campaign";
 import type { DiscountConfig } from "~/domains/popups/services/discounts/discount.server";
 import { z } from "zod";
@@ -131,6 +131,7 @@ export function NewsletterContentSection({
               placeholder="Get 10% off your first order!"
               helpText="Main headline that grabs attention"
               onChange={(value) => updateField("headline", value)}
+              data-test-id="newsletter-headline"
             />
 
             <TextField
@@ -141,6 +142,7 @@ export function NewsletterContentSection({
               placeholder="Join our newsletter for exclusive deals"
               helpText="Supporting text (optional)"
               onChange={(value) => updateField("subheadline", value)}
+              data-test-id="newsletter-subheadline"
             />
 
             <FormGrid columns={2}>
@@ -152,6 +154,7 @@ export function NewsletterContentSection({
                 required
                 placeholder="Subscribe"
                 onChange={(value) => updateField("buttonText", value)}
+                data-test-id="newsletter-button-text"
               />
 
               <TextField
@@ -162,6 +165,7 @@ export function NewsletterContentSection({
                 placeholder="Email"
                 helpText="Label shown above email field"
                 onChange={(value) => updateField("emailLabel", value)}
+                data-test-id="newsletter-email-label"
               />
             </FormGrid>
 
@@ -173,6 +177,7 @@ export function NewsletterContentSection({
               placeholder="Enter your email"
               helpText="Placeholder text inside email field"
               onChange={(value) => updateField("emailPlaceholder", value)}
+              data-test-id="newsletter-email-placeholder"
             />
 
             <TextField
@@ -184,6 +189,7 @@ export function NewsletterContentSection({
               placeholder="Thanks for subscribing!"
               helpText="Message shown after successful submission"
               onChange={(value) => updateField("successMessage", value)}
+              data-test-id="newsletter-success-message"
             />
 
             <TextField
@@ -194,6 +200,7 @@ export function NewsletterContentSection({
               placeholder="Something went wrong. Please try again."
               helpText="Message shown if submission fails (optional)"
               onChange={(value) => updateField("failureMessage", value)}
+              data-test-id="newsletter-failure-message"
             />
 
             <FormGrid columns={2}>
@@ -203,6 +210,7 @@ export function NewsletterContentSection({
                 checked={content.emailRequired !== false}
                 helpText="Make email field mandatory"
                 onChange={(checked) => updateField("emailRequired", checked)}
+                data-test-id="newsletter-email-required"
               />
 
               <CheckboxField
@@ -211,6 +219,7 @@ export function NewsletterContentSection({
                 checked={content.nameFieldEnabled || false}
                 helpText="Add an optional name field"
                 onChange={(checked) => updateField("nameFieldEnabled", checked)}
+                data-test-id="newsletter-name-field-enabled"
               />
             </FormGrid>
 
@@ -239,6 +248,7 @@ export function NewsletterContentSection({
               checked={content.consentFieldEnabled || false}
               helpText="Add a consent checkbox (e.g., for GDPR compliance)"
               onChange={(checked) => updateField("consentFieldEnabled", checked)}
+              data-test-id="newsletter-consent-field-enabled"
             />
 
             {content.consentFieldEnabled && (
@@ -280,7 +290,7 @@ export function NewsletterContentSection({
 
             <Divider />
 
-            <GenericDiscountComponent
+            <DiscountSection
               goal="NEWSLETTER_SIGNUP"
               discountConfig={discountConfig}
               onConfigChange={onDiscountChange}

@@ -81,6 +81,16 @@ export function ContentConfigSection({
         );
 
       case "FLASH_SALE":
+        return (
+          <FlashSaleContentSection
+            content={content as Partial<FlashSaleContent>}
+            discountConfig={discountConfig}
+            errors={errors}
+            onChange={onChange as (c: Partial<FlashSaleContent>) => void}
+            onDiscountChange={onDiscountChange}
+          />
+        );
+
       case "COUNTDOWN_TIMER":
         return (
           <FlashSaleContentSection

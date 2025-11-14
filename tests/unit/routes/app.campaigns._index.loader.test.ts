@@ -13,10 +13,10 @@ vi.mock('~/lib/auth-helpers.server', () => {
 
 vi.mock('~/domains/campaigns', () => {
   const getAllCampaigns = vi.fn().mockResolvedValue([{ id: 'c1' }]);
-  const getAllExperiments = vi.fn().mockResolvedValue([]);
+  const getExperimentsByIds = vi.fn().mockResolvedValue([]);
   return {
     CampaignService: { getAllCampaigns },
-    ExperimentService: { getAllExperiments },
+    ExperimentService: { getExperimentsByIds },
   };
 });
 
@@ -28,7 +28,7 @@ describe('app.campaigns._index loader', () => {
   beforeEach(() => {
     (getStoreIdMock as any).mockClear?.();
     (CampaignService.getAllCampaigns as any).mockClear?.();
-    (ExperimentService.getAllExperiments as any).mockClear?.();
+    (ExperimentService.getExperimentsByIds as any).mockClear?.();
   });
 
   it('uses getStoreId and passes it to CampaignService.getAllCampaigns', async () => {
@@ -43,7 +43,7 @@ describe('app.campaigns._index loader', () => {
 
     expect(getStoreIdMock).toHaveBeenCalled();
     expect(CampaignService.getAllCampaigns).toHaveBeenCalledWith('store-abc');
-    expect(ExperimentService.getAllExperiments).toHaveBeenCalledWith('store-abc');
+    expect(ExperimentService.getExperimentsByIds).toHaveBeenCalledWith('store-abc', ['exp_1']);
     expect(res).toBeTruthy();
   });
 });

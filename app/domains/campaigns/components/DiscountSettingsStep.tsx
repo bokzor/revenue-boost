@@ -303,28 +303,20 @@ export function DiscountSettingsStep({
                   <Select
                     label="Delivery Mode"
                     options={[
-                    { label: "Show code in popup", value: "show_code_always" },
-                    {
-                      label: "Show code (authorized email only)",
-                      value: "show_in_popup_authorized_only",
-                    },
-                    { label: "Auto-apply with fallback", value: "show_code_fallback" },
-                  ]}
-                  value={config.deliveryMode || "show_code_always"}
-                  onChange={(deliveryMode) => {
-                    const mapped =
-                      deliveryMode === "show_in_popup_authorized_only"
-                        ? "show_code_always"
-                        : deliveryMode;
-                    updateConfig({
-                      deliveryMode: mapped as "auto_apply_only" | "show_code_fallback" | "show_code_always",
-                      requireEmailMatch:
-                        deliveryMode === "show_in_popup_authorized_only"
-                          ? true
-                          : config.requireEmailMatch,
-                    });
-                  }}
-                />
+                      { label: "Auto-apply only (no code shown)", value: "auto_apply_only" },
+                      {
+                        label: "Auto-apply with fallback (show code if needed)",
+                        value: "show_code_fallback",
+                      },
+                      { label: "Show code in popup", value: "show_code_always" },
+                    ]}
+                    value={config.deliveryMode || "show_code_fallback"}
+                    onChange={(deliveryMode) => {
+                      updateConfig({
+                        deliveryMode: deliveryMode as DiscountDeliveryMode,
+                      });
+                    }}
+                  />
                 </div>
 
                 {config.deliveryMode && (
@@ -485,4 +477,8 @@ export function DiscountSettingsStep({
     </div>
   );
 }
+
+// Alias with a clearer name since this is used inside modals, not as a route step
+export { DiscountSettingsStep as DiscountAdvancedSettings };
+
 

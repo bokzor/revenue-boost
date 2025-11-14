@@ -1,6 +1,6 @@
 /**
  * Frequency Capping Toggle Component
- * 
+ *
  * Enable/disable toggle with informational banner
  */
 
@@ -24,6 +24,7 @@ export function FrequencyCappingToggle({
             checked={enabled}
             onChange={onEnabledChange}
             helpText="Limit how often this popup is shown to the same visitor to prevent fatigue"
+            data-test-id="frequency-capping-enabled-checkbox"
           />
 
           {!enabled && (

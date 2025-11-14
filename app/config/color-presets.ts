@@ -296,7 +296,7 @@ export const NEWSLETTER_THEMES: Record<NewsletterThemeKey, ThemeColors> = {
     ctaText: "#ec4899",
     // Typography
     fontFamily: "inherit",
-    titleFontSize: "1.875rem",
+    titleFontSize: "2rem",
     titleFontWeight: "900",
     descriptionFontSize: "1rem",
     descriptionFontWeight: "500",
@@ -368,7 +368,7 @@ export const NEWSLETTER_THEMES: Record<NewsletterThemeKey, ThemeColors> = {
     ctaText: "#667eea",
     // Typography
     fontFamily: "inherit",
-    titleFontSize: "1.875rem",
+    titleFontSize: "2rem",
     titleFontWeight: "700",
     descriptionFontSize: "1rem",
     descriptionFontWeight: "400",
@@ -416,7 +416,7 @@ export const NEWSLETTER_THEMES: Record<NewsletterThemeKey, ThemeColors> = {
     ctaText: "#0a0a1f",
     // Typography
     fontFamily: "inherit",
-    titleFontSize: "1.875rem",
+    titleFontSize: "2rem",
     titleFontWeight: "900",
     titleTextShadow: "0 0 20px currentColor, 0 0 40px currentColor",
     descriptionFontSize: "1rem",
@@ -448,6 +448,52 @@ export const NEWSLETTER_THEMES: Record<NewsletterThemeKey, ThemeColors> = {
     descriptionFontWeight: "400",
   },
 };
+
+// ============================================================================
+// Spin-to-Win wheel slice colors (admin-side theme mapping)
+// ============================================================================
+
+/**
+ * Get Spin-to-Win wheel slice colors for a given newsletter theme.
+ *
+ * This mirrors the mockup's generateSliceColors(theme) so that the admin
+ * can preconfigure wheelSegments[i].color based on the selected theme.
+ * The storefront wheel remains purely presentational and only reads colors.
+ */
+export function getSpinToWinSliceColors(theme: NewsletterThemeKey, sliceCount: number): string[] {
+  const themeMap: Record<NewsletterThemeKey, string[]> = {
+    modern: ["#3b82f6", "#2563eb", "#1d4ed8", "#1e40af", "#1e3a8a", "#60a5fa"],
+    minimal: ["#6b7280", "#4b5563", "#374151", "#1f2937", "#9ca3af", "#d1d5db"],
+    elegant: ["#be185d", "#9f1239", "#831843", "#701a40", "#ec4899", "#f9a8d4"],
+    bold: ["#dc2626", "#ea580c", "#d97706", "#ca8a04", "#eab308", "#84cc16"],
+    glass: [
+      "rgba(59, 130, 246, 0.5)",
+      "rgba(99, 102, 241, 0.5)",
+      "rgba(139, 92, 246, 0.5)",
+      "rgba(168, 85, 247, 0.5)",
+      "rgba(236, 72, 153, 0.5)",
+      "rgba(244, 114, 182, 0.5)",
+    ],
+    dark: ["#3b82f6", "#8b5cf6", "#ec4899", "#ef4444", "#f59e0b", "#10b981"],
+    gradient: ["#a855f7", "#9333ea", "#7e22ce", "#6b21a8", "#581c87", "#c084fc"],
+    luxury: ["#d97706", "#b45309", "#92400e", "#78350f", "#ca8a04", "#f59e0b"],
+    neon: ["#06b6d4", "#8b5cf6", "#ec4899", "#f59e0b", "#10b981", "#6366f1"],
+    ocean: ["#06b6d4", "#0891b2", "#0e7490", "#155e75", "#22d3ee", "#67e8f9"],
+  };
+
+  const base = themeMap[theme] || themeMap.modern;
+  if (sliceCount <= base.length) {
+    return base.slice(0, sliceCount);
+  }
+
+  // Repeat colors if there are more slices than base colors
+  const result: string[] = [];
+  for (let i = 0; i < sliceCount; i++) {
+    result.push(base[i % base.length]);
+  }
+  return result;
+}
+
 
 // ============================================
 // Flash Sale Themes

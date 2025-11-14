@@ -26,6 +26,9 @@ export interface SocialProofNotification {
   count?: number;
   rating?: number;
   timestamp?: Date;
+  // Extended fields used for Tier 2 / advanced variants
+  context?: string; // e.g. "left in stock", "added to cart in the last hour"
+  trending?: boolean;
 }
 
 /**
@@ -56,11 +59,26 @@ export const SocialProofPopup: React.FC<SocialProofPopupProps> = ({
   const [isAnimating, setIsAnimating] = useState(false);
   const [shownCount, setShownCount] = useState(0);
 
-
   const rotationInterval = (config.rotationInterval || 8) * 1000;
 
+  console.log('[SocialProofPopup] render', {
+    isVisible,
+    notificationsLength: notifications.length,
+    rotationInterval,
+    currentIndex,
+    shownCount,
+    flags: {
+      enablePurchaseNotifications: config.enablePurchaseNotifications,
+      enableVisitorNotifications: config.enableVisitorNotifications,
+      enableReviewNotifications: config.enableReviewNotifications,
+      maxNotificationsPerSession: config.maxNotificationsPerSession,
+      minVisitorCount: config.minVisitorCount,
+      minReviewRating: config.minReviewRating,
+    },
+  });
+
   // Filter notifications based on config
-  const filteredNotifications = notifications.filter(notif => {
+  const filteredNotifications = notifications.filter((notif) => {
     if (notif.type === 'purchase' && !config.enablePurchaseNotifications) return false;
     if (notif.type === 'visitor' && !config.enableVisitorNotifications) return false;
     if (notif.type === 'review' && !config.enableReviewNotifications) return false;
@@ -76,28 +94,73 @@ export const SocialProofPopup: React.FC<SocialProofPopupProps> = ({
     return true;
   });
 
+  console.log('[SocialProofPopup] filtered notifications', {
+    inputLength: notifications.length,
+    outputLength: filteredNotifications.length,
+  });
+
   const currentNotification = filteredNotifications[currentIndex];
 
   // Rotate notifications
   useEffect(() => {
-    if (!isVisible || filteredNotifications.length === 0) return;
+    if (!isVisible || filteredNotifications.length === 0) {
+      console.log('[SocialProofPopup] skipping rotation - not visible or no notifications', {
+        isVisible,
+        filteredLength: filteredNotifications.length,
+      });
+      return;
+    }
+
     if (config.maxNotificationsPerSession && shownCount >= config.maxNotificationsPerSession) {
+      console.log('[SocialProofPopup] maxNotificationsPerSession reached, closing', {
+        shownCount,
+        max: config.maxNotificationsPerSession,
+      });
       onClose();
       return;
     }
+
+    console.log('[SocialProofPopup] scheduling rotation timer', {
+      currentIndex,
+      shownCount,
+      filteredLength: filteredNotifications.length,
+      rotationInterval,
+    });
 
     const timer = setTimeout(() => {
       setIsAnimating(true);
 
       setTimeout(() => {
-        setCurrentIndex((prev) => (prev + 1) % filteredNotifications.length);
-        setShownCount((prev) => prev + 1);
+        setCurrentIndex((prev) => {
+          const nextIndex = (prev + 1) % filteredNotifications.length;
+          console.log('[SocialProofPopup] advancing notification', {
+            prevIndex: prev,
+            nextIndex,
+          });
+          return nextIndex;
+        });
+        setShownCount((prev) => {
+          const nextShown = prev + 1;
+          console.log('[SocialProofPopup] incrementing shownCount', {
+            prevShown: prev,
+            nextShown,
+          });
+          return nextShown;
+        });
         setIsAnimating(false);
       }, 300);
     }, rotationInterval);
 
     return () => clearTimeout(timer);
-  }, [isVisible, currentIndex, filteredNotifications.length, rotationInterval, config.maxNotificationsPerSession, shownCount, onClose]);
+  }, [
+    isVisible,
+    currentIndex,
+    filteredNotifications.length,
+    rotationInterval,
+    config.maxNotificationsPerSession,
+    shownCount,
+    onClose,
+  ]);
 
   const getPositionStyles = (): React.CSSProperties => {
     const position = config.cornerPosition || 'bottom-left';
@@ -134,6 +197,27 @@ export const SocialProofPopup: React.FC<SocialProofPopupProps> = ({
 
       case 'visitor': {
         const visitorTemplate = templates.visitor || '{{count}} people are viewing this right now';
+
+        // Tier 2 / advanced variants can provide a custom context message
+        if (notification.context) {
+          // If context already contains a {{count}} placeholder, respect it
+          if (notification.context.includes('{{count}}')) {
+            return notification.context.replace(
+              '{{count}}',
+              String(notification.count ?? 0),
+            );
+          }
+
+          // Otherwise build "<count> <context>" style messages, e.g.:
+          // "3 left in stock!", "5 added to cart in the last hour"
+          if (typeof notification.count === 'number') {
+            return `${notification.count} ${notification.context}`;
+          }
+
+          // Fallback to raw context if count is missing
+          return notification.context;
+        }
+
         return visitorTemplate.replace('{{count}}', String(notification.count || 0));
       }
 
@@ -166,9 +250,12 @@ export const SocialProofPopup: React.FC<SocialProofPopupProps> = ({
     return null;
   }
 
+  const background = config.backgroundColor || '#111827';
+
   const containerStyles: React.CSSProperties = {
     ...getPositionStyles(),
-    backgroundColor: config.backgroundColor,
+    // Use `background` so both solid colors and gradients work
+    background,
     color: config.textColor,
     borderRadius: `${config.borderRadius ?? 8}px`,
     padding: '16px',

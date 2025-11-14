@@ -1,6 +1,7 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, waitFor } from '@testing-library/react';
+import { apiClient } from '~/lib/api-client';
 
 // Mock shopify.server early to avoid env checks on import
 vi.mock('~/shopify.server', () => ({
@@ -59,10 +60,10 @@ describe('CampaignDetailPage - duplicate from detail page', () => {
   });
 
   it('POSTs duplicate using current campaign and navigates to new ID parsed from { data: { campaign } }', async () => {
-    const fetchMock = vi.fn()
-      // POST /api/campaigns
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ success: true, data: { campaign: { id: 'c2' } } }) });
-    global.fetch = fetchMock as any;
+    const postSpy = vi.spyOn(apiClient, 'post').mockResolvedValue({
+      success: true,
+      data: { campaign: { id: 'c2', name: 'Original (Copy)', status: 'DRAFT' } },
+    } as any);
 
     render(<CampaignDetailPage />);
 
@@ -72,14 +73,11 @@ describe('CampaignDetailPage - duplicate from detail page', () => {
     await __capturedOnDuplicate();
 
     await waitFor(() => {
-      const firstCall = (fetchMock as any).mock.calls[0];
-      expect(firstCall[0]).toBe('/api/campaigns');
-      const init = firstCall[1];
-      expect(init.method).toBe('POST');
-      expect(init.headers['Content-Type']).toBe('application/json');
-      const body = JSON.parse(init.body);
-      expect(body.name).toBe('Original (Copy)');
-      expect(body.status).toBe('DRAFT');
+      expect(postSpy).toHaveBeenCalled();
+      const [postUrl, postBody] = postSpy.mock.calls[0];
+      expect(postUrl).toBe('/api/campaigns');
+      expect(postBody.name).toBe('Original (Copy)');
+      expect(postBody.status).toBe('DRAFT');
       expect(mockNavigate).toHaveBeenCalledWith('/app/campaigns/c2');
     });
   });

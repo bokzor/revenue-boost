@@ -11,7 +11,7 @@
  */
 
 import React, { useEffect, useState, useRef } from 'react';
-import type { PopupDesignConfig } from './types';
+import type { PopupDesignConfig, DiscountConfig as StorefrontDiscountConfig } from './types';
 import type { FreeShippingContent } from '~/domains/campaigns/types/campaign';
 import { debounce } from './utils';
 
@@ -25,6 +25,7 @@ export type ShippingBarState = "empty" | "progress" | "near-miss" | "unlocked";
 export interface FreeShippingConfig extends PopupDesignConfig, FreeShippingContent {
   // Storefront-specific fields only
   currentCartTotal?: number;
+  discount?: StorefrontDiscountConfig;
 }
 
 export interface FreeShippingPopupProps {
@@ -32,6 +33,8 @@ export interface FreeShippingPopupProps {
   isVisible: boolean;
   onClose: () => void;
   cartTotal?: number;
+  onSubmit?: (data: { email: string }) => Promise<string | undefined>;
+  issueDiscount?: (options?: { cartSubtotalCents?: number }) => Promise<{ code?: string; autoApplyMode?: string } | null>;
 }
 
 export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
@@ -39,6 +42,8 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
   isVisible,
   onClose,
   cartTotal: propCartTotal,
+  onSubmit,
+  issueDiscount,
 }) => {
   const [cartTotal, setCartTotal] = useState<number>(propCartTotal ?? config.currentCartTotal ?? 0);
   const threshold = config.threshold;
@@ -49,12 +54,25 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
   const celebrateOnUnlock = config.celebrateOnUnlock ?? true;
   const showIcon = config.showIcon ?? true;
   const animationDuration = config.animationDuration ?? 500;
+  const discount = config.discount as StorefrontDiscountConfig | undefined;
+  const requireEmailToClaim = (config as any).requireEmailToClaim ?? false;
+  const claimButtonLabel = (config as any).claimButtonLabel || 'Claim discount';
+  const claimEmailPlaceholder = (config as any).claimEmailPlaceholder || 'Enter your email';
+  const claimSuccessMessage = (config as any).claimSuccessMessage as string | undefined;
+  const claimErrorMessage = (config as any).claimErrorMessage as string | undefined;
 
   const [internalDismissed, setInternalDismissed] = useState(false);
   const [celebrating, setCelebrating] = useState(false);
   const [isEntering, setIsEntering] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
+  const [showClaimForm, setShowClaimForm] = useState(false);
+  const [claimEmail, setClaimEmail] = useState('');
+  const [claimError, setClaimError] = useState<string | null>(null);
+  const [isClaiming, setIsClaiming] = useState(false);
+  const [hasClaimed, setHasClaimed] = useState(false);
+  const [claimedDiscountCode, setClaimedDiscountCode] = useState<string | undefined>(undefined);
   const prevUnlockedRef = useRef(false);
+  const hasIssuedDiscountRef = useRef(false);
   const currencyCodeRef = useRef<string | undefined>(undefined);
   const bannerRef = useRef<HTMLDivElement>(null);
 
@@ -229,10 +247,84 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
     }
   };
 
-  // Trigger celebration animation when unlocking
+  const handleClaimSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    const email = claimEmail.trim();
+    if (!email) {
+      setClaimError('Please enter your email');
+      return;
+    }
+
+    setIsClaiming(true);
+    setClaimError(null);
+
+    try {
+      if ((config as any)?.previewMode) {
+        await new Promise((resolve) => setTimeout(resolve, 800));
+        setHasClaimed(true);
+        console.log('[FreeShippingPopup] Preview claim simulated');
+      } else if (onSubmit) {
+        const code = await onSubmit({ email });
+        if (code) setClaimedDiscountCode(code);
+        setHasClaimed(true);
+        console.log('[FreeShippingPopup] Discount claim successful', {
+          email,
+          hasCode: Boolean(code),
+        });
+      } else {
+        setHasClaimed(true);
+        console.log('[FreeShippingPopup] Claim completed without onSubmit handler');
+      }
+    } catch (error) {
+      console.error('[FreeShippingPopup] Claim submission error:', error);
+      setClaimError(claimErrorMessage || 'Something went wrong. Please try again.');
+    } finally {
+      setIsClaiming(false);
+    }
+  };
+
+  // Trigger celebration animation, logging, and discount issuance when unlocking
   useEffect(() => {
     const isUnlocked = state === "unlocked";
     const wasLocked = prevUnlockedRef.current === false;
+
+    if (isUnlocked && wasLocked) {
+      console.log('[FreeShippingPopup] Free shipping unlocked', {
+        threshold,
+        cartTotal,
+        deliveryMode: discount?.deliveryMode,
+      });
+
+      if (discount?.deliveryMode === 'auto_apply_only') {
+        console.log('[FreeShippingPopup] Auto-apply mode active for free shipping', {
+          threshold,
+          cartTotal,
+        });
+      }
+
+      // For non-email-gated flows, issue a discount code when the bar first unlocks
+      if (!requireEmailToClaim && discount && typeof issueDiscount === 'function' && !hasIssuedDiscountRef.current) {
+        hasIssuedDiscountRef.current = true;
+        const cartSubtotalCents = Math.round(cartTotal * 100);
+
+        (async () => {
+          try {
+            const result = await issueDiscount({ cartSubtotalCents });
+            if (result?.code) {
+              setClaimedDiscountCode(result.code);
+              console.log('[FreeShippingPopup] Discount code issued for free shipping', {
+                code: result.code,
+              });
+            } else if (result && !result.code) {
+              console.log('[FreeShippingPopup] Discount issued without code (possible auto-apply only mode)');
+            }
+          } catch (err) {
+            console.error('[FreeShippingPopup] Failed to issue discount code:', err);
+          }
+        })();
+      }
+    }
 
     if (isUnlocked && wasLocked && celebrateOnUnlock) {
       setCelebrating(true);
@@ -241,7 +333,7 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
     }
 
     prevUnlockedRef.current = isUnlocked;
-  }, [state, celebrateOnUnlock]);
+  }, [state, celebrateOnUnlock, threshold, cartTotal, discount, issueDiscount, requireEmailToClaim]);
 
   // Don't render if not visible and not animating out
   if ((!isVisible || internalDismissed) && !isExiting) {
@@ -345,6 +437,25 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
           overflow: hidden;
         }
 
+        .free-shipping-bar.celebrating {
+          animation: celebrate-bar 0.65s ease-in-out;
+        }
+
+        @keyframes celebrate-bar {
+          0% {
+            transform: translateY(0) scale(1);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+          }
+          40% {
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 6px 18px rgba(16, 185, 129, 0.4);
+          }
+          100% {
+            transform: translateY(0) scale(1);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+          }
+        }
+
         .free-shipping-bar-message {
           display: flex;
           align-items: center;
@@ -364,6 +475,48 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
           font-weight: 500;
           line-height: 1.4;
           margin: 0;
+        }
+
+        .free-shipping-bar-discount-text {
+          font-size: 0.875rem;
+          font-weight: 500;
+          margin: 0.25rem 0 0;
+        }
+
+        .free-shipping-bar-discount-code {
+          font-weight: 600;
+        }
+
+        .free-shipping-bar-claim-container {
+          margin-top: 0.25rem;
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.5rem;
+          align-items: center;
+          justify-content: flex-end;
+        }
+
+        .free-shipping-bar-claim-input {
+          min-width: 160px;
+          padding: 0.35rem 0.5rem;
+          border-radius: 4px;
+          border: 1px solid rgba(0, 0, 0, 0.15);
+          font-size: 0.875rem;
+        }
+
+        .free-shipping-bar-claim-button {
+          padding: 0.35rem 0.75rem;
+          border-radius: 9999px;
+          border: none;
+          cursor: pointer;
+          font-size: 0.875rem;
+          font-weight: 500;
+        }
+
+        .free-shipping-bar-claim-error {
+          margin: 0.25rem 0 0;
+          font-size: 0.75rem;
+          color: #b91c1c;
         }
 
         .free-shipping-bar-close {
@@ -445,7 +598,7 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
 
       <div
         ref={bannerRef}
-        className={`free-shipping-bar ${isExiting ? 'exiting' : ''}`}
+        className={`free-shipping-bar ${isExiting ? 'exiting' : ''} ${celebrating ? 'celebrating' : ''}`}
         data-position={barPosition}
         data-state={state}
         role="region"
@@ -474,6 +627,61 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
               </span>
             )}
             <p className="free-shipping-bar-text">{getMessage()}</p>
+
+            {state === "unlocked" && requireEmailToClaim && !hasClaimed && (
+              <div className="free-shipping-bar-claim-container">
+                {!showClaimForm && (
+                  <button
+                    type="button"
+                    className="free-shipping-bar-claim-button"
+                    onClick={() => setShowClaimForm(true)}
+                    style={{ background: config.buttonColor || '#111827', color: config.buttonTextColor || '#ffffff' }}
+                  >
+                    {claimButtonLabel}
+                  </button>
+                )}
+
+                {showClaimForm && (
+                  <form className="free-shipping-bar-claim-container" onSubmit={handleClaimSubmit}>
+                    <input
+                      type="email"
+                      className="free-shipping-bar-claim-input"
+                      value={claimEmail}
+                      onChange={(e) => setClaimEmail(e.target.value)}
+                      placeholder={claimEmailPlaceholder}
+                    />
+                    <button
+                      type="submit"
+                      className="free-shipping-bar-claim-button"
+                      disabled={isClaiming}
+                      style={{ background: config.buttonColor || '#111827', color: config.buttonTextColor || '#ffffff' }}
+                    >
+                      {isClaiming ? 'Claiming...' : claimButtonLabel}
+                    </button>
+                  </form>
+                )}
+
+                {claimError && (
+                  <p className="free-shipping-bar-claim-error">{claimError}</p>
+                )}
+              </div>
+            )}
+
+            {state === "unlocked" && discount && (!requireEmailToClaim || hasClaimed) && (
+              discount.deliveryMode === 'auto_apply_only' ? (
+                <p className="free-shipping-bar-discount-text">
+                  Free shipping will be applied automatically at checkout.
+                </p>
+              ) : (claimedDiscountCode || discount.code) ? (
+                <p className="free-shipping-bar-discount-text">
+                  <>Use code <span className="free-shipping-bar-discount-code">{claimedDiscountCode || discount.code}</span> at checkout.</>
+                </p>
+              ) : null
+            )}
+
+            {state === "unlocked" && hasClaimed && claimSuccessMessage && (
+              <p className="free-shipping-bar-discount-text">{claimSuccessMessage}</p>
+            )}
           </div>
 
           {dismissible && (

@@ -198,13 +198,50 @@ export function validateEmail(email: string): boolean {
 
 /**
  * Format currency
+ *
+ * Accepts either an ISO 4217 currency code ("USD", "EUR") or a common
+ * currency symbol ("$", "€", "£"). Falls back gracefully if an invalid
+ * value is provided so we never throw RangeError from Intl.NumberFormat.
  */
 export function formatCurrency(amount: number | string, currency: string = 'USD'): string {
   const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency,
-  }).format(numAmount);
+
+  // Normalize currency input
+  const raw = (currency || '').trim();
+  const upper = raw.toUpperCase();
+
+  // Map common symbols to ISO codes
+  const symbolToCode: Record<string, string> = {
+    '$': 'USD',
+    '€': 'EUR',
+    '£': 'GBP',
+    '¥': 'JPY',
+    'C$': 'CAD',
+    'A$': 'AUD',
+  };
+
+  let code: string = 'USD';
+
+  if (/^[A-Z]{3}$/.test(upper)) {
+    // Looks like a valid 3-letter code; use as-is
+    code = upper;
+  } else if (raw in symbolToCode) {
+    // Map known symbols to codes
+    code = symbolToCode[raw];
+  }
+
+  try {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: code,
+    }).format(numAmount);
+  } catch {
+    // Final fallback: simple prefix formatting that will never throw
+    const sign = numAmount < 0 ? '-' : '';
+    const absAmount = Math.abs(numAmount || 0);
+    const symbol = raw || '$';
+    return `${sign}${symbol}${absAmount.toFixed(2)}`;
+  }
 }
 
 /**

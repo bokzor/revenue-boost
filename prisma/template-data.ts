@@ -90,6 +90,16 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
       descriptionFontSize: "1rem",
       descriptionFontWeight: "500",
     },
+    discountConfig: {
+      enabled: false,
+      showInPreview: true,
+      valueType: "PERCENTAGE",
+      value: 10,
+      deliveryMode: "show_code_fallback",
+      autoApplyMode: "ajax",
+      codePresentation: "show_code",
+      expiryDays: 30,
+    },
     isDefault: true,
     priority: 1,
     icon: "📧",
@@ -103,17 +113,28 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
     templateType: "FLASH_SALE",
     goals: ["INCREASE_REVENUE"],
     contentConfig: {
-      headline: "🔥 Flash Sale - 30% OFF!",
-      subheadline: "Limited time offer - ends soon!",
+      // Core messaging
+      headline: "🔥 2-Hour Flash Sale - 30% OFF!",
+      subheadline: "Biggest discount of the year - don't miss out!",
+      buttonText: "Shop Now & Save",
+      successMessage: "Discount applied! Complete your order before the timer runs out.",
       ctaText: "Shop Now & Save",
-      urgencyMessage: "Only 2 hours left!",
+
+      // Flash sale specifics
+      urgencyMessage: "Sale ends in:",
+      discountPercentage: 30,
+
+      // Advanced features defaults (⚙️ Advanced Features)
+      showCountdown: true,
+      countdownDuration: 7200, // 2 hours in seconds
+      hideOnExpiry: true,
     },
     fields: [
       { id: "headline", type: "text", label: "Headline", category: "content" },
       { id: "subheadline", type: "text", label: "Subheadline", category: "content" },
       { id: "urgencyMessage", type: "text", label: "Urgency Message", category: "content" },
-      { id: "timerEnabled", type: "boolean", label: "Enable Countdown Timer", category: "behavior" },
-      { id: "discountValue", type: "number", label: "Discount Percentage", category: "behavior" },
+      { id: "showCountdown", type: "boolean", label: "Enable Countdown Timer", category: "behavior" },
+      { id: "discountPercentage", type: "number", label: "Discount Percentage", category: "behavior" },
     ],
     targetRules: {
       enhancedTriggers: {
@@ -121,18 +142,39 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
         frequency_capping: getServerFrequencyCapping("FLASH_SALE"),
       },
     },
+    // Use Minimal theme-inspired colors for seeded design
     designConfig: {
-      backgroundColor: "#FF6B6B",
-      textColor: "#FFFFFF",
-      buttonColor: "#FFFFFF",
-      buttonTextColor: "#FF6B6B",
+      theme: "minimal",
       position: "center",
       size: "medium",
+      popupSize: "wide",
+      borderRadius: 8,
+      animation: "fade",
+      imagePosition: "left",
+      backgroundColor: "#fafafa",
+      textColor: "#18181b",
+      descriptionColor: "#71717a",
+      accentColor: "#18181b",
+      buttonColor: "#18181b",
+      buttonTextColor: "#ffffff",
+      inputBackgroundColor: "#f4f4f5",
+      inputBorderColor: "#d4d4d8",
+      imageBgColor: "#f4f4f5",
+      successColor: "#22c55e",
+      overlayOpacity: 0.5,
     },
+    // Valid DiscountConfig defaults (💰 Discount Configuration)
     discountConfig: {
       enabled: true,
-      type: "percentage",
+      showInPreview: true,
+      type: "shared",
+      valueType: "PERCENTAGE",
       value: 30,
+      prefix: "FLASH30",
+      expiryDays: 2,
+      deliveryMode: "show_code_always",
+      autoApplyMode: "ajax",
+      codePresentation: "show_code",
     },
     isDefault: true,
     priority: 2,
@@ -149,8 +191,12 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
     contentConfig: {
       headline: "Spin to Win!",
       subheadline: "Try your luck for exclusive discounts",
+      buttonText: "Spin Now",
+      successMessage: "You won {{prize}}! Use code {{code}} at checkout.",
+      failureMessage: "Thanks for playing!",
       ctaText: "Spin Now",
       emailRequired: true,
+      emailPlaceholder: "Enter your email to spin",
       prizes: [
         { label: "10% OFF", probability: 30 },
         { label: "15% OFF", probability: 20 },
@@ -194,6 +240,8 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
     contentConfig: {
       headline: "Hurry! Sale ends soon",
       subheadline: "Don't miss out on limited-time deals",
+      buttonText: "Shop Now",
+      successMessage: "Offer ends soon—don't miss out!",
       ctaText: "Shop Now",
       urgencyMessage: "Offer ends today",
       timerEnabled: true
@@ -233,6 +281,8 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
     contentConfig: {
       headline: "Scratch & Win",
       subheadline: "Reveal your surprise",
+      buttonText: "Reveal",
+      successMessage: "You won! Scratch to reveal your prize.",
       ctaText: "Reveal"
     },
     fields: [
@@ -269,6 +319,8 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
     contentConfig: {
       headline: "You left something behind",
       subheadline: "Complete your purchase before its gone",
+      buttonText: "Resume Checkout",
+      successMessage: "Your cart is readycomplete your purchase.",
       ctaText: "Resume Checkout"
     },
     fields: [
@@ -314,7 +366,14 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
     contentConfig: {
       headline: "Don't miss this favorite",
       subheadline: "Top-rated by customers like you",
-      ctaText: "Add to Cart"
+      buttonText: "Add to Cart",
+      successMessage: "Added to cart!",
+      ctaText: "Add to Cart",
+      productSelectionMethod: "ai",
+      layout: "grid",
+      maxProducts: 3,
+      showRatings: true,
+      showReviewCount: true,
     },
     fields: [
       { id: "headline", type: "text", label: "Headline", category: "content" },
@@ -359,7 +418,13 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
     contentConfig: {
       headline: "Complete your look",
       subheadline: "Pairs perfectly with items in your cart",
-      ctaText: "Add & Save"
+      buttonText: "Add {count} & Save",
+      successMessage: "Added to cart!",
+      ctaText: "Add {count} & Save",
+      productSelectionMethod: "ai",
+      layout: "carousel",
+      maxProducts: 5,
+      bundleDiscount: 15,
     },
     fields: [
       { id: "headline", type: "text", label: "Headline", category: "content" },
@@ -404,7 +469,13 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
     contentConfig: {
       headline: "Customers also bought",
       subheadline: "Complete the set with these picks",
-      ctaText: "Add to Cart"
+      buttonText: "Add {count} to Cart",
+      successMessage: "Added to cart!",
+      ctaText: "Add {count} to Cart",
+      productSelectionMethod: "ai",
+      layout: "grid",
+      maxProducts: 3,
+      bundleDiscount: 20,
     },
     fields: [
       { id: "headline", type: "text", label: "Headline", category: "content" },
@@ -431,8 +502,8 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
       textColor: "#713F12",
       buttonColor: "#D97706",
       buttonTextColor: "#FFFFFF",
-      position: "bottom",
-      size: "small"
+      position: "center",
+      size: "medium"
     },
     isDefault: true,
     priority: 12,
@@ -449,7 +520,13 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
     contentConfig: {
       headline: "Great pick! Add this too",
       subheadline: "Bundle and save more",
-      ctaText: "Add Now"
+      buttonText: "Add {count} & Save",
+      successMessage: "Added to cart!",
+      ctaText: "Add {count} & Save",
+      productSelectionMethod: "ai",
+      layout: "card",
+      maxProducts: 2,
+      bundleDiscount: 10,
     },
     fields: [
       { id: "headline", type: "text", label: "Headline", category: "content" },
@@ -492,7 +569,14 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
     templateType: "SOCIAL_PROOF",
     goals: ["ENGAGEMENT", "INCREASE_REVENUE"],
     contentConfig: {
-      messageTemplate: "{{name}} from {{location}} just purchased",
+      headline: "Recent activity",
+      subheadline: "See what other shoppers are doing right now",
+      buttonText: "Shop now",
+      successMessage: "Customers are loving these products.",
+      messageTemplate: "{{name}} from {{location}} just purchased {{product}}",
+      messageTemplates: {
+        purchase: "{{name}} from {{location}} just purchased {{product}}",
+      },
       displayDuration: 6
     },
     fields: [
@@ -506,7 +590,8 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
       },
       audienceTargeting: {
         enabled: true,
-        segments: ["New Visitor", "First Time Buyer", "Product Viewer"],
+        // NOTE: "First Time Buyer" is disabled until Shopify LTV metrics are wired
+        segments: ["New Visitor", "Product Viewer"],
         customRules: {
           enabled: false,
           conditions: [],
@@ -534,13 +619,20 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
     goals: ["INCREASE_REVENUE"],
     contentConfig: {
       threshold: 50,
-      initialMessage: "You're ${{remaining}} away from free shipping",
-      successMessage: "You unlocked Free Shipping!"
+      currency: "\$",
+      nearMissThreshold: 10,
+      emptyMessage: "Add items to unlock free shipping",
+      progressMessage: "You're {remaining} away from free shipping",
+      nearMissMessage: "Only {remaining} to go!",
+      unlockedMessage: "You've unlocked free shipping! 🎉",
+      requireEmailToClaim: false,
+      claimButtonLabel: "Claim discount",
+      claimEmailPlaceholder: "Enter your email"
     },
     fields: [
       { id: "threshold", type: "number", label: "Free Shipping Threshold", category: "content" },
-      { id: "initialMessage", type: "text", label: "Initial Message", category: "content" },
-      { id: "successMessage", type: "text", label: "Success Message", category: "content" }
+      { id: "progressMessage", type: "text", label: "Progress Message", category: "content" },
+      { id: "unlockedMessage", type: "text", label: "Unlocked Message", category: "content" }
     ],
     targetRules: {
       enhancedTriggers: {
@@ -569,6 +661,16 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
       position: "top",
       size: "small"
     },
+    discountConfig: {
+      enabled: true,
+      showInPreview: true,
+      valueType: "FREE_SHIPPING",
+      deliveryMode: "auto_apply_only",
+      autoApplyMode: "ajax",
+      codePresentation: "show_code",
+      expiryDays: 30,
+      minimumAmount: 50,
+    },
     isDefault: true,
     priority: 15,
     icon: "🎁",
@@ -583,6 +685,8 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
     goals: ["ENGAGEMENT"],
     contentConfig: {
       headline: "Holiday shipping delays",
+      buttonText: "Learn more",
+      successMessage: "Thanks for reading our update.",
       ctaText: "Learn more"
     },
     fields: [

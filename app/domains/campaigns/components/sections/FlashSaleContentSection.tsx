@@ -605,7 +605,7 @@ export function FlashSaleContentSection({
 
               <Divider />
 
-              {/* Position and Size */}
+              {/* Position, Size & Display Mode */}
               <FormGrid columns={2}>
                 <Select
                   label="Position"
@@ -631,6 +631,19 @@ export function FlashSaleContentSection({
                   onChange={(value) => updateDesignField("size", value as DesignConfig["size"])}
                 />
               </FormGrid>
+
+              <Select
+                label="Display Mode"
+                value={designConfig.displayMode || "modal"}
+                options={[
+                  { label: "Popup (modal)", value: "modal" },
+                  { label: "Banner (top or bottom)", value: "banner" },
+                ]}
+                onChange={(value) =>
+                  updateDesignField("displayMode", value as DesignConfig["displayMode"])
+                }
+                helpText="Choose whether this flash sale appears as a popup or a top/bottom banner on your store."
+              />
 
               <Divider />
 
@@ -819,11 +832,9 @@ function DateTimePickerField({ label, value, onChange, helpText }: DateTimePicke
 
   // Parse current value
   const currentDate = value ? new Date(value) : new Date();
-  const selectedDate = value && !isNaN(currentDate.getTime()) ? {
-    year: currentDate.getFullYear(),
-    month: currentDate.getMonth(),
-    day: currentDate.getDate(),
-  } : undefined;
+  const selectedDate = value && !isNaN(currentDate.getTime())
+    ? currentDate
+    : undefined;
 
   const currentHour = currentDate.getHours().toString().padStart(2, '0');
   const currentMinute = currentDate.getMinutes().toString().padStart(2, '0');
@@ -893,11 +904,15 @@ function DateTimePickerField({ label, value, onChange, helpText }: DateTimePicke
 
   const handleTimeChange = (hour: string, minute: string) => {
     try {
-      const baseDate = selectedDate ?
-        new Date(selectedDate.year, selectedDate.month, selectedDate.day) :
-        new Date();
+      const baseDate = selectedDate ?? new Date();
 
-      const updatedDate = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate(), parseInt(hour), parseInt(minute));
+      const updatedDate = new Date(
+        baseDate.getFullYear(),
+        baseDate.getMonth(),
+        baseDate.getDate(),
+        parseInt(hour, 10),
+        parseInt(minute, 10),
+      );
 
       // Validate the date
       if (isNaN(updatedDate.getTime())) {
@@ -913,7 +928,7 @@ function DateTimePickerField({ label, value, onChange, helpText }: DateTimePicke
 
   const formatDateValue = () => {
     if (!selectedDate) return "";
-    return `${selectedDate.year}-${(selectedDate.month + 1).toString().padStart(2, '0')}-${selectedDate.day.toString().padStart(2, '0')}`;
+    return `${selectedDate.getFullYear()}-${(selectedDate.getMonth() + 1).toString().padStart(2, '0')}-${selectedDate.getDate().toString().padStart(2, '0')}`;
   };
 
   const formatDisplayValue = () => {
@@ -954,8 +969,8 @@ function DateTimePickerField({ label, value, onChange, helpText }: DateTimePicke
             onClose={() => setDatePickerOpen(false)}
           >
             <DatePicker
-              month={selectedDate?.month || new Date().getMonth()}
-              year={selectedDate?.year || new Date().getFullYear()}
+              month={selectedDate?.getMonth() ?? new Date().getMonth()}
+              year={selectedDate?.getFullYear() ?? new Date().getFullYear()}
               selected={selectedDate}
               onMonthChange={(month, year) => {
                 // Handle month/year navigation if needed

@@ -34,6 +34,52 @@ import type {
 
 import { TemplateTypeEnum } from "~/lib/template-types.enum";
 
+const PRODUCT_UPSELL_PREVIEW_PRODUCTS = [
+  {
+    id: "preview-hoodie",
+    title: "Premium Fleece Hoodie",
+    price: "79.00",
+    compareAtPrice: "99.00",
+    imageUrl:
+      "https://images.pexels.com/photos/7671166/pexels-photo-7671166.jpeg?auto=compress&cs=tinysrgb&w=600",
+    variantId: "preview-hoodie-variant",
+    handle: "premium-fleece-hoodie",
+    description: "Cozy, heavyweight hoodie perfect for cooler days.",
+    rating: 4.8,
+    reviewCount: 128,
+    savingsPercent: 20,
+  },
+  {
+    id: "preview-joggers",
+    title: "Essential Jogger Pants",
+    price: "59.00",
+    compareAtPrice: "79.00",
+    imageUrl:
+      "https://images.pexels.com/photos/7671176/pexels-photo-7671176.jpeg?auto=compress&cs=tinysrgb&w=600",
+    variantId: "preview-joggers-variant",
+    handle: "essential-jogger-pants",
+    description: "Tapered fit joggers with soft brushed interior.",
+    rating: 4.7,
+    reviewCount: 96,
+    savingsPercent: 25,
+  },
+  {
+    id: "preview-sneakers",
+    title: "Everyday Comfort Sneakers",
+    price: "89.00",
+    compareAtPrice: "119.00",
+    imageUrl:
+      "https://images.pexels.com/photos/2529148/pexels-photo-2529148.jpeg?auto=compress&cs=tinysrgb&w=600",
+    variantId: "preview-sneakers-variant",
+    handle: "everyday-comfort-sneakers",
+    description: "Lightweight sneakers built for all-day wear.",
+    rating: 4.9,
+    reviewCount: 212,
+    savingsPercent: 25,
+  },
+];
+
+
 /**
  * Config builder function type
  * Takes merged config and design config, returns component-specific config
@@ -181,6 +227,9 @@ export const TEMPLATE_PREVIEW_REGISTRY: Record<string, TemplatePreviewEntry> = {
       // Storefront-specific
       ctaOpenInNewTab: mergedConfig.ctaOpenInNewTab ?? false,
 
+      // Design-specific (FlashSale)
+      popupSize: mergedConfig.popupSize || designConfig.popupSize || "wide",
+
       // All common config (colors, typography, layout)
       ...buildCommonConfig(mergedConfig, designConfig),
     }),
@@ -279,6 +328,10 @@ export const TEMPLATE_PREVIEW_REGISTRY: Record<string, TemplatePreviewEntry> = {
       minSpins: mergedConfig.minSpins ?? 5,
       loadingText: mergedConfig.loadingText,
 
+      // Image / layout
+      imageUrl: mergedConfig.imageUrl || designConfig.imageUrl,
+      imagePosition: mergedConfig.imagePosition || designConfig.imagePosition || "left",
+
       // All common config (colors, typography, layout)
       ...buildCommonConfig(mergedConfig, designConfig),
     }) as unknown as SpinToWinConfig,
@@ -307,6 +360,10 @@ export const TEMPLATE_PREVIEW_REGISTRY: Record<string, TemplatePreviewEntry> = {
       scratchRadius: mergedConfig.scratchRadius ?? 20,
       prizes: mergedConfig.prizes || [],
 
+      // Image / layout
+      imageUrl: mergedConfig.imageUrl || designConfig.imageUrl,
+      imagePosition: mergedConfig.imagePosition || designConfig.imagePosition || "left",
+
       // All common config (colors, typography, layout)
       ...buildCommonConfig(mergedConfig, designConfig),
     }) as unknown as ScratchCardConfig,
@@ -330,6 +387,7 @@ TEMPLATE_PREVIEW_REGISTRY[TemplateTypeEnum.PRODUCT_UPSELL] = {
     // ProductUpsell-specific fields
     productSelectionMethod: mergedConfig.productSelectionMethod || "manual",
     selectedProducts: mergedConfig.selectedProducts || mergedConfig.products || [],
+    products: mergedConfig.products || PRODUCT_UPSELL_PREVIEW_PRODUCTS,
     selectedCollection: mergedConfig.selectedCollection,
     maxProducts: mergedConfig.maxProducts ?? 3,
     layout: mergedConfig.layout || "grid",
@@ -394,6 +452,13 @@ TEMPLATE_PREVIEW_REGISTRY[TemplateTypeEnum.FREE_SHIPPING] = {
     celebrateOnUnlock: mergedConfig.celebrateOnUnlock ?? true,
     animationDuration: mergedConfig.animationDuration ?? 500,
     previewCartTotal: mergedConfig.previewCartTotal ?? 0,
+
+    // Claim behavior (email gate)
+    requireEmailToClaim: mergedConfig.requireEmailToClaim ?? false,
+    claimButtonLabel: mergedConfig.claimButtonLabel || "Claim discount",
+    claimEmailPlaceholder: mergedConfig.claimEmailPlaceholder || "Enter your email",
+    claimSuccessMessage: mergedConfig.claimSuccessMessage,
+    claimErrorMessage: mergedConfig.claimErrorMessage,
 
     // Preview cart total mapping into component config
     currentCartTotal: mergedConfig.previewCartTotal,

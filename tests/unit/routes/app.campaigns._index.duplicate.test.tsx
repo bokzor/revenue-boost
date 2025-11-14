@@ -1,6 +1,7 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, waitFor } from '@testing-library/react';
+import { apiClient } from '~/lib/api-client';
 
 // Mock shopify.server early to avoid env checks on import
 vi.mock('~/shopify.server', () => ({
@@ -15,6 +16,7 @@ vi.mock('@shopify/polaris', () => ({
   Page: (props: any) => React.createElement('div', null, props.children),
   Frame: (props: any) => React.createElement('div', null, props.children),
   Toast: (props: any) => React.createElement('div', null, props.content),
+  Banner: (props: any) => React.createElement('div', null, props.children),
 }));
 
 const mockUseLoaderData = vi.fn(() => ({
@@ -65,17 +67,18 @@ describe('CampaignsIndexPage - duplicate from list', () => {
   });
 
   it('fetches original via GET then POSTs duplicate using parsed { data: { campaign } } and revalidates', async () => {
-    // First GET returns the source campaign nested in data.campaign
-    // Then POST creates the duplicate
-    const fetchMock = vi.fn()
-      // GET /api/campaigns/c1
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ success: true, data: { campaign: { id: 'c1', name: 'Original', status: 'ACTIVE' } } }),
-      })
-      // POST /api/campaigns
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ success: true, data: { campaign: { id: 'c2' } } }) });
-    global.fetch = fetchMock as any;
+    // Stub apiClient calls instead of real network requests
+    const getSpy = vi.spyOn(apiClient, 'get').mockResolvedValue({
+      success: true,
+      data: {
+        campaign: { id: 'c1', name: 'Original', status: 'ACTIVE' },
+      },
+    } as any);
+
+    const postSpy = vi.spyOn(apiClient, 'post').mockResolvedValue({
+      success: true,
+      data: { campaign: { id: 'c2' } },
+    } as any);
 
     render(<CampaignsIndexPage />);
 
@@ -85,17 +88,16 @@ describe('CampaignsIndexPage - duplicate from list', () => {
     await __capturedOnDuplicate('c1');
 
     await waitFor(() => {
-      // First call: GET original
-      expect(fetchMock).toHaveBeenNthCalledWith(1, '/api/campaigns/c1', { method: 'GET' });
-      // Second call: POST duplicate
-      const secondCall = (fetchMock as any).mock.calls[1];
-      expect(secondCall[0]).toBe('/api/campaigns');
-      const init = secondCall[1];
-      expect(init.method).toBe('POST');
-      expect(init.headers['Content-Type']).toBe('application/json');
-      const body = JSON.parse(init.body);
-      expect(body.name).toBe('Original (Copy)');
-      expect(body.status).toBe('DRAFT');
+      // First call: GET original via ApiClient
+      expect(getSpy).toHaveBeenCalledWith('/api/campaigns/c1');
+
+      // Second call: POST duplicate via ApiClient
+      expect(postSpy).toHaveBeenCalled();
+      const [postUrl, postBody] = postSpy.mock.calls[0];
+      expect(postUrl).toBe('/api/campaigns');
+      expect(postBody.name).toBe('Original (Copy)');
+      expect(postBody.status).toBe('DRAFT');
+
       // Should revalidate list on success
       expect(mockRevalidate).toHaveBeenCalled();
     });

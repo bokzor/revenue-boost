@@ -26,7 +26,7 @@ import { TemplateSelectorHeader } from "./templates/TemplateSelectorHeader";
 import { TemplateSelectorFooter } from "./templates/TemplateSelectorFooter";
 
 // Define a simplified template type for the selector
-import type { TemplateType, ContentConfig, TargetRulesConfig, DesignConfig } from "~/domains/campaigns/types/campaign";
+import type { TemplateType, ContentConfig, TargetRulesConfig, DesignConfig, DiscountConfig } from "~/domains/campaigns/types/campaign";
 export interface SelectedTemplate {
   id: string;
   templateType: TemplateType;
@@ -34,6 +34,7 @@ export interface SelectedTemplate {
   contentConfig?: ContentConfig;
   targetRules?: TargetRulesConfig;
   designConfig?: DesignConfig;
+  discountConfig?: DiscountConfig;
 }
 
 export interface TemplateSelectorProps {
@@ -41,6 +42,7 @@ export interface TemplateSelectorProps {
   storeId: string;
   selectedTemplateId?: string;
   onSelect: (template: SelectedTemplate) => void;
+  initialTemplates?: _UnifiedTemplate[];
 }
 
 export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
@@ -48,9 +50,10 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
   storeId,
   selectedTemplateId,
   onSelect,
+  initialTemplates,
 }) => {
-  // Use extracted hook for template fetching
-  const { templates, loading, error } = useTemplates(goal, storeId);
+  // Use extracted hook for template fetching (with optional initial templates from loader)
+  const { templates, loading, error } = useTemplates(goal, storeId, initialTemplates);
 
   // Handle template selection
   const handleTemplateClick = (template: _UnifiedTemplate) => {
@@ -86,6 +89,7 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
       contentConfig: template.contentConfig as ContentConfig | undefined,
       targetRules: template.targetRules as TargetRulesConfig | undefined,
       designConfig: template.designConfig as DesignConfig | undefined,
+      discountConfig: template.discountConfig as DiscountConfig | undefined,
     };
 
     onSelect(selectedTemplate);

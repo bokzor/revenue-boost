@@ -23,6 +23,8 @@ export interface DesignConfigSectionProps {
   errors?: Record<string, string>;
   onChange: (design: Partial<DesignConfig>) => void;
   templateType?: string;
+  /** Optional callback invoked when a theme preset is applied */
+  onThemeChange?: (themeKey: NewsletterThemeKey) => void;
 }
 
 export function DesignConfigSection({
@@ -30,6 +32,7 @@ export function DesignConfigSection({
   errors,
   onChange,
   templateType,
+  onThemeChange,
 }: DesignConfigSectionProps) {
   const [customImageUrl, setCustomImageUrl] = useState(design.imageUrl || "");
 
@@ -98,6 +101,11 @@ export function DesignConfigSection({
       imageUrl: `/newsletter-backgrounds/${themeKey}.png`, // Set default theme image
     });
     setCustomImageUrl(`/newsletter-backgrounds/${themeKey}.png`);
+
+    // Allow template-specific integrations (e.g., Spin-to-Win wheel colors)
+    if (onThemeChange) {
+      onThemeChange(themeKey);
+    }
   };
 
   const handleImageUrlChange = (value: string) => {
@@ -155,6 +163,41 @@ export function DesignConfigSection({
             helpText={caps?.supportsSize ? "Size options filtered for this template" : undefined}
           />
         </FormGrid>
+
+        {/* Flash Sale specific popup size */}
+        {templateType === "FLASH_SALE" && (
+          <Select
+            label="Popup size"
+            value={design.popupSize || "wide"}
+            options={[
+              { label: "Compact", value: "compact" },
+              { label: "Standard", value: "standard" },
+              { label: "Wide", value: "wide" },
+              { label: "Full width", value: "full" },
+            ]}
+            onChange={(value) =>
+              updateField("popupSize", value as DesignConfig["popupSize"])
+            }
+            helpText="Controls the overall footprint of the Flash Sale popup."
+          />
+        )}
+
+
+        {/* Flash Sale specific display mode */}
+        {templateType === "FLASH_SALE" && (
+          <Select
+            label="Display Mode"
+            value={design.displayMode || "modal"}
+            options={[
+              { label: "Popup (modal)", value: "modal" },
+              { label: "Banner (top or bottom)", value: "banner" },
+            ]}
+            onChange={(value) =>
+              updateField("displayMode", value as DesignConfig["displayMode"])
+            }
+            helpText="Choose whether this flash sale appears as a popup or as a top/bottom banner."
+          />
+        )}
 
         <Divider />
 

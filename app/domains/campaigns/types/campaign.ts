@@ -141,9 +141,18 @@ const DEFAULT_SPIN_TO_WIN_SEGMENTS = [
  */
 export const SpinToWinContentSchema = BaseContentConfigSchema.extend({
   spinButtonText: z.string().default("Spin to Win!"),
+
+  // Email capture config
   emailRequired: z.boolean().default(true),
   emailPlaceholder: z.string().default("Enter your email to spin"),
   emailLabel: z.string().optional(),
+
+  // Name & consent config (similar intent to NewsletterContentSchema)
+  collectName: z.boolean().default(false),
+  showGdprCheckbox: z.boolean().default(false),
+  gdprLabel: z.string().optional(),
+
+  // Wheel configuration
   wheelSegments: z.array(z.object({
     id: z.string(),
     label: z.string(),
@@ -154,6 +163,7 @@ export const SpinToWinContentSchema = BaseContentConfigSchema.extend({
     discountCode: z.string().optional(),
   })).min(2, "At least 2 wheel segments required").default(DEFAULT_SPIN_TO_WIN_SEGMENTS),
   maxAttemptsPerUser: z.number().int().min(1).default(1),
+
   // Advanced wheel configuration
   wheelSize: z.number().int().min(200).max(800).default(400),
   wheelBorderWidth: z.number().int().min(0).max(20).default(2),
@@ -357,6 +367,13 @@ export const FreeShippingContentSchema = z.object({
 
   // Preview-only (admin): cart total to simulate progress in Live Preview
   previewCartTotal: z.number().min(0).default(0),
+
+  // Optional email gate for claiming the discount once threshold is reached
+  requireEmailToClaim: z.boolean().default(false),
+  claimButtonLabel: z.string().default("Claim discount"),
+  claimEmailPlaceholder: z.string().default("Enter your email"),
+  claimSuccessMessage: z.string().default("Discount claimed! Your savings are ready."),
+  claimErrorMessage: z.string().default("Something went wrong. Please try again."),
 });
 
 /**
@@ -425,9 +442,10 @@ export const DesignConfigSchema = z.object({
   ]).default("modern"),
   position: z.enum(["center", "top", "bottom", "left", "right"]).default("center"),
   size: z.enum(["small", "medium", "large"]).default("medium"),
-  popupSize: z.enum(["compact", "standard", "wide", "full"]).default("standard").optional(), // For FlashSale
+  popupSize: z.enum(["compact", "standard", "wide", "full"]).default("wide").optional(), // For FlashSale
   borderRadius: z.number().min(0).max(50).default(8),
   animation: z.enum(["fade", "slide", "bounce", "none"]).default("fade"),
+  displayMode: z.enum(["modal", "banner"]).optional(),
 
   // Image settings
   imageUrl: z.string().optional(),

@@ -190,6 +190,8 @@ async function createWelcomeCampaign(storeId: string) {
       status: "ACTIVE", // ← Auto-activate for zero-config experience
       priority: 1,
       experimentId: undefined,
+      startDate: undefined,
+      endDate: undefined,
       contentConfig: {
         title: "Welcome! 🎉",
         subtitle: "Get 10% off your first order",

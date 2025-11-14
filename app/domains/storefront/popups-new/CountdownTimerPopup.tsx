@@ -48,7 +48,8 @@ export const CountdownTimerPopup: React.FC<CountdownTimerPopupProps> = ({
   const [timeRemaining, setTimeRemaining] = useState(() => {
     if (config.endTime) {
       return calculateTimeRemaining(config.endTime);
-    } else if (config.countdownDuration) {
+    }
+    if (config.countdownDuration) {
       const endDate = new Date(Date.now() + config.countdownDuration * 1000);
       return calculateTimeRemaining(endDate);
     }
@@ -57,25 +58,27 @@ export const CountdownTimerPopup: React.FC<CountdownTimerPopupProps> = ({
 
   const [hasExpired, setHasExpired] = useState(false);
 
-  // Update countdown every second
+  // Update countdown every second using a stable target time
   useEffect(() => {
-    if (hasExpired) return;
+    if (!isVisible || hasExpired) return;
 
-    const timer = setInterval(() => {
-      let newTime;
+    let targetDate: Date | null = null;
 
-      if (config.endTime) {
-        newTime = calculateTimeRemaining(config.endTime);
-      } else if (config.countdownDuration) {
-        const endDate = new Date(Date.now() + config.countdownDuration * 1000);
-        newTime = calculateTimeRemaining(endDate);
-      } else {
-        return;
-      }
+    if (config.endTime) {
+      targetDate = new Date(config.endTime);
+    } else if (config.countdownDuration) {
+      targetDate = new Date(Date.now() + config.countdownDuration * 1000);
+    }
 
-      setTimeRemaining(newTime);
+    if (!targetDate || isNaN(targetDate.getTime())) {
+      return;
+    }
 
-      if (newTime.total <= 0) {
+    const updateTimer = () => {
+      const remaining = calculateTimeRemaining(targetDate as Date);
+      setTimeRemaining(remaining);
+
+      if (remaining.total <= 0 && !hasExpired) {
         setHasExpired(true);
         if (onExpiry) {
           onExpiry();
@@ -84,10 +87,21 @@ export const CountdownTimerPopup: React.FC<CountdownTimerPopupProps> = ({
           onClose();
         }
       }
-    }, 1000);
+    };
+
+    updateTimer();
+    const timer = setInterval(updateTimer, 1000);
 
     return () => clearInterval(timer);
-  }, [config, hasExpired, onExpiry, onClose]);
+  }, [
+    config.endTime,
+    config.countdownDuration,
+    config.hideOnExpiry,
+    isVisible,
+    hasExpired,
+    onExpiry,
+    onClose,
+  ]);
 
   const handleCtaClick = useCallback(() => {
     if (onCtaClick) {
@@ -105,176 +119,399 @@ export const CountdownTimerPopup: React.FC<CountdownTimerPopupProps> = ({
 
   if (!isVisible || (hasExpired && config.hideOnExpiry)) return null;
 
-  // Color scheme presets
-  const getColorScheme = () => {
+  // Color scheme presets adapted from mock countdown banner
+  const getColorSchemeStyles = () => {
     switch (config.colorScheme) {
       case 'urgent':
         return {
-          backgroundColor: '#DC2626',
-          textColor: '#FFFFFF',
-          buttonColor: '#FFFFFF',
-          buttonTextColor: '#DC2626',
+          background: 'linear-gradient(135deg, #dc2626 0%, #f97316 100%)',
+          text: '#ffffff',
+          timerBg: 'rgba(255, 255, 255, 0.2)',
+          timerText: '#ffffff',
+          ctaBg: '#ffffff',
+          ctaText: '#dc2626',
         };
       case 'success':
         return {
-          backgroundColor: '#059669',
-          textColor: '#FFFFFF',
-          buttonColor: '#FFFFFF',
-          buttonTextColor: '#059669',
+          background: 'linear-gradient(135deg, #10b981 0%, #14b8a6 100%)',
+          text: '#ffffff',
+          timerBg: 'rgba(255, 255, 255, 0.2)',
+          timerText: '#ffffff',
+          ctaBg: '#ffffff',
+          ctaText: '#10b981',
         };
       case 'info':
         return {
-          backgroundColor: '#2563EB',
-          textColor: '#FFFFFF',
-          buttonColor: '#FFFFFF',
-          buttonTextColor: '#2563EB',
+          background: 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)',
+          text: '#ffffff',
+          timerBg: 'rgba(255, 255, 255, 0.2)',
+          timerText: '#ffffff',
+          ctaBg: '#ffffff',
+          ctaText: '#3b82f6',
         };
       default:
         return {
-          backgroundColor: config.backgroundColor,
-          textColor: config.textColor,
-          buttonColor: config.buttonColor,
-          buttonTextColor: config.buttonTextColor,
+          background: config.backgroundColor,
+          text: config.textColor,
+          timerBg: config.inputBackgroundColor || 'rgba(0, 0, 0, 0.08)',
+          timerText: config.textColor,
+          ctaBg: config.buttonColor,
+          ctaText: config.buttonTextColor || '#ffffff',
         };
     }
   };
 
-  const colors = getColorScheme();
+  const schemeColors = getColorSchemeStyles();
 
-  const bannerStyles: React.CSSProperties = {
-    position: config.sticky ? 'sticky' : 'fixed',
-    [config.position === 'bottom' ? 'bottom' : 'top']: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: colors.backgroundColor,
-    color: colors.textColor,
-    padding: '12px 20px',
-    zIndex: 10000,
-    boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-  };
-
-  const containerStyles: React.CSSProperties = {
-    maxWidth: '1200px',
-    margin: '0 auto',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: '20px',
-    flexWrap: 'wrap',
-  };
-
-  const contentStyles: React.CSSProperties = {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '16px',
-    flex: 1,
-    flexWrap: 'wrap',
-  };
-
-  const timerStyles: React.CSSProperties = {
-    display: 'flex',
-    gap: '8px',
-    alignItems: 'center',
-    fontWeight: 700,
-    fontSize: '18px',
-    fontFamily: 'monospace',
-  };
-
-  const buttonStyles: React.CSSProperties = {
-    padding: '10px 24px',
-    fontSize: '14px',
-    fontWeight: 600,
-    border: 'none',
-    borderRadius: `${config.borderRadius ?? 6}px`,
-    backgroundColor: colors.buttonColor,
-    color: colors.buttonTextColor,
-    cursor: 'pointer',
-    whiteSpace: 'nowrap',
-    transition: 'opacity 0.2s',
-  };
-
-  const closeButtonStyles: React.CSSProperties = {
-    background: 'transparent',
-    border: 'none',
-    color: colors.textColor,
-    fontSize: '24px',
-    cursor: 'pointer',
-    padding: '0 8px',
-    opacity: 0.8,
-    lineHeight: 1,
-  };
-
-  const formatTime = () => {
-    const parts = [];
-
-    if (timeRemaining.days > 0) {
-      parts.push(`${timeRemaining.days}d`);
-    }
-
-    parts.push(
-      `${String(timeRemaining.hours).padStart(2, '0')}:${String(timeRemaining.minutes).padStart(2, '0')}:${String(timeRemaining.seconds).padStart(2, '0')}`
-    );
-
-    return parts.join(' ');
-  };
+  const positionStyle: React.CSSProperties = config.sticky
+    ? {
+        position: 'fixed',
+        [config.position === 'bottom' ? 'bottom' : 'top']: 0,
+        left: 0,
+        right: 0,
+        zIndex: 9999,
+      }
+    : {
+        position: 'relative',
+      };
 
   return (
-    <div style={bannerStyles}>
-      <div style={containerStyles}>
-        <div style={contentStyles}>
-          {/* Headline */}
-          <div style={{ fontWeight: 600, fontSize: '16px' }}>
-            {config.headline}
+    <>
+      <style>{`
+        .countdown-banner {
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+        .countdown-banner-content {
+          max-width: 1200px;
+          margin: 0 auto;
+          padding: 1rem 1.5rem;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 1.5rem;
+          position: relative;
+          padding-right: 3.5rem;
+        }
+        .countdown-banner-left {
+          flex: 1;
+          min-width: 0;
+        }
+        .countdown-banner-headline {
+          font-size: 1.125rem;
+          font-weight: 700;
+          line-height: 1.4;
+          margin: 0 0 0.25rem 0;
+        }
+        .countdown-banner-subheadline {
+          font-size: 0.875rem;
+          line-height: 1.4;
+          margin: 0;
+          opacity: 0.9;
+        }
+        .countdown-banner-center {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 0.5rem;
+        }
+        .countdown-banner-timer {
+          display: flex;
+          gap: 0.5rem;
+          align-items: center;
+        }
+        .countdown-banner-timer-unit {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          padding: 0.5rem 0.75rem;
+          border-radius: 0.375rem;
+          min-width: 3.5rem;
+        }
+        .countdown-banner-timer-value {
+          font-size: 1.5rem;
+          font-weight: 700;
+          line-height: 1;
+          font-variant-numeric: tabular-nums;
+        }
+        .countdown-banner-timer-label {
+          font-size: 0.625rem;
+          text-transform: uppercase;
+          opacity: 0.8;
+          margin-top: 0.25rem;
+          letter-spacing: 0.5px;
+        }
+        .countdown-banner-timer-separator {
+          font-size: 1.25rem;
+          font-weight: 700;
+          opacity: 0.6;
+        }
+        .countdown-banner-stock {
+          font-size: 0.75rem;
+          font-weight: 600;
+          padding: 0.25rem 0.75rem;
+          border-radius: 999px;
+          background: rgba(255, 255, 255, 0.2);
+          white-space: nowrap;
+        }
+        .countdown-banner-right {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+        }
+        .countdown-banner-cta {
+          padding: 0.75rem 1.5rem;
+          font-size: 1rem;
+          font-weight: 600;
+          border: none;
+          border-radius: 0.375rem;
+          cursor: pointer;
+          white-space: nowrap;
+          transition: transform 0.2s, box-shadow 0.2s;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .countdown-banner-cta:hover:not(:disabled) {
+          transform: translateY(-1px);
+          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+        .countdown-banner-cta:active:not(:disabled) {
+          transform: translateY(0);
+        }
+        .countdown-banner-cta:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+        .countdown-banner-close {
+          position: absolute;
+          top: 0.75rem;
+          right: 0.75rem;
+          background: transparent;
+          border: none;
+          font-size: 1.5rem;
+          line-height: 1;
+          cursor: pointer;
+          opacity: 0.7;
+          transition: opacity 0.2s;
+          padding: 0.25rem;
+          width: 2rem;
+          height: 2rem;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .countdown-banner-close:hover {
+          opacity: 1;
+        }
+        .countdown-banner-expired {
+          text-align: center;
+          padding: 0.5rem;
+          font-weight: 600;
+        }
+        @media (max-width: 768px) {
+          .countdown-banner-content {
+            flex-direction: column;
+            padding: 1.25rem 1rem;
+            gap: 1rem;
+            text-align: center;
+            padding-right: 3rem;
+          }
+          .countdown-banner-right {
+            width: 100%;
+          }
+          .countdown-banner-cta {
+            width: 100%;
+          }
+          .countdown-banner-headline {
+            font-size: 1rem;
+          }
+          .countdown-banner-subheadline {
+            font-size: 0.8125rem;
+          }
+          .countdown-banner-timer-unit {
+            min-width: 3rem;
+            padding: 0.375rem 0.5rem;
+          }
+          .countdown-banner-timer-value {
+            font-size: 1.25rem;
+          }
+          .countdown-banner-timer-label {
+            font-size: 0.5625rem;
+          }
+          .countdown-banner-close {
+            top: 0.5rem;
+            right: 0.5rem;
+          }
+        }
+        @media (max-width: 480px) {
+          .countdown-banner-content {
+            padding: 1rem 0.75rem;
+            padding-right: 2.5rem;
+          }
+          .countdown-banner-timer {
+            gap: 0.25rem;
+          }
+          .countdown-banner-timer-unit {
+            min-width: 2.5rem;
+            padding: 0.25rem 0.375rem;
+          }
+          .countdown-banner-timer-value {
+            font-size: 1.125rem;
+          }
+          .countdown-banner-timer-separator {
+            font-size: 1rem;
+          }
+        }
+      `}</style>
+
+      <div
+        className="countdown-banner"
+        style={{
+          ...positionStyle,
+          background: schemeColors.background,
+          color: schemeColors.text,
+          boxShadow:
+            config.position === 'bottom'
+              ? '0 -2px 8px rgba(0, 0, 0, 0.1)'
+              : '0 2px 8px rgba(0, 0, 0, 0.1)',
+        }}
+      >
+        <div className="countdown-banner-content">
+          {config.showCloseButton !== false && (
+            <button
+              className="countdown-banner-close"
+              onClick={onClose}
+              style={{ color: schemeColors.text }}
+              aria-label="Close banner"
+            >
+              ×
+            </button>
+          )}
+
+          <div className="countdown-banner-left">
+            <h2 className="countdown-banner-headline">{config.headline}</h2>
+            {config.subheadline && (
+              <p className="countdown-banner-subheadline">{config.subheadline}</p>
+            )}
           </div>
 
-          {/* Timer */}
-          {!hasExpired && (
-            <div style={timerStyles}>
-              ⏰ {formatTime()}
-            </div>
-          )}
+          <div className="countdown-banner-center">
+            {!hasExpired ? (
+              <>
+                <div className="countdown-banner-timer">
+                  {timeRemaining.days > 0 && (
+                    <>
+                      <div
+                        className="countdown-banner-timer-unit"
+                        style={{
+                          background: schemeColors.timerBg,
+                          color: schemeColors.timerText,
+                        }}
+                      >
+                        <div className="countdown-banner-timer-value">
+                          {String(timeRemaining.days).padStart(2, '0')}
+                        </div>
+                        <div className="countdown-banner-timer-label">Days</div>
+                      </div>
+                      <span
+                        className="countdown-banner-timer-separator"
+                        style={{ color: schemeColors.text }}
+                      >
+                        :
+                      </span>
+                    </>
+                  )}
 
-          {/* Stock counter */}
-          {config.showStockCounter && config.stockCount !== undefined && (
-            <div style={{ fontSize: '14px', fontWeight: 600 }}>
-              Only {config.stockCount} left!
-            </div>
-          )}
+                  <div
+                    className="countdown-banner-timer-unit"
+                    style={{
+                      background: schemeColors.timerBg,
+                      color: schemeColors.timerText,
+                    }}
+                  >
+                    <div className="countdown-banner-timer-value">
+                      {String(timeRemaining.hours).padStart(2, '0')}
+                    </div>
+                    <div className="countdown-banner-timer-label">Hours</div>
+                  </div>
 
-          {/* Expired message */}
-          {hasExpired && !config.hideOnExpiry && (
-            <div style={{ fontSize: '14px', fontWeight: 600 }}>
-              Sale ended
-            </div>
-          )}
+                  <span
+                    className="countdown-banner-timer-separator"
+                    style={{ color: schemeColors.text }}
+                  >
+                    :
+                  </span>
+
+                  <div
+                    className="countdown-banner-timer-unit"
+                    style={{
+                      background: schemeColors.timerBg,
+                      color: schemeColors.timerText,
+                    }}
+                  >
+                    <div className="countdown-banner-timer-value">
+                      {String(timeRemaining.minutes).padStart(2, '0')}
+                    </div>
+                    <div className="countdown-banner-timer-label">Mins</div>
+                  </div>
+
+                  <span
+                    className="countdown-banner-timer-separator"
+                    style={{ color: schemeColors.text }}
+                  >
+                    :
+                  </span>
+
+                  <div
+                    className="countdown-banner-timer-unit"
+                    style={{
+                      background: schemeColors.timerBg,
+                      color: schemeColors.timerText,
+                    }}
+                  >
+                    <div className="countdown-banner-timer-value">
+                      {String(timeRemaining.seconds).padStart(2, '0')}
+                    </div>
+                    <div className="countdown-banner-timer-label">Secs</div>
+                  </div>
+                </div>
+
+                {config.showStockCounter && config.stockCount && (
+                  <div
+                    className="countdown-banner-stock"
+                    style={{ color: schemeColors.text }}
+                  >
+                    ⚡ Only {config.stockCount} left in stock
+                  </div>
+                )}
+              </>
+            ) : (
+              <div
+                className="countdown-banner-expired"
+                style={{ color: schemeColors.text }}
+              >
+                Offer has ended
+              </div>
+            )}
+          </div>
+
+          <div className="countdown-banner-right">
+            {(config.buttonText || config.ctaText || hasExpired) && (
+              <button
+                className="countdown-banner-cta"
+                onClick={handleCtaClick}
+                disabled={hasExpired}
+                style={{
+                  background: schemeColors.ctaBg,
+                  color: schemeColors.ctaText,
+                  borderRadius: `${config.borderRadius ?? 6}px`,
+                }}
+              >
+                {hasExpired ? 'Offer Expired' : (config.buttonText || config.ctaText)}
+              </button>
+            )}
+          </div>
         </div>
-
-        {/* CTA button */}
-        {!hasExpired && (config.buttonText || config.ctaText) && (
-          <button
-            onClick={handleCtaClick}
-            style={buttonStyles}
-            onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'}
-            onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
-          >
-            {config.buttonText || config.ctaText}
-          </button>
-        )}
-
-        {/* Close button */}
-        {config.showCloseButton !== false && (
-          <button
-            onClick={onClose}
-            style={closeButtonStyles}
-            aria-label="Close banner"
-            onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
-            onMouseLeave={(e) => e.currentTarget.style.opacity = '0.8'}
-          >
-            ×
-          </button>
-        )}
       </div>
-    </div>
+    </>
   );
 };
 

@@ -8,6 +8,8 @@
 import type { CampaignWithConfigs } from "~/domains/campaigns/types/campaign";
 import type { StorefrontContext } from "~/domains/campaigns/types/storefront-context";
 import { FrequencyCapService } from "~/domains/targeting/services/frequency-cap.server";
+import prisma from "~/db.server";
+import type { SegmentCondition } from "~/data/segments";
 
 /**
  * Campaign Filter Service
@@ -120,18 +122,66 @@ export class CampaignFilterService {
   /**
    * Filter campaigns by audience segments
    */
-  static filterByAudienceSegments(
+  static async filterByAudienceSegments(
     campaigns: CampaignWithConfigs[],
     context: StorefrontContext
-  ): CampaignWithConfigs[] {
-    // For now, we'll implement basic segment matching
-    // This can be extended to query actual customer segments from DB
-
+  ): Promise<CampaignWithConfigs[]> {
     console.log("[Revenue Boost] 👥 Filtering campaigns by audience segments");
-    const contextSegments = this.getContextSegments(context);
-    console.log("[Revenue Boost] 📊 Visitor segments detected:", contextSegments);
 
-    return campaigns.filter((campaign) => {
+    // Collect all unique segment keys (IDs or legacy names) used across campaigns
+    const allSegmentKeys = new Set<string>();
+    for (const campaign of campaigns) {
+      const targeting = campaign.targetRules?.audienceTargeting;
+      if (targeting?.enabled && Array.isArray(targeting.segments)) {
+        for (const seg of targeting.segments) {
+          if (typeof seg === "string" && seg.trim().length > 0) {
+            allSegmentKeys.add(seg);
+          }
+        }
+      }
+    }
+
+    // If no campaigns use audience segments at all, skip DB lookup entirely
+    if (allSegmentKeys.size === 0) {
+      console.log("[Revenue Boost] ℹ️ No campaigns with audience segments configured - skipping segment filter");
+      return campaigns;
+    }
+
+    const segmentKeys = Array.from(allSegmentKeys);
+
+    // Load matching segments from DB by ID or name (backward compatible)
+    let dbSegments: { id: string; name: string; conditions: unknown }[] = [];
+    try {
+      dbSegments = await prisma.customerSegment.findMany({
+        where: {
+          isActive: true,
+          OR: [
+            { id: { in: segmentKeys } },
+            { name: { in: segmentKeys } },
+          ],
+        },
+      });
+    } catch (error) {
+      console.error("[Revenue Boost] ❌ Failed to load customer segments for audience targeting:", error);
+      // In case of DB failure, fall back to legacy name-based matching only
+      dbSegments = [];
+    }
+
+    // Build lookup maps by ID and by name
+    const segmentByKey = new Map<string, { id: string; name: string; conditions: SegmentCondition[] }>();
+    for (const seg of dbSegments) {
+      const conditions = Array.isArray(seg.conditions)
+        ? (seg.conditions as SegmentCondition[])
+        : [];
+
+      segmentByKey.set(seg.id, { id: seg.id, name: seg.name, conditions });
+      segmentByKey.set(seg.name, { id: seg.id, name: seg.name, conditions });
+    }
+
+    const legacyContextSegments = this.getContextSegments(context);
+    console.log("[Revenue Boost] 📊 Visitor segments detected (legacy mapping):", legacyContextSegments);
+
+    const filtered = campaigns.filter((campaign) => {
       const targeting = campaign.targetRules?.audienceTargeting;
 
       // If no audience targeting, include campaign
@@ -150,17 +200,95 @@ export class CampaignFilterService {
 
       console.log(`[Revenue Boost] 🎯 Campaign "${campaign.name}" (${campaign.id}) requires segments:`, segments);
 
-      // Campaign matches if any of its segments match context segments
-      const matches = segments.some((seg) => contextSegments.includes(seg));
+      // Campaign matches if ANY referenced segment matches the context
+      const matches = segments.some((key) => {
+        const segDef = segmentByKey.get(key);
 
-      if (matches) {
-        const matchedSegments = segments.filter((seg) => contextSegments.includes(seg));
-        console.log(`[Revenue Boost] ✅ Campaign "${campaign.name}" (${campaign.id}): MATCHED segments:`, matchedSegments);
-      } else {
-        console.log(`[Revenue Boost] ❌ Campaign "${campaign.name}" (${campaign.id}): NO MATCH - visitor segments don't match required segments`);
+        if (segDef) {
+          const result = this.evaluateSegmentConditions(segDef.conditions, context);
+          if (result) {
+            console.log(
+              `[Revenue Boost] ✅ Campaign "${campaign.name}" (${campaign.id}): MATCHED DB segment "${segDef.name}" (${segDef.id})`
+            );
+          }
+          return result;
+        }
+
+        // Fallback for legacy configs that used raw names only
+        const legacyMatch = legacyContextSegments.includes(key);
+        if (legacyMatch) {
+          console.log(
+            `[Revenue Boost] ✅ Campaign "${campaign.name}" (${campaign.id}): MATCHED legacy segment name "${key}"`
+          );
+        }
+        return legacyMatch;
+      });
+
+      if (!matches) {
+        console.log(
+          `[Revenue Boost] ❌ Campaign "${campaign.name}" (${campaign.id}): NO MATCH - visitor segments don't match required segments`
+        );
       }
 
       return matches;
+    });
+
+    console.log(
+      `[Revenue Boost] 👥 Audience segment filter result: ${filtered.length} of ${campaigns.length} campaigns matched`
+    );
+
+    return filtered;
+  }
+
+  /**
+   * Evaluate a list of segment conditions against the current storefront context.
+   * All conditions must pass for the segment to be considered a match.
+   */
+  private static evaluateSegmentConditions(
+    conditions: SegmentCondition[],
+    context: StorefrontContext
+  ): boolean {
+    if (!conditions || conditions.length === 0) {
+      return true;
+    }
+
+    const ctx: Record<string, unknown> = context as Record<string, unknown>;
+
+    return conditions.every((condition) => {
+      const actual = ctx[condition.field];
+
+      if (actual === undefined || actual === null) {
+        return false;
+      }
+
+      const expected = condition.value;
+
+      switch (condition.operator) {
+        case "eq":
+          return actual === expected;
+        case "ne":
+          return actual !== expected;
+        case "gt":
+          return Number(actual) > Number(expected);
+        case "gte":
+          return Number(actual) >= Number(expected);
+        case "lt":
+          return Number(actual) < Number(expected);
+        case "lte":
+          return Number(actual) <= Number(expected);
+        case "in":
+          if (Array.isArray(actual)) {
+            return (actual as unknown[]).includes(expected as unknown);
+          }
+          return actual === expected;
+        case "nin":
+          if (Array.isArray(actual)) {
+            return !(actual as unknown[]).includes(expected as unknown);
+          }
+          return actual !== expected;
+        default:
+          return false;
+      }
     });
   }
 
@@ -272,7 +400,7 @@ export class CampaignFilterService {
 
     // Apply audience segments filter
     console.log("[Revenue Boost] === AUDIENCE SEGMENTS FILTER ===");
-    filtered = this.filterByAudienceSegments(filtered, context);
+    filtered = await this.filterByAudienceSegments(filtered, context);
     console.log(`[Revenue Boost] After audience segments filter: ${filtered.length} campaigns remaining\n`);
 
     // Apply variant assignment filter (for A/B tests)

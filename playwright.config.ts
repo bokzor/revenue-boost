@@ -32,7 +32,12 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
 
   // Reporter to use
-  reporter: 'html',
+  reporter: [
+    ["html", { outputFolder: "test-results/reports/html", open: "never" }],
+    ["junit", { outputFile: "test-results/reports/junit.xml" }],
+    ["json", { outputFile: "test-results/reports/results.json" }],
+    ["list"], // Show test progress in console
+  ],
 
   // Shared settings for all the projects below
   use: {

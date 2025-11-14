@@ -10,33 +10,23 @@ import { useFieldUpdater } from "~/shared/hooks/useFieldUpdater";
 import { Card, BlockStack, Text, Divider, Banner } from "@shopify/polaris";
 
 export interface SocialProofContent {
-  // Tier 1 Notification Types
+  // Core notification types (Tier 1)
   enablePurchaseNotifications?: boolean;
   enableVisitorNotifications?: boolean;
   enableReviewNotifications?: boolean;
 
-  // Tier 2 Notification Types
-  enableSalesCountNotifications?: boolean;
-  enableLowStockAlerts?: boolean;
-  enableTrendingNotifications?: boolean;
-  enableCartActivityNotifications?: boolean;
-  enableRecentlyViewedNotifications?: boolean;
-
-  // Display Settings
-  position?: "bottom-left" | "bottom-right" | "top-left" | "top-right";
-  displayDuration?: number;
+  // Display & rotation settings used by SocialProofPopup
+  cornerPosition?: "bottom-left" | "bottom-right" | "top-left" | "top-right";
   rotationInterval?: number;
   maxNotificationsPerSession?: number;
 
-  // Data Settings
-  purchaseLookbackHours?: number;
+  // Data thresholds used for filtering notifications
   minVisitorCount?: number;
   minReviewRating?: number;
-  lowStockThreshold?: number;
 
-  // Privacy Settings
-  anonymizeCustomerNames?: boolean;
-  showCustomerLocation?: boolean;
+  // Visual toggles used on storefront
+  showProductImage?: boolean;
+  showTimer?: boolean;
 }
 
 export interface SocialProofContentSectionProps {
@@ -62,14 +52,15 @@ export function SocialProofContentSection({
         </Text>
       </Banner>
 
-      {/* Tier 1 Notification Types */}
+      {/* Notification Types */}
       <Card>
         <BlockStack gap="400">
           <Text as="h3" variant="headingMd">
-            Tier 1 Notifications (Highest Impact)
+            Notification Types
           </Text>
           <Text as="p" tone="subdued">
-            These notification types have the highest conversion impact (+10-25% each)
+            Choose which real-time activity to highlight. These toggles directly control which
+            notifications are shown on your storefront.
           </Text>
           <Divider />
 
@@ -90,59 +81,6 @@ export function SocialProofContentSection({
           />
 
           <CheckboxField
-            label="Sales Count - 24h (+12-20% conversion)"
-            name="content.enableSalesCountNotifications"
-            checked={content.enableSalesCountNotifications ?? true}
-            helpText='Show "47 people bought this in the last 24 hours"'
-            onChange={(checked) => updateField("enableSalesCountNotifications", checked)}
-          />
-        </BlockStack>
-      </Card>
-
-      {/* Tier 2 Notification Types */}
-      <Card>
-        <BlockStack gap="400">
-          <Text as="h3" variant="headingMd">
-            Tier 2 Notifications (High Impact)
-          </Text>
-          <Text as="p" tone="subdued">
-            Additional notification types for increased urgency and social proof (+5-15% each)
-          </Text>
-          <Divider />
-
-          <CheckboxField
-            label="Low Stock Alerts (+15-25% conversion)"
-            name="content.enableLowStockAlerts"
-            checked={content.enableLowStockAlerts ?? false}
-            helpText='Show "Only 3 left in stock!" when inventory is low'
-            onChange={(checked) => updateField("enableLowStockAlerts", checked)}
-          />
-
-          <CheckboxField
-            label="Trending Products (+8-12% conversion)"
-            name="content.enableTrendingNotifications"
-            checked={content.enableTrendingNotifications ?? false}
-            helpText='Show "🔥 Trending - 50+ views in the last hour"'
-            onChange={(checked) => updateField("enableTrendingNotifications", checked)}
-          />
-
-          <CheckboxField
-            label="Cart Activity (+8-15% conversion)"
-            name="content.enableCartActivityNotifications"
-            checked={content.enableCartActivityNotifications ?? false}
-            helpText='Show "5 people added to cart in the last hour"'
-            onChange={(checked) => updateField("enableCartActivityNotifications", checked)}
-          />
-
-          <CheckboxField
-            label="Recently Viewed (+5-10% conversion)"
-            name="content.enableRecentlyViewedNotifications"
-            checked={content.enableRecentlyViewedNotifications ?? false}
-            helpText='Show "25 people viewed this in the last hour"'
-            onChange={(checked) => updateField("enableRecentlyViewedNotifications", checked)}
-          />
-
-          <CheckboxField
             label="Review Notifications (+5-10% conversion)"
             name="content.enableReviewNotifications"
             checked={content.enableReviewNotifications ?? false}
@@ -156,14 +94,17 @@ export function SocialProofContentSection({
       <Card>
         <BlockStack gap="400">
           <Text as="h3" variant="headingMd">
-            Display Settings
+            Display & Frequency
+          </Text>
+          <Text as="p" tone="subdued">
+            Control where notifications appear, how often they rotate, and basic visibility rules.
           </Text>
           <Divider />
 
           <SelectField
             label="Position"
-            name="content.position"
-            value={content.position || "bottom-left"}
+            name="content.cornerPosition"
+            value={content.cornerPosition || "bottom-left"}
             options={[
               { label: "Bottom Left", value: "bottom-left" },
               { label: "Bottom Right", value: "bottom-right" },
@@ -173,83 +114,40 @@ export function SocialProofContentSection({
             helpText="Where to display notifications on the page"
             onChange={(value) => {
               type PositionOption = "bottom-left" | "bottom-right" | "top-left" | "top-right";
-              updateField("position", (value as PositionOption));
+              updateField("cornerPosition", value as PositionOption);
             }}
           />
 
-          <FormGrid columns={3}>
-            <TextField
-              label="Display Duration (seconds)"
-              name="content.displayDuration"
-              value={content.displayDuration?.toString() || "5"}
-              error={errors?.displayDuration}
-              placeholder="5"
-              helpText="How long each notification shows"
-              onChange={(value) => updateField("displayDuration", parseInt(value) || 5)}
-            />
-
+          <FormGrid columns={2}>
             <TextField
               label="Rotation Interval (seconds)"
               name="content.rotationInterval"
               value={content.rotationInterval?.toString() || "8"}
               error={errors?.rotationInterval}
               placeholder="8"
-              helpText="Time between notifications"
+              helpText="Time between notifications (storefront rotation interval)"
               onChange={(value) => updateField("rotationInterval", parseInt(value) || 8)}
             />
 
             <TextField
-              label="Max Per Session"
+              label="Max Notifications Per Session"
               name="content.maxNotificationsPerSession"
               value={content.maxNotificationsPerSession?.toString() || "5"}
               error={errors?.maxNotificationsPerSession}
               placeholder="5"
-              helpText="Limit per visitor"
+              helpText="Hard cap per visitor for this campaign"
               onChange={(value) => updateField("maxNotificationsPerSession", parseInt(value) || 5)}
             />
           </FormGrid>
-        </BlockStack>
-      </Card>
-
-      {/* Data Settings */}
-      <Card>
-        <BlockStack gap="400">
-          <Text as="h3" variant="headingMd">
-            Data Settings
-          </Text>
-          <Text as="p" tone="subdued">
-            Configure data sources and thresholds for notifications
-          </Text>
-          <Divider />
 
           <FormGrid columns={2}>
-            <TextField
-              label="Purchase Lookback (hours)"
-              name="content.purchaseLookbackHours"
-              value={content.purchaseLookbackHours?.toString() || "48"}
-              error={errors?.purchaseLookbackHours}
-              placeholder="48"
-              helpText="Show purchases from last X hours"
-              onChange={(value) => updateField("purchaseLookbackHours", parseInt(value) || 48)}
-            />
-
-            <TextField
-              label="Low Stock Threshold"
-              name="content.lowStockThreshold"
-              value={content.lowStockThreshold?.toString() || "10"}
-              error={errors?.lowStockThreshold}
-              placeholder="10"
-              helpText="Show alert when inventory ≤ X"
-              onChange={(value) => updateField("lowStockThreshold", parseInt(value) || 10)}
-            />
-
             <TextField
               label="Min Visitor Count"
               name="content.minVisitorCount"
               value={content.minVisitorCount?.toString() || "5"}
               error={errors?.minVisitorCount}
               placeholder="5"
-              helpText="Minimum visitors to show count"
+              helpText="Only show visitor count notifications when at least this many visitors are active"
               onChange={(value) => updateField("minVisitorCount", parseInt(value) || 5)}
             />
 
@@ -259,39 +157,28 @@ export function SocialProofContentSection({
               value={content.minReviewRating?.toString() || "4.0"}
               error={errors?.minReviewRating}
               placeholder="4.0"
-              helpText="Only show reviews ≥ X stars"
+              helpText="Only show review notifications with rating >= this value"
               onChange={(value) => updateField("minReviewRating", parseFloat(value) || 4.0)}
             />
           </FormGrid>
-        </BlockStack>
-      </Card>
 
-      {/* Privacy Settings */}
-      <Card>
-        <BlockStack gap="400">
-          <Text as="h3" variant="headingMd">
-            Privacy & Compliance
-          </Text>
-          <Text as="p" tone="subdued">
-            GDPR-compliant privacy settings for customer data
-          </Text>
-          <Divider />
+          <BlockStack gap="200">
+            <CheckboxField
+              label="Show Product Image"
+              name="content.showProductImage"
+              checked={content.showProductImage ?? true}
+              helpText="Include product image in purchase notifications on the storefront"
+              onChange={(checked) => updateField("showProductImage", checked)}
+            />
 
-          <CheckboxField
-            label="Anonymize Customer Names"
-            name="content.anonymizeCustomerNames"
-            checked={content.anonymizeCustomerNames ?? true}
-            helpText='Show "John D." instead of "John Doe" (recommended for GDPR compliance)'
-            onChange={(checked) => updateField("anonymizeCustomerNames", checked)}
-          />
-
-          <CheckboxField
-            label="Show Customer Location"
-            name="content.showCustomerLocation"
-            checked={content.showCustomerLocation ?? true}
-            helpText='Show city and state in purchase notifications (e.g., "New York, NY")'
-            onChange={(checked) => updateField("showCustomerLocation", checked)}
-          />
+            <CheckboxField
+              label="Show Time Ago"
+              name="content.showTimer"
+              checked={content.showTimer ?? true}
+              helpText='Show how long ago the event happened (e.g. "2 minutes ago")'
+              onChange={(checked) => updateField("showTimer", checked)}
+            />
+          </BlockStack>
         </BlockStack>
       </Card>
 
@@ -302,10 +189,10 @@ export function SocialProofContentSection({
             💡 Performance Tips
           </Text>
           <Text as="p">
-            • Enable 3-5 notification types for best results<br />
-            • Purchase + Visitor + Sales Count = highest impact combination<br />
-            • Low Stock Alerts work best for limited inventory products<br />
-            • All data is cached for 30-60 seconds for optimal performance
+            • Start with Purchase + Visitor + Reviews for a strong baseline<br />
+            • Use a rotation interval of 6-10 seconds to avoid feeling spammy<br />
+            • Cap notifications to 3-7 per session for each visitor<br />
+            • Use visitor/review thresholds to keep notifications trustworthy
           </Text>
         </BlockStack>
       </Banner>

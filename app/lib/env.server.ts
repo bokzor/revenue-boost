@@ -1,6 +1,6 @@
 /**
  * Environment Variable Validation
- * 
+ *
  * Validates required environment variables at startup
  * Fails fast with clear error messages if configuration is invalid
  */

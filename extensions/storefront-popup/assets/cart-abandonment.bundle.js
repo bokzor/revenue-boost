@@ -170,10 +170,33 @@
   }
   function formatCurrency(amount, currency = "USD") {
     const numAmount = typeof amount === "string" ? parseFloat(amount) : amount;
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency
-    }).format(numAmount);
+    const raw = (currency || "").trim();
+    const upper = raw.toUpperCase();
+    const symbolToCode = {
+      "$": "USD",
+      "\u20AC": "EUR",
+      "\xA3": "GBP",
+      "\xA5": "JPY",
+      "C$": "CAD",
+      "A$": "AUD"
+    };
+    let code = "USD";
+    if (/^[A-Z]{3}$/.test(upper)) {
+      code = upper;
+    } else if (raw in symbolToCode) {
+      code = symbolToCode[raw];
+    }
+    try {
+      return new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: code
+      }).format(numAmount);
+    } catch {
+      const sign = numAmount < 0 ? "-" : "";
+      const absAmount = Math.abs(numAmount || 0);
+      const symbol = raw || "$";
+      return `${sign}${symbol}${absAmount.toFixed(2)}`;
+    }
   }
   function calculateTimeRemaining(endDate) {
     const end = typeof endDate === "string" ? new Date(endDate) : endDate;

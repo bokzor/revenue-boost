@@ -777,6 +777,38 @@
         };
       }
     }
+    async issueDiscount(data) {
+      const params = new URLSearchParams({
+        shop: this.config.shopDomain
+      });
+      const url = `${this.getApiUrl("/api/discounts/issue")}?${params.toString()}`;
+      try {
+        const response = await fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(data)
+        });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(result.error || `HTTP ${response.status}`);
+        }
+        this.log("Discount issued successfully:", result);
+        return {
+          success: true,
+          code: result.code,
+          type: result.type,
+          autoApplyMode: result.autoApplyMode
+        };
+      } catch (error) {
+        console.error("[Revenue Boost API] Failed to issue discount:", error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : "Failed to issue discount"
+        };
+      }
+    }
     async recordFrequency(sessionId, campaignId) {
       const url = this.getApiUrl("/api/analytics/frequency");
       try {
@@ -1154,6 +1186,24 @@
         throw err;
       }
     };
+    const handleIssueDiscount = async (options) => {
+      try {
+        console.log("[PopupManager] Issuing discount for campaign:", campaign.id, options);
+        const result = await api.issueDiscount({
+          campaignId: campaign.id,
+          sessionId: session.getSessionId(),
+          cartSubtotalCents: options?.cartSubtotalCents
+        });
+        if (!result.success) {
+          console.error("[PopupManager] Failed to issue discount:", result.error);
+          return null;
+        }
+        return result;
+      } catch (err) {
+        console.error("[PopupManager] Error issuing discount:", err);
+        return null;
+      }
+    };
     if (loading || !Component) {
       return null;
     }
@@ -1192,6 +1242,7 @@
       isVisible: true,
       onClose,
       onSubmit: handleSubmit,
+      issueDiscount: handleIssueDiscount,
       campaignId: campaign.id,
       renderInline: false
     });

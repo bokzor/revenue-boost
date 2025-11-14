@@ -252,6 +252,56 @@ export class ApiClient {
     }
   }
 
+  async issueDiscount(data: {
+    campaignId: string;
+    cartSubtotalCents?: number;
+    sessionId?: string;
+  }): Promise<{
+    success: boolean;
+    code?: string;
+    type?: string;
+    autoApplyMode?: string;
+    error?: string;
+  }> {
+    const params = new URLSearchParams({
+      shop: this.config.shopDomain,
+    });
+
+    const url = `${this.getApiUrl("/api/discounts/issue")}?${params.toString()}`;
+
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      });
+
+      const result = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error((result as any).error || `HTTP ${response.status}`);
+      }
+
+      this.log("Discount issued successfully:", result);
+
+      return {
+        success: true,
+        code: (result as any).code,
+        type: (result as any).type,
+        autoApplyMode: (result as any).autoApplyMode,
+      };
+    } catch (error) {
+      console.error("[Revenue Boost API] Failed to issue discount:", error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Failed to issue discount",
+      };
+    }
+  }
+
+
   async recordFrequency(sessionId: string, campaignId: string): Promise<void> {
     const url = this.getApiUrl("/api/analytics/frequency");
 

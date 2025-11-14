@@ -1,0 +1,266 @@
+name: 🚀 Deploy to Staging
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+      skip_tests:
+        description: 'Skip tests (for quick deployments)'
+        required: false
+        default: false
+        type: boolean
+
+# Automatically cancel previous runs when new ones start
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PROJECT_ID: splitpop-staging
+  REGION: us-central1
+  SERVICE_NAME: split-pop-staging
+
+jobs:
+  test:
+    if: ${{ !inputs.skip_tests }}
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: 🔧 Install dependencies
+        run: npm ci
+
+      - name: 🧪 Run tests
+        run: npm run test --if-present
+
+      - name: 🔍 Type check
+        run: npm run typecheck
+
+      - name: 🎨 Lint code
+        run: npm run lint --if-present
+
+  deploy:
+    needs: [test]
+    if: always() && (needs.test.result == 'success' || needs.test.result == 'skipped')
+    runs-on: ubuntu-latest
+    environment: staging
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: 🔧 Install dependencies
+        run: npm ci
+
+      - name: 🏗️ Build application
+        run: npm run build:prod
+
+      - name: 🔐 Authenticate to Google Cloud
+        id: 'auth'
+        uses: 'google-github-actions/auth@v2'
+        with:
+          credentials_json: '${{ secrets.GCP_SA_KEY }}'
+
+      - name: ☁️ Setup gcloud CLI
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          version: 'latest'
+
+      - name: 🐳 Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev
+
+      - name: 🔨 Build and push Docker image
+        run: |
+          # Create repository if it doesn't exist
+          gcloud artifacts repositories create ${{ env.SERVICE_NAME }} \
+            --repository-format=docker \
+            --location=${{ env.REGION }} \
+            --description="Split-Pop staging container repository" || true
+
+          docker build -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }} .
+          docker tag ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }} ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}/${{ env.SERVICE_NAME }}:latest
+          docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
+          docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}/${{ env.SERVICE_NAME }}:latest
+
+      - name: 🚀 Deploy to Cloud Run
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          REDIS_URL: ${{ secrets.REDIS_URL }}
+          SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
+          INTERNAL_API_SECRET: ${{ secrets.INTERNAL_API_SECRET }}
+        run: |
+          # Debug: Check if secrets are available (without exposing values)
+          echo "🔍 Checking secrets availability..."
+          echo "DATABASE_URL length: ${#DATABASE_URL}"
+          echo "REDIS_URL length: ${#REDIS_URL}"
+          echo "SESSION_SECRET length: ${#SESSION_SECRET}"
+          echo "INTERNAL_API_SECRET length: ${#INTERNAL_API_SECRET}"
+
+          # Validate that we have real secrets, not placeholders
+          if [[ "$DATABASE_URL" == *"username:password"* ]]; then
+            echo "❌ DATABASE_URL contains placeholder values!"
+            exit 1
+          fi
+
+          # Get the service URL first (or use temporary URL for initial deployment)
+          # For initial deployment, use a temporary URL that will be updated after service is created
+          SERVICE_URL=$(gcloud run services describe ${{ env.SERVICE_NAME }} \
+            --region ${{ env.REGION }} \
+            --format 'value(status.url)' 2>/dev/null)
+
+          # If SERVICE_URL is empty, use temporary URL
+          if [[ -z "$SERVICE_URL" ]]; then
+            SERVICE_URL="https://temp-deployment.run.app"
+            echo "⚠️  Initial deployment detected - service will need URL update after creation"
+          fi
+
+          echo "📍 Using SHOPIFY_APP_URL: $SERVICE_URL"
+
+          # Create environment variables file to avoid shell escaping issues
+          cat > env_vars.yaml << EOF
+          NODE_ENV: production
+          DATABASE_URL: "${{ secrets.DATABASE_URL }}"
+          REDIS_URL: "${{ secrets.REDIS_URL }}"
+          SESSION_SECRET: "${{ secrets.SESSION_SECRET }}"
+          SHOPIFY_APP_URL: "$SERVICE_URL"
+          SHOPIFY_API_KEY: "${{ secrets.SHOPIFY_API_KEY }}"
+          SHOPIFY_API_SECRET: "${{ secrets.SHOPIFY_API_SECRET }}"
+          SCOPES: "write_products,write_customers,read_orders,write_script_tags,read_themes,write_discounts"
+          SHOPIFY_SCOPES: "write_products,write_customers,read_orders,write_script_tags,read_themes,write_discounts"
+          INTERNAL_API_SECRET: "${{ secrets.INTERNAL_API_SECRET || '039f6db6170268d95ed3b49838abd1ab1ba034ca9119647f5026b9e41864254c' }}"
+          EOF
+
+          gcloud run deploy ${{ env.SERVICE_NAME }} \
+            --image ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}/${{ env.SERVICE_NAME }}:latest \
+            --region ${{ env.REGION }} \
+            --platform managed \
+            --allow-unauthenticated \
+            --memory 1Gi \
+            --cpu 1 \
+            --min-instances 0 \
+            --max-instances 3 \
+            --timeout 300 \
+            --port 3000 \
+            --env-vars-file env_vars.yaml
+
+      - name: 🌐 Get service URL
+        id: 'service-url'
+        run: |
+          SERVICE_URL=$(gcloud run services describe ${{ env.SERVICE_NAME }} \
+            --region ${{ env.REGION }} \
+            --format 'value(status.url)')
+          echo "url=$SERVICE_URL" >> $GITHUB_OUTPUT
+          echo "SERVICE_URL=$SERVICE_URL" >> $GITHUB_ENV
+
+      - name: 🌱 Seed database (templates & segments)
+        run: |
+          echo "🌱 Seeding templates and segments..."
+
+          # Wait for service to be ready (max 60 seconds)
+          for i in {1..12}; do
+            if curl -f -s "${{ steps.service-url.outputs.url }}/api/health" > /dev/null 2>&1; then
+              echo "✅ Service is ready"
+              break
+            fi
+            echo "⏳ Waiting for service to be ready... ($i/12)"
+            sleep 5
+          done
+
+          # Seed templates
+          SEED_RESPONSE=$(curl -X POST "${{ steps.service-url.outputs.url }}/api/seed-templates" \
+            -H "Content-Type: application/json" \
+            -w "\n%{http_code}" \
+            -s)
+
+          HTTP_CODE=$(echo "$SEED_RESPONSE" | tail -n1)
+          RESPONSE_BODY=$(echo "$SEED_RESPONSE" | sed '$d')
+
+          if [ "$HTTP_CODE" -eq 200 ]; then
+            echo "✅ Templates seeded successfully"
+            echo "$RESPONSE_BODY"
+          else
+            echo "⚠️  Template seeding returned HTTP $HTTP_CODE"
+            echo "$RESPONSE_BODY"
+            echo "Note: This may be expected if templates are already seeded"
+          fi
+
+      - name: 🔄 Update service with real URL (if initial deployment)
+        run: |
+          # Check if we used the temporary URL
+          CURRENT_APP_URL=$(gcloud run services describe ${{ env.SERVICE_NAME }} \
+            --region ${{ env.REGION }} \
+            --format 'value(spec.template.spec.containers[0].env[?(@.name=="SHOPIFY_APP_URL")].value)')
+
+          if [[ "$CURRENT_APP_URL" == "https://temp-deployment.run.app" ]]; then
+            echo "🔄 Updating service with real URL: ${{ steps.service-url.outputs.url }}"
+
+            # Update the env_vars.yaml with the real URL
+            cat > env_vars.yaml << EOF
+          NODE_ENV: production
+          DATABASE_URL: "${{ secrets.DATABASE_URL }}"
+          REDIS_URL: "${{ secrets.REDIS_URL }}"
+          SESSION_SECRET: "${{ secrets.SESSION_SECRET }}"
+          SHOPIFY_APP_URL: "${{ steps.service-url.outputs.url }}"
+          SHOPIFY_API_KEY: "${{ secrets.SHOPIFY_API_KEY }}"
+          SHOPIFY_API_SECRET: "${{ secrets.SHOPIFY_API_SECRET }}"
+          SCOPES: "write_products,write_customers,read_orders,write_script_tags,read_themes,write_discounts"
+          SHOPIFY_SCOPES: "write_products,write_customers,read_orders,write_script_tags,read_themes,write_discounts"
+          INTERNAL_API_SECRET: "${{ secrets.INTERNAL_API_SECRET || '039f6db6170268d95ed3b49838abd1ab1ba034ca9119647f5026b9e41864254c' }}"
+          EOF
+
+            # Redeploy with the real URL
+            gcloud run services update ${{ env.SERVICE_NAME }} \
+              --region ${{ env.REGION }} \
+              --env-vars-file env_vars.yaml
+
+            echo "✅ Service updated with real URL"
+          else
+            echo "✅ Service already has correct URL: $CURRENT_APP_URL"
+          fi
+
+      - name: 🏥 Health check
+        run: |
+          echo "⏳ Waiting for service to be ready..."
+          sleep 30
+          curl -f ${{ steps.service-url.outputs.url }}/api/health || echo "⚠️ Health check failed, but deployment completed"
+
+      - name: 📋 Deployment summary
+        run: |
+          echo "## 🎉 Staging Deployment Complete!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**🌐 Service URL:** ${{ steps.service-url.outputs.url }}" >> $GITHUB_STEP_SUMMARY
+          echo "**📅 Deployed at:** $(date)" >> $GITHUB_STEP_SUMMARY
+          echo "**🔖 Git SHA:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📝 Next Steps:" >> $GITHUB_STEP_SUMMARY
+          echo "1. Update Shopify Partner Dashboard with new URL" >> $GITHUB_STEP_SUMMARY
+          echo "2. Test app installation: \`${{ steps.service-url.outputs.url }}/api/auth?shop=your-store.myshopify.com\`" >> $GITHUB_STEP_SUMMARY
+          echo "3. Monitor logs: \`gcloud run services logs read ${{ env.SERVICE_NAME }} --region=${{ env.REGION }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🔗 Quick Links:" >> $GITHUB_STEP_SUMMARY
+          echo "- [Cloud Run Console](https://console.cloud.google.com/run/detail/${{ env.REGION }}/${{ env.SERVICE_NAME }})" >> $GITHUB_STEP_SUMMARY
+          echo "- [Shopify Partners](https://partners.shopify.com/organizations)" >> $GITHUB_STEP_SUMMARY

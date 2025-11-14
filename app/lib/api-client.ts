@@ -117,6 +117,8 @@ export class ApiClient {
     // Build URL with query params
     const fullUrl = this.buildUrl(url, params);
 
+    console.log('[ApiClient] request', { url: fullUrl, method });
+
     // Build headers
     const requestHeaders: Record<string, string> = {
       "Content-Type": "application/json",

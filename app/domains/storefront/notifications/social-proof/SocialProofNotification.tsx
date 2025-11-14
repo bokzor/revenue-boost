@@ -21,6 +21,21 @@ export const SocialProofNotificationComponent: React.FC<
   const [isVisible, setIsVisible] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
 
+  const colors = {
+    background:
+      config.notificationBackgroundColor || config.backgroundColor || "#FFFFFF",
+    text: config.textColor || "#1F2937",
+    primary:
+      config.customerNameColor ||
+      config.accentColor ||
+      config.textColor ||
+      "#111827",
+    secondary: "#F3F4F6",
+    success: config.accentColor || "#16A34A",
+    warning: "#F59E0B",
+    border: "#E5E7EB",
+  };
+
   const handleDismiss = useCallback(() => {
     setIsExiting(true);
     setTimeout(() => {
@@ -72,52 +87,34 @@ export const SocialProofNotificationComponent: React.FC<
   const renderPurchaseNotification = (
     notif: SocialProofNotification & { type: "purchase" },
   ) => (
-    <>
+    <div className="notification-content">
       {config.showIcons && (
-        <span style={{ fontSize: "20px", marginRight: "8px" }}>🛍️</span>
+        <div className="notification-icon">🛍️</div>
       )}
-      <div style={{ flex: 1 }}>
-        <div
-          style={{
-            fontSize: "14px",
-            fontWeight: "600",
-            marginBottom: "4px",
-            color: config.customerNameColor || config.textColor,
-          }}
-        >
-          {notif.customerName} from {notif.location}
-        </div>
-        <div
-          style={{
-            fontSize: "13px",
-            opacity: 0.8,
-            marginBottom: "2px",
-            color: config.actionTextColor || config.textColor,
-          }}
-        >
-          just purchased:
-        </div>
-        <div
-          style={{
-            fontSize: "13px",
-            fontWeight: "500",
-            color: config.productNameColor || config.textColor,
-          }}
-        >
-          {notif.productName}
-        </div>
-        <div
-          style={{
-            fontSize: "12px",
-            opacity: 0.6,
-            marginTop: "4px",
-            color: config.timestampColor || config.textColor,
-          }}
-        >
-          {notif.timeAgo}
+      <div className="notification-body">
+        <p className="notification-text">
+          <strong style={{ color: colors.primary }}>{notif.customerName}</strong>
+          {config.showCustomerLocation !== false && notif.location && (
+            <>
+              {" "}
+              <span style={{ color: colors.text, opacity: 0.8 }}>
+                from {notif.location}
+              </span>
+            </>
+          )}
+          <br />
+          <span style={{ color: colors.text, opacity: 0.7 }}>just purchased:</span>
+          <br />
+          <strong style={{ color: colors.text }}>{notif.productName}</strong>
+        </p>
+        <div className="notification-meta" style={{ color: colors.text }}>
+          <span>{notif.timeAgo}</span>
           {config.showVerifiedBadge && notif.verified && (
-            <span style={{ marginLeft: "6px", color: config.accentColor }}>
-              ✓
+            <span
+              className="verified-badge"
+              style={{ background: colors.success, color: "#FFFFFF" }}
+            >
+              <span>✓</span> Verified
             </span>
           )}
         </div>
@@ -135,78 +132,127 @@ export const SocialProofNotificationComponent: React.FC<
           }}
         />
       )}
-    </>
+    </div>
   );
 
   const renderVisitorNotification = (
     notif: SocialProofNotification & { type: "visitor" },
-  ) => (
-    <>
-      {config.showIcons && (
-        <span style={{ fontSize: "20px", marginRight: "8px" }}>👥</span>
-      )}
-      <div style={{ flex: 1 }}>
-        <div
-          style={{ fontSize: "14px", fontWeight: "600", marginBottom: "4px" }}
-        >
-          {notif.count} {notif.count === 1 ? "person" : "people"}
-        </div>
-        <div style={{ fontSize: "13px", opacity: 0.8 }}>{notif.context}</div>
-        {notif.trending && (
-          <div
-            style={{
-              fontSize: "12px",
-              marginTop: "4px",
-              color: config.accentColor,
-              fontWeight: "500",
-            }}
-          >
-            🔥 Trending
+  ) => {
+    const contextText = notif.context;
+    const isLowStock = /left in stock!$/i.test(contextText);
+
+    // Special layout for low stock alerts (inventory-based, not "people")
+    if (isLowStock) {
+      return (
+        <div className="notification-content">
+          {config.showIcons && (
+            <div className="notification-icon">⚠️</div>
+          )}
+          <div className="notification-body">
+            <p className="notification-text">
+              <strong style={{ color: colors.warning }}>
+                {notif.count === 1
+                  ? "Only 1 left in stock!"
+                  : `Only ${notif.count} left in stock!`}
+              </strong>
+            </p>
           </div>
+        </div>
+      );
+    }
+
+    // Default layout for visitor / sales-count / cart-activity / recently-viewed
+    return (
+      <div className="notification-content">
+        {config.showIcons && (
+          <div className="notification-icon">👥</div>
         )}
+        <div className="notification-body">
+          <p className="notification-text">
+            <strong style={{ color: colors.primary }}>
+              {notif.count} {notif.count === 1 ? "person" : "people"}
+            </strong>
+            <br />
+            <span style={{ color: colors.text, opacity: 0.8 }}>
+              {contextText}
+            </span>
+          </p>
+          {notif.trending && (
+            <div className="notification-meta">
+              <span
+                className="trending-indicator"
+                style={{ color: colors.warning }}
+              >
+                <span>🔥</span> Trending
+              </span>
+            </div>
+          )}
+        </div>
       </div>
-    </>
-  );
+    );
+  };
 
   const renderReviewNotification = (
     notif: SocialProofNotification & { type: "review" },
-  ) => (
-    <>
-      {config.showIcons && (
-        <span style={{ fontSize: "20px", marginRight: "8px" }}>⭐</span>
-      )}
-      <div style={{ flex: 1 }}>
-        <div
-          style={{ fontSize: "14px", fontWeight: "600", marginBottom: "4px" }}
+  ) => {
+    const renderStars = (rating: number) =>
+      Array.from({ length: 5 }, (_, i) => (
+        <span
+          // eslint-disable-next-line react/no-array-index-key
+          key={i}
+          style={{
+            color: i < rating ? "#FBBF24" : colors.border,
+          }}
         >
-          {notif.rating.toFixed(1)} from {notif.reviewCount.toLocaleString()}{" "}
-          reviews
-        </div>
-        {notif.recentReview && (
-          <>
+          ★
+        </span>
+      ));
+
+    return (
+      <div className="notification-content">
+        {config.showIcons && (
+          <div className="notification-icon">⭐</div>
+        )}
+        <div className="notification-body">
+          <p className="notification-text">
+            <span className="star-rating">{renderStars(notif.rating)}</span>
+            <br />
+            <strong style={{ color: colors.primary }}>
+              {notif.rating.toFixed(1)}
+            </strong>{" "}
+            <span style={{ color: colors.text, opacity: 0.8 }}>
+              from {notif.reviewCount.toLocaleString()} reviews
+            </span>
+          </p>
+
+          {notif.recentReview && (
             <div
+              className="review-quote"
               style={{
-                fontSize: "13px",
-                opacity: 0.8,
-                fontStyle: "italic",
-                marginBottom: "2px",
+                background: colors.secondary,
+                borderLeft: `3px solid ${colors.primary}`,
               }}
             >
-              &quot;{notif.recentReview.text}&quot;
+              <p className="review-text">
+                &quot;{notif.recentReview.text}&quot;
+              </p>
+              <div className="review-author">
+                <span>— {notif.recentReview.author}</span>
+                {config.showVerifiedBadge && notif.recentReview.verified && (
+                  <span
+                    className="verified-badge"
+                    style={{ background: colors.success, color: "#FFFFFF" }}
+                  >
+                    <span>✓</span> Verified
+                  </span>
+                )}
+              </div>
             </div>
-            <div style={{ fontSize: "12px", opacity: 0.6 }}>
-              - {notif.recentReview.author}
-              {config.showVerifiedBadge && notif.recentReview.verified && (
-                <span style={{ marginLeft: "4px", color: config.accentColor }}>
-                  ✓
-                </span>
-              )}
-            </div>
-          </>
-        )}
+          )}
+        </div>
       </div>
-    </>
-  );
+    );
+  };
 
   const renderNotificationContent = () => {
     switch (notification.type) {
@@ -235,26 +281,17 @@ export const SocialProofNotificationComponent: React.FC<
           ...getPositionStyles(),
           width: "320px",
           maxWidth: "calc(100vw - 40px)",
-          backgroundColor:
-            config.notificationBackgroundColor || config.backgroundColor,
-          color: config.textColor,
+          background: colors.background,
+          color: colors.text,
           borderRadius: "12px",
-          boxShadow: "0 4px 16px rgba(0, 0, 0, 0.12)",
+          boxShadow:
+            "0 10px 40px rgba(0, 0, 0, 0.15), 0 4px 8px rgba(0, 0, 0, 0.1)",
           padding: "16px",
-          display: "flex",
-          alignItems: "flex-start",
           cursor: onClick ? "pointer" : "default",
-          transition: "transform 0.2s ease",
+          border: `1px solid ${colors.border}`,
+          transition: "transform 0.3s ease-out, opacity 0.3s ease-out",
         }}
         onClick={handleClick}
-        onMouseEnter={(e) => {
-          if (onClick) {
-            e.currentTarget.style.transform = "translateY(-2px)";
-          }
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.transform = "translateY(0)";
-        }}
       >
         {renderNotificationContent()}
 
@@ -275,7 +312,7 @@ export const SocialProofNotificationComponent: React.FC<
             opacity: 0.5,
             fontSize: "16px",
             lineHeight: "1",
-            color: config.textColor,
+            color: colors.text,
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.opacity = "1";
@@ -289,7 +326,7 @@ export const SocialProofNotificationComponent: React.FC<
         </button>
       </div>
 
-      {/* Animations */}
+      {/* Animations & layout */}
       <style>{`
         .social-proof-notification {
           /* Start invisible and off-screen, will be animated in */
@@ -305,6 +342,10 @@ export const SocialProofNotificationComponent: React.FC<
 
         .social-proof-notification.social-proof-exit {
           animation: fadeOut 0.3s ease-out forwards;
+        }
+
+        .social-proof-notification:hover {
+          transform: translateY(-2px);
         }
 
         @keyframes slideInLeft {
@@ -331,11 +372,102 @@ export const SocialProofNotificationComponent: React.FC<
           }
         }
 
+        .notification-content {
+          display: flex;
+          align-items: flex-start;
+          gap: 12px;
+        }
+
+        .notification-icon {
+          flex-shrink: 0;
+          font-size: 24px;
+          line-height: 1;
+        }
+
+        .notification-body {
+          flex: 1;
+          min-width: 0;
+        }
+
+        .notification-text {
+          margin: 0;
+          font-size: 14px;
+          line-height: 1.5;
+        }
+
+        .notification-meta {
+          margin-top: 4px;
+          font-size: 12px;
+          opacity: 0.7;
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          flex-wrap: wrap;
+        }
+
+        .verified-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          font-size: 11px;
+          padding: 2px 6px;
+          border-radius: 4px;
+          font-weight: 500;
+        }
+
+        .trending-indicator {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          font-size: 12px;
+          font-weight: 600;
+        }
+
+        .star-rating {
+          display: inline-flex;
+          align-items: center;
+          gap: 2px;
+        }
+
+        .review-quote {
+          margin-top: 8px;
+          padding: 8px 12px;
+          border-radius: 8px;
+        }
+
+        .review-text {
+          font-style: italic;
+          font-size: 13px;
+          line-height: 1.4;
+          margin: 0 0 6px 0;
+        }
+
+        .review-author {
+          font-size: 12px;
+          font-weight: 500;
+          opacity: 0.8;
+          display: flex;
+          align-items: center;
+          gap: 4px;
+        }
+
         /* Mobile responsiveness */
         @media (max-width: 640px) {
           .social-proof-notification {
             width: calc(100vw - 40px) !important;
             font-size: 13px;
+          }
+
+          .notification-text {
+            font-size: 13px;
+          }
+
+          .notification-meta {
+            font-size: 11px;
+          }
+
+          .notification-icon {
+            font-size: 20px;
           }
         }
       `}</style>

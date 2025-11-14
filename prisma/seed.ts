@@ -27,60 +27,73 @@ async function seed() {
     console.log("🎯 Seeding global system segments...");
     await seedGlobalSystemSegments();
 
-    // Get or create a demo store with fixed ID for E2E tests
-    console.log("🏪 Setting up demo store...");
+    // Get or create demo stores for development and E2E tests
+    console.log("🏪 Setting up demo stores...");
 
-    // Use a fixed ID for the test store to ensure consistency across test runs
+    // Store 1: Demo store for development
     const FIXED_TEST_STORE_ID = process.env.TEST_STORE_ID || "test_store_001";
-
-    // First, try to find existing store
-    let demoStore = await prisma.store.findUnique({
-      where: { shopifyDomain: "revenue-boost-demo.myshopify.com" },
-    });
-
-    // Prepare store data with proper Prisma types
-    const storeData: Prisma.StoreCreateInput = {
+    await upsertStore({
       id: FIXED_TEST_STORE_ID,
       shopifyDomain: "revenue-boost-demo.myshopify.com",
       shopifyShopId: BigInt(12345678),
       accessToken: "demo_access_token",
       isActive: true,
-    };
+    });
 
-    if (!demoStore) {
-      // Create with fixed ID if it doesn't exist
-      demoStore = await prisma.store.create({
-        data: storeData,
-      });
-    } else if (demoStore.id !== FIXED_TEST_STORE_ID) {
-      // If store exists but with wrong ID, delete and recreate with correct ID
-      console.log(
-        `⚠️  Store exists with ID ${demoStore.id}, recreating with fixed ID ${FIXED_TEST_STORE_ID}...`
-      );
+    // Store 2: Mock-bridge test store (used by @getverdict/mock-bridge)
+    await upsertStore({
+      id: "test_store_mock",
+      shopifyDomain: process.env.MOCK_SHOP || "test-shop.myshopify.com",
+      shopifyShopId: BigInt(99999999),
+      accessToken: "mock_access_token",
+      isActive: true,
+    });
 
-      // Delete all campaigns for this store first
-      await prisma.campaign.deleteMany({
-        where: { storeId: demoStore.id },
-      });
-
-      // Delete the store
-      await prisma.store.delete({
-        where: { id: demoStore.id },
-      });
-
-      // Create with fixed ID
-      demoStore = await prisma.store.create({
-        data: storeData,
-      });
-    }
-
-    console.log(`✅ Demo store ready: ${demoStore.shopifyDomain} (ID: ${demoStore.id})`);
+    console.log(`✅ Demo stores ready`);
     console.log("✅ Database seeding completed successfully!");
   } catch (error) {
     console.error("❌ Error during seeding:", error);
     throw error;
   } finally {
     await prisma.$disconnect();
+  }
+}
+
+async function upsertStore(storeData: Prisma.StoreCreateInput): Promise<void> {
+  // First, try to find existing store
+  let existingStore = await prisma.store.findUnique({
+    where: { shopifyDomain: storeData.shopifyDomain },
+  });
+
+  if (!existingStore) {
+    // Create with fixed ID if it doesn't exist
+    await prisma.store.create({
+      data: storeData,
+    });
+    console.log(`✅ Created store: ${storeData.shopifyDomain} (ID: ${storeData.id})`);
+  } else if (existingStore.id !== storeData.id) {
+    // If store exists but with wrong ID, delete and recreate with correct ID
+    console.log(
+      `⚠️  Store exists with ID ${existingStore.id}, recreating with fixed ID ${storeData.id}...`
+    );
+
+    // Delete all campaigns for this store first
+    await prisma.campaign.deleteMany({
+      where: { storeId: existingStore.id },
+    });
+
+    // Delete the store
+    await prisma.store.delete({
+      where: { id: existingStore.id },
+    });
+
+    // Create with fixed ID
+    await prisma.store.create({
+      data: storeData,
+    });
+    console.log(`✅ Recreated store: ${storeData.shopifyDomain} (ID: ${storeData.id})`);
+  } else {
+    console.log(`✅ Store already exists: ${storeData.shopifyDomain} (ID: ${storeData.id})`);
   }
 }
 
@@ -154,7 +167,8 @@ async function seedGlobalSystemSegments(): Promise<void> {
       icon: segment.icon,
       priority: segment.priority,
       isDefault: true,
-      isActive: true,
+      // Allow individual segments to opt out via SegmentSeedData.isActive
+      isActive: segment.isActive ?? true,
     };
 
     // Prepare update data with proper Prisma types
@@ -163,6 +177,7 @@ async function seedGlobalSystemSegments(): Promise<void> {
       conditions: segment.conditions as Prisma.InputJsonValue,
       icon: segment.icon,
       priority: segment.priority,
+      isActive: segment.isActive ?? true,
     };
 
     await prisma.customerSegment.upsert({

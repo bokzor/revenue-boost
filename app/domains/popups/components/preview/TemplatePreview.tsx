@@ -15,6 +15,7 @@ import React, {
 } from "react";
 
 import { TemplateTypeEnum } from "~/lib/template-types.enum";
+import type { SocialProofNotification as PreviewSocialProofNotification } from "~/domains/storefront/popups-new";
 import { getTemplatePreviewEntry } from "./template-preview-registry";
 
 export interface TemplatePreviewProps {
@@ -238,6 +239,53 @@ const TemplatePreviewComponent = forwardRef<
   const PreviewComponent = previewEntry.component;
   const componentConfig = previewEntry.buildConfig(mergedConfig, designConfig);
 
+  // Special handling for Social Proof preview: inject mock notifications and
+  // disable per-session limits so merchants can see all enabled types.
+  if (templateType === TemplateTypeEnum.SOCIAL_PROOF) {
+    const socialProofConfig = {
+      ...componentConfig,
+      // In preview, always show all notification types so merchants can see
+      // each variant, regardless of the stored content flags.
+      enablePurchaseNotifications: true,
+      enableVisitorNotifications: true,
+      enableReviewNotifications: true,
+      // Disable per-session limit in preview so rotation keeps looping.
+      maxNotificationsPerSession: 0,
+    } as typeof componentConfig;
+
+    const previewNotifications = buildSocialProofPreviewNotifications(
+      socialProofConfig,
+    );
+
+    console.log("[TemplatePreview][SocialProof] Rendering social proof preview", {
+      templateType,
+      notificationsCount: previewNotifications.length,
+      flags: {
+        enablePurchaseNotifications: socialProofConfig.enablePurchaseNotifications,
+        enableVisitorNotifications: socialProofConfig.enableVisitorNotifications,
+        enableReviewNotifications: socialProofConfig.enableReviewNotifications,
+        maxNotificationsPerSession: (socialProofConfig as any).maxNotificationsPerSession,
+      },
+    });
+
+    return (
+      <PreviewContainer>
+        <div
+          ref={setPreviewElementRef}
+          data-popup-preview
+          style={{ display: "contents" }}
+        >
+          <PreviewComponent
+            config={socialProofConfig}
+            isVisible={true}
+            onClose={() => {}}
+            notifications={previewNotifications}
+          />
+        </div>
+      </PreviewContainer>
+    );
+  }
+
   return (
     <PreviewContainer>
       <div
@@ -254,6 +302,135 @@ const TemplatePreviewComponent = forwardRef<
     </PreviewContainer>
   );
 });
+
+function buildSocialProofPreviewNotifications(
+  config: Record<string, any>,
+): PreviewSocialProofNotification[] {
+  const notifications: PreviewSocialProofNotification[] = [];
+  const now = new Date();
+
+  // Choose values that always satisfy any configured thresholds
+  const visitorCount = Math.max(
+    typeof config.minVisitorCount === "number"
+      ? config.minVisitorCount + 1
+      : 23,
+    1,
+  );
+
+  const reviewRatingBase =
+    typeof config.minReviewRating === "number"
+      ? config.minReviewRating + 0.1
+      : 4.9;
+  const reviewRating = Math.min(reviewRatingBase, 5);
+
+  const enableVisitor = config.enableVisitorNotifications !== false;
+  const enablePurchase = config.enablePurchaseNotifications !== false;
+  const enableReview = config.enableReviewNotifications !== false;
+
+  // In preview, show non-purchase types first so the differences are obvious
+  // 1) Live visitors (Tier 1)
+  if (enableVisitor) {
+    notifications.push({
+      id: "preview-visitor-live",
+      type: "visitor",
+      count: visitorCount,
+      timestamp: now,
+    });
+  }
+
+  // 2) Sales count (Tier 1 / Tier 2 hybrid)
+  // "47 bought this in the last 24 hours"
+  notifications.push({
+    id: "preview-sales-count",
+    type: "visitor",
+    count: 47,
+    context: "bought this in the last 24 hours",
+    timestamp: new Date(now.getTime() - 10 * 60 * 1000),
+  });
+
+  // 3) Low stock alert (Tier 2)
+  // "3 left in stock!"
+  notifications.push({
+    id: "preview-low-stock",
+    type: "visitor",
+    count: 3,
+    context: "left in stock!",
+    timestamp: new Date(now.getTime() - 20 * 60 * 1000),
+  });
+
+  // 4) Cart activity (Tier 2)
+  // "5 added to cart in the last hour"
+  notifications.push({
+    id: "preview-cart-activity",
+    type: "visitor",
+    count: 5,
+    context: "added to cart in the last hour",
+    timestamp: new Date(now.getTime() - 25 * 60 * 1000),
+  });
+
+  // 5) Recently viewed (Tier 2)
+  // "15 viewed this in the last hour"
+  notifications.push({
+    id: "preview-recently-viewed",
+    type: "visitor",
+    count: 15,
+    context: "viewed this in the last hour",
+    timestamp: new Date(now.getTime() - 35 * 60 * 1000),
+  });
+
+  // 6) Review notification
+  if (enableReview) {
+    notifications.push({
+      id: "preview-review-1",
+      type: "review",
+      name: "Emily K.",
+      rating: reviewRating,
+      timestamp: new Date(now.getTime() - 30 * 60 * 1000),
+    });
+  }
+
+  // 7) Purchase notifications (added last)
+  if (enablePurchase) {
+    notifications.push(
+      {
+        id: "preview-purchase-1",
+        type: "purchase",
+        name: "John D.",
+        location: "New York, NY",
+        product: "Classic T-Shirt",
+        timestamp: new Date(now.getTime() - 2 * 60 * 1000),
+      },
+      {
+        id: "preview-purchase-2",
+        type: "purchase",
+        name: "Sarah M.",
+        location: "Los Angeles, CA",
+        product: "Denim Jacket",
+        timestamp: new Date(now.getTime() - 5 * 60 * 1000),
+      },
+    );
+  }
+
+  // Fallback to a single purchase notification if everything is disabled
+  if (notifications.length === 0) {
+    notifications.push({
+      id: "preview-purchase-fallback",
+      type: "purchase",
+      name: "Alex",
+      product: "Best-selling product",
+      timestamp: now,
+    });
+  }
+
+  console.log("[TemplatePreview][SocialProof] Built preview notifications", {
+    notificationsCount: notifications.length,
+    hasPurchase: notifications.some((n) => n.type === "purchase"),
+    hasVisitor: notifications.some((n) => n.type === "visitor"),
+    hasReview: notifications.some((n) => n.type === "review"),
+  });
+
+  return notifications;
+}
 
 // Helper function for deep comparison with stability
 function deepEqual(obj1: any, obj2: any): boolean {

@@ -158,6 +158,28 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api }: P
     }
   };
 
+  const handleIssueDiscount = async (options?: { cartSubtotalCents?: number }) => {
+    try {
+      console.log("[PopupManager] Issuing discount for campaign:", campaign.id, options);
+      const result = await api.issueDiscount({
+        campaignId: campaign.id,
+        sessionId: session.getSessionId(),
+        cartSubtotalCents: options?.cartSubtotalCents,
+      });
+
+      if (!result.success) {
+        console.error("[PopupManager] Failed to issue discount:", result.error);
+        return null;
+      }
+
+      return result;
+    } catch (err) {
+      console.error("[PopupManager] Error issuing discount:", err);
+      return null;
+    }
+  };
+
+
   // Don't render anything while loading - this prevents showing "Loading..." to users
   if (loading || !Component) {
     return null;
@@ -206,6 +228,7 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api }: P
     isVisible: true,
     onClose,
     onSubmit: handleSubmit,
+    issueDiscount: handleIssueDiscount,
     campaignId: campaign.id,
     renderInline: false,
   });

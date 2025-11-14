@@ -160,7 +160,10 @@ describe('SocialProofService - Parallel Execution', () => {
     });
 
     expect(result.length).toBeGreaterThan(0);
-    expect(result[0].type).toBe('purchase');
+    // Should include purchase notifications
+    expect(result.some(n => n.type === 'purchase')).toBe(true);
+    // Should not include the failed visitor notification
+    expect(result.every(n => n.type !== 'visitor')).toBe(true);
   });
 
   it('should only call enabled notification types', async () => {

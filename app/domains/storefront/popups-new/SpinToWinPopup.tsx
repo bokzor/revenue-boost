@@ -47,6 +47,10 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
                                                               }) => {
   const [email, setEmail] = useState('');
   const [emailError, setEmailError] = useState('');
+  const [name, setName] = useState('');
+  const [nameError, setNameError] = useState('');
+  const [gdprConsent, setGdprConsent] = useState(false);
+  const [gdprError, setGdprError] = useState('');
   const [hasSpun, setHasSpun] = useState(false);
   const [isSpinning, setIsSpinning] = useState(false);
   const [wonPrize, setWonPrize] = useState<Prize | null>(null);
@@ -59,12 +63,17 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
   const wheelSize = config.wheelSize || 380;
   const radius = wheelSize / 2;
   const segments = useMemo(() => config.wheelSegments || [], [config.wheelSegments]);
-  const segmentAngle = 360 / segments.length;
+  const segmentAngle = 360 / Math.max(1, segments.length);
   const accentColor = config.accentColor || config.buttonColor || '#000000';
   const borderRadius = typeof config.borderRadius === 'string'
     ? parseFloat(config.borderRadius) || 16
     : (config.borderRadius ?? 16);
   const animDuration = config.animationDuration ?? 300;
+
+  // Optional extended behavior flags (storefront-only)
+  const collectName = config.collectName ?? false;
+  const showGdpr = config.showGdprCheckbox ?? false;
+  const gdprLabel = config.gdprLabel || 'I agree to receive marketing emails and accept the privacy policy';
 
   useEffect(() => {
     if (isVisible) {
@@ -100,6 +109,12 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
   }, [segmentAngle, config.minSpins]);
 
   const handleSpin = useCallback(async () => {
+    // Reset previous errors
+    setEmailError('');
+    setNameError('');
+    setGdprError('');
+
+    // Basic guards
     if (config.emailRequired && !email.trim()) {
       setEmailError('Email required');
       return;
@@ -110,7 +125,16 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
       return;
     }
 
-    setEmailError('');
+    if (collectName && !name.trim()) {
+      setNameError('Name is required');
+      return;
+    }
+
+    if (showGdpr && !gdprConsent) {
+      setGdprError('You must accept the terms to continue');
+      return;
+    }
+
     setIsSpinning(true);
 
     try {
@@ -140,7 +164,7 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
       setEmailError('Error occurred');
       setIsSpinning(false);
     }
-  }, [config, email, onSpin, selectPrize, segments, rotation, calculateRotation, onWin]);
+  }, [config, email, name, gdprConsent, collectName, showGdpr, onSpin, selectPrize, segments, rotation, calculateRotation, onWin]);
 
   const handleCopyCode = useCallback(async () => {
     if (wonPrize?.discountCode) {
@@ -173,9 +197,9 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
         'Z'
       ].join(' ');
 
-      // Subtle, modern colors
-      const hue = index * (360 / segments.length);
-      const baseColor = segment.color || `hsl(${hue}, 65%, 58%)`;
+      // Wheel colors should be preconfigured via admin/theme.
+      // Use segment.color when provided, otherwise fall back to accentColor.
+      const baseColor = segment.color || accentColor;
 
       // Check if this is the winning segment
       const isWinningSegment = hasSpun && wonPrize && segment.id === wonPrize.id;
@@ -184,7 +208,7 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
 
       const textAngle = startAngle + segmentAngle / 2;
       const textRad = (textAngle - 90) * (Math.PI / 180);
-      const textRadius = radius * 0.72;
+      const textRadius = radius * 0.68;
       const textX = radius + textRadius * Math.cos(textRad);
       const textY = radius + textRadius * Math.sin(textRad);
 
@@ -203,7 +227,7 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
             x={textX}
             y={textY}
             fill="#FFFFFF"
-            fontSize="14"
+            fontSize="13"
             fontWeight="600"
             textAnchor="middle"
             dominantBaseline="middle"
@@ -291,57 +315,183 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
             )}
           </div>
 
-          {/* Wheel - always visible, with prize highlight */}
-          <div style={{
-            position: 'relative',
-            width: wheelSize,
-            height: wheelSize,
-          }}>
-            <svg
-              ref={wheelRef}
-              width={wheelSize}
-              height={wheelSize}
-              viewBox={`0 0 ${wheelSize} ${wheelSize}`}
+          {/* Wheel + optional image layout */}
+          <div
+            style={{
+              display: 'flex',
+              flexDirection:
+                config.imagePosition === 'top' || config.imagePosition === 'bottom'
+                  ? 'column'
+                  : 'row',
+              gap: 24,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            {/* Image block (optional) */}
+            {config.imageUrl && config.imagePosition !== 'none' && (
+              <div
+                style={{
+                  flexShrink: 0,
+                  order:
+                    config.imagePosition === 'right' || config.imagePosition === 'bottom'
+                      ? 2
+                      : 0,
+                  width: 220,
+                  height: 220,
+                  borderRadius: 24,
+                  overflow: 'hidden',
+                  backgroundColor: config.imageBgColor || '#0F172A',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 10px 30px rgba(15,23,42,0.4)',
+                }}
+              >
+                <img
+                  src={config.imageUrl}
+                  alt={config.headline || 'Promotion image'}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                  }}
+                />
+              </div>
+            )}
+
+            {/* Wheel - always visible, with prize highlight */}
+            <div
               style={{
-                transform: `rotate(${rotation}deg)`,
-                transition: wheelTransition,
-                filter: hasSpun
-                  ? 'drop-shadow(0 8px 24px rgba(0, 0, 0, 0.2))'
-                  : 'drop-shadow(0 4px 12px rgba(0, 0, 0, 0.1))',
+                position: 'relative',
+                width: wheelSize,
+                height: wheelSize,
               }}
             >
-              {renderWheel()}
+              <svg
+                ref={wheelRef}
+                width={wheelSize}
+                height={wheelSize}
+                viewBox={`0 0 ${wheelSize} ${wheelSize}`}
+                style={{
+                  transform: `rotate(${rotation}deg)`,
+                  transition: wheelTransition,
+                  filter: hasSpun
+                    ? 'drop-shadow(0 18px 45px rgba(15,23,42,0.55))'
+                    : 'drop-shadow(0 10px 30px rgba(15,23,42,0.35))',
+                }}
+              >
+                {/* Outer ring / border */}
+                <circle
+                  cx={radius}
+                  cy={radius}
+                  r={radius - 4}
+                  fill={config.backgroundColor || '#020617'}
+                  stroke={config.wheelBorderColor || '#111827'}
+                  strokeWidth={config.wheelBorderWidth ?? 6}
+                />
 
-              {/* Simple center circle */}
-              <circle
-                cx={radius}
-                cy={radius}
-                r={28}
-                fill={accentColor}
-                stroke="#FFFFFF"
-                strokeWidth={3}
+                {renderWheel()}
+
+                {/* Center button */}
+                <circle
+                  cx={radius}
+                  cy={radius}
+                  r={40}
+                  fill={accentColor}
+                  stroke="rgba(15,23,42,0.85)"
+                  strokeWidth={4}
+                />
+                <circle
+                  cx={radius}
+                  cy={radius}
+                  r={12}
+                  fill="#F9FAFB"
+                  stroke="rgba(15,23,42,0.3)"
+                  strokeWidth={2}
+                />
+                <text
+                  x={radius}
+                  y={radius}
+                  textAnchor="middle"
+                  dominantBaseline="middle"
+                  fill="#F9FAFB"
+                  fontSize="12"
+                  fontWeight="600"
+                  style={{
+                    letterSpacing: '0.12em',
+                    textTransform: 'uppercase',
+                    fontFamily:
+                      '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                  }}
+                >
+                  SPIN
+                </text>
+              </svg>
+
+              {/* Pointer */}
+              <div
+                style={{
+                  position: 'absolute',
+                  top: -22,
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  width: 0,
+                  height: 0,
+                  borderLeft: '16px solid transparent',
+                  borderRight: '16px solid transparent',
+                  borderTop: `30px solid ${accentColor}`,
+                  filter: 'drop-shadow(0 4px 10px rgba(15,23,42,0.5))',
+                  zIndex: 10,
+                }}
               />
-            </svg>
-
-            {/* Minimal pointer */}
-            <div style={{
-              position: 'absolute',
-              top: -12,
-              left: '50%',
-              transform: 'translateX(-50%)',
-              width: 0,
-              height: 0,
-              borderLeft: '14px solid transparent',
-              borderRight: '14px solid transparent',
-              borderTop: `22px solid ${accentColor}`,
-              filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.15))',
-              zIndex: 10,
-            }} />
+            </div>
           </div>
 
           {/* Email input or Prize details */}
           {!hasSpun ? (
             <>
+              {/* Optional Name field */}
+              {collectName && (
+                <div style={{ width: '100%', maxWidth: '400px' }}>
+                  <label
+                    style={{
+                      display: 'block',
+                      marginBottom: '8px',
+                      fontSize: '14px',
+                      fontWeight: 600,
+                      color: config.textColor || '#374151',
+                      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                    }}
+                  >
+                    Name
+                  </label>
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => {
+                      setName(e.target.value);
+                      if (nameError) setNameError('');
+                    }}
+                    placeholder="Enter your name"
+                    style={getInputStyles(false, !!nameError)}
+                    disabled={isSpinning}
+                  />
+                  {nameError && (
+                    <p
+                      style={{
+                        color: '#EF4444',
+                        fontSize: '13px',
+                        margin: '6px 0 0 0',
+                        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                      }}
+                    >
+                      {nameError}
+                    </p>
+                  )}
+                </div>
+              )}
+
               {/* Email input - clean design */}
               {config.emailRequired && (
                 <div style={{ width: '100%', maxWidth: '400px' }}>
@@ -360,7 +510,10 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
                   <input
                     type="email"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      if (emailError) setEmailError('');
+                    }}
                     onFocus={() => setEmailFocused(true)}
                     onBlur={() => setEmailFocused(false)}
                     placeholder={config.emailPlaceholder || 'your@email.com'}
@@ -375,6 +528,54 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
                       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
                     }}>
                       {emailError}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Optional GDPR checkbox */}
+              {showGdpr && (
+                <div style={{ width: '100%', maxWidth: '400px' }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', marginTop: '8px' }}>
+                    <input
+                      id="spin-gdpr"
+                      type="checkbox"
+                      checked={gdprConsent}
+                      onChange={(e) => {
+                        setGdprConsent(e.target.checked);
+                        if (gdprError) setGdprError('');
+                      }}
+                      style={{
+                        width: '16px',
+                        height: '16px',
+                        marginTop: '2px',
+                        cursor: 'pointer',
+                      }}
+                      disabled={isSpinning}
+                    />
+                    <label
+                      htmlFor="spin-gdpr"
+                      style={{
+                        fontSize: '13px',
+                        lineHeight: 1.5,
+                        color: config.textColor || '#4B5563',
+                        cursor: 'pointer',
+                        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                      }}
+                    >
+                      {gdprLabel}
+                    </label>
+                  </div>
+                  {gdprError && (
+                    <p
+                      style={{
+                        color: '#EF4444',
+                        fontSize: '13px',
+                        margin: '6px 0 0 0',
+                        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                      }}
+                    >
+                      {gdprError}
                     </p>
                   )}
                 </div>

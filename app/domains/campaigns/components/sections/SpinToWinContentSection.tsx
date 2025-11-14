@@ -199,17 +199,7 @@ export function SpinToWinContentSection({
         />
       </FormGrid>
 
-      <FormGrid columns={2}>
-        <TextField
-          label="Max Attempts Per User"
-          name="content.maxAttemptsPerUser"
-          value={content.maxAttemptsPerUser?.toString() || "1"}
-          error={errors?.maxAttemptsPerUser}
-          placeholder="1"
-          helpText="Number of spins allowed per user"
-          onChange={(value) => updateField("maxAttemptsPerUser", parseInt(value) || 1)}
-        />
-
+      <FormGrid columns={1}>
         <TextField
           label="Loading Text"
           name="content.loadingText"
@@ -220,13 +210,43 @@ export function SpinToWinContentSection({
         />
       </FormGrid>
 
+      <FormGrid columns={2}>
+        <CheckboxField
+          label="Require Email"
+          name="content.emailRequired"
+          checked={content.emailRequired !== false}
+          helpText="Require email before allowing spin"
+          onChange={(checked) => updateField("emailRequired", checked)}
+        />
+
+        <CheckboxField
+          label="Collect Name"
+          name="content.collectName"
+          checked={content.collectName || false}
+          helpText="Add an optional name field before the spin"
+          onChange={(checked) => updateField("collectName", checked)}
+        />
+      </FormGrid>
+
       <CheckboxField
-        label="Require Email"
-        name="content.emailRequired"
-        checked={content.emailRequired !== false}
-        helpText="Require email before allowing spin"
-        onChange={(checked) => updateField("emailRequired", checked)}
+        label="Show GDPR Checkbox"
+        name="content.showGdprCheckbox"
+        checked={content.showGdprCheckbox || false}
+        helpText="Add a consent checkbox (e.g., for GDPR compliance)"
+        onChange={(checked) => updateField("showGdprCheckbox", checked)}
       />
+
+      {content.showGdprCheckbox && (
+        <TextField
+          label="GDPR Consent Text"
+          name="content.gdprLabel"
+          value={content.gdprLabel || ""}
+          placeholder="I agree to receive marketing emails and accept the privacy policy"
+          multiline
+          rows={2}
+          onChange={(value) => updateField("gdprLabel", value)}
+        />
+      )}
 
       <h3>Wheel Configuration</h3>
 

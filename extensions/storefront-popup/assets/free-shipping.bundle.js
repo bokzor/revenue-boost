@@ -73,7 +73,9 @@
     config,
     isVisible,
     onClose,
-    cartTotal: propCartTotal
+    cartTotal: propCartTotal,
+    onSubmit,
+    issueDiscount
   }) => {
     const [cartTotal, setCartTotal] = useState(propCartTotal ?? config.currentCartTotal ?? 0);
     const threshold = config.threshold;
@@ -84,11 +86,24 @@
     const celebrateOnUnlock = config.celebrateOnUnlock ?? true;
     const showIcon = config.showIcon ?? true;
     const animationDuration = config.animationDuration ?? 500;
+    const discount = config.discount;
+    const requireEmailToClaim = config.requireEmailToClaim ?? false;
+    const claimButtonLabel = config.claimButtonLabel || "Claim discount";
+    const claimEmailPlaceholder = config.claimEmailPlaceholder || "Enter your email";
+    const claimSuccessMessage = config.claimSuccessMessage;
+    const claimErrorMessage = config.claimErrorMessage;
     const [internalDismissed, setInternalDismissed] = useState(false);
     const [celebrating, setCelebrating] = useState(false);
     const [isEntering, setIsEntering] = useState(false);
     const [isExiting, setIsExiting] = useState(false);
+    const [showClaimForm, setShowClaimForm] = useState(false);
+    const [claimEmail, setClaimEmail] = useState("");
+    const [claimError, setClaimError] = useState(null);
+    const [isClaiming, setIsClaiming] = useState(false);
+    const [hasClaimed, setHasClaimed] = useState(false);
+    const [claimedDiscountCode, setClaimedDiscountCode] = useState(void 0);
     const prevUnlockedRef = useRef(false);
+    const hasIssuedDiscountRef = useRef(false);
     const currencyCodeRef = useRef(void 0);
     const bannerRef = useRef(null);
     const remaining = Math.max(0, threshold - cartTotal);
@@ -216,16 +231,81 @@
           return (config.progressMessage || "You're {remaining} away from free shipping").replace("{remaining}", remainingFormatted);
       }
     };
+    const handleClaimSubmit = async (e) => {
+      e.preventDefault();
+      const email = claimEmail.trim();
+      if (!email) {
+        setClaimError("Please enter your email");
+        return;
+      }
+      setIsClaiming(true);
+      setClaimError(null);
+      try {
+        if (config?.previewMode) {
+          await new Promise((resolve) => setTimeout(resolve, 800));
+          setHasClaimed(true);
+          console.log("[FreeShippingPopup] Preview claim simulated");
+        } else if (onSubmit) {
+          const code = await onSubmit({ email });
+          if (code) setClaimedDiscountCode(code);
+          setHasClaimed(true);
+          console.log("[FreeShippingPopup] Discount claim successful", {
+            email,
+            hasCode: Boolean(code)
+          });
+        } else {
+          setHasClaimed(true);
+          console.log("[FreeShippingPopup] Claim completed without onSubmit handler");
+        }
+      } catch (error) {
+        console.error("[FreeShippingPopup] Claim submission error:", error);
+        setClaimError(claimErrorMessage || "Something went wrong. Please try again.");
+      } finally {
+        setIsClaiming(false);
+      }
+    };
     useEffect(() => {
       const isUnlocked = state === "unlocked";
       const wasLocked = prevUnlockedRef.current === false;
+      if (isUnlocked && wasLocked) {
+        console.log("[FreeShippingPopup] Free shipping unlocked", {
+          threshold,
+          cartTotal,
+          deliveryMode: discount?.deliveryMode
+        });
+        if (discount?.deliveryMode === "auto_apply_only") {
+          console.log("[FreeShippingPopup] Auto-apply mode active for free shipping", {
+            threshold,
+            cartTotal
+          });
+        }
+        if (!requireEmailToClaim && discount && typeof issueDiscount === "function" && !hasIssuedDiscountRef.current) {
+          hasIssuedDiscountRef.current = true;
+          const cartSubtotalCents = Math.round(cartTotal * 100);
+          (async () => {
+            try {
+              const result = await issueDiscount({ cartSubtotalCents });
+              if (result?.code) {
+                setClaimedDiscountCode(result.code);
+                console.log("[FreeShippingPopup] Discount code issued for free shipping", {
+                  code: result.code
+                });
+              } else if (result && !result.code) {
+                console.log("[FreeShippingPopup] Discount issued without code (possible auto-apply only mode)");
+              }
+            } catch (err) {
+              console.error("[FreeShippingPopup] Failed to issue discount code:", err);
+            }
+          })();
+        }
+      }
       if (isUnlocked && wasLocked && celebrateOnUnlock) {
         setCelebrating(true);
         const timer = setTimeout(() => setCelebrating(false), 1e3);
         return () => clearTimeout(timer);
       }
       prevUnlockedRef.current = isUnlocked;
-    }, [state, celebrateOnUnlock]);
+    }, [state, celebrateOnUnlock, threshold, cartTotal, discount, issueDiscount, requireEmailToClaim]);
     if ((!isVisible || internalDismissed) && !isExiting) {
       return null;
     }
@@ -321,6 +401,25 @@
           overflow: hidden;
         }
 
+        .free-shipping-bar.celebrating {
+          animation: celebrate-bar 0.65s ease-in-out;
+        }
+
+        @keyframes celebrate-bar {
+          0% {
+            transform: translateY(0) scale(1);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+          }
+          40% {
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 6px 18px rgba(16, 185, 129, 0.4);
+          }
+          100% {
+            transform: translateY(0) scale(1);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+          }
+        }
+
         .free-shipping-bar-message {
           display: flex;
           align-items: center;
@@ -340,6 +439,48 @@
           font-weight: 500;
           line-height: 1.4;
           margin: 0;
+        }
+
+        .free-shipping-bar-discount-text {
+          font-size: 0.875rem;
+          font-weight: 500;
+          margin: 0.25rem 0 0;
+        }
+
+        .free-shipping-bar-discount-code {
+          font-weight: 600;
+        }
+
+        .free-shipping-bar-claim-container {
+          margin-top: 0.25rem;
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.5rem;
+          align-items: center;
+          justify-content: flex-end;
+        }
+
+        .free-shipping-bar-claim-input {
+          min-width: 160px;
+          padding: 0.35rem 0.5rem;
+          border-radius: 4px;
+          border: 1px solid rgba(0, 0, 0, 0.15);
+          font-size: 0.875rem;
+        }
+
+        .free-shipping-bar-claim-button {
+          padding: 0.35rem 0.75rem;
+          border-radius: 9999px;
+          border: none;
+          cursor: pointer;
+          font-size: 0.875rem;
+          font-weight: 500;
+        }
+
+        .free-shipping-bar-claim-error {
+          margin: 0.25rem 0 0;
+          font-size: 0.75rem;
+          color: #b91c1c;
         }
 
         .free-shipping-bar-close {
@@ -422,7 +563,7 @@
         "div",
         {
           ref: bannerRef,
-          className: `free-shipping-bar ${isExiting ? "exiting" : ""}`,
+          className: `free-shipping-bar ${isExiting ? "exiting" : ""} ${celebrating ? "celebrating" : ""}`,
           "data-position": barPosition,
           "data-state": state,
           role: "region",
@@ -448,7 +589,48 @@
             /* @__PURE__ */ jsxs("div", { className: "free-shipping-bar-content", children: [
               /* @__PURE__ */ jsxs("div", { className: "free-shipping-bar-message", children: [
                 showIcon && /* @__PURE__ */ jsx("span", { className: "free-shipping-bar-icon", "aria-hidden": "true", children: getIcon() }),
-                /* @__PURE__ */ jsx("p", { className: "free-shipping-bar-text", children: getMessage() })
+                /* @__PURE__ */ jsx("p", { className: "free-shipping-bar-text", children: getMessage() }),
+                state === "unlocked" && requireEmailToClaim && !hasClaimed && /* @__PURE__ */ jsxs("div", { className: "free-shipping-bar-claim-container", children: [
+                  !showClaimForm && /* @__PURE__ */ jsx(
+                    "button",
+                    {
+                      type: "button",
+                      className: "free-shipping-bar-claim-button",
+                      onClick: () => setShowClaimForm(true),
+                      style: { background: config.buttonColor || "#111827", color: config.buttonTextColor || "#ffffff" },
+                      children: claimButtonLabel
+                    }
+                  ),
+                  showClaimForm && /* @__PURE__ */ jsxs("form", { className: "free-shipping-bar-claim-container", onSubmit: handleClaimSubmit, children: [
+                    /* @__PURE__ */ jsx(
+                      "input",
+                      {
+                        type: "email",
+                        className: "free-shipping-bar-claim-input",
+                        value: claimEmail,
+                        onChange: (e) => setClaimEmail(e.target.value),
+                        placeholder: claimEmailPlaceholder
+                      }
+                    ),
+                    /* @__PURE__ */ jsx(
+                      "button",
+                      {
+                        type: "submit",
+                        className: "free-shipping-bar-claim-button",
+                        disabled: isClaiming,
+                        style: { background: config.buttonColor || "#111827", color: config.buttonTextColor || "#ffffff" },
+                        children: isClaiming ? "Claiming..." : claimButtonLabel
+                      }
+                    )
+                  ] }),
+                  claimError && /* @__PURE__ */ jsx("p", { className: "free-shipping-bar-claim-error", children: claimError })
+                ] }),
+                state === "unlocked" && discount && (!requireEmailToClaim || hasClaimed) && (discount.deliveryMode === "auto_apply_only" ? /* @__PURE__ */ jsx("p", { className: "free-shipping-bar-discount-text", children: "Free shipping will be applied automatically at checkout." }) : claimedDiscountCode || discount.code ? /* @__PURE__ */ jsx("p", { className: "free-shipping-bar-discount-text", children: /* @__PURE__ */ jsxs(Fragment2, { children: [
+                  "Use code ",
+                  /* @__PURE__ */ jsx("span", { className: "free-shipping-bar-discount-code", children: claimedDiscountCode || discount.code }),
+                  " at checkout."
+                ] }) }) : null),
+                state === "unlocked" && hasClaimed && claimSuccessMessage && /* @__PURE__ */ jsx("p", { className: "free-shipping-bar-discount-text", children: claimSuccessMessage })
               ] }),
               dismissible && /* @__PURE__ */ jsx(
                 "button",

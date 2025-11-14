@@ -139,6 +139,7 @@ export function AudienceTargetingPanel({
             onChange={(checked) => updateConfig({ enabled: checked })}
             disabled={disabled}
             helpText="Only show this campaign to specific audience segments"
+            data-test-id="audience-targeting-enabled-checkbox"
           />
 
           {config.enabled && (

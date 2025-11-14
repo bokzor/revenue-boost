@@ -27,10 +27,10 @@ import {
   Banner,
 } from "@shopify/polaris";
 import { SettingsIcon, DeleteIcon, PlusIcon } from "@shopify/polaris-icons";
-import { DiscountSettingsStep } from "~/domains/campaigns/components/DiscountSettingsStep";
+import { DiscountAdvancedSettings } from "~/domains/campaigns/components/DiscountSettingsStep";
 import { FormGrid, ProductPicker } from "~/domains/campaigns/components/form";
 import type { ProductPickerSelection } from "~/domains/campaigns/components/form";
-import type { DiscountConfig } from "~/domains/commerce/services/discount.server";
+import type { DiscountConfig, DiscountDeliveryMode } from "~/domains/commerce/services/discount.server";
 
 interface GenericDiscountComponentProps {
   goal?: string;
@@ -739,26 +739,25 @@ export function GenericDiscountComponent({
                 <Select
                   label="How customers receive discounts"
                   options={[
-                    { label: "Show code in popup", value: "show_code_always" },
+                    { label: "Auto-apply only (no code shown)", value: "auto_apply_only" },
                     {
-                      label: "Show code (authorized email only)",
+                      label: "Auto-apply with fallback (show code if needed)",
                       value: "show_code_fallback",
                     },
+                    { label: "Show code in popup", value: "show_code_always" },
                   ]}
-                  value={config.deliveryMode || "show_code_always"}
+                  value={config.deliveryMode || "show_code_fallback"}
                   onChange={(deliveryMode) =>
                     updateConfig({
-                      deliveryMode: deliveryMode as "auto_apply_only" | "show_code_fallback" | "show_code_always",
-                      requireEmailMatch:
-                        deliveryMode === "show_code_fallback"
-                          ? true
-                          : config.requireEmailMatch,
+                      deliveryMode: deliveryMode as DiscountDeliveryMode,
                     })
                   }
                   helpText={
-                    config.deliveryMode === "show_code_fallback"
-                      ? "Code will only work for the subscriber's email. We'll authorize it automatically."
-                      : "Code will be shown immediately after signup."
+                    config.deliveryMode === "auto_apply_only"
+                      ? "Discount will be applied automatically at checkout. No code is shown."
+                      : config.deliveryMode === "show_code_fallback"
+                        ? "We'll try to auto-apply the discount. If we can't, the code will be shown."
+                        : "Code will be shown immediately after signup."
                   }
                 />
 
@@ -821,7 +820,7 @@ export function GenericDiscountComponent({
       >
         <Modal.Section>
           <div data-testid="advanced-discount-settings-modal">
-            <DiscountSettingsStep
+            <DiscountAdvancedSettings
               goal={goal}
               discountConfig={config}
               onConfigChange={(newConfig) => {

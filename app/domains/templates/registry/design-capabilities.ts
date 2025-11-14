@@ -94,71 +94,71 @@ export const TEMPLATE_DESIGN_CAPABILITIES: Record<TemplateType, DesignCapabiliti
     usesButtons: true,
     usesInputs: false,
     usesOverlay: true,
-    usesImage: true,
+    usesImage: false, // Uses layout/colors only; no background image
     usesTypographyAdvanced: true,
     usesAccent: true,
     usesSuccessWarning: true,
     supportsPosition: ["center", "top", "bottom"],
     supportsSize: ["small", "medium", "large"],
   },
-  
+
   // Gamification templates
   SPIN_TO_WIN: {
     usesButtons: true,
     usesInputs: true,
     usesOverlay: true,
-    usesImage: false, // Wheel is generated, not an image
+    usesImage: true, // Optional side image + wheel
     usesTypographyAdvanced: false,
     usesAccent: true,
     usesSuccessWarning: true,
     supportsPosition: ["center"],
     supportsSize: ["medium", "large"],
   },
-  
+
   SCRATCH_CARD: {
     usesButtons: true,
     usesInputs: true,
     usesOverlay: true,
-    usesImage: false, // Scratch canvas, not background image
+    usesImage: true, // Background image behind scratch card
     usesTypographyAdvanced: false,
     usesAccent: true,
     usesSuccessWarning: true,
     supportsPosition: ["center"],
     supportsSize: ["small", "medium"],
   },
-  
+
   // Recovery/cart templates
   CART_ABANDONMENT: {
     usesButtons: true,
     usesInputs: false,
     usesOverlay: false,
-    usesImage: true,
+    usesImage: false, // Uses line item images only, no design image
     usesTypographyAdvanced: false,
     usesAccent: true,
     usesSuccessWarning: true,
     supportsPosition: ["center", "bottom"],
     supportsSize: ["small", "medium", "large"],
   },
-  
+
   // Product recommendation
   PRODUCT_UPSELL: {
     usesButtons: true,
     usesInputs: false,
     usesOverlay: false,
-    usesImage: true,
+    usesImage: false, // Uses product images only, no design image
     usesTypographyAdvanced: false,
     usesAccent: true,
     usesSuccessWarning: true,
     supportsPosition: ["center"],
     supportsSize: ["small", "medium", "large"],
   },
-  
+
   // Corner notification
   SOCIAL_PROOF: {
     usesButtons: false,
     usesInputs: false,
     usesOverlay: false,
-    usesImage: true, // Product images
+    usesImage: false, // Uses product images only, no design background
     usesTypographyAdvanced: false,
     usesAccent: true,
     usesSuccessWarning: false,

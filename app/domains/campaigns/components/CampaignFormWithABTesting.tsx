@@ -21,6 +21,7 @@ import { useState, useCallback, useMemo, useEffect } from "react";
 import { Page, Layout, Card, Banner, Text, BlockStack } from "@shopify/polaris";
 import { useWizardState } from "~/shared/hooks/useWizardState";
 import type { CampaignFormData } from "~/shared/hooks/useWizardState";
+import type { UnifiedTemplate } from "../hooks/useTemplates";
 
 // Import extracted hooks for SOLID compliance
 import { useExperimentConfig } from "../hooks/useExperimentConfig";
@@ -122,6 +123,7 @@ interface CampaignFormWithABTestingProps {
     isControl: boolean;
   }>;
   currentVariantKey?: string | null;
+  initialTemplates?: UnifiedTemplate[];
 }
 
 // ============================================================================
@@ -139,6 +141,7 @@ export function CampaignFormWithABTesting({
   experimentData,
   allVariants,
   currentVariantKey,
+  initialTemplates,
 }: CampaignFormWithABTestingProps) {
   // ============================================================================
   // STATE - Wizard Navigation
@@ -364,6 +367,7 @@ export function CampaignFormWithABTesting({
       campaignId,
       selectedVariant,
       abTestingEnabled,
+      initialTemplates,
     };
 
     switch (step.id) {

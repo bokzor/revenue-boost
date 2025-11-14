@@ -7,6 +7,7 @@ import { CampaignFilterService } from "~/domains/campaigns/services/campaign-fil
 import { FrequencyCapService } from "~/domains/targeting/services/frequency-cap.server";
 import type { StorefrontContext } from "~/domains/campaigns/types/storefront-context";
 import type { CampaignWithConfigs } from "~/domains/campaigns/types/campaign";
+import prisma from "~/db.server";
 
 // Mock Redis storage - shared across all tests
 const mockRedisStorage: Record<string, string> = {};
@@ -77,6 +78,21 @@ vi.mock('~/lib/redis.server', () => {
     },
   };
 });
+// Mock Prisma client for customer segments (used by audience segment filtering)
+vi.mock("~/db.server", () => ({
+  default: {
+    customerSegment: {
+      findMany: vi.fn(),
+    },
+  },
+}));
+
+const mockPrisma = prisma as unknown as {
+  customerSegment: {
+    findMany: ReturnType<typeof vi.fn>;
+  };
+};
+
 
 beforeEach(() => {
   // Clear mock Redis storage
@@ -84,6 +100,9 @@ beforeEach(() => {
 
   // Reset mock call counts
   vi.clearAllMocks();
+
+  // Default: no segments unless test overrides
+  mockPrisma.customerSegment.findMany.mockResolvedValue([]);
 });
 
 afterEach(() => {
@@ -154,6 +173,24 @@ describe("CampaignFilterService", () => {
         },
       } as CampaignWithConfigs,
     ];
+
+    // Default segments used by audience segment tests
+    mockPrisma.customerSegment.findMany.mockResolvedValue([
+      {
+        id: "segment-mobile-user",
+        name: "Mobile User",
+        conditions: [
+          { field: "deviceType", operator: "eq", value: "mobile", weight: 3 },
+        ],
+      },
+      {
+        id: "segment-desktop-user",
+        name: "Desktop User",
+        conditions: [
+          { field: "deviceType", operator: "eq", value: "desktop", weight: 3 },
+        ],
+      },
+    ] as any);
   });
 
   describe("filterByDeviceType", () => {
@@ -265,6 +302,303 @@ describe("CampaignFilterService", () => {
       expect(filtered).toHaveLength(1);
     });
   });
+
+  describe("filterByAudienceSegments", () => {
+    it("should include campaigns when segment ID matches context", async () => {
+      mockPrisma.customerSegment.findMany.mockResolvedValue([
+        {
+          id: "seg-active-shopper",
+          name: "Active Shopper",
+          conditions: [
+            { field: "cartItemCount", operator: "gt", value: 0, weight: 4 },
+            { field: "addedToCartInSession", operator: "eq", value: true, weight: 3 },
+          ],
+        },
+      ] as any);
+
+      const campaigns: CampaignWithConfigs[] = [
+        {
+          id: "campaign-active-shopper",
+          name: "Active Shopper Campaign",
+          storeId: "store-1",
+          templateType: "NEWSLETTER",
+          status: "ACTIVE",
+          priority: 0,
+          targetRules: {
+            audienceTargeting: {
+              enabled: true,
+              segments: ["seg-active-shopper"],
+            },
+          },
+        } as CampaignWithConfigs,
+      ];
+
+      const context: StorefrontContext = {
+        cartItemCount: 2,
+        addedToCartInSession: true,
+      };
+
+      const filtered = await CampaignFilterService.filterByAudienceSegments(
+        campaigns,
+        context
+      );
+
+      expect(filtered).toHaveLength(1);
+      expect(filtered[0].id).toBe("campaign-active-shopper");
+    });
+
+    it("should exclude campaigns when segment conditions do not match context", async () => {
+      mockPrisma.customerSegment.findMany.mockResolvedValue([
+        {
+          id: "seg-active-shopper",
+          name: "Active Shopper",
+          conditions: [
+            { field: "cartItemCount", operator: "gt", value: 0, weight: 4 },
+            { field: "addedToCartInSession", operator: "eq", value: true, weight: 3 },
+          ],
+        },
+      ] as any);
+
+      const campaigns: CampaignWithConfigs[] = [
+        {
+          id: "campaign-active-shopper",
+          name: "Active Shopper Campaign",
+          storeId: "store-1",
+          templateType: "NEWSLETTER",
+          status: "ACTIVE",
+          priority: 0,
+          targetRules: {
+            audienceTargeting: {
+              enabled: true,
+              segments: ["seg-active-shopper"],
+            },
+          },
+        } as CampaignWithConfigs,
+      ];
+
+      const context: StorefrontContext = {
+        cartItemCount: 0,
+        addedToCartInSession: false,
+      };
+
+      const filtered = await CampaignFilterService.filterByAudienceSegments(
+        campaigns,
+        context
+      );
+
+      expect(filtered).toHaveLength(0);
+    });
+
+    it("should support legacy segment names when DB lookup fails", async () => {
+      // Force DB lookup to return no segments so we exercise legacy mapping
+      mockPrisma.customerSegment.findMany.mockResolvedValue([] as any);
+
+      const campaigns: CampaignWithConfigs[] = [
+        {
+          id: "campaign-legacy",
+          name: "Legacy Segment Campaign",
+          storeId: "store-1",
+          templateType: "NEWSLETTER",
+          status: "ACTIVE",
+          priority: 0,
+          targetRules: {
+            audienceTargeting: {
+              enabled: true,
+              // This relies on getContextSegments returning "Active Shopper"
+              segments: ["Active Shopper"],
+            },
+          },
+        } as CampaignWithConfigs,
+      ];
+
+      const context: StorefrontContext = {
+        cartItemCount: 2,
+        addedToCartInSession: true,
+      };
+
+      const filtered = await CampaignFilterService.filterByAudienceSegments(
+        campaigns,
+        context
+      );
+
+      expect(filtered).toHaveLength(1);
+      expect(filtered[0].id).toBe("campaign-legacy");
+    });
+
+    it("should match 'New Visitor' segment using DB conditions", async () => {
+      mockPrisma.customerSegment.findMany.mockResolvedValue([
+        {
+          id: "seg-new-visitor",
+          name: "New Visitor",
+          conditions: [
+            { field: "isReturningVisitor", operator: "eq", value: false, weight: 3 },
+            { field: "visitCount", operator: "eq", value: 1, weight: 2 },
+          ],
+        },
+      ] as any);
+
+      const campaigns: CampaignWithConfigs[] = [
+        {
+          id: "campaign-new-visitor",
+          name: "New Visitor Campaign",
+          storeId: "store-1",
+          templateType: "NEWSLETTER",
+          status: "ACTIVE",
+          priority: 0,
+          targetRules: {
+            audienceTargeting: {
+              enabled: true,
+              segments: ["seg-new-visitor"],
+            },
+          },
+        } as CampaignWithConfigs,
+      ];
+
+      const context: StorefrontContext = {
+        visitCount: 1,
+        isReturningVisitor: false,
+      };
+
+      const filtered = await CampaignFilterService.filterByAudienceSegments(
+        campaigns,
+        context
+      );
+
+      expect(filtered).toHaveLength(1);
+      expect(filtered[0].id).toBe("campaign-new-visitor");
+    });
+
+    it("should match 'Engaged Visitor' segment based on time on site and page views", async () => {
+      mockPrisma.customerSegment.findMany.mockResolvedValue([
+        {
+          id: "seg-engaged-visitor",
+          name: "Engaged Visitor",
+          conditions: [
+            { field: "timeOnSite", operator: "gte", value: 120, weight: 3 },
+            { field: "pageViews", operator: "gte", value: 3, weight: 2 },
+          ],
+        },
+      ] as any);
+
+      const campaigns: CampaignWithConfigs[] = [
+        {
+          id: "campaign-engaged",
+          name: "Engaged Visitor Campaign",
+          storeId: "store-1",
+          templateType: "NEWSLETTER",
+          status: "ACTIVE",
+          priority: 0,
+          targetRules: {
+            audienceTargeting: {
+              enabled: true,
+              segments: ["seg-engaged-visitor"],
+            },
+          },
+        } as CampaignWithConfigs,
+      ];
+
+      const context: StorefrontContext = {
+        timeOnSite: 180,
+        pageViews: 4,
+      };
+
+      const filtered = await CampaignFilterService.filterByAudienceSegments(
+        campaigns,
+        context
+      );
+
+      expect(filtered).toHaveLength(1);
+      expect(filtered[0].id).toBe("campaign-engaged");
+    });
+
+    it("should match 'Product Viewer' segment based on page type and product view count", async () => {
+      mockPrisma.customerSegment.findMany.mockResolvedValue([
+        {
+          id: "seg-product-viewer",
+          name: "Product Viewer",
+          conditions: [
+            { field: "currentPageType", operator: "eq", value: "product", weight: 3 },
+            { field: "productViewCount", operator: "gt", value: 0, weight: 2 },
+          ],
+        },
+      ] as any);
+
+      const campaigns: CampaignWithConfigs[] = [
+        {
+          id: "campaign-product-viewer",
+          name: "Product Viewer Campaign",
+          storeId: "store-1",
+          templateType: "PRODUCT_UPSELL",
+          status: "ACTIVE",
+          priority: 0,
+          targetRules: {
+            audienceTargeting: {
+              enabled: true,
+              segments: ["seg-product-viewer"],
+            },
+          },
+        } as CampaignWithConfigs,
+      ];
+
+      const context: StorefrontContext = {
+        currentPageType: "product",
+        productViewCount: 2,
+      };
+
+      const filtered = await CampaignFilterService.filterByAudienceSegments(
+        campaigns,
+        context
+      );
+
+      expect(filtered).toHaveLength(1);
+      expect(filtered[0].id).toBe("campaign-product-viewer");
+    });
+
+    it("should match 'Cart Abandoner' segment based on cart value and item count", async () => {
+      mockPrisma.customerSegment.findMany.mockResolvedValue([
+        {
+          id: "seg-cart-abandoner",
+          name: "Cart Abandoner",
+          conditions: [
+            { field: "cartValue", operator: "gt", value: 0, weight: 4 },
+            { field: "cartItemCount", operator: "gt", value: 0, weight: 2 },
+          ],
+        },
+      ] as any);
+
+      const campaigns: CampaignWithConfigs[] = [
+        {
+          id: "campaign-cart-abandoner",
+          name: "Cart Abandoner Campaign",
+          storeId: "store-1",
+          templateType: "FLASH_SALE",
+          status: "ACTIVE",
+          priority: 0,
+          targetRules: {
+            audienceTargeting: {
+              enabled: true,
+              segments: ["seg-cart-abandoner"],
+            },
+          },
+        } as CampaignWithConfigs,
+      ];
+
+      const context: StorefrontContext = {
+        cartValue: 120,
+        cartItemCount: 3,
+      };
+
+      const filtered = await CampaignFilterService.filterByAudienceSegments(
+        campaigns,
+        context
+      );
+
+      expect(filtered).toHaveLength(1);
+      expect(filtered[0].id).toBe("campaign-cart-abandoner");
+    });
+
+  });
+
 
   describe("filterCampaigns", () => {
     it("should apply all filters", async () => {

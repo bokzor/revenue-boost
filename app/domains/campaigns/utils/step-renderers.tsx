@@ -9,6 +9,7 @@
 
 import type { CampaignFormData, TemplateType } from "~/shared/hooks/useWizardState";
 import type { CampaignGoal } from "@prisma/client";
+import type { UnifiedTemplate } from "../hooks/useTemplates";
 import {
   GoalStepContent,
   DesignStepContent,
@@ -39,6 +40,7 @@ export interface StepRendererProps {
   campaignId?: string;
   selectedVariant?: string;
   abTestingEnabled?: boolean;
+  initialTemplates?: UnifiedTemplate[];
 }
 // ============================================================================
 // STEP RENDERERS
@@ -71,7 +73,7 @@ export function renderGoalStep(props: StepRendererProps) {
 }
 
 export function renderDesignStep(props: StepRendererProps) {
-  const { wizardState, updateData, storeId, shopDomain, campaignId, setTemplateType } = props;
+  const { wizardState, updateData, storeId, shopDomain, campaignId, setTemplateType, initialTemplates } = props;
 
   // Convert wizard state designConfig to DesignConfig format
   const designConfig: Partial<import("~/domains/campaigns/types/campaign").DesignConfig> = {
@@ -99,6 +101,7 @@ export function renderDesignStep(props: StepRendererProps) {
       onContentChange={(content) => updateData({ contentConfig: content })}
       onDesignChange={(design) => updateData({ designConfig: design })}
       onDiscountChange={(config) => updateData({ discountConfig: config })}
+      initialTemplates={initialTemplates}
       onTemplateSelect={(template) => {
         // Ensure required base content fields exist even if the user doesn't edit them
         // The UI shows placeholders, but the server schema requires real values
@@ -117,14 +120,18 @@ export function renderDesignStep(props: StepRendererProps) {
         // Templates store triggers under targetRules.enhancedTriggers in the DB
         const enhancedFromTemplate = (template.targetRules as any)?.enhancedTriggers;
 
-        updateData({
+        const nextUpdate: Partial<CampaignFormData> = {
           templateId: template.id,
           templateType: template.templateType,
           contentConfig: contentWithDefaults,
           designConfig: template.designConfig || {},
           // Apply template triggers so the Targeting step reflects the selection (e.g., Exit Intent)
           ...(enhancedFromTemplate ? { enhancedTriggers: enhancedFromTemplate } : {}),
-        });
+          // Apply template discount configuration if provided (e.g., Free Shipping defaults)
+          ...(template.discountConfig ? { discountConfig: template.discountConfig } : {}),
+        };
+
+        updateData(nextUpdate);
 
         // Also pass hydrated defaults and targetRules so setTemplateType can merge (e.g., page targeting)
         setTemplateType(template.templateType, {

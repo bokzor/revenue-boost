@@ -38,6 +38,11 @@ export function useCampaignSubmission({ onSave }: UseCampaignSubmissionProps) {
       setSubmitError(null);
 
       try {
+        console.log('[useCampaignSubmission] submitSingleCampaign called', {
+          goal: wizardState.goal,
+          templateType: wizardState.templateType,
+        });
+
         await onSave({
           ...wizardState,
           abTestingEnabled: false,

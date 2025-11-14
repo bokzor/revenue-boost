@@ -389,6 +389,10 @@
   }) => {
     const [email, setEmail] = useState("");
     const [emailError, setEmailError] = useState("");
+    const [name, setName] = useState("");
+    const [nameError, setNameError] = useState("");
+    const [gdprConsent, setGdprConsent] = useState(false);
+    const [gdprError, setGdprError] = useState("");
     const [hasSpun, setHasSpun] = useState(false);
     const [isSpinning, setIsSpinning] = useState(false);
     const [wonPrize, setWonPrize] = useState(null);
@@ -400,10 +404,13 @@
     const wheelSize = config.wheelSize || 380;
     const radius = wheelSize / 2;
     const segments = useMemo(() => config.wheelSegments || [], [config.wheelSegments]);
-    const segmentAngle = 360 / segments.length;
+    const segmentAngle = 360 / Math.max(1, segments.length);
     const accentColor = config.accentColor || config.buttonColor || "#000000";
     const borderRadius = typeof config.borderRadius === "string" ? parseFloat(config.borderRadius) || 16 : config.borderRadius ?? 16;
     const animDuration = config.animationDuration ?? 300;
+    const collectName = config.collectName ?? false;
+    const showGdpr = config.showGdprCheckbox ?? false;
+    const gdprLabel = config.gdprLabel || "I agree to receive marketing emails and accept the privacy policy";
     useEffect(() => {
       if (isVisible) {
         const timer = setTimeout(() => setShowContent(true), 50);
@@ -432,6 +439,9 @@
       return baseRotation + (360 - segmentRotation) + centerOffset + randomOffset;
     }, [segmentAngle, config.minSpins]);
     const handleSpin = useCallback(async () => {
+      setEmailError("");
+      setNameError("");
+      setGdprError("");
       if (config.emailRequired && !email.trim()) {
         setEmailError("Email required");
         return;
@@ -440,7 +450,14 @@
         setEmailError("Invalid email");
         return;
       }
-      setEmailError("");
+      if (collectName && !name.trim()) {
+        setNameError("Name is required");
+        return;
+      }
+      if (showGdpr && !gdprConsent) {
+        setGdprError("You must accept the terms to continue");
+        return;
+      }
       setIsSpinning(true);
       try {
         if (!config.previewMode && onSpin) {
@@ -464,7 +481,7 @@
         setEmailError("Error occurred");
         setIsSpinning(false);
       }
-    }, [config, email, onSpin, selectPrize, segments, rotation, calculateRotation, onWin]);
+    }, [config, email, name, gdprConsent, collectName, showGdpr, onSpin, selectPrize, segments, rotation, calculateRotation, onWin]);
     const handleCopyCode = useCallback(async () => {
       if (wonPrize?.discountCode) {
         const success = await copyToClipboard(wonPrize.discountCode);
@@ -491,14 +508,13 @@
           `A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2}`,
           "Z"
         ].join(" ");
-        const hue = index * (360 / segments.length);
-        const baseColor = segment.color || `hsl(${hue}, 65%, 58%)`;
+        const baseColor = segment.color || accentColor;
         const isWinningSegment = hasSpun && wonPrize && segment.id === wonPrize.id;
         const strokeColor = isWinningSegment ? "#FFD700" : "#FFFFFF";
         const strokeWidth = isWinningSegment ? 8 : 3;
         const textAngle = startAngle + segmentAngle / 2;
         const textRad = (textAngle - 90) * (Math.PI / 180);
-        const textRadius = radius * 0.72;
+        const textRadius = radius * 0.68;
         const textX = radius + textRadius * Math.cos(textRad);
         const textY = radius + textRadius * Math.sin(textRad);
         return /* @__PURE__ */ jsxs("g", { children: [
@@ -520,7 +536,7 @@
               x: textX,
               y: textY,
               fill: "#FFFFFF",
-              fontSize: "14",
+              fontSize: "13",
               fontWeight: "600",
               textAnchor: "middle",
               dominantBaseline: "middle",
@@ -585,54 +601,191 @@
             fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
           }, children: config.subheadline })
         ] }),
-        /* @__PURE__ */ jsxs("div", { style: {
-          position: "relative",
-          width: wheelSize,
-          height: wheelSize
-        }, children: [
-          /* @__PURE__ */ jsxs(
-            "svg",
-            {
-              ref: wheelRef,
-              width: wheelSize,
-              height: wheelSize,
-              viewBox: `0 0 ${wheelSize} ${wheelSize}`,
-              style: {
-                transform: `rotate(${rotation}deg)`,
-                transition: wheelTransition,
-                filter: hasSpun ? "drop-shadow(0 8px 24px rgba(0, 0, 0, 0.2))" : "drop-shadow(0 4px 12px rgba(0, 0, 0, 0.1))"
-              },
-              children: [
-                renderWheel(),
-                /* @__PURE__ */ jsx(
-                  "circle",
-                  {
-                    cx: radius,
-                    cy: radius,
-                    r: 28,
-                    fill: accentColor,
-                    stroke: "#FFFFFF",
-                    strokeWidth: 3
-                  }
-                )
-              ]
-            }
-          ),
-          /* @__PURE__ */ jsx("div", { style: {
-            position: "absolute",
-            top: -12,
-            left: "50%",
-            transform: "translateX(-50%)",
-            width: 0,
-            height: 0,
-            borderLeft: "14px solid transparent",
-            borderRight: "14px solid transparent",
-            borderTop: `22px solid ${accentColor}`,
-            filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.15))",
-            zIndex: 10
-          } })
-        ] }),
+        /* @__PURE__ */ jsxs(
+          "div",
+          {
+            style: {
+              display: "flex",
+              flexDirection: config.imagePosition === "top" || config.imagePosition === "bottom" ? "column" : "row",
+              gap: 24,
+              alignItems: "center",
+              justifyContent: "center"
+            },
+            children: [
+              config.imageUrl && config.imagePosition !== "none" && /* @__PURE__ */ jsx(
+                "div",
+                {
+                  style: {
+                    flexShrink: 0,
+                    order: config.imagePosition === "right" || config.imagePosition === "bottom" ? 2 : 0,
+                    width: 220,
+                    height: 220,
+                    borderRadius: 24,
+                    overflow: "hidden",
+                    backgroundColor: config.imageBgColor || "#0F172A",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    boxShadow: "0 10px 30px rgba(15,23,42,0.4)"
+                  },
+                  children: /* @__PURE__ */ jsx(
+                    "img",
+                    {
+                      src: config.imageUrl,
+                      alt: config.headline || "Promotion image",
+                      style: {
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover"
+                      }
+                    }
+                  )
+                }
+              ),
+              /* @__PURE__ */ jsxs(
+                "div",
+                {
+                  style: {
+                    position: "relative",
+                    width: wheelSize,
+                    height: wheelSize
+                  },
+                  children: [
+                    /* @__PURE__ */ jsxs(
+                      "svg",
+                      {
+                        ref: wheelRef,
+                        width: wheelSize,
+                        height: wheelSize,
+                        viewBox: `0 0 ${wheelSize} ${wheelSize}`,
+                        style: {
+                          transform: `rotate(${rotation}deg)`,
+                          transition: wheelTransition,
+                          filter: hasSpun ? "drop-shadow(0 18px 45px rgba(15,23,42,0.55))" : "drop-shadow(0 10px 30px rgba(15,23,42,0.35))"
+                        },
+                        children: [
+                          /* @__PURE__ */ jsx(
+                            "circle",
+                            {
+                              cx: radius,
+                              cy: radius,
+                              r: radius - 4,
+                              fill: config.backgroundColor || "#020617",
+                              stroke: config.wheelBorderColor || "#111827",
+                              strokeWidth: config.wheelBorderWidth ?? 6
+                            }
+                          ),
+                          renderWheel(),
+                          /* @__PURE__ */ jsx(
+                            "circle",
+                            {
+                              cx: radius,
+                              cy: radius,
+                              r: 40,
+                              fill: accentColor,
+                              stroke: "rgba(15,23,42,0.85)",
+                              strokeWidth: 4
+                            }
+                          ),
+                          /* @__PURE__ */ jsx(
+                            "circle",
+                            {
+                              cx: radius,
+                              cy: radius,
+                              r: 12,
+                              fill: "#F9FAFB",
+                              stroke: "rgba(15,23,42,0.3)",
+                              strokeWidth: 2
+                            }
+                          ),
+                          /* @__PURE__ */ jsx(
+                            "text",
+                            {
+                              x: radius,
+                              y: radius,
+                              textAnchor: "middle",
+                              dominantBaseline: "middle",
+                              fill: "#F9FAFB",
+                              fontSize: "12",
+                              fontWeight: "600",
+                              style: {
+                                letterSpacing: "0.12em",
+                                textTransform: "uppercase",
+                                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+                              },
+                              children: "SPIN"
+                            }
+                          )
+                        ]
+                      }
+                    ),
+                    /* @__PURE__ */ jsx(
+                      "div",
+                      {
+                        style: {
+                          position: "absolute",
+                          top: -22,
+                          left: "50%",
+                          transform: "translateX(-50%)",
+                          width: 0,
+                          height: 0,
+                          borderLeft: "16px solid transparent",
+                          borderRight: "16px solid transparent",
+                          borderTop: `30px solid ${accentColor}`,
+                          filter: "drop-shadow(0 4px 10px rgba(15,23,42,0.5))",
+                          zIndex: 10
+                        }
+                      }
+                    )
+                  ]
+                }
+              )
+            ]
+          }
+        ),
         !hasSpun ? /* @__PURE__ */ jsxs(Fragment2, { children: [
+          collectName && /* @__PURE__ */ jsxs("div", { style: { width: "100%", maxWidth: "400px" }, children: [
+            /* @__PURE__ */ jsx(
+              "label",
+              {
+                style: {
+                  display: "block",
+                  marginBottom: "8px",
+                  fontSize: "14px",
+                  fontWeight: 600,
+                  color: config.textColor || "#374151",
+                  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+                },
+                children: "Name"
+              }
+            ),
+            /* @__PURE__ */ jsx(
+              "input",
+              {
+                type: "text",
+                value: name,
+                onChange: (e) => {
+                  setName(e.target.value);
+                  if (nameError) setNameError("");
+                },
+                placeholder: "Enter your name",
+                style: getInputStyles(false, !!nameError),
+                disabled: isSpinning
+              }
+            ),
+            nameError && /* @__PURE__ */ jsx(
+              "p",
+              {
+                style: {
+                  color: "#EF4444",
+                  fontSize: "13px",
+                  margin: "6px 0 0 0",
+                  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+                },
+                children: nameError
+              }
+            )
+          ] }),
           config.emailRequired && /* @__PURE__ */ jsxs("div", { style: { width: "100%", maxWidth: "400px" }, children: [
             config.emailLabel && /* @__PURE__ */ jsx("label", { style: {
               display: "block",
@@ -647,7 +800,10 @@
               {
                 type: "email",
                 value: email,
-                onChange: (e) => setEmail(e.target.value),
+                onChange: (e) => {
+                  setEmail(e.target.value);
+                  if (emailError) setEmailError("");
+                },
                 onFocus: () => setEmailFocused(true),
                 onBlur: () => setEmailFocused(false),
                 placeholder: config.emailPlaceholder || "your@email.com",
@@ -661,6 +817,55 @@
               margin: "6px 0 0 0",
               fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
             }, children: emailError })
+          ] }),
+          showGdpr && /* @__PURE__ */ jsxs("div", { style: { width: "100%", maxWidth: "400px" }, children: [
+            /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "flex-start", gap: "10px", marginTop: "8px" }, children: [
+              /* @__PURE__ */ jsx(
+                "input",
+                {
+                  id: "spin-gdpr",
+                  type: "checkbox",
+                  checked: gdprConsent,
+                  onChange: (e) => {
+                    setGdprConsent(e.target.checked);
+                    if (gdprError) setGdprError("");
+                  },
+                  style: {
+                    width: "16px",
+                    height: "16px",
+                    marginTop: "2px",
+                    cursor: "pointer"
+                  },
+                  disabled: isSpinning
+                }
+              ),
+              /* @__PURE__ */ jsx(
+                "label",
+                {
+                  htmlFor: "spin-gdpr",
+                  style: {
+                    fontSize: "13px",
+                    lineHeight: 1.5,
+                    color: config.textColor || "#4B5563",
+                    cursor: "pointer",
+                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+                  },
+                  children: gdprLabel
+                }
+              )
+            ] }),
+            gdprError && /* @__PURE__ */ jsx(
+              "p",
+              {
+                style: {
+                  color: "#EF4444",
+                  fontSize: "13px",
+                  margin: "6px 0 0 0",
+                  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+                },
+                children: gdprError
+              }
+            )
           ] }),
           /* @__PURE__ */ jsx(
             "button",

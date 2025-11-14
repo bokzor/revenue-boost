@@ -1,12 +1,13 @@
 /**
  * Free Shipping Content Configuration Section
  *
- * Structured similarly to NewsletterContentSection with clear subsections
- * and optional Theme Presets (color swatches) when design handlers are provided.
+ * Structured similarly to other template content sections with clear subsections.
+ * Design colors and themes are handled via the shared DesignConfigSection.
  */
 
+import { useEffect } from "react";
 import { TextField, CheckboxField, FormGrid, SelectField } from "../form";
-import { RangeSlider, Text, BlockStack, Divider } from "@shopify/polaris";
+import { RangeSlider, Text, BlockStack, Divider, Card } from "@shopify/polaris";
 import { useFieldUpdater } from "~/shared/hooks/useFieldUpdater";
 import { DiscountSection } from "~/domains/popups/components/design/DiscountSection";
 import type { DiscountConfig } from "~/domains/popups/services/discounts/discount.server";
@@ -30,6 +31,12 @@ export interface FreeShippingContent {
   animationDuration?: number;
   // Preview-only
   previewCartTotal?: number;
+  // Optional email gate for claiming the discount once threshold is reached
+  requireEmailToClaim?: boolean;
+  claimButtonLabel?: string;
+  claimEmailPlaceholder?: string;
+  claimSuccessMessage?: string;
+  claimErrorMessage?: string;
 }
 
 export interface FreeShippingContentSectionProps {
@@ -38,7 +45,7 @@ export interface FreeShippingContentSectionProps {
   errors?: Record<string, string>;
   onChange: (content: Partial<FreeShippingContent>) => void;
   onDiscountChange?: (config: DiscountConfig) => void;
-  // Optional: allow quick theme presets like Newsletter section
+  // Optional: designConfig/onDesignChange are reserved for future design integrations
   designConfig?: Partial<DesignConfig>;
   onDesignChange?: (design: Partial<DesignConfig>) => void;
 }
@@ -49,57 +56,82 @@ export function FreeShippingContentSection({
   errors,
   onChange,
   onDiscountChange,
-  designConfig,
+  designConfig = {},
   onDesignChange,
 }: FreeShippingContentSectionProps) {
   const updateField = useFieldUpdater(content, onChange);
 
-  // Apply a theme preset to design config (if handlers provided)
+  // Normalize bar position to ensure select always has a valid value
+  const barPosition: FreeShippingContent["barPosition"] =
+    content.barPosition === "bottom" ? "bottom" : "top";
+
+  // If barPosition is missing/invalid (e.g. old data), persist a safe default
+  useEffect(() => {
+    if (content.barPosition !== "top" && content.barPosition !== "bottom") {
+      updateField("barPosition", barPosition);
+    }
+    // we intentionally depend only on content.barPosition and barPosition
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [content.barPosition, barPosition]);
+
   const handleThemeChange = (themeKey: NewsletterThemeKey) => {
     if (!onDesignChange) return;
+
     const themeColors = NEWSLETTER_THEMES[themeKey];
-    const dc = themeColorsToDesignConfig(themeColors);
+    const designConfigFromTheme = themeColorsToDesignConfig(themeColors);
+
     onDesignChange({
       ...designConfig,
       theme: themeKey,
-      backgroundColor: dc.backgroundColor,
-      textColor: dc.textColor,
-      descriptionColor: dc.descriptionColor,
-      accentColor: dc.accentColor,
-      buttonColor: dc.buttonColor,
-      buttonTextColor: dc.buttonTextColor,
-      inputBackgroundColor: dc.inputBackgroundColor,
-      inputTextColor: dc.inputTextColor,
-      inputBorderColor: dc.inputBorderColor,
-      imageBgColor: dc.imageBgColor,
-      successColor: dc.successColor,
-      fontFamily: dc.fontFamily,
-      titleFontSize: dc.titleFontSize,
-      titleFontWeight: dc.titleFontWeight,
-      titleTextShadow: dc.titleTextShadow,
-      descriptionFontSize: dc.descriptionFontSize,
-      descriptionFontWeight: dc.descriptionFontWeight,
-      inputBackdropFilter: dc.inputBackdropFilter,
-      inputBoxShadow: dc.inputBoxShadow,
-      imageUrl: `/newsletter-backgrounds/${themeKey}.png`,
+      backgroundColor: designConfigFromTheme.backgroundColor,
+      textColor: designConfigFromTheme.textColor,
+      descriptionColor: designConfigFromTheme.descriptionColor,
+      accentColor: designConfigFromTheme.accentColor,
+      buttonColor: designConfigFromTheme.buttonColor,
+      buttonTextColor: designConfigFromTheme.buttonTextColor,
+      inputBackgroundColor: designConfigFromTheme.inputBackgroundColor,
+      inputTextColor: designConfigFromTheme.inputTextColor,
+      inputBorderColor: designConfigFromTheme.inputBorderColor,
+      imageBgColor: designConfigFromTheme.imageBgColor,
+      successColor: designConfigFromTheme.successColor,
+      fontFamily: designConfigFromTheme.fontFamily,
+      titleFontSize: designConfigFromTheme.titleFontSize,
+      titleFontWeight: designConfigFromTheme.titleFontWeight,
+      titleTextShadow: designConfigFromTheme.titleTextShadow,
+      descriptionFontSize: designConfigFromTheme.descriptionFontSize,
+      descriptionFontWeight: designConfigFromTheme.descriptionFontWeight,
+      inputBackdropFilter: designConfigFromTheme.inputBackdropFilter,
+      inputBoxShadow: designConfigFromTheme.inputBoxShadow,
     });
   };
+
   return (
     <BlockStack gap="500">
-      <Text as="h3" variant="headingMd">📦 Threshold & Behavior</Text>
-      <Text as="p" tone="subdued">Configure thresholds and preview cart progress.</Text>
-      <Divider />
+      <Card>
+        <BlockStack gap="400">
+          <BlockStack gap="200">
+            <Text as="h3" variant="headingMd">📦 Threshold & Behavior</Text>
+            <Text as="p" tone="subdued">Configure thresholds and preview cart progress.</Text>
+          </BlockStack>
+
+          <Divider />
 
       <FormGrid columns={2}>
         <TextField
-          label="Free Shipping Threshold"
+          label="Discount Threshold"
           name="content.threshold"
           value={content.threshold?.toString() || "75"}
           error={errors?.threshold}
           required
           placeholder="75"
-          helpText="Minimum cart value for free shipping"
-          onChange={(value) => updateField("threshold", parseFloat(value) || 75)}
+          helpText="Minimum cart value to unlock this discount"
+          onChange={(value) => {
+            const threshold = parseFloat(value) || 75;
+            updateField("threshold", threshold);
+            if (onDiscountChange && discountConfig) {
+              onDiscountChange({ ...discountConfig, minimumAmount: threshold });
+            }
+          }}
         />
 
         <TextField
@@ -193,7 +225,7 @@ export function FreeShippingContentSection({
         <SelectField
           label="Bar Position"
           name="content.barPosition"
-          value={content.barPosition || "top"}
+          value={barPosition}
           options={[
             { label: "Top of Page", value: "top" },
             { label: "Bottom of Page", value: "bottom" },
@@ -238,26 +270,66 @@ export function FreeShippingContentSection({
         onChange={(value) => updateField("animationDuration", parseInt(value) || 500)}
       />
 
-      {/* Quick Theme Presets (optional) */}
-      {onDesignChange && (
-        <>
-          <Text as="h3" variant="headingMd">🎨 Quick Theme Presets</Text>
-          <Text as="p" tone="subdued">Apply a color theme for the bar (affects the Design section).</Text>
-          <Divider />
-          <ThemePresetSelector
-            selected={(designConfig?.theme as NewsletterThemeKey) || "modern"}
-            onSelect={handleThemeChange}
+      <Text as="h3" variant="headingMd">
+        🎯 Claim behavior
+      </Text>
+      <Text as="p" tone="subdued">
+        Optionally require an email address to claim the discount once the bar is unlocked.
+      </Text>
+      <Divider />
+
+      <CheckboxField
+        label="Require email to claim discount"
+        name="content.requireEmailToClaim"
+        checked={content.requireEmailToClaim || false}
+        helpText="Show a Claim Discount button and email field when the threshold is reached."
+        onChange={(checked) => updateField("requireEmailToClaim", checked)}
+      />
+
+      {content.requireEmailToClaim && (
+        <FormGrid columns={2}>
+          <TextField
+            label="Claim button label"
+            name="content.claimButtonLabel"
+            value={content.claimButtonLabel || "Claim discount"}
+            placeholder="Claim discount"
+            onChange={(value) => updateField("claimButtonLabel", value)}
           />
-        </>
+
+          <TextField
+            label="Email field placeholder"
+            name="content.claimEmailPlaceholder"
+            value={content.claimEmailPlaceholder || "Enter your email"}
+            placeholder="Enter your email"
+            onChange={(value) => updateField("claimEmailPlaceholder", value)}
+          />
+        </FormGrid>
       )}
+        </BlockStack>
+      </Card>
 
       {/* Discount Configuration (Optional - in addition to free shipping) */}
       {onDiscountChange && (
-        <DiscountSection
-          goal="INCREASE_REVENUE"
-          discountConfig={discountConfig}
-          onConfigChange={onDiscountChange}
-        />
+        <Card>
+          <BlockStack gap="400">
+            <BlockStack gap="200">
+              <Text as="h3" variant="headingMd">
+                💰 Discount
+              </Text>
+              <Text as="p" tone="subdued">
+                Configure the discount that unlocks when customers reach the threshold.
+              </Text>
+            </BlockStack>
+
+            <Divider />
+
+            <DiscountSection
+              goal="INCREASE_REVENUE"
+              discountConfig={discountConfig}
+              onConfigChange={onDiscountChange}
+            />
+          </BlockStack>
+        </Card>
       )}
     </BlockStack>
   );

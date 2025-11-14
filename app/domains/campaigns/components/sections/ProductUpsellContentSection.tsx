@@ -6,28 +6,7 @@
 
 import { TextField, CheckboxField, FormGrid, SelectField } from "../form";
 import { useFieldUpdater } from "~/shared/hooks/useFieldUpdater";
-
-export interface ProductUpsellContent {
-  headline?: string;
-  subheadline?: string;
-  productSelectionMethod?: "ai" | "manual" | "collection";
-  selectedProducts?: string[];
-  selectedCollection?: string;
-  maxProducts?: number;
-  layout?: "grid" | "carousel" | "card";
-  columns?: number;
-  showPrices?: boolean;
-  showCompareAtPrice?: boolean;
-  showImages?: boolean;
-  showRatings?: boolean;
-  showReviewCount?: boolean;
-  buttonText?: string;
-  bundleDiscount?: number;
-  bundleDiscountText?: string;
-  multiSelect?: boolean;
-  secondaryCtaLabel?: string;
-  currency?: string;
-}
+import type { ProductUpsellContent } from "../../types/campaign";
 
 export interface ProductUpsellContentSectionProps {
   content: Partial<ProductUpsellContent>;
@@ -65,35 +44,8 @@ export function ProductUpsellContentSection({
         onChange={(value) => updateField("subheadline", value)}
       />
 
-      <h3>Product Selection</h3>
-
-      <SelectField
-        label="Product Selection Method"
-        name="content.productSelectionMethod"
-        value={content.productSelectionMethod || "ai"}
-        options={[
-          { label: "AI Recommendations (Cart-Based)", value: "ai" },
-          { label: "Manual Selection", value: "manual" },
-          { label: "From Collection", value: "collection" },
-        ]}
-        helpText="How to choose products to display"
-        onChange={(value) => updateField("productSelectionMethod", value as ProductUpsellContent["productSelectionMethod"])}
-      />
-
-      {content.productSelectionMethod === "manual" && (
-        <div>
-          <p>Product Picker - To be implemented</p>
-          <p>Use Shopify product picker to select specific products</p>
-        </div>
-      )}
-
-      {content.productSelectionMethod === "collection" && (
-        <div>
-          <p>Collection Picker - To be implemented</p>
-          <p>Use Shopify collection picker to select a collection</p>
-        </div>
-      )}
-
+      {/* Product selection currently uses cart-based recommendations.
+          Manual and collection-based selection will be added in a future update. */}
       <TextField
         label="Maximum Products to Display"
         name="content.maxProducts"
@@ -113,9 +65,8 @@ export function ProductUpsellContentSection({
           value={content.layout || "grid"}
           options={[
             { label: "Grid", value: "grid" },
-            { label: "Carousel", value: "carousel" },
-            { label: "Card", value: "card" },
           ]}
+          helpText="Additional layouts (carousel, card) are coming soon."
           onChange={(value) => updateField("layout", value as ProductUpsellContent["layout"])}
         />
 
@@ -193,6 +144,15 @@ export function ProductUpsellContentSection({
           onChange={(value) => updateField("bundleDiscountText", value)}
         />
       </FormGrid>
+
+      <TextField
+        label="Currency"
+        name="content.currency"
+        value={content.currency || "USD"}
+        placeholder="USD"
+        helpText="Currency code used for price display (e.g. USD, EUR)"
+        onChange={(value) => updateField("currency", value.toUpperCase())}
+      />
 
       <h3>Behavior</h3>
 
