@@ -81,6 +81,22 @@ export function initCartTracking(api: ApiClient, shopDomain: string): void {
 }
 
 /**
+ * Emit canonical cart add events so all features (triggers, free shipping,
+ * social proof, etc.) can rely on the same signal.
+ */
+function emitCartAddEvents(productId: string): void {
+  try {
+    const detail = { productId };
+    // Legacy / theme-style events listened to by CartEventListener and
+    // components like FreeShippingPopup.
+    document.dispatchEvent(new CustomEvent('cart:add', { detail }));
+    document.dispatchEvent(new CustomEvent('cart:item-added', { detail }));
+  } catch {
+    // Never let event emission break the storefront.
+  }
+}
+
+/**
  * Track an add-to-cart event
  */
 async function trackAddToCart(
@@ -95,6 +111,9 @@ async function trackAddToCart(
     } catch {
       // Ignore storage errors
     }
+
+    // Emit unified cart events used by triggers & free shipping
+    emitCartAddEvents(productId);
 
     await api.trackSocialProofEvent({
       eventType: 'add_to_cart',

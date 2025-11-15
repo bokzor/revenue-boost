@@ -15,7 +15,7 @@
  */
 
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
-import { BasePopup } from './BasePopup';
+import { PopupPortal } from './PopupPortal';
 import type { PopupDesignConfig, Product } from './types';
 import type { ProductUpsellContent } from '~/domains/campaigns/types/campaign';
 import { formatCurrency } from './utils';
@@ -89,17 +89,6 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
     } else {
       setSelectedProducts(new Set([productId]));
     }
-  const handlePrevSlide = useCallback(() => {
-    if (displayProducts.length === 0) return;
-    setCurrentSlide((prev) => (prev - 1 + displayProducts.length) % displayProducts.length);
-  }, [displayProducts.length]);
-
-  const handleNextSlide = useCallback(() => {
-    if (displayProducts.length === 0) return;
-    setCurrentSlide((prev) => (prev + 1) % displayProducts.length);
-  }, [displayProducts.length]);
-
-
   }, [config.multiSelect]);
 
   const handleAddToCart = useCallback(async () => {
@@ -107,11 +96,7 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
 
     setIsLoading(true);
     try {
-      if (config.previewMode) {
-        // Preview mode - simulate success
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        onClose();
-      } else if (onAddToCart) {
+      if (onAddToCart) {
         await onAddToCart(Array.from(selectedProducts));
         onClose();
       } else {
@@ -122,7 +107,7 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
     } finally {
       setIsLoading(false);
     }
-  }, [selectedProducts, onAddToCart, onClose, config.previewMode]);
+  }, [selectedProducts, onAddToCart, onClose]);
 
   const calculateTotal = useCallback(() => {
     let total = 0;
@@ -394,11 +379,8 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
   };
 
   const getGridStyles = (): React.CSSProperties => {
-    const columns = config.columns || 2;
-
     return {
       display: 'grid',
-      gridTemplateColumns: `repeat(${Math.min(columns, displayProducts.length)}, 1fr)`,
       gap: '16px',
       marginBottom: '24px',
     };
@@ -427,14 +409,9 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
 
       return (
         <div
+          className="upsell-carousel-container"
           style={{
             position: 'relative',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            minHeight: 360,
-            padding: '24px 40px',
-            gap: '32px',
           }}
         >
           {/* Previous button */}
@@ -459,10 +436,8 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
 
           {/* Main carousel product */}
           <div
+            className="upsell-carousel-product"
             style={{
-              display: 'flex',
-              gap: '24px',
-              alignItems: 'center',
               width: '100%',
               maxWidth: 720,
             }}
@@ -649,6 +624,7 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
     if (config.layout === 'card') {
       return (
         <div
+          className="upsell-cards-container"
           style={{
             display: 'flex',
             flexDirection: 'column',
@@ -663,6 +639,7 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
             return (
               <div
                 key={product.id}
+                className="upsell-card"
                 style={{
                   display: 'flex',
                   gap: 16,
@@ -677,6 +654,7 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
               >
                 {config.showImages !== false && product.imageUrl && (
                   <div
+                    className="upsell-card-image-wrapper"
                     style={{
                       width: 96,
                       height: 96,
@@ -773,6 +751,7 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
 
                 <button
                   type="button"
+                  className="upsell-card-action-btn"
                   onClick={() => handleProductSelect(product.id)}
                   style={{
                     padding: '10px 16px',
@@ -799,7 +778,15 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
 
     // Default grid layout
     return (
-      <div style={getGridStyles()}>
+      <div
+        className="upsell-products-grid"
+        style={{
+          ...getGridStyles(),
+          // Use CSS variable so media queries can adjust columns like the mockup
+          // Desktop uses configured columns; mobile overrides via @media
+          '--upsell-columns': Math.min(config.columns || 2, displayProducts.length || 1),
+        } as React.CSSProperties}
+      >
         {displayProducts.map((product, index) => renderProduct(product, index))}
       </div>
     );
@@ -808,7 +795,7 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
 
 
   const buttonStyles: React.CSSProperties = {
-    width: '100%',
+    flex: 1,
     padding: '16px 24px',
     fontSize: '16px',
     fontWeight: 700,
@@ -831,16 +818,55 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
   const total = calculateTotal();
   const discountedTotal = calculateDiscountedTotal();
 
+  const popupConfig = {
+    ...config,
+    padding: 0,
+    maxWidth: config.maxWidth || '56rem',
+  };
+
+  // Auto-close timer (migrated from BasePopup)
+  useEffect(() => {
+    if (!isVisible || !popupConfig.autoCloseDelay || popupConfig.autoCloseDelay <= 0) return;
+
+    const timer = setTimeout(onClose, popupConfig.autoCloseDelay * 1000);
+    return () => clearTimeout(timer);
+  }, [isVisible, popupConfig.autoCloseDelay, onClose]);
+
+
+  if (!isVisible) return null;
+
   return (
-    <BasePopup config={config} isVisible={isVisible} onClose={onClose}>
-      <div style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 0,
-        opacity: showContent ? 1 : 0,
-        transform: showContent ? 'translateY(0)' : 'translateY(10px)',
-        transition: `all ${animDuration}ms cubic-bezier(0.4, 0, 0.2, 1)`,
-      }}>
+    <PopupPortal
+      isVisible={isVisible}
+      onClose={onClose}
+      backdrop={{
+        color: popupConfig.overlayColor || 'rgba(0, 0, 0, 1)',
+        opacity: popupConfig.overlayOpacity ?? 0.6,
+        blur: 4,
+      }}
+      animation={{
+        type: popupConfig.animation || 'fade',
+      }}
+      position={popupConfig.position || 'center'}
+      closeOnEscape={popupConfig.closeOnEscape !== false}
+      closeOnBackdropClick={popupConfig.closeOnOverlayClick !== false}
+      previewMode={popupConfig.previewMode}
+      ariaLabel={popupConfig.ariaLabel || popupConfig.headline}
+      ariaDescribedBy={popupConfig.ariaDescribedBy}
+    >
+      <div
+        className="upsell-container"
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 0,
+          opacity: showContent ? 1 : 0,
+          transform: showContent ? 'translateY(0)' : 'translateY(10px)',
+          transition: `all ${animDuration}ms cubic-bezier(0.4, 0, 0.2, 1)`,
+          backgroundColor: config.backgroundColor || '#FFFFFF',
+          borderRadius: `${borderRadius}px`,
+        }}
+      >
         {/* Header */}
         <div
           style={{
@@ -920,142 +946,256 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
         )}
 
         {/* Products grid / layout */}
-        {renderProductsSection()}
+        <div className="upsell-content">
+          {renderProductsSection()}
+        </div>
 
-        {/* Selection summary */}
-        {selectedProducts.size > 0 && (
-          <div
-            style={{
-              padding: '24px 32px',
-              background: secondaryColor,
-              borderTop: `2px solid ${borderColor}`,
-              marginTop: '8px',
-            }}
-          >
+        {/* Footer: selection summary + actions */}
+        <div className="upsell-footer">
+          {selectedProducts.size > 0 && (
             <div
               style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: savings ? '12px' : '0',
+                marginBottom: '16px',
               }}
             >
-              <div>
-                <div
-                  style={{
-                    fontSize: '14px',
-                    fontWeight: 600,
-                    color: textColor,
-                    opacity: 0.7,
-                    marginBottom: '4px',
-                  }}
-                >
-                  {selectedProducts.size} item{selectedProducts.size !== 1 ? 's' : ''} selected
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: savings ? '12px' : '0',
+                }}
+              >
+                <div>
+                  <div
+                    style={{
+                      fontSize: '14px',
+                      fontWeight: 600,
+                      color: textColor,
+                      opacity: 0.7,
+                      marginBottom: '4px',
+                    }}
+                  >
+                    {selectedProducts.size} item{selectedProducts.size !== 1 ? 's' : ''} selected
+                  </div>
+                  {savings && (
+                    <div
+                      style={{
+                        fontSize: '12px',
+                        color: config.successColor || accentColor || '#10B981',
+                        fontWeight: 600,
+                      }}
+                    >
+                      You save {formatCurrency(savings, config.currency)}
+                    </div>
+                  )}
                 </div>
-                {savings && (
-                  <div style={{
-                    fontSize: '12px',
-                    color: config.successColor || accentColor || '#10B981',
-                    fontWeight: 600
-                  }}>
-                    You save {formatCurrency(savings, config.currency)}
+                <div style={{ textAlign: 'right' }}>
+                  {savings && (
+                    <div
+                      style={{
+                        fontSize: '14px',
+                        textDecoration: 'line-through',
+                        color: config.textColor || '#9CA3AF',
+                        fontWeight: 500,
+                      }}
+                    >
+                      {formatCurrency(total, config.currency)}
+                    </div>
+                  )}
+                  <div
+                    style={{
+                      fontSize: '24px',
+                      fontWeight: 800,
+                      color: config.textColor || '#111827',
+                    }}
+                  >
+                    {formatCurrency(discountedTotal, config.currency)}
                   </div>
-                )}
-              </div>
-              <div style={{ textAlign: 'right' }}>
-                {savings && (
-                  <div style={{
-                    fontSize: '14px',
-                    textDecoration: 'line-through',
-                    color: config.textColor || '#9CA3AF',
-                    fontWeight: 500
-                  }}>
-                    {formatCurrency(total, config.currency)}
-                  </div>
-                )}
-                <div style={{
-                  fontSize: '24px',
-                  fontWeight: 800,
-                  color: config.textColor || '#111827'
-                }}>
-                  {formatCurrency(discountedTotal, config.currency)}
                 </div>
               </div>
             </div>
-          </div>
-        )}
-
-        {/* CTA button */}
-        <button
-          onClick={handleAddToCart}
-          disabled={selectedProducts.size === 0 || isLoading}
-          style={buttonStyles}
-          onMouseEnter={(e) => {
-            if (selectedProducts.size > 0 && !isLoading) {
-              e.currentTarget.style.transform = 'translateY(-2px)';
-              e.currentTarget.style.boxShadow = '0 8px 20px rgba(99, 102, 241, 0.4)';
-            }
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = 'translateY(0)';
-            e.currentTarget.style.boxShadow = selectedProducts.size > 0 ? '0 4px 12px rgba(99, 102, 241, 0.3)' : 'none';
-          }}
-        >
-          {isLoading ? (
-            <>
-              <span style={{
-                width: '16px',
-                height: '16px',
-                border: '2px solid rgba(255,255,255,0.3)',
-                borderTopColor: '#FFF',
-                borderRadius: '50%',
-                animation: 'spin 0.8s linear infinite'
-              }} />
-              Adding to Cart...
-            </>
-          ) : (
-            <>
-              <span style={{ fontSize: '18px' }}>🛒</span>
-              {(() => {
-                const count = selectedProducts.size;
-                const baseLabel = config.buttonText || config.ctaText;
-
-                if (baseLabel) {
-                  return baseLabel.includes('{count}')
-                    ? baseLabel.replace('{count}', String(count || 0))
-                    : baseLabel;
-                }
-
-                if (count > 0) {
-                  return `Add ${count} to Cart`;
-                }
-
-                return 'Select Products';
-              })()}
-            </>
           )}
-        </button>
 
-        {/* Secondary CTA */}
-        {config.secondaryCtaLabel && (
-          <button
-            onClick={onClose}
-            style={{
-              ...buttonStyles,
-              backgroundColor: 'transparent',
-              color: config.textColor || '#6B7280',
-              border: `2px solid ${config.inputBorderColor || '#E5E7EB'}`,
-              boxShadow: 'none',
-              opacity: 1
-            }}
-          >
-            {config.secondaryCtaLabel}
-          </button>
-        )}
+          <div className="upsell-actions">
+            <button
+              onClick={handleAddToCart}
+              disabled={selectedProducts.size === 0 || isLoading}
+              style={buttonStyles}
+              onMouseEnter={(e) => {
+                if (selectedProducts.size > 0 && !isLoading) {
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = '0 8px 20px rgba(99, 102, 241, 0.4)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow =
+                  selectedProducts.size > 0 ? '0 4px 12px rgba(99, 102, 241, 0.3)' : 'none';
+              }}
+            >
+              {isLoading ? (
+                <>
+                  <span
+                    style={{
+                      width: '16px',
+                      height: '16px',
+                      border: '2px solid rgba(255,255,255,0.3)',
+                      borderTopColor: '#FFF',
+                      borderRadius: '50%',
+                      animation: 'spin 0.8s linear infinite',
+                    }}
+                  />
+                  Adding to Cart...
+                </>
+              ) : (
+                <>
+                  <span style={{ fontSize: '18px' }}>🛒</span>
+                  {(() => {
+                    const count = selectedProducts.size;
+                    const baseLabel = config.buttonText || config.ctaText;
+
+                    if (baseLabel) {
+                      return baseLabel.includes('{count}')
+                        ? baseLabel.replace('{count}', String(count || 0))
+                        : baseLabel;
+                    }
+
+                    if (count > 0) {
+                      return `Add ${count} to Cart`;
+                    }
+
+                    return 'Select Products';
+                  })()}
+                </>
+              )}
+            </button>
+
+            <button
+              onClick={onClose}
+              style={{
+                ...buttonStyles,
+                backgroundColor: 'transparent',
+                color: config.textColor || '#6B7280',
+                border: `2px solid ${config.inputBorderColor || '#E5E7EB'}`,
+                boxShadow: 'none',
+                opacity: 0.9,
+                cursor: 'pointer',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
+              onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.9')}
+            >
+              {config.secondaryCtaLabel || config.dismissLabel || 'No thanks'}
+            </button>
+          </div>
+        </div>
       </div>
 
-      {/* Keyframe animations */}
+      {/* Keyframe animations & responsive layout helpers */}
       <style>{`
+        /* Responsive layout helpers for ProductUpsellPopup (mirrors docs/mockup layout) */
+        .upsell-container {
+          width: 100%;
+          max-width: 56rem;
+          margin: 0 auto;
+          display: flex;
+          flex-direction: column;
+          max-height: 90vh;
+        }
+
+        .upsell-content {
+          flex: 1;
+          overflow-y: auto;
+          padding: 24px 32px;
+        }
+
+        .upsell-footer {
+          border-top: 2px solid ${borderColor};
+          padding: 24px 32px;
+          background: ${secondaryColor};
+        }
+
+        .upsell-actions {
+          display: flex;
+          gap: 12px;
+          margin-top: 16px;
+        }
+
+        .upsell-products-grid {
+          display: grid;
+          grid-template-columns: repeat(var(--upsell-columns, 2), minmax(0, 1fr));
+          gap: 16px;
+          margin-bottom: 24px;
+        }
+
+        .upsell-carousel-container {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          min-height: 360px;
+          padding: 24px 40px;
+          gap: 32px;
+        }
+
+        .upsell-carousel-product {
+          display: flex;
+          gap: 24px;
+          align-items: center;
+          width: 100%;
+          max-width: 720px;
+        }
+
+        .upsell-card {
+          display: flex;
+          gap: 16px;
+          align-items: center;
+        }
+
+        .upsell-card-image-wrapper {
+          position: relative;
+          border-radius: 12px;
+          overflow: hidden;
+          background-color: #F9FAFB;
+          flex-shrink: 0;
+        }
+
+        .upsell-card-action-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        @media (max-width: 768px) {
+          .upsell-products-grid {
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 12px;
+          }
+
+          .upsell-carousel-container {
+            padding: 16px 24px;
+          }
+
+          .upsell-carousel-product {
+            flex-direction: column;
+            text-align: center;
+          }
+
+          .upsell-card {
+            flex-direction: column;
+            align-items: stretch;
+          }
+
+          .upsell-card-image-wrapper {
+            width: 100%;
+            height: 200px;
+          }
+
+          .upsell-card-action-btn {
+            align-self: stretch;
+            margin-left: 0;
+          }
+        }
+
         @keyframes spin {
           to { transform: rotate(360deg); }
         }
@@ -1077,6 +1217,6 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           to { opacity: 1; transform: translateY(0); }
         }
       `}</style>
-    </BasePopup>
+    </PopupPortal>
   );
 };

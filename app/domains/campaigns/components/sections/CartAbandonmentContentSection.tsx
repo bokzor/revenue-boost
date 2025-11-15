@@ -184,6 +184,16 @@ export function CartAbandonmentContentSection({
         onChange={(value) => updateField("saveForLaterText", value)}
       />
 
+      <TextField
+        label="Dismiss Button Text"
+        name="content.dismissLabel"
+        value={content.dismissLabel || ""}
+        error={errors?.dismissLabel}
+        placeholder="No thanks"
+        helpText="Text for the small link that closes the popup without saving or resuming checkout"
+        onChange={(value) => updateField("dismissLabel", value)}
+      />
+
       {/* Discount Configuration */}
       {onDiscountChange && (
         <DiscountSection

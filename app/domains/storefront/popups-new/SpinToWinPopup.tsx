@@ -11,7 +11,7 @@
  */
 
 import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
-import { BasePopup } from './BasePopup';
+import { PopupPortal } from './PopupPortal';
 import type { PopupDesignConfig, Prize } from './types';
 import type { SpinToWinContent } from '~/domains/campaigns/types/campaign';
 import { validateEmail, copyToClipboard, prefersReducedMotion } from './utils';
@@ -83,6 +83,14 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
       setShowContent(false);
     }
   }, [isVisible]);
+
+  // Auto-close timer (migrated from BasePopup)
+  useEffect(() => {
+    if (!isVisible || !config.autoCloseDelay || config.autoCloseDelay <= 0) return;
+
+    const timer = setTimeout(onClose, config.autoCloseDelay * 1000);
+    return () => clearTimeout(timer);
+  }, [isVisible, config.autoCloseDelay, onClose]);
 
   const selectPrize = useCallback((): Prize => {
     const totalProbability = segments.reduce((sum, seg) => sum + seg.probability, 0);
@@ -273,12 +281,40 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
   };
 
+  const secondaryButtonStyles: React.CSSProperties = {
+    ...buttonStyles,
+    backgroundColor: 'transparent',
+    color: config.textColor || '#4B5563',
+    boxShadow: 'none',
+    cursor: 'pointer',
+    opacity: 0.9,
+  };
+
   const wheelTransition = prefersReducedMotion()
     ? 'none'
     : `transform ${config.spinDuration || 4000}ms cubic-bezier(0.17, 0.67, 0.12, 0.99)`;
 
+  if (!isVisible) return null;
+
   return (
-    <BasePopup config={config} isVisible={isVisible} onClose={onClose}>
+    <PopupPortal
+      isVisible={isVisible}
+      onClose={onClose}
+      backdrop={{
+        color: config.overlayColor || 'rgba(0, 0, 0, 1)',
+        opacity: config.overlayOpacity ?? 0.6,
+        blur: 4,
+      }}
+      animation={{
+        type: config.animation || 'fade',
+      }}
+      position={config.position || 'center'}
+      closeOnEscape={config.closeOnEscape !== false}
+      closeOnBackdropClick={config.closeOnOverlayClick !== false}
+      previewMode={config.previewMode}
+      ariaLabel={config.ariaLabel || config.headline}
+      ariaDescribedBy={config.ariaDescribedBy}
+    >
       <div style={{
         opacity: showContent ? 1 : 0,
         transition: `opacity ${animDuration}ms ease-out`,
@@ -611,6 +647,19 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
                   config.spinButtonText || config.buttonText || 'Spin the Wheel'
                 )}
               </button>
+
+              <button
+                type="button"
+                onClick={onClose}
+                style={{
+                  ...secondaryButtonStyles,
+                  marginTop: '8px',
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
+                onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.9')}
+              >
+                {config.dismissLabel || 'No thanks'}
+              </button>
             </>
           ) : (
             // Prize details - shown below the wheel
@@ -711,6 +760,6 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
           }
         }
       `}</style>
-    </BasePopup>
+    </PopupPortal>
   );
 };

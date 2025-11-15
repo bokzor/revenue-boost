@@ -161,7 +161,13 @@ export function DesignStepContent({
             {templateType ? (
               <LivePreviewPanel
                 templateType={templateType}
-                config={contentConfig}
+                // Pass both content and discount configuration into preview so
+                // components like FlashSalePopup can derive their display from
+                // the actual admin discount settings.
+                config={{
+                  ...contentConfig,
+                  discountConfig,
+                }}
                 designConfig={designConfig}
                 shopDomain={shopDomain}
                 campaignId={campaignId}

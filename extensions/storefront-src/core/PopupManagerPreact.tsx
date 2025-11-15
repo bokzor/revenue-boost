@@ -29,6 +29,59 @@ export interface PopupManagerProps {
   api: ApiClient;
 }
 
+function getShopifyRoot(): string {
+  try {
+    const w: any = window as any;
+    return w?.Shopify?.routes?.root || "/";
+  } catch {
+    return "/";
+  }
+}
+
+async function applyDiscountViaAjax(code: string): Promise<boolean> {
+  if (!code) return false;
+
+  try {
+    const root = getShopifyRoot();
+    const response = await fetch(`${root}cart/update.js`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      credentials: "same-origin",
+      body: JSON.stringify({ discount: code }),
+    });
+
+    if (!response.ok) {
+      let message = "";
+      try {
+        message = await response.text();
+      } catch {
+        // ignore
+      }
+      console.error("[PopupManager] Failed to apply discount via AJAX:", message || response.status);
+      return false;
+    }
+
+    try {
+      const cart = await response.json();
+      if (cart) {
+        document.dispatchEvent(new CustomEvent("cart:refresh", { detail: cart }));
+      }
+    } catch {
+      // ignore JSON parse errors
+    }
+
+    document.dispatchEvent(new CustomEvent("cart:discount-applied", { detail: { code } }));
+    document.dispatchEvent(new CustomEvent("cart:updated"));
+    return true;
+  } catch (error) {
+    console.error("[PopupManager] Error applying discount via AJAX:", error);
+    return false;
+  }
+}
+
 export function PopupManagerPreact({ campaign, onClose, onShow, loader, api }: PopupManagerProps) {
   const [Component, setComponent] = useState<ComponentType<Record<string, unknown>> | null>(null);
   const [loading, setLoading] = useState(true);
@@ -150,8 +203,21 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api }: P
         }
       }
 
-      // Return the discount code if available
-      return result.discountCode;
+      // Auto-apply discount via AJAX when configured to do so
+      const discountCode = result.discountCode;
+      const deliveryMode = (campaign.discountConfig as any)?.deliveryMode;
+
+      const shouldAutoApply =
+        !!discountCode &&
+        (deliveryMode === "auto_apply_only" || deliveryMode === "show_code_fallback");
+
+      if (shouldAutoApply) {
+        // Fire-and-forget; don't block the success UI on cart update
+        void applyDiscountViaAjax(discountCode);
+      }
+
+      // Return the discount code if available (for UI display)
+      return discountCode;
     } catch (err) {
       console.error("[PopupManager] Failed to submit lead:", err);
       throw err;
@@ -170,6 +236,20 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api }: P
       if (!result.success) {
         console.error("[PopupManager] Failed to issue discount:", result.error);
         return null;
+      }
+
+      const code = result.code;
+      const autoApplyMode = result.autoApplyMode || "ajax";
+      const deliveryMode = (campaign.discountConfig as any)?.deliveryMode;
+
+      const shouldAutoApply =
+        !!code &&
+        autoApplyMode !== "none" &&
+        (deliveryMode === "auto_apply_only" || deliveryMode === "show_code_fallback");
+
+      if (shouldAutoApply) {
+        // Fire-and-forget; don't block popup interactions
+        void applyDiscountViaAjax(code);
       }
 
       return result;

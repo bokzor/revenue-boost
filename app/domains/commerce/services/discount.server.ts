@@ -410,6 +410,8 @@ async function getOrCreateSharedDiscount(
     appliesOncePerCustomer: true,
     customerSelection: "ALL",
     countries: config.valueType === "FREE_SHIPPING" ? [] : undefined,
+    applicability: config.applicability,
+    combinesWith: config.combineWith,
   };
 
   const result = await createDiscountCode(admin, discountInput);
@@ -520,6 +522,8 @@ export async function createEmailSpecificDiscount(
       customerSelection: customerId ? "SPECIFIC_CUSTOMERS" : "ALL",
       specificCustomerIds: customerId ? [customerId] : undefined,
       countries: config.valueType === "FREE_SHIPPING" ? [] : undefined,
+      applicability: config.applicability,
+      combinesWith: config.combineWith,
     };
 
     const result = await createDiscountCode(admin, discountInput);
@@ -597,6 +601,8 @@ async function createSingleUseDiscount(
     appliesOncePerCustomer: true,
     customerSelection: "ALL",
     countries: config.valueType === "FREE_SHIPPING" ? [] : undefined,
+    applicability: config.applicability,
+    combinesWith: config.combineWith,
   };
 
   const result = await createDiscountCode(admin, discountInput);

@@ -482,7 +482,8 @@
     isVisible,
     onClose,
     onExpiry,
-    onCtaClick
+    onCtaClick,
+    issueDiscount
   }) => {
     const [timeRemaining, setTimeRemaining] = useState(() => {
       const timerMode = config.timer?.mode || "duration";
@@ -502,7 +503,19 @@
     const [hasExpired, setHasExpired] = useState(false);
     const [inventoryTotal, setInventoryTotal] = useState(null);
     const [reservationTime, setReservationTime] = useState(null);
+    const [hasClaimedDiscount, setHasClaimedDiscount] = useState(false);
+    const [isClaimingDiscount, setIsClaimingDiscount] = useState(false);
+    const [claimedDiscountCode, setClaimedDiscountCode] = useState(null);
+    const [discountError, setDiscountError] = useState(null);
     useEffect(() => {
+      if (config.previewMode) {
+        if (!config.inventory || config.inventory.mode === "pseudo") {
+          if (config.inventory?.pseudoMax) {
+            setInventoryTotal(config.inventory.pseudoMax);
+          }
+        }
+        return;
+      }
       if (!config.inventory || config.inventory.mode === "pseudo") {
         if (config.inventory?.pseudoMax) {
           setInventoryTotal(config.inventory.pseudoMax);
@@ -521,7 +534,7 @@
           if (config.inventory?.collectionIds?.length) {
             params.set("collectionIds", JSON.stringify(config.inventory.collectionIds));
           }
-          const response = await fetch(`/api/inventory?${params.toString()}`);
+          const response = await fetch(`/apps/revenue-boost/api/inventory?${params.toString()}`);
           if (response.ok) {
             const data = await response.json();
             setInventoryTotal(data.total);
@@ -536,22 +549,28 @@
     }, [config.inventory]);
     useEffect(() => {
       if (!config.showCountdown || hasExpired) return;
-      const timer = setInterval(() => {
-        let newTime;
-        const timerMode = config.timer?.mode || "duration";
-        if (timerMode === "fixed_end" && config.timer?.endTimeISO) {
-          newTime = calculateTimeRemaining(config.timer.endTimeISO);
-        } else if (timerMode === "personal" && config.timer?.personalWindowSeconds) {
-          const endDate = new Date(Date.now() + config.timer.personalWindowSeconds * 1e3);
-          newTime = calculateTimeRemaining(endDate);
-        } else if (config.endTime) {
-          newTime = calculateTimeRemaining(config.endTime);
-        } else if (config.countdownDuration) {
-          const endDate = new Date(Date.now() + config.countdownDuration * 1e3);
-          newTime = calculateTimeRemaining(endDate);
-        } else {
-          return;
-        }
+      const timerMode = config.timer?.mode || "duration";
+      let endTimestamp = null;
+      if (timerMode === "fixed_end" && config.timer?.endTimeISO) {
+        endTimestamp = new Date(config.timer.endTimeISO).getTime();
+      } else if (timerMode === "personal" && config.timer?.personalWindowSeconds) {
+        endTimestamp = Date.now() + config.timer.personalWindowSeconds * 1e3;
+      } else if (config.endTime) {
+        endTimestamp = new Date(config.endTime).getTime();
+      } else if (config.countdownDuration) {
+        endTimestamp = Date.now() + config.countdownDuration * 1e3;
+      }
+      if (!endTimestamp) return;
+      const updateTimer = () => {
+        const now = Date.now();
+        const diff = Math.max(0, endTimestamp - now);
+        const newTime = {
+          total: diff,
+          days: Math.floor(diff / (1e3 * 60 * 60 * 24)),
+          hours: Math.floor(diff / (1e3 * 60 * 60) % 24),
+          minutes: Math.floor(diff / (1e3 * 60) % 60),
+          seconds: Math.floor(diff / 1e3 % 60)
+        };
         setTimeRemaining(newTime);
         if (newTime.total <= 0) {
           setHasExpired(true);
@@ -563,11 +582,26 @@
             setTimeout(() => onClose(), config.autoHideOnExpire ? 2e3 : 0);
           }
         }
-      }, 1e3);
+      };
+      updateTimer();
+      const timer = setInterval(updateTimer, 1e3);
       return () => clearInterval(timer);
-    }, [config, hasExpired, onExpiry, onClose]);
+    }, [
+      config.showCountdown,
+      config.timer?.mode,
+      config.timer?.endTimeISO,
+      config.timer?.personalWindowSeconds,
+      config.endTime,
+      config.countdownDuration,
+      hasExpired,
+      onExpiry,
+      onClose
+    ]);
     useEffect(() => {
-      if (!config.reserve?.enabled || !config.reserve?.minutes) return;
+      if (!config.reserve?.enabled || !config.reserve?.minutes) {
+        setReservationTime(null);
+        return;
+      }
       const reservationEnd = new Date(Date.now() + config.reserve.minutes * 60 * 1e3);
       const updateReservation = () => {
         const remaining = calculateTimeRemaining(reservationEnd);
@@ -580,7 +614,57 @@
       const interval = setInterval(updateReservation, 1e3);
       return () => clearInterval(interval);
     }, [config.reserve]);
-    const handleCtaClick = () => {
+    const isPreview = config.previewMode;
+    const discount = config.discount ?? config.discount;
+    const hasDiscount = isPreview ? true : !!discount?.enabled;
+    const isSoldOut = inventoryTotal !== null && inventoryTotal <= 0;
+    const isSoldOutAndMissed = isSoldOut && config.inventory?.soldOutBehavior === "missed_it";
+    const getCartSubtotalCents = () => {
+      const total = config.currentCartTotal;
+      if (typeof total === "number" && Number.isFinite(total)) {
+        return Math.round(total * 100);
+      }
+      return void 0;
+    };
+    const getCtaLabel = () => {
+      if (hasExpired || isSoldOutAndMissed) {
+        return config.buttonText || config.ctaText || "Offer unavailable";
+      }
+      if (isClaimingDiscount) {
+        return "Applying...";
+      }
+      if (hasDiscount && !hasClaimedDiscount) {
+        return config.buttonText || config.ctaText || "Get this offer";
+      }
+      return config.buttonText || config.ctaText || "Shop Now";
+    };
+    const handleCtaClick = async () => {
+      const canClaimDiscount = hasDiscount && !hasClaimedDiscount && !hasExpired && !isSoldOutAndMissed;
+      if (canClaimDiscount) {
+        setDiscountError(null);
+        setIsClaimingDiscount(true);
+        try {
+          if (issueDiscount) {
+            const cartSubtotalCents = getCartSubtotalCents();
+            const result = await issueDiscount(
+              cartSubtotalCents ? { cartSubtotalCents } : void 0
+            );
+            if (result?.code) {
+              setClaimedDiscountCode(result.code);
+            }
+            setHasClaimedDiscount(true);
+          }
+        } catch (error) {
+          console.error("[FlashSalePopup] Failed to claim discount:", error);
+          setDiscountError("Something went wrong applying your discount. Please try again.");
+        } finally {
+          setIsClaimingDiscount(false);
+        }
+        return;
+      }
+      if (isPreview) {
+        return;
+      }
       if (onCtaClick) {
         onCtaClick();
       }
@@ -593,7 +677,6 @@
       }
     };
     if (!isVisible) return null;
-    const isSoldOut = inventoryTotal !== null && inventoryTotal <= 0;
     if (isSoldOut && config.inventory?.soldOutBehavior === "hide") {
       return null;
     }
@@ -624,13 +707,14 @@
       }
       return null;
     };
-    const popupSize = config.popupSize || "standard";
+    const popupSize = config.popupSize || "wide";
     const maxWidth = popupSize === "compact" ? "24rem" : popupSize === "wide" ? "56rem" : popupSize === "full" ? "90%" : "32rem";
     const padding = popupSize === "compact" ? "2rem 1.5rem" : popupSize === "wide" || popupSize === "full" ? "3rem" : "2.5rem 2rem";
     const headlineSize = popupSize === "compact" ? "2rem" : popupSize === "wide" || popupSize === "full" ? "3rem" : "2.5rem";
     const discountSize = popupSize === "compact" ? "6rem" : popupSize === "wide" || popupSize === "full" ? "10rem" : "8rem";
     const discountMessage = getDiscountMessage();
-    const showInventory = config.inventory?.showOnlyXLeft && inventoryTotal !== null && inventoryTotal <= (config.inventory?.showThreshold || 10);
+    const presentationShowInventory = config.presentation?.showInventory !== false;
+    const showInventory = presentationShowInventory && config.inventory?.showOnlyXLeft && inventoryTotal !== null && inventoryTotal <= (config.inventory?.showThreshold || 10);
     const displayMode = config.displayMode || "modal";
     if (displayMode === "banner") {
       const bannerPosition = config.position === "bottom" ? "bottom" : "top";
@@ -833,10 +917,14 @@
                 }
               ),
               /* @__PURE__ */ jsxs("div", { className: "flash-sale-banner-left", children: [
-                /* @__PURE__ */ jsx("div", { className: "flash-sale-banner-badge", children: config.urgencyMessage || "Limited Time Offer" }),
+                /* @__PURE__ */ jsx("div", { className: "flash-sale-banner-badge", children: "Limited Time Offer" }),
                 /* @__PURE__ */ jsx("h2", { className: "flash-sale-banner-headline", children: config.headline || "Flash Sale!" }),
                 config.subheadline && /* @__PURE__ */ jsx("p", { className: "flash-sale-banner-subheadline", children: config.subheadline }),
-                discountMessage && /* @__PURE__ */ jsx("div", { className: "flash-sale-banner-discount", children: discountMessage })
+                (claimedDiscountCode || discountMessage) && /* @__PURE__ */ jsx("div", { className: "flash-sale-banner-discount", children: claimedDiscountCode ? /* @__PURE__ */ jsxs(Fragment2, { children: [
+                  "Use code ",
+                  /* @__PURE__ */ jsx("strong", { children: claimedDiscountCode }),
+                  " at checkout."
+                ] }) : discountMessage })
               ] }),
               /* @__PURE__ */ jsx("div", { className: "flash-sale-banner-center", children: isSoldOut && config.inventory?.soldOutBehavior === "missed_it" ? /* @__PURE__ */ jsx("div", { className: "flash-sale-banner-expired", children: config.inventory?.soldOutMessage || "This deal is sold out. Check back later!" }) : hasExpired ? /* @__PURE__ */ jsx("div", { className: "flash-sale-banner-expired", children: config.timer?.expiredMessage || "Sale ended" }) : /* @__PURE__ */ jsxs(Fragment2, { children: [
                 config.showCountdown && timeRemaining.total > 0 && /* @__PURE__ */ jsxs("div", { className: "flash-sale-banner-timer", children: [
@@ -925,13 +1013,13 @@
                 {
                   className: "flash-sale-banner-cta",
                   onClick: handleCtaClick,
-                  disabled: hasExpired || isSoldOut && config.inventory?.soldOutBehavior === "missed_it",
+                  disabled: hasExpired || isSoldOutAndMissed || isClaimingDiscount,
                   style: {
                     background: config.buttonColor || config.accentColor || "#ffffff",
                     color: config.buttonTextColor || config.textColor || "#111827",
                     borderRadius: typeof config.borderRadius === "number" ? `${config.borderRadius}px` : config.borderRadius || "6px"
                   },
-                  children: hasExpired ? "Offer Expired" : config.buttonText || config.ctaText || "Shop Now"
+                  children: getCtaLabel()
                 }
               ) })
             ] })
@@ -1127,6 +1215,28 @@
           box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
         }
 
+        .flash-sale-cta:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        .flash-sale-secondary-cta {
+          margin-top: 0.75rem;
+          width: 100%;
+          padding: 0.75rem 2rem;
+          border-radius: 0.5rem;
+          border: 1px solid rgba(148, 163, 184, 0.6);
+          background: transparent;
+          color: ${config.textColor || "#e5e7eb"};
+          font-size: 0.875rem;
+          font-weight: 500;
+          cursor: pointer;
+        }
+
+        .flash-sale-secondary-cta:hover {
+          background: rgba(15, 23, 42, 0.08);
+        }
+
         .flash-sale-expired {
           padding: 2rem;
           text-align: center;
@@ -1184,7 +1294,11 @@
               /* @__PURE__ */ jsx("div", { className: "flash-sale-badge", children: "Limited Time" }),
               /* @__PURE__ */ jsx("h2", { className: "flash-sale-headline", children: config.headline || "Flash Sale!" }),
               /* @__PURE__ */ jsx("p", { className: "flash-sale-supporting", children: config.subheadline || "Limited time offer - Don't miss out!" }),
-              discountMessage && /* @__PURE__ */ jsx("div", { className: "flash-sale-discount-message", children: discountMessage }),
+              (claimedDiscountCode || discountMessage) && /* @__PURE__ */ jsx("div", { className: "flash-sale-discount-message", children: claimedDiscountCode ? /* @__PURE__ */ jsxs(Fragment2, { children: [
+                "Use code ",
+                /* @__PURE__ */ jsx("strong", { children: claimedDiscountCode }),
+                " at checkout."
+              ] }) : discountMessage }),
               config.urgencyMessage && /* @__PURE__ */ jsx("div", { className: "flash-sale-urgency", children: config.urgencyMessage }),
               config.showCountdown && timeRemaining.total > 0 && /* @__PURE__ */ jsxs("div", { className: "flash-sale-timer", children: [
                 timeRemaining.days > 0 && /* @__PURE__ */ jsxs("div", { className: "flash-sale-timer-unit", children: [
@@ -1223,7 +1337,17 @@
                 {
                   onClick: handleCtaClick,
                   className: "flash-sale-cta",
-                  children: config.buttonText || "Shop Now"
+                  disabled: hasExpired || isSoldOutAndMissed || isClaimingDiscount,
+                  children: getCtaLabel()
+                }
+              ),
+              /* @__PURE__ */ jsx(
+                "button",
+                {
+                  type: "button",
+                  onClick: onClose,
+                  className: "flash-sale-secondary-cta",
+                  children: config.dismissLabel || "No thanks"
                 }
               )
             ] })

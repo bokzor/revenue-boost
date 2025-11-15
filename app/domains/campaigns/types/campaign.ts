@@ -88,6 +88,7 @@ export const BaseContentConfigSchema = z.object({
   headline: z.string().min(1, "Headline is required"),
   subheadline: z.string().optional(),
   buttonText: z.string().min(1, "Button text is required"),
+  dismissLabel: z.string().optional(),
   successMessage: z.string().min(1, "Success message is required"),
   failureMessage: z.string().optional(),
   ctaText: z.string().optional(), // Call-to-action text (alternative to buttonText)
@@ -361,6 +362,7 @@ export const FreeShippingContentSchema = z.object({
   // Display Options
   barPosition: z.enum(["top", "bottom"]).default("top"), // Renamed from 'position' to avoid conflict with PopupDesignConfig
   dismissible: z.boolean().default(true),
+  dismissLabel: z.string().optional(),
   showIcon: z.boolean().default(true),
   celebrateOnUnlock: z.boolean().default(true),
   animationDuration: z.number().int().min(100).max(2000).default(500), // milliseconds

@@ -6,7 +6,7 @@ import type { ExtendedColorConfig } from "~/domains/popups/color-customization.t
  * Centralized popup styling functions
  *
  * This module provides consistent styling across:
- * - BasePopup.tsx (actual popup)
+ * - PopupPortal-based popups (actual storefront popups)
  * - PopupPreview.tsx (design preview)
  * - SlideInPopup.tsx (slide-in variant)
  * - BannerPopup.tsx (banner variant)

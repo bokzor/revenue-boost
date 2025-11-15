@@ -12,7 +12,7 @@
  */
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { BasePopup } from './BasePopup';
+import { PopupPortal } from './PopupPortal';
 import type { PopupDesignConfig, Prize } from './types';
 import type { ScratchCardContent } from '~/domains/campaigns/types/campaign';
 import { validateEmail, copyToClipboard } from './utils';
@@ -366,18 +366,42 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
   const isVertical = imagePosition === 'left' || imagePosition === 'right';
   const imageFirst = imagePosition === 'left' || imagePosition === 'top';
 
+
+  // Auto-close timer (migrated from BasePopup)
+  useEffect(() => {
+    if (!isVisible || !config.autoCloseDelay || config.autoCloseDelay <= 0) return;
+
+    const timer = setTimeout(onClose, config.autoCloseDelay * 1000);
+    return () => clearTimeout(timer);
+  }, [isVisible, config.autoCloseDelay, onClose]);
+
+  if (!isVisible) return null;
+
   return (
-    <BasePopup
-      config={config}
+    <PopupPortal
       isVisible={isVisible}
       onClose={onClose}
-      className="scratch-popup-container"
+      backdrop={{
+        color: config.overlayColor || 'rgba(0, 0, 0, 1)',
+        opacity: config.overlayOpacity ?? 0.6,
+        blur: 4,
+      }}
+      animation={{
+        type: config.animation || 'fade',
+      }}
+      position={config.position || 'center'}
+      closeOnEscape={config.closeOnEscape !== false}
+      closeOnBackdropClick={config.closeOnOverlayClick !== false}
+      previewMode={config.previewMode}
+      ariaLabel={config.ariaLabel || config.headline}
+      ariaDescribedBy={config.ariaDescribedBy}
     >
-      <div
-        className={`scratch-popup-content ${
-          !showImage ? 'single-column' : isVertical ? 'vertical' : 'horizontal'
-        } ${!imageFirst && showImage ? 'reverse' : ''}`}
-      >
+      <div className="scratch-popup-container">
+        <div
+          className={`scratch-popup-content ${
+            !showImage ? 'single-column' : isVertical ? 'vertical' : 'horizontal'
+          } ${!imageFirst && showImage ? 'reverse' : ''}`}
+        >
         {showImage && (
           <div
             className="scratch-popup-image"
@@ -775,6 +799,16 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
                   </p>
                 </div>
               )}
+
+              <div style={{ marginTop: '16px', textAlign: 'center' }}>
+                <button
+                  type="button"
+                  className="scratch-popup-dismiss-button"
+                  onClick={onClose}
+                >
+                  {config.dismissLabel || 'No thanks'}
+                </button>
+              </div>
             </>
           )}
         </div>
@@ -906,6 +940,19 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
           cursor: not-allowed;
         }
 
+        .scratch-popup-dismiss-button {
+          margin-top: 0.75rem;
+          background: transparent;
+          border: none;
+          color: ${config.descriptionColor || 'rgba(15, 23, 42, 0.7)'};
+          font-size: 0.875rem;
+          cursor: pointer;
+        }
+
+        .scratch-popup-dismiss-button:hover {
+          text-decoration: underline;
+        }
+
         .scratch-popup-error {
           font-size: 0.875rem;
           color: #dc2626;
@@ -968,7 +1015,8 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
           }
         }
       `}</style>
-    </BasePopup>
+      </div>
+    </PopupPortal>
   );
 };
 

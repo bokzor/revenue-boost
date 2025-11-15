@@ -11,7 +11,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import type { PopupDesignConfig } from './types';
+import type { PopupDesignConfig, DiscountConfig as StorefrontDiscountConfig } from './types';
 import type { FlashSaleContent } from '~/domains/campaigns/types/campaign';
 import { PopupPortal } from './PopupPortal';
 
@@ -21,7 +21,9 @@ import { PopupPortal } from './PopupPortal';
 export interface FlashSaleConfig extends PopupDesignConfig, FlashSaleContent {
   // Storefront-specific fields
   ctaOpenInNewTab?: boolean;
-  discountConfig?: any; // Will contain tiers, BOGO, freeGift
+  discountConfig?: any; // Legacy/advanced config (tiers, BOGO, free gift)
+  discount?: StorefrontDiscountConfig; // Normalized storefront discount summary
+  currentCartTotal?: number; // Injected by storefront runtime
 }
 
 export interface FlashSalePopupProps {
@@ -30,6 +32,7 @@ export interface FlashSalePopupProps {
   onClose: () => void;
   onExpiry?: () => void;
   onCtaClick?: () => void;
+  issueDiscount?: (options?: { cartSubtotalCents?: number }) => Promise<{ code?: string; autoApplyMode?: string } | null>;
 }
 
 interface TimeRemaining {
@@ -60,6 +63,7 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
   onClose,
   onExpiry,
   onCtaClick,
+  issueDiscount,
 }) => {
   const [timeRemaining, setTimeRemaining] = useState(() => {
     // Determine end time based on timer mode
@@ -83,9 +87,25 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
   const [hasExpired, setHasExpired] = useState(false);
   const [inventoryTotal, setInventoryTotal] = useState<number | null>(null);
   const [reservationTime, setReservationTime] = useState<TimeRemaining | null>(null);
+  const [hasClaimedDiscount, setHasClaimedDiscount] = useState(false);
+  const [isClaimingDiscount, setIsClaimingDiscount] = useState(false);
+  const [claimedDiscountCode, setClaimedDiscountCode] = useState<string | null>(null);
+  const [discountError, setDiscountError] = useState<string | null>(null);
+
+
 
   // Fetch inventory if configured
   useEffect(() => {
+    // In preview mode, avoid real API calls and rely on pseudo config only
+    if ((config as any).previewMode) {
+      if (!config.inventory || config.inventory.mode === 'pseudo') {
+        if (config.inventory?.pseudoMax) {
+          setInventoryTotal(config.inventory.pseudoMax);
+        }
+      }
+      return;
+    }
+
     if (!config.inventory || config.inventory.mode === 'pseudo') {
       // Use pseudo inventory
       if (config.inventory?.pseudoMax) {
@@ -94,7 +114,7 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
       return;
     }
 
-    // Fetch real inventory from API
+    // Fetch real inventory from API via app proxy
     const fetchInventory = async () => {
       try {
         const params = new URLSearchParams();
@@ -108,7 +128,7 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
           params.set('collectionIds', JSON.stringify(config.inventory.collectionIds));
         }
 
-        const response = await fetch(`/api/inventory?${params.toString()}`);
+        const response = await fetch(`/apps/revenue-boost/api/inventory?${params.toString()}`);
         if (response.ok) {
           const data = await response.json();
           setInventoryTotal(data.total);
@@ -127,27 +147,36 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
   useEffect(() => {
     if (!config.showCountdown || hasExpired) return;
 
-    const timer = setInterval(() => {
-      let newTime: TimeRemaining;
-      const timerMode = config.timer?.mode || 'duration';
+    // Compute a fixed end timestamp once for this effect run
+    const timerMode = config.timer?.mode || 'duration';
+    let endTimestamp: number | null = null;
 
-      if (timerMode === 'fixed_end' && config.timer?.endTimeISO) {
-        newTime = calculateTimeRemaining(config.timer.endTimeISO);
-      } else if (timerMode === 'personal' && config.timer?.personalWindowSeconds) {
-        const endDate = new Date(Date.now() + config.timer.personalWindowSeconds * 1000);
-        newTime = calculateTimeRemaining(endDate);
-      } else if (config.endTime) {
-        newTime = calculateTimeRemaining(config.endTime);
-      } else if (config.countdownDuration) {
-        const endDate = new Date(Date.now() + config.countdownDuration * 1000);
-        newTime = calculateTimeRemaining(endDate);
-      } else {
-        return;
-      }
+    if (timerMode === 'fixed_end' && config.timer?.endTimeISO) {
+      endTimestamp = new Date(config.timer.endTimeISO).getTime();
+    } else if (timerMode === 'personal' && config.timer?.personalWindowSeconds) {
+      endTimestamp = Date.now() + config.timer.personalWindowSeconds * 1000;
+    } else if (config.endTime) {
+      endTimestamp = new Date(config.endTime).getTime();
+    } else if (config.countdownDuration) {
+      endTimestamp = Date.now() + config.countdownDuration * 1000;
+    }
+
+    if (!endTimestamp) return;
+
+    const updateTimer = () => {
+      const now = Date.now();
+      const diff = Math.max(0, endTimestamp! - now);
+
+      const newTime: TimeRemaining = {
+        total: diff,
+        days: Math.floor(diff / (1000 * 60 * 60 * 24)),
+        hours: Math.floor((diff / (1000 * 60 * 60)) % 24),
+        minutes: Math.floor((diff / (1000 * 60)) % 60),
+        seconds: Math.floor((diff / 1000) % 60),
+      };
 
       setTimeRemaining(newTime);
 
-      // Check if expired
       if (newTime.total <= 0) {
         setHasExpired(true);
         if (onExpiry) {
@@ -159,14 +188,32 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
           setTimeout(() => onClose(), config.autoHideOnExpire ? 2000 : 0);
         }
       }
-    }, 1000);
+    };
+
+    // Run immediately so UI updates without 1s delay
+    updateTimer();
+    const timer = setInterval(updateTimer, 1000);
 
     return () => clearInterval(timer);
-  }, [config, hasExpired, onExpiry, onClose]);
+  }, [
+    config.showCountdown,
+    config.timer?.mode,
+    config.timer?.endTimeISO,
+    config.timer?.personalWindowSeconds,
+    config.endTime,
+    config.countdownDuration,
+    hasExpired,
+    onExpiry,
+    onClose,
+  ]);
 
   // Handle reservation timer
   useEffect(() => {
-    if (!config.reserve?.enabled || !config.reserve?.minutes) return;
+    // When reservation is disabled or misconfigured, clear any existing timer state
+    if (!config.reserve?.enabled || !config.reserve?.minutes) {
+      setReservationTime(null);
+      return;
+    }
 
     const reservationEnd = new Date(Date.now() + config.reserve.minutes * 60 * 1000);
 
@@ -184,7 +231,73 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
     return () => clearInterval(interval);
   }, [config.reserve]);
 
-  const handleCtaClick = () => {
+  const isPreview = (config as any).previewMode;
+  const discount = (config.discount ?? (config as any).discount) as StorefrontDiscountConfig | undefined;
+  // In preview, always behave as if a discount exists so the full flow can be exercised
+  const hasDiscount = isPreview ? true : !!discount?.enabled;
+
+  const isSoldOut = inventoryTotal !== null && inventoryTotal <= 0;
+  const isSoldOutAndMissed =
+    isSoldOut && config.inventory?.soldOutBehavior === 'missed_it';
+
+  const getCartSubtotalCents = () => {
+    const total = config.currentCartTotal;
+    if (typeof total === 'number' && Number.isFinite(total)) {
+      return Math.round(total * 100);
+    }
+    return undefined;
+  };
+
+  const getCtaLabel = () => {
+    if (hasExpired || isSoldOutAndMissed) {
+      return config.buttonText || config.ctaText || 'Offer unavailable';
+    }
+    if (isClaimingDiscount) {
+      return 'Applying...';
+    }
+    if (hasDiscount && !hasClaimedDiscount) {
+      return config.buttonText || config.ctaText || 'Get this offer';
+    }
+    return config.buttonText || config.ctaText || 'Shop Now';
+  };
+
+  const handleCtaClick = async () => {
+    const canClaimDiscount =
+      hasDiscount &&
+      !hasClaimedDiscount &&
+      !hasExpired &&
+      !isSoldOutAndMissed;
+
+    if (canClaimDiscount) {
+      setDiscountError(null);
+      setIsClaimingDiscount(true);
+      try {
+        if (issueDiscount) {
+          const cartSubtotalCents = getCartSubtotalCents();
+          const result = await issueDiscount(
+            cartSubtotalCents ? { cartSubtotalCents } : undefined,
+          );
+          if (result?.code) {
+            setClaimedDiscountCode(result.code);
+          }
+          setHasClaimedDiscount(true);
+        }
+      } catch (error) {
+        console.error('[FlashSalePopup] Failed to claim discount:', error);
+        setDiscountError('Something went wrong applying your discount. Please try again.');
+      } finally {
+        setIsClaimingDiscount(false);
+      }
+
+      // First click used to claim discount only
+      return;
+    }
+
+    // In preview mode, never navigate away from the editor
+    if (isPreview) {
+      return;
+    }
+
     if (onCtaClick) {
       onCtaClick();
     }
@@ -200,8 +313,6 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
 
   if (!isVisible) return null;
 
-  // Check if sold out
-  const isSoldOut = inventoryTotal !== null && inventoryTotal <= 0;
   if (isSoldOut && config.inventory?.soldOutBehavior === 'hide') {
     return null;
   }
@@ -258,7 +369,13 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
                        popupSize === 'wide' || popupSize === 'full' ? '10rem' : '8rem';
 
   const discountMessage = getDiscountMessage();
-  const showInventory = config.inventory?.showOnlyXLeft && inventoryTotal !== null &&
+
+  // Respect presentation.showInventory flag from content config (admin toggle)
+  const presentationShowInventory = config.presentation?.showInventory !== false;
+
+  const showInventory = presentationShowInventory &&
+                        config.inventory?.showOnlyXLeft &&
+                        inventoryTotal !== null &&
                         inventoryTotal <= (config.inventory?.showThreshold || 10);
 
   const displayMode = config.displayMode || 'modal';
@@ -472,7 +589,7 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
 
             <div className="flash-sale-banner-left">
               <div className="flash-sale-banner-badge">
-                {config.urgencyMessage || 'Limited Time Offer'}
+                Limited Time Offer
               </div>
               <h2 className="flash-sale-banner-headline">
                 {config.headline || 'Flash Sale!'}
@@ -480,8 +597,16 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
               {config.subheadline && (
                 <p className="flash-sale-banner-subheadline">{config.subheadline}</p>
               )}
-              {discountMessage && (
-                <div className="flash-sale-banner-discount">{discountMessage}</div>
+              {(claimedDiscountCode || discountMessage) && (
+                <div className="flash-sale-banner-discount">
+                  {claimedDiscountCode ? (
+                    <>
+                      Use code <strong>{claimedDiscountCode}</strong> at checkout.
+                    </>
+                  ) : (
+                    discountMessage
+                  )}
+                </div>
               )}
             </div>
 
@@ -586,7 +711,11 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
                 <button
                   className="flash-sale-banner-cta"
                   onClick={handleCtaClick}
-                  disabled={hasExpired || (isSoldOut && config.inventory?.soldOutBehavior === 'missed_it')}
+                  disabled={
+                    hasExpired ||
+                    isSoldOutAndMissed ||
+                    isClaimingDiscount
+                  }
                   style={{
                     background: config.buttonColor || config.accentColor || '#ffffff',
                     color: config.buttonTextColor || config.textColor || '#111827',
@@ -595,9 +724,7 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
                       : (config.borderRadius || '6px'),
                   }}
                 >
-                  {hasExpired
-                    ? 'Offer Expired'
-                    : (config.buttonText || config.ctaText || 'Shop Now')}
+                  {getCtaLabel()}
                 </button>
               )}
             </div>
@@ -795,6 +922,28 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
           box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
         }
 
+        .flash-sale-cta:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        .flash-sale-secondary-cta {
+          margin-top: 0.75rem;
+          width: 100%;
+          padding: 0.75rem 2rem;
+          border-radius: 0.5rem;
+          border: 1px solid rgba(148, 163, 184, 0.6);
+          background: transparent;
+          color: ${config.textColor || '#e5e7eb'};
+          font-size: 0.875rem;
+          font-weight: 500;
+          cursor: pointer;
+        }
+
+        .flash-sale-secondary-cta:hover {
+          background: rgba(15, 23, 42, 0.08);
+        }
+
         .flash-sale-expired {
           padding: 2rem;
           text-align: center;
@@ -874,9 +1023,15 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
               {config.subheadline || "Limited time offer - Don't miss out!"}
             </p>
 
-            {discountMessage && (
+            {(claimedDiscountCode || discountMessage) && (
               <div className="flash-sale-discount-message">
-                {discountMessage}
+                {claimedDiscountCode ? (
+                  <>
+                    Use code <strong>{claimedDiscountCode}</strong> at checkout.
+                  </>
+                ) : (
+                  discountMessage
+                )}
               </div>
             )}
 
@@ -938,8 +1093,21 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
             <button
               onClick={handleCtaClick}
               className="flash-sale-cta"
+              disabled={
+                hasExpired ||
+                isSoldOutAndMissed ||
+                isClaimingDiscount
+              }
             >
-              {config.buttonText || 'Shop Now'}
+              {getCtaLabel()}
+            </button>
+
+            <button
+              type="button"
+              onClick={onClose}
+              className="flash-sale-secondary-cta"
+            >
+              {config.dismissLabel || 'No thanks'}
             </button>
           </div>
         )}

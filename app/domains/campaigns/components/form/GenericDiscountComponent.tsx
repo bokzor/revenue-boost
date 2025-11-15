@@ -197,14 +197,6 @@ export function GenericDiscountComponent({
 
       {config.enabled !== false && (
         <BlockStack gap="400">
-          {/* Show in Preview Toggle */}
-          <Checkbox
-            label="Show discount in preview"
-            checked={config.showInPreview !== false}
-            onChange={(showInPreview) => updateConfig({ showInPreview })}
-            helpText="Display discount information in the campaign preview"
-          />
-
           {/* Advanced Discount Type Selector */}
           <Box
             padding="300"
@@ -339,6 +331,79 @@ export function GenericDiscountComponent({
                   </Text>
                 </Box>
               )}
+
+              {/* Applicability / Scope */}
+              <Box
+                padding="300"
+                background="bg-surface-secondary"
+                borderRadius="200"
+              >
+                <BlockStack gap="300">
+                  <Text as="h4" variant="headingSm">
+                    Applies to
+                  </Text>
+                  <FormGrid columns={2}>
+                    <Select
+                      label="Discount applies to"
+                      options={[
+                        { label: "Entire store", value: "all" },
+                        { label: "Specific products", value: "products" },
+                        { label: "Specific collections", value: "collections" },
+                      ]}
+                      value={config.applicability?.scope || "all"}
+                      onChange={(scope) => {
+                        const nextScope = scope as "all" | "products" | "collections";
+                        const current = config.applicability || { scope: nextScope };
+                        updateConfig({
+                          applicability: {
+                            scope: nextScope,
+                            productIds:
+                              nextScope === "products" ? current.productIds || [] : undefined,
+                            collectionIds:
+                              nextScope === "collections"
+                                ? current.collectionIds || []
+                                : undefined,
+                          },
+                        });
+                      }}
+                    />
+                  </FormGrid>
+
+                  {config.applicability?.scope === "products" && (
+                    <ProductPicker
+                      mode="product"
+                      selectionType="multiple"
+                      selectedIds={config.applicability?.productIds || []}
+                      onSelect={(items: ProductPickerSelection[]) =>
+                        updateConfig({
+                          applicability: {
+                            scope: "products",
+                            productIds: items.map((item) => item.id),
+                          },
+                        })
+                      }
+                      buttonLabel="Select products"
+                    />
+                  )}
+
+                  {config.applicability?.scope === "collections" && (
+                    <ProductPicker
+                      mode="collection"
+                      selectionType="multiple"
+                      selectedIds={config.applicability?.collectionIds || []}
+                      onSelect={(items: ProductPickerSelection[]) =>
+                        updateConfig({
+                          applicability: {
+                            scope: "collections",
+                            collectionIds: items.map((item) => item.id),
+                          },
+                        })
+                      }
+                      buttonLabel="Select collections"
+                    />
+                  )}
+                </BlockStack>
+              </Box>
             </>
           )}
 

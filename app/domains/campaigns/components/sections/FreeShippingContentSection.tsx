@@ -26,6 +26,7 @@ export interface FreeShippingContent {
   unlockedMessage?: string;
   barPosition?: "top" | "bottom"; // Renamed from 'position' to avoid conflict
   dismissible?: boolean;
+  dismissLabel?: string;
   showIcon?: boolean;
   celebrateOnUnlock?: boolean;
   animationDuration?: number;
@@ -242,6 +243,16 @@ export function FreeShippingContentSection({
           onChange={(checked) => updateField("dismissible", checked)}
         />
       </FormGrid>
+
+      <TextField
+        label="Dismiss Button Text"
+        name="content.dismissLabel"
+        value={content.dismissLabel || ""}
+        error={errors?.dismissLabel}
+        placeholder="No thanks"
+        helpText="Text for the inline dismiss link that closes the bar"
+        onChange={(value) => updateField("dismissLabel", value)}
+      />
 
       <FormGrid columns={2}>
         <CheckboxField

@@ -22,7 +22,7 @@ import {
   TextField as PolarisTextField,
 } from "@shopify/polaris";
 import { ChevronDownIcon, ChevronUpIcon } from "@shopify/polaris-icons";
-import { TextField, CheckboxField, FormGrid, ColorField } from "../form";
+import { TextField, CheckboxField, FormGrid, ColorField, ProductPicker } from "../form";
 import { GenericDiscountComponent } from "../form/GenericDiscountComponent";
 import type { FlashSaleContentSchema, DesignConfig } from "../../types/campaign";
 import type { DiscountConfig } from "~/domains/commerce/services/discount.server";
@@ -179,6 +179,16 @@ export function FlashSaleContentSection({
                 onChange={(value) => updateField("ctaUrl", value)}
               />
             </FormGrid>
+
+            <TextField
+              label="Dismiss Button Text"
+              name="content.dismissLabel"
+              value={content.dismissLabel || ""}
+              error={errors?.dismissLabel}
+              placeholder="No thanks"
+              helpText="Secondary button text that closes the popup"
+              onChange={(value) => updateField("dismissLabel", value)}
+            />
 
             <TextField
               label="Success Message"
@@ -373,6 +383,29 @@ export function FlashSaleContentSection({
                   />
                 )}
 
+                {(content.inventory as Record<string, unknown>)?.mode === "real" && (
+                  <BlockStack gap="200">
+                    <Text as="p" tone="subdued">
+                      Select the product(s) whose inventory should be tracked for this flash sale.
+                    </Text>
+                    <ProductPicker
+                      mode="product"
+                      selectionType="multiple"
+                      selectedIds={
+                        ((content.inventory as Record<string, unknown>)?.productIds as string[]) || []
+                      }
+                      onSelect={(items) =>
+                        updateInventoryField(
+                          "productIds",
+                          items.map((item) => item.id)
+                        )
+                      }
+                      buttonLabel="Select products to track"
+                      showSelected
+                    />
+                  </BlockStack>
+                )}
+
                 <FormGrid columns={2}>
                   <CheckboxField
                     label='Show "Only X Left"'
@@ -381,34 +414,40 @@ export function FlashSaleContentSection({
                     onChange={(checked) => updateInventoryField("showOnlyXLeft", checked)}
                   />
 
-                  <TextField
-                    label="Show Threshold"
-                    name="inventory.showThreshold"
-                    value={(content.inventory as Record<string, unknown>)?.showThreshold?.toString() || "10"}
-                    placeholder="10"
-                    helpText="Show warning when ≤ this value"
-                    onChange={(value) => updateInventoryField("showThreshold", parseInt(value) || 10)}
-                  />
+                  {(content.inventory as Record<string, unknown>)?.showOnlyXLeft !== false && (
+                    <TextField
+                      label="Show Threshold"
+                      name="inventory.showThreshold"
+                      value={(content.inventory as Record<string, unknown>)?.showThreshold?.toString() || "10"}
+                      placeholder="10"
+                      helpText="Show warning when ≤ this value"
+                      onChange={(value) => updateInventoryField("showThreshold", parseInt(value) || 10)}
+                    />
+                  )}
                 </FormGrid>
 
-                <Select
-                  label="Sold Out Behavior"
-                  value={(content.inventory as Record<string, unknown>)?.soldOutBehavior as string || "hide"}
-                  options={[
-                    { label: "Hide Popup", value: "hide" },
-                    { label: 'Show "You Missed It" Message', value: "missed_it" },
-                  ]}
-                  onChange={(value) => updateInventoryField("soldOutBehavior", value)}
-                />
+                {(content.inventory as Record<string, unknown>)?.showOnlyXLeft !== false && (
+                  <>
+                    <Select
+                      label="Sold Out Behavior"
+                      value={(content.inventory as Record<string, unknown>)?.soldOutBehavior as string || "hide"}
+                      options={[
+                        { label: "Hide Popup", value: "hide" },
+                        { label: 'Show "You Missed It" Message', value: "missed_it" },
+                      ]}
+                      onChange={(value) => updateInventoryField("soldOutBehavior", value)}
+                    />
 
-                {(content.inventory as Record<string, unknown>)?.soldOutBehavior === "missed_it" && (
-                  <TextField
-                    label="Sold Out Message"
-                    name="inventory.soldOutMessage"
-                    value={(content.inventory as Record<string, unknown>)?.soldOutMessage as string || ""}
-                    placeholder="This deal is sold out. Check back later!"
-                    onChange={(value) => updateInventoryField("soldOutMessage", value)}
-                  />
+                    {(content.inventory as Record<string, unknown>)?.soldOutBehavior === "missed_it" && (
+                      <TextField
+                        label="Sold Out Message"
+                        name="inventory.soldOutMessage"
+                        value={(content.inventory as Record<string, unknown>)?.soldOutMessage as string || ""}
+                        placeholder="This deal is sold out. Check back later!"
+                        onChange={(value) => updateInventoryField("soldOutMessage", value)}
+                      />
+                    )}
+                  </>
                 )}
               </BlockStack>
             </Collapsible>

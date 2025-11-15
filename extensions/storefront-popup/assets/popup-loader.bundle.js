@@ -1094,6 +1094,51 @@
   };
 
   // extensions/storefront-src/core/PopupManagerPreact.tsx
+  function getShopifyRoot() {
+    try {
+      const w3 = window;
+      return w3?.Shopify?.routes?.root || "/";
+    } catch {
+      return "/";
+    }
+  }
+  async function applyDiscountViaAjax(code) {
+    if (!code) return false;
+    try {
+      const root = getShopifyRoot();
+      const response = await fetch(`${root}cart/update.js`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json"
+        },
+        credentials: "same-origin",
+        body: JSON.stringify({ discount: code })
+      });
+      if (!response.ok) {
+        let message = "";
+        try {
+          message = await response.text();
+        } catch {
+        }
+        console.error("[PopupManager] Failed to apply discount via AJAX:", message || response.status);
+        return false;
+      }
+      try {
+        const cart = await response.json();
+        if (cart) {
+          document.dispatchEvent(new CustomEvent("cart:refresh", { detail: cart }));
+        }
+      } catch {
+      }
+      document.dispatchEvent(new CustomEvent("cart:discount-applied", { detail: { code } }));
+      document.dispatchEvent(new CustomEvent("cart:updated"));
+      return true;
+    } catch (error) {
+      console.error("[PopupManager] Error applying discount via AJAX:", error);
+      return false;
+    }
+  }
   function PopupManagerPreact({ campaign, onClose, onShow, loader, api }) {
     const [Component, setComponent] = d2(null);
     const [loading, setLoading] = d2(true);
@@ -1180,7 +1225,13 @@
             console.error("[PopupManager] Error adding free gift to cart:", cartError);
           }
         }
-        return result.discountCode;
+        const discountCode = result.discountCode;
+        const deliveryMode = campaign.discountConfig?.deliveryMode;
+        const shouldAutoApply = !!discountCode && (deliveryMode === "auto_apply_only" || deliveryMode === "show_code_fallback");
+        if (shouldAutoApply) {
+          void applyDiscountViaAjax(discountCode);
+        }
+        return discountCode;
       } catch (err) {
         console.error("[PopupManager] Failed to submit lead:", err);
         throw err;
@@ -1197,6 +1248,13 @@
         if (!result.success) {
           console.error("[PopupManager] Failed to issue discount:", result.error);
           return null;
+        }
+        const code = result.code;
+        const autoApplyMode = result.autoApplyMode || "ajax";
+        const deliveryMode = campaign.discountConfig?.deliveryMode;
+        const shouldAutoApply = !!code && autoApplyMode !== "none" && (deliveryMode === "auto_apply_only" || deliveryMode === "show_code_fallback");
+        if (shouldAutoApply) {
+          void applyDiscountViaAjax(code);
         }
         return result;
       } catch (err) {
@@ -1508,6 +1566,131 @@
     }
   };
 
+  // extensions/storefront-src/triggers/TimeDelayHandler.ts
+  var TimeDelayHandler = class {
+    constructor(config = {}) {
+      __publicField(this, "config");
+      __publicField(this, "callback", null);
+      __publicField(this, "active", false);
+      __publicField(this, "paused", false);
+      __publicField(this, "triggered", false);
+      __publicField(this, "timer", null);
+      __publicField(this, "startTime", 0);
+      __publicField(this, "remainingTime", 0);
+      this.config = {
+        delay: config.delay || 3e3
+        // Default 3 seconds
+      };
+    }
+    /**
+     * Start the delay timer
+     */
+    start(callback) {
+      if (this.active) {
+        return;
+      }
+      this.callback = callback;
+      this.active = true;
+      this.triggered = false;
+      this.paused = false;
+      this.startTime = Date.now();
+      this.remainingTime = this.config.delay;
+      this.scheduleCallback();
+    }
+    /**
+     * Stop the timer
+     */
+    stop() {
+      if (!this.active) {
+        return;
+      }
+      this.active = false;
+      this.paused = false;
+      if (this.timer !== null) {
+        clearTimeout(this.timer);
+        this.timer = null;
+      }
+    }
+    /**
+     * Pause the timer
+     */
+    pause() {
+      if (!this.active || this.paused) {
+        return;
+      }
+      this.paused = true;
+      const elapsed = Date.now() - this.startTime;
+      this.remainingTime = Math.max(0, this.config.delay - elapsed);
+      if (this.timer !== null) {
+        clearTimeout(this.timer);
+        this.timer = null;
+      }
+    }
+    /**
+     * Resume the timer
+     */
+    resume() {
+      if (!this.active || !this.paused) {
+        return;
+      }
+      this.paused = false;
+      this.startTime = Date.now();
+      this.scheduleCallback();
+    }
+    /**
+     * Check if handler is active
+     */
+    isActive() {
+      return this.active;
+    }
+    /**
+     * Check if handler is paused
+     */
+    isPaused() {
+      return this.paused;
+    }
+    /**
+     * Get remaining time in milliseconds
+     */
+    getRemainingTime() {
+      if (!this.active) {
+        return 0;
+      }
+      if (this.paused) {
+        return this.remainingTime;
+      }
+      const elapsed = Date.now() - this.startTime;
+      return Math.max(0, this.config.delay - elapsed);
+    }
+    /**
+     * Cleanup and remove timer
+     */
+    destroy() {
+      this.stop();
+      this.callback = null;
+    }
+    /**
+     * Schedule the callback
+     */
+    scheduleCallback() {
+      const delay = this.paused ? this.remainingTime : this.config.delay;
+      this.timer = window.setTimeout(() => {
+        this.trigger();
+      }, delay);
+    }
+    /**
+     * Trigger the callback
+     */
+    trigger() {
+      if (this.triggered || !this.callback) {
+        return;
+      }
+      this.triggered = true;
+      this.callback();
+      this.stop();
+    }
+  };
+
   // extensions/storefront-src/triggers/IdleTimer.ts
   var IdleTimer = class {
     constructor(config = {}) {
@@ -1624,6 +1807,273 @@
     }
   };
 
+  // extensions/storefront-src/triggers/CartEventListener.ts
+  function isCartUpdateDetail(v3) {
+    return v3 != null && typeof v3 === "object" && typeof v3.total === "number";
+  }
+  var CartEventListener = class {
+    constructor(config = {}) {
+      __publicField(this, "config");
+      __publicField(this, "callback", null);
+      __publicField(this, "active", false);
+      __publicField(this, "eventHandlers", /* @__PURE__ */ new Map());
+      __publicField(this, "cartJsUnsubscribeFns", []);
+      // Shopify cart event names (different themes use different events)
+      __publicField(this, "CART_EVENT_MAPPINGS", {
+        // Add to cart events
+        add_to_cart: [
+          "cart:add",
+          "product:add",
+          "cart:item-added",
+          "theme:cart:add"
+        ],
+        // Cart drawer open events
+        cart_drawer_open: [
+          "cart:open",
+          "drawer:open",
+          "cart:drawer:open",
+          "theme:cart:open"
+        ],
+        // Cart update events
+        cart_update: [
+          "cart:update",
+          "cart:change",
+          "cart:updated",
+          "theme:cart:update"
+        ]
+      });
+      this.config = {
+        events: config.events || ["add_to_cart", "cart_drawer_open", "cart_update"],
+        trackCartValue: config.trackCartValue || false,
+        minCartValue: config.minCartValue || 0,
+        maxCartValue: config.maxCartValue || Infinity
+      };
+    }
+    /**
+     * Start listening for cart events
+     */
+    start(callback) {
+      if (this.active) {
+        return;
+      }
+      this.callback = callback;
+      this.active = true;
+      this.config.events.forEach((eventType) => {
+        this.listenForEventType(eventType);
+      });
+      this.attachCartJsListeners();
+    }
+    /**
+     * Stop listening for cart events
+     */
+    stop() {
+      if (!this.active) {
+        return;
+      }
+      this.active = false;
+      this.eventHandlers.forEach((handler, eventName) => {
+        document.removeEventListener(eventName, handler);
+      });
+      this.eventHandlers.clear();
+      this.cartJsUnsubscribeFns.forEach((fn2) => fn2());
+      this.cartJsUnsubscribeFns = [];
+    }
+    /**
+     * Check if listener is active
+     */
+    isActive() {
+      return this.active;
+    }
+    /**
+     * Cleanup and remove all listeners
+     */
+    destroy() {
+      this.stop();
+      this.callback = null;
+    }
+    /**
+     * Listen for a specific event type
+     */
+    listenForEventType(eventType) {
+      const eventNames = this.CART_EVENT_MAPPINGS[eventType];
+      eventNames.forEach((eventName) => {
+        const handler = (e3) => this.handleCartEvent(eventType, e3);
+        this.eventHandlers.set(eventName, handler);
+        document.addEventListener(eventName, handler);
+      });
+    }
+    /**
+     * Emit a cart event from a raw detail payload (used by both DOM events and CartJS)
+     */
+    emitCartEventFromDetail(eventType, detail) {
+      if (!this.active || !this.callback) {
+        return;
+      }
+      if (this.config.trackCartValue && eventType === "cart_update") {
+        let cartValue = 0;
+        if (isCartUpdateDetail(detail)) {
+          cartValue = detail.total ?? 0;
+        }
+        if (cartValue < this.config.minCartValue || cartValue > this.config.maxCartValue) {
+          return;
+        }
+      }
+      this.callback({
+        type: eventType,
+        detail
+      });
+    }
+    /**
+     * Handle cart event from DOM CustomEvent
+     */
+    handleCartEvent(eventType, e3) {
+      const customEvent = e3;
+      this.emitCartEventFromDetail(eventType, customEvent.detail);
+    }
+    /**
+     * Integrate with CartJS (open-source cart.js library) when present on the page.
+     * This captures real cart.js events like `item:added` and `cart:updated`.
+     */
+    attachCartJsListeners() {
+      if (typeof window === "undefined") {
+        return;
+      }
+      const w3 = window;
+      const cartJs = w3.CartJS;
+      if (!cartJs || typeof cartJs.on !== "function") {
+        return;
+      }
+      if (this.config.events.includes("add_to_cart")) {
+        const handler = (cart, item) => {
+          this.emitCartEventFromDetail("add_to_cart", { cart, item });
+        };
+        cartJs.on("item:added", handler);
+        if (typeof cartJs.off === "function") {
+          this.cartJsUnsubscribeFns.push(() => cartJs.off("item:added", handler));
+        }
+      }
+      if (this.config.events.includes("cart_update")) {
+        const handler = (cart) => {
+          const total = cart && typeof cart.total_price === "number" ? cart.total_price / 100 : void 0;
+          this.emitCartEventFromDetail("cart_update", {
+            total,
+            cart
+          });
+        };
+        cartJs.on("cart:updated", handler);
+        if (typeof cartJs.off === "function") {
+          this.cartJsUnsubscribeFns.push(() => cartJs.off("cart:updated", handler));
+        }
+      }
+    }
+  };
+
+  // extensions/storefront-src/triggers/CustomEventHandler.ts
+  function isObject(v3) {
+    return v3 != null && typeof v3 === "object";
+  }
+  var CustomEventHandler = class {
+    constructor(config = {}) {
+      __publicField(this, "config");
+      __publicField(this, "callback", null);
+      __publicField(this, "active", false);
+      __publicField(this, "eventHandlers", /* @__PURE__ */ new Map());
+      this.config = {
+        eventNames: config.eventNames || []
+      };
+    }
+    /**
+     * Start listening for custom events
+     */
+    start(callback) {
+      if (this.active) {
+        return;
+      }
+      this.callback = callback;
+      this.active = true;
+      this.config.eventNames.forEach((eventName) => {
+        this.addEventListenerForName(eventName);
+      });
+    }
+    /**
+     * Stop listening for custom events
+     */
+    stop() {
+      if (!this.active) {
+        return;
+      }
+      this.active = false;
+      this.eventHandlers.forEach((handler, eventName) => {
+        document.removeEventListener(eventName, handler);
+      });
+      this.eventHandlers.clear();
+    }
+    /**
+     * Check if handler is active
+     */
+    isActive() {
+      return this.active;
+    }
+    /**
+     * Add a new event name to listen for (dynamically)
+     */
+    addEventName(eventName) {
+      if (!this.config.eventNames.includes(eventName)) {
+        this.config.eventNames.push(eventName);
+      }
+      if (this.active) {
+        this.addEventListenerForName(eventName);
+      }
+    }
+    /**
+     * Remove an event name from listening (dynamically)
+     */
+    removeEventName(eventName) {
+      const index = this.config.eventNames.indexOf(eventName);
+      if (index > -1) {
+        this.config.eventNames.splice(index, 1);
+      }
+      if (this.active && this.eventHandlers.has(eventName)) {
+        const handler = this.eventHandlers.get(eventName);
+        document.removeEventListener(eventName, handler);
+        this.eventHandlers.delete(eventName);
+      }
+    }
+    /**
+     * Cleanup and remove all listeners
+     */
+    destroy() {
+      this.stop();
+      this.callback = null;
+    }
+    /**
+     * Add event listener for a specific event name
+     */
+    addEventListenerForName(eventName) {
+      if (this.eventHandlers.has(eventName)) {
+        return;
+      }
+      const handler = (e3) => this.handleCustomEvent(eventName, e3);
+      this.eventHandlers.set(eventName, handler);
+      document.addEventListener(eventName, handler);
+    }
+    /**
+     * Handle custom event
+     */
+    handleCustomEvent(eventName, e3) {
+      if (!this.active || !this.callback) {
+        return;
+      }
+      const customEvent = e3;
+      const rawDetail = customEvent.detail;
+      const detail = isObject(rawDetail) ? rawDetail : {};
+      this.callback({
+        eventName,
+        detail
+      });
+    }
+  };
+
   // extensions/storefront-src/core/TriggerManager.ts
   var TriggerManager = class {
     constructor() {
@@ -1646,37 +2096,162 @@
         console.log("[Revenue Boost] \u2705 No triggers defined, showing campaign immediately");
         return true;
       }
-      const logicOperator = triggers.logic_operator || "AND";
+      const logicOperator = triggers.trigger_combination?.operator || triggers.logic_operator || "AND";
       console.log("[Revenue Boost] \u{1F517} Trigger logic operator:", logicOperator);
       const results = [];
       const triggerResults = {};
       if (triggers.page_load !== void 0) {
-        console.log("[Revenue Boost] \u{1F4C4} Checking page_load trigger:", triggers.page_load);
-        const result = await this.checkPageLoad(triggers.page_load);
-        triggerResults.page_load = result;
-        results.push(result);
-        console.log(`[Revenue Boost] ${result ? "\u2705" : "\u274C"} page_load trigger ${result ? "passed" : "failed"}`);
+        if (triggers.page_load.enabled) {
+          console.log("[Revenue Boost] \u{1F4C4} Checking page_load trigger:", triggers.page_load);
+          const result = await this.checkPageLoad(triggers.page_load);
+          triggerResults.page_load = result;
+          results.push(result);
+          console.log(
+            `[Revenue Boost] ${result ? "\u2705" : "\u274C"} page_load trigger ${result ? "passed" : "failed"}`
+          );
+        } else {
+          console.log(
+            "[Revenue Boost] \u23ED\uFE0F page_load trigger is disabled and will be ignored in evaluation"
+          );
+        }
+      }
+      if (triggers.time_delay !== void 0) {
+        if (triggers.time_delay.enabled) {
+          console.log("[Revenue Boost] \u23F3 Checking time_delay trigger:", triggers.time_delay);
+          const result = await this.checkTimeDelay(triggers.time_delay);
+          triggerResults.time_delay = result;
+          results.push(result);
+          console.log(
+            `[Revenue Boost] ${result ? "\u2705" : "\u274C"} time_delay trigger ${result ? "passed" : "failed"}`
+          );
+        } else {
+          console.log(
+            "[Revenue Boost] \u23ED\uFE0F time_delay trigger is disabled and will be ignored in evaluation"
+          );
+        }
       }
       if (triggers.scroll_depth !== void 0) {
-        console.log("[Revenue Boost] \u{1F4DC} Checking scroll_depth trigger:", triggers.scroll_depth);
-        const result = await this.checkScrollDepth(triggers.scroll_depth);
-        triggerResults.scroll_depth = result;
-        results.push(result);
-        console.log(`[Revenue Boost] ${result ? "\u2705" : "\u274C"} scroll_depth trigger ${result ? "passed" : "failed"}`);
+        if (triggers.scroll_depth.enabled) {
+          console.log("[Revenue Boost] \u{1F4DC} Checking scroll_depth trigger:", triggers.scroll_depth);
+          const result = await this.checkScrollDepth(triggers.scroll_depth);
+          triggerResults.scroll_depth = result;
+          results.push(result);
+          console.log(
+            `[Revenue Boost] ${result ? "\u2705" : "\u274C"} scroll_depth trigger ${result ? "passed" : "failed"}`
+          );
+        } else {
+          console.log(
+            "[Revenue Boost] \u23ED\uFE0F scroll_depth trigger is disabled and will be ignored in evaluation"
+          );
+        }
       }
       if (triggers.exit_intent !== void 0) {
-        console.log("[Revenue Boost] \u{1F6AA} Checking exit_intent trigger:", triggers.exit_intent);
-        const result = await this.checkExitIntent(triggers.exit_intent);
-        triggerResults.exit_intent = result;
-        results.push(result);
-        console.log(`[Revenue Boost] ${result ? "\u2705" : "\u274C"} exit_intent trigger ${result ? "passed" : "failed"}`);
+        if (triggers.exit_intent.enabled) {
+          console.log("[Revenue Boost] \u{1F6AA} Checking exit_intent trigger:", triggers.exit_intent);
+          const result = await this.checkExitIntent(triggers.exit_intent);
+          triggerResults.exit_intent = result;
+          results.push(result);
+          console.log(
+            `[Revenue Boost] ${result ? "\u2705" : "\u274C"} exit_intent trigger ${result ? "passed" : "failed"}`
+          );
+        } else {
+          console.log(
+            "[Revenue Boost] \u23ED\uFE0F exit_intent trigger is disabled and will be ignored in evaluation"
+          );
+        }
       }
       if (triggers.idle_timer !== void 0) {
-        console.log("[Revenue Boost] \u23F1\uFE0F Checking idle_timer trigger:", triggers.idle_timer);
-        const result = await this.checkIdleTimer(triggers.idle_timer);
-        triggerResults.idle_timer = result;
-        results.push(result);
-        console.log(`[Revenue Boost] ${result ? "\u2705" : "\u274C"} idle_timer trigger ${result ? "passed" : "failed"}`);
+        if (triggers.idle_timer.enabled) {
+          console.log("[Revenue Boost] \u23F1\uFE0F Checking idle_timer trigger:", triggers.idle_timer);
+          const result = await this.checkIdleTimer(triggers.idle_timer);
+          triggerResults.idle_timer = result;
+          results.push(result);
+          console.log(
+            `[Revenue Boost] ${result ? "\u2705" : "\u274C"} idle_timer trigger ${result ? "passed" : "failed"}`
+          );
+        } else {
+          console.log(
+            "[Revenue Boost] \u23ED\uFE0F idle_timer trigger is disabled and will be ignored in evaluation"
+          );
+        }
+      }
+      if (triggers.add_to_cart !== void 0) {
+        if (triggers.add_to_cart.enabled) {
+          console.log("[Revenue Boost] \u{1F6D2} Checking add_to_cart trigger:", triggers.add_to_cart);
+          const result = await this.checkAddToCart(triggers.add_to_cart);
+          triggerResults.add_to_cart = result;
+          results.push(result);
+          console.log(
+            `[Revenue Boost] ${result ? "\u2705" : "\u274C"} add_to_cart trigger ${result ? "passed" : "failed"}`
+          );
+        } else {
+          console.log(
+            "[Revenue Boost] \u23ED\uFE0F add_to_cart trigger is disabled and will be ignored in evaluation"
+          );
+        }
+      }
+      if (triggers.cart_drawer_open !== void 0) {
+        if (triggers.cart_drawer_open.enabled) {
+          console.log(
+            "[Revenue Boost] \u{1F9FA} Checking cart_drawer_open trigger:",
+            triggers.cart_drawer_open
+          );
+          const result = await this.checkCartDrawerOpen(triggers.cart_drawer_open);
+          triggerResults.cart_drawer_open = result;
+          results.push(result);
+          console.log(
+            `[Revenue Boost] ${result ? "\u2705" : "\u274C"} cart_drawer_open trigger ${result ? "passed" : "failed"}`
+          );
+        } else {
+          console.log(
+            "[Revenue Boost] \u23ED\uFE0F cart_drawer_open trigger is disabled and will be ignored in evaluation"
+          );
+        }
+      }
+      if (triggers.cart_value !== void 0) {
+        if (triggers.cart_value.enabled) {
+          console.log("[Revenue Boost] \u{1F4B0} Checking cart_value trigger:", triggers.cart_value);
+          const result = await this.checkCartValue(triggers.cart_value);
+          triggerResults.cart_value = result;
+          results.push(result);
+          console.log(
+            `[Revenue Boost] ${result ? "\u2705" : "\u274C"} cart_value trigger ${result ? "passed" : "failed"}`
+          );
+        } else {
+          console.log(
+            "[Revenue Boost] \u23ED\uFE0F cart_value trigger is disabled and will be ignored in evaluation"
+          );
+        }
+      }
+      if (triggers.product_view !== void 0) {
+        if (triggers.product_view.enabled) {
+          console.log("[Revenue Boost] \u{1F6CD}\uFE0F Checking product_view trigger:", triggers.product_view);
+          const result = await this.checkProductView(triggers.product_view);
+          triggerResults.product_view = result;
+          results.push(result);
+          console.log(
+            `[Revenue Boost] ${result ? "\u2705" : "\u274C"} product_view trigger ${result ? "passed" : "failed"}`
+          );
+        } else {
+          console.log(
+            "[Revenue Boost] \u23ED\uFE0F product_view trigger is disabled and will be ignored in evaluation"
+          );
+        }
+      }
+      if (triggers.custom_event !== void 0) {
+        if (triggers.custom_event.enabled) {
+          console.log("[Revenue Boost] \u{1F3AF} Checking custom_event trigger:", triggers.custom_event);
+          const result = await this.checkCustomEvent(triggers.custom_event);
+          triggerResults.custom_event = result;
+          results.push(result);
+          console.log(
+            `[Revenue Boost] ${result ? "\u2705" : "\u274C"} custom_event trigger ${result ? "passed" : "failed"}`
+          );
+        } else {
+          console.log(
+            "[Revenue Boost] \u23ED\uFE0F custom_event trigger is disabled and will be ignored in evaluation"
+          );
+        }
       }
       if (results.length === 0) {
         console.log("[Revenue Boost] \u26A0\uFE0F No enabled triggers found, showing campaign immediately");
@@ -1711,6 +2286,34 @@
       return true;
     }
     /**
+     * Check time delay trigger
+     */
+    async checkTimeDelay(trigger) {
+      if (!trigger.enabled) {
+        console.log("[Revenue Boost] \u23ED\uFE0F time_delay trigger is disabled");
+        return false;
+      }
+      const delaySeconds = trigger.delay ?? 0;
+      const immediate = trigger.immediate ?? false;
+      if (immediate || delaySeconds <= 0) {
+        console.log("[Revenue Boost] \u2705 time_delay trigger passed immediately (no delay configured)");
+        return true;
+      }
+      const delayMs = delaySeconds * 1e3;
+      console.log(
+        `[Revenue Boost] \u23F3 time_delay trigger waiting ${delaySeconds}s (${delayMs}ms) before showing`
+      );
+      return new Promise((resolve) => {
+        this.timeDelayHandler = new TimeDelayHandler({
+          delay: delayMs
+        });
+        this.timeDelayHandler.start(() => {
+          console.log("[Revenue Boost] \u2705 time_delay trigger delay completed");
+          resolve(true);
+        });
+      });
+    }
+    /**
      * Check scroll depth trigger
      */
     async checkScrollDepth(trigger) {
@@ -1720,11 +2323,15 @@
       }
       const depthPercentage = trigger.depth_percentage || 50;
       const direction = trigger.direction || "down";
-      console.log(`[Revenue Boost] \u{1F4CF} scroll_depth trigger waiting for ${depthPercentage}% scroll ${direction}`);
+      const debounceTime = trigger.debounce_time ?? 100;
+      console.log(
+        `[Revenue Boost] \u{1F4CF} scroll_depth trigger waiting for ${depthPercentage}% scroll ${direction} (debounce=${debounceTime}ms)`
+      );
       return new Promise((resolve) => {
         this.scrollDepthTracker = new ScrollDepthTracker({
           depthPercentage,
-          direction
+          direction,
+          debounceTime
         });
         this.scrollDepthTracker.start(() => {
           console.log(`[Revenue Boost] \u2705 scroll_depth trigger detected: User scrolled ${depthPercentage}% ${direction}`);
@@ -1747,17 +2354,135 @@
       }
       const sensitivity = trigger.sensitivity || "medium";
       const delay = trigger.delay || 1e3;
-      console.log(`[Revenue Boost] \u{1F6AA} exit_intent trigger waiting for exit intent (sensitivity: ${sensitivity}, delay: ${delay}ms)`);
+      const mobileEnabled = trigger.mobile_enabled ?? false;
+      console.log(
+        `[Revenue Boost] \u{1F6AA} exit_intent trigger waiting for exit intent (sensitivity: ${sensitivity}, delay: ${delay}ms, mobileEnabled=${mobileEnabled})`
+      );
       return new Promise((resolve) => {
         this.exitIntentDetector = new ExitIntentDetector({
           sensitivity,
-          delay
+          delay,
+          mobileEnabled
         });
         this.exitIntentDetector.start(() => {
           console.log("[Revenue Boost] \u2705 exit_intent trigger detected: User showed exit intent");
           resolve(true);
         });
       });
+    }
+    /**
+     * Check product view trigger
+     * - Ensures we are on a product page
+     * - Optionally matches against configured product_ids (Shopify GIDs)
+     * - Supports time on page and scroll interaction requirements
+     */
+    async checkProductView(trigger) {
+      if (!trigger.enabled) {
+        console.log("[Revenue Boost] \u23ED\uFE0F product_view trigger is disabled");
+        return false;
+      }
+      const { isProductPage, productId } = this.getProductContext();
+      if (!isProductPage) {
+        console.log("[Revenue Boost] \u23ED\uFE0F product_view trigger skipped: not a product page");
+        return false;
+      }
+      const configuredIds = Array.isArray(trigger.product_ids) ? trigger.product_ids : [];
+      if (configuredIds.length > 0) {
+        if (!productId) {
+          console.log(
+            "[Revenue Boost] \u274C product_view trigger failed: product_ids configured but current product ID is unknown"
+          );
+          return false;
+        }
+        if (!configuredIds.includes(productId)) {
+          console.log(
+            "[Revenue Boost] \u274C product_view trigger failed: current product not in configured product_ids"
+          );
+          return false;
+        }
+      }
+      const timeOnPageSeconds = trigger.time_on_page ?? 0;
+      const requireScroll = trigger.require_scroll ?? false;
+      const needsTimer = timeOnPageSeconds > 0;
+      const needsScroll = requireScroll;
+      if (!needsTimer && !needsScroll) {
+        console.log("[Revenue Boost] \u2705 product_view trigger passed immediately (no extra conditions)");
+        return true;
+      }
+      console.log(
+        `[Revenue Boost] \u23F1\uFE0F product_view trigger waiting: ${timeOnPageSeconds}s on page, requireScroll=${requireScroll}`
+      );
+      return new Promise((resolve) => {
+        let timerMet = !needsTimer;
+        let scrollMet = !needsScroll;
+        const checkAndResolve = () => {
+          if (timerMet && scrollMet) {
+            console.log("[Revenue Boost] \u2705 product_view trigger conditions met");
+            resolve(true);
+          }
+        };
+        if (needsTimer) {
+          const timeout = window.setTimeout(() => {
+            timerMet = true;
+            checkAndResolve();
+          }, timeOnPageSeconds * 1e3);
+          this.cleanupFunctions.push(() => window.clearTimeout(timeout));
+        }
+        if (needsScroll) {
+          const onScroll = () => {
+            scrollMet = true;
+            window.removeEventListener("scroll", onScroll);
+            checkAndResolve();
+          };
+          window.addEventListener("scroll", onScroll, { passive: true });
+          this.cleanupFunctions.push(() => window.removeEventListener("scroll", onScroll));
+        }
+      });
+    }
+    /**
+     * Get basic product context for the current page
+     * Attempts to detect both page type and Shopify product ID
+     */
+    getProductContext() {
+      const body = document.body;
+      const pathname = window.location.pathname || "";
+      let productId = null;
+      const productEl = document.querySelector("[data-product-id]");
+      if (productEl) {
+        const attr = productEl.getAttribute("data-product-id") || productEl.dataset?.productId || null;
+        const normalized = this.normalizeProductId(attr);
+        if (normalized) productId = normalized;
+      }
+      const win = window;
+      if (!productId && win.ShopifyAnalytics?.meta?.product?.id) {
+        const normalized = this.normalizeProductId(win.ShopifyAnalytics.meta.product.id);
+        if (normalized) productId = normalized;
+      }
+      if (!productId && win.meta?.product?.id) {
+        const normalized = this.normalizeProductId(win.meta.product.id);
+        if (normalized) productId = normalized;
+      }
+      if (!productId && win.product?.id) {
+        const normalized = this.normalizeProductId(win.product.id);
+        if (normalized) productId = normalized;
+      }
+      const isProductPage = pathname.includes("/products/") || body.classList.contains("template-product") || Boolean(productEl) || Boolean(win.product) || Boolean(win.meta?.product) || Boolean(win.ShopifyAnalytics?.meta?.product);
+      return { isProductPage, productId };
+    }
+    /**
+     * Normalize various product ID formats to a Shopify Product GID
+     */
+    normalizeProductId(raw) {
+      if (raw == null) return null;
+      const idStr = String(raw).trim();
+      if (!idStr) return null;
+      if (idStr.startsWith("gid://")) {
+        return idStr;
+      }
+      if (/^\d+$/.test(idStr)) {
+        return `gid://shopify/Product/${idStr}`;
+      }
+      return null;
     }
     /**
      * Check idle timer trigger
@@ -1776,6 +2501,132 @@
         });
         this.idleTimer.start(() => {
           console.log(`[Revenue Boost] \u2705 idle_timer trigger detected: User was idle for ${idleDuration}s`);
+          resolve(true);
+        });
+      });
+    }
+    /**
+     * Check add_to_cart trigger
+     * Waits for a Shopify cart add event before firing.
+     */
+    async checkAddToCart(trigger) {
+      if (!trigger.enabled) {
+        console.log("[Revenue Boost] \u23ED\uFE0F add_to_cart trigger is disabled");
+        return false;
+      }
+      const delaySeconds = trigger.delay ?? 0;
+      const immediate = trigger.immediate ?? false;
+      console.log(
+        `[Revenue Boost] \u{1F6D2} add_to_cart trigger listening for add-to-cart events (delay=${delaySeconds}s, immediate=${immediate})`
+      );
+      return new Promise((resolve) => {
+        this.cartEventListener = new CartEventListener({
+          events: ["add_to_cart"]
+        });
+        this.cartEventListener.start(() => {
+          if (!immediate && delaySeconds > 0) {
+            const delayMs = delaySeconds * 1e3;
+            console.log(
+              `[Revenue Boost] \u{1F6D2} add_to_cart detected, waiting additional ${delaySeconds}s before showing`
+            );
+            const timeout = window.setTimeout(() => {
+              console.log("[Revenue Boost] \u2705 add_to_cart trigger conditions met");
+              resolve(true);
+            }, delayMs);
+            this.cleanupFunctions.push(() => window.clearTimeout(timeout));
+          } else {
+            console.log("[Revenue Boost] \u2705 add_to_cart trigger conditions met");
+            resolve(true);
+          }
+        });
+      });
+    }
+    /**
+     * Check cart_drawer_open trigger
+     */
+    async checkCartDrawerOpen(trigger) {
+      if (!trigger.enabled) {
+        console.log("[Revenue Boost] \u23ED\uFE0F cart_drawer_open trigger is disabled");
+        return false;
+      }
+      const delayMs = trigger.delay ?? 0;
+      console.log(
+        `[Revenue Boost] \u{1F9FA} cart_drawer_open trigger listening for cart drawer events (delay=${delayMs}ms)`
+      );
+      return new Promise((resolve) => {
+        this.cartEventListener = new CartEventListener({
+          events: ["cart_drawer_open"]
+        });
+        this.cartEventListener.start(() => {
+          if (delayMs > 0) {
+            console.log(
+              `[Revenue Boost] \u{1F9FA} cart_drawer_open detected, waiting ${delayMs}ms before showing`
+            );
+            const timeout = window.setTimeout(() => {
+              console.log("[Revenue Boost] \u2705 cart_drawer_open trigger conditions met");
+              resolve(true);
+            }, delayMs);
+            this.cleanupFunctions.push(() => window.clearTimeout(timeout));
+          } else {
+            console.log("[Revenue Boost] \u2705 cart_drawer_open trigger conditions met");
+            resolve(true);
+          }
+        });
+      });
+    }
+    /**
+     * Check cart_value trigger
+     * Uses CartEventListener in cart_update mode with value thresholds.
+     */
+    async checkCartValue(trigger) {
+      if (!trigger.enabled) {
+        console.log("[Revenue Boost] \u23ED\uFE0F cart_value trigger is disabled");
+        return false;
+      }
+      const minCartValue = trigger.min_value ?? trigger.minValue ?? trigger.threshold ?? 0;
+      const maxCartValue = trigger.max_value ?? Infinity;
+      console.log(
+        `[Revenue Boost] \u{1F4B0} cart_value trigger waiting for cart total between ${minCartValue} and ${maxCartValue}`
+      );
+      return new Promise((resolve) => {
+        this.cartEventListener = new CartEventListener({
+          events: ["cart_update"],
+          trackCartValue: true,
+          minCartValue,
+          maxCartValue
+        });
+        this.cartEventListener.start((event) => {
+          if (event.type !== "cart_update") return;
+          console.log("[Revenue Boost] \u2705 cart_value trigger conditions met");
+          resolve(true);
+        });
+      });
+    }
+    /**
+     * Check custom_event trigger
+     * Allows merchants to fire popups via custom DOM events.
+     */
+    async checkCustomEvent(trigger) {
+      if (!trigger.enabled) {
+        console.log("[Revenue Boost] \u23ED\uFE0F custom_event trigger is disabled");
+        return false;
+      }
+      const eventNames = Array.isArray(trigger.event_names) && trigger.event_names.length > 0 ? trigger.event_names : trigger.event_name ? [trigger.event_name] : [];
+      if (eventNames.length === 0) {
+        console.log(
+          "[Revenue Boost] \u23ED\uFE0F custom_event trigger skipped: no event_name or event_names configured"
+        );
+        return false;
+      }
+      console.log("[Revenue Boost] \u{1F3AF} custom_event trigger listening for events:", eventNames);
+      return new Promise((resolve) => {
+        this.customEventHandler = new CustomEventHandler({
+          eventNames
+        });
+        this.customEventHandler.start((event) => {
+          console.log(
+            `[Revenue Boost] \u2705 custom_event trigger fired from event "${event.eventName}"`
+          );
           resolve(true);
         });
       });
@@ -1867,12 +2718,21 @@
     });
     console.log("[Revenue Boost] \u{1F6D2} Cart tracking initialized");
   }
+  function emitCartAddEvents(productId) {
+    try {
+      const detail = { productId };
+      document.dispatchEvent(new CustomEvent("cart:add", { detail }));
+      document.dispatchEvent(new CustomEvent("cart:item-added", { detail }));
+    } catch {
+    }
+  }
   async function trackAddToCart(api, shopDomain, productId) {
     try {
       try {
         window.sessionStorage.setItem("revenue_boost_added_to_cart", "true");
       } catch {
       }
+      emitCartAddEvents(productId);
       await api.trackSocialProofEvent({
         eventType: "add_to_cart",
         productId,
@@ -1936,9 +2796,7 @@
         baseUrl: this.config.apiUrl ? `${this.config.apiUrl}/bundles` : "/apps/revenue-boost/bundles",
         version: Date.now().toString()
       }));
-      __publicField(this, "triggerManager", new TriggerManager());
       __publicField(this, "initialized", false);
-      __publicField(this, "cleanupFn", null);
     }
     log(...args) {
       if (this.config.debug) {
@@ -2020,12 +2878,12 @@
     }
     setupCampaigns(campaigns) {
       const sorted = campaigns.sort((a3, b2) => (b2.priority || 0) - (a3.priority || 0));
-      const available = sorted.filter((campaign2) => {
-        const isPreview = this.config.previewMode && this.config.previewId === campaign2.id;
+      const available = sorted.filter((campaign) => {
+        const isPreview = this.config.previewMode && this.config.previewId === campaign.id;
         if (isPreview) return true;
-        const trackingKey = campaign2.experimentId || campaign2.id;
+        const trackingKey = campaign.experimentId || campaign.id;
         if (session.wasDismissed(trackingKey)) {
-          this.log(`Campaign dismissed by user: ${campaign2.id} (tracking key: ${trackingKey})`);
+          this.log(`Campaign dismissed by user: ${campaign.id} (tracking key: ${trackingKey})`);
           return false;
         }
         return true;
@@ -2034,41 +2892,87 @@
         this.log("No campaigns to display");
         return;
       }
-      const campaign = available[0];
-      this.log("Showing campaign:", campaign.name);
-      if (this.config.previewMode && this.config.previewId === campaign.id) {
-        setTimeout(() => this.showCampaign(campaign), 0);
-      } else {
-        this.showCampaign(campaign);
+      if (this.config.previewMode && this.config.previewId) {
+        const previewCampaign = available.find(
+          (c3) => c3.id === this.config.previewId
+        );
+        if (previewCampaign) {
+          this.log("Preview mode: showing campaign:", previewCampaign.name);
+          setTimeout(() => {
+            void this.showCampaign(previewCampaign);
+          }, 0);
+          return;
+        }
       }
+      const bySurface = {
+        modal: [],
+        banner: [],
+        notification: []
+      };
+      for (const campaign of available) {
+        const surface = this.getSurface(campaign);
+        bySurface[surface].push(campaign);
+      }
+      const selected = [];
+      ["modal", "banner", "notification"].forEach((surface) => {
+        const candidates = bySurface[surface];
+        if (candidates.length > 0) {
+          selected.push(candidates[0]);
+        }
+      });
+      if (selected.length === 0) {
+        this.log("No campaigns selected after surface grouping");
+        return;
+      }
+      this.log(
+        "Selected campaigns by surface:",
+        selected.map((c3) => `${c3.name} [${this.getSurface(c3)}]`)
+      );
+      for (const campaign of selected) {
+        void this.showCampaign(campaign);
+      }
+    }
+    getSurface(campaign) {
+      const templateType = campaign.templateType;
+      const design = campaign.designConfig || {};
+      const displayMode = design.displayMode;
+      if (templateType === "SOCIAL_PROOF") {
+        return "notification";
+      }
+      if (templateType === "FREE_SHIPPING" || templateType === "COUNTDOWN_TIMER" || templateType === "ANNOUNCEMENT" || displayMode === "banner") {
+        return "banner";
+      }
+      return "modal";
     }
     async showCampaign(campaign) {
       const isPreview = this.config.previewMode && this.config.previewId === campaign.id;
       if (isPreview) {
-        this.renderCampaign(campaign);
+        await this.renderCampaign(campaign);
         return;
       }
+      const triggerManager = new TriggerManager();
       this.log("Evaluating triggers for campaign:", campaign.name);
       try {
-        const shouldShow = await this.triggerManager.evaluateTriggers(campaign);
+        const shouldShow = await triggerManager.evaluateTriggers(campaign);
         if (shouldShow) {
           this.log("Triggers passed, showing campaign");
-          this.renderCampaign(campaign);
+          await this.renderCampaign(campaign, triggerManager);
         } else {
           this.log("Triggers not met, campaign not shown");
+          triggerManager.cleanup();
         }
       } catch (error) {
         console.error("[Revenue Boost] Error evaluating triggers:", error);
-        this.renderCampaign(campaign);
+        await this.renderCampaign(campaign, triggerManager);
       }
     }
-    async renderCampaign(campaign) {
+    async renderCampaign(campaign, triggerManager) {
       const isPreview = this.config.previewMode && this.config.previewId === campaign.id;
       if (!isPreview) {
         const trackingKey = campaign.experimentId || campaign.id;
         await this.api.recordFrequency(session.getSessionId(), trackingKey);
       }
-      this.cleanupFn = renderPopup(
+      renderPopup(
         campaign,
         () => {
           this.log("Popup closed");
@@ -2076,8 +2980,9 @@
             const trackingKey = campaign.experimentId || campaign.id;
             session.markDismissed(trackingKey);
           }
-          this.cleanupFn = null;
-          this.triggerManager.cleanup();
+          if (triggerManager) {
+            triggerManager.cleanup();
+          }
         },
         this.loader,
         this.api,

@@ -14,7 +14,7 @@
  */
 
 import React, { useState, useCallback, useEffect } from 'react';
-import { BasePopup } from './BasePopup';
+import { PopupPortal } from './PopupPortal';
 import type { PopupDesignConfig, DiscountConfig } from './types';
 import type { NewsletterContent } from '~/domains/campaigns/types/campaign';
 import { validateEmail, copyToClipboard } from './utils';
@@ -221,8 +221,36 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
     transition: `all ${animDuration}ms cubic-bezier(0.4, 0, 0.2, 1)`,
   };
 
+  // Auto-close timer (migrated from BasePopup)
+  useEffect(() => {
+    if (!isVisible || !config.autoCloseDelay || config.autoCloseDelay <= 0) return;
+
+    const timer = setTimeout(onClose, config.autoCloseDelay * 1000);
+    return () => clearTimeout(timer);
+  }, [isVisible, config.autoCloseDelay, onClose]);
+
+
+  if (!isVisible) return null;
+
   return (
-    <BasePopup config={config} isVisible={isVisible} onClose={onClose}>
+    <PopupPortal
+      isVisible={isVisible}
+      onClose={onClose}
+      backdrop={{
+        color: config.overlayColor || 'rgba(0, 0, 0, 1)',
+        opacity: config.overlayOpacity ?? 0.6,
+        blur: 4,
+      }}
+      animation={{
+        type: config.animation || 'fade',
+      }}
+      position={config.position || 'center'}
+      closeOnEscape={config.closeOnEscape !== false}
+      closeOnBackdropClick={config.closeOnOverlayClick !== false}
+      previewMode={config.previewMode}
+      ariaLabel={config.ariaLabel || config.headline}
+      ariaDescribedBy={config.ariaDescribedBy}
+    >
       <div style={containerStyles}>
         {!isSuccess ? (
           <form onSubmit={(e) => handleSubmit(e as any)} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }} data-testid="newsletter-form">
@@ -593,6 +621,6 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
           to { opacity: 1; transform: translateX(0); }
         }
       `}</style>
-    </BasePopup>
+    </PopupPortal>
   );
 };

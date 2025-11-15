@@ -14,6 +14,7 @@ export interface AnnouncementContent {
   icon?: string;
   ctaUrl?: string;
   buttonText?: string;
+  dismissLabel?: string;
   ctaOpenInNewTab?: boolean;
   colorScheme?: "urgent" | "success" | "info" | "custom";
 }
@@ -111,6 +112,16 @@ export function AnnouncementContentSection({
         checked={content.ctaOpenInNewTab || false}
         helpText="Open CTA link in a new browser tab"
         onChange={(checked) => updateField("ctaOpenInNewTab", checked)}
+      />
+
+      <TextField
+        label="Dismiss Button Text"
+        name="content.dismissLabel"
+        value={content.dismissLabel || ""}
+        error={errors?.dismissLabel}
+        placeholder="No thanks"
+        helpText="Text for the dismiss action that closes the banner"
+        onChange={(value) => updateField("dismissLabel", value)}
       />
 
       <h3>Behavior</h3>

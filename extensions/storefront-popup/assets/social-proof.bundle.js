@@ -276,12 +276,14 @@
           style: {
             ...getPositionStyles(),
             width: "320px",
+            minWidth: "280px",
             maxWidth: "calc(100vw - 40px)",
             background: colors.background,
             color: colors.text,
             borderRadius: "12px",
             boxShadow: "0 10px 40px rgba(0, 0, 0, 0.15), 0 4px 8px rgba(0, 0, 0, 0.1)",
             padding: "16px",
+            paddingRight: "40px",
             cursor: onClick ? "pointer" : "default",
             border: `1px solid ${colors.border}`,
             transition: "transform 0.3s ease-out, opacity 0.3s ease-out"

@@ -6,6 +6,7 @@
 
 import { Text, FormLayout, TextField, Checkbox } from "@shopify/polaris";
 import type { EnhancedTriggerConfig } from "~/domains/targeting/types/enhanced-triggers.types";
+import { ProductPicker, type ProductPickerSelection } from "~/domains/campaigns/components/form";
 import { TriggerCard } from "./TriggerCard";
 
 interface ProductViewTriggerProps {
@@ -19,12 +20,21 @@ export function ProductViewTrigger({ config, onChange }: ProductViewTriggerProps
       ...config,
       product_view: {
         enabled: false,
-        ...(typeof config.product_view === 'object' && config.product_view !== null
+        ...(typeof config.product_view === "object" && config.product_view !== null
           ? config.product_view
           : {}),
         ...updates,
       },
     });
+  };
+
+  const selectedProductIds = Array.isArray(config.product_view?.product_ids)
+    ? config.product_view?.product_ids
+    : [];
+
+  const handleProductSelect = (selections: ProductPickerSelection[]) => {
+    const ids = selections.map((s) => s.id);
+    updateConfig({ product_ids: ids });
   };
 
   return (
@@ -54,6 +64,23 @@ export function ProductViewTrigger({ config, onChange }: ProductViewTriggerProps
           onChange={(checked) => updateConfig({ require_scroll: checked })}
           helpText="Only trigger if customer scrolls on the product page"
         />
+
+        <ProductPicker
+          mode="product"
+          selectionType="multiple"
+          selectedIds={selectedProductIds}
+          onSelect={handleProductSelect}
+          buttonLabel="Select specific products (optional)"
+          showSelected={false}
+        />
+
+        <Text as="p" variant="bodySm" tone="subdued">
+          {selectedProductIds.length > 0
+            ? `This trigger will only fire on ${selectedProductIds.length} selected product${
+                selectedProductIds.length > 1 ? "s" : ""
+              }.`
+            : "Without selected products, this trigger applies on all product pages."}
+        </Text>
       </FormLayout>
     </TriggerCard>
   );

@@ -139,6 +139,19 @@ export const AnnouncementPopup: React.FC<AnnouncementPopupProps> = ({
     transition: 'opacity 0.2s',
   };
 
+  const dismissButtonStyles: React.CSSProperties = {
+    padding: '0 4px',
+    fontSize: '13px',
+    border: 'none',
+    background: 'transparent',
+    color: colors.textColor,
+    cursor: 'pointer',
+    textDecoration: 'underline',
+    whiteSpace: 'nowrap',
+    opacity: 0.9,
+    transition: 'opacity 0.2s',
+  };
+
   const closeButtonStyles: React.CSSProperties = {
     position: 'absolute',
     right: 0,
@@ -186,6 +199,17 @@ export const AnnouncementPopup: React.FC<AnnouncementPopupProps> = ({
               {config.buttonText || config.ctaText}
             </button>
           )}
+
+          {/* Dismiss text button */}
+          <button
+            type="button"
+            onClick={onClose}
+            style={dismissButtonStyles}
+            onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
+            onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.9')}
+          >
+            {config.dismissLabel || 'No thanks'}
+          </button>
         </div>
 
         {/* Close button */}

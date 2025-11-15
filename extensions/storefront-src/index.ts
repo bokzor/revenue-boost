@@ -89,6 +89,8 @@ type ClientCampaign = StorefrontCampaign & {
   [key: string]: unknown;
 };
 
+type Surface = "modal" | "banner" | "notification";
+
 class RevenueBoostApp {
   private config = getConfig();
   private api = new ApiClient(this.config);
@@ -97,9 +99,7 @@ class RevenueBoostApp {
     baseUrl: this.config.apiUrl ? `${this.config.apiUrl}/bundles` : "/apps/revenue-boost/bundles",
     version: Date.now().toString(),
   });
-  private triggerManager = new TriggerManager();
   private initialized = false;
-  private cleanupFn: (() => void) | null = null;
 
   private log(...args: unknown[]) {
     if (this.config.debug) {
@@ -209,7 +209,7 @@ class RevenueBoostApp {
   }
 
   private setupCampaigns(campaigns: ClientCampaign[]): void {
-    // Sort by priority
+    // Sort by priority (highest first)
     const sorted = campaigns.sort((a, b) => (b.priority || 0) - (a.priority || 0));
 
     // Filter dismissed campaigns (except preview mode)
@@ -235,16 +235,83 @@ class RevenueBoostApp {
       return;
     }
 
-    // Show highest priority campaign
-    const campaign = available[0];
-    this.log("Showing campaign:", campaign.name);
-
-    // Preview mode: show immediately
-    if (this.config.previewMode && this.config.previewId === campaign.id) {
-      setTimeout(() => this.showCampaign(campaign), 0);
-    } else {
-      this.showCampaign(campaign);
+    // Preview mode: show only the preview campaign if present
+    if (this.config.previewMode && this.config.previewId) {
+      const previewCampaign = available.find(
+        (c) => c.id === this.config.previewId
+      );
+      if (previewCampaign) {
+        this.log("Preview mode: showing campaign:", previewCampaign.name);
+        setTimeout(() => {
+          void this.showCampaign(previewCampaign);
+        }, 0);
+        return;
+      }
     }
+
+    // Group campaigns by surface so we can show, for example,
+    // a popup + a banner + social proof at the same time.
+    const bySurface: Record<Surface, ClientCampaign[]> = {
+      modal: [],
+      banner: [],
+      notification: [],
+    };
+
+    for (const campaign of available) {
+      const surface = this.getSurface(campaign);
+      bySurface[surface].push(campaign);
+    }
+
+    const selected: ClientCampaign[] = [];
+
+    (["modal", "banner", "notification"] as Surface[]).forEach((surface) => {
+      const candidates = bySurface[surface];
+      if (candidates.length > 0) {
+        // candidates are already in priority order because `available`
+        // was sorted before we grouped.
+        selected.push(candidates[0]);
+      }
+    });
+
+    if (selected.length === 0) {
+      this.log("No campaigns selected after surface grouping");
+      return;
+    }
+
+    this.log(
+      "Selected campaigns by surface:",
+      selected.map((c) => `${c.name} [${this.getSurface(c)}]`)
+    );
+
+    // Fire-and-forget trigger evaluation for each selected campaign
+    for (const campaign of selected) {
+      void this.showCampaign(campaign);
+    }
+  }
+
+  private getSurface(campaign: ClientCampaign): Surface {
+    const templateType = campaign.templateType;
+    const design = (campaign.designConfig || {}) as { displayMode?: string };
+    const displayMode = design.displayMode;
+
+    // Social proof notifications are non-intrusive toasts
+    if (templateType === "SOCIAL_PROOF") {
+      return "notification";
+    }
+
+    // Free-shipping bars, countdown banners, announcements, or anything
+    // explicitly marked as a banner go into the banner surface.
+    if (
+      templateType === "FREE_SHIPPING" ||
+      templateType === "COUNTDOWN_TIMER" ||
+      templateType === "ANNOUNCEMENT" ||
+      displayMode === "banner"
+    ) {
+      return "banner";
+    }
+
+    // Default: modal-style popup
+    return "modal";
   }
 
   private async showCampaign(campaign: ClientCampaign): Promise<void> {
@@ -252,30 +319,36 @@ class RevenueBoostApp {
 
     // Preview mode: show immediately without trigger evaluation
     if (isPreview) {
-      this.renderCampaign(campaign);
+      await this.renderCampaign(campaign);
       return;
     }
+
+    const triggerManager = new TriggerManager();
 
     // Evaluate triggers
     this.log("Evaluating triggers for campaign:", campaign.name);
 
     try {
-      const shouldShow = await this.triggerManager.evaluateTriggers(campaign);
+      const shouldShow = await triggerManager.evaluateTriggers(campaign);
 
       if (shouldShow) {
         this.log("Triggers passed, showing campaign");
-        this.renderCampaign(campaign);
+        await this.renderCampaign(campaign, triggerManager);
       } else {
         this.log("Triggers not met, campaign not shown");
+        triggerManager.cleanup();
       }
     } catch (error) {
       console.error("[Revenue Boost] Error evaluating triggers:", error);
       // Fallback: show campaign anyway
-      this.renderCampaign(campaign);
+      await this.renderCampaign(campaign, triggerManager);
     }
   }
 
-  private async renderCampaign(campaign: ClientCampaign): Promise<void> {
+  private async renderCampaign(
+    campaign: ClientCampaign,
+    triggerManager?: TriggerManager
+  ): Promise<void> {
     const isPreview = this.config.previewMode && this.config.previewId === campaign.id;
 
     // Record frequency for server-side tracking (Redis)
@@ -287,7 +360,7 @@ class RevenueBoostApp {
     }
 
     // Render popup
-    this.cleanupFn = renderPopup(
+    renderPopup(
       campaign,
       () => {
         this.log("Popup closed");
@@ -298,8 +371,9 @@ class RevenueBoostApp {
           session.markDismissed(trackingKey);
         }
 
-        this.cleanupFn = null;
-        this.triggerManager.cleanup();
+        if (triggerManager) {
+          triggerManager.cleanup();
+        }
       },
       this.loader,
       this.api,

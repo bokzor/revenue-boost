@@ -178,7 +178,7 @@
       const debouncedRefresh = debounce(refresh, 300);
       const eventNames = ["cart:update", "cart:change", "cart:updated", "theme:cart:update", "cart:item-added", "cart:add"];
       eventNames.forEach((name) => document.addEventListener(name, debouncedRefresh));
-      if (propCartTotal == null && config.currentCartTotal == null) {
+      if (!config?.previewMode) {
         void refresh();
       }
       const w = window;
@@ -241,11 +241,7 @@
       setIsClaiming(true);
       setClaimError(null);
       try {
-        if (config?.previewMode) {
-          await new Promise((resolve) => setTimeout(resolve, 800));
-          setHasClaimed(true);
-          console.log("[FreeShippingPopup] Preview claim simulated");
-        } else if (onSubmit) {
+        if (onSubmit) {
           const code = await onSubmit({ email });
           if (code) setClaimedDiscountCode(code);
           setHasClaimed(true);
@@ -507,6 +503,29 @@
           opacity: 1;
         }
 
+        .free-shipping-bar-dismiss {
+          margin-left: 0.75rem;
+          padding: 0;
+          border: none;
+          background: transparent;
+          color: inherit;
+          cursor: pointer;
+          text-decoration: underline;
+          font-size: 0.8125rem;
+          white-space: nowrap;
+          opacity: 0.9;
+          transition: opacity 0.15s ease-out;
+        }
+
+        .free-shipping-bar-dismiss:hover {
+          opacity: 1;
+        }
+
+        .free-shipping-bar-dismiss:focus {
+          outline: 2px solid currentColor;
+          outline-offset: 2px;
+        }
+
         .free-shipping-bar-progress {
           position: absolute;
           left: 0;
@@ -630,7 +649,16 @@
                   /* @__PURE__ */ jsx("span", { className: "free-shipping-bar-discount-code", children: claimedDiscountCode || discount.code }),
                   " at checkout."
                 ] }) }) : null),
-                state === "unlocked" && hasClaimed && claimSuccessMessage && /* @__PURE__ */ jsx("p", { className: "free-shipping-bar-discount-text", children: claimSuccessMessage })
+                state === "unlocked" && hasClaimed && claimSuccessMessage && /* @__PURE__ */ jsx("p", { className: "free-shipping-bar-discount-text", children: claimSuccessMessage }),
+                dismissible && /* @__PURE__ */ jsx(
+                  "button",
+                  {
+                    type: "button",
+                    className: "free-shipping-bar-dismiss",
+                    onClick: handleClose,
+                    children: config.dismissLabel || "No thanks"
+                  }
+                )
               ] }),
               dismissible && /* @__PURE__ */ jsx(
                 "button",

@@ -177,6 +177,16 @@ export function SpinToWinContentSection({
         />
       </FormGrid>
 
+      <TextField
+        label="Dismiss Button Text"
+        name="content.dismissLabel"
+        value={content.dismissLabel || ""}
+        error={errors?.dismissLabel}
+        placeholder="No thanks"
+        helpText="Secondary button text that closes the popup"
+        onChange={(value) => updateField("dismissLabel", value)}
+      />
+
       <FormGrid columns={2}>
         <TextField
           label="Success Message"

@@ -31,6 +31,7 @@ export class CartEventListener {
   private callback: CartEventCallback | null = null;
   private active = false;
   private eventHandlers: Map<string, (e: Event) => void> = new Map();
+  private cartJsUnsubscribeFns: Array<() => void> = [];
 
   // Shopify cart event names (different themes use different events)
   private readonly CART_EVENT_MAPPINGS = {
@@ -77,10 +78,13 @@ export class CartEventListener {
     this.callback = callback;
     this.active = true;
 
-    // Listen for each configured event type
+    // Listen for each configured event type via DOM events
     this.config.events.forEach((eventType) => {
       this.listenForEventType(eventType);
     });
+
+    // Also hook into CartJS (cart.js library) when available
+    this.attachCartJsListeners();
   }
 
   /**
@@ -93,11 +97,15 @@ export class CartEventListener {
 
     this.active = false;
 
-    // Remove all event listeners
+    // Remove all DOM event listeners
     this.eventHandlers.forEach((handler, eventName) => {
       document.removeEventListener(eventName, handler);
     });
     this.eventHandlers.clear();
+
+    // Unsubscribe from CartJS integrations
+    this.cartJsUnsubscribeFns.forEach((fn) => fn());
+    this.cartJsUnsubscribeFns = [];
   }
 
   /**
@@ -129,15 +137,12 @@ export class CartEventListener {
   }
 
   /**
-   * Handle cart event
+   * Emit a cart event from a raw detail payload (used by both DOM events and CartJS)
    */
-  private handleCartEvent(eventType: CartEventType, e: Event): void {
+  private emitCartEventFromDetail(eventType: CartEventType, detail: unknown): void {
     if (!this.active || !this.callback) {
       return;
     }
-
-    const customEvent = e as CustomEvent<unknown>;
-    const detail = customEvent.detail;
 
     // Check cart value threshold if tracking is enabled
     if (this.config.trackCartValue && eventType === "cart_update") {
@@ -151,11 +156,69 @@ export class CartEventListener {
       }
     }
 
-    // Trigger callback
     this.callback({
       type: eventType,
       detail,
     });
   }
+
+  /**
+   * Handle cart event from DOM CustomEvent
+   */
+  private handleCartEvent(eventType: CartEventType, e: Event): void {
+    const customEvent = e as CustomEvent<unknown>;
+    this.emitCartEventFromDetail(eventType, customEvent.detail);
+  }
+
+  /**
+   * Integrate with CartJS (open-source cart.js library) when present on the page.
+   * This captures real cart.js events like `item:added` and `cart:updated`.
+   */
+  private attachCartJsListeners(): void {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const w = window as any;
+    const cartJs = w.CartJS;
+
+    if (!cartJs || typeof cartJs.on !== "function") {
+      return;
+    }
+
+    // Map add_to_cart -> CartJS "item:added" event
+    if (this.config.events.includes("add_to_cart")) {
+      const handler = (cart: any, item: any) => {
+        this.emitCartEventFromDetail("add_to_cart", { cart, item });
+      };
+      cartJs.on("item:added", handler);
+
+      if (typeof cartJs.off === "function") {
+        this.cartJsUnsubscribeFns.push(() => cartJs.off("item:added", handler));
+      }
+    }
+
+    // Map cart_update -> CartJS "cart:updated" event and derive a numeric total
+    if (this.config.events.includes("cart_update")) {
+      const handler = (cart: any) => {
+        const total =
+          cart && typeof cart.total_price === "number"
+            ? cart.total_price / 100
+            : undefined;
+
+        this.emitCartEventFromDetail("cart_update", {
+          total,
+          cart,
+        });
+      };
+
+      cartJs.on("cart:updated", handler);
+
+      if (typeof cartJs.off === "function") {
+        this.cartJsUnsubscribeFns.push(() => cartJs.off("cart:updated", handler));
+      }
+    }
+  }
 }
+
 

@@ -317,7 +317,7 @@ The new components address all issues identified in the template analysis:
 
 ```
 popups-new/
-├── BasePopup.tsx              # Base popup wrapper
+├── PopupPortal.tsx            # Shadow DOM popup portal + backdrop
 ├── types.ts                   # Shared TypeScript interfaces
 ├── utils.ts                   # Utility functions
 ├── NewsletterPopup.tsx        # Newsletter component

@@ -167,6 +167,7 @@ export const TEMPLATE_PREVIEW_REGISTRY: Record<string, TemplatePreviewEntry> = {
       subheadline: mergedConfig.subheadline || "Get exclusive offers and updates",
       submitButtonText: mergedConfig.submitButtonText || mergedConfig.buttonText || "Subscribe",
       buttonText: mergedConfig.buttonText || "Subscribe",
+      dismissLabel: mergedConfig.dismissLabel,
       successMessage: mergedConfig.successMessage || "Thank you for subscribing!",
 
       // Email field
@@ -199,40 +200,93 @@ export const TEMPLATE_PREVIEW_REGISTRY: Record<string, TemplatePreviewEntry> = {
 
   [TemplateTypeEnum.FLASH_SALE]: {
     component: FlashSalePopup,
-    buildConfig: (mergedConfig, designConfig): FlashSaleConfig => ({
-      id: "preview-flash-sale",
+    buildConfig: (mergedConfig, designConfig): FlashSaleConfig => {
+      // Discount configuration coming from the admin form (GenericDiscountComponent)
+      const dc = mergedConfig.discountConfig as any | undefined;
 
-      // Base content fields (only those used by FlashSale)
-      headline: mergedConfig.headline || "Flash Sale!",
-      subheadline: mergedConfig.subheadline || "Limited time offer - Don't miss out!",
-      buttonText: mergedConfig.buttonText || "Shop Now",
-      successMessage: mergedConfig.successMessage || "Success!", // Required by BaseContentConfigSchema but not used
-      failureMessage: mergedConfig.failureMessage, // Required by BaseContentConfigSchema but not used
-      ctaText: mergedConfig.ctaText, // Required by BaseContentConfigSchema but not used
+      // Derive a simple percentage from DiscountConfig when applicable
+      const percentFromConfig =
+        dc && dc.valueType === "PERCENTAGE" && typeof dc.value === "number"
+          ? dc.value
+          : undefined;
 
-      // FlashSale-specific content fields
-      urgencyMessage: mergedConfig.urgencyMessage || "Hurry! Sale ends soon!",
-      discountPercentage: mergedConfig.discountPercentage ?? 50,
-      originalPrice: mergedConfig.originalPrice,
-      salePrice: mergedConfig.salePrice,
-      showCountdown: mergedConfig.showCountdown ?? true,
-      endTime: mergedConfig.endTime,
-      countdownDuration: mergedConfig.countdownDuration ?? 3600,
-      hideOnExpiry: mergedConfig.hideOnExpiry ?? true,
-      autoHideOnExpire: mergedConfig.autoHideOnExpire ?? false,
-      showStockCounter: mergedConfig.showStockCounter ?? false,
-      stockMessage: mergedConfig.stockMessage,
-      ctaUrl: mergedConfig.ctaUrl,
+      return {
+        id: "preview-flash-sale",
 
-      // Storefront-specific
-      ctaOpenInNewTab: mergedConfig.ctaOpenInNewTab ?? false,
+        // Base content fields (only those used by FlashSale)
+        headline: mergedConfig.headline || "Flash Sale!",
+        subheadline: mergedConfig.subheadline || "Limited time offer - Don't miss out!",
+        buttonText: mergedConfig.buttonText || "Shop Now",
+        dismissLabel: mergedConfig.dismissLabel,
+        successMessage: mergedConfig.successMessage || "Success!", // Required by BaseContentConfigSchema but not used
+        failureMessage: mergedConfig.failureMessage, // Required by BaseContentConfigSchema but not used
+        ctaText: mergedConfig.ctaText, // Required by BaseContentConfigSchema but not used
 
-      // Design-specific (FlashSale)
-      popupSize: mergedConfig.popupSize || designConfig.popupSize || "wide",
+        // FlashSale-specific content fields
+        urgencyMessage: mergedConfig.urgencyMessage || "Hurry! Sale ends soon!",
+        // Prefer the percentage coming from the admin discountConfig when present,
+        // fall back to contentConfig.discountPercentage, then a sane default.
+        discountPercentage:
+          (typeof percentFromConfig === "number"
+            ? percentFromConfig
+            : typeof mergedConfig.discountPercentage === "number"
+            ? mergedConfig.discountPercentage
+            : undefined) ?? 50,
+        originalPrice: mergedConfig.originalPrice,
+        salePrice: mergedConfig.salePrice,
+        showCountdown: mergedConfig.showCountdown ?? true,
+        endTime: mergedConfig.endTime,
+        countdownDuration: mergedConfig.countdownDuration ?? 3600,
+        hideOnExpiry: mergedConfig.hideOnExpiry ?? true,
+        autoHideOnExpire: mergedConfig.autoHideOnExpire ?? false,
+        showStockCounter: mergedConfig.showStockCounter ?? false,
+        stockMessage: mergedConfig.stockMessage,
+        ctaUrl: mergedConfig.ctaUrl,
 
-      // All common config (colors, typography, layout)
-      ...buildCommonConfig(mergedConfig, designConfig),
-    }),
+        // Enhanced features from content config
+        timer: mergedConfig.timer,
+        inventory: {
+          // Sensible preview defaults so inventory banner shows even before merchant tweaks settings
+          mode: "pseudo",
+          pseudoMax: 50,
+          showOnlyXLeft: true,
+          showThreshold: 10,
+          soldOutBehavior: "hide",
+          ...(mergedConfig.inventory || {}),
+        },
+        reserve: mergedConfig.reserve,
+        presentation: mergedConfig.presentation,
+
+        // Storefront-specific
+        ctaOpenInNewTab: mergedConfig.ctaOpenInNewTab ?? false,
+
+        // Legacy/advanced discount configuration used by FlashSalePopup
+        discountConfig: dc,
+        // Normalized storefront discount summary for preview flows (issueDiscount, etc.)
+        discount: dc
+          ? {
+              enabled: dc.enabled !== false,
+              percentage: percentFromConfig,
+              value: typeof dc.value === "number" ? dc.value : percentFromConfig,
+              type:
+                dc.valueType === "PERCENTAGE"
+                  ? "percentage"
+                  : dc.valueType === "FIXED_AMOUNT"
+                  ? "fixed_amount"
+                  : "free_shipping",
+              code: dc.prefix || "FLASH",
+              deliveryMode: dc.deliveryMode || "show_code_fallback",
+            }
+          : undefined,
+
+        // Design-specific (FlashSale)
+        popupSize: mergedConfig.popupSize || designConfig.popupSize || "wide",
+        displayMode: mergedConfig.displayMode || designConfig.displayMode || "modal",
+
+        // All common config (colors, typography, layout)
+        ...buildCommonConfig(mergedConfig, designConfig),
+      };
+    },
   },
 
   [TemplateTypeEnum.COUNTDOWN_TIMER]: {
@@ -310,6 +364,7 @@ export const TEMPLATE_PREVIEW_REGISTRY: Record<string, TemplatePreviewEntry> = {
       headline: mergedConfig.headline || "Spin to Win!",
       subheadline: mergedConfig.subheadline || "Try your luck for a discount",
       buttonText: mergedConfig.buttonText || "Spin Now",
+      dismissLabel: mergedConfig.dismissLabel,
       successMessage: mergedConfig.successMessage || "Congratulations!",
       failureMessage: mergedConfig.failureMessage,
       ctaText: mergedConfig.ctaText,
@@ -346,6 +401,7 @@ export const TEMPLATE_PREVIEW_REGISTRY: Record<string, TemplatePreviewEntry> = {
       headline: mergedConfig.headline || "Scratch to Reveal Your Discount",
       subheadline: mergedConfig.subheadline || "Everyone wins!",
       buttonText: mergedConfig.buttonText || "Claim Discount",
+      dismissLabel: mergedConfig.dismissLabel,
       successMessage: mergedConfig.successMessage || "Congratulations!",
       failureMessage: mergedConfig.failureMessage,
       ctaText: mergedConfig.ctaText,
@@ -380,6 +436,7 @@ TEMPLATE_PREVIEW_REGISTRY[TemplateTypeEnum.PRODUCT_UPSELL] = {
     headline: mergedConfig.headline || "You Might Also Like",
     subheadline: mergedConfig.subheadline,
     buttonText: mergedConfig.buttonText || "Add to Cart",
+    dismissLabel: mergedConfig.dismissLabel,
     successMessage: mergedConfig.successMessage || "Added to cart!",
     failureMessage: mergedConfig.failureMessage,
     ctaText: mergedConfig.ctaText,
@@ -417,6 +474,7 @@ TEMPLATE_PREVIEW_REGISTRY[TemplateTypeEnum.ANNOUNCEMENT] = {
     headline: mergedConfig.headline || "Important Announcement",
     subheadline: mergedConfig.subheadline || "Check out our latest updates",
     buttonText: mergedConfig.buttonText || "Learn More",
+    dismissLabel: mergedConfig.dismissLabel,
     successMessage: mergedConfig.successMessage || "Success!",
     failureMessage: mergedConfig.failureMessage,
     ctaText: mergedConfig.ctaText,
@@ -448,6 +506,7 @@ TEMPLATE_PREVIEW_REGISTRY[TemplateTypeEnum.FREE_SHIPPING] = {
     unlockedMessage: mergedConfig.unlockedMessage || "You've unlocked free shipping! 🎉",
     barPosition: mergedConfig.barPosition || "top", // Use barPosition instead of position
     dismissible: mergedConfig.dismissible ?? true,
+    dismissLabel: mergedConfig.dismissLabel,
     showIcon: mergedConfig.showIcon ?? true,
     celebrateOnUnlock: mergedConfig.celebrateOnUnlock ?? true,
     animationDuration: mergedConfig.animationDuration ?? 500,
@@ -492,6 +551,7 @@ TEMPLATE_PREVIEW_REGISTRY[TemplateTypeEnum.CART_ABANDONMENT] = {
     stockWarningMessage: mergedConfig.stockWarningMessage,
     ctaUrl: mergedConfig.ctaUrl,
     saveForLaterText: mergedConfig.saveForLaterText,
+    dismissLabel: mergedConfig.dismissLabel,
     currency: mergedConfig.currency || "USD",
 
     // All common config (colors, typography, layout)

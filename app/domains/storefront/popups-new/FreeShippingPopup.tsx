@@ -181,8 +181,8 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
     const eventNames = ['cart:update','cart:change','cart:updated','theme:cart:update','cart:item-added','cart:add'];
     eventNames.forEach((name) => document.addEventListener(name, debouncedRefresh as any));
 
-    // Initial sync if no initial cart total was provided
-    if (propCartTotal == null && config.currentCartTotal == null) {
+    // Always perform an initial sync from /cart.js so we include any existing cart items
+    if (!(config as any)?.previewMode) {
       void refresh();
     }
 
@@ -260,11 +260,7 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
     setClaimError(null);
 
     try {
-      if ((config as any)?.previewMode) {
-        await new Promise((resolve) => setTimeout(resolve, 800));
-        setHasClaimed(true);
-        console.log('[FreeShippingPopup] Preview claim simulated');
-      } else if (onSubmit) {
+      if (onSubmit) {
         const code = await onSubmit({ email });
         if (code) setClaimedDiscountCode(code);
         setHasClaimed(true);
@@ -543,6 +539,29 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
           opacity: 1;
         }
 
+        .free-shipping-bar-dismiss {
+          margin-left: 0.75rem;
+          padding: 0;
+          border: none;
+          background: transparent;
+          color: inherit;
+          cursor: pointer;
+          text-decoration: underline;
+          font-size: 0.8125rem;
+          white-space: nowrap;
+          opacity: 0.9;
+          transition: opacity 0.15s ease-out;
+        }
+
+        .free-shipping-bar-dismiss:hover {
+          opacity: 1;
+        }
+
+        .free-shipping-bar-dismiss:focus {
+          outline: 2px solid currentColor;
+          outline-offset: 2px;
+        }
+
         .free-shipping-bar-progress {
           position: absolute;
           left: 0;
@@ -681,6 +700,16 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
 
             {state === "unlocked" && hasClaimed && claimSuccessMessage && (
               <p className="free-shipping-bar-discount-text">{claimSuccessMessage}</p>
+            )}
+
+            {dismissible && (
+              <button
+                type="button"
+                className="free-shipping-bar-dismiss"
+                onClick={handleClose}
+              >
+                {config.dismissLabel || 'No thanks'}
+              </button>
             )}
           </div>
 

@@ -1,6 +1,6 @@
 /**
  * CartAbandonmentPopup Component
- * 
+ *
  * Cart recovery popup featuring:
  * - Display cart items with images and prices
  * - Show cart total
@@ -12,7 +12,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { BasePopup } from './BasePopup';
+import { PopupPortal } from './PopupPortal';
 import type { PopupDesignConfig, CartItem, DiscountConfig } from './types';
 import type { CartAbandonmentContent } from '~/domains/campaigns/types/campaign';
 import { calculateTimeRemaining, formatCurrency } from './utils';
@@ -89,7 +89,7 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
     onClose();
   }, [onSaveForLater, onClose]);
 
-  const displayItems = config.maxItemsToShow 
+  const displayItems = config.maxItemsToShow
     ? cartItems.slice(0, config.maxItemsToShow)
     : cartItems;
 
@@ -114,8 +114,50 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
     opacity: 0.7,
   };
 
+  const dismissButtonStyles: React.CSSProperties = {
+    background: 'transparent',
+    border: 'none',
+    padding: 0,
+    marginTop: '4px',
+    color: config.textColor,
+    fontSize: '14px',
+    opacity: 0.7,
+    cursor: 'pointer',
+    textDecoration: 'underline',
+    alignSelf: 'center',
+    transition: 'opacity 0.15s ease-out',
+  };
+
+  // Auto-close timer (migrated from BasePopup)
+  useEffect(() => {
+    if (!isVisible || !config.autoCloseDelay || config.autoCloseDelay <= 0) return;
+
+    const timer = setTimeout(onClose, config.autoCloseDelay * 1000);
+    return () => clearTimeout(timer);
+  }, [isVisible, config.autoCloseDelay, onClose]);
+
+
+  if (!isVisible) return null;
+
   return (
-    <BasePopup config={config} isVisible={isVisible} onClose={onClose}>
+    <PopupPortal
+      isVisible={isVisible}
+      onClose={onClose}
+      backdrop={{
+        color: config.overlayColor || 'rgba(0, 0, 0, 1)',
+        opacity: config.overlayOpacity ?? 0.6,
+        blur: 4,
+      }}
+      animation={{
+        type: config.animation || 'fade',
+      }}
+      position={config.position || 'center'}
+      closeOnEscape={config.closeOnEscape !== false}
+      closeOnBackdropClick={config.closeOnOverlayClick !== false}
+      previewMode={config.previewMode}
+      ariaLabel={config.ariaLabel || config.headline}
+      ariaDescribedBy={config.ariaDescribedBy}
+    >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
         {/* Headline */}
         <div style={{ textAlign: 'center' }}>
@@ -131,24 +173,24 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
 
         {/* Urgency timer */}
         {config.showUrgency && config.urgencyTimer && timeRemaining.total > 0 && (
-          <div style={{ 
-            padding: '16px', 
-            backgroundColor: '#FEF3C7', 
+          <div style={{
+            padding: '16px',
+            backgroundColor: '#FEF3C7',
             color: '#92400E',
             borderRadius: '8px',
             textAlign: 'center',
             fontWeight: 600,
           }}>
-            {config.urgencyMessage?.replace('{{time}}', `${timeRemaining.minutes}:${String(timeRemaining.seconds).padStart(2, '0')}`) 
+            {config.urgencyMessage?.replace('{{time}}', `${timeRemaining.minutes}:${String(timeRemaining.seconds).padStart(2, '0')}`)
               || `Complete your order in ${timeRemaining.minutes}:${String(timeRemaining.seconds).padStart(2, '0')}`}
           </div>
         )}
 
         {/* Discount offer */}
         {config.discount?.enabled && config.discount.code && (
-          <div style={{ 
-            padding: '16px', 
-            backgroundColor: config.accentColor || '#DBEAFE', 
+          <div style={{
+            padding: '16px',
+            backgroundColor: config.accentColor || '#DBEAFE',
             borderRadius: '8px',
             textAlign: 'center',
           }}>
@@ -159,7 +201,7 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
               {config.discount.percentage && `${config.discount.percentage}% OFF`}
               {config.discount.value && `$${config.discount.value} OFF`}
             </div>
-            <code style={{ 
+            <code style={{
               display: 'inline-block',
               marginTop: '8px',
               padding: '6px 12px',
@@ -176,31 +218,31 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
 
         {/* Cart items */}
         {config.showCartItems !== false && displayItems.length > 0 && (
-          <div style={{ 
-            maxHeight: '300px', 
+          <div style={{
+            maxHeight: '300px',
             overflowY: 'auto',
             border: `1px solid ${config.inputBorderColor || '#E5E7EB'}`,
             borderRadius: '8px',
             padding: '12px',
           }}>
             {displayItems.map((item) => (
-              <div 
+              <div
                 key={item.id}
-                style={{ 
-                  display: 'flex', 
-                  gap: '12px', 
+                style={{
+                  display: 'flex',
+                  gap: '12px',
                   padding: '12px 0',
                   borderBottom: `1px solid ${config.inputBorderColor || '#E5E7EB'}`,
                 }}
               >
                 {item.imageUrl && (
-                  <img 
-                    src={item.imageUrl} 
+                  <img
+                    src={item.imageUrl}
                     alt={item.title}
-                    style={{ 
-                      width: '60px', 
-                      height: '60px', 
-                      objectFit: 'cover', 
+                    style={{
+                      width: '60px',
+                      height: '60px',
+                      objectFit: 'cover',
                       borderRadius: '6px',
                     }}
                   />
@@ -218,7 +260,7 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
                 </div>
               </div>
             ))}
-            
+
             {cartItems.length > displayItems.length && (
               <div style={{ padding: '12px 0', textAlign: 'center', fontSize: '14px', opacity: 0.7 }}>
                 +{cartItems.length - displayItems.length} more item{cartItems.length - displayItems.length !== 1 ? 's' : ''}
@@ -229,9 +271,9 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
 
         {/* Cart total */}
         {config.showCartTotal !== false && cartTotal && (
-          <div style={{ 
-            display: 'flex', 
-            justifyContent: 'space-between', 
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
             alignItems: 'center',
             padding: '16px',
             backgroundColor: config.accentColor || '#F3F4F6',
@@ -246,9 +288,9 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
 
         {/* Stock warning */}
         {config.showStockWarnings && (
-          <div style={{ 
-            padding: '12px', 
-            backgroundColor: '#FEE2E2', 
+          <div style={{
+            padding: '12px',
+            backgroundColor: '#FEE2E2',
             color: '#991B1B',
             borderRadius: '6px',
             fontSize: '14px',
@@ -269,7 +311,7 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
           >
             {config.buttonText || config.ctaText || 'Resume Checkout'}
           </button>
-          
+
           {config.saveForLaterText && (
             <button
               onClick={handleSaveForLater}
@@ -280,9 +322,19 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
               {config.saveForLaterText}
             </button>
           )}
+
+          <button
+            type="button"
+            onClick={onClose}
+            style={dismissButtonStyles}
+            onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
+            onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.7')}
+          >
+            {config.dismissLabel || 'No thanks'}
+          </button>
         </div>
       </div>
-    </BasePopup>
+    </PopupPortal>
   );
 };
 

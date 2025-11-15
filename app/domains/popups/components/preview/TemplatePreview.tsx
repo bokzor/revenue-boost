@@ -17,6 +17,14 @@ import React, {
 import { TemplateTypeEnum } from "~/lib/template-types.enum";
 import type { SocialProofNotification as PreviewSocialProofNotification } from "~/domains/storefront/popups-new";
 import { getTemplatePreviewEntry } from "./template-preview-registry";
+import type {
+  FlashSaleConfig,
+  FreeShippingConfig,
+  NewsletterConfig,
+  NewsletterFormData,
+  ProductUpsellConfig,
+} from "~/domains/storefront/popups-new";
+
 
 export interface TemplatePreviewProps {
   templateType?: string;
@@ -238,6 +246,191 @@ const TemplatePreviewComponent = forwardRef<
   // Render the appropriate component with its config
   const PreviewComponent = previewEntry.component;
   const componentConfig = previewEntry.buildConfig(mergedConfig, designConfig);
+
+  // Special handling for Newsletter: provide a mocked submit callback that returns a preview discount code
+  if (templateType === TemplateTypeEnum.NEWSLETTER) {
+    const newsletterConfig = componentConfig as NewsletterConfig;
+
+    const previewOnSubmit = async (
+      _data: NewsletterFormData,
+    ): Promise<string | undefined> => {
+      const discountEnabled = newsletterConfig.discount?.enabled === true;
+
+      // Simulate network delay so merchants see loading states
+      await new Promise((resolve) => setTimeout(resolve, 400));
+
+      if (!discountEnabled) {
+        // No discount incentive configured for this campaign; behave like a plain
+        // newsletter signup with no code.
+        return undefined;
+      }
+
+      const pct =
+        typeof newsletterConfig.discount?.percentage === "number"
+          ? newsletterConfig.discount.percentage
+          : typeof newsletterConfig.discount?.value === "number"
+          ? newsletterConfig.discount.value
+          : 10;
+
+      const baseCode = newsletterConfig.discount?.code || "WELCOME10";
+      const suffix = Number.isFinite(pct) ? `-${Math.round(pct)}` : "";
+      const code = `${baseCode}${suffix}`;
+
+      return code;
+    };
+
+    return (
+      <PreviewContainer>
+        <div
+          ref={setPreviewElementRef}
+          data-popup-preview
+          style={{ display: "contents" }}
+        >
+          <PreviewComponent
+            config={newsletterConfig}
+            isVisible={true}
+            onClose={() => {}}
+            onSubmit={previewOnSubmit}
+          />
+        </div>
+      </PreviewContainer>
+    );
+  }
+
+  // Special handling for Flash Sale: provide a mocked discount issuing callback
+  if (templateType === TemplateTypeEnum.FLASH_SALE) {
+    const flashConfig = componentConfig as FlashSaleConfig;
+
+    const previewIssueDiscount = async (
+      options?: { cartSubtotalCents?: number },
+    ): Promise<{ code?: string; autoApplyMode?: string } | null> => {
+      const pct =
+        typeof flashConfig.discountPercentage === "number"
+          ? flashConfig.discountPercentage
+          : 20;
+      const baseCode = flashConfig.discount?.code || "FLASH-PREVIEW";
+      const suffix = Number.isFinite(pct) ? `-${Math.round(pct)}` : "";
+      const code = `${baseCode}${suffix}`;
+
+      // Simulate network delay so merchants see loading states
+      await new Promise((resolve) => setTimeout(resolve, 400));
+      return { code, autoApplyMode: "ajax" };
+    };
+
+    return (
+      <PreviewContainer>
+        <div
+          ref={setPreviewElementRef}
+          data-popup-preview
+          style={{ display: "contents" }}
+        >
+          <PreviewComponent
+            config={flashConfig}
+            isVisible={true}
+            onClose={() => {}}
+            issueDiscount={previewIssueDiscount}
+          />
+        </div>
+      </PreviewContainer>
+    );
+  }
+
+  // Special handling for Free Shipping: provide mocked cart totals and discount issuance
+  if (templateType === TemplateTypeEnum.FREE_SHIPPING) {
+    const freeShippingConfig = componentConfig as FreeShippingConfig;
+
+    const threshold =
+      typeof freeShippingConfig.threshold === "number" &&
+      freeShippingConfig.threshold > 0
+        ? freeShippingConfig.threshold
+        : 75;
+
+    const nearMiss =
+      typeof freeShippingConfig.nearMissThreshold === "number" &&
+      freeShippingConfig.nearMissThreshold > 0
+        ? freeShippingConfig.nearMissThreshold
+        : 10;
+
+    // Start slightly above the threshold so the bar is unlocked and the
+    // discount issuance flow can be exercised reliably in preview.
+    const previewCartTotal =
+      typeof freeShippingConfig.currentCartTotal === "number"
+        ? freeShippingConfig.currentCartTotal
+        : threshold + nearMiss;
+
+    const baseCode = freeShippingConfig.discount?.code || "FREESHIP";
+    const amount = Math.round(threshold);
+    const previewCode = `${baseCode}-${amount}`;
+
+    const previewIssueDiscount = async (
+      _options?: { cartSubtotalCents?: number },
+    ): Promise<{ code?: string; autoApplyMode?: string } | null> => {
+      await new Promise((resolve) => setTimeout(resolve, 400));
+      return { code: previewCode, autoApplyMode: "ajax" };
+    };
+
+    const previewOnSubmit = async (
+      _data: { email: string },
+    ): Promise<string | undefined> => {
+      await new Promise((resolve) => setTimeout(resolve, 400));
+      return previewCode;
+    };
+
+    const configWithCart: FreeShippingConfig = {
+      ...freeShippingConfig,
+      currentCartTotal: previewCartTotal,
+    };
+
+    return (
+      <PreviewContainer>
+        <div
+          ref={setPreviewElementRef}
+          data-popup-preview
+          style={{ display: "contents" }}
+        >
+          <PreviewComponent
+            config={configWithCart}
+            isVisible={true}
+            onClose={() => {}}
+            cartTotal={previewCartTotal}
+            issueDiscount={previewIssueDiscount}
+            onSubmit={previewOnSubmit}
+          />
+        </div>
+      </PreviewContainer>
+    );
+  }
+
+  // Special handling for Product Upsell: provide a mocked add-to-cart callback
+  if (templateType === TemplateTypeEnum.PRODUCT_UPSELL) {
+    const upsellConfig = componentConfig as ProductUpsellConfig;
+
+    const previewOnAddToCart = async (
+      productIds: string[],
+    ): Promise<void> => {
+      console.log("[TemplatePreview][ProductUpsell] Preview add to cart", {
+        productIds,
+      });
+      await new Promise((resolve) => setTimeout(resolve, 400));
+    };
+
+    return (
+      <PreviewContainer>
+        <div
+          ref={setPreviewElementRef}
+          data-popup-preview
+          style={{ display: "contents" }}
+        >
+          <PreviewComponent
+            config={upsellConfig}
+            isVisible={true}
+            onClose={() => {}}
+            onAddToCart={previewOnAddToCart}
+          />
+        </div>
+      </PreviewContainer>
+    );
+  }
 
   // Special handling for Social Proof preview: inject mock notifications and
   // disable per-session limits so merchants can see all enabled types.

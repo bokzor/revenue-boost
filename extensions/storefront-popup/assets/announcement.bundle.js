@@ -525,16 +525,16 @@
       if (!validateForm()) return;
       setIsSubmitting(true);
       try {
-        if (config.previewMode) {
-          await new Promise((resolve) => setTimeout(resolve, 1500));
-          setIsSubmitted(true);
-        } else if (onSubmit) {
+        if (onSubmit) {
           const code = await onSubmit({
             email,
             name: collectName ? name : void 0,
             gdprConsent
           });
-          if (code) setGeneratedDiscountCode(code);
+          const discountEnabled = config.discount?.enabled === true;
+          if (code && discountEnabled) {
+            setGeneratedDiscountCode(code);
+          }
           setIsSubmitted(true);
         } else {
           setIsSubmitted(true);
@@ -784,6 +784,21 @@
           cursor: not-allowed;
         }
 
+        .email-popup-secondary-button {
+          margin-top: 0.75rem;
+          width: 100%;
+          background: transparent;
+          border: none;
+          color: ${config.descriptionColor || "#6b7280"};
+          font-size: 0.875rem;
+          font-weight: 500;
+          cursor: pointer;
+        }
+
+        .email-popup-secondary-button:hover {
+          text-decoration: underline;
+        }
+
         .email-popup-success {
           text-align: center;
           padding: 2rem 0;
@@ -1022,6 +1037,16 @@
                             /* @__PURE__ */ jsx("div", { className: "email-popup-spinner" }),
                             "Subscribing..."
                           ] }) : buttonText
+                        }
+                      ),
+                      /* @__PURE__ */ jsx(
+                        "button",
+                        {
+                          type: "button",
+                          className: "email-popup-secondary-button",
+                          onClick: onClose,
+                          disabled: isSubmitting,
+                          children: config.dismissLabel || "No thanks"
                         }
                       )
                     ] })

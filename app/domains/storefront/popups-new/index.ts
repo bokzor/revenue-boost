@@ -14,7 +14,6 @@
  */
 
 // Base components
-export { BasePopup } from './BasePopup'; // @deprecated - Use PopupPortal instead
 export { PopupPortal } from './PopupPortal';
 export type {
   PopupPortalProps,

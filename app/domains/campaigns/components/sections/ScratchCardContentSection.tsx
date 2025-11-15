@@ -74,6 +74,16 @@ export function ScratchCardContentSection({ content, errors, onChange }: Scratch
           <TextField label="Email Label" name="content.emailLabel" value={content.emailLabel || ""} placeholder="Email" onChange={(v) => updateField("emailLabel", v)} />
         </FormGrid>
 
+        <TextField
+          label="Dismiss Button Text"
+          name="content.dismissLabel"
+          value={content.dismissLabel || ""}
+          error={errors?.dismissLabel}
+          placeholder="No thanks"
+          helpText="Secondary button text that closes the popup"
+          onChange={(v) => updateField("dismissLabel", v)}
+        />
+
         <FormGrid columns={2}>
           <TextField label="Email Placeholder" name="content.emailPlaceholder" value={content.emailPlaceholder || "Enter your email"} placeholder="Enter your email" onChange={(v) => updateField("emailPlaceholder", v)} />
           <CheckboxField label="Require Email" name="content.emailRequired" checked={content.emailRequired !== false} helpText="Ask for email before proceeding" onChange={(c) => updateField("emailRequired", c)} />
