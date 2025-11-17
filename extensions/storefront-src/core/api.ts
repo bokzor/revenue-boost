@@ -6,6 +6,7 @@ export interface ApiConfig {
   apiUrl: string;
   shopDomain: string;
   debug?: boolean;
+  previewId?: string;
 }
 
 export interface FetchCampaignsResponse {
@@ -53,6 +54,11 @@ export class ApiClient {
       ...context,
     });
 
+    // Include previewId when present so the server can return the requested campaign
+    if (this.config.previewId) {
+      params.set("previewId", this.config.previewId);
+    }
+
     const url = `${this.getApiUrl("/api/campaigns/active")}?${params.toString()}`;
 
     this.log("Fetching campaigns from:", url);
@@ -90,6 +96,36 @@ export class ApiClient {
       pageType,
       deviceType: this.detectDeviceType(),
     };
+
+    // Enrich with product and collection context from REVENUE_BOOST_CONFIG when available
+    try {
+      type W = typeof window & {
+        REVENUE_BOOST_CONFIG?: {
+          productId?: string;
+          productHandle?: string;
+          productType?: string;
+          productVendor?: string;
+          productTags?: string[];
+          collectionId?: string;
+          collectionHandle?: string;
+        };
+      };
+      const w = window as unknown as W;
+      const cfg = w.REVENUE_BOOST_CONFIG || {};
+
+      if (cfg.productId) context.productId = String(cfg.productId);
+      if (cfg.productHandle) context.productHandle = String(cfg.productHandle);
+      if (cfg.productType) context.productType = String(cfg.productType);
+      if (cfg.productVendor) context.productVendor = String(cfg.productVendor);
+      if (Array.isArray(cfg.productTags) && cfg.productTags.length > 0) {
+        context.productTags = cfg.productTags.join(",");
+      }
+
+      if (cfg.collectionId) context.collectionId = String(cfg.collectionId);
+      if (cfg.collectionHandle) context.collectionHandle = String(cfg.collectionHandle);
+    } catch {
+      // Ignore errors reading REVENUE_BOOST_CONFIG
+    }
 
     // Add visitor ID if available
     if (visitorId) {
@@ -301,6 +337,57 @@ export class ApiClient {
     }
   }
 
+  async emailRecovery(data: {
+    campaignId: string;
+    email: string;
+    cartSubtotalCents?: number;
+  }): Promise<{
+    success: boolean;
+    discountCode?: string;
+    deliveryMode?: string;
+    autoApplyMode?: string;
+    message?: string;
+    error?: string;
+  }> {
+    const params = new URLSearchParams({
+      shop: this.config.shopDomain,
+    });
+
+    const url = `${this.getApiUrl("/api/cart/email-recovery")}?${params.toString()}`;
+
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      });
+
+      const result = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error((result as any).error || `HTTP ${response.status}`);
+      }
+
+      this.log("Cart email recovery success:", result);
+
+      return {
+        success: true,
+        discountCode: (result as any).discountCode,
+        deliveryMode: (result as any).deliveryMode,
+        autoApplyMode: (result as any).autoApplyMode,
+        message: (result as any).message,
+      };
+    } catch (error) {
+      console.error("[Revenue Boost API] Failed to perform email recovery:", error);
+      return {
+        success: false,
+        error:
+          error instanceof Error ? error.message : "Failed to perform email recovery",
+      };
+    }
+  }
 
   async recordFrequency(sessionId: string, campaignId: string): Promise<void> {
     const url = this.getApiUrl("/api/analytics/frequency");

@@ -4,8 +4,8 @@
   if (typeof window === "undefined" || !window.RevenueBoostPreact) {
     throw new Error("RevenueBoostPreact not found. Make sure main bundle is loaded first.");
   }
-  var { h, Component, Fragment, render, createPortal } = window.RevenueBoostPreact;
-  var { useState, useEffect, useCallback, useRef, useMemo } = window.RevenueBoostPreact.hooks;
+  var { h, Component, Fragment, render, createPortal, createContext } = window.RevenueBoostPreact;
+  var { useState, useEffect, useCallback, useRef, useMemo, useContext, useDebugValue } = window.RevenueBoostPreact.hooks;
 
   // global-preact:global-preact:react-dom
   if (typeof window === "undefined" || !window.RevenueBoostPreact) {
@@ -330,6 +330,9 @@
       display: flex;
       align-items: ${alignMap[position]};
       justify-content: ${justifyMap[position]};
+      /* Enable container queries for popup content (e.g. mobile full-width layouts) */
+      container-type: inline-size;
+      container-name: viewport;
     }
 
     /* Fade animations */
@@ -465,6 +468,30 @@
   }
 
   // app/domains/storefront/popups-new/utils.ts
+  function getSizeDimensions(size, previewMode) {
+    if (previewMode) {
+      switch (size) {
+        case "small":
+          return { width: "50%", maxWidth: "400px" };
+        case "medium":
+          return { width: "65%", maxWidth: "600px" };
+        case "large":
+          return { width: "80%", maxWidth: "900px" };
+        default:
+          return { width: "65%", maxWidth: "600px" };
+      }
+    }
+    switch (size) {
+      case "small":
+        return { width: "90%", maxWidth: "400px" };
+      case "medium":
+        return { width: "90%", maxWidth: "600px" };
+      case "large":
+        return { width: "90%", maxWidth: "900px" };
+      default:
+        return { width: "90%", maxWidth: "600px" };
+    }
+  }
   function formatCurrency(amount, currency = "USD") {
     const numAmount = typeof amount === "string" ? parseFloat(amount) : amount;
     const raw = (currency || "").trim();
@@ -587,6 +614,19 @@
       const savings2 = calculateSavings();
       return savings2 ? total2 - savings2 : total2;
     }, [calculateTotal, calculateSavings]);
+    const handleContentWheel = useCallback(
+      (event) => {
+        const container = event.currentTarget;
+        const { scrollTop, scrollHeight, clientHeight } = container;
+        const deltaY = event.deltaY;
+        const atTop = scrollTop <= 0;
+        const atBottom = scrollTop + clientHeight >= scrollHeight - 1;
+        if (deltaY < 0 && !atTop || deltaY > 0 && !atBottom) {
+          event.stopPropagation();
+        }
+      },
+      []
+    );
     const handlePrevSlide = useCallback(() => {
       if (displayProducts.length === 0) return;
       setCurrentSlide((prev) => (prev - 1 + displayProducts.length) % displayProducts.length);
@@ -606,6 +646,9 @@
     const textColor = config.textColor || "#111827";
     const secondaryColor = config.inputBackgroundColor || "#F3F4F6";
     const borderColor = config.inputBorderColor || "rgba(148, 163, 184, 0.5)";
+    const baseBackground = config.backgroundColor || "#FFFFFF";
+    const backgroundStyles = baseBackground.startsWith("linear-gradient(") ? { backgroundImage: baseBackground, backgroundColor: "transparent" } : { backgroundColor: baseBackground };
+    const { width: sizeWidth, maxWidth: sizeMaxWidth } = getSizeDimensions(config.size || "medium", config.previewMode);
     const renderProduct = (product, index) => {
       const isSelected = selectedProducts.has(product.id);
       const isHovered = hoveredProduct === product.id;
@@ -615,7 +658,7 @@
         padding: "0",
         cursor: "pointer",
         transition: `all ${animDuration}ms cubic-bezier(0.4, 0, 0.2, 1)`,
-        backgroundColor: config.backgroundColor || "#FFFFFF",
+        ...backgroundStyles,
         boxShadow: isSelected ? `0 8px 24px ${accentColor}30, 0 0 0 3px ${accentColor}15` : isHovered ? "0 8px 24px rgba(0,0,0,0.12)" : "0 2px 8px rgba(0,0,0,0.08)",
         transform: isSelected ? "scale(1.02)" : isHovered ? "translateY(-4px)" : "translateY(0)",
         overflow: "hidden",
@@ -1049,7 +1092,7 @@
                     border: `2px solid ${isSelected ? accentColor : config.inputBorderColor || "#E5E7EB"}`,
                     borderRadius,
                     padding: "12px 16px",
-                    backgroundColor: config.backgroundColor || "#FFFFFF"
+                    ...backgroundStyles
                   },
                   children: [
                     config.showImages !== false && product.imageUrl && /* @__PURE__ */ jsxs(
@@ -1203,8 +1246,8 @@
     };
     const buttonStyles = {
       flex: 1,
-      padding: "16px 24px",
-      fontSize: "16px",
+      padding: "10px 14px",
+      fontSize: "14px",
       fontWeight: 700,
       border: "none",
       borderRadius: `${borderRadius}px`,
@@ -1218,7 +1261,7 @@
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      gap: "10px"
+      gap: "8px"
     };
     const savings = calculateSavings();
     const total = calculateTotal();
@@ -1226,7 +1269,7 @@
     const popupConfig = {
       ...config,
       padding: 0,
-      maxWidth: config.maxWidth || "56rem"
+      maxWidth: config.maxWidth || sizeMaxWidth || "56rem"
     };
     useEffect(() => {
       if (!isVisible || !popupConfig.autoCloseDelay || popupConfig.autoCloseDelay <= 0) return;
@@ -1265,166 +1308,49 @@
                 opacity: showContent ? 1 : 0,
                 transform: showContent ? "translateY(0)" : "translateY(10px)",
                 transition: `all ${animDuration}ms cubic-bezier(0.4, 0, 0.2, 1)`,
-                backgroundColor: config.backgroundColor || "#FFFFFF",
-                borderRadius: `${borderRadius}px`
+                ...backgroundStyles,
+                borderRadius: `${borderRadius}px`,
+                // Expose design tokens as CSS variables so css can mirror the mock precisely
+                "--upsell-bg": baseBackground,
+                "--upsell-text": textColor,
+                "--upsell-primary": accentColor,
+                "--upsell-secondary": secondaryColor,
+                "--upsell-accent": accentColor,
+                "--upsell-border": borderColor,
+                "--upsell-success": config.successColor || accentColor || "#10B981",
+                "--upsell-badge": accentColor
               },
               children: [
-                /* @__PURE__ */ jsxs(
-                  "div",
-                  {
-                    style: {
-                      padding: "48px 32px 32px",
-                      textAlign: "center",
-                      borderBottom: `1px solid ${borderColor}`
-                    },
-                    children: [
-                      /* @__PURE__ */ jsx(
-                        "h2",
-                        {
-                          style: {
-                            fontSize: "30px",
-                            fontWeight: 800,
-                            margin: "0 0 8px 0",
-                            lineHeight: 1.2,
-                            color: textColor,
-                            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                            letterSpacing: "-0.02em"
-                          },
-                          children: config.headline
-                        }
-                      ),
-                      config.subheadline && /* @__PURE__ */ jsx(
-                        "p",
-                        {
-                          style: {
-                            fontSize: "16px",
-                            margin: 0,
-                            color: textColor,
-                            opacity: 0.7,
-                            lineHeight: 1.5,
-                            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-                          },
-                          children: config.subheadline
-                        }
-                      )
-                    ]
-                  }
-                ),
-                config.bundleDiscount && selectedProducts.size >= 2 && /* @__PURE__ */ jsxs("div", { style: {
-                  padding: "20px",
-                  background: `linear-gradient(135deg, ${accentColor}20 0%, ${accentColor}10 100%)`,
-                  borderRadius: `${borderRadius}px`,
-                  border: `2px solid ${accentColor}30`,
-                  textAlign: "center",
-                  animation: "slideIn 0.4s ease-out"
-                }, children: [
-                  /* @__PURE__ */ jsx("div", { style: {
-                    fontSize: "14px",
-                    fontWeight: 700,
-                    color: config.textColor || "#374151",
-                    marginBottom: "8px",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.05em"
-                  }, children: "\u{1F389} Bundle Deal Active" }),
-                  /* @__PURE__ */ jsx("div", { style: {
-                    fontSize: "18px",
-                    fontWeight: 800,
-                    color: accentColor,
-                    marginBottom: "4px"
-                  }, children: config.bundleDiscountText || `Save ${config.bundleDiscount}% Together!` }),
-                  savings && /* @__PURE__ */ jsxs("div", { style: {
-                    fontSize: "24px",
-                    fontWeight: 800,
-                    color: config.successColor || accentColor || "#10B981",
-                    marginTop: "8px"
-                  }, children: [
-                    "-",
-                    formatCurrency(savings, config.currency),
-                    " off"
-                  ] })
+                /* @__PURE__ */ jsxs("div", { className: "upsell-header", children: [
+                  /* @__PURE__ */ jsx("h2", { className: "upsell-headline", children: config.headline }),
+                  config.subheadline && /* @__PURE__ */ jsx("p", { className: "upsell-subheadline", children: config.subheadline })
                 ] }),
-                /* @__PURE__ */ jsx("div", { className: "upsell-content", children: renderProductsSection() }),
+                config.bundleDiscount && config.bundleDiscount > 0 && /* @__PURE__ */ jsxs("div", { className: "upsell-bundle-banner", children: [
+                  "\u2728 ",
+                  config.bundleDiscountText || `Save ${config.bundleDiscount}% when you bundle!`
+                ] }),
+                /* @__PURE__ */ jsx("div", { className: "upsell-content", onWheel: handleContentWheel, children: renderProductsSection() }),
                 /* @__PURE__ */ jsxs("div", { className: "upsell-footer", children: [
-                  selectedProducts.size > 0 && /* @__PURE__ */ jsx(
-                    "div",
-                    {
-                      style: {
-                        marginBottom: "16px"
-                      },
-                      children: /* @__PURE__ */ jsxs(
-                        "div",
-                        {
-                          style: {
-                            display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "center",
-                            marginBottom: savings ? "12px" : "0"
-                          },
-                          children: [
-                            /* @__PURE__ */ jsxs("div", { children: [
-                              /* @__PURE__ */ jsxs(
-                                "div",
-                                {
-                                  style: {
-                                    fontSize: "14px",
-                                    fontWeight: 600,
-                                    color: textColor,
-                                    opacity: 0.7,
-                                    marginBottom: "4px"
-                                  },
-                                  children: [
-                                    selectedProducts.size,
-                                    " item",
-                                    selectedProducts.size !== 1 ? "s" : "",
-                                    " selected"
-                                  ]
-                                }
-                              ),
-                              savings && /* @__PURE__ */ jsxs(
-                                "div",
-                                {
-                                  style: {
-                                    fontSize: "12px",
-                                    color: config.successColor || accentColor || "#10B981",
-                                    fontWeight: 600
-                                  },
-                                  children: [
-                                    "You save ",
-                                    formatCurrency(savings, config.currency)
-                                  ]
-                                }
-                              )
-                            ] }),
-                            /* @__PURE__ */ jsxs("div", { style: { textAlign: "right" }, children: [
-                              savings && /* @__PURE__ */ jsx(
-                                "div",
-                                {
-                                  style: {
-                                    fontSize: "14px",
-                                    textDecoration: "line-through",
-                                    color: config.textColor || "#9CA3AF",
-                                    fontWeight: 500
-                                  },
-                                  children: formatCurrency(total, config.currency)
-                                }
-                              ),
-                              /* @__PURE__ */ jsx(
-                                "div",
-                                {
-                                  style: {
-                                    fontSize: "24px",
-                                    fontWeight: 800,
-                                    color: config.textColor || "#111827"
-                                  },
-                                  children: formatCurrency(discountedTotal, config.currency)
-                                }
-                              )
-                            ] })
-                          ]
-                        }
-                      )
-                    }
-                  ),
+                  selectedProducts.size > 0 && /* @__PURE__ */ jsxs("div", { className: "upsell-summary", children: [
+                    /* @__PURE__ */ jsxs("div", { className: "upsell-summary-row", children: [
+                      /* @__PURE__ */ jsxs("span", { className: "upsell-summary-label", children: [
+                        selectedProducts.size,
+                        " item",
+                        selectedProducts.size !== 1 ? "s" : "",
+                        " selected"
+                      ] }),
+                      savings && /* @__PURE__ */ jsx("span", { className: "upsell-summary-value upsell-summary-original", children: formatCurrency(total, config.currency) })
+                    ] }),
+                    /* @__PURE__ */ jsxs("div", { className: "upsell-summary-row upsell-summary-total", children: [
+                      /* @__PURE__ */ jsx("span", { children: "Total" }),
+                      /* @__PURE__ */ jsx("span", { children: formatCurrency(discountedTotal, config.currency) })
+                    ] }),
+                    savings && /* @__PURE__ */ jsx("div", { className: "upsell-summary-row", children: /* @__PURE__ */ jsxs("span", { className: "upsell-summary-savings", children: [
+                      "You save ",
+                      formatCurrency(savings, config.currency),
+                      "!"
+                    ] }) })
+                  ] }),
                   /* @__PURE__ */ jsxs("div", { className: "upsell-actions", children: [
                     /* @__PURE__ */ jsx(
                       "button",
@@ -1497,53 +1423,132 @@
             }
           ),
           /* @__PURE__ */ jsx("style", { children: `
-        /* Responsive layout helpers for ProductUpsellPopup (mirrors docs/mockup layout) */
+        /* Layout and typography closely aligned with docs/mockup ProductUpsellPopup */
         .upsell-container {
-          width: 100%;
-          max-width: 56rem;
+          width: ${sizeWidth};
+          max-width: ${popupConfig.maxWidth || sizeMaxWidth || "56rem"};
           margin: 0 auto;
           display: flex;
           flex-direction: column;
-          max-height: 90vh;
+          max-height: 100%;
+          /* Enable container queries for preview/device-based responsiveness */
+          container-type: inline-size;
+          container-name: upsell;
+        }
+
+        .upsell-header {
+          padding: 1.25rem 1.5rem 0.875rem;
+          text-align: center;
+          border-bottom: 1px solid var(--upsell-border, ${borderColor});
+          flex-shrink: 0;
+        }
+
+        .upsell-headline {
+          font-size: 1.375rem;
+          font-weight: 700;
+          line-height: 1.2;
+          margin: 0 0 0.375rem 0;
+          color: var(--upsell-text, ${textColor});
+        }
+
+        .upsell-subheadline {
+          font-size: 0.8125rem;
+          line-height: 1.4;
+          color: var(--upsell-text, ${textColor});
+          opacity: 0.65;
+          margin: 0;
+        }
+
+        .upsell-bundle-banner {
+          background: var(--upsell-accent, ${accentColor});
+          padding: 0.5rem 1rem;
+          text-align: center;
+          font-weight: 600;
+          font-size: 0.8125rem;
+          color: var(--upsell-primary, #111827);
+          border-bottom: 1px solid var(--upsell-border, ${borderColor});
+          flex-shrink: 0;
         }
 
         .upsell-content {
           flex: 1;
           overflow-y: auto;
-          padding: 24px 32px;
+          padding: 1.25rem 1.5rem;
+          min-height: 0;
         }
 
         .upsell-footer {
-          border-top: 2px solid ${borderColor};
-          padding: 24px 32px;
-          background: ${secondaryColor};
+          border-top: 2px solid var(--upsell-border, ${borderColor});
+          padding: 0.875rem 1.5rem;
+          background: var(--upsell-secondary, ${secondaryColor});
+          flex-shrink: 0;
         }
 
         .upsell-actions {
           display: flex;
-          gap: 12px;
-          margin-top: 16px;
+          gap: 0.625rem;
+          margin-top: 0.625rem;
+        }
+
+        .upsell-summary {
+          margin-bottom: 0.625rem;
+        }
+
+        .upsell-summary-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 0.375rem;
+          font-size: 0.8125rem;
+          color: var(--upsell-text, ${textColor});
+        }
+
+        .upsell-summary-label {
+          opacity: 0.7;
+        }
+
+        .upsell-summary-value {
+          font-weight: 600;
+        }
+
+        .upsell-summary-original {
+          text-decoration: line-through;
+          opacity: 0.5;
+        }
+
+        .upsell-summary-total {
+          font-size: 1.125rem;
+          font-weight: 700;
+          padding-top: 0.5rem;
+          border-top: 1px solid var(--upsell-border, ${borderColor});
+          margin-bottom: 0.375rem;
+        }
+
+        .upsell-summary-savings {
+          color: var(--upsell-success, ${config.successColor || accentColor || "#10B981"});
+          font-size: 0.8125rem;
+          font-weight: 600;
         }
 
         .upsell-products-grid {
           display: grid;
           grid-template-columns: repeat(var(--upsell-columns, 2), minmax(0, 1fr));
-          gap: 16px;
-          margin-bottom: 24px;
+          gap: 1rem;
+          margin-bottom: 1rem;
         }
 
         .upsell-carousel-container {
           display: flex;
           align-items: center;
           justify-content: center;
-          min-height: 360px;
-          padding: 24px 40px;
-          gap: 32px;
+          min-height: 300px;
+          padding: 1rem 3rem;
+          gap: 1rem;
         }
 
         .upsell-carousel-product {
           display: flex;
-          gap: 24px;
+          gap: 1rem;
           align-items: center;
           width: 100%;
           max-width: 720px;
@@ -1551,7 +1556,7 @@
 
         .upsell-card {
           display: flex;
-          gap: 16px;
+          gap: 1rem;
           align-items: center;
         }
 
@@ -1566,17 +1571,43 @@
         .upsell-card-action-btn {
           display: inline-flex;
           align-items: center;
-          gap: 8px;
+          gap: 0.5rem;
         }
 
-        @media (max-width: 768px) {
+        /* Container query for preview/device-based responsiveness */
+        @container upsell (max-width: 768px) {
+          .upsell-header {
+            padding: 1rem 1.25rem 0.75rem;
+          }
+
+          .upsell-headline {
+            font-size: 1.25rem;
+          }
+
+          .upsell-subheadline {
+            font-size: 0.75rem;
+          }
+
+          .upsell-content {
+            padding: 1rem 1.25rem;
+          }
+
+          .upsell-footer {
+            padding: 0.75rem 1.25rem;
+          }
+
+          .upsell-actions {
+            gap: 0.5rem;
+          }
+
           .upsell-products-grid {
-            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-            gap: 12px;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 0.875rem;
           }
 
           .upsell-carousel-container {
-            padding: 16px 24px;
+            padding: 0.75rem 2.5rem;
+            min-height: 280px;
           }
 
           .upsell-carousel-product {
@@ -1587,16 +1618,79 @@
           .upsell-card {
             flex-direction: column;
             align-items: stretch;
+            padding: 1rem;
           }
 
           .upsell-card-image-wrapper {
             width: 100%;
-            height: 200px;
+            height: 150px;
           }
 
           .upsell-card-action-btn {
             align-self: stretch;
             margin-left: 0;
+            margin-top: 0.5rem;
+            justify-content: center;
+          }
+        }
+
+        /* Fallback for environments without container queries */
+        @media (max-width: 768px) {
+          .upsell-header {
+            padding: 1rem 1.25rem 0.75rem;
+          }
+
+          .upsell-headline {
+            font-size: 1.25rem;
+          }
+
+          .upsell-subheadline {
+            font-size: 0.75rem;
+          }
+
+          .upsell-content {
+            padding: 1rem 1.25rem;
+          }
+
+          .upsell-footer {
+            padding: 0.75rem 1.25rem;
+          }
+
+          .upsell-actions {
+            gap: 0.5rem;
+          }
+
+          .upsell-products-grid {
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 0.875rem;
+          }
+
+          .upsell-carousel-container {
+            padding: 0.75rem 2.5rem;
+            min-height: 280px;
+          }
+
+          .upsell-carousel-product {
+            flex-direction: column;
+            text-align: center;
+          }
+
+          .upsell-card {
+            flex-direction: column;
+            align-items: stretch;
+            padding: 1rem;
+          }
+
+          .upsell-card-image-wrapper {
+            width: 100%;
+            height: 150px;
+          }
+
+          .upsell-card-action-btn {
+            align-self: stretch;
+            margin-left: 0;
+            margin-top: 0.5rem;
+            justify-content: center;
           }
         }
 

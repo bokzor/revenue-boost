@@ -119,7 +119,7 @@ shopify app dev
 To preview a specific campaign, add the URL parameter:
 
 ```
-https://store.myshopify.com/products/example?revenue_boost_preview=CAMPAIGN_ID
+https://store.myshopify.com/products/example?split_pop_preview=CAMPAIGN_ID
 ```
 
 ## 📝 Next Steps

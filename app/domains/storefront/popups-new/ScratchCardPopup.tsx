@@ -15,7 +15,7 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { PopupPortal } from './PopupPortal';
 import type { PopupDesignConfig, Prize } from './types';
 import type { ScratchCardContent } from '~/domains/campaigns/types/campaign';
-import { validateEmail, copyToClipboard } from './utils';
+import { validateEmail, copyToClipboard, getSizeDimensions } from './utils';
 
 /**
  * ScratchCardConfig - Extends both design config AND campaign content type
@@ -77,8 +77,11 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
   const prizeCanvasRef = useRef<HTMLCanvasElement>(null);
   const isDrawingRef = useRef(false);
 
-  const cardWidth = config.scratchCardWidth || 300;
-  const cardHeight = config.scratchCardHeight || 200;
+  const DEFAULT_CARD_WIDTH = 384;
+  const DEFAULT_CARD_HEIGHT = 216;
+
+  const cardWidth = config.scratchCardWidth || DEFAULT_CARD_WIDTH;
+  const cardHeight = config.scratchCardHeight || DEFAULT_CARD_HEIGHT;
   const threshold = config.scratchThreshold || 50;
   const brushRadius = config.scratchRadius || 20;
 
@@ -120,7 +123,7 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
   // Initialize canvases (prize + scratch overlay)
   useEffect(() => {
     if (!canvasRef.current || !prizeCanvasRef.current) return;
-    if (!emailSubmitted && config.emailBeforeScratching) return;
+    if (config.emailRequired && config.emailBeforeScratching && !emailSubmitted) return;
 
     const canvas = canvasRef.current;
     const prizeCanvas = prizeCanvasRef.current;
@@ -151,7 +154,11 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
     const prize = selectPrize();
     setWonPrize(prize);
 
-    prizeCtx.fillStyle = config.scratchCardTextColor || '#ffffff';
+    prizeCtx.fillStyle =
+      config.scratchCardTextColor ||
+      config.buttonTextColor ||
+      config.textColor ||
+      '#ffffff';
     prizeCtx.font = 'bold 32px system-ui, -apple-system, BlinkMacSystemFont, sans-serif';
     prizeCtx.textAlign = 'center';
     prizeCtx.textBaseline = 'middle';
@@ -242,6 +249,10 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
     const canvas = canvasRef.current;
     const rect = canvas.getBoundingClientRect();
 
+    // Account for CSS scaling (canvas width/height vs. displayed size)
+    const scaleX = canvas.width / rect.width || 1;
+    const scaleY = canvas.height / rect.height || 1;
+
     let clientX: number, clientY: number;
 
     if ('touches' in e) {
@@ -254,8 +265,8 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
     }
 
     return {
-      x: clientX - rect.left,
-      y: clientY - rect.top,
+      x: (clientX - rect.left) * scaleX,
+      y: (clientY - rect.top) * scaleY,
     };
   };
 
@@ -342,7 +353,7 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
     border: `1px solid ${config.inputBorderColor || '#D1D5DB'}`,
     borderRadius: `${config.borderRadius ?? 8}px`,
     backgroundColor: config.inputBackgroundColor || '#FFFFFF',
-    color: config.inputTextColor || '#1F2937',
+    color: config.inputTextColor || config.textColor || '#1F2937',
     outline: 'none',
   };
 
@@ -365,6 +376,14 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
   const showImage = !!config.imageUrl && imagePosition !== 'none';
   const isVertical = imagePosition === 'left' || imagePosition === 'right';
   const imageFirst = imagePosition === 'left' || imagePosition === 'top';
+
+  const baseSizeDimensions = getSizeDimensions(config.size || 'medium', config.previewMode);
+
+  const sizeDimensions =
+    showImage && isVertical
+      ? getSizeDimensions('large', config.previewMode)
+      : baseSizeDimensions;
+
 
 
   // Auto-close timer (migrated from BasePopup)
@@ -427,7 +446,7 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
             >
               {config.headline}
             </h2>
-            {config.subheadline && (
+            {(config.subheadline || showEmailForm) && (
               <p
                 style={{
                   fontSize: config.descriptionFontSize || '16px',
@@ -437,7 +456,9 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
                   color: config.descriptionColor || config.textColor,
                 }}
               >
-                {config.subheadline}
+                {showEmailForm
+                  ? 'Enter your email below to unlock your scratch card and reveal your prize!'
+                  : config.subheadline}
               </p>
             )}
           </div>
@@ -456,18 +477,16 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
               }}
             >
               <div>
-                {config.emailLabel && (
-                  <label
-                    style={{
-                      display: 'block',
-                      marginBottom: '8px',
-                      fontSize: '14px',
-                      fontWeight: 600,
-                    }}
-                  >
-                    {config.emailLabel}
-                  </label>
-                )}
+                <label
+                  style={{
+                    display: 'block',
+                    marginBottom: '8px',
+                    fontSize: '14px',
+                    fontWeight: 600,
+                  }}
+                >
+                  {config.emailLabel || 'Email Address'}
+                </label>
                 <input
                   type="email"
                   value={email}
@@ -521,7 +540,7 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
               )}
 
               <button type="submit" style={buttonStyles} className="scratch-popup-button">
-                {config.buttonText || 'Continue'}
+                {'Unlock Scratch Card'}
               </button>
             </form>
           ) : showScratchCard && (
@@ -529,14 +548,14 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
             <>
               <div
                 className={`scratch-card-container ${isRevealed ? 'revealed-animation' : ''}`}
-                style={{ maxWidth: cardWidth, height: cardHeight }}
+                style={{ height: cardHeight }}
               >
                 {/* Prize canvas (hidden) */}
                 <canvas
                   ref={prizeCanvasRef}
                   width={cardWidth}
                   height={cardHeight}
-                  style={{ position: 'absolute', top: 0, left: 0 }}
+                  style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
                 />
 
                 {/* Scratch overlay canvas */}
@@ -555,6 +574,8 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
                   style={{
                     cursor: isScratching ? 'grabbing' : 'grab',
                     touchAction: 'none',
+                    width: '100%',
+                    height: '100%',
                   }}
                 />
 
@@ -816,7 +837,25 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
 
       <style>{`
         .scratch-popup-container {
+          position: relative;
+          width: ${sizeDimensions.width};
+          max-width: ${sizeDimensions.maxWidth};
           margin: 0 auto;
+          border-radius: ${typeof config.borderRadius === 'number' ? config.borderRadius : parseFloat(String(config.borderRadius || 16))}px;
+          overflow: hidden;
+          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+          background: ${config.backgroundColor};
+          color: ${config.textColor};
+          container-type: inline-size;
+          container-name: scratch-popup;
+          font-family: ${config.fontFamily || 'inherit'};
+        }
+
+        @container viewport (max-width: 640px) {
+          .scratch-popup-container {
+            width: 100%;
+            max-width: 100%;
+          }
         }
 
         .scratch-popup-content {
@@ -832,11 +871,11 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
         }
 
         .scratch-popup-content.vertical {
-          flex-direction: row;
+          flex-direction: column;
         }
 
         .scratch-popup-content.vertical.reverse {
-          flex-direction: row-reverse;
+          flex-direction: column;
         }
 
         .scratch-popup-content.single-column {
@@ -868,7 +907,7 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
         .scratch-card-container {
           position: relative;
           width: 100%;
-          max-width: 24rem;
+          max-width: min(24rem, 90vw);
           margin: 0 auto 1.5rem;
           border-radius: 0.75rem;
           overflow: hidden;
@@ -983,7 +1022,18 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
           animation: pulse 0.5s ease-out;
         }
 
-        @media (min-width: 768px) {
+        /* Container Query: Desktop-ish layout (≥480px container width)
+           Match NewsletterPopup behavior so left/right images go side-by-side
+           once the popup has enough width, even inside the editor preview. */
+        @container scratch-popup (min-width: 480px) {
+          .scratch-popup-content.vertical {
+            flex-direction: row;
+          }
+
+          .scratch-popup-content.vertical.reverse {
+            flex-direction: row-reverse;
+          }
+
           .scratch-popup-content.horizontal .scratch-popup-image {
             height: 16rem;
           }
@@ -1008,12 +1058,15 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
           }
         }
 
-        @media (max-width: 767px) {
+        /* Container Query: Mobile layout (640px container width)
+           Use full width for the popup and constrain image height. */
+        @container scratch-popup (max-width: 640px) {
           .scratch-popup-content.horizontal .scratch-popup-image,
           .scratch-popup-content.vertical .scratch-popup-image {
             height: 12rem;
           }
         }
+
       `}</style>
       </div>
     </PopupPortal>

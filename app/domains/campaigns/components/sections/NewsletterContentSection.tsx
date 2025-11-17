@@ -14,7 +14,6 @@ import {
   Text,
   Divider,
   Select,
-  TextField as PolarisTextField,
   Collapsible,
   Button,
   InlineStack,
@@ -26,9 +25,15 @@ import type { NewsletterContentSchema, DesignConfig } from "../../types/campaign
 import type { DiscountConfig } from "~/domains/popups/services/discounts/discount.server";
 import { z } from "zod";
 import { useFieldUpdater } from "~/shared/hooks/useFieldUpdater";
-import { NEWSLETTER_THEMES, themeColorsToDesignConfig, type NewsletterThemeKey } from "~/config/color-presets";
+import {
+  NEWSLETTER_THEMES,
+  themeColorsToDesignConfig,
+  type NewsletterThemeKey,
+  NEWSLETTER_BACKGROUND_PRESETS,
+  getNewsletterBackgroundUrl,
+} from "~/config/color-presets";
 import { ThemePresetSelector } from "../shared/ThemePresetSelector";
-
+import { useAppBridge } from "@shopify/app-bridge-react";
 
 export type NewsletterContent = z.infer<typeof NewsletterContentSchema>;
 
@@ -53,12 +58,24 @@ export function NewsletterContentSection({
 }: NewsletterContentSectionProps) {
   const updateField = useFieldUpdater(content, onChange);
   const [showAdvancedDesign, setShowAdvancedDesign] = useState(false);
-  const [customImageUrl, setCustomImageUrl] = useState(designConfig.imageUrl || "");
+
+  let shopify: any = null;
+  try {
+    shopify = useAppBridge();
+  } catch (error) {
+    if (process.env.NODE_ENV !== "test") {
+      console.error("[NewsletterContentSection] App Bridge not available", error);
+    }
+  }
+
+  const imageMode = (designConfig.backgroundImageMode ?? "none") as DesignConfig["backgroundImageMode"];
+  const selectedPresetKey = designConfig.backgroundImagePresetKey as NewsletterThemeKey | undefined;
+  const previewImageUrl = designConfig.imageUrl;
 
   // Design field updater
   const updateDesignField = <K extends keyof DesignConfig>(
     field: K,
-    value: DesignConfig[K] | undefined
+    value: DesignConfig[K] | undefined,
   ) => {
     if (onDesignChange) {
       onDesignChange({ ...designConfig, [field]: value });
@@ -71,6 +88,7 @@ export function NewsletterContentSection({
 
     const themeColors = NEWSLETTER_THEMES[themeKey];
     const designConfigFromTheme = themeColorsToDesignConfig(themeColors);
+    const presetUrl = getNewsletterBackgroundUrl(themeKey);
 
     // Apply all theme colors and set default theme image
     onDesignChange({
@@ -95,14 +113,52 @@ export function NewsletterContentSection({
       descriptionFontWeight: designConfigFromTheme.descriptionFontWeight,
       inputBackdropFilter: designConfigFromTheme.inputBackdropFilter,
       inputBoxShadow: designConfigFromTheme.inputBoxShadow,
-      imageUrl: `/newsletter-backgrounds/${themeKey}.png`,
+      backgroundImageMode: "preset",
+      backgroundImagePresetKey: themeKey,
+      backgroundImageFileId: undefined,
+      imageUrl: presetUrl,
     });
-    setCustomImageUrl(`/newsletter-backgrounds/${themeKey}.png`);
   };
 
-  const handleImageUrlChange = (value: string) => {
-    setCustomImageUrl(value);
-    updateDesignField("imageUrl", value || undefined);
+  const handlePickBackgroundFile = async () => {
+    if (!onDesignChange || !shopify?.resourcePicker) {
+      return;
+    }
+
+    try {
+      const result = await shopify.resourcePicker({
+        type: "product",
+        multiple: false,
+      } as any);
+
+      const item = Array.isArray(result) ? (result[0] as any) : undefined;
+      if (!item) return;
+
+      // Normalize product images to a single URL (supports multiple payload shapes)
+      const images = Array.isArray(item.images)
+        ? item.images
+        : item.image
+        ? [item.image]
+        : Array.isArray(item.images?.edges)
+        ? item.images.edges.map((edge: any) => edge.node)
+        : [];
+
+      const firstImage = (images[0] || {}) as any;
+      const url: string | undefined =
+        firstImage.originalSrc || firstImage.url || firstImage.src;
+
+      if (!url || !item.id) return;
+
+      onDesignChange({
+        ...designConfig,
+        backgroundImageMode: "file",
+        backgroundImageFileId: item.id as string,
+        backgroundImagePresetKey: undefined,
+        imageUrl: url,
+      });
+    } catch (error) {
+      console.error("[NewsletterContentSection] Failed to pick background image", error);
+    }
   };
 
   return (
@@ -524,70 +580,87 @@ export function NewsletterContentSection({
                             { label: "Bottom", value: "bottom" },
                             { label: "No Image", value: "none" },
                           ]}
-                          onChange={(value) => updateDesignField("imagePosition", value as DesignConfig["imagePosition"])}
+                          onChange={(value) =>
+                            updateDesignField("imagePosition", value as DesignConfig["imagePosition"])
+                          }
                           helpText="Position of the background image in the popup"
                         />
 
                         <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
                           <Select
-                            label="Image URL"
-                            value={customImageUrl || "custom"}
+                            label="Preset background"
+                            value={
+                              imageMode === "preset" && selectedPresetKey
+                                ? selectedPresetKey
+                                : "none"
+                            }
                             options={[
-                              { label: "Custom URL (enter below)", value: "custom" },
-                              { label: "Modern Theme Image", value: "/newsletter-backgrounds/modern.png" },
-                              { label: "Minimal Theme Image", value: "/newsletter-backgrounds/minimal.png" },
-                              { label: "Elegant Theme Image", value: "/newsletter-backgrounds/elegant.png" },
-                              { label: "Bold Theme Image", value: "/newsletter-backgrounds/bold.png" },
-                              { label: "Glass Theme Image", value: "/newsletter-backgrounds/glass.png" },
-                              { label: "Dark Theme Image", value: "/newsletter-backgrounds/dark.png" },
-                              { label: "Gradient Theme Image", value: "/newsletter-backgrounds/gradient.png" },
-                              { label: "Luxury Theme Image", value: "/newsletter-backgrounds/luxury.png" },
-                              { label: "Neon Theme Image", value: "/newsletter-backgrounds/neon.png" },
-                              { label: "Ocean Theme Image", value: "/newsletter-backgrounds/ocean.png" },
+                              { label: "No preset image", value: "none" },
+                              ...NEWSLETTER_BACKGROUND_PRESETS.map((preset) => ({
+                                label: preset.label,
+                                value: preset.key,
+                              })),
                             ]}
                             onChange={(value) => {
-                              if (value !== "custom") {
-                                handleImageUrlChange(value);
+                              if (!onDesignChange) return;
+
+                              if (value === "none") {
+                                onDesignChange({
+                                  ...designConfig,
+                                  backgroundImageMode: "none",
+                                  backgroundImagePresetKey: undefined,
+                                  backgroundImageFileId: undefined,
+                                  imageUrl: undefined,
+                                });
+                                return;
                               }
+
+                              const key = value as NewsletterThemeKey;
+                              const url = getNewsletterBackgroundUrl(key);
+                              onDesignChange({
+                                ...designConfig,
+                                backgroundImageMode: "preset",
+                                backgroundImagePresetKey: key,
+                                backgroundImageFileId: undefined,
+                                imageUrl: url,
+                              });
                             }}
-                            helpText="Select a theme image or enter a custom URL below"
+                            helpText="Use one of the built-in background images"
                           />
-                          {(!customImageUrl || customImageUrl === "custom" || !customImageUrl.startsWith("/newsletter-backgrounds/")) && (
-                            <PolarisTextField
-                              label="Custom Image URL"
-                              value={customImageUrl === "custom" ? "" : customImageUrl}
-                              onChange={handleImageUrlChange}
-                              placeholder="https://example.com/image.png"
-                              helpText="Enter a custom image URL"
-                              autoComplete="off"
-                            />
-                          )}
+
+                          <Button onClick={handlePickBackgroundFile}>
+                            {imageMode === "file" && previewImageUrl
+                              ? "Change product image"
+                              : "Choose image from Shopify products"}
+                          </Button>
                         </div>
                       </FormGrid>
 
-                      {customImageUrl && designConfig.imagePosition !== "none" && (
-                        <div style={{
-                          marginTop: "0.5rem",
-                          padding: "1rem",
-                          border: "1px solid #e1e3e5",
-                          borderRadius: "8px",
-                          backgroundColor: "#f6f6f7"
-                        }}>
+                      {previewImageUrl && designConfig.imagePosition !== "none" && (
+                        <div
+                          style={{
+                            marginTop: "0.5rem",
+                            padding: "1rem",
+                            border: "1px solid #e1e3e5",
+                            borderRadius: "8px",
+                            backgroundColor: "#f6f6f7",
+                          }}
+                        >
                           <Text as="p" variant="bodySm" tone="subdued" fontWeight="semibold">
                             Image Preview:
                           </Text>
                           <div style={{ marginTop: "0.5rem", maxWidth: "200px" }}>
                             <img
-                              src={customImageUrl}
+                              src={previewImageUrl}
                               alt="Newsletter background preview"
                               style={{
                                 width: "100%",
                                 height: "auto",
                                 borderRadius: "4px",
-                                border: "1px solid #c9cccf"
+                                border: "1px solid #c9cccf",
                               }}
                               onError={(e) => {
-                                (e.target as HTMLImageElement).style.display = 'none';
+                                (e.target as HTMLImageElement).style.display = "none";
                               }}
                             />
                           </div>

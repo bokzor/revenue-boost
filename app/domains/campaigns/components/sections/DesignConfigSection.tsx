@@ -10,13 +10,20 @@
  * - Switching templates preserves design values
  */
 
-import { Card, BlockStack, Text, Divider, Select, TextField, Banner } from "@shopify/polaris";
+import { useRef, useState } from "react";
+import type { ChangeEvent } from "react";
+import { Card, BlockStack, Text, Divider, Select, TextField, Banner, Button } from "@shopify/polaris";
 import { ColorField, FormGrid } from "../form";
 import type { DesignConfig, TemplateType } from "~/domains/campaigns/types/campaign";
-import { NEWSLETTER_THEMES, themeColorsToDesignConfig, type NewsletterThemeKey } from "~/config/color-presets";
+import {
+  NEWSLETTER_THEMES,
+  themeColorsToDesignConfig,
+  type NewsletterThemeKey,
+  NEWSLETTER_BACKGROUND_PRESETS,
+  getNewsletterBackgroundUrl,
+} from "~/config/color-presets";
 import { ThemePresetSelector } from "../shared/ThemePresetSelector";
 import { getDesignCapabilities } from "~/domains/templates/registry/design-capabilities";
-import { useState } from "react";
 
 export interface DesignConfigSectionProps {
   design: Partial<DesignConfig>;
@@ -34,7 +41,8 @@ export function DesignConfigSection({
   templateType,
   onThemeChange,
 }: DesignConfigSectionProps) {
-  const [customImageUrl, setCustomImageUrl] = useState(design.imageUrl || "");
+  const [isUploadingBackground, setIsUploadingBackground] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // Resolve design capabilities for this template (gates which controls to show)
   const caps = templateType ? getDesignCapabilities(templateType as TemplateType) : undefined;
@@ -53,25 +61,30 @@ export function DesignConfigSection({
     { label: "Bottom", value: "bottom" },
     { label: "Left", value: "left" },
     { label: "Right", value: "right" },
-  ].filter(opt => allowedPositions.includes(opt.value as typeof allowedPositions[number]));
+  ].filter((opt) => allowedPositions.includes(opt.value as (typeof allowedPositions)[number]));
 
   const sizeOptions = [
     { label: "Small", value: "small" },
     { label: "Medium", value: "medium" },
     { label: "Large", value: "large" },
-  ].filter(opt => allowedSizes.includes(opt.value as typeof allowedSizes[number]));
+  ].filter((opt) => allowedSizes.includes(opt.value as (typeof allowedSizes)[number]));
 
   const updateField = <K extends keyof DesignConfig>(
     field: K,
-    value: DesignConfig[K] | undefined
+    value: DesignConfig[K] | undefined,
   ) => {
     onChange({ ...design, [field]: value });
   };
+
+  const imageMode = (design.backgroundImageMode ?? "none") as DesignConfig["backgroundImageMode"];
+  const selectedPresetKey = design.backgroundImagePresetKey as NewsletterThemeKey | undefined;
+  const previewImageUrl = design.imageUrl;
 
   // Handle theme selection - applies all theme colors and default image
   const handleThemeChange = (themeKey: NewsletterThemeKey) => {
     const themeColors = NEWSLETTER_THEMES[themeKey];
     const designConfig = themeColorsToDesignConfig(themeColors);
+    const presetUrl = getNewsletterBackgroundUrl(themeKey);
 
     // Apply all theme colors and set default theme image
     onChange({
@@ -98,9 +111,11 @@ export function DesignConfigSection({
       // Input styling
       inputBackdropFilter: designConfig.inputBackdropFilter,
       inputBoxShadow: designConfig.inputBoxShadow,
-      imageUrl: `/newsletter-backgrounds/${themeKey}.png`, // Set default theme image
+      backgroundImageMode: "preset",
+      backgroundImagePresetKey: themeKey,
+      backgroundImageFileId: undefined,
+      imageUrl: presetUrl,
     });
-    setCustomImageUrl(`/newsletter-backgrounds/${themeKey}.png`);
 
     // Allow template-specific integrations (e.g., Spin-to-Win wheel colors)
     if (onThemeChange) {
@@ -108,11 +123,102 @@ export function DesignConfigSection({
     }
   };
 
-  const handleImageUrlChange = (value: string) => {
-    setCustomImageUrl(value);
-    updateField("imageUrl", value || undefined);
+  const handleBackgroundFileClick = () => {
+    fileInputRef.current?.click();
   };
 
+  const handleBackgroundFileChange = async (
+    event: ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingBackground(true);
+
+    try {
+      const stagedResponse = await fetch("/api/shopify-files/staged-uploads", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          filename: file.name,
+          mimeType: file.type || "image/jpeg",
+          fileSize: file.size,
+        }),
+      });
+
+      const stagedJson = await stagedResponse.json();
+      if (!stagedResponse.ok || !stagedJson?.success) {
+        throw new Error("Failed to create staged upload target");
+      }
+
+      const stagedTarget = stagedJson.data?.stagedTarget as {
+        url?: string;
+        resourceUrl?: string;
+        parameters?: { name: string; value: string }[];
+      };
+
+      if (!stagedTarget?.url || !stagedTarget.resourceUrl) {
+        throw new Error("Invalid staged upload target response");
+      }
+
+      const formData = new FormData();
+      (stagedTarget.parameters || []).forEach((param) => {
+        formData.append(param.name, param.value);
+      });
+      formData.append("file", file);
+
+      const uploadResponse = await fetch(stagedTarget.url, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error("Failed to upload file to Shopify");
+      }
+
+      const createResponse = await fetch(
+        "/api/shopify-files/create-from-staged",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            resourceUrl: stagedTarget.resourceUrl,
+            alt: `Campaign background: ${file.name}`,
+          }),
+        },
+      );
+
+      const createJson = await createResponse.json();
+      if (!createResponse.ok || !createJson?.success) {
+        throw new Error("Failed to create Shopify file");
+      }
+
+      const createdFile = createJson.data?.file as {
+        id?: string;
+        url?: string;
+      };
+
+      if (!createdFile?.id || !createdFile.url) {
+        throw new Error("Invalid fileCreate response");
+      }
+
+      onChange({
+        ...design,
+        backgroundImageMode: "file",
+        backgroundImageFileId: createdFile.id,
+        backgroundImagePresetKey: undefined,
+        imageUrl: createdFile.url,
+      });
+    } catch (error) {
+      console.error(
+        "[DesignConfigSection] Failed to upload background image",
+        error,
+      );
+    } finally {
+      setIsUploadingBackground(false);
+      event.target.value = "";
+    }
+  };
 
   return (
     <Card>
@@ -203,92 +309,116 @@ export function DesignConfigSection({
 
         {/* Image Configuration - Only show if template supports images */}
         {(caps?.usesImage !== false) && (
-        <BlockStack gap="300">
-          <Text as="h4" variant="headingSm">
-            Background Image
-          </Text>
+          <BlockStack gap="300">
+            <Text as="h4" variant="headingSm">
+              Background Image
+            </Text>
 
-          <FormGrid columns={2}>
-            <Select
-              label="Image Position"
-              value={design.imagePosition || "left"}
-              options={[
-                { label: "Left Side", value: "left" },
-                { label: "Right Side", value: "right" },
-                { label: "Top", value: "top" },
-                { label: "Bottom", value: "bottom" },
-                { label: "No Image", value: "none" },
-              ]}
-              onChange={(value) => updateField("imagePosition", value as DesignConfig["imagePosition"])}
-              helpText="Position of the background image in the popup"
-            />
-
-            <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+            <FormGrid columns={2}>
               <Select
-                label="Image URL"
-                value={customImageUrl || "custom"}
+                label="Image position"
+                value={design.imagePosition || "left"}
                 options={[
-                  { label: "Custom URL (enter below)", value: "custom" },
-                  { label: "Modern Theme Image", value: "/newsletter-backgrounds/modern.png" },
-                  { label: "Minimal Theme Image", value: "/newsletter-backgrounds/minimal.png" },
-                  { label: "Elegant Theme Image", value: "/newsletter-backgrounds/elegant.png" },
-                  { label: "Bold Theme Image", value: "/newsletter-backgrounds/bold.png" },
-                  { label: "Glass Theme Image", value: "/newsletter-backgrounds/glass.png" },
-                  { label: "Dark Theme Image", value: "/newsletter-backgrounds/dark.png" },
-                  { label: "Gradient Theme Image", value: "/newsletter-backgrounds/gradient.png" },
-                  { label: "Luxury Theme Image", value: "/newsletter-backgrounds/luxury.png" },
-                  { label: "Neon Theme Image", value: "/newsletter-backgrounds/neon.png" },
-                  { label: "Ocean Theme Image", value: "/newsletter-backgrounds/ocean.png" },
+                  { label: "Left side", value: "left" },
+                  { label: "Right side", value: "right" },
+                  { label: "Top", value: "top" },
+                  { label: "Bottom", value: "bottom" },
+                  { label: "No image", value: "none" },
                 ]}
-                onChange={(value) => {
-                  if (value !== "custom") {
-                    handleImageUrlChange(value);
-                  }
-                }}
-                helpText="Select a theme image or enter a custom URL below"
+                onChange={(value) =>
+                  updateField("imagePosition", value as DesignConfig["imagePosition"])
+                }
+                helpText="Position of the background image in the popup"
               />
-              {(!customImageUrl || customImageUrl === "custom" || !customImageUrl.startsWith("/newsletter-backgrounds/")) && (
-                <TextField
-                  label="Custom Image URL"
-                  value={customImageUrl === "custom" ? "" : customImageUrl}
-                  onChange={handleImageUrlChange}
-                  placeholder="https://example.com/image.png"
-                  helpText="Enter a custom image URL"
-                  autoComplete="off"
-                />
-              )}
-            </div>
-          </FormGrid>
 
-          {customImageUrl && design.imagePosition !== "none" && (
-            <div style={{
-              marginTop: "0.5rem",
-              padding: "1rem",
-              border: "1px solid #e1e3e5",
-              borderRadius: "8px",
-              backgroundColor: "#f6f6f7"
-            }}>
-              <Text as="p" variant="bodySm" tone="subdued" fontWeight="semibold">
-                Image Preview:
-              </Text>
-              <div style={{ marginTop: "0.5rem", maxWidth: "200px" }}>
-                <img
-                  src={customImageUrl}
-                  alt="Newsletter background preview"
-                  style={{
-                    width: "100%",
-                    height: "auto",
-                    borderRadius: "4px",
-                    border: "1px solid #c9cccf"
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                <Select
+                  label="Preset background"
+                  value={
+                    imageMode === "preset" && selectedPresetKey ? selectedPresetKey : "none"
+                  }
+                  options={[
+                    { label: "No preset image", value: "none" },
+                    ...NEWSLETTER_BACKGROUND_PRESETS.map((preset) => ({
+                      label: preset.label,
+                      value: preset.key,
+                    })),
+                  ]}
+                  onChange={(value) => {
+                    if (value === "none") {
+                      onChange({
+                        ...design,
+                        backgroundImageMode: "none",
+                        backgroundImagePresetKey: undefined,
+                        backgroundImageFileId: undefined,
+                        imageUrl: undefined,
+                      });
+                      return;
+                    }
+
+                    const key = value as NewsletterThemeKey;
+                    const url = getNewsletterBackgroundUrl(key);
+                    onChange({
+                      ...design,
+                      backgroundImageMode: "preset",
+                      backgroundImagePresetKey: key,
+                      backgroundImageFileId: undefined,
+                      imageUrl: url,
+                    });
                   }}
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).style.display = 'none';
-                  }}
+                  helpText="Use one of the built-in background images"
                 />
+
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  style={{ display: "none" }}
+                  onChange={handleBackgroundFileChange}
+                />
+
+                <Button
+                  onClick={handleBackgroundFileClick}
+                  loading={isUploadingBackground}
+                >
+                  {imageMode === "file" && previewImageUrl
+                    ? "Change background image"
+                    : "Upload image from your computer"}
+                </Button>
               </div>
-            </div>
-          )}
-        </BlockStack>
+            </FormGrid>
+
+            {previewImageUrl && design.imagePosition !== "none" && (
+              <div
+                style={{
+                  marginTop: "0.5rem",
+                  padding: "1rem",
+                  border: "1px solid #e1e3e5",
+                  borderRadius: "8px",
+                  backgroundColor: "#f6f6f7",
+                }}
+              >
+                <Text as="p" variant="bodySm" tone="subdued" fontWeight="semibold">
+                  Image preview:
+                </Text>
+                <div style={{ marginTop: "0.5rem", maxWidth: "200px" }}>
+                  <img
+                    src={previewImageUrl}
+                    alt="Background preview"
+                    style={{
+                      width: "100%",
+                      height: "auto",
+                      borderRadius: "4px",
+                      border: "1px solid #c9cccf",
+                    }}
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = "none";
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+          </BlockStack>
         )}
 
         {(caps?.usesImage !== false) && <Divider />}

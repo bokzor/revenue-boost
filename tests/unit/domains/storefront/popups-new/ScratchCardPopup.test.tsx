@@ -1,6 +1,6 @@
 import React from "react";
-import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { describe, it, expect, vi } from "vitest";
+import { render, screen, waitFor } from "@testing-library/react";
 
 import { ScratchCardPopup } from "~/domains/storefront/popups-new/ScratchCardPopup";
 
@@ -50,5 +50,51 @@ describe("ScratchCardPopup", () => {
 
     expect(screen.queryByText(/scratch & win/i)).toBeNull();
   });
+
+  it("blocks scratch canvas init when email is required before scratching", async () => {
+    const getContextSpy = vi
+      .spyOn(HTMLCanvasElement.prototype as any, "getContext")
+      .mockReturnValue(null);
+
+    const config = createConfig({ emailRequired: true, emailBeforeScratching: true });
+
+    render(
+      <ScratchCardPopup
+        config={config}
+        isVisible={true}
+        onClose={() => {}}
+      />,
+    );
+
+    // Wait a tick for useEffect to run
+    await waitFor(() => {
+      expect(getContextSpy).not.toHaveBeenCalled();
+    });
+
+    getContextSpy.mockRestore();
+  });
+
+  it("allows scratch canvas init when email is optional but 'ask before scratching' is on", async () => {
+    const getContextSpy = vi
+      .spyOn(HTMLCanvasElement.prototype as any, "getContext")
+      .mockReturnValue(null);
+
+    const config = createConfig({ emailRequired: false, emailBeforeScratching: true });
+
+    render(
+      <ScratchCardPopup
+        config={config}
+        isVisible={true}
+        onClose={() => {}}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(getContextSpy).toHaveBeenCalled();
+    });
+
+    getContextSpy.mockRestore();
+  });
+
 });
 

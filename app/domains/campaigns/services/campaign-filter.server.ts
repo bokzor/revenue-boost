@@ -88,7 +88,9 @@ export class CampaignFilterService {
     console.log(`[Revenue Boost] 📄 Filtering campaigns by page targeting. Current page: ${context.pageUrl}`);
 
     return campaigns.filter((campaign) => {
-      const pageTargeting = campaign.targetRules?.enhancedTriggers?.page_targeting;
+      // Prefer dedicated pageTargeting config if present, otherwise fall back to legacy enhancedTriggers.page_targeting
+      const pageTargeting =
+        campaign.targetRules?.pageTargeting
 
       // If no page targeting, include campaign
       if (!pageTargeting || !pageTargeting.enabled) {
@@ -96,23 +98,64 @@ export class CampaignFilterService {
       }
 
       const targetPages = pageTargeting.pages || [];
+      const customPatterns = pageTargeting.customPatterns || pageTargeting.custom_patterns || [];
+      const excludePages = pageTargeting.excludePages || pageTargeting.exclude_pages || [];
+      const productTags = pageTargeting.productTags || [];
+      const collections = pageTargeting.collections || [];
 
-      // If no specific pages defined, include campaign
-      if (targetPages.length === 0) {
-        return true;
+      const pageUrl = context.pageUrl!;
+
+      // Exclusion check first
+      const isExcluded = excludePages.some((pattern: string) =>
+        this.matchesPagePattern(pageUrl, pattern),
+      );
+      if (isExcluded) {
+        console.log(`[Revenue Boost] ❌ Campaign "${campaign.name}" (${campaign.id}): Page is excluded by pattern`);
+        return false;
       }
 
-      console.log(`[Revenue Boost] 🎯 Campaign "${campaign.name}" (${campaign.id}) targets pages:`, targetPages);
+      // Page URL / pattern match
+      const allPatterns = [...targetPages, ...customPatterns];
+      let urlMatches = true;
+      if (allPatterns.length > 0) {
+        urlMatches = allPatterns.some((pattern) =>
+          this.matchesPagePattern(pageUrl, pattern),
+        );
+      }
 
-      // Check if current page matches any target page
-      const matches = targetPages.some((targetPage) => {
-        return this.matchesPagePattern(context.pageUrl!, targetPage);
-      });
+      // Product tag match (only if configured and we have productTags in context)
+      let tagsMatch = true;
+      if (productTags.length > 0) {
+        const ctxTags = Array.isArray(context.productTags)
+          ? context.productTags
+          : typeof (context as any).productTags === "string"
+          ? ((context as any).productTags as string).split(",").map((t) => t.trim()).filter(Boolean)
+          : [];
+
+        tagsMatch = ctxTags.length > 0 && productTags.some((tag: string) => ctxTags.includes(tag));
+      }
+
+      // Collection match (only if configured and we have collectionId in context)
+      let collectionsMatch = true;
+      if (collections.length > 0) {
+        const ctxCollectionId = context.collectionId;
+        if (!ctxCollectionId) {
+          collectionsMatch = false;
+        } else {
+          collectionsMatch = collections.some((gid: string) => {
+            const parts = gid.split("/");
+            const idPart = parts[parts.length - 1];
+            return idPart === ctxCollectionId;
+          });
+        }
+      }
+
+      const matches = urlMatches && tagsMatch && collectionsMatch;
 
       if (matches) {
-        console.log(`[Revenue Boost] ✅ Campaign "${campaign.name}" (${campaign.id}): Page MATCHED`);
+        console.log(`[Revenue Boost] ✅ Campaign "${campaign.name}" (${campaign.id}): Page targeting MATCHED`);
       } else {
-        console.log(`[Revenue Boost] ❌ Campaign "${campaign.name}" (${campaign.id}): Page does NOT match`);
+        console.log(`[Revenue Boost] ❌ Campaign "${campaign.name}" (${campaign.id}): Page targeting did NOT match`);
       }
 
       return matches;

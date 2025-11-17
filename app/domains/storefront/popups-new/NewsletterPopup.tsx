@@ -17,6 +17,8 @@ import type { PopupDesignConfig, DiscountConfig, ImagePosition } from './types';
 import type { NewsletterContent } from '~/domains/campaigns/types/campaign';
 
 import { PopupPortal } from './PopupPortal';
+import { getSizeDimensions } from './utils';
+
 
 /**
  * Newsletter-specific configuration
@@ -68,8 +70,12 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
   // Extract configuration with defaults
   const imagePosition: ImagePosition = config.imagePosition || 'left';
 
-  // Use image URL from config (set by admin)
-  const imageUrl = config.imageUrl;
+  // Background image configuration (preset vs Shopify file vs none)
+  const backgroundImageMode: "none" | "preset" | "file" =
+    (config.backgroundImageMode as any) ?? (config.imageUrl ? "file" : "none");
+
+  // Use image URL from config when mode is not "none" (admin sets this for preset/file)
+  const imageUrl = backgroundImageMode === "none" ? undefined : config.imageUrl;
 
   const title = config.headline || 'Join Our Newsletter';
   const description = config.subheadline || 'Subscribe to get special offers, free giveaways, and exclusive deals.';
@@ -86,6 +92,8 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
   const showGdprCheckbox = config.consentFieldEnabled ?? false;
   const gdprLabel = config.consentFieldText || 'I agree to receive marketing emails and accept the privacy policy';
   const collectName = config.nameFieldEnabled ?? false;
+	const sizeDimensions = getSizeDimensions(config.size || 'medium', config.previewMode);
+
 
   // Reset form when popup closes
   useEffect(() => {
@@ -207,8 +215,8 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
 
         .email-popup-container {
           position: relative;
-          width: 100%;
-          max-width: 56rem;
+          width: ${sizeDimensions.width};
+          max-width: ${sizeDimensions.maxWidth};
           border-radius: ${typeof config.borderRadius === 'number' ? config.borderRadius : parseFloat(config.borderRadius || '12')}px;
           overflow: hidden;
           box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
@@ -252,13 +260,15 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
           flex-direction: column-reverse;
         }
 
-        /* Base: Mobile-first (vertical stacking) */
+        /* Base: Mobile-first (vertical stacking)
+           For left/right image positions we keep stacking order the same
+           (image on top) and only change orientation on larger containers. */
         .email-popup-content.vertical {
           flex-direction: column;
         }
 
         .email-popup-content.vertical.reverse {
-          flex-direction: column-reverse;
+          flex-direction: column;
         }
 
         .email-popup-content.single-column {
@@ -538,8 +548,10 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
           to { transform: rotate(360deg); }
         }
 
-        /* Container Query: Desktop layout (≥768px container width) */
-        @container popup (min-width: 768px) {
+        /* Container Query: Desktop layout (≥480px container width)
+           Note: container width is capped at ~600px for medium size, so
+           we use a 480px breakpoint to ensure side-by-side layout activates. */
+        @container popup (min-width: 480px) {
           .email-popup-content.vertical {
             flex-direction: row;
           }
@@ -560,10 +572,12 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
           }
         }
 
-        /* Fallback media query for non-preview mode */
-        @media (min-width: 768px) {
+        /* Container Query: Mobile layout (≤640px container width)
+           Use full width of the viewport container for a better mobile experience. */
+        @container viewport (max-width: 640px) {
           .email-popup-container {
-            max-width: 80rem;
+            width: 100%;
+            max-width: none;
           }
         }
 

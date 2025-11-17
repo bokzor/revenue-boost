@@ -1,32 +1,26 @@
 /**
  * Audience Targeting Panel - Configure campaign audience targeting
  *
- * Allows merchants to:
- * - Enable/disable audience targeting
- * - Select predefined segments (VIP, Cart Abandoners, Mobile, etc.)
- * - Create custom targeting rules
- * - Preview matched audience
+ * Shopify-first audience model:
+ * - Shopify customer segments define customer-level "who" for known customers.
+ * - Session rules define anonymous/session-only audience logic on StorefrontContext.
  */
 
-import { useState, useCallback, useMemo } from "react";
-import {
-  Card,
-  BlockStack,
-  InlineStack,
-  Text,
-  Checkbox,
-  Button,
-  Banner,
-  Box,
-  Tabs,
-} from "@shopify/polaris";
-import { PlusIcon } from "@shopify/polaris-icons";
-import { SegmentSelector } from "./SegmentSelector";
-import { ConditionBuilder } from "./ConditionBuilder";
-import type { TriggerCondition, LogicOperator } from "./types";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Card, BlockStack, InlineStack, Text, Checkbox, Banner, Box, Button } from "@shopify/polaris";
 import type { AudienceTargetingConfig } from "~/domains/campaigns/types/campaign";
-import { toUiConfig, toDbConfig } from "~/domains/targeting/utils/condition-adapter";
+import { audienceConditionsToUi, uiConditionsToAudience } from "~/domains/targeting/utils/condition-adapter";
+import type { TriggerCondition, LogicOperator } from "./types";
+import { ConditionBuilder } from "./ConditionBuilder";
+import { ShopifySegmentSelector, type ShopifySegmentOption } from "./ShopifySegmentSelector";
 
+
+const computePreviewConfigKey = (config: AudienceTargetingConfig) =>
+  JSON.stringify({
+    enabled: config.enabled,
+    shopifySegmentIds: config.shopifySegmentIds ?? [],
+    sessionRules: config.sessionRules,
+  });
 
 export interface AudienceTargetingPanelProps {
   storeId: string;
@@ -35,17 +29,12 @@ export interface AudienceTargetingPanelProps {
   disabled?: boolean;
 }
 
-// Note: The panel now strictly accepts AudienceTargetingConfig and adapts it for the UI
-
 export function AudienceTargetingPanel({
-  storeId,
+  storeId, // currently unused but kept for future Shopify segment selector
   config,
   onConfigChange,
   disabled = false,
 }: AudienceTargetingPanelProps) {
-  const [selectedTab, setSelectedTab] = useState(0);
-
-  // Update config helper
   const updateConfig = useCallback(
     (updates: Partial<AudienceTargetingConfig>) => {
       onConfigChange({ ...config, ...updates });
@@ -53,11 +42,100 @@ export function AudienceTargetingPanel({
     [config, onConfigChange],
   );
 
-  // Derive UI-friendly custom rules from DB config
-  const uiCustom = useMemo(() => toUiConfig(config), [config]);
+  // ---------------------------------------------------------------------------
+  // Session Rules (anonymous / session-level audience logic)
+  // ---------------------------------------------------------------------------
 
-  // Update custom rules via adapter (UI -> DB)
-  const updateCustomRules = useCallback(
+  const sessionUi = audienceConditionsToUi(config.sessionRules?.conditions ?? []);
+  const hasSessionRules = config.sessionRules.enabled && sessionUi.length > 0;
+  const hasShopifySegments = (config.shopifySegmentIds?.length ?? 0) > 0;
+  const hasTargeting = hasShopifySegments || hasSessionRules;
+
+  const [shopifySegments, setShopifySegments] = useState<ShopifySegmentOption[]>([]);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+  const [previewTotal, setPreviewTotal] = useState<number | null>(null);
+  const [previewBreakdown, setPreviewBreakdown] = useState<
+    { segmentId: string; totalCustomers: number }[]
+  >([]);
+  const [autoPreviewEnabled, setAutoPreviewEnabled] = useState(true);
+  const [lastPreviewConfigKey, setLastPreviewConfigKey] = useState<string | null>(null);
+
+  const previewConfigKey = useMemo(
+    () => computePreviewConfigKey(config),
+    [config],
+  );
+
+  const isPreviewStale =
+    lastPreviewConfigKey !== null && previewConfigKey !== lastPreviewConfigKey;
+
+  const refreshPreview = useCallback(async () => {
+    if (!config.enabled) return;
+
+    if (!hasTargeting) {
+      setPreviewTotal(0);
+      setPreviewError(null);
+      setPreviewBreakdown([]);
+      setLastPreviewConfigKey(computePreviewConfigKey(config));
+      return;
+    }
+
+    setPreviewLoading(true);
+    setPreviewError(null);
+
+    try {
+      const response = await fetch("/api/audience/preview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ audienceTargeting: config }),
+      });
+
+      const json = await response.json();
+
+      if (!response.ok || json.success === false) {
+        throw new Error(json.error || "Failed to fetch audience preview");
+      }
+
+      const total = json.data?.estimatedReach?.totalCustomers ?? 0;
+      const perSegment =
+        (json.data?.estimatedReach?.perSegment as
+          | { segmentId: string; totalCustomers: number }[]
+          | undefined) ?? [];
+
+      setPreviewTotal(total);
+      setPreviewBreakdown(perSegment);
+      setLastPreviewConfigKey(computePreviewConfigKey(config));
+    } catch (err) {
+      console.error("Failed to refresh audience preview:", err);
+      setPreviewTotal(null);
+      setPreviewBreakdown([]);
+      setPreviewError(
+        err instanceof Error ? err.message : "Failed to fetch audience preview",
+      );
+    } finally {
+      setPreviewLoading(false);
+    }
+  }, [config, hasTargeting]);
+
+  useEffect(() => {
+    if (!config.enabled || !hasTargeting || !autoPreviewEnabled) return;
+    if (lastPreviewConfigKey === previewConfigKey) return;
+
+    const timer = setTimeout(() => {
+      refreshPreview();
+    }, 800);
+
+    return () => clearTimeout(timer);
+  }, [
+    config.enabled,
+    hasTargeting,
+    autoPreviewEnabled,
+    previewConfigKey,
+    lastPreviewConfigKey,
+    refreshPreview,
+  ]);
+
+  const updateSessionRules = useCallback(
     (
       updates: Partial<{
         enabled: boolean;
@@ -65,68 +143,59 @@ export function AudienceTargetingPanel({
         logicOperator: LogicOperator;
       }>,
     ) => {
-      const nextUi = { ...uiCustom, ...updates };
+      const nextUi: {
+        enabled: boolean;
+        conditions: TriggerCondition[];
+        logicOperator: LogicOperator;
+      } = {
+        enabled: config.sessionRules.enabled,
+        conditions: sessionUi,
+        logicOperator: (config.sessionRules.logicOperator as LogicOperator) ?? "AND",
+        ...updates,
+      };
+
       updateConfig({
-        customRules: toDbConfig(nextUi),
+        sessionRules: {
+          enabled: nextUi.enabled,
+          conditions: uiConditionsToAudience(nextUi.conditions),
+          logicOperator: nextUi.logicOperator,
+        },
       });
     },
-    [uiCustom, updateConfig],
+    [config.sessionRules.enabled, config.sessionRules.logicOperator, sessionUi, updateConfig],
   );
 
-  // Add new condition
-  const handleAddCondition = useCallback(() => {
+  const handleAddSessionCondition = useCallback(() => {
     const newCondition: TriggerCondition = {
-      id: `condition_${Date.now()}`,
+      id: `session_${Date.now()}`,
       type: "cart-value",
       operator: "greater-than",
       value: 0,
     };
 
-    const conditions = uiCustom.conditions || [];
-    updateCustomRules({
-      conditions: [...conditions, newCondition],
-    });
-  }, [uiCustom.conditions, updateCustomRules]);
+    const conditions = sessionUi || [];
+    updateSessionRules({ conditions: [...conditions, newCondition], enabled: true });
+  }, [sessionUi, updateSessionRules]);
 
-  // Update condition
-  const handleUpdateCondition = useCallback(
+  const handleUpdateSessionCondition = useCallback(
     (id: string, updates: Partial<TriggerCondition>) => {
-      const conditions = uiCustom.conditions || [];
-      updateCustomRules({
+      const conditions = sessionUi || [];
+      updateSessionRules({
         conditions: conditions.map((c: TriggerCondition) => (c.id === id ? { ...c, ...updates } : c)),
       });
     },
-    [uiCustom.conditions, updateCustomRules],
+    [sessionUi, updateSessionRules],
   );
 
-  // Remove condition
-  const handleRemoveCondition = useCallback(
+  const handleRemoveSessionCondition = useCallback(
     (id: string) => {
-      const conditions = uiCustom.conditions || [];
-      updateCustomRules({
+      const conditions = sessionUi || [];
+      updateSessionRules({
         conditions: conditions.filter((c: TriggerCondition) => c.id !== id),
       });
     },
-    [uiCustom.conditions, updateCustomRules],
+    [sessionUi, updateSessionRules],
   );
-
-  const tabs = [
-    {
-      id: "segments",
-      content: "Predefined Segments",
-      panelID: "segments-panel",
-    },
-    {
-      id: "custom",
-      content: "Custom Rules",
-      panelID: "custom-panel",
-    },
-  ];
-
-  const segments = (config?.segments ?? []) as string[];
-  const hasSegments = segments.length > 0;
-  const hasCustomRules = uiCustom.enabled && (uiCustom.conditions?.length ?? 0) > 0;
-  const hasTargeting = hasSegments || hasCustomRules;
 
   return (
     <BlockStack gap="400">
@@ -138,99 +207,98 @@ export function AudienceTargetingPanel({
             checked={config.enabled}
             onChange={(checked) => updateConfig({ enabled: checked })}
             disabled={disabled}
-            helpText="Only show this campaign to specific audience segments"
+            helpText="Only show this campaign to a subset of visitors based on segments and session rules."
             data-test-id="audience-targeting-enabled-checkbox"
           />
 
           {config.enabled && (
             <Banner tone="info">
               <Text as="p" variant="bodySm">
-                Your campaign will only show to visitors who match the selected
-                segments or custom rules below.
+                Your campaign will only show to visitors who match your Shopify customer segments
+                and/or the session rules configured below.
               </Text>
             </Banner>
           )}
         </BlockStack>
       </Card>
 
-      {/* Targeting Configuration (only show if enabled) */}
       {config.enabled && (
         <Card>
           <BlockStack gap="400">
-            <Tabs tabs={tabs} selected={selectedTab} onSelect={setSelectedTab}>
-              {/* Predefined Segments Tab */}
-              {selectedTab === 0 && (
-                <Box paddingBlockStart="400">
-                  <SegmentSelector
-                    storeId={storeId}
-                    selectedSegments={config.segments ?? []}
-                    onSegmentsChange={(segments) => updateConfig({ segments })}
-                    disabled={disabled}
+            <Text as="h3" variant="headingSm">
+              Shopify customer segments
+            </Text>
+            <Text as="p" variant="bodySm" tone="subdued">
+              Choose which Shopify customer segments this campaign should target.
+              These filters apply when the visitor is recognized as a customer.
+            </Text>
+
+            <ShopifySegmentSelector
+              selectedSegmentIds={config.shopifySegmentIds ?? []}
+              onChange={(ids) => updateConfig({ shopifySegmentIds: ids })}
+              disabled={disabled}
+              onSegmentsLoaded={setShopifySegments}
+            />
+          </BlockStack>
+        </Card>
+      )}
+
+
+      {/* Session Rules (only show if enabled) */}
+      {config.enabled && (
+        <Card>
+          <BlockStack gap="400">
+            <InlineStack align="space-between" blockAlign="center">
+              <BlockStack gap="100">
+                <Text as="h3" variant="headingSm">
+                  Session Rules (anonymous / in-session)
+                </Text>
+                <Text as="p" variant="bodySm" tone="subdued">
+                  Define rules based on current session context like cart value or page type.
+                  These rules apply even when the visitor is not yet a Shopify customer.
+                </Text>
+              </BlockStack>
+
+              <Checkbox
+                label="Enable session rules"
+                checked={config.sessionRules.enabled}
+                onChange={(checked) => updateSessionRules({ enabled: checked })}
+                disabled={disabled}
+              />
+            </InlineStack>
+
+            {config.sessionRules.enabled && (
+              <BlockStack gap="400">
+                {sessionUi.length > 0 ? (
+                  <ConditionBuilder
+                    conditions={sessionUi}
+                    logicOperator={(config.sessionRules.logicOperator as LogicOperator) ?? "AND"}
+                    onUpdateCondition={handleUpdateSessionCondition}
+                    onRemoveCondition={handleRemoveSessionCondition}
+                    onLogicOperatorChange={(operator) =>
+                      updateSessionRules({ logicOperator: operator })
+                    }
                   />
+                ) : (
+                  <Banner tone="info">
+                    <Text as="p" variant="bodySm">
+                      No session rules yet. Add a condition to start narrowing your audience
+                      based on in-session behavior.
+                    </Text>
+                  </Banner>
+                )}
+
+                <Box>
+                  <button
+                    type="button"
+                    onClick={handleAddSessionCondition}
+                    disabled={disabled}
+                  >
+                    Add session condition
+                  </button>
                 </Box>
-              )}
-
-              {/* Custom Rules Tab */}
-              {selectedTab === 1 && (
-                <Box paddingBlockStart="400">
-                  <BlockStack gap="400">
-                    <InlineStack align="space-between" blockAlign="center">
-                      <BlockStack gap="100">
-                        <Text as="h3" variant="headingSm">
-                          Custom Targeting Rules
-                        </Text>
-                        <Text as="p" variant="bodySm" tone="subdued">
-                          Create advanced targeting rules based on cart value,
-                          customer tags, device type, and more.
-                        </Text>
-                      </BlockStack>
-
-                      <Checkbox
-                        label="Enable custom rules"
-                        checked={uiCustom.enabled}
-                        onChange={(checked) =>
-                          updateCustomRules({ enabled: checked })
-                        }
-                        disabled={disabled}
-                      />
-                    </InlineStack>
-
-                    {uiCustom.enabled && (
-                      <BlockStack gap="400">
-                        {uiCustom.conditions.length > 0 ? (
-                          <ConditionBuilder
-                            conditions={uiCustom.conditions}
-                            logicOperator={uiCustom.logicOperator}
-                            onUpdateCondition={handleUpdateCondition}
-                            onRemoveCondition={handleRemoveCondition}
-                            onLogicOperatorChange={(operator) =>
-                              updateCustomRules({ logicOperator: operator })
-                            }
-                          />
-                        ) : (
-                          <Banner tone="info">
-                            <Text as="p" variant="bodySm">
-                              No custom rules yet. Click &quot;Add condition&quot; to
-                              create your first targeting rule.
-                            </Text>
-                          </Banner>
-                        )}
-
-                        <Box>
-                          <Button
-                            icon={PlusIcon}
-                            onClick={handleAddCondition}
-                            disabled={disabled}
-                          >
-                            Add condition
-                          </Button>
-                        </Box>
-                      </BlockStack>
-                    )}
-                  </BlockStack>
-                </Box>
-              )}
-            </Tabs>
+              </BlockStack>
+            )}
           </BlockStack>
         </Card>
       )}
@@ -244,38 +312,102 @@ export function AudienceTargetingPanel({
             </Text>
 
             <BlockStack gap="200">
-              {hasSegments && (
+              <InlineStack gap="200" blockAlign="center">
+                <Text as="span" variant="bodySm" fontWeight="semibold">
+                  Shopify segments:
+                </Text>
+                <Text as="span" variant="bodySm">
+                  {(config.shopifySegmentIds?.length ?? 0)} selected
+                </Text>
+              </InlineStack>
+
+              {hasSessionRules && (
                 <InlineStack gap="200" blockAlign="center">
                   <Text as="span" variant="bodySm" fontWeight="semibold">
-                    Segments:
+                    Session rules:
                   </Text>
                   <Text as="span" variant="bodySm">
-                    {segments.length} selected
+                    {sessionUi.length} condition(s) with {(config.sessionRules.logicOperator as LogicOperator) ?? "AND"} logic
                   </Text>
                 </InlineStack>
-              )}
-
-              {hasCustomRules && (
-                <InlineStack gap="200" blockAlign="center">
-                  <Text as="span" variant="bodySm" fontWeight="semibold">
-                    Custom Rules:
-                  </Text>
-                  <Text as="span" variant="bodySm">
-                    {uiCustom.conditions.length} condition(s) with {uiCustom.logicOperator} logic
-                  </Text>
-                </InlineStack>
-              )}
-
-              {hasSegments && hasCustomRules && (
-                <Banner tone="info">
-                  <Text as="p" variant="bodySm">
-                    Visitors must match <strong>either</strong> a selected
-                    segment <strong>or</strong> the custom rules to see this
-                    campaign.
-                  </Text>
-                </Banner>
               )}
             </BlockStack>
+
+            <Box paddingBlockStart="200">
+              <BlockStack gap="200">
+                <InlineStack gap="200" blockAlign="center">
+                  <Checkbox
+                    label="Auto-refresh estimate"
+                    checked={autoPreviewEnabled}
+                    onChange={(checked) => setAutoPreviewEnabled(checked)}
+                    disabled={!hasTargeting}
+                  />
+
+                  {isPreviewStale && !previewLoading && !previewError && (
+                    <Text as="span" variant="bodySm" tone="subdued">
+                      Audience settings changed since last estimate.
+                    </Text>
+                  )}
+                </InlineStack>
+
+                <InlineStack gap="200" blockAlign="center">
+                  <Button
+                    variant="plain"
+                    onClick={refreshPreview}
+                    disabled={previewLoading || !hasTargeting}
+                  >
+                    {previewLoading
+                      ? "Calculating audience size..."
+                      : "Refresh audience estimate"}
+                  </Button>
+
+                  {!previewLoading && previewTotal !== null && !previewError && (
+                    <Text as="span" variant="bodySm">
+                      Estimated reach: ~{previewTotal.toLocaleString()} customers
+                    </Text>
+                  )}
+
+                  {previewError && (
+                    <Text as="span" variant="bodySm" tone="critical">
+                      {previewError}
+                    </Text>
+                  )}
+                </InlineStack>
+
+                {!previewLoading &&
+                  previewBreakdown.length > 0 &&
+                  !previewError && (
+                    <BlockStack gap="100">
+                      {previewBreakdown.map((entry) => {
+                        const segment = shopifySegments.find(
+                          (s) => s.id === entry.segmentId,
+                        );
+                        const label = segment?.name ?? entry.segmentId;
+
+                        return (
+                          <InlineStack
+                            key={entry.segmentId}
+                            gap="100"
+                            blockAlign="center"
+                          >
+                            <Text as="span" variant="bodySm" tone="subdued">
+                              {label}:
+                            </Text>
+                            <Text as="span" variant="bodySm">
+                              ~{entry.totalCustomers.toLocaleString()} customers
+                            </Text>
+                          </InlineStack>
+                        );
+                      })}
+
+                      <Text as="p" variant="bodySm" tone="subdued">
+                        If a customer belongs to multiple segments, they may be
+                        counted more than once in this estimate.
+                      </Text>
+                    </BlockStack>
+                  )}
+              </BlockStack>
+            </Box>
           </BlockStack>
         </Card>
       )}

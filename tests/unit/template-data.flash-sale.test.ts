@@ -11,7 +11,7 @@ import {
  * These tests ensure that:
  * - The Flash Sale system template exists in GLOBAL_SYSTEM_TEMPLATES
  * - Its contentConfig matches FlashSaleContentSchema and has the expected defaults
- * - Its designConfig uses Minimal theme-inspired colors
+ * - Its designConfig uses Modern theme-inspired colors (aligned with newsletter "modern" theme)
  * - Its discountConfig matches DiscountConfigSchema and encodes a 30% shared percentage discount
  */
 
@@ -36,11 +36,11 @@ describe("GLOBAL_SYSTEM_TEMPLATES – Flash Sale Alert", () => {
 
     const design = flashSale.designConfig as any;
 
-    // Theme + key colors from Minimal preset
-    expect(design.theme).toBe("minimal");
-    expect(design.backgroundColor).toBe("#fafafa");
-    expect(design.textColor).toBe("#18181b");
-    expect(design.buttonColor).toBe("#18181b");
+    // Theme + key colors from Modern newsletter preset
+    expect(design.theme).toBe("modern");
+    expect(design.backgroundColor).toBe("#ffffff");
+    expect(design.textColor).toBe("#111827");
+    expect(design.buttonColor).toBe("#3b82f6");
     expect(design.buttonTextColor).toBe("#ffffff");
   });
 

@@ -4,8 +4,8 @@
   if (typeof window === "undefined" || !window.RevenueBoostPreact) {
     throw new Error("RevenueBoostPreact not found. Make sure main bundle is loaded first.");
   }
-  var { h, Component, Fragment, render, createPortal } = window.RevenueBoostPreact;
-  var { useState, useEffect, useCallback, useRef, useMemo } = window.RevenueBoostPreact.hooks;
+  var { h, Component, Fragment, render, createPortal, createContext } = window.RevenueBoostPreact;
+  var { useState, useEffect, useCallback, useRef, useMemo, useContext, useDebugValue } = window.RevenueBoostPreact.hooks;
 
   // global-preact:global-preact:react-dom
   if (typeof window === "undefined" || !window.RevenueBoostPreact) {
@@ -330,6 +330,9 @@
       display: flex;
       align-items: ${alignMap[position]};
       justify-content: ${justifyMap[position]};
+      /* Enable container queries for popup content (e.g. mobile full-width layouts) */
+      container-type: inline-size;
+      container-name: viewport;
     }
 
     /* Fade animations */
@@ -465,6 +468,30 @@
   }
 
   // app/domains/storefront/popups-new/utils.ts
+  function getSizeDimensions(size, previewMode) {
+    if (previewMode) {
+      switch (size) {
+        case "small":
+          return { width: "50%", maxWidth: "400px" };
+        case "medium":
+          return { width: "65%", maxWidth: "600px" };
+        case "large":
+          return { width: "80%", maxWidth: "900px" };
+        default:
+          return { width: "65%", maxWidth: "600px" };
+      }
+    }
+    switch (size) {
+      case "small":
+        return { width: "90%", maxWidth: "400px" };
+      case "medium":
+        return { width: "90%", maxWidth: "600px" };
+      case "large":
+        return { width: "90%", maxWidth: "900px" };
+      default:
+        return { width: "90%", maxWidth: "600px" };
+    }
+  }
   function validateEmail(email) {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
@@ -512,8 +539,10 @@
     const canvasRef = useRef(null);
     const prizeCanvasRef = useRef(null);
     const isDrawingRef = useRef(false);
-    const cardWidth = config.scratchCardWidth || 300;
-    const cardHeight = config.scratchCardHeight || 200;
+    const DEFAULT_CARD_WIDTH = 384;
+    const DEFAULT_CARD_HEIGHT = 216;
+    const cardWidth = config.scratchCardWidth || DEFAULT_CARD_WIDTH;
+    const cardHeight = config.scratchCardHeight || DEFAULT_CARD_HEIGHT;
     const threshold = config.scratchThreshold || 50;
     const brushRadius = config.scratchRadius || 20;
     const selectPrize = useCallback(() => {
@@ -541,7 +570,7 @@
     }, [config.prizes, config.successMessage]);
     useEffect(() => {
       if (!canvasRef.current || !prizeCanvasRef.current) return;
-      if (!emailSubmitted && config.emailBeforeScratching) return;
+      if (config.emailRequired && config.emailBeforeScratching && !emailSubmitted) return;
       const canvas = canvasRef.current;
       const prizeCanvas = prizeCanvasRef.current;
       const ctx = canvas.getContext("2d");
@@ -563,7 +592,7 @@
       }
       const prize = selectPrize();
       setWonPrize(prize);
-      prizeCtx.fillStyle = config.scratchCardTextColor || "#ffffff";
+      prizeCtx.fillStyle = config.scratchCardTextColor || config.buttonTextColor || config.textColor || "#ffffff";
       prizeCtx.font = "bold 32px system-ui, -apple-system, BlinkMacSystemFont, sans-serif";
       prizeCtx.textAlign = "center";
       prizeCtx.textBaseline = "middle";
@@ -629,6 +658,8 @@
       if (!canvasRef.current) return null;
       const canvas = canvasRef.current;
       const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width || 1;
+      const scaleY = canvas.height / rect.height || 1;
       let clientX, clientY;
       if ("touches" in e) {
         if (e.touches.length === 0) return null;
@@ -639,8 +670,8 @@
         clientY = e.clientY;
       }
       return {
-        x: clientX - rect.left,
-        y: clientY - rect.top
+        x: (clientX - rect.left) * scaleX,
+        y: (clientY - rect.top) * scaleY
       };
     };
     const handleStart = (e) => {
@@ -711,7 +742,7 @@
       border: `1px solid ${config.inputBorderColor || "#D1D5DB"}`,
       borderRadius: `${config.borderRadius ?? 8}px`,
       backgroundColor: config.inputBackgroundColor || "#FFFFFF",
-      color: config.inputTextColor || "#1F2937",
+      color: config.inputTextColor || config.textColor || "#1F2937",
       outline: "none"
     };
     const buttonStyles = {
@@ -731,6 +762,8 @@
     const showImage = !!config.imageUrl && imagePosition !== "none";
     const isVertical = imagePosition === "left" || imagePosition === "right";
     const imageFirst = imagePosition === "left" || imagePosition === "top";
+    const baseSizeDimensions = getSizeDimensions(config.size || "medium", config.previewMode);
+    const sizeDimensions = showImage && isVertical ? getSizeDimensions("large", config.previewMode) : baseSizeDimensions;
     useEffect(() => {
       if (!isVisible || !config.autoCloseDelay || config.autoCloseDelay <= 0) return;
       const timer = setTimeout(onClose, config.autoCloseDelay * 1e3);
@@ -790,7 +823,7 @@
                         children: config.headline
                       }
                     ),
-                    config.subheadline && /* @__PURE__ */ jsx(
+                    (config.subheadline || showEmailForm) && /* @__PURE__ */ jsx(
                       "p",
                       {
                         style: {
@@ -800,7 +833,7 @@
                           opacity: 0.8,
                           color: config.descriptionColor || config.textColor
                         },
-                        children: config.subheadline
+                        children: showEmailForm ? "Enter your email below to unlock your scratch card and reveal your prize!" : config.subheadline
                       }
                     )
                   ] }),
@@ -820,7 +853,7 @@
                         },
                         children: [
                           /* @__PURE__ */ jsxs("div", { children: [
-                            config.emailLabel && /* @__PURE__ */ jsx(
+                            /* @__PURE__ */ jsx(
                               "label",
                               {
                                 style: {
@@ -829,7 +862,7 @@
                                   fontSize: "14px",
                                   fontWeight: 600
                                 },
-                                children: config.emailLabel
+                                children: config.emailLabel || "Email Address"
                               }
                             ),
                             /* @__PURE__ */ jsx(
@@ -887,7 +920,7 @@
                               ]
                             }
                           ),
-                          /* @__PURE__ */ jsx("button", { type: "submit", style: buttonStyles, className: "scratch-popup-button", children: config.buttonText || "Continue" })
+                          /* @__PURE__ */ jsx("button", { type: "submit", style: buttonStyles, className: "scratch-popup-button", children: "Unlock Scratch Card" })
                         ]
                       }
                     )
@@ -897,7 +930,7 @@
                       "div",
                       {
                         className: `scratch-card-container ${isRevealed ? "revealed-animation" : ""}`,
-                        style: { maxWidth: cardWidth, height: cardHeight },
+                        style: { height: cardHeight },
                         children: [
                           /* @__PURE__ */ jsx(
                             "canvas",
@@ -905,7 +938,7 @@
                               ref: prizeCanvasRef,
                               width: cardWidth,
                               height: cardHeight,
-                              style: { position: "absolute", top: 0, left: 0 }
+                              style: { position: "absolute", inset: 0, width: "100%", height: "100%" }
                             }
                           ),
                           /* @__PURE__ */ jsx(
@@ -924,7 +957,9 @@
                               className: "scratch-card-canvas",
                               style: {
                                 cursor: isScratching ? "grabbing" : "grab",
-                                touchAction: "none"
+                                touchAction: "none",
+                                width: "100%",
+                                height: "100%"
                               }
                             }
                           ),
@@ -1207,7 +1242,25 @@
           ),
           /* @__PURE__ */ jsx("style", { children: `
         .scratch-popup-container {
+          position: relative;
+          width: ${sizeDimensions.width};
+          max-width: ${sizeDimensions.maxWidth};
           margin: 0 auto;
+          border-radius: ${typeof config.borderRadius === "number" ? config.borderRadius : parseFloat(String(config.borderRadius || 16))}px;
+          overflow: hidden;
+          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+          background: ${config.backgroundColor};
+          color: ${config.textColor};
+          container-type: inline-size;
+          container-name: scratch-popup;
+          font-family: ${config.fontFamily || "inherit"};
+        }
+
+        @container viewport (max-width: 640px) {
+          .scratch-popup-container {
+            width: 100%;
+            max-width: 100%;
+          }
         }
 
         .scratch-popup-content {
@@ -1223,11 +1276,11 @@
         }
 
         .scratch-popup-content.vertical {
-          flex-direction: row;
+          flex-direction: column;
         }
 
         .scratch-popup-content.vertical.reverse {
-          flex-direction: row-reverse;
+          flex-direction: column;
         }
 
         .scratch-popup-content.single-column {
@@ -1259,7 +1312,7 @@
         .scratch-card-container {
           position: relative;
           width: 100%;
-          max-width: 24rem;
+          max-width: min(24rem, 90vw);
           margin: 0 auto 1.5rem;
           border-radius: 0.75rem;
           overflow: hidden;
@@ -1374,7 +1427,18 @@
           animation: pulse 0.5s ease-out;
         }
 
-        @media (min-width: 768px) {
+        /* Container Query: Desktop-ish layout (\u2265480px container width)
+           Match NewsletterPopup behavior so left/right images go side-by-side
+           once the popup has enough width, even inside the editor preview. */
+        @container scratch-popup (min-width: 480px) {
+          .scratch-popup-content.vertical {
+            flex-direction: row;
+          }
+
+          .scratch-popup-content.vertical.reverse {
+            flex-direction: row-reverse;
+          }
+
           .scratch-popup-content.horizontal .scratch-popup-image {
             height: 16rem;
           }
@@ -1399,12 +1463,15 @@
           }
         }
 
-        @media (max-width: 767px) {
+        /* Container Query: Mobile layout (640px container width)
+           Use full width for the popup and constrain image height. */
+        @container scratch-popup (max-width: 640px) {
           .scratch-popup-content.horizontal .scratch-popup-image,
           .scratch-popup-content.vertical .scratch-popup-image {
             height: 12rem;
           }
         }
+
       ` })
         ] })
       }

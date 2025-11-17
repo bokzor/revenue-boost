@@ -283,6 +283,100 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api }: P
     }
   })();
 
+  const handleEmailRecovery = async (email: string): Promise<string | undefined> => {
+    try {
+      console.log("[PopupManager] Email recovery for campaign:", campaign.id, { email });
+
+      const cartSubtotalCents =
+        typeof currentCartTotal === "number" && Number.isFinite(currentCartTotal)
+          ? Math.round(currentCartTotal * 100)
+          : undefined;
+
+      const result = await api.emailRecovery({
+        campaignId: campaign.id,
+        email,
+        cartSubtotalCents,
+      });
+
+      if (!result.success) {
+        console.error("[PopupManager] Email recovery failed:", result.error);
+        throw new Error(result.error || "Email recovery failed");
+      }
+
+      const code = result.discountCode;
+      const autoApplyMode = result.autoApplyMode || "ajax";
+      const deliveryMode = (campaign.discountConfig as any)?.deliveryMode;
+
+      const shouldAutoApply =
+        !!code &&
+        autoApplyMode !== "none" &&
+        (deliveryMode === "auto_apply_only" || deliveryMode === "show_code_fallback");
+
+      if (shouldAutoApply && code) {
+        // Fire-and-forget; don't block popup interactions
+        void applyDiscountViaAjax(code);
+      }
+
+      // For modes that are meant to show the code in the popup, don't redirect automatically.
+      if (
+        deliveryMode === "show_code_always" ||
+        deliveryMode === "show_in_popup_authorized_only"
+      ) {
+        return code || undefined;
+      }
+
+      const root = getShopifyRoot();
+      const contentConfig = (campaign.contentConfig || {}) as any;
+      const configuredUrl =
+        typeof contentConfig.ctaUrl === "string" && contentConfig.ctaUrl.trim() !== ""
+          ? contentConfig.ctaUrl
+          : "checkout";
+
+      const normalizedPath = configuredUrl.replace(/^\//, "");
+      window.location.href = `${root}${normalizedPath}`;
+
+      return code || undefined;
+    } catch (error) {
+      console.error("[PopupManager] Error during email recovery flow:", error);
+      throw error;
+    }
+  };
+
+  const [upsellProducts, setUpsellProducts] = useState<any[] | null>(null);
+
+  // Lazy-load upsell products for PRODUCT_UPSELL campaigns based on campaignId
+  useEffect(() => {
+    if (campaign.templateType !== "PRODUCT_UPSELL") {
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadUpsellProducts = async () => {
+      try {
+        const url = `/apps/revenue-boost/api/upsell-products?campaignId=${encodeURIComponent(campaign.id)}`;
+        const res = await fetch(url, { credentials: "same-origin" });
+        if (!res.ok) {
+          console.warn("[PopupManager] Upsell products request failed:", res.status);
+          return;
+        }
+
+        const json = await res.json();
+        if (!cancelled) {
+          setUpsellProducts(Array.isArray(json.products) ? json.products : []);
+        }
+      } catch (err) {
+        console.error("[PopupManager] Failed to load upsell products:", err);
+      }
+    };
+
+    void loadUpsellProducts();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [campaign.id, campaign.templateType]);
+
   return h(Component, {
     config: {
       ...campaign.contentConfig,
@@ -304,6 +398,8 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api }: P
         expiryDays: campaign.discountConfig.expiryDays,
         description: campaign.discountConfig.description,
       } : undefined,
+      // If we have upsell products, inject them so ProductUpsellPopup can render them
+      ...(upsellProducts ? { products: upsellProducts } : {}),
     },
     isVisible: true,
     onClose,
@@ -311,6 +407,7 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api }: P
     issueDiscount: handleIssueDiscount,
     campaignId: campaign.id,
     renderInline: false,
+    onEmailRecovery: handleEmailRecovery,
   });
 }
 

@@ -231,6 +231,8 @@ async function createWelcomeCampaign(storeId: string) {
           pages: [],
           customPatterns: [],
           excludePages: [],
+          productTags: [],
+          collections: [],
         },
       },
       discountConfig: {

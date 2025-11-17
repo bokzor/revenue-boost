@@ -648,7 +648,7 @@ export const getBasePopupStyles = (
     boxShadow: (config as ConfigWithOptionalStyles).boxShadow || "0 8px 32px rgba(0, 0, 0, 0.12)",
     position: "relative",
     maxWidth: "90vw",
-    maxHeight: "90vh",
+    maxHeight: "100%",
     overflow: "auto",
     display: "flex",
     flexDirection: "column",

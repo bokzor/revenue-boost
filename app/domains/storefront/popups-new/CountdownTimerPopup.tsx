@@ -191,6 +191,8 @@ export const CountdownTimerPopup: React.FC<CountdownTimerPopupProps> = ({
           gap: 1.5rem;
           position: relative;
           padding-right: 3.5rem;
+          container-type: inline-size;
+          container-name: countdown;
         }
         .countdown-banner-left {
           flex: 1;
@@ -305,6 +307,62 @@ export const CountdownTimerPopup: React.FC<CountdownTimerPopupProps> = ({
           text-align: center;
           padding: 0.5rem;
           font-weight: 600;
+        }
+
+        /* Container queries for preview/device-based responsiveness */
+        @container countdown (max-width: 768px) {
+          .countdown-banner-content {
+            flex-direction: column;
+            padding: 1.25rem 1rem;
+            gap: 1rem;
+            text-align: center;
+            padding-right: 3rem;
+          }
+          .countdown-banner-right {
+            width: 100%;
+          }
+          .countdown-banner-cta {
+            width: 100%;
+          }
+          .countdown-banner-headline {
+            font-size: 1rem;
+          }
+          .countdown-banner-subheadline {
+            font-size: 0.8125rem;
+          }
+          .countdown-banner-timer-unit {
+            min-width: 3rem;
+            padding: 0.375rem 0.5rem;
+          }
+          .countdown-banner-timer-value {
+            font-size: 1.25rem;
+          }
+          .countdown-banner-timer-label {
+            font-size: 0.5625rem;
+          }
+          .countdown-banner-close {
+            top: 0.5rem;
+            right: 0.5rem;
+          }
+        }
+        @container countdown (max-width: 480px) {
+          .countdown-banner-content {
+            padding: 1rem 0.75rem;
+            padding-right: 2.5rem;
+          }
+          .countdown-banner-timer {
+            gap: 0.25rem;
+          }
+          .countdown-banner-timer-unit {
+            min-width: 2.5rem;
+            padding: 0.25rem 0.375rem;
+          }
+          .countdown-banner-timer-value {
+            font-size: 1.125rem;
+          }
+          .countdown-banner-timer-separator {
+            font-size: 1rem;
+          }
         }
         @media (max-width: 768px) {
           .countdown-banner-content {

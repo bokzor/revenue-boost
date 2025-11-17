@@ -120,20 +120,35 @@ export function DiscountSection({
 
           {/* Discount Value */}
           {config.valueType !== "FREE_SHIPPING" && (
-            <TextField
-              label={getValueLabel()}
-              type="number"
-              suffix={getValueSuffix()}
-              value={config.value?.toString() || ""}
-              onChange={(value) =>
-                updateConfig({ value: parseFloat(value) || 0 })
-              }
-              placeholder={getRecommendedValue().toString()}
-              autoComplete="off"
-              min={0}
-              max={config.valueType === "PERCENTAGE" ? 100 : undefined}
-              helpText={`Recommended: ${getRecommendedValue()}${getValueSuffix()}`}
-            />
+            <>
+              <TextField
+                label={getValueLabel()}
+                type="number"
+                suffix={getValueSuffix()}
+                value={config.value?.toString() || ""}
+                onChange={(value) =>
+                  updateConfig({ value: parseFloat(value) || 0 })
+                }
+                placeholder={getRecommendedValue().toString()}
+                autoComplete="off"
+                min={0}
+                max={config.valueType === "PERCENTAGE" ? 100 : undefined}
+                helpText={`Recommended: ${getRecommendedValue()}${getValueSuffix()}`}
+              />
+
+              {goal === "PRODUCT_UPSELL" &&
+                config.valueType === "PERCENTAGE" &&
+                typeof config.value === "number" && (
+                  <Box paddingBlockStart="100">
+                    <Text as="p" variant="bodySm" tone="subdued">
+                      {`Example: if upsell items total $80, this discount saves ~$${(
+                        (80 * config.value) /
+                        100
+                      ).toFixed(2)} for the shopper.`}
+                    </Text>
+                  </Box>
+                )}
+            </>
           )}
 
           {config.valueType === "FREE_SHIPPING" && (

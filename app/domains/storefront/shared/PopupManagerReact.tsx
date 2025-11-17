@@ -324,90 +324,140 @@ export const PopupManager: React.FC<PopupManagerProps> = ({
       case "modal":
       case "newsletter":
       case "newsletter-elegant":
-      case "newsletter-minimal":
+      case "newsletter-minimal": {
+        const content = activeCampaign.contentConfig as any;
+        const design = (activeCampaign as any).designConfig || {};
+
         return (
           <NewsletterPopup
             isVisible={true}
             onClose={closePopup}
             config={{
-              ...activeCampaign,
-              headline: activeCampaign.contentConfig?.headline || activeCampaign.title || "Join our newsletter",
-              subheadline: activeCampaign.contentConfig?.subheadline || activeCampaign.description || "",
-              buttonText: activeCampaign.contentConfig?.buttonText || activeCampaign.buttonText || "Subscribe",
-              emailPlaceholder: (activeCampaign.contentConfig as any)?.emailPlaceholder || "Enter your email",
-              successMessage: activeCampaign.contentConfig?.successMessage || "Thanks!",
-              failureMessage: activeCampaign.contentConfig?.failureMessage || "Please try again",
-              backgroundColor: activeCampaign.backgroundColor || "#FFFFFF",
-              textColor: activeCampaign.textColor || "#000000",
-              buttonColor: activeCampaign.buttonColor || "#007BFF",
-              buttonTextColor: activeCampaign.buttonTextColor || "#FFFFFF",
-              imageUrl: activeCampaign.imageUrl,
-              imagePosition: activeCampaign.imagePosition,
-              theme: (activeCampaign as any).theme,
-              discount: activeCampaign.discountConfig?.enabled ? {
-                enabled: true,
-                code: activeCampaign.discountConfig.code || '',
-                percentage: (activeCampaign.discountConfig.valueType === "PERCENTAGE")
-                  ? activeCampaign.discountConfig.value
-                  : undefined,
-                value: (activeCampaign.discountConfig.valueType === "FIXED_AMOUNT")
-                  ? activeCampaign.discountConfig.value
-                  : undefined,
-                type: activeCampaign.discountConfig.valueType,
-                deliveryMode: activeCampaign.discountConfig.deliveryMode,
-                expiryDays: activeCampaign.discountConfig.expiryDays,
-                description: activeCampaign.discountConfig.description,
-              } : undefined,
+              ...content,
+              ...design,
+              id: activeCampaign.campaignId || (activeCampaign as any).id,
+              campaignId: activeCampaign.campaignId || (activeCampaign as any).id,
+              headline: content.headline || activeCampaign.title || "Join our newsletter",
+              subheadline: content.subheadline || activeCampaign.description || "",
+              buttonText: content.buttonText || activeCampaign.buttonText || "Subscribe",
+              emailPlaceholder: content.emailPlaceholder || "Enter your email",
+              successMessage: content.successMessage || "Thanks!",
+              failureMessage: content.failureMessage || "Please try again",
+              backgroundColor:
+                design.backgroundColor || activeCampaign.backgroundColor || "#FFFFFF",
+              textColor:
+                design.textColor || activeCampaign.textColor || "#000000",
+              buttonColor:
+                design.buttonColor || activeCampaign.buttonColor || "#007BFF",
+              buttonTextColor:
+                design.buttonTextColor || activeCampaign.buttonTextColor || "#FFFFFF",
+              imageUrl: design.imageUrl || activeCampaign.imageUrl,
+              imagePosition: design.imagePosition || activeCampaign.imagePosition,
+              theme: design.theme || (activeCampaign as any).theme,
+              discount: activeCampaign.discountConfig?.enabled
+                ? {
+                    enabled: true,
+                    code: activeCampaign.discountConfig.code || "",
+                    percentage:
+                      activeCampaign.discountConfig.valueType === "PERCENTAGE"
+                        ? activeCampaign.discountConfig.value
+                        : undefined,
+                    value:
+                      activeCampaign.discountConfig.valueType === "FIXED_AMOUNT"
+                        ? activeCampaign.discountConfig.value
+                        : undefined,
+                    type: activeCampaign.discountConfig.valueType,
+                    deliveryMode: activeCampaign.discountConfig.deliveryMode,
+                    expiryDays: activeCampaign.discountConfig.expiryDays,
+                    description: activeCampaign.discountConfig.description,
+                  }
+                : undefined,
             } as unknown as NewsletterConfig}
           />
         );
+      }
 
       case "spin-to-win":
-      case "lottery":
+
+      case "lottery": {
+        const content = activeCampaign.contentConfig as any;
+        const design = (activeCampaign as any).designConfig || {};
+
         return (
           <SpinToWinPopup
             isVisible={true}
             onClose={closePopup}
             config={{
-              ...activeCampaign,
-              campaignId: activeCampaign.campaignId,
-              prizes: (activeCampaign.contentConfig as { prizes?: unknown[] })?.prizes || [],
-              headline: activeCampaign.contentConfig?.headline || activeCampaign.title || "Spin to Win!",
-              subheadline: activeCampaign.contentConfig?.subheadline || activeCampaign.description || "",
-              emailRequired: (activeCampaign.contentConfig as { emailRequired?: boolean })?.emailRequired ?? true,
-              emailPlaceholder: (activeCampaign.contentConfig as { emailPlaceholder?: string })?.emailPlaceholder || "Enter your email",
-              spinButtonText: (activeCampaign.contentConfig as { spinButtonText?: string })?.spinButtonText || "Spin Now!",
-              successMessage: activeCampaign.contentConfig?.successMessage || "Congratulations!",
-              failureMessage: activeCampaign.contentConfig?.failureMessage || "Try again next time!",
-              backgroundColor: activeCampaign.backgroundColor || "#FFFFFF",
-              textColor: activeCampaign.textColor || "#000000",
-              buttonColor: activeCampaign.buttonColor || "#007BFF",
-              buttonTextColor: activeCampaign.buttonTextColor || "#FFFFFF",
+              // Flatten content + design like the storefront runtime
+              ...content,
+              ...design,
+              // IDs
+              id: activeCampaign.campaignId || (activeCampaign as any).id,
+              campaignId: activeCampaign.campaignId || (activeCampaign as any).id,
+              // Ensure wheelSegments are present for the wheel
+              wheelSegments: content.wheelSegments || [],
+              // Fallbacks for core copy
+              headline: content.headline || activeCampaign.title || "Spin to Win!",
+              subheadline: content.subheadline || activeCampaign.description || "",
+              spinButtonText: content.spinButtonText || "Spin Now!",
+              emailRequired:
+                typeof content.emailRequired === "boolean"
+                  ? content.emailRequired
+                  : true,
+              emailPlaceholder: content.emailPlaceholder || "Enter your email",
+              successMessage: content.successMessage || "Congratulations!",
+              failureMessage: content.failureMessage || "Try again next time!",
+              // Design fallbacks
+              backgroundColor:
+                design.backgroundColor || activeCampaign.backgroundColor || "#FFFFFF",
+              textColor: design.textColor || activeCampaign.textColor || "#000000",
+              buttonColor: design.buttonColor || activeCampaign.buttonColor || "#007BFF",
+              buttonTextColor:
+                design.buttonTextColor || activeCampaign.buttonTextColor || "#FFFFFF",
             } as unknown as SpinToWinConfig}
           />
         );
+      }
 
-      case "scratch-card":
+      case "scratch-card": {
+        const content = activeCampaign.contentConfig as any;
+        const design = (activeCampaign as any).designConfig || {};
+
         return (
           <ScratchCardPopup
             isVisible={true}
             onClose={closePopup}
             config={{
-              ...activeCampaign,
-              campaignId: activeCampaign.campaignId,
-              prizes: (activeCampaign.contentConfig as { prizes?: unknown[] })?.prizes || [],
-              headline: activeCampaign.contentConfig?.headline || activeCampaign.title || "Scratch to Win!",
-              subheadline: activeCampaign.contentConfig?.subheadline || activeCampaign.description || "",
-              emailRequired: (activeCampaign.contentConfig as { emailRequired?: boolean })?.emailRequired ?? true,
-              emailPlaceholder: (activeCampaign.contentConfig as { emailPlaceholder?: string })?.emailPlaceholder || "Enter your email",
-              scratchInstruction: (activeCampaign.contentConfig as { scratchInstruction?: string })?.scratchInstruction || "Scratch to reveal your prize!",
-              backgroundColor: activeCampaign.backgroundColor || "#FFFFFF",
-              textColor: activeCampaign.textColor || "#000000",
-              buttonColor: activeCampaign.buttonColor || "#007BFF",
-              buttonTextColor: activeCampaign.buttonTextColor || "#FFFFFF",
+              ...content,
+              ...design,
+              id: activeCampaign.campaignId || (activeCampaign as any).id,
+              campaignId: activeCampaign.campaignId || (activeCampaign as any).id,
+              prizes: content.prizes || [],
+              headline: content.headline || activeCampaign.title || "Scratch to Win!",
+              subheadline: content.subheadline || activeCampaign.description || "",
+              emailRequired:
+                typeof content.emailRequired === "boolean"
+                  ? content.emailRequired
+                  : true,
+              emailPlaceholder: content.emailPlaceholder || "Enter your email",
+              scratchInstruction:
+                content.scratchInstruction || "Scratch to reveal your prize!",
+              scratchThreshold:
+                typeof content.scratchThreshold === "number"
+                  ? content.scratchThreshold
+                  : 50,
+              scratchRadius:
+                typeof content.scratchRadius === "number" ? content.scratchRadius : 20,
+              backgroundColor:
+                design.backgroundColor || activeCampaign.backgroundColor || "#FFFFFF",
+              textColor: design.textColor || activeCampaign.textColor || "#000000",
+              buttonColor: design.buttonColor || activeCampaign.buttonColor || "#007BFF",
+              buttonTextColor:
+                design.buttonTextColor || activeCampaign.buttonTextColor || "#FFFFFF",
             } as unknown as ScratchCardConfig}
           />
         );
+      }
 
       case "slide-in":
       case "slide":

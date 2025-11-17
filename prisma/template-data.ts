@@ -58,37 +58,39 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
       },
     },
     designConfig: {
-      theme: "bold",
+      // Use the "modern" newsletter theme as the default seeded look
+      theme: "modern",
       position: "center",
       size: "medium",
       popupSize: "standard",
       borderRadius: 8,
       animation: "fade",
 
-      imageUrl: "/newsletter-backgrounds/bold.png",
+      imageUrl: "/newsletter-backgrounds/modern.png",
       imagePosition: "left",
 
-      backgroundColor: "linear-gradient(135deg, #ec4899 0%, #f59e0b 100%)",
-      textColor: "#ffffff",
-      descriptionColor: "#fef3c7",
-      accentColor: "#fde68a",
+      // Modern theme colors (aligned with NEWSLETTER_THEMES.modern)
+      backgroundColor: "#ffffff",
+      textColor: "#111827",
+      descriptionColor: "#52525b",
+      accentColor: "#dbeafe",
 
-      buttonColor: "#ffffff",
-      buttonTextColor: "#ec4899",
+      buttonColor: "#3b82f6",
+      buttonTextColor: "#ffffff",
 
-      inputBackgroundColor: "rgba(255, 255, 255, 0.2)",
+      inputBackgroundColor: "#f3f4f6",
       inputTextColor: "#111827",
-      inputBorderColor: "rgba(255, 255, 255, 0.3)",
+      inputBorderColor: "#d4d4d8",
 
-      imageBgColor: "rgba(255, 255, 255, 0.15)",
+      imageBgColor: "#f4f4f5",
       successColor: "#10b981",
-      overlayOpacity: 0.5,
+      overlayOpacity: 0.8,
 
       fontFamily: "inherit",
       titleFontSize: "1.875rem",
-      titleFontWeight: "900",
+      titleFontWeight: "700",
       descriptionFontSize: "1rem",
-      descriptionFontWeight: "500",
+      descriptionFontWeight: "400",
     },
     discountConfig: {
       enabled: false,
@@ -142,26 +144,26 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
         frequency_capping: getServerFrequencyCapping("FLASH_SALE"),
       },
     },
-    // Use Minimal theme-inspired colors for seeded design
+    // Use Modern theme-inspired colors for seeded design
     designConfig: {
-      theme: "minimal",
+      theme: "modern",
       position: "center",
       size: "medium",
       popupSize: "wide",
       borderRadius: 8,
       animation: "fade",
       imagePosition: "left",
-      backgroundColor: "#fafafa",
-      textColor: "#18181b",
-      descriptionColor: "#71717a",
-      accentColor: "#18181b",
-      buttonColor: "#18181b",
+      backgroundColor: "#ffffff",
+      textColor: "#111827",
+      descriptionColor: "#52525b",
+      accentColor: "#dbeafe",
+      buttonColor: "#3b82f6",
       buttonTextColor: "#ffffff",
-      inputBackgroundColor: "#f4f4f5",
+      inputBackgroundColor: "#f3f4f6",
       inputBorderColor: "#d4d4d8",
       imageBgColor: "#f4f4f5",
-      successColor: "#22c55e",
-      overlayOpacity: 0.5,
+      successColor: "#10b981",
+      overlayOpacity: 0.8,
     },
     // Valid DiscountConfig defaults (💰 Discount Configuration)
     discountConfig: {
@@ -197,12 +199,51 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
       ctaText: "Spin Now",
       emailRequired: true,
       emailPlaceholder: "Enter your email to spin",
-      prizes: [
-        { label: "10% OFF", probability: 30 },
-        { label: "15% OFF", probability: 20 },
-        { label: "20% OFF", probability: 10 },
-        { label: "Free Shipping", probability: 25 },
-        { label: "Try Again", probability: 15 },
+      collectName: true,
+      showGdprCheckbox: true,
+      gdprLabel: "I agree to receive marketing emails and accept the privacy policy",
+      wheelSegments: [
+        {
+          id: "segment-10-off",
+          label: "10% OFF",
+          probability: 0.3,
+          color: "#6b7280",
+          discountType: "percentage",
+          discountValue: 10,
+          discountCode: "SPIN10",
+        },
+        {
+          id: "segment-15-off",
+          label: "15% OFF",
+          probability: 0.2,
+          color: "#4b5563",
+          discountType: "percentage",
+          discountValue: 15,
+          discountCode: "SPIN15",
+        },
+        {
+          id: "segment-20-off",
+          label: "20% OFF",
+          probability: 0.1,
+          color: "#374151",
+          discountType: "percentage",
+          discountValue: 20,
+          discountCode: "SPIN20",
+        },
+        {
+          id: "segment-free-shipping",
+          label: "Free Shipping",
+          probability: 0.25,
+          color: "#9ca3af",
+          discountType: "free_shipping",
+          discountCode: "FREESHIP",
+        },
+        {
+          id: "segment-try-again",
+          label: "Try Again",
+          probability: 0.15,
+          color: "#d1d5db",
+        },
       ],
     },
     fields: [
@@ -218,12 +259,36 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
       },
     },
     designConfig: {
-      backgroundColor: "#4A90E2",
-      textColor: "#FFFFFF",
-      buttonColor: "#FFD700",
-      buttonTextColor: "#000000",
+      // Minimal theme default colors (aligned with NEWSLETTER_THEMES.minimal)
+      theme: "minimal",
       position: "center",
       size: "large",
+      borderRadius: 24,
+      animation: "fade",
+
+      // Main colors
+      backgroundColor: "#fafafa",
+      textColor: "#18181b",
+      descriptionColor: "#71717a",
+      accentColor: "#e4e4e7",
+
+      // Button colors
+      buttonColor: "#18181b",
+      buttonTextColor: "#ffffff",
+
+      // Input field colors
+      inputBackgroundColor: "#f4f4f5",
+      inputTextColor: "#111827",
+      inputBorderColor: "#d4d4d8",
+
+      // Image / surface colors
+      imageBgColor: "#f4f4f5",
+
+      // State colors
+      successColor: "#22c55e",
+
+      // Overlay
+      overlayOpacity: 0.5,
     },
     isDefault: true,
     priority: 3,
@@ -259,10 +324,11 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
       }
     },
     designConfig: {
-      backgroundColor: "#222222",
-      textColor: "#FFFFFF",
-      buttonColor: "#FFD700",
-      buttonTextColor: "#000000",
+      // Modern default colors
+      backgroundColor: "#FFFFFF",
+      textColor: "#1A202C",
+      buttonColor: "#3B82F6",
+      buttonTextColor: "#FFFFFF",
       position: "top",
       size: "small"
     },
@@ -277,7 +343,7 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
     description: "Gamified scratch card for engagement and rewards",
     category: "engagement",
     templateType: "SCRATCH_CARD",
-    goals: ["ENGAGEMENT"],
+    goals: ["ENGAGEMENT", "NEWSLETTER_SIGNUP"],
     contentConfig: {
       headline: "Scratch & Win",
       subheadline: "Reveal your surprise",
@@ -297,9 +363,10 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
       }
     },
     designConfig: {
+      // Modern default colors
       backgroundColor: "#FFFFFF",
-      textColor: "#1A1A1A",
-      buttonColor: "#22C55E",
+      textColor: "#1A202C",
+      buttonColor: "#3B82F6",
       buttonTextColor: "#FFFFFF",
       position: "center",
       size: "medium"
@@ -344,9 +411,10 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
       },
     },
     designConfig: {
-      backgroundColor: "#FFF7ED",
-      textColor: "#7C2D12",
-      buttonColor: "#EA580C",
+      // Modern default colors
+      backgroundColor: "#FFFFFF",
+      textColor: "#1A202C",
+      buttonColor: "#3B82F6",
       buttonTextColor: "#FFFFFF",
       position: "bottom",
       size: "small"
@@ -396,9 +464,10 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
       },
     },
     designConfig: {
-      backgroundColor: "#F0F9FF",
-      textColor: "#0C4A6E",
-      buttonColor: "#0284C7",
+      // Modern default colors
+      backgroundColor: "#FFFFFF",
+      textColor: "#1A202C",
+      buttonColor: "#3B82F6",
       buttonTextColor: "#FFFFFF",
       position: "right",
       size: "medium"
@@ -447,9 +516,10 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
       },
     },
     designConfig: {
-      backgroundColor: "#ECFEFF",
-      textColor: "#134E4A",
-      buttonColor: "#0EA5E9",
+      // Modern default colors
+      backgroundColor: "#FFFFFF",
+      textColor: "#1A202C",
+      buttonColor: "#3B82F6",
       buttonTextColor: "#FFFFFF",
       position: "right",
       size: "medium"
@@ -498,9 +568,10 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
       },
     },
     designConfig: {
-      backgroundColor: "#FEFCE8",
-      textColor: "#713F12",
-      buttonColor: "#D97706",
+      // Modern default colors
+      backgroundColor: "#FFFFFF",
+      textColor: "#1A202C",
+      buttonColor: "#3B82F6",
       buttonTextColor: "#FFFFFF",
       position: "center",
       size: "medium"
@@ -549,9 +620,10 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
       },
     },
     designConfig: {
-      backgroundColor: "#EEF2FF",
-      textColor: "#3730A3",
-      buttonColor: "#6366F1",
+      // Modern default colors
+      backgroundColor: "#FFFFFF",
+      textColor: "#1A202C",
+      buttonColor: "#3B82F6",
       buttonTextColor: "#FFFFFF",
       position: "right",
       size: "medium"
@@ -600,8 +672,9 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
       },
     },
     designConfig: {
-      backgroundColor: "#111827",
-      textColor: "#F3F4F6",
+      // Modern default colors (match app-wide modern blue preset)
+      backgroundColor: "#FFFFFF",
+      textColor: "#1A202C",
       position: "bottom",
       size: "small"
     },
@@ -656,8 +729,9 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
       },
     },
     designConfig: {
-      backgroundColor: "#DCFCE7",
-      textColor: "#14532D",
+      // Modern default colors
+      backgroundColor: "#FFFFFF",
+      textColor: "#1A202C",
       position: "top",
       size: "small"
     },
@@ -700,9 +774,10 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
       }
     },
     designConfig: {
-      backgroundColor: "#1F2937",
-      textColor: "#E5E7EB",
-      buttonColor: "#10B981",
+      // Modern default colors
+      backgroundColor: "#FFFFFF",
+      textColor: "#1A202C",
+      buttonColor: "#3B82F6",
       buttonTextColor: "#FFFFFF",
       position: "top",
       size: "small"

@@ -4,8 +4,8 @@
   if (typeof window === "undefined" || !window.RevenueBoostPreact) {
     throw new Error("RevenueBoostPreact not found. Make sure main bundle is loaded first.");
   }
-  var { h, Component, Fragment, render, createPortal } = window.RevenueBoostPreact;
-  var { useState, useEffect, useCallback, useRef, useMemo } = window.RevenueBoostPreact.hooks;
+  var { h, Component, Fragment, render, createPortal, createContext } = window.RevenueBoostPreact;
+  var { useState, useEffect, useCallback, useRef, useMemo, useContext, useDebugValue } = window.RevenueBoostPreact.hooks;
 
   // global-preact:global-preact:react-dom
   if (typeof window === "undefined" || !window.RevenueBoostPreact) {

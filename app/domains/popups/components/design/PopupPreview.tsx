@@ -138,7 +138,10 @@ export const PopupPreview = forwardRef<PopupPreviewRef, PopupPreviewProps>(
         border: "1px solid #E1E3E5",
         borderRadius: "8px",
         position: "relative",
-        overflow: "hidden",
+        // Allow vertical scrolling inside the preview frame so long popups
+        // and content can be inspected, while keeping horizontal overflow hidden.
+        overflowX: "hidden",
+        overflowY: "auto",
         backgroundColor: "#F6F6F7",
         backgroundImage: `
         linear-gradient(45deg, #F0F0F0 25%, transparent 25%),

@@ -4,8 +4,8 @@
   if (typeof window === "undefined" || !window.RevenueBoostPreact) {
     throw new Error("RevenueBoostPreact not found. Make sure main bundle is loaded first.");
   }
-  var { h, Component, Fragment, render, createPortal } = window.RevenueBoostPreact;
-  var { useState, useEffect, useCallback, useRef, useMemo } = window.RevenueBoostPreact.hooks;
+  var { h, Component, Fragment, render, createPortal, createContext } = window.RevenueBoostPreact;
+  var { useState, useEffect, useCallback, useRef, useMemo, useContext, useDebugValue } = window.RevenueBoostPreact.hooks;
 
   // global-preact:global-preact:react-dom
   if (typeof window === "undefined" || !window.RevenueBoostPreact) {
@@ -330,6 +330,9 @@
       display: flex;
       align-items: ${alignMap[position]};
       justify-content: ${justifyMap[position]};
+      /* Enable container queries for popup content (e.g. mobile full-width layouts) */
+      container-type: inline-size;
+      container-name: viewport;
     }
 
     /* Fade animations */
@@ -464,6 +467,32 @@
   `;
   }
 
+  // app/domains/storefront/popups-new/utils.ts
+  function getSizeDimensions(size, previewMode) {
+    if (previewMode) {
+      switch (size) {
+        case "small":
+          return { width: "50%", maxWidth: "400px" };
+        case "medium":
+          return { width: "65%", maxWidth: "600px" };
+        case "large":
+          return { width: "80%", maxWidth: "900px" };
+        default:
+          return { width: "65%", maxWidth: "600px" };
+      }
+    }
+    switch (size) {
+      case "small":
+        return { width: "90%", maxWidth: "400px" };
+      case "medium":
+        return { width: "90%", maxWidth: "600px" };
+      case "large":
+        return { width: "90%", maxWidth: "900px" };
+      default:
+        return { width: "90%", maxWidth: "600px" };
+    }
+  }
+
   // app/domains/storefront/popups-new/NewsletterPopup.tsx
   var NewsletterPopup = ({
     config,
@@ -479,7 +508,8 @@
     const [errors, setErrors] = useState({});
     const [generatedDiscountCode, setGeneratedDiscountCode] = useState(null);
     const imagePosition = config.imagePosition || "left";
-    const imageUrl = config.imageUrl;
+    const backgroundImageMode = config.backgroundImageMode ?? (config.imageUrl ? "file" : "none");
+    const imageUrl = backgroundImageMode === "none" ? void 0 : config.imageUrl;
     const title = config.headline || "Join Our Newsletter";
     const description = config.subheadline || "Subscribe to get special offers, free giveaways, and exclusive deals.";
     const buttonText = config.submitButtonText || config.buttonText || "Subscribe";
@@ -489,6 +519,7 @@
     const showGdprCheckbox = config.consentFieldEnabled ?? false;
     const gdprLabel = config.consentFieldText || "I agree to receive marketing emails and accept the privacy policy";
     const collectName = config.nameFieldEnabled ?? false;
+    const sizeDimensions = getSizeDimensions(config.size || "medium", config.previewMode);
     useEffect(() => {
       if (!isVisible) {
         const timer = setTimeout(() => {
@@ -578,8 +609,8 @@
 
         .email-popup-container {
           position: relative;
-          width: 100%;
-          max-width: 56rem;
+          width: ${sizeDimensions.width};
+          max-width: ${sizeDimensions.maxWidth};
           border-radius: ${typeof config.borderRadius === "number" ? config.borderRadius : parseFloat(config.borderRadius || "12")}px;
           overflow: hidden;
           box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
@@ -623,13 +654,15 @@
           flex-direction: column-reverse;
         }
 
-        /* Base: Mobile-first (vertical stacking) */
+        /* Base: Mobile-first (vertical stacking)
+           For left/right image positions we keep stacking order the same
+           (image on top) and only change orientation on larger containers. */
         .email-popup-content.vertical {
           flex-direction: column;
         }
 
         .email-popup-content.vertical.reverse {
-          flex-direction: column-reverse;
+          flex-direction: column;
         }
 
         .email-popup-content.single-column {
@@ -909,8 +942,10 @@
           to { transform: rotate(360deg); }
         }
 
-        /* Container Query: Desktop layout (\u2265768px container width) */
-        @container popup (min-width: 768px) {
+        /* Container Query: Desktop layout (\u2265480px container width)
+           Note: container width is capped at ~600px for medium size, so
+           we use a 480px breakpoint to ensure side-by-side layout activates. */
+        @container popup (min-width: 480px) {
           .email-popup-content.vertical {
             flex-direction: row;
           }
@@ -931,10 +966,12 @@
           }
         }
 
-        /* Fallback media query for non-preview mode */
-        @media (min-width: 768px) {
+        /* Container Query: Mobile layout (\u2264640px container width)
+           Use full width of the viewport container for a better mobile experience. */
+        @container viewport (max-width: 640px) {
           .email-popup-container {
-            max-width: 80rem;
+            width: 100%;
+            max-width: none;
           }
         }
 

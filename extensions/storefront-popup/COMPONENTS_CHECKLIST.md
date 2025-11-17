@@ -4,7 +4,7 @@
 
 | Component | React Only | No Remix | No Polaris | Browser APIs | Status |
 |-----------|------------|----------|------------|--------------|--------|
-| **BasePopup** | ✅ | ✅ | ✅ | Portal | ✅ READY |
+| **PopupPortal** | ✅ | ✅ | ✅ | Shadow DOM Portal | ✅ READY |
 | **NewsletterPopup** | ✅ | ✅ | ✅ | - | ✅ READY |
 | **SpinToWinPopup** | ✅ | ✅ | ✅ | SVG | ✅ READY |
 | **ScratchCardPopup** | ✅ | ✅ | ✅ | Canvas | ✅ READY |
@@ -44,14 +44,13 @@
 
 ## 🎯 Component Features
 
-### **BasePopup**
-- ✅ Portal rendering
-- ✅ Overlay with opacity control
+### **PopupPortal**
+- ✅ Shadow DOM portal rendering
+- ✅ Overlay with color, opacity, and blur control
 - ✅ Position control (center, top, bottom, left, right)
-- ✅ Size control (small, medium, large)
-- ✅ Close button
-- ✅ Click outside to close
-- ✅ Inline rendering mode (for Shadow DOM)
+- ✅ Animation control (fade, slide, zoom, bounce, none)
+- ✅ ESC key and backdrop click handling
+- ✅ Scroll locking and focus management
 
 ### **NewsletterPopup**
 - ✅ Email input with validation

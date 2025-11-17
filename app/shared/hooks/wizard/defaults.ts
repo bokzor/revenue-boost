@@ -56,8 +56,8 @@ export function getDefaultEnhancedTriggers() {
 export function getDefaultAudienceTargeting() {
   return {
     enabled: false,
-    segments: [],
-    customRules: {
+    shopifySegmentIds: [],
+    sessionRules: {
       enabled: false,
       conditions: [],
       logicOperator: "AND" as const,
@@ -72,6 +72,8 @@ export function getDefaultPageTargeting(): PageTargetingConfig {
     pages: [],
     customPatterns: [],
     excludePages: [],
+    productTags: [],
+    collections: [],
   };
 }
 

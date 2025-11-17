@@ -33,6 +33,11 @@ export const SlideInPopup: React.FC<SlideInPopupProps> = ({
   }
 
   const slideDirection = config.slideDirection || "right";
+  const backgroundImageMode: "none" | "preset" | "file" =
+    (config.backgroundImageMode as any) ?? (config.imageUrl ? "file" : "none");
+  const imageUrl = backgroundImageMode === "none" ? undefined : config.imageUrl;
+
+
 
   const getPositionStyles = (): React.CSSProperties => {
     const baseStyles: React.CSSProperties = {
@@ -139,10 +144,10 @@ export const SlideInPopup: React.FC<SlideInPopupProps> = ({
           ×
         </button>
 
-        {config.imageUrl && (
+        {imageUrl && (
           <div style={{ marginBottom: "16px", textAlign: "center" }}>
             <img
-              src={config.imageUrl}
+              src={imageUrl}
               alt={config.title}
               style={{
                 maxWidth: "100%",

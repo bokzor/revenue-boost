@@ -165,11 +165,20 @@ export function validateAudienceStep(data: CampaignFormData): ValidationResult {
       field: "audienceTargeting.enabled",
       message: "Consider targeting specific audiences for better conversion rates",
     });
-  } else if (!data.audienceTargeting.segments || data.audienceTargeting.segments.length === 0) {
-    result.warnings.push({
-      field: "audienceTargeting.segments",
-      message: "Select audience segments for better targeting",
-    });
+  } else {
+    const hasShopifySegments =
+      !!data.audienceTargeting.shopifySegmentIds &&
+      data.audienceTargeting.shopifySegmentIds.length > 0;
+    const hasSessionRules =
+      !!data.audienceTargeting.sessionRules?.enabled &&
+      (data.audienceTargeting.sessionRules?.conditions?.length ?? 0) > 0;
+
+    if (!hasShopifySegments && !hasSessionRules) {
+      result.warnings.push({
+        field: "audienceTargeting",
+        message: "Add Shopify segments or session rules for better targeting",
+      });
+    }
   }
 
   return result;

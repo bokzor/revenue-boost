@@ -4,7 +4,9 @@
  * Form section for configuring product upsell popup content
  */
 
-import { TextField, CheckboxField, FormGrid, SelectField } from "../form";
+import { useEffect } from "react";
+import { Card, BlockStack, Text, Divider, Select } from "@shopify/polaris";
+import { TextField, CheckboxField, FormGrid } from "../form";
 import { useFieldUpdater } from "~/shared/hooks/useFieldUpdater";
 import type { ProductUpsellContent } from "../../types/campaign";
 
@@ -19,20 +21,72 @@ export function ProductUpsellContentSection({
   errors,
   onChange,
 }: ProductUpsellContentSectionProps) {
+  const selectionMethod: ProductUpsellContent["productSelectionMethod"] =
+    content.productSelectionMethod === "ai" ||
+    content.productSelectionMethod === "manual" ||
+    content.productSelectionMethod === "collection"
+      ? (content.productSelectionMethod as ProductUpsellContent["productSelectionMethod"])
+      : "ai";
+
+  const layout: ProductUpsellContent["layout"] =
+    content.layout === "grid" || content.layout === "carousel" || content.layout === "card"
+      ? (content.layout as ProductUpsellContent["layout"])
+      : "grid";
+
+
+  // Normalize selection method to a safe default and persist if missing/invalid
+  useEffect(() => {
+    if (
+      content.productSelectionMethod !== selectionMethod &&
+      (content.productSelectionMethod !== "ai" &&
+        content.productSelectionMethod !== "manual" &&
+        content.productSelectionMethod !== "collection")
+    ) {
+      updateField("productSelectionMethod", selectionMethod);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [content.productSelectionMethod, selectionMethod]);
+
+  // Normalize layout to a safe default and persist if missing/invalid
+  useEffect(() => {
+    if (
+      content.layout !== layout &&
+      (content.layout !== "grid" &&
+        content.layout !== "carousel" &&
+        content.layout !== "card")
+    ) {
+      updateField("layout", layout);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [content.layout, layout]);
+
   const updateField = useFieldUpdater(content, onChange);
 
   return (
-    <>
-      <TextField
-        label="Headline"
-        name="content.headline"
-        value={content.headline || ""}
-        error={errors?.headline}
-        required
-        placeholder="Complete Your Order & Save 15%"
-        helpText="Main headline"
-        onChange={(value) => updateField("headline", value)}
-      />
+    <Card>
+      <BlockStack gap="400">
+        <BlockStack gap="200">
+          <Text as="h3" variant="headingMd">
+            Product Upsell Content
+          </Text>
+          <Text as="p" tone="subdued">
+            Configure which products to show and how the upsell looks.
+          </Text>
+        </BlockStack>
+
+        <Divider />
+
+        <BlockStack gap="400">
+          <TextField
+            label="Headline"
+            name="content.headline"
+            value={content.headline || ""}
+            error={errors?.headline}
+            required
+            placeholder="Complete Your Order & Save 15%"
+            helpText="Main headline"
+            onChange={(value) => updateField("headline", value)}
+          />
 
       <TextField
         label="Subheadline"
@@ -44,8 +98,54 @@ export function ProductUpsellContentSection({
         onChange={(value) => updateField("subheadline", value)}
       />
 
-      {/* Product selection currently uses cart-based recommendations.
-          Manual and collection-based selection will be added in a future update. */}
+      <h3>Product Selection</h3>
+
+      <Select
+        label="How should products be chosen?"
+        name="content.productSelectionMethod"
+        options={[
+          { label: "Smart recommendations (default)", value: "ai" },
+          { label: "Manual selection", value: "manual" },
+          { label: "From a collection", value: "collection" },
+        ]}
+        helpText="Use recommendations by default, or specify products or a collection."
+        value={selectionMethod}
+        onChange={(value) =>
+          updateField(
+            "productSelectionMethod",
+            value as ProductUpsellContent["productSelectionMethod"],
+          )
+        }
+      />
+
+      {selectionMethod === "manual" && (
+        <TextField
+          label="Product IDs (comma separated)"
+          name="content.selectedProducts"
+          value={(content.selectedProducts || []).join(", ")}
+          placeholder="gid://shopify/Product/123, gid://shopify/Product/456"
+          helpText="Enter Shopify product IDs or GIDs to feature in this upsell."
+          onChange={(value) => {
+            const ids = value
+              .split(/[ ,]+/)
+              .map((id) => id.trim())
+              .filter(Boolean);
+            updateField("selectedProducts", ids);
+          }}
+        />
+      )}
+
+      {selectionMethod === "collection" && (
+        <TextField
+          label="Collection ID or handle"
+          name="content.selectedCollection"
+          value={content.selectedCollection || ""}
+          placeholder="gid://shopify/Collection/123 or collection-handle"
+          helpText="Products will be pulled from this collection."
+          onChange={(value) => updateField("selectedCollection", value)}
+        />
+      )}
+
       <TextField
         label="Maximum Products to Display"
         name="content.maxProducts"
@@ -59,18 +159,20 @@ export function ProductUpsellContentSection({
       <h3>Layout & Display</h3>
 
       <FormGrid columns={2}>
-        <SelectField
+        <Select
           label="Layout"
           name="content.layout"
-          value={content.layout || "grid"}
           options={[
             { label: "Grid", value: "grid" },
+            { label: "Carousel", value: "carousel" },
+            { label: "Card", value: "card" },
           ]}
-          helpText="Additional layouts (carousel, card) are coming soon."
+          helpText="Choose how upsell products are laid out."
+          value={layout}
           onChange={(value) => updateField("layout", value as ProductUpsellContent["layout"])}
         />
 
-        {content.layout === "grid" && (
+        {layout === "grid" && (
           <TextField
             label="Number of Columns"
             name="content.columns"
@@ -184,7 +286,9 @@ export function ProductUpsellContentSection({
           onChange={(value) => updateField("secondaryCtaLabel", value)}
         />
       </FormGrid>
-    </>
+        </BlockStack>
+      </BlockStack>
+    </Card>
   );
 }
 

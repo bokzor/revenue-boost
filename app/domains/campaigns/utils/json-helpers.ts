@@ -109,6 +109,7 @@ export function parseDesignConfig(jsonValue: unknown): DesignConfig {
     imagePosition: "left",
     overlayOpacity: 0.8,
     animation: "fade",
+    backgroundImageMode: "none",
   });
 }
 

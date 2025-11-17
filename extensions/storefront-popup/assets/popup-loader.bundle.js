@@ -249,6 +249,29 @@
     var r3, o3, e3, f3;
     t3 == document && (t3 = document.documentElement), l.__ && l.__(u3, t3), o3 = (r3 = "function" == typeof i3) ? null : i3 && i3.__k || t3.__k, e3 = [], f3 = [], O(t3, u3 = (!r3 && i3 || t3).__k = _(k, null, [u3]), o3 || p, p, t3.namespaceURI, !r3 && i3 ? [i3] : o3 ? null : t3.firstChild ? n.call(t3.childNodes) : null, e3, !r3 && i3 ? i3 : o3 ? o3.__e : t3.firstChild, r3, f3), N(e3, u3, f3);
   }
+  function Q(n2) {
+    function l3(n3) {
+      var u3, t3;
+      return this.getChildContext || (u3 = /* @__PURE__ */ new Set(), (t3 = {})[l3.__c] = this, this.getChildContext = function() {
+        return t3;
+      }, this.componentWillUnmount = function() {
+        u3 = null;
+      }, this.shouldComponentUpdate = function(n4) {
+        this.props.value != n4.value && u3.forEach(function(n5) {
+          n5.__e = true, M(n5);
+        });
+      }, this.sub = function(n4) {
+        u3.add(n4);
+        var l4 = n4.componentWillUnmount;
+        n4.componentWillUnmount = function() {
+          u3 && u3.delete(n4), l4 && l4.call(n4);
+        };
+      }), n3.children;
+    }
+    return l3.__c = "__cC" + h++, l3.__ = n2, l3.Provider = l3.__l = (l3.Consumer = function(n3, l4) {
+      return n3.children(l4);
+    }).contextType = l3, l3;
+  }
   n = v.slice, l = { __e: function(n2, l3, u3, t3) {
     for (var i3, r3, o3; l3 = l3.__; ) if ((i3 = l3.__c) && !i3.__) try {
       if ((r3 = i3.constructor) && null != r3.getDerivedStateFromError && (i3.setState(r3.getDerivedStateFromError(n2)), o3 = i3.__d), null != i3.componentDidCatch && (i3.componentDidCatch(n2, t3 || {}), o3 = i3.__d), o3) return i3.__E = i3;
@@ -340,6 +363,13 @@
     return o2 = 8, T2(function() {
       return n2;
     }, t3);
+  }
+  function x2(n2) {
+    var u3 = r2.context[n2.__c], i3 = p2(t2++, 9);
+    return i3.c = n2, u3 ? (null == i3.__ && (i3.__ = true, u3.sub(r2)), u3.props.value) : n2.__;
+  }
+  function P2(n2, t3) {
+    c2.useDebugValue && c2.useDebugValue(t3 ? t3(n2) : n2);
   }
   function j2() {
     for (var n2; n2 = f2.shift(); ) if (n2.__P && n2.__H) try {
@@ -637,6 +667,9 @@
         shop: this.config.shopDomain,
         ...context
       });
+      if (this.config.previewId) {
+        params.set("previewId", this.config.previewId);
+      }
       const url = `${this.getApiUrl("/api/campaigns/active")}?${params.toString()}`;
       this.log("Fetching campaigns from:", url);
       this.log("Context:", context);
@@ -668,6 +701,20 @@
         pageType,
         deviceType: this.detectDeviceType()
       };
+      try {
+        const w4 = window;
+        const cfg = w4.REVENUE_BOOST_CONFIG || {};
+        if (cfg.productId) context.productId = String(cfg.productId);
+        if (cfg.productHandle) context.productHandle = String(cfg.productHandle);
+        if (cfg.productType) context.productType = String(cfg.productType);
+        if (cfg.productVendor) context.productVendor = String(cfg.productVendor);
+        if (Array.isArray(cfg.productTags) && cfg.productTags.length > 0) {
+          context.productTags = cfg.productTags.join(",");
+        }
+        if (cfg.collectionId) context.collectionId = String(cfg.collectionId);
+        if (cfg.collectionHandle) context.collectionHandle = String(cfg.collectionHandle);
+      } catch {
+      }
       if (visitorId) {
         context.visitorId = visitorId;
       }
@@ -806,6 +853,39 @@
         return {
           success: false,
           error: error instanceof Error ? error.message : "Failed to issue discount"
+        };
+      }
+    }
+    async emailRecovery(data) {
+      const params = new URLSearchParams({
+        shop: this.config.shopDomain
+      });
+      const url = `${this.getApiUrl("/api/cart/email-recovery")}?${params.toString()}`;
+      try {
+        const response = await fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(data)
+        });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(result.error || `HTTP ${response.status}`);
+        }
+        this.log("Cart email recovery success:", result);
+        return {
+          success: true,
+          discountCode: result.discountCode,
+          deliveryMode: result.deliveryMode,
+          autoApplyMode: result.autoApplyMode,
+          message: result.message
+        };
+      } catch (error) {
+        console.error("[Revenue Boost API] Failed to perform email recovery:", error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : "Failed to perform email recovery"
         };
       }
     }
@@ -1279,6 +1359,67 @@
         return 0;
       }
     })();
+    const handleEmailRecovery = async (email) => {
+      try {
+        console.log("[PopupManager] Email recovery for campaign:", campaign.id, { email });
+        const cartSubtotalCents = typeof currentCartTotal === "number" && Number.isFinite(currentCartTotal) ? Math.round(currentCartTotal * 100) : void 0;
+        const result = await api.emailRecovery({
+          campaignId: campaign.id,
+          email,
+          cartSubtotalCents
+        });
+        if (!result.success) {
+          console.error("[PopupManager] Email recovery failed:", result.error);
+          throw new Error(result.error || "Email recovery failed");
+        }
+        const code = result.discountCode;
+        const autoApplyMode = result.autoApplyMode || "ajax";
+        const deliveryMode = campaign.discountConfig?.deliveryMode;
+        const shouldAutoApply = !!code && autoApplyMode !== "none" && (deliveryMode === "auto_apply_only" || deliveryMode === "show_code_fallback");
+        if (shouldAutoApply && code) {
+          void applyDiscountViaAjax(code);
+        }
+        if (deliveryMode === "show_code_always" || deliveryMode === "show_in_popup_authorized_only") {
+          return code || void 0;
+        }
+        const root = getShopifyRoot();
+        const contentConfig = campaign.contentConfig || {};
+        const configuredUrl = typeof contentConfig.ctaUrl === "string" && contentConfig.ctaUrl.trim() !== "" ? contentConfig.ctaUrl : "checkout";
+        const normalizedPath = configuredUrl.replace(/^\//, "");
+        window.location.href = `${root}${normalizedPath}`;
+        return code || void 0;
+      } catch (error2) {
+        console.error("[PopupManager] Error during email recovery flow:", error2);
+        throw error2;
+      }
+    };
+    const [upsellProducts, setUpsellProducts] = d2(null);
+    y2(() => {
+      if (campaign.templateType !== "PRODUCT_UPSELL") {
+        return;
+      }
+      let cancelled = false;
+      const loadUpsellProducts = async () => {
+        try {
+          const url = `/apps/revenue-boost/api/upsell-products?campaignId=${encodeURIComponent(campaign.id)}`;
+          const res = await fetch(url, { credentials: "same-origin" });
+          if (!res.ok) {
+            console.warn("[PopupManager] Upsell products request failed:", res.status);
+            return;
+          }
+          const json = await res.json();
+          if (!cancelled) {
+            setUpsellProducts(Array.isArray(json.products) ? json.products : []);
+          }
+        } catch (err) {
+          console.error("[PopupManager] Failed to load upsell products:", err);
+        }
+      };
+      void loadUpsellProducts();
+      return () => {
+        cancelled = true;
+      };
+    }, [campaign.id, campaign.templateType]);
     return _(Component, {
       config: {
         ...campaign.contentConfig,
@@ -1295,14 +1436,17 @@
           deliveryMode: campaign.discountConfig.deliveryMode,
           expiryDays: campaign.discountConfig.expiryDays,
           description: campaign.discountConfig.description
-        } : void 0
+        } : void 0,
+        // If we have upsell products, inject them so ProductUpsellPopup can render them
+        ...upsellProducts ? { products: upsellProducts } : {}
       },
       isVisible: true,
       onClose,
       onSubmit: handleSubmit,
       issueDiscount: handleIssueDiscount,
       campaignId: campaign.id,
-      renderInline: false
+      renderInline: false,
+      onEmailRecovery: handleEmailRecovery
     });
   }
   function renderPopup(campaign, onClose, loader, api, onShow) {
@@ -2754,12 +2898,15 @@
       Fragment: k,
       options: l,
       createPortal: $2,
+      createContext: Q,
       hooks: {
         useState: d2,
         useEffect: y2,
         useCallback: q2,
         useRef: A2,
-        useMemo: T2
+        useMemo: T2,
+        useContext: x2,
+        useDebugValue: P2
       }
     };
     console.log("[Revenue Boost] \u269B\uFE0F Preact runtime exposed globally");

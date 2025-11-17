@@ -413,6 +413,9 @@ function getAnimationKeyframes(previewMode: boolean, position: PopupPosition): s
       display: flex;
       align-items: ${alignMap[position]};
       justify-content: ${justifyMap[position]};
+      /* Enable container queries for popup content (e.g. mobile full-width layouts) */
+      container-type: inline-size;
+      container-name: viewport;
     }
 
     /* Fade animations */

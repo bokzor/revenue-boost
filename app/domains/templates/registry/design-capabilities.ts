@@ -107,7 +107,7 @@ export const TEMPLATE_DESIGN_CAPABILITIES: Record<TemplateType, DesignCapabiliti
     usesButtons: true,
     usesInputs: true,
     usesOverlay: true,
-    usesImage: true, // Optional side image + wheel
+    usesImage: false, // No standalone background image; wheel is primary visual
     usesTypographyAdvanced: false,
     usesAccent: true,
     usesSuccessWarning: true,

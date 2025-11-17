@@ -449,6 +449,241 @@ export const NEWSLETTER_THEMES: Record<NewsletterThemeKey, ThemeColors> = {
   },
 };
 
+export const NEWSLETTER_BACKGROUND_PRESETS: { key: NewsletterThemeKey; label: string }[] = [
+  { key: "modern", label: "Modern theme image" },
+  { key: "minimal", label: "Minimal theme image" },
+  { key: "elegant", label: "Elegant theme image" },
+  { key: "bold", label: "Bold theme image" },
+  { key: "glass", label: "Glass theme image" },
+  { key: "dark", label: "Dark theme image" },
+  { key: "gradient", label: "Gradient theme image" },
+  { key: "luxury", label: "Luxury theme image" },
+  { key: "neon", label: "Neon theme image" },
+  { key: "ocean", label: "Ocean theme image" },
+];
+
+export function getNewsletterBackgroundUrl(key: NewsletterThemeKey): string {
+  return `/apps/revenue-boost/assets/newsletter-backgrounds/${key}.png`;
+}
+
+export const NEWSLETTER_THEMES_2: Record<NewsletterThemeKey, ThemeColors> = {
+  minimal: {
+    background: "#fafafa",
+    text: "#18181b",
+    primary: "#18181b",
+    secondary: "#f4f4f5",
+    accent: "#e4e4e7",
+    border: "#e4e4e7",
+    success: "#22c55e",
+    warning: "#ef4444",
+    imageBg: "#f4f4f5",
+    descColor: "#71717a",
+    inputBorder: "#d4d4d8",
+    timerBg: "#f4f4f5",
+    timerText: "#18181b",
+    ctaBg: "#18181b",
+    ctaText: "#ffffff",
+    // Typography
+    fontFamily: "inherit",
+    titleFontSize: "1.5rem",
+    titleFontWeight: "300",
+    descriptionFontSize: "0.875rem",
+    descriptionFontWeight: "400",
+  },
+  elegant: {
+    background: "#fefce8",
+    text: "#44403c",
+    primary: "#a855f7",
+    secondary: "#fef3c7",
+    accent: "#f3e8ff",
+    border: "#e7e5e4",
+    success: "#a855f7",
+    warning: "#dc2626",
+    imageBg: "#fef3c7",
+    descColor: "#78716c",
+    // Typography
+    fontFamily: "serif",
+    titleFontSize: "1.875rem",
+    titleFontWeight: "700",
+    descriptionFontSize: "1rem",
+    descriptionFontWeight: "400",
+    inputBorder: "#e7e5e4",
+    timerBg: "rgba(168, 85, 247, 0.1)",
+    timerText: "#a855f7",
+    ctaBg: "#a855f7",
+    ctaText: "#ffffff",
+  },
+  bold: {
+    background: "linear-gradient(135deg, #ec4899 0%, #f59e0b 100%)",
+    text: "#ffffff",
+    primary: "#fde68a",
+    secondary: "rgba(255, 255, 255, 0.2)",
+    accent: "#fde68a",
+    border: "rgba(255, 255, 255, 0.3)",
+    success: "#10b981",
+    warning: "#fca5a5",
+    imageBg: "rgba(255, 255, 255, 0.15)",
+    descColor: "#fef3c7",
+    inputBorder: "rgba(255, 255, 255, 0.3)",
+    timerBg: "rgba(255, 255, 255, 0.25)",
+    timerText: "#ffffff",
+    ctaBg: "#ffffff",
+    ctaText: "#ec4899",
+    // Typography
+    fontFamily: "inherit",
+    titleFontSize: "2rem",
+    titleFontWeight: "900",
+    descriptionFontSize: "1rem",
+    descriptionFontWeight: "500",
+  },
+  glass: {
+    background: "rgba(255, 255, 255, 0.7)",
+    text: "#18181b",
+    primary: "#6366f1",
+    secondary: "rgba(255, 255, 255, 0.5)",
+    accent: "rgba(99, 102, 241, 0.1)",
+    border: "rgba(255, 255, 255, 0.3)",
+    success: "#10b981",
+    warning: "#ef4444",
+    imageBg: "rgba(244, 244, 245, 0.8)",
+    descColor: "#52525b",
+    inputBorder: "rgba(212, 212, 216, 0.5)",
+    timerBg: "rgba(99, 102, 241, 0.15)",
+    timerText: "#6366f1",
+    ctaBg: "#6366f1",
+    ctaText: "#ffffff",
+    blur: true,
+    // Typography
+    fontFamily: "inherit",
+    titleFontSize: "1.875rem",
+    titleFontWeight: "700",
+    descriptionFontSize: "1rem",
+    descriptionFontWeight: "400",
+    // Input styling
+    inputBackdropFilter: "blur(10px)",
+  },
+  dark: {
+    background: "#111827",
+    text: "#f9fafb",
+    primary: "#3b82f6",
+    secondary: "#1f2937",
+    accent: "#374151",
+    border: "#374151",
+    success: "#10b981",
+    warning: "#ef4444",
+    imageBg: "#1f2937",
+    descColor: "#d1d5db",
+    inputBorder: "#4b5563",
+    timerBg: "#1f2937",
+    timerText: "#f9fafb",
+    ctaBg: "#3b82f6",
+    ctaText: "#ffffff",
+    // Typography
+    fontFamily: "inherit",
+    titleFontSize: "1.875rem",
+    titleFontWeight: "700",
+    descriptionFontSize: "1rem",
+    descriptionFontWeight: "400",
+  },
+  gradient: {
+    background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+    text: "#ffffff",
+    primary: "#e0e7ff",
+    secondary: "rgba(255, 255, 255, 0.15)",
+    accent: "#e0e7ff",
+    border: "rgba(255, 255, 255, 0.2)",
+    success: "#10b981",
+    warning: "#fca5a5",
+    imageBg: "rgba(255, 255, 255, 0.1)",
+    descColor: "#e0e7ff",
+    inputBorder: "rgba(255, 255, 255, 0.3)",
+    timerBg: "rgba(255, 255, 255, 0.2)",
+    timerText: "#ffffff",
+    ctaBg: "#ffffff",
+    ctaText: "#667eea",
+    // Typography
+    fontFamily: "inherit",
+    titleFontSize: "2rem",
+    titleFontWeight: "700",
+    descriptionFontSize: "1rem",
+    descriptionFontWeight: "400",
+    // Input styling
+    inputBackdropFilter: "blur(10px)",
+  },
+  luxury: {
+    background: "#1a1a0a",
+    text: "#d4af37",
+    primary: "#d4af37",
+    secondary: "#2d2d1a",
+    accent: "#3d3d2a",
+    border: "#d4af37",
+    success: "#d4af37",
+    warning: "#dc2626",
+    imageBg: "#2d2d1a",
+    descColor: "#f5f5dc",
+    inputBorder: "#d4af37",
+    timerBg: "rgba(212, 175, 55, 0.1)",
+    timerText: "#d4af37",
+    ctaBg: "#d4af37",
+    ctaText: "#1a1a0a",
+    // Typography
+    fontFamily: "serif",
+    titleFontSize: "1.875rem",
+    titleFontWeight: "700",
+    descriptionFontSize: "1rem",
+    descriptionFontWeight: "400",
+  },
+  neon: {
+    background: "#0a0a1f",
+    text: "#00ffff",
+    primary: "#00ffff",
+    secondary: "#1a1a3a",
+    accent: "#ff00ff",
+    border: "rgba(0, 255, 255, 0.3)",
+    success: "#00ffff",
+    warning: "#ff00ff",
+    imageBg: "#1a1a3a",
+    descColor: "#00ffff",
+    inputBorder: "rgba(0, 255, 255, 0.5)",
+    timerBg: "rgba(0, 255, 255, 0.1)",
+    timerText: "#00ffff",
+    ctaBg: "#00ffff",
+    ctaText: "#0a0a1f",
+    // Typography
+    fontFamily: "inherit",
+    titleFontSize: "2rem",
+    titleFontWeight: "900",
+    titleTextShadow: "0 0 20px currentColor, 0 0 40px currentColor",
+    descriptionFontSize: "1rem",
+    descriptionFontWeight: "400",
+    // Input styling
+    inputBoxShadow: "0 0 10px rgba(0, 255, 255, 0.1)",
+  },
+  ocean: {
+    background: "#f0f9ff",
+    text: "#0c4a6e",
+    primary: "#0ea5e9",
+    secondary: "#e0f2fe",
+    accent: "#bae6fd",
+    border: "#7dd3fc",
+    success: "#14b8a6",
+    warning: "#ef4444",
+    imageBg: "#e0f2fe",
+    descColor: "#0369a1",
+    inputBorder: "#7dd3fc",
+    timerBg: "rgba(14, 165, 233, 0.1)",
+    timerText: "#0ea5e9",
+    ctaBg: "#0ea5e9",
+    ctaText: "#ffffff",
+    // Typography
+    fontFamily: "inherit",
+    titleFontSize: "1.875rem",
+    titleFontWeight: "700",
+    descriptionFontSize: "1rem",
+    descriptionFontWeight: "400",
+  },
+};
+
 // ============================================================================
 // Spin-to-Win wheel slice colors (admin-side theme mapping)
 // ============================================================================
@@ -493,6 +728,31 @@ export function getSpinToWinSliceColors(theme: NewsletterThemeKey, sliceCount: n
   }
   return result;
 }
+
+// Spin-to-Win wheel border defaults (admin-side theme mapping)
+// Mirrors docs/mockup/lib/popup-themes.ts wheelBorderDefaults
+export interface SpinToWinWheelBorder {
+  color: string;
+  width: number;
+}
+
+const SPIN_TO_WIN_WHEEL_BORDER_DEFAULTS: Record<NewsletterThemeKey, SpinToWinWheelBorder> = {
+  modern: { color: "#3b82f6", width: 6 },
+  minimal: { color: "#d4d4d8", width: 3 },
+  elegant: { color: "#a855f7", width: 5 },
+  bold: { color: "#ffffff", width: 8 },
+  glass: { color: "rgba(99, 102, 241, 0.4)", width: 4 },
+  dark: { color: "#3b82f6", width: 6 },
+  gradient: { color: "#ffffff", width: 7 },
+  luxury: { color: "#d4af37", width: 6 },
+  neon: { color: "#00ffff", width: 5 },
+  ocean: { color: "#0ea5e9", width: 6 },
+};
+
+export function getSpinToWinWheelBorder(theme: NewsletterThemeKey): SpinToWinWheelBorder {
+  return SPIN_TO_WIN_WHEEL_BORDER_DEFAULTS[theme] ?? SPIN_TO_WIN_WHEEL_BORDER_DEFAULTS.modern;
+}
+
 
 
 // ============================================

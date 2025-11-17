@@ -69,6 +69,42 @@ export async function loader(args: LoaderFunctionArgs) {
     // Add visitor ID to context (for frequency capping)
     context.visitorId = visitorId;
 
+    // Preview mode: if previewId is provided, fetch that campaign directly
+    const previewId = url.searchParams.get("previewId");
+    if (previewId) {
+      console.log(`[Active Campaigns API] Preview mode enabled for campaign ${previewId}`);
+      const previewCampaign = await CampaignService.getCampaignById(previewId, storeId);
+
+      if (!previewCampaign) {
+        console.warn(`[Active Campaigns API] Preview campaign not found: ${previewId} for store ${storeId}`);
+        const emptyResponse: ActiveCampaignsResponse = {
+          campaigns: [],
+          timestamp: new Date().toISOString(),
+        };
+        return data(emptyResponse, { headers });
+      }
+
+      const formattedPreview: ApiCampaignData = {
+        id: previewCampaign.id,
+        name: previewCampaign.name,
+        templateType: previewCampaign.templateType,
+        priority: previewCampaign.priority,
+        contentConfig: previewCampaign.contentConfig,
+        designConfig: previewCampaign.designConfig,
+        targetRules: {} as Record<string, unknown>,
+        discountConfig: previewCampaign.discountConfig,
+        experimentId: previewCampaign.experimentId,
+      };
+
+      const previewResponse: ActiveCampaignsResponse = {
+        campaigns: [formattedPreview],
+        timestamp: new Date().toISOString(),
+      };
+
+      console.log(`[Active Campaigns API] ✅ Returning preview campaign ${previewCampaign.id} to storefront`);
+      return data(previewResponse, { headers });
+    }
+
     // Get all active campaigns
     const allCampaigns = await CampaignService.getActiveCampaigns(storeId);
     console.log(`[Active Campaigns API] Found ${allCampaigns.length} active campaigns for store ${storeId}`);

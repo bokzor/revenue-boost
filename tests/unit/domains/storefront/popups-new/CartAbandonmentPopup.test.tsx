@@ -1,6 +1,6 @@
 import React from "react";
-import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { describe, it, expect, vi } from "vitest";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 
 import { CartAbandonmentPopup } from "~/domains/storefront/popups-new/CartAbandonmentPopup";
 
@@ -52,5 +52,225 @@ describe("CartAbandonmentPopup", () => {
     expect(screen.getByText(/qty: 2/i)).toBeTruthy();
     expect(screen.getByText(/total:/i)).toBeTruthy();
   });
-});
 
+  it("calls onEmailRecovery with entered email when email recovery is enabled", async () => {
+    const config = createConfig({ enableEmailRecovery: true });
+    const onEmailRecovery = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <CartAbandonmentPopup
+        config={config}
+        isVisible={true}
+        onClose={() => {}}
+        cartItems={[]}
+        cartTotal={0}
+        onEmailRecovery={onEmailRecovery}
+      />,
+    );
+
+    const emailInput = screen.getByPlaceholderText(
+      /enter your email to receive your cart and discount/i,
+    );
+
+    fireEvent.change(emailInput, { target: { value: "test@example.com" } });
+
+    const submitButton = screen.getByRole("button", {
+      name: /email me my cart/i,
+    });
+
+    fireEvent.click(submitButton);
+
+    await waitFor(() => {
+      expect(onEmailRecovery).toHaveBeenCalledWith("test@example.com");
+    });
+  });
+
+  it("shows validation error and uses custom error message when email is invalid", async () => {
+    const config = createConfig({
+      enableEmailRecovery: true,
+      emailErrorMessage: "Custom error",
+    });
+
+    render(
+      <CartAbandonmentPopup
+        config={config}
+        isVisible={true}
+        onClose={() => {}}
+        cartItems={[]}
+        cartTotal={0}
+        onEmailRecovery={vi.fn().mockResolvedValue(undefined)}
+      />,
+    );
+
+    const submitButton = screen.getByRole("button", {
+      name: /email me my cart/i,
+    });
+
+    // Submit with empty email
+    fireEvent.click(submitButton);
+
+    expect(await screen.findByText(/custom error/i)).toBeTruthy();
+  });
+
+  it("hides primary and save-for-later buttons when requireEmailBeforeCheckout is true", () => {
+    const config = createConfig({
+      enableEmailRecovery: true,
+      requireEmailBeforeCheckout: true,
+      saveForLaterText: "Save for later",
+    });
+
+    render(
+      <CartAbandonmentPopup
+        config={config}
+        isVisible={true}
+        onClose={() => {}}
+        cartItems={[]}
+        cartTotal={0}
+        onEmailRecovery={vi.fn().mockResolvedValue(undefined)}
+      />,
+    );
+
+    expect(
+      screen.queryByRole("button", { name: /resume checkout/i }),
+    ).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: /save for later/i }),
+    ).toBeNull();
+  });
+  it("shows discount code and re-enables CTAs after successful email recovery when gating is on", async () => {
+    const config = createConfig({
+      enableEmailRecovery: true,
+      requireEmailBeforeCheckout: true,
+      saveForLaterText: "Save for later",
+      discount: {
+        enabled: true,
+        deliveryMode: "show_code_always",
+      },
+    });
+
+    const onEmailRecovery = vi.fn().mockResolvedValue("SAVE10");
+
+    render(
+      <CartAbandonmentPopup
+        config={config}
+        isVisible={true}
+        onClose={() => {}}
+        cartItems={[]}
+        cartTotal={0}
+        onEmailRecovery={onEmailRecovery}
+      />,
+    );
+
+    // Initially, gating is active: no primary or save-for-later buttons
+    expect(
+      screen.queryByRole("button", { name: /resume checkout/i }),
+    ).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: /save for later/i }),
+    ).toBeNull();
+
+    const emailInput = screen.getByPlaceholderText(
+      /enter your email to receive your cart and discount/i,
+    );
+
+    fireEvent.change(emailInput, { target: { value: "test@example.com" } });
+
+    const submitButton = screen.getByRole("button", {
+      name: /email me my cart/i,
+    });
+
+    fireEvent.click(submitButton);
+
+    expect(await screen.findByText(/save10/i)).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: /copy/i }),
+    ).toBeTruthy();
+
+    // After successful email recovery, CTAs should be visible again
+    expect(
+      screen.getByRole("button", { name: /resume checkout/i }),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: /save for later/i }),
+    ).toBeTruthy();
+  });
+
+
+  it("shows discount code when CTA issues discount in show_code_always mode", async () => {
+    const config = createConfig({
+      ctaUrl: "/checkout",
+      discount: {
+        enabled: true,
+        deliveryMode: "show_code_always",
+      },
+    });
+
+    const issueDiscount = vi
+      .fn()
+      .mockResolvedValue({ code: "CTA10", autoApplyMode: "none" });
+
+    render(
+      <CartAbandonmentPopup
+        config={config}
+        isVisible={true}
+        onClose={() => {}}
+        cartItems={[]}
+        cartTotal={50}
+        issueDiscount={issueDiscount}
+      />,
+    );
+
+    const resumeButton = screen.getByRole("button", {
+      name: /resume checkout/i,
+    });
+
+    fireEvent.click(resumeButton);
+
+    expect(await screen.findByText(/cta10/i)).toBeTruthy();
+  });
+
+
+
+  it("calls issueDiscount when discount is enabled and user resumes checkout", async () => {
+    const config = createConfig({
+      ctaUrl: "/checkout",
+      discount: {
+        enabled: true,
+        code: "SAVE10",
+        deliveryMode: "show_code_fallback",
+      },
+    });
+
+    const issueDiscount = vi
+      .fn()
+      .mockResolvedValue({ code: "SAVE10", autoApplyMode: "ajax" });
+
+    render(
+      <CartAbandonmentPopup
+        config={config}
+        isVisible={true}
+        onClose={() => {}}
+        cartItems={[]}
+        cartTotal={99.98}
+        issueDiscount={issueDiscount}
+      />,
+    );
+
+    const resumeButton = screen.getByRole("button", {
+      name: /resume checkout/i,
+    });
+
+    fireEvent.click(resumeButton);
+
+    await waitFor(() => {
+      expect(issueDiscount).toHaveBeenCalledTimes(1);
+    });
+
+    expect(issueDiscount).toHaveBeenCalledWith({ cartSubtotalCents: 9998 });
+  });
+
+
+
+
+
+});

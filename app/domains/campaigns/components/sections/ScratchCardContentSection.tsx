@@ -6,7 +6,8 @@
  */
 
 import React, { useState, useEffect } from "react";
-import { TextField, CheckboxField, FormGrid } from "../form";
+import { Card, BlockStack, Text, Divider, Button, InlineStack, Select } from "@shopify/polaris";
+import { TextField, FormGrid } from "../form";
 import type { ScratchCardContentSchema } from "../../types/campaign";
 import { z } from "zod";
 import { useFieldUpdater } from "~/shared/hooks/useFieldUpdater";
@@ -23,6 +24,15 @@ export interface ScratchCardContentSectionProps {
 
 export function ScratchCardContentSection({ content, errors, onChange }: ScratchCardContentSectionProps) {
   const updateField = useFieldUpdater(content, onChange);
+  const emailRequired = content.emailRequired !== false;
+  const emailBeforeScratching = content.emailBeforeScratching || false;
+  const emailCollectionMode: "none" | "before" | "after" = !emailRequired
+    ? "none"
+    : emailBeforeScratching
+    ? "before"
+    : "after";
+
+
 
   // Initialize default prizes if empty
   const initialPrizes = content.prizes && content.prizes.length > 0
@@ -62,76 +72,265 @@ export function ScratchCardContentSection({ content, errors, onChange }: Scratch
   return (
     <>
       {/* CONTENT BASICS */}
-      <s-section>
-        <h3>📝 Content</h3>
-        <p>Text and messaging for your scratch card popup</p>
+      <Card data-test-id="scratch-card-content-form">
+        <BlockStack gap="400">
+          <BlockStack gap="200">
+            <Text as="h3" variant="headingMd">
+              🧩 Content & capture
+            </Text>
+            <Text as="p" tone="subdued">
+              Text, email capture and result messaging for your scratch card popup.
+            </Text>
+          </BlockStack>
 
-        <TextField label="Headline" name="content.headline" value={content.headline || ""} error={errors?.headline} required placeholder="Scratch to reveal your prize!" onChange={(v) => updateField("headline", v)} />
-        <TextField label="Subheadline" name="content.subheadline" value={content.subheadline || ""} placeholder="Play and save on your order" onChange={(v) => updateField("subheadline", v)} />
+          <Divider />
 
-        <FormGrid columns={2}>
-          <TextField label="Button Text" name="content.buttonText" value={content.buttonText || "Reveal"} required placeholder="Reveal" onChange={(v) => updateField("buttonText", v)} />
-          <TextField label="Email Label" name="content.emailLabel" value={content.emailLabel || ""} placeholder="Email" onChange={(v) => updateField("emailLabel", v)} />
-        </FormGrid>
+          <BlockStack gap="400">
+            <TextField
+              label="Headline"
+              name="content.headline"
+              value={content.headline || ""}
+              error={errors?.headline}
+              required
+              placeholder="Scratch to reveal your prize!"
+              onChange={(v) => updateField("headline", v)}
+            />
+            <TextField
+              label="Subheadline"
+              name="content.subheadline"
+              value={content.subheadline || ""}
+              placeholder="Play and save on your order"
+              onChange={(v) => updateField("subheadline", v)}
+            />
 
-        <TextField
-          label="Dismiss Button Text"
-          name="content.dismissLabel"
-          value={content.dismissLabel || ""}
-          error={errors?.dismissLabel}
-          placeholder="No thanks"
-          helpText="Secondary button text that closes the popup"
-          onChange={(v) => updateField("dismissLabel", v)}
-        />
+            <FormGrid columns={2}>
+              <TextField
+                label="Button Text"
+                name="content.buttonText"
+                value={content.buttonText || "Reveal"}
+                required
+                placeholder="Reveal"
+                onChange={(v) => updateField("buttonText", v)}
+              />
+              <TextField
+                label="Email Label"
+                name="content.emailLabel"
+                value={content.emailLabel || ""}
+                placeholder="Email"
+                onChange={(v) => updateField("emailLabel", v)}
+              />
+            </FormGrid>
 
-        <FormGrid columns={2}>
-          <TextField label="Email Placeholder" name="content.emailPlaceholder" value={content.emailPlaceholder || "Enter your email"} placeholder="Enter your email" onChange={(v) => updateField("emailPlaceholder", v)} />
-          <CheckboxField label="Require Email" name="content.emailRequired" checked={content.emailRequired !== false} helpText="Ask for email before proceeding" onChange={(c) => updateField("emailRequired", c)} />
-        </FormGrid>
+            <TextField
+              label="Dismiss Button Text"
+              name="content.dismissLabel"
+              value={content.dismissLabel || ""}
+              error={errors?.dismissLabel}
+              placeholder="No thanks"
+              helpText="Secondary button text that closes the popup"
+              onChange={(v) => updateField("dismissLabel", v)}
+            />
 
-        <CheckboxField label="Ask Email Before Scratching" name="content.emailBeforeScratching" checked={content.emailBeforeScratching || false} helpText="Collect email before starting the scratch interaction" onChange={(c) => updateField("emailBeforeScratching", c)} />
+            <FormGrid columns={2}>
+              <TextField
+                label="Email Placeholder"
+                name="content.emailPlaceholder"
+                value={content.emailPlaceholder || "Enter your email"}
+                placeholder="Enter your email"
+                onChange={(v) => updateField("emailPlaceholder", v)}
+              />
+              <Select
+                label="Email collection"
+                value={emailCollectionMode}
+                options={[
+                  { label: "Don't collect email", value: "none" },
+                  { label: "Collect email after scratch", value: "after" },
+                  { label: "Collect email before scratch", value: "before" },
+                ]}
+                helpText="When to ask for email in the scratch card flow"
+                onChange={(mode) => {
+                  if (mode === "none") {
+                    updateField("emailRequired", false);
+                    updateField("emailBeforeScratching", false);
+                  } else if (mode === "after") {
+                    updateField("emailRequired", true);
+                    updateField("emailBeforeScratching", false);
+                  } else if (mode === "before") {
+                    updateField("emailRequired", true);
+                    updateField("emailBeforeScratching", true);
+                  }
+                }}
+              />
+            </FormGrid>
 
-        <FormGrid columns={2}>
-          <TextField label="Success Message" name="content.successMessage" value={content.successMessage || ""} error={errors?.successMessage} required placeholder="Congrats! You won {{prize}} (code: {{code}})" helpText="Use {{prize}} and {{code}} placeholders" onChange={(v) => updateField("successMessage", v)} />
-          <TextField label="Failure Message" name="content.failureMessage" value={content.failureMessage || ""} placeholder="Thanks for playing!" onChange={(v) => updateField("failureMessage", v)} />
-        </FormGrid>
-      </s-section>
+            <FormGrid columns={2}>
+              <TextField
+                label="Success Message"
+                name="content.successMessage"
+                value={content.successMessage || ""}
+                error={errors?.successMessage}
+                required
+                placeholder="Congrats! You won {{prize}} (code: {{code}})"
+                helpText="Use {{prize}} and {{code}} placeholders"
+                onChange={(v) => updateField("successMessage", v)}
+              />
+              <TextField
+                label="Failure Message"
+                name="content.failureMessage"
+                value={content.failureMessage || ""}
+                placeholder="Thanks for playing!"
+                onChange={(v) => updateField("failureMessage", v)}
+              />
+            </FormGrid>
+          </BlockStack>
+        </BlockStack>
+      </Card>
 
       {/* SCRATCH SETTINGS */}
-      <s-section>
-        <h3>🧩 Scratch Settings</h3>
-        <p>Control the scratch experience</p>
+      <Card>
+        <BlockStack gap="400">
+          <BlockStack gap="200">
+            <Text as="h3" variant="headingMd">
+              🎨 Scratch settings
+            </Text>
+            <Text as="p" tone="subdued">
+              Control the scratch interaction and reveal threshold.
+            </Text>
+          </BlockStack>
 
-        <TextField label="Scratch Instruction" name="content.scratchInstruction" value={content.scratchInstruction || "Scratch to reveal your prize!"} onChange={(v) => updateField("scratchInstruction", v)} />
+          <Divider />
 
-        <FormGrid columns={2}>
-          <TextField label="Scratch Threshold (%)" name="content.scratchThreshold" value={(content.scratchThreshold ?? 50).toString()} placeholder="50" helpText="How much must be scratched to reveal (0-100)" onChange={(v) => updateField("scratchThreshold", Math.max(0, Math.min(100, parseInt(v) || 0)))} />
-          <TextField label="Brush Radius (px)" name="content.scratchRadius" value={(content.scratchRadius ?? 20).toString()} placeholder="20" helpText="Scratch brush radius in pixels" onChange={(v) => updateField("scratchRadius", Math.max(5, Math.min(100, parseInt(v) || 20)))} />
-        </FormGrid>
-      </s-section>
+          <BlockStack gap="400">
+            <TextField
+              label="Scratch Instruction"
+              name="content.scratchInstruction"
+              value={content.scratchInstruction || "Scratch to reveal your prize!"}
+              onChange={(v) => updateField("scratchInstruction", v)}
+            />
+
+            <FormGrid columns={2}>
+              <TextField
+                label="Scratch Threshold (%)"
+                name="content.scratchThreshold"
+                value={(content.scratchThreshold ?? 50).toString()}
+                placeholder="50"
+                helpText="How much must be scratched to reveal (0-100)"
+                onChange={(v) =>
+                  updateField(
+                    "scratchThreshold",
+                    Math.max(0, Math.min(100, parseInt(v) || 0)),
+                  )
+                }
+              />
+              <TextField
+                label="Brush Radius (px)"
+                name="content.scratchRadius"
+                value={(content.scratchRadius ?? 20).toString()}
+                placeholder="20"
+                helpText="Scratch brush radius in pixels"
+                onChange={(v) =>
+                  updateField(
+                    "scratchRadius",
+                    Math.max(5, Math.min(100, parseInt(v) || 20)),
+                  )
+                }
+              />
+            </FormGrid>
+          </BlockStack>
+        </BlockStack>
+      </Card>
 
       {/* PRIZES */}
-      <s-section>
-        <h3>🎁 Prizes & Probabilities</h3>
-        <p>Configure prize labels, chances, and discount details</p>
+      <Card>
+        <BlockStack gap="400">
+          <BlockStack gap="200">
+            <Text as="h3" variant="headingMd">
+              🎁 Prizes & probabilities
+            </Text>
+            <Text as="p" tone="subdued">
+              Configure prize labels, chances and discount details.
+            </Text>
+          </BlockStack>
 
-        {prizes.map((p, i) => (
-          <s-section key={p.id}>
-            <h4>Prize {i + 1}</h4>
-            <FormGrid columns={2}>
-              <TextField label="Label" name={`prizes.${i}.label`} value={p.label} required placeholder="10% OFF" onChange={(v) => updatePrize(i, { label: v })} />
-              <TextField label="Probability (0-1)" name={`prizes.${i}.probability`} value={p.probability.toString()} required placeholder="0.25" onChange={(v) => updatePrize(i, { probability: parseFloat(v) || 0 })} />
-            </FormGrid>
-            <FormGrid columns={2}>
-              <TextField label="Discount %" name={`prizes.${i}.discountPercentage`} value={(p.discountPercentage ?? 0).toString()} placeholder="10" onChange={(v) => updatePrize(i, { discountPercentage: parseInt(v) || 0 })} />
-              <TextField label="Discount Code" name={`prizes.${i}.discountCode`} value={p.discountCode || ""} placeholder="SCRATCH10" onChange={(v) => updatePrize(i, { discountCode: v })} />
-            </FormGrid>
-            <s-button tone="critical" onClick={() => removePrize(i)}>Remove Prize</s-button>
-          </s-section>
-        ))}
+          <Divider />
 
-        <s-button onClick={addPrize}>Add Prize</s-button>
-      </s-section>
+          <BlockStack gap="300">
+            {prizes.map((p, i) => (
+              <div
+                key={p.id}
+                style={{
+                  border: "1px solid #e5e7eb",
+                  borderRadius: 8,
+                  padding: "12px 12px 16px",
+                }}
+              >
+                <BlockStack gap="200">
+                  <InlineStack align="space-between" blockAlign="center">
+                    <Text as="h4" variant="headingSm">
+                      Prize {i + 1}
+                    </Text>
+                    <Button
+                      variant="plain"
+                      tone="critical"
+                      onClick={() => removePrize(i)}
+                    >
+                      Remove
+                    </Button>
+                  </InlineStack>
+
+                  <FormGrid columns={2}>
+                    <TextField
+                      label="Label"
+                      name={`prizes.${i}.label`}
+                      value={p.label}
+                      required
+                      placeholder="10% OFF"
+                      onChange={(v) => updatePrize(i, { label: v })}
+                    />
+                    <TextField
+                      label="Probability (0-1)"
+                      name={`prizes.${i}.probability`}
+                      value={p.probability.toString()}
+                      required
+                      placeholder="0.25"
+                      onChange={(v) =>
+                        updatePrize(i, {
+                          probability: parseFloat(v) || 0,
+                        })
+                      }
+                    />
+                  </FormGrid>
+
+                  <FormGrid columns={2}>
+                    <TextField
+                      label="Discount %"
+                      name={`prizes.${i}.discountPercentage`}
+                      value={(p.discountPercentage ?? 0).toString()}
+                      placeholder="10"
+                      onChange={(v) =>
+                        updatePrize(i, {
+                          discountPercentage: parseInt(v) || 0,
+                        })
+                      }
+                    />
+                    <TextField
+                      label="Discount Code"
+                      name={`prizes.${i}.discountCode`}
+                      value={p.discountCode || ""}
+                      placeholder="SCRATCH10"
+                      onChange={(v) => updatePrize(i, { discountCode: v })}
+                    />
+                  </FormGrid>
+                </BlockStack>
+              </div>
+            ))}
+
+            <InlineStack>
+              <Button onClick={addPrize}>Add prize</Button>
+            </InlineStack>
+          </BlockStack>
+        </BlockStack>
+      </Card>
     </>
   );
 }

@@ -79,7 +79,7 @@
 
     // Detect preview mode from URL parameter
     const urlParams = new URLSearchParams(window.location.search);
-    const previewId = urlParams.get('revenue_boost_preview');
+    const previewId = urlParams.get('split_pop_preview');
     if (previewId) {
       window.REVENUE_BOOST_CONFIG.previewMode = true;
       window.REVENUE_BOOST_CONFIG.previewId = previewId;

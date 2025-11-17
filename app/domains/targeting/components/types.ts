@@ -7,32 +7,9 @@
 export type LogicOperator = "AND" | "OR";
 
 export type ConditionType =
-  // Cart-based conditions
+  // Cart-based conditions (session behavior)
   | "cart-value"
-  | "cart-item-count"
-  | "cart-contains-product"
-  | "cart-contains-tag"
-  | "cart-contains-collection"
-
-  // Customer-based conditions
-  | "customer-tag"
-  | "customer-type"
-  | "customer-order-count"
-  | "customer-location"
-
-  // Product-based conditions
-  | "product-tag"
-  | "product-collection"
-  | "product-type"
-
-  // Time-based conditions
-  | "date-range"
-  | "day-of-week"
-  | "time-of-day"
-
-  // Device-based conditions
-  | "device-type"
-  | "browser-type";
+  | "cart-item-count";
 
 export type ConditionOperator =
   // Numeric operators
@@ -80,7 +57,7 @@ export interface ConditionTypeOption {
 
 // Condition type definitions with available operators
 export const CONDITION_TYPES: ConditionTypeOption[] = [
-  // Cart-based
+  // Cart-based (session behavior only)
   {
     value: "cart-value",
     label: "Cart value",
@@ -96,128 +73,6 @@ export const CONDITION_TYPES: ConditionTypeOption[] = [
     description: "Number of items in cart",
     operators: ["greater-than", "less-than", "equal-to"],
     valueType: "number",
-  },
-  {
-    value: "cart-contains-product",
-    label: "Cart contains product",
-    category: "cart",
-    description: "Specific product in cart",
-    operators: ["contains", "does-not-contain"],
-    valueType: "product",
-  },
-  {
-    value: "cart-contains-tag",
-    label: "Cart contains product tag",
-    category: "cart",
-    description: "Product with specific tag",
-    operators: ["contains", "does-not-contain"],
-    valueType: "text",
-  },
-  {
-    value: "cart-contains-collection",
-    label: "Cart contains collection",
-    category: "cart",
-    description: "Product from collection",
-    operators: ["contains", "does-not-contain"],
-    valueType: "collection",
-  },
-
-  // Customer-based
-  {
-    value: "customer-tag",
-    label: "Customer tag",
-    category: "customer",
-    description: "Customer has specific tag",
-    operators: ["contains", "does-not-contain"],
-    valueType: "text",
-  },
-  {
-    value: "customer-type",
-    label: "Customer type",
-    category: "customer",
-    description: "New or returning customer",
-    operators: ["is"],
-    valueType: "select",
-    valueOptions: [
-      { value: "new", label: "New customer" },
-      { value: "returning", label: "Returning customer" },
-    ],
-  },
-  {
-    value: "customer-order-count",
-    label: "Customer order count",
-    category: "customer",
-    description: "Number of previous orders",
-    operators: ["greater-than", "less-than", "equal-to"],
-    valueType: "number",
-  },
-  {
-    value: "customer-location",
-    label: "Customer location",
-    category: "customer",
-    description: "Shipping country",
-    operators: ["is", "is-not", "is-in-list"],
-    valueType: "select",
-  },
-
-  // Product-based
-  {
-    value: "product-tag",
-    label: "Product tag",
-    category: "product",
-    description: "Product has specific tag",
-    operators: ["contains", "does-not-contain"],
-    valueType: "text",
-  },
-  {
-    value: "product-collection",
-    label: "Product collection",
-    category: "product",
-    description: "Product in collection",
-    operators: ["is", "is-not"],
-    valueType: "collection",
-  },
-
-  // Time-based
-  {
-    value: "date-range",
-    label: "Date range",
-    category: "time",
-    description: "Specific date range",
-    operators: ["between"],
-    valueType: "date",
-  },
-  {
-    value: "day-of-week",
-    label: "Day of week",
-    category: "time",
-    description: "Specific day(s) of week",
-    operators: ["is", "is-in-list"],
-    valueType: "multi-select",
-    valueOptions: [
-      { value: "monday", label: "Monday" },
-      { value: "tuesday", label: "Tuesday" },
-      { value: "wednesday", label: "Wednesday" },
-      { value: "thursday", label: "Thursday" },
-      { value: "friday", label: "Friday" },
-      { value: "saturday", label: "Saturday" },
-      { value: "sunday", label: "Sunday" },
-    ],
-  },
-
-  // Device-based
-  {
-    value: "device-type",
-    label: "Device type",
-    category: "device",
-    description: "Desktop, mobile, or tablet",
-    operators: ["is"],
-    valueType: "select",
-    valueOptions: [
-      { value: "desktop", label: "Desktop" },
-      { value: "mobile", label: "Mobile" },
-      { value: "tablet", label: "Tablet" },
-    ],
   },
 ];
 

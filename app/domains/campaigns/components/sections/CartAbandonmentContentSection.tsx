@@ -4,6 +4,7 @@
  * Form section for configuring cart abandonment popup content
  */
 
+import { Card, BlockStack, Text, Divider } from "@shopify/polaris";
 import { TextField, CheckboxField, FormGrid } from "../form";
 import { useFieldUpdater } from "~/shared/hooks/useFieldUpdater";
 import { DiscountSection } from "~/domains/popups/components/design/DiscountSection";
@@ -24,6 +25,14 @@ export interface CartAbandonmentContent {
   buttonText?: string;
   saveForLaterText?: string;
   currency?: string;
+
+  // Optional email recovery flow
+  enableEmailRecovery?: boolean;
+  emailPlaceholder?: string;
+  emailSuccessMessage?: string;
+  emailErrorMessage?: string;
+  emailButtonText?: string;
+  requireEmailBeforeCheckout?: boolean;
 }
 
 export interface CartAbandonmentContentSectionProps {
@@ -45,6 +54,20 @@ export function CartAbandonmentContentSection({
 
   return (
     <>
+      <Card data-test-id="cart-abandonment-admin-form">
+        <BlockStack gap="400">
+          <BlockStack gap="200">
+            <Text as="h3" variant="headingMd">
+              🛒 Cart recovery content
+            </Text>
+            <Text as="p" tone="subdued">
+              Configure copy, cart details, urgency and CTAs for your recovery popup.
+            </Text>
+          </BlockStack>
+
+          <Divider />
+
+          <BlockStack gap="400">
       <TextField
         label="Headline"
         name="content.headline"
@@ -193,6 +216,69 @@ export function CartAbandonmentContentSection({
         helpText="Text for the small link that closes the popup without saving or resuming checkout"
         onChange={(value) => updateField("dismissLabel", value)}
       />
+
+      <h3>Email Recovery (optional)</h3>
+
+      <CheckboxField
+        label="Enable email recovery"
+        name="content.enableEmailRecovery"
+        checked={content.enableEmailRecovery || false}
+        helpText="Ask for an email and send customers to checkout with their discount applied."
+        onChange={(checked) => updateField("enableEmailRecovery", checked)}
+      />
+
+      {content.enableEmailRecovery && (
+        <>
+          <TextField
+            label="Email field placeholder"
+            name="content.emailPlaceholder"
+            value={content.emailPlaceholder || ""}
+            placeholder="Enter your email to receive your cart and discount"
+            helpText="Shown inside the email input field."
+            onChange={(value) => updateField("emailPlaceholder", value)}
+          />
+
+          <TextField
+            label="Email success message"
+            name="content.emailSuccessMessage"
+            value={content.emailSuccessMessage || ""}
+            placeholder="We'll take you to checkout and email you your cart."
+            helpText="Shown after a successful email submission."
+            onChange={(value) => updateField("emailSuccessMessage", value)}
+          />
+
+          <TextField
+            label="Email error message"
+            name="content.emailErrorMessage"
+            value={content.emailErrorMessage || ""}
+            placeholder="Something went wrong. Please try again."
+            helpText="Optional custom error message on failed email submission."
+            onChange={(value) => updateField("emailErrorMessage", value)}
+          />
+
+          <TextField
+            label="Email button text"
+            name="content.emailButtonText"
+            value={content.emailButtonText || ""}
+            placeholder="Email me my cart"
+            helpText="Text on the email submit button."
+            onChange={(value) => updateField("emailButtonText", value)}
+          />
+
+          <CheckboxField
+            label="Require email before checkout"
+            name="content.requireEmailBeforeCheckout"
+            checked={content.requireEmailBeforeCheckout || false}
+            helpText="Hide the main checkout button and only allow continuing after entering an email."
+            onChange={(checked) => updateField("requireEmailBeforeCheckout", checked)}
+          />
+        </>
+      )}
+
+          </BlockStack>
+        </BlockStack>
+      </Card>
+
 
       {/* Discount Configuration */}
       {onDiscountChange && (

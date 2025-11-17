@@ -88,6 +88,30 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
           ? "near-miss"
           : "progress";
 
+  const barSize = config.size || 'medium';
+
+  const barPadding =
+    barSize === 'small'
+      ? '0.75rem 1.25rem'
+      : barSize === 'large'
+      ? '1rem 2rem'
+      : '0.875rem 1.5rem';
+
+  const messageFontSize =
+    barSize === 'small'
+      ? '0.875rem'
+      : barSize === 'large'
+      ? '1rem'
+      : '0.9375rem';
+
+  const iconFontSize =
+    barSize === 'small'
+      ? '1.125rem'
+      : barSize === 'large'
+      ? '1.375rem'
+      : '1.25rem';
+
+
   // Handle close with exit animation
   const handleClose = () => {
     if (!dismissible) return;
@@ -367,15 +391,63 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
           z-index: 9999;
           font-family: ${config.fontFamily || '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif'};
           box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+          container-type: inline-size;
+          container-name: free-shipping;
         }
+
+        /* Rotating celebratory border shown only while celebrating */
+        @property --rb-border-angle {
+          syntax: "<angle>";
+          inherits: false;
+          initial-value: 0deg;
+        }
+
+        .free-shipping-bar::before {
+          content: "";
+          position: absolute;
+          inset: -2px;
+          border-radius: inherit;
+          border: 2px solid transparent;
+          background:
+            linear-gradient(${config.backgroundColor || '#ffffff'}, ${config.backgroundColor || '#ffffff'}) padding-box,
+            conic-gradient(
+              from var(--rb-border-angle),
+              ${config.accentColor || '#3B82F6'},
+              #22c55e,
+              #facc15,
+              ${config.accentColor || '#3B82F6'}
+            ) border-box;
+          opacity: 0;
+          pointer-events: none;
+        }
+
+        .free-shipping-bar.celebrating::before {
+          opacity: 1;
+          animation: rotating-border 0.7s linear forwards;
+        }
+
+        @keyframes rotating-border {
+          to {
+            --rb-border-angle: 360deg;
+            opacity: 0;
+          }
+        }
+
 
         .free-shipping-bar[data-position="top"] {
           top: 0;
-          animation: slideInFromTop 0.3s ease-out forwards;
         }
 
         .free-shipping-bar[data-position="bottom"] {
           bottom: 0;
+        }
+
+        /* Only animate slide-in on initial mount */
+        .free-shipping-bar.entering[data-position="top"] {
+          animation: slideInFromTop 0.3s ease-out forwards;
+        }
+
+        .free-shipping-bar.entering[data-position="bottom"] {
           animation: slideInFromBottom 0.3s ease-out forwards;
         }
 
@@ -428,13 +500,14 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
           align-items: center;
           justify-content: space-between;
           gap: 1rem;
-          padding: 0.875rem 1.5rem;
+          padding: ${barPadding};
           position: relative;
           overflow: hidden;
         }
 
         .free-shipping-bar.celebrating {
-          animation: celebrate-bar 0.65s ease-in-out;
+          /* Start bounce shortly after the rotating border animation */
+          animation: celebrate-bar 0.6s ease-in-out 0.35s;
         }
 
         @keyframes celebrate-bar {
@@ -461,13 +534,13 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
         }
 
         .free-shipping-bar-icon {
-          font-size: 1.25rem;
+          font-size: ${iconFontSize};
           line-height: 1;
           flex-shrink: 0;
         }
 
         .free-shipping-bar-text {
-          font-size: 0.9375rem;
+          font-size: ${messageFontSize};
           font-weight: 500;
           line-height: 1.4;
           margin: 0;
@@ -570,17 +643,27 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
           background: var(--shipping-bar-progress-bg);
           transition: width ${animationDuration}ms ease-out;
           z-index: 0;
+          transform-origin: left center;
         }
 
+        /* When unlocked, play a subtle progress "finish" animation before the bar bounces */
         .free-shipping-bar[data-state="unlocked"] .free-shipping-bar-progress {
-          animation: ${celebrating ? "celebrate 1s ease-in-out" : "none"};
+          animation: ${celebrating ? "celebrate-progress 0.45s ease-out forwards" : "none"};
         }
 
-        @keyframes celebrate {
-          0%, 100% { transform: translateX(0); }
-          25% { transform: translateX(-5px); }
-          50% { transform: translateX(5px); }
-          75% { transform: translateX(-5px); }
+        @keyframes celebrate-progress {
+          0% {
+            transform: scaleX(0.96);
+            opacity: 0.18;
+          }
+          70% {
+            transform: scaleX(1.03);
+            opacity: 0.22;
+          }
+          100% {
+            transform: scaleX(1);
+            opacity: 0.2;
+          }
         }
 
         @media (prefers-reduced-motion: reduce) {
@@ -589,13 +672,36 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
             transition: none;
           }
 
-          .free-shipping-bar[data-position="top"],
-          .free-shipping-bar[data-position="bottom"] {
+          .free-shipping-bar.celebrating,
+          .free-shipping-bar.celebrating::before {
+            animation: none !important;
+            opacity: 0;
+          }
+
+          .free-shipping-bar.entering[data-position="top"],
+          .free-shipping-bar.entering[data-position="bottom"],
+          .free-shipping-bar.celebrating {
             animation: none !important;
           }
 
           .free-shipping-bar[data-state="unlocked"] .free-shipping-bar-progress {
             animation: none;
+          }
+        }
+
+        /* Container query for preview/device-based responsiveness */
+        @container free-shipping (max-width: 640px) {
+          .free-shipping-bar-content {
+            padding: 0.75rem 1rem;
+            gap: 0.75rem;
+          }
+
+          .free-shipping-bar-text {
+            font-size: 0.875rem;
+          }
+
+          .free-shipping-bar-icon {
+            font-size: 1.125rem;
           }
         }
 
@@ -617,7 +723,7 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
 
       <div
         ref={bannerRef}
-        className={`free-shipping-bar ${isExiting ? 'exiting' : ''} ${celebrating ? 'celebrating' : ''}`}
+        className={`free-shipping-bar ${isEntering ? 'entering' : ''} ${isExiting ? 'exiting' : ''} ${celebrating ? 'celebrating' : ''}`}
         data-position={barPosition}
         data-state={state}
         role="region"

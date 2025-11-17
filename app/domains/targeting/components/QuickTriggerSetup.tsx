@@ -172,6 +172,28 @@ const QUICK_TEMPLATES = [
       },
     },
   },
+  {
+    id: "post-add-upsell",
+    name: "Post-Add Upsell",
+    description: "Show an upsell right after a product is added to cart",
+    icon: "🛒",
+    expectedLift: "+10–20% AOV on upsell orders",
+    config: {
+      ...DEFAULT_ENHANCED_TRIGGERS,
+      enabled: true,
+      add_to_cart: {
+        enabled: true,
+        delay: 500,
+        immediate: false,
+      },
+      trigger_combination: { operator: "OR" },
+      frequency_capping: {
+        max_triggers_per_session: 1,
+        max_triggers_per_day: 3,
+        cooldown_between_triggers: 600,
+      },
+    },
+  },
 ];
 
 // Template detection logic for Advanced → Quick mode switching

@@ -173,7 +173,7 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
                   {/* Template Preview */}
                   <div
                     className={styles.templatePreview}
-                    style={{ backgroundColor: colors.backgroundColor }}
+                    style={{ background: colors.backgroundColor }}
                   >
                     <div
                       className={styles.templatePreviewContent}

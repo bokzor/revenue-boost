@@ -31,12 +31,15 @@ if (typeof window !== "undefined") {
     Fragment: preact.Fragment,
     options: preact.options,
     createPortal: createPortal,
+    createContext: preact.createContext,
     hooks: {
       useState: hooks.useState,
       useEffect: hooks.useEffect,
       useCallback: hooks.useCallback,
       useRef: hooks.useRef,
       useMemo: hooks.useMemo,
+      useContext: hooks.useContext,
+      useDebugValue: hooks.useDebugValue,
     },
   } as Record<string, unknown>;
 

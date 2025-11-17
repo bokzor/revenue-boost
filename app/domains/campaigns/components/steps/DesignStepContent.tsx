@@ -20,7 +20,7 @@ import type { DiscountConfig } from "~/domains/popups/services/discounts/discoun
 import type { UnifiedTemplate } from "../../hooks/useTemplates";
 
 import type { SpinToWinContent } from "~/domains/campaigns/types/campaign";
-import { getSpinToWinSliceColors } from "~/config/color-presets";
+import { getSpinToWinSliceColors, getSpinToWinWheelBorder } from "~/config/color-presets";
 
 
 interface DesignStepContentProps {
@@ -131,6 +131,7 @@ export function DesignStepContent({
                         }
 
                         const colors = getSpinToWinSliceColors(themeKey, segments.length);
+                        const border = getSpinToWinWheelBorder(themeKey);
 
                         const updatedSegments = segments.map((segment, index) => ({
                           ...segment,
@@ -140,6 +141,8 @@ export function DesignStepContent({
                         onContentChange({
                           ...contentConfig,
                           wheelSegments: updatedSegments,
+                          wheelBorderColor: border.color,
+                          wheelBorderWidth: border.width,
                         });
                       }
                     }}

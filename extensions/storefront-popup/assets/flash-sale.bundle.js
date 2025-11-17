@@ -4,8 +4,8 @@
   if (typeof window === "undefined" || !window.RevenueBoostPreact) {
     throw new Error("RevenueBoostPreact not found. Make sure main bundle is loaded first.");
   }
-  var { h, Component, Fragment, render, createPortal } = window.RevenueBoostPreact;
-  var { useState, useEffect, useCallback, useRef, useMemo } = window.RevenueBoostPreact.hooks;
+  var { h, Component, Fragment, render, createPortal, createContext } = window.RevenueBoostPreact;
+  var { useState, useEffect, useCallback, useRef, useMemo, useContext, useDebugValue } = window.RevenueBoostPreact.hooks;
 
   // global-preact:global-preact:react-dom
   if (typeof window === "undefined" || !window.RevenueBoostPreact) {
@@ -330,6 +330,9 @@
       display: flex;
       align-items: ${alignMap[position]};
       justify-content: ${justifyMap[position]};
+      /* Enable container queries for popup content (e.g. mobile full-width layouts) */
+      container-type: inline-size;
+      container-name: viewport;
     }
 
     /* Fade animations */
@@ -709,6 +712,9 @@
     };
     const popupSize = config.popupSize || "wide";
     const maxWidth = popupSize === "compact" ? "24rem" : popupSize === "wide" ? "56rem" : popupSize === "full" ? "90%" : "32rem";
+    const designSize = config.size || "medium";
+    const sizeScale = designSize === "small" ? 0.9 : designSize === "large" ? 1.1 : 1;
+    const effectiveMaxWidth = sizeScale === 1 ? maxWidth : `calc(${maxWidth} * ${sizeScale})`;
     const padding = popupSize === "compact" ? "2rem 1.5rem" : popupSize === "wide" || popupSize === "full" ? "3rem" : "2.5rem 2rem";
     const headlineSize = popupSize === "compact" ? "2rem" : popupSize === "wide" || popupSize === "full" ? "3rem" : "2.5rem";
     const discountSize = popupSize === "compact" ? "6rem" : popupSize === "wide" || popupSize === "full" ? "10rem" : "8rem";
@@ -1051,13 +1057,15 @@
         .flash-sale-container {
           position: relative;
           width: 100%;
-          max-width: ${maxWidth};
+          max-width: ${effectiveMaxWidth};
           border-radius: ${typeof config.borderRadius === "number" ? config.borderRadius : parseFloat(config.borderRadius || "16")}px;
           overflow: hidden;
           box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
           background: ${config.backgroundColor || "#ffffff"};
           color: ${config.textColor || "#111827"};
           font-family: ${config.fontFamily || "inherit"};
+          container-type: inline-size;
+          container-name: flash-sale;
         }
 
         .flash-sale-close {
@@ -1250,6 +1258,26 @@
         @keyframes pulse {
           0%, 100% { opacity: 1; }
           50% { opacity: 0.5; }
+        }
+
+        /* Container query for preview/device-based responsiveness */
+        @container flash-sale (max-width: 640px) {
+          .flash-sale-content {
+            padding: 2rem 1.5rem;
+          }
+
+          .flash-sale-headline {
+            font-size: 2rem;
+          }
+
+          .flash-sale-timer-unit {
+            min-width: 3.5rem;
+            padding: 0.75rem 0.5rem;
+          }
+
+          .flash-sale-timer-value {
+            font-size: 1.5rem;
+          }
         }
 
         @media (max-width: 640px) {

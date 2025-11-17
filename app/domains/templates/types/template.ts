@@ -261,7 +261,7 @@ export const SpinToWinTemplateSchema = BaseTemplateSchema.extend({
     position: "center",
     size: "medium",
     borderRadius: 8,
-    imagePosition: "left",
+    imagePosition: "none",
     overlayOpacity: 0.8,
     animation: "fade"
   }),

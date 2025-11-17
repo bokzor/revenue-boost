@@ -65,6 +65,11 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         return inventoryLoader({ request, params } as LoaderFunctionArgs);
       }
 
+      if (path === "api/upsell-products") {
+        const { loader: upsellLoader } = await import("./apps.revenue-boost.api.upsell-products");
+        return upsellLoader({ request, params } as LoaderFunctionArgs);
+      }
+
       if (path === "api/social-proof/track") {
         const { action: apiAction } = await import("./apps.revenue-boost.api.social-proof.track");
         return apiAction({ request, params } as LoaderFunctionArgs);

@@ -1,93 +1,62 @@
-import type { AudienceTargetingConfig } from "~/domains/campaigns/types/campaign";
-import type {
-  TriggerCondition,
-  ConditionOperator,
-  LogicOperator,
-  ConditionType,
-} from "../components/types";
+import type { TriggerCondition, ConditionOperator, LogicOperator, ConditionType } from "../components/types";
 
-// DB layer operator type from AudienceTargetingConfigSchema
-export type DbOperator =
-  | "equals"
-  | "not_equals"
-  | "contains"
-  | "greater_than"
-  | "less_than"
-  | "in"
-  | "not_in";
+// Server-side audience condition used in AudienceTargetingConfig.sessionRules
+export type AudienceOperator = "eq" | "ne" | "gt" | "gte" | "lt" | "lte" | "in" | "nin";
 
-export interface DbCondition {
+export interface AudienceCondition {
   field: string;
-  operator: DbOperator;
+  operator: AudienceOperator;
   value: string | number | boolean | string[];
 }
 
-// Operator mappings between UI (hyphen) and DB (underscore)
-export const operatorUiToDb: Record<ConditionOperator, DbOperator> = {
+// Operator mappings between UI (hyphen) and server (short codes)
+export const operatorUiToAudience: Record<ConditionOperator, AudienceOperator> = {
   // numeric
-  "greater-than": "greater_than",
-  "less-than": "less_than",
-  "equal-to": "equals",
-  "between": "greater_than", // NOTE: UI has secondaryValue; DB has no "between" -> approximate lower-bound only
+  "greater-than": "gt",
+  "less-than": "lt",
+  "equal-to": "eq",
+  "between": "gt", // NOTE: UI has secondaryValue; server has no explicit between -> approximate lower-bound only
 
   // string
-  contains: "contains",
-  "does-not-contain": "not_equals", // best-effort
-  is: "equals",
-  "is-not": "not_equals",
+  contains: "in", // best-effort mapping when value is a list
+  "does-not-contain": "ne",
+  is: "eq",
+  "is-not": "ne",
   "is-in-list": "in",
 
   // boolean
-  "is-true": "equals",
-  "is-false": "equals",
+  "is-true": "eq",
+  "is-false": "eq",
 };
 
-export const operatorDbToUi: Record<DbOperator, ConditionOperator> = {
-  equals: "is",
-  not_equals: "is-not",
-  contains: "contains",
-  greater_than: "greater-than",
-  less_than: "less-than",
+export const operatorAudienceToUi: Record<AudienceOperator, ConditionOperator> = {
+  eq: "is",
+  ne: "is-not",
+  gt: "greater-than",
+  gte: "greater-than",
+  lt: "less-than",
+  lte: "less-than",
   in: "is-in-list",
-  not_in: "is-not",
+  nin: "is-not",
 };
 
 // Simple passthrough for field/type mapping.
 // If an unknown field is encountered, default to a generic cart-value condition
 const toUiType = (field: string): ConditionType => {
-  // Narrow to our known UI types where possible
-  const known: ConditionType[] = [
-    "cart-value",
-    "cart-item-count",
-    "cart-contains-product",
-    "cart-contains-tag",
-    "cart-contains-collection",
-    "customer-tag",
-    "customer-type",
-    "customer-order-count",
-    "customer-location",
-    "product-tag",
-    "product-collection",
-    "product-type",
-    "date-range",
-    "day-of-week",
-    "time-of-day",
-    "device-type",
-    "browser-type",
-  ];
+  const known: ConditionType[] = ["cart-value", "cart-item-count"];
   if ((known as string[]).includes(field)) return field as ConditionType;
   return "cart-value";
 };
 
-export function uiConditionsToDb(ui: TriggerCondition[]): DbCondition[] {
+// UI -> server AudienceCondition[]
+export function uiConditionsToAudience(ui: TriggerCondition[]): AudienceCondition[] {
   return (ui ?? []).map((c) => {
-    const op = operatorUiToDb[c.operator] ?? "equals";
-    // Coerce boolean operators to boolean values when possible
+    const op = operatorUiToAudience[c.operator] ?? "eq";
     let value: string | number | boolean | string[] = c.value as any;
+
     if (c.operator === "is-true") value = true;
     if (c.operator === "is-false") value = false;
 
-    // For "between", store the lower bound only as best-effort
     if (c.operator === "between") {
       value = Array.isArray(c.value) ? Number(c.value[0]) : Number(c.value);
     }
@@ -100,33 +69,12 @@ export function uiConditionsToDb(ui: TriggerCondition[]): DbCondition[] {
   });
 }
 
-export function dbConditionsToUi(db?: DbCondition[]): TriggerCondition[] {
+// Server AudienceCondition[] -> UI
+export function audienceConditionsToUi(db?: AudienceCondition[]): TriggerCondition[] {
   return (db ?? []).map((d, idx) => ({
-    id: `db_${idx}`,
+    id: `aud_${idx}`,
     type: toUiType(d.field),
-    operator: operatorDbToUi[d.operator] ?? "is",
+    operator: operatorAudienceToUi[d.operator] ?? "is",
     value: d.value as any,
   }));
 }
-
-export function toUiConfig(config: AudienceTargetingConfig) {
-  const cr = config?.customRules;
-  return {
-    enabled: cr?.enabled ?? false,
-    conditions: dbConditionsToUi(cr?.conditions ?? []),
-    logicOperator: (cr?.logicOperator ?? "AND") as LogicOperator,
-  };
-}
-
-export function toDbConfig(ui: {
-  enabled: boolean;
-  conditions: TriggerCondition[];
-  logicOperator: LogicOperator;
-}): AudienceTargetingConfig["customRules"] {
-  return {
-    enabled: !!ui.enabled,
-    conditions: uiConditionsToDb(ui.conditions ?? []),
-    logicOperator: ui.logicOperator,
-  };
-}
-

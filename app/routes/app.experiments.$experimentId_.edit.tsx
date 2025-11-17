@@ -186,6 +186,8 @@ export default function ExperimentEditPage() {
       pages: [],
       customPatterns: [],
       excludePages: [],
+      productTags: [],
+      collections: [],
     },
     // Load frequency capping from server format (already matches UI format)
     frequencyCapping: {

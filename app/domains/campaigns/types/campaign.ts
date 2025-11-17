@@ -259,6 +259,14 @@ export const CartAbandonmentContentSchema = BaseContentConfigSchema.extend({
   ctaUrl: z.string().optional(),
   saveForLaterText: z.string().optional(),
   currency: z.string().default("USD"),
+
+  // Optional email recovery flow (email capture + redirect to checkout)
+  enableEmailRecovery: z.boolean().default(false),
+  emailPlaceholder: z.string().optional(),
+  emailSuccessMessage: z.string().optional(),
+  emailErrorMessage: z.string().optional(),
+  emailButtonText: z.string().optional(),
+  requireEmailBeforeCheckout: z.boolean().default(false),
 });
 
 /**
@@ -452,6 +460,9 @@ export const DesignConfigSchema = z.object({
   // Image settings
   imageUrl: z.string().optional(),
   imagePosition: z.enum(["left", "right", "top", "bottom", "none"]).default("left"),
+  backgroundImageMode: z.enum(["none", "preset", "file"]).default("none"),
+  backgroundImagePresetKey: z.string().optional(),
+  backgroundImageFileId: z.string().optional(),
 
   // Main colors
   backgroundColor: z.string().optional(), // Supports gradients and rgba
@@ -608,20 +619,41 @@ export const EnhancedTriggersConfigSchema = z.object({
 
 /**
  * Audience Targeting Configuration Schema
+ *
+ * Shopify-first: customer-level audiences are defined via Shopify customer segments,
+ * while sessionRules cover anonymous/session-only storefront context.
  */
 export const AudienceTargetingConfigSchema = z.object({
-  enabled: z.boolean(),
-  segments: z.array(z.string()).optional(),
-  customRulesEnabled: z.boolean().optional(),
-  customRules: z.object({
-    enabled: z.boolean(),
-    conditions: z.array(z.object({
-      field: z.string(),
-      operator: z.enum(["equals", "not_equals", "contains", "greater_than", "less_than", "in", "not_in"]),
-      value: z.union([z.string(), z.number(), z.boolean(), z.array(z.string())]),
-    })),
-    logicOperator: z.enum(["AND", "OR"]),
-  }).optional(),
+  enabled: z.boolean().default(false),
+
+  // Shopify customer segments (primary "who" for known customers)
+  shopifySegmentIds: z.array(z.string()).default([]),
+
+  // Session-level / anonymous rules evaluated against StorefrontContext
+  sessionRules: z
+    .object({
+      enabled: z.boolean().default(false),
+      conditions: z
+        .array(
+          z.object({
+            field: z.string(), // e.g. "cartValue", "visitCount", "pageType"
+            operator: z.enum(["eq", "ne", "gt", "gte", "lt", "lte", "in", "nin"]),
+            value: z.union([
+              z.string(),
+              z.number(),
+              z.boolean(),
+              z.array(z.string()),
+            ]),
+          }),
+        )
+        .default([]),
+      logicOperator: z.enum(["AND", "OR"]).default("AND"),
+    })
+    .default({
+      enabled: false,
+      conditions: [],
+      logicOperator: "AND",
+    }),
 });
 
 /**
@@ -632,6 +664,9 @@ export const PageTargetingConfigSchema = z.object({
   pages: z.array(z.string()).default([]),
   customPatterns: z.array(z.string()).default([]),
   excludePages: z.array(z.string()).default([]),
+  // Optional product-level targeting
+  productTags: z.array(z.string()).default([]),
+  collections: z.array(z.string()).default([]), // Shopify collection GIDs
 });
 
 /**

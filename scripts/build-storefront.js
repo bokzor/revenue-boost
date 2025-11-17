@@ -99,10 +99,41 @@ async function build() {
                 if (typeof window === "undefined" || !window.RevenueBoostPreact) {
                   throw new Error("RevenueBoostPreact not found. Make sure main bundle is loaded first.");
                 }
-                const { h, Component, Fragment, render, createPortal } = window.RevenueBoostPreact;
-                const { useState, useEffect, useCallback, useRef, useMemo } = window.RevenueBoostPreact.hooks;
-                export { h, Component, Fragment, render, createPortal, useState, useEffect, useCallback, useRef, useMemo };
-                export default { h, Component, Fragment, render, createPortal, useState, useEffect, useCallback, useRef, useMemo };
+                const { h, Component, Fragment, render, createPortal, createContext } = window.RevenueBoostPreact;
+                const { useState, useEffect, useCallback, useRef, useMemo, useContext, useDebugValue } = window.RevenueBoostPreact.hooks;
+                const createElement = h;
+                export {
+                  h,
+                  createElement,
+                  Component,
+                  Fragment,
+                  render,
+                  createPortal,
+                  createContext,
+                  useState,
+                  useEffect,
+                  useCallback,
+                  useRef,
+                  useMemo,
+                  useContext,
+                  useDebugValue,
+                };
+                export default {
+                  h,
+                  createElement,
+                  Component,
+                  Fragment,
+                  render,
+                  createPortal,
+                  createContext,
+                  useState,
+                  useEffect,
+                  useCallback,
+                  useRef,
+                  useMemo,
+                  useContext,
+                  useDebugValue,
+                };
               `,
               loader: "js",
             };

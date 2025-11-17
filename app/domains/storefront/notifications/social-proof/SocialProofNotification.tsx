@@ -305,7 +305,7 @@ export const SocialProofNotificationComponent: React.FC<
           }}
           style={{
             position: "absolute",
-            top: "8px",
+            top: "0px",
             right: "8px",
             background: "transparent",
             border: "none",

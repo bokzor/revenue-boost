@@ -270,9 +270,6 @@ export const SocialProofPopup: React.FC<SocialProofPopupProps> = ({
   };
 
   const closeButtonStyles: React.CSSProperties = {
-    position: 'absolute',
-    top: '8px',
-    right: '8px',
     background: 'transparent',
     border: 'none',
     color: config.textColor,
@@ -281,23 +278,13 @@ export const SocialProofPopup: React.FC<SocialProofPopupProps> = ({
     opacity: 0.6,
     padding: '2px 6px',
     lineHeight: 1,
+    flexShrink: 0,
+    alignSelf: 'flex-start',
+    marginLeft: '8px',
   };
 
   return (
     <div style={containerStyles}>
-      {/* Close button */}
-      {config.showCloseButton !== false && (
-        <button
-          onClick={onClose}
-          style={closeButtonStyles}
-          aria-label="Close notification"
-          onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
-          onMouseLeave={(e) => e.currentTarget.style.opacity = '0.6'}
-        >
-          ×
-        </button>
-      )}
-
       {/* Icon */}
       <div style={{ fontSize: '24px', flexShrink: 0 }}>
         {getIcon(currentNotification.type)}
@@ -329,6 +316,19 @@ export const SocialProofPopup: React.FC<SocialProofPopupProps> = ({
           </div>
         )}
       </div>
+
+      {/* Close button (pinned to the right) */}
+      {config.showCloseButton !== false && (
+        <button
+          onClick={onClose}
+          style={closeButtonStyles}
+          aria-label="Close notification"
+          onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
+          onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.6')}
+        >
+          ×
+        </button>
+      )}
     </div>
   );
 };

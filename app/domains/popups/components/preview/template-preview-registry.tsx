@@ -389,6 +389,10 @@ export const TEMPLATE_PREVIEW_REGISTRY: Record<string, TemplatePreviewEntry> = {
 
       // All common config (colors, typography, layout)
       ...buildCommonConfig(mergedConfig, designConfig),
+
+      // Preview-only layout tweak: keep popup anchored to top so the wheel
+      // doesn't visually jump when the prize box appears.
+      position: "top",
     }) as unknown as SpinToWinConfig,
   },
 

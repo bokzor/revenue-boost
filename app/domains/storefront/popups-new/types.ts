@@ -37,6 +37,11 @@ export interface PopupDesignConfig {
   imageBgColor?: string; // Background color for image placeholder
   successColor?: string; // Success state color
 
+  // Background image configuration (used by Newsletter and compatible templates)
+  backgroundImageMode?: "none" | "preset" | "file";
+  backgroundImagePresetKey?: string;
+  backgroundImageFileId?: string;
+
   // Layout Properties
   position: PopupPosition;
   size: PopupSize;
