@@ -24,7 +24,7 @@
         case "medium":
           return { width: "65%", maxWidth: "600px" };
         case "large":
-          return { width: "80%", maxWidth: "900px" };
+          return { width: "90%", maxWidth: "900px" };
         default:
           return { width: "65%", maxWidth: "600px" };
       }
@@ -1316,24 +1316,6 @@
           }
         }
 
-        @media (max-width: 640px) {
-          .flash-sale-content {
-            padding: 2rem 1.5rem;
-          }
-
-          .flash-sale-headline {
-            font-size: 2rem;
-          }
-
-          .flash-sale-timer-unit {
-            min-width: 3.5rem;
-            padding: 0.75rem 0.5rem;
-          }
-
-          .flash-sale-timer-value {
-            font-size: 1.5rem;
-          }
-        }
       ` }),
           /* @__PURE__ */ jsxs("div", { className: "flash-sale-container", children: [
             /* @__PURE__ */ jsx(

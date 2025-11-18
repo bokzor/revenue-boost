@@ -18,8 +18,6 @@ export { TemplateSelector } from "./TemplateSelector";
 export * from "./ab-testing";
 export * from "./form";
 export * from "./goals";
-export * from "./newsletter";
-export * from "./sales";
 export * from "./schedule";
 export * from "./sections";
 export * from "./steps";

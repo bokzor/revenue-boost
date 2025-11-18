@@ -402,10 +402,16 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
       },
       audienceTargeting: {
         enabled: true,
-        segments: ["Cart Abandoner", "Active Shopper"],
-        customRules: {
-          enabled: false,
-          conditions: [],
+        shopifySegmentIds: [],
+        sessionRules: {
+          enabled: true,
+          conditions: [
+            {
+              field: "cartItemCount",
+              operator: "gt",
+              value: 0,
+            },
+          ],
           logicOperator: "AND",
         },
       },
@@ -507,10 +513,16 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
       },
       audienceTargeting: {
         enabled: true,
-        segments: ["Active Shopper", "Cart Abandoner"],
-        customRules: {
-          enabled: false,
-          conditions: [],
+        shopifySegmentIds: [],
+        sessionRules: {
+          enabled: true,
+          conditions: [
+            {
+              field: "cartItemCount",
+              operator: "gt",
+              value: 0,
+            },
+          ],
           logicOperator: "AND",
         },
       },
@@ -611,10 +623,16 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
       },
       audienceTargeting: {
         enabled: true,
-        segments: ["Active Shopper"],
-        customRules: {
-          enabled: false,
-          conditions: [],
+        shopifySegmentIds: [],
+        sessionRules: {
+          enabled: true,
+          conditions: [
+            {
+              field: "cartItemCount",
+              operator: "gt",
+              value: 0,
+            },
+          ],
           logicOperator: "AND",
         },
       },
@@ -720,10 +738,16 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
       },
       audienceTargeting: {
         enabled: true,
-        segments: ["Active Shopper", "Cart Abandoner"],
-        customRules: {
-          enabled: false,
-          conditions: [],
+        shopifySegmentIds: [],
+        sessionRules: {
+          enabled: true,
+          conditions: [
+            {
+              field: "cartItemCount",
+              operator: "gt",
+              value: 0,
+            },
+          ],
           logicOperator: "AND",
         },
       },

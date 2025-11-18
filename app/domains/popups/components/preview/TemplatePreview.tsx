@@ -401,6 +401,71 @@ const TemplatePreviewComponent = forwardRef<
     );
   }
 
+  // Special handling for Cart Abandonment: preview with mock cart items
+  // and a fake discount/email recovery flow so both flows can be exercised.
+  if (templateType === TemplateTypeEnum.CART_ABANDONMENT) {
+    const cartConfig = componentConfig as import("~/domains/storefront/popups-new").CartAbandonmentConfig;
+
+    const mockCartItems = [
+      {
+        id: "preview-item-1",
+        title: "Premium Hoodie",
+        quantity: 1,
+        price: 59.0,
+        imageUrl: undefined,
+      },
+      {
+        id: "preview-item-2",
+        title: "Classic Sneakers",
+        quantity: 1,
+        price: 89.0,
+        imageUrl: undefined,
+      },
+    ];
+
+    const previewCartTotal = mockCartItems.reduce(
+      (sum, item) => sum + item.price * item.quantity,
+      0,
+    );
+
+    const baseCode = cartConfig.discount?.code || "SAVE10";
+    const previewCode = `${baseCode}`;
+
+    const previewIssueDiscount = async (
+      _options?: { cartSubtotalCents?: number },
+    ): Promise<{ code?: string; autoApplyMode?: string } | null> => {
+      await new Promise((resolve) => setTimeout(resolve, 400));
+      return { code: previewCode, autoApplyMode: "ajax" };
+    };
+
+    const previewOnEmailRecovery = async (
+      _email: string,
+    ): Promise<string | undefined> => {
+      await new Promise((resolve) => setTimeout(resolve, 400));
+      return previewCode;
+    };
+
+    return (
+      <PreviewContainer>
+        <div
+          ref={setPreviewElementRef}
+          data-popup-preview
+          style={{ display: "contents" }}
+        >
+          <PreviewComponent
+            config={cartConfig}
+            isVisible={true}
+            onClose={() => {}}
+            cartItems={mockCartItems}
+            cartTotal={previewCartTotal}
+            issueDiscount={previewIssueDiscount}
+            onEmailRecovery={previewOnEmailRecovery}
+          />
+        </div>
+      </PreviewContainer>
+    );
+  }
+
   // Special handling for Product Upsell: provide a mocked add-to-cart callback
   if (templateType === TemplateTypeEnum.PRODUCT_UPSELL) {
     const upsellConfig = componentConfig as ProductUpsellConfig;

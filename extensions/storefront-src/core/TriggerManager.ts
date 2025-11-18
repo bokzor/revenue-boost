@@ -12,10 +12,23 @@ import { IdleTimer } from "../triggers/IdleTimer";
 import { CartEventListener } from "../triggers/CartEventListener";
 import { CustomEventHandler } from "../triggers/CustomEventHandler";
 
+export interface SessionCondition {
+  field: string;
+  operator: "eq" | "ne" | "gt" | "gte" | "lt" | "lte" | "in" | "nin";
+  value: string | number | boolean | string[];
+}
+
+export interface SessionRulesConfig {
+  enabled?: boolean;
+  conditions?: SessionCondition[];
+  logicOperator?: "AND" | "OR";
+}
+
 export interface Campaign {
   id: string;
   clientTriggers?: {
     enhancedTriggers?: EnhancedTriggers;
+    sessionRules?: SessionRulesConfig;
   };
 }
 
@@ -367,9 +380,184 @@ export class TriggerManager {
     }
 
     console.log("[Revenue Boost] 📊 Trigger evaluation summary:", triggerResults);
-    console.log(`[Revenue Boost] ${finalResult ? "✅ CAMPAIGN WILL SHOW" : "❌ CAMPAIGN WILL NOT SHOW"} - Final result: ${finalResult}`);
 
-    return finalResult;
+    // If trigger evaluation failed, no need to check session rules
+    if (!finalResult) {
+      console.log("[Revenue Boost] ❌ Campaign will not show - trigger conditions failed");
+      return false;
+    }
+
+    // Evaluate session-level rules (SessionTrigger) on live client context
+    const sessionRules = campaign.clientTriggers?.sessionRules;
+    if (sessionRules && sessionRules.enabled && sessionRules.conditions && sessionRules.conditions.length > 0) {
+      const sessionOk = this.evaluateSessionRules(sessionRules);
+      console.log(
+        `[Revenue Boost] ${sessionOk ? "✅" : "❌"} Session rules ` +
+          `${sessionOk ? "passed" : "failed"} for campaign ${campaign.id}`,
+      );
+      if (!sessionOk) {
+        return false;
+      }
+    }
+
+    console.log(
+      `[Revenue Boost] ✅ CAMPAIGN WILL SHOW - Final result: triggers + session rules passed for ${campaign.id}`,
+    );
+
+    return true;
+  }
+
+  /**
+   * Evaluate session-level rules (SessionTrigger) using live client context.
+   * This mirrors AudienceTargetingConfig.sessionRules on the server.
+   */
+  private evaluateSessionRules(sessionRules: SessionRulesConfig): boolean {
+    const conditions = sessionRules.conditions || [];
+    if (!sessionRules.enabled || conditions.length === 0) {
+      console.log("[Revenue Boost] ℹ️ Session rules disabled or empty, skipping session evaluation");
+      return true;
+    }
+
+    const ctx = this.buildRuntimeContext();
+    const op = sessionRules.logicOperator || "AND";
+
+    console.log("[Revenue Boost] 🧩 Evaluating session rules", {
+      logicOperator: op,
+      conditions,
+      runtimeContext: ctx,
+    });
+
+    const results = conditions.map((cond) => this.evaluateSessionCondition(cond, ctx));
+
+    console.log("[Revenue Boost] 🧩 Session rule results", results);
+
+    if (op === "OR") {
+      return results.some(Boolean);
+    }
+    return results.every(Boolean);
+  }
+
+  /**
+   * Minimal runtime context available on the storefront for session rules.
+   * Currently supports cartValue and cartItemCount via Shopify global cart.
+   */
+  private buildRuntimeContext(): { cartValue?: number; cartItemCount?: number } {
+    const ctx: { cartValue?: number; cartItemCount?: number } = {};
+
+    type ShopifyGlobal = { Shopify?: { cart?: { total_price: number; item_count: number } } };
+    const w = window as unknown as ShopifyGlobal;
+    if (w.Shopify && w.Shopify.cart) {
+      const cart = w.Shopify.cart;
+      ctx.cartValue = typeof cart.total_price === "number" ? cart.total_price / 100 : undefined;
+      ctx.cartItemCount = typeof cart.item_count === "number" ? cart.item_count : undefined;
+    }
+
+    return ctx;
+  }
+
+  /**
+   * Evaluate a single session condition against the runtime context.
+   */
+  private evaluateSessionCondition(
+    condition: SessionCondition,
+    ctx: { cartValue?: number; cartItemCount?: number },
+  ): boolean {
+    const field = condition.field;
+
+    let value: unknown;
+    switch (field) {
+      case "cart-item-count":
+      case "cartItemCount": {
+        value = ctx.cartItemCount;
+        break;
+      }
+      case "cart-value":
+      case "cartValue": {
+        value = ctx.cartValue;
+        break;
+      }
+      default: {
+        console.log(
+          "[Revenue Boost] ⚠️ Unknown session rule field, skipping condition:",
+          field,
+        );
+        return true; // Fail-open for unknown fields to avoid breaking campaigns
+      }
+    }
+
+    const op = condition.operator;
+    const target = condition.value;
+
+    console.log("[Revenue Boost] 🔍 Evaluating session condition", {
+      field,
+      operator: op,
+      target,
+      runtimeValue: value,
+    });
+
+    if (value == null) {
+      console.log("[Revenue Boost] ❌ Session condition failed: runtime value is null/undefined");
+      return false;
+    }
+
+    // Numeric comparison helpers
+    const asNumber = (v: unknown): number => {
+      if (typeof v === "number") return v;
+      if (typeof v === "string") {
+        const parsed = parseFloat(v);
+        return Number.isNaN(parsed) ? NaN : parsed;
+      }
+      return NaN;
+    };
+
+    const valNum = asNumber(value);
+    const targetNum = asNumber(target);
+
+    let result: boolean;
+
+    switch (op) {
+      case "gt":
+        result = valNum > targetNum;
+        break;
+      case "gte":
+        result = valNum >= targetNum;
+        break;
+      case "lt":
+        result = valNum < targetNum;
+        break;
+      case "lte":
+        result = valNum <= targetNum;
+        break;
+      case "eq":
+        result = value === target;
+        break;
+      case "ne":
+        result = value !== target;
+        break;
+      case "in": {
+        const arr = Array.isArray(target) ? target : [target];
+        result = arr.includes(value as any);
+        break;
+      }
+      case "nin": {
+        const arr = Array.isArray(target) ? target : [target];
+        result = !arr.includes(value as any);
+        break;
+      }
+      default:
+        result = true;
+        break;
+    }
+
+    console.log("[Revenue Boost] 🔍 Session condition result", {
+      field,
+      operator: op,
+      target,
+      runtimeValue: value,
+      result,
+    });
+
+    return result;
   }
 
   /**

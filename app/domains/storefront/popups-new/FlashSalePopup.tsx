@@ -988,24 +988,6 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
           }
         }
 
-        @media (max-width: 640px) {
-          .flash-sale-content {
-            padding: 2rem 1.5rem;
-          }
-
-          .flash-sale-headline {
-            font-size: 2rem;
-          }
-
-          .flash-sale-timer-unit {
-            min-width: 3.5rem;
-            padding: 0.75rem 0.5rem;
-          }
-
-          .flash-sale-timer-value {
-            font-size: 1.5rem;
-          }
-        }
       `}</style>
 
       <div className="flash-sale-container">

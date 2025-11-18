@@ -24,7 +24,7 @@
         case "medium":
           return { width: "65%", maxWidth: "600px" };
         case "large":
-          return { width: "80%", maxWidth: "900px" };
+          return { width: "90%", maxWidth: "900px" };
         default:
           return { width: "65%", maxWidth: "600px" };
       }
@@ -612,9 +612,21 @@
         }
       };
       measureCardWidth();
-      window.addEventListener("resize", measureCardWidth);
+      let observer = null;
+      if (typeof ResizeObserver !== "undefined" && cardRef.current) {
+        observer = new ResizeObserver(() => {
+          measureCardWidth();
+        });
+        observer.observe(cardRef.current);
+      } else {
+        window.addEventListener("resize", measureCardWidth);
+      }
       return () => {
-        window.removeEventListener("resize", measureCardWidth);
+        if (observer) {
+          observer.disconnect();
+        } else {
+          window.removeEventListener("resize", measureCardWidth);
+        }
       };
     }, [isVisible]);
     const viewportWidth = typeof window !== "undefined" ? window.innerWidth : null;

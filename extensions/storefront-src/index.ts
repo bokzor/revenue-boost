@@ -87,7 +87,14 @@ function waitForDOMReady(): Promise<void> {
 
 type ClientCampaign = StorefrontCampaign & {
   priority?: number;
-  clientTriggers?: { enhancedTriggers?: EnhancedTriggers };
+  clientTriggers?: {
+    enhancedTriggers?: EnhancedTriggers;
+    sessionRules?: {
+      enabled?: boolean;
+      conditions?: { field: string; operator: string; value: unknown }[];
+      logicOperator?: "AND" | "OR";
+    };
+  };
   experimentId?: string | null;
   [key: string]: unknown;
 };

@@ -127,10 +127,8 @@ describe("CampaignFilterService", () => {
             enabled: true,
             segments: ["Mobile User"],
           },
-          enhancedTriggers: {
-            page_targeting: {
-              enabled: false,
-            },
+          pageTargeting: {
+            enabled: false,
           },
         },
       } as CampaignWithConfigs,
@@ -146,10 +144,8 @@ describe("CampaignFilterService", () => {
             enabled: true,
             segments: ["Desktop User"],
           },
-          enhancedTriggers: {
-            page_targeting: {
-              enabled: false,
-            },
+          pageTargeting: {
+            enabled: false,
           },
         },
       } as CampaignWithConfigs,
@@ -164,11 +160,9 @@ describe("CampaignFilterService", () => {
           audienceTargeting: {
             enabled: false,
           },
-          enhancedTriggers: {
-            page_targeting: {
-              enabled: true,
-              pages: ["/products/*"],
-            },
+          pageTargeting: {
+            enabled: true,
+            pages: ["/products/*"],
           },
         },
       } as CampaignWithConfigs,

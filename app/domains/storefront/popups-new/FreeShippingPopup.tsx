@@ -705,20 +705,6 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
           }
         }
 
-        @media (max-width: 640px) {
-          .free-shipping-bar-content {
-            padding: 0.75rem 1rem;
-            gap: 0.75rem;
-          }
-
-          .free-shipping-bar-text {
-            font-size: 0.875rem;
-          }
-
-          .free-shipping-bar-icon {
-            font-size: 1.125rem;
-          }
-        }
       `}</style>
 
       <div

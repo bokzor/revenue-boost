@@ -15,7 +15,7 @@ export const operatorUiToAudience: Record<ConditionOperator, AudienceOperator> =
   "greater-than": "gt",
   "less-than": "lt",
   "equal-to": "eq",
-  "between": "gt", // NOTE: UI has secondaryValue; server has no explicit between -> approximate lower-bound only
+  between: "gt", // NOTE: UI has secondaryValue; server has no explicit between -> approximate lower-bound only
 
   // string
   contains: "in", // best-effort mapping when value is a list
@@ -40,12 +40,22 @@ export const operatorAudienceToUi: Record<AudienceOperator, ConditionOperator> =
   nin: "is-not",
 };
 
-// Simple passthrough for field/type mapping.
-// If an unknown field is encountered, default to a generic cart-value condition
+// Mapping between UI condition types and StorefrontContext field names
+const conditionTypeToField: Record<ConditionType, string> = {
+  "cart-value": "cartValue",
+  "cart-item-count": "cartItemCount",
+};
+
+const fieldToConditionType: Record<string, ConditionType> = {
+  cartValue: "cart-value",
+  "cart-value": "cart-value",
+  cartItemCount: "cart-item-count",
+  "cart-item-count": "cart-item-count",
+};
+
+// Server -> UI: map persisted field to UI type
 const toUiType = (field: string): ConditionType => {
-  const known: ConditionType[] = ["cart-value", "cart-item-count"];
-  if ((known as string[]).includes(field)) return field as ConditionType;
-  return "cart-value";
+  return fieldToConditionType[field] ?? "cart-value";
 };
 
 // UI -> server AudienceCondition[]
@@ -61,8 +71,10 @@ export function uiConditionsToAudience(ui: TriggerCondition[]): AudienceConditio
       value = Array.isArray(c.value) ? Number(c.value[0]) : Number(c.value);
     }
 
+    const field = conditionTypeToField[c.type] ?? c.type;
+
     return {
-      field: c.type,
+      field,
       operator: op,
       value,
     };

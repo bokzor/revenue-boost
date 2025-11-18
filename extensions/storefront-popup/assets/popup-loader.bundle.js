@@ -2419,8 +2419,120 @@
         console.log("[Revenue Boost] \u{1F517} AND logic: All triggers must pass");
       }
       console.log("[Revenue Boost] \u{1F4CA} Trigger evaluation summary:", triggerResults);
-      console.log(`[Revenue Boost] ${finalResult ? "\u2705 CAMPAIGN WILL SHOW" : "\u274C CAMPAIGN WILL NOT SHOW"} - Final result: ${finalResult}`);
-      return finalResult;
+      if (!finalResult) {
+        console.log("[Revenue Boost] \u274C Campaign will not show - trigger conditions failed");
+        return false;
+      }
+      const sessionRules = campaign.clientTriggers?.sessionRules;
+      if (sessionRules && sessionRules.enabled && sessionRules.conditions && sessionRules.conditions.length > 0) {
+        const sessionOk = this.evaluateSessionRules(sessionRules);
+        console.log(
+          `[Revenue Boost] ${sessionOk ? "\u2705" : "\u274C"} Session rules ${sessionOk ? "passed" : "failed"} for campaign ${campaign.id}`
+        );
+        if (!sessionOk) {
+          return false;
+        }
+      }
+      console.log(
+        `[Revenue Boost] \u2705 CAMPAIGN WILL SHOW - Final result: triggers + session rules passed for ${campaign.id}`
+      );
+      return true;
+    }
+    /**
+     * Evaluate session-level rules (SessionTrigger) using live client context.
+     * This mirrors AudienceTargetingConfig.sessionRules on the server.
+     */
+    evaluateSessionRules(sessionRules) {
+      const conditions = sessionRules.conditions || [];
+      if (!sessionRules.enabled || conditions.length === 0) {
+        return true;
+      }
+      const ctx = this.buildRuntimeContext();
+      const op = sessionRules.logicOperator || "AND";
+      const results = conditions.map((cond) => this.evaluateSessionCondition(cond, ctx));
+      if (op === "OR") {
+        return results.some(Boolean);
+      }
+      return results.every(Boolean);
+    }
+    /**
+     * Minimal runtime context available on the storefront for session rules.
+     * Currently supports cartValue and cartItemCount via Shopify global cart.
+     */
+    buildRuntimeContext() {
+      const ctx = {};
+      const w3 = window;
+      if (w3.Shopify && w3.Shopify.cart) {
+        const cart = w3.Shopify.cart;
+        ctx.cartValue = typeof cart.total_price === "number" ? cart.total_price / 100 : void 0;
+        ctx.cartItemCount = typeof cart.item_count === "number" ? cart.item_count : void 0;
+      }
+      return ctx;
+    }
+    /**
+     * Evaluate a single session condition against the runtime context.
+     */
+    evaluateSessionCondition(condition, ctx) {
+      const field = condition.field;
+      let value;
+      switch (field) {
+        case "cart-item-count":
+        case "cartItemCount": {
+          value = ctx.cartItemCount;
+          break;
+        }
+        case "cart-value":
+        case "cartValue": {
+          value = ctx.cartValue;
+          break;
+        }
+        default: {
+          console.log(
+            "[Revenue Boost] \u26A0\uFE0F Unknown session rule field, skipping condition:",
+            field
+          );
+          return true;
+        }
+      }
+      if (value == null) {
+        return false;
+      }
+      const op = condition.operator;
+      const target = condition.value;
+      const asNumber = (v3) => {
+        if (typeof v3 === "number") return v3;
+        if (typeof v3 === "string") {
+          const parsed = parseFloat(v3);
+          return Number.isNaN(parsed) ? NaN : parsed;
+        }
+        return NaN;
+      };
+      const valNum = asNumber(value);
+      const targetNum = asNumber(target);
+      switch (op) {
+        case "gt":
+          return valNum > targetNum;
+        case "gte":
+          return valNum >= targetNum;
+        case "lt":
+          return valNum < targetNum;
+        case "lte":
+          return valNum <= targetNum;
+        case "eq":
+          return value === target;
+        case "ne":
+          return value !== target;
+        case "in": {
+          const arr = Array.isArray(target) ? target : [target];
+          return arr.includes(value);
+        }
+        case "nin": {
+          const arr = Array.isArray(target) ? target : [target];
+          return !arr.includes(value);
+        }
+        default:
+          return true;
+      }
     }
     /**
      * Check page load trigger

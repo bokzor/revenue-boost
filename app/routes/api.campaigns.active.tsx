@@ -166,10 +166,11 @@ export async function loader(args: LoaderFunctionArgs) {
 function extractClientTriggers(targetRules: any) {
   if (!targetRules) return {};
 
-  const { enhancedTriggers } = targetRules;
+  const { enhancedTriggers, audienceTargeting } = targetRules;
 
   return {
     enhancedTriggers: enhancedTriggers || {},
+    sessionRules: audienceTargeting?.sessionRules,
   };
 }
 
