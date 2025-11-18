@@ -123,10 +123,10 @@ export default function CampaignEditPage() {
       contentConfig: campaign.contentConfig,
       designConfig: campaign.designConfig,
       enhancedTriggers: campaign.targetRules?.enhancedTriggers || {},
-      audienceTargeting: {
-        enabled: campaign.targetRules?.audienceTargeting?.enabled ?? false,
-        segments: campaign.targetRules?.audienceTargeting?.segments ?? [],
-        customRules: campaign.targetRules?.audienceTargeting?.customRules ?? {
+      audienceTargeting: campaign.targetRules?.audienceTargeting ?? {
+        enabled: false,
+        shopifySegmentIds: [],
+        sessionRules: {
           enabled: false,
           conditions: [],
           logicOperator: "AND" as const,
