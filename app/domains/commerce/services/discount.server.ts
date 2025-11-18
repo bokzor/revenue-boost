@@ -130,6 +130,100 @@ const GetCampaignDiscountCodeParamsSchema = z.object({
 type GetCampaignDiscountCodeParams = z.infer<typeof GetCampaignDiscountCodeParamsSchema>;
 
 // ============================================================================
+// DISCOUNT STRATEGIES
+// ============================================================================
+
+interface DiscountStrategyContext {
+  admin: AdminApiContext;
+  campaign: Campaign;
+  config: DiscountConfig;
+  metadata: DiscountMetadata;
+  leadEmail?: string;
+  cartSubtotalCents?: number;
+}
+
+interface DiscountStrategy {
+  name: string;
+  canHandle: (ctx: DiscountStrategyContext) => boolean;
+  apply: (ctx: DiscountStrategyContext) => Promise<CampaignDiscountResult>;
+}
+
+const DISCOUNT_STRATEGIES: DiscountStrategy[] = [
+  {
+    name: "emailAuthorized",
+    canHandle: (ctx) =>
+      ctx.config.deliveryMode === "show_in_popup_authorized_only" &&
+      !!ctx.leadEmail,
+    apply: (ctx) =>
+      createEmailSpecificDiscount(
+        ctx.admin,
+        ctx.leadEmail as string,
+        ctx.campaign,
+        ctx.config,
+      ),
+  },
+  {
+    name: "bogo",
+    canHandle: (ctx) => !!ctx.config.bogo,
+    apply: (ctx) =>
+      getOrCreateBogoDiscount(
+        ctx.admin,
+        ctx.campaign,
+        ctx.config,
+        ctx.metadata,
+      ),
+  },
+  {
+    name: "freeGift",
+    canHandle: (ctx) => !!ctx.config.freeGift,
+    apply: (ctx) =>
+      getOrCreateFreeGiftDiscount(
+        ctx.admin,
+        ctx.campaign,
+        ctx.config,
+        ctx.metadata,
+      ),
+  },
+  {
+    name: "tiered",
+    canHandle: (ctx) => !!ctx.config.tiers && ctx.config.tiers.length > 0,
+    apply: (ctx) =>
+      getOrCreateTieredDiscount(
+        ctx.admin,
+        ctx.campaign,
+        ctx.config,
+        ctx.metadata,
+        ctx.cartSubtotalCents,
+      ),
+  },
+  {
+    name: "singleUse",
+    canHandle: (ctx) =>
+      ctx.config.type === "single_use" || ctx.config.usageLimit === 1,
+    apply: (ctx) =>
+      createSingleUseDiscount(
+        ctx.admin,
+        ctx.campaign,
+        ctx.config,
+        ctx.leadEmail,
+      ),
+  },
+  {
+    name: "shared",
+    canHandle: (ctx) =>
+      !(ctx.config.type === "single_use" || ctx.config.usageLimit === 1),
+    apply: (ctx) =>
+      getOrCreateSharedDiscount(
+        ctx.admin,
+        ctx.campaign,
+        ctx.config,
+        ctx.metadata,
+      ),
+  },
+];
+
+
+// ============================================================================
 // UTILITY FUNCTIONS
 // ============================================================================
 
@@ -292,54 +386,37 @@ export async function getCampaignDiscountCode(
       };
     }
 
-    const discountConfig = typeof campaign.discountConfig === 'string'
-      ? JSON.parse(campaign.discountConfig || "{}")
-      : (campaign.discountConfig || {});
+    const discountMetadata: DiscountMetadata =
+      typeof campaign.discountConfig === "string"
+        ? JSON.parse(campaign.discountConfig || "{}")
+        : (campaign.discountConfig || {});
 
-    // Check for email-specific authorization mode
-    if (config.deliveryMode === "show_in_popup_authorized_only" && leadEmail) {
-      return await createEmailSpecificDiscount(
-        admin,
-        leadEmail,
-        campaign,
-        config
-      );
+    const context: DiscountStrategyContext = {
+      admin,
+      campaign,
+      config,
+      metadata: discountMetadata,
+      leadEmail,
+      cartSubtotalCents,
+    };
+
+    for (const strategy of DISCOUNT_STRATEGIES) {
+      if (strategy.canHandle(context)) {
+        return await strategy.apply(context);
+      }
     }
 
-    // Handle BOGO discounts
-    if (config.bogo) {
-      return await getOrCreateBogoDiscount(admin, campaign, config, discountConfig);
-    }
-
-    // Handle free gift discounts
-    if (config.freeGift) {
-      return await getOrCreateFreeGiftDiscount(admin, campaign, config, discountConfig);
-    }
-
-    // Handle tiered discounts
-    if (config.tiers && config.tiers.length > 0) {
-      return await getOrCreateTieredDiscount(
-        admin,
-        campaign,
-        config,
-        discountConfig,
-        cartSubtotalCents
-      );
-    }
-
-    // Determine code generation mode for basic discounts
-    const isSingleUse = config.type === "single_use" || config.usageLimit === 1;
-
-    if (!isSingleUse) {
-      return await getOrCreateSharedDiscount(
-        admin,
-        campaign,
-        config,
-        discountConfig
-      );
-    } else {
-      return await createSingleUseDiscount(admin, campaign, config, leadEmail);
-    }
+    // Fallback: this should not happen, but return a safe error if no strategy matched
+    console.error("[Discount Service] No discount strategy matched for config", {
+      storeId,
+      campaignId,
+      config,
+    });
+    return {
+      success: false,
+      isNewDiscount: false,
+      errors: ["No applicable discount strategy found"],
+    };
   } catch (error) {
     console.error("[Discount Service] Error getting campaign discount code:", error);
     return {

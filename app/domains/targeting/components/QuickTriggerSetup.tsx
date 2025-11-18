@@ -24,8 +24,8 @@ const DEFAULT_ENHANCED_TRIGGERS: EnhancedTriggerConfig = {
   page_targeting: {
     enabled: false,
     pages: [],
-    custom_patterns: [],
-    exclude_pages: [],
+    customPatterns: [],
+    excludePages: [],
   },
   page_load: {
     enabled: false,

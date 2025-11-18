@@ -15,7 +15,7 @@ import {
 } from "../validation/campaign-validation.js";
 import {
   parseExperimentFields,
-  stringifyJsonField,
+  stringifyEntityJsonFields,
 } from "../utils/json-helpers.js";
 import { ExperimentServiceError } from "~/lib/errors.server";
 import {
@@ -134,6 +134,18 @@ export class ExperimentService {
     }
 
     try {
+      const jsonFields = stringifyEntityJsonFields(data, [
+        {
+          key: "trafficAllocation",
+          defaultValue: {
+            A: 50,
+            B: 50,
+          },
+        },
+        { key: "statisticalConfig", defaultValue: {} },
+        { key: "successMetrics", defaultValue: {} },
+      ]);
+
       const experiment = await prisma.experiment.create({
         data: {
           storeId,
@@ -142,9 +154,9 @@ export class ExperimentService {
           hypothesis: data.hypothesis,
 
           // JSON configurations
-          trafficAllocation: stringifyJsonField(data.trafficAllocation),
-          statisticalConfig: stringifyJsonField(data.statisticalConfig || {}),
-          successMetrics: stringifyJsonField(data.successMetrics),
+          trafficAllocation: jsonFields.trafficAllocation,
+          statisticalConfig: jsonFields.statisticalConfig,
+          successMetrics: jsonFields.successMetrics,
 
           // Timeline
           startDate: data.startDate,

@@ -7,9 +7,9 @@
 
 import type { CampaignWithConfigs } from "~/domains/campaigns/types/campaign";
 import type { StorefrontContext } from "~/domains/campaigns/types/storefront-context";
+import type { AudienceCondition } from "~/domains/targeting/utils/condition-adapter";
 import { FrequencyCapService } from "~/domains/targeting/services/frequency-cap.server";
-import prisma from "~/db.server";
-import type { SegmentCondition } from "~/data/segments";
+import { hasSegmentMembershipData, isCustomerInAnyShopifySegment } from "~/domains/targeting/services/segment-membership.server";
 
 /**
  * Campaign Filter Service
@@ -21,7 +21,7 @@ export class CampaignFilterService {
    */
   static filterByDeviceType(
     campaigns: CampaignWithConfigs[],
-    context: StorefrontContext
+    context: StorefrontContext,
   ): CampaignWithConfigs[] {
     if (!context.deviceType) {
       console.log("[Revenue Boost] ⚠️ No device type in context, skipping device filter");
@@ -29,44 +29,33 @@ export class CampaignFilterService {
     }
 
     const device = context.deviceType!;
-    console.log(`[Revenue Boost] 📱 Filtering campaigns by device type: ${device}`);
+    console.log(
+      `[Revenue Boost] 📱 Filtering campaigns by device type (enhancedTriggers.device_targeting): ${device}`,
+    );
 
     return campaigns.filter((campaign) => {
-      const targeting = campaign.targetRules?.audienceTargeting;
+      const deviceTargeting = campaign.targetRules?.enhancedTriggers?.device_targeting;
 
-      // If no audience targeting, include campaign
-      if (!targeting || !targeting.enabled) {
+      // If no device targeting configured, include campaign
+      if (!deviceTargeting || deviceTargeting.enabled === false) {
         return true;
       }
 
-      // Check if campaign targets this device type
-      const segments = targeting.segments || [];
+      const allowedDevices =
+        Array.isArray(deviceTargeting.device_types) && deviceTargeting.device_types.length > 0
+          ? deviceTargeting.device_types
+          : ["desktop", "tablet", "mobile"];
 
-      // Map device type to segment names
-      const deviceSegmentMap: Record<string, string> = {
-        mobile: "Mobile User",
-        tablet: "Tablet User",
-        desktop: "Desktop User",
-      };
-
-      const deviceSegment = deviceSegmentMap[device];
-
-      // If no device-specific segments, include campaign
-      const hasDeviceSegments = segments.some((seg) =>
-        Object.values(deviceSegmentMap).includes(seg)
-      );
-
-      if (!hasDeviceSegments) {
-        return true;
-      }
-
-      // Check if campaign targets this specific device
-      const matches = segments.includes(deviceSegment);
+      const matches = allowedDevices.includes(device);
 
       if (matches) {
-        console.log(`[Revenue Boost] ✅ Campaign "${campaign.name}" (${campaign.id}): Targets ${deviceSegment}`);
+        console.log(
+          `[Revenue Boost] ✅ Campaign "${campaign.name}" (${campaign.id}): matches device targeting (${device})`,
+        );
       } else {
-        console.log(`[Revenue Boost] ❌ Campaign "${campaign.name}" (${campaign.id}): Does not target ${deviceSegment}`);
+        console.log(
+          `[Revenue Boost] ❌ Campaign "${campaign.name}" (${campaign.id}): does NOT match device targeting`,
+        );
       }
 
       return matches;
@@ -88,9 +77,8 @@ export class CampaignFilterService {
     console.log(`[Revenue Boost] 📄 Filtering campaigns by page targeting. Current page: ${context.pageUrl}`);
 
     return campaigns.filter((campaign) => {
-      // Prefer dedicated pageTargeting config if present, otherwise fall back to legacy enhancedTriggers.page_targeting
-      const pageTargeting =
-        campaign.targetRules?.pageTargeting
+      // Use dedicated pageTargeting config; legacy enhancedTriggers.page_targeting is no longer supported
+      const pageTargeting = campaign.targetRules?.pageTargeting;
 
       // If no page targeting, include campaign
       if (!pageTargeting || !pageTargeting.enabled) {
@@ -98,8 +86,8 @@ export class CampaignFilterService {
       }
 
       const targetPages = pageTargeting.pages || [];
-      const customPatterns = pageTargeting.customPatterns || pageTargeting.custom_patterns || [];
-      const excludePages = pageTargeting.excludePages || pageTargeting.exclude_pages || [];
+      const customPatterns = pageTargeting.customPatterns || [];
+      const excludePages = pageTargeting.excludePages || [];
       const productTags = pageTargeting.productTags || [];
       const collections = pageTargeting.collections || [];
 
@@ -163,176 +151,265 @@ export class CampaignFilterService {
   }
 
   /**
-   * Filter campaigns by audience segments
+   * Filter campaigns by audience targeting (Shopify segments + session rules).
+   *
+   * Shopify segments are stored in our own database (SegmentMembership) via
+   * background sync and are NEVER exposed to the storefront. This method does
+   * NOT call the Shopify Admin API; it only reads from our database.
+   *
+   * Runtime behavior:
+   * - If shopifySegmentIds are configured AND membership data exists for those
+   *   segments, the visitor MUST belong to at least one of them AND
+   * - sessionRules (if any) MUST also match the StorefrontContext.
+   * - If NO membership data exists yet for the configured segments, we ignore
+   *   the segment filter and fall back to sessionRules-only (fail-open).
    */
   static async filterByAudienceSegments(
     campaigns: CampaignWithConfigs[],
-    context: StorefrontContext
+    context: StorefrontContext,
+    storeId: string,
   ): Promise<CampaignWithConfigs[]> {
-    console.log("[Revenue Boost] 👥 Filtering campaigns by audience segments");
+    console.log(
+      "[Revenue Boost] 👥 Filtering campaigns by audience targeting (Shopify segments + session rules)",
+    );
 
-    // Collect all unique segment keys (IDs or legacy names) used across campaigns
-    const allSegmentKeys = new Set<string>();
-    for (const campaign of campaigns) {
-      const targeting = campaign.targetRules?.audienceTargeting;
-      if (targeting?.enabled && Array.isArray(targeting.segments)) {
-        for (const seg of targeting.segments) {
-          if (typeof seg === "string" && seg.trim().length > 0) {
-            allSegmentKeys.add(seg);
-          }
-        }
+    if (!campaigns || campaigns.length === 0) {
+      return [];
+    }
+
+    const customerIdStr = context.customerId;
+    let shopifyCustomerId: bigint | null = null;
+
+    if (customerIdStr) {
+      try {
+        // Support either a plain numeric ID ("123") or a Shopify GID
+        // ("gid://shopify/Customer/123").
+        const numericPart = customerIdStr.includes("/")
+          ? customerIdStr.split("/").pop()!
+          : customerIdStr;
+        shopifyCustomerId = BigInt(numericPart);
+      } catch (error) {
+        console.warn("[Revenue Boost] ⚠️ Failed to parse customerId as BigInt", {
+          customerIdStr,
+          error,
+        });
       }
     }
 
-    // If no campaigns use audience segments at all, skip DB lookup entirely
-    if (allSegmentKeys.size === 0) {
-      console.log("[Revenue Boost] ℹ️ No campaigns with audience segments configured - skipping segment filter");
-      return campaigns;
-    }
+    const result: CampaignWithConfigs[] = [];
+    const membershipDataCache = new Map<string, boolean>();
 
-    const segmentKeys = Array.from(allSegmentKeys);
-
-    // Load matching segments from DB by ID or name (backward compatible)
-    let dbSegments: { id: string; name: string; conditions: unknown }[] = [];
-    try {
-      dbSegments = await prisma.customerSegment.findMany({
-        where: {
-          isActive: true,
-          OR: [
-            { id: { in: segmentKeys } },
-            { name: { in: segmentKeys } },
-          ],
-        },
-      });
-    } catch (error) {
-      console.error("[Revenue Boost] ❌ Failed to load customer segments for audience targeting:", error);
-      // In case of DB failure, fall back to legacy name-based matching only
-      dbSegments = [];
-    }
-
-    // Build lookup maps by ID and by name
-    const segmentByKey = new Map<string, { id: string; name: string; conditions: SegmentCondition[] }>();
-    for (const seg of dbSegments) {
-      const conditions = Array.isArray(seg.conditions)
-        ? (seg.conditions as SegmentCondition[])
-        : [];
-
-      segmentByKey.set(seg.id, { id: seg.id, name: seg.name, conditions });
-      segmentByKey.set(seg.name, { id: seg.id, name: seg.name, conditions });
-    }
-
-    const legacyContextSegments = this.getContextSegments(context);
-    console.log("[Revenue Boost] 📊 Visitor segments detected (legacy mapping):", legacyContextSegments);
-
-    const filtered = campaigns.filter((campaign) => {
+    for (const campaign of campaigns) {
       const targeting = campaign.targetRules?.audienceTargeting;
 
       // If no audience targeting, include campaign
       if (!targeting || !targeting.enabled) {
-        console.log(`[Revenue Boost] ✅ Campaign "${campaign.name}" (${campaign.id}): No audience targeting, including`);
-        return true;
+        console.log(
+          `[Revenue Boost] ✅ Campaign "${campaign.name}" (${campaign.id}): Audience targeting disabled, including`,
+        );
+        result.push(campaign);
+        continue;
       }
 
-      const segments = targeting.segments || [];
+      const segmentIds = targeting.shopifySegmentIds ?? [];
+      let segmentsMatch = true;
 
-      // If no segments defined, include campaign
-      if (segments.length === 0) {
-        console.log(`[Revenue Boost] ✅ Campaign "${campaign.name}" (${campaign.id}): No segments defined, including`);
-        return true;
-      }
+      if (segmentIds.length > 0) {
+        const key = segmentIds.slice().sort().join("|");
+        let hasData = membershipDataCache.get(key);
 
-      console.log(`[Revenue Boost] 🎯 Campaign "${campaign.name}" (${campaign.id}) requires segments:`, segments);
+        if (hasData === undefined) {
+          hasData = await hasSegmentMembershipData({ storeId, segmentIds });
+          membershipDataCache.set(key, hasData);
+        }
 
-      // Campaign matches if ANY referenced segment matches the context
-      const matches = segments.some((key) => {
-        const segDef = segmentByKey.get(key);
+        if (!hasData) {
+          console.log(
+            `[Revenue Boost] ⚠️ Campaign "${campaign.name}" (${campaign.id}): Shopify segments configured (${JSON.stringify(segmentIds)}) but no membership data found for store ${storeId}; ignoring segment filter and falling back to sessionRules-only`,
+          );
+          segmentsMatch = true;
+        } else if (!shopifyCustomerId) {
+          console.log(
+            `[Revenue Boost] ❌ Campaign "${campaign.name}" (${campaign.id}): Shopify segments configured (${JSON.stringify(segmentIds)}) and membership data exists, but no valid customerId in context; excluding`,
+          );
+          segmentsMatch = false;
+        } else {
+          const inAnySegment = await isCustomerInAnyShopifySegment({
+            storeId,
+            shopifyCustomerId,
+            segmentIds,
+          });
 
-        if (segDef) {
-          const result = this.evaluateSegmentConditions(segDef.conditions, context);
-          if (result) {
+          segmentsMatch = inAnySegment;
+
+          if (segmentsMatch) {
             console.log(
-              `[Revenue Boost] ✅ Campaign "${campaign.name}" (${campaign.id}): MATCHED DB segment "${segDef.name}" (${segDef.id})`
+              `[Revenue Boost] ✅ Campaign "${campaign.name}" (${campaign.id}): customer ${shopifyCustomerId.toString()} is in at least one required Shopify segment`,
+            );
+          } else {
+            console.log(
+              `[Revenue Boost] ❌ Campaign "${campaign.name}" (${campaign.id}): customer ${shopifyCustomerId.toString()} is NOT in any of required Shopify segments ${JSON.stringify(segmentIds)}`,
             );
           }
-          return result;
         }
+      }
 
-        // Fallback for legacy configs that used raw names only
-        const legacyMatch = legacyContextSegments.includes(key);
-        if (legacyMatch) {
+      const sessionRules = targeting.sessionRules;
+      let sessionMatch = true;
+
+      if (
+        sessionRules &&
+        sessionRules.enabled &&
+        sessionRules.conditions &&
+        sessionRules.conditions.length > 0
+      ) {
+        sessionMatch = this.evaluateAudienceSessionRules(sessionRules, context);
+
+        if (sessionMatch) {
           console.log(
-            `[Revenue Boost] ✅ Campaign "${campaign.name}" (${campaign.id}): MATCHED legacy segment name "${key}"`
+            `[Revenue Boost] ✅ Campaign "${campaign.name}" (${campaign.id}): audience session rules matched`,
+          );
+        } else {
+          console.log(
+            `[Revenue Boost] ❌ Campaign "${campaign.name}" (${campaign.id}): audience session rules did NOT match`,
           );
         }
-        return legacyMatch;
-      });
-
-      if (!matches) {
+      } else {
         console.log(
-          `[Revenue Boost] ❌ Campaign "${campaign.name}" (${campaign.id}): NO MATCH - visitor segments don't match required segments`
+          `[Revenue Boost] ✅ Campaign "${campaign.name}" (${campaign.id}): No session rules configured, including`,
         );
       }
 
-      return matches;
-    });
+      const matches = segmentsMatch && sessionMatch;
+
+      if (!matches) {
+        console.log(
+          `[Revenue Boost] ❌ Campaign "${campaign.name}" (${campaign.id}): audience targeting overall did NOT match (segments=${segmentsMatch}, sessionRules=${sessionMatch})`,
+        );
+        continue;
+      }
+
+      console.log(
+        `[Revenue Boost] ✅ Campaign "${campaign.name}" (${campaign.id}): audience targeting overall matched`,
+      );
+      result.push(campaign);
+    }
 
     console.log(
-      `[Revenue Boost] 👥 Audience segment filter result: ${filtered.length} of ${campaigns.length} campaigns matched`
+      `[Revenue Boost] 👥 Audience targeting filter result: ${result.length} of ${campaigns.length} campaigns matched`,
     );
 
-    return filtered;
+    return result;
   }
 
   /**
-   * Evaluate a list of segment conditions against the current storefront context.
-   * All conditions must pass for the segment to be considered a match.
+   * Evaluate AudienceTargetingConfig.sessionRules against the storefront context.
    */
-  private static evaluateSegmentConditions(
-    conditions: SegmentCondition[],
-    context: StorefrontContext
+  private static evaluateAudienceSessionRules(
+    sessionRules: {
+      enabled?: boolean;
+      logicOperator?: "AND" | "OR";
+      conditions?: AudienceCondition[];
+    },
+    context: StorefrontContext,
   ): boolean {
-    if (!conditions || conditions.length === 0) {
+    const conditions = sessionRules.conditions || [];
+    if (!sessionRules.enabled || conditions.length === 0) {
       return true;
     }
 
+    const op = sessionRules.logicOperator || "AND";
     const ctx: Record<string, unknown> = context as Record<string, unknown>;
 
-    return conditions.every((condition) => {
-      const actual = ctx[condition.field];
+    const results = conditions.map((cond) => this.evaluateAudienceCondition(cond, ctx));
 
-      if (actual === undefined || actual === null) {
-        return false;
-      }
+    if (op === "OR") {
+      return results.some(Boolean);
+    }
 
-      const expected = condition.value;
+    return results.every(Boolean);
+  }
 
-      switch (condition.operator) {
-        case "eq":
-          return actual === expected;
-        case "ne":
-          return actual !== expected;
-        case "gt":
-          return Number(actual) > Number(expected);
-        case "gte":
-          return Number(actual) >= Number(expected);
-        case "lt":
-          return Number(actual) < Number(expected);
-        case "lte":
-          return Number(actual) <= Number(expected);
-        case "in":
-          if (Array.isArray(actual)) {
-            return (actual as unknown[]).includes(expected as unknown);
-          }
-          return actual === expected;
-        case "nin":
-          if (Array.isArray(actual)) {
-            return !(actual as unknown[]).includes(expected as unknown);
-          }
-          return actual !== expected;
-        default:
-          return false;
-      }
+  /**
+   * Evaluate a single audience condition against the provided context map.
+   */
+  private static evaluateAudienceCondition(
+    condition: AudienceCondition,
+    ctx: Record<string, unknown>,
+  ): boolean {
+    const { field, operator, value } = condition;
+
+    const actual = ctx[field];
+
+    console.log("[Revenue Boost] 🔍 Evaluating audience condition", {
+      field,
+      operator,
+      expected: value,
+      actual,
     });
+
+    if (actual === undefined || actual === null) {
+      console.log("[Revenue Boost] ❌ Audience condition failed: actual value is null/undefined");
+      return false;
+    }
+
+    const asNumber = (v: unknown): number => {
+      if (typeof v === "number") return v;
+      if (typeof v === "string") {
+        const parsed = parseFloat(v);
+        return Number.isNaN(parsed) ? NaN : parsed;
+      }
+      return NaN;
+    };
+
+    const actualNum = asNumber(actual);
+    const targetNum = asNumber(value);
+
+    let result: boolean;
+
+    switch (operator) {
+      case "gt":
+        result = actualNum > targetNum;
+        break;
+      case "gte":
+        result = actualNum >= targetNum;
+        break;
+      case "lt":
+        result = actualNum < targetNum;
+        break;
+      case "lte":
+        result = actualNum <= targetNum;
+        break;
+      case "eq":
+        result = actual === value;
+        break;
+      case "ne":
+        result = actual !== value;
+        break;
+      case "in": {
+        const arr = Array.isArray(value) ? value : [value];
+        result = arr.includes(actual as any);
+        break;
+      }
+      case "nin": {
+        const arr = Array.isArray(value) ? value : [value];
+        result = !arr.includes(actual as any);
+        break;
+      }
+      default:
+        result = true;
+        break;
+    }
+
+    console.log("[Revenue Boost] 🔍 Audience condition result", {
+      field,
+      operator,
+      expected: value,
+      actual,
+      result,
+    });
+
+    return result;
   }
 
   /**
@@ -424,46 +501,79 @@ export class CampaignFilterService {
    */
   static async filterCampaigns(
     campaigns: CampaignWithConfigs[],
-    context: StorefrontContext
+    context: StorefrontContext,
+    storeId: string,
   ): Promise<CampaignWithConfigs[]> {
-    console.log(`[Revenue Boost] 🔍 Starting campaign filtering. Total campaigns: ${campaigns.length}`);
-    console.log("[Revenue Boost] 📋 Campaign IDs:", campaigns.map(c => `${c.name} (${c.id})`));
+    console.log(
+      `[Revenue Boost] 🔍 Starting campaign filtering. Total campaigns: ${campaigns.length}`,
+    );
+    console.log("[Revenue Boost] 📋 Campaign IDs:", campaigns.map((c) => `${c.name} (${c.id})`));
 
     let filtered = campaigns;
 
-    // Apply device type filter
-    console.log("\n[Revenue Boost] === DEVICE TYPE FILTER ===");
-    filtered = this.filterByDeviceType(filtered, context);
-    console.log(`[Revenue Boost] After device filter: ${filtered.length} campaigns remaining\n`);
+    filtered = await this.runFilterStep(
+      "DEVICE TYPE",
+      (cs, ctx) => this.filterByDeviceType(cs, ctx),
+      filtered,
+      context,
+    );
 
-    // Apply page targeting filter
-    console.log("[Revenue Boost] === PAGE TARGETING FILTER ===");
-    filtered = this.filterByPageTargeting(filtered, context);
-    console.log(`[Revenue Boost] After page targeting filter: ${filtered.length} campaigns remaining\n`);
+    filtered = await this.runFilterStep(
+      "PAGE TARGETING",
+      (cs, ctx) => this.filterByPageTargeting(cs, ctx),
+      filtered,
+      context,
+    );
 
-    // Apply audience segments filter
-    console.log("[Revenue Boost] === AUDIENCE SEGMENTS FILTER ===");
-    filtered = await this.filterByAudienceSegments(filtered, context);
-    console.log(`[Revenue Boost] After audience segments filter: ${filtered.length} campaigns remaining\n`);
+    filtered = await this.runFilterStep(
+      "AUDIENCE SEGMENTS",
+      (cs, ctx) => this.filterByAudienceSegments(cs, ctx, storeId),
+      filtered,
+      context,
+    );
 
-    // Apply variant assignment filter (for A/B tests)
-    console.log("[Revenue Boost] === VARIANT ASSIGNMENT FILTER ===");
-    filtered = this.filterByVariantAssignment(filtered, context);
-    console.log(`[Revenue Boost] After variant assignment filter: ${filtered.length} campaigns remaining\n`);
+    filtered = await this.runFilterStep(
+      "VARIANT ASSIGNMENT",
+      (cs, ctx) => this.filterByVariantAssignment(cs, ctx),
+      filtered,
+      context,
+    );
 
-    // Apply frequency capping filter (async - uses Redis)
-    console.log("[Revenue Boost] === FREQUENCY CAPPING FILTER ===");
-    filtered = await this.filterByFrequencyCapping(filtered, context);
-    console.log(`[Revenue Boost] After frequency capping filter: ${filtered.length} campaigns remaining\n`);
+    filtered = await this.runFilterStep(
+      "FREQUENCY CAPPING",
+      (cs, ctx) => this.filterByFrequencyCapping(cs, ctx),
+      filtered,
+      context,
+    );
 
     console.log(`[Revenue Boost] ✅ Filtering complete. Final campaigns: ${filtered.length}`);
     if (filtered.length > 0) {
-      console.log("[Revenue Boost] 📋 Final campaign IDs:", filtered.map(c => `${c.name} (${c.id})`));
+      console.log("[Revenue Boost] 📋 Final campaign IDs:", filtered.map((c) => `${c.name} (${c.id})`));
     } else {
       console.log("[Revenue Boost] ⚠️ No campaigns passed all filters");
     }
 
     return filtered;
+  }
+
+  /**
+   * Apply a single filter step with standardized logging.
+   */
+  private static async runFilterStep(
+    label: string,
+    filter: (
+      campaigns: CampaignWithConfigs[],
+      context: StorefrontContext,
+    ) => CampaignWithConfigs[] | Promise<CampaignWithConfigs[]>,
+    campaigns: CampaignWithConfigs[],
+    context: StorefrontContext,
+  ): Promise<CampaignWithConfigs[]> {
+    console.log(`\n[Revenue Boost] === ${label} FILTER ===`);
+    const result = await filter(campaigns, context);
+    console.log(
+      `[Revenue Boost] After ${label.toLowerCase()} filter: ${result.length} campaigns remaining\n`,
+    );
+    return result;
   }
 
   /**
@@ -479,31 +589,5 @@ export class CampaignFilterService {
     return regex.test(pageUrl);
   }
 
-  /**
-   * Helper: Get segments from context
-   */
-  private static getContextSegments(context: StorefrontContext): string[] {
-    const segments: string[] = [];
-
-    // Device-based segments
-    if (context.deviceType === "mobile") segments.push("Mobile User");
-    if (context.deviceType === "tablet") segments.push("Tablet User");
-    if (context.deviceType === "desktop") segments.push("Desktop User");
-
-    // Visit-based segments
-    if (context.visitCount === 1) segments.push("New Visitor");
-    if (context.isReturningVisitor) segments.push("Returning Visitor");
-
-    // Cart-based segments
-    if (context.cartItemCount && context.cartItemCount > 0) {
-      segments.push("Cart Abandoner");
-      segments.push("Active Shopper");
-    }
-
-    // Page-based segments
-    if (context.pageType === "product") segments.push("Product Viewer");
-
-    return segments;
-  }
 }
 

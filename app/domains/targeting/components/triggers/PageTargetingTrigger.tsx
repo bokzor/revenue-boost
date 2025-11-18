@@ -55,10 +55,10 @@ export function PageTargetingTrigger({ config, onChange }: PageTargetingTriggerP
         <TextField
           autoComplete="off"
           label="Custom URL patterns (comma-separated)"
-          value={config.page_targeting?.custom_patterns?.join(", ") || ""}
+          value={config.page_targeting?.customPatterns?.join(", ") || ""}
           onChange={(value) =>
             updateConfig({
-              custom_patterns: value.split(",").map((p) => p.trim()).filter(Boolean),
+              customPatterns: value.split(",").map((p) => p.trim()).filter(Boolean),
             })
           }
           helpText="Use * as wildcard. Example: /collections/summer-*, /pages/about"
@@ -68,10 +68,10 @@ export function PageTargetingTrigger({ config, onChange }: PageTargetingTriggerP
         <TextField
           autoComplete="off"
           label="Exclude pages (comma-separated)"
-          value={config.page_targeting?.exclude_pages?.join(", ") || ""}
+          value={config.page_targeting?.excludePages?.join(", ") || ""}
           onChange={(value) =>
             updateConfig({
-              exclude_pages: value.split(",").map((p) => p.trim()).filter(Boolean),
+              excludePages: value.split(",").map((p) => p.trim()).filter(Boolean),
             })
           }
           helpText="Pages where campaign should NOT show"

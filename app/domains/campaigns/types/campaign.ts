@@ -596,8 +596,8 @@ export const EnhancedTriggersConfigSchema = z.object({
   page_targeting: z.object({
     enabled: z.boolean(),
     pages: z.array(z.string()).optional(),
-    exclude_pages: z.array(z.string()).optional(),
-    custom_patterns: z.array(z.string()).optional(),
+    customPatterns: z.array(z.string()).optional(),
+    excludePages: z.array(z.string()).optional(),
   }).optional(),
 
   // Frequency capping

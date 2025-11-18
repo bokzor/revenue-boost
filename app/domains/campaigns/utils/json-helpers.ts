@@ -82,6 +82,62 @@ export function stringifyJsonField<T>(value: T): string {
 }
 
 // ============================================================================
+// GENERIC ENTITY JSON MAPPERS
+// ============================================================================
+
+/**
+ * Configuration for mapping JSON-backed fields on an entity.
+ * Keeps mapping logic reusable between campaigns, templates, and experiments.
+ */
+export interface JsonFieldMapping<TEntity> {
+  key: keyof TEntity;
+  schema: z.ZodSchema<any>;
+  defaultValue: any;
+}
+
+/**
+ * Parses multiple JSON-backed fields on an entity in a type-safe way.
+ * Returns a shallow copy of the entity with the mapped fields parsed.
+ */
+export function parseEntityJsonFields<TEntity>(
+  entity: TEntity,
+  fields: JsonFieldMapping<TEntity>[]
+): TEntity {
+  const result: any = { ...entity };
+
+  for (const field of fields) {
+    const raw = (entity as any)[field.key as string];
+    result[field.key as string] = parseJsonField(
+      raw,
+      field.schema,
+      field.defaultValue
+    );
+  }
+
+  return result as TEntity;
+}
+
+/**
+ * Stringifies multiple JSON-backed fields from a domain object to
+ * plain JSON strings suitable for Prisma writes.
+ */
+export function stringifyEntityJsonFields<TEntity>(
+  entity: TEntity,
+  fields: Array<{ key: keyof TEntity; defaultValue: any }>
+): Record<string, string> {
+  const result: Record<string, string> = {};
+
+  for (const field of fields) {
+    const value =
+      (entity as any)[field.key as string] ?? field.defaultValue;
+    result[field.key as string] = stringifyJsonField(value);
+  }
+
+  return result;
+}
+
+
+// ============================================================================
 // CAMPAIGN JSON FIELD PARSERS
 // ============================================================================
 
@@ -200,10 +256,33 @@ export function parseCampaignFields(rawCampaign: RawCampaign): CampaignWithConfi
  * Parse all JSON fields from a raw experiment object from database
  */
 export function parseExperimentFields(rawExperiment: RawExperiment): BaseExperiment {
-  return {
-    ...rawExperiment,
-    trafficAllocation: parseTrafficAllocation(rawExperiment.trafficAllocation),
-    statisticalConfig: parseStatisticalConfig(rawExperiment.statisticalConfig),
-    successMetrics: parseSuccessMetrics(rawExperiment.successMetrics),
-  } as BaseExperiment;
+  const parsed = parseEntityJsonFields(rawExperiment, [
+    {
+      key: "trafficAllocation",
+      schema: TrafficAllocationSchema,
+      defaultValue: {
+        A: 50,
+        B: 50,
+      },
+    },
+    {
+      key: "statisticalConfig",
+      schema: StatisticalConfigSchema,
+      defaultValue: {
+        confidenceLevel: 0.95,
+        minimumSampleSize: 1000,
+        minimumDetectableEffect: 0.05,
+        maxDurationDays: 30,
+      },
+    },
+    {
+      key: "successMetrics",
+      schema: SuccessMetricsSchema,
+      defaultValue: {
+        primaryMetric: "conversion_rate",
+      },
+    },
+  ]);
+
+  return parsed as BaseExperiment;
 }

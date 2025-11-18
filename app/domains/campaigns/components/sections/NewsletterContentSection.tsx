@@ -7,7 +7,8 @@
  * Follows Interface Segregation Principle - specific to newsletter needs
  */
 
-import { useState } from "react";
+import { useRef, useState } from "react";
+import type { ChangeEvent } from "react";
 import {
   Card,
   BlockStack,
@@ -33,7 +34,6 @@ import {
   getNewsletterBackgroundUrl,
 } from "~/config/color-presets";
 import { ThemePresetSelector } from "../shared/ThemePresetSelector";
-import { useAppBridge } from "@shopify/app-bridge-react";
 
 export type NewsletterContent = z.infer<typeof NewsletterContentSchema>;
 
@@ -58,15 +58,7 @@ export function NewsletterContentSection({
 }: NewsletterContentSectionProps) {
   const updateField = useFieldUpdater(content, onChange);
   const [showAdvancedDesign, setShowAdvancedDesign] = useState(false);
-
-  let shopify: any = null;
-  try {
-    shopify = useAppBridge();
-  } catch (error) {
-    if (process.env.NODE_ENV !== "test") {
-      console.error("[NewsletterContentSection] App Bridge not available", error);
-    }
-  }
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const imageMode = (designConfig.backgroundImageMode ?? "none") as DesignConfig["backgroundImageMode"];
   const selectedPresetKey = designConfig.backgroundImagePresetKey as NewsletterThemeKey | undefined;
@@ -120,44 +112,99 @@ export function NewsletterContentSection({
     });
   };
 
-  const handlePickBackgroundFile = async () => {
-    if (!onDesignChange || !shopify?.resourcePicker) {
-      return;
-    }
+  const handleBackgroundFileClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleBackgroundFileChange = async (
+    event: ChangeEvent<HTMLInputElement>,
+  ) => {
+    if (!onDesignChange) return;
+
+    const file = event.target.files?.[0];
+    if (!file) return;
 
     try {
-      const result = await shopify.resourcePicker({
-        type: "product",
-        multiple: false,
-      } as any);
+      const stagedResponse = await fetch("/api/shopify-files/staged-uploads", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          filename: file.name,
+          mimeType: file.type || "image/jpeg",
+          fileSize: file.size,
+        }),
+      });
 
-      const item = Array.isArray(result) ? (result[0] as any) : undefined;
-      if (!item) return;
+      const stagedJson = await stagedResponse.json();
+      if (!stagedResponse.ok || !stagedJson?.success) {
+        throw new Error("Failed to create staged upload target");
+      }
 
-      // Normalize product images to a single URL (supports multiple payload shapes)
-      const images = Array.isArray(item.images)
-        ? item.images
-        : item.image
-        ? [item.image]
-        : Array.isArray(item.images?.edges)
-        ? item.images.edges.map((edge: any) => edge.node)
-        : [];
+      const stagedTarget = stagedJson.data?.stagedTarget as {
+        url?: string;
+        resourceUrl?: string;
+        parameters?: { name: string; value: string }[];
+      };
 
-      const firstImage = (images[0] || {}) as any;
-      const url: string | undefined =
-        firstImage.originalSrc || firstImage.url || firstImage.src;
+      if (!stagedTarget?.url || !stagedTarget.resourceUrl) {
+        throw new Error("Invalid staged upload target response");
+      }
 
-      if (!url || !item.id) return;
+      const formData = new FormData();
+      (stagedTarget.parameters || []).forEach((param) => {
+        formData.append(param.name, param.value);
+      });
+      formData.append("file", file);
+
+      const uploadResponse = await fetch(stagedTarget.url, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error("Failed to upload file to Shopify");
+      }
+
+      const createResponse = await fetch(
+        "/api/shopify-files/create-from-staged",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            resourceUrl: stagedTarget.resourceUrl,
+            alt: `Campaign background: ${file.name}`,
+          }),
+        },
+      );
+
+      const createJson = await createResponse.json();
+      if (!createResponse.ok || !createJson?.success) {
+        throw new Error("Failed to create Shopify file");
+      }
+
+      const createdFile = createJson.data?.file as {
+        id?: string;
+        url?: string;
+      };
+
+      if (!createdFile?.id || !createdFile.url) {
+        throw new Error("Invalid fileCreate response");
+      }
 
       onDesignChange({
         ...designConfig,
         backgroundImageMode: "file",
-        backgroundImageFileId: item.id as string,
+        backgroundImageFileId: createdFile.id,
         backgroundImagePresetKey: undefined,
-        imageUrl: url,
+        imageUrl: createdFile.url,
       });
     } catch (error) {
-      console.error("[NewsletterContentSection] Failed to pick background image", error);
+      console.error(
+        "[NewsletterContentSection] Failed to upload background image",
+        error,
+      );
+    } finally {
+      event.target.value = "";
     }
   };
 
@@ -628,10 +675,20 @@ export function NewsletterContentSection({
                             helpText="Use one of the built-in background images"
                           />
 
-                          <Button onClick={handlePickBackgroundFile}>
+                          <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept="image/*"
+                            style={{ display: "none" }}
+                            onChange={handleBackgroundFileChange}
+                          />
+
+                          <Button
+                            onClick={handleBackgroundFileClick}
+                          >
                             {imageMode === "file" && previewImageUrl
-                              ? "Change product image"
-                              : "Choose image from Shopify products"}
+                              ? "Change background image"
+                              : "Upload image from your computer"}
                           </Button>
                         </div>
                       </FormGrid>

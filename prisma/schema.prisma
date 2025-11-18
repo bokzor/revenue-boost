@@ -42,11 +42,12 @@ model Store {
   updatedAt     DateTime @updatedAt
 
   // Relations
-  campaigns        Campaign[]
-  experiments      Experiment[]
-  templates        Template[]
-  customerSegments CustomerSegment[]
-  leads            Lead[]
+  campaigns           Campaign[]
+  experiments         Experiment[]
+  templates           Template[]
+  customerSegments    CustomerSegment[]
+  leads               Lead[]
+  segmentMemberships  SegmentMembership[]
 
   @@index([shopifyDomain, isActive])
   @@map("stores")
@@ -201,6 +202,24 @@ model CustomerSegment {
   @@index([isDefault])
   @@map("customer_segments")
 }
+
+model SegmentMembership {
+  id                String  @id @default(cuid())
+  storeId           String
+  shopifySegmentId  String
+  shopifyCustomerId BigInt
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  store Store @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@unique([storeId, shopifySegmentId, shopifyCustomerId])
+  @@index([storeId, shopifyCustomerId])
+  @@index([storeId, shopifySegmentId])
+  @@map("segment_memberships")
+}
+
 
 model Lead {
   id                 String   @id @default(cuid())

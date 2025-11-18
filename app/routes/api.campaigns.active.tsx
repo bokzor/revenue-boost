@@ -112,7 +112,8 @@ export async function loader(args: LoaderFunctionArgs) {
     // Filter campaigns based on context (server-side filtering with Redis)
     const filteredCampaigns = await CampaignFilterService.filterCampaigns(
       allCampaigns,
-      context
+      context,
+      storeId,
     );
     console.log(`[Active Campaigns API] After filtering: ${filteredCampaigns.length} campaigns`, {
       pageType: context.pageType,

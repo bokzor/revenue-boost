@@ -15,6 +15,8 @@ import { z } from "zod";
 import {
   parseJsonField,
   stringifyJsonField,
+  parseEntityJsonFields,
+  stringifyEntityJsonFields,
 } from "../../campaigns/utils/json-helpers.js";
 import {
   TemplateFieldSchema,
@@ -42,28 +44,50 @@ import { globalOrStoreWhere } from "~/lib/service-helpers.server";
  * Uses template-type specific parsing for contentConfig
  */
 function parseTemplateEntity(rawTemplate: Template): TemplateWithConfigs {
+  const parsed = parseEntityJsonFields(rawTemplate, [
+    {
+      key: "fields",
+      schema: z.array(TemplateFieldSchema),
+      defaultValue: [],
+    },
+    {
+      key: "targetRules",
+      schema: TargetRulesConfigSchema,
+      defaultValue: {},
+    },
+    {
+      key: "designConfig",
+      schema: DesignConfigSchema,
+      defaultValue: {
+        theme: "modern",
+        position: "center",
+        size: "medium",
+        borderRadius: 8,
+        imagePosition: "left",
+        overlayOpacity: 0.8,
+        animation: "fade",
+      },
+    },
+    {
+      key: "discountConfig",
+      schema: DiscountConfigSchema,
+      defaultValue: {
+        enabled: false,
+        showInPreview: true,
+        autoApplyMode: "ajax",
+        codePresentation: "show_code",
+      },
+    },
+  ]);
+
   return {
-    ...rawTemplate,
+    ...parsed,
     // Use template-type specific parsing for contentConfig
-    contentConfig: parseTemplateContentConfig(rawTemplate.contentConfig, rawTemplate.templateType),
-    fields: parseJsonField(rawTemplate.fields, z.array(TemplateFieldSchema), []),
-    targetRules: parseJsonField(rawTemplate.targetRules, TargetRulesConfigSchema, {}),
-    designConfig: parseJsonField(rawTemplate.designConfig, DesignConfigSchema, {
-      theme: "modern",
-      position: "center",
-      size: "medium",
-      borderRadius: 8,
-      imagePosition: "left",
-      overlayOpacity: 0.8,
-      animation: "fade"
-    }),
-    discountConfig: parseJsonField(rawTemplate.discountConfig, DiscountConfigSchema, {
-      enabled: false,
-      showInPreview: true,
-      autoApplyMode: "ajax",
-      codePresentation: "show_code",
-    }),
-  };
+    contentConfig: parseTemplateContentConfig(
+      rawTemplate.contentConfig,
+      rawTemplate.templateType,
+    ),
+  } as TemplateWithConfigs;
 }
 
 // ============================================================================
@@ -225,34 +249,38 @@ export class TemplateService {
     data: TemplateCreateData
   ): Promise<TemplateWithConfigs> {
     try {
+      const jsonFields = stringifyEntityJsonFields(data, [
+        { key: "contentConfig", defaultValue: {} },
+        { key: "fields", defaultValue: [] },
+        { key: "targetRules", defaultValue: {} },
+        { key: "designConfig", defaultValue: {} },
+        { key: "discountConfig", defaultValue: {} },
+      ]);
+
       const template = await prisma.template.create({
         data: {
           storeId: data.storeId,
-            templateType: data.templateType,
-            name: data.name,
-            description: data.description,
-            category: data.category,
-            goals: data.goals,
+          templateType: data.templateType,
+          name: data.name,
+          description: data.description,
+          category: data.category,
+          goals: data.goals,
 
-            // JSON configurations (matching Prisma schema field names)
-            contentConfig: stringifyJsonField(data.contentConfig || {}),
-            fields: stringifyJsonField(data.fields || []),
-            targetRules: stringifyJsonField(data.targetRules || {}),
-            designConfig: stringifyJsonField(data.designConfig || {}),
-            discountConfig: stringifyJsonField(data.discountConfig || {}),
+          // JSON configurations (matching Prisma schema field names)
+          ...jsonFields,
 
-            // Metadata
-            isDefault: data.isDefault || false,
-            isActive: data.isActive !== false, // Default to true
-            priority: data.priority || 1,
-            icon: data.icon,
-            preview: data.preview,
-            conversionRate: data.conversionRate,
-          },
-        });
+          // Metadata
+          isDefault: data.isDefault || false,
+          isActive: data.isActive !== false, // Default to true
+          priority: data.priority || 1,
+          icon: data.icon,
+          preview: data.preview,
+          conversionRate: data.conversionRate,
+        },
+      });
 
-        // Clear cache after creating template
-        clearTemplateCache();
+      // Clear cache after creating template
+      clearTemplateCache();
 
         return parseTemplateEntity(template);
     } catch (error) {

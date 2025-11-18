@@ -19,6 +19,7 @@ import {
 import {
   parseCampaignFields,
   stringifyJsonField,
+  stringifyEntityJsonFields,
 } from "../utils/json-helpers.js";
 import { CampaignServiceError } from "~/lib/errors.server";
 // Removed auto generation of discount codes at save time; codes are generated on lead submission
@@ -56,6 +57,15 @@ export class CampaignMutationService {
     try {
       // Auto-generate discount code if needed
       const discountConfig = ensureDiscountCode(data.discountConfig);
+      const jsonFields = stringifyEntityJsonFields(
+        { ...data, discountConfig },
+        [
+          { key: "contentConfig", defaultValue: {} },
+          { key: "designConfig", defaultValue: {} },
+          { key: "targetRules", defaultValue: {} },
+          { key: "discountConfig", defaultValue: {} },
+        ],
+      );
 
       const campaign = await prisma.campaign.create({
         data: {
@@ -71,10 +81,10 @@ export class CampaignMutationService {
           templateType: data.templateType,
 
           // JSON configurations (stringified for database storage)
-          contentConfig: stringifyJsonField(data.contentConfig || {}),
-          designConfig: stringifyJsonField(data.designConfig || {}),
-          targetRules: stringifyJsonField(data.targetRules || {}),
-          discountConfig: stringifyJsonField(discountConfig || {}),
+          contentConfig: jsonFields.contentConfig,
+          designConfig: jsonFields.designConfig,
+          targetRules: jsonFields.targetRules,
+          discountConfig: jsonFields.discountConfig,
 
           // A/B Testing
           experimentId: data.experimentId,

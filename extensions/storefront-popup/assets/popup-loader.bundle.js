@@ -2445,11 +2445,18 @@
     evaluateSessionRules(sessionRules) {
       const conditions = sessionRules.conditions || [];
       if (!sessionRules.enabled || conditions.length === 0) {
+        console.log("[Revenue Boost] \u2139\uFE0F Session rules disabled or empty, skipping session evaluation");
         return true;
       }
       const ctx = this.buildRuntimeContext();
       const op = sessionRules.logicOperator || "AND";
+      console.log("[Revenue Boost] \u{1F9E9} Evaluating session rules", {
+        logicOperator: op,
+        conditions,
+        runtimeContext: ctx
+      });
       const results = conditions.map((cond) => this.evaluateSessionCondition(cond, ctx));
+      console.log("[Revenue Boost] \u{1F9E9} Session rule results", results);
       if (op === "OR") {
         return results.some(Boolean);
       }
@@ -2494,11 +2501,18 @@
           return true;
         }
       }
-      if (value == null) {
-        return false;
-      }
       const op = condition.operator;
       const target = condition.value;
+      console.log("[Revenue Boost] \u{1F50D} Evaluating session condition", {
+        field,
+        operator: op,
+        target,
+        runtimeValue: value
+      });
+      if (value == null) {
+        console.log("[Revenue Boost] \u274C Session condition failed: runtime value is null/undefined");
+        return false;
+      }
       const asNumber = (v3) => {
         if (typeof v3 === "number") return v3;
         if (typeof v3 === "string") {
@@ -2509,30 +2523,48 @@
       };
       const valNum = asNumber(value);
       const targetNum = asNumber(target);
+      let result;
       switch (op) {
         case "gt":
-          return valNum > targetNum;
+          result = valNum > targetNum;
+          break;
         case "gte":
-          return valNum >= targetNum;
+          result = valNum >= targetNum;
+          break;
         case "lt":
-          return valNum < targetNum;
+          result = valNum < targetNum;
+          break;
         case "lte":
-          return valNum <= targetNum;
+          result = valNum <= targetNum;
+          break;
         case "eq":
-          return value === target;
+          result = value === target;
+          break;
         case "ne":
-          return value !== target;
+          result = value !== target;
+          break;
         case "in": {
           const arr = Array.isArray(target) ? target : [target];
-          return arr.includes(value);
+          result = arr.includes(value);
+          break;
         }
         case "nin": {
           const arr = Array.isArray(target) ? target : [target];
-          return !arr.includes(value);
+          result = !arr.includes(value);
+          break;
         }
         default:
-          return true;
+          result = true;
+          break;
       }
+      console.log("[Revenue Boost] \u{1F50D} Session condition result", {
+        field,
+        operator: op,
+        target,
+        runtimeValue: value,
+        result
+      });
+      return result;
     }
     /**
      * Check page load trigger

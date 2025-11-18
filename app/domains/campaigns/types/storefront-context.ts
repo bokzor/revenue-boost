@@ -1,6 +1,6 @@
 /**
  * Storefront Context Types
- * 
+ *
  * Context data sent from storefront to backend for campaign filtering
  */
 
@@ -71,7 +71,7 @@ export function buildStorefrontContext(
   headers: Headers
 ): StorefrontContext {
   const userAgent = headers.get("user-agent") || "";
-  
+
   return {
     // Page Context
     pageUrl: searchParams.get("pageUrl") || undefined,
@@ -125,17 +125,17 @@ export function buildStorefrontContext(
  */
 function detectDeviceType(userAgent: string): "mobile" | "tablet" | "desktop" {
   const ua = userAgent.toLowerCase();
-  
+
   // Mobile detection
   if (/android|webos|iphone|ipod|blackberry|iemobile|opera mini/i.test(ua)) {
     return "mobile";
   }
-  
+
   // Tablet detection
   if (/ipad|android(?!.*mobile)/i.test(ua)) {
     return "tablet";
   }
-  
+
   return "desktop";
 }
 
