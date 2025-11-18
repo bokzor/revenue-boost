@@ -15,12 +15,20 @@ import { ConditionBuilder } from "./ConditionBuilder";
 import { ShopifySegmentSelector, type ShopifySegmentOption } from "./ShopifySegmentSelector";
 
 
-const computePreviewConfigKey = (config: AudienceTargetingConfig) =>
-  JSON.stringify({
+const computePreviewConfigKey = (config: AudienceTargetingConfig) => {
+  const sessionRules =
+    config.sessionRules ?? {
+      enabled: false,
+      conditions: [],
+      logicOperator: "AND" as LogicOperator,
+    };
+
+  return JSON.stringify({
     enabled: config.enabled,
     shopifySegmentIds: config.shopifySegmentIds ?? [],
-    sessionRules: config.sessionRules,
+    sessionRules,
   });
+};
 
 export interface AudienceTargetingPanelProps {
   storeId: string;
@@ -47,7 +55,7 @@ export function AudienceTargetingPanel({
   // ---------------------------------------------------------------------------
 
   const sessionUi = audienceConditionsToUi(config.sessionRules?.conditions ?? []);
-  const hasSessionRules = config.sessionRules.enabled && sessionUi.length > 0;
+  const hasSessionRules = (config.sessionRules?.enabled ?? false) && sessionUi.length > 0;
   const hasShopifySegments = (config.shopifySegmentIds?.length ?? 0) > 0;
   const hasTargeting = hasShopifySegments || hasSessionRules;
 
@@ -148,9 +156,10 @@ export function AudienceTargetingPanel({
         conditions: TriggerCondition[];
         logicOperator: LogicOperator;
       } = {
-        enabled: config.sessionRules.enabled,
+        enabled: config.sessionRules?.enabled ?? false,
         conditions: sessionUi,
-        logicOperator: (config.sessionRules.logicOperator as LogicOperator) ?? "AND",
+        logicOperator:
+          (config.sessionRules?.logicOperator as LogicOperator) ?? "AND",
         ...updates,
       };
 
@@ -162,7 +171,7 @@ export function AudienceTargetingPanel({
         },
       });
     },
-    [config.sessionRules.enabled, config.sessionRules.logicOperator, sessionUi, updateConfig],
+    [config.sessionRules?.enabled, config.sessionRules?.logicOperator, sessionUi, updateConfig],
   );
 
   const handleAddSessionCondition = useCallback(() => {
@@ -261,18 +270,18 @@ export function AudienceTargetingPanel({
 
               <Checkbox
                 label="Enable session rules"
-                checked={config.sessionRules.enabled}
+                checked={config.sessionRules?.enabled ?? false}
                 onChange={(checked) => updateSessionRules({ enabled: checked })}
                 disabled={disabled}
               />
             </InlineStack>
 
-            {config.sessionRules.enabled && (
+            {config.sessionRules?.enabled && (
               <BlockStack gap="400">
                 {sessionUi.length > 0 ? (
                   <ConditionBuilder
                     conditions={sessionUi}
-                    logicOperator={(config.sessionRules.logicOperator as LogicOperator) ?? "AND"}
+                    logicOperator={(config.sessionRules?.logicOperator as LogicOperator) ?? "AND"}
                     onUpdateCondition={handleUpdateSessionCondition}
                     onRemoveCondition={handleRemoveSessionCondition}
                     onLogicOperatorChange={(operator) =>
@@ -327,7 +336,7 @@ export function AudienceTargetingPanel({
                     Session rules:
                   </Text>
                   <Text as="span" variant="bodySm">
-                    {sessionUi.length} condition(s) with {(config.sessionRules.logicOperator as LogicOperator) ?? "AND"} logic
+                    {sessionUi.length} condition(s) with {(config.sessionRules?.logicOperator as LogicOperator) ?? "AND"} logic
                   </Text>
                 </InlineStack>
               )}
