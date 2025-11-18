@@ -3,7 +3,6 @@ import React, {
   useEffect,
   useLayoutEffect,
   useRef,
-  useState,
 } from "react";
 
 interface AffixProps {
@@ -43,8 +42,6 @@ export function Affix({
   const placeholderRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const scrollParentRef = useRef<EventTarget | null>(null);
-
-  const [style, setStyle] = useState<React.CSSProperties>({});
 
   // Track last mode to reduce noisy logs
   const lastModeRef = useRef<
@@ -136,7 +133,12 @@ export function Affix({
     if (vw < disableWidth) {
       // Disable on small screens
       placeholder.style.height = "0px";
-      setStyle({ position: "static" });
+      content.style.position = "static";
+      content.style.top = "";
+      content.style.left = "";
+      content.style.right = "";
+      content.style.width = "";
+      content.style.zIndex = "";
       const mode = "disabled";
       if (lastModeRef.current !== mode) {
         lastModeRef.current = mode;
@@ -188,7 +190,12 @@ export function Affix({
     // If content is strictly taller than its boundary and there's no inner scrollable, don't affix.
     if (contentHeight > boundaryHeight && !innerScrollable) {
       placeholder.style.height = "0px";
-      setStyle({ position: "static" });
+      content.style.position = "static";
+      content.style.top = "";
+      content.style.left = "";
+      content.style.right = "";
+      content.style.width = "";
+      content.style.zIndex = "";
       const mode = "static";
       if (lastModeRef.current !== mode) {
         lastModeRef.current = mode;
@@ -211,7 +218,12 @@ export function Affix({
     // Natural flow before reaching the offset
     if (containerRect.top >= topOffset) {
       placeholder.style.height = "0px";
-      setStyle({ position: "static" });
+      content.style.position = "static";
+      content.style.top = "";
+      content.style.left = "";
+      content.style.right = "";
+      content.style.width = "";
+      content.style.zIndex = "";
       const mode = "static";
       if (lastModeRef.current !== mode) {
         lastModeRef.current = mode;
@@ -248,14 +260,12 @@ export function Affix({
         const absoluteTop = topWithinContainer;
         // Preserve original layout height while absolutely positioned
         placeholder.style.height = `${contentHeight}px`;
-        setStyle({
-          position: "absolute",
-          top: `${absoluteTop}px`,
-          left: 0,
-          right: 0,
-          width: "auto",
-          zIndex: zIdx,
-        });
+        content.style.position = "absolute";
+        content.style.top = `${absoluteTop}px`;
+        content.style.left = "0px";
+        content.style.right = "0px";
+        content.style.width = "auto";
+        content.style.zIndex = zIdx != null ? `${zIdx}` : "";
         const mode = "absolute";
         if (lastModeRef.current !== mode) {
           lastModeRef.current = mode;
@@ -290,13 +300,12 @@ export function Affix({
 
     // Otherwise, fix to viewport under the TopBar
     placeholder.style.height = `${contentHeight}px`;
-    setStyle({
-      position: "fixed",
-      top: `${topOffset}px`,
-      left: `${containerRect.left}px`,
-      width: `${containerRect.width}px`,
-      zIndex: zIdx,
-    });
+    content.style.position = "fixed";
+    content.style.top = `${topOffset}px`;
+    content.style.left = `${containerRect.left}px`;
+    content.style.width = `${containerRect.width}px`;
+    content.style.right = "";
+    content.style.zIndex = zIdx != null ? `${zIdx}` : "";
     const mode = "fixed";
     if (lastModeRef.current !== mode) {
       lastModeRef.current = mode;
@@ -451,7 +460,7 @@ export function Affix({
   return (
     <div ref={containerRef} style={{ position: "relative" }} className={className}>
       <div ref={placeholderRef} aria-hidden="true" />
-      <div ref={contentRef} style={style}>
+      <div ref={contentRef}>
         {children}
       </div>
     </div>

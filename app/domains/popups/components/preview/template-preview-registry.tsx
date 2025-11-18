@@ -558,6 +558,14 @@ TEMPLATE_PREVIEW_REGISTRY[TemplateTypeEnum.CART_ABANDONMENT] = {
     dismissLabel: mergedConfig.dismissLabel,
     currency: mergedConfig.currency || "USD",
 
+    // Email recovery preview fields (driven by admin content config)
+    enableEmailRecovery: mergedConfig.enableEmailRecovery ?? false,
+    emailPlaceholder: mergedConfig.emailPlaceholder,
+    emailSuccessMessage: mergedConfig.emailSuccessMessage,
+    emailErrorMessage: mergedConfig.emailErrorMessage,
+    emailButtonText: mergedConfig.emailButtonText,
+    requireEmailBeforeCheckout: mergedConfig.requireEmailBeforeCheckout ?? false,
+
     // All common config (colors, typography, layout)
     ...buildCommonConfig(mergedConfig, designConfig),
   }) as unknown as CartAbandonmentConfig,
