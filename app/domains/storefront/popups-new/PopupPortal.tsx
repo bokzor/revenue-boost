@@ -16,6 +16,8 @@
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
+import type { PopupSize } from './types';
+import { getSizeDimensions } from './utils';
 
 export type AnimationType = 'fade' | 'slide' | 'zoom' | 'bounce' | 'none';
 
@@ -47,6 +49,7 @@ export interface PopupPortalProps {
 
   // Layout
   position?: PopupPosition;
+  size?: PopupSize;
 
   // Behavior
   closeOnEscape?: boolean;
@@ -92,6 +95,7 @@ export const PopupPortal: React.FC<PopupPortalProps> = ({
   backdrop = {},
   animation = { type: 'fade' },
   position = 'center',
+  size,
   closeOnEscape = true,
   closeOnBackdropClick = true,
   previewMode = false,
@@ -108,6 +112,18 @@ export const PopupPortal: React.FC<PopupPortalProps> = ({
   // Get animation timing
   const animationType = animation.type || 'fade';
   const choreography = ANIMATION_CHOREOGRAPHY[animationType];
+
+  const frameStyles = useMemo<React.CSSProperties | undefined>(() => {
+    if (!size) return undefined;
+
+    const { width, maxWidth } = getSizeDimensions(size, previewMode);
+    return {
+      width,
+      maxWidth,
+      margin: '0 auto',
+    };
+  }, [size, previewMode]);
+
   const backdropTiming = useMemo(() => ({
     delay: animation.backdropDelay ?? choreography.backdrop.delay,
     duration: animation.duration ?? choreography.backdrop.duration,
@@ -362,7 +378,13 @@ export const PopupPortal: React.FC<PopupPortalProps> = ({
         aria-describedby={ariaDescribedBy}
         tabIndex={-1}
       >
-        {children}
+        {frameStyles ? (
+          <div className="popup-portal-frame" style={frameStyles}>
+            {children}
+          </div>
+        ) : (
+          children
+        )}
       </div>
     </div>
   );

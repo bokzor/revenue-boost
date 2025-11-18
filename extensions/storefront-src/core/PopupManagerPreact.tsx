@@ -377,6 +377,19 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api }: P
     };
   }, [campaign.id, campaign.templateType]);
 
+
+  // Debug logging for storefront popup configuration
+  try {
+    console.log("[PopupManagerPreact] Rendering campaign", {
+      id: campaign.id,
+      templateType: campaign.templateType,
+      contentConfig: campaign.contentConfig,
+      designConfig: campaign.designConfig,
+    });
+  } catch {
+    // ignore logging errors
+  }
+
   return h(Component, {
     config: {
       ...campaign.contentConfig,

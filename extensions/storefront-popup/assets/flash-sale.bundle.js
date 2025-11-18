@@ -15,6 +15,32 @@
   var createPortal2 = window.RevenueBoostPreact.createPortal;
   var global_preact_react_dom_default = { render: window.RevenueBoostPreact.render, createPortal: window.RevenueBoostPreact.createPortal };
 
+  // app/domains/storefront/popups-new/utils.ts
+  function getSizeDimensions(size, previewMode) {
+    if (previewMode) {
+      switch (size) {
+        case "small":
+          return { width: "50%", maxWidth: "400px" };
+        case "medium":
+          return { width: "65%", maxWidth: "600px" };
+        case "large":
+          return { width: "80%", maxWidth: "900px" };
+        default:
+          return { width: "65%", maxWidth: "600px" };
+      }
+    }
+    switch (size) {
+      case "small":
+        return { width: "90%", maxWidth: "400px" };
+      case "medium":
+        return { width: "90%", maxWidth: "600px" };
+      case "large":
+        return { width: "90%", maxWidth: "900px" };
+      default:
+        return { width: "90%", maxWidth: "600px" };
+    }
+  }
+
   // global-preact:global-preact:preact/jsx-runtime
   if (typeof window === "undefined" || !window.RevenueBoostPreact) {
     throw new Error("RevenueBoostPreact not found. Make sure main bundle is loaded first.");
@@ -93,6 +119,7 @@
     backdrop = {},
     animation = { type: "fade" },
     position = "center",
+    size,
     closeOnEscape = true,
     closeOnBackdropClick = true,
     previewMode = false,
@@ -107,6 +134,15 @@
     const shadowRootRef = useRef(null);
     const animationType = animation.type || "fade";
     const choreography = ANIMATION_CHOREOGRAPHY[animationType];
+    const frameStyles = useMemo(() => {
+      if (!size) return void 0;
+      const { width, maxWidth } = getSizeDimensions(size, previewMode);
+      return {
+        width,
+        maxWidth,
+        margin: "0 auto"
+      };
+    }, [size, previewMode]);
     const backdropTiming = useMemo(() => ({
       delay: animation.backdropDelay ?? choreography.backdrop.delay,
       duration: animation.duration ?? choreography.backdrop.duration
@@ -293,7 +329,7 @@
           "aria-label": ariaLabel,
           "aria-describedby": ariaDescribedBy,
           tabIndex: -1,
-          children
+          children: frameStyles ? /* @__PURE__ */ jsx("div", { className: "popup-portal-frame", style: frameStyles, children }) : children
         }
       )
     ] });

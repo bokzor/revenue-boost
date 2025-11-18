@@ -202,18 +202,7 @@ export function SpinToWinContentSection({
               onChange={(value) => updateField("dismissLabel", value)}
             />
 
-            <FormGrid columns={2}>
-              <TextField
-                label="Success Message"
-                name="content.successMessage"
-                value={content.successMessage || ""}
-                error={errors?.successMessage}
-                required
-                placeholder="Congratulations! You won {{prize}}!"
-                helpText="Use {{prize}} and {{code}} as placeholders"
-                onChange={(value) => updateField("successMessage", value)}
-              />
-
+            <FormGrid columns={1}>
               <TextField
                 label="Failure Message"
                 name="content.failureMessage"

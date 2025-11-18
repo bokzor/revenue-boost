@@ -1420,6 +1420,15 @@
         cancelled = true;
       };
     }, [campaign.id, campaign.templateType]);
+    try {
+      console.log("[PopupManagerPreact] Rendering campaign", {
+        id: campaign.id,
+        templateType: campaign.templateType,
+        contentConfig: campaign.contentConfig,
+        designConfig: campaign.designConfig
+      });
+    } catch {
+    }
     return _(Component, {
       config: {
         ...campaign.contentConfig,

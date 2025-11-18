@@ -217,15 +217,46 @@ export function CartAbandonmentContentSection({
         onChange={(value) => updateField("dismissLabel", value)}
       />
 
-      <h3>Email Recovery (optional)</h3>
+      <h3>Email Recovery</h3>
 
-      <CheckboxField
-        label="Enable email recovery"
-        name="content.enableEmailRecovery"
-        checked={content.enableEmailRecovery || false}
-        helpText="Ask for an email and send customers to checkout with their discount applied."
-        onChange={(checked) => updateField("enableEmailRecovery", checked)}
-      />
+      {/* Recovery Flow Selector - behaves like a single-choice mode selector */}
+      <FormGrid columns={2}>
+        <CheckboxField
+          label="Classic flow"
+          name="content.recoveryFlowClassic"
+          checked={!content.enableEmailRecovery && !content.requireEmailBeforeCheckout}
+          helpText="Show discount and send customers directly to checkout."
+          onChange={(checked) => {
+            if (checked) {
+              updateField("enableEmailRecovery", false);
+              updateField("requireEmailBeforeCheckout", false);
+            } else {
+              // If classic is turned off and nothing else is selected yet, default to email-first
+              if (!content.enableEmailRecovery && !content.requireEmailBeforeCheckout) {
+                updateField("enableEmailRecovery", true);
+                updateField("requireEmailBeforeCheckout", true);
+              }
+            }
+          }}
+        />
+
+        <CheckboxField
+          label="Email first flow"
+          name="content.recoveryFlowEmailFirst"
+          checked={!!content.enableEmailRecovery && !!content.requireEmailBeforeCheckout}
+          helpText="Ask for an email, then unlock the discount and show the checkout button."
+          onChange={(checked) => {
+            if (checked) {
+              updateField("enableEmailRecovery", true);
+              updateField("requireEmailBeforeCheckout", true);
+            } else {
+              // If email-first is turned off, fall back to classic
+              updateField("enableEmailRecovery", false);
+              updateField("requireEmailBeforeCheckout", false);
+            }
+          }}
+        />
+      </FormGrid>
 
       {content.enableEmailRecovery && (
         <>
@@ -282,11 +313,26 @@ export function CartAbandonmentContentSection({
 
       {/* Discount Configuration */}
       {onDiscountChange && (
-        <DiscountSection
-          goal="CART_RECOVERY"
-          discountConfig={discountConfig}
-          onConfigChange={onDiscountChange}
-        />
+        <Card>
+          <BlockStack gap="400">
+            <BlockStack gap="200">
+              <Text as="h3" variant="headingMd">
+                💰 Discount
+              </Text>
+              <Text as="p" tone="subdued">
+                Configure the discount shown in your cart recovery popup.
+              </Text>
+            </BlockStack>
+
+            <Divider />
+
+            <DiscountSection
+              goal="CART_RECOVERY"
+              discountConfig={discountConfig}
+              onConfigChange={onDiscountChange}
+            />
+          </BlockStack>
+        </Card>
       )}
     </>
   );

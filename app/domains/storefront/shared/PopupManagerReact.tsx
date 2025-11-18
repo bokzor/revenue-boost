@@ -405,7 +405,6 @@ export const PopupManager: React.FC<PopupManagerProps> = ({
                   ? content.emailRequired
                   : true,
               emailPlaceholder: content.emailPlaceholder || "Enter your email",
-              successMessage: content.successMessage || "Congratulations!",
               failureMessage: content.failureMessage || "Try again next time!",
               // Design fallbacks
               backgroundColor:

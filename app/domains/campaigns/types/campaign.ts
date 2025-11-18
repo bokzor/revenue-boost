@@ -140,7 +140,11 @@ const DEFAULT_SPIN_TO_WIN_SEGMENTS = [
 /**
  * Spin-to-Win specific content fields
  */
-export const SpinToWinContentSchema = BaseContentConfigSchema.extend({
+const SpinToWinBaseContentSchema = BaseContentConfigSchema.omit({
+  successMessage: true,
+});
+
+export const SpinToWinContentSchema = SpinToWinBaseContentSchema.extend({
   spinButtonText: z.string().default("Spin to Win!"),
 
   // Email capture config
