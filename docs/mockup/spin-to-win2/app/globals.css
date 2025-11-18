@@ -1,0 +1,304 @@
+/* Removed Tailwind, added plain CSS for the spin wheel component */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: #111827;
+  color: #ffffff;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Restructured media queries to ensure proper override */
+/* Main container - mobile first (column layout) */
+.container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  /* Added explicit width and max-width to ensure full width */
+  width: 100%;
+  max-width: 100%;
+  background-color: #111827;
+}
+
+/* Tablet and desktop use row layout for 2-column design */
+@media (min-width: 640px) {
+  .container {
+    flex-direction: row;
+    height: 100vh;
+    overflow: hidden;
+  }
+}
+
+/* Mobile wheel container */
+.wheel-container {
+  position: relative;
+  width: 100%;
+  height: 450px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  overflow: visible;
+  padding-top: 0;
+}
+
+/* Tablet and desktop - half width with wheel aligned to right edge */
+@media (min-width: 640px) {
+  .wheel-container {
+    width: 50%;
+    height: 100%;
+    align-items: center;
+    justify-content: flex-end;
+    overflow: visible;
+    padding-right: 0;
+  }
+}
+
+/* Default canvas positioning */
+.wheel-canvas {
+  position: relative;
+}
+
+/* Mobile-only absolute positioning to offset wheel upward with 90deg rotation */
+@media (max-width: 639px) {
+  .wheel-canvas {
+    position: absolute;
+    top: 150px;
+    left: 50%;
+    /* Added rotate(90deg) to rotate wheel so pointer is at bottom */
+    transform: translate(-50%, -50%) rotate(90deg);
+  }
+}
+
+/* Tablet-specific scaling to fit smaller column width */
+@media (min-width: 640px) and (max-width: 1023px) {
+  .wheel-canvas {
+    position: relative;
+    margin-right: 0;
+    transform: scale(0.75);
+    transform-origin: center right;
+    max-width: 450px;
+  }
+}
+
+/* Desktop allows full canvas size */
+@media (min-width: 1024px) {
+  .wheel-canvas {
+    position: relative;
+    max-width: none;
+    transform: none;
+    margin-right: 0;
+  }
+}
+
+/* Form pane - mobile first */
+.form-pane {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 2rem;
+  position: relative;
+  z-index: 10;
+}
+
+/* Tablet and desktop - half width layout */
+@media (min-width: 640px) {
+  .form-pane {
+    width: 50%;
+    height: 100%;
+    padding: 3rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .form-pane {
+    padding: 6rem;
+  }
+}
+
+.form-content {
+  max-width: 28rem;
+  width: 100%;
+  margin: 0 auto;
+}
+
+/* Typography */
+.title {
+  font-size: 2.25rem;
+  font-weight: 900;
+  color: #ffffff;
+  margin-bottom: 1rem;
+  line-height: 1.2;
+}
+
+@media screen and (min-width: 640px) {
+  .title {
+    font-size: 2.5rem;
+  }
+}
+
+@media screen and (min-width: 1024px) {
+  .title {
+    font-size: 3rem;
+  }
+}
+
+.subtitle {
+  font-size: 1.125rem;
+  color: #d1d5db;
+  margin-bottom: 2rem;
+  line-height: 1.6;
+}
+
+/* Form */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.input {
+  width: 100%;
+  padding: 0.875rem 1.25rem;
+  background-color: #1f2937;
+  border: 2px solid #374151;
+  border-radius: 0.5rem;
+  color: #ffffff;
+  font-size: 1rem;
+  transition: all 0.2s;
+  outline: none;
+}
+
+.input::placeholder {
+  color: #6b7280;
+}
+
+.input:focus {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.input-error {
+  border-color: #ef4444;
+}
+
+.error-text {
+  color: #f87171;
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+}
+
+/* Buttons */
+.button {
+  width: 100%;
+  padding: 0.875rem 1.25rem;
+  font-weight: 700;
+  font-size: 1rem;
+  border-radius: 0.5rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  outline: none;
+}
+
+.button:focus {
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1);
+}
+
+.button:active {
+  transform: scale(0.98);
+}
+
+.button-primary {
+  background-color: #6366f1;
+  color: #ffffff;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+.button-primary:hover {
+  background-color: #4f46e5;
+  transform: scale(1.02);
+}
+
+.button-primary:focus {
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.5);
+}
+
+.button-spin {
+  background-color: #10b981;
+  color: #ffffff;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+.button-spin:hover {
+  background-color: #059669;
+  transform: scale(1.02);
+}
+
+.button-spin:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.button-spin:disabled:hover {
+  background-color: #10b981;
+  transform: none;
+}
+
+.button-spin:focus {
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.5);
+}
+
+/* Result box */
+.result-box {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background-color: #1f2937;
+  border-radius: 0.5rem;
+  text-align: center;
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
+.result-text {
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.winner .result-text {
+  color: #34d399;
+}
+
+.loser .result-text {
+  color: #fbbf24;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
