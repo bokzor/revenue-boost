@@ -48,19 +48,26 @@ describe("API: /api/campaigns/active - Integration Logic", () => {
     ];
 
     vi.mocked(CampaignService.getActiveCampaigns).mockResolvedValue(mockCampaigns as Partial<CampaignWithConfigs>[] as CampaignWithConfigs[]);
-    vi.mocked(CampaignFilterService.filterCampaigns).mockResolvedValue(mockCampaigns as Partial<CampaignWithConfigs>[] as CampaignWithConfigs[]);
+    vi.mocked(CampaignFilterService.filterCampaigns).mockResolvedValue(
+      mockCampaigns as Partial<CampaignWithConfigs>[] as CampaignWithConfigs[],
+    );
 
     // Simulate what the loader does
     const storeId = "store-123";
     const context = { deviceType: "mobile" as const, pageUrl: "/" };
 
     const allCampaigns = await CampaignService.getActiveCampaigns(storeId);
-    const filtered = await CampaignFilterService.filterCampaigns(allCampaigns, context);
+    const filtered = await CampaignFilterService.filterCampaigns(
+      allCampaigns,
+      context,
+      storeId,
+    );
 
     expect(CampaignService.getActiveCampaigns).toHaveBeenCalledWith(storeId);
     expect(CampaignFilterService.filterCampaigns).toHaveBeenCalledWith(
       mockCampaigns,
-      context
+      context,
+      storeId,
     );
     expect(filtered).toHaveLength(1);
   });
@@ -86,20 +93,24 @@ describe("API: /api/campaigns/active - Integration Logic", () => {
       },
     };
 
-    const campaigns = [mobileCampaign, desktopCampaign] as Partial<CampaignWithConfigs>[] as CampaignWithConfigs[];
+    const campaigns = [mobileCampaign, desktopCampaign] as unknown as CampaignWithConfigs[];
     const context = { deviceType: "mobile" as const };
 
     // Use real filter service
     vi.mocked(CampaignFilterService.filterCampaigns).mockImplementation(
       async (camps) => {
         return camps.filter((c) => {
-          const segments = c.targetRules?.audienceTargeting?.segments || [];
+          const segments = (c as any).targetRules?.audienceTargeting?.segments || [];
           return segments.includes("Mobile User");
         });
       }
     );
 
-    const filtered = await CampaignFilterService.filterCampaigns(campaigns, context);
+    const filtered = await CampaignFilterService.filterCampaigns(
+      campaigns,
+      context as any,
+      "store-123",
+    );
 
     expect(filtered).toHaveLength(1);
     expect(filtered[0].id).toBe("mobile-campaign");

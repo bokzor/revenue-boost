@@ -467,6 +467,7 @@ export function getNewsletterBackgroundUrl(key: NewsletterThemeKey): string {
 }
 
 export const NEWSLETTER_THEMES_2: Record<NewsletterThemeKey, ThemeColors> = {
+  modern: NEWSLETTER_THEMES.modern,
   minimal: {
     background: "#fafafa",
     text: "#18181b",

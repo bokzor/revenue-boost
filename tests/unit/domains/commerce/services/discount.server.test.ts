@@ -39,9 +39,9 @@ describe("DiscountService applicability wiring", () => {
       shopifyDiscountModule.createDiscountCode,
     );
     createDiscountCodeMock.mockResolvedValue({
-      discount: { id: "gid://shopify/DiscountCode/1" },
+      discount: { id: "gid://shopify/DiscountCode/1" } as any,
       errors: undefined,
-    });
+    } as any);
 
     // Default campaign lookup used by getCampaignDiscountCode
     (prisma.campaign.findUnique as any).mockResolvedValue({

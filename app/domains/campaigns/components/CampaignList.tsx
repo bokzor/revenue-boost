@@ -698,9 +698,7 @@ export function CampaignList({
                   {onCampaignEdit && (
                     <Button
                       size="slim"
-                      onClick={(event) => {
-                        event.preventDefault();
-                        event.stopPropagation();
+                      onClick={() => {
                         onCampaignEdit(id);
                       }}
                     >
@@ -710,9 +708,7 @@ export function CampaignList({
                   {onCampaignDuplicate && (
                     <Button
                       size="slim"
-                      onClick={(event) => {
-                        event.preventDefault();
-                        event.stopPropagation();
+                      onClick={() => {
                         onCampaignDuplicate(id);
                       }}
                     >
@@ -723,9 +719,7 @@ export function CampaignList({
                     <Button
                       size="slim"
                       tone="critical"
-                      onClick={(event) => {
-                        event.preventDefault();
-                        event.stopPropagation();
+                      onClick={() => {
                         onCampaignDelete(id);
                       }}
                     >

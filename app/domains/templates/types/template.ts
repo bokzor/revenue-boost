@@ -180,6 +180,7 @@ export const TemplateWithConfigsSchema = BaseTemplateSchema.extend({
     borderRadius: 8,
     imagePosition: "left",
     overlayOpacity: 0.8,
+    backgroundImageMode: "none",
     animation: "fade"
   }), // Default design configuration
   discountConfig: DiscountConfigSchema.default({
@@ -208,6 +209,7 @@ export const NewsletterTemplateSchema = BaseTemplateSchema.extend({
     borderRadius: 8,
     imagePosition: "left",
     overlayOpacity: 0.8,
+    backgroundImageMode: "none",
     animation: "fade"
   }),
   discountConfig: DiscountConfigSchema.default({
@@ -236,6 +238,7 @@ export const FlashSaleTemplateSchema = BaseTemplateSchema.extend({
     borderRadius: 8,
     imagePosition: "left",
     overlayOpacity: 0.8,
+    backgroundImageMode: "none",
     animation: "fade"
   }),
   discountConfig: DiscountConfigSchema.default({
@@ -263,6 +266,7 @@ export const SpinToWinTemplateSchema = BaseTemplateSchema.extend({
     borderRadius: 8,
     imagePosition: "none",
     overlayOpacity: 0.8,
+    backgroundImageMode: "none",
     animation: "fade"
   }),
   discountConfig: DiscountConfigSchema.default({ enabled: false, showInPreview: true, autoApplyMode: "ajax", codePresentation: "show_code" }),
@@ -281,6 +285,7 @@ export const FreeShippingTemplateSchema = BaseTemplateSchema.extend({
     borderRadius: 0,
     imagePosition: "left",
     overlayOpacity: 0,
+    backgroundImageMode: "none",
     animation: "slide"
   }),
   discountConfig: DiscountConfigSchema.default({

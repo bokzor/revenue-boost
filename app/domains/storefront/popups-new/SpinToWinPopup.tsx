@@ -168,7 +168,7 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
       observer = new ResizeObserver(() => {
         measureCardWidth();
       });
-      observer.observe(cardRef.current);
+      observer.observe(cardRef.current as Element);
     } else {
       window.addEventListener('resize', measureCardWidth);
     }
@@ -310,14 +310,14 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
     });
 
     // Draw the static pointer on top of the wheel (does not rotate).
-    function drawPointer() {
-      ctx.save();
-      ctx.fillStyle = 'white';
-      ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
-      ctx.shadowBlur = 6;
-      ctx.shadowOffsetY = 3;
+    function drawPointer(pointerCtx: CanvasRenderingContext2D) {
+      pointerCtx.save();
+      pointerCtx.fillStyle = 'white';
+      pointerCtx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+      pointerCtx.shadowBlur = 6;
+      pointerCtx.shadowOffsetY = 3;
 
-      ctx.beginPath();
+      pointerCtx.beginPath();
 
       // Triangle pointing left, at the 3 o'clock position
       // Positioned just slightly outside the wheel's radius
@@ -326,16 +326,16 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
       const pointerBaseX = centerX + radiusPx + 22;
       const pointerBaseYOffset = 18;
 
-      ctx.moveTo(pointerTipX, pointerTipY); // Tip
-      ctx.lineTo(pointerBaseX, pointerTipY - pointerBaseYOffset); // Top base
-      ctx.lineTo(pointerBaseX, pointerTipY + pointerBaseYOffset); // Bottom base
-      ctx.closePath();
-      ctx.fill();
+      pointerCtx.moveTo(pointerTipX, pointerTipY); // Tip
+      pointerCtx.lineTo(pointerBaseX, pointerTipY - pointerBaseYOffset); // Top base
+      pointerCtx.lineTo(pointerBaseX, pointerTipY + pointerBaseYOffset); // Bottom base
+      pointerCtx.closePath();
+      pointerCtx.fill();
 
-      ctx.restore();
+      pointerCtx.restore();
     }
 
-    drawPointer();
+    drawPointer(ctx);
   }, [segments, wheelSize, accentColor, wheelBorderColor, wheelBorderWidth, hasSpun, wonPrize, rotation]);
 
 
@@ -643,7 +643,7 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
           <button
             type="button"
             onClick={onClose}
-            aria-label={config.closeLabel || 'Close popup'}
+            aria-label={(config as any).closeLabel || 'Close popup'}
             style={{
               position: 'absolute',
               top: isMobile ? 12 : 16,

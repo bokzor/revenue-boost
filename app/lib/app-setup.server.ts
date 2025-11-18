@@ -214,6 +214,7 @@ async function createWelcomeCampaign(storeId: string) {
         buttonColor: "#007ace",
         buttonTextColor: "#ffffff",
         overlayOpacity: 0.6,
+        backgroundImageMode: "none",
       },
       targetRules: {
         enhancedTriggers: {
@@ -225,6 +226,12 @@ async function createWelcomeCampaign(storeId: string) {
         },
         audienceTargeting: {
           enabled: false,
+          shopifySegmentIds: [],
+          sessionRules: {
+            enabled: false,
+            conditions: [],
+            logicOperator: "AND",
+          },
         },
         pageTargeting: {
           enabled: false,

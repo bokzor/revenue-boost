@@ -692,17 +692,13 @@ describe("CampaignFilterService", () => {
           status: "ACTIVE",
           priority: 0,
           targetRules: {
-            audienceTargeting: {
-              enabled: true,
-              segments: ["Mobile User"],
-            },
             enhancedTriggers: {
               frequency_capping: {
                 max_triggers_per_session: 1,
               },
             },
           },
-        } as CampaignWithConfigs,
+        } as unknown as CampaignWithConfigs,
       ];
 
       const context: StorefrontContext = {
@@ -711,14 +707,22 @@ describe("CampaignFilterService", () => {
       };
 
       // First call should pass all filters
-      let filtered = await CampaignFilterService.filterCampaigns(campaigns, context);
+      let filtered = await CampaignFilterService.filterCampaigns(
+        campaigns,
+        context,
+        "store-1",
+      );
       expect(filtered).toHaveLength(1);
 
       // Record a view
       await FrequencyCapService.recordDisplay("campaign-1", context, { max_triggers_per_session: 1 });
 
       // Second call should be filtered out by frequency capping
-      filtered = await CampaignFilterService.filterCampaigns(campaigns, context);
+      filtered = await CampaignFilterService.filterCampaigns(
+        campaigns,
+        context,
+        "store-1",
+      );
       expect(filtered).toHaveLength(0);
     });
   });

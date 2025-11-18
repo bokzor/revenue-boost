@@ -24,6 +24,7 @@ export interface CartAbandonmentContent {
   ctaUrl?: string;
   buttonText?: string;
   saveForLaterText?: string;
+  dismissLabel?: string;
   currency?: string;
 
   // Optional email recovery flow

@@ -23,10 +23,8 @@ function createMemoryStorage() {
 async function loadPopupManager() {
   // SessionManager in PopupManagerPreact relies on localStorage/sessionStorage.
   // Provide simple in-memory implementations before importing the module.
-  // @ts-expect-error - jsdom environment types
-  globalThis.localStorage = createMemoryStorage();
-  // @ts-expect-error - jsdom environment types
-  globalThis.sessionStorage = createMemoryStorage();
+  globalThis.localStorage = createMemoryStorage() as any;
+  globalThis.sessionStorage = createMemoryStorage() as any;
 
   return import(
     "../../../../../extensions/storefront-src/core/PopupManagerPreact"

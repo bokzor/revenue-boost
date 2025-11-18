@@ -10,7 +10,7 @@ import { ApiClient } from "./core/api";
 import { session } from "./core/session";
 import { ComponentLoader } from "./core/component-loader";
 import { renderPopup, type StorefrontCampaign } from "./core/PopupManagerPreact";
-import { TriggerManager, type EnhancedTriggers } from "./core/TriggerManager";
+import { TriggerManager, type EnhancedTriggers, type SessionRulesConfig } from "./core/TriggerManager";
 import { initCartTracking } from "./utils/cart-tracking";
 
 // Expose Preact globally for dynamic bundles
@@ -89,11 +89,7 @@ type ClientCampaign = StorefrontCampaign & {
   priority?: number;
   clientTriggers?: {
     enhancedTriggers?: EnhancedTriggers;
-    sessionRules?: {
-      enabled?: boolean;
-      conditions?: { field: string; operator: string; value: unknown }[];
-      logicOperator?: "AND" | "OR";
-    };
+    sessionRules?: SessionRulesConfig;
   };
   experimentId?: string | null;
   [key: string]: unknown;

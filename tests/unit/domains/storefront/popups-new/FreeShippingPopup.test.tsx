@@ -45,8 +45,7 @@ describe("FreeShippingPopup – cart total initialization", () => {
     } as any);
 
     const originalFetch = globalThis.fetch;
-    // @ts-expect-error fetch override for test
-    globalThis.fetch = mockFetch;
+    globalThis.fetch = mockFetch as any;
 
     try {
       renderPopup({ currentCartTotal: 0 });

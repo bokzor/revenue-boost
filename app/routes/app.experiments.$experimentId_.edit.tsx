@@ -178,8 +178,12 @@ export default function ExperimentEditPage() {
     enhancedTriggers: targetVariant.targetRules?.enhancedTriggers || {},
     audienceTargeting: targetVariant.targetRules?.audienceTargeting || {
       enabled: false,
-      segments: [],
-      customRules: { enabled: false, conditions: [], logicOperator: "AND" as const },
+      shopifySegmentIds: [],
+      sessionRules: {
+        enabled: false,
+        conditions: [],
+        logicOperator: "AND",
+      },
     },
     pageTargeting: targetVariant.targetRules?.pageTargeting || {
       enabled: false,

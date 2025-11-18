@@ -108,3 +108,6 @@ export function useTemplates(
   return { templates, loading, error };
 }
 
+export type { UnifiedTemplate };
+
+

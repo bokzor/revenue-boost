@@ -80,8 +80,8 @@ describe("GLOBAL_SYSTEM_TEMPLATES – Spin to Win", () => {
 
     expect(content.collectName).toBe(true);
     expect(content.showGdprCheckbox).toBe(true);
-    expect(typeof content.gdprLabel).toBe("string");
-    expect(content.gdprLabel.length).toBeGreaterThan(0);
+    expect(typeof content.gdprLabel!).toBe("string");
+    expect(content.gdprLabel!.length).toBeGreaterThan(0);
   });
 });
 

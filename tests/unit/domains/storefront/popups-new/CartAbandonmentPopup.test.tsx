@@ -31,9 +31,10 @@ describe("CartAbandonmentPopup", () => {
     const cartItems = [
       {
         id: "item-1",
+        variantId: "gid://shopify/ProductVariant/1",
         title: "Test Product",
         quantity: 2,
-        price: 49.99,
+        price: "49.99",
         imageUrl: "https://example.com/product.jpg",
       },
     ];

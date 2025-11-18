@@ -155,7 +155,8 @@ export async function waitForElement(page: Page, selector: string, timeout = 500
  */
 export async function getElementText(page: Page, selector: string): Promise<string> {
   const appFrame = getAppFrame(page);
-  return appFrame.locator(selector).first().textContent() || '';
+  const text = await appFrame.locator(selector).first().textContent();
+  return text ?? '';
 }
 
 /**
@@ -185,7 +186,8 @@ export async function isElementVisible(page: Page, selector: string): Promise<bo
  */
 export async function getAppContent(page: Page): Promise<string> {
   const appFrame = getAppFrame(page);
-  return appFrame.locator('body').textContent() || '';
+  const text = await appFrame.locator('body').textContent();
+  return text ?? '';
 }
 
 /**

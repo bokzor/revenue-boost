@@ -93,7 +93,7 @@ describe('CampaignsIndexPage - duplicate from list', () => {
 
       // Second call: POST duplicate via ApiClient
       expect(postSpy).toHaveBeenCalled();
-      const [postUrl, postBody] = postSpy.mock.calls[0];
+      const [postUrl, postBody] = postSpy.mock.calls[0] as [string, any];
       expect(postUrl).toBe('/api/campaigns');
       expect(postBody.name).toBe('Original (Copy)');
       expect(postBody.status).toBe('DRAFT');
