@@ -110,6 +110,13 @@ export function SpinToWinContentSection({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only run on mount - intentionally ignoring dependencies
 
+  // Sync local state when wheelSegments prop changes (e.g., from theme changes)
+  React.useEffect(() => {
+    if (content.wheelSegments && content.wheelSegments.length > 0) {
+      setSegments(content.wheelSegments);
+    }
+  }, [content.wheelSegments]);
+
   const addSegment = () => {
     const newSegment: WheelSegment = {
       id: `segment-${Date.now()}`,

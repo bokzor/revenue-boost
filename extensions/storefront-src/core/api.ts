@@ -45,6 +45,9 @@ export class ApiClient {
   }
 
   async fetchActiveCampaigns(sessionId: string, visitorId?: string): Promise<FetchCampaignsResponse> {
+    // Ensure we have an up-to-date cart snapshot before building context
+    await this.ensureCartSnapshot();
+
     // Build storefront context
     const context = this.buildStorefrontContext(sessionId, visitorId);
 
@@ -201,6 +204,47 @@ export class ApiClient {
     return context;
   }
 
+
+  /**
+   * Ensure Shopify.cart snapshot is populated so cart-based rules work
+   * even on themes/pages that do not expose window.Shopify.cart.
+   */
+  private async ensureCartSnapshot(): Promise<void> {
+    try {
+      type ShopifyGlobal = { Shopify?: { cart?: { total_price: number; item_count: number } } };
+      const w = window as unknown as ShopifyGlobal;
+
+      // If cart info is already available, do not fetch again
+      if (w.Shopify && w.Shopify.cart && typeof w.Shopify.cart.item_count === "number") {
+        return;
+      }
+
+      const response = await fetch("/cart.js", { credentials: "same-origin" });
+      if (!response.ok) {
+        return;
+      }
+
+      const cart = (await response.json()) as { total_price?: number; item_count?: number };
+      if (!cart || typeof cart.item_count !== "number") {
+        return;
+      }
+
+      if (!w.Shopify) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        w.Shopify = {} as any;
+      }
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (w.Shopify as any).cart = {
+        total_price: typeof cart.total_price === "number" ? cart.total_price : 0,
+        item_count: cart.item_count,
+      };
+    } catch {
+      // Fail silently - cart-based rules will simply not match if cart snapshot is unavailable
+    }
+  }
+
+
   private detectPageType(): string {
     const path = window.location.pathname;
 
@@ -341,6 +385,7 @@ export class ApiClient {
     campaignId: string;
     email: string;
     cartSubtotalCents?: number;
+    cartItems?: any[];
   }): Promise<{
     success: boolean;
     discountCode?: string;
@@ -389,8 +434,19 @@ export class ApiClient {
     }
   }
 
-  async recordFrequency(sessionId: string, campaignId: string): Promise<void> {
-    const url = this.getApiUrl("/api/analytics/frequency");
+  async recordFrequency(input: {
+    sessionId: string;
+    campaignId: string;
+    trackingKey: string;
+    experimentId?: string | null;
+    pageUrl?: string;
+    referrer?: string;
+  }): Promise<void> {
+    const params = new URLSearchParams({
+      shop: this.config.shopDomain,
+    });
+
+    const url = `${this.getApiUrl("/api/analytics/frequency")}?${params.toString()}`;
 
     try {
       await fetch(url, {
@@ -399,8 +455,12 @@ export class ApiClient {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          sessionId,
-          campaignId,
+          sessionId: input.sessionId,
+          campaignId: input.campaignId,
+          trackingKey: input.trackingKey,
+          experimentId: input.experimentId,
+          pageUrl: input.pageUrl,
+          referrer: input.referrer,
           timestamp: Date.now(),
         }),
       });
@@ -415,7 +475,11 @@ export class ApiClient {
     sessionId: string;
     data?: Record<string, unknown>;
   }): Promise<void> {
-    const url = this.getApiUrl("/api/analytics/track");
+    const params = new URLSearchParams({
+      shop: this.config.shopDomain,
+    });
+
+    const url = `${this.getApiUrl("/api/analytics/track")}?${params.toString()}`;
 
     try {
       await fetch(url, {

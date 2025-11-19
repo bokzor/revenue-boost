@@ -169,10 +169,10 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
     discountConfig: {
       enabled: true,
       showInPreview: true,
-      type: "shared",
+      // Note: Removed type: "shared" to enforce unique code generation for accurate attribution
       valueType: "PERCENTAGE",
       value: 30,
-      prefix: "FLASH30",
+      prefix: "FLASH30-", // Will generate unique codes like FLASH30-ABC123
       expiryDays: 2,
       deliveryMode: "show_code_always",
       autoApplyMode: "ajax",

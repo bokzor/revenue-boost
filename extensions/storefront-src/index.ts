@@ -357,12 +357,19 @@ class RevenueBoostApp {
   ): Promise<void> {
     const isPreview = this.config.previewMode && this.config.previewId === campaign.id;
 
-    // Record frequency for server-side tracking (Redis)
+    // Record frequency for server-side tracking (Redis + analytics)
     if (!isPreview) {
       // Use experimentId for tracking if campaign is part of an experiment
       // This ensures all variants of the same experiment are tracked together
       const trackingKey = campaign.experimentId || campaign.id;
-      await this.api.recordFrequency(session.getSessionId(), trackingKey);
+      await this.api.recordFrequency({
+        sessionId: session.getSessionId(),
+        campaignId: campaign.id,
+        experimentId: campaign.experimentId,
+        trackingKey,
+        pageUrl: typeof window !== "undefined" ? window.location.href : undefined,
+        referrer: typeof document !== "undefined" ? document.referrer : undefined,
+      });
     }
 
     // Render popup
@@ -375,6 +382,25 @@ class RevenueBoostApp {
         if (!isPreview) {
           const trackingKey = campaign.experimentId || campaign.id;
           session.markDismissed(trackingKey);
+
+          void this.api
+            .trackEvent({
+              type: "CLOSE",
+              campaignId: campaign.id,
+              sessionId: session.getSessionId(),
+              data: {
+                experimentId: campaign.experimentId ?? undefined,
+                pageUrl:
+                  typeof window !== "undefined" ? window.location.href : undefined,
+                referrer:
+                  typeof document !== "undefined" ? document.referrer : undefined,
+              },
+            })
+            .catch((error) => {
+              if (this.config.debug) {
+                console.error("[Revenue Boost] Failed to track CLOSE event:", error);
+              }
+            });
         }
 
         if (triggerManager) {

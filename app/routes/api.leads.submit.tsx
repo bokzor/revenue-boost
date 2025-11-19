@@ -11,6 +11,7 @@ import { z } from "zod";
 import prisma from "~/db.server";
 import { storefrontCors } from "~/lib/cors.server";
 import { getStoreIdFromShop, createAdminApiContext } from "~/lib/auth-helpers.server";
+import { PopupEventService } from "~/domains/analytics/popup-events.server";
 import {
   getCampaignDiscountCode,
   parseDiscountConfig,
@@ -284,6 +285,10 @@ export async function action({ request }: ActionFunctionArgs) {
       ...validatedData.metadata,
     };
 
+    const userAgent = request.headers.get("User-Agent") || null;
+    const ipAddress = getClientIP(request);
+
+
     // Create lead record
     const lead = await prisma.lead.create({
       data: {
@@ -301,8 +306,8 @@ export async function action({ request }: ActionFunctionArgs) {
           : null,
         discountCode: discountResult.discountCode || null,
         discountId: discountResult.discountId || null,
-        userAgent: request.headers.get("User-Agent") || null,
-        ipAddress: getClientIP(request),
+        userAgent,
+        ipAddress,
         referrer: validatedData.referrer || null,
         pageUrl: validatedData.pageUrl || null,
         pageTitle: validatedData.pageTitle || null,
@@ -318,7 +323,14 @@ export async function action({ request }: ActionFunctionArgs) {
     });
 
     // Record popup events for analytics
-    await recordLeadEvents(storeId, lead.id, validatedData);
+    await recordLeadEvents(
+      storeId,
+      lead.id,
+      validatedData,
+      discountResult.discountCode || null,
+      userAgent,
+      ipAddress
+    );
 
     // Determine what to return based on delivery mode
     const deliveryMode = discountConfig.deliveryMode || "show_code_fallback";
@@ -387,47 +399,51 @@ export async function action({ request }: ActionFunctionArgs) {
 async function recordLeadEvents(
   storeId: string,
   leadId: string,
-  leadData: z.infer<typeof LeadSubmissionSchema>
+  leadData: z.infer<typeof LeadSubmissionSchema>,
+  discountCode: string | null,
+  userAgent: string | null,
+  ipAddress: string | null
 ) {
-  // TODO: Implement popupEvent model in schema if needed
-  console.log("[Lead Events] Event recording skipped - popupEvent model not implemented");
-
-  /* Commented out until popupEvent model is added to schema
   try {
     // Record submission event
-    await prisma.popupEvent.create({
-      data: {
-        storeId,
-        campaignId: leadData.campaignId,
-        leadId,
-        sessionId: leadData.sessionId || leadId,
-        visitorId: leadData.visitorId,
-        eventType: "SUBMIT",
-        pageUrl: leadData.pageUrl,
-        pageTitle: leadData.pageTitle,
-        referrer: leadData.referrer,
-        metadata: JSON.stringify({
-          email: leadData.email,
-          marketingConsent: leadData.consent,
-          ...leadData.metadata,
-        }),
+    await PopupEventService.recordEvent({
+      storeId,
+      campaignId: leadData.campaignId,
+      leadId,
+      sessionId: leadData.sessionId || leadId,
+      visitorId: leadData.visitorId || null,
+      eventType: "SUBMIT",
+      pageUrl: leadData.pageUrl || null,
+      pageTitle: leadData.pageTitle || null,
+      referrer: leadData.referrer || null,
+      userAgent,
+      ipAddress,
+      deviceType: null,
+      metadata: {
+        email: leadData.email,
+        marketingConsent: leadData.consent,
+        utmSource: leadData.utmSource,
+        utmMedium: leadData.utmMedium,
+        utmCampaign: leadData.utmCampaign,
+        ...leadData.metadata,
       },
     });
 
     // Record coupon issued event if discount code was generated
-    if (leadData.campaignId) {
-      await prisma.popupEvent.create({
-        data: {
-          storeId,
-          campaignId: leadData.campaignId,
-          leadId,
-          sessionId: leadData.sessionId || leadId,
-          visitorId: leadData.visitorId,
-          eventType: "COUPON_ISSUED",
-          pageUrl: leadData.pageUrl,
-          metadata: JSON.stringify({
-            discountCode: leadData.campaignId,
-          }),
+    if (discountCode) {
+      await PopupEventService.recordEvent({
+        storeId,
+        campaignId: leadData.campaignId,
+        leadId,
+        sessionId: leadData.sessionId || leadId,
+        visitorId: leadData.visitorId || null,
+        eventType: "COUPON_ISSUED",
+        pageUrl: leadData.pageUrl || null,
+        userAgent,
+        ipAddress,
+        deviceType: null,
+        metadata: {
+          discountCode,
         },
       });
     }
@@ -435,7 +451,6 @@ async function recordLeadEvents(
     console.error("[Lead Submission] Error recording events:", error);
     // Don't fail the entire process if event recording fails
   }
-  */
 }
 
 function getClientIP(request: Request): string | null {

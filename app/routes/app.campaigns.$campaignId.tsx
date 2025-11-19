@@ -15,6 +15,8 @@ import { CampaignService } from "~/domains/campaigns";
 import { CampaignDetail } from "~/domains/campaigns/components";
 import type { CampaignWithConfigs } from "~/domains/campaigns/types/campaign";
 import { apiClient, getErrorMessage } from "~/lib/api-client";
+import { CampaignAnalyticsService } from "~/domains/campaigns/services/campaign-analytics.server";
+import { PopupEventService } from "~/domains/analytics/popup-events.server";
 
 // ============================================================================
 // TYPES
@@ -23,6 +25,20 @@ import { apiClient, getErrorMessage } from "~/lib/api-client";
 interface LoaderData {
   campaign: CampaignWithConfigs | null;
   storeId: string;
+  stats: {
+    leadCount: number;
+    conversionRate: number;
+    lastLeadAt: string | null;
+  } | null;
+  funnel: {
+    views: number;
+    submits: number;
+    couponsIssued: number;
+  } | null;
+  revenue: number;
+  discountGiven: number;
+  aov: number;
+  clicks: number;
 }
 
 // ============================================================================
@@ -47,17 +63,79 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     // Get campaign details
     const campaign = await CampaignService.getCampaignById(campaignId, storeId);
 
+    let stats: LoaderData["stats"] = null;
+    let funnel: LoaderData["funnel"] = null;
+    let revenue = 0;
+    let discountGiven = 0;
+    let aov = 0;
+    let clicks = 0;
+
+    if (campaign) {
+      const [statsMap, funnelMap, revenueStatsMap, clickMap] = await Promise.all([
+        CampaignAnalyticsService.getCampaignStats([campaign.id]),
+        PopupEventService.getFunnelStatsByCampaign([campaign.id], {
+          storeId,
+        }),
+        CampaignAnalyticsService.getRevenueBreakdownByCampaignIds([campaign.id]),
+        PopupEventService.getClickCountsByCampaign([campaign.id], {
+          storeId,
+        }),
+      ]);
+
+      const statEntry = statsMap.get(campaign.id);
+      const funnelEntry = funnelMap.get(campaign.id);
+      const revenueStatsEntry = revenueStatsMap.get(campaign.id);
+      const clickEntry = clickMap.get(campaign.id);
+
+      if (statEntry) {
+        stats = {
+          leadCount: statEntry.leadCount,
+          conversionRate: statEntry.conversionRate,
+          lastLeadAt: statEntry.lastLeadAt
+            ? statEntry.lastLeadAt.toISOString()
+            : null,
+        };
+      }
+
+      if (funnelEntry) {
+        funnel = {
+          views: funnelEntry.views,
+          submits: funnelEntry.submits,
+          couponsIssued: funnelEntry.couponsIssued,
+        };
+      }
+
+      if (revenueStatsEntry) {
+        revenue = revenueStatsEntry.revenue ?? 0;
+        discountGiven = revenueStatsEntry.discount ?? 0;
+        aov = revenueStatsEntry.aov ?? 0;
+      }
+
+      clicks = clickEntry ?? 0;
+    }
+
     return data<LoaderData>({
       campaign,
       storeId,
+      stats,
+      funnel,
+      revenue,
+      discountGiven,
+      aov,
+      clicks,
     });
-
   } catch (error) {
     console.error("Failed to load campaign:", error);
 
     return data<LoaderData>({
       campaign: null,
       storeId: "",
+      stats: null,
+      funnel: null,
+      revenue: 0,
+      discountGiven: 0,
+      aov: 0,
+      clicks: 0,
     }, { status: 404 });
   }
 }
@@ -67,7 +145,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 // ============================================================================
 
 export default function CampaignDetailPage() {
-  const { campaign } = useLoaderData<typeof loader>();
+  const { campaign, stats, funnel, revenue, discountGiven, aov, clicks } =
+    useLoaderData<typeof loader>();
   const navigate = useNavigate();
   const revalidator = useRevalidator();
 
@@ -194,6 +273,12 @@ export default function CampaignDetailPage() {
         onDuplicate={handleDuplicate}
         onDelete={handleDelete}
         onToggleStatus={handleToggleStatus}
+        stats={stats}
+        funnel={funnel}
+        revenue={revenue}
+        discountGiven={discountGiven}
+        aov={aov}
+        clicks={clicks}
       />
       {toastMarkup}
     </Frame>

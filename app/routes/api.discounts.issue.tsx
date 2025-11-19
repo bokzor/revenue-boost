@@ -14,6 +14,8 @@ import { data, type ActionFunctionArgs } from "react-router";
 import { z } from "zod";
 import { authenticate } from "~/shopify.server";
 import prisma from "~/db.server";
+import { FrequencyCapService } from "~/domains/targeting/services/frequency-cap.server";
+import { PopupEventService } from "~/domains/analytics/popup-events.server";
 import { getCampaignDiscountCode } from "~/domains/commerce/services/discount.server";
 
 // Request validation schema
@@ -205,6 +207,31 @@ export async function action({ request }: ActionFunctionArgs) {
       cartSubtotal: cartSubtotalCents ? `$${(cartSubtotalCents / 100).toFixed(2)}` : "N/A",
       isNew: result.isNewDiscount,
     });
+
+    // Record analytics event
+    try {
+      // Get visitor info from request if possible, or rely on what we have
+      const userAgent = request.headers.get("User-Agent") || null;
+      const ipAddress = request.headers.get("X-Forwarded-For")?.split(",")[0].trim() || null;
+
+      await PopupEventService.recordEvent({
+        storeId: campaign.storeId,
+        campaignId: campaign.id,
+        sessionId: sessionId || "unknown", // Should ideally always have sessionId
+        eventType: "COUPON_ISSUED",
+        userAgent,
+        ipAddress,
+        metadata: {
+          discountCode: result.discountCode,
+          tierUsed: result.tierUsed,
+          cartSubtotalCents,
+          source: "api_issue",
+        },
+      });
+    } catch (err) {
+      console.error("[Discount Issue] Failed to record analytics event:", err);
+      // Don't fail the request
+    }
 
     return data(response);
   } catch (error) {

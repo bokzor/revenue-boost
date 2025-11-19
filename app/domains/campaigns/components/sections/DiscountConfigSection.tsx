@@ -69,6 +69,7 @@ export function DiscountConfigSection({
             )}
           </FormGrid>
 
+          {/* HIDDEN: Static discount codes disabled for accurate attribution
           <TextField
             label="Discount Code"
             name="discount.code"
@@ -78,6 +79,7 @@ export function DiscountConfigSection({
             helpText="The discount code customers will use (leave empty for auto-generation)"
             onChange={(value) => updateField("code", value || undefined)}
           />
+          */}
 
           <SelectField
             label="Delivery Mode"

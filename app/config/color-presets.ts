@@ -194,6 +194,7 @@ export interface ThemeColors {
   descriptionFontWeight?: string;
 
   // Input styling
+  inputTextColor?: string;
   inputBackdropFilter?: string;
   inputBoxShadow?: string;
   inputBorder?: string;
@@ -290,6 +291,7 @@ export const NEWSLETTER_THEMES: Record<NewsletterThemeKey, ThemeColors> = {
     imageBg: "rgba(255, 255, 255, 0.15)",
     descColor: "#fef3c7",
     inputBorder: "rgba(255, 255, 255, 0.3)",
+    inputTextColor: "#ffffff",
     timerBg: "rgba(255, 255, 255, 0.25)",
     timerText: "#ffffff",
     ctaBg: "#ffffff",
@@ -362,6 +364,7 @@ export const NEWSLETTER_THEMES: Record<NewsletterThemeKey, ThemeColors> = {
     imageBg: "rgba(255, 255, 255, 0.1)",
     descColor: "#e0e7ff",
     inputBorder: "rgba(255, 255, 255, 0.3)",
+    inputTextColor: "#ffffff",
     timerBg: "rgba(255, 255, 255, 0.2)",
     timerText: "#ffffff",
     ctaBg: "#ffffff",
@@ -526,6 +529,7 @@ export const NEWSLETTER_THEMES_2: Record<NewsletterThemeKey, ThemeColors> = {
     imageBg: "rgba(255, 255, 255, 0.15)",
     descColor: "#fef3c7",
     inputBorder: "rgba(255, 255, 255, 0.3)",
+    inputTextColor: "#ffffff",
     timerBg: "rgba(255, 255, 255, 0.25)",
     timerText: "#ffffff",
     ctaBg: "#ffffff",
@@ -598,6 +602,7 @@ export const NEWSLETTER_THEMES_2: Record<NewsletterThemeKey, ThemeColors> = {
     imageBg: "rgba(255, 255, 255, 0.1)",
     descColor: "#e0e7ff",
     inputBorder: "rgba(255, 255, 255, 0.3)",
+    inputTextColor: "#ffffff",
     timerBg: "rgba(255, 255, 255, 0.2)",
     timerText: "#ffffff",
     ctaBg: "#ffffff",
@@ -1025,7 +1030,7 @@ export function themeColorsToDesignConfig(themeColors: ThemeColors): ExtendedCol
 
     // Input field colors
     inputBackgroundColor: themeColors.secondary,
-    inputTextColor: getInputTextColor(themeColors.secondary, themeColors.text),
+    inputTextColor: themeColors.inputTextColor || getInputTextColor(themeColors.secondary, themeColors.text),
     inputBorderColor: themeColors.inputBorder || themeColors.border,
 
     // State colors

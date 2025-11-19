@@ -12,6 +12,7 @@
 import { useState, useCallback, useEffect } from "react";
 import type { FrequencyCappingConfig } from "~/domains/targeting/components";
 import type { DiscountConfig } from "~/domains/commerce/services/discounts/discount.server";
+import { getTemplateMetadata } from "~/domains/templates/registry/template-registry";
 
 // Import comprehensive enhanced triggers types
 import type {
@@ -251,6 +252,10 @@ export function useWizardState(initialData?: Partial<CampaignFormData>) {
         hasTargetRules: !!templateObject?.targetRules,
       });
 
+      // Get template metadata for default design fields
+      const templateMetadata = getTemplateMetadata(templateType);
+      const defaultDesignFields = templateMetadata?.defaultDesignFields || {};
+
       // Use configuration from the template object (from database)
       const templateDefaults = templateObject?.contentDefaults || {};
       const templateTargetRules = (templateObject?.targetRules as Record<string, unknown>) || {};
@@ -258,6 +263,10 @@ export function useWizardState(initialData?: Partial<CampaignFormData>) {
       console.log(
         "[useWizardState] Applying template configuration from database:",
         templateType,
+        {
+          hasDefaultDesignFields: Object.keys(defaultDesignFields).length > 0,
+          defaultDesignFields,
+        }
       );
 
       // Extract page targeting from template's targetRules (if available)
@@ -277,6 +286,11 @@ export function useWizardState(initialData?: Partial<CampaignFormData>) {
           ...state.data.contentConfig,
           ...templateDefaults,
         },
+        // Apply design defaults from template registry
+        designConfig: {
+          ...state.data.designConfig,
+          ...defaultDesignFields,
+        },
         // Apply page targeting from template's targetRules (from database) if valid
         ...pageTargetingPatch,
         // Apply template-specific frequency capping defaults
@@ -286,13 +300,14 @@ export function useWizardState(initialData?: Partial<CampaignFormData>) {
 
       console.log("[useWizardState] Applied template configuration:", {
         contentFields: Object.keys(templateDefaults || {}),
+        designFields: Object.keys(defaultDesignFields || {}),
         hasPageTargeting: !!pageTargetingFromTemplate,
         source: templateObject ? "database" : "none",
       });
 
       updateData(next);
     },
-    [updateData, state.data.contentConfig],
+    [updateData, state.data.contentConfig, state.data.designConfig],
   );
 
   // Apply goal-based defaults when goal is selected

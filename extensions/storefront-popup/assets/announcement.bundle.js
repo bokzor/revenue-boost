@@ -1124,4 +1124,3 @@
     }
   })();
 })();
-//# sourceMappingURL=announcement.bundle.js.map

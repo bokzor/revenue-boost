@@ -13,7 +13,15 @@ import type { EnhancedTriggersConfig, CampaignWithConfigs } from "~/domains/camp
 export function extractTriggerConfig(campaign: CampaignWithConfigs): EnhancedTriggersConfig {
   // Extract from targetRules if it contains trigger configuration
   if (campaign.targetRules && typeof campaign.targetRules === 'object') {
-    return campaign.targetRules as EnhancedTriggersConfig;
+    const rules = campaign.targetRules as any;
+    // Check if it has the nested enhancedTriggers structure (from schema)
+    if (rules.enhancedTriggers) {
+      return rules.enhancedTriggers as EnhancedTriggersConfig;
+    }
+    // Fallback: check if targetRules itself matches the shape (legacy or direct assignment)
+    if (rules.enabled !== undefined || rules.page_load || rules.exit_intent) {
+      return rules as EnhancedTriggersConfig;
+    }
   }
 
   // Return default configuration

@@ -32,6 +32,7 @@ export interface TemplateMetadata {
   icon?: string;
   contentSchema: z.ZodType<any>;
   defaultFields?: Record<string, any>;
+  defaultDesignFields?: Record<string, any>;
   requiresDiscount?: boolean;
   requiresProduct?: boolean;
 }
@@ -54,7 +55,7 @@ export const TEMPLATE_REGISTRY: Record<TemplateType, TemplateMetadata> = {
       successMessage: "Thanks for subscribing!",
     },
   },
-  
+
   SPIN_TO_WIN: {
     type: "SPIN_TO_WIN",
     label: "Spin to Win",
@@ -68,7 +69,7 @@ export const TEMPLATE_REGISTRY: Record<TemplateType, TemplateMetadata> = {
       ctaLabel: "Spin Now",
     },
   },
-  
+
   FLASH_SALE: {
     type: "FLASH_SALE",
     label: "Flash Sale",
@@ -82,7 +83,7 @@ export const TEMPLATE_REGISTRY: Record<TemplateType, TemplateMetadata> = {
       ctaLabel: "Shop Now",
     },
   },
-  
+
   FREE_SHIPPING: {
     type: "FREE_SHIPPING",
     label: "Free Shipping",
@@ -95,7 +96,7 @@ export const TEMPLATE_REGISTRY: Record<TemplateType, TemplateMetadata> = {
       ctaLabel: "Shop Now",
     },
   },
-  
+
   EXIT_INTENT: {
     type: "EXIT_INTENT",
     label: "Exit Intent",
@@ -108,7 +109,7 @@ export const TEMPLATE_REGISTRY: Record<TemplateType, TemplateMetadata> = {
       ctaLabel: "Get Discount",
     },
   },
-  
+
   CART_ABANDONMENT: {
     type: "CART_ABANDONMENT",
     label: "Cart Abandonment",
@@ -122,7 +123,7 @@ export const TEMPLATE_REGISTRY: Record<TemplateType, TemplateMetadata> = {
       ctaLabel: "Return to Cart",
     },
   },
-  
+
   PRODUCT_UPSELL: {
     type: "PRODUCT_UPSELL",
     label: "Product Upsell",
@@ -135,8 +136,11 @@ export const TEMPLATE_REGISTRY: Record<TemplateType, TemplateMetadata> = {
       description: "Complete your look",
       ctaLabel: "Add to Cart",
     },
+    defaultDesignFields: {
+      size: "large",
+    },
   },
-  
+
   SOCIAL_PROOF: {
     type: "SOCIAL_PROOF",
     label: "Social Proof",
@@ -149,7 +153,7 @@ export const TEMPLATE_REGISTRY: Record<TemplateType, TemplateMetadata> = {
       showVisitorCount: true,
     },
   },
-  
+
   COUNTDOWN_TIMER: {
     type: "COUNTDOWN_TIMER",
     label: "Countdown Timer",
@@ -162,7 +166,7 @@ export const TEMPLATE_REGISTRY: Record<TemplateType, TemplateMetadata> = {
       ctaLabel: "Shop Now",
     },
   },
-  
+
   SCRATCH_CARD: {
     type: "SCRATCH_CARD",
     label: "Scratch Card",
@@ -176,7 +180,7 @@ export const TEMPLATE_REGISTRY: Record<TemplateType, TemplateMetadata> = {
       ctaLabel: "Claim Discount",
     },
   },
-  
+
   ANNOUNCEMENT: {
     type: "ANNOUNCEMENT",
     label: "Announcement",

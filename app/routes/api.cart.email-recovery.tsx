@@ -17,11 +17,20 @@ import {
   getSuccessMessage,
   shouldShowDiscountCode,
 } from "~/domains/commerce/services/discount.server";
+import { createDraftOrder } from "~/lib/shopify/order.server";
 
 const EmailRecoveryRequestSchema = z.object({
   campaignId: z.string().cuid(),
   email: z.string().email(),
   cartSubtotalCents: z.number().int().min(0).optional(),
+  cartItems: z.array(z.object({
+    id: z.number().optional(),
+    variant_id: z.number().optional(),
+    quantity: z.number(),
+    properties: z.record(z.string(), z.string()).optional(),
+    title: z.string().optional(),
+    price: z.number().optional(),
+  })).optional(),
 });
 
 export type EmailRecoveryRequest = z.infer<typeof EmailRecoveryRequestSchema>;
@@ -100,6 +109,30 @@ export async function action({ request }: ActionFunctionArgs) {
         },
         { status: 500 },
       );
+    }
+
+    // Create Draft Order if cart items are present
+    if (validated.cartItems && validated.cartItems.length > 0) {
+      try {
+        // Find or create customer to get ID (optional, but good for linking)
+        // For now, we'll just pass the email to createDraftOrder which handles it
+
+        const draftOrderResult = await createDraftOrder(admin, {
+          email: validated.email,
+          lineItems: validated.cartItems,
+          tags: [`revenue-boost:campaign:${campaign.id}`, "revenue-boost:recovery"],
+          note: `Recovered from campaign: ${campaign.name}`,
+        });
+
+        if (draftOrderResult.success) {
+          console.log(`[Cart Email Recovery] Created draft order: ${draftOrderResult.draftOrder?.id}`);
+        } else {
+          console.warn(`[Cart Email Recovery] Failed to create draft order:`, draftOrderResult.errors);
+        }
+      } catch (err) {
+        console.error("[Cart Email Recovery] Error creating draft order:", err);
+        // Don't fail the request if draft order creation fails, just log it
+      }
     }
 
     const deliveryMode = discountConfig.deliveryMode || "show_code_fallback";

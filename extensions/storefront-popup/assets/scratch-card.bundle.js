@@ -1498,4 +1498,3 @@
     }
   })();
 })();
-//# sourceMappingURL=scratch-card.bundle.js.map

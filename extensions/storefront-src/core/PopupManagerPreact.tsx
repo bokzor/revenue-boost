@@ -19,6 +19,7 @@ export interface StorefrontCampaign {
   targetRules?: Record<string, unknown>;
   discountConfig?: Record<string, unknown>;
   experimentId?: string | null;
+  variantKey?: string | null;
 }
 
 export interface PopupManagerProps {
@@ -116,10 +117,37 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api }: P
     };
   }, [campaign.id, campaign.templateType, loader, onShow]);
 
+  const trackClick = (metadata?: Record<string, unknown>) => {
+    try {
+      api
+        .trackEvent({
+          type: "CLICK",
+          campaignId: campaign.id,
+          sessionId: session.getSessionId(),
+          data: {
+            ...(metadata ?? {}),
+            experimentId: campaign.experimentId ?? undefined,
+            variantKey: campaign.variantKey ?? undefined,
+            pageUrl:
+              typeof window !== "undefined" ? window.location.href : undefined,
+            referrer:
+              typeof document !== "undefined" ? document.referrer : undefined,
+          },
+        })
+        .catch((err) => {
+          console.error("[PopupManager] Failed to track click event:", err);
+        });
+    } catch (err) {
+      console.error("[PopupManager] Failed to schedule click tracking:", err);
+    }
+  };
+
   // Handle lead submission
   const handleSubmit = async (data: { email: string; name?: string; gdprConsent?: boolean }) => {
     try {
       console.log("[PopupManager] Submitting lead:", data);
+
+      trackClick({ action: "submit" });
 
       const result = await api.submitLead({
         email: data.email,
@@ -227,6 +255,12 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api }: P
   const handleIssueDiscount = async (options?: { cartSubtotalCents?: number }) => {
     try {
       console.log("[PopupManager] Issuing discount for campaign:", campaign.id, options);
+
+      trackClick({
+        action: "issue_discount",
+        cartSubtotalCents: options?.cartSubtotalCents,
+      });
+
       const result = await api.issueDiscount({
         campaignId: campaign.id,
         sessionId: session.getSessionId(),
@@ -292,10 +326,17 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api }: P
           ? Math.round(currentCartTotal * 100)
           : undefined;
 
+      trackClick({
+        action: "email_recovery",
+        email,
+        cartSubtotalCents,
+      });
+
       const result = await api.emailRecovery({
         campaignId: campaign.id,
         email,
         cartSubtotalCents,
+        cartItems: cartData?.items,
       });
 
       if (!result.success) {
@@ -345,6 +386,7 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api }: P
   const [upsellProducts, setUpsellProducts] = useState<any[] | null>(null);
 
   // Lazy-load upsell products for PRODUCT_UPSELL campaigns based on campaignId
+  // Lazy-load upsell products for PRODUCT_UPSELL campaigns based on campaignId
   useEffect(() => {
     if (campaign.templateType !== "PRODUCT_UPSELL") {
       return;
@@ -371,6 +413,43 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api }: P
     };
 
     void loadUpsellProducts();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [campaign.id, campaign.templateType]);
+
+  // Fetch cart data for CART_ABANDONMENT campaigns
+  const [cartData, setCartData] = useState<{ items: any[]; total: number } | null>(null);
+
+  useEffect(() => {
+    if (campaign.templateType !== "CART_ABANDONMENT") {
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadCartData = async () => {
+      try {
+        const res = await fetch("/cart.js");
+        if (!res.ok) {
+          console.warn("[PopupManager] Failed to fetch cart data:", res.status);
+          return;
+        }
+
+        const cart = await res.json();
+        if (!cancelled) {
+          setCartData({
+            items: cart.items || [],
+            total: cart.total_price ? cart.total_price / 100 : 0,
+          });
+        }
+      } catch (err) {
+        console.error("[PopupManager] Error loading cart data:", err);
+      }
+    };
+
+    void loadCartData();
 
     return () => {
       cancelled = true;
@@ -421,6 +500,10 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api }: P
     campaignId: campaign.id,
     renderInline: false,
     onEmailRecovery: handleEmailRecovery,
+    // Pass cart data for Cart Abandonment
+    cartItems: cartData?.items,
+    cartTotal: cartData?.total,
+    onTrack: trackClick,
   });
 }
 

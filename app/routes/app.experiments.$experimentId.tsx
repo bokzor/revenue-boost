@@ -14,6 +14,7 @@ import { getStoreId } from "~/lib/auth-helpers.server";
 import { ExperimentService } from "~/domains/campaigns";
 import type { ExperimentWithVariants } from "~/domains/campaigns";
 import { apiClient, getErrorMessage } from "~/lib/api-client";
+import { getVariantPerformance, type VariantComparison } from "~/domains/analytics/experiment-analytics.server";
 
 // ============================================================================
 // TYPES
@@ -22,6 +23,7 @@ import { apiClient, getErrorMessage } from "~/lib/api-client";
 interface LoaderData {
   experiment: ExperimentWithVariants | null;
   storeId: string;
+  analytics: VariantComparison | null;
 }
 
 // ============================================================================
@@ -46,9 +48,16 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     // Get experiment details
     const experiment = await ExperimentService.getExperimentById(experimentId, storeId);
 
+    // Get analytics if experiment exists
+    let analytics: VariantComparison | null = null;
+    if (experiment) {
+      analytics = await getVariantPerformance(experimentId, storeId);
+    }
+
     return data<LoaderData>({
       experiment,
       storeId,
+      analytics,
     });
 
   } catch (error) {
@@ -57,6 +66,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     return data<LoaderData>({
       experiment: null,
       storeId: "",
+      analytics: null,
     }, { status: 404 });
   }
 }
@@ -66,7 +76,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 // ============================================================================
 
 export default function ExperimentDetailPage() {
-  const { experiment } = useLoaderData<typeof loader>();
+  const { experiment, analytics } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
   const revalidator = useRevalidator();
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -102,8 +112,8 @@ export default function ExperimentDetailPage() {
 
   const statusBadge = {
     tone: derivedStatus === "ACTIVE" ? "success" as const :
-          derivedStatus === "PAUSED" ? "warning" as const :
-          derivedStatus === "MIXED" ? "attention" as const :
+      derivedStatus === "PAUSED" ? "warning" as const :
+        derivedStatus === "MIXED" ? "attention" as const :
           "info" as const,
     children: derivedStatus,
   };
@@ -146,6 +156,23 @@ export default function ExperimentDetailPage() {
     }
   };
 
+  const handleDeclareWinner = async (winningVariantKey: string) => {
+    if (!confirm(`Are you sure you want to declare ${winningVariantKey} as the winner? This will pause all other variants.`)) {
+      return;
+    }
+
+    try {
+      await apiClient.post(`/api/experiments/${experiment.id}/declare-winner`, {
+        winningVariantKey,
+      });
+      showToast("Winner declared successfully");
+      revalidator.revalidate();
+    } catch (error) {
+      console.error("Failed to declare winner:", error);
+      showToast(getErrorMessage(error), true);
+    }
+  };
+
   // Toast component
   const toastMarkup = toastMessage ? (
     <Toast
@@ -168,11 +195,11 @@ export default function ExperimentDetailPage() {
       secondaryActions={
         !isExperimentActive && experiment.variants.length > 0
           ? [
-              {
-                content: "Activate All Campaigns",
-                onAction: handleActivateAll,
-              },
-            ]
+            {
+              content: "Activate All Campaigns",
+              onAction: handleActivateAll,
+            },
+          ]
           : undefined
       }
     >
@@ -228,6 +255,62 @@ export default function ExperimentDetailPage() {
             </InlineStack>
           </BlockStack>
         </Card>
+
+        {/* Analytics Performance */}
+        {analytics && analytics.variants.length > 0 && (
+          <Card>
+            <BlockStack gap="400">
+              <InlineStack align="space-between" blockAlign="center">
+                <Text as="h2" variant="headingMd">Variant Performance</Text>
+                {analytics.isSignificant && analytics.winner && (
+                  <Badge tone="success">{`Winner: ${analytics.winner}`}</Badge>
+                )}
+              </InlineStack>
+
+              {analytics.isSignificant && (
+                <Banner tone="success">
+                  <p>Statistical significance detected (p &lt; 0.05). Results are reliable!</p>
+                </Banner>
+              )}
+
+              {!analytics.isSignificant && analytics.variants.some(v => v.impressions > 0) && (
+                <Banner tone="info">
+                  <p>Not enough data yet for statistical significance. Keep the test running.</p>
+                </Banner>
+              )}
+
+              <DataTable
+                columnContentTypes={["text", "numeric", "numeric", "numeric", "numeric", "numeric", "text"]}
+                headings={["Variant", "Impressions", "Submissions", "Conv Rate", "Revenue", "AOV", "Actions"]}
+                rows={analytics.variants.map((variant) => [
+                  <InlineStack gap="200" key={variant.variantKey}>
+                    <Text as="span" fontWeight={variant.isControl ? "semibold" : "regular"}>
+                      {variant.variantKey}
+                    </Text>
+                    {variant.isControl && <Badge tone="info">Control</Badge>}
+                    {analytics.winner === variant.variantKey && <Badge tone="success">Winner</Badge>}
+                  </InlineStack>,
+                  variant.impressions.toLocaleString(),
+                  variant.submissions.toLocaleString(),
+                  `${variant.conversionRate.toFixed(2)}%`,
+                  `$${variant.revenue.toFixed(2)}`,
+                  `$${variant.averageOrderValue.toFixed(2)}`,
+                  !analytics.winner && analytics.isSignificant && isExperimentActive ? (
+                    <button
+                      key={variant.variantKey}
+                      onClick={() => handleDeclareWinner(variant.variantKey)}
+                      style={{ cursor: "pointer", textDecoration: "underline", color: "#005BD3", background: "none", border: "none" }}
+                    >
+                      Declare Winner
+                    </button>
+                  ) : (
+                    "-"
+                  ),
+                ])}
+              />
+            </BlockStack>
+          </Card>
+        )}
 
         {/* Variants */}
         <Card>

@@ -24,6 +24,7 @@ export interface ApiCampaignData {
   targetRules: Record<string, unknown>;
   discountConfig: Record<string, unknown>;
   experimentId?: string | null;
+  variantKey?: string | null;
   isActive?: boolean;
   createdAt?: string;
   updatedAt?: string;

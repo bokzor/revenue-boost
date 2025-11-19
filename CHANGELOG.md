@@ -1,5 +1,11 @@
 # @shopify/shopify-app-template-react-router
 
+## 2025.11.19
+
+- feat(storefront): Introduce popup UI primitives (`PopupCard`, `PopupHeading`, `PopupButton`, etc.)
+- fix(cart-abandonment): Refactor Cart Abandonment popup to use primitives and fix desktop sizing issues.
+- test(storefront): Add unit tests for primitives.
+
 ## 2025.10.10
 
 - [#95](https://github.com/Shopify/shopify-app-template-react-router/pull/95) Swap the product link for [admin intents](https://shopify.dev/docs/apps/build/admin/admin-intents).

@@ -1413,4 +1413,3 @@
     }
   })();
 })();
-//# sourceMappingURL=flash-sale.bundle.js.map

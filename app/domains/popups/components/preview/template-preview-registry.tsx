@@ -230,8 +230,8 @@ export const TEMPLATE_PREVIEW_REGISTRY: Record<string, TemplatePreviewEntry> = {
           (typeof percentFromConfig === "number"
             ? percentFromConfig
             : typeof mergedConfig.discountPercentage === "number"
-            ? mergedConfig.discountPercentage
-            : undefined) ?? 50,
+              ? mergedConfig.discountPercentage
+              : undefined) ?? 50,
         originalPrice: mergedConfig.originalPrice,
         salePrice: mergedConfig.salePrice,
         showCountdown: mergedConfig.showCountdown ?? true,
@@ -265,18 +265,18 @@ export const TEMPLATE_PREVIEW_REGISTRY: Record<string, TemplatePreviewEntry> = {
         // Normalized storefront discount summary for preview flows (issueDiscount, etc.)
         discount: dc
           ? {
-              enabled: dc.enabled !== false,
-              percentage: percentFromConfig,
-              value: typeof dc.value === "number" ? dc.value : percentFromConfig,
-              type:
-                dc.valueType === "PERCENTAGE"
-                  ? "percentage"
-                  : dc.valueType === "FIXED_AMOUNT"
+            enabled: dc.enabled !== false,
+            percentage: percentFromConfig,
+            value: typeof dc.value === "number" ? dc.value : percentFromConfig,
+            type:
+              dc.valueType === "PERCENTAGE"
+                ? "percentage"
+                : dc.valueType === "FIXED_AMOUNT"
                   ? "fixed_amount"
                   : "free_shipping",
-              code: dc.prefix || "FLASH",
-              deliveryMode: dc.deliveryMode || "show_code_fallback",
-            }
+            code: dc.prefix || "FLASH",
+            deliveryMode: dc.deliveryMode || "show_code_fallback",
+          }
           : undefined,
 
         // Design-specific (FlashSale)
@@ -565,6 +565,30 @@ TEMPLATE_PREVIEW_REGISTRY[TemplateTypeEnum.CART_ABANDONMENT] = {
     emailErrorMessage: mergedConfig.emailErrorMessage,
     emailButtonText: mergedConfig.emailButtonText,
     requireEmailBeforeCheckout: mergedConfig.requireEmailBeforeCheckout ?? false,
+
+    // Discount configuration for preview
+    discount: mergedConfig.discountConfig
+      ? {
+        enabled: mergedConfig.discountConfig.enabled !== false,
+        percentage:
+          mergedConfig.discountConfig.valueType === "PERCENTAGE" &&
+            typeof mergedConfig.discountConfig.value === "number"
+            ? mergedConfig.discountConfig.value
+            : undefined,
+        value:
+          typeof mergedConfig.discountConfig.value === "number"
+            ? mergedConfig.discountConfig.value
+            : undefined,
+        type:
+          mergedConfig.discountConfig.valueType === "PERCENTAGE"
+            ? "percentage"
+            : mergedConfig.discountConfig.valueType === "FIXED_AMOUNT"
+              ? "fixed_amount"
+              : "free_shipping",
+        code: mergedConfig.discountConfig.prefix || "PREVIEW",
+        deliveryMode: mergedConfig.discountConfig.deliveryMode || "show_code_fallback",
+      }
+      : undefined,
 
     // All common config (colors, typography, layout)
     ...buildCommonConfig(mergedConfig, designConfig),

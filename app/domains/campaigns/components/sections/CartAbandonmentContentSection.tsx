@@ -69,272 +69,285 @@ export function CartAbandonmentContentSection({
           <Divider />
 
           <BlockStack gap="400">
-      <TextField
-        label="Headline"
-        name="content.headline"
-        value={content.headline || ""}
-        error={errors?.headline}
-        required
-        placeholder="You left something behind"
-        helpText="Main headline to grab attention"
-        onChange={(value) => updateField("headline", value)}
-      />
-
-      <TextField
-        label="Subheadline"
-        name="content.subheadline"
-        value={content.subheadline || ""}
-        error={errors?.subheadline}
-        placeholder="Complete your purchase before it's gone"
-        helpText="Supporting text (optional)"
-        onChange={(value) => updateField("subheadline", value)}
-      />
-
-      <h3>Cart Display</h3>
-
-      <FormGrid columns={2}>
-        <CheckboxField
-          label="Show Cart Items"
-          name="content.showCartItems"
-          checked={content.showCartItems !== false}
-          helpText="Display items in the abandoned cart"
-          onChange={(checked) => updateField("showCartItems", checked)}
-        />
-
-        <CheckboxField
-          label="Show Cart Total"
-          name="content.showCartTotal"
-          checked={content.showCartTotal !== false}
-          helpText="Display total cart value"
-          onChange={(checked) => updateField("showCartTotal", checked)}
-        />
-      </FormGrid>
-
-      {content.showCartItems && (
-        <TextField
-          label="Max Items to Show"
-          name="content.maxItemsToShow"
-          value={content.maxItemsToShow?.toString() || "3"}
-          error={errors?.maxItemsToShow}
-          placeholder="3"
-          helpText="Maximum number of cart items to display"
-          onChange={(value) => updateField("maxItemsToShow", parseInt(value) || 3)}
-        />
-      )}
-
-      <h3>Urgency & Scarcity</h3>
-
-      <CheckboxField
-        label="Enable Urgency Timer"
-        name="content.showUrgency"
-        checked={content.showUrgency !== false}
-        helpText="Show countdown timer to create urgency"
-        onChange={(checked) => updateField("showUrgency", checked)}
-      />
-
-      {content.showUrgency && (
-        <>
-          <FormGrid columns={2}>
             <TextField
-              label="Urgency Timer (seconds)"
-              name="content.urgencyTimer"
-              value={content.urgencyTimer?.toString() || "300"}
-              error={errors?.urgencyTimer}
-              placeholder="300"
-              helpText="Timer duration (default: 5 minutes)"
-              onChange={(value) => updateField("urgencyTimer", parseInt(value) || 300)}
+              label="Headline"
+              name="content.headline"
+              value={content.headline || ""}
+              error={errors?.headline}
+              required
+              placeholder="You left something behind"
+              helpText="Main headline to grab attention"
+              onChange={(value) => updateField("headline", value)}
             />
 
             <TextField
-              label="Urgency Message"
-              name="content.urgencyMessage"
-              value={content.urgencyMessage || ""}
-              placeholder="Complete your order in {{time}} to save 10%"
-              helpText="Use {{time}} for timer placeholder"
-              onChange={(value) => updateField("urgencyMessage", value)}
+              label="Subheadline"
+              name="content.subheadline"
+              value={content.subheadline || ""}
+              error={errors?.subheadline}
+              placeholder="Complete your purchase before it's gone"
+              helpText="Supporting text (optional)"
+              onChange={(value) => updateField("subheadline", value)}
             />
-          </FormGrid>
-        </>
-      )}
 
-      <CheckboxField
-        label="Show Stock Warnings"
-        name="content.showStockWarnings"
-        checked={content.showStockWarnings || false}
-        helpText="Display low stock warnings for cart items"
-        onChange={(checked) => updateField("showStockWarnings", checked)}
-      />
+            <h3>Cart Display</h3>
 
-      {content.showStockWarnings && (
-        <TextField
-          label="Stock Warning Message"
-          name="content.stockWarningMessage"
-          value={content.stockWarningMessage || ""}
-          placeholder="⚠️ Items in your cart are selling fast!"
-          onChange={(value) => updateField("stockWarningMessage", value)}
-        />
-      )}
+            <FormGrid columns={2}>
+              <CheckboxField
+                label="Show Cart Items"
+                name="content.showCartItems"
+                checked={content.showCartItems !== false}
+                helpText="Display items in the abandoned cart"
+                onChange={(checked) => updateField("showCartItems", checked)}
+              />
 
-      <h3>Call to Action</h3>
+              <CheckboxField
+                label="Show Cart Total"
+                name="content.showCartTotal"
+                checked={content.showCartTotal !== false}
+                helpText="Display total cart value"
+                onChange={(checked) => updateField("showCartTotal", checked)}
+              />
+            </FormGrid>
 
-      <FormGrid columns={2}>
-        <TextField
-          label="Button Text"
-          name="content.buttonText"
-          value={content.buttonText || ""}
-          error={errors?.buttonText}
-          required
-          placeholder="Resume Checkout"
-          onChange={(value) => updateField("buttonText", value)}
-        />
+            {content.showCartItems && (
+              <TextField
+                label="Max Items to Show"
+                name="content.maxItemsToShow"
+                value={content.maxItemsToShow?.toString() || "3"}
+                error={errors?.maxItemsToShow}
+                placeholder="3"
+                helpText="Maximum number of cart items to display"
+                onChange={(value) => updateField("maxItemsToShow", parseInt(value) || 3)}
+              />
+            )}
 
-        <TextField
-          label="CTA URL"
-          name="content.ctaUrl"
-          value={content.ctaUrl || ""}
-          error={errors?.ctaUrl}
-          placeholder="/checkout"
-          helpText="Where to send users when they click the button"
-          onChange={(value) => updateField("ctaUrl", value)}
-        />
-      </FormGrid>
+            <h3>Urgency & Scarcity</h3>
 
-      <TextField
-        label="Save for Later Text"
-        name="content.saveForLaterText"
-        value={content.saveForLaterText || ""}
-        placeholder="Save for Later"
-        helpText="Secondary action text (optional)"
-        onChange={(value) => updateField("saveForLaterText", value)}
-      />
+            <CheckboxField
+              label="Enable Urgency Timer"
+              name="content.showUrgency"
+              checked={content.showUrgency !== false}
+              helpText="Show countdown timer to create urgency"
+              onChange={(checked) => updateField("showUrgency", checked)}
+            />
 
-      <TextField
-        label="Dismiss Button Text"
-        name="content.dismissLabel"
-        value={content.dismissLabel || ""}
-        error={errors?.dismissLabel}
-        placeholder="No thanks"
-        helpText="Text for the small link that closes the popup without saving or resuming checkout"
-        onChange={(value) => updateField("dismissLabel", value)}
-      />
+            {content.showUrgency && (
+              <>
+                <FormGrid columns={2}>
+                  <TextField
+                    label="Urgency Timer (seconds)"
+                    name="content.urgencyTimer"
+                    value={content.urgencyTimer?.toString() || "300"}
+                    error={errors?.urgencyTimer}
+                    placeholder="300"
+                    helpText="Timer duration (default: 5 minutes)"
+                    onChange={(value) => updateField("urgencyTimer", parseInt(value) || 300)}
+                  />
 
-      <h3>Email Recovery</h3>
+                  <TextField
+                    label="Urgency Message"
+                    name="content.urgencyMessage"
+                    value={content.urgencyMessage || ""}
+                    placeholder="Complete your order in {{time}} to save 10%"
+                    helpText="Use {{time}} for timer placeholder"
+                    onChange={(value) => updateField("urgencyMessage", value)}
+                  />
+                </FormGrid>
+              </>
+            )}
 
-      {/* Recovery Flow Selector - behaves like a single-choice mode selector */}
-      <FormGrid columns={2}>
-        <CheckboxField
-          label="Classic flow"
-          name="content.recoveryFlowClassic"
-          checked={!content.enableEmailRecovery && !content.requireEmailBeforeCheckout}
-          helpText="Show discount and send customers directly to checkout."
-          onChange={(checked) => {
-            if (checked) {
-              updateField("enableEmailRecovery", false);
-              updateField("requireEmailBeforeCheckout", false);
-            } else {
-              // If classic is turned off and nothing else is selected yet, default to email-first
-              if (!content.enableEmailRecovery && !content.requireEmailBeforeCheckout) {
-                updateField("enableEmailRecovery", true);
-                updateField("requireEmailBeforeCheckout", true);
-              }
-            }
-          }}
-        />
+            <CheckboxField
+              label="Show Stock Warnings"
+              name="content.showStockWarnings"
+              checked={content.showStockWarnings || false}
+              helpText="Display low stock warnings for cart items"
+              onChange={(checked) => updateField("showStockWarnings", checked)}
+            />
 
-        <CheckboxField
-          label="Email first flow"
-          name="content.recoveryFlowEmailFirst"
-          checked={!!content.enableEmailRecovery && !!content.requireEmailBeforeCheckout}
-          helpText="Ask for an email, then unlock the discount and show the checkout button."
-          onChange={(checked) => {
-            if (checked) {
-              updateField("enableEmailRecovery", true);
-              updateField("requireEmailBeforeCheckout", true);
-            } else {
-              // If email-first is turned off, fall back to classic
-              updateField("enableEmailRecovery", false);
-              updateField("requireEmailBeforeCheckout", false);
-            }
-          }}
-        />
-      </FormGrid>
+            {content.showStockWarnings && (
+              <TextField
+                label="Stock Warning Message"
+                name="content.stockWarningMessage"
+                value={content.stockWarningMessage || ""}
+                placeholder="⚠️ Items in your cart are selling fast!"
+                onChange={(value) => updateField("stockWarningMessage", value)}
+              />
+            )}
 
-      {content.enableEmailRecovery && (
-        <>
-          <TextField
-            label="Email field placeholder"
-            name="content.emailPlaceholder"
-            value={content.emailPlaceholder || ""}
-            placeholder="Enter your email to receive your cart and discount"
-            helpText="Shown inside the email input field."
-            onChange={(value) => updateField("emailPlaceholder", value)}
-          />
+            <h3>Call to Action</h3>
 
-          <TextField
-            label="Email success message"
-            name="content.emailSuccessMessage"
-            value={content.emailSuccessMessage || ""}
-            placeholder="We'll take you to checkout and email you your cart."
-            helpText="Shown after a successful email submission."
-            onChange={(value) => updateField("emailSuccessMessage", value)}
-          />
+            <FormGrid columns={2}>
+              <TextField
+                label="Button Text"
+                name="content.buttonText"
+                value={content.buttonText || ""}
+                error={errors?.buttonText}
+                required
+                placeholder="Resume Checkout"
+                onChange={(value) => updateField("buttonText", value)}
+              />
 
-          <TextField
-            label="Email error message"
-            name="content.emailErrorMessage"
-            value={content.emailErrorMessage || ""}
-            placeholder="Something went wrong. Please try again."
-            helpText="Optional custom error message on failed email submission."
-            onChange={(value) => updateField("emailErrorMessage", value)}
-          />
+              <TextField
+                label="CTA URL"
+                name="content.ctaUrl"
+                value={content.ctaUrl || ""}
+                error={errors?.ctaUrl}
+                placeholder="/checkout"
+                helpText="Where to send users when they click the button"
+                onChange={(value) => updateField("ctaUrl", value)}
+              />
+            </FormGrid>
 
-          <TextField
-            label="Email button text"
-            name="content.emailButtonText"
-            value={content.emailButtonText || ""}
-            placeholder="Email me my cart"
-            helpText="Text on the email submit button."
-            onChange={(value) => updateField("emailButtonText", value)}
-          />
+            <TextField
+              label="Save for Later Text"
+              name="content.saveForLaterText"
+              value={content.saveForLaterText || ""}
+              placeholder="Save for Later"
+              helpText="Secondary action text (optional)"
+              onChange={(value) => updateField("saveForLaterText", value)}
+            />
 
-          <CheckboxField
-            label="Require email before checkout"
-            name="content.requireEmailBeforeCheckout"
-            checked={content.requireEmailBeforeCheckout || false}
-            helpText="Hide the main checkout button and only allow continuing after entering an email."
-            onChange={(checked) => updateField("requireEmailBeforeCheckout", checked)}
-          />
-        </>
-      )}
+            <TextField
+              label="Dismiss Button Text"
+              name="content.dismissLabel"
+              value={content.dismissLabel || ""}
+              error={errors?.dismissLabel}
+              placeholder="No thanks"
+              helpText="Text for the small link that closes the popup without saving or resuming checkout"
+              onChange={(value) => updateField("dismissLabel", value)}
+            />
 
+            <h3>Email Recovery</h3>
+
+            {/* Recovery Flow Selector - behaves like a single-choice mode selector */}
+            <CheckboxField
+              label="Classic flow"
+              name="content.recoveryFlowClassic"
+              checked={!content.enableEmailRecovery && !content.requireEmailBeforeCheckout}
+              helpText="Show discount and send customers directly to checkout."
+              onChange={(checked) => {
+                if (checked) {
+                  onChange({
+                    ...content,
+                    enableEmailRecovery: false,
+                    requireEmailBeforeCheckout: false,
+                  });
+                } else {
+                  // If classic is turned off and nothing else is selected yet, default to email-first
+                  if (!content.enableEmailRecovery && !content.requireEmailBeforeCheckout) {
+                    onChange({
+                      ...content,
+                      enableEmailRecovery: true,
+                      requireEmailBeforeCheckout: true,
+                    });
+                  }
+                }
+              }}
+            />
+
+            <CheckboxField
+              label="Email first flow"
+              name="content.recoveryFlowEmailFirst"
+              checked={!!content.enableEmailRecovery && !!content.requireEmailBeforeCheckout}
+              helpText="Ask for an email, then unlock the discount and show the checkout button."
+              onChange={(checked) => {
+                if (checked) {
+                  onChange({
+                    ...content,
+                    enableEmailRecovery: true,
+                    requireEmailBeforeCheckout: true,
+                  });
+                } else {
+                  // If email-first is turned off, fall back to classic
+                  onChange({
+                    ...content,
+                    enableEmailRecovery: false,
+                    requireEmailBeforeCheckout: false,
+                  });
+                }
+              }}
+            />
+          
+
+          {content.enableEmailRecovery && (
+            <>
+              <TextField
+                label="Email field placeholder"
+                name="content.emailPlaceholder"
+                value={content.emailPlaceholder || ""}
+                placeholder="Enter your email to receive your cart and discount"
+                helpText="Shown inside the email input field."
+                onChange={(value) => updateField("emailPlaceholder", value)}
+              />
+
+              <TextField
+                label="Email success message"
+                name="content.emailSuccessMessage"
+                value={content.emailSuccessMessage || ""}
+                placeholder="We'll take you to checkout and email you your cart."
+                helpText="Shown after a successful email submission."
+                onChange={(value) => updateField("emailSuccessMessage", value)}
+              />
+
+              <TextField
+                label="Email error message"
+                name="content.emailErrorMessage"
+                value={content.emailErrorMessage || ""}
+                placeholder="Something went wrong. Please try again."
+                helpText="Optional custom error message on failed email submission."
+                onChange={(value) => updateField("emailErrorMessage", value)}
+              />
+
+              <TextField
+                label="Email button text"
+                name="content.emailButtonText"
+                value={content.emailButtonText || ""}
+                placeholder="Email me my cart"
+                helpText="Text on the email submit button."
+                onChange={(value) => updateField("emailButtonText", value)}
+              />
+
+              <CheckboxField
+                label="Require email before checkout"
+                name="content.requireEmailBeforeCheckout"
+                checked={content.requireEmailBeforeCheckout || false}
+                helpText="Hide the main checkout button and only allow continuing after entering an email."
+                onChange={(checked) => updateField("requireEmailBeforeCheckout", checked)}
+              />
+            </>
+          )}
+
+        </BlockStack>
+      </BlockStack>
+    </Card >
+
+
+      {/* Discount Configuration */ }
+  {
+    onDiscountChange && (
+      <Card>
+        <BlockStack gap="400">
+          <BlockStack gap="200">
+            <Text as="h3" variant="headingMd">
+              💰 Discount
+            </Text>
+            <Text as="p" tone="subdued">
+              Configure the discount shown in your cart recovery popup.
+            </Text>
           </BlockStack>
+
+          <Divider />
+
+          <DiscountSection
+            goal="CART_RECOVERY"
+            discountConfig={discountConfig}
+            onConfigChange={onDiscountChange}
+          />
         </BlockStack>
       </Card>
-
-
-      {/* Discount Configuration */}
-      {onDiscountChange && (
-        <Card>
-          <BlockStack gap="400">
-            <BlockStack gap="200">
-              <Text as="h3" variant="headingMd">
-                💰 Discount
-              </Text>
-              <Text as="p" tone="subdued">
-                Configure the discount shown in your cart recovery popup.
-              </Text>
-            </BlockStack>
-
-            <Divider />
-
-            <DiscountSection
-              goal="CART_RECOVERY"
-              discountConfig={discountConfig}
-              onConfigChange={onDiscountChange}
-            />
-          </BlockStack>
-        </Card>
-      )}
+    )
+  }
     </>
   );
 }

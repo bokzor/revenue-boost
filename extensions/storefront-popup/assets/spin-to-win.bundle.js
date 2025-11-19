@@ -718,25 +718,25 @@
         }
         ctx.restore();
       });
-      function drawPointer() {
-        ctx.save();
-        ctx.fillStyle = "white";
-        ctx.shadowColor = "rgba(0, 0, 0, 0.4)";
-        ctx.shadowBlur = 6;
-        ctx.shadowOffsetY = 3;
-        ctx.beginPath();
+      function drawPointer(pointerCtx) {
+        pointerCtx.save();
+        pointerCtx.fillStyle = "white";
+        pointerCtx.shadowColor = "rgba(0, 0, 0, 0.4)";
+        pointerCtx.shadowBlur = 6;
+        pointerCtx.shadowOffsetY = 3;
+        pointerCtx.beginPath();
         const pointerTipX = centerX + radiusPx - 8;
         const pointerTipY = centerY;
         const pointerBaseX = centerX + radiusPx + 22;
         const pointerBaseYOffset = 18;
-        ctx.moveTo(pointerTipX, pointerTipY);
-        ctx.lineTo(pointerBaseX, pointerTipY - pointerBaseYOffset);
-        ctx.lineTo(pointerBaseX, pointerTipY + pointerBaseYOffset);
-        ctx.closePath();
-        ctx.fill();
-        ctx.restore();
+        pointerCtx.moveTo(pointerTipX, pointerTipY);
+        pointerCtx.lineTo(pointerBaseX, pointerTipY - pointerBaseYOffset);
+        pointerCtx.lineTo(pointerBaseX, pointerTipY + pointerBaseYOffset);
+        pointerCtx.closePath();
+        pointerCtx.fill();
+        pointerCtx.restore();
       }
-      drawPointer();
+      drawPointer(ctx);
     }, [segments, wheelSize, accentColor, wheelBorderColor, wheelBorderWidth, hasSpun, wonPrize, rotation]);
     useEffect(() => {
       if (isVisible) {
@@ -1358,4 +1358,3 @@
     }
   })();
 })();
-//# sourceMappingURL=spin-to-win.bundle.js.map

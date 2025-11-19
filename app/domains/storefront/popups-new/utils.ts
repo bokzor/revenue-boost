@@ -11,20 +11,6 @@ import type { PopupSize, PopupPosition, PopupAnimation } from './types';
  * In preview mode, use smaller percentages to show relative size on screen
  */
 export function getSizeDimensions(size: PopupSize, previewMode?: boolean): { width: string; maxWidth: string } {
-  if (previewMode) {
-    // In preview mode, use percentages to show relative screen coverage
-    switch (size) {
-      case 'small':
-        return { width: '50%', maxWidth: '400px' };
-      case 'medium':
-        return { width: '65%', maxWidth: '600px' };
-      case 'large':
-        return { width: '90%', maxWidth: '900px' };
-      default:
-        return { width: '65%', maxWidth: '600px' };
-    }
-  }
-
   // Production mode - use full responsive widths
   switch (size) {
     case 'small':

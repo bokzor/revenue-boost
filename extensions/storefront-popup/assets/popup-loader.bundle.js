@@ -662,6 +662,7 @@
       return `/apps/revenue-boost${cleanPath}`;
     }
     async fetchActiveCampaigns(sessionId, visitorId) {
+      await this.ensureCartSnapshot();
       const context = this.buildStorefrontContext(sessionId, visitorId);
       const params = new URLSearchParams({
         shop: this.config.shopDomain,
@@ -767,6 +768,34 @@
         }
       }
       return context;
+    }
+    /**
+     * Ensure Shopify.cart snapshot is populated so cart-based rules work
+     * even on themes/pages that do not expose window.Shopify.cart.
+     */
+    async ensureCartSnapshot() {
+      try {
+        const w3 = window;
+        if (w3.Shopify && w3.Shopify.cart && typeof w3.Shopify.cart.item_count === "number") {
+          return;
+        }
+        const response = await fetch("/cart.js", { credentials: "same-origin" });
+        if (!response.ok) {
+          return;
+        }
+        const cart = await response.json();
+        if (!cart || typeof cart.item_count !== "number") {
+          return;
+        }
+        if (!w3.Shopify) {
+          w3.Shopify = {};
+        }
+        w3.Shopify.cart = {
+          total_price: typeof cart.total_price === "number" ? cart.total_price : 0,
+          item_count: cart.item_count
+        };
+      } catch {
+      }
     }
     detectPageType() {
       const path = window.location.pathname;
@@ -889,8 +918,11 @@
         };
       }
     }
-    async recordFrequency(sessionId, campaignId) {
-      const url = this.getApiUrl("/api/analytics/frequency");
+    async recordFrequency(input) {
+      const params = new URLSearchParams({
+        shop: this.config.shopDomain
+      });
+      const url = `${this.getApiUrl("/api/analytics/frequency")}?${params.toString()}`;
       try {
         await fetch(url, {
           method: "POST",
@@ -898,8 +930,12 @@
             "Content-Type": "application/json"
           },
           body: JSON.stringify({
-            sessionId,
-            campaignId,
+            sessionId: input.sessionId,
+            campaignId: input.campaignId,
+            trackingKey: input.trackingKey,
+            experimentId: input.experimentId,
+            pageUrl: input.pageUrl,
+            referrer: input.referrer,
             timestamp: Date.now()
           })
         });
@@ -908,7 +944,10 @@
       }
     }
     async trackEvent(event) {
-      const url = this.getApiUrl("/api/analytics/track");
+      const params = new URLSearchParams({
+        shop: this.config.shopDomain
+      });
+      const url = `${this.getApiUrl("/api/analytics/track")}?${params.toString()}`;
       try {
         await fetch(url, {
           method: "POST",
@@ -1247,9 +1286,30 @@
         mounted = false;
       };
     }, [campaign.id, campaign.templateType, loader, onShow]);
+    const trackClick = (metadata) => {
+      try {
+        api.trackEvent({
+          type: "CLICK",
+          campaignId: campaign.id,
+          sessionId: session.getSessionId(),
+          data: {
+            ...metadata ?? {},
+            experimentId: campaign.experimentId ?? void 0,
+            variantKey: campaign.variantKey ?? void 0,
+            pageUrl: typeof window !== "undefined" ? window.location.href : void 0,
+            referrer: typeof document !== "undefined" ? document.referrer : void 0
+          }
+        }).catch((err) => {
+          console.error("[PopupManager] Failed to track click event:", err);
+        });
+      } catch (err) {
+        console.error("[PopupManager] Failed to schedule click tracking:", err);
+      }
+    };
     const handleSubmit = async (data) => {
       try {
         console.log("[PopupManager] Submitting lead:", data);
+        trackClick({ action: "submit" });
         const result = await api.submitLead({
           email: data.email,
           campaignId: campaign.id,
@@ -1320,6 +1380,10 @@
     const handleIssueDiscount = async (options) => {
       try {
         console.log("[PopupManager] Issuing discount for campaign:", campaign.id, options);
+        trackClick({
+          action: "issue_discount",
+          cartSubtotalCents: options?.cartSubtotalCents
+        });
         const result = await api.issueDiscount({
           campaignId: campaign.id,
           sessionId: session.getSessionId(),
@@ -1363,10 +1427,16 @@
       try {
         console.log("[PopupManager] Email recovery for campaign:", campaign.id, { email });
         const cartSubtotalCents = typeof currentCartTotal === "number" && Number.isFinite(currentCartTotal) ? Math.round(currentCartTotal * 100) : void 0;
+        trackClick({
+          action: "email_recovery",
+          email,
+          cartSubtotalCents
+        });
         const result = await api.emailRecovery({
           campaignId: campaign.id,
           email,
-          cartSubtotalCents
+          cartSubtotalCents,
+          cartItems: cartData?.items
         });
         if (!result.success) {
           console.error("[PopupManager] Email recovery failed:", result.error);
@@ -1420,6 +1490,35 @@
         cancelled = true;
       };
     }, [campaign.id, campaign.templateType]);
+    const [cartData, setCartData] = d2(null);
+    y2(() => {
+      if (campaign.templateType !== "CART_ABANDONMENT") {
+        return;
+      }
+      let cancelled = false;
+      const loadCartData = async () => {
+        try {
+          const res = await fetch("/cart.js");
+          if (!res.ok) {
+            console.warn("[PopupManager] Failed to fetch cart data:", res.status);
+            return;
+          }
+          const cart = await res.json();
+          if (!cancelled) {
+            setCartData({
+              items: cart.items || [],
+              total: cart.total_price ? cart.total_price / 100 : 0
+            });
+          }
+        } catch (err) {
+          console.error("[PopupManager] Error loading cart data:", err);
+        }
+      };
+      void loadCartData();
+      return () => {
+        cancelled = true;
+      };
+    }, [campaign.id, campaign.templateType]);
     try {
       console.log("[PopupManagerPreact] Rendering campaign", {
         id: campaign.id,
@@ -1455,7 +1554,11 @@
       issueDiscount: handleIssueDiscount,
       campaignId: campaign.id,
       renderInline: false,
-      onEmailRecovery: handleEmailRecovery
+      onEmailRecovery: handleEmailRecovery,
+      // Pass cart data for Cart Abandonment
+      cartItems: cartData?.items,
+      cartTotal: cartData?.total,
+      onTrack: trackClick
     });
   }
   function renderPopup(campaign, onClose, loader, api, onShow) {
@@ -3270,7 +3373,14 @@
       const isPreview = this.config.previewMode && this.config.previewId === campaign.id;
       if (!isPreview) {
         const trackingKey = campaign.experimentId || campaign.id;
-        await this.api.recordFrequency(session.getSessionId(), trackingKey);
+        await this.api.recordFrequency({
+          sessionId: session.getSessionId(),
+          campaignId: campaign.id,
+          experimentId: campaign.experimentId,
+          trackingKey,
+          pageUrl: typeof window !== "undefined" ? window.location.href : void 0,
+          referrer: typeof document !== "undefined" ? document.referrer : void 0
+        });
       }
       renderPopup(
         campaign,
@@ -3279,6 +3389,20 @@
           if (!isPreview) {
             const trackingKey = campaign.experimentId || campaign.id;
             session.markDismissed(trackingKey);
+            void this.api.trackEvent({
+              type: "CLOSE",
+              campaignId: campaign.id,
+              sessionId: session.getSessionId(),
+              data: {
+                experimentId: campaign.experimentId ?? void 0,
+                pageUrl: typeof window !== "undefined" ? window.location.href : void 0,
+                referrer: typeof document !== "undefined" ? document.referrer : void 0
+              }
+            }).catch((error) => {
+              if (this.config.debug) {
+                console.error("[Revenue Boost] Failed to track CLOSE event:", error);
+              }
+            });
           }
           if (triggerManager) {
             triggerManager.cleanup();
@@ -3297,4 +3421,3 @@
     console.error("[Revenue Boost] Initialization failed:", error);
   });
 })();
-//# sourceMappingURL=popup-loader.bundle.js.map

@@ -260,7 +260,7 @@ async function build() {
       format: "iife",
       target: "es2020",
       minify: false, // Disabled for debugging
-      sourcemap: true, // Enable sourcemaps for debugging
+      sourcemap: false, // Disable sourcemaps to avoid .map files in Shopify extension assets
       platform: "browser",
       logLevel: "info",
       loader: { ".ts": "ts", ".tsx": "tsx" },

@@ -185,17 +185,30 @@ export function CampaignFormWithABTesting({
   // STATE - Variant Management (Isolated state for each variant)
   // ============================================================================
 
-  const createInitialVariantData = useCallback((key: VariantKey, index: number): VariantCampaignData => ({
-    ...initialData,
-    variantKey: key,
-    isControl: index === 0,
-    variantName: `Variant ${key}`,
-    variantDescription: index === 0 ? "Control variant" : `Test variant ${key}`,
-    name: initialData?.name ? `${initialData.name} - Variant ${key}` : `Variant ${key}`,
-    contentConfig: initialData?.contentConfig || {},
-    designConfig: initialData?.designConfig || {},
-    discountConfig: initialData?.discountConfig || {},
-  } as VariantCampaignData), [initialData]);
+  const createInitialVariantData = useCallback((key: VariantKey, index: number): VariantCampaignData => {
+    // Deep copy ALL nested objects to prevent variants from sharing references
+    const deepCopy = <T,>(obj: T | undefined): T | {} => {
+      if (!obj) return {};
+      return JSON.parse(JSON.stringify(obj));
+    };
+
+    return {
+      ...initialData,
+      variantKey: key,
+      isControl: index === 0,
+      variantName: `Variant ${key}`,
+      variantDescription: index === 0 ? "Control variant" : `Test variant ${key}`,
+      name: initialData?.name ? `${initialData.name} - Variant ${key}` : `Variant ${key}`,
+      // Deep copy all config objects
+      contentConfig: deepCopy(initialData?.contentConfig),
+      designConfig: deepCopy(initialData?.designConfig),
+      discountConfig: deepCopy(initialData?.discountConfig),
+      enhancedTriggers: deepCopy(initialData?.enhancedTriggers),
+      audienceTargeting: deepCopy(initialData?.audienceTargeting),
+      pageTargeting: deepCopy(initialData?.pageTargeting),
+      frequencyCapping: deepCopy(initialData?.frequencyCapping),
+    } as VariantCampaignData;
+  }, [initialData]);
 
   // ============================================================================
   // MEMOIZED VALUES - Stable references to prevent re-render loops

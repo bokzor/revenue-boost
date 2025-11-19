@@ -46,13 +46,13 @@ export interface ProductUpsellPopupProps {
 }
 
 export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
-                                                                        config,
-                                                                        isVisible,
-                                                                        onClose,
-                                                                        products: propProducts,
-                                                                        onAddToCart,
-                                                                        onProductClick,
-                                                                      }) => {
+  config,
+  isVisible,
+  onClose,
+  products: propProducts,
+  onAddToCart,
+  onProductClick,
+}) => {
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(false);
   const [showContent, setShowContent] = useState(false);
@@ -202,7 +202,7 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
       ? { backgroundImage: baseBackground, backgroundColor: 'transparent' }
       : { backgroundColor: baseBackground };
 
-	const { width: sizeWidth, maxWidth: sizeMaxWidth } = getSizeDimensions(config.size || 'medium', config.previewMode);
+  const { width: sizeWidth, maxWidth: sizeMaxWidth } = getSizeDimensions(config.size || 'medium', config.previewMode);
 
 
   const renderProduct = (product: Product, index: number) => {
@@ -672,9 +672,8 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
                   display: 'flex',
                   gap: 16,
                   alignItems: 'center',
-                  border: `2px solid ${
-                    isSelected ? accentColor : config.inputBorderColor || '#E5E7EB'
-                  }`,
+                  border: `2px solid ${isSelected ? accentColor : config.inputBorderColor || '#E5E7EB'
+                    }`,
                   borderRadius: borderRadius,
                   padding: '12px 16px',
                   ...backgroundStyles,
@@ -1074,7 +1073,7 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           text-align: center;
           font-weight: 600;
           font-size: 0.8125rem;
-          color: var(--upsell-primary, #111827);
+          color: #FFFFFF;
           border-bottom: 1px solid var(--upsell-border, ${borderColor});
           flex-shrink: 0;
         }
@@ -1151,7 +1150,7 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           align-items: center;
           justify-content: center;
           min-height: 300px;
-          padding: 1rem 3rem;
+          padding: 1rem 3rem 2.5rem;
           gap: 1rem;
         }
 

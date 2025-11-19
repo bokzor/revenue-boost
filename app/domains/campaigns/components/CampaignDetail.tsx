@@ -1,6 +1,6 @@
 /**
  * Campaign Detail View Component
- * 
+ *
  * A comprehensive detail view for individual campaigns showing all
  * configuration, metrics, and management options.
  */
@@ -38,6 +38,20 @@ interface CampaignDetailProps {
   onDelete?: () => void;
   onToggleStatus?: () => void;
   onBack?: () => void;
+  stats?: {
+    leadCount: number;
+    conversionRate: number;
+    lastLeadAt?: string | Date | null;
+  } | null;
+  funnel?: {
+    views: number;
+    submits: number;
+    couponsIssued: number;
+  } | null;
+  revenue?: number;
+  discountGiven?: number;
+  aov?: number;
+  clicks?: number;
 }
 
 interface CampaignMetrics {
@@ -45,6 +59,8 @@ interface CampaignMetrics {
   conversions: number;
   conversionRate: number;
   revenue: number;
+  discountGiven: number;
+  aov: number;
   clicks: number;
   clickRate: number;
 }
@@ -61,17 +77,43 @@ export function CampaignDetail({
   onDelete,
   onToggleStatus,
   onBack,
+  stats,
+  funnel,
+  revenue,
+  discountGiven,
+  aov,
+  clicks,
 }: CampaignDetailProps) {
   const [selectedTab, setSelectedTab] = React.useState(0);
 
-  // Mock metrics data (in real app, this would come from props or API)
+  const views = funnel?.views ?? 0;
+  const conversions = funnel?.submits ?? (stats?.leadCount ?? 0);
+  const conversionRate =
+    typeof stats?.conversionRate === "number"
+      ? stats.conversionRate
+      : views > 0
+        ? (conversions / views) * 100
+        : 0;
+
+  const safeRevenue = typeof revenue === "number" ? revenue : 0;
+  const safeDiscountGiven =
+    typeof discountGiven === "number" ? discountGiven : 0;
+  const safeAov = typeof aov === "number" ? aov : 0;
+  const safeClicks = typeof clicks === "number" ? clicks : 0;
+  const clickRate =
+    views > 0
+      ? (safeClicks / views) * 100
+      : 0;
+
   const metrics: CampaignMetrics = {
-    views: 1250,
-    conversions: 89,
-    conversionRate: 7.12,
-    revenue: 2340.50,
-    clicks: 156,
-    clickRate: 12.48,
+    views,
+    conversions,
+    conversionRate,
+    revenue: safeRevenue,
+    discountGiven: safeDiscountGiven,
+    aov: safeAov,
+    clicks: safeClicks,
+    clickRate,
   };
 
   // Helper functions
@@ -113,7 +155,7 @@ export function CampaignDetail({
       INCREASE_REVENUE: 'Increase Revenue',
       ENGAGEMENT: 'Engagement',
     };
-    
+
     return labels[goal] || goal;
   };
 
@@ -292,7 +334,7 @@ export function CampaignDetail({
 
               <BlockStack gap="200" align="center">
                 <Text variant="headingLg" as="p">{formatCurrency(metrics.revenue)}</Text>
-                <Text variant="bodySm" tone="subdued" as="p">Revenue</Text>
+                <Text variant="bodySm" tone="subdued" as="p">Revenue (gross, attributed)</Text>
               </BlockStack>
             </InlineStack>
           </BlockStack>
@@ -384,12 +426,14 @@ export function CampaignDetail({
               columnContentTypes={['text', 'numeric', 'numeric']}
               headings={['Metric', 'Value', 'Change']}
               rows={[
-                ['Total Views', metrics.views.toLocaleString(), '+12.5%'],
-                ['Total Conversions', metrics.conversions.toString(), '+8.3%'],
-                ['Conversion Rate', `${metrics.conversionRate.toFixed(2)}%`, '+2.1%'],
-                ['Total Revenue', formatCurrency(metrics.revenue), '+15.7%'],
-                ['Click-through Rate', `${metrics.clickRate.toFixed(2)}%`, '+5.2%'],
-                ['Total Clicks', metrics.clicks.toString(), '+9.8%'],
+                ['Total Views', metrics.views.toLocaleString(), 'N/A'],
+                ['Total Conversions', metrics.conversions.toString(), 'N/A'],
+                ['Conversion Rate', `${metrics.conversionRate.toFixed(2)}%`, 'N/A'],
+                ['Total Revenue (gross)', formatCurrency(metrics.revenue), 'N/A'],
+                ['Total Discount Given', formatCurrency(metrics.discountGiven), 'N/A'],
+                ['Average Order Value (gross)', formatCurrency(metrics.aov), 'N/A'],
+                ['Click-through Rate', `${metrics.clickRate.toFixed(2)}%`, 'N/A'],
+                ['Total Clicks', metrics.clicks.toString(), 'N/A'],
               ]}
             />
           </BlockStack>
@@ -414,13 +458,19 @@ export function CampaignDetail({
                 <Text variant="bodyMd" as="p">Clicks</Text>
                 <Text variant="bodyMd" as="p">{metrics.clicks}</Text>
               </InlineStack>
-              <ProgressBar progress={(metrics.clicks / metrics.views) * 100} size="small" />
+              <ProgressBar
+                progress={metrics.views > 0 ? (metrics.clicks / metrics.views) * 100 : 0}
+                size="small"
+              />
 
               <InlineStack align="space-between">
                 <Text variant="bodyMd" as="p">Conversions</Text>
                 <Text variant="bodyMd" as="p">{metrics.conversions}</Text>
               </InlineStack>
-              <ProgressBar progress={(metrics.conversions / metrics.views) * 100} size="small" />
+              <ProgressBar
+                progress={metrics.views > 0 ? (metrics.conversions / metrics.views) * 100 : 0}
+                size="small"
+              />
             </BlockStack>
           </BlockStack>
         </Box>
