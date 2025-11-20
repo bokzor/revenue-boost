@@ -16,6 +16,7 @@ import {
   validateResourceExists
 } from "~/lib/api-helpers.server";
 import { getStoreId } from "~/lib/auth-helpers.server";
+import { authenticate } from "~/shopify.server";
 
 // ============================================================================
 // LOADER (GET /api/campaigns/:campaignId)
@@ -37,10 +38,11 @@ export const action = createMethodRouter({
       const { campaignId } = params;
       validateRequiredId(campaignId, "Campaign");
 
+      const { admin } = await authenticate.admin(request);
       const storeId = await getStoreId(request);
       const rawData = await request.json();
       const validatedData = validateData(CampaignUpdateDataSchema, rawData, "Campaign Update Data");
-      const campaign = await CampaignService.updateCampaign(campaignId, storeId, validatedData);
+      const campaign = await CampaignService.updateCampaign(campaignId, storeId, validatedData, admin);
       validateResourceExists(campaign, "Campaign");
 
       return { campaign };
@@ -52,8 +54,9 @@ export const action = createMethodRouter({
       const { campaignId } = params;
       validateRequiredId(campaignId, "Campaign");
 
+      const { admin } = await authenticate.admin(request);
       const storeId = await getStoreId(request);
-      const deleted = await CampaignService.deleteCampaign(campaignId, storeId);
+      const deleted = await CampaignService.deleteCampaign(campaignId, storeId, admin);
       validateResourceExists(deleted, "Campaign");
 
       return { deleted: true };

@@ -6,12 +6,14 @@
  */
 
 import prisma from "~/db.server";
+import { Prisma } from "@prisma/client";
 import { PopupEventService } from "~/domains/analytics/popup-events.server";
 import { CampaignServiceError } from "~/lib/errors.server";
 
 export interface CampaignStats {
   campaignId: string;
   leadCount: number;
+  impressions: number;
   conversionRate: number;
   lastLeadAt: Date | null;
 }
@@ -133,6 +135,7 @@ export class CampaignAnalyticsService {
         statsMap.set(campaignId, {
           campaignId,
           leadCount,
+          impressions,
           conversionRate,
           lastLeadAt,
         });
@@ -278,6 +281,83 @@ export class CampaignAnalyticsService {
         "Failed to fetch campaigns with stats",
         error
       );
+    }
+  }
+  /**
+   * Get daily metrics for a campaign (impressions, leads, revenue)
+   * for the last N days.
+   *
+   * Merges data from popup_events (impressions, leads) and campaign_conversions (revenue).
+   */
+  static async getDailyMetrics(
+    campaignId: string | string[],
+    days: number = 30
+  ): Promise<Array<{ date: string; impressions: number; leads: number; revenue: number }>> {
+    try {
+      const ids = Array.isArray(campaignId) ? campaignId : [campaignId];
+      if (ids.length === 0) return [];
+
+      const whereClause = Prisma.sql`"campaignId" IN (${Prisma.join(ids)})`;
+
+      // 1. Get Impressions & Leads per day
+      const events = await prisma.$queryRaw<Array<{ date: Date; type: string; count: bigint }>>`
+        SELECT
+          DATE_TRUNC('day', "createdAt") as date,
+          "eventType" as type,
+          COUNT(*) as count
+        FROM "popup_events"
+        WHERE ${whereClause}
+          AND "eventType" IN ('VIEW', 'SUBMIT')
+          AND "createdAt" > NOW() - INTERVAL '1 day' * ${days}
+        GROUP BY DATE_TRUNC('day', "createdAt"), "eventType"
+        ORDER BY date ASC
+      `;
+
+      // 2. Get Revenue per day
+      const conversions = await prisma.$queryRaw<Array<{ date: Date; revenue: number }>>`
+        SELECT
+          DATE_TRUNC('day', "createdAt") as date,
+          SUM("totalPrice") as revenue
+        FROM "campaign_conversions"
+        WHERE ${whereClause}
+          AND "createdAt" > NOW() - INTERVAL '1 day' * ${days}
+        GROUP BY DATE_TRUNC('day', "createdAt")
+        ORDER BY date ASC
+      `;
+
+      // 3. Merge and format
+      const metricsMap = new Map<string, { impressions: number; leads: number; revenue: number }>();
+
+      // Initialize map with empty days if needed, or just sparse
+      // For charts, sparse is usually fine if the frontend handles it,
+      // but filling gaps is nicer. Let's just return sparse for now.
+
+      events.forEach((row) => {
+        const dateKey = row.date.toISOString().split('T')[0];
+        const current = metricsMap.get(dateKey) || { impressions: 0, leads: 0, revenue: 0 };
+
+        if (row.type === 'VIEW') current.impressions = Number(row.count);
+        if (row.type === 'SUBMIT') current.leads = Number(row.count);
+
+        metricsMap.set(dateKey, current);
+      });
+
+      conversions.forEach((row) => {
+        const dateKey = row.date.toISOString().split('T')[0];
+        const current = metricsMap.get(dateKey) || { impressions: 0, leads: 0, revenue: 0 };
+        current.revenue = Number(row.revenue);
+        metricsMap.set(dateKey, current);
+      });
+
+      // Convert to array and sort
+      return Array.from(metricsMap.entries())
+        .map(([date, metrics]) => ({ date, ...metrics }))
+        .sort((a, b) => a.date.localeCompare(b.date));
+
+    } catch (error) {
+      console.error("Failed to fetch daily metrics:", error);
+      // Return empty array instead of throwing to avoid breaking the whole page
+      return [];
     }
   }
 }

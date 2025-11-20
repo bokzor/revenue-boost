@@ -17,18 +17,6 @@
 
   // app/domains/storefront/popups-new/utils.ts
   function getSizeDimensions(size, previewMode) {
-    if (previewMode) {
-      switch (size) {
-        case "small":
-          return { width: "50%", maxWidth: "400px" };
-        case "medium":
-          return { width: "65%", maxWidth: "600px" };
-        case "large":
-          return { width: "90%", maxWidth: "900px" };
-        default:
-          return { width: "65%", maxWidth: "600px" };
-      }
-    }
     switch (size) {
       case "small":
         return { width: "90%", maxWidth: "400px" };
@@ -1475,7 +1463,7 @@
           text-align: center;
           font-weight: 600;
           font-size: 0.8125rem;
-          color: var(--upsell-primary, #111827);
+          color: #FFFFFF;
           border-bottom: 1px solid var(--upsell-border, ${borderColor});
           flex-shrink: 0;
         }
@@ -1552,7 +1540,7 @@
           align-items: center;
           justify-content: center;
           min-height: 300px;
-          padding: 1rem 3rem;
+          padding: 1rem 3rem 2.5rem;
           gap: 1rem;
         }
 

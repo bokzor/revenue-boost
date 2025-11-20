@@ -17,18 +17,6 @@
 
   // app/domains/storefront/popups-new/utils.ts
   function getSizeDimensions(size, previewMode) {
-    if (previewMode) {
-      switch (size) {
-        case "small":
-          return { width: "50%", maxWidth: "400px" };
-        case "medium":
-          return { width: "65%", maxWidth: "600px" };
-        case "large":
-          return { width: "90%", maxWidth: "900px" };
-        default:
-          return { width: "65%", maxWidth: "600px" };
-      }
-    }
     switch (size) {
       case "small":
         return { width: "90%", maxWidth: "400px" };

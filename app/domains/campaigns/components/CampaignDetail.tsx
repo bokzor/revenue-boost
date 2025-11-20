@@ -22,8 +22,11 @@ import {
   DataTable,
   EmptyState,
   Spinner,
+  Button,
 } from '@shopify/polaris';
-import type { CampaignWithConfigs , CampaignStatus, CampaignGoal, TemplateType } from '~/domains/campaigns/types/campaign';
+import { useNavigate } from "react-router";
+
+import type { CampaignWithConfigs, CampaignStatus, CampaignGoal, TemplateType } from '~/domains/campaigns/types/campaign';
 import { getTemplateLabel } from '~/domains/templates/registry/template-registry';
 
 // ============================================================================
@@ -38,6 +41,7 @@ interface CampaignDetailProps {
   onDelete?: () => void;
   onToggleStatus?: () => void;
   onBack?: () => void;
+  analyticsUrl?: string; // Changed from handler to URL
   stats?: {
     leadCount: number;
     conversionRate: number;
@@ -52,6 +56,7 @@ interface CampaignDetailProps {
   discountGiven?: number;
   aov?: number;
   clicks?: number;
+  currency?: string;
 }
 
 interface CampaignMetrics {
@@ -77,13 +82,18 @@ export function CampaignDetail({
   onDelete,
   onToggleStatus,
   onBack,
+  analyticsUrl, // Destructure new prop
   stats,
   funnel,
   revenue,
   discountGiven,
   aov,
   clicks,
+  currency = 'USD',
 }: CampaignDetailProps) {
+  const navigate = useNavigate();
+
+
   const [selectedTab, setSelectedTab] = React.useState(0);
 
   const views = funnel?.views ?? 0;
@@ -142,7 +152,7 @@ export function CampaignDetail({
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'USD',
+      currency: currency,
     }).format(amount);
   };
 
@@ -419,7 +429,24 @@ export function CampaignDetail({
       <Card>
         <Box padding="400">
           <BlockStack gap="400">
-            <Text variant="headingMd" as="h3">Performance Metrics</Text>
+            <InlineStack align="space-between" blockAlign="center">
+              <Text variant="headingMd" as="h3">Performance Metrics</Text>
+              {analyticsUrl && (
+                <Button
+                  onClick={() => {
+                    console.log("[CampaignDetail] View Full Analytics clicked", {
+                      from: window.location.pathname,
+                      target: "analytics",
+                      analyticsUrl,
+                    });
+                    navigate("analytics");
+                  }}
+                  variant="plain"
+                >
+                  View Full Analytics
+                </Button>
+              )}
+            </InlineStack>
             <Divider />
 
             <DataTable

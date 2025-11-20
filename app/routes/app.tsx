@@ -20,12 +20,32 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   return { apiKey: process.env.SHOPIFY_API_KEY || "" };
 };
 
+import { Link as ReactRouterLink } from "react-router";
+
+// ...
+
+function Link({ children, url = "", external, ref, ...rest }: any) {
+  if (external || url.startsWith("http")) {
+    return (
+      <a href={url} ref={ref} target="_blank" rel="noopener noreferrer" {...rest}>
+        {children}
+      </a>
+    );
+  }
+
+  return (
+    <ReactRouterLink to={url} ref={ref} {...rest}>
+      {children}
+    </ReactRouterLink>
+  );
+}
+
 export default function App() {
   const { apiKey } = useLoaderData<typeof loader>();
 
   return (
     <AppProvider embedded apiKey={apiKey}>
-      <PolarisAppProvider i18n={en}>
+      <PolarisAppProvider i18n={en} linkComponent={Link}>
         <s-app-nav>
           <s-link href="/app">Home</s-link>
           <s-link href="/app/campaigns">Campaigns</s-link>

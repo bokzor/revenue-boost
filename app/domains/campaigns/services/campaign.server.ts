@@ -71,9 +71,11 @@ export class CampaignService {
    */
   static async createCampaign(
     storeId: string,
-    data: CampaignCreateData
+    data: CampaignCreateData,
+    admin?: any,
+    appUrl?: string
   ): Promise<CampaignWithConfigs> {
-    return CampaignMutationService.create(storeId, data);
+    return CampaignMutationService.create(storeId, data, admin, appUrl);
   }
 
   /**
@@ -82,15 +84,20 @@ export class CampaignService {
   static async updateCampaign(
     id: string,
     storeId: string,
-    data: CampaignUpdateData
+    data: CampaignUpdateData,
+    admin?: any
   ): Promise<CampaignWithConfigs | null> {
-    return CampaignMutationService.update(id, storeId, data);
+    return CampaignMutationService.update(id, storeId, data, admin);
   }
 
   /**
    * Delete a campaign
    */
-  static async deleteCampaign(id: string, storeId: string): Promise<boolean> {
-    return CampaignMutationService.delete(id, storeId);
+  static async deleteCampaign(
+    id: string,
+    storeId: string,
+    admin?: any
+  ): Promise<boolean> {
+    return CampaignMutationService.delete(id, storeId, admin);
   }
 }

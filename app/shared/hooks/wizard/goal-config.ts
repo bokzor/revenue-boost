@@ -83,7 +83,7 @@ export function buildGoalUpdates(
   // Don't set templateId here - let user select template in Design step
   // const recommendedTemplateId = getRecommendedTemplateId(goal);
 
-  return {
+  const updates: Partial<CampaignFormData> = {
     goal,
     status: defaults.campaign.status,
     priority: defaults.campaign.priority,
@@ -91,4 +91,20 @@ export function buildGoalUpdates(
     popupDesign: buildDesignConfig(goal, currentData.popupDesign!),
     // templateId: recommendedTemplateId, // Removed - don't auto-set template
   };
+
+  // For simple (non-variant) campaigns, set a default name if none is provided
+  if (!currentData.variantKey) {
+    const hasName =
+      typeof currentData.name === "string" && currentData.name.trim().length > 0;
+    if (!hasName) {
+      const humanizedGoal = goal
+        .toLowerCase()
+        .split("_")
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(" ");
+      updates.name = `Campaign - ${humanizedGoal}`;
+    }
+  }
+
+  return updates;
 }

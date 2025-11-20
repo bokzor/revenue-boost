@@ -29,6 +29,7 @@ vi.mock('react-router', async () => {
     useNavigate: () => mockNavigate,
     useLoaderData: () => mockUseLoaderData(),
     useRevalidator: () => ({ state: 'idle', revalidate: vi.fn() }),
+    useLocation: () => ({ pathname: '/app/campaigns/c1' }),
   };
 });
 

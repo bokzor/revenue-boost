@@ -1,5 +1,13 @@
 # Storefront Popup Primitives & Responsive Behavior
 
+## 7. Implementation Summary (2025-11-19)
+
+The analysis led to the implementation of a set of shared primitives:
+- `PopupCard`, `PopupHeading`, `PopupText`, `PopupButton`, `PopupInput`, `CloseButton`.
+- These components are now located in `app/domains/storefront/popups-new/components/primitives`.
+- `CartAbandonmentPopup` was refactored to use these primitives, reducing custom CSS and fixing the desktop sizing issue by using the new `PopupCard` logic which maps `medium` size to `640px` (vs ~448px previously) and `large` to `840px`.
+- This sets the stage for refactoring other modals (Newsletter, etc.) to use the same primitives.
+
 ## 1. Overview
 
 This document analyses all storefront popup templates and how we can introduce a small set of shared UI primitives while keeping bundles lean and responsive behavior consistent.

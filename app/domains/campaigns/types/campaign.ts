@@ -863,6 +863,9 @@ export const BaseCampaignSchema = z.object({
   endDate: z.date().nullable(),
   createdAt: z.date().default(() => new Date()),
   updatedAt: z.date().default(() => new Date()),
+
+  // Marketing & attribution
+  marketingEventId: z.string().nullable().optional(),
 });
 
 /**

@@ -12,7 +12,7 @@ import {
  * - The Flash Sale system template exists in GLOBAL_SYSTEM_TEMPLATES
  * - Its contentConfig matches FlashSaleContentSchema and has the expected defaults
  * - Its designConfig uses Modern theme-inspired colors (aligned with newsletter "modern" theme)
- * - Its discountConfig matches DiscountConfigSchema and encodes a 30% shared percentage discount
+ * - Its discountConfig matches DiscountConfigSchema and encodes a 30% percentage discount with a unique code prefix
  */
 
 describe("GLOBAL_SYSTEM_TEMPLATES – Flash Sale Alert", () => {
@@ -78,7 +78,7 @@ describe("GLOBAL_SYSTEM_TEMPLATES – Flash Sale Alert", () => {
     expect(content.hideOnExpiry).toBe(true);
   });
 
-  it("should provide discountConfig defaults that satisfy DiscountConfigSchema for a 30% shared percentage discount", () => {
+  it("should provide discountConfig defaults that satisfy DiscountConfigSchema for a 30% percentage discount with unique prefix", () => {
     expect(flashSale).toBeDefined();
     if (!flashSale) return;
 
@@ -95,10 +95,11 @@ describe("GLOBAL_SYSTEM_TEMPLATES – Flash Sale Alert", () => {
 
     expect(config.enabled).toBe(true);
     expect(config.showInPreview).toBe(true);
-    expect(config.type).toBe("shared");
+    // No explicit type: default strategy will use shared discounts unless configured as single_use
+    expect(config.type).toBeUndefined();
     expect(config.valueType).toBe("PERCENTAGE");
     expect(config.value).toBe(30);
-    expect(config.prefix).toBe("FLASH30");
+    expect(config.prefix).toBe("FLASH30-");
     expect(config.expiryDays).toBe(2);
     expect(config.deliveryMode).toBe("show_code_always");
     expect(config.autoApplyMode).toBe("ajax");

@@ -5,7 +5,7 @@
  */
 
 import { data, type LoaderFunctionArgs } from "react-router";
-import { useLoaderData, useNavigate, useRevalidator } from "react-router";
+import { Outlet, useLoaderData, useLocation, useNavigate, useRevalidator } from "react-router";
 import { Frame, Toast } from "@shopify/polaris";
 import { useState } from "react";
 
@@ -17,6 +17,7 @@ import type { CampaignWithConfigs } from "~/domains/campaigns/types/campaign";
 import { apiClient, getErrorMessage } from "~/lib/api-client";
 import { CampaignAnalyticsService } from "~/domains/campaigns/services/campaign-analytics.server";
 import { PopupEventService } from "~/domains/analytics/popup-events.server";
+import { getStoreCurrency } from "~/lib/currency.server";
 
 // ============================================================================
 // TYPES
@@ -39,6 +40,7 @@ interface LoaderData {
   discountGiven: number;
   aov: number;
   clicks: number;
+  currency: string;
 }
 
 // ============================================================================
@@ -47,7 +49,7 @@ interface LoaderData {
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
   try {
-    const { session } = await authenticate.admin(request);
+    const { admin, session } = await authenticate.admin(request);
 
     if (!session?.shop) {
       throw new Error("No shop session found");
@@ -69,9 +71,10 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     let discountGiven = 0;
     let aov = 0;
     let clicks = 0;
+    let currency = "USD";
 
     if (campaign) {
-      const [statsMap, funnelMap, revenueStatsMap, clickMap] = await Promise.all([
+      const [statsMap, funnelMap, revenueStatsMap, clickMap, fetchedCurrency] = await Promise.all([
         CampaignAnalyticsService.getCampaignStats([campaign.id]),
         PopupEventService.getFunnelStatsByCampaign([campaign.id], {
           storeId,
@@ -80,6 +83,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         PopupEventService.getClickCountsByCampaign([campaign.id], {
           storeId,
         }),
+        getStoreCurrency(admin),
       ]);
 
       const statEntry = statsMap.get(campaign.id);
@@ -111,6 +115,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         aov = revenueStatsEntry.aov ?? 0;
       }
 
+      currency = fetchedCurrency;
       clicks = clickEntry ?? 0;
     }
 
@@ -123,6 +128,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       discountGiven,
       aov,
       clicks,
+      currency,
     });
   } catch (error) {
     console.error("Failed to load campaign:", error);
@@ -136,6 +142,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       discountGiven: 0,
       aov: 0,
       clicks: 0,
+      currency: "USD",
     }, { status: 404 });
   }
 }
@@ -145,10 +152,14 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 // ============================================================================
 
 export default function CampaignDetailPage() {
-  const { campaign, stats, funnel, revenue, discountGiven, aov, clicks } =
+  const { campaign, stats, funnel, revenue, discountGiven, aov, clicks, currency } =
     useLoaderData<typeof loader>();
   const navigate = useNavigate();
   const revalidator = useRevalidator();
+
+  const location = useLocation();
+  const isAnalyticsRoute = location.pathname.endsWith("/analytics");
+
 
   // State for toast notifications
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -263,6 +274,14 @@ export default function CampaignDetailPage() {
     />
   ) : null;
 
+  if (isAnalyticsRoute) {
+    return (
+      <Frame>
+        <Outlet />
+      </Frame>
+    );
+  }
+
   return (
     <Frame>
       <CampaignDetail
@@ -273,12 +292,14 @@ export default function CampaignDetailPage() {
         onDuplicate={handleDuplicate}
         onDelete={handleDelete}
         onToggleStatus={handleToggleStatus}
+        analyticsUrl={campaign ? `/app/campaigns/${campaign.id}/analytics` : undefined}
         stats={stats}
         funnel={funnel}
         revenue={revenue}
         discountGiven={discountGiven}
         aov={aov}
         clicks={clicks}
+        currency={currency}
       />
       {toastMarkup}
     </Frame>

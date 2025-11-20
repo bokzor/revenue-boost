@@ -1,6 +1,6 @@
 /**
  * Experiment Configuration Hook
- * 
+ *
  * Extracted from CampaignFormWithABTesting to follow SOLID principles:
  * - Single Responsibility: Only manages experiment configuration
  * - Separation of Concerns: Isolates experiment metadata from variant data
@@ -37,19 +37,19 @@ export function useExperimentConfig({
 }: UseExperimentConfigProps) {
   // Experiment metadata
   const [experimentName, setExperimentName] = useState<string>(
-    experimentData?.name || ""
+    experimentData?.name || getDefaultExperimentName(initialVariantCount)
   );
-  
+
   const [experimentDescription, setExperimentDescription] = useState<string>(
     experimentData?.description || ""
   );
-  
+
   const [experimentHypothesis, setExperimentHypothesis] = useState<string>(
     experimentData?.hypothesis || ""
   );
-  
+
   const [experimentType, setExperimentType] = useState<ExperimentType>("A/B");
-  
+
   const [successMetric, setSuccessMetric] = useState<SuccessMetric>(
     (experimentData?.successMetric as SuccessMetric) || "conversion_rate"
   );
@@ -111,6 +111,12 @@ export function useExperimentConfig({
     updateTrafficAllocation,
     getExperimentMetadata,
   };
+}
+
+// Helper: Build a default experiment name based on variant count
+function getDefaultExperimentName(variantCount: number): string {
+  const variants = (["A", "B", "C", "D"] as VariantKey[]).slice(0, variantCount);
+  return variants.map((key) => `Variant ${key}`).join(" - ");
 }
 
 // Helper: Calculate traffic allocation based on variant count

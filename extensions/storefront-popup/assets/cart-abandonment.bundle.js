@@ -17,18 +17,6 @@
 
   // app/domains/storefront/popups-new/utils.ts
   function getSizeDimensions(size, previewMode) {
-    if (previewMode) {
-      switch (size) {
-        case "small":
-          return { width: "50%", maxWidth: "400px" };
-        case "medium":
-          return { width: "65%", maxWidth: "600px" };
-        case "large":
-          return { width: "90%", maxWidth: "900px" };
-        default:
-          return { width: "65%", maxWidth: "600px" };
-      }
-    }
     switch (size) {
       case "small":
         return { width: "90%", maxWidth: "400px" };
@@ -1182,27 +1170,32 @@
                 /* @__PURE__ */ jsx("code", { className: "cart-ab-discount-code", children: config.discount.code })
               ] }),
               config.showCartItems !== false && displayItems.length > 0 && /* @__PURE__ */ jsxs("div", { className: "cart-ab-items", children: [
-                displayItems.map((item) => /* @__PURE__ */ jsxs("div", { className: "cart-ab-item", children: [
-                  item.imageUrl && /* @__PURE__ */ jsx(
-                    "img",
-                    {
-                      src: item.imageUrl,
-                      alt: item.title,
-                      className: "cart-ab-item-image"
-                    }
-                  ),
-                  /* @__PURE__ */ jsxs("div", { className: "cart-ab-item-main", children: [
-                    /* @__PURE__ */ jsx("div", { className: "cart-ab-item-title", children: item.title }),
-                    /* @__PURE__ */ jsxs("div", { className: "cart-ab-item-meta", children: [
-                      "Qty: ",
-                      item.quantity
-                    ] })
-                  ] }),
-                  /* @__PURE__ */ jsx("div", { className: "cart-ab-item-price", children: config.discount?.enabled && config.discount.percentage ? /* @__PURE__ */ jsxs("div", { style: { display: "flex", flexDirection: "column", alignItems: "flex-end" }, children: [
-                    /* @__PURE__ */ jsx("span", { style: { textDecoration: "line-through", opacity: 0.6, fontSize: "0.9em" }, children: formatCurrency(item.price, config.currency) }),
-                    /* @__PURE__ */ jsx("span", { style: { color: config.successColor || "#16a34a" }, children: formatCurrency(item.price * (1 - config.discount.percentage / 100), config.currency) })
-                  ] }) : formatCurrency(item.price, config.currency) })
-                ] }, item.id)),
+                displayItems.map((item) => {
+                  const basePrice = parseFloat(item.price);
+                  const safeBasePrice = Number.isFinite(basePrice) ? basePrice : 0;
+                  const discountedPrice = config.discount?.enabled && typeof config.discount.percentage === "number" ? safeBasePrice * (1 - config.discount.percentage / 100) : safeBasePrice;
+                  return /* @__PURE__ */ jsxs("div", { className: "cart-ab-item", children: [
+                    item.imageUrl && /* @__PURE__ */ jsx(
+                      "img",
+                      {
+                        src: item.imageUrl,
+                        alt: item.title,
+                        className: "cart-ab-item-image"
+                      }
+                    ),
+                    /* @__PURE__ */ jsxs("div", { className: "cart-ab-item-main", children: [
+                      /* @__PURE__ */ jsx("div", { className: "cart-ab-item-title", children: item.title }),
+                      /* @__PURE__ */ jsxs("div", { className: "cart-ab-item-meta", children: [
+                        "Qty: ",
+                        item.quantity
+                      ] })
+                    ] }),
+                    /* @__PURE__ */ jsx("div", { className: "cart-ab-item-price", children: config.discount?.enabled && typeof config.discount.percentage === "number" ? /* @__PURE__ */ jsxs("div", { style: { display: "flex", flexDirection: "column", alignItems: "flex-end" }, children: [
+                      /* @__PURE__ */ jsx("span", { style: { textDecoration: "line-through", opacity: 0.6, fontSize: "0.9em" }, children: formatCurrency(safeBasePrice, config.currency) }),
+                      /* @__PURE__ */ jsx("span", { style: { color: config.successColor || "#16a34a" }, children: formatCurrency(discountedPrice, config.currency) })
+                    ] }) : formatCurrency(safeBasePrice, config.currency) })
+                  ] }, item.id);
+                }),
                 cartItems.length > displayItems.length && /* @__PURE__ */ jsxs("div", { className: "cart-ab-more", children: [
                   "+",
                   cartItems.length - displayItems.length,

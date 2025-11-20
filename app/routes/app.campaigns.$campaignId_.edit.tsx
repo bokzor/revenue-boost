@@ -217,14 +217,14 @@ export default function CampaignEditPage() {
       const needsActivationPrompt = campaign.status === "DRAFT" && campaignData.status === "DRAFT";
 
       if (needsActivationPrompt) {
-        setPostSaveNavigateTo(`/app/campaigns/${campaign.id}`);
+        setPostSaveNavigateTo("/app/campaigns");
         setActivatePromptOpen(true);
         showToast("Campaign updated successfully");
         return;
       }
 
       showToast("Campaign updated successfully");
-      navigate(`/app/campaigns/${campaign.id}`);
+      navigate("/app/campaigns");
 
     } catch (error) {
       console.error("Failed to update campaign:", error);
@@ -233,7 +233,7 @@ export default function CampaignEditPage() {
   };
 
   const handleCancel = () => {
-    navigate(`/app/campaigns/${campaign?.id || ""}`);
+    navigate("/app/campaigns");
   };
 
   // Toast component

@@ -1,5 +1,29 @@
 # Popup Primitives & Responsive Layout Spec
 
+## 5. Implementation Status
+
+- **Status**: Implemented (2025-11-19)
+- **Architecture**: Shadow DOM-compatible (uses inline styles + injected `<style>` tags)
+- **Components**:
+  - `PopupCard`: Handles layout, container queries, and sizing.
+  - `PopupHeading`, `PopupText`: Typography with responsive scaling via container queries.
+  - `PopupButton`: Unified button styles (primary, secondary, ghost) with hover states.
+  - `PopupInput`: Unified input styling with focus/error states.
+  - `CloseButton`: Standardized close icon with accessible hit area.
+- **Theme**: `theme.ts` handles mapping `PopupDesignConfig` to CSS variables.
+- **Styling**: All primitives use inline styles for Shadow DOM compatibility. Container queries and responsive behaviors are injected via `<style>` tags within the shadow root.
+- **Refactor**: `CartAbandonmentPopup` has been refactored to use these primitives.
+- **Sizing**: Desktop widths for `CartAbandonment` have been increased (medium: 640px, large: 840px).
+
+### Why Inline Styles?
+
+Since storefront popups render in Shadow DOM (see `PopupPortal.tsx`), CSS Modules and global styles won't work. The primitives use:
+1. **Inline styles** for all static styling
+2. **CSS variables** from `theme.ts` for design tokens
+3. **Injected `<style>` tags** for pseudo-elements, animations, and container queries
+
+This approach ensures styles are isolated within the shadow root and work correctly on merchant storefronts.
+
 ## 1. Goals & Scope
 
 This spec defines **storefront popup primitives** and a **unified responsive model** for:

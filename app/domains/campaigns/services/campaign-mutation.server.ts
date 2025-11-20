@@ -24,6 +24,8 @@ import {
 import { CampaignServiceError } from "~/lib/errors.server";
 // Removed auto generation of discount codes at save time; codes are generated on lead submission
 import { CampaignQueryService } from "./campaign-query.server.js";
+// import { AdminApiContext } from "@shopify/shopify-app-remix/server";
+import { MarketingEventsService } from "~/domains/marketing-events/services/marketing-events.server";
 
 /**
  * Preserve discount config as-is; codes are generated at lead submission time.
@@ -42,7 +44,9 @@ export class CampaignMutationService {
    */
   static async create(
     storeId: string,
-    data: CampaignCreateData
+    data: CampaignCreateData,
+    admin?: any,
+    appUrl?: string
   ): Promise<CampaignWithConfigs> {
     // Validate input data
     const validation = validateCampaignCreateData(data);
@@ -106,6 +110,30 @@ export class CampaignMutationService {
         },
       });
 
+      // Sync to Shopify Marketing Events if admin context is provided
+      if (admin && appUrl) {
+        const marketingEventId = await MarketingEventsService.createMarketingEvent(
+          admin,
+          {
+            id: campaign.id,
+            name: campaign.name,
+            description: campaign.description || undefined,
+            status: campaign.status,
+            startDate: campaign.startDate,
+            endDate: campaign.endDate,
+          },
+          appUrl
+        );
+
+        if (marketingEventId) {
+          await prisma.campaign.update({
+            where: { id: campaign.id },
+            data: { marketingEventId },
+          });
+          campaign.marketingEventId = marketingEventId;
+        }
+      }
+
       return parseCampaignFields(campaign);
     } catch (error) {
       throw new CampaignServiceError(
@@ -122,7 +150,8 @@ export class CampaignMutationService {
   static async update(
     id: string,
     storeId: string,
-    data: CampaignUpdateData
+    data: CampaignUpdateData,
+    admin?: any
   ): Promise<CampaignWithConfigs | null> {
     // Validate input data
     const validation = validateCampaignUpdateData(data);
@@ -148,6 +177,18 @@ export class CampaignMutationService {
         return null; // Campaign not found or not owned by store
       }
 
+      // Sync to Shopify Marketing Events if admin context is provided
+      if (admin) {
+        const campaign = await CampaignQueryService.getById(id, storeId);
+        if (campaign?.marketingEventId) {
+          await MarketingEventsService.updateMarketingEvent(admin, campaign.marketingEventId, {
+            name: data.name,
+            startDate: data.startDate,
+            endDate: data.endDate,
+          });
+        }
+      }
+
       // Fetch and return the updated campaign
       return await CampaignQueryService.getById(id, storeId);
     } catch (error) {
@@ -162,8 +203,19 @@ export class CampaignMutationService {
   /**
    * Delete a campaign
    */
-  static async delete(id: string, storeId: string): Promise<boolean> {
+  static async delete(
+    id: string,
+    storeId: string,
+    admin?: any
+  ): Promise<boolean> {
     try {
+      // Sync to Shopify Marketing Events if admin context is provided
+      if (admin) {
+        const campaign = await CampaignQueryService.getById(id, storeId);
+        if (campaign?.marketingEventId) {
+          await MarketingEventsService.deleteMarketingEvent(admin, campaign.marketingEventId);
+        }
+      }
       const result = await prisma.campaign.deleteMany({
         where: { id, storeId },
       });
