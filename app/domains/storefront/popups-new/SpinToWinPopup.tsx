@@ -14,7 +14,7 @@ import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import { PopupPortal } from './PopupPortal';
 import type { PopupDesignConfig, Prize } from './types';
 import type { SpinToWinContent } from '~/domains/campaigns/types/campaign';
-import { validateEmail, prefersReducedMotion } from './utils';
+import { validateEmail, prefersReducedMotion, debounce } from './utils';
 import { challengeTokenStore } from '~/domains/storefront/services/challenge-token.client';
 
 /**
@@ -80,6 +80,7 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
   const [emailFocused, setEmailFocused] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const wheelContainerRef = useRef<HTMLDivElement | null>(null);
+  const wheelCellRef = useRef<HTMLDivElement | null>(null);
   const cardRef = useRef<HTMLDivElement | null>(null);
 
   const [containerWidth, setContainerWidth] = useState<number | null>(null);
@@ -95,42 +96,58 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
       : config.borderRadius ?? 16;
   const animDuration = config.animationDuration ?? 300;
 
+  const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : null;
+  const effectiveWidth = cardWidth ?? viewportWidth;
+
+  const isMobile = effectiveWidth !== null ? effectiveWidth < 640 : false;
+
   // Responsive wheel sizing based on container dimensions (inspired by spin-to-win2 mockup)
   const updateWheelSize = useCallback(() => {
     if (typeof window === 'undefined') return;
-    const container = wheelContainerRef.current;
+    const container = wheelCellRef.current;
     if (!container) return;
 
-    const measuredWidth = container.clientWidth || config.wheelSize || 380;
-    const measuredHeight = container.clientHeight || measuredWidth;
+    const measuredWidth = container.clientWidth;
+    const measuredHeight = container.clientHeight;
 
-    setContainerWidth(measuredWidth);
+    console.log('[SpinToWin] updateWheelSize', {
+      containerSize: `${measuredWidth}x${measuredHeight}`,
+      isMobile,
+      container,
+    });
 
-    let canvasSize: number;
+    if (!measuredWidth || !measuredHeight) return;
 
-    if (measuredWidth < 640) {
-      const heightBasedSize = measuredHeight * 1.1;
-      const widthBasedMaxSize = measuredWidth * (4 / 3);
-      canvasSize = Math.min(heightBasedSize, widthBasedMaxSize);
-    } else if (measuredWidth < 1024) {
-      const heightBasedSize = measuredHeight * 0.75;
-      const widthBasedMaxSize = measuredWidth * 1.6;
-      const maxConfigured = config.wheelSize || 450;
-      canvasSize = Math.min(heightBasedSize, widthBasedMaxSize, maxConfigured);
+    let newSize: number;
+
+    if (isMobile) {
+      // Mobile: "Left edge aligns with left, Right edge aligns with right"
+      // So size should match the width of the container
+      newSize = measuredWidth;
     } else {
-      const heightBasedSize = measuredHeight * 0.9;
-      const widthBasedMaxSize = measuredWidth * 1.8;
-      const maxConfigured = config.wheelSize || 600;
-      canvasSize = Math.min(heightBasedSize, widthBasedMaxSize, maxConfigured);
+      // Desktop: "Top edge aligns with top, Bottom edge aligns with bottom"
+      // So size should match the height of the container
+      newSize = measuredHeight;
     }
 
-    if (!Number.isFinite(canvasSize) || canvasSize <= 0) {
-      canvasSize = config.wheelSize || 380;
-    }
+    console.log('[SpinToWin] Calculated newSize', newSize);
 
-    const clamped = Math.max(200, Math.min(canvasSize, 800));
-    setWheelSize(clamped);
-  }, [config.wheelSize]);
+    // Ensure it's not too small
+    newSize = Math.max(250, newSize);
+
+    setWheelSize(newSize);
+  }, [isMobile]); // Re-run when layout mode changes
+
+  // Debounce the update to avoid excessive re-renders during resize
+  const debouncedUpdateWheelSize = useMemo(
+    () => debounce(updateWheelSize, 100),
+    [updateWheelSize]
+  );
+
+  // Trigger update when cardWidth changes (which happens on container resize)
+  useEffect(() => {
+    debouncedUpdateWheelSize();
+  }, [cardWidth, debouncedUpdateWheelSize]);
 
   useEffect(() => {
     if (!isVisible || typeof window === 'undefined') return;
@@ -144,15 +161,15 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
     };
 
     runInitialMeasure();
-    window.addEventListener('resize', updateWheelSize);
+    window.addEventListener('resize', debouncedUpdateWheelSize);
 
     return () => {
       if (frameId !== null && typeof window.cancelAnimationFrame === 'function') {
         window.cancelAnimationFrame(frameId);
       }
-      window.removeEventListener('resize', updateWheelSize);
+      window.removeEventListener('resize', debouncedUpdateWheelSize);
     };
-  }, [isVisible, updateWheelSize]);
+  }, [isVisible, updateWheelSize, debouncedUpdateWheelSize]);
 
   useEffect(() => {
     if (!isVisible || typeof window === 'undefined') return;
@@ -185,12 +202,6 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
     };
   }, [isVisible]);
 
-  const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : null;
-  const effectiveWidth = cardWidth ?? viewportWidth;
-
-  const isMobile = effectiveWidth !== null ? effectiveWidth < 640 : false;
-  const isTablet = effectiveWidth !== null ? effectiveWidth >= 640 && effectiveWidth < 1024 : false;
-  const isDesktop = effectiveWidth !== null ? effectiveWidth >= 1024 : true;
   // Wheel border styling (theme-aware via admin config)
   const wheelBorderColor = config.wheelBorderColor || '#FFFFFF';
   const wheelBorderWidth = config.wheelBorderWidth ?? 3;
@@ -312,33 +323,6 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
       ctx.restore();
     });
 
-    // Draw the static pointer on top of the wheel (does not rotate).
-    function drawPointer(pointerCtx: CanvasRenderingContext2D) {
-      pointerCtx.save();
-      pointerCtx.fillStyle = 'white';
-      pointerCtx.shadowColor = 'rgba(0, 0, 0, 0.4)';
-      pointerCtx.shadowBlur = 6;
-      pointerCtx.shadowOffsetY = 3;
-
-      pointerCtx.beginPath();
-
-      // Triangle pointing left, at the 3 o'clock position
-      // Positioned just slightly outside the wheel's radius
-      const pointerTipX = centerX + radiusPx - 8;
-      const pointerTipY = centerY;
-      const pointerBaseX = centerX + radiusPx + 22;
-      const pointerBaseYOffset = 18;
-
-      pointerCtx.moveTo(pointerTipX, pointerTipY); // Tip
-      pointerCtx.lineTo(pointerBaseX, pointerTipY - pointerBaseYOffset); // Top base
-      pointerCtx.lineTo(pointerBaseX, pointerTipY + pointerBaseYOffset); // Bottom base
-      pointerCtx.closePath();
-      pointerCtx.fill();
-
-      pointerCtx.restore();
-    }
-
-    drawPointer(ctx);
   }, [segments, wheelSize, accentColor, wheelBorderColor, wheelBorderWidth, hasSpun, wonPrize, rotation]);
 
 
@@ -398,143 +382,153 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
     setIsSpinning(true);
     setCodeError('');
 
+    // 1. Start spinning indefinitely (or to a very distant target)
+    // We'll adjust the target once we have the prize
+    const duration = config.spinDuration || 4000;
+    const reduceMotion = prefersReducedMotion();
+
+    if (spinAnimationFrameRef.current !== null && typeof cancelAnimationFrame !== 'undefined') {
+      cancelAnimationFrame(spinAnimationFrameRef.current);
+    }
+
+    // Initial "loading" spin - rotate fast
+    spinFromRef.current = rotationRef.current;
+    // Target a far rotation so it keeps spinning until we update it
+    const initialTarget = rotationRef.current + 360 * 10;
+    spinToRef.current = initialTarget;
+    spinStartTimeRef.current = performance.now();
+
+    const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
+    const easeInOutQuad = (t: number) => t < .5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+
+    // Animation loop
+    const animate = (timestamp: number) => {
+      if (spinStartTimeRef.current === null) return;
+
+      const elapsed = timestamp - spinStartTimeRef.current;
+      // If we don't have a prize yet, keep spinning linearly or gently easing
+      // If we DO have a prize, we switch to easing out to the final target
+
+      // Simplified approach: Always ease out, but update the target when prize comes in
+      const t = Math.min(1, elapsed / duration);
+      const eased = easeOutCubic(t);
+
+      const current = spinFromRef.current + (spinToRef.current - spinFromRef.current) * eased;
+      setRotation(current);
+
+      if (t < 1) {
+        spinAnimationFrameRef.current = requestAnimationFrame(animate);
+      } else {
+        spinAnimationFrameRef.current = null;
+        setRotation(spinToRef.current);
+        setHasSpun(true);
+        setIsSpinning(false);
+      }
+    };
+
+    spinAnimationFrameRef.current = requestAnimationFrame(animate);
+
     try {
       if (!config.previewMode && onSpin) {
         await onSpin(email);
       }
 
-      // SECURITY FIX: NO client-side prize selection
-      // Server will select the prize based on probabilities
+      // 2. Fetch Prize
+      let serverPrize: Prize | null = null;
+      let discountCode: string | undefined;
+      let autoApply = false;
 
-      // Start spin animation with placeholder rotation
-      // We'll update to final rotation once we get the prize from server
-      const duration = config.spinDuration || 4000;
-      const reduceMotion = prefersReducedMotion();
-
-      // Cancel any existing animation
-      if (spinAnimationFrameRef.current !== null && typeof cancelAnimationFrame !== 'undefined') {
-        cancelAnimationFrame(spinAnimationFrameRef.current);
-      }
-
-      // Start spinning to a temporary target
-      const minSpins = config.minSpins ?? 5;
-      const tempRotation = minSpins * 360;
-
-      if (reduceMotion || typeof requestAnimationFrame === 'undefined') {
-        setRotation(tempRotation);
-      } else {
-        spinFromRef.current = rotationRef.current;
-        spinToRef.current = tempRotation;
-        spinStartTimeRef.current = null;
-
-        const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
-
-        const step = (timestamp: number) => {
-          if (spinStartTimeRef.current === null) {
-            spinStartTimeRef.current = timestamp;
-          }
-
-          const elapsed = timestamp - spinStartTimeRef.current;
-          const t = Math.min(1, elapsed / duration);
-          const eased = easeOutCubic(t);
-          const current = spinFromRef.current + (spinToRef.current - spinFromRef.current) * eased;
-
-          setRotation(current);
-
-          if (t < 1) {
-            spinAnimationFrameRef.current = requestAnimationFrame(step);
+      if (!config.previewMode && config.campaignId) {
+        setIsGeneratingCode(true);
+        try {
+          const response = await fetch('/apps/revenue-boost/api/popups/spin-win', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              campaignId: config.campaignId,
+              email,
+              sessionId: typeof window !== 'undefined' ? window.sessionStorage?.getItem('rb_session_id') : undefined,
+              challengeToken: challengeTokenStore.get(config.campaignId),
+            }),
+          });
+          const data = await response.json();
+          if (data.success && data.prize && data.discountCode) {
+            serverPrize = {
+              id: data.prize.id,
+              label: data.prize.label,
+              color: data.prize.color,
+              probability: 0,
+              generatedCode: data.discountCode,
+            };
+            discountCode = data.discountCode;
+            autoApply = data.autoApply;
           } else {
-            spinAnimationFrameRef.current = null;
-            setRotation(spinToRef.current);
+            setCodeError(data.error || 'Could not generate discount code');
           }
-        };
-
-        spinAnimationFrameRef.current = requestAnimationFrame(step);
+        } catch (err) {
+          console.error('API error', err);
+          setCodeError('Network error');
+        } finally {
+          setIsGeneratingCode(false);
+        }
+      } else {
+        // Preview mode: pick random
+        const randomIdx = Math.floor(Math.random() * segments.length);
+        serverPrize = segments[randomIdx];
+        discountCode = "PREVIEW10";
       }
 
-      // After spin animation completes, call API to get prize and generate discount code
-      setTimeout(async () => {
-        setHasSpun(true);
-        setIsSpinning(false);
+      // 3. Calculate Final Rotation
+      if (serverPrize) {
+        setWonPrize(serverPrize);
 
-        // Generate discount code and get prize from server
-        if (!config.previewMode && config.campaignId) {
-          setIsGeneratingCode(true);
+        // Find index
+        const prizeIndex = segments.findIndex(s => s.id === serverPrize?.id);
+        if (prizeIndex !== -1) {
+          // Calculate target angle to align winning segment to 3 o'clock (0deg / 360deg)
+          // Segment starts at: index * segmentAngle - 90
+          // Center of segment: index * segmentAngle - 90 + segmentAngle/2
+          // We want Center to be at 0 (East)
+          // So we need to rotate by: 0 - Center
+          // But we want to add full spins: 360 * 5 + (0 - Center)
 
-          try {
-            const response = await fetch('/apps/revenue-boost/api/popups/spin-win', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                campaignId: config.campaignId,
-                // NO prizeId - server selects the prize
-                email,
-                sessionId: typeof window !== 'undefined' ? window.sessionStorage?.getItem('rb_session_id') : undefined,
-                challengeToken: challengeTokenStore.get(config.campaignId),
-              }),
-            });
+          const segmentAngle = 360 / segments.length;
+          const segmentCenter = (prizeIndex * segmentAngle) - 90 + (segmentAngle / 2);
 
-            const data = await response.json();
+          // Normalize segmentCenter to 0-360
+          // e.g. if center is -45, we want to rotate +45 to bring it to 0.
+          // target = -segmentCenter
 
-            if (data.success && data.prize && data.discountCode) {
-              // Create prize object with server-selected prize and generated code
-              const serverPrize: Prize = {
-                id: data.prize.id,
-                label: data.prize.label,
-                color: data.prize.color,
-                probability: 0, // Not needed from server
-                generatedCode: data.discountCode,
-              };
+          const baseTarget = -segmentCenter;
 
-              setWonPrize(serverPrize);
+          // Add extra spins to ensure we spin forward and enough times
+          // Current rotation is somewhere in the middle of the initial spin
+          // We want to extend the animation to land exactly on target
 
-              // Call onWin callback
-              if (onWin) {
-                onWin(serverPrize);
-              }
+          const currentRot = rotationRef.current;
+          const minSpins = 5;
+          const targetRotation = currentRot + (360 * minSpins) + (baseTarget - (currentRot % 360));
 
-              // Auto-apply if configured
-              if (data.autoApply && data.discountCode) {
-                try {
-                  // Store in localStorage as backup
-                  if (typeof window !== 'undefined' && window.localStorage) {
-                    window.localStorage.setItem('rb_discount_code', data.discountCode);
-                    window.localStorage.setItem('rb_discount_applied_at', new Date().toISOString());
-                  }
+          // Adjust spinToRef to the calculated target
+          // We also reset the start time to ensure a smooth ease-out from current position to new target
+          spinFromRef.current = currentRot;
+          spinToRef.current = targetRotation;
+          spinStartTimeRef.current = performance.now();
 
-                  console.log('[Spin-to-Win] Discount code ready for checkout');
-                } catch (applyError) {
-                  console.error('[Spin-to-Win] Auto-apply failed:', applyError);
-                }
-              }
-            } else {
-              // Fallback: no prize or code
-              setCodeError(data.error || 'Could not generate discount code');
-              console.error('[Spin-to-Win] Prize/code generation failed:', data.error);
-            }
-          } catch (fetchError) {
-            console.error('[Spin-to-Win] API call failed:', fetchError);
-            setCodeError('Network error generating code');
-          } finally {
-            setIsGeneratingCode(false);
-          }
-        } else {
-          // Preview mode - use client-side fallback
-          const fallbackPrize = segments[0];
-          setWonPrize(fallbackPrize);
-          if (onWin) {
-            onWin(fallbackPrize);
-          }
+          // The animation loop will pick up the new spinToRef and ease towards it
         }
-      }, duration);
+
+        if (onWin && serverPrize) onWin(serverPrize);
+
+        if (autoApply && discountCode && typeof window !== 'undefined') {
+          window.localStorage.setItem('rb_discount_code', discountCode);
+        }
+      }
 
     } catch (error) {
       console.error('Spin error:', error);
       setEmailError('Error occurred');
       setIsSpinning(false);
-      setIsGeneratingCode(false);
     }
   }, [validateForm, config, email, onSpin, segments, onWin]);
 
@@ -580,35 +574,36 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
     opacity: 0.9,
   };
 
-  const layoutRowStyles: React.CSSProperties = {
-    display: 'flex',
-    flexDirection: isMobile ? 'column' : 'row',
-    alignItems: isMobile ? 'stretch' : 'center',
-    justifyContent: 'stretch',
+  const gridContainerStyles: React.CSSProperties = {
+    display: 'grid',
+    // Use minmax(0, 1fr) to ensure strictly equal tracks even if content is wide
+    gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, minmax(0, 1fr))',
+    gridTemplateRows: isMobile ? 'repeat(2, minmax(0, 1fr))' : '1fr',
     width: '100%',
-    minHeight: isMobile ? 0 : 420,
-    gap: isMobile ? 24 : 0,
-  };
-
-  const wheelColumnStyles: React.CSSProperties = {
-    position: 'relative',
-    width: isMobile ? '100%' : '50%',
-    height: isMobile ? 450 : '100%',
-    flexShrink: 0,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: isMobile ? 'center' : 'flex-start',
-    overflow: 'visible',
-    marginLeft: 0,
-  };
-
-  const formColumnStyles: React.CSSProperties = {
-    width: isMobile ? '100%' : '50%',
     height: '100%',
+    minHeight: isMobile ? 'auto' : 450,
+  };
+
+  const wheelCellStyles: React.CSSProperties = {
+    position: 'relative',
+    display: 'flex',
+    // Desktop: Right edge touches middle (justify-end of left cell)
+    // Mobile: Bottom edge touches middle (align-end of top cell)
+    justifyContent: isMobile ? 'center' : 'flex-end',
+    alignItems: isMobile ? 'flex-end' : 'center',
+    overflow: 'visible', // Allow wheel to overflow
+    padding: 0,
+    zIndex: 10,
+  };
+
+  const formCellStyles: React.CSSProperties = {
     display: 'flex',
     flexDirection: 'column',
     justifyContent: 'center',
-    alignItems: 'stretch',
+    alignItems: 'center',
+    padding: isMobile ? '24px 16px' : '40px',
+    zIndex: 20,
+    backgroundColor: isMobile ? baseBackground : 'transparent', // Ensure form is readable
   };
 
   const formInnerStyles: React.CSSProperties = {
@@ -621,23 +616,24 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
   };
 
   const wheelWrapperStyles: React.CSSProperties = {
-    position: isMobile ? 'absolute' : 'relative',
-    // Mobile: keep explicit pixel sizing and off-screen effect
-    width: isMobile ? wheelSize : '100%',
-    maxWidth: isMobile ? undefined : '100%',
-    height: isMobile ? wheelSize : undefined,
-    // Tablet & desktop: keep wheel within its 50% column by making it square
-    // relative to the column width
-    aspectRatio: isMobile ? undefined : '1 / 1',
-    top: isMobile ? wheelSize * 0.35 : undefined,
-    left: isMobile ? '50%' : undefined,
-    transform:
-      isMobile
-        ? 'translate(-50%, -65%) rotate(90deg)'
-        : isTablet
-          ? 'translateX(-18%) scale(0.8)'
-          : 'translateX(-18%)',
+    position: 'absolute',
+    width: wheelSize,
+    height: wheelSize,
+    // Mobile: Bottom-center alignment
+    // Desktop: Right-center alignment
+    left: isMobile ? '50%' : 'auto',
+    bottom: isMobile ? 0 : 'auto',
+    right: isMobile ? 'auto' : 0,
+    top: isMobile ? 'auto' : '50%',
+    // Mobile: Rotate 90deg so 3 o'clock (East) becomes 6 o'clock (South)
+    // AND center horizontally (translateX -50%)
+    // Desktop: Center vertically (translateY -50%)
+    transform: isMobile
+      ? 'translateX(-50%) rotate(90deg)'
+      : 'translateY(-50%)',
     transformOrigin: 'center center',
+    transition: 'transform 0.3s ease',
+    zIndex: 10,
   };
 
   if (!isVisible) return null;
@@ -728,82 +724,87 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
               X
             </span>
           </button>
-          <div style={layoutRowStyles}>
-            {/* Wheel + optional image column */}
-            <div style={wheelColumnStyles}>
-              <div
-                style={{
-                  display: 'flex',
-                  flexDirection:
-                    config.imagePosition === 'top' || config.imagePosition === 'bottom'
-                      ? 'column'
-                      : 'row',
-                  gap: 24,
-                  alignItems: 'flex-start',
-                  justifyContent: 'flex-start',
-                }}
-              >
-                {/* Wheel - canvas-based, partial off-screen like mockup */}
-                <div style={wheelWrapperStyles}>
-                  {/* Rotating wheel canvas */}
-                  <div
-                    ref={wheelContainerRef}
+          <div style={gridContainerStyles}>
+            {/* Wheel Cell */}
+            <div style={wheelCellStyles} ref={wheelCellRef}>
+              <div style={wheelWrapperStyles}>
+                {/* Rotating wheel canvas */}
+                <div
+                  ref={wheelContainerRef}
+                  style={{
+                    position: 'relative',
+                    width: '100%',
+                    height: '100%',
+                    filter: hasSpun
+                      ? 'drop-shadow(0 18px 45px rgba(15,23,42,0.55))'
+                      : 'drop-shadow(0 10px 30px rgba(15,23,42,0.35))',
+                  }}
+                >
+                  <canvas
+                    ref={canvasRef}
+                    width={wheelSize}
+                    height={wheelSize}
                     style={{
-                      position: 'relative',
                       width: '100%',
                       height: '100%',
-                      filter: hasSpun
-                        ? 'drop-shadow(0 18px 45px rgba(15,23,42,0.55))'
-                        : 'drop-shadow(0 10px 30px rgba(15,23,42,0.35))',
-                    }}
-                  >
-                    <canvas
-                      ref={canvasRef}
-                      width={wheelSize}
-                      height={wheelSize}
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        borderRadius: '50%',
-                      }}
-                    />
-                  </div>
-
-                  {/* Center button visual */}
-                  <div
-                    style={{
-                      position: 'absolute',
-                      top: '50%',
-                      left: '50%',
-                      transform: 'translate(-50%, -50%)',
-                      width: 80,
-                      height: 80,
                       borderRadius: '50%',
-                      backgroundColor: accentColor,
-                      border: '4px solid rgba(15,23,42,0.85)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: '#F9FAFB',
-                      fontSize: 12,
-                      fontWeight: 600,
-                      letterSpacing: '0.12em',
-                      textTransform: 'uppercase',
-                      fontFamily:
-                        '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                      boxShadow: '0 4px 12px rgba(15,23,42,0.4)',
-                      pointerEvents: 'none',
                     }}
-                  >
-                    SPIN
-                  </div>
+                  />
+                </div>
 
+                {/* Pointer - DOM Element */}
+                {/* Positioned at 3 o'clock (Right) relative to the wheel wrapper */}
+                {/* On mobile, the wrapper is rotated 90deg, so this becomes 6 o'clock (Bottom) */}
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: '50%',
+                    right: -12, // Slightly overlapping or just outside
+                    transform: 'translateY(-50%)',
+                    width: 0,
+                    height: 0,
+                    borderTop: '16px solid transparent',
+                    borderBottom: '16px solid transparent',
+                    borderRight: '24px solid #FFFFFF', // Points Left
+                    filter: 'drop-shadow(-2px 0 4px rgba(0,0,0,0.2))',
+                    zIndex: 20,
+                  }}
+                />
+
+                {/* Center button visual */}
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: '50%',
+                    left: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    width: 80,
+                    height: 80,
+                    borderRadius: '50%',
+                    backgroundColor: accentColor,
+                    border: '4px solid rgba(15,23,42,0.85)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#F9FAFB',
+                    fontSize: 12,
+                    fontWeight: 600,
+                    letterSpacing: '0.12em',
+                    textTransform: 'uppercase',
+                    fontFamily:
+                      '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                    boxShadow: '0 4px 12px rgba(15,23,42,0.4)',
+                    pointerEvents: 'none',
+                    zIndex: 15,
+                  }}
+                >
+                  SPIN
                 </div>
               </div>
             </div>
 
-            {/* Form / prize column */}
-            <div style={formColumnStyles}>
+            {/* Form Cell */}
+            <div style={formCellStyles}>
               <div style={formInnerStyles}>
                 {/* Headline + description (form side, like mockup) */}
                 <div style={{ marginBottom: 24 }}>
@@ -1157,7 +1158,6 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
               </div>
               {/* Close layout row */}
             </div>
-            {/* Close card container */}
           </div>
           {/* Close overlay wrapper */}
         </div>
