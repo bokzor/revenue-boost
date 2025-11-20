@@ -95,11 +95,14 @@ jobs:
 
       - name: 🔨 Build and push Docker image
         run: |
-          # Create repository if it doesn't exist
-          gcloud artifacts repositories create ${{ env.SERVICE_NAME }} \
-            --repository-format=docker \
+          # Ensure Artifact Registry repository exists (one-time manual setup in GCP console)
+          gcloud artifacts repositories describe ${{ env.SERVICE_NAME }} \
             --location=${{ env.REGION }} \
-            --description="Revenue Boost staging container repository" || true
+            >/dev/null 2>&1 || {
+              echo "❌ Artifact Registry repository '${{ env.SERVICE_NAME }}' not found in project '${{ env.PROJECT_ID }}'." >&2
+              echo "   Create it once via GCP Console → Artifact Registry → Create repository (type: Docker, name: '${{ env.SERVICE_NAME }}', location: '${{ env.REGION }}')." >&2
+              exit 1
+            }
 
           docker build -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }} .
           docker tag ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }} ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}/${{ env.SERVICE_NAME }}:latest
