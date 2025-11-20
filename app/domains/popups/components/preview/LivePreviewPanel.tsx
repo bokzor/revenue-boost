@@ -242,14 +242,14 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
               justifyContent: "center", // Always center horizontally
               overflow: "auto", // Allow scrolling if content overflows
               position: "relative",
-              transition: "all 0.3s ease",
+              // Removed transition to prevent blinking when switching modes
             }}
           >
             <div
               style={{
                 transform: `scale(${getDeviceScale()})`,
                 transformOrigin: "center center", // Always center for proper scaling
-                transition: "transform 0.3s ease",
+                transition: "transform 0.2s ease", // Only transition transform, not other properties
                 width: device === "desktop" && zoom === 100 ? "100%" : "auto",
                 maxWidth: device === "desktop" && zoom === 100 ? "100%" : "auto",
                 height: device === "desktop" && zoom === 100 ? "100%" : "auto",
