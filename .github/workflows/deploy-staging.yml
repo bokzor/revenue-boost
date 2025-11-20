@@ -77,7 +77,7 @@ jobs:
         run: npm ci
 
       - name: 🏗️ Build application
-        run: npm run build:prod
+        run: npm run build
 
       - name: 🔐 Authenticate to Google Cloud
         id: 'auth'
