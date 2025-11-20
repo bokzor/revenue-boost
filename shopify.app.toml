@@ -18,6 +18,11 @@ uri = "/webhooks/app/uninstalled"
 topics = [ "app/scopes_update" ]
 uri = "/webhooks/app/scopes_update"
 
+  # Declarative app-specific webhook: orders/create → handled by app/routes/webhooks.orders.create.tsx
+  [[webhooks.subscriptions]]
+  topics = [ "orders/create" ]
+  uri = "/webhooks/orders/create"
+
 [access_scopes]
 scopes = "read_customers,write_customers,read_discounts,write_discounts,write_products,read_themes,write_files,read_orders"
 

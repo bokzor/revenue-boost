@@ -7,22 +7,14 @@ import { AppProvider as PolarisAppProvider } from "@shopify/polaris";
 import en from "@shopify/polaris/locales/en.json";
 import polarisStyles from "@shopify/polaris/build/esm/styles.css?url";
 
-import { authenticate, registerWebhooks } from "../shopify.server";
+import { authenticate } from "../shopify.server";
 
 export const links: LinksFunction = () => [
   { rel: "stylesheet", href: polarisStyles },
 ];
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-	  const { session } = await authenticate.admin(request);
-
-	  // Ensure shop-specific webhooks (including ORDERS_CREATE) are registered for this shop.
-	  if (session) {
-	    // Fire-and-forget; registration is idempotent on Shopify's side.
-	    registerWebhooks({ session }).catch((error: unknown) => {
-	      console.error("[Shopify] Failed to register webhooks from /app loader", error);
-	    });
-	  }
+	  await authenticate.admin(request);
 
 	  // eslint-disable-next-line no-undef
 	  return { apiKey: process.env.SHOPIFY_API_KEY || "" };
