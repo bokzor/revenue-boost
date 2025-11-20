@@ -1,4 +1,4 @@
-client_id = "YOUR_STAGING_CLIENT_ID"
+client_id = "6d807bf0201e5a3acbec919a27ccfe62"
 name = "revenue-boost-staging"
 application_url = "https://staging.example.com"
 embedded = true
