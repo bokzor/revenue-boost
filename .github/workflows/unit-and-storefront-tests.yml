@@ -55,7 +55,7 @@ jobs:
         run: npm ci
 
       - name: Run storefront tests with coverage
-        run: npm run test:storefront:coverage
+        run: npm run test
 
       - name: Upload storefront coverage
         uses: actions/upload-artifact@v4
