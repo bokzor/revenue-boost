@@ -133,7 +133,7 @@ jobs:
           # For initial deployment, use a temporary URL that will be updated after service is created
           SERVICE_URL=$(gcloud run services describe ${{ env.SERVICE_NAME }} \
             --region ${{ env.REGION }} \
-            --format 'value(status.url)' 2>/dev/null)
+            --format 'value(status.url)' 2>/dev/null || echo "")
 
           # If SERVICE_URL is empty, use temporary URL
           if [[ -z "$SERVICE_URL" ]]; then
