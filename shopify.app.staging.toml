@@ -1,6 +1,6 @@
-client_id = "6d807bf0201e5a3acbec919a27ccfe62"
-name = "revenue-boost"
-application_url = "https://localhost:3000"
+client_id = "YOUR_STAGING_CLIENT_ID"
+name = "revenue-boost-staging"
+application_url = "https://staging.example.com"
 embedded = true
 
 [build]
@@ -22,9 +22,9 @@ uri = "/webhooks/app/scopes_update"
 scopes = "read_customers,write_customers,read_discounts,write_discounts,write_products,read_themes,write_files"
 
 [auth]
-redirect_urls = [ "https://localhost:3000/api/auth" ]
+redirect_urls = [ "https://staging.example.com/api/auth" ]
 
 [app_proxy]
-url = "https://localhost:3000"
+url = "https://staging.example.com"
 subpath = "revenue-boost"
 prefix = "apps"
