@@ -1,0 +1,65 @@
+name: "🧩 Deploy Shopify app & extensions to Staging"
+
+on:
+  workflow_dispatch:
+
+# Avoid overlapping extension deploys
+concurrency:
+  group: deploy-extensions-staging
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: staging
+    permissions:
+      contents: read
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "npm"
+
+      - name: 🔧 Install dependencies
+        run: npm ci
+
+      - name: 🏗️ Build storefront assets
+        run: npm run build:storefront
+
+      - name: 🛠 Install Shopify CLI
+        run: npm install -g @shopify/cli@latest @shopify/app@latest
+
+      - name: 🔗 Inject STAGING_APP_URL into shopify.app.staging.toml
+        env:
+          STAGING_APP_URL: ${{ secrets.STAGING_APP_URL }}
+        run: |
+          if [ -z "$STAGING_APP_URL" ]; then
+            echo "STAGING_APP_URL is not set" >&2
+            exit 1
+          fi
+          if grep -q '^application_url' shopify.app.staging.toml; then
+            sed -i.bak "s|^application_url = \".*\"|application_url = \"${STAGING_APP_URL}\"|" shopify.app.staging.toml
+          else
+            echo "application_url = \"${STAGING_APP_URL}\"" >> shopify.app.staging.toml
+          fi
+          echo "Using application_url from STAGING_APP_URL:"
+          grep '^application_url' shopify.app.staging.toml
+
+      - name: 🚀 Deploy app configuration and extensions to Shopify (staging)
+        env:
+          # Token generated from Partner Dashboard (shared at org level)
+          SHOPIFY_CLI_PARTNERS_TOKEN: ${{ secrets.SHOPIFY_CLI_PARTNERS_TOKEN }}
+          # Client ID for the staging app configuration
+          SHOPIFY_API_KEY: ${{ secrets.SHOPIFY_API_KEY }}
+          COMMIT_URL: ${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}
+        run: |
+          shopify app deploy \
+            --config staging \
+            --force \
+            --source-control-url "$COMMIT_URL"
+
