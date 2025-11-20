@@ -19,7 +19,7 @@ topics = [ "app/scopes_update" ]
 uri = "/webhooks/app/scopes_update"
 
 [access_scopes]
-scopes = "read_customers,write_customers,read_discounts,write_discounts,write_products,read_themes,write_files,shopify.app.toml"
+scopes = "read_customers,write_customers,read_discounts,write_discounts,write_products,read_themes,write_files,read_orders"
 
 [auth]
 redirect_urls = [ "https://staging.example.com/api/auth" ]
