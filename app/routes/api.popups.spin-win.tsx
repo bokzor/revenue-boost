@@ -195,22 +195,24 @@ export async function action({ request }: ActionFunctionArgs) {
             const prizeId = winningSegment.id;
             await prisma.lead.upsert({
                 where: {
-                    email_campaignId: {
-                        email,
+                    storeId_campaignId_email: {
+                        storeId: campaign.storeId,
                         campaignId,
+                        email,
                     },
                 },
                 create: {
                     email,
                     campaignId,
                     storeId: campaign.storeId,
+                    sessionId,
                     discountCode: result.discountCode,
-                    source: "spin_to_win_popup",
                     metadata: JSON.stringify({
                         prizeId,
                         segmentLabel: winningSegment.label,
                         sessionId,
                         generatedAt: new Date().toISOString(),
+                        source: "spin_to_win_popup",
                     }),
                 },
                 update: {
@@ -220,6 +222,7 @@ export async function action({ request }: ActionFunctionArgs) {
                         segmentLabel: winningSegment.label,
                         sessionId,
                         generatedAt: new Date().toISOString(),
+                        source: "spin_to_win_popup",
                     }),
                     updatedAt: new Date(),
                 },
@@ -281,7 +284,7 @@ export async function action({ request }: ActionFunctionArgs) {
                 {
                     success: false,
                     error: "Invalid request data",
-                    details: error.errors,
+                    details: error.issues,
                 },
                 { status: 400 }
             );

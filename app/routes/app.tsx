@@ -51,7 +51,7 @@ export default function App() {
           <s-link href="/app/campaigns">Campaigns</s-link>
           <s-link href="/app/campaigns/new">New campaign</s-link>
           <s-link href="/app/setup">Setup Status</s-link>
-          <s-link href="/app/additional">Additional page</s-link>
+          <s-link href="/app/settings">Settings</s-link>
         </s-app-nav>
         <Outlet />
       </PolarisAppProvider>

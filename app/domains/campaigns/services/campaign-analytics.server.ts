@@ -27,6 +27,11 @@ export interface CampaignWithStats {
   lastLeadAt: Date | null;
 }
 
+export interface DateRangeOptions {
+  from?: Date;
+  to?: Date;
+}
+
 /**
  * Campaign Analytics Service
  * Provides optimized analytics queries
@@ -36,19 +41,30 @@ export class CampaignAnalyticsService {
    * Get lead counts for multiple campaigns in a single query
    * OPTIMIZED: Batch query instead of N queries
    */
-  static async getLeadCounts(campaignIds: string[]): Promise<Map<string, number>> {
+  static async getLeadCounts(
+    campaignIds: string[],
+    options?: DateRangeOptions
+  ): Promise<Map<string, number>> {
     if (campaignIds.length === 0) {
       return new Map();
     }
 
     try {
+      const where: Prisma.LeadWhereInput = {
+        campaignId: {
+          in: campaignIds,
+        },
+      };
+
+      if (options?.from || options?.to) {
+        where.submittedAt = {};
+        if (options.from) where.submittedAt.gte = options.from;
+        if (options.to) where.submittedAt.lte = options.to;
+      }
+
       const counts = await prisma.lead.groupBy({
         by: ['campaignId'],
-        where: {
-          campaignId: {
-            in: campaignIds,
-          },
-        },
+        where,
         _count: {
           id: true,
         },
@@ -108,7 +124,10 @@ export class CampaignAnalyticsService {
    * Get comprehensive stats for multiple campaigns
    * OPTIMIZED: Batch queries instead of N+1
    */
-  static async getCampaignStats(campaignIds: string[]): Promise<Map<string, CampaignStats>> {
+  static async getCampaignStats(
+    campaignIds: string[],
+    options?: DateRangeOptions
+  ): Promise<Map<string, CampaignStats>> {
     if (campaignIds.length === 0) {
       return new Map();
     }
@@ -116,9 +135,9 @@ export class CampaignAnalyticsService {
     try {
       // Fetch all stats in parallel
       const [leadCounts, lastLeadTimes, impressionCounts] = await Promise.all([
-        this.getLeadCounts(campaignIds),
-        this.getLastLeadTimes(campaignIds),
-        PopupEventService.getImpressionCountsByCampaign(campaignIds),
+        this.getLeadCounts(campaignIds, options),
+        this.getLastLeadTimes(campaignIds), // Last lead time is usually global, but could be ranged. Keeping global for "Last Updated" feel.
+        PopupEventService.getImpressionCountsByCampaign(campaignIds, { from: options?.from, to: options?.to }),
       ]);
 
       const statsMap = new Map<string, CampaignStats>();
@@ -162,6 +181,7 @@ export class CampaignAnalyticsService {
    */
   static async getRevenueBreakdownByCampaignIds(
     campaignIds: string[],
+    options?: DateRangeOptions
   ): Promise<
     Map<string, { revenue: number; discount: number; orderCount: number; aov: number }>
   > {
@@ -170,11 +190,19 @@ export class CampaignAnalyticsService {
     }
 
     try {
+      const where: Prisma.CampaignConversionWhereInput = {
+        campaignId: { in: campaignIds },
+      };
+
+      if (options?.from || options?.to) {
+        where.createdAt = {};
+        if (options.from) where.createdAt.gte = options.from;
+        if (options.to) where.createdAt.lte = options.to;
+      }
+
       const rows = await prisma.campaignConversion.groupBy({
         by: ["campaignId"],
-        where: {
-          campaignId: { in: campaignIds },
-        },
+        where,
         _sum: {
           totalPrice: true,
           discountAmount: true,
@@ -218,8 +246,9 @@ export class CampaignAnalyticsService {
    */
   static async getRevenueByCampaignIds(
     campaignIds: string[],
+    options?: DateRangeOptions
   ): Promise<Map<string, number>> {
-    const breakdown = await this.getRevenueBreakdownByCampaignIds(campaignIds);
+    const breakdown = await this.getRevenueBreakdownByCampaignIds(campaignIds, options);
 
     const revenueMap = new Map<string, number>();
     breakdown.forEach((value, campaignId) => {
@@ -361,4 +390,3 @@ export class CampaignAnalyticsService {
     }
   }
 }
-

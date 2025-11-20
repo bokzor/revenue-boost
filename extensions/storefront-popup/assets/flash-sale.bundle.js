@@ -19,13 +19,13 @@
   function getSizeDimensions(size, previewMode) {
     switch (size) {
       case "small":
-        return { width: "90%", maxWidth: "400px" };
+        return { width: "100%", maxWidth: "400px" };
       case "medium":
-        return { width: "90%", maxWidth: "600px" };
+        return { width: "100%", maxWidth: "700px" };
       case "large":
-        return { width: "90%", maxWidth: "900px" };
+        return { width: "100%", maxWidth: "900px" };
       default:
-        return { width: "90%", maxWidth: "600px" };
+        return { width: "100%", maxWidth: "700px" };
     }
   }
 

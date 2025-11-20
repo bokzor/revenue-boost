@@ -162,7 +162,13 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
         setIsSubmitted(true);
       } else {
         // Default secure submission handler
-        const challengeToken = challengeTokenStore.get(config.campaignId);
+        const campaignId = config.campaignId;
+
+        if (!campaignId) {
+          throw new Error('Missing campaignId for secure submission');
+        }
+
+        const challengeToken = challengeTokenStore.get(campaignId);
 
         if (!challengeToken) {
           throw new Error('Security check failed. Please refresh the page.');

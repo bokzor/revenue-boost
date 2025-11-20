@@ -27,6 +27,16 @@ const shopify = shopifyApp({
       callbackUrl: "/webhooks/orders/create",
     },
   },
+  // After a shop authenticates, register shop-specific webhooks (including ORDERS_CREATE)
+  hooks: {
+    afterAuth: async ({ session }) => {
+      try {
+        await shopify.registerWebhooks({ session });
+      } catch (error) {
+        console.error("[Shopify] Failed to register webhooks", error);
+      }
+    },
+  },
   ...(env.SHOP_CUSTOM_DOMAIN
     ? { customShopDomains: [env.SHOP_CUSTOM_DOMAIN] }
     : {}),

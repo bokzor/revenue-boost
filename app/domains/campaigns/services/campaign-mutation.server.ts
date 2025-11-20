@@ -58,6 +58,19 @@ export class CampaignMutationService {
       );
     }
 
+    // Enforce plan limits
+    // Only check if we are trying to create an ACTIVE campaign
+    if (data.status === "ACTIVE") {
+      const { PlanGuardService } = await import("~/domains/billing/services/plan-guard.server");
+      await PlanGuardService.assertCanCreateCampaign(storeId);
+    }
+
+    // Enforce variant limits if part of an experiment
+    if (data.experimentId) {
+      const { PlanGuardService } = await import("~/domains/billing/services/plan-guard.server");
+      await PlanGuardService.assertCanAddVariant(storeId, data.experimentId);
+    }
+
     try {
       // Auto-generate discount code if needed
       const discountConfig = ensureDiscountCode(data.discountConfig);
@@ -163,6 +176,20 @@ export class CampaignMutationService {
       );
     }
 
+    // Enforce plan limits if activating
+    if (data.status === "ACTIVE") {
+      const currentCampaign = await prisma.campaign.findUnique({
+        where: { id },
+        select: { status: true },
+      });
+
+      // Only check if we are changing status to ACTIVE (and it wasn't already)
+      if (currentCampaign && currentCampaign.status !== "ACTIVE") {
+        const { PlanGuardService } = await import("~/domains/billing/services/plan-guard.server");
+        await PlanGuardService.assertCanCreateCampaign(storeId);
+      }
+    }
+
     try {
       // Build update data using extracted helpers
       const { buildCampaignUpdateData } = await import("./campaign-update-helpers.js");
@@ -209,16 +236,49 @@ export class CampaignMutationService {
     admin?: any
   ): Promise<boolean> {
     try {
+      // Fetch campaign to check for marketing event and experiment
+      const campaign = await prisma.campaign.findUnique({
+        where: { id, storeId },
+        select: { marketingEventId: true, experimentId: true },
+      });
+
+      if (!campaign) return false;
+
       // Sync to Shopify Marketing Events if admin context is provided
-      if (admin) {
-        const campaign = await CampaignQueryService.getById(id, storeId);
-        if (campaign?.marketingEventId) {
-          await MarketingEventsService.deleteMarketingEvent(admin, campaign.marketingEventId);
-        }
+      if (admin && campaign.marketingEventId) {
+        await MarketingEventsService.deleteMarketingEvent(admin, campaign.marketingEventId);
       }
+
       const result = await prisma.campaign.deleteMany({
         where: { id, storeId },
       });
+
+      // Cleanup experiment if this was the last variant
+      if (campaign.experimentId) {
+        const remainingVariants = await prisma.campaign.count({
+          where: { experimentId: campaign.experimentId },
+        });
+
+        if (remainingVariants === 0) {
+          const experiment = await prisma.experiment.findUnique({
+            where: { id: campaign.experimentId },
+            select: { status: true },
+          });
+
+          if (experiment) {
+            if (experiment.status === "DRAFT") {
+              await prisma.experiment.delete({
+                where: { id: campaign.experimentId },
+              });
+            } else {
+              await prisma.experiment.update({
+                where: { id: campaign.experimentId },
+                data: { status: "ARCHIVED" },
+              });
+            }
+          }
+        }
+      }
 
       return result.count > 0;
     } catch (error) {

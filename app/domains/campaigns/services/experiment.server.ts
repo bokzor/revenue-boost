@@ -133,6 +133,10 @@ export class ExperimentService {
       );
     }
 
+    // Enforce plan limits
+    const { PlanGuardService } = await import("~/domains/billing/services/plan-guard.server");
+    await PlanGuardService.assertCanCreateExperiment(storeId);
+
     try {
       const jsonFields = stringifyEntityJsonFields(data, [
         {

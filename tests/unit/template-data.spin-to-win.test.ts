@@ -56,9 +56,9 @@ describe("GLOBAL_SYSTEM_TEMPLATES – Spin to Win", () => {
       expect(typeof segment.label).toBe("string");
       expect(typeof segment.probability).toBe("number");
 
-      if (segment.discountType) {
-        expect(["percentage", "fixed", "free_shipping"]).toContain(
-          segment.discountType,
+      if (segment.discountConfig && segment.discountConfig.valueType) {
+        expect(["PERCENTAGE", "FIXED_AMOUNT", "FREE_SHIPPING"]).toContain(
+          segment.discountConfig.valueType,
         );
       }
     }

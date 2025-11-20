@@ -23,13 +23,13 @@
   function getSizeDimensions(size, previewMode) {
     switch (size) {
       case "small":
-        return { width: "90%", maxWidth: "400px" };
+        return { width: "100%", maxWidth: "400px" };
       case "medium":
-        return { width: "90%", maxWidth: "600px" };
+        return { width: "100%", maxWidth: "700px" };
       case "large":
-        return { width: "90%", maxWidth: "900px" };
+        return { width: "100%", maxWidth: "900px" };
       default:
-        return { width: "90%", maxWidth: "600px" };
+        return { width: "100%", maxWidth: "700px" };
     }
   }
   function validateEmail(email) {
@@ -39,6 +39,17 @@
   function prefersReducedMotion() {
     if (typeof window === "undefined") return false;
     return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  }
+  function debounce(func, wait) {
+    let timeout = null;
+    return function executedFunction(...args) {
+      const later = () => {
+        timeout = null;
+        func(...args);
+      };
+      if (timeout) clearTimeout(timeout);
+      timeout = setTimeout(later, wait);
+    };
   }
 
   // global-preact:global-preact:preact/jsx-runtime
@@ -572,6 +583,7 @@
     const [emailFocused, setEmailFocused] = useState(false);
     const canvasRef = useRef(null);
     const wheelContainerRef = useRef(null);
+    const wheelCellRef = useRef(null);
     const cardRef = useRef(null);
     const [containerWidth, setContainerWidth] = useState(null);
     const [cardWidth, setCardWidth] = useState(null);
@@ -582,35 +594,38 @@
     const accentColor = config.accentColor || config.buttonColor || "#000000";
     const borderRadius = typeof config.borderRadius === "string" ? parseFloat(config.borderRadius) || 16 : config.borderRadius ?? 16;
     const animDuration = config.animationDuration ?? 300;
+    const viewportWidth = typeof window !== "undefined" ? window.innerWidth : null;
+    const effectiveWidth = cardWidth ?? viewportWidth;
+    const isMobile = effectiveWidth !== null ? effectiveWidth < 640 : false;
     const updateWheelSize = useCallback(() => {
       if (typeof window === "undefined") return;
-      const container = wheelContainerRef.current;
+      const container = wheelCellRef.current;
       if (!container) return;
-      const measuredWidth = container.clientWidth || config.wheelSize || 380;
-      const measuredHeight = container.clientHeight || measuredWidth;
-      setContainerWidth(measuredWidth);
-      let canvasSize;
-      if (measuredWidth < 640) {
-        const heightBasedSize = measuredHeight * 1.1;
-        const widthBasedMaxSize = measuredWidth * (4 / 3);
-        canvasSize = Math.min(heightBasedSize, widthBasedMaxSize);
-      } else if (measuredWidth < 1024) {
-        const heightBasedSize = measuredHeight * 0.75;
-        const widthBasedMaxSize = measuredWidth * 1.6;
-        const maxConfigured = config.wheelSize || 450;
-        canvasSize = Math.min(heightBasedSize, widthBasedMaxSize, maxConfigured);
+      const measuredWidth = container.clientWidth;
+      const measuredHeight = container.clientHeight;
+      console.log("[SpinToWin] updateWheelSize", {
+        containerSize: `${measuredWidth}x${measuredHeight}`,
+        isMobile,
+        container
+      });
+      if (!measuredWidth || !measuredHeight) return;
+      let newSize;
+      if (isMobile) {
+        newSize = measuredWidth;
       } else {
-        const heightBasedSize = measuredHeight * 0.9;
-        const widthBasedMaxSize = measuredWidth * 1.8;
-        const maxConfigured = config.wheelSize || 600;
-        canvasSize = Math.min(heightBasedSize, widthBasedMaxSize, maxConfigured);
+        newSize = measuredHeight;
       }
-      if (!Number.isFinite(canvasSize) || canvasSize <= 0) {
-        canvasSize = config.wheelSize || 380;
-      }
-      const clamped = Math.max(200, Math.min(canvasSize, 800));
-      setWheelSize(clamped);
-    }, [config.wheelSize]);
+      console.log("[SpinToWin] Calculated newSize", newSize);
+      newSize = Math.max(250, newSize);
+      setWheelSize(newSize);
+    }, [isMobile]);
+    const debouncedUpdateWheelSize = useMemo(
+      () => debounce(updateWheelSize, 100),
+      [updateWheelSize]
+    );
+    useEffect(() => {
+      debouncedUpdateWheelSize();
+    }, [cardWidth, debouncedUpdateWheelSize]);
     useEffect(() => {
       if (!isVisible || typeof window === "undefined") return;
       let frameId = null;
@@ -620,14 +635,14 @@
         });
       };
       runInitialMeasure();
-      window.addEventListener("resize", updateWheelSize);
+      window.addEventListener("resize", debouncedUpdateWheelSize);
       return () => {
         if (frameId !== null && typeof window.cancelAnimationFrame === "function") {
           window.cancelAnimationFrame(frameId);
         }
-        window.removeEventListener("resize", updateWheelSize);
+        window.removeEventListener("resize", debouncedUpdateWheelSize);
       };
-    }, [isVisible, updateWheelSize]);
+    }, [isVisible, updateWheelSize, debouncedUpdateWheelSize]);
     useEffect(() => {
       if (!isVisible || typeof window === "undefined") return;
       const measureCardWidth = () => {
@@ -653,11 +668,6 @@
         }
       };
     }, [isVisible]);
-    const viewportWidth = typeof window !== "undefined" ? window.innerWidth : null;
-    const effectiveWidth = cardWidth ?? viewportWidth;
-    const isMobile = effectiveWidth !== null ? effectiveWidth < 640 : false;
-    const isTablet = effectiveWidth !== null ? effectiveWidth >= 640 && effectiveWidth < 1024 : false;
-    const isDesktop = effectiveWidth !== null ? effectiveWidth >= 1024 : true;
     const wheelBorderColor = config.wheelBorderColor || "#FFFFFF";
     const wheelBorderWidth = config.wheelBorderWidth ?? 3;
     const baseBackground = config.backgroundColor || "#FFFFFF";
@@ -742,25 +752,6 @@
         }
         ctx.restore();
       });
-      function drawPointer(pointerCtx) {
-        pointerCtx.save();
-        pointerCtx.fillStyle = "white";
-        pointerCtx.shadowColor = "rgba(0, 0, 0, 0.4)";
-        pointerCtx.shadowBlur = 6;
-        pointerCtx.shadowOffsetY = 3;
-        pointerCtx.beginPath();
-        const pointerTipX = centerX + radiusPx - 8;
-        const pointerTipY = centerY;
-        const pointerBaseX = centerX + radiusPx + 22;
-        const pointerBaseYOffset = 18;
-        pointerCtx.moveTo(pointerTipX, pointerTipY);
-        pointerCtx.lineTo(pointerBaseX, pointerTipY - pointerBaseYOffset);
-        pointerCtx.lineTo(pointerBaseX, pointerTipY + pointerBaseYOffset);
-        pointerCtx.closePath();
-        pointerCtx.fill();
-        pointerCtx.restore();
-      }
-      drawPointer(ctx);
     }, [segments, wheelSize, accentColor, wheelBorderColor, wheelBorderWidth, hasSpun, wonPrize, rotation]);
     useEffect(() => {
       if (isVisible) {
@@ -787,138 +778,134 @@
         setEmailError("Invalid email");
         return false;
       }
-      if (collectName && !name.trim()) {
+      if (collectName && config.nameFieldRequired && !name.trim()) {
         setNameError("Name is required");
         return false;
       }
-      if (showGdpr && !gdprConsent) {
+      if (showGdpr && config.consentFieldRequired && !gdprConsent) {
         setGdprError("You must accept the terms to continue");
         return false;
       }
       return true;
-    }, [config.emailRequired, email, collectName, name, showGdpr, gdprConsent]);
+    }, [config.emailRequired, config.nameFieldRequired, config.consentFieldRequired, email, collectName, name, showGdpr, gdprConsent]);
     const handleSpin = useCallback(async () => {
       const isValid = validateForm();
       if (!isValid) return;
       setIsSpinning(true);
       setCodeError("");
+      const duration = config.spinDuration || 4e3;
+      const reduceMotion = prefersReducedMotion();
+      if (spinAnimationFrameRef.current !== null && typeof cancelAnimationFrame !== "undefined") {
+        cancelAnimationFrame(spinAnimationFrameRef.current);
+      }
+      spinFromRef.current = rotationRef.current;
+      const initialTarget = rotationRef.current + 360 * 10;
+      spinToRef.current = initialTarget;
+      spinStartTimeRef.current = performance.now();
+      const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);
+      const easeInOutQuad = (t) => t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+      const animate = (timestamp) => {
+        if (spinStartTimeRef.current === null) return;
+        const elapsed = timestamp - spinStartTimeRef.current;
+        const t = Math.min(1, elapsed / duration);
+        const eased = easeOutCubic(t);
+        const current = spinFromRef.current + (spinToRef.current - spinFromRef.current) * eased;
+        setRotation(current);
+        if (t < 1) {
+          spinAnimationFrameRef.current = requestAnimationFrame(animate);
+        } else {
+          spinAnimationFrameRef.current = null;
+          setRotation(spinToRef.current);
+          setHasSpun(true);
+          setIsSpinning(false);
+        }
+      };
+      spinAnimationFrameRef.current = requestAnimationFrame(animate);
       try {
         if (!config.previewMode && onSpin) {
           await onSpin(email);
         }
-        const duration = config.spinDuration || 4e3;
-        const reduceMotion = prefersReducedMotion();
-        if (spinAnimationFrameRef.current !== null && typeof cancelAnimationFrame !== "undefined") {
-          cancelAnimationFrame(spinAnimationFrameRef.current);
-        }
-        const minSpins = config.minSpins ?? 5;
-        const tempRotation = minSpins * 360;
-        if (reduceMotion || typeof requestAnimationFrame === "undefined") {
-          setRotation(tempRotation);
-        } else {
-          spinFromRef.current = rotationRef.current;
-          spinToRef.current = tempRotation;
-          spinStartTimeRef.current = null;
-          const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);
-          const step = (timestamp) => {
-            if (spinStartTimeRef.current === null) {
-              spinStartTimeRef.current = timestamp;
-            }
-            const elapsed = timestamp - spinStartTimeRef.current;
-            const t = Math.min(1, elapsed / duration);
-            const eased = easeOutCubic(t);
-            const current = spinFromRef.current + (spinToRef.current - spinFromRef.current) * eased;
-            setRotation(current);
-            if (t < 1) {
-              spinAnimationFrameRef.current = requestAnimationFrame(step);
+        let serverPrize = null;
+        let discountCode;
+        let autoApply = false;
+        if (!config.previewMode && config.campaignId) {
+          setIsGeneratingCode(true);
+          try {
+            const response = await fetch("/apps/revenue-boost/api/popups/spin-win", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                campaignId: config.campaignId,
+                email,
+                sessionId: typeof window !== "undefined" ? window.sessionStorage?.getItem("rb_session_id") : void 0,
+                challengeToken: challengeTokenStore.get(config.campaignId)
+              })
+            });
+            const data = await response.json();
+            if (data.success && data.prize && data.discountCode) {
+              serverPrize = {
+                id: data.prize.id,
+                label: data.prize.label,
+                color: data.prize.color,
+                probability: 0,
+                generatedCode: data.discountCode
+              };
+              discountCode = data.discountCode;
+              autoApply = data.autoApply;
             } else {
-              spinAnimationFrameRef.current = null;
-              setRotation(spinToRef.current);
+              setCodeError(data.error || "Could not generate discount code");
             }
-          };
-          spinAnimationFrameRef.current = requestAnimationFrame(step);
-        }
-        setTimeout(async () => {
-          setHasSpun(true);
-          setIsSpinning(false);
-          if (!config.previewMode && config.campaignId) {
-            setIsGeneratingCode(true);
-            try {
-              const response = await fetch("/apps/revenue-boost/api/popups/spin-win", {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                  campaignId: config.campaignId,
-                  // NO prizeId - server selects the prize
-                  email,
-                  sessionId: typeof window !== "undefined" ? window.sessionStorage?.getItem("rb_session_id") : void 0,
-                  challengeToken: challengeTokenStore.get(config.campaignId)
-                })
-              });
-              const data = await response.json();
-              if (data.success && data.prize && data.discountCode) {
-                const serverPrize = {
-                  id: data.prize.id,
-                  label: data.prize.label,
-                  color: data.prize.color,
-                  probability: 0,
-                  // Not needed from server
-                  generatedCode: data.discountCode
-                };
-                setWonPrize(serverPrize);
-                if (onWin) {
-                  onWin(serverPrize);
-                }
-                if (data.autoApply && data.discountCode) {
-                  try {
-                    if (typeof window !== "undefined" && window.localStorage) {
-                      window.localStorage.setItem("rb_discount_code", data.discountCode);
-                      window.localStorage.setItem("rb_discount_applied_at", (/* @__PURE__ */ new Date()).toISOString());
-                    }
-                    console.log("[Spin-to-Win] Discount code ready for checkout");
-                  } catch (applyError) {
-                    console.error("[Spin-to-Win] Auto-apply failed:", applyError);
-                  }
-                }
-              } else {
-                setCodeError(data.error || "Could not generate discount code");
-                console.error("[Spin-to-Win] Prize/code generation failed:", data.error);
-              }
-            } catch (fetchError) {
-              console.error("[Spin-to-Win] API call failed:", fetchError);
-              setCodeError("Network error generating code");
-            } finally {
-              setIsGeneratingCode(false);
-            }
-          } else {
-            const fallbackPrize = segments[0];
-            setWonPrize(fallbackPrize);
-            if (onWin) {
-              onWin(fallbackPrize);
-            }
+          } catch (err) {
+            console.error("API error", err);
+            setCodeError("Network error");
+          } finally {
+            setIsGeneratingCode(false);
           }
-        }, duration);
+        } else {
+          const randomIdx = Math.floor(Math.random() * segments.length);
+          serverPrize = segments[randomIdx];
+          discountCode = "PREVIEW10";
+        }
+        if (serverPrize) {
+          setWonPrize(serverPrize);
+          const prizeIndex = segments.findIndex((s) => s.id === serverPrize?.id);
+          if (prizeIndex !== -1) {
+            const segmentAngle2 = 360 / segments.length;
+            const segmentCenter = prizeIndex * segmentAngle2 - 90 + segmentAngle2 / 2;
+            const baseTarget = -segmentCenter;
+            const currentRot = rotationRef.current;
+            const minSpins = 5;
+            const targetRotation = currentRot + 360 * minSpins + (baseTarget - currentRot % 360);
+            spinFromRef.current = currentRot;
+            spinToRef.current = targetRotation;
+            spinStartTimeRef.current = performance.now();
+          }
+          if (onWin && serverPrize) onWin(serverPrize);
+          if (autoApply && discountCode && typeof window !== "undefined") {
+            window.localStorage.setItem("rb_discount_code", discountCode);
+          }
+        }
       } catch (error) {
         console.error("Spin error:", error);
         setEmailError("Error occurred");
         setIsSpinning(false);
-        setIsGeneratingCode(false);
       }
     }, [validateForm, config, email, onSpin, segments, onWin]);
-    const getInputStyles = (isFocused, hasError) => ({
-      width: "100%",
-      padding: "14px 16px",
-      fontSize: "15px",
-      border: `2px solid ${hasError ? "#EF4444" : isFocused ? accentColor : inputBorderColor}`,
-      borderRadius: `${borderRadius}px`,
-      backgroundColor: inputBackground,
-      color: inputTextColor,
-      outline: "none",
-      transition: `all ${animDuration}ms cubic-bezier(0.4, 0, 0.2, 1)`,
-      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-    });
+    const getInputStyles = (isFocused, hasError) => {
+      const placeholderColor = inputTextColor ? `${inputTextColor}80` : "rgba(107, 114, 128, 0.5)";
+      return {
+        width: "100%",
+        padding: "14px 16px",
+        fontSize: "15px",
+        border: `2px solid ${hasError ? "#EF4444" : isFocused ? accentColor : inputBorderColor}`,
+        borderRadius: `${borderRadius}px`,
+        backgroundColor: inputBackground,
+        color: inputTextColor,
+        outline: "none",
+        transition: `all ${animDuration}ms cubic-bezier(0.4, 0, 0.2, 1)`,
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+      };
+    };
     const buttonStyles = {
       width: "100%",
       padding: "16px 32px",
@@ -941,33 +928,36 @@
       cursor: "pointer",
       opacity: 0.9
     };
-    const layoutRowStyles = {
-      display: "flex",
-      flexDirection: isMobile ? "column" : "row",
-      alignItems: isMobile ? "stretch" : "center",
-      justifyContent: "stretch",
+    const gridContainerStyles = {
+      display: "grid",
+      // Use minmax(0, 1fr) to ensure strictly equal tracks even if content is wide
+      gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))",
+      gridTemplateRows: isMobile ? "repeat(2, minmax(0, 1fr))" : "1fr",
       width: "100%",
-      minHeight: isMobile ? 0 : 420,
-      gap: isMobile ? 24 : 0
-    };
-    const wheelColumnStyles = {
-      position: "relative",
-      width: isMobile ? "100%" : "50%",
-      height: isMobile ? 450 : "100%",
-      flexShrink: 0,
-      display: "flex",
-      alignItems: "center",
-      justifyContent: isMobile ? "center" : "flex-start",
-      overflow: "visible",
-      marginLeft: 0
-    };
-    const formColumnStyles = {
-      width: isMobile ? "100%" : "50%",
       height: "100%",
+      minHeight: isMobile ? "auto" : 450
+    };
+    const wheelCellStyles = {
+      position: "relative",
+      display: "flex",
+      // Desktop: Right edge touches middle (justify-end of left cell)
+      // Mobile: Bottom edge touches middle (align-end of top cell)
+      justifyContent: isMobile ? "center" : "flex-end",
+      alignItems: isMobile ? "flex-end" : "center",
+      overflow: "visible",
+      // Allow wheel to overflow
+      padding: 0,
+      zIndex: 10
+    };
+    const formCellStyles = {
       display: "flex",
       flexDirection: "column",
       justifyContent: "center",
-      alignItems: "stretch"
+      alignItems: "center",
+      padding: isMobile ? "24px 16px" : "40px",
+      zIndex: 20,
+      backgroundColor: isMobile ? baseBackground : "transparent"
+      // Ensure form is readable
     };
     const formInnerStyles = {
       maxWidth: 448,
@@ -978,18 +968,22 @@
       gap: 16
     };
     const wheelWrapperStyles = {
-      position: isMobile ? "absolute" : "relative",
-      // Mobile: keep explicit pixel sizing and off-screen effect
-      width: isMobile ? wheelSize : "100%",
-      maxWidth: isMobile ? void 0 : "100%",
-      height: isMobile ? wheelSize : void 0,
-      // Tablet & desktop: keep wheel within its 50% column by making it square
-      // relative to the column width
-      aspectRatio: isMobile ? void 0 : "1 / 1",
-      top: isMobile ? wheelSize * 0.35 : void 0,
-      left: isMobile ? "50%" : void 0,
-      transform: isMobile ? "translate(-50%, -65%) rotate(90deg)" : isTablet ? "translateX(-18%) scale(0.8)" : "translateX(-18%)",
-      transformOrigin: "center center"
+      position: "absolute",
+      width: wheelSize,
+      height: wheelSize,
+      // Mobile: Bottom-center alignment
+      // Desktop: Right-center alignment
+      left: isMobile ? "50%" : "auto",
+      bottom: isMobile ? 0 : "auto",
+      right: isMobile ? "auto" : 0,
+      top: isMobile ? "auto" : "50%",
+      // Mobile: Rotate 90deg so 3 o'clock (East) becomes 6 o'clock (South)
+      // AND center horizontally (translateX -50%)
+      // Desktop: Center vertically (translateY -50%)
+      transform: isMobile ? "translateX(-50%) rotate(90deg)" : "translateY(-50%)",
+      transformOrigin: "center center",
+      transition: "transform 0.3s ease",
+      zIndex: 10
     };
     if (!isVisible) return null;
     return /* @__PURE__ */ jsxs(
@@ -1024,6 +1018,12 @@
               opacity: 1;
               transform: translateY(0);
             }
+          }
+          
+          /* Dynamic placeholder color based on inputTextColor */
+          .spin-to-win-input::placeholder {
+            color: ${inputTextColor ? `${inputTextColor}80` : "rgba(107, 114, 128, 0.5)"};
+            opacity: 1;
           }
         ` }),
           /* @__PURE__ */ jsx(
@@ -1078,75 +1078,84 @@
                         children: /* @__PURE__ */ jsx("span", { style: { fontSize: 18, lineHeight: 1 }, children: "X" })
                       }
                     ),
-                    /* @__PURE__ */ jsxs("div", { style: layoutRowStyles, children: [
-                      /* @__PURE__ */ jsx("div", { style: wheelColumnStyles, children: /* @__PURE__ */ jsx(
-                        "div",
-                        {
-                          style: {
-                            display: "flex",
-                            flexDirection: config.imagePosition === "top" || config.imagePosition === "bottom" ? "column" : "row",
-                            gap: 24,
-                            alignItems: "flex-start",
-                            justifyContent: "flex-start"
-                          },
-                          children: /* @__PURE__ */ jsxs("div", { style: wheelWrapperStyles, children: [
-                            /* @__PURE__ */ jsx(
-                              "div",
+                    /* @__PURE__ */ jsxs("div", { style: gridContainerStyles, children: [
+                      /* @__PURE__ */ jsx("div", { style: wheelCellStyles, ref: wheelCellRef, children: /* @__PURE__ */ jsxs("div", { style: wheelWrapperStyles, children: [
+                        /* @__PURE__ */ jsx(
+                          "div",
+                          {
+                            ref: wheelContainerRef,
+                            style: {
+                              position: "relative",
+                              width: "100%",
+                              height: "100%",
+                              filter: hasSpun ? "drop-shadow(0 18px 45px rgba(15,23,42,0.55))" : "drop-shadow(0 10px 30px rgba(15,23,42,0.35))"
+                            },
+                            children: /* @__PURE__ */ jsx(
+                              "canvas",
                               {
-                                ref: wheelContainerRef,
+                                ref: canvasRef,
+                                width: wheelSize,
+                                height: wheelSize,
                                 style: {
-                                  position: "relative",
                                   width: "100%",
                                   height: "100%",
-                                  filter: hasSpun ? "drop-shadow(0 18px 45px rgba(15,23,42,0.55))" : "drop-shadow(0 10px 30px rgba(15,23,42,0.35))"
-                                },
-                                children: /* @__PURE__ */ jsx(
-                                  "canvas",
-                                  {
-                                    ref: canvasRef,
-                                    width: wheelSize,
-                                    height: wheelSize,
-                                    style: {
-                                      width: "100%",
-                                      height: "100%",
-                                      borderRadius: "50%"
-                                    }
-                                  }
-                                )
-                              }
-                            ),
-                            /* @__PURE__ */ jsx(
-                              "div",
-                              {
-                                style: {
-                                  position: "absolute",
-                                  top: "50%",
-                                  left: "50%",
-                                  transform: "translate(-50%, -50%)",
-                                  width: 80,
-                                  height: 80,
-                                  borderRadius: "50%",
-                                  backgroundColor: accentColor,
-                                  border: "4px solid rgba(15,23,42,0.85)",
-                                  display: "flex",
-                                  alignItems: "center",
-                                  justifyContent: "center",
-                                  color: "#F9FAFB",
-                                  fontSize: 12,
-                                  fontWeight: 600,
-                                  letterSpacing: "0.12em",
-                                  textTransform: "uppercase",
-                                  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                                  boxShadow: "0 4px 12px rgba(15,23,42,0.4)",
-                                  pointerEvents: "none"
-                                },
-                                children: "SPIN"
+                                  borderRadius: "50%"
+                                }
                               }
                             )
-                          ] })
-                        }
-                      ) }),
-                      /* @__PURE__ */ jsx("div", { style: formColumnStyles, children: /* @__PURE__ */ jsxs("div", { style: formInnerStyles, children: [
+                          }
+                        ),
+                        /* @__PURE__ */ jsx(
+                          "div",
+                          {
+                            style: {
+                              position: "absolute",
+                              top: "50%",
+                              right: -12,
+                              // Slightly overlapping or just outside
+                              transform: "translateY(-50%)",
+                              width: 0,
+                              height: 0,
+                              borderTop: "16px solid transparent",
+                              borderBottom: "16px solid transparent",
+                              borderRight: "24px solid #FFFFFF",
+                              // Points Left
+                              filter: "drop-shadow(-2px 0 4px rgba(0,0,0,0.2))",
+                              zIndex: 20
+                            }
+                          }
+                        ),
+                        /* @__PURE__ */ jsx(
+                          "div",
+                          {
+                            style: {
+                              position: "absolute",
+                              top: "50%",
+                              left: "50%",
+                              transform: "translate(-50%, -50%)",
+                              width: 80,
+                              height: 80,
+                              borderRadius: "50%",
+                              backgroundColor: accentColor,
+                              border: "4px solid rgba(15,23,42,0.85)",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              color: "#F9FAFB",
+                              fontSize: 12,
+                              fontWeight: 600,
+                              letterSpacing: "0.12em",
+                              textTransform: "uppercase",
+                              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                              boxShadow: "0 4px 12px rgba(15,23,42,0.4)",
+                              pointerEvents: "none",
+                              zIndex: 15
+                            },
+                            children: "SPIN"
+                          }
+                        )
+                      ] }) }),
+                      /* @__PURE__ */ jsx("div", { style: formCellStyles, children: /* @__PURE__ */ jsxs("div", { style: formInnerStyles, children: [
                         /* @__PURE__ */ jsxs("div", { style: { marginBottom: 24 }, children: [
                           /* @__PURE__ */ jsx(
                             "h2",
@@ -1182,8 +1191,10 @@
                                 marginTop: 12,
                                 padding: "12px 16px",
                                 borderRadius: 9999,
-                                backgroundColor: wonPrize?.generatedCode ? successColor : config.textColor || "#111827",
-                                color: wonPrize?.generatedCode ? "#FFFFFF" : "#F9FAFB",
+                                backgroundColor: wonPrize?.generatedCode ? successColor : "#374151",
+                                // Dark gray for failure message
+                                color: "#FFFFFF",
+                                // Always white text for good contrast
                                 fontSize: "14px",
                                 fontWeight: 500,
                                 textAlign: "center",
@@ -1212,12 +1223,13 @@
                             "input",
                             {
                               type: "text",
+                              className: "spin-to-win-input",
                               value: name,
                               onChange: (e) => {
                                 setName(e.target.value);
                                 if (nameError) setNameError("");
                               },
-                              placeholder: "Enter your name",
+                              placeholder: config.nameFieldPlaceholder || "Enter your name",
                               style: getInputStyles(false, !!nameError),
                               disabled: isSpinning || hasSpun
                             }
@@ -1248,6 +1260,7 @@
                             "input",
                             {
                               type: "email",
+                              className: "spin-to-win-input",
                               value: email,
                               onChange: (e) => {
                                 setEmail(e.target.value);

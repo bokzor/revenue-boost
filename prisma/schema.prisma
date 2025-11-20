@@ -50,8 +50,29 @@ model Store {
   segmentMemberships SegmentMembership[]
   popupEvents        PopupEvent[]
 
+  // Plan & Billing
+  planTier         PlanTier   @default(FREE)
+  planStatus       PlanStatus @default(TRIALING)
+  trialEndsAt      DateTime?
+  currentPeriodEnd DateTime?
+
   @@index([shopifyDomain, isActive])
   @@map("stores")
+}
+
+enum PlanTier {
+  FREE
+  STARTER
+  GROWTH
+  PRO
+  ENTERPRISE
+}
+
+enum PlanStatus {
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  CANCELLED
 }
 
 model Campaign {
