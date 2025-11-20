@@ -64,5 +64,26 @@ describe("AnnouncementPopup", () => {
 
     expect(onClose).toHaveBeenCalled();
   });
+
+	  it("supports gradient background colors by using backgroundImage style", () => {
+	    const gradient = "linear-gradient(135deg, #667eea 0%, #764ba2 100%)";
+	    const config = createConfig({
+	      colorScheme: "custom",
+	      backgroundColor: gradient,
+	    });
+
+	    const { container } = render(
+	      <AnnouncementPopup
+	        config={config}
+	        isVisible={true}
+	        onClose={() => {}}
+	      />,
+	    );
+
+	    const banner = container.firstChild as HTMLElement;
+	    const style = banner.getAttribute("style") || "";
+	    expect(style).toContain(`background-image: ${gradient}`);
+	    expect(style).not.toContain("background-color: linear-gradient");
+	  });
 });
 

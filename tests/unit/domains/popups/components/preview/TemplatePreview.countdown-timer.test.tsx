@@ -43,5 +43,16 @@ describe("TemplatePreview Countdown Timer  stock counter wiring", () => {
     await screen.findByText(/Limited Time Offer/i);
     expect(screen.queryByText(/Only 5 left in stock/i)).toBeNull();
   });
+
+  it("constrains countdown banner to preview container (no fixed positioning)", () => {
+    const { container } = renderCountdownPreview();
+
+    const banner = container.querySelector(".countdown-banner") as HTMLElement | null;
+    expect(banner).toBeTruthy();
+
+    const style = banner?.getAttribute("style") || "";
+    expect(style).toContain("position: absolute");
+    expect(style).not.toContain("position: fixed");
+  });
 });
 

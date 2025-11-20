@@ -21,6 +21,7 @@ import {
 } from "@shopify/polaris";
 import { ChevronDownIcon, ChevronUpIcon } from "@shopify/polaris-icons";
 import { TextField, CheckboxField, FormGrid, ColorField } from "../form";
+import { FieldConfigurationSection } from "./FieldConfigurationSection";
 import { DiscountSection } from "~/domains/popups/components/design/DiscountSection";
 import type { NewsletterContentSchema, DesignConfig } from "../../types/campaign";
 import type { DiscountConfig } from "~/domains/popups/services/discounts/discount.server";
@@ -316,74 +317,25 @@ export function NewsletterContentSection({
               data-test-id="newsletter-failure-message"
             />
 
-            <FormGrid columns={2}>
-              <CheckboxField
-                label="Require Email"
-                name="content.emailRequired"
-                checked={content.emailRequired !== false}
-                helpText="Make email field mandatory"
-                onChange={(checked) => updateField("emailRequired", checked)}
-                data-test-id="newsletter-email-required"
+            {/* Field Configuration Section - Email, Name, GDPR */}
+            <BlockStack gap="300">
+              <Text as="h4" variant="headingSm">
+                Field Configuration
+              </Text>
+              <FieldConfigurationSection
+                emailRequired={content.emailRequired}
+                emailLabel={content.emailLabel}
+                emailPlaceholder={content.emailPlaceholder}
+                nameFieldEnabled={content.nameFieldEnabled}
+                nameFieldRequired={content.nameFieldRequired}
+                nameFieldPlaceholder={content.nameFieldPlaceholder}
+                consentFieldEnabled={content.consentFieldEnabled}
+                consentFieldRequired={content.consentFieldRequired}
+                consentFieldText={content.consentFieldText}
+                onChange={(updates) => onChange({ ...content, ...updates })}
+                errors={errors}
               />
-
-              <CheckboxField
-                label="Enable Name Field"
-                name="content.nameFieldEnabled"
-                checked={content.nameFieldEnabled || false}
-                helpText="Add an optional name field"
-                onChange={(checked) => updateField("nameFieldEnabled", checked)}
-                data-test-id="newsletter-name-field-enabled"
-              />
-            </FormGrid>
-
-            {content.nameFieldEnabled && (
-              <FormGrid columns={2}>
-                <CheckboxField
-                  label="Require Name"
-                  name="content.nameFieldRequired"
-                  checked={content.nameFieldRequired || false}
-                  onChange={(checked) => updateField("nameFieldRequired", checked)}
-                />
-
-                <TextField
-                  label="Name Field Placeholder"
-                  name="content.nameFieldPlaceholder"
-                  value={content.nameFieldPlaceholder || ""}
-                  placeholder="Enter your name"
-                  onChange={(value) => updateField("nameFieldPlaceholder", value)}
-                />
-              </FormGrid>
-            )}
-
-            <CheckboxField
-              label="Enable Consent Checkbox"
-              name="content.consentFieldEnabled"
-              checked={content.consentFieldEnabled || false}
-              helpText="Add a consent checkbox (e.g., for GDPR compliance)"
-              onChange={(checked) => updateField("consentFieldEnabled", checked)}
-              data-test-id="newsletter-consent-field-enabled"
-            />
-
-            {content.consentFieldEnabled && (
-              <FormGrid columns={2}>
-                <CheckboxField
-                  label="Require Consent"
-                  name="content.consentFieldRequired"
-                  checked={content.consentFieldRequired || false}
-                  onChange={(checked) => updateField("consentFieldRequired", checked)}
-                />
-
-                <TextField
-                  label="Consent Text"
-                  name="content.consentFieldText"
-                  value={content.consentFieldText || ""}
-                  placeholder="I agree to receive marketing emails"
-                  multiline
-                  rows={2}
-                  onChange={(value) => updateField("consentFieldText", value)}
-                />
-              </FormGrid>
-            )}
+            </BlockStack>
           </BlockStack>
         </BlockStack>
       </Card>
@@ -427,7 +379,7 @@ export function NewsletterContentSection({
 
             <Divider />
 
-              <BlockStack gap="400">
+            <BlockStack gap="400">
               {/* Theme & Layout */}
               <BlockStack gap="200">
                 <Text as="h4" variant="headingSm">Theme</Text>

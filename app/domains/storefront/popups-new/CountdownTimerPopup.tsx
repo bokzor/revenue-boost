@@ -161,19 +161,34 @@ export const CountdownTimerPopup: React.FC<CountdownTimerPopupProps> = ({
     }
   };
 
-  const schemeColors = getColorSchemeStyles();
+	  const schemeColors = getColorSchemeStyles();
 
-  const positionStyle: React.CSSProperties = config.sticky
-    ? {
-        position: 'fixed',
-        [config.position === 'bottom' ? 'bottom' : 'top']: 0,
-        left: 0,
-        right: 0,
-        zIndex: 9999,
-      }
-    : {
-        position: 'relative',
-      };
+	  const isPreview = (config as any)?.previewMode;
+
+	  const positionStyle: React.CSSProperties = isPreview
+	    ? {
+	        // In admin preview, keep the banner constrained to the preview
+	        // frame instead of the full window. Absolute positioning inside the
+	        // TemplatePreview's relative container mimics top/bottom banners
+	        // without breaking out of the device frame.
+	        position: 'absolute',
+	        [config.position === 'bottom' ? 'bottom' : 'top']: 0,
+	        left: 0,
+	        right: 0,
+	      }
+	    : config.sticky
+	      ? {
+	          // Storefront behavior: stick to the top/bottom of the viewport.
+	          position: 'fixed',
+	          [config.position === 'bottom' ? 'bottom' : 'top']: 0,
+	          left: 0,
+	          right: 0,
+	          zIndex: 9999,
+	        }
+	      : {
+	          // Non-sticky mode: banner participates in normal document flow.
+	          position: 'relative',
+	        };
 
   return (
     <>

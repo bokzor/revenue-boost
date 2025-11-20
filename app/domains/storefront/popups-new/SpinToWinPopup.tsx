@@ -362,18 +362,18 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
       return false;
     }
 
-    if (collectName && !name.trim()) {
+    if (collectName && config.nameFieldRequired && !name.trim()) {
       setNameError('Name is required');
       return false;
     }
 
-    if (showGdpr && !gdprConsent) {
+    if (showGdpr && config.consentFieldRequired && !gdprConsent) {
       setGdprError('You must accept the terms to continue');
       return false;
     }
 
     return true;
-  }, [config.emailRequired, email, collectName, name, showGdpr, gdprConsent]);
+  }, [config.emailRequired, config.nameFieldRequired, config.consentFieldRequired, email, collectName, name, showGdpr, gdprConsent]);
 
   const handleSpin = useCallback(async () => {
     const isValid = validateForm();
@@ -532,23 +532,28 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
     }
   }, [validateForm, config, email, onSpin, segments, onWin]);
 
-  const getInputStyles = (isFocused: boolean, hasError: boolean): React.CSSProperties => ({
-    width: '100%',
-    padding: '14px 16px',
-    fontSize: '15px',
-    border: `2px solid ${hasError
-      ? '#EF4444'
-      : isFocused
-        ? accentColor
-        : inputBorderColor
-      }`,
-    borderRadius: `${borderRadius}px`,
-    backgroundColor: inputBackground,
-    color: inputTextColor,
-    outline: 'none',
-    transition: `all ${animDuration}ms cubic-bezier(0.4, 0, 0.2, 1)`,
-    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-  });
+  const getInputStyles = (isFocused: boolean, hasError: boolean): React.CSSProperties => {
+    // Use inputTextColor with reduced opacity for placeholder
+    const placeholderColor = inputTextColor ? `${inputTextColor}80` : 'rgba(107, 114, 128, 0.5)';
+
+    return {
+      width: '100%',
+      padding: '14px 16px',
+      fontSize: '15px',
+      border: `2px solid ${hasError
+        ? '#EF4444'
+        : isFocused
+          ? accentColor
+          : inputBorderColor
+        }`,
+      borderRadius: `${borderRadius}px`,
+      backgroundColor: inputBackground,
+      color: inputTextColor,
+      outline: 'none',
+      transition: `all ${animDuration}ms cubic-bezier(0.4, 0, 0.2, 1)`,
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    };
+  };
 
   const buttonStyles: React.CSSProperties = {
     width: '100%',
@@ -659,7 +664,7 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
       ariaLabel={config.ariaLabel || config.headline}
       ariaDescribedBy={config.ariaDescribedBy}
     >
-      {/* Inject CSS for code reveal animation */}
+      {/* Inject CSS for animations and placeholder colors */}
       <style>
         {`
           @keyframes slideUpFade {
@@ -671,6 +676,12 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
               opacity: 1;
               transform: translateY(0);
             }
+          }
+          
+          /* Dynamic placeholder color based on inputTextColor */
+          .spin-to-win-input::placeholder {
+            color: ${inputTextColor ? `${inputTextColor}80` : 'rgba(107, 114, 128, 0.5)'};
+            opacity: 1;
           }
         `}
       </style>
@@ -843,8 +854,8 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
                         borderRadius: 9999,
                         backgroundColor: wonPrize?.generatedCode
                           ? successColor
-                          : config.textColor || '#111827',
-                        color: wonPrize?.generatedCode ? '#FFFFFF' : '#F9FAFB',
+                          : '#374151', // Dark gray for failure message
+                        color: '#FFFFFF', // Always white text for good contrast
                         fontSize: '14px',
                         fontWeight: 500,
                         textAlign: 'center',
@@ -875,12 +886,13 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
                     </label>
                     <input
                       type="text"
+                      className="spin-to-win-input"
                       value={name}
                       onChange={(e) => {
                         setName(e.target.value);
                         if (nameError) setNameError('');
                       }}
-                      placeholder="Enter your name"
+                      placeholder={config.nameFieldPlaceholder || "Enter your name"}
                       style={getInputStyles(false, !!nameError)}
                       disabled={isSpinning || hasSpun}
                     />
@@ -916,6 +928,7 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
                     )}
                     <input
                       type="email"
+                      className="spin-to-win-input"
                       value={email}
                       onChange={(e) => {
                         setEmail(e.target.value);

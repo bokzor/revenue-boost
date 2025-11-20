@@ -344,9 +344,13 @@ export const SpinToWinContentSchema = SpinToWinBaseContentSchema.extend({
   emailPlaceholder: z.string().default("Enter your email to spin"),
   emailLabel: z.string().optional(),
 
-  // Name & consent config (similar intent to NewsletterContentSchema)
+  // Name & consent config (matching NewsletterContentSchema)
   collectName: z.boolean().default(false),
+  nameFieldRequired: z.boolean().default(false),
+  nameFieldPlaceholder: z.string().optional(),
+
   showGdprCheckbox: z.boolean().default(false),
+  consentFieldRequired: z.boolean().default(false),
   gdprLabel: z.string().optional(),
 
   // Wheel configuration

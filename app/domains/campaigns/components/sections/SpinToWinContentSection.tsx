@@ -8,6 +8,7 @@ import React from "react";
 import { Card, BlockStack, Text, Divider } from "@shopify/polaris";
 import { TextField, CheckboxField, FormGrid } from "../form";
 import { WheelSegmentEditor } from "./WheelSegmentEditor";
+import { FieldConfigurationSection } from "./FieldConfigurationSection";
 import type { SpinToWinContentSchema } from "../../types/campaign";
 import { z } from "zod";
 import { useFieldUpdater } from "~/shared/hooks/useFieldUpdater";
@@ -26,9 +27,6 @@ export function SpinToWinContentSection({
   onChange,
 }: SpinToWinContentSectionProps) {
   const updateField = useFieldUpdater(content, onChange);
-
-  const collectName = content.collectName ?? false;
-  const showGdpr = content.showGdprCheckbox ?? false;
 
   return (
     <>
@@ -115,43 +113,25 @@ export function SpinToWinContentSection({
               />
             </FormGrid>
 
-            <FormGrid columns={2}>
-              <CheckboxField
-                label="Require Email"
-                name="content.emailRequired"
-                checked={content.emailRequired !== false}
-                helpText="Require email before allowing spin"
-                onChange={(checked) => updateField("emailRequired", checked)}
+            {/* Field Configuration Section - Email, Name, GDPR */}
+            <BlockStack gap="300">
+              <Text as="h4" variant="headingSm">
+                Field Configuration
+              </Text>
+              <FieldConfigurationSection
+                emailRequired={content.emailRequired}
+                emailLabel={content.emailLabel}
+                emailPlaceholder={content.emailPlaceholder}
+                collectName={content.collectName}
+                nameFieldRequired={content.nameFieldRequired}
+                nameFieldPlaceholder={content.nameFieldPlaceholder}
+                showGdprCheckbox={content.showGdprCheckbox}
+                consentFieldRequired={content.consentFieldRequired}
+                gdprLabel={content.gdprLabel}
+                onChange={(updates) => onChange({ ...content, ...updates })}
+                errors={errors}
               />
-
-              <CheckboxField
-                label="Collect Name"
-                name="content.collectName"
-                checked={content.collectName || false}
-                helpText="Add an optional name field before the spin"
-                onChange={(checked) => updateField("collectName", checked)}
-              />
-            </FormGrid>
-
-            <CheckboxField
-              label="Show GDPR Checkbox"
-              name="content.showGdprCheckbox"
-              checked={content.showGdprCheckbox || false}
-              helpText="Add a consent checkbox (e.g., for GDPR compliance)"
-              onChange={(checked) => updateField("showGdprCheckbox", checked)}
-            />
-
-            {content.showGdprCheckbox && (
-              <TextField
-                label="GDPR Consent Text"
-                name="content.gdprLabel"
-                value={content.gdprLabel || ""}
-                placeholder="I agree to receive marketing emails and accept the privacy policy"
-                multiline
-                rows={2}
-                onChange={(value) => updateField("gdprLabel", value)}
-              />
-            )}
+            </BlockStack>
           </BlockStack>
         </BlockStack>
       </Card>
@@ -163,72 +143,83 @@ export function SpinToWinContentSection({
               🎯 Wheel configuration
             </Text>
             <Text as="p" tone="subdued">
-              Control wheel visuals and spin behaviour.
+              Control wheel visuals, spin behaviour, and configure prize segments.
             </Text>
           </BlockStack>
 
           <Divider />
 
-          <BlockStack gap="400">
-            <FormGrid columns={3}>
-              <TextField
-                label="Wheel Size (px)"
-                name="content.wheelSize"
-                value={content.wheelSize?.toString() || "400"}
-                placeholder="400"
-                helpText="Diameter of the wheel in pixels"
-                onChange={(value) => updateField("wheelSize", parseInt(value) || 400)}
-              />
+          <div style={{ backgroundColor: 'rgba(0, 0, 0, 0.02)', padding: '16px', borderRadius: '8px' }}>
+            <BlockStack gap="400">
+              <FormGrid columns={3}>
+                <TextField
+                  label="Wheel Size (px)"
+                  name="content.wheelSize"
+                  value={content.wheelSize?.toString() || "400"}
+                  placeholder="400"
+                  helpText="Diameter of the wheel in pixels"
+                  onChange={(value) => updateField("wheelSize", parseInt(value) || 400)}
+                />
 
-              <TextField
-                label="Wheel Border Width (px)"
-                name="content.wheelBorderWidth"
-                value={content.wheelBorderWidth?.toString() || "2"}
-                placeholder="2"
-                helpText="Border thickness around wheel"
-                onChange={(value) => updateField("wheelBorderWidth", parseInt(value) || 2)}
-              />
+                <TextField
+                  label="Wheel Border Width (px)"
+                  name="content.wheelBorderWidth"
+                  value={content.wheelBorderWidth?.toString() || "2"}
+                  placeholder="2"
+                  helpText="Border thickness around wheel"
+                  onChange={(value) => updateField("wheelBorderWidth", parseInt(value) || 2)}
+                />
 
-              <TextField
-                label="Wheel Border Color"
-                name="content.wheelBorderColor"
-                value={content.wheelBorderColor || ""}
-                placeholder="#FFFFFF"
-                helpText="Hex color code for border"
-                onChange={(value) => updateField("wheelBorderColor", value)}
-              />
-            </FormGrid>
+                <TextField
+                  label="Wheel Border Color"
+                  name="content.wheelBorderColor"
+                  value={content.wheelBorderColor || ""}
+                  placeholder="#FFFFFF"
+                  helpText="Hex color code for border"
+                  onChange={(value) => updateField("wheelBorderColor", value)}
+                />
+              </FormGrid>
 
-            <FormGrid columns={2}>
-              <TextField
-                label="Spin Duration (ms)"
-                name="content.spinDuration"
-                value={content.spinDuration?.toString() || "4000"}
-                placeholder="4000"
-                helpText="How long the spin animation lasts (milliseconds)"
-                onChange={(value) => updateField("spinDuration", parseInt(value) || 4000)}
-              />
+              <FormGrid columns={2}>
+                <TextField
+                  label="Spin Duration (ms)"
+                  name="content.spinDuration"
+                  value={content.spinDuration?.toString() || "4000"}
+                  placeholder="4000"
+                  helpText="How long the spin animation lasts (milliseconds)"
+                  onChange={(value) => updateField("spinDuration", parseInt(value) || 4000)}
+                />
 
-              <TextField
-                label="Minimum Spins"
-                name="content.minSpins"
-                value={content.minSpins?.toString() || "5"}
-                placeholder="5"
-                helpText="Minimum number of full rotations"
-                onChange={(value) => updateField("minSpins", parseInt(value) || 5)}
-              />
-            </FormGrid>
+                <TextField
+                  label="Minimum Spins"
+                  name="content.minSpins"
+                  value={content.minSpins?.toString() || "5"}
+                  placeholder="5"
+                  helpText="Minimum number of full rotations"
+                  onChange={(value) => updateField("minSpins", parseInt(value) || 5)}
+                />
+              </FormGrid>
+            </BlockStack>
+          </div>
+
+          <Divider />
+
+          {/* Wheel Segments Editor - Now inside the Wheel Configuration card */}
+          <BlockStack gap="300">
+            <Text as="h4" variant="headingSm">
+              Wheel Segments
+            </Text>
+            <Text as="p" tone="subdued" variant="bodySm">
+              Configure the prize segments on your wheel. Each segment can have its own discount configuration.
+            </Text>
+            <WheelSegmentEditor
+              segments={content.wheelSegments || []}
+              onChange={(updatedSegments) => updateField("wheelSegments", updatedSegments)}
+              errors={errors}
+            />
           </BlockStack>
         </BlockStack>
       </Card>
-
-      {/* Wheel Segments Editor */}
-      <WheelSegmentEditor
-        segments={content.wheelSegments || []}
-        onChange={(updatedSegments) => updateField("wheelSegments", updatedSegments)}
-        errors={errors}
-      />
     </>
   );
 }
-

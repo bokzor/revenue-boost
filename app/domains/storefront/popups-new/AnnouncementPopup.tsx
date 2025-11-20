@@ -90,22 +90,39 @@ export const AnnouncementPopup: React.FC<AnnouncementPopupProps> = ({
           buttonColor: config.buttonColor,
           buttonTextColor: config.buttonTextColor,
         };
-    }
-  };
+	    }
+	  };
 
-  const colors = getColorScheme();
+	  const colors = getColorScheme();
 
-  const bannerStyles: React.CSSProperties = {
-    position: config.sticky ? 'sticky' : 'fixed',
-    [config.position === 'bottom' ? 'bottom' : 'top']: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: colors.backgroundColor,
-    color: colors.textColor,
-    padding: '14px 20px',
-    zIndex: 10000,
-    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-  };
+	  // Support both solid and gradient backgrounds. For gradient themes (e.g.
+	  // "bold", "gradient"), backgroundColor will be a linear-gradient string,
+	  // which must be applied via backgroundImage/background instead of
+	  // backgroundColor.
+	  const hasGradientBg =
+	    typeof colors.backgroundColor === 'string' &&
+	    colors.backgroundColor.includes('gradient');
+
+	  const bannerBackgroundStyles: React.CSSProperties = hasGradientBg
+	    ? {
+	        backgroundImage: colors.backgroundColor,
+	        backgroundColor: 'transparent',
+	      }
+	    : {
+	        backgroundColor: colors.backgroundColor,
+	      };
+
+	  const bannerStyles: React.CSSProperties = {
+	    position: config.sticky ? 'sticky' : 'fixed',
+	    [config.position === 'bottom' ? 'bottom' : 'top']: 0,
+	    left: 0,
+	    right: 0,
+	    ...bannerBackgroundStyles,
+	    color: colors.textColor,
+	    padding: '14px 20px',
+	    zIndex: 10000,
+	    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+	  };
 
   const containerStyles: React.CSSProperties = {
     maxWidth: '1200px',
