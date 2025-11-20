@@ -181,10 +181,10 @@ model Template {
   // OPTIMIZED: Reduced from 9 to 5 indexes
   // Composite indexes cover single-column queries via leftmost prefix rule
   @@index([storeId, isActive, templateType]) // Covers: storeId, (storeId+isActive), (storeId+isActive+templateType)
-  @@index([storeId, isActive, priority])     // Covers: storeId, (storeId+isActive), (storeId+isActive+priority)
-  @@index([isActive, priority])              // For global template queries, covers: isActive, (isActive+priority)
-  @@index([goals])                           // Array field, needs separate index
-  @@index([category])                        // Frequently filtered, low cardinality
+  @@index([storeId, isActive, priority]) // Covers: storeId, (storeId+isActive), (storeId+isActive+priority)
+  @@index([isActive, priority]) // For global template queries, covers: isActive, (isActive+priority)
+  @@index([goals]) // Array field, needs separate index
+  @@index([category]) // Frequently filtered, low cardinality
   @@map("templates")
 }
 
@@ -213,7 +213,7 @@ model CustomerSegment {
 }
 
 model SegmentMembership {
-  id                String  @id @default(cuid())
+  id                String @id @default(cuid())
   storeId           String
   shopifySegmentId  String
   shopifyCustomerId BigInt
@@ -229,53 +229,52 @@ model SegmentMembership {
   @@map("segment_memberships")
 }
 
-
 model Lead {
-  id                 String   @id @default(cuid())
-  storeId            String
-  campaignId         String
-  email              String
-  firstName          String?
-  lastName           String?
-  phone              String?
-  marketingConsent   Boolean  @default(false)
-  sessionId          String
-  visitorId          String?
-  shopifyCustomerId  BigInt?  // Numeric Shopify customer ID
-  discountCode       String?
-  discountId         String?  // Shopify discount GID
-  userAgent          String?
-  ipAddress          String?
-  referrer           String?
-  pageUrl            String?
-  pageTitle          String?
-  utmSource          String?
-  utmMedium          String?
-  utmCampaign        String?
-  metadata           String?  // JSON string
-  submittedAt        DateTime @default(now())
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  id                String   @id @default(cuid())
+  storeId           String
+  campaignId        String
+  email             String
+  firstName         String?
+  lastName          String?
+  phone             String?
+  marketingConsent  Boolean  @default(false)
+  sessionId         String
+  visitorId         String?
+  shopifyCustomerId BigInt? // Numeric Shopify customer ID
+  discountCode      String?
+  discountId        String? // Shopify discount GID
+  userAgent         String?
+  ipAddress         String?
+  referrer          String?
+  pageUrl           String?
+  pageTitle         String?
+  utmSource         String?
+  utmMedium         String?
+  utmCampaign       String?
+  metadata          String? // JSON string
+  submittedAt       DateTime @default(now())
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
-  store       Store       @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  campaign    Campaign    @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  store       Store        @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  campaign    Campaign     @relation(fields: [campaignId], references: [id], onDelete: Cascade)
   popupEvents PopupEvent[]
 
   // OPTIMIZED: Reduced from 8 to 5 indexes
   // Composite indexes cover common query patterns
-  @@unique([storeId, campaignId, email])     // Unique constraint (also serves as index)
-  @@index([storeId, createdAt])              // Covers: storeId, (storeId+createdAt) - most common query
-  @@index([campaignId, submittedAt])         // Covers: campaignId, (campaignId+submittedAt) - campaign analytics
-  @@index([email])                           // Email lookups (high cardinality, needs separate index)
-  @@index([shopifyCustomerId])               // Customer lookups (frequently used for sync)
-  @@index([sessionId])                       // Session tracking (frequently used for deduplication)
+  @@unique([storeId, campaignId, email]) // Unique constraint (also serves as index)
+  @@index([storeId, createdAt]) // Covers: storeId, (storeId+createdAt) - most common query
+  @@index([campaignId, submittedAt]) // Covers: campaignId, (campaignId+submittedAt) - campaign analytics
+  @@index([email]) // Email lookups (high cardinality, needs separate index)
+  @@index([shopifyCustomerId]) // Customer lookups (frequently used for sync)
+  @@index([sessionId]) // Session tracking (frequently used for deduplication)
   @@map("leads")
 }
 
 model CampaignConversion {
-  id             String   @id @default(cuid())
-  campaignId     String
-  campaign       Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  id         String   @id @default(cuid())
+  campaignId String
+  campaign   Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
 
   orderId        String   @unique
   orderNumber    String
@@ -283,33 +282,32 @@ model CampaignConversion {
   discountAmount Decimal
   discountCodes  String[]
   customerId     String?
-  source         String   // 'discount_code' | 'utm_params' | 'both'
+  source         String // 'discount_code' | 'utm_params' | 'both'
 
-  createdAt      DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@index([campaignId])
   @@map("campaign_conversions")
 }
 
-
 model PopupEvent {
-  id          String          @id @default(cuid())
-  storeId     String
-  campaignId  String
+  id           String         @id @default(cuid())
+  storeId      String
+  campaignId   String
   experimentId String?
-  variantKey  VariantKey?
-  leadId      String?
-  sessionId   String
-  visitorId   String?
-  eventType   PopupEventType
-  pageUrl     String?
-  pageTitle   String?
-  referrer    String?
-  userAgent   String?
-  ipAddress   String?
-  deviceType  String?
-  metadata    Json?
-  createdAt   DateTime        @default(now())
+  variantKey   VariantKey?
+  leadId       String?
+  sessionId    String
+  visitorId    String?
+  eventType    PopupEventType
+  pageUrl      String?
+  pageTitle    String?
+  referrer     String?
+  userAgent    String?
+  ipAddress    String?
+  deviceType   String?
+  metadata     Json?
+  createdAt    DateTime       @default(now())
 
   store    Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
   campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
@@ -374,4 +372,40 @@ enum PopupEventType {
   COUPON_ISSUED
   CLICK
   CLOSE
+}
+
+// ============================================================================
+// SECURITY MODELS
+// ============================================================================
+
+/// Challenge token for preventing discount code abuse
+/// Used in token-based authentication for discount generation
+model ChallengeToken {
+  id         String   @id @default(cuid())
+  token      String   @unique
+  campaignId String
+  sessionId  String
+  ip         String
+  used       Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  expiresAt  DateTime
+
+  @@index([token])
+  @@index([campaignId])
+  @@index([expiresAt])
+  @@index([sessionId])
+  @@map("challenge_tokens")
+}
+
+/// Rate limiting log for API abuse prevention
+/// Tracks requests by key (IP, email, or session) for rate limit enforcement
+model RateLimitLog {
+  id        String   @id @default(cuid())
+  key       String // IP address, email, or session ID
+  action    String // Type of action being rate-limited (e.g., "challenge_request", "discount_generation")
+  metadata  Json? // Additional context
+  createdAt DateTime @default(now())
+
+  @@index([key, action, createdAt])
+  @@map("rate_limit_logs")
 }

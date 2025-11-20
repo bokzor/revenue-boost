@@ -77,6 +77,113 @@ export type DiscountDeliveryMode = z.infer<typeof DiscountDeliveryModeSchema>;
 export type ContentDiscountType = z.infer<typeof ContentDiscountTypeSchema>;
 
 // ============================================================================
+// DISCOUNT CONFIGURATION
+// ============================================================================
+
+/**
+ * Discount Configuration Schema
+ * Centralized discount configuration with proper enum types
+ * Enhanced with applicability scoping, tiers, BOGO, free gifts, and auto-apply
+ */
+export const DiscountConfigSchema = z.object({
+  enabled: z.boolean().default(false),
+  showInPreview: z.boolean().default(true),
+
+  // Discount type and value
+  type: DiscountTypeSchema.optional(),
+  valueType: DiscountValueTypeSchema.optional(),
+  value: z.number().min(0).optional(),
+  code: z.string().optional(),
+
+  // Delivery configuration
+  deliveryMode: DiscountDeliveryModeSchema.optional(),
+  requireLogin: z.boolean().optional(),
+  storeInMetafield: z.boolean().optional(),
+  authorizedEmail: z.string().email().optional(),
+  requireEmailMatch: z.boolean().optional(),
+
+  // Constraints
+  minimumAmount: z.number().min(0).optional(),
+  usageLimit: z.number().int().min(1).optional(),
+  expiryDays: z.number().min(1).optional(),
+
+  // Metadata
+  prefix: z.string().optional(),
+  description: z.string().optional(),
+
+  // === ENHANCED FEATURES ===
+
+  // Applicability: Scope discount to specific products/collections
+  applicability: z.object({
+    scope: z.enum(["all", "products", "collections"]).default("all"),
+    productIds: z.array(z.string()).optional(), // Shopify product GIDs
+    collectionIds: z.array(z.string()).optional(), // Shopify collection GIDs
+  }).optional(),
+
+  // Tiered spend discounts: "Spend $50 get 15%, $100 get 25%"
+  tiers: z.array(z.object({
+    thresholdCents: z.number().int().min(0), // Subtotal threshold in cents
+    discount: z.object({
+      kind: z.enum(["percentage", "fixed", "free_shipping"]),
+      value: z.number().min(0).max(100), // Percentage (0-100) or fixed amount
+    }),
+  })).optional(),
+
+  // BOGO (Buy X Get Y): "Buy 2 get 1 free"
+  bogo: z.object({
+    buy: z.object({
+      scope: z.enum(["any", "products", "collections"]).default("any"),
+      ids: z.array(z.string()).optional(), // Product/collection GIDs
+      quantity: z.number().int().min(1),
+      minSubtotalCents: z.number().int().min(0).optional(),
+    }),
+    get: z.object({
+      scope: z.enum(["products", "collections"]),
+      ids: z.array(z.string()), // Product/collection GIDs (required)
+      quantity: z.number().int().min(1),
+      discount: z.object({
+        kind: z.enum(["percentage", "fixed", "free_product"]),
+        value: z.number().min(0).max(100), // Percentage or amount (100 = free)
+      }),
+      appliesOncePerOrder: z.boolean().default(true),
+    }),
+  }).optional(),
+
+  // Free gift with purchase
+  freeGift: z.object({
+    productId: z.string(), // Shopify product GID
+    variantId: z.string(), // Shopify variant GID
+    quantity: z.number().int().min(1).default(1),
+    minSubtotalCents: z.number().int().min(0).optional(),
+  }).optional(),
+
+  // Auto-apply mode for storefront
+  autoApplyMode: z.enum(["ajax", "redirect", "none"]).default("ajax"),
+
+  // Code presentation (show/hide code to user)
+  codePresentation: z.enum(["show_code", "hide_code"]).default("show_code"),
+
+  // Customer eligibility
+  customerEligibility: z.enum(["everyone", "logged_in", "segment"]).optional(),
+
+  // Discount combining/stacking rules
+  combineWith: z.object({
+    orderDiscounts: z.boolean().optional(),
+    productDiscounts: z.boolean().optional(),
+    shippingDiscounts: z.boolean().optional(),
+  }).optional(),
+
+  // Internal metadata (Shopify discount IDs, tier code mappings)
+  _meta: z.object({
+    createdDiscountIds: z.array(z.string()).optional(), // Shopify discount node IDs
+    tierCodeMappings: z.record(z.string(), z.string()).optional(), // { "5000": "CAMPAIGN-123-T50", ... }
+    lastSync: z.string().optional(), // ISO timestamp
+  }).optional(),
+});
+
+export type DiscountConfig = z.infer<typeof DiscountConfigSchema>;
+
+// ============================================================================
 // BASE CONTENT CONFIGURATION
 // ============================================================================
 
@@ -126,15 +233,100 @@ export const NewsletterContentSchema = BaseContentConfigSchema.extend({
 
 /**
  * Default wheel segments for Spin-to-Win
- * Designed to be profitable with expected discount of ~9.75%
+ * Using full discount configurations for maximum flexibility
  */
 const DEFAULT_SPIN_TO_WIN_SEGMENTS = [
-  { id: "segment-5-off", label: "5% OFF", probability: 0.35, color: "#10B981", discountType: "percentage" as const, discountValue: 5, discountCode: "SPIN5" },
-  { id: "segment-10-off", label: "10% OFF", probability: 0.25, color: "#3B82F6", discountType: "percentage" as const, discountValue: 10, discountCode: "SPIN10" },
-  { id: "segment-15-off", label: "15% OFF", probability: 0.15, color: "#F59E0B", discountType: "percentage" as const, discountValue: 15, discountCode: "SPIN15" },
-  { id: "segment-20-off", label: "20% OFF", probability: 0.10, color: "#EF4444", discountType: "percentage" as const, discountValue: 20, discountCode: "SPIN20" },
-  { id: "segment-free-shipping", label: "FREE SHIPPING", probability: 0.10, color: "#8B5CF6", discountType: "free_shipping" as const, discountCode: "FREESHIP" },
-  { id: "segment-try-again", label: "Try Again", probability: 0.05, color: "#6B7280" },
+  {
+    id: "segment-5-off",
+    label: "5% OFF",
+    probability: 0.35,
+    color: "#10B981",
+    discountConfig: {
+      enabled: true,
+      showInPreview: true,
+      valueType: "PERCENTAGE" as const,
+      value: 5,
+      deliveryMode: "show_code_fallback" as const,
+      expiryDays: 30,
+      type: "single_use" as const,
+      autoApplyMode: "ajax" as const,
+      codePresentation: "show_code" as const,
+    }
+  },
+  {
+    id: "segment-10-off",
+    label: "10% OFF",
+    probability: 0.25,
+    color: "#3B82F6",
+    discountConfig: {
+      enabled: true,
+      showInPreview: true,
+      valueType: "PERCENTAGE" as const,
+      value: 10,
+      deliveryMode: "show_code_fallback" as const,
+      expiryDays: 30,
+      type: "single_use" as const,
+      autoApplyMode: "ajax" as const,
+      codePresentation: "show_code" as const,
+    }
+  },
+  {
+    id: "segment-15-off",
+    label: "15% OFF",
+    probability: 0.15,
+    color: "#F59E0B",
+    discountConfig: {
+      enabled: true,
+      showInPreview: true,
+      valueType: "PERCENTAGE" as const,
+      value: 15,
+      deliveryMode: "show_code_fallback" as const,
+      expiryDays: 30,
+      type: "single_use" as const,
+      autoApplyMode: "ajax" as const,
+      codePresentation: "show_code" as const,
+    }
+  },
+  {
+    id: "segment-20-off",
+    label: "20% OFF",
+    probability: 0.10,
+    color: "#EF4444",
+    discountConfig: {
+      enabled: true,
+      showInPreview: true,
+      valueType: "PERCENTAGE" as const,
+      value: 20,
+      deliveryMode: "show_code_fallback" as const,
+      expiryDays: 30,
+      type: "single_use" as const,
+      autoApplyMode: "ajax" as const,
+      codePresentation: "show_code" as const,
+    }
+  },
+  {
+    id: "segment-free-shipping",
+    label: "FREE SHIPPING",
+    probability: 0.10,
+    color: "#8B5CF6",
+    discountConfig: {
+      enabled: true,
+      showInPreview: true,
+      valueType: "FREE_SHIPPING" as const,
+      deliveryMode: "show_code_fallback" as const,
+      expiryDays: 30,
+      type: "single_use" as const,
+      autoApplyMode: "ajax" as const,
+      codePresentation: "show_code" as const,
+    }
+  },
+  {
+    id: "segment-try-again",
+    label: "Try Again",
+    probability: 0.05,
+    color: "#6B7280",
+    // No discount config for "try again" segment
+  },
 ];
 
 /**
@@ -163,9 +355,8 @@ export const SpinToWinContentSchema = SpinToWinBaseContentSchema.extend({
     label: z.string(),
     probability: z.number().min(0).max(1),
     color: z.string().optional(),
-    discountType: ContentDiscountTypeSchema.optional(),
-    discountValue: z.number().min(0).optional(),
-    discountCode: z.string().optional(),
+    // Full discount configuration per segment (replaces old discountType/Value/Code)
+    discountConfig: DiscountConfigSchema.optional(),
   })).min(2, "At least 2 wheel segments required").default(DEFAULT_SPIN_TO_WIN_SEGMENTS),
   maxAttemptsPerUser: z.number().int().min(1).default(1),
 
@@ -325,10 +516,70 @@ export const SocialProofContentSchema = BaseContentConfigSchema.extend({
  * Designed to be profitable with expected discount of ~10.5%
  */
 const DEFAULT_SCRATCH_CARD_PRIZES = [
-  { id: "prize-5-off", label: "5% OFF", probability: 0.40, discountCode: "SCRATCH5", discountPercentage: 5 },
-  { id: "prize-10-off", label: "10% OFF", probability: 0.30, discountCode: "SCRATCH10", discountPercentage: 10 },
-  { id: "prize-15-off", label: "15% OFF", probability: 0.20, discountCode: "SCRATCH15", discountPercentage: 15 },
-  { id: "prize-20-off", label: "20% OFF", probability: 0.10, discountCode: "SCRATCH20", discountPercentage: 20 },
+  {
+    id: "prize-5-off",
+    label: "5% OFF",
+    probability: 0.40,
+    discountConfig: {
+      enabled: true,
+      showInPreview: true,
+      valueType: "PERCENTAGE" as const,
+      value: 5,
+      deliveryMode: "show_code_fallback" as const,
+      expiryDays: 30,
+      type: "single_use" as const,
+      autoApplyMode: "ajax" as const,
+      codePresentation: "show_code" as const,
+    }
+  },
+  {
+    id: "prize-10-off",
+    label: "10% OFF",
+    probability: 0.30,
+    discountConfig: {
+      enabled: true,
+      showInPreview: true,
+      valueType: "PERCENTAGE" as const,
+      value: 10,
+      deliveryMode: "show_code_fallback" as const,
+      expiryDays: 30,
+      type: "single_use" as const,
+      autoApplyMode: "ajax" as const,
+      codePresentation: "show_code" as const,
+    }
+  },
+  {
+    id: "prize-15-off",
+    label: "15% OFF",
+    probability: 0.20,
+    discountConfig: {
+      enabled: true,
+      showInPreview: true,
+      valueType: "PERCENTAGE" as const,
+      value: 15,
+      deliveryMode: "show_code_fallback" as const,
+      expiryDays: 30,
+      type: "single_use" as const,
+      autoApplyMode: "ajax" as const,
+      codePresentation: "show_code" as const,
+    }
+  },
+  {
+    id: "prize-20-off",
+    label: "20% OFF",
+    probability: 0.10,
+    discountConfig: {
+      enabled: true,
+      showInPreview: true,
+      valueType: "PERCENTAGE" as const,
+      value: 20,
+      deliveryMode: "show_code_fallback" as const,
+      expiryDays: 30,
+      type: "single_use" as const,
+      autoApplyMode: "ajax" as const,
+      codePresentation: "show_code" as const,
+    }
+  },
 ];
 
 /**
@@ -346,8 +597,7 @@ export const ScratchCardContentSchema = BaseContentConfigSchema.extend({
     id: z.string(),
     label: z.string(),
     probability: z.number().min(0).max(1),
-    discountCode: z.string().optional(),
-    discountPercentage: z.number().min(0).max(100).optional(),
+    discountConfig: DiscountConfigSchema.optional(),
   })).min(1, "At least one prize required").default(DEFAULT_SCRATCH_CARD_PRIZES),
 });
 
@@ -694,113 +944,11 @@ export const TargetRulesConfigSchema = z.object({
   pageTargeting: PageTargetingConfigSchema.optional(),
 });
 
-/**
- * Discount Configuration Schema
- * Centralized discount configuration with proper enum types
- * Enhanced with applicability scoping, tiers, BOGO, free gifts, and auto-apply
- */
-export const DiscountConfigSchema = z.object({
-  enabled: z.boolean().default(false),
-  showInPreview: z.boolean().default(true),
-
-  // Discount type and value
-  type: DiscountTypeSchema.optional(),
-  valueType: DiscountValueTypeSchema.optional(),
-  value: z.number().min(0).optional(),
-  code: z.string().optional(),
-
-  // Delivery configuration
-  deliveryMode: DiscountDeliveryModeSchema.optional(),
-  requireLogin: z.boolean().optional(),
-  storeInMetafield: z.boolean().optional(),
-  authorizedEmail: z.string().email().optional(),
-  requireEmailMatch: z.boolean().optional(),
-
-  // Constraints
-  minimumAmount: z.number().min(0).optional(),
-  usageLimit: z.number().int().min(1).optional(),
-  expiryDays: z.number().min(1).optional(),
-
-  // Metadata
-  prefix: z.string().optional(),
-  description: z.string().optional(),
-
-  // === ENHANCED FEATURES ===
-
-  // Applicability: Scope discount to specific products/collections
-  applicability: z.object({
-    scope: z.enum(["all", "products", "collections"]).default("all"),
-    productIds: z.array(z.string()).optional(), // Shopify product GIDs
-    collectionIds: z.array(z.string()).optional(), // Shopify collection GIDs
-  }).optional(),
-
-  // Tiered spend discounts: "Spend $50 get 15%, $100 get 25%"
-  tiers: z.array(z.object({
-    thresholdCents: z.number().int().min(0), // Subtotal threshold in cents
-    discount: z.object({
-      kind: z.enum(["percentage", "fixed", "free_shipping"]),
-      value: z.number().min(0).max(100), // Percentage (0-100) or fixed amount
-    }),
-  })).optional(),
-
-  // BOGO (Buy X Get Y): "Buy 2 get 1 free"
-  bogo: z.object({
-    buy: z.object({
-      scope: z.enum(["any", "products", "collections"]).default("any"),
-      ids: z.array(z.string()).optional(), // Product/collection GIDs
-      quantity: z.number().int().min(1),
-      minSubtotalCents: z.number().int().min(0).optional(),
-    }),
-    get: z.object({
-      scope: z.enum(["products", "collections"]),
-      ids: z.array(z.string()), // Product/collection GIDs (required)
-      quantity: z.number().int().min(1),
-      discount: z.object({
-        kind: z.enum(["percentage", "fixed", "free_product"]),
-        value: z.number().min(0).max(100), // Percentage or amount (100 = free)
-      }),
-      appliesOncePerOrder: z.boolean().default(true),
-    }),
-  }).optional(),
-
-  // Free gift with purchase
-  freeGift: z.object({
-    productId: z.string(), // Shopify product GID
-    variantId: z.string(), // Shopify variant GID
-    quantity: z.number().int().min(1).default(1),
-    minSubtotalCents: z.number().int().min(0).optional(),
-  }).optional(),
-
-  // Auto-apply mode for storefront
-  autoApplyMode: z.enum(["ajax", "redirect", "none"]).default("ajax"),
-
-  // Code presentation (show/hide code to user)
-  codePresentation: z.enum(["show_code", "hide_code"]).default("show_code"),
-
-  // Customer eligibility
-  customerEligibility: z.enum(["everyone", "logged_in", "segment"]).optional(),
-
-  // Discount combining/stacking rules
-  combineWith: z.object({
-    orderDiscounts: z.boolean().optional(),
-    productDiscounts: z.boolean().optional(),
-    shippingDiscounts: z.boolean().optional(),
-  }).optional(),
-
-  // Internal metadata (Shopify discount IDs, tier code mappings)
-  _meta: z.object({
-    createdDiscountIds: z.array(z.string()).optional(), // Shopify discount node IDs
-    tierCodeMappings: z.record(z.string(), z.string()).optional(), // { "5000": "CAMPAIGN-123-T50", ... }
-    lastSync: z.string().optional(), // ISO timestamp
-  }).optional(),
-});
-
 export type DesignConfig = z.infer<typeof DesignConfigSchema>;
 export type EnhancedTriggersConfig = z.infer<typeof EnhancedTriggersConfigSchema>;
 export type AudienceTargetingConfig = z.infer<typeof AudienceTargetingConfigSchema>;
 export type PageTargetingConfig = z.infer<typeof PageTargetingConfigSchema>;
 export type TargetRulesConfig = z.infer<typeof TargetRulesConfigSchema>;
-export type DiscountConfig = z.infer<typeof DiscountConfigSchema>;
 
 // ============================================================================
 // TRIGGER TYPES (for backward compatibility)

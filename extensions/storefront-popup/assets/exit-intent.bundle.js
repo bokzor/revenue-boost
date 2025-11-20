@@ -1,5 +1,9 @@
 "use strict";
 (() => {
+  var __defProp = Object.defineProperty;
+  var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+  var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
+
   // global-preact:global-preact:react
   if (typeof window === "undefined" || !window.RevenueBoostPreact) {
     throw new Error("RevenueBoostPreact not found. Make sure main bundle is loaded first.");
@@ -491,6 +495,36 @@
   `;
   }
 
+  // app/domains/storefront/services/challenge-token.client.ts
+  function isChallengeTokenValid(expiresAt) {
+    if (!expiresAt) return false;
+    return new Date(expiresAt) > /* @__PURE__ */ new Date();
+  }
+  var ChallengeTokenStore = class {
+    constructor() {
+      __publicField(this, "tokens", /* @__PURE__ */ new Map());
+    }
+    set(campaignId, token, expiresAt) {
+      this.tokens.set(campaignId, { token, expiresAt });
+    }
+    get(campaignId) {
+      const data = this.tokens.get(campaignId);
+      if (!data) return null;
+      if (!isChallengeTokenValid(data.expiresAt)) {
+        this.tokens.delete(campaignId);
+        return null;
+      }
+      return data.token;
+    }
+    delete(campaignId) {
+      this.tokens.delete(campaignId);
+    }
+    clear() {
+      this.tokens.clear();
+    }
+  };
+  var challengeTokenStore = new ChallengeTokenStore();
+
   // app/domains/storefront/popups-new/NewsletterPopup.tsx
   var NewsletterPopup = ({
     config,
@@ -566,11 +600,38 @@
           }
           setIsSubmitted(true);
         } else {
-          setIsSubmitted(true);
+          const challengeToken = challengeTokenStore.get(config.campaignId);
+          if (!challengeToken) {
+            throw new Error("Security check failed. Please refresh the page.");
+          }
+          const response = await fetch("/apps/revenue-boost/api/leads/submit", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              campaignId: config.campaignId,
+              email,
+              name: collectName ? name : void 0,
+              sessionId: typeof window !== "undefined" ? window.sessionStorage?.getItem("rb_session_id") : void 0,
+              challengeToken,
+              gdprConsent
+            })
+          });
+          const data = await response.json();
+          if (!response.ok) {
+            throw new Error(data.error || "Submission failed");
+          }
+          if (data.success) {
+            if (data.discountCode) {
+              setGeneratedDiscountCode(data.discountCode);
+            }
+            setIsSubmitted(true);
+          } else {
+            throw new Error(data.error || "Submission failed");
+          }
         }
       } catch (error) {
         console.error("Popup form submission error:", error);
-        setErrors({ email: "Something went wrong. Please try again." });
+        setErrors({ email: error.message || "Something went wrong. Please try again." });
       } finally {
         setIsSubmitting(false);
       }

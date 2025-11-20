@@ -4,83 +4,15 @@
  * Form section for configuring spin-to-win gamification content
  */
 
-import React, { useState } from "react";
-import { Card, BlockStack, Text, Divider, Button, InlineStack } from "@shopify/polaris";
-import { TextField, CheckboxField, FormGrid, ColorField } from "../form";
+import React from "react";
+import { Card, BlockStack, Text, Divider } from "@shopify/polaris";
+import { TextField, CheckboxField, FormGrid } from "../form";
+import { WheelSegmentEditor } from "./WheelSegmentEditor";
 import type { SpinToWinContentSchema } from "../../types/campaign";
 import { z } from "zod";
 import { useFieldUpdater } from "~/shared/hooks/useFieldUpdater";
 
 export type SpinToWinContent = z.infer<typeof SpinToWinContentSchema>;
-type WheelSegment = SpinToWinContent["wheelSegments"][0];
-
-/**
- * Default wheel segments - designed to be profitable
- *
- * Probability breakdown:
- * - 5% OFF: 35% chance (most common, low cost)
- * - 10% OFF: 25% chance (moderate discount)
- * - 15% OFF: 15% chance (good discount)
- * - 20% OFF: 10% chance (great discount)
- * - Free Shipping: 10% chance (alternative to discount)
- * - Try Again: 5% chance (no prize, encourages re-engagement)
- *
- * Expected discount per spin: ~9.75%
- * This is profitable as it's less than typical cart abandonment loss (15-20%)
- */
-const DEFAULT_WHEEL_SEGMENTS: WheelSegment[] = [
-  {
-    id: "segment-5-off",
-    label: "5% OFF",
-    probability: 0.35,
-    color: "#10B981", // Green
-    discountType: "percentage",
-    discountValue: 5,
-    discountCode: "SPIN5",
-  },
-  {
-    id: "segment-10-off",
-    label: "10% OFF",
-    probability: 0.25,
-    color: "#3B82F6", // Blue
-    discountType: "percentage",
-    discountValue: 10,
-    discountCode: "SPIN10",
-  },
-  {
-    id: "segment-15-off",
-    label: "15% OFF",
-    probability: 0.15,
-    color: "#F59E0B", // Orange
-    discountType: "percentage",
-    discountValue: 15,
-    discountCode: "SPIN15",
-  },
-  {
-    id: "segment-20-off",
-    label: "20% OFF",
-    probability: 0.10,
-    color: "#EF4444", // Red
-    discountType: "percentage",
-    discountValue: 20,
-    discountCode: "SPIN20",
-  },
-  {
-    id: "segment-free-shipping",
-    label: "FREE SHIPPING",
-    probability: 0.10,
-    color: "#8B5CF6", // Purple
-    discountType: "free_shipping",
-    discountCode: "FREESHIP",
-  },
-  {
-    id: "segment-try-again",
-    label: "Try Again",
-    probability: 0.05,
-    color: "#6B7280", // Gray
-    // No discount for this segment
-  },
-];
 
 export interface SpinToWinContentSectionProps {
   content: Partial<SpinToWinContent>;
@@ -93,58 +25,10 @@ export function SpinToWinContentSection({
   errors,
   onChange,
 }: SpinToWinContentSectionProps) {
-  // Initialize with defaults if no segments provided
-  const initialSegments = content.wheelSegments && content.wheelSegments.length > 0
-    ? content.wheelSegments
-    : DEFAULT_WHEEL_SEGMENTS;
-
-  const [segments, setSegments] = useState<WheelSegment[]>(initialSegments);
-
   const updateField = useFieldUpdater(content, onChange);
 
-  // Initialize content with default segments on mount if empty
-  React.useEffect(() => {
-    if (!content.wheelSegments || content.wheelSegments.length === 0) {
-      updateField("wheelSegments", DEFAULT_WHEEL_SEGMENTS);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Only run on mount - intentionally ignoring dependencies
-
-  // Sync local state when wheelSegments prop changes (e.g., from theme changes)
-  React.useEffect(() => {
-    if (content.wheelSegments && content.wheelSegments.length > 0) {
-      setSegments(content.wheelSegments);
-    }
-  }, [content.wheelSegments]);
-
-  const addSegment = () => {
-    const newSegment: WheelSegment = {
-      id: `segment-${Date.now()}`,
-      label: "",
-      probability: 0.1,
-      color: "#3b82f6",
-      discountType: "percentage",
-      discountValue: 10,
-      discountCode: "",
-    };
-    const updated = [...segments, newSegment];
-    setSegments(updated);
-    updateField("wheelSegments", updated);
-  };
-
-  const updateSegment = (index: number, updates: Partial<WheelSegment>) => {
-    const updated = segments.map((seg, idx) =>
-      idx === index ? { ...seg, ...updates } : seg
-    );
-    setSegments(updated);
-    updateField("wheelSegments", updated);
-  };
-
-  const removeSegment = (index: number) => {
-    const updated = segments.filter((_, idx) => idx !== index);
-    setSegments(updated);
-    updateField("wheelSegments", updated);
-  };
+  const collectName = content.collectName ?? false;
+  const showGdpr = content.showGdprCheckbox ?? false;
 
   return (
     <>
@@ -338,85 +222,12 @@ export function SpinToWinContentSection({
         </BlockStack>
       </Card>
 
-      <Card>
-        <BlockStack gap="400">
-          <BlockStack gap="200">
-            <Text as="h3" variant="headingMd">
-              🧩 Wheel segments
-            </Text>
-            <Text as="p" tone="subdued">
-              Configure prizes, probabilities and slice colors (minimum 2 segments).
-            </Text>
-          </BlockStack>
-
-          <Divider />
-
-          <BlockStack gap="300">
-            {segments.map((segment, index) => (
-              <div
-                key={segment.id}
-                style={{
-                  border: "1px solid #e5e7eb",
-                  borderRadius: 8,
-                  padding: "12px 12px 16px",
-                }}
-              >
-                <BlockStack gap="200">
-                  <InlineStack align="space-between" blockAlign="center">
-                    <Text as="h4" variant="headingSm">
-                      Segment {index + 1}
-                    </Text>
-                    <Button
-                      variant="plain"
-                      tone="critical"
-                      onClick={() => removeSegment(index)}
-                    >
-                      Remove
-                    </Button>
-                  </InlineStack>
-
-                  <FormGrid columns={2}>
-                    <TextField
-                      label="Label"
-                      name={`segment.${index}.label`}
-                      value={segment.label}
-                      required
-                      placeholder="10% OFF"
-                      onChange={(value) => updateSegment(index, { label: value })}
-                    />
-
-                    <TextField
-                      label="Probability"
-                      name={`segment.${index}.probability`}
-                      value={segment.probability.toString()}
-                      required
-                      placeholder="0.25"
-                      helpText="Value between 0 and 1 (e.g., 0.25 = 25%)"
-                      onChange={(value) =>
-                        updateSegment(index, {
-                          probability: parseFloat(value) || 0,
-                        })
-                      }
-                    />
-                  </FormGrid>
-
-                  <ColorField
-                    label="Slice Color"
-                    name={`segment.${index}.color`}
-                    value={segment.color || ""}
-                    helpText="Leave empty to fall back to the popup accent color"
-                    onChange={(value) => updateSegment(index, { color: value })}
-                  />
-                </BlockStack>
-              </div>
-            ))}
-
-            <InlineStack>
-              <Button onClick={addSegment}>Add segment</Button>
-            </InlineStack>
-          </BlockStack>
-        </BlockStack>
-      </Card>
+      {/* Wheel Segments Editor */}
+      <WheelSegmentEditor
+        segments={content.wheelSegments || []}
+        onChange={(updatedSegments) => updateField("wheelSegments", updatedSegments)}
+        errors={errors}
+      />
     </>
   );
 }

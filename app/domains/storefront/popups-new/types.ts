@@ -143,9 +143,11 @@ export interface Prize {
   label: string;
   probability: number;
   color?: string;
-  discountType?: "percentage" | "fixed_amount" | "free_shipping";
-  discountValue?: number;
-  discountCode?: string;
+  // Discount codes are now generated dynamically via backend API
+  // The generated code will be added to the prize object after winning
+  generatedCode?: string;
+  generatedDiscountId?: string;
+  discountCode?: string; // For backward compatibility and display
 }
 
 export interface ValidationRule {

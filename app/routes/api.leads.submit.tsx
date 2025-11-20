@@ -29,6 +29,7 @@ const LeadSubmissionSchema = z.object({
   email: z.string().email(),
   campaignId: z.string(),
   sessionId: z.string(),
+  challengeToken: z.string(), // REQUIRED: Challenge token for security
   visitorId: z.string().optional(),
   consent: z.boolean().optional(),
   firstName: z.string().optional(),
@@ -100,6 +101,50 @@ export async function action({ request }: ActionFunctionArgs) {
       return data(
         { success: false, error: "Campaign not found or inactive" },
         { status: 404, headers: storefrontCors() }
+      );
+    }
+
+    // SECURITY: Validate challenge token
+    const ip = request.headers.get("x-forwarded-for")?.split(",")[0] ||
+      request.headers.get("x-real-ip") ||
+      "unknown";
+
+    const { validateAndConsumeToken } = await import("~/domains/security/services/challenge-token.server");
+    const tokenValidation = await validateAndConsumeToken(
+      validatedData.challengeToken,
+      validatedData.campaignId,
+      validatedData.sessionId,
+      ip,
+      false // Don't enforce strict IP check for mobile users
+    );
+
+    if (!tokenValidation.valid) {
+      console.warn(`[Lead Submit] Token validation failed: ${tokenValidation.error}`);
+      return data(
+        { success: false, error: tokenValidation.error || "Invalid or expired token" },
+        { status: 403, headers: storefrontCors() }
+      );
+    }
+
+    // SECURITY: Rate limit per email+campaign (1 per day)
+    const { checkRateLimit, RATE_LIMITS, createEmailCampaignKey } = await import("~/domains/security/services/rate-limit.server");
+    const rateLimitKey = createEmailCampaignKey(validatedData.email, validatedData.campaignId);
+    const rateLimitResult = await checkRateLimit(
+      rateLimitKey,
+      "lead_submission",
+      RATE_LIMITS.EMAIL_PER_CAMPAIGN,
+      { email: validatedData.email, campaignId: validatedData.campaignId }
+    );
+
+    if (!rateLimitResult.allowed) {
+      console.warn(`[Lead Submit] Rate limit exceeded for ${validatedData.email}`);
+      return data(
+        {
+          success: false,
+          error: "You've already submitted for this campaign today",
+          retryAfter: rateLimitResult.resetAt
+        },
+        { status: 429, headers: storefrontCors() }
       );
     }
 

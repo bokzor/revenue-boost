@@ -1212,6 +1212,66 @@
     }
   };
 
+  // app/domains/storefront/services/challenge-token.client.ts
+  async function requestChallengeToken(campaignId, sessionId) {
+    try {
+      const response = await fetch("/apps/revenue-boost/api/challenge/request", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          campaignId,
+          sessionId
+        })
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        console.error("[Challenge Token] Request failed:", data.error);
+        return {
+          success: false,
+          error: data.error || "Failed to request challenge token",
+          retryAfter: data.retryAfter
+        };
+      }
+      return data;
+    } catch (error) {
+      console.error("[Challenge Token] Network error:", error);
+      return {
+        success: false,
+        error: "Network error requesting challenge token"
+      };
+    }
+  }
+  function isChallengeTokenValid(expiresAt) {
+    if (!expiresAt) return false;
+    return new Date(expiresAt) > /* @__PURE__ */ new Date();
+  }
+  var ChallengeTokenStore = class {
+    constructor() {
+      __publicField(this, "tokens", /* @__PURE__ */ new Map());
+    }
+    set(campaignId, token, expiresAt) {
+      this.tokens.set(campaignId, { token, expiresAt });
+    }
+    get(campaignId) {
+      const data = this.tokens.get(campaignId);
+      if (!data) return null;
+      if (!isChallengeTokenValid(data.expiresAt)) {
+        this.tokens.delete(campaignId);
+        return null;
+      }
+      return data.token;
+    }
+    delete(campaignId) {
+      this.tokens.delete(campaignId);
+    }
+    clear() {
+      this.tokens.clear();
+    }
+  };
+  var challengeTokenStore = new ChallengeTokenStore();
+
   // extensions/storefront-src/core/PopupManagerPreact.tsx
   function getShopifyRoot() {
     try {
@@ -1264,6 +1324,14 @@
     const [error, setError] = d2(null);
     y2(() => {
       let mounted = true;
+      requestChallengeToken(campaign.id, session.getSessionId()).then((response) => {
+        if (response.success && response.challengeToken && response.expiresAt) {
+          challengeTokenStore.set(campaign.id, response.challengeToken, response.expiresAt);
+          console.debug("[PopupManager] Challenge token acquired");
+        } else {
+          console.warn("[PopupManager] Failed to acquire challenge token:", response.error);
+        }
+      }).catch((err) => console.error("[PopupManager] Error requesting token:", err));
       async function loadPopupComponent() {
         try {
           console.log("[PopupManager] Loading component for:", campaign.templateType);
@@ -1310,13 +1378,18 @@
       try {
         console.log("[PopupManager] Submitting lead:", data);
         trackClick({ action: "submit" });
+        const challengeToken = challengeTokenStore.get(campaign.id);
+        if (!challengeToken) {
+          throw new Error("Security check failed. Please refresh the page.");
+        }
         const result = await api.submitLead({
           email: data.email,
           campaignId: campaign.id,
           sessionId: session.getSessionId(),
           visitorId: session.getVisitorId(),
           consent: data.gdprConsent,
-          firstName: data.name
+          firstName: data.name,
+          challengeToken
         });
         if (!result.success) {
           throw new Error(result.error || "Failed to submit lead");

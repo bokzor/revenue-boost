@@ -9,6 +9,7 @@ import { useState, useEffect } from "preact/hooks";
 import { ComponentLoader, type TemplateType } from "./component-loader";
 import type { ApiClient } from "./api";
 import { session } from "./session";
+import { requestChallengeToken, challengeTokenStore } from "~/domains/storefront/services/challenge-token.client";
 
 export interface StorefrontCampaign {
   id: string;
@@ -91,6 +92,18 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api }: P
   useEffect(() => {
     let mounted = true;
 
+    // Request challenge token immediately when popup loads
+    requestChallengeToken(campaign.id, session.getSessionId())
+      .then((response) => {
+        if (response.success && response.challengeToken && response.expiresAt) {
+          challengeTokenStore.set(campaign.id, response.challengeToken, response.expiresAt);
+          console.debug("[PopupManager] Challenge token acquired");
+        } else {
+          console.warn("[PopupManager] Failed to acquire challenge token:", response.error);
+        }
+      })
+      .catch((err) => console.error("[PopupManager] Error requesting token:", err));
+
     async function loadPopupComponent() {
       try {
         console.log("[PopupManager] Loading component for:", campaign.templateType);
@@ -149,6 +162,13 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api }: P
 
       trackClick({ action: "submit" });
 
+      // SECURITY: Retrieve challenge token
+      const challengeToken = challengeTokenStore.get(campaign.id);
+
+      if (!challengeToken) {
+        throw new Error("Security check failed. Please refresh the page.");
+      }
+
       const result = await api.submitLead({
         email: data.email,
         campaignId: campaign.id,
@@ -156,6 +176,7 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api }: P
         visitorId: session.getVisitorId(),
         consent: data.gdprConsent,
         firstName: data.name,
+        challengeToken,
       });
 
       if (!result.success) {

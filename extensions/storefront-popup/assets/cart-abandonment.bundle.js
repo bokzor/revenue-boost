@@ -1,5 +1,9 @@
 "use strict";
 (() => {
+  var __defProp = Object.defineProperty;
+  var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+  var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
+
   // global-preact:global-preact:react
   if (typeof window === "undefined" || !window.RevenueBoostPreact) {
     throw new Error("RevenueBoostPreact not found. Make sure main bundle is loaded first.");
@@ -561,6 +565,36 @@
   `;
   }
 
+  // app/domains/storefront/services/challenge-token.client.ts
+  function isChallengeTokenValid(expiresAt) {
+    if (!expiresAt) return false;
+    return new Date(expiresAt) > /* @__PURE__ */ new Date();
+  }
+  var ChallengeTokenStore = class {
+    constructor() {
+      __publicField(this, "tokens", /* @__PURE__ */ new Map());
+    }
+    set(campaignId, token, expiresAt) {
+      this.tokens.set(campaignId, { token, expiresAt });
+    }
+    get(campaignId) {
+      const data = this.tokens.get(campaignId);
+      if (!data) return null;
+      if (!isChallengeTokenValid(data.expiresAt)) {
+        this.tokens.delete(campaignId);
+        return null;
+      }
+      return data.token;
+    }
+    delete(campaignId) {
+      this.tokens.delete(campaignId);
+    }
+    clear() {
+      this.tokens.clear();
+    }
+  };
+  var challengeTokenStore = new ChallengeTokenStore();
+
   // app/domains/storefront/popups-new/CartAbandonmentPopup.tsx
   var CartAbandonmentPopup = ({
     config,
@@ -680,25 +714,42 @@
           handleResumeCheckout();
           return;
         }
-        if (!onEmailRecovery) {
-          handleResumeCheckout();
-          return;
-        }
         setIsEmailSubmitting(true);
         try {
-          const result = onEmailRecovery(trimmed);
-          let resolved = result;
-          if (result && typeof result.then === "function") {
-            resolved = await result;
+          const challengeToken = challengeTokenStore.get(config.campaignId);
+          if (!challengeToken) {
+            throw new Error("Security check failed. Please refresh the page.");
           }
-          if (typeof resolved === "string" && resolved.length > 0) {
-            setDiscountCodeToShow(resolved);
+          const response = await fetch("/apps/revenue-boost/api/cart/email-recovery", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              campaignId: config.campaignId,
+              email: trimmed,
+              sessionId: typeof window !== "undefined" ? window.sessionStorage?.getItem("rb_session_id") : void 0,
+              challengeToken,
+              cartItems,
+              cartSubtotalCents: typeof cartTotal === "number" ? Math.round(cartTotal * 100) : void 0
+            })
+          });
+          const data = await response.json();
+          if (!response.ok) {
+            throw new Error(data.error || "Submission failed");
           }
-          setEmailSuccessMessage(emailSuccessCopy);
+          if (data.success) {
+            if (data.discountCode) {
+              setDiscountCodeToShow(data.discountCode);
+            }
+            setEmailSuccessMessage(emailSuccessCopy);
+          } else {
+            throw new Error(data.error || "Submission failed");
+          }
         } catch (err) {
           console.error("[CartAbandonmentPopup] Email recovery failed", err);
           setEmailError(
-            config.emailErrorMessage || "Something went wrong. Please try again."
+            err.message || config.emailErrorMessage || "Something went wrong. Please try again."
           );
         } finally {
           setIsEmailSubmitting(false);
@@ -706,11 +757,13 @@
       },
       [
         email,
+        config.campaignId,
         config.emailErrorMessage,
         config.enableEmailRecovery,
         emailSuccessCopy,
-        onEmailRecovery,
-        handleResumeCheckout
+        handleResumeCheckout,
+        cartItems,
+        cartTotal
       ]
     );
     const handleCopyCode = useCallback(async () => {

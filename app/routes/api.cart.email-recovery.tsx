@@ -22,6 +22,8 @@ import { createDraftOrder } from "~/lib/shopify/order.server";
 const EmailRecoveryRequestSchema = z.object({
   campaignId: z.string().cuid(),
   email: z.string().email(),
+  sessionId: z.string(),
+  challengeToken: z.string(), // REQUIRED: Challenge token for security
   cartSubtotalCents: z.number().int().min(0).optional(),
   cartItems: z.array(z.object({
     id: z.number().optional(),
@@ -73,6 +75,46 @@ export async function action({ request }: ActionFunctionArgs) {
       return data<EmailRecoveryResponse>(
         { success: false, error: "Campaign not found or inactive" },
         { status: 404 },
+      );
+    }
+
+    // SECURITY: Validate challenge token
+    const ip = request.headers.get("x-forwarded-for")?.split(",")[0] ||
+      request.headers.get("x-real-ip") ||
+      "unknown";
+
+    const { validateAndConsumeToken } = await import("~/domains/security/services/challenge-token.server");
+    const tokenValidation = await validateAndConsumeToken(
+      validated.challengeToken,
+      validated.campaignId,
+      validated.sessionId,
+      ip,
+      false
+    );
+
+    if (!tokenValidation.valid) {
+      console.warn(`[Cart Recovery] Token validation failed: ${tokenValidation.error}`);
+      return data<EmailRecoveryResponse>(
+        { success: false, error: tokenValidation.error || "Invalid or expired token" },
+        { status: 403 },
+      );
+    }
+
+    // SECURITY: Rate limit per email+campaign
+    const { checkRateLimit, RATE_LIMITS, createEmailCampaignKey } = await import("~/domains/security/services/rate-limit.server");
+    const rateLimitKey = createEmailCampaignKey(validated.email, validated.campaignId);
+    const rateLimitResult = await checkRateLimit(
+      rateLimitKey,
+      "cart_recovery",
+      RATE_LIMITS.EMAIL_PER_CAMPAIGN,
+      { email: validated.email, campaignId: validated.campaignId }
+    );
+
+    if (!rateLimitResult.allowed) {
+      console.warn(`[Cart Recovery] Rate limit exceeded for ${validated.email}`);
+      return data<EmailRecoveryResponse>(
+        { success: false, error: "You've already recovered your cart today" },
+        { status: 429 },
       );
     }
 

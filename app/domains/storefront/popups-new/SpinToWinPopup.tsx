@@ -15,6 +15,7 @@ import { PopupPortal } from './PopupPortal';
 import type { PopupDesignConfig, Prize } from './types';
 import type { SpinToWinContent } from '~/domains/campaigns/types/campaign';
 import { validateEmail, prefersReducedMotion } from './utils';
+import { challengeTokenStore } from '~/domains/storefront/services/challenge-token.client';
 
 /**
  * SpinToWinConfig - Extends both design config AND campaign content type
@@ -39,12 +40,12 @@ export interface SpinToWinPopupProps {
 }
 
 export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
-                                                                config,
-                                                                isVisible,
-                                                                onClose,
-                                                                onSpin,
-                                                                onWin,
-                                                              }) => {
+  config,
+  isVisible,
+  onClose,
+  onSpin,
+  onWin,
+}) => {
   const [email, setEmail] = useState('');
   const [emailError, setEmailError] = useState('');
   const [name, setName] = useState('');
@@ -53,7 +54,9 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
   const [gdprError, setGdprError] = useState('');
   const [hasSpun, setHasSpun] = useState(false);
   const [isSpinning, setIsSpinning] = useState(false);
+  const [isGeneratingCode, setIsGeneratingCode] = useState(false);
   const [wonPrize, setWonPrize] = useState<Prize | null>(null);
+  const [codeError, setCodeError] = useState('');
   const [rotation, setRotation] = useState(0);
   const rotationRef = useRef(0);
   const spinAnimationFrameRef = useRef<number | null>(null);
@@ -197,12 +200,12 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
   const backgroundStyles: React.CSSProperties =
     baseBackground.startsWith('linear-gradient(')
       ? {
-          backgroundImage: baseBackground,
-          backgroundColor: 'transparent',
-        }
+        backgroundImage: baseBackground,
+        backgroundColor: 'transparent',
+      }
       : {
-          backgroundColor: baseBackground,
-        };
+        backgroundColor: baseBackground,
+      };
 
   // Input colors derived from design config (theme-aware)
   const inputBackground = config.inputBackgroundColor || '#FFFFFF';
@@ -220,7 +223,7 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
 
   const resultMessage =
     hasSpun && wonPrize
-      ? wonPrize.discountCode
+      ? wonPrize.generatedCode
         ? `You won ${wonPrize.label}!`
         : config.failureMessage || wonPrize.label || 'Thanks for playing!'
       : null;
@@ -357,36 +360,7 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
     return () => clearTimeout(timer);
   }, [isVisible, config.autoCloseDelay, onClose]);
 
-  const selectPrize = useCallback((): Prize => {
-    const totalProbability = segments.reduce((sum, seg) => sum + seg.probability, 0);
-    let random = Math.random() * totalProbability;
-
-    for (const segment of segments) {
-      random -= segment.probability;
-      if (random <= 0) {
-        return segment;
-      }
-    }
-
-    return segments[0];
-  }, [segments]);
-
-  const calculateRotation = useCallback(
-    (prizeIndex: number): number => {
-      const minSpins = config.minSpins ?? 5;
-      const baseRotation = minSpins * 360;
-
-      // We draw segments starting from the top (-90deg), but the pointer sits on the
-      // right-hand side of the wheel. To land the winning slice under the pointer,
-      // we rotate so that the center of the chosen segment is at 90deg from the
-      // top (i.e. directly at the pointer).
-      const targetAngle = 90 - (prizeIndex + 0.5) * segmentAngle;
-
-      // No random jitter so the winning slice lines up precisely with the pointer.
-      return baseRotation + targetAngle;
-    },
-    [segmentAngle, config.minSpins],
-  );
+  // Prize selection and wheel rotation now handled server-side for security
 
   const validateForm = useCallback(() => {
     // Reset previous errors
@@ -422,16 +396,18 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
     if (!isValid) return;
 
     setIsSpinning(true);
+    setCodeError('');
 
     try {
       if (!config.previewMode && onSpin) {
         await onSpin(email);
       }
 
-      const prize = selectPrize();
-      const prizeIndex = segments.findIndex((s) => s.id === prize.id);
-      const finalRotation = calculateRotation(prizeIndex);
+      // SECURITY FIX: NO client-side prize selection
+      // Server will select the prize based on probabilities
 
+      // Start spin animation with placeholder rotation
+      // We'll update to final rotation once we get the prize from server
       const duration = config.spinDuration || 4000;
       const reduceMotion = prefersReducedMotion();
 
@@ -440,12 +416,15 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
         cancelAnimationFrame(spinAnimationFrameRef.current);
       }
 
+      // Start spinning to a temporary target
+      const minSpins = config.minSpins ?? 5;
+      const tempRotation = minSpins * 360;
+
       if (reduceMotion || typeof requestAnimationFrame === 'undefined') {
-        // No animation: jump directly to final rotation
-        setRotation(finalRotation);
+        setRotation(tempRotation);
       } else {
         spinFromRef.current = rotationRef.current;
-        spinToRef.current = finalRotation;
+        spinToRef.current = tempRotation;
         spinStartTimeRef.current = null;
 
         const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
@@ -473,13 +452,81 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
         spinAnimationFrameRef.current = requestAnimationFrame(step);
       }
 
-      setTimeout(() => {
-        setWonPrize(prize);
+      // After spin animation completes, call API to get prize and generate discount code
+      setTimeout(async () => {
         setHasSpun(true);
         setIsSpinning(false);
 
-        if (onWin) {
-          onWin(prize);
+        // Generate discount code and get prize from server
+        if (!config.previewMode && config.campaignId) {
+          setIsGeneratingCode(true);
+
+          try {
+            const response = await fetch('/apps/revenue-boost/api/popups/spin-win', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                campaignId: config.campaignId,
+                // NO prizeId - server selects the prize
+                email,
+                sessionId: typeof window !== 'undefined' ? window.sessionStorage?.getItem('rb_session_id') : undefined,
+                challengeToken: challengeTokenStore.get(config.campaignId),
+              }),
+            });
+
+            const data = await response.json();
+
+            if (data.success && data.prize && data.discountCode) {
+              // Create prize object with server-selected prize and generated code
+              const serverPrize: Prize = {
+                id: data.prize.id,
+                label: data.prize.label,
+                color: data.prize.color,
+                probability: 0, // Not needed from server
+                generatedCode: data.discountCode,
+              };
+
+              setWonPrize(serverPrize);
+
+              // Call onWin callback
+              if (onWin) {
+                onWin(serverPrize);
+              }
+
+              // Auto-apply if configured
+              if (data.autoApply && data.discountCode) {
+                try {
+                  // Store in localStorage as backup
+                  if (typeof window !== 'undefined' && window.localStorage) {
+                    window.localStorage.setItem('rb_discount_code', data.discountCode);
+                    window.localStorage.setItem('rb_discount_applied_at', new Date().toISOString());
+                  }
+
+                  console.log('[Spin-to-Win] Discount code ready for checkout');
+                } catch (applyError) {
+                  console.error('[Spin-to-Win] Auto-apply failed:', applyError);
+                }
+              }
+            } else {
+              // Fallback: no prize or code
+              setCodeError(data.error || 'Could not generate discount code');
+              console.error('[Spin-to-Win] Prize/code generation failed:', data.error);
+            }
+          } catch (fetchError) {
+            console.error('[Spin-to-Win] API call failed:', fetchError);
+            setCodeError('Network error generating code');
+          } finally {
+            setIsGeneratingCode(false);
+          }
+        } else {
+          // Preview mode - use client-side fallback
+          const fallbackPrize = segments[0];
+          setWonPrize(fallbackPrize);
+          if (onWin) {
+            onWin(fallbackPrize);
+          }
         }
       }, duration);
 
@@ -487,20 +534,20 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
       console.error('Spin error:', error);
       setEmailError('Error occurred');
       setIsSpinning(false);
+      setIsGeneratingCode(false);
     }
-  }, [validateForm, config, email, onSpin, selectPrize, segments, calculateRotation, onWin]);
+  }, [validateForm, config, email, onSpin, segments, onWin]);
 
   const getInputStyles = (isFocused: boolean, hasError: boolean): React.CSSProperties => ({
     width: '100%',
     padding: '14px 16px',
     fontSize: '15px',
-    border: `2px solid ${
-      hasError
-        ? '#EF4444'
-        : isFocused
-          ? accentColor
-          : inputBorderColor
-    }`,
+    border: `2px solid ${hasError
+      ? '#EF4444'
+      : isFocused
+        ? accentColor
+        : inputBorderColor
+      }`,
     borderRadius: `${borderRadius}px`,
     backgroundColor: inputBackground,
     color: inputTextColor,
@@ -588,8 +635,8 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
       isMobile
         ? 'translate(-50%, -65%) rotate(90deg)'
         : isTablet
-        ? 'translateX(-18%) scale(0.8)'
-        : 'translateX(-18%)',
+          ? 'translateX(-18%) scale(0.8)'
+          : 'translateX(-18%)',
     transformOrigin: 'center center',
   };
 
@@ -606,6 +653,7 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
       }}
       animation={{
         type: config.animation || 'fade',
+        duration: animDuration,
       }}
       position="center"
       size={config.size || 'large'}
@@ -615,6 +663,21 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
       ariaLabel={config.ariaLabel || config.headline}
       ariaDescribedBy={config.ariaDescribedBy}
     >
+      {/* Inject CSS for code reveal animation */}
+      <style>
+        {`
+          @keyframes slideUpFade {
+            from {
+              opacity: 0;
+              transform: translateY(20px);
+            }
+            to {
+              opacity: 1;
+              transform: translateY(0);
+            }
+          }
+        `}
+      </style>
       <div
         style={{
           opacity: showContent ? 1 : 0,
@@ -777,10 +840,10 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
                         marginTop: 12,
                         padding: '12px 16px',
                         borderRadius: 9999,
-                        backgroundColor: wonPrize?.discountCode
+                        backgroundColor: wonPrize?.generatedCode
                           ? successColor
                           : config.textColor || '#111827',
-                        color: wonPrize?.discountCode ? '#FFFFFF' : '#F9FAFB',
+                        color: wonPrize?.generatedCode ? '#FFFFFF' : '#F9FAFB',
                         fontSize: '14px',
                         fontWeight: 500,
                         textAlign: 'center',
@@ -795,250 +858,309 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
 
                 {/* Email + GDPR + actions */}
                 {/* Optional Name field */}
-              {collectName && (
-                <div style={{ width: '100%', maxWidth: '400px' }}>
-                  <label
-                    style={{
-                      display: 'block',
-                      marginBottom: '8px',
-                      fontSize: '14px',
-                      fontWeight: 600,
-                      color: config.textColor || '#374151',
-                      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                    }}
-                  >
-                    Name
-                  </label>
-                  <input
-                    type="text"
-                    value={name}
-                    onChange={(e) => {
-                      setName(e.target.value);
-                      if (nameError) setNameError('');
-                    }}
-                    placeholder="Enter your name"
-                    style={getInputStyles(false, !!nameError)}
-                    disabled={isSpinning || hasSpun}
-                  />
-                  {nameError && (
-                    <p
+                {collectName && (
+                  <div style={{ width: '100%', maxWidth: '400px' }}>
+                    <label
                       style={{
-                        color: '#EF4444',
-                        fontSize: '13px',
-                        margin: '6px 0 0 0',
+                        display: 'block',
+                        marginBottom: '8px',
+                        fontSize: '14px',
+                        fontWeight: 600,
+                        color: config.textColor || '#374151',
                         fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
                       }}
                     >
-                      {nameError}
-                    </p>
-                  )}
-                </div>
-              )}
-
-              {/* Email input - clean design */}
-              {config.emailRequired && (
-                <div style={{ width: '100%', maxWidth: '400px' }}>
-                  {config.emailLabel && (
-                    <label style={{
-                      display: 'block',
-                      marginBottom: '8px',
-                      fontSize: '14px',
-                      fontWeight: 600,
-                      color: config.textColor || '#374151',
-                      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                    }}>
-                      {config.emailLabel}
+                      Name
                     </label>
-                  )}
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => {
-                      setEmail(e.target.value);
-                      if (emailError) setEmailError('');
-                    }}
-                    onFocus={() => setEmailFocused(true)}
-                    onBlur={() => setEmailFocused(false)}
-                    placeholder={config.emailPlaceholder || 'your@email.com'}
-                    style={getInputStyles(emailFocused, !!emailError)}
-                    disabled={isSpinning || hasSpun}
-                  />
-                  {emailError && (
-                    <p style={{
-                      color: '#EF4444',
-                      fontSize: '13px',
-                      margin: '6px 0 0 0',
-                      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                    }}>
-                      {emailError}
-                    </p>
-                  )}
-                </div>
-              )}
-
-              {/* Optional GDPR checkbox */}
-              {showGdpr && (
-                <div style={{ width: '100%', maxWidth: '400px' }}>
-                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', marginTop: '8px' }}>
                     <input
-                      id="spin-gdpr"
-                      type="checkbox"
-                      checked={gdprConsent}
+                      type="text"
+                      value={name}
                       onChange={(e) => {
-                        setGdprConsent(e.target.checked);
-                        if (gdprError) setGdprError('');
+                        setName(e.target.value);
+                        if (nameError) setNameError('');
                       }}
-                      style={{
-                        width: '16px',
-                        height: '16px',
-                        marginTop: '2px',
-                        cursor: 'pointer',
-                      }}
+                      placeholder="Enter your name"
+                      style={getInputStyles(false, !!nameError)}
                       disabled={isSpinning || hasSpun}
                     />
-                    <label
-                      htmlFor="spin-gdpr"
-                      style={{
-                        fontSize: '13px',
-                        lineHeight: 1.5,
-                        color: config.textColor || '#4B5563',
-                        cursor: 'pointer',
-                        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                      }}
-                    >
-                      {gdprLabel}
-                    </label>
+                    {nameError && (
+                      <p
+                        style={{
+                          color: '#EF4444',
+                          fontSize: '13px',
+                          margin: '6px 0 0 0',
+                          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                        }}
+                      >
+                        {nameError}
+                      </p>
+                    )}
                   </div>
-                  {gdprError && (
-                    <p
-                      style={{
+                )}
+
+                {/* Email input - clean design */}
+                {config.emailRequired && (
+                  <div style={{ width: '100%', maxWidth: '400px' }}>
+                    {config.emailLabel && (
+                      <label style={{
+                        display: 'block',
+                        marginBottom: '8px',
+                        fontSize: '14px',
+                        fontWeight: 600,
+                        color: config.textColor || '#374151',
+                        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                      }}>
+                        {config.emailLabel}
+                      </label>
+                    )}
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => {
+                        setEmail(e.target.value);
+                        if (emailError) setEmailError('');
+                      }}
+                      onFocus={() => setEmailFocused(true)}
+                      onBlur={() => setEmailFocused(false)}
+                      placeholder={config.emailPlaceholder || 'your@email.com'}
+                      style={getInputStyles(emailFocused, !!emailError)}
+                      disabled={isSpinning || hasSpun}
+                    />
+                    {emailError && (
+                      <p style={{
                         color: '#EF4444',
                         fontSize: '13px',
                         margin: '6px 0 0 0',
                         fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                      }}
-                    >
-                      {gdprError}
-                    </p>
-                  )}
-                </div>
-              )}
-
-              {/* Primary button: Spin */}
-              <button
-                onClick={handleSpin}
-                disabled={isSpinning || hasSpun}
-                style={{
-                  ...buttonStyles,
-                  cursor: isSpinning || hasSpun ? 'not-allowed' : 'pointer',
-                }}
-                onMouseEnter={(e) => {
-                  if (!isSpinning && !hasSpun) {
-                    e.currentTarget.style.transform = 'translateY(-1px)';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0)';
-                }}
-              >
-                {isSpinning ? (
-                  <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
-                    <span style={{
-                      width: '16px',
-                      height: '16px',
-                      border: '2px solid rgba(255,255,255,0.3)',
-                      borderTopColor: '#FFF',
-                      borderRadius: '50%',
-                      animation: 'spin 0.8s linear infinite'
-                    }} />
-                    {config.loadingText || 'Spinning...'}
-                  </span>
-                ) : (
-                  config.spinButtonText || 'Spin to Win!'
+                      }}>
+                        {emailError}
+                      </p>
+                    )}
+                  </div>
                 )}
-              </button>
 
-              <button
-                type="button"
-                onClick={onClose}
-                style={{
-                  ...secondaryButtonStyles,
-                  marginTop: '8px',
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
-                onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.9')}
-              >
-                {config.dismissLabel || 'No thanks'}
-              </button>
+                {/* Optional GDPR checkbox */}
+                {showGdpr && (
+                  <div style={{ width: '100%', maxWidth: '400px' }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', marginTop: '8px' }}>
+                      <input
+                        id="spin-gdpr"
+                        type="checkbox"
+                        checked={gdprConsent}
+                        onChange={(e) => {
+                          setGdprConsent(e.target.checked);
+                          if (gdprError) setGdprError('');
+                        }}
+                        style={{
+                          width: '16px',
+                          height: '16px',
+                          marginTop: '2px',
+                          cursor: 'pointer',
+                        }}
+                        disabled={isSpinning || hasSpun}
+                      />
+                      <label
+                        htmlFor="spin-gdpr"
+                        style={{
+                          fontSize: '13px',
+                          lineHeight: 1.5,
+                          color: config.textColor || '#4B5563',
+                          cursor: 'pointer',
+                          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                        }}
+                      >
+                        {gdprLabel}
+                      </label>
+                    </div>
+                    {gdprError && (
+                      <p
+                        style={{
+                          color: '#EF4444',
+                          fontSize: '13px',
+                          margin: '6px 0 0 0',
+                          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                        }}
+                      >
+                        {gdprError}
+                      </p>
+                    )}
+                  </div>
+                )}
 
-              {/* Discount code reveal */}
-              {wonPrize?.discountCode && (
-                <div style={{
-                width: '100%',
-                maxWidth: '400px',
-                marginTop: '8px',
-                padding: '24px',
-                backgroundColor: inputBackground,
-                borderRadius: `${borderRadius}px`,
-                border: `1px solid ${inputBorderColor}`,
-                animation: 'slideUp 0.5s ease-out',
-              }}>
-                <p style={{
-                  fontSize: '13px',
-                  margin: '0 0 12px 0',
-                  color: descriptionColor,
-                  fontWeight: 600,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.5px',
-                  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                  textAlign: 'center',
-                }}>
-                  Your Discount Code
-                </p>
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '12px',
-                  flexWrap: 'wrap',
-                }}>
-                  <code style={{
-                    fontSize: '28px',
-                    fontWeight: 700,
-                    padding: '12px 24px',
-                    backgroundColor: '#FFFFFF',
-                    borderRadius: `${borderRadius - 4}px`,
-                    letterSpacing: '2px',
-                    color: accentColor,
-                    border: `2px solid ${successColor}`,
-                    fontFamily: 'SF Mono, Monaco, Consolas, monospace',
+                {/* Primary button: Spin */}
+                <button
+                  onClick={handleSpin}
+                  disabled={isSpinning || hasSpun}
+                  style={{
+                    ...buttonStyles,
+                    cursor: isSpinning || hasSpun ? 'not-allowed' : 'pointer',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isSpinning && !hasSpun) {
+                      e.currentTarget.style.transform = 'translateY(-1px)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                  }}
+                >
+                  {isSpinning ? (
+                    <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+                      <span style={{
+                        width: '16px',
+                        height: '16px',
+                        border: '2px solid rgba(255,255,255,0.3)',
+                        borderTopColor: '#FFF',
+                        borderRadius: '50%',
+                        animation: 'spin 0.8s linear infinite'
+                      }} />
+                      {config.loadingText || 'Spinning...'}
+                    </span>
+                  ) : (
+                    config.spinButtonText || 'Spin to Win!'
+                  )}
+                </button>
+
+                {/* Hide "No thanks" button after spin */}
+                {!hasSpun && (
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    style={{
+                      ...secondaryButtonStyles,
+                      marginTop: '8px',
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
+                    onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.9')}
+                  >
+                    {config.dismissLabel || 'No thanks'}
+                  </button>
+                )}
+
+                {/* Discount code reveal with copy functionality */}
+                {wonPrize?.generatedCode && (
+                  <div style={{
+                    width: '100%',
+                    maxWidth: '400px',
+                    marginTop: '8px',
+                    padding: '24px',
+                    backgroundColor: inputBackground,
+                    borderRadius: `${borderRadius}px`,
+                    border: `1px solid ${inputBorderColor}`,
+                    animation: 'slideUpFade 0.6s ease-out',
                   }}>
-                    {wonPrize.discountCode}
-                  </code>
-                </div>
-                {wonPrize.discountValue && (
-                  <p style={{
-                    fontSize: '15px',
-                    margin: '16px 0 0 0',
-                    color: config.textColor || '#374151',
-                    fontWeight: 500,
-                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                    textAlign: 'center',
-                  }}>
-                    {wonPrize.discountType === 'percentage' && `Save ${wonPrize.discountValue}%`}
-                    {wonPrize.discountType === 'fixed_amount' && `Save $${wonPrize.discountValue}`}
-                    {wonPrize.discountType === 'free_shipping' && 'Free Shipping'}
-                  </p>
+                    {isGeneratingCode ? (
+                      <p style={{
+                        fontSize: '15px',
+                        margin: '0',
+                        color: descriptionColor,
+                        fontWeight: 500,
+                        textAlign: 'center',
+                        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                      }}>
+                        Generating your discount code...
+                      </p>
+                    ) : (
+                      <>
+                        <p style={{
+                          fontSize: '13px',
+                          margin: '0 0 12px 0',
+                          color: descriptionColor,
+                          fontWeight: 600,
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.5px',
+                          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                          textAlign: 'center',
+                        }}>
+                          Your Discount Code
+                        </p>
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '12px',
+                          flexWrap: 'wrap',
+                        }}>
+                          <code style={{
+                            fontSize: '28px',
+                            fontWeight: 700,
+                            padding: '12px 24px',
+                            backgroundColor: '#FFFFFF',
+                            borderRadius: `${borderRadius - 4}px`,
+                            letterSpacing: '2px',
+                            color: accentColor,
+                            border: `2px solid ${successColor}`,
+                            fontFamily: 'SF Mono, Monaco, Consolas, monospace',
+                          }}>
+                            {wonPrize.generatedCode}
+                          </code>
+                        </div>
+                        <p style={{
+                          fontSize: '14px',
+                          margin: '16px 0 0 0',
+                          color: descriptionColor,
+                          fontWeight: 500,
+                          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                          textAlign: 'center',
+                        }}>
+                          {wonPrize.label}
+                        </p>
+                        {/* Copy to clipboard button */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (typeof navigator !== 'undefined' && navigator.clipboard && wonPrize.generatedCode) {
+                              navigator.clipboard.writeText(wonPrize.generatedCode)
+                                .then(() => console.log('[Spin-to-Win] Code copied to clipboard'))
+                                .catch((err) => console.error('[Spin-to-Win] Copy failed:', err));
+                            }
+                          }}
+                          style={{
+                            marginTop: '12px',
+                            padding: '10px 20px',
+                            fontSize: '14px',
+                            fontWeight: 600,
+                            color: accentColor,
+                            backgroundColor: 'transparent',
+                            border: `2px solid ${accentColor}`,
+                            borderRadius: `${borderRadius}px`,
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease',
+                            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = accentColor;
+                            e.currentTarget.style.color = '#FFFFFF';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = 'transparent';
+                            e.currentTarget.style.color = accentColor;
+                          }}
+                        >
+                          Copy Code
+                        </button>
+                      </>
+                    )}
+                    {codeError && (
+                      <p style={{
+                        fontSize: '13px',
+                        margin: '12px 0 0 0',
+                        color: '#EF4444',
+                        fontWeight: 500,
+                        textAlign: 'center',
+                      }}>
+                        {codeError}
+                      </p>
+                    )}
+                  </div>
                 )}
               </div>
-          )}
+              {/* Close layout row */}
+            </div>
+            {/* Close card container */}
+          </div>
+          {/* Close overlay wrapper */}
         </div>
-        {/* Close layout row */}
-      </div>
-      {/* Close card container */}
-      </div>
-      {/* Close overlay wrapper */}
-      </div>
 
       </div>
 

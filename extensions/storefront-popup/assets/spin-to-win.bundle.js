@@ -1,5 +1,9 @@
 "use strict";
 (() => {
+  var __defProp = Object.defineProperty;
+  var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+  var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
+
   // global-preact:global-preact:react
   if (typeof window === "undefined" || !window.RevenueBoostPreact) {
     throw new Error("RevenueBoostPreact not found. Make sure main bundle is loaded first.");
@@ -499,6 +503,36 @@
   `;
   }
 
+  // app/domains/storefront/services/challenge-token.client.ts
+  function isChallengeTokenValid(expiresAt) {
+    if (!expiresAt) return false;
+    return new Date(expiresAt) > /* @__PURE__ */ new Date();
+  }
+  var ChallengeTokenStore = class {
+    constructor() {
+      __publicField(this, "tokens", /* @__PURE__ */ new Map());
+    }
+    set(campaignId, token, expiresAt) {
+      this.tokens.set(campaignId, { token, expiresAt });
+    }
+    get(campaignId) {
+      const data = this.tokens.get(campaignId);
+      if (!data) return null;
+      if (!isChallengeTokenValid(data.expiresAt)) {
+        this.tokens.delete(campaignId);
+        return null;
+      }
+      return data.token;
+    }
+    delete(campaignId) {
+      this.tokens.delete(campaignId);
+    }
+    clear() {
+      this.tokens.clear();
+    }
+  };
+  var challengeTokenStore = new ChallengeTokenStore();
+
   // app/domains/storefront/popups-new/SpinToWinPopup.tsx
   var SpinToWinPopup = ({
     config,
@@ -515,7 +549,9 @@
     const [gdprError, setGdprError] = useState("");
     const [hasSpun, setHasSpun] = useState(false);
     const [isSpinning, setIsSpinning] = useState(false);
+    const [isGeneratingCode, setIsGeneratingCode] = useState(false);
     const [wonPrize, setWonPrize] = useState(null);
+    const [codeError, setCodeError] = useState("");
     const [rotation, setRotation] = useState(0);
     const rotationRef = useRef(0);
     const spinAnimationFrameRef = useRef(null);
@@ -639,7 +675,7 @@
     const collectName = config.collectName ?? false;
     const showGdpr = config.showGdprCheckbox ?? false;
     const gdprLabel = config.gdprLabel || "I agree to receive marketing emails and accept the privacy policy";
-    const resultMessage = hasSpun && wonPrize ? wonPrize.discountCode ? `You won ${wonPrize.label}!` : config.failureMessage || wonPrize.label || "Thanks for playing!" : null;
+    const resultMessage = hasSpun && wonPrize ? wonPrize.generatedCode ? `You won ${wonPrize.label}!` : config.failureMessage || wonPrize.label || "Thanks for playing!" : null;
     useEffect(() => {
       const canvas = canvasRef.current;
       if (!canvas || segments.length === 0) return;
@@ -739,26 +775,6 @@
       const timer = setTimeout(onClose, config.autoCloseDelay * 1e3);
       return () => clearTimeout(timer);
     }, [isVisible, config.autoCloseDelay, onClose]);
-    const selectPrize = useCallback(() => {
-      const totalProbability = segments.reduce((sum, seg) => sum + seg.probability, 0);
-      let random = Math.random() * totalProbability;
-      for (const segment of segments) {
-        random -= segment.probability;
-        if (random <= 0) {
-          return segment;
-        }
-      }
-      return segments[0];
-    }, [segments]);
-    const calculateRotation = useCallback(
-      (prizeIndex) => {
-        const minSpins = config.minSpins ?? 5;
-        const baseRotation = minSpins * 360;
-        const targetAngle = 90 - (prizeIndex + 0.5) * segmentAngle;
-        return baseRotation + targetAngle;
-      },
-      [segmentAngle, config.minSpins]
-    );
     const validateForm = useCallback(() => {
       setEmailError("");
       setNameError("");
@@ -785,23 +801,23 @@
       const isValid = validateForm();
       if (!isValid) return;
       setIsSpinning(true);
+      setCodeError("");
       try {
         if (!config.previewMode && onSpin) {
           await onSpin(email);
         }
-        const prize = selectPrize();
-        const prizeIndex = segments.findIndex((s) => s.id === prize.id);
-        const finalRotation = calculateRotation(prizeIndex);
         const duration = config.spinDuration || 4e3;
         const reduceMotion = prefersReducedMotion();
         if (spinAnimationFrameRef.current !== null && typeof cancelAnimationFrame !== "undefined") {
           cancelAnimationFrame(spinAnimationFrameRef.current);
         }
+        const minSpins = config.minSpins ?? 5;
+        const tempRotation = minSpins * 360;
         if (reduceMotion || typeof requestAnimationFrame === "undefined") {
-          setRotation(finalRotation);
+          setRotation(tempRotation);
         } else {
           spinFromRef.current = rotationRef.current;
-          spinToRef.current = finalRotation;
+          spinToRef.current = tempRotation;
           spinStartTimeRef.current = null;
           const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);
           const step = (timestamp) => {
@@ -822,20 +838,75 @@
           };
           spinAnimationFrameRef.current = requestAnimationFrame(step);
         }
-        setTimeout(() => {
-          setWonPrize(prize);
+        setTimeout(async () => {
           setHasSpun(true);
           setIsSpinning(false);
-          if (onWin) {
-            onWin(prize);
+          if (!config.previewMode && config.campaignId) {
+            setIsGeneratingCode(true);
+            try {
+              const response = await fetch("/apps/revenue-boost/api/popups/spin-win", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                  campaignId: config.campaignId,
+                  // NO prizeId - server selects the prize
+                  email,
+                  sessionId: typeof window !== "undefined" ? window.sessionStorage?.getItem("rb_session_id") : void 0,
+                  challengeToken: challengeTokenStore.get(config.campaignId)
+                })
+              });
+              const data = await response.json();
+              if (data.success && data.prize && data.discountCode) {
+                const serverPrize = {
+                  id: data.prize.id,
+                  label: data.prize.label,
+                  color: data.prize.color,
+                  probability: 0,
+                  // Not needed from server
+                  generatedCode: data.discountCode
+                };
+                setWonPrize(serverPrize);
+                if (onWin) {
+                  onWin(serverPrize);
+                }
+                if (data.autoApply && data.discountCode) {
+                  try {
+                    if (typeof window !== "undefined" && window.localStorage) {
+                      window.localStorage.setItem("rb_discount_code", data.discountCode);
+                      window.localStorage.setItem("rb_discount_applied_at", (/* @__PURE__ */ new Date()).toISOString());
+                    }
+                    console.log("[Spin-to-Win] Discount code ready for checkout");
+                  } catch (applyError) {
+                    console.error("[Spin-to-Win] Auto-apply failed:", applyError);
+                  }
+                }
+              } else {
+                setCodeError(data.error || "Could not generate discount code");
+                console.error("[Spin-to-Win] Prize/code generation failed:", data.error);
+              }
+            } catch (fetchError) {
+              console.error("[Spin-to-Win] API call failed:", fetchError);
+              setCodeError("Network error generating code");
+            } finally {
+              setIsGeneratingCode(false);
+            }
+          } else {
+            const fallbackPrize = segments[0];
+            setWonPrize(fallbackPrize);
+            if (onWin) {
+              onWin(fallbackPrize);
+            }
           }
         }, duration);
       } catch (error) {
         console.error("Spin error:", error);
         setEmailError("Error occurred");
         setIsSpinning(false);
+        setIsGeneratingCode(false);
       }
-    }, [validateForm, config, email, onSpin, selectPrize, segments, calculateRotation, onWin]);
+    }, [validateForm, config, email, onSpin, segments, onWin]);
     const getInputStyles = (isFocused, hasError) => ({
       width: "100%",
       padding: "14px 16px",
@@ -921,7 +992,7 @@
       transformOrigin: "center center"
     };
     if (!isVisible) return null;
-    return /* @__PURE__ */ jsx(
+    return /* @__PURE__ */ jsxs(
       PopupPortal,
       {
         isVisible,
@@ -932,7 +1003,8 @@
           blur: 4
         },
         animation: {
-          type: config.animation || "fade"
+          type: config.animation || "fade",
+          duration: animDuration
         },
         position: "center",
         size: config.size || "large",
@@ -941,397 +1013,456 @@
         previewMode: config.previewMode,
         ariaLabel: config.ariaLabel || config.headline,
         ariaDescribedBy: config.ariaDescribedBy,
-        children: /* @__PURE__ */ jsx(
-          "div",
-          {
-            style: {
-              opacity: showContent ? 1 : 0,
-              transition: `opacity ${animDuration}ms ease-out`
-            },
-            children: /* @__PURE__ */ jsxs(
-              "div",
-              {
-                ref: cardRef,
-                style: {
-                  position: "relative",
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "stretch",
-                  padding: isMobile ? "24px 16px" : "40px 40px",
-                  borderRadius: 0,
-                  boxShadow: "none",
-                  width: "100%",
-                  maxWidth: "100%",
-                  maxHeight: "100vh",
-                  margin: "0 auto",
-                  overflow: "hidden",
-                  ...backgroundStyles
-                },
-                children: [
-                  /* @__PURE__ */ jsx(
-                    "button",
-                    {
-                      type: "button",
-                      onClick: onClose,
-                      "aria-label": config.closeLabel || "Close popup",
-                      style: {
-                        position: "absolute",
-                        top: isMobile ? 12 : 16,
-                        right: isMobile ? 12 : 16,
-                        width: 32,
-                        height: 32,
-                        borderRadius: 9999,
-                        border: "none",
-                        backgroundColor: "rgba(15,23,42,0.08)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        cursor: "pointer",
-                        color: config.textColor || "#4B5563",
-                        boxShadow: "0 1px 3px rgba(15,23,42,0.15)"
-                      },
-                      children: /* @__PURE__ */ jsx("span", { style: { fontSize: 18, lineHeight: 1 }, children: "X" })
-                    }
-                  ),
-                  /* @__PURE__ */ jsxs("div", { style: layoutRowStyles, children: [
-                    /* @__PURE__ */ jsx("div", { style: wheelColumnStyles, children: /* @__PURE__ */ jsx(
-                      "div",
+        children: [
+          /* @__PURE__ */ jsx("style", { children: `
+          @keyframes slideUpFade {
+            from {
+              opacity: 0;
+              transform: translateY(20px);
+            }
+            to {
+              opacity: 1;
+              transform: translateY(0);
+            }
+          }
+        ` }),
+          /* @__PURE__ */ jsx(
+            "div",
+            {
+              style: {
+                opacity: showContent ? 1 : 0,
+                transition: `opacity ${animDuration}ms ease-out`
+              },
+              children: /* @__PURE__ */ jsxs(
+                "div",
+                {
+                  ref: cardRef,
+                  style: {
+                    position: "relative",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "stretch",
+                    padding: isMobile ? "24px 16px" : "40px 40px",
+                    borderRadius: 0,
+                    boxShadow: "none",
+                    width: "100%",
+                    maxWidth: "100%",
+                    maxHeight: "100vh",
+                    margin: "0 auto",
+                    overflow: "hidden",
+                    ...backgroundStyles
+                  },
+                  children: [
+                    /* @__PURE__ */ jsx(
+                      "button",
                       {
+                        type: "button",
+                        onClick: onClose,
+                        "aria-label": config.closeLabel || "Close popup",
                         style: {
-                          display: "flex",
-                          flexDirection: config.imagePosition === "top" || config.imagePosition === "bottom" ? "column" : "row",
-                          gap: 24,
-                          alignItems: "flex-start",
-                          justifyContent: "flex-start"
-                        },
-                        children: /* @__PURE__ */ jsxs("div", { style: wheelWrapperStyles, children: [
-                          /* @__PURE__ */ jsx(
-                            "div",
-                            {
-                              ref: wheelContainerRef,
-                              style: {
-                                position: "relative",
-                                width: "100%",
-                                height: "100%",
-                                filter: hasSpun ? "drop-shadow(0 18px 45px rgba(15,23,42,0.55))" : "drop-shadow(0 10px 30px rgba(15,23,42,0.35))"
-                              },
-                              children: /* @__PURE__ */ jsx(
-                                "canvas",
-                                {
-                                  ref: canvasRef,
-                                  width: wheelSize,
-                                  height: wheelSize,
-                                  style: {
-                                    width: "100%",
-                                    height: "100%",
-                                    borderRadius: "50%"
-                                  }
-                                }
-                              )
-                            }
-                          ),
-                          /* @__PURE__ */ jsx(
-                            "div",
-                            {
-                              style: {
-                                position: "absolute",
-                                top: "50%",
-                                left: "50%",
-                                transform: "translate(-50%, -50%)",
-                                width: 80,
-                                height: 80,
-                                borderRadius: "50%",
-                                backgroundColor: accentColor,
-                                border: "4px solid rgba(15,23,42,0.85)",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                color: "#F9FAFB",
-                                fontSize: 12,
-                                fontWeight: 600,
-                                letterSpacing: "0.12em",
-                                textTransform: "uppercase",
-                                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                                boxShadow: "0 4px 12px rgba(15,23,42,0.4)",
-                                pointerEvents: "none"
-                              },
-                              children: "SPIN"
-                            }
-                          )
-                        ] })
-                      }
-                    ) }),
-                    /* @__PURE__ */ jsx("div", { style: formColumnStyles, children: /* @__PURE__ */ jsxs("div", { style: formInnerStyles, children: [
-                      /* @__PURE__ */ jsxs("div", { style: { marginBottom: 24 }, children: [
-                        /* @__PURE__ */ jsx(
-                          "h2",
-                          {
-                            style: {
-                              fontSize: "28px",
-                              fontWeight: 700,
-                              margin: "0 0 8px 0",
-                              lineHeight: 1.3,
-                              color: config.textColor || "#111827",
-                              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-                            },
-                            children: config.headline
-                          }
-                        ),
-                        !hasSpun && config.subheadline && /* @__PURE__ */ jsx(
-                          "p",
-                          {
-                            style: {
-                              fontSize: "16px",
-                              margin: 0,
-                              color: config.textColor || "#6B7280",
-                              lineHeight: 1.5,
-                              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-                            },
-                            children: config.subheadline
-                          }
-                        ),
-                        hasSpun && resultMessage && /* @__PURE__ */ jsx(
-                          "div",
-                          {
-                            style: {
-                              marginTop: 12,
-                              padding: "12px 16px",
-                              borderRadius: 9999,
-                              backgroundColor: wonPrize?.discountCode ? successColor : config.textColor || "#111827",
-                              color: wonPrize?.discountCode ? "#FFFFFF" : "#F9FAFB",
-                              fontSize: "14px",
-                              fontWeight: 500,
-                              textAlign: "center",
-                              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-                            },
-                            children: resultMessage
-                          }
-                        )
-                      ] }),
-                      collectName && /* @__PURE__ */ jsxs("div", { style: { width: "100%", maxWidth: "400px" }, children: [
-                        /* @__PURE__ */ jsx(
-                          "label",
-                          {
-                            style: {
-                              display: "block",
-                              marginBottom: "8px",
-                              fontSize: "14px",
-                              fontWeight: 600,
-                              color: config.textColor || "#374151",
-                              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-                            },
-                            children: "Name"
-                          }
-                        ),
-                        /* @__PURE__ */ jsx(
-                          "input",
-                          {
-                            type: "text",
-                            value: name,
-                            onChange: (e) => {
-                              setName(e.target.value);
-                              if (nameError) setNameError("");
-                            },
-                            placeholder: "Enter your name",
-                            style: getInputStyles(false, !!nameError),
-                            disabled: isSpinning || hasSpun
-                          }
-                        ),
-                        nameError && /* @__PURE__ */ jsx(
-                          "p",
-                          {
-                            style: {
-                              color: "#EF4444",
-                              fontSize: "13px",
-                              margin: "6px 0 0 0",
-                              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-                            },
-                            children: nameError
-                          }
-                        )
-                      ] }),
-                      config.emailRequired && /* @__PURE__ */ jsxs("div", { style: { width: "100%", maxWidth: "400px" }, children: [
-                        config.emailLabel && /* @__PURE__ */ jsx("label", { style: {
-                          display: "block",
-                          marginBottom: "8px",
-                          fontSize: "14px",
-                          fontWeight: 600,
-                          color: config.textColor || "#374151",
-                          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-                        }, children: config.emailLabel }),
-                        /* @__PURE__ */ jsx(
-                          "input",
-                          {
-                            type: "email",
-                            value: email,
-                            onChange: (e) => {
-                              setEmail(e.target.value);
-                              if (emailError) setEmailError("");
-                            },
-                            onFocus: () => setEmailFocused(true),
-                            onBlur: () => setEmailFocused(false),
-                            placeholder: config.emailPlaceholder || "your@email.com",
-                            style: getInputStyles(emailFocused, !!emailError),
-                            disabled: isSpinning || hasSpun
-                          }
-                        ),
-                        emailError && /* @__PURE__ */ jsx("p", { style: {
-                          color: "#EF4444",
-                          fontSize: "13px",
-                          margin: "6px 0 0 0",
-                          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-                        }, children: emailError })
-                      ] }),
-                      showGdpr && /* @__PURE__ */ jsxs("div", { style: { width: "100%", maxWidth: "400px" }, children: [
-                        /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "flex-start", gap: "10px", marginTop: "8px" }, children: [
-                          /* @__PURE__ */ jsx(
-                            "input",
-                            {
-                              id: "spin-gdpr",
-                              type: "checkbox",
-                              checked: gdprConsent,
-                              onChange: (e) => {
-                                setGdprConsent(e.target.checked);
-                                if (gdprError) setGdprError("");
-                              },
-                              style: {
-                                width: "16px",
-                                height: "16px",
-                                marginTop: "2px",
-                                cursor: "pointer"
-                              },
-                              disabled: isSpinning || hasSpun
-                            }
-                          ),
-                          /* @__PURE__ */ jsx(
-                            "label",
-                            {
-                              htmlFor: "spin-gdpr",
-                              style: {
-                                fontSize: "13px",
-                                lineHeight: 1.5,
-                                color: config.textColor || "#4B5563",
-                                cursor: "pointer",
-                                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-                              },
-                              children: gdprLabel
-                            }
-                          )
-                        ] }),
-                        gdprError && /* @__PURE__ */ jsx(
-                          "p",
-                          {
-                            style: {
-                              color: "#EF4444",
-                              fontSize: "13px",
-                              margin: "6px 0 0 0",
-                              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-                            },
-                            children: gdprError
-                          }
-                        )
-                      ] }),
-                      /* @__PURE__ */ jsx(
-                        "button",
-                        {
-                          onClick: handleSpin,
-                          disabled: isSpinning || hasSpun,
-                          style: {
-                            ...buttonStyles,
-                            cursor: isSpinning || hasSpun ? "not-allowed" : "pointer"
-                          },
-                          onMouseEnter: (e) => {
-                            if (!isSpinning && !hasSpun) {
-                              e.currentTarget.style.transform = "translateY(-1px)";
-                            }
-                          },
-                          onMouseLeave: (e) => {
-                            e.currentTarget.style.transform = "translateY(0)";
-                          },
-                          children: isSpinning ? /* @__PURE__ */ jsxs("span", { style: { display: "flex", alignItems: "center", justifyContent: "center", gap: "10px" }, children: [
-                            /* @__PURE__ */ jsx("span", { style: {
-                              width: "16px",
-                              height: "16px",
-                              border: "2px solid rgba(255,255,255,0.3)",
-                              borderTopColor: "#FFF",
-                              borderRadius: "50%",
-                              animation: "spin 0.8s linear infinite"
-                            } }),
-                            config.loadingText || "Spinning..."
-                          ] }) : config.spinButtonText || "Spin to Win!"
-                        }
-                      ),
-                      /* @__PURE__ */ jsx(
-                        "button",
-                        {
-                          type: "button",
-                          onClick: onClose,
-                          style: {
-                            ...secondaryButtonStyles,
-                            marginTop: "8px"
-                          },
-                          onMouseEnter: (e) => e.currentTarget.style.opacity = "1",
-                          onMouseLeave: (e) => e.currentTarget.style.opacity = "0.9",
-                          children: config.dismissLabel || "No thanks"
-                        }
-                      ),
-                      wonPrize?.discountCode && /* @__PURE__ */ jsxs("div", { style: {
-                        width: "100%",
-                        maxWidth: "400px",
-                        marginTop: "8px",
-                        padding: "24px",
-                        backgroundColor: inputBackground,
-                        borderRadius: `${borderRadius}px`,
-                        border: `1px solid ${inputBorderColor}`,
-                        animation: "slideUp 0.5s ease-out"
-                      }, children: [
-                        /* @__PURE__ */ jsx("p", { style: {
-                          fontSize: "13px",
-                          margin: "0 0 12px 0",
-                          color: descriptionColor,
-                          fontWeight: 600,
-                          textTransform: "uppercase",
-                          letterSpacing: "0.5px",
-                          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                          textAlign: "center"
-                        }, children: "Your Discount Code" }),
-                        /* @__PURE__ */ jsx("div", { style: {
+                          position: "absolute",
+                          top: isMobile ? 12 : 16,
+                          right: isMobile ? 12 : 16,
+                          width: 32,
+                          height: 32,
+                          borderRadius: 9999,
+                          border: "none",
+                          backgroundColor: "rgba(15,23,42,0.08)",
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
-                          gap: "12px",
-                          flexWrap: "wrap"
-                        }, children: /* @__PURE__ */ jsx("code", { style: {
-                          fontSize: "28px",
-                          fontWeight: 700,
-                          padding: "12px 24px",
-                          backgroundColor: "#FFFFFF",
-                          borderRadius: `${borderRadius - 4}px`,
-                          letterSpacing: "2px",
-                          color: accentColor,
-                          border: `2px solid ${successColor}`,
-                          fontFamily: "SF Mono, Monaco, Consolas, monospace"
-                        }, children: wonPrize.discountCode }) }),
-                        wonPrize.discountValue && /* @__PURE__ */ jsxs("p", { style: {
-                          fontSize: "15px",
-                          margin: "16px 0 0 0",
-                          color: config.textColor || "#374151",
-                          fontWeight: 500,
-                          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                          textAlign: "center"
+                          cursor: "pointer",
+                          color: config.textColor || "#4B5563",
+                          boxShadow: "0 1px 3px rgba(15,23,42,0.15)"
+                        },
+                        children: /* @__PURE__ */ jsx("span", { style: { fontSize: 18, lineHeight: 1 }, children: "X" })
+                      }
+                    ),
+                    /* @__PURE__ */ jsxs("div", { style: layoutRowStyles, children: [
+                      /* @__PURE__ */ jsx("div", { style: wheelColumnStyles, children: /* @__PURE__ */ jsx(
+                        "div",
+                        {
+                          style: {
+                            display: "flex",
+                            flexDirection: config.imagePosition === "top" || config.imagePosition === "bottom" ? "column" : "row",
+                            gap: 24,
+                            alignItems: "flex-start",
+                            justifyContent: "flex-start"
+                          },
+                          children: /* @__PURE__ */ jsxs("div", { style: wheelWrapperStyles, children: [
+                            /* @__PURE__ */ jsx(
+                              "div",
+                              {
+                                ref: wheelContainerRef,
+                                style: {
+                                  position: "relative",
+                                  width: "100%",
+                                  height: "100%",
+                                  filter: hasSpun ? "drop-shadow(0 18px 45px rgba(15,23,42,0.55))" : "drop-shadow(0 10px 30px rgba(15,23,42,0.35))"
+                                },
+                                children: /* @__PURE__ */ jsx(
+                                  "canvas",
+                                  {
+                                    ref: canvasRef,
+                                    width: wheelSize,
+                                    height: wheelSize,
+                                    style: {
+                                      width: "100%",
+                                      height: "100%",
+                                      borderRadius: "50%"
+                                    }
+                                  }
+                                )
+                              }
+                            ),
+                            /* @__PURE__ */ jsx(
+                              "div",
+                              {
+                                style: {
+                                  position: "absolute",
+                                  top: "50%",
+                                  left: "50%",
+                                  transform: "translate(-50%, -50%)",
+                                  width: 80,
+                                  height: 80,
+                                  borderRadius: "50%",
+                                  backgroundColor: accentColor,
+                                  border: "4px solid rgba(15,23,42,0.85)",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  color: "#F9FAFB",
+                                  fontSize: 12,
+                                  fontWeight: 600,
+                                  letterSpacing: "0.12em",
+                                  textTransform: "uppercase",
+                                  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                                  boxShadow: "0 4px 12px rgba(15,23,42,0.4)",
+                                  pointerEvents: "none"
+                                },
+                                children: "SPIN"
+                              }
+                            )
+                          ] })
+                        }
+                      ) }),
+                      /* @__PURE__ */ jsx("div", { style: formColumnStyles, children: /* @__PURE__ */ jsxs("div", { style: formInnerStyles, children: [
+                        /* @__PURE__ */ jsxs("div", { style: { marginBottom: 24 }, children: [
+                          /* @__PURE__ */ jsx(
+                            "h2",
+                            {
+                              style: {
+                                fontSize: "28px",
+                                fontWeight: 700,
+                                margin: "0 0 8px 0",
+                                lineHeight: 1.3,
+                                color: config.textColor || "#111827",
+                                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+                              },
+                              children: config.headline
+                            }
+                          ),
+                          !hasSpun && config.subheadline && /* @__PURE__ */ jsx(
+                            "p",
+                            {
+                              style: {
+                                fontSize: "16px",
+                                margin: 0,
+                                color: config.textColor || "#6B7280",
+                                lineHeight: 1.5,
+                                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+                              },
+                              children: config.subheadline
+                            }
+                          ),
+                          hasSpun && resultMessage && /* @__PURE__ */ jsx(
+                            "div",
+                            {
+                              style: {
+                                marginTop: 12,
+                                padding: "12px 16px",
+                                borderRadius: 9999,
+                                backgroundColor: wonPrize?.generatedCode ? successColor : config.textColor || "#111827",
+                                color: wonPrize?.generatedCode ? "#FFFFFF" : "#F9FAFB",
+                                fontSize: "14px",
+                                fontWeight: 500,
+                                textAlign: "center",
+                                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+                              },
+                              children: resultMessage
+                            }
+                          )
+                        ] }),
+                        collectName && /* @__PURE__ */ jsxs("div", { style: { width: "100%", maxWidth: "400px" }, children: [
+                          /* @__PURE__ */ jsx(
+                            "label",
+                            {
+                              style: {
+                                display: "block",
+                                marginBottom: "8px",
+                                fontSize: "14px",
+                                fontWeight: 600,
+                                color: config.textColor || "#374151",
+                                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+                              },
+                              children: "Name"
+                            }
+                          ),
+                          /* @__PURE__ */ jsx(
+                            "input",
+                            {
+                              type: "text",
+                              value: name,
+                              onChange: (e) => {
+                                setName(e.target.value);
+                                if (nameError) setNameError("");
+                              },
+                              placeholder: "Enter your name",
+                              style: getInputStyles(false, !!nameError),
+                              disabled: isSpinning || hasSpun
+                            }
+                          ),
+                          nameError && /* @__PURE__ */ jsx(
+                            "p",
+                            {
+                              style: {
+                                color: "#EF4444",
+                                fontSize: "13px",
+                                margin: "6px 0 0 0",
+                                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+                              },
+                              children: nameError
+                            }
+                          )
+                        ] }),
+                        config.emailRequired && /* @__PURE__ */ jsxs("div", { style: { width: "100%", maxWidth: "400px" }, children: [
+                          config.emailLabel && /* @__PURE__ */ jsx("label", { style: {
+                            display: "block",
+                            marginBottom: "8px",
+                            fontSize: "14px",
+                            fontWeight: 600,
+                            color: config.textColor || "#374151",
+                            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+                          }, children: config.emailLabel }),
+                          /* @__PURE__ */ jsx(
+                            "input",
+                            {
+                              type: "email",
+                              value: email,
+                              onChange: (e) => {
+                                setEmail(e.target.value);
+                                if (emailError) setEmailError("");
+                              },
+                              onFocus: () => setEmailFocused(true),
+                              onBlur: () => setEmailFocused(false),
+                              placeholder: config.emailPlaceholder || "your@email.com",
+                              style: getInputStyles(emailFocused, !!emailError),
+                              disabled: isSpinning || hasSpun
+                            }
+                          ),
+                          emailError && /* @__PURE__ */ jsx("p", { style: {
+                            color: "#EF4444",
+                            fontSize: "13px",
+                            margin: "6px 0 0 0",
+                            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+                          }, children: emailError })
+                        ] }),
+                        showGdpr && /* @__PURE__ */ jsxs("div", { style: { width: "100%", maxWidth: "400px" }, children: [
+                          /* @__PURE__ */ jsxs("div", { style: { display: "flex", alignItems: "flex-start", gap: "10px", marginTop: "8px" }, children: [
+                            /* @__PURE__ */ jsx(
+                              "input",
+                              {
+                                id: "spin-gdpr",
+                                type: "checkbox",
+                                checked: gdprConsent,
+                                onChange: (e) => {
+                                  setGdprConsent(e.target.checked);
+                                  if (gdprError) setGdprError("");
+                                },
+                                style: {
+                                  width: "16px",
+                                  height: "16px",
+                                  marginTop: "2px",
+                                  cursor: "pointer"
+                                },
+                                disabled: isSpinning || hasSpun
+                              }
+                            ),
+                            /* @__PURE__ */ jsx(
+                              "label",
+                              {
+                                htmlFor: "spin-gdpr",
+                                style: {
+                                  fontSize: "13px",
+                                  lineHeight: 1.5,
+                                  color: config.textColor || "#4B5563",
+                                  cursor: "pointer",
+                                  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+                                },
+                                children: gdprLabel
+                              }
+                            )
+                          ] }),
+                          gdprError && /* @__PURE__ */ jsx(
+                            "p",
+                            {
+                              style: {
+                                color: "#EF4444",
+                                fontSize: "13px",
+                                margin: "6px 0 0 0",
+                                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+                              },
+                              children: gdprError
+                            }
+                          )
+                        ] }),
+                        /* @__PURE__ */ jsx(
+                          "button",
+                          {
+                            onClick: handleSpin,
+                            disabled: isSpinning || hasSpun,
+                            style: {
+                              ...buttonStyles,
+                              cursor: isSpinning || hasSpun ? "not-allowed" : "pointer"
+                            },
+                            onMouseEnter: (e) => {
+                              if (!isSpinning && !hasSpun) {
+                                e.currentTarget.style.transform = "translateY(-1px)";
+                              }
+                            },
+                            onMouseLeave: (e) => {
+                              e.currentTarget.style.transform = "translateY(0)";
+                            },
+                            children: isSpinning ? /* @__PURE__ */ jsxs("span", { style: { display: "flex", alignItems: "center", justifyContent: "center", gap: "10px" }, children: [
+                              /* @__PURE__ */ jsx("span", { style: {
+                                width: "16px",
+                                height: "16px",
+                                border: "2px solid rgba(255,255,255,0.3)",
+                                borderTopColor: "#FFF",
+                                borderRadius: "50%",
+                                animation: "spin 0.8s linear infinite"
+                              } }),
+                              config.loadingText || "Spinning..."
+                            ] }) : config.spinButtonText || "Spin to Win!"
+                          }
+                        ),
+                        !hasSpun && /* @__PURE__ */ jsx(
+                          "button",
+                          {
+                            type: "button",
+                            onClick: onClose,
+                            style: {
+                              ...secondaryButtonStyles,
+                              marginTop: "8px"
+                            },
+                            onMouseEnter: (e) => e.currentTarget.style.opacity = "1",
+                            onMouseLeave: (e) => e.currentTarget.style.opacity = "0.9",
+                            children: config.dismissLabel || "No thanks"
+                          }
+                        ),
+                        wonPrize?.generatedCode && /* @__PURE__ */ jsxs("div", { style: {
+                          width: "100%",
+                          maxWidth: "400px",
+                          marginTop: "8px",
+                          padding: "24px",
+                          backgroundColor: inputBackground,
+                          borderRadius: `${borderRadius}px`,
+                          border: `1px solid ${inputBorderColor}`,
+                          animation: "slideUpFade 0.6s ease-out"
                         }, children: [
-                          wonPrize.discountType === "percentage" && `Save ${wonPrize.discountValue}%`,
-                          wonPrize.discountType === "fixed_amount" && `Save $${wonPrize.discountValue}`,
-                          wonPrize.discountType === "free_shipping" && "Free Shipping"
+                          isGeneratingCode ? /* @__PURE__ */ jsx("p", { style: {
+                            fontSize: "15px",
+                            margin: "0",
+                            color: descriptionColor,
+                            fontWeight: 500,
+                            textAlign: "center",
+                            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+                          }, children: "Generating your discount code..." }) : /* @__PURE__ */ jsxs(Fragment2, { children: [
+                            /* @__PURE__ */ jsx("p", { style: {
+                              fontSize: "13px",
+                              margin: "0 0 12px 0",
+                              color: descriptionColor,
+                              fontWeight: 600,
+                              textTransform: "uppercase",
+                              letterSpacing: "0.5px",
+                              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                              textAlign: "center"
+                            }, children: "Your Discount Code" }),
+                            /* @__PURE__ */ jsx("div", { style: {
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              gap: "12px",
+                              flexWrap: "wrap"
+                            }, children: /* @__PURE__ */ jsx("code", { style: {
+                              fontSize: "28px",
+                              fontWeight: 700,
+                              padding: "12px 24px",
+                              backgroundColor: "#FFFFFF",
+                              borderRadius: `${borderRadius - 4}px`,
+                              letterSpacing: "2px",
+                              color: accentColor,
+                              border: `2px solid ${successColor}`,
+                              fontFamily: "SF Mono, Monaco, Consolas, monospace"
+                            }, children: wonPrize.generatedCode }) }),
+                            /* @__PURE__ */ jsx("p", { style: {
+                              fontSize: "14px",
+                              margin: "16px 0 0 0",
+                              color: descriptionColor,
+                              fontWeight: 500,
+                              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                              textAlign: "center"
+                            }, children: wonPrize.label }),
+                            /* @__PURE__ */ jsx(
+                              "button",
+                              {
+                                type: "button",
+                                onClick: () => {
+                                  if (typeof navigator !== "undefined" && navigator.clipboard && wonPrize.generatedCode) {
+                                    navigator.clipboard.writeText(wonPrize.generatedCode).then(() => console.log("[Spin-to-Win] Code copied to clipboard")).catch((err) => console.error("[Spin-to-Win] Copy failed:", err));
+                                  }
+                                },
+                                style: {
+                                  marginTop: "12px",
+                                  padding: "10px 20px",
+                                  fontSize: "14px",
+                                  fontWeight: 600,
+                                  color: accentColor,
+                                  backgroundColor: "transparent",
+                                  border: `2px solid ${accentColor}`,
+                                  borderRadius: `${borderRadius}px`,
+                                  cursor: "pointer",
+                                  transition: "all 0.2s ease",
+                                  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+                                },
+                                onMouseEnter: (e) => {
+                                  e.currentTarget.style.backgroundColor = accentColor;
+                                  e.currentTarget.style.color = "#FFFFFF";
+                                },
+                                onMouseLeave: (e) => {
+                                  e.currentTarget.style.backgroundColor = "transparent";
+                                  e.currentTarget.style.color = accentColor;
+                                },
+                                children: "Copy Code"
+                              }
+                            )
+                          ] }),
+                          codeError && /* @__PURE__ */ jsx("p", { style: {
+                            fontSize: "13px",
+                            margin: "12px 0 0 0",
+                            color: "#EF4444",
+                            fontWeight: 500,
+                            textAlign: "center"
+                          }, children: codeError })
                         ] })
-                      ] })
-                    ] }) })
-                  ] })
-                ]
-              }
-            )
-          }
-        )
+                      ] }) })
+                    ] })
+                  ]
+                }
+              )
+            }
+          )
+        ]
       }
     );
   };

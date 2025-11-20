@@ -22,7 +22,8 @@ import { getCampaignDiscountCode } from "~/domains/commerce/services/discount.se
 const IssueDiscountRequestSchema = z.object({
   campaignId: z.string().cuid(),
   cartSubtotalCents: z.number().int().min(0).optional(),
-  sessionId: z.string().optional(), // For idempotency
+  sessionId: z.string(),
+  challengeToken: z.string(), // REQUIRED: Challenge token for security
   lineItems: z.array(z.object({
     variantId: z.string(),
     quantity: z.number().int().min(1),
@@ -74,7 +75,48 @@ export async function action({ request }: ActionFunctionArgs) {
     const body = await request.json();
     const validatedRequest = IssueDiscountRequestSchema.parse(body);
 
-    const { campaignId, cartSubtotalCents, sessionId } = validatedRequest;
+    const { campaignId, cartSubtotalCents, sessionId, challengeToken } = validatedRequest;
+
+    // SECURITY: Validate challenge token
+    const ip = request.headers.get("x-forwarded-for")?.split(",")[0] ||
+      request.headers.get("x-real-ip") ||
+      "unknown";
+
+    const { validateAndConsumeToken } = await import("~/domains/security/services/challenge-token.server");
+    const tokenValidation = await validateAndConsumeToken(
+      challengeToken,
+      campaignId,
+      sessionId,
+      ip,
+      false
+    );
+
+    if (!tokenValidation.valid) {
+      console.warn(`[Discount Issue] Token validation failed: ${tokenValidation.error}`);
+      return data(
+        { success: false, error: tokenValidation.error || "Invalid or expired token" },
+        { status: 403 }
+      );
+    }
+
+    // SECURITY: Rate limit per session/IP
+    const { checkRateLimit, RATE_LIMITS, createSessionKey } = await import("~/domains/security/services/rate-limit.server");
+    // Use session ID for rate limiting as we might not have email here
+    const rateLimitKey = createSessionKey(sessionId);
+    const rateLimitResult = await checkRateLimit(
+      rateLimitKey,
+      "discount_issue",
+      RATE_LIMITS.DISCOUNT_GENERATION, // 5 per hour
+      { sessionId, campaignId }
+    );
+
+    if (!rateLimitResult.allowed) {
+      console.warn(`[Discount Issue] Rate limit exceeded for session ${sessionId}`);
+      return data(
+        { success: false, error: "Too many requests. Please try again later." },
+        { status: 429 }
+      );
+    }
 
     // Check idempotency: if this session recently issued a code for this campaign, reuse it
     if (sessionId) {

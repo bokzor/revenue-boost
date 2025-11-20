@@ -1,5 +1,9 @@
 "use strict";
 (() => {
+  var __defProp = Object.defineProperty;
+  var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+  var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
+
   // global-preact:global-preact:react
   if (typeof window === "undefined" || !window.RevenueBoostPreact) {
     throw new Error("RevenueBoostPreact not found. Make sure main bundle is loaded first.");
@@ -516,6 +520,36 @@
   `;
   }
 
+  // app/domains/storefront/services/challenge-token.client.ts
+  function isChallengeTokenValid(expiresAt) {
+    if (!expiresAt) return false;
+    return new Date(expiresAt) > /* @__PURE__ */ new Date();
+  }
+  var ChallengeTokenStore = class {
+    constructor() {
+      __publicField(this, "tokens", /* @__PURE__ */ new Map());
+    }
+    set(campaignId, token, expiresAt) {
+      this.tokens.set(campaignId, { token, expiresAt });
+    }
+    get(campaignId) {
+      const data = this.tokens.get(campaignId);
+      if (!data) return null;
+      if (!isChallengeTokenValid(data.expiresAt)) {
+        this.tokens.delete(campaignId);
+        return null;
+      }
+      return data.token;
+    }
+    delete(campaignId) {
+      this.tokens.delete(campaignId);
+    }
+    clear() {
+      this.tokens.clear();
+    }
+  };
+  var challengeTokenStore = new ChallengeTokenStore();
+
   // app/domains/storefront/popups-new/ScratchCardPopup.tsx
   var ScratchCardPopup = ({
     config,
@@ -543,29 +577,48 @@
     const cardHeight = config.scratchCardHeight || DEFAULT_CARD_HEIGHT;
     const threshold = config.scratchThreshold || 50;
     const brushRadius = config.scratchRadius || 20;
-    const selectPrize = useCallback(() => {
-      const prizes = config.prizes || [];
-      if (!prizes.length) {
-        return {
-          id: "default",
-          label: config.successMessage || "You won! \u{1F389}",
-          probability: 1
-        };
-      }
-      const totalProbability = prizes.reduce((sum, p) => sum + (p.probability || 0), 0);
-      if (!totalProbability || !Number.isFinite(totalProbability)) {
-        return prizes[0];
-      }
-      let random = Math.random() * totalProbability;
-      for (const prize of prizes) {
-        const weight = prize.probability || 0;
-        random -= weight;
-        if (random <= 0) {
-          return prize;
+    const fetchPrize = useCallback(async () => {
+      if (config.previewMode) {
+        const prizes = config.prizes || [];
+        if (prizes.length > 0) {
+          const randomPrize = prizes[Math.floor(Math.random() * prizes.length)];
+          setWonPrize(randomPrize);
         }
+        return;
       }
-      return prizes[0];
-    }, [config.prizes, config.successMessage]);
+      if (!config.campaignId || !email) return;
+      try {
+        const response = await fetch("/apps/revenue-boost/api/popups/scratch-card", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            campaignId: config.campaignId,
+            email,
+            sessionId: typeof window !== "undefined" ? window.sessionStorage?.getItem("rb_session_id") : void 0,
+            challengeToken: challengeTokenStore.get(config.campaignId)
+          })
+        });
+        const data = await response.json();
+        if (data.success && data.prize && data.discountCode) {
+          const serverPrize = {
+            id: data.prize.id,
+            label: data.prize.label,
+            probability: 0,
+            // Not needed
+            generatedCode: data.discountCode,
+            discountCode: data.discountCode
+            // For backward compatibility
+          };
+          setWonPrize(serverPrize);
+        } else {
+          console.error("[Scratch Card] Failed to fetch prize:", data.error);
+        }
+      } catch (error) {
+        console.error("[Scratch Card] Network error fetching prize:", error);
+      }
+    }, [config.campaignId, config.previewMode, config.prizes, email]);
     useEffect(() => {
       if (!canvasRef.current || !prizeCanvasRef.current) return;
       if (config.emailRequired && config.emailBeforeScratching && !emailSubmitted) return;
@@ -588,13 +641,19 @@
         prizeCtx.fillStyle = gradient;
         prizeCtx.fillRect(0, 0, cardWidth, cardHeight);
       }
-      const prize = selectPrize();
-      setWonPrize(prize);
-      prizeCtx.fillStyle = config.scratchCardTextColor || config.buttonTextColor || config.textColor || "#ffffff";
-      prizeCtx.font = "bold 32px system-ui, -apple-system, BlinkMacSystemFont, sans-serif";
-      prizeCtx.textAlign = "center";
-      prizeCtx.textBaseline = "middle";
-      prizeCtx.fillText(prize.label, cardWidth / 2, cardHeight / 2);
+      if (wonPrize) {
+        prizeCtx.fillStyle = config.scratchCardTextColor || config.buttonTextColor || config.textColor || "#ffffff";
+        prizeCtx.font = "bold 32px system-ui, -apple-system, BlinkMacSystemFont, sans-serif";
+        prizeCtx.textAlign = "center";
+        prizeCtx.textBaseline = "middle";
+        prizeCtx.fillText(wonPrize.label, cardWidth / 2, cardHeight / 2);
+      } else {
+        prizeCtx.fillStyle = config.scratchCardTextColor || config.buttonTextColor || config.textColor || "#ffffff";
+        prizeCtx.font = "bold 24px system-ui, -apple-system, BlinkMacSystemFont, sans-serif";
+        prizeCtx.textAlign = "center";
+        prizeCtx.textBaseline = "middle";
+        prizeCtx.fillText(config.loadingText || "Loading...", cardWidth / 2, cardHeight / 2);
+      }
       ctx.globalCompositeOperation = "source-over";
       ctx.fillStyle = config.scratchOverlayColor || "#C0C0C0";
       ctx.fillRect(0, 0, cardWidth, cardHeight);
@@ -619,7 +678,7 @@
       }
       ctx.globalAlpha = 1;
       ctx.globalCompositeOperation = "destination-out";
-    }, [emailSubmitted, config, cardWidth, cardHeight, selectPrize]);
+    }, [emailSubmitted, config, cardWidth, cardHeight, wonPrize]);
     const calculateScratchPercentage = useCallback(() => {
       if (!canvasRef.current) return 0;
       const canvas = canvasRef.current;
@@ -720,10 +779,18 @@
           await onSubmit(email);
         }
         setEmailSubmitted(true);
+        if (config.emailBeforeScratching) {
+          fetchPrize();
+        }
       } catch (error) {
         setEmailError("Something went wrong. Please try again.");
       }
-    }, [email, gdprConsent, config.showGdprCheckbox, config.previewMode, onSubmit]);
+    }, [email, gdprConsent, config.showGdprCheckbox, config.previewMode, onSubmit, config.emailBeforeScratching, fetchPrize]);
+    useEffect(() => {
+      if (isVisible && !wonPrize && (!config.emailRequired || !config.emailBeforeScratching)) {
+        fetchPrize();
+      }
+    }, [isVisible, wonPrize, config.emailRequired, config.emailBeforeScratching, fetchPrize]);
     const handleCopyCode = useCallback(async () => {
       if (wonPrize?.discountCode) {
         const success = await copyToClipboard(wonPrize?.discountCode ?? "");

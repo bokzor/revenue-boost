@@ -279,6 +279,7 @@ export class ApiClient {
     lastName?: string;
     phone?: string;
     metadata?: Record<string, unknown>;
+    challengeToken: string;
   }): Promise<{
     success: boolean;
     leadId?: string;

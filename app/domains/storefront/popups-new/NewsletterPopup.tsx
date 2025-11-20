@@ -18,6 +18,7 @@ import type { NewsletterContent } from '~/domains/campaigns/types/campaign';
 
 import { PopupPortal } from './PopupPortal';
 import { getSizeDimensions } from './utils';
+import { challengeTokenStore } from '~/domains/storefront/services/challenge-token.client';
 
 
 /**
@@ -86,13 +87,13 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
     (deliveryMode === 'auto_apply_only'
       ? 'Thanks for subscribing! Your discount will be automatically applied when you checkout.'
       : deliveryMode === 'show_in_popup_authorized_only'
-      ? 'Thanks for subscribing! Your discount code is authorized for your email address only.'
-      : 'Thanks for subscribing! Your discount code is ready to use.');
+        ? 'Thanks for subscribing! Your discount code is authorized for your email address only.'
+        : 'Thanks for subscribing! Your discount code is ready to use.');
   const discountCode = config.discount?.enabled ? config.discount.code : undefined;
   const showGdprCheckbox = config.consentFieldEnabled ?? false;
   const gdprLabel = config.consentFieldText || 'I agree to receive marketing emails and accept the privacy policy';
   const collectName = config.nameFieldEnabled ?? false;
-	const sizeDimensions = getSizeDimensions(config.size || 'medium', config.previewMode);
+  const sizeDimensions = getSizeDimensions(config.size || 'medium', config.previewMode);
 
 
   // Reset form when popup closes
@@ -160,12 +161,44 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
 
         setIsSubmitted(true);
       } else {
-        // Fallback: mark as submitted without issuing a code
-        setIsSubmitted(true);
+        // Default secure submission handler
+        const challengeToken = challengeTokenStore.get(config.campaignId);
+
+        if (!challengeToken) {
+          throw new Error('Security check failed. Please refresh the page.');
+        }
+
+        const response = await fetch('/apps/revenue-boost/api/leads/submit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            campaignId: config.campaignId,
+            email,
+            name: collectName ? name : undefined,
+            sessionId: typeof window !== 'undefined' ? window.sessionStorage?.getItem('rb_session_id') : undefined,
+            challengeToken: challengeToken as string,
+            gdprConsent,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Submission failed');
+        }
+
+        if (data.success) {
+          if (data.discountCode) {
+            setGeneratedDiscountCode(data.discountCode);
+          }
+          setIsSubmitted(true);
+        } else {
+          throw new Error(data.error || 'Submission failed');
+        }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Popup form submission error:', error);
-      setErrors({ email: 'Something went wrong. Please try again.' });
+      setErrors({ email: error.message || 'Something went wrong. Please try again.' });
     } finally {
       setIsSubmitting(false);
     }
@@ -594,141 +627,141 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
 
       <div className="email-popup-container" style={{ background: hasGradientBg ? 'transparent' : config.backgroundColor || '#ffffff' }}>
 
-          {config.showCloseButton !== false && (
-            <button
-              className="email-popup-close"
-              onClick={onClose}
-              aria-label="Close popup"
-            >
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M18 6L6 18M6 6l12 12" />
-              </svg>
-            </button>
+        {config.showCloseButton !== false && (
+          <button
+            className="email-popup-close"
+            onClick={onClose}
+            aria-label="Close popup"
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M18 6L6 18M6 6l12 12" />
+            </svg>
+          </button>
+        )}
+
+        <div
+          className={`email-popup-content ${contentClass}`}
+        >
+          {showImage && imageUrl && (
+            <div className="email-popup-image">
+              <img src={imageUrl} alt="" />
+            </div>
           )}
 
-          <div
-            className={`email-popup-content ${contentClass}`}
-          >
-            {showImage && imageUrl && (
-              <div className="email-popup-image">
-                <img src={imageUrl} alt="" />
-              </div>
-            )}
+          <div className="email-popup-form-section">
+            {!isSubmitted ? (
+              <>
+                <h2 id="popup-title" className="email-popup-title">{title}</h2>
+                <p className="email-popup-description">{description}</p>
 
-            <div className="email-popup-form-section">
-              {!isSubmitted ? (
-                <>
-                  <h2 id="popup-title" className="email-popup-title">{title}</h2>
-                  <p className="email-popup-description">{description}</p>
-
-                  <form className="email-popup-form" onSubmit={handleSubmit}>
-                    {collectName && (
-                      <div className="email-popup-input-wrapper">
-                        <label htmlFor="name-input" className="email-popup-label">
-                          Name
-                        </label>
-                        <input
-                          id="name-input"
-                          type="text"
-                          className={`email-popup-input ${errors.name ? 'error' : ''}`}
-                          placeholder={config.nameFieldPlaceholder || "Your name"}
-                          value={name}
-                          onChange={(e) => {
-                            setName(e.target.value);
-                            if (errors.name) setErrors({ ...errors, name: undefined });
-                          }}
-                          disabled={isSubmitting}
-                          required={config.nameFieldRequired}
-                        />
-                        {errors.name && <div className="email-popup-error">{errors.name}</div>}
-                      </div>
-                    )}
-
+                <form className="email-popup-form" onSubmit={handleSubmit}>
+                  {collectName && (
                     <div className="email-popup-input-wrapper">
-                      <label htmlFor="email-input" className="email-popup-label">
-                        {config.emailLabel || "Email"}
+                      <label htmlFor="name-input" className="email-popup-label">
+                        Name
                       </label>
                       <input
-                        id="email-input"
-                        type="email"
-                        className={`email-popup-input ${errors.email ? 'error' : ''}`}
-                        placeholder={config.emailPlaceholder || "Enter your email"}
-                        value={email}
+                        id="name-input"
+                        type="text"
+                        className={`email-popup-input ${errors.name ? 'error' : ''}`}
+                        placeholder={config.nameFieldPlaceholder || "Your name"}
+                        value={name}
                         onChange={(e) => {
-                          setEmail(e.target.value);
-                          if (errors.email) setErrors({ ...errors, email: undefined });
+                          setName(e.target.value);
+                          if (errors.name) setErrors({ ...errors, name: undefined });
                         }}
                         disabled={isSubmitting}
-                        required={config.emailRequired !== false}
+                        required={config.nameFieldRequired}
                       />
-                      {errors.email && <div className="email-popup-error">{errors.email}</div>}
-                    </div>
-
-                    {showGdprCheckbox && (
-                      <div className="email-popup-checkbox-wrapper">
-                        <input
-                          type="checkbox"
-                          id="gdpr-consent"
-                          className="email-popup-checkbox"
-                          checked={gdprConsent}
-                          onChange={(e) => {
-                            setGdprConsent(e.target.checked);
-                            if (errors.gdpr) setErrors({ ...errors, gdpr: undefined });
-                          }}
-                          disabled={isSubmitting}
-                          required={config.consentFieldRequired}
-                        />
-                        <label htmlFor="gdpr-consent" className="email-popup-checkbox-label">
-                          {gdprLabel}
-                        </label>
-                      </div>
-                    )}
-                    {errors.gdpr && <div className="email-popup-error">{errors.gdpr}</div>}
-
-                    <button
-                      type="submit"
-                      className="email-popup-button"
-                      disabled={isSubmitting}
-                    >
-                      {isSubmitting ? (
-                        <>
-                          <div className="email-popup-spinner" />
-                          Subscribing...
-                        </>
-                      ) : (
-                        buttonText
-                      )}
-                    </button>
-
-                    <button
-                      type="button"
-                      className="email-popup-secondary-button"
-                      onClick={onClose}
-                      disabled={isSubmitting}
-                    >
-                      {config.dismissLabel || 'No thanks'}
-                    </button>
-                  </form>
-                </>
-              ) : (
-                <div className="email-popup-success">
-                  <div className="email-popup-success-icon">
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" strokeWidth="3">
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                  </div>
-                  <h3 className="email-popup-success-message">{successMessage}</h3>
-                  {(generatedDiscountCode || discountCode) && (
-                    <div className="email-popup-discount">
-                      <p className="email-popup-discount-label">Your discount code:</p>
-                      <p className="email-popup-discount-code">{generatedDiscountCode || discountCode}</p>
+                      {errors.name && <div className="email-popup-error">{errors.name}</div>}
                     </div>
                   )}
+
+                  <div className="email-popup-input-wrapper">
+                    <label htmlFor="email-input" className="email-popup-label">
+                      {config.emailLabel || "Email"}
+                    </label>
+                    <input
+                      id="email-input"
+                      type="email"
+                      className={`email-popup-input ${errors.email ? 'error' : ''}`}
+                      placeholder={config.emailPlaceholder || "Enter your email"}
+                      value={email}
+                      onChange={(e) => {
+                        setEmail(e.target.value);
+                        if (errors.email) setErrors({ ...errors, email: undefined });
+                      }}
+                      disabled={isSubmitting}
+                      required={config.emailRequired !== false}
+                    />
+                    {errors.email && <div className="email-popup-error">{errors.email}</div>}
+                  </div>
+
+                  {showGdprCheckbox && (
+                    <div className="email-popup-checkbox-wrapper">
+                      <input
+                        type="checkbox"
+                        id="gdpr-consent"
+                        className="email-popup-checkbox"
+                        checked={gdprConsent}
+                        onChange={(e) => {
+                          setGdprConsent(e.target.checked);
+                          if (errors.gdpr) setErrors({ ...errors, gdpr: undefined });
+                        }}
+                        disabled={isSubmitting}
+                        required={config.consentFieldRequired}
+                      />
+                      <label htmlFor="gdpr-consent" className="email-popup-checkbox-label">
+                        {gdprLabel}
+                      </label>
+                    </div>
+                  )}
+                  {errors.gdpr && <div className="email-popup-error">{errors.gdpr}</div>}
+
+                  <button
+                    type="submit"
+                    className="email-popup-button"
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <div className="email-popup-spinner" />
+                        Subscribing...
+                      </>
+                    ) : (
+                      buttonText
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    className="email-popup-secondary-button"
+                    onClick={onClose}
+                    disabled={isSubmitting}
+                  >
+                    {config.dismissLabel || 'No thanks'}
+                  </button>
+                </form>
+              </>
+            ) : (
+              <div className="email-popup-success">
+                <div className="email-popup-success-icon">
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" strokeWidth="3">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
                 </div>
-              )}
-            </div>
+                <h3 className="email-popup-success-message">{successMessage}</h3>
+                {(generatedDiscountCode || discountCode) && (
+                  <div className="email-popup-discount">
+                    <p className="email-popup-discount-label">Your discount code:</p>
+                    <p className="email-popup-discount-code">{generatedDiscountCode || discountCode}</p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
+      </div>
     </PopupPortal>
   );
 };

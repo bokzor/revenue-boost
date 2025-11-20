@@ -16,6 +16,7 @@ import { PopupPortal } from './PopupPortal';
 import type { PopupDesignConfig, CartItem, DiscountConfig } from './types';
 import type { CartAbandonmentContent } from '~/domains/campaigns/types/campaign';
 import { calculateTimeRemaining, formatCurrency, validateEmail, copyToClipboard } from './utils';
+import { challengeTokenStore } from '~/domains/storefront/services/challenge-token.client';
 
 /**
  * CartAbandonmentConfig - Extends both design config AND campaign content type
@@ -203,27 +204,49 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
         return;
       }
 
-      if (!onEmailRecovery) {
-        handleResumeCheckout();
-        return;
-      }
-
       setIsEmailSubmitting(true);
       try {
-        const result = onEmailRecovery(trimmed);
-        let resolved: unknown = result;
-        if (result && typeof (result as any).then === 'function') {
-          resolved = await (result as Promise<unknown>);
+        // SECURITY: Use challenge token for secure submission
+        const challengeToken = challengeTokenStore.get(config.campaignId);
+
+        if (!challengeToken) {
+          throw new Error('Security check failed. Please refresh the page.');
         }
 
-        if (typeof resolved === 'string' && resolved.length > 0) {
-          setDiscountCodeToShow(resolved);
+        // Call API directly instead of relying on prop
+        const response = await fetch('/apps/revenue-boost/api/cart/email-recovery', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            campaignId: config.campaignId,
+            email: trimmed,
+            sessionId: typeof window !== 'undefined' ? window.sessionStorage?.getItem('rb_session_id') : undefined,
+            challengeToken: challengeToken as string,
+            cartItems,
+            cartSubtotalCents: typeof cartTotal === 'number' ? Math.round(cartTotal * 100) : undefined,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Submission failed');
         }
 
-        setEmailSuccessMessage(emailSuccessCopy);
-      } catch (err) {
+        if (data.success) {
+          if (data.discountCode) {
+            setDiscountCodeToShow(data.discountCode);
+          }
+          setEmailSuccessMessage(emailSuccessCopy);
+        } else {
+          throw new Error(data.error || 'Submission failed');
+        }
+      } catch (err: any) {
         console.error('[CartAbandonmentPopup] Email recovery failed', err);
         setEmailError(
+          err.message ||
           config.emailErrorMessage ||
           'Something went wrong. Please try again.',
         );
@@ -233,11 +256,13 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
     },
     [
       email,
+      config.campaignId,
       config.emailErrorMessage,
       config.enableEmailRecovery,
       emailSuccessCopy,
-      onEmailRecovery,
       handleResumeCheckout,
+      cartItems,
+      cartTotal,
     ],
   );
 

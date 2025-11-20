@@ -8,7 +8,8 @@
 import React, { useState, useEffect } from "react";
 import { Card, BlockStack, Text, Divider, Button, InlineStack, Select } from "@shopify/polaris";
 import { TextField, FormGrid } from "../form";
-import type { ScratchCardContentSchema } from "../../types/campaign";
+import { GenericDiscountComponent } from "../form/GenericDiscountComponent";
+import type { ScratchCardContentSchema, DiscountConfig } from "../../types/campaign";
 import { z } from "zod";
 import { useFieldUpdater } from "~/shared/hooks/useFieldUpdater";
 
@@ -29,8 +30,8 @@ export function ScratchCardContentSection({ content, errors, onChange }: Scratch
   const emailCollectionMode: "none" | "before" | "after" = !emailRequired
     ? "none"
     : emailBeforeScratching
-    ? "before"
-    : "after";
+      ? "before"
+      : "after";
 
 
 
@@ -38,11 +39,71 @@ export function ScratchCardContentSection({ content, errors, onChange }: Scratch
   const initialPrizes = content.prizes && content.prizes.length > 0
     ? content.prizes
     : [
-        { id: "prize-5-off", label: "5% OFF", probability: 0.4, discountCode: "SCRATCH5", discountPercentage: 5 },
-        { id: "prize-10-off", label: "10% OFF", probability: 0.3, discountCode: "SCRATCH10", discountPercentage: 10 },
-        { id: "prize-15-off", label: "15% OFF", probability: 0.2, discountCode: "SCRATCH15", discountPercentage: 15 },
-        { id: "prize-20-off", label: "20% OFF", probability: 0.1, discountCode: "SCRATCH20", discountPercentage: 20 },
-      ];
+      {
+        id: "prize-5-off",
+        label: "5% OFF",
+        probability: 0.4,
+        discountConfig: {
+          enabled: true,
+          showInPreview: true,
+          valueType: "PERCENTAGE",
+          value: 5,
+          deliveryMode: "show_code_fallback",
+          expiryDays: 30,
+          type: "single_use",
+          autoApplyMode: "ajax",
+          codePresentation: "show_code",
+        } as DiscountConfig
+      },
+      {
+        id: "prize-10-off",
+        label: "10% OFF",
+        probability: 0.3,
+        discountConfig: {
+          enabled: true,
+          showInPreview: true,
+          valueType: "PERCENTAGE",
+          value: 10,
+          deliveryMode: "show_code_fallback",
+          expiryDays: 30,
+          type: "single_use",
+          autoApplyMode: "ajax",
+          codePresentation: "show_code",
+        } as DiscountConfig
+      },
+      {
+        id: "prize-15-off",
+        label: "15% OFF",
+        probability: 0.2,
+        discountConfig: {
+          enabled: true,
+          showInPreview: true,
+          valueType: "PERCENTAGE",
+          value: 15,
+          deliveryMode: "show_code_fallback",
+          expiryDays: 30,
+          type: "single_use",
+          autoApplyMode: "ajax",
+          codePresentation: "show_code",
+        } as DiscountConfig
+      },
+      {
+        id: "prize-20-off",
+        label: "20% OFF",
+        probability: 0.1,
+        discountConfig: {
+          enabled: true,
+          showInPreview: true,
+          valueType: "PERCENTAGE",
+          value: 20,
+          deliveryMode: "show_code_fallback",
+          expiryDays: 30,
+          type: "single_use",
+          autoApplyMode: "ajax",
+          codePresentation: "show_code",
+        } as DiscountConfig
+      },
+    ];
   const [prizes, setPrizes] = useState<Prize[]>(initialPrizes);
 
   useEffect(() => {
@@ -53,7 +114,22 @@ export function ScratchCardContentSection({ content, errors, onChange }: Scratch
   }, []);
 
   const addPrize = () => {
-    const p: Prize = { id: `prize-${Date.now()}`, label: "", probability: 0.1, discountCode: "", discountPercentage: 5 };
+    const p: Prize = {
+      id: `prize-${Date.now()}`,
+      label: "",
+      probability: 0.1,
+      discountConfig: {
+        enabled: true,
+        showInPreview: true,
+        valueType: "PERCENTAGE",
+        value: 10,
+        deliveryMode: "show_code_fallback",
+        expiryDays: 30,
+        type: "single_use",
+        autoApplyMode: "ajax",
+        codePresentation: "show_code",
+      } as DiscountConfig
+    };
     const updated = [...prizes, p];
     setPrizes(updated);
     updateField("prizes", updated);
@@ -301,26 +377,16 @@ export function ScratchCardContentSection({ content, errors, onChange }: Scratch
                     />
                   </FormGrid>
 
-                  <FormGrid columns={2}>
-                    <TextField
-                      label="Discount %"
-                      name={`prizes.${i}.discountPercentage`}
-                      value={(p.discountPercentage ?? 0).toString()}
-                      placeholder="10"
-                      onChange={(v) =>
-                        updatePrize(i, {
-                          discountPercentage: parseInt(v) || 0,
-                        })
-                      }
+                  <BlockStack gap="300">
+                    <Text as="h5" variant="headingSm">
+                      Discount Configuration
+                    </Text>
+                    <GenericDiscountComponent
+                      goal="INCREASE_REVENUE"
+                      discountConfig={p.discountConfig as DiscountConfig | undefined}
+                      onConfigChange={(config) => updatePrize(i, { discountConfig: config })}
                     />
-                    <TextField
-                      label="Discount Code"
-                      name={`prizes.${i}.discountCode`}
-                      value={p.discountCode || ""}
-                      placeholder="SCRATCH10"
-                      onChange={(v) => updatePrize(i, { discountCode: v })}
-                    />
-                  </FormGrid>
+                  </BlockStack>
                 </BlockStack>
               </div>
             ))}
