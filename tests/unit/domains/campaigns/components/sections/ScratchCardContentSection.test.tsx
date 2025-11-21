@@ -28,7 +28,11 @@ describe("ScratchCardContentSection", () => {
     expect(latest.prizes[0]).toEqual(
       expect.objectContaining({
         label: "5% OFF",
-        discountPercentage: 5,
+        discountConfig: expect.objectContaining({
+          enabled: true,
+          valueType: "PERCENTAGE",
+          value: 5,
+        }),
       }),
     );
   });

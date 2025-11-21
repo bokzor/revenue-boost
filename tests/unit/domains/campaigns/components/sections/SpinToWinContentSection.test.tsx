@@ -18,17 +18,31 @@ describe("SpinToWinContentSection", () => {
     });
 
     renderWithPolaris(
-      <SpinToWinContentSection content={{}} errors={{}} onChange={onChange} />, 
+      <SpinToWinContentSection content={{}} errors={{}} onChange={onChange} />,
     );
 
-    await waitFor(() => expect(onChange).toHaveBeenCalled());
+    // Component now relies on schema defaults rather than auto-calling onChange.
+    // Verify defaults via the schema instead of side effects.
+    const { SpinToWinContentSchema } = await import(
+      "~/domains/campaigns/types/campaign"
+    );
+    // Provide required base fields so schema validation passes and defaults are applied
+    const parsed = SpinToWinContentSchema.parse({
+      headline: "Test",
+      buttonText: "Spin",
+      successMessage: "Win!",
+    });
 
-    expect(Array.isArray(latest.wheelSegments)).toBe(true);
-    expect(latest.wheelSegments.length).toBeGreaterThan(0);
-    expect(latest.wheelSegments[0]).toEqual(
+    expect(Array.isArray(parsed.wheelSegments)).toBe(true);
+    expect(parsed.wheelSegments.length).toBeGreaterThan(0);
+    expect(parsed.wheelSegments[0]).toEqual(
       expect.objectContaining({
         label: "5% OFF",
-        discountType: "percentage",
+        discountConfig: expect.objectContaining({
+          enabled: true,
+          valueType: "PERCENTAGE",
+          value: 5,
+        }),
       }),
     );
   });

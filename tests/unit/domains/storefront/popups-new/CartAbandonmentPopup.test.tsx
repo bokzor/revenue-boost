@@ -3,6 +3,7 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 
 import { CartAbandonmentPopup } from "~/domains/storefront/popups-new/CartAbandonmentPopup";
+import { challengeTokenStore } from "~/domains/storefront/services/challenge-token.client";
 
 function createConfig(overrides: Partial<any> = {}) {
   const baseConfig: any = {
@@ -55,8 +56,34 @@ describe("CartAbandonmentPopup", () => {
   });
 
   it("calls onEmailRecovery with entered email when email recovery is enabled", async () => {
-    const config = createConfig({ enableEmailRecovery: true });
-    const onEmailRecovery = vi.fn().mockResolvedValue(undefined);
+    const campaignId = "camp-1";
+    const config = createConfig({
+      enableEmailRecovery: true,
+      campaignId,
+    });
+
+    // Seed challenge token and session id for secure submission
+    challengeTokenStore.set(
+      campaignId,
+      "test-token",
+      new Date(Date.now() + 600_000).toISOString(),
+    );
+
+    const sessionGetItem = vi
+      .spyOn(window.sessionStorage.__proto__, "getItem")
+      .mockReturnValue("session-123");
+
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch" as any)
+      .mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          success: true,
+          discountCode: null,
+          deliveryMode: "show_code_fallback",
+          autoApplyMode: "ajax",
+        }),
+      } as any);
 
     render(
       <CartAbandonmentPopup
@@ -65,7 +92,6 @@ describe("CartAbandonmentPopup", () => {
         onClose={() => {}}
         cartItems={[]}
         cartTotal={0}
-        onEmailRecovery={onEmailRecovery}
       />,
     );
 
@@ -82,8 +108,13 @@ describe("CartAbandonmentPopup", () => {
     fireEvent.click(submitButton);
 
     await waitFor(() => {
-      expect(onEmailRecovery).toHaveBeenCalledWith("test@example.com");
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/apps/revenue-boost/api/cart/email-recovery",
+        expect.objectContaining({ method: "POST" }),
+      );
     });
+
+    sessionGetItem.mockRestore();
   });
 
   it("shows validation error and uses custom error message when email is invalid", async () => {
@@ -139,17 +170,37 @@ describe("CartAbandonmentPopup", () => {
     ).toBeNull();
   });
   it("shows discount code and re-enables CTAs after successful email recovery when gating is on", async () => {
+    const campaignId = "camp-2";
     const config = createConfig({
       enableEmailRecovery: true,
       requireEmailBeforeCheckout: true,
       saveForLaterText: "Save for later",
+      campaignId,
       discount: {
         enabled: true,
         deliveryMode: "show_code_always",
       },
     });
 
-    const onEmailRecovery = vi.fn().mockResolvedValue("SAVE10");
+    challengeTokenStore.set(
+      campaignId,
+      "test-token",
+      new Date(Date.now() + 600_000).toISOString(),
+    );
+
+    vi
+      .spyOn(window.sessionStorage.__proto__, "getItem")
+      .mockReturnValue("session-456");
+
+    vi.spyOn(globalThis, "fetch" as any).mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        success: true,
+        discountCode: "SAVE10",
+        deliveryMode: "show_code_always",
+        autoApplyMode: "ajax",
+      }),
+    } as any);
 
     render(
       <CartAbandonmentPopup
@@ -158,7 +209,6 @@ describe("CartAbandonmentPopup", () => {
         onClose={() => {}}
         cartItems={[]}
         cartTotal={0}
-        onEmailRecovery={onEmailRecovery}
       />,
     );
 

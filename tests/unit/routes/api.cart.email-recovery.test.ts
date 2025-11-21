@@ -25,6 +25,25 @@ vi.mock("~/domains/commerce/services/discount.server", () => ({
   shouldShowDiscountCode: vi.fn(),
 }));
 
+// Security & rate-limiting mocks (challenge token + rate limit) so tests don't hit real services
+vi.mock("~/domains/security/services/challenge-token.server", () => ({
+  validateAndConsumeToken: vi.fn().mockResolvedValue({ valid: true }),
+}));
+
+vi.mock("~/domains/security/services/rate-limit.server", () => ({
+  checkRateLimit: vi.fn().mockResolvedValue({
+    allowed: true,
+    remaining: 1,
+    resetAt: new Date(),
+  }),
+  RATE_LIMITS: {
+    EMAIL_PER_CAMPAIGN: { maxRequests: 5, windowSeconds: 86400 },
+  },
+  createEmailCampaignKey: vi.fn((email: string, campaignId: string) =>
+    `email:${email}:campaign:${campaignId}`,
+  ),
+}));
+
 import { authenticate } from "~/shopify.server";
 import prisma from "~/db.server";
 import * as discountModule from "~/domains/commerce/services/discount.server";
@@ -64,6 +83,8 @@ describe("api.cart.email-recovery action", () => {
       body: JSON.stringify({
         campaignId: "ck123456789012345678901234",
         email: "test@example.com",
+        sessionId: "test-session",
+        challengeToken: "test-token",
       }),
     });
 
@@ -112,6 +133,8 @@ describe("api.cart.email-recovery action", () => {
         campaignId: "ck123456789012345678901234",
         email: "test@example.com",
         cartSubtotalCents: 12345,
+        sessionId: "test-session",
+        challengeToken: "test-token",
       }),
     });
 
@@ -174,6 +197,8 @@ describe("api.cart.email-recovery action", () => {
       body: JSON.stringify({
         campaignId: "ck123456789012345678901234",
         email: "locked@example.com",
+        sessionId: "test-session",
+        challengeToken: "test-token",
       }),
     });
 
@@ -217,6 +242,8 @@ describe("api.cart.email-recovery action", () => {
       body: JSON.stringify({
         campaignId: "ck123456789012345678901234",
         email: "test@example.com",
+        sessionId: "test-session",
+        challengeToken: "test-token",
       }),
     });
 

@@ -26,7 +26,7 @@ describe("NewsletterContentSection", () => {
     expect(buttonField?.getAttribute("value")).toBe("Subscribe");
 
     const emailRequiredCheckbox = container.querySelector(
-      's-checkbox[name="content.emailRequired"]',
+      's-checkbox[name="emailRequired"]',
     );
     expect(emailRequiredCheckbox).toBeTruthy();
     expect(emailRequiredCheckbox?.getAttribute("checked")).toBe("true");

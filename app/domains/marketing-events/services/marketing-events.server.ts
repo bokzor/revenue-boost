@@ -40,11 +40,14 @@ export class MarketingEventsService {
         appUrl: string
     ): Promise<string | null> {
         try {
+            const slug = campaign.name.replace(/\s+/g, '-').toLowerCase();
+            const start = campaign.startDate ?? new Date();
+
             const response = await admin.graphql(
                 `#graphql
-        mutation marketingEventCreate($input: MarketingEventInput!) {
-          marketingEventCreate(input: $input) {
-            marketingEvent {
+        mutation marketingActivityCreateExternal($createInput: MarketingActivityCreateExternalInput!) {
+          marketingActivityCreateExternal(input: $createInput) {
+            marketingActivity {
               id
             }
             userErrors {
@@ -55,24 +58,19 @@ export class MarketingEventsService {
         }`,
                 {
                     variables: {
-                        input: {
-                            startedAt: campaign.startDate?.toISOString() || new Date().toISOString(),
-                            endedAt: campaign.endDate?.toISOString(),
-                            utmCampaign: campaign.name.replace(/\s+/g, '-').toLowerCase(),
-                            utmSource: "revenue-boost",
-                            utmMedium: "popup",
-                            budget: 0,
-                            currency: "USD", // Default, should be dynamic if possible
-                            manageUrl: `${appUrl}/app/campaigns/${campaign.id}`,
-                            previewUrl: `${appUrl}/app/campaigns/${campaign.id}`, // Ideally the storefront URL
+                        createInput: {
+                            title: campaign.name,
+                            remoteUrl: `${appUrl}/app/campaigns/${campaign.id}`,
+                            tactic: "AD",
+                            marketingChannelType: "DISPLAY",
                             remoteId: campaign.id,
-                            marketingChannel: "SOCIAL", // or DISPLAY, EMAIL, etc. "ONSITE" is not a valid enum usually, check docs. 
-                            // Valid values: SEARCH, DISPLAY, SOCIAL, EMAIL, REFERRAL, OTHER. 
-                            // Popups are "ONSITE" but that might not be an option. "OTHER" or "DISPLAY" might fit.
-                            // Actually, for apps, it's often "OTHER" or specific if it fits.
-                            // Let's use "OTHER" for now or check if "ONSITE" exists.
-                            // Docs say: ADVERTISING, EMAIL, SOCIAL, SMS, PUSH_NOTIFICATION, REFERRAL, AFFILIATE, SEARCH, DISPLAY, RETARGETING, OTHER.
-                            // "DISPLAY" seems closest for a popup.
+                            start: start.toISOString(),
+                            end: campaign.endDate?.toISOString(),
+                            utm: {
+                                campaign: slug,
+                                source: "revenue-boost",
+                                medium: "popup",
+                            },
                         },
                     },
                 }
@@ -80,14 +78,14 @@ export class MarketingEventsService {
 
             const data = await response.json();
 
-            if (data.data?.marketingEventCreate?.userErrors?.length > 0) {
-                console.error("Marketing Event Create Errors:", data.data.marketingEventCreate.userErrors);
+            if (data.data?.marketingActivityCreateExternal?.userErrors?.length > 0) {
+                console.error("Marketing Activity Create Errors:", data.data.marketingActivityCreateExternal.userErrors);
                 return null;
             }
 
-            return data.data?.marketingEventCreate?.marketingEvent?.id;
+            return data.data?.marketingActivityCreateExternal?.marketingActivity?.id ?? null;
         } catch (error) {
-            console.error("Failed to create marketing event:", error);
+            console.error("Failed to create marketing activity:", error);
             return null;
         }
     }
@@ -105,19 +103,17 @@ export class MarketingEventsService {
         }
     ): Promise<boolean> {
         try {
-            const input: any = {
-                id: marketingEventId,
-            };
+            const input: any = {};
 
-            if (campaign.startDate) input.startedAt = campaign.startDate.toISOString();
-            if (campaign.endDate) input.endedAt = campaign.endDate.toISOString();
-            // Note: utmCampaign usually shouldn't change as it breaks tracking, but if name changes...
+            if (campaign.name) input.title = campaign.name;
+            if (campaign.startDate) input.start = campaign.startDate.toISOString();
+            if (campaign.endDate) input.end = campaign.endDate.toISOString();
 
             const response = await admin.graphql(
                 `#graphql
-        mutation marketingEventUpdate($input: MarketingEventUpdateInput!) {
-          marketingEventUpdate(input: $input) {
-            marketingEvent {
+        mutation marketingActivityUpdateExternal($marketingActivityId: ID!, $input: MarketingActivityUpdateExternalInput!) {
+          marketingActivityUpdateExternal(marketingActivityId: $marketingActivityId, input: $input) {
+            marketingActivity {
               id
             }
             userErrors {
@@ -127,20 +123,20 @@ export class MarketingEventsService {
           }
         }`,
                 {
-                    variables: { input },
+                    variables: { marketingActivityId: marketingEventId, input },
                 }
             );
 
             const data = await response.json();
 
-            if (data.data?.marketingEventUpdate?.userErrors?.length > 0) {
-                console.error("Marketing Event Update Errors:", data.data.marketingEventUpdate.userErrors);
+            if (data.data?.marketingActivityUpdateExternal?.userErrors?.length > 0) {
+                console.error("Marketing Activity Update Errors:", data.data.marketingActivityUpdateExternal.userErrors);
                 return false;
             }
 
             return true;
         } catch (error) {
-            console.error("Failed to update marketing event:", error);
+            console.error("Failed to update marketing activity:", error);
             return false;
         }
     }
@@ -155,9 +151,8 @@ export class MarketingEventsService {
         try {
             const response = await admin.graphql(
                 `#graphql
-        mutation marketingEventDelete($id: ID!) {
-          marketingEventDelete(id: $id) {
-            deletedMarketingEventId
+        mutation marketingActivityDeleteExternal($marketingActivityId: ID!) {
+          marketingActivityDeleteExternal(marketingActivityId: $marketingActivityId) {
             userErrors {
               field
               message
@@ -165,20 +160,20 @@ export class MarketingEventsService {
           }
         }`,
                 {
-                    variables: { id: marketingEventId },
+                    variables: { marketingActivityId: marketingEventId },
                 }
             );
 
             const data = await response.json();
 
-            if (data.data?.marketingEventDelete?.userErrors?.length > 0) {
-                console.error("Marketing Event Delete Errors:", data.data.marketingEventDelete.userErrors);
+            if (data.data?.marketingActivityDeleteExternal?.userErrors?.length > 0) {
+                console.error("Marketing Activity Delete Errors:", data.data.marketingActivityDeleteExternal.userErrors);
                 return false;
             }
 
             return true;
         } catch (error) {
-            console.error("Failed to delete marketing event:", error);
+            console.error("Failed to delete marketing activity:", error);
             return false;
         }
     }
@@ -192,12 +187,24 @@ export class MarketingEventsService {
         metrics: EngagementMetrics
     ): Promise<boolean> {
         try {
+            const now = new Date();
+            const occurredOn = now.toISOString().slice(0, 10); // YYYY-MM-DD
+            const utcOffsetMinutes = now.getTimezoneOffset();
+            const offsetHours = Math.floor(Math.abs(utcOffsetMinutes) / 60)
+                .toString()
+                .padStart(2, '0');
+            const offsetMinutes = (Math.abs(utcOffsetMinutes) % 60)
+                .toString()
+                .padStart(2, '0');
+            const sign = utcOffsetMinutes <= 0 ? '+' : '-';
+            const utcOffset = `${sign}${offsetHours}:${offsetMinutes}`;
+
             const response = await admin.graphql(
                 `#graphql
-        mutation marketingEngagementCreate($marketingEngagementInput: MarketingEngagementInput!) {
-          marketingEngagementCreate(marketingEngagementInput: $marketingEngagementInput) {
+        mutation marketingEngagementCreate($marketingActivityId: ID!, $marketingEngagement: MarketingEngagementInput!) {
+          marketingEngagementCreate(marketingActivityId: $marketingActivityId, marketingEngagement: $marketingEngagement) {
             marketingEngagement {
-              occurredAt
+              occurredOn
             }
             userErrors {
               field
@@ -207,13 +214,13 @@ export class MarketingEventsService {
         }`,
                 {
                     variables: {
-                        marketingEngagementInput: {
-                            marketingEventId: marketingEventId,
-                            occurredAt: new Date().toISOString(),
+                        marketingActivityId: marketingEventId,
+                        marketingEngagement: {
+                            occurredOn,
+                            utcOffset,
+                            isCumulative: metrics.isCumulative ?? true,
                             viewsCount: metrics.views,
                             clicksCount: metrics.clicks,
-                            isCumulative: metrics.isCumulative ?? true,
-                            // adSpend: metrics.adSpend, // Optional
                         },
                     },
                 }
