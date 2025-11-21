@@ -23,8 +23,13 @@ export function RecipeConfigurationModal({
 
     const recipes = useMemo(() => {
         if (!template.templateType) return [];
-        return RECIPE_CATALOG[template.templateType] || [];
-    }, [template.templateType]);
+        const allRecipes = RECIPE_CATALOG[template.templateType] || [];
+
+        return allRecipes.filter((recipe) => {
+            if (!recipe.allowedTemplateNames) return true;
+            return recipe.allowedTemplateNames.includes(template.name);
+        });
+    }, [template.templateType, template.name]);
 
     const selectedRecipe = useMemo(
         () => recipes.find((r) => r.id === selectedRecipeId),
@@ -96,6 +101,19 @@ export function RecipeConfigurationModal({
                                 onChange={(val) => handleInputChange(input.key, Number(val))}
                                 autoComplete="off"
                                 suffix="%"
+                            />
+                        );
+                    }
+                    if (input.type === "currency_amount") {
+                        return (
+                            <TextField
+                                key={input.key}
+                                label={input.label}
+                                type="number"
+                                value={String(contextData[input.key] ?? input.defaultValue)}
+                                onChange={(val) => handleInputChange(input.key, Number(val))}
+                                autoComplete="off"
+                                prefix="$"
                             />
                         );
                     }

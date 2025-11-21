@@ -25,6 +25,7 @@ import { TemplateLoadingState } from "./templates/TemplateLoadingState";
 import { TemplateSelectorHeader } from "./templates/TemplateSelectorHeader";
 import { TemplateSelectorFooter } from "./templates/TemplateSelectorFooter";
 import { RecipeConfigurationModal } from "./recipes/RecipeConfigurationModal";
+import { RECIPE_CATALOG } from "../recipes/recipe-catalog";
 import type { CampaignFormData } from "~/shared/hooks/useWizardState";
 
 // Define a simplified template type for the selector
@@ -79,9 +80,30 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
       return;
     }
 
-    // Open the recipe configuration modal instead of selecting immediately
-    setSelectedTemplateForModal(template);
-    setModalOpen(true);
+    // Check if there are recipes for this template
+    const allRecipes = RECIPE_CATALOG[template.templateType] || [];
+    const applicableRecipes = allRecipes.filter((recipe) => {
+      if (!recipe.allowedTemplateNames) return true;
+      return recipe.allowedTemplateNames.includes(template.name);
+    });
+
+    if (applicableRecipes.length > 0) {
+      // Open the recipe configuration modal if recipes exist
+      setSelectedTemplateForModal(template);
+      setModalOpen(true);
+    } else {
+      // Directly select without modal if no recipes are available (equivalent to "Start from Scratch")
+      const selectedTemplate: SelectedTemplate = {
+        id: template.id,
+        templateType: template.templateType,
+        name: template.name,
+        contentConfig: template.contentConfig as ContentConfig,
+        targetRules: template.targetRules as TargetRulesConfig,
+        designConfig: template.designConfig as DesignConfig,
+        discountConfig: template.discountConfig as DiscountConfig,
+      };
+      onSelect(selectedTemplate);
+    }
   };
 
   const handleRecipeSelect = (recipeData: Partial<CampaignFormData>) => {

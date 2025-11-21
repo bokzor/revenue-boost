@@ -95,7 +95,33 @@ export interface AddToCartTrigger {
    * Time to wait in seconds after add-to-cart before triggering.
    */
   delay?: number;
+  /**
+   * If true, ignore delay and trigger immediately when condition is met.
+   */
   immediate?: boolean;
+  /**
+   * Optional list of Shopify Product GIDs that should trigger the popup when
+   * added to cart. If empty/undefined, any product will match.
+   *
+   * Mirrors EnhancedTriggersConfig.add_to_cart.productIds on the server.
+   */
+  productIds?: string[];
+  /**
+	   * Optional list of Shopify Collection GIDs configured in the UI.
+	   *
+	   * Behaviour on the storefront:
+	   * - If one or more collectionIds are configured, the trigger will only
+	   *   fire when the add-to-cart happens while the shopper is viewing a
+	   *   matching collection page.
+	   * - Matching is based on the current collection context, derived from
+	   *   `window.REVENUE_BOOST_CONFIG.collectionId` (set by the theme app
+	   *   extension) or, as a fallback, from `ShopifyAnalytics.meta.collection.id`
+	   *   when available.
+	   * - Product and collection filters are combined with OR semantics:
+	   *   the trigger will pass if EITHER the added product matches productIds
+	   *   OR the current collection context matches collectionIds (or both).
+   */
+  collectionIds?: string[];
 }
 
 export interface CartDrawerOpenTrigger {
@@ -819,6 +845,55 @@ export class TriggerManager {
     return { isProductPage, productId };
   }
 
+	  /**
+	   * Get current collection context (numeric Shopify collection ID as string
+	   * when available).
+	   *
+	   * Sources (in order):
+	   * - window.REVENUE_BOOST_CONFIG.collectionId (set by popup-init.liquid on
+	   *   collection templates)
+	   * - ShopifyAnalytics.meta.collection.id (when themes expose it)
+	   */
+	  private getCollectionIdFromContext(): string | null {
+	    if (typeof window === "undefined") {
+	      return null;
+	    }
+
+	    // REVENUE_BOOST_CONFIG path ( Theme App Extension snippet )
+	    type W = typeof window & {
+	      REVENUE_BOOST_CONFIG?: {
+	        collectionId?: string | number;
+	      };
+	      ShopifyAnalytics?: {
+	        meta?: {
+	          // Some themes expose collection context here
+	          collection?: { id?: string | number };
+	        };
+	      };
+	    };
+	    const w = window as unknown as W;
+
+	    let raw: string | number | undefined | null = w.REVENUE_BOOST_CONFIG?.collectionId;
+	    if (raw == null && w.ShopifyAnalytics?.meta?.collection?.id != null) {
+	      raw = w.ShopifyAnalytics.meta.collection.id;
+	    }
+
+	    if (raw == null) {
+	      return null;
+	    }
+
+	    const idStr = String(raw).trim();
+	    if (!idStr) return null;
+
+	    // If a GID is provided, return the numeric segment
+	    if (idStr.startsWith("gid://")) {
+	      const parts = idStr.split("/");
+	      return parts[parts.length - 1] || null;
+	    }
+
+	    return idStr;
+	  }
+
   /**
    * Normalize various product ID formats to a Shopify Product GID
    */
@@ -864,10 +939,22 @@ export class TriggerManager {
     });
   }
 
-  /**
-   * Check add_to_cart trigger
-   * Waits for a Shopify cart add event before firing.
-   */
+	  /**
+	   * Check add_to_cart trigger
+	   *
+	   * Behaviour:
+	   * - Listens for unified cart add events emitted by CartEventListener
+	   *   (backed by `cart:add`, `cart:item-added`, CartJS, etc.).
+	   * - If `productIds` are configured, only resolves when the added product
+	   *   matches one of those Shopify Product GIDs.
+	   * - If `collectionIds` are configured, only resolves when the add-to-cart
+	   *   happens while the shopper is viewing a matching collection page
+	   *   (collection context is derived from REVENUE_BOOST_CONFIG or, as a
+	   *   fallback, ShopifyAnalytics meta).
+	   * - When both productIds and collectionIds are configured, they are
+	   *   combined with OR semantics: the trigger will pass if either filter
+	   *   matches for a given add-to-cart event.
+	   */
   private async checkAddToCart(trigger: AddToCartTrigger): Promise<boolean> {
     if (!trigger.enabled) {
       console.log("[Revenue Boost] ⏭️ add_to_cart trigger is disabled");
@@ -876,6 +963,27 @@ export class TriggerManager {
 
     const delaySeconds = trigger.delay ?? 0;
     const immediate = trigger.immediate ?? false;
+
+	    // Normalize configured product IDs (Shopify Product GIDs)
+	    const configuredProductIds = Array.isArray(trigger.productIds)
+	      ? trigger.productIds.filter((id) => typeof id === "string" && id.trim() !== "")
+	      : [];
+
+	    // Normalize configured collection IDs to their numeric component so they
+	    // can be compared against REVENUE_BOOST_CONFIG.collectionId which stores
+	    // the numeric ID (mirrors PageTargeting behaviour on the server).
+	    const configuredCollectionNumericIds: string[] = Array.isArray(trigger.collectionIds)
+	      ? trigger.collectionIds
+	          .filter((id) => typeof id === "string" && id.trim() !== "")
+	          .map((gid) => {
+	            const parts = gid.split("/");
+	            return parts[parts.length - 1] || "";
+	          })
+	          .filter((id) => id !== "")
+	      : [];
+
+	    const hasProductFilter = configuredProductIds.length > 0;
+	    const hasCollectionFilter = configuredCollectionNumericIds.length > 0;
 
     console.log(
       `[Revenue Boost] 🛒 add_to_cart trigger listening for add-to-cart events (delay=${delaySeconds}s, immediate=${immediate})`,
@@ -886,7 +994,92 @@ export class TriggerManager {
         events: ["add_to_cart"],
       });
 
-      this.cartEventListener.start(() => {
+      this.cartEventListener.start((event) => {
+	        const detail = event?.detail as unknown;
+
+	        // Evaluate productId filter (if configured)
+	        let passesProductFilter = !hasProductFilter;
+	        let eventProductId: string | null = null;
+
+	        if (hasProductFilter) {
+	          // Our unified cart tracking emits `{ productId }`
+	          if (
+	            detail &&
+	            typeof detail === "object" &&
+	            "productId" in (detail as Record<string, unknown>)
+	          ) {
+	            eventProductId = this.normalizeProductId(
+	              (detail as { productId?: unknown }).productId,
+	            );
+	          }
+
+	          // CartJS path: detail may be `{ cart, item }` where item has `product_id`
+	          if (!eventProductId && detail && typeof detail === "object") {
+	            const d = detail as { item?: unknown };
+	            const item = d.item as
+	              | { product_id?: unknown; productId?: unknown; id?: unknown }
+	              | undefined;
+	            if (item) {
+	              const rawProductId =
+	                (item as any).product_id ?? (item as any).productId ?? null;
+	              eventProductId = this.normalizeProductId(rawProductId);
+	            }
+	          }
+
+	          if (!eventProductId) {
+	            console.log(
+	              "[Revenue Boost] ❌ add_to_cart trigger: productIds configured but event productId is unknown; ignoring event",
+	            );
+	            passesProductFilter = false;
+	          } else if (!configuredProductIds.includes(eventProductId)) {
+	            console.log(
+	              "[Revenue Boost] ❌ add_to_cart trigger: event productId not in configured productIds; ignoring event",
+	              { eventProductId, configuredProductIds },
+	            );
+	            passesProductFilter = false;
+	          } else {
+	            console.log(
+	              "[Revenue Boost] ✅ add_to_cart trigger: matched configured productId",
+	              { eventProductId },
+	            );
+	            passesProductFilter = true;
+	          }
+	        }
+
+	        // Evaluate collection filter (if configured)
+	        let passesCollectionFilter = !hasCollectionFilter;
+	        if (hasCollectionFilter) {
+	          const ctxCollectionId = this.getCollectionIdFromContext();
+	          if (!ctxCollectionId) {
+	            console.log(
+	              "[Revenue Boost] ❌ add_to_cart trigger: collectionIds configured but no collection context available; ignoring event for collection filter",
+	            );
+	            passesCollectionFilter = false;
+	          } else {
+	            const collectionMatch = configuredCollectionNumericIds.includes(
+	              ctxCollectionId,
+	            );
+	            if (!collectionMatch) {
+	              console.log(
+	                "[Revenue Boost] ❌ add_to_cart trigger: current collection does not match configured collectionIds; ignoring event for collection filter",
+	                { ctxCollectionId, configuredCollectionNumericIds },
+	              );
+	              passesCollectionFilter = false;
+	            } else {
+	              console.log(
+	                "[Revenue Boost] ✅ add_to_cart trigger: matched configured collectionId",
+	                { ctxCollectionId },
+	              );
+	              passesCollectionFilter = true;
+	            }
+	          }
+	        }
+
+	        // If neither filter matches, ignore this add_to_cart event and wait for another
+	        if (!passesProductFilter && !passesCollectionFilter) {
+	          return;
+	        }
+
         if (!immediate && delaySeconds > 0) {
           const delayMs = delaySeconds * 1000;
           console.log(

@@ -406,6 +406,85 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api }: P
 
   const [upsellProducts, setUpsellProducts] = useState<any[] | null>(null);
 
+  const handleAddToCart = async (productIds: string[]) => {
+    try {
+      console.log("[PopupManager] Adding products to cart:", productIds);
+
+      if (!productIds || productIds.length === 0) return;
+
+      // We need to map productIds (which are product.id) to variant IDs
+      // We use the `upsellProducts` state which contains the full product objects
+      const itemsToAdd: { id: string; quantity: number }[] = [];
+
+      for (const pid of productIds) {
+        const product = upsellProducts?.find((p) => p.id === pid);
+        if (product && product.variantId) {
+          // Extract numeric ID if it's a GID
+          const variantId = product.variantId.split('/').pop() || product.variantId;
+          itemsToAdd.push({ id: variantId, quantity: 1 });
+        } else {
+          // Fallback to using the ID as is if not found in upsellProducts (rare case)
+          const variantId = pid.split('/').pop() || pid;
+          itemsToAdd.push({ id: variantId, quantity: 1 });
+        }
+      }
+
+      if (itemsToAdd.length === 0) {
+        console.warn("[PopupManager] No valid items to add");
+        return;
+      }
+
+      // Add to cart using Shopify's Cart API
+      const root = getShopifyRoot();
+      const cartResponse = await fetch(`${root}cart/add.js`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          items: itemsToAdd,
+        }),
+      });
+
+      if (!cartResponse.ok) {
+        console.error("[PopupManager] Failed to add to cart:", await cartResponse.text());
+        throw new Error("Failed to add items to cart");
+      }
+
+      console.log("[PopupManager] Items added to cart successfully");
+
+      // Check if we need to apply a discount
+      if (campaign.discountConfig?.enabled) {
+        await handleIssueDiscount();
+      }
+
+      // Trigger update events
+      document.dispatchEvent(new CustomEvent("cart:updated"));
+      document.dispatchEvent(new CustomEvent("cart.requestUpdate"));
+
+      // Fetch new cart to ensure UI is in sync
+      try {
+        const cartRes = await fetch(`${root}cart.js`);
+        if (cartRes.ok) {
+          const cart = await cartRes.json();
+          document.dispatchEvent(new CustomEvent("cart:refresh", { detail: cart }));
+
+          // Update cart count logic (compatible with common themes)
+          const cartCount = document.querySelector(".cart-count, [data-cart-count], .cart__count");
+          if (cartCount && cart.item_count !== undefined) {
+            cartCount.textContent = String(cart.item_count);
+          }
+        }
+      } catch (e) {
+        console.error("Error fetching cart after update", e);
+      }
+
+    } catch (error) {
+      console.error("[PopupManager] Error adding to cart:", error);
+      throw error;
+    }
+  };
+
   // Lazy-load upsell products for PRODUCT_UPSELL campaigns based on campaignId
   // Lazy-load upsell products for PRODUCT_UPSELL campaigns based on campaignId
   useEffect(() => {
@@ -525,6 +604,7 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api }: P
     cartItems: cartData?.items,
     cartTotal: cartData?.total,
     onTrack: trackClick,
+    onAddToCart: handleAddToCart,
   });
 }
 

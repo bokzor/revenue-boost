@@ -2,15 +2,38 @@
  * TriggerManager Tests
  */
 
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { TriggerManager } from "../../../../../extensions/storefront-src/core/TriggerManager";
 
 describe("TriggerManager", () => {
   let manager: TriggerManager;
+	  let originalWindow: unknown;
 
   beforeEach(() => {
-    manager = new TriggerManager();
+	    manager = new TriggerManager();
+
+	    // Ensure a minimal window object exists for tests that rely on it
+	    // (happy-dom may not expose window.setTimeout / clearTimeout directly).
+	    // We preserve any existing properties from the test environment.
+	    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+	    const g: any = globalThis as any;
+	    originalWindow = g.window;
+	    if (!g.window) {
+	      g.window = {};
+	    }
+	    if (typeof g.window.setTimeout !== "function") {
+	      g.window.setTimeout = setTimeout;
+	    }
+	    if (typeof g.window.clearTimeout !== "function") {
+	      g.window.clearTimeout = clearTimeout;
+	    }
   });
+
+	  afterEach(() => {
+	    // Restore original window reference to avoid cross-test pollution
+	    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+	    (globalThis as any).window = originalWindow as any;
+	  });
 
   describe("evaluateTriggers", () => {
     it("should return true if no triggers are defined", async () => {
@@ -288,13 +311,88 @@ describe("TriggerManager", () => {
 
       // Simulate Shopify add to cart event
       const event = new CustomEvent("cart:add", {
-        detail: { productId: "123", quantity: 1 },
+        detail: { productId: "gid://shopify/Product/123", quantity: 1 },
       });
       document.dispatchEvent(event);
 
       const result = await promise;
       expect(result).toBe(true);
     });
+
+	    it("should resolve when add_to_cart matches configured collectionIds via REVENUE_BOOST_CONFIG", async () => {
+	      // Simulate collection context from theme app extension
+	      (globalThis as any).window = {
+	        REVENUE_BOOST_CONFIG: {
+	          collectionId: "987654321",
+	        },
+	        location: { pathname: "/collections/test-collection" },
+	        document,
+	      } as any;
+
+	      const campaign = {
+	        id: "test-campaign",
+	        clientTriggers: {
+	          enhancedTriggers: {
+	            add_to_cart: {
+	              enabled: true,
+	              collectionIds: [
+	                "gid://shopify/Collection/987654321",
+	              ],
+	            },
+	          },
+	        },
+	      };
+
+	      const promise = manager.evaluateTriggers(campaign as any);
+
+	      // Product ID does NOT match configured productIds (none configured),
+	      // but collection context does, so trigger should still resolve.
+	      const event = new CustomEvent("cart:add", {
+	        detail: { productId: "gid://shopify/Product/123", quantity: 1 },
+	      });
+	      document.dispatchEvent(event);
+
+	      const result = await promise;
+	      expect(result).toBe(true);
+	    });
+
+	    it("should use OR semantics between productIds and collectionIds for add_to_cart", async () => {
+	      // Set collection context that does NOT match configured collectionIds
+	      (globalThis as any).window = {
+	        REVENUE_BOOST_CONFIG: {
+	          collectionId: "111111111",
+	        },
+	        location: { pathname: "/collections/other-collection" },
+	        document,
+	      } as any;
+
+	      const campaign = {
+	        id: "test-campaign",
+	        clientTriggers: {
+	          enhancedTriggers: {
+	            add_to_cart: {
+	              enabled: true,
+	              productIds: ["gid://shopify/Product/123"],
+	              collectionIds: [
+	                "gid://shopify/Collection/987654321",
+	              ],
+	            },
+	          },
+	        },
+	      };
+
+	      const promise = manager.evaluateTriggers(campaign as any);
+
+	      // Product matches but collection does not; OR semantics mean this
+	      // should still resolve.
+	      const event = new CustomEvent("cart:add", {
+	        detail: { productId: "gid://shopify/Product/123", quantity: 1 },
+	      });
+	      document.dispatchEvent(event);
+
+	      const result = await promise;
+	      expect(result).toBe(true);
+	    });
 
 
     it("should respect add_to_cart delay when configured", async () => {
@@ -314,7 +412,7 @@ describe("TriggerManager", () => {
       const promise = manager.evaluateTriggers(campaign as any);
 
       const event = new CustomEvent("cart:add", {
-        detail: { productId: "123", quantity: 1 },
+        detail: { productId: "gid://shopify/Product/123", quantity: 1 },
       });
       document.dispatchEvent(event);
 
@@ -323,6 +421,40 @@ describe("TriggerManager", () => {
 
       expect(result).toBe(true);
       expect(elapsed).toBeGreaterThanOrEqual(40);
+    });
+
+    it("should only resolve when add_to_cart matches configured productIds", async () => {
+      const campaign = {
+        id: "test-campaign",
+        clientTriggers: {
+          enhancedTriggers: {
+            add_to_cart: {
+              enabled: true,
+              productIds: ["gid://shopify/Product/111"],
+            },
+          },
+        },
+      };
+
+      const promise = manager.evaluateTriggers(campaign as any);
+
+      // Non-matching product should NOT resolve
+      const nonMatchEvent = new CustomEvent("cart:add", {
+        detail: { productId: "gid://shopify/Product/222", quantity: 1 },
+      });
+      document.dispatchEvent(nonMatchEvent);
+
+      // Give the listener a small tick to potentially resolve (it shouldn't)
+      await new Promise((r) => setTimeout(r, 10));
+
+      // Matching product should resolve
+      const matchEvent = new CustomEvent("cart:add", {
+        detail: { productId: "gid://shopify/Product/111", quantity: 1 },
+      });
+      document.dispatchEvent(matchEvent);
+
+      const result = await promise;
+      expect(result).toBe(true);
     });
 
     it("should resolve when cart_drawer_open event is dispatched", async () => {

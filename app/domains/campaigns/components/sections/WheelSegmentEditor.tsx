@@ -1,6 +1,6 @@
 /**
  * WheelSegmentEditor Component
- * 
+ *
  * Enhanced editor for Spin-to-Win wheel segments with full discount configuration per segment.
  * Each segment can have its own complete discount setup including type, value, delivery mode, etc.
  */
@@ -101,6 +101,35 @@ export function WheelSegmentEditor({
         return parts.join(" • ");
     };
 
+    // Helper to detect mismatch between label and percentage discount value
+    const getLabelDiscountMismatchWarning = (
+        segment: WheelSegment,
+    ): string | null => {
+        const config = segment.discountConfig;
+
+        // Only validate when a percentage discount is enabled with a numeric value
+        if (!config || !config.enabled || config.valueType !== "PERCENTAGE" || !config.value) {
+            return null;
+        }
+
+        const label = segment.label || "";
+        const match = label.match(/(\d+)\s*%/);
+        if (!match) {
+            return null; // No percentage mentioned in label, nothing to compare
+        }
+
+        const labelPercent = parseInt(match[1], 10);
+        if (Number.isNaN(labelPercent)) {
+            return null;
+        }
+
+        if (labelPercent !== config.value) {
+            return `Label shows "${labelPercent}%" but discount is configured for ${config.value}%. This may confuse customers.`;
+        }
+
+        return null;
+    };
+
     return (
         <BlockStack gap="300">
             {segments.map((segment, index) => {
@@ -184,6 +213,13 @@ export function WheelSegmentEditor({
                                         helpText="Leave empty to use accent color"
                                         onChange={(value) => updateSegment(index, { color: value })}
                                     />
+
+                                    {/* Label vs discount mismatch warning */}
+                                    {getLabelDiscountMismatchWarning(segment) && (
+                                        <Text as="p" tone="warning" variant="bodySm">
+                                            {getLabelDiscountMismatchWarning(segment)}
+                                        </Text>
+                                    )}
 
                                     {/* Discount Configuration */}
                                     <BlockStack gap="300">

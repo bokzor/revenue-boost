@@ -469,19 +469,37 @@ export function CampaignFormWithABTesting({
           </Layout.Section>
         )}
 
-        {/* Wizard Progress Indicator */}
-        <Layout.Section>
-          <Card>
-            <div style={{ padding: "16px" }}>
-              <WizardProgressIndicator
-                steps={WIZARD_STEPS}
-                currentStep={currentStep}
-                completedSteps={WIZARD_STEPS.map((_, index) => index <= currentStep)}
-                onStepClick={handleStepChange}
-              />
-            </div>
-          </Card>
-        </Layout.Section>
+	        {/* Wizard Progress Indicator */}
+	        <Layout.Section>
+	          <Card>
+	            <div style={{ padding: "16px" }}>
+	              <WizardProgressIndicator
+	                steps={WIZARD_STEPS}
+	                currentStep={currentStep}
+	                completedSteps={WIZARD_STEPS.map((_, index) => index <= currentStep)}
+	                onStepClick={handleStepChange}
+	              />
+	            </div>
+	          </Card>
+	        </Layout.Section>
+
+	        {/* Top Navigation Buttons */}
+	        <Layout.Section>
+	          <Card>
+	            <div style={{ padding: "16px" }}>
+	              <WizardNavigationButtons
+	                currentStep={currentStep}
+	                totalSteps={WIZARD_STEPS.length}
+	                isLastStep={isLastStep}
+	                isSubmitting={isSubmitting}
+	                campaignId={campaignId}
+	                onPrevious={handlePrevious}
+	                onNext={handleNext}
+	                onSave={handleSave}
+	              />
+	            </div>
+	          </Card>
+	        </Layout.Section>
 
         {/* Step Content */}
         <Layout.Section>

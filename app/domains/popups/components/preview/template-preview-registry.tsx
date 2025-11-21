@@ -387,6 +387,15 @@ export const TEMPLATE_PREVIEW_REGISTRY: Record<string, TemplatePreviewEntry> = {
       imageUrl: mergedConfig.imageUrl || designConfig.imageUrl,
       imagePosition: mergedConfig.imagePosition || designConfig.imagePosition || "left",
 
+      // Name & consent config (matching NewsletterContentSchema)
+      collectName: mergedConfig.collectName ?? mergedConfig.nameFieldEnabled ?? false,
+      nameFieldRequired: mergedConfig.nameFieldRequired ?? false,
+      nameFieldPlaceholder: mergedConfig.nameFieldPlaceholder,
+
+      showGdprCheckbox: mergedConfig.showGdprCheckbox ?? mergedConfig.consentFieldEnabled ?? false,
+      consentFieldRequired: mergedConfig.consentFieldRequired ?? false,
+      gdprLabel: mergedConfig.gdprLabel || mergedConfig.consentFieldText,
+
       // All common config (colors, typography, layout)
       ...buildCommonConfig(mergedConfig, designConfig),
 
@@ -423,6 +432,10 @@ export const TEMPLATE_PREVIEW_REGISTRY: Record<string, TemplatePreviewEntry> = {
       // Image / layout
       imageUrl: mergedConfig.imageUrl || designConfig.imageUrl,
       imagePosition: mergedConfig.imagePosition || designConfig.imagePosition || "left",
+
+      // Consent (GDPR-style checkbox)
+      showGdprCheckbox: mergedConfig.showGdprCheckbox ?? mergedConfig.consentFieldEnabled ?? false,
+      gdprLabel: mergedConfig.gdprLabel || mergedConfig.consentFieldText,
 
       // All common config (colors, typography, layout)
       ...buildCommonConfig(mergedConfig, designConfig),
