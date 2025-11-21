@@ -435,9 +435,9 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
     goals: ["INCREASE_REVENUE"],
     contentConfig: {
       headline: "You left something behind",
-      subheadline: "Complete your purchase before its gone",
+      subheadline: "Complete your purchase before it's gone",
       buttonText: "Resume Checkout",
-      successMessage: "Your cart is readycomplete your purchase.",
+      successMessage: "Your cart is ready — complete your purchase.",
       ctaText: "Resume Checkout"
     },
     fields: [
@@ -506,13 +506,13 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
     ],
     targetRules: {
       enhancedTriggers: {
-        product_view: { enabled: true, time_on_page: 10 },
+        page_load: { enabled: true, delay: 3000 },
         frequency_capping: getServerFrequencyCapping("PRODUCT_UPSELL"),
       },
       audienceTargeting: {
         enabled: true,
-        segments: ["Product Viewer"],
-        customRules: {
+        shopifySegmentIds: [],
+        sessionRules: {
           enabled: false,
           conditions: [],
           logicOperator: "AND",
@@ -621,8 +621,8 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
       },
       audienceTargeting: {
         enabled: true,
-        segments: ["Product Viewer"],
-        customRules: {
+        shopifySegmentIds: [],
+        sessionRules: {
           enabled: false,
           conditions: [],
           logicOperator: "AND",
@@ -730,9 +730,8 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
       },
       audienceTargeting: {
         enabled: true,
-        // NOTE: "First Time Buyer" is disabled until Shopify LTV metrics are wired
-        segments: ["New Visitor", "Product Viewer"],
-        customRules: {
+        shopifySegmentIds: [],
+        sessionRules: {
           enabled: false,
           conditions: [],
           logicOperator: "AND",
