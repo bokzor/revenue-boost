@@ -886,7 +886,7 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
           font-family: ${config.fontFamily || 'inherit'};
         }
 
-        @container viewport (max-width: 640px) {
+        @container scratch-popup (max-width: 640px) {
           .scratch-popup-container {
             width: 100%;
             max-width: 100%;

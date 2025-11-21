@@ -312,7 +312,7 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
       // Minimal theme default colors (aligned with NEWSLETTER_THEMES.minimal)
       theme: "minimal",
       position: "center",
-      size: "large",
+      size: "medium",
       borderRadius: 24,
       animation: "fade",
 
@@ -380,7 +380,7 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
       buttonColor: "#3B82F6",
       buttonTextColor: "#FFFFFF",
       position: "top",
-      size: "small"
+      size: "medium"
     },
     isDefault: true,
     priority: 4,
@@ -473,7 +473,7 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
       buttonColor: "#3B82F6",
       buttonTextColor: "#FFFFFF",
       position: "bottom",
-      size: "small"
+      size: "medium"
     },
     isDefault: true,
     priority: 9,

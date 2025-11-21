@@ -1033,7 +1033,7 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
       <style>{`
         /* Layout and typography closely aligned with docs/mockup ProductUpsellPopup */
         .upsell-container {
-          width: ${sizeWidth};
+          width: 100%;
           max-width: ${popupConfig.maxWidth || sizeMaxWidth || '56rem'};
           margin: 0 auto;
           display: flex;
@@ -1242,65 +1242,7 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           }
         }
 
-        /* Fallback for environments without container queries */
-        @media (max-width: 768px) {
-          .upsell-header {
-            padding: 1rem 1.25rem 0.75rem;
-          }
 
-          .upsell-headline {
-            font-size: 1.25rem;
-          }
-
-          .upsell-subheadline {
-            font-size: 0.75rem;
-          }
-
-          .upsell-content {
-            padding: 1rem 1.25rem;
-          }
-
-          .upsell-footer {
-            padding: 0.75rem 1.25rem;
-          }
-
-          .upsell-actions {
-            gap: 0.5rem;
-          }
-
-          .upsell-products-grid {
-            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-            gap: 0.875rem;
-          }
-
-          .upsell-carousel-container {
-            padding: 0.75rem 2.5rem;
-            min-height: 280px;
-          }
-
-          .upsell-carousel-product {
-            flex-direction: column;
-            text-align: center;
-          }
-
-          .upsell-card {
-            flex-direction: column;
-            align-items: stretch;
-            padding: 1rem;
-          }
-
-          .upsell-card-image-wrapper {
-            width: 100%;
-            height: 150px;
-          }
-
-          .upsell-card-action-btn {
-            align-self: stretch;
-            margin-left: 0;
-            margin-top: 0.5rem;
-            justify-content: center;
-          }
-        }
 
         @keyframes spin {
           to { transform: rotate(360deg); }

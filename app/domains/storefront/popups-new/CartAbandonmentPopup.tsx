@@ -390,6 +390,10 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
           overflow-y: auto;
           animation: slideUp 0.3s ease-out forwards;
           z-index: 10000;
+          
+          /* Enable container queries */
+          container-type: inline-size;
+          container-name: cart-popup;
         }
 
         @keyframes slideUp {
@@ -397,8 +401,8 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
           to { transform: translateY(0); }
         }
 
-        /* Desktop/Tablet Overrides (Centered Card) */
-        @media (min-width: 768px) {
+        /* Desktop/Tablet Overrides (Centered Card) via Container Query */
+        @container cart-popup (min-width: 480px) {
           .cart-ab-popup-container {
             position: relative;
             bottom: auto;
@@ -410,6 +414,15 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
             animation: fadeIn 0.3s ease-out forwards;
             margin: 0 auto;
+          }
+          
+          /* Ensure buttons have normal padding on desktop */
+          .cart-ab-primary-button {
+            padding: 1rem;
+          }
+          
+          .cart-ab-email-row {
+            flex-direction: row;
           }
 
           @keyframes fadeIn {
@@ -708,8 +721,8 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
           text-decoration: underline;
         }
 
-        /* Mobile specific adjustments */
-        @media (max-width: 767px) {
+        /* Mobile specific adjustments via Container Query */
+        @container cart-popup (max-width: 480px) {
           .cart-ab-email-row {
             flex-direction: column;
           }

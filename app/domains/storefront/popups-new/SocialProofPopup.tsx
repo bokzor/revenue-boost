@@ -260,6 +260,7 @@ export const SocialProofPopup: React.FC<SocialProofPopupProps> = ({
     borderRadius: `${config.borderRadius ?? 8}px`,
     padding: '16px',
     boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+    width: 'calc(100% - 40px)', // Ensure it fits on mobile
     maxWidth: '350px',
     display: 'flex',
     gap: '12px',
@@ -267,6 +268,8 @@ export const SocialProofPopup: React.FC<SocialProofPopupProps> = ({
     opacity: isAnimating ? 0 : 1,
     transform: isAnimating ? 'translateY(10px)' : 'translateY(0)',
     transition: prefersReducedMotion() ? 'none' : 'opacity 0.3s, transform 0.3s',
+    containerType: 'inline-size',
+    containerName: 'social-proof',
   };
 
   const closeButtonStyles: React.CSSProperties = {

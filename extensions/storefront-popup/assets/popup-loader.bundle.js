@@ -1537,6 +1537,63 @@
       }
     };
     const [upsellProducts, setUpsellProducts] = d2(null);
+    const handleAddToCart = async (productIds) => {
+      try {
+        console.log("[PopupManager] Adding products to cart:", productIds);
+        if (!productIds || productIds.length === 0) return;
+        const itemsToAdd = [];
+        for (const pid of productIds) {
+          const product = upsellProducts?.find((p3) => p3.id === pid);
+          if (product && product.variantId) {
+            const variantId = product.variantId.split("/").pop() || product.variantId;
+            itemsToAdd.push({ id: variantId, quantity: 1 });
+          } else {
+            const variantId = pid.split("/").pop() || pid;
+            itemsToAdd.push({ id: variantId, quantity: 1 });
+          }
+        }
+        if (itemsToAdd.length === 0) {
+          console.warn("[PopupManager] No valid items to add");
+          return;
+        }
+        const root = getShopifyRoot();
+        const cartResponse = await fetch(`${root}cart/add.js`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            items: itemsToAdd
+          })
+        });
+        if (!cartResponse.ok) {
+          console.error("[PopupManager] Failed to add to cart:", await cartResponse.text());
+          throw new Error("Failed to add items to cart");
+        }
+        console.log("[PopupManager] Items added to cart successfully");
+        if (campaign.discountConfig?.enabled) {
+          await handleIssueDiscount();
+        }
+        document.dispatchEvent(new CustomEvent("cart:updated"));
+        document.dispatchEvent(new CustomEvent("cart.requestUpdate"));
+        try {
+          const cartRes = await fetch(`${root}cart.js`);
+          if (cartRes.ok) {
+            const cart = await cartRes.json();
+            document.dispatchEvent(new CustomEvent("cart:refresh", { detail: cart }));
+            const cartCount = document.querySelector(".cart-count, [data-cart-count], .cart__count");
+            if (cartCount && cart.item_count !== void 0) {
+              cartCount.textContent = String(cart.item_count);
+            }
+          }
+        } catch (e3) {
+          console.error("Error fetching cart after update", e3);
+        }
+      } catch (error2) {
+        console.error("[PopupManager] Error adding to cart:", error2);
+        throw error2;
+      }
+    };
     y2(() => {
       if (campaign.templateType !== "PRODUCT_UPSELL") {
         return;
@@ -1631,7 +1688,8 @@
       // Pass cart data for Cart Abandonment
       cartItems: cartData?.items,
       cartTotal: cartData?.total,
-      onTrack: trackClick
+      onTrack: trackClick,
+      onAddToCart: handleAddToCart
     });
   }
   function renderPopup(campaign, onClose, loader, api, onShow) {
@@ -2943,6 +3001,35 @@
       return { isProductPage, productId };
     }
     /**
+     * Get current collection context (numeric Shopify collection ID as string
+     * when available).
+     *
+     * Sources (in order):
+     * - window.REVENUE_BOOST_CONFIG.collectionId (set by popup-init.liquid on
+     *   collection templates)
+     * - ShopifyAnalytics.meta.collection.id (when themes expose it)
+     */
+    getCollectionIdFromContext() {
+      if (typeof window === "undefined") {
+        return null;
+      }
+      const w3 = window;
+      let raw = w3.REVENUE_BOOST_CONFIG?.collectionId;
+      if (raw == null && w3.ShopifyAnalytics?.meta?.collection?.id != null) {
+        raw = w3.ShopifyAnalytics.meta.collection.id;
+      }
+      if (raw == null) {
+        return null;
+      }
+      const idStr = String(raw).trim();
+      if (!idStr) return null;
+      if (idStr.startsWith("gid://")) {
+        const parts = idStr.split("/");
+        return parts[parts.length - 1] || null;
+      }
+      return idStr;
+    }
+    /**
      * Normalize various product ID formats to a Shopify Product GID
      */
     normalizeProductId(raw) {
@@ -2980,7 +3067,19 @@
     }
     /**
      * Check add_to_cart trigger
-     * Waits for a Shopify cart add event before firing.
+     *
+     * Behaviour:
+     * - Listens for unified cart add events emitted by CartEventListener
+     *   (backed by `cart:add`, `cart:item-added`, CartJS, etc.).
+     * - If `productIds` are configured, only resolves when the added product
+     *   matches one of those Shopify Product GIDs.
+     * - If `collectionIds` are configured, only resolves when the add-to-cart
+     *   happens while the shopper is viewing a matching collection page
+     *   (collection context is derived from REVENUE_BOOST_CONFIG or, as a
+     *   fallback, ShopifyAnalytics meta).
+     * - When both productIds and collectionIds are configured, they are
+     *   combined with OR semantics: the trigger will pass if either filter
+     *   matches for a given add-to-cart event.
      */
     async checkAddToCart(trigger) {
       if (!trigger.enabled) {
@@ -2989,6 +3088,13 @@
       }
       const delaySeconds = trigger.delay ?? 0;
       const immediate = trigger.immediate ?? false;
+      const configuredProductIds = Array.isArray(trigger.productIds) ? trigger.productIds.filter((id) => typeof id === "string" && id.trim() !== "") : [];
+      const configuredCollectionNumericIds = Array.isArray(trigger.collectionIds) ? trigger.collectionIds.filter((id) => typeof id === "string" && id.trim() !== "").map((gid) => {
+        const parts = gid.split("/");
+        return parts[parts.length - 1] || "";
+      }).filter((id) => id !== "") : [];
+      const hasProductFilter = configuredProductIds.length > 0;
+      const hasCollectionFilter = configuredCollectionNumericIds.length > 0;
       console.log(
         `[Revenue Boost] \u{1F6D2} add_to_cart trigger listening for add-to-cart events (delay=${delaySeconds}s, immediate=${immediate})`
       );
@@ -2996,7 +3102,73 @@
         this.cartEventListener = new CartEventListener({
           events: ["add_to_cart"]
         });
-        this.cartEventListener.start(() => {
+        this.cartEventListener.start((event) => {
+          const detail = event?.detail;
+          let passesProductFilter = !hasProductFilter;
+          let eventProductId = null;
+          if (hasProductFilter) {
+            if (detail && typeof detail === "object" && "productId" in detail) {
+              eventProductId = this.normalizeProductId(
+                detail.productId
+              );
+            }
+            if (!eventProductId && detail && typeof detail === "object") {
+              const d3 = detail;
+              const item = d3.item;
+              if (item) {
+                const rawProductId = item.product_id ?? item.productId ?? null;
+                eventProductId = this.normalizeProductId(rawProductId);
+              }
+            }
+            if (!eventProductId) {
+              console.log(
+                "[Revenue Boost] \u274C add_to_cart trigger: productIds configured but event productId is unknown; ignoring event"
+              );
+              passesProductFilter = false;
+            } else if (!configuredProductIds.includes(eventProductId)) {
+              console.log(
+                "[Revenue Boost] \u274C add_to_cart trigger: event productId not in configured productIds; ignoring event",
+                { eventProductId, configuredProductIds }
+              );
+              passesProductFilter = false;
+            } else {
+              console.log(
+                "[Revenue Boost] \u2705 add_to_cart trigger: matched configured productId",
+                { eventProductId }
+              );
+              passesProductFilter = true;
+            }
+          }
+          let passesCollectionFilter = !hasCollectionFilter;
+          if (hasCollectionFilter) {
+            const ctxCollectionId = this.getCollectionIdFromContext();
+            if (!ctxCollectionId) {
+              console.log(
+                "[Revenue Boost] \u274C add_to_cart trigger: collectionIds configured but no collection context available; ignoring event for collection filter"
+              );
+              passesCollectionFilter = false;
+            } else {
+              const collectionMatch = configuredCollectionNumericIds.includes(
+                ctxCollectionId
+              );
+              if (!collectionMatch) {
+                console.log(
+                  "[Revenue Boost] \u274C add_to_cart trigger: current collection does not match configured collectionIds; ignoring event for collection filter",
+                  { ctxCollectionId, configuredCollectionNumericIds }
+                );
+                passesCollectionFilter = false;
+              } else {
+                console.log(
+                  "[Revenue Boost] \u2705 add_to_cart trigger: matched configured collectionId",
+                  { ctxCollectionId }
+                );
+                passesCollectionFilter = true;
+              }
+            }
+          }
+          if (!passesProductFilter && !passesCollectionFilter) {
+            return;
+          }
           if (!immediate && delaySeconds > 0) {
             const delayMs = delaySeconds * 1e3;
             console.log(

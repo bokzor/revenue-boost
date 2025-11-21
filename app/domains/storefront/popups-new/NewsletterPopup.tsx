@@ -17,6 +17,7 @@ import type { PopupDesignConfig, DiscountConfig, ImagePosition } from './types';
 import type { NewsletterContent } from '~/domains/campaigns/types/campaign';
 
 import { PopupPortal } from './PopupPortal';
+import { PopupGridContainer } from './PopupGridContainer';
 import { getSizeDimensions } from './utils';
 import { challengeTokenStore } from '~/domains/storefront/services/challenge-token.client';
 
@@ -236,90 +237,24 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
       isVisible={isVisible}
       onClose={onClose}
       backdrop={{
-        color: config.overlayColor || 'rgba(0, 0, 0, 1)',
-        opacity: config.overlayOpacity ?? 0.6,
+        color: config.overlayColor || 'rgba(0, 0, 0, 0.5)',
+        opacity: config.overlayOpacity ?? 0.5,
         blur: 4,
       }}
       animation={{
         type: config.animation || 'fade',
+        duration: 300,
       }}
-      position={config.position || 'center'}
+      position="center"
+      size={config.size || 'medium'}
       closeOnEscape={config.closeOnEscape !== false}
       closeOnBackdropClick={config.closeOnOverlayClick !== false}
       previewMode={config.previewMode}
-      ariaLabel={config.ariaLabel || title}
-      ariaDescribedBy={config.ariaDescribedBy}
+      ariaLabel={config.headline || 'Newsletter Signup'}
     >
-      <style>{`
-
-        .email-popup-container {
-          position: relative;
-          width: ${sizeDimensions.width};
-          max-width: ${sizeDimensions.maxWidth};
-          border-radius: ${typeof config.borderRadius === 'number' ? config.borderRadius : parseFloat(config.borderRadius || '12')}px;
-          overflow: hidden;
-          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-          animation: zoomIn 0.2s ease-out;
-          ${isGlass ? 'backdrop-filter: blur(12px);' : ''}
-          /* Enable container queries */
-          container-type: inline-size;
-          container-name: popup;
-          /* Apply font family to entire popup */
-          font-family: ${config.fontFamily || 'inherit'};
-        }
-
-        .email-popup-close {
-          position: absolute;
-          top: 1rem;
-          right: 1rem;
-          z-index: 10;
-          padding: 0.5rem;
-          border-radius: 9999px;
-          background: rgba(0, 0, 0, 0.1);
-          border: none;
-          cursor: pointer;
-          transition: background 0.2s, color 0.2s;
-          color: ${config.descriptionColor || '#52525b'};
-        }
-
-        .email-popup-close:hover {
-          background: rgba(0, 0, 0, 0.2);
-          color: ${config.descriptionColor || '#52525b'};
-        }
-
-        .email-popup-content {
-          display: flex;
-        }
-
-        .email-popup-content.horizontal {
-          flex-direction: column;
-        }
-
-        .email-popup-content.horizontal.reverse {
-          flex-direction: column-reverse;
-        }
-
-        /* Base: Mobile-first (vertical stacking)
-           For left/right image positions we keep stacking order the same
-           (image on top) and only change orientation on larger containers. */
-        .email-popup-content.vertical {
-          flex-direction: column;
-        }
-
-        .email-popup-content.vertical.reverse {
-          flex-direction: column;
-        }
-
-        .email-popup-content.single-column {
-          flex-direction: column;
-        }
-
-        .email-popup-content.single-column .email-popup-form-section {
-          max-width: 32rem;
-          margin: 0 auto;
-        }
-
-        /* Mobile-first: Image sizing */
+      <style>
+        {`
+        /* Image Cell */
         .email-popup-image {
           position: relative;
           overflow: hidden;
@@ -328,22 +263,26 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
           justify-content: center;
           background: ${config.imageBgColor || config.inputBackgroundColor || '#f4f4f5'};
           min-height: 200px;
-          max-height: 300px;
+          width: 100%;
+          height: 100%;
         }
 
         .email-popup-image img {
           width: 100%;
           height: 100%;
           object-fit: cover;
+          position: absolute;
+          inset: 0;
         }
 
-        /* Mobile-first: Form section */
+        /* Form Cell */
         .email-popup-form-section {
           padding: 2rem 1.5rem;
           display: flex;
           flex-direction: column;
           justify-content: center;
           background: ${hasGradientBg ? config.backgroundColor : 'transparent'};
+          width: 100%;
         }
 
         .email-popup-title {
@@ -366,7 +305,7 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
         .email-popup-form {
           display: flex;
           flex-direction: column;
-          gap: 1rem;
+          gap: 1.25rem; /* Increased gap for better spacing */
         }
 
         .email-popup-input-wrapper {
@@ -419,14 +358,16 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
         .email-popup-checkbox-wrapper {
           display: flex;
           align-items: flex-start;
-          gap: 0.5rem;
+          gap: 0.75rem;
+          margin-top: 0.25rem;
         }
 
         .email-popup-checkbox {
           margin-top: 0.25rem;
-          width: 1rem;
-          height: 1rem;
+          width: 1.125rem;
+          height: 1.125rem;
           cursor: pointer;
+          flex-shrink: 0;
         }
 
         .email-popup-checkbox-label {
@@ -450,6 +391,7 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
           align-items: center;
           justify-content: center;
           gap: 0.5rem;
+          margin-top: 0.5rem;
         }
 
         .email-popup-button:hover:not(:disabled) {
@@ -587,188 +529,183 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
           to { transform: rotate(360deg); }
         }
 
-        /* Container Query: Desktop layout (≥480px container width)
-           Note: container width is capped at ~600px for medium size, so
-           we use a 480px breakpoint to ensure side-by-side layout activates. */
-        @container popup (min-width: 480px) {
-          .email-popup-content.vertical {
-            flex-direction: row;
-          }
-
-          .email-popup-content.vertical.reverse {
-            flex-direction: row-reverse;
-          }
-
-          .email-popup-image {
-            flex: 1;
-            min-height: 500px;
-            max-height: none;
-          }
-
+        /* Desktop Layout (Side-by-Side) - Specific overrides if needed */
+        @container popup (min-width: 600px) {
           .email-popup-form-section {
-            flex: 1;
             padding: 3rem;
           }
         }
 
-        /* Container Query: Mobile layout (≤640px container width)
-           Use full width of the viewport container for a better mobile experience. */
-        @container viewport (max-width: 640px) {
-          .email-popup-container {
-            width: 100%;
-            max-width: none;
-          }
-        }
-
         @media (prefers-reduced-motion: reduce) {
-          .email-popup-container,
           .email-popup-success,
-          .email-popup-success-icon {
-            animation: none;
+          .email-popup-success-icon,
+          .email-popup-spinner {
+            animation: none !important;
+            transition: none !important;
           }
         }
+        `}
+      </style>
 
-
-      `}</style>
-
-      <div className="email-popup-container" style={{ background: hasGradientBg ? 'transparent' : config.backgroundColor || '#ffffff' }}>
-
-        {config.showCloseButton !== false && (
-          <button
-            className="email-popup-close"
-            onClick={onClose}
-            aria-label="Close popup"
-          >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M18 6L6 18M6 6l12 12" />
-            </svg>
-          </button>
+      <PopupGridContainer
+        config={config}
+        onClose={onClose}
+        imagePosition={imagePosition === 'right' ? 'right' : 'left'}
+        singleColumn={!imageUrl || imagePosition === 'none'}
+      >
+        {/* Image Section */}
+        {imageUrl && (
+          <div className="email-popup-image">
+            <img src={imageUrl} alt={config.headline || 'Newsletter'} />
+          </div>
         )}
 
-        <div
-          className={`email-popup-content ${contentClass}`}
-        >
-          {showImage && imageUrl && (
-            <div className="email-popup-image">
-              <img src={imageUrl} alt="" />
+        {/* Form Section */}
+        <div className="email-popup-form-section">
+          {isSubmitted ? (
+            <div className="email-popup-success">
+              <div className="email-popup-success-icon">
+                <svg
+                  width="32"
+                  height="32"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              </div>
+              <h3 className="email-popup-success-message">
+                {config.successMessage || 'Thanks for subscribing!'}
+              </h3>
+              {(generatedDiscountCode || discountCode) && (
+                <div className="email-popup-discount">
+                  <div className="email-popup-discount-label">
+                    Your discount code:
+                  </div>
+                  <div className="email-popup-discount-code">
+                    {generatedDiscountCode || discountCode}
+                  </div>
+                </div>
+              )}
             </div>
-          )}
+          ) : (
+            <>
+              {config.headline && (
+                <h2 className="email-popup-title">{config.headline}</h2>
+              )}
+              {config.subheadline && (
+                <p className="email-popup-description">{config.subheadline}</p>
+              )}
 
-          <div className="email-popup-form-section">
-            {!isSubmitted ? (
-              <>
-                <h2 id="popup-title" className="email-popup-title">{title}</h2>
-                <p className="email-popup-description">{description}</p>
-
-                <form className="email-popup-form" onSubmit={handleSubmit}>
-                  {collectName && (
-                    <div className="email-popup-input-wrapper">
-                      <label htmlFor="name-input" className="email-popup-label">
-                        Name
-                      </label>
-                      <input
-                        id="name-input"
-                        type="text"
-                        className={`email-popup-input ${errors.name ? 'error' : ''}`}
-                        placeholder={config.nameFieldPlaceholder || "Your name"}
-                        value={name}
-                        onChange={(e) => {
-                          setName(e.target.value);
-                          if (errors.name) setErrors({ ...errors, name: undefined });
-                        }}
-                        disabled={isSubmitting}
-                        required={config.nameFieldRequired}
-                      />
-                      {errors.name && <div className="email-popup-error">{errors.name}</div>}
-                    </div>
-                  )}
-
+              <form className="email-popup-form" onSubmit={handleSubmit}>
+                {collectName && (
                   <div className="email-popup-input-wrapper">
-                    <label htmlFor="email-input" className="email-popup-label">
-                      {config.emailLabel || "Email"}
+                    <label htmlFor="name-input" className="email-popup-label">
+                      {config.firstNameLabel || 'Name'}
                     </label>
                     <input
-                      id="email-input"
-                      type="email"
-                      className={`email-popup-input ${errors.email ? 'error' : ''}`}
-                      placeholder={config.emailPlaceholder || "Enter your email"}
-                      value={email}
+                      id="name-input"
+                      type="text"
+                      className={`email-popup-input ${errors.name ? 'error' : ''}`}
+                      placeholder={config.nameFieldPlaceholder || 'Your name'}
+                      value={name}
                       onChange={(e) => {
-                        setEmail(e.target.value);
-                        if (errors.email) setErrors({ ...errors, email: undefined });
+                        setName(e.target.value);
+                        if (errors.name) setErrors({ ...errors, name: undefined });
                       }}
                       disabled={isSubmitting}
-                      required={config.emailRequired !== false}
+                      required={config.nameFieldRequired}
                     />
-                    {errors.email && <div className="email-popup-error">{errors.email}</div>}
-                  </div>
-
-                  {showGdprCheckbox && (
-                    <div className="email-popup-checkbox-wrapper">
-                      <input
-                        type="checkbox"
-                        id="gdpr-consent"
-                        className="email-popup-checkbox"
-                        checked={gdprConsent}
-                        onChange={(e) => {
-                          setGdprConsent(e.target.checked);
-                          if (errors.gdpr) setErrors({ ...errors, gdpr: undefined });
-                        }}
-                        disabled={isSubmitting}
-                        required={config.consentFieldRequired}
-                      />
-                      <label htmlFor="gdpr-consent" className="email-popup-checkbox-label">
-                        {gdprLabel}
-                      </label>
-                    </div>
-                  )}
-                  {errors.gdpr && <div className="email-popup-error">{errors.gdpr}</div>}
-
-                  <button
-                    type="submit"
-                    className="email-popup-button"
-                    disabled={isSubmitting}
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <div className="email-popup-spinner" />
-                        Subscribing...
-                      </>
-                    ) : (
-                      buttonText
+                    {errors.name && (
+                      <div className="email-popup-error">{errors.name}</div>
                     )}
-                  </button>
+                  </div>
+                )}
 
+                <div className="email-popup-input-wrapper">
+                  {config.emailLabel && (
+                    <label htmlFor="email-input" className="email-popup-label">
+                      {config.emailLabel}
+                    </label>
+                  )}
+                  <input
+                    id="email-input"
+                    type="email"
+                    className={`email-popup-input ${errors.email ? 'error' : ''}`}
+                    placeholder={config.emailPlaceholder || 'Enter your email'}
+                    value={email}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      if (errors.email) setErrors({ ...errors, email: undefined });
+                    }}
+                    disabled={isSubmitting}
+                    required={config.emailRequired !== false}
+                  />
+                  {errors.email && (
+                    <div className="email-popup-error">{errors.email}</div>
+                  )}
+                </div>
+
+                {showGdprCheckbox && (
+                  <div className="email-popup-checkbox-wrapper">
+                    <input
+                      type="checkbox"
+                      id="gdpr-consent"
+                      className="email-popup-checkbox"
+                      checked={gdprConsent}
+                      onChange={(e) => {
+                        setGdprConsent(e.target.checked);
+                        if (errors.gdpr) setErrors({ ...errors, gdpr: undefined });
+                      }}
+                      disabled={isSubmitting}
+                      required={config.consentFieldRequired}
+                    />
+                    <label
+                      htmlFor="gdpr-consent"
+                      className="email-popup-checkbox-label"
+                    >
+                      {gdprLabel}
+                    </label>
+                  </div>
+                )}
+                {errors.gdpr && (
+                  <div className="email-popup-error">{errors.gdpr}</div>
+                )}
+
+                <button
+                  type="submit"
+                  className="email-popup-button"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <div className="email-popup-spinner" />
+                      Subscribing...
+                    </>
+                  ) : (
+                    buttonText
+                  )}
+                </button>
+
+                {config.dismissLabel && (
                   <button
                     type="button"
                     className="email-popup-secondary-button"
                     onClick={onClose}
                     disabled={isSubmitting}
                   >
-                    {config.dismissLabel || 'No thanks'}
+                    {config.dismissLabel}
                   </button>
-                </form>
-              </>
-            ) : (
-              <div className="email-popup-success">
-                <div className="email-popup-success-icon">
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" strokeWidth="3">
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
-                </div>
-                <h3 className="email-popup-success-message">{successMessage}</h3>
-                {(generatedDiscountCode || discountCode) && (
-                  <div className="email-popup-discount">
-                    <p className="email-popup-discount-label">Your discount code:</p>
-                    <p className="email-popup-discount-code">{generatedDiscountCode || discountCode}</p>
-                  </div>
                 )}
-              </div>
-            )}
-          </div>
+              </form>
+            </>
+          )}
         </div>
-      </div>
+      </PopupGridContainer>
     </PopupPortal>
   );
 };
-

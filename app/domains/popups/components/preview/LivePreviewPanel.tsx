@@ -2,10 +2,17 @@
  * LivePreviewPanel Component
  *
  * Displays a live preview of the campaign popup as the user configures it.
- * Features device toggle (mobile/desktop) and real-time updates.
+ * Features device toggle (mobile/tablet/desktop) and real-time updates.
+ *
+ * Key Architecture:
+ * - Uses a "Virtual Viewport" approach: The preview renders at a fixed logical size
+ *   (e.g., 375px for mobile, 1024px for desktop) regardless of the physical panel size.
+ * - Uses CSS Transforms to scale this virtual viewport down to fit the available space.
+ * - This ensures that layout breakpoints (media queries or container queries) trigger
+ *   correctly based on the *simulated* device size, not the *actual* panel width.
  */
 
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   Card,
   BlockStack,
@@ -36,227 +43,172 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
   shopDomain,
   campaignId,
 }) => {
-  const [device, setDevice] = useState<"mobile" | "tablet" | "desktop">(
-    "desktop",
-  );
+  const [device, setDevice] = useState<"mobile" | "tablet" | "desktop">("desktop");
   const [zoom, setZoom] = useState(100);
+
+  // ✅ KEY: Virtual viewport sizes - independent of physical container
+  // These dimensions trigger the correct layout modes in the popups
+  const virtualViewports = {
+    mobile: { width: 375, height: 667 },
+    tablet: { width: 768, height: 800 },
+    desktop: { width: 1024, height: 600 },
+  };
+
+  const viewport = virtualViewports[device];
+  const previewRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState<number | null>(null);
+
+  // Measure physical container width to determine available space
+  useEffect(() => {
+    const measureContainer = () => {
+      if (previewRef.current) {
+        setContainerWidth(previewRef.current.clientWidth);
+      }
+    };
+
+    measureContainer();
+    const observer = new ResizeObserver(measureContainer);
+    if (previewRef.current) observer.observe(previewRef.current);
+
+    return () => observer.disconnect();
+  }, []);
+
+  // ✅ KEY: Calculate scale to fit virtual viewport into physical container
+  const calculateScale = () => {
+    if (!containerWidth) return 1;
+
+    const padding = 40; // preview padding
+    const availableWidth = containerWidth - padding;
+
+    // Scale virtual viewport to fit available space
+    // We only scale down, never up (unless zoomed)
+    const fitScale = Math.min(1, availableWidth / viewport.width);
+
+    // Apply zoom on top
+    const totalScale = fitScale * (zoom / 100);
+
+    // Min 50% scale for readability, max 150% for zoom
+    return Math.max(0.2, totalScale);
+  };
+
+  const scale = calculateScale();
 
   const handlePreviewOnStore = () => {
     if (shopDomain && campaignId) {
-      // Open store with preview parameter - campaign must be saved (any status is fine)
       const storeUrl = `https://${shopDomain}?split_pop_preview=${campaignId}`;
       window.open(storeUrl, "_blank");
     }
   };
 
-  // Calculate scale factors for realistic device preview
-  // Goal: Make devices fit in container while showing relative sizes
-  const getDeviceScale = () => {
-    if (device === "desktop") {
-      // Desktop should fill the container at 100% zoom
-      return zoom / 100;
-    }
-
-    if (device === "mobile") {
-      // Mobile: 375px device width + 24px borders = 399px
-      // Height: 667px + 24px borders = 691px
-      // At ~85% scale, mobile looks realistic and readable
-      return 0.85 * (zoom / 100);
-    }
-
-    if (device === "tablet") {
-      // Tablet: 768px device width + 24px borders = 792px
-      // Height: 800px + 24px borders = 824px
-      // Container height: 850px, padding: 40px (20px top + 20px bottom)
-      // Available space: 810px
-      // At 100% zoom: 824px needs to fit in 810px → scale = 810/824 ≈ 0.98
-      // Use 0.95 for some margin
-      const containerHeight = 850 - 40; // 810px available
-      const tabletHeight = 824; // Total height with borders
-      const maxScale = Math.min(0.98, containerHeight / tabletHeight);
-      return maxScale * (zoom / 100);
-    }
-
-    return zoom / 100;
-  };
-
-  // Show placeholder if no template is selected
   if (!templateType) {
     return (
-      <div>
-        <Card>
-          <BlockStack gap="400">
-            {/* Header */}
-            <div>
-              <Text as="h3" variant="headingMd">
-                Live Preview
-              </Text>
-              <Text as="p" variant="bodySm" tone="subdued">
-                See how your campaign will look
-              </Text>
-            </div>
-
-            {/* Placeholder */}
-            <div
-              style={{
-                backgroundColor: "#F6F6F7",
-                borderRadius: "8px",
-                minHeight: "500px",
-                height: "700px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                textAlign: "center",
-                padding: "40px",
-              }}
-            >
-              <div>
-                <div style={{ fontSize: "64px", marginBottom: "16px" }}>📋</div>
-                <Text as="h3" variant="headingMd">
-                  No Template Selected
-                </Text>
-                <Text as="p" variant="bodySm" tone="subdued">
-                  Select a template from the Design step to see a live preview
-                </Text>
-              </div>
-            </div>
-          </BlockStack>
-        </Card>
-      </div>
+      <Card>
+        <BlockStack gap="400">
+          <Text as="h3" variant="headingMd">Live Preview</Text>
+          <div style={{
+            minHeight: "500px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "#f6f6f7",
+            borderRadius: "8px"
+          }}>
+            <BlockStack inlineAlign="center" gap="200">
+              <div style={{ fontSize: "48px" }}>📋</div>
+              <Text as="p" variant="bodyMd" tone="subdued">Select a template to preview</Text>
+            </BlockStack>
+          </div>
+        </BlockStack>
+      </Card>
     );
   }
 
   return (
-    <div>
-      <Card>
-        <BlockStack gap="400">
-          {/* Header */}
+    <Card>
+      <BlockStack gap="400">
+        {/* Header & Controls */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px" }}>
+          <div>
+            <Text as="h3" variant="headingMd">Live Preview</Text>
+            <Text as="p" variant="bodySm" tone="subdued">See how your campaign will look</Text>
+          </div>
+
+          <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+            {shopDomain && campaignId && (
+              <Button icon={ViewIcon} onClick={handlePreviewOnStore} size="slim">
+                Preview on Store
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Device & Zoom Controls */}
+        <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between" }}>
+          <ButtonGroup variant="segmented">
+            <Button pressed={device === "mobile"} onClick={() => setDevice("mobile")} size="slim">
+              📱 Mobile
+            </Button>
+            <Button pressed={device === "tablet"} onClick={() => setDevice("tablet")} size="slim">
+              📱 Tablet
+            </Button>
+            <Button pressed={device === "desktop"} onClick={() => setDevice("desktop")} size="slim">
+              💻 Desktop
+            </Button>
+          </ButtonGroup>
+
+          <InlineStack align="end" blockAlign="center" gap="200">
+            <Text as="span" variant="bodySm" tone="subdued">Zoom</Text>
+            <div style={{ width: "150px" }}>
+              <RangeSlider
+                label=""
+                value={zoom}
+                onChange={(value) => setZoom(Array.isArray(value) ? value[0] : value)}
+                min={50}
+                max={150}
+                output
+                suffix={<Text as="span" variant="bodySm">{zoom}%</Text>}
+              />
+            </div>
+          </InlineStack>
+        </div>
+
+        {/* ✅ KEY: Preview Container with scaling */}
+        <div
+          ref={previewRef}
+          style={{
+            background: device === "desktop" ? "#f6f6f7" : "#e4e5e7", // Darker bg for mobile/tablet to show contrast
+            borderRadius: "8px",
+            padding: "20px",
+            minHeight: "600px",
+            height: "650px", // Fixed height for consistency
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            overflow: "hidden", // Hide overflow from scaling
+            position: "relative",
+          }}
+        >
+          {/* ✅ KEY: Scale wrapper - scales virtual viewport to fit physical space */}
           <div
             style={{
+              transform: `scale(${scale})`,
+              transformOrigin: "center center",
+              transition: "transform 0.2s ease-out",
+              // Ensure the scaled element takes up space correctly
+              width: viewport.width,
+              height: viewport.height,
               display: "flex",
               alignItems: "center",
-              justifyContent: "space-between",
-              flexWrap: "wrap",
-              gap: "12px",
+              justifyContent: "center",
             }}
           >
-            <div>
-              <Text as="h3" variant="headingMd">
-                Live Preview
-              </Text>
-              <Text as="p" variant="bodySm" tone="subdued">
-                See how your campaign will look
-              </Text>
-            </div>
-
+            {/* ✅ KEY: Virtual viewport container - sized by device mode */}
             <div
               style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "12px",
-                flexWrap: "wrap",
-              }}
-            >
-              {/* Preview on Store Button */}
-              {shopDomain && campaignId && (
-                <Button
-                  icon={ViewIcon}
-                  onClick={handlePreviewOnStore}
-                  size="slim"
-                >
-                  Preview on Store
-                </Button>
-              )}
-
-              {/* Device Toggle */}
-              <ButtonGroup variant="segmented">
-                <Button
-                  pressed={device === "mobile"}
-                  onClick={() => setDevice("mobile")}
-                  size="slim"
-                >
-                  📱 Mobile
-                </Button>
-                <Button
-                  pressed={device === "tablet"}
-                  onClick={() => setDevice("tablet")}
-                  size="slim"
-                >
-                  📱 Tablet
-                </Button>
-                <Button
-                  pressed={device === "desktop"}
-                  onClick={() => setDevice("desktop")}
-                  size="slim"
-                >
-                  💻 Desktop
-                </Button>
-              </ButtonGroup>
-            </div>
-          </div>
-
-          {/* Zoom Control */}
-          <div style={{ paddingTop: "8px" }}>
-            <InlineStack gap="400" align="space-between" blockAlign="center">
-              <Text as="span" variant="bodySm" tone="subdued">
-                Zoom
-              </Text>
-              <div style={{ width: "200px" }}>
-                <RangeSlider
-                  label=""
-                  value={zoom}
-                  onChange={(value) =>
-                    setZoom(Array.isArray(value) ? value[0] : value)
-                  }
-                  min={50}
-                  max={150}
-                  output
-                  suffix={
-                    <Text as="span" variant="bodySm">
-                      {zoom}%
-                    </Text>
-                  }
-                />
-              </div>
-            </InlineStack>
-          </div>
-
-
-
-          {/* Preview Area */}
-          <div
-            style={{
-              background: device === "desktop"
-                ? "#F6F6F7"
-                : "linear-gradient(135deg, #667eea 0%, #764ba2 100%)", // Gradient background for mobile/tablet to simulate desk/environment
-              borderRadius: "8px",
-              padding: device === "desktop"
-                ? (zoom === 100 ? "0" : "20px")
-                : device === "tablet"
-                  ? "20px" // Reduced padding for tablet to fit better
-                  : "30px",
-              minHeight: "500px",
-              height: device === "desktop" ? "700px" : device === "tablet" ? "850px" : "650px",
-              display: "flex",
-              alignItems: "center", // Always center vertically
-              justifyContent: "center", // Always center horizontally
-              overflow: "auto", // Allow scrolling if content overflows
-              position: "relative",
-              // Removed transition to prevent blinking when switching modes
-            }}
-          >
-            <div
-              style={{
-                transform: `scale(${getDeviceScale()})`,
-                transformOrigin: "center center", // Always center for proper scaling
-                transition: "transform 0.2s ease", // Only transition transform, not other properties
-                width: device === "desktop" && zoom === 100 ? "100%" : "auto",
-                maxWidth: device === "desktop" && zoom === 100 ? "100%" : "auto",
-                height: device === "desktop" && zoom === 100 ? "100%" : "auto",
-                filter: device !== "desktop" ? "drop-shadow(0 25px 50px rgba(0, 0, 0, 0.25))" : "none", // Add realistic shadow for devices
-                display: "flex", // Ensure proper centering
-                alignItems: "center",
-                justifyContent: "center",
+                width: viewport.width,
+                height: viewport.height,
+                position: "relative",
+                boxShadow: device !== 'desktop' ? "0 20px 50px -12px rgba(0,0,0,0.25)" : "none",
               }}
             >
               <DeviceFrame device={device}>
@@ -269,15 +221,12 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
               </DeviceFrame>
             </div>
           </div>
+        </div>
 
-          {/* Helper Text */}
-          {templateType && (
-            <Text as="p" variant="bodySm" tone="subdued" alignment="center">
-              Preview updates automatically as you make changes
-            </Text>
-          )}
-        </BlockStack>
-      </Card>
-    </div>
+        <Text as="p" variant="bodyXs" tone="subdued" alignment="center">
+          Preview scaled to {Math.round(scale * 100)}% to fit screen
+        </Text>
+      </BlockStack>
+    </Card>
   );
 };

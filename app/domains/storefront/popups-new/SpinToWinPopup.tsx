@@ -12,6 +12,7 @@
 
 import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { PopupPortal } from './PopupPortal';
+import { PopupGridContainer } from './PopupGridContainer';
 import type { PopupDesignConfig, Prize } from './types';
 import type { SpinToWinContent } from '~/domains/campaigns/types/campaign';
 import { validateEmail, prefersReducedMotion, debounce } from './utils';
@@ -96,12 +97,8 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
       : config.borderRadius ?? 16;
   const animDuration = config.animationDuration ?? 300;
 
-  const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : null;
-  const effectiveWidth = cardWidth ?? viewportWidth;
-
-  const isMobile = effectiveWidth !== null ? effectiveWidth < 640 : false;
-
-  // Responsive wheel sizing based on container dimensions (inspired by spin-to-win2 mockup)
+  // Responsive wheel sizing based on container dimensions
+  // We now rely on the wheelCellRef size which is determined by CSS Grid layout
   const updateWheelSize = useCallback(() => {
     if (typeof window === 'undefined') return;
     const container = wheelCellRef.current;
@@ -110,33 +107,19 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
     const measuredWidth = container.clientWidth;
     const measuredHeight = container.clientHeight;
 
-    console.log('[SpinToWin] updateWheelSize', {
-      containerSize: `${measuredWidth}x${measuredHeight}`,
-      isMobile,
-      container,
-    });
-
     if (!measuredWidth || !measuredHeight) return;
 
-    let newSize: number;
+    // Determine if we are in a stacked (mobile) or side-by-side (desktop) layout
+    // We can infer this from the aspect ratio of the container or by checking the parent grid
+    // But simpler: just fit the wheel into the available cell space
 
-    if (isMobile) {
-      // Mobile: "Left edge aligns with left, Right edge aligns with right"
-      // So size should match the width of the container
-      newSize = measuredWidth;
-    } else {
-      // Desktop: "Top edge aligns with top, Bottom edge aligns with bottom"
-      // So size should match the height of the container
-      newSize = measuredHeight;
-    }
+    const size = Math.min(measuredWidth, measuredHeight);
 
-    console.log('[SpinToWin] Calculated newSize', newSize);
-
-    // Ensure it's not too small
-    newSize = Math.max(250, newSize);
+    // Ensure it's not too small but also fits with some padding
+    const newSize = Math.max(250, size - 40);
 
     setWheelSize(newSize);
-  }, [isMobile]); // Re-run when layout mode changes
+  }, []);
 
   // Debounce the update to avoid excessive re-renders during resize
   const debouncedUpdateWheelSize = useMemo(
@@ -144,63 +127,35 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
     [updateWheelSize]
   );
 
-  // Trigger update when cardWidth changes (which happens on container resize)
-  useEffect(() => {
-    debouncedUpdateWheelSize();
-  }, [cardWidth, debouncedUpdateWheelSize]);
-
+  // Trigger update when cardRef's size changes (which happens on container resize)
   useEffect(() => {
     if (!isVisible || typeof window === 'undefined') return;
-
-    let frameId: number | null = null;
-
-    const runInitialMeasure = () => {
-      frameId = window.requestAnimationFrame(() => {
-        updateWheelSize();
-      });
-    };
-
-    runInitialMeasure();
-    window.addEventListener('resize', debouncedUpdateWheelSize);
-
-    return () => {
-      if (frameId !== null && typeof window.cancelAnimationFrame === 'function') {
-        window.cancelAnimationFrame(frameId);
-      }
-      window.removeEventListener('resize', debouncedUpdateWheelSize);
-    };
-  }, [isVisible, updateWheelSize, debouncedUpdateWheelSize]);
-
-  useEffect(() => {
-    if (!isVisible || typeof window === 'undefined') return;
-
-    const measureCardWidth = () => {
-      if (cardRef.current) {
-        setCardWidth(cardRef.current.clientWidth);
-      }
-    };
-
-    measureCardWidth();
 
     let observer: ResizeObserver | null = null;
 
-    if (typeof ResizeObserver !== 'undefined' && cardRef.current) {
-      observer = new ResizeObserver(() => {
-        measureCardWidth();
-      });
-      observer.observe(cardRef.current as Element);
+    const measureAndSetWheelSize = () => {
+      debouncedUpdateWheelSize();
+    };
+
+    if (typeof ResizeObserver !== 'undefined' && wheelCellRef.current) {
+      observer = new ResizeObserver(measureAndSetWheelSize);
+      observer.observe(wheelCellRef.current as Element);
     } else {
-      window.addEventListener('resize', measureCardWidth);
+      // Fallback for older browsers
+      window.addEventListener('resize', measureAndSetWheelSize);
     }
+
+    // Initial measurement
+    measureAndSetWheelSize();
 
     return () => {
       if (observer) {
         observer.disconnect();
       } else {
-        window.removeEventListener('resize', measureCardWidth);
+        window.removeEventListener('resize', measureAndSetWheelSize);
       }
     };
-  }, [isVisible]);
+  }, [isVisible, debouncedUpdateWheelSize]);
 
   // Wheel border styling (theme-aware via admin config)
   const wheelBorderColor = config.wheelBorderColor || '#FFFFFF';
@@ -579,68 +534,6 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
     opacity: 0.9,
   };
 
-  const gridContainerStyles: React.CSSProperties = {
-    display: 'grid',
-    // Use minmax(0, 1fr) to ensure strictly equal tracks even if content is wide
-    gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, minmax(0, 1fr))',
-    gridTemplateRows: isMobile ? 'repeat(2, minmax(0, 1fr))' : '1fr',
-    width: '100%',
-    height: '100%',
-    minHeight: isMobile ? 'auto' : 450,
-  };
-
-  const wheelCellStyles: React.CSSProperties = {
-    position: 'relative',
-    display: 'flex',
-    // Desktop: Right edge touches middle (justify-end of left cell)
-    // Mobile: Bottom edge touches middle (align-end of top cell)
-    justifyContent: isMobile ? 'center' : 'flex-end',
-    alignItems: isMobile ? 'flex-end' : 'center',
-    overflow: 'visible', // Allow wheel to overflow
-    padding: 0,
-    zIndex: 10,
-  };
-
-  const formCellStyles: React.CSSProperties = {
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: isMobile ? '24px 16px' : '40px',
-    zIndex: 20,
-    backgroundColor: isMobile ? baseBackground : 'transparent', // Ensure form is readable
-  };
-
-  const formInnerStyles: React.CSSProperties = {
-    maxWidth: 448,
-    width: '100%',
-    margin: '0 auto',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 16,
-  };
-
-  const wheelWrapperStyles: React.CSSProperties = {
-    position: 'absolute',
-    width: wheelSize,
-    height: wheelSize,
-    // Mobile: Bottom-center alignment
-    // Desktop: Right-center alignment
-    left: isMobile ? '50%' : 'auto',
-    bottom: isMobile ? 0 : 'auto',
-    right: isMobile ? 'auto' : 0,
-    top: isMobile ? 'auto' : '50%',
-    // Mobile: Rotate 90deg so 3 o'clock (East) becomes 6 o'clock (South)
-    // AND center horizontally (translateX -50%)
-    // Desktop: Center vertically (translateY -50%)
-    transform: isMobile
-      ? 'translateX(-50%) rotate(90deg)'
-      : 'translateY(-50%)',
-    transformOrigin: 'center center',
-    transition: 'transform 0.3s ease',
-    zIndex: 10,
-  };
-
   if (!isVisible) return null;
 
   return (
@@ -683,331 +576,286 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
             color: ${inputTextColor ? `${inputTextColor}80` : 'rgba(107, 114, 128, 0.5)'};
             opacity: 1;
           }
+
+          /* Wheel Cell - Mobile First */
+          .spin-wheel-cell {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            overflow: visible;
+            padding: 0;
+            z-index: 10;
+            min-height: 300px;
+            width: 100%;
+            height: 100%;
+          }
+
+          /* Form Cell - Mobile First */
+          .spin-form-cell {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem 1.5rem;
+            z-index: 20;
+            /* Ensure background is solid on mobile so text is readable over wheel if they overlap */
+            background-color: ${baseBackground}; 
+            width: 100%;
+          }
+          
+          .spin-form-content {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+          }
+
+          /* Wheel Wrapper - Mobile First */
+          .spin-wheel-wrapper {
+            position: absolute;
+            /* Center horizontally */
+            left: 50%;
+            transform: translateX(-50%) rotate(90deg); /* Rotate 90deg for mobile */
+            transform-origin: center center;
+            bottom: 0;
+            z-index: 10;
+            transition: transform 0.3s ease;
+          }
+
+          /* Pointer - Mobile First (Bottom/6 o'clock relative to visual, but 3 o'clock relative to rotated wheel) */
+          .spin-pointer {
+             position: absolute;
+             top: 50%;
+             right: -12px; /* Points to the right side of the wrapper (which is bottom visually due to rotation) */
+             transform: translateY(-50%);
+             width: 0;
+             height: 0;
+             border-top: 16px solid transparent;
+             border-bottom: 16px solid transparent;
+             border-right: 24px solid #FFFFFF;
+             filter: drop-shadow(-2px 0 4px rgba(0,0,0,0.2));
+             z-index: 20;
+          }
+
+
+          /* ✅ Desktop Layout (via Container Query) */
+          @container popup (min-width: 600px) {
+            .spin-wheel-cell {
+              justify-content: flex-end; /* Align to center line */
+              align-items: center;
+              min-height: auto;
+            }
+
+            .spin-form-cell {
+              padding: 3rem;
+              background-color: transparent; /* Transparent on desktop */
+            }
+
+            .spin-wheel-wrapper {
+              left: auto;
+              right: 0; /* Align to right edge of cell (center of popup) */
+              top: 50%;
+              bottom: auto;
+              transform: translateY(-50%); /* No rotation, just vertical center */
+            }
+          }
         `}
       </style>
-      <div
-        style={{
-          opacity: showContent ? 1 : 0,
-          transition: `opacity ${animDuration}ms ease-out`,
-        }}
+
+      <PopupGridContainer
+        config={config}
+        onClose={onClose}
+        imagePosition="left" // Wheel is always left (or top on mobile)
       >
-        <div
-          ref={cardRef}
-          style={{
-            position: 'relative',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'stretch',
-            padding: isMobile ? '24px 16px' : '40px 40px',
-            borderRadius: 0,
-            boxShadow: 'none',
-            width: '100%',
-            maxWidth: '100%',
-            maxHeight: '100vh',
-            margin: '0 auto',
-            overflow: 'hidden',
-            ...backgroundStyles,
-          }}
-        >
-          {/* Close button in top-right corner */}
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label={(config as any).closeLabel || 'Close popup'}
+        {/* Wheel Cell */}
+        <div className="spin-wheel-cell" ref={wheelCellRef}>
+          <div
+            className="spin-wheel-wrapper"
             style={{
-              position: 'absolute',
-              top: isMobile ? 12 : 16,
-              right: isMobile ? 12 : 16,
-              width: 32,
-              height: 32,
-              borderRadius: 9999,
-              border: 'none',
-              backgroundColor: 'rgba(15,23,42,0.08)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              color: config.textColor || '#4B5563',
-              boxShadow: '0 1px 3px rgba(15,23,42,0.15)',
+              width: wheelSize,
+              height: wheelSize,
             }}
           >
-            <span style={{ fontSize: 18, lineHeight: 1 }}>
-              X
-            </span>
-          </button>
-          <div style={gridContainerStyles}>
-            {/* Wheel Cell */}
-            <div style={wheelCellStyles} ref={wheelCellRef}>
-              <div style={wheelWrapperStyles}>
-                {/* Rotating wheel canvas */}
-                <div
-                  ref={wheelContainerRef}
-                  style={{
-                    position: 'relative',
-                    width: '100%',
-                    height: '100%',
-                    filter: hasSpun
-                      ? 'drop-shadow(0 18px 45px rgba(15,23,42,0.55))'
-                      : 'drop-shadow(0 10px 30px rgba(15,23,42,0.35))',
-                  }}
-                >
-                  <canvas
-                    ref={canvasRef}
-                    width={wheelSize}
-                    height={wheelSize}
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      borderRadius: '50%',
-                    }}
-                  />
-                </div>
-
-                {/* Pointer - DOM Element */}
-                {/* Positioned at 3 o'clock (Right) relative to the wheel wrapper */}
-                {/* On mobile, the wrapper is rotated 90deg, so this becomes 6 o'clock (Bottom) */}
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: '50%',
-                    right: -12, // Slightly overlapping or just outside
-                    transform: 'translateY(-50%)',
-                    width: 0,
-                    height: 0,
-                    borderTop: '16px solid transparent',
-                    borderBottom: '16px solid transparent',
-                    borderRight: '24px solid #FFFFFF', // Points Left
-                    filter: 'drop-shadow(-2px 0 4px rgba(0,0,0,0.2))',
-                    zIndex: 20,
-                  }}
-                />
-
-                {/* Center button visual */}
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: '50%',
-                    left: '50%',
-                    transform: 'translate(-50%, -50%)',
-                    width: 80,
-                    height: 80,
-                    borderRadius: '50%',
-                    backgroundColor: accentColor,
-                    border: '4px solid rgba(15,23,42,0.85)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: '#F9FAFB',
-                    fontSize: 12,
-                    fontWeight: 600,
-                    letterSpacing: '0.12em',
-                    textTransform: 'uppercase',
-                    fontFamily:
-                      '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                    boxShadow: '0 4px 12px rgba(15,23,42,0.4)',
-                    pointerEvents: 'none',
-                    zIndex: 15,
-                  }}
-                >
-                  SPIN
-                </div>
-              </div>
+            {/* Rotating wheel canvas */}
+            <div
+              ref={wheelContainerRef}
+              style={{
+                position: 'relative',
+                width: '100%',
+                height: '100%',
+                filter: hasSpun
+                  ? 'drop-shadow(0 18px 45px rgba(15,23,42,0.55))'
+                  : 'drop-shadow(0 10px 30px rgba(15,23,42,0.35))',
+              }}
+            >
+              <canvas
+                ref={canvasRef}
+                width={wheelSize}
+                height={wheelSize}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  borderRadius: '50%',
+                }}
+              />
             </div>
 
-            {/* Form Cell */}
-            <div style={formCellStyles}>
-              <div style={formInnerStyles}>
-                {/* Headline + description (form side, like mockup) */}
-                <div style={{ marginBottom: 24 }}>
-                  <h2
-                    style={{
-                      fontSize: '28px',
-                      fontWeight: 700,
-                      margin: '0 0 8px 0',
-                      lineHeight: 1.3,
-                      color: config.textColor || '#111827',
-                      fontFamily:
-                        '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                    }}
-                  >
-                    {config.headline}
-                  </h2>
-                  {!hasSpun && config.subheadline && (
-                    <p
-                      style={{
-                        fontSize: '16px',
-                        margin: 0,
-                        color: config.textColor || '#6B7280',
-                        lineHeight: 1.5,
-                        fontFamily:
-                          '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                      }}
-                    >
-                      {config.subheadline}
-                    </p>
-                  )}
-                  {hasSpun && resultMessage && (
-                    <div
-                      style={{
-                        marginTop: 12,
-                        padding: '12px 16px',
-                        borderRadius: 9999,
-                        backgroundColor: wonPrize?.generatedCode
-                          ? successColor
-                          : '#374151', // Dark gray for failure message
-                        color: '#FFFFFF', // Always white text for good contrast
-                        fontSize: '14px',
-                        fontWeight: 500,
-                        textAlign: 'center',
-                        fontFamily:
-                          '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                      }}
-                    >
-                      {resultMessage}
-                    </div>
-                  )}
-                </div>
+            {/* Pointer */}
+            <div className="spin-pointer" />
 
-                {/* Email + GDPR + actions */}
-                {/* Optional Name field */}
+            {/* Center button visual */}
+            <div
+              style={{
+                position: 'absolute',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                width: 80,
+                height: 80,
+                borderRadius: '50%',
+                backgroundColor: accentColor,
+                border: '4px solid rgba(15,23,42,0.85)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#F9FAFB',
+                fontSize: 12,
+                fontWeight: 600,
+                letterSpacing: '0.12em',
+                textTransform: 'uppercase',
+                fontFamily:
+                  '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                boxShadow: '0 4px 12px rgba(15,23,42,0.4)',
+                pointerEvents: 'none',
+                zIndex: 15,
+              }}
+            >
+              {isSpinning ? '...' : 'SPIN'}
+            </div>
+          </div>
+        </div>
+
+        {/* Form Cell */}
+        <div className="spin-form-cell">
+          <div className="spin-form-content">
+            {/* Header */}
+            <div style={{ textAlign: 'center', marginBottom: '0.5rem' }}>
+              <h2
+                style={{
+                  fontSize: (config as any).titleFontSize || config.fontSize || '2rem',
+                  fontWeight: (config as any).titleFontWeight || config.fontWeight || 800,
+                  color: config.textColor || '#111827',
+                  marginBottom: '0.75rem',
+                  lineHeight: 1.1,
+                  textShadow: (config as any).titleTextShadow,
+                }}
+              >
+                {wonPrize ? (wonPrize.label.includes('OFF') ? 'YOU WON!' : 'CONGRATS!') : config.headline || 'SPIN TO WIN!'}
+              </h2>
+              <p
+                style={{
+                  fontSize: (config as any).descriptionFontSize || config.fontSize || '1.125rem',
+                  color: descriptionColor,
+                  fontWeight: (config as any).descriptionFontWeight || config.fontWeight || 500,
+                  lineHeight: 1.5,
+                }}
+              >
+                {resultMessage || config.subheadline || 'Try your luck to win exclusive discounts!'}
+              </p>
+            </div>
+
+            {/* Form or Result */}
+            {!hasSpun ? (
+              <>
                 {collectName && (
-                  <div style={{ width: '100%', maxWidth: '400px' }}>
-                    <label
-                      style={{
-                        display: 'block',
-                        marginBottom: '8px',
-                        fontSize: '14px',
-                        fontWeight: 600,
-                        color: config.textColor || '#374151',
-                        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                      }}
-                    >
-                      Name
-                    </label>
+                  <div style={{ width: '100%' }}>
+                    {(config as any).nameFieldLabel && (
+                      <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.5rem', color: config.textColor || '#111827' }}>
+                        {(config as any).nameFieldLabel}
+                      </label>
+                    )}
                     <input
                       type="text"
-                      className="spin-to-win-input"
+                      placeholder={(config as any).nameFieldPlaceholder || 'Your Name'}
                       value={name}
                       onChange={(e) => {
                         setName(e.target.value);
-                        if (nameError) setNameError('');
+                        setNameError('');
                       }}
-                      placeholder={config.nameFieldPlaceholder || "Enter your name"}
                       style={getInputStyles(false, !!nameError)}
-                      disabled={isSpinning || hasSpun}
+                      className="spin-to-win-input"
                     />
                     {nameError && (
-                      <p
-                        style={{
-                          color: '#EF4444',
-                          fontSize: '13px',
-                          margin: '6px 0 0 0',
-                          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                        }}
-                      >
+                      <p style={{ color: '#EF4444', fontSize: '13px', marginTop: '6px' }}>
                         {nameError}
                       </p>
                     )}
                   </div>
                 )}
 
-                {/* Email input - clean design */}
-                {config.emailRequired && (
-                  <div style={{ width: '100%', maxWidth: '400px' }}>
-                    {config.emailLabel && (
-                      <label style={{
-                        display: 'block',
-                        marginBottom: '8px',
-                        fontSize: '14px',
-                        fontWeight: 600,
-                        color: config.textColor || '#374151',
-                        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                      }}>
-                        {config.emailLabel}
-                      </label>
-                    )}
-                    <input
-                      type="email"
-                      className="spin-to-win-input"
-                      value={email}
-                      onChange={(e) => {
-                        setEmail(e.target.value);
-                        if (emailError) setEmailError('');
-                      }}
-                      onFocus={() => setEmailFocused(true)}
-                      onBlur={() => setEmailFocused(false)}
-                      placeholder={config.emailPlaceholder || 'your@email.com'}
-                      style={getInputStyles(emailFocused, !!emailError)}
-                      disabled={isSpinning || hasSpun}
-                    />
-                    {emailError && (
-                      <p style={{
-                        color: '#EF4444',
-                        fontSize: '13px',
-                        margin: '6px 0 0 0',
-                        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                      }}>
-                        {emailError}
-                      </p>
-                    )}
-                  </div>
-                )}
+                <div style={{ width: '100%' }}>
+                  {config.emailLabel && (
+                    <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.5rem', color: config.textColor || '#111827' }}>
+                      {config.emailLabel}
+                    </label>
+                  )}
+                  <input
+                    type="email"
+                    placeholder={config.emailPlaceholder || 'Enter your email'}
+                    value={email}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      setEmailError('');
+                    }}
+                    onFocus={() => setEmailFocused(true)}
+                    onBlur={() => setEmailFocused(false)}
+                    style={getInputStyles(emailFocused, !!emailError)}
+                    className="spin-to-win-input"
+                  />
+                  {emailError && (
+                    <p style={{ color: '#EF4444', fontSize: '13px', marginTop: '6px' }}>
+                      {emailError}
+                    </p>
+                  )}
+                </div>
 
-                {/* Optional GDPR checkbox */}
                 {showGdpr && (
-                  <div style={{ width: '100%', maxWidth: '400px' }}>
-                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', marginTop: '8px' }}>
-                      <input
-                        id="spin-gdpr"
-                        type="checkbox"
-                        checked={gdprConsent}
-                        onChange={(e) => {
-                          setGdprConsent(e.target.checked);
-                          if (gdprError) setGdprError('');
-                        }}
-                        style={{
-                          width: '16px',
-                          height: '16px',
-                          marginTop: '2px',
-                          cursor: 'pointer',
-                        }}
-                        disabled={isSpinning || hasSpun}
-                      />
-                      <label
-                        htmlFor="spin-gdpr"
-                        style={{
-                          fontSize: '13px',
-                          lineHeight: 1.5,
-                          color: config.textColor || '#4B5563',
-                          cursor: 'pointer',
-                          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                        }}
-                      >
-                        {gdprLabel}
-                      </label>
-                    </div>
-                    {gdprError && (
-                      <p
-                        style={{
-                          color: '#EF4444',
-                          fontSize: '13px',
-                          margin: '6px 0 0 0',
-                          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                        }}
-                      >
-                        {gdprError}
-                      </p>
-                    )}
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', marginTop: '0.25rem' }}>
+                    <input
+                      type="checkbox"
+                      checked={gdprConsent}
+                      onChange={(e) => {
+                        setGdprConsent(e.target.checked);
+                        setGdprError('');
+                      }}
+                      style={{
+                        marginTop: '0.25rem',
+                        width: '1.125rem',
+                        height: '1.125rem',
+                        cursor: 'pointer',
+                        flexShrink: 0,
+                      }}
+                    />
+                    <label style={{ fontSize: '0.875rem', color: descriptionColor, lineHeight: 1.4 }}>
+                      {gdprLabel}
+                    </label>
                   </div>
                 )}
+                {gdprError && (
+                  <p style={{ color: '#EF4444', fontSize: '13px', marginTop: '-0.5rem' }}>
+                    {gdprError}
+                  </p>
+                )}
 
-                {/* Primary button: Spin */}
                 <button
                   onClick={handleSpin}
-                  disabled={isSpinning || hasSpun}
+                  disabled={isSpinning || isGeneratingCode}
                   style={{
                     ...buttonStyles,
-                    cursor: isSpinning || hasSpun ? 'not-allowed' : 'pointer',
+                    marginTop: '0.5rem',
+                    position: 'relative',
+                    overflow: 'hidden',
                   }}
                   onMouseEnter={(e) => {
                     if (!isSpinning && !hasSpun) {
@@ -1050,133 +898,75 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
                     {config.dismissLabel || 'No thanks'}
                   </button>
                 )}
-
-                {/* Discount code reveal with copy functionality */}
-                {wonPrize?.generatedCode && (
-                  <div style={{
-                    width: '100%',
-                    maxWidth: '400px',
-                    marginTop: '8px',
-                    padding: '24px',
-                    backgroundColor: inputBackground,
-                    borderRadius: `${borderRadius}px`,
-                    border: `1px solid ${inputBorderColor}`,
-                    animation: 'slideUpFade 0.6s ease-out',
-                  }}>
-                    {isGeneratingCode ? (
-                      <p style={{
-                        fontSize: '15px',
-                        margin: '0',
+              </>
+            ) : (
+              <div style={{ width: '100%', textAlign: 'center', animation: 'slideUpFade 0.5s ease-out' }}>
+                {wonPrize?.generatedCode ? (
+                  <div
+                    style={{
+                      backgroundColor: `${accentColor}15`,
+                      border: `2px dashed ${accentColor}`,
+                      borderRadius: '12px',
+                      padding: '20px',
+                      marginTop: '1rem',
+                    }}
+                  >
+                    <p
+                      style={{
+                        fontSize: '14px',
+                        fontWeight: 600,
                         color: descriptionColor,
-                        fontWeight: 500,
-                        textAlign: 'center',
-                        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                      }}>
-                        Generating your discount code...
-                      </p>
-                    ) : (
-                      <>
-                        <p style={{
-                          fontSize: '13px',
-                          margin: '0 0 12px 0',
-                          color: descriptionColor,
-                          fontWeight: 600,
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.5px',
-                          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                          textAlign: 'center',
-                        }}>
-                          Your Discount Code
-                        </p>
-                        <div style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '12px',
-                          flexWrap: 'wrap',
-                        }}>
-                          <code style={{
-                            fontSize: '28px',
-                            fontWeight: 700,
-                            padding: '12px 24px',
-                            backgroundColor: '#FFFFFF',
-                            borderRadius: `${borderRadius - 4}px`,
-                            letterSpacing: '2px',
-                            color: accentColor,
-                            border: `2px solid ${successColor}`,
-                            fontFamily: 'SF Mono, Monaco, Consolas, monospace',
-                          }}>
-                            {wonPrize.generatedCode}
-                          </code>
-                        </div>
-                        <p style={{
-                          fontSize: '14px',
-                          margin: '16px 0 0 0',
-                          color: descriptionColor,
-                          fontWeight: 500,
-                          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                          textAlign: 'center',
-                        }}>
-                          {wonPrize.label}
-                        </p>
-                        {/* Copy to clipboard button */}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (typeof navigator !== 'undefined' && navigator.clipboard && wonPrize.generatedCode) {
-                              navigator.clipboard.writeText(wonPrize.generatedCode)
-                                .then(() => console.log('[Spin-to-Win] Code copied to clipboard'))
-                                .catch((err) => console.error('[Spin-to-Win] Copy failed:', err));
-                            }
-                          }}
-                          style={{
-                            marginTop: '12px',
-                            padding: '10px 20px',
-                            fontSize: '14px',
-                            fontWeight: 600,
-                            color: accentColor,
-                            backgroundColor: 'transparent',
-                            border: `2px solid ${accentColor}`,
-                            borderRadius: `${borderRadius}px`,
-                            cursor: 'pointer',
-                            transition: 'all 0.2s ease',
-                            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = accentColor;
-                            e.currentTarget.style.color = '#FFFFFF';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = 'transparent';
-                            e.currentTarget.style.color = accentColor;
-                          }}
-                        >
-                          Copy Code
-                        </button>
-                      </>
-                    )}
-                    {codeError && (
-                      <p style={{
-                        fontSize: '13px',
-                        margin: '12px 0 0 0',
-                        color: '#EF4444',
-                        fontWeight: 500,
-                        textAlign: 'center',
-                      }}>
-                        {codeError}
-                      </p>
-                    )}
+                        marginBottom: '8px',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                      }}
+                    >
+                      Your Discount Code
+                    </p>
+                    <div
+                      style={{
+                        fontSize: '28px',
+                        fontWeight: 800,
+                        color: accentColor,
+                        letterSpacing: '0.1em',
+                        marginBottom: '8px',
+                        cursor: 'pointer',
+                      }}
+                      onClick={() => {
+                        if (wonPrize.generatedCode) {
+                          navigator.clipboard.writeText(wonPrize.generatedCode);
+                        }
+                      }}
+                      title="Click to copy"
+                    >
+                      {wonPrize.generatedCode}
+                    </div>
+                    <p style={{ fontSize: '12px', color: descriptionColor }}>
+                      Click code to copy
+                    </p>
+                  </div>
+                ) : (
+                  <div style={{ marginTop: '1rem' }}>
+                    <p style={{ fontSize: '16px', color: descriptionColor }}>
+                      {config.failureMessage || "Better luck next time!"}
+                    </p>
                   </div>
                 )}
+
+                <button
+                  onClick={onClose}
+                  style={{
+                    ...buttonStyles,
+                    marginTop: '1.5rem',
+                  }}
+                >
+                  CONTINUE SHOPPING
+                </button>
               </div>
-              {/* Close layout row */}
-            </div>
+            )}
           </div>
-          {/* Close overlay wrapper */}
         </div>
-
-      </div>
-
-    </PopupPortal>
+      </PopupGridContainer>
+    </PopupPortal >
   );
 };
