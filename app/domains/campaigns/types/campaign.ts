@@ -814,6 +814,8 @@ export const EnhancedTriggersConfigSchema = z.object({
     enabled: z.boolean(),
     delay: z.number().min(0).optional(),
     immediate: z.boolean().optional(),
+    productIds: z.array(z.string()).optional(),
+    collectionIds: z.array(z.string()).optional(),
   }).optional(),
 
   cart_drawer_open: z.object({

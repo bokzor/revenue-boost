@@ -7,6 +7,7 @@
 import { Text, FormLayout, TextField, Checkbox } from "@shopify/polaris";
 import type { EnhancedTriggerConfig } from "~/domains/targeting/types/enhanced-triggers.types";
 import { TriggerCard } from "./TriggerCard";
+import { ProductPicker, type ProductPickerSelection } from "~/domains/campaigns/components/form/ProductPicker";
 
 interface AddToCartTriggerProps {
   config: EnhancedTriggerConfig;
@@ -34,11 +35,35 @@ export function AddToCartTrigger({ config, onChange }: AddToCartTriggerProps) {
       onEnabledChange={(enabled) => updateConfig({ enabled })}
     >
       <Text as="p" variant="bodySm" tone="subdued">
-        Trigger when a customer adds a product to their cart. Perfect for free shipping
-        thresholds, cart upsells, or related product recommendations.
+        Trigger when a customer adds a product to their cart. Optionally, target specific products
+        or collections that should trigger the popup when added to cart.
       </Text>
 
       <FormLayout>
+        <ProductPicker
+          mode="product"
+          selectionType="multiple"
+          selectedIds={config.add_to_cart?.productIds || []}
+          onSelect={(selections: ProductPickerSelection[]) => {
+            const productIds = selections.map((s) => s.id);
+            updateConfig({ productIds });
+          }}
+          buttonLabel="Select products (optional)"
+          showSelected={true}
+        />
+
+        <ProductPicker
+          mode="collection"
+          selectionType="multiple"
+          selectedIds={config.add_to_cart?.collectionIds || []}
+          onSelect={(selections: ProductPickerSelection[]) => {
+            const collectionIds = selections.map((s) => s.id);
+            updateConfig({ collectionIds });
+          }}
+          buttonLabel="Select collections (optional)"
+          showSelected={true}
+        />
+
         <TextField
           autoComplete="off"
           label="Delay (milliseconds)"

@@ -14,7 +14,7 @@
  * - This ensures only the specific selected template shows the green checkmark
  */
 
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { BlockStack, InlineGrid, EmptyState } from "@shopify/polaris";
 import type { CampaignGoal } from "@prisma/client";
 import type { UnifiedTemplate as _UnifiedTemplate } from "~/domains/popups/services/templates/unified-template-service.server";
@@ -24,6 +24,8 @@ import { processTemplates } from "../utils/template-processing";
 import { TemplateLoadingState } from "./templates/TemplateLoadingState";
 import { TemplateSelectorHeader } from "./templates/TemplateSelectorHeader";
 import { TemplateSelectorFooter } from "./templates/TemplateSelectorFooter";
+import { RecipeConfigurationModal } from "./recipes/RecipeConfigurationModal";
+import type { CampaignFormData } from "~/shared/hooks/useWizardState";
 
 // Define a simplified template type for the selector
 import type { TemplateType, ContentConfig, TargetRulesConfig, DesignConfig, DiscountConfig } from "~/domains/campaigns/types/campaign";
@@ -55,6 +57,10 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
   // Use extracted hook for template fetching (with optional initial templates from loader)
   const { templates, loading, error } = useTemplates(goal, storeId, initialTemplates);
 
+  // State for recipe modal
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedTemplateForModal, setSelectedTemplateForModal] = useState<_UnifiedTemplate | null>(null);
+
   // Handle template selection
   const handleTemplateClick = (template: _UnifiedTemplate) => {
     console.log(
@@ -73,26 +79,51 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
       return;
     }
 
-    console.log("Template selection:", {
+    // Open the recipe configuration modal instead of selecting immediately
+    setSelectedTemplateForModal(template);
+    setModalOpen(true);
+  };
+
+  const handleRecipeSelect = (recipeData: Partial<CampaignFormData>) => {
+    if (!selectedTemplateForModal) return;
+
+    const template = selectedTemplateForModal;
+
+    console.log("Template selection with recipe data:", {
       id: template.id,
       name: template.name,
       templateType: template.templateType,
-      category: template.category,
+      recipeData
     });
 
-    // Pass the full template object with all necessary data
-    // IMPORTANT: Use unique template ID for proper selection (not templateType)
+    // Pass the full template object with all necessary data, merged with recipe data
     const selectedTemplate: SelectedTemplate = {
       id: template.id,
       templateType: template.templateType,
-      name: template.name,
-      contentConfig: template.contentConfig as ContentConfig | undefined,
-      targetRules: template.targetRules as TargetRulesConfig | undefined,
-      designConfig: template.designConfig as DesignConfig | undefined,
-      discountConfig: template.discountConfig as DiscountConfig | undefined,
+      name: recipeData.name || template.name, // Use recipe name if provided
+      contentConfig: {
+        ...(template.contentConfig as ContentConfig),
+        ...(recipeData.contentConfig as Partial<ContentConfig>),
+      },
+      targetRules: {
+        ...(template.targetRules as TargetRulesConfig),
+        ...(recipeData.audienceTargeting ? { audienceTargeting: recipeData.audienceTargeting } : {}),
+        ...(recipeData.pageTargeting ? { pageTargeting: recipeData.pageTargeting } : {}),
+        ...(recipeData.enhancedTriggers ? { enhancedTriggers: recipeData.enhancedTriggers } : {}),
+      },
+      designConfig: {
+        ...(template.designConfig as DesignConfig),
+        ...(recipeData.designConfig as Partial<DesignConfig>),
+      },
+      discountConfig: {
+        ...(template.discountConfig as DiscountConfig),
+        ...(recipeData.discountConfig as Partial<DiscountConfig>),
+      },
     };
 
     onSelect(selectedTemplate);
+    setModalOpen(false);
+    setSelectedTemplateForModal(null);
   };
 
   // Use extracted processing utility
@@ -174,6 +205,19 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
         hasGlobalTemplates={hasGlobalTemplates}
         hasStoreTemplates={hasStoreTemplates}
       />
+
+      {/* Recipe Configuration Modal */}
+      {selectedTemplateForModal && (
+        <RecipeConfigurationModal
+          isOpen={modalOpen}
+          onClose={() => {
+            setModalOpen(false);
+            setSelectedTemplateForModal(null);
+          }}
+          onSelect={handleRecipeSelect}
+          template={selectedTemplateForModal}
+        />
+      )}
     </BlockStack>
   );
 };

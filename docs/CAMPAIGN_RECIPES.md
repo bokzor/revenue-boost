@@ -148,19 +148,202 @@ merchant scenario.
   - Reasonable default frequency capping (e.g. max views per day) to avoid
     fatigue.
 
+### 2.8 Gamified Reveal (Scratch Card)
+
+- **Intent**: High engagement through interactive "reveal" mechanic.
+- **Typical goals**: `NEWSLETTER_SIGNUP`, `ENGAGEMENT`.
+- **Recommended template**: `SCRATCH_CARD`.
+- **Core defaults**:
+  - Template type: `SCRATCH_CARD`.
+  - Triggers: `page_load` (delayed) or `exit_intent`.
+  - Page targeting: All pages or specific landing pages.
+  - Discount config: Multi-tier prizes (e.g., 5%, 10%, 20% off).
+- **Pre-fill opportunities**:
+  - Default prize probabilities (e.g., higher chance for lower discounts).
+  - "Try again" outcome to encourage engagement without guaranteed cost.
+
+### 2.9 Seasonal / Holiday Promotion
+
+- **Intent**: Capitalize on seasonal traffic with themed offers.
+- **Typical goals**: `INCREASE_REVENUE`.
+- **Recommended templates**: `ANNOUNCEMENT`, `FLASH_SALE`, `SPIN_TO_WIN`.
+- **Core defaults**:
+  - Template type: `ANNOUNCEMENT` (banner) or `FLASH_SALE` (popup).
+  - Triggers: `page_load` (immediate).
+  - Page targeting: Store-wide.
+  - Design config: Pre-selected holiday themes (e.g., "Black Friday", "Christmas", "Valentine's").
+- **Pre-fill opportunities**:
+  - Auto-apply seasonal color palettes and imagery.
+  - Default copy ("Black Friday Sale Starts Now!").
+
+### 2.10 Post-Add Upsell (Immediate)
+
+- **Intent**: Capitalize on immediate purchase intent right after a user adds an item to cart.
+- **Typical goals**: `INCREASE_REVENUE`.
+- **Recommended template**: `PRODUCT_UPSELL`.
+- **Core defaults**:
+  - Template type: `PRODUCT_UPSELL`.
+  - Triggers: `add_to_cart` event (if available) or `page_load` on Cart page (immediate).
+  - Page targeting: Cart page or global (if triggered by event).
+  - Discount config: "Buy X, Get Y" or small bundle discount.
+- **Pre-fill opportunities**:
+  - "Frequently bought together" logic to auto-select upsell products based on the cart's content.
+
+### 2.11 Cart Cross-Sell (Passive)
+
+- **Intent**: Increase AOV by suggesting complementary items on the cart page without blocking flow.
+- **Typical goals**: `INCREASE_REVENUE`.
+- **Recommended template**: `PRODUCT_UPSELL` (embedded/inline if possible, or non-modal).
+- **Core defaults**:
+  - Template type: `PRODUCT_UPSELL`.
+  - Triggers: `page_load` on Cart page.
+  - Design config: Inline/embedded style or bottom banner.
+  - Discount config: Optional.
+- **Pre-fill opportunities**:
+  - Auto-select low-cost "impulse buy" items.
+
+### 2.12 Product Page Cross-Sell
+
+- **Intent**: Suggest alternatives or add-ons while the user is viewing a specific product.
+- **Typical goals**: `INCREASE_REVENUE`, `ENGAGEMENT`.
+- **Recommended template**: `PRODUCT_UPSELL` or `FLASH_SALE` (as "Bundle Deal").
+- **Core defaults**:
+  - Template type: `PRODUCT_UPSELL`.
+  - Triggers: `page_load` (delayed) or `scroll_depth` on Product pages.
+  - Page targeting: Specific product pages.
+  - Discount config: Bundle discount (e.g., "Add this matching accessory for 15% off").
+- **Pre-fill opportunities**:
+  - Use Shopify's "Complementary Products" metadata if available.
+
+### 2.13 Product Spotlight
+
+- **Intent**: Drive traffic and sales to a specific new or high-margin product.
+- **Typical goals**: `INCREASE_REVENUE`.
+- **Recommended template**: `FLASH_SALE` or `ANNOUNCEMENT`.
+- **Core defaults**:
+  - Template type: `FLASH_SALE` (popup) or `ANNOUNCEMENT` (bar).
+  - Triggers: `page_load` on Home or Collection pages.
+  - Content config: Hero image of the product, "Shop Now" CTA linking directly to product.
+  - Discount config: Optional specific discount for that product.
+- **Pre-fill opportunities**:
+  - Auto-fill image, title, and price from the selected product.
+  - Set CTA URL to the product page.
+
+### 2.14 Countdown Timer Banner
+
+- **Intent**: Create store-wide urgency for a sale event without blocking navigation.
+- **Typical goals**: `INCREASE_REVENUE`.
+- **Recommended template**: `COUNTDOWN_TIMER` (sticky bar).
+- **Core defaults**:
+  - Template type: `COUNTDOWN_TIMER`.
+  - Design config: Top or bottom sticky bar (`position: top/bottom`, `displayMode: banner`).
+  - Triggers: `page_load` (immediate).
+  - Page targeting: All pages.
+- **Pre-fill opportunities**:
+  - "Ends Midnight" logic to auto-set timer duration.
+
 ---
 
-## 3. How this could surface in the UI
+## 3. Simplified Workflow: The "Recipe Wizard"
 
-This catalog is intentionally expressed in terms of existing types, so it can
-be implemented as a **"recipe picker"** before the current campaign wizard:
+To make these recipes actionable and reduce friction, we propose a **"Recipe Wizard"** that sits *before* the main Campaign Editor.
 
-1. Merchant chooses a recipe (e.g. "Flash sale on a product").
-2. We pick the template type and pre-fill goal, triggers, targeting, discount
-   scope, and design defaults.
-3. The existing multi-step campaign form opens with these defaults applied; the
-   merchant can tweak any step.
+### The Problem
+The current Campaign Editor is powerful but requires many decisions upfront:
+1.  Choose Goal
+2.  Choose Template
+3.  Configure Content (Headlines, Images)
+4.  Configure Design
+5.  Configure Targeting
+6.  Configure Discount
 
-Over time, telemetry (which recipes are used, where users drop off) can guide
-which recipes we promote and how aggressive the defaults should be.
+For a merchant who just wants to "Put a Flash Sale on my Hero Sneaker", this is too much friction.
+
+### The Solution: Context-First Configuration
+
+The Recipe Wizard reverses the flow: **Ask for Intent & Context first, then generate the Campaign.**
+
+#### Step 1: Choose a Recipe (Intent)
+The user is presented with a grid of Recipes (as defined above), not raw Templates.
+*   "Boost Newsletter Signups"
+*   "Flash Sale on a Product"
+*   "Recover Abandoned Carts"
+*   "Cross-sell on Product Page"
+
+#### Step 2: Provide Context (The "One Question")
+Based on the chosen recipe, the Wizard asks **one or two critical questions** to pre-fill the complex bits.
+
+*   **If "Flash Sale on a Product" is chosen:**
+    *   *Wizard asks:* "Which product is on sale?" (Product Picker)
+    *   *Wizard asks:* "What is the discount?" (e.g., 20% off)
+    *   *System Action:*
+        *   Fetches Product Image -> Pre-fills `contentConfig.imageUrl`
+        *   Fetches Product Title -> Pre-fills `contentConfig.headline` ("20% off [Product Name]!")
+        *   Sets `targetRules.pageTargeting` -> `[Product URL]`
+        *   Sets `discountConfig` -> Single use, 20%, scoped to that Product ID.
+
+*   **If "Post-Add Upsell" is chosen:**
+    *   *Wizard asks:* "Which collection triggers this?" (Collection Picker)
+    *   *Wizard asks:* "What product do you want to upsell?" (Product Picker)
+    *   *System Action:*
+        *   Sets `targetRules` -> Triggers on Cart/Add-to-cart for items in Collection X.
+        *   Sets `contentConfig.selectedProducts` -> [Upsell Product ID].
+
+#### Step 3: Review & Refine (The Editor)
+The Wizard closes, and the user lands in the **standard Campaign Editor**, but it is **90% filled out**.
+*   The preview already shows their product image.
+*   The targeting is already set.
+*   The discount is already configured.
+
+The user only needs to tweak the copy or colors and hit "Publish".
+
+### Summary of Wizard Logic
+
+| Recipe | Context Question(s) | Pre-filled Fields |
+| :--- | :--- | :--- |
+| **Product Spotlight** | Select Product | Image, Headline, CTA URL, Discount Scope |
+| **Flash Sale** | Select Product, Discount % | Image, Headline, Discount Value & Scope, Timer |
+| **Cross-Sell** | Select Trigger Product, Select Offer Product | Targeting (Trigger Product URL), Offer Content (Offer Product Image/Price) |
+| **Collection Promo** | Select Collection, Discount % | Headline ("Sale on [Collection]"), Targeting (Collection Pages), Discount Scope |
+| **Newsletter** | Discount % (Optional) | Discount Config (Welcome Code) |
+
+This approach bridges the gap between "Flexible Platform" and "One-Click Solution".
+
+---
+
+---
+
+## 4. Integration Strategy: "Smart Template Selection"
+
+We will integrate recipes directly into the existing Template Selector, rather than creating a separate "Recipe Picker" step. This keeps the UI clean while offering powerful shortcuts.
+
+### The Flow
+
+1.  **User clicks a Template** (e.g., "Flash Sale") in the existing grid.
+2.  **A "Setup Options" Modal appears** instead of immediately going to the editor.
+3.  **The Modal offers "Recipes" for that template**:
+    *   **Option A: Product Spotlight** (Recipe)
+        *   *Description*: "Promote a single hero product with a dedicated image and discount."
+        *   *Action*: Shows a **Product Picker** right in the modal.
+    *   **Option B: Collection Sale** (Recipe)
+        *   *Description*: "Run a sale on a specific collection."
+        *   *Action*: Shows a **Collection Picker**.
+    *   **Option C: Start from Scratch** (Default)
+        *   *Description*: "Configure everything manually."
+        *   *Action*: Goes to the editor with default settings.
+4.  **Completion**:
+    *   User picks a product/collection and clicks "Create".
+    *   We generate the `CampaignFormData` with pre-filled images, headlines, and targeting.
+    *   User lands in the main **Campaign Editor** with 90% of the work done.
+
+### UI Changes Required
+
+1.  **`TemplateSelector`**: Update `handleTemplateClick` to open the modal instead of calling `onSelect` immediately.
+2.  **`RecipeConfigurationModal`**: A new component that:
+    *   Accepts a `templateType`.
+    *   Displays available recipes for that type.
+    *   Handles the "Context Questions" (Product/Collection picking).
+    *   Returns the fully configured `initialData`.
+
+This feels natural: "I want a Flash Sale" -> "What kind?" -> "This Product" -> Done.
 

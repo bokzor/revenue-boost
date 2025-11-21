@@ -46,7 +46,6 @@ export function PageTargetingTrigger({ config, onChange }: PageTargetingTriggerP
             { label: "All product pages (/products/*)", value: "/products/*" },
             { label: "All collection pages (/collections/*)", value: "/collections/*" },
             { label: "Cart page (/cart)", value: "/cart" },
-            { label: "Checkout page (/checkout)", value: "/checkout" },
           ]}
           selected={config.page_targeting?.pages || []}
           onChange={(selected) => updateConfig({ pages: selected })}
