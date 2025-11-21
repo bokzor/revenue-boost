@@ -44,6 +44,11 @@ const FILE_CREATE_MUTATION = `#graphql
         id
         fileStatus
         alt
+        preview {
+          image {
+            url
+          }
+        }
         ... on MediaImage {
           image {
             url
@@ -76,6 +81,7 @@ interface FileCreateResponse {
         fileStatus?: string | null;
         alt?: string | null;
         image?: { url: string } | null;
+        preview?: { image?: { url: string } | null } | null;
       }>;
       userErrors?: { field?: string[] | null; message: string }[];
     };
@@ -168,9 +174,19 @@ export async function createImageFileFromStaged(
     throw new Error("fileCreate did not return a file");
   }
 
-  const url = file.image?.url;
-  if (!url) {
-    throw new Error("fileCreate returned a file without an image URL");
+  if (file.fileStatus === "FAILED") {
+    throw new Error("fileCreate returned FAILED status for image");
+  }
+
+  const urlFromImage = file.image?.url;
+  const urlFromPreview = file.preview?.image?.url;
+  const url = urlFromImage ?? urlFromPreview ?? options.resourceUrl;
+
+  if (!urlFromImage && !urlFromPreview) {
+    console.warn(
+      "[Shopify Files] fileCreate returned a file without a processed image URL; falling back to staged resourceUrl",
+      { fileId: file.id, fileStatus: file.fileStatus }
+    );
   }
 
   return {
