@@ -7,8 +7,13 @@ export default defineConfig({
     globals: true,
     environment: 'happy-dom',
     watch: false,
+    setupFiles: ['./tests/setup.ts'],
     include: ['tests/unit/**/*.test.ts', 'tests/unit/**/*.test.tsx'],
-    exclude: ['tests/e2e/**', 'node_modules/**'],
+    exclude: [
+      'tests/e2e/**',
+      'node_modules/**',
+      'tests/unit/**/*.integration.test.ts', // Exclude integration tests (require real database)
+    ],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
