@@ -39,9 +39,11 @@ import { PLAN_DEFINITIONS, PLAN_ORDER } from "../domains/billing/types/plan";
 import { PlanGuardService } from "../domains/billing/services/plan-guard.server";
 import { GlobalCappingSettings } from "../domains/store/components/GlobalCappingSettings";
 import type { StoreSettings, GlobalFrequencyCappingSettings } from "../domains/store/types/settings";
+import { SetupStatus, type SetupStatusData } from "../domains/setup/components/SetupStatus";
+import { getSetupStatus } from "../lib/setup-status.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-    const { session } = await authenticate.admin(request);
+    const { session, admin } = await authenticate.admin(request);
     const store = await prisma.store.findUnique({
         where: { shopifyDomain: session.shop },
     });
@@ -51,6 +53,14 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     }
 
     const planContext = await PlanGuardService.getPlanContext(store.id);
+
+    // Check setup status using shared utility
+    const { status: setupStatus, setupComplete } = await getSetupStatus(
+        session.shop,
+        session.accessToken || '',
+        admin
+    );
+    const themeEditorUrl = `https://${session.shop}/admin/themes/current/editor`;
 
     // Calculate usage
     const activeCampaignsCount = await prisma.campaign.count({
@@ -91,6 +101,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         storeSettings: (store.settings as StoreSettings) || {},
         PLAN_DEFINITIONS,
         PLAN_ORDER,
+        setupStatus,
+        setupComplete,
+        themeEditorUrl,
     };
 };
 
@@ -230,7 +243,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 };
 
 export default function SettingsPage() {
-    const { planContext, usage, storeSettings, PLAN_DEFINITIONS, PLAN_ORDER } = useLoaderData<typeof loader>();
+    const { planContext, usage, storeSettings, PLAN_DEFINITIONS, PLAN_ORDER, setupStatus, setupComplete, themeEditorUrl } = useLoaderData<typeof loader>();
     const submit = useSubmit();
     const navigation = useNavigation();
     const isLoading = navigation.state === "submitting";
@@ -354,6 +367,15 @@ export default function SettingsPage() {
             </Modal>
             <BlockStack gap="500">
                 <Layout>
+                    {/* Setup Status - Always Visible */}
+                    <Layout.Section>
+                        <SetupStatus
+                            status={setupStatus}
+                            setupComplete={setupComplete}
+                            themeEditorUrl={themeEditorUrl}
+                        />
+                    </Layout.Section>
+
                     <Layout.Section>
                         <Card>
                             <BlockStack gap="400">

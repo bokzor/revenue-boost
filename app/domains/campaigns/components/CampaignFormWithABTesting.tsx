@@ -147,7 +147,8 @@ export function CampaignFormWithABTesting({
   // STATE - Wizard Navigation
   // ============================================================================
 
-  const [currentStep, setCurrentStep] = useState(0);
+  // Start at step 1 (Template & Design) when editing, step 0 (Goal) when creating
+  const [currentStep, setCurrentStep] = useState(campaignId || experimentId ? 1 : 0);
 
   // ============================================================================
   // STATE - A/B Testing

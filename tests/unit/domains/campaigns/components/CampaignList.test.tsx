@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
@@ -239,6 +239,151 @@ describe('CampaignList (grouped by experiment)', () => {
       // onExperimentSelect should NOT have been called
       expect(onExperimentSelect).not.toHaveBeenCalled();
     }
+  });
+
+  describe('Button click event handling (preventDefault)', () => {
+    it('should prevent default and stop propagation when clicking Delete button on standalone campaign', async () => {
+      const user = userEvent.setup();
+      const onCampaignSelect = vi.fn();
+      const onCampaignDelete = vi.fn();
+
+      const campaign = makeCampaign({
+        id: 'camp_1',
+        name: 'Test Campaign',
+        experimentId: null
+      });
+
+      renderWithPolaris(
+        <CampaignList
+          campaigns={[campaign]}
+          onCampaignSelect={onCampaignSelect}
+          onCampaignDelete={onCampaignDelete}
+        />
+      );
+
+      const deleteButton = screen.getByRole('button', { name: /delete/i });
+      await user.click(deleteButton);
+
+      // Delete handler should be called
+      expect(onCampaignDelete).toHaveBeenCalledWith('camp_1');
+
+      // Campaign select should NOT be called (event propagation stopped)
+      expect(onCampaignSelect).not.toHaveBeenCalled();
+    });
+
+    it('should prevent default and stop propagation when clicking Edit button on standalone campaign', async () => {
+      const user = userEvent.setup();
+      const onCampaignSelect = vi.fn();
+      const onCampaignEdit = vi.fn();
+
+      const campaign = makeCampaign({
+        id: 'camp_2',
+        name: 'Test Campaign',
+        experimentId: null
+      });
+
+      renderWithPolaris(
+        <CampaignList
+          campaigns={[campaign]}
+          onCampaignSelect={onCampaignSelect}
+          onCampaignEdit={onCampaignEdit}
+        />
+      );
+
+      const editButton = screen.getByRole('button', { name: /^edit$/i });
+      await user.click(editButton);
+
+      // Edit handler should be called
+      expect(onCampaignEdit).toHaveBeenCalledWith('camp_2');
+
+      // Campaign select should NOT be called (event propagation stopped)
+      expect(onCampaignSelect).not.toHaveBeenCalled();
+    });
+
+    it('should prevent default and stop propagation when clicking Duplicate button on standalone campaign', async () => {
+      const user = userEvent.setup();
+      const onCampaignSelect = vi.fn();
+      const onCampaignDuplicate = vi.fn();
+
+      const campaign = makeCampaign({
+        id: 'camp_3',
+        name: 'Test Campaign',
+        experimentId: null
+      });
+
+      renderWithPolaris(
+        <CampaignList
+          campaigns={[campaign]}
+          onCampaignSelect={onCampaignSelect}
+          onCampaignDuplicate={onCampaignDuplicate}
+        />
+      );
+
+      const duplicateButton = screen.getByRole('button', { name: /duplicate/i });
+      await user.click(duplicateButton);
+
+      // Duplicate handler should be called
+      expect(onCampaignDuplicate).toHaveBeenCalledWith('camp_3');
+
+      // Campaign select should NOT be called (event propagation stopped)
+      expect(onCampaignSelect).not.toHaveBeenCalled();
+    });
+
+    it('should prevent default and stop propagation when clicking Delete button on experiment', async () => {
+      const user = userEvent.setup();
+      const onExperimentSelect = vi.fn();
+      const onCampaignDelete = vi.fn();
+
+      const experiment = {
+        id: 'exp_1',
+        storeId: 'store_cuid_123',
+        name: 'Test Experiment',
+        description: null,
+        hypothesis: null,
+        status: 'RUNNING' as const,
+        trafficAllocation: { A: 50, B: 50 },
+        statisticalConfig: {
+          confidenceLevel: 0.95,
+          minimumSampleSize: 1000,
+          minimumDetectableEffect: 0.05,
+          maxDurationDays: 30,
+        },
+        successMetrics: { primaryMetric: 'conversion_rate' as const },
+        startDate: null,
+        endDate: null,
+        plannedDurationDays: null,
+        winnerId: null,
+        winnerDeclaredAt: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        variants: [],
+      };
+
+      const variantA = makeCampaign({
+        id: 'var_a',
+        name: 'Variant A',
+        experimentId: 'exp_1',
+        variantKey: 'A',
+      });
+
+      renderWithPolaris(
+        <CampaignList
+          campaigns={[variantA]}
+          experiments={[experiment]}
+          onExperimentSelect={onExperimentSelect}
+          onCampaignDelete={onCampaignDelete}
+        />
+      );
+
+      const deleteButton = screen.getByRole('button', { name: /delete/i });
+      await user.click(deleteButton);
+
+      // Delete handler should be called with first variant ID
+      expect(onCampaignDelete).toHaveBeenCalledWith('var_a');
+
+      // Experiment select should NOT be called (event propagation stopped)
+      expect(onExperimentSelect).not.toHaveBeenCalled();
+    });
   });
 });
 

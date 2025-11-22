@@ -1,5 +1,5 @@
 import type { LoaderFunctionArgs, ActionFunctionArgs } from "react-router";
-import { useLoaderData, useFetcher, useNavigate } from "react-router";
+import { useLoaderData, useFetcher, useNavigate, data } from "react-router";
 import {
   Page,
   Layout,
@@ -7,9 +7,6 @@ import {
   Text,
   BlockStack,
   InlineGrid,
-  IndexTable,
-  Badge,
-  useIndexResourceState,
   Button,
   InlineStack,
   Box,
@@ -24,11 +21,15 @@ import {
   ChartVerticalFilledIcon,
 } from "@shopify/polaris-icons";
 import { authenticate } from "../shopify.server";
-import { CampaignService } from "~/domains/campaigns";
+import { CampaignService, ExperimentService } from "~/domains/campaigns";
+import { CampaignIndexTable } from "~/domains/campaigns/components";
 import { CampaignAnalyticsService } from "~/domains/campaigns/services/campaign-analytics.server";
 import { getStoreId } from "~/lib/auth-helpers.server";
 import { getStoreCurrency } from "~/lib/currency.server";
 import { useState } from "react";
+import type { ExperimentWithVariants } from "~/domains/campaigns/types/experiment";
+import { SetupStatus, type SetupStatusData } from "~/domains/setup/components/SetupStatus";
+import { getSetupStatus } from "~/lib/setup-status.server";
 
 // --- Types ---
 
@@ -40,7 +41,7 @@ interface DashboardMetric {
 }
 
 interface CampaignDashboardRow {
-  [key: string]: string | number;
+  [key: string]: string | number | null | boolean | undefined;
   id: string;
   name: string;
   status: string;
@@ -51,6 +52,10 @@ interface CampaignDashboardRow {
   conversionRate: number;
   revenue: number;
   lastUpdated: string;
+  // Experiment fields for grouping
+  experimentId?: string | null;
+  variantKey?: string | null;
+  isControl?: boolean;
 }
 
 interface LoaderData {
@@ -61,18 +66,30 @@ interface LoaderData {
     conversionRate: number;
   };
   campaigns: CampaignDashboardRow[];
+  experiments: ExperimentWithVariants[];
   currency: string;
   timeRange: string;
   hasCampaigns: boolean;
+  setupStatus?: SetupStatusData;
+  setupComplete?: boolean;
+  themeEditorUrl?: string;
 }
 
 // --- Loader ---
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const { admin } = await authenticate.admin(request);
+  const { admin, session } = await authenticate.admin(request);
   const storeId = await getStoreId(request);
   const url = new URL(request.url);
   const timeRange = url.searchParams.get("timeRange") || "30d";
+
+  // Check setup status using shared utility
+  const { status: setupStatus, setupComplete } = await getSetupStatus(
+    session.shop,
+    session.accessToken || '',
+    admin
+  );
+  const themeEditorUrl = `https://${session.shop}/admin/themes/current/editor`;
 
   // 1. Fetch all campaigns
   const allCampaigns = await CampaignService.getAllCampaigns(storeId);
@@ -82,12 +99,26 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     const loaderData: LoaderData = {
       globalMetrics: { revenue: 0, leads: 0, activeCampaigns: 0, conversionRate: 0 },
       campaigns: [],
+      experiments: [],
       currency: "USD", // Default
       timeRange,
       hasCampaigns: false,
+      setupStatus,
+      setupComplete,
+      themeEditorUrl,
     };
 
     return loaderData;
+  }
+
+  // 1.5. Fetch experiments for campaigns
+  const experimentIds = Array.from(new Set(
+    allCampaigns.map(c => c.experimentId).filter((id): id is string => Boolean(id))
+  ));
+
+  let experiments: ExperimentWithVariants[] = [];
+  if (experimentIds.length > 0) {
+    experiments = await ExperimentService.getExperimentsByIds(storeId, experimentIds);
   }
 
   const campaignIds = allCampaigns.map((c) => c.id);
@@ -142,6 +173,10 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       conversionRate: stats?.conversionRate || 0,
       revenue,
       lastUpdated: new Date(campaign.updatedAt).toLocaleDateString(),
+      // Include experiment fields for grouping
+      experimentId: campaign.experimentId,
+      variantKey: campaign.variantKey,
+      isControl: campaign.isControl,
     };
   });
 
@@ -157,9 +192,13 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       conversionRate: globalConversionRate,
     },
     campaigns: campaignsData,
+    experiments,
     currency,
     timeRange,
     hasCampaigns: true,
+    setupStatus,
+    setupComplete,
+    themeEditorUrl,
   };
 
   return loaderData;
@@ -179,7 +218,98 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const newStatus = currentStatus === "ACTIVE" ? "PAUSED" : "ACTIVE";
 
     await CampaignService.updateCampaign(campaignId, storeId, { status: newStatus as any }, admin);
-    return { success: true };
+    return data({ success: true });
+  }
+
+  if (intent === "bulk_activate") {
+    const campaignIds = JSON.parse(formData.get("campaignIds") as string);
+    const results = await Promise.allSettled(
+      campaignIds.map((id: string) =>
+        CampaignService.updateCampaign(id, storeId, { status: "ACTIVE" as any }, admin)
+      )
+    );
+    const failed = results.filter(r => r.status === 'rejected').length;
+    return data({
+      success: failed === 0,
+      message: failed > 0 ? `${failed} of ${campaignIds.length} campaigns failed to activate` : undefined
+    });
+  }
+
+  if (intent === "bulk_pause") {
+    const campaignIds = JSON.parse(formData.get("campaignIds") as string);
+    const results = await Promise.allSettled(
+      campaignIds.map((id: string) =>
+        CampaignService.updateCampaign(id, storeId, { status: "PAUSED" as any }, admin)
+      )
+    );
+    const failed = results.filter(r => r.status === 'rejected').length;
+    return data({
+      success: failed === 0,
+      message: failed > 0 ? `${failed} of ${campaignIds.length} campaigns failed to pause` : undefined
+    });
+  }
+
+  if (intent === "bulk_archive") {
+    const campaignIds = JSON.parse(formData.get("campaignIds") as string);
+    const results = await Promise.allSettled(
+      campaignIds.map((id: string) =>
+        CampaignService.updateCampaign(id, storeId, { status: "ARCHIVED" as any }, admin)
+      )
+    );
+    const failed = results.filter(r => r.status === 'rejected').length;
+    return data({
+      success: failed === 0,
+      message: failed > 0 ? `${failed} of ${campaignIds.length} campaigns failed to archive` : undefined
+    });
+  }
+
+  if (intent === "bulk_delete") {
+    const campaignIds = JSON.parse(formData.get("campaignIds") as string);
+    const results = await Promise.allSettled(
+      campaignIds.map((id: string) => CampaignService.deleteCampaign(id, storeId))
+    );
+    const failed = results.filter(r => r.status === 'rejected').length;
+    return data({
+      success: failed === 0,
+      message: failed > 0 ? `${failed} of ${campaignIds.length} campaigns failed to delete` : undefined
+    });
+  }
+
+  if (intent === "bulk_duplicate") {
+    const campaignIds = JSON.parse(formData.get("campaignIds") as string);
+    const results = await Promise.allSettled(
+      campaignIds.map(async (id: string) => {
+        const campaign = await CampaignService.getCampaignById(id, storeId);
+        if (!campaign) throw new Error(`Campaign ${id} not found`);
+
+        // Extract only the fields needed for CampaignCreateData
+        const createData = {
+          name: `${campaign.name} (Copy)`,
+          description: campaign.description || undefined,
+          goal: campaign.goal,
+          status: "DRAFT" as any,
+          priority: campaign.priority,
+          templateId: campaign.templateId || undefined,
+          templateType: campaign.templateType,
+          contentConfig: campaign.contentConfig,
+          designConfig: campaign.designConfig,
+          targetRules: campaign.targetRules,
+          discountConfig: campaign.discountConfig,
+          experimentId: undefined, // Don't copy experiment association
+          variantKey: undefined,
+          isControl: undefined,
+          startDate: campaign.startDate || undefined,
+          endDate: campaign.endDate || undefined,
+        };
+
+        return CampaignService.createCampaign(storeId, createData, admin);
+      })
+    );
+    const failed = results.filter(r => r.status === 'rejected').length;
+    return data({
+      success: failed === 0,
+      message: failed > 0 ? `${failed} of ${campaignIds.length} campaigns failed to duplicate` : undefined
+    });
   }
 
   return null;
@@ -237,7 +367,7 @@ function TemplateTile({
 }
 
 export default function Dashboard() {
-  const { globalMetrics, campaigns, currency, timeRange, hasCampaigns } = useLoaderData<typeof loader>();
+  const { globalMetrics, campaigns, experiments, currency, timeRange, hasCampaigns, setupStatus, setupComplete, themeEditorUrl } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
   const fetcher = useFetcher();
 
@@ -249,31 +379,12 @@ export default function Dashboard() {
     }).format(amount);
   };
 
-  // --- State for Filters ---
-  const [statusFilter, setStatusFilter] = useState("ALL");
-
-  const filteredCampaigns = campaigns.filter(c => {
-    if (statusFilter === "ALL") return true;
-    return c.status === statusFilter;
-  });
-
-  // --- Table Resource State ---
-  const resourceName = {
-    singular: 'campaign',
-    plural: 'campaigns',
-  };
-
-  const { selectedResources, allResourcesSelected, handleSelectionChange } =
-    useIndexResourceState(filteredCampaigns);
-
   // --- Handlers ---
   const handleCreateCampaign = () => {
     navigate("/app/campaigns/new");
   };
 
   const handleTimeRangeChange = (value: string) => {
-    // Reload with new time range
-    // In a real app with date filtering, this would trigger a reload
     navigate(`?timeRange=${value}`);
   };
 
@@ -284,11 +395,73 @@ export default function Dashboard() {
     );
   };
 
+  const handleCampaignClick = (id: string) => {
+    navigate(`/app/campaigns/${id}`);
+  };
+
+  const handleEditClick = (id: string) => {
+    navigate(`/app/campaigns/${id}/edit`);
+  };
+
+  // Bulk action handlers
+  const handleBulkActivate = async (campaignIds: string[]) => {
+    const formData = new FormData();
+    formData.append('intent', 'bulk_activate');
+    formData.append('campaignIds', JSON.stringify(campaignIds));
+
+    const response = await fetcher.submit(formData, { method: 'post' });
+    // The fetcher will automatically revalidate and update the UI
+  };
+
+  const handleBulkPause = async (campaignIds: string[]) => {
+    const formData = new FormData();
+    formData.append('intent', 'bulk_pause');
+    formData.append('campaignIds', JSON.stringify(campaignIds));
+
+    await fetcher.submit(formData, { method: 'post' });
+  };
+
+  const handleBulkArchive = async (campaignIds: string[]) => {
+    const formData = new FormData();
+    formData.append('intent', 'bulk_archive');
+    formData.append('campaignIds', JSON.stringify(campaignIds));
+
+    await fetcher.submit(formData, { method: 'post' });
+  };
+
+  const handleBulkDelete = async (campaignIds: string[]) => {
+    const formData = new FormData();
+    formData.append('intent', 'bulk_delete');
+    formData.append('campaignIds', JSON.stringify(campaignIds));
+
+    await fetcher.submit(formData, { method: 'post' });
+  };
+
+  const handleBulkDuplicate = async (campaignIds: string[]) => {
+    const formData = new FormData();
+    formData.append('intent', 'bulk_duplicate');
+    formData.append('campaignIds', JSON.stringify(campaignIds));
+
+    await fetcher.submit(formData, { method: 'post' });
+  };
+
   // --- Zero State ---
   if (!hasCampaigns) {
     return (
       <Page title="Dashboard">
         <Layout>
+          {/* Setup Status Banner */}
+          {setupStatus && !setupComplete && (
+            <Layout.Section>
+              <SetupStatus
+                status={setupStatus}
+                setupComplete={setupComplete ?? false}
+                themeEditorUrl={themeEditorUrl}
+                compact
+              />
+            </Layout.Section>
+          )}
+
           <Layout.Section>
             <EmptyState
               heading="Start turning visitors into customers"
@@ -358,6 +531,18 @@ export default function Dashboard() {
       }
     >
       <Layout>
+        {/* Setup Status Banner */}
+        {setupStatus && !setupComplete && (
+          <Layout.Section>
+            <SetupStatus
+              status={setupStatus}
+              setupComplete={setupComplete ?? false}
+              themeEditorUrl={themeEditorUrl}
+              compact
+            />
+          </Layout.Section>
+        )}
+
         {/* Global Metrics */}
         <Layout.Section>
           <InlineGrid columns={{ xs: 1, sm: 2, md: 4 }} gap="400">
@@ -386,109 +571,20 @@ export default function Dashboard() {
 
         {/* Active Campaigns Table */}
         <Layout.Section>
-          <Card padding="0">
-            <Box padding="400">
-              <InlineStack align="space-between" blockAlign="center">
-                <Text as="h2" variant="headingMd">Active campaigns</Text>
-                <InlineStack gap="200">
-                  <Button
-                    variant={statusFilter === "ALL" ? "primary" : "tertiary"}
-                    onClick={() => setStatusFilter("ALL")}
-                    size="micro"
-                  >
-                    All
-                  </Button>
-                  <Button
-                    variant={statusFilter === "ACTIVE" ? "primary" : "tertiary"}
-                    onClick={() => setStatusFilter("ACTIVE")}
-                    size="micro"
-                  >
-                    Active
-                  </Button>
-                  <Button
-                    variant={statusFilter === "DRAFT" ? "primary" : "tertiary"}
-                    onClick={() => setStatusFilter("DRAFT")}
-                    size="micro"
-                  >
-                    Draft
-                  </Button>
-                  <Button
-                    variant={statusFilter === "PAUSED" ? "primary" : "tertiary"}
-                    onClick={() => setStatusFilter("PAUSED")}
-                    size="micro"
-                  >
-                    Paused
-                  </Button>
-                </InlineStack>
-              </InlineStack>
-            </Box>
-
-            {filteredCampaigns.length === 0 ? (
-              <Box padding="400">
-                <EmptyState
-                  heading="No campaigns found"
-                  image=""
-                >
-                  <p>Try changing the filters or create a new campaign.</p>
-                </EmptyState>
-              </Box>
-            ) : (
-              <IndexTable
-                resourceName={resourceName}
-                itemCount={filteredCampaigns.length}
-                selectedItemsCount={
-                  allResourcesSelected ? 'All' : selectedResources.length
-                }
-                onSelectionChange={handleSelectionChange}
-                headings={[
-                  { title: 'Campaign' },
-                  { title: 'Status' },
-                  { title: 'Goal' },
-                  { title: 'Views' },
-                  { title: 'Conversions' },
-                  { title: 'Conv. Rate' },
-                  { title: 'Revenue' },
-                  { title: 'Actions' },
-                ]}
-              >
-                {filteredCampaigns.map(
-                  ({ id, name, status, templateType, goal, views, conversions, conversionRate, revenue }, index) => (
-                    <IndexTable.Row
-                      id={id}
-                      key={id}
-                      selected={selectedResources.includes(id)}
-                      position={index}
-                    >
-                      <IndexTable.Cell>
-                        <Text as="span" fontWeight="bold">{name}</Text>
-                        <Box>
-                          <Text as="span" tone="subdued" variant="bodySm">{templateType.replace(/_/g, " ")}</Text>
-                        </Box>
-                      </IndexTable.Cell>
-                      <IndexTable.Cell>
-                        <Badge tone={status === "ACTIVE" ? "success" : status === "PAUSED" ? "warning" : "info"}>
-                          {status}
-                        </Badge>
-                      </IndexTable.Cell>
-                      <IndexTable.Cell>{goal.replace(/_/g, " ")}</IndexTable.Cell>
-                      <IndexTable.Cell>{views.toLocaleString()}</IndexTable.Cell>
-                      <IndexTable.Cell>{conversions.toLocaleString()}</IndexTable.Cell>
-                      <IndexTable.Cell>{conversionRate.toFixed(1)}%</IndexTable.Cell>
-                      <IndexTable.Cell>{formatMoney(revenue)}</IndexTable.Cell>
-                      <IndexTable.Cell>
-                        <InlineStack gap="200">
-                          <Button size="micro" onClick={() => navigate(`/app/campaigns/${id}/edit`)}>Edit</Button>
-                          <Button size="micro" onClick={() => handleToggleStatus(id, status)}>
-                            {status === "ACTIVE" ? "Pause" : "Activate"}
-                          </Button>
-                        </InlineStack>
-                      </IndexTable.Cell>
-                    </IndexTable.Row>
-                  ),
-                )}
-              </IndexTable>
-            )}
-          </Card>
+          <CampaignIndexTable
+            campaigns={campaigns}
+            experiments={experiments}
+            onCampaignClick={handleCampaignClick}
+            onEditClick={handleEditClick}
+            onToggleStatus={handleToggleStatus}
+            onBulkActivate={handleBulkActivate}
+            onBulkPause={handleBulkPause}
+            onBulkArchive={handleBulkArchive}
+            onBulkDelete={handleBulkDelete}
+            onBulkDuplicate={handleBulkDuplicate}
+            formatMoney={formatMoney}
+            showMetrics={true}
+          />
         </Layout.Section>
 
         {/* Template Quick Start (Bottom) */}

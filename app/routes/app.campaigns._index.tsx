@@ -6,13 +6,13 @@
 
 import { data, type LoaderFunctionArgs } from "react-router";
 import { useLoaderData, useNavigate, useRevalidator } from "react-router";
-import { Page, Toast, Frame, Banner } from "@shopify/polaris";
+import { Page, Toast, Frame } from "@shopify/polaris";
 import { useState } from "react";
 
 import { authenticate } from "~/shopify.server";
 import { getStoreId } from "~/lib/auth-helpers.server";
 import { CampaignService, ExperimentService } from "~/domains/campaigns";
-import { CampaignList } from "~/domains/campaigns/components";
+import { CampaignIndexTable } from "~/domains/campaigns/components";
 import type { CampaignWithConfigs } from "~/domains/campaigns/types/campaign";
 import type { ExperimentWithVariants } from "~/domains/campaigns";
 import { apiClient, getErrorMessage } from "~/lib/api-client";
@@ -25,7 +25,6 @@ interface LoaderData {
   campaigns: CampaignWithConfigs[];
   experiments: ExperimentWithVariants[];
   storeId: string;
-  setupComplete: boolean;
 }
 
 // ============================================================================
@@ -61,22 +60,10 @@ export async function loader({ request }: LoaderFunctionArgs) {
       console.log(`[Performance] getExperimentsByIds took ${Date.now() - expStartTime}ms for ${experimentIds.length} experiments`);
     }
 
-    // Check setup status - simplified to avoid fetch issues
-    let setupComplete: boolean;
-    try {
-      // Just check if store exists for now
-      const storeExists = !!storeId;
-      setupComplete = storeExists;
-    } catch (error) {
-      console.error("Failed to check setup status:", error);
-      setupComplete = true; // Default to true to not block the UI
-    }
-
     return data<LoaderData>({
       campaigns,
       experiments,
       storeId,
-      setupComplete,
     });
 
   } catch (error) {
@@ -86,7 +73,6 @@ export async function loader({ request }: LoaderFunctionArgs) {
       campaigns: [],
       experiments: [],
       storeId: "",
-      setupComplete: false,
     }, { status: 500 });
   }
 }
@@ -96,7 +82,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 // ============================================================================
 
 export default function CampaignsIndexPage() {
-  const { campaigns, experiments, setupComplete } = useLoaderData<typeof loader>();
+  const { campaigns, experiments } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
   const revalidator = useRevalidator();
 
@@ -191,6 +177,125 @@ export default function CampaignsIndexPage() {
     }
   };
 
+  // Bulk action handlers
+  const handleBulkActivate = async (campaignIds: string[]) => {
+    try {
+      const results = await Promise.allSettled(
+        campaignIds.map(id =>
+          apiClient.patch(`/api/campaigns/${id}`, { status: 'ACTIVE' })
+        )
+      );
+
+      const failed = results.filter(r => r.status === 'rejected').length;
+      if (failed > 0) {
+        showToast(`${failed} of ${campaignIds.length} campaigns failed to activate`, true);
+      } else {
+        showToast(`${campaignIds.length} campaign${campaignIds.length !== 1 ? 's' : ''} activated successfully`);
+      }
+
+      revalidator.revalidate();
+    } catch (error) {
+      console.error("Failed to activate campaigns:", error);
+      showToast(getErrorMessage(error), true);
+    }
+  };
+
+  const handleBulkPause = async (campaignIds: string[]) => {
+    try {
+      const results = await Promise.allSettled(
+        campaignIds.map(id =>
+          apiClient.patch(`/api/campaigns/${id}`, { status: 'PAUSED' })
+        )
+      );
+
+      const failed = results.filter(r => r.status === 'rejected').length;
+      if (failed > 0) {
+        showToast(`${failed} of ${campaignIds.length} campaigns failed to pause`, true);
+      } else {
+        showToast(`${campaignIds.length} campaign${campaignIds.length !== 1 ? 's' : ''} paused successfully`);
+      }
+
+      revalidator.revalidate();
+    } catch (error) {
+      console.error("Failed to pause campaigns:", error);
+      showToast(getErrorMessage(error), true);
+    }
+  };
+
+  const handleBulkArchive = async (campaignIds: string[]) => {
+    try {
+      const results = await Promise.allSettled(
+        campaignIds.map(id =>
+          apiClient.patch(`/api/campaigns/${id}`, { status: 'ARCHIVED' })
+        )
+      );
+
+      const failed = results.filter(r => r.status === 'rejected').length;
+      if (failed > 0) {
+        showToast(`${failed} of ${campaignIds.length} campaigns failed to archive`, true);
+      } else {
+        showToast(`${campaignIds.length} campaign${campaignIds.length !== 1 ? 's' : ''} archived successfully`);
+      }
+
+      revalidator.revalidate();
+    } catch (error) {
+      console.error("Failed to archive campaigns:", error);
+      showToast(getErrorMessage(error), true);
+    }
+  };
+
+  const handleBulkDelete = async (campaignIds: string[]) => {
+    try {
+      const results = await Promise.allSettled(
+        campaignIds.map(id => apiClient.delete(`/api/campaigns/${id}`))
+      );
+
+      const failed = results.filter(r => r.status === 'rejected').length;
+      if (failed > 0) {
+        showToast(`${failed} of ${campaignIds.length} campaigns failed to delete`, true);
+      } else {
+        showToast(`${campaignIds.length} campaign${campaignIds.length !== 1 ? 's' : ''} deleted successfully`);
+      }
+
+      revalidator.revalidate();
+    } catch (error) {
+      console.error("Failed to delete campaigns:", error);
+      showToast(getErrorMessage(error), true);
+    }
+  };
+
+  const handleBulkDuplicate = async (campaignIds: string[]) => {
+    try {
+      const results = await Promise.allSettled(
+        campaignIds.map(async (id) => {
+          const response = await apiClient.get<{ campaign: CampaignWithConfigs }>(
+            `/api/campaigns/${id}`
+          );
+          const campaign = response.data?.campaign;
+          if (!campaign) throw new Error(`Campaign ${id} not found`);
+
+          return apiClient.post("/api/campaigns", {
+            ...campaign,
+            name: `${campaign.name} (Copy)`,
+            status: "DRAFT",
+          });
+        })
+      );
+
+      const failed = results.filter(r => r.status === 'rejected').length;
+      if (failed > 0) {
+        showToast(`${failed} of ${campaignIds.length} campaigns failed to duplicate`, true);
+      } else {
+        showToast(`${campaignIds.length} campaign${campaignIds.length !== 1 ? 's' : ''} duplicated successfully`);
+      }
+
+      revalidator.revalidate();
+    } catch (error) {
+      console.error("Failed to duplicate campaigns:", error);
+      showToast(getErrorMessage(error), true);
+    }
+  };
+
   // Page actions
   const primaryAction = {
     content: "Create campaign",
@@ -213,31 +318,21 @@ export default function CampaignsIndexPage() {
         subtitle="Manage your revenue boost campaigns"
         primaryAction={primaryAction}
       >
-        {!setupComplete && (
-          <Banner
-            title="Setup Required"
-            tone="warning"
-            action={{
-              content: "View Setup Status",
-              onAction: () => navigate("/app/setup"),
-            }}
-          >
-            <p>
-              Your app setup is incomplete. The theme extension needs to be enabled for popups to appear on your storefront.
-            </p>
-          </Banner>
-        )}
-        <CampaignList
+        <CampaignIndexTable
           campaigns={campaigns}
           experiments={experiments}
           loading={revalidator.state === "loading"}
-          onCampaignSelect={handleCampaignSelect}
-          onCampaignEdit={handleCampaignEdit}
-          onExperimentSelect={handleExperimentSelect}
-          onExperimentEdit={handleExperimentEdit}
-          onCampaignDelete={handleCampaignDelete}
-          onCampaignDuplicate={handleCampaignDuplicate}
-          onCreateNew={handleCreateNew}
+          onCampaignClick={(id) => navigate(`/app/campaigns/${id}`)}
+          onEditClick={handleCampaignEdit}
+          onExperimentClick={handleExperimentSelect}
+          onDeleteClick={handleCampaignDelete}
+          onDuplicateClick={handleCampaignDuplicate}
+          onBulkActivate={handleBulkActivate}
+          onBulkPause={handleBulkPause}
+          onBulkArchive={handleBulkArchive}
+          onBulkDelete={handleBulkDelete}
+          onBulkDuplicate={handleBulkDuplicate}
+          showMetrics={false}
         />
       </Page>
       {toastMarkup}

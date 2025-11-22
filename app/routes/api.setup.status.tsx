@@ -10,6 +10,7 @@
 import { data, type LoaderFunctionArgs } from "react-router";
 import { authenticate } from "~/shopify.server";
 import prisma from "~/db.server";
+import { getSetupStatus } from "~/lib/setup-status.server";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   try {
@@ -19,106 +20,26 @@ export async function loader({ request }: LoaderFunctionArgs) {
       return data({ error: "No shop session" }, { status: 401 });
     }
 
-    const status = {
-      shop: session.shop,
-      themeExtensionEnabled: false,
-      metafieldSet: false,
-      welcomeCampaignCreated: false,
-      storeCreated: false,
-      appProxyOk: false,
-    };
-
     // Check if store exists
     const store = await prisma.store.findUnique({
       where: { shopifyDomain: session.shop },
     });
 
-    status.storeCreated = !!store;
-
-    // Check if theme extension is enabled
-    const themesQuery = `
-      query {
-        themes(first: 1, query: "role:main") {
-          nodes {
-            id
-            name
-          }
-        }
-      }
-    `;
-
-    const themesResponse = await admin.graphql(themesQuery);
-    const themesData = await themesResponse.json();
-    const themeId = themesData.data?.themes?.nodes?.[0]?.id;
-
-    if (themeId) {
-      // Check if app embed is enabled
-      const appEmbedQuery = `
-        query($themeId: ID!) {
-          appEmbed(themeId: $themeId) {
-            id
-            enabled
-          }
-        }
-      `;
-
-      const appEmbedResponse = await admin.graphql(appEmbedQuery, {
-        variables: { themeId },
-      });
-
-      const appEmbedData = await appEmbedResponse.json();
-      status.themeExtensionEnabled = appEmbedData.data?.appEmbed?.enabled || false;
-    }
-
-    // Check if App Proxy is reachable via storefront path
-    try {
-      const proxyTestUrls = [
-        `https://${session.shop}/apps/revenue-boost/bundles/popup-loader.bundle.js`,
-        `https://${session.shop}/apps/revenue-boost/bundles/newsletter.bundle.js`,
-      ];
-
-      for (const url of proxyTestUrls) {
-        const resp = await fetch(url, { method: "HEAD" });
-        if (resp.ok) {
-          status.appProxyOk = true;
-          break;
-        }
-      }
-    } catch (err) {
-      // leave as false
-    }
-
-    // Check if metafield is set
-    const metafieldQuery = `
-      query {
-        shop {
-          metafield(namespace: "revenue_boost", key: "api_url") {
-            value
-          }
-        }
-      }
-    `;
-
-    const metafieldResponse = await admin.graphql(metafieldQuery);
-    const metafieldData = await metafieldResponse.json();
-    status.metafieldSet = !!metafieldData.data?.shop?.metafield?.value;
-
-    // Check if welcome campaign exists
-    if (store) {
-      const welcomeCampaign = await prisma.campaign.findFirst({
-        where: {
-          storeId: store.id,
-          name: "Welcome Popup",
-        },
-      });
-
-      status.welcomeCampaignCreated = !!welcomeCampaign;
-    }
+    // Get setup status using shared utility
+    const { status: setupStatus, setupComplete } = await getSetupStatus(
+      session.shop,
+      session.accessToken || '',
+      admin
+    );
 
     return data({
       success: true,
-      status,
-      setupComplete: status.themeExtensionEnabled && status.metafieldSet && status.welcomeCampaignCreated,
+      status: {
+        shop: session.shop,
+        storeCreated: !!store,
+        ...setupStatus,
+      },
+      setupComplete,
     });
   } catch (error) {
     console.error("[Setup Status] Error:", error);

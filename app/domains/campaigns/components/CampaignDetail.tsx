@@ -240,11 +240,6 @@ export function CampaignDetail({
       panelID: 'overview-panel',
     },
     {
-      id: 'configuration',
-      content: 'Configuration',
-      panelID: 'configuration-panel',
-    },
-    {
       id: 'metrics',
       content: 'Metrics',
       panelID: 'metrics-panel',
@@ -347,75 +342,6 @@ export function CampaignDetail({
                 <Text variant="bodySm" tone="subdued" as="p">Revenue (gross, attributed)</Text>
               </BlockStack>
             </InlineStack>
-          </BlockStack>
-        </Box>
-      </Card>
-    </BlockStack>
-  );
-
-  // Configuration tab content
-  const configurationContent = (
-    <BlockStack gap="400">
-      {/* Content Configuration */}
-      <Card>
-        <Box padding="400">
-          <BlockStack gap="400">
-            <Text variant="headingMd" as="h3">Content Configuration</Text>
-            <Divider />
-
-            <Box padding="400" background="bg-surface-secondary">
-              <pre style={{ margin: 0, fontFamily: 'monospace', fontSize: '0.875rem' }}>
-                {JSON.stringify(campaign.contentConfig, null, 2)}
-              </pre>
-            </Box>
-          </BlockStack>
-        </Box>
-      </Card>
-
-      {/* Design Configuration */}
-      <Card>
-        <Box padding="400">
-          <BlockStack gap="400">
-            <Text variant="headingMd" as="h3">Design Configuration</Text>
-            <Divider />
-
-            <Box padding="400" background="bg-surface-secondary">
-              <pre style={{ margin: 0, fontFamily: 'monospace', fontSize: '0.875rem' }}>
-                {JSON.stringify(campaign.designConfig, null, 2)}
-              </pre>
-            </Box>
-          </BlockStack>
-        </Box>
-      </Card>
-
-      {/* Targeting Rules */}
-      <Card>
-        <Box padding="400">
-          <BlockStack gap="400">
-            <Text variant="headingMd" as="h3">Targeting Rules</Text>
-            <Divider />
-
-            <Box padding="400" background="bg-surface-secondary">
-              <pre style={{ margin: 0, fontFamily: 'monospace', fontSize: '0.875rem' }}>
-                {JSON.stringify(campaign.targetRules, null, 2)}
-              </pre>
-            </Box>
-          </BlockStack>
-        </Box>
-      </Card>
-
-      {/* Discount Configuration */}
-      <Card>
-        <Box padding="400">
-          <BlockStack gap="400">
-            <Text variant="headingMd" as="h3">Discount Configuration</Text>
-            <Divider />
-
-            <Box padding="400" background="bg-surface-secondary">
-              <pre style={{ margin: 0, fontFamily: 'monospace', fontSize: '0.875rem' }}>
-                {JSON.stringify(campaign.discountConfig, null, 2)}
-              </pre>
-            </Box>
           </BlockStack>
         </Box>
       </Card>
@@ -534,10 +460,8 @@ export function CampaignDetail({
       case 0:
         return overviewContent;
       case 1:
-        return configurationContent;
-      case 2:
         return metricsContent;
-      case 3:
+      case 2:
         return historyContent;
       default:
         return overviewContent;

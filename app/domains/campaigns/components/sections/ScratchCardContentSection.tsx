@@ -6,7 +6,7 @@
  */
 
 import React, { useState, useEffect } from "react";
-import { Card, BlockStack, Text, Divider, Button, InlineStack, Select } from "@shopify/polaris";
+import { Card, BlockStack, Text, Divider, Button, InlineStack, Select, Collapsible, Badge } from "@shopify/polaris";
 import { TextField, FormGrid } from "../form";
 import { GenericDiscountComponent } from "../form/GenericDiscountComponent";
 import type { ScratchCardContentSchema, DiscountConfig } from "../../types/campaign";
@@ -143,6 +143,76 @@ export function ScratchCardContentSection({ content, errors, onChange }: Scratch
     const updated = prizes.filter((_, i) => i !== index);
     setPrizes(updated);
     updateField("prizes", updated);
+  };
+
+  // State for collapsible prizes
+  const [expandedPrizes, setExpandedPrizes] = useState<Record<number, boolean>>({});
+
+  const togglePrize = (index: number) => {
+    setExpandedPrizes((prev) => ({
+      ...prev,
+      [index]: !prev[index],
+    }));
+  };
+
+  // Helper to generate discount summary badge (inspired by WheelSegmentEditor)
+  const getDiscountSummary = (prize: Prize): string | null => {
+    const config = prize.discountConfig;
+    if (!config || !config.enabled) return null;
+
+    const parts: string[] = [];
+
+    // Value type
+    if (config.valueType === "PERCENTAGE" && config.value) {
+      parts.push(`${config.value}%`);
+    } else if (config.valueType === "FIXED_AMOUNT" && config.value) {
+      parts.push(`$${config.value}`);
+    } else if (config.valueType === "FREE_SHIPPING") {
+      parts.push("Free Shipping");
+    }
+
+    // Expiry
+    if (config.expiryDays) {
+      parts.push(`${config.expiryDays}d`);
+    }
+
+    // Delivery mode
+    if (config.deliveryMode === "auto_apply_only") {
+      parts.push("Auto-apply");
+    } else if (config.deliveryMode === "show_code_fallback") {
+      parts.push("Show + Auto-apply");
+    } else if (config.deliveryMode === "show_code_always") {
+      parts.push("Show code");
+    }
+
+    return parts.join(" • ");
+  };
+
+  // Helper to detect mismatch between label and percentage discount value
+  const getLabelDiscountMismatchWarning = (prize: Prize): string | null => {
+    const config = prize.discountConfig;
+
+    // Only validate when a percentage discount is enabled with a numeric value
+    if (!config || !config.enabled || config.valueType !== "PERCENTAGE" || !config.value) {
+      return null;
+    }
+
+    const label = prize.label || "";
+    const match = label.match(/(\d+)\s*%/);
+    if (!match) {
+      return null; // No percentage mentioned in label, nothing to compare
+    }
+
+    const labelPercent = parseInt(match[1], 10);
+    if (Number.isNaN(labelPercent)) {
+      return null;
+    }
+
+    if (labelPercent !== config.value) {
+      return `Label shows "${labelPercent}%" but discount is configured for ${config.value}%. This may confuse customers.`;
+    }
+
+    return null;
   };
 
   return (
@@ -331,65 +401,107 @@ export function ScratchCardContentSection({ content, errors, onChange }: Scratch
           <Divider />
 
           <BlockStack gap="300">
-            {prizes.map((p, i) => (
-              <div
-                key={p.id}
-                style={{
-                  border: "1px solid #e5e7eb",
-                  borderRadius: 8,
-                  padding: "12px 12px 16px",
-                }}
-              >
-                <BlockStack gap="200">
-                  <InlineStack align="space-between" blockAlign="center">
-                    <Text as="h4" variant="headingSm">
-                      Prize {i + 1}
-                    </Text>
-                    <Button
-                      variant="plain"
-                      tone="critical"
-                      onClick={() => removePrize(i)}
+            {prizes.map((p, i) => {
+              const isExpanded = expandedPrizes[i] || false;
+              const discountSummary = getDiscountSummary(p);
+              const mismatchWarning = getLabelDiscountMismatchWarning(p);
+
+              return (
+                <Card key={p.id}>
+                  <BlockStack gap="400">
+                    {/* Prize Header */}
+                    <InlineStack align="space-between" blockAlign="center">
+                      <BlockStack gap="100">
+                        <InlineStack gap="200" blockAlign="center">
+                          <Text as="h4" variant="headingSm">
+                            Prize {i + 1}
+                          </Text>
+                          {discountSummary && (
+                            <Badge tone="success">{discountSummary}</Badge>
+                          )}
+                        </InlineStack>
+                        {p.label && (
+                          <Text as="p" tone="subdued" variant="bodySm">
+                            {p.label}
+                          </Text>
+                        )}
+                      </BlockStack>
+                      <InlineStack gap="200">
+                        <Button
+                          variant="plain"
+                          onClick={() => togglePrize(i)}
+                        >
+                          {isExpanded ? "Collapse" : "Expand"}
+                        </Button>
+                        <Button
+                          variant="plain"
+                          tone="critical"
+                          onClick={() => removePrize(i)}
+                        >
+                          Remove
+                        </Button>
+                      </InlineStack>
+                    </InlineStack>
+
+                    {/* Prize Details - Collapsible */}
+                    <Collapsible
+                      open={isExpanded}
+                      id={`prize-${i}-details`}
+                      transition={{ duration: "200ms", timingFunction: "ease-in-out" }}
                     >
-                      Remove
-                    </Button>
-                  </InlineStack>
+                      <BlockStack gap="400">
+                        <FormGrid columns={2}>
+                          <TextField
+                            label="Label"
+                            name={`prizes.${i}.label`}
+                            value={p.label}
+                            required
+                            placeholder="10% OFF"
+                            helpText="Displayed on the scratch card"
+                            onChange={(v) => updatePrize(i, { label: v })}
+                          />
+                          <TextField
+                            label="Probability"
+                            name={`prizes.${i}.probability`}
+                            value={p.probability.toString()}
+                            required
+                            placeholder="0.25"
+                            helpText="0-1 (e.g., 0.25 = 25% chance)"
+                            onChange={(v) =>
+                              updatePrize(i, {
+                                probability: parseFloat(v) || 0,
+                              })
+                            }
+                          />
+                        </FormGrid>
 
-                  <FormGrid columns={2}>
-                    <TextField
-                      label="Label"
-                      name={`prizes.${i}.label`}
-                      value={p.label}
-                      required
-                      placeholder="10% OFF"
-                      onChange={(v) => updatePrize(i, { label: v })}
-                    />
-                    <TextField
-                      label="Probability (0-1)"
-                      name={`prizes.${i}.probability`}
-                      value={p.probability.toString()}
-                      required
-                      placeholder="0.25"
-                      onChange={(v) =>
-                        updatePrize(i, {
-                          probability: parseFloat(v) || 0,
-                        })
-                      }
-                    />
-                  </FormGrid>
+                        {/* Label vs discount mismatch warning */}
+                        {mismatchWarning && (
+                          <Text as="p" tone="caution" variant="bodySm">
+                            {mismatchWarning}
+                          </Text>
+                        )}
 
-                  <BlockStack gap="300">
-                    <Text as="h5" variant="headingSm">
-                      Discount Configuration
-                    </Text>
-                    <GenericDiscountComponent
-                      goal="INCREASE_REVENUE"
-                      discountConfig={p.discountConfig as DiscountConfig | undefined}
-                      onConfigChange={(config) => updatePrize(i, { discountConfig: config })}
-                    />
+                        {/* Discount Configuration */}
+                        <BlockStack gap="300">
+                          <Text as="h5" variant="headingSm">
+                            Discount Configuration
+                          </Text>
+                          <Text as="p" tone="subdued" variant="bodySm">
+                            Configure the discount that will be generated when this prize wins
+                          </Text>
+                          <GenericDiscountComponent
+                            goal="INCREASE_REVENUE"
+                            discountConfig={p.discountConfig as DiscountConfig | undefined}
+                            onConfigChange={(config) => updatePrize(i, { discountConfig: config })}
+                          />
+                        </BlockStack>
+                      </BlockStack>
+                    </Collapsible>
                   </BlockStack>
-                </BlockStack>
-              </div>
-            ))}
+                </Card>
+              );
+            })}
 
             <InlineStack>
               <Button onClick={addPrize}>Add prize</Button>

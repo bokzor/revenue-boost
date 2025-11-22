@@ -216,7 +216,7 @@ export function WheelSegmentEditor({
 
                                     {/* Label vs discount mismatch warning */}
                                     {getLabelDiscountMismatchWarning(segment) && (
-                                        <Text as="p" tone="warning" variant="bodySm">
+                                        <Text as="p" tone="caution" variant="bodySm">
                                             {getLabelDiscountMismatchWarning(segment)}
                                         </Text>
                                     )}

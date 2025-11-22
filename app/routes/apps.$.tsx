@@ -95,6 +95,41 @@ export async function action({ request, params }: LoaderFunctionArgs) {
       const { action: apiAction } = await import("./apps.revenue-boost.api.social-proof.track");
       return apiAction({ request, params } as LoaderFunctionArgs);
     }
+
+    if (path === "api/popups/scratch-card") {
+      const { action: apiAction } = await import("./apps.revenue-boost.api.popups.scratch-card");
+      return apiAction({ request, params } as LoaderFunctionArgs);
+    }
+
+    if (path === "api/popups/spin-win") {
+      const { action: apiAction } = await import("./apps.revenue-boost.api.popups.spin-win");
+      return apiAction({ request, params } as LoaderFunctionArgs);
+    }
+
+    if (path === "api/leads/submit") {
+      const { action: apiAction } = await import("./apps.revenue-boost.api.leads.submit");
+      return apiAction({ request, params } as LoaderFunctionArgs);
+    }
+
+    if (path === "api/discounts/issue") {
+      const { action: apiAction } = await import("./apps.revenue-boost.api.discounts.issue");
+      return apiAction({ request, params } as LoaderFunctionArgs);
+    }
+
+    if (path === "api/cart/email-recovery") {
+      const { action: apiAction } = await import("./apps.revenue-boost.api.cart.email-recovery");
+      return apiAction({ request, params } as LoaderFunctionArgs);
+    }
+
+    if (path === "api/analytics/track") {
+      const { action: apiAction } = await import("./apps.revenue-boost.api.analytics.track");
+      return apiAction({ request, params } as LoaderFunctionArgs);
+    }
+
+    if (path === "api/challenge/request") {
+      const { action: apiAction } = await import("./apps.revenue-boost.api.challenge.request");
+      return apiAction({ request, params } as LoaderFunctionArgs);
+    }
   }
 
   return data({ error: "Not found" }, { status: 404 });
