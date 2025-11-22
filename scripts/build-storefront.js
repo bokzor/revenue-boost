@@ -3,6 +3,15 @@
 /**
  * Build script for Revenue Boost storefront extension
  * Compiles main bundle + separate popup bundles with Preact
+ *
+ * Build modes:
+ * - production (default): Minified, no console.log, optimized
+ * - development: Not minified, console.log kept, sourcemaps enabled
+ *
+ * Usage:
+ *   npm run build:storefront          # Production build
+ *   npm run build:storefront:dev      # Development build
+ *   BUILD_MODE=development node scripts/build-storefront.js
  */
 
 import * as esbuild from "esbuild";
@@ -17,6 +26,17 @@ const rootDir = join(__dirname, "..");
 const srcDir = join(rootDir, "extensions", "storefront-src");
 const extensionDir = join(rootDir, "extensions", "storefront-popup");
 const assetsDir = join(extensionDir, "assets");
+
+// Detect build mode from environment variable
+const BUILD_MODE = process.env.BUILD_MODE || 'production';
+const isDevelopment = BUILD_MODE === 'development';
+
+console.log(`\n🔧 Build Mode: ${BUILD_MODE.toUpperCase()}`);
+if (isDevelopment) {
+  console.log('   ⚠️  Development build: console.log kept, no minification, sourcemaps enabled\n');
+} else {
+  console.log('   ✅ Production build: minified, console.log removed, optimized\n');
+}
 
 // Popup bundles to build (matches TemplateType enum)
 const popupBundles = [
@@ -259,8 +279,8 @@ async function build() {
       bundle: true,
       format: "iife",
       target: "es2020",
-      minify: true, // Minification activée pour réduire la taille
-      sourcemap: false, // Disable sourcemaps to avoid .map files in Shopify extension assets
+      minify: !isDevelopment, // Minification seulement en production
+      sourcemap: isDevelopment, // Sourcemaps seulement en dev
       platform: "browser",
       logLevel: "info",
       loader: { ".ts": "ts", ".tsx": "tsx" },
@@ -268,11 +288,11 @@ async function build() {
       jsxImportSource: "preact",
       plugins: [aliasPreactPlugin],
       define: {
-        "process.env.NODE_ENV": '"production"', // Mode production pour optimisations
+        "process.env.NODE_ENV": isDevelopment ? '"development"' : '"production"',
         global: "window",
       },
-      treeShaking: true, // Activer le tree-shaking pour supprimer le code mort
-      drop: ['console', 'debugger'], // Supprimer les console.log et debugger en production
+      treeShaking: !isDevelopment, // Tree-shaking seulement en production
+      drop: isDevelopment ? [] : ['console', 'debugger'], // Garder console.log en dev
     };
 
     // Build main bundle

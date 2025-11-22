@@ -76,6 +76,16 @@ This template comes pre-configured with examples of:
 
 Please read the [documentation for @shopify/shopify-app-react-router](https://shopify.dev/docs/api/shopify-app-react-router) to see what other API's are available.
 
+## Privacy & GDPR Compliance
+
+This app implements full support for Shopify's mandatory privacy webhooks to comply with GDPR and other data protection regulations:
+
+- **`customers/data_request`** - Compiles all customer data when requested
+- **`customers/redact`** - Anonymizes customer PII upon deletion request
+- **`shop/redact`** - Deletes all shop data 48 hours after uninstallation
+
+All privacy handlers are idempotent and fully tested. For detailed information about what data is collected, how it's anonymized, and the complete privacy implementation, see [docs/PRIVACY_WEBHOOKS.md](docs/PRIVACY_WEBHOOKS.md).
+
 ## Shopify Dev MCP
 
 This template is configured with the Shopify Dev MCP. This instructs [Cursor](https://cursor.com/), [GitHub Copilot](https://github.com/features/copilot) and [Claude Code](https://claude.com/product/claude-code) and [Google Gemini CLI](https://github.com/google-gemini/gemini-cli) to use the Shopify Dev MCP.  

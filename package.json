@@ -4,7 +4,7 @@
   "scripts": {
     "build": "react-router build",
     "predev": "node scripts/clear-redis.mjs",
-    "dev": "npm run build:storefront && shopify app dev",
+    "dev": "npm run build:storefront:dev && shopify app dev",
     "config:link": "shopify app config link",
     "generate": "shopify app generate",
     "deploy": "shopify app deploy",
@@ -30,7 +30,8 @@
     "test:e2e:admin": "playwright test --project=admin",
     "test:e2e:storefront": "playwright test --project=storefront",
     "dev:test": "NODE_ENV=test DATABASE_URL='postgresql://postgres:postgres@localhost:5432/revenue-boost-test' react-router dev --port=56687",
-    "build:storefront": "node scripts/build-storefront.js"
+    "build:storefront": "node scripts/build-storefront.js",
+    "build:storefront:dev": "BUILD_MODE=development node scripts/build-storefront.js"
   },
   "type": "module",
   "engines": {

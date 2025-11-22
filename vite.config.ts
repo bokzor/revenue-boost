@@ -2,6 +2,9 @@ import { reactRouter } from "@react-router/dev/vite";
 import { defineConfig, type UserConfig } from "vite";
 import tsconfigPaths from "vite-tsconfig-paths";
 
+// Detect build mode
+const isDevelopment = process.env.NODE_ENV === 'development' || process.env.BUILD_MODE === 'development';
+
 // Related: https://github.com/remix-run/remix/issues/2835#issuecomment-1144102176
 // Replace the HOST env var with SHOPIFY_APP_URL so that it doesn't break the Vite server.
 // The CLI will eventually stop passing in HOST,
@@ -54,8 +57,11 @@ export default defineConfig({
   ],
   build: {
     assetsInlineLimit: 0,
-    sourcemap: true,
-    minify: false,
+    sourcemap: isDevelopment, // Sourcemaps seulement en dev
+    minify: isDevelopment ? false : 'esbuild', // Minification seulement en production
+    target: 'es2020',
+    cssMinify: !isDevelopment, // Minifier le CSS seulement en production
+    reportCompressedSize: true, // Désactiver le rapport de taille pour accélérer le build
   },
   optimizeDeps: {
     include: ["@shopify/app-bridge-react"],

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useId } from '../../hooks/useId';
 
 export interface PopupInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
@@ -17,7 +18,7 @@ export const PopupInput: React.FC<PopupInputProps> = ({
   'data-testid': testId,
   ...rest
 }) => {
-  const uniqueId = React.useId();
+  const uniqueId = useId();
   const generatedId = id || uniqueId;
 
   const containerStyles: React.CSSProperties = {

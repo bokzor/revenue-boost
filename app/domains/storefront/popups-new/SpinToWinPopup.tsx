@@ -17,6 +17,7 @@ import type { PopupDesignConfig, Prize } from './types';
 import type { SpinToWinContent } from '~/domains/campaigns/types/campaign';
 import { validateEmail, prefersReducedMotion, debounce } from './utils';
 import { challengeTokenStore } from '~/domains/storefront/services/challenge-token.client';
+import { useId } from './hooks/useId';
 
 /**
  * SpinToWinConfig - Extends both design config AND campaign content type
@@ -53,7 +54,7 @@ export interface SpinToWinPopupProps {
 	  const [nameError, setNameError] = useState('');
 	  const [gdprConsent, setGdprConsent] = useState(false);
 	  const [gdprError, setGdprError] = useState('');
-	  const gdprCheckboxId = React.useId();
+	  const gdprCheckboxId = useId();
 	  const [hasSpun, setHasSpun] = useState(false);
 	  const [isSpinning, setIsSpinning] = useState(false);
 	  const [isGeneratingCode, setIsGeneratingCode] = useState(false);
