@@ -9,7 +9,7 @@ import { useState, useEffect } from "preact/hooks";
 import { ComponentLoader, type TemplateType } from "./component-loader";
 import type { ApiClient } from "./api";
 import { session } from "./session";
-import { requestChallengeToken, challengeTokenStore } from "~/domains/storefront/services/challenge-token.client";
+import { requestChallengeToken, challengeTokenStore } from "./challenge-token";
 import { executeHooksForCampaign, clearCampaignCache } from "./hooks";
 
 export interface StorefrontCampaign {

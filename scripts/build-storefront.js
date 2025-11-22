@@ -76,6 +76,14 @@ async function build() {
             resolveDir: args.resolveDir,
           });
         });
+        // Alias ~ to app directory (for imports like ~/domains/...)
+        build.onResolve({ filter: /^~\// }, (args) => {
+          const path = args.path.replace(/^~\//, "");
+          return build.resolve(join(rootDir, "app", path), {
+            kind: args.kind,
+            resolveDir: args.resolveDir,
+          });
+        });
       },
     };
 
@@ -107,6 +115,15 @@ async function build() {
 
         build.onResolve({ filter: /^preact\/jsx-runtime$/ }, () => {
           return { path: "global-preact:preact/jsx-runtime", namespace: "global-preact" };
+        });
+
+        // Alias ~ to app directory (for imports like ~/domains/...)
+        build.onResolve({ filter: /^~\// }, (args) => {
+          const path = args.path.replace(/^~\//, "");
+          return build.resolve(join(rootDir, "app", path), {
+            kind: args.kind,
+            resolveDir: args.resolveDir,
+          });
         });
 
         // Provide the global Preact shims

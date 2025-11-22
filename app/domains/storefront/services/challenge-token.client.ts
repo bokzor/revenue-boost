@@ -98,4 +98,16 @@ class ChallengeTokenStore {
     }
 }
 
-export const challengeTokenStore = new ChallengeTokenStore();
+/**
+ * Get the challenge token store instance.
+ * In storefront context (popup bundles), use the global instance from main bundle.
+ * In app context (preview, admin), create a local instance.
+ */
+function getChallengeTokenStore(): ChallengeTokenStore {
+    if (typeof window !== 'undefined' && (window as any).__RB_CHALLENGE_TOKEN_STORE) {
+        return (window as any).__RB_CHALLENGE_TOKEN_STORE;
+    }
+    return new ChallengeTokenStore();
+}
+
+export const challengeTokenStore = getChallengeTokenStore();

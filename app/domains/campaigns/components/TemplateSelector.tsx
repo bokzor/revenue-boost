@@ -208,8 +208,8 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
         selectedTemplateName={selectedTemplate?.name}
       />
 
-      {/* Template Grid */}
-      <InlineGrid columns={{ xs: 1, sm: 2, md: 3 }} gap="400">
+      {/* Template Grid - Responsive: 1 col on mobile, 2 on tablet, 3 on desktop */}
+      <InlineGrid columns={{ xs: 1, sm: 1, md: 2, lg: 3 }} gap="400">
         {processedTemplates.map(({ originalTemplate, processedTemplate }) => (
           <TemplateCard
             key={originalTemplate.id}

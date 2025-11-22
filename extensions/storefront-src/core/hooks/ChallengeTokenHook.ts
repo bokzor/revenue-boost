@@ -6,7 +6,7 @@
  */
 
 import type { PreDisplayHook, PreDisplayHookContext, PreDisplayHookResult } from '../PreDisplayHook';
-import { requestChallengeToken, challengeTokenStore } from '~/domains/storefront/services/challenge-token.client';
+import { requestChallengeToken, challengeTokenStore } from '../challenge-token';
 
 export class ChallengeTokenHook implements PreDisplayHook {
     readonly name = 'challengeToken';

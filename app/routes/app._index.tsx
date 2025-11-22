@@ -307,7 +307,7 @@ export default function Dashboard() {
           <Layout.Section>
             <Text as="h2" variant="headingMd">Quick Start Templates</Text>
             <Box paddingBlockStart="400">
-              <InlineGrid columns={{ xs: 1, sm: 3 }} gap="400">
+              <InlineGrid columns={{ xs: 1, sm: 1, md: 2, lg: 3 }} gap="400">
                 <TemplateTile
                   title="Newsletter Signup"
                   description="Grow your email list with a classic popup."
@@ -495,7 +495,7 @@ export default function Dashboard() {
         <Layout.Section>
           <Text as="h2" variant="headingMd">Start a new campaign</Text>
           <Box paddingBlockStart="400">
-            <InlineGrid columns={{ xs: 1, sm: 3 }} gap="400">
+            <InlineGrid columns={{ xs: 1, sm: 1, md: 2, lg: 3 }} gap="400">
               <TemplateTile
                 title="Newsletter Signup"
                 description="Grow your email list with a classic popup."
