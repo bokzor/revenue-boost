@@ -420,7 +420,7 @@ export default function ExperimentDetailPage() {
     <Page
       title={experiment.name}
       subtitle={experiment.description || "A/B Testing Experiment"}
-      backAction={{ onAction: () => navigate("/app/campaigns") }}
+      backAction={{ onAction: () => navigate("/app") }}
       titleMetadata={<Badge {...statusBadge} />}
       primaryAction={{
         content: "Edit Experiment",

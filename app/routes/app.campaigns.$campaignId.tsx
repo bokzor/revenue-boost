@@ -173,7 +173,7 @@ export default function CampaignDetailPage() {
 
   // Event handlers
   const handleBack = () => {
-    navigate("/app/campaigns");
+    navigate("/app");
   };
 
   const handleEdit = () => {
@@ -237,8 +237,8 @@ export default function CampaignDetailPage() {
 
       showToast("Campaign deleted successfully");
 
-      // Navigate back to campaigns list
-      navigate("/app/campaigns");
+      // Navigate back to dashboard
+      navigate("/app");
 
     } catch (error) {
       console.error("Failed to delete campaign:", error);

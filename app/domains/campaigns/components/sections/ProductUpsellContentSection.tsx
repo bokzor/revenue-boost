@@ -7,9 +7,10 @@
 
 import { useEffect, useState } from "react";
 import type { KeyboardEvent } from "react";
-import { Card, BlockStack, Text, Divider, Select, Button, Collapsible, InlineStack } from "@shopify/polaris";
+import { Card, BlockStack, Text, Divider, Select, Button, Collapsible, InlineStack, Banner } from "@shopify/polaris";
 import { ChevronDownIcon, ChevronUpIcon } from "@shopify/polaris-icons";
 import { TextField, CheckboxField, FormGrid } from "../form";
+import { ProductPicker, type ProductPickerSelection } from "../form/ProductPicker";
 import { useFieldUpdater } from "~/shared/hooks/useFieldUpdater";
 import type { ProductUpsellContent } from "../../types/campaign";
 
@@ -96,6 +97,27 @@ export function ProductUpsellContentSection({
             Configure which products to show and how the upsell looks.
           </Text>
         </BlockStack>
+
+        {/* Informational Banner about Trigger Products */}
+        <Banner tone="info">
+          <BlockStack gap="200">
+            <Text as="p" variant="bodyMd">
+              <strong>Tip:</strong> The products selected below are the <strong>suggested products</strong> (what you want to upsell).
+            </Text>
+            <Text as="p" variant="bodyMd">
+              To show this upsell only when <strong>specific products are added to cart or viewed</strong> (trigger products),
+              configure them in the <strong>Targeting & Triggers</strong> step:
+            </Text>
+            <BlockStack gap="100">
+              <Text as="p" variant="bodySm" tone="subdued">
+                • For "Post-Add Upsell": Enable <strong>Add to Cart</strong> trigger and select trigger products
+              </Text>
+              <Text as="p" variant="bodySm" tone="subdued">
+                • For "Product Page Cross-Sell": Enable <strong>Product View</strong> trigger and select trigger products
+              </Text>
+            </BlockStack>
+          </BlockStack>
+        </Banner>
 
         <Divider />
 
@@ -204,30 +226,30 @@ export function ProductUpsellContentSection({
                 />
 
                 {selectionMethod === "manual" && (
-                  <TextField
-                    label="Product IDs (comma separated)"
-                    name="content.selectedProducts"
-                    value={(content.selectedProducts || []).join(", ")}
-                    placeholder="gid://shopify/Product/123, gid://shopify/Product/456"
-                    helpText="Enter Shopify product IDs or GIDs to feature in this upsell."
-                    onChange={(value) => {
-                      const ids = value
-                        .split(/[ ,]+/)
-                        .map((id) => id.trim())
-                        .filter(Boolean);
-                      updateField("selectedProducts", ids);
+                  <ProductPicker
+                    mode="product"
+                    selectionType="multiple"
+                    selectedIds={content.selectedProducts || []}
+                    onSelect={(selections: ProductPickerSelection[]) => {
+                      const productIds = selections.map((s) => s.id);
+                      updateField("selectedProducts", productIds);
                     }}
+                    buttonLabel="Select products to feature"
+                    showSelected={true}
                   />
                 )}
 
                 {selectionMethod === "collection" && (
-                  <TextField
-                    label="Collection ID or handle"
-                    name="content.selectedCollection"
-                    value={content.selectedCollection || ""}
-                    placeholder="gid://shopify/Collection/123 or collection-handle"
-                    helpText="Products will be pulled from this collection."
-                    onChange={(value) => updateField("selectedCollection", value)}
+                  <ProductPicker
+                    mode="collection"
+                    selectionType="single"
+                    selectedIds={content.selectedCollection ? [content.selectedCollection] : []}
+                    onSelect={(selections: ProductPickerSelection[]) => {
+                      const collectionId = selections[0]?.id || "";
+                      updateField("selectedCollection", collectionId);
+                    }}
+                    buttonLabel="Select collection"
+                    showSelected={true}
                   />
                 )}
 

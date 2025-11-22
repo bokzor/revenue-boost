@@ -32,10 +32,29 @@ export async function loader({ request }: LoaderFunctionArgs) {
     const url = new URL(request.url);
     const templateParam = url.searchParams.get("template");
 
+    // If template is provided, look up its associated goal
+    let preselectedGoal: string | undefined;
+    if (templateParam) {
+      // Import template data to find the goal
+      const { GLOBAL_SYSTEM_TEMPLATES } = await import("~/../../prisma/template-data");
+      const template = GLOBAL_SYSTEM_TEMPLATES.find(
+        (t) => t.templateType === templateParam
+      );
+
+      // If template has exactly one goal, preselect it
+      if (template && template.goals && template.goals.length === 1) {
+        preselectedGoal = template.goals[0];
+      } else if (template && template.goals && template.goals.length > 1) {
+        // For templates with multiple goals, pick the first one
+        preselectedGoal = template.goals[0];
+      }
+    }
+
     return data({
       storeId,
       shopDomain: session.shop,
       templateType: templateParam || undefined,
+      preselectedGoal,
       success: true,
     });
   } catch (error) {
@@ -74,11 +93,12 @@ export default function NewCampaign() {
   const [activating, setActivating] = useState(false);
 
 
-  const { storeId, shopDomain, templates, templateType } = loaderData as {
+  const { storeId, shopDomain, templates, templateType, preselectedGoal } = loaderData as {
     storeId: string;
     shopDomain: string;
     templates: UnifiedTemplate[];
     templateType?: string;
+    preselectedGoal?: string;
     success: boolean;
   };
 
@@ -305,7 +325,14 @@ export default function NewCampaign() {
         onSave={handleSave}
         onCancel={handleCancel}
         initialTemplates={templates}
-        initialData={templateType ? { templateType: templateType as any } : undefined}
+        initialData={
+          templateType || preselectedGoal
+            ? {
+                templateType: templateType as any,
+                goal: preselectedGoal as any,
+              }
+            : undefined
+        }
 	      />
 
 	      <Modal

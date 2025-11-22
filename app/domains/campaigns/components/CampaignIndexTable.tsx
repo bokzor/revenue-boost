@@ -25,6 +25,7 @@ import {
   TextField,
   Banner,
   Icon,
+  Pagination,
   type IndexTableProps,
 } from '@shopify/polaris';
 import { ChevronDownIcon, ChevronRightIcon } from '@shopify/polaris-icons';
@@ -114,6 +115,10 @@ export function CampaignIndexTable({
   // State for expanded experiments
   const [expandedExperiments, setExpandedExperiments] = useState<Set<string>>(new Set());
 
+  // State for pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20; // Show 20 top-level items per page
+
   const toggleExperiment = (experimentId: string) => {
     setExpandedExperiments(prev => {
       const next = new Set(prev);
@@ -186,7 +191,25 @@ export function CampaignIndexTable({
     return { experimentGroups: groups, standaloneCampaigns: standalone };
   }, [filteredCampaigns, experimentNameById]);
 
-  // Flatten for IndexTable: experiment groups as parent rows, variants when expanded, then standalone campaigns
+  // Build top-level items for pagination (experiments and standalone campaigns)
+  const topLevelItems = useMemo(() => {
+    return [
+      ...experimentGroups.map(g => ({ type: 'experiment' as const, data: g })),
+      ...standaloneCampaigns.map(c => ({ type: 'campaign' as const, data: c })),
+    ];
+  }, [experimentGroups, standaloneCampaigns]);
+
+  // Calculate pagination
+  const totalPages = Math.ceil(topLevelItems.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedTopLevelItems = topLevelItems.slice(startIndex, startIndex + itemsPerPage);
+
+  // Reset to page 1 when filters change
+  useMemo(() => {
+    setCurrentPage(1);
+  }, [statusFilter]);
+
+  // Flatten for IndexTable: paginated top-level items with their expanded variants
   const tableRows = useMemo(() => {
     const rows: Array<{
       id: string;
@@ -195,30 +218,30 @@ export function CampaignIndexTable({
       parentExperimentId?: string;
     }> = [];
 
-    // Add experiment groups and their variants (if expanded)
-    for (const group of experimentGroups) {
-      rows.push({ id: group.experimentId, type: 'experiment', data: group });
+    for (const item of paginatedTopLevelItems) {
+      if (item.type === 'experiment') {
+        const group = item.data as ExperimentGroup;
+        rows.push({ id: group.experimentId, type: 'experiment', data: group });
 
-      // If this experiment is expanded, add its variant campaigns
-      if (expandedExperiments.has(group.experimentId)) {
-        for (const variant of group.variants) {
-          rows.push({
-            id: variant.id,
-            type: 'variant',
-            data: variant,
-            parentExperimentId: group.experimentId,
-          });
+        // If this experiment is expanded, add its variant campaigns
+        if (expandedExperiments.has(group.experimentId)) {
+          for (const variant of group.variants) {
+            rows.push({
+              id: variant.id,
+              type: 'variant',
+              data: variant,
+              parentExperimentId: group.experimentId,
+            });
+          }
         }
+      } else {
+        const campaign = item.data as CampaignRow;
+        rows.push({ id: campaign.id, type: 'campaign', data: campaign });
       }
     }
 
-    // Add standalone campaigns
-    for (const campaign of standaloneCampaigns) {
-      rows.push({ id: campaign.id, type: 'campaign', data: campaign });
-    }
-
     return rows;
-  }, [experimentGroups, standaloneCampaigns, expandedExperiments]);
+  }, [paginatedTopLevelItems, expandedExperiments]);
 
   // Resource state for checkboxes
   const resourceName = {
@@ -816,6 +839,21 @@ export function CampaignIndexTable({
           }
         })}
       </IndexTable>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <Box padding="400" borderBlockStartWidth="025" borderColor="border">
+          <InlineStack align="center">
+            <Pagination
+              hasPrevious={currentPage > 1}
+              onPrevious={() => setCurrentPage(currentPage - 1)}
+              hasNext={currentPage < totalPages}
+              onNext={() => setCurrentPage(currentPage + 1)}
+              label={`Page ${currentPage} of ${totalPages} (${topLevelItems.length} total items)`}
+            />
+          </InlineStack>
+        </Box>
+      )}
     </Card>
 
     {/* Delete Confirmation Modal */}

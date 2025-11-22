@@ -169,7 +169,7 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
         console.warn("[TemplateSelector] No template found for type:", preselectedTemplateType);
       }
     }
-  }, [preselectedTemplateType, hasAutoSelected, templates, selectedTemplateId]);
+  }, [preselectedTemplateType, hasAutoSelected, templates, selectedTemplateId, handleTemplateClick]);
 
   // Use extracted processing utility
   const processedTemplates = useMemo(() => {
