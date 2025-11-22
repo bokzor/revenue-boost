@@ -29,6 +29,7 @@ env:
 
 jobs:
   test:
+    name: Unit Tests
     if: ${{ !inputs.skip_tests }}
     runs-on: ubuntu-latest
     environment: staging
@@ -45,8 +46,10 @@ jobs:
       - name: 🔧 Install dependencies
         run: npm ci
 
-      - name: 🧪 Run tests
-        run: npm run test --if-present
+      - name: 🧪 Run unit tests
+        run: npm run test:run
+        env:
+          NODE_ENV: test
 
       - name: 🔍 Type check
         run: npm run typecheck
@@ -54,9 +57,65 @@ jobs:
       - name: 🎨 Lint code
         run: npm run lint --if-present
 
+  integration-test:
+    name: Integration Tests
+    if: ${{ !inputs.skip_tests }}
+    runs-on: ubuntu-latest
+    environment: staging
+
+    # PostgreSQL service container
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: revenue_boost_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      - name: 🔧 Install dependencies
+        run: npm ci
+
+      - name: 🗄️ Setup database
+        run: npx prisma migrate deploy
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/revenue_boost_test
+
+      - name: 🌱 Generate Prisma Client
+        run: npx prisma generate
+
+      - name: 🧪 Run integration tests
+        run: npx vitest run -c vitest.integration.config.ts
+        env:
+          NODE_ENV: test
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/revenue_boost_test
+          SHOPIFY_API_KEY: test_api_key_12345
+          SHOPIFY_API_SECRET: test_api_secret_12345
+          SCOPES: write_products,write_customers,read_orders,write_script_tags,read_themes,write_discounts
+          SESSION_SECRET: test_session_secret_minimum_32_chars_long_for_validation
+          INTERNAL_API_SECRET: test_internal_api_secret_minimum_32_chars_long_validation
+          SHOPIFY_APP_URL: http://localhost:3000
+
   deploy:
-    needs: [test]
-    if: always() && (needs.test.result == 'success' || needs.test.result == 'skipped')
+    name: Deploy to Staging
+    needs: [test, integration-test]
+    if: always() && (needs.test.result == 'success' || needs.test.result == 'skipped') && (needs.integration-test.result == 'success' || needs.integration-test.result == 'skipped')
     runs-on: ubuntu-latest
     environment: staging
     permissions:
