@@ -24,8 +24,10 @@ import {
   Modal,
   TextField,
   Banner,
+  Icon,
   type IndexTableProps,
 } from '@shopify/polaris';
+import { ChevronDownIcon, ChevronRightIcon } from '@shopify/polaris-icons';
 import type { CampaignWithConfigs, CampaignStatus } from '~/domains/campaigns/types/campaign';
 import type { ExperimentWithVariants } from '~/domains/campaigns/types/experiment';
 
@@ -109,6 +111,21 @@ export function CampaignIndexTable({
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [bulkActionError, setBulkActionError] = useState<string | null>(null);
 
+  // State for expanded experiments
+  const [expandedExperiments, setExpandedExperiments] = useState<Set<string>>(new Set());
+
+  const toggleExperiment = (experimentId: string) => {
+    setExpandedExperiments(prev => {
+      const next = new Set(prev);
+      if (next.has(experimentId)) {
+        next.delete(experimentId);
+      } else {
+        next.add(experimentId);
+      }
+      return next;
+    });
+  };
+
   // Map experiment IDs to names
   const experimentNameById = useMemo(() => {
     const map = new Map<string, string>();
@@ -169,13 +186,30 @@ export function CampaignIndexTable({
     return { experimentGroups: groups, standaloneCampaigns: standalone };
   }, [filteredCampaigns, experimentNameById]);
 
-  // Flatten for IndexTable: experiment groups as parent rows, then standalone campaigns
+  // Flatten for IndexTable: experiment groups as parent rows, variants when expanded, then standalone campaigns
   const tableRows = useMemo(() => {
-    const rows: Array<{ id: string; type: 'experiment' | 'campaign'; data: ExperimentGroup | CampaignRow }> = [];
+    const rows: Array<{
+      id: string;
+      type: 'experiment' | 'campaign' | 'variant';
+      data: ExperimentGroup | CampaignRow;
+      parentExperimentId?: string;
+    }> = [];
 
-    // Add experiment groups
+    // Add experiment groups and their variants (if expanded)
     for (const group of experimentGroups) {
       rows.push({ id: group.experimentId, type: 'experiment', data: group });
+
+      // If this experiment is expanded, add its variant campaigns
+      if (expandedExperiments.has(group.experimentId)) {
+        for (const variant of group.variants) {
+          rows.push({
+            id: variant.id,
+            type: 'variant',
+            data: variant,
+            parentExperimentId: group.experimentId,
+          });
+        }
+      }
     }
 
     // Add standalone campaigns
@@ -184,7 +218,7 @@ export function CampaignIndexTable({
     }
 
     return rows;
-  }, [experimentGroups, standaloneCampaigns]);
+  }, [experimentGroups, standaloneCampaigns, expandedExperiments]);
 
   // Resource state for checkboxes
   const resourceName = {
@@ -526,20 +560,37 @@ export function CampaignIndexTable({
                 position={index}
               >
                 <IndexTable.Cell>
-                  <div
-                    onClick={(e: React.MouseEvent) => {
-                      e.stopPropagation();
-                      onExperimentClick?.(group.experimentId);
-                    }}
-                    style={{ cursor: onExperimentClick ? 'pointer' : 'default' }}
-                  >
-                    <Text as="span" fontWeight="bold">{group.experimentName}</Text>
-                    <Box>
-                      <Text as="span" tone="subdued" variant="bodySm">
-                        A/B Test ({group.variants.length} variants)
-                      </Text>
-                    </Box>
-                  </div>
+                  <InlineStack gap="200" blockAlign="center">
+                    {/* Expand/Collapse Icon */}
+                    <div
+                      onClick={(e: React.MouseEvent) => {
+                        e.stopPropagation();
+                        toggleExperiment(group.experimentId);
+                      }}
+                      style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                    >
+                      <Icon
+                        source={expandedExperiments.has(group.experimentId) ? ChevronDownIcon : ChevronRightIcon}
+                        tone="base"
+                      />
+                    </div>
+
+                    {/* Experiment Name */}
+                    <div
+                      onClick={(e: React.MouseEvent) => {
+                        e.stopPropagation();
+                        onExperimentClick?.(group.experimentId);
+                      }}
+                      style={{ cursor: onExperimentClick ? 'pointer' : 'default', flex: 1 }}
+                    >
+                      <Text as="span" fontWeight="bold">{group.experimentName}</Text>
+                      <Box>
+                        <Text as="span" tone="subdued" variant="bodySm">
+                          A/B Test ({group.variants.length} variants)
+                        </Text>
+                      </Box>
+                    </div>
+                  </InlineStack>
                 </IndexTable.Cell>
                 <IndexTable.Cell>
                   <Badge {...statusBadge} />
@@ -586,8 +637,101 @@ export function CampaignIndexTable({
                 </IndexTable.Cell>
               </IndexTable.Row>
             );
+          } else if (row.type === 'variant') {
+            // Variant campaign row (nested under experiment)
+            const campaign = row.data as CampaignRow;
+            const { id, name, status, templateType, goal, views, conversions, revenue, variantKey, isControl } = campaign;
+            const statusBadge = getStatusBadge(status);
+            const conversionRate = views && views > 0 ? ((conversions || 0) / views) * 100 : 0;
+
+            return (
+              <IndexTable.Row
+                id={id}
+                key={id}
+                selected={selectedResources.includes(id)}
+                position={index}
+                tone="subdued"
+              >
+                <IndexTable.Cell>
+                  <Box paddingInlineStart="800">
+                    <InlineStack gap="200" blockAlign="center">
+                      <div
+                        onClick={(e: React.MouseEvent) => {
+                          e.stopPropagation();
+                          onCampaignClick?.(id);
+                        }}
+                        style={{ cursor: onCampaignClick ? 'pointer' : 'default', flex: 1 }}
+                      >
+                        <InlineStack gap="200" blockAlign="center">
+                          <Badge tone={isControl ? 'info' : 'attention'} size="small">
+                            {isControl ? 'Control' : `Variant ${variantKey}`}
+                          </Badge>
+                          <Text as="span">{name}</Text>
+                        </InlineStack>
+                        <Box paddingBlockStart="100">
+                          <Text as="span" tone="subdued" variant="bodySm">
+                            {templateType.replace(/_/g, ' ')}
+                          </Text>
+                        </Box>
+                      </div>
+                    </InlineStack>
+                  </Box>
+                </IndexTable.Cell>
+                <IndexTable.Cell>
+                  <Badge {...statusBadge} />
+                </IndexTable.Cell>
+                <IndexTable.Cell>{goal.replace(/_/g, ' ')}</IndexTable.Cell>
+                {showMetrics ? (
+                  <>
+                    <IndexTable.Cell>{(views || 0).toLocaleString()}</IndexTable.Cell>
+                    <IndexTable.Cell>{(conversions || 0).toLocaleString()}</IndexTable.Cell>
+                    <IndexTable.Cell>{conversionRate.toFixed(1)}%</IndexTable.Cell>
+                    <IndexTable.Cell>{formatMoney(revenue || 0)}</IndexTable.Cell>
+                  </>
+                ) : (
+                  <IndexTable.Cell>{templateType.replace(/_/g, ' ')}</IndexTable.Cell>
+                )}
+                <IndexTable.Cell>
+                  <div onClick={(e: React.MouseEvent) => e.stopPropagation()}>
+                    <InlineStack gap="200">
+                      <Button
+                        size="micro"
+                        onClick={() => onEditClick?.(id)}
+                      >
+                        Edit
+                      </Button>
+                      {onToggleStatus && (
+                        <Button
+                          size="micro"
+                          onClick={() => onToggleStatus(id, status)}
+                        >
+                          {status === 'ACTIVE' ? 'Pause' : 'Activate'}
+                        </Button>
+                      )}
+                      {onDuplicateClick && (
+                        <Button
+                          size="micro"
+                          onClick={() => onDuplicateClick(id)}
+                        >
+                          Duplicate
+                        </Button>
+                      )}
+                      {onDeleteClick && (
+                        <Button
+                          size="micro"
+                          tone="critical"
+                          onClick={() => onDeleteClick(id)}
+                        >
+                          Delete
+                        </Button>
+                      )}
+                    </InlineStack>
+                  </div>
+                </IndexTable.Cell>
+              </IndexTable.Row>
+            );
           } else {
-            // Regular campaign row
+            // Regular campaign row (standalone, not part of experiment)
             const campaign = row.data as CampaignRow;
             const { id, name, status, templateType, goal, views, conversions, revenue } = campaign;
             const statusBadge = getStatusBadge(status);

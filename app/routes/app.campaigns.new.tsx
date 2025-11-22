@@ -28,9 +28,14 @@ export async function loader({ request }: LoaderFunctionArgs) {
   try {
     const storeId = await getStoreId(request);
 
+    // Read template query parameter for preselection
+    const url = new URL(request.url);
+    const templateParam = url.searchParams.get("template");
+
     return data({
       storeId,
       shopDomain: session.shop,
+      templateType: templateParam || undefined,
       success: true,
     });
   } catch (error) {
@@ -69,10 +74,11 @@ export default function NewCampaign() {
   const [activating, setActivating] = useState(false);
 
 
-  const { storeId, shopDomain, templates } = loaderData as {
+  const { storeId, shopDomain, templates, templateType } = loaderData as {
     storeId: string;
     shopDomain: string;
     templates: UnifiedTemplate[];
+    templateType?: string;
     success: boolean;
   };
 
@@ -299,6 +305,7 @@ export default function NewCampaign() {
         onSave={handleSave}
         onCancel={handleCancel}
         initialTemplates={templates}
+        initialData={templateType ? { templateType: templateType as any } : undefined}
 	      />
 
 	      <Modal

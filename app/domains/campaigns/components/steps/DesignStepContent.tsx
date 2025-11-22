@@ -38,6 +38,7 @@ interface DesignStepContentProps {
   onDiscountChange?: (config: DiscountConfig) => void;
   onTemplateSelect: (template: SelectedTemplate) => void;
   initialTemplates?: UnifiedTemplate[];
+  preselectedTemplateType?: string; // For auto-selecting template from URL param
 }
 
 export function DesignStepContent({
@@ -55,6 +56,7 @@ export function DesignStepContent({
   onDiscountChange,
   onTemplateSelect,
   initialTemplates,
+  preselectedTemplateType,
 }: DesignStepContentProps) {
   if (!goal) {
     return (
@@ -85,6 +87,7 @@ export function DesignStepContent({
                 selectedTemplateId={templateId}
                 onSelect={onTemplateSelect}
                 initialTemplates={initialTemplates}
+                preselectedTemplateType={preselectedTemplateType}
               />
             </BlockStack>
           </Card>
