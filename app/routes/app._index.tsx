@@ -488,10 +488,10 @@ export default function Dashboard() {
                   onSelect={() => navigate("/app/campaigns/new?template=NEWSLETTER")}
                 />
                 <TemplateTile
-                  title="Discount Popup"
+                  title="Flash Sale"
                   description="Offer a discount to convert visitors."
                   icon={ChartVerticalFilledIcon} // Placeholder icon
-                  onSelect={() => navigate("/app/campaigns/new?template=DISCOUNT")}
+                  onSelect={() => navigate("/app/campaigns/new?template=FLASH_SALE")}
                 />
                 <TemplateTile
                   title="Spin to Win"
@@ -599,10 +599,10 @@ export default function Dashboard() {
                 onSelect={() => navigate("/app/campaigns/new?template=NEWSLETTER")}
               />
               <TemplateTile
-                title="Discount Popup"
+                title="Flash Sale"
                 description="Offer a discount to convert visitors."
                 icon={ChartVerticalFilledIcon}
-                onSelect={() => navigate("/app/campaigns/new?template=DISCOUNT")}
+                onSelect={() => navigate("/app/campaigns/new?template=FLASH_SALE")}
               />
               <TemplateTile
                 title="Spin to Win"

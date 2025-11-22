@@ -36,17 +36,17 @@ export async function loader({ request }: LoaderFunctionArgs) {
     let preselectedGoal: string | undefined;
     if (templateParam) {
       // Import template data to find the goal
-      const { GLOBAL_SYSTEM_TEMPLATES } = await import("~/../../prisma/template-data");
-      const template = GLOBAL_SYSTEM_TEMPLATES.find(
+      const templateDataModule = await import("../../prisma/template-data.js");
+      const template = templateDataModule.GLOBAL_SYSTEM_TEMPLATES.find(
         (t) => t.templateType === templateParam
       );
 
-      // If template has exactly one goal, preselect it
-      if (template && template.goals && template.goals.length === 1) {
-        preselectedGoal = template.goals[0];
-      } else if (template && template.goals && template.goals.length > 1) {
-        // For templates with multiple goals, pick the first one
-        preselectedGoal = template.goals[0];
+      // If template has goals, preselect the first one
+      if (template && template.goals) {
+        const goals = Array.isArray(template.goals) ? template.goals : [];
+        if (goals.length > 0) {
+          preselectedGoal = goals[0];
+        }
       }
     }
 
