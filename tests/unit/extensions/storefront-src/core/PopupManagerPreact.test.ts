@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { ComponentType } from "preact";
 import type { StorefrontCampaign } from "../../../../../extensions/storefront-src/core/PopupManagerPreact";
 
@@ -25,6 +25,21 @@ async function loadPopupManager() {
   // Provide simple in-memory implementations before importing the module.
   globalThis.localStorage = createMemoryStorage() as any;
   globalThis.sessionStorage = createMemoryStorage() as any;
+
+  // Mock fetch for challenge token requests
+  globalThis.fetch = vi.fn().mockImplementation((url: string) => {
+    if (url.includes('/api/challenge/request')) {
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({
+          success: true,
+          challengeToken: 'mock-token-123',
+          expiresAt: Date.now() + 3600000,
+        }),
+      });
+    }
+    return Promise.reject(new Error(`Unmocked fetch: ${url}`));
+  }) as any;
 
   return import(
     "../../../../../extensions/storefront-src/core/PopupManagerPreact"

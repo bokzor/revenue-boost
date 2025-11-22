@@ -122,6 +122,8 @@ describe("api.analytics.frequency action", () => {
         pageUrl: "/collections/frontpage",
         deviceType: "mobile",
       }),
+      undefined, // rules parameter
+      undefined, // storeSettings parameter (no store settings in mock)
     );
 
     // PopupEventService should record a VIEW event with correct metadata

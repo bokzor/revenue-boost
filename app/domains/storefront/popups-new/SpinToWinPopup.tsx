@@ -796,31 +796,33 @@ export interface SpinToWinPopupProps {
                   </div>
                 )}
 
-                <div style={{ width: '100%' }}>
-                  {config.emailLabel && (
-                    <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.5rem', color: config.textColor || '#111827' }}>
-                      {config.emailLabel}
-                    </label>
-                  )}
-                  <input
-                    type="email"
-                    placeholder={config.emailPlaceholder || 'Enter your email'}
-                    value={email}
-                    onChange={(e) => {
-                      setEmail(e.target.value);
-                      setEmailError('');
-                    }}
-                    onFocus={() => setEmailFocused(true)}
-                    onBlur={() => setEmailFocused(false)}
-                    style={getInputStyles(emailFocused, !!emailError)}
-                    className="spin-to-win-input"
-                  />
-                  {emailError && (
-                    <p style={{ color: '#EF4444', fontSize: '13px', marginTop: '6px' }}>
-                      {emailError}
-                    </p>
-                  )}
-                </div>
+                {config.emailRequired && (
+                  <div style={{ width: '100%' }}>
+                    {config.emailLabel && (
+                      <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.5rem', color: config.textColor || '#111827' }}>
+                        {config.emailLabel}
+                      </label>
+                    )}
+                    <input
+                      type="email"
+                      placeholder={config.emailPlaceholder || 'Enter your email'}
+                      value={email}
+                      onChange={(e) => {
+                        setEmail(e.target.value);
+                        setEmailError('');
+                      }}
+                      onFocus={() => setEmailFocused(true)}
+                      onBlur={() => setEmailFocused(false)}
+                      style={getInputStyles(emailFocused, !!emailError)}
+                      className="spin-to-win-input"
+                    />
+                    {emailError && (
+                      <p style={{ color: '#EF4444', fontSize: '13px', marginTop: '6px' }}>
+                        {emailError}
+                      </p>
+                    )}
+                  </div>
+                )}
 
 	                {showGdpr && (
 	                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', marginTop: '0.25rem' }}>

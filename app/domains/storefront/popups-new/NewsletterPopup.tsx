@@ -644,6 +644,7 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
                     }}
                     disabled={isSubmitting}
                     required={config.emailRequired !== false}
+                    aria-label={config.emailLabel || 'Email address'}
                   />
                   {errors.email && (
                     <div className="email-popup-error">{errors.email}</div>

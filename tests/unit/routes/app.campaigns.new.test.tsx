@@ -3,10 +3,11 @@ import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, waitFor, screen } from '@testing-library/react';
 
-// Mock Polaris Modal/Text to avoid AppProvider requirement in tests
+// Mock Polaris Modal/Text/Frame to avoid AppProvider requirement in tests
 vi.mock('@shopify/polaris', () => ({
   Modal: (props: any) => React.createElement('div', null, props.children),
   Text: (props: any) => React.createElement('span', null, props.children),
+  Frame: (props: any) => React.createElement('div', null, props.children),
 }));
 
 // Mock shopify.server to avoid environment check at import time
