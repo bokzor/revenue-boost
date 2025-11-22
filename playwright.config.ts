@@ -12,10 +12,6 @@ import { defineConfig, devices } from '@playwright/test';
 export default defineConfig({
   testDir: './tests/e2e',
 
-  // Global setup/teardown for MockShopifyAdminServer
-  globalSetup: './tests/e2e/global.setup.ts',
-  globalTeardown: './tests/e2e/global.teardown.ts',
-
   // Maximum time one test can run for
   timeout: 60 * 1000,
 
