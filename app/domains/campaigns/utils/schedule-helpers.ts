@@ -85,25 +85,82 @@ export function getPriorityDescription(priority: number): string {
 // DATE HELPERS
 // ============================================================================
 
-export function formatDateForInput(date?: string): string {
+/**
+ * Format date for HTML datetime-local input
+ * 
+ * @param date - ISO date string
+ * @param timezone - IANA timezone (e.g., "America/New_York"), defaults to local
+ * @returns Formatted date string for input (YYYY-MM-DDTHH:mm)
+ */
+export function formatDateForInput(date?: string, timezone?: string): string {
   if (!date) return "";
   try {
     const d = new Date(date);
+
+    // If timezone provided, format in that timezone
+    if (timezone) {
+      // Get formatted date parts in the specified timezone
+      const parts = new Intl.DateTimeFormat("en-US", {
+        timeZone: timezone,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      }).formatToParts(d);
+
+      const year = parts.find((p) => p.type === "year")?.value;
+      const month = parts.find((p) => p.type === "month")?.value;
+      const day = parts.find((p) => p.type === "day")?.value;
+      const hour = parts.find((p) => p.type === "hour")?.value;
+      const minute = parts.find((p) => p.type === "minute")?.value;
+
+      if (year && month && day && hour && minute) {
+        return `${year}-${month}-${day}T${hour}:${minute}`;
+      }
+    }
+
+    // Fallback to UTC
     return d.toISOString().slice(0, 16);
   } catch {
     return "";
   }
 }
 
-export function formatDateRange(startDate?: string, endDate?: string): string | null {
+/**
+ * Format date range for display
+ * 
+ * @param startDate - ISO start date string
+ * @param endDate - ISO end date string
+ * @param timezone - IANA timezone (e.g., "America/New_York"), defaults to local
+ * @returns Formatted date range string or null
+ */
+export function formatDateRange(
+  startDate?: string,
+  endDate?: string,
+  timezone?: string
+): string | null {
   if (!startDate || !endDate) return null;
-  
+
   try {
-    const start = new Date(startDate).toLocaleString();
-    const end = new Date(endDate).toLocaleString();
-    return `Campaign will run from ${start} to ${end}`;
+    const options: Intl.DateTimeFormatOptions = {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      ...(timezone && { timeZone: timezone }),
+    };
+
+    const start = new Date(startDate).toLocaleString("en-US", options);
+    const end = new Date(endDate).toLocaleString("en-US", options);
+
+    const timezoneLabel = timezone ? ` (${timezone})` : "";
+    return `Campaign will run from ${start} to ${end}${timezoneLabel}`;
   } catch {
     return null;
   }
 }
+
 

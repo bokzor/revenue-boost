@@ -61,7 +61,7 @@ async function seed() {
 
 async function upsertStore(storeData: Prisma.StoreCreateInput): Promise<void> {
   // First, try to find existing store
-  let existingStore = await prisma.store.findUnique({
+  const existingStore = await prisma.store.findUnique({
     where: { shopifyDomain: storeData.shopifyDomain },
   });
 

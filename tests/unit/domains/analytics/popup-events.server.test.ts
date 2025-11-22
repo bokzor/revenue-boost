@@ -1,17 +1,24 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import prisma from "~/db.server";
 import { PopupEventService } from "~/domains/analytics/popup-events.server";
+import { PlanLimitError } from "~/domains/billing/errors";
 
-vi.mock("~/db.server", () => {
-  return {
-    default: {
-      popupEvent: {
-        create: vi.fn(),
-        groupBy: vi.fn(),
-      },
-    },
-  };
-});
+vi.mock("~/db.server", () => ({
+	default: {
+		popupEvent: {
+			create: vi.fn(),
+			groupBy: vi.fn(),
+		},
+	},
+}));
+
+const mockPlanGuardService = {
+	assertWithinMonthlyImpressionCap: vi.fn(),
+};
+
+vi.mock("~/domains/billing/services/plan-guard.server", () => ({
+	PlanGuardService: mockPlanGuardService,
+}));
 
 const mockPrisma = prisma as unknown as {
   popupEvent: {
@@ -22,7 +29,10 @@ const mockPrisma = prisma as unknown as {
 
 describe("PopupEventService", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+	    vi.clearAllMocks();
+	    mockPlanGuardService.assertWithinMonthlyImpressionCap.mockResolvedValue(
+	      undefined,
+	    );
   });
 
   it("records a VIEW event", async () => {
@@ -42,12 +52,41 @@ describe("PopupEventService", () => {
       metadata: { foo: "bar" },
     });
 
+	    expect(
+	      mockPlanGuardService.assertWithinMonthlyImpressionCap,
+	    ).toHaveBeenCalledWith("store-1");
     expect(mockPrisma.popupEvent.create).toHaveBeenCalledTimes(1);
     const args = (mockPrisma.popupEvent.create as any).mock.calls[0][0];
     expect(args.data.storeId).toBe("store-1");
     expect(args.data.campaignId).toBe("camp-1");
     expect(args.data.eventType).toBe("VIEW");
   });
+
+	  it("does not record a VIEW event when monthly impression cap is exceeded", async () => {
+	    mockPlanGuardService.assertWithinMonthlyImpressionCap.mockRejectedValueOnce(
+	      new PlanLimitError("cap reached"),
+	    );
+
+	    await expect(
+	      PopupEventService.recordEvent({
+	        storeId: "store-1",
+	        campaignId: "camp-1",
+	        experimentId: null,
+	        variantKey: null,
+	        sessionId: "sess-1",
+	        visitorId: "visitor-1",
+	        eventType: "VIEW",
+	        pageUrl: "/",
+	        referrer: null,
+	        userAgent: "UA",
+	        ipAddress: "127.0.0.1",
+	        deviceType: "desktop",
+	        metadata: { foo: "bar" },
+	      } as any),
+	    ).rejects.toBeInstanceOf(PlanLimitError);
+
+	    expect(mockPrisma.popupEvent.create).not.toHaveBeenCalled();
+	  });
 
   it("aggregates impressions by campaign", async () => {
     (mockPrisma.popupEvent.groupBy as any).mockResolvedValueOnce([

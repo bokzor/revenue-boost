@@ -129,7 +129,15 @@ export async function action({ request }: ActionFunctionArgs) {
         }
 
         // Extract wheel segments from content config
-        const contentConfig = campaign.contentConfig as any;
+        let contentConfig = campaign.contentConfig as any;
+        if (typeof contentConfig === 'string') {
+            try {
+                contentConfig = JSON.parse(contentConfig);
+            } catch (e) {
+                console.error("[Spin-to-Win] Failed to parse contentConfig:", e);
+                contentConfig = {};
+            }
+        }
         const wheelSegments = contentConfig?.wheelSegments || [];
 
         if (wheelSegments.length === 0) {

@@ -10,6 +10,7 @@ import { ComponentLoader, type TemplateType } from "./component-loader";
 import type { ApiClient } from "./api";
 import { session } from "./session";
 import { requestChallengeToken, challengeTokenStore } from "~/domains/storefront/services/challenge-token.client";
+import { executeHooksForCampaign, clearCampaignCache } from "./hooks";
 
 export interface StorefrontCampaign {
   id: string;
@@ -41,11 +42,19 @@ function getShopifyRoot(): string {
 }
 
 async function applyDiscountViaAjax(code: string): Promise<boolean> {
-  if (!code) return false;
+  if (!code) {
+    console.warn("[PopupManager] Cannot apply discount: no code provided");
+    return false;
+  }
+
+  console.log("[PopupManager] 🎟️ Attempting to apply discount code via AJAX:", code);
 
   try {
     const root = getShopifyRoot();
-    const response = await fetch(`${root}cart/update.js`, {
+    const url = `${root}cart/update.js`;
+    console.log("[PopupManager] 🎟️ Sending discount to:", url);
+
+    const response = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -55,6 +64,8 @@ async function applyDiscountViaAjax(code: string): Promise<boolean> {
       body: JSON.stringify({ discount: code }),
     });
 
+    console.log("[PopupManager] 🎟️ Discount application response status:", response.status);
+
     if (!response.ok) {
       let message = "";
       try {
@@ -62,24 +73,41 @@ async function applyDiscountViaAjax(code: string): Promise<boolean> {
       } catch {
         // ignore
       }
-      console.error("[PopupManager] Failed to apply discount via AJAX:", message || response.status);
+      console.error("[PopupManager] ❌ Failed to apply discount via AJAX:", {
+        status: response.status,
+        statusText: response.statusText,
+        message: message || "(no error message)",
+        code,
+      });
       return false;
     }
 
     try {
       const cart = await response.json();
+      console.log("[PopupManager] ✅ Discount applied successfully. Cart updated:", {
+        code,
+        itemCount: cart?.item_count,
+        totalPrice: cart?.total_price,
+        appliedDiscount: cart?.total_discount,
+      });
+
       if (cart) {
         document.dispatchEvent(new CustomEvent("cart:refresh", { detail: cart }));
       }
-    } catch {
-      // ignore JSON parse errors
+    } catch (parseError) {
+      console.warn("[PopupManager] ⚠️ Discount may have been applied, but failed to parse cart response:", parseError);
     }
 
     document.dispatchEvent(new CustomEvent("cart:discount-applied", { detail: { code } }));
     document.dispatchEvent(new CustomEvent("cart:updated"));
+    console.log("[PopupManager] 🎟️ Discount application events dispatched");
     return true;
   } catch (error) {
-    console.error("[PopupManager] Error applying discount via AJAX:", error);
+    console.error("[PopupManager] ❌ Error applying discount via AJAX:", {
+      error,
+      code,
+      errorMessage: error instanceof Error ? error.message : String(error),
+    });
     return false;
   }
 }
@@ -88,34 +116,56 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api }: P
   const [Component, setComponent] = useState<ComponentType<Record<string, unknown>> | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [challengeToken, setChallengeToken] = useState<string | null>(null);
+  const [preloadedResources, setPreloadedResources] = useState<Record<string, any> | null>(null);
 
+  // Execute pre-display hooks and load component
   useEffect(() => {
     let mounted = true;
 
-    // Request challenge token immediately when popup loads
-    requestChallengeToken(campaign.id, session.getSessionId())
-      .then((response) => {
-        if (response.success && response.challengeToken && response.expiresAt) {
-          challengeTokenStore.set(campaign.id, response.challengeToken, response.expiresAt);
-          console.debug("[PopupManager] Challenge token acquired");
-        } else {
-          console.warn("[PopupManager] Failed to acquire challenge token:", response.error);
-        }
-      })
-      .catch((err) => console.error("[PopupManager] Error requesting token:", err));
-
-    async function loadPopupComponent() {
+    async function initialize() {
       try {
-        console.log("[PopupManager] Loading component for:", campaign.templateType);
-        const comp = await loader.loadComponent(campaign.templateType);
+        console.log("[PopupManager] Initializing popup for:", campaign.templateType);
 
-        if (mounted) {
-          setComponent(() => comp as ComponentType<Record<string, unknown>>);
+        // Execute hooks and load component in parallel for faster initialization
+        const [hooksResult, comp] = await Promise.all([
+          executeHooksForCampaign(
+            campaign,
+            api,
+            session.getSessionId(),
+            session.getVisitorId()
+          ),
+          loader.loadComponent(campaign.templateType),
+        ]);
+
+        if (!mounted) return;
+
+        // Check if hooks failed - don't display popup if all hooks failed
+        if (!hooksResult.success) {
+          console.error(
+            `[PopupManager] Cannot display popup - PreDisplayHook failed:`,
+            hooksResult.errors
+          );
+          setError("Failed to load required resources");
           setLoading(false);
-          onShow?.(campaign.id);
+          return;
         }
+
+        // Set preloaded resources
+        setPreloadedResources(hooksResult.loadedResources);
+
+        // Set challenge token if loaded via hook
+        if (hooksResult.loadedResources.challengeToken) {
+          setChallengeToken(hooksResult.loadedResources.challengeToken);
+        }
+
+        // Set component
+        setComponent(() => comp as ComponentType<Record<string, unknown>>);
+        setLoading(false);
+        onShow?.(campaign.id);
+
       } catch (err) {
-        console.error("[PopupManager] Failed to load component:", err);
+        console.error("[PopupManager] Failed to initialize popup:", err);
         if (mounted) {
           setError(err instanceof Error ? err.message : "Failed to load popup");
           setLoading(false);
@@ -123,12 +173,14 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api }: P
       }
     }
 
-    loadPopupComponent();
+    initialize();
 
     return () => {
       mounted = false;
+      // Clear cached resources when component unmounts
+      clearCampaignCache(campaign.id);
     };
-  }, [campaign.id, campaign.templateType, loader, onShow]);
+  }, [campaign.id, campaign.templateType, loader, onShow, api]);
 
   const trackClick = (metadata?: Record<string, unknown>) => {
     try {
@@ -282,9 +334,23 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api }: P
         cartSubtotalCents: options?.cartSubtotalCents,
       });
 
+      // SECURITY: Retrieve challenge token
+      const token = challengeTokenStore.get(campaign.id);
+
+      if (!token) {
+        console.error("[PopupManager] ❌ Cannot issue discount: no challenge token available");
+        return {
+          success: false,
+          error: "Security check failed. Please refresh the page.",
+        };
+      }
+
+      console.log("[PopupManager] 🎟️ Using challenge token for discount issuance");
+
       const result = await api.issueDiscount({
         campaignId: campaign.id,
         sessionId: session.getSessionId(),
+        challengeToken: token,
         cartSubtotalCents: options?.cartSubtotalCents,
       });
 
@@ -297,14 +363,31 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api }: P
       const autoApplyMode = result.autoApplyMode || "ajax";
       const deliveryMode = (campaign.discountConfig as any)?.deliveryMode;
 
+      console.log("[PopupManager] 🎟️ Discount issued:", {
+        code,
+        autoApplyMode,
+        deliveryMode,
+        campaignId: campaign.id,
+      });
+
       const shouldAutoApply =
         !!code &&
         autoApplyMode !== "none" &&
         (deliveryMode === "auto_apply_only" || deliveryMode === "show_code_fallback");
 
+      console.log("[PopupManager] 🎟️ Should auto-apply discount?", {
+        shouldAutoApply,
+        hasCode: !!code,
+        autoApplyMode,
+        deliveryMode,
+      });
+
       if (shouldAutoApply) {
+        console.log("[PopupManager] 🎟️ Auto-applying discount code:", code);
         // Fire-and-forget; don't block popup interactions
         void applyDiscountViaAjax(code);
+      } else {
+        console.log("[PopupManager] ℹ️ Discount will not be auto-applied (manual application required)");
       }
 
       return result;
@@ -316,7 +399,8 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api }: P
 
 
   // Don't render anything while loading - this prevents showing "Loading..." to users
-  if (loading || !Component) {
+  // Wait for both component AND preloaded resources to be ready
+  if (loading || !Component || !preloadedResources) {
     return null;
   }
 
@@ -353,11 +437,14 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api }: P
         cartSubtotalCents,
       });
 
+      // Get cart items from preloaded resources
+      const cartItems = preloadedResources?.cart?.items;
+
       const result = await api.emailRecovery({
         campaignId: campaign.id,
         email,
         cartSubtotalCents,
-        cartItems: cartData?.items,
+        cartItems,
       });
 
       if (!result.success) {
@@ -404,26 +491,24 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api }: P
     }
   };
 
-  const [upsellProducts, setUpsellProducts] = useState<any[] | null>(null);
-
   const handleAddToCart = async (productIds: string[]) => {
     try {
       console.log("[PopupManager] Adding products to cart:", productIds);
 
       if (!productIds || productIds.length === 0) return;
 
-      // We need to map productIds (which are product.id) to variant IDs
-      // We use the `upsellProducts` state which contains the full product objects
+      // Get products from preloaded resources
+      const products = preloadedResources?.products || [];
       const itemsToAdd: { id: string; quantity: number }[] = [];
 
       for (const pid of productIds) {
-        const product = upsellProducts?.find((p) => p.id === pid);
+        const product = products.find((p: any) => p.id === pid);
         if (product && product.variantId) {
           // Extract numeric ID if it's a GID
           const variantId = product.variantId.split('/').pop() || product.variantId;
           itemsToAdd.push({ id: variantId, quantity: 1 });
         } else {
-          // Fallback to using the ID as is if not found in upsellProducts (rare case)
+          // Fallback to using the ID as is if not found in products (rare case)
           const variantId = pid.split('/').pop() || pid;
           itemsToAdd.push({ id: variantId, quantity: 1 });
         }
@@ -485,76 +570,7 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api }: P
     }
   };
 
-  // Lazy-load upsell products for PRODUCT_UPSELL campaigns based on campaignId
-  // Lazy-load upsell products for PRODUCT_UPSELL campaigns based on campaignId
-  useEffect(() => {
-    if (campaign.templateType !== "PRODUCT_UPSELL") {
-      return;
-    }
-
-    let cancelled = false;
-
-    const loadUpsellProducts = async () => {
-      try {
-        const url = `/apps/revenue-boost/api/upsell-products?campaignId=${encodeURIComponent(campaign.id)}`;
-        const res = await fetch(url, { credentials: "same-origin" });
-        if (!res.ok) {
-          console.warn("[PopupManager] Upsell products request failed:", res.status);
-          return;
-        }
-
-        const json = await res.json();
-        if (!cancelled) {
-          setUpsellProducts(Array.isArray(json.products) ? json.products : []);
-        }
-      } catch (err) {
-        console.error("[PopupManager] Failed to load upsell products:", err);
-      }
-    };
-
-    void loadUpsellProducts();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [campaign.id, campaign.templateType]);
-
-  // Fetch cart data for CART_ABANDONMENT campaigns
-  const [cartData, setCartData] = useState<{ items: any[]; total: number } | null>(null);
-
-  useEffect(() => {
-    if (campaign.templateType !== "CART_ABANDONMENT") {
-      return;
-    }
-
-    let cancelled = false;
-
-    const loadCartData = async () => {
-      try {
-        const res = await fetch("/cart.js");
-        if (!res.ok) {
-          console.warn("[PopupManager] Failed to fetch cart data:", res.status);
-          return;
-        }
-
-        const cart = await res.json();
-        if (!cancelled) {
-          setCartData({
-            items: cart.items || [],
-            total: cart.total_price ? cart.total_price / 100 : 0,
-          });
-        }
-      } catch (err) {
-        console.error("[PopupManager] Error loading cart data:", err);
-      }
-    };
-
-    void loadCartData();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [campaign.id, campaign.templateType]);
+  // Legacy upsell products and cart data loading removed - now handled by pre-display hooks
 
 
   // Debug logging for storefront popup configuration
@@ -574,6 +590,8 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api }: P
       ...campaign.contentConfig,
       ...campaign.designConfig,
       id: campaign.id,
+      campaignId: campaign.id,
+      challengeToken: challengeToken || undefined,
       currentCartTotal,
       // Pass discount config if enabled
       discount: campaign.discountConfig?.enabled ? {
@@ -590,8 +608,8 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api }: P
         expiryDays: campaign.discountConfig.expiryDays,
         description: campaign.discountConfig.description,
       } : undefined,
-      // If we have upsell products, inject them so ProductUpsellPopup can render them
-      ...(upsellProducts ? { products: upsellProducts } : {}),
+      // Inject preloaded products if available
+      ...(preloadedResources.products ? { products: preloadedResources.products } : {}),
     },
     isVisible: true,
     onClose,
@@ -600,9 +618,11 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api }: P
     campaignId: campaign.id,
     renderInline: false,
     onEmailRecovery: handleEmailRecovery,
-    // Pass cart data for Cart Abandonment
-    cartItems: cartData?.items,
-    cartTotal: cartData?.total,
+    // Pass preloaded cart data for Cart Abandonment
+    cartItems: preloadedResources.cart?.items,
+    cartTotal: preloadedResources.cart?.total,
+    // Pass preloaded inventory for Flash Sale
+    inventoryTotal: preloadedResources.inventory?.total,
     onTrack: trackClick,
     onAddToCart: handleAddToCart,
   });

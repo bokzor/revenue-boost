@@ -15,7 +15,7 @@ import {
 } from "../validation/campaign-validation.js";
 import {
   parseExperimentFields,
-  stringifyEntityJsonFields,
+  prepareEntityJsonFields,
 } from "../utils/json-helpers.js";
 import { ExperimentServiceError } from "~/lib/errors.server";
 import {
@@ -138,7 +138,7 @@ export class ExperimentService {
     await PlanGuardService.assertCanCreateExperiment(storeId);
 
     try {
-      const jsonFields = stringifyEntityJsonFields(data, [
+      const jsonFields = prepareEntityJsonFields(data, [
         {
           key: "trafficAllocation",
           defaultValue: {

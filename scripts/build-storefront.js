@@ -259,7 +259,7 @@ async function build() {
       bundle: true,
       format: "iife",
       target: "es2020",
-      minify: false, // Disabled for debugging
+      minify: true, // Minification activée pour réduire la taille
       sourcemap: false, // Disable sourcemaps to avoid .map files in Shopify extension assets
       platform: "browser",
       logLevel: "info",
@@ -268,9 +268,11 @@ async function build() {
       jsxImportSource: "preact",
       plugins: [aliasPreactPlugin],
       define: {
-        "process.env.NODE_ENV": '"development"', // Changed to development
+        "process.env.NODE_ENV": '"production"', // Mode production pour optimisations
         global: "window",
       },
+      treeShaking: true, // Activer le tree-shaking pour supprimer le code mort
+      drop: ['console', 'debugger'], // Supprimer les console.log et debugger en production
     };
 
     // Build main bundle

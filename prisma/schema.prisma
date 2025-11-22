@@ -41,6 +41,13 @@ model Store {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
+  // Global Store Settings
+  settings      Json     @default("{}") // StoreSettings
+
+  // Timezone (cached from Shopify)
+  timezone           String    @default("UTC") // IANA timezone (e.g., "America/New_York")
+  timezoneUpdatedAt  DateTime? // Last time timezone was fetched from Shopify
+
   // Relations
   campaigns          Campaign[]
   experiments        Experiment[]

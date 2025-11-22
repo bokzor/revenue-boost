@@ -15,9 +15,9 @@ import { PopupEventService } from "~/domains/analytics/popup-events.server";
 // Request validation schema
 const ScratchCardRequestSchema = z.object({
     campaignId: z.string().cuid(),
-    email: z.string().email(),
-    sessionId: z.string(),
-    challengeToken: z.string(), // REQUIRED: Challenge token for security
+    email: z.string().email().optional(), // Optional: email may not be required before scratching
+    sessionId: z.string().min(1, "Session ID is required"),
+    challengeToken: z.string().min(1, "Challenge token is required"), // REQUIRED: Challenge token for security
 });
 
 type ScratchCardRequest = z.infer<typeof ScratchCardRequestSchema>;
@@ -103,22 +103,24 @@ export async function action({ request }: ActionFunctionArgs) {
             );
         }
 
-        // SECURITY: Rate limit per email+campaign
-        const { checkRateLimit, RATE_LIMITS, createEmailCampaignKey } = await import("~/domains/security/services/rate-limit.server");
-        const rateLimitKey = createEmailCampaignKey(email, validatedRequest.campaignId);
-        const rateLimitResult = await checkRateLimit(
-            rateLimitKey,
-            "scratch_card",
-            RATE_LIMITS.EMAIL_PER_CAMPAIGN,
-            { email, campaignId: validatedRequest.campaignId }
-        );
-
-        if (!rateLimitResult.allowed) {
-            console.warn(`[Scratch Card] Rate limit exceeded for ${email}`);
-            return data(
-                { success: false, error: "You've already played today" },
-                { status: 429 }
+        // SECURITY: Rate limit per email+campaign (only if email is provided)
+        if (email) {
+            const { checkRateLimit, RATE_LIMITS, createEmailCampaignKey } = await import("~/domains/security/services/rate-limit.server");
+            const rateLimitKey = createEmailCampaignKey(email, validatedRequest.campaignId);
+            const rateLimitResult = await checkRateLimit(
+                rateLimitKey,
+                "scratch_card",
+                RATE_LIMITS.EMAIL_PER_CAMPAIGN,
+                { email, campaignId: validatedRequest.campaignId }
             );
+
+            if (!rateLimitResult.allowed) {
+                console.warn(`[Scratch Card] Rate limit exceeded for ${email}`);
+                return data(
+                    { success: false, error: "You've already played today" },
+                    { status: 429 }
+                );
+            }
         }
 
         // Extract prizes from content config
@@ -164,12 +166,14 @@ export async function action({ request }: ActionFunctionArgs) {
         }
 
         // Generate unique discount code using DiscountService
+        // Use email if provided, otherwise use sessionId as fallback identifier
+        const emailOrSession = email || `session_${sessionId}`;
         const result = await getCampaignDiscountCode(
             admin,
             campaign.storeId,
             campaignId,
             discountConfig,
-            email
+            emailOrSession
         );
 
         if (!result.success || !result.discountCode) {
@@ -183,46 +187,48 @@ export async function action({ request }: ActionFunctionArgs) {
             );
         }
 
-        // Store lead with generated code
-        try {
-            const prizeId = winningPrize.id;
-            await prisma.lead.upsert({
-                where: {
-                    storeId_campaignId_email: {
-                        storeId: campaign.storeId,
-                        campaignId,
-                        email,
+        // Store lead with generated code (only if email is provided)
+        if (email) {
+            try {
+                const prizeId = winningPrize.id;
+                await prisma.lead.upsert({
+                    where: {
+                        storeId_campaignId_email: {
+                            storeId: campaign.storeId,
+                            campaignId,
+                            email,
+                        },
                     },
-                },
-                create: {
-                    email,
-                    campaignId,
-                    storeId: campaign.storeId,
-                    discountCode: result.discountCode,
-                    sessionId,
-                    metadata: JSON.stringify({
-                        source: "scratch_card_popup",
-                        prizeId,
-                        prizeLabel: winningPrize.label,
+                    create: {
+                        email,
+                        campaignId,
+                        storeId: campaign.storeId,
+                        discountCode: result.discountCode,
                         sessionId,
-                        generatedAt: new Date().toISOString(),
-                    }),
-                },
-                update: {
-                    discountCode: result.discountCode,
-                    metadata: JSON.stringify({
-                        source: "scratch_card_popup",
-                        prizeId,
-                        prizeLabel: winningPrize.label,
-                        sessionId,
-                        generatedAt: new Date().toISOString(),
-                    }),
-                    updatedAt: new Date(),
-                },
-            });
-        } catch (error) {
-            console.error("[Scratch Card] Lead storage failed:", error);
-            // Continue anyway - code was generated successfully
+                        metadata: JSON.stringify({
+                            source: "scratch_card_popup",
+                            prizeId,
+                            prizeLabel: winningPrize.label,
+                            sessionId,
+                            generatedAt: new Date().toISOString(),
+                        }),
+                    },
+                    update: {
+                        discountCode: result.discountCode,
+                        metadata: JSON.stringify({
+                            source: "scratch_card_popup",
+                            prizeId,
+                            prizeLabel: winningPrize.label,
+                            sessionId,
+                            generatedAt: new Date().toISOString(),
+                        }),
+                        updatedAt: new Date(),
+                    },
+                });
+            } catch (error) {
+                console.error("[Scratch Card] Lead storage failed:", error);
+                // Continue anyway - code was generated successfully
+            }
         }
 
         // Determine display settings based on delivery mode

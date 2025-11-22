@@ -336,7 +336,8 @@ export class ApiClient {
   async issueDiscount(data: {
     campaignId: string;
     cartSubtotalCents?: number;
-    sessionId?: string;
+    sessionId: string;
+    challengeToken: string;
   }): Promise<{
     success: boolean;
     code?: string;
@@ -350,6 +351,13 @@ export class ApiClient {
 
     const url = `${this.getApiUrl("/api/discounts/issue")}?${params.toString()}`;
 
+    this.log("Issuing discount with data:", {
+      campaignId: data.campaignId,
+      cartSubtotalCents: data.cartSubtotalCents,
+      sessionId: data.sessionId,
+      hasChallengeToken: !!data.challengeToken,
+    });
+
     try {
       const response = await fetch(url, {
         method: "POST",
@@ -362,6 +370,7 @@ export class ApiClient {
       const result = await response.json().catch(() => ({}));
 
       if (!response.ok) {
+        this.log("Discount issue failed:", result);
         throw new Error((result as any).error || `HTTP ${response.status}`);
       }
 

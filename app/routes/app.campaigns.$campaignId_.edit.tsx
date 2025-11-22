@@ -204,15 +204,20 @@ export default function CampaignEditPage() {
         tags: campaignData.tags,
       };
 
-      const response = await fetch(`/api/campaigns/${campaign.id}`, {
+	      const response = await fetch(`/api/campaigns/${campaign.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(updateData),
       });
 
-      if (!response.ok) {
-        throw new Error("Failed to update campaign");
-      }
+	      if (!response.ok) {
+	        const planLimit = await tryParsePlanLimitError(response);
+	        if (planLimit) {
+	          showToast(planLimit.message, true);
+	          return;
+	        }
+	        throw new Error("Failed to update campaign");
+	      }
 
       const needsActivationPrompt = campaign.status === "DRAFT" && campaignData.status === "DRAFT";
 
@@ -321,4 +326,15 @@ export default function CampaignEditPage() {
       {toastMarkup}
     </Frame>
   );
+}
+
+async function tryParsePlanLimitError(response: Response): Promise<{ message: string; details: any } | null> {
+	try {
+	  if (response.status !== 403) return null;
+	  const body: any = await response.json();
+	  if (body?.errorCode !== "PLAN_LIMIT_EXCEEDED") return null;
+	  return { message: body.error ?? "Plan limit reached", details: body.errorDetails };
+	} catch {
+	  return null;
+	}
 }

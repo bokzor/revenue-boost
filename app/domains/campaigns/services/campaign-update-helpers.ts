@@ -9,7 +9,7 @@
 
 import type { Prisma } from "@prisma/client";
 import type { CampaignUpdateData, DiscountConfig } from "../types/campaign";
-import { stringifyJsonField } from "../utils/json-helpers";
+import { prepareJsonField } from "../utils/json-helpers";
 // Removed auto generation of discount codes at save time; codes are generated on lead submission
 
 /**
@@ -68,18 +68,18 @@ export function buildConfigUpdates(
   const updates: Partial<Prisma.CampaignUpdateInput> = {};
 
   if (data.contentConfig !== undefined) {
-    updates.contentConfig = stringifyJsonField(data.contentConfig);
+    updates.contentConfig = prepareJsonField(data.contentConfig);
   }
   if (data.designConfig !== undefined) {
-    updates.designConfig = stringifyJsonField(data.designConfig);
+    updates.designConfig = prepareJsonField(data.designConfig);
   }
   if (data.targetRules !== undefined) {
-    updates.targetRules = stringifyJsonField(data.targetRules);
+    updates.targetRules = prepareJsonField(data.targetRules);
   }
   if (data.discountConfig !== undefined) {
     // Auto-generate discount code if needed
     const discountConfig = ensureDiscountCode(data.discountConfig);
-    updates.discountConfig = stringifyJsonField(discountConfig);
+    updates.discountConfig = prepareJsonField(discountConfig);
   }
 
   return updates;

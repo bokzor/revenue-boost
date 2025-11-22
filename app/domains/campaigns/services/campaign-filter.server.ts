@@ -10,6 +10,8 @@ import type { StorefrontContext } from "~/domains/campaigns/types/storefront-con
 import type { AudienceCondition } from "~/domains/targeting/utils/condition-adapter";
 import { FrequencyCapService } from "~/domains/targeting/services/frequency-cap.server";
 import { hasSegmentMembershipData, isCustomerInAnyShopifySegment } from "~/domains/targeting/services/segment-membership.server";
+import prisma from "~/db.server";
+import type { StoreSettings } from "~/domains/store/types/settings";
 
 /**
  * Campaign Filter Service
@@ -117,8 +119,8 @@ export class CampaignFilterService {
         const ctxTags = Array.isArray(context.productTags)
           ? context.productTags
           : typeof (context as any).productTags === "string"
-          ? ((context as any).productTags as string).split(",").map((t) => t.trim()).filter(Boolean)
-          : [];
+            ? ((context as any).productTags as string).split(",").map((t) => t.trim()).filter(Boolean)
+            : [];
 
         tagsMatch = ctxTags.length > 0 && productTags.some((tag: string) => ctxTags.includes(tag));
       }
@@ -420,11 +422,16 @@ export class CampaignFilterService {
    */
   static async filterByFrequencyCapping(
     campaigns: CampaignWithConfigs[],
-    context: StorefrontContext
+    context: StorefrontContext,
+    storeSettings?: StoreSettings
   ): Promise<CampaignWithConfigs[]> {
     const results = await Promise.all(
       campaigns.map(async (campaign) => {
-        const result = await FrequencyCapService.checkFrequencyCapping(campaign, context);
+        const result = await FrequencyCapService.checkFrequencyCapping(
+          campaign,
+          context,
+          storeSettings?.frequencyCapping
+        );
         return result.allowed ? campaign : null;
       })
     );
@@ -511,6 +518,13 @@ export class CampaignFilterService {
 
     let filtered = campaigns;
 
+    // Fetch store settings for global frequency capping
+    const store = await prisma.store.findUnique({
+      where: { id: storeId },
+      select: { settings: true },
+    });
+    const storeSettings = store?.settings as StoreSettings | undefined;
+
     filtered = await this.runFilterStep(
       "DEVICE TYPE",
       (cs, ctx) => this.filterByDeviceType(cs, ctx),
@@ -541,7 +555,7 @@ export class CampaignFilterService {
 
     filtered = await this.runFilterStep(
       "FREQUENCY CAPPING",
-      (cs, ctx) => this.filterByFrequencyCapping(cs, ctx),
+      (cs, ctx) => this.filterByFrequencyCapping(cs, ctx, storeSettings),
       filtered,
       context,
     );

@@ -37,6 +37,8 @@ import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { PLAN_DEFINITIONS, PLAN_ORDER } from "../domains/billing/types/plan";
 import { PlanGuardService } from "../domains/billing/services/plan-guard.server";
+import { GlobalCappingSettings } from "../domains/store/components/GlobalCappingSettings";
+import type { StoreSettings, GlobalFrequencyCappingSettings } from "../domains/store/types/settings";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
     const { session } = await authenticate.admin(request);
@@ -86,6 +88,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
             experiments: experimentsCount,
             monthlyImpressions: monthlyImpressionsCount,
         },
+        storeSettings: (store.settings as StoreSettings) || {},
         PLAN_DEFINITIONS,
         PLAN_ORDER,
     };
@@ -94,6 +97,37 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 export const action = async ({ request }: ActionFunctionArgs) => {
     const { session } = await authenticate.admin(request);
     const formData = await request.formData();
+    const actionType = formData.get("actionType");
+
+    // Handle settings update
+    if (actionType === "updateSettings") {
+        const settingsStr = formData.get("settings");
+        if (settingsStr && typeof settingsStr === "string") {
+            const newSettings = JSON.parse(settingsStr);
+
+            // Merge with existing settings
+            const currentStore = await prisma.store.findUnique({
+                where: { shopifyDomain: session.shop },
+                select: { settings: true }
+            });
+
+            const currentSettings = (currentStore?.settings as StoreSettings) || {};
+
+            await prisma.store.update({
+                where: { shopifyDomain: session.shop },
+                data: {
+                    settings: {
+                        ...currentSettings,
+                        ...newSettings,
+                    }
+                }
+            });
+
+            return { success: true };
+        }
+        return { success: false };
+    }
+
     const targetPlan = formData.get("targetPlan") as PlanTier;
 
     if (!targetPlan || !PLAN_DEFINITIONS[targetPlan]) {
@@ -196,7 +230,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 };
 
 export default function SettingsPage() {
-    const { planContext, usage, PLAN_DEFINITIONS, PLAN_ORDER } = useLoaderData<typeof loader>();
+    const { planContext, usage, storeSettings, PLAN_DEFINITIONS, PLAN_ORDER } = useLoaderData<typeof loader>();
     const submit = useSubmit();
     const navigation = useNavigation();
     const isLoading = navigation.state === "submitting";
@@ -207,6 +241,13 @@ export default function SettingsPage() {
     const handleUpgrade = (targetPlan: PlanTier) => {
         const formData = new FormData();
         formData.append("targetPlan", targetPlan);
+        submit(formData, { method: "post" });
+    };
+
+    const handleSettingsChange = (newSettings: Partial<StoreSettings>) => {
+        const formData = new FormData();
+        formData.append("actionType", "updateSettings");
+        formData.append("settings", JSON.stringify(newSettings));
         submit(formData, { method: "post" });
     };
 
@@ -348,6 +389,15 @@ export default function SettingsPage() {
                                             tone={currentDefinition.monthlyImpressionCap && usage.monthlyImpressions >= currentDefinition.monthlyImpressionCap ? "critical" : "primary"}
                                             size="small"
                                         />
+	                                        {currentDefinition.monthlyImpressionCap && usage.monthlyImpressions >= currentDefinition.monthlyImpressionCap && (
+	                                            <Box paddingBlockStart="200">
+	                                                <Banner tone="critical">
+	                                                    <Text as="p" variant="bodySm">
+	                                                        You have reached your monthly impression limit for the <strong>{currentDefinition.name}</strong> plan. New visitors will not see popups until your next billing cycle.
+	                                                    </Text>
+	                                                </Banner>
+	                                            </Box>
+	                                        )}
                                     </Box>
 
                                     <Box>
@@ -383,6 +433,13 @@ export default function SettingsPage() {
                     </Layout.Section>
 
                     <Layout.Section>
+                        <GlobalCappingSettings
+                            settings={storeSettings}
+                            onChange={handleSettingsChange}
+                        />
+                    </Layout.Section>
+
+                    <Layout.Section>
                         <Card>
                             <BlockStack gap="400">
                                 <Text variant="headingMd" as="h2">Compare Plans</Text>
@@ -396,7 +453,7 @@ export default function SettingsPage() {
                         </Card>
                     </Layout.Section>
                 </Layout>
-            </BlockStack>
-        </Page>
+            </BlockStack >
+        </Page >
     );
 }

@@ -40,22 +40,23 @@ export interface SpinToWinPopupProps {
   onWin?: (prize: Prize) => void;
 }
 
-export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
-  config,
-  isVisible,
-  onClose,
-  onSpin,
-  onWin,
-}) => {
-  const [email, setEmail] = useState('');
-  const [emailError, setEmailError] = useState('');
-  const [name, setName] = useState('');
-  const [nameError, setNameError] = useState('');
-  const [gdprConsent, setGdprConsent] = useState(false);
-  const [gdprError, setGdprError] = useState('');
-  const [hasSpun, setHasSpun] = useState(false);
-  const [isSpinning, setIsSpinning] = useState(false);
-  const [isGeneratingCode, setIsGeneratingCode] = useState(false);
+	export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
+	  config,
+	  isVisible,
+	  onClose,
+	  onSpin,
+	  onWin,
+	}) => {
+	  const [email, setEmail] = useState('');
+	  const [emailError, setEmailError] = useState('');
+	  const [name, setName] = useState('');
+	  const [nameError, setNameError] = useState('');
+	  const [gdprConsent, setGdprConsent] = useState(false);
+	  const [gdprError, setGdprError] = useState('');
+	  const gdprCheckboxId = React.useId();
+	  const [hasSpun, setHasSpun] = useState(false);
+	  const [isSpinning, setIsSpinning] = useState(false);
+	  const [isGeneratingCode, setIsGeneratingCode] = useState(false);
   const [wonPrize, setWonPrize] = useState<Prize | null>(null);
   const [codeError, setCodeError] = useState('');
   const [rotation, setRotation] = useState(0);
@@ -402,8 +403,8 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
             body: JSON.stringify({
               campaignId: config.campaignId,
               email,
-              sessionId: typeof window !== 'undefined' ? window.sessionStorage?.getItem('rb_session_id') : undefined,
-              challengeToken: challengeTokenStore.get(config.campaignId),
+              sessionId: typeof window !== 'undefined' ? window.sessionStorage?.getItem('revenue_boost_session') : undefined,
+              challengeToken: config.challengeToken || challengeTokenStore.get(config.campaignId),
             }),
           });
           const data = await response.json();
@@ -570,7 +571,7 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
               transform: translateY(0);
             }
           }
-          
+
           /* Dynamic placeholder color based on inputTextColor */
           .spin-to-win-input::placeholder {
             color: ${inputTextColor ? `${inputTextColor}80` : 'rgba(107, 114, 128, 0.5)'};
@@ -600,10 +601,10 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
             padding: 2rem 1.5rem;
             z-index: 20;
             /* Ensure background is solid on mobile so text is readable over wheel if they overlap */
-            background-color: ${baseBackground}; 
+            background-color: ${baseBackground};
             width: 100%;
           }
-          
+
           .spin-form-content {
             width: 100%;
             display: flex;
@@ -820,28 +821,32 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
                   )}
                 </div>
 
-                {showGdpr && (
-                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', marginTop: '0.25rem' }}>
-                    <input
-                      type="checkbox"
-                      checked={gdprConsent}
-                      onChange={(e) => {
-                        setGdprConsent(e.target.checked);
-                        setGdprError('');
-                      }}
-                      style={{
-                        marginTop: '0.25rem',
-                        width: '1.125rem',
-                        height: '1.125rem',
-                        cursor: 'pointer',
-                        flexShrink: 0,
-                      }}
-                    />
-                    <label style={{ fontSize: '0.875rem', color: descriptionColor, lineHeight: 1.4 }}>
-                      {gdprLabel}
-                    </label>
-                  </div>
-                )}
+	                {showGdpr && (
+	                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', marginTop: '0.25rem' }}>
+	                    <input
+	                      id={gdprCheckboxId}
+	                      type="checkbox"
+	                      checked={gdprConsent}
+	                      onChange={(e) => {
+	                        setGdprConsent(e.target.checked);
+	                        setGdprError('');
+	                      }}
+	                      style={{
+	                        marginTop: '0.25rem',
+	                        width: '1.125rem',
+	                        height: '1.125rem',
+	                        cursor: 'pointer',
+	                        flexShrink: 0,
+	                      }}
+	                    />
+	                    <label
+	                      htmlFor={gdprCheckboxId}
+	                      style={{ fontSize: '0.875rem', color: descriptionColor, lineHeight: 1.4, cursor: 'pointer' }}
+	                    >
+	                      {gdprLabel}
+	                    </label>
+	                  </div>
+	                )}
                 {gdprError && (
                   <p style={{ color: '#EF4444', fontSize: '13px', marginTop: '-0.5rem' }}>
                     {gdprError}

@@ -34,8 +34,17 @@ export class PopupEventService {
    * lead submission, and any other event producers.
    */
   static async recordEvent(input: PopupEventInput): Promise<void> {
-    try {
-      await prisma.popupEvent.create({
+	    // Enforce monthly impression cap for VIEW events before recording.
+	    // This ensures impressions are hard-capped at write time.
+	    if (input.eventType === "VIEW") {
+	      const { PlanGuardService } = await import(
+	        "~/domains/billing/services/plan-guard.server"
+	      );
+	      await PlanGuardService.assertWithinMonthlyImpressionCap(input.storeId);
+	    }
+
+	    try {
+	      await prisma.popupEvent.create({
         data: {
           storeId: input.storeId,
           campaignId: input.campaignId,

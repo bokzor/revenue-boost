@@ -70,7 +70,19 @@ export function parseJsonField<T>(
 }
 
 /**
+ * Safely prepare object for JSON field storage (identity function for Prisma Json fields)
+ * Does NOT stringify, as Prisma handles that for Json types.
+ */
+export function prepareJsonField<T>(value: T): any {
+  if (value === undefined || value === null) {
+    return {}; // Default to empty object if null/undefined
+  }
+  return value;
+}
+
+/**
  * Safely stringify object for JSON field storage
+ * @deprecated Use prepareJsonField for Prisma Json fields
  */
 export function stringifyJsonField<T>(value: T): string {
   try {
@@ -118,8 +130,28 @@ export function parseEntityJsonFields<TEntity>(
 }
 
 /**
+ * Prepares multiple JSON-backed fields from a domain object for Prisma writes.
+ * Does NOT stringify values.
+ */
+export function prepareEntityJsonFields<TEntity>(
+  entity: TEntity,
+  fields: Array<{ key: keyof TEntity; defaultValue: any }>
+): Record<string, any> {
+  const result: Record<string, any> = {};
+
+  for (const field of fields) {
+    const value =
+      (entity as any)[field.key as string] ?? field.defaultValue;
+    result[field.key as string] = prepareJsonField(value);
+  }
+
+  return result;
+}
+
+/**
  * Stringifies multiple JSON-backed fields from a domain object to
  * plain JSON strings suitable for Prisma writes.
+ * @deprecated Use prepareEntityJsonFields for Prisma Json fields
  */
 export function stringifyEntityJsonFields<TEntity>(
   entity: TEntity,

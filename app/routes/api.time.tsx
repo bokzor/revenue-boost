@@ -8,16 +8,25 @@
  */
 
 import type { LoaderFunctionArgs } from "react-router";
+import { ShopService } from "~/domains/shops/services/shop.server";
 
 // Cache server time response for 5 seconds to reduce load
-let cachedResponse: { data: any; timestamp: number } | null = null;
+let cachedResponse: { data: any; timestamp: number; shopDomain: string } | null = null;
 const CACHE_TTL_MS = 5000;
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const now = Date.now();
 
-  // Return cached response if still fresh
-  if (cachedResponse && (now - cachedResponse.timestamp) < CACHE_TTL_MS) {
+  // Extract shop domain from request (for storefront requests)
+  const url = new URL(request.url);
+  const shopDomain = url.searchParams.get("shop") || url.searchParams.get("shopDomain");
+
+  // Return cached response if still fresh and for the same shop
+  if (
+    cachedResponse &&
+    cachedResponse.shopDomain === shopDomain &&
+    (now - cachedResponse.timestamp) < CACHE_TTL_MS
+  ) {
     return new Response(JSON.stringify(cachedResponse.data), {
       headers: {
         "Content-Type": "application/json",
@@ -27,9 +36,15 @@ export async function loader({ request }: LoaderFunctionArgs) {
     });
   }
 
-  // Get shop timezone (default to UTC if not available)
-  // TODO: Fetch actual shop timezone from Shopify store settings when authenticated
-  const shopTimezone = "UTC"; // Placeholder - will be shop-specific in production
+  // Get shop timezone (from cached DB value, not from Shopify API)
+  // This endpoint is public so we can't use authenticate.admin()
+  let shopTimezone = "UTC";
+
+  if (shopDomain) {
+    shopTimezone = await ShopService.getTimezoneByShopDomain(shopDomain);
+  } else {
+    console.warn("[api.time] No shop domain provided, defaulting to UTC");
+  }
 
   const data = {
     serverTimeISO: new Date().toISOString(),
@@ -38,7 +53,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
   };
 
   // Update cache
-  cachedResponse = { data, timestamp: now };
+  cachedResponse = { data, timestamp: now, shopDomain: shopDomain || "" };
 
   return new Response(JSON.stringify(data), {
     headers: {

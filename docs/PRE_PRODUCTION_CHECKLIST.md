@@ -88,9 +88,6 @@
      - Template metadata.
    - Audit storefront bundle size (under `extensions/storefront-popup/assets`) and avoid unnecessary dependencies.
 
-3. **Frequency capping UX & verification**
-   - Ensure frequency capping settings are clearly exposed in the admin (using `FrequencyCappingPanel`).
-   - Add at least one E2E test asserting that a popup does **not** show more often than allowed for a given visitor/session.
 
 4. **Billing flows (if charging at launch)**
    - Audit `app/domains/billing` for completeness:
@@ -129,7 +126,6 @@
 
 ## 2. Critical missing or incomplete features (concise view)
 
-- **Admin targeting editor integration**: Targeting components exist, but `TargetingStep` is still a placeholder; needs wiring to `CampaignFormData` and `targetRules`.
 - **Privacy webhooks**: Explicit implementations for `customers/data_request`, `customers/redact`, and `shop/redact` must be added and tested.
 - **CI hardening**: Typecheck currently skipped; workflows not aligned with the real release branch; tests must be green and mandatory for merges.
 - **Timezone handling**: Shop‑timezone aware scheduling and countdowns are not yet implemented.

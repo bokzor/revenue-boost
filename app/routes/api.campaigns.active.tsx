@@ -24,6 +24,7 @@ import type { ApiCampaignData } from "~/lib/api-types";
 import { createApiResponse } from "~/lib/api-types";
 import { handleApiError } from "~/lib/api-error-handler.server";
 import { getStoreIdFromShop } from "~/lib/auth-helpers.server";
+import { PlanLimitError } from "~/domains/billing/errors";
 import { getOrCreateVisitorId, createVisitorIdHeaders } from "~/lib/visitor-id.server";
 
 // ============================================================================
@@ -61,9 +62,25 @@ export async function loader(args: LoaderFunctionArgs) {
         );
       }
 
-      const storeId = await getStoreIdFromShop(shop);
+	      const storeId = await getStoreIdFromShop(shop);
 
-      // Build storefront context from request
+	      // If the store has exceeded its monthly impression cap, gracefully
+	      // return no campaigns instead of an error so storefronts fail soft.
+	      try {
+	        const { PlanGuardService } = await import("~/domains/billing/services/plan-guard.server");
+	        await PlanGuardService.assertWithinMonthlyImpressionCap(storeId);
+	      } catch (error) {
+	        if (error instanceof PlanLimitError) {
+	          const emptyResponse: ActiveCampaignsResponse = {
+	            campaigns: [],
+	            timestamp: new Date().toISOString(),
+	          };
+	          return data(emptyResponse, { headers });
+	        }
+	        throw error;
+	      }
+
+	      // Build storefront context from request
       const context = buildStorefrontContext(url.searchParams, request.headers);
 
       // Add visitor ID to context (for frequency capping)

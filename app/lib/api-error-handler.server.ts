@@ -11,6 +11,7 @@ import { createApiResponse } from "~/lib/api-types";
 import { ServiceError } from "~/lib/errors.server";
 import { ValidationError } from "~/lib/validation-helpers";
 import { isProduction } from "./env.server";
+import { PlanLimitError } from "~/domains/billing/errors";
 
 /**
  * Sensitive patterns that should never be exposed in production
@@ -98,6 +99,19 @@ export function handleApiError(error: unknown, context: string) {
 
   // Log error with full details (server-side only)
   logError(error, context);
+
+  // Handle plan/feature limit errors explicitly so the client can react
+  if (error instanceof PlanLimitError) {
+    const message = sanitizeErrorMessage(error, isProd);
+    return data(
+      {
+        ...createApiResponse(false, undefined, message, isProd ? [] : []),
+        errorCode: error.code,
+        errorDetails: error.details,
+      },
+      { status: error.httpStatus },
+    );
+  }
 
   // Handle service errors (CampaignServiceError, TemplateServiceError, etc.)
   if (error instanceof ServiceError) {

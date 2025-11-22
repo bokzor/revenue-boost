@@ -14,7 +14,6 @@ import { data, type ActionFunctionArgs } from "react-router";
 import { z } from "zod";
 import { authenticate } from "~/shopify.server";
 import prisma from "~/db.server";
-import { FrequencyCapService } from "~/domains/targeting/services/frequency-cap.server";
 import { PopupEventService } from "~/domains/analytics/popup-events.server";
 import { getCampaignDiscountCode } from "~/domains/commerce/services/discount.server";
 
@@ -30,7 +29,6 @@ const IssueDiscountRequestSchema = z.object({
   })).optional(),
 });
 
-type IssueDiscountRequest = z.infer<typeof IssueDiscountRequestSchema>;
 
 // Response types
 interface DiscountIssueResponse {

@@ -13,6 +13,9 @@ import { renderPopup, type StorefrontCampaign } from "./core/PopupManagerPreact"
 import { TriggerManager, type EnhancedTriggers, type SessionRulesConfig } from "./core/TriggerManager";
 import { initCartTracking } from "./utils/cart-tracking";
 
+// Initialize hook registry (configures all pre-display hooks)
+import "./core/hooks";
+
 // Expose Preact globally for dynamic bundles
 if (typeof window !== "undefined") {
   // preact and hooks imported at module scope
@@ -43,6 +46,9 @@ if (typeof window !== "undefined") {
     },
   } as Record<string, unknown>;
 
+  // Expose session for lazy token loading in popups
+  (w as any).__RB_SESSION = session;
+  (w as any).__RB_SESSION_ID = session.getSessionId();
 
   console.log("[Revenue Boost] ⚛️ Preact runtime exposed globally");
 }

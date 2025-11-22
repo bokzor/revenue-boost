@@ -478,7 +478,43 @@ describe("TriggerManager", () => {
       expect(result).toBe(true);
     });
 
-    it("should only resolve cart_value when cart total is within range", async () => {
+    it("should resolve cart_value immediately when current cart value is within range", async () => {
+      // Set up window.Shopify.cart with a value within range
+      const w = globalThis.window as any;
+      w.Shopify = {
+        cart: {
+          total_price: 7500, // $75.00 in cents
+          item_count: 2,
+        },
+      };
+
+      const campaign = {
+        id: "test-campaign",
+        clientTriggers: {
+          enhancedTriggers: {
+            cart_value: {
+              enabled: true,
+              min_value: 50,
+              max_value: 100,
+            },
+          },
+        },
+      };
+
+      const result = await manager.evaluateTriggers(campaign as any);
+      expect(result).toBe(true);
+    });
+
+    it("should wait for cart update event when current cart value is outside range", async () => {
+      // Set up window.Shopify.cart with a value below range
+      const w = globalThis.window as any;
+      w.Shopify = {
+        cart: {
+          total_price: 3000, // $30.00 in cents (below min of 50)
+          item_count: 1,
+        },
+      };
+
       const campaign = {
         id: "test-campaign",
         clientTriggers: {
@@ -493,17 +529,85 @@ describe("TriggerManager", () => {
 
       const promise = manager.evaluateTriggers(campaign as any);
 
-      // Below threshold - should not resolve
-      const belowEvent = new CustomEvent("cart:update", {
-        detail: { total: 30 },
-      });
-      document.dispatchEvent(belowEvent);
+      // Give it a moment to check current value
+      await new Promise((r) => setTimeout(r, 10));
 
       // Above threshold - should resolve
       const aboveEvent = new CustomEvent("cart:update", {
         detail: { total: 75 },
       });
       document.dispatchEvent(aboveEvent);
+
+      const result = await promise;
+      expect(result).toBe(true);
+    });
+
+    it("should use polling when check_interval is specified", async () => {
+      // Start with cart value outside range
+      const w = globalThis.window as any;
+      w.Shopify = {
+        cart: {
+          total_price: 3000, // $30.00 in cents (below min of 50)
+          item_count: 1,
+        },
+      };
+
+      const campaign = {
+        id: "test-campaign",
+        clientTriggers: {
+          enhancedTriggers: {
+            cart_value: {
+              enabled: true,
+              min_value: 50,
+              check_interval: 50, // Poll every 50ms
+            },
+          },
+        },
+      };
+
+      const promise = manager.evaluateTriggers(campaign as any);
+
+      // Wait a bit, then update cart value
+      await new Promise((r) => setTimeout(r, 25));
+      w.Shopify.cart.total_price = 7500; // $75.00 in cents
+
+      const result = await promise;
+      expect(result).toBe(true);
+    });
+
+    it("should respect max_value in cart_value trigger", async () => {
+      // Set up window.Shopify.cart with a value above max
+      const w = globalThis.window as any;
+      w.Shopify = {
+        cart: {
+          total_price: 15000, // $150.00 in cents (above max of 100)
+          item_count: 3,
+        },
+      };
+
+      const campaign = {
+        id: "test-campaign",
+        clientTriggers: {
+          enhancedTriggers: {
+            cart_value: {
+              enabled: true,
+              min_value: 50,
+              max_value: 100,
+            },
+          },
+        },
+      };
+
+      const promise = manager.evaluateTriggers(campaign as any);
+
+      // Give it a moment to check current value (should not resolve)
+      await new Promise((r) => setTimeout(r, 10));
+
+      // Update to value within range - should resolve
+      const withinRangeEvent = new CustomEvent("cart:update", {
+        detail: { total: 75 },
+      });
+      document.dispatchEvent(withinRangeEvent);
 
       const result = await promise;
       expect(result).toBe(true);

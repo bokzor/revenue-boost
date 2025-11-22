@@ -19,7 +19,7 @@ import {
 import {
   parseCampaignFields,
   stringifyJsonField,
-  stringifyEntityJsonFields,
+  prepareEntityJsonFields,
 } from "../utils/json-helpers.js";
 import { CampaignServiceError } from "~/lib/errors.server";
 // Removed auto generation of discount codes at save time; codes are generated on lead submission
@@ -58,23 +58,33 @@ export class CampaignMutationService {
       );
     }
 
-    // Enforce plan limits
-    // Only check if we are trying to create an ACTIVE campaign
-    if (data.status === "ACTIVE") {
-      const { PlanGuardService } = await import("~/domains/billing/services/plan-guard.server");
-      await PlanGuardService.assertCanCreateCampaign(storeId);
-    }
+	    // Enforce plan limits
+	    // Only check if we are trying to create an ACTIVE campaign
+	    if (data.status === "ACTIVE") {
+	      const { PlanGuardService } = await import("~/domains/billing/services/plan-guard.server");
+	      await PlanGuardService.assertCanCreateCampaign(storeId);
+	    }
 
-    // Enforce variant limits if part of an experiment
-    if (data.experimentId) {
-      const { PlanGuardService } = await import("~/domains/billing/services/plan-guard.server");
-      await PlanGuardService.assertCanAddVariant(storeId, data.experimentId);
-    }
+	    // Enforce variant limits if part of an experiment
+	    if (data.experimentId) {
+	      const { PlanGuardService } = await import("~/domains/billing/services/plan-guard.server");
+	      await PlanGuardService.assertCanAddVariant(storeId, data.experimentId);
+	    }
+
+	    // Enforce feature flags for advanced targeting if used
+	    const hasAdvancedTargeting =
+	      !!data.targetRules?.audienceTargeting?.enabled ||
+	      !!data.targetRules?.audienceTargeting?.shopifySegmentIds?.length ||
+	      !!data.targetRules?.audienceTargeting?.sessionRules;
+	    if (hasAdvancedTargeting) {
+	      const { PlanGuardService } = await import("~/domains/billing/services/plan-guard.server");
+	      await PlanGuardService.assertFeatureEnabled(storeId, "advancedTargeting");
+	    }
 
     try {
       // Auto-generate discount code if needed
       const discountConfig = ensureDiscountCode(data.discountConfig);
-      const jsonFields = stringifyEntityJsonFields(
+      const jsonFields = prepareEntityJsonFields(
         { ...data, discountConfig },
         [
           { key: "contentConfig", defaultValue: {} },

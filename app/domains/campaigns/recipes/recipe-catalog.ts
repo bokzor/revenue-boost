@@ -184,7 +184,7 @@ export const RECIPE_CATALOG: Partial<Record<TemplateType, RecipeDefinition[]>> =
                         },
                         showInPreview: true,
                         autoApplyMode: "ajax",
-                        codePresentation: "hidden"
+                        codePresentation: "hide_code"
                     }
                 };
             }
@@ -252,7 +252,7 @@ export const RECIPE_CATALOG: Partial<Record<TemplateType, RecipeDefinition[]>> =
                         },
                         showInPreview: true,
                         autoApplyMode: "ajax",
-                        codePresentation: "hidden"
+                        codePresentation: "hide_code"
                     }
                 };
             }
@@ -363,7 +363,7 @@ export const RECIPE_CATALOG: Partial<Record<TemplateType, RecipeDefinition[]>> =
                         },
                         showInPreview: true,
                         autoApplyMode: "ajax",
-                        codePresentation: "hidden"
+                        codePresentation: "hide_code"
                     }
                 };
             }

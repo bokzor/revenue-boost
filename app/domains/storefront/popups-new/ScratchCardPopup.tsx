@@ -32,6 +32,7 @@ export interface ScratchCardConfig extends PopupDesignConfig, ScratchCardContent
   scratchOverlayColor?: string;
   scratchOverlayImage?: string;
   loadingText?: string;
+  challengeToken?: string; // Pre-loaded challenge token from PopupManager
 
   // Typography (optional, can be set from design theme)
   titleFontSize?: string;
@@ -87,9 +88,11 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
   const brushRadius = config.scratchRadius || 20;
 
   // Fetch prize from server
-  const fetchPrize = useCallback(async () => {
+  // Note: email is passed as a parameter to avoid triggering re-fetches on every keystroke
+  const fetchPrize = useCallback(async (emailToUse?: string) => {
     if (config.previewMode) {
       // Preview mode: select random prize locally
+      console.log('[Scratch Card] Preview mode - selecting random prize locally');
       const prizes = config.prizes || [];
       if (prizes.length > 0) {
         const randomPrize = prizes[Math.floor(Math.random() * prizes.length)];
@@ -98,20 +101,66 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
       return;
     }
 
-    if (!config.campaignId || !email) return;
+    const emailValue = emailToUse || email;
+    if (!config.campaignId) {
+      console.error('[Scratch Card] No campaign ID available');
+      return;
+    }
 
     try {
+      // Get sessionId from the correct sessionStorage key
+      const sessionId = typeof window !== 'undefined'
+        ? (window.sessionStorage?.getItem('revenue_boost_session') ||
+           window.sessionStorage?.getItem('rb_session_id'))
+        : undefined;
+
+      // Get challenge token - prefer from config (passed by PopupManager), fallback to store
+      const challengeToken = config.challengeToken || challengeTokenStore.get(config.campaignId);
+
+      if (!sessionId) {
+        console.error('[Scratch Card] No session ID available', {
+          hasWindow: typeof window !== 'undefined',
+          sessionStorageKeys: typeof window !== 'undefined'
+            ? Object.keys(window.sessionStorage || {})
+            : []
+        });
+        return;
+      }
+
+      if (!challengeToken) {
+        console.error('[Scratch Card] No challenge token available', {
+          fromConfig: !!config.challengeToken,
+          fromStore: !!challengeTokenStore.get(config.campaignId),
+          campaignId: config.campaignId,
+          previewMode: config.previewMode,
+        });
+        return;
+      }
+
+      console.log('[Scratch Card] Fetching prize from server', {
+        campaignId: config.campaignId,
+        hasEmail: !!emailValue,
+        hasSessionId: !!sessionId,
+        hasChallengeToken: !!challengeToken,
+      });
+
+      const requestBody: any = {
+        campaignId: config.campaignId,
+        sessionId: sessionId,
+        challengeToken: challengeToken,
+      };
+
+      // Only include email if it's provided
+      if (emailValue) {
+        requestBody.email = emailValue;
+      }
+
       const response = await fetch('/apps/revenue-boost/api/popups/scratch-card', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          campaignId: config.campaignId,
-          email,
-          sessionId: typeof window !== 'undefined' ? window.sessionStorage?.getItem('rb_session_id') : undefined,
-          challengeToken: challengeTokenStore.get(config.campaignId),
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       const data = await response.json();
@@ -125,15 +174,27 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
           discountCode: data.discountCode, // For backward compatibility
         };
         setWonPrize(serverPrize);
+        console.log('[Scratch Card] Prize fetched successfully:', {
+          prizeLabel: serverPrize.label,
+          hasDiscountCode: !!serverPrize.discountCode,
+          emailProvided: !!emailValue,
+        });
       } else {
-        console.error('[Scratch Card] Failed to fetch prize:', data.error);
+        console.error('[Scratch Card] Failed to fetch prize:', {
+          error: data.error,
+          details: data.details,
+          errors: data.errors,
+          success: data.success,
+        });
         // Fallback or error handling?
         // For now, maybe set a default error prize or keep it null (loading)
       }
     } catch (error) {
       console.error('[Scratch Card] Network error fetching prize:', error);
     }
-  }, [config.campaignId, config.previewMode, config.prizes, email]);
+    // Note: email is NOT in dependencies to prevent re-fetching on every keystroke
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [config.campaignId, config.previewMode, config.prizes]);
 
   // Initialize canvases (prize + scratch overlay)
   useEffect(() => {
@@ -177,16 +238,36 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
       prizeCtx.textBaseline = 'middle';
       prizeCtx.fillText(wonPrize.label, cardWidth / 2, cardHeight / 2);
     } else {
-      // Loading state
-      prizeCtx.fillStyle =
-        config.scratchCardTextColor ||
-        config.buttonTextColor ||
-        config.textColor ||
-        '#ffffff';
-      prizeCtx.font = 'bold 24px system-ui, -apple-system, BlinkMacSystemFont, sans-serif';
-      prizeCtx.textAlign = 'center';
-      prizeCtx.textBaseline = 'middle';
-      prizeCtx.fillText(config.loadingText || "Loading...", cardWidth / 2, cardHeight / 2);
+      // Loading state - show a spinner instead of text
+      // Draw a simple spinner animation
+      prizeCtx.save();
+      prizeCtx.translate(cardWidth / 2, cardHeight / 2);
+
+      const spinnerRadius = 30;
+      const lineWidth = 4;
+      const numSegments = 8;
+
+      for (let i = 0; i < numSegments; i++) {
+        const angle = (i / numSegments) * Math.PI * 2;
+        const opacity = (i + 1) / numSegments;
+
+        prizeCtx.strokeStyle = `rgba(255, 255, 255, ${opacity * 0.8})`;
+        prizeCtx.lineWidth = lineWidth;
+        prizeCtx.lineCap = 'round';
+
+        prizeCtx.beginPath();
+        prizeCtx.moveTo(
+          Math.cos(angle) * (spinnerRadius - lineWidth),
+          Math.sin(angle) * (spinnerRadius - lineWidth)
+        );
+        prizeCtx.lineTo(
+          Math.cos(angle) * spinnerRadius,
+          Math.sin(angle) * spinnerRadius
+        );
+        prizeCtx.stroke();
+      }
+
+      prizeCtx.restore();
     }
 
     // Draw scratch overlay
@@ -358,7 +439,7 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
       setEmailSubmitted(true);
       // Fetch prize after email submission (if email is required before scratching)
       if (config.emailBeforeScratching) {
-        fetchPrize();
+        fetchPrize(email);
       }
     } catch (error) {
       setEmailError('Something went wrong. Please try again.');
@@ -368,9 +449,17 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
   // Fetch prize on mount if email is not required before scratching
   useEffect(() => {
     if (isVisible && !wonPrize && (!config.emailRequired || !config.emailBeforeScratching)) {
+      console.log('[Scratch Card] Auto-fetching prize on mount:', {
+        isVisible,
+        hasWonPrize: !!wonPrize,
+        emailRequired: config.emailRequired,
+        emailBeforeScratching: config.emailBeforeScratching,
+      });
       fetchPrize();
     }
-  }, [isVisible, wonPrize, config.emailRequired, config.emailBeforeScratching, fetchPrize]);
+    // fetchPrize is intentionally not in dependencies to prevent re-fetching
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isVisible, wonPrize, config.emailRequired, config.emailBeforeScratching]);
 
   const handleCopyCode = useCallback(async () => {
     if (wonPrize?.discountCode) {

@@ -15,7 +15,7 @@ import { getStoreId } from "~/lib/auth-helpers.server";
 import { CampaignFormWithABTesting } from "~/domains/campaigns/components/CampaignFormWithABTesting";
 import type { CampaignFormData } from "~/shared/hooks/useWizardState";
 import { useState } from "react";
-import { Modal, Text } from "@shopify/polaris";
+import { Modal, Text, Toast, Frame } from "@shopify/polaris";
 import type { UnifiedTemplate } from "~/domains/popups/services/templates/unified-template-service.server";
 
 // ============================================================================
@@ -77,7 +77,10 @@ export default function NewCampaign() {
   };
 
   // Handle save - create campaign(s) via API
-  const handleSave = async (campaignData: CampaignFormData | CampaignFormData[]) => {
+	  const [toastMessage, setToastMessage] = useState<string | null>(null);
+	  const [toastError, setToastError] = useState(false);
+
+	  const handleSave = async (campaignData: CampaignFormData | CampaignFormData[]) => {
     console.log('[CampaignNew] handleSave called', {
       isArray: Array.isArray(campaignData),
       hasFrequencyCapping: Array.isArray(campaignData)
@@ -114,15 +117,21 @@ export default function NewCampaign() {
         };
 
         // Create experiment via API
-        const expResponse = await fetch("/api/experiments", {
+	        const expResponse = await fetch("/api/experiments", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(experimentData),
         });
 
-        if (!expResponse.ok) {
-          throw new Error("Failed to create experiment");
-        }
+	        if (!expResponse.ok) {
+	          const planLimit = await tryParsePlanLimitError(expResponse);
+	          if (planLimit) {
+	            setToastMessage(planLimit.message);
+	            setToastError(true);
+	            return;
+	          }
+	          throw new Error("Failed to create experiment");
+	        }
 
         const expBody = await expResponse.json();
         const experiment = expBody?.data?.experiment ?? expBody?.data;
@@ -166,15 +175,21 @@ export default function NewCampaign() {
             tags: variant.tags,
           };
 
-          const response = await fetch("/api/campaigns", {
+	          const response = await fetch("/api/campaigns", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(campaignCreateData),
           });
 
-          if (!response.ok) {
-            throw new Error("Failed to create campaign variant");
-          }
+	          if (!response.ok) {
+	            const planLimit = await tryParsePlanLimitError(response);
+	            if (planLimit) {
+	              setToastMessage(planLimit.message);
+	              setToastError(true);
+	              return;
+	            }
+	            throw new Error("Failed to create campaign variant");
+	          }
 
           return response.json();
         });
@@ -225,7 +240,7 @@ export default function NewCampaign() {
 
         console.log('[CampaignNew] POSTing /api/campaigns', campaignCreateData);
 
-        const response = await fetch("/api/campaigns", {
+	        const response = await fetch("/api/campaigns", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(campaignCreateData),
@@ -233,10 +248,16 @@ export default function NewCampaign() {
 
         console.log('[CampaignNew] /api/campaigns response', response.status);
 
-        if (!response.ok) {
-          console.error('[CampaignNew] /api/campaigns failed', response.status);
-          throw new Error("Failed to create campaign");
-        }
+	        if (!response.ok) {
+	          const planLimit = await tryParsePlanLimitError(response);
+	          if (planLimit) {
+	            setToastMessage(planLimit.message);
+	            setToastError(true);
+	            return;
+	          }
+	          console.error('[CampaignNew] /api/campaigns failed', response.status);
+	          throw new Error("Failed to create campaign");
+	        }
 
         const body = await response.json();
         const campaign = body?.data?.campaign ?? body?.data;
@@ -262,17 +283,25 @@ export default function NewCampaign() {
     navigate("/app/campaigns");
   };
 
-  return (
-    <>
+	  const toastMarkup = toastMessage ? (
+	    <Toast
+	      content={toastMessage}
+	      error={toastError}
+	      onDismiss={() => setToastMessage(null)}
+	    />
+	  ) : null;
+
+	  return (
+	    <Frame>
       <CampaignFormWithABTesting
         storeId={storeId}
         shopDomain={shopDomain}
         onSave={handleSave}
         onCancel={handleCancel}
         initialTemplates={templates}
-      />
+	      />
 
-      <Modal
+	      <Modal
         open={activatePromptOpen}
         onClose={() => {
           setActivatePromptOpen(false);
@@ -309,12 +338,24 @@ export default function NewCampaign() {
             },
           },
         ]}
-      >
+	      >
         <div style={{ padding: 16 }}>
           <Text as="p" variant="bodyMd">This campaign is still a draft. Activate it now</Text>
         </div>
-      </Modal>
-    </>
+	      </Modal>
+	      {toastMarkup}
+	    </Frame>
   );
+}
+
+async function tryParsePlanLimitError(response: Response): Promise<{ message: string; details: any } | null> {
+	try {
+	  if (response.status !== 403) return null;
+	  const body: any = await response.json();
+	  if (body?.errorCode !== "PLAN_LIMIT_EXCEEDED") return null;
+	  return { message: body.error ?? "Plan limit reached", details: body.errorDetails };
+	} catch {
+	  return null;
+	}
 }
 

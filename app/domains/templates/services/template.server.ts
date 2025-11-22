@@ -16,7 +16,7 @@ import {
   parseJsonField,
   stringifyJsonField,
   parseEntityJsonFields,
-  stringifyEntityJsonFields,
+  prepareEntityJsonFields,
 } from "../../campaigns/utils/json-helpers.js";
 import {
   TemplateFieldSchema,
@@ -249,7 +249,14 @@ export class TemplateService {
     data: TemplateCreateData
   ): Promise<TemplateWithConfigs> {
     try {
-      const jsonFields = stringifyEntityJsonFields(data, [
+      // Enforce plan feature & limits for store-specific (custom) templates
+      if (data.storeId) {
+        const { PlanGuardService } = await import("~/domains/billing/services/plan-guard.server");
+        await PlanGuardService.assertFeatureEnabled(data.storeId, "customTemplates");
+        await PlanGuardService.assertCanCreateCustomTemplate(data.storeId);
+      }
+
+      const jsonFields = prepareEntityJsonFields(data, [
         { key: "contentConfig", defaultValue: {} },
         { key: "fields", defaultValue: [] },
         { key: "targetRules", defaultValue: {} },
@@ -282,7 +289,7 @@ export class TemplateService {
       // Clear cache after creating template
       clearTemplateCache();
 
-        return parseTemplateEntity(template);
+      return parseTemplateEntity(template);
     } catch (error) {
       throw new TemplateServiceError("CREATE_TEMPLATE_FAILED", "Failed to create template", error);
     }

@@ -7,7 +7,7 @@
     "skipLibCheck": true,
     "isolatedModules": true,
     "allowSyntheticDefaultImports": true,
-    "removeComments": false,
+    "removeComments": true,
     "forceConsistentCasingInFileNames": true,
     "noEmit": true,
     "allowJs": true,

@@ -5,11 +5,13 @@
  * - Enables theme extension automatically
  * - Sets app URL metafield for storefront
  * - Creates welcome campaign
+ * - Fetches and caches shop timezone
  * - Tracks setup completion
  */
 
 import prisma from "~/db.server";
 import { CampaignService } from "~/domains/campaigns/services/campaign.server";
+import { ShopService } from "~/domains/shops/services/shop.server";
 
 /**
  * Setup app on installation
@@ -49,11 +51,22 @@ export async function setupAppOnInstall(admin: any, shopDomain: string) {
     // We cannot enable it programmatically via GraphQL
     console.log(`[App Setup] Theme extension available - merchant needs to enable it in theme editor`);
 
-    // 3. Create welcome campaign (ACTIVE by default) - only if store exists
+    // 3. Fetch and cache shop timezone - only if store exists
+    if (store) {
+      try {
+        await ShopService.getShopTimezone(admin, store.id);
+        console.log(`[App Setup] ✅ Fetched and cached shop timezone`);
+      } catch (error) {
+        console.error("[App Setup] Error fetching shop timezone:", error);
+        // Don't fail setup if timezone fetch fails
+      }
+    }
+
+    // 4. Create welcome campaign (ACTIVE by default) - only if store exists
     if (store) {
       await createWelcomeCampaign(store.id);
 
-      // 4. Mark setup as completed
+      // 5. Mark setup as completed
       await markSetupCompleted(store.id);
     }
 

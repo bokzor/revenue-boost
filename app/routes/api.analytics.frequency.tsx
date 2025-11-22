@@ -11,6 +11,8 @@ import { PopupEventService } from "~/domains/analytics/popup-events.server";
 import { storefrontCors } from "~/lib/cors.server";
 import { getOrCreateVisitorId } from "~/lib/visitor-id.server";
 import { getStoreIdFromShop } from "~/lib/auth-helpers.server";
+import prisma from "~/db.server";
+import type { StoreSettings } from "~/domains/store/types/settings";
 
 export async function action({ request }: ActionFunctionArgs) {
   const headers = storefrontCors();
@@ -55,13 +57,20 @@ export async function action({ request }: ActionFunctionArgs) {
     const referrer = bodyReferrer || request.headers.get("referer") || null;
     const ipAddress = getClientIP(request);
 
+    // Fetch store settings for global frequency capping
+    const store = await prisma.store.findUnique({
+      where: { id: storeId },
+      select: { settings: true },
+    });
+    const storeSettings = store?.settings as StoreSettings | undefined;
+
     // Record the display using FrequencyCapService (Redis-based frequency capping)
     await FrequencyCapService.recordDisplay(trackingKey, {
       visitorId,
       sessionId: sessionId || visitorId,
       pageUrl,
       deviceType: deviceType || "desktop",
-    });
+    }, undefined, storeSettings?.frequencyCapping);
 
     // Also record a VIEW event in PopupEvent for long-term analytics
     try {

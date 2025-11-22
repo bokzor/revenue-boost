@@ -1138,7 +1138,7 @@ export class TriggerManager {
 
   /**
    * Check cart_value trigger
-   * Uses CartEventListener in cart_update mode with value thresholds.
+   * First checks current cart value, then listens for cart updates if needed.
    */
   private async checkCartValue(trigger: CartValueTrigger): Promise<boolean> {
     if (!trigger.enabled) {
@@ -1154,7 +1154,46 @@ export class TriggerManager {
     const maxCartValue = trigger.max_value ?? Infinity;
 
     console.log(
-      `[Revenue Boost] 💰 cart_value trigger waiting for cart total between ${minCartValue} and ${maxCartValue}`,
+      `[Revenue Boost] 💰 Checking cart_value trigger: cart total must be between ${minCartValue} and ${maxCartValue}`,
+    );
+
+    // First, check the current cart value
+    const currentCartValue = this.getCurrentCartValue();
+    console.log(`[Revenue Boost] 💰 Current cart value: ${currentCartValue}`);
+
+    // If current cart value meets the criteria, resolve immediately
+    if (currentCartValue >= minCartValue && currentCartValue <= maxCartValue) {
+      console.log("[Revenue Boost] ✅ cart_value trigger conditions met (current cart value)");
+      return true;
+    }
+
+    // If check_interval is specified, poll the cart value periodically
+    const checkInterval = trigger.check_interval;
+    if (checkInterval && checkInterval > 0) {
+      console.log(
+        `[Revenue Boost] 💰 cart_value trigger will poll every ${checkInterval}ms for cart value changes`,
+      );
+
+      return new Promise((resolve) => {
+        const intervalId = window.setInterval(() => {
+          const cartValue = this.getCurrentCartValue();
+          console.log(`[Revenue Boost] 💰 Polling cart value: ${cartValue}`);
+
+          if (cartValue >= minCartValue && cartValue <= maxCartValue) {
+            console.log("[Revenue Boost] ✅ cart_value trigger conditions met (polling)");
+            window.clearInterval(intervalId);
+            resolve(true);
+          }
+        }, checkInterval);
+
+        // Store cleanup function
+        this.cleanupFunctions.push(() => window.clearInterval(intervalId));
+      });
+    }
+
+    // Otherwise, wait for cart update events
+    console.log(
+      `[Revenue Boost] 💰 cart_value trigger waiting for cart update events (current value ${currentCartValue} is outside range)`,
     );
 
     return new Promise((resolve) => {
@@ -1167,10 +1206,25 @@ export class TriggerManager {
 
       this.cartEventListener.start((event) => {
         if (event.type !== "cart_update") return;
-        console.log("[Revenue Boost] ✅ cart_value trigger conditions met");
+        console.log("[Revenue Boost] ✅ cart_value trigger conditions met (cart update event)");
         resolve(true);
       });
     });
+  }
+
+  /**
+   * Get the current cart value from window.Shopify.cart
+   */
+  private getCurrentCartValue(): number {
+    type ShopifyGlobal = { Shopify?: { cart?: { total_price: number } } };
+    const w = window as unknown as ShopifyGlobal;
+
+    if (w.Shopify && w.Shopify.cart && typeof w.Shopify.cart.total_price === "number") {
+      // Convert from cents to dollars
+      return w.Shopify.cart.total_price / 100;
+    }
+
+    return 0;
   }
 
   /**

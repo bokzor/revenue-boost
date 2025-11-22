@@ -21,6 +21,7 @@ export type ImagePosition = "left" | "right" | "top" | "bottom" | "none";
 export interface PopupDesignConfig {
   id: string;
   campaignId?: string;
+  challengeToken?: string;
 
   // Design/Visual Properties
   backgroundColor: string;
