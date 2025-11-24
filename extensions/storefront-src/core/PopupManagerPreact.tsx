@@ -30,6 +30,7 @@ export interface PopupManagerProps {
   onShow?: (campaignId: string) => void;
   loader: ComponentLoader;
   api: ApiClient;
+  triggerContext?: { productId?: string; [key: string]: any };
 }
 
 function getShopifyRoot(): string {
@@ -112,7 +113,7 @@ async function applyDiscountViaAjax(code: string): Promise<boolean> {
   }
 }
 
-export function PopupManagerPreact({ campaign, onClose, onShow, loader, api }: PopupManagerProps) {
+export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, triggerContext }: PopupManagerProps) {
   const [Component, setComponent] = useState<ComponentType<Record<string, unknown>> | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -133,7 +134,8 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api }: P
             campaign,
             api,
             session.getSessionId(),
-            session.getVisitorId()
+            session.getVisitorId(),
+            triggerContext // Pass trigger context to hooks
           ),
           loader.loadComponent(campaign.templateType),
         ]);
@@ -264,9 +266,14 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api }: P
           } else {
             console.log("[PopupManager] Free gift added to cart successfully");
 
-            // Trigger multiple cart update events for compatibility with different themes
+            // Trigger comprehensive cart update events for different themes
             document.dispatchEvent(new CustomEvent('cart:updated'));
             document.dispatchEvent(new CustomEvent('cart.requestUpdate'));
+            document.dispatchEvent(new CustomEvent('cart:update'));
+            document.dispatchEvent(new CustomEvent('cart:change'));
+            document.dispatchEvent(new CustomEvent('theme:cart:update'));
+            document.dispatchEvent(new CustomEvent('cart:item-added'));
+            document.dispatchEvent(new CustomEvent('cart:add'));
 
             // Trigger Shopify theme events
             if (typeof window !== 'undefined') {
@@ -290,9 +297,44 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api }: P
                   document.dispatchEvent(new CustomEvent('cart:refresh', { detail: cart }));
 
                   // Update cart count in header (common selector)
-                  const cartCount = document.querySelector('.cart-count, [data-cart-count], .cart__count');
+                  const cartCount = document.querySelector('.cart-count, [data-cart-count], .cart__count, #cart-icon-bubble span');
                   if (cartCount && cart.item_count !== undefined) {
                     cartCount.textContent = String(cart.item_count);
+                  }
+
+                  // Try to trigger theme-specific cart drawer refresh methods
+                  try {
+                    // Dawn theme (Web Components) - cart-drawer element
+                    const cartDrawer = document.querySelector('cart-drawer');
+                    if (cartDrawer && typeof (cartDrawer as any).renderContents === 'function') {
+                      console.log("[PopupManager] Refreshing Dawn cart-drawer");
+                      (cartDrawer as any).renderContents(cart);
+                    }
+
+                    // Dawn theme - cart-notification element
+                    const cartNotification = document.querySelector('cart-notification');
+                    if (cartNotification && typeof (cartNotification as any).renderContents === 'function') {
+                      console.log("[PopupManager] Refreshing Dawn cart-notification");
+                      (cartNotification as any).renderContents(cart);
+                    }
+
+                    // Legacy Dawn theme methods
+                    if (typeof w.theme?.cart?.refresh === 'function') {
+                      w.theme.cart.refresh();
+                    }
+
+                    // Some themes use a global cart object
+                    if (typeof w.cart?.refresh === 'function') {
+                      w.cart.refresh();
+                    }
+
+                    // Trigger Shopify section rendering (used by many themes)
+                    if (typeof w.Shopify?.theme?.sections?.load === 'function') {
+                      w.Shopify.theme.sections.load('cart-drawer');
+                    }
+                  } catch (themeError) {
+                    // Silent fail - theme-specific methods may not exist
+                    console.debug("[PopupManager] Theme-specific cart refresh not available:", themeError);
                   }
                 })
                 .catch(err => console.error("[PopupManager] Failed to fetch cart:", err));
@@ -540,12 +582,34 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api }: P
 
       // Check if we need to apply a discount
       if (campaign.discountConfig?.enabled) {
-        await handleIssueDiscount();
+        // Fetch cart total for tiered discount support
+        let cartSubtotalCents: number | undefined;
+        try {
+          const cartRes = await fetch(`${root}cart.js`);
+          if (cartRes.ok) {
+            const cart = await cartRes.json();
+            // Cart total is in cents in Shopify's cart.js response
+            cartSubtotalCents = cart.total_price;
+            console.log("[PopupManager] Cart subtotal for discount:", {
+              cents: cartSubtotalCents,
+              dollars: cartSubtotalCents ? (cartSubtotalCents / 100).toFixed(2) : 'N/A'
+            });
+          }
+        } catch (e) {
+          console.warn("[PopupManager] Failed to fetch cart total for discount:", e);
+        }
+
+        await handleIssueDiscount({ cartSubtotalCents });
       }
 
-      // Trigger update events
+      // Trigger comprehensive cart update events for different themes
       document.dispatchEvent(new CustomEvent("cart:updated"));
       document.dispatchEvent(new CustomEvent("cart.requestUpdate"));
+      document.dispatchEvent(new CustomEvent("cart:update"));
+      document.dispatchEvent(new CustomEvent("cart:change"));
+      document.dispatchEvent(new CustomEvent("theme:cart:update"));
+      document.dispatchEvent(new CustomEvent("cart:item-added"));
+      document.dispatchEvent(new CustomEvent("cart:add"));
 
       // Fetch new cart to ensure UI is in sync
       try {
@@ -558,6 +622,25 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api }: P
           const cartCount = document.querySelector(".cart-count, [data-cart-count], .cart__count");
           if (cartCount && cart.item_count !== undefined) {
             cartCount.textContent = String(cart.item_count);
+          }
+
+          // Try to trigger theme-specific cart drawer refresh methods
+          try {
+            // Dawn theme and similar
+            if (typeof (window as any).theme?.cart?.refresh === 'function') {
+              (window as any).theme.cart.refresh();
+            }
+            // Some themes use a global cart object
+            if (typeof (window as any).cart?.refresh === 'function') {
+              (window as any).cart.refresh();
+            }
+            // Trigger Shopify section rendering (used by many themes)
+            if (typeof (window as any).Shopify?.theme?.sections?.load === 'function') {
+              (window as any).Shopify.theme.sections.load('cart-drawer');
+            }
+          } catch (themeError) {
+            // Silent fail - theme-specific methods may not exist
+            console.debug("[PopupManager] Theme-specific cart refresh not available:", themeError);
           }
         }
       } catch (e) {
@@ -636,7 +719,8 @@ export function renderPopup(
   onClose: () => void,
   loader: ComponentLoader,
   api: ApiClient,
-  onShow?: (campaignId: string) => void
+  onShow?: (campaignId: string) => void,
+  triggerContext?: { productId?: string; [key: string]: any }
 ): () => void {
   // Create container
   const container = document.createElement("div");
@@ -654,6 +738,7 @@ export function renderPopup(
       onShow,
       loader,
       api,
+      triggerContext,
     }),
     container
   );

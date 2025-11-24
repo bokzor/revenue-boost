@@ -120,13 +120,53 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
     return total;
   }, [selectedProducts, products]);
 
-  const calculateSavings = useCallback(() => {
+  // Calculate original total (using compare-at prices if available)
+  const calculateOriginalTotal = useCallback(() => {
+    let total = 0;
+    selectedProducts.forEach(id => {
+      const product = products.find(p => p.id === id);
+      if (product) {
+        const originalPrice = product.compareAtPrice
+          ? parseFloat(product.compareAtPrice)
+          : parseFloat(product.price);
+        total += originalPrice;
+      }
+    });
+    return total;
+  }, [selectedProducts, products]);
+
+  // Calculate savings from compare-at prices (individual product discounts)
+  const calculateCompareAtSavings = useCallback(() => {
+    let savings = 0;
+    selectedProducts.forEach(id => {
+      const product = products.find(p => p.id === id);
+      if (product && product.compareAtPrice) {
+        const price = parseFloat(product.price);
+        const compareAt = parseFloat(product.compareAtPrice);
+        if (compareAt > price) {
+          savings += (compareAt - price);
+        }
+      }
+    });
+    return savings > 0 ? savings : null;
+  }, [selectedProducts, products]);
+
+  // Calculate bundle discount (applied to current prices, not compare-at)
+  const calculateBundleSavings = useCallback(() => {
     if (!config.bundleDiscount || selectedProducts.size < 2) return null;
 
     const total = calculateTotal();
     const savings = total * (config.bundleDiscount / 100);
     return savings;
   }, [selectedProducts, config.bundleDiscount, calculateTotal]);
+
+  // Calculate total savings (compare-at + bundle)
+  const calculateTotalSavings = useCallback(() => {
+    const compareAtSavings = calculateCompareAtSavings() || 0;
+    const bundleSavings = calculateBundleSavings() || 0;
+    const total = compareAtSavings + bundleSavings;
+    return total > 0 ? total : null;
+  }, [calculateCompareAtSavings, calculateBundleSavings]);
 
   const getSavingsPercent = (product: Product): number | null => {
     if (product.savingsPercent != null) {
@@ -143,9 +183,9 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
 
   const calculateDiscountedTotal = useCallback(() => {
     const total = calculateTotal();
-    const savings = calculateSavings();
-    return savings ? total - savings : total;
-  }, [calculateTotal, calculateSavings]);
+    const bundleSavings = calculateBundleSavings();
+    return bundleSavings ? total - bundleSavings : total;
+  }, [calculateTotal, calculateBundleSavings]);
 
   // Keep scroll focus inside the upsell content when possible
   const handleContentWheel = useCallback(
@@ -883,6 +923,8 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
     >
       <div
         className="upsell-container"
+        data-splitpop="true"
+        data-template="product-upsell"
         style={{
           display: 'flex',
           flexDirection: 'column',
@@ -929,31 +971,72 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
 
         {/* Footer: selection summary + actions */}
         <div className="upsell-footer">
-          {selectedProducts.size > 0 && (
-            <div className="upsell-summary">
-              <div className="upsell-summary-row">
-                <span className="upsell-summary-label">
-                  {selectedProducts.size} item{selectedProducts.size !== 1 ? 's' : ''} selected
-                </span>
-                {savings && (
-                  <span className="upsell-summary-value upsell-summary-original">
-                    {formatCurrency(total, config.currency)}
+          {selectedProducts.size > 0 && (() => {
+            const total = calculateTotal();
+            const originalTotal = calculateOriginalTotal();
+            const compareAtSavings = calculateCompareAtSavings();
+            const bundleSavings = calculateBundleSavings();
+            const totalSavings = calculateTotalSavings();
+            const discountedTotal = calculateDiscountedTotal();
+            const hasCompareAtSavings = compareAtSavings && compareAtSavings > 0;
+            const hasBundleSavings = bundleSavings && bundleSavings > 0;
+
+            return (
+              <div className="upsell-summary">
+                {/* Item count */}
+                <div className="upsell-summary-row">
+                  <span className="upsell-summary-label">
+                    {selectedProducts.size} item{selectedProducts.size !== 1 ? 's' : ''} selected
                   </span>
+                  {hasCompareAtSavings && (
+                    <span className="upsell-summary-value upsell-summary-original">
+                      {formatCurrency(originalTotal, config.currency)}
+                    </span>
+                  )}
+                </div>
+
+                {/* Subtotal (current prices before bundle discount) */}
+                {hasCompareAtSavings && (
+                  <div className="upsell-summary-row" style={{ fontSize: '14px', opacity: 0.8 }}>
+                    <span>Subtotal</span>
+                    <span>{formatCurrency(total, config.currency)}</span>
+                  </div>
+                )}
+
+                {/* Bundle discount line */}
+                {hasBundleSavings && (
+                  <div className="upsell-summary-row" style={{ fontSize: '14px', color: accentColor }}>
+                    <span>Bundle Discount ({config.bundleDiscount}%)</span>
+                    <span>-{formatCurrency(bundleSavings, config.currency)}</span>
+                  </div>
+                )}
+
+                {/* Total */}
+                <div className="upsell-summary-row upsell-summary-total">
+                  <span>Total</span>
+                  <span>{formatCurrency(discountedTotal, config.currency)}</span>
+                </div>
+
+                {/* Total savings breakdown */}
+                {totalSavings && totalSavings > 0 && (
+                  <div className="upsell-summary-row">
+                    <span className="upsell-summary-savings">
+                      {hasCompareAtSavings && hasBundleSavings ? (
+                        <>
+                          You save {formatCurrency(totalSavings, config.currency)}!
+                          <span style={{ fontSize: '12px', display: 'block', opacity: 0.8, marginTop: '2px' }}>
+                            ({formatCurrency(compareAtSavings, config.currency)} sale + {formatCurrency(bundleSavings, config.currency)} bundle)
+                          </span>
+                        </>
+                      ) : (
+                        <>You save {formatCurrency(totalSavings, config.currency)}!</>
+                      )}
+                    </span>
+                  </div>
                 )}
               </div>
-              <div className="upsell-summary-row upsell-summary-total">
-                <span>Total</span>
-                <span>{formatCurrency(discountedTotal, config.currency)}</span>
-              </div>
-              {savings && (
-                <div className="upsell-summary-row">
-                  <span className="upsell-summary-savings">
-                    You save {formatCurrency(savings, config.currency)}!
-                  </span>
-                </div>
-              )}
-            </div>
-          )}
+            );
+          })()}
 
           <div className="upsell-actions">
             <button

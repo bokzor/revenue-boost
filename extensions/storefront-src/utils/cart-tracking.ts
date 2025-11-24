@@ -83,10 +83,13 @@ export function initCartTracking(api: ApiClient, shopDomain: string): void {
 /**
  * Emit canonical cart add events so all features (triggers, free shipping,
  * social proof, etc.) can rely on the same signal.
+ *
+ * @param productId - Product ID that was added
  */
 function emitCartAddEvents(productId: string): void {
   try {
     const detail = { productId };
+
     // Legacy / theme-style events listened to by CartEventListener and
     // components like FreeShippingPopup.
     document.dispatchEvent(new CustomEvent('cart:add', { detail }));
@@ -98,6 +101,10 @@ function emitCartAddEvents(productId: string): void {
 
 /**
  * Track an add-to-cart event
+ *
+ * @param api - API client
+ * @param shopDomain - Shop domain
+ * @param productId - Product ID that was added
  */
 async function trackAddToCart(
   api: ApiClient,

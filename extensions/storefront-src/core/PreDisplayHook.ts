@@ -24,6 +24,14 @@ export interface PreDisplayHookContext {
     sessionId: string;
     visitorId: string;
     previewMode: boolean;
+    /**
+     * Optional trigger context (e.g., product ID from add_to_cart trigger)
+     * This allows hooks to use data from the trigger event
+     */
+    triggerContext?: {
+        productId?: string; // Product ID that triggered the campaign (for add_to_cart)
+        [key: string]: any; // Allow other trigger-specific data
+    };
 }
 
 /**
@@ -233,7 +241,8 @@ export async function executeHooksForCampaign(
     campaign: StorefrontCampaign,
     api: ApiClient,
     sessionId: string,
-    visitorId: string
+    visitorId: string,
+    triggerContext?: { productId?: string; [key: string]: any }
 ): Promise<CampaignHooksResult> {
     const startTime = Date.now();
     const templateType = campaign.templateType;
@@ -260,6 +269,7 @@ export async function executeHooksForCampaign(
         sessionId,
         visitorId,
         previewMode,
+        triggerContext, // Pass trigger context to hooks
     };
 
     // Execute all hooks in parallel

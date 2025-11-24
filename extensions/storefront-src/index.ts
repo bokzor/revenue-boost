@@ -383,6 +383,9 @@ class RevenueBoostApp {
       });
     }
 
+    // Get trigger context from trigger manager
+    const triggerContext = triggerManager ? triggerManager.getTriggerContext() : undefined;
+
     // Render popup
     renderPopup(
       campaign,
@@ -422,7 +425,8 @@ class RevenueBoostApp {
       this.api,
       (campaignId) => {
         this.log("Popup shown:", campaignId);
-      }
+      },
+      triggerContext // Pass trigger context to popup
     );
   }
 }

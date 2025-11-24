@@ -163,6 +163,7 @@ export interface TriggerCombinationConfig {
 export class TriggerManager {
   private cleanupFunctions: Array<() => void> = [];
   private exitIntentDetector: ExitIntentDetector | null = null;
+  private triggerContext: { productId?: string; [key: string]: any } = {};
   private scrollDepthTracker: ScrollDepthTracker | null = null;
   private timeDelayHandler: TimeDelayHandler | null = null;
   private idleTimer: IdleTimer | null = null;
@@ -1080,6 +1081,12 @@ export class TriggerManager {
 	          return;
 	        }
 
+        // Store product ID in trigger context for hooks to use
+        if (eventProductId) {
+          this.triggerContext.productId = eventProductId;
+          console.log("[Revenue Boost] 📦 Stored product ID in trigger context:", eventProductId);
+        }
+
         if (!immediate && delaySeconds > 0) {
           const delayMs = delaySeconds * 1000;
           console.log(
@@ -1279,11 +1286,19 @@ export class TriggerManager {
   }
 
   /**
+   * Get trigger context (e.g., product ID from add_to_cart trigger)
+   */
+  getTriggerContext(): { productId?: string; [key: string]: any } {
+    return this.triggerContext;
+  }
+
+  /**
    * Cleanup all triggers
    */
   cleanup(): void {
     this.cleanupFunctions.forEach((fn) => fn());
     this.cleanupFunctions = [];
+    this.triggerContext = {}; // Clear trigger context
 
     // Cleanup all trigger instances
     if (this.exitIntentDetector) {

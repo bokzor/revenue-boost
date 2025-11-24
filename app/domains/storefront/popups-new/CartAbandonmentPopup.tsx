@@ -733,7 +733,11 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
         }
       `}</style>
 
-      <div className="cart-ab-popup-container">
+      <div
+        className="cart-ab-popup-container"
+        data-splitpop="true"
+        data-template="cart-abandonment"
+      >
         <div className="cart-ab-header">
           <div className="cart-ab-header-text">
             <h2 className="cart-ab-title">{config.headline}</h2>

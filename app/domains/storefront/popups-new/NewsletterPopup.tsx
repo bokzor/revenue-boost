@@ -552,6 +552,9 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
         onClose={onClose}
         imagePosition={imagePosition === 'right' ? 'right' : 'left'}
         singleColumn={!imageUrl || imagePosition === 'none'}
+        className="NewsletterPopup"
+        data-splitpop="true"
+        data-template="newsletter"
       >
         {/* Image Section */}
         {imageUrl && (

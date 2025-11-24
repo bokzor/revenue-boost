@@ -111,7 +111,7 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
       // Get sessionId from the correct sessionStorage key
       const sessionId = typeof window !== 'undefined'
         ? (window.sessionStorage?.getItem('revenue_boost_session') ||
-           window.sessionStorage?.getItem('rb_session_id'))
+          window.sessionStorage?.getItem('rb_session_id'))
         : undefined;
 
       // Get challenge token - prefer from config (passed by PopupManager), fallback to store
@@ -540,7 +540,11 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
       ariaLabel={config.ariaLabel || config.headline}
       ariaDescribedBy={config.ariaDescribedBy}
     >
-      <div className="scratch-popup-container">
+      <div
+        className="scratch-popup-container"
+        data-splitpop="true"
+        data-template="scratch-card"
+      >
         <div
           className={`scratch-popup-content ${!showImage ? 'single-column' : isVertical ? 'vertical' : 'horizontal'
             } ${!imageFirst && showImage ? 'reverse' : ''}`}
