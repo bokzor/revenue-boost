@@ -337,6 +337,114 @@ class BaseBuilder<T extends BaseBuilder<T>> {
     }
 
     /**
+     * Configure percentage discount (e.g., 10%, 25%, 50%)
+     */
+    withPercentageDiscount(percent: number, prefix: string = 'SAVE'): T {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.discountConfig = {
+            enabled: true,
+            type: 'generated',
+            valueType: 'PERCENTAGE',
+            value: percent,
+            prefix: prefix,
+            expiryDays: 30,
+            usageLimit: 1,
+            deliveryMode: 'show_code_always',
+            showInPreview: true
+        };
+        return this as unknown as T;
+    }
+
+    /**
+     * Configure fixed amount discount (e.g., $5, $10, $20)
+     */
+    withFixedAmountDiscount(amount: number, prefix: string = 'SAVE'): T {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.discountConfig = {
+            enabled: true,
+            type: 'generated',
+            valueType: 'FIXED_AMOUNT',
+            value: amount,
+            prefix: prefix,
+            expiryDays: 30,
+            usageLimit: 1,
+            deliveryMode: 'show_code_always',
+            showInPreview: true
+        };
+        return this as unknown as T;
+    }
+
+    /**
+     * Configure free shipping discount
+     */
+    withFreeShippingDiscount(prefix: string = 'FREESHIP'): T {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.discountConfig = {
+            enabled: true,
+            type: 'generated',
+            valueType: 'FREE_SHIPPING',
+            value: 0,
+            prefix: prefix,
+            expiryDays: 30,
+            usageLimit: 1,
+            deliveryMode: 'show_code_always',
+            showInPreview: true
+        };
+        return this as unknown as T;
+    }
+
+    /**
+     * Configure single discount code (same code for all users)
+     */
+    withSingleDiscountCode(code: string): T {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.discountConfig = {
+            enabled: true,
+            type: 'shared',
+            singleCode: code,
+            deliveryMode: 'show_code_always',
+            showInPreview: true
+        };
+        return this as unknown as T;
+    }
+
+    /**
+     * Set max impressions per session
+     */
+    withMaxImpressionsPerSession(max: number): T {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.targetRules.enhancedTriggers.frequency_capping = {
+            ...this.config.targetRules.enhancedTriggers.frequency_capping,
+            max_triggers_per_session: max
+        };
+        return this as unknown as T;
+    }
+
+    /**
+     * Set cooldown between triggers (in seconds)
+     */
+    withCooldownBetweenTriggers(seconds: number): T {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.targetRules.enhancedTriggers.frequency_capping = {
+            ...this.config.targetRules.enhancedTriggers.frequency_capping,
+            cooldown_between_triggers: seconds
+        };
+        return this as unknown as T;
+    }
+
+    /**
+     * Configure popup size
+     */
+    withPopupSize(size: 'small' | 'medium' | 'large'): T {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.designConfig = {
+            ...this.config.designConfig,
+            size
+        };
+        return this as unknown as T;
+    }
+
+    /**
      * Create the campaign in the database
      */
     async create() {

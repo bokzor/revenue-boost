@@ -107,19 +107,19 @@ export interface AddToCartTrigger {
    */
   productIds?: string[];
   /**
-	   * Optional list of Shopify Collection GIDs configured in the UI.
-	   *
-	   * Behaviour on the storefront:
-	   * - If one or more collectionIds are configured, the trigger will only
-	   *   fire when the add-to-cart happens while the shopper is viewing a
-	   *   matching collection page.
-	   * - Matching is based on the current collection context, derived from
-	   *   `window.REVENUE_BOOST_CONFIG.collectionId` (set by the theme app
-	   *   extension) or, as a fallback, from `ShopifyAnalytics.meta.collection.id`
-	   *   when available.
-	   * - Product and collection filters are combined with OR semantics:
-	   *   the trigger will pass if EITHER the added product matches productIds
-	   *   OR the current collection context matches collectionIds (or both).
+     * Optional list of Shopify Collection GIDs configured in the UI.
+     *
+     * Behaviour on the storefront:
+     * - If one or more collectionIds are configured, the trigger will only
+     *   fire when the add-to-cart happens while the shopper is viewing a
+     *   matching collection page.
+     * - Matching is based on the current collection context, derived from
+     *   `window.REVENUE_BOOST_CONFIG.collectionId` (set by the theme app
+     *   extension) or, as a fallback, from `ShopifyAnalytics.meta.collection.id`
+     *   when available.
+     * - Product and collection filters are combined with OR semantics:
+     *   the trigger will pass if EITHER the added product matches productIds
+     *   OR the current collection context matches collectionIds (or both).
    */
   collectionIds?: string[];
 }
@@ -163,7 +163,7 @@ export interface TriggerCombinationConfig {
 export class TriggerManager {
   private cleanupFunctions: Array<() => void> = [];
   private exitIntentDetector: ExitIntentDetector | null = null;
-  private triggerContext: { productId?: string; [key: string]: any } = {};
+  private triggerContext: { productId?: string;[key: string]: any } = {};
   private scrollDepthTracker: ScrollDepthTracker | null = null;
   private timeDelayHandler: TimeDelayHandler | null = null;
   private idleTimer: IdleTimer | null = null;
@@ -192,224 +192,153 @@ export class TriggerManager {
       "AND";
     console.log("[Revenue Boost] 🔗 Trigger logic operator:", logicOperator);
 
-    // Evaluate each trigger (only enabled ones participate in logic)
-    const results: boolean[] = [];
-    const triggerResults: Record<string, boolean> = {};
+    // Collect all enabled trigger tasks
+    const triggerTasks: Promise<{ name: string; result: boolean }>[] = [];
 
     // Page Load Trigger
-    if (triggers.page_load !== undefined) {
-      if (triggers.page_load.enabled) {
-        console.log("[Revenue Boost] 📄 Checking page_load trigger:", triggers.page_load);
-        const result = await this.checkPageLoad(triggers.page_load);
-        triggerResults.page_load = result;
-        results.push(result);
-        console.log(
-          `[Revenue Boost] ${result ? "✅" : "❌"} page_load trigger ${
-            result ? "passed" : "failed"
-          }`,
-        );
-      } else {
-        console.log(
-          "[Revenue Boost] ⏭️ page_load trigger is disabled and will be ignored in evaluation",
-        );
-      }
+    if (triggers.page_load?.enabled) {
+      console.log("[Revenue Boost] 📄 Checking page_load trigger:", triggers.page_load);
+      triggerTasks.push(
+        this.runTrigger("page_load", () => this.checkPageLoad(triggers.page_load!))
+      );
+    } else if (triggers.page_load) {
+      console.log("[Revenue Boost] ⏭️ page_load trigger is disabled");
     }
 
     // Time Delay Trigger
-    if (triggers.time_delay !== undefined) {
-      if (triggers.time_delay.enabled) {
-        console.log("[Revenue Boost] ⏳ Checking time_delay trigger:", triggers.time_delay);
-        const result = await this.checkTimeDelay(triggers.time_delay);
-        triggerResults.time_delay = result;
-        results.push(result);
-        console.log(
-          `[Revenue Boost] ${result ? "✅" : "❌"} time_delay trigger ${
-            result ? "passed" : "failed"
-          }`,
-        );
-      } else {
-        console.log(
-          "[Revenue Boost] ⏭️ time_delay trigger is disabled and will be ignored in evaluation",
-        );
-      }
+    if (triggers.time_delay?.enabled) {
+      console.log("[Revenue Boost] ⏳ Checking time_delay trigger:", triggers.time_delay);
+      triggerTasks.push(
+        this.runTrigger("time_delay", () => this.checkTimeDelay(triggers.time_delay!))
+      );
+    } else if (triggers.time_delay) {
+      console.log("[Revenue Boost] ⏭️ time_delay trigger is disabled");
     }
 
     // Scroll Depth Trigger
-    if (triggers.scroll_depth !== undefined) {
-      if (triggers.scroll_depth.enabled) {
-        console.log("[Revenue Boost] 📜 Checking scroll_depth trigger:", triggers.scroll_depth);
-        const result = await this.checkScrollDepth(triggers.scroll_depth);
-        triggerResults.scroll_depth = result;
-        results.push(result);
-        console.log(
-          `[Revenue Boost] ${result ? "✅" : "❌"} scroll_depth trigger ${
-            result ? "passed" : "failed"
-          }`,
-        );
-      } else {
-        console.log(
-          "[Revenue Boost] ⏭️ scroll_depth trigger is disabled and will be ignored in evaluation",
-        );
-      }
+    if (triggers.scroll_depth?.enabled) {
+      console.log("[Revenue Boost] 📜 Checking scroll_depth trigger:", triggers.scroll_depth);
+      triggerTasks.push(
+        this.runTrigger("scroll_depth", () => this.checkScrollDepth(triggers.scroll_depth!))
+      );
+    } else if (triggers.scroll_depth) {
+      console.log("[Revenue Boost] ⏭️ scroll_depth trigger is disabled");
     }
 
     // Exit Intent Trigger
-    if (triggers.exit_intent !== undefined) {
-      if (triggers.exit_intent.enabled) {
-        console.log("[Revenue Boost] 🚪 Checking exit_intent trigger:", triggers.exit_intent);
-        const result = await this.checkExitIntent(triggers.exit_intent);
-        triggerResults.exit_intent = result;
-        results.push(result);
-        console.log(
-          `[Revenue Boost] ${result ? "✅" : "❌"} exit_intent trigger ${
-            result ? "passed" : "failed"
-          }`,
-        );
-      } else {
-        console.log(
-          "[Revenue Boost] ⏭️ exit_intent trigger is disabled and will be ignored in evaluation",
-        );
-      }
+    if (triggers.exit_intent?.enabled) {
+      console.log("[Revenue Boost] 🚪 Checking exit_intent trigger:", triggers.exit_intent);
+      triggerTasks.push(
+        this.runTrigger("exit_intent", () => this.checkExitIntent(triggers.exit_intent!))
+      );
+    } else if (triggers.exit_intent) {
+      console.log("[Revenue Boost] ⏭️ exit_intent trigger is disabled");
     }
 
     // Idle Timer Trigger
-    if (triggers.idle_timer !== undefined) {
-      if (triggers.idle_timer.enabled) {
-        console.log("[Revenue Boost] ⏱️ Checking idle_timer trigger:", triggers.idle_timer);
-        const result = await this.checkIdleTimer(triggers.idle_timer);
-        triggerResults.idle_timer = result;
-        results.push(result);
-        console.log(
-          `[Revenue Boost] ${result ? "✅" : "❌"} idle_timer trigger ${
-            result ? "passed" : "failed"
-          }`,
-        );
-      } else {
-        console.log(
-          "[Revenue Boost] ⏭️ idle_timer trigger is disabled and will be ignored in evaluation",
-        );
-      }
+    if (triggers.idle_timer?.enabled) {
+      console.log("[Revenue Boost] ⏱️ Checking idle_timer trigger:", triggers.idle_timer);
+      triggerTasks.push(
+        this.runTrigger("idle_timer", () => this.checkIdleTimer(triggers.idle_timer!))
+      );
+    } else if (triggers.idle_timer) {
+      console.log("[Revenue Boost] ⏭️ idle_timer trigger is disabled");
     }
 
     // Add to Cart Trigger
-    if (triggers.add_to_cart !== undefined) {
-      if (triggers.add_to_cart.enabled) {
-        console.log("[Revenue Boost] 🛒 Checking add_to_cart trigger:", triggers.add_to_cart);
-        const result = await this.checkAddToCart(triggers.add_to_cart);
-        triggerResults.add_to_cart = result;
-        results.push(result);
-        console.log(
-          `[Revenue Boost] ${result ? "✅" : "❌"} add_to_cart trigger ${
-            result ? "passed" : "failed"
-          }`,
-        );
-      } else {
-        console.log(
-          "[Revenue Boost] ⏭️ add_to_cart trigger is disabled and will be ignored in evaluation",
-        );
-      }
+    if (triggers.add_to_cart?.enabled) {
+      console.log("[Revenue Boost] 🛒 Checking add_to_cart trigger:", triggers.add_to_cart);
+      triggerTasks.push(
+        this.runTrigger("add_to_cart", () => this.checkAddToCart(triggers.add_to_cart!))
+      );
+    } else if (triggers.add_to_cart) {
+      console.log("[Revenue Boost] ⏭️ add_to_cart trigger is disabled");
     }
 
     // Cart Drawer Open Trigger
-    if (triggers.cart_drawer_open !== undefined) {
-      if (triggers.cart_drawer_open.enabled) {
-        console.log(
-          "[Revenue Boost] 🧺 Checking cart_drawer_open trigger:",
-          triggers.cart_drawer_open,
-        );
-        const result = await this.checkCartDrawerOpen(triggers.cart_drawer_open);
-        triggerResults.cart_drawer_open = result;
-        results.push(result);
-        console.log(
-          `[Revenue Boost] ${result ? "✅" : "❌"} cart_drawer_open trigger ${
-            result ? "passed" : "failed"
-          }`,
-        );
-      } else {
-        console.log(
-          "[Revenue Boost] ⏭️ cart_drawer_open trigger is disabled and will be ignored in evaluation",
-        );
-      }
+    if (triggers.cart_drawer_open?.enabled) {
+      console.log("[Revenue Boost] 🛒 Checking cart_drawer_open trigger:", triggers.cart_drawer_open);
+      triggerTasks.push(
+        this.runTrigger("cart_drawer_open", () => this.checkCartDrawerOpen(triggers.cart_drawer_open!))
+      );
+    } else if (triggers.cart_drawer_open) {
+      console.log("[Revenue Boost] ⏭️ cart_drawer_open trigger is disabled");
     }
 
     // Cart Value Trigger
-    if (triggers.cart_value !== undefined) {
-      if (triggers.cart_value.enabled) {
-        console.log("[Revenue Boost] 💰 Checking cart_value trigger:", triggers.cart_value);
-        const result = await this.checkCartValue(triggers.cart_value);
-        triggerResults.cart_value = result;
-        results.push(result);
-        console.log(
-          `[Revenue Boost] ${result ? "✅" : "❌"} cart_value trigger ${
-            result ? "passed" : "failed"
-          }`,
-        );
-      } else {
-        console.log(
-          "[Revenue Boost] ⏭️ cart_value trigger is disabled and will be ignored in evaluation",
-        );
-      }
+    if (triggers.cart_value?.enabled) {
+      console.log("[Revenue Boost] 💰 Checking cart_value trigger:", triggers.cart_value);
+      triggerTasks.push(
+        this.runTrigger("cart_value", () => this.checkCartValue(triggers.cart_value!))
+      );
+    } else if (triggers.cart_value) {
+      console.log("[Revenue Boost] ⏭️ cart_value trigger is disabled");
     }
 
     // Product View Trigger
-    if (triggers.product_view !== undefined) {
-      if (triggers.product_view.enabled) {
-        console.log("[Revenue Boost] 🛍️ Checking product_view trigger:", triggers.product_view);
-        const result = await this.checkProductView(triggers.product_view);
-        triggerResults.product_view = result;
-        results.push(result);
-        console.log(
-          `[Revenue Boost] ${result ? "✅" : "❌"} product_view trigger ${
-            result ? "passed" : "failed"
-          }`,
-        );
-      } else {
-        console.log(
-          "[Revenue Boost] ⏭️ product_view trigger is disabled and will be ignored in evaluation",
-        );
-      }
+    if (triggers.product_view?.enabled) {
+      console.log("[Revenue Boost] 🛍️ Checking product_view trigger:", triggers.product_view);
+      triggerTasks.push(
+        this.runTrigger("product_view", () => this.checkProductView(triggers.product_view!))
+      );
+    } else if (triggers.product_view) {
+      console.log("[Revenue Boost] ⏭️ product_view trigger is disabled");
     }
 
     // Custom Event Trigger
-    if (triggers.custom_event !== undefined) {
-      if (triggers.custom_event.enabled) {
-        console.log("[Revenue Boost] 🎯 Checking custom_event trigger:", triggers.custom_event);
-        const result = await this.checkCustomEvent(triggers.custom_event);
-        triggerResults.custom_event = result;
-        results.push(result);
-        console.log(
-          `[Revenue Boost] ${result ? "✅" : "❌"} custom_event trigger ${
-            result ? "passed" : "failed"
-          }`,
-        );
-      } else {
-        console.log(
-          "[Revenue Boost] ⏭️ custom_event trigger is disabled and will be ignored in evaluation",
-        );
-      }
+    if (triggers.custom_event?.enabled) {
+      console.log("[Revenue Boost] 🎯 Checking custom_event trigger:", triggers.custom_event);
+      triggerTasks.push(
+        this.runTrigger("custom_event", () => this.checkCustomEvent(triggers.custom_event!))
+      );
+    } else if (triggers.custom_event) {
+      console.log("[Revenue Boost] ⏭️ custom_event trigger is disabled");
     }
 
     // If no enabled triggers, show immediately
-    if (results.length === 0) {
+    if (triggerTasks.length === 0) {
       console.log("[Revenue Boost] ⚠️ No enabled triggers found, showing campaign immediately");
       return true;
     }
 
-    // Combine results based on logic operator
-    let finalResult: boolean;
+    let triggersPassed = false;
+
     if (logicOperator === "OR") {
-      finalResult = results.some((r) => r === true);
-      console.log("[Revenue Boost] 🔀 OR logic: At least one trigger must pass");
+      try {
+        console.log("[Revenue Boost] 🔀 OR logic: Waiting for ANY trigger to pass...");
+        console.log("[Revenue Boost] Promise.any defined:", typeof Promise.any);
+
+        // Wrap promises to reject if false, so Promise.any waits for the first TRUE result
+        const anySuccess = await Promise.any(
+          triggerTasks.map((t) =>
+            t.then((res) => {
+              console.log(`[Revenue Boost] Task ${res.name} resolved with ${res.result}`);
+              return (res.result ? res : Promise.reject(new Error("Trigger failed")));
+            })
+          )
+        );
+        console.log(`[Revenue Boost] ✅ OR logic satisfied by: ${anySuccess.name}`);
+        triggersPassed = true;
+      } catch (e) {
+        console.log("[Revenue Boost] ❌ OR logic failed: No triggers passed (or all failed)", e);
+        triggersPassed = false;
+      }
     } else {
       // AND logic
-      finalResult = results.every((r) => r === true);
-      console.log("[Revenue Boost] 🔗 AND logic: All triggers must pass");
+      console.log("[Revenue Boost] 🔗 AND logic: Waiting for ALL triggers to pass...");
+      const results = await Promise.all(triggerTasks);
+      triggersPassed = results.every((r) => r.result);
+
+      if (triggersPassed) {
+        console.log("[Revenue Boost] ✅ AND logic satisfied: All triggers passed");
+      } else {
+        const failed = results.filter((r) => !r.result).map((r) => r.name);
+        console.log(`[Revenue Boost] ❌ AND logic failed. Failed triggers: ${failed.join(", ")}`);
+      }
     }
 
-    console.log("[Revenue Boost] 📊 Trigger evaluation summary:", triggerResults);
-
     // If trigger evaluation failed, no need to check session rules
-    if (!finalResult) {
+    if (!triggersPassed) {
       console.log("[Revenue Boost] ❌ Campaign will not show - trigger conditions failed");
       return false;
     }
@@ -420,7 +349,7 @@ export class TriggerManager {
       const sessionOk = this.evaluateSessionRules(sessionRules);
       console.log(
         `[Revenue Boost] ${sessionOk ? "✅" : "❌"} Session rules ` +
-          `${sessionOk ? "passed" : "failed"} for campaign ${campaign.id}`,
+        `${sessionOk ? "passed" : "failed"} for campaign ${campaign.id}`,
       );
       if (!sessionOk) {
         return false;
@@ -432,6 +361,18 @@ export class TriggerManager {
     );
 
     return true;
+  }
+
+  /**
+   * Helper to run a trigger check and log the result
+   */
+  private async runTrigger(
+    name: string,
+    checkFn: () => Promise<boolean>
+  ): Promise<{ name: string; result: boolean }> {
+    const result = await checkFn();
+    console.log(`[Revenue Boost] ${result ? "✅" : "❌"} ${name} trigger ${result ? "passed" : "failed"}`);
+    return { name, result };
   }
 
   /**
@@ -846,54 +787,54 @@ export class TriggerManager {
     return { isProductPage, productId };
   }
 
-	  /**
-	   * Get current collection context (numeric Shopify collection ID as string
-	   * when available).
-	   *
-	   * Sources (in order):
-	   * - window.REVENUE_BOOST_CONFIG.collectionId (set by popup-init.liquid on
-	   *   collection templates)
-	   * - ShopifyAnalytics.meta.collection.id (when themes expose it)
-	   */
-	  private getCollectionIdFromContext(): string | null {
-	    if (typeof window === "undefined") {
-	      return null;
-	    }
+  /**
+   * Get current collection context (numeric Shopify collection ID as string
+   * when available).
+   *
+   * Sources (in order):
+   * - window.REVENUE_BOOST_CONFIG.collectionId (set by popup-init.liquid on
+   *   collection templates)
+   * - ShopifyAnalytics.meta.collection.id (when themes expose it)
+   */
+  private getCollectionIdFromContext(): string | null {
+    if (typeof window === "undefined") {
+      return null;
+    }
 
-	    // REVENUE_BOOST_CONFIG path ( Theme App Extension snippet )
-	    type W = typeof window & {
-	      REVENUE_BOOST_CONFIG?: {
-	        collectionId?: string | number;
-	      };
-	      ShopifyAnalytics?: {
-	        meta?: {
-	          // Some themes expose collection context here
-	          collection?: { id?: string | number };
-	        };
-	      };
-	    };
-	    const w = window as unknown as W;
+    // REVENUE_BOOST_CONFIG path ( Theme App Extension snippet )
+    type W = typeof window & {
+      REVENUE_BOOST_CONFIG?: {
+        collectionId?: string | number;
+      };
+      ShopifyAnalytics?: {
+        meta?: {
+          // Some themes expose collection context here
+          collection?: { id?: string | number };
+        };
+      };
+    };
+    const w = window as unknown as W;
 
-	    let raw: string | number | undefined | null = w.REVENUE_BOOST_CONFIG?.collectionId;
-	    if (raw == null && w.ShopifyAnalytics?.meta?.collection?.id != null) {
-	      raw = w.ShopifyAnalytics.meta.collection.id;
-	    }
+    let raw: string | number | undefined | null = w.REVENUE_BOOST_CONFIG?.collectionId;
+    if (raw == null && w.ShopifyAnalytics?.meta?.collection?.id != null) {
+      raw = w.ShopifyAnalytics.meta.collection.id;
+    }
 
-	    if (raw == null) {
-	      return null;
-	    }
+    if (raw == null) {
+      return null;
+    }
 
-	    const idStr = String(raw).trim();
-	    if (!idStr) return null;
+    const idStr = String(raw).trim();
+    if (!idStr) return null;
 
-	    // If a GID is provided, return the numeric segment
-	    if (idStr.startsWith("gid://")) {
-	      const parts = idStr.split("/");
-	      return parts[parts.length - 1] || null;
-	    }
+    // If a GID is provided, return the numeric segment
+    if (idStr.startsWith("gid://")) {
+      const parts = idStr.split("/");
+      return parts[parts.length - 1] || null;
+    }
 
-	    return idStr;
-	  }
+    return idStr;
+  }
 
   /**
    * Normalize various product ID formats to a Shopify Product GID
@@ -940,22 +881,22 @@ export class TriggerManager {
     });
   }
 
-	  /**
-	   * Check add_to_cart trigger
-	   *
-	   * Behaviour:
-	   * - Listens for unified cart add events emitted by CartEventListener
-	   *   (backed by `cart:add`, `cart:item-added`, CartJS, etc.).
-	   * - If `productIds` are configured, only resolves when the added product
-	   *   matches one of those Shopify Product GIDs.
-	   * - If `collectionIds` are configured, only resolves when the add-to-cart
-	   *   happens while the shopper is viewing a matching collection page
-	   *   (collection context is derived from REVENUE_BOOST_CONFIG or, as a
-	   *   fallback, ShopifyAnalytics meta).
-	   * - When both productIds and collectionIds are configured, they are
-	   *   combined with OR semantics: the trigger will pass if either filter
-	   *   matches for a given add-to-cart event.
-	   */
+  /**
+   * Check add_to_cart trigger
+   *
+   * Behaviour:
+   * - Listens for unified cart add events emitted by CartEventListener
+   *   (backed by `cart:add`, `cart:item-added`, CartJS, etc.).
+   * - If `productIds` are configured, only resolves when the added product
+   *   matches one of those Shopify Product GIDs.
+   * - If `collectionIds` are configured, only resolves when the add-to-cart
+   *   happens while the shopper is viewing a matching collection page
+   *   (collection context is derived from REVENUE_BOOST_CONFIG or, as a
+   *   fallback, ShopifyAnalytics meta).
+   * - When both productIds and collectionIds are configured, they are
+   *   combined with OR semantics: the trigger will pass if either filter
+   *   matches for a given add-to-cart event.
+   */
   private async checkAddToCart(trigger: AddToCartTrigger): Promise<boolean> {
     if (!trigger.enabled) {
       console.log("[Revenue Boost] ⏭️ add_to_cart trigger is disabled");
@@ -965,26 +906,26 @@ export class TriggerManager {
     const delaySeconds = trigger.delay ?? 0;
     const immediate = trigger.immediate ?? false;
 
-	    // Normalize configured product IDs (Shopify Product GIDs)
-	    const configuredProductIds = Array.isArray(trigger.productIds)
-	      ? trigger.productIds.filter((id) => typeof id === "string" && id.trim() !== "")
-	      : [];
+    // Normalize configured product IDs (Shopify Product GIDs)
+    const configuredProductIds = Array.isArray(trigger.productIds)
+      ? trigger.productIds.filter((id) => typeof id === "string" && id.trim() !== "")
+      : [];
 
-	    // Normalize configured collection IDs to their numeric component so they
-	    // can be compared against REVENUE_BOOST_CONFIG.collectionId which stores
-	    // the numeric ID (mirrors PageTargeting behaviour on the server).
-	    const configuredCollectionNumericIds: string[] = Array.isArray(trigger.collectionIds)
-	      ? trigger.collectionIds
-	          .filter((id) => typeof id === "string" && id.trim() !== "")
-	          .map((gid) => {
-	            const parts = gid.split("/");
-	            return parts[parts.length - 1] || "";
-	          })
-	          .filter((id) => id !== "")
-	      : [];
+    // Normalize configured collection IDs to their numeric component so they
+    // can be compared against REVENUE_BOOST_CONFIG.collectionId which stores
+    // the numeric ID (mirrors PageTargeting behaviour on the server).
+    const configuredCollectionNumericIds: string[] = Array.isArray(trigger.collectionIds)
+      ? trigger.collectionIds
+        .filter((id) => typeof id === "string" && id.trim() !== "")
+        .map((gid) => {
+          const parts = gid.split("/");
+          return parts[parts.length - 1] || "";
+        })
+        .filter((id) => id !== "")
+      : [];
 
-	    const hasProductFilter = configuredProductIds.length > 0;
-	    const hasCollectionFilter = configuredCollectionNumericIds.length > 0;
+    const hasProductFilter = configuredProductIds.length > 0;
+    const hasCollectionFilter = configuredCollectionNumericIds.length > 0;
 
     console.log(
       `[Revenue Boost] 🛒 add_to_cart trigger listening for add-to-cart events (delay=${delaySeconds}s, immediate=${immediate})`,
@@ -996,90 +937,90 @@ export class TriggerManager {
       });
 
       this.cartEventListener.start((event) => {
-	        const detail = event?.detail as unknown;
+        const detail = event?.detail as unknown;
 
-	        // Evaluate productId filter (if configured)
-	        let passesProductFilter = !hasProductFilter;
-	        let eventProductId: string | null = null;
+        // Evaluate productId filter (if configured)
+        let passesProductFilter = !hasProductFilter;
+        let eventProductId: string | null = null;
 
-	        if (hasProductFilter) {
-	          // Our unified cart tracking emits `{ productId }`
-	          if (
-	            detail &&
-	            typeof detail === "object" &&
-	            "productId" in (detail as Record<string, unknown>)
-	          ) {
-	            eventProductId = this.normalizeProductId(
-	              (detail as { productId?: unknown }).productId,
-	            );
-	          }
+        if (hasProductFilter) {
+          // Our unified cart tracking emits `{ productId }`
+          if (
+            detail &&
+            typeof detail === "object" &&
+            "productId" in (detail as Record<string, unknown>)
+          ) {
+            eventProductId = this.normalizeProductId(
+              (detail as { productId?: unknown }).productId,
+            );
+          }
 
-	          // CartJS path: detail may be `{ cart, item }` where item has `product_id`
-	          if (!eventProductId && detail && typeof detail === "object") {
-	            const d = detail as { item?: unknown };
-	            const item = d.item as
-	              | { product_id?: unknown; productId?: unknown; id?: unknown }
-	              | undefined;
-	            if (item) {
-	              const rawProductId =
-	                (item as any).product_id ?? (item as any).productId ?? null;
-	              eventProductId = this.normalizeProductId(rawProductId);
-	            }
-	          }
+          // CartJS path: detail may be `{ cart, item }` where item has `product_id`
+          if (!eventProductId && detail && typeof detail === "object") {
+            const d = detail as { item?: unknown };
+            const item = d.item as
+              | { product_id?: unknown; productId?: unknown; id?: unknown }
+              | undefined;
+            if (item) {
+              const rawProductId =
+                (item as any).product_id ?? (item as any).productId ?? null;
+              eventProductId = this.normalizeProductId(rawProductId);
+            }
+          }
 
-	          if (!eventProductId) {
-	            console.log(
-	              "[Revenue Boost] ❌ add_to_cart trigger: productIds configured but event productId is unknown; ignoring event",
-	            );
-	            passesProductFilter = false;
-	          } else if (!configuredProductIds.includes(eventProductId)) {
-	            console.log(
-	              "[Revenue Boost] ❌ add_to_cart trigger: event productId not in configured productIds; ignoring event",
-	              { eventProductId, configuredProductIds },
-	            );
-	            passesProductFilter = false;
-	          } else {
-	            console.log(
-	              "[Revenue Boost] ✅ add_to_cart trigger: matched configured productId",
-	              { eventProductId },
-	            );
-	            passesProductFilter = true;
-	          }
-	        }
+          if (!eventProductId) {
+            console.log(
+              "[Revenue Boost] ❌ add_to_cart trigger: productIds configured but event productId is unknown; ignoring event",
+            );
+            passesProductFilter = false;
+          } else if (!configuredProductIds.includes(eventProductId)) {
+            console.log(
+              "[Revenue Boost] ❌ add_to_cart trigger: event productId not in configured productIds; ignoring event",
+              { eventProductId, configuredProductIds },
+            );
+            passesProductFilter = false;
+          } else {
+            console.log(
+              "[Revenue Boost] ✅ add_to_cart trigger: matched configured productId",
+              { eventProductId },
+            );
+            passesProductFilter = true;
+          }
+        }
 
-	        // Evaluate collection filter (if configured)
-	        let passesCollectionFilter = !hasCollectionFilter;
-	        if (hasCollectionFilter) {
-	          const ctxCollectionId = this.getCollectionIdFromContext();
-	          if (!ctxCollectionId) {
-	            console.log(
-	              "[Revenue Boost] ❌ add_to_cart trigger: collectionIds configured but no collection context available; ignoring event for collection filter",
-	            );
-	            passesCollectionFilter = false;
-	          } else {
-	            const collectionMatch = configuredCollectionNumericIds.includes(
-	              ctxCollectionId,
-	            );
-	            if (!collectionMatch) {
-	              console.log(
-	                "[Revenue Boost] ❌ add_to_cart trigger: current collection does not match configured collectionIds; ignoring event for collection filter",
-	                { ctxCollectionId, configuredCollectionNumericIds },
-	              );
-	              passesCollectionFilter = false;
-	            } else {
-	              console.log(
-	                "[Revenue Boost] ✅ add_to_cart trigger: matched configured collectionId",
-	                { ctxCollectionId },
-	              );
-	              passesCollectionFilter = true;
-	            }
-	          }
-	        }
+        // Evaluate collection filter (if configured)
+        let passesCollectionFilter = !hasCollectionFilter;
+        if (hasCollectionFilter) {
+          const ctxCollectionId = this.getCollectionIdFromContext();
+          if (!ctxCollectionId) {
+            console.log(
+              "[Revenue Boost] ❌ add_to_cart trigger: collectionIds configured but no collection context available; ignoring event for collection filter",
+            );
+            passesCollectionFilter = false;
+          } else {
+            const collectionMatch = configuredCollectionNumericIds.includes(
+              ctxCollectionId,
+            );
+            if (!collectionMatch) {
+              console.log(
+                "[Revenue Boost] ❌ add_to_cart trigger: current collection does not match configured collectionIds; ignoring event for collection filter",
+                { ctxCollectionId, configuredCollectionNumericIds },
+              );
+              passesCollectionFilter = false;
+            } else {
+              console.log(
+                "[Revenue Boost] ✅ add_to_cart trigger: matched configured collectionId",
+                { ctxCollectionId },
+              );
+              passesCollectionFilter = true;
+            }
+          }
+        }
 
-	        // If neither filter matches, ignore this add_to_cart event and wait for another
-	        if (!passesProductFilter && !passesCollectionFilter) {
-	          return;
-	        }
+        // If neither filter matches, ignore this add_to_cart event and wait for another
+        if (!passesProductFilter && !passesCollectionFilter) {
+          return;
+        }
 
         // Store product ID in trigger context for hooks to use
         if (eventProductId) {
@@ -1248,8 +1189,8 @@ export class TriggerManager {
       (Array.isArray(trigger.event_names) && trigger.event_names.length > 0
         ? trigger.event_names
         : trigger.event_name
-        ? [trigger.event_name]
-        : []);
+          ? [trigger.event_name]
+          : []);
 
     if (eventNames.length === 0) {
       console.log(
@@ -1288,7 +1229,7 @@ export class TriggerManager {
   /**
    * Get trigger context (e.g., product ID from add_to_cart trigger)
    */
-  getTriggerContext(): { productId?: string; [key: string]: any } {
+  getTriggerContext(): { productId?: string;[key: string]: any } {
     return this.triggerContext;
   }
 
