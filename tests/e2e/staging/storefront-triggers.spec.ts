@@ -3,7 +3,7 @@ import { PrismaClient } from '@prisma/client';
 import path from 'path';
 import * as dotenv from 'dotenv';
 import { CampaignFactory } from './factories/campaign-factory';
-import { STORE_URL, handlePasswordPage, mockChallengeToken } from './helpers/test-helpers';
+import { STORE_URL, STORE_DOMAIN, handlePasswordPage, mockChallengeToken } from './helpers/test-helpers';
 
 // Load staging environment variables
 dotenv.config({ path: path.resolve(process.cwd(), '.env.staging.env'), override: true });
@@ -23,7 +23,11 @@ test.describe('Trigger Combinations', () => {
             },
         });
 
-        const store = await prisma.store.findFirst();
+        const store = await prisma.store.findUnique({
+            where: {
+                shopifyDomain: STORE_DOMAIN
+            }
+        });
         if (!store) {
             throw new Error('No store found in database');
         }
@@ -210,6 +214,6 @@ test.describe('Trigger Combinations', () => {
         await expect(page.getByText(headline)).toBeHidden({ timeout: 2000 });
 
         // Should be visible after 3 seconds (time trigger met, scroll not needed with OR)
-        await expect(page.getByText(headline)).toBeVisible({ timeout: 2000 });
+        await expect(page.getByText(headline)).toBeVisible({ timeout: 5000 });
     });
 });
