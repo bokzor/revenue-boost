@@ -1,9 +1,9 @@
 /**
  * CollectionPicker Component (Stub)
- * 
+ *
  * TODO: This is a stub component created to fix build issues.
  * The actual implementation should integrate with Shopify's collection API.
- * 
+ *
  * Expected features:
  * - Collection search
  * - Collection selection
@@ -120,9 +120,7 @@ export const CollectionPicker: React.FC<CollectionPickerProps> = ({
             borderRadius: "4px",
           }}
         >
-          <p style={{ margin: 0, fontSize: "14px", color: "#6B7280" }}>
-            No collection selected
-          </p>
+          <p style={{ margin: 0, fontSize: "14px", color: "#6B7280" }}>No collection selected</p>
         </div>
       )}
 
@@ -134,4 +132,3 @@ export const CollectionPicker: React.FC<CollectionPickerProps> = ({
 };
 
 export default CollectionPicker;
-

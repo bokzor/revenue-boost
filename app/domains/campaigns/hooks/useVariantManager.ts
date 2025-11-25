@@ -78,9 +78,11 @@ function calculateTraffic(count: number): Record<VariantKey, number> {
   const remainder = 100 - base * count;
   const keys: VariantKey[] = ["A", "B", "C", "D"];
 
-  return keys.reduce((acc, key, i) => {
-    acc[key] = i < count ? base + (i === 0 ? remainder : 0) : 0;
-    return acc;
-  }, {} as Record<VariantKey, number>);
+  return keys.reduce(
+    (acc, key, i) => {
+      acc[key] = i < count ? base + (i === 0 ? remainder : 0) : 0;
+      return acc;
+    },
+    {} as Record<VariantKey, number>
+  );
 }
-

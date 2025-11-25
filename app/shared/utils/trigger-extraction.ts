@@ -5,15 +5,18 @@
  * This is a stub to fix import errors
  */
 
-import type { EnhancedTriggersConfig, CampaignWithConfigs } from "~/domains/campaigns/types/campaign";
+import type {
+  EnhancedTriggersConfig,
+  CampaignWithConfigs,
+} from "~/domains/campaigns/types/campaign";
 
 /**
  * Extract trigger configuration from campaign
  */
 export function extractTriggerConfig(campaign: CampaignWithConfigs): EnhancedTriggersConfig {
   // Extract from targetRules if it contains trigger configuration
-  if (campaign.targetRules && typeof campaign.targetRules === 'object') {
-    const rules = campaign.targetRules as any;
+  if (campaign.targetRules && typeof campaign.targetRules === "object") {
+    const rules = campaign.targetRules as Partial<EnhancedTriggersConfig>;
     // Check if it has the nested enhancedTriggers structure (from schema)
     if (rules.enhancedTriggers) {
       return rules.enhancedTriggers as EnhancedTriggersConfig;
@@ -33,5 +36,3 @@ export function extractTriggerConfig(campaign: CampaignWithConfigs): EnhancedTri
     },
   };
 }
-
-

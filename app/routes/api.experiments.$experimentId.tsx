@@ -17,4 +17,3 @@ export const loader = getResourceById(
   "Experiment",
   "GET /api/experiments/:experimentId"
 );
-

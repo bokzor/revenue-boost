@@ -76,40 +76,49 @@ export async function action({ request }: ActionFunctionArgs) {
     const body = await request.json();
     const validatedData = LeadSubmissionSchema.parse(body);
 
-    // Get campaign and store with access token
-    const campaign = await prisma.campaign.findFirst({
-      where: {
-        id: validatedData.campaignId,
-        storeId,
-        status: "ACTIVE",
-      },
-      select: {
-        id: true,
-        name: true,
-        discountConfig: true,
-        store: {
-          select: {
-            id: true,
-            shopifyDomain: true,
-            accessToken: true,
+    // Check if this is a preview campaign
+    const isPreviewCampaign = validatedData.campaignId.startsWith("preview-");
+
+    // Get campaign and store with access token (skip for preview campaigns)
+    let campaign = null;
+    if (!isPreviewCampaign) {
+      campaign = await prisma.campaign.findFirst({
+        where: {
+          id: validatedData.campaignId,
+          storeId,
+          status: "ACTIVE",
+        },
+        select: {
+          id: true,
+          name: true,
+          discountConfig: true,
+          store: {
+            select: {
+              id: true,
+              shopifyDomain: true,
+              accessToken: true,
+            },
           },
         },
-      },
-    });
+      });
 
-    if (!campaign) {
-      return data(
-        { success: false, error: "Campaign not found or inactive" },
-        { status: 404, headers: storefrontCors() }
-      );
+      if (!campaign) {
+        return data(
+          { success: false, error: "Campaign not found or inactive" },
+          { status: 404, headers: storefrontCors() }
+        );
+      }
     }
 
     // SECURITY: Validate challenge token
-    const ip = request.headers.get("x-forwarded-for")?.split(",")[0] ||
+    const ip =
+      request.headers.get("x-forwarded-for")?.split(",")[0] ||
       request.headers.get("x-real-ip") ||
       "unknown";
 
-    const { validateAndConsumeToken } = await import("~/domains/security/services/challenge-token.server");
+    const { validateAndConsumeToken } = await import(
+      "~/domains/security/services/challenge-token.server"
+    );
     const tokenValidation = await validateAndConsumeToken(
       validatedData.challengeToken,
       validatedData.campaignId,
@@ -126,8 +135,26 @@ export async function action({ request }: ActionFunctionArgs) {
       );
     }
 
-    // SECURITY: Rate limit per email+campaign (1 per day)
-    const { checkRateLimit, RATE_LIMITS, createEmailCampaignKey } = await import("~/domains/security/services/rate-limit.server");
+    // PREVIEW MODE: Return success without saving to database
+    // BYPASS RATE LIMITING for preview mode to allow unlimited testing
+    if (isPreviewCampaign) {
+      console.log(`[Lead Submit] ✅ Preview mode - returning mock success response (BYPASSING RATE LIMITS)`);
+      return data(
+        {
+          success: true,
+          leadId: "preview-lead-id",
+          message: "Preview mode: Lead submission successful (not saved to database)",
+          discountCode: undefined, // Don't generate discount codes in preview
+          deliveryMode: "show_code_fallback",
+        },
+        { status: 200, headers: storefrontCors() }
+      );
+    }
+
+    // PRODUCTION MODE: Rate limit per email+campaign (1 per day)
+    const { checkRateLimit, RATE_LIMITS, createEmailCampaignKey } = await import(
+      "~/domains/security/services/rate-limit.server"
+    );
     const rateLimitKey = createEmailCampaignKey(validatedData.email, validatedData.campaignId);
     const rateLimitResult = await checkRateLimit(
       rateLimitKey,
@@ -142,7 +169,7 @@ export async function action({ request }: ActionFunctionArgs) {
         {
           success: false,
           error: "You've already submitted for this campaign today",
-          retryAfter: rateLimitResult.resetAt
+          retryAfter: rateLimitResult.resetAt,
         },
         { status: 429, headers: storefrontCors() }
       );
@@ -200,10 +227,7 @@ export async function action({ request }: ActionFunctionArgs) {
         );
       }
 
-      const admin = createAdminApiContext(
-        campaign.store.shopifyDomain,
-        campaign.store.accessToken
-      );
+      const admin = createAdminApiContext(campaign.store.shopifyDomain, campaign.store.accessToken);
 
       // Adjust discount config for email-authorization mode
       if (discountConfig.deliveryMode === "show_in_popup_authorized_only") {
@@ -263,10 +287,7 @@ export async function action({ request }: ActionFunctionArgs) {
       );
     }
 
-    const admin = createAdminApiContext(
-      campaign.store.shopifyDomain,
-      campaign.store.accessToken
-    );
+    const admin = createAdminApiContext(campaign.store.shopifyDomain, campaign.store.accessToken);
 
     // Sanitize customer data
     const customerData: CustomerUpsertData = sanitizeCustomerData({
@@ -282,10 +303,7 @@ export async function action({ request }: ActionFunctionArgs) {
     // Upsert customer in Shopify
     const customerResult = await upsertCustomer(admin, customerData);
     if (!customerResult.success) {
-      console.warn(
-        "[Lead Submission] Failed to create/update customer:",
-        customerResult.errors
-      );
+      console.warn("[Lead Submission] Failed to create/update customer:", customerResult.errors);
       // Continue without customer - not critical
     }
 
@@ -314,10 +332,7 @@ export async function action({ request }: ActionFunctionArgs) {
     );
 
     if (!discountResult.success) {
-      console.warn(
-        "[Lead Submission] Failed to create discount code:",
-        discountResult.errors
-      );
+      console.warn("[Lead Submission] Failed to create discount code:", discountResult.errors);
       // Continue without discount code - don't fail the entire process
     }
 
@@ -334,7 +349,6 @@ export async function action({ request }: ActionFunctionArgs) {
 
     const userAgent = request.headers.get("User-Agent") || null;
     const ipAddress = getClientIP(request);
-
 
     // Create lead record
     const lead = await prisma.lead.create({
@@ -385,14 +399,17 @@ export async function action({ request }: ActionFunctionArgs) {
 
     // Check if this is a free gift campaign and include product details
     const freeGift = discountConfig.freeGift;
-    const freeGiftData = freeGift && (freeGift.variantId || freeGift.productId) ? {
-      variantId: freeGift.variantId || '',
-      productId: freeGift.productId || '',
-      quantity: freeGift.quantity || 1,
-    } : undefined;
+    const freeGiftData =
+      freeGift && (freeGift.variantId || freeGift.productId)
+        ? {
+            variantId: freeGift.variantId || "",
+            productId: freeGift.productId || "",
+            quantity: freeGift.quantity || 1,
+          }
+        : undefined;
 
     if (freeGiftData) {
-      console.log('[Lead Submission] Free gift data:', freeGiftData);
+      console.log("[Lead Submission] Free gift data:", freeGiftData);
     }
 
     console.log(
@@ -432,8 +449,7 @@ export async function action({ request }: ActionFunctionArgs) {
     return data(
       {
         success: false,
-        error:
-          error instanceof Error ? error.message : "Internal server error",
+        error: error instanceof Error ? error.message : "Internal server error",
       },
       { status: 500, headers: storefrontCors() }
     );
@@ -501,12 +517,7 @@ async function recordLeadEvents(
 }
 
 function getClientIP(request: Request): string | null {
-  const headers = [
-    "CF-Connecting-IP",
-    "X-Forwarded-For",
-    "X-Real-IP",
-    "X-Client-IP",
-  ];
+  const headers = ["CF-Connecting-IP", "X-Forwarded-For", "X-Real-IP", "X-Client-IP"];
 
   for (const header of headers) {
     const value = request.headers.get(header);
@@ -517,4 +528,3 @@ function getClientIP(request: Request): string | null {
 
   return null;
 }
-

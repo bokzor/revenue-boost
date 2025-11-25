@@ -1,6 +1,6 @@
 /**
  * Shared Error Classes
- * 
+ *
  * Base error classes for consistent error handling across the application
  */
 
@@ -49,4 +49,3 @@ export class ExperimentServiceError extends ServiceError {
     super(code, message, details, "ExperimentServiceError");
   }
 }
-

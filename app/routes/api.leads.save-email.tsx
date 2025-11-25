@@ -25,7 +25,6 @@ const SaveEmailSchema = z.object({
   email: z.string().email(),
   campaignId: z.string(),
   sessionId: z.string(),
-  challengeToken: z.string(),
   discountCode: z.string(), // REQUIRED: The existing discount code to associate with this email
   visitorId: z.string().optional(),
   consent: z.boolean().optional(),
@@ -68,28 +67,50 @@ export async function action({ request }: ActionFunctionArgs) {
     const body = await request.json();
     const validatedData = SaveEmailSchema.parse(body);
 
-    // SECURITY: Validate challenge token before any side-effects
-    const ip = request.headers.get("x-forwarded-for")?.split(",")[0] ||
-      request.headers.get("x-real-ip") ||
-      "unknown";
+    // SECURITY: Verify discount code exists and was generated for this campaign/session
+    // This prevents abuse by ensuring the discount code was legitimately generated
+    const leadWithDiscountCode = await prisma.lead.findFirst({
+      where: {
+        discountCode: validatedData.discountCode,
+        campaignId: validatedData.campaignId,
+        sessionId: validatedData.sessionId,
+      },
+      select: {
+        id: true,
+        email: true,
+      },
+    });
 
-    const { validateAndConsumeToken } = await import(
-      "~/domains/security/services/challenge-token.server"
-    );
-
-    const tokenValidation = await validateAndConsumeToken(
-      validatedData.challengeToken,
-      validatedData.campaignId,
-      validatedData.sessionId,
-      ip,
-      false // don't enforce strict IP checks to avoid mobile churn issues
-    );
-
-    if (!tokenValidation.valid) {
-      console.warn(`[Save Email] Token validation failed: ${tokenValidation.error}`);
+    if (!leadWithDiscountCode) {
+      console.warn(
+        `[Save Email] Invalid discount code or session mismatch: ${validatedData.discountCode}`
+      );
       return data(
-        { success: false, error: tokenValidation.error || "Invalid or expired token" },
+        {
+          success: false,
+          error: "Invalid discount code. Please refresh and try again.",
+        },
         { status: 403, headers: storefrontCors() }
+      );
+    }
+
+    // If email already exists and is not an anonymous placeholder, return success (idempotent)
+    const isAnonymousEmail = leadWithDiscountCode.email?.endsWith("@anonymous.local");
+    if (leadWithDiscountCode.email && !isAnonymousEmail) {
+      console.log(
+        `[Save Email] Email already exists for lead ${leadWithDiscountCode.id}, returning success`
+      );
+      return data(
+        {
+          success: true,
+          leadId: leadWithDiscountCode.id,
+          discountCode: validatedData.discountCode,
+          message: "Email already saved",
+        },
+        {
+          status: 200,
+          headers: storefrontCors(),
+        }
       );
     }
 
@@ -156,32 +177,7 @@ export async function action({ request }: ActionFunctionArgs) {
       );
     }
 
-    const admin = createAdminApiContext(
-      campaign.store.shopifyDomain,
-      campaign.store.accessToken
-    );
-
-    // Check if lead already exists
-    const existingLead = await prisma.lead.findFirst({
-      where: {
-        storeId,
-        campaignId: validatedData.campaignId,
-        email: validatedData.email.toLowerCase(),
-      },
-    });
-
-    if (existingLead) {
-      console.log(`[Save Email] Lead already exists: ${existingLead.id}`);
-      return data(
-        {
-          success: true,
-          leadId: existingLead.id,
-          discountCode: existingLead.discountCode || validatedData.discountCode,
-          message: "Email already saved for this campaign",
-        },
-        { status: 200, headers: storefrontCors() }
-      );
-    }
+    const admin = createAdminApiContext(campaign.store.shopifyDomain, campaign.store.accessToken);
 
     // Sanitize customer data
     const customerData: CustomerUpsertData = sanitizeCustomerData({
@@ -197,35 +193,30 @@ export async function action({ request }: ActionFunctionArgs) {
     // Upsert customer in Shopify
     const customerResult = await upsertCustomer(admin, customerData);
     if (!customerResult.success) {
-      console.warn(
-        "[Save Email] Failed to create/update customer:",
-        customerResult.errors
-      );
+      console.warn("[Save Email] Failed to create/update customer:", customerResult.errors);
       // Continue without customer - not critical
     }
 
-    // Create lead record with the PROVIDED discount code
-    const lead = await prisma.lead.create({
+    // Update the existing lead record with email and customer info
+    const lead = await prisma.lead.update({
+      where: {
+        id: leadWithDiscountCode.id,
+      },
       data: {
-        storeId,
-        campaignId: validatedData.campaignId,
         email: validatedData.email.toLowerCase(),
         firstName: validatedData.firstName || null,
         lastName: validatedData.lastName || null,
         phone: validatedData.phone || null,
         marketingConsent: validatedData.consent || false,
-        sessionId: validatedData.sessionId,
-        visitorId: validatedData.visitorId || null,
         shopifyCustomerId: customerResult.shopifyCustomerId
           ? BigInt(extractCustomerId(customerResult.shopifyCustomerId))
           : null,
-        discountCode: validatedData.discountCode, // Use provided code, don't generate new one
         referrer: validatedData.referrer || null,
         pageUrl: validatedData.pageUrl || null,
       },
     });
 
-    console.log(`[Save Email] Lead created successfully: ${lead.id}`);
+    console.log(`[Save Email] Lead updated successfully: ${lead.id}`);
 
     return data(
       {
@@ -257,8 +248,7 @@ export async function action({ request }: ActionFunctionArgs) {
     return data(
       {
         success: false,
-        error:
-          error instanceof Error ? error.message : "Internal server error",
+        error: error instanceof Error ? error.message : "Internal server error",
       },
       { status: 500, headers: storefrontCors() }
     );

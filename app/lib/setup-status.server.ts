@@ -1,6 +1,6 @@
 /**
  * Setup Status Utilities
- * 
+ *
  * Shared utilities for checking app setup status across routes
  */
 
@@ -24,20 +24,24 @@ export async function checkThemeExtensionEnabled({
     const themesUrl = `https://${shop}/admin/api/2024-10/themes.json`;
     const themesResponse = await fetch(themesUrl, {
       headers: {
-        'X-Shopify-Access-Token': accessToken,
+        "X-Shopify-Access-Token": accessToken,
       },
     });
 
     if (!themesResponse.ok) {
-      console.error('[Setup] Failed to fetch themes:', themesResponse.status, themesResponse.statusText);
+      console.error(
+        "[Setup] Failed to fetch themes:",
+        themesResponse.status,
+        themesResponse.statusText
+      );
       return false;
     }
 
     const themesData = await themesResponse.json();
-    const publishedTheme = themesData.themes?.find((t: any) => t.role === 'main');
+    const publishedTheme = themesData.themes?.find((t: any) => t.role === "main");
 
     if (!publishedTheme) {
-      console.error('[Setup] No published theme found');
+      console.error("[Setup] No published theme found");
       return false;
     }
 
@@ -45,12 +49,16 @@ export async function checkThemeExtensionEnabled({
     const settingsUrl = `https://${shop}/admin/api/2024-10/themes/${publishedTheme.id}/assets.json?asset[key]=config/settings_data.json`;
     const settingsResponse = await fetch(settingsUrl, {
       headers: {
-        'X-Shopify-Access-Token': accessToken,
+        "X-Shopify-Access-Token": accessToken,
       },
     });
 
     if (!settingsResponse.ok) {
-      console.error('[Setup] Failed to fetch settings_data.json:', settingsResponse.status, settingsResponse.statusText);
+      console.error(
+        "[Setup] Failed to fetch settings_data.json:",
+        settingsResponse.status,
+        settingsResponse.statusText
+      );
       return false;
     }
 
@@ -58,7 +66,7 @@ export async function checkThemeExtensionEnabled({
     const settingsValue = settingsData.asset?.value;
 
     if (!settingsValue) {
-      console.error('[Setup] No settings_data.json value found');
+      console.error("[Setup] No settings_data.json value found");
       return false;
     }
 
@@ -67,19 +75,20 @@ export async function checkThemeExtensionEnabled({
 
     // Check if our app embed is enabled
     const appEmbedEnabled = Object.values(blocks).some((block: any) => {
-      const isOurApp = block.type?.includes('revenue-boost') ||
-                      block.type?.includes('storefront-popup') ||
-                      block.type?.includes('revenue_boost');
-      const isAppsBlock = block.type?.startsWith('shopify://apps/');
+      const isOurApp =
+        block.type?.includes("revenue-boost") ||
+        block.type?.includes("storefront-popup") ||
+        block.type?.includes("revenue_boost");
+      const isAppsBlock = block.type?.startsWith("shopify://apps/");
       const notDisabled = block.disabled !== true;
 
       return (isOurApp || isAppsBlock) && notDisabled;
     });
 
-    console.log('[Setup] App embed enabled:', appEmbedEnabled);
+    console.log("[Setup] App embed enabled:", appEmbedEnabled);
     return appEmbedEnabled;
   } catch (error) {
-    console.error('[Setup] Error checking theme extension:', error);
+    console.error("[Setup] Error checking theme extension:", error);
     return false;
   }
 }
@@ -87,9 +96,7 @@ export async function checkThemeExtensionEnabled({
 /**
  * Check if merchant has overridden the API URL via metafield
  */
-export async function checkCustomProxyUrl(
-  admin: any
-): Promise<string | null> {
+export async function checkCustomProxyUrl(admin: any): Promise<string | null> {
   try {
     const metafieldQuery = `
       query {
@@ -112,7 +119,7 @@ export async function checkCustomProxyUrl(
 
     return null;
   } catch (error) {
-    console.error('[Setup] Error checking metafield:', error);
+    console.error("[Setup] Error checking metafield:", error);
     return null;
   }
 }
@@ -131,7 +138,7 @@ export async function checkAppProxyReachable(
     const baseUrl = customProxyUrl || process.env.SHOPIFY_APP_URL;
 
     if (!baseUrl) {
-      console.error('[Setup] No app URL configured');
+      console.error("[Setup] No app URL configured");
       return false;
     }
 
@@ -140,29 +147,29 @@ export async function checkAppProxyReachable(
     // going through Shopify's proxy, which only works from the storefront
     const healthUrl = `${baseUrl}/api/health`;
 
-    console.log('[Setup] Testing app health endpoint:', healthUrl);
+    console.log("[Setup] Testing app health endpoint:", healthUrl);
 
     const response = await fetch(healthUrl, {
-      method: 'GET',
+      method: "GET",
       headers: {
-        'Accept': 'application/json',
+        Accept: "application/json",
       },
       // Short timeout to avoid hanging
       signal: AbortSignal.timeout(5000),
     });
 
     if (!response.ok) {
-      console.error('[Setup] App health check failed:', response.status, response.statusText);
+      console.error("[Setup] App health check failed:", response.status, response.statusText);
       return false;
     }
 
     const data = await response.json();
-    const isHealthy = data.status === 'ok';
+    const isHealthy = data.status === "ok";
 
-    console.log('[Setup] App health check result:', isHealthy ? 'OK' : 'ERROR', data);
+    console.log("[Setup] App health check result:", isHealthy ? "OK" : "ERROR", data);
     return isHealthy;
   } catch (error) {
-    console.error('[Setup] Error checking app health:', error);
+    console.error("[Setup] Error checking app health:", error);
     return false;
   }
 }
@@ -195,4 +202,3 @@ export async function getSetupStatus(
 
   return { status, setupComplete };
 }
-

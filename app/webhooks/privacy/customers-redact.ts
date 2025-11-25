@@ -1,9 +1,9 @@
 /**
  * Handler for customers/redact webhook
- * 
+ *
  * Deletes or anonymizes all customer PII when Shopify instructs us to redact customer data.
  * This webhook is triggered when a customer requests data deletion or after account deletion.
- * 
+ *
  * IMPORTANT: This handler is idempotent - multiple calls for the same customer will not cause errors.
  */
 
@@ -42,10 +42,7 @@ export async function handleCustomersRedact(
     const leadsToAnonymize = await tx.lead.findMany({
       where: {
         storeId: store.id,
-        OR: [
-          { shopifyCustomerId: customerId },
-          { email: customerEmail },
-        ],
+        OR: [{ shopifyCustomerId: customerId }, { email: customerEmail }],
       },
       select: { id: true },
     });
@@ -56,7 +53,7 @@ export async function handleCustomersRedact(
           id: { in: leadsToAnonymize.map((l) => l.id) },
         },
         data: {
-          email: 'redacted@privacy.local',
+          email: "redacted@privacy.local",
           firstName: null,
           lastName: null,
           phone: null,
@@ -121,4 +118,3 @@ export async function handleCustomersRedact(
 
   console.log(`[Privacy Webhook] Successfully redacted customer data for ${payload.customer.id}`);
 }
-

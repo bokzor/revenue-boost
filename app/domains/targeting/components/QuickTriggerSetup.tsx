@@ -239,7 +239,7 @@ export const QuickTriggerSetup: React.FC<QuickTriggerSetupProps> = ({
   disabled = false,
 }) => {
   const [selectedTemplate, setSelectedTemplate] = useState<string>(
-    detectActiveTemplate(config) || "",
+    detectActiveTemplate(config) || ""
   );
 
   const handleTemplateSelect = (templateId: string) => {
@@ -283,8 +283,8 @@ export const QuickTriggerSetup: React.FC<QuickTriggerSetupProps> = ({
               Quick Trigger Setup
             </Text>
             <Text as="span" variant="bodySm">
-              Choose a proven trigger pattern with smart defaults. You can
-              customize further in Advanced Mode.
+              Choose a proven trigger pattern with smart defaults. You can customize further in
+              Advanced Mode.
             </Text>
           </BlockStack>
         </Box>
@@ -303,9 +303,7 @@ export const QuickTriggerSetup: React.FC<QuickTriggerSetupProps> = ({
                 <Card
                   key={template.id}
                   background={
-                    selectedTemplate === template.id
-                      ? "bg-surface-selected"
-                      : "bg-surface"
+                    selectedTemplate === template.id ? "bg-surface-selected" : "bg-surface"
                   }
                 >
                   <Box padding="400">
@@ -315,11 +313,7 @@ export const QuickTriggerSetup: React.FC<QuickTriggerSetupProps> = ({
                           {template.icon}
                         </Text>
                         <BlockStack gap="100">
-                          <Text
-                            as="span"
-                            variant="bodyMd"
-                            fontWeight="semibold"
-                          >
+                          <Text as="span" variant="bodyMd" fontWeight="semibold">
                             {template.name}
                           </Text>
                           <Text as="span" variant="bodySm">
@@ -329,17 +323,11 @@ export const QuickTriggerSetup: React.FC<QuickTriggerSetupProps> = ({
                         </BlockStack>
                       </InlineStack>
                       <Button
-                        variant={
-                          selectedTemplate === template.id
-                            ? "primary"
-                            : "secondary"
-                        }
+                        variant={selectedTemplate === template.id ? "primary" : "secondary"}
                         onClick={() => handleTemplateSelect(template.id)}
                         disabled={disabled}
                       >
-                        {selectedTemplate === template.id
-                          ? "Selected"
-                          : "Select"}
+                        {selectedTemplate === template.id ? "Selected" : "Select"}
                       </Button>
                     </InlineStack>
                   </Box>
@@ -389,15 +377,9 @@ export const QuickTriggerSetup: React.FC<QuickTriggerSetupProps> = ({
                   autoComplete="off"
                   label="Max triggers per session"
                   type="number"
-                  value={
-                    config.frequency_capping?.max_triggers_per_session?.toString() ||
-                    "1"
-                  }
+                  value={config.frequency_capping?.max_triggers_per_session?.toString() || "1"}
                   onChange={(value) =>
-                    updateFrequency(
-                      "max_triggers_per_session",
-                      parseInt(value) || 1,
-                    )
+                    updateFrequency("max_triggers_per_session", parseInt(value) || 1)
                   }
                   disabled={disabled}
                   helpText="How many times to show popup per visitor session"
@@ -407,15 +389,9 @@ export const QuickTriggerSetup: React.FC<QuickTriggerSetupProps> = ({
                   autoComplete="off"
                   label="Max triggers per day"
                   type="number"
-                  value={
-                    config.frequency_capping?.max_triggers_per_day?.toString() ||
-                    "3"
-                  }
+                  value={config.frequency_capping?.max_triggers_per_day?.toString() || "3"}
                   onChange={(value) =>
-                    updateFrequency(
-                      "max_triggers_per_day",
-                      parseInt(value) || 3,
-                    )
+                    updateFrequency("max_triggers_per_day", parseInt(value) || 3)
                   }
                   disabled={disabled}
                   helpText="Maximum times to show popup per visitor per day"
@@ -425,15 +401,9 @@ export const QuickTriggerSetup: React.FC<QuickTriggerSetupProps> = ({
                   autoComplete="off"
                   label="Cooldown between triggers (seconds)"
                   type="number"
-                  value={
-                    config.frequency_capping?.cooldown_between_triggers?.toString() ||
-                    "300"
-                  }
+                  value={config.frequency_capping?.cooldown_between_triggers?.toString() || "300"}
                   onChange={(value) =>
-                    updateFrequency(
-                      "cooldown_between_triggers",
-                      parseInt(value) || 300,
-                    )
+                    updateFrequency("cooldown_between_triggers", parseInt(value) || 300)
                   }
                   disabled={disabled}
                   helpText="Wait time between popup displays"
@@ -456,18 +426,10 @@ export const QuickTriggerSetup: React.FC<QuickTriggerSetupProps> = ({
                 {config.page_load?.enabled && (
                   <Badge tone="success">{`Page Load (${config.page_load.delay}s delay)`}</Badge>
                 )}
-                {config.exit_intent?.enabled && (
-                  <Badge tone="success">Exit Intent</Badge>
-                )}
-                {config.scroll_depth?.enabled && (
-                  <Badge tone="success">Scroll Depth</Badge>
-                )}
-                {config.idle_timer?.enabled && (
-                  <Badge tone="success">Time Delay</Badge>
-                )}
-                {config.device_targeting?.enabled && (
-                  <Badge tone="success">Device Targeting</Badge>
-                )}
+                {config.exit_intent?.enabled && <Badge tone="success">Exit Intent</Badge>}
+                {config.scroll_depth?.enabled && <Badge tone="success">Scroll Depth</Badge>}
+                {config.idle_timer?.enabled && <Badge tone="success">Time Delay</Badge>}
+                {config.device_targeting?.enabled && <Badge tone="success">Device Targeting</Badge>}
               </InlineStack>
             </BlockStack>
           </Box>
@@ -478,9 +440,8 @@ export const QuickTriggerSetup: React.FC<QuickTriggerSetupProps> = ({
       {!selectedTemplate && (
         <Banner tone="info">
           <Text as="span" variant="bodySm">
-            You have a custom trigger configuration. Select a template above to
-            use Quick Setup, or switch to Advanced Mode to modify your current
-            settings.
+            You have a custom trigger configuration. Select a template above to use Quick Setup, or
+            switch to Advanced Mode to modify your current settings.
           </Text>
         </Banner>
       )}

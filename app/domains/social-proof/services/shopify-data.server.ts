@@ -1,6 +1,6 @@
 /**
  * Shopify Data Service
- * 
+ *
  * Fetches real data from Shopify Admin API:
  * - Recent orders (for purchase notifications)
  * - Product inventory (for low stock alerts)
@@ -9,7 +9,7 @@
 
 import type {
   PurchaseNotification,
-  SocialProofNotification
+  SocialProofNotification,
 } from "~/domains/storefront/notifications/social-proof/types";
 import prisma from "~/db.server";
 import { apiVersion } from "~/shopify.server";
@@ -46,8 +46,8 @@ export class ShopifyDataService {
     try {
       // Check Redis cache first
       const redis = getRedis();
-      const cacheKey = `${REDIS_PREFIXES.STATS}:purchases:${storeId}:${productId || 'all'}`;
-      
+      const cacheKey = `${REDIS_PREFIXES.STATS}:purchases:${storeId}:${productId || "all"}`;
+
       if (redis) {
         const cached = await redis.get(cacheKey);
         if (cached) {
@@ -101,7 +101,7 @@ export class ShopifyDataService {
           isOnline: false,
         },
         orderBy: {
-          expires: 'desc',
+          expires: "desc",
         },
       });
 
@@ -151,25 +151,24 @@ export class ShopifyDataService {
       `;
 
       // Make direct GraphQL request to Shopify Admin API
-      const response = await fetch(
-        `https://${shopDomain}/admin/api/${apiVersion}/graphql.json`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Shopify-Access-Token': session.accessToken,
+      const response = await fetch(`https://${shopDomain}/admin/api/${apiVersion}/graphql.json`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Shopify-Access-Token": session.accessToken,
+        },
+        body: JSON.stringify({
+          query,
+          variables: {
+            first: limit * 2, // Fetch more to filter
           },
-          body: JSON.stringify({
-            query,
-            variables: {
-              first: limit * 2, // Fetch more to filter
-            },
-          }),
-        }
-      );
+        }),
+      });
 
       if (!response.ok) {
-        console.error(`[ShopifyDataService] Shopify API error: ${response.status} ${response.statusText}`);
+        console.error(
+          `[ShopifyDataService] Shopify API error: ${response.status} ${response.statusText}`
+        );
         return [];
       }
 
@@ -198,14 +197,14 @@ export class ShopifyDataService {
         }
 
         // Anonymize customer name (privacy-compliant)
-        const firstName = order.customer.firstName || 'Someone';
-        const lastName = order.customer.lastName || '';
+        const firstName = order.customer.firstName || "Someone";
+        const lastName = order.customer.lastName || "";
         const anonymizedName = `${firstName} ${lastName.charAt(0)}.`;
 
         // Get location
         const address = order.customer.defaultAddress;
-        const city = address?.city || 'nearby';
-        const province = address?.provinceCode || '';
+        const city = address?.city || "nearby";
+        const province = address?.provinceCode || "";
         const location = province ? `${city}, ${province}` : city;
 
         // Calculate time ago
@@ -214,7 +213,7 @@ export class ShopifyDataService {
 
         notifications.push({
           id: `purchase-${order.id}`,
-          type: 'purchase',
+          type: "purchase",
           customerName: anonymizedName,
           location,
           productName: lineItem.title,
@@ -253,8 +252,8 @@ export class ShopifyDataService {
       if (purchases.length === 0) return null;
 
       return {
-        id: `sales-count-${productId || 'all'}`,
-        type: 'visitor', // Reuse visitor type for now
+        id: `sales-count-${productId || "all"}`,
+        type: "visitor", // Reuse visitor type for now
         count: purchases.length,
         context: `bought this in the last ${hoursBack} hours`,
         trending: purchases.length > 10,
@@ -330,7 +329,7 @@ export class ShopifyDataService {
           isOnline: false,
         },
         orderBy: {
-          expires: 'desc',
+          expires: "desc",
         },
       });
 
@@ -359,25 +358,24 @@ export class ShopifyDataService {
       `;
 
       // Make direct GraphQL request to Shopify Admin API
-      const response = await fetch(
-        `https://${shopDomain}/admin/api/${apiVersion}/graphql.json`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Shopify-Access-Token': session.accessToken,
+      const response = await fetch(`https://${shopDomain}/admin/api/${apiVersion}/graphql.json`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Shopify-Access-Token": session.accessToken,
+        },
+        body: JSON.stringify({
+          query,
+          variables: {
+            id: productId,
           },
-          body: JSON.stringify({
-            query,
-            variables: {
-              id: productId,
-            },
-          }),
-        }
-      );
+        }),
+      });
 
       if (!response.ok) {
-        console.error(`[ShopifyDataService] Shopify API error: ${response.status} ${response.statusText}`);
+        console.error(
+          `[ShopifyDataService] Shopify API error: ${response.status} ${response.statusText}`
+        );
         return null;
       }
 
@@ -394,9 +392,9 @@ export class ShopifyDataService {
       if (totalInventory > 0 && totalInventory <= threshold) {
         return {
           id: `low-stock-${productId}`,
-          type: 'visitor',
+          type: "visitor",
           count: totalInventory,
-          context: totalInventory === 1 ? 'left in stock!' : 'left in stock!',
+          context: totalInventory === 1 ? "left in stock!" : "left in stock!",
           trending: totalInventory <= 5, // Extra urgency for very low stock
           timestamp: Date.now(),
         };
@@ -415,10 +413,9 @@ export class ShopifyDataService {
   private static formatTimeAgo(date: Date): string {
     const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
 
-    if (seconds < 60) return 'just now';
+    if (seconds < 60) return "just now";
     if (seconds < 3600) return `${Math.floor(seconds / 60)} minutes ago`;
     if (seconds < 86400) return `${Math.floor(seconds / 3600)} hours ago`;
     return `${Math.floor(seconds / 86400)} days ago`;
   }
 }
-

@@ -1,11 +1,11 @@
-import React from 'react';
-import type { PopupDesignConfig } from './types';
+import React from "react";
+import type { PopupDesignConfig } from "./types";
 
 interface PopupGridContainerProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
   config: PopupDesignConfig;
   onClose: () => void;
-  imagePosition?: 'left' | 'right';
+  imagePosition?: "left" | "right";
   className?: string;
   singleColumn?: boolean;
 }
@@ -14,14 +14,14 @@ export const PopupGridContainer: React.FC<PopupGridContainerProps> = ({
   children,
   config,
   onClose,
-  imagePosition = 'left',
-  className = '',
+  imagePosition = "left",
+  className = "",
   singleColumn = false,
   ...rest
 }) => {
-  const baseBackground = config.backgroundColor || '#FFFFFF';
-  const backgroundStyles: React.CSSProperties = baseBackground.startsWith('linear-gradient(')
-    ? { backgroundImage: baseBackground, backgroundColor: 'transparent' }
+  const baseBackground = config.backgroundColor || "#FFFFFF";
+  const backgroundStyles: React.CSSProperties = baseBackground.startsWith("linear-gradient(")
+    ? { backgroundImage: baseBackground, backgroundColor: "transparent" }
     : { backgroundColor: baseBackground };
 
   return (
@@ -70,7 +70,7 @@ export const PopupGridContainer: React.FC<PopupGridContainerProps> = ({
           align-items: center;
           justify-content: center;
           cursor: pointer;
-          color: ${config.textColor || '#4B5563'};
+          color: ${config.textColor || "#4B5563"};
           box-shadow: 0 1px 3px rgba(15, 23, 42, 0.15);
           z-index: 50;
           transition: background-color 0.2s;
@@ -82,22 +82,26 @@ export const PopupGridContainer: React.FC<PopupGridContainerProps> = ({
         /* Desktop Layout */
         @container popup (min-width: 600px) {
           .popup-grid-content {
-            grid-template-columns: ${singleColumn ? '1fr' : '1fr 1fr'};
+            grid-template-columns: ${singleColumn ? "1fr" : "1fr 1fr"};
             grid-template-rows: 1fr;
-            min-height: ${singleColumn ? 'auto' : '450px'};
+            min-height: ${singleColumn ? "auto" : "450px"};
           }
 
-          ${!singleColumn ? `
+          ${
+            !singleColumn
+              ? `
           /* Image/Visual Cell (First Child) */
           .popup-grid-content > *:first-child {
-            order: ${imagePosition === 'right' ? 2 : 1};
+            order: ${imagePosition === "right" ? 2 : 1};
           }
 
           /* Form/Content Cell (Second Child) */
           .popup-grid-content > *:last-child {
-            order: ${imagePosition === 'right' ? 1 : 2};
+            order: ${imagePosition === "right" ? 1 : 2};
           }
-          ` : ''}
+          `
+              : ""
+          }
         }
       `}</style>
 
@@ -111,9 +115,7 @@ export const PopupGridContainer: React.FC<PopupGridContainerProps> = ({
         <span style={{ fontSize: 18, lineHeight: 1 }}>X</span>
       </button>
 
-      <div className="popup-grid-content">
-        {children}
-      </div>
+      <div className="popup-grid-content">{children}</div>
     </div>
   );
 };

@@ -28,14 +28,9 @@ export type {
 } from "./types/campaign.js";
 
 // Storefront context types
-export type {
-  StorefrontContext,
-} from "./types/storefront-context.js";
+export type { StorefrontContext } from "./types/storefront-context.js";
 
-export {
-  buildStorefrontContext,
-  validateStorefrontContext,
-} from "./types/storefront-context.js";
+export { buildStorefrontContext, validateStorefrontContext } from "./types/storefront-context.js";
 
 // Experiment types
 export type {
@@ -92,10 +87,7 @@ export {
 // VALIDATION
 // ============================================================================
 
-export type {
-  ValidationResult,
-  ValidationError,
-} from "./validation/campaign-validation.js";
+export type { ValidationResult, ValidationError } from "./validation/campaign-validation.js";
 
 export {
   validateContentConfig,
@@ -109,17 +101,11 @@ export {
 // SERVICES
 // ============================================================================
 
-export {
-  CampaignService,
-} from "./services/campaign.server.js";
+export { CampaignService } from "./services/campaign.server.js";
 
-export {
-  CampaignFilterService,
-} from "./services/campaign-filter.server.js";
+export { CampaignFilterService } from "./services/campaign-filter.server.js";
 
-export {
-  ExperimentService,
-} from "./services/experiment.server.js";
+export { ExperimentService } from "./services/experiment.server.js";
 
 // Service errors are now exported from ~/lib/errors.server
 export { CampaignServiceError, ExperimentServiceError } from "~/lib/errors.server";

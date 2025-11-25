@@ -1,6 +1,6 @@
 /**
  * Template Field Definitions
- * 
+ *
  * Defines the customizable fields for each template type
  */
 

@@ -19,7 +19,12 @@ export class ChallengeTokenHook implements PreDisplayHook {
 
             console.log(`[ChallengeTokenHook] Requesting token for campaign ${campaign.id}`);
 
-            const response = await requestChallengeToken(campaign.id, sessionId);
+            // Extract preview token from campaign ID if it's a preview campaign
+            const previewToken = campaign.id.startsWith('preview-')
+                ? campaign.id.replace('preview-', '')
+                : undefined;
+
+            const response = await requestChallengeToken(campaign.id, sessionId, previewToken);
 
             if (response.success && response.challengeToken && response.expiresAt) {
                 // Store in the token store for later use

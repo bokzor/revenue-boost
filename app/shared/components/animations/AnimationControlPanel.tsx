@@ -1,9 +1,9 @@
 /**
  * AnimationControlPanel Component (Stub)
- * 
+ *
  * TODO: This is a stub component created to fix build issues.
  * The actual implementation should provide animation controls for popups.
- * 
+ *
  * Expected features:
  * - Entrance animation controls
  * - Exit animation controls
@@ -55,6 +55,7 @@ export const AnimationControlPanel: React.FC<AnimationControlPanelProps> = ({
 
       <div style={{ marginBottom: "16px" }}>
         <label
+          htmlFor="entranceAnimation"
           style={{
             display: "block",
             marginBottom: "8px",
@@ -65,6 +66,7 @@ export const AnimationControlPanel: React.FC<AnimationControlPanelProps> = ({
           Entrance Animation
         </label>
         <select
+          id="entranceAnimation"
           value={settings.entrance.animation}
           onChange={(e) =>
             onSettingsChange({
@@ -90,6 +92,7 @@ export const AnimationControlPanel: React.FC<AnimationControlPanelProps> = ({
 
       <div style={{ marginBottom: "16px" }}>
         <label
+          htmlFor="exitAnimation"
           style={{
             display: "block",
             marginBottom: "8px",
@@ -100,6 +103,7 @@ export const AnimationControlPanel: React.FC<AnimationControlPanelProps> = ({
           Exit Animation
         </label>
         <select
+          id="exitAnimation"
           value={settings.exit.animation}
           onChange={(e) =>
             onSettingsChange({
@@ -125,6 +129,7 @@ export const AnimationControlPanel: React.FC<AnimationControlPanelProps> = ({
 
       <div style={{ marginBottom: "16px" }}>
         <label
+          htmlFor="animationDuration"
           style={{
             display: "block",
             marginBottom: "8px",
@@ -135,6 +140,7 @@ export const AnimationControlPanel: React.FC<AnimationControlPanelProps> = ({
           Duration (ms)
         </label>
         <input
+          id="animationDuration"
           type="number"
           value={settings.entrance.duration}
           onChange={(e) =>
@@ -164,4 +170,3 @@ export const AnimationControlPanel: React.FC<AnimationControlPanelProps> = ({
 };
 
 export default AnimationControlPanel;
-

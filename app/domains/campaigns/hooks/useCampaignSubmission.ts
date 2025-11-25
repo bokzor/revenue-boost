@@ -1,6 +1,6 @@
 /**
  * useCampaignSubmission - Campaign Submission Logic Hook
- * 
+ *
  * SOLID Compliance:
  * - Single Responsibility: Handles campaign submission logic
  * - Extracted from CampaignFormWithABTesting
@@ -38,7 +38,7 @@ export function useCampaignSubmission({ onSave }: UseCampaignSubmissionProps) {
       setSubmitError(null);
 
       try {
-        console.log('[useCampaignSubmission] submitSingleCampaign called', {
+        console.log("[useCampaignSubmission] submitSingleCampaign called", {
           goal: wizardState.goal,
           templateType: wizardState.templateType,
         });
@@ -68,12 +68,15 @@ export function useCampaignSubmission({ onSave }: UseCampaignSubmissionProps) {
 
       try {
         const activeVariantKeys = (["A", "B", "C", "D"] as VariantKey[]).slice(0, variantCount);
-        const activeVariants = activeVariantKeys.map((key, index) => wizardStates[index].wizardState);
+        const activeVariants = activeVariantKeys.map(
+          (key, index) => wizardStates[index].wizardState
+        );
 
         const variantsWithMetadata = activeVariants.map((variant, index) => ({
           ...variant,
           ...experimentMetadata,
-          trafficAllocation: experimentMetadata.trafficAllocation[["A", "B", "C", "D"][index] as VariantKey],
+          trafficAllocation:
+            experimentMetadata.trafficAllocation[["A", "B", "C", "D"][index] as VariantKey],
         }));
 
         await onSave(variantsWithMetadata);
@@ -95,4 +98,3 @@ export function useCampaignSubmission({ onSave }: UseCampaignSubmissionProps) {
     submitABTestCampaign,
   };
 }
-

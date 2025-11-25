@@ -1,6 +1,6 @@
 /**
  * Visitor Tracking Service
- * 
+ *
  * Uses Redis to track real-time visitor activity:
  * - Active visitors per product/page
  * - Trending products (high view counts)
@@ -8,9 +8,9 @@
  * - Recently viewed products
  */
 
-import type { 
+import type {
   VisitorNotification,
-  SocialProofNotification 
+  SocialProofNotification,
 } from "~/domains/storefront/notifications/social-proof/types";
 import { getRedis, REDIS_PREFIXES, REDIS_TTL } from "~/lib/redis.server";
 
@@ -47,7 +47,7 @@ export class VisitorTrackingService {
       }
 
       // Get visitor count from Redis
-      const key = productId 
+      const key = productId
         ? `${REDIS_PREFIXES.VISITOR}:product:${storeId}:${productId}`
         : `${REDIS_PREFIXES.VISITOR}:store:${storeId}`;
 
@@ -59,13 +59,11 @@ export class VisitorTrackingService {
         return this.generateFallbackVisitorNotification(productId);
       }
 
-      const context = productId 
-        ? 'viewing this product right now'
-        : 'shopping on this store';
+      const context = productId ? "viewing this product right now" : "shopping on this store";
 
       return {
-        id: `visitor-${productId || 'store'}-${Date.now()}`,
-        type: 'visitor',
+        id: `visitor-${productId || "store"}-${Date.now()}`,
+        type: "visitor",
         count: visitorCount,
         context,
         trending: visitorCount > 15,
@@ -91,7 +89,7 @@ export class VisitorTrackingService {
       const redis = getRedis();
       if (!redis) return;
 
-      const key = productId 
+      const key = productId
         ? `${REDIS_PREFIXES.VISITOR}:product:${storeId}:${productId}`
         : `${REDIS_PREFIXES.VISITOR}:store:${storeId}`;
 
@@ -99,7 +97,7 @@ export class VisitorTrackingService {
 
       // Add visitor to set (automatically deduplicates)
       await redis.sadd(visitorKey, visitorId);
-      
+
       // Set expiry on visitor (5 minutes of inactivity)
       await redis.expire(visitorKey, 300);
 
@@ -139,9 +137,9 @@ export class VisitorTrackingService {
 
       return {
         id: `trending-${productId}`,
-        type: 'visitor',
+        type: "visitor",
         count: viewCount,
-        context: 'views in the last hour 🔥',
+        context: "views in the last hour 🔥",
         trending: true,
         timestamp: Date.now(),
       };
@@ -201,9 +199,9 @@ export class VisitorTrackingService {
 
       return {
         id: `cart-activity-${productId}`,
-        type: 'visitor',
+        type: "visitor",
         count,
-        context: 'added to cart in the last hour',
+        context: "added to cart in the last hour",
         trending: count > 5,
         timestamp: Date.now(),
       };
@@ -236,9 +234,9 @@ export class VisitorTrackingService {
       // Different messaging than trending (which requires 50+ views)
       return {
         id: `recently-viewed-${productId}`,
-        type: 'visitor',
+        type: "visitor",
         count: viewCount,
-        context: 'viewed this in the last hour',
+        context: "viewed this in the last hour",
         trending: viewCount > 30,
         timestamp: Date.now(),
       };
@@ -251,18 +249,14 @@ export class VisitorTrackingService {
   /**
    * Generate fallback visitor notification (when Redis unavailable)
    */
-  private static generateFallbackVisitorNotification(
-    productId?: string
-  ): VisitorNotification {
+  private static generateFallbackVisitorNotification(productId?: string): VisitorNotification {
     // Generate realistic random count (5-25)
     const count = Math.floor(Math.random() * 20) + 5;
-    const context = productId
-      ? 'viewing this product right now'
-      : 'shopping on this store';
+    const context = productId ? "viewing this product right now" : "shopping on this store";
 
     return {
       id: `visitor-fallback-${Date.now()}`,
-      type: 'visitor',
+      type: "visitor",
       count,
       context,
       trending: count > 15,
@@ -270,4 +264,3 @@ export class VisitorTrackingService {
     };
   }
 }
-

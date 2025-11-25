@@ -9,9 +9,7 @@ import styles from "~/domains/popups/components/design/PopupDesignEditorV2.modul
  * preview remains visible while the page scrolls. It is visible on desktop and
  * hidden on small screens (handled via CSS in PopupDesignEditorV2.module.css).
  */
-export const LivePreviewPortal: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => {
+export const LivePreviewPortal: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -21,13 +19,9 @@ export const LivePreviewPortal: React.FC<{ children: React.ReactNode }> = ({
   if (!mounted || typeof document === "undefined") return null;
 
   return createPortal(
-    <div
-      className={styles.fixedPreviewPortal}
-      aria-live="polite"
-      aria-label="Live preview"
-    >
+    <div className={styles.fixedPreviewPortal} aria-live="polite" aria-label="Live preview">
       {children}
     </div>,
-    document.body as Element,
+    document.body as Element
   );
 };

@@ -7,21 +7,31 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Card, BlockStack, InlineStack, Text, Checkbox, Banner, Box, Button } from "@shopify/polaris";
+import {
+  Card,
+  BlockStack,
+  InlineStack,
+  Text,
+  Checkbox,
+  Banner,
+  Box,
+  Button,
+} from "@shopify/polaris";
 import type { AudienceTargetingConfig } from "~/domains/campaigns/types/campaign";
-import { audienceConditionsToUi, uiConditionsToAudience } from "~/domains/targeting/utils/condition-adapter";
+import {
+  audienceConditionsToUi,
+  uiConditionsToAudience,
+} from "~/domains/targeting/utils/condition-adapter";
 import type { TriggerCondition, LogicOperator } from "./types";
 import { ConditionBuilder } from "./ConditionBuilder";
 import { ShopifySegmentSelector, type ShopifySegmentOption } from "./ShopifySegmentSelector";
 
-
 const computePreviewConfigKey = (config: AudienceTargetingConfig) => {
-  const sessionRules =
-    config.sessionRules ?? {
-      enabled: false,
-      conditions: [],
-      logicOperator: "AND" as LogicOperator,
-    };
+  const sessionRules = config.sessionRules ?? {
+    enabled: false,
+    conditions: [],
+    logicOperator: "AND" as LogicOperator,
+  };
 
   return JSON.stringify({
     enabled: config.enabled,
@@ -47,7 +57,7 @@ export function AudienceTargetingPanel({
     (updates: Partial<AudienceTargetingConfig>) => {
       onConfigChange({ ...config, ...updates });
     },
-    [config, onConfigChange],
+    [config, onConfigChange]
   );
 
   // ---------------------------------------------------------------------------
@@ -69,13 +79,9 @@ export function AudienceTargetingPanel({
   const [autoPreviewEnabled, setAutoPreviewEnabled] = useState(true);
   const [lastPreviewConfigKey, setLastPreviewConfigKey] = useState<string | null>(null);
 
-  const previewConfigKey = useMemo(
-    () => computePreviewConfigKey(config),
-    [config],
-  );
+  const previewConfigKey = useMemo(() => computePreviewConfigKey(config), [config]);
 
-  const isPreviewStale =
-    lastPreviewConfigKey !== null && previewConfigKey !== lastPreviewConfigKey;
+  const isPreviewStale = lastPreviewConfigKey !== null && previewConfigKey !== lastPreviewConfigKey;
 
   const refreshPreview = useCallback(async () => {
     if (!config.enabled) return;
@@ -117,9 +123,7 @@ export function AudienceTargetingPanel({
       console.error("Failed to refresh audience preview:", err);
       setPreviewTotal(null);
       setPreviewBreakdown([]);
-      setPreviewError(
-        err instanceof Error ? err.message : "Failed to fetch audience preview",
-      );
+      setPreviewError(err instanceof Error ? err.message : "Failed to fetch audience preview");
     } finally {
       setPreviewLoading(false);
     }
@@ -149,7 +153,7 @@ export function AudienceTargetingPanel({
         enabled: boolean;
         conditions: TriggerCondition[];
         logicOperator: LogicOperator;
-      }>,
+      }>
     ) => {
       const nextUi: {
         enabled: boolean;
@@ -158,8 +162,7 @@ export function AudienceTargetingPanel({
       } = {
         enabled: config.sessionRules?.enabled ?? false,
         conditions: sessionUi,
-        logicOperator:
-          (config.sessionRules?.logicOperator as LogicOperator) ?? "AND",
+        logicOperator: (config.sessionRules?.logicOperator as LogicOperator) ?? "AND",
         ...updates,
       };
 
@@ -171,7 +174,7 @@ export function AudienceTargetingPanel({
         },
       });
     },
-    [config.sessionRules?.enabled, config.sessionRules?.logicOperator, sessionUi, updateConfig],
+    [config.sessionRules?.enabled, config.sessionRules?.logicOperator, sessionUi, updateConfig]
   );
 
   const handleAddSessionCondition = useCallback(() => {
@@ -190,10 +193,12 @@ export function AudienceTargetingPanel({
     (id: string, updates: Partial<TriggerCondition>) => {
       const conditions = sessionUi || [];
       updateSessionRules({
-        conditions: conditions.map((c: TriggerCondition) => (c.id === id ? { ...c, ...updates } : c)),
+        conditions: conditions.map((c: TriggerCondition) =>
+          c.id === id ? { ...c, ...updates } : c
+        ),
       });
     },
-    [sessionUi, updateSessionRules],
+    [sessionUi, updateSessionRules]
   );
 
   const handleRemoveSessionCondition = useCallback(
@@ -203,7 +208,7 @@ export function AudienceTargetingPanel({
         conditions: conditions.filter((c: TriggerCondition) => c.id !== id),
       });
     },
-    [sessionUi, updateSessionRules],
+    [sessionUi, updateSessionRules]
   );
 
   return (
@@ -238,8 +243,8 @@ export function AudienceTargetingPanel({
               Shopify customer segments
             </Text>
             <Text as="p" variant="bodySm" tone="subdued">
-              Choose which Shopify customer segments this campaign should target.
-              These filters apply when the visitor is recognized as a customer.
+              Choose which Shopify customer segments this campaign should target. These filters
+              apply when the visitor is recognized as a customer.
             </Text>
 
             <ShopifySegmentSelector
@@ -252,7 +257,6 @@ export function AudienceTargetingPanel({
         </Card>
       )}
 
-
       {/* Session Rules (only show if enabled) */}
       {config.enabled && (
         <Card>
@@ -263,8 +267,8 @@ export function AudienceTargetingPanel({
                   Session Rules (anonymous / in-session)
                 </Text>
                 <Text as="p" variant="bodySm" tone="subdued">
-                  Define rules based on current session context like cart value or page type.
-                  These rules apply even when the visitor is not yet a Shopify customer.
+                  Define rules based on current session context like cart value or page type. These
+                  rules apply even when the visitor is not yet a Shopify customer.
                 </Text>
               </BlockStack>
 
@@ -291,18 +295,14 @@ export function AudienceTargetingPanel({
                 ) : (
                   <Banner tone="info">
                     <Text as="p" variant="bodySm">
-                      No session rules yet. Add a condition to start narrowing your audience
-                      based on in-session behavior.
+                      No session rules yet. Add a condition to start narrowing your audience based
+                      on in-session behavior.
                     </Text>
                   </Banner>
                 )}
 
                 <Box>
-                  <button
-                    type="button"
-                    onClick={handleAddSessionCondition}
-                    disabled={disabled}
-                  >
+                  <button type="button" onClick={handleAddSessionCondition} disabled={disabled}>
                     Add session condition
                   </button>
                 </Box>
@@ -326,7 +326,7 @@ export function AudienceTargetingPanel({
                   Shopify segments:
                 </Text>
                 <Text as="span" variant="bodySm">
-                  {(config.shopifySegmentIds?.length ?? 0)} selected
+                  {config.shopifySegmentIds?.length ?? 0} selected
                 </Text>
               </InlineStack>
 
@@ -336,7 +336,8 @@ export function AudienceTargetingPanel({
                     Session rules:
                   </Text>
                   <Text as="span" variant="bodySm">
-                    {sessionUi.length} condition(s) with {(config.sessionRules?.logicOperator as LogicOperator) ?? "AND"} logic
+                    {sessionUi.length} condition(s) with{" "}
+                    {(config.sessionRules?.logicOperator as LogicOperator) ?? "AND"} logic
                   </Text>
                 </InlineStack>
               )}
@@ -365,9 +366,7 @@ export function AudienceTargetingPanel({
                     onClick={refreshPreview}
                     disabled={previewLoading || !hasTargeting}
                   >
-                    {previewLoading
-                      ? "Calculating audience size..."
-                      : "Refresh audience estimate"}
+                    {previewLoading ? "Calculating audience size..." : "Refresh audience estimate"}
                   </Button>
 
                   {!previewLoading && previewTotal !== null && !previewError && (
@@ -383,38 +382,30 @@ export function AudienceTargetingPanel({
                   )}
                 </InlineStack>
 
-                {!previewLoading &&
-                  previewBreakdown.length > 0 &&
-                  !previewError && (
-                    <BlockStack gap="100">
-                      {previewBreakdown.map((entry) => {
-                        const segment = shopifySegments.find(
-                          (s) => s.id === entry.segmentId,
-                        );
-                        const label = segment?.name ?? entry.segmentId;
+                {!previewLoading && previewBreakdown.length > 0 && !previewError && (
+                  <BlockStack gap="100">
+                    {previewBreakdown.map((entry) => {
+                      const segment = shopifySegments.find((s) => s.id === entry.segmentId);
+                      const label = segment?.name ?? entry.segmentId;
 
-                        return (
-                          <InlineStack
-                            key={entry.segmentId}
-                            gap="100"
-                            blockAlign="center"
-                          >
-                            <Text as="span" variant="bodySm" tone="subdued">
-                              {label}:
-                            </Text>
-                            <Text as="span" variant="bodySm">
-                              ~{entry.totalCustomers.toLocaleString()} customers
-                            </Text>
-                          </InlineStack>
-                        );
-                      })}
+                      return (
+                        <InlineStack key={entry.segmentId} gap="100" blockAlign="center">
+                          <Text as="span" variant="bodySm" tone="subdued">
+                            {label}:
+                          </Text>
+                          <Text as="span" variant="bodySm">
+                            ~{entry.totalCustomers.toLocaleString()} customers
+                          </Text>
+                        </InlineStack>
+                      );
+                    })}
 
-                      <Text as="p" variant="bodySm" tone="subdued">
-                        If a customer belongs to multiple segments, they may be
-                        counted more than once in this estimate.
-                      </Text>
-                    </BlockStack>
-                  )}
+                    <Text as="p" variant="bodySm" tone="subdued">
+                      If a customer belongs to multiple segments, they may be counted more than once
+                      in this estimate.
+                    </Text>
+                  </BlockStack>
+                )}
               </BlockStack>
             </Box>
           </BlockStack>

@@ -64,4 +64,3 @@ export async function loader({ request }: LoaderArgs) {
     return handleApiError(error, "GET /api/segments");
   }
 }
-

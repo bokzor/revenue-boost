@@ -15,7 +15,7 @@ export const ExperimentStatusSchema = z.enum([
   "RUNNING",
   "PAUSED",
   "COMPLETED",
-  "ARCHIVED"
+  "ARCHIVED",
 ]);
 
 export type ExperimentStatus = z.infer<typeof ExperimentStatusSchema>;
@@ -28,20 +28,22 @@ export type ExperimentStatus = z.infer<typeof ExperimentStatusSchema>;
  * Traffic Allocation Configuration
  * Defines how traffic is split between variants
  */
-export const TrafficAllocationSchema = z.object({
-  A: z.number().min(0).max(100),
-  B: z.number().min(0).max(100),
-  C: z.number().min(0).max(100).optional(),
-  D: z.number().min(0).max(100).optional(),
-}).refine(
-  (data) => {
-    const total = data.A + data.B + (data.C || 0) + (data.D || 0);
-    return total === 100;
-  },
-  {
-    message: "Traffic allocation must sum to 100%",
-  }
-);
+export const TrafficAllocationSchema = z
+  .object({
+    A: z.number().min(0).max(100),
+    B: z.number().min(0).max(100),
+    C: z.number().min(0).max(100).optional(),
+    D: z.number().min(0).max(100).optional(),
+  })
+  .refine(
+    (data) => {
+      const total = data.A + data.B + (data.C || 0) + (data.D || 0);
+      return total === 100;
+    },
+    {
+      message: "Traffic allocation must sum to 100%",
+    }
+  );
 
 /**
  * Statistical Configuration
@@ -62,17 +64,21 @@ export const SuccessMetricsSchema = z.object({
     "revenue_per_visitor",
     "email_signups",
     "click_through_rate",
-    "engagement_rate"
-  ]),
-  secondaryMetrics: z.array(z.enum([
-    "conversion_rate",
-    "revenue_per_visitor",
-    "email_signups",
-    "click_through_rate",
     "engagement_rate",
-    "bounce_rate",
-    "time_on_page"
-  ])).optional(),
+  ]),
+  secondaryMetrics: z
+    .array(
+      z.enum([
+        "conversion_rate",
+        "revenue_per_visitor",
+        "email_signups",
+        "click_through_rate",
+        "engagement_rate",
+        "bounce_rate",
+        "time_on_page",
+      ])
+    )
+    .optional(),
 });
 
 // ============================================================================
@@ -114,14 +120,16 @@ export const BaseExperimentSchema = z.object({
  * Includes the associated campaign variants
  */
 export const ExperimentWithVariantsSchema = BaseExperimentSchema.extend({
-  variants: z.array(z.object({
-    id: z.string().cuid(),
-    variantKey: z.enum(["A", "B", "C", "D"]),
-    name: z.string(),
-    isControl: z.boolean(),
-    trafficPercentage: z.number().min(0).max(100),
-    status: z.string(), // Campaign status (DRAFT, ACTIVE, PAUSED, ARCHIVED)
-  })),
+  variants: z.array(
+    z.object({
+      id: z.string().cuid(),
+      variantKey: z.enum(["A", "B", "C", "D"]),
+      name: z.string(),
+      isControl: z.boolean(),
+      trafficPercentage: z.number().min(0).max(100),
+      status: z.string(), // Campaign status (DRAFT, ACTIVE, PAUSED, ARCHIVED)
+    })
+  ),
 });
 
 /**

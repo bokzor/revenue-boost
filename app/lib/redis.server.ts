@@ -5,8 +5,8 @@
  * Gracefully handles missing Redis configuration by returning null.
  */
 
-import Redis from 'ioredis';
-import { getEnv } from './env.server';
+import Redis from "ioredis";
+import { getEnv } from "./env.server";
 
 let redisClient: Redis | null = null;
 
@@ -20,44 +20,44 @@ function getRedisClient(): Redis | null {
   const redisUrl = env.REDIS_URL;
 
   if (!redisUrl) {
-    console.warn('⚠️  REDIS_URL not configured, Redis features will be disabled');
-    console.warn('   Frequency capping and visitor tracking will not work properly');
+    console.warn("⚠️  REDIS_URL not configured, Redis features will be disabled");
+    console.warn("   Frequency capping and visitor tracking will not work properly");
     return null;
   }
 
   try {
-    console.log('🔗 Initializing Redis connection to:', redisUrl.replace(/:\/\/[^@]+@/, '://***@'));
+    console.log("🔗 Initializing Redis connection to:", redisUrl.replace(/:\/\/[^@]+@/, "://***@"));
 
     redisClient = new Redis(redisUrl, {
       maxRetriesPerRequest: 3,
       lazyConnect: true,
       enableReadyCheck: true,
-      tls: redisUrl.startsWith('rediss://') ? {} : undefined,
+      tls: redisUrl.startsWith("rediss://") ? {} : undefined,
       retryStrategy(times) {
         const delay = Math.min(times * 50, 2000);
         return delay;
       },
     });
 
-    redisClient.on('error', (error) => {
-      console.error('❌ Redis connection error:', error);
+    redisClient.on("error", (error) => {
+      console.error("❌ Redis connection error:", error);
     });
 
-    redisClient.on('connect', () => {
-      console.log('✅ Redis connected successfully');
+    redisClient.on("connect", () => {
+      console.log("✅ Redis connected successfully");
     });
 
-    redisClient.on('ready', () => {
-      console.log('✅ Redis ready to accept commands');
+    redisClient.on("ready", () => {
+      console.log("✅ Redis ready to accept commands");
     });
 
-    redisClient.on('close', () => {
-      console.warn('⚠️  Redis connection closed');
+    redisClient.on("close", () => {
+      console.warn("⚠️  Redis connection closed");
     });
 
     return redisClient;
   } catch (error) {
-    console.error('❌ Failed to initialize Redis:', error);
+    console.error("❌ Failed to initialize Redis:", error);
     return null;
   }
 }
@@ -91,7 +91,7 @@ export async function executeRedisCommand<T>(
   try {
     return await command(client);
   } catch (error) {
-    console.error('❌ Redis command failed:', error);
+    console.error("❌ Redis command failed:", error);
     return fallback ?? null;
   }
 }
@@ -118,9 +118,9 @@ export async function closeRedis(): Promise<void> {
   if (redisClient) {
     try {
       await redisClient.quit();
-      console.log('✅ Redis connection closed gracefully');
+      console.log("✅ Redis connection closed gracefully");
     } catch (error) {
-      console.error('❌ Error closing Redis connection:', error);
+      console.error("❌ Error closing Redis connection:", error);
     } finally {
       redisClient = null;
     }
@@ -131,13 +131,13 @@ export async function closeRedis(): Promise<void> {
  * Redis key prefixes for organization
  */
 export const REDIS_PREFIXES = {
-  FREQUENCY_CAP: 'freq_cap',
-  GLOBAL_FREQUENCY: 'global_freq_cap',
-  COOLDOWN: 'cooldown',
-  VISITOR: 'visitor',
-  PAGE_VIEW: 'pageview',
-  STATS: 'stats',
-  SESSION: 'session',
+  FREQUENCY_CAP: "freq_cap",
+  GLOBAL_FREQUENCY: "global_freq_cap",
+  COOLDOWN: "cooldown",
+  VISITOR: "visitor",
+  PAGE_VIEW: "pageview",
+  STATS: "stats",
+  SESSION: "session",
 } as const;
 
 /**
@@ -151,4 +151,3 @@ export const REDIS_TTL = {
   MONTH: 2592000,
   VISITOR: 7776000, // 90 days
 } as const;
-

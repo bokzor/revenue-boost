@@ -4,7 +4,11 @@
  * Predefined color schemes for different template types
  */
 
-import type { ColorPreset, ColorTheme, ExtendedColorConfig } from "~/domains/popups/color-customization.types";
+import type {
+  ColorPreset,
+  ColorTheme,
+  ExtendedColorConfig,
+} from "~/domains/popups/color-customization.types";
 import type { DesignConfig } from "~/domains/campaigns/types/campaign";
 
 /**
@@ -137,7 +141,7 @@ export function getColorPresetsForTemplate(templateType?: string): ColorPreset[]
 
   const presetIds = TEMPLATE_PRESETS[templateType] || [];
   const presets = presetIds
-    .map(id => COLOR_PRESETS.find(p => p.id === id))
+    .map((id) => COLOR_PRESETS.find((p) => p.id === id))
     .filter((p): p is ColorPreset => p !== undefined);
 
   // If no specific presets, return all
@@ -148,7 +152,7 @@ export function getColorPresetsForTemplate(templateType?: string): ColorPreset[]
  * Get popular color presets
  */
 export function getPopularColorPresets(): ColorPreset[] {
-  return COLOR_PRESETS.filter(p => p.isPopular);
+  return COLOR_PRESETS.filter((p) => p.isPopular);
 }
 
 // ============================================================================
@@ -452,7 +456,10 @@ export const NEWSLETTER_THEMES: Record<NewsletterThemeKey, ThemeColors> = {
   },
 };
 
-export const NEWSLETTER_BACKGROUND_PRESETS: { key: NewsletterThemeKey; label: string }[] = [
+export const NEWSLETTER_BACKGROUND_PRESETS: {
+  key: NewsletterThemeKey;
+  label: string;
+}[] = [
   { key: "modern", label: "Modern theme image" },
   { key: "minimal", label: "Minimal theme image" },
   { key: "elegant", label: "Elegant theme image" },
@@ -466,7 +473,7 @@ export const NEWSLETTER_BACKGROUND_PRESETS: { key: NewsletterThemeKey; label: st
 ];
 
 export function getNewsletterBackgroundUrl(key: NewsletterThemeKey): string {
-  return `/apps/revenue-boost/assets/newsletter-backgrounds/${key}.png`;
+  return `/apps/revenue-boost/assets/newsletter-backgrounds/${key}.jpg`;
 }
 
 export const NEWSLETTER_THEMES_2: Record<NewsletterThemeKey, ThemeColors> = {
@@ -759,8 +766,6 @@ export function getSpinToWinWheelBorder(theme: NewsletterThemeKey): SpinToWinWhe
   return SPIN_TO_WIN_WHEEL_BORDER_DEFAULTS[theme] ?? SPIN_TO_WIN_WHEEL_BORDER_DEFAULTS.modern;
 }
 
-
-
 // ============================================
 // Flash Sale Themes
 // ============================================
@@ -986,12 +991,12 @@ export function getNewsletterThemeColors(
  */
 function getInputTextColor(secondary: string, themeText: string): string {
   // If secondary is transparent white rgba, use dark text for contrast
-  if (secondary.includes('rgba') && secondary.includes('255, 255, 255')) {
-    return '#111827'; // Dark text on light transparent backgrounds
+  if (secondary.includes("rgba") && secondary.includes("255, 255, 255")) {
+    return "#111827"; // Dark text on light transparent backgrounds
   }
 
   // For dark backgrounds (hex color with low brightness), use theme text color
-  if (secondary.startsWith('#')) {
+  if (secondary.startsWith("#")) {
     const brightness = parseInt(secondary.slice(1, 3), 16);
     if (brightness < 128) {
       return themeText; // Use theme text color for dark backgrounds
@@ -999,7 +1004,7 @@ function getInputTextColor(secondary: string, themeText: string): string {
   }
 
   // For light backgrounds, use dark text
-  return '#111827';
+  return "#111827";
 }
 
 /**
@@ -1019,7 +1024,24 @@ function getInputTextColor(secondary: string, themeText: string): string {
  * - imageBg → imageBgColor
  * - success → successColor
  */
-export function themeColorsToDesignConfig(themeColors: ThemeColors): ExtendedColorConfig & Partial<Pick<DesignConfig, 'descriptionColor' | 'imageBgColor' | 'fontFamily' | 'titleFontSize' | 'titleFontWeight' | 'titleTextShadow' | 'descriptionFontSize' | 'descriptionFontWeight' | 'inputBackdropFilter' | 'inputBoxShadow'>> {
+export function themeColorsToDesignConfig(
+  themeColors: ThemeColors
+): ExtendedColorConfig &
+  Partial<
+    Pick<
+      DesignConfig,
+      | "descriptionColor"
+      | "imageBgColor"
+      | "fontFamily"
+      | "titleFontSize"
+      | "titleFontWeight"
+      | "titleTextShadow"
+      | "descriptionFontSize"
+      | "descriptionFontWeight"
+      | "inputBackdropFilter"
+      | "inputBoxShadow"
+    >
+  > {
   return {
     // Main colors
     backgroundColor: themeColors.background,
@@ -1030,7 +1052,8 @@ export function themeColorsToDesignConfig(themeColors: ThemeColors): ExtendedCol
 
     // Input field colors
     inputBackgroundColor: themeColors.secondary,
-    inputTextColor: themeColors.inputTextColor || getInputTextColor(themeColors.secondary, themeColors.text),
+    inputTextColor:
+      themeColors.inputTextColor || getInputTextColor(themeColors.secondary, themeColors.text),
     inputBorderColor: themeColors.inputBorder || themeColors.border,
 
     // State colors
@@ -1178,5 +1201,3 @@ export function getFlashSaleThemeColors(
     ...customColors,
   };
 }
-
-

@@ -4,7 +4,15 @@
  * Single Responsibility: Configure scroll depth trigger settings
  */
 
-import { Text, FormLayout, Box, RangeSlider, ChoiceList, TextField, Checkbox } from "@shopify/polaris";
+import {
+  Text,
+  FormLayout,
+  Box,
+  RangeSlider,
+  ChoiceList,
+  TextField,
+  Checkbox,
+} from "@shopify/polaris";
 import type { EnhancedTriggerConfig } from "~/domains/targeting/types/enhanced-triggers.types";
 import { TriggerCard } from "./TriggerCard";
 
@@ -19,7 +27,7 @@ export function ScrollDepthTrigger({ config, onChange }: ScrollDepthTriggerProps
       ...config,
       scroll_depth: {
         enabled: false,
-        ...(typeof config.scroll_depth === 'object' && config.scroll_depth !== null
+        ...(typeof config.scroll_depth === "object" && config.scroll_depth !== null
           ? config.scroll_depth
           : {}),
         ...updates,
@@ -79,4 +87,3 @@ export function ScrollDepthTrigger({ config, onChange }: ScrollDepthTriggerProps
     </TriggerCard>
   );
 }
-

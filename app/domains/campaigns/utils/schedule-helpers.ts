@@ -1,6 +1,6 @@
 /**
  * Schedule Helpers - Utility functions for campaign scheduling
- * 
+ *
  * SOLID Compliance:
  * - Single Responsibility: Each function has one clear purpose
  * - All functions are <50 lines
@@ -33,8 +33,7 @@ export function getStatusDescription(status: CampaignStatus): StatusDescription 
     case "DRAFT":
       return {
         title: "📝 Draft Mode",
-        description:
-          "Campaign is not live. Use this while you're still configuring and testing.",
+        description: "Campaign is not live. Use this while you're still configuring and testing.",
         tone: "info",
       };
     case "ACTIVE":
@@ -87,7 +86,7 @@ export function getPriorityDescription(priority: number): string {
 
 /**
  * Format date for HTML datetime-local input
- * 
+ *
  * @param date - ISO date string
  * @param timezone - IANA timezone (e.g., "America/New_York"), defaults to local
  * @returns Formatted date string for input (YYYY-MM-DDTHH:mm)
@@ -130,7 +129,7 @@ export function formatDateForInput(date?: string, timezone?: string): string {
 
 /**
  * Format date range for display
- * 
+ *
  * @param startDate - ISO start date string
  * @param endDate - ISO end date string
  * @param timezone - IANA timezone (e.g., "America/New_York"), defaults to local
@@ -162,5 +161,3 @@ export function formatDateRange(
     return null;
   }
 }
-
-

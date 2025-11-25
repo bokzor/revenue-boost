@@ -1,17 +1,17 @@
 /**
  * Secure Submission Utility
- * 
+ *
  * Centralizes secure form submission logic with challenge token validation.
  * Used across all popup components that submit data to the backend.
  */
 
-import { challengeTokenStore } from '~/domains/storefront/services/challenge-token.client';
+import { challengeTokenStore } from "~/domains/storefront/services/challenge-token.client";
 
 export interface SecureSubmissionOptions {
   campaignId: string;
   endpoint: string;
   data: Record<string, any>;
-  method?: 'POST' | 'PUT' | 'PATCH';
+  method?: "POST" | "PUT" | "PATCH";
 }
 
 export interface SecureSubmissionResult {
@@ -27,24 +27,25 @@ export interface SecureSubmissionResult {
 export async function submitWithChallengeToken(
   options: SecureSubmissionOptions
 ): Promise<SecureSubmissionResult> {
-  const { campaignId, endpoint, data, method = 'POST' } = options;
-  
+  const { campaignId, endpoint, data, method = "POST" } = options;
+
   try {
     // Get challenge token
     const challengeToken = challengeTokenStore.get(campaignId);
-    
+
     if (!challengeToken) {
-      throw new Error('Security check failed. Please refresh the page.');
+      throw new Error("Security check failed. Please refresh the page.");
     }
-    
+
     // Get session ID from global session object (set by storefront extension)
-    const sessionId = typeof window !== 'undefined'
-      ? ((window as any).__RB_SESSION_ID ||
-         window.sessionStorage?.getItem('revenue_boost_session') ||
-         window.sessionStorage?.getItem('rb_session_id') ||
-         '')
-      : '';
-    
+    const sessionId =
+      typeof window !== "undefined"
+        ? (window as any).__RB_SESSION_ID ||
+          window.sessionStorage?.getItem("revenue_boost_session") ||
+          window.sessionStorage?.getItem("rb_session_id") ||
+          ""
+        : "";
+
     // Prepare request body
     const requestBody = {
       campaignId,
@@ -52,25 +53,25 @@ export async function submitWithChallengeToken(
       sessionId,
       challengeToken,
     };
-    
+
     // Make request
     const response = await fetch(endpoint, {
       method,
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify(requestBody),
     });
-    
+
     const responseData = await response.json();
-    
+
     if (!response.ok) {
       return {
         success: false,
-        error: responseData.error || 'Submission failed',
+        error: responseData.error || "Submission failed",
       };
     }
-    
+
     if (responseData.success) {
       return {
         success: true,
@@ -80,14 +81,14 @@ export async function submitWithChallengeToken(
     } else {
       return {
         success: false,
-        error: responseData.error || 'Submission failed',
+        error: responseData.error || "Submission failed",
       };
     }
   } catch (error: any) {
-    console.error('Secure submission error:', error);
+    console.error("Secure submission error:", error);
     return {
       success: false,
-      error: error.message || 'Network error occurred',
+      error: error.message || "Network error occurred",
     };
   }
 }
@@ -104,11 +105,12 @@ export function hasChallengeToken(campaignId: string): boolean {
  * Prioritizes global session object set by storefront extension
  */
 export function getSessionId(): string {
-  if (typeof window === 'undefined') return '';
+  if (typeof window === "undefined") return "";
 
-  return (window as any).__RB_SESSION_ID ||
-         window.sessionStorage?.getItem('revenue_boost_session') ||
-         window.sessionStorage?.getItem('rb_session_id') ||
-         '';
+  return (
+    (window as any).__RB_SESSION_ID ||
+    window.sessionStorage?.getItem("revenue_boost_session") ||
+    window.sessionStorage?.getItem("rb_session_id") ||
+    ""
+  );
 }
-

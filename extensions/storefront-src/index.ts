@@ -121,6 +121,7 @@ class RevenueBoostApp {
     version: Date.now().toString(),
   });
   private initialized = false;
+  private globalCustomCSS?: string;
 
   private log(...args: unknown[]) {
     if (this.config.debug) {
@@ -164,8 +165,13 @@ class RevenueBoostApp {
         session.getSessionId(),
         session.getVisitorId()
       );
-      const { campaigns } = response;
-      const campaignList = campaigns as ClientCampaign[];
+    const { campaigns, globalCustomCSS } = response;
+    this.globalCustomCSS = globalCustomCSS || undefined;
+    const campaignList = (campaigns as ClientCampaign[]).map((c) => ({
+      ...c,
+      globalCustomCSS: globalCustomCSS || undefined,
+      customCSS: (c.designConfig as Record<string, unknown> | undefined)?.customCSS as string | undefined,
+    }));
 
       console.log(`[Revenue Boost] ✅ Campaigns received: ${campaignList?.length || 0}`);
       if (campaignList && campaignList.length > 0) {
@@ -498,4 +504,3 @@ app.init().catch((error) => {
 });
 
 export { app };
-

@@ -17,4 +17,3 @@ export const loader = getResourceById(
   "Template",
   "GET /api/templates/:templateId"
 );
-

@@ -25,17 +25,16 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
     const q = (searchParams.get("q") || "").trim();
     const firstParam = searchParams.get("first");
-    const first = Number.isFinite(Number(firstParam)) && Number(firstParam) > 0
-      ? Math.min(Number(firstParam), 5000)
-      : 500;
+    const first =
+      Number.isFinite(Number(firstParam)) && Number(firstParam) > 0
+        ? Math.min(Number(firstParam), 5000)
+        : 500;
 
     // Fetch tags (single page). The Admin API does not support a search argument,
     // so we filter client-side for autocomplete.
     const { tags } = await listProductTags(admin, { first });
 
-    const filtered = q
-      ? tags.filter((tag) => tag.toLowerCase().includes(q.toLowerCase()))
-      : tags;
+    const filtered = q ? tags.filter((tag) => tag.toLowerCase().includes(q.toLowerCase())) : tags;
 
     const limited = filtered.slice(0, 20);
 
@@ -48,4 +47,3 @@ export async function loader({ request }: LoaderFunctionArgs) {
     return handleApiError(error, "GET /api/product-tags");
   }
 }
-

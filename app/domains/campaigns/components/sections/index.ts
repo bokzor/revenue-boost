@@ -4,10 +4,7 @@
  * Central export point for all campaign form sections
  */
 
-export {
-  ContentConfigSection,
-  type ContentConfigSectionProps,
-} from "./ContentConfigSection";
+export { ContentConfigSection, type ContentConfigSectionProps } from "./ContentConfigSection";
 
 export {
   NewsletterContentSection,
@@ -23,7 +20,6 @@ export {
   ScratchCardContentSection,
   type ScratchCardContentSectionProps,
 } from "./ScratchCardContentSection";
-
 
 export {
   FlashSaleContentSection,
@@ -55,24 +51,14 @@ export {
   type AnnouncementContentSectionProps,
 } from "./AnnouncementContentSection";
 
-export {
-  DesignConfigSection,
-  type DesignConfigSectionProps,
-} from "./DesignConfigSection";
+export { DesignConfigSection, type DesignConfigSectionProps } from "./DesignConfigSection";
 
-export {
-  TargetingConfigSection,
-  type TargetingConfigSectionProps,
-} from "./TargetingConfigSection";
+export { TargetingConfigSection, type TargetingConfigSectionProps } from "./TargetingConfigSection";
 
-export {
-  DiscountConfigSection,
-  type DiscountConfigSectionProps,
-} from "./DiscountConfigSection";
+export { DiscountConfigSection, type DiscountConfigSectionProps } from "./DiscountConfigSection";
 
 export {
   ABTestingSection,
   type ABTestingSectionProps,
   type ABTestingConfig,
 } from "./ABTestingSection";
-

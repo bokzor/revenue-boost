@@ -52,4 +52,3 @@ export async function action({ request, params }: ActionFunctionArgs) {
     return handleApiError(error, "POST /api/experiments/:experimentId/activate-all");
   }
 }
-

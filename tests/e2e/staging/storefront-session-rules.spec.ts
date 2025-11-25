@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { PrismaClient } from '@prisma/client';
 import * as dotenv from 'dotenv';
-import { STORE_DOMAIN, handlePasswordPage } from './helpers/test-helpers';
+import { STORE_DOMAIN, handlePasswordPage, mockChallengeToken } from './helpers/test-helpers';
 import { CampaignFactory } from './factories/campaign-factory';
 
 dotenv.config({ path: '.env.staging.env' });
@@ -47,6 +47,8 @@ test.describe('Session Rules & Frequency Capping', () => {
     });
 
     test.beforeEach(async ({ page }) => {
+        await mockChallengeToken(page);
+
         // Log browser console messages
         page.on('console', msg => {
             console.log(`[BROWSER] ${msg.type()}: ${msg.text()}`);

@@ -5,7 +5,11 @@
  * This is a stub to fix import errors
  */
 
-import type { TriggerType as TriggerTypeEnum, TriggerRule, EnhancedTrigger } from "../types/enhanced-triggers.types";
+import type {
+  TriggerType as TriggerTypeEnum,
+  TriggerRule,
+  EnhancedTrigger,
+} from "../types/enhanced-triggers.types";
 import type { CampaignGoal } from "@prisma/client";
 
 // Re-export TriggerType for backward compatibility
@@ -124,7 +128,9 @@ export class TriggerConfigManager {
   /**
    * Get trigger templates by campaign goal
    */
-  static getTemplatesByGoal(_goal: CampaignGoal): Array<{ type: TriggerTypeEnum; config: TriggerConfig }> {
+  static getTemplatesByGoal(
+    _goal: CampaignGoal
+  ): Array<{ type: TriggerTypeEnum; config: TriggerConfig }> {
     // TODO: Implement actual template logic
     return [];
   }
@@ -132,7 +138,10 @@ export class TriggerConfigManager {
   /**
    * Validate trigger configuration
    */
-  static validateTriggerConfig(_config: TriggerConfig): { valid: boolean; errors?: string[] } {
+  static validateTriggerConfig(_config: TriggerConfig): {
+    valid: boolean;
+    errors?: string[];
+  } {
     // TODO: Implement actual validation logic
     return { valid: true };
   }
@@ -201,4 +210,3 @@ export class Trigger {
 }
 
 export default Trigger;
-

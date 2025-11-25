@@ -21,9 +21,7 @@ export interface FrequencyCappingDefaults {
 /**
  * Get default frequency capping configuration for a template type
  */
-export function getFrequencyCappingDefaults(
-  templateType: TemplateType
-): FrequencyCappingDefaults {
+export function getFrequencyCappingDefaults(templateType: TemplateType): FrequencyCappingDefaults {
   switch (templateType) {
     // Banner Templates - Persistent by nature
     case "FREE_SHIPPING":
@@ -150,11 +148,13 @@ export function shouldEnableFrequencyCapping(templateType: TemplateType): boolea
  * Get server-side frequency capping config (for database storage)
  * Extracts only the fields needed for enhancedTriggers.frequency_capping
  */
-export function getServerFrequencyCapping(templateType: TemplateType): {
-  max_triggers_per_session?: number;
-  max_triggers_per_day?: number;
-  cooldown_between_triggers?: number;
-} | undefined {
+export function getServerFrequencyCapping(templateType: TemplateType):
+  | {
+      max_triggers_per_session?: number;
+      max_triggers_per_day?: number;
+      cooldown_between_triggers?: number;
+    }
+  | undefined {
   const defaults = getFrequencyCappingDefaults(templateType);
 
   // If frequency capping is disabled, return undefined (no limits)
@@ -168,4 +168,3 @@ export function getServerFrequencyCapping(templateType: TemplateType): {
     cooldown_between_triggers: defaults.cooldown_between_triggers,
   };
 }
-

@@ -78,7 +78,9 @@ export function AnnouncementContentSection({
             { label: "Custom (Use Design Colors)", value: "custom" },
           ]}
           helpText="Pre-defined color scheme or use custom colors"
-          onChange={(value) => updateField("colorScheme", value as AnnouncementContent["colorScheme"])}
+          onChange={(value) =>
+            updateField("colorScheme", value as AnnouncementContent["colorScheme"])
+          }
         />
       </FormGrid>
 
@@ -136,4 +138,3 @@ export function AnnouncementContentSection({
     </>
   );
 }
-

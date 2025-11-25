@@ -1,6 +1,6 @@
 /**
  * Webhook route for customers/data_request
- * 
+ *
  * Handles GDPR data access requests from customers.
  * Shopify sends this webhook when a customer requests their data.
  */
@@ -47,18 +47,17 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     });
   } catch (error) {
     console.error("[Webhook Route] Error processing customers/data_request:", error);
-    
+
     // Return 500 to signal Shopify to retry
     return new Response(
-      JSON.stringify({ 
-        success: false, 
-        error: error instanceof Error ? error.message : "Unknown error" 
+      JSON.stringify({
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
       }),
-      { 
+      {
         status: 500,
         headers: { "Content-Type": "application/json" },
       }
     );
   }
 };
-

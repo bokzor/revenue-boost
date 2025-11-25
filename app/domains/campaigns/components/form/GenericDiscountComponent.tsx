@@ -30,7 +30,10 @@ import { SettingsIcon, DeleteIcon, PlusIcon } from "@shopify/polaris-icons";
 import { DiscountAdvancedSettings } from "~/domains/campaigns/components/DiscountSettingsStep";
 import { FormGrid, ProductPicker } from "~/domains/campaigns/components/form";
 import type { ProductPickerSelection } from "~/domains/campaigns/components/form";
-import type { DiscountConfig, DiscountDeliveryMode } from "~/domains/commerce/services/discount.server";
+import type {
+  DiscountConfig,
+  DiscountDeliveryMode,
+} from "~/domains/commerce/services/discount.server";
 
 interface GenericDiscountComponentProps {
   goal?: string;
@@ -52,10 +55,7 @@ export function GenericDiscountComponent({
     showInPreview: discountConfig?.showInPreview !== false,
     type: discountConfig?.type || "shared",
     valueType: discountConfig?.valueType || "PERCENTAGE",
-    value:
-      discountConfig?.valueType === "FREE_SHIPPING"
-        ? undefined
-        : discountConfig?.value || 10,
+    value: discountConfig?.valueType === "FREE_SHIPPING" ? undefined : discountConfig?.value || 10,
     minimumAmount: discountConfig?.minimumAmount,
     usageLimit: discountConfig?.usageLimit,
     expiryDays: discountConfig?.expiryDays || 30,
@@ -102,7 +102,8 @@ export function GenericDiscountComponent({
   const addTier = () => {
     const tiers = config.tiers || [];
     const newTier = {
-      thresholdCents: tiers.length > 0 ? Math.max(...tiers.map(t => t.thresholdCents)) + 2500 : 5000,
+      thresholdCents:
+        tiers.length > 0 ? Math.max(...tiers.map((t) => t.thresholdCents)) + 2500 : 5000,
       discount: {
         kind: "percentage" as const,
         value: 10,
@@ -111,7 +112,13 @@ export function GenericDiscountComponent({
     updateConfig({ tiers: [...tiers, newTier] });
   };
 
-  const updateTier = (index: number, updates: Partial<{ thresholdCents: number; discount: { kind: "percentage" | "fixed" | "free_shipping"; value: number } }>) => {
+  const updateTier = (
+    index: number,
+    updates: Partial<{
+      thresholdCents: number;
+      discount: { kind: "percentage" | "fixed" | "free_shipping"; value: number };
+    }>
+  ) => {
     const tiers = [...(config.tiers || [])];
     tiers[index] = { ...tiers[index], ...updates };
     updateConfig({ tiers });
@@ -120,33 +127,6 @@ export function GenericDiscountComponent({
   const removeTier = (index: number) => {
     const tiers = (config.tiers || []).filter((_, i) => i !== index);
     updateConfig({ tiers: tiers.length > 0 ? tiers : undefined });
-  };
-
-  // BOGO handlers
-  const toggleBogo = (enabled: boolean) => {
-    if (enabled) {
-      updateConfig({
-        bogo: {
-          buy: {
-            scope: "any" as const,
-            quantity: 1,
-            ids: [],
-          },
-          get: {
-            scope: "products" as const,
-            ids: [],
-            quantity: 1,
-            discount: {
-              kind: "free_product" as const,
-              value: 100,
-            },
-            appliesOncePerOrder: true,
-          },
-        },
-      });
-    } else {
-      updateConfig({ bogo: undefined });
-    }
   };
 
   const updateBogoField = (path: string, value: unknown) => {
@@ -160,22 +140,6 @@ export function GenericDiscountComponent({
     }
     current[keys[keys.length - 1]] = value;
     updateConfig({ bogo });
-  };
-
-  // Free gift handlers
-  const toggleFreeGift = (enabled: boolean) => {
-    if (enabled) {
-      updateConfig({
-        freeGift: {
-          productId: "",
-          variantId: "",
-          quantity: 1,
-          minSubtotalCents: 0,
-        },
-      });
-    } else {
-      updateConfig({ freeGift: undefined });
-    }
   };
 
   const updateFreeGiftField = (field: string, value: unknown) => {
@@ -198,11 +162,7 @@ export function GenericDiscountComponent({
       {config.enabled !== false && (
         <BlockStack gap="400">
           {/* Advanced Discount Type Selector */}
-          <Box
-            padding="300"
-            background="bg-surface-secondary"
-            borderRadius="200"
-          >
+          <Box padding="300" background="bg-surface-secondary" borderRadius="200">
             <BlockStack gap="300">
               <Text as="h4" variant="headingSm">
                 Discount Strategy
@@ -219,10 +179,10 @@ export function GenericDiscountComponent({
                   config.bogo
                     ? "bogo"
                     : config.freeGift
-                    ? "free_gift"
-                    : config.tiers?.length
-                    ? "tiered"
-                    : "basic"
+                      ? "free_gift"
+                      : config.tiers?.length
+                        ? "tiered"
+                        : "basic"
                 }
                 onChange={(value) => {
                   // Build a single new config to avoid stale merges across sequential updates
@@ -282,10 +242,7 @@ export function GenericDiscountComponent({
                   value={config.valueType}
                   onChange={(valueType) => {
                     const updates: Partial<DiscountConfig> = {
-                      valueType: valueType as
-                        | "PERCENTAGE"
-                        | "FIXED_AMOUNT"
-                        | "FREE_SHIPPING",
+                      valueType: valueType as "PERCENTAGE" | "FIXED_AMOUNT" | "FREE_SHIPPING",
                     };
                     // Clear value when switching to FREE_SHIPPING
                     if (valueType === "FREE_SHIPPING") {
@@ -305,9 +262,7 @@ export function GenericDiscountComponent({
                     type="number"
                     suffix={getValueSuffix()}
                     value={config.value?.toString() || ""}
-                    onChange={(value) =>
-                      updateConfig({ value: parseFloat(value) || 0 })
-                    }
+                    onChange={(value) => updateConfig({ value: parseFloat(value) || 0 })}
                     placeholder={getRecommendedValue().toString()}
                     autoComplete="off"
                     min={0}
@@ -318,26 +273,17 @@ export function GenericDiscountComponent({
               </FormGrid>
 
               {config.valueType === "FREE_SHIPPING" && (
-                <Box
-                  padding="300"
-                  background="bg-surface-secondary"
-                  borderRadius="200"
-                >
+                <Box padding="300" background="bg-surface-secondary" borderRadius="200">
                   <Text as="p" variant="bodySm">
                     🚚 <strong>Free Shipping Discount</strong>
                     <br />
-                    Customers will get free shipping with their order. No discount
-                    value needed.
+                    Customers will get free shipping with their order. No discount value needed.
                   </Text>
                 </Box>
               )}
 
               {/* Applicability / Scope */}
-              <Box
-                padding="300"
-                background="bg-surface-secondary"
-                borderRadius="200"
-              >
+              <Box padding="300" background="bg-surface-secondary" borderRadius="200">
                 <BlockStack gap="300">
                   <Text as="h4" variant="headingSm">
                     Applies to
@@ -360,9 +306,7 @@ export function GenericDiscountComponent({
                             productIds:
                               nextScope === "products" ? current.productIds || [] : undefined,
                             collectionIds:
-                              nextScope === "collections"
-                                ? current.collectionIds || []
-                                : undefined,
+                              nextScope === "collections" ? current.collectionIds || [] : undefined,
                           },
                         });
                       }}
@@ -409,27 +353,20 @@ export function GenericDiscountComponent({
 
           {/* ========== TIERED DISCOUNTS SECTION ========== */}
           {config.tiers && config.tiers.length > 0 && (
-            <Box
-              padding="400"
-              background="bg-surface-secondary"
-              borderRadius="200"
-            >
+            <Box padding="400" background="bg-surface-secondary" borderRadius="200">
               <BlockStack gap="400">
                 <InlineStack align="space-between" blockAlign="center">
                   <Text as="h4" variant="headingSm">
                     🎯 Tiered Discounts
                   </Text>
-                  <Button
-                    variant="plain"
-                    icon={PlusIcon}
-                    onClick={addTier}
-                  >
+                  <Button variant="plain" icon={PlusIcon} onClick={addTier}>
                     Add Tier
                   </Button>
                 </InlineStack>
 
                 <Text as="p" variant="bodySm" tone="subdued">
-                  Reward higher spending with better discounts (e.g., "Spend $50 get 10%, $100 get 20%")
+                  Reward higher spending with better discounts (e.g., &ldquo;Spend $50 get 10%, $100
+                  get 20%&rdquo;)
                 </Text>
 
                 <BlockStack gap="300">
@@ -481,7 +418,10 @@ export function GenericDiscountComponent({
                             ]}
                             onChange={(kind) =>
                               updateTier(index, {
-                                discount: { ...tier.discount, kind: kind as "percentage" | "fixed" | "free_shipping" },
+                                discount: {
+                                  ...tier.discount,
+                                  kind: kind as "percentage" | "fixed" | "free_shipping",
+                                },
                               })
                             }
                           />
@@ -514,18 +454,14 @@ export function GenericDiscountComponent({
 
           {/* ========== BOGO SECTION ========== */}
           {config.bogo && (
-            <Box
-              padding="400"
-              background="bg-surface-secondary"
-              borderRadius="200"
-            >
+            <Box padding="400" background="bg-surface-secondary" borderRadius="200">
               <BlockStack gap="400">
                 <Text as="h4" variant="headingSm">
                   🎁 BOGO Configuration
                 </Text>
 
                 <Text as="p" variant="bodySm" tone="subdued">
-                  Buy X Get Y deals (e.g., "Buy 2 Get 1 Free")
+                  Buy X Get Y deals (e.g., &ldquo;Buy 2 Get 1 Free&rdquo;)
                 </Text>
 
                 {/* BUY Configuration */}
@@ -566,7 +502,8 @@ export function GenericDiscountComponent({
                     {config.bogo.buy.scope !== "any" && (
                       <Banner tone="info">
                         <Text as="p" variant="bodySm">
-                          Product/Collection IDs will be configurable via Shopify picker (coming soon). For now, use Advanced Settings to add GIDs manually.
+                          Product/Collection IDs will be configurable via Shopify picker (coming
+                          soon). For now, use Advanced Settings to add GIDs manually.
                         </Text>
                       </Banner>
                     )}
@@ -669,11 +606,7 @@ export function GenericDiscountComponent({
 
           {/* ========== FREE GIFT SECTION ========== */}
           {config.freeGift && (
-            <Box
-              padding="400"
-              background="bg-surface-secondary"
-              borderRadius="200"
-            >
+            <Box padding="400" background="bg-surface-secondary" borderRadius="200">
               <BlockStack gap="400">
                 <Text as="h4" variant="headingSm">
                   🎉 Free Gift Configuration
@@ -685,7 +618,8 @@ export function GenericDiscountComponent({
 
                 <Banner tone="info">
                   <Text as="p" variant="bodySm">
-                    Tip: Use the Shopify picker below to select a product. You can still edit GIDs manually.
+                    Tip: Use the Shopify picker below to select a product. You can still edit GIDs
+                    manually.
                   </Text>
                 </Banner>
 
@@ -699,7 +633,10 @@ export function GenericDiscountComponent({
                     if (!first) return;
                     updateFreeGiftField("productId", first.id);
                     // If variants are present, default to the first one
-                    const variants = (first.variants || []).map(v => ({ id: v.id, title: v.title }));
+                    const variants = (first.variants || []).map((v) => ({
+                      id: v.id,
+                      title: v.title,
+                    }));
                     setFreeGiftVariants(variants.length > 0 ? variants : undefined);
                     if (variants.length > 0) {
                       updateFreeGiftField("variantId", variants[0].id);
@@ -712,7 +649,7 @@ export function GenericDiscountComponent({
                   <FormGrid columns={2}>
                     <Select
                       label="Select Variant"
-                      options={freeGiftVariants.map(v => ({ label: v.title, value: v.id }))}
+                      options={freeGiftVariants.map((v) => ({ label: v.title, value: v.id }))}
                       value={config.freeGift.variantId || freeGiftVariants[0].id}
                       onChange={(value) => updateFreeGiftField("variantId", value)}
                     />
@@ -829,9 +766,7 @@ export function GenericDiscountComponent({
                 <TextField
                   label="Discount Code Prefix"
                   value={config.prefix || ""}
-                  onChange={(prefix) =>
-                    updateConfig({ prefix: prefix.toUpperCase() })
-                  }
+                  onChange={(prefix) => updateConfig({ prefix: prefix.toUpperCase() })}
                   placeholder="WELCOME"
                   autoComplete="off"
                   helpText="Prefix for generated codes (e.g., WELCOME10)"
@@ -857,8 +792,8 @@ export function GenericDiscountComponent({
                     {config.tiers?.length
                       ? `${config.tiers.length} Tiers`
                       : config.bogo
-                      ? "BOGO"
-                      : "Free Gift"}
+                        ? "BOGO"
+                        : "Free Gift"}
                   </Badge>
                 )}
                 <Badge tone="info">

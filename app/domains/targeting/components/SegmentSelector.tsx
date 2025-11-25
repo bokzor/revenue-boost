@@ -50,12 +50,13 @@ export function SegmentSelector({
       .then((data) => {
         // Support both plain list ({ segments }) and standardized API response
         // ({ success, data: { segments } })
-        const segmentsPayload =
-          (data && data.data && Array.isArray(data.data.segments)
+        const segmentsPayload = (
+          data && data.data && Array.isArray(data.data.segments)
             ? data.data.segments
             : data && Array.isArray(data.segments)
               ? data.segments
-              : []) as AudienceSegment[];
+              : []
+        ) as AudienceSegment[];
 
         if (segmentsPayload.length > 0) {
           setSegments(segmentsPayload);
@@ -116,21 +117,13 @@ export function SegmentSelector({
             <Badge tone="info">{`${selectedSegments.length} selected`}</Badge>
           ) : null}
           <InlineStack gap="100">
-            <Button
-              variant="plain"
-              onClick={handleSelectAll}
-              disabled={disabled}
-            >
+            <Button variant="plain" onClick={handleSelectAll} disabled={disabled}>
               Select all
             </Button>
             <Text as="span" variant="bodySm" tone="subdued">
               •
             </Text>
-            <Button
-              variant="plain"
-              onClick={handleClearAll}
-              disabled={disabled}
-            >
+            <Button variant="plain" onClick={handleClearAll} disabled={disabled}>
               Clear all
             </Button>
           </InlineStack>
@@ -183,8 +176,7 @@ export function SegmentSelector({
 
                     {segment.estimatedSize && (
                       <Text as="p" variant="bodySm" tone="subdued">
-                        Estimated reach: ~
-                        {segment.estimatedSize.toLocaleString()} visitors
+                        Estimated reach: ~{segment.estimatedSize.toLocaleString()} visitors
                       </Text>
                     )}
                   </BlockStack>
@@ -199,9 +191,8 @@ export function SegmentSelector({
       {selectedSegments.length === 0 && (
         <Box paddingBlockStart="200">
           <Text as="p" variant="bodySm" tone="subdued">
-            Select one or more audience segments to target. Your campaign will
-            only show to visitors who match at least one of the selected
-            segments.
+            Select one or more audience segments to target. Your campaign will only show to visitors
+            who match at least one of the selected segments.
           </Text>
         </Box>
       )}

@@ -17,6 +17,7 @@ import type {
   ShopRedactPayload,
 } from '~/webhooks/privacy/types';
 import prisma from '~/db.server';
+import { Prisma } from '@prisma/client';
 
 // Mock Prisma
 vi.mock('~/db.server', () => ({
@@ -194,7 +195,7 @@ describe('Privacy Webhook Handlers', () => {
           userAgent: null,
           referrer: null,
           visitorId: null,
-          metadata: null,
+          metadata: Prisma.JsonNull,
         },
       });
 

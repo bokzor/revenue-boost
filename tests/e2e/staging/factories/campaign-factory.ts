@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import type { TemplateType } from '~/domains/campaigns/types/campaign';
+import "../helpers/load-staging-env";
 
 /**
  * Campaign Factory for E2E Testing

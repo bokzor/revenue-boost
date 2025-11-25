@@ -33,8 +33,7 @@ export function GoalSelectorV2({ value, onChange }: GoalSelectorProps) {
           What&apos;s your primary goal?
         </Text>
         <Text as="p" variant="bodyLg" alignment="center" tone="subdued">
-          Choose the main objective for this campaign. We&apos;ll optimize everything
-          for your goal.
+          Choose the main objective for this campaign. We&apos;ll optimize everything for your goal.
         </Text>
       </div>
 
@@ -61,9 +60,9 @@ export function GoalSelectorV2({ value, onChange }: GoalSelectorProps) {
               💡 Pro Tip
             </Text>
             <Text as="p" variant="bodyMd" tone="subdued">
-              Focus on one goal per campaign for maximum impact. Create separate
-              campaigns for different objectives to track performance accurately
-              and optimize each one independently.
+              Focus on one goal per campaign for maximum impact. Create separate campaigns for
+              different objectives to track performance accurately and optimize each one
+              independently.
             </Text>
           </BlockStack>
         </div>

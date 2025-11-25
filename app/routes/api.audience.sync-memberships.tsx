@@ -20,7 +20,9 @@ import { handleApiError } from "~/lib/api-error-handler.server";
 import { syncSegmentMembershipsForStore } from "~/domains/targeting/services/segment-membership.server";
 
 const SyncMembershipsRequestSchema = z.object({
-  segmentIds: z.array(z.string().min(1, "Segment ID is required")).min(1, "At least one segmentId is required"),
+  segmentIds: z
+    .array(z.string().min(1, "Segment ID is required"))
+    .min(1, "At least one segmentId is required"),
 });
 
 export async function action({ request }: ActionFunctionArgs) {
@@ -39,10 +41,7 @@ export async function action({ request }: ActionFunctionArgs) {
     const parsed = SyncMembershipsRequestSchema.safeParse(raw);
 
     if (!parsed.success) {
-      return data(
-        { error: "Invalid payload", details: parsed.error.format() },
-        { status: 400 },
-      );
+      return data({ error: "Invalid payload", details: parsed.error.format() }, { status: 400 });
     }
 
     const segmentIds = Array.from(new Set(parsed.data.segmentIds.filter(Boolean)));
@@ -87,7 +86,6 @@ export async function action({ request }: ActionFunctionArgs) {
 export async function loader() {
   return data(
     { error: "Method not allowed. Use POST to sync audience memberships." },
-    { status: 405 },
+    { status: 405 }
   );
 }
-

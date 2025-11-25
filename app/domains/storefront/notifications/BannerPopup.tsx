@@ -62,9 +62,7 @@ export const BannerPopup: React.FC<BannerPopupProps> = ({
     color: config.textColor,
     zIndex: 999999,
     boxShadow:
-      position === "top"
-        ? "0 2px 10px rgba(0, 0, 0, 0.1)"
-        : "0 -2px 10px rgba(0, 0, 0, 0.1)",
+      position === "top" ? "0 2px 10px rgba(0, 0, 0, 0.1)" : "0 -2px 10px rgba(0, 0, 0, 0.1)",
     transition: "transform 0.3s ease-out",
     minHeight: config.height || "auto",
   };
@@ -188,8 +186,7 @@ export const BannerPopup: React.FC<BannerPopupProps> = ({
             aria-label="Close banner"
             onMouseEnter={(e) => {
               e.currentTarget.style.opacity = "1";
-              e.currentTarget.style.backgroundColor =
-                "rgba(255, 255, 255, 0.1)";
+              e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.1)";
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.opacity = "0.7";

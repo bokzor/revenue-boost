@@ -13,6 +13,7 @@ The `TemplatePreview.tsx` component has been completely updated to use the new p
 ### 1. Updated Imports ✅
 
 **Old Imports** (from various locations):
+
 ```typescript
 import { NewsletterPopup } from "~/domains/storefront/popups/NewsletterPopup";
 import { CountdownTimerBanner } from "~/domains/campaigns/components/sales/CountdownTimerBanner";
@@ -21,8 +22,9 @@ import { FlashSaleModal } from "~/domains/campaigns/components/sales/FlashSaleMo
 ```
 
 **New Imports** (all from popups-new):
+
 ```typescript
-import { 
+import {
   NewsletterPopup,
   SpinToWinPopup,
   ScratchCardPopup,
@@ -43,25 +45,30 @@ import {
 All template cases have been rewritten to use the new component APIs with complete configuration:
 
 #### ✅ Newsletter Templates
+
 - **NewsletterPopup** - Complete config with email, name fields, consent, discount
 - Supports all 4 newsletter template variations
 
 #### ✅ Gamification Templates
+
 - **SpinToWinPopup** - Complete with wheelSegments (prizes) configuration
 - **ScratchCardPopup** - Complete with prizes and scratch behavior
 - **FIXED**: Both now have default prizes for preview mode
 
 #### ✅ Sales Templates
+
 - **FlashSalePopup** - **WORKING countdown timer** (not TODO!)
 - **CountdownTimerPopup** - **WORKING countdown timer** (not TODO!)
 - **FIXED**: Both now have functional timers
 
 #### ✅ E-commerce Templates
+
 - **ProductUpsellPopup** - Complete with products array and bundle discount
 - **CartAbandonmentPopup** - Complete with cart items and urgency timer
 - **FreeShippingPopup** - Complete with progress bar and product recommendations
 
 #### ✅ Engagement Templates
+
 - **SocialProofPopup** - Complete with notification types and rotation
 - **AnnouncementPopup** - Complete with banner display and CTA
 
@@ -70,6 +77,7 @@ All template cases have been rewritten to use the new component APIs with comple
 ## Configuration Examples
 
 ### Newsletter Template
+
 ```typescript
 <NewsletterPopup
   config={{
@@ -98,6 +106,7 @@ All template cases have been rewritten to use the new component APIs with comple
 ```
 
 ### Spin to Win Template
+
 ```typescript
 <SpinToWinPopup
   config={{
@@ -125,6 +134,7 @@ All template cases have been rewritten to use the new component APIs with comple
 ```
 
 ### Flash Sale Template
+
 ```typescript
 <FlashSalePopup
   config={{
@@ -147,22 +157,27 @@ All template cases have been rewritten to use the new component APIs with comple
 ## Critical Fixes
 
 ### 1. Spin-to-Win Double Chance ✅
+
 **Before**: Missing wheelSegments configuration  
 **After**: Default prizes provided for preview mode
 
 ### 2. Scratch & Win ✅
+
 **Before**: Missing prizes configuration  
 **After**: Default prizes provided for preview mode
 
 ### 3. Countdown Timer Banner ✅
+
 **Before**: Shows "TODO: Implement"  
 **After**: Working countdown timer with proper configuration
 
 ### 4. Flash Sale Alert ✅
+
 **Before**: Static urgency message  
 **After**: Working countdown timer
 
 ### 5. All Product Upsells ✅
+
 **Before**: Missing products configuration  
 **After**: Mock products provided for preview
 
@@ -171,6 +186,7 @@ All template cases have been rewritten to use the new component APIs with comple
 ## Preview Mode Features
 
 All components now support `previewMode: true` which:
+
 - Disables actual API calls
 - Shows mock data
 - Allows safe preview in admin
@@ -181,6 +197,7 @@ All components now support `previewMode: true` which:
 ## Default Values
 
 Each template case now provides sensible defaults for:
+
 - Colors (backgroundColor, textColor, buttonColor, etc.)
 - Layout (position, size, borderRadius)
 - Content (headline, subheadline, placeholders)
@@ -220,6 +237,7 @@ After this update, verify:
 **No Breaking Changes for Users**
 
 The TemplatePreview component interface remains the same:
+
 - Same props accepted
 - Same template types supported
 - Same preview behavior
@@ -243,4 +261,3 @@ All changes are internal to how components are rendered. The admin UI and templa
 **Date**: 2025-11-11  
 **Components Updated**: 10 popup components  
 **Issues Fixed**: 5 critical template issues
-

@@ -1,9 +1,9 @@
 /**
  * KeyboardShortcutsHelp Component (Stub)
- * 
+ *
  * TODO: This is a stub component created to fix build issues.
  * The actual implementation should display keyboard shortcuts help modal.
- * 
+ *
  * Expected features:
  * - Modal display of keyboard shortcuts
  * - Categorized shortcuts
@@ -44,7 +44,9 @@ export const KeyboardShortcutsHelp: React.FC<KeyboardShortcutsHelpProps> = ({
   const categories = Array.from(new Set(shortcuts.map((s) => s.category || "Other")));
 
   return (
-    <div
+    <button
+      type="button"
+      aria-label="Close keyboard shortcuts overlay"
       style={{
         position: "fixed",
         top: 0,
@@ -57,10 +59,25 @@ export const KeyboardShortcutsHelp: React.FC<KeyboardShortcutsHelpProps> = ({
         justifyContent: "center",
         zIndex: 10000,
         padding: "20px",
+        border: "none",
+        margin: 0,
       }}
-      onClick={onClose}
+      onClick={(event) => {
+        if (event.target === event.currentTarget) {
+          onClose();
+        }
+      }}
+      onKeyDown={(event) => {
+        if (event.key === "Escape" || event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onClose();
+        }
+      }}
     >
       <div
+        role="dialog"
+        aria-modal="true"
+        tabIndex={-1}
         style={{
           backgroundColor: "#FFFFFF",
           borderRadius: "8px",
@@ -71,7 +88,6 @@ export const KeyboardShortcutsHelp: React.FC<KeyboardShortcutsHelpProps> = ({
           overflow: "auto",
           position: "relative",
         }}
-        onClick={(e) => e.stopPropagation()}
       >
         <button
           onClick={onClose}
@@ -146,9 +162,8 @@ export const KeyboardShortcutsHelp: React.FC<KeyboardShortcutsHelpProps> = ({
           TODO: Add search functionality and platform detection
         </p>
       </div>
-    </div>
+    </button>
   );
 };
 
 export default KeyboardShortcutsHelp;
-

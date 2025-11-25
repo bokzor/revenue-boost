@@ -1,12 +1,12 @@
 /**
  * Campaign Query Service
- * 
+ *
  * Handles all read operations for campaigns
  * Single Responsibility: Query operations only
  */
 
 import prisma from "~/db.server";
-import type { CampaignWithConfigs, TemplateType } from "../types/campaign.js";
+import type { CampaignStatus, CampaignWithConfigs, TemplateType } from "../types/campaign.js";
 import { parseCampaignFields } from "../utils/json-helpers.js";
 import { CampaignServiceError } from "~/lib/errors.server";
 import {
@@ -44,10 +44,7 @@ export class CampaignQueryService {
   /**
    * Get campaign by ID
    */
-  static async getById(
-    id: string,
-    storeId: string
-  ): Promise<CampaignWithConfigs | null> {
+  static async getById(id: string, storeId: string): Promise<CampaignWithConfigs | null> {
     try {
       const campaign = await prisma.campaign.findFirst({
         where: { id, storeId },
@@ -119,13 +116,13 @@ export class CampaignQueryService {
    */
   static async getByStatus(
     storeId: string,
-    status: string
+    status: CampaignStatus
   ): Promise<CampaignWithConfigs[]> {
     try {
       const campaigns = await prisma.campaign.findMany({
         where: {
           storeId,
-          status: status as any,
+          status,
         },
         orderBy: { createdAt: "desc" },
         include: CAMPAIGN_TEMPLATE_INCLUDE,
@@ -168,4 +165,3 @@ export class CampaignQueryService {
     }
   }
 }
-

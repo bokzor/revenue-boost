@@ -7,7 +7,10 @@
 import { Text, FormLayout, TextField, Checkbox } from "@shopify/polaris";
 import type { EnhancedTriggerConfig } from "~/domains/targeting/types/enhanced-triggers.types";
 import { TriggerCard } from "./TriggerCard";
-import { ProductPicker, type ProductPickerSelection } from "~/domains/campaigns/components/form/ProductPicker";
+import {
+  ProductPicker,
+  type ProductPickerSelection,
+} from "~/domains/campaigns/components/form/ProductPicker";
 
 interface AddToCartTriggerProps {
   config: EnhancedTriggerConfig;
@@ -20,7 +23,7 @@ export function AddToCartTrigger({ config, onChange }: AddToCartTriggerProps) {
       ...config,
       add_to_cart: {
         enabled: false,
-        ...(typeof config.add_to_cart === 'object' && config.add_to_cart !== null
+        ...(typeof config.add_to_cart === "object" && config.add_to_cart !== null
           ? config.add_to_cart
           : {}),
         ...updates,

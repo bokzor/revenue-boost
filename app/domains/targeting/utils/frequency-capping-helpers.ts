@@ -1,6 +1,6 @@
 /**
  * Frequency Capping Helpers
- * 
+ *
  * Constants and utilities for frequency capping configuration
  */
 
@@ -23,4 +23,3 @@ export const COOLDOWN_OPTIONS = [
   { label: "12 hours", value: "12" },
   { label: "24 hours", value: "24" },
 ];
-

@@ -5,4 +5,3 @@ import { loader as apiLoader } from "./api.upsell-products";
 export async function loader(args: LoaderFunctionArgs) {
   return apiLoader(args);
 }
-

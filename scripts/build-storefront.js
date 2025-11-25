@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/* eslint-env node */
 
 /**
  * Build script for Revenue Boost storefront extension
@@ -21,7 +22,7 @@
 import * as esbuild from "esbuild";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
-import { existsSync, statSync } from "fs";
+import { existsSync, statSync, mkdirSync, copyFileSync, readdirSync } from "fs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -61,12 +62,49 @@ const popupBundles = [
   "announcement",        // ANNOUNCEMENT
 ];
 
+/**
+ * Copy newsletter background images from public/ to extension assets
+ * This ensures a single source of truth for background images
+ */
+function copyNewsletterBackgrounds() {
+  const sourceDir = join(rootDir, "public", "newsletter-backgrounds");
+  const targetDir = join(assetsDir, "newsletter-backgrounds");
+
+  console.log("📸 Copying newsletter background images...");
+  console.log(`   Source: ${sourceDir}`);
+  console.log(`   Target: ${targetDir}`);
+
+  // Create target directory if it doesn't exist
+  if (!existsSync(targetDir)) {
+    mkdirSync(targetDir, { recursive: true });
+  }
+
+  // Copy all PNG files from source to target
+  if (existsSync(sourceDir)) {
+    const files = readdirSync(sourceDir).filter(file => file.endsWith('.png'));
+
+    files.forEach(file => {
+      const sourcePath = join(sourceDir, file);
+      const targetPath = join(targetDir, file);
+      copyFileSync(sourcePath, targetPath);
+    });
+
+    console.log(`   ✅ Copied ${files.length} background images`);
+  } else {
+    console.warn(`   ⚠️  Source directory not found: ${sourceDir}`);
+  }
+  console.log("");
+}
+
 async function build() {
   try {
     console.log("🔨 Building Revenue Boost Storefront Extension...");
     console.log("📂 Source:", srcDir);
     console.log("📦 Output:", assetsDir);
     console.log("");
+
+    // Copy newsletter background images (single source of truth: public/)
+    copyNewsletterBackgrounds();
 
     // Plugin to alias React to Preact (for main bundle)
     const aliasPreactPlugin = {
@@ -393,4 +431,3 @@ function getFileSize(filePath) {
 }
 
 build();
-

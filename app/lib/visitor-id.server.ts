@@ -1,6 +1,6 @@
 /**
  * Visitor ID Cookie Management
- * 
+ *
  * Handles persistent visitor identification for cross-session tracking
  * Used for frequency capping and visitor analytics
  */
@@ -34,7 +34,7 @@ export function generateVisitorId(): string {
 
 /**
  * Get or create visitor ID from request
- * 
+ *
  * @param request - Incoming request
  * @returns Visitor ID (existing or newly generated)
  */
@@ -53,7 +53,7 @@ export async function getOrCreateVisitorId(request: Request): Promise<string> {
 
 /**
  * Set visitor ID cookie in response headers
- * 
+ *
  * @param visitorId - Visitor ID to set
  * @returns Cookie header value
  */
@@ -63,7 +63,7 @@ export async function setVisitorIdCookie(visitorId: string): Promise<string> {
 
 /**
  * Get visitor ID from request (without creating new one)
- * 
+ *
  * @param request - Incoming request
  * @returns Visitor ID or null if not found
  */
@@ -80,7 +80,7 @@ export async function getVisitorId(request: Request): Promise<string | null> {
 
 /**
  * Clear visitor ID cookie
- * 
+ *
  * @returns Cookie header value to clear the cookie
  */
 export async function clearVisitorIdCookie(): Promise<string> {
@@ -89,10 +89,10 @@ export async function clearVisitorIdCookie(): Promise<string> {
 
 /**
  * Extract visitor ID from storefront context or generate new one
- * 
+ *
  * Used when storefront sends visitor ID in query params
  * Falls back to cookie-based visitor ID
- * 
+ *
  * @param request - Incoming request
  * @param contextVisitorId - Visitor ID from storefront context (optional)
  * @returns Visitor ID
@@ -112,7 +112,7 @@ export async function resolveVisitorId(
 
 /**
  * Create response headers with visitor ID cookie
- * 
+ *
  * @param visitorId - Visitor ID to set
  * @param existingHeaders - Existing headers to merge with (optional)
  * @returns Headers object with Set-Cookie header
@@ -129,7 +129,7 @@ export async function createVisitorIdHeaders(
 
 /**
  * Middleware helper to ensure visitor ID exists
- * 
+ *
  * @param request - Incoming request
  * @returns Object with visitorId and headers to set cookie
  */
@@ -139,7 +139,6 @@ export async function ensureVisitorId(request: Request): Promise<{
 }> {
   const visitorId = await getOrCreateVisitorId(request);
   const headers = await createVisitorIdHeaders(visitorId);
-  
+
   return { visitorId, headers };
 }
-

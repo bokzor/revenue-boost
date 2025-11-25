@@ -41,6 +41,7 @@ export interface StepRendererProps {
   selectedVariant?: string;
   abTestingEnabled?: boolean;
   initialTemplates?: UnifiedTemplate[];
+  globalCustomCSS?: string;
 }
 // ============================================================================
 // STEP RENDERERS
@@ -73,7 +74,16 @@ export function renderGoalStep(props: StepRendererProps) {
 }
 
 export function renderDesignStep(props: StepRendererProps) {
-  const { wizardState, updateData, storeId, shopDomain, campaignId, setTemplateType, initialTemplates } = props;
+  const {
+    wizardState,
+    updateData,
+    storeId,
+    shopDomain,
+    campaignId,
+    setTemplateType,
+    initialTemplates,
+  } = props;
+  const { globalCustomCSS } = props;
 
   // Convert wizard state designConfig to DesignConfig format
   const designConfig: Partial<import("~/domains/campaigns/types/campaign").DesignConfig> = {
@@ -84,7 +94,9 @@ export function renderDesignStep(props: StepRendererProps) {
     overlayOpacity: 0.5,
     animation: "fade",
     // Add any existing design config values
-    ...(wizardState.designConfig as Partial<import("~/domains/campaigns/types/campaign").DesignConfig>),
+    ...(wizardState.designConfig as Partial<
+      import("~/domains/campaigns/types/campaign").DesignConfig
+    >),
   };
 
   // Build targetRules from wizard state for preview
@@ -106,6 +118,7 @@ export function renderDesignStep(props: StepRendererProps) {
       designConfig={designConfig}
       discountConfig={wizardState.discountConfig}
       targetRules={targetRules}
+      globalCustomCSS={globalCustomCSS}
       onContentChange={(content) => updateData({ contentConfig: content })}
       onDesignChange={(design) => updateData({ designConfig: design })}
       onDiscountChange={(config) => updateData({ discountConfig: config })}
@@ -212,4 +225,3 @@ export function renderScheduleStep(props: StepRendererProps) {
     />
   );
 }
-

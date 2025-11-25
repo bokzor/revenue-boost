@@ -15,10 +15,7 @@ export interface TargetingConfigSectionProps {
   onChange: (targetRules: Partial<TargetRulesConfig>) => void;
 }
 
-export function TargetingConfigSection({
-  targetRules,
-  onChange,
-}: TargetingConfigSectionProps) {
+export function TargetingConfigSection({ targetRules, onChange }: TargetingConfigSectionProps) {
   const triggers = targetRules.enhancedTriggers || {};
 
   const updateTrigger = useNestedFieldUpdater<TargetRulesConfig, "enhancedTriggers">(
@@ -46,18 +43,14 @@ export function TargetingConfigSection({
               value={triggers.page_load.delay?.toString() || "0"}
               placeholder="0"
               helpText="Delay before showing popup"
-              onChange={(value) =>
-                updateTrigger("page_load", { delay: parseInt(value) || 0 })
-              }
+              onChange={(value) => updateTrigger("page_load", { delay: parseInt(value) || 0 })}
             />
 
             <CheckboxField
               label="Require DOM Ready"
               name="triggers.page_load.require_dom_ready"
               checked={triggers.page_load.require_dom_ready || false}
-              onChange={(checked) =>
-                updateTrigger("page_load", { require_dom_ready: checked })
-              }
+              onChange={(checked) => updateTrigger("page_load", { require_dom_ready: checked })}
             />
           </FormGrid>
         )}
@@ -94,9 +87,7 @@ export function TargetingConfigSection({
               label="Enable on Mobile"
               name="triggers.exit_intent.mobile_enabled"
               checked={triggers.exit_intent.mobile_enabled || false}
-              onChange={(checked) =>
-                updateTrigger("exit_intent", { mobile_enabled: checked })
-              }
+              onChange={(checked) => updateTrigger("exit_intent", { mobile_enabled: checked })}
             />
           </FormGrid>
         )}
@@ -118,9 +109,7 @@ export function TargetingConfigSection({
             value={triggers.time_delay.delay?.toString() || "5"}
             placeholder="5"
             helpText="Time to wait before showing popup"
-            onChange={(value) =>
-              updateTrigger("time_delay", { delay: parseInt(value) || 5 })
-            }
+            onChange={(value) => updateTrigger("time_delay", { delay: parseInt(value) || 5 })}
           />
         )}
       </FormSection>
@@ -172,13 +161,10 @@ export function TargetingConfigSection({
             value={triggers.cart_value.minValue?.toString() || ""}
             placeholder="50.00"
             helpText="Minimum cart value to trigger popup"
-            onChange={(value) =>
-              updateTrigger("cart_value", { minValue: parseFloat(value) || 0 })
-            }
+            onChange={(value) => updateTrigger("cart_value", { minValue: parseFloat(value) || 0 })}
           />
         )}
       </FormSection>
     </>
   );
 }
-

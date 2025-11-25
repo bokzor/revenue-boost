@@ -1,6 +1,6 @@
 /**
  * Campaign Mutation Service
- * 
+ *
  * Handles all write operations for campaigns (create, update, delete)
  * Single Responsibility: Mutation operations only
  */
@@ -12,15 +12,12 @@ import type {
   CampaignWithConfigs,
   DiscountConfig,
 } from "../types/campaign.js";
+import type { AdminApiContext } from "@shopify/shopify-app-react-router/server";
 import {
   validateCampaignCreateData,
   validateCampaignUpdateData,
 } from "../validation/campaign-validation.js";
-import {
-  parseCampaignFields,
-  stringifyJsonField,
-  prepareEntityJsonFields,
-} from "../utils/json-helpers.js";
+import { parseCampaignFields, prepareEntityJsonFields } from "../utils/json-helpers.js";
 import { CampaignServiceError } from "~/lib/errors.server";
 // Removed auto generation of discount codes at save time; codes are generated on lead submission
 import { CampaignQueryService } from "./campaign-query.server.js";
@@ -45,7 +42,7 @@ export class CampaignMutationService {
   static async create(
     storeId: string,
     data: CampaignCreateData,
-    admin?: any,
+    admin?: AdminApiContext,
     appUrl?: string
   ): Promise<CampaignWithConfigs> {
     // Validate input data
@@ -58,41 +55,38 @@ export class CampaignMutationService {
       );
     }
 
-	    // Enforce plan limits
-	    // Only check if we are trying to create an ACTIVE campaign
-	    if (data.status === "ACTIVE") {
-	      const { PlanGuardService } = await import("~/domains/billing/services/plan-guard.server");
-	      await PlanGuardService.assertCanCreateCampaign(storeId);
-	    }
+    // Enforce plan limits
+    // Only check if we are trying to create an ACTIVE campaign
+    if (data.status === "ACTIVE") {
+      const { PlanGuardService } = await import("~/domains/billing/services/plan-guard.server");
+      await PlanGuardService.assertCanCreateCampaign(storeId);
+    }
 
-	    // Enforce variant limits if part of an experiment
-	    if (data.experimentId) {
-	      const { PlanGuardService } = await import("~/domains/billing/services/plan-guard.server");
-	      await PlanGuardService.assertCanAddVariant(storeId, data.experimentId);
-	    }
+    // Enforce variant limits if part of an experiment
+    if (data.experimentId) {
+      const { PlanGuardService } = await import("~/domains/billing/services/plan-guard.server");
+      await PlanGuardService.assertCanAddVariant(storeId, data.experimentId);
+    }
 
-	    // Enforce feature flags for advanced targeting if used
-	    const hasAdvancedTargeting =
-	      !!data.targetRules?.audienceTargeting?.enabled ||
-	      !!data.targetRules?.audienceTargeting?.shopifySegmentIds?.length ||
-	      !!data.targetRules?.audienceTargeting?.sessionRules;
-	    if (hasAdvancedTargeting) {
-	      const { PlanGuardService } = await import("~/domains/billing/services/plan-guard.server");
-	      await PlanGuardService.assertFeatureEnabled(storeId, "advancedTargeting");
-	    }
+    // Enforce feature flags for advanced targeting if used
+    const hasAdvancedTargeting =
+      !!data.targetRules?.audienceTargeting?.enabled ||
+      !!data.targetRules?.audienceTargeting?.shopifySegmentIds?.length ||
+      !!data.targetRules?.audienceTargeting?.sessionRules;
+    if (hasAdvancedTargeting) {
+      const { PlanGuardService } = await import("~/domains/billing/services/plan-guard.server");
+      await PlanGuardService.assertFeatureEnabled(storeId, "advancedTargeting");
+    }
 
     try {
       // Auto-generate discount code if needed
       const discountConfig = ensureDiscountCode(data.discountConfig);
-      const jsonFields = prepareEntityJsonFields(
-        { ...data, discountConfig },
-        [
-          { key: "contentConfig", defaultValue: {} },
-          { key: "designConfig", defaultValue: {} },
-          { key: "targetRules", defaultValue: {} },
-          { key: "discountConfig", defaultValue: {} },
-        ],
-      );
+      const jsonFields = prepareEntityJsonFields({ ...data, discountConfig }, [
+        { key: "contentConfig", defaultValue: {} },
+        { key: "designConfig", defaultValue: {} },
+        { key: "targetRules", defaultValue: {} },
+        { key: "discountConfig", defaultValue: {} },
+      ]);
 
       const campaign = await prisma.campaign.create({
         data: {
@@ -135,7 +129,7 @@ export class CampaignMutationService {
 
       // Sync to Shopify Marketing Events if admin context is provided
       if (admin && appUrl) {
-        const marketingEventId = await MarketingEventsService.createMarketingEvent(
+        const marketingEvent = await MarketingEventsService.createMarketingEvent(
           admin,
           {
             id: campaign.id,
@@ -144,26 +138,31 @@ export class CampaignMutationService {
             status: campaign.status,
             startDate: campaign.startDate,
             endDate: campaign.endDate,
+            templateType: campaign.template?.templateType,
           },
           appUrl
         );
 
-        if (marketingEventId) {
+        if (marketingEvent) {
           await prisma.campaign.update({
             where: { id: campaign.id },
-            data: { marketingEventId },
+            data: {
+              marketingEventId: marketingEvent.marketingEventId,
+              utmCampaign: marketingEvent.utmCampaign,
+              utmSource: marketingEvent.utmSource,
+              utmMedium: marketingEvent.utmMedium,
+            },
           });
-          campaign.marketingEventId = marketingEventId;
+          campaign.marketingEventId = marketingEvent.marketingEventId;
+          campaign.utmCampaign = marketingEvent.utmCampaign;
+          campaign.utmSource = marketingEvent.utmSource;
+          campaign.utmMedium = marketingEvent.utmMedium;
         }
       }
 
       return parseCampaignFields(campaign);
     } catch (error) {
-      throw new CampaignServiceError(
-        "CREATE_CAMPAIGN_FAILED",
-        "Failed to create campaign",
-        error
-      );
+      throw new CampaignServiceError("CREATE_CAMPAIGN_FAILED", "Failed to create campaign", error);
     }
   }
 
@@ -174,7 +173,7 @@ export class CampaignMutationService {
     id: string,
     storeId: string,
     data: CampaignUpdateData,
-    admin?: any
+    admin?: AdminApiContext
   ): Promise<CampaignWithConfigs | null> {
     // Validate input data
     const validation = validateCampaignUpdateData(data);
@@ -229,22 +228,14 @@ export class CampaignMutationService {
       // Fetch and return the updated campaign
       return await CampaignQueryService.getById(id, storeId);
     } catch (error) {
-      throw new CampaignServiceError(
-        "UPDATE_CAMPAIGN_FAILED",
-        "Failed to update campaign",
-        error
-      );
+      throw new CampaignServiceError("UPDATE_CAMPAIGN_FAILED", "Failed to update campaign", error);
     }
   }
 
   /**
    * Delete a campaign
    */
-  static async delete(
-    id: string,
-    storeId: string,
-    admin?: any
-  ): Promise<boolean> {
+  static async delete(id: string, storeId: string, admin?: AdminApiContext): Promise<boolean> {
     try {
       // Fetch campaign to check for marketing event and experiment
       const campaign = await prisma.campaign.findUnique({
@@ -292,12 +283,7 @@ export class CampaignMutationService {
 
       return result.count > 0;
     } catch (error) {
-      throw new CampaignServiceError(
-        "DELETE_CAMPAIGN_FAILED",
-        "Failed to delete campaign",
-        error
-      );
+      throw new CampaignServiceError("DELETE_CAMPAIGN_FAILED", "Failed to delete campaign", error);
     }
   }
 }
-

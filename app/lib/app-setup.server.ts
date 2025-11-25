@@ -30,7 +30,9 @@ export async function setupAppOnInstall(admin: any, shopDomain: string) {
     });
 
     if (!store) {
-      console.log(`[App Setup] Store not found for ${shopDomain} - will be created by getStoreId on first request`);
+      console.log(
+        `[App Setup] Store not found for ${shopDomain} - will be created by getStoreId on first request`
+      );
       // Don't throw - the store will be created when the first page loads
       // We'll just enable the theme extension and set metafield for now
     }
@@ -49,7 +51,9 @@ export async function setupAppOnInstall(admin: any, shopDomain: string) {
 
     // 2. Note: Theme extension must be manually enabled by merchant in theme editor
     // We cannot enable it programmatically via GraphQL
-    console.log(`[App Setup] Theme extension available - merchant needs to enable it in theme editor`);
+    console.log(
+      `[App Setup] Theme extension available - merchant needs to enable it in theme editor`
+    );
 
     // 3. Fetch and cache shop timezone - only if store exists
     if (store) {
@@ -162,7 +166,7 @@ async function setAppUrlMetafield(admin: any, shop: string) {
     if (data.data?.metafieldsSet?.userErrors?.length > 0) {
       console.error(
         "[App Setup] Failed to set app URL metafield:",
-        data.data.metafieldsSet.userErrors,
+        data.data.metafieldsSet.userErrors
       );
     } else {
       console.log(`[App Setup] ✅ Successfully set app URL metafield for ${shop}`);
@@ -172,8 +176,6 @@ async function setAppUrlMetafield(admin: any, shop: string) {
     // Don't throw - we want setup to continue even if this fails
   }
 }
-
-
 
 /**
  * Create default welcome campaign (ACTIVE status)
@@ -269,5 +271,3 @@ async function createWelcomeCampaign(storeId: string) {
     // Don't throw - we want setup to continue even if this fails
   }
 }
-
-

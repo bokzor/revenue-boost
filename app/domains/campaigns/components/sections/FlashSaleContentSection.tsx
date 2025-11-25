@@ -78,7 +78,10 @@ export function FlashSaleContentSection({
 
   const updateInventoryField = (field: string, value: unknown) => {
     const inventory = (content.inventory || {}) as Record<string, unknown>;
-    updateField("inventory", { ...inventory, [field]: value } as Partial<FlashSaleContent>["inventory"]);
+    updateField("inventory", {
+      ...inventory,
+      [field]: value,
+    } as Partial<FlashSaleContent>["inventory"]);
   };
 
   const updateReserveField = (field: string, value: unknown) => {
@@ -93,7 +96,10 @@ export function FlashSaleContentSection({
 
   const updatePresentationField = (field: string, value: unknown) => {
     const presentation = (content.presentation || {}) as Record<string, unknown>;
-    updateField("presentation", { ...presentation, [field]: value } as Partial<FlashSaleContent>["presentation"]);
+    updateField("presentation", {
+      ...presentation,
+      [field]: value,
+    } as Partial<FlashSaleContent>["presentation"]);
   };
 
   // Handle theme selection - applies all colors from the theme
@@ -271,7 +277,7 @@ export function FlashSaleContentSection({
               <BlockStack gap="300">
                 <Select
                   label="Timer Mode"
-                  value={(content.timer as Record<string, unknown>)?.mode as string || "duration"}
+                  value={((content.timer as Record<string, unknown>)?.mode as string) || "duration"}
                   options={[
                     { label: "Duration - Fixed countdown from view", value: "duration" },
                     { label: "Fixed End - Absolute end time", value: "fixed_end" },
@@ -285,7 +291,7 @@ export function FlashSaleContentSection({
                 {(content.timer as Record<string, unknown>)?.mode === "fixed_end" && (
                   <DateTimePickerField
                     label="End Time"
-                    value={(content.timer as Record<string, unknown>)?.endTimeISO as string || ""}
+                    value={((content.timer as Record<string, unknown>)?.endTimeISO as string) || ""}
                     onChange={(isoValue) => updateTimerField("endTimeISO", isoValue)}
                     helpText="Select the absolute end time for the countdown"
                   />
@@ -295,17 +301,25 @@ export function FlashSaleContentSection({
                   <TextField
                     label="Personal Window (seconds)"
                     name="timer.personalWindowSeconds"
-                    value={(content.timer as Record<string, unknown>)?.personalWindowSeconds?.toString() || "1800"}
+                    value={
+                      (
+                        content.timer as Record<string, unknown>
+                      )?.personalWindowSeconds?.toString() || "1800"
+                    }
                     placeholder="1800"
                     helpText="Countdown from first view (e.g., 1800 = 30 min)"
-                    onChange={(value) => updateTimerField("personalWindowSeconds", parseInt(value) || 1800)}
+                    onChange={(value) =>
+                      updateTimerField("personalWindowSeconds", parseInt(value) || 1800)
+                    }
                   />
                 )}
 
                 <FormGrid columns={2}>
                   <Select
                     label="Timezone"
-                    value={(content.timer as Record<string, unknown>)?.timezone as string || "shop"}
+                    value={
+                      ((content.timer as Record<string, unknown>)?.timezone as string) || "shop"
+                    }
                     options={[
                       { label: "Shop Timezone", value: "shop" },
                       { label: "Visitor Timezone", value: "visitor" },
@@ -315,7 +329,10 @@ export function FlashSaleContentSection({
 
                   <Select
                     label="On Expire Action"
-                    value={(content.timer as Record<string, unknown>)?.onExpire as string || "auto_hide"}
+                    value={
+                      ((content.timer as Record<string, unknown>)?.onExpire as string) ||
+                      "auto_hide"
+                    }
                     options={[
                       { label: "Auto Hide", value: "auto_hide" },
                       { label: "Collapse Timer", value: "collapse" },
@@ -329,7 +346,9 @@ export function FlashSaleContentSection({
                   <TextField
                     label="Expired Message"
                     name="timer.expiredMessage"
-                    value={(content.timer as Record<string, unknown>)?.expiredMessage as string || ""}
+                    value={
+                      ((content.timer as Record<string, unknown>)?.expiredMessage as string) || ""
+                    }
                     placeholder="Sale has ended. Check back soon!"
                     onChange={(value) => updateTimerField("expiredMessage", value)}
                   />
@@ -363,7 +382,9 @@ export function FlashSaleContentSection({
               <BlockStack gap="300">
                 <Select
                   label="Inventory Mode"
-                  value={(content.inventory as Record<string, unknown>)?.mode as string || "pseudo"}
+                  value={
+                    ((content.inventory as Record<string, unknown>)?.mode as string) || "pseudo"
+                  }
                   options={[
                     { label: "Pseudo - Simulated stock counter", value: "pseudo" },
                     { label: "Real - Live Shopify inventory", value: "real" },
@@ -376,7 +397,9 @@ export function FlashSaleContentSection({
                   <TextField
                     label="Pseudo Max Inventory"
                     name="inventory.pseudoMax"
-                    value={(content.inventory as Record<string, unknown>)?.pseudoMax?.toString() || "50"}
+                    value={
+                      (content.inventory as Record<string, unknown>)?.pseudoMax?.toString() || "50"
+                    }
                     placeholder="50"
                     helpText="Fake maximum inventory count"
                     onChange={(value) => updateInventoryField("pseudoMax", parseInt(value) || 50)}
@@ -392,7 +415,8 @@ export function FlashSaleContentSection({
                       mode="product"
                       selectionType="multiple"
                       selectedIds={
-                        ((content.inventory as Record<string, unknown>)?.productIds as string[]) || []
+                        ((content.inventory as Record<string, unknown>)?.productIds as string[]) ||
+                        []
                       }
                       onSelect={(items) =>
                         updateInventoryField(
@@ -410,7 +434,9 @@ export function FlashSaleContentSection({
                   <CheckboxField
                     label='Show "Only X Left"'
                     name="inventory.showOnlyXLeft"
-                    checked={(content.inventory as Record<string, unknown>)?.showOnlyXLeft !== false}
+                    checked={
+                      (content.inventory as Record<string, unknown>)?.showOnlyXLeft !== false
+                    }
                     onChange={(checked) => updateInventoryField("showOnlyXLeft", checked)}
                   />
 
@@ -418,10 +444,15 @@ export function FlashSaleContentSection({
                     <TextField
                       label="Show Threshold"
                       name="inventory.showThreshold"
-                      value={(content.inventory as Record<string, unknown>)?.showThreshold?.toString() || "10"}
+                      value={
+                        (content.inventory as Record<string, unknown>)?.showThreshold?.toString() ||
+                        "10"
+                      }
                       placeholder="10"
                       helpText="Show warning when ≤ this value"
-                      onChange={(value) => updateInventoryField("showThreshold", parseInt(value) || 10)}
+                      onChange={(value) =>
+                        updateInventoryField("showThreshold", parseInt(value) || 10)
+                      }
                     />
                   )}
                 </FormGrid>
@@ -430,7 +461,10 @@ export function FlashSaleContentSection({
                   <>
                     <Select
                       label="Sold Out Behavior"
-                      value={(content.inventory as Record<string, unknown>)?.soldOutBehavior as string || "hide"}
+                      value={
+                        ((content.inventory as Record<string, unknown>)
+                          ?.soldOutBehavior as string) || "hide"
+                      }
                       options={[
                         { label: "Hide Popup", value: "hide" },
                         { label: 'Show "You Missed It" Message', value: "missed_it" },
@@ -438,11 +472,15 @@ export function FlashSaleContentSection({
                       onChange={(value) => updateInventoryField("soldOutBehavior", value)}
                     />
 
-                    {(content.inventory as Record<string, unknown>)?.soldOutBehavior === "missed_it" && (
+                    {(content.inventory as Record<string, unknown>)?.soldOutBehavior ===
+                      "missed_it" && (
                       <TextField
                         label="Sold Out Message"
                         name="inventory.soldOutMessage"
-                        value={(content.inventory as Record<string, unknown>)?.soldOutMessage as string || ""}
+                        value={
+                          ((content.inventory as Record<string, unknown>)
+                            ?.soldOutMessage as string) || ""
+                        }
                         placeholder="This deal is sold out. Check back later!"
                         onChange={(value) => updateInventoryField("soldOutMessage", value)}
                       />
@@ -479,7 +517,9 @@ export function FlashSaleContentSection({
                 <CheckboxField
                   label="Enable Reservation Timer"
                   name="reserve.enabled"
-                  checked={(content.reserve as Record<string, unknown>)?.enabled as boolean || false}
+                  checked={
+                    ((content.reserve as Record<string, unknown>)?.enabled as boolean) || false
+                  }
                   helpText='"X minutes to claim this offer" timer'
                   onChange={(checked) => updateReserveField("enabled", checked)}
                 />
@@ -489,7 +529,9 @@ export function FlashSaleContentSection({
                     <TextField
                       label="Reservation Minutes"
                       name="reserve.minutes"
-                      value={(content.reserve as Record<string, unknown>)?.minutes?.toString() || "10"}
+                      value={
+                        (content.reserve as Record<string, unknown>)?.minutes?.toString() || "10"
+                      }
                       placeholder="10"
                       helpText="Minutes to claim the reserved offer"
                       onChange={(value) => updateReserveField("minutes", parseInt(value) || 10)}
@@ -498,7 +540,7 @@ export function FlashSaleContentSection({
                     <TextField
                       label="Reservation Label"
                       name="reserve.label"
-                      value={(content.reserve as Record<string, unknown>)?.label as string || ""}
+                      value={((content.reserve as Record<string, unknown>)?.label as string) || ""}
                       placeholder="Offer reserved for:"
                       onChange={(value) => updateReserveField("label", value)}
                     />
@@ -506,7 +548,9 @@ export function FlashSaleContentSection({
                     <TextField
                       label="Disclaimer"
                       name="reserve.disclaimer"
-                      value={(content.reserve as Record<string, unknown>)?.disclaimer as string || ""}
+                      value={
+                        ((content.reserve as Record<string, unknown>)?.disclaimer as string) || ""
+                      }
                       placeholder="Inventory not guaranteed"
                       helpText="Optional disclaimer text"
                       onChange={(value) => updateReserveField("disclaimer", value)}
@@ -576,11 +620,12 @@ export function FlashSaleContentSection({
                     const gradientMatch = isGradient
                       ? theme.background.match(/#[0-9a-f]{6}/gi)
                       : null;
-                    const bgStyle = isGradient && gradientMatch
-                      ? {
-                          background: `linear-gradient(135deg, ${gradientMatch[0]} 0%, ${gradientMatch[1]} 100%)`,
-                        }
-                      : { backgroundColor: theme.background };
+                    const bgStyle =
+                      isGradient && gradientMatch
+                        ? {
+                            background: `linear-gradient(135deg, ${gradientMatch[0]} 0%, ${gradientMatch[1]} 100%)`,
+                          }
+                        : { backgroundColor: theme.background };
 
                     return (
                       <button
@@ -656,7 +701,9 @@ export function FlashSaleContentSection({
                     { label: "Left", value: "left" },
                     { label: "Right", value: "right" },
                   ]}
-                  onChange={(value) => updateDesignField("position", value as DesignConfig["position"])}
+                  onChange={(value) =>
+                    updateDesignField("position", value as DesignConfig["position"])
+                  }
                 />
 
                 <Select
@@ -799,7 +846,10 @@ export function FlashSaleContentSection({
                 <FormGrid columns={2}>
                   <Select
                     label="Badge Style"
-                    value={(content.presentation as Record<string, unknown>)?.badgeStyle as string || "pill"}
+                    value={
+                      ((content.presentation as Record<string, unknown>)?.badgeStyle as string) ||
+                      "pill"
+                    }
                     options={[
                       { label: "Pill", value: "pill" },
                       { label: "Tag", value: "tag" },
@@ -819,7 +869,9 @@ export function FlashSaleContentSection({
                   <CheckboxField
                     label="Show Inventory in Popup"
                     name="presentation.showInventory"
-                    checked={(content.presentation as Record<string, unknown>)?.showInventory !== false}
+                    checked={
+                      (content.presentation as Record<string, unknown>)?.showInventory !== false
+                    }
                     onChange={(checked) => updatePresentationField("showInventory", checked)}
                   />
                 </FormGrid>
@@ -844,7 +896,9 @@ export function FlashSaleContentSection({
                   <CheckboxField
                     label="Auto-Hide on Expire"
                     name="content.autoHideOnExpire"
-                    checked={(content as Record<string, unknown>).autoHideOnExpire as boolean || false}
+                    checked={
+                      ((content as Record<string, unknown>).autoHideOnExpire as boolean) || false
+                    }
                     helpText="Auto-hide 2 seconds after expiry"
                     onChange={(checked) => updateField("autoHideOnExpire", checked)}
                   />
@@ -871,41 +925,43 @@ function DateTimePickerField({ label, value, onChange, helpText }: DateTimePicke
 
   // Parse current value
   const currentDate = value ? new Date(value) : new Date();
-  const selectedDate = value && !isNaN(currentDate.getTime())
-    ? currentDate
-    : undefined;
+  const selectedDate = value && !isNaN(currentDate.getTime()) ? currentDate : undefined;
 
-  const currentHour = currentDate.getHours().toString().padStart(2, '0');
-  const currentMinute = currentDate.getMinutes().toString().padStart(2, '0');
+  const currentHour = currentDate.getHours().toString().padStart(2, "0");
+  const currentMinute = currentDate.getMinutes().toString().padStart(2, "0");
 
   // Generate hour options (00-23)
   const hourOptions = Array.from({ length: 24 }, (_, i) => ({
-    label: i.toString().padStart(2, '0'),
-    value: i.toString().padStart(2, '0'),
+    label: i.toString().padStart(2, "0"),
+    value: i.toString().padStart(2, "0"),
   }));
 
   // Generate minute options (00, 15, 30, 45)
   const minuteOptions = [
-    { label: '00', value: '00' },
-    { label: '15', value: '15' },
-    { label: '30', value: '30' },
-    { label: '45', value: '45' },
+    { label: "00", value: "00" },
+    { label: "15", value: "15" },
+    { label: "30", value: "30" },
+    { label: "45", value: "45" },
   ];
 
   const handleDateChange = (newDate: any) => {
     try {
-      console.log('DatePicker returned:', newDate);
+      console.log("DatePicker returned:", newDate);
 
       // Handle different return formats from DatePicker
       let dateToUse;
 
-      if (newDate && typeof newDate === 'object') {
+      if (newDate && typeof newDate === "object") {
         // If it's a range object with start/end, use the start date
         if (newDate.start) {
           dateToUse = newDate.start;
         }
         // If it's already a date object with year/month/day
-        else if (newDate.year !== undefined && newDate.month !== undefined && newDate.day !== undefined) {
+        else if (
+          newDate.year !== undefined &&
+          newDate.month !== undefined &&
+          newDate.day !== undefined
+        ) {
           dateToUse = new Date(newDate.year, newDate.month, newDate.day);
         }
         // If it's a Date object
@@ -915,7 +971,7 @@ function DateTimePickerField({ label, value, onChange, helpText }: DateTimePicke
       }
 
       if (!dateToUse) {
-        console.error('Could not parse date from DatePicker:', newDate);
+        console.error("Could not parse date from DatePicker:", newDate);
         return;
       }
 
@@ -930,14 +986,14 @@ function DateTimePickerField({ label, value, onChange, helpText }: DateTimePicke
 
       // Validate the date
       if (isNaN(finalDate.getTime())) {
-        console.error('Invalid final date created:', finalDate);
+        console.error("Invalid final date created:", finalDate);
         return;
       }
 
       onChange(finalDate.toISOString());
       setDatePickerOpen(false);
     } catch (error) {
-      console.error('Error handling date change:', error);
+      console.error("Error handling date change:", error);
     }
   };
 
@@ -950,35 +1006,35 @@ function DateTimePickerField({ label, value, onChange, helpText }: DateTimePicke
         baseDate.getMonth(),
         baseDate.getDate(),
         parseInt(hour, 10),
-        parseInt(minute, 10),
+        parseInt(minute, 10)
       );
 
       // Validate the date
       if (isNaN(updatedDate.getTime())) {
-        console.error('Invalid date created in time change');
+        console.error("Invalid date created in time change");
         return;
       }
 
       onChange(updatedDate.toISOString());
     } catch (error) {
-      console.error('Error handling time change:', error);
+      console.error("Error handling time change:", error);
     }
   };
 
   const formatDateValue = () => {
     if (!selectedDate) return "";
-    return `${selectedDate.getFullYear()}-${(selectedDate.getMonth() + 1).toString().padStart(2, '0')}-${selectedDate.getDate().toString().padStart(2, '0')}`;
+    return `${selectedDate.getFullYear()}-${(selectedDate.getMonth() + 1).toString().padStart(2, "0")}-${selectedDate.getDate().toString().padStart(2, "0")}`;
   };
 
   const formatDisplayValue = () => {
     if (!value) return "";
-    return currentDate.toLocaleString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true
+    return currentDate.toLocaleString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
     });
   };
 
@@ -993,15 +1049,13 @@ function DateTimePickerField({ label, value, onChange, helpText }: DateTimePicke
       <BlockStack gap="200">
         {/* Date Picker Row */}
         <BlockStack gap="100">
-          <Text as="p" variant="bodySm" fontWeight="medium">Date</Text>
+          <Text as="p" variant="bodySm" fontWeight="medium">
+            Date
+          </Text>
           <Popover
             active={datePickerOpen}
             activator={
-              <Button
-                onClick={() => setDatePickerOpen(!datePickerOpen)}
-                textAlign="left"
-                fullWidth
-              >
+              <Button onClick={() => setDatePickerOpen(!datePickerOpen)} textAlign="left" fullWidth>
                 {formatDateValue() || "Select date"}
               </Button>
             }
@@ -1021,7 +1075,9 @@ function DateTimePickerField({ label, value, onChange, helpText }: DateTimePicke
 
         {/* Time Picker Row */}
         <BlockStack gap="100">
-          <Text as="p" variant="bodySm" fontWeight="medium">Time</Text>
+          <Text as="p" variant="bodySm" fontWeight="medium">
+            Time
+          </Text>
           <InlineStack gap="200">
             <div style={{ flex: 1 }}>
               <Select

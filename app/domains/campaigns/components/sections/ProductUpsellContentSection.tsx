@@ -7,7 +7,17 @@
 
 import { useEffect, useState } from "react";
 import type { KeyboardEvent } from "react";
-import { Card, BlockStack, Text, Divider, Select, Button, Collapsible, InlineStack, Banner } from "@shopify/polaris";
+import {
+  Card,
+  BlockStack,
+  Text,
+  Divider,
+  Select,
+  Button,
+  Collapsible,
+  InlineStack,
+  Banner,
+} from "@shopify/polaris";
 import { ChevronDownIcon, ChevronUpIcon } from "@shopify/polaris-icons";
 import { TextField, CheckboxField, FormGrid } from "../form";
 import { ProductPicker, type ProductPickerSelection } from "../form/ProductPicker";
@@ -57,14 +67,13 @@ export function ProductUpsellContentSection({
       ? (content.layout as ProductUpsellContent["layout"])
       : "grid";
 
-
   // Normalize selection method to a safe default and persist if missing/invalid
   useEffect(() => {
     if (
       content.productSelectionMethod !== selectionMethod &&
-      (content.productSelectionMethod !== "ai" &&
-        content.productSelectionMethod !== "manual" &&
-        content.productSelectionMethod !== "collection")
+      content.productSelectionMethod !== "ai" &&
+      content.productSelectionMethod !== "manual" &&
+      content.productSelectionMethod !== "collection"
     ) {
       updateField("productSelectionMethod", selectionMethod);
     }
@@ -75,9 +84,9 @@ export function ProductUpsellContentSection({
   useEffect(() => {
     if (
       content.layout !== layout &&
-      (content.layout !== "grid" &&
-        content.layout !== "carousel" &&
-        content.layout !== "card")
+      content.layout !== "grid" &&
+      content.layout !== "carousel" &&
+      content.layout !== "card"
     ) {
       updateField("layout", layout);
     }
@@ -102,18 +111,22 @@ export function ProductUpsellContentSection({
         <Banner tone="info">
           <BlockStack gap="200">
             <Text as="p" variant="bodyMd">
-              <strong>Tip:</strong> The products selected below are the <strong>suggested products</strong> (what you want to upsell).
+              <strong>Tip:</strong> The products selected below are the{" "}
+              <strong>suggested products</strong> (what you want to upsell).
             </Text>
             <Text as="p" variant="bodyMd">
-              To show this upsell only when <strong>specific products are added to cart or viewed</strong> (trigger products),
-              configure them in the <strong>Targeting & Triggers</strong> step:
+              To show this upsell only when{" "}
+              <strong>specific products are added to cart or viewed</strong> (trigger products),
+              configure them in the <strong>Targeting &amp; Triggers</strong> step:
             </Text>
             <BlockStack gap="100">
               <Text as="p" variant="bodySm" tone="subdued">
-                • For "Post-Add Upsell": Enable <strong>Add to Cart</strong> trigger and select trigger products
+                • For &ldquo;Post-Add Upsell&rdquo;: Enable <strong>Add to Cart</strong> trigger and
+                select trigger products
               </Text>
               <Text as="p" variant="bodySm" tone="subdued">
-                • For "Product Page Cross-Sell": Enable <strong>Product View</strong> trigger and select trigger products
+                • For &ldquo;Product Page Cross-Sell&rdquo;: Enable <strong>Product View</strong>{" "}
+                trigger and select trigger products
               </Text>
             </BlockStack>
           </BlockStack>
@@ -206,7 +219,6 @@ export function ProductUpsellContentSection({
               }}
             >
               <BlockStack gap="300">
-
                 <Select
                   label="How should products be chosen?"
                   name="content.productSelectionMethod"
@@ -220,7 +232,7 @@ export function ProductUpsellContentSection({
                   onChange={(value) =>
                     updateField(
                       "productSelectionMethod",
-                      value as ProductUpsellContent["productSelectionMethod"],
+                      value as ProductUpsellContent["productSelectionMethod"]
                     )
                   }
                 />
@@ -297,7 +309,6 @@ export function ProductUpsellContentSection({
               }}
             >
               <BlockStack gap="300">
-
                 <FormGrid columns={2}>
                   <Select
                     label="Layout"
@@ -309,7 +320,9 @@ export function ProductUpsellContentSection({
                     ]}
                     helpText="Choose how upsell products are laid out."
                     value={layout}
-                    onChange={(value) => updateField("layout", value as ProductUpsellContent["layout"])}
+                    onChange={(value) =>
+                      updateField("layout", value as ProductUpsellContent["layout"])
+                    }
                   />
 
                   {layout === "grid" && (
@@ -400,7 +413,6 @@ export function ProductUpsellContentSection({
               }}
             >
               <BlockStack gap="300">
-
                 <FormGrid columns={2}>
                   <TextField
                     label="Bundle Discount (%)"
@@ -463,7 +475,6 @@ export function ProductUpsellContentSection({
               }}
             >
               <BlockStack gap="300">
-
                 <CheckboxField
                   label="Allow Multi-Select"
                   name="content.multiSelect"
@@ -500,4 +511,3 @@ export function ProductUpsellContentSection({
     </Card>
   );
 }
-

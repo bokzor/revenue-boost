@@ -20,26 +20,21 @@ export interface TemplateCardProps {
   onClick: () => void;
 }
 
-export const TemplateCard = React.memo<TemplateCardProps>(({
-  template,
-  isSelected,
-  onClick,
-}) => {
+export const TemplateCard = React.memo<TemplateCardProps>(({ template, isSelected, onClick }) => {
   const handleClick = useCallback(() => {
-    console.log(
-      "TemplateCard clicked:",
-      template.name,
-      template.templateId,
-    );
+    console.log("TemplateCard clicked:", template.name, template.templateId);
     onClick();
   }, [template.name, template.templateId, onClick]);
 
-  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
-      onClick();
-    }
-  }, [onClick]);
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLDivElement>) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        onClick();
+      }
+    },
+    [onClick]
+  );
   return (
     <div
       role="button"

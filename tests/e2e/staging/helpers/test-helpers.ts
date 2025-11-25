@@ -1,4 +1,5 @@
 import type { Page } from '@playwright/test';
+import "./load-staging-env";
 
 /**
  * Shared test helpers for E2E tests

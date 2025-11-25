@@ -10,23 +10,23 @@
  * - Professional color palette
  */
 
-import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
-import { PopupPortal } from './PopupPortal';
-import { PopupGridContainer } from './PopupGridContainer';
-import type { PopupDesignConfig, Prize } from './types';
-import type { SpinToWinContent } from '~/domains/campaigns/types/campaign';
-import { prefersReducedMotion, debounce } from './utils';
-import { useId } from './hooks/useId';
-import { POPUP_SPACING, getContainerPadding, SPACING_GUIDELINES } from './spacing';
+import React, { useState, useCallback, useRef, useEffect, useMemo } from "react";
+import { PopupPortal } from "./PopupPortal";
+import { PopupGridContainer } from "./PopupGridContainer";
+import type { PopupDesignConfig, Prize } from "./types";
+import type { SpinToWinContent } from "~/domains/campaigns/types/campaign";
+import { prefersReducedMotion, debounce } from "./utils";
+import { useId } from "./hooks/useId";
+import { POPUP_SPACING, getContainerPadding, SPACING_GUIDELINES } from "./spacing";
 
 // Import custom hooks
-import { usePopupForm, useDiscountCode, usePopupAnimation } from './hooks';
+import { usePopupForm, useDiscountCode, usePopupAnimation } from "./hooks";
 
 // Import canvas utilities
-import { WheelRenderer } from './utils/canvas';
+import { WheelRenderer } from "./utils/canvas";
 
 // Import reusable components
-import { EmailInput, NameInput, GdprCheckbox, SubmitButton } from './components';
+import { EmailInput, NameInput, GdprCheckbox, SubmitButton } from "./components";
 
 /**
  * SpinToWinConfig - Extends both design config AND campaign content type
@@ -90,7 +90,7 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
   const [isSpinning, setIsSpinning] = useState(false);
   const [isGeneratingCode, setIsGeneratingCode] = useState(false);
   const [wonPrize, setWonPrize] = useState<Prize | null>(null);
-  const [codeError, setCodeError] = useState('');
+  const [codeError, setCodeError] = useState("");
   const [rotation, setRotation] = useState(0);
   const rotationRef = useRef(0);
   const spinAnimationFrameRef = useRef<number | null>(null);
@@ -104,7 +104,7 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
 
   useEffect(() => {
     return () => {
-      if (spinAnimationFrameRef.current !== null && typeof cancelAnimationFrame !== 'undefined') {
+      if (spinAnimationFrameRef.current !== null && typeof cancelAnimationFrame !== "undefined") {
         cancelAnimationFrame(spinAnimationFrameRef.current);
       }
     };
@@ -122,17 +122,17 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
   const radius = wheelSize / 2;
   const segments = useMemo(() => config.wheelSegments || [], [config.wheelSegments]);
   const segmentAngle = 360 / Math.max(1, segments.length);
-  const accentColor = config.accentColor || config.buttonColor || '#000000';
+  const accentColor = config.accentColor || config.buttonColor || "#000000";
   const borderRadius =
-    typeof config.borderRadius === 'string'
+    typeof config.borderRadius === "string"
       ? parseFloat(config.borderRadius) || 16
-      : config.borderRadius ?? 16;
+      : (config.borderRadius ?? 16);
   const animDuration = config.animationDuration ?? 300;
 
   // Responsive wheel sizing based on container dimensions
   // We now rely on the wheelCellRef size which is determined by CSS Grid layout
   const updateWheelSize = useCallback(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === "undefined") return;
     const container = wheelCellRef.current;
     if (!container) return;
 
@@ -154,14 +154,11 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
   }, []);
 
   // Debounce the update to avoid excessive re-renders during resize
-  const debouncedUpdateWheelSize = useMemo(
-    () => debounce(updateWheelSize, 100),
-    [updateWheelSize]
-  );
+  const debouncedUpdateWheelSize = useMemo(() => debounce(updateWheelSize, 100), [updateWheelSize]);
 
   // Trigger update when cardRef's size changes (which happens on container resize)
   useEffect(() => {
-    if (!isVisible || typeof window === 'undefined') return;
+    if (!isVisible || typeof window === "undefined") return;
 
     let observer: ResizeObserver | null = null;
 
@@ -169,12 +166,12 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
       debouncedUpdateWheelSize();
     };
 
-    if (typeof ResizeObserver !== 'undefined' && wheelCellRef.current) {
+    if (typeof ResizeObserver !== "undefined" && wheelCellRef.current) {
       observer = new ResizeObserver(measureAndSetWheelSize);
       observer.observe(wheelCellRef.current as Element);
     } else {
       // Fallback for older browsers
-      window.addEventListener('resize', measureAndSetWheelSize);
+      window.addEventListener("resize", measureAndSetWheelSize);
     }
 
     // Initial measurement
@@ -184,46 +181,46 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
       if (observer) {
         observer.disconnect();
       } else {
-        window.removeEventListener('resize', measureAndSetWheelSize);
+        window.removeEventListener("resize", measureAndSetWheelSize);
       }
     };
   }, [isVisible, debouncedUpdateWheelSize]);
 
   // Wheel border styling (theme-aware via admin config)
-  const wheelBorderColor = config.wheelBorderColor || '#FFFFFF';
+  const wheelBorderColor = config.wheelBorderColor || "#FFFFFF";
   const wheelBorderWidth = config.wheelBorderWidth ?? 3;
 
   // Card background styling (supports gradient backgrounds from themes)
-  const baseBackground = config.backgroundColor || '#FFFFFF';
-  const backgroundStyles: React.CSSProperties =
-    baseBackground.startsWith('linear-gradient(')
-      ? {
+  const baseBackground = config.backgroundColor || "#FFFFFF";
+  const backgroundStyles: React.CSSProperties = baseBackground.startsWith("linear-gradient(")
+    ? {
         backgroundImage: baseBackground,
-        backgroundColor: 'transparent',
+        backgroundColor: "transparent",
       }
-      : {
+    : {
         backgroundColor: baseBackground,
       };
 
   // Input colors derived from design config (theme-aware)
-  const inputBackground = config.inputBackgroundColor || '#FFFFFF';
-  const inputTextColor = config.inputTextColor || '#111827';
-  const inputBorderColor = config.inputBorderColor || '#E5E7EB';
+  const inputBackground = config.inputBackgroundColor || "#FFFFFF";
+  const inputTextColor = config.inputTextColor || "#111827";
+  const inputBorderColor = config.inputBorderColor || "#E5E7EB";
 
   // Theme-aware colors for success/prize surfaces
   const successColor = (config as any).successColor || accentColor;
-  const descriptionColor = (config as any).descriptionColor || '#6B7280';
+  const descriptionColor = (config as any).descriptionColor || "#6B7280";
 
   // Optional extended behavior flags (storefront-only)
   const collectName = config.collectName ?? false;
   const showGdpr = config.showGdprCheckbox ?? false;
-  const gdprLabel = config.gdprLabel || 'I agree to receive marketing emails and accept the privacy policy';
+  const gdprLabel =
+    config.gdprLabel || "I agree to receive marketing emails and accept the privacy policy";
 
   const resultMessage =
     hasSpun && wonPrize
       ? wonPrize.generatedCode
         ? `You won ${wonPrize.label}!`
-        : config.failureMessage || wonPrize.label || 'Thanks for playing!'
+        : config.failureMessage || wonPrize.label || "Thanks for playing!"
       : null;
 
   // Canvas-based wheel rendering using WheelRenderer utility
@@ -241,9 +238,16 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
       hasSpun,
       wonPrize,
     });
-  }, [segments, wheelSize, accentColor, wheelBorderColor, wheelBorderWidth, hasSpun, wonPrize, rotation]);
-
-
+  }, [
+    segments,
+    wheelSize,
+    accentColor,
+    wheelBorderColor,
+    wheelBorderWidth,
+    hasSpun,
+    wonPrize,
+    rotation,
+  ]);
 
   // Auto-close timer
   useEffect(() => {
@@ -261,17 +265,17 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
     const newErrors: { email?: string; name?: string; gdpr?: string } = {};
 
     if (config.emailRequired && !formState.email) {
-      newErrors.email = 'Email is required';
+      newErrors.email = "Email is required";
     } else if (formState.email && !emailRegex.test(formState.email)) {
-      newErrors.email = 'Please enter a valid email';
+      newErrors.email = "Please enter a valid email";
     }
 
     if (config.nameFieldRequired && !formState.name?.trim()) {
-      newErrors.name = 'Name is required';
+      newErrors.name = "Name is required";
     }
 
     if (config.consentFieldRequired && !formState.gdprConsent) {
-      newErrors.gdpr = 'You must accept the terms to continue';
+      newErrors.gdpr = "You must accept the terms to continue";
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -281,14 +285,14 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
     }
 
     setIsSpinning(true);
-    setCodeError('');
+    setCodeError("");
 
     // 1. Start spinning indefinitely (or to a very distant target)
     // We'll adjust the target once we have the prize
     const duration = config.spinDuration || 4000;
     const reduceMotion = prefersReducedMotion();
 
-    if (spinAnimationFrameRef.current !== null && typeof cancelAnimationFrame !== 'undefined') {
+    if (spinAnimationFrameRef.current !== null && typeof cancelAnimationFrame !== "undefined") {
       cancelAnimationFrame(spinAnimationFrameRef.current);
     }
 
@@ -300,7 +304,7 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
     spinStartTimeRef.current = performance.now();
 
     const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
-    const easeInOutQuad = (t: number) => t < .5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+    const easeInOutQuad = (t: number) => (t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t);
 
     // Animation loop
     const animate = (timestamp: number) => {
@@ -343,13 +347,16 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
         setIsGeneratingCode(true);
         try {
           // Get sessionId from global session object (set by storefront extension)
-          const sessionId = typeof window !== 'undefined'
-            ? ((window as any).__RB_SESSION_ID || window.sessionStorage?.getItem('revenue_boost_session') || '')
-            : '';
+          const sessionId =
+            typeof window !== "undefined"
+              ? (window as any).__RB_SESSION_ID ||
+                window.sessionStorage?.getItem("revenue_boost_session") ||
+                ""
+              : "";
 
-          const response = await fetch('/apps/revenue-boost/api/popups/spin-win', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+          const response = await fetch("/apps/revenue-boost/api/popups/spin-win", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               campaignId: config.campaignId,
               email: formState.email,
@@ -372,11 +379,11 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
               setDiscountCode(generatedCode);
             }
           } else {
-            setCodeError(data.error || 'Could not generate discount code');
+            setCodeError(data.error || "Could not generate discount code");
           }
         } catch (err) {
-          console.error('API error', err);
-          setCodeError('Network error');
+          console.error("API error", err);
+          setCodeError("Network error");
         } finally {
           setIsGeneratingCode(false);
         }
@@ -393,7 +400,7 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
         setWonPrize(serverPrize);
 
         // Find index
-        const prizeIndex = segments.findIndex(s => s.id === serverPrize?.id);
+        const prizeIndex = segments.findIndex((s) => s.id === serverPrize?.id);
         if (prizeIndex !== -1) {
           // Calculate target angle to align winning segment to 3 o'clock (0deg / 360deg)
           // Segment starts at: index * segmentAngle - 90
@@ -403,7 +410,7 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
           // But we want to add full spins: 360 * 5 + (0 - Center)
 
           const segmentAngle = 360 / segments.length;
-          const segmentCenter = (prizeIndex * segmentAngle) - 90 + (segmentAngle / 2);
+          const segmentCenter = prizeIndex * segmentAngle - 90 + segmentAngle / 2;
 
           // Normalize segmentCenter to 0-360
           // e.g. if center is -45, we want to rotate +45 to bring it to 0.
@@ -417,7 +424,7 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
 
           const currentRot = rotationRef.current;
           const minSpins = 5;
-          const targetRotation = currentRot + (360 * minSpins) + (baseTarget - (currentRot % 360));
+          const targetRotation = currentRot + 360 * minSpins + (baseTarget - (currentRot % 360));
 
           // Adjust spinToRef to the calculated target
           // We also reset the start time to ensure a smooth ease-out from current position to new target
@@ -430,67 +437,61 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
 
         if (onWin && serverPrize) onWin(serverPrize);
 
-        if (autoApply && generatedCode && typeof window !== 'undefined') {
-          window.localStorage.setItem('rb_discount_code', generatedCode);
+        if (autoApply && generatedCode && typeof window !== "undefined") {
+          window.localStorage.setItem("rb_discount_code", generatedCode);
         }
       }
-
     } catch (error) {
-      console.error('Spin error:', error);
+      console.error("Spin error:", error);
       setIsSpinning(false);
     }
   }, [handleFormSubmit, config, formState.email, onSpin, segments, onWin, setDiscountCode]);
 
   const getInputStyles = (isFocused: boolean, hasError: boolean): React.CSSProperties => {
     // Use inputTextColor with reduced opacity for placeholder
-    const placeholderColor = inputTextColor ? `${inputTextColor}80` : 'rgba(107, 114, 128, 0.5)';
+    const placeholderColor = inputTextColor ? `${inputTextColor}80` : "rgba(107, 114, 128, 0.5)";
 
     return {
-      width: '100%',
-      padding: '14px 16px',
-      fontSize: '15px',
-      border: `2px solid ${hasError
-        ? '#EF4444'
-        : isFocused
-          ? accentColor
-          : inputBorderColor
-        }`,
+      width: "100%",
+      padding: "14px 16px",
+      fontSize: "15px",
+      border: `2px solid ${hasError ? "#EF4444" : isFocused ? accentColor : inputBorderColor}`,
       borderRadius: `${borderRadius}px`,
       backgroundColor: inputBackground,
       color: inputTextColor,
-      outline: 'none',
+      outline: "none",
       transition: `all ${animDuration}ms cubic-bezier(0.4, 0, 0.2, 1)`,
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
     };
   };
 
   const buttonStyles: React.CSSProperties = {
-    width: '100%',
+    width: "100%",
     padding: POPUP_SPACING.component.button,
-    fontSize: '16px',
+    fontSize: "16px",
     fontWeight: 700,
-    border: 'none',
+    border: "none",
     borderRadius: `${borderRadius}px`,
     backgroundColor: config.buttonColor || accentColor,
-    color: config.buttonTextColor || '#FFFFFF',
-    cursor: 'pointer',
+    color: config.buttonTextColor || "#FFFFFF",
+    cursor: "pointer",
     opacity: isSpinning ? 0.5 : 1,
     transition: `all ${animDuration}ms cubic-bezier(0.4, 0, 0.2, 1)`,
     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-    textTransform: 'uppercase',
-    letterSpacing: '0.05em',
+    textTransform: "uppercase",
+    letterSpacing: "0.05em",
   };
 
   const secondaryButtonStyles: React.CSSProperties = {
     ...buttonStyles,
     padding: POPUP_SPACING.component.buttonSecondary,
-    backgroundColor: 'transparent',
-    color: config.textColor || '#4B5563',
-    boxShadow: 'none',
-    cursor: 'pointer',
+    backgroundColor: "transparent",
+    color: config.textColor || "#4B5563",
+    boxShadow: "none",
+    cursor: "pointer",
     opacity: 0.9,
-    textTransform: 'none',
-    letterSpacing: 'normal',
+    textTransform: "none",
+    letterSpacing: "normal",
   };
 
   if (!isVisible) return null;
@@ -500,21 +501,23 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
       isVisible={isVisible}
       onClose={onClose}
       backdrop={{
-        color: config.overlayColor || 'rgba(0, 0, 0, 1)',
+        color: config.overlayColor || "rgba(0, 0, 0, 1)",
         opacity: config.overlayOpacity ?? 0.6,
         blur: 4,
       }}
       animation={{
-        type: config.animation || 'fade',
+        type: config.animation || "fade",
         duration: animDuration,
       }}
       position="center"
-      size={config.size || 'large'}
+      size={config.size || "large"}
       closeOnEscape={config.closeOnEscape !== false}
       closeOnBackdropClick={config.closeOnOverlayClick !== false}
       previewMode={config.previewMode}
       ariaLabel={config.ariaLabel || config.headline}
       ariaDescribedBy={config.ariaDescribedBy}
+      customCSS={config.customCSS}
+      globalCustomCSS={config.globalCustomCSS}
     >
       {/* Inject CSS for animations and placeholder colors */}
       <style>
@@ -532,7 +535,7 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
 
           /* Dynamic placeholder color based on inputTextColor */
           .spin-to-win-input::placeholder {
-            color: ${inputTextColor ? `${inputTextColor}80` : 'rgba(107, 114, 128, 0.5)'};
+            color: ${inputTextColor ? `${inputTextColor}80` : "rgba(107, 114, 128, 0.5)"};
             opacity: 1;
           }
 
@@ -643,12 +646,12 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
             <div
               ref={wheelContainerRef}
               style={{
-                position: 'relative',
-                width: '100%',
-                height: '100%',
+                position: "relative",
+                width: "100%",
+                height: "100%",
                 filter: hasSpun
-                  ? 'drop-shadow(0 18px 45px rgba(15,23,42,0.55))'
-                  : 'drop-shadow(0 10px 30px rgba(15,23,42,0.35))',
+                  ? "drop-shadow(0 18px 45px rgba(15,23,42,0.55))"
+                  : "drop-shadow(0 10px 30px rgba(15,23,42,0.35))",
               }}
             >
               <canvas
@@ -656,9 +659,9 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
                 width={wheelSize}
                 height={wheelSize}
                 style={{
-                  width: '100%',
-                  height: '100%',
-                  borderRadius: '50%',
+                  width: "100%",
+                  height: "100%",
+                  borderRadius: "50%",
                 }}
               />
             </div>
@@ -669,31 +672,30 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
             {/* Center button visual */}
             <div
               style={{
-                position: 'absolute',
-                top: '50%',
-                left: '50%',
-                transform: 'translate(-50%, -50%)',
+                position: "absolute",
+                top: "50%",
+                left: "50%",
+                transform: "translate(-50%, -50%)",
                 width: 80,
                 height: 80,
-                borderRadius: '50%',
+                borderRadius: "50%",
                 backgroundColor: accentColor,
-                border: '4px solid rgba(15,23,42,0.85)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#F9FAFB',
+                border: "4px solid rgba(15,23,42,0.85)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#F9FAFB",
                 fontSize: 12,
                 fontWeight: 600,
-                letterSpacing: '0.12em',
-                textTransform: 'uppercase',
-                fontFamily:
-                  '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                boxShadow: '0 4px 12px rgba(15,23,42,0.4)',
-                pointerEvents: 'none',
+                letterSpacing: "0.12em",
+                textTransform: "uppercase",
+                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                boxShadow: "0 4px 12px rgba(15,23,42,0.4)",
+                pointerEvents: "none",
                 zIndex: 15,
               }}
             >
-              {isSpinning ? '...' : 'SPIN'}
+              {isSpinning ? "..." : "SPIN"}
             </div>
           </div>
         </div>
@@ -702,28 +704,32 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
         <div className="spin-form-cell">
           <div className="spin-form-content">
             {/* Header */}
-            <div style={{ textAlign: 'center', marginBottom: SPACING_GUIDELINES.afterDescription }}>
+            <div style={{ textAlign: "center", marginBottom: SPACING_GUIDELINES.afterDescription }}>
               <h2
                 style={{
-                  fontSize: (config as any).titleFontSize || config.fontSize || '2rem',
+                  fontSize: (config as any).titleFontSize || config.fontSize || "2rem",
                   fontWeight: (config as any).titleFontWeight || config.fontWeight || 900,
-                  color: config.textColor || '#111827',
+                  color: config.textColor || "#111827",
                   marginBottom: SPACING_GUIDELINES.afterHeadline,
                   lineHeight: 1.1,
                   textShadow: (config as any).titleTextShadow,
                 }}
               >
-                {wonPrize ? (wonPrize.label.includes('OFF') ? 'YOU WON!' : 'CONGRATS!') : config.headline || 'SPIN TO WIN!'}
+                {wonPrize
+                  ? wonPrize.label.includes("OFF")
+                    ? "YOU WON!"
+                    : "CONGRATS!"
+                  : config.headline || "SPIN TO WIN!"}
               </h2>
               <p
                 style={{
-                  fontSize: (config as any).descriptionFontSize || config.fontSize || '1.125rem',
+                  fontSize: (config as any).descriptionFontSize || config.fontSize || "1.125rem",
                   color: descriptionColor,
                   fontWeight: (config as any).descriptionFontWeight || config.fontWeight || 500,
                   lineHeight: 1.6,
                 }}
               >
-                {resultMessage || config.subheadline || 'Try your luck to win exclusive discounts!'}
+                {resultMessage || config.subheadline || "Try your luck to win exclusive discounts!"}
               </p>
             </div>
 
@@ -731,11 +737,11 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
             {!hasSpun ? (
               <>
                 {collectName && (
-                  <div style={{ width: '100%' }}>
+                  <div style={{ width: "100%" }}>
                     <NameInput
                       value={formState.name}
                       onChange={setName}
-                      placeholder={(config as any).nameFieldPlaceholder || 'Your Name'}
+                      placeholder={(config as any).nameFieldPlaceholder || "Your Name"}
                       label={(config as any).nameFieldLabel}
                       error={errors.name}
                       required={config.nameFieldRequired}
@@ -748,11 +754,11 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
                 )}
 
                 {config.emailRequired && (
-                  <div style={{ width: '100%' }}>
+                  <div style={{ width: "100%" }}>
                     <EmailInput
                       value={formState.email}
                       onChange={setEmail}
-                      placeholder={config.emailPlaceholder || 'Enter your email'}
+                      placeholder={config.emailPlaceholder || "Enter your email"}
                       label={config.emailLabel}
                       error={errors.email}
                       required={config.emailRequired}
@@ -783,32 +789,41 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
                   style={{
                     ...buttonStyles,
                     marginTop: POPUP_SPACING.section.md,
-                    position: 'relative',
-                    overflow: 'hidden',
+                    position: "relative",
+                    overflow: "hidden",
                   }}
                   onMouseEnter={(e) => {
                     if (!isSpinning && !hasSpun) {
-                      e.currentTarget.style.transform = 'translateY(-2px)';
+                      e.currentTarget.style.transform = "translateY(-2px)";
                     }
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.transform = "translateY(0)";
                   }}
                 >
                   {isSpinning ? (
-                    <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
-                      <span style={{
-                        width: '16px',
-                        height: '16px',
-                        border: '2px solid rgba(255,255,255,0.3)',
-                        borderTopColor: '#FFF',
-                        borderRadius: '50%',
-                        animation: 'spin 0.8s linear infinite'
-                      }} />
-                      {config.loadingText || 'Spinning...'}
+                    <span
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "10px",
+                      }}
+                    >
+                      <span
+                        style={{
+                          width: "16px",
+                          height: "16px",
+                          border: "2px solid rgba(255,255,255,0.3)",
+                          borderTopColor: "#FFF",
+                          borderRadius: "50%",
+                          animation: "spin 0.8s linear infinite",
+                        }}
+                      />
+                      {config.loadingText || "Spinning..."}
                     </span>
                   ) : (
-                    config.spinButtonText || 'Spin to Win!'
+                    config.spinButtonText || "Spin to Win!"
                   )}
                 </button>
 
@@ -821,45 +836,51 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
                       ...secondaryButtonStyles,
                       marginTop: SPACING_GUIDELINES.betweenButtons,
                     }}
-                    onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
-                    onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.9')}
+                    onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
+                    onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.9")}
                   >
-                    {config.dismissLabel || 'No thanks'}
+                    {config.dismissLabel || "No thanks"}
                   </button>
                 )}
               </>
             ) : (
-              <div style={{ width: '100%', textAlign: 'center', animation: 'slideUpFade 0.5s ease-out' }}>
+              <div
+                style={{
+                  width: "100%",
+                  textAlign: "center",
+                  animation: "slideUpFade 0.5s ease-out",
+                }}
+              >
                 {wonPrize?.generatedCode ? (
                   <div
                     style={{
                       backgroundColor: `${accentColor}15`,
                       border: `2px dashed ${accentColor}`,
-                      borderRadius: '12px',
-                      padding: '20px',
-                      marginTop: '1rem',
+                      borderRadius: "12px",
+                      padding: "20px",
+                      marginTop: "1rem",
                     }}
                   >
                     <p
                       style={{
-                        fontSize: '14px',
+                        fontSize: "14px",
                         fontWeight: 600,
                         color: descriptionColor,
-                        marginBottom: '8px',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.05em',
+                        marginBottom: "8px",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.05em",
                       }}
                     >
                       Your Discount Code
                     </p>
                     <div
                       style={{
-                        fontSize: '28px',
+                        fontSize: "28px",
                         fontWeight: 800,
                         color: accentColor,
-                        letterSpacing: '0.1em',
-                        marginBottom: '8px',
-                        cursor: 'pointer',
+                        letterSpacing: "0.1em",
+                        marginBottom: "8px",
+                        cursor: "pointer",
                       }}
                       onClick={() => {
                         if (wonPrize.generatedCode) {
@@ -870,13 +891,11 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
                     >
                       {wonPrize.generatedCode}
                     </div>
-                    <p style={{ fontSize: '12px', color: descriptionColor }}>
-                      Click code to copy
-                    </p>
+                    <p style={{ fontSize: "12px", color: descriptionColor }}>Click code to copy</p>
                   </div>
                 ) : (
-                  <div style={{ marginTop: '1rem' }}>
-                    <p style={{ fontSize: '16px', color: descriptionColor }}>
+                  <div style={{ marginTop: "1rem" }}>
+                    <p style={{ fontSize: "16px", color: descriptionColor }}>
                       {config.failureMessage || "Better luck next time!"}
                     </p>
                   </div>
@@ -886,7 +905,7 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
                   onClick={onClose}
                   style={{
                     ...buttonStyles,
-                    marginTop: '1.5rem',
+                    marginTop: "1.5rem",
                   }}
                 >
                   CONTINUE SHOPPING
@@ -896,6 +915,6 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
           </div>
         </div>
       </PopupGridContainer>
-    </PopupPortal >
+    </PopupPortal>
   );
 };

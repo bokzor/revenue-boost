@@ -49,12 +49,13 @@ export function ShopifySegmentSelector({
       .then((data) => {
         if (!isMounted) return;
 
-        const segmentsPayload =
-          (data && data.data && Array.isArray(data.data.segments)
+        const segmentsPayload = (
+          data && data.data && Array.isArray(data.data.segments)
             ? data.data.segments
             : data && Array.isArray(data.segments)
               ? data.segments
-              : []) as ShopifySegmentOption[];
+              : []
+        ) as ShopifySegmentOption[];
 
         setSegments(segmentsPayload);
         if (onSegmentsLoaded) {
@@ -191,13 +192,12 @@ export function ShopifySegmentSelector({
       {selectedSegmentIds.length === 0 && (
         <Box paddingBlockStart="200">
           <Text as="p" variant="bodySm" tone="subdued">
-            Select one or more Shopify customer segments to target. Your campaign
-            will only show to visitors who belong to at least one selected
-            segment when they are identified as customers.
+            Select one or more Shopify customer segments to target. Your campaign will only show to
+            visitors who belong to at least one selected segment when they are identified as
+            customers.
           </Text>
         </Box>
       )}
     </BlockStack>
   );
 }
-

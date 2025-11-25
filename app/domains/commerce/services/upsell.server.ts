@@ -1,6 +1,6 @@
 /**
  * Product Upsell Service
- * 
+ *
  * Business logic for fetching and recommending products for upsell campaigns.
  * Supports three selection methods:
  * - Manual: Fetch specific products by ID
@@ -8,12 +8,16 @@
  * - AI: Smart recommendations based on popularity and cart context
  */
 
+import type { AdminApiContext } from "@shopify/shopify-app-react-router/server";
 import type { Product } from "~/domains/storefront/popups-new/types";
 
 /**
  * Fetch basic product data from Shopify Admin API and map to storefront Product type.
  */
-export async function fetchProductsByIds(admin: any, productIds: string[]): Promise<Product[]> {
+export async function fetchProductsByIds(
+  admin: AdminApiContext,
+  productIds: string[]
+): Promise<Product[]> {
   if (!productIds.length) return [];
 
   const PRODUCT_QUERY = `#graphql
@@ -75,7 +79,7 @@ export async function fetchProductsByIds(admin: any, productIds: string[]): Prom
  *   - Collaborative filtering
  */
 export async function fetchPopularProducts(
-  admin: any,
+  admin: AdminApiContext,
   limit: number,
   excludeProductIds: string[] = []
 ): Promise<Product[]> {
@@ -107,9 +111,21 @@ export async function fetchPopularProducts(
     const edges = body?.data?.products?.edges || [];
 
     const allProducts = edges
-      .map((edge: any) => edge?.node)
-      .filter((node: any) => node && node.id)
-      .map((node: any): Product => {
+      .map((edge: { node?: unknown }) => edge?.node)
+      .filter(
+        (
+          node
+        ): node is {
+          id: string;
+          title?: string;
+          handle?: string;
+          variants?: {
+            edges?: Array<{ node?: { id?: string; price?: string } }>;
+          };
+          images?: { edges?: Array<{ node?: { url?: string } }> };
+        } => Boolean(node && (node as { id?: string }).id)
+      )
+      .map((node): Product => {
         const variant = node.variants?.edges?.[0]?.node;
         const image = node.images?.edges?.[0]?.node;
 
@@ -139,15 +155,15 @@ export async function fetchPopularProducts(
 
 /**
  * Fetch products from a Shopify collection
- * 
+ *
  * @param admin - Shopify admin API client
  * @param collectionIdentifier - Collection ID (gid://...) or handle (string)
  * @param limit - Maximum number of products to return
  */
 export async function fetchProductsByCollection(
-  admin: any,
+  admin: AdminApiContext,
   collectionIdentifier: string,
-  limit: number,
+  limit: number
 ): Promise<Product[]> {
   if (!collectionIdentifier) return [];
 
@@ -167,7 +183,7 @@ export async function fetchProductsByCollection(
  * Fetch products from a collection by ID
  */
 async function fetchProductsByCollectionId(
-  admin: any,
+  admin: AdminApiContext,
   collectionId: string,
   first: number
 ): Promise<Product[]> {
@@ -198,9 +214,21 @@ async function fetchProductsByCollectionId(
     const edges = body?.data?.collection?.products?.edges || [];
 
     return edges
-      .map((edge: any) => edge?.node)
-      .filter((node: any) => node && node.id)
-      .map((node: any): Product => {
+      .map((edge: { node?: unknown }) => edge?.node)
+      .filter(
+        (
+          node
+        ): node is {
+          id: string;
+          title?: string;
+          handle?: string;
+          variants?: {
+            edges?: Array<{ node?: { id?: string; price?: string } }>;
+          };
+          images?: { edges?: Array<{ node?: { url?: string } }> };
+        } => Boolean(node && (node as { id?: string }).id)
+      )
+      .map((node): Product => {
         const variant = node.variants?.edges?.[0]?.node;
         const image = node.images?.edges?.[0]?.node;
 
@@ -224,7 +252,7 @@ async function fetchProductsByCollectionId(
  * Fetch products from a collection by handle
  */
 async function fetchProductsByCollectionHandle(
-  admin: any,
+  admin: AdminApiContext,
   handle: string,
   first: number
 ): Promise<Product[]> {
@@ -255,9 +283,21 @@ async function fetchProductsByCollectionHandle(
     const edges = body?.data?.collectionByHandle?.products?.edges || [];
 
     return edges
-      .map((edge: any) => edge?.node)
-      .filter((node: any) => node && node.id)
-      .map((node: any): Product => {
+      .map((edge: { node?: unknown }) => edge?.node)
+      .filter(
+        (
+          node
+        ): node is {
+          id: string;
+          title?: string;
+          handle?: string;
+          variants?: {
+            edges?: Array<{ node?: { id?: string; price?: string } }>;
+          };
+          images?: { edges?: Array<{ node?: { url?: string } }> };
+        } => Boolean(node && (node as { id?: string }).id)
+      )
+      .map((node): Product => {
         const variant = node.variants?.edges?.[0]?.node;
         const image = node.images?.edges?.[0]?.node;
 
@@ -276,4 +316,3 @@ async function fetchProductsByCollectionHandle(
     return [];
   }
 }
-

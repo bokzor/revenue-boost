@@ -5,4 +5,3 @@
 
 export { SlideInPopup } from "./SlideInPopup";
 export type { SlideInPopupProps } from "./SlideInPopup";
-

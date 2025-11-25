@@ -1,6 +1,6 @@
 /**
  * TemplateSelectorFooter - Footer for Template Selector
- * 
+ *
  * SOLID Compliance:
  * - Single Responsibility: Renders footer with template count
  * - <50 lines
@@ -38,4 +38,3 @@ export function TemplateSelectorFooter({
     </Text>
   );
 }
-

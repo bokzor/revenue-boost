@@ -30,7 +30,7 @@ export interface PreDisplayHookContext {
      */
     triggerContext?: {
         productId?: string; // Product ID that triggered the campaign (for add_to_cart)
-        [key: string]: any; // Allow other trigger-specific data
+        [key: string]: unknown; // Allow other trigger-specific data
     };
 }
 
@@ -40,7 +40,7 @@ export interface PreDisplayHookContext {
 export interface PreDisplayHookResult {
     success: boolean;
     error?: string;
-    data?: any;
+    data?: unknown;
     hookName: string;
     executionTimeMs?: number;
 }
@@ -79,7 +79,7 @@ export interface PreDisplayHook {
  */
 export interface CampaignHooksResult {
     success: boolean;
-    loadedResources: Record<string, any>;
+    loadedResources: Record<string, unknown>;
     errors: string[];
     hookResults: PreDisplayHookResult[];
     totalExecutionTimeMs: number;
@@ -89,10 +89,10 @@ export interface CampaignHooksResult {
  * In-memory cache for pre-loaded resources
  */
 class ResourceCache {
-    private cache = new Map<string, { data: any; timestamp: number }>();
+    private cache = new Map<string, { data: unknown; timestamp: number }>();
     private readonly TTL_MS = 5 * 60 * 1000; // 5 minutes
 
-    get(campaignId: string, hookName: string): any | null {
+    get(campaignId: string, hookName: string): unknown | null {
         const key = `${campaignId}:${hookName}`;
         const cached = this.cache.get(key);
 
@@ -108,7 +108,7 @@ class ResourceCache {
         return null;
     }
 
-    set(campaignId: string, hookName: string, data: any): void {
+    set(campaignId: string, hookName: string, data: unknown): void {
         const key = `${campaignId}:${hookName}`;
         this.cache.set(key, { data, timestamp: Date.now() });
     }
@@ -242,11 +242,11 @@ export async function executeHooksForCampaign(
     api: ApiClient,
     sessionId: string,
     visitorId: string,
-    triggerContext?: { productId?: string; [key: string]: any }
+    triggerContext?: { productId?: string; [key: string]: unknown }
 ): Promise<CampaignHooksResult> {
     const startTime = Date.now();
     const templateType = campaign.templateType;
-    const previewMode = (campaign.designConfig as any)?.previewMode || false;
+    const previewMode = (campaign.designConfig as { previewMode?: boolean } | undefined)?.previewMode || false;
 
     console.log(`[PreDisplayHook] Executing hooks for campaign ${campaign.id} (${templateType})`);
 
@@ -278,7 +278,7 @@ export async function executeHooksForCampaign(
     );
 
     // Combine results
-    const loadedResources: Record<string, any> = {};
+    const loadedResources: Record<string, unknown> = {};
     const errors: string[] = [];
 
     for (const result of results) {

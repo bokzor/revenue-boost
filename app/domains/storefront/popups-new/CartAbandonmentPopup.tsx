@@ -11,18 +11,18 @@
  * - CTA to resume checkout
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { PopupPortal } from './PopupPortal';
-import type { PopupDesignConfig, CartItem, DiscountConfig } from './types';
-import type { CartAbandonmentContent } from '~/domains/campaigns/types/campaign';
-import { formatCurrency } from './utils';
-import { POPUP_SPACING, getContainerPadding, SPACING_GUIDELINES } from './spacing';
+import React, { useState, useEffect, useCallback } from "react";
+import { PopupPortal } from "./PopupPortal";
+import type { PopupDesignConfig, CartItem, DiscountConfig } from "./types";
+import type { CartAbandonmentContent } from "~/domains/campaigns/types/campaign";
+import { formatCurrency } from "./utils";
+import { POPUP_SPACING, getContainerPadding, SPACING_GUIDELINES } from "./spacing";
 
 // Import custom hooks
-import { useCountdownTimer, useDiscountCode, usePopupAnimation, usePopupForm } from './hooks';
+import { useCountdownTimer, useDiscountCode, usePopupAnimation, usePopupForm } from "./hooks";
 
 // Import reusable components
-import { EmailInput, SubmitButton } from './components';
+import { EmailInput, SubmitButton } from "./components";
 
 /**
  * CartAbandonmentConfig - Extends both design config AND campaign content type
@@ -46,9 +46,9 @@ export interface CartAbandonmentPopupProps {
   onResumeCheckout?: () => void;
   onSaveForLater?: () => void;
   onEmailRecovery?: (email: string) => Promise<string | void> | string | void;
-  issueDiscount?: (
-    options?: { cartSubtotalCents?: number },
-  ) => Promise<{ code?: string; autoApplyMode?: string } | null>;
+  issueDiscount?: (options?: {
+    cartSubtotalCents?: number;
+  }) => Promise<{ code?: string; autoApplyMode?: string } | null>;
   onTrack?: (metadata?: Record<string, unknown>) => void;
 }
 
@@ -65,13 +65,9 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
   onTrack,
 }) => {
   // Use countdown timer hook
-  const {
-    timeRemaining,
-    hasExpired,
-    formattedTime,
-  } = useCountdownTimer({
+  const { timeRemaining, hasExpired, formattedTime } = useCountdownTimer({
     enabled: config.showUrgency === true && !!config.urgencyTimer,
-    mode: 'duration',
+    mode: "duration",
     duration: config.urgencyTimer,
     onExpire: () => {
       // Timer expired - could auto-close or show expired message
@@ -99,106 +95,100 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
       campaignId: config.campaignId,
       previewMode: config.previewMode,
     },
-    endpoint: config.enableEmailRecovery ? '/apps/revenue-boost/api/cart/email-recovery' : undefined,
-    onSubmit: onEmailRecovery ? async (data) => {
-      const result = await onEmailRecovery(data.email);
-      return typeof result === 'string' ? result : undefined;
-    } : undefined,
+    endpoint: config.enableEmailRecovery
+      ? "/apps/revenue-boost/api/cart/email-recovery"
+      : undefined,
+    onSubmit: onEmailRecovery
+      ? async (data) => {
+          const result = await onEmailRecovery(data.email);
+          return typeof result === "string" ? result : undefined;
+        }
+      : undefined,
   });
 
   // Component-specific state
   const [emailSuccessMessage, setEmailSuccessMessage] = useState<string | null>(null);
 
-
-  const discountDeliveryMode = config.discount?.deliveryMode || 'show_code_fallback';
+  const discountDeliveryMode = config.discount?.deliveryMode || "show_code_fallback";
 
   const emailSuccessCopy =
     config.emailSuccessMessage ||
-    (discountDeliveryMode === 'auto_apply_only'
+    (discountDeliveryMode === "auto_apply_only"
       ? "We'll automatically apply your discount at checkout."
-      : discountDeliveryMode === 'show_in_popup_authorized_only'
-        ? 'Your discount code is authorized for this email address only.'
-        : 'Your discount code is ready to use at checkout.');
+      : discountDeliveryMode === "show_in_popup_authorized_only"
+        ? "Your discount code is authorized for this email address only."
+        : "Your discount code is ready to use at checkout.");
 
   // Timer is now handled by useCountdownTimer hook
 
-  const handleResumeCheckout = useCallback(
-    async () => {
-      let shouldRedirect = true;
+  const handleResumeCheckout = useCallback(async () => {
+    let shouldRedirect = true;
 
-      try {
-        if (
-          config.discount?.enabled &&
-          typeof issueDiscount === 'function' &&
-          !discountCode
-        ) {
-          let numericTotal: number | undefined;
-          if (typeof cartTotal === 'number') {
-            numericTotal = cartTotal;
-          } else if (typeof cartTotal === 'string') {
-            const parsed = parseFloat(cartTotal);
-            if (!Number.isNaN(parsed)) {
-              numericTotal = parsed;
-            }
-          }
-
-          const cartSubtotalCents =
-            typeof numericTotal === 'number' ? Math.round(numericTotal * 100) : undefined;
-
-          const result = await issueDiscount(
-            cartSubtotalCents ? { cartSubtotalCents } : undefined,
-          );
-
-          const code = result?.code;
-          const shouldShowCodeFromCta =
-            !!code &&
-            (discountDeliveryMode === 'show_code_always' ||
-              discountDeliveryMode === 'show_code_fallback' ||
-              discountDeliveryMode === 'show_in_popup_authorized_only');
-
-          if (shouldShowCodeFromCta && code) {
-            setDiscountCode(code);
-            shouldRedirect = false;
+    try {
+      if (config.discount?.enabled && typeof issueDiscount === "function" && !discountCode) {
+        let numericTotal: number | undefined;
+        if (typeof cartTotal === "number") {
+          numericTotal = cartTotal;
+        } else if (typeof cartTotal === "string") {
+          const parsed = parseFloat(cartTotal);
+          if (!Number.isNaN(parsed)) {
+            numericTotal = parsed;
           }
         }
-      } catch (err) {
-        console.error('[CartAbandonmentPopup] Failed to issue discount on resume:', err);
-      }
 
-      if (shouldRedirect) {
-        if (onResumeCheckout) {
-          onResumeCheckout();
-        } else if (config.ctaUrl) {
-          window.location.href = config.ctaUrl;
+        const cartSubtotalCents =
+          typeof numericTotal === "number" ? Math.round(numericTotal * 100) : undefined;
+
+        const result = await issueDiscount(cartSubtotalCents ? { cartSubtotalCents } : undefined);
+
+        const code = result?.code;
+        const shouldShowCodeFromCta =
+          !!code &&
+          (discountDeliveryMode === "show_code_always" ||
+            discountDeliveryMode === "show_code_fallback" ||
+            discountDeliveryMode === "show_in_popup_authorized_only");
+
+        if (shouldShowCodeFromCta && code) {
+          setDiscountCode(code);
+          shouldRedirect = false;
         }
       }
+    } catch (err) {
+      console.error("[CartAbandonmentPopup] Failed to issue discount on resume:", err);
+    }
 
-      // Track the click
-      if (onTrack) {
-        onTrack({
-          action: 'resume_checkout',
-          discountApplied: !!discountCode
-        });
+    if (shouldRedirect) {
+      if (onResumeCheckout) {
+        onResumeCheckout();
+      } else if (config.ctaUrl) {
+        window.location.href = config.ctaUrl;
       }
-    },
-    [
-      config.discount?.enabled,
-      config.ctaUrl,
-      cartTotal,
-      discountCode,
-      discountDeliveryMode,
-      issueDiscount,
-      onResumeCheckout,
-      setDiscountCode,
-    ],
-  );
+    }
+
+    // Track the click
+    if (onTrack) {
+      onTrack({
+        action: "resume_checkout",
+        discountApplied: !!discountCode,
+      });
+    }
+  }, [
+    config.discount?.enabled,
+    config.ctaUrl,
+    cartTotal,
+    discountCode,
+    discountDeliveryMode,
+    issueDiscount,
+    onResumeCheckout,
+    setDiscountCode,
+  ]);
 
   const handleSaveForLater = useCallback(() => {
     if (onSaveForLater) {
       onSaveForLater();
     }
     if (onTrack) {
-      onTrack({ action: 'save_for_later' });
+      onTrack({ action: "save_for_later" });
     }
     onClose();
   }, [onSaveForLater, onClose]);
@@ -220,66 +210,65 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
         setEmailSuccessMessage(emailSuccessCopy);
       }
     },
-    [config.enableEmailRecovery, handleFormSubmit, handleResumeCheckout, emailSuccessCopy, setDiscountCode],
+    [
+      config.enableEmailRecovery,
+      handleFormSubmit,
+      handleResumeCheckout,
+      emailSuccessCopy,
+      setDiscountCode,
+    ]
   );
 
   // Copy code handler now from useDiscountCode hook
 
-
   const displayItems = cartItems.slice(0, config.maxItemsToShow || 3);
 
-  const isBottomPosition = (config.position || 'center') === 'bottom';
+  const isBottomPosition = (config.position || "center") === "bottom";
 
   const isEmailGateActive =
-    !!config.enableEmailRecovery &&
-    !!config.requireEmailBeforeCheckout &&
-    !discountCode;
+    !!config.enableEmailRecovery && !!config.requireEmailBeforeCheckout && !discountCode;
   const borderRadiusValue =
-    typeof config.borderRadius === 'number'
+    typeof config.borderRadius === "number"
       ? `${config.borderRadius}px`
-      : config.borderRadius || '16px';
+      : config.borderRadius || "16px";
   const cardMaxWidth =
     config.maxWidth ||
-    (config.size === 'small'
-      ? '24rem'
-      : config.size === 'large'
-        ? '32rem'
-        : '28rem');
-  const descriptionColor = config.descriptionColor || '#6b7280';
+    (config.size === "small" ? "24rem" : config.size === "large" ? "32rem" : "28rem");
+  const descriptionColor = config.descriptionColor || "#6b7280";
 
   const buttonStyles: React.CSSProperties = {
-    width: '100%',
-    padding: '14px 24px',
-    fontSize: '16px',
+    width: "100%",
+    padding: "14px 24px",
+    fontSize: "16px",
     fontWeight: 600,
-    border: 'none',
+    border: "none",
     borderRadius: `${config.borderRadius ?? 8}px`,
     backgroundColor: config.buttonColor,
     color: config.buttonTextColor,
-    cursor: 'pointer',
-    transition: 'transform 0.1s',
+    cursor: "pointer",
+    transition: "transform 0.1s",
   };
 
   const secondaryButtonStyles: React.CSSProperties = {
     ...buttonStyles,
-    backgroundColor: 'transparent',
+    backgroundColor: "transparent",
     color: config.textColor,
     border: `2px solid ${config.textColor}`,
     opacity: 0.7,
   };
 
   const dismissButtonStyles: React.CSSProperties = {
-    background: 'transparent',
-    border: 'none',
+    background: "transparent",
+    border: "none",
     padding: 0,
-    marginTop: '4px',
+    marginTop: "4px",
     color: config.textColor,
-    fontSize: '14px',
+    fontSize: "14px",
     opacity: 0.7,
-    cursor: 'pointer',
-    textDecoration: 'underline',
-    alignSelf: 'center',
-    transition: 'opacity 0.15s ease-out',
+    cursor: "pointer",
+    textDecoration: "underline",
+    alignSelf: "center",
+    transition: "opacity 0.15s ease-out",
   };
 
   // Auto-close timer (migrated from BasePopup)
@@ -290,7 +279,6 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
     return () => clearTimeout(timer);
   }, [isVisible, config.autoCloseDelay, onClose]);
 
-
   if (!isVisible) return null;
 
   return (
@@ -298,26 +286,28 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
       isVisible={isVisible}
       onClose={onClose}
       backdrop={{
-        color: config.overlayColor || 'rgba(0, 0, 0, 1)',
+        color: config.overlayColor || "rgba(0, 0, 0, 1)",
         opacity: config.overlayOpacity ?? 0.6,
         blur: 4,
       }}
       animation={{
-        type: config.animation || 'fade',
+        type: config.animation || "fade",
       }}
-      position={config.position || 'center'}
+      position={config.position || "center"}
       closeOnEscape={config.closeOnEscape !== false}
       closeOnBackdropClick={config.closeOnOverlayClick !== false}
       previewMode={config.previewMode}
       ariaLabel={config.ariaLabel || config.headline}
       ariaDescribedBy={config.ariaDescribedBy}
+      customCSS={config.customCSS}
+      globalCustomCSS={config.globalCustomCSS}
     >
       <style>{`
         /* Base Container (Mobile First - Bottom Sheet) */
         .cart-ab-popup-container {
           width: 100%;
-          background: ${config.backgroundColor || '#ffffff'};
-          color: ${config.textColor || '#111827'};
+          background: ${config.backgroundColor || "#ffffff"};
+          color: ${config.textColor || "#111827"};
           border-radius: 1.5rem 1.5rem 0 0; /* Bottom sheet rounded top */
           padding: 1.5rem;
           box-shadow: 0 -4px 25px rgba(0, 0, 0, 0.15);
@@ -428,8 +418,8 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
           font-size: 0.95rem;
           font-weight: 600;
           background: transparent;
-          color: ${config.accentColor || '#b45309'};
-          border: 1px solid ${config.accentColor || '#fcd34d'};
+          color: ${config.accentColor || "#b45309"};
+          border: 1px solid ${config.accentColor || "#fcd34d"};
           text-align: center;
           display: flex;
           align-items: center;
@@ -443,7 +433,7 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
           border-radius: 1rem;
           text-align: center;
           background: rgba(0, 0, 0, 0.03);
-          border: 1px dashed ${config.buttonColor || '#3b82f6'};
+          border: 1px dashed ${config.buttonColor || "#3b82f6"};
         }
 
         .cart-ab-discount-label {
@@ -458,7 +448,7 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
         .cart-ab-discount-amount {
           font-size: 1.5rem;
           font-weight: 800;
-          color: ${config.buttonColor || '#1d4ed8'};
+          color: ${config.buttonColor || "#1d4ed8"};
         }
 
         .cart-ab-discount-code {
@@ -475,7 +465,7 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
 
         .cart-ab-items {
           border-radius: 1rem;
-          border: 1px solid ${config.inputBorderColor || 'rgba(0,0,0,0.1)'};
+          border: 1px solid ${config.inputBorderColor || "rgba(0,0,0,0.1)"};
           padding: 0;
           max-height: 250px;
           overflow-y: auto;
@@ -486,7 +476,7 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
           display: flex;
           gap: 1rem;
           padding: 1rem;
-          border-bottom: 1px solid ${config.inputBorderColor || 'rgba(0,0,0,0.1)'};
+          border-bottom: 1px solid ${config.inputBorderColor || "rgba(0,0,0,0.1)"};
           background: transparent;
         }
 
@@ -539,7 +529,7 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
 
         .cart-ab-total-section {
           background: transparent;
-          border: 1px solid ${config.accentColor || '#e5e7eb'};
+          border: 1px solid ${config.accentColor || "#e5e7eb"};
           border-radius: 1rem;
           padding: 1rem 1.25rem;
           display: flex;
@@ -561,12 +551,12 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
           align-items: center;
           font-size: 1.25rem;
           font-weight: 800;
-          color: ${config.successColor || '#16a34a'};
+          color: ${config.successColor || "#16a34a"};
         }
 
         .cart-ab-savings {
           font-size: 0.9rem;
-          color: ${config.successColor || '#16a34a'};
+          color: ${config.successColor || "#16a34a"};
           text-align: right;
           font-weight: 600;
         }
@@ -628,9 +618,9 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
           min-width: 0;
           padding: 0.875rem 1rem;
           border-radius: 0.75rem;
-          border: 1px solid ${config.inputBorderColor || '#d1d5db'};
-          background: ${config.inputBackgroundColor || '#ffffff'};
-          color: ${config.inputTextColor || config.textColor || '#111827'};
+          border: 1px solid ${config.inputBorderColor || "#d1d5db"};
+          background: ${config.inputBackgroundColor || "#ffffff"};
+          color: ${config.inputTextColor || config.textColor || "#111827"};
           font-size: 1rem;
           transition: border-color 0.2s, box-shadow 0.2s;
         }
@@ -680,20 +670,19 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
         <div className="cart-ab-header">
           <div className="cart-ab-header-text">
             <h2 className="cart-ab-title">{config.headline}</h2>
-            {config.subheadline && (
-              <p className="cart-ab-subtitle">
-                {config.subheadline}
-              </p>
-            )}
+            {config.subheadline && <p className="cart-ab-subtitle">{config.subheadline}</p>}
           </div>
 
           {config.showCloseButton !== false && (
-            <button
-              className="cart-ab-close"
-              onClick={onClose}
-              aria-label="Close popup"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <button className="cart-ab-close" onClick={onClose} aria-label="Close popup">
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
                 <line x1="18" y1="6" x2="6" y2="18" />
                 <line x1="6" y1="6" x2="18" y2="18" />
               </svg>
@@ -705,27 +694,25 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
           {config.showUrgency && config.urgencyTimer && timeRemaining.total > 0 && (
             <div className="cart-ab-urgency">
               {config.urgencyMessage?.replace(
-                '{{time}}',
-                `${timeRemaining.minutes}:${String(timeRemaining.seconds).padStart(2, '0')}`,
+                "{{time}}",
+                `${timeRemaining.minutes}:${String(timeRemaining.seconds).padStart(2, "0")}`
               ) ||
                 `Complete your order in ${timeRemaining.minutes}:${String(
-                  timeRemaining.seconds,
-                ).padStart(2, '0')}`}
+                  timeRemaining.seconds
+                ).padStart(2, "0")}`}
             </div>
           )}
 
           {config.discount?.enabled && config.discount.code && (
             <div className="cart-ab-discount">
-              <p className="cart-ab-discount-label">
-                Special offer for you!
-              </p>
+              <p className="cart-ab-discount-label">Special offer for you!</p>
               <div className="cart-ab-discount-amount">
                 {config.discount.percentage && `${config.discount.percentage}% OFF`}
-                {config.discount.value && !config.discount.percentage && `$${config.discount.value} OFF`}
+                {config.discount.value &&
+                  !config.discount.percentage &&
+                  `$${config.discount.value} OFF`}
               </div>
-              <code className="cart-ab-discount-code">
-                {config.discount.code}
-              </code>
+              <code className="cart-ab-discount-code">{config.discount.code}</code>
             </div>
           )}
 
@@ -736,34 +723,39 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
                 const safeBasePrice = Number.isFinite(basePrice) ? basePrice : 0;
 
                 const discountedPrice =
-                  config.discount?.enabled && typeof config.discount.percentage === 'number'
+                  config.discount?.enabled && typeof config.discount.percentage === "number"
                     ? safeBasePrice * (1 - config.discount.percentage / 100)
                     : safeBasePrice;
 
                 return (
                   <div key={item.id} className="cart-ab-item">
                     {item.imageUrl && (
-                      <img
-                        src={item.imageUrl}
-                        alt={item.title}
-                        className="cart-ab-item-image"
-                      />
+                      <img src={item.imageUrl} alt={item.title} className="cart-ab-item-image" />
                     )}
                     <div className="cart-ab-item-main">
-                      <div className="cart-ab-item-title">
-                        {item.title}
-                      </div>
-                      <div className="cart-ab-item-meta">
-                        Qty: {item.quantity}
-                      </div>
+                      <div className="cart-ab-item-title">{item.title}</div>
+                      <div className="cart-ab-item-meta">Qty: {item.quantity}</div>
                     </div>
                     <div className="cart-ab-item-price">
-                      {config.discount?.enabled && typeof config.discount.percentage === 'number' ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                          <span style={{ textDecoration: 'line-through', opacity: 0.6, fontSize: '0.9em' }}>
+                      {config.discount?.enabled &&
+                      typeof config.discount.percentage === "number" ? (
+                        <div
+                          style={{
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "flex-end",
+                          }}
+                        >
+                          <span
+                            style={{
+                              textDecoration: "line-through",
+                              opacity: 0.6,
+                              fontSize: "0.9em",
+                            }}
+                          >
                             {formatCurrency(safeBasePrice, config.currency)}
                           </span>
-                          <span style={{ color: config.successColor || '#16a34a' }}>
+                          <span style={{ color: config.successColor || "#16a34a" }}>
                             {formatCurrency(discountedPrice, config.currency)}
                           </span>
                         </div>
@@ -778,7 +770,7 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
               {cartItems.length > displayItems.length && (
                 <div className="cart-ab-more">
                   +{cartItems.length - displayItems.length} more item
-                  {cartItems.length - displayItems.length !== 1 ? 's' : ''}
+                  {cartItems.length - displayItems.length !== 1 ? "s" : ""}
                 </div>
               )}
             </div>
@@ -788,40 +780,43 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
             <div className="cart-ab-total-section">
               <div className="cart-ab-total">
                 <span>Total:</span>
-                <span style={{
-                  textDecoration: config.discount?.enabled && (config.discount.percentage || config.discount.value) && config.discount.type !== 'free_shipping' ? 'line-through' : 'none',
-                  opacity: config.discount?.enabled && (config.discount.percentage || config.discount.value) && config.discount.type !== 'free_shipping' ? 0.7 : 1
-                }}>
-                  {typeof cartTotal === 'number'
+                <span
+                  style={{
+                    textDecoration:
+                      config.discount?.enabled &&
+                      (config.discount.percentage || config.discount.value) &&
+                      config.discount.type !== "free_shipping"
+                        ? "line-through"
+                        : "none",
+                    opacity:
+                      config.discount?.enabled &&
+                      (config.discount.percentage || config.discount.value) &&
+                      config.discount.type !== "free_shipping"
+                        ? 0.7
+                        : 1,
+                  }}
+                >
+                  {typeof cartTotal === "number"
                     ? formatCurrency(cartTotal, config.currency)
                     : cartTotal}
                 </span>
               </div>
 
-              {config.discount?.enabled && (
+              {config.discount?.enabled &&
                 (() => {
                   // Case 1: Free Shipping
-                  if (config.discount.type === 'free_shipping') {
-                    return (
-                      <div className="cart-ab-savings">
-                        + Free Shipping!
-                      </div>
-                    );
+                  if (config.discount.type === "free_shipping") {
+                    return <div className="cart-ab-savings">+ Free Shipping!</div>;
                   }
 
-                  const numericTotal = typeof cartTotal === 'number'
-                    ? cartTotal
-                    : parseFloat(String(cartTotal));
+                  const numericTotal =
+                    typeof cartTotal === "number" ? cartTotal : parseFloat(String(cartTotal));
 
                   // Case 2: Cannot calculate (NaN or complex type like BOGO/Fixed Amount if we don't trust it matches subtotal exactly)
                   // For now, we trust Percentage and Fixed Amount on the subtotal.
                   // If we can't parse the total, show generic message.
                   if (Number.isNaN(numericTotal)) {
-                    return (
-                      <div className="cart-ab-savings">
-                        Discount applied at checkout
-                      </div>
-                    );
+                    return <div className="cart-ab-savings">Discount applied at checkout</div>;
                   }
 
                   let discountAmount = 0;
@@ -837,11 +832,7 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
 
                   // Case 3: Complex/Unknown discount type (e.g. BOGO where we don't have the logic)
                   if (!canCalculate) {
-                    return (
-                      <div className="cart-ab-savings">
-                        Special offer applied at checkout
-                      </div>
-                    );
+                    return <div className="cart-ab-savings">Special offer applied at checkout</div>;
                   }
 
                   if (discountAmount <= 0) return null;
@@ -859,19 +850,19 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
                       </div>
                     </>
                   );
-                })()
-              )}
+                })()}
             </div>
           )}
 
           {config.showStockWarnings && (
             <div className="cart-ab-stock-warning">
-              {config.stockWarningMessage || '⚠️ Items in your cart are selling fast!'}
+              {config.stockWarningMessage || "⚠️ Items in your cart are selling fast!"}
             </div>
           )}
 
           <div className="cart-ab-footer">
-            {(config.enableEmailRecovery || (config.previewMode && config.requireEmailBeforeCheckout)) && (
+            {(config.enableEmailRecovery ||
+              (config.previewMode && config.requireEmailBeforeCheckout)) && (
               <form onSubmit={handleEmailSubmit} className="cart-ab-email-form">
                 <div className="cart-ab-email-row">
                   <EmailInput
@@ -879,7 +870,7 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
                     onChange={setEmail}
                     placeholder={
                       config.emailPlaceholder ||
-                      'Enter your email to receive your cart and discount'
+                      "Enter your email to receive your cart and discount"
                     }
                     error={errors.email}
                     required={true}
@@ -895,26 +886,25 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
                     accentColor={config.accentColor || config.buttonColor}
                     textColor={config.buttonTextColor}
                   >
-                    {config.emailButtonText || 'Email me my cart'}
+                    {config.emailButtonText || "Email me my cart"}
                   </SubmitButton>
                 </div>
                 {emailSuccessMessage && (
-                  <p className="cart-ab-email-success">
-                    {emailSuccessMessage}
-                  </p>
+                  <p className="cart-ab-email-success">{emailSuccessMessage}</p>
                 )}
               </form>
             )}
 
             {discountCode && (
-              <div className="cart-ab-code-block" onClick={() => handleCopyCode()} style={{ cursor: 'pointer' }}>
+              <div
+                className="cart-ab-code-block"
+                onClick={() => handleCopyCode()}
+                style={{ cursor: "pointer" }}
+              >
                 <p className="cart-ab-code-label">Your discount code:</p>
                 <p className="cart-ab-code-value">{discountCode}</p>
-                <button
-                  type="button"
-                  className="cart-ab-code-copy"
-                >
-                  {copiedCode ? 'Copied!' : 'Copy'}
+                <button type="button" className="cart-ab-code-copy">
+                  {copiedCode ? "Copied!" : "Copy"}
                 </button>
               </div>
             )}
@@ -924,10 +914,10 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
                 onClick={handleResumeCheckout}
                 style={buttonStyles}
                 className="cart-ab-primary-button"
-                onMouseEnter={(e) => (e.currentTarget.style.transform = 'translateY(-1px)')}
-                onMouseLeave={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
+                onMouseEnter={(e) => (e.currentTarget.style.transform = "translateY(-1px)")}
+                onMouseLeave={(e) => (e.currentTarget.style.transform = "translateY(0)")}
               >
-                {config.buttonText || config.ctaText || 'Resume Checkout'}
+                {config.buttonText || config.ctaText || "Resume Checkout"}
               </button>
             )}
 
@@ -936,8 +926,8 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
                 onClick={handleSaveForLater}
                 style={secondaryButtonStyles}
                 className="cart-ab-secondary-button"
-                onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
-                onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.7')}
+                onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
+                onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.7")}
               >
                 {config.saveForLaterText}
               </button>
@@ -948,10 +938,10 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
               onClick={onClose}
               style={dismissButtonStyles}
               className="cart-ab-dismiss-button"
-              onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
-              onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.7')}
+              onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
+              onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.7")}
             >
-              {config.dismissLabel || 'No thanks'}
+              {config.dismissLabel || "No thanks"}
             </button>
           </div>
         </div>
@@ -959,4 +949,3 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
     </PopupPortal>
   );
 };
-

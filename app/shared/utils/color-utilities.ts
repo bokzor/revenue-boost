@@ -22,7 +22,11 @@ export function isValidHexColor(color: string): boolean {
 export function validateColors(colors: ExtendedColorConfig): ColorValidationResult {
   const errors: string[] = [];
   const warnings: string[] = [];
-  const contrastRatios: { textOnBackground: number; buttonTextOnButton: number; [key: string]: number } = {
+  const contrastRatios: {
+    textOnBackground: number;
+    buttonTextOnButton: number;
+    [key: string]: number;
+  } = {
     textOnBackground: 0,
     buttonTextOnButton: 0,
   };
@@ -87,9 +91,7 @@ function getRelativeLuminance(color: string): number {
 
   const [r, g, b] = [rgb.r, rgb.g, rgb.b].map((val) => {
     const normalized = val / 255;
-    return normalized <= 0.03928
-      ? normalized / 12.92
-      : Math.pow((normalized + 0.055) / 1.055, 2.4);
+    return normalized <= 0.03928 ? normalized / 12.92 : Math.pow((normalized + 0.055) / 1.055, 2.4);
   });
 
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
@@ -108,5 +110,3 @@ export function hexToRgb(hex: string): { r: number; g: number; b: number } | nul
       }
     : null;
 }
-
-

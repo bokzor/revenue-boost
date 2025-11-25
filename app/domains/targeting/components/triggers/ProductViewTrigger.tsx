@@ -85,4 +85,3 @@ export function ProductViewTrigger({ config, onChange }: ProductViewTriggerProps
     </TriggerCard>
   );
 }
-

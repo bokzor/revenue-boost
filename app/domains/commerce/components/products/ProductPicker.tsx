@@ -1,9 +1,9 @@
 /**
  * ProductPicker Component (Stub)
- * 
+ *
  * TODO: This is a stub component created to fix build issues.
  * The actual implementation should integrate with Shopify's product API.
- * 
+ *
  * Expected features:
  * - Product search
  * - Product selection (single/multiple)
@@ -60,9 +60,7 @@ export const ProductPicker: React.FC<ProductPickerProps> = ({
         border: "1px solid #E5E7EB",
       }}
     >
-      <h3 style={{ margin: "0 0 16px 0", fontSize: "16px", fontWeight: "600" }}>
-        Product Picker
-      </h3>
+      <h3 style={{ margin: "0 0 16px 0", fontSize: "16px", fontWeight: "600" }}>Product Picker</h3>
 
       <div style={{ marginBottom: "16px" }}>
         <div style={{ display: "flex", gap: "8px", marginBottom: "12px" }}>
@@ -161,4 +159,3 @@ export const ProductPicker: React.FC<ProductPickerProps> = ({
 };
 
 export default ProductPicker;
-

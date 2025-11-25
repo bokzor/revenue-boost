@@ -8,15 +8,12 @@
  * GET /api/preview/session/:token - Retrieve preview data
  */
 
-import {
-  data,
-  type ActionFunctionArgs,
-  type LoaderFunctionArgs,
-} from "react-router";
+import { data, type ActionFunctionArgs, type LoaderFunctionArgs } from "react-router";
 import { authenticate } from "~/shopify.server";
 import { storefrontCors } from "~/lib/cors.server";
 import { getRedis, REDIS_PREFIXES } from "~/lib/redis.server";
 import crypto from "crypto";
+import { validateCustomCss } from "~/lib/css-guards";
 
 // Redis key prefix for preview sessions
 const PREVIEW_PREFIX = `${REDIS_PREFIXES.SESSION}:preview`;
@@ -40,6 +37,30 @@ export async function action({ request }: ActionFunctionArgs) {
 
     // Parse campaign data from request
     const campaignData = await request.json();
+
+    try {
+      if (campaignData?.designConfig) {
+        const safeCss = validateCustomCss(
+          campaignData.designConfig.customCSS,
+          "designConfig.customCSS"
+        );
+
+        if (safeCss !== undefined) {
+          campaignData.designConfig.customCSS = safeCss;
+        } else if ("customCSS" in campaignData.designConfig) {
+          delete campaignData.designConfig.customCSS;
+        }
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Invalid custom CSS";
+      return data(
+        {
+          success: false,
+          error: message,
+        },
+        { status: 400 }
+      );
+    }
 
     // Generate secure random token
     const token = crypto.randomBytes(32).toString("hex");
@@ -148,4 +169,3 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     );
   }
 }
-

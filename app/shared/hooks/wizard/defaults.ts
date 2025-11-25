@@ -131,4 +131,3 @@ export function createDefaultCampaignData(
     ...initialData,
   } as CampaignFormData;
 }
-

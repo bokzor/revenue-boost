@@ -8,21 +8,12 @@ import type {
   TemplateType,
   ContentConfig,
   CampaignCreateData,
-  CampaignUpdateData
+  CampaignUpdateData,
 } from "../types/campaign.js";
-import {
-  CampaignCreateDataSchema,
-  CampaignUpdateDataSchema,
-} from "../types/campaign.js";
+import { CampaignCreateDataSchema, CampaignUpdateDataSchema } from "../types/campaign.js";
 import { getContentSchemaForTemplate } from "~/domains/templates/registry/template-registry.js";
-import type {
-  ExperimentCreateData,
-  ExperimentUpdateData
-} from "../types/experiment.js";
-import {
-  ExperimentCreateDataSchema,
-  ExperimentUpdateDataSchema,
-} from "../types/experiment.js";
+import type { ExperimentCreateData, ExperimentUpdateData } from "../types/experiment.js";
+import { ExperimentCreateDataSchema, ExperimentUpdateDataSchema } from "../types/experiment.js";
 
 // ============================================================================
 // VALIDATION RESULT TYPES
@@ -65,15 +56,13 @@ export function validateContentConfig(
     } else {
       return {
         success: false,
-        errors: result.error.issues.map(err =>
-          `${err.path.join('.')}: ${err.message}`
-        ),
+        errors: result.error.issues.map((err) => `${err.path.join(".")}: ${err.message}`),
       };
     }
   } catch (error) {
     return {
       success: false,
-      errors: [`Validation error: ${error instanceof Error ? error.message : 'Unknown error'}`],
+      errors: [`Validation error: ${error instanceof Error ? error.message : "Unknown error"}`],
     };
   }
 }
@@ -111,9 +100,7 @@ export function validateCampaignCreateData(data: unknown): ValidationResult<Camp
   } else {
     return {
       success: false,
-      errors: result.error.issues.map(err =>
-        `${err.path.join('.')}: ${err.message}`
-      ),
+      errors: result.error.issues.map((err) => `${err.path.join(".")}: ${err.message}`),
     };
   }
 }
@@ -147,9 +134,7 @@ export function validateCampaignUpdateData(data: unknown): ValidationResult<Camp
   } else {
     return {
       success: false,
-      errors: result.error.issues.map(err =>
-        `${err.path.join('.')}: ${err.message}`
-      ),
+      errors: result.error.issues.map((err) => `${err.path.join(".")}: ${err.message}`),
     };
   }
 }
@@ -161,7 +146,9 @@ export function validateCampaignUpdateData(data: unknown): ValidationResult<Camp
 /**
  * Validates experiment creation data
  */
-export function validateExperimentCreateData(data: unknown): ValidationResult<ExperimentCreateData> {
+export function validateExperimentCreateData(
+  data: unknown
+): ValidationResult<ExperimentCreateData> {
   const result = ExperimentCreateDataSchema.safeParse(data);
 
   if (result.success) {
@@ -172,9 +159,7 @@ export function validateExperimentCreateData(data: unknown): ValidationResult<Ex
   } else {
     return {
       success: false,
-      errors: result.error.issues.map(err =>
-        `${err.path.join('.')}: ${err.message}`
-      ),
+      errors: result.error.issues.map((err) => `${err.path.join(".")}: ${err.message}`),
     };
   }
 }
@@ -182,7 +167,9 @@ export function validateExperimentCreateData(data: unknown): ValidationResult<Ex
 /**
  * Validates experiment update data
  */
-export function validateExperimentUpdateData(data: unknown): ValidationResult<ExperimentUpdateData> {
+export function validateExperimentUpdateData(
+  data: unknown
+): ValidationResult<ExperimentUpdateData> {
   const result = ExperimentUpdateDataSchema.safeParse(data);
 
   if (result.success) {
@@ -193,9 +180,7 @@ export function validateExperimentUpdateData(data: unknown): ValidationResult<Ex
   } else {
     return {
       success: false,
-      errors: result.error.issues.map(err =>
-        `${err.path.join('.')}: ${err.message}`
-      ),
+      errors: result.error.issues.map((err) => `${err.path.join(".")}: ${err.message}`),
     };
   }
 }

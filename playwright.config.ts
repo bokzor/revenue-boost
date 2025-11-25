@@ -1,4 +1,11 @@
 import { defineConfig, devices } from '@playwright/test';
+import path from 'path';
+import dotenv from 'dotenv';
+
+dotenv.config({
+  path: path.resolve(process.cwd(), '.env.staging.env'),
+  override: true,
+});
 
 /**
  * Playwright Configuration for E2E Tests
@@ -29,11 +36,12 @@ export default defineConfig({
 
   // Reporter to use
   reporter: [
-    ["html", { outputFolder: "test-results/reports/html", open: "never" }],
+    ["html", { outputFolder: "playwright-report", open: "never" }],
     ["junit", { outputFile: "test-results/reports/junit.xml" }],
     ["json", { outputFile: "test-results/reports/results.json" }],
     ["list"], // Show test progress in console
   ],
+  outputDir: "test-results/artifacts",
 
   // Shared settings for all the projects below
   use: {
@@ -81,4 +89,3 @@ export default defineConfig({
   //   timeout: 120 * 1000,
   // },
 });
-

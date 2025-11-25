@@ -13,7 +13,7 @@ import {
   getResourceById,
   createMethodRouter,
   validateRequiredId,
-  validateResourceExists
+  validateResourceExists,
 } from "~/lib/api-helpers.server";
 import { getStoreId } from "~/lib/auth-helpers.server";
 import { authenticate } from "~/shopify.server";
@@ -42,12 +42,17 @@ export const action = createMethodRouter({
       const storeId = await getStoreId(request);
       const rawData = await request.json();
       const validatedData = validateData(CampaignUpdateDataSchema, rawData, "Campaign Update Data");
-      const campaign = await CampaignService.updateCampaign(campaignId, storeId, validatedData, admin);
+      const campaign = await CampaignService.updateCampaign(
+        campaignId,
+        storeId,
+        validatedData,
+        admin
+      );
       validateResourceExists(campaign, "Campaign");
 
       return { campaign };
     },
-    context: "PUT /api/campaigns/:campaignId"
+    context: "PUT /api/campaigns/:campaignId",
   },
   DELETE: {
     handler: async ({ request, params }) => {
@@ -61,6 +66,6 @@ export const action = createMethodRouter({
 
       return { deleted: true };
     },
-    context: "DELETE /api/campaigns/:campaignId"
-  }
+    context: "DELETE /api/campaigns/:campaignId",
+  },
 });

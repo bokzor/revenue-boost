@@ -7,10 +7,7 @@
 
 import prisma from "~/db.server";
 import type { Template } from "@prisma/client";
-import type {
-  TemplateCreateData,
-  TemplateWithConfigs,
-} from "../types/template.js";
+import type { TemplateCreateData, TemplateWithConfigs } from "../types/template.js";
 import { z } from "zod";
 import {
   parseJsonField,
@@ -18,10 +15,7 @@ import {
   parseEntityJsonFields,
   prepareEntityJsonFields,
 } from "../../campaigns/utils/json-helpers.js";
-import {
-  TemplateFieldSchema,
-  parseTemplateContentConfig,
-} from "../types/template.js";
+import { TemplateFieldSchema, parseTemplateContentConfig } from "../types/template.js";
 import {
   DesignConfigSchema,
   TargetRulesConfigSchema,
@@ -83,10 +77,7 @@ function parseTemplateEntity(rawTemplate: Template): TemplateWithConfigs {
   return {
     ...parsed,
     // Use template-type specific parsing for contentConfig
-    contentConfig: parseTemplateContentConfig(
-      rawTemplate.contentConfig,
-      rawTemplate.templateType,
-    ),
+    contentConfig: parseTemplateContentConfig(rawTemplate.contentConfig, rawTemplate.templateType),
   } as TemplateWithConfigs;
 }
 
@@ -102,7 +93,7 @@ const templateCache = new Map<string, { data: TemplateWithConfigs[]; timestamp: 
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 function getCacheKey(storeId?: string, templateType?: TemplateType): string {
-  return `${storeId || 'global'}_${templateType || 'all'}`;
+  return `${storeId || "global"}_${templateType || "all"}`;
 }
 
 function getFromCache(key: string): TemplateWithConfigs[] | null {
@@ -127,7 +118,7 @@ function setCache(key: string, data: TemplateWithConfigs[]): void {
  */
 export function clearTemplateCache(): void {
   templateCache.clear();
-  console.log('[Template Cache] Cache cleared');
+  console.log("[Template Cache] Cache cleared");
 }
 
 // ============================================================================
@@ -157,15 +148,14 @@ export class TemplateService {
           ...globalOrStoreWhere(storeId),
           isActive: true,
         },
-        orderBy: [
-          { priority: "desc" },
-          { createdAt: "desc" },
-        ],
+        orderBy: [{ priority: "desc" }, { createdAt: "desc" }],
       });
 
       const result = templates.map(parseTemplateEntity);
 
-      console.log(`[Performance] Template query took ${Date.now() - startTime}ms (${result.length} templates)`);
+      console.log(
+        `[Performance] Template query took ${Date.now() - startTime}ms (${result.length} templates)`
+      );
 
       // Cache the result
       setCache(cacheKey, result);
@@ -179,10 +169,7 @@ export class TemplateService {
   /**
    * Get template by ID
    */
-  static async getTemplateById(
-    id: string,
-    storeId?: string
-  ): Promise<TemplateWithConfigs | null> {
+  static async getTemplateById(id: string, storeId?: string): Promise<TemplateWithConfigs | null> {
     try {
       const template = await prisma.template.findFirst({
         where: {
@@ -223,31 +210,32 @@ export class TemplateService {
           ...globalOrStoreWhere(storeId),
           isActive: true,
         },
-        orderBy: [
-          { priority: "desc" },
-          { createdAt: "desc" },
-        ],
+        orderBy: [{ priority: "desc" }, { createdAt: "desc" }],
       });
 
       const result = templates.map(parseTemplateEntity);
 
-      console.log(`[Performance] Template query (type: ${templateType}) took ${Date.now() - startTime}ms (${result.length} templates)`);
+      console.log(
+        `[Performance] Template query (type: ${templateType}) took ${Date.now() - startTime}ms (${result.length} templates)`
+      );
 
       // Cache the result
       setCache(cacheKey, result);
 
       return result;
     } catch (error) {
-      throw new TemplateServiceError("FETCH_TEMPLATES_BY_TYPE_FAILED", "Failed to fetch templates by type", error);
+      throw new TemplateServiceError(
+        "FETCH_TEMPLATES_BY_TYPE_FAILED",
+        "Failed to fetch templates by type",
+        error
+      );
     }
   }
 
   /**
    * Create a new template
    */
-  static async createTemplate(
-    data: TemplateCreateData
-  ): Promise<TemplateWithConfigs> {
+  static async createTemplate(data: TemplateCreateData): Promise<TemplateWithConfigs> {
     try {
       // Enforce plan feature & limits for store-specific (custom) templates
       if (data.storeId) {
@@ -298,9 +286,7 @@ export class TemplateService {
   /**
    * Get default template for a template type
    */
-  static async getDefaultTemplate(
-    templateType: TemplateType
-  ): Promise<TemplateWithConfigs | null> {
+  static async getDefaultTemplate(templateType: TemplateType): Promise<TemplateWithConfigs | null> {
     try {
       const template = await prisma.template.findFirst({
         where: {
@@ -314,7 +300,11 @@ export class TemplateService {
 
       return template ? parseTemplateEntity(template) : null;
     } catch (error) {
-      throw new TemplateServiceError("FETCH_DEFAULT_TEMPLATE_FAILED", "Failed to fetch default template", error);
+      throw new TemplateServiceError(
+        "FETCH_DEFAULT_TEMPLATE_FAILED",
+        "Failed to fetch default template",
+        error
+      );
     }
   }
 }

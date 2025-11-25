@@ -23,8 +23,9 @@ interface DesignStepProps {
 }
 function toDesignConfig(p?: PopupDesignFormData): Partial<DesignConfig> {
   if (!p) return {};
-  const isPos = (v: string): v is DesignConfig["position"] => ["center","top","bottom","left","right"].includes(v);
-  const isSize = (v: string): v is DesignConfig["size"] => ["small","medium","large"].includes(v);
+  const isPos = (v: string): v is DesignConfig["position"] =>
+    ["center", "top", "bottom", "left", "right"].includes(v);
+  const isSize = (v: string): v is DesignConfig["size"] => ["small", "medium", "large"].includes(v);
   return {
     backgroundColor: p.backgroundColor || undefined,
     textColor: p.textColor || undefined,
@@ -36,7 +37,10 @@ function toDesignConfig(p?: PopupDesignFormData): Partial<DesignConfig> {
   };
 }
 
-function mergePopupDesignChange(prev: PopupDesignFormData | undefined, change: Partial<DesignConfig>): PopupDesignFormData {
+function mergePopupDesignChange(
+  prev: PopupDesignFormData | undefined,
+  change: Partial<DesignConfig>
+): PopupDesignFormData {
   const base: PopupDesignFormData = prev || {
     id: "",
     title: "",
@@ -62,7 +66,6 @@ function mergePopupDesignChange(prev: PopupDesignFormData | undefined, change: P
     overlayOpacity: change.overlayOpacity ?? base.overlayOpacity,
   };
 }
-
 
 export function DesignStep(_props?: DesignStepProps) {
   // Use context hooks
@@ -96,7 +99,8 @@ export function DesignStep(_props?: DesignStepProps) {
                 Content Configuration
               </Text>
               <Text as="p" tone="subdued">
-                Customize the text, messages, and behavior for your {templateType?.toLowerCase().replace(/_/g, ' ')} popup.
+                Customize the text, messages, and behavior for your{" "}
+                {templateType?.toLowerCase().replace(/_/g, " ")} popup.
               </Text>
               <Divider />
               <ContentConfigSection
@@ -114,7 +118,8 @@ export function DesignStep(_props?: DesignStepProps) {
                 Design & Colors
               </Text>
               <Text as="p" tone="subdued">
-                Customize the appearance, layout, and colors of your popup. All color fields are optional - leave empty to use theme defaults.
+                Customize the appearance, layout, and colors of your popup. All color fields are
+                optional - leave empty to use theme defaults.
               </Text>
               <Divider />
               <DesignConfigSection
@@ -143,4 +148,3 @@ export function DesignStep(_props?: DesignStepProps) {
     </Layout>
   );
 }
-

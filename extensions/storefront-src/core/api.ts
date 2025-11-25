@@ -14,7 +14,24 @@ export interface ApiConfig {
 export interface FetchCampaignsResponse {
   campaigns: unknown[];
   success: boolean;
+  globalCustomCSS?: string;
+  timestamp?: string;
 }
+
+type IssueDiscountResponse = {
+  code?: string;
+  type?: string;
+  autoApplyMode?: string;
+  error?: string;
+};
+
+type EmailRecoveryResponse = {
+  discountCode?: string;
+  deliveryMode?: string;
+  autoApplyMode?: string;
+  message?: string;
+  error?: string;
+};
 
 const SESSION_START_KEY = "revenue_boost_session_start_time";
 const PAGE_VIEWS_KEY = "revenue_boost_page_views";
@@ -375,16 +392,17 @@ export class ApiClient {
 
       if (!response.ok) {
         this.log("Discount issue failed:", result);
-        throw new Error((result as any).error || `HTTP ${response.status}`);
+        const parsed = result as IssueDiscountResponse;
+        throw new Error(parsed.error || `HTTP ${response.status}`);
       }
 
       this.log("Discount issued successfully:", result);
 
       return {
         success: true,
-        code: (result as any).code,
-        type: (result as any).type,
-        autoApplyMode: (result as any).autoApplyMode,
+        code: (result as IssueDiscountResponse).code,
+        type: (result as IssueDiscountResponse).type,
+        autoApplyMode: (result as IssueDiscountResponse).autoApplyMode,
       };
     } catch (error) {
       console.error("[Revenue Boost API] Failed to issue discount:", error);
@@ -399,7 +417,7 @@ export class ApiClient {
     campaignId: string;
     email: string;
     cartSubtotalCents?: number;
-    cartItems?: any[];
+    cartItems?: Array<Record<string, unknown>>;
   }): Promise<{
     success: boolean;
     discountCode?: string;
@@ -423,20 +441,21 @@ export class ApiClient {
         body: JSON.stringify(data),
       });
 
-      const result = await response.json().catch(() => ({}));
+      const result = await response.json().catch(() => ({} as EmailRecoveryResponse));
 
       if (!response.ok) {
-        throw new Error((result as any).error || `HTTP ${response.status}`);
+        const parsed = result as EmailRecoveryResponse;
+        throw new Error(parsed.error || `HTTP ${response.status}`);
       }
 
       this.log("Cart email recovery success:", result);
 
       return {
         success: true,
-        discountCode: (result as any).discountCode,
-        deliveryMode: (result as any).deliveryMode,
-        autoApplyMode: (result as any).autoApplyMode,
-        message: (result as any).message,
+        discountCode: (result as EmailRecoveryResponse).discountCode,
+        deliveryMode: (result as EmailRecoveryResponse).deliveryMode,
+        autoApplyMode: (result as EmailRecoveryResponse).autoApplyMode,
+        message: (result as EmailRecoveryResponse).message,
       };
     } catch (error) {
       console.error("[Revenue Boost API] Failed to perform email recovery:", error);
@@ -532,4 +551,3 @@ export class ApiClient {
     }
   }
 }
-

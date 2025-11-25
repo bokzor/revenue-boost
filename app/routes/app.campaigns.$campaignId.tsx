@@ -95,9 +95,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         stats = {
           leadCount: statEntry.leadCount,
           conversionRate: statEntry.conversionRate,
-          lastLeadAt: statEntry.lastLeadAt
-            ? statEntry.lastLeadAt.toISOString()
-            : null,
+          lastLeadAt: statEntry.lastLeadAt ? statEntry.lastLeadAt.toISOString() : null,
         };
       }
 
@@ -133,17 +131,20 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   } catch (error) {
     console.error("Failed to load campaign:", error);
 
-    return data<LoaderData>({
-      campaign: null,
-      storeId: "",
-      stats: null,
-      funnel: null,
-      revenue: 0,
-      discountGiven: 0,
-      aov: 0,
-      clicks: 0,
-      currency: "USD",
-    }, { status: 404 });
+    return data<LoaderData>(
+      {
+        campaign: null,
+        storeId: "",
+        stats: null,
+        funnel: null,
+        revenue: 0,
+        discountGiven: 0,
+        aov: 0,
+        clicks: 0,
+        currency: "USD",
+      },
+      { status: 404 }
+    );
   }
 }
 
@@ -159,7 +160,6 @@ export default function CampaignDetailPage() {
 
   const location = useLocation();
   const isAnalyticsRoute = location.pathname.endsWith("/analytics");
-
 
   // State for toast notifications
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -177,19 +177,30 @@ export default function CampaignDetailPage() {
   };
 
   const handleEdit = () => {
-    console.log('[Campaign Detail] handleEdit called');
-    console.log('[Campaign Detail] Campaign:', campaign?.id, 'experimentId:', campaign?.experimentId);
+    console.log("[Campaign Detail] handleEdit called");
+    console.log(
+      "[Campaign Detail] Campaign:",
+      campaign?.id,
+      "experimentId:",
+      campaign?.experimentId
+    );
     if (campaign) {
       // If campaign is part of an A/B test, edit the experiment instead
       if (campaign.experimentId) {
-        console.log('[Campaign Detail] Navigating to experiment edit:', `/app/experiments/${campaign.experimentId}/edit`);
+        console.log(
+          "[Campaign Detail] Navigating to experiment edit:",
+          `/app/experiments/${campaign.experimentId}/edit`
+        );
         navigate(`/app/experiments/${campaign.experimentId}/edit`);
       } else {
-        console.log('[Campaign Detail] Navigating to campaign edit:', `/app/campaigns/${campaign.id}/edit`);
+        console.log(
+          "[Campaign Detail] Navigating to campaign edit:",
+          `/app/campaigns/${campaign.id}/edit`
+        );
         navigate(`/app/campaigns/${campaign.id}/edit`);
       }
     } else {
-      console.log('[Campaign Detail] No campaign found, cannot edit');
+      console.log("[Campaign Detail] No campaign found, cannot edit");
     }
   };
 
@@ -218,7 +229,6 @@ export default function CampaignDetailPage() {
 
       // Navigate to the new campaign
       navigate(`/app/campaigns/${newCampaign.id}`);
-
     } catch (error) {
       console.error("Failed to duplicate campaign:", error);
       showToast(getErrorMessage(error), true);
@@ -239,7 +249,6 @@ export default function CampaignDetailPage() {
 
       // Navigate back to dashboard
       navigate("/app");
-
     } catch (error) {
       console.error("Failed to delete campaign:", error);
       showToast(getErrorMessage(error), true);
@@ -258,7 +267,6 @@ export default function CampaignDetailPage() {
 
       showToast(`Campaign ${newStatus.toLowerCase()} successfully`);
       revalidator.revalidate();
-
     } catch (error) {
       console.error("Failed to update campaign status:", error);
       showToast(getErrorMessage(error), true);
@@ -267,11 +275,7 @@ export default function CampaignDetailPage() {
 
   // Toast component
   const toastMarkup = toastMessage ? (
-    <Toast
-      content={toastMessage}
-      error={toastError}
-      onDismiss={() => setToastMessage(null)}
-    />
+    <Toast content={toastMessage} error={toastError} onDismiss={() => setToastMessage(null)} />
   ) : null;
 
   if (isAnalyticsRoute) {

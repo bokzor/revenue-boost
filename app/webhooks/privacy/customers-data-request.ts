@@ -1,6 +1,6 @@
 /**
  * Handler for customers/data_request webhook
- * 
+ *
  * Compiles all customer data stored by the app for GDPR compliance.
  * This webhook is triggered when a customer requests their data.
  */
@@ -35,17 +35,14 @@ export async function handleCustomersDataRequest(
     prisma.lead.findMany({
       where: {
         storeId: store.id,
-        OR: [
-          { shopifyCustomerId: BigInt(payload.customer.id) },
-          { email: payload.customer.email },
-        ],
+        OR: [{ shopifyCustomerId: BigInt(payload.customer.id) }, { email: payload.customer.email }],
       },
       include: {
         campaign: {
           select: { name: true },
         },
       },
-      orderBy: { submittedAt: 'desc' },
+      orderBy: { submittedAt: "desc" },
     }),
 
     // Find conversions by customer ID
@@ -56,7 +53,7 @@ export async function handleCustomersDataRequest(
           storeId: store.id,
         },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     }),
 
     // Find popup events linked to leads or with matching visitor data
@@ -70,7 +67,7 @@ export async function handleCustomersDataRequest(
           ],
         },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       take: 1000, // Limit to prevent excessive data
     }),
   ]);
@@ -117,7 +114,9 @@ export async function handleCustomersDataRequest(
   return dataExport;
 }
 
-function createEmptyDataExport(customer: CustomersDataRequestPayload['customer']): CustomerDataExport {
+function createEmptyDataExport(
+  customer: CustomersDataRequestPayload["customer"]
+): CustomerDataExport {
   return {
     customer,
     leads: [],
@@ -125,4 +124,3 @@ function createEmptyDataExport(customer: CustomersDataRequestPayload['customer']
     events: [],
   };
 }
-

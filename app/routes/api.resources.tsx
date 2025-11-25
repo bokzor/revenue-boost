@@ -80,10 +80,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
     const type = url.searchParams.get("type") || "product";
 
     if (!idsParam) {
-      return data(
-        { error: "Missing 'ids' parameter" },
-        { status: 400 }
-      );
+      return data({ error: "Missing 'ids' parameter" }, { status: 400 });
     }
 
     const ids = idsParam.split(",").filter(Boolean);
@@ -155,4 +152,3 @@ export async function loader({ request }: LoaderFunctionArgs) {
     return handleApiError(error, "GET /api/resources");
   }
 }
-

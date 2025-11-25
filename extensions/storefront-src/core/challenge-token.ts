@@ -19,14 +19,16 @@ interface ChallengeTokenResponse {
 /**
  * Request a challenge token from the server
  * Call this when user interacts with popup (before showing email form)
- * 
+ *
  * @param campaignId - Campaign ID
  * @param sessionId - User's session ID
+ * @param previewToken - Optional preview token for preview mode
  * @returns Challenge token data or error
  */
 export async function requestChallengeToken(
     campaignId: string,
-    sessionId: string
+    sessionId: string,
+    previewToken?: string
 ): Promise<ChallengeTokenResponse> {
     try {
         const response = await fetch('/apps/revenue-boost/api/challenge/request', {
@@ -37,6 +39,7 @@ export async function requestChallengeToken(
             body: JSON.stringify({
                 campaignId,
                 sessionId,
+                previewToken, // Include preview token if present
             }),
         });
 

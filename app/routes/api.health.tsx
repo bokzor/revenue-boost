@@ -5,9 +5,7 @@
  * GET /api/health
  */
 
-import {
-  data,
-} from "react-router";
+import { data } from "react-router";
 import { adminCors } from "~/lib/cors.server";
 import prisma from "~/db.server";
 
@@ -58,7 +56,8 @@ export async function loader() {
       domainsStatus = "error";
     }
 
-    const overallStatus = databaseStatus === "connected" && domainsStatus === "loaded" ? "ok" : "error";
+    const overallStatus =
+      databaseStatus === "connected" && domainsStatus === "loaded" ? "ok" : "error";
 
     const response: HealthResponse = {
       status: overallStatus,
@@ -68,12 +67,15 @@ export async function loader() {
         database: databaseStatus,
         domains: domainsStatus,
       },
-      message: overallStatus === "ok" ? "All systems operational" : "Some services are experiencing issues",
+      message:
+        overallStatus === "ok"
+          ? "All systems operational"
+          : "Some services are experiencing issues",
     };
 
     return data(response, {
       status: overallStatus === "ok" ? 200 : 503,
-      headers
+      headers,
     });
   } catch (error) {
     console.error("Health check error:", error);
@@ -91,7 +93,7 @@ export async function loader() {
 
     return data(response, {
       status: 503,
-      headers
+      headers,
     });
   }
 }

@@ -1,6 +1,6 @@
 /**
  * Social Proof Service
- * 
+ *
  * Generates real-time social proof notifications from:
  * - Shopify orders (recent purchases)
  * - Redis visitor tracking (live counts)
@@ -42,7 +42,9 @@ export class SocialProofService {
 
     // Build array of promises for all enabled notification types
     // Using Promise.allSettled to handle individual failures gracefully
-    const notificationPromises: Promise<SocialProofNotification | SocialProofNotification[] | null>[] = [];
+    const notificationPromises: Promise<
+      SocialProofNotification | SocialProofNotification[] | null
+    >[] = [];
 
     // 1. Purchase Notifications (if enabled)
     if (config.enablePurchaseNotifications !== false) {
@@ -125,16 +127,16 @@ export class SocialProofService {
     // Collect successful results and flatten arrays
     const notifications: SocialProofNotification[] = [];
     for (const result of results) {
-      if (result.status === 'fulfilled' && result.value) {
+      if (result.status === "fulfilled" && result.value) {
         // Handle both single notifications and arrays
         if (Array.isArray(result.value)) {
           notifications.push(...result.value);
         } else {
           notifications.push(result.value);
         }
-      } else if (result.status === 'rejected') {
+      } else if (result.status === "rejected") {
         // Log errors but don't fail the entire request
-        console.error('[SocialProofService] Notification fetch failed:', result.reason);
+        console.error("[SocialProofService] Notification fetch failed:", result.reason);
       }
     }
 
@@ -157,4 +159,3 @@ export class SocialProofService {
     return shuffled;
   }
 }
-

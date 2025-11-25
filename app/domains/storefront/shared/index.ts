@@ -7,4 +7,3 @@ export { PopupManager } from "./PopupManager";
 export { PopupManagerCore } from "./PopupManagerCore";
 export { PopupManager as PopupManagerReact } from "./PopupManagerReact";
 export * as PopupStyles from "./PopupStyles";
-

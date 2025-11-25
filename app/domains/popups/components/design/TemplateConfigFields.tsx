@@ -19,15 +19,18 @@ import {
 } from "@shopify/polaris";
 import { ChevronDownIcon, ChevronUpIcon } from "@shopify/polaris-icons";
 import { getFieldsForTemplate } from "~/lib/template-field-definitions";
-import type {
-  ContentFieldDefinition,
-  TemplateSection,
-} from "~/lib/content-config";
+import type { ContentFieldDefinition, TemplateSection } from "~/lib/content-config";
 import { TEMPLATE_SECTIONS } from "~/lib/content-config";
 import { PrizeListEditor, type PrizeItem } from "./PrizeListEditor";
 import { WheelColorEditor } from "./WheelColorEditor";
 
-export type TemplateConfigValue = string | number | boolean | string[] | PrizeItem[] | Record<string, unknown>;
+export type TemplateConfigValue =
+  | string
+  | number
+  | boolean
+  | string[]
+  | PrizeItem[]
+  | Record<string, unknown>;
 
 export interface TemplateConfigFieldsProps {
   templateType: string;
@@ -54,16 +57,14 @@ export const TemplateConfigFields: React.FC<TemplateConfigFieldsProps> = ({
   const fields = getFieldsForTemplate(templateType);
 
   // Track which sections are open
-  const [openSections, setOpenSections] = useState<Record<string, boolean>>(
-    () => {
-      // Default open sections based on TEMPLATE_SECTIONS metadata
-      const defaults: Record<string, boolean> = {};
-      Object.entries(TEMPLATE_SECTIONS).forEach(([key, meta]) => {
-        defaults[key] = meta.defaultOpen;
-      });
-      return defaults;
-    },
-  );
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>(() => {
+    // Default open sections based on TEMPLATE_SECTIONS metadata
+    const defaults: Record<string, boolean> = {};
+    Object.entries(TEMPLATE_SECTIONS).forEach(([key, meta]) => {
+      defaults[key] = meta.defaultOpen;
+    });
+    return defaults;
+  });
 
   const toggleSection = (section: string) => {
     setOpenSections((prev) => ({ ...prev, [section]: !prev[section] }));
@@ -96,9 +97,7 @@ export const TemplateConfigFields: React.FC<TemplateConfigFieldsProps> = ({
         case "not_equals":
           return fieldValue !== condition.value;
         case "contains":
-          return (
-            Array.isArray(fieldValue) && (fieldValue as any).includes(condition.value as any)
-          );
+          return Array.isArray(fieldValue) && fieldValue.includes(condition.value);
         default:
           return true;
       }
@@ -166,11 +165,7 @@ export const TemplateConfigFields: React.FC<TemplateConfigFieldsProps> = ({
             key={field.id}
             label={field.label}
             type="number"
-            value={String(
-              value !== undefined && value !== null
-                ? value
-                : field.defaultValue || "",
-            )}
+            value={String(value !== undefined && value !== null ? value : field.defaultValue || "")}
             onChange={(newValue) => {
               // Allow empty string to clear the field completely
               if (newValue === "") {
@@ -316,9 +311,7 @@ export const TemplateConfigFields: React.FC<TemplateConfigFieldsProps> = ({
       case "prize-list": {
         return (
           <div key={field.id}>
-            <label
-              style={{ display: "block", marginBottom: 8, fontWeight: 500 }}
-            >
+            <label style={{ display: "block", marginBottom: 8, fontWeight: 500 }}>
               {field.label}
             </label>
             {field.description && (
@@ -337,9 +330,7 @@ export const TemplateConfigFields: React.FC<TemplateConfigFieldsProps> = ({
       case "color-list": {
         return (
           <div key={field.id}>
-            <label
-              style={{ display: "block", marginBottom: 8, fontWeight: 500 }}
-            >
+            <label style={{ display: "block", marginBottom: 8, fontWeight: 500 }}>
               {field.label}
             </label>
             {field.description && (
@@ -370,7 +361,7 @@ export const TemplateConfigFields: React.FC<TemplateConfigFieldsProps> = ({
       acc[section].push(field);
       return acc;
     },
-    {} as Record<string, ContentFieldDefinition[]>,
+    {} as Record<string, ContentFieldDefinition[]>
   );
 
   // Render fields grouped by section with collapsible sections
@@ -379,9 +370,7 @@ export const TemplateConfigFields: React.FC<TemplateConfigFieldsProps> = ({
 
     // If only one section, render without collapsible
     if (sections.length === 1) {
-      return (
-        <FormLayout>{fields.map((field) => renderField(field))}</FormLayout>
-      );
+      return <FormLayout>{fields.map((field) => renderField(field))}</FormLayout>;
     }
 
     // Render with collapsible section headers
@@ -392,8 +381,7 @@ export const TemplateConfigFields: React.FC<TemplateConfigFieldsProps> = ({
           const isOpen = openSections[sectionKey] ?? true;
 
           // Use metadata if available, otherwise format the key
-          const sectionTitle =
-            sectionMeta?.title || formatGroupName(sectionKey);
+          const sectionTitle = sectionMeta?.title || formatGroupName(sectionKey);
           const sectionIcon = sectionMeta?.icon || "📋";
           const sectionDescription = sectionMeta?.description;
 
@@ -407,7 +395,8 @@ export const TemplateConfigFields: React.FC<TemplateConfigFieldsProps> = ({
               }}
             >
               {/* Section Header */}
-              <div
+              <button
+                type="button"
                 style={{
                   padding: "12px 16px",
                   display: "flex",
@@ -415,8 +404,16 @@ export const TemplateConfigFields: React.FC<TemplateConfigFieldsProps> = ({
                   justifyContent: "space-between",
                   width: "100%",
                   cursor: "pointer",
+                  background: "transparent",
+                  border: "none",
                 }}
                 onClick={() => toggleSection(sectionKey)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    toggleSection(sectionKey);
+                  }
+                }}
               >
                 <InlineStack gap="300" blockAlign="center">
                   <span style={{ fontSize: "20px" }}>{sectionIcon}</span>
@@ -432,21 +429,15 @@ export const TemplateConfigFields: React.FC<TemplateConfigFieldsProps> = ({
                   </BlockStack>
                 </InlineStack>
                 <InlineStack gap="200" blockAlign="center">
-                  {sectionFields.some((f) => f.advanced) && (
-                    <Badge tone="info">Advanced</Badge>
-                  )}
+                  {sectionFields.some((f) => f.advanced) && <Badge tone="info">Advanced</Badge>}
                   {isOpen ? <ChevronUpIcon /> : <ChevronDownIcon />}
                 </InlineStack>
-              </div>
+              </button>
 
               {/* Section Content */}
               <Collapsible open={isOpen} id={`section-${sectionKey}`}>
-                <div
-                  style={{ padding: "16px", borderTop: "1px solid #E1E3E5" }}
-                >
-                  <FormLayout>
-                    {sectionFields.map((field) => renderField(field))}
-                  </FormLayout>
+                <div style={{ padding: "16px", borderTop: "1px solid #E1E3E5" }}>
+                  <FormLayout>{sectionFields.map((field) => renderField(field))}</FormLayout>
                 </div>
               </Collapsible>
             </div>
@@ -481,9 +472,7 @@ function formatGroupName(group: string): string {
  * Get template sections data for rendering in parent component
  * This allows PopupDesignEditorV2 to render sections as top-level instead of nested
  */
-export function getTemplateSections(
-  templateType: string,
-): TemplateSectionData[] {
+export function getTemplateSections(templateType: string): TemplateSectionData[] {
   const fields = getFieldsForTemplate(templateType);
 
   if (!fields || fields.length === 0) {
@@ -500,7 +489,7 @@ export function getTemplateSections(
       acc[section].push(field);
       return acc;
     },
-    {} as Record<string, ContentFieldDefinition[]>,
+    {} as Record<string, ContentFieldDefinition[]>
   );
 
   // Convert to array of section data

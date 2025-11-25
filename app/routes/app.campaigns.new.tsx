@@ -17,6 +17,8 @@ import type { CampaignFormData } from "~/shared/hooks/useWizardState";
 import { useState } from "react";
 import { Modal, Text, Toast, Frame } from "@shopify/polaris";
 import type { UnifiedTemplate } from "~/domains/popups/services/templates/unified-template-service.server";
+import prisma from "~/db.server";
+import { StoreSettingsSchema } from "~/domains/store/types/settings";
 
 // ============================================================================
 // LOADER - Fetch necessary data for form
@@ -27,6 +29,11 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
   try {
     const storeId = await getStoreId(request);
+
+    const store = await prisma.store.findUnique({
+      where: { id: storeId },
+      select: { settings: true },
+    });
 
     // Read template query parameter for preselection
     const url = new URL(request.url);
@@ -50,11 +57,14 @@ export async function loader({ request }: LoaderFunctionArgs) {
       }
     }
 
+    const parsedSettings = StoreSettingsSchema.partial().safeParse(store?.settings || {});
+
     return data({
       storeId,
       shopDomain: session.shop,
       templateType: templateParam || undefined,
       preselectedGoal,
+      globalCustomCSS: parsedSettings.success ? parsedSettings.data.globalCustomCSS : undefined,
       success: true,
     });
   } catch (error) {
@@ -63,6 +73,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
       shopDomain: "",
       success: false,
       error: error instanceof Error ? error.message : "Failed to load data",
+      globalCustomCSS: undefined,
     });
   }
 }
@@ -74,10 +85,13 @@ export async function loader({ request }: LoaderFunctionArgs) {
 export async function action({ request }: ActionFunctionArgs) {
   await authenticate.admin(request);
 
-  return data({
-    success: false,
-    error: "This route does not handle POST requests. Use the form's onSave handler.",
-  }, { status: 400 });
+  return data(
+    {
+      success: false,
+      error: "This route does not handle POST requests. Use the form's onSave handler.",
+    },
+    { status: 400 }
+  );
 }
 
 // ============================================================================
@@ -92,22 +106,23 @@ export default function NewCampaign() {
   const [createdCampaignId, setCreatedCampaignId] = useState<string | null>(null);
   const [activating, setActivating] = useState(false);
 
-
-  const { storeId, shopDomain, templates, templateType, preselectedGoal } = loaderData as {
-    storeId: string;
-    shopDomain: string;
-    templates: UnifiedTemplate[];
-    templateType?: string;
-    preselectedGoal?: string;
-    success: boolean;
-  };
+  const { storeId, shopDomain, templates, templateType, preselectedGoal, globalCustomCSS } =
+    loaderData as {
+      storeId: string;
+      shopDomain: string;
+      templates: UnifiedTemplate[];
+      templateType?: string;
+      preselectedGoal?: string;
+      globalCustomCSS?: string;
+      success: boolean;
+    };
 
   // Handle save - create campaign(s) via API
-	  const [toastMessage, setToastMessage] = useState<string | null>(null);
-	  const [toastError, setToastError] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [toastError, setToastError] = useState(false);
 
-	  const handleSave = async (campaignData: CampaignFormData | CampaignFormData[]) => {
-    console.log('[CampaignNew] handleSave called', {
+  const handleSave = async (campaignData: CampaignFormData | CampaignFormData[]) => {
+    console.log("[CampaignNew] handleSave called", {
       isArray: Array.isArray(campaignData),
       hasFrequencyCapping: Array.isArray(campaignData)
         ? !!campaignData[0]?.frequencyCapping
@@ -125,11 +140,16 @@ export default function NewCampaign() {
           name: (firstVariant as { experimentName?: string }).experimentName,
           description: (firstVariant as { experimentDescription?: string }).experimentDescription,
           hypothesis: (firstVariant as { experimentHypothesis?: string }).experimentHypothesis,
-          trafficAllocation: campaignData.reduce((acc, variant, index) => {
-            const key = ["A", "B", "C", "D"][index];
-            acc[key] = (variant as { trafficAllocation?: number }).trafficAllocation || Math.floor(100 / campaignData.length);
-            return acc;
-          }, {} as Record<string, number>),
+          trafficAllocation: campaignData.reduce(
+            (acc, variant, index) => {
+              const key = ["A", "B", "C", "D"][index];
+              acc[key] =
+                (variant as { trafficAllocation?: number }).trafficAllocation ||
+                Math.floor(100 / campaignData.length);
+              return acc;
+            },
+            {} as Record<string, number>
+          ),
           statisticalConfig: {
             confidenceLevel: 0.95,
             minimumSampleSize: 100,
@@ -137,27 +157,28 @@ export default function NewCampaign() {
             maxDurationDays: 30,
           },
           successMetrics: {
-            primaryMetric: (firstVariant as { successMetric?: string }).successMetric || "conversion_rate",
+            primaryMetric:
+              (firstVariant as { successMetric?: string }).successMetric || "conversion_rate",
             secondaryMetrics: ["click_through_rate"],
           },
         };
 
         // Create experiment via API
-	        const expResponse = await fetch("/api/experiments", {
+        const expResponse = await fetch("/api/experiments", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(experimentData),
         });
 
-	        if (!expResponse.ok) {
-	          const planLimit = await tryParsePlanLimitError(expResponse);
-	          if (planLimit) {
-	            setToastMessage(planLimit.message);
-	            setToastError(true);
-	            return;
-	          }
-	          throw new Error("Failed to create experiment");
-	        }
+        if (!expResponse.ok) {
+          const planLimit = await tryParsePlanLimitError(expResponse);
+          if (planLimit) {
+            setToastMessage(planLimit.message);
+            setToastError(true);
+            return;
+          }
+          throw new Error("Failed to create experiment");
+        }
 
         const expBody = await expResponse.json();
         const experiment = expBody?.data?.experiment ?? expBody?.data;
@@ -165,14 +186,22 @@ export default function NewCampaign() {
         // Create campaigns for each variant via API
         const campaignPromises = campaignData.map(async (variant, index) => {
           // Extract frequency capping fields (already in server format)
-          const { enabled, max_triggers_per_session, max_triggers_per_day, cooldown_between_triggers, respectGlobalCap } = variant.frequencyCapping;
-
-          // Only include frequency_capping if enabled
-          const frequency_capping = enabled ? {
+          const {
+            enabled,
             max_triggers_per_session,
             max_triggers_per_day,
             cooldown_between_triggers,
-          } : undefined;
+            respectGlobalCap,
+          } = variant.frequencyCapping;
+
+          // Only include frequency_capping if enabled
+          const frequency_capping = enabled
+            ? {
+                max_triggers_per_session,
+                max_triggers_per_day,
+                cooldown_between_triggers,
+              }
+            : undefined;
 
           const campaignCreateData = {
             name: variant.name || `${experimentData.name} - Variant ${["A", "B", "C", "D"][index]}`,
@@ -201,21 +230,21 @@ export default function NewCampaign() {
             tags: variant.tags,
           };
 
-	          const response = await fetch("/api/campaigns", {
+          const response = await fetch("/api/campaigns", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(campaignCreateData),
           });
 
-	          if (!response.ok) {
-	            const planLimit = await tryParsePlanLimitError(response);
-	            if (planLimit) {
-	              setToastMessage(planLimit.message);
-	              setToastError(true);
-	              return;
-	            }
-	            throw new Error("Failed to create campaign variant");
-	          }
+          if (!response.ok) {
+            const planLimit = await tryParsePlanLimitError(response);
+            if (planLimit) {
+              setToastMessage(planLimit.message);
+              setToastError(true);
+              return;
+            }
+            throw new Error("Failed to create campaign variant");
+          }
 
           return response.json();
         });
@@ -231,14 +260,22 @@ export default function NewCampaign() {
       } else {
         // Single campaign
         // Extract frequency capping fields (already in server format)
-        const { enabled, max_triggers_per_session, max_triggers_per_day, cooldown_between_triggers, respectGlobalCap } = campaignData.frequencyCapping;
-
-        // Only include frequency_capping if enabled
-        const frequency_capping = enabled ? {
+        const {
+          enabled,
           max_triggers_per_session,
           max_triggers_per_day,
           cooldown_between_triggers,
-        } : undefined;
+          respectGlobalCap,
+        } = campaignData.frequencyCapping;
+
+        // Only include frequency_capping if enabled
+        const frequency_capping = enabled
+          ? {
+              max_triggers_per_session,
+              max_triggers_per_day,
+              cooldown_between_triggers,
+            }
+          : undefined;
 
         const campaignCreateData = {
           name: campaignData.name,
@@ -264,31 +301,31 @@ export default function NewCampaign() {
           tags: campaignData.tags,
         };
 
-        console.log('[CampaignNew] POSTing /api/campaigns', campaignCreateData);
+        console.log("[CampaignNew] POSTing /api/campaigns", campaignCreateData);
 
-	        const response = await fetch("/api/campaigns", {
+        const response = await fetch("/api/campaigns", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(campaignCreateData),
         });
 
-        console.log('[CampaignNew] /api/campaigns response', response.status);
+        console.log("[CampaignNew] /api/campaigns response", response.status);
 
-	        if (!response.ok) {
-	          const planLimit = await tryParsePlanLimitError(response);
-	          if (planLimit) {
-	            setToastMessage(planLimit.message);
-	            setToastError(true);
-	            return;
-	          }
-	          console.error('[CampaignNew] /api/campaigns failed', response.status);
-	          throw new Error("Failed to create campaign");
-	        }
+        if (!response.ok) {
+          const planLimit = await tryParsePlanLimitError(response);
+          if (planLimit) {
+            setToastMessage(planLimit.message);
+            setToastError(true);
+            return;
+          }
+          console.error("[CampaignNew] /api/campaigns failed", response.status);
+          throw new Error("Failed to create campaign");
+        }
 
         const body = await response.json();
         const campaign = body?.data?.campaign ?? body?.data;
 
-        console.log('[CampaignNew] created campaign', campaign?.id);
+        console.log("[CampaignNew] created campaign", campaign?.id);
 
         // Post-create: if still DRAFT, prompt to activate via Polaris modal
         if (campaign?.status === "DRAFT") {
@@ -309,22 +346,19 @@ export default function NewCampaign() {
     navigate("/app/campaigns");
   };
 
-	  const toastMarkup = toastMessage ? (
-	    <Toast
-	      content={toastMessage}
-	      error={toastError}
-	      onDismiss={() => setToastMessage(null)}
-	    />
-	  ) : null;
+  const toastMarkup = toastMessage ? (
+    <Toast content={toastMessage} error={toastError} onDismiss={() => setToastMessage(null)} />
+  ) : null;
 
-	  return (
-	    <Frame>
+  return (
+    <Frame>
       <CampaignFormWithABTesting
         storeId={storeId}
         shopDomain={shopDomain}
         onSave={handleSave}
         onCancel={handleCancel}
         initialTemplates={templates}
+        globalCustomCSS={globalCustomCSS}
         initialData={
           templateType || preselectedGoal
             ? {
@@ -333,9 +367,9 @@ export default function NewCampaign() {
               }
             : undefined
         }
-	      />
+      />
 
-	      <Modal
+      <Modal
         open={activatePromptOpen}
         onClose={() => {
           setActivatePromptOpen(false);
@@ -372,24 +406,27 @@ export default function NewCampaign() {
             },
           },
         ]}
-	      >
+      >
         <div style={{ padding: 16 }}>
-          <Text as="p" variant="bodyMd">This campaign is still a draft. Activate it now</Text>
+          <Text as="p" variant="bodyMd">
+            This campaign is still a draft. Activate it now
+          </Text>
         </div>
-	      </Modal>
-	      {toastMarkup}
-	    </Frame>
+      </Modal>
+      {toastMarkup}
+    </Frame>
   );
 }
 
-async function tryParsePlanLimitError(response: Response): Promise<{ message: string; details: any } | null> {
-	try {
-	  if (response.status !== 403) return null;
-	  const body: any = await response.json();
-	  if (body?.errorCode !== "PLAN_LIMIT_EXCEEDED") return null;
-	  return { message: body.error ?? "Plan limit reached", details: body.errorDetails };
-	} catch {
-	  return null;
-	}
+async function tryParsePlanLimitError(
+  response: Response
+): Promise<{ message: string; details: any } | null> {
+  try {
+    if (response.status !== 403) return null;
+    const body: any = await response.json();
+    if (body?.errorCode !== "PLAN_LIMIT_EXCEEDED") return null;
+    return { message: body.error ?? "Plan limit reached", details: body.errorDetails };
+  } catch {
+    return null;
+  }
 }
-

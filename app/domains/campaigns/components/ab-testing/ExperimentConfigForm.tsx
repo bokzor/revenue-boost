@@ -1,6 +1,6 @@
 /**
  * ExperimentConfigForm - Experiment Configuration Form Component
- * 
+ *
  * SOLID Compliance:
  * - Single Responsibility: Renders experiment configuration fields
  * - <50 lines
@@ -95,4 +95,3 @@ export function ExperimentConfigForm({
     </div>
   );
 }
-

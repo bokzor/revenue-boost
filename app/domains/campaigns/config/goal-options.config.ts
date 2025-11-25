@@ -39,7 +39,8 @@ export const GOAL_OPTIONS: Record<CampaignGoal, GoalOption> = {
     id: "INCREASE_REVENUE",
     title: "Increase Revenue",
     subtitle: "Boost sales & average order value",
-    description: "Drive immediate revenue through upsells, cross-sells, bundles, and special offers",
+    description:
+      "Drive immediate revenue through upsells, cross-sells, bundles, and special offers",
     icon: CashDollarIcon,
     iconColor: "#059669",
     benefits: ["Instant revenue", "Higher AOV", "Clear ROI tracking"],
@@ -64,7 +65,10 @@ export const GOAL_OPTIONS: Record<CampaignGoal, GoalOption> = {
 export const getDifficultyColor = (
   difficulty: DifficultyLevel
 ): "success" | "attention" | "warning" => {
-  const colors = { Easy: "success", Medium: "attention", Advanced: "warning" } as const;
+  const colors = {
+    Easy: "success",
+    Medium: "attention",
+    Advanced: "warning",
+  } as const;
   return colors[difficulty];
 };
-

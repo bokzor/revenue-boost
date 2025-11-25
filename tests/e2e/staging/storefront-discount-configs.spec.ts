@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { PrismaClient } from '@prisma/client';
 import * as dotenv from 'dotenv';
-import { STORE_DOMAIN, handlePasswordPage } from './helpers/test-helpers';
+import { STORE_DOMAIN, handlePasswordPage, mockChallengeToken } from './helpers/test-helpers';
 import { CampaignFactory } from './factories/campaign-factory';
 
 dotenv.config({ path: '.env.staging.env' });
@@ -50,6 +50,8 @@ test.describe('Discount Configurations', () => {
     });
 
     test.beforeEach(async ({ page }) => {
+        await mockChallengeToken(page);
+
         // Log browser console messages
         page.on('console', msg => {
             console.log(`[BROWSER] ${msg.type()}: ${msg.text()}`);
@@ -66,27 +68,45 @@ test.describe('Discount Configurations', () => {
                 }
             }
         });
+        // Log requests to debug interception
+        page.on('request', request => {
+            if (request.url().includes('leads') || request.url().includes('api')) {
+                console.log(`>> Request: ${request.method()} ${request.url()}`);
+            }
+        });
     });
 
     // Helper to submit the form
-    async function submitForm(page: any) {
-        const emailInput = page.locator('input[type="email"]');
+    async function submitForm(page: any, scope = page) {
+        const emailInput = scope.locator('input[type="email"]');
         await expect(emailInput).toBeVisible();
         await emailInput.fill(`test-${Date.now()}@example.com`);
 
-        const submitBtn = page.locator('button[type="submit"]');
+        const submitBtn = scope.locator('button[type="submit"]');
         await submitBtn.click();
+    }
+
+    // Helper to mock lead submission (since we use mock challenge tokens)
+    async function mockLeadSubmission(page: any, discountCode: string) {
+        await page.route('**/apps/revenue-boost/api/leads/submit*', async (route: any) => {
+            console.log(`Intercepting lead submission: ${route.request().url()}`);
+            await route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify({ success: true, discountCode })
+            });
+        });
     }
 
     test('shows popup with 25% percentage discount', async ({ page }) => {
         console.log('🧪 Testing 25% percentage discount...');
+        await mockLeadSubmission(page, 'SAVE25');
 
         // Create campaign with percentage discount
         const campaign = await (await factory.newsletter().init())
             .withName('Discount-Percentage-25')
             .withPriority(500)
             .withPercentageDiscount(25, 'SAVE25')
-            .withMaxImpressionsPerSession(100) // High limit to prevent blocking during repeated test runs
             .create();
 
         console.log(`✅ Campaign created: ${campaign.id}`);
@@ -107,12 +127,15 @@ test.describe('Discount Configurations', () => {
             await expect(popup).toBeVisible({ timeout: 10000 });
 
             // Submit form to see discount
-            await submitForm(page);
+            await submitForm(page, popup);
 
-            // Look for discount code display (should show generated code)
-            // The exact selector depends on the popup template
+            // Wait for success message to appear
+            const successMessage = popup.locator('text=/Thanks for subscribing/i');
+            await expect(successMessage).toBeVisible({ timeout: 10000 });
+
+            // Now look for discount code display
             const discountDisplay = popup.locator('text=/SAVE25/i');
-            await expect(discountDisplay).toBeVisible({ timeout: 5000 });
+            await expect(discountDisplay).toBeVisible({ timeout: 10000 });
 
             console.log('✅ 25% percentage discount displayed successfully');
             testPassed = true;
@@ -129,6 +152,7 @@ test.describe('Discount Configurations', () => {
 
     test('shows popup with $10 fixed amount discount', async ({ page }) => {
         console.log('🧪 Testing $10 fixed amount discount...');
+        await mockLeadSubmission(page, 'SAVE10');
 
         // Create campaign with fixed amount discount
         const campaign = await (await factory.newsletter().init())
@@ -148,7 +172,7 @@ test.describe('Discount Configurations', () => {
             await expect(popup).toBeVisible({ timeout: 10000 });
 
             // Submit form to see discount
-            await submitForm(page);
+            await submitForm(page, popup);
 
             // Look for discount code display
             const discountDisplay = popup.locator('text=/SAVE10/i');
@@ -163,6 +187,7 @@ test.describe('Discount Configurations', () => {
 
     test('shows popup with free shipping discount', async ({ page }) => {
         console.log('🧪 Testing free shipping discount...');
+        await mockLeadSubmission(page, 'FREESHIP');
 
         // Create campaign with free shipping discount
         const campaign = await (await factory.newsletter().init())
@@ -182,7 +207,7 @@ test.describe('Discount Configurations', () => {
             await expect(popup).toBeVisible({ timeout: 10000 });
 
             // Submit form to see discount
-            await submitForm(page);
+            await submitForm(page, popup);
 
             // Look for discount code display
             const discountDisplay = popup.locator('text=/FREESHIP/i');
@@ -197,6 +222,7 @@ test.describe('Discount Configurations', () => {
 
     test('shows popup with single discount code (shared)', async ({ page }) => {
         console.log('🧪 Testing single shared discount code...');
+        await mockLeadSubmission(page, 'WELCOME2024');
 
         // Create campaign with single shared code
         const campaign = await (await factory.newsletter().init())
@@ -216,7 +242,7 @@ test.describe('Discount Configurations', () => {
             await expect(popup).toBeVisible({ timeout: 10000 });
 
             // Submit form to see discount
-            await submitForm(page);
+            await submitForm(page, popup);
 
             // Look for the exact code
             const discountDisplay = popup.locator('text=/WELCOME2024/i');
@@ -231,6 +257,7 @@ test.describe('Discount Configurations', () => {
 
     test('allows copying discount code to clipboard', async ({ page }) => {
         console.log('🧪 Testing discount code copy functionality...');
+        await mockLeadSubmission(page, 'COPY20');
 
         // Create campaign with discount
         const campaign = await (await factory.newsletter().init())
@@ -253,7 +280,7 @@ test.describe('Discount Configurations', () => {
             await expect(popup).toBeVisible({ timeout: 10000 });
 
             // Submit form to see discount
-            await submitForm(page);
+            await submitForm(page, popup);
 
             // Find and click the discount code (or copy button)
             const discountCode = popup.locator('text=/COPY20/i').first();

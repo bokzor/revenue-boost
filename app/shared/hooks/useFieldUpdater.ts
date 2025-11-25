@@ -47,21 +47,16 @@ export function useFieldUpdater<T extends object>(
  * );
  * updateTrigger("page_load", { enabled: true, delay: 1000 });
  */
-export function useNestedFieldUpdater<
-  T extends object,
-  K extends keyof T
->(
+export function useNestedFieldUpdater<T extends object, K extends keyof T>(
   currentState: Partial<T>,
   onChange: (updated: Partial<T>) => void,
   nestedKey: K
 ) {
   return useCallback(
-    <NK extends keyof NonNullable<T[K]>>(
-      field: NK,
-      updates: Partial<NonNullable<T[K]>[NK]>
-    ) => {
+    <NK extends keyof NonNullable<T[K]>>(field: NK, updates: Partial<NonNullable<T[K]>[NK]>) => {
       const currentNested = (currentState[nestedKey] as Record<string, unknown> | undefined) || {};
-      const currentField = (currentNested[field as string] as Record<string, unknown> | undefined) || {};
+      const currentField =
+        (currentNested[field as string] as Record<string, unknown> | undefined) || {};
 
       onChange({
         ...currentState,
@@ -77,4 +72,3 @@ export function useNestedFieldUpdater<
     [currentState, onChange, nestedKey]
   );
 }
-

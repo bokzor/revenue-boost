@@ -19,7 +19,7 @@ export function CustomEventTrigger({ config, onChange }: CustomEventTriggerProps
       ...config,
       custom_event: {
         enabled: false,
-        ...(typeof config.custom_event === 'object' && config.custom_event !== null
+        ...(typeof config.custom_event === "object" && config.custom_event !== null
           ? config.custom_event
           : {}),
         ...updates,
@@ -34,8 +34,8 @@ export function CustomEventTrigger({ config, onChange }: CustomEventTriggerProps
       onEnabledChange={(enabled) => updateConfig({ enabled })}
     >
       <Text as="p" variant="bodySm" tone="subdued">
-        Trigger on custom JavaScript events. Advanced option for developers to trigger popups
-        based on custom interactions.
+        Trigger on custom JavaScript events. Advanced option for developers to trigger popups based
+        on custom interactions.
       </Text>
 
       <FormLayout>
@@ -45,7 +45,10 @@ export function CustomEventTrigger({ config, onChange }: CustomEventTriggerProps
           value={config.custom_event?.event_names?.join(", ") || ""}
           onChange={(value) =>
             updateConfig({
-              event_names: value.split(",").map((e) => e.trim()).filter(Boolean),
+              event_names: value
+                .split(",")
+                .map((e) => e.trim())
+                .filter(Boolean),
             })
           }
           placeholder="custom:action, user:interaction"
@@ -64,4 +67,3 @@ export function CustomEventTrigger({ config, onChange }: CustomEventTriggerProps
     </TriggerCard>
   );
 }
-

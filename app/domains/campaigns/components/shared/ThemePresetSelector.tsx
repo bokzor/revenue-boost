@@ -98,4 +98,3 @@ export const ThemePresetSelector: React.FC<ThemePresetSelectorProps> = ({
     </div>
   );
 };
-

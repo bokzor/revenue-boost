@@ -1,12 +1,5 @@
 // React import not needed with JSX transform
-import {
-  BlockStack,
-  Button,
-  ButtonGroup,
-  Text,
-  InlineStack,
-  Banner,
-} from "@shopify/polaris";
+import { BlockStack, Button, ButtonGroup, Text, InlineStack, Banner } from "@shopify/polaris";
 
 export interface WheelColorEditorProps {
   value: string[] | string | undefined;
@@ -26,9 +19,7 @@ export function WheelColorEditor({ value, onChange }: WheelColorEditorProps) {
 
   // Default colors if empty
   const displayColors =
-    colors.length > 0
-      ? colors
-      : ["#FF6B6B", "#FFD166", "#06D6A0", "#118AB2", "#8338EC", "#EF476F"];
+    colors.length > 0 ? colors : ["#FF6B6B", "#FFD166", "#06D6A0", "#118AB2", "#8338EC", "#EF476F"];
 
   const updateColor = (index: number, newColor: string) => {
     const updated = [...displayColors];
@@ -50,14 +41,7 @@ export function WheelColorEditor({ value, onChange }: WheelColorEditorProps) {
   };
 
   const resetToDefaults = () => {
-    onChange([
-      "#FF6B6B",
-      "#FFD166",
-      "#06D6A0",
-      "#118AB2",
-      "#8338EC",
-      "#EF476F",
-    ]);
+    onChange(["#FF6B6B", "#FFD166", "#06D6A0", "#118AB2", "#8338EC", "#EF476F"]);
   };
 
   return (
@@ -102,11 +86,7 @@ export function WheelColorEditor({ value, onChange }: WheelColorEditorProps) {
                   Color {index + 1}
                 </Text>
                 {displayColors.length > 2 && (
-                  <Button
-                    size="micro"
-                    tone="critical"
-                    onClick={() => removeColor(index)}
-                  >
+                  <Button size="micro" tone="critical" onClick={() => removeColor(index)}>
                     ×
                   </Button>
                 )}
@@ -125,7 +105,7 @@ export function WheelColorEditor({ value, onChange }: WheelColorEditorProps) {
                 }}
                 onClick={() => {
                   const input = document.getElementById(
-                    `color-picker-${index}`,
+                    `color-picker-${index}`
                   ) as HTMLInputElement;
                   input?.click();
                 }}

@@ -4,23 +4,26 @@
  * Shared helper functions used across popup components
  */
 
-import type { PopupSize, PopupPosition, PopupAnimation } from './types';
+import type { PopupSize, PopupPosition, PopupAnimation } from "./types";
 
 /**
  * Get size dimensions based on size prop
  * In preview mode, use smaller percentages to show relative size on screen
  */
-export function getSizeDimensions(size: PopupSize, previewMode?: boolean): { width: string; maxWidth: string } {
+export function getSizeDimensions(
+  size: PopupSize,
+  previewMode?: boolean
+): { width: string; maxWidth: string } {
   // Production mode - use full responsive widths
   switch (size) {
-    case 'small':
-      return { width: '100%', maxWidth: '400px' };
-    case 'medium':
-      return { width: '100%', maxWidth: '700px' };
-    case 'large':
-      return { width: '100%', maxWidth: '900px' };
+    case "small":
+      return { width: "100%", maxWidth: "400px" };
+    case "medium":
+      return { width: "100%", maxWidth: "700px" };
+    case "large":
+      return { width: "100%", maxWidth: "900px" };
     default:
-      return { width: '100%', maxWidth: '700px' };
+      return { width: "100%", maxWidth: "700px" };
   }
 }
 
@@ -29,52 +32,52 @@ export function getSizeDimensions(size: PopupSize, previewMode?: boolean): { wid
  */
 export function getPositionStyles(position: PopupPosition): React.CSSProperties {
   const baseStyles: React.CSSProperties = {
-    position: 'fixed',
+    position: "fixed",
     zIndex: 10000,
   };
 
   switch (position) {
-    case 'center':
+    case "center":
       return {
         ...baseStyles,
-        top: '50%',
-        left: '50%',
-        transform: 'translate(-50%, -50%)',
+        top: "50%",
+        left: "50%",
+        transform: "translate(-50%, -50%)",
       };
-    case 'top':
+    case "top":
       return {
         ...baseStyles,
-        top: '20px',
-        left: '50%',
-        transform: 'translateX(-50%)',
+        top: "20px",
+        left: "50%",
+        transform: "translateX(-50%)",
       };
-    case 'bottom':
+    case "bottom":
       return {
         ...baseStyles,
-        bottom: '20px',
-        left: '50%',
-        transform: 'translateX(-50%)',
+        bottom: "20px",
+        left: "50%",
+        transform: "translateX(-50%)",
       };
-    case 'left':
+    case "left":
       return {
         ...baseStyles,
-        top: '50%',
-        left: '20px',
-        transform: 'translateY(-50%)',
+        top: "50%",
+        left: "20px",
+        transform: "translateY(-50%)",
       };
-    case 'right':
+    case "right":
       return {
         ...baseStyles,
-        top: '50%',
-        right: '20px',
-        transform: 'translateY(-50%)',
+        top: "50%",
+        right: "20px",
+        transform: "translateY(-50%)",
       };
     default:
       return {
         ...baseStyles,
-        top: '50%',
-        left: '50%',
-        transform: 'translate(-50%, -50%)',
+        top: "50%",
+        left: "50%",
+        transform: "translate(-50%, -50%)",
       };
   }
 }
@@ -83,9 +86,9 @@ export function getPositionStyles(position: PopupPosition): React.CSSProperties 
  * Get animation class name based on animation type
  */
 export function getAnimationClass(animation: PopupAnimation, isExiting: boolean = false): string {
-  if (animation === 'none') return '';
+  if (animation === "none") return "";
 
-  const prefix = isExiting ? 'popup-exit' : 'popup-enter';
+  const prefix = isExiting ? "popup-exit" : "popup-enter";
   return `${prefix}-${animation}`;
 }
 
@@ -189,24 +192,24 @@ export function validateEmail(email: string): boolean {
  * currency symbol ("$", "€", "£"). Falls back gracefully if an invalid
  * value is provided so we never throw RangeError from Intl.NumberFormat.
  */
-export function formatCurrency(amount: number | string, currency: string = 'USD'): string {
-  const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+export function formatCurrency(amount: number | string, currency: string = "USD"): string {
+  const numAmount = typeof amount === "string" ? parseFloat(amount) : amount;
 
   // Normalize currency input
-  const raw = (currency || '').trim();
+  const raw = (currency || "").trim();
   const upper = raw.toUpperCase();
 
   // Map common symbols to ISO codes
   const symbolToCode: Record<string, string> = {
-    '$': 'USD',
-    '€': 'EUR',
-    '£': 'GBP',
-    '¥': 'JPY',
-    'C$': 'CAD',
-    'A$': 'AUD',
+    $: "USD",
+    "€": "EUR",
+    "£": "GBP",
+    "¥": "JPY",
+    C$: "CAD",
+    A$: "AUD",
   };
 
-  let code: string = 'USD';
+  let code: string = "USD";
 
   if (/^[A-Z]{3}$/.test(upper)) {
     // Looks like a valid 3-letter code; use as-is
@@ -217,15 +220,15 @@ export function formatCurrency(amount: number | string, currency: string = 'USD'
   }
 
   try {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
       currency: code,
     }).format(numAmount);
   } catch {
     // Final fallback: simple prefix formatting that will never throw
-    const sign = numAmount < 0 ? '-' : '';
+    const sign = numAmount < 0 ? "-" : "";
     const absAmount = Math.abs(numAmount || 0);
-    const symbol = raw || '$';
+    const symbol = raw || "$";
     return `${sign}${symbol}${absAmount.toFixed(2)}`;
   }
 }
@@ -240,18 +243,18 @@ export async function copyToClipboard(text: string): Promise<boolean> {
       return true;
     } else {
       // Fallback for older browsers
-      const textArea = document.createElement('textarea');
+      const textArea = document.createElement("textarea");
       textArea.value = text;
-      textArea.style.position = 'fixed';
-      textArea.style.left = '-999999px';
+      textArea.style.position = "fixed";
+      textArea.style.left = "-999999px";
       document.body.appendChild(textArea);
       textArea.select();
-      const success = document.execCommand('copy');
+      const success = document.execCommand("copy");
       document.body.removeChild(textArea);
       return success;
     }
   } catch (error) {
-    console.error('Failed to copy to clipboard:', error);
+    console.error("Failed to copy to clipboard:", error);
     return false;
   }
 }
@@ -266,7 +269,7 @@ export function calculateTimeRemaining(endDate: Date | string): {
   minutes: number;
   seconds: number;
 } {
-  const end = typeof endDate === 'string' ? new Date(endDate) : endDate;
+  const end = typeof endDate === "string" ? new Date(endDate) : endDate;
   const now = new Date();
   const total = end.getTime() - now.getTime();
 
@@ -287,15 +290,15 @@ export function calculateTimeRemaining(endDate: Date | string): {
  * Format time remaining as string
  */
 export function formatTimeRemaining(time: ReturnType<typeof calculateTimeRemaining>): string {
-  if (time.total <= 0) return '00:00:00';
+  if (time.total <= 0) return "00:00:00";
 
   if (time.days > 0) {
     return `${time.days}d ${time.hours}h ${time.minutes}m`;
   }
 
-  const hours = String(time.hours).padStart(2, '0');
-  const minutes = String(time.minutes).padStart(2, '0');
-  const seconds = String(time.seconds).padStart(2, '0');
+  const hours = String(time.hours).padStart(2, "0");
+  const minutes = String(time.minutes).padStart(2, "0");
+  const seconds = String(time.seconds).padStart(2, "0");
 
   return `${hours}:${minutes}:${seconds}`;
 }
@@ -304,8 +307,8 @@ export function formatTimeRemaining(time: ReturnType<typeof calculateTimeRemaini
  * Check if device prefers reduced motion
  */
 export function prefersReducedMotion(): boolean {
-  if (typeof window === 'undefined') return false;
-  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (typeof window === "undefined") return false;
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
 /**
@@ -327,4 +330,3 @@ export function debounce<T extends (...args: any[]) => any>(
     timeout = setTimeout(later, wait);
   };
 }
-

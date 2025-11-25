@@ -1,6 +1,6 @@
 /**
  * Schedule Step Content Component
- * 
+ *
  * Extracted from CampaignFormWithABTesting to follow SOLID principles:
  * - Single Responsibility: Only renders schedule step content
  * - Separation of Concerns: Isolated from parent form logic
@@ -44,4 +44,3 @@ export function ScheduleStepContent({
     />
   );
 }
-

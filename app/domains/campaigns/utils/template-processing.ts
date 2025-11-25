@@ -1,6 +1,6 @@
 /**
  * Template Processing Utilities
- * 
+ *
  * SOLID Compliance:
  * - Single Responsibility: Each function processes one aspect of templates
  * - All functions are <50 lines
@@ -65,25 +65,25 @@ export function safeParseJSON<T = Record<string, unknown>>(
 // ============================================================================
 
 function getStringField(obj: unknown, field: string, fallback: string): string {
-  if (obj && typeof obj === 'object' && field in obj) {
+  if (obj && typeof obj === "object" && field in obj) {
     const value = (obj as Record<string, unknown>)[field];
-    return typeof value === 'string' ? value : fallback;
+    return typeof value === "string" ? value : fallback;
   }
   return fallback;
 }
 
 function getBooleanField(obj: unknown, field: string, fallback: boolean): boolean {
-  if (obj && typeof obj === 'object' && field in obj) {
+  if (obj && typeof obj === "object" && field in obj) {
     const value = (obj as Record<string, unknown>)[field];
-    return typeof value === 'boolean' ? value : fallback;
+    return typeof value === "boolean" ? value : fallback;
   }
   return fallback;
 }
 
 function getNumberField(obj: unknown, field: string, fallback: number): number {
-  if (obj && typeof obj === 'object' && field in obj) {
+  if (obj && typeof obj === "object" && field in obj) {
     const value = (obj as Record<string, unknown>)[field];
-    return typeof value === 'number' ? value : fallback;
+    return typeof value === "number" ? value : fallback;
   }
   return fallback;
 }
@@ -93,19 +93,9 @@ function getNumberField(obj: unknown, field: string, fallback: number): number {
 // ============================================================================
 
 export function processTemplate(template: UnifiedTemplate): ProcessedTemplate {
-  const contentDefaults = safeParseJSON(
-    template.contentConfig,
-    {},
-    template.id,
-    "contentConfig"
-  );
-  
-  const design = safeParseJSON(
-    template.designConfig,
-    {},
-    template.id,
-    "designConfig"
-  );
+  const contentDefaults = safeParseJSON(template.contentConfig, {}, template.id, "contentConfig");
+
+  const design = safeParseJSON(template.designConfig, {}, template.id, "designConfig");
 
   return {
     templateId: template.id,
@@ -116,26 +106,29 @@ export function processTemplate(template: UnifiedTemplate): ProcessedTemplate {
     isPopular: template.priority > 10,
     conversionRate: template.conversionRate || 0,
     id: `template-${template.id}`,
-    title: getStringField(contentDefaults, 'headline', template.name),
-    buttonText: getStringField(contentDefaults, 'ctaLabel', "Get Started"),
-    backgroundColor: getStringField(design, 'backgroundColor', "#FFFFFF"),
-    textColor: getStringField(design, 'textColor', "#000000"),
-    buttonColor: getStringField(design, 'buttonColor', "#007BFF"),
-    buttonTextColor: getStringField(design, 'buttonTextColor', "#FFFFFF"),
-    position: getStringField(design, 'position', "center"),
-    size: getStringField(design, 'size', "medium"),
-    showCloseButton: getBooleanField(design, 'showCloseButton', true),
-    overlayOpacity: getNumberField(design, 'overlayOpacity', 0.6),
+    title: getStringField(contentDefaults, "headline", template.name),
+    buttonText: getStringField(contentDefaults, "ctaLabel", "Get Started"),
+    backgroundColor: getStringField(design, "backgroundColor", "#FFFFFF"),
+    textColor: getStringField(design, "textColor", "#000000"),
+    buttonColor: getStringField(design, "buttonColor", "#007BFF"),
+    buttonTextColor: getStringField(design, "buttonTextColor", "#FFFFFF"),
+    position: getStringField(design, "position", "center"),
+    size: getStringField(design, "size", "medium"),
+    showCloseButton: getBooleanField(design, "showCloseButton", true),
+    overlayOpacity: getNumberField(design, "overlayOpacity", 0.6),
   };
 }
 
 export function processTemplates(
   templates: UnifiedTemplate[],
   selectedTemplateId?: string
-): Array<{ originalTemplate: UnifiedTemplate; processedTemplate: ProcessedTemplate }> {
+): Array<{
+  originalTemplate: UnifiedTemplate;
+  processedTemplate: ProcessedTemplate;
+}> {
   return templates.map((template) => {
     const processedTemplate = processTemplate(template);
-    
+
     // Log template comparison for debugging
     if (process.env.NODE_ENV === "development") {
       const isSelected = processedTemplate.templateId === selectedTemplateId;
@@ -150,4 +143,3 @@ export function processTemplates(
     };
   });
 }
-

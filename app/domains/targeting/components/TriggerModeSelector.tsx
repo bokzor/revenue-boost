@@ -1,13 +1,5 @@
 import React from "react";
-import {
-  Card,
-  Text,
-  Box,
-  Button,
-  BlockStack,
-  InlineStack,
-  Badge,
-} from "@shopify/polaris";
+import { Card, Text, Box, Button, BlockStack, InlineStack, Badge } from "@shopify/polaris";
 
 interface TriggerModeSelectorProps {
   mode: "quick" | "advanced";
@@ -34,11 +26,7 @@ export const TriggerModeSelector: React.FC<TriggerModeSelectorProps> = ({
           </BlockStack>
 
           <InlineStack gap="300">
-            <Card
-              background={
-                mode === "quick" ? "bg-surface-selected" : "bg-surface"
-              }
-            >
+            <Card background={mode === "quick" ? "bg-surface-selected" : "bg-surface"}>
               <Box padding="400">
                 <BlockStack gap="300">
                   <InlineStack gap="200" blockAlign="center">
@@ -69,11 +57,7 @@ export const TriggerModeSelector: React.FC<TriggerModeSelectorProps> = ({
               </Box>
             </Card>
 
-            <Card
-              background={
-                mode === "advanced" ? "bg-surface-selected" : "bg-surface"
-              }
-            >
+            <Card background={mode === "advanced" ? "bg-surface-selected" : "bg-surface"}>
               <Box padding="400">
                 <BlockStack gap="300">
                   <InlineStack gap="200" blockAlign="center">

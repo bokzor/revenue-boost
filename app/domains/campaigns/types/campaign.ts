@@ -10,18 +10,9 @@ import { z } from "zod";
 // ENUMS & CONSTANTS
 // ============================================================================
 
-export const CampaignGoalSchema = z.enum([
-  "NEWSLETTER_SIGNUP",
-  "INCREASE_REVENUE",
-  "ENGAGEMENT"
-]);
+export const CampaignGoalSchema = z.enum(["NEWSLETTER_SIGNUP", "INCREASE_REVENUE", "ENGAGEMENT"]);
 
-export const CampaignStatusSchema = z.enum([
-  "DRAFT",
-  "ACTIVE",
-  "PAUSED",
-  "ARCHIVED"
-]);
+export const CampaignStatusSchema = z.enum(["DRAFT", "ACTIVE", "PAUSED", "ARCHIVED"]);
 
 export const TemplateTypeSchema = z.enum([
   "NEWSLETTER",
@@ -34,7 +25,7 @@ export const TemplateTypeSchema = z.enum([
   "SOCIAL_PROOF",
   "COUNTDOWN_TIMER",
   "SCRATCH_CARD",
-  "ANNOUNCEMENT"
+  "ANNOUNCEMENT",
 ]);
 
 /**
@@ -45,26 +36,18 @@ export const TemplateTypeSchema = z.enum([
 // Main discount configuration enums (used in DiscountConfig)
 export const DiscountTypeSchema = z.enum(["shared", "single_use"]);
 
-export const DiscountValueTypeSchema = z.enum([
-  "PERCENTAGE",
-  "FIXED_AMOUNT",
-  "FREE_SHIPPING"
-]);
+export const DiscountValueTypeSchema = z.enum(["PERCENTAGE", "FIXED_AMOUNT", "FREE_SHIPPING"]);
 
 export const DiscountDeliveryModeSchema = z.enum([
   "auto_apply_only",
   "show_code_fallback",
   "show_code_always",
-  "show_in_popup_authorized_only"
+  "show_in_popup_authorized_only",
 ]);
 
 // Content-level discount type enum (used in template content configs like SpinToWin, FlashSale)
 // Lowercase for UI display purposes
-export const ContentDiscountTypeSchema = z.enum([
-  "percentage",
-  "fixed_amount",
-  "free_shipping"
-]);
+export const ContentDiscountTypeSchema = z.enum(["percentage", "fixed_amount", "free_shipping"]);
 
 export type CampaignGoal = z.infer<typeof CampaignGoalSchema>;
 export type CampaignStatus = z.infer<typeof CampaignStatusSchema>;
@@ -114,48 +97,58 @@ export const DiscountConfigSchema = z.object({
   // === ENHANCED FEATURES ===
 
   // Applicability: Scope discount to specific products/collections
-  applicability: z.object({
-    scope: z.enum(["all", "products", "collections"]).default("all"),
-    productIds: z.array(z.string()).optional(), // Shopify product GIDs
-    collectionIds: z.array(z.string()).optional(), // Shopify collection GIDs
-  }).optional(),
+  applicability: z
+    .object({
+      scope: z.enum(["all", "products", "collections"]).default("all"),
+      productIds: z.array(z.string()).optional(), // Shopify product GIDs
+      collectionIds: z.array(z.string()).optional(), // Shopify collection GIDs
+    })
+    .optional(),
 
   // Tiered spend discounts: "Spend $50 get 15%, $100 get 25%"
-  tiers: z.array(z.object({
-    thresholdCents: z.number().int().min(0), // Subtotal threshold in cents
-    discount: z.object({
-      kind: z.enum(["percentage", "fixed", "free_shipping"]),
-      value: z.number().min(0).max(100), // Percentage (0-100) or fixed amount
-    }),
-  })).optional(),
+  tiers: z
+    .array(
+      z.object({
+        thresholdCents: z.number().int().min(0), // Subtotal threshold in cents
+        discount: z.object({
+          kind: z.enum(["percentage", "fixed", "free_shipping"]),
+          value: z.number().min(0).max(100), // Percentage (0-100) or fixed amount
+        }),
+      })
+    )
+    .optional(),
 
   // BOGO (Buy X Get Y): "Buy 2 get 1 free"
-  bogo: z.object({
-    buy: z.object({
-      scope: z.enum(["any", "products", "collections"]).default("any"),
-      ids: z.array(z.string()).optional(), // Product/collection GIDs
-      quantity: z.number().int().min(1),
-      minSubtotalCents: z.number().int().min(0).optional(),
-    }),
-    get: z.object({
-      scope: z.enum(["products", "collections"]),
-      ids: z.array(z.string()), // Product/collection GIDs (required)
-      quantity: z.number().int().min(1),
-      discount: z.object({
-        kind: z.enum(["percentage", "fixed", "free_product"]),
-        value: z.number().min(0).max(100), // Percentage or amount (100 = free)
+  bogo: z
+    .object({
+      buy: z.object({
+        scope: z.enum(["any", "products", "collections"]).default("any"),
+        ids: z.array(z.string()).optional(), // Product/collection GIDs
+        quantity: z.number().int().min(1),
+        minSubtotalCents: z.number().int().min(0).optional(),
       }),
-      appliesOncePerOrder: z.boolean().default(true),
-    }),
-  }).optional(),
+      get: z.object({
+        scope: z.enum(["products", "collections"]),
+        ids: z.array(z.string()), // Product/collection GIDs (required)
+        quantity: z.number().int().min(1),
+        discount: z.object({
+          kind: z.enum(["percentage", "fixed", "free_product"]),
+          value: z.number().min(0).max(100), // Percentage or amount (100 = free)
+        }),
+        appliesOncePerOrder: z.boolean().default(true),
+      }),
+    })
+    .optional(),
 
   // Free gift with purchase
-  freeGift: z.object({
-    productId: z.string(), // Shopify product GID
-    variantId: z.string(), // Shopify variant GID
-    quantity: z.number().int().min(1).default(1),
-    minSubtotalCents: z.number().int().min(0).optional(),
-  }).optional(),
+  freeGift: z
+    .object({
+      productId: z.string(), // Shopify product GID
+      variantId: z.string(), // Shopify variant GID
+      quantity: z.number().int().min(1).default(1),
+      minSubtotalCents: z.number().int().min(0).optional(),
+    })
+    .optional(),
 
   // Auto-apply mode for storefront
   autoApplyMode: z.enum(["ajax", "redirect", "none"]).default("ajax"),
@@ -167,18 +160,22 @@ export const DiscountConfigSchema = z.object({
   customerEligibility: z.enum(["everyone", "logged_in", "segment"]).optional(),
 
   // Discount combining/stacking rules
-  combineWith: z.object({
-    orderDiscounts: z.boolean().optional(),
-    productDiscounts: z.boolean().optional(),
-    shippingDiscounts: z.boolean().optional(),
-  }).optional(),
+  combineWith: z
+    .object({
+      orderDiscounts: z.boolean().optional(),
+      productDiscounts: z.boolean().optional(),
+      shippingDiscounts: z.boolean().optional(),
+    })
+    .optional(),
 
   // Internal metadata (Shopify discount IDs, tier code mappings)
-  _meta: z.object({
-    createdDiscountIds: z.array(z.string()).optional(), // Shopify discount node IDs
-    tierCodeMappings: z.record(z.string(), z.string()).optional(), // { "5000": "CAMPAIGN-123-T50", ... }
-    lastSync: z.string().optional(), // ISO timestamp
-  }).optional(),
+  _meta: z
+    .object({
+      createdDiscountIds: z.array(z.string()).optional(), // Shopify discount node IDs
+      tierCodeMappings: z.record(z.string(), z.string()).optional(), // { "5000": "CAMPAIGN-123-T50", ... }
+      lastSync: z.string().optional(), // ISO timestamp
+    })
+    .optional(),
 });
 
 export type DiscountConfig = z.infer<typeof DiscountConfigSchema>;
@@ -251,7 +248,7 @@ const DEFAULT_SPIN_TO_WIN_SEGMENTS = [
       type: "single_use" as const,
       autoApplyMode: "ajax" as const,
       codePresentation: "show_code" as const,
-    }
+    },
   },
   {
     id: "segment-10-off",
@@ -268,7 +265,7 @@ const DEFAULT_SPIN_TO_WIN_SEGMENTS = [
       type: "single_use" as const,
       autoApplyMode: "ajax" as const,
       codePresentation: "show_code" as const,
-    }
+    },
   },
   {
     id: "segment-15-off",
@@ -285,12 +282,12 @@ const DEFAULT_SPIN_TO_WIN_SEGMENTS = [
       type: "single_use" as const,
       autoApplyMode: "ajax" as const,
       codePresentation: "show_code" as const,
-    }
+    },
   },
   {
     id: "segment-20-off",
     label: "20% OFF",
-    probability: 0.10,
+    probability: 0.1,
     color: "#EF4444",
     discountConfig: {
       enabled: true,
@@ -302,12 +299,12 @@ const DEFAULT_SPIN_TO_WIN_SEGMENTS = [
       type: "single_use" as const,
       autoApplyMode: "ajax" as const,
       codePresentation: "show_code" as const,
-    }
+    },
   },
   {
     id: "segment-free-shipping",
     label: "FREE SHIPPING",
-    probability: 0.10,
+    probability: 0.1,
     color: "#8B5CF6",
     discountConfig: {
       enabled: true,
@@ -318,7 +315,7 @@ const DEFAULT_SPIN_TO_WIN_SEGMENTS = [
       type: "single_use" as const,
       autoApplyMode: "ajax" as const,
       codePresentation: "show_code" as const,
-    }
+    },
   },
   {
     id: "segment-try-again",
@@ -354,14 +351,19 @@ export const SpinToWinContentSchema = SpinToWinBaseContentSchema.extend({
   gdprLabel: z.string().optional(),
 
   // Wheel configuration
-  wheelSegments: z.array(z.object({
-    id: z.string(),
-    label: z.string(),
-    probability: z.number().min(0).max(1),
-    color: z.string().optional(),
-    // Full discount configuration per segment (replaces old discountType/Value/Code)
-    discountConfig: DiscountConfigSchema.optional(),
-  })).min(2, "At least 2 wheel segments required").default(DEFAULT_SPIN_TO_WIN_SEGMENTS),
+  wheelSegments: z
+    .array(
+      z.object({
+        id: z.string(),
+        label: z.string(),
+        probability: z.number().min(0).max(1),
+        color: z.string().optional(),
+        // Full discount configuration per segment (replaces old discountType/Value/Code)
+        discountConfig: DiscountConfigSchema.optional(),
+      })
+    )
+    .min(2, "At least 2 wheel segments required")
+    .default(DEFAULT_SPIN_TO_WIN_SEGMENTS),
   maxAttemptsPerUser: z.number().int().min(1).default(1),
 
   // Advanced wheel configuration
@@ -394,53 +396,63 @@ export const FlashSaleContentSchema = BaseContentConfigSchema.extend({
   // === ENHANCED FEATURES ===
 
   // Advanced timer configuration
-  timer: z.object({
-    mode: z.enum(["fixed_end", "duration", "personal", "stock_limited"]).default("duration"),
-    endTimeISO: z.string().optional(), // For fixed_end mode
-    durationSeconds: z.number().int().min(60).optional(), // For duration mode
-    personalWindowSeconds: z.number().int().min(60).optional(), // For personal mode (e.g., 30 min from first view)
-    timezone: z.enum(["shop", "visitor"]).default("shop"),
-    onExpire: z.enum(["auto_hide", "collapse", "swap_message"]).default("auto_hide"),
-    expiredMessage: z.string().optional(),
-  }).optional(),
+  timer: z
+    .object({
+      mode: z.enum(["fixed_end", "duration", "personal", "stock_limited"]).default("duration"),
+      endTimeISO: z.string().optional(), // For fixed_end mode
+      durationSeconds: z.number().int().min(60).optional(), // For duration mode
+      personalWindowSeconds: z.number().int().min(60).optional(), // For personal mode (e.g., 30 min from first view)
+      timezone: z.enum(["shop", "visitor"]).default("shop"),
+      onExpire: z.enum(["auto_hide", "collapse", "swap_message"]).default("auto_hide"),
+      expiredMessage: z.string().optional(),
+    })
+    .optional(),
 
   // Real-time inventory tracking
-  inventory: z.object({
-    mode: z.enum(["real", "pseudo"]).default("pseudo"),
-    productIds: z.array(z.string()).optional(), // Shopify product GIDs
-    variantIds: z.array(z.string()).optional(), // Shopify variant GIDs
-    collectionIds: z.array(z.string()).optional(), // Shopify collection GIDs
-    pseudoMax: z.number().int().min(1).optional(), // For pseudo mode: fake max inventory
-    showOnlyXLeft: z.boolean().default(true),
-    showThreshold: z.number().int().min(1).default(10), // Show "Only X left" when ≤ this value
-    soldOutBehavior: z.enum(["hide", "missed_it"]).default("hide"),
-    soldOutMessage: z.string().optional(),
-  }).optional(),
+  inventory: z
+    .object({
+      mode: z.enum(["real", "pseudo"]).default("pseudo"),
+      productIds: z.array(z.string()).optional(), // Shopify product GIDs
+      variantIds: z.array(z.string()).optional(), // Shopify variant GIDs
+      collectionIds: z.array(z.string()).optional(), // Shopify collection GIDs
+      pseudoMax: z.number().int().min(1).optional(), // For pseudo mode: fake max inventory
+      showOnlyXLeft: z.boolean().default(true),
+      showThreshold: z.number().int().min(1).default(10), // Show "Only X left" when ≤ this value
+      soldOutBehavior: z.enum(["hide", "missed_it"]).default("hide"),
+      soldOutMessage: z.string().optional(),
+    })
+    .optional(),
 
   // Soft reservation timer ("X minutes to claim this offer")
-  reserve: z.object({
-    enabled: z.boolean().default(false),
-    minutes: z.number().int().min(1).default(10),
-    label: z.string().optional(), // e.g., "Offer reserved for:"
-    disclaimer: z.string().optional(), // e.g., "Inventory not guaranteed"
-  }).optional(),
+  reserve: z
+    .object({
+      enabled: z.boolean().default(false),
+      minutes: z.number().int().min(1).default(10),
+      label: z.string().optional(), // e.g., "Offer reserved for:"
+      disclaimer: z.string().optional(), // e.g., "Inventory not guaranteed"
+    })
+    .optional(),
 
   // CTA configuration
-  cta: z.object({
-    primaryLabel: z.string().default("Unlock Offer"),
-    primaryAction: z.enum(["apply", "navigate"]).default("apply"),
-    navigateUrl: z.string().optional(), // For navigate action
-    secondaryLabel: z.string().optional(),
-    secondaryUrl: z.string().optional(),
-  }).optional(),
+  cta: z
+    .object({
+      primaryLabel: z.string().default("Unlock Offer"),
+      primaryAction: z.enum(["apply", "navigate"]).default("apply"),
+      navigateUrl: z.string().optional(), // For navigate action
+      secondaryLabel: z.string().optional(),
+      secondaryUrl: z.string().optional(),
+    })
+    .optional(),
 
   // Presentation settings
-  presentation: z.object({
-    placement: z.enum(["center", "bottom_right", "bottom_left"]).default("center"),
-    badgeStyle: z.enum(["pill", "tag"]).default("pill"),
-    showTimer: z.boolean().default(true),
-    showInventory: z.boolean().default(true),
-  }).optional(),
+  presentation: z
+    .object({
+      placement: z.enum(["center", "bottom_right", "bottom_left"]).default("center"),
+      badgeStyle: z.enum(["pill", "tag"]).default("pill"),
+      showTimer: z.boolean().default(true),
+      showInventory: z.boolean().default(true),
+    })
+    .optional(),
 });
 
 /**
@@ -500,17 +512,21 @@ export const SocialProofContentSchema = BaseContentConfigSchema.extend({
   purchaseMessageTemplate: z.string().optional(),
   visitorMessageTemplate: z.string().optional(),
   reviewMessageTemplate: z.string().optional(),
-  cornerPosition: z.enum(["bottom-left", "bottom-right", "top-left", "top-right"]).default("bottom-left"),
+  cornerPosition: z
+    .enum(["bottom-left", "bottom-right", "top-left", "top-right"])
+    .default("bottom-left"),
   displayDuration: z.number().int().min(1).max(30).default(6), // seconds
   rotationInterval: z.number().int().min(1).max(60).default(8), // seconds
   maxNotificationsPerSession: z.number().int().min(1).max(20).default(5),
   minVisitorCount: z.number().int().min(1).optional(),
   minReviewRating: z.number().min(1).max(5).optional(),
-  messageTemplates: z.object({
-    purchase: z.string().optional(),
-    visitor: z.string().optional(),
-    review: z.string().optional(),
-  }).optional(),
+  messageTemplates: z
+    .object({
+      purchase: z.string().optional(),
+      visitor: z.string().optional(),
+      review: z.string().optional(),
+    })
+    .optional(),
   showProductImage: z.boolean().default(true),
   showTimer: z.boolean().default(true),
 });
@@ -523,7 +539,7 @@ const DEFAULT_SCRATCH_CARD_PRIZES = [
   {
     id: "prize-5-off",
     label: "5% OFF",
-    probability: 0.40,
+    probability: 0.4,
     discountConfig: {
       enabled: true,
       showInPreview: true,
@@ -534,12 +550,12 @@ const DEFAULT_SCRATCH_CARD_PRIZES = [
       type: "single_use" as const,
       autoApplyMode: "ajax" as const,
       codePresentation: "show_code" as const,
-    }
+    },
   },
   {
     id: "prize-10-off",
     label: "10% OFF",
-    probability: 0.30,
+    probability: 0.3,
     discountConfig: {
       enabled: true,
       showInPreview: true,
@@ -550,12 +566,12 @@ const DEFAULT_SCRATCH_CARD_PRIZES = [
       type: "single_use" as const,
       autoApplyMode: "ajax" as const,
       codePresentation: "show_code" as const,
-    }
+    },
   },
   {
     id: "prize-15-off",
     label: "15% OFF",
-    probability: 0.20,
+    probability: 0.2,
     discountConfig: {
       enabled: true,
       showInPreview: true,
@@ -566,12 +582,12 @@ const DEFAULT_SCRATCH_CARD_PRIZES = [
       type: "single_use" as const,
       autoApplyMode: "ajax" as const,
       codePresentation: "show_code" as const,
-    }
+    },
   },
   {
     id: "prize-20-off",
     label: "20% OFF",
-    probability: 0.10,
+    probability: 0.1,
     discountConfig: {
       enabled: true,
       showInPreview: true,
@@ -582,7 +598,7 @@ const DEFAULT_SCRATCH_CARD_PRIZES = [
       type: "single_use" as const,
       autoApplyMode: "ajax" as const,
       codePresentation: "show_code" as const,
-    }
+    },
   },
 ];
 
@@ -597,12 +613,17 @@ export const ScratchCardContentSchema = BaseContentConfigSchema.extend({
   emailBeforeScratching: z.boolean().default(false),
   scratchThreshold: z.number().min(0).max(100).default(50),
   scratchRadius: z.number().min(5).max(100).default(20),
-  prizes: z.array(z.object({
-    id: z.string(),
-    label: z.string(),
-    probability: z.number().min(0).max(1),
-    discountConfig: DiscountConfigSchema.optional(),
-  })).min(1, "At least one prize required").default(DEFAULT_SCRATCH_CARD_PRIZES),
+  prizes: z
+    .array(
+      z.object({
+        id: z.string(),
+        label: z.string(),
+        probability: z.number().min(0).max(1),
+        discountConfig: DiscountConfigSchema.optional(),
+      })
+    )
+    .min(1, "At least one prize required")
+    .default(DEFAULT_SCRATCH_CARD_PRIZES),
 });
 
 /**
@@ -705,9 +726,20 @@ export type AnnouncementContent = z.infer<typeof AnnouncementContentSchema>;
  */
 export const DesignConfigSchema = z.object({
   // Layout
-  theme: z.enum([
-    "modern", "minimal", "elegant", "bold", "glass", "dark", "gradient", "luxury", "neon", "ocean"
-  ]).default("modern"),
+  theme: z
+    .enum([
+      "modern",
+      "minimal",
+      "elegant",
+      "bold",
+      "glass",
+      "dark",
+      "gradient",
+      "luxury",
+      "neon",
+      "ocean",
+    ])
+    .default("modern"),
   position: z.enum(["center", "top", "bottom", "left", "right"]).default("center"),
   size: z.enum(["small", "medium", "large"]).default("medium"),
   popupSize: z.enum(["compact", "standard", "wide", "full"]).default("wide").optional(), // For FlashSale
@@ -772,109 +804,137 @@ export const EnhancedTriggersConfigSchema = z.object({
   enabled: z.boolean().optional(),
 
   // Core trigger types
-  page_load: z.object({
-    enabled: z.boolean(),
-    delay: z.number().min(0).optional(),
-    require_dom_ready: z.boolean().optional(),
-    require_images_loaded: z.boolean().optional(),
-  }).optional(),
+  page_load: z
+    .object({
+      enabled: z.boolean(),
+      delay: z.number().min(0).optional(),
+      require_dom_ready: z.boolean().optional(),
+      require_images_loaded: z.boolean().optional(),
+    })
+    .optional(),
 
-  exit_intent: z.object({
-    enabled: z.boolean(),
-    sensitivity: z.enum(["low", "medium", "high"]).optional(),
-    delay: z.number().min(0).optional(),
-    mobile_enabled: z.boolean().optional(),
-    exclude_pages: z.array(z.string()).optional(),
-  }).optional(),
+  exit_intent: z
+    .object({
+      enabled: z.boolean(),
+      sensitivity: z.enum(["low", "medium", "high"]).optional(),
+      delay: z.number().min(0).optional(),
+      mobile_enabled: z.boolean().optional(),
+      exclude_pages: z.array(z.string()).optional(),
+    })
+    .optional(),
 
-  scroll_depth: z.object({
-    enabled: z.boolean(),
-    depth_percentage: z.number().min(0).max(100).optional(),
-    direction: z.enum(["down", "up", "both"]).optional(),
-    debounce_time: z.number().min(0).optional(),
-    require_engagement: z.boolean().optional(),
-  }).optional(),
+  scroll_depth: z
+    .object({
+      enabled: z.boolean(),
+      depth_percentage: z.number().min(0).max(100).optional(),
+      direction: z.enum(["down", "up", "both"]).optional(),
+      debounce_time: z.number().min(0).optional(),
+      require_engagement: z.boolean().optional(),
+    })
+    .optional(),
 
-  idle_timer: z.object({
-    enabled: z.boolean(),
-    idle_duration: z.number().min(1).optional(),
-    mouse_movement_threshold: z.number().min(0).optional(),
-    keyboard_activity: z.boolean().optional(),
-    page_visibility: z.boolean().optional(),
-  }).optional(),
+  idle_timer: z
+    .object({
+      enabled: z.boolean(),
+      idle_duration: z.number().min(1).optional(),
+      mouse_movement_threshold: z.number().min(0).optional(),
+      keyboard_activity: z.boolean().optional(),
+      page_visibility: z.boolean().optional(),
+    })
+    .optional(),
 
-  time_delay: z.object({
-    enabled: z.boolean(),
-    delay: z.number().min(0).optional(),
-    immediate: z.boolean().optional(),
-  }).optional(),
+  time_delay: z
+    .object({
+      enabled: z.boolean(),
+      delay: z.number().min(0).optional(),
+      immediate: z.boolean().optional(),
+    })
+    .optional(),
 
   // E-commerce specific triggers
-  add_to_cart: z.object({
-    enabled: z.boolean(),
-    delay: z.number().min(0).optional(),
-    immediate: z.boolean().optional(),
-    productIds: z.array(z.string()).optional(),
-    collectionIds: z.array(z.string()).optional(),
-  }).optional(),
+  add_to_cart: z
+    .object({
+      enabled: z.boolean(),
+      delay: z.number().min(0).optional(),
+      immediate: z.boolean().optional(),
+      productIds: z.array(z.string()).optional(),
+      collectionIds: z.array(z.string()).optional(),
+    })
+    .optional(),
 
-  cart_drawer_open: z.object({
-    enabled: z.boolean(),
-    delay: z.number().min(0).optional(),
-    max_triggers_per_session: z.number().int().min(1).optional(),
-  }).optional(),
+  cart_drawer_open: z
+    .object({
+      enabled: z.boolean(),
+      delay: z.number().min(0).optional(),
+      max_triggers_per_session: z.number().int().min(1).optional(),
+    })
+    .optional(),
 
-  cart_value: z.object({
-    enabled: z.boolean(),
-    threshold: z.number().min(0).optional(),
-    minValue: z.number().min(0).optional(),
-    min_value: z.number().min(0).optional(),
-    max_value: z.number().min(0).optional(),
-    check_interval: z.number().min(0).optional(),
-  }).optional(),
+  cart_value: z
+    .object({
+      enabled: z.boolean(),
+      threshold: z.number().min(0).optional(),
+      minValue: z.number().min(0).optional(),
+      min_value: z.number().min(0).optional(),
+      max_value: z.number().min(0).optional(),
+      check_interval: z.number().min(0).optional(),
+    })
+    .optional(),
 
-  product_view: z.object({
-    enabled: z.boolean(),
-    product_ids: z.array(z.string()).optional(),
-    time_on_page: z.number().min(0).optional(),
-    require_scroll: z.boolean().optional(),
-  }).optional(),
+  product_view: z
+    .object({
+      enabled: z.boolean(),
+      product_ids: z.array(z.string()).optional(),
+      time_on_page: z.number().min(0).optional(),
+      require_scroll: z.boolean().optional(),
+    })
+    .optional(),
 
   // Advanced targeting
-  device_targeting: z.object({
-    enabled: z.boolean(),
-    device_types: z.array(z.enum(["desktop", "tablet", "mobile"])).optional(),
-    operating_systems: z.array(z.string()).optional(),
-    browsers: z.array(z.string()).optional(),
-    connection_type: z.array(z.string()).optional(),
-  }).optional(),
+  device_targeting: z
+    .object({
+      enabled: z.boolean(),
+      device_types: z.array(z.enum(["desktop", "tablet", "mobile"])).optional(),
+      operating_systems: z.array(z.string()).optional(),
+      browsers: z.array(z.string()).optional(),
+      connection_type: z.array(z.string()).optional(),
+    })
+    .optional(),
 
-  page_targeting: z.object({
-    enabled: z.boolean(),
-    pages: z.array(z.string()).optional(),
-    customPatterns: z.array(z.string()).optional(),
-    excludePages: z.array(z.string()).optional(),
-  }).optional(),
+  page_targeting: z
+    .object({
+      enabled: z.boolean(),
+      pages: z.array(z.string()).optional(),
+      customPatterns: z.array(z.string()).optional(),
+      excludePages: z.array(z.string()).optional(),
+    })
+    .optional(),
 
   // Frequency capping
-  frequency_capping: z.object({
-    max_triggers_per_session: z.number().min(1).optional(),
-    max_triggers_per_day: z.number().min(1).optional(),
-    cooldown_between_triggers: z.number().min(0).optional(),
-  }).optional(),
+  frequency_capping: z
+    .object({
+      max_triggers_per_session: z.number().min(1).optional(),
+      max_triggers_per_day: z.number().min(1).optional(),
+      cooldown_between_triggers: z.number().min(0).optional(),
+    })
+    .optional(),
 
   // Logic and combination
-  trigger_combination: z.object({
-    operator: z.enum(["AND", "OR"]).default("OR"),
-  }).optional(),
+  trigger_combination: z
+    .object({
+      operator: z.enum(["AND", "OR"]).default("OR"),
+    })
+    .optional(),
 
   // Custom events
-  custom_event: z.object({
-    enabled: z.boolean(),
-    event_name: z.string().optional(),
-    event_names: z.array(z.string()).optional(),
-    debounce_time: z.number().min(0).optional(),
-  }).optional(),
+  custom_event: z
+    .object({
+      enabled: z.boolean(),
+      event_name: z.string().optional(),
+      event_names: z.array(z.string()).optional(),
+      debounce_time: z.number().min(0).optional(),
+    })
+    .optional(),
 });
 
 /**
@@ -898,13 +958,8 @@ export const AudienceTargetingConfigSchema = z.object({
           z.object({
             field: z.string(), // e.g. "cartValue", "visitCount", "pageType"
             operator: z.enum(["eq", "ne", "gt", "gte", "lt", "lte", "in", "nin"]),
-            value: z.union([
-              z.string(),
-              z.number(),
-              z.boolean(),
-              z.array(z.string()),
-            ]),
-          }),
+            value: z.union([z.string(), z.number(), z.boolean(), z.array(z.string())]),
+          })
         )
         .default([]),
       logicOperator: z.enum(["AND", "OR"]).default("AND"),
@@ -1044,12 +1099,10 @@ export const CampaignCreateDataSchema = z.object({
   priority: z.number().int().min(0).optional(),
 
   // Template reference (optional - can be CUID or system template identifier like SYSTEM_xxx)
-  templateId: z.union([
-    z.cuid(),
-    z.string().startsWith("SYSTEM_"),
-    z.literal(""),
-    z.undefined()
-  ]).optional().transform(val => val === "" ? undefined : val),
+  templateId: z
+    .union([z.cuid(), z.string().startsWith("SYSTEM_"), z.literal(""), z.undefined()])
+    .optional()
+    .transform((val) => (val === "" ? undefined : val)),
   templateType: TemplateTypeSchema, // Required for validation
 
   // JSON configurations
@@ -1059,25 +1112,22 @@ export const CampaignCreateDataSchema = z.object({
   discountConfig: DiscountConfigSchema.optional(),
 
   // A/B Testing
-  experimentId: z.union([
-    z.cuid(),
-    z.literal(""),
-    z.undefined()
-  ]).optional().transform(val => val === "" ? undefined : val),
+  experimentId: z
+    .union([z.cuid(), z.literal(""), z.undefined()])
+    .optional()
+    .transform((val) => (val === "" ? undefined : val)),
   variantKey: z.enum(["A", "B", "C", "D"]).optional(),
   isControl: z.boolean().optional(),
 
   // Schedule (coerce strings to dates for form compatibility, handle empty strings)
-  startDate: z.union([
-    z.coerce.date(),
-    z.literal(""),
-    z.undefined()
-  ]).optional().transform(val => val === "" ? undefined : val),
-  endDate: z.union([
-    z.coerce.date(),
-    z.literal(""),
-    z.undefined()
-  ]).optional().transform(val => val === "" ? undefined : val),
+  startDate: z
+    .union([z.coerce.date(), z.literal(""), z.undefined()])
+    .optional()
+    .transform((val) => (val === "" ? undefined : val)),
+  endDate: z
+    .union([z.coerce.date(), z.literal(""), z.undefined()])
+    .optional()
+    .transform((val) => (val === "" ? undefined : val)),
 });
 
 export const CampaignUpdateDataSchema = CampaignCreateDataSchema.partial();

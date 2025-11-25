@@ -31,8 +31,7 @@ export const GOAL_OPTIONS: GoalOption[] = [
     id: "NEWSLETTER_SIGNUP",
     title: "Grow Email List",
     subtitle: "Build your subscriber base",
-    description:
-      "Collect customer emails to build a direct marketing channel with 3-5x ROI",
+    description: "Collect customer emails to build a direct marketing channel with 3-5x ROI",
     icon: EmailIcon,
     iconColor: "#4F46E5", // Indigo
     benefits: ["Direct communication", "Higher conversions", "Owned audience"],
@@ -58,8 +57,7 @@ export const GOAL_OPTIONS: GoalOption[] = [
     id: "ENGAGEMENT",
     title: "Engage Customers",
     subtitle: "Grow engagement & loyalty",
-    description:
-      "Build social proof, increase engagement, and create a loyal brand community",
+    description: "Build social proof, increase engagement, and create a loyal brand community",
     icon: HeartIcon,
     iconColor: "#DC2626", // Red
     benefits: ["Social proof", "Customer loyalty", "Brand advocacy"],
@@ -68,9 +66,7 @@ export const GOAL_OPTIONS: GoalOption[] = [
   },
 ];
 
-export function getDifficultyColor(
-  difficulty: string,
-): "success" | "attention" | "warning" {
+export function getDifficultyColor(difficulty: string): "success" | "attention" | "warning" {
   switch (difficulty) {
     case "Easy":
       return "success";
@@ -82,4 +78,3 @@ export function getDifficultyColor(
       return "success";
   }
 }
-

@@ -14,24 +14,24 @@
  * Popup content remains fully autonomous - just renders inside the portal.
  */
 
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { createPortal } from 'react-dom';
-import type { PopupSize } from './types';
-import { getSizeDimensions } from './utils';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { createPortal } from "react-dom";
+import type { PopupSize } from "./types";
+import { getSizeDimensions } from "./utils";
 
-export type AnimationType = 'fade' | 'slide' | 'zoom' | 'bounce' | 'none';
+export type AnimationType = "fade" | "slide" | "zoom" | "bounce" | "none";
 
 export interface BackdropConfig {
-  color?: string;      // Base color (hex, rgb, rgba)
-  opacity?: number;    // Applied opacity (0-1)
-  blur?: number;       // backdrop-filter blur in px
+  color?: string; // Base color (hex, rgb, rgba)
+  opacity?: number; // Applied opacity (0-1)
+  blur?: number; // backdrop-filter blur in px
 }
 
 export interface AnimationConfig {
   type: AnimationType;
-  duration?: number;         // Override default duration
-  backdropDelay?: number;    // Custom delay for backdrop
-  contentDelay?: number;     // Custom delay for content
+  duration?: number; // Override default duration
+  backdropDelay?: number; // Custom delay for backdrop
+  contentDelay?: number; // Custom delay for content
 }
 
 export type PopupPosition = "center" | "top" | "bottom" | "left" | "right";
@@ -40,6 +40,8 @@ export interface PopupPortalProps {
   isVisible: boolean;
   onClose: () => void;
   children: React.ReactNode;
+  customCSS?: string;
+  globalCustomCSS?: string;
 
   // Backdrop configuration
   backdrop?: BackdropConfig;
@@ -92,9 +94,11 @@ export const PopupPortal: React.FC<PopupPortalProps> = ({
   isVisible,
   onClose,
   children,
+  customCSS,
+  globalCustomCSS,
   backdrop = {},
-  animation = { type: 'fade' },
-  position = 'center',
+  animation = { type: "fade" },
+  position = "center",
   size,
   closeOnEscape = true,
   closeOnBackdropClick = true,
@@ -110,7 +114,7 @@ export const PopupPortal: React.FC<PopupPortalProps> = ({
   const shadowRootRef = useRef<ShadowRoot | null>(null);
 
   // Get animation timing
-  const animationType = animation.type || 'fade';
+  const animationType = animation.type || "fade";
   const choreography = ANIMATION_CHOREOGRAPHY[animationType];
 
   const frameStyles = useMemo<React.CSSProperties | undefined>(() => {
@@ -120,27 +124,43 @@ export const PopupPortal: React.FC<PopupPortalProps> = ({
     return {
       width,
       maxWidth,
-      margin: '0 auto',
+      margin: "0 auto",
     };
   }, [size, previewMode]);
 
-  const backdropTiming = useMemo(() => ({
-    delay: animation.backdropDelay ?? choreography.backdrop.delay,
-    duration: animation.duration ?? choreography.backdrop.duration,
-  }), [animation.backdropDelay, animation.duration, choreography.backdrop.delay, choreography.backdrop.duration]);
+  const backdropTiming = useMemo(
+    () => ({
+      delay: animation.backdropDelay ?? choreography.backdrop.delay,
+      duration: animation.duration ?? choreography.backdrop.duration,
+    }),
+    [
+      animation.backdropDelay,
+      animation.duration,
+      choreography.backdrop.delay,
+      choreography.backdrop.duration,
+    ]
+  );
 
-  const contentTiming = useMemo(() => ({
-    delay: animation.contentDelay ?? choreography.content.delay,
-    duration: animation.duration ?? choreography.content.duration,
-  }), [animation.contentDelay, animation.duration, choreography.content.delay, choreography.content.duration]);
+  const contentTiming = useMemo(
+    () => ({
+      delay: animation.contentDelay ?? choreography.content.delay,
+      duration: animation.duration ?? choreography.content.duration,
+    }),
+    [
+      animation.contentDelay,
+      animation.duration,
+      choreography.content.delay,
+      choreography.content.duration,
+    ]
+  );
 
   // Calculate backdrop color with opacity
   const getBackdropColor = useCallback(() => {
     const opacity = backdrop.opacity ?? 0.6;
-    const color = backdrop.color || 'rgba(0, 0, 0, 1)';
+    const color = backdrop.color || "rgba(0, 0, 0, 1)";
 
     // If color is already rgba, extract RGB and apply opacity
-    if (color.startsWith('rgba')) {
+    if (color.startsWith("rgba")) {
       const rgbaMatch = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*[\d.]+)?\)/);
       if (rgbaMatch) {
         return `rgba(${rgbaMatch[1]}, ${rgbaMatch[2]}, ${rgbaMatch[3]}, ${opacity})`;
@@ -148,7 +168,7 @@ export const PopupPortal: React.FC<PopupPortalProps> = ({
     }
 
     // If color is rgb, convert to rgba with opacity
-    if (color.startsWith('rgb')) {
+    if (color.startsWith("rgb")) {
       const rgbMatch = color.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
       if (rgbMatch) {
         return `rgba(${rgbMatch[1]}, ${rgbMatch[2]}, ${rgbMatch[3]}, ${opacity})`;
@@ -156,7 +176,7 @@ export const PopupPortal: React.FC<PopupPortalProps> = ({
     }
 
     // If color is hex, convert to rgba
-    if (color.startsWith('#')) {
+    if (color.startsWith("#")) {
       const hex = color.slice(1);
       const r = parseInt(hex.slice(0, 2), 16);
       const g = parseInt(hex.slice(2, 4), 16);
@@ -170,7 +190,7 @@ export const PopupPortal: React.FC<PopupPortalProps> = ({
 
   // Handle close with exit animation
   const handleClose = useCallback(() => {
-    if (animationType !== 'none') {
+    if (animationType !== "none") {
       setIsExiting(true);
       // Wait for the longest animation to complete
       const maxDuration = Math.max(
@@ -191,21 +211,24 @@ export const PopupPortal: React.FC<PopupPortalProps> = ({
     if (!isVisible || !closeOnEscape) return;
 
     const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
+      if (event.key === "Escape") {
         handleClose();
       }
     };
 
-    document.addEventListener('keydown', handleEscape);
-    return () => document.removeEventListener('keydown', handleEscape);
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
   }, [isVisible, closeOnEscape, handleClose]);
 
   // Handle backdrop click
-  const handleBackdropClick: React.MouseEventHandler<HTMLDivElement> = useCallback((e) => {
-    if (closeOnBackdropClick) {
-      handleClose();
-    }
-  }, [closeOnBackdropClick, handleClose]);
+  const handleBackdropClick: React.MouseEventHandler<HTMLDivElement> = useCallback(
+    (e) => {
+      if (closeOnBackdropClick) {
+        handleClose();
+      }
+    },
+    [closeOnBackdropClick, handleClose]
+  );
 
   // Prevent content click from closing
   const handleContentClick: React.MouseEventHandler<HTMLDivElement> = useCallback((e) => {
@@ -235,13 +258,13 @@ export const PopupPortal: React.FC<PopupPortalProps> = ({
   // Scroll locking
   useEffect(() => {
     if (isVisible && !previewMode) {
-      document.body.style.overflow = 'hidden';
+      document.body.style.overflow = "hidden";
     } else {
-      document.body.style.overflow = '';
+      document.body.style.overflow = "";
     }
 
     return () => {
-      document.body.style.overflow = '';
+      document.body.style.overflow = "";
     };
   }, [isVisible, previewMode]);
 
@@ -250,20 +273,21 @@ export const PopupPortal: React.FC<PopupPortalProps> = ({
     if (previewMode) return; // Don't use Shadow DOM in preview mode
 
     // Create shadow host if it doesn't exist
-    let host = document.getElementById('revenue-boost-popup-shadow-host') as HTMLDivElement;
+    let host = document.getElementById("revenue-boost-popup-shadow-host") as HTMLDivElement;
 
     if (!host) {
-      host = document.createElement('div');
-      host.id = 'revenue-boost-popup-shadow-host';
+      host = document.createElement("div");
+      host.id = "revenue-boost-popup-shadow-host";
       // Shadow host MUST have display: block to have dimensions!
       // position: fixed with inset: 0 makes it fill the viewport
-      host.style.cssText = 'display: block; position: fixed; inset: 0; z-index: 9999; pointer-events: auto;';
+      host.style.cssText =
+        "display: block; position: fixed; inset: 0; z-index: 9999; pointer-events: auto;";
       document.body.appendChild(host);
     }
 
     // Attach shadow root if not already attached
     if (!host.shadowRoot) {
-      const shadowRoot = host.attachShadow({ mode: 'open' });
+      const shadowRoot = host.attachShadow({ mode: "open" });
       shadowRootRef.current = shadowRoot;
 
       // Add base styles using adoptedStyleSheets (modern approach for Shadow DOM)
@@ -276,7 +300,7 @@ export const PopupPortal: React.FC<PopupPortalProps> = ({
         `);
         shadowRoot.adoptedStyleSheets = [sheet];
       } catch (e) {
-        console.warn('[PopupPortal] adoptedStyleSheets not supported, falling back to style tag');
+        console.warn("[PopupPortal] adoptedStyleSheets not supported, falling back to style tag");
       }
     } else {
       shadowRootRef.current = host.shadowRoot;
@@ -305,16 +329,16 @@ export const PopupPortal: React.FC<PopupPortalProps> = ({
   if (!isMounted && !isVisible) return null;
 
   // Check for reduced motion preference
-  const prefersReducedMotion = typeof window !== 'undefined' &&
-    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const prefersReducedMotion =
+    typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  const effectiveAnimationType = prefersReducedMotion ? 'none' : animationType;
+  const effectiveAnimationType = prefersReducedMotion ? "none" : animationType;
 
   // Animation classes
   const getAnimationClass = () => {
-    if (effectiveAnimationType === 'none') return '';
+    if (effectiveAnimationType === "none") return "";
 
-    const direction = isExiting ? 'exit' : 'enter';
+    const direction = isExiting ? "exit" : "enter";
     return `popup-portal-${effectiveAnimationType}-${direction}`;
   };
 
@@ -326,14 +350,14 @@ export const PopupPortal: React.FC<PopupPortalProps> = ({
   // It's relative to the shadow host. Since shadow host is position:fixed with inset:0,
   // we use position:absolute inside to fill the shadow host (which fills the viewport)
   const overlayStyles: React.CSSProperties = {
-    position: 'absolute',
+    position: "absolute",
     inset: 0,
     zIndex: 1,
-    pointerEvents: 'auto', // Enable pointer events in shadow DOM
+    pointerEvents: "auto", // Enable pointer events in shadow DOM
   };
 
   const backdropStyles: React.CSSProperties = {
-    position: 'absolute',
+    position: "absolute",
     inset: 0,
     background: getBackdropColor(),
     backdropFilter: backdrop.blur ? `blur(${backdrop.blur}px)` : undefined,
@@ -344,19 +368,29 @@ export const PopupPortal: React.FC<PopupPortalProps> = ({
   const contentWrapperStyles: React.CSSProperties = {
     animationDelay: `${contentTiming.delay}ms`,
     animationDuration: `${contentTiming.duration}ms`,
-    outline: 'none',
+    outline: "none",
   };
+
+  const combinedCustomCSS = useMemo(
+    () => [globalCustomCSS, customCSS].filter(Boolean).join("\n\n"),
+    [customCSS, globalCustomCSS]
+  );
 
   // Render content
   const content = (
     <div style={overlayStyles} role="presentation">
       {/* Base styles for Shadow DOM - ensures proper rendering */}
-      <style dangerouslySetInnerHTML={{ __html: `
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
         * {
           box-sizing: border-box;
         }
         ${getAnimationKeyframes(previewMode, position)}
-      ` }} />
+      `,
+        }}
+      />
+      {combinedCustomCSS && <style dangerouslySetInnerHTML={{ __html: combinedCustomCSS }} />}
 
       {/* Backdrop */}
       <div
@@ -410,19 +444,19 @@ export const PopupPortal: React.FC<PopupPortalProps> = ({
 function getAnimationKeyframes(previewMode: boolean, position: PopupPosition): string {
   // Map position to flexbox alignment
   const alignMap = {
-    center: 'center',
-    top: 'flex-start',
-    bottom: 'flex-end',
-    left: 'flex-start',
-    right: 'flex-end',
+    center: "center",
+    top: "flex-start",
+    bottom: "flex-end",
+    left: "flex-start",
+    right: "flex-end",
   };
 
   const justifyMap = {
-    center: 'center',
-    top: 'center',
-    bottom: 'center',
-    left: 'flex-start',
-    right: 'flex-end',
+    center: "center",
+    top: "center",
+    bottom: "center",
+    left: "flex-start",
+    right: "flex-end",
   };
 
   return `
@@ -571,4 +605,3 @@ function getAnimationKeyframes(previewMode: boolean, position: PopupPosition): s
     }
   `;
 }
-

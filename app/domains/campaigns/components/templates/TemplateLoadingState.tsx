@@ -1,6 +1,6 @@
 /**
  * TemplateLoadingState - Loading State for Template Selector
- * 
+ *
  * SOLID Compliance:
  * - Single Responsibility: Renders loading state
  * - <50 lines
@@ -23,14 +23,11 @@ export function TemplateLoadingState({ goal }: TemplateLoadingStateProps) {
           Select a Template
         </Text>
         <Text as="p" variant="bodyMd" tone="subdued">
-          Choose a template optimized for your goal:{" "}
-          <strong>{getGoalDisplayName(goal)}</strong>
+          Choose a template optimized for your goal: <strong>{getGoalDisplayName(goal)}</strong>
         </Text>
       </BlockStack>
 
-      <div
-        style={{ display: "flex", justifyContent: "center", padding: "2rem" }}
-      >
+      <div style={{ display: "flex", justifyContent: "center", padding: "2rem" }}>
         <Spinner size="large" />
       </div>
 
@@ -40,4 +37,3 @@ export function TemplateLoadingState({ goal }: TemplateLoadingStateProps) {
     </BlockStack>
   );
 }
-

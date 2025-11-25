@@ -10,22 +10,26 @@
  * - Dismissible with close button
  */
 
-import React, { useEffect, useState, useRef, useCallback } from 'react';
-import type { PopupDesignConfig, DiscountConfig as StorefrontDiscountConfig } from './types';
-import type { FreeShippingContent } from '~/domains/campaigns/types/campaign';
-import { debounce } from './utils';
-import { requestChallengeToken, challengeTokenStore } from '~/domains/storefront/services/challenge-token.client';
-import { POPUP_SPACING, SPACING_GUIDELINES } from './spacing';
+import React, { useEffect, useState, useRef, useCallback, useMemo } from "react";
+import type { PopupDesignConfig, DiscountConfig as StorefrontDiscountConfig } from "./types";
+import type { FreeShippingContent } from "~/domains/campaigns/types/campaign";
+import { debounce } from "./utils";
+import {
+  requestChallengeToken,
+  challengeTokenStore,
+} from "~/domains/storefront/services/challenge-token.client";
+import { POPUP_SPACING, SPACING_GUIDELINES } from "./spacing";
 
 // Import custom hooks
-import { usePopupAnimation, usePopupForm, useDiscountCode } from './hooks';
+import { usePopupAnimation, usePopupForm, useDiscountCode } from "./hooks";
+import { buildScopedCss } from "~/domains/storefront/shared/css";
 
 // Import reusable components
-import { EmailInput, SubmitButton } from './components';
+import { EmailInput, SubmitButton } from "./components";
 
 // Import session for lazy token loading (only in storefront context)
 let sessionModule: any = null;
-if (typeof window !== 'undefined') {
+if (typeof window !== "undefined") {
   try {
     // Dynamic import for storefront bundle
     sessionModule = (window as any).__RB_SESSION;
@@ -53,7 +57,9 @@ export interface FreeShippingPopupProps {
   onClose: () => void;
   cartTotal?: number;
   onSubmit?: (data: { email: string }) => Promise<string | undefined>;
-  issueDiscount?: (options?: { cartSubtotalCents?: number }) => Promise<{ code?: string; autoApplyMode?: string } | null>;
+  issueDiscount?: (options?: {
+    cartSubtotalCents?: number;
+  }) => Promise<{ code?: string; autoApplyMode?: string } | null>;
 }
 
 export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
@@ -66,17 +72,17 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
 }) => {
   const [cartTotal, setCartTotal] = useState<number>(propCartTotal ?? config.currentCartTotal ?? 0);
   const threshold = config.threshold;
-  const barPosition = config.barPosition || 'top'; // Use barPosition instead of position
+  const barPosition = config.barPosition || "top"; // Use barPosition instead of position
   const nearMissThreshold = config.nearMissThreshold ?? 10;
-  const currency = config.currency || '$';
+  const currency = config.currency || "$";
   const dismissible = config.dismissible ?? true;
   const celebrateOnUnlock = config.celebrateOnUnlock ?? true;
   const showIcon = config.showIcon ?? true;
   const animationDuration = config.animationDuration ?? 500;
   const discount = config.discount as StorefrontDiscountConfig | undefined;
   const requireEmailToClaim = (config as any).requireEmailToClaim ?? false;
-  const claimButtonLabel = (config as any).claimButtonLabel || 'Claim discount';
-  const claimEmailPlaceholder = (config as any).claimEmailPlaceholder || 'Enter your email';
+  const claimButtonLabel = (config as any).claimButtonLabel || "Claim discount";
+  const claimEmailPlaceholder = (config as any).claimEmailPlaceholder || "Enter your email";
   const claimSuccessMessage = (config as any).claimSuccessMessage as string | undefined;
   const claimErrorMessage = (config as any).claimErrorMessage as string | undefined;
 
@@ -104,10 +110,12 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
       campaignId: config.campaignId,
       previewMode: config.previewMode,
     },
-    onSubmit: onSubmit ? async (data) => {
-      const result = await onSubmit({ email: data.email });
-      return result;
-    } : undefined,
+    onSubmit: onSubmit
+      ? async (data) => {
+          const result = await onSubmit({ email: data.email });
+          return result;
+        }
+      : undefined,
   });
 
   // Component-specific state
@@ -135,29 +143,16 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
           ? "near-miss"
           : "progress";
 
-  const barSize = config.size || 'medium';
+  const barSize = config.size || "medium";
 
   const barPadding =
-    barSize === 'small'
-      ? '0.75rem 1.25rem'
-      : barSize === 'large'
-      ? '1rem 2rem'
-      : '0.875rem 1.5rem';
+    barSize === "small" ? "0.75rem 1.25rem" : barSize === "large" ? "1rem 2rem" : "0.875rem 1.5rem";
 
   const messageFontSize =
-    barSize === 'small'
-      ? '0.875rem'
-      : barSize === 'large'
-      ? '1rem'
-      : '0.9375rem';
+    barSize === "small" ? "0.875rem" : barSize === "large" ? "1rem" : "0.9375rem";
 
   const iconFontSize =
-    barSize === 'small'
-      ? '1.125rem'
-      : barSize === 'large'
-      ? '1.375rem'
-      : '1.25rem';
-
+    barSize === "small" ? "1.125rem" : barSize === "large" ? "1.375rem" : "1.25rem";
 
   // Handle close
   const handleClose = () => {
@@ -170,7 +165,7 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
     const code = currencyCodeRef.current;
     if (code && /^[A-Z]{3}$/.test(code)) {
       try {
-        return new Intl.NumberFormat('en-US', { style: 'currency', currency: code }).format(value);
+        return new Intl.NumberFormat("en-US", { style: "currency", currency: code }).format(value);
       } catch {
         // Fallback below
       }
@@ -183,13 +178,13 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
     // Check if token already exists and is valid
     const existingToken = challengeTokenStore.get(campaignId);
     if (existingToken) {
-      console.log('[FreeShippingPopup] Using existing challenge token');
+      console.log("[FreeShippingPopup] Using existing challenge token");
       return true;
     }
 
     // Prevent duplicate requests
     if (tokenRequestedRef.current) {
-      console.log('[FreeShippingPopup] Token request already in progress');
+      console.log("[FreeShippingPopup] Token request already in progress");
       return false;
     }
 
@@ -197,25 +192,26 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
     setIsLoadingToken(true);
 
     try {
-      console.log('[FreeShippingPopup] Requesting challenge token for email claim');
+      console.log("[FreeShippingPopup] Requesting challenge token for email claim");
 
       // Get session ID from global session manager or fallback
-      const sessionId = sessionModule?.getSessionId?.() ||
-        (typeof window !== 'undefined' ? (window as any).__RB_SESSION_ID : null) ||
-        'unknown';
+      const sessionId =
+        sessionModule?.getSessionId?.() ||
+        (typeof window !== "undefined" ? (window as any).__RB_SESSION_ID : null) ||
+        "unknown";
 
       const response = await requestChallengeToken(campaignId, sessionId);
 
       if (response.success && response.challengeToken && response.expiresAt) {
         challengeTokenStore.set(campaignId, response.challengeToken, response.expiresAt);
-        console.log('[FreeShippingPopup] Challenge token acquired successfully');
+        console.log("[FreeShippingPopup] Challenge token acquired successfully");
         return true;
       } else {
-        console.error('[FreeShippingPopup] Failed to acquire challenge token:', response.error);
+        console.error("[FreeShippingPopup] Failed to acquire challenge token:", response.error);
         return false;
       }
     } catch (error) {
-      console.error('[FreeShippingPopup] Error requesting challenge token:', error);
+      console.error("[FreeShippingPopup] Error requesting challenge token:", error);
       return false;
     } finally {
       setIsLoadingToken(false);
@@ -231,13 +227,13 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
 
     // Add transition to body for smooth animation
     const originalTransition = document.body.style.transition;
-    document.body.style.transition = 'padding 0.3s ease-out';
+    document.body.style.transition = "padding 0.3s ease-out";
 
     const updateBodyPadding = () => {
       if (!bannerRef.current) return;
 
       const height = bannerRef.current.offsetHeight;
-      if (barPosition === 'top') {
+      if (barPosition === "top") {
         document.body.style.paddingTop = `${height}px`;
       } else {
         document.body.style.paddingBottom = `${height}px`;
@@ -252,17 +248,17 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
 
     return () => {
       // Animate padding removal
-      if (barPosition === 'top') {
-        document.body.style.paddingTop = '0px';
+      if (barPosition === "top") {
+        document.body.style.paddingTop = "0px";
       } else {
-        document.body.style.paddingBottom = '0px';
+        document.body.style.paddingBottom = "0px";
       }
 
       // Restore original transition after animation
       setTimeout(() => {
         document.body.style.transition = originalTransition;
-        document.body.style.paddingTop = '';
-        document.body.style.paddingBottom = '';
+        document.body.style.paddingTop = "";
+        document.body.style.paddingBottom = "";
       }, 300);
     };
   }, [isVisible, internalDismissed, barPosition, config.previewMode]);
@@ -272,7 +268,7 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
     try {
       const w: any = window as any;
       const iso = w?.REVENUE_BOOST_CONFIG?.currency;
-      if (typeof iso === 'string') {
+      if (typeof iso === "string") {
         currencyCodeRef.current = iso;
       }
     } catch {
@@ -286,11 +282,12 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
 
     const refresh = async () => {
       try {
-        const res = await fetch('/cart.js', { credentials: 'same-origin' });
+        const res = await fetch("/cart.js", { credentials: "same-origin" });
         const cart = await res.json();
-        const cents = (typeof cart?.subtotal_price === 'number')
-          ? cart.subtotal_price
-          : (Number(cart?.items_subtotal_price || 0) - Number(cart?.total_discount || 0));
+        const cents =
+          typeof cart?.subtotal_price === "number"
+            ? cart.subtotal_price
+            : Number(cart?.items_subtotal_price || 0) - Number(cart?.total_discount || 0);
         const value = Number.isFinite(cents) ? Math.max(0, cents / 100) : 0;
         setCartTotal(value);
       } catch {
@@ -299,7 +296,14 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
     };
 
     const debouncedRefresh = debounce(refresh, 300);
-    const eventNames = ['cart:update','cart:change','cart:updated','theme:cart:update','cart:item-added','cart:add'];
+    const eventNames = [
+      "cart:update",
+      "cart:change",
+      "cart:updated",
+      "theme:cart:update",
+      "cart:item-added",
+      "cart:add",
+    ];
     eventNames.forEach((name) => document.addEventListener(name, debouncedRefresh as any));
 
     // Always perform an initial sync from /cart.js so we include any existing cart items
@@ -315,9 +319,9 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
         originalFetch = window.fetch.bind(window);
         window.fetch = (async (...args: Parameters<typeof fetch>) => {
           const [url, opts] = args;
-          const urlStr = typeof url === 'string' ? url : url?.toString?.();
-          const method = (opts as any)?.method ? String((opts as any).method).toUpperCase() : 'GET';
-          const isCartMutation = !!urlStr && urlStr.includes('/cart') && method !== 'GET';
+          const urlStr = typeof url === "string" ? url : url?.toString?.();
+          const method = (opts as any)?.method ? String((opts as any).method).toUpperCase() : "GET";
+          const isCartMutation = !!urlStr && urlStr.includes("/cart") && method !== "GET";
           const response = await (originalFetch as any)(...args);
           if (isCartMutation) debouncedRefresh();
           return response;
@@ -336,7 +340,7 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
           w.__RB_FETCH_INTERCEPTED = false;
         }
       } catch (error) {
-        console.error('[FreeShippingPopup] Failed to restore fetch:', error);
+        console.error("[FreeShippingPopup] Failed to restore fetch:", error);
       }
     };
   }, [isVisible]);
@@ -344,13 +348,15 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
   // In preview mode (admin), allow external control of cart total via prop or config
   useEffect(() => {
     if ((config as any)?.previewMode) {
-      const next = typeof propCartTotal === 'number'
-        ? propCartTotal
-        : (typeof config.currentCartTotal === 'number' ? config.currentCartTotal : undefined);
-      if (typeof next === 'number') setCartTotal(next);
+      const next =
+        typeof propCartTotal === "number"
+          ? propCartTotal
+          : typeof config.currentCartTotal === "number"
+            ? config.currentCartTotal
+            : undefined;
+      if (typeof next === "number") setCartTotal(next);
     }
   }, [propCartTotal, config.currentCartTotal, config]);
-
 
   const getMessage = () => {
     const remainingFormatted = formatCurrency(remaining);
@@ -361,10 +367,16 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
       case "unlocked":
         return config.unlockedMessage || "You've unlocked free shipping! 🎉";
       case "near-miss":
-        return (config.nearMissMessage || "Only {remaining} to go!").replace("{remaining}", remainingFormatted);
+        return (config.nearMissMessage || "Only {remaining} to go!").replace(
+          "{remaining}",
+          remainingFormatted
+        );
       case "progress":
       default:
-        return (config.progressMessage || "You're {remaining} away from free shipping").replace("{remaining}", remainingFormatted);
+        return (config.progressMessage || "You're {remaining} away from free shipping").replace(
+          "{remaining}",
+          remainingFormatted
+        );
     }
   };
 
@@ -376,9 +388,9 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
       if (result.discountCode) {
         setDiscountCode(result.discountCode);
       }
-      console.log('[FreeShippingPopup] Discount claim successful');
+      console.log("[FreeShippingPopup] Discount claim successful");
     } else {
-      setClaimError(claimErrorMessage || 'Something went wrong. Please try again.');
+      setClaimError(claimErrorMessage || "Something went wrong. Please try again.");
     }
   };
 
@@ -388,25 +400,30 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
     const wasLocked = prevUnlockedRef.current === false;
 
     if (isUnlocked && wasLocked) {
-      console.log('[FreeShippingPopup] Free shipping unlocked', {
+      console.log("[FreeShippingPopup] Free shipping unlocked", {
         threshold,
         cartTotal,
         deliveryMode: discount?.deliveryMode,
       });
 
-      if (discount?.deliveryMode === 'auto_apply_only') {
-        console.log('[FreeShippingPopup] Auto-apply mode active for free shipping', {
+      if (discount?.deliveryMode === "auto_apply_only") {
+        console.log("[FreeShippingPopup] Auto-apply mode active for free shipping", {
           threshold,
           cartTotal,
         });
       }
 
       // For non-email-gated flows, issue a discount code when the bar first unlocks
-      if (!requireEmailToClaim && discount && typeof issueDiscount === 'function' && !hasIssuedDiscountRef.current) {
-        console.log('[FreeShippingPopup] 🎟️ Threshold reached! Issuing discount...', {
+      if (
+        !requireEmailToClaim &&
+        discount &&
+        typeof issueDiscount === "function" &&
+        !hasIssuedDiscountRef.current
+      ) {
+        console.log("[FreeShippingPopup] 🎟️ Threshold reached! Issuing discount...", {
           requireEmailToClaim,
           hasDiscount: !!discount,
-          hasIssueDiscountFn: typeof issueDiscount === 'function',
+          hasIssueDiscountFn: typeof issueDiscount === "function",
           alreadyIssued: hasIssuedDiscountRef.current,
           cartTotal,
           threshold,
@@ -421,38 +438,46 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
             // Fetch challenge token before issuing discount (for non-email-required flow)
             const campaignId = (config as any).campaignId || (config as any).id;
             if (campaignId) {
-              console.log('[FreeShippingPopup] 🔐 Fetching challenge token for auto-issue...');
+              console.log("[FreeShippingPopup] 🔐 Fetching challenge token for auto-issue...");
               const tokenReady = await ensureChallengeToken(campaignId);
               if (!tokenReady) {
-                console.error('[FreeShippingPopup] ❌ Failed to fetch challenge token, cannot issue discount');
+                console.error(
+                  "[FreeShippingPopup] ❌ Failed to fetch challenge token, cannot issue discount"
+                );
                 return;
               }
             }
 
-            console.log('[FreeShippingPopup] 🎟️ Calling issueDiscount with cartSubtotalCents:', cartSubtotalCents);
+            console.log(
+              "[FreeShippingPopup] 🎟️ Calling issueDiscount with cartSubtotalCents:",
+              cartSubtotalCents
+            );
             const result = await issueDiscount({ cartSubtotalCents });
-            console.log('[FreeShippingPopup] 🎟️ issueDiscount result:', result);
+            console.log("[FreeShippingPopup] 🎟️ issueDiscount result:", result);
 
             if (result?.code) {
               setDiscountCode(result.code);
-              console.log('[FreeShippingPopup] ✅ Discount code issued for free shipping', {
+              console.log("[FreeShippingPopup] ✅ Discount code issued for free shipping", {
                 code: result.code,
                 autoApplyMode: result.autoApplyMode,
               });
             } else if (result && !result.code) {
-              console.log('[FreeShippingPopup] ℹ️ Discount issued without code (possible auto-apply only mode)', result);
+              console.log(
+                "[FreeShippingPopup] ℹ️ Discount issued without code (possible auto-apply only mode)",
+                result
+              );
             } else {
-              console.warn('[FreeShippingPopup] ⚠️ No result from issueDiscount');
+              console.warn("[FreeShippingPopup] ⚠️ No result from issueDiscount");
             }
           } catch (err) {
-            console.error('[FreeShippingPopup] ❌ Failed to issue discount code:', err);
+            console.error("[FreeShippingPopup] ❌ Failed to issue discount code:", err);
           }
         })();
       } else {
-        console.log('[FreeShippingPopup] ℹ️ Discount issuance skipped', {
+        console.log("[FreeShippingPopup] ℹ️ Discount issuance skipped", {
           requireEmailToClaim,
           hasDiscount: !!discount,
-          hasIssueDiscountFn: typeof issueDiscount === 'function',
+          hasIssueDiscountFn: typeof issueDiscount === "function",
           alreadyIssued: hasIssuedDiscountRef.current,
         });
       }
@@ -465,7 +490,15 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
     }
 
     prevUnlockedRef.current = isUnlocked;
-  }, [state, celebrateOnUnlock, threshold, cartTotal, discount, issueDiscount, requireEmailToClaim]);
+  }, [
+    state,
+    celebrateOnUnlock,
+    threshold,
+    cartTotal,
+    discount,
+    issueDiscount,
+    requireEmailToClaim,
+  ]);
 
   // Don't render if not visible and not animating
   if ((!isVisible || internalDismissed) && !isAnimating) {
@@ -474,9 +507,9 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
 
   // Get progress bar color based on state
   const getProgressColor = () => {
-    if (state === "unlocked") return config.accentColor || '#10B981';
-    if (state === "near-miss") return '#F59E0B'; // Warning color
-    return config.accentColor || '#3B82F6'; // Primary color
+    if (state === "unlocked") return config.accentColor || "#10B981";
+    if (state === "near-miss") return "#F59E0B"; // Warning color
+    return config.accentColor || "#3B82F6"; // Primary color
   };
 
   // Get icon based on state
@@ -491,6 +524,17 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
         return "🚚";
     }
   };
+
+  const scopedCss = useMemo(
+    () =>
+      buildScopedCss(
+        config.globalCustomCSS,
+        config.customCSS,
+        "data-rb-banner",
+        "free-shipping",
+      ),
+    [config.customCSS, config.globalCustomCSS],
+  );
 
   return (
     <>
@@ -521,13 +565,13 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
           border-radius: inherit;
           border: 2px solid transparent;
           background:
-            linear-gradient(${config.backgroundColor || '#ffffff'}, ${config.backgroundColor || '#ffffff'}) padding-box,
+            linear-gradient(${config.backgroundColor || "#ffffff"}, ${config.backgroundColor || "#ffffff"}) padding-box,
             conic-gradient(
               from var(--rb-border-angle),
-              ${config.accentColor || '#3B82F6'},
+              ${config.accentColor || "#3B82F6"},
               #22c55e,
               #facc15,
-              ${config.accentColor || '#3B82F6'}
+              ${config.accentColor || "#3B82F6"}
             ) border-box;
           opacity: 0;
           pointer-events: none;
@@ -820,20 +864,22 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
         }
 
       `}</style>
+      {scopedCss ? <style dangerouslySetInnerHTML={{ __html: scopedCss }} /> : null}
 
       <div
+        data-rb-banner
         ref={bannerRef}
-        className={`free-shipping-bar ${!showContent ? 'entering' : ''} ${isAnimating ? 'animating' : ''} ${celebrating ? 'celebrating' : ''}`}
+        className={`free-shipping-bar ${!showContent ? "entering" : ""} ${isAnimating ? "animating" : ""} ${celebrating ? "celebrating" : ""}`}
         data-position={barPosition}
         data-state={state}
         role="region"
         aria-live="polite"
         aria-atomic="true"
         style={{
-          position: (config as any)?.previewMode ? 'absolute' : undefined,
-          background: config.backgroundColor || '#ffffff',
-          color: config.textColor || '#111827',
-          ['--shipping-bar-progress-bg' as any]: getProgressColor(),
+          position: (config as any)?.previewMode ? "absolute" : undefined,
+          background: config.backgroundColor || "#ffffff",
+          color: config.textColor || "#111827",
+          ["--shipping-bar-progress-bg" as any]: getProgressColor(),
         }}
       >
         <div
@@ -860,7 +906,10 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
                     type="button"
                     className="free-shipping-bar-claim-button"
                     onClick={() => setShowClaimForm(true)}
-                    style={{ background: config.buttonColor || '#111827', color: config.buttonTextColor || '#ffffff' }}
+                    style={{
+                      background: config.buttonColor || "#111827",
+                      color: config.buttonTextColor || "#ffffff",
+                    }}
                   >
                     {claimButtonLabel}
                   </button>
@@ -891,39 +940,43 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
                   </form>
                 )}
 
-                {claimError && (
-                  <p className="free-shipping-bar-claim-error">{claimError}</p>
-                )}
+                {claimError && <p className="free-shipping-bar-claim-error">{claimError}</p>}
               </div>
             )}
 
-            {state === "unlocked" && discount && (!requireEmailToClaim || hasClaimed) && (
-              discount.deliveryMode === 'auto_apply_only' ? (
+            {state === "unlocked" &&
+              discount &&
+              (!requireEmailToClaim || hasClaimed) &&
+              (discount.deliveryMode === "auto_apply_only" ? (
                 <p className="free-shipping-bar-discount-text">
                   Free shipping will be applied automatically at checkout.
                 </p>
-              ) : (discountCode || discount.code) ? (
+              ) : discountCode || discount.code ? (
                 <p
                   className="free-shipping-bar-discount-text"
                   onClick={() => handleCopyCode()}
-                  style={{ cursor: 'pointer' }}
+                  style={{ cursor: "pointer" }}
                 >
-                  <>Use code <span className="free-shipping-bar-discount-code">{discountCode || discount.code}</span> at checkout.{copiedCode && <span style={{ marginLeft: '0.5rem', color: '#10B981' }}>✓ Copied!</span>}</>
+                  <>
+                    Use code{" "}
+                    <span className="free-shipping-bar-discount-code">
+                      {discountCode || discount.code}
+                    </span>{" "}
+                    at checkout.
+                    {copiedCode && (
+                      <span style={{ marginLeft: "0.5rem", color: "#10B981" }}>✓ Copied!</span>
+                    )}
+                  </>
                 </p>
-              ) : null
-            )}
+              ) : null)}
 
             {state === "unlocked" && hasClaimed && claimSuccessMessage && (
               <p className="free-shipping-bar-discount-text">{claimSuccessMessage}</p>
             )}
 
             {dismissible && (
-              <button
-                type="button"
-                className="free-shipping-bar-dismiss"
-                onClick={handleClose}
-              >
-                {config.dismissLabel || 'No thanks'}
+              <button type="button" className="free-shipping-bar-dismiss" onClick={handleClose}>
+                {config.dismissLabel || "No thanks"}
               </button>
             )}
           </div>
@@ -933,9 +986,15 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
               className="free-shipping-bar-close"
               onClick={handleClose}
               aria-label="Dismiss shipping bar"
-              style={{ color: config.textColor || '#111827' }}
+              style={{ color: config.textColor || "#111827" }}
             >
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 20 20"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
                 <path
                   d="M15 5L5 15M5 5L15 15"
                   stroke="currentColor"
@@ -951,4 +1010,3 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
     </>
   );
 };
-

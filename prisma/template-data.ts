@@ -759,7 +759,7 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
     goals: ["INCREASE_REVENUE"],
     contentConfig: {
       threshold: 50,
-      currency: "\$",
+      currency: "$",
       nearMissThreshold: 10,
       emptyMessage: "Add items to unlock free shipping",
       progressMessage: "You're {remaining} away from free shipping",
@@ -862,5 +862,4 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
   },
 
 ];
-
 

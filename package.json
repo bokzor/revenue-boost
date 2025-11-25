@@ -20,6 +20,7 @@
     "prisma": "prisma",
     "prisma:generate": "prisma generate",
     "graphql-codegen": "graphql-codegen",
+    "format:write": "prettier \"app/**/*.{ts,tsx,js,jsx,html,md,scss,json}\" --write",
     "vite": "vite",
     "typecheck": "react-router typegen && tsc --noEmit",
     "test": "vitest",

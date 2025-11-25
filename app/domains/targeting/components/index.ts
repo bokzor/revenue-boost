@@ -11,4 +11,3 @@ export { TriggerSettingsPanel } from "./TriggerSettingsPanel";
 // Re-export types
 export type { EnhancedTriggersConfig } from "~/domains/campaigns/types/campaign";
 export type { FrequencyCappingConfig } from "./FrequencyCappingPanel";
-

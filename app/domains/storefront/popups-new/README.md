@@ -11,16 +11,18 @@ Professional, zero-dependency popup components for Shopify storefronts. Built fr
 ✅ **Preview Mode** - Disable API calls for admin preview  
 ✅ **Reduced Motion** - Respects `prefers-reduced-motion` media query  
 ✅ **TypeScript** - Strict typing with comprehensive interfaces  
-✅ **Production Ready** - Addresses all issues from template analysis  
+✅ **Production Ready** - Addresses all issues from template analysis
 
 ## Components
 
 ### Newsletter Components
 
 #### NewsletterPopup
+
 Email collection popup with optional name fields, consent checkbox, and discount code display.
 
 **Features:**
+
 - Email validation
 - Optional first/last name fields
 - GDPR consent checkbox
@@ -29,26 +31,27 @@ Email collection popup with optional name fields, consent checkbox, and discount
 - Loading states
 
 **Usage:**
+
 ```tsx
-import { NewsletterPopup } from './popups-new';
+import { NewsletterPopup } from "./popups-new";
 
 <NewsletterPopup
   config={{
-    id: 'newsletter-1',
-    headline: 'Join Our Newsletter',
-    subheadline: 'Get 10% off your first order',
-    backgroundColor: '#FFFFFF',
-    textColor: '#000000',
-    buttonColor: '#007BFF',
-    buttonTextColor: '#FFFFFF',
-    position: 'center',
-    size: 'medium',
-    emailPlaceholder: 'Enter your email',
+    id: "newsletter-1",
+    headline: "Join Our Newsletter",
+    subheadline: "Get 10% off your first order",
+    backgroundColor: "#FFFFFF",
+    textColor: "#000000",
+    buttonColor: "#007BFF",
+    buttonTextColor: "#FFFFFF",
+    position: "center",
+    size: "medium",
+    emailPlaceholder: "Enter your email",
     nameFieldEnabled: true,
     consentFieldEnabled: true,
     discount: {
       enabled: true,
-      code: 'WELCOME10',
+      code: "WELCOME10",
       percentage: 10,
     },
   }}
@@ -57,15 +60,17 @@ import { NewsletterPopup } from './popups-new';
   onSubmit={async (data) => {
     // Handle submission
   }}
-/>
+/>;
 ```
 
 ### Gamification Components
 
 #### SpinToWinPopup
+
 Interactive spinning wheel with weighted probability selection.
 
 **Features:**
+
 - SVG-based wheel rendering
 - Weighted probability selection
 - Smooth rotation animation (4s default)
@@ -75,28 +80,29 @@ Interactive spinning wheel with weighted probability selection.
 - Respects reduced-motion
 
 **Usage:**
+
 ```tsx
-import { SpinToWinPopup } from './popups-new';
+import { SpinToWinPopup } from "./popups-new";
 
 <SpinToWinPopup
   config={{
-    id: 'spin-1',
-    headline: 'Spin to Win!',
-    backgroundColor: '#4A90E2',
-    textColor: '#FFFFFF',
-    buttonColor: '#FFD700',
-    buttonTextColor: '#000000',
-    position: 'center',
-    size: 'large',
+    id: "spin-1",
+    headline: "Spin to Win!",
+    backgroundColor: "#4A90E2",
+    textColor: "#FFFFFF",
+    buttonColor: "#FFD700",
+    buttonTextColor: "#000000",
+    position: "center",
+    size: "large",
     wheelSegments: [
       {
-        id: 'prize-10',
-        label: '10% OFF',
-        probability: 0.30,
-        color: '#FF6B6B',
-        discountType: 'percentage',
+        id: "prize-10",
+        label: "10% OFF",
+        probability: 0.3,
+        color: "#FF6B6B",
+        discountType: "percentage",
         discountValue: 10,
-        discountCode: 'SPIN10',
+        discountCode: "SPIN10",
       },
       // ... more prizes
     ],
@@ -108,13 +114,15 @@ import { SpinToWinPopup } from './popups-new';
   onClose={() => {}}
   onSpin={async (email) => {}}
   onWin={(prize) => {}}
-/>
+/>;
 ```
 
 #### ScratchCardPopup
+
 Canvas-based scratch card with touch/mouse support.
 
 **Features:**
+
 - HTML5 Canvas scratch interaction
 - Touch and mouse support
 - Scratch percentage tracking
@@ -126,9 +134,11 @@ Canvas-based scratch card with touch/mouse support.
 ### Sales Components
 
 #### FlashSalePopup
+
 Urgency-driven flash sale with live countdown timer.
 
 **Features:**
+
 - **WORKING countdown timer** (not TODO!)
 - Auto-update every second
 - Auto-hide on expiry
@@ -137,17 +147,18 @@ Urgency-driven flash sale with live countdown timer.
 - Price comparison
 
 **Usage:**
+
 ```tsx
 <FlashSalePopup
   config={{
-    id: 'flash-1',
-    headline: '🔥 Flash Sale - 30% OFF!',
-    backgroundColor: '#FF6B6B',
-    textColor: '#FFFFFF',
-    buttonColor: '#FFFFFF',
-    buttonTextColor: '#FF6B6B',
-    position: 'center',
-    size: 'medium',
+    id: "flash-1",
+    headline: "🔥 Flash Sale - 30% OFF!",
+    backgroundColor: "#FF6B6B",
+    textColor: "#FFFFFF",
+    buttonColor: "#FFFFFF",
+    buttonTextColor: "#FF6B6B",
+    position: "center",
+    size: "medium",
     discountPercentage: 30,
     showCountdown: true,
     countdownDuration: 7200, // 2 hours
@@ -161,9 +172,11 @@ Urgency-driven flash sale with live countdown timer.
 ```
 
 #### CountdownTimerPopup
+
 Banner-style countdown timer (top/bottom positioning).
 
 **Features:**
+
 - **WORKING countdown timer** (not TODO!)
 - Compact format (HH:MM:SS)
 - Sticky positioning option
@@ -173,9 +186,11 @@ Banner-style countdown timer (top/bottom positioning).
 ### E-commerce Components
 
 #### CartAbandonmentPopup
+
 Cart recovery with item display and urgency timer.
 
 **Features:**
+
 - Display cart items with images
 - Show cart total
 - Urgency countdown timer
@@ -184,9 +199,11 @@ Cart recovery with item display and urgency timer.
 - Stock warnings
 
 #### ProductUpsellPopup
+
 Product recommendations with multi-select.
 
 **Features:**
+
 - Grid/carousel/card layouts
 - Product images and prices
 - Compare-at-price display
@@ -197,9 +214,11 @@ Product recommendations with multi-select.
 ### Engagement Components
 
 #### FreeShippingPopup
+
 Free shipping threshold with progress bar.
 
 **Features:**
+
 - Progress bar (cart value vs threshold)
 - Dynamic messaging
 - Success state
@@ -207,9 +226,11 @@ Free shipping threshold with progress bar.
 - Banner/modal/sticky modes
 
 #### SocialProofPopup
+
 Social proof notifications (corner placement).
 
 **Features:**
+
 - Purchase notifications
 - Visitor count notifications
 - Review notifications
@@ -218,9 +239,11 @@ Social proof notifications (corner placement).
 - Corner positioning
 
 #### AnnouncementPopup
+
 Banner announcements (top/bottom).
 
 **Features:**
+
 - Top/bottom positioning
 - Sticky option
 - Color scheme presets
@@ -236,14 +259,14 @@ interface PopupConfig {
   // Identification
   id: string;
   campaignId?: string;
-  
+
   // Core Content
   headline: string;
   subheadline?: string;
   buttonText?: string;
   successMessage?: string;
   errorMessage?: string;
-  
+
   // Colors
   backgroundColor: string;
   textColor: string;
@@ -255,15 +278,15 @@ interface PopupConfig {
   accentColor?: string;
   overlayColor?: string;
   overlayOpacity?: number;
-  
+
   // Layout
-  position: 'center' | 'top' | 'bottom' | 'left' | 'right';
-  size: 'small' | 'medium' | 'large';
+  position: "center" | "top" | "bottom" | "left" | "right";
+  size: "small" | "medium" | "large";
   borderRadius?: number;
   padding?: string | number;
   maxWidth?: string | number;
-  animation?: 'fade' | 'slide' | 'bounce' | 'none';
-  
+  animation?: "fade" | "slide" | "bounce" | "none";
+
   // Behavior
   previewMode?: boolean;
   showCloseButton?: boolean;
@@ -337,4 +360,3 @@ popups-new/
 ## License
 
 Internal use only - Revenue Boost application.
-

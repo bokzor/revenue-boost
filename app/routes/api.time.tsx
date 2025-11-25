@@ -1,9 +1,9 @@
 /**
  * API Route: Server Time Synchronization
- * 
+ *
  * Returns current server time and shop timezone for accurate countdown timers.
  * Used by FlashSale popups to correct client-side clock drift.
- * 
+ *
  * Public endpoint (no auth required for storefront use).
  */
 
@@ -25,7 +25,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
   if (
     cachedResponse &&
     cachedResponse.shopDomain === shopDomain &&
-    (now - cachedResponse.timestamp) < CACHE_TTL_MS
+    now - cachedResponse.timestamp < CACHE_TTL_MS
   ) {
     return new Response(JSON.stringify(cachedResponse.data), {
       headers: {

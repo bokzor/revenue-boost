@@ -14,11 +14,7 @@ export interface DiscountConfigSectionProps {
   onChange: (discount: Partial<DiscountConfig>) => void;
 }
 
-export function DiscountConfigSection({
-  discount,
-  errors,
-  onChange,
-}: DiscountConfigSectionProps) {
+export function DiscountConfigSection({ discount, errors, onChange }: DiscountConfigSectionProps) {
   const updateField = useFieldUpdater(discount, onChange);
 
   return (
@@ -44,9 +40,7 @@ export function DiscountConfigSection({
                 { label: "Free Shipping", value: "FREE_SHIPPING" },
               ]}
               required
-              onChange={(value) =>
-                updateField("valueType", value as DiscountConfig["valueType"])
-              }
+              onChange={(value) => updateField("valueType", value as DiscountConfig["valueType"])}
             />
 
             {discount.valueType !== "FREE_SHIPPING" && (
@@ -62,9 +56,7 @@ export function DiscountConfigSection({
                     ? "Percentage (e.g., 10 for 10%)"
                     : "Amount in currency (e.g., 5.00)"
                 }
-                onChange={(value) =>
-                  updateField("value", parseFloat(value) || undefined)
-                }
+                onChange={(value) => updateField("value", parseFloat(value) || undefined)}
               />
             )}
           </FormGrid>
@@ -112,9 +104,7 @@ export function DiscountConfigSection({
               value={discount.expiryDays?.toString() || ""}
               placeholder="30"
               helpText="Number of days until discount expires (optional)"
-              onChange={(value) =>
-                updateField("expiryDays", parseInt(value) || undefined)
-              }
+              onChange={(value) => updateField("expiryDays", parseInt(value) || undefined)}
             />
 
             <TextField
@@ -123,9 +113,7 @@ export function DiscountConfigSection({
               value={discount.minimumAmount?.toString() || ""}
               placeholder="25.00"
               helpText="Minimum order value required (optional)"
-              onChange={(value) =>
-                updateField("minimumAmount", parseFloat(value) || undefined)
-              }
+              onChange={(value) => updateField("minimumAmount", parseFloat(value) || undefined)}
             />
           </FormGrid>
 
@@ -144,4 +132,3 @@ export function DiscountConfigSection({
     </>
   );
 }
-

@@ -1,21 +1,13 @@
 /**
  * ABTestingPanel - A/B Testing Control Panel Component
- * 
+ *
  * SOLID Compliance:
  * - Single Responsibility: Manages A/B testing toggle and variant selection
  * - <50 lines of logic
  * - Extracted from CampaignFormWithABTesting for better separation
  */
 
-import {
-  Card,
-  InlineStack,
-  BlockStack,
-  Badge,
-  Checkbox,
-  Banner,
-  Text,
-} from "@shopify/polaris";
+import { Card, InlineStack, BlockStack, Badge, Checkbox, Banner, Text } from "@shopify/polaris";
 import { VariantSelector } from "./VariantSelector";
 
 export type VariantKey = "A" | "B" | "C" | "D";
@@ -54,8 +46,8 @@ export function ABTestingPanel({
                   Editing Experiment: {experimentName}
                 </Text>
                 <Text as="p" variant="bodySm">
-                  You are editing variant <strong>{currentVariantKey}</strong> of this A/B test.
-                  Use the variant selector below to switch between variants.
+                  You are editing variant <strong>{currentVariantKey}</strong> of this A/B test. Use
+                  the variant selector below to switch between variants.
                 </Text>
               </BlockStack>
             </Banner>
@@ -87,4 +79,3 @@ export function ABTestingPanel({
     </Card>
   );
 }
-

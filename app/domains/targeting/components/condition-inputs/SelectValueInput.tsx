@@ -1,6 +1,6 @@
 /**
  * SelectValueInput - Dropdown selector for condition values
- * 
+ *
  * Single Responsibility: Handle select dropdown for conditions
  */
 
@@ -13,14 +13,5 @@ interface SelectValueInputProps {
 }
 
 export function SelectValueInput({ value, options, onChange }: SelectValueInputProps) {
-  return (
-    <Select
-      label=""
-      labelHidden
-      options={options}
-      value={value}
-      onChange={onChange}
-    />
-  );
+  return <Select label="" labelHidden options={options} value={value} onChange={onChange} />;
 }
-

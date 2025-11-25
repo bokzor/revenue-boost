@@ -38,7 +38,7 @@ uri = "/webhooks/app/scopes_update"
   uri = "/webhooks/shop/redact"
 
 [access_scopes]
-scopes = "read_customers,write_customers,read_discounts,write_discounts,write_products,read_themes,write_files,read_orders,write_marketing_events"
+scopes = "read_customers,write_customers,read_discounts,write_discounts,write_products,read_themes,write_files,read_orders,write_marketing_events,read_marketing_events"
 
 [auth]
 redirect_urls = [ "https://localhost:3000/api/auth" ]

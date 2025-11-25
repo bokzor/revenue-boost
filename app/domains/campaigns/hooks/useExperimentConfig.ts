@@ -66,7 +66,9 @@ export function useExperimentConfig({
       setExperimentDescription(experimentData.description || "");
       setExperimentHypothesis(experimentData.hypothesis || "");
       setSuccessMetric((experimentData.successMetric as SuccessMetric) || "conversion_rate");
-      setTrafficAllocation(experimentData.trafficAllocation || calculateTrafficAllocation(initialVariantCount));
+      setTrafficAllocation(
+        experimentData.trafficAllocation || calculateTrafficAllocation(initialVariantCount)
+      );
     }
   }, [experimentData, initialVariantCount]);
 
@@ -132,4 +134,3 @@ function calculateTrafficAllocation(variantCount: number): Record<string, number
 
   return allocation;
 }
-

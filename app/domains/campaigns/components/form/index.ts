@@ -37,4 +37,3 @@ export {
   type ProductPickerProps,
   type ProductPickerSelection,
 } from "./ProductPicker";
-

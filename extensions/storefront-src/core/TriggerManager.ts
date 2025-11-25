@@ -163,7 +163,7 @@ export interface TriggerCombinationConfig {
 export class TriggerManager {
   private cleanupFunctions: Array<() => void> = [];
   private exitIntentDetector: ExitIntentDetector | null = null;
-  private triggerContext: { productId?: string;[key: string]: any } = {};
+  private triggerContext: { productId?: string; [key: string]: unknown } = {};
   private scrollDepthTracker: ScrollDepthTracker | null = null;
   private timeDelayHandler: TimeDelayHandler | null = null;
   private idleTimer: IdleTimer | null = null;
@@ -193,7 +193,7 @@ export class TriggerManager {
     console.log("[Revenue Boost] 🔗 Trigger logic operator:", logicOperator);
 
     // Collect all enabled trigger tasks
-    const triggerTasks: Promise<{ name: string; result: boolean }>[] = [];
+    const triggerTasks: Array<Promise<{ name: string; result: boolean }>> = [];
 
     // Page Load Trigger
     if (triggers.page_load?.enabled) {
@@ -504,12 +504,12 @@ export class TriggerManager {
         break;
       case "in": {
         const arr = Array.isArray(target) ? target : [target];
-        result = arr.includes(value as any);
+        result = arr.includes(value as typeof target);
         break;
       }
       case "nin": {
         const arr = Array.isArray(target) ? target : [target];
-        result = !arr.includes(value as any);
+        result = !arr.includes(value as typeof target);
         break;
       }
       default:
@@ -756,7 +756,11 @@ export class TriggerManager {
       if (normalized) productId = normalized;
     }
 
-    const win = window as any;
+    const win = window as {
+      ShopifyAnalytics?: { meta?: { product?: { id?: string } } };
+      meta?: { product?: { id?: string } };
+      product?: { id?: string };
+    };
 
     // 2) ShopifyAnalytics meta
     if (!productId && win.ShopifyAnalytics?.meta?.product?.id) {
@@ -963,7 +967,9 @@ export class TriggerManager {
               | undefined;
             if (item) {
               const rawProductId =
-                (item as any).product_id ?? (item as any).productId ?? null;
+                (item as { product_id?: unknown; productId?: unknown; id?: unknown }).product_id ??
+                (item as { productId?: unknown; product_id?: unknown; id?: unknown }).productId ??
+                null;
               eventProductId = this.normalizeProductId(rawProductId);
             }
           }
@@ -1229,7 +1235,7 @@ export class TriggerManager {
   /**
    * Get trigger context (e.g., product ID from add_to_cart trigger)
    */
-  getTriggerContext(): { productId?: string;[key: string]: any } {
+  getTriggerContext(): { productId?: string; [key: string]: unknown } {
     return this.triggerContext;
   }
 
@@ -1268,4 +1274,3 @@ export class TriggerManager {
     }
   }
 }
-

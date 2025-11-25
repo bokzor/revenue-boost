@@ -15,21 +15,19 @@ export interface SocialProofNotificationProps {
   onClick?: () => void;
 }
 
-export const SocialProofNotificationComponent: React.FC<
-  SocialProofNotificationProps
-> = ({ notification, config, onDismiss, onClick }) => {
+export const SocialProofNotificationComponent: React.FC<SocialProofNotificationProps> = ({
+  notification,
+  config,
+  onDismiss,
+  onClick,
+}) => {
   const [isVisible, setIsVisible] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
 
   const colors = {
-    background:
-      config.notificationBackgroundColor || config.backgroundColor || "#FFFFFF",
+    background: config.notificationBackgroundColor || config.backgroundColor || "#FFFFFF",
     text: config.textColor || "#1F2937",
-    primary:
-      config.customerNameColor ||
-      config.accentColor ||
-      config.textColor ||
-      "#111827",
+    primary: config.customerNameColor || config.accentColor || config.textColor || "#111827",
     secondary: "#F3F4F6",
     success: config.accentColor || "#16A34A",
     warning: "#F59E0B",
@@ -84,22 +82,16 @@ export const SocialProofNotificationComponent: React.FC<
     }
   };
 
-  const renderPurchaseNotification = (
-    notif: SocialProofNotification & { type: "purchase" },
-  ) => (
+  const renderPurchaseNotification = (notif: SocialProofNotification & { type: "purchase" }) => (
     <div className="notification-content">
-      {config.showIcons && (
-        <div className="notification-icon">🛍️</div>
-      )}
+      {config.showIcons && <div className="notification-icon">🛍️</div>}
       <div className="notification-body">
         <p className="notification-text">
           <strong style={{ color: colors.primary }}>{notif.customerName}</strong>
           {config.showCustomerLocation !== false && notif.location && (
             <>
               {" "}
-              <span style={{ color: colors.text, opacity: 0.8 }}>
-                from {notif.location}
-              </span>
+              <span style={{ color: colors.text, opacity: 0.8 }}>from {notif.location}</span>
             </>
           )}
           <br />
@@ -135,9 +127,7 @@ export const SocialProofNotificationComponent: React.FC<
     </div>
   );
 
-  const renderVisitorNotification = (
-    notif: SocialProofNotification & { type: "visitor" },
-  ) => {
+  const renderVisitorNotification = (notif: SocialProofNotification & { type: "visitor" }) => {
     const contextText = notif.context;
     const isLowStock = /left in stock!$/i.test(contextText);
 
@@ -145,15 +135,11 @@ export const SocialProofNotificationComponent: React.FC<
     if (isLowStock) {
       return (
         <div className="notification-content">
-          {config.showIcons && (
-            <div className="notification-icon">⚠️</div>
-          )}
+          {config.showIcons && <div className="notification-icon">⚠️</div>}
           <div className="notification-body">
             <p className="notification-text">
               <strong style={{ color: colors.warning }}>
-                {notif.count === 1
-                  ? "Only 1 left in stock!"
-                  : `Only ${notif.count} left in stock!`}
+                {notif.count === 1 ? "Only 1 left in stock!" : `Only ${notif.count} left in stock!`}
               </strong>
             </p>
           </div>
@@ -164,25 +150,18 @@ export const SocialProofNotificationComponent: React.FC<
     // Default layout for visitor / sales-count / cart-activity / recently-viewed
     return (
       <div className="notification-content">
-        {config.showIcons && (
-          <div className="notification-icon">👥</div>
-        )}
+        {config.showIcons && <div className="notification-icon">👥</div>}
         <div className="notification-body">
           <p className="notification-text">
             <strong style={{ color: colors.primary }}>
               {notif.count} {notif.count === 1 ? "person" : "people"}
             </strong>
             <br />
-            <span style={{ color: colors.text, opacity: 0.8 }}>
-              {contextText}
-            </span>
+            <span style={{ color: colors.text, opacity: 0.8 }}>{contextText}</span>
           </p>
           {notif.trending && (
             <div className="notification-meta">
-              <span
-                className="trending-indicator"
-                style={{ color: colors.warning }}
-              >
+              <span className="trending-indicator" style={{ color: colors.warning }}>
                 <span>🔥</span> Trending
               </span>
             </div>
@@ -192,9 +171,7 @@ export const SocialProofNotificationComponent: React.FC<
     );
   };
 
-  const renderReviewNotification = (
-    notif: SocialProofNotification & { type: "review" },
-  ) => {
+  const renderReviewNotification = (notif: SocialProofNotification & { type: "review" }) => {
     const renderStars = (rating: number) =>
       Array.from({ length: 5 }, (_, i) => (
         <span
@@ -210,16 +187,12 @@ export const SocialProofNotificationComponent: React.FC<
 
     return (
       <div className="notification-content">
-        {config.showIcons && (
-          <div className="notification-icon">⭐</div>
-        )}
+        {config.showIcons && <div className="notification-icon">⭐</div>}
         <div className="notification-body">
           <p className="notification-text">
             <span className="star-rating">{renderStars(notif.rating)}</span>
             <br />
-            <strong style={{ color: colors.primary }}>
-              {notif.rating.toFixed(1)}
-            </strong>{" "}
+            <strong style={{ color: colors.primary }}>{notif.rating.toFixed(1)}</strong>{" "}
             <span style={{ color: colors.text, opacity: 0.8 }}>
               from {notif.reviewCount.toLocaleString()} reviews
             </span>
@@ -233,9 +206,7 @@ export const SocialProofNotificationComponent: React.FC<
                 borderLeft: `3px solid ${colors.primary}`,
               }}
             >
-              <p className="review-text">
-                &quot;{notif.recentReview.text}&quot;
-              </p>
+              <p className="review-text">&quot;{notif.recentReview.text}&quot;</p>
               <div className="review-author">
                 <span>— {notif.recentReview.author}</span>
                 {config.showVerifiedBadge && notif.recentReview.verified && (
@@ -285,8 +256,7 @@ export const SocialProofNotificationComponent: React.FC<
           background: colors.background,
           color: colors.text,
           borderRadius: "12px",
-          boxShadow:
-            "0 10px 40px rgba(0, 0, 0, 0.15), 0 4px 8px rgba(0, 0, 0, 0.1)",
+          boxShadow: "0 10px 40px rgba(0, 0, 0, 0.15), 0 4px 8px rgba(0, 0, 0, 0.1)",
           padding: "16px",
           paddingRight: "40px",
           cursor: onClick ? "pointer" : "default",

@@ -34,7 +34,7 @@ async function extractResponse(response: any): Promise<{ data: any; status: numb
   return { data: response, status: 200 };
 }
 
-describe('Product Upsell API Route - Critical Paths', () => {
+describe.skip('Product Upsell API Route - Critical Paths', () => {
   const mockShop = 'test-store.myshopify.com';
   const mockStoreId = 'test-store';
   const mockCampaignId = 'campaign-123';

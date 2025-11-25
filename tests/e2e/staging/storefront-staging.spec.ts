@@ -1,13 +1,8 @@
 import { test, expect } from '@playwright/test';
 import { PrismaClient } from '@prisma/client';
-import * as dotenv from 'dotenv';
-import * as fs from 'fs';
-import * as path from 'path';
+import './helpers/load-staging-env';
+import { mockChallengeToken } from './helpers/test-helpers';
 
-
-// Load staging environment variables
-// Use override: true to ensure .env.staging.env values take precedence over .env
-dotenv.config({ path: path.resolve(process.cwd(), '.env.staging.env'), override: true });
 
 const STORE_URL = 'https://revenue-boost-staging.myshopify.com';
 const STORE_DOMAIN = 'revenue-boost-staging.myshopify.com';
@@ -46,7 +41,8 @@ test.describe('Staging Storefront E2E', () => {
         await prisma.$disconnect();
     });
 
-    test.beforeEach(async () => {
+    test.beforeEach(async ({ page }) => {
+        await mockChallengeToken(page);
         // Clean up any existing test campaigns
         await prisma.campaign.deleteMany({
             where: {

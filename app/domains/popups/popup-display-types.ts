@@ -1,12 +1,19 @@
 /**
  * Popup Display Configuration Types
- * 
+ *
  * Defines display modes and configurations for popup components
  */
 
 export type DisplayMode = "modal" | "drawer-overlay" | "slide-in" | "banner";
 export type DrawerPosition = "top" | "bottom" | "left" | "right" | "bottom-of-drawer";
-export type AnimationStyle = "fade" | "slide" | "zoom" | "bounce" | "scale" | "slide-up" | "slide-down";
+export type AnimationStyle =
+  | "fade"
+  | "slide"
+  | "zoom"
+  | "bounce"
+  | "scale"
+  | "slide-up"
+  | "slide-down";
 
 /**
  * Base display configuration
@@ -96,7 +103,7 @@ export const DISPLAY_PRESETS = {
     showCloseButton: true,
     zIndex: 1000,
   },
-  
+
   // Drawer overlay presets
   "drawer-overlay-top": {
     mode: "drawer-overlay" as const,
@@ -134,7 +141,7 @@ export const DISPLAY_PRESETS = {
     showCloseButton: true,
     zIndex: 1000,
   },
-  
+
   // Slide-in presets
   "slide-in-bottom-right": {
     mode: "slide-in" as const,
@@ -147,7 +154,7 @@ export const DISPLAY_PRESETS = {
     showCloseButton: true,
     zIndex: 999,
   },
-  
+
   // Banner presets
   "banner-top": {
     mode: "banner" as const,
@@ -166,7 +173,9 @@ export type DisplayPresetName = keyof typeof DISPLAY_PRESETS;
 /**
  * Get a display preset by name
  */
-export function getDisplayPreset(name: string): PopupDisplayConfig | CartDrawerDisplayConfig | null {
+export function getDisplayPreset(
+  name: string
+): PopupDisplayConfig | CartDrawerDisplayConfig | null {
   return DISPLAY_PRESETS[name as DisplayPresetName] || null;
 }
 
@@ -180,4 +189,3 @@ export function getMobileDisplayConfig(config: PopupDisplayConfig): PopupDisplay
     animationDuration: Math.max(config.animationDuration || 300, 200),
   };
 }
-
