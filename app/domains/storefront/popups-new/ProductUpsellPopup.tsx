@@ -19,6 +19,10 @@ import { PopupPortal } from './PopupPortal';
 import type { PopupDesignConfig, Product } from './types';
 import type { ProductUpsellContent } from '~/domains/campaigns/types/campaign';
 import { formatCurrency, getSizeDimensions } from './utils';
+import { POPUP_SPACING, getContainerPadding, SPACING_GUIDELINES } from './spacing';
+
+// Import custom hooks
+import { usePopupAnimation } from './hooks';
 
 /**
  * ProductUpsellConfig - Extends both design config AND campaign content type
@@ -53,9 +57,15 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
   onAddToCart,
   onProductClick,
 }) => {
+  // Use animation hook
+  const { showContent } = usePopupAnimation({
+    isVisible,
+    entryDelay: 50,
+  });
+
+  // Component-specific state
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(false);
-  const [showContent, setShowContent] = useState(false);
   const [hoveredProduct, setHoveredProduct] = useState<string | null>(null);
   const [currentSlide, setCurrentSlide] = useState(0);
 
@@ -64,16 +74,6 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
     () => (config.maxProducts ? products.slice(0, config.maxProducts) : products),
     [config.maxProducts, products]
   );
-
-  // Animate content in
-  useEffect(() => {
-    if (isVisible) {
-      const timer = setTimeout(() => setShowContent(true), 50);
-      return () => clearTimeout(timer);
-    } else {
-      setShowContent(false);
-    }
-  }, [isVisible]);
 
   const handleProductSelect = useCallback((productId: string) => {
     if (config.multiSelect) {
@@ -120,13 +120,53 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
     return total;
   }, [selectedProducts, products]);
 
-  const calculateSavings = useCallback(() => {
+  // Calculate original total (using compare-at prices if available)
+  const calculateOriginalTotal = useCallback(() => {
+    let total = 0;
+    selectedProducts.forEach(id => {
+      const product = products.find(p => p.id === id);
+      if (product) {
+        const originalPrice = product.compareAtPrice
+          ? parseFloat(product.compareAtPrice)
+          : parseFloat(product.price);
+        total += originalPrice;
+      }
+    });
+    return total;
+  }, [selectedProducts, products]);
+
+  // Calculate savings from compare-at prices (individual product discounts)
+  const calculateCompareAtSavings = useCallback(() => {
+    let savings = 0;
+    selectedProducts.forEach(id => {
+      const product = products.find(p => p.id === id);
+      if (product && product.compareAtPrice) {
+        const price = parseFloat(product.price);
+        const compareAt = parseFloat(product.compareAtPrice);
+        if (compareAt > price) {
+          savings += (compareAt - price);
+        }
+      }
+    });
+    return savings > 0 ? savings : null;
+  }, [selectedProducts, products]);
+
+  // Calculate bundle discount (applied to current prices, not compare-at)
+  const calculateBundleSavings = useCallback(() => {
     if (!config.bundleDiscount || selectedProducts.size < 2) return null;
 
     const total = calculateTotal();
     const savings = total * (config.bundleDiscount / 100);
     return savings;
   }, [selectedProducts, config.bundleDiscount, calculateTotal]);
+
+  // Calculate total savings (compare-at + bundle)
+  const calculateTotalSavings = useCallback(() => {
+    const compareAtSavings = calculateCompareAtSavings() || 0;
+    const bundleSavings = calculateBundleSavings() || 0;
+    const total = compareAtSavings + bundleSavings;
+    return total > 0 ? total : null;
+  }, [calculateCompareAtSavings, calculateBundleSavings]);
 
   const getSavingsPercent = (product: Product): number | null => {
     if (product.savingsPercent != null) {
@@ -143,9 +183,9 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
 
   const calculateDiscountedTotal = useCallback(() => {
     const total = calculateTotal();
-    const savings = calculateSavings();
-    return savings ? total - savings : total;
-  }, [calculateTotal, calculateSavings]);
+    const bundleSavings = calculateBundleSavings();
+    return bundleSavings ? total - bundleSavings : total;
+  }, [calculateTotal, calculateBundleSavings]);
 
   // Keep scroll focus inside the upsell content when possible
   const handleContentWheel = useCallback(
@@ -809,9 +849,8 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
         className="upsell-products-grid"
         style={{
           ...getGridStyles(),
-          // Use CSS variable so media queries can adjust columns like the mockup
-          // Desktop uses configured columns; mobile overrides via @media
-          '--upsell-columns': Math.min(config.columns || 2, displayProducts.length || 1),
+          // Use CSS variable for configured columns (don't limit by product count)
+          '--upsell-columns': config.columns || 2,
         } as React.CSSProperties}
       >
         {displayProducts.map((product, index) => renderProduct(product, index))}
@@ -841,7 +880,7 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
     gap: '8px'
   };
 
-  const savings = calculateSavings();
+  const savings = calculateTotalSavings();
   const total = calculateTotal();
   const discountedTotal = calculateDiscountedTotal();
 
@@ -883,6 +922,8 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
     >
       <div
         className="upsell-container"
+        data-splitpop="true"
+        data-template="product-upsell"
         style={{
           display: 'flex',
           flexDirection: 'column',
@@ -929,31 +970,72 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
 
         {/* Footer: selection summary + actions */}
         <div className="upsell-footer">
-          {selectedProducts.size > 0 && (
-            <div className="upsell-summary">
-              <div className="upsell-summary-row">
-                <span className="upsell-summary-label">
-                  {selectedProducts.size} item{selectedProducts.size !== 1 ? 's' : ''} selected
-                </span>
-                {savings && (
-                  <span className="upsell-summary-value upsell-summary-original">
-                    {formatCurrency(total, config.currency)}
+          {selectedProducts.size > 0 && (() => {
+            const total = calculateTotal();
+            const originalTotal = calculateOriginalTotal();
+            const compareAtSavings = calculateCompareAtSavings();
+            const bundleSavings = calculateBundleSavings();
+            const totalSavings = calculateTotalSavings();
+            const discountedTotal = calculateDiscountedTotal();
+            const hasCompareAtSavings = compareAtSavings && compareAtSavings > 0;
+            const hasBundleSavings = bundleSavings && bundleSavings > 0;
+
+            return (
+              <div className="upsell-summary">
+                {/* Item count */}
+                <div className="upsell-summary-row">
+                  <span className="upsell-summary-label">
+                    {selectedProducts.size} item{selectedProducts.size !== 1 ? 's' : ''} selected
                   </span>
+                  {hasCompareAtSavings && (
+                    <span className="upsell-summary-value upsell-summary-original">
+                      {formatCurrency(originalTotal, config.currency)}
+                    </span>
+                  )}
+                </div>
+
+                {/* Subtotal (current prices before bundle discount) */}
+                {hasCompareAtSavings && (
+                  <div className="upsell-summary-row" style={{ fontSize: '14px', opacity: 0.8 }}>
+                    <span>Subtotal</span>
+                    <span>{formatCurrency(total, config.currency)}</span>
+                  </div>
+                )}
+
+                {/* Bundle discount line */}
+                {hasBundleSavings && (
+                  <div className="upsell-summary-row" style={{ fontSize: '14px', color: accentColor }}>
+                    <span>Bundle Discount ({config.bundleDiscount}%)</span>
+                    <span>-{formatCurrency(bundleSavings, config.currency)}</span>
+                  </div>
+                )}
+
+                {/* Total */}
+                <div className="upsell-summary-row upsell-summary-total">
+                  <span>Total</span>
+                  <span>{formatCurrency(discountedTotal, config.currency)}</span>
+                </div>
+
+                {/* Total savings breakdown */}
+                {totalSavings && totalSavings > 0 && (
+                  <div className="upsell-summary-row">
+                    <span className="upsell-summary-savings">
+                      {hasCompareAtSavings && hasBundleSavings ? (
+                        <>
+                          You save {formatCurrency(totalSavings, config.currency)}!
+                          <span style={{ fontSize: '12px', display: 'block', opacity: 0.8, marginTop: '2px' }}>
+                            ({formatCurrency(compareAtSavings, config.currency)} sale + {formatCurrency(bundleSavings, config.currency)} bundle)
+                          </span>
+                        </>
+                      ) : (
+                        <>You save {formatCurrency(totalSavings, config.currency)}!</>
+                      )}
+                    </span>
+                  </div>
                 )}
               </div>
-              <div className="upsell-summary-row upsell-summary-total">
-                <span>Total</span>
-                <span>{formatCurrency(discountedTotal, config.currency)}</span>
-              </div>
-              {savings && (
-                <div className="upsell-summary-row">
-                  <span className="upsell-summary-savings">
-                    You save {formatCurrency(savings, config.currency)}!
-                  </span>
-                </div>
-              )}
-            </div>
-          )}
+            );
+          })()}
 
           <div className="upsell-actions">
             <button
@@ -1045,25 +1127,26 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
         }
 
         .upsell-header {
-          padding: 1.25rem 1.5rem 0.875rem;
+          padding: ${getContainerPadding(config.size)};
+          padding-bottom: ${POPUP_SPACING.section.md};
           text-align: center;
           border-bottom: 1px solid var(--upsell-border, ${borderColor});
           flex-shrink: 0;
         }
 
         .upsell-headline {
-          font-size: 1.375rem;
-          font-weight: 700;
-          line-height: 1.2;
-          margin: 0 0 0.375rem 0;
+          font-size: 1.875rem;
+          font-weight: 900;
+          line-height: 1.1;
+          margin: 0 0 ${SPACING_GUIDELINES.afterHeadline} 0;
           color: var(--upsell-text, ${textColor});
         }
 
         .upsell-subheadline {
-          font-size: 0.8125rem;
-          line-height: 1.4;
+          font-size: 1rem;
+          line-height: 1.6;
           color: var(--upsell-text, ${textColor});
-          opacity: 0.65;
+          opacity: 0.8;
           margin: 0;
         }
 
@@ -1081,25 +1164,25 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
         .upsell-content {
           flex: 1;
           overflow-y: auto;
-          padding: 1.25rem 1.5rem;
+          padding: ${POPUP_SPACING.section.lg} ${POPUP_SPACING.section.xl};
           min-height: 0;
         }
 
         .upsell-footer {
           border-top: 2px solid var(--upsell-border, ${borderColor});
-          padding: 0.875rem 1.5rem;
+          padding: ${POPUP_SPACING.section.lg} ${POPUP_SPACING.section.xl};
           background: var(--upsell-secondary, ${secondaryColor});
           flex-shrink: 0;
         }
 
         .upsell-actions {
           display: flex;
-          gap: 0.625rem;
-          margin-top: 0.625rem;
+          gap: ${SPACING_GUIDELINES.betweenButtons};
+          margin-top: ${POPUP_SPACING.section.md};
         }
 
         .upsell-summary {
-          margin-bottom: 0.625rem;
+          margin-bottom: ${POPUP_SPACING.section.md};
         }
 
         .upsell-summary-row {
@@ -1140,9 +1223,12 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
 
         .upsell-products-grid {
           display: grid;
-          grid-template-columns: repeat(var(--upsell-columns, 2), minmax(0, 1fr));
-          gap: 1rem;
-          margin-bottom: 1rem;
+          /* Use auto-fit to only create columns for existing items */
+          /* Minimum width ensures max columns = configured value */
+          /* Formula: max(100% / columns, 180px) ensures items don't get too small */
+          grid-template-columns: repeat(auto-fit, minmax(clamp(180px, calc(100% / var(--upsell-columns, 2)), 100%), 1fr));
+          gap: ${POPUP_SPACING.gap.md};
+          margin-bottom: ${SPACING_GUIDELINES.beforeCTA};
         }
 
         .upsell-carousel-container {
@@ -1209,7 +1295,8 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           }
 
           .upsell-products-grid {
-            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            /* On mobile, use auto-fit with smaller minimum width */
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
             gap: 0.875rem;
           }
 

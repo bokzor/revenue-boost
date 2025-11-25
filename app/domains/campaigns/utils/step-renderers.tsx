@@ -87,6 +87,13 @@ export function renderDesignStep(props: StepRendererProps) {
     ...(wizardState.designConfig as Partial<import("~/domains/campaigns/types/campaign").DesignConfig>),
   };
 
+  // Build targetRules from wizard state for preview
+  const targetRules = {
+    enhancedTriggers: wizardState.enhancedTriggers || {},
+    audienceTargeting: wizardState.audienceTargeting || {},
+    pageTargeting: wizardState.pageTargeting || {},
+  };
+
   return (
     <DesignStepContent
       goal={wizardState.goal}
@@ -98,6 +105,7 @@ export function renderDesignStep(props: StepRendererProps) {
       contentConfig={wizardState.contentConfig || {}}
       designConfig={designConfig}
       discountConfig={wizardState.discountConfig}
+      targetRules={targetRules}
       onContentChange={(content) => updateData({ contentConfig: content })}
       onDesignChange={(design) => updateData({ designConfig: design })}
       onDiscountChange={(config) => updateData({ discountConfig: config })}

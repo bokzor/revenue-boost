@@ -5,7 +5,10 @@
  * This runs before all tests to ensure environment is properly configured.
  */
 
-import { beforeAll, vi } from 'vitest';
+import { beforeAll, vi, expect } from 'vitest';
+import * as matchers from '@testing-library/jest-dom/matchers';
+
+expect.extend(matchers);
 
 beforeAll(() => {
   // Set test environment variables

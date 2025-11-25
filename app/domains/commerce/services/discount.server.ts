@@ -43,6 +43,7 @@ export type {
 interface Campaign {
   id: string;
   name: string;
+  templateType?: string; // Optional for logging/debugging
   discountConfig: unknown; // Prisma JSON field
   storeId: string;
 }
@@ -373,6 +374,7 @@ export async function getCampaignDiscountCode(
       select: {
         id: true,
         name: true,
+        templateType: true,
         discountConfig: true,
         storeId: true,
       },
@@ -386,10 +388,24 @@ export async function getCampaignDiscountCode(
       };
     }
 
-    const discountMetadata: DiscountMetadata =
-      typeof campaign.discountConfig === "string"
-        ? JSON.parse(campaign.discountConfig || "{}")
-        : (campaign.discountConfig || {});
+    // Parse discount metadata from campaign.discountConfig
+    // For templates with prize-level configs (Scratch Card, Spin-to-Win),
+    // campaign.discountConfig may be null/empty - this is expected and valid
+    let discountMetadata: DiscountMetadata = {};
+
+    if (campaign.discountConfig) {
+      try {
+        discountMetadata = typeof campaign.discountConfig === "string"
+          ? JSON.parse(campaign.discountConfig)
+          : campaign.discountConfig;
+      } catch (error) {
+        console.warn("[Discount Service] Failed to parse campaign.discountConfig, using empty metadata", {
+          campaignId,
+          error,
+        });
+        discountMetadata = {};
+      }
+    }
 
     const context: DiscountStrategyContext = {
       admin,
@@ -400,9 +416,27 @@ export async function getCampaignDiscountCode(
       cartSubtotalCents,
     };
 
+    // Try each strategy in order until one matches
     for (const strategy of DISCOUNT_STRATEGIES) {
       if (strategy.canHandle(context)) {
-        return await strategy.apply(context);
+        console.log(`[Discount Service] Using strategy: ${strategy.name}`, {
+          campaignId,
+          templateType: campaign.templateType,
+          configType: config.type,
+          deliveryMode: config.deliveryMode,
+        });
+
+        try {
+          return await strategy.apply(context);
+        } catch (error) {
+          console.error(`[Discount Service] Strategy '${strategy.name}' failed:`, {
+            campaignId,
+            error,
+            errorMessage: error instanceof Error ? error.message : String(error),
+          });
+          // Continue to next strategy instead of failing immediately
+          continue;
+        }
       }
     }
 
@@ -410,7 +444,16 @@ export async function getCampaignDiscountCode(
     console.error("[Discount Service] No discount strategy matched for config", {
       storeId,
       campaignId,
-      config,
+      templateType: campaign.templateType,
+      config: {
+        type: config.type,
+        valueType: config.valueType,
+        deliveryMode: config.deliveryMode,
+        usageLimit: config.usageLimit,
+        hasBogo: !!config.bogo,
+        hasFreeGift: !!config.freeGift,
+        hasTiers: !!(config.tiers && config.tiers.length > 0),
+      },
     });
     return {
       success: false,

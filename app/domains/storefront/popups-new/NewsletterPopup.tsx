@@ -12,14 +12,20 @@
  * - Responsive design with mobile optimization
  */
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import type { PopupDesignConfig, DiscountConfig, ImagePosition } from './types';
 import type { NewsletterContent } from '~/domains/campaigns/types/campaign';
 
 import { PopupPortal } from './PopupPortal';
 import { PopupGridContainer } from './PopupGridContainer';
 import { getSizeDimensions } from './utils';
-import { challengeTokenStore } from '~/domains/storefront/services/challenge-token.client';
+import { POPUP_SPACING, getContainerPadding, SPACING_GUIDELINES } from './spacing';
+
+// Import custom hooks
+import { usePopupForm, useDiscountCode, usePopupAnimation } from './hooks';
+
+// Import reusable components
+import { EmailInput, NameInput, GdprCheckbox, SubmitButton } from './components';
 
 
 /**
@@ -61,13 +67,38 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
   onClose,
   onSubmit,
 }) => {
-  const [email, setEmail] = useState('');
-  const [name, setName] = useState('');
-  const [gdprConsent, setGdprConsent] = useState(false);
-  const [isSubmitted, setIsSubmitted] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errors, setErrors] = useState<{ email?: string; name?: string; gdpr?: string }>({});
-  const [generatedDiscountCode, setGeneratedDiscountCode] = useState<string | null>(null);
+  // Use custom hooks for form management
+  const {
+    formState,
+    setEmail,
+    setName,
+    setGdprConsent,
+    errors,
+    handleSubmit,
+    isSubmitting,
+    isSubmitted,
+    generatedDiscountCode,
+  } = usePopupForm({
+    config: {
+      emailRequired: config.emailRequired,
+      emailErrorMessage: config.emailErrorMessage,
+      nameFieldEnabled: config.nameFieldEnabled,
+      nameFieldRequired: config.nameFieldRequired,
+      consentFieldEnabled: config.consentFieldEnabled,
+      consentFieldRequired: config.consentFieldRequired,
+      campaignId: config.campaignId,
+      previewMode: config.previewMode,
+    },
+    onSubmit,
+  });
+
+  // Use discount code hook
+  const { discountCode: displayDiscountCode, copiedCode, handleCopyCode } = useDiscountCode(
+    generatedDiscountCode || (config.discount?.enabled ? config.discount.code : undefined)
+  );
+
+  // Use animation hook
+  const { showContent } = usePopupAnimation({ isVisible });
 
   // Extract configuration with defaults
   const imagePosition: ImagePosition = config.imagePosition || 'left';
@@ -90,126 +121,17 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
       : deliveryMode === 'show_in_popup_authorized_only'
         ? 'Thanks for subscribing! Your discount code is authorized for your email address only.'
         : 'Thanks for subscribing! Your discount code is ready to use.');
-  const discountCode = config.discount?.enabled ? config.discount.code : undefined;
   const showGdprCheckbox = config.consentFieldEnabled ?? false;
   const gdprLabel = config.consentFieldText || 'I agree to receive marketing emails and accept the privacy policy';
   const collectName = config.nameFieldEnabled ?? false;
   const sizeDimensions = getSizeDimensions(config.size || 'medium', config.previewMode);
 
-
-  // Reset form when popup closes
+  // Auto-close after delay
   useEffect(() => {
-    if (!isVisible) {
-      const timer = setTimeout(() => {
-        setIsSubmitted(false);
-        setEmail('');
-        setName('');
-        setGdprConsent(false);
-        setErrors({});
-      }, 300);
-      return () => clearTimeout(timer);
-    }
-  }, [isVisible]);
-
-  // Note: Scroll locking and ESC key handling are now handled by PopupPortal
-
-  const validateForm = () => {
-    const newErrors: { email?: string; name?: string; gdpr?: string } = {};
-
-    // Email validation (only if required)
-    if (config.emailRequired !== false) {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!email) {
-        newErrors.email = config.emailErrorMessage || 'Email is required';
-      } else if (!emailRegex.test(email)) {
-        newErrors.email = 'Please enter a valid email';
-      }
-    }
-
-    // Name validation (only if enabled and required)
-    if (config.nameFieldEnabled && config.nameFieldRequired && !name.trim()) {
-      newErrors.name = 'Name is required';
-    }
-
-    // Consent validation (only if enabled and required)
-    if (config.consentFieldEnabled && config.consentFieldRequired && !gdprConsent) {
-      newErrors.gdpr = 'You must accept the terms to continue';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-
-    if (!validateForm()) return;
-
-    setIsSubmitting(true);
-
-    try {
-      if (onSubmit) {
-        const code = await onSubmit({
-          email,
-          name: collectName ? name : undefined,
-          gdprConsent,
-        });
-
-        const discountEnabled = config.discount?.enabled === true;
-        if (code && discountEnabled) {
-          setGeneratedDiscountCode(code);
-        }
-
-        setIsSubmitted(true);
-      } else {
-        // Default secure submission handler
-        const campaignId = config.campaignId;
-
-        if (!campaignId) {
-          throw new Error('Missing campaignId for secure submission');
-        }
-
-        const challengeToken = challengeTokenStore.get(campaignId);
-
-        if (!challengeToken) {
-          throw new Error('Security check failed. Please refresh the page.');
-        }
-
-        const response = await fetch('/apps/revenue-boost/api/leads/submit', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            campaignId: config.campaignId,
-            email,
-            name: collectName ? name : undefined,
-            sessionId: typeof window !== 'undefined' ? window.sessionStorage?.getItem('rb_session_id') : undefined,
-            challengeToken: challengeToken as string,
-            gdprConsent,
-          }),
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(data.error || 'Submission failed');
-        }
-
-        if (data.success) {
-          if (data.discountCode) {
-            setGeneratedDiscountCode(data.discountCode);
-          }
-          setIsSubmitted(true);
-        } else {
-          throw new Error(data.error || 'Submission failed');
-        }
-      }
-    } catch (error: any) {
-      console.error('Popup form submission error:', error);
-      setErrors({ email: error.message || 'Something went wrong. Please try again.' });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+    if (!isVisible || !config.autoCloseDelay || config.autoCloseDelay <= 0) return;
+    const timer = setTimeout(onClose, config.autoCloseDelay * 1000);
+    return () => clearTimeout(timer);
+  }, [isVisible, config.autoCloseDelay, onClose]);
 
   if (!isVisible) return null;
 
@@ -277,7 +199,7 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
 
         /* Form Cell */
         .email-popup-form-section {
-          padding: 2rem 1.5rem;
+          padding: ${getContainerPadding(config.size)};
           display: flex;
           flex-direction: column;
           justify-content: center;
@@ -287,17 +209,17 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
 
         .email-popup-title {
           font-size: ${config.titleFontSize || config.fontSize || '1.875rem'};
-          font-weight: ${config.titleFontWeight || config.fontWeight || '700'};
-          margin-bottom: 0.75rem;
+          font-weight: ${config.titleFontWeight || config.fontWeight || '900'};
+          margin-bottom: ${SPACING_GUIDELINES.afterHeadline};
           color: ${config.textColor || '#111827'};
-          line-height: 1.2;
+          line-height: 1.1;
           ${config.titleTextShadow ? `text-shadow: ${config.titleTextShadow};` : ''}
         }
 
         .email-popup-description {
           font-size: ${config.descriptionFontSize || config.fontSize || '1rem'};
           line-height: 1.6;
-          margin-bottom: 1.5rem;
+          margin-bottom: ${SPACING_GUIDELINES.afterDescription};
           color: ${config.descriptionColor || '#52525b'};
           font-weight: ${config.descriptionFontWeight || config.fontWeight || '400'};
         }
@@ -305,7 +227,7 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
         .email-popup-form {
           display: flex;
           flex-direction: column;
-          gap: 1.25rem; /* Increased gap for better spacing */
+          gap: ${SPACING_GUIDELINES.betweenFields};
         }
 
         .email-popup-input-wrapper {
@@ -378,34 +300,36 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
 
         .email-popup-button {
           width: 100%;
-          height: 3rem;
+          padding: ${POPUP_SPACING.component.button};
           border-radius: 0.5rem;
           border: none;
           background: ${config.buttonColor || '#3b82f6'};
           color: ${config.buttonTextColor || '#ffffff'};
           font-size: 1rem;
-          font-weight: 600;
+          font-weight: 700;
           cursor: pointer;
           transition: all 0.2s;
           display: flex;
           align-items: center;
           justify-content: center;
           gap: 0.5rem;
-          margin-top: 0.5rem;
+          margin-top: ${POPUP_SPACING.section.md};
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
         }
 
         .email-popup-button:hover:not(:disabled) {
-          transform: translateY(-1px);
-          box-shadow: 0 4px 12px ${config.buttonColor || '#3b82f6'}40;
+          transform: translateY(-2px);
+          box-shadow: 0 10px 25px -5px ${config.buttonColor || '#3b82f6'}60;
         }
 
         .email-popup-button:disabled {
-          opacity: 0.6;
+          opacity: 0.5;
           cursor: not-allowed;
         }
 
         .email-popup-secondary-button {
-          margin-top: 0.75rem;
+          margin-top: ${SPACING_GUIDELINES.betweenButtons};
           width: 100%;
           background: transparent;
           border: none;
@@ -421,7 +345,7 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
 
         .email-popup-success {
           text-align: center;
-          padding: 2rem 0;
+          padding: ${POPUP_SPACING.section.xl} 0;
           animation: fadeInUp 0.5s ease-out;
         }
 
@@ -433,7 +357,7 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
           display: flex;
           align-items: center;
           justify-content: center;
-          margin: 0 auto 1rem;
+          margin: 0 auto ${POPUP_SPACING.section.md};
           animation: bounceIn 0.6s ease-out;
         }
 
@@ -443,10 +367,10 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
 
         .email-popup-success-message {
           font-size: ${config.titleFontSize || config.fontSize || '1.875rem'};
-          font-weight: ${config.titleFontWeight || config.fontWeight || '700'};
+          font-weight: ${config.titleFontWeight || config.fontWeight || '900'};
           color: ${config.textColor || '#111827'};
-          margin-bottom: 1.5rem;
-          line-height: 1.2;
+          margin-bottom: ${POPUP_SPACING.section.lg};
+          line-height: 1.1;
           ${config.titleTextShadow ? `text-shadow: ${config.titleTextShadow};` : ''}
         }
 
@@ -552,6 +476,9 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
         onClose={onClose}
         imagePosition={imagePosition === 'right' ? 'right' : 'left'}
         singleColumn={!imageUrl || imagePosition === 'none'}
+        className="NewsletterPopup"
+        data-splitpop="true"
+        data-template="newsletter"
       >
         {/* Image Section */}
         {imageUrl && (
@@ -581,14 +508,24 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
               <h3 className="email-popup-success-message">
                 {config.successMessage || 'Thanks for subscribing!'}
               </h3>
-              {(generatedDiscountCode || discountCode) && (
+              {displayDiscountCode && (
                 <div className="email-popup-discount">
                   <div className="email-popup-discount-label">
                     Your discount code:
                   </div>
-                  <div className="email-popup-discount-code">
-                    {generatedDiscountCode || discountCode}
+                  <div
+                    className="email-popup-discount-code"
+                    onClick={() => handleCopyCode()}
+                    style={{ cursor: 'pointer' }}
+                    title="Click to copy"
+                  >
+                    {displayDiscountCode}
                   </div>
+                  {copiedCode && (
+                    <div style={{ fontSize: '0.875rem', color: '#10B981', marginTop: '0.5rem' }}>
+                      ✓ Copied to clipboard!
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -601,96 +538,63 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
                 <p className="email-popup-description">{config.subheadline}</p>
               )}
 
-              <form className="email-popup-form" onSubmit={handleSubmit}>
+              <form className="email-popup-form" onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
                 {collectName && (
                   <div className="email-popup-input-wrapper">
-                    <label htmlFor="name-input" className="email-popup-label">
-                      {config.firstNameLabel || 'Name'}
-                    </label>
-                    <input
-                      id="name-input"
-                      type="text"
-                      className={`email-popup-input ${errors.name ? 'error' : ''}`}
+                    <NameInput
+                      value={formState.name}
+                      onChange={setName}
                       placeholder={config.nameFieldPlaceholder || 'Your name'}
-                      value={name}
-                      onChange={(e) => {
-                        setName(e.target.value);
-                        if (errors.name) setErrors({ ...errors, name: undefined });
-                      }}
-                      disabled={isSubmitting}
+                      label={config.firstNameLabel || 'Name'}
+                      error={errors.name}
                       required={config.nameFieldRequired}
+                      disabled={isSubmitting}
+                      accentColor={config.accentColor}
+                      textColor={config.textColor}
+                      backgroundColor={config.backgroundColor}
                     />
-                    {errors.name && (
-                      <div className="email-popup-error">{errors.name}</div>
-                    )}
                   </div>
                 )}
 
                 <div className="email-popup-input-wrapper">
-                  {config.emailLabel && (
-                    <label htmlFor="email-input" className="email-popup-label">
-                      {config.emailLabel}
-                    </label>
-                  )}
-                  <input
-                    id="email-input"
-                    type="email"
-                    className={`email-popup-input ${errors.email ? 'error' : ''}`}
+                  <EmailInput
+                    value={formState.email}
+                    onChange={setEmail}
                     placeholder={config.emailPlaceholder || 'Enter your email'}
-                    value={email}
-                    onChange={(e) => {
-                      setEmail(e.target.value);
-                      if (errors.email) setErrors({ ...errors, email: undefined });
-                    }}
-                    disabled={isSubmitting}
+                    label={config.emailLabel}
+                    error={errors.email}
                     required={config.emailRequired !== false}
-                    aria-label={config.emailLabel || 'Email address'}
+                    disabled={isSubmitting}
+                    accentColor={config.accentColor}
+                    textColor={config.textColor}
+                    backgroundColor={config.backgroundColor}
                   />
-                  {errors.email && (
-                    <div className="email-popup-error">{errors.email}</div>
-                  )}
                 </div>
 
                 {showGdprCheckbox && (
                   <div className="email-popup-checkbox-wrapper">
-                    <input
-                      type="checkbox"
-                      id="gdpr-consent"
-                      className="email-popup-checkbox"
-                      checked={gdprConsent}
-                      onChange={(e) => {
-                        setGdprConsent(e.target.checked);
-                        if (errors.gdpr) setErrors({ ...errors, gdpr: undefined });
-                      }}
-                      disabled={isSubmitting}
+                    <GdprCheckbox
+                      checked={formState.gdprConsent}
+                      onChange={setGdprConsent}
+                      text={gdprLabel}
+                      error={errors.gdpr}
                       required={config.consentFieldRequired}
+                      disabled={isSubmitting}
+                      accentColor={config.accentColor}
+                      textColor={config.textColor}
                     />
-                    <label
-                      htmlFor="gdpr-consent"
-                      className="email-popup-checkbox-label"
-                    >
-                      {gdprLabel}
-                    </label>
                   </div>
                 )}
-                {errors.gdpr && (
-                  <div className="email-popup-error">{errors.gdpr}</div>
-                )}
 
-                <button
+                <SubmitButton
                   type="submit"
-                  className="email-popup-button"
                   disabled={isSubmitting}
+                  loading={isSubmitting}
+                  accentColor={config.accentColor}
+                  textColor={config.buttonTextColor || '#FFFFFF'}
                 >
-                  {isSubmitting ? (
-                    <>
-                      <div className="email-popup-spinner" />
-                      Subscribing...
-                    </>
-                  ) : (
-                    buttonText
-                  )}
-                </button>
+                  {buttonText}
+                </SubmitButton>
 
                 {config.dismissLabel && (
                   <button

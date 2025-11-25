@@ -559,23 +559,18 @@ function buildItemsSelection(applicability?: DiscountCodeInput["applicability"])
     });
 
     // Build the products selection
+    // Note: Shopify's productVariantsToAdd expects variant IDs, not product IDs
+    // For product-level discounts, we need to use productsToAdd instead
     const productsSelection: any = {};
 
-    // Add products (with all variants)
+    // Add products (all variants of these products)
     if (productIds.length > 0) {
-      productsSelection.productVariantsToAdd = productIds.map(id => ({
-        id,
-        variants: { all: true }, // All variants of product
-      }));
+      productsSelection.productsToAdd = productIds;
     }
 
     // Add specific variants
     if (variantIds.length > 0) {
-      if (!productsSelection.productVariantsToAdd) {
-        productsSelection.productVariantsToAdd = [];
-      }
-      // For variant IDs, just add the variant ID string directly
-      productsSelection.productVariantsToAdd.push(...variantIds);
+      productsSelection.productVariantsToAdd = variantIds;
     }
 
     return { products: productsSelection };

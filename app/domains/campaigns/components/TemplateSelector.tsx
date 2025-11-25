@@ -134,6 +134,9 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
       },
       targetRules: {
         ...(template.targetRules as TargetRulesConfig),
+        // Merge targetRules from recipe if provided (contains enhancedTriggers, audienceTargeting, etc.)
+        ...(recipeData.targetRules as Partial<TargetRulesConfig> || {}),
+        // Also support direct fields for backward compatibility
         ...(recipeData.audienceTargeting ? { audienceTargeting: recipeData.audienceTargeting } : {}),
         ...(recipeData.pageTargeting ? { pageTargeting: recipeData.pageTargeting } : {}),
         ...(recipeData.enhancedTriggers ? { enhancedTriggers: recipeData.enhancedTriggers } : {}),

@@ -1,0 +1,953 @@
+[dotenv@17.2.3] injecting env (2) from .env.staging.env -- tip: ✅ audit secrets and track compliance: https://dotenvx.com/ops
+[31mConfiguration Error: HTML reporter output folder clashes with the tests output folder:[39m
+
+    html reporter folder: [1m/Users/bokzor/WebstormProjects/split-pop-rework/revenue-boost/test-results/reports/html[22m
+    test results folder: [1m/Users/bokzor/WebstormProjects/split-pop-rework/revenue-boost/test-results[22m
+
+HTML reporter will clear its output directory prior to being generated, which will lead to the artifact loss.
+
+
+Running 1 test using 1 worker
+
+[dotenv@17.2.3] injecting env (0) from .env.staging.env -- tip: ⚙️  load multiple .env files with { path: ['.env.local', '.env'] }
+🧪 Testing 25% percentage discount...
+[BROWSER] error: Failed to load resource: the server responded with a status of 404 ()
+🔒 Password page detected, logging in...
+[BROWSER] log: [PreDisplayHook] Hook registry initialized
+[BROWSER] log: [Revenue Boost] ⚛️ Preact runtime exposed globally
+[BROWSER] log: [Revenue Boost] 🔐 Challenge token store exposed globally
+[BROWSER] log: [Revenue Boost] 🚀 Starting initialization...
+[BROWSER] log: [Revenue Boost] 📋 Config: {apiUrl: , shopDomain: revenue-boost-staging.myshopify.com, debug: true, previewMode: false, previewId: undefined}
+[BROWSER] log: [Revenue Boost] 🔑 Session ID: session_1764028296999_8eajqzf4i
+[BROWSER] log: [Revenue Boost] 👤 Visitor ID: visitor_1764028296999_gu5yx7mro
+[BROWSER] log: [Revenue Boost] DOM ready
+[BROWSER] log: [Revenue Boost] 🛒 Cart tracking initialized
+[BROWSER] log: [Revenue Boost API] Fetching campaigns from: /apps/revenue-boost/api/campaigns/active?shop=revenue-boost-staging.myshopify.com&sessionId=session_1764028296999_8eajqzf4i&pageUrl=%2F&pageType=home&deviceType=desktop&visitorId=visitor_1764028296999_gu5yx7mro&visitCount=1&isReturningVisitor=false&pageViews=1&currentPageType=home&cartValue=0&cartItemCount=0
+[BROWSER] log: [Revenue Boost API] Context: {sessionId: session_1764028296999_8eajqzf4i, pageUrl: /, pageType: home, deviceType: desktop, visitorId: visitor_1764028296999_gu5yx7mro}
+[BROWSER] error: Failed to load resource: the server responded with a status of 400 ()
+[BROWSER] log: [Revenue Boost] Page view tracked for social proof
+[BROWSER] log: [Revenue Boost API] Campaigns received: {campaigns: Array(11), timestamp: 2025-11-24T23:51:37.576Z}
+[BROWSER] log: [Revenue Boost] Campaigns received: 11
+[BROWSER] log: [Revenue Boost] Preloading popup components: [NEWSLETTER, NEWSLETTER, NEWSLETTER, NEWSLETTER, NEWSLETTER, SPIN_TO_WIN, SPIN_TO_WIN, NEWSLETTER, SPIN_TO_WIN, SPIN_TO_WIN, SPIN_TO_WIN]
+[BROWSER] log: [Revenue Boost] Selected campaigns by surface: [E2E-Test-OR-Logic-Trigger [modal]]
+[BROWSER] log: [Revenue Boost] Evaluating triggers for campaign: E2E-Test-OR-Logic-Trigger
+[BROWSER] log: [Revenue Boost] 🎯 Evaluating triggers for campaign: cmidpjb4e0009urqxk3xseyfy
+[BROWSER] log: [Revenue Boost] 🔗 Trigger logic operator: OR
+[BROWSER] log: [Revenue Boost] ⏭️ page_load trigger is disabled and will be ignored in evaluation
+[BROWSER] log: [Revenue Boost] ⏳ Checking time_delay trigger: {enabled: true, delay: 3, immediate: false}
+[BROWSER] log: [Revenue Boost] ⏳ time_delay trigger waiting 3s (3000ms) before showing
+[BROWSER] log: [Revenue Boost] ✅ Initialization complete!
+[BROWSER] log: [Revenue Boost Loader] Loading script: /apps/revenue-boost/bundles/newsletter.bundle.js?v=1764028297001
+[BROWSER] log: [Revenue Boost Loader] Loading script: /apps/revenue-boost/bundles/spin-to-win.bundle.js?v=1764028297001
+[API] /api/campaigns response: {
+  "campaigns": [
+    {
+      "id": "cmidpjb4e0009urqxk3xseyfy",
+      "name": "E2E-Test-OR-Logic-Trigger",
+      "templateType": "NEWSLETTER",
+      "priority": 404,
+      "contentConfig": {
+        "headline": "OR Logic Popup 1764022643725",
+        "subheadline": "Subscribe to our newsletter",
+        "buttonText": "Subscribe",
+        "successMessage": "Thanks for subscribing!",
+        "emailPlaceholder": "Enter your email",
+        "emailRequired": true,
+        "submitButtonText": "Subscribe",
+        "nameFieldEnabled": false,
+        "nameFieldRequired": false,
+        "consentFieldEnabled": false,
+        "consentFieldRequired": false
+      },
+      "designConfig": {
+        "theme": "modern",
+        "position": "center",
+        "size": "medium",
+        "popupSize": "wide",
+        "borderRadius": 8,
+        "animation": "fade",
+        "imagePosition": "left",
+        "backgroundImageMode": "none",
+        "overlayOpacity": 0.5
+      },
+      "clientTriggers": {
+        "enhancedTriggers": {
+          "enabled": true,
+          "page_load": {
+            "enabled": false
+          },
+          "scroll_depth": {
+            "enabled": true,
+            "depth_percentage": 80,
+            "direction": "down",
+            "debounce_time": 100
+          },
+          "time_delay": {
+            "enabled": true,
+            "delay": 3,
+            "immediate": false
+          },
+          "device_targeting": {
+            "enabled": true,
+            "device_types": [
+              "desktop",
+              "tablet",
+              "mobile"
+            ]
+          },
+          "frequency_capping": {
+            "max_triggers_per_session": 1,
+            "max_triggers_per_day": 1,
+            "cooldown_between_triggers": 86400
+          },
+          "trigger_combination": {
+            "operator": "OR"
+          }
+        },
+        "sessionRules": {
+          "enabled": false,
+          "conditions": [],
+          "logicOperator": "AND"
+        }
+      },
+      "targetRules": {},
+      "discountConfig": {
+        "enabled": false,
+        "showInPreview": true,
+        "autoApplyMode": "ajax",
+        "codePresentation": "show_code"
+      },
+      "experimentId": null,
+      "variantKey": null
+    },
+    {
+      "id": "cmidpj6hz0007urqx24lr00kq",
+      "name": "E2E-Test-AND-Logic-Trigger",
+      "templateType": "NEWSLETTER",
+      "priority": 403,
+      "contentConfig": {
+        "headline": "AND Logic Popup 1764022637633",
+        "subheadline": "Subscribe to our newsletter",
+        "buttonText": "Subscribe",
+        "successMessage": "Thanks for subscribing!",
+        "emailPlaceholder": "Enter your email",
+        "emailRequired": true,
+        "submitButtonText": "Subscribe",
+        "nameFieldEnabled": false,
+        "nameFieldRequired": false,
+        "consentFieldEnabled": false,
+        "consentFieldRequired": false
+      },
+      "designConfig": {
+        "theme": "modern",
+        "position": "center",
+        "size": "medium",
+        "popupSize": "wide",
+        "borderRadius": 8,
+        "animation": "fade",
+        "imagePosition": "left",
+        "backgroundImageMode": "none",
+        "overlayOpacity": 0.5
+      },
+      "clientTriggers": {
+        "enhancedTriggers": {
+          "enabled": true,
+          "page_load": {
+            "enabled": false
+          },
+          "scroll_depth": {
+            "enabled": true,
+            "depth_percentage": 30,
+            "direction": "down",
+            "debounce_time": 100
+          },
+          "time_delay": {
+            "enabled": true,
+            "delay": 3,
+            "immediate": false
+          },
+          "device_targeting": {
+            "enabled": true,
+            "device_types": [
+              "desktop",
+              "tablet",
+              "mobile"
+            ]
+          },
+          "frequency_capping": {
+            "max_triggers_per_session": 1,
+            "max_triggers_per_day": 1,
+            "cooldown_between_triggers": 86400
+          },
+          "trigger_combination": {
+            "operator": "AND"
+          }
+        },
+        "sessionRules": {
+          "enabled": false,
+          "conditions": [],
+          "logicOperator": "AND"
+        }
+      },
+      "targetRules": {},
+      "discountConfig": {
+        "enabled": false,
+        "showInPreview": true,
+        "autoApplyMode": "ajax",
+        "codePresentation": "show_code"
+      },
+      "experimentId": null,
+      "variantKey": null
+    },
+    {
+      "id": "cmidpj1ke0005urqxyk3q09o5",
+      "name": "E2E-Test-Time-Delay-Trigger",
+      "templateType": "NEWSLETTER",
+      "priority": 402,
+      "contentConfig": {
+        "headline": "Time Delay Popup 1764022631341",
+        "subheadline": "Subscribe to our newsletter",
+        "buttonText": "Subscribe",
+        "successMessage": "Thanks for subscribing!",
+        "emailPlaceholder": "Enter your email",
+        "emailRequired": true,
+        "submitButtonText": "Subscribe",
+        "nameFieldEnabled": false,
+        "nameFieldRequired": false,
+        "consentFieldEnabled": false,
+        "consentFieldRequired": false
+      },
+      "designConfig": {
+        "theme": "modern",
+        "position": "center",
+        "size": "medium",
+        "popupSize": "wide",
+        "borderRadius": 8,
+        "animation": "fade",
+        "imagePosition": "left",
+        "backgroundImageMode": "none",
+        "overlayOpacity": 0.5
+      },
+      "clientTriggers": {
+        "enhancedTriggers": {
+          "enabled": true,
+          "page_load": {
+            "enabled": false
+          },
+          "time_delay": {
+            "enabled": true,
+            "delay": 3,
+            "immediate": false
+          },
+          "device_targeting": {
+            "enabled": true,
+            "device_types": [
+              "desktop",
+              "tablet",
+              "mobile"
+            ]
+          },
+          "frequency_capping": {
+            "max_triggers_per_session": 1,
+            "max_triggers_per_day": 1,
+            "cooldown_between_triggers": 86400
+          }
+        },
+        "sessionRules": {
+          "enabled": false,
+          "conditions": [],
+          "logicOperator": "AND"
+        }
+      },
+      "targetRules": {},
+      "discountConfig": {
+        "enabled": false,
+        "showInPreview": true,
+        "autoApplyMode": "ajax",
+        "codePresentation": "show_code"
+      },
+      "experimentId": null,
+      "variantKey": null
+    },
+    {
+      "id": "cmidpiygm0003urqxbu41mb3u",
+      "name": "E2E-Test-Scroll-Depth-Trigger",
+      "templateType": "NEWSLETTER",
+      "priority": 401,
+      "contentConfig": {
+        "headline": "Scroll Popup 1764022627317",
+        "subheadline": "Subscribe to our newsletter",
+        "buttonText": "Subscribe",
+        "successMessage": "Thanks for subscribing!",
+        "emailPlaceholder": "Enter your email",
+        "emailRequired": true,
+        "submitButtonText": "Subscribe",
+        "nameFieldEnabled": false,
+        "nameFieldRequired": false,
+        "consentFieldEnabled": false,
+        "consentFieldRequired": false
+      },
+      "designConfig": {
+        "theme": "modern",
+        "position": "center",
+        "size": "medium",
+        "popupSize": "wide",
+        "borderRadius": 8,
+        "animation": "fade",
+        "imagePosition": "left",
+        "backgroundImageMode": "none",
+        "overlayOpacity": 0.5
+      },
+      "clientTriggers": {
+        "enhancedTriggers": {
+          "enabled": true,
+          "page_load": {
+            "enabled": false
+          },
+          "scroll_depth": {
+            "enabled": true,
+            "depth_percentage": 50,
+            "direction": "down",
+            "debounce_time": 100
+          },
+          "device_targeting": {
+            "enabled": true,
+            "device_types": [
+              "desktop",
+              "tablet",
+              "mobile"
+            ]
+          },
+          "frequency_capping": {
+            "max_triggers_per_session": 1,
+            "max_triggers_per_day": 1,
+            "cooldown_between_triggers": 86400
+          }
+        },
+        "sessionRules": {
+          "enabled": false,
+          "conditions": [],
+          "logicOperator": "AND"
+        }
+      },
+      "targetRules": {},
+      "discountConfig": {
+        "enabled": false,
+        "showInPreview": true,
+        "autoApplyMode": "ajax",
+        "codePresentation": "show_code"
+      },
+      "experimentId": null,
+      "variantKey": null
+    },
+    {
+      "id": "cmidpiteu0001urqx2zve8kfb",
+      "name": "E2E-Test-Page-Load-Delay",
+      "templateType": "NEWSLETTER",
+      "priority": 400,
+      "contentConfig": {
+        "headline": "Delayed Popup 1764022620554",
+        "subheadline": "Subscribe to our newsletter",
+        "buttonText": "Subscribe",
+        "successMessage": "Thanks for subscribing!",
+        "emailPlaceholder": "Enter your email",
+        "emailRequired": true,
+        "submitButtonText": "Subscribe",
+        "nameFieldEnabled": false,
+        "nameFieldRequired": false,
+        "consentFieldEnabled": false,
+        "consentFieldRequired": false
+      },
+      "designConfig": {
+        "theme": "modern",
+        "position": "center",
+        "size": "medium",
+        "popupSize": "wide",
+        "borderRadius": 8,
+        "animation": "fade",
+        "imagePosition": "left",
+        "backgroundImageMode": "none",
+        "overlayOpacity": 0.5
+      },
+      "clientTriggers": {
+        "enhancedTriggers": {
+          "enabled": true,
+          "page_load": {
+            "enabled": true,
+            "delay": 2000
+          },
+          "device_targeting": {
+            "enabled": true,
+            "device_types": [
+              "desktop",
+              "tablet",
+              "mobile"
+            ]
+          },
+          "frequency_capping": {
+            "max_triggers_per_session": 1,
+            "max_triggers_per_day": 1,
+            "cooldown_between_triggers": 86400
+          }
+        },
+        "sessionRules": {
+          "enabled": false,
+          "conditions": [],
+          "logicOperator": "AND"
+        }
+      },
+      "targetRules": {},
+      "discountConfig": {
+        "enabled": false,
+        "showInPreview": true,
+        "autoApplyMode": "ajax",
+        "codePresentation": "show_code"
+      },
+      "experimentId": null,
+      "variantKey": null
+    },
+    {
+      "id": "cmidpiph40001urplo45dtg7p",
+      "name": "E2E-Test-SPIN_TO_WIN-1764022615672",
+      "templateType": "SPIN_TO_WIN",
+      "priority": 100,
+      "contentConfig": {
+        "headline": "Custom Wheel!",
+        "subheadline": "Try your luck for a discount",
+        "buttonText": "Spin Now!",
+        "spinButtonText": "Spin to Win!",
+        "emailRequired": true,
+        "emailPlaceholder": "Enter your email to spin",
+        "collectName": false,
+        "nameFieldRequired": false,
+        "showGdprCheckbox": false,
+        "consentFieldRequired": false,
+        "wheelSegments": [
+          {
+            "id": "segment-0",
+            "label": "5% Off",
+            "probability": 0.5,
+            "color": "#FF0000"
+          },
+          {
+            "id": "segment-1",
+            "label": "25% Off",
+            "probability": 0.5,
+            "color": "#00FF00"
+          }
+        ],
+        "maxAttemptsPerUser": 1,
+        "wheelSize": 400,
+        "wheelBorderWidth": 2,
+        "spinDuration": 4000,
+        "minSpins": 5
+      },
+      "designConfig": {
+        "theme": "modern",
+        "position": "center",
+        "size": "medium",
+        "popupSize": "wide",
+        "borderRadius": 8,
+        "animation": "fade",
+        "imagePosition": "left",
+        "backgroundImageMode": "none",
+        "overlayOpacity": 0.5
+      },
+      "clientTriggers": {
+        "enhancedTriggers": {
+          "enabled": true,
+          "page_load": {
+            "enabled": true,
+            "delay": 0
+          },
+          "device_targeting": {
+            "enabled": true,
+            "device_types": [
+              "desktop",
+              "tablet",
+              "mobile"
+            ]
+          },
+          "frequency_capping": {
+            "max_triggers_per_session": 1,
+            "max_triggers_per_day": 1,
+            "cooldown_between_triggers": 86400
+          }
+        },
+        "sessionRules": {
+          "enabled": false,
+          "conditions": [],
+          "logicOperator": "AND"
+        }
+      },
+      "targetRules": {},
+      "discountConfig": {
+        "enabled": false,
+        "showInPreview": true,
+        "autoApplyMode": "ajax",
+        "codePresentation": "show_code"
+      },
+      "experimentId": null,
+      "variantKey": null
+    },
+    {
+      "id": "cmidpiph10001urpmkcxy2d01",
+      "name": "E2E-Test-SPIN_TO_WIN-1764022615668",
+      "templateType": "SPIN_TO_WIN",
+      "priority": 100,
+      "contentConfig": {
+        "headline": "Spin & Win!",
+        "subheadline": "Try your luck for a discount",
+        "buttonText": "Spin Now!",
+        "spinButtonText": "Spin to Win!",
+        "emailRequired": true,
+        "emailPlaceholder": "Enter your email to spin",
+        "collectName": false,
+        "nameFieldRequired": false,
+        "showGdprCheckbox": false,
+        "consentFieldRequired": false,
+        "wheelSegments": [
+          {
+            "id": "1",
+            "label": "10% Off",
+            "probability": 0.25,
+            "color": "#FF6B6B"
+          },
+          {
+            "id": "2",
+            "label": "15% Off",
+            "probability": 0.25,
+            "color": "#4ECDC4"
+          },
+          {
+            "id": "3",
+            "label": "20% Off",
+            "probability": 0.25,
+            "color": "#45B7D1"
+          },
+          {
+            "id": "4",
+            "label": "Free Shipping",
+            "probability": 0.25,
+            "color": "#FFA07A"
+          }
+        ],
+        "maxAttemptsPerUser": 1,
+        "wheelSize": 400,
+        "wheelBorderWidth": 2,
+        "spinDuration": 4000,
+        "minSpins": 5
+      },
+      "designConfig": {
+        "theme": "modern",
+        "position": "center",
+        "size": "medium",
+        "popupSize": "wide",
+        "borderRadius": 8,
+        "animation": "fade",
+        "imagePosition": "left",
+        "backgroundImageMode": "none",
+        "overlayOpacity": 0.5
+      },
+      "clientTriggers": {
+        "enhancedTriggers": {
+          "enabled": true,
+          "page_load": {
+            "enabled": true,
+            "delay": 0
+          },
+          "device_targeting": {
+            "enabled": true,
+            "device_types": [
+              "desktop",
+              "tablet",
+              "mobile"
+            ]
+          },
+          "frequency_capping": {
+            "max_triggers_per_session": 1,
+            "max_triggers_per_day": 1,
+            "cooldown_between_triggers": 86400
+          }
+        },
+        "sessionRules": {
+          "enabled": false,
+          "conditions": [],
+          "logicOperator": "AND"
+        }
+      },
+      "targetRules": {},
+      "discountConfig": {
+        "enabled": false,
+        "showInPreview": true,
+        "autoApplyMode": "ajax",
+        "codePresentation": "show_code"
+      },
+      "experimentId": null,
+      "variantKey": null
+    },
+    {
+      "id": "cmidpit070003urpkm94wjt5d",
+      "name": "E2E-Test-Freq-Cap-Session",
+      "templateType": "NEWSLETTER",
+      "priority": 100,
+      "contentConfig": {
+        "headline": "Get 10% Off Your First Order",
+        "subheadline": "Subscribe to our newsletter",
+        "buttonText": "Subscribe",
+        "successMessage": "Thanks for subscribing!",
+        "emailPlaceholder": "Enter your email",
+        "emailRequired": true,
+        "submitButtonText": "Subscribe",
+        "nameFieldEnabled": false,
+        "nameFieldRequired": false,
+        "consentFieldEnabled": false,
+        "consentFieldRequired": false
+      },
+      "designConfig": {
+        "theme": "modern",
+        "position": "center",
+        "size": "medium",
+        "popupSize": "wide",
+        "borderRadius": 8,
+        "animation": "fade",
+        "imagePosition": "left",
+        "backgroundImageMode": "none",
+        "overlayOpacity": 0.5
+      },
+      "clientTriggers": {
+        "enhancedTriggers": {
+          "enabled": true,
+          "page_load": {
+            "enabled": true,
+            "delay": 0
+          },
+          "device_targeting": {
+            "enabled": true,
+            "device_types": [
+              "desktop",
+              "tablet",
+              "mobile"
+            ]
+          },
+          "frequency_capping": {
+            "max_triggers_per_session": 1,
+            "max_triggers_per_day": 100,
+            "cooldown_between_triggers": 0
+          }
+        },
+        "sessionRules": {
+          "enabled": false,
+          "conditions": [],
+          "logicOperator": "AND"
+        }
+      },
+      "targetRules": {},
+      "discountConfig": {
+        "enabled": false,
+        "showInPreview": true,
+        "autoApplyMode": "ajax",
+        "codePresentation": "show_code"
+      },
+      "experimentId": null,
+      "variantKey": null
+    },
+    {
+      "id": "cmidpipe70001urpk2a2a4xss",
+      "name": "E2E-Test-SPIN_TO_WIN-1764022615567",
+      "templateType": "SPIN_TO_WIN",
+      "priority": 100,
+      "contentConfig": {
+        "headline": "Spin & Win!",
+        "subheadline": "Try your luck for a discount",
+        "buttonText": "Spin Now!",
+        "spinButtonText": "Spin to Win!",
+        "emailRequired": true,
+        "emailPlaceholder": "Enter your email to spin",
+        "collectName": false,
+        "nameFieldRequired": false,
+        "showGdprCheckbox": false,
+        "consentFieldRequired": false,
+        "wheelSegments": [
+          {
+            "id": "1",
+            "label": "10% Off",
+            "probability": 0.25,
+            "color": "#FF6B6B"
+          },
+          {
+            "id": "2",
+            "label": "15% Off",
+            "probability": 0.25,
+            "color": "#4ECDC4"
+          },
+          {
+            "id": "3",
+            "label": "20% Off",
+            "probability": 0.25,
+            "color": "#45B7D1"
+          },
+          {
+            "id": "4",
+            "label": "Free Shipping",
+            "probability": 0.25,
+            "color": "#FFA07A"
+          }
+        ],
+        "maxAttemptsPerUser": 1,
+        "wheelSize": 400,
+        "wheelBorderWidth": 2,
+        "spinDuration": 4000,
+        "minSpins": 5
+      },
+      "designConfig": {
+        "theme": "modern",
+        "position": "center",
+        "size": "medium",
+        "popupSize": "wide",
+        "borderRadius": 8,
+        "animation": "fade",
+        "imagePosition": "left",
+        "backgroundImageMode": "none",
+        "overlayOpacity": 0.5
+      },
+      "clientTriggers": {
+        "enhancedTriggers": {
+          "enabled": true,
+          "page_load": {
+            "enabled": true,
+            "delay": 0
+          },
+          "device_targeting": {
+            "enabled": true,
+            "device_types": [
+              "desktop",
+              "tablet",
+              "mobile"
+            ]
+          },
+          "frequency_capping": {
+            "max_triggers_per_session": 1,
+            "max_triggers_per_day": 1,
+            "cooldown_between_triggers": 86400
+          }
+        },
+        "sessionRules": {
+          "enabled": false,
+          "conditions": [],
+          "logicOperator": "AND"
+        }
+      },
+      "targetRules": {},
+      "discountConfig": {
+        "enabled": false,
+        "showInPreview": true,
+        "autoApplyMode": "ajax",
+        "codePresentation": "show_code"
+      },
+      "experimentId": null,
+      "variantKey": null
+    },
+    {
+      "id": "cmidpipqm0001urpnrgfngmgu",
+      "name": "E2E-Test-HighPriority",
+      "templateType": "SPIN_TO_WIN",
+      "priority": 20,
+      "contentConfig": {
+        "headline": "Spin & Win!",
+        "subheadline": "Try your luck for a discount",
+        "buttonText": "Spin Now!",
+        "spinButtonText": "Spin to Win!",
+        "emailRequired": true,
+        "emailPlaceholder": "Enter your email to spin",
+        "collectName": false,
+        "nameFieldRequired": false,
+        "showGdprCheckbox": false,
+        "consentFieldRequired": false,
+        "wheelSegments": [
+          {
+            "id": "1",
+            "label": "10% Off",
+            "probability": 0.25,
+            "color": "#FF6B6B"
+          },
+          {
+            "id": "2",
+            "label": "15% Off",
+            "probability": 0.25,
+            "color": "#4ECDC4"
+          },
+          {
+            "id": "3",
+            "label": "20% Off",
+            "probability": 0.25,
+            "color": "#45B7D1"
+          },
+          {
+            "id": "4",
+            "label": "Free Shipping",
+            "probability": 0.25,
+            "color": "#FFA07A"
+          }
+        ],
+        "maxAttemptsPerUser": 1,
+        "wheelSize": 400,
+        "wheelBorderWidth": 2,
+        "spinDuration": 4000,
+        "minSpins": 5
+      },
+      "designConfig": {
+        "theme": "modern",
+        "position": "center",
+        "size": "medium",
+        "popupSize": "wide",
+        "borderRadius": 8,
+        "animation": "fade",
+        "imagePosition": "left",
+        "backgroundImageMode": "none",
+        "overlayOpacity": 0.5
+      },
+      "clientTriggers": {
+        "enhancedTriggers": {
+          "enabled": true,
+          "page_load": {
+            "enabled": true,
+            "delay": 0
+          },
+          "device_targeting": {
+            "enabled": true,
+            "device_types": [
+              "desktop",
+              "tablet",
+              "mobile"
+            ]
+          },
+          "frequency_capping": {
+            "max_triggers_per_session": 1,
+            "max_triggers_per_day": 1,
+            "cooldown_between_triggers": 86400
+          }
+        },
+        "sessionRules": {
+          "enabled": false,
+          "conditions": [],
+          "logicOperator": "AND"
+        }
+      },
+      "targetRules": {},
+      "discountConfig": {
+        "enabled": false,
+        "showInPreview": true,
+        "autoApplyMode": "ajax",
+        "codePresentation": "show_code"
+      },
+      "experimentId": null,
+      "variantKey": null
+    },
+    {
+      "id": "cmidpiq6d0002urpofptbxkeb",
+      "name": "E2E-Staging-Test-SpinWin",
+      "templateType": "SPIN_TO_WIN",
+      "priority": 10,
+      "contentConfig": {},
+      "designConfig": {
+        "theme": "modern",
+        "position": "center",
+        "size": "medium",
+        "borderRadius": 8,
+        "imagePosition": "left",
+        "overlayOpacity": 0.8,
+        "animation": "fade",
+        "backgroundImageMode": "none"
+      },
+      "clientTriggers": {
+        "enhancedTriggers": {
+          "enabled": true,
+          "page_load": {
+            "enabled": true,
+            "delay": 0
+          },
+          "device_targeting": {
+            "enabled": true,
+            "device_types": [
+              "desktop",
+              "tablet",
+              "mobile"
+            ]
+          },
+          "frequency_capping": {
+            "max_triggers_per_session": 1,
+            "max_triggers_per_day": 1,
+            "cooldown_between_triggers": 86400
+          }
+        },
+        "sessionRules": {
+          "enabled": false,
+          "conditions": [],
+          "logicOperator": "AND"
+        }
+      },
+      "targetRules": {},
+      "discountConfig": {
+        "enabled": false,
+        "showInPreview": true,
+        "autoApplyMode": "ajax",
+        "codePresentation": "show_code"
+      },
+      "experimentId": null,
+      "variantKey": null
+    }
+  ],
+  "timestamp": "2025-11-24T23:51:37.576Z"
+}
+[BROWSER] debug: [Revenue Boost] Newsletter popup registered
+[BROWSER] log: [Revenue Boost Loader] Loaded from global registry: NEWSLETTER
+[BROWSER] debug: [Revenue Boost] Spin to Win popup registered
+[BROWSER] log: [Revenue Boost Loader] Loaded from global registry: SPIN_TO_WIN
+[BROWSER] log: [Revenue Boost] ✅ time_delay trigger delay completed
+[BROWSER] log: [Revenue Boost] ✅ time_delay trigger passed
+[BROWSER] log: [Revenue Boost] 📜 Checking scroll_depth trigger: {enabled: true, depth_percentage: 80, direction: down, debounce_time: 100}
+[BROWSER] log: [Revenue Boost] 📏 scroll_depth trigger waiting for 80% scroll down (debounce=100ms)
+  ✘  1 [storefront] › tests/e2e/staging/storefront-discount-configs.spec.ts:81:5 › Discount Configurations › shows popup with 25% percentage discount (13.6s)
+
+
+  1) [storefront] › tests/e2e/staging/storefront-discount-configs.spec.ts:81:5 › Discount Configurations › shows popup with 25% percentage discount 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: locator('[data-splitpop="true"]')
+    Expected: visible
+    Timeout: 10000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 10000ms[22m
+    [2m  - waiting for locator('[data-splitpop="true"]')[22m
+
+
+       97 |             // Wait for popup to appear
+       98 |             const popup = page.locator('[data-splitpop="true"]');
+    >  99 |             await expect(popup).toBeVisible({ timeout: 10000 });
+          |                                 ^
+      100 |
+      101 |             // Submit form to see discount
+      102 |             await submitForm(page);
+        at /Users/bokzor/WebstormProjects/split-pop-rework/revenue-boost/tests/e2e/staging/storefront-discount-configs.spec.ts:99:33
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/staging-storefront-discoun-d7f7a-with-25-percentage-discount-storefront/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/staging-storefront-discoun-d7f7a-with-25-percentage-discount-storefront/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/staging-storefront-discoun-d7f7a-with-25-percentage-discount-storefront/error-context.md
+
+  1 failed
+    [storefront] › tests/e2e/staging/storefront-discount-configs.spec.ts:81:5 › Discount Configurations › shows popup with 25% percentage discount 
+
+To open last HTML report run:
+[36m[39m
+[36m  npx playwright show-report test-results/reports/html[39m
+[36m[39m

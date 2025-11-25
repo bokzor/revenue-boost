@@ -118,6 +118,56 @@ export async function checkCustomProxyUrl(
 }
 
 /**
+ * Check if app proxy is reachable by testing the health endpoint
+ * Since we're running on the server, we test our own health endpoint directly
+ * The app proxy configuration in Shopify will route storefront requests to us
+ */
+export async function checkAppProxyReachable(
+  shop: string,
+  customProxyUrl: string | null
+): Promise<boolean> {
+  try {
+    // Determine which URL to test
+    const baseUrl = customProxyUrl || process.env.SHOPIFY_APP_URL;
+
+    if (!baseUrl) {
+      console.error('[Setup] No app URL configured');
+      return false;
+    }
+
+    // Test our own health endpoint directly
+    // We can't test the proxy URL from the server side because it requires
+    // going through Shopify's proxy, which only works from the storefront
+    const healthUrl = `${baseUrl}/api/health`;
+
+    console.log('[Setup] Testing app health endpoint:', healthUrl);
+
+    const response = await fetch(healthUrl, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+      // Short timeout to avoid hanging
+      signal: AbortSignal.timeout(5000),
+    });
+
+    if (!response.ok) {
+      console.error('[Setup] App health check failed:', response.status, response.statusText);
+      return false;
+    }
+
+    const data = await response.json();
+    const isHealthy = data.status === 'ok';
+
+    console.log('[Setup] App health check result:', isHealthy ? 'OK' : 'ERROR', data);
+    return isHealthy;
+  } catch (error) {
+    console.error('[Setup] Error checking app health:', error);
+    return false;
+  }
+}
+
+/**
  * Get complete setup status
  */
 export async function getSetupStatus(
@@ -125,16 +175,23 @@ export async function getSetupStatus(
   accessToken: string,
   admin: any
 ): Promise<{ status: SetupStatusData; setupComplete: boolean }> {
-  const themeExtensionEnabled = await checkThemeExtensionEnabled({ shop, accessToken });
-  const customProxyUrl = await checkCustomProxyUrl(admin);
+  // Run checks in parallel for better performance
+  const [themeExtensionEnabled, customProxyUrl] = await Promise.all([
+    checkThemeExtensionEnabled({ shop, accessToken }),
+    checkCustomProxyUrl(admin),
+  ]);
+
+  // Check app proxy after getting custom URL (if any)
+  const appProxyOk = await checkAppProxyReachable(shop, customProxyUrl);
 
   const status: SetupStatusData = {
     themeExtensionEnabled,
-    appProxyOk: false, // This can be checked separately if needed
+    appProxyOk,
     customProxyUrl,
   };
 
-  const setupComplete = themeExtensionEnabled;
+  // Setup is complete when both theme extension is enabled AND app proxy is reachable
+  const setupComplete = themeExtensionEnabled && appProxyOk;
 
   return { status, setupComplete };
 }

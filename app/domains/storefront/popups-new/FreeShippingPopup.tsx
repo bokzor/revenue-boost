@@ -15,6 +15,13 @@ import type { PopupDesignConfig, DiscountConfig as StorefrontDiscountConfig } fr
 import type { FreeShippingContent } from '~/domains/campaigns/types/campaign';
 import { debounce } from './utils';
 import { requestChallengeToken, challengeTokenStore } from '~/domains/storefront/services/challenge-token.client';
+import { POPUP_SPACING, SPACING_GUIDELINES } from './spacing';
+
+// Import custom hooks
+import { usePopupAnimation, usePopupForm, useDiscountCode } from './hooks';
+
+// Import reusable components
+import { EmailInput, SubmitButton } from './components';
 
 // Import session for lazy token loading (only in storefront context)
 let sessionModule: any = null;
@@ -73,16 +80,41 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
   const claimSuccessMessage = (config as any).claimSuccessMessage as string | undefined;
   const claimErrorMessage = (config as any).claimErrorMessage as string | undefined;
 
+  // Use animation hook
+  const { showContent, isAnimating } = usePopupAnimation({
+    isVisible,
+    entryDelay: 50,
+    exitDelay: animationDuration,
+  });
+
+  // Use discount code hook
+  const { discountCode, setDiscountCode, copiedCode, handleCopyCode } = useDiscountCode();
+
+  // Use form hook for email claim
+  const {
+    formState,
+    setEmail,
+    errors,
+    handleSubmit: handleFormSubmit,
+    isSubmitting: isClaiming,
+    isSubmitted: hasClaimed,
+  } = usePopupForm({
+    config: {
+      emailRequired: requireEmailToClaim,
+      campaignId: config.campaignId,
+      previewMode: config.previewMode,
+    },
+    onSubmit: onSubmit ? async (data) => {
+      const result = await onSubmit({ email: data.email });
+      return result;
+    } : undefined,
+  });
+
+  // Component-specific state
   const [internalDismissed, setInternalDismissed] = useState(false);
   const [celebrating, setCelebrating] = useState(false);
-  const [isEntering, setIsEntering] = useState(isVisible); // Start as true if visible on mount
-  const [isExiting, setIsExiting] = useState(false);
   const [showClaimForm, setShowClaimForm] = useState(false);
-  const [claimEmail, setClaimEmail] = useState('');
   const [claimError, setClaimError] = useState<string | null>(null);
-  const [isClaiming, setIsClaiming] = useState(false);
-  const [hasClaimed, setHasClaimed] = useState(false);
-  const [claimedDiscountCode, setClaimedDiscountCode] = useState<string | undefined>(undefined);
   const [isLoadingToken, setIsLoadingToken] = useState(false);
   const prevUnlockedRef = useRef(false);
   const hasIssuedDiscountRef = useRef(false);
@@ -127,16 +159,11 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
       : '1.25rem';
 
 
-  // Handle close with exit animation
+  // Handle close
   const handleClose = () => {
     if (!dismissible) return;
-
-    setIsExiting(true);
-    setTimeout(() => {
-      setInternalDismissed(true);
-      onClose();
-      setIsExiting(false);
-    }, 300); // Match animation duration
+    setInternalDismissed(true);
+    onClose();
   };
 
   const formatCurrency = (value: number) => {
@@ -196,15 +223,7 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
     }
   }, []);
 
-  // Handle enter animation on mount - only play once
-  useEffect(() => {
-    if (isVisible && !internalDismissed && !hasPlayedEntranceRef.current) {
-      hasPlayedEntranceRef.current = true;
-      setIsEntering(true);
-      const timer = setTimeout(() => setIsEntering(false), 300);
-      return () => clearTimeout(timer);
-    }
-  }, [isVisible, internalDismissed]);
+  // Animation is now handled by usePopupAnimation hook
 
   // Add body padding to prevent content overlap - animate together with bar
   useEffect(() => {
@@ -349,56 +368,17 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
     }
   };
 
-  const handleClaimSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const handleClaimSubmit = async (e?: React.FormEvent<HTMLFormElement>) => {
+    if (e) e.preventDefault();
 
-    const email = claimEmail.trim();
-
-    // Validate email is provided
-    if (!email) {
-      setClaimError('Please enter your email');
-      return;
-    }
-
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      setClaimError('Please enter a valid email address');
-      return;
-    }
-
-    setIsClaiming(true);
-    setClaimError(null);
-
-    try {
-      // Fetch challenge token before submitting (for email-required flow)
-      const campaignId = (config as any).campaignId || (config as any).id;
-      if (campaignId) {
-        const tokenReady = await ensureChallengeToken(campaignId);
-        if (!tokenReady) {
-          setClaimError('Unable to verify request. Please try again.');
-          setIsClaiming(false);
-          return;
-        }
+    const result = await handleFormSubmit();
+    if (result.success) {
+      if (result.discountCode) {
+        setDiscountCode(result.discountCode);
       }
-
-      if (onSubmit) {
-        const code = await onSubmit({ email });
-        if (code) setClaimedDiscountCode(code);
-        setHasClaimed(true);
-        console.log('[FreeShippingPopup] Discount claim successful', {
-          email,
-          hasCode: Boolean(code),
-        });
-      } else {
-        setHasClaimed(true);
-        console.log('[FreeShippingPopup] Claim completed without onSubmit handler');
-      }
-    } catch (error) {
-      console.error('[FreeShippingPopup] Claim submission error:', error);
+      console.log('[FreeShippingPopup] Discount claim successful');
+    } else {
       setClaimError(claimErrorMessage || 'Something went wrong. Please try again.');
-    } finally {
-      setIsClaiming(false);
     }
   };
 
@@ -454,7 +434,7 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
             console.log('[FreeShippingPopup] 🎟️ issueDiscount result:', result);
 
             if (result?.code) {
-              setClaimedDiscountCode(result.code);
+              setDiscountCode(result.code);
               console.log('[FreeShippingPopup] ✅ Discount code issued for free shipping', {
                 code: result.code,
                 autoApplyMode: result.autoApplyMode,
@@ -487,8 +467,8 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
     prevUnlockedRef.current = isUnlocked;
   }, [state, celebrateOnUnlock, threshold, cartTotal, discount, issueDiscount, requireEmailToClaim]);
 
-  // Don't render if not visible and not animating out
-  if ((!isVisible || internalDismissed) && !isExiting) {
+  // Don't render if not visible and not animating
+  if ((!isVisible || internalDismissed) && !isAnimating) {
     return null;
   }
 
@@ -631,7 +611,7 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
           display: flex;
           align-items: center;
           justify-content: space-between;
-          gap: 1rem;
+          gap: ${POPUP_SPACING.gap.md};
           padding: ${barPadding};
           position: relative;
           overflow: hidden;
@@ -706,12 +686,14 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
         }
 
         .free-shipping-bar-claim-button {
-          padding: 0.35rem 0.75rem;
+          padding: ${POPUP_SPACING.component.buttonCompact};
           border-radius: 9999px;
           border: none;
           cursor: pointer;
           font-size: 0.875rem;
-          font-weight: 500;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
         }
 
         .free-shipping-bar-claim-error {
@@ -841,7 +823,7 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
 
       <div
         ref={bannerRef}
-        className={`free-shipping-bar ${isEntering ? 'entering' : ''} ${isExiting ? 'exiting' : ''} ${celebrating ? 'celebrating' : ''}`}
+        className={`free-shipping-bar ${!showContent ? 'entering' : ''} ${isAnimating ? 'animating' : ''} ${celebrating ? 'celebrating' : ''}`}
         data-position={barPosition}
         data-state={state}
         role="region"
@@ -886,23 +868,26 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
 
                 {showClaimForm && (
                   <form className="free-shipping-bar-claim-container" onSubmit={handleClaimSubmit}>
-                    <input
-                      type="email"
-                      className="free-shipping-bar-claim-input"
-                      value={claimEmail}
-                      onChange={(e) => setClaimEmail(e.target.value)}
+                    <EmailInput
+                      value={formState.email}
+                      onChange={setEmail}
                       placeholder={claimEmailPlaceholder}
-                      required
-                      aria-label="Email address"
-                    />
-                    <button
-                      type="submit"
-                      className="free-shipping-bar-claim-button"
+                      error={errors.email}
+                      required={true}
                       disabled={isClaiming}
-                      style={{ background: config.buttonColor || '#111827', color: config.buttonTextColor || '#ffffff' }}
+                      accentColor={config.accentColor || config.buttonColor}
+                      textColor={config.textColor}
+                      backgroundColor={config.inputBackgroundColor}
+                    />
+                    <SubmitButton
+                      type="submit"
+                      loading={isClaiming}
+                      disabled={isClaiming}
+                      accentColor={config.accentColor || config.buttonColor}
+                      textColor={config.buttonTextColor}
                     >
-                      {isClaiming ? 'Claiming...' : claimButtonLabel}
-                    </button>
+                      {claimButtonLabel}
+                    </SubmitButton>
                   </form>
                 )}
 
@@ -917,9 +902,13 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
                 <p className="free-shipping-bar-discount-text">
                   Free shipping will be applied automatically at checkout.
                 </p>
-              ) : (claimedDiscountCode || discount.code) ? (
-                <p className="free-shipping-bar-discount-text">
-                  <>Use code <span className="free-shipping-bar-discount-code">{claimedDiscountCode || discount.code}</span> at checkout.</>
+              ) : (discountCode || discount.code) ? (
+                <p
+                  className="free-shipping-bar-discount-text"
+                  onClick={() => handleCopyCode()}
+                  style={{ cursor: 'pointer' }}
+                >
+                  <>Use code <span className="free-shipping-bar-discount-code">{discountCode || discount.code}</span> at checkout.{copiedCode && <span style={{ marginLeft: '0.5rem', color: '#10B981' }}>✓ Copied!</span>}</>
                 </p>
               ) : null
             )}

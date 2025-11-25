@@ -66,7 +66,7 @@ export class CampaignFactory {
             templateId,
             storeId: this.storeId,
             status: 'ACTIVE',
-            priority: 15, // High priority to ensure test campaigns are selected
+            priority: 100, // Very high priority to ensure test campaigns are selected
             goal: 'NEWSLETTER_SIGNUP',
             // Complete targetRules structure (required to pass filters)
             targetRules: {
@@ -89,9 +89,10 @@ export class CampaignFactory {
                         device_types: ['desktop', 'tablet', 'mobile']
                     },
                     frequency_capping: {
-                        max_triggers_per_session: 1,
-                        max_triggers_per_day: 1,
-                        cooldown_between_triggers: 86400
+                        // E2E test campaigns should trigger freely without limits
+                        max_triggers_per_session: 999,
+                        max_triggers_per_day: 999,
+                        cooldown_between_triggers: 0
                     }
                 },
                 audienceTargeting: {
@@ -130,6 +131,20 @@ export class CampaignFactory {
      */
     cartAbandonment() {
         return new CartAbandonmentBuilder(this.prisma, this.storeId, this);
+    }
+
+    /**
+     * Create a Scratch Card campaign builder
+     */
+    scratchCard() {
+        return new ScratchCardBuilder(this.prisma, this.storeId, this);
+    }
+
+    /**
+     * Create a Product Upsell campaign builder
+     */
+    productUpsell() {
+        return new ProductUpsellBuilder(this.prisma, this.storeId, this);
     }
 
     /**
@@ -214,6 +229,271 @@ class BaseBuilder<T extends BaseBuilder<T>> {
     }
 
     /**
+     * Set frequency capping rules
+     */
+    withFrequencyCapping(triggersPerSession: number = 1, triggersPerDay: number = 1, cooldownSeconds: number = 86400): T {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.targetRules.enhancedTriggers.frequency_capping = {
+            max_triggers_per_session: triggersPerSession,
+            max_triggers_per_day: triggersPerDay,
+            cooldown_between_triggers: cooldownSeconds
+        };
+        return this as unknown as T;
+    }
+
+    /**
+     * Set session targeting (new vs returning)
+     */
+    withSessionTargeting(type: 'all' | 'new_visitor' | 'returning_visitor'): T {
+        if (!this.config) throw new Error('Config not initialized');
+
+        const conditions: any[] = [];
+        if (type === 'new_visitor') {
+            conditions.push({
+                field: 'isReturningVisitor',
+                operator: 'eq',
+                value: false
+            });
+        } else if (type === 'returning_visitor') {
+            conditions.push({
+                field: 'isReturningVisitor',
+                operator: 'eq',
+                value: true
+            });
+        }
+
+        this.config.targetRules.audienceTargeting.sessionRules = {
+            enabled: conditions.length > 0,
+            conditions,
+            logicOperator: 'AND'
+        };
+
+        // Ensure audienceTargeting is enabled if we have rules
+        if (conditions.length > 0) {
+            this.config.targetRules.audienceTargeting.enabled = true;
+        }
+
+        return this as unknown as T;
+    }
+
+    /**
+     * Set device targeting
+     */
+    withDeviceTargeting(devices: Array<'desktop' | 'tablet' | 'mobile'>): T {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.targetRules.enhancedTriggers.device_targeting = {
+            enabled: true,
+            device_types: devices
+        };
+        return this as unknown as T;
+    }
+
+    /**
+     * Set scroll depth trigger
+     */
+    withScrollDepthTrigger(depthPercentage: number = 50, direction: 'down' | 'up' = 'down'): T {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.targetRules.enhancedTriggers.scroll_depth = {
+            enabled: true,
+            depth_percentage: depthPercentage,
+            direction,
+            debounce_time: 100
+        };
+        return this as unknown as T;
+    }
+
+    /**
+     * Set time delay trigger
+     */
+    withTimeDelayTrigger(delaySeconds: number): T {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.targetRules.enhancedTriggers.time_delay = {
+            enabled: true,
+            delay: delaySeconds,
+            immediate: false
+        };
+        return this as unknown as T;
+    }
+
+    /**
+     * Set trigger combination logic (AND/OR)
+     */
+    withTriggerLogic(operator: 'AND' | 'OR'): T {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.targetRules.enhancedTriggers.trigger_combination = {
+            operator
+        };
+        return this as unknown as T;
+    }
+
+    /**
+     * Disable page_load trigger (useful when testing other triggers)
+     */
+    withoutPageLoadTrigger(): T {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.targetRules.enhancedTriggers.page_load = {
+            enabled: false
+        };
+        return this as unknown as T;
+    }
+
+    /**
+     * Configure percentage discount (e.g., 10%, 25%, 50%)
+     */
+    withPercentageDiscount(percent: number, prefix: string = 'SAVE'): T {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.discountConfig = {
+            enabled: true,
+            type: 'generated',
+            valueType: 'PERCENTAGE',
+            value: percent,
+            prefix: prefix,
+            expiryDays: 30,
+            usageLimit: 1,
+            deliveryMode: 'show_code_always',
+            showInPreview: true
+        };
+        return this as unknown as T;
+    }
+
+    /**
+     * Configure fixed amount discount (e.g., $5, $10, $20)
+     */
+    withFixedAmountDiscount(amount: number, prefix: string = 'SAVE'): T {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.discountConfig = {
+            enabled: true,
+            type: 'generated',
+            valueType: 'FIXED_AMOUNT',
+            value: amount,
+            prefix: prefix,
+            expiryDays: 30,
+            usageLimit: 1,
+            deliveryMode: 'show_code_always',
+            showInPreview: true
+        };
+        return this as unknown as T;
+    }
+
+    /**
+     * Configure free shipping discount
+     */
+    withFreeShippingDiscount(prefix: string = 'FREESHIP'): T {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.discountConfig = {
+            enabled: true,
+            type: 'generated',
+            valueType: 'FREE_SHIPPING',
+            value: 0,
+            prefix: prefix,
+            expiryDays: 30,
+            usageLimit: 1,
+            deliveryMode: 'show_code_always',
+            showInPreview: true
+        };
+        return this as unknown as T;
+    }
+
+    /**
+     * Configure single discount code (same code for all users)
+     */
+    withSingleDiscountCode(code: string): T {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.discountConfig = {
+            enabled: true,
+            type: 'shared',
+            singleCode: code,
+            deliveryMode: 'show_code_always',
+            showInPreview: true
+        };
+        return this as unknown as T;
+    }
+
+    /**
+     * Set max impressions per session
+     */
+    withMaxImpressionsPerSession(max: number): T {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.targetRules.enhancedTriggers.frequency_capping = {
+            ...this.config.targetRules.enhancedTriggers.frequency_capping,
+            max_triggers_per_session: max
+        };
+        return this as unknown as T;
+    }
+
+    /**
+     * Set cooldown between triggers (in seconds)
+     */
+    withCooldownBetweenTriggers(seconds: number): T {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.targetRules.enhancedTriggers.frequency_capping = {
+            ...this.config.targetRules.enhancedTriggers.frequency_capping,
+            cooldown_between_triggers: seconds
+        };
+        return this as unknown as T;
+    }
+
+    /**
+     * Configure popup size
+     */
+    withPopupSize(size: 'small' | 'medium' | 'large'): T {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.designConfig = {
+            ...this.config.designConfig,
+            size
+        };
+        return this as unknown as T;
+    }
+
+    /**
+     * Configure add-to-cart trigger
+     */
+    withAddToCartTrigger(): T {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.targetRules.enhancedTriggers.add_to_cart = {
+            enabled: true
+        };
+        // Disable page_load to avoid conflicts
+        this.config.targetRules.enhancedTriggers.page_load = {
+            enabled: false
+        };
+        return this as unknown as T;
+    }
+
+    /**
+     * Configure cart value threshold trigger
+     */
+    withCartValueTrigger(min: number, max?: number): T {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.targetRules.enhancedTriggers.cart_value = {
+            enabled: true,
+            min_value: min,
+            max_value: max
+        };
+        // Disable page_load to avoid conflicts
+        this.config.targetRules.enhancedTriggers.page_load = {
+            enabled: false
+        };
+        return this as unknown as T;
+    }
+
+    /**
+     * Configure exit intent trigger
+     */
+    withExitIntentTrigger(): T {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.targetRules.enhancedTriggers.exit_intent = {
+            enabled: true,
+            sensitivity: 'medium'
+        };
+        // Disable page_load to avoid conflicts
+        this.config.targetRules.enhancedTriggers.page_load = {
+            enabled: false
+        };
+        return this as unknown as T;
+    }
+
+    /**
      * Create the campaign in the database
      */
     async create() {
@@ -232,10 +512,10 @@ export class SpinToWinBuilder extends BaseBuilder<SpinToWinBuilder> {
             headline: 'Spin & Win!',
             subheadline: 'Try your luck for a discount',
             wheelSegments: [
-                { id: '1', label: '10% Off', color: '#FF6B6B', probability: 25 },
-                { id: '2', label: '15% Off', color: '#4ECDC4', probability: 25 },
-                { id: '3', label: '20% Off', color: '#45B7D1', probability: 25 },
-                { id: '4', label: 'Free Shipping', color: '#FFA07A', probability: 25 },
+                { id: '1', label: '10% Off', color: '#FF6B6B', probability: 0.25 },
+                { id: '2', label: '15% Off', color: '#4ECDC4', probability: 0.25 },
+                { id: '3', label: '20% Off', color: '#45B7D1', probability: 0.25 },
+                { id: '4', label: 'Free Shipping', color: '#FFA07A', probability: 0.25 },
             ],
             emailRequired: true,
             collectName: false,
@@ -297,9 +577,14 @@ export class NewsletterBuilder extends BaseBuilder<NewsletterBuilder> {
             headline: 'Get 10% Off Your First Order',
             subheadline: 'Subscribe to our newsletter',
             buttonText: 'Subscribe',
+            successMessage: 'Thanks for subscribing!',
             emailPlaceholder: 'Enter your email',
-            collectName: false,
-            showGdprCheckbox: false,
+            emailRequired: true,
+            submitButtonText: 'Subscribe',
+            nameFieldEnabled: false,
+            nameFieldRequired: false,
+            consentFieldEnabled: false,
+            consentFieldRequired: false,
         };
         return this;
     }
@@ -309,9 +594,9 @@ export class NewsletterBuilder extends BaseBuilder<NewsletterBuilder> {
      */
     withGdprCheckbox(enabled: boolean = true, text?: string): this {
         if (!this.config) throw new Error('Config not initialized');
-        this.config.contentConfig.showGdprCheckbox = enabled;
+        this.config.contentConfig.consentFieldEnabled = enabled;
         if (text) {
-            this.config.contentConfig.gdprLabel = text;
+            this.config.contentConfig.consentFieldText = text;
         }
         return this;
     }
@@ -336,18 +621,183 @@ export class CartAbandonmentBuilder extends BaseBuilder<CartAbandonmentBuilder> 
             headline: "Don't Miss Out!",
             subheadline: 'Complete your purchase and get a special discount',
             buttonText: 'Complete Purchase',
+            successMessage: 'Your cart has been saved!',
+            showCartItems: true,
+            maxItemsToShow: 3,
+            showCartTotal: true,
+            showUrgency: true,
+            urgencyTimer: 300,
+            urgencyMessage: 'Hurry! Your cart is reserved for 5 minutes',
+            showStockWarnings: false,
+            ctaUrl: 'checkout',
+            currency: 'USD',
+            enableEmailRecovery: false,
             emailPlaceholder: 'Enter your email to save your cart',
-            discountPercentage: 10,
         };
         return this;
     }
 
     /**
-     * Set discount percentage
+     * Enable email recovery flow
      */
-    withDiscountPercentage(percentage: number): this {
+    withEmailRecovery(enabled: boolean = true): this {
         if (!this.config) throw new Error('Config not initialized');
-        this.config.contentConfig.discountPercentage = percentage;
+        this.config.contentConfig.enableEmailRecovery = enabled;
+        return this;
+    }
+
+    /**
+     * Set urgency timer (in seconds)
+     */
+    withUrgencyTimer(seconds: number): this {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.contentConfig.urgencyTimer = seconds;
+        this.config.contentConfig.urgencyMessage = `Hurry! Your cart is reserved for ${Math.floor(seconds / 60)} minutes`;
+        return this;
+    }
+
+
+    /**
+     * Set headline text
+     */
+    withHeadline(headline: string): this {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.contentConfig.headline = headline;
+        return this;
+    }
+}
+
+/**
+ * Scratch Card Campaign Builder
+ */
+export class ScratchCardBuilder extends BaseBuilder<ScratchCardBuilder> {
+    async init() {
+        this.config = await this.factory._getBaseConfig('SCRATCH_CARD');
+        this.config.contentConfig = {
+            headline: 'Scratch & Win!',
+            subheadline: 'Scratch the card to reveal your prize',
+            buttonText: 'Claim Prize',
+            successMessage: 'Congratulations!',
+            scratchInstruction: 'Scratch to reveal your prize!',
+            emailRequired: true,
+            emailPlaceholder: 'Enter your email to claim',
+            emailBeforeScratching: false,
+            scratchThreshold: 50,
+            scratchRadius: 20,
+            prizes: [
+                { id: '1', label: '10% Off', probability: 0.4 },
+                { id: '2', label: '15% Off', probability: 0.3 },
+                { id: '3', label: '20% Off', probability: 0.2 },
+                { id: '4', label: 'Free Shipping', probability: 0.1 },
+            ],
+        };
+        return this;
+    }
+
+    /**
+     * Set prizes with probabilities
+     */
+    withPrizes(prizes: Array<{ id?: string; label: string; probability: number }>): this {
+        if (!this.config) throw new Error('Config not initialized');
+        const prizesWithIds = prizes.map((prize, idx) => ({
+            id: prize.id || `prize-${idx}`,
+            label: prize.label,
+            probability: prize.probability,
+        }));
+        this.config.contentConfig.prizes = prizesWithIds;
+        return this;
+    }
+
+    /**
+     * Set scratch threshold (percentage)
+     */
+    withScratchThreshold(threshold: number): this {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.contentConfig.scratchThreshold = threshold;
+        return this;
+    }
+
+    /**
+     * Require email before scratching
+     */
+    withEmailBeforeScratching(required: boolean = true): this {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.contentConfig.emailBeforeScratching = required;
+        return this;
+    }
+
+    /**
+     * Set headline text
+     */
+    withHeadline(headline: string): this {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.contentConfig.headline = headline;
+        return this;
+    }
+}
+
+/**
+ * Product Upsell Campaign Builder
+ */
+export class ProductUpsellBuilder extends BaseBuilder<ProductUpsellBuilder> {
+    async init() {
+        this.config = await this.factory._getBaseConfig('PRODUCT_UPSELL');
+        this.config.contentConfig = {
+            headline: 'You Might Also Like',
+            subheadline: 'Complete your order with these products',
+            buttonText: 'Add to Cart',
+            successMessage: 'Added to cart!',
+            productSelectionMethod: 'ai',
+            maxProducts: 3,
+            layout: 'grid',
+            columns: 2,
+            showPrices: true,
+            showCompareAtPrice: true,
+            showImages: true,
+            showRatings: false,
+            showReviewCount: false,
+            bundleDiscount: 15,
+            multiSelect: true,
+            currency: 'USD',
+        };
+        return this;
+    }
+
+    /**
+     * Set product selection method
+     */
+    withProductSelectionMethod(method: 'ai' | 'manual' | 'collection'): this {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.contentConfig.productSelectionMethod = method;
+        return this;
+    }
+
+    /**
+     * Set selected products (for manual selection)
+     */
+    withSelectedProducts(productIds: string[]): this {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.contentConfig.productSelectionMethod = 'manual';
+        this.config.contentConfig.selectedProducts = productIds;
+        return this;
+    }
+
+    /**
+     * Set layout
+     */
+    withLayout(layout: 'grid' | 'carousel' | 'card'): this {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.contentConfig.layout = layout;
+        return this;
+    }
+
+    /**
+     * Set bundle discount percentage
+     */
+    withBundleDiscount(percentage: number): this {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.contentConfig.bundleDiscount = percentage;
+        this.config.contentConfig.bundleDiscountText = `Save ${percentage}% when you bundle!`;
         return this;
     }
 

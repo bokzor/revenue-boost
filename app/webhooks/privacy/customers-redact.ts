@@ -8,6 +8,7 @@
  */
 
 import prisma from "~/db.server";
+import { Prisma } from "@prisma/client";
 import type { CustomersRedactPayload } from "./types";
 
 export async function handleCustomersRedact(
@@ -88,7 +89,7 @@ export async function handleCustomersRedact(
           userAgent: null,
           referrer: null,
           visitorId: null,
-          metadata: {},
+          metadata: Prisma.JsonNull,
         },
       });
       console.log(`[Privacy Webhook] Anonymized ${eventsToAnonymize.length} popup events`);

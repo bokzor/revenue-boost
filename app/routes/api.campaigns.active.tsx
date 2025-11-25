@@ -21,11 +21,11 @@ import {
   buildStorefrontContext,
 } from "~/domains/campaigns/index.server";
 import type { ApiCampaignData } from "~/lib/api-types";
-import { createApiResponse } from "~/lib/api-types";
 import { handleApiError } from "~/lib/api-error-handler.server";
 import { getStoreIdFromShop } from "~/lib/auth-helpers.server";
 import { PlanLimitError } from "~/domains/billing/errors";
 import { getOrCreateVisitorId, createVisitorIdHeaders } from "~/lib/visitor-id.server";
+import { getRedis, REDIS_PREFIXES } from "~/lib/redis.server";
 
 // ============================================================================
 // TYPES
@@ -56,10 +56,11 @@ export async function loader(args: LoaderFunctionArgs) {
       const shop = url.searchParams.get("shop");
 
       if (!shop) {
-        return data(
-          createApiResponse(false, undefined, "Shop parameter is required"),
-          { status: 400, headers }
-        );
+        const errorResponse: ActiveCampaignsResponse = {
+          campaigns: [],
+          timestamp: new Date().toISOString(),
+        };
+        return data(errorResponse, { status: 400, headers });
       }
 
 	      const storeId = await getStoreIdFromShop(shop);
@@ -86,8 +87,96 @@ export async function loader(args: LoaderFunctionArgs) {
       // Add visitor ID to context (for frequency capping)
       context.visitorId = visitorId;
 
-      // Preview mode: if previewId is provided, fetch that campaign directly
+      // Preview mode: check for preview token (unsaved campaign) or previewId (saved campaign)
+      const previewToken = url.searchParams.get("previewToken");
       const previewId = url.searchParams.get("previewId");
+
+      console.log(`[Active Campaigns API] 🔍 Full URL:`, url.toString());
+      console.log(`[Active Campaigns API] 🔍 All URL params:`, Object.fromEntries(url.searchParams.entries()));
+      console.log(`[Active Campaigns API] Request params:`, {
+        previewToken: previewToken || "none",
+        previewId: previewId || "none",
+        storeId,
+        visitorId,
+      });
+
+      // Handle preview token (unsaved campaign data from session)
+      if (previewToken) {
+        console.log(`[Active Campaigns API] 🎭 Preview mode enabled with token: ${previewToken}`);
+
+        try {
+          // Fetch preview data directly from Redis (no HTTP call, no loader call)
+          console.log(`[Active Campaigns API] Fetching preview data from Redis for token: ${previewToken}`);
+
+          const redis = getRedis();
+          if (!redis) {
+            console.error("[Active Campaigns API] Redis not available");
+            const emptyResponse: ActiveCampaignsResponse = {
+              campaigns: [],
+              timestamp: new Date().toISOString(),
+            };
+            return data(emptyResponse, { headers });
+          }
+
+          const PREVIEW_PREFIX = `${REDIS_PREFIXES.SESSION}:preview`;
+          const redisKey = `${PREVIEW_PREFIX}:${previewToken}`;
+          const sessionDataStr = await redis.get(redisKey);
+
+          if (!sessionDataStr) {
+            console.warn(`[Active Campaigns API] Preview token not found or expired: ${previewToken}`);
+            const emptyResponse: ActiveCampaignsResponse = {
+              campaigns: [],
+              timestamp: new Date().toISOString(),
+            };
+            return data(emptyResponse, { headers });
+          }
+
+          const sessionData = JSON.parse(sessionDataStr);
+          const campaignData = sessionData.data;
+
+          console.log(`[Active Campaigns API] ✅ Preview data retrieved from Redis:`, {
+            name: campaignData.name,
+            templateType: campaignData.templateType,
+            hasContentConfig: !!campaignData.contentConfig,
+            hasDesignConfig: !!campaignData.designConfig,
+          });
+
+          // Format preview campaign data
+          const formattedPreview: ApiCampaignData = {
+            id: `preview-${previewToken}`,
+            name: campaignData.name || "Preview Campaign",
+            templateType: campaignData.templateType,
+            priority: campaignData.priority || 0,
+            contentConfig: campaignData.contentConfig || {},
+            designConfig: campaignData.designConfig || {},
+            targetRules: campaignData.targetRules || {},
+            discountConfig: campaignData.discountConfig || {},
+            experimentId: null,
+            variantKey: null,
+          };
+
+          const response: ActiveCampaignsResponse = {
+            campaigns: [formattedPreview],
+            timestamp: new Date().toISOString(),
+          };
+
+          console.log(`[Active Campaigns API] ✅ Returning preview campaign from token:`, {
+            id: formattedPreview.id,
+            name: formattedPreview.name,
+            templateType: formattedPreview.templateType,
+          });
+          return data(response, { headers });
+        } catch (error) {
+          console.error(`[Active Campaigns API] ❌ Error fetching preview data:`, error);
+          const emptyResponse: ActiveCampaignsResponse = {
+            campaigns: [],
+            timestamp: new Date().toISOString(),
+          };
+          return data(emptyResponse, { headers });
+        }
+      }
+
+      // Handle preview ID (saved campaign)
       if (previewId) {
         console.log(`[Active Campaigns API] Preview mode enabled for campaign ${previewId}`);
         const previewCampaign = await CampaignService.getCampaignById(previewId, storeId);

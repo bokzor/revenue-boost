@@ -16,9 +16,16 @@ import { authenticate } from "~/shopify.server";
 import { getStoreIdFromShop } from "~/lib/auth-helpers.server";
 import { CampaignService } from "~/domains/campaigns/index.server";
 import type { Product } from "~/domains/storefront/popups-new/types";
+import {
+  fetchProductsByIds,
+  fetchProductsByCollection,
+  fetchPopularProducts,
+} from "~/domains/commerce/services/upsell.server";
 
 const QuerySchema = z.object({
   campaignId: z.string().min(1, "campaignId is required"),
+  // Optional: Cart context for better AI recommendations
+  cartProductIds: z.string().nullable().optional(), // Comma-separated product IDs in cart
 });
 
 interface UpsellProductsResponse {
@@ -32,6 +39,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
     const parsed = QuerySchema.safeParse({
       campaignId: searchParams.get("campaignId"),
+      cartProductIds: searchParams.get("cartProductIds"),
     });
 
     if (!parsed.success) {
@@ -95,161 +103,42 @@ export async function loader({ request }: LoaderFunctionArgs) {
       return data({ products } satisfies UpsellProductsResponse);
     }
 
-    // AI / other methods: handled by client-side logic or future endpoint.
+    // AI / Smart Recommendations: Fetch popular/recent products as fallback
+    // TODO: Implement proper AI-based recommendations using cart context, browsing history, etc.
+    if (method === "ai") {
+      console.log("[Upsell Products API] Using smart recommendations");
+
+      const maxProducts: number =
+        typeof contentConfig.maxProducts === "number"
+          ? contentConfig.maxProducts
+          : 4;
+
+      // Parse cart product IDs if provided (for context-aware recommendations)
+      const cartProductIds: string[] =
+        parsed.data.cartProductIds && typeof parsed.data.cartProductIds === 'string'
+          ? parsed.data.cartProductIds.split(',').filter(id => id.trim())
+          : [];
+
+      console.log("[Upsell Products API] Cart context:", {
+        cartProductIds,
+        count: cartProductIds.length
+      });
+
+      const products = await fetchPopularProducts(admin, maxProducts, cartProductIds);
+
+      // If no products found, return empty (hook will fail and popup won't show)
+      if (!products || products.length === 0) {
+        console.warn("[Upsell Products API] No products available for smart recommendations");
+        return data({ products: [] } satisfies UpsellProductsResponse);
+      }
+
+      return data({ products } satisfies UpsellProductsResponse);
+    }
+
+    // Unknown method: return empty
     return data({ products: [] } satisfies UpsellProductsResponse);
   } catch (error) {
     console.error("[Upsell Products API] Error:", error);
     return data({ error: "Failed to resolve upsell products" }, { status: 500 });
   }
 }
-
-/**
- * Fetch basic product data from Shopify Admin API and map to storefront Product type.
- */
-async function fetchProductsByIds(admin: any, productIds: string[]): Promise<Product[]> {
-  if (!productIds.length) return [];
-
-  const PRODUCT_QUERY = `#graphql
-    query getUpsellProducts($ids: [ID!]!) {
-      nodes(ids: $ids) {
-        ... on Product {
-          id
-          title
-          handle
-          onlineStoreUrl
-          images(first: 1) { edges { node { url altText } } }
-          variants(first: 1) { edges { node { id price } } }
-        }
-      }
-    }
-  `;
-
-  const response = await admin.graphql(PRODUCT_QUERY, {
-    variables: { ids: productIds },
-  });
-
-  const body = await response.json();
-  const nodes = body?.data?.nodes || [];
-
-  const products: Product[] = [];
-
-  for (const node of nodes) {
-    if (!node || !node.id) continue;
-
-    const variant = node.variants?.edges?.[0]?.node;
-    const image = node.images?.edges?.[0]?.node;
-
-    products.push({
-      id: node.id,
-      title: node.title || "",
-      price: variant?.price ?? "0.00",
-      imageUrl: image?.url || "",
-      compareAtPrice: undefined,
-      variantId: variant?.id || node.id,
-      handle: node.handle || "",
-    });
-  }
-
-  return products;
-}
-
-async function fetchProductsByCollection(
-  admin: any,
-  collectionIdentifier: string,
-  limit: number,
-): Promise<Product[]> {
-  if (!collectionIdentifier) return [];
-
-  const first = Math.max(1, Math.min(typeof limit === "number" ? limit : 3, 12));
-
-  if (collectionIdentifier.startsWith("gid://")) {
-    const QUERY_BY_ID = `#graphql
-      query getCollectionProductsById($id: ID!, $first: Int!) {
-        collection(id: $id) {
-          products(first: $first) {
-            edges {
-              node {
-                id
-                title
-                handle
-                images(first: 1) { edges { node { url altText } } }
-                variants(first: 1) { edges { node { id price } } }
-              }
-            }
-          }
-        }
-      }
-    `;
-
-    const response = await admin.graphql(QUERY_BY_ID, {
-      variables: { id: collectionIdentifier, first },
-    });
-
-    const body = await response.json();
-    const edges = body?.data?.collection?.products?.edges || [];
-
-    return edges
-      .map((edge: any) => edge?.node)
-      .filter((node: any) => node && node.id)
-      .map((node: any): Product => {
-        const variant = node.variants?.edges?.[0]?.node;
-        const image = node.images?.edges?.[0]?.node;
-
-        return {
-          id: node.id,
-          title: node.title || "",
-          price: variant?.price ?? "0.00",
-          imageUrl: image?.url || "",
-          compareAtPrice: undefined,
-          variantId: variant?.id || node.id,
-          handle: node.handle || "",
-        };
-      });
-  }
-
-  const QUERY_BY_HANDLE = `#graphql
-    query getCollectionProductsByHandle($handle: String!, $first: Int!) {
-      collectionByHandle(handle: $handle) {
-        products(first: $first) {
-          edges {
-            node {
-              id
-              title
-              handle
-              images(first: 1) { edges { node { url altText } } }
-              variants(first: 1) { edges { node { id price } } }
-            }
-          }
-        }
-      }
-    }
-  `;
-
-  const response = await admin.graphql(QUERY_BY_HANDLE, {
-    variables: { handle: collectionIdentifier, first },
-  });
-
-  const body = await response.json();
-  const edges = body?.data?.collectionByHandle?.products?.edges || [];
-
-  return edges
-    .map((edge: any) => edge?.node)
-    .filter((node: any) => node && node.id)
-    .map((node: any): Product => {
-      const variant = node.variants?.edges?.[0]?.node;
-      const image = node.images?.edges?.[0]?.node;
-
-      return {
-        id: node.id,
-        title: node.title || "",
-        price: variant?.price ?? "0.00",
-        imageUrl: image?.url || "",
-        compareAtPrice: undefined,
-        variantId: variant?.id || node.id,
-        handle: node.handle || "",
-      };
-    });
-}
-
-
-

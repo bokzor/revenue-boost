@@ -7,6 +7,8 @@ export interface ApiConfig {
   shopDomain: string;
   debug?: boolean;
   previewId?: string;
+  previewToken?: string;
+  previewBehavior?: 'instant' | 'realistic';
 }
 
 export interface FetchCampaignsResponse {
@@ -57,9 +59,11 @@ export class ApiClient {
       ...context,
     });
 
-    // Include previewId when present so the server can return the requested campaign
+    // Include previewId or previewToken when present so the server can return the requested campaign
     if (this.config.previewId) {
       params.set("previewId", this.config.previewId);
+    } else if (this.config.previewToken) {
+      params.set("previewToken", this.config.previewToken);
     }
 
     const url = `${this.getApiUrl("/api/campaigns/active")}?${params.toString()}`;

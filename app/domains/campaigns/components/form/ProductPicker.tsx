@@ -22,7 +22,7 @@
  * ```
  */
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useAppBridge } from "@shopify/app-bridge-react";
 import { Button, InlineStack, BlockStack, Text, Badge, Box } from "@shopify/polaris";
 import { ProductIcon, CollectionIcon } from "@shopify/polaris-icons";
@@ -72,16 +72,21 @@ export function ProductPicker({
   const [isLoading, setIsLoading] = useState(false);
   const [selections, setSelections] = useState<ProductPickerSelection[]>([]);
   const [isFetchingInitial, setIsFetchingInitial] = useState(false);
+  const fetchedIdsRef = useRef<string>("");
 
   // Fetch initial selections when selectedIds are provided
   useEffect(() => {
     const fetchInitialSelections = async () => {
-      // Only fetch if we have selectedIds but no selections yet
-      if (selectedIds.length === 0 || selections.length > 0 || isFetchingInitial) {
+      // Create a stable key from selectedIds
+      const idsKey = [...selectedIds].sort().join(",");
+
+      // Only fetch if we have selectedIds and haven't fetched these exact IDs yet
+      if (selectedIds.length === 0 || fetchedIdsRef.current === idsKey) {
         return;
       }
 
       setIsFetchingInitial(true);
+      fetchedIdsRef.current = idsKey;
 
       try {
         const type = mode === "collection" ? "collection" : "product";
@@ -90,6 +95,7 @@ export function ProductPicker({
 
         if (!response.ok) {
           console.error("Failed to fetch initial selections:", response.statusText);
+          setIsFetchingInitial(false);
           return;
         }
 
@@ -114,7 +120,7 @@ export function ProductPicker({
     };
 
     fetchInitialSelections();
-  }, [selectedIds, selections.length, mode, isFetchingInitial]);
+  }, [selectedIds, mode]);
 
   const openPicker = useCallback(async () => {
     setIsLoading(true);

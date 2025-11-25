@@ -56,3 +56,17 @@ export async function closePopup(page: Page) {
     const closeButton = page.locator('[aria-label="Close"], button.close, .close-button');
     await closeButton.click();
 }
+
+/**
+ * Mock challenge token request to avoid rate limits
+ */
+export async function mockChallengeToken(page: Page) {
+    await page.route('**/api/challenge/request', async route => {
+        const json = {
+            success: true,
+            challengeToken: 'mock-challenge-token-' + Date.now(),
+            expiresAt: new Date(Date.now() + 600000).toISOString()
+        };
+        await route.fulfill({ json });
+    });
+}

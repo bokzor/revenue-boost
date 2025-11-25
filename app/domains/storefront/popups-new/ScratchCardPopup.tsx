@@ -15,8 +15,18 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { PopupPortal } from './PopupPortal';
 import type { PopupDesignConfig, Prize } from './types';
 import type { ScratchCardContent } from '~/domains/campaigns/types/campaign';
-import { validateEmail, copyToClipboard, getSizeDimensions } from './utils';
+import { getSizeDimensions } from './utils';
+import { POPUP_SPACING, getContainerPadding, SPACING_GUIDELINES } from './spacing';
 import { challengeTokenStore } from '~/domains/storefront/services/challenge-token.client';
+
+// Import custom hooks
+import { usePopupForm, useDiscountCode, usePopupAnimation } from './hooks';
+
+// Import canvas utilities
+import { ScratchCardRenderer } from './utils/canvas';
+
+// Import reusable components
+import { EmailInput, GdprCheckbox, SubmitButton } from './components';
 
 /**
  * ScratchCardConfig - Extends both design config AND campaign content type
@@ -64,16 +74,42 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
   onSubmit,
   onReveal,
 }) => {
-  const [email, setEmail] = useState('');
-  const [emailError, setEmailError] = useState('');
-  const [gdprConsent, setGdprConsent] = useState(false);
-  const [gdprError, setGdprError] = useState('');
+  // Use custom hooks for form management
+  const {
+    formState,
+    setEmail,
+    setGdprConsent,
+    errors,
+    handleSubmit: handleFormSubmit,
+    isSubmitting,
+    isSubmitted,
+  } = usePopupForm({
+    config: {
+      emailRequired: config.emailRequired,
+      emailErrorMessage: undefined,
+      consentFieldEnabled: config.showGdprCheckbox,
+      consentFieldRequired: config.showGdprCheckbox,
+      campaignId: config.campaignId,
+      previewMode: config.previewMode,
+    },
+    onSubmit: onSubmit ? async (data) => {
+      await onSubmit(data.email);
+      return undefined;
+    } : undefined,
+  });
+
+  // Use discount code hook
+  const { discountCode, setDiscountCode, copiedCode, handleCopyCode } = useDiscountCode();
+
+  // Use animation hook
+  const { showContent } = usePopupAnimation({ isVisible });
+
+  // Component-specific state
   const [emailSubmitted, setEmailSubmitted] = useState(false);
   const [isScratching, setIsScratching] = useState(false);
   const [scratchPercentage, setScratchPercentage] = useState(0);
   const [isRevealed, setIsRevealed] = useState(false);
   const [wonPrize, setWonPrize] = useState<Prize | null>(null);
-  const [copiedCode, setCopiedCode] = useState(false);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const prizeCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -101,18 +137,20 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
       return;
     }
 
-    const emailValue = emailToUse || email;
+    const emailValue = emailToUse || formState.email;
     if (!config.campaignId) {
       console.error('[Scratch Card] No campaign ID available');
       return;
     }
 
     try {
-      // Get sessionId from the correct sessionStorage key
+      // Get sessionId from global session object (set by storefront extension)
       const sessionId = typeof window !== 'undefined'
-        ? (window.sessionStorage?.getItem('revenue_boost_session') ||
-           window.sessionStorage?.getItem('rb_session_id'))
-        : undefined;
+        ? ((window as any).__RB_SESSION_ID ||
+           window.sessionStorage?.getItem('revenue_boost_session') ||
+           window.sessionStorage?.getItem('rb_session_id') ||
+           '')
+        : '';
 
       // Get challenge token - prefer from config (passed by PopupManager), fallback to store
       const challengeToken = config.challengeToken || challengeTokenStore.get(config.campaignId);
@@ -332,6 +370,8 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    // Set composite operation to erase mode
+    ctx.globalCompositeOperation = 'destination-out';
     ctx.beginPath();
     ctx.arc(x, y, brushRadius, 0, 2 * Math.PI);
     ctx.fill();
@@ -411,40 +451,74 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
   const handleTouchEnd = (_e: React.TouchEvent<HTMLCanvasElement>) => handleEnd();
 
 
-  const handleEmailSubmit: React.FormEventHandler<HTMLFormElement> = useCallback(async (e) => {
-    e.preventDefault();
+  const handleEmailSubmit = useCallback(async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
 
-    let hasError = false;
-
-    if (!validateEmail(email)) {
-      setEmailError('Please enter a valid email address');
-      hasError = true;
-    } else {
-      setEmailError('');
-    }
-
-    if (config.showGdprCheckbox && !gdprConsent) {
-      setGdprError('You must accept the terms to continue');
-      hasError = true;
-    } else {
-      setGdprError('');
-    }
-
-    if (hasError) return;
-
-    try {
-      if (!config.previewMode && onSubmit) {
-        await onSubmit(email);
+    // Scenario 1: Email required BEFORE scratching
+    // Submit email first, then fetch prize
+    if (config.emailBeforeScratching) {
+      const result = await handleFormSubmit();
+      if (result.success) {
+        setEmailSubmitted(true);
+        // Fetch prize WITH email - this generates the code
+        fetchPrize(formState.email);
       }
-      setEmailSubmitted(true);
-      // Fetch prize after email submission (if email is required before scratching)
-      if (config.emailBeforeScratching) {
-        fetchPrize(email);
+      return;
+    }
+
+    // Scenario 2 & 3: Email collected AFTER scratching
+    // Prize and code already generated, just save the email
+    if (!wonPrize?.discountCode) {
+      console.error('[Scratch Card] Cannot save email: no discount code available');
+      return;
+    }
+
+    // Call new save-email endpoint with existing discount code
+    try {
+      const sessionId = typeof window !== 'undefined'
+        ? (window.sessionStorage?.getItem('revenue_boost_session') ||
+          window.sessionStorage?.getItem('rb_session_id'))
+        : undefined;
+
+      const storedToken = config.campaignId ? challengeTokenStore.get(config.campaignId) : null;
+      const challengeToken: string | undefined = config.challengeToken ?? (storedToken || undefined);
+
+      if (!sessionId || !challengeToken) {
+        console.error('[Scratch Card] Missing session or challenge token');
+        return;
+      }
+
+      const response = await fetch('/apps/revenue-boost/api/leads/save-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: formState.email,
+          campaignId: config.campaignId,
+          sessionId: sessionId!,
+          challengeToken: challengeToken!,
+          discountCode: wonPrize.discountCode, // Use existing code
+          consent: formState.gdprConsent,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        console.log('[Scratch Card] Email saved successfully');
+        setEmailSubmitted(true);
+        // Update discount code in hook (should be same as wonPrize.discountCode)
+        if (data.discountCode) {
+          setDiscountCode(data.discountCode);
+        }
+      } else {
+        console.error('[Scratch Card] Failed to save email:', data.error);
       }
     } catch (error) {
-      setEmailError('Something went wrong. Please try again.');
+      console.error('[Scratch Card] Error saving email:', error);
     }
-  }, [email, gdprConsent, config.showGdprCheckbox, config.previewMode, onSubmit, config.emailBeforeScratching, fetchPrize]);
+  }, [handleFormSubmit, config, formState, wonPrize, fetchPrize, setDiscountCode]);
 
   // Fetch prize on mount if email is not required before scratching
   useEffect(() => {
@@ -461,15 +535,13 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isVisible, wonPrize, config.emailRequired, config.emailBeforeScratching]);
 
-  const handleCopyCode = useCallback(async () => {
+  // Copy code handler now from useDiscountCode hook
+  // Update discount code when prize is won
+  useEffect(() => {
     if (wonPrize?.discountCode) {
-      const success = await copyToClipboard(wonPrize?.discountCode ?? '');
-      if (success) {
-        setCopiedCode(true);
-        setTimeout(() => setCopiedCode(false), 2000);
-      }
+      setDiscountCode(wonPrize.discountCode);
     }
-  }, [wonPrize]);
+  }, [wonPrize, setDiscountCode]);
 
   const inputStyles: React.CSSProperties = {
     width: '100%',
@@ -484,14 +556,16 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
 
   const buttonStyles: React.CSSProperties = {
     width: '100%',
-    padding: '14px 24px',
+    padding: POPUP_SPACING.component.button,
     fontSize: '16px',
-    fontWeight: 600,
+    fontWeight: 700,
     border: 'none',
     borderRadius: `${config.borderRadius ?? 8}px`,
     backgroundColor: config.buttonColor,
     color: config.buttonTextColor,
     cursor: 'pointer',
+    textTransform: 'uppercase',
+    letterSpacing: '0.05em',
   };
 
   const showEmailForm = config.emailRequired && config.emailBeforeScratching && !emailSubmitted;
@@ -540,7 +614,11 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
       ariaLabel={config.ariaLabel || config.headline}
       ariaDescribedBy={config.ariaDescribedBy}
     >
-      <div className="scratch-popup-container">
+      <div
+        className="scratch-popup-container"
+        data-splitpop="true"
+        data-template="scratch-card"
+      >
         <div
           className={`scratch-popup-content ${!showImage ? 'single-column' : isVertical ? 'vertical' : 'horizontal'
             } ${!imageFirst && showImage ? 'reverse' : ''}`}
@@ -600,72 +678,41 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
                   margin: '0 auto',
                 }}
               >
-                <div>
-                  <label
-                    style={{
-                      display: 'block',
-                      marginBottom: '8px',
-                      fontSize: '14px',
-                      fontWeight: 600,
-                    }}
-                  >
-                    {config.emailLabel || 'Email Address'}
-                  </label>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder={config.emailPlaceholder || 'Enter your email'}
-                    style={inputStyles}
-                    className={`scratch-popup-input ${emailError ? 'error' : ''}`}
-                    required
-                  />
-                  {emailError && (
-                    <p className="scratch-popup-error" style={{ margin: '6px 0 0 0' }}>
-                      {emailError}
-                    </p>
-                  )}
-                </div>
+                <EmailInput
+                  value={formState.email}
+                  onChange={setEmail}
+                  placeholder={config.emailPlaceholder || 'Enter your email'}
+                  label={config.emailLabel || 'Email Address'}
+                  error={errors.email}
+                  required={true}
+                  disabled={isSubmitting}
+                  accentColor={config.accentColor || config.buttonColor}
+                  textColor={config.textColor}
+                  backgroundColor={config.inputBackgroundColor}
+                />
+
                 {config.showGdprCheckbox && (
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'flex-start',
-                      gap: '0.75rem',
-                    }}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={gdprConsent}
-                      onChange={(e) => {
-                        setGdprConsent(e.target.checked);
-                        if (gdprError) setGdprError('');
-                      }}
-                      className="scratch-popup-checkbox"
-                      style={{
-                        borderColor: gdprError ? '#dc2626' : (config.inputBorderColor || '#d4d4d8'),
-                      }}
-                    />
-                    <div style={{ flex: 1 }}>
-                      <label
-                        style={{
-                          fontSize: '0.875rem',
-                          lineHeight: 1.6,
-                          cursor: 'pointer',
-                        }}
-                      >
-                        {config.gdprLabel || 'I agree to receive promotional emails'}
-                      </label>
-                      {gdprError && (
-                        <div className="scratch-popup-error">{gdprError}</div>
-                      )}
-                    </div>
-                  </div>
+                  <GdprCheckbox
+                    checked={formState.gdprConsent}
+                    onChange={setGdprConsent}
+                    text={config.gdprLabel || 'I agree to receive promotional emails'}
+                    error={errors.gdpr}
+                    required={true}
+                    disabled={isSubmitting}
+                    accentColor={config.accentColor || config.buttonColor}
+                    textColor={config.textColor}
+                  />
                 )}
 
-                <button type="submit" style={buttonStyles} className="scratch-popup-button">
-                  {'Unlock Scratch Card'}
-                </button>
+                <SubmitButton
+                  type="submit"
+                  loading={isSubmitting}
+                  disabled={isSubmitting}
+                  accentColor={config.accentColor || config.buttonColor}
+                  textColor={config.buttonTextColor}
+                >
+                  Unlock Scratch Card
+                </SubmitButton>
               </form>
             ) : showScratchCard && (
               // Scratch card
@@ -679,7 +726,7 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
                     ref={prizeCanvasRef}
                     width={cardWidth}
                     height={cardHeight}
-                    style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
+                    style={{ position: 'absolute', inset: 0 }}
                   />
 
                   {/* Scratch overlay canvas */}
@@ -698,13 +745,16 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
                     style={{
                       cursor: isScratching ? 'grabbing' : 'grab',
                       touchAction: 'none',
-                      width: '100%',
-                      height: '100%',
                     }}
                   />
 
                   {/* Code overlay inside card after reveal */}
+                  {/* Scenario 2: Show code immediately (email not required) */}
+                  {/* Scenario 3: Show code only after email submitted (email required after scratch) */}
                   {isRevealed && wonPrize && wonPrize.discountCode && (
+                    // Hide code in Scenario 3 until email is submitted
+                    !config.emailRequired || config.emailBeforeScratching || emailSubmitted
+                  ) && (
                     <div
                       className="scratch-card-code-overlay"
                       style={{
@@ -752,7 +802,7 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
                         </div>
                         <button
                           type="button"
-                          onClick={handleCopyCode}
+                          onClick={() => handleCopyCode()}
                           className="scratch-popup-button"
                           style={{
                             width: 'auto',
@@ -767,6 +817,57 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
                         >
                           {copiedCode ? '\u2713 Copied!' : 'Copy'}
                         </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Placeholder for Scenario 3: Code hidden until email submitted */}
+                  {isRevealed && wonPrize && wonPrize.discountCode &&
+                    config.emailRequired && !config.emailBeforeScratching && !emailSubmitted && (
+                    <div
+                      className="scratch-card-code-overlay"
+                      style={{
+                        position: 'absolute',
+                        inset: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        pointerEvents: 'none',
+                      }}
+                    >
+                      <div
+                        style={{
+                          padding: '0.75rem 1.5rem',
+                          background: 'rgba(255, 255, 255, 0.2)',
+                          borderRadius: '0.5rem',
+                          border: '2px dashed rgba(255, 255, 255, 0.5)',
+                          backdropFilter: 'blur(10px)',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          gap: '0.5rem',
+                        }}
+                      >
+                        <div
+                          style={{
+                            fontSize: '0.875rem',
+                            fontWeight: 500,
+                            color: '#ffffff',
+                            textAlign: 'center',
+                          }}
+                        >
+                          🎉 You won {wonPrize.label}!
+                        </div>
+                        <div
+                          style={{
+                            fontSize: '0.75rem',
+                            color: '#ffffff',
+                            opacity: 0.9,
+                            textAlign: 'center',
+                          }}
+                        >
+                          Enter your email below to reveal your code
+                        </div>
                       </div>
                     </div>
                   )}
@@ -828,7 +929,7 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
                   </div>
                 )}
 
-                {/* Post-reveal email capture (mockup-style) */}
+                {/* Post-reveal email capture - Scenario 3: Email required after scratching */}
                 {isRevealed && config.emailRequired && !config.emailBeforeScratching && !emailSubmitted && (
                   <form
                     onSubmit={handleEmailSubmit}
@@ -843,77 +944,42 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
                     }}
                   >
                     <div>
-                      <label
-                        style={{
-                          display: 'block',
-                          fontSize: '0.875rem',
-                          fontWeight: 500,
-                          marginBottom: '0.5rem',
-                        }}
-                      >
-                        {config.emailLabel || 'Enter your email to claim your prize'}
-                      </label>
-                      <input
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
+                      <EmailInput
+                        value={formState.email}
+                        onChange={setEmail}
                         placeholder={config.emailPlaceholder || 'Enter your email'}
-                        style={inputStyles}
-                        className={`scratch-popup-input ${emailError ? 'error' : ''}`}
-                        required
+                        label={config.emailLabel || 'Enter your email to receive your discount code'}
+                        error={errors.email}
+                        required={true}
+                        disabled={isSubmitting}
+                        accentColor={config.accentColor || config.buttonColor}
+                        textColor={config.textColor}
+                        backgroundColor={config.inputBackgroundColor}
                       />
-                      {emailError && (
-                        <div className="scratch-popup-error">{emailError}</div>
-                      )}
+
                       {config.showGdprCheckbox && (
-                        <div
-                          style={{
-                            display: 'flex',
-                            alignItems: 'flex-start',
-                            gap: '0.75rem',
-                            marginTop: '0.75rem',
-                          }}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={gdprConsent}
-                            onChange={(e) => {
-                              setGdprConsent(e.target.checked);
-                              if (gdprError) setGdprError('');
-                            }}
-                            className="scratch-popup-checkbox"
-                            style={{
-                              borderColor: gdprError ? '#dc2626' : (config.inputBorderColor || '#d4d4d8'),
-                            }}
-                          />
-                          <div style={{ flex: 1 }}>
-                            <label
-                              style={{
-                                fontSize: '0.875rem',
-                                lineHeight: 1.6,
-                                cursor: 'pointer',
-                              }}
-                            >
-                              {config.gdprLabel || 'I agree to receive promotional emails'}
-                            </label>
-                            {gdprError && (
-                              <div className="scratch-popup-error">{gdprError}</div>
-                            )}
-                          </div>
-                        </div>
+                        <GdprCheckbox
+                          checked={formState.gdprConsent}
+                          onChange={setGdprConsent}
+                          text={config.gdprLabel || 'I agree to receive promotional emails'}
+                          error={errors.gdpr}
+                          required={true}
+                          disabled={isSubmitting}
+                          accentColor={config.accentColor || config.buttonColor}
+                          textColor={config.textColor}
+                        />
                       )}
                     </div>
 
-                    <button
+                    <SubmitButton
                       type="submit"
-                      className="scratch-popup-button"
-                      style={{
-                        backgroundColor: config.buttonColor,
-                        color: config.buttonTextColor,
-                      }}
+                      loading={isSubmitting}
+                      disabled={isSubmitting}
+                      accentColor={config.accentColor || config.buttonColor}
+                      textColor={config.buttonTextColor}
                     >
-                      {config.buttonText || 'Claim Prize'}
-                    </button>
+                      {config.buttonText || 'Get My Discount Code'}
+                    </SubmitButton>
                   </form>
                 )}
 
@@ -1081,21 +1147,24 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
 
         .scratch-popup-button {
           width: 100%;
-          padding: 0.625rem 1rem;
+          padding: ${POPUP_SPACING.component.button};
           border-radius: 0.375rem;
           border: none;
-          font-weight: 500;
+          font-weight: 700;
           cursor: pointer;
-          transition: opacity 0.2s, transform 0.1s;
-          font-size: 0.875rem;
+          transition: all 0.2s;
+          font-size: 1rem;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
         }
 
         .scratch-popup-button:hover:not(:disabled) {
-          opacity: 0.9;
+          transform: translateY(-2px);
+          box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
         }
 
         .scratch-popup-button:active:not(:disabled) {
-          transform: scale(0.98);
+          transform: translateY(0);
         }
 
         .scratch-popup-button:disabled {

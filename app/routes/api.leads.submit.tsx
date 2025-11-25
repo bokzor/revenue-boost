@@ -167,14 +167,20 @@ export async function action({ request }: ActionFunctionArgs) {
     if (existingLead) {
       console.log(`[Lead Submission] Lead already exists: ${existingLead.id}`);
 
+      // Parse discount config to determine delivery mode
+      const discountConfig = parseDiscountConfig(campaign.discountConfig);
+      const deliveryMode = discountConfig.deliveryMode || "show_code_fallback";
+      const showCode = shouldShowDiscountCode(deliveryMode);
+
       // If a code already exists for this lead, return it immediately
       if (existingLead.discountCode) {
         return data(
           {
             success: true,
             leadId: existingLead.id,
-            discountCode: existingLead.discountCode,
-            message: "Already subscribed to this campaign",
+            discountCode: showCode ? existingLead.discountCode : undefined,
+            deliveryMode,
+            message: getSuccessMessage(deliveryMode),
           },
           { status: 200, headers: storefrontCors() }
         );
@@ -199,8 +205,7 @@ export async function action({ request }: ActionFunctionArgs) {
         campaign.store.accessToken
       );
 
-      // Parse discount config and adjust for email-authorization mode
-      const discountConfig = parseDiscountConfig(campaign.discountConfig);
+      // Adjust discount config for email-authorization mode
       if (discountConfig.deliveryMode === "show_in_popup_authorized_only") {
         discountConfig.authorizedEmail = validatedData.email;
         discountConfig.requireEmailMatch = true;
@@ -223,9 +228,6 @@ export async function action({ request }: ActionFunctionArgs) {
             discountId: discountResult.discountId || null,
           },
         });
-
-        const deliveryMode = discountConfig.deliveryMode || "show_code_fallback";
-        const showCode = shouldShowDiscountCode(deliveryMode);
 
         return data(
           {

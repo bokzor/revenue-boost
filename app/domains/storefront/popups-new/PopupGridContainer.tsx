@@ -1,7 +1,7 @@
 import React from 'react';
 import type { PopupDesignConfig } from './types';
 
-interface PopupGridContainerProps {
+interface PopupGridContainerProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
   config: PopupDesignConfig;
   onClose: () => void;
@@ -17,6 +17,7 @@ export const PopupGridContainer: React.FC<PopupGridContainerProps> = ({
   imagePosition = 'left',
   className = '',
   singleColumn = false,
+  ...rest
 }) => {
   const baseBackground = config.backgroundColor || '#FFFFFF';
   const backgroundStyles: React.CSSProperties = baseBackground.startsWith('linear-gradient(')
@@ -24,7 +25,7 @@ export const PopupGridContainer: React.FC<PopupGridContainerProps> = ({
     : { backgroundColor: baseBackground };
 
   return (
-    <div className={`popup-grid-container ${className}`} style={backgroundStyles}>
+    <div className={`popup-grid-container ${className}`} style={backgroundStyles} {...rest}>
       <style>{`
         .popup-grid-container {
           position: relative;

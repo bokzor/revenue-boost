@@ -13,7 +13,10 @@ export default defineConfig({
     globals: true,
     environment: 'happy-dom',
     watch: false,
-    include: ['tests/unit/**/*.integration.test.ts'],
+    include: [
+      'tests/unit/**/*.integration.test.ts',
+      'tests/integration/**/*.test.ts',
+    ],
     exclude: ['tests/e2e/**', 'node_modules/**'],
     // No setupFiles - integration tests use real database, not mocks
     coverage: {

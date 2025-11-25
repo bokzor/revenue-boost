@@ -699,39 +699,41 @@ export function CampaignList({
                   </InlineStack>
                 </BlockStack>
 
-                <InlineStack gap="200">
-                  {onCampaignEdit && (
-                    <Button
-                      size="slim"
-                      onClick={() => {
-                        onCampaignEdit(id);
-                      }}
-                    >
-                      Edit
-                    </Button>
-                  )}
-                  {onCampaignDuplicate && (
-                    <Button
-                      size="slim"
-                      onClick={() => {
-                        onCampaignDuplicate(id);
-                      }}
-                    >
-                      Duplicate
-                    </Button>
-                  )}
-                  {onCampaignDelete && (
-                    <Button
-                      size="slim"
-                      tone="critical"
-                      onClick={() => {
-                        onCampaignDelete(id);
-                      }}
-                    >
-                      Delete
-                    </Button>
-                  )}
-                </InlineStack>
+                <div onClick={(e) => e.stopPropagation()}>
+                  <InlineStack gap="200">
+                    {onCampaignEdit && (
+                      <Button
+                        size="slim"
+                        onClick={() => {
+                          onCampaignEdit(id);
+                        }}
+                      >
+                        Edit
+                      </Button>
+                    )}
+                    {onCampaignDuplicate && (
+                      <Button
+                        size="slim"
+                        onClick={() => {
+                          onCampaignDuplicate(id);
+                        }}
+                      >
+                        Duplicate
+                      </Button>
+                    )}
+                    {onCampaignDelete && (
+                      <Button
+                        size="slim"
+                        tone="critical"
+                        onClick={() => {
+                          onCampaignDelete(id);
+                        }}
+                      >
+                        Delete
+                      </Button>
+                    )}
+                  </InlineStack>
+                </div>
               </InlineStack>
             </ResourceItem>
           );

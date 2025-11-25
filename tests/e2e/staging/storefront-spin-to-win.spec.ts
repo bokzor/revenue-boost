@@ -1,9 +1,10 @@
 import { test, expect } from '@playwright/test';
 import { PrismaClient } from '@prisma/client';
+import fs from 'fs';
+import path from 'path';
 import * as dotenv from 'dotenv';
-import * as path from 'path';
 import { CampaignFactory } from './factories/campaign-factory';
-import { STORE_URL, handlePasswordPage } from './helpers/test-helpers';
+import { STORE_URL, handlePasswordPage, mockChallengeToken } from './helpers/test-helpers';
 
 // Load staging environment variables
 dotenv.config({ path: path.resolve(process.cwd(), '.env.staging.env'), override: true });
@@ -28,7 +29,7 @@ test.describe('Spin to Win Template - E2E', () => {
         });
 
         if (!store) {
-            throw new Error(`Store not found: ${STORE_DOMAIN}`);
+            throw new Error(`Store not found: ${STORE_DOMAIN} `);
         }
 
         storeId = store.id;
@@ -39,19 +40,40 @@ test.describe('Spin to Win Template - E2E', () => {
         await prisma.$disconnect();
     });
 
-    test.beforeEach(async () => {
+    test.beforeEach(async ({ page }) => {
         // Clean up old test campaigns
         await prisma.campaign.deleteMany({
             where: {
-                name: { startsWith: 'E2E-Test-SPIN_TO_WIN' }
+                name: { startsWith: 'E2E-Test-' }
             }
+        });
+
+        // Mock challenge token to avoid rate limits
+        await mockChallengeToken(page);
+
+        // Log browser console messages
+        page.on('console', msg => {
+            console.log(`[BROWSER] ${msg.type()}: ${msg.text()}`);
+        });
+
+        // Intercept the spin-to-win bundle request and serve the local file
+        // This ensures we are testing the latest code with our test attributes
+        await page.route('**/spin-to-win.bundle.js*', async route => {
+            console.log('Intercepting spin-to-win.bundle.js request');
+            const bundlePath = path.join(process.cwd(), 'extensions/storefront-popup/assets/spin-to-win.bundle.js');
+            const content = fs.readFileSync(bundlePath);
+            await route.fulfill({
+                status: 200,
+                contentType: 'application/javascript',
+                body: content,
+            });
         });
     });
 
     test('renders spin to win popup with default configuration', async ({ page }) => {
         // 1. Create campaign using factory
         const campaign = await (await factory.spinToWin().init()).create();
-        console.log(`✅ Campaign created: ${campaign.id}`);
+        console.log(`✅ Campaign created: ${campaign.id} `);
 
         // 2. Navigate to storefront
         await page.goto(STORE_URL);
@@ -59,13 +81,19 @@ test.describe('Spin to Win Template - E2E', () => {
 
         // 3. Wait for popup to appear
         const popup = page.locator('[data-splitpop="true"], [class*="SpinToWin"]');
-        await expect(popup).toBeVisible({ timeout: 10000 });
+        try {
+            await expect(popup).toBeVisible({ timeout: 10000 });
+        } catch (e) {
+            console.log('❌ Popup not found. Dumping body HTML:');
+            console.log(await page.innerHTML('body'));
+            throw e;
+        }
 
         // 4. Verify headline
-        await expect(page.getByText('Spin & Win!')).toBeVisible();
+        await expect(page.getByText(/Spin & Win!/i)).toBeVisible();
 
         // 5. Verify wheel is rendered
-        const wheel = page.locator('.wheel, [class*="wheel"], canvas');
+        const wheel = page.locator('canvas');
         await expect(wheel).toBeVisible();
 
         console.log('✅ Spin to Win popup rendered successfully');
@@ -75,13 +103,13 @@ test.describe('Spin to Win Template - E2E', () => {
         // 1. Create campaign with custom segments
         const campaign = await (await factory.spinToWin().init())
             .withSegments([
-                { label: '5% Off', color: '#FF0000', probability: 50 },
-                { label: '25% Off', color: '#00FF00', probability: 50 }
+                { label: '5% Off', color: '#FF0000', probability: 0.5 },
+                { label: '25% Off', color: '#00FF00', probability: 0.5 }
             ])
             .withHeadline('Custom Wheel!')
             .create();
 
-        console.log(`✅ Campaign created: ${campaign.id}`);
+        console.log(`✅ Campaign created: ${campaign.id} `);
 
         // 2. Navigate to storefront
         await page.goto(STORE_URL);
@@ -99,7 +127,7 @@ test.describe('Spin to Win Template - E2E', () => {
             .withEmailRequired(true)
             .create();
 
-        console.log(`✅ Campaign created: ${campaign.id}`);
+        console.log(`✅ Campaign created: ${campaign.id} `);
 
         // 2. Navigate to storefront
         await page.goto(STORE_URL);
@@ -134,7 +162,7 @@ test.describe('Spin to Win Template - E2E', () => {
             .withName('HighPriority')
             .create();
 
-        console.log(`✅ High priority campaign created: ${campaign.id}`);
+        console.log(`✅ High priority campaign created: ${campaign.id} `);
 
         // 2. Navigate to storefront
         await page.goto(STORE_URL);
