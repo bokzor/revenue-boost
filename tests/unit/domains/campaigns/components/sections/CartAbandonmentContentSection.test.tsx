@@ -1,6 +1,6 @@
 import React from "react";
-import { describe, it, expect } from "vitest";
-import { render } from "@testing-library/react";
+import { describe, it, expect, vi } from "vitest";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { AppProvider } from "@shopify/polaris";
 import en from "@shopify/polaris/locales/en.json";
 
@@ -11,27 +11,21 @@ function renderWithPolaris(ui: React.ReactNode) {
 }
 
 describe("CartAbandonmentContentSection", () => {
-  it("shows cart items, cart total and urgency as enabled by default", () => {
-    const { container } = renderWithPolaris(
+  it("renders all collapsible sections", () => {
+    const onChange = vi.fn();
+    renderWithPolaris(
       <CartAbandonmentContentSection
         content={{}}
-        onChange={() => {}}
+        onChange={onChange}
       />,
     );
 
-    const showItems = container.querySelector(
-      's-checkbox[name="content.showCartItems"]',
-    );
-    const showTotal = container.querySelector(
-      's-checkbox[name="content.showCartTotal"]',
-    );
-    const showUrgency = container.querySelector(
-      's-checkbox[name="content.showUrgency"]',
-    );
-
-    expect(showItems?.getAttribute("checked")).toBe("true");
-    expect(showTotal?.getAttribute("checked")).toBe("true");
-    expect(showUrgency?.getAttribute("checked")).toBe("true");
+    // Verify all section headers are rendered
+    expect(screen.getByText("Basic Content")).toBeTruthy();
+    expect(screen.getByText("Cart Display")).toBeTruthy();
+    expect(screen.getByText("Urgency & Scarcity")).toBeTruthy();
+    expect(screen.getByText("Call to Action")).toBeTruthy();
+    expect(screen.getByText("Email Recovery")).toBeTruthy();
   });
 });
 

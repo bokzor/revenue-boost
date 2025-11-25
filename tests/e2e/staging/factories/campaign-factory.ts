@@ -89,9 +89,10 @@ export class CampaignFactory {
                         device_types: ['desktop', 'tablet', 'mobile']
                     },
                     frequency_capping: {
-                        max_triggers_per_session: 1,
-                        max_triggers_per_day: 1,
-                        cooldown_between_triggers: 86400
+                        // E2E test campaigns should trigger freely without limits
+                        max_triggers_per_session: 999,
+                        max_triggers_per_day: 999,
+                        cooldown_between_triggers: 0
                     }
                 },
                 audienceTargeting: {
@@ -440,6 +441,54 @@ class BaseBuilder<T extends BaseBuilder<T>> {
         this.config.designConfig = {
             ...this.config.designConfig,
             size
+        };
+        return this as unknown as T;
+    }
+
+    /**
+     * Configure add-to-cart trigger
+     */
+    withAddToCartTrigger(): T {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.targetRules.enhancedTriggers.add_to_cart = {
+            enabled: true
+        };
+        // Disable page_load to avoid conflicts
+        this.config.targetRules.enhancedTriggers.page_load = {
+            enabled: false
+        };
+        return this as unknown as T;
+    }
+
+    /**
+     * Configure cart value threshold trigger
+     */
+    withCartValueTrigger(min: number, max?: number): T {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.targetRules.enhancedTriggers.cart_value = {
+            enabled: true,
+            min_value: min,
+            max_value: max
+        };
+        // Disable page_load to avoid conflicts
+        this.config.targetRules.enhancedTriggers.page_load = {
+            enabled: false
+        };
+        return this as unknown as T;
+    }
+
+    /**
+     * Configure exit intent trigger
+     */
+    withExitIntentTrigger(): T {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.targetRules.enhancedTriggers.exit_intent = {
+            enabled: true,
+            sensitivity: 'medium'
+        };
+        // Disable page_load to avoid conflicts
+        this.config.targetRules.enhancedTriggers.page_load = {
+            enabled: false
         };
         return this as unknown as T;
     }

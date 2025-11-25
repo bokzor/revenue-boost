@@ -15,6 +15,10 @@ import React, { useState, useEffect, useCallback } from 'react';
 import type { PopupDesignConfig } from './types';
 import type { SocialProofContent } from '~/domains/campaigns/types/campaign';
 import { prefersReducedMotion } from './utils';
+import { POPUP_SPACING, SPACING_GUIDELINES } from './spacing';
+
+// Import custom hooks
+import { usePopupAnimation } from './hooks';
 
 export interface SocialProofNotification {
   id: string;
@@ -55,6 +59,10 @@ export const SocialProofPopup: React.FC<SocialProofPopupProps> = ({
   onClose,
   notifications = [],
 }) => {
+  // Use animation hook
+  const { showContent } = usePopupAnimation({ isVisible });
+
+  // Component-specific state
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
   const [shownCount, setShownCount] = useState(0);
@@ -258,12 +266,12 @@ export const SocialProofPopup: React.FC<SocialProofPopupProps> = ({
     background,
     color: config.textColor,
     borderRadius: `${config.borderRadius ?? 8}px`,
-    padding: '16px',
+    padding: POPUP_SPACING.component.card,
     boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
     width: 'calc(100% - 40px)', // Ensure it fits on mobile
     maxWidth: '350px',
     display: 'flex',
-    gap: '12px',
+    gap: POPUP_SPACING.gap.sm,
     alignItems: 'center',
     opacity: isAnimating ? 0 : 1,
     transform: isAnimating ? 'translateY(10px)' : 'translateY(0)',
@@ -309,12 +317,12 @@ export const SocialProofPopup: React.FC<SocialProofPopupProps> = ({
       )}
 
       {/* Message */}
-      <div style={{ flex: 1, fontSize: '14px', lineHeight: 1.4 }}>
+      <div style={{ flex: 1, fontSize: '14px', lineHeight: 1.5, fontWeight: 600 }}>
         {getMessage(currentNotification)}
 
         {/* Timer */}
         {config.showTimer && currentNotification.timestamp && (
-          <div style={{ fontSize: '12px', opacity: 0.7, marginTop: '4px' }}>
+          <div style={{ fontSize: '12px', opacity: 0.7, marginTop: POPUP_SPACING.section.xs }}>
             {getTimeAgo(currentNotification.timestamp)}
           </div>
         )}

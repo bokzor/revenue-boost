@@ -138,8 +138,9 @@ describe("CartAbandonmentPopup", () => {
       name: /email me my cart/i,
     });
 
-    // Submit with empty email
-    fireEvent.click(submitButton);
+    // Submit the form directly to bypass HTML5 validation
+    const form = submitButton.closest("form") as HTMLFormElement;
+    fireEvent.submit(form);
 
     expect(await screen.findByText(/custom error/i)).toBeTruthy();
   });

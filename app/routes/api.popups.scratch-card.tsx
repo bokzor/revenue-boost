@@ -81,6 +81,35 @@ export async function action({ request }: ActionFunctionArgs) {
             );
         }
 
+        // Validate email requirements based on campaign configuration
+        const contentConfig = campaign.contentConfig as any;
+        const emailRequired = contentConfig?.emailRequired !== false; // Default to true
+        const emailBeforeScratching = contentConfig?.emailBeforeScratching === true;
+
+        // Scenario 1: Email required before scratching
+        if (emailRequired && emailBeforeScratching && !email) {
+            console.log("[Scratch Card] Email required before scratching but not provided");
+            return data(
+                {
+                    success: false,
+                    error: "Email is required before scratching for this campaign",
+                    requiresEmail: true,
+                },
+                { status: 400 }
+            );
+        }
+
+        console.log("[Scratch Card] Email validation passed:", {
+            emailRequired,
+            emailBeforeScratching,
+            emailProvided: !!email,
+            scenario: emailRequired && emailBeforeScratching
+                ? "Email before scratch"
+                : emailRequired
+                    ? "Email after scratch"
+                    : "No email required"
+        });
+
         // SECURITY: Validate challenge token
         const ip = request.headers.get("x-forwarded-for")?.split(",")[0] ||
             request.headers.get("x-real-ip") ||
@@ -123,8 +152,7 @@ export async function action({ request }: ActionFunctionArgs) {
             }
         }
 
-        // Extract prizes from content config
-        const contentConfig = campaign.contentConfig as any;
+        // Extract prizes from content config (already declared above at line 85)
         const prizes = contentConfig?.prizes || [];
 
         if (prizes.length === 0) {
@@ -166,14 +194,14 @@ export async function action({ request }: ActionFunctionArgs) {
         }
 
         // Generate unique discount code using DiscountService
-        // Use email if provided, otherwise use sessionId as fallback identifier
-        const emailOrSession = email || `session_${sessionId}`;
+        // Only pass email if it's actually provided (not a session fallback)
+        // The discount service will handle anonymous users appropriately
         const result = await getCampaignDiscountCode(
             admin,
             campaign.storeId,
             campaignId,
             discountConfig,
-            emailOrSession
+            email // Pass undefined if no email provided
         );
 
         if (!result.success || !result.discountCode) {

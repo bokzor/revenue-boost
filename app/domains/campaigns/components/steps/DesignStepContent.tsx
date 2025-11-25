@@ -33,6 +33,7 @@ interface DesignStepContentProps {
   contentConfig: Partial<ContentConfig>;
   designConfig: Partial<DesignConfig>;
   discountConfig?: DiscountConfig;
+  targetRules?: Record<string, any>;
   onContentChange: (content: Partial<ContentConfig>) => void;
   onDesignChange: (design: Partial<DesignConfig>) => void;
   onDiscountChange?: (config: DiscountConfig) => void;
@@ -51,6 +52,7 @@ export function DesignStepContent({
   contentConfig,
   designConfig,
   discountConfig,
+  targetRules,
   onContentChange,
   onDesignChange,
   onDiscountChange,
@@ -175,6 +177,7 @@ export function DesignStepContent({
                   discountConfig,
                 }}
                 designConfig={designConfig}
+                targetRules={targetRules}
                 shopDomain={shopDomain}
                 campaignId={campaignId}
               />

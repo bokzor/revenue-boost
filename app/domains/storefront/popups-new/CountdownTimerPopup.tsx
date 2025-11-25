@@ -11,10 +11,13 @@
  * - CTA button
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useCallback } from 'react';
 import type { PopupDesignConfig } from './types';
 import type { CountdownTimerContent } from '~/domains/campaigns/types/campaign';
-import { calculateTimeRemaining } from './utils';
+import { POPUP_SPACING, SPACING_GUIDELINES } from './spacing';
+
+// Import custom hooks
+import { useCountdownTimer, usePopupAnimation } from './hooks';
 
 /**
  * CountdownTimerConfig - Extends both design config AND campaign content type
@@ -45,63 +48,25 @@ export const CountdownTimerPopup: React.FC<CountdownTimerPopupProps> = ({
   onExpiry,
   onCtaClick,
 }) => {
-  const [timeRemaining, setTimeRemaining] = useState(() => {
-    if (config.endTime) {
-      return calculateTimeRemaining(config.endTime);
-    }
-    if (config.countdownDuration) {
-      const endDate = new Date(Date.now() + config.countdownDuration * 1000);
-      return calculateTimeRemaining(endDate);
-    }
-    return { total: 0, days: 0, hours: 0, minutes: 0, seconds: 0 };
+  // Use countdown timer hook
+  const {
+    timeRemaining,
+    hasExpired,
+    formattedTime,
+  } = useCountdownTimer({
+    enabled: true,
+    mode: config.endTime ? 'fixed_end' : 'duration',
+    endTime: config.endTime,
+    duration: config.countdownDuration,
+    onExpire: () => {
+      if (onExpiry) onExpiry();
+      if (config.hideOnExpiry) onClose();
+    },
+    autoHide: config.hideOnExpiry,
   });
 
-  const [hasExpired, setHasExpired] = useState(false);
-
-  // Update countdown every second using a stable target time
-  useEffect(() => {
-    if (!isVisible || hasExpired) return;
-
-    let targetDate: Date | null = null;
-
-    if (config.endTime) {
-      targetDate = new Date(config.endTime);
-    } else if (config.countdownDuration) {
-      targetDate = new Date(Date.now() + config.countdownDuration * 1000);
-    }
-
-    if (!targetDate || isNaN(targetDate.getTime())) {
-      return;
-    }
-
-    const updateTimer = () => {
-      const remaining = calculateTimeRemaining(targetDate as Date);
-      setTimeRemaining(remaining);
-
-      if (remaining.total <= 0 && !hasExpired) {
-        setHasExpired(true);
-        if (onExpiry) {
-          onExpiry();
-        }
-        if (config.hideOnExpiry) {
-          onClose();
-        }
-      }
-    };
-
-    updateTimer();
-    const timer = setInterval(updateTimer, 1000);
-
-    return () => clearInterval(timer);
-  }, [
-    config.endTime,
-    config.countdownDuration,
-    config.hideOnExpiry,
-    isVisible,
-    hasExpired,
-    onExpiry,
-    onClose,
-  ]);
+  // Use animation hook
+  const { showContent } = usePopupAnimation({ isVisible });
 
   const handleCtaClick = useCallback(() => {
     if (onCtaClick) {
@@ -215,13 +180,13 @@ export const CountdownTimerPopup: React.FC<CountdownTimerPopupProps> = ({
         }
         .countdown-banner-headline {
           font-size: 1.125rem;
-          font-weight: 700;
-          line-height: 1.4;
-          margin: 0 0 0.25rem 0;
+          font-weight: 900;
+          line-height: 1.2;
+          margin: 0 0 ${POPUP_SPACING.section.xs} 0;
         }
         .countdown-banner-subheadline {
           font-size: 0.875rem;
-          line-height: 1.4;
+          line-height: 1.5;
           margin: 0;
           opacity: 0.9;
         }
@@ -233,20 +198,20 @@ export const CountdownTimerPopup: React.FC<CountdownTimerPopupProps> = ({
         }
         .countdown-banner-timer {
           display: flex;
-          gap: 0.5rem;
+          gap: ${POPUP_SPACING.gap.sm};
           align-items: center;
         }
         .countdown-banner-timer-unit {
           display: flex;
           flex-direction: column;
           align-items: center;
-          padding: 0.5rem 0.75rem;
+          padding: ${POPUP_SPACING.component.timerUnit};
           border-radius: 0.375rem;
           min-width: 3.5rem;
         }
         .countdown-banner-timer-value {
           font-size: 1.5rem;
-          font-weight: 700;
+          font-weight: 900;
           line-height: 1;
           font-variant-numeric: tabular-nums;
         }
@@ -276,19 +241,21 @@ export const CountdownTimerPopup: React.FC<CountdownTimerPopupProps> = ({
           gap: 0.75rem;
         }
         .countdown-banner-cta {
-          padding: 0.75rem 1.5rem;
+          padding: ${POPUP_SPACING.component.buttonCompact};
           font-size: 1rem;
-          font-weight: 600;
+          font-weight: 700;
           border: none;
           border-radius: 0.375rem;
           cursor: pointer;
           white-space: nowrap;
           transition: transform 0.2s, box-shadow 0.2s;
           box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
         }
         .countdown-banner-cta:hover:not(:disabled) {
-          transform: translateY(-1px);
-          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+          transform: translateY(-2px);
+          box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
         }
         .countdown-banner-cta:active:not(:disabled) {
           transform: translateY(0);

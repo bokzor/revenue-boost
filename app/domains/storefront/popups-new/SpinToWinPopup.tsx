@@ -15,9 +15,18 @@ import { PopupPortal } from './PopupPortal';
 import { PopupGridContainer } from './PopupGridContainer';
 import type { PopupDesignConfig, Prize } from './types';
 import type { SpinToWinContent } from '~/domains/campaigns/types/campaign';
-import { validateEmail, prefersReducedMotion, debounce } from './utils';
-import { challengeTokenStore } from '~/domains/storefront/services/challenge-token.client';
+import { prefersReducedMotion, debounce } from './utils';
 import { useId } from './hooks/useId';
+import { POPUP_SPACING, getContainerPadding, SPACING_GUIDELINES } from './spacing';
+
+// Import custom hooks
+import { usePopupForm, useDiscountCode, usePopupAnimation } from './hooks';
+
+// Import canvas utilities
+import { WheelRenderer } from './utils/canvas';
+
+// Import reusable components
+import { EmailInput, NameInput, GdprCheckbox, SubmitButton } from './components';
 
 /**
  * SpinToWinConfig - Extends both design config AND campaign content type
@@ -48,12 +57,34 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
   onSpin,
   onWin,
 }) => {
-  const [email, setEmail] = useState('');
-  const [emailError, setEmailError] = useState('');
-  const [name, setName] = useState('');
-  const [nameError, setNameError] = useState('');
-  const [gdprConsent, setGdprConsent] = useState(false);
-  const [gdprError, setGdprError] = useState('');
+  // Use custom hooks for form management
+  const {
+    formState,
+    setEmail,
+    setName,
+    setGdprConsent,
+    errors,
+    handleSubmit: handleFormSubmit,
+    isSubmitting,
+  } = usePopupForm({
+    config: {
+      emailRequired: config.emailRequired,
+      emailErrorMessage: undefined, // SpinToWinContent doesn't have this field
+      nameFieldEnabled: config.collectName,
+      nameFieldRequired: config.nameFieldRequired,
+      consentFieldEnabled: config.showGdprCheckbox,
+      consentFieldRequired: config.consentFieldRequired,
+      campaignId: config.campaignId,
+      previewMode: config.previewMode,
+    },
+  });
+
+  // Use animation hook
+  const { showContent } = usePopupAnimation({ isVisible });
+
+  // Use discount code hook
+  const { discountCode, setDiscountCode, copiedCode, handleCopyCode } = useDiscountCode();
+
   const gdprCheckboxId = useId();
   const [hasSpun, setHasSpun] = useState(false);
   const [isSpinning, setIsSpinning] = useState(false);
@@ -79,7 +110,6 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
     };
   }, []);
 
-  const [showContent, setShowContent] = useState(false);
   const [emailFocused, setEmailFocused] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const wheelContainerRef = useRef<HTMLDivElement | null>(null);
@@ -196,104 +226,26 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
         : config.failureMessage || wonPrize.label || 'Thanks for playing!'
       : null;
 
-  // Canvas-based wheel rendering inspired by mockup
-  // Now includes the static pointer integrated directly into the canvas.
+  // Canvas-based wheel rendering using WheelRenderer utility
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas || segments.length === 0) return;
 
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const dpr = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
-    const logicalSize = wheelSize;
-
-    canvas.width = logicalSize * dpr;
-    canvas.height = logicalSize * dpr;
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-
-    const centerX = logicalSize / 2;
-    const centerY = logicalSize / 2;
-    const radiusPx = logicalSize / 2 - 10;
-    const segmentAngleRad = (2 * Math.PI) / Math.max(1, segments.length);
-    const rotationRad = (rotation * Math.PI) / 180;
-
-    ctx.clearRect(0, 0, logicalSize, logicalSize);
-
-    segments.forEach((segment, index) => {
-      const baseAngle = index * segmentAngleRad - Math.PI / 2;
-      const startAngle = rotationRad + baseAngle;
-      const endAngle = startAngle + segmentAngleRad;
-      const baseColor = segment.color || accentColor;
-
-      ctx.beginPath();
-      ctx.moveTo(centerX, centerY);
-      ctx.arc(centerX, centerY, radiusPx, startAngle, endAngle);
-      ctx.closePath();
-      ctx.fillStyle = baseColor;
-      ctx.fill();
-
-      const isWinningSegment = hasSpun && wonPrize && segment.id === wonPrize.id;
-      const borderColor = isWinningSegment ? '#FFD700' : wheelBorderColor;
-      const borderWidth = isWinningSegment ? wheelBorderWidth + 2 : wheelBorderWidth;
-
-      ctx.strokeStyle = borderColor;
-      ctx.lineWidth = borderWidth;
-      ctx.stroke();
-
-      ctx.save();
-      ctx.translate(centerX, centerY);
-      ctx.rotate(startAngle + segmentAngleRad / 2);
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillStyle = '#ffffff';
-
-      const label: string = segment.label || '';
-      const maxTextWidth = radiusPx * 0.6;
-      const textDistance = radiusPx * 0.65;
-      let fontSize = Math.max(10, logicalSize / 25);
-      ctx.font = `bold ${fontSize}px sans-serif`;
-
-      let textWidth = ctx.measureText(label).width;
-      if (textWidth > maxTextWidth) {
-        fontSize = (fontSize * maxTextWidth) / textWidth;
-        ctx.font = `bold ${fontSize}px sans-serif`;
-        textWidth = ctx.measureText(label).width;
-      }
-
-      ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
-      ctx.shadowBlur = 6;
-      ctx.shadowOffsetX = 0;
-      ctx.shadowOffsetY = 2;
-
-      const words = label.split(' ');
-      if (words.length > 1 && textWidth > maxTextWidth * 0.9) {
-        const mid = Math.ceil(words.length / 2);
-        const line1 = words.slice(0, mid).join(' ');
-        const line2 = words.slice(mid).join(' ');
-        ctx.fillText(line1, textDistance, -fontSize * 0.5);
-        ctx.fillText(line2, textDistance, fontSize * 0.5);
-      } else {
-        ctx.fillText(label, textDistance, 0);
-      }
-
-      ctx.restore();
+    const renderer = new WheelRenderer(canvas);
+    renderer.render(segments, {
+      wheelSize,
+      rotation,
+      accentColor,
+      wheelBorderColor,
+      wheelBorderWidth,
+      hasSpun,
+      wonPrize,
     });
-
   }, [segments, wheelSize, accentColor, wheelBorderColor, wheelBorderWidth, hasSpun, wonPrize, rotation]);
 
 
 
-  useEffect(() => {
-    if (isVisible) {
-      const timer = setTimeout(() => setShowContent(true), 50);
-      return () => clearTimeout(timer);
-    } else {
-      setShowContent(false);
-    }
-  }, [isVisible]);
-
-  // Auto-close timer (migrated from BasePopup)
+  // Auto-close timer
   useEffect(() => {
     if (!isVisible || !config.autoCloseDelay || config.autoCloseDelay <= 0) return;
 
@@ -303,38 +255,30 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
 
   // Prize selection and wheel rotation now handled server-side for security
 
-  const validateForm = useCallback(() => {
-    // Reset previous errors
-    setEmailError('');
-    setNameError('');
-    setGdprError('');
-
-    if (config.emailRequired && !email.trim()) {
-      setEmailError('Email required');
-      return false;
-    }
-
-    if (config.emailRequired && !validateEmail(email)) {
-      setEmailError('Invalid email');
-      return false;
-    }
-
-    if (collectName && config.nameFieldRequired && !name.trim()) {
-      setNameError('Name is required');
-      return false;
-    }
-
-    if (showGdpr && config.consentFieldRequired && !gdprConsent) {
-      setGdprError('You must accept the terms to continue');
-      return false;
-    }
-
-    return true;
-  }, [config.emailRequired, config.nameFieldRequired, config.consentFieldRequired, email, collectName, name, showGdpr, gdprConsent]);
-
   const handleSpin = useCallback(async () => {
-    const isValid = validateForm();
-    if (!isValid) return;
+    // Validate form manually (don't submit yet - we'll submit via /api/popups/spin-win)
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const newErrors: { email?: string; name?: string; gdpr?: string } = {};
+
+    if (config.emailRequired && !formState.email) {
+      newErrors.email = 'Email is required';
+    } else if (formState.email && !emailRegex.test(formState.email)) {
+      newErrors.email = 'Please enter a valid email';
+    }
+
+    if (config.nameFieldRequired && !formState.name?.trim()) {
+      newErrors.name = 'Name is required';
+    }
+
+    if (config.consentFieldRequired && !formState.gdprConsent) {
+      newErrors.gdpr = 'You must accept the terms to continue';
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      // Trigger validation errors in the form hook
+      await handleFormSubmit();
+      return;
+    }
 
     setIsSpinning(true);
     setCodeError('');
@@ -387,25 +331,30 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
 
     try {
       if (!config.previewMode && onSpin) {
-        await onSpin(email);
+        await onSpin(formState.email);
       }
 
       // 2. Fetch Prize
       let serverPrize: Prize | null = null;
-      let discountCode: string | undefined;
+      let generatedCode: string | undefined;
       let autoApply = false;
 
       if (!config.previewMode && config.campaignId) {
         setIsGeneratingCode(true);
         try {
+          // Get sessionId from global session object (set by storefront extension)
+          const sessionId = typeof window !== 'undefined'
+            ? ((window as any).__RB_SESSION_ID || window.sessionStorage?.getItem('revenue_boost_session') || '')
+            : '';
+
           const response = await fetch('/apps/revenue-boost/api/popups/spin-win', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               campaignId: config.campaignId,
-              email,
-              sessionId: typeof window !== 'undefined' ? window.sessionStorage?.getItem('revenue_boost_session') : undefined,
-              challengeToken: config.challengeToken || challengeTokenStore.get(config.campaignId),
+              email: formState.email,
+              sessionId,
+              challengeToken: config.challengeToken,
             }),
           });
           const data = await response.json();
@@ -417,8 +366,11 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
               probability: 0,
               generatedCode: data.discountCode,
             };
-            discountCode = data.discountCode;
+            generatedCode = data.discountCode;
             autoApply = data.autoApply;
+            if (generatedCode) {
+              setDiscountCode(generatedCode);
+            }
           } else {
             setCodeError(data.error || 'Could not generate discount code');
           }
@@ -432,7 +384,8 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
         // Preview mode: pick random
         const randomIdx = Math.floor(Math.random() * segments.length);
         serverPrize = segments[randomIdx];
-        discountCode = "PREVIEW10";
+        generatedCode = "PREVIEW10";
+        setDiscountCode(generatedCode);
       }
 
       // 3. Calculate Final Rotation
@@ -477,17 +430,16 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
 
         if (onWin && serverPrize) onWin(serverPrize);
 
-        if (autoApply && discountCode && typeof window !== 'undefined') {
-          window.localStorage.setItem('rb_discount_code', discountCode);
+        if (autoApply && generatedCode && typeof window !== 'undefined') {
+          window.localStorage.setItem('rb_discount_code', generatedCode);
         }
       }
 
     } catch (error) {
       console.error('Spin error:', error);
-      setEmailError('Error occurred');
       setIsSpinning(false);
     }
-  }, [validateForm, config, email, onSpin, segments, onWin]);
+  }, [handleFormSubmit, config, formState.email, onSpin, segments, onWin, setDiscountCode]);
 
   const getInputStyles = (isFocused: boolean, hasError: boolean): React.CSSProperties => {
     // Use inputTextColor with reduced opacity for placeholder
@@ -514,26 +466,31 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
 
   const buttonStyles: React.CSSProperties = {
     width: '100%',
-    padding: '16px 32px',
+    padding: POPUP_SPACING.component.button,
     fontSize: '16px',
-    fontWeight: 600,
+    fontWeight: 700,
     border: 'none',
     borderRadius: `${borderRadius}px`,
     backgroundColor: config.buttonColor || accentColor,
     color: config.buttonTextColor || '#FFFFFF',
     cursor: 'pointer',
-    opacity: isSpinning ? 0.6 : 1,
+    opacity: isSpinning ? 0.5 : 1,
     transition: `all ${animDuration}ms cubic-bezier(0.4, 0, 0.2, 1)`,
     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    textTransform: 'uppercase',
+    letterSpacing: '0.05em',
   };
 
   const secondaryButtonStyles: React.CSSProperties = {
     ...buttonStyles,
+    padding: POPUP_SPACING.component.buttonSecondary,
     backgroundColor: 'transparent',
     color: config.textColor || '#4B5563',
     boxShadow: 'none',
     cursor: 'pointer',
     opacity: 0.9,
+    textTransform: 'none',
+    letterSpacing: 'normal',
   };
 
   if (!isVisible) return null;
@@ -599,7 +556,7 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            padding: 2rem 1.5rem;
+            padding: ${getContainerPadding(config.size)};
             z-index: 20;
             /* Ensure background is solid on mobile so text is readable over wheel if they overlap */
             background-color: ${baseBackground};
@@ -610,7 +567,7 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
             width: 100%;
             display: flex;
             flex-direction: column;
-            gap: 1.25rem;
+            gap: ${SPACING_GUIDELINES.betweenFields};
           }
 
           /* Wheel Wrapper - Mobile First */
@@ -650,7 +607,7 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
             }
 
             .spin-form-cell {
-              padding: 3rem;
+              padding: ${POPUP_SPACING.padding.wide};
               background-color: transparent; /* Transparent on desktop */
             }
 
@@ -745,13 +702,13 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
         <div className="spin-form-cell">
           <div className="spin-form-content">
             {/* Header */}
-            <div style={{ textAlign: 'center', marginBottom: '0.5rem' }}>
+            <div style={{ textAlign: 'center', marginBottom: SPACING_GUIDELINES.afterDescription }}>
               <h2
                 style={{
                   fontSize: (config as any).titleFontSize || config.fontSize || '2rem',
-                  fontWeight: (config as any).titleFontWeight || config.fontWeight || 800,
+                  fontWeight: (config as any).titleFontWeight || config.fontWeight || 900,
                   color: config.textColor || '#111827',
-                  marginBottom: '0.75rem',
+                  marginBottom: SPACING_GUIDELINES.afterHeadline,
                   lineHeight: 1.1,
                   textShadow: (config as any).titleTextShadow,
                 }}
@@ -763,7 +720,7 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
                   fontSize: (config as any).descriptionFontSize || config.fontSize || '1.125rem',
                   color: descriptionColor,
                   fontWeight: (config as any).descriptionFontWeight || config.fontWeight || 500,
-                  lineHeight: 1.5,
+                  lineHeight: 1.6,
                 }}
               >
                 {resultMessage || config.subheadline || 'Try your luck to win exclusive discounts!'}
@@ -775,88 +732,49 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
               <>
                 {collectName && (
                   <div style={{ width: '100%' }}>
-                    {(config as any).nameFieldLabel && (
-                      <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.5rem', color: config.textColor || '#111827' }}>
-                        {(config as any).nameFieldLabel}
-                      </label>
-                    )}
-                    <input
-                      type="text"
+                    <NameInput
+                      value={formState.name}
+                      onChange={setName}
                       placeholder={(config as any).nameFieldPlaceholder || 'Your Name'}
-                      value={name}
-                      onChange={(e) => {
-                        setName(e.target.value);
-                        setNameError('');
-                      }}
-                      style={getInputStyles(false, !!nameError)}
-                      className="spin-to-win-input"
+                      label={(config as any).nameFieldLabel}
+                      error={errors.name}
+                      required={config.nameFieldRequired}
+                      disabled={isSpinning || isGeneratingCode}
+                      accentColor={accentColor}
+                      textColor={inputTextColor}
+                      backgroundColor={inputBackground}
                     />
-                    {nameError && (
-                      <p style={{ color: '#EF4444', fontSize: '13px', marginTop: '6px' }}>
-                        {nameError}
-                      </p>
-                    )}
                   </div>
                 )}
 
                 {config.emailRequired && (
                   <div style={{ width: '100%' }}>
-                    {config.emailLabel && (
-                      <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.5rem', color: config.textColor || '#111827' }}>
-                        {config.emailLabel}
-                      </label>
-                    )}
-                    <input
-                      type="email"
+                    <EmailInput
+                      value={formState.email}
+                      onChange={setEmail}
                       placeholder={config.emailPlaceholder || 'Enter your email'}
-                      value={email}
-                      onChange={(e) => {
-                        setEmail(e.target.value);
-                        setEmailError('');
-                      }}
-                      onFocus={() => setEmailFocused(true)}
-                      onBlur={() => setEmailFocused(false)}
-                      style={getInputStyles(emailFocused, !!emailError)}
-                      className="spin-to-win-input"
+                      label={config.emailLabel}
+                      error={errors.email}
+                      required={config.emailRequired}
+                      disabled={isSpinning || isGeneratingCode}
+                      accentColor={accentColor}
+                      textColor={inputTextColor}
+                      backgroundColor={inputBackground}
                     />
-                    {emailError && (
-                      <p style={{ color: '#EF4444', fontSize: '13px', marginTop: '6px' }}>
-                        {emailError}
-                      </p>
-                    )}
                   </div>
                 )}
 
                 {showGdpr && (
-                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', marginTop: '0.25rem' }}>
-                    <input
-                      id={gdprCheckboxId}
-                      type="checkbox"
-                      checked={gdprConsent}
-                      onChange={(e) => {
-                        setGdprConsent(e.target.checked);
-                        setGdprError('');
-                      }}
-                      style={{
-                        marginTop: '0.25rem',
-                        width: '1.125rem',
-                        height: '1.125rem',
-                        cursor: 'pointer',
-                        flexShrink: 0,
-                      }}
-                    />
-                    <label
-                      htmlFor={gdprCheckboxId}
-                      style={{ fontSize: '0.875rem', color: descriptionColor, lineHeight: 1.4, cursor: 'pointer' }}
-                    >
-                      {gdprLabel}
-                    </label>
-                  </div>
-                )}
-                {gdprError && (
-                  <p style={{ color: '#EF4444', fontSize: '13px', marginTop: '-0.5rem' }}>
-                    {gdprError}
-                  </p>
+                  <GdprCheckbox
+                    checked={formState.gdprConsent}
+                    onChange={setGdprConsent}
+                    text={gdprLabel}
+                    error={errors.gdpr}
+                    required={config.consentFieldRequired}
+                    disabled={isSpinning || isGeneratingCode}
+                    accentColor={accentColor}
+                    textColor={descriptionColor}
+                  />
                 )}
 
                 <button
@@ -864,13 +782,13 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
                   disabled={isSpinning || isGeneratingCode}
                   style={{
                     ...buttonStyles,
-                    marginTop: '0.5rem',
+                    marginTop: POPUP_SPACING.section.md,
                     position: 'relative',
                     overflow: 'hidden',
                   }}
                   onMouseEnter={(e) => {
                     if (!isSpinning && !hasSpun) {
-                      e.currentTarget.style.transform = 'translateY(-1px)';
+                      e.currentTarget.style.transform = 'translateY(-2px)';
                     }
                   }}
                   onMouseLeave={(e) => {
@@ -901,7 +819,7 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
                     onClick={onClose}
                     style={{
                       ...secondaryButtonStyles,
-                      marginTop: '8px',
+                      marginTop: SPACING_GUIDELINES.betweenButtons,
                     }}
                     onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
                     onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.9')}

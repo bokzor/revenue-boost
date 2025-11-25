@@ -1,8 +1,7 @@
 {%- comment -%}
   Revenue Boost App Block: Popup Embed
-  Allows merchants to manually place popup loader in theme editor (optional)
-  Note: The app embed (snippets/popup-init.liquid) auto-loads on all pages,
-  so this block is only needed if merchant wants manual control
+  This is the REQUIRED way to load JavaScript in Shopify theme extensions.
+  Shopify does NOT allow automatic script injection via app embeds for security.
 {%- endcomment -%}
 
 {% if block.settings.enabled %}
@@ -19,13 +18,39 @@
       window.REVENUE_BOOST_CONFIG.pageType = '{{ request.page_type }}';
       window.REVENUE_BOOST_CONFIG.pageUrl = '{{ request.path }}';
 
-      // Detect preview mode from URL parameter (same as app embed)
+      // Detect preview mode from URL parameter
       const urlParams = new URLSearchParams(window.location.search);
       const previewId = urlParams.get('split_pop_preview');
+      const previewToken = urlParams.get('split_pop_preview_token');
+      const previewBehavior = urlParams.get('preview_behavior') || 'instant';
+
+      console.log('[Revenue Boost Block] URL:', window.location.href);
+      console.log('[Revenue Boost Block] Preview params:', {
+        previewId: previewId,
+        previewToken: previewToken,
+        previewBehavior: previewBehavior
+      });
+
       if (previewId) {
+        console.log('[Revenue Boost Block] ✅ Setting preview mode with ID:', previewId);
         window.REVENUE_BOOST_CONFIG.previewMode = true;
         window.REVENUE_BOOST_CONFIG.previewId = previewId;
+        window.REVENUE_BOOST_CONFIG.previewBehavior = previewBehavior;
+      } else if (previewToken) {
+        console.log('[Revenue Boost Block] ✅ Setting preview mode with token:', previewToken);
+        window.REVENUE_BOOST_CONFIG.previewMode = true;
+        window.REVENUE_BOOST_CONFIG.previewToken = previewToken;
+        window.REVENUE_BOOST_CONFIG.previewBehavior = previewBehavior;
+      } else {
+        console.log('[Revenue Boost Block] ℹ️ No preview parameters found');
       }
+
+      console.log('[Revenue Boost Block] Final config:', {
+        previewMode: window.REVENUE_BOOST_CONFIG.previewMode,
+        previewId: window.REVENUE_BOOST_CONFIG.previewId,
+        previewToken: window.REVENUE_BOOST_CONFIG.previewToken,
+        previewBehavior: window.REVENUE_BOOST_CONFIG.previewBehavior
+      });
     </script>
     <script src="{{ 'popup-loader.bundle.js' | asset_url }}" defer></script>
   </div>

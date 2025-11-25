@@ -16,13 +16,24 @@ This is a Shopify Theme App Extension that automatically loads the Revenue Boost
 ```
 storefront-popup/
 ├── shopify.extension.toml    # Extension configuration
-├── snippets/
-│   └── popup-init.liquid      # Auto-loaded initialization script
+├── blocks/
+│   └── popup-embed.liquid     # App block (REQUIRED - manually added by merchant)
 ├── assets/
-│   └── popup-loader.bundle.js # Compiled popup runtime (to be added)
-├── blocks/                    # Optional theme blocks
+│   └── popup-loader.bundle.js # Compiled popup runtime
 └── locales/                   # Translations
 ```
+
+## ⚠️ Important: Manual Installation Required
+
+This extension uses an **App Block** that must be manually added to the theme by the merchant.
+
+**Why?** Shopify does not allow automatic script injection via app embeds for security reasons.
+
+**Installation:**
+1. Shopify Admin → Online Store → Themes → Customize
+2. Add block → Apps → "Revenue Boost Popups"
+3. Enable popups → ON
+4. Save
 
 ## 🔧 Configuration
 
@@ -111,7 +122,7 @@ npm run build:storefront
 shopify app dev
 
 # The extension will be available in the theme editor
-# under "App embeds" → "Revenue Boost Popups"
+# Add the block: Apps → "Revenue Boost Popups"
 ```
 
 ### Preview Mode

@@ -15,6 +15,10 @@
 import React, { useCallback } from 'react';
 import type { PopupDesignConfig } from './types';
 import type { AnnouncementContent } from '~/domains/campaigns/types/campaign';
+import { POPUP_SPACING, SPACING_GUIDELINES } from './spacing';
+
+// Import custom hooks
+import { usePopupAnimation } from './hooks';
 
 /**
  * AnnouncementConfig - Extends both design config AND campaign content type
@@ -42,6 +46,9 @@ export const AnnouncementPopup: React.FC<AnnouncementPopupProps> = ({
   onClose,
   onCtaClick,
 }) => {
+  // Use animation hook
+  const { showContent } = usePopupAnimation({ isVisible });
+
   const handleCtaClick = useCallback(() => {
     if (onCtaClick) {
       onCtaClick();
@@ -130,7 +137,7 @@ export const AnnouncementPopup: React.FC<AnnouncementPopupProps> = ({
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: '16px',
+    gap: POPUP_SPACING.gap.md,
     flexWrap: 'wrap',
     position: 'relative',
   };
@@ -138,22 +145,24 @@ export const AnnouncementPopup: React.FC<AnnouncementPopupProps> = ({
   const contentStyles: React.CSSProperties = {
     display: 'flex',
     alignItems: 'center',
-    gap: '12px',
+    gap: POPUP_SPACING.gap.sm,
     flex: 1,
     justifyContent: 'center',
   };
 
   const buttonStyles: React.CSSProperties = {
-    padding: '8px 20px',
+    padding: POPUP_SPACING.component.buttonCompact,
     fontSize: '14px',
-    fontWeight: 600,
+    fontWeight: 700,
     border: 'none',
     borderRadius: `${config.borderRadius ?? 6}px`,
     backgroundColor: colors.buttonColor,
     color: colors.buttonTextColor,
     cursor: 'pointer',
     whiteSpace: 'nowrap',
-    transition: 'opacity 0.2s',
+    transition: 'all 0.2s',
+    textTransform: 'uppercase',
+    letterSpacing: '0.05em',
   };
 
   const dismissButtonStyles: React.CSSProperties = {
@@ -194,7 +203,7 @@ export const AnnouncementPopup: React.FC<AnnouncementPopupProps> = ({
           )}
 
           {/* Headline */}
-          <div style={{ fontWeight: 600, fontSize: '15px', textAlign: 'center' }}>
+          <div style={{ fontWeight: 900, fontSize: '15px', textAlign: 'center' }}>
             {config.headline}
           </div>
 

@@ -40,7 +40,7 @@ describe("NewsletterPopup", () => {
     renderPopup();
 
     expect(await screen.findByText(/join our newsletter/i)).toBeTruthy();
-    const emailInput = screen.getByLabelText(/email/i);
+    const emailInput = screen.getByPlaceholderText(/enter your email/i);
     expect(emailInput).toBeTruthy();
   });
 

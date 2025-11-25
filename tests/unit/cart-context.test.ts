@@ -92,7 +92,7 @@ describe('Cart Context Handling', () => {
     });
 
     it('should handle empty cart gracefully', () => {
-      const mockCart = {
+      const mockCart: { item_count: number; items: Array<{ product_id: number }> } = {
         item_count: 0,
         items: []
       };

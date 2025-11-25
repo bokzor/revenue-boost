@@ -15,6 +15,12 @@ import type { PopupDesignConfig, DiscountConfig as StorefrontDiscountConfig } fr
 import type { FlashSaleContent } from '~/domains/campaigns/types/campaign';
 import { PopupPortal } from './PopupPortal';
 
+// Import custom hooks
+import { useCountdownTimer, useDiscountCode, usePopupAnimation } from './hooks';
+
+// Import reusable components
+import { SubmitButton } from './components';
+
 /**
  * FlashSale-specific configuration
  */
@@ -35,27 +41,8 @@ export interface FlashSalePopupProps {
   issueDiscount?: (options?: { cartSubtotalCents?: number }) => Promise<{ code?: string; autoApplyMode?: string } | null>;
 }
 
-interface TimeRemaining {
-  total: number;
-  days: number;
-  hours: number;
-  minutes: number;
-  seconds: number;
-}
-
-function calculateTimeRemaining(endTime: Date | string): TimeRemaining {
-  const end = typeof endTime === "string" ? new Date(endTime).getTime() : endTime.getTime();
-  const now = Date.now();
-  const diff = Math.max(0, end - now);
-
-  return {
-    total: diff,
-    days: Math.floor(diff / (1000 * 60 * 60 * 24)),
-    hours: Math.floor((diff / (1000 * 60 * 60)) % 24),
-    minutes: Math.floor((diff / (1000 * 60)) % 60),
-    seconds: Math.floor((diff / 1000) % 60),
-  };
-}
+// TimeRemaining interface now imported from hooks
+import type { TimeRemaining } from './hooks';
 
 export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
   config,
@@ -65,31 +52,40 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
   onCtaClick,
   issueDiscount,
 }) => {
-  const [timeRemaining, setTimeRemaining] = useState(() => {
-    // Determine end time based on timer mode
-    const timerMode = config.timer?.mode || 'duration';
-
-    if (timerMode === 'fixed_end' && config.timer?.endTimeISO) {
-      return calculateTimeRemaining(config.timer.endTimeISO);
-    } else if (timerMode === 'personal' && config.timer?.personalWindowSeconds) {
-      const endDate = new Date(Date.now() + config.timer.personalWindowSeconds * 1000);
-      return calculateTimeRemaining(endDate);
-    } else if (config.endTime) {
-      return calculateTimeRemaining(config.endTime);
-    } else if (config.countdownDuration) {
-      const endDate = new Date(Date.now() + config.countdownDuration * 1000);
-      return calculateTimeRemaining(endDate);
-    }
-
-    return { total: 0, days: 0, hours: 0, minutes: 0, seconds: 0 };
+  // Use countdown timer hook
+  const timerMode = config.timer?.mode || 'duration';
+  // Map 'stock_limited' to 'duration' for the hook (stock_limited is handled separately)
+  const hookTimerMode = timerMode === 'stock_limited' ? 'duration' : timerMode;
+  const {
+    timeRemaining,
+    hasExpired,
+    formattedTime,
+  } = useCountdownTimer({
+    enabled: config.showCountdown !== false,
+    mode: hookTimerMode,
+    duration: config.countdownDuration,
+    endTime: config.timer?.endTimeISO || config.endTime,
+    personalWindowSeconds: config.timer?.personalWindowSeconds,
+    onExpire: () => {
+      if (onExpiry) onExpiry();
+      if (config.timer?.onExpire === 'auto_hide' || config.hideOnExpiry) {
+        onClose();
+      }
+    },
+    autoHide: config.timer?.onExpire === 'auto_hide' || config.hideOnExpiry,
+    autoHideDelay: 1000,
   });
 
-  const [hasExpired, setHasExpired] = useState(false);
+  // Use discount code hook
+  const { discountCode, setDiscountCode, copiedCode, handleCopyCode } = useDiscountCode();
+
+  // Use animation hook
+  const { showContent } = usePopupAnimation({ isVisible });
+
+  // Component-specific state
   const [inventoryTotal, setInventoryTotal] = useState<number | null>(null);
-  const [reservationTime, setReservationTime] = useState<TimeRemaining | null>(null);
   const [hasClaimedDiscount, setHasClaimedDiscount] = useState(false);
   const [isClaimingDiscount, setIsClaimingDiscount] = useState(false);
-  const [claimedDiscountCode, setClaimedDiscountCode] = useState<string | null>(null);
   const [discountError, setDiscountError] = useState<string | null>(null);
 
 
@@ -143,93 +139,16 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
     return () => clearInterval(interval);
   }, [config.inventory]);
 
-  // Update countdown timer
-  useEffect(() => {
-    if (!config.showCountdown || hasExpired) return;
+  // Timer is now handled by useCountdownTimer hook
 
-    // Compute a fixed end timestamp once for this effect run
-    const timerMode = config.timer?.mode || 'duration';
-    let endTimestamp: number | null = null;
+  // Reservation timer using separate countdown hook instance
+  const reservationTimer = useCountdownTimer({
+    enabled: config.reserve?.enabled === true && !!config.reserve?.minutes,
+    mode: 'duration',
+    duration: (config.reserve?.minutes || 0) * 60,
+  });
 
-    if (timerMode === 'fixed_end' && config.timer?.endTimeISO) {
-      endTimestamp = new Date(config.timer.endTimeISO).getTime();
-    } else if (timerMode === 'personal' && config.timer?.personalWindowSeconds) {
-      endTimestamp = Date.now() + config.timer.personalWindowSeconds * 1000;
-    } else if (config.endTime) {
-      endTimestamp = new Date(config.endTime).getTime();
-    } else if (config.countdownDuration) {
-      endTimestamp = Date.now() + config.countdownDuration * 1000;
-    }
-
-    if (!endTimestamp) return;
-
-    const updateTimer = () => {
-      const now = Date.now();
-      const diff = Math.max(0, endTimestamp! - now);
-
-      const newTime: TimeRemaining = {
-        total: diff,
-        days: Math.floor(diff / (1000 * 60 * 60 * 24)),
-        hours: Math.floor((diff / (1000 * 60 * 60)) % 24),
-        minutes: Math.floor((diff / (1000 * 60)) % 60),
-        seconds: Math.floor((diff / 1000) % 60),
-      };
-
-      setTimeRemaining(newTime);
-
-      if (newTime.total <= 0) {
-        setHasExpired(true);
-        if (onExpiry) {
-          onExpiry();
-        }
-
-        const onExpireAction = config.timer?.onExpire || 'auto_hide';
-        if (onExpireAction === 'auto_hide' || config.hideOnExpiry || config.autoHideOnExpire) {
-          setTimeout(() => onClose(), config.autoHideOnExpire ? 2000 : 0);
-        }
-      }
-    };
-
-    // Run immediately so UI updates without 1s delay
-    updateTimer();
-    const timer = setInterval(updateTimer, 1000);
-
-    return () => clearInterval(timer);
-  }, [
-    config.showCountdown,
-    config.timer?.mode,
-    config.timer?.endTimeISO,
-    config.timer?.personalWindowSeconds,
-    config.endTime,
-    config.countdownDuration,
-    hasExpired,
-    onExpiry,
-    onClose,
-  ]);
-
-  // Handle reservation timer
-  useEffect(() => {
-    // When reservation is disabled or misconfigured, clear any existing timer state
-    if (!config.reserve?.enabled || !config.reserve?.minutes) {
-      setReservationTime(null);
-      return;
-    }
-
-    const reservationEnd = new Date(Date.now() + config.reserve.minutes * 60 * 1000);
-
-    const updateReservation = () => {
-      const remaining = calculateTimeRemaining(reservationEnd);
-      setReservationTime(remaining);
-
-      if (remaining.total <= 0) {
-        setReservationTime(null);
-      }
-    };
-
-    updateReservation();
-    const interval = setInterval(updateReservation, 1000);
-    return () => clearInterval(interval);
-  }, [config.reserve]);
+  const reservationTime = reservationTimer.hasExpired ? null : reservationTimer.timeRemaining;
 
   const isPreview = (config as any).previewMode;
   const discount = (config.discount ?? (config as any).discount) as StorefrontDiscountConfig | undefined;
@@ -278,7 +197,7 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
             cartSubtotalCents ? { cartSubtotalCents } : undefined,
           );
           if (result?.code) {
-            setClaimedDiscountCode(result.code);
+            setDiscountCode(result.code);
           }
           setHasClaimedDiscount(true);
         }
@@ -604,12 +523,13 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
               {config.subheadline && (
                 <p className="flash-sale-banner-subheadline">{config.subheadline}</p>
               )}
-              {(claimedDiscountCode || discountMessage) && (
+              {(discountCode || discountMessage) && (
                 <div className="flash-sale-banner-discount">
-                  {claimedDiscountCode ? (
-                    <>
-                      Use code <strong>{claimedDiscountCode}</strong> at checkout.
-                    </>
+                  {discountCode ? (
+                    <div onClick={() => handleCopyCode()} style={{ cursor: 'pointer' }}>
+                      Use code <strong>{discountCode}</strong> at checkout.
+                      {copiedCode && <span style={{ marginLeft: '0.5rem', color: '#10B981' }}>✓ Copied!</span>}
+                    </div>
                   ) : (
                     discountMessage
                   )}
@@ -1034,12 +954,13 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
               {config.subheadline || "Limited time offer - Don't miss out!"}
             </p>
 
-            {(claimedDiscountCode || discountMessage) && (
+            {(discountCode || discountMessage) && (
               <div className="flash-sale-discount-message">
-                {claimedDiscountCode ? (
-                  <>
-                    Use code <strong>{claimedDiscountCode}</strong> at checkout.
-                  </>
+                {discountCode ? (
+                  <div onClick={() => handleCopyCode()} style={{ cursor: 'pointer' }}>
+                    Use code <strong>{discountCode}</strong> at checkout.
+                    {copiedCode && <span style={{ marginLeft: '0.5rem', color: '#10B981' }}>✓ Copied!</span>}
+                  </div>
                 ) : (
                   discountMessage
                 )}

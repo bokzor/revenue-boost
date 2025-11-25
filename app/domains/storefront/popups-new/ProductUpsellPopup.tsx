@@ -19,6 +19,10 @@ import { PopupPortal } from './PopupPortal';
 import type { PopupDesignConfig, Product } from './types';
 import type { ProductUpsellContent } from '~/domains/campaigns/types/campaign';
 import { formatCurrency, getSizeDimensions } from './utils';
+import { POPUP_SPACING, getContainerPadding, SPACING_GUIDELINES } from './spacing';
+
+// Import custom hooks
+import { usePopupAnimation } from './hooks';
 
 /**
  * ProductUpsellConfig - Extends both design config AND campaign content type
@@ -53,9 +57,15 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
   onAddToCart,
   onProductClick,
 }) => {
+  // Use animation hook
+  const { showContent } = usePopupAnimation({
+    isVisible,
+    entryDelay: 50,
+  });
+
+  // Component-specific state
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(false);
-  const [showContent, setShowContent] = useState(false);
   const [hoveredProduct, setHoveredProduct] = useState<string | null>(null);
   const [currentSlide, setCurrentSlide] = useState(0);
 
@@ -64,16 +74,6 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
     () => (config.maxProducts ? products.slice(0, config.maxProducts) : products),
     [config.maxProducts, products]
   );
-
-  // Animate content in
-  useEffect(() => {
-    if (isVisible) {
-      const timer = setTimeout(() => setShowContent(true), 50);
-      return () => clearTimeout(timer);
-    } else {
-      setShowContent(false);
-    }
-  }, [isVisible]);
 
   const handleProductSelect = useCallback((productId: string) => {
     if (config.multiSelect) {
@@ -849,9 +849,8 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
         className="upsell-products-grid"
         style={{
           ...getGridStyles(),
-          // Use CSS variable so media queries can adjust columns like the mockup
-          // Desktop uses configured columns; mobile overrides via @media
-          '--upsell-columns': Math.min(config.columns || 2, displayProducts.length || 1),
+          // Use CSS variable for configured columns (don't limit by product count)
+          '--upsell-columns': config.columns || 2,
         } as React.CSSProperties}
       >
         {displayProducts.map((product, index) => renderProduct(product, index))}
@@ -881,7 +880,7 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
     gap: '8px'
   };
 
-  const savings = calculateSavings();
+  const savings = calculateTotalSavings();
   const total = calculateTotal();
   const discountedTotal = calculateDiscountedTotal();
 
@@ -1128,25 +1127,26 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
         }
 
         .upsell-header {
-          padding: 1.25rem 1.5rem 0.875rem;
+          padding: ${getContainerPadding(config.size)};
+          padding-bottom: ${POPUP_SPACING.section.md};
           text-align: center;
           border-bottom: 1px solid var(--upsell-border, ${borderColor});
           flex-shrink: 0;
         }
 
         .upsell-headline {
-          font-size: 1.375rem;
-          font-weight: 700;
-          line-height: 1.2;
-          margin: 0 0 0.375rem 0;
+          font-size: 1.875rem;
+          font-weight: 900;
+          line-height: 1.1;
+          margin: 0 0 ${SPACING_GUIDELINES.afterHeadline} 0;
           color: var(--upsell-text, ${textColor});
         }
 
         .upsell-subheadline {
-          font-size: 0.8125rem;
-          line-height: 1.4;
+          font-size: 1rem;
+          line-height: 1.6;
           color: var(--upsell-text, ${textColor});
-          opacity: 0.65;
+          opacity: 0.8;
           margin: 0;
         }
 
@@ -1164,25 +1164,25 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
         .upsell-content {
           flex: 1;
           overflow-y: auto;
-          padding: 1.25rem 1.5rem;
+          padding: ${POPUP_SPACING.section.lg} ${POPUP_SPACING.section.xl};
           min-height: 0;
         }
 
         .upsell-footer {
           border-top: 2px solid var(--upsell-border, ${borderColor});
-          padding: 0.875rem 1.5rem;
+          padding: ${POPUP_SPACING.section.lg} ${POPUP_SPACING.section.xl};
           background: var(--upsell-secondary, ${secondaryColor});
           flex-shrink: 0;
         }
 
         .upsell-actions {
           display: flex;
-          gap: 0.625rem;
-          margin-top: 0.625rem;
+          gap: ${SPACING_GUIDELINES.betweenButtons};
+          margin-top: ${POPUP_SPACING.section.md};
         }
 
         .upsell-summary {
-          margin-bottom: 0.625rem;
+          margin-bottom: ${POPUP_SPACING.section.md};
         }
 
         .upsell-summary-row {
@@ -1223,9 +1223,12 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
 
         .upsell-products-grid {
           display: grid;
-          grid-template-columns: repeat(var(--upsell-columns, 2), minmax(0, 1fr));
-          gap: 1rem;
-          margin-bottom: 1rem;
+          /* Use auto-fit to only create columns for existing items */
+          /* Minimum width ensures max columns = configured value */
+          /* Formula: max(100% / columns, 180px) ensures items don't get too small */
+          grid-template-columns: repeat(auto-fit, minmax(clamp(180px, calc(100% / var(--upsell-columns, 2)), 100%), 1fr));
+          gap: ${POPUP_SPACING.gap.md};
+          margin-bottom: ${SPACING_GUIDELINES.beforeCTA};
         }
 
         .upsell-carousel-container {
@@ -1292,7 +1295,8 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           }
 
           .upsell-products-grid {
-            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            /* On mobile, use auto-fit with smaller minimum width */
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
             gap: 0.875rem;
           }
 

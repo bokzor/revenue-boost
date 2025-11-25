@@ -54,12 +54,18 @@ function getClientIP(request: Request): string {
  * Get store ID from request (if authenticated)
  */
 function getStoreId(request: Request): string | null {
-  // Extract from URL or session
-  const url = new URL(request.url);
-  const storeId = url.searchParams.get("storeId");
-  
-  // TODO: Extract from session/auth when implemented
-  return storeId;
+  // Only trust explicit headers set by authenticated upstream context.
+  // Avoid using query params to prevent spoofing / bucket pollution.
+  const headerStoreId =
+    request.headers.get("x-rb-store-id") ||
+    request.headers.get("x-store-id") ||
+    null;
+
+  if (!headerStoreId) return null;
+
+  // Basic validation to avoid arbitrary/huge values
+  const isValid = /^[A-Za-z0-9_-]+$/.test(headerStoreId);
+  return isValid ? headerStoreId : null;
 }
 
 /**
@@ -175,4 +181,3 @@ export async function withWebhookRateLimit<T>(
 ): Promise<T | Response> {
   return withRateLimit(args, RATE_LIMIT_CONFIGS.WEBHOOK, handler);
 }
-

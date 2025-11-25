@@ -55,6 +55,11 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     if (path.startsWith("api/")) {
       console.log(`[App Proxy] API request: ${path}`);
 
+      if (path === "api/health") {
+        const { loader: healthLoader } = await import("./apps.revenue-boost.api.health");
+        return healthLoader();
+      }
+
       if (path === "api/campaigns/active") {
         const { loader: apiLoader } = await import("./apps.revenue-boost.api.campaigns.active");
         return apiLoader({ request, params } as LoaderFunctionArgs);

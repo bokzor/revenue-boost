@@ -36,11 +36,47 @@ test.describe('Discount Configurations', () => {
 
         store = foundStore;
         factory = new CampaignFactory(prisma, store.id);
+
+        // Cleanup old test campaigns
+        await prisma.campaign.deleteMany({
+            where: {
+                name: { startsWith: 'E2E-Test-' }
+            }
+        });
     });
 
     test.afterAll(async () => {
         await prisma.$disconnect();
     });
+
+    test.beforeEach(async ({ page }) => {
+        // Log browser console messages
+        page.on('console', msg => {
+            console.log(`[BROWSER] ${msg.type()}: ${msg.text()}`);
+        });
+
+        // Log API responses for debugging
+        page.on('response', async response => {
+            if (response.url().includes('/api/campaigns') && response.status() === 200) {
+                try {
+                    const json = await response.json();
+                    console.log(`[API] /api/campaigns response:`, JSON.stringify(json, null, 2));
+                } catch (e) {
+                    console.log(`[API] Failed to parse JSON for ${response.url()}`);
+                }
+            }
+        });
+    });
+
+    // Helper to submit the form
+    async function submitForm(page: any) {
+        const emailInput = page.locator('input[type="email"]');
+        await expect(emailInput).toBeVisible();
+        await emailInput.fill(`test-${Date.now()}@example.com`);
+
+        const submitBtn = page.locator('button[type="submit"]');
+        await submitBtn.click();
+    }
 
     test('shows popup with 25% percentage discount', async ({ page }) => {
         console.log('🧪 Testing 25% percentage discount...');
@@ -50,8 +86,16 @@ test.describe('Discount Configurations', () => {
             .withName('Discount-Percentage-25')
             .withPriority(500)
             .withPercentageDiscount(25, 'SAVE25')
+            .withMaxImpressionsPerSession(100) // High limit to prevent blocking during repeated test runs
             .create();
 
+        console.log(`✅ Campaign created: ${campaign.id}`);
+        console.log(`   Name: ${campaign.name}`);
+        console.log(`   Priority: ${campaign.priority}`);
+        console.log(`   Status: ${campaign.status}`);
+        console.log(`   Discount Config: ${JSON.stringify(campaign.discountConfig)}`);
+
+        let testPassed = false;
         try {
             // Visit storefront
             await page.goto(`https://${STORE_DOMAIN}`);
@@ -62,15 +106,24 @@ test.describe('Discount Configurations', () => {
             const popup = page.locator('[data-splitpop="true"]');
             await expect(popup).toBeVisible({ timeout: 10000 });
 
+            // Submit form to see discount
+            await submitForm(page);
+
             // Look for discount code display (should show generated code)
             // The exact selector depends on the popup template
             const discountDisplay = popup.locator('text=/SAVE25/i');
             await expect(discountDisplay).toBeVisible({ timeout: 5000 });
 
             console.log('✅ 25% percentage discount displayed successfully');
+            testPassed = true;
         } finally {
-            // Cleanup
-            await prisma.campaign.delete({ where: { id: campaign.id } });
+            // Only cleanup if test passed, otherwise leave for debugging
+            if (testPassed) {
+                await prisma.campaign.delete({ where: { id: campaign.id } });
+                console.log(`🗑️  Cleaned up campaign: ${campaign.id}`);
+            } else {
+                console.log(`⚠️  Leaving campaign ${campaign.id} for debugging`);
+            }
         }
     });
 
@@ -93,6 +146,9 @@ test.describe('Discount Configurations', () => {
             // Wait for popup to appear
             const popup = page.locator('[data-splitpop="true"]');
             await expect(popup).toBeVisible({ timeout: 10000 });
+
+            // Submit form to see discount
+            await submitForm(page);
 
             // Look for discount code display
             const discountDisplay = popup.locator('text=/SAVE10/i');
@@ -125,6 +181,9 @@ test.describe('Discount Configurations', () => {
             const popup = page.locator('[data-splitpop="true"]');
             await expect(popup).toBeVisible({ timeout: 10000 });
 
+            // Submit form to see discount
+            await submitForm(page);
+
             // Look for discount code display
             const discountDisplay = popup.locator('text=/FREESHIP/i');
             await expect(discountDisplay).toBeVisible({ timeout: 5000 });
@@ -155,6 +214,9 @@ test.describe('Discount Configurations', () => {
             // Wait for popup to appear
             const popup = page.locator('[data-splitpop="true"]');
             await expect(popup).toBeVisible({ timeout: 10000 });
+
+            // Submit form to see discount
+            await submitForm(page);
 
             // Look for the exact code
             const discountDisplay = popup.locator('text=/WELCOME2024/i');
@@ -189,6 +251,9 @@ test.describe('Discount Configurations', () => {
             // Wait for popup to appear
             const popup = page.locator('[data-splitpop="true"]');
             await expect(popup).toBeVisible({ timeout: 10000 });
+
+            // Submit form to see discount
+            await submitForm(page);
 
             // Find and click the discount code (or copy button)
             const discountCode = popup.locator('text=/COPY20/i').first();

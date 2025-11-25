@@ -19,6 +19,7 @@ import type {
   EnhancedTriggersConfig,
   AudienceTargetingConfig,
   PageTargetingConfig,
+  TargetRulesConfig,
   CampaignGoal,
   TriggerType as CampaignTriggerType,
   TemplateType,
@@ -149,6 +150,7 @@ export interface CampaignFormData {
   enhancedTriggers: EnhancedTriggersConfig;
   audienceTargeting: AudienceTargetingConfig;
   pageTargeting?: PageTargetingConfig;
+  targetRules?: TargetRulesConfig; // Target rules configuration (combines enhancedTriggers, audienceTargeting, pageTargeting)
   frequencyCapping: FrequencyCappingConfig;
   discountConfig: DiscountConfig;
   // A/B Testing variant fields

@@ -64,6 +64,8 @@ interface Config {
   debug: boolean;
   previewMode?: boolean;
   previewId?: string;
+  previewToken?: string;
+  previewBehavior?: 'instant' | 'realistic';
   sessionId?: string;
   visitCount?: number;
   isReturningVisitor?: boolean;
@@ -79,6 +81,8 @@ function getConfig(): Config {
     debug: cfg.debug || false,
     previewMode: cfg.previewMode || false,
     previewId: cfg.previewId,
+    previewToken: cfg.previewToken,
+    previewBehavior: cfg.previewBehavior || 'instant',
     sessionId: cfg.sessionId,
     visitCount: cfg.visitCount,
     isReturningVisitor: cfg.isReturningVisitor,
@@ -135,6 +139,14 @@ class RevenueBoostApp {
     console.log("[Revenue Boost] 🔑 Session ID:", session.getSessionId());
     console.log("[Revenue Boost] 👤 Visitor ID:", session.getVisitorId());
 
+    // Log preview mode details
+    if (this.config.previewMode) {
+      console.log("[Revenue Boost] 🎭 PREVIEW MODE ENABLED");
+      console.log("[Revenue Boost] Preview ID:", this.config.previewId || "none");
+      console.log("[Revenue Boost] Preview Token:", this.config.previewToken || "none");
+      console.log("[Revenue Boost] Preview Behavior:", this.config.previewBehavior);
+    }
+
     // Wait for DOM
     await waitForDOMReady();
     this.log("DOM ready");
@@ -147,6 +159,7 @@ class RevenueBoostApp {
 
     // Fetch campaigns
     try {
+      console.log("[Revenue Boost] 📡 Fetching campaigns from API...");
       const response = await this.api.fetchActiveCampaigns(
         session.getSessionId(),
         session.getVisitorId()
@@ -154,10 +167,17 @@ class RevenueBoostApp {
       const { campaigns } = response;
       const campaignList = campaigns as ClientCampaign[];
 
-      this.log(`Campaigns received: ${campaignList?.length || 0}`);
+      console.log(`[Revenue Boost] ✅ Campaigns received: ${campaignList?.length || 0}`);
+      if (campaignList && campaignList.length > 0) {
+        console.log("[Revenue Boost] Campaign details:", campaignList.map(c => ({
+          id: c.id,
+          name: c.name,
+          templateType: c.templateType,
+        })));
+      }
 
       if (!campaignList || campaignList.length === 0) {
-        this.log("No active campaigns");
+        console.warn("[Revenue Boost] ⚠️ No active campaigns returned from API");
         return;
       }
 
@@ -248,20 +268,36 @@ class RevenueBoostApp {
     });
 
     if (available.length === 0) {
-      this.log("No campaigns to display");
+      console.warn("[Revenue Boost] ⚠️ No campaigns available after filtering");
       return;
     }
 
+    console.log(`[Revenue Boost] 📋 ${available.length} campaign(s) available after filtering`);
+
     // Preview mode: show only the preview campaign if present
-    if (this.config.previewMode && this.config.previewId) {
-      const previewCampaign = available.find(
-        (c) => c.id === this.config.previewId
-      );
+    if (this.config.previewMode && (this.config.previewId || this.config.previewToken)) {
+      console.log("[Revenue Boost] 🎭 Preview mode: looking for preview campaign...");
+
+      // For preview token, the campaign ID will be like "preview-{token}"
+      const previewCampaign = this.config.previewId
+        ? available.find((c) => c.id === this.config.previewId)
+        : available[0]; // For preview tokens, there should only be one campaign
+
       if (previewCampaign) {
-        this.log("Preview mode: showing campaign:", previewCampaign.name);
+        console.log("[Revenue Boost] ✅ Preview campaign found:", {
+          id: previewCampaign.id,
+          name: previewCampaign.name,
+          templateType: previewCampaign.templateType,
+          behavior: this.config.previewBehavior,
+        });
         setTimeout(() => {
           void this.showCampaign(previewCampaign);
         }, 0);
+        return;
+      } else {
+        console.error("[Revenue Boost] ❌ Preview campaign not found!");
+        console.log("[Revenue Boost] Looking for:", this.config.previewId || "first campaign");
+        console.log("[Revenue Boost] Available campaigns:", available.map(c => c.id));
         return;
       }
     }
@@ -332,31 +368,54 @@ class RevenueBoostApp {
   }
 
   private async showCampaign(campaign: ClientCampaign): Promise<void> {
-    const isPreview = this.config.previewMode && this.config.previewId === campaign.id;
+    console.log("[Revenue Boost] 🎬 showCampaign called for:", {
+      id: campaign.id,
+      name: campaign.name,
+      templateType: campaign.templateType,
+    });
 
-    // Preview mode: show immediately without trigger evaluation
-    if (isPreview) {
+    const isPreview = this.config.previewMode &&
+      (this.config.previewId === campaign.id || this.config.previewToken);
+
+    console.log("[Revenue Boost] Preview check:", {
+      isPreview,
+      previewMode: this.config.previewMode,
+      previewId: this.config.previewId,
+      previewToken: this.config.previewToken,
+      campaignId: campaign.id,
+      behavior: this.config.previewBehavior,
+    });
+
+    // Instant preview mode: show immediately without trigger evaluation
+    if (isPreview && this.config.previewBehavior === 'instant') {
+      console.log("[Revenue Boost] ⚡ Instant preview: showing campaign immediately");
       await this.renderCampaign(campaign);
       return;
     }
 
+    // Realistic preview mode OR normal mode: evaluate triggers
     const triggerManager = new TriggerManager();
 
     // Evaluate triggers
-    this.log("Evaluating triggers for campaign:", campaign.name);
+    if (isPreview && this.config.previewBehavior === 'realistic') {
+      console.log("[Revenue Boost] 🎯 Realistic preview: evaluating triggers for campaign:", campaign.name);
+    } else {
+      console.log("[Revenue Boost] 🎯 Normal mode: evaluating triggers for campaign:", campaign.name);
+    }
 
     try {
+      console.log("[Revenue Boost] 🔍 Evaluating triggers...");
       const shouldShow = await triggerManager.evaluateTriggers(campaign);
 
       if (shouldShow) {
-        this.log("Triggers passed, showing campaign");
+        console.log("[Revenue Boost] ✅ Triggers passed, showing campaign");
         await this.renderCampaign(campaign, triggerManager);
       } else {
-        this.log("Triggers not met, campaign not shown");
+        console.warn("[Revenue Boost] ⚠️ Triggers not met, campaign not shown");
         triggerManager.cleanup();
       }
     } catch (error) {
-      console.error("[Revenue Boost] Error evaluating triggers:", error);
+      console.error("[Revenue Boost] ❌ Error evaluating triggers:", error);
       // Fallback: show campaign anyway
       await this.renderCampaign(campaign, triggerManager);
     }
@@ -366,6 +425,7 @@ class RevenueBoostApp {
     campaign: ClientCampaign,
     triggerManager?: TriggerManager
   ): Promise<void> {
+    console.log("[Revenue Boost] 🎨 renderCampaign called for:", campaign.name);
     const isPreview = this.config.previewMode && this.config.previewId === campaign.id;
 
     // Record frequency for server-side tracking (Redis + analytics)

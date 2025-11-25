@@ -450,8 +450,8 @@ export default function Dashboard() {
     return (
       <Page title="Dashboard">
         <Layout>
-          {/* Setup Status Banner */}
-          {setupStatus && !setupComplete && (
+          {/* Setup Status Banner - Show if setup incomplete OR if there are any issues */}
+          {setupStatus && (!setupComplete || !setupStatus.themeExtensionEnabled || !setupStatus.appProxyOk) && (
             <Layout.Section>
               <SetupStatus
                 status={setupStatus}
@@ -531,8 +531,8 @@ export default function Dashboard() {
       }
     >
       <Layout>
-        {/* Setup Status Banner */}
-        {setupStatus && !setupComplete && (
+        {/* Setup Status Banner - Show if setup incomplete OR if there are any issues */}
+        {setupStatus && (!setupComplete || !setupStatus.themeExtensionEnabled || !setupStatus.appProxyOk) && (
           <Layout.Section>
             <SetupStatus
               status={setupStatus}

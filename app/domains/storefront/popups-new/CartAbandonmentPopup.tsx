@@ -15,8 +15,14 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { PopupPortal } from './PopupPortal';
 import type { PopupDesignConfig, CartItem, DiscountConfig } from './types';
 import type { CartAbandonmentContent } from '~/domains/campaigns/types/campaign';
-import { calculateTimeRemaining, formatCurrency, validateEmail, copyToClipboard } from './utils';
-import { challengeTokenStore } from '~/domains/storefront/services/challenge-token.client';
+import { formatCurrency } from './utils';
+import { POPUP_SPACING, getContainerPadding, SPACING_GUIDELINES } from './spacing';
+
+// Import custom hooks
+import { useCountdownTimer, useDiscountCode, usePopupAnimation, usePopupForm } from './hooks';
+
+// Import reusable components
+import { EmailInput, SubmitButton } from './components';
 
 /**
  * CartAbandonmentConfig - Extends both design config AND campaign content type
@@ -58,20 +64,50 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
   issueDiscount,
   onTrack,
 }) => {
-  const [timeRemaining, setTimeRemaining] = useState(() => {
-    if (config.urgencyTimer) {
-      const endDate = new Date(Date.now() + config.urgencyTimer * 1000);
-      return calculateTimeRemaining(endDate);
-    }
-    return { total: 0, days: 0, hours: 0, minutes: 0, seconds: 0 };
+  // Use countdown timer hook
+  const {
+    timeRemaining,
+    hasExpired,
+    formattedTime,
+  } = useCountdownTimer({
+    enabled: config.showUrgency === true && !!config.urgencyTimer,
+    mode: 'duration',
+    duration: config.urgencyTimer,
+    onExpire: () => {
+      // Timer expired - could auto-close or show expired message
+    },
   });
 
-  const [email, setEmail] = useState('');
-  const [emailError, setEmailError] = useState<string | null>(null);
+  // Use discount code hook
+  const { discountCode, setDiscountCode, copiedCode, handleCopyCode } = useDiscountCode();
+
+  // Use animation hook
+  const { showContent } = usePopupAnimation({ isVisible });
+
+  // Use form hook for email recovery
+  const {
+    formState,
+    setEmail,
+    errors,
+    handleSubmit: handleFormSubmit,
+    isSubmitting: isEmailSubmitting,
+    isSubmitted: emailSubmitted,
+  } = usePopupForm({
+    config: {
+      emailRequired: true,
+      emailErrorMessage: config.emailErrorMessage,
+      campaignId: config.campaignId,
+      previewMode: config.previewMode,
+    },
+    endpoint: config.enableEmailRecovery ? '/apps/revenue-boost/api/cart/email-recovery' : undefined,
+    onSubmit: onEmailRecovery ? async (data) => {
+      const result = await onEmailRecovery(data.email);
+      return typeof result === 'string' ? result : undefined;
+    } : undefined,
+  });
+
+  // Component-specific state
   const [emailSuccessMessage, setEmailSuccessMessage] = useState<string | null>(null);
-  const [isEmailSubmitting, setIsEmailSubmitting] = useState(false);
-  const [discountCodeToShow, setDiscountCodeToShow] = useState<string | null>(null);
-  const [copiedCode, setCopiedCode] = useState(false);
 
 
   const discountDeliveryMode = config.discount?.deliveryMode || 'show_code_fallback';
@@ -84,24 +120,7 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
         ? 'Your discount code is authorized for this email address only.'
         : 'Your discount code is ready to use at checkout.');
 
-  // Update urgency timer
-  useEffect(() => {
-    if (!config.showUrgency || !config.urgencyTimer) return;
-
-    // Calculate end date once when the effect mounts (or config changes)
-    const endDate = new Date(Date.now() + config.urgencyTimer * 1000);
-
-    const timer = setInterval(() => {
-      const newTime = calculateTimeRemaining(endDate);
-      setTimeRemaining(newTime);
-
-      if (newTime.total <= 0) {
-        clearInterval(timer);
-      }
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [config.showUrgency, config.urgencyTimer]);
+  // Timer is now handled by useCountdownTimer hook
 
   const handleResumeCheckout = useCallback(
     async () => {
@@ -111,7 +130,7 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
         if (
           config.discount?.enabled &&
           typeof issueDiscount === 'function' &&
-          !discountCodeToShow
+          !discountCode
         ) {
           let numericTotal: number | undefined;
           if (typeof cartTotal === 'number') {
@@ -137,8 +156,8 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
               discountDeliveryMode === 'show_code_fallback' ||
               discountDeliveryMode === 'show_in_popup_authorized_only');
 
-          if (shouldShowCodeFromCta) {
-            setDiscountCodeToShow(code || null);
+          if (shouldShowCodeFromCta && code) {
+            setDiscountCode(code);
             shouldRedirect = false;
           }
         }
@@ -158,7 +177,7 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
       if (onTrack) {
         onTrack({
           action: 'resume_checkout',
-          discountApplied: !!discountCodeToShow
+          discountApplied: !!discountCode
         });
       }
     },
@@ -166,10 +185,11 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
       config.discount?.enabled,
       config.ctaUrl,
       cartTotal,
-      discountCodeToShow,
+      discountCode,
       discountDeliveryMode,
       issueDiscount,
       onResumeCheckout,
+      setDiscountCode,
     ],
   );
 
@@ -184,107 +204,26 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
   }, [onSaveForLater, onClose]);
 
   const handleEmailSubmit = useCallback(
-    async (e: React.FormEvent<HTMLFormElement>) => {
-      e.preventDefault();
-      setEmailError(null);
-      setEmailSuccessMessage(null);
-
-      const trimmed = email.trim();
-      if (!trimmed) {
-        setEmailError(config.emailErrorMessage || 'Please enter your email');
-        return;
-      }
-      if (!validateEmail(trimmed)) {
-        setEmailError(config.emailErrorMessage || 'Please enter a valid email');
-        return;
-      }
+    async (e?: React.FormEvent<HTMLFormElement>) => {
+      if (e) e.preventDefault();
 
       if (!config.enableEmailRecovery) {
         handleResumeCheckout();
         return;
       }
 
-      setIsEmailSubmitting(true);
-      try {
-        // SECURITY: Use challenge token for secure submission
-        const campaignId = config.campaignId;
-
-        if (!campaignId) {
-          throw new Error('Missing campaignId for secure submission');
+      const result = await handleFormSubmit();
+      if (result.success) {
+        if (result.discountCode) {
+          setDiscountCode(result.discountCode);
         }
-
-        const challengeToken = challengeTokenStore.get(campaignId);
-
-        if (!challengeToken) {
-          throw new Error('Security check failed. Please refresh the page.');
-        }
-
-        // Call API directly instead of relying on prop
-        const response = await fetch('/apps/revenue-boost/api/cart/email-recovery', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            campaignId: config.campaignId,
-            email: trimmed,
-            sessionId: typeof window !== 'undefined' ? window.sessionStorage?.getItem('rb_session_id') : undefined,
-            challengeToken: challengeToken as string,
-            cartItems,
-            cartSubtotalCents: typeof cartTotal === 'number' ? Math.round(cartTotal * 100) : undefined,
-          }),
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(data.error || 'Submission failed');
-        }
-
-        if (data.success) {
-          if (data.discountCode) {
-            setDiscountCodeToShow(data.discountCode);
-          }
-          setEmailSuccessMessage(emailSuccessCopy);
-        } else {
-          throw new Error(data.error || 'Submission failed');
-        }
-      } catch (err: any) {
-        console.error('[CartAbandonmentPopup] Email recovery failed', err);
-        setEmailError(
-          err.message ||
-          config.emailErrorMessage ||
-          'Something went wrong. Please try again.',
-        );
-      } finally {
-        setIsEmailSubmitting(false);
+        setEmailSuccessMessage(emailSuccessCopy);
       }
     },
-    [
-      email,
-      config.campaignId,
-      config.emailErrorMessage,
-      config.enableEmailRecovery,
-      emailSuccessCopy,
-      handleResumeCheckout,
-      cartItems,
-      cartTotal,
-    ],
+    [config.enableEmailRecovery, handleFormSubmit, handleResumeCheckout, emailSuccessCopy, setDiscountCode],
   );
 
-  const handleCopyCode = useCallback(async () => {
-    if (!discountCodeToShow) return;
-
-    try {
-      const success = await copyToClipboard(discountCodeToShow);
-      if (success) {
-        setCopiedCode(true);
-        setTimeout(() => setCopiedCode(false), 2000);
-      }
-    } catch (err) {
-      console.error('[CartAbandonmentPopup] Failed to copy discount code:', err);
-    }
-  }, [discountCodeToShow]);
+  // Copy code handler now from useDiscountCode hook
 
 
   const displayItems = cartItems.slice(0, config.maxItemsToShow || 3);
@@ -294,7 +233,7 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
   const isEmailGateActive =
     !!config.enableEmailRecovery &&
     !!config.requireEmailBeforeCheckout &&
-    !discountCodeToShow;
+    !discountCode;
   const borderRadiusValue =
     typeof config.borderRadius === 'number'
       ? `${config.borderRadius}px`
@@ -410,15 +349,15 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
             right: auto;
             max-width: ${cardMaxWidth};
             border-radius: ${borderRadiusValue};
-            padding: 2.5rem;
+            padding: ${getContainerPadding(config.size)};
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
             animation: fadeIn 0.3s ease-out forwards;
             margin: 0 auto;
           }
-          
+
           /* Ensure buttons have normal padding on desktop */
           .cart-ab-primary-button {
-            padding: 1rem;
+            padding: ${POPUP_SPACING.component.button};
           }
           
           .cart-ab-email-row {
@@ -435,8 +374,8 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
           display: flex;
           align-items: flex-start;
           justify-content: space-between;
-          gap: 1rem;
-          margin-bottom: 1.5rem;
+          gap: ${POPUP_SPACING.gap.md};
+          margin-bottom: ${SPACING_GUIDELINES.afterDescription};
         }
 
         .cart-ab-header-text {
@@ -444,17 +383,17 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
         }
 
         .cart-ab-title {
-          font-size: 1.5rem;
-          font-weight: 800;
-          line-height: 1.2;
-          margin: 0 0 0.5rem 0;
+          font-size: 1.875rem;
+          font-weight: 900;
+          line-height: 1.1;
+          margin: 0 0 ${SPACING_GUIDELINES.afterHeadline} 0;
           letter-spacing: -0.02em;
         }
 
         .cart-ab-subtitle {
           margin: 0;
           font-size: 1rem;
-          line-height: 1.5;
+          line-height: 1.6;
           color: ${descriptionColor};
         }
 
@@ -480,7 +419,7 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
         .cart-ab-body {
           display: flex;
           flex-direction: column;
-          gap: 1rem;
+          gap: ${SPACING_GUIDELINES.betweenSections};
         }
 
         .cart-ab-urgency {
@@ -935,30 +874,30 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
             {(config.enableEmailRecovery || (config.previewMode && config.requireEmailBeforeCheckout)) && (
               <form onSubmit={handleEmailSubmit} className="cart-ab-email-form">
                 <div className="cart-ab-email-row">
-                  <input
-                    type="email"
-                    className="cart-ab-email-input"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                  <EmailInput
+                    value={formState.email}
+                    onChange={setEmail}
                     placeholder={
                       config.emailPlaceholder ||
                       'Enter your email to receive your cart and discount'
                     }
-                    aria-label="Email address for cart recovery"
-                  />
-                  <button
-                    type="submit"
-                    style={buttonStyles}
+                    error={errors.email}
+                    required={true}
                     disabled={isEmailSubmitting}
+                    accentColor={config.accentColor || config.buttonColor}
+                    textColor={config.textColor}
+                    backgroundColor={config.inputBackgroundColor}
+                  />
+                  <SubmitButton
+                    type="submit"
+                    loading={isEmailSubmitting}
+                    disabled={isEmailSubmitting}
+                    accentColor={config.accentColor || config.buttonColor}
+                    textColor={config.buttonTextColor}
                   >
-                    {isEmailSubmitting
-                      ? 'Sending…'
-                      : config.emailButtonText || 'Email me my cart'}
-                  </button>
+                    {config.emailButtonText || 'Email me my cart'}
+                  </SubmitButton>
                 </div>
-                {emailError && (
-                  <p className="cart-ab-email-error">{emailError}</p>
-                )}
                 {emailSuccessMessage && (
                   <p className="cart-ab-email-success">
                     {emailSuccessMessage}
@@ -967,14 +906,13 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
               </form>
             )}
 
-            {discountCodeToShow && (
-              <div className="cart-ab-code-block">
+            {discountCode && (
+              <div className="cart-ab-code-block" onClick={() => handleCopyCode()} style={{ cursor: 'pointer' }}>
                 <p className="cart-ab-code-label">Your discount code:</p>
-                <p className="cart-ab-code-value">{discountCodeToShow}</p>
+                <p className="cart-ab-code-value">{discountCode}</p>
                 <button
                   type="button"
                   className="cart-ab-code-copy"
-                  onClick={handleCopyCode}
                 >
                   {copiedCode ? 'Copied!' : 'Copy'}
                 </button>
