@@ -151,19 +151,9 @@ export const RECIPE_CATALOG: Partial<Record<TemplateType, RecipeDefinition[]>> =
                         subheadline: `Check out our popular ${product.title}`,
                         buttonText: "View Product",
                         bundleDiscount: context.discountValue,
-                        mappingRules: [
-                            {
-                                id: `rule_spotlight_${product.id}`,
-                                priority: 10,
-                                trigger: {
-                                    type: "all"
-                                },
-                                recommendation: {
-                                    mode: "manual",
-                                    products: [product.id]
-                                }
-                            }
-                        ]
+                        // Use existing schema fields instead of mappingRules
+                        productSelectionMethod: "manual" as const,
+                        selectedProducts: [product.id],
                     },
                     pageTargeting: {
                         enabled: true,
@@ -212,26 +202,9 @@ export const RECIPE_CATALOG: Partial<Record<TemplateType, RecipeDefinition[]>> =
                         subheadline: `Add ${offerProduct.title} to complete your set.`,
                         buttonText: "Add to Cart",
                         bundleDiscount: context.discountValue,
-                        mappingRules: [
-                            {
-                                id: `rule_${triggerProduct.id}_${offerProduct.id}`,
-                                priority: 10,
-                                trigger: {
-                                    type: "product_view",
-                                    values: [triggerProduct.id]
-                                },
-                                recommendation: {
-                                    mode: "manual",
-                                    products: [offerProduct.id]
-                                }
-                            },
-                            {
-                                id: "default_ai",
-                                priority: 0,
-                                trigger: { type: "all" },
-                                recommendation: { mode: "ai" }
-                            }
-                        ]
+                        // Use existing schema fields instead of mappingRules
+                        productSelectionMethod: "manual" as const,
+                        selectedProducts: [offerProduct.id],
                     },
                     pageTargeting: {
                         enabled: true,
@@ -277,26 +250,9 @@ export const RECIPE_CATALOG: Partial<Record<TemplateType, RecipeDefinition[]>> =
                     contentConfig: {
                         headline: "Don't forget this!",
                         subheadline: `Add ${offerProduct.title} to your order.`,
-                        mappingRules: [
-                            {
-                                id: `rule_cart_${triggerProduct.id}`,
-                                priority: 10,
-                                trigger: {
-                                    type: "product_in_cart",
-                                    values: [triggerProduct.id]
-                                },
-                                recommendation: {
-                                    mode: "manual",
-                                    products: [offerProduct.id]
-                                }
-                            },
-                             {
-                                id: "default_ai",
-                                priority: 0,
-                                trigger: { type: "all" },
-                                recommendation: { mode: "ai" }
-                            }
-                        ]
+                        // Use existing schema fields instead of mappingRules
+                        productSelectionMethod: "manual" as const,
+                        selectedProducts: [offerProduct.id],
                     }
                 };
             }
@@ -323,26 +279,9 @@ export const RECIPE_CATALOG: Partial<Record<TemplateType, RecipeDefinition[]>> =
                         headline: "Great choice!",
                         subheadline: `Customers who bought ${triggerProduct.title} also loved ${offerProduct.title}`,
                         bundleDiscount: context.discountValue,
-                        mappingRules: [
-                            {
-                                id: `rule_add_${triggerProduct.id}`,
-                                priority: 10,
-                                trigger: {
-                                    type: "product_added_to_cart",
-                                    values: [triggerProduct.id]
-                                },
-                                recommendation: {
-                                    mode: "manual",
-                                    products: [offerProduct.id]
-                                }
-                            },
-                            {
-                                id: "default_ai",
-                                priority: 0,
-                                trigger: { type: "all" },
-                                recommendation: { mode: "ai" }
-                            }
-                        ]
+                        // Use existing schema fields instead of mappingRules
+                        productSelectionMethod: "manual" as const,
+                        selectedProducts: [offerProduct.id],
                     },
                     targetRules: {
                         enhancedTriggers: {

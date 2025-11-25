@@ -71,6 +71,50 @@ export function ProductPicker({
   const shopify = useAppBridge();
   const [isLoading, setIsLoading] = useState(false);
   const [selections, setSelections] = useState<ProductPickerSelection[]>([]);
+  const [isFetchingInitial, setIsFetchingInitial] = useState(false);
+
+  // Fetch initial selections when selectedIds are provided
+  useEffect(() => {
+    const fetchInitialSelections = async () => {
+      // Only fetch if we have selectedIds but no selections yet
+      if (selectedIds.length === 0 || selections.length > 0 || isFetchingInitial) {
+        return;
+      }
+
+      setIsFetchingInitial(true);
+
+      try {
+        const type = mode === "collection" ? "collection" : "product";
+        const idsParam = selectedIds.join(",");
+        const response = await fetch(`/api/resources?ids=${encodeURIComponent(idsParam)}&type=${type}`);
+
+        if (!response.ok) {
+          console.error("Failed to fetch initial selections:", response.statusText);
+          return;
+        }
+
+        const data = await response.json();
+        const resources = data.resources || [];
+
+        // Map API response to ProductPickerSelection format
+        const initialSelections: ProductPickerSelection[] = resources.map((resource: any) => ({
+          id: resource.id,
+          title: resource.title,
+          handle: resource.handle,
+          images: resource.images,
+          variants: resource.variants,
+        }));
+
+        setSelections(initialSelections);
+      } catch (err) {
+        console.error("Error fetching initial selections:", err);
+      } finally {
+        setIsFetchingInitial(false);
+      }
+    };
+
+    fetchInitialSelections();
+  }, [selectedIds, selections.length, mode, isFetchingInitial]);
 
   const openPicker = useCallback(async () => {
     setIsLoading(true);
@@ -171,13 +215,15 @@ export function ProductPicker({
     return mode === "collection" ? CollectionIcon : ProductIcon;
   };
 
+  const isLoadingAny = isLoading || isFetchingInitial;
+
   return (
     <BlockStack gap="200">
       <Button
         icon={getIcon()}
         onClick={openPicker}
-        loading={isLoading}
-        disabled={isLoading}
+        loading={isLoadingAny}
+        disabled={isLoadingAny}
       >
         {getButtonLabel()}
       </Button>

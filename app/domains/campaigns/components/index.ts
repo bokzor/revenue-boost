@@ -6,6 +6,7 @@
 
 export { CampaignFormWithABTesting } from "./CampaignFormWithABTesting";
 export { CampaignList } from "./CampaignList";
+export { CampaignIndexTable } from "./CampaignIndexTable";
 export { CampaignDetail } from "./CampaignDetail";
 export { GoalCard } from "./GoalCard";
 export { GoalSelectorV2 } from "./GoalSelectorV2";

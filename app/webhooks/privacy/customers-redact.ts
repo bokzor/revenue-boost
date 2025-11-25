@@ -88,7 +88,7 @@ export async function handleCustomersRedact(
           userAgent: null,
           referrer: null,
           visitorId: null,
-          metadata: null,
+          metadata: {},
         },
       });
       console.log(`[Privacy Webhook] Anonymized ${eventsToAnonymize.length} popup events`);

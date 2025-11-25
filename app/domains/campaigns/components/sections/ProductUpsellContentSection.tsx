@@ -2,11 +2,15 @@
  * Product Upsell Content Configuration Section
  *
  * Form section for configuring product upsell popup content
+ * Organized into collapsible sections for better UX
  */
 
-import { useEffect } from "react";
-import { Card, BlockStack, Text, Divider, Select } from "@shopify/polaris";
+import { useEffect, useState } from "react";
+import type { KeyboardEvent } from "react";
+import { Card, BlockStack, Text, Divider, Select, Button, Collapsible, InlineStack, Banner } from "@shopify/polaris";
+import { ChevronDownIcon, ChevronUpIcon } from "@shopify/polaris-icons";
 import { TextField, CheckboxField, FormGrid } from "../form";
+import { ProductPicker, type ProductPickerSelection } from "../form/ProductPicker";
 import { useFieldUpdater } from "~/shared/hooks/useFieldUpdater";
 import type { ProductUpsellContent } from "../../types/campaign";
 
@@ -21,6 +25,26 @@ export function ProductUpsellContentSection({
   errors,
   onChange,
 }: ProductUpsellContentSectionProps) {
+  // Collapsible section state
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({
+    basicContent: true, // Basic content open by default for first-time setup
+    productSelection: false,
+    layoutDisplay: false,
+    bundleDiscount: false,
+    behavior: false,
+  });
+
+  const toggleSection = (section: string) => {
+    setOpenSections((prev) => ({ ...prev, [section]: !prev[section] }));
+  };
+
+  const handleKeyDown = (section: string) => (e: KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      toggleSection(section);
+    }
+  };
+
   const selectionMethod: ProductUpsellContent["productSelectionMethod"] =
     content.productSelectionMethod === "ai" ||
     content.productSelectionMethod === "manual" ||
@@ -74,218 +98,403 @@ export function ProductUpsellContentSection({
           </Text>
         </BlockStack>
 
+        {/* Informational Banner about Trigger Products */}
+        <Banner tone="info">
+          <BlockStack gap="200">
+            <Text as="p" variant="bodyMd">
+              <strong>Tip:</strong> The products selected below are the <strong>suggested products</strong> (what you want to upsell).
+            </Text>
+            <Text as="p" variant="bodyMd">
+              To show this upsell only when <strong>specific products are added to cart or viewed</strong> (trigger products),
+              configure them in the <strong>Targeting & Triggers</strong> step:
+            </Text>
+            <BlockStack gap="100">
+              <Text as="p" variant="bodySm" tone="subdued">
+                • For "Post-Add Upsell": Enable <strong>Add to Cart</strong> trigger and select trigger products
+              </Text>
+              <Text as="p" variant="bodySm" tone="subdued">
+                • For "Product Page Cross-Sell": Enable <strong>Product View</strong> trigger and select trigger products
+              </Text>
+            </BlockStack>
+          </BlockStack>
+        </Banner>
+
         <Divider />
 
         <BlockStack gap="400">
-          <TextField
-            label="Headline"
-            name="content.headline"
-            value={content.headline || ""}
-            error={errors?.headline}
-            required
-            placeholder="Complete Your Order & Save 15%"
-            helpText="Main headline"
-            onChange={(value) => updateField("headline", value)}
-          />
+          {/* Basic Content Section */}
+          <BlockStack gap="300">
+            <div
+              role="button"
+              tabIndex={0}
+              style={{ cursor: "pointer" }}
+              onClick={() => toggleSection("basicContent")}
+              onKeyDown={handleKeyDown("basicContent")}
+            >
+              <InlineStack gap="200" blockAlign="center">
+                <Button
+                  variant="plain"
+                  icon={openSections.basicContent ? ChevronUpIcon : ChevronDownIcon}
+                />
+                <Text as="h4" variant="headingSm">
+                  Basic Content
+                </Text>
+              </InlineStack>
+            </div>
 
-      <TextField
-        label="Subheadline"
-        name="content.subheadline"
-        value={content.subheadline || ""}
-        error={errors?.subheadline}
-        placeholder="These items pair perfectly together"
-        helpText="Supporting text (optional)"
-        onChange={(value) => updateField("subheadline", value)}
-      />
+            <Collapsible
+              open={openSections.basicContent}
+              id="basic-content-section"
+              transition={{
+                duration: "200ms",
+                timingFunction: "ease-in-out",
+              }}
+            >
+              <BlockStack gap="300">
+                <TextField
+                  label="Headline"
+                  name="content.headline"
+                  value={content.headline || ""}
+                  error={errors?.headline}
+                  required
+                  placeholder="Complete Your Order & Save 15%"
+                  helpText="Main headline"
+                  onChange={(value) => updateField("headline", value)}
+                />
 
-      <h3>Product Selection</h3>
+                <TextField
+                  label="Subheadline"
+                  name="content.subheadline"
+                  value={content.subheadline || ""}
+                  error={errors?.subheadline}
+                  placeholder="These items pair perfectly together"
+                  helpText="Supporting text (optional)"
+                  onChange={(value) => updateField("subheadline", value)}
+                />
+              </BlockStack>
+            </Collapsible>
+          </BlockStack>
 
-      <Select
-        label="How should products be chosen?"
-        name="content.productSelectionMethod"
-        options={[
-          { label: "Smart recommendations (default)", value: "ai" },
-          { label: "Manual selection", value: "manual" },
-          { label: "From a collection", value: "collection" },
-        ]}
-        helpText="Use recommendations by default, or specify products or a collection."
-        value={selectionMethod}
-        onChange={(value) =>
-          updateField(
-            "productSelectionMethod",
-            value as ProductUpsellContent["productSelectionMethod"],
-          )
-        }
-      />
+          <Divider />
 
-      {selectionMethod === "manual" && (
-        <TextField
-          label="Product IDs (comma separated)"
-          name="content.selectedProducts"
-          value={(content.selectedProducts || []).join(", ")}
-          placeholder="gid://shopify/Product/123, gid://shopify/Product/456"
-          helpText="Enter Shopify product IDs or GIDs to feature in this upsell."
-          onChange={(value) => {
-            const ids = value
-              .split(/[ ,]+/)
-              .map((id) => id.trim())
-              .filter(Boolean);
-            updateField("selectedProducts", ids);
-          }}
-        />
-      )}
+          {/* Product Selection Section */}
+          <BlockStack gap="300">
+            <div
+              role="button"
+              tabIndex={0}
+              style={{ cursor: "pointer" }}
+              onClick={() => toggleSection("productSelection")}
+              onKeyDown={handleKeyDown("productSelection")}
+            >
+              <InlineStack gap="200" blockAlign="center">
+                <Button
+                  variant="plain"
+                  icon={openSections.productSelection ? ChevronUpIcon : ChevronDownIcon}
+                />
+                <Text as="h4" variant="headingSm">
+                  Product Selection
+                </Text>
+              </InlineStack>
+            </div>
 
-      {selectionMethod === "collection" && (
-        <TextField
-          label="Collection ID or handle"
-          name="content.selectedCollection"
-          value={content.selectedCollection || ""}
-          placeholder="gid://shopify/Collection/123 or collection-handle"
-          helpText="Products will be pulled from this collection."
-          onChange={(value) => updateField("selectedCollection", value)}
-        />
-      )}
+            <Collapsible
+              open={openSections.productSelection}
+              id="product-selection-section"
+              transition={{
+                duration: "200ms",
+                timingFunction: "ease-in-out",
+              }}
+            >
+              <BlockStack gap="300">
 
-      <TextField
-        label="Maximum Products to Display"
-        name="content.maxProducts"
-        value={content.maxProducts?.toString() || "3"}
-        error={errors?.maxProducts}
-        placeholder="3"
-        helpText="Maximum number of products to show (1-12)"
-        onChange={(value) => updateField("maxProducts", parseInt(value) || 3)}
-      />
+                <Select
+                  label="How should products be chosen?"
+                  name="content.productSelectionMethod"
+                  options={[
+                    { label: "Smart recommendations (default)", value: "ai" },
+                    { label: "Manual selection", value: "manual" },
+                    { label: "From a collection", value: "collection" },
+                  ]}
+                  helpText="Use recommendations by default, or specify products or a collection."
+                  value={selectionMethod}
+                  onChange={(value) =>
+                    updateField(
+                      "productSelectionMethod",
+                      value as ProductUpsellContent["productSelectionMethod"],
+                    )
+                  }
+                />
 
-      <h3>Layout & Display</h3>
+                {selectionMethod === "manual" && (
+                  <ProductPicker
+                    mode="product"
+                    selectionType="multiple"
+                    selectedIds={content.selectedProducts || []}
+                    onSelect={(selections: ProductPickerSelection[]) => {
+                      const productIds = selections.map((s) => s.id);
+                      updateField("selectedProducts", productIds);
+                    }}
+                    buttonLabel="Select products to feature"
+                    showSelected={true}
+                  />
+                )}
 
-      <FormGrid columns={2}>
-        <Select
-          label="Layout"
-          name="content.layout"
-          options={[
-            { label: "Grid", value: "grid" },
-            { label: "Carousel", value: "carousel" },
-            { label: "Card", value: "card" },
-          ]}
-          helpText="Choose how upsell products are laid out."
-          value={layout}
-          onChange={(value) => updateField("layout", value as ProductUpsellContent["layout"])}
-        />
+                {selectionMethod === "collection" && (
+                  <ProductPicker
+                    mode="collection"
+                    selectionType="single"
+                    selectedIds={content.selectedCollection ? [content.selectedCollection] : []}
+                    onSelect={(selections: ProductPickerSelection[]) => {
+                      const collectionId = selections[0]?.id || "";
+                      updateField("selectedCollection", collectionId);
+                    }}
+                    buttonLabel="Select collection"
+                    showSelected={true}
+                  />
+                )}
 
-        {layout === "grid" && (
-          <TextField
-            label="Number of Columns"
-            name="content.columns"
-            value={content.columns?.toString() || "2"}
-            placeholder="2"
-            helpText="Columns in grid layout (1-4)"
-            onChange={(value) => updateField("columns", parseInt(value) || 2)}
-          />
-        )}
-      </FormGrid>
+                <TextField
+                  label="Maximum Products to Display"
+                  name="content.maxProducts"
+                  value={content.maxProducts?.toString() || "3"}
+                  error={errors?.maxProducts}
+                  placeholder="3"
+                  helpText="Maximum number of products to show (1-12)"
+                  onChange={(value) => updateField("maxProducts", parseInt(value) || 3)}
+                />
+              </BlockStack>
+            </Collapsible>
+          </BlockStack>
 
-      <FormGrid columns={2}>
-        <CheckboxField
-          label="Show Product Images"
-          name="content.showImages"
-          checked={content.showImages !== false}
-          onChange={(checked) => updateField("showImages", checked)}
-        />
+          <Divider />
 
-        <CheckboxField
-          label="Show Product Prices"
-          name="content.showPrices"
-          checked={content.showPrices !== false}
-          onChange={(checked) => updateField("showPrices", checked)}
-        />
-      </FormGrid>
+          {/* Layout & Display Section */}
+          <BlockStack gap="300">
+            <div
+              role="button"
+              tabIndex={0}
+              style={{ cursor: "pointer" }}
+              onClick={() => toggleSection("layoutDisplay")}
+              onKeyDown={handleKeyDown("layoutDisplay")}
+            >
+              <InlineStack gap="200" blockAlign="center">
+                <Button
+                  variant="plain"
+                  icon={openSections.layoutDisplay ? ChevronUpIcon : ChevronDownIcon}
+                />
+                <Text as="h4" variant="headingSm">
+                  Layout & Display
+                </Text>
+              </InlineStack>
+            </div>
 
-      <FormGrid columns={2}>
-        <CheckboxField
-          label="Show Compare-At Price"
-          name="content.showCompareAtPrice"
-          checked={content.showCompareAtPrice !== false}
-          helpText="Show original price if discounted"
-          onChange={(checked) => updateField("showCompareAtPrice", checked)}
-        />
+            <Collapsible
+              open={openSections.layoutDisplay}
+              id="layout-display-section"
+              transition={{
+                duration: "200ms",
+                timingFunction: "ease-in-out",
+              }}
+            >
+              <BlockStack gap="300">
 
-        <CheckboxField
-          label="Show Ratings"
-          name="content.showRatings"
-          checked={content.showRatings || false}
-          helpText="Display product star ratings"
-          onChange={(checked) => updateField("showRatings", checked)}
-        />
-      </FormGrid>
+                <FormGrid columns={2}>
+                  <Select
+                    label="Layout"
+                    name="content.layout"
+                    options={[
+                      { label: "Grid", value: "grid" },
+                      { label: "Carousel", value: "carousel" },
+                      { label: "Card", value: "card" },
+                    ]}
+                    helpText="Choose how upsell products are laid out."
+                    value={layout}
+                    onChange={(value) => updateField("layout", value as ProductUpsellContent["layout"])}
+                  />
 
-      <CheckboxField
-        label="Show Review Count"
-        name="content.showReviewCount"
-        checked={content.showReviewCount || false}
-        helpText="Display number of reviews"
-        onChange={(checked) => updateField("showReviewCount", checked)}
-      />
+                  {layout === "grid" && (
+                    <TextField
+                      label="Number of Columns"
+                      name="content.columns"
+                      value={content.columns?.toString() || "2"}
+                      placeholder="2"
+                      helpText="Columns in grid layout (1-4)"
+                      onChange={(value) => updateField("columns", parseInt(value) || 2)}
+                    />
+                  )}
+                </FormGrid>
 
-      <h3>Bundle Discount</h3>
+                <FormGrid columns={2}>
+                  <CheckboxField
+                    label="Show Product Images"
+                    name="content.showImages"
+                    checked={content.showImages !== false}
+                    onChange={(checked) => updateField("showImages", checked)}
+                  />
 
-      <FormGrid columns={2}>
-        <TextField
-          label="Bundle Discount (%)"
-          name="content.bundleDiscount"
-          value={content.bundleDiscount?.toString() || "15"}
-          placeholder="15"
-          helpText="Percentage discount when buying together"
-          onChange={(value) => updateField("bundleDiscount", parseInt(value) || 15)}
-        />
+                  <CheckboxField
+                    label="Show Product Prices"
+                    name="content.showPrices"
+                    checked={content.showPrices !== false}
+                    onChange={(checked) => updateField("showPrices", checked)}
+                  />
+                </FormGrid>
 
-        <TextField
-          label="Bundle Discount Text"
-          name="content.bundleDiscountText"
-          value={content.bundleDiscountText || ""}
-          placeholder="Save 15% when you buy together!"
-          onChange={(value) => updateField("bundleDiscountText", value)}
-        />
-      </FormGrid>
+                <FormGrid columns={2}>
+                  <CheckboxField
+                    label="Show Compare-At Price"
+                    name="content.showCompareAtPrice"
+                    checked={content.showCompareAtPrice !== false}
+                    helpText="Show original price if discounted"
+                    onChange={(checked) => updateField("showCompareAtPrice", checked)}
+                  />
 
-      <TextField
-        label="Currency"
-        name="content.currency"
-        value={content.currency || "USD"}
-        placeholder="USD"
-        helpText="Currency code used for price display (e.g. USD, EUR)"
-        onChange={(value) => updateField("currency", value.toUpperCase())}
-      />
+                  <CheckboxField
+                    label="Show Ratings"
+                    name="content.showRatings"
+                    checked={content.showRatings || false}
+                    helpText="Display product star ratings"
+                    onChange={(checked) => updateField("showRatings", checked)}
+                  />
+                </FormGrid>
 
-      <h3>Behavior</h3>
+                <CheckboxField
+                  label="Show Review Count"
+                  name="content.showReviewCount"
+                  checked={content.showReviewCount || false}
+                  helpText="Display number of reviews"
+                  onChange={(checked) => updateField("showReviewCount", checked)}
+                />
+              </BlockStack>
+            </Collapsible>
+          </BlockStack>
 
-      <CheckboxField
-        label="Allow Multi-Select"
-        name="content.multiSelect"
-        checked={content.multiSelect !== false}
-        helpText="Allow customers to select multiple products"
-        onChange={(checked) => updateField("multiSelect", checked)}
-      />
+          <Divider />
 
-      <FormGrid columns={2}>
-        <TextField
-          label="Button Text"
-          name="content.buttonText"
-          value={content.buttonText || ""}
-          error={errors?.buttonText}
-          required
-          placeholder="Add to Cart"
-          onChange={(value) => updateField("buttonText", value)}
-        />
+          {/* Bundle Discount Section */}
+          <BlockStack gap="300">
+            <div
+              role="button"
+              tabIndex={0}
+              style={{ cursor: "pointer" }}
+              onClick={() => toggleSection("bundleDiscount")}
+              onKeyDown={handleKeyDown("bundleDiscount")}
+            >
+              <InlineStack gap="200" blockAlign="center">
+                <Button
+                  variant="plain"
+                  icon={openSections.bundleDiscount ? ChevronUpIcon : ChevronDownIcon}
+                />
+                <Text as="h4" variant="headingSm">
+                  Bundle Discount
+                </Text>
+              </InlineStack>
+            </div>
 
-        <TextField
-          label="Secondary CTA Label"
-          name="content.secondaryCtaLabel"
-          value={content.secondaryCtaLabel || ""}
-          placeholder="No thanks"
-          helpText="Optional decline button text"
-          onChange={(value) => updateField("secondaryCtaLabel", value)}
-        />
-      </FormGrid>
+            <Collapsible
+              open={openSections.bundleDiscount}
+              id="bundle-discount-section"
+              transition={{
+                duration: "200ms",
+                timingFunction: "ease-in-out",
+              }}
+            >
+              <BlockStack gap="300">
+
+                <FormGrid columns={2}>
+                  <TextField
+                    label="Bundle Discount (%)"
+                    name="content.bundleDiscount"
+                    value={content.bundleDiscount?.toString() || "15"}
+                    placeholder="15"
+                    helpText="Percentage discount when buying together"
+                    onChange={(value) => updateField("bundleDiscount", parseInt(value) || 15)}
+                  />
+
+                  <TextField
+                    label="Bundle Discount Text"
+                    name="content.bundleDiscountText"
+                    value={content.bundleDiscountText || ""}
+                    placeholder="Save 15% when you buy together!"
+                    onChange={(value) => updateField("bundleDiscountText", value)}
+                  />
+                </FormGrid>
+
+                <TextField
+                  label="Currency"
+                  name="content.currency"
+                  value={content.currency || "USD"}
+                  placeholder="USD"
+                  helpText="Currency code used for price display (e.g. USD, EUR)"
+                  onChange={(value) => updateField("currency", value.toUpperCase())}
+                />
+              </BlockStack>
+            </Collapsible>
+          </BlockStack>
+
+          <Divider />
+
+          {/* Behavior Section */}
+          <BlockStack gap="300">
+            <div
+              role="button"
+              tabIndex={0}
+              style={{ cursor: "pointer" }}
+              onClick={() => toggleSection("behavior")}
+              onKeyDown={handleKeyDown("behavior")}
+            >
+              <InlineStack gap="200" blockAlign="center">
+                <Button
+                  variant="plain"
+                  icon={openSections.behavior ? ChevronUpIcon : ChevronDownIcon}
+                />
+                <Text as="h4" variant="headingSm">
+                  Behavior & Actions
+                </Text>
+              </InlineStack>
+            </div>
+
+            <Collapsible
+              open={openSections.behavior}
+              id="behavior-section"
+              transition={{
+                duration: "200ms",
+                timingFunction: "ease-in-out",
+              }}
+            >
+              <BlockStack gap="300">
+
+                <CheckboxField
+                  label="Allow Multi-Select"
+                  name="content.multiSelect"
+                  checked={content.multiSelect !== false}
+                  helpText="Allow customers to select multiple products"
+                  onChange={(checked) => updateField("multiSelect", checked)}
+                />
+
+                <FormGrid columns={2}>
+                  <TextField
+                    label="Button Text"
+                    name="content.buttonText"
+                    value={content.buttonText || ""}
+                    error={errors?.buttonText}
+                    required
+                    placeholder="Add to Cart"
+                    onChange={(value) => updateField("buttonText", value)}
+                  />
+
+                  <TextField
+                    label="Secondary CTA Label"
+                    name="content.secondaryCtaLabel"
+                    value={content.secondaryCtaLabel || ""}
+                    placeholder="No thanks"
+                    helpText="Optional decline button text"
+                    onChange={(value) => updateField("secondaryCtaLabel", value)}
+                  />
+                </FormGrid>
+              </BlockStack>
+            </Collapsible>
+          </BlockStack>
         </BlockStack>
       </BlockStack>
     </Card>

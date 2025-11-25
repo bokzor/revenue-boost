@@ -14,7 +14,7 @@
  * - This ensures only the specific selected template shows the green checkmark
  */
 
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useCallback, useEffect } from "react";
 import { BlockStack, InlineGrid, EmptyState } from "@shopify/polaris";
 import type { CampaignGoal } from "@prisma/client";
 import type { UnifiedTemplate as _UnifiedTemplate } from "~/domains/popups/services/templates/unified-template-service.server";
@@ -46,6 +46,7 @@ export interface TemplateSelectorProps {
   selectedTemplateId?: string;
   onSelect: (template: SelectedTemplate) => void;
   initialTemplates?: _UnifiedTemplate[];
+  preselectedTemplateType?: string; // Auto-select first template of this type
 }
 
 export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
@@ -54,6 +55,7 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
   selectedTemplateId,
   onSelect,
   initialTemplates,
+  preselectedTemplateType,
 }) => {
   // Use extracted hook for template fetching (with optional initial templates from loader)
   const { templates, loading, error } = useTemplates(goal, storeId, initialTemplates);
@@ -62,8 +64,11 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedTemplateForModal, setSelectedTemplateForModal] = useState<_UnifiedTemplate | null>(null);
 
+  // Track if auto-selection has been performed
+  const [hasAutoSelected, setHasAutoSelected] = useState(false);
+
   // Handle template selection
-  const handleTemplateClick = (template: _UnifiedTemplate) => {
+  const handleTemplateClick = useCallback((template: _UnifiedTemplate) => {
     console.log(
       "Template clicked:",
       template.id,
@@ -104,7 +109,7 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
       };
       onSelect(selectedTemplate);
     }
-  };
+  }, [onSelect]);
 
   const handleRecipeSelect = (recipeData: Partial<CampaignFormData>) => {
     if (!selectedTemplateForModal) return;
@@ -147,6 +152,24 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
     setModalOpen(false);
     setSelectedTemplateForModal(null);
   };
+
+  // Auto-select template if preselectedTemplateType is provided
+  useEffect(() => {
+    if (preselectedTemplateType && !hasAutoSelected && templates.length > 0 && !selectedTemplateId) {
+      console.log("[TemplateSelector] Auto-selecting template type:", preselectedTemplateType);
+
+      // Find first template matching the preselected type
+      const matchingTemplate = templates.find(t => t.templateType === preselectedTemplateType);
+
+      if (matchingTemplate) {
+        console.log("[TemplateSelector] Found matching template:", matchingTemplate.name);
+        setHasAutoSelected(true);
+        handleTemplateClick(matchingTemplate);
+      } else {
+        console.warn("[TemplateSelector] No template found for type:", preselectedTemplateType);
+      }
+    }
+  }, [preselectedTemplateType, hasAutoSelected, templates, selectedTemplateId, handleTemplateClick]);
 
   // Use extracted processing utility
   const processedTemplates = useMemo(() => {
@@ -208,8 +231,8 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
         selectedTemplateName={selectedTemplate?.name}
       />
 
-      {/* Template Grid */}
-      <InlineGrid columns={{ xs: 1, sm: 2, md: 3 }} gap="400">
+      {/* Template Grid - Responsive: 1 col on mobile, 2 on tablet, 3 on desktop */}
+      <InlineGrid columns={{ xs: 1, sm: 1, md: 2, lg: 3 }} gap="400">
         {processedTemplates.map(({ originalTemplate, processedTemplate }) => (
           <TemplateCard
             key={originalTemplate.id}

@@ -25,17 +25,21 @@ HookRegistry.register('NEWSLETTER', backgroundImageHook);
 
 // Register hooks for SPIN_TO_WIN template
 HookRegistry.register('SPIN_TO_WIN', challengeTokenHook);
+HookRegistry.register('SPIN_TO_WIN', backgroundImageHook); // Preload background images
 
 // Register hooks for SCRATCH_CARD template
 HookRegistry.register('SCRATCH_CARD', challengeTokenHook);
+HookRegistry.register('SCRATCH_CARD', backgroundImageHook); // Preload background images
 
 // Register hooks for PRODUCT_UPSELL template
 HookRegistry.register('PRODUCT_UPSELL', challengeTokenHook);
 HookRegistry.register('PRODUCT_UPSELL', productDataHook);
+HookRegistry.register('PRODUCT_UPSELL', backgroundImageHook); // Preload background images
 
 // Register hooks for CART_ABANDONMENT template
 HookRegistry.register('CART_ABANDONMENT', challengeTokenHook);
 HookRegistry.register('CART_ABANDONMENT', cartDataHook);
+HookRegistry.register('CART_ABANDONMENT', backgroundImageHook); // Preload background images
 
 // Register hooks for FLASH_SALE template
 HookRegistry.register('FLASH_SALE', backgroundImageHook);

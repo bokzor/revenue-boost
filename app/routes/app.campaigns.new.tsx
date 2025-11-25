@@ -28,9 +28,33 @@ export async function loader({ request }: LoaderFunctionArgs) {
   try {
     const storeId = await getStoreId(request);
 
+    // Read template query parameter for preselection
+    const url = new URL(request.url);
+    const templateParam = url.searchParams.get("template");
+
+    // If template is provided, look up its associated goal
+    let preselectedGoal: string | undefined;
+    if (templateParam) {
+      // Import template data to find the goal
+      const templateDataModule = await import("../../prisma/template-data.js");
+      const template = templateDataModule.GLOBAL_SYSTEM_TEMPLATES.find(
+        (t) => t.templateType === templateParam
+      );
+
+      // If template has goals, preselect the first one
+      if (template && template.goals) {
+        const goals = Array.isArray(template.goals) ? template.goals : [];
+        if (goals.length > 0) {
+          preselectedGoal = goals[0];
+        }
+      }
+    }
+
     return data({
       storeId,
       shopDomain: session.shop,
+      templateType: templateParam || undefined,
+      preselectedGoal,
       success: true,
     });
   } catch (error) {
@@ -69,10 +93,12 @@ export default function NewCampaign() {
   const [activating, setActivating] = useState(false);
 
 
-  const { storeId, shopDomain, templates } = loaderData as {
+  const { storeId, shopDomain, templates, templateType, preselectedGoal } = loaderData as {
     storeId: string;
     shopDomain: string;
     templates: UnifiedTemplate[];
+    templateType?: string;
+    preselectedGoal?: string;
     success: boolean;
   };
 
@@ -299,6 +325,14 @@ export default function NewCampaign() {
         onSave={handleSave}
         onCancel={handleCancel}
         initialTemplates={templates}
+        initialData={
+          templateType || preselectedGoal
+            ? {
+                templateType: templateType as any,
+                goal: preselectedGoal as any,
+              }
+            : undefined
+        }
 	      />
 
 	      <Modal

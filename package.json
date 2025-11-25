@@ -33,7 +33,8 @@
     "test:e2e:storefront": "playwright test --project=storefront",
     "dev:test": "NODE_ENV=test DATABASE_URL='postgresql://postgres:postgres@localhost:5432/revenue-boost-test' react-router dev --port=56687",
     "build:storefront": "node scripts/build-storefront.js",
-    "build:storefront:dev": "BUILD_MODE=development node scripts/build-storefront.js"
+    "build:storefront:dev": "BUILD_MODE=development node scripts/build-storefront.js",
+    "build:storefront:staging": "BUILD_MODE=staging node scripts/build-storefront.js"
   },
   "type": "module",
   "engines": {

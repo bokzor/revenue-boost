@@ -11,8 +11,9 @@
  */
 
 import { useRef, useState } from "react";
-import type { ChangeEvent } from "react";
-import { Card, BlockStack, Text, Divider, Select, TextField, Banner, Button } from "@shopify/polaris";
+import type { ChangeEvent, KeyboardEvent } from "react";
+import { Card, BlockStack, Text, Divider, Select, Banner, Button, Collapsible, InlineStack } from "@shopify/polaris";
+import { ChevronDownIcon, ChevronUpIcon } from "@shopify/polaris-icons";
 import { ColorField, FormGrid } from "../form";
 import type { DesignConfig, TemplateType } from "~/domains/campaigns/types/campaign";
 import {
@@ -43,6 +44,26 @@ export function DesignConfigSection({
 }: DesignConfigSectionProps) {
   const [isUploadingBackground, setIsUploadingBackground] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Collapsible section state
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({
+    backgroundImage: false,
+    mainColors: false,
+    buttonColors: false,
+    inputColors: false,
+    overlaySettings: false,
+  });
+
+  const toggleSection = (section: string) => {
+    setOpenSections((prev) => ({ ...prev, [section]: !prev[section] }));
+  };
+
+  const handleKeyDown = (section: string) => (e: KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      toggleSection(section);
+    }
+  };
 
   // Resolve design capabilities for this template (gates which controls to show)
   const caps = templateType ? getDesignCapabilities(templateType as TemplateType) : undefined;
@@ -310,11 +331,34 @@ export function DesignConfigSection({
         {/* Image Configuration - Only show if template supports images */}
         {(caps?.usesImage !== false) && (
           <BlockStack gap="300">
-            <Text as="h4" variant="headingSm">
-              Background Image
-            </Text>
+            <div
+              role="button"
+              tabIndex={0}
+              style={{ cursor: "pointer" }}
+              onClick={() => toggleSection("backgroundImage")}
+              onKeyDown={handleKeyDown("backgroundImage")}
+            >
+              <InlineStack gap="200" blockAlign="center">
+                <Button
+                  variant="plain"
+                  icon={openSections.backgroundImage ? ChevronUpIcon : ChevronDownIcon}
+                />
+                <Text as="h4" variant="headingSm">
+                  Background Image
+                </Text>
+              </InlineStack>
+            </div>
 
-            <FormGrid columns={2}>
+            <Collapsible
+              open={openSections.backgroundImage}
+              id="background-image-section"
+              transition={{
+                duration: "200ms",
+                timingFunction: "ease-in-out",
+              }}
+            >
+              <BlockStack gap="300">
+                <FormGrid columns={2}>
               <Select
                 label="Image position"
                 value={design.imagePosition || "left"}
@@ -418,6 +462,8 @@ export function DesignConfigSection({
                 </div>
               </div>
             )}
+              </BlockStack>
+            </Collapsible>
           </BlockStack>
         )}
 
@@ -425,11 +471,34 @@ export function DesignConfigSection({
 
         {/* Main Colors - Always shown */}
         <BlockStack gap="300">
-          <Text as="h4" variant="headingSm">
-            Main Colors
-          </Text>
+          <div
+            role="button"
+            tabIndex={0}
+            style={{ cursor: "pointer" }}
+            onClick={() => toggleSection("mainColors")}
+            onKeyDown={handleKeyDown("mainColors")}
+          >
+            <InlineStack gap="200" blockAlign="center">
+              <Button
+                variant="plain"
+                icon={openSections.mainColors ? ChevronUpIcon : ChevronDownIcon}
+              />
+              <Text as="h4" variant="headingSm">
+                Main Colors
+              </Text>
+            </InlineStack>
+          </div>
 
-          <FormGrid columns={3}>
+          <Collapsible
+            open={openSections.mainColors}
+            id="main-colors-section"
+            transition={{
+              duration: "200ms",
+              timingFunction: "ease-in-out",
+            }}
+          >
+            <BlockStack gap="300">
+              <FormGrid columns={3}>
             <ColorField
               label="Background Color"
               name="design.backgroundColor"
@@ -481,7 +550,9 @@ export function DesignConfigSection({
                 onChange={(value) => updateField("successColor", value)}
               />
             )}
-          </FormGrid>
+              </FormGrid>
+            </BlockStack>
+          </Collapsible>
         </BlockStack>
 
         <Divider />
@@ -489,11 +560,34 @@ export function DesignConfigSection({
         {/* Button Colors - Only show if template uses buttons */}
         {(caps?.usesButtons !== false) && (
         <BlockStack gap="300">
-          <Text as="h4" variant="headingSm">
-            Button Colors
-          </Text>
+          <div
+            role="button"
+            tabIndex={0}
+            style={{ cursor: "pointer" }}
+            onClick={() => toggleSection("buttonColors")}
+            onKeyDown={handleKeyDown("buttonColors")}
+          >
+            <InlineStack gap="200" blockAlign="center">
+              <Button
+                variant="plain"
+                icon={openSections.buttonColors ? ChevronUpIcon : ChevronDownIcon}
+              />
+              <Text as="h4" variant="headingSm">
+                Button Colors
+              </Text>
+            </InlineStack>
+          </div>
 
-          <FormGrid columns={2}>
+          <Collapsible
+            open={openSections.buttonColors}
+            id="button-colors-section"
+            transition={{
+              duration: "200ms",
+              timingFunction: "ease-in-out",
+            }}
+          >
+            <BlockStack gap="300">
+              <FormGrid columns={2}>
             <ColorField
               label="Button Background"
               name="design.buttonColor"
@@ -511,7 +605,9 @@ export function DesignConfigSection({
               helpText="CTA button text color"
               onChange={(value) => updateField("buttonTextColor", value)}
             />
-          </FormGrid>
+              </FormGrid>
+            </BlockStack>
+          </Collapsible>
         </BlockStack>
         )}
 
@@ -520,11 +616,34 @@ export function DesignConfigSection({
         {/* Input Field Colors - Only show if template uses inputs */}
         {(caps?.usesInputs !== false) && (
         <BlockStack gap="300">
-          <Text as="h4" variant="headingSm">
-            Input Field Colors
-          </Text>
+          <div
+            role="button"
+            tabIndex={0}
+            style={{ cursor: "pointer" }}
+            onClick={() => toggleSection("inputColors")}
+            onKeyDown={handleKeyDown("inputColors")}
+          >
+            <InlineStack gap="200" blockAlign="center">
+              <Button
+                variant="plain"
+                icon={openSections.inputColors ? ChevronUpIcon : ChevronDownIcon}
+              />
+              <Text as="h4" variant="headingSm">
+                Input Field Colors
+              </Text>
+            </InlineStack>
+          </div>
 
-          <FormGrid columns={3}>
+          <Collapsible
+            open={openSections.inputColors}
+            id="input-colors-section"
+            transition={{
+              duration: "200ms",
+              timingFunction: "ease-in-out",
+            }}
+          >
+            <BlockStack gap="300">
+              <FormGrid columns={3}>
             <ColorField
               label="Input Background"
               name="design.inputBackgroundColor"
@@ -562,7 +681,9 @@ export function DesignConfigSection({
               helpText="Background color for image placeholder (supports rgba)"
               onChange={(value) => updateField("imageBgColor", value)}
             />
-          </FormGrid>
+              </FormGrid>
+            </BlockStack>
+          </Collapsible>
         </BlockStack>
         )}
 
@@ -571,11 +692,34 @@ export function DesignConfigSection({
         {/* Overlay Colors - Only show if template uses overlay */}
         {(caps?.usesOverlay !== false) && (
         <BlockStack gap="300">
-          <Text as="h4" variant="headingSm">
-            Overlay Settings
-          </Text>
+          <div
+            role="button"
+            tabIndex={0}
+            style={{ cursor: "pointer" }}
+            onClick={() => toggleSection("overlaySettings")}
+            onKeyDown={handleKeyDown("overlaySettings")}
+          >
+            <InlineStack gap="200" blockAlign="center">
+              <Button
+                variant="plain"
+                icon={openSections.overlaySettings ? ChevronUpIcon : ChevronDownIcon}
+              />
+              <Text as="h4" variant="headingSm">
+                Overlay Settings
+              </Text>
+            </InlineStack>
+          </div>
 
-          <FormGrid columns={2}>
+          <Collapsible
+            open={openSections.overlaySettings}
+            id="overlay-settings-section"
+            transition={{
+              duration: "200ms",
+              timingFunction: "ease-in-out",
+            }}
+          >
+            <BlockStack gap="300">
+              <FormGrid columns={2}>
             <ColorField
               label="Overlay Color"
               name="design.overlayColor"
@@ -603,7 +747,9 @@ export function DesignConfigSection({
               ]}
               onChange={(value) => updateField("overlayOpacity", parseFloat(value))}
             />
-          </FormGrid>
+              </FormGrid>
+            </BlockStack>
+          </Collapsible>
         </BlockStack>
         )}
       </BlockStack>

@@ -613,7 +613,12 @@ export function CampaignList({
                                   <div onClick={(e) => e.stopPropagation()}>
                                     <InlineStack gap="200">
                                       {onCampaignSelect && (
-                                        <Button size="slim" onClick={() => onCampaignSelect(campaign)}>
+                                        <Button
+                                          size="slim"
+                                          onClick={() => {
+                                            onCampaignSelect(campaign);
+                                          }}
+                                        >
                                           View
                                         </Button>
                                       )}

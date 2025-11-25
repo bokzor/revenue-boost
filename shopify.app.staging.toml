@@ -1,6 +1,6 @@
 client_id = "6d807bf0201e5a3acbec919a27ccfe62"
 name = "revenue-boost-staging"
-application_url = "https://staging.example.com"
+application_url = "https://revenueboost-staging-532516069850.us-central1.run.app"
 embedded = true
 
 [build]
@@ -41,9 +41,9 @@ uri = "/webhooks/app/scopes_update"
 scopes = "read_customers,write_customers,read_discounts,write_discounts,write_products,read_themes,write_files,read_orders,write_marketing_events"
 
 [auth]
-redirect_urls = [ "https://staging.example.com/api/auth" ]
+redirect_urls = [ "https://revenueboost-staging-532516069850.us-central1.run.app/api/auth" ]
 
 [app_proxy]
-url = "https://staging.example.com"
+url = "https://revenueboost-staging-532516069850.us-central1.run.app"
 subpath = "revenue-boost"
 prefix = "apps"

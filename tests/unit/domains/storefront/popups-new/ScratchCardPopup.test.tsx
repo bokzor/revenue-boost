@@ -36,8 +36,8 @@ describe("ScratchCardPopup", () => {
 
   beforeEach(() => {
     // Mock fetch for API calls
-    mockFetch = vi.fn();
-    global.fetch = mockFetch;
+    mockFetch = vi.fn() as any;
+    global.fetch = mockFetch as any;
   });
 
   afterEach(() => {

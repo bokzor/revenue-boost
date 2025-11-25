@@ -430,7 +430,7 @@ export class CampaignFilterService {
         const result = await FrequencyCapService.checkFrequencyCapping(
           campaign,
           context,
-          storeSettings?.frequencyCapping
+          storeSettings
         );
         return result.allowed ? campaign : null;
       })

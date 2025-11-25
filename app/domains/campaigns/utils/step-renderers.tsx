@@ -102,6 +102,7 @@ export function renderDesignStep(props: StepRendererProps) {
       onDesignChange={(design) => updateData({ designConfig: design })}
       onDiscountChange={(config) => updateData({ discountConfig: config })}
       initialTemplates={initialTemplates}
+      preselectedTemplateType={wizardState.templateType}
       onTemplateSelect={(template) => {
         // Ensure required base content fields exist even if the user doesn't edit them
         // The UI shows placeholders, but the server schema requires real values

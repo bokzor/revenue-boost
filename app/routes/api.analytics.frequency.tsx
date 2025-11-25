@@ -70,7 +70,7 @@ export async function action({ request }: ActionFunctionArgs) {
       sessionId: sessionId || visitorId,
       pageUrl,
       deviceType: deviceType || "desktop",
-    }, undefined, storeSettings?.frequencyCapping);
+    }, undefined, storeSettings);
 
     // Also record a VIEW event in PopupEvent for long-term analytics
     try {

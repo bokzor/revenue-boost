@@ -5,12 +5,16 @@
  * Compiles main bundle + separate popup bundles with Preact
  *
  * Build modes:
- * - production (default): Minified, no console.log, optimized
+ * - production (default): Minified, no console.log, no sourcemaps, fully optimized
+ * - staging: Minified, console.log kept, sourcemaps enabled (for debugging in staging)
  * - development: Not minified, console.log kept, sourcemaps enabled
  *
  * Usage:
- *   npm run build:storefront          # Production build
- *   npm run build:storefront:dev      # Development build
+ *   npm run build:storefront              # Production build
+ *   npm run build:storefront:staging      # Staging build
+ *   npm run build:storefront:dev          # Development build
+ *   BUILD_MODE=production node scripts/build-storefront.js
+ *   BUILD_MODE=staging node scripts/build-storefront.js
  *   BUILD_MODE=development node scripts/build-storefront.js
  */
 
@@ -30,12 +34,16 @@ const assetsDir = join(extensionDir, "assets");
 // Detect build mode from environment variable
 const BUILD_MODE = process.env.BUILD_MODE || 'production';
 const isDevelopment = BUILD_MODE === 'development';
+const isStaging = BUILD_MODE === 'staging';
+const isProduction = BUILD_MODE === 'production';
 
 console.log(`\n🔧 Build Mode: ${BUILD_MODE.toUpperCase()}`);
 if (isDevelopment) {
   console.log('   ⚠️  Development build: console.log kept, no minification, sourcemaps enabled\n');
+} else if (isStaging) {
+  console.log('   🔶 Staging build: console.log kept, minified, sourcemaps enabled\n');
 } else {
-  console.log('   ✅ Production build: minified, console.log removed, optimized\n');
+  console.log('   ✅ Production build: minified, console.log removed, no sourcemaps\n');
 }
 
 // Popup bundles to build (matches TemplateType enum)
@@ -76,6 +84,14 @@ async function build() {
             resolveDir: args.resolveDir,
           });
         });
+        // Alias ~ to app directory (for imports like ~/domains/...)
+        build.onResolve({ filter: /^~\// }, (args) => {
+          const path = args.path.replace(/^~\//, "");
+          return build.resolve(join(rootDir, "app", path), {
+            kind: args.kind,
+            resolveDir: args.resolveDir,
+          });
+        });
       },
     };
 
@@ -107,6 +123,15 @@ async function build() {
 
         build.onResolve({ filter: /^preact\/jsx-runtime$/ }, () => {
           return { path: "global-preact:preact/jsx-runtime", namespace: "global-preact" };
+        });
+
+        // Alias ~ to app directory (for imports like ~/domains/...)
+        build.onResolve({ filter: /^~\// }, (args) => {
+          const path = args.path.replace(/^~\//, "");
+          return build.resolve(join(rootDir, "app", path), {
+            kind: args.kind,
+            resolveDir: args.resolveDir,
+          });
         });
 
         // Provide the global Preact shims
@@ -279,8 +304,8 @@ async function build() {
       bundle: true,
       format: "iife",
       target: "es2020",
-      minify: !isDevelopment, // Minification seulement en production
-      sourcemap: isDevelopment, // Sourcemaps seulement en dev
+      minify: !isDevelopment, // Minify in staging AND production
+      sourcemap: isDevelopment || isStaging, // Sourcemaps in dev AND staging
       platform: "browser",
       logLevel: "info",
       loader: { ".ts": "ts", ".tsx": "tsx" },
@@ -291,8 +316,8 @@ async function build() {
         "process.env.NODE_ENV": isDevelopment ? '"development"' : '"production"',
         global: "window",
       },
-      treeShaking: !isDevelopment, // Tree-shaking seulement en production
-      drop: isDevelopment ? [] : ['console', 'debugger'], // Garder console.log en dev
+      treeShaking: !isDevelopment, // Tree-shake in staging AND production
+      drop: isProduction ? ['console', 'debugger'] : [], // Only drop console in production
     };
 
     // Build main bundle

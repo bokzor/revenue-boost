@@ -1,10 +1,11 @@
-# Build Modes - Development vs Production
+# Build Modes - Development vs Staging vs Production
 
 ## 🎯 Overview
 
-Revenue Boost supports two build modes:
-- **Production** (default): Optimized for deployment
-- **Development**: Optimized for debugging
+Revenue Boost supports three build modes:
+- **Development**: Optimized for local debugging (no minification)
+- **Staging**: Optimized for staging environment (minified with debugging tools)
+- **Production** (default): Fully optimized for deployment
 
 ## 🚀 Quick Start
 
@@ -25,6 +26,21 @@ npm run build:storefront:dev
 - ✅ Faster debugging
 - ⚠️ Larger bundle size (~2x)
 
+### Staging Mode (Recommended for staging environment)
+
+```bash
+# Build for staging
+npm run build:storefront:staging
+```
+
+**Features:**
+- ✅ Minified code
+- ✅ Console.log kept (for debugging)
+- ✅ Sourcemaps enabled (for debugging)
+- ✅ Tree-shaking enabled
+- ✅ Production-like performance
+- ✅ Easier to debug than production
+
 ### Production Mode (Default for deployment)
 
 ```bash
@@ -39,25 +55,26 @@ npm run build && npm run build:storefront
 **Features:**
 - ✅ Minified code (-40% size)
 - ✅ Console.log removed
+- ✅ Sourcemaps disabled
 - ✅ Tree-shaking enabled
-- ✅ Optimized for performance
+- ✅ Fully optimized for performance
 - ⚠️ Harder to debug
 
 ---
 
 ## 📊 Comparison
 
-| Feature | Development | Production |
-|---------|-------------|------------|
-| **Bundle Size** | 154 KB (main) | 65 KB (main) |
-| **Sourcemaps** | ✅ Yes (.map files) | ❌ No |
-| **Minification** | ❌ No | ✅ Yes |
-| **Console.log** | ✅ Kept | ❌ Removed |
-| **Debugger statements** | ✅ Kept | ❌ Removed |
-| **Tree-shaking** | ❌ No | ✅ Yes |
-| **Build Speed** | Faster | Slower |
-| **Code Readability** | High | Low (minified) |
-| **Best For** | Local dev, debugging | Production, deployment |
+| Feature | Development | Staging | Production |
+|---------|-------------|---------|------------|
+| **Bundle Size** | 154 KB (main) | 65 KB (main) | 65 KB (main) |
+| **Sourcemaps** | ✅ Yes (.map files) | ✅ Yes (.map files) | ❌ No |
+| **Minification** | ❌ No | ✅ Yes | ✅ Yes |
+| **Console.log** | ✅ Kept | ✅ Kept | ❌ Removed |
+| **Debugger statements** | ✅ Kept | ✅ Kept | ❌ Removed |
+| **Tree-shaking** | ❌ No | ✅ Yes | ✅ Yes |
+| **Build Speed** | Fastest | Medium | Medium |
+| **Code Readability** | High | Medium (minified) | Low (minified) |
+| **Best For** | Local dev | Staging env | Production |
 
 ---
 
@@ -70,6 +87,9 @@ The build mode is controlled by the `BUILD_MODE` environment variable:
 ```bash
 # Development
 BUILD_MODE=development npm run build:storefront
+
+# Staging
+BUILD_MODE=staging npm run build:storefront
 
 # Production (default)
 npm run build:storefront
@@ -121,11 +141,26 @@ npm run build:storefront
 # Main bundle: 64.8 KB
 ```
 
-### Example 3: Manual Mode Override
+### Example 3: Staging Build
+
+```bash
+# Build for staging
+npm run build:storefront:staging
+
+# Output:
+# 🔧 Build Mode: STAGING
+# 🔶 Staging build: console.log kept, minified, sourcemaps enabled
+# Main bundle: 65.2 KB
+```
+
+### Example 4: Manual Mode Override
 
 ```bash
 # Force development build
 BUILD_MODE=development npm run build:storefront
+
+# Force staging build
+BUILD_MODE=staging npm run build:storefront
 
 # Force production build
 BUILD_MODE=production npm run build:storefront
@@ -191,23 +226,37 @@ BUILD_MODE=production npm run build:storefront
    npm run dev  # Uses dev build automatically
    ```
 
-2. **Always use prod mode for deployment**
+2. **Use staging mode for staging environment**
+   ```bash
+   npm run build:storefront:staging
+   ```
+   - Allows debugging in production-like environment
+   - Console.log and sourcemaps available
+   - Performance similar to production
+
+3. **Always use prod mode for production deployment**
    ```bash
    npm run build && npm run build:storefront
    ```
+   - Fully optimized
+   - No debugging overhead
+   - Smallest bundle size
 
-3. **Test both modes before deploying**
+4. **Test all modes before deploying**
    ```bash
    # Test in dev mode
    npm run dev
-   
+
+   # Test in staging mode
+   npm run build:storefront:staging && npm start
+
    # Test in prod mode
-   npm run build && npm start
+   npm run build && npm run build:storefront && npm start
    ```
 
-4. **Don't commit dev builds**
-   - Dev builds are larger
-   - Not optimized for production
+5. **Don't commit built bundles**
+   - All bundles are gitignored
+   - Built during deployment
 
 ---
 
