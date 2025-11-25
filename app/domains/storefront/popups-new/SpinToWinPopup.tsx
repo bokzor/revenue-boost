@@ -16,7 +16,6 @@ import { PopupGridContainer } from "./PopupGridContainer";
 import type { PopupDesignConfig, Prize } from "./types";
 import type { SpinToWinContent } from "~/domains/campaigns/types/campaign";
 import { prefersReducedMotion, debounce } from "./utils";
-import { useId } from "./hooks/useId";
 import { POPUP_SPACING, getContainerPadding, SPACING_GUIDELINES } from "./spacing";
 
 // Import custom hooks
@@ -85,7 +84,6 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
   // Use discount code hook
   const { discountCode, setDiscountCode, copiedCode, handleCopyCode } = useDiscountCode();
 
-  const gdprCheckboxId = useId();
   const [hasSpun, setHasSpun] = useState(false);
   const [isSpinning, setIsSpinning] = useState(false);
   const [isGeneratingCode, setIsGeneratingCode] = useState(false);

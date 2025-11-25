@@ -33,33 +33,33 @@ const extensionDir = join(rootDir, "extensions", "storefront-popup");
 const assetsDir = join(extensionDir, "assets");
 
 // Detect build mode from environment variable
-const BUILD_MODE = process.env.BUILD_MODE || 'production';
-const isDevelopment = BUILD_MODE === 'development';
-const isStaging = BUILD_MODE === 'staging';
-const isProduction = BUILD_MODE === 'production';
+const BUILD_MODE = process.env.BUILD_MODE || "production";
+const isDevelopment = BUILD_MODE === "development";
+const isStaging = BUILD_MODE === "staging";
+const isProduction = BUILD_MODE === "production";
 
 console.log(`\n🔧 Build Mode: ${BUILD_MODE.toUpperCase()}`);
 if (isDevelopment) {
-  console.log('   ⚠️  Development build: console.log kept, no minification, sourcemaps enabled\n');
+  console.log("   ⚠️  Development build: console.log kept, no minification, sourcemaps enabled\n");
 } else if (isStaging) {
-  console.log('   🔶 Staging build: console.log kept, minified, sourcemaps enabled\n');
+  console.log("   🔶 Staging build: console.log kept, minified, sourcemaps enabled\n");
 } else {
-  console.log('   ✅ Production build: minified, console.log removed, no sourcemaps\n');
+  console.log("   ✅ Production build: minified, console.log removed, no sourcemaps\n");
 }
 
 // Popup bundles to build (matches TemplateType enum)
 const popupBundles = [
-  "newsletter",           // NEWSLETTER
-  "spin-to-win",         // SPIN_TO_WIN
-  "flash-sale",          // FLASH_SALE
-  "free-shipping",       // FREE_SHIPPING
-  "exit-intent",         // EXIT_INTENT
-  "cart-abandonment",    // CART_ABANDONMENT
-  "product-upsell",      // PRODUCT_UPSELL
-  "social-proof",        // SOCIAL_PROOF
-  "countdown-timer",     // COUNTDOWN_TIMER
-  "scratch-card",        // SCRATCH_CARD
-  "announcement",        // ANNOUNCEMENT
+  "newsletter", // NEWSLETTER
+  "spin-to-win", // SPIN_TO_WIN
+  "flash-sale", // FLASH_SALE
+  "free-shipping", // FREE_SHIPPING
+  "exit-intent", // EXIT_INTENT
+  "cart-abandonment", // CART_ABANDONMENT
+  "product-upsell", // PRODUCT_UPSELL
+  "social-proof", // SOCIAL_PROOF
+  "countdown-timer", // COUNTDOWN_TIMER
+  "scratch-card", // SCRATCH_CARD
+  "announcement", // ANNOUNCEMENT
 ];
 
 /**
@@ -81,9 +81,9 @@ function copyNewsletterBackgrounds() {
 
   // Copy all PNG files from source to target
   if (existsSync(sourceDir)) {
-    const files = readdirSync(sourceDir).filter(file => file.endsWith('.png'));
+    const files = readdirSync(sourceDir).filter((file) => file.endsWith(".jpg"));
 
-    files.forEach(file => {
+    files.forEach((file) => {
       const sourcePath = join(sourceDir, file);
       const targetPath = join(targetDir, file);
       copyFileSync(sourcePath, targetPath);
@@ -355,7 +355,7 @@ async function build() {
         global: "window",
       },
       treeShaking: !isDevelopment, // Tree-shake in staging AND production
-      drop: isProduction ? ['console', 'debugger'] : [], // Only drop console in production
+      drop: isProduction ? ["console", "debugger"] : [], // Only drop console in production
     };
 
     // Build main bundle
@@ -408,7 +408,8 @@ async function build() {
       console.log(`  ${name}: ${size} KB`);
     });
 
-    const totalSize = parseFloat(mainSize) + bundleSizes.reduce((sum, b) => sum + parseFloat(b.size), 0);
+    const totalSize =
+      parseFloat(mainSize) + bundleSizes.reduce((sum, b) => sum + parseFloat(b.size), 0);
     console.log(`  Total (if all loaded): ${totalSize.toFixed(1)} KB`);
     console.log("");
     console.log("ℹ️  Using Preact for 90% smaller bundle size");
