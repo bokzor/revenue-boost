@@ -453,8 +453,8 @@ const TemplatePreviewComponent = forwardRef<TemplatePreviewRef, TemplatePreviewP
     // Special handling for Social Proof preview: inject mock notifications and
     // disable per-session limits so merchants can see all enabled types.
     if (templateType === TemplateTypeEnum.SOCIAL_PROOF) {
-      const socialProofConfig = {
-        ...componentConfig,
+      const socialProofConfig: SocialProofConfig = {
+        ...(componentConfig as Record<string, unknown>),
         // In preview, always show all notification types so merchants can see
         // each variant, regardless of the stored content flags.
         enablePurchaseNotifications: true,
@@ -462,7 +462,7 @@ const TemplatePreviewComponent = forwardRef<TemplatePreviewRef, TemplatePreviewP
         enableReviewNotifications: true,
         // Disable per-session limit in preview so rotation keeps looping.
         maxNotificationsPerSession: 0,
-      } as typeof componentConfig;
+      } as SocialProofConfig;
 
       const previewNotifications = buildSocialProofPreviewNotifications(socialProofConfig);
 

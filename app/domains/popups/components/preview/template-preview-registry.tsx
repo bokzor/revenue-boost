@@ -31,6 +31,7 @@ import type {
   SocialProofConfig,
   AnnouncementConfig,
   PopupDesignConfig,
+  DiscountConfig,
 } from "~/domains/storefront/popups-new";
 
 import { TemplateTypeEnum } from "~/lib/template-types.enum";
@@ -92,15 +93,8 @@ export type ConfigBuilder<T = unknown> = (
 /**
  * Template preview component entry
  */
-export interface TemplatePreviewEntry<
-  TConfig = unknown,
-  TProps extends { config: TConfig; isVisible: boolean; onClose: () => void } = {
-    config: TConfig;
-    isVisible: boolean;
-    onClose: () => void;
-  }
-> {
-  component: React.ComponentType<TProps>;
+export interface TemplatePreviewEntry<TConfig = unknown> {
+  component: React.ComponentType<any>;
   buildConfig: ConfigBuilder<TConfig>;
 }
 
@@ -166,11 +160,11 @@ function buildCommonConfig(
 /**
  * Template Preview Component Registry
  */
-export const TEMPLATE_PREVIEW_REGISTRY: Record<string, TemplatePreviewEntry<any, any>> = {
+export const TEMPLATE_PREVIEW_REGISTRY: Record<string, TemplatePreviewEntry<any>> = {
   [TemplateTypeEnum.NEWSLETTER]: {
     component: NewsletterPopup,
     buildConfig: (
-      mergedConfig: Partial<NewsletterConfig>,
+      mergedConfig: Partial<NewsletterConfig> & { discountConfig?: Record<string, unknown> },
       designConfig: Partial<PopupDesignConfig>
     ): NewsletterConfig => ({
         id: "preview-newsletter",
@@ -204,7 +198,7 @@ export const TEMPLATE_PREVIEW_REGISTRY: Record<string, TemplatePreviewEntry<any,
         imagePosition: mergedConfig.imagePosition || designConfig.imagePosition || "top",
 
         // Discount (campaign stores as discountConfig, component expects discount)
-        discount: mergedConfig.discountConfig || mergedConfig.discount,
+        discount: (mergedConfig.discountConfig as DiscountConfig | undefined) || mergedConfig.discount,
 
         // All common config (colors, typography, layout)
         ...buildCommonConfig(mergedConfig, designConfig),
@@ -298,7 +292,7 @@ export const TEMPLATE_PREVIEW_REGISTRY: Record<string, TemplatePreviewEntry<any,
                     ? "fixed_amount"
                     : "free_shipping",
               code: dc.prefix || "FLASH",
-              deliveryMode: dc.deliveryMode || "show_code_fallback",
+              deliveryMode: (dc.deliveryMode as "auto_apply_only" | "show_code_fallback" | "show_code_always" | "show_in_popup_authorized_only") || "show_code_fallback",
             }
           : undefined,
 
@@ -400,7 +394,6 @@ export const TEMPLATE_PREVIEW_REGISTRY: Record<string, TemplatePreviewEntry<any,
         subheadline: mergedConfig.subheadline || "Try your luck for a discount",
         buttonText: mergedConfig.buttonText || "Spin Now",
         dismissLabel: mergedConfig.dismissLabel,
-        successMessage: mergedConfig.successMessage || "Congratulations!",
         failureMessage: mergedConfig.failureMessage,
         ctaText: mergedConfig.ctaText,
 
@@ -503,7 +496,7 @@ TEMPLATE_PREVIEW_REGISTRY[TemplateTypeEnum.PRODUCT_UPSELL] = {
 
       // ProductUpsell-specific fields
       productSelectionMethod: mergedConfig.productSelectionMethod || "manual",
-      selectedProducts: mergedConfig.selectedProducts || mergedConfig.products || [],
+      selectedProducts: mergedConfig.selectedProducts || [],
       products: mergedConfig.products || PRODUCT_UPSELL_PREVIEW_PRODUCTS,
       selectedCollection: mergedConfig.selectedCollection,
       maxProducts: mergedConfig.maxProducts ?? 3,
@@ -584,8 +577,8 @@ TEMPLATE_PREVIEW_REGISTRY[TemplateTypeEnum.FREE_SHIPPING] = {
       requireEmailToClaim: mergedConfig.requireEmailToClaim ?? false,
       claimButtonLabel: mergedConfig.claimButtonLabel || "Claim discount",
       claimEmailPlaceholder: mergedConfig.claimEmailPlaceholder || "Enter your email",
-      claimSuccessMessage: mergedConfig.claimSuccessMessage,
-      claimErrorMessage: mergedConfig.claimErrorMessage,
+      claimSuccessMessage: mergedConfig.claimSuccessMessage || "Discount claimed!",
+      claimErrorMessage: mergedConfig.claimErrorMessage || "Failed to claim discount",
 
       // Preview cart total mapping into component config
       currentCartTotal: mergedConfig.previewCartTotal,
@@ -598,7 +591,7 @@ TEMPLATE_PREVIEW_REGISTRY[TemplateTypeEnum.FREE_SHIPPING] = {
 TEMPLATE_PREVIEW_REGISTRY[TemplateTypeEnum.CART_ABANDONMENT] = {
   component: CartAbandonmentPopup,
   buildConfig: (
-    mergedConfig: Partial<CartAbandonmentConfig>,
+    mergedConfig: Partial<CartAbandonmentConfig> & { discountConfig?: Record<string, unknown> },
     designConfig: Partial<PopupDesignConfig>
   ): CartAbandonmentConfig =>
     ({
@@ -637,24 +630,24 @@ TEMPLATE_PREVIEW_REGISTRY[TemplateTypeEnum.CART_ABANDONMENT] = {
       // Discount configuration for preview
       discount: mergedConfig.discountConfig
         ? {
-            enabled: mergedConfig.discountConfig.enabled !== false,
+            enabled: (mergedConfig.discountConfig as Record<string, unknown>).enabled !== false,
             percentage:
-              mergedConfig.discountConfig.valueType === "PERCENTAGE" &&
-              typeof mergedConfig.discountConfig.value === "number"
-                ? mergedConfig.discountConfig.value
+              (mergedConfig.discountConfig as Record<string, unknown>).valueType === "PERCENTAGE" &&
+              typeof (mergedConfig.discountConfig as Record<string, unknown>).value === "number"
+                ? ((mergedConfig.discountConfig as Record<string, unknown>).value as number)
                 : undefined,
             value:
-              typeof mergedConfig.discountConfig.value === "number"
-                ? mergedConfig.discountConfig.value
+              typeof (mergedConfig.discountConfig as Record<string, unknown>).value === "number"
+                ? ((mergedConfig.discountConfig as Record<string, unknown>).value as number)
                 : undefined,
             type:
-              mergedConfig.discountConfig.valueType === "PERCENTAGE"
-                ? "percentage"
-                : mergedConfig.discountConfig.valueType === "FIXED_AMOUNT"
-                  ? "fixed_amount"
-                  : "free_shipping",
-            code: mergedConfig.discountConfig.prefix || "PREVIEW",
-            deliveryMode: mergedConfig.discountConfig.deliveryMode || "show_code_fallback",
+              (mergedConfig.discountConfig as Record<string, unknown>).valueType === "PERCENTAGE"
+                ? ("percentage" as const)
+                : (mergedConfig.discountConfig as Record<string, unknown>).valueType === "FIXED_AMOUNT"
+                  ? ("fixed_amount" as const)
+                  : ("free_shipping" as const),
+            code: ((mergedConfig.discountConfig as Record<string, unknown>).prefix as string) || "PREVIEW",
+            deliveryMode: ((mergedConfig.discountConfig as Record<string, unknown>).deliveryMode as "auto_apply_only" | "show_code_fallback" | "show_code_always" | "show_in_popup_authorized_only") || "show_code_fallback",
           }
         : undefined,
 

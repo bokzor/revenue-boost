@@ -83,7 +83,7 @@ export function prepareJsonField(value: unknown): Prisma.InputJsonValue | typeof
   }
 
   if (Array.isArray(value)) {
-    return value.map((item) => prepareJsonField(item));
+    return value.map((item) => prepareJsonField(item)) as Prisma.InputJsonValue;
   }
 
   if (typeof value === "object") {
@@ -91,7 +91,7 @@ export function prepareJsonField(value: unknown): Prisma.InputJsonValue | typeof
     for (const [key, entryValue] of Object.entries(value as Record<string, unknown>)) {
       normalized[key] = prepareJsonField(entryValue);
     }
-    return normalized;
+    return normalized as Prisma.InputJsonValue;
   }
 
   return {};

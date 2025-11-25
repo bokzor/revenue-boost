@@ -38,7 +38,7 @@ describe("PopupManagerPreact - CSS threading", () => {
       ]);
     vi.spyOn(loader, "loadComponent").mockResolvedValue(FakeComponent);
 
-    const api = { recordFrequency: () => Promise.resolve(), trackEvent: () => Promise.resolve() } as unknown as typeApi.ApiClient;
+    const api = { recordFrequency: () => Promise.resolve(), trackEvent: () => Promise.resolve() } as unknown as import("../../../../../extensions/storefront-src/core/api").ApiClient;
 
     const cleanup = renderPopup(campaign, onClose, loader, api);
 

@@ -163,7 +163,7 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, tri
 
         // Set challenge token if loaded via hook
         if (hooksResult.loadedResources.challengeToken) {
-          setChallengeToken(hooksResult.loadedResources.challengeToken);
+          setChallengeToken(hooksResult.loadedResources.challengeToken as string);
         }
 
         // Set component
@@ -314,17 +314,17 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, tri
                   // Try to trigger theme-specific cart drawer refresh methods
                   try {
                     // Dawn theme (Web Components) - cart-drawer element
-                    const cartDrawer = document.querySelector('cart-drawer');
-                    if (cartDrawer && typeof (cartDrawer as { renderContents?: (payload: unknown) => void }).renderContents === 'function') {
+                    const cartDrawer = document.querySelector('cart-drawer') as Element & { renderContents?: (payload: unknown) => void } | null;
+                    if (cartDrawer && typeof cartDrawer.renderContents === 'function') {
                       console.log("[PopupManager] Refreshing Dawn cart-drawer");
-                      cartDrawer.renderContents?.(cart);
+                      cartDrawer.renderContents(cart);
                     }
 
                     // Dawn theme - cart-notification element
-                    const cartNotification = document.querySelector('cart-notification');
-                    if (cartNotification && typeof (cartNotification as { renderContents?: (payload: unknown) => void }).renderContents === 'function') {
+                    const cartNotification = document.querySelector('cart-notification') as Element & { renderContents?: (payload: unknown) => void } | null;
+                    if (cartNotification && typeof cartNotification.renderContents === 'function') {
                       console.log("[PopupManager] Refreshing Dawn cart-notification");
-                      cartNotification.renderContents?.(cart);
+                      cartNotification.renderContents(cart);
                     }
 
                     // Legacy Dawn theme methods
@@ -491,13 +491,13 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, tri
       });
 
       // Get cart items from preloaded resources
-      const cartItems = preloadedResources?.cart?.items;
+      const cartItems = (preloadedResources?.cart as { items?: unknown[] } | undefined)?.items;
 
       const result = await api.emailRecovery({
         campaignId: campaign.id,
         email,
         cartSubtotalCents,
-        cartItems,
+        cartItems: cartItems as Record<string, unknown>[] | undefined,
       });
 
       if (!result.success) {
@@ -534,7 +534,11 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, tri
           ? contentConfig.ctaUrl
           : "checkout";
 
-      const urlWithUtm = addUTMParams(configuredUrl, campaign);
+      const urlWithUtm = addUTMParams(configuredUrl, {
+        utmCampaign: (campaign.designConfig as { utmCampaign?: string | null })?.utmCampaign,
+        utmSource: (campaign.designConfig as { utmSource?: string | null })?.utmSource,
+        utmMedium: (campaign.designConfig as { utmMedium?: string | null })?.utmMedium,
+      });
       const normalizedPath = configuredUrl.replace(/^\//, "");
       const target = urlWithUtm?.startsWith("http")
         ? urlWithUtm
@@ -575,11 +579,11 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, tri
       if (!productIds || productIds.length === 0) return;
 
       // Get products from preloaded resources
-      const products = preloadedResources?.products || [];
+      const products = (preloadedResources?.products as Array<{ id: string; variantId?: string }> | undefined) || [];
       const itemsToAdd: { id: string; quantity: number }[] = [];
 
       for (const pid of productIds) {
-        const product = products.find((p: { id: string; variantId?: string }) => p.id === pid);
+        const product = products.find((p) => p.id === pid);
         if (product && product.variantId) {
           // Extract numeric ID if it's a GID
           const variantId = product.variantId.split('/').pop() || product.variantId;
@@ -703,17 +707,21 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, tri
     // ignore logging errors
   }
 
-  const decorateUrl = (url?: string | null) => addUTMParams(url, campaign) || url || undefined;
+  const decorateUrl = (url?: string | null) => addUTMParams(url, {
+    utmCampaign: (campaign.designConfig as { utmCampaign?: string | null })?.utmCampaign,
+    utmSource: (campaign.designConfig as { utmSource?: string | null })?.utmSource,
+    utmMedium: (campaign.designConfig as { utmMedium?: string | null })?.utmMedium,
+  }) || url || undefined;
 
   const decoratedContentConfig: Record<string, unknown> = {
     ...(campaign.contentConfig as Record<string, unknown>),
   };
 
   if (decoratedContentConfig.ctaUrl) {
-    decoratedContentConfig.ctaUrl = decorateUrl(decoratedContentConfig.ctaUrl);
+    decoratedContentConfig.ctaUrl = decorateUrl(decoratedContentConfig.ctaUrl as string);
   }
   if (decoratedContentConfig.buttonUrl) {
-    decoratedContentConfig.buttonUrl = decorateUrl(decoratedContentConfig.buttonUrl);
+    decoratedContentConfig.buttonUrl = decorateUrl(decoratedContentConfig.buttonUrl as string);
   }
   if (Array.isArray(decoratedContentConfig.products)) {
     decoratedContentConfig.products = decoratedContentConfig.products.map((p: { url?: string; handle?: string } & Record<string, unknown>) => {
@@ -722,14 +730,14 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, tri
     });
   }
 
-  const decoratedDesignConfig = {
+  const decoratedDesignConfig: Record<string, unknown> = {
     ...(campaign.designConfig as Record<string, unknown>),
     globalCustomCSS: campaign.globalCustomCSS,
     customCSS: (campaign.designConfig as Record<string, unknown>)?.customCSS,
   };
 
   if (decoratedDesignConfig.buttonUrl) {
-    decoratedDesignConfig.buttonUrl = decorateUrl(decoratedDesignConfig.buttonUrl);
+    decoratedDesignConfig.buttonUrl = decorateUrl(decoratedDesignConfig.buttonUrl as string);
   }
 
   const handleProductClick = (product: { id?: string; url?: string; handle?: string }) => {
@@ -779,10 +787,10 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, tri
     renderInline: false,
     onEmailRecovery: handleEmailRecovery,
     // Pass preloaded cart data for Cart Abandonment
-    cartItems: preloadedResources.cart?.items,
-    cartTotal: preloadedResources.cart?.total,
+    cartItems: (preloadedResources.cart as { items?: unknown[] } | undefined)?.items,
+    cartTotal: (preloadedResources.cart as { total?: number } | undefined)?.total,
     // Pass preloaded inventory for Flash Sale
-    inventoryTotal: preloadedResources.inventory?.total,
+    inventoryTotal: (preloadedResources.inventory as { total?: number } | undefined)?.total,
     onTrack: trackClick,
     onAddToCart: handleAddToCart,
     onProductClick: handleProductClick,

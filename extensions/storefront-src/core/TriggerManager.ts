@@ -503,13 +503,13 @@ export class TriggerManager {
         result = value !== target;
         break;
       case "in": {
-        const arr = Array.isArray(target) ? target : [target];
-        result = arr.includes(value as typeof target);
+        const arr: unknown[] = Array.isArray(target) ? target : [target];
+        result = Array.isArray(value) ? false : arr.includes(value);
         break;
       }
       case "nin": {
-        const arr = Array.isArray(target) ? target : [target];
-        result = !arr.includes(value as typeof target);
+        const arr: unknown[] = Array.isArray(target) ? target : [target];
+        result = Array.isArray(value) ? true : !arr.includes(value);
         break;
       }
       default:
