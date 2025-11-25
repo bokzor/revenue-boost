@@ -216,7 +216,7 @@ const TemplatePreviewComponent = forwardRef<TemplatePreviewRef, TemplatePreviewP
         const componentConfig = fallbackEntry.buildConfig(mergedConfig, designConfig);
 
         return (
-          <PreviewContainer>
+          <PreviewContainer scopedStylesNode={scopedStylesNode}>
             <div ref={setPreviewElementRef} data-popup-preview style={{ display: "contents" }}>
               <PreviewComponent config={componentConfig} isVisible={true} onClose={() => {}} />
             </div>
@@ -261,7 +261,7 @@ const TemplatePreviewComponent = forwardRef<TemplatePreviewRef, TemplatePreviewP
       };
 
       return (
-        <PreviewContainer>
+        <PreviewContainer scopedStylesNode={scopedStylesNode}>
           <div ref={setPreviewElementRef} data-popup-preview style={{ display: "contents" }}>
             <PreviewComponent
               config={newsletterConfig}
@@ -293,7 +293,7 @@ const TemplatePreviewComponent = forwardRef<TemplatePreviewRef, TemplatePreviewP
       };
 
       return (
-        <PreviewContainer>
+        <PreviewContainer scopedStylesNode={scopedStylesNode}>
           <div ref={setPreviewElementRef} data-popup-preview style={{ display: "contents" }}>
             <PreviewComponent
               config={flashConfig}
@@ -350,7 +350,7 @@ const TemplatePreviewComponent = forwardRef<TemplatePreviewRef, TemplatePreviewP
       };
 
       return (
-        <PreviewContainer>
+        <PreviewContainer scopedStylesNode={scopedStylesNode}>
           <div ref={setPreviewElementRef} data-popup-preview style={{ display: "contents" }}>
             <PreviewComponent
               config={configWithCart}
@@ -409,7 +409,7 @@ const TemplatePreviewComponent = forwardRef<TemplatePreviewRef, TemplatePreviewP
       };
 
       return (
-        <PreviewContainer>
+        <PreviewContainer scopedStylesNode={scopedStylesNode}>
           <div ref={setPreviewElementRef} data-popup-preview style={{ display: "contents" }}>
             <PreviewComponent
               config={cartConfig}
@@ -437,7 +437,7 @@ const TemplatePreviewComponent = forwardRef<TemplatePreviewRef, TemplatePreviewP
       };
 
       return (
-        <PreviewContainer>
+        <PreviewContainer scopedStylesNode={scopedStylesNode}>
           <div ref={setPreviewElementRef} data-popup-preview style={{ display: "contents" }}>
             <PreviewComponent
               config={upsellConfig}
@@ -478,7 +478,7 @@ const TemplatePreviewComponent = forwardRef<TemplatePreviewRef, TemplatePreviewP
       });
 
       return (
-        <PreviewContainer>
+        <PreviewContainer scopedStylesNode={scopedStylesNode}>
           <div ref={setPreviewElementRef} data-popup-preview style={{ display: "contents" }}>
             <PreviewComponent
               config={socialProofConfig}
@@ -492,7 +492,7 @@ const TemplatePreviewComponent = forwardRef<TemplatePreviewRef, TemplatePreviewP
     }
 
     return (
-      <PreviewContainer>
+      <PreviewContainer scopedStylesNode={scopedStylesNode}>
         <div ref={setPreviewElementRef} data-popup-preview style={{ display: "contents" }}>
           <PreviewComponent config={componentConfig} isVisible={true} onClose={() => {}} />
         </div>

@@ -194,6 +194,18 @@ export async function action({ request }: ActionFunctionArgs) {
     if (existingLead) {
       console.log(`[Lead Submission] Lead already exists: ${existingLead.id}`);
 
+      if (!campaign) {
+        return data(
+          {
+            success: true,
+            leadId: existingLead.id,
+            discountCode: null,
+            message: "Already subscribed to this campaign",
+          },
+          { status: 200, headers: storefrontCors() }
+        );
+      }
+
       // Parse discount config to determine delivery mode
       const discountConfig = parseDiscountConfig(campaign.discountConfig);
       const deliveryMode = discountConfig.deliveryMode || "show_code_fallback";
@@ -279,6 +291,14 @@ export async function action({ request }: ActionFunctionArgs) {
     }
 
     // Create admin API context from store's access token
+    if (!campaign) {
+      console.error("[Lead Submission] Campaign is null");
+      return data(
+        { success: false, error: "Campaign not found" },
+        { status: 404, headers: storefrontCors() }
+      );
+    }
+
     if (!campaign.store.accessToken) {
       console.error("[Lead Submission] Store has no access token");
       return data(

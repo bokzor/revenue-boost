@@ -1,7 +1,7 @@
 import { Prisma } from "@prisma/client";
 import prisma from "~/db.server";
 
-interface OrderPayload {
+export interface OrderPayload {
   id: number;
   name: string;
   total_price: string;

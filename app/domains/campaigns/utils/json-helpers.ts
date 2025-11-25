@@ -5,6 +5,7 @@
  */
 
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 import type { Campaign, Experiment } from "@prisma/client";
 import type {
   ContentConfig,
@@ -68,11 +69,32 @@ export function parseJsonField<T>(jsonValue: unknown, schema: z.ZodSchema<T>, de
  * Safely prepare object for JSON field storage (identity function for Prisma Json fields)
  * Does NOT stringify, as Prisma handles that for Json types.
  */
-export function prepareJsonField<T>(value: T): T | Record<string, unknown> {
-  if (value === undefined || value === null) {
-    return {}; // Default to empty object if null/undefined
+export function prepareJsonField(value: unknown): Prisma.InputJsonValue | typeof Prisma.JsonNull {
+  if (value === null) {
+    return Prisma.JsonNull;
   }
-  return value;
+
+  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+    return value;
+  }
+
+  if (value === undefined) {
+    return {};
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item) => prepareJsonField(item));
+  }
+
+  if (typeof value === "object") {
+    const normalized: Record<string, Prisma.InputJsonValue | typeof Prisma.JsonNull> = {};
+    for (const [key, entryValue] of Object.entries(value as Record<string, unknown>)) {
+      normalized[key] = prepareJsonField(entryValue);
+    }
+    return normalized;
+  }
+
+  return {};
 }
 
 /**
@@ -131,8 +153,8 @@ export function parseEntityJsonFields<TEntity>(
 export function prepareEntityJsonFields<TEntity>(
   entity: TEntity,
   fields: Array<{ key: keyof TEntity; defaultValue: unknown }>
-): Record<string, unknown> {
-  const result: Record<string, unknown> = {};
+): Record<string, Prisma.InputJsonValue | typeof Prisma.JsonNull> {
+  const result: Record<string, Prisma.InputJsonValue | typeof Prisma.JsonNull> = {};
 
   for (const field of fields) {
     const value = (entity as Record<string, unknown>)[field.key as string] ?? field.defaultValue;

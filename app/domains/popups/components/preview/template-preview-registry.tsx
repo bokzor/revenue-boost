@@ -30,6 +30,7 @@ import type {
   FreeShippingConfig,
   SocialProofConfig,
   AnnouncementConfig,
+  PopupDesignConfig,
 } from "~/domains/storefront/popups-new";
 
 import { TemplateTypeEnum } from "~/lib/template-types.enum";
@@ -84,22 +85,32 @@ const PRODUCT_UPSELL_PREVIEW_PRODUCTS = [
  * Takes merged config and design config, returns component-specific config
  */
 export type ConfigBuilder<T = unknown> = (
-  mergedConfig: Record<string, unknown>,
-  designConfig: Record<string, unknown>
+  mergedConfig: Partial<T>,
+  designConfig: Partial<PopupDesignConfig>
 ) => T;
 
 /**
  * Template preview component entry
  */
-export interface TemplatePreviewEntry {
-  component: React.ComponentType<Record<string, unknown>>;
-  buildConfig: ConfigBuilder;
+export interface TemplatePreviewEntry<
+  TConfig = unknown,
+  TProps extends { config: TConfig; isVisible: boolean; onClose: () => void } = {
+    config: TConfig;
+    isVisible: boolean;
+    onClose: () => void;
+  }
+> {
+  component: React.ComponentType<TProps>;
+  buildConfig: ConfigBuilder<TConfig>;
 }
 
 /**
  * Build common config properties shared across all templates
  */
-function buildCommonConfig(mergedConfig: Record<string, unknown>, designConfig: Record<string, unknown>) {
+function buildCommonConfig(
+  mergedConfig: Partial<PopupDesignConfig>,
+  designConfig: Partial<PopupDesignConfig>
+) {
   return {
     // Main colors
     backgroundColor: mergedConfig.backgroundColor || designConfig.backgroundColor || "#FFFFFF",
@@ -155,11 +166,13 @@ function buildCommonConfig(mergedConfig: Record<string, unknown>, designConfig: 
 /**
  * Template Preview Component Registry
  */
-export const TEMPLATE_PREVIEW_REGISTRY: Record<string, TemplatePreviewEntry> = {
+export const TEMPLATE_PREVIEW_REGISTRY: Record<string, TemplatePreviewEntry<any, any>> = {
   [TemplateTypeEnum.NEWSLETTER]: {
     component: NewsletterPopup,
-    buildConfig: (mergedConfig, designConfig): NewsletterConfig =>
-      ({
+    buildConfig: (
+      mergedConfig: Partial<NewsletterConfig>,
+      designConfig: Partial<PopupDesignConfig>
+    ): NewsletterConfig => ({
         id: "preview-newsletter",
 
         // Content
@@ -195,15 +208,25 @@ export const TEMPLATE_PREVIEW_REGISTRY: Record<string, TemplatePreviewEntry> = {
 
         // All common config (colors, typography, layout)
         ...buildCommonConfig(mergedConfig, designConfig),
-      }) as NewsletterConfig,
+      }),
   },
 
   [TemplateTypeEnum.FLASH_SALE]: {
     component: FlashSalePopup,
-    buildConfig: (mergedConfig, designConfig): FlashSaleConfig => {
+    buildConfig: (
+      mergedConfig: Partial<FlashSaleConfig>,
+      designConfig: Partial<PopupDesignConfig>
+    ): FlashSaleConfig => {
       // Discount configuration coming from the admin form (GenericDiscountComponent)
       const dc = mergedConfig.discountConfig as
-        | { valueType?: string; value?: number; code?: string }
+        | {
+            enabled?: boolean;
+            valueType?: string;
+            value?: number;
+            code?: string;
+            prefix?: string;
+            deliveryMode?: string;
+          }
         | undefined;
 
       // Derive a simple percentage from DiscountConfig when applicable
@@ -291,7 +314,10 @@ export const TEMPLATE_PREVIEW_REGISTRY: Record<string, TemplatePreviewEntry> = {
 
   [TemplateTypeEnum.COUNTDOWN_TIMER]: {
     component: CountdownTimerPopup,
-    buildConfig: (mergedConfig, designConfig): CountdownTimerConfig =>
+    buildConfig: (
+      mergedConfig: Partial<CountdownTimerConfig>,
+      designConfig: Partial<PopupDesignConfig>
+    ): CountdownTimerConfig =>
       ({
         id: "preview-countdown",
 
@@ -318,12 +344,15 @@ export const TEMPLATE_PREVIEW_REGISTRY: Record<string, TemplatePreviewEntry> = {
 
         // All common config (colors, typography, layout)
         ...buildCommonConfig(mergedConfig, designConfig),
-      }) as unknown as CountdownTimerConfig,
+      }),
   },
 
   [TemplateTypeEnum.SOCIAL_PROOF]: {
     component: SocialProofPopup,
-    buildConfig: (mergedConfig, designConfig): SocialProofConfig =>
+    buildConfig: (
+      mergedConfig: Partial<SocialProofConfig>,
+      designConfig: Partial<PopupDesignConfig>
+    ): SocialProofConfig =>
       ({
         id: "preview-social-proof",
 
@@ -354,12 +383,15 @@ export const TEMPLATE_PREVIEW_REGISTRY: Record<string, TemplatePreviewEntry> = {
 
         // All common config (colors, typography, layout)
         ...buildCommonConfig(mergedConfig, designConfig),
-      }) as unknown as SocialProofConfig,
+      }),
   },
 
   [TemplateTypeEnum.SPIN_TO_WIN]: {
     component: SpinToWinPopup,
-    buildConfig: (mergedConfig, designConfig): SpinToWinConfig =>
+    buildConfig: (
+      mergedConfig: Partial<SpinToWinConfig>,
+      designConfig: Partial<PopupDesignConfig>
+    ): SpinToWinConfig =>
       ({
         id: "preview-spin-to-win",
 
@@ -391,14 +423,13 @@ export const TEMPLATE_PREVIEW_REGISTRY: Record<string, TemplatePreviewEntry> = {
         imagePosition: mergedConfig.imagePosition || designConfig.imagePosition || "left",
 
         // Name & consent config (matching NewsletterContentSchema)
-        collectName: mergedConfig.collectName ?? mergedConfig.nameFieldEnabled ?? false,
+        collectName: mergedConfig.collectName ?? false,
         nameFieldRequired: mergedConfig.nameFieldRequired ?? false,
         nameFieldPlaceholder: mergedConfig.nameFieldPlaceholder,
 
-        showGdprCheckbox:
-          mergedConfig.showGdprCheckbox ?? mergedConfig.consentFieldEnabled ?? false,
+        showGdprCheckbox: mergedConfig.showGdprCheckbox ?? false,
         consentFieldRequired: mergedConfig.consentFieldRequired ?? false,
-        gdprLabel: mergedConfig.gdprLabel || mergedConfig.consentFieldText,
+        gdprLabel: mergedConfig.gdprLabel,
 
         // All common config (colors, typography, layout)
         ...buildCommonConfig(mergedConfig, designConfig),
@@ -406,12 +437,15 @@ export const TEMPLATE_PREVIEW_REGISTRY: Record<string, TemplatePreviewEntry> = {
         // Preview-only layout tweak: keep popup anchored to top so the wheel
         // doesn't visually jump when the prize box appears.
         position: "top",
-      }) as unknown as SpinToWinConfig,
+      }),
   },
 
   [TemplateTypeEnum.SCRATCH_CARD]: {
     component: ScratchCardPopup,
-    buildConfig: (mergedConfig, designConfig): ScratchCardConfig =>
+    buildConfig: (
+      mergedConfig: Partial<ScratchCardConfig>,
+      designConfig: Partial<PopupDesignConfig>
+    ): ScratchCardConfig =>
       ({
         id: "preview-scratch-card",
 
@@ -439,20 +473,22 @@ export const TEMPLATE_PREVIEW_REGISTRY: Record<string, TemplatePreviewEntry> = {
         imagePosition: mergedConfig.imagePosition || designConfig.imagePosition || "left",
 
         // Consent (GDPR-style checkbox)
-        showGdprCheckbox:
-          mergedConfig.showGdprCheckbox ?? mergedConfig.consentFieldEnabled ?? false,
-        gdprLabel: mergedConfig.gdprLabel || mergedConfig.consentFieldText,
+        showGdprCheckbox: mergedConfig.showGdprCheckbox ?? false,
+        gdprLabel: mergedConfig.gdprLabel,
 
         // All common config (colors, typography, layout)
         ...buildCommonConfig(mergedConfig, designConfig),
-      }) as unknown as ScratchCardConfig,
+      }),
   },
 };
 
 // Add remaining templates
 TEMPLATE_PREVIEW_REGISTRY[TemplateTypeEnum.PRODUCT_UPSELL] = {
   component: ProductUpsellPopup,
-  buildConfig: (mergedConfig, designConfig): ProductUpsellConfig =>
+  buildConfig: (
+    mergedConfig: Partial<ProductUpsellConfig>,
+    designConfig: Partial<PopupDesignConfig>
+  ): ProductUpsellConfig =>
     ({
       id: "preview-product-upsell",
 
@@ -486,12 +522,15 @@ TEMPLATE_PREVIEW_REGISTRY[TemplateTypeEnum.PRODUCT_UPSELL] = {
 
       // All common config (colors, typography, layout)
       ...buildCommonConfig(mergedConfig, designConfig),
-    }) as unknown as ProductUpsellConfig,
+    }),
 };
 
 TEMPLATE_PREVIEW_REGISTRY[TemplateTypeEnum.ANNOUNCEMENT] = {
   component: AnnouncementPopup,
-  buildConfig: (mergedConfig, designConfig): AnnouncementConfig =>
+  buildConfig: (
+    mergedConfig: Partial<AnnouncementConfig>,
+    designConfig: Partial<PopupDesignConfig>
+  ): AnnouncementConfig =>
     ({
       id: "preview-announcement",
 
@@ -513,12 +552,15 @@ TEMPLATE_PREVIEW_REGISTRY[TemplateTypeEnum.ANNOUNCEMENT] = {
 
       // All common config (colors, typography, layout)
       ...buildCommonConfig(mergedConfig, designConfig),
-    }) as unknown as AnnouncementConfig,
+    }),
 };
 
 TEMPLATE_PREVIEW_REGISTRY[TemplateTypeEnum.FREE_SHIPPING] = {
   component: FreeShippingPopup,
-  buildConfig: (mergedConfig, designConfig): FreeShippingConfig =>
+  buildConfig: (
+    mergedConfig: Partial<FreeShippingConfig>,
+    designConfig: Partial<PopupDesignConfig>
+  ): FreeShippingConfig =>
     ({
       id: "preview-free-shipping",
 
@@ -550,12 +592,15 @@ TEMPLATE_PREVIEW_REGISTRY[TemplateTypeEnum.FREE_SHIPPING] = {
 
       // All common config (colors, typography, layout)
       ...buildCommonConfig(mergedConfig, designConfig),
-    }) as unknown as FreeShippingConfig,
+    }),
 };
 
 TEMPLATE_PREVIEW_REGISTRY[TemplateTypeEnum.CART_ABANDONMENT] = {
   component: CartAbandonmentPopup,
-  buildConfig: (mergedConfig, designConfig): CartAbandonmentConfig =>
+  buildConfig: (
+    mergedConfig: Partial<CartAbandonmentConfig>,
+    designConfig: Partial<PopupDesignConfig>
+  ): CartAbandonmentConfig =>
     ({
       id: "preview-cart-abandonment",
 
@@ -615,7 +660,7 @@ TEMPLATE_PREVIEW_REGISTRY[TemplateTypeEnum.CART_ABANDONMENT] = {
 
       // All common config (colors, typography, layout)
       ...buildCommonConfig(mergedConfig, designConfig),
-    }) as unknown as CartAbandonmentConfig,
+    }),
 };
 
 /**

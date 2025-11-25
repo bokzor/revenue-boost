@@ -121,16 +121,9 @@ export class CampaignFilterService {
       // Product tag match (only if configured and we have productTags in context)
       let tagsMatch = true;
       if (productTags.length > 0) {
-        const ctxTags = Array.isArray(context.productTags)
-          ? context.productTags
-          : typeof context.productTags === "string"
-            ? context.productTags
-                .split(",")
-                .map((t) => t.trim())
-                .filter(Boolean)
-            : [];
+        const ctxTags = Array.isArray(context.productTags) ? context.productTags : [];
 
-        tagsMatch = ctxTags.length > 0 && productTags.some((tag: string) => ctxTags.includes(tag));
+        tagsMatch = ctxTags.length > 0 && productTags.some((tag) => ctxTags.includes(tag));
       }
 
       // Collection match (only if configured and we have collectionId in context)
@@ -379,6 +372,25 @@ export class CampaignFilterService {
     const actualNum = asNumber(actual);
     const targetNum = asNumber(value);
 
+    const normalizeToPrimitiveArray = (input: unknown): Array<string | number | boolean> => {
+      if (Array.isArray(input)) {
+        return input.filter(
+          (item): item is string | number | boolean =>
+            typeof item === "string" || typeof item === "number" || typeof item === "boolean"
+        );
+      }
+
+      if (
+        typeof input === "string" ||
+        typeof input === "number" ||
+        typeof input === "boolean"
+      ) {
+        return [input];
+      }
+
+      return [];
+    };
+
     let result: boolean;
 
     switch (operator) {
@@ -401,13 +413,19 @@ export class CampaignFilterService {
         result = actual !== value;
         break;
       case "in": {
-        const arr = Array.isArray(value) ? value : [value];
-        result = arr.includes(actual as typeof value);
+        const expectedValues = normalizeToPrimitiveArray(value);
+        const actualValues = normalizeToPrimitiveArray(actual);
+        result =
+          expectedValues.length > 0 &&
+          actualValues.some((candidate) => expectedValues.includes(candidate));
         break;
       }
       case "nin": {
-        const arr = Array.isArray(value) ? value : [value];
-        result = !arr.includes(actual as typeof value);
+        const expectedValues = normalizeToPrimitiveArray(value);
+        const actualValues = normalizeToPrimitiveArray(actual);
+        result =
+          expectedValues.length === 0 ||
+          actualValues.every((candidate) => !expectedValues.includes(candidate));
         break;
       }
       default:

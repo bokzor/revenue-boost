@@ -233,43 +233,39 @@ export function getSuccessMessage(deliveryMode: DiscountDeliveryMode): string {
  */
 export function parseDiscountConfig(configString: unknown): DiscountConfig {
   try {
-    // Handle different input types
-    let config: Record<string, unknown>;
-    if (typeof configString === "string") {
-      config = JSON.parse(configString || "{}");
-    } else if (configString && typeof configString === "object") {
-      config = configString as Record<string, unknown>;
-    } else {
-      config = {};
-    }
+    const parsedConfig = DiscountConfigSchema.partial().parse(
+      typeof configString === "string" && configString.length > 0
+        ? JSON.parse(configString)
+        : configString ?? {}
+    );
 
-    const valueType = config.valueType || "PERCENTAGE";
+    const valueType = parsedConfig.valueType ?? "PERCENTAGE";
     const usageType: "shared" | "single_use" =
-      config.type === "single_use" ? "single_use" : "shared";
+      parsedConfig.type === "single_use" ? "single_use" : "shared";
 
     const result: DiscountConfig = {
-      enabled: config.enabled !== false,
-      showInPreview: config.showInPreview !== false,
+      enabled: parsedConfig.enabled ?? true,
+      showInPreview: parsedConfig.showInPreview ?? true,
       type: usageType,
-      valueType: valueType,
+      valueType,
       // Only set value for non-FREE_SHIPPING discounts
-      value: valueType !== "FREE_SHIPPING" ? config.value || 10 : undefined,
-      minimumAmount: config.minimumAmount,
-      usageLimit: config.usageLimit,
-      expiryDays: config.expiryDays || 30,
-      prefix: config.prefix || "WELCOME",
-      deliveryMode: config.deliveryMode || "show_code_fallback",
-      requireLogin: config.requireLogin,
-      storeInMetafield: config.storeInMetafield,
-      authorizedEmail: config.authorizedEmail,
-      requireEmailMatch: config.requireEmailMatch,
-      autoApplyMode: config.autoApplyMode || "ajax",
-      codePresentation: config.codePresentation || "show_code",
-      applicability: config.applicability,
-      tiers: config.tiers,
-      bogo: config.bogo,
-      freeGift: config.freeGift,
-      combineWith: config.combineWith,
+      value: valueType !== "FREE_SHIPPING" ? parsedConfig.value ?? 10 : undefined,
+      minimumAmount: parsedConfig.minimumAmount,
+      usageLimit: parsedConfig.usageLimit,
+      expiryDays: parsedConfig.expiryDays ?? 30,
+      prefix: parsedConfig.prefix ?? "WELCOME",
+      deliveryMode: parsedConfig.deliveryMode ?? "show_code_fallback",
+      requireLogin: parsedConfig.requireLogin,
+      storeInMetafield: parsedConfig.storeInMetafield,
+      authorizedEmail: parsedConfig.authorizedEmail,
+      requireEmailMatch: parsedConfig.requireEmailMatch,
+      autoApplyMode: parsedConfig.autoApplyMode ?? "ajax",
+      codePresentation: parsedConfig.codePresentation ?? "show_code",
+      applicability: parsedConfig.applicability,
+      tiers: parsedConfig.tiers,
+      bogo: parsedConfig.bogo,
+      freeGift: parsedConfig.freeGift,
+      combineWith: parsedConfig.combineWith,
     };
 
     return result;
@@ -972,7 +968,9 @@ async function getOrCreateBogoDiscount(
     };
   }
 
-  const discountInput: DiscountCodeInput = {
+  type BxgyDiscountInput = Parameters<typeof createBxGyDiscountCode>[1];
+
+  const discountInput: BxgyDiscountInput = {
     title: `${campaign.name} - BOGO`,
     code,
     valueType: "PERCENTAGE",
@@ -1005,7 +1003,7 @@ async function getOrCreateBogoDiscount(
           collectionIds: bogo.get.scope === "collections" ? bogo.get.ids : undefined,
         },
       },
-    } as NonNullable<DiscountCodeInput["bxgy"]>,
+    },
   };
 
   const result = await createBxGyDiscountCode(admin, discountInput);
@@ -1146,7 +1144,7 @@ async function getOrCreateFreeGiftDiscount(
 /**
  * Validate discount configuration
  */
-export function validateDiscountConfig(config: Record<string, unknown>): {
+export function validateDiscountConfig(config: Partial<DiscountConfig>): {
   isValid: boolean;
   errors: string[];
 } {
@@ -1163,29 +1161,30 @@ export function validateDiscountConfig(config: Record<string, unknown>): {
     errors.push("Invalid value type. Must be 'PERCENTAGE', 'FIXED_AMOUNT', or 'FREE_SHIPPING'");
   }
 
-  if (config.valueType !== "FREE_SHIPPING" && (!config.value || config.value <= 0)) {
+  const value = typeof config.value === "number" ? config.value : undefined;
+  if (config.valueType !== "FREE_SHIPPING" && (value === undefined || value <= 0)) {
     errors.push("Discount value must be greater than 0 (except for FREE_SHIPPING)");
   }
 
-  if (config.valueType === "PERCENTAGE" && config.value > 100) {
+  if (config.valueType === "PERCENTAGE" && value !== undefined && value > 100) {
     errors.push("Percentage discount cannot exceed 100%");
   }
 
-  if (config.minimumAmount && config.minimumAmount < 0) {
+  if (typeof config.minimumAmount === "number" && config.minimumAmount < 0) {
     errors.push("Minimum amount cannot be negative");
   }
 
-  if (config.usageLimit && config.usageLimit < 1) {
+  if (typeof config.usageLimit === "number" && config.usageLimit < 1) {
     errors.push("Usage limit must be at least 1");
   }
 
-  if (config.expiryDays && config.expiryDays < 1) {
+  if (typeof config.expiryDays === "number" && config.expiryDays < 1) {
     errors.push("Expiry days must be at least 1");
   }
 
   // Validate tiers
   if (Array.isArray(config.tiers) && config.tiers.length > 0) {
-    const thresholds = config.tiers.map((t) => (t as { thresholdCents: number }).thresholdCents);
+    const thresholds = config.tiers.map((t) => t.thresholdCents);
     const sorted = [...thresholds].sort((a, b) => a - b);
     if (JSON.stringify(thresholds) !== JSON.stringify(sorted)) {
       errors.push("Tier thresholds must be in ascending order");

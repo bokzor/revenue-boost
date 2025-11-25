@@ -1,5 +1,6 @@
 import type { CampaignFormData } from "~/shared/hooks/useWizardState";
 import type { TemplateType } from "~/domains/campaigns/types/campaign";
+import type { ProductPickerSelection } from "../components/form/ProductPicker";
 
 export interface RecipeDefinition {
   id: string;
@@ -26,7 +27,18 @@ export type RecipeInput =
       key: string;
     };
 
-export type RecipeContext = Record<string, unknown>;
+export interface RecipeContext {
+  products?: ProductPickerSelection[];
+  collections?: ProductPickerSelection[];
+  triggerProducts?: ProductPickerSelection[];
+  offerProducts?: ProductPickerSelection[];
+  discountValue?: number;
+  threshold?: number;
+}
+
+const getNumberFromContext = (value: number | undefined, fallback: number): number => {
+  return typeof value === "number" && !Number.isNaN(value) ? value : fallback;
+};
 
 export const RECIPE_CATALOG: Partial<Record<TemplateType, RecipeDefinition[]>> = {
   FLASH_SALE: [
@@ -44,18 +56,19 @@ export const RECIPE_CATALOG: Partial<Record<TemplateType, RecipeDefinition[]>> =
         },
       ],
       build: (context) => {
+        const discountValue = getNumberFromContext(context.discountValue, 20);
         const product = context.products?.[0];
         if (!product) return {};
 
         return {
           name: `Flash Sale - ${product.title}`,
           contentConfig: {
-            headline: `${context.discountValue}% OFF ${product.title}`,
+            headline: `${discountValue}% OFF ${product.title}`,
             subheadline: "Limited time offer on our best-seller.",
             imageUrl: product.images?.[0]?.originalSrc || "",
             buttonText: "Shop Now",
             ctaUrl: `/products/${product.handle}`,
-            discountPercentage: context.discountValue,
+            discountPercentage: discountValue,
           },
           pageTargeting: {
             enabled: true,
@@ -79,7 +92,7 @@ export const RECIPE_CATALOG: Partial<Record<TemplateType, RecipeDefinition[]>> =
             enabled: true,
             type: "single_use",
             valueType: "PERCENTAGE",
-            value: context.discountValue,
+            value: discountValue,
             applicability: {
               scope: "products",
               productIds: [product.id],
@@ -109,18 +122,19 @@ export const RECIPE_CATALOG: Partial<Record<TemplateType, RecipeDefinition[]>> =
         },
       ],
       build: (context) => {
+        const discountValue = getNumberFromContext(context.discountValue, 15);
         const collection = context.collections?.[0];
         if (!collection) return {};
 
         return {
           name: `Sale - ${collection.title}`,
           contentConfig: {
-            headline: `${context.discountValue}% OFF ${collection.title}`,
+            headline: `${discountValue}% OFF ${collection.title}`,
             subheadline: "Shop our exclusive collection.",
-            imageUrl: collection.image?.originalSrc || "",
+            imageUrl: collection.images?.[0]?.originalSrc || "",
             buttonText: "View Collection",
             ctaUrl: `/collections/${collection.handle}`,
-            discountPercentage: context.discountValue,
+            discountPercentage: discountValue,
           },
           pageTargeting: {
             enabled: true,
@@ -139,7 +153,7 @@ export const RECIPE_CATALOG: Partial<Record<TemplateType, RecipeDefinition[]>> =
             enabled: true,
             type: "single_use",
             valueType: "PERCENTAGE",
-            value: context.discountValue,
+            value: discountValue,
             applicability: {
               scope: "collections",
               collectionIds: [collection.id],
@@ -172,6 +186,7 @@ export const RECIPE_CATALOG: Partial<Record<TemplateType, RecipeDefinition[]>> =
         },
       ],
       build: (context) => {
+        const discountValue = getNumberFromContext(context.discountValue, 10);
         const product = context.products?.[0];
         if (!product) return {};
 
@@ -181,7 +196,7 @@ export const RECIPE_CATALOG: Partial<Record<TemplateType, RecipeDefinition[]>> =
             headline: "Have you seen this?",
             subheadline: `Check out our popular ${product.title}`,
             buttonText: "View Product",
-            bundleDiscount: context.discountValue,
+            bundleDiscount: discountValue,
             // Use existing schema fields instead of mappingRules
             productSelectionMethod: "manual" as const,
             selectedProducts: [product.id],
@@ -198,7 +213,7 @@ export const RECIPE_CATALOG: Partial<Record<TemplateType, RecipeDefinition[]>> =
             enabled: true,
             type: "single_use",
             valueType: "PERCENTAGE",
-            value: context.discountValue,
+            value: discountValue,
             applicability: {
               scope: "products",
               productIds: [product.id],
@@ -234,6 +249,7 @@ export const RECIPE_CATALOG: Partial<Record<TemplateType, RecipeDefinition[]>> =
         },
       ],
       build: (context) => {
+        const discountValue = getNumberFromContext(context.discountValue, 15);
         const triggerProduct = context.triggerProducts?.[0];
         const offerProduct = context.offerProducts?.[0];
 
@@ -245,7 +261,7 @@ export const RECIPE_CATALOG: Partial<Record<TemplateType, RecipeDefinition[]>> =
             headline: "Perfect together",
             subheadline: `Add ${offerProduct.title} to complete your set.`,
             buttonText: "Add to Cart",
-            bundleDiscount: context.discountValue,
+            bundleDiscount: discountValue,
             // Use existing schema fields instead of mappingRules
             productSelectionMethod: "manual" as const,
             selectedProducts: [offerProduct.id],
@@ -262,7 +278,7 @@ export const RECIPE_CATALOG: Partial<Record<TemplateType, RecipeDefinition[]>> =
             enabled: true,
             type: "single_use",
             valueType: "PERCENTAGE",
-            value: context.discountValue,
+            value: discountValue,
             applicability: {
               scope: "products",
               productIds: [offerProduct.id],
@@ -292,6 +308,7 @@ export const RECIPE_CATALOG: Partial<Record<TemplateType, RecipeDefinition[]>> =
         },
       ],
       build: (context) => {
+        const discountValue = getNumberFromContext(context.discountValue, 10);
         const triggerProduct = context.triggerProducts?.[0];
         const offerProduct = context.offerProducts?.[0];
 
@@ -333,6 +350,7 @@ export const RECIPE_CATALOG: Partial<Record<TemplateType, RecipeDefinition[]>> =
         },
       ],
       build: (context) => {
+        const discountValue = getNumberFromContext(context.discountValue, 10);
         const triggerProduct = context.triggerProducts?.[0];
         const offerProduct = context.offerProducts?.[0];
 
@@ -343,7 +361,7 @@ export const RECIPE_CATALOG: Partial<Record<TemplateType, RecipeDefinition[]>> =
           contentConfig: {
             headline: "Great choice!",
             subheadline: `Customers who bought ${triggerProduct.title} also loved ${offerProduct.title}`,
-            bundleDiscount: context.discountValue,
+            bundleDiscount: discountValue,
             // Use existing schema fields instead of mappingRules
             productSelectionMethod: "manual" as const,
             selectedProducts: [offerProduct.id],
@@ -360,7 +378,7 @@ export const RECIPE_CATALOG: Partial<Record<TemplateType, RecipeDefinition[]>> =
             enabled: true,
             type: "single_use",
             valueType: "PERCENTAGE",
-            value: context.discountValue,
+            value: discountValue,
             applicability: {
               scope: "products",
               productIds: [offerProduct.id],
@@ -387,18 +405,19 @@ export const RECIPE_CATALOG: Partial<Record<TemplateType, RecipeDefinition[]>> =
         },
       ],
       build: (context) => {
+        const discountValue = getNumberFromContext(context.discountValue, 10);
         return {
           name: "Cart Recovery",
           contentConfig: {
             headline: "You left something behind!",
             subheadline: "Complete your order now and save.",
-            discountPercentage: context.discountValue,
+            discountPercentage: discountValue,
           },
           discountConfig: {
             enabled: true,
             type: "single_use",
             valueType: "PERCENTAGE",
-            value: context.discountValue,
+            value: discountValue,
             applicability: {
               scope: "all",
             },
@@ -425,15 +444,16 @@ export const RECIPE_CATALOG: Partial<Record<TemplateType, RecipeDefinition[]>> =
         },
       ],
       build: (context) => {
+        const threshold = getNumberFromContext(context.threshold, 50);
         return {
           name: "Free Shipping Goal",
           contentConfig: {
-            threshold: context.threshold,
+            threshold,
           },
           discountConfig: {
             enabled: true,
             valueType: "FREE_SHIPPING",
-            minimumAmount: context.threshold,
+            minimumAmount: threshold,
             showInPreview: true,
             autoApplyMode: "ajax",
             codePresentation: "show_code",
@@ -457,20 +477,21 @@ export const RECIPE_CATALOG: Partial<Record<TemplateType, RecipeDefinition[]>> =
         },
       ],
       build: (context) => {
+        const discountValue = getNumberFromContext(context.discountValue, 10);
         return {
           name: "Welcome Newsletter",
           contentConfig: {
-            headline: `Get ${context.discountValue}% Off Your First Order`,
+            headline: `Get ${discountValue}% Off Your First Order`,
             subheadline: "Subscribe to our newsletter and get exclusive offers.",
             buttonText: "Subscribe",
             emailPlaceholder: "Enter your email",
-            discountPercentage: context.discountValue,
+            discountPercentage: discountValue,
           },
           discountConfig: {
             enabled: true,
             type: "single_use",
             valueType: "PERCENTAGE",
-            value: context.discountValue,
+            value: discountValue,
             applicability: {
               scope: "all",
             },
@@ -497,13 +518,14 @@ export const RECIPE_CATALOG: Partial<Record<TemplateType, RecipeDefinition[]>> =
         },
       ],
       build: (context) => {
+        const discountValue = getNumberFromContext(context.discountValue, 15);
         return {
           name: "Exit Intent Recovery",
           contentConfig: {
             headline: "Wait! Don't go yet!",
-            subheadline: `Here is ${context.discountValue}% OFF to complete your purchase.`,
+            subheadline: `Here is ${discountValue}% OFF to complete your purchase.`,
             buttonText: "Claim Offer",
-            discountPercentage: context.discountValue,
+            discountPercentage: discountValue,
           },
           targetRules: {
             enhancedTriggers: {
@@ -514,7 +536,7 @@ export const RECIPE_CATALOG: Partial<Record<TemplateType, RecipeDefinition[]>> =
             enabled: true,
             type: "single_use",
             valueType: "PERCENTAGE",
-            value: context.discountValue,
+            value: discountValue,
             applicability: {
               scope: "all",
             },

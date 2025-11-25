@@ -27,6 +27,7 @@ import {
   Collapsible,
   Icon,
 } from "@shopify/polaris";
+import type { IconProps } from "@shopify/polaris";
 import { ChevronDownIcon, ChevronUpIcon, ColorIcon } from "@shopify/polaris-icons";
 import styles from "./ColorCustomizationPanel.module.css";
 
@@ -114,18 +115,25 @@ const DEFAULT_BRAND_COLORS = [
   "#000000", // Black
 ];
 
+type ColorPropertyGroup = {
+  title: string;
+  description?: string;
+  properties: ReadonlyArray<keyof ExtendedColorConfig>;
+  icon?: IconProps["source"];
+};
+
 // Color property groups for organization
-const COLOR_PROPERTY_GROUPS = {
+const COLOR_PROPERTY_GROUPS: Record<string, ColorPropertyGroup> = {
   basic: {
     title: "Basic Colors",
     description: "Essential colors that all templates need",
-    properties: ["backgroundColor", "textColor", "buttonColor", "buttonTextColor"] as const,
+    properties: ["backgroundColor", "textColor", "buttonColor", "buttonTextColor"],
     icon: ColorIcon,
   },
   accent: {
     title: "Accent Colors",
     description: "Secondary colors for highlights and accents",
-    properties: ["accentColor", "secondaryColor", "linkColor", "borderColor"] as const,
+    properties: ["accentColor", "secondaryColor", "linkColor", "borderColor"],
     icon: ColorIcon,
   },
   forms: {
@@ -136,25 +144,25 @@ const COLOR_PROPERTY_GROUPS = {
       "inputBorderColor",
       "inputTextColor",
       "inputFocusColor",
-    ] as const,
+    ],
     icon: ColorIcon,
   },
   feedback: {
     title: "Status & Feedback",
     description: "Colors for success, error, and warning states",
-    properties: ["successColor", "errorColor", "warningColor", "infoColor"] as const,
+    properties: ["successColor", "errorColor", "warningColor", "infoColor"],
     icon: ColorIcon,
   },
 } as const;
 
 // Template-specific color groups
-const TEMPLATE_SPECIFIC_GROUPS = {
+const TEMPLATE_SPECIFIC_GROUPS: Record<string, Record<string, ColorPropertyGroup>> = {
   newsletter: {
     ...COLOR_PROPERTY_GROUPS,
     newsletter: {
       title: "Newsletter Specific",
       description: "Colors specific to newsletter templates",
-      properties: ["successIconColor", "consentTextColor"] as const,
+      properties: ["successColor", "textColor"],
       icon: ColorIcon,
     },
   },
@@ -165,10 +173,10 @@ const TEMPLATE_SPECIFIC_GROUPS = {
       description: "Colors for sales templates and urgency indicators",
       properties: [
         "urgencyTextColor",
-        "discountHighlightColor",
+        "accentColor",
         "priceTextColor",
         "timerColor",
-      ] as const,
+      ],
       icon: ColorIcon,
     },
   },
@@ -177,7 +185,7 @@ const TEMPLATE_SPECIFIC_GROUPS = {
     "exit-intent": {
       title: "Exit Intent",
       description: "Colors for exit-intent specific elements",
-      properties: ["urgencyIndicatorColor", "lastChanceTextColor"] as const,
+      properties: ["urgencyIndicatorColor", "lastChanceTextColor"],
       icon: ColorIcon,
     },
   },
@@ -191,7 +199,7 @@ const TEMPLATE_SPECIFIC_GROUPS = {
         "productTitleColor",
         "productPriceColor",
         "addToCartButtonColor",
-      ] as const,
+      ],
       icon: ColorIcon,
     },
   },
@@ -200,7 +208,7 @@ const TEMPLATE_SPECIFIC_GROUPS = {
     announcement: {
       title: "Announcement",
       description: "Colors for announcement elements",
-      properties: ["announcementBannerColor", "highlightTextColor"] as const,
+      properties: ["announcementBannerColor", "highlightTextColor"],
       icon: ColorIcon,
     },
   },
@@ -212,9 +220,9 @@ const TEMPLATE_SPECIFIC_GROUPS = {
       properties: [
         "notificationBackgroundColor",
         "customerNameColor",
-        "productNameColor",
+        "productTitleColor",
         "timestampColor",
-      ] as const,
+      ],
       icon: ColorIcon,
     },
   },
@@ -300,10 +308,9 @@ export function ColorCustomizationPanel({
   const validation = useMemo(() => validateColors(extendedColors), [extendedColors]);
   const colorPresets = useMemo(() => getColorPresetsForTemplate(templateType), [templateType]);
   const popularPresets = useMemo(() => getPopularColorPresets(), []);
-  const propertyGroups = useMemo(
-    () => (TEMPLATE_SPECIFIC_GROUPS as Partial<Record<string, typeof COLOR_PROPERTY_GROUPS[number]>>)[templateType as string] || COLOR_PROPERTY_GROUPS,
-    [templateType]
-  );
+  const propertyGroups = useMemo((): Record<string, ColorPropertyGroup> => {
+    return TEMPLATE_SPECIFIC_GROUPS[templateType] || COLOR_PROPERTY_GROUPS;
+  }, [templateType]);
 
   // Brand color suggestions
   const brandSuggestions = useMemo(() => {
@@ -477,12 +484,7 @@ export function ColorCustomizationPanel({
   );
 
   const renderColorGroup = useCallback(
-    (groupKey: string, group: {
-      icon?: IconProps["source"];
-      title: string;
-      description?: string;
-      properties: Array<keyof ExtendedColorConfig>;
-    }) => {
+    (groupKey: string, group: ColorPropertyGroup) => {
       return (
         <Card key={groupKey}>
           <BlockStack gap="300">

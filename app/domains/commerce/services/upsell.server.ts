@@ -11,6 +11,24 @@
 import type { AdminApiContext } from "@shopify/shopify-app-react-router/server";
 import type { Product } from "~/domains/storefront/popups-new/types";
 
+type ShopifyProductNode = {
+  id: string;
+  title?: string;
+  handle?: string;
+  variants?: {
+    edges?: Array<{ node?: { id?: string; price?: string } }>;
+  };
+  images?: { edges?: Array<{ node?: { url?: string } }> };
+};
+
+const isProductNode = (node: unknown): node is ShopifyProductNode => {
+  return Boolean(node && typeof node === "object" && "id" in (node as Record<string, unknown>));
+};
+
+const normalizeProductEdges = (edges: Array<{ node?: unknown }>): ShopifyProductNode[] => {
+  return edges.map((edge) => edge?.node).filter(isProductNode);
+};
+
 /**
  * Fetch basic product data from Shopify Admin API and map to storefront Product type.
  */
@@ -110,35 +128,20 @@ export async function fetchPopularProducts(
     const body = await response.json();
     const edges = body?.data?.products?.edges || [];
 
-    const allProducts = edges
-      .map((edge: { node?: unknown }) => edge?.node)
-      .filter(
-        (
-          node
-        ): node is {
-          id: string;
-          title?: string;
-          handle?: string;
-          variants?: {
-            edges?: Array<{ node?: { id?: string; price?: string } }>;
-          };
-          images?: { edges?: Array<{ node?: { url?: string } }> };
-        } => Boolean(node && (node as { id?: string }).id)
-      )
-      .map((node): Product => {
-        const variant = node.variants?.edges?.[0]?.node;
-        const image = node.images?.edges?.[0]?.node;
+    const allProducts = normalizeProductEdges(edges).map((node): Product => {
+      const variant = node.variants?.edges?.[0]?.node;
+      const image = node.images?.edges?.[0]?.node;
 
-        return {
-          id: node.id,
-          title: node.title || "",
-          price: variant?.price ?? "0.00",
-          imageUrl: image?.url || "",
-          compareAtPrice: undefined,
-          variantId: variant?.id || node.id,
-          handle: node.handle || "",
-        };
-      });
+      return {
+        id: node.id,
+        title: node.title || "",
+        price: variant?.price ?? "0.00",
+        imageUrl: image?.url || "",
+        compareAtPrice: undefined,
+        variantId: variant?.id || node.id,
+        handle: node.handle || "",
+      };
+    });
 
     // Filter out products already in cart
     const filteredProducts = allProducts.filter(
@@ -213,35 +216,20 @@ async function fetchProductsByCollectionId(
     const body = await response.json();
     const edges = body?.data?.collection?.products?.edges || [];
 
-    return edges
-      .map((edge: { node?: unknown }) => edge?.node)
-      .filter(
-        (
-          node
-        ): node is {
-          id: string;
-          title?: string;
-          handle?: string;
-          variants?: {
-            edges?: Array<{ node?: { id?: string; price?: string } }>;
-          };
-          images?: { edges?: Array<{ node?: { url?: string } }> };
-        } => Boolean(node && (node as { id?: string }).id)
-      )
-      .map((node): Product => {
-        const variant = node.variants?.edges?.[0]?.node;
-        const image = node.images?.edges?.[0]?.node;
+    return normalizeProductEdges(edges).map((node): Product => {
+      const variant = node.variants?.edges?.[0]?.node;
+      const image = node.images?.edges?.[0]?.node;
 
-        return {
-          id: node.id,
-          title: node.title || "",
-          price: variant?.price ?? "0.00",
-          imageUrl: image?.url || "",
-          compareAtPrice: undefined,
-          variantId: variant?.id || node.id,
-          handle: node.handle || "",
-        };
-      });
+      return {
+        id: node.id,
+        title: node.title || "",
+        price: variant?.price ?? "0.00",
+        imageUrl: image?.url || "",
+        compareAtPrice: undefined,
+        variantId: variant?.id || node.id,
+        handle: node.handle || "",
+      };
+    });
   } catch (error) {
     console.error("[Upsell Service] Failed to fetch collection by ID:", error);
     return [];
@@ -282,35 +270,20 @@ async function fetchProductsByCollectionHandle(
     const body = await response.json();
     const edges = body?.data?.collectionByHandle?.products?.edges || [];
 
-    return edges
-      .map((edge: { node?: unknown }) => edge?.node)
-      .filter(
-        (
-          node
-        ): node is {
-          id: string;
-          title?: string;
-          handle?: string;
-          variants?: {
-            edges?: Array<{ node?: { id?: string; price?: string } }>;
-          };
-          images?: { edges?: Array<{ node?: { url?: string } }> };
-        } => Boolean(node && (node as { id?: string }).id)
-      )
-      .map((node): Product => {
-        const variant = node.variants?.edges?.[0]?.node;
-        const image = node.images?.edges?.[0]?.node;
+    return normalizeProductEdges(edges).map((node): Product => {
+      const variant = node.variants?.edges?.[0]?.node;
+      const image = node.images?.edges?.[0]?.node;
 
-        return {
-          id: node.id,
-          title: node.title || "",
-          price: variant?.price ?? "0.00",
-          imageUrl: image?.url || "",
-          compareAtPrice: undefined,
-          variantId: variant?.id || node.id,
-          handle: node.handle || "",
-        };
-      });
+      return {
+        id: node.id,
+        title: node.title || "",
+        price: variant?.price ?? "0.00",
+        imageUrl: image?.url || "",
+        compareAtPrice: undefined,
+        variantId: variant?.id || node.id,
+        handle: node.handle || "",
+      };
+    });
   } catch (error) {
     console.error("[Upsell Service] Failed to fetch collection by handle:", error);
     return [];

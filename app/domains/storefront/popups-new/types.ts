@@ -67,6 +67,17 @@ export interface PopupDesignConfig {
   imagePosition?: ImagePosition;
   buttonUrl?: string;
 
+  // Typography (template-specific)
+  titleFontSize?: string;
+  titleFontWeight?: string;
+  titleTextShadow?: string;
+  descriptionFontSize?: string;
+  descriptionFontWeight?: string;
+
+  // Input styling (template-specific)
+  inputBackdropFilter?: string;
+  inputBoxShadow?: string;
+
   // Behavior Properties
   previewMode?: boolean;
   showCloseButton?: boolean;

@@ -517,16 +517,17 @@ export function CampaignList({
               >
                 <InlineStack align="space-between" blockAlign="center">
                   <InlineStack gap="300" blockAlign="center">
-                    <Button
-                      variant="plain"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        toggleExperiment(group.experimentId);
-                      }}
-                      accessibilityLabel={isExpanded ? "Collapse experiment" : "Expand experiment"}
-                    >
-                      {isExpanded ? "▼" : "▶"}
-                    </Button>
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <Button
+                        variant="plain"
+                        onClick={() => {
+                          toggleExperiment(group.experimentId);
+                        }}
+                        accessibilityLabel={isExpanded ? "Collapse experiment" : "Expand experiment"}
+                      >
+                        {isExpanded ? "▼" : "▶"}
+                      </Button>
+                    </div>
                     <BlockStack gap="200">
                       <InlineStack gap="200">
                         <Text variant="bodyMd" fontWeight="semibold" as="h3">
@@ -560,33 +561,35 @@ export function CampaignList({
 
                   <InlineStack gap="200">
                     {onExperimentEdit && (
-                      <Button
-                        size="slim"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          // Edit the experiment, not individual campaigns
-                          if (group.experimentId) {
-                            onExperimentEdit(group.experimentId);
-                          }
-                        }}
-                      >
-                        Edit
-                      </Button>
+                      <div onClick={(e) => e.stopPropagation()}>
+                        <Button
+                          size="slim"
+                          onClick={() => {
+                            // Edit the experiment, not individual campaigns
+                            if (group.experimentId) {
+                              onExperimentEdit(group.experimentId);
+                            }
+                          }}
+                        >
+                          Edit
+                        </Button>
+                      </div>
                     )}
                     {onCampaignDelete && (
-                      <Button
-                        size="slim"
-                        tone="critical"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          // Delete first variant (which will trigger experiment deletion)
-                          if (group.variants[0]) {
-                            onCampaignDelete(group.variants[0].id);
-                          }
-                        }}
-                      >
-                        Delete
-                      </Button>
+                      <div onClick={(e) => e.stopPropagation()}>
+                        <Button
+                          size="slim"
+                          tone="critical"
+                          onClick={() => {
+                            // Delete first variant (which will trigger experiment deletion)
+                            if (group.variants[0]) {
+                              onCampaignDelete(group.variants[0].id);
+                            }
+                          }}
+                        >
+                          Delete
+                        </Button>
+                      </div>
                     )}
                   </InlineStack>
                 </InlineStack>
@@ -634,38 +637,40 @@ export function CampaignList({
 
                                 <InlineStack gap="200">
                                   {onCampaignSelect && (
-                                    <Button
-                                      size="slim"
-                                      onClick={(event) => {
-                                        event.stopPropagation();
-                                        onCampaignSelect(campaign);
-                                      }}
-                                    >
-                                      View
-                                    </Button>
+                                    <div onClick={(e) => e.stopPropagation()}>
+                                      <Button
+                                        size="slim"
+                                        onClick={() => {
+                                          onCampaignSelect(campaign);
+                                        }}
+                                      >
+                                        View
+                                      </Button>
+                                    </div>
                                   )}
                                   {onExperimentEdit && campaign.variantKey && (
-                                    <Button
-                                      size="slim"
-                                      onClick={(event) => {
-                                        event.stopPropagation();
-                                        console.log(
-                                          "[CampaignList] Edit Variant clicked for experimentId:",
-                                          group.experimentId,
-                                          "variantKey:",
-                                          campaign.variantKey
-                                        );
-                                        // Edit this specific variant in the experiment
-                                        if (group.experimentId) {
-                                          onExperimentEdit(
+                                    <div onClick={(e) => e.stopPropagation()}>
+                                      <Button
+                                        size="slim"
+                                        onClick={() => {
+                                          console.log(
+                                            "[CampaignList] Edit Variant clicked for experimentId:",
                                             group.experimentId,
-                                            campaign.variantKey || undefined
+                                            "variantKey:",
+                                            campaign.variantKey
                                           );
-                                        }
-                                      }}
-                                    >
-                                      Edit Variant
-                                    </Button>
+                                          // Edit this specific variant in the experiment
+                                          if (group.experimentId) {
+                                            onExperimentEdit(
+                                              group.experimentId,
+                                              campaign.variantKey || undefined
+                                            );
+                                          }
+                                        }}
+                                      >
+                                        Edit Variant
+                                      </Button>
+                                    </div>
                                   )}
                                 </InlineStack>
                               </InlineStack>
@@ -736,38 +741,41 @@ export function CampaignList({
 
                 <InlineStack gap="200">
                   {onCampaignEdit && (
-                    <Button
-                      size="slim"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        onCampaignEdit(id);
-                      }}
-                    >
-                      Edit
-                    </Button>
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <Button
+                        size="slim"
+                        onClick={() => {
+                          onCampaignEdit(id);
+                        }}
+                      >
+                        Edit
+                      </Button>
+                    </div>
                   )}
                   {onCampaignDuplicate && (
-                    <Button
-                      size="slim"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        onCampaignDuplicate(id);
-                      }}
-                    >
-                      Duplicate
-                    </Button>
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <Button
+                        size="slim"
+                        onClick={() => {
+                          onCampaignDuplicate(id);
+                        }}
+                      >
+                        Duplicate
+                      </Button>
+                    </div>
                   )}
                   {onCampaignDelete && (
-                    <Button
-                      size="slim"
-                      tone="critical"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        onCampaignDelete(id);
-                      }}
-                    >
-                      Delete
-                    </Button>
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <Button
+                        size="slim"
+                        tone="critical"
+                        onClick={() => {
+                          onCampaignDelete(id);
+                        }}
+                      >
+                        Delete
+                      </Button>
+                    </div>
                   )}
                 </InlineStack>
               </InlineStack>

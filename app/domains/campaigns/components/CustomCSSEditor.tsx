@@ -50,7 +50,7 @@ export function CustomCSSEditor({ value = "", onChange, globalCustomCSS }: Custo
           }
         />
 
-        <Badge tone="info">Max {CUSTOM_CSS_MAX_LENGTH.toLocaleString()} characters</Badge>
+        <Badge tone="info">{`Max ${CUSTOM_CSS_MAX_LENGTH.toLocaleString()} characters`}</Badge>
       </BlockStack>
     </Card>
   );

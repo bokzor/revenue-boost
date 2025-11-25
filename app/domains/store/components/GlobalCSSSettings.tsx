@@ -32,7 +32,7 @@ export function GlobalCSSSettings({ settings, onChange }: GlobalCSSSettingsProps
               theme.
             </Text>
           </BlockStack>
-          <Badge tone="info">{CUSTOM_CSS_MAX_LENGTH.toLocaleString()} char max</Badge>
+          <Badge tone="info">{`${CUSTOM_CSS_MAX_LENGTH.toLocaleString()} char max`}</Badge>
         </InlineStack>
 
         <TextField

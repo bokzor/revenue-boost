@@ -97,7 +97,17 @@ export const TemplateConfigFields: React.FC<TemplateConfigFieldsProps> = ({
         case "not_equals":
           return fieldValue !== condition.value;
         case "contains":
-          return Array.isArray(fieldValue) && fieldValue.includes(condition.value);
+          return Array.isArray(fieldValue) && fieldValue.some((item) => item === condition.value);
+        case "not_contains":
+          return Array.isArray(fieldValue) && fieldValue.every((item) => item !== condition.value);
+        case "greater_than":
+          return typeof fieldValue === "number" &&
+            typeof condition.value === "number" &&
+            fieldValue > condition.value;
+        case "less_than":
+          return typeof fieldValue === "number" &&
+            typeof condition.value === "number" &&
+            fieldValue < condition.value;
         default:
           return true;
       }

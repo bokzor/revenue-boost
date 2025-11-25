@@ -52,7 +52,7 @@ export default function App() {
 
   return (
     <AppProvider embedded apiKey={apiKey}>
-      <PolarisAppProvider i18n={en} linkComponent={Link}>
+      <PolarisAppProvider i18n={en} linkComponent={Link as any}>
         <s-app-nav>
           <s-link href="/app">Dashboard</s-link>
           <s-link href="/app/campaigns/new">New campaign</s-link>

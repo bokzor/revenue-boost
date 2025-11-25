@@ -714,15 +714,16 @@ export function CampaignIndexTable({
                   )}
                   <IndexTable.Cell>
                     <InlineStack gap="200">
-                      <Button
-                        size="micro"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          onExperimentClick?.(group.experimentId);
-                        }}
-                      >
-                        View
-                      </Button>
+                      <div onClick={(e) => e.stopPropagation()}>
+                        <Button
+                          size="micro"
+                          onClick={() => {
+                            onExperimentClick?.(group.experimentId);
+                          }}
+                        >
+                          View
+                        </Button>
+                      </div>
                     </InlineStack>
                   </IndexTable.Cell>
                 </IndexTable.Row>
@@ -805,48 +806,52 @@ export function CampaignIndexTable({
                   )}
                   <IndexTable.Cell>
                     <InlineStack gap="200">
-                      <Button
-                        size="micro"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          onEditClick?.(id);
-                        }}
-                      >
-                        Edit
-                      </Button>
-                      {onToggleStatus && (
+                      <div onClick={(e) => e.stopPropagation()}>
                         <Button
                           size="micro"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            onToggleStatus(id, status);
+                          onClick={() => {
+                            onEditClick?.(id);
                           }}
                         >
-                          {status === "ACTIVE" ? "Pause" : "Activate"}
+                          Edit
                         </Button>
+                      </div>
+                      {onToggleStatus && (
+                        <div onClick={(e) => e.stopPropagation()}>
+                          <Button
+                            size="micro"
+                            onClick={() => {
+                              onToggleStatus(id, status);
+                            }}
+                          >
+                            {status === "ACTIVE" ? "Pause" : "Activate"}
+                          </Button>
+                        </div>
                       )}
                       {onDuplicateClick && (
-                        <Button
-                          size="micro"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            onDuplicateClick(id);
-                          }}
-                        >
-                          Duplicate
-                        </Button>
+                        <div onClick={(e) => e.stopPropagation()}>
+                          <Button
+                            size="micro"
+                            onClick={() => {
+                              onDuplicateClick(id);
+                            }}
+                          >
+                            Duplicate
+                          </Button>
+                        </div>
                       )}
                       {onDeleteClick && (
-                        <Button
-                          size="micro"
-                          tone="critical"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            onDeleteClick(id);
-                          }}
-                        >
-                          Delete
-                        </Button>
+                        <div onClick={(e) => e.stopPropagation()}>
+                          <Button
+                            size="micro"
+                            tone="critical"
+                            onClick={() => {
+                              onDeleteClick(id);
+                            }}
+                          >
+                            Delete
+                          </Button>
+                        </div>
                       )}
                     </InlineStack>
                   </IndexTable.Cell>
@@ -909,48 +914,52 @@ export function CampaignIndexTable({
                   )}
                   <IndexTable.Cell>
                     <InlineStack gap="200">
-                      <Button
-                        size="micro"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          onEditClick?.(id);
-                        }}
-                      >
-                        Edit
-                      </Button>
-                      {onToggleStatus && (
+                      <div onClick={(e) => e.stopPropagation()}>
                         <Button
                           size="micro"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            onToggleStatus(id, status);
+                          onClick={() => {
+                            onEditClick?.(id);
                           }}
                         >
-                          {status === "ACTIVE" ? "Pause" : "Activate"}
+                          Edit
                         </Button>
+                      </div>
+                      {onToggleStatus && (
+                        <div onClick={(e) => e.stopPropagation()}>
+                          <Button
+                            size="micro"
+                            onClick={() => {
+                              onToggleStatus(id, status);
+                            }}
+                          >
+                            {status === "ACTIVE" ? "Pause" : "Activate"}
+                          </Button>
+                        </div>
                       )}
                       {onDuplicateClick && (
-                        <Button
-                          size="micro"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            onDuplicateClick(id);
-                          }}
-                        >
-                          Duplicate
-                        </Button>
+                        <div onClick={(e) => e.stopPropagation()}>
+                          <Button
+                            size="micro"
+                            onClick={() => {
+                              onDuplicateClick(id);
+                            }}
+                          >
+                            Duplicate
+                          </Button>
+                        </div>
                       )}
                       {onDeleteClick && (
-                        <Button
-                          size="micro"
-                          tone="critical"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            onDeleteClick(id);
-                          }}
-                        >
-                          Delete
-                        </Button>
+                        <div onClick={(e) => e.stopPropagation()}>
+                          <Button
+                            size="micro"
+                            tone="critical"
+                            onClick={() => {
+                              onDeleteClick(id);
+                            }}
+                          >
+                            Delete
+                          </Button>
+                        </div>
                       )}
                     </InlineStack>
                   </IndexTable.Cell>
