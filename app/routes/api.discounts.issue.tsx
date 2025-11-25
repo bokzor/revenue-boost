@@ -19,7 +19,10 @@ import { getCampaignDiscountCode } from "~/domains/commerce/services/discount.se
 
 // Request validation schema
 const IssueDiscountRequestSchema = z.object({
-  campaignId: z.string().cuid(),
+  campaignId: z.string().min(1).refine(
+    (id) => id.startsWith("preview-") || /^[cC][^\s-]{8,}$/.test(id),
+    "Invalid campaign ID format"
+  ),
   cartSubtotalCents: z.number().int().min(0).optional(),
   sessionId: z.string(),
   challengeToken: z.string(), // REQUIRED: Challenge token for security

@@ -724,17 +724,22 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
                 <>
                   <div
                     className={`scratch-card-container ${isRevealed ? "revealed-animation" : ""}`}
-                    style={{ height: cardHeight }}
                   >
-                    {/* Prize canvas (hidden) */}
+                    {/* Prize canvas (bottom layer) */}
                     <canvas
                       ref={prizeCanvasRef}
                       width={cardWidth}
                       height={cardHeight}
-                      style={{ position: "absolute", inset: 0 }}
+                      style={{
+                        position: "absolute",
+                        inset: 0,
+                        width: "100%",
+                        height: "100%",
+                        zIndex: 1
+                      }}
                     />
 
-                    {/* Scratch overlay canvas */}
+                    {/* Scratch overlay canvas (top layer) */}
                     <canvas
                       ref={canvasRef}
                       width={cardWidth}
@@ -748,8 +753,13 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
                       onTouchEnd={handleTouchEnd}
                       className="scratch-card-canvas"
                       style={{
+                        position: "absolute",
+                        inset: 0,
+                        width: "100%",
+                        height: "100%",
                         cursor: isScratching ? "grabbing" : "grab",
                         touchAction: "none",
+                        zIndex: 2
                       }}
                     />
 
@@ -1073,6 +1083,9 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
 
         .scratch-popup-content {
           display: flex;
+          width: 100%;
+          height: 100%;
+          align-items: stretch;
         }
 
         .scratch-popup-content.horizontal {
@@ -1101,16 +1114,21 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
           display: flex;
           align-items: center;
           justify-content: center;
+          background: ${config.imageBgColor || config.inputBackgroundColor || "#f4f4f5"};
+          width: 100%;
+          height: 100%;
         }
 
         .scratch-popup-image img {
+          position: absolute;
+          inset: 0;
           width: 100%;
           height: 100%;
           object-fit: cover;
         }
 
         .scratch-popup-form-section {
-          padding: 2rem;
+          padding: 2.5rem 2rem;
           display: flex;
           flex-direction: column;
           justify-content: center;
@@ -1120,11 +1138,12 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
         .scratch-card-container {
           position: relative;
           width: 100%;
-          max-width: min(24rem, 90vw);
+          max-width: ${cardWidth}px;
           margin: 0 auto 1.5rem;
           border-radius: 0.75rem;
           overflow: hidden;
           box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.2);
+          aspect-ratio: ${cardWidth} / ${cardHeight};
         }
 
         .scratch-card-canvas {
@@ -1238,12 +1257,22 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
           animation: pulse 0.5s ease-out;
         }
 
+        /* Container Query: Mobile layout (<480px container width)
+           Stack vertically with constrained image height. */
+        @container scratch-popup (max-width: 479px) {
+          .scratch-popup-content.horizontal .scratch-popup-image,
+          .scratch-popup-content.vertical .scratch-popup-image {
+            height: 12rem;
+          }
+        }
+
         /* Container Query: Desktop-ish layout (≥480px container width)
            Match NewsletterPopup behavior so left/right images go side-by-side
            once the popup has enough width, even inside the editor preview. */
         @container scratch-popup (min-width: 480px) {
           .scratch-popup-content.vertical {
             flex-direction: row;
+            min-height: 450px;
           }
 
           .scratch-popup-content.vertical.reverse {
@@ -1256,7 +1285,7 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
 
           .scratch-popup-content.vertical .scratch-popup-image {
             width: 50%;
-            height: auto;
+            height: 100%;
             min-height: 400px;
           }
 
@@ -1265,21 +1294,12 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
           }
 
           .scratch-popup-form-section {
-            padding: 3.5rem 3rem;
+            padding: 4rem 3.5rem;
           }
 
           .scratch-popup-content.single-column .scratch-popup-form-section {
             max-width: 36rem;
             margin: 0 auto;
-          }
-        }
-
-        /* Container Query: Mobile layout (640px container width)
-           Use full width for the popup and constrain image height. */
-        @container scratch-popup (max-width: 640px) {
-          .scratch-popup-content.horizontal .scratch-popup-image,
-          .scratch-popup-content.vertical .scratch-popup-image {
-            height: 12rem;
           }
         }
 

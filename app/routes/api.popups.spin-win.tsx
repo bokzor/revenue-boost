@@ -20,7 +20,10 @@ import { PopupEventService } from "~/domains/analytics/popup-events.server";
 
 // Request validation schema - NO prizeId (security fix)
 const SpinWinRequestSchema = z.object({
-  campaignId: z.string().cuid(),
+  campaignId: z.string().min(1).refine(
+    (id) => id.startsWith("preview-") || /^[cC][^\s-]{8,}$/.test(id),
+    "Invalid campaign ID format"
+  ),
   email: z.string().email(),
   sessionId: z.string(),
   challengeToken: z.string(), // REQUIRED: Challenge token for security
@@ -101,6 +104,25 @@ export async function action({ request }: ActionFunctionArgs) {
       return data(
         { success: false, error: tokenValidation.error || "Invalid or expired token" },
         { status: 403 }
+      );
+    }
+
+    // PREVIEW MODE: Return mock prize
+    // BYPASS RATE LIMITING for preview mode to allow unlimited testing
+    const isPreviewCampaign = validatedRequest.campaignId.startsWith("preview-");
+    if (isPreviewCampaign) {
+      console.log(`[Spin-to-Win] ✅ Preview mode - returning mock prize (BYPASSING RATE LIMITS)`);
+      return data(
+        {
+          success: true,
+          prize: {
+            id: "preview-prize",
+            label: "10% OFF",
+            discountCode: "PREVIEW10",
+          },
+          message: "Preview mode: Prize revealed (mock data)",
+        },
+        { status: 200 }
       );
     }
 

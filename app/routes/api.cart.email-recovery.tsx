@@ -20,7 +20,10 @@ import {
 import { createDraftOrder } from "~/lib/shopify/order.server";
 
 const EmailRecoveryRequestSchema = z.object({
-  campaignId: z.string().cuid(),
+  campaignId: z.string().min(1).refine(
+    (id) => id.startsWith("preview-") || /^[cC][^\s-]{8,}$/.test(id),
+    "Invalid campaign ID format"
+  ),
   email: z.string().email(),
   sessionId: z.string(),
   challengeToken: z.string(), // REQUIRED: Challenge token for security

@@ -142,8 +142,11 @@ test.describe('Discount Configurations', () => {
         } finally {
             // Only cleanup if test passed, otherwise leave for debugging
             if (testPassed) {
-                await prisma.campaign.delete({ where: { id: campaign.id } });
-                console.log(`🗑️  Cleaned up campaign: ${campaign.id}`);
+                const exists = await prisma.campaign.findUnique({ where: { id: campaign.id } });
+                if (exists) {
+                    await prisma.campaign.delete({ where: { id: campaign.id } });
+                    console.log(`🗑️  Cleaned up campaign: ${campaign.id}`);
+                }
             } else {
                 console.log(`⚠️  Leaving campaign ${campaign.id} for debugging`);
             }
@@ -181,7 +184,10 @@ test.describe('Discount Configurations', () => {
             console.log('✅ $10 fixed amount discount displayed successfully');
         } finally {
             // Cleanup
-            await prisma.campaign.delete({ where: { id: campaign.id } });
+            const exists = await prisma.campaign.findUnique({ where: { id: campaign.id } });
+            if (exists) {
+                await prisma.campaign.delete({ where: { id: campaign.id } });
+            }
         }
     });
 
@@ -216,7 +222,10 @@ test.describe('Discount Configurations', () => {
             console.log('✅ Free shipping discount displayed successfully');
         } finally {
             // Cleanup
-            await prisma.campaign.delete({ where: { id: campaign.id } });
+            const exists = await prisma.campaign.findUnique({ where: { id: campaign.id } });
+            if (exists) {
+                await prisma.campaign.delete({ where: { id: campaign.id } });
+            }
         }
     });
 
@@ -251,7 +260,10 @@ test.describe('Discount Configurations', () => {
             console.log('✅ Single shared discount code displayed successfully');
         } finally {
             // Cleanup
-            await prisma.campaign.delete({ where: { id: campaign.id } });
+            const exists = await prisma.campaign.findUnique({ where: { id: campaign.id } });
+            if (exists) {
+                await prisma.campaign.delete({ where: { id: campaign.id } });
+            }
         }
     });
 
@@ -297,7 +309,10 @@ test.describe('Discount Configurations', () => {
             console.log('✅ Discount code copy functionality works correctly');
         } finally {
             // Cleanup
-            await prisma.campaign.delete({ where: { id: campaign.id } });
+            const exists = await prisma.campaign.findUnique({ where: { id: campaign.id } });
+            if (exists) {
+                await prisma.campaign.delete({ where: { id: campaign.id } });
+            }
         }
     });
 });

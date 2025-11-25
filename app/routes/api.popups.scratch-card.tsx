@@ -14,7 +14,10 @@ import { PopupEventService } from "~/domains/analytics/popup-events.server";
 
 // Request validation schema
 const ScratchCardRequestSchema = z.object({
-  campaignId: z.string().cuid(),
+  campaignId: z.string().min(1).refine(
+    (id) => id.startsWith("preview-") || /^[cC][^\s-]{8,}$/.test(id),
+    "Invalid campaign ID format"
+  ),
   email: z.string().email().optional(), // Optional: email may not be required before scratching
   sessionId: z.string().min(1, "Session ID is required"),
   challengeToken: z.string().min(1, "Challenge token is required"), // REQUIRED: Challenge token for security

@@ -256,19 +256,15 @@ describe("PopupManagerPreact renderPopup", () => {
       },
       designConfig: {
         buttonUrl: "/collections/sale",
+        // utm fields flow through designConfig and are read by addUTMParams helper
+        utmCampaign: "revenue-boost-123",
+        utmSource: "app",
+        utmMedium: "popup",
       },
       targetRules: {},
       discountConfig: {},
       experimentId: null,
       variantKey: null,
-      // utm fields flow through design/content config in the manager
-      // and are read by addUTMParams helper
-      // For test, attach them directly
-      ...( {
-        utmCampaign: "revenue-boost-123",
-        utmSource: "app",
-        utmMedium: "popup",
-      } as any),
     };
 
     const loader = {

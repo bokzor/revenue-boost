@@ -67,6 +67,22 @@ export async function action({ request }: ActionFunctionArgs) {
     const body = await request.json();
     const validatedData = SaveEmailSchema.parse(body);
 
+    // PREVIEW MODE: Return mock success
+    // BYPASS RATE LIMITING and database checks for preview mode
+    const isPreviewCampaign = validatedData.campaignId.startsWith("preview-");
+    if (isPreviewCampaign) {
+      console.log(`[Save Email] ✅ Preview mode - returning mock success (BYPASSING RATE LIMITS)`);
+      return data(
+        {
+          success: true,
+          leadId: "preview-lead-id",
+          discountCode: validatedData.discountCode,
+          message: "Preview mode: Email saved (mock data)",
+        },
+        { status: 200, headers: storefrontCors() }
+      );
+    }
+
     // SECURITY: Verify discount code exists and was generated for this campaign/session
     // This prevents abuse by ensuring the discount code was legitimately generated
     const leadWithDiscountCode = await prisma.lead.findFirst({

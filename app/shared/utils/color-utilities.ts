@@ -110,3 +110,22 @@ export function hexToRgb(hex: string): { r: number; g: number; b: number } | nul
       }
     : null;
 }
+
+/**
+ * Get contrasting text color (black or white) based on background luminance
+ * Uses YIQ formula for better perceived brightness
+ *
+ * @param backgroundColor - Hex color string (e.g., "#FFFFFF")
+ * @returns "#111827" for light backgrounds, "#FFFFFF" for dark backgrounds
+ */
+export function getContrastingTextColor(backgroundColor: string): string {
+  const rgb = hexToRgb(backgroundColor);
+  if (!rgb) return "#FFFFFF"; // Fallback to white for invalid colors
+
+  // YIQ formula for perceived brightness
+  // This gives better results than simple RGB averaging
+  const yiq = (rgb.r * 299 + rgb.g * 587 + rgb.b * 114) / 1000;
+
+  // Return dark text for light backgrounds (yiq >= 128), white text for dark backgrounds
+  return yiq >= 128 ? "#111827" : "#FFFFFF";
+}
