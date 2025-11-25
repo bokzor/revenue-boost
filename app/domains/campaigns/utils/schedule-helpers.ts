@@ -161,3 +161,70 @@ export function formatDateRange(
     return null;
   }
 }
+
+// ============================================================================
+// SCHEDULE VALIDATION HELPERS
+// ============================================================================
+
+/**
+ * Check if current time is within campaign schedule (timezone-aware)
+ *
+ * @param startDate - Campaign start date (Date object or ISO string or undefined)
+ * @param endDate - Campaign end date (Date object or ISO string or undefined)
+ * @param timezone - IANA timezone (e.g., "America/New_York"), defaults to UTC
+ * @returns true if current time is within schedule, false otherwise
+ *
+ * Logic:
+ * - If no startDate and no endDate: always active (returns true)
+ * - If only startDate: active if current time >= startDate
+ * - If only endDate: active if current time <= endDate
+ * - If both: active if startDate <= current time <= endDate
+ */
+export function isWithinSchedule(
+  startDate?: Date | string | null,
+  endDate?: Date | string | null,
+  timezone: string = "UTC"
+): boolean {
+  // No schedule constraints = always active
+  if (!startDate && !endDate) {
+    return true;
+  }
+
+  try {
+    // Get current time in the shop's timezone
+    const now = new Date();
+    const nowInTimezone = new Date(
+      now.toLocaleString("en-US", { timeZone: timezone })
+    );
+
+    // Check start date constraint
+    if (startDate) {
+      const start = typeof startDate === "string" ? new Date(startDate) : startDate;
+      const startInTimezone = new Date(
+        start.toLocaleString("en-US", { timeZone: timezone })
+      );
+
+      if (nowInTimezone < startInTimezone) {
+        return false; // Campaign hasn't started yet
+      }
+    }
+
+    // Check end date constraint
+    if (endDate) {
+      const end = typeof endDate === "string" ? new Date(endDate) : endDate;
+      const endInTimezone = new Date(
+        end.toLocaleString("en-US", { timeZone: timezone })
+      );
+
+      if (nowInTimezone > endInTimezone) {
+        return false; // Campaign has ended
+      }
+    }
+
+    return true; // Within schedule
+  } catch (error) {
+    console.error("[Schedule Helper] Error checking schedule:", error);
+    // On error, default to allowing the campaign (fail open)
+    return true;
+  }
+}
