@@ -398,7 +398,7 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
       headline: "Scratch & Win",
       subheadline: "Reveal your surprise",
       buttonText: "Reveal",
-      successMessage: "You won! Scratch to reveal your prize.",
+      successMessage: "You won!",
       ctaText: "Reveal"
     },
     fields: [

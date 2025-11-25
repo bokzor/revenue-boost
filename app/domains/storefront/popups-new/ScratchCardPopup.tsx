@@ -735,7 +735,7 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
                         inset: 0,
                         width: "100%",
                         height: "100%",
-                        zIndex: 1
+                        zIndex: 1,
                       }}
                     />
 
@@ -759,7 +759,7 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
                         height: "100%",
                         cursor: isScratching ? "grabbing" : "grab",
                         touchAction: "none",
-                        zIndex: 2
+                        zIndex: 2,
                       }}
                     />
 
@@ -1116,7 +1116,6 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
           justify-content: center;
           background: ${config.imageBgColor || config.inputBackgroundColor || "#f4f4f5"};
           width: 100%;
-          height: 100%;
         }
 
         .scratch-popup-image img {
@@ -1284,13 +1283,13 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
           }
 
           .scratch-popup-content.vertical .scratch-popup-image {
-            width: 50%;
-            height: 100%;
+            flex: 1 1 50%;
+            height: auto;
             min-height: 400px;
           }
 
           .scratch-popup-content.vertical .scratch-popup-form-section {
-            width: 50%;
+            flex: 1 1 50%;
           }
 
           .scratch-popup-form-section {
