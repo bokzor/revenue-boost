@@ -47,9 +47,10 @@ test.describe('Session Rules & Frequency Capping', () => {
     });
 
     test.beforeEach(async ({ page }) => {
+        // Mock challenge tokens to avoid rate limits
         await mockChallengeToken(page);
 
-        // Log browser console messages
+        // Log browser console messages for debugging
         page.on('console', msg => {
             console.log(`[BROWSER] ${msg.type()}: ${msg.text()}`);
         });

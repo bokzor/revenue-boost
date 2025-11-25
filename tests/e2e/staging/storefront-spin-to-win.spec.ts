@@ -146,10 +146,9 @@ test.describe('Spin to Win Template - E2E', () => {
         // If button is enabled, clicking might show validation
         if (await spinButton.isEnabled().catch(() => false)) {
             await spinButton.click();
-            // Should see validation message or button should not trigger spin
-            const validationMessage = page.locator('text=/email.*required/i, .error-message');
-            const hasValidation = await validationMessage.isVisible({ timeout: 2000 }).catch(() => false);
-            expect(hasValidation).toBeTruthy();
+            // Should see validation message - the EmailInput component renders it with id="email-error"
+            const validationMessage = page.locator('#email-error');
+            await expect(validationMessage).toBeVisible({ timeout: 3000 });
         }
 
         console.log('✅ Email validation working');
@@ -164,17 +163,18 @@ test.describe('Spin to Win Template - E2E', () => {
 
         console.log(`✅ High priority campaign created: ${campaign.id} `);
 
-        // 2. Navigate to storefront
-        await page.goto(STORE_URL);
-        await handlePasswordPage(page);
-
-        // 3. Check browser console for selected campaign
+        // 2. Setup console listener BEFORE navigation
         const logs: string[] = [];
         page.on('console', msg => {
+            console.log(`[BROWSER LOG]: ${msg.text()}`);
             if (msg.text().includes('Selected campaigns')) {
                 logs.push(msg.text());
             }
         });
+
+        // 3. Navigate to storefront
+        await page.goto(STORE_URL);
+        await handlePasswordPage(page);
 
         // Wait for campaigns to load
         await page.waitForTimeout(3000);

@@ -110,9 +110,8 @@ export async function loader(args: LoaderFunctionArgs) {
       // Add visitor ID to context (for frequency capping)
       context.visitorId = visitorId;
 
-      // Preview mode: check for preview token (unsaved campaign) or previewId (saved campaign)
+      // Preview mode: token-based preview sessions (covers saved and unsaved campaigns)
       const previewToken = url.searchParams.get("previewToken");
-      const previewId = url.searchParams.get("previewId");
 
       console.log(`[Active Campaigns API] 🔍 Full URL:`, url.toString());
       console.log(
@@ -121,12 +120,11 @@ export async function loader(args: LoaderFunctionArgs) {
       );
       console.log(`[Active Campaigns API] Request params:`, {
         previewToken: previewToken || "none",
-        previewId: previewId || "none",
         storeId,
         visitorId,
       });
 
-      // Handle preview token (unsaved campaign data from session)
+      // Handle preview token (preview session data from Redis)
       if (previewToken) {
         console.log(`[Active Campaigns API] 🎭 Preview mode enabled with token: ${previewToken}`);
 
@@ -210,53 +208,26 @@ export async function loader(args: LoaderFunctionArgs) {
         }
       }
 
-      // Handle preview ID (saved campaign)
-      if (previewId) {
-        console.log(`[Active Campaigns API] Preview mode enabled for campaign ${previewId}`);
-        const previewCampaign = await CampaignService.getCampaignById(previewId, storeId);
-
-        if (!previewCampaign) {
-          console.warn(
-            `[Active Campaigns API] Preview campaign not found: ${previewId} for store ${storeId}`
-          );
-          const emptyResponse: ActiveCampaignsResponse = {
-            campaigns: [],
-            timestamp: new Date().toISOString(),
-            globalCustomCSS,
-          };
-          return data(emptyResponse, { headers });
-        }
-
-        const formattedPreview: ApiCampaignData = {
-          id: previewCampaign.id,
-          name: previewCampaign.name,
-          templateType: previewCampaign.templateType,
-          priority: previewCampaign.priority,
-          contentConfig: previewCampaign.contentConfig,
-          designConfig: previewCampaign.designConfig,
-          targetRules: {} as Record<string, unknown>,
-          discountConfig: previewCampaign.discountConfig,
-          experimentId: previewCampaign.experimentId,
-          variantKey: previewCampaign.variantKey,
-        };
-
-        const previewResponse: ActiveCampaignsResponse = {
-          campaigns: [formattedPreview],
-          timestamp: new Date().toISOString(),
-          globalCustomCSS,
-        };
-
-        console.log(
-          `[Active Campaigns API] ✅ Returning preview campaign ${previewCampaign.id} to storefront`
-        );
-        return data(previewResponse, { headers });
-      }
-
       // Get all active campaigns
       const allCampaigns = await CampaignService.getActiveCampaigns(storeId);
       console.log(
         `[Active Campaigns API] Found ${allCampaigns.length} active campaigns for store ${storeId}`
       );
+
+      // DIAGNOSTIC: Log ALL campaigns with their frequency capping config
+      if (allCampaigns.length > 0) {
+        console.log('[Active Campaigns API] 🔍 BEFORE FILTERING - All campaigns from database:');
+        allCampaigns.forEach((c) => {
+          const freqCap = c.targetRules?.enhancedTriggers?.frequency_capping;
+          console.log(`  - ${c.name} (${c.id}):`, {
+            priority: c.priority,
+            hasFreqCap: !!freqCap,
+            maxSession: freqCap?.max_triggers_per_session,
+            maxDay: freqCap?.max_triggers_per_day,
+            cooldown: freqCap?.cooldown_between_triggers,
+          });
+        });
+      }
 
       // Filter campaigns based on context (server-side filtering with Redis)
       const filteredCampaigns = await CampaignFilterService.filterCampaigns(
@@ -269,6 +240,16 @@ export async function loader(args: LoaderFunctionArgs) {
         deviceType: context.deviceType,
         visitorId: context.visitorId,
       });
+
+      // DIAGNOSTIC: Log which campaigns were filtered OUT
+      if (allCampaigns.length !== filteredCampaigns.length) {
+        const filteredIds = new Set(filteredCampaigns.map(c => c.id));
+        const excluded = allCampaigns.filter(c => !filteredIds.has(c.id));
+        console.log(`[Active Campaigns API] ❌ ${excluded.length} campaigns FILTERED OUT:`);
+        excluded.forEach(c => {
+          console.log(`  - ${c.name} (${c.id})`);
+        });
+      }
 
       // Format campaigns for storefront consumption
       // Only send client-side triggers, not full targetRules

@@ -71,3 +71,76 @@ export async function mockChallengeToken(page: Page) {
         await route.fulfill({ json });
     });
 }
+
+/**
+ * Clear Redis frequency capping state for tests
+ * 
+ * This prevents Redis state pollution between test runs that can cause
+ * frequency capping counters to exceed limits unexpectedly.
+ * 
+ * @param visitorId - Optional specific visitor ID to clear
+ * @param sessionId - Optional specific session ID to clear
+ */
+export async function clearFrequencyCappingState(visitorId?: string, sessionId?: string) {
+    try {
+        // Import Redis dynamically to avoid issues in environments without it
+        const { getRedis } = await import('../../../../app/lib/redis.server.js');
+        const redis = getRedis();
+
+        if (!redis) {
+            console.warn('[Test Helper] Redis not available, skipping frequency cap cleanup');
+            return;
+        }
+
+        const patterns: string[] = [];
+
+        // Build patterns to match frequency cap keys
+        if (visitorId) {
+            patterns.push(`frequency_cap:*:${visitorId}:*`);
+            patterns.push(`frequency_cap:${visitorId}:*`);
+        }
+        if (sessionId) {
+            patterns.push(`frequency_cap:*:${sessionId}:*`);
+            patterns.push(`frequency_cap:${sessionId}:*`);
+        }
+        if (!visitorId && !sessionId) {
+            // Clear all test-related frequency caps
+            patterns.push(`frequency_cap:*test*`);
+            patterns.push(`frequency_cap:*e2e*`);
+        }
+
+        let totalCleared = 0;
+        for (const pattern of patterns) {
+            const keys = await redis.keys(pattern);
+            if (keys.length > 0) {
+                await redis.del(...keys);
+                totalCleared += keys.length;
+                console.log(`[Test Helper] Cleared ${keys.length} frequency cap keys matching: ${pattern}`);
+            }
+        }
+
+        if (totalCleared > 0) {
+            console.log(`[Test Helper] ✅ Cleared ${totalCleared} total frequency cap keys`);
+        } else {
+            console.log('[Test Helper] No frequency cap keys found to clear');
+        }
+    } catch (error) {
+        console.warn('[Test Helper] Failed to clear frequency capping state:', error);
+        // Don't throw - failing to clear shouldn't break tests
+    }
+}
+
+/**
+ * Generate unique visitor and session IDs for test isolation
+ * 
+ * @returns Object with unique visitorId and sessionId
+ */
+export function generateUniqueTestIds() {
+    const timestamp = Date.now();
+    const random = Math.random().toString(36).substring(7);
+
+    return {
+        visitorId: `e2e-visitor-${timestamp}-${random}`,
+        sessionId: `e2e-session-${timestamp}-${random}`
+    };
+}

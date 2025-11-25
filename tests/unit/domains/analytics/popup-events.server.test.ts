@@ -62,6 +62,29 @@ describe("PopupEventService", () => {
     expect(args.data.eventType).toBe("VIEW");
   });
 
+	  it("skips recording events for preview campaigns", async () => {
+	    await PopupEventService.recordEvent({
+	      storeId: "store-1",
+	      campaignId: "preview-123",
+	      experimentId: null,
+	      variantKey: null,
+	      sessionId: "sess-1",
+	      visitorId: "visitor-1",
+	      eventType: "VIEW",
+	      pageUrl: "/",
+	      referrer: null,
+	      userAgent: "UA",
+	      ipAddress: "127.0.0.1",
+	      deviceType: "desktop",
+	      metadata: { foo: "bar" },
+	    } as any);
+
+	    expect(
+	      mockPlanGuardService.assertWithinMonthlyImpressionCap,
+	    ).not.toHaveBeenCalled();
+	    expect(mockPrisma.popupEvent.create).not.toHaveBeenCalled();
+	  });
+
 	  it("does not record a VIEW event when monthly impression cap is exceeded", async () => {
 	    mockPlanGuardService.assertWithinMonthlyImpressionCap.mockRejectedValueOnce(
 	      new PlanLimitError("cap reached"),

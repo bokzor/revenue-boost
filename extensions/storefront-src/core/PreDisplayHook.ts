@@ -238,15 +238,21 @@ async function executeHook(
  * @returns Combined result with all loaded resources
  */
 export async function executeHooksForCampaign(
-    campaign: StorefrontCampaign,
-    api: ApiClient,
-    sessionId: string,
-    visitorId: string,
-    triggerContext?: { productId?: string; [key: string]: unknown }
+  campaign: StorefrontCampaign,
+  api: ApiClient,
+  sessionId: string,
+  visitorId: string,
+  triggerContext?: { productId?: string; [key: string]: unknown }
 ): Promise<CampaignHooksResult> {
-    const startTime = Date.now();
-    const templateType = campaign.templateType;
-    const previewMode = (campaign.designConfig as { previewMode?: boolean } | undefined)?.previewMode || false;
+  const startTime = Date.now();
+  const templateType = campaign.templateType;
+
+  // Treat campaigns created via a preview session (unsaved campaigns)
+  // as being in preview mode. These are identified by their generated
+  // ID prefix: "preview-<token>". Saved-campaign previews use the real
+  // campaign ID and should behave like normal storefront campaigns for
+  // hooks such as ProductDataHook.
+  const previewMode = campaign.id.startsWith("preview-");
 
     console.log(`[PreDisplayHook] Executing hooks for campaign ${campaign.id} (${templateType})`);
 

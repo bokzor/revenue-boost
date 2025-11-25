@@ -18,25 +18,18 @@
       window.REVENUE_BOOST_CONFIG.pageType = '{{ request.page_type }}';
       window.REVENUE_BOOST_CONFIG.pageUrl = '{{ request.path }}';
 
-      // Detect preview mode from URL parameter
+      // Detect preview mode from URL parameter (token-based only)
       const urlParams = new URLSearchParams(window.location.search);
-      const previewId = urlParams.get('split_pop_preview');
       const previewToken = urlParams.get('split_pop_preview_token');
       const previewBehavior = urlParams.get('preview_behavior') || 'instant';
 
       console.log('[Revenue Boost Block] URL:', window.location.href);
       console.log('[Revenue Boost Block] Preview params:', {
-        previewId: previewId,
-        previewToken: previewToken,
-        previewBehavior: previewBehavior
+        previewToken,
+        previewBehavior,
       });
 
-      if (previewId) {
-        console.log('[Revenue Boost Block] ✅ Setting preview mode with ID:', previewId);
-        window.REVENUE_BOOST_CONFIG.previewMode = true;
-        window.REVENUE_BOOST_CONFIG.previewId = previewId;
-        window.REVENUE_BOOST_CONFIG.previewBehavior = previewBehavior;
-      } else if (previewToken) {
+      if (previewToken) {
         console.log('[Revenue Boost Block] ✅ Setting preview mode with token:', previewToken);
         window.REVENUE_BOOST_CONFIG.previewMode = true;
         window.REVENUE_BOOST_CONFIG.previewToken = previewToken;
@@ -47,9 +40,8 @@
 
       console.log('[Revenue Boost Block] Final config:', {
         previewMode: window.REVENUE_BOOST_CONFIG.previewMode,
-        previewId: window.REVENUE_BOOST_CONFIG.previewId,
         previewToken: window.REVENUE_BOOST_CONFIG.previewToken,
-        previewBehavior: window.REVENUE_BOOST_CONFIG.previewBehavior
+        previewBehavior: window.REVENUE_BOOST_CONFIG.previewBehavior,
       });
     </script>
     <script src="{{ 'popup-loader.bundle.js' | asset_url }}" defer></script>

@@ -18,6 +18,7 @@ describe("PopupManagerPreact - CSS threading", () => {
   it("passes globalCustomCSS and customCSS into PopupPortal styles", async () => {
     const { renderPopup } = await import("../../../../../extensions/storefront-src/core/PopupManagerPreact");
     const { ComponentLoader } = await import("../../../../../extensions/storefront-src/core/component-loader");
+    const { HookRegistry } = await import("../../../../../extensions/storefront-src/core/PreDisplayHook");
     const typeApi = await import("../../../../../extensions/storefront-src/core/api");
 
     const campaign: any = {
@@ -37,6 +38,7 @@ describe("PopupManagerPreact - CSS threading", () => {
         config.customCSS ? h("style", null, config.customCSS) : null,
       ]);
     vi.spyOn(loader, "loadComponent").mockResolvedValue(FakeComponent);
+    vi.spyOn(HookRegistry, "getHooks").mockReturnValue([]);
 
     const api = { recordFrequency: () => Promise.resolve(), trackEvent: () => Promise.resolve() } as unknown as import("../../../../../extensions/storefront-src/core/api").ApiClient;
 

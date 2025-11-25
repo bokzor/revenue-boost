@@ -292,7 +292,18 @@ export class FrequencyCapService {
     counts: FrequencyCapResult["currentCounts"],
     rules: FrequencyCappingRule
   ): Pick<FrequencyCapResult, "allowed" | "reason"> {
+    // Diagnostic logging for debugging frequency capping issues
+    console.log('[FrequencyCap] Checking campaign limits:', {
+      sessionCount: counts.session,
+      sessionLimit: rules.max_triggers_per_session,
+      hourCount: counts.hour,
+      hourLimit: rules.max_triggers_per_hour,
+      dayCount: counts.day,
+      dayLimit: rules.max_triggers_per_day,
+    });
+
     if (rules.max_triggers_per_session && counts.session >= rules.max_triggers_per_session) {
+      console.log(`[FrequencyCap] ❌ Session limit EXCEEDED: ${counts.session} >= ${rules.max_triggers_per_session}`);
       return {
         allowed: false,
         reason: `Session limit exceeded (${rules.max_triggers_per_session})`,

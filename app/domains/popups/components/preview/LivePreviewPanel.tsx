@@ -50,26 +50,31 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
   campaignId,
   globalCustomCSS,
 }) => {
-  const [device, setDevice] = useState<"mobile" | "tablet" | "desktop">("desktop");
+  const [device, setDevice] = useState<"mobile" | "tablet" | "desktop">("tablet");
   const [zoom, setZoom] = useState(100);
 
   // ✅ KEY: Virtual viewport sizes - independent of physical container
-  // These dimensions trigger the correct layout modes in the popups
+  // These dimensions trigger the correct layout modes in the popups.
+  // Desktop uses a wider logical viewport so overlays (like upsell bars)
+  // don't appear to span the *entire* browser width in preview.
   const virtualViewports = {
     mobile: { width: 375, height: 667 },
     tablet: { width: 768, height: 800 },
-    desktop: { width: 1024, height: 600 },
+    desktop: { width: 1440, height: 600 },
   };
 
   const viewport = virtualViewports[device];
   const previewRef = useRef<HTMLDivElement>(null);
-  const [containerWidth, setContainerWidth] = useState<number | null>(null);
+  const [containerSize, setContainerSize] = useState<{ width: number; height: number } | null>(
+    null
+  );
 
-  // Measure physical container width to determine available space
+  // Measure physical container size to determine available space
   useEffect(() => {
     const measureContainer = () => {
       if (previewRef.current) {
-        setContainerWidth(previewRef.current.clientWidth);
+        const { clientWidth, clientHeight } = previewRef.current;
+        setContainerSize({ width: clientWidth, height: clientHeight });
       }
     };
 
@@ -82,19 +87,30 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
 
   // ✅ KEY: Calculate scale to fit virtual viewport into physical container
   const calculateScale = () => {
-    if (!containerWidth) return 1;
+    if (!containerSize) return 1;
 
-    const padding = 40; // preview padding
-    const availableWidth = containerWidth - padding;
+    // Account for the padding applied on the preview container (20px on each side)
+    const paddingX = 40;
+    const paddingY = 40;
+    const availableWidth = containerSize.width - paddingX;
+    const availableHeight = containerSize.height - paddingY;
 
-    // Scale virtual viewport to fit available space
-    // We only scale down, never up (unless zoomed)
-    const fitScale = Math.min(1, availableWidth / viewport.width);
+    if (availableWidth <= 0 || availableHeight <= 0) return 1;
 
-    // Apply zoom on top
+    // Scale virtual viewport to fit BOTH width and height in the available space.
+    // We only scale down, never up (unless zoomed).
+    const widthScale = availableWidth / viewport.width;
+    const heightScale = availableHeight / viewport.height;
+    const rawFitScale = Math.min(1, widthScale, heightScale);
+
+    // Apply a small safety margin so content doesn't hug the edges and
+    // there's less risk of run-cut at extreme sizes.
+    const fitScale = rawFitScale * 0.9;
+
+    // Apply zoom on top of the best-fit scale
     const totalScale = fitScale * (zoom / 100);
 
-    // Min 50% scale for readability, max 150% for zoom
+    // Min 20% scale for readability
     return Math.max(0.2, totalScale);
   };
 
@@ -115,14 +131,7 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
     setIsCreatingPreview(true);
 
     try {
-      // If we have a campaignId, use the existing preview flow
-      if (campaignId) {
-        const storeUrl = `https://${shopDomain}?split_pop_preview=${campaignId}&preview_behavior=${behavior}`;
-        window.open(storeUrl, "_blank");
-        return;
-      }
-
-      // For unsaved campaigns, create a preview session
+      // Always use token-based preview sessions for consistency (saved and unsaved)
       const previewData = {
         name: config.name || "Preview Campaign",
         templateType,
@@ -131,6 +140,8 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
         targetRules: targetRules || {},
         priority: 0,
         discountConfig: config.discountConfig || {},
+        // Optional: reference to the underlying saved campaign, if any
+        sourceCampaignId: campaignId,
       };
 
       // Create preview session

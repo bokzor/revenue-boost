@@ -9,12 +9,15 @@ import type { PreDisplayHook, PreDisplayHookContext, PreDisplayHookResult } from
 
 export class ProductDataHook implements PreDisplayHook {
     readonly name = 'products';
-    readonly runInPreview = false; // Skip in preview mode
+    // Run in preview so we can either load real products or fall back to
+    // mocked preview products when none are available.
+    readonly runInPreview = true;
     readonly timeoutMs = 5000; // 5 second timeout for API call
 
     async execute(context: PreDisplayHookContext): Promise<PreDisplayHookResult> {
+        const { campaign, triggerContext, previewMode } = context;
+
         try {
-            const { campaign, triggerContext } = context;
             const templateType = campaign.templateType;
 
             console.log(`[ProductDataHook] Fetching products for ${templateType}`);
@@ -31,15 +34,26 @@ export class ProductDataHook implements PreDisplayHook {
                 // Pass trigger product ID to exclude it from recommendations
                 products = await this.fetchUpsellProducts(campaign.id, triggerProductId);
 
-                // CRITICAL: Product Upsell popup should NEVER display without products
-                // This prevents showing "No products available" to customers
+                // In normal storefront mode, a Product Upsell popup should
+                // never render without real products. In preview, however,
+                // we fall back to mocked products so merchants can still see
+                // what the popup will look like.
                 if (!products || products.length === 0) {
-                    console.warn(`[ProductDataHook] No products available for Product Upsell campaign ${campaign.id}. Popup will not display.`);
-                    return {
-                        success: false,
-                        error: 'No products available for upsell',
-                        hookName: this.name,
-                    };
+                    if (previewMode) {
+                        console.warn(
+                            `[ProductDataHook][Preview] No products available for Product Upsell campaign ${campaign.id}. Using mocked preview products instead.`,
+                        );
+                        products = this.buildPreviewMockProducts(campaign);
+                    } else {
+                        console.warn(
+                            `[ProductDataHook] No products available for Product Upsell campaign ${campaign.id}. Popup will not display.`,
+                        );
+                        return {
+                            success: false,
+                            error: 'No products available for upsell',
+                            hookName: this.name,
+                        };
+                    }
                 }
             } else if (templateType === 'FLASH_SALE') {
                 // Flash sale may have product configuration
@@ -60,6 +74,21 @@ export class ProductDataHook implements PreDisplayHook {
             const errorMessage = error instanceof Error ? error.message : String(error);
             console.error(`[ProductDataHook] Failed to fetch products:`, errorMessage);
 
+            // In preview mode, fall back to mocked products even if the
+            // network request failed so that the merchant still sees a
+            // realistic popup.
+            if (previewMode && campaign.templateType === 'PRODUCT_UPSELL') {
+                console.warn(
+                    '[ProductDataHook][Preview] Falling back to mocked products due to fetch error.',
+                );
+                const products = this.buildPreviewMockProducts(campaign);
+                return {
+                    success: true,
+                    data: products,
+                    hookName: this.name,
+                };
+            }
+
             return {
                 success: false,
                 error: errorMessage,
@@ -67,9 +96,6 @@ export class ProductDataHook implements PreDisplayHook {
             };
         }
     }
-
-
-
     private async fetchUpsellProducts(campaignId: string, triggerProductId?: string): Promise<any[]> {
         const params = new URLSearchParams({
             campaignId,
@@ -92,9 +118,6 @@ export class ProductDataHook implements PreDisplayHook {
         const data = await response.json();
         return Array.isArray(data.products) ? data.products : [];
     }
-
-
-
     private async fetchFlashSaleProducts(campaignId: string): Promise<any[]> {
         // Similar to upsell products, but for flash sale
         // This could be a different endpoint or the same one depending on your implementation
@@ -110,5 +133,62 @@ export class ProductDataHook implements PreDisplayHook {
 
         const data = await response.json();
         return Array.isArray(data.products) ? data.products : [];
+    }
+
+    /**
+     * Build a small, deterministic set of mocked products for preview.
+     *
+     * The mock is only used when no real products are returned so that
+     * merchants can still see the popup layout in storefront preview.
+     */
+    private buildPreviewMockProducts(campaign: { contentConfig?: unknown }): any[] {
+        const contentConfig = (campaign.contentConfig || {}) as { maxProducts?: number };
+        const maxFromConfig =
+            typeof contentConfig.maxProducts === 'number' && contentConfig.maxProducts > 0
+                ? contentConfig.maxProducts
+                : 3;
+
+        const maxProducts = Math.min(maxFromConfig, 4);
+
+        const baseProducts = [
+            {
+                id: 'preview-product-1',
+                variantId: 'preview-variant-1',
+                title: 'Preview Hoodie',
+                price: '59.00',
+                compareAtPrice: '79.00',
+                imageUrl: '',
+                handle: 'preview-hoodie',
+            },
+            {
+                id: 'preview-product-2',
+                variantId: 'preview-variant-2',
+                title: 'Preview Sneakers',
+                price: '89.00',
+                compareAtPrice: '119.00',
+                imageUrl: '',
+                handle: 'preview-sneakers',
+            },
+            {
+                id: 'preview-product-3',
+                variantId: 'preview-variant-3',
+                title: 'Preview Backpack',
+                price: '49.00',
+                compareAtPrice: '69.00',
+                imageUrl: '',
+                handle: 'preview-backpack',
+            },
+            {
+                id: 'preview-product-4',
+                variantId: 'preview-variant-4',
+                title: 'Preview Cap',
+                price: '24.00',
+                compareAtPrice: '29.00',
+                imageUrl: '',
+                handle: 'preview-cap',
+            },
+        ];
+
+        return baseProducts.slice(0, maxProducts);
     }
 }

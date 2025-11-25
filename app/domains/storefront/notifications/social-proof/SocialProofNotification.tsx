@@ -5,7 +5,8 @@
  * Features auto-dismiss, animations, and click tracking.
  */
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
+import { buildScopedCss } from "~/domains/storefront/shared/css";
 import type { SocialProofNotification, SocialProofConfig } from "./types";
 
 export interface SocialProofNotificationProps {
@@ -23,6 +24,16 @@ export const SocialProofNotificationComponent: React.FC<SocialProofNotificationP
 }) => {
   const [isVisible, setIsVisible] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
+  const scopedCss = useMemo(
+    () =>
+      buildScopedCss(
+        config.globalCustomCSS,
+        config.customCSS,
+        "data-rb-social-proof",
+        "social-proof"
+      ),
+    [config.customCSS, config.globalCustomCSS]
+  );
 
   const colors = {
     background: config.notificationBackgroundColor || config.backgroundColor || "#FFFFFF",
@@ -264,6 +275,7 @@ export const SocialProofNotificationComponent: React.FC<SocialProofNotificationP
           transition: "transform 0.3s ease-out, opacity 0.3s ease-out",
         }}
         onClick={handleClick}
+        data-rb-social-proof
       >
         {renderNotificationContent()}
 
@@ -299,6 +311,7 @@ export const SocialProofNotificationComponent: React.FC<SocialProofNotificationP
       </div>
 
       {/* Animations & layout */}
+      {scopedCss ? <style>{scopedCss}</style> : null}
       <style>{`
         .social-proof-notification {
           /* Start invisible and off-screen, will be animated in */

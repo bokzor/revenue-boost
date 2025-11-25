@@ -455,18 +455,29 @@ export class CampaignFilterService {
     context: StorefrontContext,
     storeSettings?: StoreSettings
   ): Promise<CampaignWithConfigs[]> {
+    console.log(`[FrequencyCap Filter] 🔍 Checking ${campaigns.length} campaigns`);
+
     const results = await Promise.all(
       campaigns.map(async (campaign) => {
+        console.log(`[FrequencyCap Filter] Checking campaign: ${campaign.name} (${campaign.id})`);
+
         const result = await FrequencyCapService.checkFrequencyCapping(
           campaign,
           context,
           storeSettings
         );
+
+        console.log(`[FrequencyCap Filter] ${campaign.name}: ${result.allowed ? '✅ ALLOWED' : '❌ BLOCKED'}`,
+          result.reason ? `(${result.reason})` : '');
+
         return result.allowed ? campaign : null;
       })
     );
 
-    return results.filter((campaign): campaign is CampaignWithConfigs => campaign !== null);
+    const filtered = results.filter((campaign): campaign is CampaignWithConfigs => campaign !== null);
+    console.log(`[FrequencyCap Filter] Final: ${filtered.length}/${campaigns.length} campaigns passed`);
+
+    return filtered;
   }
 
   /**
@@ -628,10 +639,23 @@ export class CampaignFilterService {
     context: StorefrontContext
   ): Promise<CampaignWithConfigs[]> {
     console.log(`\n[Revenue Boost] === ${label} FILTER ===`);
+    console.log(`[Revenue Boost] Input: ${campaigns.length} campaigns -`, campaigns.map(c => c.name));
+
     const result = await filter(campaigns, context);
+
     console.log(
-      `[Revenue Boost] After ${label.toLowerCase()} filter: ${result.length} campaigns remaining\n`
+      `[Revenue Boost] After ${label.toLowerCase()} filter: ${result.length} campaigns remaining`
     );
+
+    // DIAGNOSTIC: Show which campaigns were filtered out
+    if (campaigns.length !== result.length) {
+      const resultIds = new Set(result.map(c => c.id));
+      const excluded = campaigns.filter(c => !resultIds.has(c.id));
+      console.log(`[Revenue Boost] ❌ ${label} filtered out ${excluded.length} campaign(s):`,
+        excluded.map(c => c.name));
+    }
+
+    console.log(); // Empty line for readability
     return result;
   }
 

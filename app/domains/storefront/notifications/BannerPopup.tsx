@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
+import { buildScopedCss } from "../shared/css";
 import type { PopupConfig } from "../popups-new/types";
 
 export interface BannerPopupProps {
@@ -52,6 +53,16 @@ export const BannerPopup: React.FC<BannerPopupProps> = ({
   }
 
   const position = config.position || "top";
+  const scopedCss = useMemo(
+    () =>
+      buildScopedCss(
+        (config as { globalCustomCSS?: string }).globalCustomCSS,
+        (config as { customCSS?: string }).customCSS,
+        "data-rb-banner",
+        "banner"
+      ),
+    [config]
+  );
 
   const bannerStyle: React.CSSProperties = {
     position: config.sticky ? "fixed" : "relative",
@@ -142,7 +153,8 @@ export const BannerPopup: React.FC<BannerPopupProps> = ({
   };
 
   const content = (
-    <div style={bannerStyle}>
+    <div style={bannerStyle} data-rb-banner>
+      {scopedCss ? <style>{scopedCss}</style> : null}
       <div style={containerStyle}>
         <div style={contentStyle}>
           {config.imageUrl && (

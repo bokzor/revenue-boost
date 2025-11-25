@@ -3,7 +3,14 @@ import { defineConfig, type UserConfig } from "vite";
 import tsconfigPaths from "vite-tsconfig-paths";
 
 // Detect build mode
-const isDevelopment = process.env.NODE_ENV === 'development' || process.env.BUILD_MODE === 'development';
+const isDevelopment =
+  process.env.NODE_ENV === "development" || process.env.BUILD_MODE === "development";
+
+// When running under Storybook (storybook dev / storybook build),
+// disable the React Router Vite plugin to avoid the
+// "The React Router Vite plugin requires the use of a Vite config file" error.
+// See: https://github.com/storybookjs/storybook/discussions/25519
+const isStorybook = process.argv[1]?.includes("storybook");
 
 // Related: https://github.com/remix-run/remix/issues/2835#issuecomment-1144102176
 // Replace the HOST env var with SHOPIFY_APP_URL so that it doesn't break the Vite server.
@@ -38,7 +45,7 @@ if (host === "localhost") {
   };
 }
 
-export default defineConfig({
+	export default defineConfig({
   server: {
     allowedHosts: [host],
     cors: {
@@ -51,10 +58,10 @@ export default defineConfig({
       allow: ["app", "node_modules"],
     },
   },
-  plugins: [
-    reactRouter(),
-    tsconfigPaths(),
-  ],
+	  plugins: [
+	    !isStorybook && reactRouter(),
+	    tsconfigPaths(),
+	  ],
   build: {
     assetsInlineLimit: 0,
     sourcemap: isDevelopment, // Sourcemaps seulement en dev

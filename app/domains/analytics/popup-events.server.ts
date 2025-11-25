@@ -34,6 +34,14 @@ export class PopupEventService {
    * lead submission, and any other event producers.
    */
   static async recordEvent(input: PopupEventInput): Promise<void> {
+    // Skip analytics for preview campaigns.
+    // Preview campaigns use synthetic IDs (e.g. "preview-<token>") when
+    // rendering popups from the admin preview flow. These impressions and
+    // interactions should not count towards usage limits or analytics.
+    if (input.campaignId.startsWith("preview-")) {
+      return;
+    }
+
     // Enforce monthly impression cap for VIEW events before recording.
     // This ensures impressions are hard-capped at write time.
     if (input.eventType === "VIEW") {

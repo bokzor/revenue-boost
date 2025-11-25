@@ -128,10 +128,10 @@ const TemplatePreviewComponent = forwardRef<TemplatePreviewRef, TemplatePreviewP
     );
 
     // Memoize merged config to prevent re-renders with more stable dependencies
-    const mergedConfig: Record<string, unknown> = useMemo(() => {
-      if (!templateType) {
-        return { ...config, ...designConfig };
-      }
+  const mergedConfig: Record<string, unknown> = useMemo(() => {
+    if (!templateType) {
+      return { ...config, ...designConfig, globalCustomCSS };
+    }
 
       // For newsletter templates, ensure discount config is properly merged
       const baseConfig = {
@@ -141,6 +141,8 @@ const TemplatePreviewComponent = forwardRef<TemplatePreviewRef, TemplatePreviewP
         isVisible: true,
         // Enable preview mode to prevent fixed positioning
         previewMode: true,
+        // Pass global custom CSS through so scoped injection works for all templates (including banners/social proof)
+        globalCustomCSS,
       };
 
       // If this is a newsletter template, merge discount configuration

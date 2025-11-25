@@ -139,6 +139,15 @@ export function usePopupForm(options: UsePopupFormOptions) {
         } else {
           // Default secure submission
           if (!config.campaignId) {
+            // In preview mode (admin editor, WYSIWYG preview, etc.) we don't
+            // have a real campaignId or challenge token available. Treat this
+            // as a mocked success so merchants can exercise the flow without
+            // hitting the secure submission endpoint.
+            if (config.previewMode) {
+              setIsSubmitted(true);
+              return { success: true, discountCode: undefined };
+            }
+
             throw new Error("Missing campaignId for secure submission");
           }
 

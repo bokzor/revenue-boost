@@ -145,7 +145,9 @@ export function renderDesignStep(props: StepRendererProps) {
         const nextUpdate: Partial<CampaignFormData> = {
           templateId: template.id,
           templateType: template.templateType,
+          // Use the template's seeded content (already merged with recipe if applicable)
           contentConfig: contentWithDefaults,
+          // Use the template's seeded design config as-is (already merged with recipe if applicable)
           designConfig: template.designConfig || {},
           // Apply template triggers so the Targeting step reflects the selection (e.g., Exit Intent)
           ...(enhancedFromTemplate ? { enhancedTriggers: enhancedFromTemplate } : {}),
@@ -155,10 +157,12 @@ export function renderDesignStep(props: StepRendererProps) {
 
         updateData(nextUpdate);
 
-        // Also pass hydrated defaults and targetRules so setTemplateType can merge (e.g., page targeting)
+        // Also pass hydrated defaults, targetRules, and design so setTemplateType
+        // can merge them into wizard state (including seeded design from DB)
         setTemplateType(template.templateType, {
           contentDefaults: contentWithDefaults,
           targetRules: template.targetRules as any,
+          design: template.designConfig as any,
         });
       }}
     />

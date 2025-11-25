@@ -447,24 +447,6 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
     }
   }, [handleFormSubmit, config, formState.email, onSpin, segments, onWin, setDiscountCode]);
 
-  const getInputStyles = (isFocused: boolean, hasError: boolean): React.CSSProperties => {
-    // Use inputTextColor with reduced opacity for placeholder
-    const placeholderColor = inputTextColor ? `${inputTextColor}80` : "rgba(107, 114, 128, 0.5)";
-
-    return {
-      width: "100%",
-      padding: "14px 16px",
-      fontSize: "15px",
-      border: `2px solid ${hasError ? "#EF4444" : isFocused ? accentColor : inputBorderColor}`,
-      borderRadius: `${borderRadius}px`,
-      backgroundColor: inputBackground,
-      color: inputTextColor,
-      outline: "none",
-      transition: `all ${animDuration}ms cubic-bezier(0.4, 0, 0.2, 1)`,
-      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-    };
-  };
-
   const buttonStyles: React.CSSProperties = {
     width: "100%",
     padding: POPUP_SPACING.component.button,

@@ -59,35 +59,33 @@ if (typeof window !== "undefined") {
 }
 
 interface Config {
-  apiUrl: string;
-  shopDomain: string;
-  debug: boolean;
-  previewMode?: boolean;
-  previewId?: string;
-  previewToken?: string;
-  previewBehavior?: 'instant' | 'realistic';
-  sessionId?: string;
-  visitCount?: number;
-  isReturningVisitor?: boolean;
-  deviceType?: string;
-}
+	  apiUrl: string;
+	  shopDomain: string;
+	  debug: boolean;
+	  previewMode?: boolean;
+	  previewToken?: string;
+	  previewBehavior?: 'instant' | 'realistic';
+	  sessionId?: string;
+	  visitCount?: number;
+	  isReturningVisitor?: boolean;
+	  deviceType?: string;
+	}
 
 function getConfig(): Config {
   type W2 = typeof window & { REVENUE_BOOST_CONFIG?: Partial<Config> };
   const cfg = (window as unknown as W2).REVENUE_BOOST_CONFIG || {};
-  return {
-    apiUrl: cfg.apiUrl || "",
-    shopDomain: cfg.shopDomain || "",
-    debug: cfg.debug || false,
-    previewMode: cfg.previewMode || false,
-    previewId: cfg.previewId,
-    previewToken: cfg.previewToken,
-    previewBehavior: cfg.previewBehavior || 'instant',
-    sessionId: cfg.sessionId,
-    visitCount: cfg.visitCount,
-    isReturningVisitor: cfg.isReturningVisitor,
-    deviceType: cfg.deviceType,
-  };
+	  return {
+	    apiUrl: cfg.apiUrl || "",
+	    shopDomain: cfg.shopDomain || "",
+	    debug: cfg.debug || false,
+	    previewMode: cfg.previewMode || false,
+	    previewToken: cfg.previewToken,
+	    previewBehavior: cfg.previewBehavior || 'instant',
+	    sessionId: cfg.sessionId,
+	    visitCount: cfg.visitCount,
+	    isReturningVisitor: cfg.isReturningVisitor,
+	    deviceType: cfg.deviceType,
+	  };
 }
 
 function waitForDOMReady(): Promise<void> {
@@ -140,13 +138,12 @@ class RevenueBoostApp {
     console.log("[Revenue Boost] 🔑 Session ID:", session.getSessionId());
     console.log("[Revenue Boost] 👤 Visitor ID:", session.getVisitorId());
 
-    // Log preview mode details
-    if (this.config.previewMode) {
-      console.log("[Revenue Boost] 🎭 PREVIEW MODE ENABLED");
-      console.log("[Revenue Boost] Preview ID:", this.config.previewId || "none");
-      console.log("[Revenue Boost] Preview Token:", this.config.previewToken || "none");
-      console.log("[Revenue Boost] Preview Behavior:", this.config.previewBehavior);
-    }
+	    // Log preview mode details
+	    if (this.config.previewMode) {
+	      console.log("[Revenue Boost] 🎭 PREVIEW MODE ENABLED");
+	      console.log("[Revenue Boost] Preview Token:", this.config.previewToken || "none");
+	      console.log("[Revenue Boost] Preview Behavior:", this.config.previewBehavior);
+	    }
 
     // Wait for DOM
     await waitForDOMReady();
@@ -165,13 +162,19 @@ class RevenueBoostApp {
         session.getSessionId(),
         session.getVisitorId()
       );
-    const { campaigns, globalCustomCSS } = response;
-    this.globalCustomCSS = globalCustomCSS || undefined;
-    const campaignList = (campaigns as ClientCampaign[]).map((c) => ({
-      ...c,
-      globalCustomCSS: globalCustomCSS || undefined,
-      customCSS: (c.designConfig as Record<string, unknown> | undefined)?.customCSS as string | undefined,
-    }));
+      const { campaigns, globalCustomCSS } = response;
+      this.globalCustomCSS = globalCustomCSS || undefined;
+
+      // NOTE: Do NOT set designConfig.previewMode here.
+      // The previewMode flag is reserved for admin previews and changes
+      // how popups render (e.g. inline vs modal). Storefront previews
+      // should behave like real popups, so we keep designConfig
+      // untouched aside from wiring globalCustomCSS/customCSS.
+      const campaignList = (campaigns as ClientCampaign[]).map((c) => ({
+        ...c,
+        globalCustomCSS: globalCustomCSS || undefined,
+        customCSS: (c.designConfig as Record<string, unknown> | undefined)?.customCSS as string | undefined,
+      }));
 
       console.log(`[Revenue Boost] ✅ Campaigns received: ${campaignList?.length || 0}`);
       if (campaignList && campaignList.length > 0) {
@@ -258,8 +261,10 @@ class RevenueBoostApp {
     // Filter dismissed campaigns (except preview mode)
     // Server handles frequency capping via Redis
     const available = sorted.filter((campaign) => {
-      const isPreview = this.config.previewMode && this.config.previewId === campaign.id;
-      if (isPreview) return true;
+      // In preview mode we keep all campaigns returned by the API;
+      // the preview handling below will ensure only the preview
+      // campaign is actually shown.
+      if (this.config.previewMode) return true;
 
       // Use experimentId for tracking if campaign is part of an experiment
       // This ensures all variants of the same experiment are tracked together
@@ -281,13 +286,11 @@ class RevenueBoostApp {
     console.log(`[Revenue Boost] 📋 ${available.length} campaign(s) available after filtering`);
 
     // Preview mode: show only the preview campaign if present
-    if (this.config.previewMode && (this.config.previewId || this.config.previewToken)) {
+    if (this.config.previewMode && this.config.previewToken) {
       console.log("[Revenue Boost] 🎭 Preview mode: looking for preview campaign...");
 
-      // For preview token, the campaign ID will be like "preview-{token}"
-      const previewCampaign = this.config.previewId
-        ? available.find((c) => c.id === this.config.previewId)
-        : available[0]; // For preview tokens, there should only be one campaign
+      // For token-based previews, the API returns a single preview campaign
+      const previewCampaign = available[0];
 
       if (previewCampaign) {
         console.log("[Revenue Boost] ✅ Preview campaign found:", {
@@ -380,13 +383,11 @@ class RevenueBoostApp {
       templateType: campaign.templateType,
     });
 
-    const isPreview = this.config.previewMode &&
-      (this.config.previewId === campaign.id || this.config.previewToken);
+    const isPreview = this.config.previewMode && !!this.config.previewToken;
 
     console.log("[Revenue Boost] Preview check:", {
       isPreview,
       previewMode: this.config.previewMode,
-      previewId: this.config.previewId,
       previewToken: this.config.previewToken,
       campaignId: campaign.id,
       behavior: this.config.previewBehavior,
@@ -432,7 +433,7 @@ class RevenueBoostApp {
     triggerManager?: TriggerManager
   ): Promise<void> {
     console.log("[Revenue Boost] 🎨 renderCampaign called for:", campaign.name);
-    const isPreview = this.config.previewMode && this.config.previewId === campaign.id;
+	    const isPreview = this.config.previewMode && !!this.config.previewToken;
 
     // Record frequency for server-side tracking (Redis + analytics)
     if (!isPreview) {

@@ -1,6 +1,6 @@
 import React from "react";
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 
 import { TemplatePreview } from "~/domains/popups/components/preview/TemplatePreview";
 import { TemplateTypeEnum } from "~/lib/template-types.enum";
@@ -51,5 +51,26 @@ describe("TemplatePreview Scratch Card  email gate wiring", () => {
     await screen.findByText(/scratch & win/i);
     expect(screen.queryByPlaceholderText(/enter your email/i)).toBeNull();
   });
+
+	  it("submits email in preview without requiring a campaignId secure submission", async () => {
+	    renderScratchCardPreview({
+	      emailRequired: true,
+	      emailBeforeScratching: true,
+	    });
+
+	    const emailInput = await screen.findByPlaceholderText(/enter your email/i);
+	    fireEvent.change(emailInput, { target: { value: "test@example.com" } });
+
+	    const submitButton = await screen.findByRole("button", {
+	      name: /unlock scratch card/i,
+	    });
+	    fireEvent.click(submitButton);
+
+	    await waitFor(() => {
+	      expect(
+	        screen.queryByText(/missing campaignid for secure submission/i)
+	      ).toBeNull();
+	    });
+	  });
 });
 

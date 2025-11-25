@@ -258,6 +258,7 @@ export function useWizardState(initialData?: Partial<CampaignFormData>) {
       // Use configuration from the template object (from database)
       const templateDefaults = templateObject?.contentDefaults || {};
       const templateTargetRules = (templateObject?.targetRules as Record<string, unknown>) || {};
+      const templateDesign = templateObject?.design || {};
 
       console.log("[useWizardState] Applying template configuration from database:", templateType, {
         hasDefaultDesignFields: Object.keys(defaultDesignFields).length > 0,
@@ -279,14 +280,15 @@ export function useWizardState(initialData?: Partial<CampaignFormData>) {
 
       const next: Partial<CampaignFormData> = {
         templateType,
-        // Apply content defaults from database template
+        // Apply content defaults from database template (already includes recipe merge if any)
         contentConfig: {
           ...state.data.contentConfig,
           ...templateDefaults,
         },
-        // Apply design defaults from template registry
+        // Apply design from database template (seed), then registry-level defaults as a light override
         designConfig: {
           ...state.data.designConfig,
+          ...templateDesign,
           ...defaultDesignFields,
         },
         // Apply page targeting from template's targetRules (from database) if valid

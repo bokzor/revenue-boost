@@ -3,13 +3,14 @@
  */
 
 export interface ApiConfig {
-  apiUrl: string;
-  shopDomain: string;
-  debug?: boolean;
-  previewId?: string;
-  previewToken?: string;
-  previewBehavior?: 'instant' | 'realistic';
-}
+	  apiUrl: string;
+	  shopDomain: string;
+	  debug?: boolean;
+	  previewMode?: boolean;
+	  previewId?: string;
+	  previewToken?: string;
+	  previewBehavior?: 'instant' | 'realistic';
+	}
 
 export interface FetchCampaignsResponse {
   campaigns: unknown[];
@@ -44,6 +45,10 @@ export class ApiClient {
   constructor(config: ApiConfig) {
     this.config = config;
   }
+
+	  private isPreviewMode(): boolean {
+	    return !!(this.config.previewMode && this.config.previewToken);
+	  }
 
   private log(...args: unknown[]) {
     if (this.config.debug) {
@@ -467,7 +472,7 @@ export class ApiClient {
     }
   }
 
-  async recordFrequency(input: {
+	  async recordFrequency(input: {
     sessionId: string;
     campaignId: string;
     trackingKey: string;
@@ -475,6 +480,15 @@ export class ApiClient {
     pageUrl?: string;
     referrer?: string;
   }): Promise<void> {
+	    // Skip analytics writes entirely when running in storefront preview mode.
+	    // Preview sessions should not contribute to frequency caps or analytics.
+	    if (this.isPreviewMode()) {
+	      this.log("Skipping frequency tracking in preview mode", {
+	        campaignId: input.campaignId,
+	        trackingKey: input.trackingKey,
+	      });
+	      return;
+	    }
     const params = new URLSearchParams({
       shop: this.config.shopDomain,
     });
@@ -502,12 +516,20 @@ export class ApiClient {
     }
   }
 
-  async trackEvent(event: {
+	  async trackEvent(event: {
     type: string;
     campaignId: string;
     sessionId: string;
     data?: Record<string, unknown>;
   }): Promise<void> {
+	    // Do not track popup events from storefront preview sessions.
+	    if (this.isPreviewMode()) {
+	      this.log("Skipping popup event tracking in preview mode", {
+	        type: event.type,
+	        campaignId: event.campaignId,
+	      });
+	      return;
+	    }
     const params = new URLSearchParams({
       shop: this.config.shopDomain,
     });
@@ -527,12 +549,20 @@ export class ApiClient {
     }
   }
 
-  async trackSocialProofEvent(event: {
+	  async trackSocialProofEvent(event: {
     eventType: 'page_view' | 'product_view' | 'add_to_cart';
     productId?: string;
     pageUrl?: string;
     shop: string;
   }): Promise<void> {
+	    // Avoid polluting social proof metrics when previewing popups from the admin.
+	    if (this.isPreviewMode()) {
+	      this.log("Skipping social proof tracking in preview mode", {
+	        eventType: event.eventType,
+	        productId: event.productId,
+	      });
+	      return;
+	    }
     const url = this.getApiUrl("/api/social-proof/track");
 
     try {
