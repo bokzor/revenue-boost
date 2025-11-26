@@ -504,7 +504,7 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
         <div
           className="flash-sale-banner"
           style={{
-            position: "fixed",
+            position: config.previewMode ? "absolute" : "fixed",
             [bannerPosition]: 0,
             left: 0,
             right: 0,
