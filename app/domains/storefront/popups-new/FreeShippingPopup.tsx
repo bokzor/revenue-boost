@@ -27,6 +27,9 @@ import { buildScopedCss } from "~/domains/storefront/shared/css";
 // Import reusable components
 import { EmailInput, SubmitButton } from "./components";
 
+// Import shared components from Phase 1 & 2
+import { LeadCaptureForm, DiscountCodeDisplay, PopupCloseButton } from "./components/shared";
+
 // Import session for lazy token loading (only in storefront context)
 let sessionModule: any = null;
 if (typeof window !== "undefined") {
@@ -121,7 +124,6 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
   // Component-specific state
   const [internalDismissed, setInternalDismissed] = useState(false);
   const [celebrating, setCelebrating] = useState(false);
-  const [showClaimForm, setShowClaimForm] = useState(false);
   const [claimError, setClaimError] = useState<string | null>(null);
   const [isLoadingToken, setIsLoadingToken] = useState(false);
   const prevUnlockedRef = useRef(false);
@@ -380,16 +382,53 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
     }
   };
 
-  const handleClaimSubmit = async (e?: React.FormEvent<HTMLFormElement>) => {
+  const handleClaimSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
 
-    const result = await handleFormSubmit();
-    if (result.success) {
-      if (result.discountCode) {
-        setDiscountCode(result.discountCode);
+    // For Free Shipping with email required, we need to:
+    // 1. Issue the discount (consumes challenge token)
+    // 2. Save the email with the discount code (no token needed)
+    // This is different from other popups where we submit email first
+
+    try {
+      // Step 1: Issue discount with challenge token
+      if (!issueDiscount) {
+        setClaimError("Discount issuance not available");
+        return;
       }
+
+      const cartSubtotalCents = Math.round(cartTotal * 100);
+      const result = await issueDiscount({ cartSubtotalCents });
+
+      if (!result?.code) {
+        setClaimError(claimErrorMessage || "Failed to issue discount");
+        return;
+      }
+
+      setDiscountCode(result.code);
+
+      // Step 2: Save email with the discount code (using save-email endpoint, no token needed)
+      if (formState.email && config.campaignId) {
+        const sessionId =
+          sessionModule?.getSessionId?.() ||
+          (typeof window !== "undefined" ? (window as any).__RB_SESSION_ID : null) ||
+          "unknown";
+
+        await fetch("/apps/revenue-boost/api/leads/save-email", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            campaignId: config.campaignId,
+            sessionId,
+            email: formState.email,
+            discountCode: result.code,
+          }),
+        });
+      }
+
       console.log("[FreeShippingPopup] Discount claim successful");
-    } else {
+    } catch (error) {
+      console.error("[FreeShippingPopup] Claim error:", error);
       setClaimError(claimErrorMessage || "Something went wrong. Please try again.");
     }
   };
@@ -654,7 +693,7 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
         .free-shipping-bar-content {
           display: flex;
           align-items: center;
-          justify-content: space-between;
+          justify-content: center;
           gap: ${POPUP_SPACING.gap.md};
           padding: ${barPadding};
           position: relative;
@@ -684,9 +723,19 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
         .free-shipping-bar-message {
           display: flex;
           align-items: center;
+          justify-content: center;
           gap: 0.75rem;
-          flex: 1;
           z-index: 1;
+        }
+
+        .free-shipping-bar-main-content {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 0.5rem;
+          width: 100%;
+          max-width: 800px;
+          text-align: center;
         }
 
         .free-shipping-bar-icon {
@@ -713,12 +762,8 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
         }
 
         .free-shipping-bar-claim-container {
-          margin-top: 0.25rem;
-          display: flex;
-          flex-wrap: wrap;
-          gap: 0.5rem;
-          align-items: center;
-          justify-content: flex-end;
+          width: 100%;
+          max-width: 500px;
         }
 
         .free-shipping-bar-claim-input {
@@ -747,16 +792,19 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
         }
 
         .free-shipping-bar-close {
+          position: absolute;
+          top: 0.5rem;
+          right: 0.5rem;
           background: transparent;
           border: none;
           cursor: pointer;
           padding: 0.25rem;
-          display: flex;
+          display: none !important; /* Hidden on desktop/tablet - !important to override inline styles */
           align-items: center;
           justify-content: center;
           opacity: 0.6;
           transition: opacity 0.2s;
-          z-index: 1;
+          z-index: 10;
           flex-shrink: 0;
         }
 
@@ -771,7 +819,9 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
         }
 
         .free-shipping-bar-dismiss {
-          margin-left: 0.75rem;
+          position: absolute;
+          top: 0.75rem;
+          right: 2.5rem;
           padding: 0;
           border: none;
           background: transparent;
@@ -782,6 +832,7 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
           white-space: nowrap;
           opacity: 0.9;
           transition: opacity 0.15s ease-out;
+          z-index: 10;
         }
 
         .free-shipping-bar-dismiss:hover {
@@ -850,8 +901,12 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
         /* Container query for preview/device-based responsiveness */
         @container free-shipping (max-width: 640px) {
           .free-shipping-bar-content {
-            padding: 0.75rem 1rem;
-            gap: 0.75rem;
+            padding: 0.75rem 2.5rem 0.75rem 1rem;
+            gap: 0.5rem;
+          }
+
+          .free-shipping-bar-main-content {
+            gap: 0.5rem;
           }
 
           .free-shipping-bar-text {
@@ -861,6 +916,17 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
           .free-shipping-bar-icon {
             font-size: 1.125rem;
           }
+
+          /* Hide "No thanks" button on mobile - only show close X */
+          .free-shipping-bar-dismiss {
+            display: none;
+          }
+
+          /* Show close X button on mobile */
+          .free-shipping-bar-close {
+            display: flex !important; /* !important to override desktop display: none */
+          }
+        }
         }
 
       `}</style>
@@ -891,59 +957,52 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
         />
 
         <div className="free-shipping-bar-content">
-          <div className="free-shipping-bar-message">
-            {showIcon && (
-              <span className="free-shipping-bar-icon" aria-hidden="true">
-                {getIcon()}
-              </span>
-            )}
-            <p className="free-shipping-bar-text">{getMessage()}</p>
+          <div className="free-shipping-bar-main-content">
+            <div className="free-shipping-bar-message">
+              {showIcon && (
+                <span className="free-shipping-bar-icon" aria-hidden="true">
+                  {getIcon()}
+                </span>
+              )}
+              <p className="free-shipping-bar-text">{getMessage()}</p>
+            </div>
 
+            {/* Success message FIRST (when claimed) */}
+            {state === "unlocked" && hasClaimed && claimSuccessMessage && (
+              <p className="free-shipping-bar-discount-text">{claimSuccessMessage}</p>
+            )}
+
+            {/* Inline email form SECOND (when threshold reached and email required) */}
             {state === "unlocked" && requireEmailToClaim && !hasClaimed && (
               <div className="free-shipping-bar-claim-container">
-                {!showClaimForm && (
-                  <button
-                    type="button"
-                    className="free-shipping-bar-claim-button"
-                    onClick={() => setShowClaimForm(true)}
-                    style={{
-                      background: config.buttonColor || "#111827",
-                      color: config.buttonTextColor || "#ffffff",
-                    }}
-                  >
-                    {claimButtonLabel}
-                  </button>
-                )}
-
-                {showClaimForm && (
-                  <form className="free-shipping-bar-claim-container" onSubmit={handleClaimSubmit}>
-                    <EmailInput
-                      value={formState.email}
-                      onChange={setEmail}
-                      placeholder={claimEmailPlaceholder}
-                      error={errors.email}
-                      required={true}
-                      disabled={isClaiming}
-                      accentColor={config.accentColor || config.buttonColor}
-                      textColor={config.textColor}
-                      backgroundColor={config.inputBackgroundColor}
-                    />
-                    <SubmitButton
-                      type="submit"
-                      loading={isClaiming}
-                      disabled={isClaiming}
-                      accentColor={config.accentColor || config.buttonColor}
-                      textColor={config.buttonTextColor}
-                    >
-                      {claimButtonLabel}
-                    </SubmitButton>
-                  </form>
-                )}
-
+                <LeadCaptureForm
+                  data={formState}
+                  errors={errors}
+                  onEmailChange={setEmail}
+                  onNameChange={() => {}}
+                  onGdprChange={() => {}}
+                  onSubmit={handleClaimSubmit}
+                  isSubmitting={isClaiming}
+                  showName={false}
+                  showGdpr={false}
+                  emailRequired={true}
+                  placeholders={{
+                    email: claimEmailPlaceholder,
+                  }}
+                  labels={{
+                    submit: claimButtonLabel,
+                  }}
+                  accentColor={config.accentColor || config.buttonColor}
+                  textColor={config.textColor}
+                  backgroundColor={config.inputBackgroundColor}
+                  buttonTextColor={config.buttonTextColor}
+                  layout="inline"
+                />
                 {claimError && <p className="free-shipping-bar-claim-error">{claimError}</p>}
               </div>
             )}
 
+            {/* Discount code display (when no email required OR already claimed) */}
             {state === "unlocked" &&
               discount &&
               (!requireEmailToClaim || hasClaimed) &&
@@ -969,42 +1028,22 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
                   </>
                 </p>
               ) : null)}
-
-            {state === "unlocked" && hasClaimed && claimSuccessMessage && (
-              <p className="free-shipping-bar-discount-text">{claimSuccessMessage}</p>
-            )}
-
-            {dismissible && (
-              <button type="button" className="free-shipping-bar-dismiss" onClick={handleClose}>
-                {config.dismissLabel || "No thanks"}
-              </button>
-            )}
           </div>
 
           {dismissible && (
-            <button
-              className="free-shipping-bar-close"
-              onClick={handleClose}
-              aria-label="Dismiss shipping bar"
-              style={{ color: config.textColor || "#111827" }}
-            >
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 20 20"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  d="M15 5L5 15M5 5L15 15"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
+            <button type="button" className="free-shipping-bar-dismiss" onClick={handleClose}>
+              {config.dismissLabel || "No thanks"}
             </button>
           )}
+
+          <PopupCloseButton
+            onClose={handleClose}
+            color={config.textColor || "#111827"}
+            size={20}
+            show={dismissible}
+            className="free-shipping-bar-close"
+            position="custom"
+          />
         </div>
       </div>
     </>

@@ -278,6 +278,87 @@ describe("Scratch Card Challenge Token Flow - Integration", () => {
     });
   });
 
+  describe("Scenario 1: Email BEFORE Scratching", () => {
+    it("should complete full flow: provide email → scratch card with email", async () => {
+      // Setup campaign with emailBeforeScratching enabled
+      (prisma as any).__clearData();
+      (prisma as any).__setupCampaign({
+        id: mockCampaignId,
+        storeId: mockStoreId,
+        templateType: "SCRATCH_CARD",
+        name: "Email Before Scratch Test",
+        contentConfig: {
+          emailRequired: true,
+          emailBeforeScratching: true, // ← Key difference
+          prizes: [
+            { id: "1", label: "10% OFF", probability: 1.0, discountConfig: { enabled: true } },
+          ],
+        },
+        store: {
+          id: mockStoreId,
+          shopifyDomain: mockShop,
+          accessToken: "test_token",
+        },
+      });
+
+      // User provides email and scratches in one request
+      // The scratch-card API should handle both email submission AND prize generation
+      const scratchRequest = new Request("http://localhost/api/popups/scratch-card", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          campaignId: mockCampaignId,
+          sessionId: mockSessionId,
+          challengeToken: mockChallengeToken,
+          email: mockEmail, // ← Email provided upfront
+        }),
+      });
+
+      const scratchResponse = await scratchCardAction({
+        request: scratchRequest,
+      } as unknown as ActionFunctionArgs);
+      const scratchPayload = (scratchResponse as any).data as any;
+
+      // Verify scratch was successful
+      expect(scratchPayload.success).toBe(true);
+      expect(scratchPayload.discountCode).toBe("SCRATCH10");
+
+      // Verify challenge token was validated and consumed ONCE
+      expect(validateAndConsumeTokenMock).toHaveBeenCalledTimes(1);
+      expect(validateAndConsumeTokenMock).toHaveBeenCalledWith(
+        mockChallengeToken,
+        mockCampaignId,
+        mockSessionId,
+        expect.any(String),
+        false
+      );
+
+      // Verify lead was created with email (not anonymous)
+      expect(prisma.lead.upsert).toHaveBeenCalledWith({
+        where: {
+          storeId_campaignId_email: {
+            storeId: mockStoreId,
+            campaignId: mockCampaignId,
+            email: mockEmail,
+          },
+        },
+        create: expect.objectContaining({
+          email: mockEmail,
+          discountCode: "SCRATCH10",
+          campaignId: mockCampaignId,
+          sessionId: mockSessionId,
+        }),
+        update: expect.objectContaining({
+          discountCode: "SCRATCH10",
+        }),
+      });
+
+      // Note: upsertCustomer is NOT called by scratch-card API
+      // It's only called by /api/leads/submit which we bypass for emailBeforeScratching
+      // This is acceptable as the lead is still created in our database
+    });
+  });
+
   describe("Scenario 3: Email AFTER Scratching", () => {
     it("should complete full flow: scratch → provide required email", async () => {
       // Step 1: User scratches card WITHOUT email (email required but after scratching)

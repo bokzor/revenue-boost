@@ -28,6 +28,9 @@ import { ScratchCardRenderer } from "./utils/canvas";
 // Import reusable components
 import { EmailInput, GdprCheckbox, SubmitButton } from "./components";
 
+// Import shared components from Phase 1 & 2
+import { DiscountCodeDisplay } from "./components/shared";
+
 /**
  * ScratchCardConfig - Extends both design config AND campaign content type
  * All content fields come from ScratchCardContent
@@ -63,7 +66,7 @@ export interface ScratchCardPopupProps {
   config: ScratchCardConfig;
   isVisible: boolean;
   onClose: () => void;
-  onSubmit?: (email: string) => Promise<void>;
+  onSubmit?: (data: { email: string; name?: string; gdprConsent?: boolean }) => Promise<void>;
   onReveal?: (prize: Prize) => void;
 }
 
@@ -81,6 +84,7 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
     setGdprConsent,
     errors,
     handleSubmit: handleFormSubmit,
+    validateForm,
     isSubmitting,
     isSubmitted,
   } = usePopupForm({
@@ -94,7 +98,7 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
     },
     onSubmit: onSubmit
       ? async (data) => {
-          await onSubmit(data.email);
+          await onSubmit(data);
           return undefined;
         }
       : undefined,
@@ -216,20 +220,8 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
             discountCode: data.discountCode, // For backward compatibility
           };
           setWonPrize(serverPrize);
-          console.log("[Scratch Card] Prize fetched successfully:", {
-            prizeLabel: serverPrize.label,
-            hasDiscountCode: !!serverPrize.discountCode,
-            emailProvided: !!emailValue,
-          });
         } else {
-          console.error("[Scratch Card] Failed to fetch prize:", {
-            error: data.error,
-            details: data.details,
-            errors: data.errors,
-            success: data.success,
-          });
-          // Fallback or error handling?
-          // For now, maybe set a default error prize or keep it null (loading)
+          console.error("[Scratch Card] Failed to fetch prize:", data);
         }
       } catch (error) {
         console.error("[Scratch Card] Network error fetching prize:", error);
@@ -460,14 +452,16 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
       if (e) e.preventDefault();
 
       // Scenario 1: Email required BEFORE scratching
-      // Submit email first, then fetch prize
+      // For scratch cards, we skip the normal lead submission and pass email directly to prize fetch
+      // This ensures the challenge token is only consumed once (by the scratch-card API)
       if (config.emailBeforeScratching) {
-        const result = await handleFormSubmit();
-        if (result.success) {
-          setEmailSubmitted(true);
-          // Fetch prize WITH email - this generates the code
-          fetchPrize(formState.email);
+        // Validate form first
+        if (!validateForm()) {
+          return;
         }
+        setEmailSubmitted(true);
+        // Fetch prize WITH email - this generates the code AND creates the lead
+        fetchPrize(formState.email);
         return;
       }
 
@@ -529,7 +523,7 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
         setIsSubmittingEmail(false);
       }
     },
-    [handleFormSubmit, config, formState, wonPrize, fetchPrize, setDiscountCode]
+    [handleFormSubmit, validateForm, config, formState, wonPrize, fetchPrize, setDiscountCode]
   );
 
   // Fetch prize on mount if email is not required before scratching
@@ -765,12 +759,11 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
 
                     {/* Code overlay inside card after reveal */}
                     {/* Scenario 2: Show code immediately (email not required) */}
-                    {/* Scenario 3: Show code only after email submitted (email required after scratch) */}
+                    {/* Note: For email BEFORE/AFTER flows, code is shown in success section below */}
                     {isRevealed &&
                       wonPrize &&
                       wonPrize.discountCode &&
-                      // Hide code in Scenario 3 until email is submitted
-                      (!config.emailRequired || config.emailBeforeScratching || emailSubmitted) && (
+                      !config.emailRequired && (
                         <div
                           className="scratch-card-code-overlay"
                           style={{
@@ -780,117 +773,30 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
                             alignItems: "center",
                             justifyContent: "center",
                             pointerEvents: "none",
+                            zIndex: 3,
                           }}
                         >
-                          <div
-                            style={{
-                              padding: "0.75rem 1.5rem",
-                              background: "rgba(255, 255, 255, 0.2)",
-                              borderRadius: "0.5rem",
-                              border: "2px dashed rgba(255, 255, 255, 0.5)",
-                              backdropFilter: "blur(10px)",
-                              pointerEvents: "auto",
-                              display: "flex",
-                              flexDirection: "column",
-                              alignItems: "center",
-                              gap: "0.5rem",
-                            }}
-                          >
-                            <div
+                          <div style={{ pointerEvents: "auto" }}>
+                            <DiscountCodeDisplay
+                              code={wonPrize.discountCode}
+                              onCopy={handleCopyCode}
+                              copied={copiedCode}
+                              label="Code:"
+                              variant="dashed"
+                              size="md"
+                              accentColor="#ffffff"
+                              textColor="#ffffff"
+                              backgroundColor="rgba(255, 255, 255, 0.2)"
                               style={{
-                                fontSize: "0.875rem",
-                                fontWeight: 500,
-                                color: "#ffffff",
-                                marginBottom: "0.25rem",
+                                backdropFilter: "blur(10px)",
+                                border: "2px dashed rgba(255, 255, 255, 0.5)",
                               }}
-                            >
-                              Code:
-                            </div>
-                            <div
-                              style={{
-                                fontSize: "1.5rem",
-                                fontWeight: 700,
-                                color: "#ffffff",
-                                letterSpacing: "0.1em",
-                              }}
-                            >
-                              {wonPrize?.discountCode ?? ""}
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => handleCopyCode()}
-                              className="scratch-popup-button"
-                              style={{
-                                width: "auto",
-                                padding: "0.4rem 0.9rem",
-                                fontSize: "0.75rem",
-                                fontWeight: 600,
-                                borderRadius: "9999px",
-                                backgroundColor: config.buttonColor,
-                                color: config.buttonTextColor,
-                                border: "none",
-                              }}
-                            >
-                              {copiedCode ? "\u2713 Copied!" : "Copy"}
-                            </button>
+                            />
                           </div>
                         </div>
                       )}
 
-                    {/* Placeholder for Scenario 3: Code hidden until email submitted */}
-                    {isRevealed &&
-                      wonPrize &&
-                      wonPrize.discountCode &&
-                      config.emailRequired &&
-                      !config.emailBeforeScratching &&
-                      !emailSubmitted && (
-                        <div
-                          className="scratch-card-code-overlay"
-                          style={{
-                            position: "absolute",
-                            inset: 0,
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            pointerEvents: "none",
-                          }}
-                        >
-                          <div
-                            style={{
-                              padding: "0.75rem 1.5rem",
-                              background: "rgba(255, 255, 255, 0.2)",
-                              borderRadius: "0.5rem",
-                              border: "2px dashed rgba(255, 255, 255, 0.5)",
-                              backdropFilter: "blur(10px)",
-                              display: "flex",
-                              flexDirection: "column",
-                              alignItems: "center",
-                              gap: "0.5rem",
-                            }}
-                          >
-                            <div
-                              style={{
-                                fontSize: "0.875rem",
-                                fontWeight: 500,
-                                color: "#ffffff",
-                                textAlign: "center",
-                              }}
-                            >
-                              🎉 You won {wonPrize.label}!
-                            </div>
-                            <div
-                              style={{
-                                fontSize: "0.75rem",
-                                color: "#ffffff",
-                                opacity: 0.9,
-                                textAlign: "center",
-                              }}
-                            >
-                              Enter your email below to reveal your code
-                            </div>
-                          </div>
-                        </div>
-                      )}
+
                   </div>
 
                   {/* Progress indicator */}
@@ -1009,37 +915,78 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
                     )}
 
                   {/* Success state after claiming prize */}
-                  {emailSubmitted && !config.emailBeforeScratching && (
+                  {/* Show for both email BEFORE and email AFTER flows */}
+                  {isRevealed && emailSubmitted && (
                     <div style={{ textAlign: "center", padding: "2rem 0" }}>
-                      <div className="scratch-popup-success-icon">
-                        <svg
-                          width="32"
-                          height="32"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="#16a34a"
-                          strokeWidth="3"
-                        >
-                          <polyline points="20 6 9 17 4 12" />
-                        </svg>
-                      </div>
-                      <h3
-                        style={{
-                          fontSize: "1.875rem",
-                          fontWeight: 700,
-                          marginBottom: "0.75rem",
-                        }}
-                      >
-                        Prize Claimed!
-                      </h3>
-                      <p
-                        style={{
-                          color: config.descriptionColor || "rgba(0,0,0,0.7)",
-                          lineHeight: 1.6,
-                        }}
-                      >
-                        Check your email for details on how to redeem your prize.
-                      </p>
+                      {wonPrize?.discountCode ? (
+                        <>
+                          <div className="scratch-popup-success-icon">
+                            <svg
+                              width="32"
+                              height="32"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="#16a34a"
+                              strokeWidth="3"
+                            >
+                              <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                          </div>
+                          <h3
+                            style={{
+                              fontSize: "1.875rem",
+                              fontWeight: 700,
+                              marginBottom: "0.75rem",
+                            }}
+                          >
+                            {config.successMessage || `Congratulations! You won ${wonPrize.label}.`}
+                          </h3>
+                          <div style={{ marginTop: "1rem" }}>
+                            <DiscountCodeDisplay
+                              code={wonPrize.discountCode}
+                              onCopy={handleCopyCode}
+                              copied={copiedCode}
+                              label="Your Discount Code"
+                              variant="dashed"
+                              accentColor={config.accentColor || config.buttonColor}
+                              textColor={config.textColor}
+                              size="lg"
+                            />
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="scratch-popup-success-icon">
+                            <svg
+                              width="32"
+                              height="32"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="#16a34a"
+                              strokeWidth="3"
+                            >
+                              <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                          </div>
+                          <h3
+                            style={{
+                              fontSize: "1.875rem",
+                              fontWeight: 700,
+                              marginBottom: "0.75rem",
+                            }}
+                          >
+                            Prize Claimed!
+                          </h3>
+                          <p
+                            style={{
+                              color: config.descriptionColor || "rgba(0,0,0,0.7)",
+                              lineHeight: 1.6,
+                            }}
+                          >
+                            Check your email for details on how to redeem your prize.
+                          </p>
+                        </>
+                      )}
                     </div>
                   )}
 

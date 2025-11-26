@@ -11,14 +11,18 @@
  * - CTA button
  */
 
-import React, { useCallback, useMemo } from "react";
+import React, { useMemo } from "react";
 import type { PopupDesignConfig } from "./types";
 import type { CountdownTimerContent } from "~/domains/campaigns/types/campaign";
 import { POPUP_SPACING, SPACING_GUIDELINES } from "./spacing";
 
 // Import custom hooks
-import { useCountdownTimer, usePopupAnimation } from "./hooks";
+import { useCountdownTimer, useColorScheme } from "./hooks";
 import { buildScopedCss } from "~/domains/storefront/shared/css";
+import { getBackgroundStyles } from "./utils";
+
+// Import shared components from Phase 1 & 2
+import { TimerDisplay, CTAButton, PopupCloseButton } from "./components/shared";
 
 /**
  * CountdownTimerConfig - Extends both design config AND campaign content type
@@ -64,68 +68,36 @@ export const CountdownTimerPopup: React.FC<CountdownTimerPopupProps> = ({
     autoHide: config.hideOnExpiry,
   });
 
-  // Use animation hook
-  const { showContent } = usePopupAnimation({ isVisible });
-
-  const handleCtaClick = useCallback(() => {
-    if (onCtaClick) {
-      onCtaClick();
-    }
-
-    if (config.ctaUrl) {
-      if (config.ctaOpenInNewTab) {
-        window.open(config.ctaUrl, "_blank", "noopener,noreferrer");
-      } else {
-        window.location.href = config.ctaUrl;
-      }
-    }
-  }, [config, onCtaClick]);
+  // Use color scheme hook
+  const schemeColors = useColorScheme(config.colorScheme || "custom", {
+    backgroundColor: config.backgroundColor,
+    textColor: config.textColor,
+    accentColor: config.buttonColor,
+  });
 
   if (!isVisible || (hasExpired && config.hideOnExpiry)) return null;
 
-  // Color scheme presets adapted from mock countdown banner
-  const getColorSchemeStyles = () => {
-    switch (config.colorScheme) {
-      case "urgent":
-        return {
-          background: "linear-gradient(135deg, #dc2626 0%, #f97316 100%)",
-          text: "#ffffff",
-          timerBg: "rgba(255, 255, 255, 0.2)",
-          timerText: "#ffffff",
-          ctaBg: "#ffffff",
-          ctaText: "#dc2626",
-        };
-      case "success":
-        return {
-          background: "linear-gradient(135deg, #10b981 0%, #14b8a6 100%)",
-          text: "#ffffff",
-          timerBg: "rgba(255, 255, 255, 0.2)",
-          timerText: "#ffffff",
-          ctaBg: "#ffffff",
-          ctaText: "#10b981",
-        };
-      case "info":
-        return {
-          background: "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)",
-          text: "#ffffff",
-          timerBg: "rgba(255, 255, 255, 0.2)",
-          timerText: "#ffffff",
-          ctaBg: "#ffffff",
-          ctaText: "#3b82f6",
-        };
-      default:
-        return {
-          background: config.backgroundColor,
-          text: config.textColor,
-          timerBg: config.inputBackgroundColor || "rgba(0, 0, 0, 0.08)",
-          timerText: config.textColor,
-          ctaBg: config.buttonColor,
-          ctaText: config.buttonTextColor || "#ffffff",
-        };
-    }
-  };
+  // Determine background (gradient for presets, solid for custom)
+  const backgroundValue =
+    config.colorScheme === "urgent"
+      ? "linear-gradient(135deg, #dc2626 0%, #f97316 100%)"
+      : config.colorScheme === "success"
+        ? "linear-gradient(135deg, #10b981 0%, #14b8a6 100%)"
+        : config.colorScheme === "info"
+          ? "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)"
+          : schemeColors.backgroundColor;
 
-  const schemeColors = getColorSchemeStyles();
+  // Timer and CTA colors
+  const timerBg =
+    config.colorScheme !== "custom"
+      ? "rgba(255, 255, 255, 0.2)"
+      : config.inputBackgroundColor || "rgba(0, 0, 0, 0.08)";
+  const timerText = config.colorScheme !== "custom" ? "#ffffff" : schemeColors.textColor;
+  const ctaBg = config.colorScheme !== "custom" ? "#ffffff" : config.buttonColor || schemeColors.accentColor;
+  const ctaText =
+    config.colorScheme !== "custom"
+      ? schemeColors.backgroundColor
+      : config.buttonTextColor || "#ffffff";
 
   const isPreview = (config as any)?.previewMode;
 
@@ -356,8 +328,8 @@ export const CountdownTimerPopup: React.FC<CountdownTimerPopupProps> = ({
         data-rb-banner
         style={{
           ...positionStyle,
-          background: schemeColors.background,
-          color: schemeColors.text,
+          ...getBackgroundStyles(backgroundValue),
+          color: schemeColors.textColor,
           boxShadow:
             config.position === "bottom"
               ? "0 -2px 8px rgba(0, 0, 0, 0.1)"
@@ -365,16 +337,14 @@ export const CountdownTimerPopup: React.FC<CountdownTimerPopupProps> = ({
         }}
       >
         <div className="countdown-banner-content">
-          {config.showCloseButton !== false && (
-            <button
-              className="countdown-banner-close"
-              onClick={onClose}
-              style={{ color: schemeColors.text }}
-              aria-label="Close banner"
-            >
-              ×
-            </button>
-          )}
+          <PopupCloseButton
+            onClose={onClose}
+            color={schemeColors.textColor}
+            size={20}
+            show={config.showCloseButton !== false}
+            className="countdown-banner-close"
+            position="custom"
+          />
 
           <div className="countdown-banner-left">
             <h2 className="countdown-banner-headline">{config.headline}</h2>
@@ -386,92 +356,22 @@ export const CountdownTimerPopup: React.FC<CountdownTimerPopupProps> = ({
           <div className="countdown-banner-center">
             {!hasExpired ? (
               <>
-                <div className="countdown-banner-timer">
-                  {timeRemaining.days > 0 && (
-                    <>
-                      <div
-                        className="countdown-banner-timer-unit"
-                        style={{
-                          background: schemeColors.timerBg,
-                          color: schemeColors.timerText,
-                        }}
-                      >
-                        <div className="countdown-banner-timer-value">
-                          {String(timeRemaining.days).padStart(2, "0")}
-                        </div>
-                        <div className="countdown-banner-timer-label">Days</div>
-                      </div>
-                      <span
-                        className="countdown-banner-timer-separator"
-                        style={{ color: schemeColors.text }}
-                      >
-                        :
-                      </span>
-                    </>
-                  )}
-
-                  <div
-                    className="countdown-banner-timer-unit"
-                    style={{
-                      background: schemeColors.timerBg,
-                      color: schemeColors.timerText,
-                    }}
-                  >
-                    <div className="countdown-banner-timer-value">
-                      {String(timeRemaining.hours).padStart(2, "0")}
-                    </div>
-                    <div className="countdown-banner-timer-label">Hours</div>
-                  </div>
-
-                  <span
-                    className="countdown-banner-timer-separator"
-                    style={{ color: schemeColors.text }}
-                  >
-                    :
-                  </span>
-
-                  <div
-                    className="countdown-banner-timer-unit"
-                    style={{
-                      background: schemeColors.timerBg,
-                      color: schemeColors.timerText,
-                    }}
-                  >
-                    <div className="countdown-banner-timer-value">
-                      {String(timeRemaining.minutes).padStart(2, "0")}
-                    </div>
-                    <div className="countdown-banner-timer-label">Mins</div>
-                  </div>
-
-                  <span
-                    className="countdown-banner-timer-separator"
-                    style={{ color: schemeColors.text }}
-                  >
-                    :
-                  </span>
-
-                  <div
-                    className="countdown-banner-timer-unit"
-                    style={{
-                      background: schemeColors.timerBg,
-                      color: schemeColors.timerText,
-                    }}
-                  >
-                    <div className="countdown-banner-timer-value">
-                      {String(timeRemaining.seconds).padStart(2, "0")}
-                    </div>
-                    <div className="countdown-banner-timer-label">Secs</div>
-                  </div>
-                </div>
+                <TimerDisplay
+                  timeRemaining={timeRemaining}
+                  format="compact"
+                  backgroundColor={timerBg}
+                  textColor={timerText}
+                  separatorColor={schemeColors.textColor}
+                />
 
                 {config.showStockCounter && config.stockCount && (
-                  <div className="countdown-banner-stock" style={{ color: schemeColors.text }}>
+                  <div className="countdown-banner-stock" style={{ color: schemeColors.textColor }}>
                     ⚡ Only {config.stockCount} left in stock
                   </div>
                 )}
               </>
             ) : (
-              <div className="countdown-banner-expired" style={{ color: schemeColors.text }}>
+              <div className="countdown-banner-expired" style={{ color: schemeColors.textColor }}>
                 Offer has ended
               </div>
             )}
@@ -479,18 +379,19 @@ export const CountdownTimerPopup: React.FC<CountdownTimerPopupProps> = ({
 
           <div className="countdown-banner-right">
             {(config.buttonText || config.ctaText || hasExpired) && (
-              <button
-                className="countdown-banner-cta"
-                onClick={handleCtaClick}
+              <CTAButton
+                text={hasExpired ? "Offer Expired" : config.buttonText || config.ctaText || ""}
+                url={hasExpired ? undefined : config.ctaUrl}
+                openInNewTab={config.ctaOpenInNewTab}
+                onClick={hasExpired ? undefined : onCtaClick}
                 disabled={hasExpired}
+                accentColor={ctaBg}
+                textColor={ctaText}
+                className="countdown-banner-cta"
                 style={{
-                  background: schemeColors.ctaBg,
-                  color: schemeColors.ctaText,
                   borderRadius: `${config.borderRadius ?? 6}px`,
                 }}
-              >
-                {hasExpired ? "Offer Expired" : config.buttonText || config.ctaText}
-              </button>
+              />
             )}
           </div>
         </div>

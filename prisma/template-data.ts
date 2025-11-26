@@ -58,32 +58,35 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
       },
     },
     designConfig: {
-      // Use the "modern" newsletter theme as the default seeded look
-      theme: "modern",
+      // Use the "ocean" newsletter theme as the default seeded look (matching the campaign)
+      theme: "ocean",
       position: "center",
       size: "medium",
       popupSize: "standard",
       borderRadius: 8,
       animation: "fade",
 
-      imageUrl: "/newsletter-backgrounds/modern.png",
+      // Background image preset & URL
+      backgroundImageMode: "preset",
+      backgroundImagePresetKey: "ocean",
+      imageUrl: "/apps/revenue-boost/assets/newsletter-backgrounds/ocean.jpg",
       imagePosition: "left",
 
-      // Modern theme colors (aligned with NEWSLETTER_THEMES.modern)
-      backgroundColor: "#ffffff",
-      textColor: "#111827",
-      descriptionColor: "#52525b",
-      accentColor: "#dbeafe",
+      // Ocean theme colors (aligned with the campaign's ocean theme)
+      backgroundColor: "#f0f9ff",
+      textColor: "#0c4a6e",
+      descriptionColor: "#0369a1",
+      accentColor: "#0ea5e9",
 
-      buttonColor: "#3b82f6",
+      buttonColor: "#0ea5e9",
       buttonTextColor: "#ffffff",
 
-      inputBackgroundColor: "#f3f4f6",
+      inputBackgroundColor: "#e0f2fe",
       inputTextColor: "#111827",
-      inputBorderColor: "#d4d4d8",
+      inputBorderColor: "#7dd3fc",
 
-      imageBgColor: "#f4f4f5",
-      successColor: "#10b981",
+      imageBgColor: "#e0f2fe",
+      successColor: "#14b8a6",
       overlayOpacity: 0.8,
 
       fontFamily: "inherit",

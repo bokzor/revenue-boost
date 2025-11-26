@@ -27,6 +27,9 @@ import { WheelRenderer } from "./utils/canvas";
 // Import reusable components
 import { EmailInput, NameInput, GdprCheckbox, SubmitButton } from "./components";
 
+// Import shared components from Phase 1 & 2
+import { LeadCaptureForm, DiscountCodeDisplay, SuccessState } from "./components/shared";
+
 /**
  * SpinToWinConfig - Extends both design config AND campaign content type
  * All content fields (headline, spinButtonText, emailPlaceholder, etc.) come from SpinToWinContent
@@ -832,46 +835,17 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
                 }}
               >
                 {wonPrize?.generatedCode ? (
-                  <div
-                    style={{
-                      backgroundColor: `${accentColor}15`,
-                      border: `2px dashed ${accentColor}`,
-                      borderRadius: "12px",
-                      padding: "20px",
-                      marginTop: "1rem",
-                    }}
-                  >
-                    <p
-                      style={{
-                        fontSize: "14px",
-                        fontWeight: 600,
-                        color: descriptionColor,
-                        marginBottom: "8px",
-                        textTransform: "uppercase",
-                        letterSpacing: "0.05em",
-                      }}
-                    >
-                      Your Discount Code
-                    </p>
-                    <div
-                      style={{
-                        fontSize: "28px",
-                        fontWeight: 800,
-                        color: accentColor,
-                        letterSpacing: "0.1em",
-                        marginBottom: "8px",
-                        cursor: "pointer",
-                      }}
-                      onClick={() => {
-                        if (wonPrize.generatedCode) {
-                          navigator.clipboard.writeText(wonPrize.generatedCode);
-                        }
-                      }}
-                      title="Click to copy"
-                    >
-                      {wonPrize.generatedCode}
-                    </div>
-                    <p style={{ fontSize: "12px", color: descriptionColor }}>Click code to copy</p>
+                  <div style={{ marginTop: "1rem" }}>
+                    <DiscountCodeDisplay
+                      code={wonPrize.generatedCode}
+                      onCopy={handleCopyCode}
+                      copied={copiedCode}
+                      label="Your Discount Code"
+                      variant="dashed"
+                      accentColor={accentColor}
+                      textColor={descriptionColor}
+                      size="lg"
+                    />
                   </div>
                 ) : (
                   <div style={{ marginTop: "1rem" }}>

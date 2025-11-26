@@ -19,10 +19,15 @@ import { formatCurrency } from "./utils";
 import { POPUP_SPACING, getContainerPadding, SPACING_GUIDELINES } from "./spacing";
 
 // Import custom hooks
-import { useCountdownTimer, useDiscountCode, usePopupAnimation, usePopupForm } from "./hooks";
+import { useCountdownTimer, useDiscountCode, usePopupForm } from "./hooks";
 
-// Import reusable components
-import { EmailInput, SubmitButton } from "./components";
+// Import shared components from Phase 1 & 2
+import {
+  TimerDisplay,
+  DiscountCodeDisplay,
+  LeadCaptureForm,
+  PopupCloseButton,
+} from "./components/shared";
 
 /**
  * CartAbandonmentConfig - Extends both design config AND campaign content type
@@ -76,9 +81,6 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
 
   // Use discount code hook
   const { discountCode, setDiscountCode, copiedCode, handleCopyCode } = useDiscountCode();
-
-  // Use animation hook
-  const { showContent } = usePopupAnimation({ isVisible });
 
   // Use form hook for email recovery
   const {
@@ -222,8 +224,6 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
   // Copy code handler now from useDiscountCode hook
 
   const displayItems = cartItems.slice(0, config.maxItemsToShow || 3);
-
-  const isBottomPosition = (config.position || "center") === "bottom";
 
   const isEmailGateActive =
     !!config.enableEmailRecovery && !!config.requireEmailBeforeCheckout && !discountCode;
@@ -673,33 +673,49 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
             {config.subheadline && <p className="cart-ab-subtitle">{config.subheadline}</p>}
           </div>
 
-          {config.showCloseButton !== false && (
-            <button className="cart-ab-close" onClick={onClose} aria-label="Close popup">
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
-            </button>
-          )}
+          <PopupCloseButton
+            onClose={onClose}
+            color={config.textColor}
+            size={20}
+            show={config.showCloseButton !== false}
+            className="cart-ab-close"
+            position="custom"
+          />
         </div>
 
         <div className="cart-ab-body">
           {config.showUrgency && config.urgencyTimer && timeRemaining.total > 0 && (
             <div className="cart-ab-urgency">
-              {config.urgencyMessage?.replace(
-                "{{time}}",
-                `${timeRemaining.minutes}:${String(timeRemaining.seconds).padStart(2, "0")}`
-              ) ||
-                `Complete your order in ${timeRemaining.minutes}:${String(
-                  timeRemaining.seconds
-                ).padStart(2, "0")}`}
+              {config.urgencyMessage ? (
+                config.urgencyMessage.includes("{{time}}") ? (
+                  config.urgencyMessage.replace(
+                    "{{time}}",
+                    `${timeRemaining.minutes}:${String(timeRemaining.seconds).padStart(2, "0")}`
+                  )
+                ) : (
+                  <>
+                    {config.urgencyMessage}{" "}
+                    <TimerDisplay
+                      timeRemaining={timeRemaining}
+                      format="compact"
+                      showDays={false}
+                      accentColor={config.accentColor || config.buttonColor}
+                      textColor={config.textColor}
+                    />
+                  </>
+                )
+              ) : (
+                <>
+                  Complete your order in{" "}
+                  <TimerDisplay
+                    timeRemaining={timeRemaining}
+                    format="compact"
+                    showDays={false}
+                    accentColor={config.accentColor || config.buttonColor}
+                    textColor={config.textColor}
+                  />
+                </>
+              )}
             </div>
           )}
 
@@ -863,49 +879,51 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
           <div className="cart-ab-footer">
             {(config.enableEmailRecovery ||
               (config.previewMode && config.requireEmailBeforeCheckout)) && (
-              <form onSubmit={handleEmailSubmit} className="cart-ab-email-form">
-                <div className="cart-ab-email-row">
-                  <EmailInput
-                    value={formState.email}
-                    onChange={setEmail}
-                    placeholder={
+              <div className="cart-ab-email-form">
+                <LeadCaptureForm
+                  data={formState}
+                  errors={errors}
+                  onEmailChange={setEmail}
+                  onNameChange={() => {}}
+                  onGdprChange={() => {}}
+                  onSubmit={handleEmailSubmit}
+                  isSubmitting={isEmailSubmitting}
+                  showName={false}
+                  showGdpr={false}
+                  emailRequired={true}
+                  placeholders={{
+                    email:
                       config.emailPlaceholder ||
-                      "Enter your email to receive your cart and discount"
-                    }
-                    error={errors.email}
-                    required={true}
-                    disabled={isEmailSubmitting}
-                    accentColor={config.accentColor || config.buttonColor}
-                    textColor={config.textColor}
-                    backgroundColor={config.inputBackgroundColor}
-                  />
-                  <SubmitButton
-                    type="submit"
-                    loading={isEmailSubmitting}
-                    disabled={isEmailSubmitting}
-                    accentColor={config.accentColor || config.buttonColor}
-                    textColor={config.buttonTextColor}
-                  >
-                    {config.emailButtonText || "Email me my cart"}
-                  </SubmitButton>
-                </div>
-                {emailSuccessMessage && (
-                  <p className="cart-ab-email-success">{emailSuccessMessage}</p>
-                )}
-              </form>
+                      "Enter your email to receive your cart and discount",
+                  }}
+                  labels={{
+                    submit: config.emailButtonText || "Email me my cart",
+                  }}
+                  accentColor={config.accentColor || config.buttonColor}
+                  textColor={config.textColor}
+                  backgroundColor={config.inputBackgroundColor}
+                  buttonTextColor={config.buttonTextColor}
+                  extraFields={
+                    emailSuccessMessage ? (
+                      <p className="cart-ab-email-success">{emailSuccessMessage}</p>
+                    ) : undefined
+                  }
+                />
+              </div>
             )}
 
             {discountCode && (
-              <div
-                className="cart-ab-code-block"
-                onClick={() => handleCopyCode()}
-                style={{ cursor: "pointer" }}
-              >
-                <p className="cart-ab-code-label">Your discount code:</p>
-                <p className="cart-ab-code-value">{discountCode}</p>
-                <button type="button" className="cart-ab-code-copy">
-                  {copiedCode ? "Copied!" : "Copy"}
-                </button>
+              <div className="cart-ab-code-block">
+                <DiscountCodeDisplay
+                  code={discountCode}
+                  onCopy={handleCopyCode}
+                  copied={copiedCode}
+                  label="Your discount code:"
+                  variant="dashed"
+                  accentColor={config.accentColor || config.buttonColor}
+                  textColor={config.textColor}
+                  size="md"
+                />
               </div>
             )}
 

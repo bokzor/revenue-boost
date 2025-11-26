@@ -343,7 +343,9 @@ async function build() {
       format: "iife",
       target: "es2020",
       minify: !isDevelopment, // Minify in staging AND production
-      sourcemap: isDevelopment || isStaging, // Sourcemaps in dev AND staging
+      // Use inline sourcemaps in dev/staging so we don't emit separate .map files into the
+      // Shopify theme extension assets directory (Shopify rejects .map files there).
+      sourcemap: isDevelopment || isStaging ? "inline" : false,
       platform: "browser",
       logLevel: "info",
       loader: { ".ts": "ts", ".tsx": "tsx" },

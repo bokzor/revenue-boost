@@ -14,3 +14,6 @@ export type { TimerMode, TimeRemaining, UseCountdownTimerOptions } from "./useCo
 
 export { usePopupAnimation } from "./usePopupAnimation";
 export type { UsePopupAnimationOptions } from "./usePopupAnimation";
+
+export { useColorScheme, getColorSchemeGradient } from "./useColorScheme";
+export type { ColorSchemeType, ColorSchemeColors, CustomColors } from "./useColorScheme";

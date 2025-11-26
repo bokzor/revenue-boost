@@ -47,6 +47,20 @@ test.describe('Session Rules & Frequency Capping', () => {
     });
 
     test.beforeEach(async ({ page }) => {
+        // CRITICAL: Delete ALL E2E test campaigns before each test
+        // This ensures only ONE campaign exists when the test runs
+        await prisma.campaign.deleteMany({
+            where: {
+                name: { startsWith: 'E2E-Test-' }
+            }
+        });
+        console.log('[Test Setup] Cleaned up all E2E test campaigns');
+
+        // Wait for cleanup to propagate to the API server
+        // Cloud Run may have cached campaign data
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        console.log('[Test Setup] Waited for cleanup to propagate');
+
         // Mock challenge tokens to avoid rate limits
         await mockChallengeToken(page);
 
@@ -58,24 +72,33 @@ test.describe('Session Rules & Frequency Capping', () => {
 
     test('max impressions per session - shows only once', async ({ page }) => {
         console.log('🧪 Testing max impressions per session (1)...');
+        // Monitor frequency tracking calls
+        const frequencyCalls: any[] = [];
+        await page.route('**/api/analytics/frequency**', async route => {
+            const request = route.request();
+            const postData = request.postDataJSON();
+            frequencyCalls.push(postData);
+            await route.continue();
+        });
 
         // Create campaign with max 1 impression per session
         const campaign = await (await factory.newsletter().init())
             .withName('Session-Max-1')
-            .withPriority(500)
+            .withPriority(9001)
             .withMaxImpressionsPerSession(1)
             .create();
 
         try {
             // Visit 1: Should show popup
-            console.log('Visit 1: Expecting popup to show...');
             await page.goto(`https://${STORE_DOMAIN}`);
             await handlePasswordPage(page);
             await page.waitForLoadState('networkidle');
 
             const popup = page.locator('[data-splitpop="true"]');
             await expect(popup).toBeVisible({ timeout: 10000 });
-            console.log('✅ Popup appeared on first visit');
+
+            // Verify frequency call was made
+            expect(frequencyCalls.length).toBeGreaterThan(0);
 
             // Close the popup
             const closeButton = popup.locator('button[aria-label*="Close"], button:has-text("×")').first();
@@ -85,13 +108,14 @@ test.describe('Session Rules & Frequency Capping', () => {
             }
 
             // Visit 2: Should NOT show popup (same session)
-            console.log('Visit 2: Expecting NO popup (same session)...');
+            // Clear calls for second visit
+            frequencyCalls.length = 0;
+
             await page.goto(`https://${STORE_DOMAIN}`);
             await page.waitForLoadState('networkidle');
             await page.waitForTimeout(5000); // Wait to be sure
 
             await expect(popup).not.toBeVisible({ timeout: 2000 });
-            console.log('✅ Popup correctly hidden on second visit');
 
         } finally {
             await prisma.campaign.delete({ where: { id: campaign.id } });
@@ -104,7 +128,7 @@ test.describe('Session Rules & Frequency Capping', () => {
         // Create campaign with max 3 impressions per session
         const campaign = await (await factory.newsletter().init())
             .withName('Session-Max-3')
-            .withPriority(500)
+            .withPriority(9002)
             .withMaxImpressionsPerSession(3)
             .create();
 
@@ -147,7 +171,7 @@ test.describe('Session Rules & Frequency Capping', () => {
         // Create campaign with 5 second cooldown
         const campaign = await (await factory.newsletter().init())
             .withName('Session-Cooldown-5s')
-            .withPriority(500)
+            .withPriority(9003)
             .withMaxImpressionsPerSession(10) // High limit
             .withCooldownBetweenTriggers(5) // 5 second cooldown
             .create();
@@ -202,7 +226,7 @@ test.describe('Session Rules & Frequency Capping', () => {
         // Create campaign with max 1 impression per session
         const campaign = await (await factory.newsletter().init())
             .withName('Session-Persistence')
-            .withPriority(500)
+            .withPriority(9004)
             .withMaxImpressionsPerSession(1)
             .create();
 

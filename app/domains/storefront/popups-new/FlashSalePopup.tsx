@@ -16,10 +16,10 @@ import type { FlashSaleContent } from "~/domains/campaigns/types/campaign";
 import { PopupPortal } from "./PopupPortal";
 
 // Import custom hooks
-import { useCountdownTimer, useDiscountCode, usePopupAnimation } from "./hooks";
+import { useCountdownTimer, useDiscountCode } from "./hooks";
 
-// Import reusable components
-import { SubmitButton } from "./components";
+// Import shared components from Phase 1 & 2
+import { TimerDisplay, DiscountCodeDisplay, PopupCloseButton } from "./components/shared";
 
 /**
  * FlashSale-specific configuration
@@ -42,9 +42,6 @@ export interface FlashSalePopupProps {
     cartSubtotalCents?: number;
   }) => Promise<{ code?: string; autoApplyMode?: string } | null>;
 }
-
-// TimeRemaining interface now imported from hooks
-import type { TimeRemaining } from "./hooks";
 
 export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
   config,
@@ -76,9 +73,6 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
 
   // Use discount code hook
   const { discountCode, setDiscountCode, copiedCode, handleCopyCode } = useDiscountCode();
-
-  // Use animation hook
-  const { showContent } = usePopupAnimation({ isVisible });
 
   // Component-specific state
   const [inventoryTotal, setInventoryTotal] = useState<number | null>(null);
@@ -294,13 +288,6 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
       : popupSize === "wide" || popupSize === "full"
         ? "3rem"
         : "2.5rem";
-
-  const discountSize =
-    popupSize === "compact"
-      ? "6rem"
-      : popupSize === "wide" || popupSize === "full"
-        ? "10rem"
-        : "8rem";
 
   const discountMessage = getDiscountMessage();
 
@@ -531,12 +518,16 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
               {(discountCode || discountMessage) && (
                 <div className="flash-sale-banner-discount">
                   {discountCode ? (
-                    <div onClick={() => handleCopyCode()} style={{ cursor: "pointer" }}>
-                      Use code <strong>{discountCode}</strong> at checkout.
-                      {copiedCode && (
-                        <span style={{ marginLeft: "0.5rem", color: "#10B981" }}>✓ Copied!</span>
-                      )}
-                    </div>
+                    <DiscountCodeDisplay
+                      code={discountCode}
+                      onCopy={handleCopyCode}
+                      copied={copiedCode}
+                      label="Use code at checkout:"
+                      variant="minimal"
+                      size="sm"
+                      accentColor={config.accentColor || "#ef4444"}
+                      textColor={config.textColor}
+                    />
                   ) : (
                     discountMessage
                   )}
@@ -556,76 +547,15 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
               ) : (
                 <>
                   {config.showCountdown && timeRemaining.total > 0 && (
-                    <div className="flash-sale-banner-timer">
-                      {timeRemaining.days > 0 && (
-                        <>
-                          <div
-                            className="flash-sale-banner-timer-unit"
-                            style={{
-                              background: config.accentColor
-                                ? `${config.accentColor}20`
-                                : "rgba(239, 68, 68, 0.15)",
-                              color: config.accentColor || "#ffffff",
-                            }}
-                          >
-                            <div className="flash-sale-banner-timer-value">
-                              {String(timeRemaining.days).padStart(2, "0")}
-                            </div>
-                            <div className="flash-sale-banner-timer-label">Days</div>
-                          </div>
-                          <span className="flash-sale-banner-timer-separator">:</span>
-                        </>
-                      )}
-
-                      <div
-                        className="flash-sale-banner-timer-unit"
-                        style={{
-                          background: config.accentColor
-                            ? `${config.accentColor}20`
-                            : "rgba(239, 68, 68, 0.15)",
-                          color: config.accentColor || "#ffffff",
-                        }}
-                      >
-                        <div className="flash-sale-banner-timer-value">
-                          {String(timeRemaining.hours).padStart(2, "0")}
-                        </div>
-                        <div className="flash-sale-banner-timer-label">Hours</div>
-                      </div>
-
-                      <span className="flash-sale-banner-timer-separator">:</span>
-
-                      <div
-                        className="flash-sale-banner-timer-unit"
-                        style={{
-                          background: config.accentColor
-                            ? `${config.accentColor}20`
-                            : "rgba(239, 68, 68, 0.15)",
-                          color: config.accentColor || "#ffffff",
-                        }}
-                      >
-                        <div className="flash-sale-banner-timer-value">
-                          {String(timeRemaining.minutes).padStart(2, "0")}
-                        </div>
-                        <div className="flash-sale-banner-timer-label">Mins</div>
-                      </div>
-
-                      <span className="flash-sale-banner-timer-separator">:</span>
-
-                      <div
-                        className="flash-sale-banner-timer-unit"
-                        style={{
-                          background: config.accentColor
-                            ? `${config.accentColor}20`
-                            : "rgba(239, 68, 68, 0.15)",
-                          color: config.accentColor || "#ffffff",
-                        }}
-                      >
-                        <div className="flash-sale-banner-timer-value">
-                          {String(timeRemaining.seconds).padStart(2, "0")}
-                        </div>
-                        <div className="flash-sale-banner-timer-label">Secs</div>
-                      </div>
-                    </div>
+                    <TimerDisplay
+                      timeRemaining={timeRemaining}
+                      format="full"
+                      showDays={timeRemaining.days > 0}
+                      showLabels={true}
+                      accentColor={config.accentColor || "#ef4444"}
+                      textColor={config.textColor}
+                      className="flash-sale-banner-timer"
+                    />
                   )}
 
                   {showInventory && inventoryTotal !== null && (
@@ -936,19 +866,13 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
       `}</style>
 
       <div className="flash-sale-container">
-        <button onClick={onClose} className="flash-sale-close" aria-label="Close popup">
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-          >
-            <line x1="18" y1="6" x2="6" y2="18" />
-            <line x1="6" y1="6" x2="18" y2="18" />
-          </svg>
-        </button>
+        <PopupCloseButton
+          onClose={onClose}
+          color={config.textColor}
+          size={20}
+          className="flash-sale-close"
+          position="custom"
+        />
 
         {isSoldOut && config.inventory?.soldOutBehavior === "missed_it" ? (
           <div className="flash-sale-sold-out">
@@ -982,12 +906,16 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
             {(discountCode || discountMessage) && (
               <div className="flash-sale-discount-message">
                 {discountCode ? (
-                  <div onClick={() => handleCopyCode()} style={{ cursor: "pointer" }}>
-                    Use code <strong>{discountCode}</strong> at checkout.
-                    {copiedCode && (
-                      <span style={{ marginLeft: "0.5rem", color: "#10B981" }}>✓ Copied!</span>
-                    )}
-                  </div>
+                  <DiscountCodeDisplay
+                    code={discountCode}
+                    onCopy={handleCopyCode}
+                    copied={copiedCode}
+                    label="Use code at checkout:"
+                    variant="minimal"
+                    size="sm"
+                    accentColor={config.accentColor || "#ef4444"}
+                    textColor={config.textColor}
+                  />
                 ) : (
                   discountMessage
                 )}
@@ -999,34 +927,15 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
             )}
 
             {config.showCountdown && timeRemaining.total > 0 && (
-              <div className="flash-sale-timer">
-                {timeRemaining.days > 0 && (
-                  <div className="flash-sale-timer-unit">
-                    <div className="flash-sale-timer-value">
-                      {String(timeRemaining.days).padStart(2, "0")}
-                    </div>
-                    <div className="flash-sale-timer-label">Days</div>
-                  </div>
-                )}
-                <div className="flash-sale-timer-unit">
-                  <div className="flash-sale-timer-value">
-                    {String(timeRemaining.hours).padStart(2, "0")}
-                  </div>
-                  <div className="flash-sale-timer-label">Hours</div>
-                </div>
-                <div className="flash-sale-timer-unit">
-                  <div className="flash-sale-timer-value">
-                    {String(timeRemaining.minutes).padStart(2, "0")}
-                  </div>
-                  <div className="flash-sale-timer-label">Mins</div>
-                </div>
-                <div className="flash-sale-timer-unit">
-                  <div className="flash-sale-timer-value">
-                    {String(timeRemaining.seconds).padStart(2, "0")}
-                  </div>
-                  <div className="flash-sale-timer-label">Secs</div>
-                </div>
-              </div>
+              <TimerDisplay
+                timeRemaining={timeRemaining}
+                format="full"
+                showDays={timeRemaining.days > 0}
+                showLabels={true}
+                accentColor={config.accentColor || "#ef4444"}
+                textColor={config.textColor}
+                className="flash-sale-timer"
+              />
             )}
 
             {showInventory && (

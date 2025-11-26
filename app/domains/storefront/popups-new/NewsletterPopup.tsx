@@ -27,6 +27,17 @@ import { usePopupForm, useDiscountCode, usePopupAnimation } from "./hooks";
 // Import reusable components
 import { EmailInput, NameInput, GdprCheckbox, SubmitButton } from "./components";
 
+// Import shared components from Phase 1 & 2
+import {
+  SuccessState,
+  DiscountCodeDisplay,
+  LeadCaptureForm,
+  PopupHeader,
+} from "./components/shared";
+
+// Import shared animations
+import "./components/shared/animations.css";
+
 /**
  * Newsletter-specific configuration
  */
@@ -216,23 +227,6 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
           width: 100%;
         }
 
-        .email-popup-title {
-          font-size: ${config.titleFontSize || config.fontSize || "1.875rem"};
-          font-weight: ${config.titleFontWeight || config.fontWeight || "900"};
-          margin-bottom: ${SPACING_GUIDELINES.afterHeadline};
-          color: ${config.textColor || "#111827"};
-          line-height: 1.1;
-          ${config.titleTextShadow ? `text-shadow: ${config.titleTextShadow};` : ""}
-        }
-
-        .email-popup-description {
-          font-size: ${config.descriptionFontSize || config.fontSize || "1rem"};
-          line-height: 1.6;
-          margin-bottom: ${SPACING_GUIDELINES.afterDescription};
-          color: ${config.descriptionColor || "#52525b"};
-          font-weight: ${config.descriptionFontWeight || config.fontWeight || "400"};
-        }
-
         .email-popup-form {
           display: flex;
           flex-direction: column;
@@ -352,116 +346,6 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
           text-decoration: underline;
         }
 
-        .email-popup-success {
-          text-align: center;
-          padding: ${POPUP_SPACING.section.xl} 0;
-          animation: fadeInUp 0.5s ease-out;
-        }
-
-        .email-popup-success-icon {
-          width: 4rem;
-          height: 4rem;
-          border-radius: 9999px;
-          background: ${config.successColor ? `${config.successColor}20` : "#dcfce7"};
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          margin: 0 auto ${POPUP_SPACING.section.md};
-          animation: bounceIn 0.6s ease-out;
-        }
-
-        .email-popup-success-icon svg {
-          stroke: ${config.successColor || "#16a34a"};
-        }
-
-        .email-popup-success-message {
-          font-size: ${config.titleFontSize || config.fontSize || "1.875rem"};
-          font-weight: ${config.titleFontWeight || config.fontWeight || "900"};
-          color: ${config.textColor || "#111827"};
-          margin-bottom: ${POPUP_SPACING.section.lg};
-          line-height: 1.1;
-          ${config.titleTextShadow ? `text-shadow: ${config.titleTextShadow};` : ""}
-        }
-
-        .email-popup-discount {
-          display: inline-block;
-          padding: 0.75rem 1.5rem;
-          border-radius: 0.5rem;
-          border: 2px dashed ${config.accentColor || config.buttonColor || "#3b82f6"};
-          background: ${config.accentColor ? `${config.accentColor}15` : config.inputBackgroundColor || "#f4f4f5"};
-        }
-
-        .email-popup-discount-label {
-          font-size: 0.875rem;
-          font-weight: 500;
-          margin-bottom: 0.25rem;
-          color: ${config.descriptionColor || "#52525b"};
-        }
-
-        .email-popup-discount-code {
-          font-size: 1.5rem;
-          font-weight: 700;
-          letter-spacing: 0.05em;
-          color: ${config.accentColor || config.buttonColor || config.textColor || "#111827"};
-        }
-
-        .email-popup-spinner {
-          width: 1.25rem;
-          height: 1.25rem;
-          border: 2px solid ${config.buttonTextColor || "#ffffff"}40;
-          border-top-color: ${config.buttonTextColor || "#ffffff"};
-          border-radius: 50%;
-          animation: spin 0.6s linear infinite;
-        }
-
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-
-        @keyframes zoomIn {
-          from {
-            opacity: 0;
-            transform: scale(0.95);
-          }
-          to {
-            opacity: 1;
-            transform: scale(1);
-          }
-        }
-
-        @keyframes fadeInUp {
-          from {
-            opacity: 0;
-            transform: translateY(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        @keyframes bounceIn {
-          0% {
-            opacity: 0;
-            transform: scale(0.3);
-          }
-          50% {
-            opacity: 1;
-            transform: scale(1.05);
-          }
-          70% {
-            transform: scale(0.9);
-          }
-          100% {
-            transform: scale(1);
-          }
-        }
-
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-
         /* Desktop Layout (Side-by-Side) - Specific overrides if needed */
         @container popup (min-width: 600px) {
           .email-popup-form-section {
@@ -499,125 +383,74 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
         {/* Form Section */}
         <div className="email-popup-form-section">
           {isSubmitted ? (
-            <div className="email-popup-success">
-              <div className="email-popup-success-icon">
-                <svg
-                  width="32"
-                  height="32"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="3"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
-              </div>
-              <h3 className="email-popup-success-message">
-                {config.successMessage || "Thanks for subscribing!"}
-              </h3>
-              {displayDiscountCode && (
-                <div className="email-popup-discount">
-                  <div className="email-popup-discount-label">Your discount code:</div>
-                  <div
-                    className="email-popup-discount-code"
-                    onClick={() => handleCopyCode()}
-                    style={{ cursor: "pointer" }}
-                    title="Click to copy"
-                  >
-                    {displayDiscountCode}
-                  </div>
-                  {copiedCode && (
-                    <div style={{ fontSize: "0.875rem", color: "#10B981", marginTop: "0.5rem" }}>
-                      ✓ Copied to clipboard!
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
+            <SuccessState
+              message={config.successMessage || "Thanks for subscribing!"}
+              discountCode={displayDiscountCode || undefined}
+              onCopyCode={handleCopyCode}
+              copiedCode={copiedCode}
+              discountLabel="Your discount code:"
+              accentColor={config.accentColor || config.buttonColor}
+              successColor={config.successColor}
+              textColor={config.textColor}
+              animation="bounce"
+              fontSize={config.titleFontSize || config.fontSize}
+              fontWeight={config.titleFontWeight || config.fontWeight}
+            />
           ) : (
             <>
-              {config.headline && <h2 className="email-popup-title">{config.headline}</h2>}
-              {config.subheadline && (
-                <p className="email-popup-description">{config.subheadline}</p>
-              )}
+              <PopupHeader
+                headline={config.headline || "Join Our Newsletter"}
+                subheadline={config.subheadline}
+                textColor={config.textColor}
+                descriptionColor={config.descriptionColor}
+                headlineFontSize={config.titleFontSize || config.fontSize}
+                subheadlineFontSize={config.descriptionFontSize || config.fontSize}
+                headlineFontWeight={config.titleFontWeight || config.fontWeight}
+                subheadlineFontWeight={config.descriptionFontWeight || config.fontWeight}
+                align="center"
+                marginBottom={SPACING_GUIDELINES.afterDescription}
+              />
 
-              <form
-                className="email-popup-form"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  handleSubmit();
+              <LeadCaptureForm
+                data={formState}
+                errors={errors}
+                onEmailChange={setEmail}
+                onNameChange={setName}
+                onGdprChange={setGdprConsent}
+                onSubmit={handleSubmit}
+                isSubmitting={isSubmitting}
+                showName={collectName}
+                nameRequired={config.nameFieldRequired}
+                showGdpr={showGdprCheckbox}
+                gdprRequired={config.consentFieldRequired}
+                emailRequired={config.emailRequired !== false}
+                labels={{
+                  email: config.emailLabel,
+                  name: config.firstNameLabel || "Name",
+                  gdpr: gdprLabel,
+                  submit: buttonText,
                 }}
-              >
-                {collectName && (
-                  <div className="email-popup-input-wrapper">
-                    <NameInput
-                      value={formState.name}
-                      onChange={setName}
-                      placeholder={config.nameFieldPlaceholder || "Your name"}
-                      label={config.firstNameLabel || "Name"}
-                      error={errors.name}
-                      required={config.nameFieldRequired}
+                placeholders={{
+                  email: config.emailPlaceholder || "Enter your email",
+                  name: config.nameFieldPlaceholder || "Your name",
+                }}
+                accentColor={config.accentColor}
+                textColor={config.textColor}
+                backgroundColor={config.backgroundColor}
+                buttonTextColor={config.buttonTextColor}
+                extraFields={
+                  config.dismissLabel ? (
+                    <button
+                      type="button"
+                      className="email-popup-secondary-button"
+                      onClick={onClose}
                       disabled={isSubmitting}
-                      accentColor={config.accentColor}
-                      textColor={config.textColor}
-                      backgroundColor={config.backgroundColor}
-                    />
-                  </div>
-                )}
-
-                <div className="email-popup-input-wrapper">
-                  <EmailInput
-                    value={formState.email}
-                    onChange={setEmail}
-                    placeholder={config.emailPlaceholder || "Enter your email"}
-                    label={config.emailLabel}
-                    error={errors.email}
-                    required={config.emailRequired !== false}
-                    disabled={isSubmitting}
-                    accentColor={config.accentColor}
-                    textColor={config.textColor}
-                    backgroundColor={config.backgroundColor}
-                  />
-                </div>
-
-                {showGdprCheckbox && (
-                  <div className="email-popup-checkbox-wrapper">
-                    <GdprCheckbox
-                      checked={formState.gdprConsent}
-                      onChange={setGdprConsent}
-                      text={gdprLabel}
-                      error={errors.gdpr}
-                      required={config.consentFieldRequired}
-                      disabled={isSubmitting}
-                      accentColor={config.accentColor}
-                      textColor={config.textColor}
-                    />
-                  </div>
-                )}
-
-                <SubmitButton
-                  type="submit"
-                  disabled={isSubmitting}
-                  loading={isSubmitting}
-                  accentColor={config.accentColor}
-                  textColor={config.buttonTextColor || "#FFFFFF"}
-                >
-                  {buttonText}
-                </SubmitButton>
-
-                {config.dismissLabel && (
-                  <button
-                    type="button"
-                    className="email-popup-secondary-button"
-                    onClick={onClose}
-                    disabled={isSubmitting}
-                  >
-                    {config.dismissLabel}
-                  </button>
-                )}
-              </form>
+                    >
+                      {config.dismissLabel}
+                    </button>
+                  ) : undefined
+                }
+              />
             </>
           )}
         </div>
