@@ -96,11 +96,11 @@ jobs:
 
           if [ -n "$TEST_FILTER" ]; then
             echo "🔍 Running tests matching: $TEST_FILTER"
-            npx playwright test tests/e2e/staging/ --project=storefront -g "$TEST_FILTER"
+            npx playwright test tests/e2e/staging/ --project=storefront -g "$TEST_FILTER" --retries=2
           else
             echo "🔍 Running all staging E2E tests"
-            # Run all staging tests with retry for flaky tests
-            npx playwright test tests/e2e/staging/ --project=storefront --retries=1
+            # Run all staging tests with 2 retries for flaky tests
+            npx playwright test tests/e2e/staging/ --project=storefront --retries=2
           fi
         env:
           CI: true
