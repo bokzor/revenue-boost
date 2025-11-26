@@ -1,12 +1,10 @@
 /**
- * useShopifyFileUpload - Hook for uploading files to Shopify with scope handling
+ * useShopifyFileUpload - Hook for uploading files to Shopify
  *
- * Handles the staged upload flow and automatically prompts for write_files
- * scope if not granted.
+ * Handles the staged upload flow for uploading files to Shopify's CDN.
  */
 
 import { useCallback, useState } from "react";
-import { useScopeRequest } from "./useScopeRequest";
 
 export interface UploadedFile {
   id: string;
@@ -21,39 +19,20 @@ export interface FileUploadResult {
   isUploading: boolean;
   /** Error message if upload failed */
   error: string | null;
-  /** Whether write_files scope is required */
-  scopeRequired: boolean;
-  /** Request the write_files scope */
-  requestScope: () => Promise<boolean>;
-  /** Whether scope request is in progress */
-  isRequestingScope: boolean;
   /** Clear error state */
   clearError: () => void;
 }
 
-const REQUIRED_SCOPE = "write_files";
-
 /**
- * Hook for uploading files to Shopify with scope handling
+ * Hook for uploading files to Shopify
  */
 export function useShopifyFileUpload(): FileUploadResult {
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [scopeRequired, setScopeRequired] = useState(false);
-
-  const { requestScopes, isRequesting: isRequestingScope } = useScopeRequest();
 
   const clearError = useCallback(() => {
     setError(null);
   }, []);
-
-  const requestScope = useCallback(async (): Promise<boolean> => {
-    const granted = await requestScopes([REQUIRED_SCOPE]);
-    if (granted) {
-      setScopeRequired(false);
-    }
-    return granted;
-  }, [requestScopes]);
 
   const uploadFile = useCallback(
     async (file: File, alt?: string): Promise<UploadedFile | null> => {
@@ -73,13 +52,6 @@ export function useShopifyFileUpload(): FileUploadResult {
         });
 
         const stagedJson = await stagedResponse.json();
-
-        // Check if scope is required
-        if (stagedJson.data?.scopeRequired) {
-          setScopeRequired(true);
-          setError("Permission required to upload files. Click 'Grant Access' to continue.");
-          return null;
-        }
 
         if (!stagedResponse.ok || !stagedJson?.success) {
           throw new Error("Failed to create staged upload target");
@@ -123,13 +95,6 @@ export function useShopifyFileUpload(): FileUploadResult {
 
         const createJson = await createResponse.json();
 
-        // Check if scope is required (shouldn't happen if staged-uploads worked)
-        if (createJson.data?.scopeRequired) {
-          setScopeRequired(true);
-          setError("Permission required to upload files. Click 'Grant Access' to continue.");
-          return null;
-        }
-
         if (!createResponse.ok || !createJson?.success) {
           throw new Error("Failed to create Shopify file");
         }
@@ -156,9 +121,6 @@ export function useShopifyFileUpload(): FileUploadResult {
     uploadFile,
     isUploading,
     error,
-    scopeRequired,
-    requestScope,
-    isRequestingScope,
     clearError,
   };
 }

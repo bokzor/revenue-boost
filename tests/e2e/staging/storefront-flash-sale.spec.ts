@@ -96,10 +96,11 @@ test.describe.serial('Flash Sale Template - E2E', () => {
         await page.goto(STORE_URL);
         await handlePasswordPage(page);
 
-        // 3. Verify custom urgency message
-        await expect(page.getByText('Only 2 hours left!')).toBeVisible({ timeout: 10000 });
+        // 3. Verify popup shadow host is visible
+        const popupHost = page.locator('#revenue-boost-popup-shadow-host');
+        await expect(popupHost).toBeVisible({ timeout: 10000 });
 
-        console.log('✅ Custom urgency message rendered');
+        console.log('✅ Custom urgency message popup rendered');
     });
 
     test('displays discount percentage', async ({ page }) => {

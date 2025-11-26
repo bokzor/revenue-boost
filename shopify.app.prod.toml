@@ -13,13 +13,9 @@ api_version = "2025-10"
 # Required scopes - requested at install time (core functionality)
 # read_orders: for orders/create webhook (revenue attribution)
 # write_marketing_events, read_marketing_events: Marketing attribution tracking in Shopify's Marketing section
-scopes = "read_discounts,write_discounts,write_products,read_themes,read_orders,write_marketing_events,read_marketing_events"
-# Optional scopes - requested just-in-time when specific features are enabled
-optional_scopes = [
-  "read_customers",
-  "write_customers",
-  "write_files"
-]
+# read_customers, write_customers: Create/update customers when emails are collected via popups
+# write_files: Custom image uploads for popup backgrounds
+scopes = "read_discounts,write_discounts,write_products,read_themes,read_orders,write_marketing_events,read_marketing_events,read_customers,write_customers,write_files"
 use_legacy_install_flow = false
 
 [auth]

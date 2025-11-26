@@ -2,11 +2,7 @@
  * GET /api/shopify-segments
  *
  * Returns Shopify customer segments for use in the admin audience selector.
- * Backed by the Admin GraphQL API (no stubs).
- *
- * Supports just-in-time permission flow:
- * - If read_customers scope is not granted, returns scopeRequired flag
- * - UI can then prompt user to grant the scope
+ * Backed by the Admin GraphQL API.
  *
  * Query parameters:
  * - first: Number of segments to fetch (default: 50, max: 250)
@@ -23,28 +19,12 @@ import {
   getCustomerSegmentMembersCount,
 } from "~/lib/shopify/segments.server";
 
-const REQUIRED_SCOPE = "read_customers";
-
 export async function loader({ request }: LoaderFunctionArgs) {
   try {
-    const { admin, session, scopes } = await authenticate.admin(request);
+    const { admin, session } = await authenticate.admin(request);
 
     if (!admin || !session?.shop) {
       return data({ error: "Authentication failed" }, { status: 401 });
-    }
-
-    // Check if read_customers scope is granted
-    const scopeDetails = await scopes.query();
-    const hasCustomerScope = scopeDetails.granted.includes(REQUIRED_SCOPE);
-
-    if (!hasCustomerScope) {
-      // Return response indicating scope is required
-      return createSuccessResponse({
-        segments: [],
-        scopeRequired: REQUIRED_SCOPE,
-        scopeMessage:
-          "To target specific customer segments (like VIP customers or first-time buyers), we need permission to read your customer segment data. We only check if a visitor belongs to your selected segments.",
-      });
     }
 
     const url = new URL(request.url);
@@ -89,7 +69,6 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
     return createSuccessResponse({
       segments: segmentsWithCounts,
-      scopeGranted: true,
     });
   } catch (error) {
     return handleApiError(error, "GET /api/shopify-segments");

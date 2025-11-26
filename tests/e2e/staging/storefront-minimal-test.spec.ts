@@ -162,7 +162,7 @@ test.describe('Minimal Reproduction', () => {
 
             // Now check if popup appears
             console.log('\nStep 5: Checking if popup appears...');
-            const popup = page.locator('[data-splitpop="true"]');
+            const popup = page.locator('#revenue-boost-popup-shadow-host');
 
             try {
                 await expect(popup).toBeVisible({ timeout: 10000 });

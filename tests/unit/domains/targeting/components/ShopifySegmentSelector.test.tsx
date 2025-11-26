@@ -3,7 +3,6 @@
  *
  * Tests the Shopify customer segment selection UI including:
  * - Segment loading and display
- * - Scope permission handling
  * - Refresh functionality
  * - Customer count display
  */
@@ -13,17 +12,6 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { PolarisTestProvider } from "@shopify/polaris";
 import enTranslations from "@shopify/polaris/locales/en.json";
-
-// Mock useScopeRequest hook before importing the component
-vi.mock("~/shared/hooks/useScopeRequest", () => ({
-  useScopeRequest: () => ({
-    requestScopes: vi.fn().mockResolvedValue(true),
-    isRequesting: false,
-    error: null,
-    lastResult: null,
-    clearError: vi.fn(),
-  }),
-}));
 
 import {
   ShopifySegmentSelector,
@@ -65,58 +53,6 @@ describe("ShopifySegmentSelector", () => {
       );
 
       expect(screen.getByText("Loading Shopify segments...")).toBeTruthy();
-    });
-  });
-
-  describe("Scope Required State", () => {
-    it("shows grant access banner when scope is required", async () => {
-      mockFetch.mockResolvedValue({
-        json: () =>
-          Promise.resolve({
-            data: {
-              segments: [],
-              scopeRequired: "read_customers",
-              scopeMessage: "Permission required to access segments",
-            },
-          }),
-      });
-
-      renderWithPolaris(
-        <ShopifySegmentSelector
-          selectedSegmentIds={[]}
-          onChange={vi.fn()}
-        />
-      );
-
-      await waitFor(() => {
-        expect(screen.getByText("Additional permissions required")).toBeTruthy();
-      });
-
-      expect(screen.getByText(/Permission required to access segments/)).toBeTruthy();
-    });
-
-    it("shows Grant Access button when scope is required", async () => {
-      mockFetch.mockResolvedValue({
-        json: () =>
-          Promise.resolve({
-            data: {
-              segments: [],
-              scopeRequired: "read_customers",
-              scopeMessage: "Permission required",
-            },
-          }),
-      });
-
-      renderWithPolaris(
-        <ShopifySegmentSelector
-          selectedSegmentIds={[]}
-          onChange={vi.fn()}
-        />
-      );
-
-      await waitFor(() => {
-        expect(screen.getByText("Grant Access")).toBeTruthy();
-      });
     });
   });
 

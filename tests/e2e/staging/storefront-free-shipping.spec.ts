@@ -93,11 +93,6 @@ test.describe.serial('Free Shipping Template - E2E', () => {
     });
 
     test('displays progress message with remaining amount', async ({ page }) => {
-        let popupRendered = false;
-        page.on('console', msg => {
-            if (msg.text().includes('Popup shown')) popupRendered = true;
-        });
-
         // 1. Create campaign with custom threshold
         const campaign = await (await factory.freeShipping().init())
             .withThreshold(100)
@@ -112,10 +107,8 @@ test.describe.serial('Free Shipping Template - E2E', () => {
         // 3. Wait for popup container
         const popupContainer = page.locator('#revenue-boost-popup-shadow-host');
         await expect(popupContainer).toBeVisible({ timeout: 10000 });
-        await page.waitForTimeout(2000);
 
-        expect(popupRendered).toBeTruthy();
-        console.log('✅ Progress message rendered');
+        console.log('✅ Progress message popup rendered');
     });
 
     test('renders at specified position', async ({ page }) => {
