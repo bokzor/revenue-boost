@@ -2,6 +2,7 @@ import { useState, useCallback } from "react";
 import { Card, BlockStack, Text, TextField, InlineStack, Badge } from "@shopify/polaris";
 import type { StoreSettings } from "~/domains/store/types/settings";
 import { CUSTOM_CSS_MAX_LENGTH } from "~/lib/css-guards";
+import { UpgradeBanner, useFeatureAccess } from "~/domains/billing";
 
 interface GlobalCSSSettingsProps {
   settings: StoreSettings;
@@ -10,6 +11,7 @@ interface GlobalCSSSettingsProps {
 
 export function GlobalCSSSettings({ settings, onChange }: GlobalCSSSettingsProps) {
   const [cssValue, setCssValue] = useState<string>(settings.globalCustomCSS || "");
+  const { hasAccess } = useFeatureAccess("customCss");
 
   const handleChange = useCallback(
     (value: string) => {
@@ -18,6 +20,23 @@ export function GlobalCSSSettings({ settings, onChange }: GlobalCSSSettingsProps
     },
     [onChange]
   );
+
+  // Show upgrade banner if user doesn't have access to Custom CSS
+  if (!hasAccess) {
+    return (
+      <Card>
+        <BlockStack gap="400">
+          <BlockStack gap="050">
+            <Text as="h2" variant="headingMd">Global Custom CSS</Text>
+            <Text as="p" tone="subdued">
+              Add CSS applied to all campaigns. Use carefully to keep popups consistent with your theme.
+            </Text>
+          </BlockStack>
+          <UpgradeBanner feature="customCss" />
+        </BlockStack>
+      </Card>
+    );
+  }
 
   return (
     <Card>

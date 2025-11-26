@@ -3,20 +3,70 @@ import { Outlet, useLoaderData, useRouteError, Link as ReactRouterLink } from "r
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { AppProvider } from "@shopify/shopify-app-react-router/react";
 
-import { forwardRef } from "react";
+import { forwardRef, createContext, useContext } from "react";
 import { AppProvider as PolarisAppProvider } from "@shopify/polaris";
 import en from "@shopify/polaris/locales/en.json";
 import polarisStyles from "@shopify/polaris/build/esm/styles.css?url";
 
 import { authenticate } from "../shopify.server";
+import prisma from "../db.server";
+import { BillingService } from "../domains/billing/services/billing.server";
+import { PLAN_DEFINITIONS, type PlanTier, type PlanFeatures } from "../domains/billing/types/plan";
 
 export const links: LinksFunction = () => [{ rel: "stylesheet", href: polarisStyles }];
 
-export const loader = async ({ request }: LoaderFunctionArgs) => {
-  await authenticate.admin(request);
+// =============================================================================
+// BILLING CONTEXT
+// =============================================================================
 
-  // eslint-disable-next-line no-undef
-  return { apiKey: process.env.SHOPIFY_API_KEY || "" };
+export interface BillingContextType {
+  planTier: PlanTier;
+  planName: string;
+  features: PlanFeatures;
+  hasActiveSubscription: boolean;
+  isTrialing: boolean;
+  canAccessFeature: (feature: keyof PlanFeatures) => boolean;
+}
+
+const BillingContext = createContext<BillingContextType | null>(null);
+
+export function useBilling(): BillingContextType {
+  const context = useContext(BillingContext);
+  if (!context) {
+    // Return a safe default for FREE plan if context is not available
+    return {
+      planTier: "FREE",
+      planName: "Free",
+      features: PLAN_DEFINITIONS.FREE.features,
+      hasActiveSubscription: false,
+      isTrialing: false,
+      canAccessFeature: (feature) => PLAN_DEFINITIONS.FREE.features[feature],
+    };
+  }
+  return context;
+}
+
+// =============================================================================
+// LOADER
+// =============================================================================
+
+export const loader = async ({ request }: LoaderFunctionArgs) => {
+  const { admin, session } = await authenticate.admin(request);
+
+  // Sync billing status from Shopify
+  const billingContext = await BillingService.syncSubscriptionToDatabase(admin, session.shop);
+  const planDef = PLAN_DEFINITIONS[billingContext.planTier];
+
+  return {
+    apiKey: process.env.SHOPIFY_API_KEY || "",
+    billing: {
+      planTier: billingContext.planTier,
+      planName: planDef.name,
+      features: planDef.features,
+      hasActiveSubscription: billingContext.hasActiveSubscription,
+      isTrialing: billingContext.isTrialing,
+    },
+  };
 };
 
 // ...
@@ -48,17 +98,26 @@ const Link = forwardRef<HTMLAnchorElement, LinkProps>(
 Link.displayName = "Link";
 
 export default function App() {
-  const { apiKey } = useLoaderData<typeof loader>();
+  const { apiKey, billing } = useLoaderData<typeof loader>();
+
+  // Create billing context value with helper function
+  const billingContextValue: BillingContextType = {
+    ...billing,
+    canAccessFeature: (feature: keyof PlanFeatures) => billing.features[feature],
+  };
 
   return (
     <AppProvider embedded apiKey={apiKey}>
       <PolarisAppProvider i18n={en} linkComponent={Link as any}>
-        <s-app-nav>
-          <s-link href="/app">Dashboard</s-link>
-          <s-link href="/app/campaigns/new">New campaign</s-link>
-          <s-link href="/app/settings">Settings</s-link>
-        </s-app-nav>
-        <Outlet />
+        <BillingContext.Provider value={billingContextValue}>
+          <s-app-nav>
+            <s-link href="/app">Dashboard</s-link>
+            <s-link href="/app/campaigns/new">New campaign</s-link>
+            <s-link href="/app/billing">Plans</s-link>
+            <s-link href="/app/settings">Settings</s-link>
+          </s-app-nav>
+          <Outlet />
+        </BillingContext.Provider>
       </PolarisAppProvider>
     </AppProvider>
   );

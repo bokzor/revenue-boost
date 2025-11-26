@@ -53,15 +53,56 @@ interface DiscountIssueResponse {
   error?: string;
 }
 
-// Simple in-memory session tracking for idempotency (30 min TTL)
+import { getRedis, REDIS_TTL } from "~/lib/redis.server";
+
+// Redis-based session tracking for idempotency (30 min TTL)
 interface SessionIssue {
   campaignId: string;
   code: string;
   timestamp: number;
 }
 
-const sessionIssues = new Map<string, SessionIssue>();
-const SESSION_TTL_MS = 30 * 60 * 1000; // 30 minutes
+const SESSION_CACHE_PREFIX = "discount_session";
+const SESSION_TTL_SECONDS = 30 * 60; // 30 minutes
+
+/**
+ * Get cached discount code from Redis
+ */
+async function getCachedDiscountCode(sessionId: string, campaignId: string): Promise<SessionIssue | null> {
+  const redis = getRedis();
+  if (!redis) return null;
+
+  try {
+    const cacheKey = `${SESSION_CACHE_PREFIX}:${sessionId}:${campaignId}`;
+    const cached = await redis.get(cacheKey);
+    if (cached) {
+      return JSON.parse(cached) as SessionIssue;
+    }
+  } catch (error) {
+    console.error("[Discount Issue] Redis cache read error:", error);
+  }
+  return null;
+}
+
+/**
+ * Cache discount code in Redis
+ */
+async function cacheDiscountCode(sessionId: string, campaignId: string, code: string): Promise<void> {
+  const redis = getRedis();
+  if (!redis) return;
+
+  try {
+    const cacheKey = `${SESSION_CACHE_PREFIX}:${sessionId}:${campaignId}`;
+    const sessionIssue: SessionIssue = {
+      campaignId,
+      code,
+      timestamp: Date.now(),
+    };
+    await redis.setex(cacheKey, SESSION_TTL_SECONDS, JSON.stringify(sessionIssue));
+  } catch (error) {
+    console.error("[Discount Issue] Redis cache write error:", error);
+  }
+}
 
 export async function action({ request }: ActionFunctionArgs) {
   try {
@@ -141,10 +182,9 @@ export async function action({ request }: ActionFunctionArgs) {
 
     // Check idempotency: if this session recently issued a code for this campaign, reuse it
     if (sessionId) {
-      const cacheKey = `${sessionId}:${campaignId}`;
-      const cached = sessionIssues.get(cacheKey);
+      const cached = await getCachedDiscountCode(sessionId, campaignId);
 
-      if (cached && Date.now() - cached.timestamp < SESSION_TTL_MS) {
+      if (cached) {
         console.log(`[Discount Issue] Reusing cached code for session ${sessionId}`);
         return data({
           success: true,
@@ -244,24 +284,9 @@ export async function action({ request }: ActionFunctionArgs) {
       response.usageRemaining = discountConfig.usageLimit;
     }
 
-    // Cache for idempotency
+    // Cache for idempotency (Redis with automatic TTL expiration)
     if (sessionId) {
-      const cacheKey = `${sessionId}:${campaignId}`;
-      sessionIssues.set(cacheKey, {
-        campaignId,
-        code: result.discountCode,
-        timestamp: Date.now(),
-      });
-
-      // Clean up old entries (simple LRU)
-      if (sessionIssues.size > 500) {
-        const cutoff = Date.now() - SESSION_TTL_MS;
-        for (const [key, entry] of sessionIssues.entries()) {
-          if (entry.timestamp < cutoff) {
-            sessionIssues.delete(key);
-          }
-        }
-      }
+      await cacheDiscountCode(sessionId, campaignId, result.discountCode);
     }
 
     // Log issuance for analytics/debugging

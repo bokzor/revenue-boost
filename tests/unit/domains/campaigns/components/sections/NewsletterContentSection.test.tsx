@@ -1,8 +1,30 @@
 import React from "react";
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { render } from "@testing-library/react";
 import { AppProvider } from "@shopify/polaris";
 import en from "@shopify/polaris/locales/en.json";
+
+// Mock hooks that require App Bridge before importing the component
+vi.mock("~/shared/hooks/useScopeRequest", () => ({
+  useScopeRequest: () => ({
+    requestScopes: vi.fn().mockResolvedValue(true),
+    isRequesting: false,
+    error: null,
+    lastResult: null,
+    clearError: vi.fn(),
+  }),
+}));
+
+vi.mock("~/shared/hooks/useShopifyFileUpload", () => ({
+  useShopifyFileUpload: () => ({
+    uploadFile: vi.fn().mockResolvedValue("https://example.com/image.jpg"),
+    isUploading: false,
+    error: null,
+    scopeRequired: false,
+    requestScope: vi.fn().mockResolvedValue(true),
+    isRequestingScope: false,
+  }),
+}));
 
 import { NewsletterContentSection } from "~/domains/campaigns/components/sections/NewsletterContentSection";
 

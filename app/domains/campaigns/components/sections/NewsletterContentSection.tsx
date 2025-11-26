@@ -18,6 +18,7 @@ import {
   Collapsible,
   Button,
   InlineStack,
+  Banner,
 } from "@shopify/polaris";
 import { ChevronDownIcon, ChevronUpIcon } from "@shopify/polaris-icons";
 import { TextField, FormGrid, ColorField } from "../form";
@@ -35,6 +36,7 @@ import {
   getNewsletterBackgroundUrl,
 } from "~/config/color-presets";
 import { ThemePresetSelector } from "../shared/ThemePresetSelector";
+import { useShopifyFileUpload } from "~/shared/hooks/useShopifyFileUpload";
 
 export type NewsletterContent = z.infer<typeof NewsletterContentSchema>;
 
@@ -60,6 +62,16 @@ export function NewsletterContentSection({
   const updateField = useFieldUpdater(content, onChange);
   const [showAdvancedDesign, setShowAdvancedDesign] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // File upload with scope handling
+  const {
+    uploadFile,
+    isUploading,
+    error: uploadError,
+    scopeRequired: fileScopeRequired,
+    requestScope: requestFileScope,
+    isRequestingScope: isRequestingFileScope,
+  } = useShopifyFileUpload();
 
   const imageMode = (designConfig.backgroundImageMode ??
     "none") as DesignConfig["backgroundImageMode"];
@@ -125,78 +137,17 @@ export function NewsletterContentSection({
     if (!file) return;
 
     try {
-      const stagedResponse = await fetch("/api/shopify-files/staged-uploads", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          filename: file.name,
-          mimeType: file.type || "image/jpeg",
-          fileSize: file.size,
-        }),
-      });
+      const createdFile = await uploadFile(file, `Campaign background: ${file.name}`);
 
-      const stagedJson = await stagedResponse.json();
-      if (!stagedResponse.ok || !stagedJson?.success) {
-        throw new Error("Failed to create staged upload target");
+      if (createdFile) {
+        onDesignChange({
+          ...designConfig,
+          backgroundImageMode: "file",
+          backgroundImageFileId: createdFile.id,
+          backgroundImagePresetKey: undefined,
+          imageUrl: createdFile.url,
+        });
       }
-
-      const stagedTarget = stagedJson.data?.stagedTarget as {
-        url?: string;
-        resourceUrl?: string;
-        parameters?: { name: string; value: string }[];
-      };
-
-      if (!stagedTarget?.url || !stagedTarget.resourceUrl) {
-        throw new Error("Invalid staged upload target response");
-      }
-
-      const formData = new FormData();
-      (stagedTarget.parameters || []).forEach((param) => {
-        formData.append(param.name, param.value);
-      });
-      formData.append("file", file);
-
-      const uploadResponse = await fetch(stagedTarget.url, {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!uploadResponse.ok) {
-        throw new Error("Failed to upload file to Shopify");
-      }
-
-      const createResponse = await fetch("/api/shopify-files/create-from-staged", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          resourceUrl: stagedTarget.resourceUrl,
-          alt: `Campaign background: ${file.name}`,
-        }),
-      });
-
-      const createJson = await createResponse.json();
-      if (!createResponse.ok || !createJson?.success) {
-        throw new Error("Failed to create Shopify file");
-      }
-
-      const createdFile = createJson.data?.file as {
-        id?: string;
-        url?: string;
-      };
-
-      if (!createdFile?.id || !createdFile.url) {
-        throw new Error("Invalid fileCreate response");
-      }
-
-      onDesignChange({
-        ...designConfig,
-        backgroundImageMode: "file",
-        backgroundImageFileId: createdFile.id,
-        backgroundImagePresetKey: undefined,
-        imageUrl: createdFile.url,
-      });
-    } catch (error) {
-      console.error("[NewsletterContentSection] Failed to upload background image", error);
     } finally {
       event.target.value = "";
     }
@@ -635,11 +586,38 @@ export function NewsletterContentSection({
                             onChange={handleBackgroundFileChange}
                           />
 
-                          <Button onClick={handleBackgroundFileClick}>
-                            {imageMode === "file" && previewImageUrl
-                              ? "Change background image"
-                              : "Upload image from your computer"}
-                          </Button>
+                          {fileScopeRequired ? (
+                            <Banner
+                              title="Permission required"
+                              tone="info"
+                              action={{
+                                content: isRequestingFileScope ? "Requesting..." : "Grant Access",
+                                onAction: requestFileScope,
+                                disabled: isRequestingFileScope,
+                              }}
+                            >
+                              <Text as="p" variant="bodySm">
+                                To upload custom images, we need permission to create files in your store.
+                              </Text>
+                            </Banner>
+                          ) : (
+                            <BlockStack gap="200">
+                              <Button
+                                onClick={handleBackgroundFileClick}
+                                loading={isUploading}
+                                disabled={isUploading}
+                              >
+                                {imageMode === "file" && previewImageUrl
+                                  ? "Change background image"
+                                  : "Upload image from your computer"}
+                              </Button>
+                              {uploadError && (
+                                <Text as="p" variant="bodySm" tone="critical">
+                                  {uploadError}
+                                </Text>
+                              )}
+                            </BlockStack>
+                          )}
                         </div>
                       </FormGrid>
 

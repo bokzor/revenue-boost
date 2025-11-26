@@ -58,10 +58,14 @@ model Store {
   popupEvents        PopupEvent[]
 
   // Plan & Billing
-  planTier         PlanTier   @default(FREE)
-  planStatus       PlanStatus @default(TRIALING)
-  trialEndsAt      DateTime?
-  currentPeriodEnd DateTime?
+  planTier                   PlanTier   @default(FREE)
+  planStatus                 PlanStatus @default(TRIALING)
+  trialEndsAt                DateTime?
+  currentPeriodEnd           DateTime?
+  // Shopify Subscription tracking
+  shopifySubscriptionId      String?    // Shopify AppSubscription GID (e.g., "gid://shopify/AppSubscription/123")
+  shopifySubscriptionStatus  String?    // Shopify subscription status (ACTIVE, CANCELLED, EXPIRED, etc.)
+  shopifySubscriptionName    String?    // Name of the subscribed plan for reference
 
   @@index([shopifyDomain, isActive])
   @@map("stores")

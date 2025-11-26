@@ -1,0 +1,72 @@
+name: "🧩 Deploy Shopify app & extensions to Production"
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ["🚀 Deploy to Production"]
+    types:
+      - completed
+    branches:
+      - main
+
+# Avoid overlapping extension deploys
+concurrency:
+  group: deploy-extensions-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    # Only run if triggered manually OR if the production deploy succeeded
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    environment: production
+    permissions:
+      contents: read
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "npm"
+
+      - name: 🔧 Install dependencies
+        run: npm ci
+
+      - name: 🏗️ Build storefront assets (PRODUCTION - minified)
+        run: npm run build:storefront
+
+      - name: 🛠 Install Shopify CLI
+        run: npm install -g @shopify/cli@latest @shopify/app@latest
+
+      - name: 🔗 Verify production app URL in shopify.app.prod.toml
+        run: |
+          echo "Verifying application_url in shopify.app.prod.toml:"
+          grep '^application_url' shopify.app.prod.toml
+
+      - name: 🚀 Deploy app configuration and extensions to Shopify (production)
+        env:
+          # Token generated from Partner Dashboard (shared at org level)
+          SHOPIFY_CLI_PARTNERS_TOKEN: ${{ secrets.SHOPIFY_CLI_PARTNERS_TOKEN }}
+          # Client ID for the production app configuration
+          SHOPIFY_API_KEY: ${{ secrets.SHOPIFY_API_KEY }}
+          COMMIT_URL: ${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}
+        run: |
+          shopify app deploy \
+            --config prod \
+            --force \
+            --source-control-url "$COMMIT_URL"
+
+      - name: 📋 Deployment summary
+        run: |
+          echo "## 🧩 Production Extensions Deployed!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**📅 Deployed at:** $(date -u)" >> $GITHUB_STEP_SUMMARY
+          echo "**🔖 Git SHA:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### ✅ Deployed Extensions:" >> $GITHUB_STEP_SUMMARY
+          echo "- storefront-popup (Theme App Extension)" >> $GITHUB_STEP_SUMMARY
+

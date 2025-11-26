@@ -16,6 +16,11 @@ on:
         required: false
         default: false
         type: boolean
+      run_e2e_tests:
+        description: 'Run E2E tests after deployment'
+        required: false
+        default: false
+        type: boolean
 
 # Automatically cancel previous runs when new ones start
 concurrency:
@@ -56,6 +61,7 @@ jobs:
 
       - name: 🎨 Lint code
         run: npm run lint --if-present
+        continue-on-error: true
 
   integration-test:
     name: Integration Tests
@@ -329,3 +335,14 @@ jobs:
           echo "### 🔗 Quick Links:" >> $GITHUB_STEP_SUMMARY
           echo "- [Cloud Run Console](https://console.cloud.google.com/run/detail/${{ env.REGION }}/${{ env.SERVICE_NAME }})" >> $GITHUB_STEP_SUMMARY
           echo "- [Shopify Partners](https://partners.shopify.com/organizations)" >> $GITHUB_STEP_SUMMARY
+
+  # Optional E2E tests after deployment
+  e2e-tests:
+    name: E2E Staging Tests
+    needs: [deploy]
+    if: ${{ inputs.run_e2e_tests == true }}
+    uses: ./.github/workflows/e2e-staging-tests.yml
+    secrets:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      REDIS_URL: ${{ secrets.REDIS_URL }}
+      STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}

@@ -3,6 +3,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // Mock the Shopify authentication
 vi.mock('~/shopify.server', () => ({
   authenticate: { admin: vi.fn().mockResolvedValue({ session: { shop: 'test.myshopify.com' } }) },
+  BILLING_PLANS: {
+    STARTER: 'Starter',
+    GROWTH: 'Growth',
+    PRO: 'Pro',
+    ENTERPRISE: 'Enterprise',
+  },
 }));
 
 // Mock the auth helpers

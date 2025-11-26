@@ -22,6 +22,7 @@ import type { UnifiedTemplate } from "../../hooks/useTemplates";
 import type { SpinToWinContent } from "~/domains/campaigns/types/campaign";
 import { getSpinToWinSliceColors, getSpinToWinWheelBorder } from "~/config/color-presets";
 import { CustomCSSEditor } from "../CustomCSSEditor";
+import { UpgradeBanner, useFeatureAccess } from "~/domains/billing";
 
 interface DesignStepContentProps {
   goal?: CampaignGoal;
@@ -155,7 +156,7 @@ export function DesignStepContent({
                     }}
                   />
 
-                  <CustomCSSEditor
+                  <CustomCSSEditorWithBilling
                     value={designConfig.customCSS || ""}
                     globalCustomCSS={globalCustomCSS}
                     templateType={templateType}
@@ -209,5 +210,43 @@ export function DesignStepContent({
         </div>
       </Layout.Section>
     </Layout>
+  );
+}
+
+/**
+ * Wrapper component that shows upgrade banner for Custom CSS feature
+ * when user is on FREE or STARTER plan
+ */
+function CustomCSSEditorWithBilling({
+  value,
+  globalCustomCSS,
+  templateType,
+  onChange,
+}: {
+  value: string;
+  globalCustomCSS?: string;
+  templateType?: TemplateType;
+  onChange: (css: string) => void;
+}) {
+  const { hasAccess } = useFeatureAccess("customCss");
+
+  if (!hasAccess) {
+    return (
+      <Card>
+        <BlockStack gap="300">
+          <Text as="h3" variant="headingSm">Custom CSS</Text>
+          <UpgradeBanner feature="customCss" />
+        </BlockStack>
+      </Card>
+    );
+  }
+
+  return (
+    <CustomCSSEditor
+      value={value}
+      globalCustomCSS={globalCustomCSS}
+      templateType={templateType}
+      onChange={onChange}
+    />
   );
 }

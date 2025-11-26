@@ -6,6 +6,7 @@
  */
 
 import React from "react";
+import { useId } from "../hooks/useId";
 
 export interface EmailInputProps {
   value: string;
@@ -36,8 +37,8 @@ export const EmailInput: React.FC<EmailInputProps> = ({
   placeholderColor,
   className,
 }) => {
-  // Generate unique ID for scoped placeholder styling
-  const inputId = React.useId();
+  // Generate unique ID for scoped placeholder styling (use polyfill for Preact compatibility)
+  const inputId = useId();
   const computedPlaceholderColor = placeholderColor || `${textColor}99`;
 
   return (
@@ -143,8 +144,8 @@ export const NameInput: React.FC<NameInputProps> = ({
   placeholderColor,
   className,
 }) => {
-  // Generate unique ID for scoped placeholder styling
-  const inputId = React.useId();
+  // Generate unique ID for scoped placeholder styling (use polyfill for Preact compatibility)
+  const inputId = useId();
   const computedPlaceholderColor = placeholderColor || `${textColor}99`;
 
   return (
