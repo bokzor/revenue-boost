@@ -44,8 +44,7 @@ export function SetupStatus({
           themeEditorUrl
             ? {
                 content: "Enable in Theme Editor",
-                url: themeEditorUrl,
-                external: true,
+                onAction: () => window.open(themeEditorUrl, "_blank"),
               }
             : undefined
         }
