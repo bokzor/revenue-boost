@@ -6,6 +6,7 @@ import {
   getPlanTierFromName,
   BILLING_SYNC_TTL_MS,
 } from "../constants";
+import { isBillingBypassed } from "~/lib/env.server";
 
 // =============================================================================
 // TYPES
@@ -364,6 +365,9 @@ export class BillingService {
    *
    * This is the recommended method for page loaders as it prevents
    * unnecessary API calls on every page load.
+   *
+   * When BILLING_BYPASS is enabled, this function always returns cached database
+   * values without syncing from Shopify.
    */
   static async getOrSyncBillingContext(
     admin: AdminGraphQL,
@@ -384,6 +388,29 @@ export class BillingService {
         billingLastSyncedAt: true,
       },
     });
+
+    // When billing is bypassed, always use database values (don't sync from Shopify)
+    if (isBillingBypassed() && store) {
+      const planTier = store.planTier as PlanTier;
+      const hasActiveSubscription =
+        store.planStatus === "ACTIVE" || store.planStatus === "TRIALING";
+
+      return {
+        planTier,
+        hasActiveSubscription,
+        subscription: store.shopifySubscriptionId
+          ? {
+              id: store.shopifySubscriptionId,
+              name: store.shopifySubscriptionName || "",
+              status: store.shopifySubscriptionStatus || "",
+              currentPeriodEnd: store.currentPeriodEnd?.toISOString(),
+              test: false,
+            }
+          : null,
+        isTrialing: store.planStatus === "TRIALING",
+        trialEndsAt: store.trialEndsAt,
+      };
+    }
 
     // If we have a store with recent sync, use cached data
     if (store?.billingLastSyncedAt) {

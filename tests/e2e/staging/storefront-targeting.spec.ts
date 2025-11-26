@@ -146,12 +146,14 @@ test.describe.serial('Targeting Combinations', () => {
             select: { targetRules: true }
         });
 
-        const conditions = (dbCampaign?.targetRules as any)?.conditions;
-        expect(conditions).toBeDefined();
-        expect(Array.isArray(conditions)).toBe(true);
+        // Session targeting is stored in audienceTargeting.sessionRules
+        const sessionRules = (dbCampaign?.targetRules as any)?.audienceTargeting?.sessionRules;
+        expect(sessionRules).toBeDefined();
+        expect(sessionRules.enabled).toBe(true);
+        expect(Array.isArray(sessionRules.conditions)).toBe(true);
 
         // Should have a condition for isReturningVisitor = false
-        const visitorCondition = conditions?.find((c: any) => c.field === 'isReturningVisitor');
+        const visitorCondition = sessionRules.conditions?.find((c: any) => c.field === 'isReturningVisitor');
         expect(visitorCondition).toBeDefined();
 
         console.log('✅ New visitor targeting config correct');
