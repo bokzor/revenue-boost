@@ -519,20 +519,6 @@ export class PlanGuardService {
   // API ACCESS
   // ===========================================================================
 
-  /**
-   * Check if API access is available
-   */
-  static async canUseApiAccess(storeId: string): Promise<boolean> {
-    return this.canAccessFeature(storeId, "apiAccess");
-  }
-
-  /**
-   * Assert API access is available
-   */
-  static async assertCanUseApiAccess(storeId: string) {
-    return this.assertFeatureEnabled(storeId, "apiAccess");
-  }
-
   // ===========================================================================
   // USAGE SUMMARY
   // ===========================================================================

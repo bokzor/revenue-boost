@@ -53,10 +53,6 @@ const FEATURE_INFO: Record<keyof PlanFeatures, { name: string; description: stri
     name: "Scheduled Campaigns",
     description: "Schedule campaigns to run at specific times",
   },
-  apiAccess: {
-    name: "API Access",
-    description: "Access the Revenue Boost API for custom integrations",
-  },
 };
 
 /**

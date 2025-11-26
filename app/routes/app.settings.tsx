@@ -43,6 +43,7 @@ import { GlobalCSSSettings } from "../domains/store/components/GlobalCSSSettings
 import { StoreSettingsSchema, type StoreSettings } from "../domains/store/types/settings";
 import { SetupStatus } from "../domains/setup/components/SetupStatus";
 import { getSetupStatus } from "../lib/setup-status.server";
+import { isBillingBypassed } from "../lib/env.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session, admin } = await authenticate.admin(request);
@@ -280,6 +281,28 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         });
       }
     }
+  }
+
+  // When billing is bypassed (staging), update database directly
+  if (isBillingBypassed()) {
+    await prisma.store.update({
+      where: { id: store.id },
+      data: {
+        planTier: targetPlan,
+        planStatus: "ACTIVE",
+        trialEndsAt: null,
+        currentPeriodEnd:
+          targetPlan === "FREE" ? null : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        shopifySubscriptionId:
+          targetPlan === "FREE" ? null : `staging-${targetPlan}-${Date.now()}`,
+        shopifySubscriptionStatus: targetPlan === "FREE" ? null : "ACTIVE",
+        shopifySubscriptionName:
+          targetPlan === "FREE" ? null : PLAN_DEFINITIONS[targetPlan].name,
+        billingLastSyncedAt: new Date(),
+      },
+    });
+
+    return { success: true };
   }
 
   // Use Shopify billing API for paid plans

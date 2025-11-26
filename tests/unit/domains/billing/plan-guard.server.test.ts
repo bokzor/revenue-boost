@@ -265,10 +265,6 @@ describe("PlanGuardService", () => {
       expect(minPlan).toBe("STARTER");
     });
 
-    it("should return PRO for apiAccess", () => {
-      const minPlan = PlanGuardService.getMinimumPlanForFeature("apiAccess");
-      expect(minPlan).toBe("PRO");
-    });
   });
 
   // ===========================================================================
@@ -661,44 +657,6 @@ describe("PlanGuardService", () => {
       } as any);
 
       const canUse = await PlanGuardService.canUseScheduledCampaigns("store-1");
-      expect(canUse).toBe(false);
-    });
-  });
-
-  describe("canUseApiAccess", () => {
-    it("should return true for PRO plan", async () => {
-      vi.mocked(prisma.store.findUnique).mockResolvedValue({
-        id: "store-1",
-        planTier: "PRO",
-        planStatus: "ACTIVE",
-        shopifySubscriptionStatus: "ACTIVE",
-      } as any);
-
-      const canUse = await PlanGuardService.canUseApiAccess("store-1");
-      expect(canUse).toBe(true);
-    });
-
-    it("should return false for GROWTH plan", async () => {
-      vi.mocked(prisma.store.findUnique).mockResolvedValue({
-        id: "store-1",
-        planTier: "GROWTH",
-        planStatus: "ACTIVE",
-        shopifySubscriptionStatus: "ACTIVE",
-      } as any);
-
-      const canUse = await PlanGuardService.canUseApiAccess("store-1");
-      expect(canUse).toBe(false);
-    });
-
-    it("should return false for STARTER plan", async () => {
-      vi.mocked(prisma.store.findUnique).mockResolvedValue({
-        id: "store-1",
-        planTier: "STARTER",
-        planStatus: "ACTIVE",
-        shopifySubscriptionStatus: "ACTIVE",
-      } as any);
-
-      const canUse = await PlanGuardService.canUseApiAccess("store-1");
       expect(canUse).toBe(false);
     });
   });

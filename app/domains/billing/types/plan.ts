@@ -40,7 +40,6 @@ export const PlanFeaturesSchema = z.object({
   socialProofTemplates: z.boolean(), // FOMO, Recent Sales, etc.
   // Advanced features
   scheduledCampaigns: z.boolean(), // Time-based campaign scheduling
-  apiAccess: z.boolean(), // API access for integrations
 });
 export type PlanFeatures = z.infer<typeof PlanFeaturesSchema>;
 
@@ -67,7 +66,7 @@ export const PLAN_DEFINITIONS: Record<PlanTier, PlanDefinition> = {
       maxCustomTemplates: 0,
       maxLeadsPerMonth: 100,
       maxDiscountCodesGenerated: 10,
-      maxDiscountPercentage: 10, // Max 10% discount
+      maxDiscountPercentage: null, // No limit on discount percentage
     },
     features: {
       experiments: false,
@@ -77,38 +76,36 @@ export const PLAN_DEFINITIONS: Record<PlanTier, PlanDefinition> = {
       prioritySupport: false,
       removeBranding: false,
       customCss: false,
-      gamificationTemplates: false, // No Spin-to-Win, Scratch Card on Free
-      socialProofTemplates: false, // No FOMO templates on Free
+      gamificationTemplates: false,
+      socialProofTemplates: false,
       scheduledCampaigns: false,
-      apiAccess: false,
     },
   },
   STARTER: {
     name: "Starter",
     price: 9,
     monthlyImpressionCap: 25000,
-    overageStrategy: "SOFT_BLOCK", // 3-day grace period
+    overageStrategy: "SOFT_BLOCK",
     limits: {
-      maxActiveCampaigns: 3,
+      maxActiveCampaigns: 5,
       maxExperiments: 0,
       maxVariantsPerExperiment: 0,
       maxCustomTemplates: 1,
       maxLeadsPerMonth: 500,
       maxDiscountCodesGenerated: 50,
-      maxDiscountPercentage: 25,
+      maxDiscountPercentage: null,
     },
     features: {
       experiments: false,
       advancedTargeting: true,
       customTemplates: true,
-      advancedAnalytics: true, // Moved from Growth to strengthen Starter value
+      advancedAnalytics: true,
       prioritySupport: false,
       removeBranding: true,
-      customCss: false,
-      gamificationTemplates: false, // Still gated to Growth+
-      socialProofTemplates: true, // FOMO available on Starter
-      scheduledCampaigns: true, // Scheduled campaigns on Starter
-      apiAccess: false,
+      customCss: true,
+      gamificationTemplates: false,
+      socialProofTemplates: true,
+      scheduledCampaigns: true,
     },
   },
   GROWTH: {
@@ -117,40 +114,12 @@ export const PLAN_DEFINITIONS: Record<PlanTier, PlanDefinition> = {
     monthlyImpressionCap: 100000,
     overageStrategy: "SOFT_BLOCK",
     limits: {
-      maxActiveCampaigns: null, // Unlimited
+      maxActiveCampaigns: 15,
       maxExperiments: 5,
       maxVariantsPerExperiment: 2,
       maxCustomTemplates: 5,
       maxLeadsPerMonth: 2500,
       maxDiscountCodesGenerated: 250,
-      maxDiscountPercentage: null, // Unlimited
-    },
-    features: {
-      experiments: true,
-      advancedTargeting: true,
-      customTemplates: true,
-      advancedAnalytics: true,
-      prioritySupport: true,
-      removeBranding: true,
-      customCss: true,
-      gamificationTemplates: true, // Spin-to-Win, Scratch Card unlocked
-      socialProofTemplates: true,
-      scheduledCampaigns: true,
-      apiAccess: false,
-    },
-  },
-  PRO: {
-    name: "Pro",
-    price: 79,
-    monthlyImpressionCap: 400000,
-    overageStrategy: "NOTIFY_ONLY", // Just email, don't block
-    limits: {
-      maxActiveCampaigns: null,
-      maxExperiments: null, // Unlimited
-      maxVariantsPerExperiment: 4,
-      maxCustomTemplates: null, // Unlimited
-      maxLeadsPerMonth: 10000,
-      maxDiscountCodesGenerated: null, // Unlimited
       maxDiscountPercentage: null,
     },
     features: {
@@ -164,20 +133,19 @@ export const PLAN_DEFINITIONS: Record<PlanTier, PlanDefinition> = {
       gamificationTemplates: true,
       socialProofTemplates: true,
       scheduledCampaigns: true,
-      apiAccess: true, // API access on Pro+
     },
   },
-  ENTERPRISE: {
-    name: "Enterprise",
-    price: 149, // Starting price
-    monthlyImpressionCap: null, // Unlimited
+  PRO: {
+    name: "Pro",
+    price: 79,
+    monthlyImpressionCap: 400000,
     overageStrategy: "NOTIFY_ONLY",
     limits: {
       maxActiveCampaigns: null,
       maxExperiments: null,
-      maxVariantsPerExperiment: 8,
+      maxVariantsPerExperiment: 4,
       maxCustomTemplates: null,
-      maxLeadsPerMonth: null, // Unlimited
+      maxLeadsPerMonth: 10000,
       maxDiscountCodesGenerated: null,
       maxDiscountPercentage: null,
     },
@@ -192,7 +160,33 @@ export const PLAN_DEFINITIONS: Record<PlanTier, PlanDefinition> = {
       gamificationTemplates: true,
       socialProofTemplates: true,
       scheduledCampaigns: true,
-      apiAccess: true,
+    },
+  },
+  ENTERPRISE: {
+    name: "Enterprise",
+    price: 149,
+    monthlyImpressionCap: 1000000,
+    overageStrategy: "NOTIFY_ONLY",
+    limits: {
+      maxActiveCampaigns: null,
+      maxExperiments: null,
+      maxVariantsPerExperiment: 8,
+      maxCustomTemplates: null,
+      maxLeadsPerMonth: null,
+      maxDiscountCodesGenerated: null,
+      maxDiscountPercentage: null,
+    },
+    features: {
+      experiments: true,
+      advancedTargeting: true,
+      customTemplates: true,
+      advancedAnalytics: true,
+      prioritySupport: true,
+      removeBranding: true,
+      customCss: true,
+      gamificationTemplates: true,
+      socialProofTemplates: true,
+      scheduledCampaigns: true,
     },
   },
 };

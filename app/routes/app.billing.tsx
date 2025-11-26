@@ -21,6 +21,7 @@ import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { PLAN_DEFINITIONS, PLAN_ORDER, type PlanTier, type PlanFeatures } from "../domains/billing/types/plan";
 import { BillingService } from "../domains/billing/services/billing.server";
+import { isBillingBypassed } from "../lib/env.server";
 
 // =============================================================================
 // LOADER
@@ -28,6 +29,7 @@ import { BillingService } from "../domains/billing/services/billing.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session, admin, billing } = await authenticate.admin(request);
+  const billingBypassed = isBillingBypassed();
 
   const store = await prisma.store.findUnique({
     where: { shopifyDomain: session.shop },
@@ -35,6 +37,26 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   if (!store) {
     throw new Response("Store not found", { status: 404 });
+  }
+
+  // When billing is bypassed (staging), use database values directly
+  if (billingBypassed) {
+    return {
+      currentPlan: store.planTier,
+      hasActiveSubscription: store.planStatus === "ACTIVE",
+      subscription: store.shopifySubscriptionId
+        ? { id: store.shopifySubscriptionId }
+        : null,
+      isTrialing: store.planStatus === "TRIALING",
+      trialEndsAt: store.trialEndsAt?.toISOString() || null,
+      shopifyHasPayment: false,
+      appSubscriptions: [],
+      plans: PLAN_ORDER.map((tier) => ({
+        tier,
+        ...PLAN_DEFINITIONS[tier],
+      })),
+      billingBypassed: true,
+    };
   }
 
   // Sync subscription status from Shopify
@@ -55,12 +77,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       tier,
       ...PLAN_DEFINITIONS[tier],
     })),
+    billingBypassed: false,
   };
 };
-
-// =============================================================================
-// ACTION
-// =============================================================================
 
 // =============================================================================
 // ACTION
@@ -70,7 +89,56 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const { billing, session } = await authenticate.admin(request);
   const formData = await request.formData();
   const intent = formData.get("intent");
+  const billingBypassed = isBillingBypassed();
 
+  // When billing is bypassed (staging), update database directly
+  if (billingBypassed) {
+    if (intent === "subscribe") {
+      const planTier = formData.get("planTier") as PlanTier;
+
+      if (!PLAN_ORDER.includes(planTier)) {
+        return { error: "Invalid plan selected" };
+      }
+
+      await prisma.store.update({
+        where: { shopifyDomain: session.shop },
+        data: {
+          planTier,
+          planStatus: "ACTIVE",
+          trialEndsAt: null,
+          currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
+          shopifySubscriptionId: `staging-${planTier}-${Date.now()}`,
+          shopifySubscriptionStatus: "ACTIVE",
+          shopifySubscriptionName: PLAN_DEFINITIONS[planTier].name,
+          billingLastSyncedAt: new Date(),
+        },
+      });
+
+      return redirect("/app/billing");
+    }
+
+    if (intent === "cancel") {
+      await prisma.store.update({
+        where: { shopifyDomain: session.shop },
+        data: {
+          planTier: "FREE",
+          planStatus: "ACTIVE",
+          trialEndsAt: null,
+          currentPeriodEnd: null,
+          shopifySubscriptionId: null,
+          shopifySubscriptionStatus: null,
+          shopifySubscriptionName: null,
+          billingLastSyncedAt: new Date(),
+        },
+      });
+
+      return redirect("/app/billing");
+    }
+
+    return null;
+  }
+
+  // Normal billing flow via Shopify Billing API
   if (intent === "subscribe") {
     const planTier = formData.get("planTier") as PlanTier;
     const planKey = BillingService.getBillingPlanKey(planTier);
@@ -151,7 +219,7 @@ const FEATURE_CATEGORIES: { name: string; features: (keyof PlanFeatures)[] }[] =
   },
   {
     name: "Advanced",
-    features: ["experiments", "prioritySupport", "apiAccess"],
+    features: ["experiments", "prioritySupport"],
   },
 ];
 
@@ -166,7 +234,6 @@ const FEATURE_DISPLAY_NAMES: Record<keyof PlanFeatures, string> = {
   gamificationTemplates: "Gamification",
   socialProofTemplates: "Social Proof & FOMO",
   scheduledCampaigns: "Scheduled Campaigns",
-  apiAccess: "API Access",
 };
 
 // =============================================================================
@@ -451,14 +518,31 @@ function CurrentPlanSummary({
 // =============================================================================
 
 export default function BillingPage() {
-  const { currentPlan, subscription, isTrialing, trialEndsAt, plans } =
-    useLoaderData<typeof loader>();
+  const {
+    currentPlan,
+    subscription,
+    isTrialing,
+    trialEndsAt,
+    plans,
+    billingBypassed,
+  } = useLoaderData<typeof loader>();
   const submit = useSubmit();
   const navigation = useNavigation();
   const isLoading = navigation.state !== "idle";
   const currentPlanDef = PLAN_DEFINITIONS[currentPlan as PlanTier];
 
   const handleSelectPlan = (tier: PlanTier) => {
+    // In bypass mode, we can switch to any plan including FREE
+    if (billingBypassed) {
+      if (tier === "FREE") {
+        submit({ intent: "cancel" }, { method: "post" });
+      } else {
+        submit({ intent: "subscribe", planTier: tier }, { method: "post" });
+      }
+      return;
+    }
+
+    // Normal Shopify billing flow
     if (tier === "FREE" && subscription?.id) {
       submit(
         { intent: "cancel", subscriptionId: subscription.id },
@@ -476,6 +560,17 @@ export default function BillingPage() {
       backAction={{ content: "Settings", url: "/app/settings" }}
     >
       <BlockStack gap="600">
+        {/* Staging/Bypass mode banner */}
+        {billingBypassed && (
+          <Banner tone="warning" title="Staging Mode - Billing Bypassed">
+            <p>
+              Shopify Billing API is bypassed. Plan changes are saved directly
+              to the database without going through Shopify. This is for testing
+              purposes only.
+            </p>
+          </Banner>
+        )}
+
         {/* Trial banner */}
         {isTrialing && trialEndsAt && (
           <Banner tone="info" title="You're on a free trial">
