@@ -179,7 +179,7 @@ test.describe('Staging Storefront E2E', () => {
         });
         console.log('[TEST] SplitPop-related elements:', splitpopElements);
 
-        const popup = page.locator('[data-splitpop="true"], [class*="SpinToWin"]');
+        const popup = page.locator('#revenue-boost-popup-shadow-host, [class*="SpinToWin"]');
 
         await expect(popup).toBeVisible({ timeout: 10000 });
         console.log('✅ Popup is visible!');

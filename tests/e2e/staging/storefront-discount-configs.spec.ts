@@ -123,7 +123,7 @@ test.describe('Discount Configurations', () => {
             await page.waitForLoadState('networkidle');
 
             // Wait for popup to appear
-            const popup = page.locator('[data-splitpop="true"]');
+            const popup = page.locator('#revenue-boost-popup-shadow-host');
             await expect(popup).toBeVisible({ timeout: 10000 });
 
             // Submit form to see discount
@@ -171,7 +171,7 @@ test.describe('Discount Configurations', () => {
             await page.waitForLoadState('networkidle');
 
             // Wait for popup to appear
-            const popup = page.locator('[data-splitpop="true"]');
+            const popup = page.locator('#revenue-boost-popup-shadow-host');
             await expect(popup).toBeVisible({ timeout: 10000 });
 
             // Submit form to see discount
@@ -209,7 +209,7 @@ test.describe('Discount Configurations', () => {
             await page.waitForLoadState('networkidle');
 
             // Wait for popup to appear
-            const popup = page.locator('[data-splitpop="true"]');
+            const popup = page.locator('#revenue-boost-popup-shadow-host');
             await expect(popup).toBeVisible({ timeout: 10000 });
 
             // Submit form to see discount
@@ -247,7 +247,7 @@ test.describe('Discount Configurations', () => {
             await page.waitForLoadState('networkidle');
 
             // Wait for popup to appear
-            const popup = page.locator('[data-splitpop="true"]');
+            const popup = page.locator('#revenue-boost-popup-shadow-host');
             await expect(popup).toBeVisible({ timeout: 10000 });
 
             // Submit form to see discount
@@ -288,7 +288,7 @@ test.describe('Discount Configurations', () => {
             await page.waitForLoadState('networkidle');
 
             // Wait for popup to appear
-            const popup = page.locator('[data-splitpop="true"]');
+            const popup = page.locator('#revenue-boost-popup-shadow-host');
             await expect(popup).toBeVisible({ timeout: 10000 });
 
             // Submit form to see discount

@@ -10,7 +10,7 @@
  * For staging DB: Uses DATABASE_URL from environment or .env.staging.env
  */
 
-import { PrismaClient, TemplateType } from '@prisma/client';
+import { PrismaClient, TemplateType, Prisma } from '@prisma/client';
 import * as dotenv from 'dotenv';
 import path from 'path';
 
@@ -76,8 +76,8 @@ async function ensureTemplatesExist() {
           templateType,
           category: getTemplateCategory(templateType),
           goals: ['NEWSLETTER_SIGNUP'],
-          contentConfig: getDefaultContentConfig(templateType),
-          designConfig: getDefaultDesignConfig(),
+          contentConfig: getDefaultContentConfig(templateType) as Prisma.InputJsonValue,
+          designConfig: getDefaultDesignConfig() as Prisma.InputJsonValue,
           fields: [],
           isActive: true,
         }
@@ -99,7 +99,6 @@ function getTemplateCategory(templateType: TemplateType): string {
     case 'COUNTDOWN_TIMER':
     case 'PRODUCT_UPSELL':
     case 'CART_ABANDONMENT':
-    case 'GIFT_WITH_PURCHASE':
       return 'popup';
     case 'FREE_SHIPPING':
     case 'ANNOUNCEMENT':

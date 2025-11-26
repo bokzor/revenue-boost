@@ -22,9 +22,10 @@ export class MarketingEventsService {
    */
   private static async hasMarketingScope(scopes?: ScopesContext): Promise<boolean> {
     if (!scopes) {
-      // If no scopes context is provided, try to execute the operation
-      // It will fail gracefully if the scope isn't granted
-      return true;
+      // If no scopes context is provided, skip the operation
+      // This prevents API errors when the scope hasn't been requested
+      console.log("[MarketingEventsService] No scopes context provided - skipping");
+      return false;
     }
 
     try {

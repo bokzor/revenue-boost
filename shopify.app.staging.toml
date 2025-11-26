@@ -40,12 +40,12 @@ uri = "/webhooks/app/scopes_update"
 [access_scopes]
 # Required scopes - requested at install time (core functionality)
 # read_orders is required for orders/create webhook (revenue attribution)
-scopes = "read_discounts,write_discounts,write_products,read_themes,read_orders"
+# write_marketing_events, read_marketing_events: Marketing attribution tracking in Shopify's Marketing section
+scopes = "read_discounts,write_discounts,write_products,read_themes,read_orders,write_marketing_events,read_marketing_events"
 # Optional scopes - requested just-in-time when specific features are enabled
 # - read_customers, write_customers: Customer segment targeting
 # - write_files: Custom image uploads for popups
-# - write_marketing_events, read_marketing_events: Marketing attribution tracking
-optional_scopes = ["read_customers", "write_customers", "write_files", "write_marketing_events", "read_marketing_events"]
+optional_scopes = ["read_customers", "write_customers", "write_files"]
 
 [auth]
 redirect_urls = [ "https://revenueboost-staging-532516069850.us-central1.run.app/api/auth" ]

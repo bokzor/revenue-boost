@@ -109,7 +109,7 @@ test.describe.serial('Interaction Patterns - Cross-Template Tests', () => {
             await handlePasswordPage(page);
 
             // Wait for popup
-            await expect(page.locator('[data-template="newsletter"]')).toBeVisible({ timeout: 10000 });
+            await expect(page.locator('#revenue-boost-popup-shadow-host')).toBeVisible({ timeout: 10000 });
 
             // Try to submit with invalid email
             const emailInput = page.locator('input[type="email"]');
@@ -132,7 +132,7 @@ test.describe.serial('Interaction Patterns - Cross-Template Tests', () => {
             await page.goto(STORE_URL);
             await handlePasswordPage(page);
 
-            await expect(page.locator('[data-template="newsletter"]')).toBeVisible({ timeout: 10000 });
+            await expect(page.locator('#revenue-boost-popup-shadow-host')).toBeVisible({ timeout: 10000 });
 
             const emailInput = page.locator('input[type="email"]');
             await emailInput.fill('test@example.com');
@@ -170,7 +170,7 @@ test.describe.serial('Interaction Patterns - Cross-Template Tests', () => {
             await page.goto(STORE_URL);
             await handlePasswordPage(page);
 
-            await expect(page.locator('[data-template="newsletter"]')).toBeVisible({ timeout: 10000 });
+            await expect(page.locator('#revenue-boost-popup-shadow-host')).toBeVisible({ timeout: 10000 });
 
             // Fill valid email but don't check GDPR
             const emailInput = page.locator('input[type="email"]');
@@ -194,7 +194,7 @@ test.describe.serial('Interaction Patterns - Cross-Template Tests', () => {
             await page.goto(STORE_URL);
             await handlePasswordPage(page);
 
-            await expect(page.locator('[data-template="newsletter"]')).toBeVisible({ timeout: 10000 });
+            await expect(page.locator('#revenue-boost-popup-shadow-host')).toBeVisible({ timeout: 10000 });
 
             // Fill email and check GDPR
             await page.locator('input[type="email"]').fill('test@example.com');
@@ -220,7 +220,7 @@ test.describe.serial('Interaction Patterns - Cross-Template Tests', () => {
             await page.goto(STORE_URL);
             await handlePasswordPage(page);
 
-            await expect(page.locator('[data-template="spin-to-win"]')).toBeVisible({ timeout: 10000 });
+            await expect(page.locator('#revenue-boost-popup-shadow-host')).toBeVisible({ timeout: 10000 });
 
             // Verify spin button exists
             const spinButton = page.getByRole('button', { name: /spin/i });
@@ -263,7 +263,7 @@ test.describe.serial('Interaction Patterns - Cross-Template Tests', () => {
             await page.goto(STORE_URL);
             await handlePasswordPage(page);
 
-            await expect(page.locator('[data-template="newsletter"]')).toBeVisible({ timeout: 10000 });
+            await expect(page.locator('#revenue-boost-popup-shadow-host')).toBeVisible({ timeout: 10000 });
 
             // Step 1: Enter email
             const emailInput = page.locator('input[type="email"]');
@@ -277,7 +277,7 @@ test.describe.serial('Interaction Patterns - Cross-Template Tests', () => {
             await page.waitForTimeout(2000);
 
             // Success could be: popup closes, success message appears, or button changes
-            const popupClosed = await page.locator('[data-template="newsletter"]').isHidden().catch(() => false);
+            const popupClosed = await page.locator('#revenue-boost-popup-shadow-host').isHidden().catch(() => false);
             const successVisible = await page.locator('text=/success|thanks|subscrib/i').isVisible().catch(() => false);
 
             const workflowCompleted = popupClosed || successVisible;
@@ -294,7 +294,7 @@ test.describe.serial('Interaction Patterns - Cross-Template Tests', () => {
             await page.goto(STORE_URL);
             await handlePasswordPage(page);
 
-            await expect(page.locator('[data-template="newsletter"]')).toBeVisible({ timeout: 10000 });
+            await expect(page.locator('#revenue-boost-popup-shadow-host')).toBeVisible({ timeout: 10000 });
 
             // Try to submit without filling email
             const submitButton = page.getByRole('button', { name: /subscribe|sign up|submit/i });

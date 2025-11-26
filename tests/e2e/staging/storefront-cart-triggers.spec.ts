@@ -75,7 +75,7 @@ test.describe('Cart-Based Triggers', () => {
             await page.waitForLoadState('networkidle');
 
             // Popup should NOT show yet (no cart action)
-            let popup = page.locator('[data-splitpop="true"]');
+            let popup = page.locator('#revenue-boost-popup-shadow-host');
             await page.waitForTimeout(3000);
             await expect(popup).not.toBeVisible();
             console.log('✅ Popup not shown before add-to-cart');
@@ -89,7 +89,7 @@ test.describe('Cart-Based Triggers', () => {
             await page.waitForTimeout(2000);
 
             // Popup should appear after add-to-cart
-            popup = page.locator('[data-splitpop="true"]');
+            popup = page.locator('#revenue-boost-popup-shadow-host');
             await expect(popup).toBeVisible({ timeout: 10000 });
             console.log('✅ Popup appeared after add-to-cart');
 
@@ -115,7 +115,7 @@ test.describe('Cart-Based Triggers', () => {
             await handlePasswordPage(page);
             await page.waitForLoadState('networkidle');
 
-            let popup = page.locator('[data-splitpop="true"]');
+            let popup = page.locator('#revenue-boost-popup-shadow-host');
             await page.waitForTimeout(3000);
             await expect(popup).not.toBeVisible();
             console.log('✅ Popup not shown with empty cart');
@@ -192,7 +192,7 @@ test.describe('Cart-Based Triggers', () => {
             await page.waitForLoadState('networkidle');
 
             // Popup should NOT show on page load
-            let popup = page.locator('[data-splitpop="true"]');
+            let popup = page.locator('#revenue-boost-popup-shadow-host');
             await page.waitForTimeout(3000);
             await expect(popup).not.toBeVisible();
             console.log('✅ Popup not shown on page load');
@@ -203,7 +203,7 @@ test.describe('Cart-Based Triggers', () => {
             await page.waitForTimeout(1000);
 
             // Popup should appear on exit intent
-            popup = page.locator('[data-splitpop="true"]');
+            popup = page.locator('#revenue-boost-popup-shadow-host');
             await expect(popup).toBeVisible({ timeout: 10000 });
             console.log('✅ Popup appeared on exit intent');
 

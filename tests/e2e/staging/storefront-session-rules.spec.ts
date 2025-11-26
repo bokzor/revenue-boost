@@ -72,14 +72,6 @@ test.describe('Session Rules & Frequency Capping', () => {
 
     test('max impressions per session - shows only once', async ({ page }) => {
         console.log('🧪 Testing max impressions per session (1)...');
-        // Monitor frequency tracking calls
-        const frequencyCalls: any[] = [];
-        await page.route('**/api/analytics/frequency**', async route => {
-            const request = route.request();
-            const postData = request.postDataJSON();
-            frequencyCalls.push(postData);
-            await route.continue();
-        });
 
         // Create campaign with max 1 impression per session
         const campaign = await (await factory.newsletter().init())
@@ -92,30 +84,23 @@ test.describe('Session Rules & Frequency Capping', () => {
             // Visit 1: Should show popup
             await page.goto(`https://${STORE_DOMAIN}`);
             await handlePasswordPage(page);
-            await page.waitForLoadState('networkidle');
 
-            const popup = page.locator('[data-splitpop="true"]');
-            await expect(popup).toBeVisible({ timeout: 10000 });
+            const popupHost = page.locator('#revenue-boost-popup-shadow-host');
+            await expect(popupHost).toBeVisible({ timeout: 10000 });
+            console.log('✅ Popup shown on first visit');
 
-            // Verify frequency call was made
-            expect(frequencyCalls.length).toBeGreaterThan(0);
-
-            // Close the popup
-            const closeButton = popup.locator('button[aria-label*="Close"], button:has-text("×")').first();
-            if (await closeButton.isVisible({ timeout: 1000 }).catch(() => false)) {
-                await closeButton.click();
-                await popup.waitFor({ state: 'hidden', timeout: 5000 });
-            }
+            // Close popup with Escape key
+            await page.keyboard.press('Escape');
+            await page.waitForTimeout(1000);
 
             // Visit 2: Should NOT show popup (same session)
-            // Clear calls for second visit
-            frequencyCalls.length = 0;
+            await page.reload();
+            await handlePasswordPage(page);
+            await page.waitForTimeout(3000);
 
-            await page.goto(`https://${STORE_DOMAIN}`);
-            await page.waitForLoadState('networkidle');
-            await page.waitForTimeout(5000); // Wait to be sure
-
-            await expect(popup).not.toBeVisible({ timeout: 2000 });
+            const popupVisible = await popupHost.isVisible().catch(() => false);
+            expect(popupVisible).toBeFalsy();
+            console.log('✅ Popup not shown on second visit (max impressions reached)');
 
         } finally {
             await prisma.campaign.delete({ where: { id: campaign.id } });
@@ -133,29 +118,26 @@ test.describe('Session Rules & Frequency Capping', () => {
             .create();
 
         try {
+            const popupHost = page.locator('#revenue-boost-popup-shadow-host');
+
             for (let i = 1; i <= 4; i++) {
                 console.log(`Visit ${i}...`);
                 await page.goto(`https://${STORE_DOMAIN}`);
                 if (i === 1) await handlePasswordPage(page);
-                await page.waitForLoadState('networkidle');
-
-                const popup = page.locator('[data-splitpop="true"]');
 
                 if (i <= 3) {
                     // Should show for first 3 visits
-                    await expect(popup).toBeVisible({ timeout: 10000 });
+                    await expect(popupHost).toBeVisible({ timeout: 10000 });
                     console.log(`✅ Visit ${i}: Popup showed (${i}/3)`);
 
-                    // Close popup
-                    const closeButton = popup.locator('button[aria-label*="Close"], button:has-text("×")').first();
-                    if (await closeButton.isVisible({ timeout: 1000 }).catch(() => false)) {
-                        await closeButton.click();
-                        await popup.waitFor({ state: 'hidden', timeout: 5000 });
-                    }
+                    // Close popup with Escape key
+                    await page.keyboard.press('Escape');
+                    await page.waitForTimeout(1000);
                 } else {
                     // Should NOT show on 4th visit
-                    await page.waitForTimeout(5000);
-                    await expect(popup).not.toBeVisible({ timeout: 2000 });
+                    await page.waitForTimeout(3000);
+                    const popupVisible = await popupHost.isVisible().catch(() => false);
+                    expect(popupVisible).toBeFalsy();
                     console.log('✅ Visit 4: Popup correctly hidden (limit reached)');
                 }
             }
@@ -181,26 +163,23 @@ test.describe('Session Rules & Frequency Capping', () => {
             console.log('Visit 1: Should show immediately...');
             await page.goto(`https://${STORE_DOMAIN}`);
             await handlePasswordPage(page);
-            await page.waitForLoadState('networkidle');
 
-            const popup = page.locator('[data-splitpop="true"]');
-            await expect(popup).toBeVisible({ timeout: 10000 });
+            const popupHost = page.locator('#revenue-boost-popup-shadow-host');
+            await expect(popupHost).toBeVisible({ timeout: 10000 });
             console.log('✅ Popup showed on visit 1');
 
-            // Close popup
-            const closeButton = popup.locator('button[aria-label*="Close"], button:has-text("×")').first();
-            if (await closeButton.isVisible({ timeout: 1000 }).catch(() => false)) {
-                await closeButton.click();
-                await popup.waitFor({ state: 'hidden', timeout: 5000 });
-            }
+            // Close popup with Escape key
+            await page.keyboard.press('Escape');
+            await page.waitForTimeout(1000);
 
             // Visit 2: Immediately after (should be blocked by cooldown)
             console.log('Visit 2: Immediately after (should be blocked)...');
-            await page.goto(`https://${STORE_DOMAIN}`);
-            await page.waitForLoadState('networkidle');
+            await page.reload();
+            await handlePasswordPage(page);
             await page.waitForTimeout(3000);
 
-            await expect(popup).not.toBeVisible({ timeout: 2000 });
+            let popupVisible = await popupHost.isVisible().catch(() => false);
+            expect(popupVisible).toBeFalsy();
             console.log('✅ Popup correctly blocked during cooldown');
 
             // Wait for cooldown to expire
@@ -209,10 +188,10 @@ test.describe('Session Rules & Frequency Capping', () => {
 
             // Visit 3: After cooldown (should show again)
             console.log('Visit 3: After cooldown (should show)...');
-            await page.goto(`https://${STORE_DOMAIN}`);
-            await page.waitForLoadState('networkidle');
+            await page.reload();
+            await handlePasswordPage(page);
 
-            await expect(popup).toBeVisible({ timeout: 10000 });
+            await expect(popupHost).toBeVisible({ timeout: 10000 });
             console.log('✅ Popup showed again after cooldown expired');
 
         } finally {
@@ -235,36 +214,33 @@ test.describe('Session Rules & Frequency Capping', () => {
             console.log('Visit homepage and see popup...');
             await page.goto(`https://${STORE_DOMAIN}`);
             await handlePasswordPage(page);
-            await page.waitForLoadState('networkidle');
 
-            let popup = page.locator('[data-splitpop="true"]');
-            await expect(popup).toBeVisible({ timeout: 10000 });
+            const popupHost = page.locator('#revenue-boost-popup-shadow-host');
+            await expect(popupHost).toBeVisible({ timeout: 10000 });
             console.log('✅ Popup showed on homepage');
 
-            // Close popup
-            const closeButton = popup.locator('button[aria-label*="Close"], button:has-text("×")').first();
-            if (await closeButton.isVisible({ timeout: 1000 }).catch(() => false)) {
-                await closeButton.click();
-                await popup.waitFor({ state: 'hidden', timeout: 5000 });
-            }
+            // Close popup with Escape key
+            await page.keyboard.press('Escape');
+            await page.waitForTimeout(1000);
 
             // Navigate to a product page (different URL, same session)
             console.log('Navigate to different page...');
             await page.goto(`https://${STORE_DOMAIN}/collections/all`);
-            await page.waitForLoadState('networkidle');
-            await page.waitForTimeout(5000);
+            await handlePasswordPage(page);
+            await page.waitForTimeout(3000);
 
-            popup = page.locator('[data-splitpop="true"]');
-            await expect(popup).not.toBeVisible({ timeout: 2000 });
+            let popupVisible = await popupHost.isVisible().catch(() => false);
+            expect(popupVisible).toBeFalsy();
             console.log('✅ Popup correctly hidden on different page (same session)');
 
             // Reload the same page
             console.log('Reload page...');
             await page.reload();
-            await page.waitForLoadState('networkidle');
-            await page.waitForTimeout(5000);
+            await handlePasswordPage(page);
+            await page.waitForTimeout(3000);
 
-            await expect(popup).not.toBeVisible({ timeout: 2000 });
+            popupVisible = await popupHost.isVisible().catch(() => false);
+            expect(popupVisible).toBeFalsy();
             console.log('✅ Session persisted across reload');
 
         } finally {

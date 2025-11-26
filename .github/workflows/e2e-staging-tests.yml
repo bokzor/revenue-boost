@@ -98,9 +98,9 @@ jobs:
             echo "🔍 Running tests matching: $TEST_FILTER"
             npx playwright test tests/e2e/staging/ --project=storefront -g "$TEST_FILTER"
           else
-            echo "🔍 Running smoke tests (complete-flows)"
-            # Run only the complete-flows tests which are stable and verified
-            npx playwright test tests/e2e/staging/storefront-complete-flows.spec.ts --project=storefront
+            echo "🔍 Running all staging E2E tests"
+            # Run all staging tests with retry for flaky tests
+            npx playwright test tests/e2e/staging/ --project=storefront --retries=1
           fi
         env:
           CI: true

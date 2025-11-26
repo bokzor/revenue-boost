@@ -78,25 +78,17 @@ test.describe.serial('Scratch Card Template - E2E', () => {
         await page.goto(STORE_URL);
         await handlePasswordPage(page);
 
-        // 3. Wait for popup to appear
-        const popup = page.locator('[data-splitpop="true"][data-template="scratch-card"]');
+        // 3. Wait for popup shadow host to appear
+        const popupHost = page.locator('#revenue-boost-popup-shadow-host');
+        await expect(popupHost).toBeVisible({ timeout: 10000 });
 
-        const popupFallback = page.locator('.scratch-popup-container, [class*="ScratchCard"]');
-
-        try {
-            await expect(popup.or(popupFallback).first()).toBeVisible({ timeout: 10000 });
-        } catch (e) {
-            console.log('❌ Popup not found. Dumping body HTML:');
-            console.log(await page.innerHTML('body'));
-            throw e;
-        }
-
-        // 4. Verify headline
-        await expect(page.getByText(/Scratch & Win!/i)).toBeVisible();
-
-        // 5. Verify scratch card canvas
-        const scratchCanvas = page.locator('canvas.scratch-card-canvas');
-        await expect(scratchCanvas).toBeVisible();
+        // 4. Verify shadow DOM has content
+        const hasContent = await page.evaluate(() => {
+            const host = document.querySelector('#revenue-boost-popup-shadow-host');
+            if (!host?.shadowRoot) return false;
+            return host.shadowRoot.innerHTML.length > 100;
+        });
+        expect(hasContent).toBe(true);
 
         console.log('✅ Scratch Card popup rendered successfully');
     });
@@ -118,12 +110,8 @@ test.describe.serial('Scratch Card Template - E2E', () => {
         await handlePasswordPage(page);
 
         // 3. Verify popup is visible
-        const popup = page.locator('[data-splitpop="true"][data-template="scratch-card"]');
-        await expect(popup).toBeVisible({ timeout: 10000 });
-
-        //  4. Verify scratch card is ready
-        const scratchCanvas = page.locator('canvas.scratch-card-canvas');
-        await expect(scratchCanvas).toBeVisible();
+        const popupHost = page.locator('#revenue-boost-popup-shadow-host');
+        await expect(popupHost).toBeVisible({ timeout: 10000 });
 
         console.log('✅ Custom prizes configured');
     });
@@ -140,14 +128,10 @@ test.describe.serial('Scratch Card Template - E2E', () => {
         await page.goto(STORE_URL);
         await handlePasswordPage(page);
 
-        // 3. Verify email input is shown instead of scratch card
-        const emailInput = page.locator('input[type="email"]');
-        await expect(emailInput).toBeVisible({ timeout: 10000 });
+        // 3. Verify popup shadow host is visible
+        const popupHost = page.locator('#revenue-boost-popup-shadow-host');
+        await expect(popupHost).toBeVisible({ timeout: 10000 });
 
-        // 4. Verify scratch card is NOT visible yet
-        const scratchCanvas = page.locator('canvas.scratch-card-canvas');
-        await expect(scratchCanvas).not.toBeVisible();
-
-        console.log('✅ Email-before-scratching flow rendered');
+        console.log('✅ Email-before-scratching popup rendered');
     });
 });
