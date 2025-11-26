@@ -91,16 +91,19 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const intent = formData.get("intent");
   const billingBypassed = isBillingBypassed();
 
+  console.log(`[Billing Action] intent: ${intent}, billingBypassed: ${billingBypassed}, shop: ${session.shop}`);
+
   // When billing is bypassed (staging), update database directly
   if (billingBypassed) {
     if (intent === "subscribe") {
       const planTier = formData.get("planTier") as PlanTier;
+      console.log(`[Billing Action] Subscribing to plan: ${planTier}`);
 
       if (!PLAN_ORDER.includes(planTier)) {
         return { error: "Invalid plan selected" };
       }
 
-      await prisma.store.update({
+      const result = await prisma.store.update({
         where: { shopifyDomain: session.shop },
         data: {
           planTier,
@@ -113,6 +116,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           billingLastSyncedAt: new Date(),
         },
       });
+      console.log(`[Billing Action] Update result - planTier: ${result.planTier}, planStatus: ${result.planStatus}`);
 
       return redirect("/app/billing");
     }

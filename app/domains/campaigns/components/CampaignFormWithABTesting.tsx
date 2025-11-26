@@ -353,6 +353,22 @@ export function CampaignFormWithABTesting({
     [experimentConfig]
   );
 
+  /**
+   * Handle continuing to the next variant in A/B testing flow
+   * Switches from current variant to the next one (A→B, B→C, C→D)
+   */
+  const handleContinueToNextVariant = useCallback(() => {
+    const variantSequence: VariantKey[] = ["A", "B", "C", "D"];
+    const currentIndex = variantSequence.indexOf(selectedVariant);
+    const nextVariant = variantSequence[currentIndex + 1];
+
+    if (nextVariant && currentIndex + 1 < variantCount) {
+      setSelectedVariant(nextVariant);
+      // Reset to first step when switching variants
+      setCurrentStep(0);
+    }
+  }, [selectedVariant, variantCount]);
+
   // ============================================================================
   // HANDLERS - Save (refactored to use extracted hook)
   // ============================================================================
@@ -524,6 +540,10 @@ export function CampaignFormWithABTesting({
                 onPrevious={handlePrevious}
                 onNext={handleNext}
                 onSave={handleSave}
+                abTestingEnabled={abTestingEnabled}
+                selectedVariant={selectedVariant}
+                variantCount={variantCount}
+                onContinueToNextVariant={handleContinueToNextVariant}
               />
             </div>
           </Card>
@@ -545,6 +565,10 @@ export function CampaignFormWithABTesting({
                 onPrevious={handlePrevious}
                 onNext={handleNext}
                 onSave={handleSave}
+                abTestingEnabled={abTestingEnabled}
+                selectedVariant={selectedVariant}
+                variantCount={variantCount}
+                onContinueToNextVariant={handleContinueToNextVariant}
               />
             </Card>
           </BlockStack>

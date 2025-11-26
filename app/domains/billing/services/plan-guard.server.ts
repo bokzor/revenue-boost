@@ -39,14 +39,20 @@ export class PlanGuardService {
    * Get the plan context for a store, including validation of subscription status
    */
   static async getPlanContext(storeId: string): Promise<PlanContext> {
+    console.log(`[PlanGuardService] getPlanContext called with storeId: ${storeId}`);
+
     const store = await prisma.store.findUnique({
       where: { id: storeId },
       select: {
+        id: true,
+        shopifyDomain: true,
         planTier: true,
         planStatus: true,
         shopifySubscriptionStatus: true,
       },
     });
+
+    console.log(`[PlanGuardService] Store found:`, store ? { id: store.id, domain: store.shopifyDomain, planTier: store.planTier, planStatus: store.planStatus } : 'NOT FOUND');
 
     if (!store) {
       throw new Error(`Store not found: ${storeId}`);

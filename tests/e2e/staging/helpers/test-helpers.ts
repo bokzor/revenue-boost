@@ -577,3 +577,156 @@ export async function captureLeadSubmissionResponse(page: Page): Promise<any> {
         });
     });
 }
+
+/**
+ * Check/uncheck GDPR checkbox inside shadow DOM
+ */
+export async function checkGdprCheckbox(page: Page, check: boolean = true): Promise<boolean> {
+    return page.evaluate((shouldCheck) => {
+        const host = document.querySelector('#revenue-boost-popup-shadow-host');
+        const shadow = host?.shadowRoot;
+        if (!shadow) return false;
+
+        const checkbox = shadow.querySelector('input[type="checkbox"]') as HTMLInputElement;
+        if (!checkbox) return false;
+
+        if (shouldCheck && !checkbox.checked) {
+            checkbox.click();
+        } else if (!shouldCheck && checkbox.checked) {
+            checkbox.click();
+        }
+        return true;
+    }, check);
+}
+
+/**
+ * Get text content from shadow DOM by selector pattern
+ */
+export async function getTextFromShadowDOM(page: Page, textPattern: RegExp | string): Promise<string | null> {
+    return page.evaluate((pattern) => {
+        const host = document.querySelector('#revenue-boost-popup-shadow-host');
+        const shadow = host?.shadowRoot;
+        if (!shadow) return null;
+
+        const html = shadow.innerHTML;
+        const regex = typeof pattern === 'string' ? new RegExp(pattern, 'i') : new RegExp(pattern);
+        const match = html.match(regex);
+        return match ? match[0] : null;
+    }, typeof textPattern === 'string' ? textPattern : textPattern.source);
+}
+
+/**
+ * Check if specific text exists in shadow DOM
+ */
+export async function hasTextInShadowDOM(page: Page, text: string): Promise<boolean> {
+    return page.evaluate((searchText) => {
+        const host = document.querySelector('#revenue-boost-popup-shadow-host');
+        const shadow = host?.shadowRoot;
+        if (!shadow) return false;
+
+        const html = shadow.innerHTML.toLowerCase();
+        return html.includes(searchText.toLowerCase());
+    }, text);
+}
+
+/**
+ * Click a button in shadow DOM by text
+ */
+export async function clickButtonInShadowDOM(page: Page, buttonText: string): Promise<boolean> {
+    return page.evaluate((text) => {
+        const host = document.querySelector('#revenue-boost-popup-shadow-host');
+        const shadow = host?.shadowRoot;
+        if (!shadow) return false;
+
+        // Find all buttons
+        const buttons = shadow.querySelectorAll('button');
+        for (const btn of buttons) {
+            if (btn.textContent?.toLowerCase().includes(text.toLowerCase())) {
+                btn.click();
+                return true;
+            }
+        }
+        return false;
+    }, buttonText);
+}
+
+/**
+ * Close popup using close button in shadow DOM
+ */
+export async function closePopupInShadowDOM(page: Page): Promise<boolean> {
+    return page.evaluate(() => {
+        const host = document.querySelector('#revenue-boost-popup-shadow-host');
+        const shadow = host?.shadowRoot;
+        if (!shadow) return false;
+
+        // Try various close button selectors
+        const closeSelectors = [
+            'button[aria-label*="close" i]',
+            'button[aria-label*="Close" i]',
+            'button[class*="close" i]',
+            'button:has(svg)',
+            '[role="button"][aria-label*="close" i]'
+        ];
+
+        for (const selector of closeSelectors) {
+            const closeBtn = shadow.querySelector(selector) as HTMLButtonElement;
+            if (closeBtn) {
+                closeBtn.click();
+                return true;
+            }
+        }
+        return false;
+    });
+}
+
+/**
+ * Get all form inputs from shadow DOM
+ */
+export async function getFormInputsFromShadowDOM(page: Page): Promise<{email: boolean, checkbox: boolean, button: boolean}> {
+    return page.evaluate(() => {
+        const host = document.querySelector('#revenue-boost-popup-shadow-host');
+        const shadow = host?.shadowRoot;
+        if (!shadow) return { email: false, checkbox: false, button: false };
+
+        return {
+            email: !!shadow.querySelector('input[type="email"]'),
+            checkbox: !!shadow.querySelector('input[type="checkbox"]'),
+            button: !!shadow.querySelector('button[type="submit"], button:not([type="button"])')
+        };
+    });
+}
+
+/**
+ * Perform a complete newsletter signup flow
+ */
+export async function performNewsletterSignup(
+    page: Page,
+    email: string,
+    options: { checkGdpr?: boolean } = {}
+): Promise<{ success: boolean; error?: string }> {
+    try {
+        // Fill email
+        const emailFilled = await fillEmailInShadowDOM(page, email);
+        if (!emailFilled) {
+            return { success: false, error: 'Could not fill email' };
+        }
+
+        // Check GDPR if needed
+        if (options.checkGdpr) {
+            await checkGdprCheckbox(page, true);
+        }
+
+        // Submit form
+        const submitted = await submitFormInShadowDOM(page);
+        if (!submitted) {
+            return { success: false, error: 'Could not submit form' };
+        }
+
+        // Wait for response
+        await page.waitForTimeout(2000);
+
+        return { success: true };
+    } catch (error) {
+        return { success: false, error: String(error) };
+    }
+}

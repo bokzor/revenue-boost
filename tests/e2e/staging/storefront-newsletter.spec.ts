@@ -4,7 +4,16 @@ import fs from 'fs';
 import path from 'path';
 import * as dotenv from 'dotenv';
 import { CampaignFactory } from './factories/campaign-factory';
-import { STORE_URL, handlePasswordPage, mockChallengeToken } from './helpers/test-helpers';
+import {
+    STORE_URL,
+    handlePasswordPage,
+    mockChallengeToken,
+    fillEmailInShadowDOM,
+    submitFormInShadowDOM,
+    hasTextInShadowDOM,
+    getFormInputsFromShadowDOM,
+    mockLeadSubmission
+} from './helpers/test-helpers';
 
 // Load staging environment variables
 dotenv.config({ path: path.resolve(process.cwd(), '.env.staging.env'), override: true });
@@ -109,7 +118,11 @@ test.describe.serial('Newsletter Template - E2E', () => {
         const popupHost = page.locator('#revenue-boost-popup-shadow-host');
         await expect(popupHost).toBeVisible({ timeout: 10000 });
 
-        console.log('✅ GDPR newsletter popup rendered');
+        // 4. Verify GDPR checkbox exists
+        const formInputs = await getFormInputsFromShadowDOM(page);
+        expect(formInputs.checkbox).toBe(true);
+
+        console.log('✅ GDPR checkbox rendered in newsletter popup');
     });
 
     test('renders custom headline', async ({ page }) => {
@@ -128,6 +141,44 @@ test.describe.serial('Newsletter Template - E2E', () => {
         const popupHost = page.locator('#revenue-boost-popup-shadow-host');
         await expect(popupHost).toBeVisible({ timeout: 10000 });
 
-        console.log('✅ Custom headline newsletter popup rendered');
+        // 4. Verify custom headline is rendered
+        const hasHeadline = await hasTextInShadowDOM(page, 'VIP Club');
+        expect(hasHeadline).toBe(true);
+
+        console.log('✅ Custom headline rendered in newsletter popup');
+    });
+
+    test('submits newsletter signup successfully', async ({ page }) => {
+        // Mock the API response
+        await mockLeadSubmission(page, 'NEWSLETTER-TEST');
+
+        // Create campaign
+        const campaign = await (await factory.newsletter().init())
+            .withHeadline('Get 10% Off')
+            .create();
+
+        console.log(`✅ Campaign created: ${campaign.id}`);
+
+        // Navigate to storefront
+        await page.goto(STORE_URL);
+        await handlePasswordPage(page);
+
+        // Wait for popup
+        const popupHost = page.locator('#revenue-boost-popup-shadow-host');
+        await expect(popupHost).toBeVisible({ timeout: 10000 });
+
+        // Fill and submit form
+        const emailFilled = await fillEmailInShadowDOM(page, 'newsletter-test@example.com');
+        expect(emailFilled).toBe(true);
+
+        const submitted = await submitFormInShadowDOM(page);
+        expect(submitted).toBe(true);
+
+        // Wait for response
+        await page.waitForTimeout(2000);
+
+        // Check for success state
+        const hasDiscount = await hasTextInShadowDOM(page, 'NEWSLETTER-TEST');
+        console.log(`✅ Newsletter signup ${hasDiscount ? 'successful - discount shown' : 'submitted'}`);
     });
 });

@@ -373,6 +373,9 @@ export class BillingService {
     admin: AdminGraphQL,
     shopDomain: string
   ): Promise<BillingContext> {
+    const billingBypassed = isBillingBypassed();
+    console.log(`[BillingService] getOrSyncBillingContext - billingBypassed: ${billingBypassed}, shop: ${shopDomain}`);
+
     // First, check if we have a recent cached value
     const store = await prisma.store.findFirst({
       where: { shopifyDomain: shopDomain },
@@ -389,8 +392,11 @@ export class BillingService {
       },
     });
 
+    console.log(`[BillingService] Store found: ${!!store}, planTier: ${store?.planTier}, planStatus: ${store?.planStatus}`);
+
     // When billing is bypassed, always use database values (don't sync from Shopify)
-    if (isBillingBypassed() && store) {
+    if (billingBypassed && store) {
+      console.log(`[BillingService] Billing bypassed - returning cached DB values for plan: ${store.planTier}`);
       const planTier = store.planTier as PlanTier;
       const hasActiveSubscription =
         store.planStatus === "ACTIVE" || store.planStatus === "TRIALING";

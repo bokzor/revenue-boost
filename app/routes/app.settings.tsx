@@ -57,8 +57,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   const planContext = await PlanGuardService.getPlanContext(store.id);
 
-  // Sync and get billing context from Shopify
-  const billingContext = await BillingService.syncSubscriptionToDatabase(admin, session.shop);
+  // Get billing context - use cached DB values when bypassed, otherwise sync from Shopify
+  const billingContext = await BillingService.getOrSyncBillingContext(admin, session.shop);
 
   // Check setup status using shared utility
   const { status: setupStatus, setupComplete } = await getSetupStatus(

@@ -6,6 +6,7 @@ import {
   getPlanStatusFromShopifyStatus,
   isSubscriptionBeingCancelled,
 } from "../domains/billing/constants";
+import { isBillingBypassed } from "../lib/env.server";
 
 interface SubscriptionWebhookPayload {
   app_subscription: {
@@ -24,6 +25,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const { shop, topic, payload } = await authenticate.webhook(request);
 
   console.log(`[Billing Webhook] Received ${topic} webhook for ${shop}`);
+
+  // When billing is bypassed (dev/staging), ignore subscription webhooks
+  // to prevent Shopify from overwriting our manually-set plan tiers
+  if (isBillingBypassed()) {
+    console.log(`[Billing Webhook] BILLING_BYPASS enabled - ignoring webhook`);
+    return new Response("OK (bypassed)", { status: 200 });
+  }
 
   if (!payload) {
     console.error("[Billing Webhook] No payload received");
