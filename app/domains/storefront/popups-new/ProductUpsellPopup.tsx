@@ -204,10 +204,7 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
   const borderColor = config.inputBorderColor || "#E5E7EB";
   const baseBackground = config.backgroundColor || "#FFFFFF";
 
-  const { maxWidth: sizeMaxWidth } = getSizeDimensions(
-    config.size || "medium",
-    config.previewMode
-  );
+  const { maxWidth: sizeMaxWidth } = getSizeDimensions(config.size || "medium", config.previewMode);
 
   // Render individual product card (grid layout)
   const renderProductCard = (product: Product, index: number) => {
@@ -228,7 +225,14 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
         {/* Selection badge */}
         {isSelected && (
           <div className="upsell-product-badge">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="3"
+            >
               <polyline points="20 6 9 17 4 12" />
             </svg>
           </div>
@@ -283,9 +287,14 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
             className={`upsell-product-select ${isSelected ? "upsell-product-select--selected" : ""}`}
           >
             {isSelected ? (
-              <><span className="upsell-select-icon">✓</span> Selected</>
+              <>
+                <span className="upsell-select-icon">✓</span> Selected
+              </>
             ) : (
-              <><span className="upsell-select-icon">+</span> {config.multiSelect ? "Add" : "Select"}</>
+              <>
+                <span className="upsell-select-icon">+</span>{" "}
+                {config.multiSelect ? "Add" : "Select"}
+              </>
             )}
           </button>
         </div>
@@ -449,7 +458,7 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
           display: flex;
           flex-direction: column;
-          max-height: 90vh;
+          max-height: 90%;
           container-type: inline-size;
           container-name: upsell;
 
@@ -971,11 +980,7 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
         }
       `}</style>
 
-      <div
-        className="upsell-popup"
-        data-splitpop="true"
-        data-template="product-upsell"
-      >
+      <div className="upsell-popup" data-splitpop="true" data-template="product-upsell">
         {/* Close button */}
         <PopupCloseButton
           onClose={onClose}
@@ -988,9 +993,7 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
         {/* Header */}
         <div className="upsell-header">
           <h2 className="upsell-headline">{config.headline || "Complete Your Order"}</h2>
-          {config.subheadline && (
-            <p className="upsell-subheadline">{config.subheadline}</p>
-          )}
+          {config.subheadline && <p className="upsell-subheadline">{config.subheadline}</p>}
         </div>
 
         {/* Bundle discount banner */}
@@ -1001,9 +1004,7 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
         )}
 
         {/* Products */}
-        <div className="upsell-content">
-          {renderProductsSection()}
-        </div>
+        <div className="upsell-content">{renderProductsSection()}</div>
 
         {/* Footer with summary and actions */}
         <div className="upsell-footer">
@@ -1056,17 +1057,17 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
               }}
             >
               {isLoading ? (
-                <><span className="upsell-cta-spinner" /> Adding...</>
+                <>
+                  <span className="upsell-cta-spinner" /> Adding...
+                </>
               ) : (
-                <><span className="upsell-cta-icon">🛒</span> {getCtaLabel()}</>
+                <>
+                  <span className="upsell-cta-icon">🛒</span> {getCtaLabel()}
+                </>
               )}
             </button>
 
-            <button
-              type="button"
-              className="upsell-dismiss"
-              onClick={onClose}
-            >
+            <button type="button" className="upsell-dismiss" onClick={onClose}>
               {config.secondaryCtaLabel || config.dismissLabel || "No thanks"}
             </button>
           </div>

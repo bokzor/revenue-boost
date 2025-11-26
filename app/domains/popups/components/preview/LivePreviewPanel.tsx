@@ -60,7 +60,7 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
   const virtualViewports = {
     mobile: { width: 375, height: 667 },
     tablet: { width: 768, height: 800 },
-    desktop: { width: 1440, height: 600 },
+    desktop: { width: 1024, height: 600 },
   };
 
   const viewport = virtualViewports[device];
