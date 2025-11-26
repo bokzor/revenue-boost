@@ -223,6 +223,7 @@ jobs:
           SCOPES: "write_products,write_customers,read_orders,write_script_tags,read_themes,write_discounts"
           SHOPIFY_SCOPES: "write_products,write_customers,read_orders,write_script_tags,read_themes,write_discounts"
           INTERNAL_API_SECRET: "${{ secrets.INTERNAL_API_SECRET || '039f6db6170268d95ed3b49838abd1ab1ba034ca9119647f5026b9e41864254c' }}"
+          BILLING_BYPASS: "true"
           EOF
 
           gcloud run deploy ${{ env.SERVICE_NAME }} \
@@ -301,6 +302,7 @@ jobs:
           SCOPES: "write_products,write_customers,read_orders,write_script_tags,read_themes,write_discounts"
           SHOPIFY_SCOPES: "write_products,write_customers,read_orders,write_script_tags,read_themes,write_discounts"
           INTERNAL_API_SECRET: "${{ secrets.INTERNAL_API_SECRET || '039f6db6170268d95ed3b49838abd1ab1ba034ca9119647f5026b9e41864254c' }}"
+          BILLING_BYPASS: "true"
           EOF
 
             # Redeploy with the real URL
