@@ -145,7 +145,7 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
         frequency_capping: getServerFrequencyCapping("FLASH_SALE"),
       },
     },
-    // Use Modern theme-inspired colors for seeded design
+    // Modern theme with red urgency colors
     designConfig: {
       theme: "modern",
       position: "center",
@@ -153,18 +153,39 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
       popupSize: "wide",
       borderRadius: 8,
       animation: "fade",
-      imagePosition: "left",
+
+      // Main colors - urgency red theme
       backgroundColor: "#ffffff",
-      textColor: "#111827",
-      descriptionColor: "#52525b",
-      accentColor: "#dbeafe",
-      buttonColor: "#3b82f6",
+      textColor: "#1f2937",
+      descriptionColor: "#6b7280",
+      accentColor: "#ef4444",
+
+      // Button colors - red for urgency
+      buttonColor: "#ef4444",
       buttonTextColor: "#ffffff",
-      inputBackgroundColor: "#f3f4f6",
-      inputBorderColor: "#d4d4d8",
-      imageBgColor: "#f4f4f5",
+
+      // Input field colors - light red tints
+      inputBackgroundColor: "#fee2e2",
+      inputTextColor: "#111827",
+      inputBorderColor: "#fca5a5",
+
+      // Image / surface colors
+      imageBgColor: "#fef2f2",
+      imagePosition: "left",
+      backgroundImageMode: "none",
+
+      // State colors
       successColor: "#10b981",
-      overlayOpacity: 0.8,
+
+      // Overlay
+      overlayOpacity: 0.5,
+
+      // Typography
+      fontFamily: "inherit",
+      titleFontSize: "2rem",
+      titleFontWeight: "800",
+      descriptionFontSize: "1rem",
+      descriptionFontWeight: "500",
     },
     // Valid DiscountConfig defaults (💰 Discount Configuration)
     discountConfig: {
@@ -193,7 +214,7 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
       headline: "Spin to Win!",
       subheadline: "Try your luck for exclusive discounts",
       buttonText: "Spin Now",
-      successMessage: "You won {{prize}}! Use code {{code}} at checkout.",
+      successMessage: "Thanks!",
       failureMessage: "Thanks for playing!",
       ctaText: "Spin Now",
       emailRequired: true,
@@ -201,12 +222,15 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
       collectName: true,
       showGdprCheckbox: true,
       gdprLabel: "I agree to receive marketing emails and accept the privacy policy",
+      spinButtonText: "Spin to Win!",
+      wheelBorderColor: "#ffffff",
+      wheelBorderWidth: 7,
       wheelSegments: [
         {
           id: "segment-5-off",
           label: "5% OFF",
           probability: 0.35,
-          color: "#10B981",
+          color: "#a855f7",
           discountConfig: {
             enabled: true,
             showInPreview: true,
@@ -221,7 +245,7 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
           id: "segment-10-off",
           label: "10% OFF",
           probability: 0.25,
-          color: "#3B82F6",
+          color: "#9333ea",
           discountConfig: {
             enabled: true,
             showInPreview: true,
@@ -236,7 +260,7 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
           id: "segment-15-off",
           label: "15% OFF",
           probability: 0.15,
-          color: "#F59E0B",
+          color: "#7e22ce",
           discountConfig: {
             enabled: true,
             showInPreview: true,
@@ -251,7 +275,7 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
           id: "segment-20-off",
           label: "20% OFF",
           probability: 0.1,
-          color: "#EF4444",
+          color: "#6b21a8",
           discountConfig: {
             enabled: true,
             showInPreview: true,
@@ -266,7 +290,7 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
           id: "segment-free-shipping",
           label: "FREE SHIPPING",
           probability: 0.1,
-          color: "#8B5CF6",
+          color: "#581c87",
           discountConfig: {
             enabled: true,
             showInPreview: true,
@@ -280,7 +304,7 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
           id: "segment-try-again",
           label: "Try Again",
           probability: 0.05,
-          color: "#6B7280",
+          color: "#c084fc",
           // No discount config for "try again" segment
         },
       ],
@@ -298,36 +322,49 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
       },
     },
     designConfig: {
-      // Minimal theme default colors (aligned with NEWSLETTER_THEMES.minimal)
-      theme: "minimal",
+      // Purple gradient theme
+      theme: "gradient",
       position: "center",
       size: "medium",
+      popupSize: "wide",
       borderRadius: 24,
       animation: "fade",
 
-      // Main colors
-      backgroundColor: "#fafafa",
-      textColor: "#18181b",
-      descriptionColor: "#71717a",
-      accentColor: "#e4e4e7",
+      // Main colors - purple gradient
+      backgroundColor: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+      textColor: "#ffffff",
+      descriptionColor: "#e0e7ff",
+      accentColor: "#e0e7ff",
 
       // Button colors
-      buttonColor: "#18181b",
-      buttonTextColor: "#ffffff",
+      buttonColor: "#ffffff",
+      buttonTextColor: "#667eea",
 
-      // Input field colors
-      inputBackgroundColor: "#f4f4f5",
-      inputTextColor: "#111827",
-      inputBorderColor: "#d4d4d8",
+      // Input field colors - glassmorphism style
+      inputBackgroundColor: "rgba(255, 255, 255, 0.15)",
+      inputTextColor: "#ffffff",
+      inputBorderColor: "rgba(255, 255, 255, 0.3)",
+      inputBackdropFilter: "blur(10px)",
 
       // Image / surface colors
-      imageBgColor: "#f4f4f5",
+      imageBgColor: "rgba(255, 255, 255, 0.1)",
+      imagePosition: "left",
+      backgroundImageMode: "preset",
+      backgroundImagePresetKey: "gradient",
+      imageUrl: "/apps/revenue-boost/assets/newsletter-backgrounds/gradient.jpg",
 
       // State colors
-      successColor: "#22c55e",
+      successColor: "#10b981",
 
       // Overlay
       overlayOpacity: 0.5,
+
+      // Typography
+      fontFamily: "inherit",
+      titleFontSize: "2rem",
+      titleFontWeight: "700",
+      descriptionFontSize: "1rem",
+      descriptionFontWeight: "400",
     },
     isDefault: true,
     priority: 3,
@@ -516,7 +553,12 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
       ctaText: "Add to Cart",
       productSelectionMethod: "ai",
       layout: "grid",
+      columns: 2,
       maxProducts: 3,
+      multiSelect: true,
+      showImages: true,
+      showPrices: true,
+      showCompareAtPrice: true,
       showRatings: true,
       showReviewCount: true,
     },
@@ -542,13 +584,49 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
       },
     },
     designConfig: {
-      // Modern default colors
-      backgroundColor: "#FFFFFF",
-      textColor: "#1A202C",
-      buttonColor: "#3B82F6",
-      buttonTextColor: "#FFFFFF",
-      position: "right",
-      size: "medium"
+      // Glass theme - frosted glass effect
+      theme: "glass",
+      position: "center",
+      size: "large",
+      popupSize: "wide",
+      borderRadius: 8,
+      animation: "fade",
+
+      // Main colors - glass effect
+      backgroundColor: "rgba(255, 255, 255, 0.7)",
+      textColor: "#18181b",
+      descriptionColor: "#52525b",
+      accentColor: "#6366f1",
+
+      // Button colors - indigo
+      buttonColor: "#6366f1",
+      buttonTextColor: "#ffffff",
+
+      // Input field colors - glass effect
+      inputBackgroundColor: "rgba(255, 255, 255, 0.5)",
+      inputTextColor: "#111827",
+      inputBorderColor: "rgba(212, 212, 216, 0.5)",
+      inputBackdropFilter: "blur(10px)",
+
+      // Image / surface colors
+      imageBgColor: "rgba(244, 244, 245, 0.8)",
+      imagePosition: "left",
+      backgroundImageMode: "preset",
+      backgroundImagePresetKey: "glass",
+      imageUrl: "/apps/revenue-boost/assets/newsletter-backgrounds/glass.jpg",
+
+      // State colors
+      successColor: "#10b981",
+
+      // Overlay
+      overlayOpacity: 0.5,
+
+      // Typography
+      fontFamily: "inherit",
+      titleFontSize: "1.875rem",
+      titleFontWeight: "700",
+      descriptionFontSize: "1rem",
+      descriptionFontWeight: "400",
     },
     isDefault: true,
     priority: 10,
@@ -570,7 +648,12 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
       ctaText: "Add {count} & Save",
       productSelectionMethod: "ai",
       layout: "grid",
+      columns: 2,
       maxProducts: 4,
+      multiSelect: true,
+      showImages: true,
+      showPrices: true,
+      showCompareAtPrice: true,
       bundleDiscount: 15,
     },
     fields: [
@@ -595,13 +678,49 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
       },
     },
     designConfig: {
-      // Modern default colors
-      backgroundColor: "#FFFFFF",
-      textColor: "#1A202C",
-      buttonColor: "#3B82F6",
-      buttonTextColor: "#FFFFFF",
-      position: "right",
-      size: "medium"
+      // Glass theme - frosted glass effect
+      theme: "glass",
+      position: "center",
+      size: "large",
+      popupSize: "wide",
+      borderRadius: 8,
+      animation: "fade",
+
+      // Main colors - glass effect
+      backgroundColor: "rgba(255, 255, 255, 0.7)",
+      textColor: "#18181b",
+      descriptionColor: "#52525b",
+      accentColor: "#6366f1",
+
+      // Button colors - indigo
+      buttonColor: "#6366f1",
+      buttonTextColor: "#ffffff",
+
+      // Input field colors - glass effect
+      inputBackgroundColor: "rgba(255, 255, 255, 0.5)",
+      inputTextColor: "#111827",
+      inputBorderColor: "rgba(212, 212, 216, 0.5)",
+      inputBackdropFilter: "blur(10px)",
+
+      // Image / surface colors
+      imageBgColor: "rgba(244, 244, 245, 0.8)",
+      imagePosition: "left",
+      backgroundImageMode: "preset",
+      backgroundImagePresetKey: "glass",
+      imageUrl: "/apps/revenue-boost/assets/newsletter-backgrounds/glass.jpg",
+
+      // State colors
+      successColor: "#10b981",
+
+      // Overlay
+      overlayOpacity: 0.5,
+
+      // Typography
+      fontFamily: "inherit",
+      titleFontSize: "1.875rem",
+      titleFontWeight: "700",
+      descriptionFontSize: "1rem",
+      descriptionFontWeight: "400",
     },
     isDefault: true,
     priority: 11,
@@ -623,7 +742,12 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
       ctaText: "Add {count} to Cart",
       productSelectionMethod: "ai",
       layout: "grid",
+      columns: 2,
       maxProducts: 3,
+      multiSelect: true,
+      showImages: true,
+      showPrices: true,
+      showCompareAtPrice: true,
       bundleDiscount: 20,
     },
     fields: [
@@ -648,13 +772,49 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
       },
     },
     designConfig: {
-      // Modern default colors
-      backgroundColor: "#FFFFFF",
-      textColor: "#1A202C",
-      buttonColor: "#3B82F6",
-      buttonTextColor: "#FFFFFF",
+      // Glass theme - frosted glass effect
+      theme: "glass",
       position: "center",
-      size: "medium"
+      size: "large",
+      popupSize: "wide",
+      borderRadius: 8,
+      animation: "fade",
+
+      // Main colors - glass effect
+      backgroundColor: "rgba(255, 255, 255, 0.7)",
+      textColor: "#18181b",
+      descriptionColor: "#52525b",
+      accentColor: "#6366f1",
+
+      // Button colors - indigo
+      buttonColor: "#6366f1",
+      buttonTextColor: "#ffffff",
+
+      // Input field colors - glass effect
+      inputBackgroundColor: "rgba(255, 255, 255, 0.5)",
+      inputTextColor: "#111827",
+      inputBorderColor: "rgba(212, 212, 216, 0.5)",
+      inputBackdropFilter: "blur(10px)",
+
+      // Image / surface colors
+      imageBgColor: "rgba(244, 244, 245, 0.8)",
+      imagePosition: "left",
+      backgroundImageMode: "preset",
+      backgroundImagePresetKey: "glass",
+      imageUrl: "/apps/revenue-boost/assets/newsletter-backgrounds/glass.jpg",
+
+      // State colors
+      successColor: "#10b981",
+
+      // Overlay
+      overlayOpacity: 0.5,
+
+      // Typography
+      fontFamily: "inherit",
+      titleFontSize: "1.875rem",
+      titleFontWeight: "700",
+      descriptionFontSize: "1rem",
+      descriptionFontWeight: "400",
     },
     isDefault: true,
     priority: 12,

@@ -36,11 +36,11 @@ describe("GLOBAL_SYSTEM_TEMPLATES – Flash Sale Alert", () => {
 
     const design = flashSale.designConfig as any;
 
-    // Theme + key colors from Modern newsletter preset
+    // Theme + key colors from Modern newsletter preset with urgency red
     expect(design.theme).toBe("modern");
     expect(design.backgroundColor).toBe("#ffffff");
-    expect(design.textColor).toBe("#111827");
-    expect(design.buttonColor).toBe("#3b82f6");
+    expect(design.textColor).toBe("#1f2937"); // Gray-800, matches template-data
+    expect(design.buttonColor).toBe("#ef4444"); // Red for urgency
     expect(design.buttonTextColor).toBe("#ffffff");
   });
 

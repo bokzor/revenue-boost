@@ -94,15 +94,16 @@ export function ContentConfigSection({
         );
 
       case "COUNTDOWN_TIMER":
+        // COUNTDOWN_TIMER doesn't support discount issuance (no challenge token hook)
+        // Use FlashSaleContentSection but without discount config
         return (
           <FlashSaleContentSection
             content={content as Partial<FlashSaleContent>}
             designConfig={designConfig}
-            discountConfig={discountConfig}
             errors={errors}
             onChange={onChange as (c: Partial<FlashSaleContent>) => void}
             onDesignChange={onDesignChange}
-            onDiscountChange={onDiscountChange}
+            // Note: discountConfig and onDiscountChange intentionally omitted
           />
         );
 

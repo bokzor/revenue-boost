@@ -25,11 +25,29 @@ vi.mock("~/db.server", () => ({
   default: {
     campaign: {
       findUnique: vi.fn(),
+      findFirst: vi.fn(),
     },
     lead: {
       upsert: vi.fn(),
+      findFirst: vi.fn(),
+      update: vi.fn(),
     },
   },
+}));
+
+vi.mock("~/lib/cors.server", () => ({
+  storefrontCors: vi.fn(() => ({})),
+}));
+
+vi.mock("~/lib/auth-helpers.server", () => ({
+  getStoreIdFromShop: vi.fn((shop: string) => shop.replace(".myshopify.com", "")),
+  createAdminApiContext: vi.fn(() => ({ graphql: vi.fn() })),
+}));
+
+vi.mock("~/lib/shopify/customer.server", () => ({
+  upsertCustomer: vi.fn().mockResolvedValue({ success: true, shopifyCustomerId: "gid://shopify/Customer/123" }),
+  sanitizeCustomerData: vi.fn((data: any) => data),
+  extractCustomerId: vi.fn((gid: string) => gid.split("/").pop()),
 }));
 
 vi.mock("~/domains/security/services/challenge-token.server", () => ({
@@ -38,6 +56,12 @@ vi.mock("~/domains/security/services/challenge-token.server", () => ({
 
 vi.mock("~/domains/commerce/services/discount.server", () => ({
   getCampaignDiscountCode: vi.fn(),
+}));
+
+vi.mock("~/domains/analytics/popup-events.server", () => ({
+  PopupEventService: {
+    recordEvent: vi.fn().mockResolvedValue(undefined),
+  },
 }));
 
 vi.mock("~/domains/security/services/rate-limit.server", () => ({
@@ -137,9 +161,10 @@ describe("Free Shipping Email-Required Flow - Integration Tests", () => {
 
       // Mock discount code generation
       vi.mocked(getCampaignDiscountCode).mockResolvedValue({
+        success: true,
         discountCode: mockDiscountCode,
         isNewDiscount: true,
-      } as any);
+      });
 
       // Step 1: Issue discount (consumes challenge token)
       const issueRequest = new Request("http://localhost/api/discounts/issue", {
@@ -166,11 +191,38 @@ describe("Free Shipping Email-Required Flow - Integration Tests", () => {
         mockChallengeToken,
         mockCampaignId,
         mockSessionId,
-        expect.any(String) // IP address
+        expect.any(String), // IP address
+        false // skipRateLimitCheck
       );
 
+      // Setup mocks for save-email action
+      // Mock lead.findFirst to verify discount code
+      vi.mocked(prisma.lead.findFirst).mockResolvedValue({
+        id: "lead_123",
+        email: `session_${mockSessionId}@anonymous.local`, // Anonymous email placeholder
+      } as any);
+
+      // Mock campaign.findFirst to return campaign with store info
+      vi.mocked(prisma.campaign.findFirst).mockResolvedValue({
+        id: mockCampaignId,
+        name: "Free Shipping Test",
+        store: {
+          id: mockStoreId,
+          shopifyDomain: "test-store.myshopify.com",
+          accessToken: "test-token",
+        },
+      } as any);
+
+      // Mock lead.update
+      vi.mocked(prisma.lead.update).mockResolvedValue({
+        id: "lead_123",
+        email: mockEmail,
+        discountCode: mockDiscountCode,
+      } as any);
+
       // Step 2: Save email with discount code (NO challenge token needed)
-      const saveEmailRequest = new Request("http://localhost/api/leads/save-email", {
+      // Note: The save-email route requires ?shop= query param
+      const saveEmailRequest = new Request("http://localhost/api/leads/save-email?shop=test-store.myshopify.com", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -190,29 +242,19 @@ describe("Free Shipping Email-Required Flow - Integration Tests", () => {
       // Verify challenge token was NOT validated again (still only 1 call)
       expect(validateAndConsumeToken).toHaveBeenCalledTimes(1);
 
-      // Verify lead was created/updated with email and discount code
-      expect(prisma.lead.upsert).toHaveBeenCalledWith({
-        where: {
-          storeId_campaignId_email: {
-            storeId: mockStoreId,
-            campaignId: mockCampaignId,
-            email: mockEmail,
-          },
-        },
-        create: expect.objectContaining({
-          email: mockEmail,
-          discountCode: mockDiscountCode,
-          campaignId: mockCampaignId,
-          sessionId: mockSessionId,
-          storeId: mockStoreId,
-        }),
-        update: expect.objectContaining({
-          discountCode: mockDiscountCode,
+      // Verify lead was updated with real email
+      expect(prisma.lead.update).toHaveBeenCalledWith({
+        where: { id: "lead_123" },
+        data: expect.objectContaining({
+          email: mockEmail.toLowerCase(),
         }),
       });
     });
 
     it("should fail if discount issuance fails (no code returned)", async () => {
+      // Use a unique session ID for this test to avoid cache hits from previous tests
+      const uniqueSessionId = "session-fail-test-123";
+
       const mockCampaign = {
         id: mockCampaignId,
         storeId: mockStoreId,
@@ -234,18 +276,20 @@ describe("Free Shipping Email-Required Flow - Integration Tests", () => {
         valid: true,
       });
 
-      // Mock discount generation failure
+      // Mock discount generation failure (success: false means failure)
       vi.mocked(getCampaignDiscountCode).mockResolvedValue({
-        discountCode: null,
+        success: false,
+        discountCode: undefined,
         isNewDiscount: false,
-      } as any);
+        errors: ["Failed to create discount"],
+      });
 
       const issueRequest = new Request("http://localhost/api/discounts/issue", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           campaignId: mockCampaignId,
-          sessionId: mockSessionId,
+          sessionId: uniqueSessionId, // Use unique session
           challengeToken: mockChallengeToken,
           cartSubtotalCents: 5000,
         }),
@@ -327,9 +371,10 @@ describe("Free Shipping Email-Required Flow - Integration Tests", () => {
         valid: true,
       });
       vi.mocked(getCampaignDiscountCode).mockResolvedValue({
+        success: true,
         discountCode: mockDiscountCode,
         isNewDiscount: true,
-      } as any);
+      });
 
       const issueRequest = new Request("http://localhost/api/discounts/issue", {
         method: "POST",

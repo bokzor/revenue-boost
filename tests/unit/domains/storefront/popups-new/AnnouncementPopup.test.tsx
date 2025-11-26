@@ -56,11 +56,14 @@ describe("AnnouncementPopup", () => {
       />,
     );
 
-    const closeButton = await screen.findByRole("button", {
-      name: /close announcement/i,
-    });
+    // The close button (×) is hidden on desktop via CSS media query but still in DOM.
+    // Use querySelector to find by aria-label since findByRole respects visibility.
+    const closeButton = document.querySelector(
+      'button[aria-label="Close announcement"]',
+    );
+    expect(closeButton).not.toBeNull();
 
-    fireEvent.click(closeButton);
+    fireEvent.click(closeButton!);
 
     expect(onClose).toHaveBeenCalled();
   });
