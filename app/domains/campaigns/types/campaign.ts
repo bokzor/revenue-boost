@@ -38,11 +38,17 @@ export const DiscountTypeSchema = z.enum(["shared", "single_use"]);
 
 export const DiscountValueTypeSchema = z.enum(["PERCENTAGE", "FIXED_AMOUNT", "FREE_SHIPPING"]);
 
-export const DiscountDeliveryModeSchema = z.enum([
-  "auto_apply_only",
-  "show_code_fallback",
-  "show_code_always",
-  "show_in_popup_authorized_only",
+/**
+ * Discount Behavior - Simplified mutually exclusive options
+ *
+ * SHOW_CODE_AND_AUTO_APPLY: Display code + auto-apply to cart
+ * SHOW_CODE_ONLY: Display code only (manual entry required)
+ * SHOW_CODE_AND_ASSIGN_TO_EMAIL: Display code + restrict to captured email
+ */
+export const DiscountBehaviorSchema = z.enum([
+  "SHOW_CODE_AND_AUTO_APPLY",
+  "SHOW_CODE_ONLY",
+  "SHOW_CODE_AND_ASSIGN_TO_EMAIL",
 ]);
 
 // Content-level discount type enum (used in template content configs like SpinToWin, FlashSale)
@@ -56,7 +62,7 @@ export const TemplateTypeEnum = TemplateTypeSchema.enum;
 
 export type DiscountType = z.infer<typeof DiscountTypeSchema>;
 export type DiscountValueType = z.infer<typeof DiscountValueTypeSchema>;
-export type DiscountDeliveryMode = z.infer<typeof DiscountDeliveryModeSchema>;
+export type DiscountBehavior = z.infer<typeof DiscountBehaviorSchema>;
 export type ContentDiscountType = z.infer<typeof ContentDiscountTypeSchema>;
 
 // ============================================================================
@@ -66,7 +72,7 @@ export type ContentDiscountType = z.infer<typeof ContentDiscountTypeSchema>;
 /**
  * Discount Configuration Schema
  * Centralized discount configuration with proper enum types
- * Enhanced with applicability scoping, tiers, BOGO, free gifts, and auto-apply
+ * Enhanced with applicability scoping, tiers, BOGO, free gifts, and simplified behavior
  */
 export const DiscountConfigSchema = z.object({
   enabled: z.boolean().default(false),
@@ -78,10 +84,15 @@ export const DiscountConfigSchema = z.object({
   value: z.number().min(0).optional(),
   code: z.string().optional(),
 
-  // Delivery configuration
-  deliveryMode: DiscountDeliveryModeSchema.optional(),
-  requireLogin: z.boolean().optional(),
-  storeInMetafield: z.boolean().optional(),
+  /**
+   * Discount behavior - how the code is shown and applied (mutually exclusive)
+   * - SHOW_CODE_AND_AUTO_APPLY: Display code + auto-apply to cart
+   * - SHOW_CODE_ONLY: Display code only (customer must manually enter)
+   * - SHOW_CODE_AND_ASSIGN_TO_EMAIL: Display code + restrict to captured email
+   */
+  behavior: DiscountBehaviorSchema.default("SHOW_CODE_AND_AUTO_APPLY"),
+
+  // Email authorization fields (used at runtime for SHOW_CODE_AND_ASSIGN_TO_EMAIL behavior)
   authorizedEmail: z.string().email().optional(),
   requireEmailMatch: z.boolean().optional(),
 
@@ -150,12 +161,6 @@ export const DiscountConfigSchema = z.object({
     })
     .optional(),
 
-  // Auto-apply mode for storefront
-  autoApplyMode: z.enum(["ajax", "redirect", "none"]).default("ajax"),
-
-  // Code presentation (show/hide code to user)
-  codePresentation: z.enum(["show_code", "hide_code"]).default("show_code"),
-
   // Customer eligibility
   customerEligibility: z.enum(["everyone", "logged_in", "segment"]).optional(),
 
@@ -179,6 +184,40 @@ export const DiscountConfigSchema = z.object({
 });
 
 export type DiscountConfig = z.infer<typeof DiscountConfigSchema>;
+
+/**
+ * Helper function to validate discount behavior requirements
+ * Returns error message if validation fails, undefined if valid
+ */
+export function validateDiscountBehavior(
+  behavior: DiscountBehavior | undefined,
+  hasEmailCapture: boolean,
+  discountSupportsEmailRestriction: boolean = true
+): string | undefined {
+  if (behavior === "SHOW_CODE_AND_ASSIGN_TO_EMAIL") {
+    if (!hasEmailCapture) {
+      return "Email assignment requires email capture to be enabled in the campaign";
+    }
+    if (!discountSupportsEmailRestriction) {
+      return "This discount type does not support email-specific assignment";
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Helper function to determine if auto-apply should be triggered
+ */
+export function shouldAutoApply(behavior: DiscountBehavior | undefined): boolean {
+  return behavior === "SHOW_CODE_AND_AUTO_APPLY";
+}
+
+/**
+ * Helper function to determine if discount requires email restriction
+ */
+export function requiresEmailRestriction(behavior: DiscountBehavior | undefined): boolean {
+  return behavior === "SHOW_CODE_AND_ASSIGN_TO_EMAIL";
+}
 
 // ============================================================================
 // BASE CONTENT CONFIGURATION
@@ -243,11 +282,9 @@ const DEFAULT_SPIN_TO_WIN_SEGMENTS = [
       showInPreview: true,
       valueType: "PERCENTAGE" as const,
       value: 5,
-      deliveryMode: "show_code_fallback" as const,
+      behavior: "SHOW_CODE_AND_AUTO_APPLY" as const,
       expiryDays: 30,
       type: "single_use" as const,
-      autoApplyMode: "ajax" as const,
-      codePresentation: "show_code" as const,
     },
   },
   {
@@ -260,11 +297,9 @@ const DEFAULT_SPIN_TO_WIN_SEGMENTS = [
       showInPreview: true,
       valueType: "PERCENTAGE" as const,
       value: 10,
-      deliveryMode: "show_code_fallback" as const,
+      behavior: "SHOW_CODE_AND_AUTO_APPLY" as const,
       expiryDays: 30,
       type: "single_use" as const,
-      autoApplyMode: "ajax" as const,
-      codePresentation: "show_code" as const,
     },
   },
   {
@@ -277,11 +312,9 @@ const DEFAULT_SPIN_TO_WIN_SEGMENTS = [
       showInPreview: true,
       valueType: "PERCENTAGE" as const,
       value: 15,
-      deliveryMode: "show_code_fallback" as const,
+      behavior: "SHOW_CODE_AND_AUTO_APPLY" as const,
       expiryDays: 30,
       type: "single_use" as const,
-      autoApplyMode: "ajax" as const,
-      codePresentation: "show_code" as const,
     },
   },
   {
@@ -294,11 +327,9 @@ const DEFAULT_SPIN_TO_WIN_SEGMENTS = [
       showInPreview: true,
       valueType: "PERCENTAGE" as const,
       value: 20,
-      deliveryMode: "show_code_fallback" as const,
+      behavior: "SHOW_CODE_AND_AUTO_APPLY" as const,
       expiryDays: 30,
       type: "single_use" as const,
-      autoApplyMode: "ajax" as const,
-      codePresentation: "show_code" as const,
     },
   },
   {
@@ -310,11 +341,9 @@ const DEFAULT_SPIN_TO_WIN_SEGMENTS = [
       enabled: true,
       showInPreview: true,
       valueType: "FREE_SHIPPING" as const,
-      deliveryMode: "show_code_fallback" as const,
+      behavior: "SHOW_CODE_AND_AUTO_APPLY" as const,
       expiryDays: 30,
       type: "single_use" as const,
-      autoApplyMode: "ajax" as const,
-      codePresentation: "show_code" as const,
     },
   },
   {
@@ -488,7 +517,7 @@ export const ProductUpsellContentSchema = BaseContentConfigSchema.extend({
   selectedProducts: z.array(z.string()).optional(),
   selectedCollection: z.string().optional(),
   maxProducts: z.number().int().min(1).max(12).default(3),
-  layout: z.enum(["grid", "carousel", "card"]).default("grid"),
+  layout: z.enum(["grid", "card"]).default("grid"),
   columns: z.number().int().min(1).max(4).default(2),
   showPrices: z.boolean().default(true),
   showCompareAtPrice: z.boolean().default(true),
@@ -545,11 +574,9 @@ const DEFAULT_SCRATCH_CARD_PRIZES = [
       showInPreview: true,
       valueType: "PERCENTAGE" as const,
       value: 5,
-      deliveryMode: "show_code_fallback" as const,
+      behavior: "SHOW_CODE_AND_AUTO_APPLY" as const,
       expiryDays: 30,
       type: "single_use" as const,
-      autoApplyMode: "ajax" as const,
-      codePresentation: "show_code" as const,
     },
   },
   {
@@ -561,11 +588,9 @@ const DEFAULT_SCRATCH_CARD_PRIZES = [
       showInPreview: true,
       valueType: "PERCENTAGE" as const,
       value: 10,
-      deliveryMode: "show_code_fallback" as const,
+      behavior: "SHOW_CODE_AND_AUTO_APPLY" as const,
       expiryDays: 30,
       type: "single_use" as const,
-      autoApplyMode: "ajax" as const,
-      codePresentation: "show_code" as const,
     },
   },
   {
@@ -577,11 +602,9 @@ const DEFAULT_SCRATCH_CARD_PRIZES = [
       showInPreview: true,
       valueType: "PERCENTAGE" as const,
       value: 15,
-      deliveryMode: "show_code_fallback" as const,
+      behavior: "SHOW_CODE_AND_AUTO_APPLY" as const,
       expiryDays: 30,
       type: "single_use" as const,
-      autoApplyMode: "ajax" as const,
-      codePresentation: "show_code" as const,
     },
   },
   {
@@ -593,19 +616,23 @@ const DEFAULT_SCRATCH_CARD_PRIZES = [
       showInPreview: true,
       valueType: "PERCENTAGE" as const,
       value: 20,
-      deliveryMode: "show_code_fallback" as const,
+      behavior: "SHOW_CODE_AND_AUTO_APPLY" as const,
       expiryDays: 30,
       type: "single_use" as const,
-      autoApplyMode: "ajax" as const,
-      codePresentation: "show_code" as const,
     },
   },
 ];
 
 /**
  * Scratch Card specific content fields
+ * Note: We omit successMessage since the discount code display serves as success feedback
+ * (similar to Spin-to-Win)
  */
-export const ScratchCardContentSchema = BaseContentConfigSchema.extend({
+const ScratchCardBaseContentSchema = BaseContentConfigSchema.omit({
+  successMessage: true,
+});
+
+export const ScratchCardContentSchema = ScratchCardBaseContentSchema.extend({
   scratchInstruction: z.string().default("Scratch to reveal your prize!"),
   emailRequired: z.boolean().default(true),
   emailPlaceholder: z.string().default("Enter your email"),

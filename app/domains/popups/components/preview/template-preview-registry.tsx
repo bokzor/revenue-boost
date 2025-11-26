@@ -36,6 +36,37 @@ import type {
 
 import { TemplateTypeEnum } from "~/lib/template-types.enum";
 
+/**
+ * Default preview prizes for scratch card
+ * These are used when no prizes are configured yet
+ */
+const SCRATCH_CARD_PREVIEW_PRIZES = [
+  {
+    id: "preview-prize-5-off",
+    label: "5% OFF",
+    probability: 0.4,
+    discountCode: "PREVIEW5",
+  },
+  {
+    id: "preview-prize-10-off",
+    label: "10% OFF",
+    probability: 0.3,
+    discountCode: "PREVIEW10",
+  },
+  {
+    id: "preview-prize-15-off",
+    label: "15% OFF",
+    probability: 0.2,
+    discountCode: "PREVIEW15",
+  },
+  {
+    id: "preview-prize-20-off",
+    label: "20% OFF",
+    probability: 0.1,
+    discountCode: "PREVIEW20",
+  },
+];
+
 const PRODUCT_UPSELL_PREVIEW_PRODUCTS = [
   {
     id: "preview-hoodie",
@@ -219,7 +250,7 @@ export const TEMPLATE_PREVIEW_REGISTRY: Record<string, TemplatePreviewEntry<any>
             value?: number;
             code?: string;
             prefix?: string;
-            deliveryMode?: string;
+            behavior?: string;
           }
         | undefined;
 
@@ -292,7 +323,7 @@ export const TEMPLATE_PREVIEW_REGISTRY: Record<string, TemplatePreviewEntry<any>
                     ? "fixed_amount"
                     : "free_shipping",
               code: dc.prefix || "FLASH",
-              deliveryMode: (dc.deliveryMode as "auto_apply_only" | "show_code_fallback" | "show_code_always" | "show_in_popup_authorized_only") || "show_code_fallback",
+              behavior: (dc.behavior as "SHOW_CODE_AND_AUTO_APPLY" | "SHOW_CODE_ONLY" | "SHOW_CODE_AND_ASSIGN_TO_EMAIL") || "SHOW_CODE_AND_AUTO_APPLY",
             }
           : undefined,
 
@@ -447,7 +478,6 @@ export const TEMPLATE_PREVIEW_REGISTRY: Record<string, TemplatePreviewEntry<any>
         subheadline: mergedConfig.subheadline || "Everyone wins!",
         buttonText: mergedConfig.buttonText || "Claim Discount",
         dismissLabel: mergedConfig.dismissLabel,
-        successMessage: mergedConfig.successMessage || "Congratulations!",
         failureMessage: mergedConfig.failureMessage,
         ctaText: mergedConfig.ctaText,
 
@@ -459,7 +489,11 @@ export const TEMPLATE_PREVIEW_REGISTRY: Record<string, TemplatePreviewEntry<any>
         emailBeforeScratching: mergedConfig.emailBeforeScratching ?? false,
         scratchThreshold: mergedConfig.scratchThreshold ?? 50,
         scratchRadius: mergedConfig.scratchRadius ?? 20,
-        prizes: mergedConfig.prizes || [],
+        // Preview prizes: use configured prizes or default preview prizes
+        prizes:
+          mergedConfig.prizes && mergedConfig.prizes.length > 0
+            ? mergedConfig.prizes
+            : SCRATCH_CARD_PREVIEW_PRIZES,
 
         // Image / layout
         imageUrl: mergedConfig.imageUrl || designConfig.imageUrl,
@@ -647,7 +681,7 @@ TEMPLATE_PREVIEW_REGISTRY[TemplateTypeEnum.CART_ABANDONMENT] = {
                   ? ("fixed_amount" as const)
                   : ("free_shipping" as const),
             code: ((mergedConfig.discountConfig as Record<string, unknown>).prefix as string) || "PREVIEW",
-            deliveryMode: ((mergedConfig.discountConfig as Record<string, unknown>).deliveryMode as "auto_apply_only" | "show_code_fallback" | "show_code_always" | "show_in_popup_authorized_only") || "show_code_fallback",
+            behavior: ((mergedConfig.discountConfig as Record<string, unknown>).behavior as "SHOW_CODE_AND_AUTO_APPLY" | "SHOW_CODE_ONLY" | "SHOW_CODE_AND_ASSIGN_TO_EMAIL") || "SHOW_CODE_AND_AUTO_APPLY",
           }
         : undefined,
 

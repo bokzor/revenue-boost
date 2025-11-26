@@ -100,9 +100,7 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
       showInPreview: true,
       valueType: "PERCENTAGE",
       value: 10,
-      deliveryMode: "show_code_fallback",
-      autoApplyMode: "ajax",
-      codePresentation: "show_code",
+      behavior: "SHOW_CODE_AND_AUTO_APPLY",
       expiryDays: 30,
     },
     isDefault: true,
@@ -177,9 +175,7 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
       value: 30,
       prefix: "FLASH30-", // Will generate unique codes like FLASH30-ABC123
       expiryDays: 2,
-      deliveryMode: "show_code_always",
-      autoApplyMode: "ajax",
-      codePresentation: "show_code",
+      behavior: "SHOW_CODE_ONLY",
     },
     isDefault: true,
     priority: 2,
@@ -216,11 +212,9 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
             showInPreview: true,
             valueType: "PERCENTAGE" as const,
             value: 5,
-            deliveryMode: "show_code_fallback" as const,
+            behavior: "SHOW_CODE_AND_AUTO_APPLY" as const,
             expiryDays: 30,
             type: "single_use" as const,
-            autoApplyMode: "ajax" as const,
-            codePresentation: "show_code" as const,
           },
         },
         {
@@ -233,11 +227,9 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
             showInPreview: true,
             valueType: "PERCENTAGE" as const,
             value: 10,
-            deliveryMode: "show_code_fallback" as const,
+            behavior: "SHOW_CODE_AND_AUTO_APPLY" as const,
             expiryDays: 30,
             type: "single_use" as const,
-            autoApplyMode: "ajax" as const,
-            codePresentation: "show_code" as const,
           },
         },
         {
@@ -250,11 +242,9 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
             showInPreview: true,
             valueType: "PERCENTAGE" as const,
             value: 15,
-            deliveryMode: "show_code_fallback" as const,
+            behavior: "SHOW_CODE_AND_AUTO_APPLY" as const,
             expiryDays: 30,
             type: "single_use" as const,
-            autoApplyMode: "ajax" as const,
-            codePresentation: "show_code" as const,
           },
         },
         {
@@ -267,11 +257,9 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
             showInPreview: true,
             valueType: "PERCENTAGE" as const,
             value: 20,
-            deliveryMode: "show_code_fallback" as const,
+            behavior: "SHOW_CODE_AND_AUTO_APPLY" as const,
             expiryDays: 30,
             type: "single_use" as const,
-            autoApplyMode: "ajax" as const,
-            codePresentation: "show_code" as const,
           },
         },
         {
@@ -283,11 +271,9 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
             enabled: true,
             showInPreview: true,
             valueType: "FREE_SHIPPING" as const,
-            deliveryMode: "show_code_fallback" as const,
+            behavior: "SHOW_CODE_AND_AUTO_APPLY" as const,
             expiryDays: 30,
             type: "single_use" as const,
-            autoApplyMode: "ajax" as const,
-            codePresentation: "show_code" as const,
           },
         },
         {
@@ -402,7 +388,8 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
       subheadline: "Reveal your surprise",
       buttonText: "Reveal",
       successMessage: "You won!",
-      ctaText: "Reveal"
+      ctaText: "Reveal",
+      emailBeforeScratching: true
     },
     fields: [
       { id: "headline", type: "text", label: "Headline", category: "content" },
@@ -488,18 +475,14 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
         idle_timer: { enabled: true, idle_duration: 30 },
         frequency_capping: getServerFrequencyCapping("CART_ABANDONMENT"),
       },
+      // Advanced targeting disabled by default so Free plan users can use this template
+      // Paid users can enable and configure session rules for cart targeting
       audienceTargeting: {
-        enabled: true,
+        enabled: false,
         shopifySegmentIds: [],
         sessionRules: {
-          enabled: true,
-          conditions: [
-            {
-              field: "cartItemCount",
-              operator: "gt",
-              value: 0,
-            },
-          ],
+          enabled: false,
+          conditions: [],
           logicOperator: "AND",
         },
       },
@@ -547,8 +530,9 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
         page_load: { enabled: true, delay: 3000 },
         frequency_capping: getServerFrequencyCapping("PRODUCT_UPSELL"),
       },
+      // Advanced targeting disabled by default so Free plan users can use this template
       audienceTargeting: {
-        enabled: true,
+        enabled: false,
         shopifySegmentIds: [],
         sessionRules: {
           enabled: false,
@@ -599,18 +583,13 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
         cart_drawer_open: { enabled: true },
         frequency_capping: getServerFrequencyCapping("PRODUCT_UPSELL"),
       },
+      // Advanced targeting disabled by default so Free plan users can use this template
       audienceTargeting: {
-        enabled: true,
+        enabled: false,
         shopifySegmentIds: [],
         sessionRules: {
-          enabled: true,
-          conditions: [
-            {
-              field: "cartItemCount",
-              operator: "gt",
-              value: 0,
-            },
-          ],
+          enabled: false,
+          conditions: [],
           logicOperator: "AND",
         },
       },
@@ -657,8 +636,9 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
         scroll_depth: { enabled: true, depth_percentage: 50 },
         frequency_capping: getServerFrequencyCapping("PRODUCT_UPSELL"),
       },
+      // Advanced targeting disabled by default so Free plan users can use this template
       audienceTargeting: {
-        enabled: true,
+        enabled: false,
         shopifySegmentIds: [],
         sessionRules: {
           enabled: false,
@@ -709,18 +689,13 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
         add_to_cart: { enabled: true },
         frequency_capping: getServerFrequencyCapping("PRODUCT_UPSELL"),
       },
+      // Advanced targeting disabled by default so Free plan users can use this template
       audienceTargeting: {
-        enabled: true,
+        enabled: false,
         shopifySegmentIds: [],
         sessionRules: {
-          enabled: true,
-          conditions: [
-            {
-              field: "cartItemCount",
-              operator: "gt",
-              value: 0,
-            },
-          ],
+          enabled: false,
+          conditions: [],
           logicOperator: "AND",
         },
       },
@@ -766,8 +741,9 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
         page_load: { enabled: true, delay: 2000 },
         frequency_capping: getServerFrequencyCapping("SOCIAL_PROOF"),
       },
+      // Advanced targeting disabled by default so Free plan users can use this template
       audienceTargeting: {
-        enabled: true,
+        enabled: false,
         shopifySegmentIds: [],
         sessionRules: {
           enabled: false,
@@ -823,18 +799,13 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
         },
         frequency_capping: getServerFrequencyCapping("FREE_SHIPPING"),
       },
+      // Advanced targeting disabled by default so Free plan users can use this template
       audienceTargeting: {
-        enabled: true,
+        enabled: false,
         shopifySegmentIds: [],
         sessionRules: {
-          enabled: true,
-          conditions: [
-            {
-              field: "cartItemCount",
-              operator: "gt",
-              value: 0,
-            },
-          ],
+          enabled: false,
+          conditions: [],
           logicOperator: "AND",
         },
       },
@@ -850,9 +821,7 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
       enabled: true,
       showInPreview: true,
       valueType: "FREE_SHIPPING",
-      deliveryMode: "auto_apply_only",
-      autoApplyMode: "ajax",
-      codePresentation: "show_code",
+      behavior: "SHOW_CODE_AND_AUTO_APPLY",
       expiryDays: 30,
       minimumAmount: 50,
     },

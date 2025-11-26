@@ -135,12 +135,17 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
   const fetchPrize = useCallback(
     async (emailToUse?: string) => {
       if (config.previewMode) {
-        // Preview mode: select random prize locally
+        // Preview mode: select random prize locally and generate mock discount code
         console.log("[Scratch Card] Preview mode - selecting random prize locally");
         const prizes = config.prizes || [];
         if (prizes.length > 0) {
           const randomPrize = prizes[Math.floor(Math.random() * prizes.length)];
-          setWonPrize(randomPrize);
+          // Add mock discount code for preview (same pattern as SpinToWin)
+          setWonPrize({
+            ...randomPrize,
+            generatedCode: "PREVIEW10",
+            discountCode: "PREVIEW10",
+          });
         }
         return;
       }
@@ -613,6 +618,7 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
       closeOnEscape={config.closeOnEscape !== false}
       closeOnBackdropClick={config.closeOnOverlayClick !== false}
       previewMode={config.previewMode}
+      showBranding={config.showBranding}
       ariaLabel={config.ariaLabel || config.headline}
       ariaDescribedBy={config.ariaDescribedBy}
       customCSS={config.customCSS}
@@ -850,7 +856,7 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
                           opacity: 0.8,
                         }}
                       >
-                        {config.successMessage || `Congratulations! You won ${wonPrize.label}.`}
+                        {config.failureMessage || "Better luck next time!"}
                       </p>
                     </div>
                   )}
@@ -914,91 +920,71 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
                       </form>
                     )}
 
-                  {/* Success state after claiming prize */}
-                  {/* Show for both email BEFORE and email AFTER flows */}
+                  {/* Success state after claiming prize - same pattern as SpinToWin */}
                   {isRevealed && emailSubmitted && (
-                    <div style={{ textAlign: "center", padding: "2rem 0" }}>
-                      {wonPrize?.discountCode ? (
-                        <>
-                          <div className="scratch-popup-success-icon">
-                            <svg
-                              width="32"
-                              height="32"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="#16a34a"
-                              strokeWidth="3"
-                            >
-                              <polyline points="20 6 9 17 4 12" />
-                            </svg>
-                          </div>
-                          <h3
-                            style={{
-                              fontSize: "1.875rem",
-                              fontWeight: 700,
-                              marginBottom: "0.75rem",
-                            }}
-                          >
-                            {config.successMessage || `Congratulations! You won ${wonPrize.label}.`}
-                          </h3>
-                          <div style={{ marginTop: "1rem" }}>
-                            <DiscountCodeDisplay
-                              code={wonPrize.discountCode}
-                              onCopy={handleCopyCode}
-                              copied={copiedCode}
-                              label="Your Discount Code"
-                              variant="dashed"
-                              accentColor={config.accentColor || config.buttonColor}
-                              textColor={config.textColor}
-                              size="lg"
-                            />
-                          </div>
-                        </>
+                    <div className="scratch-success-section">
+                      {wonPrize?.generatedCode || wonPrize?.discountCode ? (
+                        <div className="scratch-discount-wrapper">
+                          <DiscountCodeDisplay
+                            code={wonPrize.generatedCode || wonPrize.discountCode || ""}
+                            onCopy={handleCopyCode}
+                            copied={copiedCode}
+                            label="Your Discount Code"
+                            variant="dashed"
+                            accentColor={config.accentColor || config.buttonColor}
+                            textColor={config.descriptionColor || config.textColor}
+                            size="lg"
+                          />
+                        </div>
                       ) : (
-                        <>
-                          <div className="scratch-popup-success-icon">
-                            <svg
-                              width="32"
-                              height="32"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="#16a34a"
-                              strokeWidth="3"
-                            >
-                              <polyline points="20 6 9 17 4 12" />
-                            </svg>
-                          </div>
-                          <h3
-                            style={{
-                              fontSize: "1.875rem",
-                              fontWeight: 700,
-                              marginBottom: "0.75rem",
-                            }}
-                          >
-                            Prize Claimed!
-                          </h3>
+                        <div className="scratch-discount-wrapper">
                           <p
                             style={{
+                              fontSize: "1rem",
                               color: config.descriptionColor || "rgba(0,0,0,0.7)",
                               lineHeight: 1.6,
                             }}
                           >
-                            Check your email for details on how to redeem your prize.
+                            {config.failureMessage || "Better luck next time!"}
                           </p>
-                        </>
+                        </div>
                       )}
+
+                      <button
+                        type="button"
+                        onClick={onClose}
+                        style={{
+                          width: "100%",
+                          padding: "14px 24px",
+                          fontSize: "1rem",
+                          fontWeight: 600,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.05em",
+                          color: config.buttonTextColor || "#FFFFFF",
+                          backgroundColor: config.buttonColor || "#22c55e",
+                          border: "none",
+                          borderRadius: "8px",
+                          cursor: "pointer",
+                          marginTop: "1.5rem",
+                        }}
+                      >
+                        CONTINUE SHOPPING
+                      </button>
                     </div>
                   )}
 
-                  <div style={{ marginTop: "16px", textAlign: "center" }}>
-                    <button
-                      type="button"
-                      className="scratch-popup-dismiss-button"
-                      onClick={onClose}
-                    >
-                      {config.dismissLabel || "No thanks"}
-                    </button>
-                  </div>
+                  {/* Dismiss button - only show when not in success state */}
+                  {!(isRevealed && emailSubmitted) && (
+                    <div style={{ marginTop: "16px", textAlign: "center" }}>
+                      <button
+                        type="button"
+                        className="scratch-popup-dismiss-button"
+                        onClick={onClose}
+                      >
+                        {isRevealed ? "Close" : (config.dismissLabel || "No thanks")}
+                      </button>
+                    </div>
+                  )}
                 </>
               )
             )}
@@ -1171,6 +1157,15 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
 
         .scratch-popup-dismiss-button:hover {
           text-decoration: underline;
+        }
+
+        .scratch-success-section {
+          text-align: center;
+          padding: 2rem 0;
+        }
+
+        .scratch-discount-wrapper {
+          margin-bottom: 0.5rem;
         }
 
         .scratch-popup-error {

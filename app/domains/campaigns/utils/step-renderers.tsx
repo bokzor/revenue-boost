@@ -42,6 +42,8 @@ export interface StepRendererProps {
   abTestingEnabled?: boolean;
   initialTemplates?: UnifiedTemplate[];
   globalCustomCSS?: string;
+  /** Whether advanced targeting (Shopify segments, session rules) is enabled for the current plan */
+  advancedTargetingEnabled?: boolean;
 }
 // ============================================================================
 // STEP RENDERERS
@@ -170,7 +172,7 @@ export function renderDesignStep(props: StepRendererProps) {
 }
 
 export function renderTargetingStep(props: StepRendererProps) {
-  const { wizardState, updateData, storeId } = props;
+  const { wizardState, updateData, storeId, advancedTargetingEnabled } = props;
 
   return (
     <TargetingStepContent
@@ -179,6 +181,7 @@ export function renderTargetingStep(props: StepRendererProps) {
       audienceTargeting={wizardState.audienceTargeting}
       onTriggersChange={(config) => updateData({ enhancedTriggers: config })}
       onAudienceChange={(config) => updateData({ audienceTargeting: config })}
+      advancedTargetingEnabled={advancedTargetingEnabled ?? false}
     />
   );
 }
@@ -198,11 +201,20 @@ export function renderFrequencyStep(props: StepRendererProps) {
 export function renderDiscountStep(props: StepRendererProps) {
   const { wizardState, updateData } = props;
 
+  // Detect if email capture is enabled from contentConfig
+  const contentConfig = wizardState.contentConfig as any;
+  const hasEmailCapture =
+    contentConfig?.emailRequired === true ||
+    contentConfig?.emailPlaceholder !== undefined ||
+    contentConfig?.enableEmailRecovery === true;
+
   return (
     <DiscountSettingsStep
       goal={wizardState.goal}
       discountConfig={wizardState.discountConfig}
       onConfigChange={(config) => updateData({ discountConfig: config })}
+      hasEmailCapture={hasEmailCapture}
+      contentConfig={contentConfig}
     />
   );
 }

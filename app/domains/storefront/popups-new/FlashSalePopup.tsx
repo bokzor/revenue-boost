@@ -45,7 +45,7 @@ export interface FlashSalePopupProps {
   onCtaClick?: () => void;
   issueDiscount?: (options?: {
     cartSubtotalCents?: number;
-  }) => Promise<{ code?: string; autoApplyMode?: string } | null>;
+  }) => Promise<{ code?: string; behavior?: string } | null>;
 }
 
 export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
@@ -655,6 +655,7 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
       closeOnEscape={config.closeOnEscape !== false}
       closeOnBackdropClick={config.closeOnOverlayClick !== false}
       previewMode={config.previewMode}
+      showBranding={config.showBranding}
       ariaLabel={config.ariaLabel || config.headline || "Flash Sale"}
       ariaDescribedBy={config.ariaDescribedBy}
       customCSS={config.customCSS}
@@ -934,7 +935,7 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
         }
       `}</style>
 
-      <div className="flash-sale-container">
+      <div className="flash-sale-container" data-splitpop="true" data-template="flash-sale">
         <PopupCloseButton
           onClose={onClose}
           color={config.textColor}

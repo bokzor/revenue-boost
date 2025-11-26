@@ -16,7 +16,7 @@ export interface GoalDefaults {
     enabled: boolean;
     type: "percentage" | "fixed";
     value: number;
-    deliveryMode: "auto_apply_only" | "show_code_fallback" | "show_code_always";
+    behavior: "SHOW_CODE_AND_AUTO_APPLY" | "SHOW_CODE_ONLY" | "SHOW_CODE_AND_ASSIGN_TO_EMAIL";
     prefix: string;
     expiryDays: number;
     singleUse: boolean;
@@ -45,7 +45,7 @@ export const GOAL_DEFAULTS: Record<CampaignGoal, GoalDefaults> = {
       enabled: true,
       type: "percentage",
       value: 10,
-      deliveryMode: "show_code_fallback",
+      behavior: "SHOW_CODE_AND_AUTO_APPLY",
       prefix: "WELCOME",
       expiryDays: 14,
       singleUse: true,
@@ -70,7 +70,7 @@ export const GOAL_DEFAULTS: Record<CampaignGoal, GoalDefaults> = {
       enabled: true,
       type: "percentage",
       value: 20,
-      deliveryMode: "auto_apply_only",
+      behavior: "SHOW_CODE_AND_AUTO_APPLY",
       prefix: "SALE",
       expiryDays: 2,
       singleUse: false,
@@ -100,7 +100,7 @@ export const GOAL_DEFAULTS: Record<CampaignGoal, GoalDefaults> = {
       enabled: false,
       type: "percentage",
       value: 5,
-      deliveryMode: "show_code_fallback",
+      behavior: "SHOW_CODE_AND_AUTO_APPLY",
       prefix: "ENGAGE",
       expiryDays: 7,
       singleUse: false,

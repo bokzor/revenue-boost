@@ -17,23 +17,32 @@ import {
   InlineStack,
   Badge,
 } from "@shopify/polaris";
-import {
-  DiscountConfig,
-  DiscountDeliveryMode,
-} from "~/domains/popups/services/discounts/discount.server";
+import { DiscountConfig } from "~/domains/popups/services/discounts/discount.server";
+import type { DiscountBehavior } from "~/domains/campaigns/types/campaign";
 
 interface DiscountSettingsStepProps {
   goal?: string;
   discountConfig?: DiscountConfig;
   onConfigChange: (config: DiscountConfig) => void;
+  hasEmailCapture?: boolean; // Whether the campaign captures email
+  contentConfig?: Record<string, unknown>; // To detect email capture from content
 }
 
 export function DiscountSettingsStep({
   goal,
   discountConfig,
   onConfigChange,
+  hasEmailCapture,
+  contentConfig,
 }: DiscountSettingsStepProps) {
-  // Initialize with defaults if not provided, preserving existing configuration
+  // Detect if email capture is enabled from contentConfig
+  const emailCaptureEnabled =
+    hasEmailCapture ??
+    (contentConfig?.emailRequired === true ||
+      contentConfig?.emailPlaceholder !== undefined ||
+      contentConfig?.enableEmailRecovery === true);
+
+  // Initialize with defaults if not provided
   const config: DiscountConfig = {
     enabled: discountConfig?.enabled !== false,
     showInPreview: discountConfig?.showInPreview !== false,
@@ -44,13 +53,7 @@ export function DiscountSettingsStep({
     usageLimit: discountConfig?.usageLimit,
     expiryDays: discountConfig?.expiryDays || 30,
     prefix: discountConfig?.prefix || "WELCOME",
-    deliveryMode: discountConfig?.deliveryMode || "show_code_always",
-    requireLogin: discountConfig?.requireLogin,
-    storeInMetafield: discountConfig?.storeInMetafield,
-    authorizedEmail: discountConfig?.authorizedEmail,
-    requireEmailMatch: discountConfig?.requireEmailMatch,
-    autoApplyMode: discountConfig?.autoApplyMode || "ajax",
-    codePresentation: discountConfig?.codePresentation || "show_code",
+    behavior: discountConfig?.behavior || "SHOW_CODE_AND_AUTO_APPLY",
   };
 
   const updateConfig = (updates: Partial<DiscountConfig>) => {
@@ -74,41 +77,34 @@ export function DiscountSettingsStep({
     return options;
   };
 
-  const getDeliveryModeDescription = (mode: DiscountDeliveryMode) => {
-    switch (mode) {
-      case "auto_apply_only":
+  const getBehaviorDescription = (behavior: DiscountBehavior) => {
+    switch (behavior) {
+      case "SHOW_CODE_AND_AUTO_APPLY":
         return {
-          title: "🔒 Auto-Apply Only",
+          title: "🎯 Show Code + Auto-Apply",
           description:
-            "Maximum security. Customers must create an account and log in to receive their discount.",
-          tone: "info" as const,
-        };
-      case "show_code_fallback":
-        return {
-          title: "⚖️ Auto-Apply with Fallback",
-          description:
-            "Recommended. Logged-in customers get automatic discount application. Guest shoppers see the code.",
+            "Recommended. The discount code is displayed to the customer AND automatically applied to their cart when they continue. Best user experience.",
           tone: "success" as const,
         };
-      case "show_code_always":
+      case "SHOW_CODE_ONLY":
         return {
-          title: "📋 Always Show Code",
+          title: "📋 Show Code Only",
           description:
-            "Least secure. Discount code is shown immediately. Easier for customers but may be shared.",
-          tone: "warning" as const,
-        };
-      case "show_in_popup_authorized_only":
-        return {
-          title: "📧 Email Authorization Only",
-          description:
-            "High security. Discount code only works with the email address that subscribed. Blocks guest checkout.",
+            "The discount code is displayed to the customer, but they must manually enter it at checkout. Simple but requires extra customer effort.",
           tone: "info" as const,
+        };
+      case "SHOW_CODE_AND_ASSIGN_TO_EMAIL":
+        return {
+          title: "🔒 Show Code + Assign to Email",
+          description:
+            "The discount code is displayed AND restricted to the captured email address only. Highest security, prevents code sharing. Requires email capture.",
+          tone: "warning" as const,
         };
       default:
         return {
-          title: "⚖️ Auto-Apply with Fallback",
+          title: "🎯 Show Code + Auto-Apply",
           description:
-            "Recommended. Logged-in customers get automatic discount application. Guest shoppers see the code.",
+            "Recommended. The discount code is displayed to the customer AND automatically applied to their cart when they continue.",
           tone: "success" as const,
         };
     }
@@ -278,47 +274,70 @@ export function DiscountSettingsStep({
               </BlockStack>
             </Card>
 
-            {/* Delivery Mode Settings */}
+            {/* Discount Behavior Settings */}
             <Card>
               <BlockStack gap="400">
                 <Text as="h3" variant="headingMd">
-                  How Customers Receive Discounts
+                  Discount Behavior
                 </Text>
                 <Text as="p" variant="bodySm" tone="subdued">
-                  Choose how customers will receive and use their discount codes. This affects
-                  security and user experience.
+                  Choose how customers will see and use their discount code. This affects both user
+                  experience and security.
                 </Text>
 
                 <FormLayout>
-                  <div data-testid="discount-delivery-mode">
+                  <div data-testid="discount-behavior">
                     <Select
-                      label="Delivery Mode"
+                      label="How should the discount be delivered?"
                       options={[
-                        { label: "Auto-apply only (no code shown)", value: "auto_apply_only" },
                         {
-                          label: "Auto-apply with fallback (show code if needed)",
-                          value: "show_code_fallback",
+                          label: "Show Code + Auto-Apply (Recommended)",
+                          value: "SHOW_CODE_AND_AUTO_APPLY",
                         },
-                        { label: "Show code in popup", value: "show_code_always" },
+                        {
+                          label: "Show Code Only",
+                          value: "SHOW_CODE_ONLY",
+                        },
+                        {
+                          label: "Show Code + Assign to Email User",
+                          value: "SHOW_CODE_AND_ASSIGN_TO_EMAIL",
+                          disabled: !emailCaptureEnabled,
+                        },
                       ]}
-                      value={config.deliveryMode || "show_code_fallback"}
-                      onChange={(deliveryMode) => {
+                      value={config.behavior || "SHOW_CODE_AND_AUTO_APPLY"}
+                      onChange={(behavior) => {
                         updateConfig({
-                          deliveryMode: deliveryMode as DiscountDeliveryMode,
+                          behavior: behavior as DiscountBehavior,
                         });
                       }}
+                      helpText={
+                        !emailCaptureEnabled && config.behavior === "SHOW_CODE_AND_ASSIGN_TO_EMAIL"
+                          ? "Email assignment requires email capture to be enabled"
+                          : undefined
+                      }
                     />
                   </div>
 
-                  {config.deliveryMode && (
-                    <div data-testid="discount-delivery-description">
+                  {config.behavior && (
+                    <div data-testid="discount-behavior-description">
                       <Banner
-                        tone={getDeliveryModeDescription(config.deliveryMode).tone}
-                        title={getDeliveryModeDescription(config.deliveryMode).title}
+                        tone={getBehaviorDescription(config.behavior).tone}
+                        title={getBehaviorDescription(config.behavior).title}
                       >
-                        <p>{getDeliveryModeDescription(config.deliveryMode).description}</p>
+                        <p>{getBehaviorDescription(config.behavior).description}</p>
                       </Banner>
                     </div>
+                  )}
+
+                  {/* Validation warning for email assignment without email capture */}
+                  {config.behavior === "SHOW_CODE_AND_ASSIGN_TO_EMAIL" && !emailCaptureEnabled && (
+                    <Banner tone="critical">
+                      <p>
+                        <strong>Email capture required:</strong> To use email-specific discount
+                        assignment, you must enable email capture in your campaign content
+                        configuration.
+                      </p>
+                    </Banner>
                   )}
                 </FormLayout>
               </BlockStack>

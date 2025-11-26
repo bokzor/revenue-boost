@@ -24,6 +24,8 @@ export interface StorefrontCampaign {
   variantKey?: string | null;
   globalCustomCSS?: string;
   customCSS?: string;
+  /** Whether to show "Powered by Revenue Boost" branding (true for free tier) */
+  showBranding?: boolean;
 }
 
 export interface PopupManagerProps {
@@ -357,11 +359,14 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, tri
 
       // Auto-apply discount via AJAX when configured to do so
       const discountCode = result.discountCode;
-      const deliveryMode = (campaign.discountConfig as { deliveryMode?: string } | undefined)?.deliveryMode;
+      const discountConfig = campaign.discountConfig as
+        | { behavior?: string }
+        | undefined;
+      const behavior = discountConfig?.behavior;
 
+      // Check if auto-apply is enabled based on behavior field
       const shouldAutoApply =
-        !!discountCode &&
-        (deliveryMode === "auto_apply_only" || deliveryMode === "show_code_fallback");
+        !!discountCode && behavior === "SHOW_CODE_AND_AUTO_APPLY";
 
       if (shouldAutoApply) {
         // Fire-and-forget; don't block the success UI on cart update
@@ -411,26 +416,25 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, tri
       }
 
       const code = result.code;
-      const autoApplyMode = result.autoApplyMode || "ajax";
-      const deliveryMode = (campaign.discountConfig as { deliveryMode?: string } | undefined)?.deliveryMode;
+      const discountConfig = campaign.discountConfig as
+        | { behavior?: string }
+        | undefined;
+      const behavior = discountConfig?.behavior;
 
       console.log("[PopupManager] 🎟️ Discount issued:", {
         code,
-        autoApplyMode,
-        deliveryMode,
+        behavior,
         campaignId: campaign.id,
       });
 
+      // Check if auto-apply is enabled based on behavior field
       const shouldAutoApply =
-        !!code &&
-        autoApplyMode !== "none" &&
-        (deliveryMode === "auto_apply_only" || deliveryMode === "show_code_fallback");
+        !!code && behavior === "SHOW_CODE_AND_AUTO_APPLY";
 
       console.log("[PopupManager] 🎟️ Should auto-apply discount?", {
         shouldAutoApply,
         hasCode: !!code,
-        autoApplyMode,
-        deliveryMode,
+        behavior,
       });
 
       if (shouldAutoApply) {
@@ -506,23 +510,24 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, tri
       }
 
       const code = result.discountCode;
-      const autoApplyMode = result.autoApplyMode || "ajax";
-      const deliveryMode = (campaign.discountConfig as { deliveryMode?: string } | undefined)?.deliveryMode;
+      const discountConfig = campaign.discountConfig as
+        | { behavior?: string }
+        | undefined;
+      const behavior = discountConfig?.behavior;
 
+      // Check if auto-apply is enabled based on behavior field
       const shouldAutoApply =
-        !!code &&
-        autoApplyMode !== "none" &&
-        (deliveryMode === "auto_apply_only" || deliveryMode === "show_code_fallback");
+        !!code && behavior === "SHOW_CODE_AND_AUTO_APPLY";
 
       if (shouldAutoApply && code) {
         // Fire-and-forget; don't block popup interactions
         void applyDiscountViaAjax(code);
       }
 
-      // For modes that are meant to show the code in the popup, don't redirect automatically.
+      // For modes that show the code in the popup, don't redirect automatically
       if (
-        deliveryMode === "show_code_always" ||
-        deliveryMode === "show_in_popup_authorized_only"
+        behavior === "SHOW_CODE_ONLY" ||
+        behavior === "SHOW_CODE_AND_ASSIGN_TO_EMAIL"
       ) {
         return code || undefined;
       }
@@ -761,6 +766,8 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, tri
       campaignId: campaign.id,
       challengeToken: challengeToken || undefined,
       currentCartTotal,
+      // Show "Powered by Revenue Boost" branding for free tier
+      showBranding: campaign.showBranding,
       // Pass discount config if enabled
       discount: campaign.discountConfig?.enabled ? {
         enabled: true,
@@ -772,7 +779,7 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, tri
           ? campaign.discountConfig.value
           : undefined,
         type: campaign.discountConfig.valueType || campaign.discountConfig.type,
-        deliveryMode: campaign.discountConfig.deliveryMode,
+        behavior: campaign.discountConfig.behavior,
         expiryDays: campaign.discountConfig.expiryDays,
         description: campaign.discountConfig.description,
       } : undefined,

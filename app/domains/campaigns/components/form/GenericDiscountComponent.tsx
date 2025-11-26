@@ -32,7 +32,7 @@ import { FormGrid, ProductPicker } from "~/domains/campaigns/components/form";
 import type { ProductPickerSelection } from "~/domains/campaigns/components/form";
 import type {
   DiscountConfig,
-  DiscountDeliveryMode,
+  DiscountBehavior,
 } from "~/domains/commerce/services/discount.server";
 
 interface GenericDiscountComponentProps {
@@ -60,13 +60,7 @@ export function GenericDiscountComponent({
     usageLimit: discountConfig?.usageLimit,
     expiryDays: discountConfig?.expiryDays || 30,
     prefix: discountConfig?.prefix || "WELCOME",
-    deliveryMode: discountConfig?.deliveryMode || "show_code_always",
-    requireLogin: discountConfig?.requireLogin,
-    storeInMetafield: discountConfig?.storeInMetafield,
-    authorizedEmail: discountConfig?.authorizedEmail,
-    requireEmailMatch: discountConfig?.requireEmailMatch,
-    autoApplyMode: discountConfig?.autoApplyMode || "ajax",
-    codePresentation: discountConfig?.codePresentation || "show_code",
+    behavior: discountConfig?.behavior || "SHOW_CODE_AND_AUTO_APPLY",
     // Enhanced fields
     applicability: discountConfig?.applicability,
     tiers: discountConfig?.tiers,
@@ -736,30 +730,33 @@ export function GenericDiscountComponent({
                 }
               />
 
-              {/* Delivery Mode & Code Prefix - 2 Column Grid */}
+              {/* Discount Behavior & Code Prefix - 2 Column Grid */}
               <FormGrid columns={2}>
                 <Select
-                  label="How customers receive discounts"
+                  label="Discount Behavior"
                   options={[
-                    { label: "Auto-apply only (no code shown)", value: "auto_apply_only" },
                     {
-                      label: "Auto-apply with fallback (show code if needed)",
-                      value: "show_code_fallback",
+                      label: "Show Code + Auto-Apply",
+                      value: "SHOW_CODE_AND_AUTO_APPLY",
                     },
-                    { label: "Show code in popup", value: "show_code_always" },
+                    { label: "Show Code Only", value: "SHOW_CODE_ONLY" },
+                    {
+                      label: "Show Code + Assign to Email",
+                      value: "SHOW_CODE_AND_ASSIGN_TO_EMAIL",
+                    },
                   ]}
-                  value={config.deliveryMode || "show_code_fallback"}
-                  onChange={(deliveryMode) =>
+                  value={config.behavior || "SHOW_CODE_AND_AUTO_APPLY"}
+                  onChange={(behavior) =>
                     updateConfig({
-                      deliveryMode: deliveryMode as DiscountDeliveryMode,
+                      behavior: behavior as DiscountBehavior,
                     })
                   }
                   helpText={
-                    config.deliveryMode === "auto_apply_only"
-                      ? "Discount will be applied automatically at checkout. No code is shown."
-                      : config.deliveryMode === "show_code_fallback"
-                        ? "We'll try to auto-apply the discount. If we can't, the code will be shown."
-                        : "Code will be shown immediately after signup."
+                    config.behavior === "SHOW_CODE_AND_AUTO_APPLY"
+                      ? "Code is displayed and automatically applied to the cart."
+                      : config.behavior === "SHOW_CODE_ONLY"
+                        ? "Code is displayed but customer must manually enter it."
+                        : "Code is shown and restricted to the captured email address."
                   }
                 />
 
@@ -797,9 +794,11 @@ export function GenericDiscountComponent({
                   </Badge>
                 )}
                 <Badge tone="info">
-                  {config.deliveryMode === "show_code_fallback"
-                    ? "Authorized Email Only"
-                    : "Show Code"}
+                  {config.behavior === "SHOW_CODE_AND_AUTO_APPLY"
+                    ? "Auto-Apply + Code"
+                    : config.behavior === "SHOW_CODE_ONLY"
+                      ? "Show Code"
+                      : "Email-Restricted"}
                 </Badge>
               </InlineStack>
             </InlineStack>

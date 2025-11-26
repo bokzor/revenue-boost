@@ -12,8 +12,8 @@ export interface RecipeDefinition {
 }
 
 export type RecipeInput =
-  | { type: "product_picker"; label: string; key: string }
-  | { type: "collection_picker"; label: string; key: string }
+  | { type: "product_picker"; label: string; key: string; multiSelect?: boolean }
+  | { type: "collection_picker"; label: string; key: string; multiSelect?: boolean }
   | {
       type: "discount_percentage";
       label: string;
@@ -98,8 +98,7 @@ export const RECIPE_CATALOG: Partial<Record<TemplateType, RecipeDefinition[]>> =
               productIds: [product.id],
             },
             showInPreview: true,
-            autoApplyMode: "none",
-            codePresentation: "show_code",
+            behavior: "SHOW_CODE_ONLY",
           },
         };
       },
@@ -159,8 +158,7 @@ export const RECIPE_CATALOG: Partial<Record<TemplateType, RecipeDefinition[]>> =
               collectionIds: [collection.id],
             },
             showInPreview: true,
-            autoApplyMode: "none",
-            codePresentation: "show_code",
+            behavior: "SHOW_CODE_ONLY",
           },
         };
       },
@@ -219,8 +217,7 @@ export const RECIPE_CATALOG: Partial<Record<TemplateType, RecipeDefinition[]>> =
               productIds: [product.id],
             },
             showInPreview: true,
-            autoApplyMode: "ajax",
-            codePresentation: "hide_code",
+            behavior: "SHOW_CODE_AND_AUTO_APPLY",
           },
         };
       },
@@ -284,8 +281,7 @@ export const RECIPE_CATALOG: Partial<Record<TemplateType, RecipeDefinition[]>> =
               productIds: [offerProduct.id],
             },
             showInPreview: true,
-            autoApplyMode: "ajax",
-            codePresentation: "hide_code",
+            behavior: "SHOW_CODE_AND_AUTO_APPLY",
           },
         };
       },
@@ -334,13 +330,15 @@ export const RECIPE_CATALOG: Partial<Record<TemplateType, RecipeDefinition[]>> =
       inputs: [
         {
           type: "product_picker",
-          label: "When adding this product (Trigger)",
+          label: "When adding these products (Trigger)",
           key: "triggerProducts",
+          multiSelect: true,
         },
         {
           type: "product_picker",
-          label: "Recommend this product (Upsell)",
+          label: "Recommend these products (Upsell)",
           key: "offerProducts",
+          multiSelect: true,
         },
         {
           type: "discount_percentage",
@@ -351,26 +349,34 @@ export const RECIPE_CATALOG: Partial<Record<TemplateType, RecipeDefinition[]>> =
       ],
       build: (context) => {
         const discountValue = getNumberFromContext(context.discountValue, 10);
-        const triggerProduct = context.triggerProducts?.[0];
-        const offerProduct = context.offerProducts?.[0];
+        const triggerProducts = context.triggerProducts || [];
+        const offerProducts = context.offerProducts || [];
 
-        if (!triggerProduct || !offerProduct) return {};
+        if (triggerProducts.length === 0 || offerProducts.length === 0) return {};
+
+        const triggerProductIds = triggerProducts.map((p) => p.id);
+        const offerProductIds = offerProducts.map((p) => p.id);
+        const triggerNames = triggerProducts.map((p) => p.title).join(", ");
+        const offerNames = offerProducts.map((p) => p.title).join(", ");
 
         return {
-          name: `Post-Add: ${triggerProduct.title}`,
+          name: `Post-Add: ${triggerProducts[0].title}${triggerProducts.length > 1 ? ` +${triggerProducts.length - 1} more` : ""}`,
           contentConfig: {
             headline: "Great choice!",
-            subheadline: `Customers who bought ${triggerProduct.title} also loved ${offerProduct.title}`,
+            subheadline:
+              triggerProducts.length === 1 && offerProducts.length === 1
+                ? `Customers who bought ${triggerNames} also loved ${offerNames}`
+                : `Complete your order with these recommended products`,
             bundleDiscount: discountValue,
             // Use existing schema fields instead of mappingRules
             productSelectionMethod: "manual" as const,
-            selectedProducts: [offerProduct.id],
+            selectedProducts: offerProductIds,
           },
           targetRules: {
             enhancedTriggers: {
               add_to_cart: {
                 enabled: true,
-                productIds: [triggerProduct.id],
+                productIds: triggerProductIds,
               },
             },
           },
@@ -381,11 +387,10 @@ export const RECIPE_CATALOG: Partial<Record<TemplateType, RecipeDefinition[]>> =
             value: discountValue,
             applicability: {
               scope: "products",
-              productIds: [offerProduct.id],
+              productIds: offerProductIds,
             },
             showInPreview: true,
-            autoApplyMode: "ajax",
-            codePresentation: "hide_code",
+            behavior: "SHOW_CODE_AND_AUTO_APPLY",
           },
         };
       },
@@ -422,9 +427,7 @@ export const RECIPE_CATALOG: Partial<Record<TemplateType, RecipeDefinition[]>> =
               scope: "all",
             },
             showInPreview: true,
-            autoApplyMode: "ajax",
-            codePresentation: "show_code",
-            deliveryMode: "show_code_fallback",
+            behavior: "SHOW_CODE_AND_AUTO_APPLY",
           },
         };
       },
@@ -455,9 +458,7 @@ export const RECIPE_CATALOG: Partial<Record<TemplateType, RecipeDefinition[]>> =
             valueType: "FREE_SHIPPING",
             minimumAmount: threshold,
             showInPreview: true,
-            autoApplyMode: "ajax",
-            codePresentation: "show_code",
-            deliveryMode: "auto_apply_only",
+            behavior: "SHOW_CODE_AND_AUTO_APPLY",
           },
         };
       },
@@ -496,9 +497,7 @@ export const RECIPE_CATALOG: Partial<Record<TemplateType, RecipeDefinition[]>> =
               scope: "all",
             },
             showInPreview: true,
-            autoApplyMode: "ajax",
-            deliveryMode: "show_code_fallback",
-            codePresentation: "show_code",
+            behavior: "SHOW_CODE_AND_AUTO_APPLY",
           },
         };
       },
@@ -541,9 +540,7 @@ export const RECIPE_CATALOG: Partial<Record<TemplateType, RecipeDefinition[]>> =
               scope: "all",
             },
             showInPreview: true,
-            autoApplyMode: "ajax",
-            deliveryMode: "show_code_fallback",
-            codePresentation: "show_code",
+            behavior: "SHOW_CODE_AND_AUTO_APPLY",
           },
         };
       },

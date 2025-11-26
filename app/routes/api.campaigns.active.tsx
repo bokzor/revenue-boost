@@ -26,6 +26,7 @@ import { getRedis, REDIS_PREFIXES } from "~/lib/redis.server";
 import prisma from "~/db.server";
 import { validateCustomCss } from "~/lib/css-guards";
 import type { StoreSettings } from "~/domains/store/types/settings";
+import { PLAN_DEFINITIONS, type PlanTier } from "~/domains/billing/types/plan";
 
 // ============================================================================
 // TYPES
@@ -38,6 +39,8 @@ interface ActiveCampaignsResponse {
   campaigns: ApiCampaignData[];
   timestamp: string;
   globalCustomCSS?: string;
+  /** Whether to show "Powered by Revenue Boost" branding (true for free tier) */
+  showBranding?: boolean;
 }
 
 function extractGlobalCustomCss(settings: unknown): string | undefined {
@@ -83,9 +86,14 @@ export async function loader(args: LoaderFunctionArgs) {
       const storeId = await getStoreIdFromShop(shop);
       const store = await prisma.store.findUnique({
         where: { id: storeId },
-        select: { settings: true },
+        select: { settings: true, planTier: true },
       });
       const globalCustomCSS = extractGlobalCustomCss(store?.settings);
+
+      // Determine if branding should be shown based on plan
+      const planTier = (store?.planTier || "FREE") as PlanTier;
+      const planDefinition = PLAN_DEFINITIONS[planTier];
+      const showBranding = !planDefinition.features.removeBranding;
 
       // If the store has exceeded its monthly impression cap, gracefully
       // return no campaigns instead of an error so storefronts fail soft.
@@ -189,6 +197,7 @@ export async function loader(args: LoaderFunctionArgs) {
             campaigns: [formattedPreview],
             timestamp: new Date().toISOString(),
             globalCustomCSS,
+            showBranding,
           };
 
           console.log(`[Active Campaigns API] ✅ Returning preview campaign from token:`, {
@@ -274,6 +283,7 @@ export async function loader(args: LoaderFunctionArgs) {
         campaigns: formattedCampaigns,
         timestamp: new Date().toISOString(),
         globalCustomCSS,
+        showBranding,
       };
 
       console.log(

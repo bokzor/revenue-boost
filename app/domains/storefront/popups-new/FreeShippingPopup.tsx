@@ -62,7 +62,7 @@ export interface FreeShippingPopupProps {
   onSubmit?: (data: { email: string }) => Promise<string | undefined>;
   issueDiscount?: (options?: {
     cartSubtotalCents?: number;
-  }) => Promise<{ code?: string; autoApplyMode?: string } | null>;
+  }) => Promise<{ code?: string; behavior?: string } | null>;
 }
 
 export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
@@ -442,10 +442,10 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
       console.log("[FreeShippingPopup] Free shipping unlocked", {
         threshold,
         cartTotal,
-        deliveryMode: discount?.deliveryMode,
+        behavior: discount?.behavior,
       });
 
-      if (discount?.deliveryMode === "auto_apply_only") {
+      if (discount?.behavior === "SHOW_CODE_AND_AUTO_APPLY") {
         console.log("[FreeShippingPopup] Auto-apply mode active for free shipping", {
           threshold,
           cartTotal,
@@ -466,7 +466,7 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
           alreadyIssued: hasIssuedDiscountRef.current,
           cartTotal,
           threshold,
-          deliveryMode: discount?.deliveryMode,
+          behavior: discount?.behavior,
         });
 
         hasIssuedDiscountRef.current = true;
@@ -498,7 +498,7 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
               setDiscountCode(result.code);
               console.log("[FreeShippingPopup] ✅ Discount code issued for free shipping", {
                 code: result.code,
-                autoApplyMode: result.autoApplyMode,
+                behavior: result.behavior,
               });
             } else if (result && !result.code) {
               console.log(
@@ -1006,7 +1006,7 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
             {state === "unlocked" &&
               discount &&
               (!requireEmailToClaim || hasClaimed) &&
-              (discount.deliveryMode === "auto_apply_only" ? (
+              (discount.behavior === "SHOW_CODE_AND_AUTO_APPLY" && !discountCode && !discount.code ? (
                 <p className="free-shipping-bar-discount-text">
                   Free shipping will be applied automatically at checkout.
                 </p>

@@ -11,6 +11,7 @@ import type {
   CampaignUpdateData,
   CampaignWithConfigs,
   DiscountConfig,
+  TargetRulesConfig,
 } from "../types/campaign.js";
 import type { AdminApiContext } from "@shopify/shopify-app-react-router/server";
 import {
@@ -23,12 +24,68 @@ import { CampaignServiceError } from "~/lib/errors.server";
 import { CampaignQueryService } from "./campaign-query.server.js";
 // import { AdminApiContext } from "@shopify/shopify-app-remix/server";
 import { MarketingEventsService } from "~/domains/marketing-events/services/marketing-events.server";
+import { PlanGuardService } from "~/domains/billing/services/plan-guard.server";
 
 /**
  * Preserve discount config as-is; codes are generated at lead submission time.
  */
 function ensureDiscountCode(discountConfig?: DiscountConfig): DiscountConfig | undefined {
   return discountConfig;
+}
+
+/**
+ * Default disabled audience targeting config
+ */
+const DISABLED_AUDIENCE_TARGETING: {
+  enabled: boolean;
+  shopifySegmentIds: string[];
+  sessionRules: {
+    enabled: boolean;
+    conditions: Array<{
+      field: string;
+      operator: "in" | "eq" | "ne" | "gt" | "gte" | "lt" | "lte" | "nin";
+      value: string | number | boolean | string[];
+    }>;
+    logicOperator: "AND" | "OR";
+  };
+} = {
+  enabled: false,
+  shopifySegmentIds: [],
+  sessionRules: {
+    enabled: false,
+    conditions: [],
+    logicOperator: "AND",
+  },
+};
+
+/**
+ * Sanitize target rules for plan-based feature restrictions.
+ *
+ * For stores on plans that don't include advancedTargeting, this function
+ * strips audience targeting fields (Shopify segments, session rules) to prevent
+ * accidental use of locked features.
+ *
+ * This approach replaces the previous 403 error behavior with silent sanitization,
+ * ensuring Free plan users can always save campaigns without encountering plan errors.
+ */
+async function sanitizeTargetRulesForPlan(
+  storeId: string,
+  targetRules?: TargetRulesConfig
+): Promise<TargetRulesConfig | undefined> {
+  if (!targetRules) return targetRules;
+
+  const { definition } = await PlanGuardService.getPlanContext(storeId);
+
+  // If advanced targeting is not available on this plan, strip audience targeting fields
+  if (!definition.features.advancedTargeting) {
+    const { audienceTargeting, ...rest } = targetRules;
+    return {
+      ...rest,
+      audienceTargeting: DISABLED_AUDIENCE_TARGETING,
+    };
+  }
+
+  return targetRules;
 }
 
 /**
@@ -58,35 +115,30 @@ export class CampaignMutationService {
     // Enforce plan limits
     // Only check if we are trying to create an ACTIVE campaign
     if (data.status === "ACTIVE") {
-      const { PlanGuardService } = await import("~/domains/billing/services/plan-guard.server");
       await PlanGuardService.assertCanCreateCampaign(storeId);
     }
 
     // Enforce variant limits if part of an experiment
     if (data.experimentId) {
-      const { PlanGuardService } = await import("~/domains/billing/services/plan-guard.server");
       await PlanGuardService.assertCanAddVariant(storeId, data.experimentId);
     }
 
-    // Enforce feature flags for advanced targeting if used
-    const hasAdvancedTargeting =
-      !!data.targetRules?.audienceTargeting?.enabled ||
-      !!data.targetRules?.audienceTargeting?.shopifySegmentIds?.length ||
-      !!data.targetRules?.audienceTargeting?.sessionRules;
-    if (hasAdvancedTargeting) {
-      const { PlanGuardService } = await import("~/domains/billing/services/plan-guard.server");
-      await PlanGuardService.assertFeatureEnabled(storeId, "advancedTargeting");
-    }
+    // Sanitize target rules based on plan features
+    // This replaces the previous 403 error approach with silent sanitization
+    const sanitizedTargetRules = await sanitizeTargetRulesForPlan(storeId, data.targetRules);
 
     try {
       // Auto-generate discount code if needed
       const discountConfig = ensureDiscountCode(data.discountConfig);
-      const jsonFields = prepareEntityJsonFields({ ...data, discountConfig }, [
-        { key: "contentConfig", defaultValue: {} },
-        { key: "designConfig", defaultValue: {} },
-        { key: "targetRules", defaultValue: {} },
-        { key: "discountConfig", defaultValue: {} },
-      ]);
+      const jsonFields = prepareEntityJsonFields(
+        { ...data, discountConfig, targetRules: sanitizedTargetRules },
+        [
+          { key: "contentConfig", defaultValue: {} },
+          { key: "designConfig", defaultValue: {} },
+          { key: "targetRules", defaultValue: {} },
+          { key: "discountConfig", defaultValue: {} },
+        ]
+      );
 
       const campaign = await prisma.campaign.create({
         data: {
@@ -194,15 +246,22 @@ export class CampaignMutationService {
 
       // Only check if we are changing status to ACTIVE (and it wasn't already)
       if (currentCampaign && currentCampaign.status !== "ACTIVE") {
-        const { PlanGuardService } = await import("~/domains/billing/services/plan-guard.server");
         await PlanGuardService.assertCanCreateCampaign(storeId);
       }
     }
 
+    // Sanitize target rules based on plan features
+    const sanitizedTargetRules = data.targetRules
+      ? await sanitizeTargetRulesForPlan(storeId, data.targetRules)
+      : undefined;
+
     try {
-      // Build update data using extracted helpers
+      // Build update data using extracted helpers with sanitized targetRules
       const { buildCampaignUpdateData } = await import("./campaign-update-helpers.js");
-      const updateData = buildCampaignUpdateData(data);
+      const updateData = buildCampaignUpdateData({
+        ...data,
+        targetRules: sanitizedTargetRules,
+      });
 
       const result = await prisma.campaign.updateMany({
         where: { id, storeId },

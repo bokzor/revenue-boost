@@ -49,7 +49,7 @@ interface DiscountIssueResponse {
     productIds?: string[];
     collectionIds?: string[];
   };
-  autoApplyMode?: string;
+  behavior?: string;
   error?: string;
 }
 
@@ -213,7 +213,7 @@ export async function action({ request }: ActionFunctionArgs) {
       success: true,
       code: result.discountCode,
       type: discountConfig.valueType || "PERCENTAGE",
-      autoApplyMode: discountConfig.autoApplyMode || "ajax",
+      behavior: discountConfig.behavior || "SHOW_CODE_AND_AUTO_APPLY",
     };
 
     // Add tier info if applicable (from service result)

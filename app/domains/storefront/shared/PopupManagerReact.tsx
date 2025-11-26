@@ -348,7 +348,7 @@ export const PopupManager: React.FC<PopupManagerProps> = ({
                           ? activeCampaign.discountConfig.value
                           : undefined,
                       type: activeCampaign.discountConfig.valueType,
-                      deliveryMode: activeCampaign.discountConfig.deliveryMode,
+                      behavior: activeCampaign.discountConfig.behavior,
                       expiryDays: activeCampaign.discountConfig.expiryDays,
                       description: activeCampaign.discountConfig.description,
                     }
@@ -533,7 +533,7 @@ export const PopupManager: React.FC<PopupManagerProps> = ({
                           ? activeCampaign.discountConfig.value
                           : undefined,
                       type: activeCampaign.discountConfig.valueType,
-                      deliveryMode: activeCampaign.discountConfig.deliveryMode,
+                      behavior: activeCampaign.discountConfig.behavior,
                       expiryDays: activeCampaign.discountConfig.expiryDays,
                       description: activeCampaign.discountConfig.description,
                     }

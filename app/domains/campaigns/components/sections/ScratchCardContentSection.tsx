@@ -61,11 +61,9 @@ export function ScratchCardContentSection({
               showInPreview: true,
               valueType: "PERCENTAGE",
               value: 5,
-              deliveryMode: "show_code_fallback",
+              behavior: "SHOW_CODE_AND_AUTO_APPLY",
               expiryDays: 30,
               type: "single_use",
-              autoApplyMode: "ajax",
-              codePresentation: "show_code",
             } as DiscountConfig,
           },
           {
@@ -77,11 +75,9 @@ export function ScratchCardContentSection({
               showInPreview: true,
               valueType: "PERCENTAGE",
               value: 10,
-              deliveryMode: "show_code_fallback",
+              behavior: "SHOW_CODE_AND_AUTO_APPLY",
               expiryDays: 30,
               type: "single_use",
-              autoApplyMode: "ajax",
-              codePresentation: "show_code",
             } as DiscountConfig,
           },
           {
@@ -93,11 +89,9 @@ export function ScratchCardContentSection({
               showInPreview: true,
               valueType: "PERCENTAGE",
               value: 15,
-              deliveryMode: "show_code_fallback",
+              behavior: "SHOW_CODE_AND_AUTO_APPLY",
               expiryDays: 30,
               type: "single_use",
-              autoApplyMode: "ajax",
-              codePresentation: "show_code",
             } as DiscountConfig,
           },
           {
@@ -109,11 +103,9 @@ export function ScratchCardContentSection({
               showInPreview: true,
               valueType: "PERCENTAGE",
               value: 20,
-              deliveryMode: "show_code_fallback",
+              behavior: "SHOW_CODE_AND_AUTO_APPLY",
               expiryDays: 30,
               type: "single_use",
-              autoApplyMode: "ajax",
-              codePresentation: "show_code",
             } as DiscountConfig,
           },
         ];
@@ -136,11 +128,9 @@ export function ScratchCardContentSection({
         showInPreview: true,
         valueType: "PERCENTAGE",
         value: 10,
-        deliveryMode: "show_code_fallback",
+        behavior: "SHOW_CODE_AND_AUTO_APPLY",
         expiryDays: 30,
         type: "single_use",
-        autoApplyMode: "ajax",
-        codePresentation: "show_code",
       } as DiscountConfig,
     };
     const updated = [...prizes, p];
@@ -189,13 +179,13 @@ export function ScratchCardContentSection({
       parts.push(`${config.expiryDays}d`);
     }
 
-    // Delivery mode
-    if (config.deliveryMode === "auto_apply_only") {
-      parts.push("Auto-apply");
-    } else if (config.deliveryMode === "show_code_fallback") {
+    // Behavior
+    if (config.behavior === "SHOW_CODE_AND_AUTO_APPLY") {
       parts.push("Show + Auto-apply");
-    } else if (config.deliveryMode === "show_code_always") {
+    } else if (config.behavior === "SHOW_CODE_ONLY") {
       parts.push("Show code");
+    } else if (config.behavior === "SHOW_CODE_AND_ASSIGN_TO_EMAIL") {
+      parts.push("Assign to email");
     }
 
     return parts.join(" • ");
@@ -322,22 +312,13 @@ export function ScratchCardContentSection({
               />
             </FormGrid>
 
-            <FormGrid columns={2}>
-              <TextField
-                label="Success Message"
-                name="content.successMessage"
-                value={content.successMessage || ""}
-                error={errors?.successMessage}
-                required
-                placeholder="Congrats! You won {{prize}} (code: {{code}})"
-                helpText="Use {{prize}} and {{code}} placeholders"
-                onChange={(v) => updateField("successMessage", v)}
-              />
+            <FormGrid columns={1}>
               <TextField
                 label="Failure Message"
                 name="content.failureMessage"
                 value={content.failureMessage || ""}
-                placeholder="Thanks for playing!"
+                placeholder="Better luck next time!"
+                helpText="Shown when a user wins a non-discount prize"
                 onChange={(v) => updateField("failureMessage", v)}
               />
             </FormGrid>

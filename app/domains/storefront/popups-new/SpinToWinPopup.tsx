@@ -8,6 +8,7 @@
  * - Elegant prize reveal
  * - Modern typography and spacing
  * - Professional color palette
+ * - **Truly responsive design using container-relative units**
  */
 
 import React, { useState, useCallback, useRef, useEffect, useMemo } from "react";
@@ -16,7 +17,7 @@ import { PopupGridContainer } from "./PopupGridContainer";
 import type { PopupDesignConfig, Prize } from "./types";
 import type { SpinToWinContent } from "~/domains/campaigns/types/campaign";
 import { prefersReducedMotion, debounce } from "./utils";
-import { POPUP_SPACING, getContainerPadding, SPACING_GUIDELINES } from "./spacing";
+import { POPUP_SPACING } from "./spacing";
 
 // Import custom hooks
 import { usePopupForm, useDiscountCode, usePopupAnimation } from "./hooks";
@@ -29,6 +30,52 @@ import { EmailInput, NameInput, GdprCheckbox, SubmitButton } from "./components"
 
 // Import shared components from Phase 1 & 2
 import { LeadCaptureForm, DiscountCodeDisplay, SuccessState } from "./components/shared";
+
+/**
+ * CSS Custom Properties for container-relative responsive design
+ * These scale based on the popup container size (cqi = container query inline)
+ */
+const RESPONSIVE_CSS_VARS = `
+  /* ============================================
+   * CONTAINER-RELATIVE DESIGN TOKENS
+   * All values scale with popup container size
+   * ============================================ */
+  
+  /* Wheel Sizing - Uses cqmin for square proportions */
+  --stw-wheel-size: clamp(200px, 65cqmin, 380px);
+  --stw-wheel-size-mobile: clamp(180px, 55cqi, 280px);
+  
+  /* Center Button */
+  --stw-center-btn-size: clamp(50px, 18cqmin, 80px);
+  --stw-center-btn-font: clamp(9px, 2.5cqmin, 12px);
+  --stw-center-btn-border: clamp(2px, 0.8cqmin, 4px);
+  
+  /* Pointer */
+  --stw-pointer-size: clamp(12px, 3.5cqmin, 18px);
+  --stw-pointer-length: clamp(18px, 5cqmin, 28px);
+  
+  /* Typography - Fluid scaling */
+  --stw-headline-size: clamp(1.25rem, 5cqi, 2.25rem);
+  --stw-subheadline-size: clamp(0.875rem, 3cqi, 1.25rem);
+  --stw-body-size: clamp(0.875rem, 2.5cqi, 1rem);
+  --stw-button-size: clamp(0.9375rem, 3.5cqi, 1.125rem);
+  
+  /* Spacing - Container-relative */
+  --stw-padding-x: clamp(1rem, 4cqi, 2rem);
+  --stw-padding-y: clamp(1.25rem, 5cqi, 2.5rem);
+  --stw-gap-sm: clamp(0.5rem, 1.5cqi, 0.75rem);
+  --stw-gap-md: clamp(0.75rem, 2cqi, 1rem);
+  --stw-gap-lg: clamp(1rem, 3cqi, 1.5rem);
+  
+  /* Border Radius - Proportional */
+  --stw-radius-sm: clamp(6px, 1.5cqi, 10px);
+  --stw-radius-md: clamp(10px, 2.5cqi, 16px);
+  --stw-radius-lg: clamp(12px, 3cqi, 20px);
+  
+  /* Input Fields */
+  --stw-input-height: clamp(44px, 10cqi, 56px);
+  --stw-input-padding: clamp(12px, 3cqi, 16px);
+`;
 
 /**
  * SpinToWinConfig - Extends both design config AND campaign content type
@@ -448,6 +495,11 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
     }
   }, [handleFormSubmit, config, formState.email, onSpin, segments, onWin, setDiscountCode]);
 
+  // Wheel sizing is now primarily handled by CSS container queries (--stw-wheel-size)
+  // The wheelSize state is only used for canvas pixel dimensions
+  // CSS handles the visual scaling via the .spin-wheel-wrapper class
+
+  // Button styles - use fixed sizing like other popup components for consistency
   const buttonStyles: React.CSSProperties = {
     width: "100%",
     padding: POPUP_SPACING.component.button,
@@ -458,7 +510,6 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
     backgroundColor: config.buttonColor || accentColor,
     color: config.buttonTextColor || "#FFFFFF",
     cursor: "pointer",
-    opacity: isSpinning ? 0.5 : 1,
     transition: `all ${animDuration}ms cubic-bezier(0.4, 0, 0.2, 1)`,
     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
     textTransform: "uppercase",
@@ -472,7 +523,6 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
     color: config.textColor || "#4B5563",
     boxShadow: "none",
     cursor: "pointer",
-    opacity: 0.9,
     textTransform: "none",
     letterSpacing: "normal",
   };
@@ -497,112 +547,243 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
       closeOnEscape={config.closeOnEscape !== false}
       closeOnBackdropClick={config.closeOnOverlayClick !== false}
       previewMode={config.previewMode}
+      showBranding={config.showBranding}
       ariaLabel={config.ariaLabel || config.headline}
       ariaDescribedBy={config.ariaDescribedBy}
       customCSS={config.customCSS}
       globalCustomCSS={config.globalCustomCSS}
     >
-      {/* Inject CSS for animations and placeholder colors */}
+      {/* Inject container-relative CSS for truly responsive design */}
       <style>
         {`
+          /* ============================================
+           * CONTAINER-RELATIVE DESIGN SYSTEM
+           * Uses cqi/cqmin for proportional scaling
+           * ============================================ */
+          ${RESPONSIVE_CSS_VARS}
+
           @keyframes slideUpFade {
-            from {
-              opacity: 0;
-              transform: translateY(20px);
-            }
-            to {
-              opacity: 1;
-              transform: translateY(0);
-            }
+            from { opacity: 0; transform: translateY(clamp(10px, 3cqi, 20px)); }
+            to { opacity: 1; transform: translateY(0); }
           }
 
-          /* Dynamic placeholder color based on inputTextColor */
+          @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
+
+          @keyframes pulseGlow {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(${accentColor}, 0.4); }
+            50% { box-shadow: 0 0 clamp(15px, 4cqi, 25px) clamp(3px, 1cqi, 6px) rgba(${accentColor}, 0.2); }
+          }
+
+          /* Dynamic placeholder color */
           .spin-to-win-input::placeholder {
             color: ${inputTextColor ? `${inputTextColor}80` : "rgba(107, 114, 128, 0.5)"};
             opacity: 1;
           }
 
-          /* Wheel Cell - Mobile First */
+          /* ============================================
+           * WHEEL CELL - Mobile First (Stacked Layout)
+           * ============================================ */
           .spin-wheel-cell {
             position: relative;
             display: flex;
             justify-content: center;
-            align-items: flex-end;
+            align-items: center;
             overflow: visible;
-            padding: 0;
+            padding: var(--stw-gap-md);
             z-index: 10;
-            min-height: 300px;
+            /* Mobile: Use container width for height calculation */
+            min-height: clamp(220px, 60cqi, 320px);
             width: 100%;
-            height: 100%;
           }
 
-          /* Form Cell - Mobile First */
+          /* ============================================
+           * FORM CELL - Mobile First
+           * ============================================ */
           .spin-form-cell {
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            padding: ${getContainerPadding(config.size)};
+            /* Container-relative padding */
+            padding: var(--stw-padding-y) var(--stw-padding-x);
             z-index: 20;
-            /* Ensure background is solid on mobile so text is readable over wheel if they overlap */
             background-color: ${baseBackground};
             width: 100%;
           }
 
           .spin-form-content {
             width: 100%;
+            max-width: clamp(280px, 85cqi, 400px);
             display: flex;
             flex-direction: column;
-            gap: ${SPACING_GUIDELINES.betweenFields};
+            gap: var(--stw-gap-md);
           }
 
-          /* Wheel Wrapper - Mobile First */
+          /* ============================================
+           * WHEEL WRAPPER - Container-Relative Sizing
+           * ============================================ */
           .spin-wheel-wrapper {
-            position: absolute;
-            /* Center horizontally */
-            left: 50%;
-            transform: translateX(-50%) rotate(90deg); /* Rotate 90deg for mobile */
-            transform-origin: center center;
-            bottom: 0;
+            position: relative;
+            /* Container-relative sizing using cqmin for square aspect */
+            width: var(--stw-wheel-size-mobile);
+            height: var(--stw-wheel-size-mobile);
             z-index: 10;
-            transition: transform 0.3s ease;
+            transition: width 0.3s ease, height 0.3s ease;
           }
 
-          /* Pointer - Mobile First (Bottom/6 o'clock relative to visual, but 3 o'clock relative to rotated wheel) */
+          /* Wheel canvas container */
+          .spin-wheel-canvas-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            filter: drop-shadow(0 clamp(6px, 2cqi, 12px) clamp(15px, 5cqi, 30px) rgba(15,23,42,0.35));
+            transition: filter 0.3s ease;
+          }
+
+          .spin-wheel-canvas-container.has-spun {
+            filter: drop-shadow(0 clamp(10px, 3cqi, 18px) clamp(25px, 7cqi, 45px) rgba(15,23,42,0.55));
+          }
+
+          /* ============================================
+           * POINTER - Container-Relative
+           * ============================================ */
           .spin-pointer {
-             position: absolute;
-             top: 50%;
-             right: -12px; /* Points to the right side of the wrapper (which is bottom visually due to rotation) */
-             transform: translateY(-50%);
-             width: 0;
-             height: 0;
-             border-top: 16px solid transparent;
-             border-bottom: 16px solid transparent;
-             border-right: 24px solid #FFFFFF;
-             filter: drop-shadow(-2px 0 4px rgba(0,0,0,0.2));
-             z-index: 20;
+            position: absolute;
+            top: 50%;
+            right: calc(-1 * var(--stw-pointer-length) * 0.5);
+            transform: translateY(-50%);
+            width: 0;
+            height: 0;
+            border-top: var(--stw-pointer-size) solid transparent;
+            border-bottom: var(--stw-pointer-size) solid transparent;
+            border-right: var(--stw-pointer-length) solid #FFFFFF;
+            filter: drop-shadow(clamp(-1px, -0.3cqi, -2px) 0 clamp(2px, 0.6cqi, 4px) rgba(0,0,0,0.25));
+            z-index: 20;
+          }
+
+          /* ============================================
+           * CENTER BUTTON - Container-Relative
+           * ============================================ */
+          .spin-center-button {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: var(--stw-center-btn-size);
+            height: var(--stw-center-btn-size);
+            border-radius: 50%;
+            background-color: ${accentColor};
+            border: var(--stw-center-btn-border) solid rgba(15,23,42,0.85);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #F9FAFB;
+            font-size: var(--stw-center-btn-font);
+            font-weight: 600;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            box-shadow: 0 clamp(2px, 0.5cqi, 4px) clamp(8px, 2cqi, 12px) rgba(15,23,42,0.4);
+            pointer-events: none;
+            z-index: 15;
+          }
+
+          /* ============================================
+           * TYPOGRAPHY - Container-Relative
+           * ============================================ */
+          .spin-headline {
+            font-size: var(--stw-headline-size);
+            font-weight: 900;
+            line-height: 1.1;
+            margin-bottom: var(--stw-gap-sm);
+            text-align: center;
+          }
+
+          .spin-subheadline {
+            font-size: var(--stw-subheadline-size);
+            font-weight: 500;
+            line-height: 1.5;
+            text-align: center;
           }
 
 
-          /* ✅ Desktop Layout (via Container Query) */
+          /* ============================================
+           * INPUTS - Container-Relative
+           * ============================================ */
+          .spin-input-wrapper {
+            width: 100%;
+          }
+
+          .spin-input-wrapper input {
+            height: var(--stw-input-height);
+            padding: 0 var(--stw-input-padding);
+            font-size: var(--stw-body-size);
+            border-radius: var(--stw-radius-sm);
+          }
+
+          /* ============================================
+           * SUCCESS STATE - Container-Relative
+           * ============================================ */
+          .spin-success-section {
+            width: 100%;
+            text-align: center;
+            animation: slideUpFade 0.5s ease-out;
+          }
+
+          .spin-discount-wrapper {
+            margin-top: var(--stw-gap-md);
+          }
+
+          /* ============================================
+           * DESKTOP LAYOUT (Container Query @ 600px)
+           * ============================================ */
           @container popup (min-width: 600px) {
             .spin-wheel-cell {
-              justify-content: flex-end; /* Align to center line */
+              justify-content: flex-end;
               align-items: center;
               min-height: auto;
+              padding: var(--stw-gap-lg);
             }
 
             .spin-form-cell {
-              padding: ${POPUP_SPACING.padding.wide};
-              background-color: transparent; /* Transparent on desktop */
+              padding: var(--stw-padding-y) var(--stw-padding-x);
+              background-color: transparent;
+            }
+
+            .spin-form-content {
+              max-width: clamp(300px, 42cqi, 380px);
             }
 
             .spin-wheel-wrapper {
-              left: auto;
-              right: 0; /* Align to right edge of cell (center of popup) */
-              top: 50%;
-              bottom: auto;
-              transform: translateY(-50%); /* No rotation, just vertical center */
+              /* Desktop uses larger wheel size */
+              width: var(--stw-wheel-size);
+              height: var(--stw-wheel-size);
+            }
+
+            .spin-headline {
+              font-size: clamp(1.5rem, 4.5cqi, 2.25rem);
+            }
+
+            .spin-subheadline {
+              font-size: clamp(1rem, 2.8cqi, 1.25rem);
+            }
+          }
+
+          /* ============================================
+           * LARGE DESKTOP (Container Query @ 800px)
+           * ============================================ */
+          @container popup (min-width: 800px) {
+            .spin-wheel-wrapper {
+              /* Max out wheel size on large containers */
+              width: clamp(320px, 55cqmin, 400px);
+              height: clamp(320px, 55cqmin, 400px);
+            }
+
+            .spin-form-content {
+              gap: var(--stw-gap-lg);
             }
           }
         `}
@@ -618,24 +799,11 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
       >
         {/* Wheel Cell */}
         <div className="spin-wheel-cell" ref={wheelCellRef}>
-          <div
-            className="spin-wheel-wrapper"
-            style={{
-              width: wheelSize,
-              height: wheelSize,
-            }}
-          >
-            {/* Rotating wheel canvas */}
+          <div className="spin-wheel-wrapper">
+            {/* Rotating wheel canvas - uses CSS for sizing */}
             <div
               ref={wheelContainerRef}
-              style={{
-                position: "relative",
-                width: "100%",
-                height: "100%",
-                filter: hasSpun
-                  ? "drop-shadow(0 18px 45px rgba(15,23,42,0.55))"
-                  : "drop-shadow(0 10px 30px rgba(15,23,42,0.35))",
-              }}
+              className={`spin-wheel-canvas-container ${hasSpun ? "has-spun" : ""}`}
             >
               <canvas
                 ref={canvasRef}
@@ -649,35 +817,11 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
               />
             </div>
 
-            {/* Pointer */}
+            {/* Pointer - uses container-relative CSS */}
             <div className="spin-pointer" />
 
-            {/* Center button visual */}
-            <div
-              style={{
-                position: "absolute",
-                top: "50%",
-                left: "50%",
-                transform: "translate(-50%, -50%)",
-                width: 80,
-                height: 80,
-                borderRadius: "50%",
-                backgroundColor: accentColor,
-                border: "4px solid rgba(15,23,42,0.85)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "#F9FAFB",
-                fontSize: 12,
-                fontWeight: 600,
-                letterSpacing: "0.12em",
-                textTransform: "uppercase",
-                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                boxShadow: "0 4px 12px rgba(15,23,42,0.4)",
-                pointerEvents: "none",
-                zIndex: 15,
-              }}
-            >
+            {/* Center button - uses container-relative CSS */}
+            <div className="spin-center-button">
               {isSpinning ? "..." : "SPIN"}
             </div>
           </div>
@@ -686,15 +830,12 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
         {/* Form Cell */}
         <div className="spin-form-cell">
           <div className="spin-form-content">
-            {/* Header */}
-            <div style={{ textAlign: "center", marginBottom: SPACING_GUIDELINES.afterDescription }}>
+            {/* Header - uses container-relative typography */}
+            <div style={{ textAlign: "center", marginBottom: "var(--stw-gap-lg)" }}>
               <h2
+                className="spin-headline"
                 style={{
-                  fontSize: (config as any).titleFontSize || config.fontSize || "2rem",
-                  fontWeight: (config as any).titleFontWeight || config.fontWeight || 900,
                   color: config.textColor || "#111827",
-                  marginBottom: SPACING_GUIDELINES.afterHeadline,
-                  lineHeight: 1.1,
                   textShadow: (config as any).titleTextShadow,
                 }}
               >
@@ -705,12 +846,8 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
                   : config.headline || "SPIN TO WIN!"}
               </h2>
               <p
-                style={{
-                  fontSize: (config as any).descriptionFontSize || config.fontSize || "1.125rem",
-                  color: descriptionColor,
-                  fontWeight: (config as any).descriptionFontWeight || config.fontWeight || 500,
-                  lineHeight: 1.6,
-                }}
+                className="spin-subheadline"
+                style={{ color: descriptionColor }}
               >
                 {resultMessage || config.subheadline || "Try your luck to win exclusive discounts!"}
               </p>
@@ -720,7 +857,7 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
             {!hasSpun ? (
               <>
                 {collectName && (
-                  <div style={{ width: "100%" }}>
+                  <div className="spin-input-wrapper">
                     <NameInput
                       value={formState.name}
                       onChange={setName}
@@ -737,7 +874,7 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
                 )}
 
                 {config.emailRequired && (
-                  <div style={{ width: "100%" }}>
+                  <div className="spin-input-wrapper">
                     <EmailInput
                       value={formState.email}
                       onChange={setEmail}
@@ -771,9 +908,8 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
                   disabled={isSpinning || isGeneratingCode}
                   style={{
                     ...buttonStyles,
-                    marginTop: POPUP_SPACING.section.md,
-                    position: "relative",
-                    overflow: "hidden",
+                    marginTop: "var(--stw-gap-md)",
+                    opacity: isSpinning ? 0.5 : 1,
                   }}
                   onMouseEnter={(e) => {
                     if (!isSpinning && !hasSpun) {
@@ -785,14 +921,7 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
                   }}
                 >
                   {isSpinning ? (
-                    <span
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: "10px",
-                      }}
-                    >
+                    <span style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "10px" }}>
                       <span
                         style={{
                           width: "16px",
@@ -817,25 +946,19 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
                     onClick={onClose}
                     style={{
                       ...secondaryButtonStyles,
-                      marginTop: SPACING_GUIDELINES.betweenButtons,
+                      marginTop: "var(--stw-gap-sm)",
                     }}
                     onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
                     onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.9")}
                   >
-                    {config.dismissLabel || "No thanks"}
+                    {isSpinning ? "Close" : (config.dismissLabel || "No thanks")}
                   </button>
                 )}
               </>
             ) : (
-              <div
-                style={{
-                  width: "100%",
-                  textAlign: "center",
-                  animation: "slideUpFade 0.5s ease-out",
-                }}
-              >
+              <div className="spin-success-section">
                 {wonPrize?.generatedCode ? (
-                  <div style={{ marginTop: "1rem" }}>
+                  <div className="spin-discount-wrapper">
                     <DiscountCodeDisplay
                       code={wonPrize.generatedCode}
                       onCopy={handleCopyCode}
@@ -848,8 +971,8 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
                     />
                   </div>
                 ) : (
-                  <div style={{ marginTop: "1rem" }}>
-                    <p style={{ fontSize: "16px", color: descriptionColor }}>
+                  <div className="spin-discount-wrapper">
+                    <p style={{ fontSize: "var(--stw-body-size)", color: descriptionColor }}>
                       {config.failureMessage || "Better luck next time!"}
                     </p>
                   </div>
@@ -859,7 +982,7 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
                   onClick={onClose}
                   style={{
                     ...buttonStyles,
-                    marginTop: "1.5rem",
+                    marginTop: "var(--stw-gap-lg)",
                   }}
                 >
                   CONTINUE SHOPPING

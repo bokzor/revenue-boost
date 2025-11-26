@@ -85,6 +85,9 @@ export interface PopupDesignConfig {
   closeOnEscape?: boolean;
   autoCloseDelay?: number;
 
+  // Branding (for free tier)
+  showBranding?: boolean;
+
   // Accessibility
   ariaLabel?: string;
   ariaDescribedBy?: string;
@@ -126,11 +129,10 @@ export interface DiscountConfig {
   type?: "percentage" | "fixed_amount" | "free_shipping";
   expiryDate?: string | Date;
   minimumPurchase?: number;
-  deliveryMode?:
-    | "auto_apply_only"
-    | "show_code_fallback"
-    | "show_code_always"
-    | "show_in_popup_authorized_only";
+  behavior?:
+    | "SHOW_CODE_AND_AUTO_APPLY"
+    | "SHOW_CODE_ONLY"
+    | "SHOW_CODE_AND_ASSIGN_TO_EMAIL";
 }
 
 export interface Product {

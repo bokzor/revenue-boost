@@ -98,7 +98,7 @@ export interface LeadCaptureFormProps {
   /**
    * Form submit handler
    */
-  onSubmit: (e?: React.FormEvent) => void;
+  onSubmit: (e?: React.FormEvent) => void | Promise<unknown>;
   /**
    * Whether the form is currently submitting
    */

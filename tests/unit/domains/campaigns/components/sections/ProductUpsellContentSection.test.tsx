@@ -72,13 +72,13 @@ describe("ProductUpsellContentSection", () => {
 
       renderWithPolaris(
         <ProductUpsellContentSection
-          content={{ layout: "carousel" }}
+          content={{ layout: "card" }}
           errors={{}}
           onChange={onChange}
         />,
       );
 
-      // Should not call onChange to normalize since "carousel" is valid
+      // Should not call onChange to normalize since "card" is valid
       await waitFor(() => {
         expect(onChange).not.toHaveBeenCalled();
       }, { timeout: 500 }).catch(() => {
@@ -105,26 +105,6 @@ describe("ProductUpsellContentSection", () => {
       await user.click(layoutSection);
 
       // Layout select should exist
-      const layoutSelect = screen.getByRole("combobox", { name: /layout/i });
-      expect(layoutSelect).toBeTruthy();
-    });
-
-    it("renders carousel layout option", async () => {
-      const onChange = vi.fn();
-      const user = userEvent.setup();
-
-      renderWithPolaris(
-        <ProductUpsellContentSection
-          content={{ layout: "carousel" }}
-          errors={{}}
-          onChange={onChange}
-        />,
-      );
-
-      // Open the Layout & Display section
-      const layoutSection = screen.getByRole("button", { name: /layout & display/i });
-      await user.click(layoutSection);
-
       const layoutSelect = screen.getByRole("combobox", { name: /layout/i });
       expect(layoutSelect).toBeTruthy();
     });
@@ -165,12 +145,12 @@ describe("ProductUpsellContentSection", () => {
       expect(layoutSection).toBeTruthy();
     });
 
-    it("accepts carousel layout without errors", async () => {
+    it("accepts card layout without errors", async () => {
       const onChange = vi.fn();
 
       renderWithPolaris(
         <ProductUpsellContentSection
-          content={{ layout: "carousel" }}
+          content={{ layout: "card" }}
           errors={{}}
           onChange={onChange}
         />,

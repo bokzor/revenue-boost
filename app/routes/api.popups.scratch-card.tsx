@@ -35,7 +35,7 @@ interface ScratchCardResponse {
   discountCode?: string;
   displayCode?: boolean; // Whether to show code to user
   autoApply?: boolean; // Whether to auto-apply
-  deliveryMode?: string;
+  behavior?: string;
   expiresAt?: string;
   error?: string;
 }
@@ -286,9 +286,8 @@ export async function action({ request }: ActionFunctionArgs) {
       // Continue anyway - code was generated successfully
     }
 
-    // Determine display settings based on delivery mode
-    const deliveryMode = discountConfig.deliveryMode || "show_code_fallback";
-    const codePresentation = discountConfig.codePresentation || "show_code";
+    // Determine display settings based on behavior
+    const behavior = discountConfig.behavior || "SHOW_CODE_AND_AUTO_APPLY";
 
     const response: ScratchCardResponse = {
       success: true,
@@ -297,9 +296,9 @@ export async function action({ request }: ActionFunctionArgs) {
         label: winningPrize.label,
       },
       discountCode: result.discountCode,
-      deliveryMode,
-      displayCode: codePresentation === "show_code",
-      autoApply: deliveryMode === "auto_apply_only" || deliveryMode === "show_code_fallback",
+      behavior,
+      displayCode: true, // All behaviors show the code
+      autoApply: behavior === "SHOW_CODE_AND_AUTO_APPLY",
     };
 
     return data(response, { status: 200 });

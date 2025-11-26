@@ -84,9 +84,11 @@ export function ContentConfigSection({
         return (
           <FlashSaleContentSection
             content={content as Partial<FlashSaleContent>}
+            designConfig={designConfig}
             discountConfig={discountConfig}
             errors={errors}
             onChange={onChange as (c: Partial<FlashSaleContent>) => void}
+            onDesignChange={onDesignChange}
             onDiscountChange={onDiscountChange}
           />
         );
@@ -95,9 +97,11 @@ export function ContentConfigSection({
         return (
           <FlashSaleContentSection
             content={content as Partial<FlashSaleContent>}
+            designConfig={designConfig}
             discountConfig={discountConfig}
             errors={errors}
             onChange={onChange as (c: Partial<FlashSaleContent>) => void}
+            onDesignChange={onDesignChange}
             onDiscountChange={onDiscountChange}
           />
         );

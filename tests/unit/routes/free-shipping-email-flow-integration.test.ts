@@ -41,7 +41,26 @@ vi.mock("~/domains/commerce/services/discount.server", () => ({
 }));
 
 vi.mock("~/domains/security/services/rate-limit.server", () => ({
-  checkRateLimit: vi.fn(),
+  checkRateLimit: vi.fn().mockResolvedValue({
+    allowed: true,
+    remaining: 10,
+    resetAt: new Date(),
+  }),
+  RATE_LIMITS: {
+    CHALLENGE_REQUEST: { maxRequests: 3, windowSeconds: 600 },
+    DISCOUNT_GENERATION: { maxRequests: 5, windowSeconds: 3600 },
+    LEAD_SUBMISSION: { maxRequests: 10, windowSeconds: 3600 },
+    EMAIL_PER_CAMPAIGN: { maxRequests: 1, windowSeconds: 86400 },
+  },
+  createEmailCampaignKey: vi.fn((email: string, campaignId: string) =>
+    `email:${email}:campaign:${campaignId}`,
+  ),
+  createSessionKey: vi.fn((sessionId: string, action?: string) =>
+    action ? `session:${sessionId}:${action}` : `session:${sessionId}`,
+  ),
+  createIpKey: vi.fn((ip: string, action?: string) =>
+    action ? `ip:${ip}:${action}` : `ip:${ip}`,
+  ),
 }));
 
 import { authenticate } from "~/shopify.server";
@@ -105,16 +124,15 @@ describe("Free Shipping Email-Required Flow - Integration Tests", () => {
           type: "generated",
           valueType: "FREE_SHIPPING",
           prefix: "FREESHIP",
-          deliveryMode: "show_code_always",
+          behavior: "SHOW_CODE_ONLY",
         },
       };
 
       vi.mocked(prisma.campaign.findUnique).mockResolvedValue(mockCampaign as any);
 
-      // Mock challenge token validation (consumed once)
+      // Mock challenge token validation
       vi.mocked(validateAndConsumeToken).mockResolvedValue({
         valid: true,
-        consumed: true,
       });
 
       // Mock discount code generation
@@ -135,7 +153,7 @@ describe("Free Shipping Email-Required Flow - Integration Tests", () => {
         }),
       });
 
-      const issueResponse = await issueDiscountAction({ request: issueRequest });
+      const issueResponse = await issueDiscountAction({ request: issueRequest } as any);
       const issuePayload = (issueResponse as any).data as any;
 
       // Verify discount was issued successfully
@@ -163,7 +181,7 @@ describe("Free Shipping Email-Required Flow - Integration Tests", () => {
         }),
       });
 
-      const saveEmailResponse = await saveEmailAction({ request: saveEmailRequest });
+      const saveEmailResponse = await saveEmailAction({ request: saveEmailRequest } as any);
       const saveEmailPayload = (saveEmailResponse as any).data as any;
 
       // Verify email was saved successfully
@@ -214,7 +232,6 @@ describe("Free Shipping Email-Required Flow - Integration Tests", () => {
       vi.mocked(prisma.campaign.findUnique).mockResolvedValue(mockCampaign as any);
       vi.mocked(validateAndConsumeToken).mockResolvedValue({
         valid: true,
-        consumed: true,
       });
 
       // Mock discount generation failure
@@ -234,7 +251,7 @@ describe("Free Shipping Email-Required Flow - Integration Tests", () => {
         }),
       });
 
-      const issueResponse = await issueDiscountAction({ request: issueRequest });
+      const issueResponse = await issueDiscountAction({ request: issueRequest } as any);
       const issuePayload = (issueResponse as any).data as any;
 
       // Verify discount issuance failed
@@ -258,7 +275,6 @@ describe("Free Shipping Email-Required Flow - Integration Tests", () => {
       // Mock invalid challenge token
       vi.mocked(validateAndConsumeToken).mockResolvedValue({
         valid: false,
-        consumed: false,
         error: "Token expired",
       });
 
@@ -273,7 +289,7 @@ describe("Free Shipping Email-Required Flow - Integration Tests", () => {
         }),
       });
 
-      const issueResponse = await issueDiscountAction({ request: issueRequest });
+      const issueResponse = await issueDiscountAction({ request: issueRequest } as any);
       const issuePayload = (issueResponse as any).data as any;
 
       // Verify request failed due to invalid token
@@ -309,7 +325,6 @@ describe("Free Shipping Email-Required Flow - Integration Tests", () => {
       vi.mocked(prisma.campaign.findUnique).mockResolvedValue(mockCampaign as any);
       vi.mocked(validateAndConsumeToken).mockResolvedValue({
         valid: true,
-        consumed: true,
       });
       vi.mocked(getCampaignDiscountCode).mockResolvedValue({
         discountCode: mockDiscountCode,
@@ -327,7 +342,7 @@ describe("Free Shipping Email-Required Flow - Integration Tests", () => {
         }),
       });
 
-      const issueResponse = await issueDiscountAction({ request: issueRequest });
+      const issueResponse = await issueDiscountAction({ request: issueRequest } as any);
       const issuePayload = (issueResponse as any).data as any;
 
       // Verify discount was issued

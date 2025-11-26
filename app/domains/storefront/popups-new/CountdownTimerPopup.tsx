@@ -361,7 +361,6 @@ export const CountdownTimerPopup: React.FC<CountdownTimerPopupProps> = ({
                   format="compact"
                   backgroundColor={timerBg}
                   textColor={timerText}
-                  separatorColor={schemeColors.textColor}
                 />
 
                 {config.showStockCounter && config.stockCount && (

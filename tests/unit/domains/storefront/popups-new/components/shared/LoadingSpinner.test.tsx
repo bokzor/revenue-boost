@@ -82,29 +82,29 @@ describe("LoadingSpinner", () => {
   describe("Text Position", () => {
     it("positions text to the right by default", () => {
       const { container } = render(<LoadingSpinner text="Loading..." />);
-      const wrapper = container.querySelector('[role="status"]');
-      
+      const wrapper = container.querySelector('[role="status"]') as HTMLElement | null;
+
       expect(wrapper?.style.flexDirection).toBe("row");
     });
 
     it("positions text to the left", () => {
       const { container } = render(<LoadingSpinner text="Loading..." textPosition="left" />);
-      const wrapper = container.querySelector('[role="status"]');
-      
+      const wrapper = container.querySelector('[role="status"]') as HTMLElement | null;
+
       expect(wrapper?.style.flexDirection).toBe("row-reverse");
     });
 
     it("positions text on top", () => {
       const { container } = render(<LoadingSpinner text="Loading..." textPosition="top" />);
-      const wrapper = container.querySelector('[role="status"]');
-      
+      const wrapper = container.querySelector('[role="status"]') as HTMLElement | null;
+
       expect(wrapper?.style.flexDirection).toBe("column-reverse");
     });
 
     it("positions text on bottom", () => {
       const { container } = render(<LoadingSpinner text="Loading..." textPosition="bottom" />);
-      const wrapper = container.querySelector('[role="status"]');
-      
+      const wrapper = container.querySelector('[role="status"]') as HTMLElement | null;
+
       expect(wrapper?.style.flexDirection).toBe("column");
     });
   });
@@ -112,7 +112,7 @@ describe("LoadingSpinner", () => {
   describe("Color", () => {
     it("uses currentColor by default", () => {
       const { container } = render(<LoadingSpinner />);
-      const wrapper = container.querySelector('[role="status"]');
+      const wrapper = container.querySelector('[role="status"]') as HTMLElement | null;
 
       // happy-dom doesn't convert currentColor, so check the actual value
       expect(wrapper?.style.color).toBeTruthy();
@@ -120,7 +120,7 @@ describe("LoadingSpinner", () => {
 
     it("applies custom color", () => {
       const { container } = render(<LoadingSpinner color="#ff0000" />);
-      const wrapper = container.querySelector('[role="status"]');
+      const wrapper = container.querySelector('[role="status"]') as HTMLElement | null;
 
       // happy-dom keeps hex format, doesn't convert to rgb
       expect(wrapper?.style.color).toBe("#ff0000");
@@ -130,15 +130,15 @@ describe("LoadingSpinner", () => {
   describe("Centered", () => {
     it("is not centered by default", () => {
       const { container } = render(<LoadingSpinner />);
-      const wrapper = container.querySelector('[role="status"]');
-      
+      const wrapper = container.querySelector('[role="status"]') as HTMLElement | null;
+
       expect(wrapper?.style.justifyContent).toBe("flex-start");
     });
 
     it("centers when centered prop is true", () => {
       const { container } = render(<LoadingSpinner centered />);
-      const wrapper = container.querySelector('[role="status"]');
-      
+      const wrapper = container.querySelector('[role="status"]') as HTMLElement | null;
+
       expect(wrapper?.style.justifyContent).toBe("center");
     });
   });
@@ -147,14 +147,14 @@ describe("LoadingSpinner", () => {
     it("applies custom className", () => {
       const { container } = render(<LoadingSpinner className="custom-spinner" />);
       const wrapper = container.querySelector(".custom-spinner");
-      
+
       expect(wrapper).toBeTruthy();
     });
 
     it("applies custom inline styles", () => {
       const { container } = render(<LoadingSpinner style={{ marginTop: "20px" }} />);
-      const wrapper = container.querySelector('[role="status"]');
-      
+      const wrapper = container.querySelector('[role="status"]') as HTMLElement | null;
+
       expect(wrapper?.style.marginTop).toBe("20px");
     });
   });

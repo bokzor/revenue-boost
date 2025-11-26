@@ -21,17 +21,21 @@ import prisma from "~/db.server";
 import {
   DiscountConfigSchema,
   type DiscountConfig,
-  type DiscountDeliveryMode,
+  type DiscountBehavior,
+  shouldAutoApply,
+  requiresEmailRestriction,
 } from "~/domains/campaigns/types/campaign";
 import { z } from "zod";
 
-// Re-export types from campaign domain for consistency
+// Re-export types and helper functions from campaign domain for consistency
 export type {
   DiscountConfig,
   DiscountType,
   DiscountValueType,
-  DiscountDeliveryMode,
+  DiscountBehavior,
 } from "~/domains/campaigns/types/campaign";
+
+export { shouldAutoApply, requiresEmailRestriction } from "~/domains/campaigns/types/campaign";
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -151,7 +155,7 @@ const DISCOUNT_STRATEGIES: DiscountStrategy[] = [
   {
     name: "emailAuthorized",
     canHandle: (ctx) =>
-      ctx.config.deliveryMode === "show_in_popup_authorized_only" && !!ctx.leadEmail,
+      ctx.config.behavior === "SHOW_CODE_AND_ASSIGN_TO_EMAIL" && !!ctx.leadEmail,
     apply: (ctx) =>
       createEmailSpecificDiscount(ctx.admin, ctx.leadEmail as string, ctx.campaign, ctx.config),
   },
@@ -194,35 +198,25 @@ const DISCOUNT_STRATEGIES: DiscountStrategy[] = [
 // ============================================================================
 
 /**
- * Check if discount code should be shown to customer based on delivery mode
+ * Check if discount code should be shown to customer based on behavior
+ * All three behavior options show the code to the customer
  */
-export function shouldShowDiscountCode(deliveryMode: DiscountDeliveryMode): boolean {
-  switch (deliveryMode) {
-    case "auto_apply_only":
-      return false; // Never show code, only auto-apply
-    case "show_code_fallback":
-    case "show_code_always":
-    case "show_in_popup_authorized_only":
-      return true; // Show code in popup
-    default:
-      // Be permissive: if an unknown mode is provided, prefer to show the code for better UX
-      return true;
-  }
+export function shouldShowDiscountCode(behavior: DiscountBehavior): boolean {
+  // All behaviors show the code
+  return true;
 }
 
 /**
- * Get success message based on delivery mode
+ * Get success message based on behavior
  */
-export function getSuccessMessage(deliveryMode: DiscountDeliveryMode): string {
-  switch (deliveryMode) {
-    case "auto_apply_only":
-      return "Thanks for subscribing! Your discount will be automatically applied when you checkout.";
-    case "show_code_always":
-      return "Thanks for subscribing! Your discount code is ready to use.";
-    case "show_in_popup_authorized_only":
+export function getSuccessMessage(behavior: DiscountBehavior): string {
+  switch (behavior) {
+    case "SHOW_CODE_AND_AUTO_APPLY":
+      return "Thanks for subscribing! Your discount code will be automatically applied to your cart.";
+    case "SHOW_CODE_ONLY":
+      return "Thanks for subscribing! Your discount code is ready to use at checkout.";
+    case "SHOW_CODE_AND_ASSIGN_TO_EMAIL":
       return "Thanks for subscribing! Your discount code is authorized for your email address only.";
-    case "show_code_fallback":
-      return "Thanks for subscribing! Your discount code is ready to use.";
     default:
       return "Thanks for subscribing!";
   }
@@ -254,13 +248,7 @@ export function parseDiscountConfig(configString: unknown): DiscountConfig {
       usageLimit: parsedConfig.usageLimit,
       expiryDays: parsedConfig.expiryDays ?? 30,
       prefix: parsedConfig.prefix ?? "WELCOME",
-      deliveryMode: parsedConfig.deliveryMode ?? "show_code_fallback",
-      requireLogin: parsedConfig.requireLogin,
-      storeInMetafield: parsedConfig.storeInMetafield,
-      authorizedEmail: parsedConfig.authorizedEmail,
-      requireEmailMatch: parsedConfig.requireEmailMatch,
-      autoApplyMode: parsedConfig.autoApplyMode ?? "ajax",
-      codePresentation: parsedConfig.codePresentation ?? "show_code",
+      behavior: parsedConfig.behavior ?? "SHOW_CODE_AND_AUTO_APPLY",
       applicability: parsedConfig.applicability,
       tiers: parsedConfig.tiers,
       bogo: parsedConfig.bogo,
@@ -277,9 +265,7 @@ export function parseDiscountConfig(configString: unknown): DiscountConfig {
       type: "shared",
       valueType: "PERCENTAGE",
       value: 10,
-      deliveryMode: "show_code_fallback",
-      autoApplyMode: "ajax",
-      codePresentation: "show_code",
+      behavior: "SHOW_CODE_AND_AUTO_APPLY",
     };
   }
 }
@@ -386,7 +372,7 @@ export async function getCampaignDiscountCode(
           campaignId,
           templateType: campaign.templateType,
           configType: config.type,
-          deliveryMode: config.deliveryMode,
+          behavior: config.behavior,
         });
 
         try {
@@ -411,7 +397,7 @@ export async function getCampaignDiscountCode(
       config: {
         type: config.type,
         valueType: config.valueType,
-        deliveryMode: config.deliveryMode,
+        behavior: config.behavior,
         usageLimit: config.usageLimit,
         hasBogo: !!config.bogo,
         hasFreeGift: !!config.freeGift,
@@ -531,7 +517,7 @@ export async function createEmailSpecificDiscount(
     let customer: ShopifyCustomer | undefined;
 
     // Check if customer exists or create if needed for customer-specific eligibility
-    if (config.deliveryMode === "show_in_popup_authorized_only") {
+    if (config.behavior === "SHOW_CODE_AND_ASSIGN_TO_EMAIL") {
       const customerResult = await findCustomerByEmail(admin, email);
 
       if (customerResult.customer) {

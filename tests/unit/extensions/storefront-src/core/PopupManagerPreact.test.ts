@@ -140,7 +140,7 @@ describe("PopupManagerPreact renderPopup", () => {
         code: "SAVE10",
         valueType: "PERCENTAGE",
         value: 10,
-        deliveryMode: "show_code_fallback",
+        behavior: "SHOW_CODE_ONLY",
       } as any,
     };
 
@@ -170,7 +170,7 @@ describe("PopupManagerPreact renderPopup", () => {
       code: "SAVE10",
       percentage: 10,
       type: "PERCENTAGE",
-      deliveryMode: "show_code_fallback",
+      behavior: "SHOW_CODE_ONLY",
     });
 
     cleanup();

@@ -5,17 +5,34 @@
  */
 
 import { CheckboxField, TextField, SelectField, FormGrid } from "../form";
-import type { DiscountConfig } from "../../types/campaign";
+import type { DiscountConfig, DiscountBehavior } from "../../types/campaign";
 import { useFieldUpdater } from "~/shared/hooks/useFieldUpdater";
 
 export interface DiscountConfigSectionProps {
   discount: Partial<DiscountConfig>;
   errors?: Record<string, string>;
   onChange: (discount: Partial<DiscountConfig>) => void;
+  hasEmailCapture?: boolean; // Whether the campaign captures email
 }
 
-export function DiscountConfigSection({ discount, errors, onChange }: DiscountConfigSectionProps) {
+export function DiscountConfigSection({
+  discount,
+  errors,
+  onChange,
+  hasEmailCapture = false,
+}: DiscountConfigSectionProps) {
   const updateField = useFieldUpdater(discount, onChange);
+
+  // Get current behavior
+  const currentBehavior: DiscountBehavior =
+    discount.behavior || "SHOW_CODE_AND_AUTO_APPLY";
+
+  const handleBehaviorChange = (behavior: DiscountBehavior) => {
+    onChange({
+      ...discount,
+      behavior,
+    });
+  };
 
   return (
     <>
@@ -74,27 +91,33 @@ export function DiscountConfigSection({ discount, errors, onChange }: DiscountCo
           */}
 
           <SelectField
-            label="Delivery Mode"
-            name="discount.deliveryMode"
-            value={discount.deliveryMode || "auto_apply_only"}
+            label="Discount Behavior"
+            name="discount.behavior"
+            value={currentBehavior}
             options={[
               {
-                label: "Auto-apply only",
-                value: "auto_apply_only",
+                label: "Show Code + Auto-Apply (Recommended)",
+                value: "SHOW_CODE_AND_AUTO_APPLY",
               },
               {
-                label: "Show code with fallback",
-                value: "show_code_fallback",
+                label: "Show Code Only",
+                value: "SHOW_CODE_ONLY",
               },
-              {
-                label: "Always show code",
-                value: "show_code_always",
-              },
+              ...(hasEmailCapture
+                ? [
+                    {
+                      label: "Show Code + Assign to Email User",
+                      value: "SHOW_CODE_AND_ASSIGN_TO_EMAIL",
+                    },
+                  ]
+                : []),
             ]}
-            helpText="How the discount should be delivered to customers"
-            onChange={(value) =>
-              updateField("deliveryMode", value as DiscountConfig["deliveryMode"])
+            helpText={
+              !hasEmailCapture && currentBehavior === "SHOW_CODE_AND_ASSIGN_TO_EMAIL"
+                ? "⚠️ Email assignment requires email capture to be enabled"
+                : "How the discount code is shown and applied to customers"
             }
+            onChange={(value) => handleBehaviorChange(value as DiscountBehavior)}
           />
 
           <FormGrid columns={2}>

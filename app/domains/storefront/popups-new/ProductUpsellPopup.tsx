@@ -76,7 +76,7 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
   );
 
   const handleProductSelect = useCallback(
-    (productId: string, product?: Product) => {
+    (productId: string) => {
       if (config.multiSelect) {
         setSelectedProducts((prev) => {
           const newSet = new Set(prev);
@@ -90,11 +90,10 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
       } else {
         setSelectedProducts(new Set([productId]));
       }
-      if (product && onProductClick) {
-        onProductClick(product);
-      }
+      // Note: onProductClick is NOT called during selection
+      // It's only used if the popup needs explicit "view product" navigation
     },
-    [config.multiSelect, onProductClick]
+    [config.multiSelect]
   );
 
   const handleAddToCart = useCallback(async () => {
@@ -215,11 +214,11 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
       <div
         key={product.id}
         className={`upsell-product-card ${isSelected ? "upsell-product-card--selected" : ""}`}
-        onClick={() => handleProductSelect(product.id, product)}
+        onClick={() => handleProductSelect(product.id)}
         style={{ animationDelay: `${index * 0.05}s` }}
         role="button"
         tabIndex={0}
-        onKeyDown={(e) => e.key === "Enter" && handleProductSelect(product.id, product)}
+        onKeyDown={(e) => e.key === "Enter" && handleProductSelect(product.id)}
         aria-pressed={isSelected}
       >
         {/* Selection badge */}
@@ -313,8 +312,8 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
       );
     }
 
-    // List layout (also used as fallback for deprecated "carousel" layout)
-    if (config.layout === "card" || config.layout === "carousel") {
+    // Card/List layout
+    if (config.layout === "card") {
       return (
         <div className="upsell-list">
           {displayProducts.map((product) => {
@@ -325,10 +324,10 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
               <div
                 key={product.id}
                 className={`upsell-list-item ${isSelected ? "upsell-list-item--selected" : ""}`}
-                onClick={() => handleProductSelect(product.id, product)}
+                onClick={() => handleProductSelect(product.id)}
                 role="button"
                 tabIndex={0}
-                onKeyDown={(e) => e.key === "Enter" && handleProductSelect(product.id, product)}
+                onKeyDown={(e) => e.key === "Enter" && handleProductSelect(product.id)}
               >
                 {config.showImages !== false && product.imageUrl && (
                   <div className="upsell-list-image">
@@ -373,7 +372,7 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
                   className={`upsell-list-action ${isSelected ? "upsell-list-action--selected" : ""}`}
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleProductSelect(product.id, product);
+                    handleProductSelect(product.id);
                   }}
                 >
                   {isSelected ? "✓" : "+"}
@@ -439,6 +438,7 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
       closeOnEscape={config.closeOnEscape !== false}
       closeOnBackdropClick={config.closeOnOverlayClick !== false}
       previewMode={config.previewMode}
+      showBranding={config.showBranding}
       ariaLabel={config.ariaLabel || config.headline}
       ariaDescribedBy={config.ariaDescribedBy}
       customCSS={config.customCSS}
@@ -450,6 +450,7 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           position: relative;
           width: 100%;
           max-width: ${popupMaxWidth};
+          margin: 0 auto;
           border-radius: ${borderRadius}px;
           overflow: hidden;
           background: ${baseBackground};

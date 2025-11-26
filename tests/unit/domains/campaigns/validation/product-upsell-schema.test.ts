@@ -49,7 +49,7 @@ describe("ProductUpsellContentSchema Validation", () => {
         productSelectionMethod: "manual" as const,
         selectedProducts: ["gid://shopify/Product/123", "gid://shopify/Product/456"],
         maxProducts: 5,
-        layout: "carousel" as const,
+        layout: "grid" as const,
         columns: 3,
         showPrices: true,
         showCompareAtPrice: true,
@@ -65,12 +65,12 @@ describe("ProductUpsellContentSchema Validation", () => {
 
       const result = ProductUpsellContentSchema.safeParse(config);
       expect(result.success).toBe(true);
-      
+
       if (result.success) {
         expect(result.data.productSelectionMethod).toBe("manual");
         expect(result.data.selectedProducts).toEqual(["gid://shopify/Product/123", "gid://shopify/Product/456"]);
         expect(result.data.maxProducts).toBe(5);
-        expect(result.data.layout).toBe("carousel");
+        expect(result.data.layout).toBe("grid");
         expect(result.data.columns).toBe(3);
         expect(result.data.bundleDiscount).toBe(20);
         expect(result.data.bundleDiscountText).toBe("Save 20% on bundle!");
@@ -142,12 +142,12 @@ describe("ProductUpsellContentSchema Validation", () => {
       expect(result.success).toBe(true);
     });
 
-    it("accepts 'carousel' as layout", () => {
+    it("accepts 'grid' as layout", () => {
       const config = {
         headline: "Test",
         buttonText: "Add",
         successMessage: "Done",
-        layout: "carousel" as const,
+        layout: "grid" as const,
       };
 
       const result = ProductUpsellContentSchema.safeParse(config);

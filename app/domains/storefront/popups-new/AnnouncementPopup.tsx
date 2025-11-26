@@ -134,8 +134,29 @@ export const AnnouncementPopup: React.FC<AnnouncementPopupProps> = ({
     lineHeight: 1,
   };
 
+  // Responsive CSS for dismiss/close button visibility
+  // Desktop & Tablet: Show "No Thanks" only
+  // Mobile: Show close button (×) only
+  const responsiveButtonCss = `
+    [data-rb-banner] .rb-dismiss-btn {
+      display: inline-block;
+    }
+    [data-rb-banner] .rb-close-btn {
+      display: none;
+    }
+    @media (max-width: 768px) {
+      [data-rb-banner] .rb-dismiss-btn {
+        display: none;
+      }
+      [data-rb-banner] .rb-close-btn {
+        display: block;
+      }
+    }
+  `;
+
   return (
     <div style={bannerStyles} data-rb-banner>
+      <style dangerouslySetInnerHTML={{ __html: responsiveButtonCss }} />
       {scopedCss ? <style dangerouslySetInnerHTML={{ __html: scopedCss }} /> : null}
       <div style={containerStyles}>
         <div style={contentStyles}>
@@ -173,9 +194,10 @@ export const AnnouncementPopup: React.FC<AnnouncementPopupProps> = ({
             />
           )}
 
-          {/* Dismiss text button */}
+          {/* Dismiss text button - Desktop & Tablet only */}
           <button
             type="button"
+            className="rb-dismiss-btn"
             onClick={onClose}
             style={dismissButtonStyles}
             onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
@@ -185,9 +207,10 @@ export const AnnouncementPopup: React.FC<AnnouncementPopupProps> = ({
           </button>
         </div>
 
-        {/* Close button */}
+        {/* Close button (×) - Mobile only */}
         {config.showCloseButton !== false && (
           <button
+            className="rb-close-btn"
             onClick={onClose}
             style={closeButtonStyles}
             aria-label="Close announcement"

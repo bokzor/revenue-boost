@@ -398,11 +398,11 @@ export function FlashSaleContentSection({
                     label="Pseudo Max Inventory"
                     name="inventory.pseudoMax"
                     value={
-                      (content.inventory as Record<string, unknown>)?.pseudoMax?.toString() || "50"
+                      (content.inventory as Record<string, unknown>)?.pseudoMax?.toString() || "8"
                     }
-                    placeholder="50"
-                    helpText="Fake maximum inventory count"
-                    onChange={(value) => updateInventoryField("pseudoMax", parseInt(value) || 50)}
+                    placeholder="8"
+                    helpText="Simulated stock count. Set below threshold to show 'Only X Left' message."
+                    onChange={(value) => updateInventoryField("pseudoMax", parseInt(value) || 8)}
                   />
                 )}
 

@@ -128,12 +128,12 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
   const description =
     config.subheadline || "Subscribe to get special offers, free giveaways, and exclusive deals.";
   const buttonText = config.submitButtonText || config.buttonText || "Subscribe";
-  const deliveryMode = config.discount?.deliveryMode || "show_code_fallback";
+  const behavior = config.discount?.behavior || "SHOW_CODE_AND_AUTO_APPLY";
   const successMessage =
     config.successMessage ??
-    (deliveryMode === "auto_apply_only"
+    (behavior === "SHOW_CODE_AND_AUTO_APPLY"
       ? "Thanks for subscribing! Your discount will be automatically applied when you checkout."
-      : deliveryMode === "show_in_popup_authorized_only"
+      : behavior === "SHOW_CODE_AND_ASSIGN_TO_EMAIL"
         ? "Thanks for subscribing! Your discount code is authorized for your email address only."
         : "Thanks for subscribing! Your discount code is ready to use.");
   const showGdprCheckbox = config.consentFieldEnabled ?? false;
@@ -190,6 +190,7 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
       closeOnEscape={config.closeOnEscape !== false}
       closeOnBackdropClick={config.closeOnOverlayClick !== false}
       previewMode={config.previewMode}
+      showBranding={config.showBranding}
       ariaLabel={config.headline || "Newsletter Signup"}
       customCSS={config.customCSS}
       globalCustomCSS={config.globalCustomCSS}

@@ -22,7 +22,7 @@ import { CampaignIndexTable } from "~/domains/campaigns/components";
 import { CampaignAnalyticsService } from "~/domains/campaigns/services/campaign-analytics.server";
 import { getStoreId } from "~/lib/auth-helpers.server";
 import { getStoreCurrency } from "~/lib/currency.server";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { ExperimentWithVariants } from "~/domains/campaigns/types/experiment";
 import { SetupStatus, type SetupStatusData } from "~/domains/setup/components/SetupStatus";
 import { getSetupStatus } from "~/lib/setup-status.server";
@@ -394,6 +394,16 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const fetcher = useFetcher();
 
+  // Track which campaign is being toggled
+  const [togglingCampaignId, setTogglingCampaignId] = useState<string | null>(null);
+
+  // Reset toggling state when fetcher completes
+  useEffect(() => {
+    if (fetcher.state === "idle" && togglingCampaignId !== null) {
+      setTogglingCampaignId(null);
+    }
+  }, [fetcher.state, togglingCampaignId]);
+
   const formatMoney = (amount: number) => {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
@@ -412,6 +422,7 @@ export default function Dashboard() {
   };
 
   const handleToggleStatus = (id: string, currentStatus: string) => {
+    setTogglingCampaignId(id);
     fetcher.submit({ intent: "toggle_status", campaignId: id, currentStatus }, { method: "post" });
   };
 
@@ -421,6 +432,10 @@ export default function Dashboard() {
 
   const handleEditClick = (id: string) => {
     navigate(`/app/campaigns/${id}/edit`);
+  };
+
+  const handleAnalyticsClick = (id: string) => {
+    navigate(`/app/campaigns/${id}/analytics`);
   };
 
   // Bulk action handlers
@@ -600,6 +615,7 @@ export default function Dashboard() {
             experiments={experiments}
             onCampaignClick={handleCampaignClick}
             onEditClick={handleEditClick}
+            onAnalyticsClick={handleAnalyticsClick}
             onToggleStatus={handleToggleStatus}
             onBulkActivate={handleBulkActivate}
             onBulkPause={handleBulkPause}
@@ -608,6 +624,7 @@ export default function Dashboard() {
             onBulkDuplicate={handleBulkDuplicate}
             formatMoney={formatMoney}
             showMetrics={true}
+            togglingCampaignId={togglingCampaignId}
           />
         </Layout.Section>
 

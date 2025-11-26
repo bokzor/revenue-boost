@@ -24,8 +24,8 @@ import { SettingsIcon } from "@shopify/polaris-icons";
 import { DiscountAdvancedSettings } from "~/domains/campaigns/components/DiscountSettingsStep";
 import type {
   DiscountConfig,
-  DiscountDeliveryMode,
 } from "~/domains/popups/services/discounts/discount.server";
+import type { DiscountBehavior } from "~/domains/campaigns/types/campaign";
 
 interface DiscountSectionProps {
   goal?: string;
@@ -51,13 +51,7 @@ export function DiscountSection({
     usageLimit: discountConfig?.usageLimit,
     expiryDays: discountConfig?.expiryDays || 30,
     prefix: discountConfig?.prefix || "WELCOME",
-    deliveryMode: discountConfig?.deliveryMode || "show_code_fallback",
-    requireLogin: discountConfig?.requireLogin,
-    storeInMetafield: discountConfig?.storeInMetafield,
-    authorizedEmail: discountConfig?.authorizedEmail,
-    requireEmailMatch: discountConfig?.requireEmailMatch,
-    autoApplyMode: discountConfig?.autoApplyMode || "ajax",
-    codePresentation: discountConfig?.codePresentation || "show_code",
+    behavior: discountConfig?.behavior || "SHOW_CODE_AND_AUTO_APPLY",
   };
 
   const updateConfig = (updates: Partial<DiscountConfig>) => {
@@ -156,29 +150,32 @@ export function DiscountSection({
             </Box>
           )}
 
-          {/* Delivery Mode */}
+          {/* Discount Behavior */}
           <Select
             label="How customers receive discounts"
             options={[
-              { label: "Auto-apply only (no code shown)", value: "auto_apply_only" },
               {
-                label: "Auto-apply with fallback (show code if needed)",
-                value: "show_code_fallback",
+                label: "Show code + auto-apply to cart",
+                value: "SHOW_CODE_AND_AUTO_APPLY",
               },
-              { label: "Show code in popup", value: "show_code_always" },
+              { label: "Show code only (manual entry)", value: "SHOW_CODE_ONLY" },
+              {
+                label: "Show code + assign to email",
+                value: "SHOW_CODE_AND_ASSIGN_TO_EMAIL",
+              },
             ]}
-            value={config.deliveryMode || "show_code_fallback"}
-            onChange={(deliveryMode) =>
+            value={config.behavior || "SHOW_CODE_AND_AUTO_APPLY"}
+            onChange={(behavior) =>
               updateConfig({
-                deliveryMode: deliveryMode as DiscountDeliveryMode,
+                behavior: behavior as DiscountBehavior,
               })
             }
             helpText={
-              config.deliveryMode === "auto_apply_only"
-                ? "Discount will be applied automatically at checkout. No code is shown."
-                : config.deliveryMode === "show_code_fallback"
-                  ? "We'll try to auto-apply the discount. If we can't, the code will be shown."
-                  : "Code will be shown immediately after signup."
+              config.behavior === "SHOW_CODE_AND_AUTO_APPLY"
+                ? "Display the code and automatically apply it to the customer's cart."
+                : config.behavior === "SHOW_CODE_ONLY"
+                  ? "Display the code only. Customer must manually enter it at checkout."
+                  : "Display the code and restrict usage to the captured email address."
             }
           />
 
@@ -204,11 +201,11 @@ export function DiscountSection({
                 Advanced Settings
               </Button>
               <Badge tone="info">
-                {config.deliveryMode === "auto_apply_only"
-                  ? "Auto-Apply"
-                  : config.deliveryMode === "show_code_fallback"
-                    ? "Auto-Apply + Code"
-                    : "Show Code"}
+                {config.behavior === "SHOW_CODE_AND_AUTO_APPLY"
+                  ? "Auto-Apply + Code"
+                  : config.behavior === "SHOW_CODE_ONLY"
+                    ? "Show Code"
+                    : "Email-Restricted"}
               </Badge>
             </InlineStack>
           </Box>

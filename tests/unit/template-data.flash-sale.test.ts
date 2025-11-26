@@ -101,9 +101,7 @@ describe("GLOBAL_SYSTEM_TEMPLATES – Flash Sale Alert", () => {
     expect(config.value).toBe(30);
     expect(config.prefix).toBe("FLASH30-");
     expect(config.expiryDays).toBe(2);
-    expect(config.deliveryMode).toBe("show_code_always");
-    expect(config.autoApplyMode).toBe("ajax");
-    expect(config.codePresentation).toBe("show_code");
+    expect(config.behavior).toBe("SHOW_CODE_ONLY");
   });
 });
 

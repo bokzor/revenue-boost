@@ -67,7 +67,7 @@ export function RecipeConfigurationModal({
               <ProductPicker
                 key={input.key}
                 mode="product"
-                selectionType="single"
+                selectionType={input.multiSelect ? "multiple" : "single"}
                 onSelect={(selections) => {
                   // Store the full selection objects for the builder to use
                   handleInputChange(input.key, selections);
@@ -82,7 +82,7 @@ export function RecipeConfigurationModal({
               <ProductPicker
                 key={input.key}
                 mode="collection"
-                selectionType="single"
+                selectionType={input.multiSelect ? "multiple" : "single"}
                 onSelect={(selections) => {
                   handleInputChange(input.key, selections);
                 }}
