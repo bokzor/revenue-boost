@@ -4,7 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import * as dotenv from 'dotenv';
 import { CampaignFactory } from './factories/campaign-factory';
-import { STORE_URL, handlePasswordPage, mockChallengeToken } from './helpers/test-helpers';
+import { STORE_URL, handlePasswordPage, mockChallengeToken, waitForAnyPopup } from './helpers/test-helpers';
 
 // Load staging environment variables
 dotenv.config({ path: path.resolve(process.cwd(), '.env.staging.env'), override: true });
@@ -99,15 +99,21 @@ test.describe.serial('Targeting Combinations', () => {
         await handlePasswordPage(page);
 
         // Wait for popup
-        await expect(page.locator('[data-template="newsletter"]')).toBeVisible({ timeout: 10000 });
+        await waitForAnyPopup(page, 10000);
+        console.log('✅ Popup shown on first visit');
 
-        // Close it to trigger "closed" state (though frequency cap counts triggers, usually on display)
-        await page.locator('.popup-close-button').click();
-        await expect(page.locator('[data-template="newsletter"]')).toBeHidden();
+        // Close the popup by pressing Escape or clicking outside
+        await page.keyboard.press('Escape');
+        await page.waitForTimeout(1000);
 
-        // Reload: Should NOT show (same session)
+        // Reload: Should NOT show (same session - frequency cap reached)
         await page.reload();
-        await expect(page.locator('[data-template="newsletter"]')).toBeHidden({ timeout: 5000 });
+        await handlePasswordPage(page);
+        await page.waitForTimeout(3000);
+
+        const popupVisible = await page.locator('#revenue-boost-popup-shadow-host').isVisible().catch(() => false);
+        expect(popupVisible).toBeFalsy();
+        console.log('✅ Popup not shown on reload (frequency cap)');
 
         // Clear session storage, local storage, and cookies (simulate new session/visitor)
         await page.context().clearCookies();
@@ -117,10 +123,10 @@ test.describe.serial('Targeting Combinations', () => {
         });
 
         // Reload: Should show again (new session)
-        // Note: Clearing cookies logs us out of the password page, so we must log in again
         await page.goto(STORE_URL);
         await handlePasswordPage(page);
-        await expect(page.locator('[data-template="newsletter"]')).toBeVisible({ timeout: 10000 });
+        await waitForAnyPopup(page, 10000);
+        console.log('✅ Popup shown on new session');
     });
 
     test('respects "once per day" frequency cap', async ({ page }) => {

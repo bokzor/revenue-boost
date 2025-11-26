@@ -19,7 +19,9 @@ export async function handlePasswordPage(page: Page) {
         console.log('🔒 Password page detected, logging in...');
         await passwordInput.fill(STORE_PASSWORD);
         await page.click('button[type="submit"]');
-        await page.waitForLoadState('networkidle');
+        // Wait for navigation to complete with a reasonable timeout
+        await page.waitForLoadState('domcontentloaded');
+        await page.waitForTimeout(1000); // Give time for page to stabilize
     }
 }
 
@@ -168,6 +170,34 @@ export async function waitForPopupRendered(page: Page, timeout: number = 15000):
     } catch {
         return false;
     }
+}
+
+/**
+ * Check if a popup is visible on the page
+ * Uses the shadow host container which is the standard way popups are rendered
+ */
+export async function isPopupVisible(page: Page): Promise<boolean> {
+    return page.locator('#revenue-boost-popup-shadow-host').isVisible().catch(() => false);
+}
+
+/**
+ * Wait for any popup to be visible
+ */
+export async function waitForAnyPopup(page: Page, timeout: number = 10000): Promise<void> {
+    await page.locator('#revenue-boost-popup-shadow-host').waitFor({
+        state: 'visible',
+        timeout
+    });
+}
+
+/**
+ * Wait for popup to be hidden/closed
+ */
+export async function waitForPopupHidden(page: Page, timeout: number = 5000): Promise<void> {
+    await page.locator('#revenue-boost-popup-shadow-host').waitFor({
+        state: 'hidden',
+        timeout
+    });
 }
 
 /**

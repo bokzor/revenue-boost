@@ -1,5 +1,6 @@
-import type { LoaderFunctionArgs, ActionFunctionArgs } from "react-router";
-import { useLoaderData, useSubmit, useNavigation, redirect } from "react-router";
+import type { LoaderFunctionArgs, ActionFunctionArgs, HeadersFunction } from "react-router";
+import { useLoaderData, useSubmit, useNavigation, redirect, useRouteError } from "react-router";
+import { boundary } from "@shopify/shopify-app-react-router/server";
 import {
   Page,
   Card,
@@ -61,6 +62,10 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 // ACTION
 // =============================================================================
 
+// =============================================================================
+// ACTION
+// =============================================================================
+
 export const action = async ({ request }: ActionFunctionArgs) => {
   const { billing, session } = await authenticate.admin(request);
   const formData = await request.formData();
@@ -78,8 +83,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const appUrl = process.env.SHOPIFY_APP_URL || `https://${request.headers.get("host")}`;
     const returnUrl = `${appUrl}/app/billing?shop=${session.shop}`;
 
-    // Request billing - this will redirect to Shopify's confirmation page
-    await billing.request({
+    // Request billing - this returns a redirect response to Shopify's confirmation page
+    return billing.request({
       plan: planKey as "Starter" | "Growth" | "Pro" | "Enterprise",
       isTest: process.env.NODE_ENV !== "production",
       returnUrl,
@@ -635,3 +640,13 @@ export default function BillingPage() {
     </Page>
   );
 }
+
+
+// Shopify needs React Router to catch some thrown responses, so that their headers are included in the response.
+export function ErrorBoundary() {
+  return boundary.error(useRouteError());
+}
+
+export const headers: HeadersFunction = (headersArgs) => {
+  return boundary.headers(headersArgs);
+};
