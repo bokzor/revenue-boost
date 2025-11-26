@@ -19,6 +19,7 @@ import type {
   EnhancedTriggersConfig,
   AudienceTargetingConfig,
   PageTargetingConfig,
+  GeoTargetingConfig,
   TargetRulesConfig,
   CampaignGoal,
   TriggerType as CampaignTriggerType,
@@ -37,7 +38,12 @@ export type { CampaignGoal, TemplateType };
 export type TriggerType = CampaignTriggerType | string;
 
 // Re-export types for convenience
-export type { PageTargetingConfig, AudienceTargetingConfig, EnhancedTriggersConfig };
+export type {
+  PageTargetingConfig,
+  AudienceTargetingConfig,
+  GeoTargetingConfig,
+  EnhancedTriggersConfig,
+};
 
 // ============================================================================
 // WIZARD-SPECIFIC FORM STATE TYPES
@@ -149,8 +155,9 @@ export interface CampaignFormData {
   popupDesign?: PopupDesignFormData; // Legacy support - also available in designConfig.popupDesign
   enhancedTriggers: EnhancedTriggersConfig;
   audienceTargeting: AudienceTargetingConfig;
+  geoTargeting: GeoTargetingConfig;
   pageTargeting?: PageTargetingConfig;
-  targetRules?: TargetRulesConfig; // Target rules configuration (combines enhancedTriggers, audienceTargeting, pageTargeting)
+  targetRules?: TargetRulesConfig; // Target rules configuration (combines enhancedTriggers, audienceTargeting, pageTargeting, geoTargeting)
   frequencyCapping: FrequencyCappingConfig;
   discountConfig: DiscountConfig;
   // A/B Testing variant fields

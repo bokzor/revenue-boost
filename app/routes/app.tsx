@@ -9,7 +9,6 @@ import en from "@shopify/polaris/locales/en.json";
 import polarisStyles from "@shopify/polaris/build/esm/styles.css?url";
 
 import { authenticate } from "../shopify.server";
-import prisma from "../db.server";
 import { BillingService } from "../domains/billing/services/billing.server";
 import { PLAN_DEFINITIONS, type PlanTier, type PlanFeatures } from "../domains/billing/types/plan";
 
@@ -53,8 +52,8 @@ export function useBilling(): BillingContextType {
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { admin, session } = await authenticate.admin(request);
 
-  // Sync billing status from Shopify
-  const billingContext = await BillingService.syncSubscriptionToDatabase(admin, session.shop);
+  // Get billing status with smart caching (syncs from Shopify only if cache is stale)
+  const billingContext = await BillingService.getOrSyncBillingContext(admin, session.shop);
   const planDef = PLAN_DEFINITIONS[billingContext.planTier];
 
   return {

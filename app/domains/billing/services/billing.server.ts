@@ -1,6 +1,12 @@
 import prisma from "~/db.server";
 import { BILLING_PLANS } from "~/shopify.server";
 import { PLAN_DEFINITIONS, type PlanTier } from "../types/plan";
+import {
+  type ShopifySubscription,
+  getPlanTierFromName,
+  BILLING_SYNC_TTL_MS,
+} from "../constants";
+import { isBillingBypassed } from "~/lib/env.server";
 
 // =============================================================================
 // TYPES
@@ -28,13 +34,27 @@ export interface BillingContext {
   trialEndsAt: Date | null;
 }
 
-// Map Shopify subscription names to our PlanTier enum
-const PLAN_NAME_TO_TIER: Record<string, PlanTier> = {
-  [BILLING_PLANS.STARTER]: "STARTER",
-  [BILLING_PLANS.GROWTH]: "GROWTH",
-  [BILLING_PLANS.PRO]: "PRO",
-  [BILLING_PLANS.ENTERPRISE]: "ENTERPRISE",
-};
+/**
+ * GraphQL response structure for subscription query
+ */
+interface SubscriptionQueryResponse {
+  data?: {
+    currentAppInstallation?: {
+      activeSubscriptions?: ShopifySubscription[];
+    };
+  };
+  errors?: Array<{ message: string }>;
+}
+
+/**
+ * Error thrown when Shopify API fails - prevents accidental downgrades
+ */
+export class BillingApiError extends Error {
+  constructor(message: string, public readonly isTransient: boolean = true) {
+    super(message);
+    this.name = "BillingApiError";
+  }
+}
 
 // =============================================================================
 // BILLING SERVICE
@@ -42,38 +62,72 @@ const PLAN_NAME_TO_TIER: Record<string, PlanTier> = {
 
 export class BillingService {
   /**
-   * Get the current subscription status from Shopify and sync to database
+   * Get the current subscription status from Shopify
+   *
+   * @throws {BillingApiError} If the Shopify API call fails (to prevent accidental downgrades)
    */
   static async getCurrentSubscription(
     admin: AdminGraphQL,
     shopDomain: string
   ): Promise<BillingContext> {
     // Query Shopify for current app installation and active subscriptions
-    const response = await admin.graphql(`
-      query GetCurrentSubscription {
-        currentAppInstallation {
-          activeSubscriptions {
-            id
-            name
-            status
-            currentPeriodEnd
-            trialDays
-            test
+    let response: Response;
+    try {
+      response = await admin.graphql(`
+        query GetCurrentSubscription {
+          currentAppInstallation {
+            activeSubscriptions {
+              id
+              name
+              status
+              currentPeriodEnd
+              trialDays
+              test
+            }
           }
         }
-      }
-    `);
+      `);
+    } catch (error) {
+      console.error(`[BillingService] GraphQL request failed for ${shopDomain}:`, error);
+      throw new BillingApiError(
+        `Failed to query Shopify subscription API for ${shopDomain}: ${error instanceof Error ? error.message : "Unknown error"}`
+      );
+    }
 
-    const data = await response.json();
-    const subscriptions = data.data?.currentAppInstallation?.activeSubscriptions || [];
+    // Check for HTTP errors
+    if (!response.ok) {
+      console.error(`[BillingService] Shopify API returned ${response.status}`);
+      throw new BillingApiError(
+        `Shopify API returned status ${response.status}`,
+        response.status >= 500 // 5xx errors are transient
+      );
+    }
+
+    const data = (await response.json()) as SubscriptionQueryResponse;
+
+    // Check for GraphQL errors
+    if (data.errors && data.errors.length > 0) {
+      const errorMessages = data.errors.map((e) => e.message).join(", ");
+      console.error("[BillingService] GraphQL errors:", errorMessages);
+      throw new BillingApiError(`GraphQL errors: ${errorMessages}`);
+    }
+
+    // Validate response structure
+    if (!data.data?.currentAppInstallation) {
+      console.error("[BillingService] Unexpected response structure:", JSON.stringify(data));
+      throw new BillingApiError("Unexpected GraphQL response structure");
+    }
+
+    const subscriptions = data.data.currentAppInstallation.activeSubscriptions || [];
 
     // Find active subscription (there should only be one)
     const activeSubscription = subscriptions.find(
-      (sub: any) => sub.status === "ACTIVE" || sub.status === "PENDING"
+      (sub: ShopifySubscription) => sub.status === "ACTIVE" || sub.status === "PENDING"
     );
 
     if (!activeSubscription) {
       // No active subscription - user is on FREE plan
+      // This is a legitimate state, not an error
       return {
         planTier: "FREE",
         hasActiveSubscription: false,
@@ -83,11 +137,11 @@ export class BillingService {
       };
     }
 
-    // Map subscription name to plan tier
-    const planTier = PLAN_NAME_TO_TIER[activeSubscription.name] || "FREE";
+    // Map subscription name to plan tier (with logging for unknown names)
+    const planTier = getPlanTierFromName(activeSubscription.name);
 
     // Check if in trial period
-    const isTrialing = activeSubscription.trialDays > 0;
+    const isTrialing = (activeSubscription.trialDays ?? 0) > 0;
     const trialEndsAt = activeSubscription.currentPeriodEnd
       ? new Date(activeSubscription.currentPeriodEnd)
       : null;
@@ -110,31 +164,113 @@ export class BillingService {
 
   /**
    * Sync subscription status from Shopify to database
+   *
+   * If the Shopify API call fails, this method returns the cached database
+   * state to prevent accidental downgrades of paying customers.
    */
   static async syncSubscriptionToDatabase(
     admin: AdminGraphQL,
     shopDomain: string
   ): Promise<BillingContext> {
-    const billingContext = await this.getCurrentSubscription(admin, shopDomain);
+    let billingContext: BillingContext;
+
+    try {
+      billingContext = await this.getCurrentSubscription(admin, shopDomain);
+    } catch (error) {
+      // On API error, fall back to database state to prevent accidental downgrades
+      if (error instanceof BillingApiError) {
+        console.warn(
+          `[BillingService] API error for ${shopDomain}, falling back to cached state:`,
+          error.message
+        );
+
+        // Try to get cached billing context from database
+        const cachedContext = await this.getBillingContextFromDbByDomain(shopDomain);
+        if (cachedContext) {
+          console.log(`[BillingService] Using cached billing context for ${shopDomain}`);
+          return cachedContext;
+        }
+
+        // If no cached context exists, this is likely a new store - return FREE
+        console.warn(`[BillingService] No cached context for ${shopDomain}, defaulting to FREE`);
+        return {
+          planTier: "FREE",
+          hasActiveSubscription: false,
+          subscription: null,
+          isTrialing: false,
+          trialEndsAt: null,
+        };
+      }
+      throw error;
+    }
 
     // Update store record with subscription info
-    await prisma.store.updateMany({
+    try {
+      await prisma.store.updateMany({
+        where: { shopifyDomain: shopDomain },
+        data: {
+          planTier: billingContext.planTier,
+          planStatus: billingContext.isTrialing
+            ? "TRIALING"
+            : billingContext.hasActiveSubscription
+              ? "ACTIVE"
+              : "CANCELLED",
+          shopifySubscriptionId: billingContext.subscription?.id || null,
+          shopifySubscriptionStatus: billingContext.subscription?.status || null,
+          shopifySubscriptionName: billingContext.subscription?.name || null,
+          trialEndsAt: billingContext.trialEndsAt,
+          currentPeriodEnd: billingContext.subscription?.currentPeriodEnd
+            ? new Date(billingContext.subscription.currentPeriodEnd)
+            : null,
+          billingLastSyncedAt: new Date(),
+        },
+      });
+    } catch (dbError) {
+      console.error("[BillingService] Failed to sync subscription to database:", dbError);
+      // Return the billing context anyway - the sync failure shouldn't block the user
+    }
+
+    return billingContext;
+  }
+
+  /**
+   * Get billing context from database by shop domain
+   */
+  static async getBillingContextFromDbByDomain(shopDomain: string): Promise<BillingContext | null> {
+    const store = await prisma.store.findFirst({
       where: { shopifyDomain: shopDomain },
-      data: {
-        planTier: billingContext.planTier,
-        planStatus: billingContext.isTrialing ? "TRIALING" : 
-                    billingContext.hasActiveSubscription ? "ACTIVE" : "CANCELLED",
-        shopifySubscriptionId: billingContext.subscription?.id || null,
-        shopifySubscriptionStatus: billingContext.subscription?.status || null,
-        shopifySubscriptionName: billingContext.subscription?.name || null,
-        trialEndsAt: billingContext.trialEndsAt,
-        currentPeriodEnd: billingContext.subscription?.currentPeriodEnd
-          ? new Date(billingContext.subscription.currentPeriodEnd)
-          : null,
+      select: {
+        id: true,
+        planTier: true,
+        planStatus: true,
+        shopifySubscriptionId: true,
+        shopifySubscriptionStatus: true,
+        shopifySubscriptionName: true,
+        trialEndsAt: true,
+        currentPeriodEnd: true,
       },
     });
 
-    return billingContext;
+    if (!store) return null;
+
+    const planTier = store.planTier as PlanTier;
+    const hasActiveSubscription = store.planStatus === "ACTIVE" || store.planStatus === "TRIALING";
+
+    return {
+      planTier,
+      hasActiveSubscription,
+      subscription: store.shopifySubscriptionId
+        ? {
+            id: store.shopifySubscriptionId,
+            name: store.shopifySubscriptionName || "",
+            status: store.shopifySubscriptionStatus || "",
+            currentPeriodEnd: store.currentPeriodEnd?.toISOString(),
+            test: false,
+          }
+        : null,
+      isTrialing: store.planStatus === "TRIALING",
+      trialEndsAt: store.trialEndsAt,
+    };
   }
 
   /**
@@ -222,6 +358,96 @@ export class BillingService {
     const tiers: PlanTier[] = ["FREE", "STARTER", "GROWTH", "PRO", "ENTERPRISE"];
     const currentIndex = tiers.indexOf(currentTier);
     return tiers.slice(currentIndex + 1);
+  }
+
+  /**
+   * Smart sync with caching - only calls Shopify API if cache is stale
+   *
+   * This is the recommended method for page loaders as it prevents
+   * unnecessary API calls on every page load.
+   *
+   * When BILLING_BYPASS is enabled, this function always returns cached database
+   * values without syncing from Shopify.
+   */
+  static async getOrSyncBillingContext(
+    admin: AdminGraphQL,
+    shopDomain: string
+  ): Promise<BillingContext> {
+    const billingBypassed = isBillingBypassed();
+    console.log(`[BillingService] getOrSyncBillingContext - billingBypassed: ${billingBypassed}, shop: ${shopDomain}`);
+
+    // First, check if we have a recent cached value
+    const store = await prisma.store.findFirst({
+      where: { shopifyDomain: shopDomain },
+      select: {
+        id: true,
+        planTier: true,
+        planStatus: true,
+        shopifySubscriptionId: true,
+        shopifySubscriptionStatus: true,
+        shopifySubscriptionName: true,
+        trialEndsAt: true,
+        currentPeriodEnd: true,
+        billingLastSyncedAt: true,
+      },
+    });
+
+    console.log(`[BillingService] Store found: ${!!store}, planTier: ${store?.planTier}, planStatus: ${store?.planStatus}`);
+
+    // When billing is bypassed, always use database values (don't sync from Shopify)
+    if (billingBypassed && store) {
+      console.log(`[BillingService] Billing bypassed - returning cached DB values for plan: ${store.planTier}`);
+      const planTier = store.planTier as PlanTier;
+      const hasActiveSubscription =
+        store.planStatus === "ACTIVE" || store.planStatus === "TRIALING";
+
+      return {
+        planTier,
+        hasActiveSubscription,
+        subscription: store.shopifySubscriptionId
+          ? {
+              id: store.shopifySubscriptionId,
+              name: store.shopifySubscriptionName || "",
+              status: store.shopifySubscriptionStatus || "",
+              currentPeriodEnd: store.currentPeriodEnd?.toISOString(),
+              test: false,
+            }
+          : null,
+        isTrialing: store.planStatus === "TRIALING",
+        trialEndsAt: store.trialEndsAt,
+      };
+    }
+
+    // If we have a store with recent sync, use cached data
+    if (store?.billingLastSyncedAt) {
+      const timeSinceSync = Date.now() - store.billingLastSyncedAt.getTime();
+
+      if (timeSinceSync < BILLING_SYNC_TTL_MS) {
+        // Cache is fresh, return cached context
+        const planTier = store.planTier as PlanTier;
+        const hasActiveSubscription =
+          store.planStatus === "ACTIVE" || store.planStatus === "TRIALING";
+
+        return {
+          planTier,
+          hasActiveSubscription,
+          subscription: store.shopifySubscriptionId
+            ? {
+                id: store.shopifySubscriptionId,
+                name: store.shopifySubscriptionName || "",
+                status: store.shopifySubscriptionStatus || "",
+                currentPeriodEnd: store.currentPeriodEnd?.toISOString(),
+                test: false,
+              }
+            : null,
+          isTrialing: store.planStatus === "TRIALING",
+          trialEndsAt: store.trialEndsAt,
+        };
+      }
+    }
+
+    // Cache is stale or doesn't exist - sync from Shopify
+    return this.syncSubscriptionToDatabase(admin, shopDomain);
   }
 }
 

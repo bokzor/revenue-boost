@@ -48,10 +48,6 @@ export const BannerPopup: React.FC<BannerPopupProps> = ({
     }
   }, [isVisible, config.sticky, config.position, config.height]);
 
-  if (!mounted || !isVisible) {
-    return null;
-  }
-
   const position = config.position || "top";
   const scopedCss = useMemo(
     () =>
@@ -63,6 +59,10 @@ export const BannerPopup: React.FC<BannerPopupProps> = ({
       ),
     [config]
   );
+
+  if (!mounted || !isVisible) {
+    return null;
+  }
 
   const bannerStyle: React.CSSProperties = {
     position: config.sticky ? "fixed" : "relative",

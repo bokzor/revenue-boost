@@ -304,7 +304,6 @@ export const RECIPE_CATALOG: Partial<Record<TemplateType, RecipeDefinition[]>> =
         },
       ],
       build: (context) => {
-        const discountValue = getNumberFromContext(context.discountValue, 10);
         const triggerProduct = context.triggerProducts?.[0];
         const offerProduct = context.offerProducts?.[0];
 

@@ -7,7 +7,6 @@
 import { data } from "react-router";
 import { adminCors } from "~/lib/cors.server";
 import { createApiResponse } from "~/lib/api-types";
-import { handleApiError } from "~/lib/api-error-handler.server";
 
 /**
  * Create a successful API response with CORS headers

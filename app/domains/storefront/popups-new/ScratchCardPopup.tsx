@@ -16,14 +16,11 @@ import { PopupPortal } from "./PopupPortal";
 import type { PopupDesignConfig, Prize } from "./types";
 import type { ScratchCardContent } from "~/domains/campaigns/types/campaign";
 import { getSizeDimensions } from "./utils";
-import { POPUP_SPACING, getContainerPadding, SPACING_GUIDELINES } from "./spacing";
+import { POPUP_SPACING } from "./spacing";
 import { challengeTokenStore } from "~/domains/storefront/services/challenge-token.client";
 
 // Import custom hooks
 import { usePopupForm, useDiscountCode, usePopupAnimation } from "./hooks";
-
-// Import canvas utilities
-import { ScratchCardRenderer } from "./utils/canvas";
 
 // Import reusable components
 import { EmailInput, GdprCheckbox, SubmitButton } from "./components";
@@ -86,7 +83,7 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
     handleSubmit: handleFormSubmit,
     validateForm,
     isSubmitting,
-    isSubmitted,
+    isSubmitted: _isSubmitted,
   } = usePopupForm({
     config: {
       emailRequired: config.emailRequired,
@@ -105,10 +102,10 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
   });
 
   // Use discount code hook
-  const { discountCode, setDiscountCode, copiedCode, handleCopyCode } = useDiscountCode();
+  const { discountCode: _discountCode, setDiscountCode, copiedCode, handleCopyCode } = useDiscountCode();
 
   // Use animation hook
-  const { showContent } = usePopupAnimation({ isVisible });
+  const { showContent: _showContent } = usePopupAnimation({ isVisible });
 
   // Component-specific state
   const [emailSubmitted, setEmailSubmitted] = useState(false);
@@ -564,7 +561,7 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
     }
   }, [wonPrize, setDiscountCode]);
 
-  const inputStyles: React.CSSProperties = {
+  const _inputStyles: React.CSSProperties = {
     width: "100%",
     padding: "12px 16px",
     fontSize: "16px",
@@ -575,7 +572,7 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
     outline: "none",
   };
 
-  const buttonStyles: React.CSSProperties = {
+  const _buttonStyles: React.CSSProperties = {
     width: "100%",
     padding: POPUP_SPACING.component.button,
     fontSize: "16px",

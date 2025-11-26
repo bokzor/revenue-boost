@@ -15,11 +15,10 @@ import { TemplateSelector, type SelectedTemplate } from "../TemplateSelector";
 import { LivePreviewPanel } from "~/domains/popups/components/preview/LivePreviewPanel";
 import { Affix } from "~/shared/components/ui/Affix";
 import type { CampaignGoal, TemplateType } from "~/shared/hooks/useWizardState";
-import type { ContentConfig, DesignConfig } from "~/domains/campaigns/types/campaign";
+import type { ContentConfig, DesignConfig , SpinToWinContent } from "~/domains/campaigns/types/campaign";
 import type { DiscountConfig } from "~/domains/popups/services/discounts/discount.server";
 import type { UnifiedTemplate } from "../../hooks/useTemplates";
 
-import type { SpinToWinContent } from "~/domains/campaigns/types/campaign";
 import { getSpinToWinSliceColors, getSpinToWinWheelBorder } from "~/config/color-presets";
 import { CustomCSSEditor } from "../CustomCSSEditor";
 import { UpgradeBanner, useFeatureAccess } from "~/domains/billing";

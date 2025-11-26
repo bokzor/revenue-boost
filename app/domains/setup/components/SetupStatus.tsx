@@ -120,8 +120,8 @@ export function SetupStatus({
         {!status.themeExtensionEnabled && themeEditorUrl && (
           <BlockStack gap="200">
             <Text as="p" variant="bodyMd" tone="subdued">
-              To enable the theme extension, open your theme editor and toggle on "Revenue Boost
-              Popups" under App embeds.
+              To enable the theme extension, open your theme editor and toggle on &quot;Revenue Boost
+              Popups&quot; under App embeds.
             </Text>
             <Button url={themeEditorUrl} target="_blank" variant="primary">
               Open Theme Editor

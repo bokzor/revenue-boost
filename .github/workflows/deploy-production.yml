@@ -117,7 +117,7 @@ jobs:
       (needs.test.result == 'success' || needs.test.result == 'skipped') &&
       (needs.integration-test.result == 'success' || needs.integration-test.result == 'skipped')
     runs-on: ubuntu-latest
-    environment: production
+    environment: prod
     permissions:
       contents: read
       id-token: write

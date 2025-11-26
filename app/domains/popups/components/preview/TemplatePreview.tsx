@@ -17,7 +17,6 @@ import type {
   ProductUpsellConfig,
   SocialProofNotification as PreviewSocialProofNotification,
   SocialProofConfig,
-  CartAbandonmentConfig,
 } from "~/domains/storefront/popups-new";
 import type { ReactNode } from "react";
 
@@ -280,7 +279,7 @@ const TemplatePreviewComponent = forwardRef<TemplatePreviewRef, TemplatePreviewP
     if (templateType === TemplateTypeEnum.FLASH_SALE) {
       const flashConfig = componentConfig as FlashSaleConfig;
 
-      const previewIssueDiscount = async (options?: {
+      const previewIssueDiscount = async (_options?: {
         cartSubtotalCents?: number;
       }): Promise<{ code?: string; behavior?: string } | null> => {
         const pct =

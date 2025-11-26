@@ -19,7 +19,9 @@ export async function handlePasswordPage(page: Page) {
         console.log('🔒 Password page detected, logging in...');
         await passwordInput.fill(STORE_PASSWORD);
         await page.click('button[type="submit"]');
-        await page.waitForLoadState('networkidle');
+        // Wait for navigation to complete with a reasonable timeout
+        await page.waitForLoadState('domcontentloaded');
+        await page.waitForTimeout(1000); // Give time for page to stabilize
     }
 }
 
@@ -168,6 +170,34 @@ export async function waitForPopupRendered(page: Page, timeout: number = 15000):
     } catch {
         return false;
     }
+}
+
+/**
+ * Check if a popup is visible on the page
+ * Uses the shadow host container which is the standard way popups are rendered
+ */
+export async function isPopupVisible(page: Page): Promise<boolean> {
+    return page.locator('#revenue-boost-popup-shadow-host').isVisible().catch(() => false);
+}
+
+/**
+ * Wait for any popup to be visible
+ */
+export async function waitForAnyPopup(page: Page, timeout: number = 10000): Promise<void> {
+    await page.locator('#revenue-boost-popup-shadow-host').waitFor({
+        state: 'visible',
+        timeout
+    });
+}
+
+/**
+ * Wait for popup to be hidden/closed
+ */
+export async function waitForPopupHidden(page: Page, timeout: number = 5000): Promise<void> {
+    await page.locator('#revenue-boost-popup-shadow-host').waitFor({
+        state: 'hidden',
+        timeout
+    });
 }
 
 /**
@@ -546,4 +576,298 @@ export async function captureLeadSubmissionResponse(page: Page): Promise<any> {
             }
         });
     });
+}
+
+/**
+ * Check/uncheck GDPR checkbox inside shadow DOM
+ */
+export async function checkGdprCheckbox(page: Page, check: boolean = true): Promise<boolean> {
+    return page.evaluate((shouldCheck) => {
+        const host = document.querySelector('#revenue-boost-popup-shadow-host');
+        const shadow = host?.shadowRoot;
+        if (!shadow) return false;
+
+        const checkbox = shadow.querySelector('input[type="checkbox"]') as HTMLInputElement;
+        if (!checkbox) return false;
+
+        if (shouldCheck && !checkbox.checked) {
+            checkbox.click();
+        } else if (!shouldCheck && checkbox.checked) {
+            checkbox.click();
+        }
+        return true;
+    }, check);
+}
+
+/**
+ * Get text content from shadow DOM by selector pattern
+ */
+export async function getTextFromShadowDOM(page: Page, textPattern: RegExp | string): Promise<string | null> {
+    return page.evaluate((pattern) => {
+        const host = document.querySelector('#revenue-boost-popup-shadow-host');
+        const shadow = host?.shadowRoot;
+        if (!shadow) return null;
+
+        const html = shadow.innerHTML;
+        const regex = typeof pattern === 'string' ? new RegExp(pattern, 'i') : new RegExp(pattern);
+        const match = html.match(regex);
+        return match ? match[0] : null;
+    }, typeof textPattern === 'string' ? textPattern : textPattern.source);
+}
+
+/**
+ * Check if specific text exists in shadow DOM
+ */
+export async function hasTextInShadowDOM(page: Page, text: string): Promise<boolean> {
+    return page.evaluate((searchText) => {
+        const host = document.querySelector('#revenue-boost-popup-shadow-host');
+        const shadow = host?.shadowRoot;
+        if (!shadow) return false;
+
+        const html = shadow.innerHTML.toLowerCase();
+        return html.includes(searchText.toLowerCase());
+    }, text);
+}
+
+/**
+ * Click a button in shadow DOM by text
+ */
+export async function clickButtonInShadowDOM(page: Page, buttonText: string): Promise<boolean> {
+    return page.evaluate((text) => {
+        const host = document.querySelector('#revenue-boost-popup-shadow-host');
+        const shadow = host?.shadowRoot;
+        if (!shadow) return false;
+
+        // Find all buttons
+        const buttons = shadow.querySelectorAll('button');
+        for (const btn of buttons) {
+            if (btn.textContent?.toLowerCase().includes(text.toLowerCase())) {
+                btn.click();
+                return true;
+            }
+        }
+        return false;
+    }, buttonText);
+}
+
+/**
+ * Close popup using close button in shadow DOM
+ */
+export async function closePopupInShadowDOM(page: Page): Promise<boolean> {
+    return page.evaluate(() => {
+        const host = document.querySelector('#revenue-boost-popup-shadow-host');
+        const shadow = host?.shadowRoot;
+        if (!shadow) return false;
+
+        // Try various close button selectors
+        const closeSelectors = [
+            'button[aria-label*="close" i]',
+            'button[aria-label*="Close" i]',
+            'button[class*="close" i]',
+            'button:has(svg)',
+            '[role="button"][aria-label*="close" i]'
+        ];
+
+        for (const selector of closeSelectors) {
+            const closeBtn = shadow.querySelector(selector) as HTMLButtonElement;
+            if (closeBtn) {
+                closeBtn.click();
+                return true;
+            }
+        }
+        return false;
+    });
+}
+
+/**
+ * Get all form inputs from shadow DOM
+ */
+export async function getFormInputsFromShadowDOM(page: Page): Promise<{email: boolean, checkbox: boolean, button: boolean}> {
+    return page.evaluate(() => {
+        const host = document.querySelector('#revenue-boost-popup-shadow-host');
+        const shadow = host?.shadowRoot;
+        if (!shadow) return { email: false, checkbox: false, button: false };
+
+        return {
+            email: !!shadow.querySelector('input[type="email"]'),
+            checkbox: !!shadow.querySelector('input[type="checkbox"]'),
+            button: !!shadow.querySelector('button[type="submit"], button:not([type="button"])')
+        };
+    });
+}
+
+/**
+ * Perform a complete newsletter signup flow
+ */
+export async function performNewsletterSignup(
+    page: Page,
+    email: string,
+    options: { checkGdpr?: boolean } = {}
+): Promise<{ success: boolean; error?: string }> {
+    try {
+        // Fill email
+        const emailFilled = await fillEmailInShadowDOM(page, email);
+        if (!emailFilled) {
+            return { success: false, error: 'Could not fill email' };
+        }
+
+        // Check GDPR if needed
+        if (options.checkGdpr) {
+            await checkGdprCheckbox(page, true);
+        }
+
+        // Submit form
+        const submitted = await submitFormInShadowDOM(page);
+        if (!submitted) {
+            return { success: false, error: 'Could not submit form' };
+        }
+
+        // Wait for response
+        await page.waitForTimeout(2000);
+
+        return { success: true };
+    } catch (error) {
+        return { success: false, error: String(error) };
+    }
+}
+
+/**
+ * Wait for campaign to be available in API
+ * This helps with race conditions where campaign is created but not yet visible
+ */
+export async function waitForCampaignInAPI(
+    page: Page,
+    campaignId: string,
+    timeout: number = 10000
+): Promise<boolean> {
+    const startTime = Date.now();
+
+    while (Date.now() - startTime < timeout) {
+        try {
+            const response = await page.evaluate(async (id) => {
+                const res = await fetch(`/apps/revenue-boost/api/campaigns/${id}`);
+                return res.ok;
+            }, campaignId);
+
+            if (response) {
+                return true;
+            }
+        } catch {
+            // Ignore errors and retry
+        }
+
+        await page.waitForTimeout(500);
+    }
+
+    return false;
+}
+
+/**
+ * Robust test setup - ensures clean state before each test
+ */
+export async function setupTestEnvironment(
+    page: Page,
+    prisma: any,
+    options: {
+        cleanupPrefix?: string;
+        waitTime?: number;
+    } = {}
+): Promise<void> {
+    const { cleanupPrefix = 'E2E-Test-', waitTime = 1000 } = options;
+
+    // 1. Clean up old test campaigns
+    const deleted = await prisma.campaign.deleteMany({
+        where: {
+            name: { startsWith: cleanupPrefix }
+        }
+    });
+
+    if (deleted.count > 0) {
+        console.log(`[Test Setup] Cleaned up ${deleted.count} old test campaigns`);
+    }
+
+    // 2. Wait for cleanup to propagate
+    await page.waitForTimeout(waitTime);
+    console.log('[Test Setup] Waited for cleanup to propagate');
+
+    // 3. Mock challenge token
+    await mockChallengeToken(page);
+}
+
+/**
+ * Generate a unique high priority for test campaigns
+ * Uses timestamp to ensure uniqueness across parallel tests
+ */
+export function generateTestPriority(base: number = 9000): number {
+    return base + Math.floor(Math.random() * 1000);
+}
+
+/**
+ * Retry an async operation with exponential backoff
+ */
+export async function retryOperation<T>(
+    operation: () => Promise<T>,
+    options: {
+        maxRetries?: number;
+        initialDelay?: number;
+        maxDelay?: number;
+        onRetry?: (attempt: number, error: Error) => void;
+    } = {}
+): Promise<T> {
+    const {
+        maxRetries = 3,
+        initialDelay = 500,
+        maxDelay = 5000,
+        onRetry
+    } = options;
+
+    let lastError: Error | undefined;
+    let delay = initialDelay;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            return await operation();
+        } catch (error) {
+            lastError = error as Error;
+
+            if (attempt < maxRetries) {
+                onRetry?.(attempt, lastError);
+                await new Promise(resolve => setTimeout(resolve, delay));
+                delay = Math.min(delay * 2, maxDelay);
+            }
+        }
+    }
+
+    throw lastError;
+}
+
+/**
+ * Wait for popup with retry - handles timing issues
+ */
+export async function waitForPopupWithRetry(
+    page: Page,
+    options: {
+        timeout?: number;
+        retries?: number;
+        reloadOnRetry?: boolean;
+    } = {}
+): Promise<boolean> {
+    const { timeout = 10000, retries = 2, reloadOnRetry = true } = options;
+
+    for (let attempt = 1; attempt <= retries; attempt++) {
+        try {
+            const popup = page.locator('#revenue-boost-popup-shadow-host');
+            await popup.waitFor({ state: 'visible', timeout });
+            return true;
+        } catch {
+            if (attempt < retries && reloadOnRetry) {
+                console.log(`[Retry ${attempt}] Popup not visible, reloading page...`);
+                await page.reload();
+                await handlePasswordPage(page);
+                await page.waitForTimeout(2000);
+            }
+        }
+    }
+
+    return false;
 }

@@ -78,7 +78,7 @@ async function sanitizeTargetRulesForPlan(
 
   // If advanced targeting is not available on this plan, strip audience targeting fields
   if (!definition.features.advancedTargeting) {
-    const { audienceTargeting, ...rest } = targetRules;
+    const { audienceTargeting: _audienceTargeting, ...rest } = targetRules;
     return {
       ...rest,
       audienceTargeting: DISABLED_AUDIENCE_TARGETING,

@@ -719,7 +719,7 @@ export function CampaignIndexTable({
                   )}
                   <IndexTable.Cell>
                     <InlineStack gap="200">
-                      <div onClick={(e) => e.stopPropagation()}>
+                      <span role="presentation" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
                         <Button
                           size="micro"
                           onClick={() => {
@@ -728,7 +728,7 @@ export function CampaignIndexTable({
                         >
                           View
                         </Button>
-                      </div>
+                      </span>
                     </InlineStack>
                   </IndexTable.Cell>
                 </IndexTable.Row>
@@ -811,7 +811,7 @@ export function CampaignIndexTable({
                   )}
                   <IndexTable.Cell>
                     <InlineStack gap="200">
-                      <div onClick={(e) => e.stopPropagation()}>
+                      <span role="presentation" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
                         <Button
                           size="micro"
                           onClick={() => {
@@ -820,9 +820,9 @@ export function CampaignIndexTable({
                         >
                           Edit
                         </Button>
-                      </div>
+                      </span>
                       {onAnalyticsClick && (
-                        <div onClick={(e) => e.stopPropagation()}>
+                        <span role="presentation" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
                           <Button
                             size="micro"
                             onClick={() => {
@@ -831,10 +831,10 @@ export function CampaignIndexTable({
                           >
                             Analytics
                           </Button>
-                        </div>
+                        </span>
                       )}
                       {onToggleStatus && (
-                        <div onClick={(e) => e.stopPropagation()}>
+                        <span role="presentation" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
                           <Button
                             size="micro"
                             loading={togglingCampaignId === id}
@@ -845,10 +845,10 @@ export function CampaignIndexTable({
                           >
                             {status === "ACTIVE" ? "Pause" : "Activate"}
                           </Button>
-                        </div>
+                        </span>
                       )}
                       {onDuplicateClick && (
-                        <div onClick={(e) => e.stopPropagation()}>
+                        <span role="presentation" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
                           <Button
                             size="micro"
                             onClick={() => {
@@ -857,10 +857,10 @@ export function CampaignIndexTable({
                           >
                             Duplicate
                           </Button>
-                        </div>
+                        </span>
                       )}
                       {onDeleteClick && (
-                        <div onClick={(e) => e.stopPropagation()}>
+                        <span role="presentation" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
                           <Button
                             size="micro"
                             tone="critical"
@@ -870,7 +870,7 @@ export function CampaignIndexTable({
                           >
                             Delete
                           </Button>
-                        </div>
+                        </span>
                       )}
                     </InlineStack>
                   </IndexTable.Cell>
@@ -933,7 +933,7 @@ export function CampaignIndexTable({
                   )}
                   <IndexTable.Cell>
                     <InlineStack gap="200">
-                      <div onClick={(e) => e.stopPropagation()}>
+                      <span role="presentation" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
                         <Button
                           size="micro"
                           onClick={() => {
@@ -942,9 +942,9 @@ export function CampaignIndexTable({
                         >
                           Edit
                         </Button>
-                      </div>
+                      </span>
                       {onAnalyticsClick && (
-                        <div onClick={(e) => e.stopPropagation()}>
+                        <span role="presentation" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
                           <Button
                             size="micro"
                             onClick={() => {
@@ -953,10 +953,10 @@ export function CampaignIndexTable({
                           >
                             Analytics
                           </Button>
-                        </div>
+                        </span>
                       )}
                       {onToggleStatus && (
-                        <div onClick={(e) => e.stopPropagation()}>
+                        <span role="presentation" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
                           <Button
                             size="micro"
                             loading={togglingCampaignId === id}
@@ -967,10 +967,10 @@ export function CampaignIndexTable({
                           >
                             {status === "ACTIVE" ? "Pause" : "Activate"}
                           </Button>
-                        </div>
+                        </span>
                       )}
                       {onDuplicateClick && (
-                        <div onClick={(e) => e.stopPropagation()}>
+                        <span role="presentation" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
                           <Button
                             size="micro"
                             onClick={() => {
@@ -979,10 +979,10 @@ export function CampaignIndexTable({
                           >
                             Duplicate
                           </Button>
-                        </div>
+                        </span>
                       )}
                       {onDeleteClick && (
-                        <div onClick={(e) => e.stopPropagation()}>
+                        <span role="presentation" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
                           <Button
                             size="micro"
                             tone="critical"
@@ -992,7 +992,7 @@ export function CampaignIndexTable({
                           >
                             Delete
                           </Button>
-                        </div>
+                        </span>
                       )}
                     </InlineStack>
                   </IndexTable.Cell>

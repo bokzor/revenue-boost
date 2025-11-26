@@ -1,8 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import {
-	  CartAbandonmentPopup,
-	  type CartAbandonmentConfig,
-	} from "~/domains/storefront/popups-new/CartAbandonmentPopup";
+  CartAbandonmentPopup,
+  type CartAbandonmentConfig,
+} from "~/domains/storefront/popups-new/CartAbandonmentPopup";
 
 const baseConfig: Partial<CartAbandonmentConfig> = {
   id: "demo-cart-abandonment",
@@ -25,20 +25,20 @@ const meta: Meta<typeof CartAbandonmentPopup> = {
   title: "Storefront/Popups/CartAbandonmentPopup",
   component: CartAbandonmentPopup,
   args: {
-	    isVisible: true,
-	    config: baseConfig as CartAbandonmentConfig,
-	    cartItems: [
-	      {
-	        id: "1",
-	        variantId: "v1",
-	        title: "Classic Tee",
-	        imageUrl: "https://via.placeholder.com/80",
-	        quantity: 1,
-	        price: "29.00",
-	      },
-	    ],
-	    cartTotal: 29,
-	    issueDiscount: async () => ({ code: "CART10", autoApplyMode: "AUTO" }),
+    isVisible: true,
+    config: baseConfig as CartAbandonmentConfig,
+    cartItems: [
+      {
+        id: "1",
+        variantId: "v1",
+        title: "Classic Tee",
+        imageUrl: "https://via.placeholder.com/80",
+        quantity: 1,
+        price: "29.00",
+      },
+    ],
+    cartTotal: 29,
+    issueDiscount: async () => ({ code: "CART10", autoApplyMode: "AUTO" }),
   },
 };
 

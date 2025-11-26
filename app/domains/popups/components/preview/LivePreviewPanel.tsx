@@ -23,9 +23,8 @@ import {
   InlineStack,
   Popover,
   ActionList,
-  Tooltip,
 } from "@shopify/polaris";
-import { ViewIcon, ChevronDownIcon } from "@shopify/polaris-icons";
+import { ViewIcon } from "@shopify/polaris-icons";
 import { DeviceFrame } from "./DeviceFrame";
 import { TemplatePreview } from "./TemplatePreview";
 

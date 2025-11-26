@@ -3,14 +3,14 @@
  */
 
 export interface ApiConfig {
-	  apiUrl: string;
-	  shopDomain: string;
-	  debug?: boolean;
-	  previewMode?: boolean;
-	  previewId?: string;
-	  previewToken?: string;
-	  previewBehavior?: 'instant' | 'realistic';
-	}
+  apiUrl: string;
+  shopDomain: string;
+  debug?: boolean;
+  previewMode?: boolean;
+  previewId?: string;
+  previewToken?: string;
+  previewBehavior?: "instant" | "realistic";
+}
 
 export interface FetchCampaignsResponse {
   campaigns: unknown[];
@@ -47,9 +47,9 @@ export class ApiClient {
     this.config = config;
   }
 
-	  private isPreviewMode(): boolean {
-	    return !!(this.config.previewMode && this.config.previewToken);
-	  }
+  private isPreviewMode(): boolean {
+    return !!(this.config.previewMode && this.config.previewToken);
+  }
 
   private log(...args: unknown[]) {
     if (this.config.debug) {
@@ -69,7 +69,10 @@ export class ApiClient {
     return `/apps/revenue-boost${cleanPath}`;
   }
 
-  async fetchActiveCampaigns(sessionId: string, visitorId?: string): Promise<FetchCampaignsResponse> {
+  async fetchActiveCampaigns(
+    sessionId: string,
+    visitorId?: string
+  ): Promise<FetchCampaignsResponse> {
     // Ensure we have an up-to-date cart snapshot before building context
     await this.ensureCartSnapshot();
 
@@ -231,7 +234,6 @@ export class ApiClient {
     return context;
   }
 
-
   /**
    * Ensure Shopify.cart snapshot is populated so cart-based rules work
    * even on themes/pages that do not expose window.Shopify.cart.
@@ -270,7 +272,6 @@ export class ApiClient {
       // Fail silently - cart-based rules will simply not match if cart snapshot is unavailable
     }
   }
-
 
   private detectPageType(): string {
     const path = window.location.pathname;
@@ -365,6 +366,10 @@ export class ApiClient {
     cartSubtotalCents?: number;
     sessionId: string;
     challengeToken: string;
+    // Product Upsell: selected product IDs for bundle discount scoping
+    selectedProductIds?: string[];
+    // Product Upsell: bundle discount from contentConfig (auto-sync mode)
+    bundleDiscountPercent?: number;
   }): Promise<{
     success: boolean;
     code?: string;
@@ -446,7 +451,7 @@ export class ApiClient {
         body: JSON.stringify(data),
       });
 
-      const result = await response.json().catch(() => ({} as EmailRecoveryResponse));
+      const result = await response.json().catch(() => ({}) as EmailRecoveryResponse);
 
       if (!response.ok) {
         const parsed = result as EmailRecoveryResponse;
@@ -465,13 +470,12 @@ export class ApiClient {
       console.error("[Revenue Boost API] Failed to perform email recovery:", error);
       return {
         success: false,
-        error:
-          error instanceof Error ? error.message : "Failed to perform email recovery",
+        error: error instanceof Error ? error.message : "Failed to perform email recovery",
       };
     }
   }
 
-	  async recordFrequency(input: {
+  async recordFrequency(input: {
     sessionId: string;
     campaignId: string;
     trackingKey: string;
@@ -479,15 +483,15 @@ export class ApiClient {
     pageUrl?: string;
     referrer?: string;
   }): Promise<void> {
-	    // Skip analytics writes entirely when running in storefront preview mode.
-	    // Preview sessions should not contribute to frequency caps or analytics.
-	    if (this.isPreviewMode()) {
-	      this.log("Skipping frequency tracking in preview mode", {
-	        campaignId: input.campaignId,
-	        trackingKey: input.trackingKey,
-	      });
-	      return;
-	    }
+    // Skip analytics writes entirely when running in storefront preview mode.
+    // Preview sessions should not contribute to frequency caps or analytics.
+    if (this.isPreviewMode()) {
+      this.log("Skipping frequency tracking in preview mode", {
+        campaignId: input.campaignId,
+        trackingKey: input.trackingKey,
+      });
+      return;
+    }
     const params = new URLSearchParams({
       shop: this.config.shopDomain,
     });
@@ -515,20 +519,20 @@ export class ApiClient {
     }
   }
 
-	  async trackEvent(event: {
+  async trackEvent(event: {
     type: string;
     campaignId: string;
     sessionId: string;
     data?: Record<string, unknown>;
   }): Promise<void> {
-	    // Do not track popup events from storefront preview sessions.
-	    if (this.isPreviewMode()) {
-	      this.log("Skipping popup event tracking in preview mode", {
-	        type: event.type,
-	        campaignId: event.campaignId,
-	      });
-	      return;
-	    }
+    // Do not track popup events from storefront preview sessions.
+    if (this.isPreviewMode()) {
+      this.log("Skipping popup event tracking in preview mode", {
+        type: event.type,
+        campaignId: event.campaignId,
+      });
+      return;
+    }
     const params = new URLSearchParams({
       shop: this.config.shopDomain,
     });
@@ -548,20 +552,20 @@ export class ApiClient {
     }
   }
 
-	  async trackSocialProofEvent(event: {
-    eventType: 'page_view' | 'product_view' | 'add_to_cart';
+  async trackSocialProofEvent(event: {
+    eventType: "page_view" | "product_view" | "add_to_cart";
     productId?: string;
     pageUrl?: string;
     shop: string;
   }): Promise<void> {
-	    // Avoid polluting social proof metrics when previewing popups from the admin.
-	    if (this.isPreviewMode()) {
-	      this.log("Skipping social proof tracking in preview mode", {
-	        eventType: event.eventType,
-	        productId: event.productId,
-	      });
-	      return;
-	    }
+    // Avoid polluting social proof metrics when previewing popups from the admin.
+    if (this.isPreviewMode()) {
+      this.log("Skipping social proof tracking in preview mode", {
+        eventType: event.eventType,
+        productId: event.productId,
+      });
+      return;
+    }
     const url = this.getApiUrl("/api/social-proof/track");
 
     try {

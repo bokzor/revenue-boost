@@ -66,6 +66,7 @@ model Store {
   shopifySubscriptionId      String?    // Shopify AppSubscription GID (e.g., "gid://shopify/AppSubscription/123")
   shopifySubscriptionStatus  String?    // Shopify subscription status (ACTIVE, CANCELLED, EXPIRED, etc.)
   shopifySubscriptionName    String?    // Name of the subscribed plan for reference
+  billingLastSyncedAt        DateTime?  // Last time billing was synced from Shopify (for cache TTL)
 
   @@index([shopifyDomain, isActive])
   @@map("stores")

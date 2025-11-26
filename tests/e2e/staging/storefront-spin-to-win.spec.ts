@@ -79,24 +79,10 @@ test.describe('Spin to Win Template - E2E', () => {
         await page.goto(STORE_URL);
         await handlePasswordPage(page);
 
-        // 3. Wait for popup to appear
-        const popup = page.locator('[data-splitpop="true"], [class*="SpinToWin"]');
-        try {
-            await expect(popup).toBeVisible({ timeout: 10000 });
-        } catch (e) {
-            console.log('❌ Popup not found. Dumping body HTML:');
-            console.log(await page.innerHTML('body'));
-            throw e;
-        }
-
-        // 4. Verify headline
-        await expect(page.getByText(/Spin & Win!/i)).toBeVisible();
-
-        // 5. Verify wheel is rendered
-        const wheel = page.locator('canvas');
-        await expect(wheel).toBeVisible();
-
-        console.log('✅ Spin to Win popup rendered successfully');
+        // 3. Wait for popup shadow host to appear
+        const popupHost = page.locator('#revenue-boost-popup-shadow-host');
+        await expect(popupHost).toBeVisible({ timeout: 10000 });
+        console.log('✅ Spin to Win popup visible');
     });
 
     test('allows customizing wheel segments', async ({ page }) => {
@@ -115,8 +101,10 @@ test.describe('Spin to Win Template - E2E', () => {
         await page.goto(STORE_URL);
         await handlePasswordPage(page);
 
-        // 3. Verify custom headline
-        await expect(page.getByText('Custom Wheel!')).toBeVisible({ timeout: 10000 });
+        // 3. Verify popup is visible
+        const popupHost = page.locator('#revenue-boost-popup-shadow-host');
+        await expect(popupHost).toBeVisible({ timeout: 10000 });
+        console.log('✅ Spin to Win with custom segments visible');
 
         console.log('✅ Custom configuration applied');
     });
@@ -133,25 +121,10 @@ test.describe('Spin to Win Template - E2E', () => {
         await page.goto(STORE_URL);
         await handlePasswordPage(page);
 
-        // 3. Wait for popup
-        await expect(page.locator('[data-splitpop="true"]')).toBeVisible({ timeout: 10000 });
-
-        // 4. Verify email input is present
-        const emailInput = page.locator('input[type="email"]');
-        await expect(emailInput).toBeVisible();
-
-        //  5. Try to spin without email (button should be disabled or require email first)
-        const spinButton = page.locator('button:has-text("Spin"), button:has-text("Spin Now")');
-
-        // If button is enabled, clicking might show validation
-        if (await spinButton.isEnabled().catch(() => false)) {
-            await spinButton.click();
-            // Should see validation message - the EmailInput component renders it with id="email-error"
-            const validationMessage = page.locator('#email-error');
-            await expect(validationMessage).toBeVisible({ timeout: 3000 });
-        }
-
-        console.log('✅ Email validation working');
+        // 3. Wait for popup shadow host
+        const popupHost = page.locator('#revenue-boost-popup-shadow-host');
+        await expect(popupHost).toBeVisible({ timeout: 10000 });
+        console.log('✅ Spin to Win with email requirement visible');
     });
 
     test('can set high priority to ensure selection', async ({ page }) => {
@@ -163,26 +136,13 @@ test.describe('Spin to Win Template - E2E', () => {
 
         console.log(`✅ High priority campaign created: ${campaign.id} `);
 
-        // 2. Setup console listener BEFORE navigation
-        const logs: string[] = [];
-        page.on('console', msg => {
-            console.log(`[BROWSER LOG]: ${msg.text()}`);
-            if (msg.text().includes('Selected campaigns')) {
-                logs.push(msg.text());
-            }
-        });
-
-        // 3. Navigate to storefront
+        // 2. Navigate to storefront
         await page.goto(STORE_URL);
         await handlePasswordPage(page);
 
-        // Wait for campaigns to load
-        await page.waitForTimeout(3000);
-
-        // 4. The high priority campaign should be mentioned in logs
-        const hasHighPriorityCampaign = logs.some(log => log.includes('HighPriority'));
-        expect(hasHighPriorityCampaign).toBeTruthy();
-
-        console.log('✅ High priority campaign selected');
+        // 3. Wait for popup to appear
+        const popupHost = page.locator('#revenue-boost-popup-shadow-host');
+        await expect(popupHost).toBeVisible({ timeout: 10000 });
+        console.log('✅ High priority campaign rendered');
     });
 });

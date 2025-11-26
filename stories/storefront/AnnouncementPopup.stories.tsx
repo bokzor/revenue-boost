@@ -1,8 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import {
-	  AnnouncementPopup,
-	  type AnnouncementConfig,
-	} from "~/domains/storefront/popups-new/AnnouncementPopup";
+  AnnouncementPopup,
+  type AnnouncementConfig,
+} from "~/domains/storefront/popups-new/AnnouncementPopup";
 
 const baseConfig: Partial<AnnouncementConfig> = {
   id: "demo-announcement",
@@ -25,7 +25,7 @@ const meta: Meta<typeof AnnouncementPopup> = {
   component: AnnouncementPopup,
   args: {
     isVisible: true,
-	    config: baseConfig as AnnouncementConfig,
+    config: baseConfig as AnnouncementConfig,
   },
 };
 

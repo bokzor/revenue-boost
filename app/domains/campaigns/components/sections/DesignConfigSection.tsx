@@ -55,14 +55,11 @@ export function DesignConfigSection({
 }: DesignConfigSectionProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  // File upload with scope handling
+  // File upload
   const {
     uploadFile,
     isUploading: isUploadingBackground,
     error: uploadError,
-    scopeRequired: fileScopeRequired,
-    requestScope: requestFileScope,
-    isRequestingScope: isRequestingFileScope,
   } = useShopifyFileUpload();
 
   // Collapsible section state
@@ -367,38 +364,22 @@ export function DesignConfigSection({
                       onChange={handleBackgroundFileChange}
                     />
 
-                    {fileScopeRequired ? (
-                      <Banner
-                        title="Permission required"
-                        tone="info"
-                        action={{
-                          content: isRequestingFileScope ? "Requesting..." : "Grant Access",
-                          onAction: requestFileScope,
-                          disabled: isRequestingFileScope,
-                        }}
+                    <BlockStack gap="200">
+                      <Button
+                        onClick={handleBackgroundFileClick}
+                        loading={isUploadingBackground}
+                        disabled={isUploadingBackground}
                       >
-                        <Text as="p" variant="bodySm">
-                          To upload custom images, we need permission to create files in your store.
+                        {imageMode === "file" && previewImageUrl
+                          ? "Change background image"
+                          : "Upload image from your computer"}
+                      </Button>
+                      {uploadError && (
+                        <Text as="p" variant="bodySm" tone="critical">
+                          {uploadError}
                         </Text>
-                      </Banner>
-                    ) : (
-                      <BlockStack gap="200">
-                        <Button
-                          onClick={handleBackgroundFileClick}
-                          loading={isUploadingBackground}
-                          disabled={isUploadingBackground}
-                        >
-                          {imageMode === "file" && previewImageUrl
-                            ? "Change background image"
-                            : "Upload image from your computer"}
-                        </Button>
-                        {uploadError && (
-                          <Text as="p" variant="bodySm" tone="critical">
-                            {uploadError}
-                          </Text>
-                        )}
-                      </BlockStack>
-                    )}
+                      )}
+                    </BlockStack>
                   </div>
                 </FormGrid>
 

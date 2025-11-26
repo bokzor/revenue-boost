@@ -13,6 +13,7 @@ vi.mock("~/db.server", () => ({
   default: {
     store: {
       findUnique: vi.fn(),
+      findFirst: vi.fn(),
       updateMany: vi.fn(),
     },
   },
@@ -41,6 +42,7 @@ describe("BillingService", () => {
     it("should return FREE plan when no active subscriptions", async () => {
       const mockAdmin = {
         graphql: vi.fn().mockResolvedValue({
+          ok: true,
           json: vi.fn().mockResolvedValue({
             data: {
               currentAppInstallation: {
@@ -61,6 +63,7 @@ describe("BillingService", () => {
     it("should return GROWTH plan when Growth subscription is active", async () => {
       const mockAdmin = {
         graphql: vi.fn().mockResolvedValue({
+          ok: true,
           json: vi.fn().mockResolvedValue({
             data: {
               currentAppInstallation: {
@@ -92,6 +95,7 @@ describe("BillingService", () => {
     it("should detect trial period when trialDays > 0", async () => {
       const mockAdmin = {
         graphql: vi.fn().mockResolvedValue({
+          ok: true,
           json: vi.fn().mockResolvedValue({
             data: {
               currentAppInstallation: {
@@ -117,12 +121,42 @@ describe("BillingService", () => {
       expect(result.isTrialing).toBe(true);
       expect(result.trialEndsAt).toEqual(new Date("2024-02-01T00:00:00Z"));
     });
+
+    it("should throw BillingApiError on API failure", async () => {
+      const mockAdmin = {
+        graphql: vi.fn().mockResolvedValue({
+          ok: false,
+          status: 500,
+          json: vi.fn().mockResolvedValue({}),
+        }),
+      };
+
+      await expect(
+        BillingService.getCurrentSubscription(mockAdmin, "test.myshopify.com")
+      ).rejects.toThrow("Shopify API returned status 500");
+    });
+
+    it("should throw BillingApiError on GraphQL errors", async () => {
+      const mockAdmin = {
+        graphql: vi.fn().mockResolvedValue({
+          ok: true,
+          json: vi.fn().mockResolvedValue({
+            errors: [{ message: "Access denied" }],
+          }),
+        }),
+      };
+
+      await expect(
+        BillingService.getCurrentSubscription(mockAdmin, "test.myshopify.com")
+      ).rejects.toThrow("GraphQL errors: Access denied");
+    });
   });
 
   describe("syncSubscriptionToDatabase", () => {
     it("should update store with subscription info", async () => {
       const mockAdmin = {
         graphql: vi.fn().mockResolvedValue({
+          ok: true,
           json: vi.fn().mockResolvedValue({
             data: {
               currentAppInstallation: {
@@ -155,6 +189,39 @@ describe("BillingService", () => {
           shopifySubscriptionName: "Starter",
         }),
       });
+    });
+
+    it("should fall back to cached context on API error", async () => {
+      const mockAdmin = {
+        graphql: vi.fn().mockResolvedValue({
+          ok: false,
+          status: 503,
+          json: vi.fn().mockResolvedValue({}),
+        }),
+      };
+
+      // Mock cached context exists
+      vi.mocked(prisma.store.findFirst).mockResolvedValue({
+        id: "store-1",
+        planTier: "GROWTH",
+        planStatus: "ACTIVE",
+        shopifySubscriptionId: "gid://shopify/AppSubscription/999",
+        shopifySubscriptionStatus: "ACTIVE",
+        shopifySubscriptionName: "Growth",
+        trialEndsAt: null,
+        currentPeriodEnd: new Date("2024-04-01T00:00:00Z"),
+      } as any);
+
+      const result = await BillingService.syncSubscriptionToDatabase(
+        mockAdmin,
+        "test.myshopify.com"
+      );
+
+      // Should return cached GROWTH plan, not downgrade to FREE
+      expect(result.planTier).toBe("GROWTH");
+      expect(result.hasActiveSubscription).toBe(true);
+      // Should NOT update the database on API error
+      expect(prisma.store.updateMany).not.toHaveBeenCalled();
     });
   });
 

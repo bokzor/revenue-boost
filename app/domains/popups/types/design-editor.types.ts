@@ -10,7 +10,6 @@ import type {
   DiscountConfig,
   TemplateType,
   TargetRulesConfig,
-  ContentConfig,
 } from "~/domains/campaigns/types/campaign";
 
 /**

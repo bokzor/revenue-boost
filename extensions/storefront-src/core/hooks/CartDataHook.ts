@@ -12,7 +12,7 @@ export class CartDataHook implements PreDisplayHook {
     readonly runInPreview = false; // Skip in preview mode
     readonly timeoutMs = 3000; // 3 second timeout for cart API
 
-    async execute(context: PreDisplayHookContext): Promise<PreDisplayHookResult> {
+    async execute(_context: PreDisplayHookContext): Promise<PreDisplayHookResult> {
         try {
             console.log(`[CartDataHook] Fetching cart data`);
 

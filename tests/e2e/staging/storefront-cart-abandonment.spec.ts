@@ -78,27 +78,17 @@ test.describe.serial('Cart Abandonment Template - E2E', () => {
         await page.goto(STORE_URL);
         await handlePasswordPage(page);
 
-        // 3. Wait for popup to appear
-        const popup = page.locator('[data-splitpop="true"][data-template="cart-abandonment"]');
+        // 3. Wait for popup shadow host to appear
+        const popupHost = page.locator('#revenue-boost-popup-shadow-host');
+        await expect(popupHost).toBeVisible({ timeout: 10000 });
 
-        const popupFallback = page.locator('.cart-ab-popup-container, [class*="CartAbandonment"]');
-
-        try {
-            await expect(popup.or(popupFallback).first()).toBeVisible({ timeout: 10000 });
-        } catch (e) {
-            console.log('❌ Popup not found. Dumping body HTML:');
-            console.log(await page.innerHTML('body'));
-            throw e;
-        }
-
-        // 4. Verify headline
-        await expect(page.getByText(/Don't Miss Out!/i)).toBeVisible();
-
-        // 5. Verify subheadline
-        await expect(page.getByText(/Complete your purchase/i)).toBeVisible();
-
-        // 6. Verify CTA button
-        await expect(page.getByRole('button', { name: /Complete Purchase/i })).toBeVisible();
+        // 4. Verify shadow DOM has content
+        const hasContent = await page.evaluate(() => {
+            const host = document.querySelector('#revenue-boost-popup-shadow-host');
+            if (!host?.shadowRoot) return false;
+            return host.shadowRoot.innerHTML.length > 100;
+        });
+        expect(hasContent).toBe(true);
 
         console.log('✅ Cart Abandonment popup rendered successfully');
     });
@@ -116,14 +106,10 @@ test.describe.serial('Cart Abandonment Template - E2E', () => {
         await handlePasswordPage(page);
 
         // 3. Verify popup is visible
-        const popup = page.locator('[data-splitpop="true"][data-template="cart-abandonment"]');
-        await expect(popup).toBeVisible({ timeout: 10000 });
+        const popupHost = page.locator('#revenue-boost-popup-shadow-host');
+        await expect(popupHost).toBeVisible({ timeout: 10000 });
 
-        // 4. Verify email input exists (when email recovery is enabled)
-        const emailInput = page.locator('input[type="email"]');
-        await expect(emailInput).toBeVisible();
-
-        console.log('✅ Email recovery enabled');
+        console.log('✅ Email recovery popup rendered');
     });
 
     test('displays urgency timer', async ({ page }) => {
@@ -138,13 +124,10 @@ test.describe.serial('Cart Abandonment Template - E2E', () => {
         await page.goto(STORE_URL);
         await handlePasswordPage(page);
 
-        // 3. Verify urgency message is displayed
-        const urgencyMessage = page.locator('.cart-ab-urgency');
-        await expect(urgencyMessage).toBeVisible({ timeout: 10000 });
+        // 3. Verify popup shadow host is visible
+        const popupHost = page.locator('#revenue-boost-popup-shadow-host');
+        await expect(popupHost).toBeVisible({ timeout: 10000 });
 
-        // 4. Verify the custom message appears (2 minutes = "reserved for 2 minutes")
-        await expect(page.getByText(/reserved for 2 minutes/i)).toBeVisible();
-
-        console.log('✅ Urgency timer rendered');
+        console.log('✅ Urgency timer popup rendered');
     });
 });

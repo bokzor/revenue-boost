@@ -37,7 +37,7 @@ export class VisitorTrackingService {
   static async getVisitorNotification(
     params: GetVisitorNotificationParams
   ): Promise<VisitorNotification | null> {
-    const { storeId, productId, pageUrl } = params;
+    const { storeId, productId } = params;
 
     try {
       const redis = getRedis();

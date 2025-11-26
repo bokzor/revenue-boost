@@ -26,10 +26,10 @@ import { usePopupForm, useDiscountCode, usePopupAnimation } from "./hooks";
 import { WheelRenderer } from "./utils/canvas";
 
 // Import reusable components
-import { EmailInput, NameInput, GdprCheckbox, SubmitButton } from "./components";
+import { EmailInput, NameInput, GdprCheckbox } from "./components";
 
 // Import shared components from Phase 1 & 2
-import { LeadCaptureForm, DiscountCodeDisplay, SuccessState } from "./components/shared";
+import { DiscountCodeDisplay } from "./components/shared";
 
 /**
  * CSS Custom Properties for container-relative responsive design
@@ -114,7 +114,7 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
     setGdprConsent,
     errors,
     handleSubmit: handleFormSubmit,
-    isSubmitting,
+    isSubmitting: _isSubmitting,
   } = usePopupForm({
     config: {
       emailRequired: config.emailRequired,
@@ -129,16 +129,16 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
   });
 
   // Use animation hook
-  const { showContent } = usePopupAnimation({ isVisible });
+  const { showContent: _showContent } = usePopupAnimation({ isVisible });
 
   // Use discount code hook
-  const { discountCode, setDiscountCode, copiedCode, handleCopyCode } = useDiscountCode();
+  const { discountCode: _discountCode, setDiscountCode, copiedCode, handleCopyCode } = useDiscountCode();
 
   const [hasSpun, setHasSpun] = useState(false);
   const [isSpinning, setIsSpinning] = useState(false);
   const [isGeneratingCode, setIsGeneratingCode] = useState(false);
   const [wonPrize, setWonPrize] = useState<Prize | null>(null);
-  const [codeError, setCodeError] = useState("");
+  const [_codeError, setCodeError] = useState("");
   const [rotation, setRotation] = useState(0);
   const rotationRef = useRef(0);
   const spinAnimationFrameRef = useRef<number | null>(null);
@@ -158,18 +158,18 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
     };
   }, []);
 
-  const [emailFocused, setEmailFocused] = useState(false);
+  const [_emailFocused, _setEmailFocused] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const wheelContainerRef = useRef<HTMLDivElement | null>(null);
   const wheelCellRef = useRef<HTMLDivElement | null>(null);
-  const cardRef = useRef<HTMLDivElement | null>(null);
+  const _cardRef = useRef<HTMLDivElement | null>(null);
 
-  const [containerWidth, setContainerWidth] = useState<number | null>(null);
-  const [cardWidth, setCardWidth] = useState<number | null>(null);
+  const [_containerWidth, _setContainerWidth] = useState<number | null>(null);
+  const [_cardWidth, _setCardWidth] = useState<number | null>(null);
   const [wheelSize, setWheelSize] = useState(config.wheelSize || 380);
-  const radius = wheelSize / 2;
+  const _radius = wheelSize / 2;
   const segments = useMemo(() => config.wheelSegments || [], [config.wheelSegments]);
-  const segmentAngle = 360 / Math.max(1, segments.length);
+  const _segmentAngle = 360 / Math.max(1, segments.length);
   const accentColor = config.accentColor || config.buttonColor || "#000000";
   const borderRadius =
     typeof config.borderRadius === "string"
@@ -240,7 +240,7 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
 
   // Card background styling (supports gradient backgrounds from themes)
   const baseBackground = config.backgroundColor || "#FFFFFF";
-  const backgroundStyles: React.CSSProperties = baseBackground.startsWith("linear-gradient(")
+  const _backgroundStyles: React.CSSProperties = baseBackground.startsWith("linear-gradient(")
     ? {
         backgroundImage: baseBackground,
         backgroundColor: "transparent",
@@ -252,10 +252,10 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
   // Input colors derived from design config (theme-aware)
   const inputBackground = config.inputBackgroundColor || "#FFFFFF";
   const inputTextColor = config.inputTextColor || "#111827";
-  const inputBorderColor = config.inputBorderColor || "#E5E7EB";
+  const _inputBorderColor = config.inputBorderColor || "#E5E7EB";
 
   // Theme-aware colors for success/prize surfaces
-  const successColor = (config as any).successColor || accentColor;
+  const _successColor = (config as any).successColor || accentColor;
   const descriptionColor = (config as any).descriptionColor || "#6B7280";
 
   // Optional extended behavior flags (storefront-only)
@@ -338,7 +338,7 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
     // 1. Start spinning indefinitely (or to a very distant target)
     // We'll adjust the target once we have the prize
     const duration = config.spinDuration || 4000;
-    const reduceMotion = prefersReducedMotion();
+    const _reduceMotion = prefersReducedMotion();
 
     if (spinAnimationFrameRef.current !== null && typeof cancelAnimationFrame !== "undefined") {
       cancelAnimationFrame(spinAnimationFrameRef.current);
@@ -352,7 +352,7 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
     spinStartTimeRef.current = performance.now();
 
     const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
-    const easeInOutQuad = (t: number) => (t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t);
+    const _easeInOutQuad = (t: number) => (t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t);
 
     // Animation loop
     const animate = (timestamp: number) => {

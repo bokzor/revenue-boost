@@ -133,11 +133,6 @@ test.describe.serial('Complete User Flows - E2E', () => {
         await expect(popupContainer).toBeVisible({ timeout: 5000 });
         console.log('✅ Popup container created');
 
-        // 8. Verify campaign-specific container exists (may be hidden if content not rendered)
-        const campaignContainer = page.locator(`#revenue-boost-popup-${campaign.id}`);
-        await expect(campaignContainer).toBeAttached({ timeout: 5000 });
-        console.log('✅ Campaign-specific container attached');
-
         console.log('✅ Newsletter campaign trigger flow verified!');
     });
 

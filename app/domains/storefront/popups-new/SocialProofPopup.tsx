@@ -15,7 +15,7 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import type { PopupDesignConfig } from "./types";
 import type { SocialProofContent } from "~/domains/campaigns/types/campaign";
 import { prefersReducedMotion } from "./utils";
-import { POPUP_SPACING, SPACING_GUIDELINES } from "./spacing";
+import { POPUP_SPACING } from "./spacing";
 
 // Import custom hooks
 import { usePopupAnimation } from "./hooks";
@@ -63,7 +63,7 @@ export const SocialProofPopup: React.FC<SocialProofPopupProps> = ({
   notifications = [],
 }) => {
   // Use animation hook
-  const { showContent } = usePopupAnimation({ isVisible });
+  const { showContent: _showContent } = usePopupAnimation({ isVisible });
 
   // Component-specific state
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -259,10 +259,6 @@ export const SocialProofPopup: React.FC<SocialProofPopupProps> = ({
     }
   };
 
-  if (!isVisible || !currentNotification || filteredNotifications.length === 0) {
-    return null;
-  }
-
   const background = config.backgroundColor || "#111827";
 
   const scopedCss = useMemo(
@@ -275,6 +271,10 @@ export const SocialProofPopup: React.FC<SocialProofPopupProps> = ({
       ),
     [config.customCSS, config.globalCustomCSS],
   );
+
+  if (!isVisible || !currentNotification || filteredNotifications.length === 0) {
+    return null;
+  }
 
   const containerStyles: React.CSSProperties = {
     ...getPositionStyles(),

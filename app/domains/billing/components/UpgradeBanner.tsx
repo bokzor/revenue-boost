@@ -1,4 +1,4 @@
-import { Banner, Link, Text, InlineStack, Button } from "@shopify/polaris";
+import { Banner, Text, InlineStack, Button } from "@shopify/polaris";
 import { useBilling } from "~/routes/app";
 import { PLAN_DEFINITIONS, type PlanTier, type PlanFeatures } from "../types/plan";
 
@@ -52,10 +52,6 @@ const FEATURE_INFO: Record<keyof PlanFeatures, { name: string; description: stri
   scheduledCampaigns: {
     name: "Scheduled Campaigns",
     description: "Schedule campaigns to run at specific times",
-  },
-  apiAccess: {
-    name: "API Access",
-    description: "Access the Revenue Boost API for custom integrations",
   },
 };
 

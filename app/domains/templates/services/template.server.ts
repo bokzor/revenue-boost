@@ -10,8 +10,6 @@ import type { Template } from "@prisma/client";
 import type { TemplateCreateData, TemplateWithConfigs } from "../types/template.js";
 import { z } from "zod";
 import {
-  parseJsonField,
-  stringifyJsonField,
   parseEntityJsonFields,
   prepareEntityJsonFields,
 } from "../../campaigns/utils/json-helpers.js";

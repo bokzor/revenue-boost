@@ -81,6 +81,15 @@ module.exports = {
             ignore: ["^~"],
           },
         ],
+        // Allow underscore-prefixed variables to be unused
+        "@typescript-eslint/no-unused-vars": [
+          "error",
+          {
+            argsIgnorePattern: "^_",
+            varsIgnorePattern: "^_",
+            caughtErrorsIgnorePattern: "^_",
+          },
+        ],
         // Disable prop-types validation for TypeScript files
         // TypeScript provides compile-time type checking, making prop-types redundant
         "react/prop-types": "off",

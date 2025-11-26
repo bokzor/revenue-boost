@@ -46,7 +46,7 @@ export async function action({ request }: ActionFunctionArgs) {
       );
     }
 
-    const { eventType, productId, pageUrl, shop } = validation.data;
+    const { eventType, productId, shop } = validation.data;
 
     // Get or create visitor ID
     const visitorId = await getOrCreateVisitorId(request);

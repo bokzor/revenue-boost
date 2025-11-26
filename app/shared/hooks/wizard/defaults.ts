@@ -77,6 +77,15 @@ export function getDefaultPageTargeting(): PageTargetingConfig {
   };
 }
 
+// Default geographic targeting configuration
+export function getDefaultGeoTargeting() {
+  return {
+    enabled: false,
+    mode: "include" as const,
+    countries: [],
+  };
+}
+
 // Default frequency capping configuration (server format)
 export function getDefaultFrequencyCapping(templateType?: TemplateType) {
   // If templateType is provided, use template-specific defaults
@@ -125,6 +134,7 @@ export function createDefaultCampaignData(
     triggerType: "page_load",
     enhancedTriggers: getDefaultEnhancedTriggers(),
     audienceTargeting: getDefaultAudienceTargeting(),
+    geoTargeting: getDefaultGeoTargeting(),
     pageTargeting: getDefaultPageTargeting(),
     frequencyCapping: getDefaultFrequencyCapping(),
     discountConfig: getDefaultDiscountConfig(initialData),

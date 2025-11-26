@@ -12,8 +12,6 @@ import {
   Box,
   EmptyState,
   Select,
-  Divider,
-  Banner,
 } from "@shopify/polaris";
 import { PlusIcon, CalendarIcon, ChartVerticalFilledIcon } from "@shopify/polaris-icons";
 import { authenticate } from "../shopify.server";
@@ -28,13 +26,6 @@ import { SetupStatus, type SetupStatusData } from "~/domains/setup/components/Se
 import { getSetupStatus } from "~/lib/setup-status.server";
 
 // --- Types ---
-
-interface DashboardMetric {
-  label: string;
-  value: string;
-  subtext?: string;
-  tone?: "success" | "critical" | "subdued";
-}
 
 interface CampaignDashboardRow {
   [key: string]: string | number | null | boolean | undefined;
@@ -444,7 +435,7 @@ export default function Dashboard() {
     formData.append("intent", "bulk_activate");
     formData.append("campaignIds", JSON.stringify(campaignIds));
 
-    const response = await fetcher.submit(formData, { method: "post" });
+    await fetcher.submit(formData, { method: "post" });
     // The fetcher will automatically revalidate and update the UI
   };
 

@@ -105,6 +105,7 @@ export function renderDesignStep(props: StepRendererProps) {
   const targetRules = {
     enhancedTriggers: wizardState.enhancedTriggers || {},
     audienceTargeting: wizardState.audienceTargeting || {},
+    geoTargeting: wizardState.geoTargeting || {},
     pageTargeting: wizardState.pageTargeting || {},
   };
 
@@ -174,13 +175,22 @@ export function renderDesignStep(props: StepRendererProps) {
 export function renderTargetingStep(props: StepRendererProps) {
   const { wizardState, updateData, storeId, advancedTargetingEnabled } = props;
 
+  // Ensure geoTargeting has a default value if not present
+  const geoTargeting = wizardState.geoTargeting || {
+    enabled: false,
+    mode: "include" as const,
+    countries: [],
+  };
+
   return (
     <TargetingStepContent
       storeId={storeId}
       enhancedTriggers={wizardState.enhancedTriggers || {}}
       audienceTargeting={wizardState.audienceTargeting}
+      geoTargeting={geoTargeting}
       onTriggersChange={(config) => updateData({ enhancedTriggers: config })}
       onAudienceChange={(config) => updateData({ audienceTargeting: config })}
+      onGeoChange={(config) => updateData({ geoTargeting: config })}
       advancedTargetingEnabled={advancedTargetingEnabled ?? false}
     />
   );

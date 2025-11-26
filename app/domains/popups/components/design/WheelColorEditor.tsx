@@ -93,7 +93,8 @@ export function WheelColorEditor({ value, onChange }: WheelColorEditorProps) {
               </InlineStack>
 
               {/* Color Preview */}
-              <div
+              <button
+                type="button"
                 style={{
                   width: "100%",
                   height: "60px",
@@ -102,6 +103,7 @@ export function WheelColorEditor({ value, onChange }: WheelColorEditorProps) {
                   border: "1px solid #E1E3E5",
                   cursor: "pointer",
                   position: "relative",
+                  padding: 0,
                 }}
                 onClick={() => {
                   const input = document.getElementById(
@@ -109,6 +111,7 @@ export function WheelColorEditor({ value, onChange }: WheelColorEditorProps) {
                   ) as HTMLInputElement;
                   input?.click();
                 }}
+                aria-label={`Select color for segment ${index + 1}`}
               >
                 {/* Hidden color input */}
                 <input
@@ -123,7 +126,7 @@ export function WheelColorEditor({ value, onChange }: WheelColorEditorProps) {
                     height: 0,
                   }}
                 />
-              </div>
+              </button>
 
               {/* Hex Value Display */}
               <input

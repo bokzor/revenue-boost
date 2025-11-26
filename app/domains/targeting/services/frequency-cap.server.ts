@@ -195,7 +195,7 @@ export class FrequencyCapService {
     identifier: string,
     trackingKey: string,
     now: number,
-    group: FrequencyCapGroup = "popup"
+    _group: FrequencyCapGroup = "popup"
   ): Promise<FrequencyCapResult> {
     if (!redis) {
       return {
@@ -459,7 +459,7 @@ export class FrequencyCapService {
   private static async getTimeWindowCount(
     baseKey: string,
     window: string,
-    now: number
+    _now: number
   ): Promise<number> {
     if (!redis) return 0;
 

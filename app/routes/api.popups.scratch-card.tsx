@@ -10,7 +10,6 @@ import { z } from "zod";
 import { authenticate } from "~/shopify.server";
 import prisma from "~/db.server";
 import { getCampaignDiscountCode } from "~/domains/commerce/services/discount.server";
-import { PopupEventService } from "~/domains/analytics/popup-events.server";
 
 // Request validation schema
 const ScratchCardRequestSchema = z.object({
@@ -23,7 +22,7 @@ const ScratchCardRequestSchema = z.object({
   challengeToken: z.string().min(1, "Challenge token is required"), // REQUIRED: Challenge token for security
 });
 
-type ScratchCardRequest = z.infer<typeof ScratchCardRequestSchema>;
+// Type for ScratchCardRequest is inferred from schema
 
 // Response types
 interface ScratchCardResponse {

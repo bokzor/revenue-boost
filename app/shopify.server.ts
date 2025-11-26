@@ -44,7 +44,7 @@ const shopify = shopifyApp({
           interval: BillingInterval.Every30Days,
         },
       ],
-      trialDays: 7,
+      trialDays: 14,
     },
     [BILLING_PLANS.GROWTH]: {
       lineItems: [
@@ -54,7 +54,7 @@ const shopify = shopifyApp({
           interval: BillingInterval.Every30Days,
         },
       ],
-      trialDays: 7,
+      trialDays: 14,
     },
     [BILLING_PLANS.PRO]: {
       lineItems: [
@@ -64,18 +64,19 @@ const shopify = shopifyApp({
           interval: BillingInterval.Every30Days,
         },
       ],
-      trialDays: 7,
+      trialDays: 14,
     },
-    [BILLING_PLANS.ENTERPRISE]: {
-      lineItems: [
-        {
-          amount: 149,
-          currencyCode: "USD",
-          interval: BillingInterval.Every30Days,
-        },
-      ],
-      trialDays: 7,
-    },
+    // Enterprise plan disabled for launch - can be re-enabled later
+    // [BILLING_PLANS.ENTERPRISE]: {
+    //   lineItems: [
+    //     {
+    //       amount: 149,
+    //       currencyCode: "USD",
+    //       interval: BillingInterval.Every30Days,
+    //     },
+    //   ],
+    //   trialDays: 14,
+    // },
   },
   webhooks: {
     ORDERS_CREATE: {

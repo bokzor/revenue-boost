@@ -1,8 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import {
-	  ProductUpsellPopup,
-	  type ProductUpsellConfig,
-	} from "~/domains/storefront/popups-new/ProductUpsellPopup";
+  ProductUpsellPopup,
+  type ProductUpsellConfig,
+} from "~/domains/storefront/popups-new/ProductUpsellPopup";
 
 const baseConfig: Partial<ProductUpsellConfig> = {
   id: "demo-upsell",
@@ -27,7 +27,7 @@ const meta: Meta<typeof ProductUpsellPopup> = {
   component: ProductUpsellPopup,
   args: {
     isVisible: true,
-	    config: baseConfig as ProductUpsellConfig,
+    config: baseConfig as ProductUpsellConfig,
     products: [
       {
         id: "p1",

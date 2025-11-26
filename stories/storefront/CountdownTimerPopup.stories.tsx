@@ -1,8 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import {
-	  CountdownTimerPopup,
-	  type CountdownTimerConfig,
-	} from "~/domains/storefront/popups-new/CountdownTimerPopup";
+  CountdownTimerPopup,
+  type CountdownTimerConfig,
+} from "~/domains/storefront/popups-new/CountdownTimerPopup";
 
 const baseConfig: Partial<CountdownTimerConfig> = {
   id: "demo-countdown",
@@ -27,7 +27,7 @@ const meta: Meta<typeof CountdownTimerPopup> = {
   component: CountdownTimerPopup,
   args: {
     isVisible: true,
-	    config: baseConfig as CountdownTimerConfig,
+    config: baseConfig as CountdownTimerConfig,
   },
 };
 

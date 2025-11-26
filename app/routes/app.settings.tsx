@@ -35,7 +35,7 @@ import {
 import { CheckIcon, XIcon } from "@shopify/polaris-icons";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
-import { PLAN_DEFINITIONS, PLAN_ORDER } from "../domains/billing/types/plan";
+import { PLAN_DEFINITIONS, PLAN_ORDER, ENABLED_PLAN_ORDER } from "../domains/billing/types/plan";
 import { PlanGuardService } from "../domains/billing/services/plan-guard.server";
 import { BillingService } from "../domains/billing/services/billing.server";
 import { GlobalCappingSettings } from "../domains/store/components/GlobalCappingSettings";
@@ -43,7 +43,7 @@ import { GlobalCSSSettings } from "../domains/store/components/GlobalCSSSettings
 import { StoreSettingsSchema, type StoreSettings } from "../domains/store/types/settings";
 import { SetupStatus } from "../domains/setup/components/SetupStatus";
 import { getSetupStatus } from "../lib/setup-status.server";
-import { Link } from "react-router";
+import { isBillingBypassed } from "../lib/env.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session, admin } = await authenticate.admin(request);
@@ -57,8 +57,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   const planContext = await PlanGuardService.getPlanContext(store.id);
 
-  // Sync and get billing context from Shopify
-  const billingContext = await BillingService.syncSubscriptionToDatabase(admin, session.shop);
+  // Get billing context - use cached DB values when bypassed, otherwise sync from Shopify
+  const billingContext = await BillingService.getOrSyncBillingContext(admin, session.shop);
 
   // Check setup status using shared utility
   const { status: setupStatus, setupComplete } = await getSetupStatus(
@@ -112,7 +112,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     },
     storeSettings: (store.settings as StoreSettings) || {},
     PLAN_DEFINITIONS,
-    PLAN_ORDER,
+    PLAN_ORDER: ENABLED_PLAN_ORDER,
     setupStatus,
     setupComplete,
     themeEditorUrl,
@@ -120,7 +120,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  const { session } = await authenticate.admin(request);
+  const { session, billing } = await authenticate.admin(request);
   const formData = await request.formData();
   const actionType = formData.get("actionType");
 
@@ -283,7 +283,44 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     }
   }
 
-  // Update plan
+  // When billing is bypassed (staging), update database directly
+  if (isBillingBypassed()) {
+    await prisma.store.update({
+      where: { id: store.id },
+      data: {
+        planTier: targetPlan,
+        planStatus: "ACTIVE",
+        trialEndsAt: null,
+        currentPeriodEnd:
+          targetPlan === "FREE" ? null : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        shopifySubscriptionId:
+          targetPlan === "FREE" ? null : `staging-${targetPlan}-${Date.now()}`,
+        shopifySubscriptionStatus: targetPlan === "FREE" ? null : "ACTIVE",
+        shopifySubscriptionName:
+          targetPlan === "FREE" ? null : PLAN_DEFINITIONS[targetPlan].name,
+        billingLastSyncedAt: new Date(),
+      },
+    });
+
+    return { success: true };
+  }
+
+  // Use Shopify billing API for paid plans
+  const planKey = BillingService.getBillingPlanKey(targetPlan);
+
+  if (planKey) {
+    // Paid plan - redirect to Shopify billing
+    const appUrl = process.env.SHOPIFY_APP_URL || `https://${request.headers.get("host")}`;
+    const returnUrl = `${appUrl}/app/settings?shop=${session.shop}`;
+
+    return billing.request({
+      plan: planKey as "Starter" | "Growth" | "Pro" | "Enterprise",
+      isTest: process.env.NODE_ENV !== "production",
+      returnUrl,
+    });
+  }
+
+  // For FREE plan (downgrade), update database directly
   await prisma.store.update({
     where: { id: store.id },
     data: {
@@ -486,7 +523,7 @@ export default function SettingsPage() {
                     <p>
                       Your free trial ends on{" "}
                       <strong>{new Date(billingContext.trialEndsAt).toLocaleDateString()}</strong>.
-                      After the trial, you'll be charged ${currentDefinition.price}/month.
+                      After the trial, you&apos;ll be charged ${currentDefinition.price}/month.
                     </p>
                   </Banner>
                 )}

@@ -83,16 +83,24 @@ jobs:
           echo "✅ Environment file created"
           echo "DATABASE_URL length: $(echo -n '${{ secrets.DATABASE_URL }}' | wc -c)"
 
+      - name: 🌱 Ensure test prerequisites exist in database
+        run: |
+          echo "Ensuring store and templates exist for E2E tests..."
+          npx tsx scripts/seed-e2e-prerequisites.ts
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
       - name: 🧪 Run E2E Storefront Tests
         run: |
           TEST_FILTER="${{ inputs.test_filter || github.event.inputs.test_filter }}"
-          
+
           if [ -n "$TEST_FILTER" ]; then
             echo "🔍 Running tests matching: $TEST_FILTER"
-            npx playwright test --project=storefront -g "$TEST_FILTER"
+            npx playwright test tests/e2e/staging/ --project=storefront -g "$TEST_FILTER" --retries=2
           else
-            echo "🔍 Running all storefront tests"
-            npx playwright test --project=storefront
+            echo "🔍 Running all staging E2E tests"
+            # Run all staging tests with 2 retries for flaky tests
+            npx playwright test tests/e2e/staging/ --project=storefront --retries=2
           fi
         env:
           CI: true

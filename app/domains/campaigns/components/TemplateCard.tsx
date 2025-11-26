@@ -67,24 +67,24 @@ export const TemplateCard = React.memo<TemplateCardProps>(({ template, isSelecte
               border: isSelected ? "3px solid #008060" : "1px solid #E1E3E5",
             }}
           >
-	            {/* Preview image placeholder - will be replaced with actual images */}
-	            {(() => {
-	              const hasCustomGradient = template.backgroundColor?.startsWith("linear-gradient");
-	              const background = hasCustomGradient
-	                ? template.backgroundColor
-	                : `linear-gradient(135deg, ${template.backgroundColor || "#FFFFFF"} 0%, ${template.buttonColor || "#007BFF"} 100%)`;
+            {/* Preview image placeholder - will be replaced with actual images */}
+            {(() => {
+              const hasCustomGradient = template.backgroundColor?.startsWith("linear-gradient");
+              const background = hasCustomGradient
+                ? template.backgroundColor
+                : `linear-gradient(135deg, ${template.backgroundColor || "#FFFFFF"} 0%, ${template.buttonColor || "#007BFF"} 100%)`;
 
-	              return (
-	                <div
-	                  style={{
-	                    width: "100%",
-	                    height: "100%",
-	                    background,
-	                    opacity: 0.3,
-	                  }}
-	                />
-	              );
-	            })()}
+              return (
+                <div
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    background,
+                    opacity: 0.3,
+                  }}
+                />
+              );
+            })()}
 
             {/* Template type indicator */}
             <div

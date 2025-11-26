@@ -174,7 +174,7 @@ export class ScratchCardRenderer {
   initializeOverlay(options: ScratchCardRenderOptions) {
     if (!this.ctx) return;
 
-    const { cardWidth, cardHeight, overlayColor, instruction, accentColor } = options;
+    const { cardWidth, cardHeight, overlayColor, instruction, accentColor: _accentColor } = options;
     const ctx = this.ctx;
 
     // Set canvas size

@@ -10,15 +10,12 @@ api_version = "2025-10"
 
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
-scopes = "read_discounts,write_discounts,write_products,read_themes"
-optional_scopes = [
-  "read_customers",
-  "write_customers",
-  "write_files",
-  "write_marketing_events",
-  "read_marketing_events",
-  "read_orders"
-]
+# Required scopes - requested at install time (core functionality)
+# read_orders: for orders/create webhook (revenue attribution)
+# write_marketing_events, read_marketing_events: Marketing attribution tracking in Shopify's Marketing section
+# read_customers, write_customers: Create/update customers when emails are collected via popups
+# write_files: Custom image uploads for popup backgrounds
+scopes = "read_discounts,write_discounts,write_products,read_themes,read_orders,write_marketing_events,read_marketing_events,read_customers,write_customers,write_files"
 use_legacy_install_flow = false
 
 [auth]
@@ -34,3 +31,6 @@ subpath = "revenue-boost"
 prefix = "apps"
 [pos]
 embedded = false
+
+[build]
+automatically_update_urls_on_dev = true

@@ -439,50 +439,50 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
         frequency_capping: getServerFrequencyCapping("SCRATCH_CARD"),
       }
     },
-	    designConfig: {
-	      // Bold theme default colors (aligned with an existing bold Scratch Card campaign)
-	      theme: "bold",
-	      position: "center",
-	      size: "medium",
-	      popupSize: "wide",
-	      animation: "fade",
+    designConfig: {
+      // Bold theme default colors (aligned with an existing bold Scratch Card campaign)
+      theme: "bold",
+      position: "center",
+      size: "medium",
+      popupSize: "wide",
+      animation: "fade",
 
-	      // Background image preset & URL
-	      backgroundImageMode: "preset",
-	      backgroundImagePresetKey: "bold",
-	      imageUrl: "/apps/revenue-boost/assets/newsletter-backgrounds/bold.jpg",
-	      imagePosition: "left",
+      // Background image preset & URL
+      backgroundImageMode: "preset",
+      backgroundImagePresetKey: "bold",
+      imageUrl: "/apps/revenue-boost/assets/newsletter-backgrounds/bold.jpg",
+      imagePosition: "left",
 
-	      // Main colors
-	      backgroundColor: "linear-gradient(135deg, #ec4899 0%, #f59e0b 100%)",
-	      textColor: "#ffffff",
-	      descriptionColor: "#fef3c7",
-	      accentColor: "#fde68a",
-	      successColor: "#10b981",
+      // Main colors
+      backgroundColor: "linear-gradient(135deg, #ec4899 0%, #f59e0b 100%)",
+      textColor: "#ffffff",
+      descriptionColor: "#fef3c7",
+      accentColor: "#fde68a",
+      successColor: "#10b981",
 
-	      // Button colors
-	      buttonColor: "#ffffff",
-	      buttonTextColor: "#ec4899",
+      // Button colors
+      buttonColor: "#ffffff",
+      buttonTextColor: "#ec4899",
 
-	      // Input field colors
-	      inputBackgroundColor: "rgba(255, 255, 255, 0.2)",
-	      inputTextColor: "#ffffff",
-	      inputBorderColor: "rgba(255, 255, 255, 0.3)",
+      // Input field colors
+      inputBackgroundColor: "rgba(255, 255, 255, 0.2)",
+      inputTextColor: "#ffffff",
+      inputBorderColor: "rgba(255, 255, 255, 0.3)",
 
-	      // Image / surface colors
-	      imageBgColor: "rgba(255, 255, 255, 0.15)",
+      // Image / surface colors
+      imageBgColor: "rgba(255, 255, 255, 0.15)",
 
-	      // Typography
-	      fontFamily: "inherit",
-	      titleFontSize: "2rem",
-	      titleFontWeight: "900",
-	      descriptionFontSize: "1rem",
-	      descriptionFontWeight: "500",
+      // Typography
+      fontFamily: "inherit",
+      titleFontSize: "2rem",
+      titleFontWeight: "900",
+      descriptionFontSize: "1rem",
+      descriptionFontWeight: "500",
 
-	      // Layout & overlay
-	      borderRadius: 8,
-	      overlayOpacity: 0.5,
-	    },
+      // Layout & overlay
+      borderRadius: 8,
+      overlayOpacity: 0.5,
+    },
     isDefault: true,
     priority: 8,
     icon: "🎟️",

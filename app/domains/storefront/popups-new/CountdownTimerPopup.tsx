@@ -11,10 +11,10 @@
  * - CTA button
  */
 
-import React, { useMemo } from "react";
+import React from "react";
 import type { PopupDesignConfig } from "./types";
 import type { CountdownTimerContent } from "~/domains/campaigns/types/campaign";
-import { POPUP_SPACING, SPACING_GUIDELINES } from "./spacing";
+import { POPUP_SPACING } from "./spacing";
 
 // Import custom hooks
 import { useCountdownTimer, useColorScheme } from "./hooks";
@@ -56,7 +56,7 @@ export const CountdownTimerPopup: React.FC<CountdownTimerPopupProps> = ({
   onCtaClick,
 }) => {
   // Use countdown timer hook
-  const { timeRemaining, hasExpired, formattedTime } = useCountdownTimer({
+  const { timeRemaining, hasExpired } = useCountdownTimer({
     enabled: true,
     mode: config.endTime ? "fixed_end" : "duration",
     endTime: config.endTime,

@@ -6,7 +6,6 @@
  * a campaign should target.
  *
  * Features:
- * - Just-in-time permission flow: Shows "Grant Access" if read_customers scope is missing
  * - Refresh button: Allows manual refresh of segment list
  * - Customer counts: Displays member count per segment when available
  */
@@ -26,7 +25,6 @@ import {
   Icon,
 } from "@shopify/polaris";
 import { RefreshIcon } from "@shopify/polaris-icons";
-import { useScopeRequest } from "~/shared/hooks/useScopeRequest";
 
 export interface ShopifySegmentOption {
   id: string;
@@ -38,14 +36,8 @@ export interface ShopifySegmentOption {
 interface SegmentsApiResponse {
   data?: {
     segments: ShopifySegmentOption[];
-    scopeRequired?: string;
-    scopeMessage?: string;
-    scopeGranted?: boolean;
   };
   segments?: ShopifySegmentOption[];
-  scopeRequired?: string;
-  scopeMessage?: string;
-  scopeGranted?: boolean;
 }
 
 export interface ShopifySegmentSelectorProps {
@@ -64,12 +56,7 @@ export function ShopifySegmentSelector({
   const [segments, setSegments] = useState<ShopifySegmentOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [scopeRequired, setScopeRequired] = useState<string | null>(null);
-  const [scopeMessage, setScopeMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-
-  // Use App Bridge scopes API for requesting permissions
-  const { requestScopes, isRequesting: requestingScope, error: scopeError } = useScopeRequest();
 
   const fetchSegments = useCallback(
     async (includeCounts = false) => {
@@ -84,25 +71,12 @@ export function ShopifySegmentSelector({
         // Normalize response structure
         const responseData = data.data || data;
 
-        // Check if scope is required
-        if (responseData.scopeRequired) {
-          setScopeRequired(responseData.scopeRequired);
-          setScopeMessage(
-            responseData.scopeMessage ||
-              "Additional permissions are required to access customer segments."
-          );
-          setSegments([]);
-          return;
-        }
-
         // Extract segments
         const segmentsPayload = Array.isArray(responseData.segments)
           ? responseData.segments
           : [];
 
         setSegments(segmentsPayload);
-        setScopeRequired(null);
-        setScopeMessage(null);
 
         if (onSegmentsLoaded) {
           onSegmentsLoaded(segmentsPayload);
@@ -155,21 +129,6 @@ export function ShopifySegmentSelector({
     setRefreshing(false);
   };
 
-  const handleRequestScope = async () => {
-    if (!scopeRequired) return;
-
-    // Use App Bridge scopes.request() API for in-app modal
-    const granted = await requestScopes([scopeRequired]);
-
-    if (granted) {
-      // Scope was granted - refresh segments
-      setScopeRequired(null);
-      setScopeMessage(null);
-      await fetchSegments(true);
-    }
-    // If not granted, the hook will handle the error state
-  };
-
   // Loading state
   if (loading) {
     return (
@@ -178,39 +137,6 @@ export function ShopifySegmentSelector({
           Loading Shopify segments...
         </Text>
         <Spinner size="small" />
-      </BlockStack>
-    );
-  }
-
-  // Scope required state - show permission request UI
-  if (scopeRequired) {
-    return (
-      <BlockStack gap="400">
-        <Text as="h3" variant="headingSm">
-          Shopify customer segments
-        </Text>
-        <Banner
-          title="Additional permissions required"
-          tone="info"
-          action={{
-            content: requestingScope ? "Requesting..." : "Grant Access",
-            onAction: handleRequestScope,
-            disabled: requestingScope,
-          }}
-        >
-          <BlockStack gap="200">
-            <Text as="p">{scopeMessage}</Text>
-            <Text as="p" variant="bodySm" tone="subdued">
-              We only check if a visitor belongs to your selected segments — we don't store or export
-              customer data.
-            </Text>
-            {scopeError && (
-              <Text as="p" variant="bodySm" tone="critical">
-                {scopeError}
-              </Text>
-            )}
-          </BlockStack>
-        </Banner>
       </BlockStack>
     );
   }

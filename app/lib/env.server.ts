@@ -45,6 +45,13 @@ const envSchema = z.object({
   // Monitoring Configuration (Optional, recommended for production)
   SENTRY_DSN: z.string().url("SENTRY_DSN must be a valid Sentry DSN URL").optional(),
   APP_VERSION: z.string().optional(), // For release tracking
+
+  // Billing Configuration
+  // Set to "true" to bypass Shopify Billing API (for staging with Custom distribution)
+  BILLING_BYPASS: z
+    .string()
+    .optional()
+    .transform((val) => val === "true"),
 });
 
 /**
@@ -145,6 +152,14 @@ export function isDevelopment(): boolean {
  */
 export function isTest(): boolean {
   return getEnv().NODE_ENV === "test";
+}
+
+/**
+ * Check if billing bypass is enabled
+ * Use this for staging apps with Custom distribution that can't use Shopify Billing API
+ */
+export function isBillingBypassed(): boolean {
+  return getEnv().BILLING_BYPASS === true;
 }
 
 /**

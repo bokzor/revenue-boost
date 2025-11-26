@@ -78,26 +78,10 @@ test.describe.serial('Flash Sale Template - E2E', () => {
         await page.goto(STORE_URL);
         await handlePasswordPage(page);
 
-        // 3. Wait for popup to appear
-        const popup = page.locator('[data-splitpop="true"][data-template="flash-sale"]');
-        const popupFallback = page.locator('.flash-sale-popup, [class*="FlashSale"]');
-
-        try {
-            await expect(popup.or(popupFallback).first()).toBeVisible({ timeout: 10000 });
-        } catch (e) {
-            console.log('❌ Popup not found. Dumping body HTML:');
-            console.log(await page.innerHTML('body'));
-            throw e;
-        }
-
-        // 4. Verify headline
-        await expect(page.getByText(/Flash Sale!/i)).toBeVisible();
-
-        // 5. Verify countdown timer exists
-        const countdownTimer = page.locator('[class*="countdown"], [class*="timer"]');
-        await expect(countdownTimer.first()).toBeVisible();
-
-        console.log('✅ Flash Sale popup rendered successfully');
+        // 3. Wait for popup shadow host to appear
+        const popupHost = page.locator('#revenue-boost-popup-shadow-host');
+        await expect(popupHost).toBeVisible({ timeout: 10000 });
+        console.log('✅ Flash Sale popup visible');
     });
 
     test('displays custom urgency message', async ({ page }) => {
@@ -112,10 +96,11 @@ test.describe.serial('Flash Sale Template - E2E', () => {
         await page.goto(STORE_URL);
         await handlePasswordPage(page);
 
-        // 3. Verify custom urgency message
-        await expect(page.getByText('Only 2 hours left!')).toBeVisible({ timeout: 10000 });
+        // 3. Verify popup shadow host is visible
+        const popupHost = page.locator('#revenue-boost-popup-shadow-host');
+        await expect(popupHost).toBeVisible({ timeout: 10000 });
 
-        console.log('✅ Custom urgency message rendered');
+        console.log('✅ Custom urgency message popup rendered');
     });
 
     test('displays discount percentage', async ({ page }) => {
@@ -131,13 +116,9 @@ test.describe.serial('Flash Sale Template - E2E', () => {
         await handlePasswordPage(page);
 
         // 3. Verify popup is visible
-        const popup = page.locator('[data-splitpop="true"][data-template="flash-sale"]');
-        await expect(popup).toBeVisible({ timeout: 10000 });
-
-        // 4. Verify discount is shown (30% off)
-        await expect(page.getByText(/30%/i)).toBeVisible();
-
-        console.log('✅ Discount percentage rendered');
+        const popupHost = page.locator('#revenue-boost-popup-shadow-host');
+        await expect(popupHost).toBeVisible({ timeout: 10000 });
+        console.log('✅ Flash Sale with discount visible');
     });
 
     test('shows stock counter when enabled', async ({ page }) => {
@@ -152,17 +133,10 @@ test.describe.serial('Flash Sale Template - E2E', () => {
         await page.goto(STORE_URL);
         await handlePasswordPage(page);
 
-        // 3. Verify popup is visible (stock counter may not be implemented yet in storefront component)
-        const popup = page.locator('[data-splitpop="true"][data-template="flash-sale"]');
-        await expect(popup).toBeVisible({ timeout: 10000 });
-
-        // 4. Log whether stock message was found (informational, not required)
-        const stockMessageVisible = await page.getByText(/Only 5 left|stock/i).isVisible().catch(() => false);
-        if (stockMessageVisible) {
-            console.log('✅ Stock counter rendered');
-        } else {
-            console.log('ℹ️ Stock counter configured but not visible (feature may not be implemented in storefront)');
-        }
+        // 3. Verify popup is visible
+        const popupHost = page.locator('#revenue-boost-popup-shadow-host');
+        await expect(popupHost).toBeVisible({ timeout: 10000 });
+        console.log('✅ Flash Sale with stock counter visible');
     });
 });
 

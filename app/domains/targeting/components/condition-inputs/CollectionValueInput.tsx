@@ -16,7 +16,7 @@ interface CollectionValueInputProps {
   onChange: (value: string) => void;
 }
 
-export function CollectionValueInput({ value, onChange }: CollectionValueInputProps) {
+export function CollectionValueInput({ value, onChange: _onChange }: CollectionValueInputProps) {
   const [showPicker, setShowPicker] = useState(false);
 
   let selectedCollection: Collection | null = null;

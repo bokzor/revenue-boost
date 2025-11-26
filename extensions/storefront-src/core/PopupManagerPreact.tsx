@@ -187,17 +187,21 @@ async function refreshCartDrawer(
   cartData: { sections?: Record<string, string>; item_count?: number; [key: string]: unknown },
   root: string
 ): Promise<void> {
+  // Prepare event detail with cart data - many themes expect event.detail or event.detail.data
+  const eventDetail = { data: cartData, ...cartData };
+
   // Trigger comprehensive cart update events for different themes
-  document.dispatchEvent(new CustomEvent('cart:updated'));
-  document.dispatchEvent(new CustomEvent('cart.requestUpdate'));
-  document.dispatchEvent(new CustomEvent('cart:update'));
-  document.dispatchEvent(new CustomEvent('cart:change'));
-  document.dispatchEvent(new CustomEvent('theme:cart:update'));
-  document.dispatchEvent(new CustomEvent('cart:item-added'));
-  document.dispatchEvent(new CustomEvent('cart:add'));
+  // Pass cart data in the detail to prevent "Cannot read properties of null (reading 'data')" errors
+  document.dispatchEvent(new CustomEvent('cart:updated', { detail: eventDetail }));
+  document.dispatchEvent(new CustomEvent('cart.requestUpdate', { detail: eventDetail }));
+  document.dispatchEvent(new CustomEvent('cart:update', { detail: eventDetail }));
+  document.dispatchEvent(new CustomEvent('cart:change', { detail: eventDetail }));
+  document.dispatchEvent(new CustomEvent('theme:cart:update', { detail: eventDetail }));
+  document.dispatchEvent(new CustomEvent('cart:item-added', { detail: eventDetail }));
+  document.dispatchEvent(new CustomEvent('cart:add', { detail: eventDetail }));
 
   // Dispatch cart refresh with the cart data
-  document.dispatchEvent(new CustomEvent('cart:refresh', { detail: cartData }));
+  document.dispatchEvent(new CustomEvent('cart:refresh', { detail: eventDetail }));
 
   // Update cart count in header (common selectors)
   const cartCountSelectors = '.cart-count, [data-cart-count], .cart__count, #cart-icon-bubble span';
@@ -480,7 +484,11 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, tri
     }
   };
 
-  const handleIssueDiscount = async (options?: { cartSubtotalCents?: number }) => {
+  const handleIssueDiscount = async (options?: {
+    cartSubtotalCents?: number;
+    selectedProductIds?: string[];
+    bundleDiscountPercent?: number;
+  }) => {
     try {
       console.log("[PopupManager] Issuing discount for campaign:", campaign.id, options);
 
@@ -507,6 +515,8 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, tri
         sessionId: session.getSessionId(),
         challengeToken: token,
         cartSubtotalCents: options?.cartSubtotalCents,
+        selectedProductIds: options?.selectedProductIds,
+        bundleDiscountPercent: options?.bundleDiscountPercent,
       });
 
       if (!result.success) {
@@ -730,8 +740,23 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, tri
       const cartData = await cartResponse.json();
       console.log("[PopupManager] Items added to cart successfully");
 
-      // Check if we need to apply a discount
-      if (campaign.discountConfig?.enabled) {
+      // Check if we need to apply a bundle discount
+      const contentConfig = campaign.contentConfig || {};
+      const bundleDiscount = (contentConfig as { bundleDiscount?: number }).bundleDiscount;
+
+      console.log("[PopupManager] Bundle discount check:", {
+        bundleDiscount,
+        selectedCount: productIds.length,
+        discountEnabled: campaign.discountConfig?.enabled,
+      });
+
+      // Apply bundle discount if:
+      // 1. bundleDiscount is set in contentConfig (auto-sync mode), OR
+      // 2. discountConfig is explicitly enabled
+      const shouldApplyBundleDiscount = bundleDiscount && bundleDiscount > 0 && productIds.length > 0;
+      const shouldApplyExplicitDiscount = campaign.discountConfig?.enabled && !bundleDiscount;
+
+      if (shouldApplyBundleDiscount || shouldApplyExplicitDiscount) {
         // Fetch cart total for tiered discount support
         let cartSubtotalCents: number | undefined;
         try {
@@ -749,7 +774,12 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, tri
           console.warn("[PopupManager] Failed to fetch cart total for discount:", e);
         }
 
-        await handleIssueDiscount({ cartSubtotalCents });
+        // For bundle discounts, pass the selected product IDs so discount is scoped to them
+        await handleIssueDiscount({
+          cartSubtotalCents,
+          selectedProductIds: shouldApplyBundleDiscount ? productIds : undefined,
+          bundleDiscountPercent: shouldApplyBundleDiscount ? bundleDiscount : undefined,
+        });
       }
 
       // Refresh cart drawer using Section Rendering API response

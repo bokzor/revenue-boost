@@ -1,5 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { SpinToWinPopup, type SpinToWinConfig } from "~/domains/storefront/popups-new/SpinToWinPopup";
+import {
+  SpinToWinPopup,
+  type SpinToWinConfig,
+} from "~/domains/storefront/popups-new/SpinToWinPopup";
 
 const baseConfig: Partial<SpinToWinConfig> = {
   id: "demo-spin",
@@ -10,15 +13,15 @@ const baseConfig: Partial<SpinToWinConfig> = {
   buttonTextColor: "#0f172a",
   position: "center",
   size: "medium",
-	  headline: "Spin the wheel & win!",
-	  subheadline: "Enter your email for a chance to win a prize",
-	  emailRequired: true,
-	  previewMode: true,
-	  wheelSegments: [
-	    { id: "1", label: "10% OFF", probability: 0.3 },
-	    { id: "2", label: "Free Shipping", probability: 0.3 },
-	    { id: "3", label: "Better luck next time", probability: 0.4 },
-	  ],
+  headline: "Spin the wheel & win!",
+  subheadline: "Enter your email for a chance to win a prize",
+  emailRequired: true,
+  previewMode: true,
+  wheelSegments: [
+    { id: "1", label: "10% OFF", probability: 0.3 },
+    { id: "2", label: "Free Shipping", probability: 0.3 },
+    { id: "3", label: "Better luck next time", probability: 0.4 },
+  ],
 };
 
 const meta: Meta<typeof SpinToWinPopup> = {

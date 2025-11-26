@@ -13,7 +13,7 @@ import type {
 } from "~/domains/storefront/notifications/social-proof/types";
 import prisma from "~/db.server";
 import { apiVersion } from "~/shopify.server";
-import { getRedis, REDIS_PREFIXES, REDIS_TTL } from "~/lib/redis.server";
+import { getRedis, REDIS_PREFIXES } from "~/lib/redis.server";
 
 interface GetRecentPurchasesParams {
   storeId: string;
