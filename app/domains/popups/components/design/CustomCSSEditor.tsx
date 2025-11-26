@@ -86,9 +86,7 @@ export const CustomCSSEditor: React.FC<CustomCSSEditorProps> = ({
   disabled = false,
 }) => {
   const [isPreviewMode, setIsPreviewMode] = useState(false);
-  const [validationErrors, setValidationErrors] = useState<
-    CSSValidationError[]
-  >([]);
+  const [validationErrors, setValidationErrors] = useState<CSSValidationError[]>([]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // CSS Validation
@@ -172,7 +170,7 @@ export const CustomCSSEditor: React.FC<CustomCSSEditorProps> = ({
       const errors = validateCSS(newCSS);
       setValidationErrors(errors);
     },
-    [onChange, validateCSS],
+    [onChange, validateCSS]
   );
 
   // Handle snippet insertion
@@ -184,24 +182,17 @@ export const CustomCSSEditor: React.FC<CustomCSSEditorProps> = ({
       const start = textarea.selectionStart;
       const end = textarea.selectionEnd;
       const newValue =
-        value.substring(0, start) +
-        "\n\n" +
-        snippet.css +
-        "\n\n" +
-        value.substring(end);
+        value.substring(0, start) + "\n\n" + snippet.css + "\n\n" + value.substring(end);
 
       handleCSSChange(newValue);
 
       // Focus back to textarea
       setTimeout(() => {
         textarea.focus();
-        textarea.setSelectionRange(
-          start + snippet.css.length + 4,
-          start + snippet.css.length + 4,
-        );
+        textarea.setSelectionRange(start + snippet.css.length + 4, start + snippet.css.length + 4);
       }, 0);
     },
-    [value, handleCSSChange],
+    [value, handleCSSChange]
   );
 
   // Handle preview toggle
@@ -220,20 +211,13 @@ export const CustomCSSEditor: React.FC<CustomCSSEditorProps> = ({
   // Syntax highlighting (basic)
   const highlightCSS = useCallback((css: string) => {
     return css
-      .replace(
-        /([a-zA-Z-]+)(\s*:)/g,
-        '<span style="color: #0066cc;">$1</span>$2',
-      )
+      .replace(/([a-zA-Z-]+)(\s*:)/g, '<span style="color: #0066cc;">$1</span>$2')
       .replace(/(\/\*.*?\*\/)/g, '<span style="color: #008000;">$1</span>')
       .replace(/({|})/g, '<span style="color: #ff6600;">$1</span>');
   }, []);
 
-  const errorCount = validationErrors.filter(
-    (e) => e.severity === "error",
-  ).length;
-  const warningCount = validationErrors.filter(
-    (e) => e.severity === "warning",
-  ).length;
+  const errorCount = validationErrors.filter((e) => e.severity === "error").length;
+  const warningCount = validationErrors.filter((e) => e.severity === "warning").length;
 
   return (
     <Card>
@@ -271,11 +255,7 @@ export const CustomCSSEditor: React.FC<CustomCSSEditorProps> = ({
                 {isPreviewMode ? "Edit" : "Preview"}
               </Button>
 
-              <Button
-                icon={ResetIcon}
-                onClick={handleReset}
-                disabled={disabled || !value.trim()}
-              >
+              <Button icon={ResetIcon} onClick={handleReset} disabled={disabled || !value.trim()}>
                 Reset
               </Button>
             </InlineStack>
@@ -338,8 +318,7 @@ export const CustomCSSEditor: React.FC<CustomCSSEditorProps> = ({
                     </Text>
                     <div
                       style={{
-                        fontFamily:
-                          'Monaco, Consolas, "Courier New", monospace',
+                        fontFamily: 'Monaco, Consolas, "Courier New", monospace',
                         fontSize: "14px",
                         lineHeight: "1.5",
                         whiteSpace: "pre-wrap",
@@ -349,9 +328,7 @@ export const CustomCSSEditor: React.FC<CustomCSSEditorProps> = ({
                         border: "1px solid #e1e3e5",
                       }}
                       dangerouslySetInnerHTML={{
-                        __html: highlightCSS(
-                          value || "/* No custom CSS added yet */",
-                        ),
+                        __html: highlightCSS(value || "/* No custom CSS added yet */"),
                       }}
                     />
                   </BlockStack>
@@ -385,9 +362,8 @@ export const CustomCSSEditor: React.FC<CustomCSSEditorProps> = ({
           {/* Safety Notice */}
           <Banner tone="info">
             <Text as="span" variant="bodySm">
-              <strong>Safety Notice:</strong> Custom CSS is applied with limited
-              scope to prevent breaking the popup layout. Styles are
-              automatically prefixed and validated for safety.
+              <strong>Safety Notice:</strong> Custom CSS is applied with limited scope to prevent
+              breaking the popup layout. Styles are automatically prefixed and validated for safety.
             </Text>
           </Banner>
         </BlockStack>

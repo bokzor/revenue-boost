@@ -51,7 +51,7 @@ export interface ShopifyProductTagsResult {
  */
 export async function listProductTags(
   admin: AdminApiContext,
-  options: { first?: number; after?: string | null } = {},
+  options: { first?: number; after?: string | null } = {}
 ): Promise<ShopifyProductTagsResult> {
   const { first = 250, after = null } = options;
 
@@ -80,4 +80,3 @@ export async function listProductTags(
     endCursor: pageInfo.endCursor ?? null,
   };
 }
-

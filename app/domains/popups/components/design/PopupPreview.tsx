@@ -1,10 +1,4 @@
-import React, {
-  useState,
-  useRef,
-  useEffect,
-  forwardRef,
-  useImperativeHandle,
-} from "react";
+import React, { useState, useRef, useEffect, forwardRef, useImperativeHandle } from "react";
 import { Box, Button, Text, InlineStack } from "@shopify/polaris";
 import type { PopupDesignConfig } from "./PopupDesignEditor";
 
@@ -20,10 +14,7 @@ export interface PopupPreviewRef {
 }
 
 export const PopupPreview = forwardRef<PopupPreviewRef, PopupPreviewProps>(
-  (
-    { config, showControls = true, onPreviewElementReady, autoShow = false },
-    ref,
-  ) => {
+  ({ config, showControls = true, onPreviewElementReady, autoShow = false }, ref) => {
     const [isPreviewVisible, setIsPreviewVisible] = useState(false);
     const popupElementRef = useRef<HTMLDivElement>(null);
 
@@ -38,7 +29,7 @@ export const PopupPreview = forwardRef<PopupPreviewRef, PopupPreviewProps>(
           setIsPreviewVisible(true);
         },
       }),
-      [],
+      []
     );
 
     // Auto-show popup when autoShow prop is true
@@ -50,11 +41,7 @@ export const PopupPreview = forwardRef<PopupPreviewRef, PopupPreviewProps>(
 
     // Notify parent when popup element is ready for animations
     useEffect(() => {
-      if (
-        onPreviewElementReady &&
-        popupElementRef.current &&
-        isPreviewVisible
-      ) {
+      if (onPreviewElementReady && popupElementRef.current && isPreviewVisible) {
         onPreviewElementReady(popupElementRef.current);
       } else if (onPreviewElementReady && !isPreviewVisible) {
         onPreviewElementReady(null);
@@ -211,15 +198,8 @@ export const PopupPreview = forwardRef<PopupPreviewRef, PopupPreviewProps>(
             />
           )}
 
-          <div
-            id={popupId}
-            ref={popupElementRef}
-            data-popup-preview
-            style={getPopupStyles()}
-          >
-            {config.showCloseButton && (
-              <button style={getCloseButtonStyles()}>×</button>
-            )}
+          <div id={popupId} ref={popupElementRef} data-popup-preview style={getPopupStyles()}>
+            {config.showCloseButton && <button style={getCloseButtonStyles()}>×</button>}
 
             {config.position === "top" || config.position === "bottom" ? (
               // Banner layout: horizontal
@@ -276,9 +256,7 @@ export const PopupPreview = forwardRef<PopupPreviewRef, PopupPreviewProps>(
             ) : (
               // Modal/Slide-in layout: vertical
               <>
-                <div
-                  style={{ flex: 1, display: "flex", flexDirection: "column" }}
-                >
+                <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
                   {config.imageUrl && (
                     <div style={{ marginBottom: "20px", textAlign: "center" }}>
                       <img
@@ -349,10 +327,7 @@ export const PopupPreview = forwardRef<PopupPreviewRef, PopupPreviewProps>(
         {showControls && (
           <Box paddingBlockEnd="400">
             <InlineStack align="end">
-              <Button
-                variant="primary"
-                onClick={() => setIsPreviewVisible(!isPreviewVisible)}
-              >
+              <Button variant="primary" onClick={() => setIsPreviewVisible(!isPreviewVisible)}>
                 {isPreviewVisible ? "Hide Preview" : "Show Preview"}
               </Button>
             </InlineStack>
@@ -401,8 +376,7 @@ export const PopupPreview = forwardRef<PopupPreviewRef, PopupPreviewProps>(
                     fontSize: previewMode !== "desktop" ? "14px" : "16px",
                   }}
                 >
-                  This is a preview of how your popup will appear on your
-                  website.
+                  This is a preview of how your popup will appear on your website.
                 </p>
                 <div
                   style={{
@@ -449,21 +423,19 @@ export const PopupPreview = forwardRef<PopupPreviewRef, PopupPreviewProps>(
             </div>
 
             {/* Popup overlay */}
-            {isPreviewVisible && (
-              <div style={getOverlayStyles()}>{renderPopupContent()}</div>
-            )}
+            {isPreviewVisible && <div style={getOverlayStyles()}>{renderPopupContent()}</div>}
           </div>
         </Box>
 
         <Box paddingBlockStart="400">
           <Text as="p" variant="bodySm" tone="subdued">
-            Preview shows how your popup will appear to customers. The actual
-            popup will be responsive and adapt to different screen sizes.
+            Preview shows how your popup will appear to customers. The actual popup will be
+            responsive and adapt to different screen sizes.
           </Text>
         </Box>
       </Box>
     );
-  },
+  }
 );
 
 PopupPreview.displayName = "PopupPreview";

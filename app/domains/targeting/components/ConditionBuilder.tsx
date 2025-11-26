@@ -15,14 +15,7 @@
  */
 
 // React import not needed with JSX transform
-import {
-  BlockStack,
-  InlineStack,
-  Button,
-  ButtonGroup,
-  Text,
-  Box,
-} from "@shopify/polaris";
+import { BlockStack, InlineStack, Button, ButtonGroup, Text, Box } from "@shopify/polaris";
 import { ConditionRow } from "./ConditionRow";
 import type { TriggerCondition, LogicOperator } from "./types";
 import styles from "./ConditionBuilder.module.css";
@@ -89,12 +82,7 @@ export function ConditionBuilder({
             {index < conditions.length - 1 && (
               <Box paddingBlock="200">
                 <div className={styles.logicLabel}>
-                  <Text
-                    as="span"
-                    variant="bodySm"
-                    fontWeight="semibold"
-                    tone="subdued"
-                  >
+                  <Text as="span" variant="bodySm" fontWeight="semibold" tone="subdued">
                     {logicOperator}
                   </Text>
                 </div>

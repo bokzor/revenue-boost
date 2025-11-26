@@ -1,6 +1,6 @@
 /**
  * Wizard Step Validators
- * 
+ *
  * Extracted from useWizardState to follow SOLID principles:
  * - Single Responsibility: Each validator handles one step
  * - Open/Closed: Easy to add new validators without modifying existing code
@@ -47,7 +47,7 @@ export function validateGoalStep(data: CampaignFormData): ValidationResult {
       INCREASE_REVENUE: "Revenue generation",
       ENGAGEMENT: "Community building",
     };
-    
+
     result.suggestions.push({
       field: "goal",
       message: `Great choice! ${goalMessages[data.goal] || "This"} campaigns typically perform well.`,
@@ -283,5 +283,3 @@ export function validateStep(stepIndex: number, data: CampaignFormData): Validat
 
   return validator(data);
 }
-
-

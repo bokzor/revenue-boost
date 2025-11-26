@@ -83,10 +83,7 @@ export {
 // VALIDATION (Client-safe validation functions)
 // ============================================================================
 
-export type {
-  ValidationResult,
-  ValidationError,
-} from "./validation/campaign-validation.js";
+export type { ValidationResult, ValidationError } from "./validation/campaign-validation.js";
 
 export {
   validateContentConfig,
@@ -113,4 +110,3 @@ export {
   parseCampaignFields,
   parseExperimentFields,
 } from "./utils/json-helpers.js";
-

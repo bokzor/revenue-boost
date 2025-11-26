@@ -304,6 +304,7 @@ See `docs/TYPE_SYSTEM_DIAGRAM.md` for detailed flow.
    - Contains template-specific popup implementations
    - Built via `npm run build:storefront`
    - Outputs to `extensions/storefront-popup/assets/`
+   - **Automatically copies newsletter background images** from `public/newsletter-backgrounds/` during build
 
 #### Communication Flow
 
@@ -494,6 +495,24 @@ npm run test:e2e
 **Example**: `headline` is always `headline`, never `title` or `mainHeading`.
 
 **Evidence**: `docs/TYPE_SYSTEM_DIAGRAM.md` explicitly documents this decision.
+
+### 6. Single Source of Truth for Background Images
+
+**Decision**: Store all newsletter background images in `public/newsletter-backgrounds/` and automatically copy them to the storefront extension during build.
+
+**Rationale**:
+- Eliminates manual duplication and risk of drift
+- Ensures consistency between admin preview and storefront rendering
+- Simplifies maintenance (add/update/remove in one place)
+
+**Implementation**:
+- Source: `public/newsletter-backgrounds/` (10 PNG images)
+- Build script (`scripts/build-storefront.js`) automatically copies images to `extensions/storefront-popup/assets/newsletter-backgrounds/`
+- Extension assets are excluded from git (via `.gitignore`)
+- Admin serves images via App Proxy routes
+- Storefront serves images via Shopify CDN
+
+**Evidence**: See `docs/BACKGROUND_IMAGES.md` for complete documentation.
 
 ## Testing Guidelines
 

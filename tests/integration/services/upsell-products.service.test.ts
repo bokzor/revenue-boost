@@ -10,10 +10,6 @@
  * - Shopify GraphQL API integration
  * - Data transformation
  * - Edge cases and error handling
- *
- * NOTE: These tests are currently skipped because the functions are not exported
- * from the route file. They should be moved to a separate service file and then
- * these tests can be enabled.
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -23,7 +19,7 @@ import {
   fetchPopularProducts,
 } from '~/domains/commerce/services/upsell.server';
 
-describe.skip('Product Upsell Service - fetchProductsByIds', () => {
+describe('Product Upsell Service - fetchProductsByIds', () => {
   let mockAdmin: any;
 
   beforeEach(() => {
@@ -193,7 +189,7 @@ describe.skip('Product Upsell Service - fetchProductsByIds', () => {
   });
 });
 
-describe.skip('Product Upsell Service - fetchProductsByCollection', () => {
+describe('Product Upsell Service - fetchProductsByCollection', () => {
   let mockAdmin: any;
 
   beforeEach(() => {
@@ -374,7 +370,7 @@ describe.skip('Product Upsell Service - fetchProductsByCollection', () => {
   });
 });
 
-describe.skip('Product Upsell Service - fetchPopularProducts (AI)', () => {
+describe('Product Upsell Service - fetchPopularProducts (AI)', () => {
   let mockAdmin: any;
 
   beforeEach(() => {

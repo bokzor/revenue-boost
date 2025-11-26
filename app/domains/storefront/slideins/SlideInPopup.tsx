@@ -37,8 +37,6 @@ export const SlideInPopup: React.FC<SlideInPopupProps> = ({
     (config.backgroundImageMode as any) ?? (config.imageUrl ? "file" : "none");
   const imageUrl = backgroundImageMode === "none" ? undefined : config.imageUrl;
 
-
-
   const getPositionStyles = (): React.CSSProperties => {
     const baseStyles: React.CSSProperties = {
       position: "fixed",

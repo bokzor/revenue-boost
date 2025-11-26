@@ -62,9 +62,7 @@ export function buildTemplateUpdates(
 /**
  * Build JSON configuration updates
  */
-export function buildConfigUpdates(
-  data: CampaignUpdateData
-): Partial<Prisma.CampaignUpdateInput> {
+export function buildConfigUpdates(data: CampaignUpdateData): Partial<Prisma.CampaignUpdateInput> {
   const updates: Partial<Prisma.CampaignUpdateInput> = {};
 
   if (data.contentConfig !== undefined) {
@@ -124,9 +122,7 @@ export function buildScheduleUpdates(
 /**
  * Combine all update builders into a single update object
  */
-export function buildCampaignUpdateData(
-  data: CampaignUpdateData
-): Prisma.CampaignUpdateInput {
+export function buildCampaignUpdateData(data: CampaignUpdateData): Prisma.CampaignUpdateInput {
   return {
     ...buildBasicFieldUpdates(data),
     ...buildTemplateUpdates(data),
@@ -136,4 +132,3 @@ export function buildCampaignUpdateData(
     updatedAt: new Date(),
   };
 }
-

@@ -1,6 +1,6 @@
 /**
  * PrioritySection - Campaign priority configuration
- * 
+ *
  * SOLID Compliance:
  * - Single Responsibility: Only handles priority selection
  * - Component is <50 lines
@@ -46,4 +46,3 @@ export function PrioritySection({ priority, onPriorityChange }: PrioritySectionP
     </Card>
   );
 }
-

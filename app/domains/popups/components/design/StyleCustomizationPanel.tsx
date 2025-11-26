@@ -16,9 +16,10 @@ export interface StyleCustomizationPanelProps {
   onStyleChange: (updates: Partial<PopupDesignConfig>) => void;
 }
 
-export const StyleCustomizationPanel: React.FC<
-  StyleCustomizationPanelProps
-> = ({ config, onStyleChange }) => {
+export const StyleCustomizationPanel: React.FC<StyleCustomizationPanelProps> = ({
+  config,
+  onStyleChange,
+}) => {
   const [activeSection, setActiveSection] = React.useState<
     "content" | "layout" | "colors" | "typography"
   >("content");
@@ -140,14 +141,16 @@ export const StyleCustomizationPanel: React.FC<
               label="Position"
               options={positionOptions}
               value={config.position || "center"}
-              onChange={(value) => onStyleChange({ position: value as PopupDesignConfig['position'] })}
+              onChange={(value) =>
+                onStyleChange({ position: value as PopupDesignConfig["position"] })
+              }
             />
 
             <Select
               label="Size"
               options={sizeOptions}
               value={config.size || "medium"}
-              onChange={(value) => onStyleChange({ size: value as PopupDesignConfig['size'] })}
+              onChange={(value) => onStyleChange({ size: value as PopupDesignConfig["size"] })}
             />
 
             <Select
@@ -155,7 +158,7 @@ export const StyleCustomizationPanel: React.FC<
               options={slideDirectionOptions}
               value={config.slideDirection || "right"}
               onChange={(value) =>
-                onStyleChange({ slideDirection: value as PopupDesignConfig['slideDirection'] })
+                onStyleChange({ slideDirection: value as PopupDesignConfig["slideDirection"] })
               }
             />
 
@@ -177,8 +180,7 @@ export const StyleCustomizationPanel: React.FC<
 
             <Box>
               <Text as="span" variant="bodyMd">
-                Overlay Opacity:{" "}
-                {Math.round((config.overlayOpacity || 0.6) * 100)}%
+                Overlay Opacity: {Math.round((config.overlayOpacity || 0.6) * 100)}%
               </Text>
               <Box paddingBlockStart="200">
                 <RangeSlider
@@ -239,9 +241,7 @@ export const StyleCustomizationPanel: React.FC<
             <Select
               label="Font Family"
               options={fontFamilyOptions}
-              value={
-                config.fontFamily || "system-ui, -apple-system, sans-serif"
-              }
+              value={config.fontFamily || "system-ui, -apple-system, sans-serif"}
               onChange={(value) => onStyleChange({ fontFamily: value })}
             />
 

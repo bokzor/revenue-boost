@@ -37,11 +37,7 @@ export function FrequencyCappingPanel({
 
   return (
     <BlockStack gap="400">
-      {helpText && (
-        <Banner tone="info">
-          {helpText}
-        </Banner>
-      )}
+      {helpText && <Banner tone="info">{helpText}</Banner>}
 
       <FrequencyCappingToggle
         enabled={config.enabled}
@@ -55,7 +51,9 @@ export function FrequencyCappingPanel({
             maxTriggersPerDay={config.max_triggers_per_day}
             cooldownBetweenTriggers={config.cooldown_between_triggers}
             onMaxTriggersPerSessionChange={(value) => {
-              const max_triggers_per_session = value ? Math.max(1, parseInt(value) || 1) : undefined;
+              const max_triggers_per_session = value
+                ? Math.max(1, parseInt(value) || 1)
+                : undefined;
               onConfigChange({ ...config, max_triggers_per_session });
             }}
             onMaxTriggersPerDayChange={(value) => {
@@ -63,14 +61,18 @@ export function FrequencyCappingPanel({
               onConfigChange({ ...config, max_triggers_per_day });
             }}
             onCooldownChange={(value) => {
-              const cooldown_between_triggers = value ? Math.max(0, parseInt(value) || 0) : undefined;
+              const cooldown_between_triggers = value
+                ? Math.max(0, parseInt(value) || 0)
+                : undefined;
               onConfigChange({ ...config, cooldown_between_triggers });
             }}
           />
 
           <GlobalFrequencyCapCard
             respectGlobalCap={config.respectGlobalCap ?? true}
-            onGlobalCapChange={(respectGlobalCap) => onConfigChange({ ...config, respectGlobalCap })}
+            onGlobalCapChange={(respectGlobalCap) =>
+              onConfigChange({ ...config, respectGlobalCap })
+            }
           />
 
           <FrequencyBestPracticesCard />

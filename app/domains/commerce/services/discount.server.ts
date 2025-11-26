@@ -128,8 +128,6 @@ const GetCampaignDiscountCodeParamsSchema = z.object({
   cartSubtotalCents: z.number().int().nonnegative("Cart subtotal must be non-negative").optional(),
 });
 
-type GetCampaignDiscountCodeParams = z.infer<typeof GetCampaignDiscountCodeParamsSchema>;
-
 // ============================================================================
 // DISCOUNT STRATEGIES
 // ============================================================================
@@ -153,37 +151,19 @@ const DISCOUNT_STRATEGIES: DiscountStrategy[] = [
   {
     name: "emailAuthorized",
     canHandle: (ctx) =>
-      ctx.config.deliveryMode === "show_in_popup_authorized_only" &&
-      !!ctx.leadEmail,
+      ctx.config.deliveryMode === "show_in_popup_authorized_only" && !!ctx.leadEmail,
     apply: (ctx) =>
-      createEmailSpecificDiscount(
-        ctx.admin,
-        ctx.leadEmail as string,
-        ctx.campaign,
-        ctx.config,
-      ),
+      createEmailSpecificDiscount(ctx.admin, ctx.leadEmail as string, ctx.campaign, ctx.config),
   },
   {
     name: "bogo",
     canHandle: (ctx) => !!ctx.config.bogo,
-    apply: (ctx) =>
-      getOrCreateBogoDiscount(
-        ctx.admin,
-        ctx.campaign,
-        ctx.config,
-        ctx.metadata,
-      ),
+    apply: (ctx) => getOrCreateBogoDiscount(ctx.admin, ctx.campaign, ctx.config, ctx.metadata),
   },
   {
     name: "freeGift",
     canHandle: (ctx) => !!ctx.config.freeGift,
-    apply: (ctx) =>
-      getOrCreateFreeGiftDiscount(
-        ctx.admin,
-        ctx.campaign,
-        ctx.config,
-        ctx.metadata,
-      ),
+    apply: (ctx) => getOrCreateFreeGiftDiscount(ctx.admin, ctx.campaign, ctx.config, ctx.metadata),
   },
   {
     name: "tiered",
@@ -194,35 +174,20 @@ const DISCOUNT_STRATEGIES: DiscountStrategy[] = [
         ctx.campaign,
         ctx.config,
         ctx.metadata,
-        ctx.cartSubtotalCents,
+        ctx.cartSubtotalCents
       ),
   },
   {
     name: "singleUse",
-    canHandle: (ctx) =>
-      ctx.config.type === "single_use" || ctx.config.usageLimit === 1,
-    apply: (ctx) =>
-      createSingleUseDiscount(
-        ctx.admin,
-        ctx.campaign,
-        ctx.config,
-        ctx.leadEmail,
-      ),
+    canHandle: (ctx) => ctx.config.type === "single_use" || ctx.config.usageLimit === 1,
+    apply: (ctx) => createSingleUseDiscount(ctx.admin, ctx.campaign, ctx.config, ctx.leadEmail),
   },
   {
     name: "shared",
-    canHandle: (ctx) =>
-      !(ctx.config.type === "single_use" || ctx.config.usageLimit === 1),
-    apply: (ctx) =>
-      getOrCreateSharedDiscount(
-        ctx.admin,
-        ctx.campaign,
-        ctx.config,
-        ctx.metadata,
-      ),
+    canHandle: (ctx) => !(ctx.config.type === "single_use" || ctx.config.usageLimit === 1),
+    apply: (ctx) => getOrCreateSharedDiscount(ctx.admin, ctx.campaign, ctx.config, ctx.metadata),
   },
 ];
-
 
 // ============================================================================
 // UTILITY FUNCTIONS
@@ -231,9 +196,7 @@ const DISCOUNT_STRATEGIES: DiscountStrategy[] = [
 /**
  * Check if discount code should be shown to customer based on delivery mode
  */
-export function shouldShowDiscountCode(
-  deliveryMode: DiscountDeliveryMode
-): boolean {
+export function shouldShowDiscountCode(deliveryMode: DiscountDeliveryMode): boolean {
   switch (deliveryMode) {
     case "auto_apply_only":
       return false; // Never show code, only auto-apply
@@ -268,45 +231,41 @@ export function getSuccessMessage(deliveryMode: DiscountDeliveryMode): string {
 /**
  * Parse discount config from JSON string or JsonValue
  */
-export function parseDiscountConfig(configString: any): DiscountConfig {
+export function parseDiscountConfig(configString: unknown): DiscountConfig {
   try {
-    // Handle different input types
-    let config: any;
-    if (typeof configString === 'string') {
-      config = JSON.parse(configString || "{}");
-    } else if (configString && typeof configString === 'object') {
-      config = configString;
-    } else {
-      config = {};
-    }
+    const parsedConfig = DiscountConfigSchema.partial().parse(
+      typeof configString === "string" && configString.length > 0
+        ? JSON.parse(configString)
+        : configString ?? {}
+    );
 
-    const valueType = config.valueType || "PERCENTAGE";
+    const valueType = parsedConfig.valueType ?? "PERCENTAGE";
     const usageType: "shared" | "single_use" =
-      config.type === "single_use" ? "single_use" : "shared";
+      parsedConfig.type === "single_use" ? "single_use" : "shared";
 
     const result: DiscountConfig = {
-      enabled: config.enabled !== false,
-      showInPreview: config.showInPreview !== false,
+      enabled: parsedConfig.enabled ?? true,
+      showInPreview: parsedConfig.showInPreview ?? true,
       type: usageType,
-      valueType: valueType,
+      valueType,
       // Only set value for non-FREE_SHIPPING discounts
-      value: valueType !== "FREE_SHIPPING" ? (config.value || 10) : undefined,
-      minimumAmount: config.minimumAmount,
-      usageLimit: config.usageLimit,
-      expiryDays: config.expiryDays || 30,
-      prefix: config.prefix || "WELCOME",
-      deliveryMode: config.deliveryMode || "show_code_fallback",
-      requireLogin: config.requireLogin,
-      storeInMetafield: config.storeInMetafield,
-      authorizedEmail: config.authorizedEmail,
-      requireEmailMatch: config.requireEmailMatch,
-      autoApplyMode: config.autoApplyMode || "ajax",
-      codePresentation: config.codePresentation || "show_code",
-      applicability: config.applicability,
-      tiers: config.tiers,
-      bogo: config.bogo,
-      freeGift: config.freeGift,
-      combineWith: config.combineWith,
+      value: valueType !== "FREE_SHIPPING" ? parsedConfig.value ?? 10 : undefined,
+      minimumAmount: parsedConfig.minimumAmount,
+      usageLimit: parsedConfig.usageLimit,
+      expiryDays: parsedConfig.expiryDays ?? 30,
+      prefix: parsedConfig.prefix ?? "WELCOME",
+      deliveryMode: parsedConfig.deliveryMode ?? "show_code_fallback",
+      requireLogin: parsedConfig.requireLogin,
+      storeInMetafield: parsedConfig.storeInMetafield,
+      authorizedEmail: parsedConfig.authorizedEmail,
+      requireEmailMatch: parsedConfig.requireEmailMatch,
+      autoApplyMode: parsedConfig.autoApplyMode ?? "ajax",
+      codePresentation: parsedConfig.codePresentation ?? "show_code",
+      applicability: parsedConfig.applicability,
+      tiers: parsedConfig.tiers,
+      bogo: parsedConfig.bogo,
+      freeGift: parsedConfig.freeGift,
+      combineWith: parsedConfig.combineWith,
     };
 
     return result;
@@ -349,7 +308,7 @@ export async function getCampaignDiscountCode(
 
     if (!validationResult.success) {
       const errors = validationResult.error.issues.map(
-        (issue) => `${issue.path.join('.')}: ${issue.message}`
+        (issue) => `${issue.path.join(".")}: ${issue.message}`
       );
       console.error("[Discount Service] Parameter validation failed:", errors);
       return {
@@ -395,14 +354,18 @@ export async function getCampaignDiscountCode(
 
     if (campaign.discountConfig) {
       try {
-        discountMetadata = typeof campaign.discountConfig === "string"
-          ? JSON.parse(campaign.discountConfig)
-          : campaign.discountConfig;
+        discountMetadata =
+          typeof campaign.discountConfig === "string"
+            ? JSON.parse(campaign.discountConfig)
+            : campaign.discountConfig;
       } catch (error) {
-        console.warn("[Discount Service] Failed to parse campaign.discountConfig, using empty metadata", {
-          campaignId,
-          error,
-        });
+        console.warn(
+          "[Discount Service] Failed to parse campaign.discountConfig, using empty metadata",
+          {
+            campaignId,
+            error,
+          }
+        );
         discountMetadata = {};
       }
     }
@@ -482,10 +445,7 @@ async function getOrCreateSharedDiscount(
   // Check if we already have a shared discount code
   if (existingConfig.sharedDiscountId && existingConfig.sharedDiscountCode) {
     // Verify the discount still exists in Shopify
-    const existingDiscount = await getDiscountCode(
-      admin,
-      existingConfig.sharedDiscountId
-    );
+    const existingDiscount = await getDiscountCode(admin, existingConfig.sharedDiscountId);
 
     if (existingDiscount.discount && !existingDiscount.errors) {
       console.log(
@@ -501,14 +461,9 @@ async function getOrCreateSharedDiscount(
   }
 
   // Create new shared discount code
-  const discountCode = generateDiscountCode(
-    config.prefix || "WELCOME",
-    campaign.name
-  );
+  const discountCode = generateDiscountCode(config.prefix || "WELCOME", campaign.name);
 
-  console.log(
-    `[Discount Service] Creating new shared discount: ${discountCode}`
-  );
+  console.log(`[Discount Service] Creating new shared discount: ${discountCode}`);
 
   const valueType = config.valueType || "PERCENTAGE";
   const discountInput: DiscountCodeInput = {
@@ -523,9 +478,7 @@ async function getOrCreateSharedDiscount(
         }
       : undefined,
     endsAt: config.expiryDays
-      ? new Date(
-          Date.now() + config.expiryDays * 24 * 60 * 60 * 1000
-        ).toISOString()
+      ? new Date(Date.now() + config.expiryDays * 24 * 60 * 60 * 1000).toISOString()
       : undefined,
     appliesOncePerCustomer: true,
     customerSelection: "ALL",
@@ -537,10 +490,7 @@ async function getOrCreateSharedDiscount(
   const result = await createDiscountCode(admin, discountInput);
 
   if (result.errors) {
-    console.error(
-      "[Discount Service] Failed to create shared discount:",
-      result.errors
-    );
+    console.error("[Discount Service] Failed to create shared discount:", result.errors);
     return {
       success: false,
       isNewDiscount: false,
@@ -598,7 +548,7 @@ export async function createEmailSpecificDiscount(
         if (createResult.customer) {
           customer = createResult.customer;
           customerId = customer.id;
-        } else if (createResult.errors?.some(err => err.includes("already been taken"))) {
+        } else if (createResult.errors?.some((err) => err.includes("already been taken"))) {
           // Race condition: customer was created between search and create
           // Search again to get the customer ID
           console.log(`[Discount Service] Customer already exists, searching again: ${email}`);
@@ -612,10 +562,7 @@ export async function createEmailSpecificDiscount(
     }
 
     // Generate unique discount code
-    const discountCode = generateUniqueDiscountCode(
-      config.prefix || "EMAIL",
-      email
-    );
+    const discountCode = generateUniqueDiscountCode(config.prefix || "EMAIL", email);
 
     console.log(
       `[Discount Service] Creating email-specific discount: ${discountCode} for ${email}`
@@ -634,9 +581,7 @@ export async function createEmailSpecificDiscount(
           }
         : undefined,
       endsAt: config.expiryDays
-        ? new Date(
-            Date.now() + config.expiryDays * 24 * 60 * 60 * 1000
-          ).toISOString()
+        ? new Date(Date.now() + config.expiryDays * 24 * 60 * 60 * 1000).toISOString()
         : undefined,
       appliesOncePerCustomer: true,
       customerSelection: customerId ? "SPECIFIC_CUSTOMERS" : "ALL",
@@ -649,10 +594,7 @@ export async function createEmailSpecificDiscount(
     const result = await createDiscountCode(admin, discountInput);
 
     if (result.errors) {
-      console.error(
-        "[Discount Service] Failed to create email-specific discount:",
-        result.errors
-      );
+      console.error("[Discount Service] Failed to create email-specific discount:", result.errors);
       return {
         success: false,
         isNewDiscount: false,
@@ -671,10 +613,7 @@ export async function createEmailSpecificDiscount(
       isNewDiscount: true,
     };
   } catch (error) {
-    console.error(
-      "[Discount Service] Error creating email-specific discount:",
-      error
-    );
+    console.error("[Discount Service] Error creating email-specific discount:", error);
     return {
       success: false,
       isNewDiscount: false,
@@ -692,14 +631,9 @@ async function createSingleUseDiscount(
   config: DiscountConfig,
   leadEmail?: string
 ): Promise<CampaignDiscountResult> {
-  const discountCode = generateUniqueDiscountCode(
-    config.prefix || "SINGLE",
-    leadEmail
-  );
+  const discountCode = generateUniqueDiscountCode(config.prefix || "SINGLE", leadEmail);
 
-  console.log(
-    `[Discount Service] Creating single-use discount: ${discountCode}`
-  );
+  console.log(`[Discount Service] Creating single-use discount: ${discountCode}`);
 
   const valueType = config.valueType || "PERCENTAGE";
   const discountInput: DiscountCodeInput = {
@@ -714,9 +648,7 @@ async function createSingleUseDiscount(
         }
       : undefined,
     endsAt: config.expiryDays
-      ? new Date(
-          Date.now() + config.expiryDays * 24 * 60 * 60 * 1000
-        ).toISOString()
+      ? new Date(Date.now() + config.expiryDays * 24 * 60 * 60 * 1000).toISOString()
       : undefined,
     appliesOncePerCustomer: true,
     customerSelection: "ALL",
@@ -728,10 +660,7 @@ async function createSingleUseDiscount(
   const result = await createDiscountCode(admin, discountInput);
 
   if (result.errors) {
-    console.error(
-      "[Discount Service] Failed to create single-use discount:",
-      result.errors
-    );
+    console.error("[Discount Service] Failed to create single-use discount:", result.errors);
     return {
       success: false,
       isNewDiscount: false,
@@ -783,14 +712,14 @@ async function updateDiscountMetadata(
  */
 async function getCachedDiscount(
   admin: AdminApiContext,
-  meta: DiscountMetadata['_meta'],
+  meta: DiscountMetadata["_meta"],
   idKey: string,
   codeKey: string
 ): Promise<{ code: string; id: string } | null> {
   if (!meta) return null;
 
-  const discountId = (meta as any)[idKey];
-  const discountCode = (meta as any)[codeKey];
+  const discountId = (meta as Record<string, unknown>)[idKey] as string | undefined;
+  const discountCode = (meta as Record<string, unknown>)[codeKey] as string | undefined;
 
   if (!discountId || !discountCode) return null;
 
@@ -816,9 +745,7 @@ function generateDiscountCode(
     .toUpperCase()
     .substring(0, maxLength);
 
-  const timestamp = Date.now()
-    .toString()
-    .slice(-DISCOUNT_CODE_CONFIG.TIMESTAMP_LENGTH);
+  const timestamp = Date.now().toString().slice(-DISCOUNT_CODE_CONFIG.TIMESTAMP_LENGTH);
 
   return `${prefix}${cleanName}${timestamp}`;
 }
@@ -865,7 +792,9 @@ async function getOrCreateTieredDiscount(
   const tiers = config.tiers!;
 
   // Check for existing tier codes in metadata
-  const meta = (existingConfig._meta || {}) as any;
+  const meta = (existingConfig._meta || {}) as {
+    tierCodes?: TierCodeMetadata[];
+  };
   const tierCodes: TierCodeMetadata[] = meta.tierCodes || [];
 
   // Validate existing tier codes
@@ -884,20 +813,30 @@ async function getOrCreateTieredDiscount(
 
   // Create tier codes if needed
   if (needsRecreation) {
-    console.log(`[Discount Service] Creating ${tiers.length} tier codes for campaign ${campaign.id}`);
+    console.log(
+      `[Discount Service] Creating ${tiers.length} tier codes for campaign ${campaign.id}`
+    );
 
     const newTierCodes: TierCodeMetadata[] = [];
 
     for (let i = 0; i < tiers.length; i++) {
       const tier = tiers[i];
       const thresholdDollars = (tier.thresholdCents / 100).toFixed(0);
-      const code = `${config.prefix || "TIER"}-${campaign.name.replace(/[^a-zA-Z0-9]/g, "").substring(0, 6).toUpperCase()}-${thresholdDollars}`;
+      const code = `${config.prefix || "TIER"}-${campaign.name
+        .replace(/[^a-zA-Z0-9]/g, "")
+        .substring(0, 6)
+        .toUpperCase()}-${thresholdDollars}`;
 
       const discountInput: DiscountCodeInput = {
         title: `${campaign.name} - Tier ${i + 1} ($${thresholdDollars}+)`,
         code,
         value: tier.discount.kind === "free_shipping" ? undefined : tier.discount.value,
-        valueType: tier.discount.kind === "percentage" ? "PERCENTAGE" : tier.discount.kind === "fixed" ? "FIXED_AMOUNT" : "FREE_SHIPPING",
+        valueType:
+          tier.discount.kind === "percentage"
+            ? "PERCENTAGE"
+            : tier.discount.kind === "fixed"
+              ? "FIXED_AMOUNT"
+              : "FREE_SHIPPING",
         minimumRequirement: {
           greaterThanOrEqualToSubtotal: tier.thresholdCents / 100,
         },
@@ -939,14 +878,16 @@ async function getOrCreateTieredDiscount(
   }
 
   // Select best tier based on cart subtotal
-  const freshMeta = (existingConfig._meta || {}) as any;
+  const freshMeta = (existingConfig._meta || {}) as {
+    tierCodes?: TierCodeMetadata[];
+  };
   const freshTierCodes: TierCodeMetadata[] = freshMeta.tierCodes || [];
   let selectedTierIndex = 0;
 
   if (cartSubtotalCents !== undefined) {
     // Find highest threshold <= cart subtotal
     const eligibleTiers = freshTierCodes
-      .filter(tc => tc.thresholdCents <= cartSubtotalCents)
+      .filter((tc) => tc.thresholdCents <= cartSubtotalCents)
       .sort((a, b) => b.thresholdCents - a.thresholdCents);
 
     if (eligibleTiers.length > 0) {
@@ -992,8 +933,8 @@ async function getOrCreateBogoDiscount(
   const cached = await getCachedDiscount(
     admin,
     existingConfig._meta,
-    'bogoDiscountId',
-    'bogoDiscountCode'
+    "bogoDiscountId",
+    "bogoDiscountCode"
   );
 
   if (cached) {
@@ -1017,7 +958,9 @@ async function getOrCreateBogoDiscount(
 
   // Validate that BOGO get has specific products/collections defined
   if (!bogo.get.ids || bogo.get.ids.length === 0) {
-    console.error(`[Discount Service] BOGO discount requires specific product/collection IDs for 'get'`);
+    console.error(
+      `[Discount Service] BOGO discount requires specific product/collection IDs for 'get'`
+    );
     return {
       success: false,
       isNewDiscount: false,
@@ -1025,7 +968,9 @@ async function getOrCreateBogoDiscount(
     };
   }
 
-  const discountInput: DiscountCodeInput & { bxgy: any } = {
+  type BxgyDiscountInput = Parameters<typeof createBxGyDiscountCode>[1];
+
+  const discountInput: BxgyDiscountInput = {
     title: `${campaign.name} - BOGO`,
     code,
     valueType: "PERCENTAGE",
@@ -1048,7 +993,8 @@ async function getOrCreateBogoDiscount(
       },
       get: {
         quantity: bogo.get.quantity,
-        discountPercentage: bogo.get.discount.kind === "percentage" ? bogo.get.discount.value : undefined,
+        discountPercentage:
+          bogo.get.discount.kind === "percentage" ? bogo.get.discount.value : undefined,
         discountAmount: bogo.get.discount.kind === "fixed" ? bogo.get.discount.value : undefined,
         // Customer gets: must be specific products/collections
         applicability: {
@@ -1102,8 +1048,8 @@ async function getOrCreateFreeGiftDiscount(
   const cached = await getCachedDiscount(
     admin,
     existingConfig._meta,
-    'freeGiftDiscountId',
-    'freeGiftDiscountCode'
+    "freeGiftDiscountId",
+    "freeGiftDiscountCode"
   );
 
   if (cached) {
@@ -1127,7 +1073,9 @@ async function getOrCreateFreeGiftDiscount(
 
   // Validate that free gift has either a product ID or variant ID defined
   if (!freeGift.productId && !freeGift.variantId) {
-    console.error(`[Discount Service] Free gift discount requires either a product ID or variant ID`);
+    console.error(
+      `[Discount Service] Free gift discount requires either a product ID or variant ID`
+    );
     return {
       success: false,
       isNewDiscount: false,
@@ -1196,7 +1144,7 @@ async function getOrCreateFreeGiftDiscount(
 /**
  * Validate discount configuration
  */
-export function validateDiscountConfig(config: any): {
+export function validateDiscountConfig(config: Partial<DiscountConfig>): {
   isValid: boolean;
   errors: string[];
 } {
@@ -1210,39 +1158,33 @@ export function validateDiscountConfig(config: any): {
     !config.valueType ||
     !["PERCENTAGE", "FIXED_AMOUNT", "FREE_SHIPPING"].includes(config.valueType)
   ) {
-    errors.push(
-      "Invalid value type. Must be 'PERCENTAGE', 'FIXED_AMOUNT', or 'FREE_SHIPPING'"
-    );
+    errors.push("Invalid value type. Must be 'PERCENTAGE', 'FIXED_AMOUNT', or 'FREE_SHIPPING'");
   }
 
-  if (
-    config.valueType !== "FREE_SHIPPING" &&
-    (!config.value || config.value <= 0)
-  ) {
-    errors.push(
-      "Discount value must be greater than 0 (except for FREE_SHIPPING)"
-    );
+  const value = typeof config.value === "number" ? config.value : undefined;
+  if (config.valueType !== "FREE_SHIPPING" && (value === undefined || value <= 0)) {
+    errors.push("Discount value must be greater than 0 (except for FREE_SHIPPING)");
   }
 
-  if (config.valueType === "PERCENTAGE" && config.value > 100) {
+  if (config.valueType === "PERCENTAGE" && value !== undefined && value > 100) {
     errors.push("Percentage discount cannot exceed 100%");
   }
 
-  if (config.minimumAmount && config.minimumAmount < 0) {
+  if (typeof config.minimumAmount === "number" && config.minimumAmount < 0) {
     errors.push("Minimum amount cannot be negative");
   }
 
-  if (config.usageLimit && config.usageLimit < 1) {
+  if (typeof config.usageLimit === "number" && config.usageLimit < 1) {
     errors.push("Usage limit must be at least 1");
   }
 
-  if (config.expiryDays && config.expiryDays < 1) {
+  if (typeof config.expiryDays === "number" && config.expiryDays < 1) {
     errors.push("Expiry days must be at least 1");
   }
 
   // Validate tiers
-  if (config.tiers && config.tiers.length > 0) {
-    const thresholds = config.tiers.map((t: any) => t.thresholdCents);
+  if (Array.isArray(config.tiers) && config.tiers.length > 0) {
+    const thresholds = config.tiers.map((t) => t.thresholdCents);
     const sorted = [...thresholds].sort((a, b) => a - b);
     if (JSON.stringify(thresholds) !== JSON.stringify(sorted)) {
       errors.push("Tier thresholds must be in ascending order");
@@ -1254,4 +1196,3 @@ export function validateDiscountConfig(config: any): {
     errors,
   };
 }
-

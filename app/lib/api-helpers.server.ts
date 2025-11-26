@@ -12,28 +12,21 @@ import { handleApiError } from "~/lib/api-error-handler.server";
 /**
  * Create a successful API response with CORS headers
  */
-export function createSuccessResponse<T>(
-  payload: T,
-  status: number = 200
-) {
-  return data(
-    createApiResponse(true, payload),
-    { status, headers: adminCors() }
-  );
+export function createSuccessResponse<T>(payload: T, status: number = 200) {
+  return data(createApiResponse(true, payload), {
+    status,
+    headers: adminCors(),
+  });
 }
 
 /**
  * Create an error response with CORS headers
  */
-export function createErrorResponse(
-  message: string,
-  status: number = 400,
-  errors?: string[]
-) {
-  return data(
-    createApiResponse(false, undefined, message, errors),
-    { status, headers: adminCors() }
-  );
+export function createErrorResponse(message: string, status: number = 400, errors?: string[]) {
+  return data(createApiResponse(false, undefined, message, errors), {
+    status,
+    headers: adminCors(),
+  });
 }
 
 /**
@@ -154,9 +147,7 @@ export function createMethodRouter(routes: Record<string, MethodRoute>) {
 /**
  * Create an API loader with error handling
  */
-export function createApiLoader<T = unknown>(
-  handler: RouteHandler<T>
-) {
+export function createApiLoader<T = unknown>(handler: RouteHandler<T>) {
   return async ({ request, params }: RouteContext) => {
     try {
       const result = await handler({ request, params });

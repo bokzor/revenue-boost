@@ -11,12 +11,7 @@ import {
   Box,
 } from "@shopify/polaris";
 
-export type DiscountType =
-  | "none"
-  | "percentage"
-  | "fixed_amount"
-  | "free_shipping"
-  | "custom_code";
+export type DiscountType = "none" | "percentage" | "fixed_amount" | "free_shipping" | "custom_code";
 
 export interface PrizeItem {
   id: string;
@@ -78,16 +73,11 @@ export function PrizeListEditor({
     };
   });
 
-  const total = normalizedPrizes.reduce(
-    (s, p) => s + (Number(p.probability) || 0),
-    0,
-  );
+  const total = normalizedPrizes.reduce((s, p) => s + (Number(p.probability) || 0), 0);
   const invalidTotal = Math.abs(total - 100) > 0.01;
 
   const update = (idx: number, patch: Partial<PrizeItem>) => {
-    const next = normalizedPrizes.map((p, i) =>
-      i === idx ? { ...p, ...patch } : p,
-    );
+    const next = normalizedPrizes.map((p, i) => (i === idx ? { ...p, ...patch } : p));
     onChange(next);
   };
 
@@ -104,8 +94,7 @@ export function PrizeListEditor({
     onChange(next);
   };
 
-  const remove = (idx: number) =>
-    onChange(normalizedPrizes.filter((_, i) => i !== idx));
+  const remove = (idx: number) => onChange(normalizedPrizes.filter((_, i) => i !== idx));
 
   return (
     <BlockStack gap="300">
@@ -180,9 +169,7 @@ export function PrizeListEditor({
                 type="number"
                 label="Discount Percentage"
                 value={String(prize.discountValue ?? "")}
-                onChange={(v) =>
-                  update(idx, { discountValue: Number(v) || undefined })
-                }
+                onChange={(v) => update(idx, { discountValue: Number(v) || undefined })}
                 suffix="%"
                 min={0}
                 max={100}
@@ -197,9 +184,7 @@ export function PrizeListEditor({
                 type="number"
                 label="Discount Amount"
                 value={String(prize.discountValue ?? "")}
-                onChange={(v) =>
-                  update(idx, { discountValue: Number(v) || undefined })
-                }
+                onChange={(v) => update(idx, { discountValue: Number(v) || undefined })}
                 prefix="$"
                 min={0}
                 helpText="Fixed dollar amount off the order"
@@ -209,15 +194,11 @@ export function PrizeListEditor({
 
             {/* Free Shipping */}
             {prize.discountType === "free_shipping" && (
-              <Box
-                padding="300"
-                background="bg-surface-secondary"
-                borderRadius="200"
-              >
+              <Box padding="300" background="bg-surface-secondary" borderRadius="200">
                 <Text as="p" variant="bodySm">
                   🚚 <strong>Free Shipping Discount</strong>
-                  <br />A free shipping discount code will be automatically
-                  generated when the user wins this prize.
+                  <br />A free shipping discount code will be automatically generated when the user
+                  wins this prize.
                 </Text>
               </Box>
             )}

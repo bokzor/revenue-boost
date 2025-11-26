@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/* eslint-env node */
 
 /**
  * Build script for Revenue Boost storefront extension
@@ -21,7 +22,7 @@
 import * as esbuild from "esbuild";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
-import { existsSync, statSync } from "fs";
+import { existsSync, statSync, mkdirSync, copyFileSync, readdirSync } from "fs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -32,34 +33,68 @@ const extensionDir = join(rootDir, "extensions", "storefront-popup");
 const assetsDir = join(extensionDir, "assets");
 
 // Detect build mode from environment variable
-const BUILD_MODE = process.env.BUILD_MODE || 'production';
-const isDevelopment = BUILD_MODE === 'development';
-const isStaging = BUILD_MODE === 'staging';
-const isProduction = BUILD_MODE === 'production';
+const BUILD_MODE = process.env.BUILD_MODE || "production";
+const isDevelopment = BUILD_MODE === "development";
+const isStaging = BUILD_MODE === "staging";
+const isProduction = BUILD_MODE === "production";
 
 console.log(`\n🔧 Build Mode: ${BUILD_MODE.toUpperCase()}`);
 if (isDevelopment) {
-  console.log('   ⚠️  Development build: console.log kept, no minification, sourcemaps enabled\n');
+  console.log("   ⚠️  Development build: console.log kept, no minification, sourcemaps enabled\n");
 } else if (isStaging) {
-  console.log('   🔶 Staging build: console.log kept, minified, sourcemaps enabled\n');
+  console.log("   🔶 Staging build: console.log kept, minified, sourcemaps enabled\n");
 } else {
-  console.log('   ✅ Production build: minified, console.log removed, no sourcemaps\n');
+  console.log("   ✅ Production build: minified, console.log removed, no sourcemaps\n");
 }
 
 // Popup bundles to build (matches TemplateType enum)
 const popupBundles = [
-  "newsletter",           // NEWSLETTER
-  "spin-to-win",         // SPIN_TO_WIN
-  "flash-sale",          // FLASH_SALE
-  "free-shipping",       // FREE_SHIPPING
-  "exit-intent",         // EXIT_INTENT
-  "cart-abandonment",    // CART_ABANDONMENT
-  "product-upsell",      // PRODUCT_UPSELL
-  "social-proof",        // SOCIAL_PROOF
-  "countdown-timer",     // COUNTDOWN_TIMER
-  "scratch-card",        // SCRATCH_CARD
-  "announcement",        // ANNOUNCEMENT
+  "newsletter", // NEWSLETTER
+  "spin-to-win", // SPIN_TO_WIN
+  "flash-sale", // FLASH_SALE
+  "free-shipping", // FREE_SHIPPING
+  "exit-intent", // EXIT_INTENT
+  "cart-abandonment", // CART_ABANDONMENT
+  "product-upsell", // PRODUCT_UPSELL
+  "social-proof", // SOCIAL_PROOF
+  "countdown-timer", // COUNTDOWN_TIMER
+  "scratch-card", // SCRATCH_CARD
+  "announcement", // ANNOUNCEMENT
 ];
+
+/**
+ * Copy newsletter background images from public/ to extension assets
+ * This ensures a single source of truth for background images
+ */
+function copyNewsletterBackgrounds() {
+  const sourceDir = join(rootDir, "public", "newsletter-backgrounds");
+  const targetDir = join(assetsDir, "newsletter-backgrounds");
+
+  console.log("📸 Copying newsletter background images...");
+  console.log(`   Source: ${sourceDir}`);
+  console.log(`   Target: ${targetDir}`);
+
+  // Create target directory if it doesn't exist
+  if (!existsSync(targetDir)) {
+    mkdirSync(targetDir, { recursive: true });
+  }
+
+  // Copy all PNG files from source to target
+  if (existsSync(sourceDir)) {
+    const files = readdirSync(sourceDir).filter((file) => file.endsWith(".jpg"));
+
+    files.forEach((file) => {
+      const sourcePath = join(sourceDir, file);
+      const targetPath = join(targetDir, file);
+      copyFileSync(sourcePath, targetPath);
+    });
+
+    console.log(`   ✅ Copied ${files.length} background images`);
+  } else {
+    console.warn(`   ⚠️  Source directory not found: ${sourceDir}`);
+  }
+  console.log("");
+}
 
 async function build() {
   try {
@@ -67,6 +102,9 @@ async function build() {
     console.log("📂 Source:", srcDir);
     console.log("📦 Output:", assetsDir);
     console.log("");
+
+    // Copy newsletter background images (single source of truth: public/)
+    copyNewsletterBackgrounds();
 
     // Plugin to alias React to Preact (for main bundle)
     const aliasPreactPlugin = {
@@ -317,7 +355,7 @@ async function build() {
         global: "window",
       },
       treeShaking: !isDevelopment, // Tree-shake in staging AND production
-      drop: isProduction ? ['console', 'debugger'] : [], // Only drop console in production
+      drop: isProduction ? ["console", "debugger"] : [], // Only drop console in production
     };
 
     // Build main bundle
@@ -370,7 +408,8 @@ async function build() {
       console.log(`  ${name}: ${size} KB`);
     });
 
-    const totalSize = parseFloat(mainSize) + bundleSizes.reduce((sum, b) => sum + parseFloat(b.size), 0);
+    const totalSize =
+      parseFloat(mainSize) + bundleSizes.reduce((sum, b) => sum + parseFloat(b.size), 0);
     console.log(`  Total (if all loaded): ${totalSize.toFixed(1)} KB`);
     console.log("");
     console.log("ℹ️  Using Preact for 90% smaller bundle size");
@@ -393,4 +432,3 @@ function getFileSize(filePath) {
 }
 
 build();
-

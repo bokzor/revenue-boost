@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { PrismaClient } from '@prisma/client';
 import * as dotenv from 'dotenv';
-import { STORE_DOMAIN, handlePasswordPage } from './helpers/test-helpers';
+import { STORE_DOMAIN, handlePasswordPage, mockChallengeToken } from './helpers/test-helpers';
 import { CampaignFactory } from './factories/campaign-factory';
 
 dotenv.config({ path: '.env.staging.env' });
@@ -46,15 +46,19 @@ test.describe('Minimal Reproduction', () => {
         await prisma.$disconnect();
     });
 
+    test.beforeEach(async ({ page }) => {
+        await mockChallengeToken(page);
+    });
+
     test('minimal campaign appears in API and on storefront', async ({ page }) => {
         console.log('\n🧪 MINIMAL REPRODUCTION TEST\n');
         console.log('===============================\n');
 
-        // Create absolute minimal campaign
-        console.log('Step 1: Creating minimal campaign...');
+        // 1. Create campaign with Name and Priority overrides (but NO explicit frequency capping)
+        console.log('\nStep 1: Creating minimal campaign (Name + Priority)...');
         const campaign = await (await factory.newsletter().init())
-            .withName('MINIMAL-TEST')
-            .withPriority(999) // Very high priority
+            .withName('E2E-Test-MINIMAL-TEST')
+            .withPriority(999)
             .create();
 
         console.log(`✅ Campaign created: ${campaign.id}`);

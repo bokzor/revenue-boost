@@ -5,14 +5,7 @@
  * Uses server format directly (max_triggers_per_session, max_triggers_per_day, cooldown_between_triggers)
  */
 
-import {
-  Card,
-  BlockStack,
-  Text,
-  TextField,
-  Banner,
-  Box,
-} from "@shopify/polaris";
+import { Card, BlockStack, Text, TextField, Banner, Box } from "@shopify/polaris";
 
 interface FrequencyLimitsCardProps {
   maxTriggersPerSession?: number;
@@ -91,13 +84,15 @@ export function FrequencyLimitsCard({
                 <>
                   {maxTriggersPerSession && (
                     <span>
-                      Max <strong>{maxTriggersPerSession}</strong> time{maxTriggersPerSession !== 1 ? "s" : ""} per session
+                      Max <strong>{maxTriggersPerSession}</strong> time
+                      {maxTriggersPerSession !== 1 ? "s" : ""} per session
                     </span>
                   )}
                   {maxTriggersPerSession && maxTriggersPerDay && <span>, </span>}
                   {maxTriggersPerDay && (
                     <span>
-                      Max <strong>{maxTriggersPerDay}</strong> time{maxTriggersPerDay !== 1 ? "s" : ""} per day
+                      Max <strong>{maxTriggersPerDay}</strong> time
+                      {maxTriggersPerDay !== 1 ? "s" : ""} per day
                     </span>
                   )}
                 </>
@@ -105,7 +100,12 @@ export function FrequencyLimitsCard({
               {cooldownBetweenTriggers && cooldownBetweenTriggers > 0 && (
                 <span>
                   {" "}
-                  with a <strong>{cooldownHours < 1 ? `${Math.round(cooldownHours * 60)} minute` : `${cooldownHours} hour`}</strong>{" "}
+                  with a{" "}
+                  <strong>
+                    {cooldownHours < 1
+                      ? `${Math.round(cooldownHours * 60)} minute`
+                      : `${cooldownHours} hour`}
+                  </strong>{" "}
                   cooldown between displays
                 </span>
               )}
@@ -116,4 +116,3 @@ export function FrequencyLimitsCard({
     </Card>
   );
 }
-

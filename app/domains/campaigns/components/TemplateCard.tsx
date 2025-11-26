@@ -20,26 +20,21 @@ export interface TemplateCardProps {
   onClick: () => void;
 }
 
-export const TemplateCard = React.memo<TemplateCardProps>(({
-  template,
-  isSelected,
-  onClick,
-}) => {
+export const TemplateCard = React.memo<TemplateCardProps>(({ template, isSelected, onClick }) => {
   const handleClick = useCallback(() => {
-    console.log(
-      "TemplateCard clicked:",
-      template.name,
-      template.templateId,
-    );
+    console.log("TemplateCard clicked:", template.name, template.templateId);
     onClick();
   }, [template.name, template.templateId, onClick]);
 
-  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
-      onClick();
-    }
-  }, [onClick]);
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLDivElement>) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        onClick();
+      }
+    },
+    [onClick]
+  );
   return (
     <div
       role="button"
@@ -72,15 +67,24 @@ export const TemplateCard = React.memo<TemplateCardProps>(({
               border: isSelected ? "3px solid #008060" : "1px solid #E1E3E5",
             }}
           >
-            {/* Preview image placeholder - will be replaced with actual images */}
-            <div
-              style={{
-                width: "100%",
-                height: "100%",
-                background: `linear-gradient(135deg, ${template.backgroundColor || "#FFFFFF"} 0%, ${template.buttonColor || "#007BFF"} 100%)`,
-                opacity: 0.3,
-              }}
-            />
+	            {/* Preview image placeholder - will be replaced with actual images */}
+	            {(() => {
+	              const hasCustomGradient = template.backgroundColor?.startsWith("linear-gradient");
+	              const background = hasCustomGradient
+	                ? template.backgroundColor
+	                : `linear-gradient(135deg, ${template.backgroundColor || "#FFFFFF"} 0%, ${template.buttonColor || "#007BFF"} 100%)`;
+
+	              return (
+	                <div
+	                  style={{
+	                    width: "100%",
+	                    height: "100%",
+	                    background,
+	                    opacity: 0.3,
+	                  }}
+	                />
+	              );
+	            })()}
 
             {/* Template type indicator */}
             <div

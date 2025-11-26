@@ -92,8 +92,7 @@ export function buildStorefrontContext(
     pageViews: parseInt(searchParams.get("pageViews") || "0") || undefined,
     currentPageType: searchParams.get("currentPageType") || undefined,
     productViewCount: parseInt(searchParams.get("productViewCount") || "0") || undefined,
-    addedToCartInSession:
-      searchParams.get("addedToCartInSession") === "true" || undefined,
+    addedToCartInSession: searchParams.get("addedToCartInSession") === "true" || undefined,
 
     // Cart Context
     cartValue: parseFloat(searchParams.get("cartValue") || "0") || undefined,
@@ -145,4 +144,3 @@ function detectDeviceType(userAgent: string): "mobile" | "tablet" | "desktop" {
 export function validateStorefrontContext(data: unknown): StorefrontContext {
   return StorefrontContextSchema.parse(data);
 }
-

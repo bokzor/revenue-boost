@@ -19,7 +19,7 @@ export function CartValueTrigger({ config, onChange }: CartValueTriggerProps) {
       ...config,
       cart_value: {
         enabled: false,
-        ...(typeof config.cart_value === 'object' && config.cart_value !== null
+        ...(typeof config.cart_value === "object" && config.cart_value !== null
           ? config.cart_value
           : {}),
         ...updates,
@@ -34,8 +34,8 @@ export function CartValueTrigger({ config, onChange }: CartValueTriggerProps) {
       onEnabledChange={(enabled) => updateConfig({ enabled })}
     >
       <Text as="p" variant="bodySm" tone="subdued">
-        Trigger when cart value reaches a specific threshold. Perfect for free shipping offers
-        or volume discounts.
+        Trigger when cart value reaches a specific threshold. Perfect for free shipping offers or
+        volume discounts.
       </Text>
 
       <FormLayout>
@@ -71,4 +71,3 @@ export function CartValueTrigger({ config, onChange }: CartValueTriggerProps) {
     </TriggerCard>
   );
 }
-

@@ -117,7 +117,7 @@ export class ApiClient {
     // Build URL with query params
     const fullUrl = this.buildUrl(url, params);
 
-    console.log('[ApiClient] request', { url: fullUrl, method });
+    console.log("[ApiClient] request", { url: fullUrl, method });
 
     // Build headers
     const requestHeaders: Record<string, string> = {
@@ -152,7 +152,9 @@ export class ApiClient {
       if (!response.ok) {
         const errorData = data as Record<string, unknown>;
         throw new ApiClientError(
-          (errorData?.error as string) || (errorData?.message as string) || `HTTP ${response.status}: ${response.statusText}`,
+          (errorData?.error as string) ||
+            (errorData?.message as string) ||
+            `HTTP ${response.status}: ${response.statusText}`,
           response.status,
           data
         );
@@ -178,7 +180,10 @@ export class ApiClient {
   /**
    * Build URL with query parameters
    */
-  private buildUrl(url: string, params?: Record<string, string | number | boolean | undefined>): string {
+  private buildUrl(
+    url: string,
+    params?: Record<string, string | number | boolean | undefined>
+  ): string {
     const fullUrl = this.baseUrl + url;
 
     if (!params) {
@@ -231,4 +236,3 @@ export function getErrorMessage(error: unknown): string {
   }
   return "An unexpected error occurred";
 }
-

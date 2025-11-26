@@ -15,11 +15,7 @@ import {
   Divider,
   Banner,
 } from "@shopify/polaris";
-import {
-  PlusIcon,
-  CalendarIcon,
-  ChartVerticalFilledIcon,
-} from "@shopify/polaris-icons";
+import { PlusIcon, CalendarIcon, ChartVerticalFilledIcon } from "@shopify/polaris-icons";
 import { authenticate } from "../shopify.server";
 import { CampaignService, ExperimentService } from "~/domains/campaigns";
 import { CampaignIndexTable } from "~/domains/campaigns/components";
@@ -86,7 +82,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   // Check setup status using shared utility
   const { status: setupStatus, setupComplete } = await getSetupStatus(
     session.shop,
-    session.accessToken || '',
+    session.accessToken || "",
     admin
   );
   const themeEditorUrl = `https://${session.shop}/admin/themes/current/editor`;
@@ -112,9 +108,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   }
 
   // 1.5. Fetch experiments for campaigns
-  const experimentIds = Array.from(new Set(
-    allCampaigns.map(c => c.experimentId).filter((id): id is string => Boolean(id))
-  ));
+  const experimentIds = Array.from(
+    new Set(allCampaigns.map((c) => c.experimentId).filter((id): id is string => Boolean(id)))
+  );
 
   let experiments: ExperimentWithVariants[] = [];
   if (experimentIds.length > 0) {
@@ -180,9 +176,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     };
   });
 
-  const globalConversionRate = totalImpressions > 0
-    ? (totalLeads / totalImpressions) * 100
-    : 0;
+  const globalConversionRate = totalImpressions > 0 ? (totalLeads / totalImpressions) * 100 : 0;
 
   const loaderData: LoaderData = {
     globalMetrics: {
@@ -228,10 +222,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         CampaignService.updateCampaign(id, storeId, { status: "ACTIVE" as any }, admin)
       )
     );
-    const failed = results.filter(r => r.status === 'rejected').length;
+    const failed = results.filter((r) => r.status === "rejected").length;
     return data({
       success: failed === 0,
-      message: failed > 0 ? `${failed} of ${campaignIds.length} campaigns failed to activate` : undefined
+      message:
+        failed > 0 ? `${failed} of ${campaignIds.length} campaigns failed to activate` : undefined,
     });
   }
 
@@ -242,10 +237,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         CampaignService.updateCampaign(id, storeId, { status: "PAUSED" as any }, admin)
       )
     );
-    const failed = results.filter(r => r.status === 'rejected').length;
+    const failed = results.filter((r) => r.status === "rejected").length;
     return data({
       success: failed === 0,
-      message: failed > 0 ? `${failed} of ${campaignIds.length} campaigns failed to pause` : undefined
+      message:
+        failed > 0 ? `${failed} of ${campaignIds.length} campaigns failed to pause` : undefined,
     });
   }
 
@@ -256,10 +252,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         CampaignService.updateCampaign(id, storeId, { status: "ARCHIVED" as any }, admin)
       )
     );
-    const failed = results.filter(r => r.status === 'rejected').length;
+    const failed = results.filter((r) => r.status === "rejected").length;
     return data({
       success: failed === 0,
-      message: failed > 0 ? `${failed} of ${campaignIds.length} campaigns failed to archive` : undefined
+      message:
+        failed > 0 ? `${failed} of ${campaignIds.length} campaigns failed to archive` : undefined,
     });
   }
 
@@ -268,10 +265,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const results = await Promise.allSettled(
       campaignIds.map((id: string) => CampaignService.deleteCampaign(id, storeId))
     );
-    const failed = results.filter(r => r.status === 'rejected').length;
+    const failed = results.filter((r) => r.status === "rejected").length;
     return data({
       success: failed === 0,
-      message: failed > 0 ? `${failed} of ${campaignIds.length} campaigns failed to delete` : undefined
+      message:
+        failed > 0 ? `${failed} of ${campaignIds.length} campaigns failed to delete` : undefined,
     });
   }
 
@@ -305,10 +303,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         return CampaignService.createCampaign(storeId, createData, admin);
       })
     );
-    const failed = results.filter(r => r.status === 'rejected').length;
+    const failed = results.filter((r) => r.status === "rejected").length;
     return data({
       success: failed === 0,
-      message: failed > 0 ? `${failed} of ${campaignIds.length} campaigns failed to duplicate` : undefined
+      message:
+        failed > 0 ? `${failed} of ${campaignIds.length} campaigns failed to duplicate` : undefined,
     });
   }
 
@@ -317,7 +316,15 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
 // --- Components ---
 
-function GlobalMetricCard({ title, value, subtext }: { title: string; value: string; subtext?: string }) {
+function GlobalMetricCard({
+  title,
+  value,
+  subtext,
+}: {
+  title: string;
+  value: string;
+  subtext?: string;
+}) {
   return (
     <Card>
       <BlockStack gap="200">
@@ -341,12 +348,12 @@ function TemplateTile({
   title,
   description,
   icon: Icon,
-  onSelect
+  onSelect,
 }: {
   title: string;
   description: string;
   icon: any;
-  onSelect: () => void
+  onSelect: () => void;
 }) {
   return (
     <Card>
@@ -357,17 +364,33 @@ function TemplateTile({
           </Box>
         </InlineStack>
         <BlockStack gap="200">
-          <Text as="h3" variant="headingMd">{title}</Text>
-          <Text as="p" tone="subdued">{description}</Text>
+          <Text as="h3" variant="headingMd">
+            {title}
+          </Text>
+          <Text as="p" tone="subdued">
+            {description}
+          </Text>
         </BlockStack>
-        <Button onClick={onSelect} variant="primary">Use this template</Button>
+        <Button onClick={onSelect} variant="primary">
+          Use this template
+        </Button>
       </BlockStack>
     </Card>
   );
 }
 
 export default function Dashboard() {
-  const { globalMetrics, campaigns, experiments, currency, timeRange, hasCampaigns, setupStatus, setupComplete, themeEditorUrl } = useLoaderData<typeof loader>();
+  const {
+    globalMetrics,
+    campaigns,
+    experiments,
+    currency,
+    timeRange,
+    hasCampaigns,
+    setupStatus,
+    setupComplete,
+    themeEditorUrl,
+  } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
   const fetcher = useFetcher();
 
@@ -389,10 +412,7 @@ export default function Dashboard() {
   };
 
   const handleToggleStatus = (id: string, currentStatus: string) => {
-    fetcher.submit(
-      { intent: "toggle_status", campaignId: id, currentStatus },
-      { method: "post" }
-    );
+    fetcher.submit({ intent: "toggle_status", campaignId: id, currentStatus }, { method: "post" });
   };
 
   const handleCampaignClick = (id: string) => {
@@ -406,43 +426,43 @@ export default function Dashboard() {
   // Bulk action handlers
   const handleBulkActivate = async (campaignIds: string[]) => {
     const formData = new FormData();
-    formData.append('intent', 'bulk_activate');
-    formData.append('campaignIds', JSON.stringify(campaignIds));
+    formData.append("intent", "bulk_activate");
+    formData.append("campaignIds", JSON.stringify(campaignIds));
 
-    const response = await fetcher.submit(formData, { method: 'post' });
+    const response = await fetcher.submit(formData, { method: "post" });
     // The fetcher will automatically revalidate and update the UI
   };
 
   const handleBulkPause = async (campaignIds: string[]) => {
     const formData = new FormData();
-    formData.append('intent', 'bulk_pause');
-    formData.append('campaignIds', JSON.stringify(campaignIds));
+    formData.append("intent", "bulk_pause");
+    formData.append("campaignIds", JSON.stringify(campaignIds));
 
-    await fetcher.submit(formData, { method: 'post' });
+    await fetcher.submit(formData, { method: "post" });
   };
 
   const handleBulkArchive = async (campaignIds: string[]) => {
     const formData = new FormData();
-    formData.append('intent', 'bulk_archive');
-    formData.append('campaignIds', JSON.stringify(campaignIds));
+    formData.append("intent", "bulk_archive");
+    formData.append("campaignIds", JSON.stringify(campaignIds));
 
-    await fetcher.submit(formData, { method: 'post' });
+    await fetcher.submit(formData, { method: "post" });
   };
 
   const handleBulkDelete = async (campaignIds: string[]) => {
     const formData = new FormData();
-    formData.append('intent', 'bulk_delete');
-    formData.append('campaignIds', JSON.stringify(campaignIds));
+    formData.append("intent", "bulk_delete");
+    formData.append("campaignIds", JSON.stringify(campaignIds));
 
-    await fetcher.submit(formData, { method: 'post' });
+    await fetcher.submit(formData, { method: "post" });
   };
 
   const handleBulkDuplicate = async (campaignIds: string[]) => {
     const formData = new FormData();
-    formData.append('intent', 'bulk_duplicate');
-    formData.append('campaignIds', JSON.stringify(campaignIds));
+    formData.append("intent", "bulk_duplicate");
+    formData.append("campaignIds", JSON.stringify(campaignIds));
 
-    await fetcher.submit(formData, { method: 'post' });
+    await fetcher.submit(formData, { method: "post" });
   };
 
   // --- Zero State ---
@@ -451,16 +471,17 @@ export default function Dashboard() {
       <Page title="Dashboard">
         <Layout>
           {/* Setup Status Banner - Show if setup incomplete OR if there are any issues */}
-          {setupStatus && (!setupComplete || !setupStatus.themeExtensionEnabled || !setupStatus.appProxyOk) && (
-            <Layout.Section>
-              <SetupStatus
-                status={setupStatus}
-                setupComplete={setupComplete ?? false}
-                themeEditorUrl={themeEditorUrl}
-                compact
-              />
-            </Layout.Section>
-          )}
+          {setupStatus &&
+            (!setupComplete || !setupStatus.themeExtensionEnabled || !setupStatus.appProxyOk) && (
+              <Layout.Section>
+                <SetupStatus
+                  status={setupStatus}
+                  setupComplete={setupComplete ?? false}
+                  themeEditorUrl={themeEditorUrl}
+                  compact
+                />
+              </Layout.Section>
+            )}
 
           <Layout.Section>
             <EmptyState
@@ -472,13 +493,15 @@ export default function Dashboard() {
               image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
             >
               <p>
-                Revenue Boost helps you capture leads and increase sales with high-converting popups.
-                Choose a template to get started in minutes.
+                Revenue Boost helps you capture leads and increase sales with high-converting
+                popups. Choose a template to get started in minutes.
               </p>
             </EmptyState>
           </Layout.Section>
           <Layout.Section>
-            <Text as="h2" variant="headingMd">Quick Start Templates</Text>
+            <Text as="h2" variant="headingMd">
+              Quick Start Templates
+            </Text>
             <Box paddingBlockStart="400">
               <InlineGrid columns={{ xs: 1, sm: 1, md: 2, lg: 3 }} gap="400">
                 <TemplateTile
@@ -532,16 +555,17 @@ export default function Dashboard() {
     >
       <Layout>
         {/* Setup Status Banner - Show if setup incomplete OR if there are any issues */}
-        {setupStatus && (!setupComplete || !setupStatus.themeExtensionEnabled || !setupStatus.appProxyOk) && (
-          <Layout.Section>
-            <SetupStatus
-              status={setupStatus}
-              setupComplete={setupComplete ?? false}
-              themeEditorUrl={themeEditorUrl}
-              compact
-            />
-          </Layout.Section>
-        )}
+        {setupStatus &&
+          (!setupComplete || !setupStatus.themeExtensionEnabled || !setupStatus.appProxyOk) && (
+            <Layout.Section>
+              <SetupStatus
+                status={setupStatus}
+                setupComplete={setupComplete ?? false}
+                themeEditorUrl={themeEditorUrl}
+                compact
+              />
+            </Layout.Section>
+          )}
 
         {/* Global Metrics */}
         <Layout.Section>
@@ -589,7 +613,9 @@ export default function Dashboard() {
 
         {/* Template Quick Start (Bottom) */}
         <Layout.Section>
-          <Text as="h2" variant="headingMd">Start a new campaign</Text>
+          <Text as="h2" variant="headingMd">
+            Start a new campaign
+          </Text>
           <Box paddingBlockStart="400">
             <InlineGrid columns={{ xs: 1, sm: 1, md: 2, lg: 3 }} gap="400">
               <TemplateTile

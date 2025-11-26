@@ -14,15 +14,15 @@
  * - Beautiful by default, fully customizable
  */
 
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
-import { PopupPortal } from './PopupPortal';
-import type { PopupDesignConfig, Product } from './types';
-import type { ProductUpsellContent } from '~/domains/campaigns/types/campaign';
-import { formatCurrency, getSizeDimensions } from './utils';
-import { POPUP_SPACING, getContainerPadding, SPACING_GUIDELINES } from './spacing';
+import React, { useState, useCallback, useEffect, useMemo } from "react";
+import { PopupPortal } from "./PopupPortal";
+import type { PopupDesignConfig, Product } from "./types";
+import type { ProductUpsellContent } from "~/domains/campaigns/types/campaign";
+import { formatCurrency, getSizeDimensions } from "./utils";
+import { POPUP_SPACING, getContainerPadding, SPACING_GUIDELINES } from "./spacing";
 
 // Import custom hooks
-import { usePopupAnimation } from './hooks';
+import { usePopupAnimation } from "./hooks";
 
 /**
  * ProductUpsellConfig - Extends both design config AND campaign content type
@@ -33,7 +33,7 @@ export interface ProductUpsellConfig extends PopupDesignConfig, ProductUpsellCon
   // Storefront-specific fields only
   products?: Product[];
   animationDuration?: number;
-  imageAspectRatio?: 'square' | 'portrait' | 'landscape';
+  imageAspectRatio?: "square" | "portrait" | "landscape";
   showAddIcon?: boolean;
 
   // Note: headline, subheadline, layout, bundleDiscount, etc.
@@ -69,27 +69,33 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
   const [hoveredProduct, setHoveredProduct] = useState<string | null>(null);
   const [currentSlide, setCurrentSlide] = useState(0);
 
-  const products = useMemo(() => propProducts || config.products || [], [propProducts, config.products]);
+  const products = useMemo(
+    () => propProducts || config.products || [],
+    [propProducts, config.products]
+  );
   const displayProducts = useMemo(
     () => (config.maxProducts ? products.slice(0, config.maxProducts) : products),
     [config.maxProducts, products]
   );
 
-  const handleProductSelect = useCallback((productId: string) => {
-    if (config.multiSelect) {
-      setSelectedProducts(prev => {
-        const newSet = new Set(prev);
-        if (newSet.has(productId)) {
-          newSet.delete(productId);
-        } else {
-          newSet.add(productId);
-        }
-        return newSet;
-      });
-    } else {
-      setSelectedProducts(new Set([productId]));
-    }
-  }, [config.multiSelect]);
+  const handleProductSelect = useCallback(
+    (productId: string) => {
+      if (config.multiSelect) {
+        setSelectedProducts((prev) => {
+          const newSet = new Set(prev);
+          if (newSet.has(productId)) {
+            newSet.delete(productId);
+          } else {
+            newSet.add(productId);
+          }
+          return newSet;
+        });
+      } else {
+        setSelectedProducts(new Set([productId]));
+      }
+    },
+    [config.multiSelect]
+  );
 
   const handleAddToCart = useCallback(async () => {
     if (selectedProducts.size === 0) return;
@@ -103,7 +109,7 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
         onClose();
       }
     } catch (error) {
-      console.error('Add to cart error:', error);
+      console.error("Add to cart error:", error);
     } finally {
       setIsLoading(false);
     }
@@ -111,8 +117,8 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
 
   const calculateTotal = useCallback(() => {
     let total = 0;
-    selectedProducts.forEach(id => {
-      const product = products.find(p => p.id === id);
+    selectedProducts.forEach((id) => {
+      const product = products.find((p) => p.id === id);
       if (product) {
         total += parseFloat(product.price);
       }
@@ -123,8 +129,8 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
   // Calculate original total (using compare-at prices if available)
   const calculateOriginalTotal = useCallback(() => {
     let total = 0;
-    selectedProducts.forEach(id => {
-      const product = products.find(p => p.id === id);
+    selectedProducts.forEach((id) => {
+      const product = products.find((p) => p.id === id);
       if (product) {
         const originalPrice = product.compareAtPrice
           ? parseFloat(product.compareAtPrice)
@@ -138,13 +144,13 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
   // Calculate savings from compare-at prices (individual product discounts)
   const calculateCompareAtSavings = useCallback(() => {
     let savings = 0;
-    selectedProducts.forEach(id => {
-      const product = products.find(p => p.id === id);
+    selectedProducts.forEach((id) => {
+      const product = products.find((p) => p.id === id);
       if (product && product.compareAtPrice) {
         const price = parseFloat(product.price);
         const compareAt = parseFloat(product.compareAtPrice);
         if (compareAt > price) {
-          savings += (compareAt - price);
+          savings += compareAt - price;
         }
       }
     });
@@ -188,24 +194,21 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
   }, [calculateTotal, calculateBundleSavings]);
 
   // Keep scroll focus inside the upsell content when possible
-  const handleContentWheel = useCallback(
-    (event: React.WheelEvent<HTMLDivElement>) => {
-      const container = event.currentTarget;
-      const { scrollTop, scrollHeight, clientHeight } = container;
-      const deltaY = event.deltaY;
+  const handleContentWheel = useCallback((event: React.WheelEvent<HTMLDivElement>) => {
+    const container = event.currentTarget;
+    const { scrollTop, scrollHeight, clientHeight } = container;
+    const deltaY = event.deltaY;
 
-      const atTop = scrollTop <= 0;
-      const atBottom = scrollTop + clientHeight >= scrollHeight - 1;
+    const atTop = scrollTop <= 0;
+    const atBottom = scrollTop + clientHeight >= scrollHeight - 1;
 
-      // If the content can still scroll in this direction, handle it here and
-      // stop the event from bubbling up to parent scroll containers (like
-      // the admin preview frame or page).
-      if ((deltaY < 0 && !atTop) || (deltaY > 0 && !atBottom)) {
-        event.stopPropagation();
-      }
-    },
-    [],
-  );
+    // If the content can still scroll in this direction, handle it here and
+    // stop the event from bubbling up to parent scroll containers (like
+    // the admin preview frame or page).
+    if ((deltaY < 0 && !atTop) || (deltaY > 0 && !atBottom)) {
+      event.stopPropagation();
+    }
+  }, []);
 
   const handlePrevSlide = useCallback(() => {
     if (displayProducts.length === 0) return;
@@ -217,55 +220,61 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
     setCurrentSlide((prev) => (prev + 1) % displayProducts.length);
   }, [displayProducts.length]);
 
-  const handleGoToSlide = useCallback((index: number) => {
-    if (index < 0 || index >= displayProducts.length) return;
-    setCurrentSlide(index);
-  }, [displayProducts.length]);
-
-
+  const handleGoToSlide = useCallback(
+    (index: number) => {
+      if (index < 0 || index >= displayProducts.length) return;
+      setCurrentSlide(index);
+    },
+    [displayProducts.length]
+  );
 
   // Enhanced default colors and settings
-  const accentColor = config.accentColor || config.buttonColor || '#6366F1';
-  const borderRadius = typeof config.borderRadius === 'string'
-    ? parseFloat(config.borderRadius) || 12
-    : (config.borderRadius ?? 12);
+  const accentColor = config.accentColor || config.buttonColor || "#6366F1";
+  const borderRadius =
+    typeof config.borderRadius === "string"
+      ? parseFloat(config.borderRadius) || 12
+      : (config.borderRadius ?? 12);
   const animDuration = config.animationDuration ?? 300;
-  const imageHeight = config.imageAspectRatio === 'portrait' ? '280px'
-    : config.imageAspectRatio === 'landscape' ? '180px'
-      : '240px';
-  const textColor = config.textColor || '#111827';
-  const secondaryColor = config.inputBackgroundColor || '#F3F4F6';
-  const borderColor = config.inputBorderColor || 'rgba(148, 163, 184, 0.5)';
-  const baseBackground = config.backgroundColor || '#FFFFFF';
-  const backgroundStyles: React.CSSProperties =
-    baseBackground.startsWith('linear-gradient(')
-      ? { backgroundImage: baseBackground, backgroundColor: 'transparent' }
-      : { backgroundColor: baseBackground };
+  const imageHeight =
+    config.imageAspectRatio === "portrait"
+      ? "280px"
+      : config.imageAspectRatio === "landscape"
+        ? "180px"
+        : "240px";
+  const textColor = config.textColor || "#111827";
+  const secondaryColor = config.inputBackgroundColor || "#F3F4F6";
+  const borderColor = config.inputBorderColor || "rgba(148, 163, 184, 0.5)";
+  const baseBackground = config.backgroundColor || "#FFFFFF";
+  const backgroundStyles: React.CSSProperties = baseBackground.startsWith("linear-gradient(")
+    ? { backgroundImage: baseBackground, backgroundColor: "transparent" }
+    : { backgroundColor: baseBackground };
 
-  const { width: sizeWidth, maxWidth: sizeMaxWidth } = getSizeDimensions(config.size || 'medium', config.previewMode);
-
+  const { width: sizeWidth, maxWidth: sizeMaxWidth } = getSizeDimensions(
+    config.size || "medium",
+    config.previewMode
+  );
 
   const renderProduct = (product: Product, index: number) => {
     const isSelected = selectedProducts.has(product.id);
     const isHovered = hoveredProduct === product.id;
 
     const cardStyles: React.CSSProperties = {
-      border: `2px solid ${isSelected ? accentColor : config.inputBorderColor || '#E5E7EB'}`,
+      border: `2px solid ${isSelected ? accentColor : config.inputBorderColor || "#E5E7EB"}`,
       borderRadius: `${borderRadius}px`,
-      padding: '0',
-      cursor: 'pointer',
+      padding: "0",
+      cursor: "pointer",
       transition: `all ${animDuration}ms cubic-bezier(0.4, 0, 0.2, 1)`,
       ...backgroundStyles,
       boxShadow: isSelected
         ? `0 8px 24px ${accentColor}30, 0 0 0 3px ${accentColor}15`
         : isHovered
-          ? '0 8px 24px rgba(0,0,0,0.12)'
-          : '0 2px 8px rgba(0,0,0,0.08)',
-      transform: isSelected ? 'scale(1.02)' : isHovered ? 'translateY(-4px)' : 'translateY(0)',
-      overflow: 'hidden',
+          ? "0 8px 24px rgba(0,0,0,0.12)"
+          : "0 2px 8px rgba(0,0,0,0.08)",
+      transform: isSelected ? "scale(1.02)" : isHovered ? "translateY(-4px)" : "translateY(0)",
+      overflow: "hidden",
       opacity: showContent ? 1 : 0,
-      animation: showContent ? `fadeInUp 0.5s ease-out ${index * 0.1}s both` : 'none',
-      position: 'relative',
+      animation: showContent ? `fadeInUp 0.5s ease-out ${index * 0.1}s both` : "none",
+      position: "relative",
     };
 
     return (
@@ -283,91 +292,104 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
       >
         {/* Selection checkmark badge */}
         {isSelected && (
-          <div style={{
-            position: 'absolute',
-            top: '12px',
-            right: '12px',
-            width: '32px',
-            height: '32px',
-            borderRadius: '50%',
-            backgroundColor: accentColor,
-            color: '#FFFFFF',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '16px',
-            fontWeight: 700,
-            zIndex: 10,
-            boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
-            animation: 'bounceIn 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55)'
-          }}>
+          <div
+            style={{
+              position: "absolute",
+              top: "12px",
+              right: "12px",
+              width: "32px",
+              height: "32px",
+              borderRadius: "50%",
+              backgroundColor: accentColor,
+              color: "#FFFFFF",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "16px",
+              fontWeight: 700,
+              zIndex: 10,
+              boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
+              animation: "bounceIn 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55)",
+            }}
+          >
             ✓
           </div>
         )}
 
         {/* Product image */}
         {config.showImages !== false && product.imageUrl && (
-          <div style={{
-            width: '100%',
-            height: imageHeight,
-            overflow: 'hidden',
-            position: 'relative',
-            backgroundColor: '#F9FAFB'
-          }}>
+          <div
+            style={{
+              width: "100%",
+              height: imageHeight,
+              overflow: "hidden",
+              position: "relative",
+              backgroundColor: "#F9FAFB",
+            }}
+          >
             <img
               src={product.imageUrl}
               alt={product.title}
               style={{
-                width: '100%',
-                height: '100%',
-                objectFit: 'cover',
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
                 transition: `transform ${animDuration}ms ease-out`,
-                transform: isHovered ? 'scale(1.08)' : 'scale(1)',
+                transform: isHovered ? "scale(1.08)" : "scale(1)",
               }}
             />
             {/* Overlay on hover */}
             {isHovered && !isSelected && (
-              <div style={{
-                position: 'absolute',
-                inset: 0,
-                backgroundColor: 'rgba(0,0,0,0.05)',
-                transition: `opacity ${animDuration}ms`,
-              }} />
+              <div
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  backgroundColor: "rgba(0,0,0,0.05)",
+                  transition: `opacity ${animDuration}ms`,
+                }}
+              />
             )}
           </div>
         )}
 
         {/* Product details */}
-        <div style={{ padding: '16px' }}>
+        <div style={{ padding: "16px" }}>
           {/* Product title */}
-          <h3 style={{
-            fontSize: '16px',
-            fontWeight: 700,
-            margin: '0 0 8px 0',
-            lineHeight: 1.4,
-            color: config.textColor || '#111827',
-            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-          }}>
+          <h3
+            style={{
+              fontSize: "16px",
+              fontWeight: 700,
+              margin: "0 0 8px 0",
+              lineHeight: 1.4,
+              color: config.textColor || "#111827",
+              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+            }}
+          >
             {product.title}
           </h3>
 
           {/* Rating */}
           {config.showRatings && product.rating && (
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              marginBottom: '10px'
-            }}>
-              <div style={{ color: '#F59E0B', fontSize: '14px', lineHeight: 1 }}>
-                {'★'.repeat(Math.floor(product.rating))}{'☆'.repeat(5 - Math.floor(product.rating))}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                marginBottom: "10px",
+              }}
+            >
+              <div style={{ color: "#F59E0B", fontSize: "14px", lineHeight: 1 }}>
+                {"★".repeat(Math.floor(product.rating))}
+                {"☆".repeat(5 - Math.floor(product.rating))}
               </div>
               {config.showReviewCount && product.reviewCount && (
-                <span style={{
-                  fontSize: '13px',
-                  color: config.textColor || '#6B7280',
-                  fontWeight: 500
-                }}>
+                <span
+                  style={{
+                    fontSize: "13px",
+                    color: config.textColor || "#6B7280",
+                    fontWeight: 500,
+                  }}
+                >
                   ({product.reviewCount})
                 </span>
               )}
@@ -376,34 +398,40 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
 
           {/* Price */}
           {config.showPrices !== false && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '12px' }}>
-              <span style={{
-                fontSize: '20px',
-                fontWeight: 800,
-                color: config.textColor || '#111827',
-                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-              }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "12px" }}>
+              <span
+                style={{
+                  fontSize: "20px",
+                  fontWeight: 800,
+                  color: config.textColor || "#111827",
+                  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                }}
+              >
                 {formatCurrency(product.price, config.currency)}
               </span>
               {config.showCompareAtPrice && product.compareAtPrice && (
                 <>
-                  <span style={{
-                    fontSize: '15px',
-                    textDecoration: 'line-through',
-                    color: config.textColor || '#9CA3AF',
-                    fontWeight: 500
-                  }}>
+                  <span
+                    style={{
+                      fontSize: "15px",
+                      textDecoration: "line-through",
+                      color: config.textColor || "#9CA3AF",
+                      fontWeight: 500,
+                    }}
+                  >
                     {formatCurrency(product.compareAtPrice, config.currency)}
                   </span>
                   {getSavingsPercent(product) !== null && (
-                    <span style={{
-                      fontSize: '12px',
-                      fontWeight: 700,
-                      color: config.buttonTextColor || '#FFFFFF',
-                      backgroundColor: config.accentColor || config.buttonColor || '#EF4444',
-                      padding: '2px 8px',
-                      borderRadius: '4px'
-                    }}>
+                    <span
+                      style={{
+                        fontSize: "12px",
+                        fontWeight: 700,
+                        color: config.buttonTextColor || "#FFFFFF",
+                        backgroundColor: config.accentColor || config.buttonColor || "#EF4444",
+                        padding: "2px 8px",
+                        borderRadius: "4px",
+                      }}
+                    >
                       SAVE {getSavingsPercent(product)}%
                     </span>
                   )}
@@ -413,23 +441,23 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           )}
 
           {/* Selection button */}
-          <div style={{
-            marginTop: '14px',
-            padding: '10px 16px',
-            backgroundColor: isSelected
-              ? accentColor
-              : config.inputBackgroundColor || '#F3F4F6',
-            color: isSelected ? '#FFFFFF' : config.textColor || '#374151',
-            borderRadius: `${borderRadius - 4}px`,
-            fontSize: '14px',
-            fontWeight: 700,
-            textAlign: 'center',
-            transition: `all ${animDuration}ms`,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '6px'
-          }}>
+          <div
+            style={{
+              marginTop: "14px",
+              padding: "10px 16px",
+              backgroundColor: isSelected ? accentColor : config.inputBackgroundColor || "#F3F4F6",
+              color: isSelected ? "#FFFFFF" : config.textColor || "#374151",
+              borderRadius: `${borderRadius - 4}px`,
+              fontSize: "14px",
+              fontWeight: 700,
+              textAlign: "center",
+              transition: `all ${animDuration}ms`,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "6px",
+            }}
+          >
             {isSelected ? (
               <>
                 <span>✓</span> Selected
@@ -437,7 +465,7 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
             ) : (
               <>
                 {config.showAddIcon !== false && <span>+</span>}
-                {config.multiSelect ? 'Add to Bundle' : 'Select'}
+                {config.multiSelect ? "Add to Bundle" : "Select"}
               </>
             )}
           </div>
@@ -448,9 +476,9 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
 
   const getGridStyles = (): React.CSSProperties => {
     return {
-      display: 'grid',
-      gap: '16px',
-      marginBottom: '24px',
+      display: "grid",
+      gap: "16px",
+      marginBottom: "24px",
     };
   };
 
@@ -459,18 +487,18 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
       return (
         <div
           style={{
-            padding: '40px 20px',
-            textAlign: 'center',
-            color: config.textColor || '#9CA3AF',
+            padding: "40px 20px",
+            textAlign: "center",
+            color: config.textColor || "#9CA3AF",
           }}
         >
-          <div style={{ fontSize: '48px', marginBottom: '16px' }}>📦</div>
+          <div style={{ fontSize: "48px", marginBottom: "16px" }}>📦</div>
           <p>No products available</p>
         </div>
       );
     }
 
-    if (config.layout === 'carousel') {
+    if (config.layout === "carousel") {
       const product = displayProducts[Math.min(currentSlide, displayProducts.length - 1)];
       const isSelected = selectedProducts.has(product.id);
       const savingsPercent = getSavingsPercent(product);
@@ -479,7 +507,7 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
         <div
           className="upsell-carousel-container"
           style={{
-            position: 'relative',
+            position: "relative",
           }}
         >
           {/* Previous button */}
@@ -488,15 +516,15 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
             onClick={handlePrevSlide}
             aria-label="Previous product"
             style={{
-              borderRadius: '9999px',
-              border: `1px solid ${config.inputBorderColor || '#E5E7EB'}`,
-              backgroundColor: config.inputBackgroundColor || '#F3F4F6',
+              borderRadius: "9999px",
+              border: `1px solid ${config.inputBorderColor || "#E5E7EB"}`,
+              backgroundColor: config.inputBackgroundColor || "#F3F4F6",
               width: 40,
               height: 40,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
             }}
           >
             <span style={{ fontSize: 18 }}>‹</span>
@@ -506,7 +534,7 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           <div
             className="upsell-carousel-product"
             style={{
-              width: '100%',
+              width: "100%",
               maxWidth: 720,
             }}
           >
@@ -515,28 +543,28 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
                 style={{
                   flex: 1,
                   maxWidth: 280,
-                  aspectRatio: '1 / 1',
+                  aspectRatio: "1 / 1",
                   borderRadius: 16,
-                  overflow: 'hidden',
-                  position: 'relative',
-                  backgroundColor: '#F9FAFB',
+                  overflow: "hidden",
+                  position: "relative",
+                  backgroundColor: "#F9FAFB",
                 }}
               >
                 <img
                   src={product.imageUrl}
                   alt={product.title}
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
                 />
                 {savingsPercent !== null && (
                   <div
                     style={{
-                      position: 'absolute',
+                      position: "absolute",
                       top: 12,
                       left: 12,
-                      padding: '4px 10px',
+                      padding: "4px 10px",
                       borderRadius: 9999,
-                      backgroundColor: config.accentColor || config.buttonColor || '#22C55E',
-                      color: '#FFFFFF',
+                      backgroundColor: config.accentColor || config.buttonColor || "#22C55E",
+                      color: "#FFFFFF",
                       fontSize: 12,
                       fontWeight: 700,
                     }}
@@ -550,8 +578,8 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
             <div
               style={{
                 flex: 1,
-                display: 'flex',
-                flexDirection: 'column',
+                display: "flex",
+                flexDirection: "column",
                 gap: 12,
               }}
             >
@@ -560,23 +588,23 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
                   fontSize: 20,
                   fontWeight: 700,
                   margin: 0,
-                  color: config.textColor || '#111827',
+                  color: config.textColor || "#111827",
                 }}
               >
                 {product.title}
               </h3>
 
               {config.showRatings && product.rating && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <div style={{ color: '#F59E0B', fontSize: 14 }}>
-                    {'★'.repeat(Math.floor(product.rating))}
-                    {'☆'.repeat(5 - Math.floor(product.rating))}
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <div style={{ color: "#F59E0B", fontSize: 14 }}>
+                    {"★".repeat(Math.floor(product.rating))}
+                    {"☆".repeat(5 - Math.floor(product.rating))}
                   </div>
                   {config.showReviewCount && product.reviewCount && (
                     <span
                       style={{
                         fontSize: 13,
-                        color: config.textColor || '#6B7280',
+                        color: config.textColor || "#6B7280",
                       }}
                     >
                       ({product.reviewCount})
@@ -586,12 +614,12 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
               )}
 
               {config.showPrices !== false && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <span
                     style={{
                       fontSize: 22,
                       fontWeight: 800,
-                      color: config.textColor || '#111827',
+                      color: config.textColor || "#111827",
                     }}
                   >
                     {formatCurrency(product.price, config.currency)}
@@ -600,8 +628,8 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
                     <span
                       style={{
                         fontSize: 14,
-                        textDecoration: 'line-through',
-                        color: config.textColor || '#9CA3AF',
+                        textDecoration: "line-through",
+                        color: config.textColor || "#9CA3AF",
                       }}
                     >
                       {formatCurrency(product.compareAtPrice, config.currency)}
@@ -615,20 +643,20 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
                 onClick={() => handleProductSelect(product.id)}
                 style={{
                   marginTop: 8,
-                  padding: '10px 18px',
+                  padding: "10px 18px",
                   borderRadius: 9999,
                   border: `2px solid ${accentColor}`,
-                  backgroundColor: isSelected ? accentColor : 'transparent',
-                  color: isSelected ? '#FFFFFF' : accentColor,
+                  backgroundColor: isSelected ? accentColor : "transparent",
+                  color: isSelected ? "#FFFFFF" : accentColor,
                   fontSize: 14,
                   fontWeight: 600,
-                  cursor: 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
+                  cursor: "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
                   gap: 8,
                 }}
               >
-                {isSelected ? 'Selected' : 'Select Product'}
+                {isSelected ? "Selected" : "Select Product"}
               </button>
             </div>
           </div>
@@ -639,15 +667,15 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
             onClick={handleNextSlide}
             aria-label="Next product"
             style={{
-              borderRadius: '9999px',
-              border: `1px solid ${config.inputBorderColor || '#E5E7EB'}`,
-              backgroundColor: config.inputBackgroundColor || '#F3F4F6',
+              borderRadius: "9999px",
+              border: `1px solid ${config.inputBorderColor || "#E5E7EB"}`,
+              backgroundColor: config.inputBackgroundColor || "#F3F4F6",
               width: 40,
               height: 40,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
             }}
           >
             <span style={{ fontSize: 18 }}>›</span>
@@ -656,11 +684,11 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           {/* Dots */}
           <div
             style={{
-              position: 'absolute',
+              position: "absolute",
               bottom: 8,
-              left: '50%',
-              transform: 'translateX(-50%)',
-              display: 'flex',
+              left: "50%",
+              transform: "translateX(-50%)",
+              display: "flex",
               gap: 6,
             }}
           >
@@ -674,13 +702,11 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
                   width: index === currentSlide ? 18 : 8,
                   height: 8,
                   borderRadius: 9999,
-                  border: 'none',
+                  border: "none",
                   padding: 0,
-                  cursor: 'pointer',
+                  cursor: "pointer",
                   backgroundColor:
-                    index === currentSlide
-                      ? accentColor
-                      : config.inputBorderColor || '#E5E7EB',
+                    index === currentSlide ? accentColor : config.inputBorderColor || "#E5E7EB",
                 }}
               />
             ))}
@@ -689,13 +715,13 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
       );
     }
 
-    if (config.layout === 'card') {
+    if (config.layout === "card") {
       return (
         <div
           className="upsell-cards-container"
           style={{
-            display: 'flex',
-            flexDirection: 'column',
+            display: "flex",
+            flexDirection: "column",
             gap: 16,
             marginBottom: 24,
           }}
@@ -709,13 +735,14 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
                 key={product.id}
                 className="upsell-card"
                 style={{
-                  display: 'flex',
+                  display: "flex",
                   gap: 16,
-                  alignItems: 'center',
-                  border: `2px solid ${isSelected ? accentColor : config.inputBorderColor || '#E5E7EB'
-                    }`,
+                  alignItems: "center",
+                  border: `2px solid ${
+                    isSelected ? accentColor : config.inputBorderColor || "#E5E7EB"
+                  }`,
                   borderRadius: borderRadius,
-                  padding: '12px 16px',
+                  padding: "12px 16px",
                   ...backgroundStyles,
                 }}
               >
@@ -726,28 +753,27 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
                       width: 96,
                       height: 96,
                       borderRadius: 12,
-                      overflow: 'hidden',
-                      position: 'relative',
-                      backgroundColor: '#F9FAFB',
+                      overflow: "hidden",
+                      position: "relative",
+                      backgroundColor: "#F9FAFB",
                       flexShrink: 0,
                     }}
                   >
                     <img
                       src={product.imageUrl}
                       alt={product.title}
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
                     />
                     {savingsPercent !== null && (
                       <div
                         style={{
-                          position: 'absolute',
+                          position: "absolute",
                           top: 8,
                           left: 8,
-                          padding: '2px 8px',
+                          padding: "2px 8px",
                           borderRadius: 9999,
-                          backgroundColor:
-                            config.accentColor || config.buttonColor || '#22C55E',
-                          color: '#FFFFFF',
+                          backgroundColor: config.accentColor || config.buttonColor || "#22C55E",
+                          color: "#FFFFFF",
                           fontSize: 11,
                           fontWeight: 700,
                         }}
@@ -765,23 +791,23 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
                       fontWeight: 600,
                       margin: 0,
                       marginBottom: 4,
-                      color: config.textColor || '#111827',
+                      color: config.textColor || "#111827",
                     }}
                   >
                     {product.title}
                   </h3>
 
                   {config.showRatings && product.rating && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                      <div style={{ color: '#F59E0B', fontSize: 14 }}>
-                        {'★'.repeat(Math.floor(product.rating))}
-                        {'☆'.repeat(5 - Math.floor(product.rating))}
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                      <div style={{ color: "#F59E0B", fontSize: 14 }}>
+                        {"★".repeat(Math.floor(product.rating))}
+                        {"☆".repeat(5 - Math.floor(product.rating))}
                       </div>
                       {config.showReviewCount && product.reviewCount && (
                         <span
                           style={{
                             fontSize: 13,
-                            color: config.textColor || '#6B7280',
+                            color: config.textColor || "#6B7280",
                           }}
                         >
                           ({product.reviewCount})
@@ -791,12 +817,12 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
                   )}
 
                   {config.showPrices !== false && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                       <span
                         style={{
                           fontSize: 18,
                           fontWeight: 700,
-                          color: config.textColor || '#111827',
+                          color: config.textColor || "#111827",
                         }}
                       >
                         {formatCurrency(product.price, config.currency)}
@@ -805,8 +831,8 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
                         <span
                           style={{
                             fontSize: 14,
-                            textDecoration: 'line-through',
-                            color: config.textColor || '#9CA3AF',
+                            textDecoration: "line-through",
+                            color: config.textColor || "#9CA3AF",
                           }}
                         >
                           {formatCurrency(product.compareAtPrice, config.currency)}
@@ -821,20 +847,20 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
                   className="upsell-card-action-btn"
                   onClick={() => handleProductSelect(product.id)}
                   style={{
-                    padding: '10px 16px',
+                    padding: "10px 16px",
                     borderRadius: 9999,
                     border: `2px solid ${accentColor}`,
-                    backgroundColor: isSelected ? accentColor : 'transparent',
-                    color: isSelected ? '#FFFFFF' : accentColor,
+                    backgroundColor: isSelected ? accentColor : "transparent",
+                    color: isSelected ? "#FFFFFF" : accentColor,
                     fontSize: 14,
                     fontWeight: 600,
-                    cursor: 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
+                    cursor: "pointer",
+                    display: "inline-flex",
+                    alignItems: "center",
                     gap: 8,
                   }}
                 >
-                  {isSelected ? 'Added' : 'Add'}
+                  {isSelected ? "Added" : "Add"}
                 </button>
               </div>
             );
@@ -847,37 +873,38 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
     return (
       <div
         className="upsell-products-grid"
-        style={{
-          ...getGridStyles(),
-          // Use CSS variable for configured columns (don't limit by product count)
-          '--upsell-columns': config.columns || 2,
-        } as React.CSSProperties}
+        style={
+          {
+            ...getGridStyles(),
+            // Use CSS variable for configured columns (don't limit by product count)
+            "--upsell-columns": config.columns || 2,
+          } as React.CSSProperties
+        }
       >
         {displayProducts.map((product, index) => renderProduct(product, index))}
       </div>
     );
   };
 
-
-
   const buttonStyles: React.CSSProperties = {
     flex: 1,
-    padding: '10px 14px',
-    fontSize: '14px',
+    padding: "10px 14px",
+    fontSize: "14px",
     fontWeight: 700,
-    border: 'none',
+    border: "none",
     borderRadius: `${borderRadius}px`,
-    backgroundColor: config.buttonColor || '#6366F1',
-    color: config.buttonTextColor || '#FFFFFF',
-    cursor: selectedProducts.size === 0 || isLoading ? 'not-allowed' : 'pointer',
+    backgroundColor: config.buttonColor || "#6366F1",
+    color: config.buttonTextColor || "#FFFFFF",
+    cursor: selectedProducts.size === 0 || isLoading ? "not-allowed" : "pointer",
     opacity: selectedProducts.size === 0 || isLoading ? 0.5 : 1,
     transition: `all ${animDuration}ms cubic-bezier(0.4, 0, 0.2, 1)`,
-    boxShadow: selectedProducts.size > 0 && !isLoading ? '0 4px 12px rgba(99, 102, 241, 0.3)' : 'none',
+    boxShadow:
+      selectedProducts.size > 0 && !isLoading ? "0 4px 12px rgba(99, 102, 241, 0.3)" : "none",
     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '8px'
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "8px",
   };
 
   const savings = calculateTotalSavings();
@@ -887,7 +914,7 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
   const popupConfig = {
     ...config,
     padding: 0,
-    maxWidth: config.maxWidth || sizeMaxWidth || '56rem',
+    maxWidth: config.maxWidth || sizeMaxWidth || "56rem",
   };
 
   // Auto-close timer (migrated from BasePopup)
@@ -898,7 +925,6 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
     return () => clearTimeout(timer);
   }, [isVisible, popupConfig.autoCloseDelay, onClose]);
 
-
   if (!isVisible) return null;
 
   return (
@@ -906,54 +932,52 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
       isVisible={isVisible}
       onClose={onClose}
       backdrop={{
-        color: popupConfig.overlayColor || 'rgba(0, 0, 0, 1)',
+        color: popupConfig.overlayColor || "rgba(0, 0, 0, 1)",
         opacity: popupConfig.overlayOpacity ?? 0.6,
         blur: 4,
       }}
       animation={{
-        type: popupConfig.animation || 'fade',
+        type: popupConfig.animation || "fade",
       }}
-      position={popupConfig.position || 'center'}
+      position={popupConfig.position || "center"}
       closeOnEscape={popupConfig.closeOnEscape !== false}
       closeOnBackdropClick={popupConfig.closeOnOverlayClick !== false}
       previewMode={popupConfig.previewMode}
       ariaLabel={popupConfig.ariaLabel || popupConfig.headline}
       ariaDescribedBy={popupConfig.ariaDescribedBy}
+      customCSS={popupConfig.customCSS}
+      globalCustomCSS={popupConfig.globalCustomCSS}
     >
       <div
         className="upsell-container"
         data-splitpop="true"
         data-template="product-upsell"
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 0,
-          opacity: showContent ? 1 : 0,
-          transform: showContent ? 'translateY(0)' : 'translateY(10px)',
-          transition: `all ${animDuration}ms cubic-bezier(0.4, 0, 0.2, 1)`,
-          ...backgroundStyles,
-          borderRadius: `${borderRadius}px`,
-          // Expose design tokens as CSS variables so css can mirror the mock precisely
-          '--upsell-bg': baseBackground,
-          '--upsell-text': textColor,
-          '--upsell-primary': accentColor,
-          '--upsell-secondary': secondaryColor,
-          '--upsell-accent': accentColor,
-          '--upsell-border': borderColor,
-          '--upsell-success': config.successColor || accentColor || '#10B981',
-          '--upsell-badge': accentColor,
-        } as React.CSSProperties}
+        style={
+          {
+            display: "flex",
+            flexDirection: "column",
+            gap: 0,
+            opacity: showContent ? 1 : 0,
+            transform: showContent ? "translateY(0)" : "translateY(10px)",
+            transition: `all ${animDuration}ms cubic-bezier(0.4, 0, 0.2, 1)`,
+            ...backgroundStyles,
+            borderRadius: `${borderRadius}px`,
+            // Expose design tokens as CSS variables so css can mirror the mock precisely
+            "--upsell-bg": baseBackground,
+            "--upsell-text": textColor,
+            "--upsell-primary": accentColor,
+            "--upsell-secondary": secondaryColor,
+            "--upsell-accent": accentColor,
+            "--upsell-border": borderColor,
+            "--upsell-success": config.successColor || accentColor || "#10B981",
+            "--upsell-badge": accentColor,
+          } as React.CSSProperties
+        }
       >
         {/* Header */}
         <div className="upsell-header">
-          <h2 className="upsell-headline">
-            {config.headline}
-          </h2>
-          {config.subheadline && (
-            <p className="upsell-subheadline">
-              {config.subheadline}
-            </p>
-          )}
+          <h2 className="upsell-headline">{config.headline}</h2>
+          {config.subheadline && <p className="upsell-subheadline">{config.subheadline}</p>}
         </div>
 
         {/* Bundle discount banner */}
@@ -970,72 +994,84 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
 
         {/* Footer: selection summary + actions */}
         <div className="upsell-footer">
-          {selectedProducts.size > 0 && (() => {
-            const total = calculateTotal();
-            const originalTotal = calculateOriginalTotal();
-            const compareAtSavings = calculateCompareAtSavings();
-            const bundleSavings = calculateBundleSavings();
-            const totalSavings = calculateTotalSavings();
-            const discountedTotal = calculateDiscountedTotal();
-            const hasCompareAtSavings = compareAtSavings && compareAtSavings > 0;
-            const hasBundleSavings = bundleSavings && bundleSavings > 0;
+          {selectedProducts.size > 0 &&
+            (() => {
+              const total = calculateTotal();
+              const originalTotal = calculateOriginalTotal();
+              const compareAtSavings = calculateCompareAtSavings();
+              const bundleSavings = calculateBundleSavings();
+              const totalSavings = calculateTotalSavings();
+              const discountedTotal = calculateDiscountedTotal();
+              const hasCompareAtSavings = compareAtSavings && compareAtSavings > 0;
+              const hasBundleSavings = bundleSavings && bundleSavings > 0;
 
-            return (
-              <div className="upsell-summary">
-                {/* Item count */}
-                <div className="upsell-summary-row">
-                  <span className="upsell-summary-label">
-                    {selectedProducts.size} item{selectedProducts.size !== 1 ? 's' : ''} selected
-                  </span>
-                  {hasCompareAtSavings && (
-                    <span className="upsell-summary-value upsell-summary-original">
-                      {formatCurrency(originalTotal, config.currency)}
+              return (
+                <div className="upsell-summary">
+                  {/* Item count */}
+                  <div className="upsell-summary-row">
+                    <span className="upsell-summary-label">
+                      {selectedProducts.size} item{selectedProducts.size !== 1 ? "s" : ""} selected
                     </span>
+                    {hasCompareAtSavings && (
+                      <span className="upsell-summary-value upsell-summary-original">
+                        {formatCurrency(originalTotal, config.currency)}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Subtotal (current prices before bundle discount) */}
+                  {hasCompareAtSavings && (
+                    <div className="upsell-summary-row" style={{ fontSize: "14px", opacity: 0.8 }}>
+                      <span>Subtotal</span>
+                      <span>{formatCurrency(total, config.currency)}</span>
+                    </div>
+                  )}
+
+                  {/* Bundle discount line */}
+                  {hasBundleSavings && (
+                    <div
+                      className="upsell-summary-row"
+                      style={{ fontSize: "14px", color: accentColor }}
+                    >
+                      <span>Bundle Discount ({config.bundleDiscount}%)</span>
+                      <span>-{formatCurrency(bundleSavings, config.currency)}</span>
+                    </div>
+                  )}
+
+                  {/* Total */}
+                  <div className="upsell-summary-row upsell-summary-total">
+                    <span>Total</span>
+                    <span>{formatCurrency(discountedTotal, config.currency)}</span>
+                  </div>
+
+                  {/* Total savings breakdown */}
+                  {totalSavings && totalSavings > 0 && (
+                    <div className="upsell-summary-row">
+                      <span className="upsell-summary-savings">
+                        {hasCompareAtSavings && hasBundleSavings ? (
+                          <>
+                            You save {formatCurrency(totalSavings, config.currency)}!
+                            <span
+                              style={{
+                                fontSize: "12px",
+                                display: "block",
+                                opacity: 0.8,
+                                marginTop: "2px",
+                              }}
+                            >
+                              ({formatCurrency(compareAtSavings, config.currency)} sale +{" "}
+                              {formatCurrency(bundleSavings, config.currency)} bundle)
+                            </span>
+                          </>
+                        ) : (
+                          <>You save {formatCurrency(totalSavings, config.currency)}!</>
+                        )}
+                      </span>
+                    </div>
                   )}
                 </div>
-
-                {/* Subtotal (current prices before bundle discount) */}
-                {hasCompareAtSavings && (
-                  <div className="upsell-summary-row" style={{ fontSize: '14px', opacity: 0.8 }}>
-                    <span>Subtotal</span>
-                    <span>{formatCurrency(total, config.currency)}</span>
-                  </div>
-                )}
-
-                {/* Bundle discount line */}
-                {hasBundleSavings && (
-                  <div className="upsell-summary-row" style={{ fontSize: '14px', color: accentColor }}>
-                    <span>Bundle Discount ({config.bundleDiscount}%)</span>
-                    <span>-{formatCurrency(bundleSavings, config.currency)}</span>
-                  </div>
-                )}
-
-                {/* Total */}
-                <div className="upsell-summary-row upsell-summary-total">
-                  <span>Total</span>
-                  <span>{formatCurrency(discountedTotal, config.currency)}</span>
-                </div>
-
-                {/* Total savings breakdown */}
-                {totalSavings && totalSavings > 0 && (
-                  <div className="upsell-summary-row">
-                    <span className="upsell-summary-savings">
-                      {hasCompareAtSavings && hasBundleSavings ? (
-                        <>
-                          You save {formatCurrency(totalSavings, config.currency)}!
-                          <span style={{ fontSize: '12px', display: 'block', opacity: 0.8, marginTop: '2px' }}>
-                            ({formatCurrency(compareAtSavings, config.currency)} sale + {formatCurrency(bundleSavings, config.currency)} bundle)
-                          </span>
-                        </>
-                      ) : (
-                        <>You save {formatCurrency(totalSavings, config.currency)}!</>
-                      )}
-                    </span>
-                  </div>
-                )}
-              </div>
-            );
-          })()}
+              );
+            })()}
 
           <div className="upsell-actions">
             <button
@@ -1044,40 +1080,40 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
               style={buttonStyles}
               onMouseEnter={(e) => {
                 if (selectedProducts.size > 0 && !isLoading) {
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.boxShadow = '0 8px 20px rgba(99, 102, 241, 0.4)';
+                  e.currentTarget.style.transform = "translateY(-2px)";
+                  e.currentTarget.style.boxShadow = "0 8px 20px rgba(99, 102, 241, 0.4)";
                 }
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.transform = "translateY(0)";
                 e.currentTarget.style.boxShadow =
-                  selectedProducts.size > 0 ? '0 4px 12px rgba(99, 102, 241, 0.3)' : 'none';
+                  selectedProducts.size > 0 ? "0 4px 12px rgba(99, 102, 241, 0.3)" : "none";
               }}
             >
               {isLoading ? (
                 <>
                   <span
                     style={{
-                      width: '16px',
-                      height: '16px',
-                      border: '2px solid rgba(255,255,255,0.3)',
-                      borderTopColor: '#FFF',
-                      borderRadius: '50%',
-                      animation: 'spin 0.8s linear infinite',
+                      width: "16px",
+                      height: "16px",
+                      border: "2px solid rgba(255,255,255,0.3)",
+                      borderTopColor: "#FFF",
+                      borderRadius: "50%",
+                      animation: "spin 0.8s linear infinite",
                     }}
                   />
                   Adding to Cart...
                 </>
               ) : (
                 <>
-                  <span style={{ fontSize: '18px' }}>🛒</span>
+                  <span style={{ fontSize: "18px" }}>🛒</span>
                   {(() => {
                     const count = selectedProducts.size;
                     const baseLabel = config.buttonText || config.ctaText;
 
                     if (baseLabel) {
-                      return baseLabel.includes('{count}')
-                        ? baseLabel.replace('{count}', String(count || 0))
+                      return baseLabel.includes("{count}")
+                        ? baseLabel.replace("{count}", String(count || 0))
                         : baseLabel;
                     }
 
@@ -1085,7 +1121,7 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
                       return `Add ${count} to Cart`;
                     }
 
-                    return 'Select Products';
+                    return "Select Products";
                   })()}
                 </>
               )}
@@ -1095,17 +1131,17 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
               onClick={onClose}
               style={{
                 ...buttonStyles,
-                backgroundColor: 'transparent',
-                color: config.textColor || '#6B7280',
-                border: `2px solid ${config.inputBorderColor || '#E5E7EB'}`,
-                boxShadow: 'none',
+                backgroundColor: "transparent",
+                color: config.textColor || "#6B7280",
+                border: `2px solid ${config.inputBorderColor || "#E5E7EB"}`,
+                boxShadow: "none",
                 opacity: 0.9,
-                cursor: 'pointer',
+                cursor: "pointer",
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
-              onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.9')}
+              onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
+              onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.9")}
             >
-              {config.secondaryCtaLabel || config.dismissLabel || 'No thanks'}
+              {config.secondaryCtaLabel || config.dismissLabel || "No thanks"}
             </button>
           </div>
         </div>
@@ -1116,7 +1152,7 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
         /* Layout and typography closely aligned with docs/mockup ProductUpsellPopup */
         .upsell-container {
           width: 100%;
-          max-width: ${popupConfig.maxWidth || sizeMaxWidth || '56rem'};
+          max-width: ${popupConfig.maxWidth || sizeMaxWidth || "56rem"};
           margin: 0 auto;
           display: flex;
           flex-direction: column;
@@ -1216,7 +1252,7 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
         }
 
         .upsell-summary-savings {
-          color: var(--upsell-success, ${config.successColor || accentColor || '#10B981'});
+          color: var(--upsell-success, ${config.successColor || accentColor || "#10B981"});
           font-size: 0.8125rem;
           font-weight: 600;
         }

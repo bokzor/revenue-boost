@@ -30,11 +30,7 @@ export class ValidationError extends Error {
  * Safely parse and validate data with Zod schema
  * Throws ValidationError if validation fails
  */
-export function validateData<T>(
-  schema: z.ZodSchema<T>,
-  data: unknown,
-  context?: string,
-): T {
+export function validateData<T>(schema: z.ZodSchema<T>, data: unknown, context?: string): T {
   try {
     const result = schema.safeParse(data);
 
@@ -42,7 +38,7 @@ export function validateData<T>(
       return result.data;
     } else {
       const errors = result.error.issues.map(
-        (issue) => `${issue.path.join(".")}: ${issue.message}`,
+        (issue) => `${issue.path.join(".")}: ${issue.message}`
       );
 
       throw new ValidationError(
@@ -68,19 +64,12 @@ export function validateData<T>(
  * Get validation errors as formatted strings
  * Returns empty array if data is valid
  */
-export function getValidationErrors<T>(
-  schema: z.ZodSchema<T>,
-  data: unknown,
-): string[] {
+export function getValidationErrors<T>(schema: z.ZodSchema<T>, data: unknown): string[] {
   const result = schema.safeParse(data);
 
   if (result.success) {
     return [];
   }
 
-  return result.error.issues.map(
-    (issue) => `${issue.path.join(".")}: ${issue.message}`,
-  );
+  return result.error.issues.map((issue) => `${issue.path.join(".")}: ${issue.message}`);
 }
-
-

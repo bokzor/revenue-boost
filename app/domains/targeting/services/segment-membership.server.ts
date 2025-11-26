@@ -57,7 +57,10 @@ export async function syncSegmentMembershipsForSegment(opts: {
     if (!members) break;
 
     const edges = members.edges ?? [];
-    const pageInfo = members.pageInfo ?? { hasNextPage: false, endCursor: null };
+    const pageInfo = members.pageInfo ?? {
+      hasNextPage: false,
+      endCursor: null,
+    };
 
     if (edges.length === 0) {
       hasNextPage = false;
@@ -77,13 +80,21 @@ export async function syncSegmentMembershipsForSegment(opts: {
             shopifyCustomerId: customerId,
           };
         } catch (error) {
-          console.warn("[SegmentMembership] Failed to parse customer GID", { gid, error });
+          console.warn("[SegmentMembership] Failed to parse customer GID", {
+            gid,
+            error,
+          });
           return null;
         }
       })
       .filter(
-        (row): row is { storeId: string; shopifySegmentId: string; shopifyCustomerId: bigint } =>
-          row !== null,
+        (
+          row
+        ): row is {
+          storeId: string;
+          shopifySegmentId: string;
+          shopifyCustomerId: bigint;
+        } => row !== null
       );
 
     if (data.length > 0) {
@@ -102,7 +113,11 @@ export async function syncSegmentMembershipsForStore(opts: {
 }): Promise<void> {
   const { storeId, segmentIds, admin } = opts;
   for (const segmentId of segmentIds) {
-    await syncSegmentMembershipsForSegment({ storeId, shopifySegmentId: segmentId, admin });
+    await syncSegmentMembershipsForSegment({
+      storeId,
+      shopifySegmentId: segmentId,
+      admin,
+    });
   }
 }
 
@@ -122,7 +137,6 @@ export async function hasSegmentMembershipData(opts: {
 
   return count > 0;
 }
-
 
 export async function isCustomerInAnyShopifySegment(opts: {
   storeId: string;
@@ -156,4 +170,3 @@ export async function getCustomerShopifySegments(opts: {
 
   return rows.map((row) => row.shopifySegmentId);
 }
-

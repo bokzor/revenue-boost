@@ -6,7 +6,17 @@
  */
 
 import React, { useState, useEffect } from "react";
-import { Card, BlockStack, Text, Divider, Button, InlineStack, Select, Collapsible, Badge } from "@shopify/polaris";
+import {
+  Card,
+  BlockStack,
+  Text,
+  Divider,
+  Button,
+  InlineStack,
+  Select,
+  Collapsible,
+  Badge,
+} from "@shopify/polaris";
 import { TextField, FormGrid } from "../form";
 import { GenericDiscountComponent } from "../form/GenericDiscountComponent";
 import type { ScratchCardContentSchema, DiscountConfig } from "../../types/campaign";
@@ -23,7 +33,11 @@ export interface ScratchCardContentSectionProps {
   onChange: (content: Partial<ScratchCardContent>) => void;
 }
 
-export function ScratchCardContentSection({ content, errors, onChange }: ScratchCardContentSectionProps) {
+export function ScratchCardContentSection({
+  content,
+  errors,
+  onChange,
+}: ScratchCardContentSectionProps) {
   const updateField = useFieldUpdater(content, onChange);
   const emailRequired = content.emailRequired !== false;
   const emailBeforeScratching = content.emailBeforeScratching || false;
@@ -33,77 +47,76 @@ export function ScratchCardContentSection({ content, errors, onChange }: Scratch
       ? "before"
       : "after";
 
-
-
   // Initialize default prizes if empty
-  const initialPrizes = content.prizes && content.prizes.length > 0
-    ? content.prizes
-    : [
-      {
-        id: "prize-5-off",
-        label: "5% OFF",
-        probability: 0.4,
-        discountConfig: {
-          enabled: true,
-          showInPreview: true,
-          valueType: "PERCENTAGE",
-          value: 5,
-          deliveryMode: "show_code_fallback",
-          expiryDays: 30,
-          type: "single_use",
-          autoApplyMode: "ajax",
-          codePresentation: "show_code",
-        } as DiscountConfig
-      },
-      {
-        id: "prize-10-off",
-        label: "10% OFF",
-        probability: 0.3,
-        discountConfig: {
-          enabled: true,
-          showInPreview: true,
-          valueType: "PERCENTAGE",
-          value: 10,
-          deliveryMode: "show_code_fallback",
-          expiryDays: 30,
-          type: "single_use",
-          autoApplyMode: "ajax",
-          codePresentation: "show_code",
-        } as DiscountConfig
-      },
-      {
-        id: "prize-15-off",
-        label: "15% OFF",
-        probability: 0.2,
-        discountConfig: {
-          enabled: true,
-          showInPreview: true,
-          valueType: "PERCENTAGE",
-          value: 15,
-          deliveryMode: "show_code_fallback",
-          expiryDays: 30,
-          type: "single_use",
-          autoApplyMode: "ajax",
-          codePresentation: "show_code",
-        } as DiscountConfig
-      },
-      {
-        id: "prize-20-off",
-        label: "20% OFF",
-        probability: 0.1,
-        discountConfig: {
-          enabled: true,
-          showInPreview: true,
-          valueType: "PERCENTAGE",
-          value: 20,
-          deliveryMode: "show_code_fallback",
-          expiryDays: 30,
-          type: "single_use",
-          autoApplyMode: "ajax",
-          codePresentation: "show_code",
-        } as DiscountConfig
-      },
-    ];
+  const initialPrizes =
+    content.prizes && content.prizes.length > 0
+      ? content.prizes
+      : [
+          {
+            id: "prize-5-off",
+            label: "5% OFF",
+            probability: 0.4,
+            discountConfig: {
+              enabled: true,
+              showInPreview: true,
+              valueType: "PERCENTAGE",
+              value: 5,
+              deliveryMode: "show_code_fallback",
+              expiryDays: 30,
+              type: "single_use",
+              autoApplyMode: "ajax",
+              codePresentation: "show_code",
+            } as DiscountConfig,
+          },
+          {
+            id: "prize-10-off",
+            label: "10% OFF",
+            probability: 0.3,
+            discountConfig: {
+              enabled: true,
+              showInPreview: true,
+              valueType: "PERCENTAGE",
+              value: 10,
+              deliveryMode: "show_code_fallback",
+              expiryDays: 30,
+              type: "single_use",
+              autoApplyMode: "ajax",
+              codePresentation: "show_code",
+            } as DiscountConfig,
+          },
+          {
+            id: "prize-15-off",
+            label: "15% OFF",
+            probability: 0.2,
+            discountConfig: {
+              enabled: true,
+              showInPreview: true,
+              valueType: "PERCENTAGE",
+              value: 15,
+              deliveryMode: "show_code_fallback",
+              expiryDays: 30,
+              type: "single_use",
+              autoApplyMode: "ajax",
+              codePresentation: "show_code",
+            } as DiscountConfig,
+          },
+          {
+            id: "prize-20-off",
+            label: "20% OFF",
+            probability: 0.1,
+            discountConfig: {
+              enabled: true,
+              showInPreview: true,
+              valueType: "PERCENTAGE",
+              value: 20,
+              deliveryMode: "show_code_fallback",
+              expiryDays: 30,
+              type: "single_use",
+              autoApplyMode: "ajax",
+              codePresentation: "show_code",
+            } as DiscountConfig,
+          },
+        ];
   const [prizes, setPrizes] = useState<Prize[]>(initialPrizes);
 
   useEffect(() => {
@@ -128,7 +141,7 @@ export function ScratchCardContentSection({ content, errors, onChange }: Scratch
         type: "single_use",
         autoApplyMode: "ajax",
         codePresentation: "show_code",
-      } as DiscountConfig
+      } as DiscountConfig,
     };
     const updated = [...prizes, p];
     setPrizes(updated);
@@ -362,10 +375,7 @@ export function ScratchCardContentSection({ content, errors, onChange }: Scratch
                 placeholder="50"
                 helpText="How much must be scratched to reveal (0-100)"
                 onChange={(v) =>
-                  updateField(
-                    "scratchThreshold",
-                    Math.max(0, Math.min(100, parseInt(v) || 0)),
-                  )
+                  updateField("scratchThreshold", Math.max(0, Math.min(100, parseInt(v) || 0)))
                 }
               />
               <TextField
@@ -375,10 +385,7 @@ export function ScratchCardContentSection({ content, errors, onChange }: Scratch
                 placeholder="20"
                 helpText="Scratch brush radius in pixels"
                 onChange={(v) =>
-                  updateField(
-                    "scratchRadius",
-                    Math.max(5, Math.min(100, parseInt(v) || 20)),
-                  )
+                  updateField("scratchRadius", Math.max(5, Math.min(100, parseInt(v) || 20)))
                 }
               />
             </FormGrid>
@@ -416,9 +423,7 @@ export function ScratchCardContentSection({ content, errors, onChange }: Scratch
                           <Text as="h4" variant="headingSm">
                             Prize {i + 1}
                           </Text>
-                          {discountSummary && (
-                            <Badge tone="success">{discountSummary}</Badge>
-                          )}
+                          {discountSummary && <Badge tone="success">{discountSummary}</Badge>}
                         </InlineStack>
                         {p.label && (
                           <Text as="p" tone="subdued" variant="bodySm">
@@ -427,17 +432,10 @@ export function ScratchCardContentSection({ content, errors, onChange }: Scratch
                         )}
                       </BlockStack>
                       <InlineStack gap="200">
-                        <Button
-                          variant="plain"
-                          onClick={() => togglePrize(i)}
-                        >
+                        <Button variant="plain" onClick={() => togglePrize(i)}>
                           {isExpanded ? "Collapse" : "Expand"}
                         </Button>
-                        <Button
-                          variant="plain"
-                          tone="critical"
-                          onClick={() => removePrize(i)}
-                        >
+                        <Button variant="plain" tone="critical" onClick={() => removePrize(i)}>
                           Remove
                         </Button>
                       </InlineStack>
@@ -512,4 +510,3 @@ export function ScratchCardContentSection({ content, errors, onChange }: Scratch
     </>
   );
 }
-

@@ -1,9 +1,4 @@
-import React, {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-} from "react";
+import React, { useCallback, useEffect, useLayoutEffect, useRef } from "react";
 
 interface AffixProps {
   children: React.ReactNode;
@@ -44,9 +39,7 @@ export function Affix({
   const scrollParentRef = useRef<EventTarget | null>(null);
 
   // Track last mode to reduce noisy logs
-  const lastModeRef = useRef<
-    "static" | "fixed" | "absolute" | "disabled" | null
-  >(null);
+  const lastModeRef = useRef<"static" | "fixed" | "absolute" | "disabled" | null>(null);
 
   // Store props in refs to avoid recreating measure callback
   const disableBelowWidthRef = useRef(disableBelowWidth);
@@ -64,7 +57,7 @@ export function Affix({
     try {
       const qs = new URLSearchParams(window.location.search);
       if (qs.get("affixDebug") === "1") return true;
-      if ((window as any).SPLITPOP_DEBUG) return true;
+      if ((window as unknown as { SPLITPOP_DEBUG?: boolean }).SPLITPOP_DEBUG) return true;
       const ls = window.localStorage.getItem("affixDebug");
       return ls === "1" || ls === "true";
     } catch {
@@ -72,14 +65,14 @@ export function Affix({
     }
   }, [debug]);
 
-  const dbg = (...args: any[]) => {
+  const dbg = (...args: unknown[]) => {
     if (!isDebug()) return;
     // Prefix for easier filtering
     // eslint-disable-next-line no-console
     console.log("[Affix]", ...args);
   };
 
-  const dispatchEvent = (detail: any) => {
+  const dispatchEvent = (detail: unknown) => {
     if (typeof window === "undefined") return;
     try {
       window.dispatchEvent(new CustomEvent("splitpop:affix", { detail }));
@@ -90,9 +83,7 @@ export function Affix({
 
   const readOffsetTop = useCallback((): number => {
     if (typeof offsetTop === "number") return Math.max(0, offsetTop);
-    const css = getComputedStyle(document.documentElement as Element).getPropertyValue(
-      offsetVar,
-    );
+    const css = getComputedStyle(document.documentElement as Element).getPropertyValue(offsetVar);
     const parsed = parseInt(css || "", 10);
     const val = Number.isFinite(parsed) ? parsed : 20;
     return Math.max(0, val);
@@ -105,18 +96,13 @@ export function Affix({
       const style = getComputedStyle(el as Element);
       const overflowY = style.overflowY;
       const overflow = style.overflow;
-      if (
-        ["auto", "scroll"].includes(overflowY) ||
-        ["auto", "scroll"].includes(overflow)
-      ) {
+      if (["auto", "scroll"].includes(overflowY) || ["auto", "scroll"].includes(overflow)) {
         return el;
       }
       el = el.parentElement;
     }
     // Polaris main scroller fallback
-    const polarisMain = document.querySelector(
-      ".Polaris-Frame__Main",
-    ) as HTMLElement | null;
+    const polarisMain = document.querySelector(".Polaris-Frame__Main") as HTMLElement | null;
     return polarisMain || window;
   };
 
@@ -179,9 +165,7 @@ export function Affix({
     const contentHeight = content.offsetHeight;
 
     // Detect an inner scrollable region (opt-in) to allow affixing even when content is taller
-    const innerScrollable = content.querySelector(
-      "[data-affix-scrollable]",
-    ) as HTMLElement | null;
+    const innerScrollable = content.querySelector("[data-affix-scrollable]") as HTMLElement | null;
 
     // Compute the effective height we need to keep visible while affixed
     const viewportAvail = Math.max(0, window.innerHeight - topOffset - 8);
@@ -247,8 +231,7 @@ export function Affix({
     // Add a small epsilon so we don't prematurely switch to absolute due to rounding/layout jitter
     const EPSILON = 16; // px tolerance
     // Compute where the absolute top would be relative to the container (without clamping)
-    const rawAbsoluteTop =
-      boundaryRect.bottom - containerRect.top - effectiveHeight;
+    const rawAbsoluteTop = boundaryRect.bottom - containerRect.top - effectiveHeight;
     // Compute where the element would sit inside the container to align its top with the viewport topOffset
     const topWithinContainer = Math.max(0, -containerRect.top + topOffset);
     // Only switch to absolute when:
@@ -333,17 +316,14 @@ export function Affix({
     const parent = getScrollParent(containerRef.current);
     scrollParentRef.current = parent;
     const vw = typeof window !== "undefined" ? window.innerWidth : 0;
-    const off =
-      typeof window !== "undefined" ? readOffsetTop() : (offsetTop ?? 20);
+    const off = typeof window !== "undefined" ? readOffsetTop() : (offsetTop ?? 20);
     // Always emit a one-time info log so users see something even if debug flags are off
     // eslint-disable-next-line no-console
     console.info("[Affix:init]", {
       scrollParent:
         parent === window
           ? "window"
-          : (parent as HTMLElement)?.className ||
-            (parent as HTMLElement)?.id ||
-            "element",
+          : (parent as HTMLElement)?.className || (parent as HTMLElement)?.id || "element",
       viewportWidth: vw,
       offsetTop: off,
       disableBelowWidth,
@@ -352,9 +332,7 @@ export function Affix({
       scrollParent:
         parent === window
           ? "window"
-          : (parent as HTMLElement)?.className ||
-            (parent as HTMLElement)?.id ||
-            "element",
+          : (parent as HTMLElement)?.className || (parent as HTMLElement)?.id || "element",
     });
     measure();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -413,16 +391,15 @@ export function Affix({
       });
     };
 
-    const parent =
-      scrollParentRef.current || getScrollParent(containerRef.current);
+    const parent = scrollParentRef.current || getScrollParent(containerRef.current);
     scrollParentRef.current = parent;
 
     window.addEventListener("scroll", onWindowScroll, { passive: true });
     window.addEventListener("resize", onResize);
-    if (parent && parent !== window) {
-      (parent as HTMLElement).addEventListener("scroll", onParentScroll, {
+    if (parent && parent !== window && parent instanceof HTMLElement) {
+      parent.addEventListener("scroll", onParentScroll, {
         passive: true,
-      } as any);
+      });
     }
 
     // One-time listener attachment log
@@ -432,9 +409,7 @@ export function Affix({
       parent:
         parent === window
           ? "window"
-          : (parent as HTMLElement)?.className ||
-            (parent as HTMLElement)?.id ||
-            "element",
+          : (parent as HTMLElement)?.className || (parent as HTMLElement)?.id || "element",
     });
 
     // Resize observers to react to layout changes
@@ -446,11 +421,12 @@ export function Affix({
       cancelAnimationFrame(raf);
       window.removeEventListener("scroll", onWindowScroll);
       window.removeEventListener("resize", onResize);
-      if (scrollParentRef.current && scrollParentRef.current !== window) {
-        (scrollParentRef.current as HTMLElement).removeEventListener(
-          "scroll",
-          onParentScroll as any,
-        );
+      if (
+        scrollParentRef.current &&
+        scrollParentRef.current !== window &&
+        scrollParentRef.current instanceof HTMLElement
+      ) {
+        scrollParentRef.current.removeEventListener("scroll", onParentScroll);
       }
       ro.disconnect();
     };
@@ -460,12 +436,9 @@ export function Affix({
   return (
     <div ref={containerRef} style={{ position: "relative" }} className={className}>
       <div ref={placeholderRef} aria-hidden="true" />
-      <div ref={contentRef}>
-        {children}
-      </div>
+      <div ref={contentRef}>{children}</div>
     </div>
   );
 }
 
 export default Affix;
-

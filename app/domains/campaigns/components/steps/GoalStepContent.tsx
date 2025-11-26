@@ -125,11 +125,7 @@ export function GoalStepContent({
                 </Banner>
               )}
 
-              <GoalSelectorV2
-                value={goal}
-                storeId={storeId}
-                onChange={onGoalChange}
-              />
+              <GoalSelectorV2 value={goal} storeId={storeId} onChange={onGoalChange} />
             </>
           )}
         </BlockStack>
@@ -170,4 +166,3 @@ export function GoalStepContent({
     </BlockStack>
   );
 }
-

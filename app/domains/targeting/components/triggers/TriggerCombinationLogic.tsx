@@ -17,7 +17,7 @@ export function TriggerCombinationLogic({ config, onChange }: TriggerCombination
     onChange({
       ...config,
       trigger_combination: {
-        ...(typeof config.trigger_combination === 'object' && config.trigger_combination !== null
+        ...(typeof config.trigger_combination === "object" && config.trigger_combination !== null
           ? config.trigger_combination
           : {}),
         operator,
@@ -53,8 +53,8 @@ export function TriggerCombinationLogic({ config, onChange }: TriggerCombination
 
         <Banner tone="info">
           <p>
-            <strong>OR logic (recommended):</strong> Popup shows when any enabled trigger
-            activates. More flexible and catches more visitors.
+            <strong>OR logic (recommended):</strong> Popup shows when any enabled trigger activates.
+            More flexible and catches more visitors.
           </p>
           <p>
             <strong>AND logic:</strong> Popup shows only when all enabled triggers activate
@@ -65,4 +65,3 @@ export function TriggerCombinationLogic({ config, onChange }: TriggerCombination
     </Card>
   );
 }
-

@@ -14,10 +14,7 @@ import { NewsletterPopup, type NewsletterConfig } from "../popups-new/Newsletter
 import { ScratchCardPopup, type ScratchCardConfig } from "../popups-new/ScratchCardPopup";
 import { SpinToWinPopup, type SpinToWinConfig } from "../popups-new/SpinToWinPopup";
 import type { StorefrontCampaign } from "~/shared/types/campaign";
-import {
-  PopupManagerCore,
-  type PopupManagerCallbacks,
-} from "./PopupManagerCore";
+import { PopupManagerCore, type PopupManagerCallbacks } from "./PopupManagerCore";
 
 // Re-export types from the original PopupManager for compatibility
 export interface CampaignPopupConfig extends PopupConfig {
@@ -177,14 +174,9 @@ export const PopupManager: React.FC<PopupManagerProps> = ({
   renderInline = false,
 }) => {
   // React state management
-  const [activeCampaign, setActiveCampaign] =
-    useState<StorefrontCampaign | null>(null);
-  const [dismissedCampaigns, setDismissedCampaigns] = useState<Set<string>>(
-    new Set(),
-  );
-  const [cooldownCampaigns, setCooldownCampaigns] = useState<Set<string>>(
-    new Set(),
-  );
+  const [activeCampaign, setActiveCampaign] = useState<StorefrontCampaign | null>(null);
+  const [dismissedCampaigns, setDismissedCampaigns] = useState<Set<string>>(new Set());
+  const [cooldownCampaigns, setCooldownCampaigns] = useState<Set<string>>(new Set());
 
   // Core logic instance
   const coreRef = useRef<PopupManagerCore | null>(null);
@@ -232,17 +224,13 @@ export const PopupManager: React.FC<PopupManagerProps> = ({
   useEffect(() => {
     if (!coreRef.current) return;
 
-    const originalSetActiveCampaign = coreRef.current.setActiveCampaign.bind(
-      coreRef.current,
+    const originalSetActiveCampaign = coreRef.current.setActiveCampaign.bind(coreRef.current);
+    const originalSetDismissedCampaigns = coreRef.current.setDismissedCampaigns.bind(
+      coreRef.current
     );
-    const originalSetDismissedCampaigns =
-      coreRef.current.setDismissedCampaigns.bind(coreRef.current);
-    const originalSetCooldownCampaigns =
-      coreRef.current.setCooldownCampaigns.bind(coreRef.current);
+    const originalSetCooldownCampaigns = coreRef.current.setCooldownCampaigns.bind(coreRef.current);
 
-    coreRef.current.setActiveCampaign = (
-      campaign: StorefrontCampaign | null,
-    ) => {
+    coreRef.current.setActiveCampaign = (campaign: StorefrontCampaign | null) => {
       originalSetActiveCampaign(campaign);
       setActiveCampaign(campaign);
     };
@@ -262,10 +250,7 @@ export const PopupManager: React.FC<PopupManagerProps> = ({
   useEffect(() => {
     if (!coreRef.current) return;
 
-    console.log(
-      "[PopupManagerReact] Setting up triggers for campaigns:",
-      campaigns.length,
-    );
+    console.log("[PopupManagerReact] Setting up triggers for campaigns:", campaigns.length);
 
     const cleanup = coreRef.current.setupTriggers(campaigns);
 
@@ -280,7 +265,7 @@ export const PopupManager: React.FC<PopupManagerProps> = ({
       syncStateFromCore();
       return result;
     },
-    [syncStateFromCore],
+    [syncStateFromCore]
   );
 
   const closePopup = useCallback(() => {
@@ -302,9 +287,7 @@ export const PopupManager: React.FC<PopupManagerProps> = ({
 
   // Determine template type for rendering
   const templateType =
-    activeCampaign.templateType ||
-    activeCampaign.normalizedTemplateType ||
-    "modal";
+    activeCampaign.templateType || activeCampaign.normalizedTemplateType || "modal";
   const resolvedType = templateType.toLowerCase().replace(/_/g, "-");
 
   console.log("[PopupManager] Template resolution:", {
@@ -316,7 +299,6 @@ export const PopupManager: React.FC<PopupManagerProps> = ({
   console.log("[PopupManagerReact] Rendering popup with type:", resolvedType);
 
   // Common props for all popup components
-
 
   // Render popup based on template type
   const renderPopup = () => {
@@ -332,47 +314,47 @@ export const PopupManager: React.FC<PopupManagerProps> = ({
           <NewsletterPopup
             isVisible={true}
             onClose={closePopup}
-            config={{
-              ...content,
-              ...design,
-              id: activeCampaign.campaignId || (activeCampaign as any).id,
-              campaignId: activeCampaign.campaignId || (activeCampaign as any).id,
-              headline: content.headline || activeCampaign.title || "Join our newsletter",
-              subheadline: content.subheadline || activeCampaign.description || "",
-              buttonText: content.buttonText || activeCampaign.buttonText || "Subscribe",
-              emailPlaceholder: content.emailPlaceholder || "Enter your email",
-              successMessage: content.successMessage || "Thanks!",
-              failureMessage: content.failureMessage || "Please try again",
-              backgroundColor:
-                design.backgroundColor || activeCampaign.backgroundColor || "#FFFFFF",
-              textColor:
-                design.textColor || activeCampaign.textColor || "#000000",
-              buttonColor:
-                design.buttonColor || activeCampaign.buttonColor || "#007BFF",
-              buttonTextColor:
-                design.buttonTextColor || activeCampaign.buttonTextColor || "#FFFFFF",
-              imageUrl: design.imageUrl || activeCampaign.imageUrl,
-              imagePosition: design.imagePosition || activeCampaign.imagePosition,
-              theme: design.theme || (activeCampaign as any).theme,
-              discount: activeCampaign.discountConfig?.enabled
-                ? {
-                    enabled: true,
-                    code: activeCampaign.discountConfig.code || "",
-                    percentage:
-                      activeCampaign.discountConfig.valueType === "PERCENTAGE"
-                        ? activeCampaign.discountConfig.value
-                        : undefined,
-                    value:
-                      activeCampaign.discountConfig.valueType === "FIXED_AMOUNT"
-                        ? activeCampaign.discountConfig.value
-                        : undefined,
-                    type: activeCampaign.discountConfig.valueType,
-                    deliveryMode: activeCampaign.discountConfig.deliveryMode,
-                    expiryDays: activeCampaign.discountConfig.expiryDays,
-                    description: activeCampaign.discountConfig.description,
-                  }
-                : undefined,
-            } as unknown as NewsletterConfig}
+            config={
+              {
+                ...content,
+                ...design,
+                id: activeCampaign.campaignId || (activeCampaign as any).id,
+                campaignId: activeCampaign.campaignId || (activeCampaign as any).id,
+                headline: content.headline || activeCampaign.title || "Join our newsletter",
+                subheadline: content.subheadline || activeCampaign.description || "",
+                buttonText: content.buttonText || activeCampaign.buttonText || "Subscribe",
+                emailPlaceholder: content.emailPlaceholder || "Enter your email",
+                successMessage: content.successMessage || "Thanks!",
+                failureMessage: content.failureMessage || "Please try again",
+                backgroundColor:
+                  design.backgroundColor || activeCampaign.backgroundColor || "#FFFFFF",
+                textColor: design.textColor || activeCampaign.textColor || "#000000",
+                buttonColor: design.buttonColor || activeCampaign.buttonColor || "#007BFF",
+                buttonTextColor:
+                  design.buttonTextColor || activeCampaign.buttonTextColor || "#FFFFFF",
+                imageUrl: design.imageUrl || activeCampaign.imageUrl,
+                imagePosition: design.imagePosition || activeCampaign.imagePosition,
+                theme: design.theme || (activeCampaign as any).theme,
+                discount: activeCampaign.discountConfig?.enabled
+                  ? {
+                      enabled: true,
+                      code: activeCampaign.discountConfig.code || "",
+                      percentage:
+                        activeCampaign.discountConfig.valueType === "PERCENTAGE"
+                          ? activeCampaign.discountConfig.value
+                          : undefined,
+                      value:
+                        activeCampaign.discountConfig.valueType === "FIXED_AMOUNT"
+                          ? activeCampaign.discountConfig.value
+                          : undefined,
+                      type: activeCampaign.discountConfig.valueType,
+                      deliveryMode: activeCampaign.discountConfig.deliveryMode,
+                      expiryDays: activeCampaign.discountConfig.expiryDays,
+                      description: activeCampaign.discountConfig.description,
+                    }
+                  : undefined,
+              } as unknown as NewsletterConfig
+            }
           />
         );
       }
@@ -387,33 +369,33 @@ export const PopupManager: React.FC<PopupManagerProps> = ({
           <SpinToWinPopup
             isVisible={true}
             onClose={closePopup}
-            config={{
-              // Flatten content + design like the storefront runtime
-              ...content,
-              ...design,
-              // IDs
-              id: activeCampaign.campaignId || (activeCampaign as any).id,
-              campaignId: activeCampaign.campaignId || (activeCampaign as any).id,
-              // Ensure wheelSegments are present for the wheel
-              wheelSegments: content.wheelSegments || [],
-              // Fallbacks for core copy
-              headline: content.headline || activeCampaign.title || "Spin to Win!",
-              subheadline: content.subheadline || activeCampaign.description || "",
-              spinButtonText: content.spinButtonText || "Spin Now!",
-              emailRequired:
-                typeof content.emailRequired === "boolean"
-                  ? content.emailRequired
-                  : true,
-              emailPlaceholder: content.emailPlaceholder || "Enter your email",
-              failureMessage: content.failureMessage || "Try again next time!",
-              // Design fallbacks
-              backgroundColor:
-                design.backgroundColor || activeCampaign.backgroundColor || "#FFFFFF",
-              textColor: design.textColor || activeCampaign.textColor || "#000000",
-              buttonColor: design.buttonColor || activeCampaign.buttonColor || "#007BFF",
-              buttonTextColor:
-                design.buttonTextColor || activeCampaign.buttonTextColor || "#FFFFFF",
-            } as unknown as SpinToWinConfig}
+            config={
+              {
+                // Flatten content + design like the storefront runtime
+                ...content,
+                ...design,
+                // IDs
+                id: activeCampaign.campaignId || (activeCampaign as any).id,
+                campaignId: activeCampaign.campaignId || (activeCampaign as any).id,
+                // Ensure wheelSegments are present for the wheel
+                wheelSegments: content.wheelSegments || [],
+                // Fallbacks for core copy
+                headline: content.headline || activeCampaign.title || "Spin to Win!",
+                subheadline: content.subheadline || activeCampaign.description || "",
+                spinButtonText: content.spinButtonText || "Spin Now!",
+                emailRequired:
+                  typeof content.emailRequired === "boolean" ? content.emailRequired : true,
+                emailPlaceholder: content.emailPlaceholder || "Enter your email",
+                failureMessage: content.failureMessage || "Try again next time!",
+                // Design fallbacks
+                backgroundColor:
+                  design.backgroundColor || activeCampaign.backgroundColor || "#FFFFFF",
+                textColor: design.textColor || activeCampaign.textColor || "#000000",
+                buttonColor: design.buttonColor || activeCampaign.buttonColor || "#007BFF",
+                buttonTextColor:
+                  design.buttonTextColor || activeCampaign.buttonTextColor || "#FFFFFF",
+              } as unknown as SpinToWinConfig
+            }
           />
         );
       }
@@ -426,34 +408,31 @@ export const PopupManager: React.FC<PopupManagerProps> = ({
           <ScratchCardPopup
             isVisible={true}
             onClose={closePopup}
-            config={{
-              ...content,
-              ...design,
-              id: activeCampaign.campaignId || (activeCampaign as any).id,
-              campaignId: activeCampaign.campaignId || (activeCampaign as any).id,
-              prizes: content.prizes || [],
-              headline: content.headline || activeCampaign.title || "Scratch to Win!",
-              subheadline: content.subheadline || activeCampaign.description || "",
-              emailRequired:
-                typeof content.emailRequired === "boolean"
-                  ? content.emailRequired
-                  : true,
-              emailPlaceholder: content.emailPlaceholder || "Enter your email",
-              scratchInstruction:
-                content.scratchInstruction || "Scratch to reveal your prize!",
-              scratchThreshold:
-                typeof content.scratchThreshold === "number"
-                  ? content.scratchThreshold
-                  : 50,
-              scratchRadius:
-                typeof content.scratchRadius === "number" ? content.scratchRadius : 20,
-              backgroundColor:
-                design.backgroundColor || activeCampaign.backgroundColor || "#FFFFFF",
-              textColor: design.textColor || activeCampaign.textColor || "#000000",
-              buttonColor: design.buttonColor || activeCampaign.buttonColor || "#007BFF",
-              buttonTextColor:
-                design.buttonTextColor || activeCampaign.buttonTextColor || "#FFFFFF",
-            } as unknown as ScratchCardConfig}
+            config={
+              {
+                ...content,
+                ...design,
+                id: activeCampaign.campaignId || (activeCampaign as any).id,
+                campaignId: activeCampaign.campaignId || (activeCampaign as any).id,
+                prizes: content.prizes || [],
+                headline: content.headline || activeCampaign.title || "Scratch to Win!",
+                subheadline: content.subheadline || activeCampaign.description || "",
+                emailRequired:
+                  typeof content.emailRequired === "boolean" ? content.emailRequired : true,
+                emailPlaceholder: content.emailPlaceholder || "Enter your email",
+                scratchInstruction: content.scratchInstruction || "Scratch to reveal your prize!",
+                scratchThreshold:
+                  typeof content.scratchThreshold === "number" ? content.scratchThreshold : 50,
+                scratchRadius:
+                  typeof content.scratchRadius === "number" ? content.scratchRadius : 20,
+                backgroundColor:
+                  design.backgroundColor || activeCampaign.backgroundColor || "#FFFFFF",
+                textColor: design.textColor || activeCampaign.textColor || "#000000",
+                buttonColor: design.buttonColor || activeCampaign.buttonColor || "#007BFF",
+                buttonTextColor:
+                  design.buttonTextColor || activeCampaign.buttonTextColor || "#FFFFFF",
+              } as unknown as ScratchCardConfig
+            }
           />
         );
       }
@@ -474,9 +453,7 @@ export const PopupManager: React.FC<PopupManagerProps> = ({
               textColor: activeCampaign.textColor || "#000000",
               buttonColor: activeCampaign.buttonColor || "#3B82F6",
               buttonTextColor: activeCampaign.buttonTextColor || "#FFFFFF",
-              position: ["left", "right"].includes(
-                activeCampaign.position as string,
-              )
+              position: ["left", "right"].includes(activeCampaign.position as string)
                 ? (activeCampaign.position as "left" | "right")
                 : "right",
               size:
@@ -505,8 +482,7 @@ export const PopupManager: React.FC<PopupManagerProps> = ({
               buttonColor: activeCampaign.buttonColor || "#3B82F6",
               buttonTextColor: activeCampaign.buttonTextColor || "#FFFFFF",
               position:
-                activeCampaign.position === "top" ||
-                activeCampaign.position === "bottom"
+                activeCampaign.position === "top" || activeCampaign.position === "bottom"
                   ? activeCampaign.position
                   : "top",
               size:
@@ -524,34 +500,46 @@ export const PopupManager: React.FC<PopupManagerProps> = ({
           <NewsletterPopup
             isVisible={true}
             onClose={closePopup}
-            config={{
-              ...activeCampaign,
-              headline: activeCampaign.contentConfig?.headline || activeCampaign.title || "Welcome",
-              subheadline: activeCampaign.contentConfig?.subheadline || activeCampaign.description || "",
-              buttonText: activeCampaign.contentConfig?.buttonText || activeCampaign.buttonText || "Continue",
-              emailPlaceholder: (activeCampaign.contentConfig as any)?.emailPlaceholder || "Enter your email",
-              backgroundColor: activeCampaign.backgroundColor || "#FFFFFF",
-              textColor: activeCampaign.textColor || "#000000",
-              buttonColor: activeCampaign.buttonColor || "#007BFF",
-              buttonTextColor: activeCampaign.buttonTextColor || "#FFFFFF",
-              imageUrl: activeCampaign.imageUrl,
-              imagePosition: activeCampaign.imagePosition,
-              theme: (activeCampaign as any).theme,
-              discount: activeCampaign.discountConfig?.enabled ? {
-                enabled: true,
-                code: activeCampaign.discountConfig.code || '',
-                percentage: (activeCampaign.discountConfig.valueType === "PERCENTAGE")
-                  ? activeCampaign.discountConfig.value
+            config={
+              {
+                ...activeCampaign,
+                headline:
+                  activeCampaign.contentConfig?.headline || activeCampaign.title || "Welcome",
+                subheadline:
+                  activeCampaign.contentConfig?.subheadline || activeCampaign.description || "",
+                buttonText:
+                  activeCampaign.contentConfig?.buttonText ||
+                  activeCampaign.buttonText ||
+                  "Continue",
+                emailPlaceholder:
+                  (activeCampaign.contentConfig as any)?.emailPlaceholder || "Enter your email",
+                backgroundColor: activeCampaign.backgroundColor || "#FFFFFF",
+                textColor: activeCampaign.textColor || "#000000",
+                buttonColor: activeCampaign.buttonColor || "#007BFF",
+                buttonTextColor: activeCampaign.buttonTextColor || "#FFFFFF",
+                imageUrl: activeCampaign.imageUrl,
+                imagePosition: activeCampaign.imagePosition,
+                theme: (activeCampaign as any).theme,
+                discount: activeCampaign.discountConfig?.enabled
+                  ? {
+                      enabled: true,
+                      code: activeCampaign.discountConfig.code || "",
+                      percentage:
+                        activeCampaign.discountConfig.valueType === "PERCENTAGE"
+                          ? activeCampaign.discountConfig.value
+                          : undefined,
+                      value:
+                        activeCampaign.discountConfig.valueType === "FIXED_AMOUNT"
+                          ? activeCampaign.discountConfig.value
+                          : undefined,
+                      type: activeCampaign.discountConfig.valueType,
+                      deliveryMode: activeCampaign.discountConfig.deliveryMode,
+                      expiryDays: activeCampaign.discountConfig.expiryDays,
+                      description: activeCampaign.discountConfig.description,
+                    }
                   : undefined,
-                value: (activeCampaign.discountConfig.valueType === "FIXED_AMOUNT")
-                  ? activeCampaign.discountConfig.value
-                  : undefined,
-                type: activeCampaign.discountConfig.valueType,
-                deliveryMode: activeCampaign.discountConfig.deliveryMode,
-                expiryDays: activeCampaign.discountConfig.expiryDays,
-                description: activeCampaign.discountConfig.description,
-              } : undefined,
-            } as unknown as NewsletterConfig}
+              } as unknown as NewsletterConfig
+            }
           />
         );
     }

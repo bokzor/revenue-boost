@@ -37,9 +37,7 @@ export function FormField({ label, name, error, helpText, required, children }: 
 
   return (
     <div className="form-field">
-      <s-text-field {...props}>
-        {children}
-      </s-text-field>
+      <s-text-field {...props}>{children}</s-text-field>
     </div>
   );
 }
@@ -85,12 +83,7 @@ export function TextField({
     rows,
   };
 
-  return (
-    <s-text-field
-      {...props}
-      onChange={(e) => onChange?.(e.currentTarget.value)}
-    />
-  );
+  return <s-text-field {...props} onChange={(e) => onChange?.(e.currentTarget.value)} />;
 }
 
 /**
@@ -175,11 +168,7 @@ export function CheckboxField({
   };
 
   return (
-    <s-checkbox
-      {...props}
-      label={label}
-      onChange={(e) => onChange?.(e.currentTarget.checked)}
-    />
+    <s-checkbox {...props} label={label} onChange={(e) => onChange?.(e.currentTarget.checked)} />
   );
 }
 
@@ -262,4 +251,3 @@ export function ColorField({
     </div>
   );
 }
-

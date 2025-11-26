@@ -25,7 +25,7 @@ export function ExitIntentTrigger({ config, onChange }: ExitIntentTriggerProps) 
       ...config,
       exit_intent: {
         enabled: false,
-        ...(typeof config.exit_intent === 'object' && config.exit_intent !== null
+        ...(typeof config.exit_intent === "object" && config.exit_intent !== null
           ? config.exit_intent
           : {}),
         ...updates,
@@ -70,7 +70,10 @@ export function ExitIntentTrigger({ config, onChange }: ExitIntentTriggerProps) 
           value={config.exit_intent?.exclude_pages?.join(", ") || ""}
           onChange={(value) =>
             updateConfig({
-              exclude_pages: value.split(",").map((p) => p.trim()).filter(Boolean),
+              exclude_pages: value
+                .split(",")
+                .map((p) => p.trim())
+                .filter(Boolean),
             })
           }
           helpText="Pages where exit intent should not trigger"
@@ -80,4 +83,3 @@ export function ExitIntentTrigger({ config, onChange }: ExitIntentTriggerProps) 
     </TriggerCard>
   );
 }
-

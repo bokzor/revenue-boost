@@ -16,6 +16,8 @@ import { CampaignFormWithABTesting } from "~/domains/campaigns/components/Campai
 import type { CampaignWithConfigs } from "~/domains/campaigns/types/campaign";
 import type { CampaignFormData } from "~/shared/hooks/useWizardState";
 import type { FrequencyCappingConfig } from "~/domains/targeting/components";
+import prisma from "~/db.server";
+import { StoreSettingsSchema } from "~/domains/store/types/settings";
 
 // ============================================================================
 // TYPES
@@ -25,6 +27,7 @@ interface LoaderData {
   campaign: CampaignWithConfigs | null;
   storeId: string;
   shopDomain: string;
+  globalCustomCSS?: string;
 }
 
 // ============================================================================
@@ -32,46 +35,56 @@ interface LoaderData {
 // ============================================================================
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
-  console.log('[Campaign Edit Loader] Starting loader for campaignId:', params.campaignId);
-  console.log('[Campaign Edit Loader] Request URL:', request.url);
+  console.log("[Campaign Edit Loader] Starting loader for campaignId:", params.campaignId);
+  console.log("[Campaign Edit Loader] Request URL:", request.url);
 
   try {
     const { session } = await authenticate.admin(request);
-    console.log('[Campaign Edit Loader] Session authenticated:', !!session);
+    console.log("[Campaign Edit Loader] Session authenticated:", !!session);
 
     if (!session?.shop) {
-      console.error('[Campaign Edit Loader] No shop session found');
+      console.error("[Campaign Edit Loader] No shop session found");
       throw new Error("No shop session found");
     }
 
     const campaignId = params.campaignId;
     if (!campaignId) {
-      console.error('[Campaign Edit Loader] Campaign ID is missing');
+      console.error("[Campaign Edit Loader] Campaign ID is missing");
       throw new Error("Campaign ID is required");
     }
 
     const storeId = await getStoreId(request);
-    console.log('[Campaign Edit Loader] StoreId:', storeId);
+    console.log("[Campaign Edit Loader] StoreId:", storeId);
+
+    const store = await prisma.store.findUnique({
+      where: { id: storeId },
+      select: { settings: true },
+    });
+    const parsedSettings = StoreSettingsSchema.partial().safeParse(store?.settings || {});
 
     // Get campaign details
-    console.log('[Campaign Edit Loader] Fetching campaign by ID:', campaignId);
+    console.log("[Campaign Edit Loader] Fetching campaign by ID:", campaignId);
     const campaign = await CampaignService.getCampaignById(campaignId, storeId);
-    console.log('[Campaign Edit Loader] Campaign fetched:', campaign ? campaign.id : 'null');
+    console.log("[Campaign Edit Loader] Campaign fetched:", campaign ? campaign.id : "null");
 
     return data<LoaderData>({
       campaign,
       storeId,
       shopDomain: session.shop,
+      globalCustomCSS: parsedSettings.success ? parsedSettings.data.globalCustomCSS : undefined,
     });
-
   } catch (error) {
     console.error("[Campaign Edit Loader] Failed to load campaign for editing:", error);
 
-    return data<LoaderData>({
-      campaign: null,
-      storeId: "",
-      shopDomain: "",
-    }, { status: 404 });
+    return data<LoaderData>(
+      {
+        campaign: null,
+        storeId: "",
+        shopDomain: "",
+        globalCustomCSS: undefined,
+      },
+      { status: 404 }
+    );
   }
 }
 
@@ -80,9 +93,9 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 // ============================================================================
 
 export default function CampaignEditPage() {
-  console.log('[Campaign Edit Page] Component rendering');
-  const { campaign, storeId, shopDomain } = useLoaderData<typeof loader>();
-  console.log('[Campaign Edit Page] Loaded data - campaign:', campaign?.id, 'storeId:', storeId);
+  console.log("[Campaign Edit Page] Component rendering");
+  const { campaign, storeId, shopDomain, globalCustomCSS } = useLoaderData<typeof loader>();
+  console.log("[Campaign Edit Page] Loaded data - campaign:", campaign?.id, "storeId:", storeId);
   const navigate = useNavigate();
 
   // State for toast notifications
@@ -97,7 +110,9 @@ export default function CampaignEditPage() {
   // Redirect to experiment edit page if campaign is part of an A/B test
   useEffect(() => {
     if (campaign?.experimentId) {
-      console.log(`[Campaign Edit] Campaign ${campaign.id} is part of experiment ${campaign.experimentId}, redirecting...`);
+      console.log(
+        `[Campaign Edit] Campaign ${campaign.id} is part of experiment ${campaign.experimentId}, redirecting...`
+      );
       navigate(`/app/experiments/${campaign.experimentId}/edit`);
     }
   }, [campaign, navigate]);
@@ -143,9 +158,12 @@ export default function CampaignEditPage() {
       // Load frequency capping from server format (already matches UI format)
       frequencyCapping: {
         enabled: !!campaign.targetRules?.enhancedTriggers?.frequency_capping,
-        max_triggers_per_session: campaign.targetRules?.enhancedTriggers?.frequency_capping?.max_triggers_per_session,
-        max_triggers_per_day: campaign.targetRules?.enhancedTriggers?.frequency_capping?.max_triggers_per_day,
-        cooldown_between_triggers: campaign.targetRules?.enhancedTriggers?.frequency_capping?.cooldown_between_triggers,
+        max_triggers_per_session:
+          campaign.targetRules?.enhancedTriggers?.frequency_capping?.max_triggers_per_session,
+        max_triggers_per_day:
+          campaign.targetRules?.enhancedTriggers?.frequency_capping?.max_triggers_per_day,
+        cooldown_between_triggers:
+          campaign.targetRules?.enhancedTriggers?.frequency_capping?.cooldown_between_triggers,
         respectGlobalCap: true, // Default to true
       } as FrequencyCappingConfig,
       discountConfig: campaign.discountConfig,
@@ -172,14 +190,22 @@ export default function CampaignEditPage() {
       }
 
       // Extract frequency capping fields (already in server format)
-      const { enabled, max_triggers_per_session, max_triggers_per_day, cooldown_between_triggers, respectGlobalCap } = campaignData.frequencyCapping;
-
-      // Only include frequency_capping if enabled
-      const frequency_capping = enabled ? {
+      const {
+        enabled,
         max_triggers_per_session,
         max_triggers_per_day,
         cooldown_between_triggers,
-      } : undefined;
+        respectGlobalCap,
+      } = campaignData.frequencyCapping;
+
+      // Only include frequency_capping if enabled
+      const frequency_capping = enabled
+        ? {
+            max_triggers_per_session,
+            max_triggers_per_day,
+            cooldown_between_triggers,
+          }
+        : undefined;
 
       const updateData = {
         name: campaignData.name,
@@ -204,20 +230,20 @@ export default function CampaignEditPage() {
         tags: campaignData.tags,
       };
 
-	      const response = await fetch(`/api/campaigns/${campaign.id}`, {
+      const response = await fetch(`/api/campaigns/${campaign.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(updateData),
       });
 
-	      if (!response.ok) {
-	        const planLimit = await tryParsePlanLimitError(response);
-	        if (planLimit) {
-	          showToast(planLimit.message, true);
-	          return;
-	        }
-	        throw new Error("Failed to update campaign");
-	      }
+      if (!response.ok) {
+        const planLimit = await tryParsePlanLimitError(response);
+        if (planLimit) {
+          showToast(planLimit.message, true);
+          return;
+        }
+        throw new Error("Failed to update campaign");
+      }
 
       const needsActivationPrompt = campaign.status === "DRAFT" && campaignData.status === "DRAFT";
 
@@ -230,7 +256,6 @@ export default function CampaignEditPage() {
 
       showToast("Campaign updated successfully");
       navigate("/app");
-
     } catch (error) {
       console.error("Failed to update campaign:", error);
       showToast("Failed to update campaign", true);
@@ -243,17 +268,13 @@ export default function CampaignEditPage() {
 
   // Toast component
   const toastMarkup = toastMessage ? (
-    <Toast
-      content={toastMessage}
-      error={toastError}
-      onDismiss={() => setToastMessage(null)}
-    />
+    <Toast content={toastMessage} error={toastError} onDismiss={() => setToastMessage(null)} />
   ) : null;
 
   // If no campaign found, redirect back
   useEffect(() => {
     if (!campaign) {
-      console.log('[Campaign Edit Page] No campaign found, redirecting to dashboard');
+      console.log("[Campaign Edit Page] No campaign found, redirecting to dashboard");
       navigate("/app");
     }
   }, [campaign, navigate]);
@@ -264,11 +285,11 @@ export default function CampaignEditPage() {
 
   const initialData = getInitialFormData();
   if (!initialData) {
-    console.log('[Campaign Edit Page] No initial data, returning null');
+    console.log("[Campaign Edit Page] No initial data, returning null");
     return null;
   }
 
-  console.log('[Campaign Edit Page] Rendering form with campaign:', campaign.id);
+  console.log("[Campaign Edit Page] Rendering form with campaign:", campaign.id);
   return (
     <Frame>
       <CampaignFormWithABTesting
@@ -276,6 +297,7 @@ export default function CampaignEditPage() {
         shopDomain={shopDomain}
         initialData={initialData}
         campaignId={campaign?.id}
+        globalCustomCSS={globalCustomCSS}
         onSave={handleSave}
         onCancel={handleCancel}
       />
@@ -319,7 +341,9 @@ export default function CampaignEditPage() {
         ]}
       >
         <div style={{ padding: 16 }}>
-          <Text as="p" variant="bodyMd">This campaign is still a draft. Activate it now</Text>
+          <Text as="p" variant="bodyMd">
+            This campaign is still a draft. Activate it now
+          </Text>
         </div>
       </Modal>
 
@@ -328,13 +352,15 @@ export default function CampaignEditPage() {
   );
 }
 
-async function tryParsePlanLimitError(response: Response): Promise<{ message: string; details: any } | null> {
-	try {
-	  if (response.status !== 403) return null;
-	  const body: any = await response.json();
-	  if (body?.errorCode !== "PLAN_LIMIT_EXCEEDED") return null;
-	  return { message: body.error ?? "Plan limit reached", details: body.errorDetails };
-	} catch {
-	  return null;
-	}
+async function tryParsePlanLimitError(
+  response: Response
+): Promise<{ message: string; details: any } | null> {
+  try {
+    if (response.status !== 403) return null;
+    const body: any = await response.json();
+    if (body?.errorCode !== "PLAN_LIMIT_EXCEEDED") return null;
+    return { message: body.error ?? "Plan limit reached", details: body.errorDetails };
+  } catch {
+    return null;
+  }
 }

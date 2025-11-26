@@ -5,12 +5,7 @@
  * Provides backward compatibility for existing UI components.
  */
 
-import {
-  TemplateService,
-  type Template,
-} from "~/domains/popups/services/templates.server";
-
-
+import { TemplateService, type Template } from "~/domains/popups/services/templates.server";
 
 /**
  * Simple template functions - all use TemplateService
@@ -20,7 +15,6 @@ export async function getPopupTemplates(storeId?: string): Promise<Template[]> {
   return templates;
 }
 
-
 export async function getTemplateById(
   templateId: string,
   storeId?: string
@@ -28,7 +22,6 @@ export async function getTemplateById(
   const template = await TemplateService.getTemplateById(templateId, storeId);
   return template ?? null;
 }
-
 
 export async function validatePopupTemplates(): Promise<boolean> {
   try {

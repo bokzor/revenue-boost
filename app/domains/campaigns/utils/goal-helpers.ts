@@ -1,6 +1,6 @@
 /**
  * Goal Helpers - Utility functions for campaign goals
- * 
+ *
  * SOLID Compliance:
  * - Single Responsibility: Only handles goal-related utilities
  * - Functions are <10 lines each
@@ -20,4 +20,3 @@ export function getGoalDisplayName(goal: CampaignGoal): string {
       return goal;
   }
 }
-

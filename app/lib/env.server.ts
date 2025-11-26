@@ -18,7 +18,11 @@ const envSchema = z.object({
   // Shopify Configuration (Required)
   SHOPIFY_API_KEY: z.string().min(1, "SHOPIFY_API_KEY is required"),
   SHOPIFY_API_SECRET: z.string().min(1, "SHOPIFY_API_SECRET is required"),
-  SHOPIFY_APP_URL: z.string().url("SHOPIFY_APP_URL must be a valid URL").optional().or(z.literal("")),
+  SHOPIFY_APP_URL: z
+    .string()
+    .url("SHOPIFY_APP_URL must be a valid URL")
+    .optional()
+    .or(z.literal("")),
   SCOPES: z.string().min(1, "SCOPES is required (comma-separated list)"),
 
   // Database Configuration (Required)
@@ -31,7 +35,9 @@ const envSchema = z.object({
   REDIS_URL: z.string().url("REDIS_URL must be a valid Redis connection string").optional(),
 
   // Internal API Secret (Required)
-  INTERNAL_API_SECRET: z.string().min(32, "INTERNAL_API_SECRET must be at least 32 characters for security"),
+  INTERNAL_API_SECRET: z
+    .string()
+    .min(32, "INTERNAL_API_SECRET must be at least 32 characters for security"),
 
   // Optional Configuration
   SHOP_CUSTOM_DOMAIN: z.string().optional(),
@@ -49,7 +55,7 @@ let validatedEnv: Env | null = null;
 
 /**
  * Validate environment variables
- * 
+ *
  * @throws {Error} If validation fails with detailed error messages
  * @returns Validated environment object
  */
@@ -162,4 +168,3 @@ export function validateProductionEnv(): void {
     }
   }
 }
-

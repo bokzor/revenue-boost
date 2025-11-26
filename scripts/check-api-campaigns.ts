@@ -14,13 +14,21 @@ async function main() {
         }
     });
 
-    const data = await response.json();
+    const data = await response.json() as {
+        campaigns?: Array<{
+            id?: string;
+            name?: string;
+            priority?: number;
+            templateType?: string;
+            discountConfig?: { enabled?: boolean };
+        }>;
+    };
     console.log(`\nResponse status: ${response.status}`);
     console.log(`\nCampaigns returned: ${data.campaigns?.length || 0}`);
 
     if (data.campaigns && data.campaigns.length > 0) {
         console.log('\nCampaigns:');
-        data.campaigns.forEach((c: any, i: number) => {
+        data.campaigns.forEach((c, i: number) => {
             console.log(`\n${i + 1}. ${c.name} (${c.id})`);
             console.log(`   Priority: ${c.priority}`);
             console.log(`   Template: ${c.templateType}`);

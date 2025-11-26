@@ -115,11 +115,7 @@ export function ContentConfigSection({
 
       case "PRODUCT_UPSELL":
         return (
-          <ProductUpsellContentSection
-            content={content}
-            errors={errors}
-            onChange={onChange}
-          />
+          <ProductUpsellContentSection content={content} errors={errors} onChange={onChange} />
         );
 
       case "FREE_SHIPPING":
@@ -164,4 +160,3 @@ export function ContentConfigSection({
 
   return renderContentForm();
 }
-

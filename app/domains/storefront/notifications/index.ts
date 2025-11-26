@@ -17,4 +17,3 @@ export type {
   ReviewNotification,
   SocialProofNotification,
 } from "./social-proof/types";
-

@@ -34,8 +34,8 @@ export function GoalConfirmation({ selectedGoal }: GoalConfirmationProps) {
             </Text>
             <Text as="p" variant="bodyMd" tone="subdued">
               Perfect! We&apos;ve applied best practice defaults for{" "}
-              <strong>{selectedGoal.title}</strong>. Continue to customize
-              your campaign design and settings.
+              <strong>{selectedGoal.title}</strong>. Continue to customize your campaign design and
+              settings.
             </Text>
           </BlockStack>
         </InlineStack>
@@ -43,4 +43,3 @@ export function GoalConfirmation({ selectedGoal }: GoalConfirmationProps) {
     </Card>
   );
 }
-

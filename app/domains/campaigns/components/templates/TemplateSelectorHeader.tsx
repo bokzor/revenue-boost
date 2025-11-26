@@ -1,6 +1,6 @@
 /**
  * TemplateSelectorHeader - Header for Template Selector
- * 
+ *
  * SOLID Compliance:
  * - Single Responsibility: Renders header with goal info
  * - <50 lines
@@ -28,8 +28,7 @@ export function TemplateSelectorHeader({
         {isEditing ? "Current Template" : "Select a Template"}
       </Text>
       <Text as="p" variant="bodyMd" tone="subdued">
-        Choose a template optimized for your goal:{" "}
-        <strong>{getGoalDisplayName(goal)}</strong>
+        Choose a template optimized for your goal: <strong>{getGoalDisplayName(goal)}</strong>
       </Text>
       {isEditing && selectedTemplateName && (
         <Text as="p" variant="bodyMd" tone="success">
@@ -39,4 +38,3 @@ export function TemplateSelectorHeader({
     </BlockStack>
   );
 }
-

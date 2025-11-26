@@ -91,7 +91,9 @@ export function ProductPicker({
       try {
         const type = mode === "collection" ? "collection" : "product";
         const idsParam = selectedIds.join(",");
-        const response = await fetch(`/api/resources?ids=${encodeURIComponent(idsParam)}&type=${type}`);
+        const response = await fetch(
+          `/api/resources?ids=${encodeURIComponent(idsParam)}&type=${type}`
+        );
 
         if (!response.ok) {
           console.error("Failed to fetch initial selections:", response.statusText);
@@ -99,11 +101,17 @@ export function ProductPicker({
           return;
         }
 
-        const data = await response.json();
-        const resources = data.resources || [];
+        const data = (await response.json()) as { resources?: unknown[] };
+        const resources = (data.resources || []) as Array<{
+          id: string;
+          title: string;
+          handle?: string;
+          images?: ProductPickerSelection["images"];
+          variants?: ProductPickerSelection["variants"];
+        }>;
 
         // Map API response to ProductPickerSelection format
-        const initialSelections: ProductPickerSelection[] = resources.map((resource: any) => ({
+        const initialSelections: ProductPickerSelection[] = resources.map((resource) => ({
           id: resource.id,
           title: resource.title,
           handle: resource.handle,
@@ -126,7 +134,8 @@ export function ProductPicker({
     setIsLoading(true);
     try {
       // Use App Home Resource Picker API (not intents) for selecting Shopify resources
-      const type = mode === "product" ? "product" : mode === "collection" ? "collection" : "variant";
+      const type =
+        mode === "product" ? "product" : mode === "collection" ? "collection" : "variant";
 
       // Prepare preselected ids if provided
       const selectionIds = selectedIds.length > 0 ? selectedIds.map((id) => ({ id })) : undefined;
@@ -138,10 +147,16 @@ export function ProductPicker({
       });
 
       if (selected && Array.isArray(selected)) {
-        const newSelections: ProductPickerSelection[] = (selected as unknown as Array<Record<string, unknown>>).map((item) => {
+        const newSelections: ProductPickerSelection[] = (
+          selected as unknown as Array<Record<string, unknown>>
+        ).map((item) => {
           const base: ProductPickerSelection = {
             id: item.id as string,
-            title: (item.title as string) || (item.displayName as string) || (item.handle as string) || "Untitled",
+            title:
+              (item.title as string) ||
+              (item.displayName as string) ||
+              (item.handle as string) ||
+              "Untitled",
             handle: item.handle as string,
           };
 
@@ -152,36 +167,46 @@ export function ProductPicker({
                 altText: img.altText as string,
               }))
             : item.image
-            ? [
-                {
-                  originalSrc: ((item.image as Record<string, unknown>).originalSrc as string) || ((item.image as Record<string, unknown>).url as string),
-                  altText: (item.image as Record<string, unknown>).altText as string,
-                },
-              ]
-            : (item.images as Record<string, unknown>)?.edges
-            ? ((item.images as Record<string, unknown>).edges as Array<Record<string, unknown>>).map((edge) => ({
-                originalSrc: ((edge.node as Record<string, unknown>).originalSrc as string) || ((edge.node as Record<string, unknown>).url as string),
-                altText: (edge.node as Record<string, unknown>).altText as string,
-              }))
-            : undefined;
+              ? [
+                  {
+                    originalSrc:
+                      ((item.image as Record<string, unknown>).originalSrc as string) ||
+                      ((item.image as Record<string, unknown>).url as string),
+                    altText: (item.image as Record<string, unknown>).altText as string,
+                  },
+                ]
+              : (item.images as Record<string, unknown>)?.edges
+                ? (
+                    (item.images as Record<string, unknown>).edges as Array<Record<string, unknown>>
+                  ).map((edge) => ({
+                    originalSrc:
+                      ((edge.node as Record<string, unknown>).originalSrc as string) ||
+                      ((edge.node as Record<string, unknown>).url as string),
+                    altText: (edge.node as Record<string, unknown>).altText as string,
+                  }))
+                : undefined;
 
           // Normalize variants (supports Resource Picker payload or GraphQL edges)
           const variants = Array.isArray(item.variants)
-            ? (item.variants as Array<Record<string, unknown>>)
-                .filter(Boolean)
-                .map((v) => ({
-                  id: v.id as string,
-                  title: (v.title as string) || (v.displayName as string),
-                  // Price in Resource Picker is Money (string); fallback to nested forms if present
-                  price: typeof v.price === "string" ? v.price : ((v.price as Record<string, unknown>)?.amount as string) || (v.price as string),
-                }))
-            : (item.variants as Record<string, unknown>)?.edges
-            ? ((item.variants as Record<string, unknown>).edges as Array<Record<string, unknown>>).map((edge) => ({
-                id: (edge.node as Record<string, unknown>).id as string,
-                title: (edge.node as Record<string, unknown>).title as string,
-                price: (edge.node as Record<string, unknown>).price as string,
+            ? (item.variants as Array<Record<string, unknown>>).filter(Boolean).map((v) => ({
+                id: v.id as string,
+                title: (v.title as string) || (v.displayName as string),
+                // Price in Resource Picker is Money (string); fallback to nested forms if present
+                price:
+                  typeof v.price === "string"
+                    ? v.price
+                    : ((v.price as Record<string, unknown>)?.amount as string) ||
+                      (v.price as string),
               }))
-            : undefined;
+            : (item.variants as Record<string, unknown>)?.edges
+              ? (
+                  (item.variants as Record<string, unknown>).edges as Array<Record<string, unknown>>
+                ).map((edge) => ({
+                  id: (edge.node as Record<string, unknown>).id as string,
+                  title: (edge.node as Record<string, unknown>).title as string,
+                  price: (edge.node as Record<string, unknown>).price as string,
+                }))
+              : undefined;
 
           return {
             ...base,
@@ -225,12 +250,7 @@ export function ProductPicker({
 
   return (
     <BlockStack gap="200">
-      <Button
-        icon={getIcon()}
-        onClick={openPicker}
-        loading={isLoadingAny}
-        disabled={isLoadingAny}
-      >
+      <Button icon={getIcon()} onClick={openPicker} loading={isLoadingAny} disabled={isLoadingAny}>
         {getButtonLabel()}
       </Button>
 

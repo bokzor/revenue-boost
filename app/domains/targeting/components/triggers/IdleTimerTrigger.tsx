@@ -19,7 +19,7 @@ export function IdleTimerTrigger({ config, onChange }: IdleTimerTriggerProps) {
       ...config,
       idle_timer: {
         enabled: false,
-        ...(typeof config.idle_timer === 'object' && config.idle_timer !== null
+        ...(typeof config.idle_timer === "object" && config.idle_timer !== null
           ? config.idle_timer
           : {}),
         ...updates,
@@ -68,4 +68,3 @@ export function IdleTimerTrigger({ config, onChange }: IdleTimerTriggerProps) {
     </TriggerCard>
   );
 }
-

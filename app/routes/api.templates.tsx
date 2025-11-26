@@ -48,5 +48,3 @@ export async function action({ request }: { request: Request }) {
     return handleApiError(error, `${request.method} /api/templates`);
   }
 }
-
-

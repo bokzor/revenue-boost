@@ -11,18 +11,19 @@
  * - Real-time visitor counts
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
-import type { PopupDesignConfig } from './types';
-import type { SocialProofContent } from '~/domains/campaigns/types/campaign';
-import { prefersReducedMotion } from './utils';
-import { POPUP_SPACING, SPACING_GUIDELINES } from './spacing';
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+import type { PopupDesignConfig } from "./types";
+import type { SocialProofContent } from "~/domains/campaigns/types/campaign";
+import { prefersReducedMotion } from "./utils";
+import { POPUP_SPACING, SPACING_GUIDELINES } from "./spacing";
 
 // Import custom hooks
-import { usePopupAnimation } from './hooks';
+import { usePopupAnimation } from "./hooks";
+import { buildScopedCss } from "~/domains/storefront/shared/css";
 
 export interface SocialProofNotification {
   id: string;
-  type: 'purchase' | 'visitor' | 'review';
+  type: "purchase" | "visitor" | "review";
   name?: string;
   location?: string;
   product?: string;
@@ -44,6 +45,8 @@ export interface SocialProofConfig extends PopupDesignConfig, SocialProofContent
   // Storefront-specific fields only
   // Note: displayDuration, messageTemplates, enablePurchaseNotifications, etc.
   // all come from SocialProofContent
+  customCSS?: string;
+  globalCustomCSS?: string;
 }
 
 export interface SocialProofPopupProps {
@@ -69,7 +72,7 @@ export const SocialProofPopup: React.FC<SocialProofPopupProps> = ({
 
   const rotationInterval = (config.rotationInterval || 8) * 1000;
 
-  console.log('[SocialProofPopup] render', {
+  console.log("[SocialProofPopup] render", {
     isVisible,
     notificationsLength: notifications.length,
     rotationInterval,
@@ -87,22 +90,22 @@ export const SocialProofPopup: React.FC<SocialProofPopupProps> = ({
 
   // Filter notifications based on config
   const filteredNotifications = notifications.filter((notif) => {
-    if (notif.type === 'purchase' && !config.enablePurchaseNotifications) return false;
-    if (notif.type === 'visitor' && !config.enableVisitorNotifications) return false;
-    if (notif.type === 'review' && !config.enableReviewNotifications) return false;
+    if (notif.type === "purchase" && !config.enablePurchaseNotifications) return false;
+    if (notif.type === "visitor" && !config.enableVisitorNotifications) return false;
+    if (notif.type === "review" && !config.enableReviewNotifications) return false;
 
-    if (notif.type === 'visitor' && config.minVisitorCount && notif.count) {
+    if (notif.type === "visitor" && config.minVisitorCount && notif.count) {
       if (notif.count < config.minVisitorCount) return false;
     }
 
-    if (notif.type === 'review' && config.minReviewRating && notif.rating) {
+    if (notif.type === "review" && config.minReviewRating && notif.rating) {
       if (notif.rating < config.minReviewRating) return false;
     }
 
     return true;
   });
 
-  console.log('[SocialProofPopup] filtered notifications', {
+  console.log("[SocialProofPopup] filtered notifications", {
     inputLength: notifications.length,
     outputLength: filteredNotifications.length,
   });
@@ -112,7 +115,7 @@ export const SocialProofPopup: React.FC<SocialProofPopupProps> = ({
   // Rotate notifications
   useEffect(() => {
     if (!isVisible || filteredNotifications.length === 0) {
-      console.log('[SocialProofPopup] skipping rotation - not visible or no notifications', {
+      console.log("[SocialProofPopup] skipping rotation - not visible or no notifications", {
         isVisible,
         filteredLength: filteredNotifications.length,
       });
@@ -120,7 +123,7 @@ export const SocialProofPopup: React.FC<SocialProofPopupProps> = ({
     }
 
     if (config.maxNotificationsPerSession && shownCount >= config.maxNotificationsPerSession) {
-      console.log('[SocialProofPopup] maxNotificationsPerSession reached, closing', {
+      console.log("[SocialProofPopup] maxNotificationsPerSession reached, closing", {
         shownCount,
         max: config.maxNotificationsPerSession,
       });
@@ -128,7 +131,7 @@ export const SocialProofPopup: React.FC<SocialProofPopupProps> = ({
       return;
     }
 
-    console.log('[SocialProofPopup] scheduling rotation timer', {
+    console.log("[SocialProofPopup] scheduling rotation timer", {
       currentIndex,
       shownCount,
       filteredLength: filteredNotifications.length,
@@ -141,7 +144,7 @@ export const SocialProofPopup: React.FC<SocialProofPopupProps> = ({
       setTimeout(() => {
         setCurrentIndex((prev) => {
           const nextIndex = (prev + 1) % filteredNotifications.length;
-          console.log('[SocialProofPopup] advancing notification', {
+          console.log("[SocialProofPopup] advancing notification", {
             prevIndex: prev,
             nextIndex,
           });
@@ -149,7 +152,7 @@ export const SocialProofPopup: React.FC<SocialProofPopupProps> = ({
         });
         setShownCount((prev) => {
           const nextShown = prev + 1;
-          console.log('[SocialProofPopup] incrementing shownCount', {
+          console.log("[SocialProofPopup] incrementing shownCount", {
             prevShown: prev,
             nextShown,
           });
@@ -171,86 +174,88 @@ export const SocialProofPopup: React.FC<SocialProofPopupProps> = ({
   ]);
 
   const getPositionStyles = (): React.CSSProperties => {
-    const position = config.cornerPosition || 'bottom-left';
+    const position = config.cornerPosition || "bottom-left";
     const base: React.CSSProperties = {
-      position: 'fixed',
+      position: "fixed",
       zIndex: 10000,
     };
 
     switch (position) {
-      case 'bottom-left':
-        return { ...base, bottom: '20px', left: '20px' };
-      case 'bottom-right':
-        return { ...base, bottom: '20px', right: '20px' };
-      case 'top-left':
-        return { ...base, top: '20px', left: '20px' };
-      case 'top-right':
-        return { ...base, top: '20px', right: '20px' };
+      case "bottom-left":
+        return { ...base, bottom: "20px", left: "20px" };
+      case "bottom-right":
+        return { ...base, bottom: "20px", right: "20px" };
+      case "top-left":
+        return { ...base, top: "20px", left: "20px" };
+      case "top-right":
+        return { ...base, top: "20px", right: "20px" };
       default:
-        return { ...base, bottom: '20px', left: '20px' };
+        return { ...base, bottom: "20px", left: "20px" };
     }
   };
 
-  const getMessage = useCallback((notification: SocialProofNotification): string => {
-    const templates = config.messageTemplates || {};
+  const getMessage = useCallback(
+    (notification: SocialProofNotification): string => {
+      const templates = config.messageTemplates || {};
 
-    switch (notification.type) {
-      case 'purchase': {
-        const purchaseTemplate = templates.purchase || '{{name}} from {{location}} just purchased {{product}}';
-        return purchaseTemplate
-          .replace('{{name}}', notification.name || 'Someone')
-          .replace('{{location}}', notification.location || 'nearby')
-          .replace('{{product}}', notification.product || 'this item');
-      }
-
-      case 'visitor': {
-        const visitorTemplate = templates.visitor || '{{count}} people are viewing this right now';
-
-        // Tier 2 / advanced variants can provide a custom context message
-        if (notification.context) {
-          // If context already contains a {{count}} placeholder, respect it
-          if (notification.context.includes('{{count}}')) {
-            return notification.context.replace(
-              '{{count}}',
-              String(notification.count ?? 0),
-            );
-          }
-
-          // Otherwise build "<count> <context>" style messages, e.g.:
-          // "3 left in stock!", "5 added to cart in the last hour"
-          if (typeof notification.count === 'number') {
-            return `${notification.count} ${notification.context}`;
-          }
-
-          // Fallback to raw context if count is missing
-          return notification.context;
+      switch (notification.type) {
+        case "purchase": {
+          const purchaseTemplate =
+            templates.purchase || "{{name}} from {{location}} just purchased {{product}}";
+          return purchaseTemplate
+            .replace("{{name}}", notification.name || "Someone")
+            .replace("{{location}}", notification.location || "nearby")
+            .replace("{{product}}", notification.product || "this item");
         }
 
-        return visitorTemplate.replace('{{count}}', String(notification.count || 0));
-      }
+        case "visitor": {
+          const visitorTemplate =
+            templates.visitor || "{{count}} people are viewing this right now";
 
-      case 'review': {
-        const reviewTemplate = templates.review || '{{name}} gave this {{rating}} stars';
-        return reviewTemplate
-          .replace('{{name}}', notification.name || 'Someone')
-          .replace('{{rating}}', String(notification.rating || 5));
-      }
+          // Tier 2 / advanced variants can provide a custom context message
+          if (notification.context) {
+            // If context already contains a {{count}} placeholder, respect it
+            if (notification.context.includes("{{count}}")) {
+              return notification.context.replace("{{count}}", String(notification.count ?? 0));
+            }
 
-      default:
-        return '';
-    }
-  }, [config.messageTemplates]);
+            // Otherwise build "<count> <context>" style messages, e.g.:
+            // "3 left in stock!", "5 added to cart in the last hour"
+            if (typeof notification.count === "number") {
+              return `${notification.count} ${notification.context}`;
+            }
+
+            // Fallback to raw context if count is missing
+            return notification.context;
+          }
+
+          return visitorTemplate.replace("{{count}}", String(notification.count || 0));
+        }
+
+        case "review": {
+          const reviewTemplate = templates.review || "{{name}} gave this {{rating}} stars";
+          return reviewTemplate
+            .replace("{{name}}", notification.name || "Someone")
+            .replace("{{rating}}", String(notification.rating || 5));
+        }
+
+        default:
+          return "";
+      }
+    },
+    [config.messageTemplates]
+  );
 
   const getIcon = (type: string): string => {
     switch (type) {
-      case 'purchase':
-        return '🛍️';
-      case 'visitor':
-        return '👀';
-      case 'review':
-        return '⭐';
+      case "purchase":
+        return "🛍️";
+      case "visitor":
+        return "👀";
+      case "review":
+        return "⭐";
       default:
-        return '✨';
+        return "✨";
     }
   };
 
@@ -258,7 +263,18 @@ export const SocialProofPopup: React.FC<SocialProofPopupProps> = ({
     return null;
   }
 
-  const background = config.backgroundColor || '#111827';
+  const background = config.backgroundColor || "#111827";
+
+  const scopedCss = useMemo(
+    () =>
+      buildScopedCss(
+        config.globalCustomCSS,
+        config.customCSS,
+        "data-rb-social-proof",
+        "social-proof",
+      ),
+    [config.customCSS, config.globalCustomCSS],
+  );
 
   const containerStyles: React.CSSProperties = {
     ...getPositionStyles(),
@@ -267,62 +283,61 @@ export const SocialProofPopup: React.FC<SocialProofPopupProps> = ({
     color: config.textColor,
     borderRadius: `${config.borderRadius ?? 8}px`,
     padding: POPUP_SPACING.component.card,
-    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-    width: 'calc(100% - 40px)', // Ensure it fits on mobile
-    maxWidth: '350px',
-    display: 'flex',
+    boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+    width: "calc(100% - 40px)", // Ensure it fits on mobile
+    maxWidth: "350px",
+    display: "flex",
     gap: POPUP_SPACING.gap.sm,
-    alignItems: 'center',
+    alignItems: "center",
     opacity: isAnimating ? 0 : 1,
-    transform: isAnimating ? 'translateY(10px)' : 'translateY(0)',
-    transition: prefersReducedMotion() ? 'none' : 'opacity 0.3s, transform 0.3s',
-    containerType: 'inline-size',
-    containerName: 'social-proof',
+    transform: isAnimating ? "translateY(10px)" : "translateY(0)",
+    transition: prefersReducedMotion() ? "none" : "opacity 0.3s, transform 0.3s",
+    containerType: "inline-size",
+    containerName: "social-proof",
   };
 
   const closeButtonStyles: React.CSSProperties = {
-    background: 'transparent',
-    border: 'none',
+    background: "transparent",
+    border: "none",
     color: config.textColor,
-    fontSize: '18px',
-    cursor: 'pointer',
+    fontSize: "18px",
+    cursor: "pointer",
     opacity: 0.6,
-    padding: '2px 6px',
+    padding: "2px 6px",
     lineHeight: 1,
     flexShrink: 0,
-    alignSelf: 'flex-start',
-    marginLeft: '8px',
+    alignSelf: "flex-start",
+    marginLeft: "8px",
   };
 
   return (
-    <div style={containerStyles}>
+    <div style={containerStyles} data-rb-social-proof>
+      {scopedCss ? <style dangerouslySetInnerHTML={{ __html: scopedCss }} /> : null}
       {/* Icon */}
-      <div style={{ fontSize: '24px', flexShrink: 0 }}>
-        {getIcon(currentNotification.type)}
-      </div>
+      <div style={{ fontSize: "24px", flexShrink: 0 }}>{getIcon(currentNotification.type)}</div>
 
       {/* Product image */}
       {config.showProductImage && currentNotification.productImage && (
         <img
           src={currentNotification.productImage}
-          alt={currentNotification.product || 'Product'}
+          alt={currentNotification.product || "Product"}
           style={{
-            width: '50px',
-            height: '50px',
-            objectFit: 'cover',
-            borderRadius: '6px',
+            width: "50px",
+            height: "50px",
+            objectFit: "cover",
+            borderRadius: "6px",
             flexShrink: 0,
           }}
         />
       )}
 
       {/* Message */}
-      <div style={{ flex: 1, fontSize: '14px', lineHeight: 1.5, fontWeight: 600 }}>
+      <div style={{ flex: 1, fontSize: "14px", lineHeight: 1.5, fontWeight: 600 }}>
         {getMessage(currentNotification)}
 
         {/* Timer */}
         {config.showTimer && currentNotification.timestamp && (
-          <div style={{ fontSize: '12px', opacity: 0.7, marginTop: POPUP_SPACING.section.xs }}>
+          <div style={{ fontSize: "12px", opacity: 0.7, marginTop: POPUP_SPACING.section.xs }}>
             {getTimeAgo(currentNotification.timestamp)}
           </div>
         )}
@@ -334,8 +349,8 @@ export const SocialProofPopup: React.FC<SocialProofPopupProps> = ({
           onClick={onClose}
           style={closeButtonStyles}
           aria-label="Close notification"
-          onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
-          onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.6')}
+          onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
+          onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.6")}
         >
           ×
         </button>
@@ -348,9 +363,8 @@ export const SocialProofPopup: React.FC<SocialProofPopupProps> = ({
 function getTimeAgo(date: Date): string {
   const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
 
-  if (seconds < 60) return 'Just now';
+  if (seconds < 60) return "Just now";
   if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
   if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
   return `${Math.floor(seconds / 86400)}d ago`;
 }
-

@@ -21,7 +21,7 @@ export interface UseTemplatesResult {
 export function useTemplates(
   goal: CampaignGoal,
   storeId: string,
-  initialTemplates?: UnifiedTemplate[],
+  initialTemplates?: UnifiedTemplate[]
 ): UseTemplatesResult {
   const [templates, setTemplates] = useState<UnifiedTemplate[]>(() => {
     if (initialTemplates && initialTemplates.length > 0) {
@@ -29,7 +29,9 @@ export function useTemplates(
     }
     return [];
   });
-  const [loading, setLoading] = useState<boolean>(!(initialTemplates && initialTemplates.length > 0));
+  const [loading, setLoading] = useState<boolean>(
+    !(initialTemplates && initialTemplates.length > 0)
+  );
   const [error, setError] = useState<string | null>(null);
 
   if (typeof window !== "undefined") {
@@ -65,7 +67,10 @@ export function useTemplates(
       setError(null);
 
       try {
-        console.log("[useTemplates] fetching /api/templates", { goal, storeId });
+        console.log("[useTemplates] fetching /api/templates", {
+          goal,
+          storeId,
+        });
         const response = await apiClient.get<{ templates: UnifiedTemplate[] }>("/api/templates", {
           params: { storeId, goal },
         });
@@ -85,7 +90,7 @@ export function useTemplates(
             ? safeTemplates.filter((t) => t.goals.includes(goal))
             : safeTemplates;
           console.log(
-            `✅ Templates loaded: ${safeTemplates.length} templates (after goal filter: ${filtered.length})`,
+            `✅ Templates loaded: ${safeTemplates.length} templates (after goal filter: ${filtered.length})`
           );
           setTemplates(filtered);
         } else {
@@ -109,5 +114,3 @@ export function useTemplates(
 }
 
 export type { UnifiedTemplate };
-
-

@@ -1,9 +1,9 @@
 /**
  * Rate Limiter
- * 
+ *
  * Protects API endpoints from abuse with configurable rate limits
  * Uses in-memory storage with LRU cache for production-grade performance
- * 
+ *
  * Features:
  * - Sliding window algorithm
  * - Per-store and per-IP rate limiting
@@ -18,8 +18,8 @@ interface RateLimitEntry {
 }
 
 export interface RateLimitConfig {
-  windowMs: number;  // Time window in milliseconds
-  maxRequests: number;  // Max requests per window
+  windowMs: number; // Time window in milliseconds
+  maxRequests: number; // Max requests per window
 }
 
 /**
@@ -28,32 +28,32 @@ export interface RateLimitConfig {
 export const RATE_LIMIT_CONFIGS = {
   // Public API endpoints (stricter limits)
   PUBLIC: {
-    windowMs: 60 * 1000,  // 1 minute
-    maxRequests: 60,  // 60 requests per minute
+    windowMs: 60 * 1000, // 1 minute
+    maxRequests: 60, // 60 requests per minute
   },
-  
+
   // Authenticated API endpoints
   AUTHENTICATED: {
-    windowMs: 60 * 1000,  // 1 minute
-    maxRequests: 120,  // 120 requests per minute
+    windowMs: 60 * 1000, // 1 minute
+    maxRequests: 120, // 120 requests per minute
   },
-  
+
   // Write operations (create, update, delete)
   WRITE: {
-    windowMs: 60 * 1000,  // 1 minute
-    maxRequests: 30,  // 30 writes per minute
+    windowMs: 60 * 1000, // 1 minute
+    maxRequests: 30, // 30 writes per minute
   },
-  
+
   // Analytics/reporting endpoints
   ANALYTICS: {
-    windowMs: 60 * 1000,  // 1 minute
-    maxRequests: 20,  // 20 requests per minute
+    windowMs: 60 * 1000, // 1 minute
+    maxRequests: 20, // 20 requests per minute
   },
-  
+
   // Webhook endpoints
   WEBHOOK: {
-    windowMs: 60 * 1000,  // 1 minute
-    maxRequests: 100,  // 100 webhooks per minute
+    windowMs: 60 * 1000, // 1 minute
+    maxRequests: 100, // 100 webhooks per minute
   },
 } as const;
 
@@ -66,9 +66,12 @@ class RateLimitStore {
 
   constructor() {
     // Cleanup expired entries every 5 minutes
-    this.cleanupInterval = setInterval(() => {
-      this.cleanup();
-    }, 5 * 60 * 1000);
+    this.cleanupInterval = setInterval(
+      () => {
+        this.cleanup();
+      },
+      5 * 60 * 1000
+    );
   }
 
   get(key: string): RateLimitEntry | undefined {
@@ -124,7 +127,7 @@ export class RateLimiter {
   ): RateLimitResult {
     const now = Date.now();
     const key = `ratelimit:${identifier}`;
-    
+
     const entry = rateLimitStore.get(key);
 
     // No existing entry or window expired
@@ -171,10 +174,7 @@ export class RateLimiter {
   /**
    * Check rate limit for an IP address
    */
-  static checkIP(
-    ip: string,
-    config: RateLimitConfig = RATE_LIMIT_CONFIGS.PUBLIC
-  ): RateLimitResult {
+  static checkIP(ip: string, config: RateLimitConfig = RATE_LIMIT_CONFIGS.PUBLIC): RateLimitResult {
     return this.check(`ip:${ip}`, config);
   }
 
@@ -185,4 +185,3 @@ export class RateLimiter {
     rateLimitStore.delete(`ratelimit:${identifier}`);
   }
 }
-

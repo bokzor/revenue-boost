@@ -1,6 +1,6 @@
 /**
  * Trigger Components - Modular trigger configuration components
- * 
+ *
  * Each component follows Single Responsibility Principle
  */
 
@@ -17,4 +17,3 @@ export { ProductViewTrigger } from "./ProductViewTrigger";
 export { CartValueTrigger } from "./CartValueTrigger";
 export { CustomEventTrigger } from "./CustomEventTrigger";
 export { TriggerCombinationLogic } from "./TriggerCombinationLogic";
-

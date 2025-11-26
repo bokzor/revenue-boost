@@ -15,7 +15,11 @@
 import { redis, REDIS_PREFIXES, REDIS_TTL } from "~/lib/redis.server";
 import type { CampaignWithConfigs } from "~/domains/campaigns/types/campaign";
 import type { StorefrontContext } from "~/domains/campaigns/types/storefront-context";
-import type { GlobalFrequencyCappingSettings, FrequencyCapGroup, StoreSettings } from "~/domains/store/types/settings";
+import type {
+  GlobalFrequencyCappingSettings,
+  FrequencyCapGroup,
+  StoreSettings,
+} from "~/domains/store/types/settings";
 
 /**
  * Frequency capping rule configuration
@@ -73,7 +77,9 @@ export class FrequencyCapService {
     storeSettings?: StoreSettings
   ): Promise<FrequencyCapResult> {
     try {
-      const rules = campaign.targetRules?.enhancedTriggers?.frequency_capping as FrequencyCappingRule | undefined;
+      const rules = campaign.targetRules?.enhancedTriggers?.frequency_capping as
+        | FrequencyCappingRule
+        | undefined;
 
       // If no frequency capping configured, allow campaign
       if (!rules) {
@@ -83,7 +89,7 @@ export class FrequencyCapService {
       // Use experimentId for tracking if campaign is part of an experiment
       // This ensures all variants share the same frequency cap
       const trackingKey = campaign.experimentId || campaign.id;
-      const identifier = context.visitorId || context.sessionId || 'anonymous';
+      const identifier = context.visitorId || context.sessionId || "anonymous";
       const now = Date.now();
 
       // Check cooldown first
@@ -105,11 +111,12 @@ export class FrequencyCapService {
       // Check global/cross-campaign limits
       if (rules.respect_global_limits || rules.cross_campaign_limits) {
         const group = this.getFrequencyGroup(campaign.templateType);
-        const globalSettings = group === 'social_proof'
-          ? storeSettings?.socialProofFrequencyCapping
-          : group === 'banner'
-            ? storeSettings?.bannerFrequencyCapping
-            : storeSettings?.frequencyCapping;
+        const globalSettings =
+          group === "social_proof"
+            ? storeSettings?.socialProofFrequencyCapping
+            : group === "banner"
+              ? storeSettings?.bannerFrequencyCapping
+              : storeSettings?.frequencyCapping;
 
         const globalResult = await this.checkGlobalLimits(
           identifier,
@@ -131,7 +138,7 @@ export class FrequencyCapService {
           : undefined,
       };
     } catch (error) {
-      console.error('Frequency capping check failed:', error);
+      console.error("Frequency capping check failed:", error);
       // Fail open - allow display if frequency capping fails
       return { allowed: true, currentCounts: this.getEmptyCounts() };
     }
@@ -152,7 +159,7 @@ export class FrequencyCapService {
     templateType?: string
   ): Promise<void> {
     try {
-      const identifier = context.visitorId || context.sessionId || 'anonymous';
+      const identifier = context.visitorId || context.sessionId || "anonymous";
       const now = Date.now();
 
       // Record campaign-specific display
@@ -160,11 +167,11 @@ export class FrequencyCapService {
 
       // Record global display if needed
       if (rules?.respect_global_limits || rules?.cross_campaign_limits) {
-        const group = templateType ? this.getFrequencyGroup(templateType) : 'popup';
+        const group = templateType ? this.getFrequencyGroup(templateType) : "popup";
         const globalSettings =
-          group === 'social_proof'
+          group === "social_proof"
             ? storeSettings?.socialProofFrequencyCapping
-            : group === 'banner'
+            : group === "banner"
               ? storeSettings?.bannerFrequencyCapping
               : storeSettings?.frequencyCapping;
 
@@ -176,7 +183,7 @@ export class FrequencyCapService {
         await this.setCooldown(identifier, trackingKey, rules.cooldown_between_triggers, now);
       }
     } catch (error) {
-      console.error('Failed to record display for frequency capping:', error);
+      console.error("Failed to record display for frequency capping:", error);
       // Don't throw - recording failure shouldn't break popup display
     }
   }
@@ -188,7 +195,7 @@ export class FrequencyCapService {
     identifier: string,
     trackingKey: string,
     now: number,
-    group: FrequencyCapGroup = 'popup'
+    group: FrequencyCapGroup = "popup"
   ): Promise<FrequencyCapResult> {
     if (!redis) {
       return {
@@ -203,7 +210,7 @@ export class FrequencyCapService {
     if (cooldownUntil && parseInt(cooldownUntil) > now) {
       return {
         allowed: false,
-        reason: 'In cooldown period',
+        reason: "In cooldown period",
         nextAllowedTime: parseInt(cooldownUntil),
         cooldownUntil: parseInt(cooldownUntil),
         currentCounts: this.getEmptyCounts(),
@@ -212,7 +219,7 @@ export class FrequencyCapService {
 
     // Check global cooldown if it exists (check both groups just in case, or specific group if we knew it here)
     // Ideally we should check the cooldown for the specific group of the campaign being checked
-    // But checkCooldown doesn't know the campaign type. 
+    // But checkCooldown doesn't know the campaign type.
     // However, checkFrequencyCapping calls checkCooldown at the start.
     // Let's modify checkCooldown to accept group if possible, or handle it in checkFrequencyCapping
 
@@ -231,13 +238,9 @@ export class FrequencyCapService {
     if (!redis || cooldownSeconds <= 0) return;
 
     const cooldownKey = `${REDIS_PREFIXES.COOLDOWN}:${identifier}:${trackingKey}`;
-    const cooldownUntil = now + (cooldownSeconds * 1000);
+    const cooldownUntil = now + cooldownSeconds * 1000;
 
-    await redis.setex(
-      cooldownKey,
-      cooldownSeconds,
-      cooldownUntil.toString()
-    );
+    await redis.setex(cooldownKey, cooldownSeconds, cooldownUntil.toString());
   }
 
   /**
@@ -246,16 +249,16 @@ export class FrequencyCapService {
   private static async getCurrentCounts(
     identifier: string,
     trackingKey: string
-  ): Promise<FrequencyCapResult['currentCounts']> {
+  ): Promise<FrequencyCapResult["currentCounts"]> {
     const now = Date.now();
     const baseKey = `${REDIS_PREFIXES.FREQUENCY_CAP}:${identifier}:${trackingKey}`;
 
     const [session, hour, day, week, month] = await Promise.all([
-      this.getTimeWindowCount(baseKey, 'session', now),
-      this.getTimeWindowCount(baseKey, 'hour', now),
-      this.getTimeWindowCount(baseKey, 'day', now),
-      this.getTimeWindowCount(baseKey, 'week', now),
-      this.getTimeWindowCount(baseKey, 'month', now),
+      this.getTimeWindowCount(baseKey, "session", now),
+      this.getTimeWindowCount(baseKey, "hour", now),
+      this.getTimeWindowCount(baseKey, "day", now),
+      this.getTimeWindowCount(baseKey, "week", now),
+      this.getTimeWindowCount(baseKey, "month", now),
     ]);
 
     return { session, hour, day, week, month };
@@ -264,7 +267,10 @@ export class FrequencyCapService {
   /**
    * Get global counts across all campaigns
    */
-  private static async getGlobalCounts(identifier: string, group: FrequencyCapGroup = 'popup'): Promise<{
+  private static async getGlobalCounts(
+    identifier: string,
+    group: FrequencyCapGroup = "popup"
+  ): Promise<{
     session: number;
     day: number;
   }> {
@@ -272,8 +278,8 @@ export class FrequencyCapService {
     const baseKey = `${REDIS_PREFIXES.GLOBAL_FREQUENCY}:${identifier}:${group}`;
 
     const [session, day] = await Promise.all([
-      this.getTimeWindowCount(baseKey, 'session', now),
-      this.getTimeWindowCount(baseKey, 'day', now),
+      this.getTimeWindowCount(baseKey, "session", now),
+      this.getTimeWindowCount(baseKey, "day", now),
     ]);
 
     return { session, day };
@@ -283,10 +289,21 @@ export class FrequencyCapService {
    * Check campaign-specific limits
    */
   private static checkCampaignLimits(
-    counts: FrequencyCapResult['currentCounts'],
+    counts: FrequencyCapResult["currentCounts"],
     rules: FrequencyCappingRule
-  ): Pick<FrequencyCapResult, 'allowed' | 'reason'> {
+  ): Pick<FrequencyCapResult, "allowed" | "reason"> {
+    // Diagnostic logging for debugging frequency capping issues
+    console.log('[FrequencyCap] Checking campaign limits:', {
+      sessionCount: counts.session,
+      sessionLimit: rules.max_triggers_per_session,
+      hourCount: counts.hour,
+      hourLimit: rules.max_triggers_per_hour,
+      dayCount: counts.day,
+      dayLimit: rules.max_triggers_per_day,
+    });
+
     if (rules.max_triggers_per_session && counts.session >= rules.max_triggers_per_session) {
+      console.log(`[FrequencyCap] ❌ Session limit EXCEEDED: ${counts.session} >= ${rules.max_triggers_per_session}`);
       return {
         allowed: false,
         reason: `Session limit exceeded (${rules.max_triggers_per_session})`,
@@ -330,10 +347,10 @@ export class FrequencyCapService {
   private static async checkGlobalLimits(
     identifier: string,
     trackingKey: string,
-    crossCampaignLimits?: FrequencyCappingRule['cross_campaign_limits'],
+    crossCampaignLimits?: FrequencyCappingRule["cross_campaign_limits"],
     globalSettings?: GlobalFrequencyCappingSettings,
-    group: FrequencyCapGroup = 'popup'
-  ): Promise<Pick<FrequencyCapResult, 'allowed' | 'reason' | 'globalCounts'>> {
+    group: FrequencyCapGroup = "popup"
+  ): Promise<Pick<FrequencyCapResult, "allowed" | "reason" | "globalCounts">> {
     // If global settings are provided and enabled, they take precedence
     if (globalSettings?.enabled) {
       const globalCounts = await this.getGlobalCounts(identifier, group);
@@ -349,10 +366,7 @@ export class FrequencyCapService {
         };
       }
 
-      if (
-        globalSettings.max_per_day &&
-        globalCounts.day >= globalSettings.max_per_day
-      ) {
+      if (globalSettings.max_per_day && globalCounts.day >= globalSettings.max_per_day) {
         return {
           allowed: false,
           reason: `Global daily limit exceeded (${globalSettings.max_per_day})`,
@@ -381,10 +395,7 @@ export class FrequencyCapService {
       };
     }
 
-    if (
-      crossCampaignLimits.max_per_day &&
-      globalCounts.day >= crossCampaignLimits.max_per_day
-    ) {
+    if (crossCampaignLimits.max_per_day && globalCounts.day >= crossCampaignLimits.max_per_day) {
       return {
         allowed: false,
         reason: `Global daily limit exceeded (${crossCampaignLimits.max_per_day})`,
@@ -406,11 +417,11 @@ export class FrequencyCapService {
     const baseKey = `${REDIS_PREFIXES.FREQUENCY_CAP}:${identifier}:${trackingKey}`;
 
     await Promise.all([
-      this.incrementTimeWindowCount(baseKey, 'session', now, REDIS_TTL.SESSION),
-      this.incrementTimeWindowCount(baseKey, 'hour', now, REDIS_TTL.HOUR),
-      this.incrementTimeWindowCount(baseKey, 'day', now, REDIS_TTL.DAY),
-      this.incrementTimeWindowCount(baseKey, 'week', now, REDIS_TTL.WEEK),
-      this.incrementTimeWindowCount(baseKey, 'month', now, REDIS_TTL.MONTH),
+      this.incrementTimeWindowCount(baseKey, "session", now, REDIS_TTL.SESSION),
+      this.incrementTimeWindowCount(baseKey, "hour", now, REDIS_TTL.HOUR),
+      this.incrementTimeWindowCount(baseKey, "day", now, REDIS_TTL.DAY),
+      this.incrementTimeWindowCount(baseKey, "week", now, REDIS_TTL.WEEK),
+      this.incrementTimeWindowCount(baseKey, "month", now, REDIS_TTL.MONTH),
     ]);
   }
 
@@ -421,19 +432,24 @@ export class FrequencyCapService {
     identifier: string,
     now: number,
     globalSettings?: GlobalFrequencyCappingSettings,
-    group: FrequencyCapGroup = 'popup'
+    group: FrequencyCapGroup = "popup"
   ): Promise<void> {
     const baseKey = `${REDIS_PREFIXES.GLOBAL_FREQUENCY}:${identifier}:${group}`;
 
     await Promise.all([
-      this.incrementTimeWindowCount(baseKey, 'session', now, REDIS_TTL.SESSION),
-      this.incrementTimeWindowCount(baseKey, 'day', now, REDIS_TTL.DAY),
+      this.incrementTimeWindowCount(baseKey, "session", now, REDIS_TTL.SESSION),
+      this.incrementTimeWindowCount(baseKey, "day", now, REDIS_TTL.DAY),
     ]);
 
     // Handle global cooldown if configured
     if (globalSettings?.cooldown_between_popups && globalSettings.cooldown_between_popups > 0) {
       // We use a special tracking key 'global:group' for global cooldowns
-      await this.setCooldown(identifier, `global:${group}`, globalSettings.cooldown_between_popups, now);
+      await this.setCooldown(
+        identifier,
+        `global:${group}`,
+        globalSettings.cooldown_between_popups,
+        now
+      );
     }
   }
 
@@ -475,7 +491,7 @@ export class FrequencyCapService {
   /**
    * Get empty counts structure
    */
-  private static getEmptyCounts(): FrequencyCapResult['currentCounts'] {
+  private static getEmptyCounts(): FrequencyCapResult["currentCounts"] {
     return {
       session: 0,
       hour: 0,
@@ -488,10 +504,7 @@ export class FrequencyCapService {
   /**
    * Reset frequency capping for a user/session (useful for testing)
    */
-  static async resetFrequencyCapping(
-    identifier: string,
-    trackingKey?: string
-  ): Promise<void> {
+  static async resetFrequencyCapping(identifier: string, trackingKey?: string): Promise<void> {
     if (!redis) return;
 
     try {
@@ -522,7 +535,7 @@ export class FrequencyCapService {
         }
       }
     } catch (error) {
-      console.error('Failed to reset frequency capping:', error);
+      console.error("Failed to reset frequency capping:", error);
     }
   }
 
@@ -533,7 +546,7 @@ export class FrequencyCapService {
     identifier: string,
     trackingKey: string
   ): Promise<{
-    counts: FrequencyCapResult['currentCounts'];
+    counts: FrequencyCapResult["currentCounts"];
     globalCounts: { session: number; day: number };
     cooldownUntil?: number;
   }> {
@@ -555,14 +568,16 @@ export class FrequencyCapService {
    * Determine frequency cap group based on template type
    */
   private static getFrequencyGroup(templateType: string): FrequencyCapGroup {
-    if (templateType === 'SOCIAL_PROOF') {
-      return 'social_proof';
+    if (templateType === "SOCIAL_PROOF") {
+      return "social_proof";
     }
-    if (templateType === 'ANNOUNCEMENT' || templateType === 'COUNTDOWN_TIMER' || templateType === 'FREE_SHIPPING') {
-      return 'banner';
+    if (
+      templateType === "ANNOUNCEMENT" ||
+      templateType === "COUNTDOWN_TIMER" ||
+      templateType === "FREE_SHIPPING"
+    ) {
+      return "banner";
     }
-    return 'popup';
+    return "popup";
   }
 }
-
-

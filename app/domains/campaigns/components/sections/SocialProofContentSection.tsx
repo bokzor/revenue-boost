@@ -47,8 +47,8 @@ export function SocialProofContentSection({
       {/* Info Banner */}
       <Banner tone="info">
         <Text as="p">
-          Social proof notifications build trust by showing real activity on your store.
-          Enable the notification types that best fit your business and configure display settings below.
+          Social proof notifications build trust by showing real activity on your store. Enable the
+          notification types that best fit your business and configure display settings below.
         </Text>
       </Banner>
 
@@ -189,14 +189,15 @@ export function SocialProofContentSection({
             💡 Performance Tips
           </Text>
           <Text as="p">
-            • Start with Purchase + Visitor + Reviews for a strong baseline<br />
-            • Use a rotation interval of 6-10 seconds to avoid feeling spammy<br />
-            • Cap notifications to 3-7 per session for each visitor<br />
-            • Use visitor/review thresholds to keep notifications trustworthy
+            • Start with Purchase + Visitor + Reviews for a strong baseline
+            <br />
+            • Use a rotation interval of 6-10 seconds to avoid feeling spammy
+            <br />
+            • Cap notifications to 3-7 per session for each visitor
+            <br />• Use visitor/review thresholds to keep notifications trustworthy
           </Text>
         </BlockStack>
       </Banner>
     </BlockStack>
   );
 }
-

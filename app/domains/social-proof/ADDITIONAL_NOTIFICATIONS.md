@@ -22,11 +22,12 @@ This document outlines additional high-converting notification types that can be
 **Display**: "Only 3 left in stock!" or "Low stock - 2 remaining"
 
 **Implementation**:
+
 ```typescript
 // In shopify-data.server.ts
 static async getLowStockNotification(params: GetLowStockParams) {
   const { storeId, productId, threshold = 10 } = params;
-  
+
   // Query Shopify Inventory API
   const query = `
     query getInventory($productId: ID!) {
@@ -41,10 +42,10 @@ static async getLowStockNotification(params: GetLowStockParams) {
       }
     }
   `;
-  
+
   // Sum inventory across variants
   const totalInventory = variants.reduce((sum, v) => sum + v.inventoryQuantity, 0);
-  
+
   if (totalInventory > 0 && totalInventory <= threshold) {
     return {
       id: `low-stock-${productId}`,
@@ -55,7 +56,7 @@ static async getLowStockNotification(params: GetLowStockParams) {
       timestamp: Date.now(),
     };
   }
-  
+
   return null;
 }
 ```
@@ -69,6 +70,7 @@ static async getLowStockNotification(params: GetLowStockParams) {
 **Display**: "3 people added this to cart in the last hour" or "Sarah just added this to cart"
 
 **Implementation**:
+
 ```typescript
 // In visitor-tracking.server.ts
 static async trackCartActivity(params: {
@@ -78,16 +80,16 @@ static async trackCartActivity(params: {
 }) {
   const redis = getRedis();
   if (!redis) return;
-  
+
   const key = `${REDIS_PREFIXES.STATS}:cart:${storeId}:${productId}`;
-  
+
   // Add to sorted set with timestamp
   await redis.zadd(key, Date.now(), visitorId);
-  
+
   // Remove entries older than 1 hour
   const oneHourAgo = Date.now() - 3600000;
   await redis.zremrangebyscore(key, 0, oneHourAgo);
-  
+
   // Set expiry
   await redis.expire(key, REDIS_TTL.HOUR);
 }
@@ -95,12 +97,12 @@ static async trackCartActivity(params: {
 static async getCartActivityNotification(params: GetCartActivityParams) {
   const redis = getRedis();
   if (!redis) return null;
-  
+
   const key = `${REDIS_PREFIXES.STATS}:cart:${storeId}:${productId}`;
   const count = await redis.zcard(key);
-  
+
   if (count < 2) return null;
-  
+
   return {
     id: `cart-activity-${productId}`,
     type: 'visitor',
@@ -113,11 +115,12 @@ static async getCartActivityNotification(params: GetCartActivityParams) {
 ```
 
 **Frontend Tracking**:
+
 ```typescript
 // In storefront, listen for add-to-cart events
-document.addEventListener('cart:add', (e) => {
+document.addEventListener("cart:add", (e) => {
   api.trackSocialProofEvent({
-    eventType: 'add_to_cart',
+    eventType: "add_to_cart",
     productId: e.detail.productId,
     shop: shopDomain,
   });
@@ -141,13 +144,13 @@ static async getRecentlyViewedNotification(params: {
 }) {
   const redis = getRedis();
   if (!redis) return null;
-  
+
   const key = `${REDIS_PREFIXES.STATS}:views:${storeId}:${productId}`;
   const views = await redis.get(key);
   const viewCount = views ? parseInt(views, 10) : 0;
-  
+
   if (viewCount < 10) return null;
-  
+
   return {
     id: `recently-viewed-${productId}`,
     type: 'visitor',
@@ -168,6 +171,7 @@ static async getRecentlyViewedNotification(params: {
 **Display**: "Emily just left a 5-star review" or "Rated 4.8/5 by 234 customers"
 
 **Requirements**:
+
 - Shopify Product Reviews API integration
 - Or third-party review app (Yotpo, Judge.me, etc.)
 
@@ -176,6 +180,7 @@ static async getRecentlyViewedNotification(params: {
 **Display**: "Sarah just joined our newsletter" or "Join 10,000+ subscribers"
 
 **Requirements**:
+
 - Track newsletter sign-ups
 - Store count in Redis
 - Display recent sign-ups
@@ -185,18 +190,19 @@ static async getRecentlyViewedNotification(params: {
 **Display**: "Order in next 2 hours for same-day shipping" or "Order by 3 PM for next-day delivery"
 
 **Implementation**:
+
 ```typescript
 static getFastShippingNotification() {
   const now = new Date();
   const cutoffHour = 15; // 3 PM
   const currentHour = now.getHours();
-  
+
   if (currentHour >= cutoffHour) {
     return null; // Too late for today
   }
-  
+
   const hoursRemaining = cutoffHour - currentHour;
-  
+
   return {
     id: 'fast-shipping',
     type: 'visitor',
@@ -213,6 +219,7 @@ static getFastShippingNotification() {
 **Display**: "Sale ends in 3 hours!" or "Limited time: 20% off expires soon"
 
 **Requirements**:
+
 - Track active discount campaigns
 - Calculate time remaining
 - Display countdown
@@ -224,14 +231,17 @@ static getFastShippingNotification() {
 You can also create custom notification types for specific use cases:
 
 ### **Seasonal/Holiday Notifications**
+
 - "🎄 Holiday Sale - 30% off everything!"
 - "🎃 Halloween Special - Limited time only"
 
 ### **Milestone Notifications**
+
 - "🎉 We just hit 10,000 customers!"
 - "⭐ 5,000+ 5-star reviews"
 
 ### **Scarcity Notifications**
+
 - "⚡ Flash Sale - Only 2 hours left"
 - "🔥 Last chance - Sale ends tonight"
 
@@ -252,17 +262,20 @@ Test different notification types to find what works best for your audience:
 ## 🚀 Implementation Priority
 
 **Phase 1** (Completed):
+
 - ✅ Purchase notifications
 - ✅ Visitor count
 - ✅ Sales count
 - ✅ Trending products
 
 **Phase 2** (Next):
+
 - 🚧 Low stock alerts
 - 🚧 Cart activity
 - 🚧 Recently viewed
 
 **Phase 3** (Future):
+
 - 📋 Recent reviews
 - 📋 Newsletter sign-ups
 - 📋 Fast shipping timer
@@ -294,4 +307,3 @@ Based on industry benchmarks:
 ---
 
 **Ready to implement more notification types? Start with Tier 2 for maximum impact!**
-

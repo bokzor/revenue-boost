@@ -23,7 +23,7 @@ import {
   type DiscountConfig,
   type ContentConfig,
   type BaseContentConfig,
-  type TemplateType
+  type TemplateType,
 } from "../../campaigns/types/campaign.js";
 import { getContentSchemaForTemplate } from "../registry/template-registry.js";
 
@@ -54,35 +54,43 @@ export const TemplateFieldSchema = z.object({
     "prize-list",
     "color-list",
     "product-picker",
-    "collection-picker"
+    "collection-picker",
   ]),
   label: z.string(),
   description: z.string().optional(),
   defaultValue: z.unknown(),
-  options: z.array(z.object({
-    value: z.string(),
-    label: z.string(),
-    description: z.string().optional(),
-  })).optional(),
-  validation: z.object({
-    required: z.boolean().optional(),
-    minLength: z.number().optional(),
-    maxLength: z.number().optional(),
-    min: z.number().optional(),
-    max: z.number().optional(),
-    pattern: z.string().optional(),
-  }).optional(),
+  options: z
+    .array(
+      z.object({
+        value: z.string(),
+        label: z.string(),
+        description: z.string().optional(),
+      })
+    )
+    .optional(),
+  validation: z
+    .object({
+      required: z.boolean().optional(),
+      minLength: z.number().optional(),
+      maxLength: z.number().optional(),
+      min: z.number().optional(),
+      max: z.number().optional(),
+      pattern: z.string().optional(),
+    })
+    .optional(),
   category: z.enum(["content", "design", "behavior"]),
-  section: z.enum([
-    "content",
-    "design",
-    "theme",
-    "layout",
-    "positioning",
-    "behavior",
-    "products",
-    "advanced"
-  ]).optional(),
+  section: z
+    .enum([
+      "content",
+      "design",
+      "theme",
+      "layout",
+      "positioning",
+      "behavior",
+      "products",
+      "advanced",
+    ])
+    .optional(),
 });
 
 export type TemplateField = z.infer<typeof TemplateFieldSchema>;
@@ -115,7 +123,7 @@ export function parseTemplateContentConfig(
 
     // Handle string JSON
     let parsed: unknown;
-    if (typeof jsonValue === 'string') {
+    if (typeof jsonValue === "string") {
       parsed = JSON.parse(jsonValue);
     } else {
       parsed = jsonValue;
@@ -123,9 +131,9 @@ export function parseTemplateContentConfig(
 
     // Validate with schema
     const result = schema.safeParse(parsed);
-    return result.success ? result.data : {} as BaseContentConfig;
+    return result.success ? result.data : ({} as BaseContentConfig);
   } catch (error) {
-    console.warn('Failed to parse template contentConfig:', error);
+    console.warn("Failed to parse template contentConfig:", error);
     return {} as BaseContentConfig;
   }
 }
@@ -167,10 +175,7 @@ export const BaseTemplateSchema = z.object({
  */
 export const TemplateWithConfigsSchema = BaseTemplateSchema.extend({
   // JSON configurations (matching Prisma schema field names exactly with proper typing)
-  contentConfig: z.union([
-    BaseContentConfigSchema,
-    z.record(z.string(), z.unknown())
-  ]).default({}), // Default content values for this template (can be typed or generic)
+  contentConfig: z.union([BaseContentConfigSchema, z.record(z.string(), z.unknown())]).default({}), // Default content values for this template (can be typed or generic)
   fields: z.array(TemplateFieldSchema).default([]), // Array of TemplateField definitions
   targetRules: TargetRulesConfigSchema.default({}), // Default trigger/targeting configuration
   designConfig: DesignConfigSchema.default({
@@ -181,7 +186,7 @@ export const TemplateWithConfigsSchema = BaseTemplateSchema.extend({
     imagePosition: "left",
     overlayOpacity: 0.8,
     backgroundImageMode: "none",
-    animation: "fade"
+    animation: "fade",
   }), // Default design configuration
   discountConfig: DiscountConfigSchema.default({
     enabled: false,
@@ -210,7 +215,7 @@ export const NewsletterTemplateSchema = BaseTemplateSchema.extend({
     imagePosition: "left",
     overlayOpacity: 0.8,
     backgroundImageMode: "none",
-    animation: "fade"
+    animation: "fade",
   }),
   discountConfig: DiscountConfigSchema.default({
     enabled: false,
@@ -239,7 +244,7 @@ export const FlashSaleTemplateSchema = BaseTemplateSchema.extend({
     imagePosition: "left",
     overlayOpacity: 0.8,
     backgroundImageMode: "none",
-    animation: "fade"
+    animation: "fade",
   }),
   discountConfig: DiscountConfigSchema.default({
     enabled: true,
@@ -267,9 +272,14 @@ export const SpinToWinTemplateSchema = BaseTemplateSchema.extend({
     imagePosition: "none",
     overlayOpacity: 0.8,
     backgroundImageMode: "none",
-    animation: "fade"
+    animation: "fade",
   }),
-  discountConfig: DiscountConfigSchema.default({ enabled: false, showInPreview: true, autoApplyMode: "ajax", codePresentation: "show_code" }),
+  discountConfig: DiscountConfigSchema.default({
+    enabled: false,
+    showInPreview: true,
+    autoApplyMode: "ajax",
+    codePresentation: "show_code",
+  }),
 });
 
 // Free Shipping Template
@@ -286,7 +296,7 @@ export const FreeShippingTemplateSchema = BaseTemplateSchema.extend({
     imagePosition: "left",
     overlayOpacity: 0,
     backgroundImageMode: "none",
-    animation: "slide"
+    animation: "slide",
   }),
   discountConfig: DiscountConfigSchema.default({
     enabled: true,
@@ -364,4 +374,11 @@ export type TypedTemplate =
   | TemplateWithConfigs; // Fallback for other types
 
 // Re-export config types for convenience
-export type { DesignConfig, TargetRulesConfig, DiscountConfig, ContentConfig, BaseContentConfig, TemplateType };
+export type {
+  DesignConfig,
+  TargetRulesConfig,
+  DiscountConfig,
+  ContentConfig,
+  BaseContentConfig,
+  TemplateType,
+};

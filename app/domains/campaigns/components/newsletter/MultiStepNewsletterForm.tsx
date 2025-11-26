@@ -69,9 +69,7 @@ export const MultiStepNewsletterForm: React.FC<MultiStepNewsletterFormProps> = (
       }}
     >
       {config.headline && (
-        <h2 style={{ margin: "0 0 12px 0", fontSize: "24px", color: "#333" }}>
-          {config.headline}
-        </h2>
+        <h2 style={{ margin: "0 0 12px 0", fontSize: "24px", color: "#333" }}>{config.headline}</h2>
       )}
 
       {config.subheadline && (
@@ -181,4 +179,3 @@ export const MultiStepNewsletterForm: React.FC<MultiStepNewsletterFormProps> = (
 };
 
 export default MultiStepNewsletterForm;
-

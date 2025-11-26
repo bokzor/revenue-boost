@@ -10,7 +10,15 @@ import { extractTriggerConfig } from "~/shared/utils/trigger-extraction";
 
 // Legacy trigger config structure used by PopupManagerCore
 interface LegacyTriggerConfig {
-  type?: "time_delay" | "page_load" | "scroll_depth" | "exit_intent" | "product_view" | "add_to_cart" | "checkout_start" | "custom_event";
+  type?:
+    | "time_delay"
+    | "page_load"
+    | "scroll_depth"
+    | "exit_intent"
+    | "product_view"
+    | "add_to_cart"
+    | "checkout_start"
+    | "custom_event";
   delay?: number;
   scrollPercentage?: number;
   customEventName?: string;
@@ -54,13 +62,25 @@ export class PopupManagerCore {
     this.loadDismissedCampaigns();
   }
 
-  getActiveCampaign() { return this.state.activeCampaign; }
-  getDismissedCampaigns() { return this.state.dismissedCampaigns; }
-  getCooldownCampaigns() { return this.state.cooldownCampaigns; }
+  getActiveCampaign() {
+    return this.state.activeCampaign;
+  }
+  getDismissedCampaigns() {
+    return this.state.dismissedCampaigns;
+  }
+  getCooldownCampaigns() {
+    return this.state.cooldownCampaigns;
+  }
 
-  setActiveCampaign(campaign: StorefrontCampaign | null) { this.state.activeCampaign = campaign; }
-  setDismissedCampaigns(campaigns: Set<string>) { this.state.dismissedCampaigns = campaigns; }
-  setCooldownCampaigns(campaigns: Set<string>) { this.state.cooldownCampaigns = campaigns; }
+  setActiveCampaign(campaign: StorefrontCampaign | null) {
+    this.state.activeCampaign = campaign;
+  }
+  setDismissedCampaigns(campaigns: Set<string>) {
+    this.state.dismissedCampaigns = campaigns;
+  }
+  setCooldownCampaigns(campaigns: Set<string>) {
+    this.state.cooldownCampaigns = campaigns;
+  }
 
   private loadDismissedCampaigns() {
     try {
@@ -79,10 +99,13 @@ export class PopupManagerCore {
   saveDismissedCampaigns(dismissed: Set<string>, cooldowns: Set<string>) {
     try {
       if (typeof window === "undefined") return;
-      window.localStorage.setItem("splitpop_dismissed_campaigns", JSON.stringify({
-        dismissed: Array.from(dismissed),
-        cooldowns: Array.from(cooldowns),
-      }));
+      window.localStorage.setItem(
+        "splitpop_dismissed_campaigns",
+        JSON.stringify({
+          dismissed: Array.from(dismissed),
+          cooldowns: Array.from(cooldowns),
+        })
+      );
     } catch {
       // Ignore localStorage errors
     }
@@ -106,7 +129,9 @@ export class PopupManagerCore {
     // Check debounce (5 second cooldown after closing)
     try {
       if (typeof window !== "undefined") {
-        const until = parseInt(window.sessionStorage.getItem(`splitpop_recently_closed_until:${trackingKey}`) || "0");
+        const until = parseInt(
+          window.sessionStorage.getItem(`splitpop_recently_closed_until:${trackingKey}`) || "0"
+        );
         if (until > Date.now()) return false;
       }
     } catch {
@@ -115,8 +140,10 @@ export class PopupManagerCore {
 
     // Check if user dismissed this campaign (clicked close button)
     // Server handles frequency capping via Redis
-    return !this.state.dismissedCampaigns.has(trackingKey) &&
-           !this.state.cooldownCampaigns.has(trackingKey);
+    return (
+      !this.state.dismissedCampaigns.has(trackingKey) &&
+      !this.state.cooldownCampaigns.has(trackingKey)
+    );
   }
 
   async showPopup(campaign: StorefrontCampaign): Promise<boolean> {
@@ -163,9 +190,12 @@ export class PopupManagerCore {
       this.state.cooldownCampaigns = newCooldowns;
       this.saveDismissedCampaigns(this.state.dismissedCampaigns, newCooldowns);
 
-      setTimeout(() => {
-        this.state.cooldownCampaigns.delete(trackingKey);
-      }, this.state.activeCampaign.cooldownMinutes * 60 * 1000);
+      setTimeout(
+        () => {
+          this.state.cooldownCampaigns.delete(trackingKey);
+        },
+        this.state.activeCampaign.cooldownMinutes * 60 * 1000
+      );
     }
 
     this.state.activeCampaign = null;
@@ -188,7 +218,7 @@ export class PopupManagerCore {
 
   getAvailableCampaigns(campaigns: StorefrontCampaign[]) {
     return campaigns
-      .filter(c => this.canDisplayCampaign(c))
+      .filter((c) => this.canDisplayCampaign(c))
       .sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0));
   }
 
@@ -196,7 +226,7 @@ export class PopupManagerCore {
     const availableCampaigns = this.getAvailableCampaigns(campaigns);
 
     // Preview mode - show immediately
-    const previewCandidate = availableCampaigns.find(c => c.previewMode);
+    const previewCandidate = availableCampaigns.find((c) => c.previewMode);
     if (previewCandidate && !this.state.activeCampaign) {
       setTimeout(() => this.showPopup(previewCandidate), 0);
       return () => {};
@@ -216,20 +246,21 @@ export class PopupManagerCore {
     const triggerConfig = extractTriggerConfig(campaign);
     this.setupTriggerType(campaign, triggerConfig as unknown as LegacyTriggerConfig, removers);
 
-    this.triggersCleanup = () => removers.forEach(fn => {
-      try {
-        fn();
-      } catch (error) {
-        console.error('[PopupManagerCore] Failed to cleanup trigger:', error);
-      }
-    });
+    this.triggersCleanup = () =>
+      removers.forEach((fn) => {
+        try {
+          fn();
+        } catch (error) {
+          console.error("[PopupManagerCore] Failed to cleanup trigger:", error);
+        }
+      });
     return this.triggersCleanup;
   }
 
   private setupTriggerType(
     campaign: StorefrontCampaign,
     triggerConfig: LegacyTriggerConfig,
-    removers: Array<() => void>,
+    removers: Array<() => void>
   ) {
     switch (triggerConfig.type) {
       case "time_delay":
@@ -277,7 +308,8 @@ export class PopupManagerCore {
         }
 
         const windowWithProduct = window as WindowWithProduct;
-        const isProductPage = window.location.pathname.includes("/products/") ||
+        const isProductPage =
+          window.location.pathname.includes("/products/") ||
           document.body.classList.contains("template-product") ||
           Boolean(document.querySelector("[data-product-id]")) ||
           Boolean(windowWithProduct.product) ||
@@ -293,8 +325,11 @@ export class PopupManagerCore {
       case "add_to_cart": {
         const handleAddToCart = (e: Event) => {
           const target = e.target as HTMLElement;
-          if (target.matches('[name="add"]') || target.matches(".btn-add-to-cart") ||
-              target.closest("[data-add-to-cart]")) {
+          if (
+            target.matches('[name="add"]') ||
+            target.matches(".btn-add-to-cart") ||
+            target.closest("[data-add-to-cart]")
+          ) {
             this.showPopup(campaign);
           }
         };
@@ -307,8 +342,11 @@ export class PopupManagerCore {
       case "checkout_start": {
         const handleCheckoutClick = (e: Event) => {
           const target = e.target as HTMLElement;
-          if (target.matches('[name="checkout"]') || target.matches(".checkout-button") ||
-              target.closest('[href*="/checkout"]')) {
+          if (
+            target.matches('[name="checkout"]') ||
+            target.matches(".checkout-button") ||
+            target.closest('[href*="/checkout"]')
+          ) {
             e.preventDefault();
             this.showPopup(campaign);
           }

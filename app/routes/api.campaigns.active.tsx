@@ -9,10 +9,7 @@
  * PROTECTED: Rate limited to 60 requests/minute per IP (public endpoint)
  */
 
-import {
-  data,
-  type LoaderFunctionArgs,
-} from "react-router";
+import { data, type LoaderFunctionArgs } from "react-router";
 import { storefrontCors } from "~/lib/cors.server";
 import { withPublicRateLimit } from "~/lib/rate-limit-middleware.server";
 import {
@@ -26,6 +23,9 @@ import { getStoreIdFromShop } from "~/lib/auth-helpers.server";
 import { PlanLimitError } from "~/domains/billing/errors";
 import { getOrCreateVisitorId, createVisitorIdHeaders } from "~/lib/visitor-id.server";
 import { getRedis, REDIS_PREFIXES } from "~/lib/redis.server";
+import prisma from "~/db.server";
+import { validateCustomCss } from "~/lib/css-guards";
+import type { StoreSettings } from "~/domains/store/types/settings";
 
 // ============================================================================
 // TYPES
@@ -37,6 +37,23 @@ import { getRedis, REDIS_PREFIXES } from "~/lib/redis.server";
 interface ActiveCampaignsResponse {
   campaigns: ApiCampaignData[];
   timestamp: string;
+  globalCustomCSS?: string;
+}
+
+function extractGlobalCustomCss(settings: unknown): string | undefined {
+  if (!settings || typeof settings !== "object") return undefined;
+
+  try {
+    return validateCustomCss(
+      (settings as StoreSettings | undefined)?.globalCustomCSS,
+      "globalCustomCSS"
+    );
+  } catch (error) {
+    console.warn("[Active Campaigns API] Ignoring invalid globalCustomCSS", {
+      error,
+    });
+    return undefined;
+  }
 }
 
 // ============================================================================
@@ -63,50 +80,59 @@ export async function loader(args: LoaderFunctionArgs) {
         return data(errorResponse, { status: 400, headers });
       }
 
-	      const storeId = await getStoreIdFromShop(shop);
+      const storeId = await getStoreIdFromShop(shop);
+      const store = await prisma.store.findUnique({
+        where: { id: storeId },
+        select: { settings: true },
+      });
+      const globalCustomCSS = extractGlobalCustomCss(store?.settings);
 
-	      // If the store has exceeded its monthly impression cap, gracefully
-	      // return no campaigns instead of an error so storefronts fail soft.
-	      try {
-	        const { PlanGuardService } = await import("~/domains/billing/services/plan-guard.server");
-	        await PlanGuardService.assertWithinMonthlyImpressionCap(storeId);
-	      } catch (error) {
-	        if (error instanceof PlanLimitError) {
-	          const emptyResponse: ActiveCampaignsResponse = {
-	            campaigns: [],
-	            timestamp: new Date().toISOString(),
-	          };
-	          return data(emptyResponse, { headers });
-	        }
-	        throw error;
-	      }
+      // If the store has exceeded its monthly impression cap, gracefully
+      // return no campaigns instead of an error so storefronts fail soft.
+      try {
+        const { PlanGuardService } = await import("~/domains/billing/services/plan-guard.server");
+        await PlanGuardService.assertWithinMonthlyImpressionCap(storeId);
+      } catch (error) {
+        if (error instanceof PlanLimitError) {
+          const emptyResponse: ActiveCampaignsResponse = {
+            campaigns: [],
+            timestamp: new Date().toISOString(),
+            globalCustomCSS,
+          };
+          return data(emptyResponse, { headers });
+        }
+        throw error;
+      }
 
-	      // Build storefront context from request
+      // Build storefront context from request
       const context = buildStorefrontContext(url.searchParams, request.headers);
 
       // Add visitor ID to context (for frequency capping)
       context.visitorId = visitorId;
 
-      // Preview mode: check for preview token (unsaved campaign) or previewId (saved campaign)
+      // Preview mode: token-based preview sessions (covers saved and unsaved campaigns)
       const previewToken = url.searchParams.get("previewToken");
-      const previewId = url.searchParams.get("previewId");
 
       console.log(`[Active Campaigns API] 🔍 Full URL:`, url.toString());
-      console.log(`[Active Campaigns API] 🔍 All URL params:`, Object.fromEntries(url.searchParams.entries()));
+      console.log(
+        `[Active Campaigns API] 🔍 All URL params:`,
+        Object.fromEntries(url.searchParams.entries())
+      );
       console.log(`[Active Campaigns API] Request params:`, {
         previewToken: previewToken || "none",
-        previewId: previewId || "none",
         storeId,
         visitorId,
       });
 
-      // Handle preview token (unsaved campaign data from session)
+      // Handle preview token (preview session data from Redis)
       if (previewToken) {
         console.log(`[Active Campaigns API] 🎭 Preview mode enabled with token: ${previewToken}`);
 
         try {
           // Fetch preview data directly from Redis (no HTTP call, no loader call)
-          console.log(`[Active Campaigns API] Fetching preview data from Redis for token: ${previewToken}`);
+          console.log(
+            `[Active Campaigns API] Fetching preview data from Redis for token: ${previewToken}`
+          );
 
           const redis = getRedis();
           if (!redis) {
@@ -114,6 +140,7 @@ export async function loader(args: LoaderFunctionArgs) {
             const emptyResponse: ActiveCampaignsResponse = {
               campaigns: [],
               timestamp: new Date().toISOString(),
+              globalCustomCSS,
             };
             return data(emptyResponse, { headers });
           }
@@ -123,10 +150,13 @@ export async function loader(args: LoaderFunctionArgs) {
           const sessionDataStr = await redis.get(redisKey);
 
           if (!sessionDataStr) {
-            console.warn(`[Active Campaigns API] Preview token not found or expired: ${previewToken}`);
+            console.warn(
+              `[Active Campaigns API] Preview token not found or expired: ${previewToken}`
+            );
             const emptyResponse: ActiveCampaignsResponse = {
               campaigns: [],
               timestamp: new Date().toISOString(),
+              globalCustomCSS,
             };
             return data(emptyResponse, { headers });
           }
@@ -158,6 +188,7 @@ export async function loader(args: LoaderFunctionArgs) {
           const response: ActiveCampaignsResponse = {
             campaigns: [formattedPreview],
             timestamp: new Date().toISOString(),
+            globalCustomCSS,
           };
 
           console.log(`[Active Campaigns API] ✅ Returning preview campaign from token:`, {
@@ -171,56 +202,38 @@ export async function loader(args: LoaderFunctionArgs) {
           const emptyResponse: ActiveCampaignsResponse = {
             campaigns: [],
             timestamp: new Date().toISOString(),
+            globalCustomCSS,
           };
           return data(emptyResponse, { headers });
         }
-      }
-
-      // Handle preview ID (saved campaign)
-      if (previewId) {
-        console.log(`[Active Campaigns API] Preview mode enabled for campaign ${previewId}`);
-        const previewCampaign = await CampaignService.getCampaignById(previewId, storeId);
-
-        if (!previewCampaign) {
-          console.warn(`[Active Campaigns API] Preview campaign not found: ${previewId} for store ${storeId}`);
-          const emptyResponse: ActiveCampaignsResponse = {
-            campaigns: [],
-            timestamp: new Date().toISOString(),
-          };
-          return data(emptyResponse, { headers });
-        }
-
-        const formattedPreview: ApiCampaignData = {
-          id: previewCampaign.id,
-          name: previewCampaign.name,
-          templateType: previewCampaign.templateType,
-          priority: previewCampaign.priority,
-          contentConfig: previewCampaign.contentConfig,
-          designConfig: previewCampaign.designConfig,
-          targetRules: {} as Record<string, unknown>,
-          discountConfig: previewCampaign.discountConfig,
-          experimentId: previewCampaign.experimentId,
-          variantKey: previewCampaign.variantKey,
-        };
-
-        const previewResponse: ActiveCampaignsResponse = {
-          campaigns: [formattedPreview],
-          timestamp: new Date().toISOString(),
-        };
-
-        console.log(`[Active Campaigns API] ✅ Returning preview campaign ${previewCampaign.id} to storefront`);
-        return data(previewResponse, { headers });
       }
 
       // Get all active campaigns
       const allCampaigns = await CampaignService.getActiveCampaigns(storeId);
-      console.log(`[Active Campaigns API] Found ${allCampaigns.length} active campaigns for store ${storeId}`);
+      console.log(
+        `[Active Campaigns API] Found ${allCampaigns.length} active campaigns for store ${storeId}`
+      );
+
+      // DIAGNOSTIC: Log ALL campaigns with their frequency capping config
+      if (allCampaigns.length > 0) {
+        console.log('[Active Campaigns API] 🔍 BEFORE FILTERING - All campaigns from database:');
+        allCampaigns.forEach((c) => {
+          const freqCap = c.targetRules?.enhancedTriggers?.frequency_capping;
+          console.log(`  - ${c.name} (${c.id}):`, {
+            priority: c.priority,
+            hasFreqCap: !!freqCap,
+            maxSession: freqCap?.max_triggers_per_session,
+            maxDay: freqCap?.max_triggers_per_day,
+            cooldown: freqCap?.cooldown_between_triggers,
+          });
+        });
+      }
 
       // Filter campaigns based on context (server-side filtering with Redis)
       const filteredCampaigns = await CampaignFilterService.filterCampaigns(
         allCampaigns,
         context,
-        storeId,
+        storeId
       );
       console.log(`[Active Campaigns API] After filtering: ${filteredCampaigns.length} campaigns`, {
         pageType: context.pageType,
@@ -228,15 +241,26 @@ export async function loader(args: LoaderFunctionArgs) {
         visitorId: context.visitorId,
       });
 
+      // DIAGNOSTIC: Log which campaigns were filtered OUT
+      if (allCampaigns.length !== filteredCampaigns.length) {
+        const filteredIds = new Set(filteredCampaigns.map(c => c.id));
+        const excluded = allCampaigns.filter(c => !filteredIds.has(c.id));
+        console.log(`[Active Campaigns API] ❌ ${excluded.length} campaigns FILTERED OUT:`);
+        excluded.forEach(c => {
+          console.log(`  - ${c.name} (${c.id})`);
+        });
+      }
+
       // Format campaigns for storefront consumption
       // Only send client-side triggers, not full targetRules
-      const formattedCampaigns = filteredCampaigns.map(campaign => ({
+      const formattedCampaigns = filteredCampaigns.map((campaign) => ({
         id: campaign.id,
         name: campaign.name,
         templateType: campaign.templateType,
         priority: campaign.priority,
         contentConfig: campaign.contentConfig,
         designConfig: campaign.designConfig,
+        customCSS: (campaign.designConfig as Record<string, unknown> | undefined)?.customCSS,
         // Extract only client-side triggers
         clientTriggers: extractClientTriggers(campaign.targetRules),
         targetRules: {} as Record<string, unknown>,
@@ -249,16 +273,22 @@ export async function loader(args: LoaderFunctionArgs) {
       const response: ActiveCampaignsResponse = {
         campaigns: formattedCampaigns,
         timestamp: new Date().toISOString(),
+        globalCustomCSS,
       };
 
-      console.log(`[Active Campaigns API] ✅ Returning ${formattedCampaigns.length} campaigns to storefront`);
+      console.log(
+        `[Active Campaigns API] ✅ Returning ${formattedCampaigns.length} campaigns to storefront`
+      );
       if (formattedCampaigns.length > 0) {
-        console.log('[Active Campaigns API] Campaign details:', formattedCampaigns.map(c => ({
-          id: c.id,
-          name: c.name,
-          templateType: c.templateType,
-          priority: c.priority,
-        })));
+        console.log(
+          "[Active Campaigns API] Campaign details:",
+          formattedCampaigns.map((c) => ({
+            id: c.id,
+            name: c.name,
+            templateType: c.templateType,
+            priority: c.priority,
+          }))
+        );
       }
 
       return data(response, { headers });
@@ -282,4 +312,3 @@ function extractClientTriggers(targetRules: any) {
     sessionRules: audienceTargeting?.sessionRules,
   };
 }
-

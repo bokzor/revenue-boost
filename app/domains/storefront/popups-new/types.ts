@@ -22,6 +22,9 @@ export interface PopupDesignConfig {
   id: string;
   campaignId?: string;
   challengeToken?: string;
+  utmCampaign?: string | null;
+  utmSource?: string | null;
+  utmMedium?: string | null;
 
   // Design/Visual Properties
   backgroundColor: string;
@@ -53,16 +56,27 @@ export interface PopupDesignConfig {
   animation?: PopupAnimation;
   displayMode?: DisplayMode;
 
-
   // Additional style/customization
   boxShadow?: string;
   fontFamily?: string;
   fontSize?: string;
   fontWeight?: string;
   customCSS?: string;
+  globalCustomCSS?: string;
   imageUrl?: string;
   imagePosition?: ImagePosition;
   buttonUrl?: string;
+
+  // Typography (template-specific)
+  titleFontSize?: string;
+  titleFontWeight?: string;
+  titleTextShadow?: string;
+  descriptionFontSize?: string;
+  descriptionFontWeight?: string;
+
+  // Input styling (template-specific)
+  inputBackdropFilter?: string;
+  inputBoxShadow?: string;
 
   // Behavior Properties
   previewMode?: boolean;
@@ -112,7 +126,11 @@ export interface DiscountConfig {
   type?: "percentage" | "fixed_amount" | "free_shipping";
   expiryDate?: string | Date;
   minimumPurchase?: number;
-  deliveryMode?: 'auto_apply_only' | 'show_code_fallback' | 'show_code_always' | 'show_in_popup_authorized_only';
+  deliveryMode?:
+    | "auto_apply_only"
+    | "show_code_fallback"
+    | "show_code_always"
+    | "show_in_popup_authorized_only";
 }
 
 export interface Product {
@@ -168,4 +186,3 @@ export interface FormField {
   validation?: ValidationRule;
   defaultValue?: string | boolean;
 }
-

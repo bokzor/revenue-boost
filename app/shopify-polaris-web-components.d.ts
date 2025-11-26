@@ -10,14 +10,14 @@
  * This file must be included in tsconfig.json to take effect.
  */
 
-import type { ReactNode, ChangeEvent } from 'react';
+import type { ReactNode, ChangeEvent } from "react";
 
 // Override the global JSX namespace to add our custom props
 declare global {
   namespace JSX {
     interface IntrinsicElements {
       // Override s-text-field to support children, multiline, and rows
-      's-text-field': {
+      "s-text-field": {
         label?: string;
         name?: string;
         value?: string;
@@ -32,7 +32,7 @@ declare global {
       };
 
       // Override s-checkbox to support children
-      's-checkbox': {
+      "s-checkbox": {
         name?: string;
         checked?: boolean;
         error?: string;
@@ -43,17 +43,17 @@ declare global {
       };
 
       // Override s-button to support url and children
-      's-button': {
+      "s-button": {
         children?: ReactNode;
         url?: string;
         onClick?: () => void;
-        variant?: 'primary' | 'secondary' | 'plain' | 'tertiary';
+        variant?: "primary" | "secondary" | "plain" | "tertiary";
         disabled?: boolean;
         loading?: boolean;
       };
 
       // Add other custom elements that may not be in Polaris types
-      's-select': {
+      "s-select": {
         label?: string;
         name?: string;
         value?: string;
@@ -65,25 +65,25 @@ declare global {
         children?: ReactNode;
       };
 
-      's-section': {
+      "s-section": {
         heading?: string;
         children?: ReactNode;
       };
 
-      's-collapsible': {
+      "s-collapsible": {
         open?: boolean;
         children?: ReactNode;
       };
 
-      's-page-actions': {
+      "s-page-actions": {
         children?: ReactNode;
       };
 
-      's-app-nav': {
+      "s-app-nav": {
         children?: ReactNode;
       };
 
-      's-link': {
+      "s-link": {
         href?: string;
         children?: ReactNode;
       };

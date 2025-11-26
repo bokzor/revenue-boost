@@ -14,6 +14,7 @@ import type {
   CampaignWithConfigs,
   TemplateType,
 } from "../types/campaign.js";
+import type { AdminApiContext } from "@shopify/shopify-app-react-router/server";
 import { CampaignQueryService } from "./campaign-query.server.js";
 import { CampaignMutationService } from "./campaign-mutation.server.js";
 
@@ -38,10 +39,7 @@ export class CampaignService {
   /**
    * Get campaign by ID
    */
-  static async getCampaignById(
-    id: string,
-    storeId: string
-  ): Promise<CampaignWithConfigs | null> {
+  static async getCampaignById(id: string, storeId: string): Promise<CampaignWithConfigs | null> {
     return CampaignQueryService.getById(id, storeId);
   }
 
@@ -72,7 +70,7 @@ export class CampaignService {
   static async createCampaign(
     storeId: string,
     data: CampaignCreateData,
-    admin?: any,
+    admin?: AdminApiContext,
     appUrl?: string
   ): Promise<CampaignWithConfigs> {
     return CampaignMutationService.create(storeId, data, admin, appUrl);
@@ -85,7 +83,7 @@ export class CampaignService {
     id: string,
     storeId: string,
     data: CampaignUpdateData,
-    admin?: any
+    admin?: AdminApiContext
   ): Promise<CampaignWithConfigs | null> {
     return CampaignMutationService.update(id, storeId, data, admin);
   }
@@ -96,7 +94,7 @@ export class CampaignService {
   static async deleteCampaign(
     id: string,
     storeId: string,
-    admin?: any
+    admin?: AdminApiContext
   ): Promise<boolean> {
     return CampaignMutationService.delete(id, storeId, admin);
   }

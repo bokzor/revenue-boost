@@ -19,7 +19,7 @@ export function CartDrawerOpenTrigger({ config, onChange }: CartDrawerOpenTrigge
       ...config,
       cart_drawer_open: {
         enabled: false,
-        ...(typeof config.cart_drawer_open === 'object' && config.cart_drawer_open !== null
+        ...(typeof config.cart_drawer_open === "object" && config.cart_drawer_open !== null
           ? config.cart_drawer_open
           : {}),
         ...updates,
@@ -34,14 +34,15 @@ export function CartDrawerOpenTrigger({ config, onChange }: CartDrawerOpenTrigge
       onEnabledChange={(enabled) => updateConfig({ enabled })}
     >
       <Text as="p" variant="bodySm" tone="subdued">
-        Trigger when the cart drawer/mini-cart opens. Great for last-minute upsells or discount offers.
+        Trigger when the cart drawer/mini-cart opens. Great for last-minute upsells or discount
+        offers.
       </Text>
 
       <Banner tone="warning">
         <Text as="p" variant="bodySm">
           <strong>Theme-Dependent:</strong> This trigger works on ~70% of themes. It detects cart
-          drawer opens using MutationObserver and common theme events. Please test on your store
-          to verify compatibility.
+          drawer opens using MutationObserver and common theme events. Please test on your store to
+          verify compatibility.
         </Text>
       </Banner>
 

@@ -75,4 +75,3 @@ export {
 
 // Alias for PopupContentConfig (commonly used name)
 export type PopupContentConfig = import("./campaign").ContentConfig;
-

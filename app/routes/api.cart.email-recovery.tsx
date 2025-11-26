@@ -20,19 +20,26 @@ import {
 import { createDraftOrder } from "~/lib/shopify/order.server";
 
 const EmailRecoveryRequestSchema = z.object({
-  campaignId: z.string().cuid(),
+  campaignId: z.string().min(1).refine(
+    (id) => id.startsWith("preview-") || /^[cC][^\s-]{8,}$/.test(id),
+    "Invalid campaign ID format"
+  ),
   email: z.string().email(),
   sessionId: z.string(),
   challengeToken: z.string(), // REQUIRED: Challenge token for security
   cartSubtotalCents: z.number().int().min(0).optional(),
-  cartItems: z.array(z.object({
-    id: z.number().optional(),
-    variant_id: z.number().optional(),
-    quantity: z.number(),
-    properties: z.record(z.string(), z.string()).optional(),
-    title: z.string().optional(),
-    price: z.number().optional(),
-  })).optional(),
+  cartItems: z
+    .array(
+      z.object({
+        id: z.number().optional(),
+        variant_id: z.number().optional(),
+        quantity: z.number(),
+        properties: z.record(z.string(), z.string()).optional(),
+        title: z.string().optional(),
+        price: z.number().optional(),
+      })
+    )
+    .optional(),
 });
 
 export type EmailRecoveryRequest = z.infer<typeof EmailRecoveryRequestSchema>;
@@ -53,7 +60,7 @@ export async function action({ request }: ActionFunctionArgs) {
     if (!session?.shop) {
       return data<EmailRecoveryResponse>(
         { success: false, error: "Invalid session" },
-        { status: 401 },
+        { status: 401 }
       );
     }
 
@@ -74,16 +81,19 @@ export async function action({ request }: ActionFunctionArgs) {
     if (!campaign || campaign.status !== "ACTIVE") {
       return data<EmailRecoveryResponse>(
         { success: false, error: "Campaign not found or inactive" },
-        { status: 404 },
+        { status: 404 }
       );
     }
 
     // SECURITY: Validate challenge token
-    const ip = request.headers.get("x-forwarded-for")?.split(",")[0] ||
+    const ip =
+      request.headers.get("x-forwarded-for")?.split(",")[0] ||
       request.headers.get("x-real-ip") ||
       "unknown";
 
-    const { validateAndConsumeToken } = await import("~/domains/security/services/challenge-token.server");
+    const { validateAndConsumeToken } = await import(
+      "~/domains/security/services/challenge-token.server"
+    );
     const tokenValidation = await validateAndConsumeToken(
       validated.challengeToken,
       validated.campaignId,
@@ -96,12 +106,28 @@ export async function action({ request }: ActionFunctionArgs) {
       console.warn(`[Cart Recovery] Token validation failed: ${tokenValidation.error}`);
       return data<EmailRecoveryResponse>(
         { success: false, error: tokenValidation.error || "Invalid or expired token" },
-        { status: 403 },
+        { status: 403 }
       );
     }
 
-    // SECURITY: Rate limit per email+campaign
-    const { checkRateLimit, RATE_LIMITS, createEmailCampaignKey } = await import("~/domains/security/services/rate-limit.server");
+    // PREVIEW MODE: Return mock success
+    // BYPASS RATE LIMITING for preview mode to allow unlimited testing
+    const isPreviewCampaign = validated.campaignId.startsWith("preview-");
+    if (isPreviewCampaign) {
+      console.log(`[Cart Recovery] ✅ Preview mode - returning mock success (BYPASSING RATE LIMITS)`);
+      return data<EmailRecoveryResponse>(
+        {
+          success: true,
+          message: "Preview mode: Cart recovery email sent (mock)",
+        },
+        { status: 200 }
+      );
+    }
+
+    // PRODUCTION MODE: Rate limit per email+campaign
+    const { checkRateLimit, RATE_LIMITS, createEmailCampaignKey } = await import(
+      "~/domains/security/services/rate-limit.server"
+    );
     const rateLimitKey = createEmailCampaignKey(validated.email, validated.campaignId);
     const rateLimitResult = await checkRateLimit(
       rateLimitKey,
@@ -114,7 +140,7 @@ export async function action({ request }: ActionFunctionArgs) {
       console.warn(`[Cart Recovery] Rate limit exceeded for ${validated.email}`);
       return data<EmailRecoveryResponse>(
         { success: false, error: "You've already recovered your cart today" },
-        { status: 429 },
+        { status: 429 }
       );
     }
 
@@ -124,7 +150,7 @@ export async function action({ request }: ActionFunctionArgs) {
     if (!discountConfig?.enabled) {
       return data<EmailRecoveryResponse>(
         { success: false, error: "Discount not enabled for this campaign" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -140,7 +166,7 @@ export async function action({ request }: ActionFunctionArgs) {
       campaign.id,
       discountConfig,
       validated.email,
-      validated.cartSubtotalCents,
+      validated.cartSubtotalCents
     );
 
     if (!discountResult.success || !discountResult.discountCode) {
@@ -149,7 +175,7 @@ export async function action({ request }: ActionFunctionArgs) {
           success: false,
           error: discountResult.errors?.[0] || "Failed to generate discount code",
         },
-        { status: 500 },
+        { status: 500 }
       );
     }
 
@@ -167,9 +193,14 @@ export async function action({ request }: ActionFunctionArgs) {
         });
 
         if (draftOrderResult.success) {
-          console.log(`[Cart Email Recovery] Created draft order: ${draftOrderResult.draftOrder?.id}`);
+          console.log(
+            `[Cart Email Recovery] Created draft order: ${draftOrderResult.draftOrder?.id}`
+          );
         } else {
-          console.warn(`[Cart Email Recovery] Failed to create draft order:`, draftOrderResult.errors);
+          console.warn(
+            `[Cart Email Recovery] Failed to create draft order:`,
+            draftOrderResult.errors
+          );
         }
       } catch (err) {
         console.error("[Cart Email Recovery] Error creating draft order:", err);
@@ -196,13 +227,13 @@ export async function action({ request }: ActionFunctionArgs) {
     if (error instanceof z.ZodError) {
       return data<EmailRecoveryResponse>(
         { success: false, error: "Invalid request data" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
     return data<EmailRecoveryResponse>(
       { success: false, error: "Failed to process email recovery" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
@@ -210,4 +241,3 @@ export async function action({ request }: ActionFunctionArgs) {
 export async function loader() {
   return data({ error: "Method not allowed. Use POST to submit email recovery." }, { status: 405 });
 }
-

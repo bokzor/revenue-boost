@@ -120,4 +120,3 @@ export const TEMPLATE_SECTIONS: Record<TemplateSection, TemplateSectionMetadata>
     defaultOpen: false,
   },
 };
-

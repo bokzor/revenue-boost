@@ -29,7 +29,13 @@ import { RECIPE_CATALOG } from "../recipes/recipe-catalog";
 import type { CampaignFormData } from "~/shared/hooks/useWizardState";
 
 // Define a simplified template type for the selector
-import type { TemplateType, ContentConfig, TargetRulesConfig, DesignConfig, DiscountConfig } from "~/domains/campaigns/types/campaign";
+import type {
+  TemplateType,
+  ContentConfig,
+  TargetRulesConfig,
+  DesignConfig,
+  DiscountConfig,
+} from "~/domains/campaigns/types/campaign";
 export interface SelectedTemplate {
   id: string;
   templateType: TemplateType;
@@ -62,54 +68,54 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
 
   // State for recipe modal
   const [modalOpen, setModalOpen] = useState(false);
-  const [selectedTemplateForModal, setSelectedTemplateForModal] = useState<_UnifiedTemplate | null>(null);
+  const [selectedTemplateForModal, setSelectedTemplateForModal] = useState<_UnifiedTemplate | null>(
+    null
+  );
 
   // Track if auto-selection has been performed
   const [hasAutoSelected, setHasAutoSelected] = useState(false);
 
   // Handle template selection
-  const handleTemplateClick = useCallback((template: _UnifiedTemplate) => {
-    console.log(
-      "Template clicked:",
-      template.id,
-      template.name,
-      template.category,
-    );
+  const handleTemplateClick = useCallback(
+    (template: _UnifiedTemplate) => {
+      console.log("Template clicked:", template.id, template.name, template.category);
 
-    // templateType is now required - all templates must have it
-    if (!template.templateType) {
-      console.error(
-        `Template "${template.name}" (ID: ${template.id}) is missing required templateType field. This template cannot be used.`,
-      );
-      // Error handling - template is misconfigured
-      return;
-    }
+      // templateType is now required - all templates must have it
+      if (!template.templateType) {
+        console.error(
+          `Template "${template.name}" (ID: ${template.id}) is missing required templateType field. This template cannot be used.`
+        );
+        // Error handling - template is misconfigured
+        return;
+      }
 
-    // Check if there are recipes for this template
-    const allRecipes = RECIPE_CATALOG[template.templateType] || [];
-    const applicableRecipes = allRecipes.filter((recipe) => {
-      if (!recipe.allowedTemplateNames) return true;
-      return recipe.allowedTemplateNames.includes(template.name);
-    });
+      // Check if there are recipes for this template
+      const allRecipes = RECIPE_CATALOG[template.templateType] || [];
+      const applicableRecipes = allRecipes.filter((recipe) => {
+        if (!recipe.allowedTemplateNames) return true;
+        return recipe.allowedTemplateNames.includes(template.name);
+      });
 
-    if (applicableRecipes.length > 0) {
-      // Open the recipe configuration modal if recipes exist
-      setSelectedTemplateForModal(template);
-      setModalOpen(true);
-    } else {
-      // Directly select without modal if no recipes are available (equivalent to "Start from Scratch")
-      const selectedTemplate: SelectedTemplate = {
-        id: template.id,
-        templateType: template.templateType,
-        name: template.name,
-        contentConfig: template.contentConfig as ContentConfig,
-        targetRules: template.targetRules as TargetRulesConfig,
-        designConfig: template.designConfig as DesignConfig,
-        discountConfig: template.discountConfig as DiscountConfig,
-      };
-      onSelect(selectedTemplate);
-    }
-  }, [onSelect]);
+      if (applicableRecipes.length > 0) {
+        // Open the recipe configuration modal if recipes exist
+        setSelectedTemplateForModal(template);
+        setModalOpen(true);
+      } else {
+        // Directly select without modal if no recipes are available (equivalent to "Start from Scratch")
+        const selectedTemplate: SelectedTemplate = {
+          id: template.id,
+          templateType: template.templateType,
+          name: template.name,
+          contentConfig: template.contentConfig as ContentConfig,
+          targetRules: template.targetRules as TargetRulesConfig,
+          designConfig: template.designConfig as DesignConfig,
+          discountConfig: template.discountConfig as DiscountConfig,
+        };
+        onSelect(selectedTemplate);
+      }
+    },
+    [onSelect]
+  );
 
   const handleRecipeSelect = (recipeData: Partial<CampaignFormData>) => {
     if (!selectedTemplateForModal) return;
@@ -120,7 +126,7 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
       id: template.id,
       name: template.name,
       templateType: template.templateType,
-      recipeData
+      recipeData,
     });
 
     // Pass the full template object with all necessary data, merged with recipe data
@@ -135,9 +141,11 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
       targetRules: {
         ...(template.targetRules as TargetRulesConfig),
         // Merge targetRules from recipe if provided (contains enhancedTriggers, audienceTargeting, etc.)
-        ...(recipeData.targetRules as Partial<TargetRulesConfig> || {}),
+        ...((recipeData.targetRules as Partial<TargetRulesConfig>) || {}),
         // Also support direct fields for backward compatibility
-        ...(recipeData.audienceTargeting ? { audienceTargeting: recipeData.audienceTargeting } : {}),
+        ...(recipeData.audienceTargeting
+          ? { audienceTargeting: recipeData.audienceTargeting }
+          : {}),
         ...(recipeData.pageTargeting ? { pageTargeting: recipeData.pageTargeting } : {}),
         ...(recipeData.enhancedTriggers ? { enhancedTriggers: recipeData.enhancedTriggers } : {}),
       },
@@ -158,11 +166,16 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
 
   // Auto-select template if preselectedTemplateType is provided
   useEffect(() => {
-    if (preselectedTemplateType && !hasAutoSelected && templates.length > 0 && !selectedTemplateId) {
+    if (
+      preselectedTemplateType &&
+      !hasAutoSelected &&
+      templates.length > 0 &&
+      !selectedTemplateId
+    ) {
       console.log("[TemplateSelector] Auto-selecting template type:", preselectedTemplateType);
 
       // Find first template matching the preselected type
-      const matchingTemplate = templates.find(t => t.templateType === preselectedTemplateType);
+      const matchingTemplate = templates.find((t) => t.templateType === preselectedTemplateType);
 
       if (matchingTemplate) {
         console.log("[TemplateSelector] Found matching template:", matchingTemplate.name);
@@ -172,7 +185,13 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
         console.warn("[TemplateSelector] No template found for type:", preselectedTemplateType);
       }
     }
-  }, [preselectedTemplateType, hasAutoSelected, templates, selectedTemplateId, handleTemplateClick]);
+  }, [
+    preselectedTemplateType,
+    hasAutoSelected,
+    templates,
+    selectedTemplateId,
+    handleTemplateClick,
+  ]);
 
   // Use extracted processing utility
   const processedTemplates = useMemo(() => {
@@ -205,10 +224,7 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
         heading="No templates available"
         image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
       >
-        <p>
-          No templates are available for the selected goal. Please try a
-          different goal.
-        </p>
+        <p>No templates are available for the selected goal. Please try a different goal.</p>
       </EmptyState>
     );
   }

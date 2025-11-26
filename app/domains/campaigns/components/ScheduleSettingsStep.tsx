@@ -28,10 +28,7 @@ interface ScheduleSettingsStepProps {
   onConfigChange: (config: ScheduleSettingsConfig) => void;
 }
 
-export function ScheduleSettingsStep({
-  config,
-  onConfigChange,
-}: ScheduleSettingsStepProps) {
+export function ScheduleSettingsStep({ config, onConfigChange }: ScheduleSettingsStepProps) {
   // Initialize with defaults if not provided
   const settings: ScheduleSettingsConfig = config || {
     status: "DRAFT",
@@ -86,13 +83,11 @@ export function ScheduleSettingsStep({
             Campaign Tags
           </Text>
           <Text as="p" variant="bodySm" tone="subdued">
-            Add tags to organize and filter your campaigns. Press Enter or click Add to create a tag.
+            Add tags to organize and filter your campaigns. Press Enter or click Add to create a
+            tag.
           </Text>
 
-          <TagManager
-            tags={settings.tags}
-            onTagsChange={(tags) => updateSettings({ tags })}
-          />
+          <TagManager tags={settings.tags} onTagsChange={(tags) => updateSettings({ tags })} />
         </BlockStack>
       </Card>
     </BlockStack>

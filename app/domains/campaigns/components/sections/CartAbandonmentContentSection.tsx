@@ -7,7 +7,15 @@
 
 import { useState } from "react";
 import type { KeyboardEvent } from "react";
-import { Card, BlockStack, Text, Divider, Button, Collapsible, InlineStack } from "@shopify/polaris";
+import {
+  Card,
+  BlockStack,
+  Text,
+  Divider,
+  Button,
+  Collapsible,
+  InlineStack,
+} from "@shopify/polaris";
 import { ChevronDownIcon, ChevronUpIcon } from "@shopify/polaris-icons";
 import { TextField, CheckboxField, FormGrid } from "../form";
 import { useFieldUpdater } from "~/shared/hooks/useFieldUpdater";
@@ -177,7 +185,6 @@ export function CartAbandonmentContentSection({
                 }}
               >
                 <BlockStack gap="300">
-
                   <FormGrid columns={2}>
                     <CheckboxField
                       label="Show Cart Items"
@@ -242,7 +249,6 @@ export function CartAbandonmentContentSection({
                 }}
               >
                 <BlockStack gap="300">
-
                   <CheckboxField
                     label="Enable Urgency Timer"
                     name="content.showUrgency"
@@ -328,7 +334,6 @@ export function CartAbandonmentContentSection({
                 }}
               >
                 <BlockStack gap="300">
-
                   <FormGrid columns={2}>
                     <TextField
                       label="Button Text"
@@ -404,7 +409,6 @@ export function CartAbandonmentContentSection({
                 }}
               >
                 <BlockStack gap="300">
-
                   {/* Recovery Flow Selector - behaves like a single-choice mode selector */}
                   <CheckboxField
                     label="Classic flow"
@@ -453,7 +457,6 @@ export function CartAbandonmentContentSection({
                       }
                     }}
                   />
-
 
                   {content.enableEmailRecovery && (
                     <>
@@ -506,36 +509,32 @@ export function CartAbandonmentContentSection({
               </Collapsible>
             </BlockStack>
           </BlockStack>
-      </BlockStack>
-    </Card >
-
-
-      {/* Discount Configuration */ }
-  {
-    onDiscountChange && (
-      <Card>
-        <BlockStack gap="400">
-          <BlockStack gap="200">
-            <Text as="h3" variant="headingMd">
-              💰 Discount
-            </Text>
-            <Text as="p" tone="subdued">
-              Configure the discount shown in your cart recovery popup.
-            </Text>
-          </BlockStack>
-
-          <Divider />
-
-          <DiscountSection
-            goal="CART_RECOVERY"
-            discountConfig={discountConfig}
-            onConfigChange={onDiscountChange}
-          />
         </BlockStack>
       </Card>
-    )
-  }
+
+      {/* Discount Configuration */}
+      {onDiscountChange && (
+        <Card>
+          <BlockStack gap="400">
+            <BlockStack gap="200">
+              <Text as="h3" variant="headingMd">
+                💰 Discount
+              </Text>
+              <Text as="p" tone="subdued">
+                Configure the discount shown in your cart recovery popup.
+              </Text>
+            </BlockStack>
+
+            <Divider />
+
+            <DiscountSection
+              goal="CART_RECOVERY"
+              discountConfig={discountConfig}
+              onConfigChange={onDiscountChange}
+            />
+          </BlockStack>
+        </Card>
+      )}
     </>
   );
 }
-

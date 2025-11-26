@@ -49,7 +49,7 @@ export function DeviceTargetingTrigger({ config, onChange }: DeviceTargetingTrig
       ...config,
       device_targeting: {
         enabled: false,
-        ...(typeof config.device_targeting === 'object' && config.device_targeting !== null
+        ...(typeof config.device_targeting === "object" && config.device_targeting !== null
           ? config.device_targeting
           : {}),
         ...updates,
@@ -99,4 +99,3 @@ export function DeviceTargetingTrigger({ config, onChange }: DeviceTargetingTrig
     </TriggerCard>
   );
 }
-

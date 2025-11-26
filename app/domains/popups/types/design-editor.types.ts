@@ -145,4 +145,3 @@ export interface PopupDesignConfig extends StorefrontPopupDesignConfig {
   // Generic content container for template-specific fields
   content?: Record<string, unknown>;
 }
-

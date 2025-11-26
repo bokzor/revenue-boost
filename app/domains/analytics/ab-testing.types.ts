@@ -1,6 +1,6 @@
 /**
  * A/B Testing Analytics Types
- * 
+ *
  * Re-exports experiment types from the campaigns domain for analytics purposes.
  * This file exists to maintain backward compatibility with existing imports.
  */
@@ -31,7 +31,7 @@ export type {
 // Additional analytics-specific types
 export type ExperimentType = "A/B" | "A/B/C" | "A/B/C/D" | "MULTIVARIATE";
 
-export type SuccessMetric = 
+export type SuccessMetric =
   | "conversion_rate"
   | "revenue_per_visitor"
   | "email_signups"
@@ -61,4 +61,3 @@ export interface ExperimentResults {
   winnerDeclaredAt?: Date;
   statisticalSignificance: number;
 }
-

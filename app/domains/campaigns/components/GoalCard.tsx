@@ -19,13 +19,20 @@ interface GoalCardProps {
   onSelect: () => void;
 }
 
-export const GoalCard = React.memo(function GoalCard({ goal, isSelected, onSelect }: GoalCardProps) {
-  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
-      onSelect();
-    }
-  }, [onSelect]);
+export const GoalCard = React.memo(function GoalCard({
+  goal,
+  isSelected,
+  onSelect,
+}: GoalCardProps) {
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLDivElement>) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        onSelect();
+      }
+    },
+    [onSelect]
+  );
 
   return (
     <div
@@ -93,4 +100,3 @@ export const GoalCard = React.memo(function GoalCard({ goal, isSelected, onSelec
     </div>
   );
 });
-

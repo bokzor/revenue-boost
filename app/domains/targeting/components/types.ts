@@ -8,8 +8,7 @@ export type LogicOperator = "AND" | "OR";
 
 export type ConditionType =
   // Cart-based conditions (session behavior)
-  | "cart-value"
-  | "cart-item-count";
+  "cart-value" | "cart-item-count";
 
 export type ConditionOperator =
   // Numeric operators
@@ -92,16 +91,12 @@ export const OPERATOR_LABELS: Record<ConditionOperator, string> = {
 };
 
 // Helper function to get condition type config
-export function getConditionTypeConfig(
-  type: ConditionType,
-): ConditionTypeOption | undefined {
+export function getConditionTypeConfig(type: ConditionType): ConditionTypeOption | undefined {
   return CONDITION_TYPES.find((ct) => ct.value === type);
 }
 
 // Helper function to get available operators for a condition type
-export function getAvailableOperators(
-  type: ConditionType,
-): ConditionOperator[] {
+export function getAvailableOperators(type: ConditionType): ConditionOperator[] {
   const config = getConditionTypeConfig(type);
   return config?.operators || [];
 }

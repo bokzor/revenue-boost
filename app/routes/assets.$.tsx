@@ -3,7 +3,7 @@
  *
  * Path: /assets/*
  * Example: /assets/newsletter-backgrounds/bold.png
- * 
+ *
  * Note: Shopify app proxy strips the /apps/revenue-boost prefix,
  * so requests to /apps/revenue-boost/assets/* arrive here as /assets/*
  */
@@ -18,9 +18,7 @@ import { join, resolve } from "node:path";
 const PUBLIC_DIR = resolve(process.cwd(), "public");
 
 // Allowed asset paths (whitelist for security)
-const ALLOWED_ASSET_PATHS = [
-  /^newsletter-backgrounds\/[a-z]+\.png$/,
-];
+const ALLOWED_ASSET_PATHS = [/^newsletter-backgrounds\/[a-z]+\.jpg/];
 
 /**
  * Build response headers for static assets
@@ -107,4 +105,3 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
     return data({ error: "Failed to serve asset" }, { status: 500 });
   }
 }
-

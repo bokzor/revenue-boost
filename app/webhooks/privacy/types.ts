@@ -1,6 +1,6 @@
 /**
  * Type definitions for Shopify GDPR/Privacy Webhooks
- * 
+ *
  * Based on Shopify's official webhook payload schemas:
  * https://shopify.dev/docs/apps/build/privacy-law-compliance
  */
@@ -85,4 +85,3 @@ export interface CustomerDataExport {
     createdAt: Date;
   }>;
 }
-

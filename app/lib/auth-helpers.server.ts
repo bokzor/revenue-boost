@@ -31,7 +31,9 @@ export async function getStoreId(request: Request): Promise<string> {
   }
 
   // 1) Try to find the store by its Shopify domain
-  const existing = await prisma.store.findUnique({ where: { shopifyDomain: shopDomain } });
+  const existing = await prisma.store.findUnique({
+    where: { shopifyDomain: shopDomain },
+  });
   if (existing) return existing.id;
 
   // 2) If not found, fetch Shopify shop ID via Admin GraphQL and create the store record
@@ -40,10 +42,10 @@ export async function getStoreId(request: Request): Promise<string> {
   try {
     const sessionWithToken = session as unknown as ShopifySessionWithToken;
     const resp = await fetch(`https://${shopDomain}/admin/api/${apiVersion}/graphql.json`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
-        'X-Shopify-Access-Token': sessionWithToken.accessToken,
+        "Content-Type": "application/json",
+        "X-Shopify-Access-Token": sessionWithToken.accessToken,
       },
       body: JSON.stringify({ query: `query { shop { id } }` }),
     });
@@ -52,7 +54,7 @@ export async function getStoreId(request: Request): Promise<string> {
       const body = await resp.json();
       const gid: string | undefined = body?.data?.shop?.id;
       if (gid) {
-        const last = gid.split('/').pop();
+        const last = gid.split("/").pop();
         if (last && /^\d+$/.test(last)) {
           shopNumericId = BigInt(last);
         }
@@ -78,8 +80,6 @@ export async function getStoreId(request: Request): Promise<string> {
   return created.id;
 }
 
-
-
 /**
  * Get store ID from shop parameter (for public/storefront endpoints)
  * This is used for public endpoints that don't require Shopify authentication
@@ -89,7 +89,7 @@ export async function getStoreId(request: Request): Promise<string> {
  */
 export async function getStoreIdFromShop(shop: string): Promise<string> {
   // Normalize shop domain
-  const shopDomain = shop.includes('.myshopify.com') ? shop : `${shop}.myshopify.com`;
+  const shopDomain = shop.includes(".myshopify.com") ? shop : `${shop}.myshopify.com`;
 
   // Look up store in database
   const store = await prisma.store.findUnique({
@@ -112,30 +112,22 @@ export async function getStoreIdFromShop(shop: string): Promise<string> {
  * @param accessToken - Shopify access token
  * @returns AdminApiContext for making GraphQL calls
  */
-export function createAdminApiContext(
-  shopDomain: string,
-  accessToken: string
-): AdminApiContext {
+export function createAdminApiContext(shopDomain: string, accessToken: string): AdminApiContext {
   return {
     graphql: async (query: string, options?: { variables?: Record<string, any> }) => {
-      const response = await fetch(
-        `https://${shopDomain}/admin/api/${apiVersion}/graphql.json`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-Shopify-Access-Token": accessToken,
-          },
-          body: JSON.stringify({
-            query,
-            variables: options?.variables,
-          }),
-        }
-      );
+      const response = await fetch(`https://${shopDomain}/admin/api/${apiVersion}/graphql.json`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Shopify-Access-Token": accessToken,
+        },
+        body: JSON.stringify({
+          query,
+          variables: options?.variables,
+        }),
+      });
 
       return response;
     },
   } as AdminApiContext;
 }
-
-

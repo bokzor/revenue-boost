@@ -3,8 +3,4 @@
  */
 
 export { RealTimePreviewPanel } from "./RealTimePreviewPanel";
-export type {
-  DeviceType,
-  DeviceConfig,
-  RealTimePreviewPanelProps,
-} from "./RealTimePreviewPanel";
+export type { DeviceType, DeviceConfig, RealTimePreviewPanelProps } from "./RealTimePreviewPanel";

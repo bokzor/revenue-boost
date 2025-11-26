@@ -114,6 +114,7 @@ interface CampaignFormWithABTestingProps {
   onCancel: () => void;
   initialData?: Partial<CampaignFormData>;
   shopDomain?: string;
+  globalCustomCSS?: string;
   experimentId?: string;
   experimentData?: ExperimentData;
   allVariants?: Array<{
@@ -137,6 +138,7 @@ export function CampaignFormWithABTesting({
   onCancel,
   initialData,
   shopDomain,
+  globalCustomCSS,
   experimentId,
   experimentData,
   allVariants,
@@ -165,9 +167,7 @@ export function CampaignFormWithABTesting({
     (currentVariantKey as VariantKey) || "A"
   );
 
-  const [variantCount, setVariantCount] = useState<number>(
-    allVariants?.length || 2
-  );
+  const [variantCount, setVariantCount] = useState<number>(allVariants?.length || 2);
 
   // ============================================================================
   // HOOKS - Extracted for SOLID compliance
@@ -178,50 +178,61 @@ export function CampaignFormWithABTesting({
     initialVariantCount: variantCount,
   });
 
-  const {
-    isSubmitting,
-    submitError,
-    submitSingleCampaign,
-    submitABTestCampaign,
-  } = useCampaignSubmission({ onSave });
+  const { isSubmitting, submitError, submitSingleCampaign, submitABTestCampaign } =
+    useCampaignSubmission({ onSave });
 
   // ============================================================================
   // STATE - Variant Management (Isolated state for each variant)
   // ============================================================================
 
-  const createInitialVariantData = useCallback((key: VariantKey, index: number): VariantCampaignData => {
-    // Deep copy ALL nested objects to prevent variants from sharing references
-    const deepCopy = <T,>(obj: T | undefined): T | {} => {
-      if (!obj) return {};
-      return JSON.parse(JSON.stringify(obj));
-    };
+  const createInitialVariantData = useCallback(
+    (key: VariantKey, index: number): VariantCampaignData => {
+      // Deep copy ALL nested objects to prevent variants from sharing references
+      const deepCopy = <T,>(obj: T | undefined): T => {
+        if (!obj) return {} as T;
+        return JSON.parse(JSON.stringify(obj)) as T;
+      };
 
-    return {
-      ...initialData,
-      variantKey: key,
-      isControl: index === 0,
-      variantName: `Variant ${key}`,
-      variantDescription: index === 0 ? "Control variant" : `Test variant ${key}`,
-      name: initialData?.name ? `${initialData.name} - Variant ${key}` : `Variant ${key}`,
-      // Deep copy all config objects
-      contentConfig: deepCopy(initialData?.contentConfig),
-      designConfig: deepCopy(initialData?.designConfig),
-      discountConfig: deepCopy(initialData?.discountConfig),
-      enhancedTriggers: deepCopy(initialData?.enhancedTriggers),
-      audienceTargeting: deepCopy(initialData?.audienceTargeting),
-      pageTargeting: deepCopy(initialData?.pageTargeting),
-      frequencyCapping: deepCopy(initialData?.frequencyCapping),
-    } as VariantCampaignData;
-  }, [initialData]);
+      return {
+        ...initialData,
+        variantKey: key,
+        isControl: index === 0,
+        variantName: `Variant ${key}`,
+        variantDescription: index === 0 ? "Control variant" : `Test variant ${key}`,
+        name: initialData?.name ? `${initialData.name} - Variant ${key}` : `Variant ${key}`,
+        // Deep copy all config objects
+        contentConfig: deepCopy(initialData?.contentConfig),
+        designConfig: deepCopy(initialData?.designConfig),
+        discountConfig: deepCopy(initialData?.discountConfig),
+        enhancedTriggers: deepCopy(initialData?.enhancedTriggers),
+        audienceTargeting: deepCopy(initialData?.audienceTargeting),
+        pageTargeting: deepCopy(initialData?.pageTargeting),
+        frequencyCapping: deepCopy(initialData?.frequencyCapping),
+      } as VariantCampaignData;
+    },
+    [initialData]
+  );
 
   // ============================================================================
   // MEMOIZED VALUES - Stable references to prevent re-render loops
   // ============================================================================
 
-  const stableVariantStateA = useMemo(() => createInitialVariantData("A", 0), [createInitialVariantData]);
-  const stableVariantStateB = useMemo(() => createInitialVariantData("B", 1), [createInitialVariantData]);
-  const stableVariantStateC = useMemo(() => createInitialVariantData("C", 2), [createInitialVariantData]);
-  const stableVariantStateD = useMemo(() => createInitialVariantData("D", 3), [createInitialVariantData]);
+  const stableVariantStateA = useMemo(
+    () => createInitialVariantData("A", 0),
+    [createInitialVariantData]
+  );
+  const stableVariantStateB = useMemo(
+    () => createInitialVariantData("B", 1),
+    [createInitialVariantData]
+  );
+  const stableVariantStateC = useMemo(
+    () => createInitialVariantData("C", 2),
+    [createInitialVariantData]
+  );
+  const stableVariantStateD = useMemo(
+    () => createInitialVariantData("D", 3),
+    [createInitialVariantData]
+  );
 
   // ============================================================================
   // WIZARD STATE HOOKS - Separate state for each variant
@@ -235,11 +246,16 @@ export function CampaignFormWithABTesting({
   // Get current wizard state based on selected variant
   const currentWizardState = useMemo(() => {
     switch (selectedVariant) {
-      case "A": return wizardStateA;
-      case "B": return wizardStateB;
-      case "C": return wizardStateC;
-      case "D": return wizardStateD;
-      default: return wizardStateA;
+      case "A":
+        return wizardStateA;
+      case "B":
+        return wizardStateB;
+      case "C":
+        return wizardStateC;
+      case "D":
+        return wizardStateD;
+      default:
+        return wizardStateA;
     }
   }, [selectedVariant, wizardStateA, wizardStateB, wizardStateC, wizardStateD]);
 
@@ -326,10 +342,13 @@ export function CampaignFormWithABTesting({
     }
   }, []);
 
-  const handleVariantCountChange = useCallback((count: number) => {
-    setVariantCount(count);
-    experimentConfig.updateTrafficAllocation(count);
-  }, [experimentConfig]);
+  const handleVariantCountChange = useCallback(
+    (count: number) => {
+      setVariantCount(count);
+      experimentConfig.updateTrafficAllocation(count);
+    },
+    [experimentConfig]
+  );
 
   // ============================================================================
   // HANDLERS - Save (refactored to use extracted hook)
@@ -385,6 +404,7 @@ export function CampaignFormWithABTesting({
       selectedVariant,
       abTestingEnabled,
       initialTemplates,
+      globalCustomCSS,
     };
 
     switch (step.id) {
@@ -473,37 +493,37 @@ export function CampaignFormWithABTesting({
           </Layout.Section>
         )}
 
-	        {/* Wizard Progress Indicator */}
-	        <Layout.Section>
-	          <Card>
-	            <div style={{ padding: "16px" }}>
-	              <WizardProgressIndicator
-	                steps={WIZARD_STEPS}
-	                currentStep={currentStep}
-	                completedSteps={WIZARD_STEPS.map((_, index) => index <= currentStep)}
-	                onStepClick={handleStepChange}
-	              />
-	            </div>
-	          </Card>
-	        </Layout.Section>
+        {/* Wizard Progress Indicator */}
+        <Layout.Section>
+          <Card>
+            <div style={{ padding: "16px" }}>
+              <WizardProgressIndicator
+                steps={WIZARD_STEPS}
+                currentStep={currentStep}
+                completedSteps={WIZARD_STEPS.map((_, index) => index <= currentStep)}
+                onStepClick={handleStepChange}
+              />
+            </div>
+          </Card>
+        </Layout.Section>
 
-	        {/* Top Navigation Buttons */}
-	        <Layout.Section>
-	          <Card>
-	            <div style={{ padding: "16px" }}>
-	              <WizardNavigationButtons
-	                currentStep={currentStep}
-	                totalSteps={WIZARD_STEPS.length}
-	                isLastStep={isLastStep}
-	                isSubmitting={isSubmitting}
-	                campaignId={campaignId}
-	                onPrevious={handlePrevious}
-	                onNext={handleNext}
-	                onSave={handleSave}
-	              />
-	            </div>
-	          </Card>
-	        </Layout.Section>
+        {/* Top Navigation Buttons */}
+        <Layout.Section>
+          <Card>
+            <div style={{ padding: "16px" }}>
+              <WizardNavigationButtons
+                currentStep={currentStep}
+                totalSteps={WIZARD_STEPS.length}
+                isLastStep={isLastStep}
+                isSubmitting={isSubmitting}
+                campaignId={campaignId}
+                onPrevious={handlePrevious}
+                onNext={handleNext}
+                onSave={handleSave}
+              />
+            </div>
+          </Card>
+        </Layout.Section>
 
         {/* Step Content */}
         <Layout.Section>
@@ -529,4 +549,3 @@ export function CampaignFormWithABTesting({
     </Page>
   );
 }
-

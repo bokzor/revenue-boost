@@ -12,13 +12,14 @@
  * - Multiple color scheme presets
  */
 
-import React, { useCallback } from 'react';
-import type { PopupDesignConfig } from './types';
-import type { AnnouncementContent } from '~/domains/campaigns/types/campaign';
-import { POPUP_SPACING, SPACING_GUIDELINES } from './spacing';
+import React, { useCallback, useMemo } from "react";
+import type { PopupDesignConfig } from "./types";
+import type { AnnouncementContent } from "~/domains/campaigns/types/campaign";
+import { POPUP_SPACING, SPACING_GUIDELINES } from "./spacing";
 
 // Import custom hooks
-import { usePopupAnimation } from './hooks';
+import { usePopupAnimation } from "./hooks";
+import { buildScopedCss } from "~/domains/storefront/shared/css";
 
 /**
  * AnnouncementConfig - Extends both design config AND campaign content type
@@ -28,7 +29,7 @@ import { usePopupAnimation } from './hooks';
 export interface AnnouncementConfig extends PopupDesignConfig, AnnouncementContent {
   // Storefront-specific fields only
   ctaOpenInNewTab: boolean; // required by AnnouncementContent schema default
-  colorScheme: 'custom' | 'info' | 'success' | 'urgent';
+  colorScheme: "custom" | "info" | "success" | "urgent";
 
   // Note: headline, icon, ctaUrl, etc. come from AnnouncementContent
 }
@@ -56,7 +57,7 @@ export const AnnouncementPopup: React.FC<AnnouncementPopupProps> = ({
 
     if (config.ctaUrl) {
       if (config.ctaOpenInNewTab) {
-        window.open(config.ctaUrl, '_blank', 'noopener,noreferrer');
+        window.open(config.ctaUrl, "_blank", "noopener,noreferrer");
       } else {
         window.location.href = config.ctaUrl;
       }
@@ -65,29 +66,40 @@ export const AnnouncementPopup: React.FC<AnnouncementPopupProps> = ({
 
   if (!isVisible) return null;
 
+  const scopedCss = useMemo(
+    () =>
+      buildScopedCss(
+        config.globalCustomCSS,
+        config.customCSS,
+        "data-rb-banner",
+        "announcement",
+      ),
+    [config.customCSS, config.globalCustomCSS],
+  );
+
   // Color scheme presets
   const getColorScheme = () => {
     switch (config.colorScheme) {
-      case 'info':
+      case "info":
         return {
-          backgroundColor: '#2563EB',
-          textColor: '#FFFFFF',
-          buttonColor: '#FFFFFF',
-          buttonTextColor: '#2563EB',
+          backgroundColor: "#2563EB",
+          textColor: "#FFFFFF",
+          buttonColor: "#FFFFFF",
+          buttonTextColor: "#2563EB",
         };
-      case 'success':
+      case "success":
         return {
-          backgroundColor: '#059669',
-          textColor: '#FFFFFF',
-          buttonColor: '#FFFFFF',
-          buttonTextColor: '#059669',
+          backgroundColor: "#059669",
+          textColor: "#FFFFFF",
+          buttonColor: "#FFFFFF",
+          buttonTextColor: "#059669",
         };
-      case 'urgent':
+      case "urgent":
         return {
-          backgroundColor: '#D97706',
-          textColor: '#FFFFFF',
-          buttonColor: '#FFFFFF',
-          buttonTextColor: '#D97706',
+          backgroundColor: "#D97706",
+          textColor: "#FFFFFF",
+          buttonColor: "#FFFFFF",
+          buttonTextColor: "#D97706",
         };
 
       default:
@@ -97,119 +109,115 @@ export const AnnouncementPopup: React.FC<AnnouncementPopupProps> = ({
           buttonColor: config.buttonColor,
           buttonTextColor: config.buttonTextColor,
         };
-	    }
-	  };
+    }
+  };
 
-	  const colors = getColorScheme();
+  const colors = getColorScheme();
 
-	  // Support both solid and gradient backgrounds. For gradient themes (e.g.
-	  // "bold", "gradient"), backgroundColor will be a linear-gradient string,
-	  // which must be applied via backgroundImage/background instead of
-	  // backgroundColor.
-	  const hasGradientBg =
-	    typeof colors.backgroundColor === 'string' &&
-	    colors.backgroundColor.includes('gradient');
+  // Support both solid and gradient backgrounds. For gradient themes (e.g.
+  // "bold", "gradient"), backgroundColor will be a linear-gradient string,
+  // which must be applied via backgroundImage/background instead of
+  // backgroundColor.
+  const hasGradientBg =
+    typeof colors.backgroundColor === "string" && colors.backgroundColor.includes("gradient");
 
-	  const bannerBackgroundStyles: React.CSSProperties = hasGradientBg
-	    ? {
-	        backgroundImage: colors.backgroundColor,
-	        backgroundColor: 'transparent',
-	      }
-	    : {
-	        backgroundColor: colors.backgroundColor,
-	      };
+  const bannerBackgroundStyles: React.CSSProperties = hasGradientBg
+    ? {
+        backgroundImage: colors.backgroundColor,
+        backgroundColor: "transparent",
+      }
+    : {
+        backgroundColor: colors.backgroundColor,
+      };
 
-	  const bannerStyles: React.CSSProperties = {
-	    position: config.sticky ? 'sticky' : 'fixed',
-	    [config.position === 'bottom' ? 'bottom' : 'top']: 0,
-	    left: 0,
-	    right: 0,
-	    ...bannerBackgroundStyles,
-	    color: colors.textColor,
-	    padding: '14px 20px',
-	    zIndex: 10000,
-	    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-	  };
+  const bannerStyles: React.CSSProperties = {
+    position: config.sticky ? "sticky" : "fixed",
+    [config.position === "bottom" ? "bottom" : "top"]: 0,
+    left: 0,
+    right: 0,
+    ...bannerBackgroundStyles,
+    color: colors.textColor,
+    padding: "14px 20px",
+    zIndex: 10000,
+    boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+  };
 
   const containerStyles: React.CSSProperties = {
-    maxWidth: '1200px',
-    margin: '0 auto',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
+    maxWidth: "1200px",
+    margin: "0 auto",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
     gap: POPUP_SPACING.gap.md,
-    flexWrap: 'wrap',
-    position: 'relative',
+    flexWrap: "wrap",
+    position: "relative",
   };
 
   const contentStyles: React.CSSProperties = {
-    display: 'flex',
-    alignItems: 'center',
+    display: "flex",
+    alignItems: "center",
     gap: POPUP_SPACING.gap.sm,
     flex: 1,
-    justifyContent: 'center',
+    justifyContent: "center",
   };
 
   const buttonStyles: React.CSSProperties = {
     padding: POPUP_SPACING.component.buttonCompact,
-    fontSize: '14px',
+    fontSize: "14px",
     fontWeight: 700,
-    border: 'none',
+    border: "none",
     borderRadius: `${config.borderRadius ?? 6}px`,
     backgroundColor: colors.buttonColor,
     color: colors.buttonTextColor,
-    cursor: 'pointer',
-    whiteSpace: 'nowrap',
-    transition: 'all 0.2s',
-    textTransform: 'uppercase',
-    letterSpacing: '0.05em',
+    cursor: "pointer",
+    whiteSpace: "nowrap",
+    transition: "all 0.2s",
+    textTransform: "uppercase",
+    letterSpacing: "0.05em",
   };
 
   const dismissButtonStyles: React.CSSProperties = {
-    padding: '0 4px',
-    fontSize: '13px',
-    border: 'none',
-    background: 'transparent',
+    padding: "0 4px",
+    fontSize: "13px",
+    border: "none",
+    background: "transparent",
     color: colors.textColor,
-    cursor: 'pointer',
-    textDecoration: 'underline',
-    whiteSpace: 'nowrap',
+    cursor: "pointer",
+    textDecoration: "underline",
+    whiteSpace: "nowrap",
     opacity: 0.9,
-    transition: 'opacity 0.2s',
+    transition: "opacity 0.2s",
   };
 
   const closeButtonStyles: React.CSSProperties = {
-    position: 'absolute',
+    position: "absolute",
     right: 0,
-    background: 'transparent',
-    border: 'none',
+    background: "transparent",
+    border: "none",
     color: colors.textColor,
-    fontSize: '24px',
-    cursor: 'pointer',
-    padding: '0 8px',
+    fontSize: "24px",
+    cursor: "pointer",
+    padding: "0 8px",
     opacity: 0.8,
     lineHeight: 1,
   };
 
   return (
-    <div style={bannerStyles}>
+    <div style={bannerStyles} data-rb-banner>
+      {scopedCss ? <style dangerouslySetInnerHTML={{ __html: scopedCss }} /> : null}
       <div style={containerStyles}>
         <div style={contentStyles}>
           {/* Icon */}
-          {config.icon && (
-            <span style={{ fontSize: '20px', flexShrink: 0 }}>
-              {config.icon}
-            </span>
-          )}
+          {config.icon && <span style={{ fontSize: "20px", flexShrink: 0 }}>{config.icon}</span>}
 
           {/* Headline */}
-          <div style={{ fontWeight: 900, fontSize: '15px', textAlign: 'center' }}>
+          <div style={{ fontWeight: 900, fontSize: "15px", textAlign: "center" }}>
             {config.headline}
           </div>
 
           {/* Subheadline */}
           {config.subheadline && (
-            <div style={{ fontSize: '14px', opacity: 0.9, textAlign: 'center' }}>
+            <div style={{ fontSize: "14px", opacity: 0.9, textAlign: "center" }}>
               {config.subheadline}
             </div>
           )}
@@ -219,8 +227,8 @@ export const AnnouncementPopup: React.FC<AnnouncementPopupProps> = ({
             <button
               onClick={handleCtaClick}
               style={buttonStyles}
-              onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'}
-              onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+              onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.9")}
+              onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
             >
               {config.buttonText || config.ctaText}
             </button>
@@ -231,10 +239,10 @@ export const AnnouncementPopup: React.FC<AnnouncementPopupProps> = ({
             type="button"
             onClick={onClose}
             style={dismissButtonStyles}
-            onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
-            onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.9')}
+            onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
+            onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.9")}
           >
-            {config.dismissLabel || 'No thanks'}
+            {config.dismissLabel || "No thanks"}
           </button>
         </div>
 
@@ -244,8 +252,8 @@ export const AnnouncementPopup: React.FC<AnnouncementPopupProps> = ({
             onClick={onClose}
             style={closeButtonStyles}
             aria-label="Close announcement"
-            onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
-            onMouseLeave={(e) => e.currentTarget.style.opacity = '0.8'}
+            onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
+            onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.8")}
           >
             ×
           </button>
@@ -254,4 +262,3 @@ export const AnnouncementPopup: React.FC<AnnouncementPopupProps> = ({
     </div>
   );
 };
-

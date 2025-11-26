@@ -90,6 +90,10 @@ export interface SocialProofConfig extends Partial<TemplateSocialProofConfig> {
   actionTextColor?: string;
   customerNameColor?: string;
   productNameColor?: string;
+
+  // Custom CSS
+  customCSS?: string;
+  globalCustomCSS?: string;
 }
 
 export const DEFAULT_SOCIAL_PROOF_CONFIG: SocialProofConfig = {

@@ -148,9 +148,7 @@ export async function findCustomerByEmail(
   } catch (error) {
     console.error("[Shopify Customer] Error finding customer:", error);
     return {
-      errors: [
-        error instanceof Error ? error.message : "Failed to find customer",
-      ],
+      errors: [error instanceof Error ? error.message : "Failed to find customer"],
     };
   }
 }
@@ -198,9 +196,7 @@ export async function createCustomer(
     if (responseData.data?.customerCreate?.userErrors?.length > 0) {
       console.error("[Shopify Customer] User errors:", responseData.data.customerCreate.userErrors);
       return {
-        errors: responseData.data.customerCreate.userErrors.map(
-          (error: any) => error.message
-        ),
+        errors: responseData.data.customerCreate.userErrors.map((error: any) => error.message),
       };
     }
 
@@ -235,9 +231,7 @@ export async function createCustomer(
   } catch (error) {
     console.error("[Shopify Customer] Error creating customer:", error);
     return {
-      errors: [
-        error instanceof Error ? error.message : "Failed to create customer",
-      ],
+      errors: [error instanceof Error ? error.message : "Failed to create customer"],
     };
   }
 }
@@ -281,9 +275,7 @@ export async function updateCustomer(
 
     if (responseData.data?.customerUpdate?.userErrors?.length > 0) {
       return {
-        errors: responseData.data.customerUpdate.userErrors.map(
-          (error: any) => error.message
-        ),
+        errors: responseData.data.customerUpdate.userErrors.map((error: any) => error.message),
       };
     }
 
@@ -309,9 +301,7 @@ export async function updateCustomer(
   } catch (error) {
     console.error("[Shopify Customer] Error updating customer:", error);
     return {
-      errors: [
-        error instanceof Error ? error.message : "Failed to update customer",
-      ],
+      errors: [error instanceof Error ? error.message : "Failed to update customer"],
     };
   }
 }
@@ -347,30 +337,19 @@ export async function upsertCustomer(
       // Customer exists - update if needed
       const existingCustomer = findResult.customer;
       const needsUpdate =
-        data.firstName ||
-        data.lastName ||
-        data.phone ||
-        data.marketingConsent ||
-        tags.length > 0;
+        data.firstName || data.lastName || data.phone || data.marketingConsent || tags.length > 0;
 
       if (needsUpdate) {
         // Merge tags (don't duplicate)
-        const mergedTags = Array.from(
-          new Set([...existingCustomer.tags, ...tags])
-        );
+        const mergedTags = Array.from(new Set([...existingCustomer.tags, ...tags]));
 
-        const updateResult = await updateCustomer(
-          admin,
-          existingCustomer.id,
-          {
-            firstName: data.firstName || existingCustomer.firstName,
-            lastName: data.lastName || existingCustomer.lastName,
-            phone: data.phone || existingCustomer.phone,
-            acceptsMarketing:
-              data.marketingConsent ?? existingCustomer.acceptsMarketing,
-            tags: mergedTags,
-          }
-        );
+        const updateResult = await updateCustomer(admin, existingCustomer.id, {
+          firstName: data.firstName || existingCustomer.firstName,
+          lastName: data.lastName || existingCustomer.lastName,
+          phone: data.phone || existingCustomer.phone,
+          acceptsMarketing: data.marketingConsent ?? existingCustomer.acceptsMarketing,
+          tags: mergedTags,
+        });
 
         if (updateResult.errors) {
           return {
@@ -413,9 +392,7 @@ export async function upsertCustomer(
     console.error("[Shopify Customer] Error upserting customer:", error);
     return {
       success: false,
-      errors: [
-        error instanceof Error ? error.message : "Failed to upsert customer",
-      ],
+      errors: [error instanceof Error ? error.message : "Failed to upsert customer"],
     };
   }
 }
@@ -423,9 +400,7 @@ export async function upsertCustomer(
 /**
  * Sanitize customer data before sending to Shopify
  */
-export function sanitizeCustomerData(
-  data: CustomerUpsertData
-): CustomerUpsertData {
+export function sanitizeCustomerData(data: CustomerUpsertData): CustomerUpsertData {
   return {
     email: data.email.toLowerCase().trim(),
     firstName: data.firstName?.trim() || undefined,
@@ -446,4 +421,3 @@ export function extractCustomerId(gid: string): string {
   const parts = gid.split("/");
   return parts[parts.length - 1];
 }
-

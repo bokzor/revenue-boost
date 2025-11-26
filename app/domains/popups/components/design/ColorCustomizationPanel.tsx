@@ -27,11 +27,8 @@ import {
   Collapsible,
   Icon,
 } from "@shopify/polaris";
-import {
-  ChevronDownIcon,
-  ChevronUpIcon,
-  ColorIcon,
-} from "@shopify/polaris-icons";
+import type { IconProps } from "@shopify/polaris";
+import { ChevronDownIcon, ChevronUpIcon, ColorIcon } from "@shopify/polaris-icons";
 import styles from "./ColorCustomizationPanel.module.css";
 
 // Import our enhanced types and utilities
@@ -42,14 +39,8 @@ import type {
   ColorChangeEvent,
   ColorPresetAppliedEvent,
 } from "~/domains/popups/color-customization.types";
-import {
-  validateColors,
-  isValidHexColor,
-} from "~/shared/utils/color-utilities";
-import {
-  getColorPresetsForTemplate,
-  getPopularColorPresets,
-} from "~/config/color-presets";
+import { validateColors, isValidHexColor } from "~/shared/utils/color-utilities";
+import { getColorPresetsForTemplate, getPopularColorPresets } from "~/config/color-presets";
 
 // Legacy interface for backward compatibility
 export interface ColorConfig {
@@ -60,8 +51,7 @@ export interface ColorConfig {
   accentColor?: string;
 }
 
-export interface ColorCustomizationPanelProps
-  extends Partial<ColorCustomizationProps> {
+export interface ColorCustomizationPanelProps extends Partial<ColorCustomizationProps> {
   /**
    * Current color configuration (legacy support)
    */
@@ -125,28 +115,25 @@ const DEFAULT_BRAND_COLORS = [
   "#000000", // Black
 ];
 
+type ColorPropertyGroup = {
+  title: string;
+  description?: string;
+  properties: ReadonlyArray<keyof ExtendedColorConfig>;
+  icon?: IconProps["source"];
+};
+
 // Color property groups for organization
-const COLOR_PROPERTY_GROUPS = {
+const COLOR_PROPERTY_GROUPS: Record<string, ColorPropertyGroup> = {
   basic: {
     title: "Basic Colors",
     description: "Essential colors that all templates need",
-    properties: [
-      "backgroundColor",
-      "textColor",
-      "buttonColor",
-      "buttonTextColor",
-    ] as const,
+    properties: ["backgroundColor", "textColor", "buttonColor", "buttonTextColor"],
     icon: ColorIcon,
   },
   accent: {
     title: "Accent Colors",
     description: "Secondary colors for highlights and accents",
-    properties: [
-      "accentColor",
-      "secondaryColor",
-      "linkColor",
-      "borderColor",
-    ] as const,
+    properties: ["accentColor", "secondaryColor", "linkColor", "borderColor"],
     icon: ColorIcon,
   },
   forms: {
@@ -157,30 +144,25 @@ const COLOR_PROPERTY_GROUPS = {
       "inputBorderColor",
       "inputTextColor",
       "inputFocusColor",
-    ] as const,
+    ],
     icon: ColorIcon,
   },
   feedback: {
     title: "Status & Feedback",
     description: "Colors for success, error, and warning states",
-    properties: [
-      "successColor",
-      "errorColor",
-      "warningColor",
-      "infoColor",
-    ] as const,
+    properties: ["successColor", "errorColor", "warningColor", "infoColor"],
     icon: ColorIcon,
   },
 } as const;
 
 // Template-specific color groups
-const TEMPLATE_SPECIFIC_GROUPS = {
+const TEMPLATE_SPECIFIC_GROUPS: Record<string, Record<string, ColorPropertyGroup>> = {
   newsletter: {
     ...COLOR_PROPERTY_GROUPS,
     newsletter: {
       title: "Newsletter Specific",
       description: "Colors specific to newsletter templates",
-      properties: ["successIconColor", "consentTextColor"] as const,
+      properties: ["successColor", "textColor"],
       icon: ColorIcon,
     },
   },
@@ -191,10 +173,10 @@ const TEMPLATE_SPECIFIC_GROUPS = {
       description: "Colors for sales templates and urgency indicators",
       properties: [
         "urgencyTextColor",
-        "discountHighlightColor",
+        "accentColor",
         "priceTextColor",
         "timerColor",
-      ] as const,
+      ],
       icon: ColorIcon,
     },
   },
@@ -203,7 +185,7 @@ const TEMPLATE_SPECIFIC_GROUPS = {
     "exit-intent": {
       title: "Exit Intent",
       description: "Colors for exit-intent specific elements",
-      properties: ["urgencyIndicatorColor", "lastChanceTextColor"] as const,
+      properties: ["urgencyIndicatorColor", "lastChanceTextColor"],
       icon: ColorIcon,
     },
   },
@@ -217,7 +199,7 @@ const TEMPLATE_SPECIFIC_GROUPS = {
         "productTitleColor",
         "productPriceColor",
         "addToCartButtonColor",
-      ] as const,
+      ],
       icon: ColorIcon,
     },
   },
@@ -226,7 +208,7 @@ const TEMPLATE_SPECIFIC_GROUPS = {
     announcement: {
       title: "Announcement",
       description: "Colors for announcement elements",
-      properties: ["announcementBannerColor", "highlightTextColor"] as const,
+      properties: ["announcementBannerColor", "highlightTextColor"],
       icon: ColorIcon,
     },
   },
@@ -238,9 +220,9 @@ const TEMPLATE_SPECIFIC_GROUPS = {
       properties: [
         "notificationBackgroundColor",
         "customerNameColor",
-        "productNameColor",
+        "productTitleColor",
         "timestampColor",
-      ] as const,
+      ],
       icon: ColorIcon,
     },
   },
@@ -297,14 +279,13 @@ export function ColorCustomizationPanel({
   onPresetApplied,
 }: ColorCustomizationPanelProps) {
   // State management
+  void _enablePreview; // legacy flag kept for compatibility
   const [recentColors, setRecentColors] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState(0);
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(showAdvanced);
-  const [_selectedColorGroup, _setSelectedColorGroup] =
-    useState<string>("basic");
-  const [colorHarmonyBase, setColorHarmonyBase] = useState<string>(
-    colors.buttonColor,
-  );
+  const [_selectedColorGroup] = useState<string>("basic");
+  void _selectedColorGroup;
+  const [colorHarmonyBase, setColorHarmonyBase] = useState<string>(colors.buttonColor);
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
 
   // Memoized calculations
@@ -324,20 +305,12 @@ export function ColorCustomizationPanel({
     };
   }, [colors]);
 
-  const validation = useMemo(
-    () => validateColors(extendedColors),
-    [extendedColors],
-  );
-  const colorPresets = useMemo(
-    () => getColorPresetsForTemplate(templateType),
-    [templateType],
-  );
+  const validation = useMemo(() => validateColors(extendedColors), [extendedColors]);
+  const colorPresets = useMemo(() => getColorPresetsForTemplate(templateType), [templateType]);
   const popularPresets = useMemo(() => getPopularColorPresets(), []);
-  const propertyGroups = useMemo(
-    () =>
-      (TEMPLATE_SPECIFIC_GROUPS as any)[templateType as string] || COLOR_PROPERTY_GROUPS,
-    [templateType],
-  );
+  const propertyGroups = useMemo((): Record<string, ColorPropertyGroup> => {
+    return TEMPLATE_SPECIFIC_GROUPS[templateType] || COLOR_PROPERTY_GROUPS;
+  }, [templateType]);
 
   // Brand color suggestions
   const brandSuggestions = useMemo(() => {
@@ -384,7 +357,7 @@ export function ColorCustomizationPanel({
         });
       }
     },
-    [extendedColors, onChange, recentColors, onColorChange],
+    [extendedColors, onChange, recentColors, onColorChange]
   );
 
   const handlePresetClick = useCallback(
@@ -400,14 +373,14 @@ export function ColorCustomizationPanel({
         });
       }
     },
-    [onChange, onPresetApplied],
+    [onChange, onPresetApplied]
   );
 
   const handleSwatchClick = useCallback(
     (field: keyof ExtendedColorConfig, color: string) => {
       handleColorChange(field, color);
     },
-    [handleColorChange],
+    [handleColorChange]
   );
 
   const handleBrandSuggestionApply = useCallback(() => {
@@ -429,21 +402,18 @@ export function ColorCustomizationPanel({
   }, [brandSuggestions, onChange, onColorChange, extendedColors]);
 
   // Helper functions
-  const renderColorSwatch = useCallback(
-    (color: string, onClick: () => void, tooltip?: string) => {
-      const content = (
-        <button
-          className={styles.colorSwatch}
-          style={{ backgroundColor: color }}
-          onClick={onClick}
-          aria-label={tooltip || `Set color to ${color}`}
-        />
-      );
+  const renderColorSwatch = useCallback((color: string, onClick: () => void, tooltip?: string) => {
+    const content = (
+      <button
+        className={styles.colorSwatch}
+        style={{ backgroundColor: color }}
+        onClick={onClick}
+        aria-label={tooltip || `Set color to ${color}`}
+      />
+    );
 
-      return tooltip ? <Tooltip content={tooltip}>{content}</Tooltip> : content;
-    },
-    [],
-  );
+    return tooltip ? <Tooltip content={tooltip}>{content}</Tooltip> : content;
+  }, []);
 
   const renderColorInput = useCallback(
     (field: keyof ExtendedColorConfig, label: string) => {
@@ -457,15 +427,17 @@ export function ColorCustomizationPanel({
               {label}
             </Text>
             <InlineStack gap="200" blockAlign="center">
-              <div
+              <button
+                type="button"
                 className={styles.colorPreview}
                 style={{ backgroundColor: value || "#FFFFFF" }}
                 onClick={() => {
                   const input = document.getElementById(
-                    `color-input-${String(field)}`,
+                    `color-input-${String(field)}`
                   ) as HTMLInputElement;
                   input?.click();
                 }}
+                aria-label={`Pick ${label}`}
               />
               <TextField
                 id={`color-input-${String(field)}`}
@@ -484,11 +456,7 @@ export function ColorCustomizationPanel({
             {/* Brand color swatches */}
             <InlineStack gap="100" wrap>
               {legacyBrandColors.map((color) =>
-                renderColorSwatch(
-                  color,
-                  () => handleSwatchClick(field, color),
-                  `Apply ${color}`,
-                ),
+                renderColorSwatch(color, () => handleSwatchClick(field, color), `Apply ${color}`)
               )}
               {/* Color harmony suggestions */}
               {colorHarmony
@@ -497,8 +465,8 @@ export function ColorCustomizationPanel({
                   renderColorSwatch(
                     color,
                     () => handleSwatchClick(field, color),
-                    `Harmony color: ${color}`,
-                  ),
+                    `Harmony color: ${color}`
+                  )
                 )}
             </InlineStack>
           </BlockStack>
@@ -512,17 +480,17 @@ export function ColorCustomizationPanel({
       legacyBrandColors,
       colorHarmony,
       renderColorSwatch,
-    ],
+    ]
   );
 
   const renderColorGroup = useCallback(
-    (groupKey: string, group: any) => {
+    (groupKey: string, group: ColorPropertyGroup) => {
       return (
         <Card key={groupKey}>
           <BlockStack gap="300">
             <Box>
               <InlineStack gap="200" blockAlign="center">
-                <Icon source={group.icon as any} />
+                {group.icon && <Icon source={group.icon} />}
                 <Text as="h4" variant="headingSm">
                   {group.title}
                 </Text>
@@ -538,15 +506,15 @@ export function ColorCustomizationPanel({
               {group.properties.map((property: keyof ExtendedColorConfig) =>
                 renderColorInput(
                   property,
-                  PROPERTY_LABELS[property as string] || (property as string),
-                ),
+                  PROPERTY_LABELS[property as string] || (property as string)
+                )
               )}
             </BlockStack>
           </BlockStack>
         </Card>
       );
     },
-    [renderColorInput],
+    [renderColorInput]
   );
 
   const renderPresetCard = useCallback(
@@ -554,10 +522,17 @@ export function ColorCustomizationPanel({
       const isSelected = selectedPreset === preset.id;
 
       return (
-        <div
+        <button
+          type="button"
           key={preset.id}
           className={`${styles.presetCard} ${isSelected ? styles.selected : ""}`}
           onClick={() => handlePresetClick(preset)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              handlePresetClick(preset);
+            }
+          }}
         >
           {isSelected && <div className={styles.selectedBadge}>✓</div>}
 
@@ -565,14 +540,9 @@ export function ColorCustomizationPanel({
             className={styles.presetPreview}
             style={{ backgroundColor: preset.colors.backgroundColor }}
           >
-            <div
-              className={styles.presetContent}
-              style={{ color: preset.colors.textColor }}
-            >
+            <div className={styles.presetContent} style={{ color: preset.colors.textColor }}>
               <div className={styles.presetTitle}>Sample Title</div>
-              <div className={styles.presetDescription}>
-                Description text here
-              </div>
+              <div className={styles.presetDescription}>Description text here</div>
               <div
                 className={styles.presetButton}
                 style={{
@@ -598,10 +568,10 @@ export function ColorCustomizationPanel({
               </Badge>
             )}
           </div>
-        </div>
+        </button>
       );
     },
-    [selectedPreset, handlePresetClick],
+    [selectedPreset, handlePresetClick]
   );
 
   // Tab configuration
@@ -637,15 +607,14 @@ export function ColorCustomizationPanel({
         {/* Header */}
         <Box>
           <InlineStack gap="200" blockAlign="center">
-            <Icon source={ColorIcon as any} />
+            <Icon source={ColorIcon} />
             <Text as="h3" variant="headingMd">
               Color Customization
             </Text>
           </InlineStack>
           <Box paddingBlockStart="100">
             <Text as="p" variant="bodySm" tone="subdued">
-              Customize colors for your {templateType.replace("-", " ")}{" "}
-              template
+              Customize colors for your {templateType.replace("-", " ")} template
             </Text>
           </Box>
         </Box>
@@ -707,23 +676,17 @@ export function ColorCustomizationPanel({
                     Popular Presets
                   </Text>
                   <Box paddingBlockStart="200">
-                    <div className={styles.presetGrid}>
-                      {popularPresets.map(renderPresetCard)}
-                    </div>
+                    <div className={styles.presetGrid}>{popularPresets.map(renderPresetCard)}</div>
                   </Box>
                 </Box>
 
                 <Box>
                   <Text as="h4" variant="headingSm">
-                    {templateType.charAt(0).toUpperCase() +
-                      templateType.slice(1)}{" "}
-                    Optimized
+                    {templateType.charAt(0).toUpperCase() + templateType.slice(1)} Optimized
                   </Text>
                   <Box paddingBlockStart="200">
                     <div className={styles.presetGrid}>
-                      {colorPresets
-                        .filter((p) => !p.isPopular)
-                        .map(renderPresetCard)}
+                      {colorPresets.filter((p) => !p.isPopular).map(renderPresetCard)}
                     </div>
                   </Box>
                 </Box>
@@ -773,12 +736,12 @@ export function ColorCustomizationPanel({
                         Recent Colors
                       </Text>
                       <InlineStack gap="100" wrap>
-                        {recentColors.map((color, _index) =>
+                        {recentColors.map((color) =>
                           renderColorSwatch(
                             color,
                             () => setColorHarmonyBase(color),
-                            `Recent color: ${color}`,
-                          ),
+                            `Recent color: ${color}`
+                          )
                         )}
                       </InlineStack>
                     </BlockStack>
@@ -798,8 +761,8 @@ export function ColorCustomizationPanel({
                       Brand Color Suggestions
                     </Text>
                     <Text as="p" variant="bodySm" tone="subdued">
-                      Colors generated from your brand palette, optimized for{" "}
-                      {templateType} templates
+                      Colors generated from your brand palette, optimized for {templateType}{" "}
+                      templates
                     </Text>
 
                     {/* Brand Color Preview */}
@@ -807,21 +770,21 @@ export function ColorCustomizationPanel({
                       <div
                         className={styles.brandPreviewContent}
                         style={{
-                          backgroundColor: (brandSuggestions as Record<string, string>)?.backgroundColor,
+                          backgroundColor: (brandSuggestions as Record<string, string>)
+                            ?.backgroundColor,
                           color: (brandSuggestions as Record<string, string>)?.textColor,
                           borderColor: (brandSuggestions as Record<string, string>)?.borderColor,
                         }}
                       >
-                        <div className={styles.brandPreviewTitle}>
-                          Your Brand Colors
-                        </div>
+                        <div className={styles.brandPreviewTitle}>Your Brand Colors</div>
                         <div className={styles.brandPreviewDescription}>
                           See how your brand colors look in this template
                         </div>
                         <div
                           className={styles.brandPreviewButton}
                           style={{
-                            backgroundColor: (brandSuggestions as Record<string, string>)?.buttonColor,
+                            backgroundColor: (brandSuggestions as Record<string, string>)
+                              ?.buttonColor,
                             color: (brandSuggestions as Record<string, string>)?.buttonTextColor,
                           }}
                         >
@@ -830,10 +793,7 @@ export function ColorCustomizationPanel({
                       </div>
                     </div>
 
-                    <Button
-                      onClick={handleBrandSuggestionApply}
-                      variant="primary"
-                    >
+                    <Button onClick={handleBrandSuggestionApply} variant="primary">
                       Apply Brand Colors
                     </Button>
                   </BlockStack>

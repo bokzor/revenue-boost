@@ -20,7 +20,7 @@ import {
   Box,
   Divider,
   DescriptionList,
-  Button
+  Button,
 } from "@shopify/polaris";
 import { useState, useCallback } from "react";
 
@@ -29,7 +29,10 @@ import { getStoreId } from "~/lib/auth-helpers.server";
 import { ExperimentService } from "~/domains/campaigns";
 import type { ExperimentWithVariants } from "~/domains/campaigns";
 import { apiClient, getErrorMessage } from "~/lib/api-client";
-import { getVariantPerformance, type VariantComparison } from "~/domains/analytics/experiment-analytics.server";
+import {
+  getVariantPerformance,
+  type VariantComparison,
+} from "~/domains/analytics/experiment-analytics.server";
 import { getStoreCurrency } from "~/lib/currency.server";
 
 // ============================================================================
@@ -82,16 +85,18 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       analytics,
       currency,
     });
-
   } catch (error) {
     console.error("Failed to load experiment:", error);
 
-    return data<LoaderData>({
-      experiment: null,
-      storeId: "",
-      analytics: null,
-      currency: "USD",
-    }, { status: 404 });
+    return data<LoaderData>(
+      {
+        experiment: null,
+        storeId: "",
+        analytics: null,
+        currency: "USD",
+      },
+      { status: 404 }
+    );
   }
 }
 
@@ -111,7 +116,7 @@ export default function ExperimentDetailPage() {
 
   const handleTabChange = useCallback(
     (selectedTabIndex: number) => setSelectedTab(selectedTabIndex),
-    [],
+    []
   );
 
   if (isAnalyticsRoute) {
@@ -125,7 +130,7 @@ export default function ExperimentDetailPage() {
         backAction={{ onAction: () => navigate("/app/campaigns") }}
       >
         <Banner tone="critical">
-          <p>The experiment you're looking for doesn't exist or has been deleted.</p>
+          <p>The experiment you&apos;re looking for doesn&apos;t exist or has been deleted.</p>
         </Banner>
       </Page>
     );
@@ -145,19 +150,29 @@ export default function ExperimentDetailPage() {
   };
 
   // Calculate derived status from campaign variants
-  const campaignStatuses = experiment.variants.map(v => v.status);
-  const hasActiveCampaign = campaignStatuses.some(status => status === "ACTIVE");
-  const allDraft = campaignStatuses.every(status => status === "DRAFT");
-  const allPaused = campaignStatuses.every(status => status === "PAUSED");
+  const campaignStatuses = experiment.variants.map((v) => v.status);
+  const hasActiveCampaign = campaignStatuses.some((status) => status === "ACTIVE");
+  const allDraft = campaignStatuses.every((status) => status === "DRAFT");
+  const allPaused = campaignStatuses.every((status) => status === "PAUSED");
 
-  const derivedStatus = hasActiveCampaign ? "ACTIVE" : allDraft ? "DRAFT" : allPaused ? "PAUSED" : "MIXED";
+  const derivedStatus = hasActiveCampaign
+    ? "ACTIVE"
+    : allDraft
+      ? "DRAFT"
+      : allPaused
+        ? "PAUSED"
+        : "MIXED";
   const isExperimentActive = hasActiveCampaign;
 
   const statusBadge = {
-    tone: derivedStatus === "ACTIVE" ? "success" as const :
-      derivedStatus === "PAUSED" ? "warning" as const :
-        derivedStatus === "MIXED" ? "attention" as const :
-          "info" as const,
+    tone:
+      derivedStatus === "ACTIVE"
+        ? ("success" as const)
+        : derivedStatus === "PAUSED"
+          ? ("warning" as const)
+          : derivedStatus === "MIXED"
+            ? ("attention" as const)
+            : ("info" as const),
     children: derivedStatus,
   };
 
@@ -200,7 +215,11 @@ export default function ExperimentDetailPage() {
   };
 
   const handleDeclareWinner = async (winningVariantKey: string) => {
-    if (!confirm(`Are you sure you want to declare ${winningVariantKey} as the winner? This will pause all other variants.`)) {
+    if (
+      !confirm(
+        `Are you sure you want to declare ${winningVariantKey} as the winner? This will pause all other variants.`
+      )
+    ) {
       return;
     }
 
@@ -219,19 +238,19 @@ export default function ExperimentDetailPage() {
   // Tabs configuration
   const tabs = [
     {
-      id: 'overview',
-      content: 'Overview',
-      panelID: 'overview-panel',
+      id: "overview",
+      content: "Overview",
+      panelID: "overview-panel",
     },
     {
-      id: 'metrics',
-      content: 'Metrics',
-      panelID: 'metrics-panel',
+      id: "metrics",
+      content: "Metrics",
+      panelID: "metrics-panel",
     },
     {
-      id: 'history',
-      content: 'History',
-      panelID: 'history-panel',
+      id: "history",
+      content: "History",
+      panelID: "history-panel",
     },
   ];
 
@@ -242,7 +261,8 @@ export default function ExperimentDetailPage() {
       {!isExperimentActive && experiment.variants.length > 0 && (
         <Banner tone="info">
           <p>
-            This experiment is not active. Click "Activate All Campaigns" to start running the experiment.
+            This experiment is not active. Click &ldquo;Activate All Campaigns&rdquo; to start
+            running the experiment.
           </p>
         </Banner>
       )}
@@ -257,26 +277,34 @@ export default function ExperimentDetailPage() {
       <Card>
         <Box padding="400">
           <BlockStack gap="400">
-            <Text as="h2" variant="headingMd">Experiment Details</Text>
+            <Text as="h2" variant="headingMd">
+              Experiment Details
+            </Text>
             <Divider />
 
             <DescriptionList
               items={[
                 {
-                  term: 'Hypothesis',
-                  description: experiment.hypothesis || 'No hypothesis provided',
+                  term: "Hypothesis",
+                  description: experiment.hypothesis || "No hypothesis provided",
                 },
                 {
-                  term: 'Start Date',
-                  description: experiment.startDate ? new Date(experiment.startDate).toLocaleDateString() : "Not started",
+                  term: "Start Date",
+                  description: experiment.startDate
+                    ? new Date(experiment.startDate).toLocaleDateString()
+                    : "Not started",
                 },
                 {
-                  term: 'End Date',
-                  description: experiment.endDate ? new Date(experiment.endDate).toLocaleDateString() : "Not set",
+                  term: "End Date",
+                  description: experiment.endDate
+                    ? new Date(experiment.endDate).toLocaleDateString()
+                    : "Not set",
                 },
                 {
-                  term: 'Duration',
-                  description: experiment.plannedDurationDays ? `${experiment.plannedDurationDays} days` : 'Not set',
+                  term: "Duration",
+                  description: experiment.plannedDurationDays
+                    ? `${experiment.plannedDurationDays} days`
+                    : "Not set",
                 },
               ]}
             />
@@ -288,7 +316,9 @@ export default function ExperimentDetailPage() {
       <Card>
         <Box padding="400">
           <BlockStack gap="400">
-            <Text as="h2" variant="headingMd">Variants ({experiment.variants.length})</Text>
+            <Text as="h2" variant="headingMd">
+              Variants ({experiment.variants.length})
+            </Text>
             <Divider />
 
             {experiment.variants.length > 0 ? (
@@ -316,14 +346,14 @@ export default function ExperimentDetailPage() {
           <Box padding="400">
             <BlockStack gap="400">
               <InlineStack align="space-between" blockAlign="center">
-                <Text as="h2" variant="headingMd">Variant Performance</Text>
+                <Text as="h2" variant="headingMd">
+                  Variant Performance
+                </Text>
                 <InlineStack gap="200">
                   {analytics.isSignificant && analytics.winner && (
                     <Badge tone="success">{`Winner: ${analytics.winner}`}</Badge>
                   )}
-                  <Button onClick={() => navigate("analytics")}>
-                    View Full Analytics
-                  </Button>
+                  <Button onClick={() => navigate("analytics")}>View Full Analytics</Button>
                 </InlineStack>
               </InlineStack>
               <Divider />
@@ -334,22 +364,40 @@ export default function ExperimentDetailPage() {
                 </Banner>
               )}
 
-              {!analytics.isSignificant && analytics.variants.some(v => v.impressions > 0) && (
+              {!analytics.isSignificant && analytics.variants.some((v) => v.impressions > 0) && (
                 <Banner tone="info">
                   <p>Not enough data yet for statistical significance. Keep the test running.</p>
                 </Banner>
               )}
 
               <DataTable
-                columnContentTypes={["text", "numeric", "numeric", "numeric", "numeric", "numeric", "text"]}
-                headings={["Variant", "Impressions", "Submissions", "Conv Rate", "Revenue", "AOV", "Actions"]}
+                columnContentTypes={[
+                  "text",
+                  "numeric",
+                  "numeric",
+                  "numeric",
+                  "numeric",
+                  "numeric",
+                  "text",
+                ]}
+                headings={[
+                  "Variant",
+                  "Impressions",
+                  "Submissions",
+                  "Conv Rate",
+                  "Revenue",
+                  "AOV",
+                  "Actions",
+                ]}
                 rows={analytics.variants.map((variant) => [
                   <InlineStack gap="200" key={variant.variantKey}>
                     <Text as="span" fontWeight={variant.isControl ? "semibold" : "regular"}>
                       {variant.variantKey}
                     </Text>
                     {variant.isControl && <Badge tone="info">Control</Badge>}
-                    {analytics.winner === variant.variantKey && <Badge tone="success">Winner</Badge>}
+                    {analytics.winner === variant.variantKey && (
+                      <Badge tone="success">Winner</Badge>
+                    )}
                   </InlineStack>,
                   variant.impressions.toLocaleString(),
                   variant.submissions.toLocaleString(),
@@ -360,7 +408,13 @@ export default function ExperimentDetailPage() {
                     <button
                       key={variant.variantKey}
                       onClick={() => handleDeclareWinner(variant.variantKey)}
-                      style={{ cursor: "pointer", textDecoration: "underline", color: "#005BD3", background: "none", border: "none" }}
+                      style={{
+                        cursor: "pointer",
+                        textDecoration: "underline",
+                        color: "#005BD3",
+                        background: "none",
+                        border: "none",
+                      }}
                     >
                       Declare Winner
                     </button>
@@ -390,15 +444,27 @@ export default function ExperimentDetailPage() {
       <Card>
         <Box padding="400">
           <BlockStack gap="400">
-            <Text variant="headingMd" as="h3">Experiment History</Text>
+            <Text variant="headingMd" as="h3">
+              Experiment History
+            </Text>
             <Divider />
 
             <DataTable
-              columnContentTypes={['text', 'text', 'text', 'text']}
-              headings={['Date', 'Action', 'User', 'Details']}
+              columnContentTypes={["text", "text", "text", "text"]}
+              headings={["Date", "Action", "User", "Details"]}
               rows={[
-                [new Date(experiment.updatedAt).toLocaleDateString(), 'Updated', 'Admin', 'Modified experiment settings'],
-                [new Date(experiment.createdAt).toLocaleDateString(), 'Created', 'Admin', 'Experiment created'],
+                [
+                  new Date(experiment.updatedAt).toLocaleDateString(),
+                  "Updated",
+                  "Admin",
+                  "Modified experiment settings",
+                ],
+                [
+                  new Date(experiment.createdAt).toLocaleDateString(),
+                  "Created",
+                  "Admin",
+                  "Experiment created",
+                ],
               ]}
             />
           </BlockStack>
@@ -409,11 +475,7 @@ export default function ExperimentDetailPage() {
 
   // Toast component
   const toastMarkup = toastMessage ? (
-    <Toast
-      content={toastMessage}
-      error={toastError}
-      onDismiss={() => setToastMessage(null)}
-    />
+    <Toast content={toastMessage} error={toastError} onDismiss={() => setToastMessage(null)} />
   ) : null;
 
   return (
@@ -429,21 +491,17 @@ export default function ExperimentDetailPage() {
       secondaryActions={
         !isExperimentActive && experiment.variants.length > 0
           ? [
-            {
-              content: "Activate All Campaigns",
-              onAction: handleActivateAll,
-            },
-          ]
+              {
+                content: "Activate All Campaigns",
+                onAction: handleActivateAll,
+              },
+            ]
           : undefined
       }
     >
       <BlockStack gap="400">
         <Card>
-          <Tabs
-            tabs={tabs}
-            selected={selectedTab}
-            onSelect={handleTabChange}
-          >
+          <Tabs tabs={tabs} selected={selectedTab} onSelect={handleTabChange}>
             <Box padding="400">
               {selectedTab === 0 && overviewContent}
               {selectedTab === 1 && metricsContent}

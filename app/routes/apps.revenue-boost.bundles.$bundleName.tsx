@@ -84,4 +84,3 @@ function buildHeaders(lastModified: string, contentLength?: number) {
   }
   return headers;
 }
-

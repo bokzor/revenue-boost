@@ -1,4 +1,9 @@
-import type { TriggerCondition, ConditionOperator, LogicOperator, ConditionType } from "../components/types";
+import type {
+  TriggerCondition,
+  ConditionOperator,
+  LogicOperator,
+  ConditionType,
+} from "../components/types";
 
 // Server-side audience condition used in AudienceTargetingConfig.sessionRules
 export type AudienceOperator = "eq" | "ne" | "gt" | "gte" | "lt" | "lte" | "in" | "nin";

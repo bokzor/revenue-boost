@@ -4,7 +4,6 @@
  * Form section for configuring spin-to-win gamification content
  */
 
-import React from "react";
 import { Card, BlockStack, Text, Divider } from "@shopify/polaris";
 import { TextField, CheckboxField, FormGrid } from "../form";
 import { WheelSegmentEditor } from "./WheelSegmentEditor";
@@ -149,7 +148,9 @@ export function SpinToWinContentSection({
 
           <Divider />
 
-          <div style={{ backgroundColor: 'rgba(0, 0, 0, 0.02)', padding: '16px', borderRadius: '8px' }}>
+          <div
+            style={{ backgroundColor: "rgba(0, 0, 0, 0.02)", padding: "16px", borderRadius: "8px" }}
+          >
             <BlockStack gap="400">
               <FormGrid columns={3}>
                 <TextField
@@ -210,7 +211,8 @@ export function SpinToWinContentSection({
               Wheel Segments
             </Text>
             <Text as="p" tone="subdued" variant="bodySm">
-              Configure the prize segments on your wheel. Each segment can have its own discount configuration.
+              Configure the prize segments on your wheel. Each segment can have its own discount
+              configuration.
             </Text>
             <WheelSegmentEditor
               segments={content.wheelSegments || []}

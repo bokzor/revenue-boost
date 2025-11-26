@@ -19,7 +19,7 @@ export function PageTargetingTrigger({ config, onChange }: PageTargetingTriggerP
       ...config,
       page_targeting: {
         enabled: false,
-        ...(typeof config.page_targeting === 'object' && config.page_targeting !== null
+        ...(typeof config.page_targeting === "object" && config.page_targeting !== null
           ? config.page_targeting
           : {}),
         ...updates,
@@ -57,7 +57,10 @@ export function PageTargetingTrigger({ config, onChange }: PageTargetingTriggerP
           value={config.page_targeting?.customPatterns?.join(", ") || ""}
           onChange={(value) =>
             updateConfig({
-              customPatterns: value.split(",").map((p) => p.trim()).filter(Boolean),
+              customPatterns: value
+                .split(",")
+                .map((p) => p.trim())
+                .filter(Boolean),
             })
           }
           helpText="Use * as wildcard. Example: /collections/summer-*, /pages/about"
@@ -70,7 +73,10 @@ export function PageTargetingTrigger({ config, onChange }: PageTargetingTriggerP
           value={config.page_targeting?.excludePages?.join(", ") || ""}
           onChange={(value) =>
             updateConfig({
-              excludePages: value.split(",").map((p) => p.trim()).filter(Boolean),
+              excludePages: value
+                .split(",")
+                .map((p) => p.trim())
+                .filter(Boolean),
             })
           }
           helpText="Pages where campaign should NOT show"
@@ -80,4 +86,3 @@ export function PageTargetingTrigger({ config, onChange }: PageTargetingTriggerP
     </TriggerCard>
   );
 }
-

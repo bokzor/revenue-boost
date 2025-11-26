@@ -36,10 +36,7 @@ export async function action({ request }: { request: Request }) {
     const stagedTarget = await createImageStagedUpload(admin, {
       filename: body.filename,
       mimeType: body.mimeType,
-      fileSize:
-        typeof body.fileSize === "number" && body.fileSize > 0
-          ? body.fileSize
-          : undefined,
+      fileSize: typeof body.fileSize === "number" && body.fileSize > 0 ? body.fileSize : undefined,
     });
 
     return createSuccessResponse({ stagedTarget });
@@ -47,4 +44,3 @@ export async function action({ request }: { request: Request }) {
     return handleApiError(error, "POST /api/shopify-files/staged-uploads");
   }
 }
-

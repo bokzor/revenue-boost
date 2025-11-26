@@ -3,4 +3,3 @@
  */
 
 export { MultiStepNewsletterForm } from "./MultiStepNewsletterForm";
-

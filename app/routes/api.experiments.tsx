@@ -34,7 +34,11 @@ export async function action({ request }: { request: Request }) {
     if (request.method === "POST") {
       const storeId = await getStoreId(request);
       const rawData = await request.json();
-      const validatedData = validateData(ExperimentCreateDataSchema, rawData, "Experiment Create Data");
+      const validatedData = validateData(
+        ExperimentCreateDataSchema,
+        rawData,
+        "Experiment Create Data"
+      );
       const experiment = await ExperimentService.createExperiment(storeId, validatedData);
       return createSuccessResponse({ experiment }, 201);
     }

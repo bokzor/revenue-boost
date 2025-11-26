@@ -28,7 +28,12 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         // Import and call the bundle loader
         const bundleModule = await import("./apps.revenue-boost.bundles.$bundleName");
         console.log(`[App Proxy] ✅ Bundle module loaded`);
-        return bundleModule.loader({ request, params: { bundleName }, context: {}, unstable_pattern: '' });
+        return bundleModule.loader({
+          request,
+          params: { bundleName },
+          context: {},
+          unstable_pattern: "",
+        });
       } catch (error) {
         console.error(`[App Proxy] ❌ Failed to load bundle module:`, error);
         return data({ error: "Failed to load bundle handler" }, { status: 500 });
@@ -44,7 +49,12 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         // Import and call the asset loader
         const assetModule = await import("./apps.revenue-boost.assets.$");
         console.log(`[App Proxy] ✅ Asset module loaded`);
-        return assetModule.loader({ request, params: { "*": assetPath }, context: {}, unstable_pattern: '' });
+        return assetModule.loader({
+          request,
+          params: { "*": assetPath },
+          context: {},
+          unstable_pattern: "",
+        });
       } catch (error) {
         console.error(`[App Proxy] ❌ Failed to load asset module:`, error);
         return data({ error: "Failed to load asset handler" }, { status: 500 });
@@ -139,4 +149,3 @@ export async function action({ request, params }: LoaderFunctionArgs) {
 
   return data({ error: "Not found" }, { status: 404 });
 }
-

@@ -1,10 +1,4 @@
-import {
-  useState,
-  useCallback,
-  useEffect,
-  useRef,
-  useMemo,
-} from "react";
+import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import {
   Card,
   Layout,
@@ -52,9 +46,11 @@ import type {
   PendingTemplateChange,
 } from "~/domains/popups/types/design-editor.types";
 import type { TemplateType } from "~/shared/hooks/useWizardState";
-import type { TargetRulesConfig, ContentConfig, DesignConfig } from "~/domains/campaigns/types/campaign";
-
-
+import type {
+  TargetRulesConfig,
+  ContentConfig,
+  DesignConfig,
+} from "~/domains/campaigns/types/campaign";
 
 // Temporary stub for AnimationUtils until the real implementation is created
 const AnimationUtils = {
@@ -65,13 +61,13 @@ const AnimationUtils = {
     _config: Partial<AnimationConfig> | AnimationSettings,
     _variation?: string
   ): Promise<void> => {
-    console.warn('AnimationUtils.applyAnimation not implemented yet');
+    console.warn("AnimationUtils.applyAnimation not implemented yet");
   },
 };
 
 // Temporary stub for convertDatabaseTriggersAuto until the real implementation is created
 const convertDatabaseTriggersAuto = (triggers: unknown): EnhancedTriggersConfig => {
-  console.warn('convertDatabaseTriggersAuto not implemented yet, returning triggers as-is');
+  console.warn("convertDatabaseTriggersAuto not implemented yet, returning triggers as-is");
   return triggers as EnhancedTriggersConfig;
 };
 
@@ -106,7 +102,7 @@ export interface PopupDesignEditorProps {
     templateId: string,
     templateType: TemplateType,
     enhancedTriggers?: EnhancedTriggersConfig,
-    templateObject?: TemplateObject,
+    templateObject?: TemplateObject
   ) => void;
   campaignId?: string;
   discountConfig?: DiscountConfig;
@@ -166,14 +162,10 @@ export const PopupDesignEditorV2: React.FC<PopupDesignEditorProps> = ({
   isLoading = false,
 }) => {
   // Validate campaign goal - throw error for invalid values
-  const validCampaignGoals = [
-    "NEWSLETTER_SIGNUP",
-    "INCREASE_REVENUE",
-    "ENGAGEMENT",
-  ];
+  const validCampaignGoals = ["NEWSLETTER_SIGNUP", "INCREASE_REVENUE", "ENGAGEMENT"];
   if (!validCampaignGoals.includes(campaignGoal)) {
     throw new Error(
-      `[PopupDesignEditorV2] Invalid campaign goal: "${campaignGoal}". Must be one of: ${validCampaignGoals.join(", ")}`,
+      `[PopupDesignEditorV2] Invalid campaign goal: "${campaignGoal}". Must be one of: ${validCampaignGoals.join(", ")}`
     );
   }
   const validatedCampaignGoal = campaignGoal;
@@ -182,19 +174,17 @@ export const PopupDesignEditorV2: React.FC<PopupDesignEditorProps> = ({
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateObject | null>(null);
 
   // Local state for current template type (for immediate preview updates)
-  const [currentTemplateType, setCurrentTemplateType] = useState<
-    string | undefined
-  >(templateType);
+  const [currentTemplateType, setCurrentTemplateType] = useState<string | undefined>(templateType);
   const animationDebounceTimerRef = useRef<NodeJS.Timeout>();
   const previousAnimationsRef = useRef<AnimationSettings | null>(null);
 
   // Initialize selectedTemplate when editing a campaign with an existing template
   useEffect(() => {
     if (initialTemplateId && templateType && !selectedTemplate) {
-      console.log(
-        "[PopupDesignEditorV2] Initializing selectedTemplate for editing:",
-        { initialTemplateId, templateType },
-      );
+      console.log("[PopupDesignEditorV2] Initializing selectedTemplate for editing:", {
+        initialTemplateId,
+        templateType,
+      });
       // Initialize with the actual template instance ID for correct selection
       setSelectedTemplate({
         id: initialTemplateId,
@@ -208,15 +198,14 @@ export const PopupDesignEditorV2: React.FC<PopupDesignEditorProps> = ({
   }, [initialTemplateId, templateType, selectedTemplate]);
 
   // Template change warning state
-  const [showTemplateChangeWarning, setShowTemplateChangeWarning] =
-    useState(false);
-  const [pendingTemplateChange, setPendingTemplateChange] = useState<PendingTemplateChange | null>(null);
+  const [showTemplateChangeWarning, setShowTemplateChangeWarning] = useState(false);
+  const [pendingTemplateChange, setPendingTemplateChange] = useState<PendingTemplateChange | null>(
+    null
+  );
   const isEditingCampaign = !!campaignId;
 
   // Preview element for animation targeting
-  const [previewElement, setPreviewElement] = useState<HTMLElement | null>(
-    null,
-  );
+  const [previewElement, setPreviewElement] = useState<HTMLElement | null>(null);
 
   const [designConfig, setDesignConfig] = useState<PopupDesignConfig>(() => {
     return {
@@ -224,7 +213,8 @@ export const PopupDesignEditorV2: React.FC<PopupDesignEditorProps> = ({
       // Content fields (using unified field names)
       headline: (initialConfig as any)?.headline || "Your Popup Title",
       subheadline: (initialConfig as any)?.subheadline || "Your popup description goes here.",
-      buttonText: (initialConfig as any)?.buttonText || (initialConfig as any)?.ctaText || "Click Here",
+      buttonText:
+        (initialConfig as any)?.buttonText || (initialConfig as any)?.ctaText || "Click Here",
       successMessage: (initialConfig as any)?.successMessage || "Thank you!",
       // Design fields
       backgroundColor: "#FFFFFF",
@@ -252,7 +242,7 @@ export const PopupDesignEditorV2: React.FC<PopupDesignEditorProps> = ({
   useEffect(() => {
     console.log(
       "[PopupDesignEditorV2] 🔄 initialConfig changed, updating design config:",
-      initialConfig,
+      initialConfig
     );
 
     setDesignConfig((prev) => ({
@@ -303,16 +293,11 @@ export const PopupDesignEditorV2: React.FC<PopupDesignEditorProps> = ({
 
   // Get template sections dynamically using current template type
   const templateSections = useMemo(() => {
-    console.log(
-      "[PopupDesignEditorV2] Getting template sections for:",
-      currentTemplateType,
-    );
-    const sections = currentTemplateType
-      ? getTemplateSections(currentTemplateType)
-      : [];
+    console.log("[PopupDesignEditorV2] Getting template sections for:", currentTemplateType);
+    const sections = currentTemplateType ? getTemplateSections(currentTemplateType) : [];
     console.log(
       "[PopupDesignEditorV2] Template sections:",
-      sections.map((s) => ({ key: s.key, fieldCount: s.fields.length })),
+      sections.map((s) => ({ key: s.key, fieldCount: s.fields.length }))
     );
     return sections;
   }, [currentTemplateType]);
@@ -371,9 +356,13 @@ export const PopupDesignEditorV2: React.FC<PopupDesignEditorProps> = ({
           templateId,
           name: templateObject.name || templateType,
           templateType: templateObject.templateType || templateType,
-          category: (templateObject.category || templateType),
-          description: (typeof templateObject.description === 'string' ? templateObject.description : null) || "Campaign description goes here",
-          preview: (typeof templateObject.preview === 'string' ? templateObject.preview : null) || "/templates/default-preview.png",
+          category: templateObject.category || templateType,
+          description:
+            (typeof templateObject.description === "string" ? templateObject.description : null) ||
+            "Campaign description goes here",
+          preview:
+            (typeof templateObject.preview === "string" ? templateObject.preview : null) ||
+            "/templates/default-preview.png",
           contentConfig: fetchedContent || undefined,
           designConfig: fetchedDesign || undefined,
           targetRules: (fetchedTriggers || undefined) as Record<string, unknown> | undefined,
@@ -398,10 +387,7 @@ export const PopupDesignEditorV2: React.FC<PopupDesignEditorProps> = ({
       }
 
       // Update local template type immediately for preview
-      console.log(
-        "[PopupDesignEditorV2] Setting currentTemplateType to:",
-        templateType,
-      );
+      console.log("[PopupDesignEditorV2] Setting currentTemplateType to:", templateType);
       setCurrentTemplateType(templateType);
 
       // Apply template defaults to design config (prefer fetched DB values when available)
@@ -413,27 +399,20 @@ export const PopupDesignEditorV2: React.FC<PopupDesignEditorProps> = ({
         backgroundColor:
           (fetchedDesign?.backgroundColor ?? template?.backgroundColor) ||
           designConfig.backgroundColor,
-        textColor:
-          (fetchedDesign?.textColor ?? template?.textColor) ||
-          designConfig.textColor,
+        textColor: (fetchedDesign?.textColor ?? template?.textColor) || designConfig.textColor,
         buttonColor:
-          (fetchedDesign?.buttonColor ?? template?.buttonColor) ||
-          designConfig.buttonColor,
+          (fetchedDesign?.buttonColor ?? template?.buttonColor) || designConfig.buttonColor,
         buttonTextColor:
           (fetchedDesign?.buttonTextColor ?? template?.buttonTextColor) ||
           designConfig.buttonTextColor,
-        position:
-          (fetchedDesign?.position ?? template?.position) ||
-          designConfig.position,
+        position: (fetchedDesign?.position ?? template?.position) || designConfig.position,
         size: (fetchedDesign?.size ?? template?.size) || designConfig.size,
         showCloseButton:
           fetchedDesign?.showCloseButton ??
           template?.showCloseButton ??
           designConfig.showCloseButton,
         overlayOpacity:
-          fetchedDesign?.overlayOpacity ??
-          template?.overlayOpacity ??
-          designConfig.overlayOpacity,
+          fetchedDesign?.overlayOpacity ?? template?.overlayOpacity ?? designConfig.overlayOpacity,
         // Reset animations to default when switching templates
         animations: fetchedDesign?.animations || defaultAnimations,
       } as typeof designConfig;
@@ -451,35 +430,26 @@ export const PopupDesignEditorV2: React.FC<PopupDesignEditorProps> = ({
 
       // Convert and apply template triggers if available
       if (fetchedTriggers) {
-        console.log(
-          "[PopupDesignEditorV2] Template triggers (DB format):",
-          fetchedTriggers,
-        );
+        console.log("[PopupDesignEditorV2] Template triggers (DB format):", fetchedTriggers);
 
         // Extract enhancedTriggers from the nested structure if present
         // Templates store triggers as: { enhancedTriggers: {...}, targetingRules: {...}, ... }
-        const triggersToConvert =
-          (fetchedTriggers as any).enhancedTriggers || fetchedTriggers;
+        const triggersToConvert = (fetchedTriggers as any).enhancedTriggers || fetchedTriggers;
 
         const enhancedTriggers = convertDatabaseTriggersAuto(triggersToConvert);
         console.log(
           "[PopupDesignEditorV2] Converted triggers (enhanced format):",
-          enhancedTriggers,
+          enhancedTriggers
         );
 
         // Notify parent about trigger changes with template object
-        onTemplateChange?.(
-          templateId,
-          templateType,
-          enhancedTriggers,
-          templateObject,
-        );
+        onTemplateChange?.(templateId, templateType, enhancedTriggers, templateObject);
       } else {
         // Notify parent about template change without triggers but with template object
         onTemplateChange?.(templateId, templateType, undefined, templateObject);
       }
     },
-    [designConfig, onConfigChange, onTemplateChange],
+    [designConfig, onConfigChange, onTemplateChange]
   );
 
   // Handle template selection with warning for existing campaigns
@@ -497,13 +467,9 @@ export const PopupDesignEditorV2: React.FC<PopupDesignEditorProps> = ({
 
       // If editing an existing campaign and selecting the same template
       // Only update the templateId without applying defaults
-      if (
-        isEditingCampaign &&
-        initialTemplateId &&
-        templateId === initialTemplateId
-      ) {
+      if (isEditingCampaign && initialTemplateId && templateId === initialTemplateId) {
         console.log(
-          "Same template selected during edit, updating templateId only without applying defaults",
+          "Same template selected during edit, updating templateId only without applying defaults"
         );
         // Just notify parent about template selection without changing config
         onTemplateChange?.(templateId, templateType, undefined, template);
@@ -511,11 +477,7 @@ export const PopupDesignEditorV2: React.FC<PopupDesignEditorProps> = ({
       }
 
       // If editing an existing campaign and template is different, show warning
-      if (
-        isEditingCampaign &&
-        initialTemplateId &&
-        templateId !== initialTemplateId
-      ) {
+      if (isEditingCampaign && initialTemplateId && templateId !== initialTemplateId) {
         console.log("Template change detected during edit, showing warning");
         setPendingTemplateChange({ templateId, templateType, template });
         setShowTemplateChangeWarning(true);
@@ -525,17 +487,19 @@ export const PopupDesignEditorV2: React.FC<PopupDesignEditorProps> = ({
       // Proceed with template selection (new campaign or no initial template)
       applyTemplateSelection(templateId, templateType, template);
     },
-    [
-      isEditingCampaign,
-      initialTemplateId,
-      applyTemplateSelection,
-      onTemplateChange,
-    ],
+    [isEditingCampaign, initialTemplateId, applyTemplateSelection, onTemplateChange]
   );
 
   // Wrapper to convert SelectedTemplate to TemplateObject
   const handleCampaignTemplateSelect = useCallback(
-    (selectedTemplate: { id: string; templateType: TemplateType; name: string; contentConfig?: ContentConfig; targetRules?: TargetRulesConfig; designConfig?: DesignConfig }) => {
+    (selectedTemplate: {
+      id: string;
+      templateType: TemplateType;
+      name: string;
+      contentConfig?: ContentConfig;
+      targetRules?: TargetRulesConfig;
+      designConfig?: DesignConfig;
+    }) => {
       const templateObject: TemplateObject = {
         id: selectedTemplate.id,
         name: selectedTemplate.name,
@@ -548,7 +512,7 @@ export const PopupDesignEditorV2: React.FC<PopupDesignEditorProps> = ({
       };
       handleTemplateSelect(templateObject);
     },
-    [handleTemplateSelect],
+    [handleTemplateSelect]
   );
 
   // Handle template change confirmation
@@ -557,7 +521,7 @@ export const PopupDesignEditorV2: React.FC<PopupDesignEditorProps> = ({
       applyTemplateSelection(
         pendingTemplateChange.templateId,
         pendingTemplateChange.templateType,
-        pendingTemplateChange.template,
+        pendingTemplateChange.template
       );
       setPendingTemplateChange(null);
       setShowTemplateChangeWarning(false);
@@ -577,7 +541,7 @@ export const PopupDesignEditorV2: React.FC<PopupDesignEditorProps> = ({
   const triggerAnimationPreview = useCallback(
     async (
       type: "entrance" | "exit" | "hover" | "attention",
-      animationSettings: AnimationSettings,
+      animationSettings: AnimationSettings
     ) => {
       // Use the stored preview element reference instead of DOM query
       if (!previewElement) {
@@ -601,14 +565,16 @@ export const PopupDesignEditorV2: React.FC<PopupDesignEditorProps> = ({
         };
 
         const variation: string | undefined =
-          "variation" in settings && typeof (settings as Record<string, unknown>).variation === 'string' ? (settings as Record<string, unknown>).variation as string : undefined;
+          "variation" in settings &&
+          typeof (settings as Record<string, unknown>).variation === "string"
+            ? ((settings as Record<string, unknown>).variation as string)
+            : undefined;
 
         // For entrance animations: play exit animation, wait 1 sec, then play entrance animation
         if (type === "entrance" && animationSettings.exit) {
           // First, play the exit animation
           const exitAnimationId = animationSettings.exit.animation;
-          const exitAnimation =
-            AnimationUtils.getAnimationById(exitAnimationId);
+          const exitAnimation = AnimationUtils.getAnimationById(exitAnimationId);
 
           if (exitAnimation) {
             const exitConfig: Partial<AnimationConfig> = {
@@ -618,11 +584,7 @@ export const PopupDesignEditorV2: React.FC<PopupDesignEditorProps> = ({
               delay: 0,
             };
 
-            await AnimationUtils.applyAnimation(
-              previewElement,
-              exitAnimation,
-              exitConfig,
-            );
+            await AnimationUtils.applyAnimation(previewElement, exitAnimation, exitConfig);
           }
 
           // Keep element hidden after exit animation
@@ -640,12 +602,7 @@ export const PopupDesignEditorV2: React.FC<PopupDesignEditorProps> = ({
           previewElement.style.animation = "none";
           void previewElement.offsetHeight;
 
-          await AnimationUtils.applyAnimation(
-            previewElement,
-            animation,
-            config,
-            variation,
-          );
+          await AnimationUtils.applyAnimation(previewElement, animation, config, variation);
 
           // Ensure popup is visible after animation
           previewElement.style.opacity = "1";
@@ -662,12 +619,7 @@ export const PopupDesignEditorV2: React.FC<PopupDesignEditorProps> = ({
           void previewElement.offsetHeight;
 
           // Apply exit animation
-          await AnimationUtils.applyAnimation(
-            previewElement,
-            animation,
-            config,
-            variation,
-          );
+          await AnimationUtils.applyAnimation(previewElement, animation, config, variation);
 
           // After exit animation, show popup again for next preview
           await new Promise((resolve) => setTimeout(resolve, 200));
@@ -686,12 +638,7 @@ export const PopupDesignEditorV2: React.FC<PopupDesignEditorProps> = ({
           void previewElement.offsetHeight;
 
           // Apply animation
-          await AnimationUtils.applyAnimation(
-            previewElement,
-            animation,
-            config,
-            variation,
-          );
+          await AnimationUtils.applyAnimation(previewElement, animation, config, variation);
 
           // Reset after animation completes
           previewElement.style.animation = "";
@@ -702,7 +649,7 @@ export const PopupDesignEditorV2: React.FC<PopupDesignEditorProps> = ({
         console.error("Animation preview failed:", error);
       }
     },
-    [previewElement],
+    [previewElement]
   );
 
   // Detect animation changes and trigger preview with debounce (500ms)
@@ -724,23 +671,17 @@ export const PopupDesignEditorV2: React.FC<PopupDesignEditorProps> = ({
     let changedType: "entrance" | "exit" | "hover" | "attention" | null = null;
 
     if (
-      JSON.stringify(currentAnimations.entrance) !==
-      JSON.stringify(previousAnimations.entrance)
+      JSON.stringify(currentAnimations.entrance) !== JSON.stringify(previousAnimations.entrance)
     ) {
       changedType = "entrance";
-    } else if (
-      JSON.stringify(currentAnimations.exit) !==
-      JSON.stringify(previousAnimations.exit)
-    ) {
+    } else if (JSON.stringify(currentAnimations.exit) !== JSON.stringify(previousAnimations.exit)) {
       changedType = "exit";
     } else if (
-      JSON.stringify(currentAnimations.hover) !==
-      JSON.stringify(previousAnimations.hover)
+      JSON.stringify(currentAnimations.hover) !== JSON.stringify(previousAnimations.hover)
     ) {
       changedType = "hover";
     } else if (
-      JSON.stringify(currentAnimations.attention) !==
-      JSON.stringify(previousAnimations.attention)
+      JSON.stringify(currentAnimations.attention) !== JSON.stringify(previousAnimations.attention)
     ) {
       changedType = "attention";
     }
@@ -838,7 +779,7 @@ export const PopupDesignEditorV2: React.FC<PopupDesignEditorProps> = ({
               key === section ? !openSections[section] : false;
             return acc;
           },
-          {} as typeof openSections,
+          {} as typeof openSections
         );
         setOpenSections(newSections);
       } else {
@@ -849,7 +790,7 @@ export const PopupDesignEditorV2: React.FC<PopupDesignEditorProps> = ({
         }));
       }
     },
-    [accordionMode, openSections],
+    [accordionMode, openSections]
   );
 
   const handleConfigChange = useCallback(
@@ -858,7 +799,7 @@ export const PopupDesignEditorV2: React.FC<PopupDesignEditorProps> = ({
       setDesignConfig(newConfig);
       // onConfigChange will be called by useEffect after debounce
     },
-    [designConfig],
+    [designConfig]
   );
 
   // Helper to check if field should be shown based on conditions
@@ -868,17 +809,14 @@ export const PopupDesignEditorV2: React.FC<PopupDesignEditorProps> = ({
     }
 
     return field.conditions.every((condition) => {
-      const fieldValue =
-        designConfig[condition.field as keyof PopupDesignConfig];
+      const fieldValue = designConfig[condition.field as keyof PopupDesignConfig];
       switch (condition.operator) {
         case "equals":
           return fieldValue === condition.value;
         case "not_equals":
           return fieldValue !== condition.value;
         case "contains":
-          return (
-            Array.isArray(fieldValue) && fieldValue.includes(condition.value)
-          );
+          return Array.isArray(fieldValue) && fieldValue.includes(condition.value);
         default:
           return true;
       }
@@ -891,8 +829,7 @@ export const PopupDesignEditorV2: React.FC<PopupDesignEditorProps> = ({
       return null;
     }
 
-    const value =
-      designConfig[field.id as keyof PopupDesignConfig] ?? field.defaultValue;
+    const value = designConfig[field.id as keyof PopupDesignConfig] ?? field.defaultValue;
 
     switch (field.type) {
       case "text":
@@ -901,9 +838,7 @@ export const PopupDesignEditorV2: React.FC<PopupDesignEditorProps> = ({
             key={field.id}
             label={field.label}
             value={String(value || "")}
-            onChange={(newValue) =>
-              handleConfigChange({ [field.id]: newValue })
-            }
+            onChange={(newValue) => handleConfigChange({ [field.id]: newValue })}
             placeholder={field.placeholder}
             helpText={field.description}
             requiredIndicator={field.validation?.required}
@@ -918,9 +853,7 @@ export const PopupDesignEditorV2: React.FC<PopupDesignEditorProps> = ({
             key={field.id}
             label={field.label}
             value={String(value || "")}
-            onChange={(newValue) =>
-              handleConfigChange({ [field.id]: newValue })
-            }
+            onChange={(newValue) => handleConfigChange({ [field.id]: newValue })}
             placeholder={field.placeholder}
             helpText={field.description}
             requiredIndicator={field.validation?.required}
@@ -936,9 +869,7 @@ export const PopupDesignEditorV2: React.FC<PopupDesignEditorProps> = ({
             key={field.id}
             label={field.label}
             checked={Boolean(value)}
-            onChange={(newValue) =>
-              handleConfigChange({ [field.id]: newValue })
-            }
+            onChange={(newValue) => handleConfigChange({ [field.id]: newValue })}
             helpText={field.description}
           />
         );
@@ -950,9 +881,7 @@ export const PopupDesignEditorV2: React.FC<PopupDesignEditorProps> = ({
             label={field.label}
             type="number"
             value={String(value || field.defaultValue || "")}
-            onChange={(newValue) =>
-              handleConfigChange({ [field.id]: Number(newValue) || 0 })
-            }
+            onChange={(newValue) => handleConfigChange({ [field.id]: Number(newValue) || 0 })}
             placeholder={field.placeholder}
             helpText={field.description}
             requiredIndicator={field.validation?.required}
@@ -969,9 +898,7 @@ export const PopupDesignEditorV2: React.FC<PopupDesignEditorProps> = ({
             label={field.label}
             options={field.options || []}
             value={String(value || field.defaultValue || "")}
-            onChange={(newValue) =>
-              handleConfigChange({ [field.id]: newValue })
-            }
+            onChange={(newValue) => handleConfigChange({ [field.id]: newValue })}
             helpText={field.description}
             requiredIndicator={field.validation?.required}
           />
@@ -993,9 +920,7 @@ export const PopupDesignEditorV2: React.FC<PopupDesignEditorProps> = ({
             <input
               type="color"
               value={String(value || field.defaultValue || "#000000")}
-              onChange={(e) =>
-                handleConfigChange({ [field.id]: e.target.value })
-              }
+              onChange={(e) => handleConfigChange({ [field.id]: e.target.value })}
               style={{
                 width: "100%",
                 height: "40px",
@@ -1021,9 +946,7 @@ export const PopupDesignEditorV2: React.FC<PopupDesignEditorProps> = ({
       case "prize-list": {
         return (
           <div key={field.id}>
-            <label
-              style={{ display: "block", marginBottom: 8, fontWeight: 500 }}
-            >
+            <label style={{ display: "block", marginBottom: 8, fontWeight: 500 }}>
               {field.label}
               {field.validation?.required && <span style={{ color: "red" }}> *</span>}
             </label>
@@ -1034,9 +957,7 @@ export const PopupDesignEditorV2: React.FC<PopupDesignEditorProps> = ({
             )}
             <PrizeListEditor
               value={value as string | PrizeItem[] | undefined}
-              onChange={(next: PrizeItem[]) =>
-                handleConfigChange({ [field.id]: next })
-              }
+              onChange={(next: PrizeItem[]) => handleConfigChange({ [field.id]: next })}
             />
           </div>
         );
@@ -1045,9 +966,7 @@ export const PopupDesignEditorV2: React.FC<PopupDesignEditorProps> = ({
       case "color-list": {
         return (
           <div key={field.id}>
-            <label
-              style={{ display: "block", marginBottom: 8, fontWeight: 500 }}
-            >
+            <label style={{ display: "block", marginBottom: 8, fontWeight: 500 }}>
               {field.label}
               {field.validation?.required && <span style={{ color: "red" }}> *</span>}
             </label>
@@ -1058,9 +977,7 @@ export const PopupDesignEditorV2: React.FC<PopupDesignEditorProps> = ({
             )}
             <WheelColorEditor
               value={value as string | string[] | undefined}
-              onChange={(next: string[]) =>
-                handleConfigChange({ [field.id]: next })
-              }
+              onChange={(next: string[]) => handleConfigChange({ [field.id]: next })}
             />
           </div>
         );
@@ -1109,10 +1026,7 @@ export const PopupDesignEditorV2: React.FC<PopupDesignEditorProps> = ({
         <InlineStack gap="200" blockAlign="center" wrap={false}>
           {/* Left side: Icon + Title */}
           <InlineStack gap="200" blockAlign="center">
-            <Icon
-              source={SECTION_ICONS[section as keyof typeof SECTION_ICONS]}
-              tone="base"
-            />
+            <Icon source={SECTION_ICONS[section as keyof typeof SECTION_ICONS]} tone="base" />
             <Text as="h3" variant="headingMd" fontWeight="semibold">
               {title}
             </Text>
@@ -1122,10 +1036,7 @@ export const PopupDesignEditorV2: React.FC<PopupDesignEditorProps> = ({
           <div style={{ flex: 1 }}></div>
 
           {/* Right side: Explicit chevron icon at extreme right */}
-          <Icon
-            source={openSections[section] ? ChevronUpIcon : ChevronDownIcon}
-            tone="subdued"
-          />
+          <Icon source={openSections[section] ? ChevronUpIcon : ChevronDownIcon} tone="subdued" />
         </InlineStack>
       </div>
     </Box>
@@ -1142,8 +1053,8 @@ export const PopupDesignEditorV2: React.FC<PopupDesignEditorProps> = ({
                 Design Your Popup
               </Text>
               <Text as="p" variant="bodySm" tone="subdued">
-                Keyboard shortcuts: ⌘/Ctrl + 1-9 to jump to sections, ⌘/Ctrl + E
-                to expand/collapse all
+                Keyboard shortcuts: ⌘/Ctrl + 1-9 to jump to sections, ⌘/Ctrl + E to expand/collapse
+                all
               </Text>
             </BlockStack>
 
@@ -1217,7 +1128,11 @@ export const PopupDesignEditorV2: React.FC<PopupDesignEditorProps> = ({
                     <CampaignTemplateSelector
                       goal={validatedCampaignGoal as CampaignGoal}
                       storeId={storeId}
-                      selectedTemplateId={typeof selectedTemplate?.templateId === 'string' ? selectedTemplate.templateId : undefined}
+                      selectedTemplateId={
+                        typeof selectedTemplate?.templateId === "string"
+                          ? selectedTemplate.templateId
+                          : undefined
+                      }
                       onSelect={handleCampaignTemplateSelect}
                     />
                   </Box>
@@ -1259,15 +1174,9 @@ export const PopupDesignEditorV2: React.FC<PopupDesignEditorProps> = ({
                         <InlineStack gap="200" blockAlign="center" wrap={false}>
                           {/* Left side: Icon + Title */}
                           <InlineStack gap="200" blockAlign="center">
-                            <span style={{ fontSize: "20px" }}>
-                              {section.icon}
-                            </span>
+                            <span style={{ fontSize: "20px" }}>{section.icon}</span>
                             <BlockStack gap="100">
-                              <Text
-                                as="h3"
-                                variant="headingMd"
-                                fontWeight="semibold"
-                              >
+                              <Text as="h3" variant="headingMd" fontWeight="semibold">
                                 {section.title}
                               </Text>
                               {section.description && (
@@ -1283,15 +1192,9 @@ export const PopupDesignEditorV2: React.FC<PopupDesignEditorProps> = ({
 
                           {/* Right side: Badges + Arrow */}
                           <InlineStack gap="200" blockAlign="center">
-                            {section.hasAdvancedFields && (
-                              <Badge tone="info">Advanced</Badge>
-                            )}
+                            {section.hasAdvancedFields && <Badge tone="info">Advanced</Badge>}
                             <Icon
-                              source={
-                                openSections[section.key]
-                                  ? ChevronUpIcon
-                                  : ChevronDownIcon
-                              }
+                              source={openSections[section.key] ? ChevronUpIcon : ChevronDownIcon}
                               tone="base"
                             />
                           </InlineStack>
@@ -1308,9 +1211,7 @@ export const PopupDesignEditorV2: React.FC<PopupDesignEditorProps> = ({
                     >
                       <Box padding="400">
                         <FormLayout>
-                          {section.fields.map((field) =>
-                            renderTemplateField(field),
-                          )}
+                          {section.fields.map((field) => renderTemplateField(field))}
                         </FormLayout>
                       </Box>
                     </Collapsible>
@@ -1353,11 +1254,7 @@ export const PopupDesignEditorV2: React.FC<PopupDesignEditorProps> = ({
                         <InlineStack gap="200" blockAlign="center">
                           <span style={{ fontSize: "20px" }}>💰</span>
                           <BlockStack gap="100">
-                            <Text
-                              as="h3"
-                              variant="headingMd"
-                              fontWeight="semibold"
-                            >
+                            <Text as="h3" variant="headingMd" fontWeight="semibold">
                               Discount Settings
                             </Text>
                             <Text as="p" variant="bodySm" tone="subdued">
@@ -1372,11 +1269,7 @@ export const PopupDesignEditorV2: React.FC<PopupDesignEditorProps> = ({
                         {/* Right side: Arrow */}
                         <InlineStack gap="200" blockAlign="center">
                           <Icon
-                            source={
-                              openSections.discount
-                                ? ChevronUpIcon
-                                : ChevronDownIcon
-                            }
+                            source={openSections.discount ? ChevronUpIcon : ChevronDownIcon}
                             tone="base"
                           />
                         </InlineStack>
@@ -1415,7 +1308,8 @@ export const PopupDesignEditorV2: React.FC<PopupDesignEditorProps> = ({
                 >
                   <Box padding="400">
                     <Text as="p" tone="subdued">
-                      Animation controls coming soon. The AnimationControlPanel component needs to be created.
+                      Animation controls coming soon. The AnimationControlPanel component needs to
+                      be created.
                     </Text>
                     {/* TODO: Uncomment when AnimationControlPanel is created
                     <AnimationControlPanel
@@ -1457,9 +1351,7 @@ export const PopupDesignEditorV2: React.FC<PopupDesignEditorProps> = ({
                       </Text>
                       <CustomCSSEditor
                         value={designConfig.customCSS || ""}
-                        onChange={(value) =>
-                          handleConfigChange({ customCSS: value })
-                        }
+                        onChange={(value) => handleConfigChange({ customCSS: value })}
                         onPreview={() => {}}
                         disabled={isLoading}
                       />
@@ -1467,7 +1359,8 @@ export const PopupDesignEditorV2: React.FC<PopupDesignEditorProps> = ({
                         Mobile Optimization
                       </Text>
                       <Text as="p" tone="subdued">
-                        Mobile optimization controls coming soon. The MobileOptimizationPanel component needs to be created.
+                        Mobile optimization controls coming soon. The MobileOptimizationPanel
+                        component needs to be created.
                       </Text>
                       {/* TODO: Uncomment when MobileOptimizationPanel is created
                       <MobileOptimizationPanel
@@ -1536,15 +1429,9 @@ export const PopupDesignEditorV2: React.FC<PopupDesignEditorProps> = ({
 
           {/* Right Column - Live Preview (always visible) */}
           <Layout.Section variant="oneHalf">
-            <div
-              data-affix-boundary
-              style={{ position: "relative", alignSelf: "flex-start" }}
-            >
+            <div data-affix-boundary style={{ position: "relative", alignSelf: "flex-start" }}>
               <Affix disableBelowWidth={768} debug={true}>
-                <div
-                  className={styles.stickyPreviewScrollable}
-                  data-affix-scrollable
-                >
+                <div className={styles.stickyPreviewScrollable} data-affix-scrollable>
                   <LivePreviewPanel
                     templateType={currentTemplateType}
                     config={debouncedConfig}
@@ -1579,13 +1466,12 @@ export const PopupDesignEditorV2: React.FC<PopupDesignEditorProps> = ({
           <Modal.Section>
             <BlockStack gap="400">
               <Text as="p" variant="bodyMd">
-                Changing the template will reset some of your customizations to
-                match the new template&apos;s defaults.
+                Changing the template will reset some of your customizations to match the new
+                template&apos;s defaults.
               </Text>
               <Text as="p" variant="bodyMd" tone="subdued">
-                This includes design settings, content structure, and some
-                template-specific configurations. Your content (headlines,
-                descriptions, etc.) will be preserved.
+                This includes design settings, content structure, and some template-specific
+                configurations. Your content (headlines, descriptions, etc.) will be preserved.
               </Text>
               <Text as="p" variant="bodyMd" fontWeight="semibold">
                 Are you sure you want to change to the new template?

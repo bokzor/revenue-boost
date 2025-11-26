@@ -20,7 +20,7 @@ import {
   InlineStack,
 } from "@shopify/polaris";
 import { ChevronDownIcon, ChevronUpIcon } from "@shopify/polaris-icons";
-import { TextField, CheckboxField, FormGrid, ColorField } from "../form";
+import { TextField, FormGrid, ColorField } from "../form";
 import { FieldConfigurationSection } from "./FieldConfigurationSection";
 import { DiscountSection } from "~/domains/popups/components/design/DiscountSection";
 import type { NewsletterContentSchema, DesignConfig } from "../../types/campaign";
@@ -61,14 +61,15 @@ export function NewsletterContentSection({
   const [showAdvancedDesign, setShowAdvancedDesign] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  const imageMode = (designConfig.backgroundImageMode ?? "none") as DesignConfig["backgroundImageMode"];
+  const imageMode = (designConfig.backgroundImageMode ??
+    "none") as DesignConfig["backgroundImageMode"];
   const selectedPresetKey = designConfig.backgroundImagePresetKey as NewsletterThemeKey | undefined;
   const previewImageUrl = designConfig.imageUrl;
 
   // Design field updater
   const updateDesignField = <K extends keyof DesignConfig>(
     field: K,
-    value: DesignConfig[K] | undefined,
+    value: DesignConfig[K] | undefined
   ) => {
     if (onDesignChange) {
       onDesignChange({ ...designConfig, [field]: value });
@@ -117,9 +118,7 @@ export function NewsletterContentSection({
     fileInputRef.current?.click();
   };
 
-  const handleBackgroundFileChange = async (
-    event: ChangeEvent<HTMLInputElement>,
-  ) => {
+  const handleBackgroundFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
     if (!onDesignChange) return;
 
     const file = event.target.files?.[0];
@@ -166,17 +165,14 @@ export function NewsletterContentSection({
         throw new Error("Failed to upload file to Shopify");
       }
 
-      const createResponse = await fetch(
-        "/api/shopify-files/create-from-staged",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            resourceUrl: stagedTarget.resourceUrl,
-            alt: `Campaign background: ${file.name}`,
-          }),
-        },
-      );
+      const createResponse = await fetch("/api/shopify-files/create-from-staged", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          resourceUrl: stagedTarget.resourceUrl,
+          alt: `Campaign background: ${file.name}`,
+        }),
+      });
 
       const createJson = await createResponse.json();
       if (!createResponse.ok || !createJson?.success) {
@@ -200,10 +196,7 @@ export function NewsletterContentSection({
         imageUrl: createdFile.url,
       });
     } catch (error) {
-      console.error(
-        "[NewsletterContentSection] Failed to upload background image",
-        error,
-      );
+      console.error("[NewsletterContentSection] Failed to upload background image", error);
     } finally {
       event.target.value = "";
     }
@@ -382,7 +375,9 @@ export function NewsletterContentSection({
             <BlockStack gap="400">
               {/* Theme & Layout */}
               <BlockStack gap="200">
-                <Text as="h4" variant="headingSm">Theme</Text>
+                <Text as="h4" variant="headingSm">
+                  Theme
+                </Text>
                 <ThemePresetSelector
                   selected={(designConfig.theme as NewsletterThemeKey) || "modern"}
                   onSelect={handleThemeChange}
@@ -400,7 +395,9 @@ export function NewsletterContentSection({
                     { label: "Left", value: "left" },
                     { label: "Right", value: "right" },
                   ]}
-                  onChange={(value) => updateDesignField("position", value as DesignConfig["position"])}
+                  onChange={(value) =>
+                    updateDesignField("position", value as DesignConfig["position"])
+                  }
                 />
 
                 <Select
@@ -580,7 +577,10 @@ export function NewsletterContentSection({
                             { label: "No Image", value: "none" },
                           ]}
                           onChange={(value) =>
-                            updateDesignField("imagePosition", value as DesignConfig["imagePosition"])
+                            updateDesignField(
+                              "imagePosition",
+                              value as DesignConfig["imagePosition"]
+                            )
                           }
                           helpText="Position of the background image in the popup"
                         />
@@ -635,9 +635,7 @@ export function NewsletterContentSection({
                             onChange={handleBackgroundFileChange}
                           />
 
-                          <Button
-                            onClick={handleBackgroundFileClick}
-                          >
+                          <Button onClick={handleBackgroundFileClick}>
                             {imageMode === "file" && previewImageUrl
                               ? "Change background image"
                               : "Upload image from your computer"}
@@ -709,7 +707,9 @@ export function NewsletterContentSection({
                             { label: "90%", value: "0.9" },
                             { label: "100% (Opaque)", value: "1" },
                           ]}
-                          onChange={(value) => updateDesignField("overlayOpacity", parseFloat(value))}
+                          onChange={(value) =>
+                            updateDesignField("overlayOpacity", parseFloat(value))
+                          }
                         />
                       </FormGrid>
                     </BlockStack>
@@ -723,4 +723,3 @@ export function NewsletterContentSection({
     </>
   );
 }
-

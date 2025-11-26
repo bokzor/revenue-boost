@@ -38,10 +38,7 @@ export function ConditionalTriggerPanel({
 
             <Button
               onClick={() =>
-                onConditionsChange?.([
-                  ...conditions,
-                  { type: "url_contains", value: "" },
-                ])
+                onConditionsChange?.([...conditions, { type: "url_contains", value: "" }])
               }
             >
               Add Condition

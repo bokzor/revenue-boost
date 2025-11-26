@@ -27,13 +27,7 @@ import {
   Box,
   Tooltip,
 } from "@shopify/polaris";
-import {
-  DesktopIcon,
-  MobileIcon,
-  TabletIcon,
-  PlayIcon,
-  RefreshIcon,
-} from "@shopify/polaris-icons";
+import { DesktopIcon, MobileIcon, TabletIcon, PlayIcon, RefreshIcon } from "@shopify/polaris-icons";
 import {
   PopupPreview,
   type PopupPreviewRef,
@@ -110,7 +104,7 @@ export function RealTimePreviewPanel({
   sticky = false,
 }: RealTimePreviewPanelProps) {
   const [selectedDevice, setSelectedDevice] = useState<DeviceConfig>(
-    DEVICES.find((d) => d.id === initialDevice) || DEVICES[0],
+    DEVICES.find((d) => d.id === initialDevice) || DEVICES[0]
   );
   const [previewKey, setPreviewKey] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);

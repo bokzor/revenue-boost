@@ -16,16 +16,19 @@ This implementation provides **real-time social proof notifications** that signi
 ### 📊 Notification Types (Ranked by Conversion Impact)
 
 #### **Tier 1 - Highest Impact** ✅ Implemented
+
 - ✅ **Purchase Notifications** (+15-25% conversion)
 - ✅ **Live Visitor Count** (+10-18% conversion)
 - ✅ **Sales Count (24h)** (+12-20% conversion)
 
 #### **Tier 2 - High Impact** 🚧 Partially Implemented
+
 - ✅ **Trending Products** (+8-12% conversion)
 - 🚧 **Cart Activity** (+8-15% conversion) - TODO
 - 🚧 **Low Stock Alerts** (+15-25% conversion) - TODO
 
 #### **Tier 3 - Good Impact** 📋 Planned
+
 - 📋 **Recent Reviews** (+5-10% conversion)
 - 📋 **Newsletter Sign-ups** (+3-8% conversion)
 - 📋 **Fast Shipping Timer** (+10-15% conversion)
@@ -94,17 +97,17 @@ const campaign = await CampaignService.createCampaign(storeId, {
     enableVisitorNotifications: true,
     enableSalesCountNotifications: true,
     enableTrendingNotifications: true,
-    
+
     // Display Settings
     position: "bottom-left",
     displayDuration: 5,
     rotationInterval: 8,
     maxNotificationsPerSession: 5,
-    
+
     // Data Settings
     purchaseLookbackHours: 48,
     minVisitorCount: 5,
-    
+
     // Privacy
     anonymizeCustomerNames: true,
     showCustomerLocation: true,
@@ -115,6 +118,7 @@ const campaign = await CampaignService.createCampaign(storeId, {
 ### 2. Frontend Integration
 
 The social proof popup automatically:
+
 - Fetches notifications from API
 - Tracks visitor views
 - Polls for updates every 60 seconds
@@ -126,13 +130,16 @@ The social proof popup automatically:
 ## 📈 Performance Optimizations
 
 ### Caching Strategy
+
 - **API responses**: 30 seconds (HTTP Cache-Control)
 - **Redis visitor counts**: 5 minutes TTL
 - **Shopify order data**: 30 seconds in Redis
 - **Trending data**: 1 hour TTL
 
 ### Polling vs WebSocket
+
 We chose **polling** over WebSockets because:
+
 - ✅ Simpler to scale (stateless)
 - ✅ Works through Shopify app proxy
 - ✅ Better caching with CDN
@@ -144,6 +151,7 @@ We chose **polling** over WebSockets because:
 ## 🔒 Privacy & Compliance
 
 ### GDPR-Compliant Features
+
 - ✅ Customer names anonymized ("John D.")
 - ✅ No email addresses displayed
 - ✅ Location limited to city/state
@@ -151,6 +159,7 @@ We chose **polling** over WebSockets because:
 - ✅ No PII stored in Redis
 
 ### Anonymization Logic
+
 ```typescript
 // "John Smith" → "John S."
 const anonymizedName = `${firstName} ${lastName.charAt(0)}.`;
@@ -161,6 +170,7 @@ const anonymizedName = `${firstName} ${lastName.charAt(0)}.`;
 ## 🧪 Testing
 
 ### Test with Mock Data
+
 ```typescript
 <SocialProofPopup
   campaignId="test-campaign"
@@ -180,6 +190,7 @@ const anonymizedName = `${firstName} ${lastName.charAt(0)}.`;
 ```
 
 ### Test with Real Data
+
 1. Create test orders in Shopify
 2. Visit product pages to generate visitor counts
 3. Check Redis for visitor data:
@@ -206,4 +217,3 @@ See `app/domains/storefront/notifications/social-proof/types.ts` for full config
 - [ ] WebSocket support (optional, for high-traffic stores)
 - [ ] A/B testing for notification types
 - [ ] Analytics dashboard for social proof performance
-

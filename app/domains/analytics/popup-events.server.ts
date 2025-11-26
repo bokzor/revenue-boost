@@ -34,17 +34,23 @@ export class PopupEventService {
    * lead submission, and any other event producers.
    */
   static async recordEvent(input: PopupEventInput): Promise<void> {
-	    // Enforce monthly impression cap for VIEW events before recording.
-	    // This ensures impressions are hard-capped at write time.
-	    if (input.eventType === "VIEW") {
-	      const { PlanGuardService } = await import(
-	        "~/domains/billing/services/plan-guard.server"
-	      );
-	      await PlanGuardService.assertWithinMonthlyImpressionCap(input.storeId);
-	    }
+    // Skip analytics for preview campaigns.
+    // Preview campaigns use synthetic IDs (e.g. "preview-<token>") when
+    // rendering popups from the admin preview flow. These impressions and
+    // interactions should not count towards usage limits or analytics.
+    if (input.campaignId.startsWith("preview-")) {
+      return;
+    }
 
-	    try {
-	      await prisma.popupEvent.create({
+    // Enforce monthly impression cap for VIEW events before recording.
+    // This ensures impressions are hard-capped at write time.
+    if (input.eventType === "VIEW") {
+      const { PlanGuardService } = await import("~/domains/billing/services/plan-guard.server");
+      await PlanGuardService.assertWithinMonthlyImpressionCap(input.storeId);
+    }
+
+    try {
+      await prisma.popupEvent.create({
         data: {
           storeId: input.storeId,
           campaignId: input.campaignId,
@@ -64,12 +70,11 @@ export class PopupEventService {
         },
       });
     } catch (error) {
-      console.error("[Analytics] Failed to record popup event", { input, error });
-      throw new ServiceError(
-        "POPUP_EVENT_CREATE_FAILED",
-        "Failed to record popup event",
+      console.error("[Analytics] Failed to record popup event", {
+        input,
         error,
-      );
+      });
+      throw new ServiceError("POPUP_EVENT_CREATE_FAILED", "Failed to record popup event", error);
     }
   }
 
@@ -78,27 +83,38 @@ export class PopupEventService {
    *
    * Used by CampaignAnalyticsService and plan/usage enforcement.
    */
+  private static buildWhere(
+    campaignIds: string[],
+    eventType: PopupEventType,
+    options?: { storeId?: string; from?: Date; to?: Date }
+  ): Prisma.PopupEventWhereInput {
+    const where: Prisma.PopupEventWhereInput = {
+      campaignId: { in: campaignIds },
+      eventType,
+    };
+
+    if (options?.storeId) {
+      where.storeId = options.storeId;
+    }
+
+    if (options?.from || options?.to) {
+      const dateRange: Prisma.DateTimeFilter = {};
+      if (options.from) dateRange.gte = options.from;
+      if (options.to) dateRange.lte = options.to;
+      where.createdAt = dateRange;
+    }
+
+    return where;
+  }
+
   static async getImpressionCountsByCampaign(
     campaignIds: string[],
-    options?: { storeId?: string; from?: Date; to?: Date },
+    options?: { storeId?: string; from?: Date; to?: Date }
   ): Promise<Map<string, number>> {
     if (campaignIds.length === 0) return new Map();
 
     try {
-      const where: any = {
-        campaignId: { in: campaignIds },
-        eventType: "VIEW" as PopupEventType,
-      };
-
-      if (options?.storeId) {
-        where.storeId = options.storeId;
-      }
-
-      if (options?.from || options?.to) {
-        where.createdAt = {} as { gte?: Date; lte?: Date };
-        if (options.from) where.createdAt.gte = options.from;
-        if (options.to) where.createdAt.lte = options.to;
-      }
+      const where = PopupEventService.buildWhere(campaignIds, "VIEW", options);
 
       const rows = await prisma.popupEvent.groupBy({
         by: ["campaignId"],
@@ -116,7 +132,7 @@ export class PopupEventService {
       throw new ServiceError(
         "POPUP_EVENT_IMPRESSIONS_FAILED",
         "Failed to fetch impression counts",
-        error,
+        error
       );
     }
   }
@@ -126,25 +142,12 @@ export class PopupEventService {
    */
   static async getSubmitCountsByCampaign(
     campaignIds: string[],
-    options?: { storeId?: string; from?: Date; to?: Date },
+    options?: { storeId?: string; from?: Date; to?: Date }
   ): Promise<Map<string, number>> {
     if (campaignIds.length === 0) return new Map();
 
     try {
-      const where: any = {
-        campaignId: { in: campaignIds },
-        eventType: "SUBMIT" as PopupEventType,
-      };
-
-      if (options?.storeId) {
-        where.storeId = options.storeId;
-      }
-
-      if (options?.from || options?.to) {
-        where.createdAt = {} as { gte?: Date; lte?: Date };
-        if (options.from) where.createdAt.gte = options.from;
-        if (options.to) where.createdAt.lte = options.to;
-      }
+      const where = PopupEventService.buildWhere(campaignIds, "SUBMIT", options);
 
       const rows = await prisma.popupEvent.groupBy({
         by: ["campaignId"],
@@ -159,11 +162,7 @@ export class PopupEventService {
 
       return result;
     } catch (error) {
-      throw new ServiceError(
-        "POPUP_EVENT_SUBMITS_FAILED",
-        "Failed to fetch submit counts",
-        error,
-      );
+      throw new ServiceError("POPUP_EVENT_SUBMITS_FAILED", "Failed to fetch submit counts", error);
     }
   }
 
@@ -172,25 +171,12 @@ export class PopupEventService {
    */
   static async getCouponIssuedCountsByCampaign(
     campaignIds: string[],
-    options?: { storeId?: string; from?: Date; to?: Date },
+    options?: { storeId?: string; from?: Date; to?: Date }
   ): Promise<Map<string, number>> {
     if (campaignIds.length === 0) return new Map();
 
     try {
-      const where: any = {
-        campaignId: { in: campaignIds },
-        eventType: "COUPON_ISSUED" as PopupEventType,
-      };
-
-      if (options?.storeId) {
-        where.storeId = options.storeId;
-      }
-
-      if (options?.from || options?.to) {
-        where.createdAt = {} as { gte?: Date; lte?: Date };
-        if (options.from) where.createdAt.gte = options.from;
-        if (options.to) where.createdAt.lte = options.to;
-      }
+      const where = PopupEventService.buildWhere(campaignIds, "COUPON_ISSUED", options);
 
       const rows = await prisma.popupEvent.groupBy({
         by: ["campaignId"],
@@ -208,7 +194,7 @@ export class PopupEventService {
       throw new ServiceError(
         "POPUP_EVENT_COUPONS_FAILED",
         "Failed to fetch coupon issuance counts",
-        error,
+        error
       );
     }
   }
@@ -218,25 +204,12 @@ export class PopupEventService {
    */
   static async getClickCountsByCampaign(
     campaignIds: string[],
-    options?: { storeId?: string; from?: Date; to?: Date },
+    options?: { storeId?: string; from?: Date; to?: Date }
   ): Promise<Map<string, number>> {
     if (campaignIds.length === 0) return new Map();
 
     try {
-      const where: any = {
-        campaignId: { in: campaignIds },
-        eventType: "CLICK" as PopupEventType,
-      };
-
-      if (options?.storeId) {
-        where.storeId = options.storeId;
-      }
-
-      if (options?.from || options?.to) {
-        where.createdAt = {} as { gte?: Date; lte?: Date };
-        if (options.from) where.createdAt.gte = options.from;
-        if (options.to) where.createdAt.lte = options.to;
-      }
+      const where = PopupEventService.buildWhere(campaignIds, "CLICK", options);
 
       const rows = await prisma.popupEvent.groupBy({
         by: ["campaignId"],
@@ -251,21 +224,16 @@ export class PopupEventService {
 
       return result;
     } catch (error) {
-      throw new ServiceError(
-        "POPUP_EVENT_CLICKS_FAILED",
-        "Failed to fetch click counts",
-        error,
-      );
+      throw new ServiceError("POPUP_EVENT_CLICKS_FAILED", "Failed to fetch click counts", error);
     }
   }
-
 
   /**
    * Get simple funnel stats (views  submits  coupons issued) per campaign.
    */
   static async getFunnelStatsByCampaign(
     campaignIds: string[],
-    options?: { storeId?: string; from?: Date; to?: Date },
+    options?: { storeId?: string; from?: Date; to?: Date }
   ): Promise<Map<string, { views: number; submits: number; couponsIssued: number }>> {
     if (campaignIds.length === 0) return new Map();
 
@@ -276,10 +244,7 @@ export class PopupEventService {
         this.getCouponIssuedCountsByCampaign(campaignIds, options),
       ]);
 
-      const result = new Map<
-        string,
-        { views: number; submits: number; couponsIssued: number }
-      >();
+      const result = new Map<string, { views: number; submits: number; couponsIssued: number }>();
 
       for (const campaignId of campaignIds) {
         result.set(campaignId, {
@@ -291,12 +256,7 @@ export class PopupEventService {
 
       return result;
     } catch (error) {
-      throw new ServiceError(
-        "POPUP_EVENT_FUNNEL_FAILED",
-        "Failed to fetch funnel stats",
-        error,
-      );
+      throw new ServiceError("POPUP_EVENT_FUNNEL_FAILED", "Failed to fetch funnel stats", error);
     }
   }
 }
-

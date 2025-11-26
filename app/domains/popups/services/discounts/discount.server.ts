@@ -5,9 +5,7 @@
  * This is a stub to fix import errors
  */
 
-import type {
-  ContentDiscountType,
-} from "~/domains/campaigns/types/campaign";
+import type { ContentDiscountType } from "~/domains/campaigns/types/campaign";
 
 // Re-export types from campaign domain for consistency
 export type {
@@ -40,7 +38,10 @@ export interface DiscountGenerationOptions {
 export function generateDiscountCode(options: DiscountGenerationOptions): DiscountCode {
   const prefix = options.prefix || "SAVE";
   const length = options.length || 8;
-  const randomPart = Math.random().toString(36).substring(2, 2 + length).toUpperCase();
+  const randomPart = Math.random()
+    .toString(36)
+    .substring(2, 2 + length)
+    .toUpperCase();
   const code = `${prefix}${randomPart}`;
 
   const expiresAt = options.expiresInDays
@@ -76,4 +77,3 @@ export function applyDiscount(price: number, discount: DiscountCode): number {
   }
   return price;
 }
-

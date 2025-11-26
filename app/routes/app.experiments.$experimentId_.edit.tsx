@@ -17,6 +17,8 @@ import type { ExperimentWithVariants } from "~/domains/campaigns";
 import type { CampaignWithConfigs } from "~/domains/campaigns/types/campaign";
 import type { FrequencyCappingConfig } from "~/domains/targeting/components";
 import type { CampaignFormData } from "~/shared/hooks/useWizardState";
+import prisma from "~/db.server";
+import { StoreSettingsSchema } from "~/domains/store/types/settings";
 
 // ============================================================================
 // TYPES
@@ -28,6 +30,7 @@ interface LoaderData {
   storeId: string;
   shopDomain: string;
   selectedVariant?: string | null;
+  globalCustomCSS?: string;
 }
 
 // ============================================================================
@@ -48,6 +51,11 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     }
 
     const storeId = await getStoreId(request);
+    const store = await prisma.store.findUnique({
+      where: { id: storeId },
+      select: { settings: true },
+    });
+    const parsedSettings = StoreSettingsSchema.partial().safeParse(store?.settings || {});
 
     // Get experiment details
     const experiment = await ExperimentService.getExperimentById(experimentId, storeId);
@@ -57,27 +65,30 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     }
 
     // Get all variant campaigns with full details
-    const variantIds = experiment.variants.map(v => v.id);
+    const variantIds = experiment.variants.map((v) => v.id);
     const variants = await Promise.all(
-      variantIds.map(id => CampaignService.getCampaignById(id, storeId))
+      variantIds.map((id) => CampaignService.getCampaignById(id, storeId))
     );
 
     // Filter out any null results and sort by variantKey to ensure consistent order (A, B, C, etc.)
     const validVariants = variants
       .filter((v): v is CampaignWithConfigs => v !== null)
       .sort((a, b) => {
-        const keyA = a.variantKey || '';
-        const keyB = b.variantKey || '';
+        const keyA = a.variantKey || "";
+        const keyB = b.variantKey || "";
         return keyA.localeCompare(keyB);
       });
 
     // Get the variant query parameter if provided
     const url = new URL(request.url);
-    const variantParam = url.searchParams.get('variant');
+    const variantParam = url.searchParams.get("variant");
 
-    console.log('[Experiment Edit Loader] experimentId:', experimentId);
-    console.log('[Experiment Edit Loader] variantParam:', variantParam);
-    console.log('[Experiment Edit Loader] validVariants:', validVariants.map(v => ({ id: v.id, variantKey: v.variantKey })));
+    console.log("[Experiment Edit Loader] experimentId:", experimentId);
+    console.log("[Experiment Edit Loader] variantParam:", variantParam);
+    console.log(
+      "[Experiment Edit Loader] validVariants:",
+      validVariants.map((v) => ({ id: v.id, variantKey: v.variantKey }))
+    );
 
     return data<LoaderData>({
       experiment,
@@ -85,17 +96,21 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       storeId,
       shopDomain: session.shop,
       selectedVariant: variantParam,
+      globalCustomCSS: parsedSettings.success ? parsedSettings.data.globalCustomCSS : undefined,
     });
-
   } catch (error) {
     console.error("Failed to load experiment for editing:", error);
 
-    return data<LoaderData>({
-      experiment: null,
-      variants: [],
-      storeId: "",
-      shopDomain: "",
-    }, { status: 404 });
+    return data<LoaderData>(
+      {
+        experiment: null,
+        variants: [],
+        storeId: "",
+        shopDomain: "",
+        globalCustomCSS: undefined,
+      },
+      { status: 404 }
+    );
   }
 }
 
@@ -104,12 +119,13 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 // ============================================================================
 
 export default function ExperimentEditPage() {
-  const { experiment, variants, storeId, shopDomain, selectedVariant } = useLoaderData<typeof loader>();
+  const { experiment, variants, storeId, shopDomain, selectedVariant, globalCustomCSS } =
+    useLoaderData<typeof loader>();
   const navigate = useNavigate();
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [toastError, setToastError] = useState(false);
 
-  const handleSave = async (formData: CampaignFormData | CampaignFormData[]) => {
+  const handleSave = async () => {
     try {
       // TODO: Implement experiment update logic
       // This should update all variants and the experiment itself
@@ -134,11 +150,7 @@ export default function ExperimentEditPage() {
 
   // Toast component
   const toastMarkup = toastMessage ? (
-    <Toast
-      content={toastMessage}
-      error={toastError}
-      onDismiss={() => setToastMessage(null)}
-    />
+    <Toast content={toastMessage} error={toastError} onDismiss={() => setToastMessage(null)} />
   ) : null;
 
   // If no experiment found, redirect back
@@ -155,12 +167,18 @@ export default function ExperimentEditPage() {
   // Determine which variant to display initially
   // If a variant is specified in the query parameter, use that; otherwise use Variant A (or first variant if A doesn't exist)
   const targetVariant = selectedVariant
-    ? variants.find(v => v.variantKey === selectedVariant) || variants[0]
-    : variants.find(v => v.variantKey === 'A') || variants[0];
+    ? variants.find((v) => v.variantKey === selectedVariant) || variants[0]
+    : variants.find((v) => v.variantKey === "A") || variants[0];
 
-  console.log('[Experiment Edit Page] selectedVariant param:', selectedVariant);
-  console.log('[Experiment Edit Page] targetVariant:', { id: targetVariant.id, variantKey: targetVariant.variantKey });
-  console.log('[Experiment Edit Page] all variants:', variants.map(v => ({ id: v.id, variantKey: v.variantKey })));
+  console.log("[Experiment Edit Page] selectedVariant param:", selectedVariant);
+  console.log("[Experiment Edit Page] targetVariant:", {
+    id: targetVariant.id,
+    variantKey: targetVariant.variantKey,
+  });
+  console.log(
+    "[Experiment Edit Page] all variants:",
+    variants.map((v) => ({ id: v.id, variantKey: v.variantKey }))
+  );
 
   const initialData: Partial<CampaignFormData> = {
     name: experiment.name,
@@ -196,9 +214,12 @@ export default function ExperimentEditPage() {
     // Load frequency capping from server format (already matches UI format)
     frequencyCapping: {
       enabled: !!targetVariant.targetRules?.enhancedTriggers?.frequency_capping,
-      max_triggers_per_session: targetVariant.targetRules?.enhancedTriggers?.frequency_capping?.max_triggers_per_session,
-      max_triggers_per_day: targetVariant.targetRules?.enhancedTriggers?.frequency_capping?.max_triggers_per_day,
-      cooldown_between_triggers: targetVariant.targetRules?.enhancedTriggers?.frequency_capping?.cooldown_between_triggers,
+      max_triggers_per_session:
+        targetVariant.targetRules?.enhancedTriggers?.frequency_capping?.max_triggers_per_session,
+      max_triggers_per_day:
+        targetVariant.targetRules?.enhancedTriggers?.frequency_capping?.max_triggers_per_day,
+      cooldown_between_triggers:
+        targetVariant.targetRules?.enhancedTriggers?.frequency_capping?.cooldown_between_triggers,
       respectGlobalCap: true,
     } as FrequencyCappingConfig,
     discountConfig: targetVariant.discountConfig || undefined,
@@ -222,7 +243,7 @@ export default function ExperimentEditPage() {
   };
 
   // Prepare all variants info
-  const allVariantsInfo = experiment.variants.map(v => ({
+  const allVariantsInfo = experiment.variants.map((v) => ({
     id: v.id,
     variantKey: v.variantKey,
     name: v.name,
@@ -235,6 +256,7 @@ export default function ExperimentEditPage() {
         storeId={storeId}
         shopDomain={shopDomain}
         initialData={initialData}
+        globalCustomCSS={globalCustomCSS}
         experimentId={experiment.id}
         experimentData={experimentData}
         allVariants={allVariantsInfo}
@@ -246,4 +268,3 @@ export default function ExperimentEditPage() {
     </Frame>
   );
 }
-

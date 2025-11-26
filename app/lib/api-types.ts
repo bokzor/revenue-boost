@@ -39,21 +39,21 @@ export interface ApiCampaignData {
  * Generic type T represents the data payload type
  */
 export interface ApiResponse<T = unknown> {
-	success: boolean;
-	data?: T;
-	error?: string;
-	errors?: string[];
-	/**
-	 * Optional machine-readable error code for client logic.
-	 * Used in particular for plan/feature limits (e.g. PLAN_LIMIT_EXCEEDED).
-	 */
-	errorCode?: string;
-	/**
-	 * Optional structured error details for richer client handling.
-	 * For plan limits this contains limitType/feature/current/max/planTier.
-	 */
-	errorDetails?: unknown;
-	timestamp: string;
+  success: boolean;
+  data?: T;
+  error?: string;
+  errors?: string[];
+  /**
+   * Optional machine-readable error code for client logic.
+   * Used in particular for plan/feature limits (e.g. PLAN_LIMIT_EXCEEDED).
+   */
+  errorCode?: string;
+  /**
+   * Optional structured error details for richer client handling.
+   * For plan limits this contains limitType/feature/current/max/planTier.
+   */
+  errorDetails?: unknown;
+  timestamp: string;
 }
 
 /**
@@ -67,8 +67,6 @@ export interface ApiListResponse<T = unknown> extends ApiResponse<T[]> {
     hasMore?: boolean;
   };
 }
-
-
 
 // ============================================================================
 // UTILITY FUNCTIONS
@@ -91,5 +89,3 @@ export function createApiResponse<T>(
     timestamp: new Date().toISOString(),
   };
 }
-
-

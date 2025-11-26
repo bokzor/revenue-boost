@@ -37,7 +37,7 @@ export async function action({ request }: ActionFunctionArgs) {
     if (!parsed.success) {
       return data(
         { error: "Invalid audience targeting payload", details: parsed.error.format() },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -53,14 +53,14 @@ export async function action({ request }: ActionFunctionArgs) {
     }
 
     const uniqueSegmentIds = Array.from(
-      new Set(audienceTargeting.shopifySegmentIds.filter((id) => !!id)),
+      new Set(audienceTargeting.shopifySegmentIds.filter((id) => !!id))
     );
 
     const counts = await Promise.all(
       uniqueSegmentIds.map(async (segmentId) => {
         const total = await getCustomerSegmentMembersCount(admin, segmentId);
         return { segmentId, totalCustomers: total };
-      }),
+      })
     );
 
     const totalCustomers = counts.reduce((sum, entry) => sum + entry.totalCustomers, 0);
@@ -78,9 +78,5 @@ export async function action({ request }: ActionFunctionArgs) {
 
 // Disallow GET for this endpoint
 export async function loader() {
-  return data(
-    { error: "Method not allowed. Use POST to preview audience size." },
-    { status: 405 },
-  );
+  return data({ error: "Method not allowed. Use POST to preview audience size." }, { status: 405 });
 }
-

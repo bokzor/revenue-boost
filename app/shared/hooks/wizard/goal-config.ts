@@ -41,7 +41,7 @@ export function buildDiscountConfig(
     enabled: defaults.discount.enabled,
     showInPreview: true,
     type: defaults.discount.singleUse ? "single_use" : "shared",
-    valueType: (defaults.discount.type === "percentage" ? "PERCENTAGE" : "FIXED_AMOUNT"),
+    valueType: defaults.discount.type === "percentage" ? "PERCENTAGE" : "FIXED_AMOUNT",
     value: defaults.discount.value,
     expiryDays: defaults.discount.expiryDays,
     prefix: defaults.discount.prefix,
@@ -94,8 +94,7 @@ export function buildGoalUpdates(
 
   // For simple (non-variant) campaigns, set a default name if none is provided
   if (!currentData.variantKey) {
-    const hasName =
-      typeof currentData.name === "string" && currentData.name.trim().length > 0;
+    const hasName = typeof currentData.name === "string" && currentData.name.trim().length > 0;
     if (!hasName) {
       const humanizedGoal = goal
         .toLowerCase()

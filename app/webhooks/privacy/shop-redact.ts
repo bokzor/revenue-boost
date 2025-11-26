@@ -1,19 +1,16 @@
 /**
  * Handler for shop/redact webhook
- * 
+ *
  * Deletes all shop data when Shopify instructs us to redact a shop.
  * This webhook is triggered 48 hours after a shop uninstalls the app.
- * 
+ *
  * IMPORTANT: This handler is idempotent - multiple calls for the same shop will not cause errors.
  */
 
 import prisma from "~/db.server";
 import type { ShopRedactPayload } from "./types";
 
-export async function handleShopRedact(
-  shop: string,
-  payload: ShopRedactPayload
-): Promise<void> {
+export async function handleShopRedact(shop: string, payload: ShopRedactPayload): Promise<void> {
   console.log(`[Privacy Webhook] Processing shop/redact for ${shop}`, {
     shopId: payload.shop_id,
     shopDomain: payload.shop_domain,
@@ -60,4 +57,3 @@ export async function handleShopRedact(
 
   console.log(`[Privacy Webhook] Successfully redacted all data for shop ${shop}`);
 }
-

@@ -33,14 +33,14 @@ export async function action({ request }: ActionFunctionArgs) {
 
     if (!validation.success) {
       const errorMessage = validation.error.issues
-        .map((err) => `${err.path.join('.')}: ${err.message}`)
-        .join(', ');
+        .map((err) => `${err.path.join(".")}: ${err.message}`)
+        .join(", ");
 
       return data(
         {
           success: false,
           error: "Invalid request data",
-          details: errorMessage
+          details: errorMessage,
         },
         { status: 400, headers: storefrontCors() }
       );
@@ -54,8 +54,8 @@ export async function action({ request }: ActionFunctionArgs) {
 
     // Track the event
     switch (eventType) {
-      case 'page_view':
-      case 'product_view':
+      case "page_view":
+      case "product_view":
         await VisitorTrackingService.trackVisitorView({
           storeId,
           productId,
@@ -63,7 +63,7 @@ export async function action({ request }: ActionFunctionArgs) {
         });
         break;
 
-      case 'add_to_cart':
+      case "add_to_cart":
         if (!productId) {
           return data(
             { success: false, error: "Product ID required for add_to_cart events" },
@@ -84,10 +84,7 @@ export async function action({ request }: ActionFunctionArgs) {
         );
     }
 
-    return data(
-      { success: true },
-      { headers: storefrontCors() }
-    );
+    return data({ success: true }, { headers: storefrontCors() });
   } catch (error) {
     console.error("[Social Proof Track API] Error:", error);
     return data(
@@ -96,4 +93,3 @@ export async function action({ request }: ActionFunctionArgs) {
     );
   }
 }
-

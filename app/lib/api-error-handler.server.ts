@@ -34,7 +34,7 @@ const SENSITIVE_PATTERNS = [
  * Check if error message contains sensitive information
  */
 function containsSensitiveInfo(message: string): boolean {
-  return SENSITIVE_PATTERNS.some(pattern => pattern.test(message));
+  return SENSITIVE_PATTERNS.some((pattern) => pattern.test(message));
 }
 
 /**
@@ -109,47 +109,37 @@ export function handleApiError(error: unknown, context: string) {
         errorCode: error.code,
         errorDetails: error.details,
       },
-      { status: error.httpStatus },
+      { status: error.httpStatus }
     );
   }
 
   // Handle service errors (CampaignServiceError, TemplateServiceError, etc.)
   if (error instanceof ServiceError) {
     const message = sanitizeErrorMessage(error, isProd);
-    return data(
-      createApiResponse(false, undefined, message, isProd ? [] : [error.message]),
-      { status: error.code === "VALIDATION_FAILED" ? 400 : 500 }
-    );
+    return data(createApiResponse(false, undefined, message, isProd ? [] : [error.message]), {
+      status: error.code === "VALIDATION_FAILED" ? 400 : 500,
+    });
   }
 
   // Handle validation errors (safe to expose - user input validation)
   if (error instanceof ValidationError) {
-    return data(
-      createApiResponse(false, undefined, error.message, error.errors),
-      { status: 400 }
-    );
+    return data(createApiResponse(false, undefined, error.message, error.errors), { status: 400 });
   }
 
   // Handle errors with custom status codes
-  if (error instanceof Error && 'status' in error) {
-    const statusCode = typeof (error as { status?: number }).status === 'number'
-      ? (error as { status: number }).status
-      : 500;
+  if (error instanceof Error && "status" in error) {
+    const statusCode =
+      typeof (error as { status?: number }).status === "number"
+        ? (error as { status: number }).status
+        : 500;
     const message = sanitizeErrorMessage(error, isProd);
-    return data(
-      createApiResponse(false, undefined, message),
-      { status: statusCode }
-    );
+    return data(createApiResponse(false, undefined, message), {
+      status: statusCode,
+    });
   }
 
   // Handle unknown errors - never expose details in production
-  const message = isProd
-    ? "Internal server error"
-    : sanitizeErrorMessage(error, false);
+  const message = isProd ? "Internal server error" : sanitizeErrorMessage(error, false);
 
-  return data(
-    createApiResponse(false, undefined, message),
-    { status: 500 }
-  );
+  return data(createApiResponse(false, undefined, message), { status: 500 });
 }
-

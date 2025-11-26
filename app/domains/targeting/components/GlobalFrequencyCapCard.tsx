@@ -1,6 +1,6 @@
 /**
  * Global Frequency Cap Card Component
- * 
+ *
  * Configure cross-campaign coordination
  */
 
@@ -37,26 +37,22 @@ export function GlobalFrequencyCapCard({
           {respectGlobalCap ? (
             <Banner tone="success">
               <p>
-                <strong>Global coordination enabled:</strong> This campaign
-                will respect the global frequency limits set across all your
-                campaigns. This helps prevent showing too many popups to the
-                same visitor, even if they come from different campaigns.
+                <strong>Global coordination enabled:</strong> This campaign will respect the global
+                frequency limits set across all your campaigns. This helps prevent showing too many
+                popups to the same visitor, even if they come from different campaigns.
               </p>
               <p style={{ marginTop: "8px" }}>
-                You can configure global limits in the Frequency Capping
-                Dashboard.
+                You can configure global limits in the Frequency Capping Dashboard.
               </p>
             </Banner>
           ) : (
             <Banner tone="warning">
               <p>
-                <strong>Independent frequency tracking:</strong> This
-                campaign will track frequency independently. Visitors may
-                see multiple popups if they match multiple campaigns.
+                <strong>Independent frequency tracking:</strong> This campaign will track frequency
+                independently. Visitors may see multiple popups if they match multiple campaigns.
               </p>
               <p style={{ marginTop: "8px" }}>
-                Consider enabling global coordination if you have multiple
-                active campaigns.
+                Consider enabling global coordination if you have multiple active campaigns.
               </p>
             </Banner>
           )}
@@ -65,4 +61,3 @@ export function GlobalFrequencyCapCard({
     </Card>
   );
 }
-

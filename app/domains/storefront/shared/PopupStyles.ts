@@ -29,7 +29,7 @@ import type { ExtendedColorConfig } from "~/domains/popups/color-customization.t
 export const getPopupTitleStyles = (
   config: PopupConfig | ExtendedColorConfig,
   _hasCloseButton: boolean = true,
-  templateType?: string,
+  templateType?: string
 ): CSSProperties => {
   const baseStyles: CSSProperties = {
     margin: "0 0 20px 0",
@@ -70,7 +70,7 @@ export const getPopupTitleStyles = (
  */
 export const getPopupDescriptionStyles = (
   config: PopupConfig | ExtendedColorConfig,
-  templateType?: string,
+  templateType?: string
 ): CSSProperties => {
   const baseStyles: CSSProperties = {
     margin: "0 0 28px 0",
@@ -116,7 +116,7 @@ export const getPopupButtonContainerStyles = (): CSSProperties => ({
  */
 export const getPopupButtonStyles = (
   config: PopupConfig | ExtendedColorConfig,
-  buttonType: "primary" | "secondary" | "add-to-cart" = "primary",
+  buttonType: "primary" | "secondary" | "add-to-cart" = "primary"
 ): CSSProperties => {
   const extendedConfig = config as ExtendedColorConfig;
 
@@ -127,10 +127,7 @@ export const getPopupButtonStyles = (
 
   switch (buttonType) {
     case "secondary":
-      backgroundColor =
-        extendedConfig.secondaryColor ||
-        extendedConfig.accentColor ||
-        "#f8f9fa";
+      backgroundColor = extendedConfig.secondaryColor || extendedConfig.accentColor || "#f8f9fa";
       textColor = config.textColor;
       borderColor = extendedConfig.borderColor || "#dee2e6";
       break;
@@ -155,8 +152,7 @@ export const getPopupButtonStyles = (
     textAlign: "center",
     transition: "all 0.2s ease",
     minWidth: "140px",
-    boxShadow:
-      buttonType === "primary" ? "0 1px 3px rgba(0, 0, 0, 0.1)" : "none",
+    boxShadow: buttonType === "primary" ? "0 1px 3px rgba(0, 0, 0, 0.1)" : "none",
   };
 };
 
@@ -165,9 +161,7 @@ export const getPopupButtonStyles = (
  * - Positioned in top-right corner
  * - Subtle but visible
  */
-export const getPopupCloseButtonStyles = (
-  textColor: string,
-): CSSProperties => ({
+export const getPopupCloseButtonStyles = (textColor: string): CSSProperties => ({
   position: "absolute",
   top: "10px",
   right: "10px",
@@ -250,9 +244,7 @@ export const getBannerTitleStyles = (config: PopupConfig): CSSProperties => ({
  * Description styles for banner popups
  * - Compact for horizontal layout
  */
-export const getBannerDescriptionStyles = (
-  config: PopupConfig,
-): CSSProperties => ({
+export const getBannerDescriptionStyles = (config: PopupConfig): CSSProperties => ({
   margin: 0,
   lineHeight: "1.4",
   color: config.textColor,
@@ -320,7 +312,7 @@ export const removeCloseButtonHoverEffect = (element: HTMLElement) => {
  */
 export const getFormInputStyles = (
   config: ExtendedColorConfig,
-  isFocused: boolean = false,
+  isFocused: boolean = false
 ): CSSProperties => ({
   width: "100%",
   padding: "12px 16px",
@@ -340,9 +332,7 @@ export const getFormInputStyles = (
 /**
  * Success message styles
  */
-export const getSuccessMessageStyles = (
-  config: ExtendedColorConfig,
-): CSSProperties => ({
+export const getSuccessMessageStyles = (config: ExtendedColorConfig): CSSProperties => ({
   padding: "16px 20px",
   backgroundColor: config.successColor ? `${config.successColor}10` : "#F0FDF4",
   color: config.successColor || "#16A34A",
@@ -356,9 +346,7 @@ export const getSuccessMessageStyles = (
 /**
  * Error message styles
  */
-export const getErrorMessageStyles = (
-  config: ExtendedColorConfig,
-): CSSProperties => ({
+export const getErrorMessageStyles = (config: ExtendedColorConfig): CSSProperties => ({
   padding: "12px 16px",
   backgroundColor: config.errorColor ? `${config.errorColor}10` : "#FEE2E2",
   color: config.errorColor || "#DC2626",
@@ -371,12 +359,9 @@ export const getErrorMessageStyles = (
 /**
  * Discount code display styles
  */
-export const getDiscountCodeStyles = (
-  config: ExtendedColorConfig,
-): CSSProperties => ({
+export const getDiscountCodeStyles = (config: ExtendedColorConfig): CSSProperties => ({
   padding: "16px 24px",
-  backgroundColor:
-    config.discountCodeBackgroundColor || config.accentColor || "#F3F4F6",
+  backgroundColor: config.discountCodeBackgroundColor || config.accentColor || "#F3F4F6",
   borderRadius: "8px",
   fontSize: "20px",
   fontWeight: "700",
@@ -390,9 +375,7 @@ export const getDiscountCodeStyles = (
 /**
  * Product card styles for recommendation templates
  */
-export const getProductCardStyles = (
-  config: ExtendedColorConfig,
-): CSSProperties => ({
+export const getProductCardStyles = (config: ExtendedColorConfig): CSSProperties => ({
   backgroundColor: config.productCardBackgroundColor || "#FFFFFF",
   border: `1px solid ${config.borderColor || "#E5E7EB"}`,
   borderRadius: "8px",
@@ -418,9 +401,7 @@ export const removeProductCardHoverEffect = (element: HTMLElement) => {
 /**
  * Product title styles
  */
-export const getProductTitleStyles = (
-  config: ExtendedColorConfig,
-): CSSProperties => ({
+export const getProductTitleStyles = (config: ExtendedColorConfig): CSSProperties => ({
   fontSize: "16px",
   fontWeight: "600",
   color: config.productTitleColor || config.textColor,
@@ -433,7 +414,7 @@ export const getProductTitleStyles = (
  */
 export const getProductPriceStyles = (
   config: ExtendedColorConfig,
-  isDiscounted: boolean = false,
+  isDiscounted: boolean = false
 ): CSSProperties => ({
   fontSize: isDiscounted ? "18px" : "16px",
   fontWeight: "700",
@@ -446,9 +427,7 @@ export const getProductPriceStyles = (
 /**
  * Social proof notification styles
  */
-export const getSocialProofNotificationStyles = (
-  config: ExtendedColorConfig,
-): CSSProperties => ({
+export const getSocialProofNotificationStyles = (config: ExtendedColorConfig): CSSProperties => ({
   backgroundColor: config.notificationBackgroundColor || "#F0FDF4",
   border: `1px solid ${config.borderColor || "#D1FAE5"}`,
   borderRadius: "8px",
@@ -462,9 +441,7 @@ export const getSocialProofNotificationStyles = (
 /**
  * Customer name styles for social proof
  */
-export const getCustomerNameStyles = (
-  config: ExtendedColorConfig,
-): CSSProperties => ({
+export const getCustomerNameStyles = (config: ExtendedColorConfig): CSSProperties => ({
   fontWeight: "600",
   color: config.customerNameColor || config.buttonColor,
 });
@@ -472,9 +449,7 @@ export const getCustomerNameStyles = (
 /**
  * Timestamp styles for social proof
  */
-export const getTimestampStyles = (
-  config: ExtendedColorConfig,
-): CSSProperties => ({
+export const getTimestampStyles = (config: ExtendedColorConfig): CSSProperties => ({
   fontSize: "12px",
   color: config.timestampColor || "#6B7280",
   opacity: 0.8,
@@ -483,9 +458,7 @@ export const getTimestampStyles = (
 /**
  * Progress bar container styles for thresholds
  */
-export const getProgressBarStyles = (
-  config: ExtendedColorConfig,
-): CSSProperties => ({
+export const getProgressBarStyles = (config: ExtendedColorConfig): CSSProperties => ({
   width: "100%",
   height: "8px",
   backgroundColor: config.borderColor || "#E5E7EB",
@@ -500,7 +473,7 @@ export const getProgressBarStyles = (
  */
 export const getProgressBarFillStyles = (
   config: ExtendedColorConfig,
-  percentage: number,
+  percentage: number
 ): CSSProperties => ({
   position: "absolute",
   top: 0,
@@ -517,7 +490,7 @@ export const getProgressBarFillStyles = (
  */
 export const getTimerStyles = (
   config: ExtendedColorConfig,
-  isUrgent: boolean = false,
+  isUrgent: boolean = false
 ): CSSProperties => ({
   fontSize: isUrgent ? "24px" : "20px",
   fontWeight: "700",
@@ -536,10 +509,9 @@ export const getTimerStyles = (
  */
 export const getBadgeStyles = (
   config: ExtendedColorConfig,
-  variant: "success" | "warning" | "info" | "default" = "default",
+  variant: "success" | "warning" | "info" | "default" = "default"
 ): CSSProperties => {
-  let backgroundColor =
-    config.badgeBackgroundColor || config.accentColor || "#F3F4F6";
+  let backgroundColor = config.badgeBackgroundColor || config.accentColor || "#F3F4F6";
   let textColor = config.badgeTextColor || config.textColor;
 
   switch (variant) {
@@ -576,7 +548,7 @@ export const getBadgeStyles = (
 export const applyColorsToElement = (
   element: HTMLElement,
   config: ExtendedColorConfig,
-  colorMap: Record<string, keyof ExtendedColorConfig>,
+  colorMap: Record<string, keyof ExtendedColorConfig>
 ): void => {
   Object.entries(colorMap).forEach(([cssProperty, configKey]) => {
     const value = config[configKey];
@@ -595,7 +567,7 @@ export const applyColorsToElement = (
  */
 export const getOverlayStyles = (
   config?: ExtendedColorConfig,
-  fallbackOpacity: number = 0.6,
+  fallbackOpacity: number = 0.6
 ): CSSProperties => {
   const opacity = config?.overlayOpacity ?? fallbackOpacity;
   const _overlayColor = config?.overlayColor || "rgba(0, 0, 0, 1)";
@@ -630,7 +602,7 @@ export const getOverlayStyles = (
  */
 export const getBasePopupStyles = (
   config: PopupConfig | ExtendedColorConfig,
-  templateType?: string,
+  templateType?: string
 ): CSSProperties => {
   const extendedConfig = config as ExtendedColorConfig;
 
@@ -667,10 +639,7 @@ export const getBasePopupStyles = (
     }
   }
 
-  if (
-    templateType === "announcement" &&
-    extendedConfig.announcementBannerColor
-  ) {
+  if (templateType === "announcement" && extendedConfig.announcementBannerColor) {
     baseStyles.borderLeft = `6px solid ${extendedConfig.announcementBannerColor}`;
   }
 

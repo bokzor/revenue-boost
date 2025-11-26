@@ -9,7 +9,7 @@ import { useState, useEffect } from "preact/hooks";
 import { ComponentLoader, type TemplateType } from "./component-loader";
 import type { ApiClient } from "./api";
 import { session } from "./session";
-import { requestChallengeToken, challengeTokenStore } from "./challenge-token";
+import { challengeTokenStore } from "./challenge-token";
 import { executeHooksForCampaign, clearCampaignCache } from "./hooks";
 
 export interface StorefrontCampaign {
@@ -22,6 +22,8 @@ export interface StorefrontCampaign {
   discountConfig?: Record<string, unknown>;
   experimentId?: string | null;
   variantKey?: string | null;
+  globalCustomCSS?: string;
+  customCSS?: string;
 }
 
 export interface PopupManagerProps {
@@ -30,12 +32,15 @@ export interface PopupManagerProps {
   onShow?: (campaignId: string) => void;
   loader: ComponentLoader;
   api: ApiClient;
-  triggerContext?: { productId?: string; [key: string]: any };
+  triggerContext?: { productId?: string; [key: string]: unknown };
+  globalCustomCSS?: string;
 }
 
 function getShopifyRoot(): string {
   try {
-    const w: any = window as any;
+    const w = window as unknown as {
+      Shopify?: { routes?: { root?: string } };
+    };
     return w?.Shopify?.routes?.root || "/";
   } catch {
     return "/";
@@ -118,7 +123,7 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, tri
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [challengeToken, setChallengeToken] = useState<string | null>(null);
-  const [preloadedResources, setPreloadedResources] = useState<Record<string, any> | null>(null);
+  const [preloadedResources, setPreloadedResources] = useState<Record<string, unknown> | null>(null);
 
   // Execute pre-display hooks and load component
   useEffect(() => {
@@ -158,7 +163,7 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, tri
 
         // Set challenge token if loaded via hook
         if (hooksResult.loadedResources.challengeToken) {
-          setChallengeToken(hooksResult.loadedResources.challengeToken);
+          setChallengeToken(hooksResult.loadedResources.challengeToken as string);
         }
 
         // Set component
@@ -182,7 +187,7 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, tri
       // Clear cached resources when component unmounts
       clearCampaignCache(campaign.id);
     };
-  }, [campaign.id, campaign.templateType, loader, onShow, api]);
+  }, [api, campaign, loader, onShow, triggerContext]);
 
   const trackClick = (metadata?: Record<string, unknown>) => {
     try {
@@ -277,7 +282,11 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, tri
 
             // Trigger Shopify theme events
             if (typeof window !== 'undefined') {
-              const w = window as any;
+              const w = window as {
+                Shopify?: { theme?: { cart?: { getCart?: () => void } } };
+                theme?: { cart?: { getCart?: () => void; refresh?: () => void } };
+                cart?: { refresh?: () => void };
+              };
 
               // Dawn theme and similar
               if (w.Shopify?.theme?.cart) {
@@ -305,17 +314,17 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, tri
                   // Try to trigger theme-specific cart drawer refresh methods
                   try {
                     // Dawn theme (Web Components) - cart-drawer element
-                    const cartDrawer = document.querySelector('cart-drawer');
-                    if (cartDrawer && typeof (cartDrawer as any).renderContents === 'function') {
+                    const cartDrawer = document.querySelector('cart-drawer') as Element & { renderContents?: (payload: unknown) => void } | null;
+                    if (cartDrawer && typeof cartDrawer.renderContents === 'function') {
                       console.log("[PopupManager] Refreshing Dawn cart-drawer");
-                      (cartDrawer as any).renderContents(cart);
+                      cartDrawer.renderContents(cart);
                     }
 
                     // Dawn theme - cart-notification element
-                    const cartNotification = document.querySelector('cart-notification');
-                    if (cartNotification && typeof (cartNotification as any).renderContents === 'function') {
+                    const cartNotification = document.querySelector('cart-notification') as Element & { renderContents?: (payload: unknown) => void } | null;
+                    if (cartNotification && typeof cartNotification.renderContents === 'function') {
                       console.log("[PopupManager] Refreshing Dawn cart-notification");
-                      (cartNotification as any).renderContents(cart);
+                      cartNotification.renderContents(cart);
                     }
 
                     // Legacy Dawn theme methods
@@ -329,8 +338,8 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, tri
                     }
 
                     // Trigger Shopify section rendering (used by many themes)
-                    if (typeof w.Shopify?.theme?.sections?.load === 'function') {
-                      w.Shopify.theme.sections.load('cart-drawer');
+                    if (typeof (window as { Shopify?: { theme?: { sections?: { load?: (section: string) => void } } } }).Shopify?.theme?.sections?.load === 'function') {
+                      (window as { Shopify?: { theme?: { sections?: { load?: (section: string) => void } } } }).Shopify?.theme?.sections?.load?.('cart-drawer');
                     }
                   } catch (themeError) {
                     // Silent fail - theme-specific methods may not exist
@@ -348,7 +357,7 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, tri
 
       // Auto-apply discount via AJAX when configured to do so
       const discountCode = result.discountCode;
-      const deliveryMode = (campaign.discountConfig as any)?.deliveryMode;
+      const deliveryMode = (campaign.discountConfig as { deliveryMode?: string } | undefined)?.deliveryMode;
 
       const shouldAutoApply =
         !!discountCode &&
@@ -403,7 +412,7 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, tri
 
       const code = result.code;
       const autoApplyMode = result.autoApplyMode || "ajax";
-      const deliveryMode = (campaign.discountConfig as any)?.deliveryMode;
+      const deliveryMode = (campaign.discountConfig as { deliveryMode?: string } | undefined)?.deliveryMode;
 
       console.log("[PopupManager] 🎟️ Discount issued:", {
         code,
@@ -455,7 +464,9 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, tri
   // Inject initial cart total (from app embed) so FreeShipping bar can render correct progress
   const currentCartTotal = (() => {
     try {
-      const w: any = window as any;
+      const w = window as {
+        REVENUE_BOOST_CONFIG?: { cartValue?: string | number };
+      };
       const raw = w?.REVENUE_BOOST_CONFIG?.cartValue;
       const n = typeof raw === 'string' ? parseFloat(raw) : (typeof raw === 'number' ? raw : 0);
       return Number.isFinite(n) ? n : 0;
@@ -480,13 +491,13 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, tri
       });
 
       // Get cart items from preloaded resources
-      const cartItems = preloadedResources?.cart?.items;
+      const cartItems = (preloadedResources?.cart as { items?: unknown[] } | undefined)?.items;
 
       const result = await api.emailRecovery({
         campaignId: campaign.id,
         email,
         cartSubtotalCents,
-        cartItems,
+        cartItems: cartItems as Record<string, unknown>[] | undefined,
       });
 
       if (!result.success) {
@@ -496,7 +507,7 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, tri
 
       const code = result.discountCode;
       const autoApplyMode = result.autoApplyMode || "ajax";
-      const deliveryMode = (campaign.discountConfig as any)?.deliveryMode;
+      const deliveryMode = (campaign.discountConfig as { deliveryMode?: string } | undefined)?.deliveryMode;
 
       const shouldAutoApply =
         !!code &&
@@ -517,14 +528,22 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, tri
       }
 
       const root = getShopifyRoot();
-      const contentConfig = (campaign.contentConfig || {}) as any;
+      const contentConfig = (campaign.contentConfig || {}) as Record<string, unknown>;
       const configuredUrl =
         typeof contentConfig.ctaUrl === "string" && contentConfig.ctaUrl.trim() !== ""
           ? contentConfig.ctaUrl
           : "checkout";
 
+      const urlWithUtm = addUTMParams(configuredUrl, {
+        utmCampaign: (campaign.designConfig as { utmCampaign?: string | null })?.utmCampaign,
+        utmSource: (campaign.designConfig as { utmSource?: string | null })?.utmSource,
+        utmMedium: (campaign.designConfig as { utmMedium?: string | null })?.utmMedium,
+      });
       const normalizedPath = configuredUrl.replace(/^\//, "");
-      window.location.href = `${root}${normalizedPath}`;
+      const target = urlWithUtm?.startsWith("http")
+        ? urlWithUtm
+        : `${root}${normalizedPath}${urlWithUtm && urlWithUtm.includes("?") ? urlWithUtm.slice(urlWithUtm.indexOf("?")) : ""}`;
+      window.location.href = target;
 
       return code || undefined;
     } catch (error) {
@@ -533,6 +552,26 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, tri
     }
   };
 
+  function addUTMParams(
+    url: string | null | undefined,
+    data: { utmCampaign?: string | null; utmSource?: string | null; utmMedium?: string | null },
+  ) {
+    if (!url || !data?.utmCampaign) return url;
+    try {
+      const urlObj = new URL(url, url.startsWith("http") ? undefined : "https://placeholder.local");
+      urlObj.searchParams.set("utm_campaign", data.utmCampaign);
+      if (data.utmSource) urlObj.searchParams.set("utm_source", data.utmSource);
+      if (data.utmMedium) urlObj.searchParams.set("utm_medium", data.utmMedium);
+
+      if (!url.startsWith("http")) {
+        return `${urlObj.pathname}${urlObj.search}${urlObj.hash}`;
+      }
+      return urlObj.toString();
+    } catch {
+      return url;
+    }
+  }
+
   const handleAddToCart = async (productIds: string[]) => {
     try {
       console.log("[PopupManager] Adding products to cart:", productIds);
@@ -540,11 +579,11 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, tri
       if (!productIds || productIds.length === 0) return;
 
       // Get products from preloaded resources
-      const products = preloadedResources?.products || [];
+      const products = (preloadedResources?.products as Array<{ id: string; variantId?: string }> | undefined) || [];
       const itemsToAdd: { id: string; quantity: number }[] = [];
 
       for (const pid of productIds) {
-        const product = products.find((p: any) => p.id === pid);
+        const product = products.find((p) => p.id === pid);
         if (product && product.variantId) {
           // Extract numeric ID if it's a GID
           const variantId = product.variantId.split('/').pop() || product.variantId;
@@ -614,34 +653,34 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, tri
       // Fetch new cart to ensure UI is in sync
       try {
         const cartRes = await fetch(`${root}cart.js`);
-        if (cartRes.ok) {
-          const cart = await cartRes.json();
-          document.dispatchEvent(new CustomEvent("cart:refresh", { detail: cart }));
+          if (cartRes.ok) {
+            const cart = await cartRes.json();
+            document.dispatchEvent(new CustomEvent("cart:refresh", { detail: cart }));
 
-          // Update cart count logic (compatible with common themes)
-          const cartCount = document.querySelector(".cart-count, [data-cart-count], .cart__count");
-          if (cartCount && cart.item_count !== undefined) {
-            cartCount.textContent = String(cart.item_count);
-          }
+            // Update cart count logic (compatible with common themes)
+            const cartCount = document.querySelector(".cart-count, [data-cart-count], .cart__count");
+            if (cartCount && cart.item_count !== undefined) {
+              cartCount.textContent = String(cart.item_count);
+            }
 
-          // Try to trigger theme-specific cart drawer refresh methods
-          try {
-            // Dawn theme and similar
-            if (typeof (window as any).theme?.cart?.refresh === 'function') {
-              (window as any).theme.cart.refresh();
+            // Try to trigger theme-specific cart drawer refresh methods
+            try {
+              // Dawn theme and similar
+              if (typeof (window as { theme?: { cart?: { refresh?: () => void } } }).theme?.cart?.refresh === 'function') {
+                (window as { theme?: { cart?: { refresh?: () => void } } }).theme?.cart?.refresh?.();
+              }
+              // Some themes use a global cart object
+              if (typeof (window as { cart?: { refresh?: () => void } }).cart?.refresh === 'function') {
+                (window as { cart?: { refresh?: () => void } }).cart?.refresh?.();
+              }
+              // Trigger Shopify section rendering (used by many themes)
+              if (typeof (window as { Shopify?: { theme?: { sections?: { load?: (section: string) => void } } } }).Shopify?.theme?.sections?.load === 'function') {
+                (window as { Shopify?: { theme?: { sections?: { load?: (section: string) => void } } } }).Shopify?.theme?.sections?.load?.('cart-drawer');
+              }
+            } catch (themeError) {
+              // Silent fail - theme-specific methods may not exist
+              console.debug("[PopupManager] Theme-specific cart refresh not available:", themeError);
             }
-            // Some themes use a global cart object
-            if (typeof (window as any).cart?.refresh === 'function') {
-              (window as any).cart.refresh();
-            }
-            // Trigger Shopify section rendering (used by many themes)
-            if (typeof (window as any).Shopify?.theme?.sections?.load === 'function') {
-              (window as any).Shopify.theme.sections.load('cart-drawer');
-            }
-          } catch (themeError) {
-            // Silent fail - theme-specific methods may not exist
-            console.debug("[PopupManager] Theme-specific cart refresh not available:", themeError);
-          }
         }
       } catch (e) {
         console.error("Error fetching cart after update", e);
@@ -668,10 +707,56 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, tri
     // ignore logging errors
   }
 
+  const decorateUrl = (url?: string | null) => addUTMParams(url, {
+    utmCampaign: (campaign.designConfig as { utmCampaign?: string | null })?.utmCampaign,
+    utmSource: (campaign.designConfig as { utmSource?: string | null })?.utmSource,
+    utmMedium: (campaign.designConfig as { utmMedium?: string | null })?.utmMedium,
+  }) || url || undefined;
+
+  const decoratedContentConfig: Record<string, unknown> = {
+    ...(campaign.contentConfig as Record<string, unknown>),
+  };
+
+  if (decoratedContentConfig.ctaUrl) {
+    decoratedContentConfig.ctaUrl = decorateUrl(decoratedContentConfig.ctaUrl as string);
+  }
+  if (decoratedContentConfig.buttonUrl) {
+    decoratedContentConfig.buttonUrl = decorateUrl(decoratedContentConfig.buttonUrl as string);
+  }
+  if (Array.isArray(decoratedContentConfig.products)) {
+    decoratedContentConfig.products = decoratedContentConfig.products.map((p: { url?: string; handle?: string } & Record<string, unknown>) => {
+      const url = p.url || (p.handle ? `/products/${p.handle}` : undefined);
+      return { ...p, url: decorateUrl(url) };
+    });
+  }
+
+  const decoratedDesignConfig: Record<string, unknown> = {
+    ...(campaign.designConfig as Record<string, unknown>),
+    globalCustomCSS: campaign.globalCustomCSS,
+    customCSS: (campaign.designConfig as Record<string, unknown>)?.customCSS,
+  };
+
+  if (decoratedDesignConfig.buttonUrl) {
+    decoratedDesignConfig.buttonUrl = decorateUrl(decoratedDesignConfig.buttonUrl as string);
+  }
+
+  const handleProductClick = (product: { id?: string; url?: string; handle?: string }) => {
+    trackClick({ action: "product_click", productId: product?.id });
+    const root = getShopifyRoot();
+    const targetUrl = decorateUrl(product?.url || (product?.handle ? `/products/${product.handle}` : undefined));
+    if (!targetUrl) return;
+    if (targetUrl.startsWith("http")) {
+      window.location.href = targetUrl;
+      return;
+    }
+    const normalized = targetUrl.replace(/^\//, "");
+    window.location.href = `${root}${normalized}`;
+  };
+
   return h(Component, {
     config: {
-      ...campaign.contentConfig,
-      ...campaign.designConfig,
+      ...decoratedContentConfig,
+      ...decoratedDesignConfig,
       id: campaign.id,
       campaignId: campaign.id,
       challengeToken: challengeToken || undefined,
@@ -702,12 +787,13 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, tri
     renderInline: false,
     onEmailRecovery: handleEmailRecovery,
     // Pass preloaded cart data for Cart Abandonment
-    cartItems: preloadedResources.cart?.items,
-    cartTotal: preloadedResources.cart?.total,
+    cartItems: (preloadedResources.cart as { items?: unknown[] } | undefined)?.items,
+    cartTotal: (preloadedResources.cart as { total?: number } | undefined)?.total,
     // Pass preloaded inventory for Flash Sale
-    inventoryTotal: preloadedResources.inventory?.total,
+    inventoryTotal: (preloadedResources.inventory as { total?: number } | undefined)?.total,
     onTrack: trackClick,
     onAddToCart: handleAddToCart,
+    onProductClick: handleProductClick,
   });
 }
 
@@ -720,7 +806,7 @@ export function renderPopup(
   loader: ComponentLoader,
   api: ApiClient,
   onShow?: (campaignId: string) => void,
-  triggerContext?: { productId?: string; [key: string]: any }
+  triggerContext?: { productId?: string; [key: string]: unknown }
 ): () => void {
   // Create container
   const container = document.createElement("div");
@@ -739,6 +825,7 @@ export function renderPopup(
       loader,
       api,
       triggerContext,
+      globalCustomCSS: campaign.globalCustomCSS,
     }),
     container
   );
@@ -751,4 +838,3 @@ export function renderPopup(
 
   return cleanup;
 }
-

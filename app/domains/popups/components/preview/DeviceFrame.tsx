@@ -12,10 +12,7 @@ export interface DeviceFrameProps {
   children: React.ReactNode;
 }
 
-export const DeviceFrame: React.FC<DeviceFrameProps> = ({
-  device,
-  children,
-}) => {
+export const DeviceFrame: React.FC<DeviceFrameProps> = ({ device, children }) => {
   if (device === "mobile") {
     return (
       <div

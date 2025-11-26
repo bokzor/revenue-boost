@@ -1,6 +1,6 @@
 /**
  * Webhook route for customers/redact
- * 
+ *
  * Handles GDPR data deletion requests for customers.
  * Shopify sends this webhook when a customer requests data deletion.
  */
@@ -34,18 +34,17 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     });
   } catch (error) {
     console.error("[Webhook Route] Error processing customers/redact:", error);
-    
+
     // Return 500 to signal Shopify to retry
     return new Response(
-      JSON.stringify({ 
-        success: false, 
-        error: error instanceof Error ? error.message : "Unknown error" 
+      JSON.stringify({
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
       }),
-      { 
+      {
         status: 500,
         headers: { "Content-Type": "application/json" },
       }
     );
   }
 };
-

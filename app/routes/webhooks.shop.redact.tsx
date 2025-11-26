@@ -1,6 +1,6 @@
 /**
  * Webhook route for shop/redact
- * 
+ *
  * Handles shop data deletion after app uninstallation.
  * Shopify sends this webhook 48 hours after a shop uninstalls the app.
  */
@@ -34,18 +34,17 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     });
   } catch (error) {
     console.error("[Webhook Route] Error processing shop/redact:", error);
-    
+
     // Return 500 to signal Shopify to retry
     return new Response(
-      JSON.stringify({ 
-        success: false, 
-        error: error instanceof Error ? error.message : "Unknown error" 
+      JSON.stringify({
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
       }),
-      { 
+      {
         status: 500,
         headers: { "Content-Type": "application/json" },
       }
     );
   }
 };
-

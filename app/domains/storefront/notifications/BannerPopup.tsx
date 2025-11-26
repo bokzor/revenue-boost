@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
+import { buildScopedCss } from "../shared/css";
 import type { PopupConfig } from "../popups-new/types";
 
 export interface BannerPopupProps {
@@ -52,6 +53,16 @@ export const BannerPopup: React.FC<BannerPopupProps> = ({
   }
 
   const position = config.position || "top";
+  const scopedCss = useMemo(
+    () =>
+      buildScopedCss(
+        (config as { globalCustomCSS?: string }).globalCustomCSS,
+        (config as { customCSS?: string }).customCSS,
+        "data-rb-banner",
+        "banner"
+      ),
+    [config]
+  );
 
   const bannerStyle: React.CSSProperties = {
     position: config.sticky ? "fixed" : "relative",
@@ -62,9 +73,7 @@ export const BannerPopup: React.FC<BannerPopupProps> = ({
     color: config.textColor,
     zIndex: 999999,
     boxShadow:
-      position === "top"
-        ? "0 2px 10px rgba(0, 0, 0, 0.1)"
-        : "0 -2px 10px rgba(0, 0, 0, 0.1)",
+      position === "top" ? "0 2px 10px rgba(0, 0, 0, 0.1)" : "0 -2px 10px rgba(0, 0, 0, 0.1)",
     transition: "transform 0.3s ease-out",
     minHeight: config.height || "auto",
   };
@@ -144,7 +153,8 @@ export const BannerPopup: React.FC<BannerPopupProps> = ({
   };
 
   const content = (
-    <div style={bannerStyle}>
+    <div style={bannerStyle} data-rb-banner>
+      {scopedCss ? <style>{scopedCss}</style> : null}
       <div style={containerStyle}>
         <div style={contentStyle}>
           {config.imageUrl && (
@@ -188,8 +198,7 @@ export const BannerPopup: React.FC<BannerPopupProps> = ({
             aria-label="Close banner"
             onMouseEnter={(e) => {
               e.currentTarget.style.opacity = "1";
-              e.currentTarget.style.backgroundColor =
-                "rgba(255, 255, 255, 0.1)";
+              e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.1)";
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.opacity = "0.7";

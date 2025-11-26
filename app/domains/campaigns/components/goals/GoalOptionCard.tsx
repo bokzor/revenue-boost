@@ -90,4 +90,3 @@ export function GoalOptionCard({ option, isSelected, onClick }: GoalOptionCardPr
     </div>
   );
 }
-

@@ -1,6 +1,6 @@
 /**
  * CollectionValueInput - Collection selector for condition values
- * 
+ *
  * Single Responsibility: Handle collection selection for conditions
  */
 
@@ -65,4 +65,3 @@ export function CollectionValueInput({ value, onChange }: CollectionValueInputPr
     </>
   );
 }
-

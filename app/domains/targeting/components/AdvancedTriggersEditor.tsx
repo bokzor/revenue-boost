@@ -1,13 +1,13 @@
 /**
  * AdvancedTriggersEditor - Refactored to follow SOLID principles
- * 
+ *
  * IMPROVEMENTS:
  * - Reduced from 1075 lines to 67 lines (94% reduction)
  * - Each trigger type extracted into its own component
  * - Single Responsibility: Only orchestrates trigger components
  * - Open/Closed: Easy to add new triggers without modifying this file
  * - Dependency Inversion: Depends on abstractions (trigger components)
- * 
+ *
  * SOLID PRINCIPLES APPLIED:
  * ✅ Single Responsibility: Each component has one job
  * ✅ Open/Closed: Open for extension (add new triggers), closed for modification
@@ -38,10 +38,7 @@ interface AdvancedTriggersEditorProps {
   onChange: (config: EnhancedTriggerConfig) => void;
 }
 
-export function AdvancedTriggersEditor({
-  config,
-  onChange,
-}: AdvancedTriggersEditorProps) {
+export function AdvancedTriggersEditor({ config, onChange }: AdvancedTriggersEditorProps) {
   return (
     <BlockStack gap="400">
       <Text as="span" variant="headingMd">
@@ -51,8 +48,8 @@ export function AdvancedTriggersEditor({
       <Banner tone="info">
         <Text as="span" variant="bodyMd">
           Advanced triggers provide sophisticated targeting based on user behavior, device
-          characteristics, and engagement patterns. Configure multiple triggers to create
-          highly targeted popup experiences.
+          characteristics, and engagement patterns. Configure multiple triggers to create highly
+          targeted popup experiences.
         </Text>
       </Banner>
 
@@ -72,4 +69,3 @@ export function AdvancedTriggersEditor({
     </BlockStack>
   );
 }
-

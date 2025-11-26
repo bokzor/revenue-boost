@@ -36,13 +36,23 @@ export function deriveInitialConfig(wizardState: WizardState): Partial<EditorCon
     // Map content fields
     ...(content?.headline && { title: content.headline }),
     ...(content?.subheadline && { description: content.subheadline }),
-    ...((content?.ctaText || content?.ctaLabel) && { buttonText: content.ctaText || content.ctaLabel }),
+    ...((content?.ctaText || content?.ctaLabel) && {
+      buttonText: content.ctaText || content.ctaLabel,
+    }),
 
     // Map discount fields
-    ...(discount?.enabled !== undefined && { discountEnabled: discount.enabled }),
-    ...(discount?.prefix && discount?.value && { discountCode: `${discount.prefix}${discount.value}` }),
+    ...(discount?.enabled !== undefined && {
+      discountEnabled: discount.enabled,
+    }),
+    ...(discount?.prefix &&
+      discount?.value && {
+        discountCode: `${discount.prefix}${discount.value}`,
+      }),
     ...(discount?.value !== undefined && { discountValue: discount.value }),
-    ...(discount?.valueType && { discountType: discount.valueType.toLowerCase() }),
-    ...(discount?.valueType === "PERCENTAGE" && discount?.value !== undefined && { discountPercentage: discount.value }),
+    ...(discount?.valueType && {
+      discountType: discount.valueType.toLowerCase(),
+    }),
+    ...(discount?.valueType === "PERCENTAGE" &&
+      discount?.value !== undefined && { discountPercentage: discount.value }),
   };
 }

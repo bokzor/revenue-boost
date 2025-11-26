@@ -1,6 +1,6 @@
 /**
  * SetupStatus Component
- * 
+ *
  * Minimal, reusable component to display app setup status
  * Shows essential checks: theme extension and metafield
  * Displays custom proxy URL override if detected
@@ -21,7 +21,12 @@ interface SetupStatusProps {
   compact?: boolean;
 }
 
-export function SetupStatus({ status, setupComplete, themeEditorUrl, compact = false }: SetupStatusProps) {
+export function SetupStatus({
+  status,
+  setupComplete,
+  themeEditorUrl,
+  compact = false,
+}: SetupStatusProps) {
   if (compact && setupComplete) {
     return (
       <Banner tone="success">
@@ -35,13 +40,20 @@ export function SetupStatus({ status, setupComplete, themeEditorUrl, compact = f
       <Banner
         tone="warning"
         title="Setup Required"
-        action={themeEditorUrl ? {
-          content: "Enable in Theme Editor",
-          url: themeEditorUrl,
-          external: true,
-        } : undefined}
+        action={
+          themeEditorUrl
+            ? {
+                content: "Enable in Theme Editor",
+                url: themeEditorUrl,
+                external: true,
+              }
+            : undefined
+        }
       >
-        <p>Theme extension needs to be enabled in your theme editor for popups to appear on your storefront.</p>
+        <p>
+          Theme extension needs to be enabled in your theme editor for popups to appear on your
+          storefront.
+        </p>
       </Banner>
     );
   }
@@ -97,7 +109,8 @@ export function SetupStatus({ status, setupComplete, themeEditorUrl, compact = f
                   {status.customProxyUrl}
                 </Text>
                 <Text as="p" variant="bodySm" tone="subdued">
-                  A custom API URL has been configured in your theme settings. This overrides the default app URL.
+                  A custom API URL has been configured in your theme settings. This overrides the
+                  default app URL.
                 </Text>
               </BlockStack>
             </List.Item>
@@ -107,7 +120,8 @@ export function SetupStatus({ status, setupComplete, themeEditorUrl, compact = f
         {!status.themeExtensionEnabled && themeEditorUrl && (
           <BlockStack gap="200">
             <Text as="p" variant="bodyMd" tone="subdued">
-              To enable the theme extension, open your theme editor and toggle on "Revenue Boost Popups" under App embeds.
+              To enable the theme extension, open your theme editor and toggle on "Revenue Boost
+              Popups" under App embeds.
             </Text>
             <Button url={themeEditorUrl} target="_blank" variant="primary">
               Open Theme Editor
@@ -118,4 +132,3 @@ export function SetupStatus({ status, setupComplete, themeEditorUrl, compact = f
     </Card>
   );
 }
-

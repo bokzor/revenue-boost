@@ -11,10 +11,7 @@ interface FrequencyCappingToggleProps {
   onEnabledChange: (enabled: boolean) => void;
 }
 
-export function FrequencyCappingToggle({
-  enabled,
-  onEnabledChange,
-}: FrequencyCappingToggleProps) {
+export function FrequencyCappingToggle({ enabled, onEnabledChange }: FrequencyCappingToggleProps) {
   return (
     <Card>
       <Box padding="400">
@@ -30,9 +27,8 @@ export function FrequencyCappingToggle({
           {!enabled && (
             <Banner tone="info">
               <p>
-                Without frequency capping, this popup may be shown repeatedly
-                to the same visitor. This can lead to a poor user experience
-                and lower conversion rates.
+                Without frequency capping, this popup may be shown repeatedly to the same visitor.
+                This can lead to a poor user experience and lower conversion rates.
               </p>
             </Banner>
           )}
@@ -41,4 +37,3 @@ export function FrequencyCappingToggle({
     </Card>
   );
 }
-

@@ -125,26 +125,15 @@ export function FormActions({
 }: FormActionsProps) {
   return (
     <s-page-actions>
-      <s-button
-        type="submit"
-        variant="primary"
-        loading={primaryLoading}
-        disabled={primaryDisabled}
-      >
+      <s-button type="submit" variant="primary" loading={primaryLoading} disabled={primaryDisabled}>
         {primaryLabel}
       </s-button>
 
       {secondaryLabel && secondaryAction && (
-        <s-button onClick={secondaryAction}>
-          {secondaryLabel}
-        </s-button>
+        <s-button onClick={secondaryAction}>{secondaryLabel}</s-button>
       )}
 
-      {cancelUrl && (
-        <s-button href={cancelUrl}>
-          Cancel
-        </s-button>
-      )}
+      {cancelUrl && <s-button href={cancelUrl}>Cancel</s-button>}
     </s-page-actions>
   );
 }
@@ -165,7 +154,7 @@ export interface StepIndicatorProps {
 }
 
 export function StepIndicator({ steps, currentStep }: StepIndicatorProps) {
-  const currentIndex = steps.findIndex(step => step.id === currentStep);
+  const currentIndex = steps.findIndex((step) => step.id === currentStep);
 
   return (
     <div className="step-indicator">
@@ -184,4 +173,3 @@ export function StepIndicator({ steps, currentStep }: StepIndicatorProps) {
     </div>
   );
 }
-

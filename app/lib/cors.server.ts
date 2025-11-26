@@ -33,5 +33,3 @@ export function storefrontCors() {
     "Access-Control-Max-Age": "3600", // 1 hour
   };
 }
-
-

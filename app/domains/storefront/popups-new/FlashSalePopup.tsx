@@ -10,16 +10,16 @@
  * - Responsive design with themes
  */
 
-import React, { useState, useEffect } from 'react';
-import type { PopupDesignConfig, DiscountConfig as StorefrontDiscountConfig } from './types';
-import type { FlashSaleContent } from '~/domains/campaigns/types/campaign';
-import { PopupPortal } from './PopupPortal';
+import React, { useState, useEffect } from "react";
+import type { PopupDesignConfig, DiscountConfig as StorefrontDiscountConfig } from "./types";
+import type { FlashSaleContent } from "~/domains/campaigns/types/campaign";
+import { PopupPortal } from "./PopupPortal";
 
 // Import custom hooks
-import { useCountdownTimer, useDiscountCode, usePopupAnimation } from './hooks';
+import { useCountdownTimer, useDiscountCode, usePopupAnimation } from "./hooks";
 
 // Import reusable components
-import { SubmitButton } from './components';
+import { SubmitButton } from "./components";
 
 /**
  * FlashSale-specific configuration
@@ -38,11 +38,13 @@ export interface FlashSalePopupProps {
   onClose: () => void;
   onExpiry?: () => void;
   onCtaClick?: () => void;
-  issueDiscount?: (options?: { cartSubtotalCents?: number }) => Promise<{ code?: string; autoApplyMode?: string } | null>;
+  issueDiscount?: (options?: {
+    cartSubtotalCents?: number;
+  }) => Promise<{ code?: string; autoApplyMode?: string } | null>;
 }
 
 // TimeRemaining interface now imported from hooks
-import type { TimeRemaining } from './hooks';
+import type { TimeRemaining } from "./hooks";
 
 export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
   config,
@@ -53,14 +55,10 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
   issueDiscount,
 }) => {
   // Use countdown timer hook
-  const timerMode = config.timer?.mode || 'duration';
+  const timerMode = config.timer?.mode || "duration";
   // Map 'stock_limited' to 'duration' for the hook (stock_limited is handled separately)
-  const hookTimerMode = timerMode === 'stock_limited' ? 'duration' : timerMode;
-  const {
-    timeRemaining,
-    hasExpired,
-    formattedTime,
-  } = useCountdownTimer({
+  const hookTimerMode = timerMode === "stock_limited" ? "duration" : timerMode;
+  const { timeRemaining, hasExpired, formattedTime } = useCountdownTimer({
     enabled: config.showCountdown !== false,
     mode: hookTimerMode,
     duration: config.countdownDuration,
@@ -68,11 +66,11 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
     personalWindowSeconds: config.timer?.personalWindowSeconds,
     onExpire: () => {
       if (onExpiry) onExpiry();
-      if (config.timer?.onExpire === 'auto_hide' || config.hideOnExpiry) {
+      if (config.timer?.onExpire === "auto_hide" || config.hideOnExpiry) {
         onClose();
       }
     },
-    autoHide: config.timer?.onExpire === 'auto_hide' || config.hideOnExpiry,
+    autoHide: config.timer?.onExpire === "auto_hide" || config.hideOnExpiry,
     autoHideDelay: 1000,
   });
 
@@ -88,13 +86,11 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
   const [isClaimingDiscount, setIsClaimingDiscount] = useState(false);
   const [discountError, setDiscountError] = useState<string | null>(null);
 
-
-
   // Fetch inventory if configured
   useEffect(() => {
     // In preview mode, avoid real API calls and rely on pseudo config only
     if ((config as any).previewMode) {
-      if (!config.inventory || config.inventory.mode === 'pseudo') {
+      if (!config.inventory || config.inventory.mode === "pseudo") {
         if (config.inventory?.pseudoMax) {
           setInventoryTotal(config.inventory.pseudoMax);
         }
@@ -102,7 +98,7 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
       return;
     }
 
-    if (!config.inventory || config.inventory.mode === 'pseudo') {
+    if (!config.inventory || config.inventory.mode === "pseudo") {
       // Use pseudo inventory
       if (config.inventory?.pseudoMax) {
         setInventoryTotal(config.inventory.pseudoMax);
@@ -115,13 +111,13 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
       try {
         const params = new URLSearchParams();
         if (config.inventory?.productIds?.length) {
-          params.set('productIds', JSON.stringify(config.inventory.productIds));
+          params.set("productIds", JSON.stringify(config.inventory.productIds));
         }
         if (config.inventory?.variantIds?.length) {
-          params.set('variantIds', JSON.stringify(config.inventory.variantIds));
+          params.set("variantIds", JSON.stringify(config.inventory.variantIds));
         }
         if (config.inventory?.collectionIds?.length) {
-          params.set('collectionIds', JSON.stringify(config.inventory.collectionIds));
+          params.set("collectionIds", JSON.stringify(config.inventory.collectionIds));
         }
 
         const response = await fetch(`/apps/revenue-boost/api/inventory?${params.toString()}`);
@@ -130,7 +126,7 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
           setInventoryTotal(data.total);
         }
       } catch (error) {
-        console.error('[FlashSalePopup] Failed to fetch inventory:', error);
+        console.error("[FlashSalePopup] Failed to fetch inventory:", error);
       }
     };
 
@@ -144,24 +140,25 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
   // Reservation timer using separate countdown hook instance
   const reservationTimer = useCountdownTimer({
     enabled: config.reserve?.enabled === true && !!config.reserve?.minutes,
-    mode: 'duration',
+    mode: "duration",
     duration: (config.reserve?.minutes || 0) * 60,
   });
 
   const reservationTime = reservationTimer.hasExpired ? null : reservationTimer.timeRemaining;
 
   const isPreview = (config as any).previewMode;
-  const discount = (config.discount ?? (config as any).discount) as StorefrontDiscountConfig | undefined;
+  const discount = (config.discount ?? (config as any).discount) as
+    | StorefrontDiscountConfig
+    | undefined;
   // In preview, always behave as if a discount exists so the full flow can be exercised
   const hasDiscount = isPreview ? true : !!discount?.enabled;
 
   const isSoldOut = inventoryTotal !== null && inventoryTotal <= 0;
-  const isSoldOutAndMissed =
-    isSoldOut && config.inventory?.soldOutBehavior === 'missed_it';
+  const isSoldOutAndMissed = isSoldOut && config.inventory?.soldOutBehavior === "missed_it";
 
   const getCartSubtotalCents = () => {
     const total = config.currentCartTotal;
-    if (typeof total === 'number' && Number.isFinite(total)) {
+    if (typeof total === "number" && Number.isFinite(total)) {
       return Math.round(total * 100);
     }
     return undefined;
@@ -169,23 +166,20 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
 
   const getCtaLabel = () => {
     if (hasExpired || isSoldOutAndMissed) {
-      return config.buttonText || config.ctaText || 'Offer unavailable';
+      return config.buttonText || config.ctaText || "Offer unavailable";
     }
     if (isClaimingDiscount) {
-      return 'Applying...';
+      return "Applying...";
     }
     if (hasDiscount && !hasClaimedDiscount) {
-      return config.buttonText || config.ctaText || 'Get this offer';
+      return config.buttonText || config.ctaText || "Get this offer";
     }
-    return config.buttonText || config.ctaText || 'Shop Now';
+    return config.buttonText || config.ctaText || "Shop Now";
   };
 
   const handleCtaClick = async () => {
     const canClaimDiscount =
-      hasDiscount &&
-      !hasClaimedDiscount &&
-      !hasExpired &&
-      !isSoldOutAndMissed;
+      hasDiscount && !hasClaimedDiscount && !hasExpired && !isSoldOutAndMissed;
 
     if (canClaimDiscount) {
       setDiscountError(null);
@@ -193,17 +187,15 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
       try {
         if (issueDiscount) {
           const cartSubtotalCents = getCartSubtotalCents();
-          const result = await issueDiscount(
-            cartSubtotalCents ? { cartSubtotalCents } : undefined,
-          );
+          const result = await issueDiscount(cartSubtotalCents ? { cartSubtotalCents } : undefined);
           if (result?.code) {
             setDiscountCode(result.code);
           }
           setHasClaimedDiscount(true);
         }
       } catch (error) {
-        console.error('[FlashSalePopup] Failed to claim discount:', error);
-        setDiscountError('Something went wrong applying your discount. Please try again.');
+        console.error("[FlashSalePopup] Failed to claim discount:", error);
+        setDiscountError("Something went wrong applying your discount. Please try again.");
       } finally {
         setIsClaimingDiscount(false);
       }
@@ -223,7 +215,7 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
 
     if (config.ctaUrl) {
       if (config.ctaOpenInNewTab) {
-        window.open(config.ctaUrl, '_blank', 'noopener,noreferrer');
+        window.open(config.ctaUrl, "_blank", "noopener,noreferrer");
       } else {
         window.location.href = config.ctaUrl;
       }
@@ -232,7 +224,7 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
 
   if (!isVisible) return null;
 
-  if (isSoldOut && config.inventory?.soldOutBehavior === 'hide') {
+  if (isSoldOut && config.inventory?.soldOutBehavior === "hide") {
     return null;
   }
 
@@ -244,23 +236,25 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
       // Tiered discount
       const tiers = dc.tiers.map((t: any) => {
         const threshold = (t.thresholdCents / 100).toFixed(0);
-        if (t.discount.kind === 'free_shipping') return `$${threshold} free ship`;
-        return `$${threshold} get ${t.discount.value}${t.discount.kind === 'percentage' ? '%' : '$'} off`;
+        if (t.discount.kind === "free_shipping") return `$${threshold} free ship`;
+        return `$${threshold} get ${t.discount.value}${t.discount.kind === "percentage" ? "%" : "$"} off`;
       });
-      return `Spend more, save more: ${tiers.join(', ')}`;
+      return `Spend more, save more: ${tiers.join(", ")}`;
     }
 
     if (dc?.bogo) {
       const buy = dc.bogo.buy.quantity;
       const get = dc.bogo.get.quantity;
-      if (dc.bogo.get.discount.kind === 'free_product') {
+      if (dc.bogo.get.discount.kind === "free_product") {
         return `Buy ${buy} Get ${get} Free`;
       }
       return `Buy ${buy} Get ${get} at ${dc.bogo.get.discount.value}% off`;
     }
 
     if (dc?.freeGift) {
-      const min = dc.freeGift.minSubtotalCents ? `over $${(dc.freeGift.minSubtotalCents / 100).toFixed(0)}` : '';
+      const min = dc.freeGift.minSubtotalCents
+        ? `over $${(dc.freeGift.minSubtotalCents / 100).toFixed(0)}`
+        : "";
       return `Free gift with purchase ${min}`.trim();
     }
 
@@ -273,42 +267,57 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
   };
 
   // Size configuration
-  const popupSize = config.popupSize || 'wide';
-  const maxWidth = popupSize === 'compact' ? '24rem' :
-                   popupSize === 'wide' ? '56rem' :
-                   popupSize === 'full' ? '90%' : '32rem';
+  const popupSize = config.popupSize || "wide";
+  const maxWidth =
+    popupSize === "compact"
+      ? "24rem"
+      : popupSize === "wide"
+        ? "56rem"
+        : popupSize === "full"
+          ? "90%"
+          : "32rem";
 
-	const designSize = config.size || 'medium';
-	const sizeScale =
-		designSize === 'small' ? 0.9 : designSize === 'large' ? 1.1 : 1;
-	const effectiveMaxWidth =
-		sizeScale === 1 ? maxWidth : `calc(${maxWidth} * ${sizeScale})`;
+  const designSize = config.size || "medium";
+  const sizeScale = designSize === "small" ? 0.9 : designSize === "large" ? 1.1 : 1;
+  const effectiveMaxWidth = sizeScale === 1 ? maxWidth : `calc(${maxWidth} * ${sizeScale})`;
 
+  const padding =
+    popupSize === "compact"
+      ? "2rem 1.5rem"
+      : popupSize === "wide" || popupSize === "full"
+        ? "3rem"
+        : "2.5rem 2rem";
 
-  const padding = popupSize === 'compact' ? '2rem 1.5rem' :
-                  popupSize === 'wide' || popupSize === 'full' ? '3rem' : '2.5rem 2rem';
+  const headlineSize =
+    popupSize === "compact"
+      ? "2rem"
+      : popupSize === "wide" || popupSize === "full"
+        ? "3rem"
+        : "2.5rem";
 
-  const headlineSize = popupSize === 'compact' ? '2rem' :
-                       popupSize === 'wide' || popupSize === 'full' ? '3rem' : '2.5rem';
-
-  const discountSize = popupSize === 'compact' ? '6rem' :
-                       popupSize === 'wide' || popupSize === 'full' ? '10rem' : '8rem';
+  const discountSize =
+    popupSize === "compact"
+      ? "6rem"
+      : popupSize === "wide" || popupSize === "full"
+        ? "10rem"
+        : "8rem";
 
   const discountMessage = getDiscountMessage();
 
   // Respect presentation.showInventory flag from content config (admin toggle)
   const presentationShowInventory = config.presentation?.showInventory !== false;
 
-  const showInventory = presentationShowInventory &&
-                        config.inventory?.showOnlyXLeft &&
-                        inventoryTotal !== null &&
-                        inventoryTotal <= (config.inventory?.showThreshold || 10);
+  const showInventory =
+    presentationShowInventory &&
+    config.inventory?.showOnlyXLeft &&
+    inventoryTotal !== null &&
+    inventoryTotal <= (config.inventory?.showThreshold || 10);
 
-  const displayMode = config.displayMode || 'modal';
+  const displayMode = config.displayMode || "modal";
 
   // Banner layout for flash sale (top/bottom announcement bar)
-  if (displayMode === 'banner') {
-    const bannerPosition = config.position === 'bottom' ? 'bottom' : 'top';
+  if (displayMode === "banner") {
+    const bannerPosition = config.position === "bottom" ? "bottom" : "top";
 
     return (
       <>
@@ -342,8 +351,8 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
             letter-spacing: 0.08em;
             text-transform: uppercase;
             margin-bottom: 0.25rem;
-            background: ${config.accentColor || '#ef4444'};
-            color: ${config.backgroundColor || '#ffffff'};
+            background: ${config.accentColor || "#ef4444"};
+            color: ${config.backgroundColor || "#ffffff"};
           }
           .flash-sale-banner-headline {
             font-size: 1.125rem;
@@ -489,17 +498,17 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
         <div
           className="flash-sale-banner"
           style={{
-            position: 'fixed',
+            position: "fixed",
             [bannerPosition]: 0,
             left: 0,
             right: 0,
             zIndex: 9999,
-            background: config.backgroundColor || '#111827',
-            color: config.textColor || '#ffffff',
+            background: config.backgroundColor || "#111827",
+            color: config.textColor || "#ffffff",
             boxShadow:
-              bannerPosition === 'bottom'
-                ? '0 -2px 8px rgba(0, 0, 0, 0.15)'
-                : '0 2px 8px rgba(0, 0, 0, 0.15)',
+              bannerPosition === "bottom"
+                ? "0 -2px 8px rgba(0, 0, 0, 0.15)"
+                : "0 2px 8px rgba(0, 0, 0, 0.15)",
           }}
         >
           <div className="flash-sale-banner-inner">
@@ -514,21 +523,19 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
             )}
 
             <div className="flash-sale-banner-left">
-              <div className="flash-sale-banner-badge">
-                Limited Time Offer
-              </div>
-              <h2 className="flash-sale-banner-headline">
-                {config.headline || 'Flash Sale!'}
-              </h2>
+              <div className="flash-sale-banner-badge">Limited Time Offer</div>
+              <h2 className="flash-sale-banner-headline">{config.headline || "Flash Sale!"}</h2>
               {config.subheadline && (
                 <p className="flash-sale-banner-subheadline">{config.subheadline}</p>
               )}
               {(discountCode || discountMessage) && (
                 <div className="flash-sale-banner-discount">
                   {discountCode ? (
-                    <div onClick={() => handleCopyCode()} style={{ cursor: 'pointer' }}>
+                    <div onClick={() => handleCopyCode()} style={{ cursor: "pointer" }}>
                       Use code <strong>{discountCode}</strong> at checkout.
-                      {copiedCode && <span style={{ marginLeft: '0.5rem', color: '#10B981' }}>✓ Copied!</span>}
+                      {copiedCode && (
+                        <span style={{ marginLeft: "0.5rem", color: "#10B981" }}>✓ Copied!</span>
+                      )}
                     </div>
                   ) : (
                     discountMessage
@@ -538,13 +545,13 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
             </div>
 
             <div className="flash-sale-banner-center">
-              {isSoldOut && config.inventory?.soldOutBehavior === 'missed_it' ? (
+              {isSoldOut && config.inventory?.soldOutBehavior === "missed_it" ? (
                 <div className="flash-sale-banner-expired">
-                  {config.inventory?.soldOutMessage || 'This deal is sold out. Check back later!'}
+                  {config.inventory?.soldOutMessage || "This deal is sold out. Check back later!"}
                 </div>
               ) : hasExpired ? (
                 <div className="flash-sale-banner-expired">
-                  {config.timer?.expiredMessage || 'Sale ended'}
+                  {config.timer?.expiredMessage || "Sale ended"}
                 </div>
               ) : (
                 <>
@@ -555,32 +562,32 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
                           <div
                             className="flash-sale-banner-timer-unit"
                             style={{
-                              background: config.accentColor ? `${config.accentColor}20` : 'rgba(239, 68, 68, 0.15)',
-                              color: config.accentColor || '#ffffff',
+                              background: config.accentColor
+                                ? `${config.accentColor}20`
+                                : "rgba(239, 68, 68, 0.15)",
+                              color: config.accentColor || "#ffffff",
                             }}
                           >
                             <div className="flash-sale-banner-timer-value">
-                              {String(timeRemaining.days).padStart(2, '0')}
+                              {String(timeRemaining.days).padStart(2, "0")}
                             </div>
                             <div className="flash-sale-banner-timer-label">Days</div>
                           </div>
-                          <span
-                            className="flash-sale-banner-timer-separator"
-                          >
-                            :
-                          </span>
+                          <span className="flash-sale-banner-timer-separator">:</span>
                         </>
                       )}
 
                       <div
                         className="flash-sale-banner-timer-unit"
                         style={{
-                          background: config.accentColor ? `${config.accentColor}20` : 'rgba(239, 68, 68, 0.15)',
-                          color: config.accentColor || '#ffffff',
+                          background: config.accentColor
+                            ? `${config.accentColor}20`
+                            : "rgba(239, 68, 68, 0.15)",
+                          color: config.accentColor || "#ffffff",
                         }}
                       >
                         <div className="flash-sale-banner-timer-value">
-                          {String(timeRemaining.hours).padStart(2, '0')}
+                          {String(timeRemaining.hours).padStart(2, "0")}
                         </div>
                         <div className="flash-sale-banner-timer-label">Hours</div>
                       </div>
@@ -590,12 +597,14 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
                       <div
                         className="flash-sale-banner-timer-unit"
                         style={{
-                          background: config.accentColor ? `${config.accentColor}20` : 'rgba(239, 68, 68, 0.15)',
-                          color: config.accentColor || '#ffffff',
+                          background: config.accentColor
+                            ? `${config.accentColor}20`
+                            : "rgba(239, 68, 68, 0.15)",
+                          color: config.accentColor || "#ffffff",
                         }}
                       >
                         <div className="flash-sale-banner-timer-value">
-                          {String(timeRemaining.minutes).padStart(2, '0')}
+                          {String(timeRemaining.minutes).padStart(2, "0")}
                         </div>
                         <div className="flash-sale-banner-timer-label">Mins</div>
                       </div>
@@ -605,12 +614,14 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
                       <div
                         className="flash-sale-banner-timer-unit"
                         style={{
-                          background: config.accentColor ? `${config.accentColor}20` : 'rgba(239, 68, 68, 0.15)',
-                          color: config.accentColor || '#ffffff',
+                          background: config.accentColor
+                            ? `${config.accentColor}20`
+                            : "rgba(239, 68, 68, 0.15)",
+                          color: config.accentColor || "#ffffff",
                         }}
                       >
                         <div className="flash-sale-banner-timer-value">
-                          {String(timeRemaining.seconds).padStart(2, '0')}
+                          {String(timeRemaining.seconds).padStart(2, "0")}
                         </div>
                         <div className="flash-sale-banner-timer-label">Secs</div>
                       </div>
@@ -625,8 +636,8 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
 
                   {reservationTime && reservationTime.total > 0 && (
                     <div className="flash-sale-banner-reservation">
-                      {(config.reserve?.label || 'Offer reserved for:') + ' '}
-                      {reservationTime.minutes}:{String(reservationTime.seconds).padStart(2, '0')}
+                      {(config.reserve?.label || "Offer reserved for:") + " "}
+                      {reservationTime.minutes}:{String(reservationTime.seconds).padStart(2, "0")}
                     </div>
                   )}
                 </>
@@ -638,19 +649,32 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
                 <button
                   className="flash-sale-banner-cta"
                   onClick={handleCtaClick}
-                  disabled={
-                    hasExpired ||
-                    isSoldOutAndMissed ||
-                    isClaimingDiscount
-                  }
+                  disabled={hasExpired || isSoldOutAndMissed || isClaimingDiscount}
                   style={{
-                    background: config.buttonColor || config.accentColor || '#ffffff',
-                    color: config.buttonTextColor || config.textColor || '#111827',
-                    borderRadius: typeof config.borderRadius === 'number'
-                      ? `${config.borderRadius}px`
-                      : (config.borderRadius || '6px'),
+                    background: config.buttonColor || config.accentColor || "#ffffff",
+                    color: config.buttonTextColor || config.textColor || "#111827",
+                    borderRadius:
+                      typeof config.borderRadius === "number"
+                        ? `${config.borderRadius}px`
+                        : config.borderRadius || "6px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "8px",
                   }}
                 >
+                  {isClaimingDiscount && (
+                    <span
+                      style={{
+                        width: "16px",
+                        height: "16px",
+                        border: "2px solid rgba(255,255,255,0.3)",
+                        borderTopColor: config.buttonTextColor || config.textColor || "#111827",
+                        borderRadius: "50%",
+                        animation: "spin 0.8s linear infinite",
+                      }}
+                    />
+                  )}
                   {getCtaLabel()}
                 </button>
               )}
@@ -661,37 +685,38 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
     );
   }
 
-
   return (
     <PopupPortal
       isVisible={isVisible}
       onClose={onClose}
       backdrop={{
-        color: config.overlayColor || 'rgba(0, 0, 0, 0.7)',
+        color: config.overlayColor || "rgba(0, 0, 0, 0.7)",
         opacity: config.overlayOpacity ?? 0.7,
         blur: 4,
       }}
       animation={{
-        type: config.animation || 'zoom',
+        type: config.animation || "zoom",
       }}
-      position={config.position || 'center'}
+      position={config.position || "center"}
       closeOnEscape={config.closeOnEscape !== false}
       closeOnBackdropClick={config.closeOnOverlayClick !== false}
       previewMode={config.previewMode}
-      ariaLabel={config.ariaLabel || config.headline || 'Flash Sale'}
+      ariaLabel={config.ariaLabel || config.headline || "Flash Sale"}
       ariaDescribedBy={config.ariaDescribedBy}
+      customCSS={config.customCSS}
+      globalCustomCSS={config.globalCustomCSS}
     >
       <style>{`
         .flash-sale-container {
           position: relative;
           width: 100%;
           max-width: ${effectiveMaxWidth};
-          border-radius: ${typeof config.borderRadius === 'number' ? config.borderRadius : parseFloat(config.borderRadius || '16')}px;
+          border-radius: ${typeof config.borderRadius === "number" ? config.borderRadius : parseFloat(config.borderRadius || "16")}px;
           overflow: hidden;
           box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-          background: ${config.backgroundColor || '#ffffff'};
-          color: ${config.textColor || '#111827'};
-          font-family: ${config.fontFamily || 'inherit'};
+          background: ${config.backgroundColor || "#ffffff"};
+          color: ${config.textColor || "#111827"};
+          font-family: ${config.fontFamily || "inherit"};
           container-type: inline-size;
           container-name: flash-sale;
         }
@@ -707,7 +732,7 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
           border: none;
           cursor: pointer;
           transition: background 0.2s;
-          color: ${config.descriptionColor || config.textColor || '#52525b'};
+          color: ${config.descriptionColor || config.textColor || "#52525b"};
         }
 
         .flash-sale-close:hover {
@@ -728,8 +753,8 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
           letter-spacing: 0.05em;
           margin-bottom: 1rem;
           text-transform: uppercase;
-          background: ${config.accentColor || '#ef4444'};
-          color: ${config.backgroundColor || '#ffffff'};
+          background: ${config.accentColor || "#ef4444"};
+          color: ${config.backgroundColor || "#ffffff"};
         }
 
         .flash-sale-headline {
@@ -737,14 +762,14 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
           font-weight: 900;
           line-height: 1.1;
           margin-bottom: 0.75rem;
-          color: ${config.textColor || '#111827'};
+          color: ${config.textColor || "#111827"};
         }
 
         .flash-sale-supporting {
           font-size: 1.125rem;
           line-height: 1.6;
           margin-bottom: 2rem;
-          color: ${config.descriptionColor || config.textColor || '#52525b'};
+          color: ${config.descriptionColor || config.textColor || "#52525b"};
         }
 
         .flash-sale-discount-message {
@@ -753,9 +778,9 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
           padding: 1rem 1.5rem;
           border-radius: 0.5rem;
           margin-bottom: 1.5rem;
-          background: ${config.accentColor ? `${config.accentColor}15` : 'rgba(239, 68, 68, 0.1)'};
-          color: ${config.accentColor || '#ef4444'};
-          border: 2px solid ${config.accentColor ? `${config.accentColor}40` : 'rgba(239, 68, 68, 0.25)'};
+          background: ${config.accentColor ? `${config.accentColor}15` : "rgba(239, 68, 68, 0.1)"};
+          color: ${config.accentColor || "#ef4444"};
+          border: 2px solid ${config.accentColor ? `${config.accentColor}40` : "rgba(239, 68, 68, 0.25)"};
         }
 
         .flash-sale-urgency {
@@ -764,7 +789,7 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
           text-transform: uppercase;
           letter-spacing: 0.1em;
           margin-bottom: 1rem;
-          color: ${config.descriptionColor || config.textColor || '#52525b'};
+          color: ${config.descriptionColor || config.textColor || "#52525b"};
         }
 
         .flash-sale-timer {
@@ -782,8 +807,8 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
           min-width: 4rem;
           padding: 1rem 0.75rem;
           border-radius: 0.5rem;
-          background: ${config.accentColor ? `${config.accentColor}20` : 'rgba(239, 68, 68, 0.1)'};
-          color: ${config.accentColor || '#ef4444'};
+          background: ${config.accentColor ? `${config.accentColor}20` : "rgba(239, 68, 68, 0.1)"};
+          color: ${config.accentColor || "#ef4444"};
         }
 
         .flash-sale-timer-value {
@@ -809,15 +834,15 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
           font-size: 0.875rem;
           font-weight: 600;
           margin-bottom: 1.5rem;
-          background: ${config.accentColor ? `${config.accentColor}20` : 'rgba(239, 68, 68, 0.1)'};
-          color: ${config.accentColor || '#ef4444'};
+          background: ${config.accentColor ? `${config.accentColor}20` : "rgba(239, 68, 68, 0.1)"};
+          color: ${config.accentColor || "#ef4444"};
         }
 
         .flash-sale-inventory-dot {
           width: 0.5rem;
           height: 0.5rem;
           border-radius: 9999px;
-          background: ${config.accentColor || '#ef4444'};
+          background: ${config.accentColor || "#ef4444"};
           animation: pulse 2s infinite;
         }
 
@@ -842,8 +867,8 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
           transition: all 0.2s;
           text-transform: uppercase;
           letter-spacing: 0.05em;
-          background: ${config.buttonColor || config.accentColor || '#ef4444'};
-          color: ${config.buttonTextColor || '#ffffff'};
+          background: ${config.buttonColor || config.accentColor || "#ef4444"};
+          color: ${config.buttonTextColor || "#ffffff"};
         }
 
         .flash-sale-cta:hover {
@@ -863,7 +888,7 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
           border-radius: 0.5rem;
           border: 1px solid rgba(148, 163, 184, 0.6);
           background: transparent;
-          color: ${config.textColor || '#e5e7eb'};
+          color: ${config.textColor || "#e5e7eb"};
           font-size: 0.875rem;
           font-weight: 500;
           cursor: pointer;
@@ -911,44 +936,44 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
       `}</style>
 
       <div className="flash-sale-container">
-        <button
-          onClick={onClose}
-          className="flash-sale-close"
-          aria-label="Close popup"
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <button onClick={onClose} className="flash-sale-close" aria-label="Close popup">
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
             <line x1="18" y1="6" x2="6" y2="18" />
             <line x1="6" y1="6" x2="18" y2="18" />
           </svg>
         </button>
 
-        {isSoldOut && config.inventory?.soldOutBehavior === 'missed_it' ? (
+        {isSoldOut && config.inventory?.soldOutBehavior === "missed_it" ? (
           <div className="flash-sale-sold-out">
-            <h3 style={{ marginBottom: '0.5rem', fontSize: '1.5rem', fontWeight: '700' }}>
+            <h3 style={{ marginBottom: "0.5rem", fontSize: "1.5rem", fontWeight: "700" }}>
               You Missed It!
             </h3>
             <p style={{ opacity: 0.8 }}>
-              {config.inventory.soldOutMessage || 'This deal is sold out. Check back later!'}
+              {config.inventory.soldOutMessage || "This deal is sold out. Check back later!"}
             </p>
           </div>
         ) : hasExpired ? (
           <div className="flash-sale-expired">
-            <h3 style={{ marginBottom: '0.5rem', fontSize: '1.5rem', fontWeight: '700' }}>
+            <h3 style={{ marginBottom: "0.5rem", fontSize: "1.5rem", fontWeight: "700" }}>
               Sale Ended
             </h3>
             <p style={{ opacity: 0.8 }}>
-              {config.timer?.expiredMessage || 'This flash sale has expired. Check back soon for more deals!'}
+              {config.timer?.expiredMessage ||
+                "This flash sale has expired. Check back soon for more deals!"}
             </p>
           </div>
         ) : (
           <div className="flash-sale-content">
-            <div className="flash-sale-badge">
-              Limited Time
-            </div>
+            <div className="flash-sale-badge">Limited Time</div>
 
-            <h2 className="flash-sale-headline">
-              {config.headline || 'Flash Sale!'}
-            </h2>
+            <h2 className="flash-sale-headline">{config.headline || "Flash Sale!"}</h2>
 
             <p className="flash-sale-supporting">
               {config.subheadline || "Limited time offer - Don't miss out!"}
@@ -957,9 +982,11 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
             {(discountCode || discountMessage) && (
               <div className="flash-sale-discount-message">
                 {discountCode ? (
-                  <div onClick={() => handleCopyCode()} style={{ cursor: 'pointer' }}>
+                  <div onClick={() => handleCopyCode()} style={{ cursor: "pointer" }}>
                     Use code <strong>{discountCode}</strong> at checkout.
-                    {copiedCode && <span style={{ marginLeft: '0.5rem', color: '#10B981' }}>✓ Copied!</span>}
+                    {copiedCode && (
+                      <span style={{ marginLeft: "0.5rem", color: "#10B981" }}>✓ Copied!</span>
+                    )}
                   </div>
                 ) : (
                   discountMessage
@@ -968,9 +995,7 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
             )}
 
             {config.urgencyMessage && (
-              <div className="flash-sale-urgency">
-                {config.urgencyMessage}
-              </div>
+              <div className="flash-sale-urgency">{config.urgencyMessage}</div>
             )}
 
             {config.showCountdown && timeRemaining.total > 0 && (
@@ -1013,9 +1038,10 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
 
             {reservationTime && reservationTime.total > 0 && (
               <div className="flash-sale-reservation">
-                {config.reserve?.label || 'Offer reserved for:'} {reservationTime.minutes}:{String(reservationTime.seconds).padStart(2, '0')}
+                {config.reserve?.label || "Offer reserved for:"} {reservationTime.minutes}:
+                {String(reservationTime.seconds).padStart(2, "0")}
                 {config.reserve?.disclaimer && (
-                  <div style={{ fontSize: '0.75rem', marginTop: '0.25rem', opacity: 0.7 }}>
+                  <div style={{ fontSize: "0.75rem", marginTop: "0.25rem", opacity: 0.7 }}>
                     {config.reserve.disclaimer}
                   </div>
                 )}
@@ -1025,21 +1051,13 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
             <button
               onClick={handleCtaClick}
               className="flash-sale-cta"
-              disabled={
-                hasExpired ||
-                isSoldOutAndMissed ||
-                isClaimingDiscount
-              }
+              disabled={hasExpired || isSoldOutAndMissed || isClaimingDiscount}
             >
               {getCtaLabel()}
             </button>
 
-            <button
-              type="button"
-              onClick={onClose}
-              className="flash-sale-secondary-cta"
-            >
-              {config.dismissLabel || 'No thanks'}
+            <button type="button" onClick={onClose} className="flash-sale-secondary-cta">
+              {config.dismissLabel || "No thanks"}
             </button>
           </div>
         )}

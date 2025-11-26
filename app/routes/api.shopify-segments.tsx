@@ -22,9 +22,10 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
     const url = new URL(request.url);
     const firstParam = url.searchParams.get("first");
-    const first = Number.isFinite(Number(firstParam)) && Number(firstParam) > 0
-      ? Math.min(Number(firstParam), 250)
-      : 50;
+    const first =
+      Number.isFinite(Number(firstParam)) && Number(firstParam) > 0
+        ? Math.min(Number(firstParam), 250)
+        : 50;
 
     const { segments } = await listCustomerSegments(admin, { first });
 
@@ -43,4 +44,3 @@ export async function loader({ request }: LoaderFunctionArgs) {
     return handleApiError(error, "GET /api/shopify-segments");
   }
 }
-

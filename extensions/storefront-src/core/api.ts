@@ -3,18 +3,36 @@
  */
 
 export interface ApiConfig {
-  apiUrl: string;
-  shopDomain: string;
-  debug?: boolean;
-  previewId?: string;
-  previewToken?: string;
-  previewBehavior?: 'instant' | 'realistic';
-}
+	  apiUrl: string;
+	  shopDomain: string;
+	  debug?: boolean;
+	  previewMode?: boolean;
+	  previewId?: string;
+	  previewToken?: string;
+	  previewBehavior?: 'instant' | 'realistic';
+	}
 
 export interface FetchCampaignsResponse {
   campaigns: unknown[];
   success: boolean;
+  globalCustomCSS?: string;
+  timestamp?: string;
 }
+
+type IssueDiscountResponse = {
+  code?: string;
+  type?: string;
+  autoApplyMode?: string;
+  error?: string;
+};
+
+type EmailRecoveryResponse = {
+  discountCode?: string;
+  deliveryMode?: string;
+  autoApplyMode?: string;
+  message?: string;
+  error?: string;
+};
 
 const SESSION_START_KEY = "revenue_boost_session_start_time";
 const PAGE_VIEWS_KEY = "revenue_boost_page_views";
@@ -27,6 +45,10 @@ export class ApiClient {
   constructor(config: ApiConfig) {
     this.config = config;
   }
+
+	  private isPreviewMode(): boolean {
+	    return !!(this.config.previewMode && this.config.previewToken);
+	  }
 
   private log(...args: unknown[]) {
     if (this.config.debug) {
@@ -375,16 +397,17 @@ export class ApiClient {
 
       if (!response.ok) {
         this.log("Discount issue failed:", result);
-        throw new Error((result as any).error || `HTTP ${response.status}`);
+        const parsed = result as IssueDiscountResponse;
+        throw new Error(parsed.error || `HTTP ${response.status}`);
       }
 
       this.log("Discount issued successfully:", result);
 
       return {
         success: true,
-        code: (result as any).code,
-        type: (result as any).type,
-        autoApplyMode: (result as any).autoApplyMode,
+        code: (result as IssueDiscountResponse).code,
+        type: (result as IssueDiscountResponse).type,
+        autoApplyMode: (result as IssueDiscountResponse).autoApplyMode,
       };
     } catch (error) {
       console.error("[Revenue Boost API] Failed to issue discount:", error);
@@ -399,7 +422,7 @@ export class ApiClient {
     campaignId: string;
     email: string;
     cartSubtotalCents?: number;
-    cartItems?: any[];
+    cartItems?: Array<Record<string, unknown>>;
   }): Promise<{
     success: boolean;
     discountCode?: string;
@@ -423,20 +446,21 @@ export class ApiClient {
         body: JSON.stringify(data),
       });
 
-      const result = await response.json().catch(() => ({}));
+      const result = await response.json().catch(() => ({} as EmailRecoveryResponse));
 
       if (!response.ok) {
-        throw new Error((result as any).error || `HTTP ${response.status}`);
+        const parsed = result as EmailRecoveryResponse;
+        throw new Error(parsed.error || `HTTP ${response.status}`);
       }
 
       this.log("Cart email recovery success:", result);
 
       return {
         success: true,
-        discountCode: (result as any).discountCode,
-        deliveryMode: (result as any).deliveryMode,
-        autoApplyMode: (result as any).autoApplyMode,
-        message: (result as any).message,
+        discountCode: (result as EmailRecoveryResponse).discountCode,
+        deliveryMode: (result as EmailRecoveryResponse).deliveryMode,
+        autoApplyMode: (result as EmailRecoveryResponse).autoApplyMode,
+        message: (result as EmailRecoveryResponse).message,
       };
     } catch (error) {
       console.error("[Revenue Boost API] Failed to perform email recovery:", error);
@@ -448,7 +472,7 @@ export class ApiClient {
     }
   }
 
-  async recordFrequency(input: {
+	  async recordFrequency(input: {
     sessionId: string;
     campaignId: string;
     trackingKey: string;
@@ -456,6 +480,15 @@ export class ApiClient {
     pageUrl?: string;
     referrer?: string;
   }): Promise<void> {
+	    // Skip analytics writes entirely when running in storefront preview mode.
+	    // Preview sessions should not contribute to frequency caps or analytics.
+	    if (this.isPreviewMode()) {
+	      this.log("Skipping frequency tracking in preview mode", {
+	        campaignId: input.campaignId,
+	        trackingKey: input.trackingKey,
+	      });
+	      return;
+	    }
     const params = new URLSearchParams({
       shop: this.config.shopDomain,
     });
@@ -483,12 +516,20 @@ export class ApiClient {
     }
   }
 
-  async trackEvent(event: {
+	  async trackEvent(event: {
     type: string;
     campaignId: string;
     sessionId: string;
     data?: Record<string, unknown>;
   }): Promise<void> {
+	    // Do not track popup events from storefront preview sessions.
+	    if (this.isPreviewMode()) {
+	      this.log("Skipping popup event tracking in preview mode", {
+	        type: event.type,
+	        campaignId: event.campaignId,
+	      });
+	      return;
+	    }
     const params = new URLSearchParams({
       shop: this.config.shopDomain,
     });
@@ -508,12 +549,20 @@ export class ApiClient {
     }
   }
 
-  async trackSocialProofEvent(event: {
+	  async trackSocialProofEvent(event: {
     eventType: 'page_view' | 'product_view' | 'add_to_cart';
     productId?: string;
     pageUrl?: string;
     shop: string;
   }): Promise<void> {
+	    // Avoid polluting social proof metrics when previewing popups from the admin.
+	    if (this.isPreviewMode()) {
+	      this.log("Skipping social proof tracking in preview mode", {
+	        eventType: event.eventType,
+	        productId: event.productId,
+	      });
+	      return;
+	    }
     const url = this.getApiUrl("/api/social-proof/track");
 
     try {
@@ -532,4 +581,3 @@ export class ApiClient {
     }
   }
 }
-

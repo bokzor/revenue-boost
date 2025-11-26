@@ -94,7 +94,7 @@ The extension creates a global `window.REVENUE_BOOST_CONFIG` object with:
   
   // Preview Mode
   previewMode: false,
-  previewId: null,
+  previewToken: null,
   
   // Performance
   loadTime: 1699999999999
@@ -127,11 +127,20 @@ shopify app dev
 
 ### Preview Mode
 
-To preview a specific campaign, add the URL parameter:
+Preview uses a short-lived **token** created by the admin app (for both saved and unsaved campaigns).
 
-```
-https://store.myshopify.com/products/example?split_pop_preview=CAMPAIGN_ID
-```
+High level flow:
+
+1. Admin UI calls `POST /api/preview/session` with the campaign configuration.
+2. Server stores the preview data in Redis and returns a token.
+3. Admin opens the storefront with:
+
+   ```
+   https://store.myshopify.com/products/example?split_pop_preview_token=TOKEN&preview_behavior=instant
+   ```
+
+4. The theme block reads `split_pop_preview_token` and sets `REVENUE_BOOST_CONFIG.previewMode` and `previewToken`.
+5. The storefront runtime fetches the preview campaign using this token and renders it.
 
 ## 📝 Next Steps
 

@@ -73,8 +73,12 @@ const CUSTOMER_SEGMENT_MEMBERS_COUNT_QUERY = `
  */
 export async function listCustomerSegments(
   admin: AdminApiContext,
-  options: { first?: number; after?: string | null } = {},
-): Promise<{ segments: ShopifyCustomerSegment[]; hasNextPage: boolean; endCursor?: string | null }> {
+  options: { first?: number; after?: string | null } = {}
+): Promise<{
+  segments: ShopifyCustomerSegment[];
+  hasNextPage: boolean;
+  endCursor?: string | null;
+}> {
   const { first = 50, after = null } = options;
 
   const response = await admin.graphql(LIST_CUSTOMER_SEGMENTS_QUERY, {
@@ -114,7 +118,7 @@ export async function listCustomerSegments(
  */
 export async function getCustomerSegmentMembersCount(
   admin: AdminApiContext,
-  segmentId: string,
+  segmentId: string
 ): Promise<number> {
   const response = await admin.graphql(CUSTOMER_SEGMENT_MEMBERS_COUNT_QUERY, {
     variables: { segmentId },
@@ -130,4 +134,3 @@ export async function getCustomerSegmentMembersCount(
   const totalCount = json.data?.customerSegmentMembers?.totalCount ?? 0;
   return totalCount;
 }
-

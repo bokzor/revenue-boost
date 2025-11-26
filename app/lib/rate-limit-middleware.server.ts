@@ -1,6 +1,6 @@
 /**
  * Rate Limit Middleware
- * 
+ *
  * Remix middleware for applying rate limits to routes
  * Returns 429 Too Many Requests when limit exceeded
  */
@@ -31,22 +31,22 @@ function json<T>(data: T, init?: ResponseInit): Response {
 function getClientIP(request: Request): string {
   // Check common headers for IP (in order of preference)
   const headers = request.headers;
-  
+
   const forwardedFor = headers.get("x-forwarded-for");
   if (forwardedFor) {
     return forwardedFor.split(",")[0].trim();
   }
-  
+
   const realIP = headers.get("x-real-ip");
   if (realIP) {
     return realIP;
   }
-  
+
   const cfConnectingIP = headers.get("cf-connecting-ip");
   if (cfConnectingIP) {
     return cfConnectingIP;
   }
-  
+
   return "unknown";
 }
 
@@ -57,9 +57,7 @@ function getStoreId(request: Request): string | null {
   // Only trust explicit headers set by authenticated upstream context.
   // Avoid using query params to prevent spoofing / bucket pollution.
   const headerStoreId =
-    request.headers.get("x-rb-store-id") ||
-    request.headers.get("x-store-id") ||
-    null;
+    request.headers.get("x-rb-store-id") || request.headers.get("x-store-id") || null;
 
   if (!headerStoreId) return null;
 
@@ -71,13 +69,9 @@ function getStoreId(request: Request): string | null {
 /**
  * Rate limit response with headers
  */
-function rateLimitResponse(
-  limit: number,
-  remaining: number,
-  resetAt: number
-) {
+function rateLimitResponse(limit: number, remaining: number, resetAt: number) {
   const resetInSeconds = Math.ceil((resetAt - Date.now()) / 1000);
-  
+
   return json(
     {
       success: false,
@@ -105,41 +99,33 @@ export async function withRateLimit<T>(
   handler: (args: LoaderFunctionArgs | ActionFunctionArgs) => Promise<T>
 ): Promise<T | Response> {
   const { request } = args;
-  
+
   // Check store-based rate limit first (if authenticated)
   const storeId = getStoreId(request);
   if (storeId) {
     const storeResult = RateLimiter.checkStore(storeId, config);
     if (!storeResult.allowed) {
-      return rateLimitResponse(
-        storeResult.limit,
-        storeResult.remaining,
-        storeResult.resetAt
-      );
+      return rateLimitResponse(storeResult.limit, storeResult.remaining, storeResult.resetAt);
     }
   }
-  
+
   // Check IP-based rate limit
   const ip = getClientIP(request);
   const ipResult = RateLimiter.checkIP(ip, config);
   if (!ipResult.allowed) {
-    return rateLimitResponse(
-      ipResult.limit,
-      ipResult.remaining,
-      ipResult.resetAt
-    );
+    return rateLimitResponse(ipResult.limit, ipResult.remaining, ipResult.resetAt);
   }
-  
+
   // Execute handler
   const response = await handler(args);
-  
+
   // Add rate limit headers to successful responses
   if (response instanceof Response) {
     response.headers.set("X-RateLimit-Limit", String(ipResult.limit));
     response.headers.set("X-RateLimit-Remaining", String(ipResult.remaining));
     response.headers.set("X-RateLimit-Reset", String(Math.floor(ipResult.resetAt / 1000)));
   }
-  
+
   return response;
 }
 

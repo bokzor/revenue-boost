@@ -28,7 +28,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
     // Get setup status using shared utility
     const { status: setupStatus, setupComplete } = await getSetupStatus(
       session.shop,
-      session.accessToken || '',
+      session.accessToken || "",
       admin
     );
 
@@ -52,4 +52,3 @@ export async function loader({ request }: LoaderFunctionArgs) {
     );
   }
 }
-

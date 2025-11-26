@@ -1,6 +1,6 @@
 /**
  * Popup Spacing System
- * 
+ *
  * Based on FlashSale popup's proven spacing patterns.
  * This creates visual hierarchy through consistent spacing:
  * - Tight spacing within components (groups related elements)
@@ -18,10 +18,10 @@ export const POPUP_SPACING = {
    * Use based on popup size configuration
    */
   padding: {
-    compact: '2rem 1.5rem',      // 32px vertical, 24px horizontal
-    medium: '2.5rem 2rem',       // 40px vertical, 32px horizontal (default)
-    wide: '3rem',                // 48px all around
-    full: '3rem',                // 48px all around
+    compact: "2rem 1.5rem", // 32px vertical, 24px horizontal
+    medium: "2.5rem 2rem", // 40px vertical, 32px horizontal (default)
+    wide: "3rem", // 48px all around
+    full: "3rem", // 48px all around
   },
 
   /**
@@ -29,11 +29,11 @@ export const POPUP_SPACING = {
    * Use to create visual hierarchy between sections
    */
   section: {
-    xs: '0.5rem',   // 8px  - Tight grouping (e.g., headline → subheadline)
-    sm: '0.75rem',  // 12px - Related elements (e.g., badge → headline)
-    md: '1rem',     // 16px - Small breaks (e.g., urgency message, reservation)
-    lg: '1.5rem',   // 24px - Major sections (e.g., timer, inventory, discount message)
-    xl: '2rem',     // 32px - Large breaks (e.g., supporting text → action area)
+    xs: "0.5rem", // 8px  - Tight grouping (e.g., headline → subheadline)
+    sm: "0.75rem", // 12px - Related elements (e.g., badge → headline)
+    md: "1rem", // 16px - Small breaks (e.g., urgency message, reservation)
+    lg: "1.5rem", // 24px - Major sections (e.g., timer, inventory, discount message)
+    xl: "2rem", // 32px - Large breaks (e.g., supporting text → action area)
   },
 
   /**
@@ -41,17 +41,17 @@ export const POPUP_SPACING = {
    * Use for buttons, badges, cards, etc.
    */
   component: {
-    badge: '0.5rem 1.5rem',           // 8px 24px
-    badgeCompact: '0.375rem 1rem',    // 6px 16px
-    button: '1rem 2rem',              // 16px 32px
-    buttonCompact: '0.75rem 1.5rem',  // 12px 24px
-    buttonSecondary: '0.75rem 2rem',  // 12px 32px
-    card: '1rem 1.5rem',              // 16px 24px
-    cardLarge: '1.5rem 2rem',         // 24px 32px
-    input: '0.75rem 1rem',            // 12px 16px
-    timerUnit: '1rem 0.75rem',        // 16px 12px
-    message: '1rem 1.5rem',           // 16px 24px
-    inventory: '0.75rem 1.25rem',     // 12px 20px
+    badge: "0.5rem 1.5rem", // 8px 24px
+    badgeCompact: "0.375rem 1rem", // 6px 16px
+    button: "1rem 2rem", // 16px 32px
+    buttonCompact: "0.75rem 1.5rem", // 12px 24px
+    buttonSecondary: "0.75rem 2rem", // 12px 32px
+    card: "1rem 1.5rem", // 16px 24px
+    cardLarge: "1.5rem 2rem", // 24px 32px
+    input: "0.75rem 1rem", // 12px 16px
+    timerUnit: "1rem 0.75rem", // 16px 12px
+    message: "1rem 1.5rem", // 16px 24px
+    inventory: "0.75rem 1.25rem", // 12px 20px
   },
 
   /**
@@ -59,11 +59,11 @@ export const POPUP_SPACING = {
    * Use for spacing between items in flex/grid containers
    */
   gap: {
-    xs: '0.5rem',   // 8px  - Internal component gaps (e.g., timer unit internal)
-    sm: '0.75rem',  // 12px - Between related items (e.g., timer units)
-    md: '1rem',     // 16px - Default gap
-    lg: '1.25rem',  // 20px - Form fields
-    xl: '1.5rem',   // 24px - Major sections
+    xs: "0.5rem", // 8px  - Internal component gaps (e.g., timer unit internal)
+    sm: "0.75rem", // 12px - Between related items (e.g., timer units)
+    md: "1rem", // 16px - Default gap
+    lg: "1.25rem", // 20px - Form fields
+    xl: "1.5rem", // 24px - Major sections
   },
 } as const;
 
@@ -72,16 +72,21 @@ export const POPUP_SPACING = {
  * Accepts both PopupSize ('small' | 'medium' | 'large') and FlashSale-specific sizes
  */
 export function getContainerPadding(
-  popupSize?: 'compact' | 'medium' | 'wide' | 'full' | 'small' | 'large'
+  popupSize?: "compact" | "medium" | "wide" | "full" | "small" | "large"
 ): string {
   // Map PopupSize to FlashSale size format
-  let size: 'compact' | 'medium' | 'wide' | 'full' = 'medium';
+  let size: "compact" | "medium" | "wide" | "full" = "medium";
 
-  if (popupSize === 'small') {
-    size = 'compact';
-  } else if (popupSize === 'large') {
-    size = 'wide';
-  } else if (popupSize === 'compact' || popupSize === 'medium' || popupSize === 'wide' || popupSize === 'full') {
+  if (popupSize === "small") {
+    size = "compact";
+  } else if (popupSize === "large") {
+    size = "wide";
+  } else if (
+    popupSize === "compact" ||
+    popupSize === "medium" ||
+    popupSize === "wide" ||
+    popupSize === "full"
+  ) {
     size = popupSize;
   }
 
@@ -93,7 +98,7 @@ export function getContainerPadding(
  * Useful for components that need to scale with popup size
  */
 export function getResponsivePadding(
-  popupSize?: 'compact' | 'medium' | 'wide' | 'full' | 'small' | 'large',
+  popupSize?: "compact" | "medium" | "wide" | "full" | "small" | "large",
   mobile?: boolean
 ): string {
   if (mobile) {
@@ -144,23 +149,22 @@ export function gap(size: keyof typeof POPUP_SPACING.gap): string {
 export const SPACING_GUIDELINES = {
   // After badge/label at top
   afterBadge: POPUP_SPACING.section.md,
-  
+
   // After headline (tight to keep with subheadline)
   afterHeadline: POPUP_SPACING.section.sm,
-  
+
   // After subheadline/description (major break before action area)
   afterDescription: POPUP_SPACING.section.xl,
-  
+
   // Between major sections (timer, inventory, discount message)
   betweenSections: POPUP_SPACING.section.lg,
-  
+
   // Between form fields
   betweenFields: POPUP_SPACING.gap.lg,
-  
+
   // Between buttons
   betweenButtons: POPUP_SPACING.section.sm,
-  
+
   // Before CTA button (from last content element)
   beforeCTA: POPUP_SPACING.section.lg,
 } as const;
-

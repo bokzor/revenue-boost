@@ -5,22 +5,65 @@ import type { Template } from "~/domains/popups/services/templates.server";
 import styles from "./TemplateSelector.module.css";
 import { parseTemplateContentConfig } from "~/domains/templates/types/template";
 
-import type { DesignConfig, NewsletterContent, SpinToWinContent, FlashSaleContent, BaseContentConfig } from "~/domains/campaigns/types/campaign";
+import type { DesignConfig, BaseContentConfig } from "~/domains/campaigns/types/campaign";
 import { NEWSLETTER_THEMES } from "~/config/color-presets";
 import { getDefaultButtonText } from "~/domains/templates/registry/template-registry";
 
 // Preview helpers: typed content mappers and theme-based color defaults
-const THEME_DEFAULTS: Record<DesignConfig["theme"], { background: string; text: string; button: string }> = {
-  "modern": { background: NEWSLETTER_THEMES.modern.background, text: NEWSLETTER_THEMES.modern.text, button: NEWSLETTER_THEMES.modern.primary },
-  "minimal": { background: NEWSLETTER_THEMES.minimal.background, text: NEWSLETTER_THEMES.minimal.text, button: NEWSLETTER_THEMES.minimal.primary },
-  "elegant": { background: NEWSLETTER_THEMES.elegant.background, text: NEWSLETTER_THEMES.elegant.text, button: NEWSLETTER_THEMES.elegant.primary },
-  "bold": { background: NEWSLETTER_THEMES.bold.background, text: NEWSLETTER_THEMES.bold.text, button: NEWSLETTER_THEMES.bold.primary },
-  "glass": { background: NEWSLETTER_THEMES.glass.background, text: NEWSLETTER_THEMES.glass.text, button: NEWSLETTER_THEMES.glass.primary },
-  "dark": { background: NEWSLETTER_THEMES.dark.background, text: NEWSLETTER_THEMES.dark.text, button: NEWSLETTER_THEMES.dark.primary },
-  "gradient": { background: NEWSLETTER_THEMES.gradient.background, text: NEWSLETTER_THEMES.gradient.text, button: NEWSLETTER_THEMES.gradient.primary },
-  "luxury": { background: NEWSLETTER_THEMES.luxury.background, text: NEWSLETTER_THEMES.luxury.text, button: NEWSLETTER_THEMES.luxury.primary },
-  "neon": { background: NEWSLETTER_THEMES.neon.background, text: NEWSLETTER_THEMES.neon.text, button: NEWSLETTER_THEMES.neon.primary },
-  "ocean": { background: NEWSLETTER_THEMES.ocean.background, text: NEWSLETTER_THEMES.ocean.text, button: NEWSLETTER_THEMES.ocean.primary },
+const THEME_DEFAULTS: Record<
+  DesignConfig["theme"],
+  { background: string; text: string; button: string }
+> = {
+  modern: {
+    background: NEWSLETTER_THEMES.modern.background,
+    text: NEWSLETTER_THEMES.modern.text,
+    button: NEWSLETTER_THEMES.modern.primary,
+  },
+  minimal: {
+    background: NEWSLETTER_THEMES.minimal.background,
+    text: NEWSLETTER_THEMES.minimal.text,
+    button: NEWSLETTER_THEMES.minimal.primary,
+  },
+  elegant: {
+    background: NEWSLETTER_THEMES.elegant.background,
+    text: NEWSLETTER_THEMES.elegant.text,
+    button: NEWSLETTER_THEMES.elegant.primary,
+  },
+  bold: {
+    background: NEWSLETTER_THEMES.bold.background,
+    text: NEWSLETTER_THEMES.bold.text,
+    button: NEWSLETTER_THEMES.bold.primary,
+  },
+  glass: {
+    background: NEWSLETTER_THEMES.glass.background,
+    text: NEWSLETTER_THEMES.glass.text,
+    button: NEWSLETTER_THEMES.glass.primary,
+  },
+  dark: {
+    background: NEWSLETTER_THEMES.dark.background,
+    text: NEWSLETTER_THEMES.dark.text,
+    button: NEWSLETTER_THEMES.dark.primary,
+  },
+  gradient: {
+    background: NEWSLETTER_THEMES.gradient.background,
+    text: NEWSLETTER_THEMES.gradient.text,
+    button: NEWSLETTER_THEMES.gradient.primary,
+  },
+  luxury: {
+    background: NEWSLETTER_THEMES.luxury.background,
+    text: NEWSLETTER_THEMES.luxury.text,
+    button: NEWSLETTER_THEMES.luxury.primary,
+  },
+  neon: {
+    background: NEWSLETTER_THEMES.neon.background,
+    text: NEWSLETTER_THEMES.neon.text,
+    button: NEWSLETTER_THEMES.neon.primary,
+  },
+  ocean: {
+    background: NEWSLETTER_THEMES.ocean.background,
+    text: NEWSLETTER_THEMES.ocean.text,
+    button: NEWSLETTER_THEMES.ocean.primary,
+  },
 };
 
 function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
@@ -51,10 +94,10 @@ function getPreviewTexts(template: Template) {
 
   // Extract button text from various possible fields
   const buttonText =
-    (c as any).submitButtonText ??
-    (c as any).spinButtonText ??
-    (c as any).buttonText ??
-    (c as any).ctaText ??
+    (c as { submitButtonText?: string }).submitButtonText ??
+    (c as { spinButtonText?: string }).spinButtonText ??
+    (c as { buttonText?: string }).buttonText ??
+    (c as { ctaText?: string }).ctaText ??
     getDefaultButtonText(template.templateType);
 
   return {
@@ -119,9 +162,8 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
       // Auto-show preview when template is selected
       onPreviewVisibilityChange?.(true);
     },
-    [onTemplateSelect, onPreviewVisibilityChange],
+    [onTemplateSelect, onPreviewVisibilityChange]
   );
-
 
   return (
     <Box>
@@ -132,12 +174,10 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
           </Text>
           <Box paddingBlockStart="200">
             <Text as="p" variant="bodyMd" tone="subdued">
-              Start with a professionally designed template and customize it to
-              match your brand.
+              Start with a professionally designed template and customize it to match your brand.
             </Text>
           </Box>
         </div>
-
       </BlockStack>
 
       <Box paddingBlockStart="400">
@@ -162,10 +202,18 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
               const isSelected = selectedTemplate?.id === template.id;
 
               return (
-                <div
+                <button
+                  type="button"
                   key={template.id}
                   className={`${styles.templateCard} ${isSelected ? styles.selected : ""}`}
                   onClick={() => handleTemplateSelect(template)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      handleTemplateSelect(template);
+                    }
+                  }}
+                  style={{ textAlign: "left" }}
                 >
                   {/* Selected Badge */}
                   {isSelected && <div className={styles.selectedBadge}>✓</div>}
@@ -185,7 +233,10 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
                       </div>
                       <div
                         className={styles.templateButton}
-                        style={{ backgroundColor: colors.buttonColor, color: colors.buttonTextColor }}
+                        style={{
+                          backgroundColor: colors.buttonColor,
+                          color: colors.buttonTextColor,
+                        }}
                       >
                         {texts.button}
                       </div>
@@ -196,9 +247,7 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
                   <div className={styles.templateInfo}>
                     {/* Left side: Name and description */}
                     <div className={styles.templateHeader}>
-                      <div
-                        style={{ display: "flex", alignItems: "center", gap: "8px" }}
-                      >
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                         <span className={styles.templateName}>{template.name}</span>
                         {template.isDefault && (
                           <Badge tone="success" size="small">
@@ -221,7 +270,7 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
                       )}
                     </div>
                   </div>
-                </div>
+                </button>
               );
             })}
           </div>

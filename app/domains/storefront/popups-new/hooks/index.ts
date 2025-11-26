@@ -1,17 +1,16 @@
 /**
  * Hooks Index
- * 
+ *
  * Centralized exports for all custom hooks used in popup components.
  */
 
-export { usePopupForm } from './usePopupForm';
-export type { PopupFormConfig, PopupFormData, PopupFormErrors } from './usePopupForm';
+export { usePopupForm } from "./usePopupForm";
+export type { PopupFormConfig, PopupFormData, PopupFormErrors } from "./usePopupForm";
 
-export { useDiscountCode } from './useDiscountCode';
+export { useDiscountCode } from "./useDiscountCode";
 
-export { useCountdownTimer } from './useCountdownTimer';
-export type { TimerMode, TimeRemaining, UseCountdownTimerOptions } from './useCountdownTimer';
+export { useCountdownTimer } from "./useCountdownTimer";
+export type { TimerMode, TimeRemaining, UseCountdownTimerOptions } from "./useCountdownTimer";
 
-export { usePopupAnimation } from './usePopupAnimation';
-export type { UsePopupAnimationOptions } from './usePopupAnimation';
-
+export { usePopupAnimation } from "./usePopupAnimation";
+export type { UsePopupAnimationOptions } from "./usePopupAnimation";

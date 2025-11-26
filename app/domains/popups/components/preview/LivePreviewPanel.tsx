@@ -37,6 +37,7 @@ export interface LivePreviewPanelProps {
   onPreviewElementReady?: (element: HTMLElement | null) => void;
   shopDomain?: string;
   campaignId?: string;
+  globalCustomCSS?: string;
 }
 
 export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
@@ -47,27 +48,33 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
   onPreviewElementReady,
   shopDomain,
   campaignId,
+  globalCustomCSS,
 }) => {
-  const [device, setDevice] = useState<"mobile" | "tablet" | "desktop">("desktop");
+  const [device, setDevice] = useState<"mobile" | "tablet" | "desktop">("tablet");
   const [zoom, setZoom] = useState(100);
 
   // ✅ KEY: Virtual viewport sizes - independent of physical container
-  // These dimensions trigger the correct layout modes in the popups
+  // These dimensions trigger the correct layout modes in the popups.
+  // Desktop uses a wider logical viewport so overlays (like upsell bars)
+  // don't appear to span the *entire* browser width in preview.
   const virtualViewports = {
     mobile: { width: 375, height: 667 },
     tablet: { width: 768, height: 800 },
-    desktop: { width: 1024, height: 600 },
+    desktop: { width: 1440, height: 600 },
   };
 
   const viewport = virtualViewports[device];
   const previewRef = useRef<HTMLDivElement>(null);
-  const [containerWidth, setContainerWidth] = useState<number | null>(null);
+  const [containerSize, setContainerSize] = useState<{ width: number; height: number } | null>(
+    null
+  );
 
-  // Measure physical container width to determine available space
+  // Measure physical container size to determine available space
   useEffect(() => {
     const measureContainer = () => {
       if (previewRef.current) {
-        setContainerWidth(previewRef.current.clientWidth);
+        const { clientWidth, clientHeight } = previewRef.current;
+        setContainerSize({ width: clientWidth, height: clientHeight });
       }
     };
 
@@ -80,19 +87,30 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
 
   // ✅ KEY: Calculate scale to fit virtual viewport into physical container
   const calculateScale = () => {
-    if (!containerWidth) return 1;
+    if (!containerSize) return 1;
 
-    const padding = 40; // preview padding
-    const availableWidth = containerWidth - padding;
+    // Account for the padding applied on the preview container (20px on each side)
+    const paddingX = 40;
+    const paddingY = 40;
+    const availableWidth = containerSize.width - paddingX;
+    const availableHeight = containerSize.height - paddingY;
 
-    // Scale virtual viewport to fit available space
-    // We only scale down, never up (unless zoomed)
-    const fitScale = Math.min(1, availableWidth / viewport.width);
+    if (availableWidth <= 0 || availableHeight <= 0) return 1;
 
-    // Apply zoom on top
+    // Scale virtual viewport to fit BOTH width and height in the available space.
+    // We only scale down, never up (unless zoomed).
+    const widthScale = availableWidth / viewport.width;
+    const heightScale = availableHeight / viewport.height;
+    const rawFitScale = Math.min(1, widthScale, heightScale);
+
+    // Apply a small safety margin so content doesn't hug the edges and
+    // there's less risk of run-cut at extreme sizes.
+    const fitScale = rawFitScale * 0.9;
+
+    // Apply zoom on top of the best-fit scale
     const totalScale = fitScale * (zoom / 100);
 
-    // Min 50% scale for readability, max 150% for zoom
+    // Min 20% scale for readability
     return Math.max(0.2, totalScale);
   };
 
@@ -101,12 +119,9 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
   const [isCreatingPreview, setIsCreatingPreview] = useState(false);
   const [previewPopoverActive, setPreviewPopoverActive] = useState(false);
 
-  const togglePreviewPopover = useCallback(
-    () => setPreviewPopoverActive((active) => !active),
-    []
-  );
+  const togglePreviewPopover = useCallback(() => setPreviewPopoverActive((active) => !active), []);
 
-  const handlePreviewOnStore = async (behavior: 'instant' | 'realistic' = 'instant') => {
+  const handlePreviewOnStore = async (behavior: "instant" | "realistic" = "instant") => {
     setPreviewPopoverActive(false); // Close popover when action is triggered
     if (!shopDomain) {
       console.error("Shop domain is required for preview");
@@ -116,14 +131,7 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
     setIsCreatingPreview(true);
 
     try {
-      // If we have a campaignId, use the existing preview flow
-      if (campaignId) {
-        const storeUrl = `https://${shopDomain}?split_pop_preview=${campaignId}&preview_behavior=${behavior}`;
-        window.open(storeUrl, "_blank");
-        return;
-      }
-
-      // For unsaved campaigns, create a preview session
+      // Always use token-based preview sessions for consistency (saved and unsaved)
       const previewData = {
         name: config.name || "Preview Campaign",
         templateType,
@@ -132,6 +140,8 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
         targetRules: targetRules || {},
         priority: 0,
         discountConfig: config.discountConfig || {},
+        // Optional: reference to the underlying saved campaign, if any
+        sourceCampaignId: campaignId,
       };
 
       // Create preview session
@@ -168,18 +178,24 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
     return (
       <Card>
         <BlockStack gap="400">
-          <Text as="h3" variant="headingMd">Live Preview</Text>
-          <div style={{
-            minHeight: "500px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            background: "#f6f6f7",
-            borderRadius: "8px"
-          }}>
+          <Text as="h3" variant="headingMd">
+            Live Preview
+          </Text>
+          <div
+            style={{
+              minHeight: "500px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              background: "#f6f6f7",
+              borderRadius: "8px",
+            }}
+          >
             <BlockStack inlineAlign="center" gap="200">
               <div style={{ fontSize: "48px" }}>📋</div>
-              <Text as="p" variant="bodyMd" tone="subdued">Select a template to preview</Text>
+              <Text as="p" variant="bodyMd" tone="subdued">
+                Select a template to preview
+              </Text>
             </BlockStack>
           </div>
         </BlockStack>
@@ -191,10 +207,22 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
     <Card>
       <BlockStack gap="400">
         {/* Header & Controls */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px" }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            flexWrap: "wrap",
+            gap: "12px",
+          }}
+        >
           <div>
-            <Text as="h3" variant="headingMd">Live Preview</Text>
-            <Text as="p" variant="bodySm" tone="subdued">See how your campaign will look</Text>
+            <Text as="h3" variant="headingMd">
+              Live Preview
+            </Text>
+            <Text as="p" variant="bodySm" tone="subdued">
+              See how your campaign will look
+            </Text>
           </div>
 
           <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
@@ -222,12 +250,12 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
                     {
                       content: "Quick Preview",
                       helpText: "Shows popup immediately, bypassing triggers",
-                      onAction: () => handlePreviewOnStore('instant'),
+                      onAction: () => handlePreviewOnStore("instant"),
                     },
                     {
                       content: "Test with Triggers",
                       helpText: "Evaluates triggers as configured (delays, scroll, etc.)",
-                      onAction: () => handlePreviewOnStore('realistic'),
+                      onAction: () => handlePreviewOnStore("realistic"),
                     },
                   ]}
                 />
@@ -237,7 +265,15 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
         </div>
 
         {/* Device & Zoom Controls */}
-        <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between" }}>
+        <div
+          style={{
+            display: "flex",
+            gap: "12px",
+            flexWrap: "wrap",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
           <ButtonGroup variant="segmented">
             <Button pressed={device === "mobile"} onClick={() => setDevice("mobile")} size="slim">
               📱 Mobile
@@ -251,7 +287,9 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
           </ButtonGroup>
 
           <InlineStack align="end" blockAlign="center" gap="200">
-            <Text as="span" variant="bodySm" tone="subdued">Zoom</Text>
+            <Text as="span" variant="bodySm" tone="subdued">
+              Zoom
+            </Text>
             <div style={{ width: "150px" }}>
               <RangeSlider
                 label=""
@@ -260,7 +298,11 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
                 min={50}
                 max={150}
                 output
-                suffix={<Text as="span" variant="bodySm">{zoom}%</Text>}
+                suffix={
+                  <Text as="span" variant="bodySm">
+                    {zoom}%
+                  </Text>
+                }
               />
             </div>
           </InlineStack>
@@ -302,7 +344,7 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
                 width: viewport.width,
                 height: viewport.height,
                 position: "relative",
-                boxShadow: device !== 'desktop' ? "0 20px 50px -12px rgba(0,0,0,0.25)" : "none",
+                boxShadow: device !== "desktop" ? "0 20px 50px -12px rgba(0,0,0,0.25)" : "none",
               }}
             >
               <DeviceFrame device={device}>
@@ -311,6 +353,8 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
                   config={config}
                   designConfig={designConfig}
                   onPreviewElementReady={onPreviewElementReady}
+                  campaignCustomCSS={designConfig?.customCSS as string | undefined}
+                  globalCustomCSS={globalCustomCSS}
                 />
               </DeviceFrame>
             </div>

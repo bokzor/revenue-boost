@@ -19,7 +19,7 @@ export function PageLoadTrigger({ config, onChange }: PageLoadTriggerProps) {
       ...config,
       page_load: {
         enabled: false,
-        ...(typeof config.page_load === 'object' && config.page_load !== null
+        ...(typeof config.page_load === "object" && config.page_load !== null
           ? config.page_load
           : {}),
         ...updates,
@@ -62,4 +62,3 @@ export function PageLoadTrigger({ config, onChange }: PageLoadTriggerProps) {
     </TriggerCard>
   );
 }
-

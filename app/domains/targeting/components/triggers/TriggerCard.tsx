@@ -1,6 +1,6 @@
 /**
  * TriggerCard - Reusable card component for trigger configuration
- * 
+ *
  * Follows Single Responsibility Principle:
  * - Only responsible for rendering a collapsible trigger card
  * - Delegates content rendering to children
@@ -40,11 +40,7 @@ export function TriggerCard({
       <BlockStack gap="300">
         <InlineStack align="space-between">
           <InlineStack gap="200" align="center">
-            <Checkbox
-              label={title}
-              checked={enabled}
-              onChange={onEnabledChange}
-            />
+            <Checkbox label={title} checked={enabled} onChange={onEnabledChange} />
             {enabled && <Badge tone="success">Active</Badge>}
           </InlineStack>
           <Button
@@ -68,4 +64,3 @@ export function TriggerCard({
     </Card>
   );
 }
-

@@ -95,9 +95,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
       }
 
       const maxProducts: number =
-        typeof contentConfig.maxProducts === "number"
-          ? contentConfig.maxProducts
-          : 3;
+        typeof contentConfig.maxProducts === "number" ? contentConfig.maxProducts : 3;
 
       const products = await fetchProductsByCollection(admin, collectionKey, maxProducts);
       return data({ products } satisfies UpsellProductsResponse);
@@ -109,19 +107,17 @@ export async function loader({ request }: LoaderFunctionArgs) {
       console.log("[Upsell Products API] Using smart recommendations");
 
       const maxProducts: number =
-        typeof contentConfig.maxProducts === "number"
-          ? contentConfig.maxProducts
-          : 4;
+        typeof contentConfig.maxProducts === "number" ? contentConfig.maxProducts : 4;
 
       // Parse cart product IDs if provided (for context-aware recommendations)
       const cartProductIds: string[] =
-        parsed.data.cartProductIds && typeof parsed.data.cartProductIds === 'string'
-          ? parsed.data.cartProductIds.split(',').filter(id => id.trim())
+        parsed.data.cartProductIds && typeof parsed.data.cartProductIds === "string"
+          ? parsed.data.cartProductIds.split(",").filter((id) => id.trim())
           : [];
 
       console.log("[Upsell Products API] Cart context:", {
         cartProductIds,
-        count: cartProductIds.length
+        count: cartProductIds.length,
       });
 
       const products = await fetchPopularProducts(admin, maxProducts, cartProductIds);

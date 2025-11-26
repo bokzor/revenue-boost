@@ -1,6 +1,6 @@
 /**
  * Color Customization Types
- * 
+ *
  * Extended color configuration types for popup customization
  */
 
@@ -86,7 +86,7 @@ export interface BrandColorConfig {
 /**
  * Color theme presets
  */
-export type ColorTheme = 
+export type ColorTheme =
   | "light"
   | "dark"
   | "vibrant"
@@ -99,7 +99,7 @@ export type ColorTheme =
 /**
  * Color harmony types
  */
-export type ColorHarmony = 
+export type ColorHarmony =
   | "complementary"
   | "analogous"
   | "triadic"
@@ -185,4 +185,3 @@ export interface ContrastCheckResult {
   passesAAA: boolean;
   level: AccessibilityLevel | "fail";
 }
-

@@ -13,7 +13,6 @@
 
 import { useState } from "react";
 import {
-  FormLayout,
   Select,
   TextField,
   Checkbox,
@@ -49,10 +48,7 @@ export function GenericDiscountComponent({
     showInPreview: discountConfig?.showInPreview !== false, // NEW: Default to true
     type: discountConfig?.type || "shared",
     valueType: discountConfig?.valueType || "PERCENTAGE",
-    value:
-      discountConfig?.valueType === "FREE_SHIPPING"
-        ? undefined
-        : discountConfig?.value || 10,
+    value: discountConfig?.valueType === "FREE_SHIPPING" ? undefined : discountConfig?.value || 10,
     minimumAmount: discountConfig?.minimumAmount,
     usageLimit: discountConfig?.usageLimit,
     expiryDays: discountConfig?.expiryDays || 30,
@@ -117,10 +113,7 @@ export function GenericDiscountComponent({
               value={config.valueType}
               onChange={(valueType) => {
                 const updates: Partial<DiscountConfig> = {
-                  valueType: valueType as
-                    | "PERCENTAGE"
-                    | "FIXED_AMOUNT"
-                    | "FREE_SHIPPING",
+                  valueType: valueType as "PERCENTAGE" | "FIXED_AMOUNT" | "FREE_SHIPPING",
                 };
                 // Clear value when switching to FREE_SHIPPING
                 if (valueType === "FREE_SHIPPING") {
@@ -140,9 +133,7 @@ export function GenericDiscountComponent({
                 type="number"
                 suffix={getValueSuffix()}
                 value={config.value?.toString() || ""}
-                onChange={(value) =>
-                  updateConfig({ value: parseFloat(value) || 0 })
-                }
+                onChange={(value) => updateConfig({ value: parseFloat(value) || 0 })}
                 placeholder={getRecommendedValue().toString()}
                 autoComplete="off"
                 min={0}
@@ -153,16 +144,11 @@ export function GenericDiscountComponent({
           </FormGrid>
 
           {config.valueType === "FREE_SHIPPING" && (
-            <Box
-              padding="300"
-              background="bg-surface-secondary"
-              borderRadius="200"
-            >
+            <Box padding="300" background="bg-surface-secondary" borderRadius="200">
               <Text as="p" variant="bodySm">
                 🚚 <strong>Free Shipping Discount</strong>
                 <br />
-                Customers will get free shipping with their order. No discount
-                value needed.
+                Customers will get free shipping with their order. No discount value needed.
               </Text>
             </Box>
           )}
@@ -202,11 +188,12 @@ export function GenericDiscountComponent({
               value={config.deliveryMode || "show_code_always"}
               onChange={(deliveryMode) =>
                 updateConfig({
-                  deliveryMode: deliveryMode as "auto_apply_only" | "show_code_fallback" | "show_code_always",
+                  deliveryMode: deliveryMode as
+                    | "auto_apply_only"
+                    | "show_code_fallback"
+                    | "show_code_always",
                   requireEmailMatch:
-                    deliveryMode === "show_code_fallback"
-                      ? true
-                      : config.requireEmailMatch,
+                    deliveryMode === "show_code_fallback" ? true : config.requireEmailMatch,
                 })
               }
               helpText={
@@ -219,9 +206,7 @@ export function GenericDiscountComponent({
             <TextField
               label="Discount Code Prefix"
               value={config.prefix || ""}
-              onChange={(prefix) =>
-                updateConfig({ prefix: prefix.toUpperCase() })
-              }
+              onChange={(prefix) => updateConfig({ prefix: prefix.toUpperCase() })}
               placeholder="WELCOME"
               autoComplete="off"
               helpText="Prefix for generated codes (e.g., WELCOME10)"
@@ -275,4 +260,3 @@ export function GenericDiscountComponent({
     </BlockStack>
   );
 }
-

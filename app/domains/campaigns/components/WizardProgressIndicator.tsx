@@ -15,13 +15,7 @@
  */
 
 import React, { useMemo } from "react";
-import {
-  BlockStack,
-  InlineStack,
-  Text,
-  Badge,
-  ProgressBar,
-} from "@shopify/polaris";
+import { BlockStack, InlineStack, Text, Badge, ProgressBar } from "@shopify/polaris";
 import styles from "./WizardProgressIndicator.module.css";
 
 export interface WizardStep {
@@ -105,9 +99,7 @@ export const WizardProgressIndicator = React.memo(function WizardProgressIndicat
                         fontWeight={isActive ? "semibold" : "regular"}
                       >
                         {step.title}
-                        {step.isRequired && (
-                          <span className={styles.required}> *</span>
-                        )}
+                        {step.isRequired && <span className={styles.required}> *</span>}
                       </Text>
                     </div>
                   </button>
@@ -137,9 +129,7 @@ export const WizardProgressIndicator = React.memo(function WizardProgressIndicat
             return (
               <button
                 key={step.id}
-                className={`${styles.stepButtonMobile} ${
-                  isActive ? styles.stepActiveMobile : ""
-                }`}
+                className={`${styles.stepButtonMobile} ${isActive ? styles.stepActiveMobile : ""}`}
                 onClick={() => onStepClick(index)}
               >
                 <InlineStack gap="300" blockAlign="center">
@@ -154,9 +144,7 @@ export const WizardProgressIndicator = React.memo(function WizardProgressIndicat
                           height: "20px",
                           borderRadius: "50%",
                           border: `2px solid ${isActive ? "var(--p-color-border-brand)" : "var(--p-color-border-subdued)"}`,
-                          background: isActive
-                            ? "var(--p-color-bg-fill-brand)"
-                            : "transparent",
+                          background: isActive ? "var(--p-color-bg-fill-brand)" : "transparent",
                         }}
                       />
                     )}
@@ -164,11 +152,7 @@ export const WizardProgressIndicator = React.memo(function WizardProgressIndicat
 
                   {/* Text */}
                   <div style={{ flex: 1 }}>
-                    <Text
-                      as="span"
-                      variant="bodySm"
-                      fontWeight={isActive ? "semibold" : "regular"}
-                    >
+                    <Text as="span" variant="bodySm" fontWeight={isActive ? "semibold" : "regular"}>
                       {index + 1}. {step.title}
                       {step.isRequired && " *"}
                     </Text>

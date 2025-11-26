@@ -21,12 +21,11 @@ export interface ABTestingSectionProps {
   onChange: (config: ABTestingConfig) => void;
 }
 
-export function ABTestingSection({
-  config,
-  errors,
-  onChange,
-}: ABTestingSectionProps) {
-  const updateField = useFieldUpdater(config as unknown as Partial<Record<string, unknown>>, onChange as unknown as (updated: Partial<Record<string, unknown>>) => void);
+export function ABTestingSection({ config, errors, onChange }: ABTestingSectionProps) {
+  const updateField = useFieldUpdater(
+    config as unknown as Partial<Record<string, unknown>>,
+    onChange as unknown as (updated: Partial<Record<string, unknown>>) => void
+  );
 
   return (
     <>
@@ -75,9 +74,7 @@ export function ABTestingSection({
               value={config.trafficAllocation?.toString() || "50"}
               placeholder="50"
               helpText="Percentage of traffic for this variant (0-100)"
-              onChange={(value) =>
-                updateField("trafficAllocation", parseInt(value) || 50)
-              }
+              onChange={(value) => updateField("trafficAllocation", parseInt(value) || 50)}
             />
           </FormGrid>
 
@@ -105,4 +102,3 @@ export function ABTestingSection({
     </>
   );
 }
-

@@ -1,9 +1,9 @@
 /**
  * API Route: Inventory Tracking
- * 
+ *
  * Returns real-time inventory levels for products/variants/collections.
  * Used by FlashSale popups for "Only X left!" messaging and stock-limited timers.
- * 
+ *
  * Features:
  * - ETag caching to reduce Shopify API calls
  * - Rate limiting with exponential backoff guidance
@@ -79,10 +79,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
     const { admin } = await authenticate.public.appProxy(request);
 
     if (!admin) {
-      return data(
-        { error: "Authentication failed" },
-        { status: 401 }
-      );
+      return data({ error: "Authentication failed" }, { status: 401 });
     }
 
     // Parse query parameters
@@ -131,7 +128,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
         return new Response(null, {
           status: 304,
           headers: {
-            "ETag": cached.etag,
+            ETag: cached.etag,
             "Cache-Control": "private, max-age=10",
           },
         });
@@ -140,7 +137,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
       // Return cached data with ETag
       return data(cached.data, {
         headers: {
-          "ETag": cached.etag,
+          ETag: cached.etag,
           "Cache-Control": "private, max-age=10",
           "X-Cache": "HIT",
         },
@@ -221,7 +218,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
     return data(inventoryData, {
       headers: {
-        "ETag": etag,
+        ETag: etag,
         "Cache-Control": "private, max-age=10",
         "X-Cache": "MISS",
       },
@@ -244,20 +241,14 @@ export async function loader({ request }: LoaderFunctionArgs) {
       );
     }
 
-    return data(
-      { error: "Failed to fetch inventory data" },
-      { status: 500 }
-    );
+    return data({ error: "Failed to fetch inventory data" }, { status: 500 });
   }
 }
 
 /**
  * Resolve variant IDs from product IDs
  */
-async function resolveProductVariants(
-  admin: any,
-  productIds: string[]
-): Promise<string[]> {
+async function resolveProductVariants(admin: any, productIds: string[]): Promise<string[]> {
   const response = await admin.graphql(PRODUCT_VARIANTS_QUERY, {
     variables: { productIds },
   });

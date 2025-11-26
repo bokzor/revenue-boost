@@ -17,16 +17,8 @@
 import React, { useMemo } from "react";
 import { InlineStack, Select, Button } from "@shopify/polaris";
 import { DeleteIcon } from "@shopify/polaris-icons";
-import type {
-  TriggerCondition,
-  ConditionType,
-  ConditionOperator,
-} from "./types";
-import {
-  CONDITION_TYPES,
-  OPERATOR_LABELS,
-  getConditionTypeConfig,
-} from "./types";
+import type { TriggerCondition, ConditionType, ConditionOperator } from "./types";
+import { CONDITION_TYPES, OPERATOR_LABELS, getConditionTypeConfig } from "./types";
 import {
   ProductValueInput,
   CollectionValueInput,
@@ -64,60 +56,44 @@ export function ConditionRow({
         onUpdate({ operator: availableOperators[0] });
       }
     }
-  }, [
-    condition.type,
-    condition.operator,
-    availableOperators,
-    conditionConfig,
-    onUpdate,
-  ]);
+  }, [condition.type, condition.operator, availableOperators, conditionConfig, onUpdate]);
 
   // Condition type options grouped by category
   const conditionTypeOptions = [
     {
       title: "Cart-based",
-      options: CONDITION_TYPES.filter((ct) => ct.category === "cart").map(
-        (ct) => ({
-          value: ct.value,
-          label: ct.label,
-        }),
-      ),
+      options: CONDITION_TYPES.filter((ct) => ct.category === "cart").map((ct) => ({
+        value: ct.value,
+        label: ct.label,
+      })),
     },
     {
       title: "Customer-based",
-      options: CONDITION_TYPES.filter((ct) => ct.category === "customer").map(
-        (ct) => ({
-          value: ct.value,
-          label: ct.label,
-        }),
-      ),
+      options: CONDITION_TYPES.filter((ct) => ct.category === "customer").map((ct) => ({
+        value: ct.value,
+        label: ct.label,
+      })),
     },
     {
       title: "Product-based",
-      options: CONDITION_TYPES.filter((ct) => ct.category === "product").map(
-        (ct) => ({
-          value: ct.value,
-          label: ct.label,
-        }),
-      ),
+      options: CONDITION_TYPES.filter((ct) => ct.category === "product").map((ct) => ({
+        value: ct.value,
+        label: ct.label,
+      })),
     },
     {
       title: "Time-based",
-      options: CONDITION_TYPES.filter((ct) => ct.category === "time").map(
-        (ct) => ({
-          value: ct.value,
-          label: ct.label,
-        }),
-      ),
+      options: CONDITION_TYPES.filter((ct) => ct.category === "time").map((ct) => ({
+        value: ct.value,
+        label: ct.label,
+      })),
     },
     {
       title: "Device-based",
-      options: CONDITION_TYPES.filter((ct) => ct.category === "device").map(
-        (ct) => ({
-          value: ct.value,
-          label: ct.label,
-        }),
-      ),
+      options: CONDITION_TYPES.filter((ct) => ct.category === "device").map((ct) => ({
+        value: ct.value,
+        label: ct.label,
+      })),
     },
   ].filter((group) => group.options.length > 0);
 
@@ -169,20 +145,12 @@ export function ConditionRow({
       const numValue = Array.isArray(condition.value)
         ? (condition.value[0] as number | string)
         : condition.value;
-      return (
-        <NumberValueInput
-          value={numValue}
-          onChange={(value) => onUpdate({ value })}
-        />
-      );
+      return <NumberValueInput value={numValue} onChange={(value) => onUpdate({ value })} />;
     }
 
     // Text input (default)
     return (
-      <TextValueInput
-        value={String(condition.value)}
-        onChange={(value) => onUpdate({ value })}
-      />
+      <TextValueInput value={String(condition.value)} onChange={(value) => onUpdate({ value })} />
     );
   };
 
@@ -207,9 +175,7 @@ export function ConditionRow({
             labelHidden
             options={operatorOptions}
             value={condition.operator}
-            onChange={(value) =>
-              onUpdate({ operator: value as ConditionOperator })
-            }
+            onChange={(value) => onUpdate({ operator: value as ConditionOperator })}
           />
         </div>
 

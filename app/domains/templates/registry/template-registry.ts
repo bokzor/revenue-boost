@@ -1,6 +1,6 @@
 /**
  * Template Registry
- * 
+ *
  * Centralized registry for all template types
  * Eliminates switch statements and provides type-safe template metadata
  */
@@ -230,14 +230,17 @@ export function getAllTemplateTypes(): TemplateType[] {
  * Get templates by category
  */
 export function getTemplatesByCategory(category: string): TemplateMetadata[] {
-  return Object.values(TEMPLATE_REGISTRY).filter(t => t.category === category);
+  return Object.values(TEMPLATE_REGISTRY).filter((t) => t.category === category);
 }
 
 /**
  * Get all template options for dropdowns
  */
-export function getTemplateOptions(): Array<{ label: string; value: TemplateType }> {
-  return Object.values(TEMPLATE_REGISTRY).map(t => ({
+export function getTemplateOptions(): Array<{
+  label: string;
+  value: TemplateType;
+}> {
+  return Object.values(TEMPLATE_REGISTRY).map((t) => ({
     label: t.label,
     value: t.type,
   }));
@@ -276,4 +279,3 @@ export function getDefaultButtonText(templateType: TemplateType): string {
   };
   return defaults[templateType] || "Select";
 }
-

@@ -37,10 +37,7 @@ export function TargetingStepContent({
           <Text as="p" variant="bodyMd" tone="subdued">
             Configure when your campaign should appear to visitors.
           </Text>
-          <AdvancedTriggersEditor
-            config={enhancedTriggers || {}}
-            onChange={onTriggersChange}
-          />
+          <AdvancedTriggersEditor config={enhancedTriggers || {}} onChange={onTriggersChange} />
         </BlockStack>
       </Card>
 
@@ -62,4 +59,3 @@ export function TargetingStepContent({
     </BlockStack>
   );
 }
-

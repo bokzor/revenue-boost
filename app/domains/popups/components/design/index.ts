@@ -6,11 +6,7 @@ export { PopupPreview } from "./PopupPreview";
 export { CustomCSSEditor } from "./CustomCSSEditor";
 
 // Template Library
-export {
-  getTemplateById,
-  getPopupTemplates,
-  validatePopupTemplates,
-} from "./PopupTemplateLibrary";
+export { getTemplateById, getPopupTemplates, validatePopupTemplates } from "./PopupTemplateLibrary";
 
 // Types
 export type { PopupDesignConfig } from "./PopupDesignEditorV2";

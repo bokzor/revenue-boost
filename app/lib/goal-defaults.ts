@@ -85,7 +85,12 @@ export const GOAL_DEFAULTS: Record<CampaignGoal, GoalDefaults> = {
       status: "DRAFT",
     },
     templates: {
-      recommended: ["flash-sale-modal", "countdown-timer-banner", "product-recommendation", "cart_upsell"],
+      recommended: [
+        "flash-sale-modal",
+        "countdown-timer-banner",
+        "product-recommendation",
+        "cart_upsell",
+      ],
       categories: ["sales", "product-recommendation"],
     },
   },
@@ -110,7 +115,12 @@ export const GOAL_DEFAULTS: Record<CampaignGoal, GoalDefaults> = {
       status: "DRAFT",
     },
     templates: {
-      recommended: ["lottery-spin", "scratch-card", "announcement-slide", "social-proof-notification"],
+      recommended: [
+        "lottery-spin",
+        "scratch-card",
+        "announcement-slide",
+        "social-proof-notification",
+      ],
       categories: ["gamification", "announcement", "social-proof"],
     },
   },

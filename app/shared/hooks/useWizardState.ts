@@ -34,7 +34,7 @@ import { buildGoalUpdates } from "./wizard/goal-config";
 export type { CampaignGoal, TemplateType };
 
 // Wizard-specific TriggerType (extends canonical with string for flexibility)
-export type TriggerType = CampaignTriggerType | (string & {});
+export type TriggerType = CampaignTriggerType | string;
 
 // Re-export types for convenience
 export type { PageTargetingConfig, AudienceTargetingConfig, EnhancedTriggersConfig };
@@ -209,13 +209,10 @@ export function useWizardState(initialData?: Partial<CampaignFormData>) {
   // Data management
   const updateData = useCallback(
     (
-      updates:
-        | Partial<CampaignFormData>
-        | ((prev: CampaignFormData) => Partial<CampaignFormData>),
+      updates: Partial<CampaignFormData> | ((prev: CampaignFormData) => Partial<CampaignFormData>)
     ) => {
       setState((prev) => {
-        const patch =
-          typeof updates === "function" ? updates(prev.data) : updates;
+        const patch = typeof updates === "function" ? updates(prev.data) : updates;
         return {
           ...prev,
           data: { ...prev.data, ...patch },
@@ -223,7 +220,7 @@ export function useWizardState(initialData?: Partial<CampaignFormData>) {
         };
       });
     },
-    [],
+    []
   );
 
   // Set template type and apply template-specific defaults
@@ -261,20 +258,20 @@ export function useWizardState(initialData?: Partial<CampaignFormData>) {
       // Use configuration from the template object (from database)
       const templateDefaults = templateObject?.contentDefaults || {};
       const templateTargetRules = (templateObject?.targetRules as Record<string, unknown>) || {};
+      const templateDesign = templateObject?.design || {};
 
-      console.log(
-        "[useWizardState] Applying template configuration from database:",
-        templateType,
-        {
-          hasDefaultDesignFields: Object.keys(defaultDesignFields).length > 0,
-          defaultDesignFields,
-        }
-      );
+      console.log("[useWizardState] Applying template configuration from database:", templateType, {
+        hasDefaultDesignFields: Object.keys(defaultDesignFields).length > 0,
+        defaultDesignFields,
+      });
 
       // Extract page targeting from template's targetRules (if available)
-      const pageTargetingFromTemplate = (templateTargetRules as { pageTargeting?: unknown })?.pageTargeting;
+      const pageTargetingFromTemplate = (templateTargetRules as { pageTargeting?: unknown })
+        ?.pageTargeting;
 
-      const pageTargetingPatch: Partial<CampaignFormData> = isPageTargetingConfig(pageTargetingFromTemplate)
+      const pageTargetingPatch: Partial<CampaignFormData> = isPageTargetingConfig(
+        pageTargetingFromTemplate
+      )
         ? { pageTargeting: pageTargetingFromTemplate }
         : {};
 
@@ -283,14 +280,15 @@ export function useWizardState(initialData?: Partial<CampaignFormData>) {
 
       const next: Partial<CampaignFormData> = {
         templateType,
-        // Apply content defaults from database template
+        // Apply content defaults from database template (already includes recipe merge if any)
         contentConfig: {
           ...state.data.contentConfig,
           ...templateDefaults,
         },
-        // Apply design defaults from template registry
+        // Apply design from database template (seed), then registry-level defaults as a light override
         designConfig: {
           ...state.data.designConfig,
+          ...templateDesign,
           ...defaultDesignFields,
         },
         // Apply page targeting from template's targetRules (from database) if valid
@@ -309,7 +307,7 @@ export function useWizardState(initialData?: Partial<CampaignFormData>) {
 
       updateData(next);
     },
-    [updateData, state.data.contentConfig, state.data.designConfig],
+    [updateData, state.data.contentConfig, state.data.designConfig]
   );
 
   // Apply goal-based defaults when goal is selected
@@ -328,7 +326,7 @@ export function useWizardState(initialData?: Partial<CampaignFormData>) {
       // Don't auto-load template - let user select in Design step
       // This ensures preview only shows after explicit template selection
     },
-    [updateData, state.data],
+    [updateData, state.data]
   );
 
   // Goal-based validation engine - now uses extracted validators
@@ -346,7 +344,7 @@ export function useWizardState(initialData?: Partial<CampaignFormData>) {
 
       return result.isValid;
     },
-    [state.data],
+    [state.data]
   );
 
   // Validation helpers
@@ -354,32 +352,30 @@ export function useWizardState(initialData?: Partial<CampaignFormData>) {
     (stepIndex: number): boolean => {
       return state.isValid[stepIndex] || false;
     },
-    [state.isValid],
+    [state.isValid]
   );
 
   const getStepErrors = useCallback(
     (stepIndex: number) => {
       return (
-        state.validationResults[stepIndex]?.errors?.filter(
-          (e) => e.severity === "error",
-        ) || []
+        state.validationResults[stepIndex]?.errors?.filter((e) => e.severity === "error") || []
       );
     },
-    [state.validationResults],
+    [state.validationResults]
   );
 
   const getStepWarnings = useCallback(
     (stepIndex: number) => {
       return state.validationResults[stepIndex]?.warnings || [];
     },
-    [state.validationResults],
+    [state.validationResults]
   );
 
   const getStepSuggestions = useCallback(
     (stepIndex: number) => {
       return state.validationResults[stepIndex]?.suggestions || [];
     },
-    [state.validationResults],
+    [state.validationResults]
   );
 
   // Auto-validate current step when data changes
@@ -411,16 +407,13 @@ export function useWizardState(initialData?: Partial<CampaignFormData>) {
   }, []);
 
   // Update entire state (for variant switching)
-  const updateEntireState = useCallback(
-    (newData: Partial<CampaignFormData>) => {
-      setState((prev) => ({
-        ...prev,
-        data: { ...prev.data, ...newData },
-        hasUnsavedChanges: true,
-      }));
-    },
-    [],
-  );
+  const updateEntireState = useCallback((newData: Partial<CampaignFormData>) => {
+    setState((prev) => ({
+      ...prev,
+      data: { ...prev.data, ...newData },
+      hasUnsavedChanges: true,
+    }));
+  }, []);
 
   // Clear state (no sessionStorage to clear) - now uses extracted factory
   const clearState = useCallback(() => {

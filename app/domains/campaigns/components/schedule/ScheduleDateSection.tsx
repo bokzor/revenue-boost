@@ -1,12 +1,21 @@
 /**
  * ScheduleDateSection - Campaign schedule date configuration
- * 
+ *
  * SOLID Compliance:
  * - Single Responsibility: Only handles start/end date selection
  * - Component is <50 lines
  */
 
-import { Card, BlockStack, Text, FormLayout, TextField, InlineStack, Box, Banner } from "@shopify/polaris";
+import {
+  Card,
+  BlockStack,
+  Text,
+  FormLayout,
+  TextField,
+  InlineStack,
+  Box,
+  Banner,
+} from "@shopify/polaris";
 import { formatDateForInput, formatDateRange } from "../../utils/schedule-helpers";
 
 interface ScheduleDateSectionProps {
@@ -27,11 +36,11 @@ export function ScheduleDateSection({
   const dateRangeText = formatDateRange(startDate, endDate, timezone);
   const currentTime = timezone
     ? new Date().toLocaleString("en-US", {
-      timeZone: timezone,
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: true,
-    })
+        timeZone: timezone,
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      })
     : new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
 
   return (
@@ -47,7 +56,8 @@ export function ScheduleDateSection({
         {timezone && (
           <Banner tone="info">
             <Text as="p" variant="bodySm">
-              All times are in your shop's timezone: <strong>{timezone}</strong> (Current time: {currentTime})
+              All times are in your shop&apos;s timezone: <strong>{timezone}</strong> (Current time:{" "}
+              {currentTime})
             </Text>
           </Banner>
         )}
@@ -86,4 +96,3 @@ export function ScheduleDateSection({
     </Card>
   );
 }
-

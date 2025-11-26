@@ -19,16 +19,22 @@ import { getCampaignDiscountCode } from "~/domains/commerce/services/discount.se
 
 // Request validation schema
 const IssueDiscountRequestSchema = z.object({
-  campaignId: z.string().cuid(),
+  campaignId: z.string().min(1).refine(
+    (id) => id.startsWith("preview-") || /^[cC][^\s-]{8,}$/.test(id),
+    "Invalid campaign ID format"
+  ),
   cartSubtotalCents: z.number().int().min(0).optional(),
   sessionId: z.string(),
   challengeToken: z.string(), // REQUIRED: Challenge token for security
-  lineItems: z.array(z.object({
-    variantId: z.string(),
-    quantity: z.number().int().min(1),
-  })).optional(),
+  lineItems: z
+    .array(
+      z.object({
+        variantId: z.string(),
+        quantity: z.number().int().min(1),
+      })
+    )
+    .optional(),
 });
-
 
 // Response types
 interface DiscountIssueResponse {
@@ -63,10 +69,7 @@ export async function action({ request }: ActionFunctionArgs) {
     const { admin, session } = await authenticate.public.appProxy(request);
 
     if (!session?.shop) {
-      return data(
-        { success: false, error: "Invalid session" },
-        { status: 401 }
-      );
+      return data({ success: false, error: "Invalid session" }, { status: 401 });
     }
 
     // Parse and validate request body
@@ -76,11 +79,14 @@ export async function action({ request }: ActionFunctionArgs) {
     const { campaignId, cartSubtotalCents, sessionId, challengeToken } = validatedRequest;
 
     // SECURITY: Validate challenge token
-    const ip = request.headers.get("x-forwarded-for")?.split(",")[0] ||
+    const ip =
+      request.headers.get("x-forwarded-for")?.split(",")[0] ||
       request.headers.get("x-real-ip") ||
       "unknown";
 
-    const { validateAndConsumeToken } = await import("~/domains/security/services/challenge-token.server");
+    const { validateAndConsumeToken } = await import(
+      "~/domains/security/services/challenge-token.server"
+    );
     const tokenValidation = await validateAndConsumeToken(
       challengeToken,
       campaignId,
@@ -97,8 +103,25 @@ export async function action({ request }: ActionFunctionArgs) {
       );
     }
 
-    // SECURITY: Rate limit per session/IP
-    const { checkRateLimit, RATE_LIMITS, createSessionKey } = await import("~/domains/security/services/rate-limit.server");
+    // PREVIEW MODE: Return mock discount code
+    // BYPASS RATE LIMITING for preview mode to allow unlimited testing
+    const isPreviewCampaign = campaignId.startsWith("preview-");
+    if (isPreviewCampaign) {
+      console.log(`[Discount Issue] ✅ Preview mode - returning mock discount code (BYPASSING RATE LIMITS)`);
+      return data(
+        {
+          success: true,
+          discountCode: "PREVIEW10",
+          message: "Preview mode: Discount code generated (mock code)",
+        },
+        { status: 200 }
+      );
+    }
+
+    // PRODUCTION MODE: Rate limit per session/IP
+    const { checkRateLimit, RATE_LIMITS, createSessionKey } = await import(
+      "~/domains/security/services/rate-limit.server"
+    );
     // Use session ID for rate limiting as we might not have email here
     const rateLimitKey = createSessionKey(sessionId);
     const rateLimitResult = await checkRateLimit(
@@ -144,16 +167,14 @@ export async function action({ request }: ActionFunctionArgs) {
     });
 
     if (!campaign || campaign.status !== "ACTIVE") {
-      return data(
-        { success: false, error: "Campaign not found or inactive" },
-        { status: 404 }
-      );
+      return data({ success: false, error: "Campaign not found or inactive" }, { status: 404 });
     }
 
     // Parse discount config
-    const discountConfig = typeof campaign.discountConfig === "string"
-      ? JSON.parse(campaign.discountConfig)
-      : campaign.discountConfig;
+    const discountConfig =
+      typeof campaign.discountConfig === "string"
+        ? JSON.parse(campaign.discountConfig)
+        : campaign.discountConfig;
 
     if (!discountConfig?.enabled) {
       return data(
@@ -167,7 +188,6 @@ export async function action({ request }: ActionFunctionArgs) {
     // TODO: Consider storefront cart listeners to downgrade/remove the code if subtotal drops
     // below the selected tier threshold for better UX.
 
-
     // Get or create discount code via service (with tier selection)
     const result = await getCampaignDiscountCode(
       admin,
@@ -179,10 +199,13 @@ export async function action({ request }: ActionFunctionArgs) {
     );
 
     if (!result.success || !result.discountCode) {
-      return data({
-        success: false,
-        error: result.errors?.[0] || "Failed to generate discount code",
-      }, { status: 500 });
+      return data(
+        {
+          success: false,
+          error: result.errors?.[0] || "Failed to generate discount code",
+        },
+        { status: 500 }
+      );
     }
 
     // Build response
@@ -242,11 +265,14 @@ export async function action({ request }: ActionFunctionArgs) {
     }
 
     // Log issuance for analytics/debugging
-    console.log(`[Discount Issue] Issued code "${result.discountCode}" for campaign ${campaignId}`, {
-      tierUsed: response.tierUsed,
-      cartSubtotal: cartSubtotalCents ? `$${(cartSubtotalCents / 100).toFixed(2)}` : "N/A",
-      isNew: result.isNewDiscount,
-    });
+    console.log(
+      `[Discount Issue] Issued code "${result.discountCode}" for campaign ${campaignId}`,
+      {
+        tierUsed: response.tierUsed,
+        cartSubtotal: cartSubtotalCents ? `$${(cartSubtotalCents / 100).toFixed(2)}` : "N/A",
+        isNew: result.isNewDiscount,
+      }
+    );
 
     // Record analytics event
     try {
@@ -284,17 +310,11 @@ export async function action({ request }: ActionFunctionArgs) {
       );
     }
 
-    return data(
-      { success: false, error: "Failed to issue discount code" },
-      { status: 500 }
-    );
+    return data({ success: false, error: "Failed to issue discount code" }, { status: 500 });
   }
 }
 
 // Only allow POST requests
 export async function loader() {
-  return data(
-    { error: "Method not allowed. Use POST to issue discounts." },
-    { status: 405 }
-  );
+  return data({ error: "Method not allowed. Use POST to issue discounts." }, { status: 405 });
 }

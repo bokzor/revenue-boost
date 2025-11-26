@@ -14,55 +14,52 @@
  */
 
 // Base components
-export { PopupPortal } from './PopupPortal';
+export { PopupPortal } from "./PopupPortal";
 export type {
   PopupPortalProps,
   BackdropConfig,
   AnimationConfig,
-  AnimationType
-} from './PopupPortal';
+  AnimationType,
+} from "./PopupPortal";
 
 // Newsletter components
-export { NewsletterPopup } from './NewsletterPopup';
-export type { NewsletterConfig, NewsletterPopupProps, NewsletterFormData } from './NewsletterPopup';
+export { NewsletterPopup } from "./NewsletterPopup";
+export type { NewsletterConfig, NewsletterPopupProps, NewsletterFormData } from "./NewsletterPopup";
 
 // Gamification components
-export { SpinToWinPopup } from './SpinToWinPopup';
-export type { SpinToWinConfig, SpinToWinPopupProps } from './SpinToWinPopup';
+export { SpinToWinPopup } from "./SpinToWinPopup";
+export type { SpinToWinConfig, SpinToWinPopupProps } from "./SpinToWinPopup";
 
-export { ScratchCardPopup } from './ScratchCardPopup';
-export type { ScratchCardConfig, ScratchCardPopupProps } from './ScratchCardPopup';
+export { ScratchCardPopup } from "./ScratchCardPopup";
+export type { ScratchCardConfig, ScratchCardPopupProps } from "./ScratchCardPopup";
 
 // Sales components
-export { FlashSalePopup } from './FlashSalePopup';
-export type {
-  FlashSaleConfig,
-  FlashSalePopupProps
-} from './FlashSalePopup';
+export { FlashSalePopup } from "./FlashSalePopup";
+export type { FlashSaleConfig, FlashSalePopupProps } from "./FlashSalePopup";
 
-export { CountdownTimerPopup } from './CountdownTimerPopup';
-export type { CountdownTimerConfig, CountdownTimerPopupProps } from './CountdownTimerPopup';
+export { CountdownTimerPopup } from "./CountdownTimerPopup";
+export type { CountdownTimerConfig, CountdownTimerPopupProps } from "./CountdownTimerPopup";
 
 // E-commerce components
-export { CartAbandonmentPopup } from './CartAbandonmentPopup';
-export type { CartAbandonmentConfig, CartAbandonmentPopupProps } from './CartAbandonmentPopup';
+export { CartAbandonmentPopup } from "./CartAbandonmentPopup";
+export type { CartAbandonmentConfig, CartAbandonmentPopupProps } from "./CartAbandonmentPopup";
 
-export { ProductUpsellPopup } from './ProductUpsellPopup';
-export type { ProductUpsellConfig, ProductUpsellPopupProps } from './ProductUpsellPopup';
+export { ProductUpsellPopup } from "./ProductUpsellPopup";
+export type { ProductUpsellConfig, ProductUpsellPopupProps } from "./ProductUpsellPopup";
 
 // Engagement components
-export { FreeShippingPopup } from './FreeShippingPopup';
-export type { FreeShippingConfig, FreeShippingPopupProps } from './FreeShippingPopup';
+export { FreeShippingPopup } from "./FreeShippingPopup";
+export type { FreeShippingConfig, FreeShippingPopupProps } from "./FreeShippingPopup";
 
-export { SocialProofPopup } from './SocialProofPopup';
+export { SocialProofPopup } from "./SocialProofPopup";
 export type {
   SocialProofConfig,
   SocialProofPopupProps,
-  SocialProofNotification
-} from './SocialProofPopup';
+  SocialProofNotification,
+} from "./SocialProofPopup";
 
-export { AnnouncementPopup } from './AnnouncementPopup';
-export type { AnnouncementConfig, AnnouncementPopupProps } from './AnnouncementPopup';
+export { AnnouncementPopup } from "./AnnouncementPopup";
+export type { AnnouncementConfig, AnnouncementPopupProps } from "./AnnouncementPopup";
 
 // Shared types
 export type {
@@ -80,7 +77,7 @@ export type {
   Prize,
   ValidationRule,
   FormField,
-} from './types';
+} from "./types";
 
 // Utility functions
 export {
@@ -95,5 +92,4 @@ export {
   formatTimeRemaining,
   prefersReducedMotion,
   debounce,
-} from './utils';
-
+} from "./utils";

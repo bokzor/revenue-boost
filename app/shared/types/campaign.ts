@@ -53,8 +53,8 @@ export type StorefrontCampaign = CampaignWithConfigsType & {
   imageUrl?: string; // From contentConfig
   overlayOpacity?: number; // From designConfig
   showCloseButton?: boolean; // From designConfig
+  globalCustomCSS?: string; // From store settings
 
   // Additional runtime properties
   [key: string]: unknown;
 };
-

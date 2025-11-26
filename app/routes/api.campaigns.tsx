@@ -8,14 +8,34 @@
  * - POST/PUT/DELETE: 30 requests/minute (write operations)
  */
 
-import { CampaignService, CampaignCreateDataSchema, CampaignUpdateDataSchema } from "~/domains/campaigns";
+import {
+  CampaignService,
+  CampaignCreateDataSchema,
+  CampaignUpdateDataSchema,
+} from "~/domains/campaigns";
 import type { TemplateType } from "~/domains/campaigns";
-import { validateData } from "~/lib/validation-helpers";
+import { validateCustomCss } from "~/lib/css-guards";
+import { validateData, ValidationError } from "~/lib/validation-helpers";
 import { createSuccessResponse, validateResourceExists } from "~/lib/api-helpers.server";
 import { handleApiError } from "~/lib/api-error-handler.server";
 import { getStoreId } from "~/lib/auth-helpers.server";
 import { withAuthRateLimit, withWriteRateLimit } from "~/lib/rate-limit-middleware.server";
 import { authenticate } from "~/shopify.server";
+
+function sanitizeDesignCustomCss(designConfig?: { customCSS?: unknown }) {
+  if (!designConfig) return;
+
+  const safeCss = validateCustomCss(designConfig.customCSS, "designConfig.customCSS");
+
+  if (safeCss !== undefined) {
+    designConfig.customCSS = safeCss;
+    return;
+  }
+
+  if ("customCSS" in designConfig) {
+    delete (designConfig as Record<string, unknown>).customCSS;
+  }
+}
 
 export async function loader(args: { request: Request; params: any; context: any }) {
   return withAuthRateLimit(args, async ({ request }) => {
@@ -27,7 +47,10 @@ export async function loader(args: { request: Request; params: any; context: any
 
       let campaigns;
       if (templateType) {
-        campaigns = await CampaignService.getCampaignsByTemplateType(storeId, templateType as TemplateType);
+        campaigns = await CampaignService.getCampaignsByTemplateType(
+          storeId,
+          templateType as TemplateType
+        );
       } else if (status === "active") {
         campaigns = await CampaignService.getActiveCampaigns(storeId);
       } else {
@@ -52,10 +75,27 @@ export async function action(args: { request: Request; params: any; context: any
 
       if (method === "POST") {
         const rawData = await request.json();
-        console.log('[API /api/campaigns] POST payload', rawData);
-        const validatedData = validateData(CampaignCreateDataSchema, rawData, "Campaign Create Data");
-        const campaign = await CampaignService.createCampaign(storeId, validatedData, admin, appUrl);
-        console.log('[API /api/campaigns] created campaign', campaign?.id);
+        console.log("[API /api/campaigns] POST payload", rawData);
+        const validatedData = validateData(
+          CampaignCreateDataSchema,
+          rawData,
+          "Campaign Create Data"
+        );
+
+        try {
+          sanitizeDesignCustomCss(validatedData.designConfig);
+        } catch (error) {
+          const message = error instanceof Error ? error.message : "Invalid custom CSS";
+          throw new ValidationError(message, [message], "designConfig.customCSS");
+        }
+
+        const campaign = await CampaignService.createCampaign(
+          storeId,
+          validatedData,
+          admin,
+          appUrl
+        );
+        console.log("[API /api/campaigns] created campaign", campaign?.id);
         return createSuccessResponse({ campaign }, 201);
       }
 
@@ -64,8 +104,25 @@ export async function action(args: { request: Request; params: any; context: any
         if (!campaignId) throw new Error("Campaign ID is required");
 
         const rawData = await request.json();
-        const validatedData = validateData(CampaignUpdateDataSchema, rawData, "Campaign Update Data");
-        const campaign = await CampaignService.updateCampaign(campaignId, storeId, validatedData, admin);
+        const validatedData = validateData(
+          CampaignUpdateDataSchema,
+          rawData,
+          "Campaign Update Data"
+        );
+
+        try {
+          sanitizeDesignCustomCss(validatedData.designConfig);
+        } catch (error) {
+          const message = error instanceof Error ? error.message : "Invalid custom CSS";
+          throw new ValidationError(message, [message], "designConfig.customCSS");
+        }
+
+        const campaign = await CampaignService.updateCampaign(
+          campaignId,
+          storeId,
+          validatedData,
+          admin
+        );
         validateResourceExists(campaign, "Campaign");
         return createSuccessResponse({ campaign });
       }

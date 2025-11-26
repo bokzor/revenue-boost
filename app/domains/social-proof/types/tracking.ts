@@ -1,6 +1,6 @@
 /**
  * Social Proof Tracking Types
- * 
+ *
  * Zod schemas for runtime validation of tracking events
  */
 
@@ -9,12 +9,12 @@ import { z } from "zod";
 /**
  * Event types that can be tracked
  */
-export const EventTypeSchema = z.enum(['page_view', 'product_view', 'add_to_cart']);
+export const EventTypeSchema = z.enum(["page_view", "product_view", "add_to_cart"]);
 export type EventType = z.infer<typeof EventTypeSchema>;
 
 /**
  * Track Event Request Body Schema
- * 
+ *
  * Validates incoming tracking requests with:
  * - Required shop domain (must be valid Shopify domain)
  * - Required event type (one of the allowed types)
@@ -25,10 +25,12 @@ export const TrackEventSchema = z.object({
   eventType: EventTypeSchema,
   productId: z.string().optional(),
   pageUrl: z.string().url().optional(),
-  shop: z.string().regex(
-    /^[a-z0-9][a-z0-9-]*\.myshopify\.com$/,
-    "Shop must be a valid Shopify domain (e.g., store.myshopify.com)"
-  ),
+  shop: z
+    .string()
+    .regex(
+      /^[a-z0-9][a-z0-9-]*\.myshopify\.com$/,
+      "Shop must be a valid Shopify domain (e.g., store.myshopify.com)"
+    ),
 });
 
 export type TrackEventBody = z.infer<typeof TrackEventSchema>;
@@ -66,4 +68,3 @@ export interface SocialProofContentConfig {
   // Additional fields that might be in contentConfig
   [key: string]: unknown;
 }
-

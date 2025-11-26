@@ -41,6 +41,7 @@ export interface StepRendererProps {
   selectedVariant?: string;
   abTestingEnabled?: boolean;
   initialTemplates?: UnifiedTemplate[];
+  globalCustomCSS?: string;
 }
 // ============================================================================
 // STEP RENDERERS
@@ -73,7 +74,16 @@ export function renderGoalStep(props: StepRendererProps) {
 }
 
 export function renderDesignStep(props: StepRendererProps) {
-  const { wizardState, updateData, storeId, shopDomain, campaignId, setTemplateType, initialTemplates } = props;
+  const {
+    wizardState,
+    updateData,
+    storeId,
+    shopDomain,
+    campaignId,
+    setTemplateType,
+    initialTemplates,
+  } = props;
+  const { globalCustomCSS } = props;
 
   // Convert wizard state designConfig to DesignConfig format
   const designConfig: Partial<import("~/domains/campaigns/types/campaign").DesignConfig> = {
@@ -84,7 +94,9 @@ export function renderDesignStep(props: StepRendererProps) {
     overlayOpacity: 0.5,
     animation: "fade",
     // Add any existing design config values
-    ...(wizardState.designConfig as Partial<import("~/domains/campaigns/types/campaign").DesignConfig>),
+    ...(wizardState.designConfig as Partial<
+      import("~/domains/campaigns/types/campaign").DesignConfig
+    >),
   };
 
   // Build targetRules from wizard state for preview
@@ -106,6 +118,7 @@ export function renderDesignStep(props: StepRendererProps) {
       designConfig={designConfig}
       discountConfig={wizardState.discountConfig}
       targetRules={targetRules}
+      globalCustomCSS={globalCustomCSS}
       onContentChange={(content) => updateData({ contentConfig: content })}
       onDesignChange={(design) => updateData({ designConfig: design })}
       onDiscountChange={(config) => updateData({ discountConfig: config })}
@@ -132,7 +145,9 @@ export function renderDesignStep(props: StepRendererProps) {
         const nextUpdate: Partial<CampaignFormData> = {
           templateId: template.id,
           templateType: template.templateType,
+          // Use the template's seeded content (already merged with recipe if applicable)
           contentConfig: contentWithDefaults,
+          // Use the template's seeded design config as-is (already merged with recipe if applicable)
           designConfig: template.designConfig || {},
           // Apply template triggers so the Targeting step reflects the selection (e.g., Exit Intent)
           ...(enhancedFromTemplate ? { enhancedTriggers: enhancedFromTemplate } : {}),
@@ -142,10 +157,12 @@ export function renderDesignStep(props: StepRendererProps) {
 
         updateData(nextUpdate);
 
-        // Also pass hydrated defaults and targetRules so setTemplateType can merge (e.g., page targeting)
+        // Also pass hydrated defaults, targetRules, and design so setTemplateType
+        // can merge them into wizard state (including seeded design from DB)
         setTemplateType(template.templateType, {
           contentDefaults: contentWithDefaults,
           targetRules: template.targetRules as any,
+          design: template.designConfig as any,
         });
       }}
     />
@@ -212,4 +229,3 @@ export function renderScheduleStep(props: StepRendererProps) {
     />
   );
 }
-

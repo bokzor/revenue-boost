@@ -1,12 +1,12 @@
 /**
  * usePopupAnimation Hook
- * 
+ *
  * Manages popup entry/exit animation state.
  * Consolidates the common pattern of delayed content visibility
  * used across all popup components.
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 
 export interface UsePopupAnimationOptions {
   isVisible: boolean;
@@ -16,10 +16,10 @@ export interface UsePopupAnimationOptions {
 
 export function usePopupAnimation(options: UsePopupAnimationOptions) {
   const { isVisible, entryDelay = 50, exitDelay = 300 } = options;
-  
+
   const [showContent, setShowContent] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
-  
+
   useEffect(() => {
     if (isVisible) {
       // Entry animation
@@ -28,7 +28,7 @@ export function usePopupAnimation(options: UsePopupAnimationOptions) {
         setShowContent(true);
         setIsAnimating(false);
       }, entryDelay);
-      
+
       return () => clearTimeout(timer);
     } else {
       // Exit animation
@@ -38,15 +38,14 @@ export function usePopupAnimation(options: UsePopupAnimationOptions) {
         const timer = setTimeout(() => {
           setIsAnimating(false);
         }, exitDelay);
-        
+
         return () => clearTimeout(timer);
       }
     }
   }, [isVisible, entryDelay, exitDelay, showContent]);
-  
+
   return {
     showContent,
     isAnimating,
   };
 }
-

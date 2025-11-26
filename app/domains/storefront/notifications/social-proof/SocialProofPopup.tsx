@@ -32,17 +32,14 @@ export const SocialProofPopup: React.FC<SocialProofPopupProps> = ({
       ...DEFAULT_SOCIAL_PROOF_CONFIG,
       ...customConfig,
     }),
-    [customConfig],
+    [customConfig]
   );
 
-  const [notifications, setNotifications] = useState<SocialProofNotification[]>(
-    [],
+  const [notifications, setNotifications] = useState<SocialProofNotification[]>([]);
+  const [currentNotification, setCurrentNotification] = useState<SocialProofNotification | null>(
+    null
   );
-  const [currentNotification, setCurrentNotification] =
-    useState<SocialProofNotification | null>(null);
-  const [notificationQueue, setNotificationQueue] = useState<
-    SocialProofNotification[]
-  >([]);
+  const [notificationQueue, setNotificationQueue] = useState<SocialProofNotification[]>([]);
   const [displayCount, setDisplayCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -66,10 +63,7 @@ export const SocialProofPopup: React.FC<SocialProofPopupProps> = ({
           const res = await fetch(url);
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           data = await res.json();
-          console.log(
-            `[SocialProofPopup] Successfully fetched from ${url}`,
-            data,
-          );
+          console.log(`[SocialProofPopup] Successfully fetched from ${url}`, data);
           break;
         } catch (e) {
           console.log(`[SocialProofPopup] Failed to fetch from ${url}:`, e);
@@ -82,10 +76,7 @@ export const SocialProofPopup: React.FC<SocialProofPopupProps> = ({
 
       if (data.success && data.notifications && data.notifications.length > 0) {
         // Use real data from API
-        console.log(
-          `[SocialProofPopup] Using API notifications:`,
-          data.notifications.length,
-        );
+        console.log(`[SocialProofPopup] Using API notifications:`, data.notifications.length);
         setNotifications(data.notifications);
         setNotificationQueue(data.notifications);
       } else {
@@ -96,17 +87,11 @@ export const SocialProofPopup: React.FC<SocialProofPopupProps> = ({
         setNotificationQueue(mockNotifications);
       }
     } catch (error) {
-      console.warn(
-        "[SocialProofPopup] Failed to fetch notifications, using mock data:",
-        error,
-      );
+      console.warn("[SocialProofPopup] Failed to fetch notifications, using mock data:", error);
 
       // Fallback to mock data on error
       const mockNotifications = generateMockNotifications(config);
-      console.log(
-        `[SocialProofPopup] Generated mock notifications:`,
-        mockNotifications.length,
-      );
+      console.log(`[SocialProofPopup] Generated mock notifications:`, mockNotifications.length);
       setNotifications(mockNotifications);
       setNotificationQueue(mockNotifications);
     } finally {
@@ -177,13 +162,11 @@ export const SocialProofPopup: React.FC<SocialProofPopupProps> = ({
   // Start rotation timer
   useEffect(() => {
     console.log(
-      `[SocialProofPopup] Rotation timer: isLoading=${isLoading}, notifications=${notifications.length}, currentNotification=${currentNotification?.id}`,
+      `[SocialProofPopup] Rotation timer: isLoading=${isLoading}, notifications=${notifications.length}, currentNotification=${currentNotification?.id}`
     );
 
     if (isLoading || notifications.length === 0) {
-      console.log(
-        `[SocialProofPopup] Skipping rotation: isLoading=${isLoading}, no notifications`,
-      );
+      console.log(`[SocialProofPopup] Skipping rotation: isLoading=${isLoading}, no notifications`);
       return;
     }
 
@@ -224,15 +207,12 @@ export const SocialProofPopup: React.FC<SocialProofPopupProps> = ({
   // Don't render if loading or no notifications
   if (isLoading || !currentNotification) {
     console.log(
-      `[SocialProofPopup] Returning null: isLoading=${isLoading}, currentNotification=${currentNotification?.id}`,
+      `[SocialProofPopup] Returning null: isLoading=${isLoading}, currentNotification=${currentNotification?.id}`
     );
     return null;
   }
 
-  console.log(
-    `[SocialProofPopup] Rendering notification:`,
-    currentNotification.id,
-  );
+  console.log(`[SocialProofPopup] Rendering notification:`, currentNotification.id);
   return (
     <SocialProofNotificationComponent
       notification={currentNotification}
@@ -244,9 +224,7 @@ export const SocialProofPopup: React.FC<SocialProofPopupProps> = ({
 };
 
 // Helper function to generate mock notifications for testing
-function generateMockNotifications(
-  config: SocialProofConfig,
-): SocialProofNotification[] {
+function generateMockNotifications(config: SocialProofConfig): SocialProofNotification[] {
   const notifications: SocialProofNotification[] = [];
 
   // Generate purchase notifications
@@ -359,8 +337,7 @@ export const SOCIAL_PROOF_TEMPLATE_CONFIG = {
   templateId: "social-proof",
   name: "Social Proof Notifications",
   category: "social-proof" as const,
-  templateDescription:
-    "Build trust with recent purchases, visitor count, and review highlights",
+  templateDescription: "Build trust with recent purchases, visitor count, and review highlights",
   isPopular: true,
   conversionRate: 22.5, // 15-30% improvement over baseline
 

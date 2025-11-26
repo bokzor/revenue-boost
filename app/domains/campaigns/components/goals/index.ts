@@ -4,4 +4,3 @@
 
 export { GoalOptionCard } from "./GoalOptionCard";
 export { GoalConfirmation } from "./GoalConfirmation";
-

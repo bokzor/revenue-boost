@@ -48,11 +48,9 @@ export function FlashSaleContentSection({
     <>
       <FormGrid columns={2}>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Popup Size
-          </label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Popup Size</label>
           <select
-            value={designConfig.popupSize || 'standard'}
+            value={designConfig.popupSize || "standard"}
             onChange={(e) => updateDesignField("popupSize", e.target.value as any)}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
@@ -61,9 +59,7 @@ export function FlashSaleContentSection({
             <option value="wide">Wide (56rem)</option>
             <option value="full">Full (90%)</option>
           </select>
-          <p className="mt-1 text-sm text-gray-500">
-            Controls the width of the popup
-          </p>
+          <p className="mt-1 text-sm text-gray-500">Controls the width of the popup</p>
         </div>
       </FormGrid>
 
@@ -217,4 +213,3 @@ export function FlashSaleContentSection({
     </>
   );
 }
-

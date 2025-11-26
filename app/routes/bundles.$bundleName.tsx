@@ -18,14 +18,14 @@ const ALLOWED_BUNDLE_RE = /^[a-z-]+\.bundle\.js$/;
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
   console.log(`[Bundles] Request: ${request.method} ${request.url}`);
-  
+
   if (request.method !== "GET" && request.method !== "HEAD") {
     return data({ error: "Method not allowed" }, { status: 405 });
   }
 
   const bundleName = params.bundleName || "";
   console.log(`[Bundles] Bundle name: ${bundleName}`);
-  
+
   if (!ALLOWED_BUNDLE_RE.test(bundleName)) {
     console.error(`[Bundles] Invalid bundle name: ${bundleName}`);
     return data({ error: "Invalid bundle name" }, { status: 400 });
@@ -79,4 +79,3 @@ function buildHeaders(lastModified: string, contentLength?: number) {
   }
   return headers;
 }
-

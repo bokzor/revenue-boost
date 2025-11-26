@@ -11,13 +11,14 @@
  * - CTA button
  */
 
-import React, { useCallback } from 'react';
-import type { PopupDesignConfig } from './types';
-import type { CountdownTimerContent } from '~/domains/campaigns/types/campaign';
-import { POPUP_SPACING, SPACING_GUIDELINES } from './spacing';
+import React, { useCallback, useMemo } from "react";
+import type { PopupDesignConfig } from "./types";
+import type { CountdownTimerContent } from "~/domains/campaigns/types/campaign";
+import { POPUP_SPACING, SPACING_GUIDELINES } from "./spacing";
 
 // Import custom hooks
-import { useCountdownTimer, usePopupAnimation } from './hooks';
+import { useCountdownTimer, usePopupAnimation } from "./hooks";
+import { buildScopedCss } from "~/domains/storefront/shared/css";
 
 /**
  * CountdownTimerConfig - Extends both design config AND campaign content type
@@ -27,10 +28,12 @@ import { useCountdownTimer, usePopupAnimation } from './hooks';
 export interface CountdownTimerConfig extends PopupDesignConfig, CountdownTimerContent {
   // Storefront-specific fields only
   ctaOpenInNewTab: boolean; // required by content schema default
-  colorScheme: 'custom' | 'info' | 'success' | 'urgent';
+  colorScheme: "custom" | "info" | "success" | "urgent";
 
   // Note: headline, endTime, countdownDuration, ctaUrl, etc.
   // all come from CountdownTimerContent
+  customCSS?: string;
+  globalCustomCSS?: string;
 }
 
 export interface CountdownTimerPopupProps {
@@ -49,13 +52,9 @@ export const CountdownTimerPopup: React.FC<CountdownTimerPopupProps> = ({
   onCtaClick,
 }) => {
   // Use countdown timer hook
-  const {
-    timeRemaining,
-    hasExpired,
-    formattedTime,
-  } = useCountdownTimer({
+  const { timeRemaining, hasExpired, formattedTime } = useCountdownTimer({
     enabled: true,
-    mode: config.endTime ? 'fixed_end' : 'duration',
+    mode: config.endTime ? "fixed_end" : "duration",
     endTime: config.endTime,
     duration: config.countdownDuration,
     onExpire: () => {
@@ -75,7 +74,7 @@ export const CountdownTimerPopup: React.FC<CountdownTimerPopupProps> = ({
 
     if (config.ctaUrl) {
       if (config.ctaOpenInNewTab) {
-        window.open(config.ctaUrl, '_blank', 'noopener,noreferrer');
+        window.open(config.ctaUrl, "_blank", "noopener,noreferrer");
       } else {
         window.location.href = config.ctaUrl;
       }
@@ -87,76 +86,79 @@ export const CountdownTimerPopup: React.FC<CountdownTimerPopupProps> = ({
   // Color scheme presets adapted from mock countdown banner
   const getColorSchemeStyles = () => {
     switch (config.colorScheme) {
-      case 'urgent':
+      case "urgent":
         return {
-          background: 'linear-gradient(135deg, #dc2626 0%, #f97316 100%)',
-          text: '#ffffff',
-          timerBg: 'rgba(255, 255, 255, 0.2)',
-          timerText: '#ffffff',
-          ctaBg: '#ffffff',
-          ctaText: '#dc2626',
+          background: "linear-gradient(135deg, #dc2626 0%, #f97316 100%)",
+          text: "#ffffff",
+          timerBg: "rgba(255, 255, 255, 0.2)",
+          timerText: "#ffffff",
+          ctaBg: "#ffffff",
+          ctaText: "#dc2626",
         };
-      case 'success':
+      case "success":
         return {
-          background: 'linear-gradient(135deg, #10b981 0%, #14b8a6 100%)',
-          text: '#ffffff',
-          timerBg: 'rgba(255, 255, 255, 0.2)',
-          timerText: '#ffffff',
-          ctaBg: '#ffffff',
-          ctaText: '#10b981',
+          background: "linear-gradient(135deg, #10b981 0%, #14b8a6 100%)",
+          text: "#ffffff",
+          timerBg: "rgba(255, 255, 255, 0.2)",
+          timerText: "#ffffff",
+          ctaBg: "#ffffff",
+          ctaText: "#10b981",
         };
-      case 'info':
+      case "info":
         return {
-          background: 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)',
-          text: '#ffffff',
-          timerBg: 'rgba(255, 255, 255, 0.2)',
-          timerText: '#ffffff',
-          ctaBg: '#ffffff',
-          ctaText: '#3b82f6',
+          background: "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)",
+          text: "#ffffff",
+          timerBg: "rgba(255, 255, 255, 0.2)",
+          timerText: "#ffffff",
+          ctaBg: "#ffffff",
+          ctaText: "#3b82f6",
         };
       default:
         return {
           background: config.backgroundColor,
           text: config.textColor,
-          timerBg: config.inputBackgroundColor || 'rgba(0, 0, 0, 0.08)',
+          timerBg: config.inputBackgroundColor || "rgba(0, 0, 0, 0.08)",
           timerText: config.textColor,
           ctaBg: config.buttonColor,
-          ctaText: config.buttonTextColor || '#ffffff',
+          ctaText: config.buttonTextColor || "#ffffff",
         };
     }
   };
 
-	  const schemeColors = getColorSchemeStyles();
+  const schemeColors = getColorSchemeStyles();
 
-	  const isPreview = (config as any)?.previewMode;
+  const isPreview = (config as any)?.previewMode;
 
-	  const positionStyle: React.CSSProperties = isPreview
-	    ? {
-	        // In admin preview, keep the banner constrained to the preview
-	        // frame instead of the full window. Absolute positioning inside the
-	        // TemplatePreview's relative container mimics top/bottom banners
-	        // without breaking out of the device frame.
-	        position: 'absolute',
-	        [config.position === 'bottom' ? 'bottom' : 'top']: 0,
-	        left: 0,
-	        right: 0,
-	      }
-	    : config.sticky
-	      ? {
-	          // Storefront behavior: stick to the top/bottom of the viewport.
-	          position: 'fixed',
-	          [config.position === 'bottom' ? 'bottom' : 'top']: 0,
-	          left: 0,
-	          right: 0,
-	          zIndex: 9999,
-	        }
-	      : {
-	          // Non-sticky mode: banner participates in normal document flow.
-	          position: 'relative',
-	        };
+  const positionStyle: React.CSSProperties = isPreview
+    ? {
+        // In admin preview, keep the banner constrained to the preview
+        // frame instead of the full window. Absolute positioning inside the
+        // TemplatePreview's relative container mimics top/bottom banners
+        // without breaking out of the device frame.
+        position: "absolute",
+        [config.position === "bottom" ? "bottom" : "top"]: 0,
+        left: 0,
+        right: 0,
+      }
+    : config.sticky
+      ? {
+          // Storefront behavior: stick to the top/bottom of the viewport.
+          position: "fixed",
+          [config.position === "bottom" ? "bottom" : "top"]: 0,
+          left: 0,
+          right: 0,
+          zIndex: 9999,
+        }
+      : {
+          // Non-sticky mode: banner participates in normal document flow.
+          position: "relative",
+        };
+
+  const scopedCss = buildScopedCss(config.globalCustomCSS, config.customCSS, "data-rb-banner", "countdown");
 
   return (
     <>
+      {scopedCss ? <style dangerouslySetInnerHTML={{ __html: scopedCss }} /> : null}
       <style>{`
         .countdown-banner {
           font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -351,14 +353,15 @@ export const CountdownTimerPopup: React.FC<CountdownTimerPopupProps> = ({
 
       <div
         className="countdown-banner"
+        data-rb-banner
         style={{
           ...positionStyle,
           background: schemeColors.background,
           color: schemeColors.text,
           boxShadow:
-            config.position === 'bottom'
-              ? '0 -2px 8px rgba(0, 0, 0, 0.1)'
-              : '0 2px 8px rgba(0, 0, 0, 0.1)',
+            config.position === "bottom"
+              ? "0 -2px 8px rgba(0, 0, 0, 0.1)"
+              : "0 2px 8px rgba(0, 0, 0, 0.1)",
         }}
       >
         <div className="countdown-banner-content">
@@ -394,7 +397,7 @@ export const CountdownTimerPopup: React.FC<CountdownTimerPopupProps> = ({
                         }}
                       >
                         <div className="countdown-banner-timer-value">
-                          {String(timeRemaining.days).padStart(2, '0')}
+                          {String(timeRemaining.days).padStart(2, "0")}
                         </div>
                         <div className="countdown-banner-timer-label">Days</div>
                       </div>
@@ -415,7 +418,7 @@ export const CountdownTimerPopup: React.FC<CountdownTimerPopupProps> = ({
                     }}
                   >
                     <div className="countdown-banner-timer-value">
-                      {String(timeRemaining.hours).padStart(2, '0')}
+                      {String(timeRemaining.hours).padStart(2, "0")}
                     </div>
                     <div className="countdown-banner-timer-label">Hours</div>
                   </div>
@@ -435,7 +438,7 @@ export const CountdownTimerPopup: React.FC<CountdownTimerPopupProps> = ({
                     }}
                   >
                     <div className="countdown-banner-timer-value">
-                      {String(timeRemaining.minutes).padStart(2, '0')}
+                      {String(timeRemaining.minutes).padStart(2, "0")}
                     </div>
                     <div className="countdown-banner-timer-label">Mins</div>
                   </div>
@@ -455,26 +458,20 @@ export const CountdownTimerPopup: React.FC<CountdownTimerPopupProps> = ({
                     }}
                   >
                     <div className="countdown-banner-timer-value">
-                      {String(timeRemaining.seconds).padStart(2, '0')}
+                      {String(timeRemaining.seconds).padStart(2, "0")}
                     </div>
                     <div className="countdown-banner-timer-label">Secs</div>
                   </div>
                 </div>
 
                 {config.showStockCounter && config.stockCount && (
-                  <div
-                    className="countdown-banner-stock"
-                    style={{ color: schemeColors.text }}
-                  >
+                  <div className="countdown-banner-stock" style={{ color: schemeColors.text }}>
                     ⚡ Only {config.stockCount} left in stock
                   </div>
                 )}
               </>
             ) : (
-              <div
-                className="countdown-banner-expired"
-                style={{ color: schemeColors.text }}
-              >
+              <div className="countdown-banner-expired" style={{ color: schemeColors.text }}>
                 Offer has ended
               </div>
             )}
@@ -492,7 +489,7 @@ export const CountdownTimerPopup: React.FC<CountdownTimerPopupProps> = ({
                   borderRadius: `${config.borderRadius ?? 6}px`,
                 }}
               >
-                {hasExpired ? 'Offer Expired' : (config.buttonText || config.ctaText)}
+                {hasExpired ? "Offer Expired" : config.buttonText || config.ctaText}
               </button>
             )}
           </div>
@@ -501,4 +498,3 @@ export const CountdownTimerPopup: React.FC<CountdownTimerPopupProps> = ({
     </>
   );
 };
-

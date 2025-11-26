@@ -22,7 +22,10 @@ import {
 } from "@shopify/polaris";
 import { SettingsIcon } from "@shopify/polaris-icons";
 import { DiscountAdvancedSettings } from "~/domains/campaigns/components/DiscountSettingsStep";
-import type { DiscountConfig, DiscountDeliveryMode } from "~/domains/popups/services/discounts/discount.server";
+import type {
+  DiscountConfig,
+  DiscountDeliveryMode,
+} from "~/domains/popups/services/discounts/discount.server";
 
 interface DiscountSectionProps {
   goal?: string;
@@ -43,10 +46,7 @@ export function DiscountSection({
     showInPreview: discountConfig?.showInPreview !== false,
     type: discountConfig?.type || "shared",
     valueType: discountConfig?.valueType || "PERCENTAGE",
-    value:
-      discountConfig?.valueType === "FREE_SHIPPING"
-        ? undefined
-        : discountConfig?.value || 10,
+    value: discountConfig?.valueType === "FREE_SHIPPING" ? undefined : discountConfig?.value || 10,
     minimumAmount: discountConfig?.minimumAmount,
     usageLimit: discountConfig?.usageLimit,
     expiryDays: discountConfig?.expiryDays || 30,
@@ -102,10 +102,7 @@ export function DiscountSection({
             value={config.valueType}
             onChange={(valueType) => {
               const updates: Partial<DiscountConfig> = {
-                valueType: valueType as
-                  | "PERCENTAGE"
-                  | "FIXED_AMOUNT"
-                  | "FREE_SHIPPING",
+                valueType: valueType as "PERCENTAGE" | "FIXED_AMOUNT" | "FREE_SHIPPING",
               };
               // Clear value when switching to FREE_SHIPPING
               if (valueType === "FREE_SHIPPING") {
@@ -126,9 +123,7 @@ export function DiscountSection({
                 type="number"
                 suffix={getValueSuffix()}
                 value={config.value?.toString() || ""}
-                onChange={(value) =>
-                  updateConfig({ value: parseFloat(value) || 0 })
-                }
+                onChange={(value) => updateConfig({ value: parseFloat(value) || 0 })}
                 placeholder={getRecommendedValue().toString()}
                 autoComplete="off"
                 min={0}
@@ -152,16 +147,11 @@ export function DiscountSection({
           )}
 
           {config.valueType === "FREE_SHIPPING" && (
-            <Box
-              padding="300"
-              background="bg-surface-secondary"
-              borderRadius="200"
-            >
+            <Box padding="300" background="bg-surface-secondary" borderRadius="200">
               <Text as="p" variant="bodySm">
                 🚚 <strong>Free Shipping Discount</strong>
                 <br />
-                Customers will get free shipping with their order. No discount
-                value needed.
+                Customers will get free shipping with their order. No discount value needed.
               </Text>
             </Box>
           )}
@@ -196,9 +186,7 @@ export function DiscountSection({
           <TextField
             label="Discount Code Prefix"
             value={config.prefix || ""}
-            onChange={(prefix) =>
-              updateConfig({ prefix: prefix.toUpperCase() })
-            }
+            onChange={(prefix) => updateConfig({ prefix: prefix.toUpperCase() })}
             placeholder="WELCOME"
             autoComplete="off"
             helpText="Prefix for generated codes (e.g., WELCOME10)"
@@ -240,13 +228,13 @@ export function DiscountSection({
       >
         <Modal.Section>
           <div data-testid="advanced-discount-settings-modal">
-          <DiscountAdvancedSettings
-            goal={goal}
-            discountConfig={config}
-            onConfigChange={(newConfig) => {
-              onConfigChange(newConfig);
-            }}
-          />
+            <DiscountAdvancedSettings
+              goal={goal}
+              discountConfig={config}
+              onConfigChange={(newConfig) => {
+                onConfigChange(newConfig);
+              }}
+            />
           </div>
         </Modal.Section>
       </Modal>

@@ -21,7 +21,7 @@ import type { UnifiedTemplate } from "../../hooks/useTemplates";
 
 import type { SpinToWinContent } from "~/domains/campaigns/types/campaign";
 import { getSpinToWinSliceColors, getSpinToWinWheelBorder } from "~/config/color-presets";
-
+import { CustomCSSEditor } from "../CustomCSSEditor";
 
 interface DesignStepContentProps {
   goal?: CampaignGoal;
@@ -34,6 +34,7 @@ interface DesignStepContentProps {
   designConfig: Partial<DesignConfig>;
   discountConfig?: DiscountConfig;
   targetRules?: Record<string, any>;
+  globalCustomCSS?: string;
   onContentChange: (content: Partial<ContentConfig>) => void;
   onDesignChange: (design: Partial<DesignConfig>) => void;
   onDiscountChange?: (config: DiscountConfig) => void;
@@ -53,6 +54,7 @@ export function DesignStepContent({
   designConfig,
   discountConfig,
   targetRules,
+  globalCustomCSS,
   onContentChange,
   onDesignChange,
   onDiscountChange,
@@ -98,7 +100,7 @@ export function DesignStepContent({
           {templateType && (
             <>
               {/* Newsletter Template - Self-contained with Content, Discount, and Design */}
-              {(templateType === "NEWSLETTER" || templateType === "EXIT_INTENT") ? (
+              {templateType === "NEWSLETTER" || templateType === "EXIT_INTENT" ? (
                 <>
                   <NewsletterContentSection
                     content={contentConfig as Partial<NewsletterContent>}
@@ -152,6 +154,17 @@ export function DesignStepContent({
                       }
                     }}
                   />
+
+                  <CustomCSSEditor
+                    value={designConfig.customCSS || ""}
+                    globalCustomCSS={globalCustomCSS}
+                    onChange={(css) =>
+                      onDesignChange({
+                        ...designConfig,
+                        customCSS: css,
+                      })
+                    }
+                  />
                 </>
               )}
             </>
@@ -161,10 +174,7 @@ export function DesignStepContent({
 
       {/* Right Column - Live Preview */}
       <Layout.Section variant="oneHalf">
-        <div
-          data-affix-boundary
-          style={{ position: "relative", alignSelf: "flex-start" }}
-        >
+        <div data-affix-boundary style={{ position: "relative", alignSelf: "flex-start" }}>
           <Affix disableBelowWidth={768}>
             {templateType ? (
               <LivePreviewPanel
@@ -180,6 +190,7 @@ export function DesignStepContent({
                 targetRules={targetRules}
                 shopDomain={shopDomain}
                 campaignId={campaignId}
+                globalCustomCSS={globalCustomCSS}
               />
             ) : (
               <Card>
@@ -199,4 +210,3 @@ export function DesignStepContent({
     </Layout>
   );
 }
-

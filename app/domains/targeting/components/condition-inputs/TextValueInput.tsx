@@ -1,6 +1,6 @@
 /**
  * TextValueInput - Text input for condition values
- * 
+ *
  * Single Responsibility: Handle text input for conditions
  */
 
@@ -24,4 +24,3 @@ export function TextValueInput({ value, onChange }: TextValueInputProps) {
     />
   );
 }
-

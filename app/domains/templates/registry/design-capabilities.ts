@@ -1,9 +1,9 @@
 /**
  * Design Capabilities Registry
- * 
+ *
  * Static, code-only capability matrix to gate UI controls per template.
  * Does not affect schemas or persistence - DesignConfig remains a superset.
- * 
+ *
  * Purpose: Hide irrelevant design controls for templates that don't use them,
  * while keeping a unified data model across all templates.
  */
@@ -16,35 +16,35 @@ import type { TemplateType } from "~/domains/campaigns/types/campaign";
 export type DesignCapabilities = {
   /** Whether template uses buttons (affects Button Colors group) */
   usesButtons?: boolean;
-  
+
   /** Whether template uses input fields (affects Input Colors group) */
   usesInputs?: boolean;
-  
+
   /** Whether template uses modal overlay (affects Overlay Settings group) */
   usesOverlay?: boolean;
-  
+
   /** Whether template uses background images (affects Image Configuration group) */
   usesImage?: boolean;
-  
+
   /** Whether template uses advanced typography controls (reserved for future) */
   usesTypographyAdvanced?: boolean;
-  
+
   /** Whether template uses accent color (affects Main Colors group) */
   usesAccent?: boolean;
-  
+
   /** Whether template uses success/warning colors (affects state color controls) */
   usesSuccessWarning?: boolean;
-  
+
   /** Supported position values (constrains Position dropdown options) */
   supportsPosition?: Array<"center" | "top" | "bottom" | "left" | "right">;
-  
+
   /** Supported size values (constrains Size dropdown options) */
   supportsSize?: Array<"small" | "medium" | "large">;
 };
 
 /**
  * Template Design Capabilities Map
- * 
+ *
  * Defines which design controls are relevant for each template type.
  * - undefined capability = show control (default permissive)
  * - true = show control
@@ -63,7 +63,7 @@ export const TEMPLATE_DESIGN_CAPABILITIES: Record<TemplateType, DesignCapabiliti
     supportsPosition: ["center", "top", "bottom", "left", "right"],
     supportsSize: ["small", "medium", "large"],
   },
-  
+
   EXIT_INTENT: {
     usesButtons: true,
     usesInputs: true,
@@ -75,7 +75,7 @@ export const TEMPLATE_DESIGN_CAPABILITIES: Record<TemplateType, DesignCapabiliti
     supportsPosition: ["center", "top", "bottom", "left", "right"],
     supportsSize: ["small", "medium", "large"],
   },
-  
+
   // Banner/bar templates (no overlay, no inputs)
   FREE_SHIPPING: {
     usesButtons: false,
@@ -88,7 +88,7 @@ export const TEMPLATE_DESIGN_CAPABILITIES: Record<TemplateType, DesignCapabiliti
     supportsPosition: ["top", "bottom"],
     supportsSize: ["small", "medium"],
   },
-  
+
   // Promotional modals
   FLASH_SALE: {
     usesButtons: true,
@@ -165,7 +165,7 @@ export const TEMPLATE_DESIGN_CAPABILITIES: Record<TemplateType, DesignCapabiliti
     supportsPosition: ["bottom", "top", "left", "right"],
     supportsSize: ["small"],
   },
-  
+
   // Banner/sticky templates
   COUNTDOWN_TIMER: {
     usesButtons: true,
@@ -178,7 +178,7 @@ export const TEMPLATE_DESIGN_CAPABILITIES: Record<TemplateType, DesignCapabiliti
     supportsPosition: ["top", "bottom"],
     supportsSize: ["small", "medium"],
   },
-  
+
   ANNOUNCEMENT: {
     usesButtons: true,
     usesInputs: false,
@@ -200,6 +200,6 @@ export function getDesignCapabilities(templateType?: TemplateType): DesignCapabi
   if (!templateType) {
     return undefined;
   }
-  
+
   return TEMPLATE_DESIGN_CAPABILITIES[templateType];
 }

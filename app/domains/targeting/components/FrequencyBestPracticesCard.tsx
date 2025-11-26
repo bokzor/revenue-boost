@@ -1,6 +1,6 @@
 /**
  * Frequency Best Practices Card Component
- * 
+ *
  * Display best practices for frequency capping
  */
 
@@ -57,4 +57,3 @@ export function FrequencyBestPracticesCard() {
     </Card>
   );
 }
-

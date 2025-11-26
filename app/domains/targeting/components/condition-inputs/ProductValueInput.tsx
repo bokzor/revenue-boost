@@ -1,6 +1,6 @@
 /**
  * ProductValueInput - Product selector for condition values
- * 
+ *
  * Single Responsibility: Handle product selection for conditions
  */
 
@@ -68,4 +68,3 @@ export function ProductValueInput({ value, onChange }: ProductValueInputProps) {
     </>
   );
 }
-

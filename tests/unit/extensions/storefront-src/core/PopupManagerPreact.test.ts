@@ -21,6 +21,9 @@ function createMemoryStorage() {
 }
 
 async function loadPopupManager() {
+  // Vitest already provides a DOM environment (happy-dom)
+  // No need to set up JSDOM manually
+
   // SessionManager in PopupManagerPreact relies on localStorage/sessionStorage.
   // Provide simple in-memory implementations before importing the module.
   globalThis.localStorage = createMemoryStorage() as any;
@@ -228,6 +231,54 @@ describe("PopupManagerPreact renderPopup", () => {
     ]);
     expect(config.scratchThreshold).toBe(70);
     expect(config.scratchRadius).toBe(30);
+
+    cleanup();
+  });
+
+  it("decorates CTA and product URLs with UTM params", async () => {
+    const { renderPopup } = await loadPopupManager();
+
+    let capturedProps: any = null;
+    const FakeComponent: ComponentType<Record<string, unknown>> = (props) => {
+      capturedProps = props;
+      // simulate clicking a product
+      (props as any).onProductClick?.({ id: "p1", handle: "handle-1" });
+      return null;
+    };
+
+    const campaign: StorefrontCampaign = {
+      id: "utm-campaign",
+      name: "UTM Campaign",
+      templateType: "NEWSLETTER",
+      contentConfig: {
+        ctaUrl: "/products/foo",
+        products: [{ id: "p1", handle: "handle-1", url: "/products/foo" }],
+      },
+      designConfig: {
+        buttonUrl: "/collections/sale",
+        // utm fields flow through designConfig and are read by addUTMParams helper
+        utmCampaign: "revenue-boost-123",
+        utmSource: "app",
+        utmMedium: "popup",
+      },
+      targetRules: {},
+      discountConfig: {},
+      experimentId: null,
+      variantKey: null,
+    };
+
+    const loader = {
+      loadComponent: vi.fn().mockResolvedValue(FakeComponent),
+    } as any;
+    const api = {} as any;
+
+    const cleanup = renderPopup(campaign, vi.fn(), loader, api);
+    const props = await waitForValue(() => capturedProps);
+    const config = (props as any).config;
+
+    expect(config.ctaUrl).toContain("utm_campaign=revenue-boost-123");
+    expect(config.buttonUrl).toContain("utm_campaign=revenue-boost-123");
+    expect(config.products?.[0].url).toContain("utm_campaign=revenue-boost-123");
 
     cleanup();
   });

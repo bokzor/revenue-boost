@@ -18,10 +18,7 @@ export async function action({ request }: ActionFunctionArgs) {
   const headers = storefrontCors();
 
   if (request.method !== "POST") {
-    return data(
-      { success: false, error: "Method not allowed" },
-      { status: 405, headers },
-    );
+    return data({ success: false, error: "Method not allowed" }, { status: 405, headers });
   }
 
   try {
@@ -29,26 +26,18 @@ export async function action({ request }: ActionFunctionArgs) {
     const shop = url.searchParams.get("shop");
 
     if (!shop) {
-      return data(
-        { success: false, error: "Missing shop parameter" },
-        { status: 400, headers },
-      );
+      return data({ success: false, error: "Missing shop parameter" }, { status: 400, headers });
     }
 
-    const body = (await request.json().catch(() => null)) as
-      | {
-          type?: string;
-          campaignId?: string;
-          sessionId?: string;
-          data?: Record<string, unknown>;
-        }
-      | null;
+    const body = (await request.json().catch(() => null)) as {
+      type?: string;
+      campaignId?: string;
+      sessionId?: string;
+      data?: Record<string, unknown>;
+    } | null;
 
     if (!body) {
-      return data(
-        { success: false, error: "Invalid JSON body" },
-        { status: 400, headers },
-      );
+      return data({ success: false, error: "Invalid JSON body" }, { status: 400, headers });
     }
 
     const { type, campaignId, sessionId, data: eventData } = body;
@@ -56,16 +45,13 @@ export async function action({ request }: ActionFunctionArgs) {
     if (!type || !campaignId || !sessionId) {
       return data(
         { success: false, error: "type, campaignId and sessionId are required" },
-        { status: 400, headers },
+        { status: 400, headers }
       );
     }
 
     const normalizedType = String(type).toUpperCase();
     if (normalizedType !== "CLICK" && normalizedType !== "CLOSE") {
-      return data(
-        { success: false, error: "Unsupported event type" },
-        { status: 400, headers },
-      );
+      return data({ success: false, error: "Unsupported event type" }, { status: 400, headers });
     }
 
     const eventType = normalizedType as PopupEventType;
@@ -74,22 +60,16 @@ export async function action({ request }: ActionFunctionArgs) {
     const userAgent = request.headers.get("User-Agent") || null;
     const deviceType = detectDeviceTypeFromUserAgent(userAgent);
     const pageUrl =
-      (eventData?.pageUrl as string | undefined) ||
-      request.headers.get("referer") ||
-      "/";
+      (eventData?.pageUrl as string | undefined) || request.headers.get("referer") || "/";
     const referrer =
-      (eventData?.referrer as string | undefined) ||
-      request.headers.get("referer") ||
-      null;
+      (eventData?.referrer as string | undefined) || request.headers.get("referer") || null;
     const ipAddress = getClientIP(request);
 
     await PopupEventService.recordEvent({
       storeId,
       campaignId,
-      experimentId:
-        (eventData?.experimentId as string | null | undefined) ?? null,
-      variantKey:
-        (eventData?.variantKey as VariantKey | null | undefined) ?? null,
+      experimentId: (eventData?.experimentId as string | null | undefined) ?? null,
+      variantKey: (eventData?.variantKey as VariantKey | null | undefined) ?? null,
       sessionId,
       visitorId,
       eventType,
@@ -107,21 +87,13 @@ export async function action({ request }: ActionFunctionArgs) {
     return data({ success: true }, { headers });
   } catch (error) {
     console.error("[Analytics] Error in /api/analytics/track:", error);
-    return data(
-      { success: false, error: "Failed to track event" },
-      { status: 500, headers },
-    );
+    return data({ success: false, error: "Failed to track event" }, { status: 500, headers });
   }
 }
 
 // Minimal helpers duplicated from /api/analytics/frequency to avoid coupling.
 function getClientIP(request: Request): string | null {
-  const headers = [
-    "CF-Connecting-IP",
-    "X-Forwarded-For",
-    "X-Real-IP",
-    "X-Client-IP",
-  ];
+  const headers = ["CF-Connecting-IP", "X-Forwarded-For", "X-Real-IP", "X-Client-IP"];
 
   for (const header of headers) {
     const value = request.headers.get(header);
@@ -147,4 +119,3 @@ function detectDeviceTypeFromUserAgent(userAgent: string | null): string | null 
 
   return "desktop";
 }
-

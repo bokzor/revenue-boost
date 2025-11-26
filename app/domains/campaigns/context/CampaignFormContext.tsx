@@ -1,9 +1,9 @@
 /**
  * Campaign Form Context
- * 
+ *
  * Provides centralized state management for campaign forms
  * Eliminates prop drilling through multiple component levels
- * 
+ *
  * BENEFITS:
  * - No more passing storeId, shopDomain through 3+ levels
  * - Centralized form state management
@@ -55,11 +55,7 @@ export interface CampaignFormProviderProps {
  * Wraps the form and provides context to all children
  */
 export function CampaignFormProvider({ children, value }: CampaignFormProviderProps) {
-  return (
-    <CampaignFormContext.Provider value={value}>
-      {children}
-    </CampaignFormContext.Provider>
-  );
+  return <CampaignFormContext.Provider value={value}>{children}</CampaignFormContext.Provider>;
 }
 
 /**
@@ -68,11 +64,11 @@ export function CampaignFormProvider({ children, value }: CampaignFormProviderPr
  */
 export function useCampaignForm(): CampaignFormContextValue {
   const context = useContext(CampaignFormContext);
-  
+
   if (context === undefined) {
     throw new Error("useCampaignForm must be used within a CampaignFormProvider");
   }
-  
+
   return context;
 }
 
@@ -111,12 +107,12 @@ export function useFormField<K extends keyof CampaignFormData>(
   fieldName: K
 ): [CampaignFormData[K] | undefined, (value: CampaignFormData[K]) => void] {
   const { wizardState, updateWizardState } = useCampaignForm();
-  
+
   const value = wizardState[fieldName];
   const setValue = (newValue: CampaignFormData[K]) => {
     updateWizardState({ [fieldName]: newValue } as Partial<CampaignFormData>);
   };
-  
+
   return [value, setValue];
 }
 
@@ -139,4 +135,3 @@ export function useConfigField<TConfig extends Record<string, any>>(
 
   return [config, updateConfig];
 }
-

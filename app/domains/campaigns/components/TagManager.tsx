@@ -7,15 +7,7 @@
  */
 
 import React, { useState } from "react";
-import {
-  FormLayout,
-  TextField,
-  BlockStack,
-  InlineStack,
-  Tag,
-  Text,
-  Box,
-} from "@shopify/polaris";
+import { FormLayout, TextField, BlockStack, InlineStack, Tag, Text, Box } from "@shopify/polaris";
 
 interface TagManagerProps {
   tags?: string[];
@@ -93,4 +85,3 @@ export function TagManager({ tags = [], onTagsChange }: TagManagerProps) {
     </FormLayout>
   );
 }
-

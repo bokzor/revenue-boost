@@ -1,13 +1,17 @@
 /**
  * StatusSection - Campaign status configuration
- * 
+ *
  * SOLID Compliance:
  * - Single Responsibility: Only handles status selection and display
  * - Component is <50 lines
  */
 
 import { Card, BlockStack, Text, FormLayout, Select, Banner } from "@shopify/polaris";
-import { getStatusOptions, getStatusDescription, type CampaignStatus } from "../../utils/schedule-helpers";
+import {
+  getStatusOptions,
+  getStatusDescription,
+  type CampaignStatus,
+} from "../../utils/schedule-helpers";
 
 interface StatusSectionProps {
   status: CampaignStatus;
@@ -44,4 +48,3 @@ export function StatusSection({ status, onStatusChange }: StatusSectionProps) {
     </Card>
   );
 }
-

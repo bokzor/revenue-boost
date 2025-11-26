@@ -20,6 +20,7 @@
     "prisma": "prisma",
     "prisma:generate": "prisma generate",
     "graphql-codegen": "graphql-codegen",
+    "format:write": "prettier \"app/**/*.{ts,tsx,js,jsx,html,md,scss,json}\" --write",
     "vite": "vite",
     "typecheck": "react-router typegen && tsc --noEmit",
     "test": "vitest",
@@ -34,7 +35,9 @@
     "dev:test": "NODE_ENV=test DATABASE_URL='postgresql://postgres:postgres@localhost:5432/revenue-boost-test' react-router dev --port=56687",
     "build:storefront": "node scripts/build-storefront.js",
     "build:storefront:dev": "BUILD_MODE=development node scripts/build-storefront.js",
-    "build:storefront:staging": "BUILD_MODE=staging node scripts/build-storefront.js"
+    "build:storefront:staging": "BUILD_MODE=staging node scripts/build-storefront.js",
+    "storybook": "storybook dev -p 6006",
+    "storybook:build": "storybook build"
   },
   "type": "module",
   "engines": {
@@ -67,6 +70,9 @@
     "@playwright/test": "^1.56.1",
     "@shopify/api-codegen-preset": "^1.2.0",
     "@shopify/polaris-types": "^1.0.1",
+    "@storybook/addon-essentials": "^8.6.14",
+    "@storybook/react": "^8.6.14",
+    "@storybook/react-vite": "^8.6.14",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^14.6.1",
@@ -89,6 +95,7 @@
     "patch-package": "^8.0.1",
     "prettier": "^3.6.2",
     "shadow-dom-testing-library": "^1.13.1",
+    "storybook": "^8.6.14",
     "tsx": "^4.20.6",
     "typescript": "^5.9.3",
     "vite": "^6.3.6",

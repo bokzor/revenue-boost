@@ -1,6 +1,6 @@
 /**
  * NumberValueInput - Number input for condition values
- * 
+ *
  * Single Responsibility: Handle number input for conditions
  */
 
@@ -24,4 +24,3 @@ export function NumberValueInput({ value, onChange }: NumberValueInputProps) {
     />
   );
 }
-

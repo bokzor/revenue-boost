@@ -6,17 +6,9 @@
  */
 
 import prisma from "~/db.server";
-import type {
-  ExperimentCreateData,
-  ExperimentWithVariants,
-} from "../types/experiment.js";
-import {
-  validateExperimentCreateData,
-} from "../validation/campaign-validation.js";
-import {
-  parseExperimentFields,
-  prepareEntityJsonFields,
-} from "../utils/json-helpers.js";
+import type { ExperimentCreateData, ExperimentWithVariants } from "../types/experiment.js";
+import { validateExperimentCreateData } from "../validation/campaign-validation.js";
+import { parseExperimentFields, prepareEntityJsonFields } from "../utils/json-helpers.js";
 import { ExperimentServiceError } from "~/lib/errors.server";
 import {
   EXPERIMENT_CAMPAIGNS_INCLUDE,
@@ -48,7 +40,11 @@ export class ExperimentService {
         };
       });
     } catch (error) {
-      throw new ExperimentServiceError("FETCH_EXPERIMENTS_FAILED", "Failed to fetch experiments", error);
+      throw new ExperimentServiceError(
+        "FETCH_EXPERIMENTS_FAILED",
+        "Failed to fetch experiments",
+        error
+      );
     }
   }
 
@@ -112,7 +108,11 @@ export class ExperimentService {
         variants: mapCampaignsToVariants(experiment.campaigns, parsed.trafficAllocation),
       };
     } catch (error) {
-      throw new ExperimentServiceError("FETCH_EXPERIMENT_FAILED", "Failed to fetch experiment", error);
+      throw new ExperimentServiceError(
+        "FETCH_EXPERIMENT_FAILED",
+        "Failed to fetch experiment",
+        error
+      );
     }
   }
 
@@ -230,7 +230,11 @@ export class ExperimentService {
         };
       });
     } catch (error) {
-      throw new ExperimentServiceError("FETCH_RUNNING_EXPERIMENTS_FAILED", "Failed to fetch running experiments", error);
+      throw new ExperimentServiceError(
+        "FETCH_RUNNING_EXPERIMENTS_FAILED",
+        "Failed to fetch running experiments",
+        error
+      );
     }
   }
 }

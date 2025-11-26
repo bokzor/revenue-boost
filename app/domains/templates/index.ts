@@ -49,9 +49,7 @@ export {
 // SERVICES
 // ============================================================================
 
-export {
-  TemplateService,
-} from "./services/template.server.js";
+export { TemplateService } from "./services/template.server.js";
 
 // Service errors are now exported from ~/lib/errors.server
 export { TemplateServiceError } from "~/lib/errors.server";
@@ -60,7 +58,4 @@ export { TemplateServiceError } from "~/lib/errors.server";
 // UTILITIES
 // ============================================================================
 
-export {
-  parseJsonField,
-  stringifyJsonField,
-} from "../campaigns/utils/json-helpers.js";
+export { parseJsonField, stringifyJsonField } from "../campaigns/utils/json-helpers.js";

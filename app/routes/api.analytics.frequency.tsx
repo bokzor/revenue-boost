@@ -22,10 +22,7 @@ export async function action({ request }: ActionFunctionArgs) {
     const shop = url.searchParams.get("shop");
 
     if (!shop) {
-      return data(
-        { success: false, error: "Missing shop parameter" },
-        { status: 400, headers }
-      );
+      return data({ success: false, error: "Missing shop parameter" }, { status: 400, headers });
     }
 
     const body = await request.json();
@@ -65,12 +62,17 @@ export async function action({ request }: ActionFunctionArgs) {
     const storeSettings = store?.settings as StoreSettings | undefined;
 
     // Record the display using FrequencyCapService (Redis-based frequency capping)
-    await FrequencyCapService.recordDisplay(trackingKey, {
-      visitorId,
-      sessionId: sessionId || visitorId,
-      pageUrl,
-      deviceType: deviceType || "desktop",
-    }, undefined, storeSettings);
+    await FrequencyCapService.recordDisplay(
+      trackingKey,
+      {
+        visitorId,
+        sessionId: sessionId || visitorId,
+        pageUrl,
+        deviceType: deviceType || "desktop",
+      },
+      undefined,
+      storeSettings
+    );
 
     // Also record a VIEW event in PopupEvent for long-term analytics
     try {
@@ -107,20 +109,12 @@ export async function action({ request }: ActionFunctionArgs) {
     return data({ success: true }, { headers });
   } catch (error) {
     console.error("[Analytics] Error tracking frequency:", error);
-    return data(
-      { success: false, error: "Failed to track frequency" },
-      { status: 500, headers }
-    );
+    return data({ success: false, error: "Failed to track frequency" }, { status: 500, headers });
   }
 }
 
 function getClientIP(request: Request): string | null {
-  const headers = [
-    "CF-Connecting-IP",
-    "X-Forwarded-For",
-    "X-Real-IP",
-    "X-Client-IP",
-  ];
+  const headers = ["CF-Connecting-IP", "X-Forwarded-For", "X-Real-IP", "X-Client-IP"];
 
   for (const header of headers) {
     const value = request.headers.get(header);
@@ -133,7 +127,7 @@ function getClientIP(request: Request): string | null {
 }
 
 function detectDeviceTypeFromUserAgent(
-  userAgent: string | null,
+  userAgent: string | null
 ): "mobile" | "tablet" | "desktop" | null {
   if (!userAgent) return null;
   const ua = userAgent.toLowerCase();
@@ -148,4 +142,3 @@ function detectDeviceTypeFromUserAgent(
 
   return "desktop";
 }
-

@@ -63,7 +63,7 @@ export class CampaignAnalyticsService {
       }
 
       const counts = await prisma.lead.groupBy({
-        by: ['campaignId'],
+        by: ["campaignId"],
         where,
         _count: {
           id: true,
@@ -137,7 +137,10 @@ export class CampaignAnalyticsService {
       const [leadCounts, lastLeadTimes, impressionCounts] = await Promise.all([
         this.getLeadCounts(campaignIds, options),
         this.getLastLeadTimes(campaignIds), // Last lead time is usually global, but could be ranged. Keeping global for "Last Updated" feel.
-        PopupEventService.getImpressionCountsByCampaign(campaignIds, { from: options?.from, to: options?.to }),
+        PopupEventService.getImpressionCountsByCampaign(campaignIds, {
+          from: options?.from,
+          to: options?.to,
+        }),
       ]);
 
       const statsMap = new Map<string, CampaignStats>();
@@ -147,9 +150,7 @@ export class CampaignAnalyticsService {
         const lastLeadAt = lastLeadTimes.get(campaignId) || null;
         const impressions = impressionCounts.get(campaignId) || 0;
 
-        const conversionRate = impressions > 0
-          ? (leadCount / impressions) * 100
-          : 0;
+        const conversionRate = impressions > 0 ? (leadCount / impressions) * 100 : 0;
 
         statsMap.set(campaignId, {
           campaignId,
@@ -182,9 +183,7 @@ export class CampaignAnalyticsService {
   static async getRevenueBreakdownByCampaignIds(
     campaignIds: string[],
     options?: DateRangeOptions
-  ): Promise<
-    Map<string, { revenue: number; discount: number; orderCount: number; aov: number }>
-  > {
+  ): Promise<Map<string, { revenue: number; discount: number; orderCount: number; aov: number }>> {
     if (campaignIds.length === 0) {
       return new Map();
     }
@@ -219,9 +218,7 @@ export class CampaignAnalyticsService {
 
       rows.forEach((row) => {
         const revenue = row._sum.totalPrice ? Number(row._sum.totalPrice) : 0;
-        const discount = row._sum.discountAmount
-          ? Number(row._sum.discountAmount)
-          : 0;
+        const discount = row._sum.discountAmount ? Number(row._sum.discountAmount) : 0;
         const orderCount = row._count.id ?? 0;
         const aov = orderCount > 0 ? revenue / orderCount : 0;
 
@@ -233,7 +230,7 @@ export class CampaignAnalyticsService {
       throw new CampaignServiceError(
         "FETCH_CAMPAIGN_REVENUE_FAILED",
         "Failed to fetch campaign revenue",
-        error,
+        error
       );
     }
   }
@@ -291,9 +288,7 @@ export class CampaignAnalyticsService {
         const lastLeadAt = lastLeadTimes.get(campaign.id) || null;
         const impressions = impressionCounts.get(campaign.id) || 0;
 
-        const conversionRate = impressions > 0
-          ? (leadCount / impressions) * 100
-          : 0;
+        const conversionRate = impressions > 0 ? (leadCount / impressions) * 100 : 0;
 
         return {
           id: campaign.id,
@@ -362,18 +357,26 @@ export class CampaignAnalyticsService {
       // but filling gaps is nicer. Let's just return sparse for now.
 
       events.forEach((row) => {
-        const dateKey = row.date.toISOString().split('T')[0];
-        const current = metricsMap.get(dateKey) || { impressions: 0, leads: 0, revenue: 0 };
+        const dateKey = row.date.toISOString().split("T")[0];
+        const current = metricsMap.get(dateKey) || {
+          impressions: 0,
+          leads: 0,
+          revenue: 0,
+        };
 
-        if (row.type === 'VIEW') current.impressions = Number(row.count);
-        if (row.type === 'SUBMIT') current.leads = Number(row.count);
+        if (row.type === "VIEW") current.impressions = Number(row.count);
+        if (row.type === "SUBMIT") current.leads = Number(row.count);
 
         metricsMap.set(dateKey, current);
       });
 
       conversions.forEach((row) => {
-        const dateKey = row.date.toISOString().split('T')[0];
-        const current = metricsMap.get(dateKey) || { impressions: 0, leads: 0, revenue: 0 };
+        const dateKey = row.date.toISOString().split("T")[0];
+        const current = metricsMap.get(dateKey) || {
+          impressions: 0,
+          leads: 0,
+          revenue: 0,
+        };
         current.revenue = Number(row.revenue);
         metricsMap.set(dateKey, current);
       });
@@ -382,7 +385,6 @@ export class CampaignAnalyticsService {
       return Array.from(metricsMap.entries())
         .map(([date, metrics]) => ({ date, ...metrics }))
         .sort((a, b) => a.date.localeCompare(b.date));
-
     } catch (error) {
       console.error("Failed to fetch daily metrics:", error);
       // Return empty array instead of throwing to avoid breaking the whole page

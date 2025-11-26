@@ -42,4 +42,3 @@ export async function action({ request }: { request: Request }) {
     return handleApiError(error, "POST /api/shopify-files/create-from-staged");
   }
 }
-

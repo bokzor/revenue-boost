@@ -1,9 +1,9 @@
 /**
  * MobileOptimizationPanel Component (Stub)
- * 
+ *
  * TODO: This is a stub component created to fix build issues.
  * The actual implementation should provide mobile optimization controls.
- * 
+ *
  * Expected features:
  * - Touch optimization settings
  * - Gesture controls
@@ -70,15 +70,11 @@ export const MobileOptimizationPanel: React.FC<MobileOptimizationPanelProps> = (
           <input
             type="checkbox"
             checked={config.enabled}
-            onChange={(e) =>
-              onConfigChange({ ...config, enabled: e.target.checked })
-            }
+            onChange={(e) => onConfigChange({ ...config, enabled: e.target.checked })}
             disabled={disabled}
             style={{ marginRight: "8px" }}
           />
-          <span style={{ fontSize: "14px", fontWeight: "500" }}>
-            Enable Mobile Optimization
-          </span>
+          <span style={{ fontSize: "14px", fontWeight: "500" }}>Enable Mobile Optimization</span>
         </label>
       </div>
 
@@ -88,7 +84,14 @@ export const MobileOptimizationPanel: React.FC<MobileOptimizationPanelProps> = (
             <h4 style={{ margin: "0 0 8px 0", fontSize: "14px", fontWeight: "500" }}>
               Touch Optimization
             </h4>
-            <label style={{ display: "flex", alignItems: "center", cursor: "pointer", marginBottom: "8px" }}>
+            <label
+              style={{
+                display: "flex",
+                alignItems: "center",
+                cursor: "pointer",
+                marginBottom: "8px",
+              }}
+            >
               <input
                 type="checkbox"
                 checked={config.touchOptimization.enabled}
@@ -106,7 +109,14 @@ export const MobileOptimizationPanel: React.FC<MobileOptimizationPanelProps> = (
               />
               <span style={{ fontSize: "13px" }}>Enable touch optimization</span>
             </label>
-            <label style={{ display: "flex", alignItems: "center", cursor: "pointer", marginBottom: "8px" }}>
+            <label
+              style={{
+                display: "flex",
+                alignItems: "center",
+                cursor: "pointer",
+                marginBottom: "8px",
+              }}
+            >
               <input
                 type="checkbox"
                 checked={config.touchOptimization.touchFeedback}
@@ -130,7 +140,14 @@ export const MobileOptimizationPanel: React.FC<MobileOptimizationPanelProps> = (
             <h4 style={{ margin: "0 0 8px 0", fontSize: "14px", fontWeight: "500" }}>
               Gesture Controls
             </h4>
-            <label style={{ display: "flex", alignItems: "center", cursor: "pointer", marginBottom: "8px" }}>
+            <label
+              style={{
+                display: "flex",
+                alignItems: "center",
+                cursor: "pointer",
+                marginBottom: "8px",
+              }}
+            >
               <input
                 type="checkbox"
                 checked={config.gestureControls.swipeToClose}
@@ -160,4 +177,3 @@ export const MobileOptimizationPanel: React.FC<MobileOptimizationPanelProps> = (
 };
 
 export default MobileOptimizationPanel;
-

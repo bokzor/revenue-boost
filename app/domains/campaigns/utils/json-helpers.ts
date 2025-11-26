@@ -5,6 +5,7 @@
  */
 
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 import type { Campaign, Experiment } from "@prisma/client";
 import type {
   ContentConfig,
@@ -13,8 +14,7 @@ import type {
   TargetRulesConfig,
   DiscountConfig,
   TemplateType,
-
-  CampaignWithConfigs
+  CampaignWithConfigs,
 } from "../types/campaign.js";
 import {
   DesignConfigSchema,
@@ -26,7 +26,7 @@ import type {
   TrafficAllocation,
   StatisticalConfig,
   SuccessMetrics,
-  BaseExperiment
+  BaseExperiment,
 } from "../types/experiment.js";
 import {
   TrafficAllocationSchema,
@@ -41,11 +41,7 @@ import {
 /**
  * Safely parse and validate JSON field with Zod schema
  */
-export function parseJsonField<T>(
-  jsonValue: unknown,
-  schema: z.ZodSchema<T>,
-  defaultValue: T
-): T {
+export function parseJsonField<T>(jsonValue: unknown, schema: z.ZodSchema<T>, defaultValue: T): T {
   try {
     // Handle null/undefined
     if (jsonValue === null || jsonValue === undefined) {
@@ -54,7 +50,7 @@ export function parseJsonField<T>(
 
     // Handle string JSON
     let parsed: unknown;
-    if (typeof jsonValue === 'string') {
+    if (typeof jsonValue === "string") {
       parsed = JSON.parse(jsonValue);
     } else {
       parsed = jsonValue;
@@ -64,7 +60,7 @@ export function parseJsonField<T>(
     const result = schema.safeParse(parsed);
     return result.success ? result.data : defaultValue;
   } catch (error) {
-    console.warn('Failed to parse JSON field:', error);
+    console.warn("Failed to parse JSON field:", error);
     return defaultValue;
   }
 }
@@ -73,11 +69,32 @@ export function parseJsonField<T>(
  * Safely prepare object for JSON field storage (identity function for Prisma Json fields)
  * Does NOT stringify, as Prisma handles that for Json types.
  */
-export function prepareJsonField<T>(value: T): any {
-  if (value === undefined || value === null) {
-    return {}; // Default to empty object if null/undefined
+export function prepareJsonField(value: unknown): Prisma.InputJsonValue | typeof Prisma.JsonNull {
+  if (value === null) {
+    return Prisma.JsonNull;
   }
-  return value;
+
+  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+    return value;
+  }
+
+  if (value === undefined) {
+    return {};
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item) => prepareJsonField(item)) as Prisma.InputJsonValue;
+  }
+
+  if (typeof value === "object") {
+    const normalized: Record<string, Prisma.InputJsonValue | typeof Prisma.JsonNull> = {};
+    for (const [key, entryValue] of Object.entries(value as Record<string, unknown>)) {
+      normalized[key] = prepareJsonField(entryValue);
+    }
+    return normalized as Prisma.InputJsonValue;
+  }
+
+  return {};
 }
 
 /**
@@ -88,8 +105,8 @@ export function stringifyJsonField<T>(value: T): string {
   try {
     return JSON.stringify(value);
   } catch (error) {
-    console.error('Failed to stringify JSON field:', error);
-    return '{}';
+    console.error("Failed to stringify JSON field:", error);
+    return "{}";
   }
 }
 
@@ -103,8 +120,8 @@ export function stringifyJsonField<T>(value: T): string {
  */
 export interface JsonFieldMapping<TEntity> {
   key: keyof TEntity;
-  schema: z.ZodSchema<any>;
-  defaultValue: any;
+  schema: z.ZodSchema<unknown>;
+  defaultValue: unknown;
 }
 
 /**
@@ -115,11 +132,11 @@ export function parseEntityJsonFields<TEntity>(
   entity: TEntity,
   fields: JsonFieldMapping<TEntity>[]
 ): TEntity {
-  const result: any = { ...entity };
+  const result: TEntity = { ...(entity as object) } as TEntity;
 
   for (const field of fields) {
-    const raw = (entity as any)[field.key as string];
-    result[field.key as string] = parseJsonField(
+    const raw = (entity as Record<string, unknown>)[field.key as string];
+    (result as Record<string, unknown>)[field.key as string] = parseJsonField(
       raw,
       field.schema,
       field.defaultValue
@@ -135,13 +152,12 @@ export function parseEntityJsonFields<TEntity>(
  */
 export function prepareEntityJsonFields<TEntity>(
   entity: TEntity,
-  fields: Array<{ key: keyof TEntity; defaultValue: any }>
-): Record<string, any> {
-  const result: Record<string, any> = {};
+  fields: Array<{ key: keyof TEntity; defaultValue: unknown }>
+): Record<string, Prisma.InputJsonValue | typeof Prisma.JsonNull> {
+  const result: Record<string, Prisma.InputJsonValue | typeof Prisma.JsonNull> = {};
 
   for (const field of fields) {
-    const value =
-      (entity as any)[field.key as string] ?? field.defaultValue;
+    const value = (entity as Record<string, unknown>)[field.key as string] ?? field.defaultValue;
     result[field.key as string] = prepareJsonField(value);
   }
 
@@ -155,19 +171,17 @@ export function prepareEntityJsonFields<TEntity>(
  */
 export function stringifyEntityJsonFields<TEntity>(
   entity: TEntity,
-  fields: Array<{ key: keyof TEntity; defaultValue: any }>
+  fields: Array<{ key: keyof TEntity; defaultValue: unknown }>
 ): Record<string, string> {
   const result: Record<string, string> = {};
 
   for (const field of fields) {
-    const value =
-      (entity as any)[field.key as string] ?? field.defaultValue;
+    const value = (entity as Record<string, unknown>)[field.key as string] ?? field.defaultValue;
     result[field.key as string] = stringifyJsonField(value);
   }
 
   return result;
 }
-
 
 // ============================================================================
 // CAMPAIGN JSON FIELD PARSERS
