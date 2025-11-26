@@ -53,8 +53,8 @@ export function useBilling(): BillingContextType {
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { admin, session } = await authenticate.admin(request);
 
-  // Sync billing status from Shopify
-  const billingContext = await BillingService.syncSubscriptionToDatabase(admin, session.shop);
+  // Get billing status with smart caching (syncs from Shopify only if cache is stale)
+  const billingContext = await BillingService.getOrSyncBillingContext(admin, session.shop);
   const planDef = PLAN_DEFINITIONS[billingContext.planTier];
 
   return {

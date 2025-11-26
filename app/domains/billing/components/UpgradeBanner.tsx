@@ -1,4 +1,4 @@
-import { Banner, Link, Text, InlineStack, Button } from "@shopify/polaris";
+import { Banner, Text, InlineStack, Button } from "@shopify/polaris";
 import { useBilling } from "~/routes/app";
 import { PLAN_DEFINITIONS, type PlanTier, type PlanFeatures } from "../types/plan";
 
