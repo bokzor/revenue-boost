@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     # Only run if triggered manually OR if the production deploy succeeded
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
-    environment: production
+    environment: prod
     permissions:
       contents: read
 
