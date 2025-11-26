@@ -484,7 +484,11 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, tri
     }
   };
 
-  const handleIssueDiscount = async (options?: { cartSubtotalCents?: number }) => {
+  const handleIssueDiscount = async (options?: {
+    cartSubtotalCents?: number;
+    selectedProductIds?: string[];
+    bundleDiscountPercent?: number;
+  }) => {
     try {
       console.log("[PopupManager] Issuing discount for campaign:", campaign.id, options);
 
@@ -511,6 +515,8 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, tri
         sessionId: session.getSessionId(),
         challengeToken: token,
         cartSubtotalCents: options?.cartSubtotalCents,
+        selectedProductIds: options?.selectedProductIds,
+        bundleDiscountPercent: options?.bundleDiscountPercent,
       });
 
       if (!result.success) {
@@ -735,33 +741,22 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, tri
       console.log("[PopupManager] Items added to cart successfully");
 
       // Check if we need to apply a bundle discount
-      // Bundle discount requires ALL suggested products to be selected
       const contentConfig = campaign.contentConfig || {};
       const bundleDiscount = (contentConfig as { bundleDiscount?: number }).bundleDiscount;
-      const maxProducts = (contentConfig as { maxProducts?: number }).maxProducts;
 
-      // Determine total available products (limited by maxProducts if set)
-      const totalAvailableProducts = maxProducts
-        ? Math.min(products.length, maxProducts)
-        : products.length;
-
-      // Check if ALL products were selected for bundle discount eligibility
-      const allProductsSelected = productIds.length >= totalAvailableProducts && totalAvailableProducts > 0;
-
-      console.log("[PopupManager] Bundle discount eligibility check:", {
+      console.log("[PopupManager] Bundle discount check:", {
         bundleDiscount,
         selectedCount: productIds.length,
-        totalAvailableProducts,
-        allProductsSelected,
         discountEnabled: campaign.discountConfig?.enabled,
       });
 
-      // Only apply discount if enabled AND all products are selected (for bundle discounts)
-      // If bundleDiscount is set in contentConfig, require all products to be selected
-      const shouldApplyDiscount = campaign.discountConfig?.enabled &&
-        (bundleDiscount ? allProductsSelected : true);
+      // Apply bundle discount if:
+      // 1. bundleDiscount is set in contentConfig (auto-sync mode), OR
+      // 2. discountConfig is explicitly enabled
+      const shouldApplyBundleDiscount = bundleDiscount && bundleDiscount > 0 && productIds.length > 0;
+      const shouldApplyExplicitDiscount = campaign.discountConfig?.enabled && !bundleDiscount;
 
-      if (shouldApplyDiscount) {
+      if (shouldApplyBundleDiscount || shouldApplyExplicitDiscount) {
         // Fetch cart total for tiered discount support
         let cartSubtotalCents: number | undefined;
         try {
@@ -779,11 +774,11 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, tri
           console.warn("[PopupManager] Failed to fetch cart total for discount:", e);
         }
 
-        await handleIssueDiscount({ cartSubtotalCents });
-      } else if (bundleDiscount && !allProductsSelected) {
-        console.log("[PopupManager] Bundle discount not applied - not all products selected", {
-          required: totalAvailableProducts,
-          selected: productIds.length,
+        // For bundle discounts, pass the selected product IDs so discount is scoped to them
+        await handleIssueDiscount({
+          cartSubtotalCents,
+          selectedProductIds: shouldApplyBundleDiscount ? productIds : undefined,
+          bundleDiscountPercent: shouldApplyBundleDiscount ? bundleDiscount : undefined,
         });
       }
 

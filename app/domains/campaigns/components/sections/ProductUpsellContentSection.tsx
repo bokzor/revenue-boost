@@ -417,11 +417,11 @@ export function ProductUpsellContentSection({
                       <strong>How Bundle Discounts Work:</strong>
                     </Text>
                     <Text as="p" variant="bodySm">
-                      The bundle discount is applied <strong>only when the customer adds ALL suggested products</strong> to their cart together.
-                      If the customer selects only some products, the bundle discount will not be applied.
+                      The bundle discount is automatically applied to <strong>any products the customer selects</strong> from the upsell popup.
+                      The discount only applies to the upsell items, not the entire cart.
                     </Text>
                     <Text as="p" variant="bodySm" tone="subdued">
-                      💡 To enable the discount at checkout, make sure to configure the <strong>Discount</strong> step with a percentage discount matching your bundle discount value.
+                      ✨ No additional discount configuration needed – the bundle discount is auto-created when customers add items.
                     </Text>
                   </BlockStack>
                 </Banner>
@@ -432,7 +432,7 @@ export function ProductUpsellContentSection({
                     name="content.bundleDiscount"
                     value={content.bundleDiscount?.toString() || "15"}
                     placeholder="15"
-                    helpText="Applied when customer adds ALL suggested products to cart"
+                    helpText="Discount applied to selected upsell products"
                     onChange={(value) => updateField("bundleDiscount", parseInt(value) || 15)}
                   />
 
@@ -440,7 +440,7 @@ export function ProductUpsellContentSection({
                     label="Bundle Discount Text"
                     name="content.bundleDiscountText"
                     value={content.bundleDiscountText || ""}
-                    placeholder="Save 15% when you buy together!"
+                    placeholder="Save 15% on selected items!"
                     helpText="Promotional text shown to customers"
                     onChange={(value) => updateField("bundleDiscountText", value)}
                   />

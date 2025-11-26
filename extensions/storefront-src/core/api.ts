@@ -366,6 +366,10 @@ export class ApiClient {
     cartSubtotalCents?: number;
     sessionId: string;
     challengeToken: string;
+    // Product Upsell: selected product IDs for bundle discount scoping
+    selectedProductIds?: string[];
+    // Product Upsell: bundle discount from contentConfig (auto-sync mode)
+    bundleDiscountPercent?: number;
   }): Promise<{
     success: boolean;
     code?: string;

@@ -34,6 +34,10 @@ const IssueDiscountRequestSchema = z.object({
       })
     )
     .optional(),
+  // Product Upsell: selected product IDs for bundle discount scoping
+  selectedProductIds: z.array(z.string()).optional(),
+  // Product Upsell: bundle discount from contentConfig (auto-sync mode)
+  bundleDiscountPercent: z.number().min(0).max(100).optional(),
 });
 
 // Response types
@@ -117,7 +121,14 @@ export async function action({ request }: ActionFunctionArgs) {
     const body = await request.json();
     const validatedRequest = IssueDiscountRequestSchema.parse(body);
 
-    const { campaignId, cartSubtotalCents, sessionId, challengeToken } = validatedRequest;
+    const {
+      campaignId,
+      cartSubtotalCents,
+      sessionId,
+      challengeToken,
+      selectedProductIds,
+      bundleDiscountPercent,
+    } = validatedRequest;
 
     // SECURITY: Validate challenge token
     const ip =
@@ -194,7 +205,7 @@ export async function action({ request }: ActionFunctionArgs) {
       }
     }
 
-    // Fetch campaign with discount config
+    // Fetch campaign with discount config and content config
     const campaign = await prisma.campaign.findUnique({
       where: { id: campaignId },
       select: {
@@ -202,6 +213,7 @@ export async function action({ request }: ActionFunctionArgs) {
         storeId: true,
         name: true,
         discountConfig: true,
+        contentConfig: true,
         status: true,
       },
     });
@@ -211,17 +223,50 @@ export async function action({ request }: ActionFunctionArgs) {
     }
 
     // Parse discount config
-    const discountConfig =
+    let discountConfig =
       typeof campaign.discountConfig === "string"
         ? JSON.parse(campaign.discountConfig)
-        : campaign.discountConfig;
+        : campaign.discountConfig || {};
 
-    if (!discountConfig?.enabled) {
+    // Parse content config for bundle discount
+    const contentConfig =
+      typeof campaign.contentConfig === "string"
+        ? JSON.parse(campaign.contentConfig)
+        : campaign.contentConfig || {};
+
+    // BUNDLE DISCOUNT AUTO-SYNC:
+    // If bundleDiscountPercent is passed from storefront (Product Upsell),
+    // auto-create discount config if not explicitly configured
+    const bundleDiscount = bundleDiscountPercent ?? contentConfig.bundleDiscount;
+
+    if (bundleDiscount && bundleDiscount > 0 && selectedProductIds && selectedProductIds.length > 0) {
+      console.log("[Discount Issue] Bundle discount mode:", {
+        bundleDiscount,
+        selectedProductIds,
+        hasExplicitConfig: discountConfig?.enabled,
+      });
+
+      // Auto-create or enhance discount config for bundle
+      discountConfig = {
+        ...discountConfig,
+        enabled: true,
+        valueType: discountConfig.valueType || "PERCENTAGE",
+        value: discountConfig.value ?? bundleDiscount, // Use bundleDiscount if no explicit value
+        type: discountConfig.type || "single_use",
+        behavior: discountConfig.behavior || "SHOW_CODE_AND_AUTO_APPLY",
+        // Scope discount to only the selected products
+        applicability: {
+          scope: "products",
+          productIds: selectedProductIds,
+        },
+      };
+    } else if (!discountConfig?.enabled) {
       return data(
         { success: false, error: "Discount not enabled for this campaign" },
         { status: 400 }
       );
     }
+
     // NOTE [Tiered discounts]: we select the highest eligible tier based on cartSubtotalCents.
     // Shopify enforces each tier's minimum subtotal at checkout via minimumRequirement.
     // This means if the cart shrinks after issuance, a higher-tier code will not qualify at checkout.

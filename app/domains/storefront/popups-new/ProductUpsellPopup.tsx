@@ -156,20 +156,18 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
     return savings > 0 ? savings : null;
   }, [selectedProducts, products]);
 
-  // Check if ALL products are selected (required for bundle discount at checkout)
-  const allProductsSelected = useMemo(() => {
-    return selectedProducts.size >= displayProducts.length && displayProducts.length > 0;
-  }, [selectedProducts.size, displayProducts.length]);
+  // Check if any products are selected (for bundle discount display)
+  const hasSelectedProducts = selectedProducts.size > 0;
 
-  // Calculate bundle discount (only when ALL products are selected)
-  // This matches the checkout behavior where discount is only applied when all products are in cart
+  // Calculate bundle discount (applies to any selected products)
+  // The discount is scoped to only the selected products at checkout
   const calculateBundleSavings = useCallback(() => {
-    if (!config.bundleDiscount || !allProductsSelected) return null;
+    if (!config.bundleDiscount || !hasSelectedProducts) return null;
 
     const total = calculateTotal();
     const savings = total * (config.bundleDiscount / 100);
     return savings;
-  }, [allProductsSelected, config.bundleDiscount, calculateTotal]);
+  }, [hasSelectedProducts, config.bundleDiscount, calculateTotal]);
 
   // Calculate total savings (compare-at + bundle)
   const calculateTotalSavings = useCallback(() => {
@@ -532,23 +530,11 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           font-size: 0.8125rem;
           font-weight: 600;
           flex-shrink: 0;
-          display: flex;
-          flex-direction: column;
-          gap: 0.25rem;
-          transition: background 0.3s ease;
+          transition: background 0.3s ease, box-shadow 0.3s ease;
         }
-        .upsell-bundle-banner--unlocked {
+        .upsell-bundle-banner--active {
           background: linear-gradient(135deg, #10B981 0%, #059669 100%);
-          animation: pulse-glow 2s ease-in-out infinite;
-        }
-        .upsell-bundle-hint {
-          font-size: 0.6875rem;
-          font-weight: 400;
-          opacity: 0.9;
-        }
-        @keyframes pulse-glow {
-          0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
-          50% { box-shadow: 0 0 12px 2px rgba(16, 185, 129, 0.3); }
+          box-shadow: 0 0 8px 1px rgba(16, 185, 129, 0.3);
         }
 
         /* ===== CONTENT AREA ===== */
@@ -846,12 +832,6 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           color: var(--upsell-success);
           font-weight: 600;
         }
-        .upsell-bundle-pending {
-          color: var(--upsell-accent);
-          font-size: 0.75rem;
-          font-style: italic;
-          opacity: 0.9;
-        }
 
         .upsell-actions {
           display: flex;
@@ -1028,17 +1008,8 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
 
         {/* Bundle discount banner */}
         {config.bundleDiscount && config.bundleDiscount > 0 && (
-          <div className={`upsell-bundle-banner ${allProductsSelected ? "upsell-bundle-banner--unlocked" : ""}`}>
-            {allProductsSelected ? (
-              <>🎉 {config.bundleDiscountText || `${config.bundleDiscount}% bundle discount unlocked!`}</>
-            ) : (
-              <>
-                ✨ {config.bundleDiscountText || `Save ${config.bundleDiscount}% when you bundle!`}
-                <span className="upsell-bundle-hint">
-                  Select all {displayProducts.length} items to unlock
-                </span>
-              </>
-            )}
+          <div className={`upsell-bundle-banner ${hasSelectedProducts ? "upsell-bundle-banner--active" : ""}`}>
+            ✨ {config.bundleDiscountText || `Save ${config.bundleDiscount}% on selected items!`}
           </div>
         )}
 
@@ -1061,16 +1032,12 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
                 )}
               </div>
 
-              {calculateBundleSavings() ? (
+              {calculateBundleSavings() && (
                 <div className="upsell-summary-row" style={{ color: "#10B981" }}>
-                  <span>🎉 Bundle discount ({config.bundleDiscount}%)</span>
+                  <span>🎉 {config.bundleDiscount}% discount</span>
                   <span>-{formatCurrency(calculateBundleSavings()!, config.currency)}</span>
                 </div>
-              ) : config.bundleDiscount && config.bundleDiscount > 0 && selectedProducts.size > 0 && !allProductsSelected ? (
-                <div className="upsell-summary-row upsell-bundle-pending">
-                  <span>Add {displayProducts.length - selectedProducts.size} more for {config.bundleDiscount}% off</span>
-                </div>
-              ) : null}
+              )}
 
               <div className="upsell-summary-row upsell-summary-total">
                 <span>Total</span>
