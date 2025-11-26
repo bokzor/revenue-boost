@@ -63,7 +63,7 @@ export function usePopupTheme(config: PopupDesignConfig): PopupTheme {
     const inputBackgroundColor = config.inputBackgroundColor || "#ffffff";
     const inputTextColor = config.inputTextColor || textColor;
     const inputBorderColor = config.inputBorderColor || "#e5e7eb";
-    const inputPlaceholderColor = withOpacity(inputTextColor, 0.5);
+    const inputPlaceholderColor = withOpacity(inputTextColor, 0.7);
 
     // Overlay colors
     const overlayColor = config.overlayColor || "#000000";

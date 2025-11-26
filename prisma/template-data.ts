@@ -569,8 +569,8 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
       successMessage: "Added to cart!",
       ctaText: "Add {count} & Save",
       productSelectionMethod: "ai",
-      layout: "carousel",
-      maxProducts: 5,
+      layout: "grid",
+      maxProducts: 4,
       bundleDiscount: 15,
     },
     fields: [
@@ -661,59 +661,7 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
     icon: "🔗",
     conversionRate: 3.8
   },
-  // Post-Add Upsell
-  {
-    name: "Post-Add Upsell",
-    description: "Offer a relevant upsell after add-to-cart",
-    category: "sales",
-    templateType: "PRODUCT_UPSELL",
-    goals: ["INCREASE_REVENUE"],
-    contentConfig: {
-      headline: "Great pick! Add this too",
-      subheadline: "Bundle and save more",
-      buttonText: "Add {count} & Save",
-      successMessage: "Added to cart!",
-      ctaText: "Add {count} & Save",
-      productSelectionMethod: "ai",
-      layout: "card",
-      maxProducts: 2,
-      bundleDiscount: 10,
-    },
-    fields: [
-      { id: "headline", type: "text", label: "Headline", category: "content" },
-      { id: "subheadline", type: "text", label: "Subheadline", category: "content" },
-      { id: "ctaText", type: "text", label: "Button Text", category: "content" }
-    ],
-    targetRules: {
-      enhancedTriggers: {
-        add_to_cart: { enabled: true },
-        frequency_capping: getServerFrequencyCapping("PRODUCT_UPSELL"),
-      },
-      // Advanced targeting disabled by default so Free plan users can use this template
-      audienceTargeting: {
-        enabled: false,
-        shopifySegmentIds: [],
-        sessionRules: {
-          enabled: false,
-          conditions: [],
-          logicOperator: "AND",
-        },
-      },
-    },
-    designConfig: {
-      // Modern default colors
-      backgroundColor: "#FFFFFF",
-      textColor: "#1A202C",
-      buttonColor: "#3B82F6",
-      buttonTextColor: "#FFFFFF",
-      position: "right",
-      size: "medium"
-    },
-    isDefault: true,
-    priority: 13,
-    icon: "🛍️",
-    conversionRate: 4.4
-  },
+
   // Social Proof Notifications
   {
     name: "Social Proof Notifications",

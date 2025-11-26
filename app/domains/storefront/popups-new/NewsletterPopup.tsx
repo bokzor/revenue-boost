@@ -197,35 +197,33 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
     >
       <style>
         {`
-        /* Image Cell */
+        /* Image Cell - Responsive */
         .email-popup-image {
           position: relative;
           overflow: hidden;
-          display: flex;
-          align-items: center;
-          justify-content: center;
+          display: block;
           background: ${config.imageBgColor || config.inputBackgroundColor || "#f4f4f5"};
-          min-height: 200px;
           width: 100%;
-          height: 100%;
+          height: 180px;
+          flex-shrink: 0;
         }
 
         .email-popup-image img {
           width: 100%;
           height: 100%;
           object-fit: cover;
-          position: absolute;
-          inset: 0;
+          display: block;
         }
 
-        /* Form Cell */
+        /* Form Cell - Responsive padding */
         .email-popup-form-section {
-          padding: ${getContainerPadding(config.size)};
+          padding: 1.5rem;
           display: flex;
           flex-direction: column;
           justify-content: center;
           background: ${hasGradientBg ? config.backgroundColor : "transparent"};
           width: 100%;
+          min-width: 0;
         }
 
         .email-popup-form {
@@ -240,13 +238,13 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
 
         .email-popup-input {
           width: 100%;
-          height: 3rem;
-          padding: 0 1rem;
+          height: 2.75rem;
+          padding: 0 0.875rem;
           border-radius: 0.5rem;
           border: 2px solid ${config.inputBorderColor || "#d4d4d8"};
           background: ${config.inputBackgroundColor || "#ffffff"};
           color: ${config.inputTextColor || "#111827"};
-          font-size: 1rem;
+          font-size: 0.9375rem;
           transition: all 0.2s;
           outline: none;
           ${config.inputBackdropFilter ? `backdrop-filter: ${config.inputBackdropFilter};` : ""}
@@ -254,7 +252,7 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
         }
 
         .email-popup-input::placeholder {
-          color: ${config.inputTextColor ? `${config.inputTextColor}80` : "#9ca3af"};
+          color: ${config.inputTextColor ? `${config.inputTextColor}b3` : "#9ca3af"};
           opacity: 1;
         }
 
@@ -269,47 +267,47 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
 
         .email-popup-error {
           color: #ef4444;
-          font-size: 0.875rem;
+          font-size: 0.8125rem;
           margin-top: 0.25rem;
         }
 
         .email-popup-label {
           display: block;
-          font-size: 0.875rem;
+          font-size: 0.8125rem;
           font-weight: 500;
-          margin-bottom: 0.5rem;
+          margin-bottom: 0.375rem;
           color: ${config.textColor || "#111827"};
         }
 
         .email-popup-checkbox-wrapper {
           display: flex;
           align-items: flex-start;
-          gap: 0.75rem;
+          gap: 0.625rem;
           margin-top: 0.25rem;
         }
 
         .email-popup-checkbox {
-          margin-top: 0.25rem;
-          width: 1.125rem;
-          height: 1.125rem;
+          margin-top: 0.125rem;
+          width: 1rem;
+          height: 1rem;
           cursor: pointer;
           flex-shrink: 0;
         }
 
         .email-popup-checkbox-label {
-          font-size: 0.875rem;
+          font-size: 0.8125rem;
           color: ${config.descriptionColor || "#52525b"};
           line-height: 1.4;
         }
 
         .email-popup-button {
           width: 100%;
-          padding: ${POPUP_SPACING.component.button};
+          padding: 0.75rem 1rem;
           border-radius: 0.5rem;
           border: none;
           background: ${config.buttonColor || "#3b82f6"};
           color: ${config.buttonTextColor || "#ffffff"};
-          font-size: 1rem;
+          font-size: 0.9375rem;
           font-weight: 700;
           cursor: pointer;
           transition: all 0.2s;
@@ -317,7 +315,7 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
           align-items: center;
           justify-content: center;
           gap: 0.5rem;
-          margin-top: ${POPUP_SPACING.section.md};
+          margin-top: 0.75rem;
           text-transform: uppercase;
           letter-spacing: 0.05em;
         }
@@ -333,12 +331,12 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
         }
 
         .email-popup-secondary-button {
-          margin-top: ${SPACING_GUIDELINES.betweenButtons};
+          margin-top: 0.625rem;
           width: 100%;
           background: transparent;
           border: none;
           color: ${config.descriptionColor || "#6b7280"};
-          font-size: 0.875rem;
+          font-size: 0.8125rem;
           font-weight: 500;
           cursor: pointer;
         }
@@ -347,10 +345,97 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
           text-decoration: underline;
         }
 
-        /* Desktop Layout (Side-by-Side) - Specific overrides if needed */
-        @container popup (min-width: 600px) {
+        /* ========================================
+           CONTAINER QUERY RESPONSIVE STYLES
+           Adapts to container width, not viewport
+           ======================================== */
+
+        /* Small containers: Compact layout (stacked) */
+        @container popup (max-width: 399px) {
           .email-popup-form-section {
-            padding: 3rem;
+            padding: 1.25rem 1rem;
+          }
+
+          .email-popup-image {
+            height: 140px;
+          }
+
+          .email-popup-input {
+            height: 2.5rem;
+            font-size: 0.875rem;
+          }
+
+          .email-popup-button {
+            padding: 0.625rem 0.875rem;
+            font-size: 0.875rem;
+          }
+        }
+
+        /* Medium containers: Balanced layout (stacked) */
+        @container popup (min-width: 400px) and (max-width: 519px) {
+          .email-popup-form-section {
+            padding: 2rem 1.5rem;
+          }
+
+          .email-popup-image {
+            height: 200px;
+          }
+        }
+
+        /* Wide containers (side-by-side): Image fills height */
+        @container popup (min-width: 520px) {
+          .email-popup-form-section {
+            padding: 2rem 2rem;
+          }
+
+          .email-popup-image {
+            height: auto;
+            min-height: 380px;
+            flex: 1;
+          }
+
+          .email-popup-input {
+            height: 3rem;
+            padding: 0 1rem;
+            font-size: 1rem;
+          }
+
+          .email-popup-button {
+            padding: 0.875rem 1.25rem;
+            font-size: 1rem;
+            margin-top: 1rem;
+          }
+
+          .email-popup-label {
+            font-size: 0.875rem;
+            margin-bottom: 0.5rem;
+          }
+
+          .email-popup-checkbox {
+            width: 1.125rem;
+            height: 1.125rem;
+          }
+
+          .email-popup-checkbox-label,
+          .email-popup-error {
+            font-size: 0.875rem;
+          }
+        }
+
+        /* Large containers: Maximum comfort */
+        @container popup (min-width: 700px) {
+          .email-popup-form-section {
+            padding: 2.5rem 3rem;
+          }
+
+          .email-popup-button {
+            padding: 1rem 1.5rem;
+            margin-top: 1.25rem;
+          }
+
+          .email-popup-secondary-button {
+            margin-top: 0.75rem;
+            font-size: 0.875rem;
           }
         }
 

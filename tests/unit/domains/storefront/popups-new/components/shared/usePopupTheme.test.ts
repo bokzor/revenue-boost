@@ -115,7 +115,7 @@ describe("usePopupTheme", () => {
       const { result } = renderHook(() => usePopupTheme(baseConfig));
 
       expect(result.current.inputPlaceholderColor).toContain("rgba");
-      expect(result.current.inputPlaceholderColor).toContain("0.5");
+      expect(result.current.inputPlaceholderColor).toContain("0.7");
     });
   });
 

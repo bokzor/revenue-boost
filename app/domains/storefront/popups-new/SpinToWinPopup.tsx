@@ -579,7 +579,7 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
 
           /* Dynamic placeholder color */
           .spin-to-win-input::placeholder {
-            color: ${inputTextColor ? `${inputTextColor}80` : "rgba(107, 114, 128, 0.5)"};
+            color: ${inputTextColor ? `${inputTextColor}b3` : "rgba(107, 114, 128, 0.7)"};
             opacity: 1;
           }
 

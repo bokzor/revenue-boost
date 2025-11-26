@@ -32,7 +32,7 @@ export const PopupGridContainer: React.FC<PopupGridContainerProps> = ({
           display: flex;
           flex-direction: column;
           align-items: stretch;
-          padding: 0; /* Reset padding, let grid handle it or inner cells */
+          padding: 0;
           border-radius: ${config.borderRadius ?? 16}px;
           box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
           width: 100%;
@@ -40,29 +40,28 @@ export const PopupGridContainer: React.FC<PopupGridContainerProps> = ({
           max-height: 100vh;
           margin: 0 auto;
           overflow: hidden;
-          background-color: #ffffff; /* Fallback */
-          
+          background-color: #ffffff;
+
           /* Enable container queries */
           container-type: inline-size;
           container-name: popup;
         }
 
         .popup-grid-content {
-          display: grid;
+          display: flex;
+          flex-direction: column;
           width: 100%;
           height: 100%;
-          /* Mobile First: Stacked */
-          grid-template-columns: 1fr;
-          grid-template-rows: auto auto;
+          min-height: 0;
         }
 
-        /* Close Button */
+        /* Close Button - Scales with container */
         .popup-close-button {
           position: absolute;
-          top: 16px;
-          right: 16px;
-          width: 32px;
-          height: 32px;
+          top: 12px;
+          right: 12px;
+          width: 28px;
+          height: 28px;
           border-radius: 9999px;
           border: none;
           background-color: rgba(15, 23, 42, 0.08);
@@ -73,31 +72,78 @@ export const PopupGridContainer: React.FC<PopupGridContainerProps> = ({
           color: ${config.textColor || "#4B5563"};
           box-shadow: 0 1px 3px rgba(15, 23, 42, 0.15);
           z-index: 50;
-          transition: background-color 0.2s;
+          transition: all 0.2s ease;
+          font-size: 14px;
         }
         .popup-close-button:hover {
           background-color: rgba(15, 23, 42, 0.15);
+          transform: scale(1.05);
         }
 
-        /* Desktop Layout */
-        @container popup (min-width: 600px) {
+        /* Small container: Compact close button */
+        @container popup (max-width: 399px) {
+          .popup-close-button {
+            top: 8px;
+            right: 8px;
+            width: 24px;
+            height: 24px;
+            font-size: 12px;
+          }
+        }
+
+        /* Medium container: Default close button */
+        @container popup (min-width: 400px) {
+          .popup-close-button {
+            top: 16px;
+            right: 16px;
+            width: 32px;
+            height: 32px;
+            font-size: 16px;
+          }
+        }
+
+        /* Two-column layout when container is wide enough */
+        @container popup (min-width: 520px) {
           .popup-grid-content {
-            grid-template-columns: ${singleColumn ? "1fr" : "1fr 1fr"};
-            grid-template-rows: 1fr;
+            flex-direction: ${singleColumn ? "column" : "row"};
+            min-height: ${singleColumn ? "auto" : "380px"};
+          }
+
+          ${
+            !singleColumn
+              ? `
+          /* Image/Visual Cell */
+          .popup-grid-content > *:first-child {
+            flex: 1 1 45%;
+            min-width: 0;
+            order: ${imagePosition === "right" ? 2 : 1};
+          }
+
+          /* Form/Content Cell */
+          .popup-grid-content > *:last-child {
+            flex: 1 1 55%;
+            min-width: 0;
+            order: ${imagePosition === "right" ? 1 : 2};
+          }
+          `
+              : ""
+          }
+        }
+
+        /* Larger containers: More spacious layout */
+        @container popup (min-width: 700px) {
+          .popup-grid-content {
             min-height: ${singleColumn ? "auto" : "450px"};
           }
 
           ${
             !singleColumn
               ? `
-          /* Image/Visual Cell (First Child) */
           .popup-grid-content > *:first-child {
-            order: ${imagePosition === "right" ? 2 : 1};
+            flex: 1 1 50%;
           }
-
-          /* Form/Content Cell (Second Child) */
           .popup-grid-content > *:last-child {
-            order: ${imagePosition === "right" ? 1 : 2};
+            flex: 1 1 50%;
           }
           `
               : ""

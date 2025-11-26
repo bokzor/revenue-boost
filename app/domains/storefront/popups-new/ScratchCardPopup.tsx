@@ -244,7 +244,8 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
 
     const canvas = canvasRef.current;
     const prizeCanvas = prizeCanvasRef.current;
-    const ctx = canvas.getContext("2d");
+    // Use willReadFrequently for better performance with getImageData (scratch percentage calculation)
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
     const prizeCtx = prizeCanvas.getContext("2d");
 
     if (!ctx || !prizeCtx) return;
@@ -339,7 +340,8 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
     if (!canvasRef.current) return 0;
 
     const canvas = canvasRef.current;
-    const ctx = canvas.getContext("2d");
+    // Use willReadFrequently for better performance with repeated getImageData calls
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
     if (!ctx) return 0;
 
     const imageData = ctx.getImageData(0, 0, cardWidth, cardHeight);
@@ -361,7 +363,8 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
       if (!canvasRef.current) return;
 
       const canvas = canvasRef.current;
-      const ctx = canvas.getContext("2d");
+      // Use willReadFrequently for better performance (consistent with calculateScratchPercentage)
+      const ctx = canvas.getContext("2d", { willReadFrequently: true });
       if (!ctx) return;
 
       // Set composite operation to erase mode
@@ -474,6 +477,13 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
       // Prize and code already generated, just save the email
       if (!wonPrize?.discountCode) {
         console.error("[Scratch Card] Cannot save email: no discount code available");
+        return;
+      }
+
+      // Preview mode: skip API call and just mark as submitted
+      if (config.previewMode) {
+        console.log("[Scratch Card] Preview mode - skipping email save API call");
+        setEmailSubmitted(true);
         return;
       }
 
