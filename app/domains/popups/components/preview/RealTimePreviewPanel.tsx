@@ -99,7 +99,6 @@ export function RealTimePreviewPanel({
   showDeviceToggle = true,
   showAnimationControls = true,
   showRefreshButton = true,
-  onConfigChange: _onConfigChange,
   initialDevice = "desktop",
   sticky = false,
 }: RealTimePreviewPanelProps) {

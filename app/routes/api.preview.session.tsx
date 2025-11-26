@@ -112,7 +112,7 @@ export async function action({ request }: ActionFunctionArgs) {
  * GET /api/preview/session/:token
  * Retrieve preview campaign data by token
  */
-export async function loader({ request, params }: LoaderFunctionArgs) {
+export async function loader({ params }: LoaderFunctionArgs) {
   const { token } = params;
 
   if (!token) {

@@ -11,7 +11,7 @@
  * - Type-safe context with TypeScript
  */
 
-import React, { createContext, useContext, ReactNode } from "react";
+import { createContext, useContext, ReactNode } from "react";
 import type { CampaignFormData } from "~/shared/hooks/useWizardState";
 
 /**

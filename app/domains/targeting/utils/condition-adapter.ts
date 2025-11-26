@@ -1,7 +1,6 @@
 import type {
   TriggerCondition,
   ConditionOperator,
-  LogicOperator,
   ConditionType,
 } from "../components/types";
 

@@ -342,7 +342,7 @@ export class PlanGuardService {
    * Returns detailed info about the limit status instead of throwing
    */
   static async checkLeadLimit(storeId: string): Promise<LimitCheckResult> {
-    const { planTier, definition } = await this.getPlanContext(storeId);
+    const { definition } = await this.getPlanContext(storeId);
     const limit = definition.limits.maxLeadsPerMonth;
 
     if (limit === null) {
@@ -374,7 +374,7 @@ export class PlanGuardService {
         case "HARD_BLOCK":
           result.allowed = false;
           break;
-        case "SOFT_BLOCK":
+        case "SOFT_BLOCK": {
           // Allow 3-day grace period after hitting limit
           const gracePeriodDays = 3;
           const gracePeriodEnd = new Date();
@@ -384,6 +384,7 @@ export class PlanGuardService {
           result.gracePeriodEndsAt = gracePeriodEnd;
           result.warningMessage = `You've reached your monthly lead limit (${limit.toLocaleString()}). Upgrade to continue capturing leads after the grace period.`;
           break;
+        }
         case "NOTIFY_ONLY":
           result.allowed = true;
           result.warningMessage = `You've exceeded your monthly lead limit (${limit.toLocaleString()}). Consider upgrading for more capacity.`;
@@ -402,7 +403,7 @@ export class PlanGuardService {
    */
   static async assertCanCaptureLead(storeId: string) {
     const result = await this.checkLeadLimit(storeId);
-    const { planTier, definition } = await this.getPlanContext(storeId);
+    const { planTier } = await this.getPlanContext(storeId);
 
     if (!result.allowed) {
       throw new PlanLimitError(

@@ -68,6 +68,72 @@ export class CampaignFilterService {
   }
 
   /**
+   * Filter campaigns by geographic targeting
+   *
+   * Uses the country code from Shopify's X-Country-Code header
+   * to include/exclude campaigns based on visitor location.
+   */
+  static filterByGeoTargeting(
+    campaigns: CampaignWithConfigs[],
+    context: StorefrontContext
+  ): CampaignWithConfigs[] {
+    const country = context.country?.toUpperCase();
+
+    if (!country) {
+      console.log(
+        "[Revenue Boost] ⚠️ No country code in context, skipping geo targeting filter"
+      );
+      return campaigns;
+    }
+
+    console.log(
+      `[Revenue Boost] 🌍 Filtering campaigns by geographic targeting. Visitor country: ${country}`
+    );
+
+    return campaigns.filter((campaign) => {
+      const geoTargeting = campaign.targetRules?.geoTargeting;
+
+      // If no geo targeting configured or disabled, include campaign
+      if (!geoTargeting || !geoTargeting.enabled) {
+        return true;
+      }
+
+      const { mode, countries } = geoTargeting;
+
+      // If no countries specified, include campaign (no filter applied)
+      if (!countries || countries.length === 0) {
+        console.log(
+          `[Revenue Boost] ⚠️ Campaign "${campaign.name}" (${campaign.id}): Geo targeting enabled but no countries specified, including`
+        );
+        return true;
+      }
+
+      const isInList = countries.includes(country);
+      let matches: boolean;
+
+      if (mode === "include") {
+        // Show only to visitors from selected countries
+        matches = isInList;
+      } else {
+        // Exclude mode: show to all except selected countries
+        matches = !isInList;
+      }
+
+      if (matches) {
+        console.log(
+          `[Revenue Boost] ✅ Campaign "${campaign.name}" (${campaign.id}): Geo targeting matched (${mode} mode, country=${country})`
+        );
+      } else {
+        console.log(
+          `[Revenue Boost] ❌ Campaign "${campaign.name}" (${campaign.id}): Geo targeting did NOT match (${mode} mode, country=${country}, countries=${countries.join(",")})`
+        );
+      }
+
+      return matches;
+    });
+  }
+
+  /**
    * Filter campaigns by page targeting
    */
   static filterByPageTargeting(
@@ -581,6 +647,13 @@ export class CampaignFilterService {
     filtered = await this.runFilterStep(
       "DEVICE TYPE",
       (cs, ctx) => this.filterByDeviceType(cs, ctx),
+      filtered,
+      context
+    );
+
+    filtered = await this.runFilterStep(
+      "GEO TARGETING",
+      (cs, ctx) => this.filterByGeoTargeting(cs, ctx),
       filtered,
       context
     );

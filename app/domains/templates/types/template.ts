@@ -307,7 +307,7 @@ export const FreeShippingTemplateSchema = BaseTemplateSchema.extend({
  * This ensures proper typing for contentConfig based on templateType
  * @deprecated Use template registry for schema lookups
  */
-export function getTemplateSchemaForType(templateType: TemplateType) {
+export function getTemplateSchemaForType(_templateType: TemplateType) {
   // For backward compatibility, return TemplateWithConfigsSchema
   // The registry handles content schema validation separately
   return TemplateWithConfigsSchema;

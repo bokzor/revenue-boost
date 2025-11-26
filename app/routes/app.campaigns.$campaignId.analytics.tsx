@@ -89,7 +89,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     url: request.url,
     campaignId: params.campaignId,
   });
-  const { admin, session } = await authenticate.admin(request);
+  const { admin } = await authenticate.admin(request);
   const storeId = await getStoreId(request);
   const campaignId = params.campaignId;
 
@@ -113,7 +113,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
   if (!campaign) throw new Response("Campaign not found", { status: 404 });
 
-  const stats = statsMap.get(campaignId);
+  const _stats = statsMap.get(campaignId);
   const revenueStats = revenueMap.get(campaignId);
 
   // 3. Calculate Summary Metrics

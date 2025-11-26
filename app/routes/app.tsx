@@ -9,7 +9,6 @@ import en from "@shopify/polaris/locales/en.json";
 import polarisStyles from "@shopify/polaris/build/esm/styles.css?url";
 
 import { authenticate } from "../shopify.server";
-import prisma from "../db.server";
 import { BillingService } from "../domains/billing/services/billing.server";
 import { PLAN_DEFINITIONS, type PlanTier, type PlanFeatures } from "../domains/billing/types/plan";
 

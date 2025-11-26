@@ -5,7 +5,7 @@
  * (mirrors the structure quality of NewsletterContentSection)
  */
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import {
   Card,
   BlockStack,

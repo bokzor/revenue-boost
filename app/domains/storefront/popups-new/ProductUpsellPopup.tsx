@@ -54,10 +54,10 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
   onClose,
   products: propProducts,
   onAddToCart,
-  onProductClick,
+  onProductClick: _onProductClick,
 }) => {
   // Use animation hook
-  const { showContent } = usePopupAnimation({
+  const { showContent: _showContent } = usePopupAnimation({
     isVisible,
     entryDelay: 50,
   });

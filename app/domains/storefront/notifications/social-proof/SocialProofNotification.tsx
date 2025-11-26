@@ -275,6 +275,9 @@ export const SocialProofNotificationComponent: React.FC<SocialProofNotificationP
           transition: "transform 0.3s ease-out, opacity 0.3s ease-out",
         }}
         onClick={handleClick}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleClick?.(); }}
+        role="button"
+        tabIndex={onClick ? 0 : -1}
         data-rb-social-proof
       >
         {renderNotificationContent()}

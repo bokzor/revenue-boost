@@ -1,11 +1,9 @@
 import {
   BlockStack,
   Box,
-  Button,
   Card,
   Checkbox,
   InlineGrid,
-  InlineStack,
   Text,
   TextField,
   Tabs,
@@ -137,7 +135,7 @@ export function GlobalCappingSettings({ settings, onChange }: GlobalCappingSetti
           </Text>
           <Text as="p" tone="subdued">
             Set limits on how often campaigns are shown to visitors across your entire store. These
-            settings override individual campaign rules when "Respect global limits" is enabled.
+            settings override individual campaign rules when &quot;Respect global limits&quot; is enabled.
           </Text>
         </BlockStack>
 

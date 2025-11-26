@@ -22,7 +22,6 @@ import { PopupPortal } from "./PopupPortal";
 import type { PopupDesignConfig, CartItem, DiscountConfig } from "./types";
 import type { CartAbandonmentContent } from "~/domains/campaigns/types/campaign";
 import { formatCurrency } from "./utils";
-import { POPUP_SPACING, POPUP_BREAKPOINTS, getContainerPadding, SPACING_GUIDELINES } from "./spacing";
 
 // Import custom hooks
 import { useCountdownTimer, useDiscountCode, usePopupForm } from "./hooks";
@@ -76,7 +75,7 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
   onTrack,
 }) => {
   // Use countdown timer hook
-  const { timeRemaining, hasExpired, formattedTime } = useCountdownTimer({
+  const { timeRemaining } = useCountdownTimer({
     enabled: config.showUrgency === true && !!config.urgencyTimer,
     mode: "duration",
     duration: config.urgencyTimer,
@@ -93,9 +92,8 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
     formState,
     setEmail,
     errors,
-    handleSubmit: handleFormSubmit,
     isSubmitting: isEmailSubmitting,
-    isSubmitted: emailSubmitted,
+    handleSubmit: handleFormSubmit,
   } = usePopupForm({
     config: {
       emailRequired: true,

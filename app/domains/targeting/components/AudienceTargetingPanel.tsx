@@ -48,7 +48,7 @@ export interface AudienceTargetingPanelProps {
 }
 
 export function AudienceTargetingPanel({
-  storeId, // currently unused but kept for future Shopify segment selector
+  storeId: _storeId, // currently unused but kept for future Shopify segment selector
   config,
   onConfigChange,
   disabled = false,

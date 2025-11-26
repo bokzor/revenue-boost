@@ -15,7 +15,7 @@
 import React, { useMemo } from "react";
 import type { PopupDesignConfig } from "./types";
 import type { AnnouncementContent } from "~/domains/campaigns/types/campaign";
-import { POPUP_SPACING, SPACING_GUIDELINES } from "./spacing";
+import { POPUP_SPACING } from "./spacing";
 
 // Import custom hooks
 import { usePopupAnimation, useColorScheme } from "./hooks";
@@ -52,7 +52,7 @@ export const AnnouncementPopup: React.FC<AnnouncementPopupProps> = ({
   onCtaClick,
 }) => {
   // Use animation hook
-  const { showContent } = usePopupAnimation({ isVisible });
+  const { showContent: _showContent } = usePopupAnimation({ isVisible });
 
   // Use color scheme hook
   const schemeColors = useColorScheme(config.colorScheme || "custom", {
@@ -60,8 +60,6 @@ export const AnnouncementPopup: React.FC<AnnouncementPopupProps> = ({
     textColor: config.textColor,
     accentColor: config.buttonColor,
   });
-
-  if (!isVisible) return null;
 
   const scopedCss = useMemo(
     () =>
@@ -73,6 +71,8 @@ export const AnnouncementPopup: React.FC<AnnouncementPopupProps> = ({
       ),
     [config.customCSS, config.globalCustomCSS],
   );
+
+  if (!isVisible) return null;
 
   // Get background styles (handles gradients)
   const bannerBackgroundStyles = getBackgroundStyles(schemeColors.backgroundColor);

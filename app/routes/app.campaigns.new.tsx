@@ -206,7 +206,6 @@ export default function NewCampaign() {
             max_triggers_per_session,
             max_triggers_per_day,
             cooldown_between_triggers,
-            respectGlobalCap,
           } = variant.frequencyCapping;
 
           // Only include frequency_capping if enabled
@@ -280,7 +279,6 @@ export default function NewCampaign() {
           max_triggers_per_session,
           max_triggers_per_day,
           cooldown_between_triggers,
-          respectGlobalCap,
         } = campaignData.frequencyCapping;
 
         // Only include frequency_capping if enabled
@@ -308,6 +306,7 @@ export default function NewCampaign() {
               frequency_capping,
             },
             audienceTargeting: campaignData.audienceTargeting,
+            geoTargeting: campaignData.geoTargeting,
             pageTargeting: campaignData.pageTargeting,
           },
           discountConfig: campaignData.discountConfig,

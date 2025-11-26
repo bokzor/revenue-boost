@@ -22,8 +22,6 @@ import {
   DiscountConfigSchema,
   type DiscountConfig,
   type DiscountBehavior,
-  shouldAutoApply,
-  requiresEmailRestriction,
 } from "~/domains/campaigns/types/campaign";
 import { z } from "zod";
 
@@ -201,7 +199,7 @@ const DISCOUNT_STRATEGIES: DiscountStrategy[] = [
  * Check if discount code should be shown to customer based on behavior
  * All three behavior options show the code to the customer
  */
-export function shouldShowDiscountCode(behavior: DiscountBehavior): boolean {
+export function shouldShowDiscountCode(_behavior: DiscountBehavior): boolean {
   // All behaviors show the code
   return true;
 }

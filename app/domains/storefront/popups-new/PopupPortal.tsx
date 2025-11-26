@@ -227,7 +227,7 @@ export const PopupPortal: React.FC<PopupPortalProps> = ({
 
   // Handle backdrop click
   const handleBackdropClick: React.MouseEventHandler<HTMLDivElement> = useCallback(
-    (e) => {
+    (_e) => {
       if (closeOnBackdropClick) {
         handleClose();
       }
@@ -330,9 +330,6 @@ export const PopupPortal: React.FC<PopupPortalProps> = ({
     }
   }, [isVisible, isExiting]);
 
-  // Don't render if not mounted
-  if (!isMounted && !isVisible) return null;
-
   // Check for reduced motion preference
   const prefersReducedMotion =
     typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -381,6 +378,9 @@ export const PopupPortal: React.FC<PopupPortalProps> = ({
     [customCSS, globalCustomCSS]
   );
 
+  // Don't render if not mounted
+  if (!isMounted && !isVisible) return null;
+
   // Render content
   const content = (
     <div style={overlayStyles} role="presentation">
@@ -406,11 +406,13 @@ export const PopupPortal: React.FC<PopupPortalProps> = ({
       />
 
       {/* Content wrapper with animation */}
+      {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions */}
       <div
         ref={contentRef}
         className={`popup-portal-dialog-wrapper ${contentAnimationClass}`}
         style={contentWrapperStyles}
         onClick={handleContentClick}
+        onKeyDown={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
         aria-label={ariaLabel}

@@ -12,7 +12,7 @@ import type { PopupSize, PopupPosition, PopupAnimation } from "./types";
  */
 export function getSizeDimensions(
   size: PopupSize,
-  previewMode?: boolean
+  _previewMode?: boolean
 ): { width: string; maxWidth: string } {
   // Production mode - use full responsive widths
   switch (size) {

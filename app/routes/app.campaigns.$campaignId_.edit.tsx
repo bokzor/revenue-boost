@@ -185,6 +185,11 @@ export default function CampaignEditPage() {
         productTags: [],
         collections: [],
       },
+      geoTargeting: campaign.targetRules?.geoTargeting || {
+        enabled: false,
+        mode: "include" as const,
+        countries: [],
+      },
       // Load frequency capping from server format (already matches UI format)
       frequencyCapping: {
         enabled: !!campaign.targetRules?.enhancedTriggers?.frequency_capping,
@@ -225,7 +230,6 @@ export default function CampaignEditPage() {
         max_triggers_per_session,
         max_triggers_per_day,
         cooldown_between_triggers,
-        respectGlobalCap,
       } = campaignData.frequencyCapping;
 
       // Only include frequency_capping if enabled
@@ -252,6 +256,7 @@ export default function CampaignEditPage() {
             frequency_capping,
           },
           audienceTargeting: campaignData.audienceTargeting,
+          geoTargeting: campaignData.geoTargeting,
           pageTargeting: campaignData.pageTargeting,
         },
         discountConfig: campaignData.discountConfig,

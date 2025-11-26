@@ -16,7 +16,7 @@ interface ProductValueInputProps {
   onChange: (value: string) => void;
 }
 
-export function ProductValueInput({ value, onChange }: ProductValueInputProps) {
+export function ProductValueInput({ value, onChange: _onChange }: ProductValueInputProps) {
   const [showPicker, setShowPicker] = useState(false);
 
   let selectedProduct: Product | null = null;

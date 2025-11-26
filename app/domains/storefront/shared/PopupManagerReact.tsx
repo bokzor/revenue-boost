@@ -175,8 +175,8 @@ export const PopupManager: React.FC<PopupManagerProps> = ({
 }) => {
   // React state management
   const [activeCampaign, setActiveCampaign] = useState<StorefrontCampaign | null>(null);
-  const [dismissedCampaigns, setDismissedCampaigns] = useState<Set<string>>(new Set());
-  const [cooldownCampaigns, setCooldownCampaigns] = useState<Set<string>>(new Set());
+  const [_dismissedCampaigns, setDismissedCampaigns] = useState<Set<string>>(new Set());
+  const [_cooldownCampaigns, setCooldownCampaigns] = useState<Set<string>>(new Set());
 
   // Core logic instance
   const coreRef = useRef<PopupManagerCore | null>(null);
@@ -258,7 +258,7 @@ export const PopupManager: React.FC<PopupManagerProps> = ({
   }, [campaigns]);
 
   // Wrapper functions that delegate to core
-  const showPopup = useCallback(
+  const _showPopup = useCallback(
     async (campaign: StorefrontCampaign) => {
       if (!coreRef.current) return false;
       const result = await coreRef.current.showPopup(campaign);
@@ -360,7 +360,7 @@ export const PopupManager: React.FC<PopupManagerProps> = ({
       }
 
       case "spin-to-win":
-
+      // falls through
       case "lottery": {
         const content = activeCampaign.contentConfig as any;
         const design = (activeCampaign as any).designConfig || {};

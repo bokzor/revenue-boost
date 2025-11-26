@@ -11,63 +11,10 @@ import { Card, BlockStack, Text, Divider, Layout } from "@shopify/polaris";
 import { ContentConfigSection } from "../sections/ContentConfigSection";
 import { DesignConfigSection } from "../sections/DesignConfigSection";
 import { LivePreviewPanel } from "~/domains/popups/components/preview/LivePreviewPanel";
-import type { PopupDesignFormData } from "~/shared/hooks/useWizardState";
 import type { DesignConfig, ContentConfig } from "~/domains/campaigns/types/campaign";
 import { useConfigField, useFormField, useStoreInfo } from "../../context/CampaignFormContext";
 
-// Props interface kept for backward compatibility
-interface DesignStepProps {
-  data?: unknown;
-  onChange?: (data: unknown) => void;
-  shopDomain?: string;
-}
-function toDesignConfig(p?: PopupDesignFormData): Partial<DesignConfig> {
-  if (!p) return {};
-  const isPos = (v: string): v is DesignConfig["position"] =>
-    ["center", "top", "bottom", "left", "right"].includes(v);
-  const isSize = (v: string): v is DesignConfig["size"] => ["small", "medium", "large"].includes(v);
-  return {
-    backgroundColor: p.backgroundColor || undefined,
-    textColor: p.textColor || undefined,
-    buttonColor: p.buttonColor || undefined,
-    buttonTextColor: p.buttonTextColor || undefined,
-    position: isPos(p.position) ? p.position : undefined,
-    size: isSize(p.size) ? p.size : undefined,
-    overlayOpacity: p.overlayOpacity,
-  };
-}
-
-function mergePopupDesignChange(
-  prev: PopupDesignFormData | undefined,
-  change: Partial<DesignConfig>
-): PopupDesignFormData {
-  const base: PopupDesignFormData = prev || {
-    id: "",
-    title: "",
-    description: "",
-    buttonText: "",
-    backgroundColor: "",
-    textColor: "",
-    buttonColor: "",
-    buttonTextColor: "",
-    position: "center",
-    size: "medium",
-    showCloseButton: true,
-    overlayOpacity: 0.5,
-  };
-  return {
-    ...base,
-    backgroundColor: change.backgroundColor ?? base.backgroundColor,
-    textColor: change.textColor ?? base.textColor,
-    buttonColor: change.buttonColor ?? base.buttonColor,
-    buttonTextColor: change.buttonTextColor ?? base.buttonTextColor,
-    position: (change.position as string) ?? base.position,
-    size: (change.size as string) ?? base.size,
-    overlayOpacity: change.overlayOpacity ?? base.overlayOpacity,
-  };
-}
-
-export function DesignStep(_props?: DesignStepProps) {
+export function DesignStep() {
   // Use context hooks
   const { shopDomain } = useStoreInfo();
   const [goal] = useFormField("goal");

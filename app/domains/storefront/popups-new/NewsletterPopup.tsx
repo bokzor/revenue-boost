@@ -19,20 +19,16 @@ import type { NewsletterContent } from "~/domains/campaigns/types/campaign";
 import { PopupPortal } from "./PopupPortal";
 import { PopupGridContainer } from "./PopupGridContainer";
 import { getSizeDimensions } from "./utils";
-import { POPUP_SPACING, getContainerPadding, SPACING_GUIDELINES } from "./spacing";
+import { SPACING_GUIDELINES } from "./spacing";
 
 // Import custom hooks
 import { usePopupForm, useDiscountCode, usePopupAnimation } from "./hooks";
 
-// Import reusable components
-import { EmailInput, NameInput, GdprCheckbox, SubmitButton } from "./components";
-
 // Import shared components from Phase 1 & 2
 import {
-  SuccessState,
-  DiscountCodeDisplay,
   LeadCaptureForm,
   PopupHeader,
+  SuccessState,
 } from "./components/shared";
 
 // Import shared animations
@@ -112,7 +108,7 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
   );
 
   // Use animation hook
-  const { showContent } = usePopupAnimation({ isVisible });
+  const { showContent: _showContent } = usePopupAnimation({ isVisible });
 
   // Extract configuration with defaults
   const imagePosition: ImagePosition = config.imagePosition || "left";
@@ -124,12 +120,12 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
   // Use image URL from config when mode is not "none" (admin sets this for preset/file)
   const imageUrl = backgroundImageMode === "none" ? undefined : config.imageUrl;
 
-  const title = config.headline || "Join Our Newsletter";
-  const description =
+  const _title = config.headline || "Join Our Newsletter";
+  const _description =
     config.subheadline || "Subscribe to get special offers, free giveaways, and exclusive deals.";
   const buttonText = config.submitButtonText || config.buttonText || "Subscribe";
   const behavior = config.discount?.behavior || "SHOW_CODE_AND_AUTO_APPLY";
-  const successMessage =
+  const _successMessage =
     config.successMessage ??
     (behavior === "SHOW_CODE_AND_AUTO_APPLY"
       ? "Thanks for subscribing! Your discount will be automatically applied when you checkout."
@@ -140,7 +136,7 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
   const gdprLabel =
     config.consentFieldText || "I agree to receive marketing emails and accept the privacy policy";
   const collectName = config.nameFieldEnabled ?? false;
-  const sizeDimensions = getSizeDimensions(config.size || "medium", config.previewMode);
+  const _sizeDimensions = getSizeDimensions(config.size || "medium", config.previewMode);
 
   // Auto-close after delay
   useEffect(() => {
@@ -154,18 +150,18 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
   const showImage = imagePosition !== "none";
   const isVertical = imagePosition === "left" || imagePosition === "right";
   const imageFirst = imagePosition === "left" || imagePosition === "top";
-  const defaultImage =
+  const _defaultImage =
     imageUrl || `/placeholder.svg?height=600&width=500&query=modern email newsletter subscription`;
 
   // Content class for layout
-  const contentClass = showImage
+  const _contentClass = showImage
     ? isVertical
       ? `vertical ${imageFirst ? "" : "reverse"}`
       : `horizontal ${imageFirst ? "" : "reverse"}`
     : "single-column";
 
   // Detect glass effect
-  const isGlass =
+  const _isGlass =
     config.backgroundColor?.includes("rgba") &&
     parseFloat(config.backgroundColor.match(/[\d.]+(?=\))/)?.[0] || "1") < 1;
 

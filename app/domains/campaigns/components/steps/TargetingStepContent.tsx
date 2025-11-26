@@ -9,15 +9,21 @@
 import { Card, BlockStack, Text } from "@shopify/polaris";
 import { AdvancedTriggersEditor } from "~/domains/targeting/components/AdvancedTriggersEditor";
 import { AudienceTargetingPanel } from "~/domains/targeting/components/AudienceTargetingPanel";
+import { GeoTargetingPanel } from "~/domains/targeting/components/GeoTargetingPanel";
 import type { EnhancedTriggerConfig } from "~/domains/targeting/types/enhanced-triggers.types";
-import type { AudienceTargetingConfig } from "~/domains/campaigns/types/campaign";
+import type {
+  AudienceTargetingConfig,
+  GeoTargetingConfig,
+} from "~/domains/campaigns/types/campaign";
 
 interface TargetingStepContentProps {
   storeId: string;
   enhancedTriggers: EnhancedTriggerConfig;
   audienceTargeting: AudienceTargetingConfig;
+  geoTargeting: GeoTargetingConfig;
   onTriggersChange: (config: EnhancedTriggerConfig) => void;
   onAudienceChange: (config: AudienceTargetingConfig) => void;
+  onGeoChange: (config: GeoTargetingConfig) => void;
   /** Whether advanced targeting (Shopify segments, session rules) is enabled for the current plan */
   advancedTargetingEnabled?: boolean;
 }
@@ -26,8 +32,10 @@ export function TargetingStepContent({
   storeId,
   enhancedTriggers,
   audienceTargeting,
+  geoTargeting,
   onTriggersChange,
   onAudienceChange,
+  onGeoChange,
   advancedTargetingEnabled = false,
 }: TargetingStepContentProps) {
   return (
@@ -58,6 +66,18 @@ export function TargetingStepContent({
             onConfigChange={onAudienceChange}
             disabled={!advancedTargetingEnabled}
           />
+        </BlockStack>
+      </Card>
+
+      <Card>
+        <BlockStack gap="400">
+          <Text as="h3" variant="headingMd">
+            Where to Show (Geographic)
+          </Text>
+          <Text as="p" variant="bodyMd" tone="subdued">
+            Target or exclude visitors based on their geographic location.
+          </Text>
+          <GeoTargetingPanel config={geoTargeting} onConfigChange={onGeoChange} />
         </BlockStack>
       </Card>
     </BlockStack>

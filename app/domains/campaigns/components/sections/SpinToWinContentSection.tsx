@@ -5,7 +5,7 @@
  */
 
 import { Card, BlockStack, Text, Divider } from "@shopify/polaris";
-import { TextField, CheckboxField, FormGrid } from "../form";
+import { TextField, FormGrid } from "../form";
 import { WheelSegmentEditor } from "./WheelSegmentEditor";
 import { FieldConfigurationSection } from "./FieldConfigurationSection";
 import type { SpinToWinContentSchema } from "../../types/campaign";

@@ -19,7 +19,6 @@ import {
   InlineStack,
   DatePicker,
   Popover,
-  TextField as PolarisTextField,
 } from "@shopify/polaris";
 import { ChevronDownIcon, ChevronUpIcon } from "@shopify/polaris-icons";
 import { TextField, CheckboxField, FormGrid, ColorField, ProductPicker } from "../form";
@@ -87,11 +86,6 @@ export function FlashSaleContentSection({
   const updateReserveField = (field: string, value: unknown) => {
     const reserve = (content.reserve || {}) as Record<string, unknown>;
     updateField("reserve", { ...reserve, [field]: value } as Partial<FlashSaleContent>["reserve"]);
-  };
-
-  const updateCtaField = (field: string, value: unknown) => {
-    const cta = (content.cta || {}) as Record<string, unknown>;
-    updateField("cta", { ...cta, [field]: value } as Partial<FlashSaleContent>["cta"]);
   };
 
   const updatePresentationField = (field: string, value: unknown) => {
@@ -1074,7 +1068,7 @@ function DateTimePickerField({ label, value, onChange, helpText }: DateTimePicke
               month={selectedDate?.getMonth() ?? new Date().getMonth()}
               year={selectedDate?.getFullYear() ?? new Date().getFullYear()}
               selected={selectedDate}
-              onMonthChange={(month, year) => {
+              onMonthChange={() => {
                 // Handle month/year navigation if needed
               }}
               onChange={handleDateChange}

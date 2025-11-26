@@ -1,8 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import {
-	  ScratchCardPopup,
-	  type ScratchCardConfig,
-	} from "~/domains/storefront/popups-new/ScratchCardPopup";
+  ScratchCardPopup,
+  type ScratchCardConfig,
+} from "~/domains/storefront/popups-new/ScratchCardPopup";
 
 const baseConfig: Partial<ScratchCardConfig> = {
   id: "demo-scratch-card",
@@ -30,7 +30,7 @@ const meta: Meta<typeof ScratchCardPopup> = {
   component: ScratchCardPopup,
   args: {
     isVisible: true,
-	    config: baseConfig as ScratchCardConfig,
+    config: baseConfig as ScratchCardConfig,
   },
 };
 

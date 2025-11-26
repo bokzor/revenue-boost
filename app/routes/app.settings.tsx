@@ -43,7 +43,6 @@ import { GlobalCSSSettings } from "../domains/store/components/GlobalCSSSettings
 import { StoreSettingsSchema, type StoreSettings } from "../domains/store/types/settings";
 import { SetupStatus } from "../domains/setup/components/SetupStatus";
 import { getSetupStatus } from "../lib/setup-status.server";
-import { Link } from "react-router";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session, admin } = await authenticate.admin(request);
@@ -486,7 +485,7 @@ export default function SettingsPage() {
                     <p>
                       Your free trial ends on{" "}
                       <strong>{new Date(billingContext.trialEndsAt).toLocaleDateString()}</strong>.
-                      After the trial, you'll be charged ${currentDefinition.price}/month.
+                      After the trial, you&apos;ll be charged ${currentDefinition.price}/month.
                     </p>
                   </Banner>
                 )}

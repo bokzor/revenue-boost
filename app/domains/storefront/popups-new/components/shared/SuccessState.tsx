@@ -142,7 +142,7 @@ export const SuccessState: React.FC<SuccessStateProps> = ({
   accentColor = "#16a34a",
   successColor = "#16a34a",
   textColor = "#111827",
-  descriptionColor, // Reserved for future use
+  descriptionColor: _descriptionColor, // Reserved for future use
   animation = "bounceIn",
   fontSize = "1.875rem",
   fontWeight = "700",

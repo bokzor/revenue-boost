@@ -53,7 +53,7 @@ interface DiscountIssueResponse {
   error?: string;
 }
 
-import { getRedis, REDIS_TTL } from "~/lib/redis.server";
+import { getRedis } from "~/lib/redis.server";
 
 // Redis-based session tracking for idempotency (30 min TTL)
 interface SessionIssue {

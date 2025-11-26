@@ -18,17 +18,14 @@ import {
   requestChallengeToken,
   challengeTokenStore,
 } from "~/domains/storefront/services/challenge-token.client";
-import { POPUP_SPACING, SPACING_GUIDELINES } from "./spacing";
+import { POPUP_SPACING } from "./spacing";
 
 // Import custom hooks
 import { usePopupAnimation, usePopupForm, useDiscountCode } from "./hooks";
 import { buildScopedCss } from "~/domains/storefront/shared/css";
 
-// Import reusable components
-import { EmailInput, SubmitButton } from "./components";
-
 // Import shared components from Phase 1 & 2
-import { LeadCaptureForm, DiscountCodeDisplay, PopupCloseButton } from "./components/shared";
+import { LeadCaptureForm, PopupCloseButton } from "./components/shared";
 
 // Import session for lazy token loading (only in storefront context)
 let sessionModule: any = null;
@@ -104,7 +101,7 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
     formState,
     setEmail,
     errors,
-    handleSubmit: handleFormSubmit,
+    handleSubmit: _handleFormSubmit,
     isSubmitting: isClaiming,
     isSubmitted: hasClaimed,
   } = usePopupForm({
@@ -125,12 +122,12 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
   const [internalDismissed, setInternalDismissed] = useState(false);
   const [celebrating, setCelebrating] = useState(false);
   const [claimError, setClaimError] = useState<string | null>(null);
-  const [isLoadingToken, setIsLoadingToken] = useState(false);
+  const [_isLoadingToken, setIsLoadingToken] = useState(false);
   const prevUnlockedRef = useRef(false);
   const hasIssuedDiscountRef = useRef(false);
   const currencyCodeRef = useRef<string | undefined>(undefined);
   const bannerRef = useRef<HTMLDivElement>(null);
-  const hasPlayedEntranceRef = useRef(false);
+  const _hasPlayedEntranceRef = useRef(false);
   const tokenRequestedRef = useRef(false);
 
   const remaining = Math.max(0, threshold - cartTotal);
@@ -539,11 +536,6 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
     requireEmailToClaim,
   ]);
 
-  // Don't render if not visible and not animating
-  if ((!isVisible || internalDismissed) && !isAnimating) {
-    return null;
-  }
-
   // Get progress bar color based on state
   const getProgressColor = () => {
     if (state === "unlocked") return config.accentColor || "#10B981";
@@ -574,6 +566,11 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
       ),
     [config.customCSS, config.globalCustomCSS],
   );
+
+  // Don't render if not visible and not animating
+  if ((!isVisible || internalDismissed) && !isAnimating) {
+    return null;
+  }
 
   return (
     <>
@@ -1011,9 +1008,12 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
                   Free shipping will be applied automatically at checkout.
                 </p>
               ) : discountCode || discount.code ? (
-                <p
+                <span
                   className="free-shipping-bar-discount-text"
                   onClick={() => handleCopyCode()}
+                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleCopyCode(); }}
+                  role="button"
+                  tabIndex={0}
                   style={{ cursor: "pointer" }}
                 >
                   <>
@@ -1026,7 +1026,7 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
                       <span style={{ marginLeft: "0.5rem", color: "#10B981" }}>✓ Copied!</span>
                     )}
                   </>
-                </p>
+                </span>
               ) : null)}
           </div>
 

@@ -262,6 +262,311 @@ describe("CampaignFilterService", () => {
     });
   });
 
+  describe("filterByGeoTargeting", () => {
+    it("should include campaigns when geo targeting is disabled", () => {
+      const campaigns: CampaignWithConfigs[] = [
+        {
+          id: "campaign-1",
+          name: "No Geo Targeting",
+          storeId: "store-1",
+          templateType: "NEWSLETTER",
+          status: "ACTIVE",
+          priority: 0,
+          targetRules: {
+            geoTargeting: {
+              enabled: false,
+              mode: "include",
+              countries: ["US", "CA"],
+            },
+          },
+        } as CampaignWithConfigs,
+      ];
+
+      const context: StorefrontContext = {
+        country: "DE",
+      };
+
+      const filtered = CampaignFilterService.filterByGeoTargeting(campaigns, context);
+      expect(filtered).toHaveLength(1);
+    });
+
+    it("should include campaigns when no geo targeting config exists", () => {
+      const campaigns: CampaignWithConfigs[] = [
+        {
+          id: "campaign-1",
+          name: "No Geo Config",
+          storeId: "store-1",
+          templateType: "NEWSLETTER",
+          status: "ACTIVE",
+          priority: 0,
+          targetRules: {},
+        } as CampaignWithConfigs,
+      ];
+
+      const context: StorefrontContext = {
+        country: "US",
+      };
+
+      const filtered = CampaignFilterService.filterByGeoTargeting(campaigns, context);
+      expect(filtered).toHaveLength(1);
+    });
+
+    it("should include campaigns when country is in include list", () => {
+      const campaigns: CampaignWithConfigs[] = [
+        {
+          id: "campaign-us-only",
+          name: "US Only Campaign",
+          storeId: "store-1",
+          templateType: "NEWSLETTER",
+          status: "ACTIVE",
+          priority: 0,
+          targetRules: {
+            geoTargeting: {
+              enabled: true,
+              mode: "include",
+              countries: ["US", "CA", "GB"],
+            },
+          },
+        } as CampaignWithConfigs,
+      ];
+
+      const context: StorefrontContext = {
+        country: "US",
+      };
+
+      const filtered = CampaignFilterService.filterByGeoTargeting(campaigns, context);
+      expect(filtered).toHaveLength(1);
+      expect(filtered[0].id).toBe("campaign-us-only");
+    });
+
+    it("should exclude campaigns when country is NOT in include list", () => {
+      const campaigns: CampaignWithConfigs[] = [
+        {
+          id: "campaign-us-only",
+          name: "US Only Campaign",
+          storeId: "store-1",
+          templateType: "NEWSLETTER",
+          status: "ACTIVE",
+          priority: 0,
+          targetRules: {
+            geoTargeting: {
+              enabled: true,
+              mode: "include",
+              countries: ["US", "CA", "GB"],
+            },
+          },
+        } as CampaignWithConfigs,
+      ];
+
+      const context: StorefrontContext = {
+        country: "DE",
+      };
+
+      const filtered = CampaignFilterService.filterByGeoTargeting(campaigns, context);
+      expect(filtered).toHaveLength(0);
+    });
+
+    it("should exclude campaigns when country is in exclude list", () => {
+      const campaigns: CampaignWithConfigs[] = [
+        {
+          id: "campaign-no-russia",
+          name: "Exclude Russia Campaign",
+          storeId: "store-1",
+          templateType: "NEWSLETTER",
+          status: "ACTIVE",
+          priority: 0,
+          targetRules: {
+            geoTargeting: {
+              enabled: true,
+              mode: "exclude",
+              countries: ["RU", "CN"],
+            },
+          },
+        } as CampaignWithConfigs,
+      ];
+
+      const context: StorefrontContext = {
+        country: "RU",
+      };
+
+      const filtered = CampaignFilterService.filterByGeoTargeting(campaigns, context);
+      expect(filtered).toHaveLength(0);
+    });
+
+    it("should include campaigns when country is NOT in exclude list", () => {
+      const campaigns: CampaignWithConfigs[] = [
+        {
+          id: "campaign-no-russia",
+          name: "Exclude Russia Campaign",
+          storeId: "store-1",
+          templateType: "NEWSLETTER",
+          status: "ACTIVE",
+          priority: 0,
+          targetRules: {
+            geoTargeting: {
+              enabled: true,
+              mode: "exclude",
+              countries: ["RU", "CN"],
+            },
+          },
+        } as CampaignWithConfigs,
+      ];
+
+      const context: StorefrontContext = {
+        country: "US",
+      };
+
+      const filtered = CampaignFilterService.filterByGeoTargeting(campaigns, context);
+      expect(filtered).toHaveLength(1);
+      expect(filtered[0].id).toBe("campaign-no-russia");
+    });
+
+    it("should skip geo filter when no country in context", () => {
+      const campaigns: CampaignWithConfigs[] = [
+        {
+          id: "campaign-us-only",
+          name: "US Only Campaign",
+          storeId: "store-1",
+          templateType: "NEWSLETTER",
+          status: "ACTIVE",
+          priority: 0,
+          targetRules: {
+            geoTargeting: {
+              enabled: true,
+              mode: "include",
+              countries: ["US"],
+            },
+          },
+        } as CampaignWithConfigs,
+      ];
+
+      const context: StorefrontContext = {};
+
+      const filtered = CampaignFilterService.filterByGeoTargeting(campaigns, context);
+      // Should include all campaigns when no country info available
+      expect(filtered).toHaveLength(1);
+    });
+
+    it("should include campaigns when enabled but no countries specified", () => {
+      const campaigns: CampaignWithConfigs[] = [
+        {
+          id: "campaign-empty-countries",
+          name: "Empty Countries List",
+          storeId: "store-1",
+          templateType: "NEWSLETTER",
+          status: "ACTIVE",
+          priority: 0,
+          targetRules: {
+            geoTargeting: {
+              enabled: true,
+              mode: "include",
+              countries: [],
+            },
+          },
+        } as unknown as CampaignWithConfigs,
+      ];
+
+      const context: StorefrontContext = {
+        country: "US",
+      };
+
+      const filtered = CampaignFilterService.filterByGeoTargeting(campaigns, context);
+      expect(filtered).toHaveLength(1);
+    });
+
+    it("should handle case-insensitive country codes", () => {
+      const campaigns: CampaignWithConfigs[] = [
+        {
+          id: "campaign-us-only",
+          name: "US Only Campaign",
+          storeId: "store-1",
+          templateType: "NEWSLETTER",
+          status: "ACTIVE",
+          priority: 0,
+          targetRules: {
+            geoTargeting: {
+              enabled: true,
+              mode: "include",
+              countries: ["US", "CA"],
+            },
+          },
+        } as CampaignWithConfigs,
+      ];
+
+      // Lowercase country code from context
+      const context: StorefrontContext = {
+        country: "us",
+      };
+
+      const filtered = CampaignFilterService.filterByGeoTargeting(campaigns, context);
+      expect(filtered).toHaveLength(1);
+    });
+
+    it("should filter multiple campaigns independently", () => {
+      const campaigns: CampaignWithConfigs[] = [
+        {
+          id: "campaign-us-only",
+          name: "US Only",
+          storeId: "store-1",
+          templateType: "NEWSLETTER",
+          status: "ACTIVE",
+          priority: 0,
+          targetRules: {
+            geoTargeting: {
+              enabled: true,
+              mode: "include",
+              countries: ["US"],
+            },
+          },
+        } as CampaignWithConfigs,
+        {
+          id: "campaign-eu-only",
+          name: "EU Only",
+          storeId: "store-1",
+          templateType: "FLASH_SALE",
+          status: "ACTIVE",
+          priority: 0,
+          targetRules: {
+            geoTargeting: {
+              enabled: true,
+              mode: "include",
+              countries: ["DE", "FR", "IT"],
+            },
+          },
+        } as unknown as CampaignWithConfigs,
+        {
+          id: "campaign-global",
+          name: "Global",
+          storeId: "store-1",
+          templateType: "SPIN_TO_WIN",
+          status: "ACTIVE",
+          priority: 0,
+          targetRules: {
+            geoTargeting: {
+              enabled: false,
+              mode: "include",
+              countries: [],
+            },
+          },
+        } as unknown as CampaignWithConfigs,
+      ];
+
+      // US visitor
+      const usContext: StorefrontContext = { country: "US" };
+      const usFiltered = CampaignFilterService.filterByGeoTargeting(campaigns, usContext);
+      expect(usFiltered).toHaveLength(2);
+      expect(usFiltered.map(c => c.id)).toContain("campaign-us-only");
+      expect(usFiltered.map(c => c.id)).toContain("campaign-global");
+
+      // German visitor
+      const deContext: StorefrontContext = { country: "DE" };
+      const deFiltered = CampaignFilterService.filterByGeoTargeting(campaigns, deContext);
+      expect(deFiltered).toHaveLength(2);
+      expect(deFiltered.map(c => c.id)).toContain("campaign-eu-only");
+      expect(deFiltered.map(c => c.id)).toContain("campaign-global");
+    });
+  });
+
   describe("filterByAudienceSegments", () => {
     it("should include campaigns when session rules match context", async () => {
       const campaigns: CampaignWithConfigs[] = [

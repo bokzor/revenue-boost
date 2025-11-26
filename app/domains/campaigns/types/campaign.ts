@@ -1023,6 +1023,20 @@ export const FrequencyCappingConfigSchema = z.object({
 });
 
 /**
+ * Geographic Targeting Configuration Schema
+ *
+ * Uses Shopify's X-Country-Code header (ISO 3166-1 alpha-2 country codes)
+ * to filter campaigns based on visitor location.
+ */
+export const GeoTargetingConfigSchema = z.object({
+  enabled: z.boolean().default(false),
+  // "include" = show only to listed countries, "exclude" = show to all except listed countries
+  mode: z.enum(["include", "exclude"]).default("include"),
+  // ISO 3166-1 alpha-2 country codes (e.g., "US", "CA", "GB", "DE")
+  countries: z.array(z.string().length(2).toUpperCase()).default([]),
+});
+
+/**
  * Target Rules Configuration Schema
  * Note: frequencyCapping is now stored in enhancedTriggers.frequency_capping (server format)
  */
@@ -1030,12 +1044,14 @@ export const TargetRulesConfigSchema = z.object({
   enhancedTriggers: EnhancedTriggersConfigSchema.optional(),
   audienceTargeting: AudienceTargetingConfigSchema.optional(),
   pageTargeting: PageTargetingConfigSchema.optional(),
+  geoTargeting: GeoTargetingConfigSchema.optional(),
 });
 
 export type DesignConfig = z.infer<typeof DesignConfigSchema>;
 export type EnhancedTriggersConfig = z.infer<typeof EnhancedTriggersConfigSchema>;
 export type AudienceTargetingConfig = z.infer<typeof AudienceTargetingConfigSchema>;
 export type PageTargetingConfig = z.infer<typeof PageTargetingConfigSchema>;
+export type GeoTargetingConfig = z.infer<typeof GeoTargetingConfigSchema>;
 export type TargetRulesConfig = z.infer<typeof TargetRulesConfigSchema>;
 
 // ============================================================================

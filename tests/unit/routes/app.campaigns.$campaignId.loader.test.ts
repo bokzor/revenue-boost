@@ -1,7 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('~/shopify.server', () => ({
-  authenticate: { admin: vi.fn().mockResolvedValue({ session: { shop: 'test.myshopify.com' } }) },
+  authenticate: {
+    admin: vi.fn().mockResolvedValue({
+      session: { shop: 'test.myshopify.com' },
+      admin: {
+        graphql: vi.fn().mockResolvedValue({
+          json: () => Promise.resolve({ data: { shop: { currencyCode: 'USD' } } }),
+        }),
+      },
+    }),
+  },
   BILLING_PLANS: {
     STARTER: 'Starter',
     GROWTH: 'Growth',
@@ -21,6 +30,20 @@ vi.mock('~/domains/campaigns', () => {
     CampaignService: { getCampaignById },
   };
 });
+
+vi.mock('~/domains/campaigns/services/campaign-analytics.server', () => ({
+  CampaignAnalyticsService: {
+    getCampaignStats: vi.fn().mockResolvedValue(new Map()),
+    getRevenueBreakdownByCampaignIds: vi.fn().mockResolvedValue(new Map()),
+  },
+}));
+
+vi.mock('~/domains/analytics/popup-events.server', () => ({
+  PopupEventService: {
+    getFunnelStatsByCampaign: vi.fn().mockResolvedValue(new Map()),
+    getClickCountsByCampaign: vi.fn().mockResolvedValue(new Map()),
+  },
+}));
 
 import { getStoreId as getStoreIdMock } from '~/lib/auth-helpers.server';
 import { CampaignService } from '~/domains/campaigns';

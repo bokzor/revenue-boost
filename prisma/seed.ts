@@ -21,29 +21,34 @@ async function seed() {
     console.log("🌟 Seeding global system templates...");
     await seedGlobalSystemTemplates();
 
-    // Get or create demo stores for development and E2E tests
-    console.log("🏪 Setting up demo stores...");
+    // Only create demo stores if explicitly requested (for E2E tests)
+    if (process.env.SEED_DEMO_STORES === "true") {
+      console.log("🏪 Setting up demo stores...");
 
-    // Store 1: Demo store for development
-    const FIXED_TEST_STORE_ID = process.env.TEST_STORE_ID || "test_store_001";
-    await upsertStore({
-      id: FIXED_TEST_STORE_ID,
-      shopifyDomain: "revenue-boost-demo.myshopify.com",
-      shopifyShopId: BigInt(12345678),
-      accessToken: "demo_access_token",
-      isActive: true,
-    });
+      // Store 1: Demo store for development
+      const FIXED_TEST_STORE_ID = process.env.TEST_STORE_ID || "test_store_001";
+      await upsertStore({
+        id: FIXED_TEST_STORE_ID,
+        shopifyDomain: "revenue-boost-demo.myshopify.com",
+        shopifyShopId: BigInt(12345678),
+        accessToken: "demo_access_token",
+        isActive: true,
+      });
 
-    // Store 2: Mock-bridge test store (used by @getverdict/mock-bridge)
-    await upsertStore({
-      id: "test_store_mock",
-      shopifyDomain: process.env.MOCK_SHOP || "test-shop.myshopify.com",
-      shopifyShopId: BigInt(99999999),
-      accessToken: "mock_access_token",
-      isActive: true,
-    });
+      // Store 2: Mock-bridge test store (used by @getverdict/mock-bridge)
+      await upsertStore({
+        id: "test_store_mock",
+        shopifyDomain: process.env.MOCK_SHOP || "test-shop.myshopify.com",
+        shopifyShopId: BigInt(99999999),
+        accessToken: "mock_access_token",
+        isActive: true,
+      });
 
-    console.log(`✅ Demo stores ready`);
+      console.log(`✅ Demo stores ready`);
+    } else {
+      console.log("ℹ️  Skipping demo stores (set SEED_DEMO_STORES=true to create them)");
+    }
+
     console.log("✅ Database seeding completed successfully!");
   } catch (error) {
     console.error("❌ Error during seeding:", error);

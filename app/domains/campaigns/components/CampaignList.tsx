@@ -517,7 +517,7 @@ export function CampaignList({
               >
                 <InlineStack align="space-between" blockAlign="center">
                   <InlineStack gap="300" blockAlign="center">
-                    <div onClick={(e) => e.stopPropagation()}>
+                    <span role="presentation" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
                       <Button
                         variant="plain"
                         onClick={() => {
@@ -527,7 +527,7 @@ export function CampaignList({
                       >
                         {isExpanded ? "▼" : "▶"}
                       </Button>
-                    </div>
+                    </span>
                     <BlockStack gap="200">
                       <InlineStack gap="200">
                         <Text variant="bodyMd" fontWeight="semibold" as="h3">
@@ -561,7 +561,7 @@ export function CampaignList({
 
                   <InlineStack gap="200">
                     {onExperimentEdit && (
-                      <div onClick={(e) => e.stopPropagation()}>
+                      <span role="presentation" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
                         <Button
                           size="slim"
                           onClick={() => {
@@ -573,10 +573,10 @@ export function CampaignList({
                         >
                           Edit
                         </Button>
-                      </div>
+                      </span>
                     )}
                     {onCampaignDelete && (
-                      <div onClick={(e) => e.stopPropagation()}>
+                      <span role="presentation" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
                         <Button
                           size="slim"
                           tone="critical"
@@ -589,7 +589,7 @@ export function CampaignList({
                         >
                           Delete
                         </Button>
-                      </div>
+                      </span>
                     )}
                   </InlineStack>
                 </InlineStack>
@@ -637,7 +637,7 @@ export function CampaignList({
 
                                 <InlineStack gap="200">
                                   {onCampaignSelect && (
-                                    <div onClick={(e) => e.stopPropagation()}>
+                                    <span role="presentation" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
                                       <Button
                                         size="slim"
                                         onClick={() => {
@@ -646,10 +646,10 @@ export function CampaignList({
                                       >
                                         View
                                       </Button>
-                                    </div>
+                                    </span>
                                   )}
                                   {onExperimentEdit && campaign.variantKey && (
-                                    <div onClick={(e) => e.stopPropagation()}>
+                                    <span role="presentation" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
                                       <Button
                                         size="slim"
                                         onClick={() => {
@@ -670,7 +670,7 @@ export function CampaignList({
                                       >
                                         Edit Variant
                                       </Button>
-                                    </div>
+                                    </span>
                                   )}
                                 </InlineStack>
                               </InlineStack>
@@ -741,7 +741,7 @@ export function CampaignList({
 
                 <InlineStack gap="200">
                   {onCampaignEdit && (
-                    <div onClick={(e) => e.stopPropagation()}>
+                    <span role="presentation" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
                       <Button
                         size="slim"
                         onClick={() => {
@@ -750,10 +750,10 @@ export function CampaignList({
                       >
                         Edit
                       </Button>
-                    </div>
+                    </span>
                   )}
                   {onCampaignDuplicate && (
-                    <div onClick={(e) => e.stopPropagation()}>
+                    <span role="presentation" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
                       <Button
                         size="slim"
                         onClick={() => {
@@ -762,10 +762,10 @@ export function CampaignList({
                       >
                         Duplicate
                       </Button>
-                    </div>
+                    </span>
                   )}
                   {onCampaignDelete && (
-                    <div onClick={(e) => e.stopPropagation()}>
+                    <span role="presentation" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
                       <Button
                         size="slim"
                         tone="critical"
@@ -775,7 +775,7 @@ export function CampaignList({
                       >
                         Delete
                       </Button>
-                    </div>
+                    </span>
                   )}
                 </InlineStack>
               </InlineStack>

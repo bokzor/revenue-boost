@@ -3,7 +3,7 @@ import { SlideInPopup } from "~/domains/storefront/slideins/SlideInPopup";
 import type { PopupConfig } from "~/domains/storefront/popups-new/types";
 
 const baseConfig: PopupConfig & {
-	slideDirection?: "left" | "right" | "bottom";
+  slideDirection?: "left" | "right" | "bottom";
 } = {
   id: "demo-slide-in",
   campaignId: "demo-campaign",
@@ -23,7 +23,7 @@ const meta: Meta<typeof SlideInPopup> = {
   component: SlideInPopup,
   args: {
     isVisible: true,
-	    config: baseConfig,
+    config: baseConfig,
   },
 };
 

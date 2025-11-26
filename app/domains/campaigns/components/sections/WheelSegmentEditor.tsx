@@ -5,12 +5,11 @@
  * Each segment can have its own complete discount setup including type, value, delivery mode, etc.
  */
 
-import React, { useState } from "react";
+import { useState } from "react";
 import { Card, BlockStack, Text, Button, InlineStack, Collapsible, Badge } from "@shopify/polaris";
 import { TextField, ColorField, FormGrid } from "../form";
 import { GenericDiscountComponent } from "../form/GenericDiscountComponent";
-import type { SpinToWinContent } from "../../types/campaign";
-import type { DiscountConfig } from "../../types/campaign";
+import type { SpinToWinContent , DiscountConfig } from "../../types/campaign";
 
 export type WheelSegment = SpinToWinContent["wheelSegments"][0];
 
@@ -20,7 +19,7 @@ interface WheelSegmentEditorProps {
   errors?: Record<string, string>;
 }
 
-export function WheelSegmentEditor({ segments, onChange, errors }: WheelSegmentEditorProps) {
+export function WheelSegmentEditor({ segments, onChange }: WheelSegmentEditorProps) {
   const [expandedSegments, setExpandedSegments] = useState<Record<number, boolean>>({});
 
   const toggleSegment = (index: number) => {

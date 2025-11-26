@@ -60,7 +60,7 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
   const timerMode = config.timer?.mode || "duration";
   // Map 'stock_limited' to 'duration' for the hook (stock_limited is handled separately)
   const hookTimerMode = timerMode === "stock_limited" ? "duration" : timerMode;
-  const { timeRemaining, hasExpired, formattedTime } = useCountdownTimer({
+  const { timeRemaining, hasExpired } = useCountdownTimer({
     enabled: config.showCountdown !== false,
     mode: hookTimerMode,
     duration: config.countdownDuration,
@@ -83,7 +83,7 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
   const [inventoryTotal, setInventoryTotal] = useState<number | null>(null);
   const [hasClaimedDiscount, setHasClaimedDiscount] = useState(false);
   const [isClaimingDiscount, setIsClaimingDiscount] = useState(false);
-  const [discountError, setDiscountError] = useState<string | null>(null);
+  const [_discountError, setDiscountError] = useState<string | null>(null);
 
   // Fetch inventory if configured
   useEffect(() => {

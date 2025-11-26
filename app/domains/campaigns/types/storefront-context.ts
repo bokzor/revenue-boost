@@ -72,6 +72,10 @@ export function buildStorefrontContext(
 ): StorefrontContext {
   const userAgent = headers.get("user-agent") || "";
 
+  // Extract country code from Shopify's X-Country-Code header (ISO 3166-1 alpha-2)
+  // This header is set by Shopify's CDN based on the visitor's IP address
+  const countryCode = headers.get("X-Country-Code")?.toUpperCase() || undefined;
+
   return {
     // Page Context
     pageUrl: searchParams.get("pageUrl") || undefined,
@@ -102,6 +106,9 @@ export function buildStorefrontContext(
     // Device Context
     deviceType: detectDeviceType(userAgent),
     userAgent,
+
+    // Location Context (from Shopify CDN headers)
+    country: countryCode,
 
     // Product Context
     productId: searchParams.get("productId") || undefined,

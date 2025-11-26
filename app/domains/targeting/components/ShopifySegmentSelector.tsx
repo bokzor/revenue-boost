@@ -201,7 +201,7 @@ export function ShopifySegmentSelector({
           <BlockStack gap="200">
             <Text as="p">{scopeMessage}</Text>
             <Text as="p" variant="bodySm" tone="subdued">
-              We only check if a visitor belongs to your selected segments — we don't store or export
+              We only check if a visitor belongs to your selected segments — we don&apos;t store or export
               customer data.
             </Text>
             {scopeError && (

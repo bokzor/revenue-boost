@@ -16,7 +16,6 @@ import { z } from "zod";
 import { authenticate } from "~/shopify.server";
 import prisma from "~/db.server";
 import { getCampaignDiscountCode } from "~/domains/commerce/services/discount.server";
-import { PopupEventService } from "~/domains/analytics/popup-events.server";
 
 // Request validation schema - NO prizeId (security fix)
 const SpinWinRequestSchema = z.object({
@@ -29,7 +28,7 @@ const SpinWinRequestSchema = z.object({
   challengeToken: z.string(), // REQUIRED: Challenge token for security
 });
 
-type SpinWinRequest = z.infer<typeof SpinWinRequestSchema>;
+// Type for SpinWinRequest is inferred from schema
 
 // Response types
 interface SpinWinResponse {

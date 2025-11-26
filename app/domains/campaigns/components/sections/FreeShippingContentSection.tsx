@@ -17,7 +17,6 @@ import {
   themeColorsToDesignConfig,
   type NewsletterThemeKey,
 } from "~/config/color-presets";
-import { ThemePresetSelector } from "../shared/ThemePresetSelector";
 
 export interface FreeShippingContent {
   threshold?: number;
@@ -78,7 +77,9 @@ export function FreeShippingContentSection({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [content.barPosition, barPosition]);
 
-  const handleThemeChange = (themeKey: NewsletterThemeKey) => {
+  // Theme change handler - reserved for future use with theme presets
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _handleThemeChange = (themeKey: NewsletterThemeKey) => {
     if (!onDesignChange) return;
 
     const themeColors = NEWSLETTER_THEMES[themeKey];
