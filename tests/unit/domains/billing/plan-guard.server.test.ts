@@ -123,7 +123,7 @@ describe("PlanGuardService", () => {
       expect(canAccess).toBe(false);
     });
 
-    it("should return false for customCss on STARTER plan", async () => {
+    it("should return true for customCss on STARTER plan", async () => {
       vi.mocked(prisma.store.findUnique).mockResolvedValue({
         id: "store-1",
         planTier: "STARTER",
@@ -132,7 +132,7 @@ describe("PlanGuardService", () => {
       } as any);
 
       const canAccess = await PlanGuardService.canAccessFeature("store-1", "customCss");
-      expect(canAccess).toBe(false);
+      expect(canAccess).toBe(true);
     });
 
     it("should return false when subscription is inactive", async () => {
@@ -228,16 +228,17 @@ describe("PlanGuardService", () => {
         shopifySubscriptionStatus: "ACTIVE",
       } as any);
 
+      // STARTER plan now has customCss, so this should NOT throw
       await expect(
         PlanGuardService.assertCanUseCustomCss("store-1")
-      ).rejects.toThrow(PlanLimitError);
+      ).resolves.not.toThrow();
     });
   });
 
   describe("getMinimumPlanForFeature", () => {
-    it("should return GROWTH for customCss", () => {
+    it("should return STARTER for customCss", () => {
       const minPlan = PlanGuardService.getMinimumPlanForFeature("customCss");
-      expect(minPlan).toBe("GROWTH");
+      expect(minPlan).toBe("STARTER");
     });
 
     it("should return FREE for removeBranding (available on STARTER)", () => {
@@ -549,7 +550,8 @@ describe("PlanGuardService", () => {
       expect(allowed).toBe(true);
     });
 
-    it("should deny 15% discount on FREE plan (max 10%)", async () => {
+    // All plans now have maxDiscountPercentage: null (unlimited)
+    it("should allow any percentage on FREE plan (unlimited)", async () => {
       vi.mocked(prisma.store.findUnique).mockResolvedValue({
         id: "store-1",
         planTier: "FREE",
@@ -558,10 +560,10 @@ describe("PlanGuardService", () => {
       } as any);
 
       const allowed = await PlanGuardService.isDiscountPercentageAllowed("store-1", 15);
-      expect(allowed).toBe(false);
+      expect(allowed).toBe(true);
     });
 
-    it("should allow 25% discount on STARTER plan", async () => {
+    it("should allow 25% discount on STARTER plan (unlimited)", async () => {
       vi.mocked(prisma.store.findUnique).mockResolvedValue({
         id: "store-1",
         planTier: "STARTER",
@@ -573,7 +575,7 @@ describe("PlanGuardService", () => {
       expect(allowed).toBe(true);
     });
 
-    it("should deny 30% discount on STARTER plan (max 25%)", async () => {
+    it("should allow 30% discount on STARTER plan (unlimited)", async () => {
       vi.mocked(prisma.store.findUnique).mockResolvedValue({
         id: "store-1",
         planTier: "STARTER",
@@ -582,7 +584,7 @@ describe("PlanGuardService", () => {
       } as any);
 
       const allowed = await PlanGuardService.isDiscountPercentageAllowed("store-1", 30);
-      expect(allowed).toBe(false);
+      expect(allowed).toBe(true);
     });
 
     it("should allow any percentage on GROWTH plan (unlimited)", async () => {
@@ -599,7 +601,7 @@ describe("PlanGuardService", () => {
   });
 
   describe("assertDiscountPercentageAllowed", () => {
-    it("should throw PlanLimitError for 20% discount on FREE plan", async () => {
+    it("should not throw for any discount on FREE plan (unlimited)", async () => {
       vi.mocked(prisma.store.findUnique).mockResolvedValue({
         id: "store-1",
         planTier: "FREE",
@@ -609,25 +611,20 @@ describe("PlanGuardService", () => {
 
       await expect(
         PlanGuardService.assertDiscountPercentageAllowed("store-1", 20)
-      ).rejects.toThrow(PlanLimitError);
+      ).resolves.not.toThrow();
     });
 
-    it("should include max percentage in error message", async () => {
+    it("should not throw for any discount on STARTER plan (unlimited)", async () => {
       vi.mocked(prisma.store.findUnique).mockResolvedValue({
         id: "store-1",
-        planTier: "FREE",
+        planTier: "STARTER",
         planStatus: "ACTIVE",
-        shopifySubscriptionStatus: null,
+        shopifySubscriptionStatus: "ACTIVE",
       } as any);
 
-      try {
-        await PlanGuardService.assertDiscountPercentageAllowed("store-1", 20);
-        expect.fail("Should have thrown");
-      } catch (error) {
-        expect(error).toBeInstanceOf(PlanLimitError);
-        expect((error as PlanLimitError).message).toContain("10%");
-        expect((error as PlanLimitError).message).toContain("20%");
-      }
+      await expect(
+        PlanGuardService.assertDiscountPercentageAllowed("store-1", 50)
+      ).resolves.not.toThrow();
     });
   });
 
@@ -690,12 +687,12 @@ describe("PlanGuardService", () => {
       expect(summary.usage.leads.current).toBe(150);
       expect(summary.usage.leads.max).toBe(2500);
       expect(summary.usage.activeCampaigns.current).toBe(3);
-      expect(summary.usage.activeCampaigns.max).toBeNull(); // Unlimited
+      expect(summary.usage.activeCampaigns.max).toBe(15); // GROWTH has 15 max campaigns
       expect(summary.usage.experiments.current).toBe(1);
       expect(summary.usage.experiments.max).toBe(5);
     });
 
-    it("should return null percentages for unlimited plans", async () => {
+    it("should return null percentages for unlimited limits on ENTERPRISE plan", async () => {
       vi.mocked(prisma.store.findUnique).mockResolvedValue({
         id: "store-1",
         planTier: "ENTERPRISE",
@@ -710,8 +707,10 @@ describe("PlanGuardService", () => {
 
       const summary = await PlanGuardService.getUsageSummary("store-1");
 
-      expect(summary.usage.impressions.percentage).toBeNull();
-      expect(summary.usage.leads.percentage).toBeNull();
+      // ENTERPRISE has: monthlyImpressionCap: 1000000, maxLeadsPerMonth: null
+      // So impressions should have a percentage, leads should be null
+      expect(summary.usage.impressions.percentage).toBe(50); // 500000/1000000 = 50%
+      expect(summary.usage.leads.percentage).toBeNull(); // Unlimited
     });
   });
 });
