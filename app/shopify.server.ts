@@ -66,16 +66,17 @@ const shopify = shopifyApp({
       ],
       trialDays: 14,
     },
-    [BILLING_PLANS.ENTERPRISE]: {
-      lineItems: [
-        {
-          amount: 149,
-          currencyCode: "USD",
-          interval: BillingInterval.Every30Days,
-        },
-      ],
-      trialDays: 14,
-    },
+    // Enterprise plan disabled for launch - can be re-enabled later
+    // [BILLING_PLANS.ENTERPRISE]: {
+    //   lineItems: [
+    //     {
+    //       amount: 149,
+    //       currencyCode: "USD",
+    //       interval: BillingInterval.Every30Days,
+    //     },
+    //   ],
+    //   trialDays: 14,
+    // },
   },
   webhooks: {
     ORDERS_CREATE: {

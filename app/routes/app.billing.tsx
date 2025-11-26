@@ -19,7 +19,7 @@ import {
 import { CheckIcon, XIcon, StarFilledIcon } from "@shopify/polaris-icons";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
-import { PLAN_DEFINITIONS, PLAN_ORDER, type PlanTier, type PlanFeatures } from "../domains/billing/types/plan";
+import { PLAN_DEFINITIONS, ENABLED_PLAN_ORDER, type PlanTier, type PlanFeatures } from "../domains/billing/types/plan";
 import { BillingService } from "../domains/billing/services/billing.server";
 import { isBillingBypassed } from "../lib/env.server";
 
@@ -51,7 +51,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       trialEndsAt: store.trialEndsAt?.toISOString() || null,
       shopifyHasPayment: false,
       appSubscriptions: [],
-      plans: PLAN_ORDER.map((tier) => ({
+      plans: ENABLED_PLAN_ORDER.map((tier) => ({
         tier,
         ...PLAN_DEFINITIONS[tier],
       })),
@@ -73,7 +73,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     trialEndsAt: billingContext.trialEndsAt?.toISOString() || null,
     shopifyHasPayment: hasActivePayment,
     appSubscriptions,
-    plans: PLAN_ORDER.map((tier) => ({
+    plans: ENABLED_PLAN_ORDER.map((tier) => ({
       tier,
       ...PLAN_DEFINITIONS[tier],
     })),
@@ -99,7 +99,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       const planTier = formData.get("planTier") as PlanTier;
       console.log(`[Billing Action] Subscribing to plan: ${planTier}`);
 
-      if (!PLAN_ORDER.includes(planTier)) {
+      if (!ENABLED_PLAN_ORDER.includes(planTier)) {
         return { error: "Invalid plan selected" };
       }
 
@@ -285,8 +285,8 @@ function PlanCard({
   const isPaid = price > 0;
   const isPopular = tier === "GROWTH";
   const planMeta = PLAN_DESCRIPTIONS[tier];
-  const currentPlanIndex = PLAN_ORDER.indexOf(currentPlanTier);
-  const thisPlanIndex = PLAN_ORDER.indexOf(tier);
+  const currentPlanIndex = ENABLED_PLAN_ORDER.indexOf(currentPlanTier);
+  const thisPlanIndex = ENABLED_PLAN_ORDER.indexOf(tier);
   const isDowngrade = thisPlanIndex < currentPlanIndex;
 
   // Key features to highlight (most important ones)
@@ -636,8 +636,8 @@ export default function BillingPage() {
                 <Text as="h3" variant="headingSm" fontWeight="semibold">
                   {category.name}
                 </Text>
-                <InlineGrid columns={{ xs: 1, md: 5 }} gap="200">
-                  {PLAN_ORDER.map((tier) => (
+                <InlineGrid columns={{ xs: 1, md: 3 }} gap="200">
+                  {ENABLED_PLAN_ORDER.map((tier) => (
                     <Box key={tier} padding="200">
                       <BlockStack gap="200">
                         <Text as="span" variant="bodySm" fontWeight="semibold">

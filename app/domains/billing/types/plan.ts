@@ -50,6 +50,7 @@ export const PlanDefinitionSchema = z.object({
   overageStrategy: OverageStrategySchema,
   limits: PlanLimitsSchema,
   features: PlanFeaturesSchema,
+  isEnabled: z.boolean().default(true), // Can be disabled without removing from code
 });
 export type PlanDefinition = z.infer<typeof PlanDefinitionSchema>;
 
@@ -59,6 +60,7 @@ export const PLAN_DEFINITIONS: Record<PlanTier, PlanDefinition> = {
     price: 0,
     monthlyImpressionCap: 5000,
     overageStrategy: "HARD_BLOCK",
+    isEnabled: false, // Disabled for launch
     limits: {
       maxActiveCampaigns: 1,
       maxExperiments: 0,
@@ -66,7 +68,7 @@ export const PLAN_DEFINITIONS: Record<PlanTier, PlanDefinition> = {
       maxCustomTemplates: 0,
       maxLeadsPerMonth: 100,
       maxDiscountCodesGenerated: 10,
-      maxDiscountPercentage: null, // No limit on discount percentage
+      maxDiscountPercentage: null,
     },
     features: {
       experiments: false,
@@ -86,6 +88,7 @@ export const PLAN_DEFINITIONS: Record<PlanTier, PlanDefinition> = {
     price: 9,
     monthlyImpressionCap: 25000,
     overageStrategy: "SOFT_BLOCK",
+    isEnabled: true,
     limits: {
       maxActiveCampaigns: 5,
       maxExperiments: 0,
@@ -113,6 +116,7 @@ export const PLAN_DEFINITIONS: Record<PlanTier, PlanDefinition> = {
     price: 29,
     monthlyImpressionCap: 100000,
     overageStrategy: "SOFT_BLOCK",
+    isEnabled: true,
     limits: {
       maxActiveCampaigns: 15,
       maxExperiments: 5,
@@ -140,6 +144,7 @@ export const PLAN_DEFINITIONS: Record<PlanTier, PlanDefinition> = {
     price: 79,
     monthlyImpressionCap: 400000,
     overageStrategy: "NOTIFY_ONLY",
+    isEnabled: true,
     limits: {
       maxActiveCampaigns: null,
       maxExperiments: null,
@@ -167,6 +172,7 @@ export const PLAN_DEFINITIONS: Record<PlanTier, PlanDefinition> = {
     price: 149,
     monthlyImpressionCap: 1000000,
     overageStrategy: "NOTIFY_ONLY",
+    isEnabled: false, // Disabled for launch
     limits: {
       maxActiveCampaigns: null,
       maxExperiments: null,
@@ -192,6 +198,11 @@ export const PLAN_DEFINITIONS: Record<PlanTier, PlanDefinition> = {
 };
 
 export const PLAN_ORDER: PlanTier[] = ["FREE", "STARTER", "GROWTH", "PRO", "ENTERPRISE"];
+
+// Only enabled plans for UI display
+export const ENABLED_PLAN_ORDER: PlanTier[] = PLAN_ORDER.filter(
+  (tier) => PLAN_DEFINITIONS[tier].isEnabled
+);
 
 // Helper to check if a template type requires gamification feature
 export const GAMIFICATION_TEMPLATE_TYPES = [

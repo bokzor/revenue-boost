@@ -35,7 +35,7 @@ import {
 import { CheckIcon, XIcon } from "@shopify/polaris-icons";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
-import { PLAN_DEFINITIONS, PLAN_ORDER } from "../domains/billing/types/plan";
+import { PLAN_DEFINITIONS, PLAN_ORDER, ENABLED_PLAN_ORDER } from "../domains/billing/types/plan";
 import { PlanGuardService } from "../domains/billing/services/plan-guard.server";
 import { BillingService } from "../domains/billing/services/billing.server";
 import { GlobalCappingSettings } from "../domains/store/components/GlobalCappingSettings";
@@ -112,7 +112,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     },
     storeSettings: (store.settings as StoreSettings) || {},
     PLAN_DEFINITIONS,
-    PLAN_ORDER,
+    PLAN_ORDER: ENABLED_PLAN_ORDER,
     setupStatus,
     setupComplete,
     themeEditorUrl,
