@@ -11,31 +11,21 @@ include_config_on_deploy = true
 api_version = "2026-01"
 
 [[webhooks.subscriptions]]
-topics = [ "app/uninstalled" ]
+topics = ["app/uninstalled"]
 uri = "/webhooks/app/uninstalled"
 
 [[webhooks.subscriptions]]
-topics = [ "app/scopes_update" ]
+topics = ["app/scopes_update"]
 uri = "/webhooks/app/scopes_update"
 
-  # Declarative app-specific webhook: orders/create → handled by app/routes/webhooks.orders.create.tsx
-  [[webhooks.subscriptions]]
-  topics = [ "orders/create" ]
-  uri = "/webhooks/orders/create"
+[[webhooks.subscriptions]]
+topics = ["orders/create"]
+uri = "/webhooks/orders/create"
 
-  # GDPR/Privacy webhooks (required for Shopify app compliance)
-  # Note: privacy webhooks must use `compliance_topics` instead of `topics`
-  [[webhooks.subscriptions]]
-  compliance_topics = [ "customers/data_request" ]
-  uri = "/webhooks/customers/data_request"
-
-  [[webhooks.subscriptions]]
-  compliance_topics = [ "customers/redact" ]
-  uri = "/webhooks/customers/redact"
-
-  [[webhooks.subscriptions]]
-  compliance_topics = [ "shop/redact" ]
-  uri = "/webhooks/shop/redact"
+# GDPR/Privacy mandatory compliance webhooks
+[[webhooks.subscriptions]]
+compliance_topics = ["customers/data_request", "customers/redact", "shop/redact"]
+uri = "/webhooks"
 
 [access_scopes]
 # Required scopes - requested at install time (core functionality)
