@@ -86,12 +86,13 @@ describe("Bundle Discount Integration", () => {
 
       const expectedDiscountConfig = {
         enabled: true,
-        valueType: "PERCENTAGE",
+        showInPreview: true,
+        valueType: "PERCENTAGE" as const,
         value: 15,
-        type: "single_use",
-        behavior: "SHOW_CODE_AND_AUTO_APPLY",
+        type: "single_use" as const,
+        behavior: "SHOW_CODE_AND_AUTO_APPLY" as const,
         applicability: {
-          scope: "products",
+          scope: "products" as const,
           productIds: selectedProductIds,
         },
       };
