@@ -10,10 +10,37 @@ interface EngagementMetrics {
   isCumulative?: boolean;
 }
 
+interface ScopesContext {
+  query: () => Promise<{ granted: string[] }>;
+}
+
+const REQUIRED_SCOPE = "write_marketing_events";
+
 export class MarketingEventsService {
+  /**
+   * Check if the write_marketing_events scope is granted
+   */
+  private static async hasMarketingScope(scopes?: ScopesContext): Promise<boolean> {
+    if (!scopes) {
+      // If no scopes context is provided, try to execute the operation
+      // It will fail gracefully if the scope isn't granted
+      return true;
+    }
+
+    try {
+      const scopeDetails = await scopes.query();
+      return scopeDetails.granted.includes(REQUIRED_SCOPE);
+    } catch {
+      return false;
+    }
+  }
+
   /**
    * Create a marketing event in Shopify.
    * Returns the marketing activity ID plus generated UTM values so callers can persist them on the campaign.
+   *
+   * Note: Requires write_marketing_events scope (optional, requested at use-time).
+   * Returns null gracefully if scope is not granted.
    */
   static async createMarketingEvent(
     admin: AdminApiContext,
@@ -26,7 +53,8 @@ export class MarketingEventsService {
       endDate?: Date | null;
       templateType?: string;
     },
-    appUrl: string
+    appUrl: string,
+    scopes?: ScopesContext
   ): Promise<{
     marketingEventId: string;
     utmCampaign: string;
@@ -34,6 +62,13 @@ export class MarketingEventsService {
     utmMedium: string;
   } | null> {
     try {
+      // Check if scope is granted
+      const hasScope = await this.hasMarketingScope(scopes);
+      if (!hasScope) {
+        console.log("[MarketingEventsService] write_marketing_events scope not granted - skipping");
+        return null;
+      }
+
       const { utmCampaign, utmSource, utmMedium } = this.generateUTMParams(
         campaign.id,
         campaign.templateType
@@ -96,6 +131,9 @@ export class MarketingEventsService {
 
   /**
    * Update a marketing event in Shopify
+   *
+   * Note: Requires write_marketing_events scope (optional, requested at use-time).
+   * Returns false gracefully if scope is not granted.
    */
   static async updateMarketingEvent(
     admin: AdminApiContext,
@@ -104,9 +142,17 @@ export class MarketingEventsService {
       name?: string;
       startDate?: Date | null;
       endDate?: Date | null;
-    }
+    },
+    scopes?: ScopesContext
   ): Promise<boolean> {
     try {
+      // Check if scope is granted
+      const hasScope = await this.hasMarketingScope(scopes);
+      if (!hasScope) {
+        console.log("[MarketingEventsService] write_marketing_events scope not granted - skipping update");
+        return false;
+      }
+
       const input: Record<string, unknown> = {};
 
       if (campaign.name) input.title = campaign.name;
@@ -150,12 +196,23 @@ export class MarketingEventsService {
 
   /**
    * Delete a marketing event in Shopify
+   *
+   * Note: Requires write_marketing_events scope (optional, requested at use-time).
+   * Returns false gracefully if scope is not granted.
    */
   static async deleteMarketingEvent(
     admin: AdminApiContext,
-    marketingEventId: string
+    marketingEventId: string,
+    scopes?: ScopesContext
   ): Promise<boolean> {
     try {
+      // Check if scope is granted
+      const hasScope = await this.hasMarketingScope(scopes);
+      if (!hasScope) {
+        console.log("[MarketingEventsService] write_marketing_events scope not granted - skipping delete");
+        return false;
+      }
+
       const response = await admin.graphql(
         `#graphql
         mutation marketingActivityDeleteExternal($marketingActivityId: ID!) {
@@ -190,13 +247,24 @@ export class MarketingEventsService {
 
   /**
    * Sync engagement metrics to Shopify
+   *
+   * Note: Requires write_marketing_events scope (optional, requested at use-time).
+   * Returns false gracefully if scope is not granted.
    */
   static async syncEngagementMetrics(
     admin: AdminApiContext,
     marketingEventId: string,
-    metrics: EngagementMetrics
+    metrics: EngagementMetrics,
+    scopes?: ScopesContext
   ): Promise<boolean> {
     try {
+      // Check if scope is granted
+      const hasScope = await this.hasMarketingScope(scopes);
+      if (!hasScope) {
+        console.log("[MarketingEventsService] write_marketing_events scope not granted - skipping sync");
+        return false;
+      }
+
       const now = new Date();
       const occurredOn = now.toISOString().slice(0, 10); // YYYY-MM-DD
       const utcOffsetMinutes = now.getTimezoneOffset();

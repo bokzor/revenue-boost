@@ -1,0 +1,135 @@
+name: 🧪 E2E Staging Tests (Optional)
+
+on:
+  # Manual trigger
+  workflow_dispatch:
+    inputs:
+      test_filter:
+        description: 'Test filter pattern (e.g., "newsletter" or leave empty for all)'
+        required: false
+        default: ''
+        type: string
+      headed:
+        description: 'Run in headed mode (for debugging)'
+        required: false
+        default: false
+        type: boolean
+  
+  # Can be called from other workflows (e.g., after deploy)
+  workflow_call:
+    inputs:
+      test_filter:
+        description: 'Test filter pattern'
+        required: false
+        default: ''
+        type: string
+    secrets:
+      DATABASE_URL:
+        required: true
+      REDIS_URL:
+        required: false
+      STORE_PASSWORD:
+        required: false
+
+# Prevent concurrent E2E runs
+concurrency:
+  group: e2e-staging-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  e2e-staging:
+    name: E2E Staging Tests
+    runs-on: ubuntu-latest
+    environment: staging
+    timeout-minutes: 30
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 🔧 Install dependencies
+        run: npm ci
+
+      - name: 🎭 Install Playwright browsers
+        run: npx playwright install chromium --with-deps
+
+      - name: 🌱 Generate Prisma Client
+        run: npx prisma generate
+
+      - name: 🏗️ Build storefront bundles
+        run: npm run build:storefront
+        env:
+          BUILD_MODE: staging
+
+      - name: 🔐 Create environment file from secrets
+        run: |
+          cat > .env.staging.env << EOF
+          DATABASE_URL=${{ secrets.DATABASE_URL }}
+          REDIS_URL=${{ secrets.REDIS_URL || '' }}
+          STORE_PASSWORD=${{ secrets.STORE_PASSWORD || 'a' }}
+          SHOPIFY_API_KEY=${{ secrets.SHOPIFY_API_KEY || '' }}
+          SHOPIFY_API_SECRET=${{ secrets.SHOPIFY_API_SECRET || '' }}
+          EOF
+
+          echo "✅ Environment file created"
+          echo "DATABASE_URL length: $(echo -n '${{ secrets.DATABASE_URL }}' | wc -c)"
+
+      - name: 🧪 Run E2E Storefront Tests
+        run: |
+          TEST_FILTER="${{ inputs.test_filter || github.event.inputs.test_filter }}"
+          
+          if [ -n "$TEST_FILTER" ]; then
+            echo "🔍 Running tests matching: $TEST_FILTER"
+            npx playwright test --project=storefront -g "$TEST_FILTER"
+          else
+            echo "🔍 Running all storefront tests"
+            npx playwright test --project=storefront
+          fi
+        env:
+          CI: true
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          REDIS_URL: ${{ secrets.REDIS_URL }}
+
+      - name: 📊 Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e2e-test-results
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 14
+
+      - name: 📋 Test Summary
+        if: always()
+        run: |
+          echo "## 🧪 E2E Staging Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ -f "test-results/reports/results.json" ]; then
+            PASSED=$(cat test-results/reports/results.json | jq '.stats.expected // 0')
+            FAILED=$(cat test-results/reports/results.json | jq '.stats.unexpected // 0')
+            SKIPPED=$(cat test-results/reports/results.json | jq '.stats.skipped // 0')
+            
+            echo "| Status | Count |" >> $GITHUB_STEP_SUMMARY
+            echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+            echo "| ✅ Passed | $PASSED |" >> $GITHUB_STEP_SUMMARY
+            echo "| ❌ Failed | $FAILED |" >> $GITHUB_STEP_SUMMARY
+            echo "| ⏭️ Skipped | $SKIPPED |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ No test results found" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**📅 Run at:** $(date)" >> $GITHUB_STEP_SUMMARY
+          echo "**🔖 Git SHA:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+

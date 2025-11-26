@@ -7,42 +7,49 @@
 {% if block.settings.enabled %}
   <div id="revenue-boost-embed" data-shop="{{ shop.permanent_domain }}" style="display: none;">
     <script>
-      window.REVENUE_BOOST_CONFIG = window.REVENUE_BOOST_CONFIG || {};
-      window.REVENUE_BOOST_CONFIG.apiUrl = '{{ block.settings.api_url | default: '' }}';
-      window.REVENUE_BOOST_CONFIG.shopDomain = '{{ shop.permanent_domain }}';
-      window.REVENUE_BOOST_CONFIG.debug = {{ block.settings.debug_mode | default: false }};
-      window.REVENUE_BOOST_CONFIG.customerId = {{ customer.id | json }};
-      window.REVENUE_BOOST_CONFIG.customerEmail = {{ customer.email | json }};
-      window.REVENUE_BOOST_CONFIG.customerTags = {{ customer.tags | json }};
-      window.REVENUE_BOOST_CONFIG.cartToken = {{ cart.token | json }};
-      window.REVENUE_BOOST_CONFIG.pageType = '{{ request.page_type }}';
-      window.REVENUE_BOOST_CONFIG.pageUrl = '{{ request.path }}';
+      (function() {
+        var debug = {{ block.settings.debug_mode | default: false }};
 
-      // Detect preview mode from URL parameter (token-based only)
-      const urlParams = new URLSearchParams(window.location.search);
-      const previewToken = urlParams.get('split_pop_preview_token');
-      const previewBehavior = urlParams.get('preview_behavior') || 'instant';
+        function log() {
+          if (debug && typeof console !== 'undefined' && console.log) {
+            console.log.apply(console, ['[Revenue Boost]'].concat(Array.prototype.slice.call(arguments)));
+          }
+        }
 
-      console.log('[Revenue Boost Block] URL:', window.location.href);
-      console.log('[Revenue Boost Block] Preview params:', {
-        previewToken,
-        previewBehavior,
-      });
+        window.REVENUE_BOOST_CONFIG = window.REVENUE_BOOST_CONFIG || {};
+        window.REVENUE_BOOST_CONFIG.apiUrl = '{{ block.settings.api_url | default: '' }}';
+        window.REVENUE_BOOST_CONFIG.shopDomain = '{{ shop.permanent_domain }}';
+        window.REVENUE_BOOST_CONFIG.debug = debug;
+        window.REVENUE_BOOST_CONFIG.customerId = {{ customer.id | json }};
+        window.REVENUE_BOOST_CONFIG.customerEmail = {{ customer.email | json }};
+        window.REVENUE_BOOST_CONFIG.customerTags = {{ customer.tags | json }};
+        window.REVENUE_BOOST_CONFIG.cartToken = {{ cart.token | json }};
+        window.REVENUE_BOOST_CONFIG.pageType = '{{ request.page_type }}';
+        window.REVENUE_BOOST_CONFIG.pageUrl = '{{ request.path }}';
 
-      if (previewToken) {
-        console.log('[Revenue Boost Block] ✅ Setting preview mode with token:', previewToken);
-        window.REVENUE_BOOST_CONFIG.previewMode = true;
-        window.REVENUE_BOOST_CONFIG.previewToken = previewToken;
-        window.REVENUE_BOOST_CONFIG.previewBehavior = previewBehavior;
-      } else {
-        console.log('[Revenue Boost Block] ℹ️ No preview parameters found');
-      }
+        // Detect preview mode from URL parameter (token-based only)
+        var urlParams = new URLSearchParams(window.location.search);
+        var previewToken = urlParams.get('split_pop_preview_token');
+        var previewBehavior = urlParams.get('preview_behavior') || 'instant';
 
-      console.log('[Revenue Boost Block] Final config:', {
-        previewMode: window.REVENUE_BOOST_CONFIG.previewMode,
-        previewToken: window.REVENUE_BOOST_CONFIG.previewToken,
-        previewBehavior: window.REVENUE_BOOST_CONFIG.previewBehavior,
-      });
+        log('URL:', window.location.href);
+        log('Preview params:', { previewToken: previewToken, previewBehavior: previewBehavior });
+
+        if (previewToken) {
+          log('✅ Setting preview mode with token:', previewToken);
+          window.REVENUE_BOOST_CONFIG.previewMode = true;
+          window.REVENUE_BOOST_CONFIG.previewToken = previewToken;
+          window.REVENUE_BOOST_CONFIG.previewBehavior = previewBehavior;
+        } else {
+          log('ℹ️ No preview parameters found');
+        }
+
+        log('Final config:', {
+          previewMode: window.REVENUE_BOOST_CONFIG.previewMode,
+          previewToken: window.REVENUE_BOOST_CONFIG.previewToken,
+          previewBehavior: window.REVENUE_BOOST_CONFIG.previewBehavior
+        });
+      })();
     </script>
     <script src="{{ 'popup-loader.bundle.js' | asset_url }}" defer></script>
   </div>

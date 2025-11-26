@@ -2,11 +2,16 @@
  * ShopifySegmentSelector - Select Shopify customer segments
  *
  * Fetches real customer segments from the Shopify Admin API via
- * /api/shopify-segments (no stubs) and lets merchants choose which
- * segments a campaign should target.
+ * /api/shopify-segments and lets merchants choose which segments
+ * a campaign should target.
+ *
+ * Features:
+ * - Just-in-time permission flow: Shows "Grant Access" if read_customers scope is missing
+ * - Refresh button: Allows manual refresh of segment list
+ * - Customer counts: Displays member count per segment when available
  */
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   BlockStack,
   InlineStack,
@@ -17,12 +22,30 @@ import {
   Card,
   Spinner,
   Button,
+  Banner,
+  Icon,
 } from "@shopify/polaris";
+import { RefreshIcon } from "@shopify/polaris-icons";
+import { useScopeRequest } from "~/shared/hooks/useScopeRequest";
 
 export interface ShopifySegmentOption {
   id: string;
   name: string;
   description?: string;
+  customerCount?: number;
+}
+
+interface SegmentsApiResponse {
+  data?: {
+    segments: ShopifySegmentOption[];
+    scopeRequired?: string;
+    scopeMessage?: string;
+    scopeGranted?: boolean;
+  };
+  segments?: ShopifySegmentOption[];
+  scopeRequired?: string;
+  scopeMessage?: string;
+  scopeGranted?: boolean;
 }
 
 export interface ShopifySegmentSelectorProps {
@@ -40,40 +63,71 @@ export function ShopifySegmentSelector({
 }: ShopifySegmentSelectorProps) {
   const [segments, setSegments] = useState<ShopifySegmentOption[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [scopeRequired, setScopeRequired] = useState<string | null>(null);
+  const [scopeMessage, setScopeMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  // Use App Bridge scopes API for requesting permissions
+  const { requestScopes, isRequesting: requestingScope, error: scopeError } = useScopeRequest();
+
+  const fetchSegments = useCallback(
+    async (includeCounts = false) => {
+      try {
+        setError(null);
+        const url = includeCounts
+          ? "/api/shopify-segments?includeCounts=true"
+          : "/api/shopify-segments";
+        const res = await fetch(url);
+        const data = (await res.json()) as SegmentsApiResponse;
+
+        // Normalize response structure
+        const responseData = data.data || data;
+
+        // Check if scope is required
+        if (responseData.scopeRequired) {
+          setScopeRequired(responseData.scopeRequired);
+          setScopeMessage(
+            responseData.scopeMessage ||
+              "Additional permissions are required to access customer segments."
+          );
+          setSegments([]);
+          return;
+        }
+
+        // Extract segments
+        const segmentsPayload = Array.isArray(responseData.segments)
+          ? responseData.segments
+          : [];
+
+        setSegments(segmentsPayload);
+        setScopeRequired(null);
+        setScopeMessage(null);
+
+        if (onSegmentsLoaded) {
+          onSegmentsLoaded(segmentsPayload);
+        }
+      } catch (err) {
+        console.error("Error fetching Shopify segments:", err);
+        setError("Failed to load segments. Please try again.");
+      }
+    },
+    [onSegmentsLoaded]
+  );
 
   useEffect(() => {
     let isMounted = true;
 
-    fetch("/api/shopify-segments")
-      .then((res) => res.json())
-      .then((data) => {
-        if (!isMounted) return;
-
-        const segmentsPayload = (
-          data && data.data && Array.isArray(data.data.segments)
-            ? data.data.segments
-            : data && Array.isArray(data.segments)
-              ? data.segments
-              : []
-        ) as ShopifySegmentOption[];
-
-        setSegments(segmentsPayload);
-        if (onSegmentsLoaded) {
-          onSegmentsLoaded(segmentsPayload);
-        }
+    fetchSegments(true).finally(() => {
+      if (isMounted) {
         setLoading(false);
-      })
-      .catch((error) => {
-        console.error("Error fetching Shopify segments:", error);
-        if (isMounted) {
-          setLoading(false);
-        }
-      });
+      }
+    });
 
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [fetchSegments]);
 
   const handleToggle = (segmentId: string) => {
     if (disabled) return;
@@ -95,6 +149,28 @@ export function ShopifySegmentSelector({
     onChange([]);
   };
 
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await fetchSegments(true);
+    setRefreshing(false);
+  };
+
+  const handleRequestScope = async () => {
+    if (!scopeRequired) return;
+
+    // Use App Bridge scopes.request() API for in-app modal
+    const granted = await requestScopes([scopeRequired]);
+
+    if (granted) {
+      // Scope was granted - refresh segments
+      setScopeRequired(null);
+      setScopeMessage(null);
+      await fetchSegments(true);
+    }
+    // If not granted, the hook will handle the error state
+  };
+
+  // Loading state
   if (loading) {
     return (
       <BlockStack gap="400">
@@ -106,8 +182,66 @@ export function ShopifySegmentSelector({
     );
   }
 
+  // Scope required state - show permission request UI
+  if (scopeRequired) {
+    return (
+      <BlockStack gap="400">
+        <Text as="h3" variant="headingSm">
+          Shopify customer segments
+        </Text>
+        <Banner
+          title="Additional permissions required"
+          tone="info"
+          action={{
+            content: requestingScope ? "Requesting..." : "Grant Access",
+            onAction: handleRequestScope,
+            disabled: requestingScope,
+          }}
+        >
+          <BlockStack gap="200">
+            <Text as="p">{scopeMessage}</Text>
+            <Text as="p" variant="bodySm" tone="subdued">
+              We only check if a visitor belongs to your selected segments — we don't store or export
+              customer data.
+            </Text>
+            {scopeError && (
+              <Text as="p" variant="bodySm" tone="critical">
+                {scopeError}
+              </Text>
+            )}
+          </BlockStack>
+        </Banner>
+      </BlockStack>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <BlockStack gap="400">
+        <Text as="h3" variant="headingSm">
+          Shopify customer segments
+        </Text>
+        <Banner title="Error loading segments" tone="critical">
+          <p>{error}</p>
+        </Banner>
+        <Button onClick={handleRefresh} loading={refreshing}>
+          Try again
+        </Button>
+      </BlockStack>
+    );
+  }
+
   const allSelected = segments.length > 0 && selectedSegmentIds.length === segments.length;
   const someSelected = selectedSegmentIds.length > 0 && !allSelected;
+
+  // Format customer count for display
+  const formatCount = (count?: number) => {
+    if (count === undefined) return null;
+    if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`;
+    if (count >= 1000) return `${(count / 1000).toFixed(1)}K`;
+    return count.toString();
+  };
 
   return (
     <BlockStack gap="400">
@@ -121,6 +255,17 @@ export function ShopifySegmentSelector({
             <Badge tone="info">{`${selectedSegmentIds.length} selected`}</Badge>
           ) : null}
           <InlineStack gap="100">
+            <Button
+              variant="plain"
+              onClick={handleRefresh}
+              disabled={refreshing}
+              icon={<Icon source={RefreshIcon} />}
+            >
+              {refreshing ? "Refreshing..." : "Refresh"}
+            </Button>
+            <Text as="span" variant="bodySm" tone="subdued">
+              •
+            </Text>
             <Button
               variant="plain"
               onClick={handleSelectAll}
@@ -142,10 +287,21 @@ export function ShopifySegmentSelector({
         </InlineStack>
       </InlineStack>
 
+      {/* Empty state */}
+      {segments.length === 0 && (
+        <Banner tone="info">
+          <p>
+            No customer segments found in your Shopify store. Create segments in your Shopify admin
+            under Customers → Segments to target specific customer groups.
+          </p>
+        </Banner>
+      )}
+
       {/* Segment list */}
       <BlockStack gap="200">
         {segments.map((segment) => {
           const isSelected = selectedSegmentIds.includes(segment.id);
+          const countDisplay = formatCount(segment.customerCount);
 
           return (
             <Card key={segment.id} padding="300">
@@ -172,9 +328,16 @@ export function ShopifySegmentSelector({
                   />
 
                   <BlockStack gap="100" inlineAlign="start">
-                    <Text as="span" variant="bodyMd" fontWeight="semibold">
-                      {segment.name}
-                    </Text>
+                    <InlineStack gap="200" blockAlign="center">
+                      <Text as="span" variant="bodyMd" fontWeight="semibold">
+                        {segment.name}
+                      </Text>
+                      {countDisplay && (
+                        <Badge tone="info" size="small">
+                          {`${countDisplay} customers`}
+                        </Badge>
+                      )}
+                    </InlineStack>
                     {segment.description && (
                       <Text as="p" variant="bodySm" tone="subdued">
                         {segment.description}
@@ -189,7 +352,7 @@ export function ShopifySegmentSelector({
       </BlockStack>
 
       {/* Help text */}
-      {selectedSegmentIds.length === 0 && (
+      {segments.length > 0 && selectedSegmentIds.length === 0 && (
         <Box paddingBlockStart="200">
           <Text as="p" variant="bodySm" tone="subdued">
             Select one or more Shopify customer segments to target. Your campaign will only show to

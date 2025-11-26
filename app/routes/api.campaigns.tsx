@@ -13,7 +13,7 @@ import {
   CampaignCreateDataSchema,
   CampaignUpdateDataSchema,
 } from "~/domains/campaigns";
-import type { TemplateType } from "~/domains/campaigns";
+import type { TemplateType, TargetRulesConfig } from "~/domains/campaigns";
 import { validateCustomCss } from "~/lib/css-guards";
 import { validateData, ValidationError } from "~/lib/validation-helpers";
 import { createSuccessResponse, validateResourceExists } from "~/lib/api-helpers.server";
@@ -21,6 +21,7 @@ import { handleApiError } from "~/lib/api-error-handler.server";
 import { getStoreId } from "~/lib/auth-helpers.server";
 import { withAuthRateLimit, withWriteRateLimit } from "~/lib/rate-limit-middleware.server";
 import { authenticate } from "~/shopify.server";
+import { triggerCampaignSegmentSync } from "~/domains/targeting/services/campaign-segment-sync.server";
 
 function sanitizeDesignCustomCss(designConfig?: { customCSS?: unknown }) {
   if (!designConfig) return;
@@ -96,6 +97,14 @@ export async function action(args: { request: Request; params: any; context: any
           appUrl
         );
         console.log("[API /api/campaigns] created campaign", campaign?.id);
+
+        // Trigger async segment membership sync if campaign has Shopify segment targeting
+        triggerCampaignSegmentSync({
+          storeId,
+          targetRules: validatedData.targetRules as TargetRulesConfig | undefined,
+          admin,
+        });
+
         return createSuccessResponse({ campaign }, 201);
       }
 
@@ -124,6 +133,14 @@ export async function action(args: { request: Request; params: any; context: any
           admin
         );
         validateResourceExists(campaign, "Campaign");
+
+        // Trigger async segment membership sync if campaign has Shopify segment targeting
+        triggerCampaignSegmentSync({
+          storeId,
+          targetRules: validatedData.targetRules as TargetRulesConfig | undefined,
+          admin,
+        });
+
         return createSuccessResponse({ campaign });
       }
 

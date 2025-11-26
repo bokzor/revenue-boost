@@ -7,7 +7,7 @@ import "./load-staging-env";
 
 export const STORE_URL = 'https://revenue-boost-staging.myshopify.com';
 export const STORE_DOMAIN = 'revenue-boost-staging.myshopify.com';
-export const STORE_PASSWORD = 'a';
+export const STORE_PASSWORD = process.env.STORE_PASSWORD || 'a';
 
 /**
  * Handle Shopify password protection page
@@ -132,7 +132,7 @@ export async function clearFrequencyCappingState(visitorId?: string, sessionId?:
 
 /**
  * Generate unique visitor and session IDs for test isolation
- * 
+ *
  * @returns Object with unique visitorId and sessionId
  */
 export function generateUniqueTestIds() {
@@ -143,4 +143,407 @@ export function generateUniqueTestIds() {
         visitorId: `e2e-visitor-${timestamp}-${random}`,
         sessionId: `e2e-session-${timestamp}-${random}`
     };
+}
+
+/**
+ * Wait for popup to render and return true when visible
+ */
+export async function waitForPopupRendered(page: Page, timeout: number = 15000): Promise<boolean> {
+    try {
+        // Wait for the popup container to be visible
+        await page.locator('#revenue-boost-popup-shadow-host')
+            .waitFor({ state: 'visible', timeout });
+
+        // Give it time to fully render
+        await page.waitForTimeout(1500);
+
+        // Verify the shadow root has content
+        const hasContent = await page.evaluate(() => {
+            const host = document.querySelector('#revenue-boost-popup-shadow-host');
+            if (!host?.shadowRoot) return false;
+            return host.shadowRoot.innerHTML.length > 100;
+        });
+
+        return hasContent;
+    } catch {
+        return false;
+    }
+}
+
+/**
+ * Get the shadow root of the popup container
+ */
+export async function getShadowRoot(page: Page): Promise<any> {
+    return page.evaluateHandle(() => {
+        const host = document.querySelector('#revenue-boost-popup-shadow-host');
+        return host?.shadowRoot;
+    });
+}
+
+/**
+ * Interact with elements inside shadow DOM
+ */
+export async function fillEmailInShadowDOM(page: Page, email: string): Promise<boolean> {
+    return page.evaluate((emailValue) => {
+        const host = document.querySelector('#revenue-boost-popup-shadow-host');
+        const shadow = host?.shadowRoot;
+        if (!shadow) return false;
+
+        const emailInput = shadow.querySelector('input[type="email"]') as HTMLInputElement;
+        if (!emailInput) return false;
+
+        emailInput.value = emailValue;
+        emailInput.dispatchEvent(new Event('input', { bubbles: true }));
+        emailInput.dispatchEvent(new Event('change', { bubbles: true }));
+        return true;
+    }, email);
+}
+
+/**
+ * Submit form inside shadow DOM
+ */
+export async function submitFormInShadowDOM(page: Page): Promise<boolean> {
+    return page.evaluate(() => {
+        const host = document.querySelector('#revenue-boost-popup-shadow-host');
+        const shadow = host?.shadowRoot;
+        if (!shadow) return false;
+
+        // Try various submit button selectors
+        const submitBtn = shadow.querySelector(
+            'button[type="submit"], ' +
+            'button:not([type="button"]):not([aria-label*="close" i]):not([class*="close" i])'
+        ) as HTMLButtonElement;
+
+        if (submitBtn && !submitBtn.disabled) {
+            submitBtn.click();
+            return true;
+        }
+
+        // Try form submission
+        const form = shadow.querySelector('form');
+        if (form) {
+            form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+            return true;
+        }
+
+        return false;
+    });
+}
+
+/**
+ * Click spin button in shadow DOM for Spin-to-Win
+ */
+export async function clickSpinButton(page: Page): Promise<boolean> {
+    return page.evaluate(() => {
+        const host = document.querySelector('#revenue-boost-popup-shadow-host');
+        const shadow = host?.shadowRoot;
+        if (!shadow) return false;
+
+        const spinBtn = shadow.querySelector(
+            'button[class*="spin" i], ' +
+            'button:has-text("Spin"), ' +
+            '[class*="spin-button" i]'
+        ) as HTMLButtonElement;
+
+        if (spinBtn && !spinBtn.disabled) {
+            spinBtn.click();
+            return true;
+        }
+        return false;
+    });
+}
+
+/**
+ * Scratch the scratch card in shadow DOM
+ */
+export async function scratchCard(page: Page): Promise<void> {
+    const canvas = await page.evaluateHandle(() => {
+        const host = document.querySelector('#revenue-boost-popup-shadow-host');
+        const shadow = host?.shadowRoot;
+        if (!shadow) return null;
+        return shadow.querySelector('canvas');
+    });
+
+    if (canvas) {
+        // Simulate scratching by drawing lines across the canvas
+        const box = await page.evaluate((el: any) => {
+            if (!el) return null;
+            const rect = el.getBoundingClientRect();
+            return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+        }, canvas);
+
+        if (box) {
+            // Scratch in a zig-zag pattern
+            for (let i = 0; i < 5; i++) {
+                await page.mouse.move(box.x + 20, box.y + 20 + i * 20);
+                await page.mouse.down();
+                await page.mouse.move(box.x + box.width - 20, box.y + 20 + i * 20);
+                await page.mouse.up();
+            }
+        }
+    }
+}
+
+/**
+ * Get displayed discount code from shadow DOM
+ */
+export async function getDiscountCodeFromShadowDOM(page: Page): Promise<string | null> {
+    return page.evaluate(() => {
+        const host = document.querySelector('#revenue-boost-popup-shadow-host');
+        const shadow = host?.shadowRoot;
+        if (!shadow) return null;
+
+        // Look for discount code displays
+        const codeSelectors = [
+            '[class*="discount-code" i]',
+            '[class*="discountCode" i]',
+            '[class*="coupon-code" i]',
+            '[data-discount-code]',
+            'input[readonly][value]',
+            '[class*="code-display" i]'
+        ];
+
+        for (const selector of codeSelectors) {
+            const el = shadow.querySelector(selector) as HTMLElement;
+            if (el) {
+                // Try getting from data attribute, value, or text content
+                const code = el.getAttribute('data-discount-code') ||
+                             (el as HTMLInputElement).value ||
+                             el.textContent?.trim();
+                if (code && code.length > 0 && !code.includes(' ')) {
+                    return code;
+                }
+            }
+        }
+
+        // Look for text matching discount code pattern (uppercase letters/numbers)
+        const allText = shadow.innerHTML;
+        const codeMatch = allText.match(/\b[A-Z0-9]{6,20}\b/);
+        return codeMatch ? codeMatch[0] : null;
+    });
+}
+
+/**
+ * Check if success message is displayed in shadow DOM
+ */
+export async function hasSuccessMessage(page: Page, messagePattern?: RegExp): Promise<boolean> {
+    return page.evaluate((pattern) => {
+        const host = document.querySelector('#revenue-boost-popup-shadow-host');
+        const shadow = host?.shadowRoot;
+        if (!shadow) return false;
+
+        const successSelectors = [
+            '[class*="success" i]',
+            '[class*="thank" i]',
+            '[class*="congratulation" i]',
+            '[role="status"]'
+        ];
+
+        for (const selector of successSelectors) {
+            const el = shadow.querySelector(selector);
+            if (el) {
+                if (pattern) {
+                    const regex = new RegExp(pattern);
+                    return regex.test(el.textContent || '');
+                }
+                return true;
+            }
+        }
+
+        // Check for generic success indicators
+        const html = shadow.innerHTML.toLowerCase();
+        return html.includes('thank') || html.includes('success') || html.includes('congratulation');
+    }, messagePattern?.source);
+}
+
+/**
+ * Add a product to cart on Shopify storefront
+ */
+export async function addProductToCart(page: Page, productUrl?: string): Promise<boolean> {
+    try {
+        // Navigate to a product page if URL provided
+        if (productUrl) {
+            await page.goto(productUrl);
+            await handlePasswordPage(page);
+        } else {
+            // Find and click on first product
+            const productLink = page.locator('a[href*="/products/"]').first();
+            if (await productLink.isVisible({ timeout: 5000 }).catch(() => false)) {
+                await productLink.click();
+                await page.waitForLoadState('networkidle');
+            } else {
+                // Navigate to collections page first
+                await page.goto(`${STORE_URL}/collections/all`);
+                await handlePasswordPage(page);
+                await page.locator('a[href*="/products/"]').first().click();
+                await page.waitForLoadState('networkidle');
+            }
+        }
+
+        // Click Add to Cart button
+        const addToCartBtn = page.locator(
+            'button[name="add"], ' +
+            'button:has-text("Add to cart"), ' +
+            'button:has-text("Add to Cart"), ' +
+            '[data-add-to-cart], ' +
+            'form[action*="/cart/add"] button[type="submit"]'
+        ).first();
+
+        await addToCartBtn.waitFor({ state: 'visible', timeout: 5000 });
+        await addToCartBtn.click();
+
+        // Wait for cart to update
+        await page.waitForTimeout(2000);
+
+        return true;
+    } catch (error) {
+        console.error('Failed to add product to cart:', error);
+        return false;
+    }
+}
+
+/**
+ * Get current cart total
+ */
+export async function getCartTotal(page: Page): Promise<number> {
+    try {
+        // Try to get cart total from the page
+        const cartTotal = await page.evaluate(() => {
+            // Check for Shopify cart object
+            const shopifyCart = (window as any).Shopify?.cart;
+            if (shopifyCart?.total_price) {
+                return shopifyCart.total_price / 100; // Convert cents to dollars
+            }
+
+            // Try to find cart total in DOM
+            const totalSelectors = [
+                '.cart-total',
+                '.cart__subtotal',
+                '[data-cart-total]',
+                '.totals__subtotal-value'
+            ];
+
+            for (const selector of totalSelectors) {
+                const el = document.querySelector(selector);
+                if (el) {
+                    const text = el.textContent || '';
+                    const match = text.match(/[\d,.]+/);
+                    if (match) {
+                        return parseFloat(match[0].replace(',', ''));
+                    }
+                }
+            }
+
+            return 0;
+        });
+
+        return cartTotal;
+    } catch {
+        return 0;
+    }
+}
+
+/**
+ * Check if discount is applied to cart
+ */
+export async function isDiscountAppliedToCart(page: Page, discountCode?: string): Promise<boolean> {
+    try {
+        // Navigate to cart page
+        await page.goto(`${STORE_URL}/cart`);
+        await handlePasswordPage(page);
+
+        // Look for applied discount
+        return page.evaluate((code) => {
+            const discountSelectors = [
+                '.cart-discount',
+                '[data-discount-code]',
+                '.applied-discount',
+                '.discount-code-applied'
+            ];
+
+            for (const selector of discountSelectors) {
+                const el = document.querySelector(selector);
+                if (el) {
+                    if (code) {
+                        return el.textContent?.toUpperCase().includes(code.toUpperCase()) || false;
+                    }
+                    return true;
+                }
+            }
+
+            // Check URL for discount parameter
+            const url = window.location.href;
+            if (url.includes('discount=') || url.includes('code=')) {
+                if (code) {
+                    return url.toUpperCase().includes(code.toUpperCase());
+                }
+                return true;
+            }
+
+            return false;
+        }, discountCode);
+    } catch {
+        return false;
+    }
+}
+
+/**
+ * Mock lead submission API to return specific discount code
+ */
+export async function mockLeadSubmission(page: Page, discountCode: string): Promise<void> {
+    await page.route('**/apps/revenue-boost/api/leads/submit*', async (route) => {
+        console.log(`[Mock] Intercepting lead submission, returning code: ${discountCode}`);
+        await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({
+                success: true,
+                leadId: `mock-lead-${Date.now()}`,
+                discountCode,
+                behavior: 'SHOW_CODE_AND_AUTO_APPLY',
+                message: 'Thanks for subscribing!'
+            })
+        });
+    });
+}
+
+/**
+ * Mock discount issue API
+ */
+export async function mockDiscountIssue(page: Page, discountCode: string): Promise<void> {
+    await page.route('**/apps/revenue-boost/api/discounts/issue*', async (route) => {
+        console.log(`[Mock] Intercepting discount issue, returning code: ${discountCode}`);
+        await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({
+                success: true,
+                code: discountCode,
+                discountId: `mock-discount-${Date.now()}`
+            })
+        });
+    });
+}
+
+/**
+ * Wait for and capture API response
+ */
+export async function captureLeadSubmissionResponse(page: Page): Promise<any> {
+    return new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+            reject(new Error('Timeout waiting for lead submission'));
+        }, 30000);
+
+        page.on('response', async (response) => {
+            if (response.url().includes('/api/leads/submit')) {
+                clearTimeout(timeout);
+                try {
+                    const json = await response.json();
+                    resolve(json);
+                } catch {
+                    resolve({ success: false });
+                }
+            }
+        });
+    });
 }

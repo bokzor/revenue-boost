@@ -110,6 +110,14 @@ export class ShopifyDataService {
         return [];
       }
 
+      // Check if read_orders scope is granted
+      // Scopes are stored as comma-separated string in session.scope
+      const grantedScopes = session.scope?.split(",") || [];
+      if (!grantedScopes.includes("read_orders")) {
+        console.log(`[ShopifyDataService] read_orders scope not granted for ${shopDomain} - social proof disabled`);
+        return [];
+      }
+
       // Calculate date range
       const createdAtMin = new Date(Date.now() - hoursBack * 60 * 60 * 1000).toISOString();
 

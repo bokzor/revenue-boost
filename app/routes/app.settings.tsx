@@ -37,11 +37,13 @@ import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { PLAN_DEFINITIONS, PLAN_ORDER } from "../domains/billing/types/plan";
 import { PlanGuardService } from "../domains/billing/services/plan-guard.server";
+import { BillingService } from "../domains/billing/services/billing.server";
 import { GlobalCappingSettings } from "../domains/store/components/GlobalCappingSettings";
 import { GlobalCSSSettings } from "../domains/store/components/GlobalCSSSettings";
 import { StoreSettingsSchema, type StoreSettings } from "../domains/store/types/settings";
 import { SetupStatus } from "../domains/setup/components/SetupStatus";
 import { getSetupStatus } from "../lib/setup-status.server";
+import { Link } from "react-router";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session, admin } = await authenticate.admin(request);
@@ -54,6 +56,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   }
 
   const planContext = await PlanGuardService.getPlanContext(store.id);
+
+  // Sync and get billing context from Shopify
+  const billingContext = await BillingService.syncSubscriptionToDatabase(admin, session.shop);
 
   // Check setup status using shared utility
   const { status: setupStatus, setupComplete } = await getSetupStatus(
@@ -94,6 +99,12 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   return {
     planContext,
+    billingContext: {
+      hasActiveSubscription: billingContext.hasActiveSubscription,
+      isTrialing: billingContext.isTrialing,
+      trialEndsAt: billingContext.trialEndsAt?.toISOString() || null,
+      subscription: billingContext.subscription,
+    },
     usage: {
       activeCampaigns: activeCampaignsCount,
       experiments: experimentsCount,
@@ -287,6 +298,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 export default function SettingsPage() {
   const {
     planContext,
+    billingContext,
     usage,
     storeSettings,
     PLAN_DEFINITIONS,
@@ -464,16 +476,31 @@ export default function SettingsPage() {
                   <Text variant="headingMd" as="h2">
                     Current Subscription
                   </Text>
-                  <Badge tone={planContext.planStatus === "ACTIVE" ? "success" : "attention"}>
-                    {planContext.planStatus}
+                  <Badge tone={billingContext.isTrialing ? "info" : planContext.planStatus === "ACTIVE" ? "success" : "attention"}>
+                    {billingContext.isTrialing ? "Trial" : planContext.planStatus}
                   </Badge>
                 </InlineGrid>
 
+                {billingContext.isTrialing && billingContext.trialEndsAt && (
+                  <Banner tone="info">
+                    <p>
+                      Your free trial ends on{" "}
+                      <strong>{new Date(billingContext.trialEndsAt).toLocaleDateString()}</strong>.
+                      After the trial, you'll be charged ${currentDefinition.price}/month.
+                    </p>
+                  </Banner>
+                )}
+
                 <Box background="bg-surface-secondary" padding="400" borderRadius="200">
                   <BlockStack gap="200">
-                    <Text variant="headingLg" as="p">
-                      {currentDefinition.name} Plan
-                    </Text>
+                    <InlineGrid columns="1fr auto" alignItems="center">
+                      <Text variant="headingLg" as="p">
+                        {currentDefinition.name} Plan
+                      </Text>
+                      <Button url="/app/billing" variant="plain">
+                        Manage Plan
+                      </Button>
+                    </InlineGrid>
                     <Text variant="bodyMd" tone="subdued" as="p">
                       ${currentDefinition.price}/month • Up to{" "}
                       {currentDefinition.monthlyImpressionCap

@@ -149,6 +149,48 @@ export class CampaignFactory {
     }
 
     /**
+     * Create a Flash Sale campaign builder
+     */
+    flashSale() {
+        return new FlashSaleBuilder(this.prisma, this.storeId, this);
+    }
+
+    /**
+     * Create a Free Shipping campaign builder
+     */
+    freeShipping() {
+        return new FreeShippingBuilder(this.prisma, this.storeId, this);
+    }
+
+    /**
+     * Create a Countdown Timer campaign builder
+     */
+    countdownTimer() {
+        return new CountdownTimerBuilder(this.prisma, this.storeId, this);
+    }
+
+    /**
+     * Create an Announcement campaign builder
+     */
+    announcement() {
+        return new AnnouncementBuilder(this.prisma, this.storeId, this);
+    }
+
+    /**
+     * Create a Social Proof campaign builder
+     */
+    socialProof() {
+        return new SocialProofBuilder(this.prisma, this.storeId, this);
+    }
+
+    /**
+     * Create an Exit Intent campaign builder
+     */
+    exitIntent() {
+        return new ExitIntentBuilder(this.prisma, this.storeId, this);
+    }
+
+    /**
      * Internal method used by builders to create campaigns
      */
     async _createCampaign(config: BaseCampaignConfig) {
@@ -799,6 +841,428 @@ export class ProductUpsellBuilder extends BaseBuilder<ProductUpsellBuilder> {
         if (!this.config) throw new Error('Config not initialized');
         this.config.contentConfig.bundleDiscount = percentage;
         this.config.contentConfig.bundleDiscountText = `Save ${percentage}% when you bundle!`;
+        return this;
+    }
+
+    /**
+     * Set headline text
+     */
+    withHeadline(headline: string): this {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.contentConfig.headline = headline;
+        return this;
+    }
+}
+
+/**
+ * Flash Sale Campaign Builder
+ */
+export class FlashSaleBuilder extends BaseBuilder<FlashSaleBuilder> {
+    async init() {
+        this.config = await this.factory._getBaseConfig('FLASH_SALE');
+        this.config.goal = 'INCREASE_REVENUE';
+        this.config.contentConfig = {
+            headline: 'Flash Sale!',
+            subheadline: 'Limited time offer - Don\'t miss out!',
+            buttonText: 'Shop Now',
+            successMessage: 'Discount applied!',
+            urgencyMessage: 'Hurry! Sale ends soon',
+            discountPercentage: 25,
+            showCountdown: true,
+            countdownDuration: 3600, // 1 hour
+            hideOnExpiry: true,
+            showStockCounter: false,
+        };
+        return this;
+    }
+
+    /**
+     * Set urgency message
+     */
+    withUrgencyMessage(message: string): this {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.contentConfig.urgencyMessage = message;
+        return this;
+    }
+
+    /**
+     * Set discount percentage
+     */
+    withDiscountPercentage(percentage: number): this {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.contentConfig.discountPercentage = percentage;
+        return this;
+    }
+
+    /**
+     * Set countdown duration (in seconds)
+     */
+    withCountdownDuration(seconds: number): this {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.contentConfig.countdownDuration = seconds;
+        return this;
+    }
+
+    /**
+     * Enable stock counter
+     */
+    withStockCounter(enabled: boolean = true, message?: string): this {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.contentConfig.showStockCounter = enabled;
+        if (message) {
+            this.config.contentConfig.stockMessage = message;
+        }
+        return this;
+    }
+
+    /**
+     * Set headline text
+     */
+    withHeadline(headline: string): this {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.contentConfig.headline = headline;
+        return this;
+    }
+}
+
+/**
+ * Free Shipping Campaign Builder
+ */
+export class FreeShippingBuilder extends BaseBuilder<FreeShippingBuilder> {
+    async init() {
+        this.config = await this.factory._getBaseConfig('FREE_SHIPPING');
+        this.config.goal = 'INCREASE_REVENUE';
+        this.config.contentConfig = {
+            threshold: 75,
+            currency: '$',
+            nearMissThreshold: 10,
+            emptyMessage: 'Add items to unlock free shipping',
+            progressMessage: 'You\'re {remaining} away from free shipping',
+            nearMissMessage: 'Only {remaining} to go!',
+            unlockedMessage: 'You\'ve unlocked free shipping! 🎉',
+            barPosition: 'top',
+            dismissible: true,
+            showIcon: true,
+            celebrateOnUnlock: true,
+        };
+        return this;
+    }
+
+    /**
+     * Set free shipping threshold
+     */
+    withThreshold(amount: number): this {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.contentConfig.threshold = amount;
+        return this;
+    }
+
+    /**
+     * Set currency symbol
+     */
+    withCurrency(currency: string): this {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.contentConfig.currency = currency;
+        return this;
+    }
+
+    /**
+     * Set bar position
+     */
+    withPosition(position: 'top' | 'bottom'): this {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.contentConfig.barPosition = position;
+        return this;
+    }
+
+    /**
+     * Set custom messages
+     */
+    withMessages(messages: {
+        empty?: string;
+        progress?: string;
+        nearMiss?: string;
+        unlocked?: string;
+    }): this {
+        if (!this.config) throw new Error('Config not initialized');
+        if (messages.empty) this.config.contentConfig.emptyMessage = messages.empty;
+        if (messages.progress) this.config.contentConfig.progressMessage = messages.progress;
+        if (messages.nearMiss) this.config.contentConfig.nearMissMessage = messages.nearMiss;
+        if (messages.unlocked) this.config.contentConfig.unlockedMessage = messages.unlocked;
+        return this;
+    }
+}
+
+/**
+ * Countdown Timer Campaign Builder
+ */
+export class CountdownTimerBuilder extends BaseBuilder<CountdownTimerBuilder> {
+    async init() {
+        this.config = await this.factory._getBaseConfig('COUNTDOWN_TIMER');
+        this.config.goal = 'INCREASE_REVENUE';
+        this.config.contentConfig = {
+            headline: 'Limited Time Offer!',
+            subheadline: 'Don\'t miss this exclusive deal',
+            buttonText: 'Shop Now',
+            successMessage: 'Offer claimed!',
+            countdownDuration: 3600, // 1 hour
+            hideOnExpiry: true,
+            sticky: true,
+            colorScheme: 'urgent',
+        };
+        return this;
+    }
+
+    /**
+     * Set countdown duration (in seconds)
+     */
+    withCountdownDuration(seconds: number): this {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.contentConfig.countdownDuration = seconds;
+        return this;
+    }
+
+    /**
+     * Set fixed end time (ISO string)
+     */
+    withEndTime(endTimeISO: string): this {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.contentConfig.endTime = endTimeISO;
+        return this;
+    }
+
+    /**
+     * Set sticky behavior
+     */
+    withSticky(sticky: boolean = true): this {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.contentConfig.sticky = sticky;
+        return this;
+    }
+
+    /**
+     * Set color scheme
+     */
+    withColorScheme(scheme: 'urgent' | 'success' | 'info' | 'custom'): this {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.contentConfig.colorScheme = scheme;
+        return this;
+    }
+
+    /**
+     * Set headline text
+     */
+    withHeadline(headline: string): this {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.contentConfig.headline = headline;
+        return this;
+    }
+}
+
+/**
+ * Announcement Campaign Builder
+ */
+export class AnnouncementBuilder extends BaseBuilder<AnnouncementBuilder> {
+    async init() {
+        this.config = await this.factory._getBaseConfig('ANNOUNCEMENT');
+        this.config.goal = 'ENGAGEMENT';
+        this.config.contentConfig = {
+            headline: 'Important Announcement',
+            subheadline: 'Check out our latest updates',
+            buttonText: 'Learn More',
+            successMessage: 'Thanks for reading!',
+            sticky: true,
+            colorScheme: 'info',
+        };
+        return this;
+    }
+
+    /**
+     * Set sticky behavior
+     */
+    withSticky(sticky: boolean = true): this {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.contentConfig.sticky = sticky;
+        return this;
+    }
+
+    /**
+     * Set color scheme
+     */
+    withColorScheme(scheme: 'urgent' | 'success' | 'info' | 'custom'): this {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.contentConfig.colorScheme = scheme;
+        return this;
+    }
+
+    /**
+     * Set CTA URL
+     */
+    withCtaUrl(url: string, openInNewTab: boolean = false): this {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.contentConfig.ctaUrl = url;
+        this.config.contentConfig.ctaOpenInNewTab = openInNewTab;
+        return this;
+    }
+
+    /**
+     * Set icon
+     */
+    withIcon(icon: string): this {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.contentConfig.icon = icon;
+        return this;
+    }
+
+    /**
+     * Set headline text
+     */
+    withHeadline(headline: string): this {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.contentConfig.headline = headline;
+        return this;
+    }
+}
+
+/**
+ * Social Proof Campaign Builder
+ */
+export class SocialProofBuilder extends BaseBuilder<SocialProofBuilder> {
+    async init() {
+        this.config = await this.factory._getBaseConfig('SOCIAL_PROOF');
+        this.config.goal = 'ENGAGEMENT';
+        this.config.contentConfig = {
+            headline: 'Join Thousands of Happy Customers',
+            subheadline: 'See what others are buying',
+            buttonText: 'Shop Now',
+            successMessage: 'Welcome!',
+            enablePurchaseNotifications: true,
+            enableVisitorNotifications: false,
+            enableReviewNotifications: false,
+            cornerPosition: 'bottom-left',
+            displayDuration: 6,
+            rotationInterval: 8,
+            maxNotificationsPerSession: 5,
+            showProductImage: true,
+            showTimer: true,
+        };
+        return this;
+    }
+
+    /**
+     * Enable/disable purchase notifications
+     */
+    withPurchaseNotifications(enabled: boolean = true): this {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.contentConfig.enablePurchaseNotifications = enabled;
+        return this;
+    }
+
+    /**
+     * Enable/disable visitor notifications
+     */
+    withVisitorNotifications(enabled: boolean = true): this {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.contentConfig.enableVisitorNotifications = enabled;
+        return this;
+    }
+
+    /**
+     * Enable/disable review notifications
+     */
+    withReviewNotifications(enabled: boolean = true): this {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.contentConfig.enableReviewNotifications = enabled;
+        return this;
+    }
+
+    /**
+     * Set corner position
+     */
+    withCornerPosition(position: 'bottom-left' | 'bottom-right' | 'top-left' | 'top-right'): this {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.contentConfig.cornerPosition = position;
+        return this;
+    }
+
+    /**
+     * Set display duration (in seconds)
+     */
+    withDisplayDuration(seconds: number): this {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.contentConfig.displayDuration = seconds;
+        return this;
+    }
+
+    /**
+     * Set rotation interval (in seconds)
+     */
+    withRotationInterval(seconds: number): this {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.contentConfig.rotationInterval = seconds;
+        return this;
+    }
+
+    /**
+     * Set headline text
+     */
+    withHeadline(headline: string): this {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.contentConfig.headline = headline;
+        return this;
+    }
+}
+
+/**
+ * Exit Intent Campaign Builder
+ * Uses Newsletter content schema with exit_intent trigger
+ */
+export class ExitIntentBuilder extends BaseBuilder<ExitIntentBuilder> {
+    async init() {
+        this.config = await this.factory._getBaseConfig('EXIT_INTENT');
+        this.config.contentConfig = {
+            headline: 'Wait! Don\'t Go',
+            subheadline: 'Get 10% off your first order',
+            buttonText: 'Get Discount',
+            successMessage: 'Thanks! Check your email for your discount code.',
+            emailPlaceholder: 'Enter your email',
+            emailRequired: true,
+            submitButtonText: 'Get Discount',
+            nameFieldEnabled: false,
+            nameFieldRequired: false,
+            consentFieldEnabled: false,
+            consentFieldRequired: false,
+        };
+        // Configure exit intent trigger
+        this.config.targetRules.enhancedTriggers.page_load = { enabled: false };
+        this.config.targetRules.enhancedTriggers.exit_intent = {
+            enabled: true,
+            sensitivity: 'medium',
+        };
+        return this;
+    }
+
+    /**
+     * Set exit intent sensitivity
+     */
+    withSensitivity(sensitivity: 'low' | 'medium' | 'high'): this {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.targetRules.enhancedTriggers.exit_intent = {
+            ...this.config.targetRules.enhancedTriggers.exit_intent,
+            sensitivity,
+        };
+        return this;
+    }
+
+    /**
+     * Enable GDPR checkbox
+     */
+    withGdprCheckbox(enabled: boolean = true, text?: string): this {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.contentConfig.consentFieldEnabled = enabled;
+        if (text) {
+            this.config.contentConfig.consentFieldText = text;
+        }
         return this;
     }
 

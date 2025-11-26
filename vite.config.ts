@@ -1,10 +1,12 @@
 import { reactRouter } from "@react-router/dev/vite";
+import { sentryVitePlugin } from "@sentry/vite-plugin";
 import { defineConfig, type UserConfig } from "vite";
 import tsconfigPaths from "vite-tsconfig-paths";
 
 // Detect build mode
 const isDevelopment =
   process.env.NODE_ENV === "development" || process.env.BUILD_MODE === "development";
+const isProduction = process.env.NODE_ENV === "production";
 
 // When running under Storybook (storybook dev / storybook build),
 // disable the React Router Vite plugin to avoid the
@@ -58,17 +60,31 @@ if (host === "localhost") {
       allow: ["app", "node_modules"],
     },
   },
-	  plugins: [
-	    !isStorybook && reactRouter(),
-	    tsconfigPaths(),
-	  ],
+  plugins: [
+    !isStorybook && reactRouter(),
+    tsconfigPaths(),
+    // Sentry source map upload (only in production builds with auth token)
+    isProduction && process.env.SENTRY_AUTH_TOKEN
+      ? sentryVitePlugin({
+          org: process.env.SENTRY_ORG || "revenue-boost",
+          project: process.env.SENTRY_PROJECT || "revenue-boost",
+          authToken: process.env.SENTRY_AUTH_TOKEN,
+          sourcemaps: {
+            filesToDeleteAfterUpload: ["./build/**/*.map"],
+          },
+          release: {
+            name: process.env.APP_VERSION || `release-${Date.now()}`,
+          },
+        })
+      : null,
+  ],
   build: {
     assetsInlineLimit: 0,
-    sourcemap: isDevelopment, // Sourcemaps seulement en dev
-    minify: isDevelopment ? false : 'esbuild', // Minification seulement en production
-    target: 'es2020',
-    cssMinify: !isDevelopment, // Minifier le CSS seulement en production
-    reportCompressedSize: true, // Désactiver le rapport de taille pour accélérer le build
+    sourcemap: true, // Enable sourcemaps for Sentry (deleted after upload in prod)
+    minify: isDevelopment ? false : "esbuild",
+    target: "es2020",
+    cssMinify: !isDevelopment,
+    reportCompressedSize: true,
   },
   optimizeDeps: {
     include: ["@shopify/app-bridge-react"],

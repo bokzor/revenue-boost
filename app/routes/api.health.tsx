@@ -8,17 +8,19 @@
 import { data } from "react-router";
 import { adminCors } from "~/lib/cors.server";
 import prisma from "~/db.server";
+import { isRedisAvailable } from "~/lib/redis.server";
 
 // ============================================================================
 // TYPES
 // ============================================================================
 
 interface HealthResponse {
-  status: "ok" | "error";
+  status: "ok" | "degraded" | "error";
   timestamp: string;
   version: string;
   services: {
     database: "connected" | "error";
+    redis: "connected" | "disconnected" | "not_configured";
     domains: "loaded" | "error";
   };
   message?: string;
@@ -37,8 +39,23 @@ export async function loader() {
     try {
       await prisma.$queryRaw`SELECT 1`;
     } catch (error) {
-      console.error("Database health check failed:", error);
+      console.error("[Health Check] Database connection failed:", error);
       databaseStatus = "error";
+    }
+
+    // Test Redis connection
+    let redisStatus: "connected" | "disconnected" | "not_configured" = "not_configured";
+    try {
+      const { getEnv } = await import("~/lib/env.server");
+      const env = getEnv();
+
+      if (env.REDIS_URL) {
+        const isAvailable = await isRedisAvailable();
+        redisStatus = isAvailable ? "connected" : "disconnected";
+      }
+    } catch (error) {
+      console.error("[Health Check] Redis check failed:", error);
+      redisStatus = "disconnected";
     }
 
     // Test domain imports
@@ -52,12 +69,28 @@ export async function loader() {
         domainsStatus = "error";
       }
     } catch (error) {
-      console.error("Domain health check failed:", error);
+      console.error("[Health Check] Domain loading failed:", error);
       domainsStatus = "error";
     }
 
-    const overallStatus =
-      databaseStatus === "connected" && domainsStatus === "loaded" ? "ok" : "error";
+    // Determine overall status
+    // - Database is critical (error = overall error)
+    // - Redis is important (disconnected = degraded)
+    // - Domains are critical (error = overall error)
+    let overallStatus: "ok" | "degraded" | "error";
+    if (databaseStatus === "error" || domainsStatus === "error") {
+      overallStatus = "error";
+    } else if (redisStatus === "disconnected") {
+      overallStatus = "degraded";
+    } else {
+      overallStatus = "ok";
+    }
+
+    const messages = {
+      ok: "All systems operational",
+      degraded: "Some non-critical services are experiencing issues",
+      error: "Critical services are experiencing issues",
+    };
 
     const response: HealthResponse = {
       status: overallStatus,
@@ -65,20 +98,24 @@ export async function loader() {
       version: "1.0.0",
       services: {
         database: databaseStatus,
+        redis: redisStatus,
         domains: domainsStatus,
       },
-      message:
-        overallStatus === "ok"
-          ? "All systems operational"
-          : "Some services are experiencing issues",
+      message: messages[overallStatus],
+    };
+
+    const statusCodes = {
+      ok: 200,
+      degraded: 200, // Still return 200 for degraded (service is functional)
+      error: 503,
     };
 
     return data(response, {
-      status: overallStatus === "ok" ? 200 : 503,
+      status: statusCodes[overallStatus],
       headers,
     });
   } catch (error) {
-    console.error("Health check error:", error);
+    console.error("[Health Check] Unexpected error:", error);
 
     const response: HealthResponse = {
       status: "error",
@@ -86,9 +123,10 @@ export async function loader() {
       version: "1.0.0",
       services: {
         database: "error",
+        redis: "disconnected",
         domains: "error",
       },
-      message: "Health check failed",
+      message: "Health check failed unexpectedly",
     };
 
     return data(response, {

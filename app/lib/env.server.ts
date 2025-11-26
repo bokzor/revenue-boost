@@ -41,6 +41,10 @@ const envSchema = z.object({
 
   // Optional Configuration
   SHOP_CUSTOM_DOMAIN: z.string().optional(),
+
+  // Monitoring Configuration (Optional, recommended for production)
+  SENTRY_DSN: z.string().url("SENTRY_DSN must be a valid Sentry DSN URL").optional(),
+  APP_VERSION: z.string().optional(), // For release tracking
 });
 
 /**

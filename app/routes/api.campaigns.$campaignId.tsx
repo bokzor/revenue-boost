@@ -7,7 +7,11 @@
  * DELETE /api/campaigns/:campaignId - Delete specific campaign
  */
 
-import { CampaignService, CampaignUpdateDataSchema } from "~/domains/campaigns/index.server";
+import {
+  CampaignService,
+  CampaignUpdateDataSchema,
+  type TargetRulesConfig,
+} from "~/domains/campaigns/index.server";
 import { validateData } from "~/lib/validation-helpers";
 import {
   getResourceById,
@@ -17,6 +21,7 @@ import {
 } from "~/lib/api-helpers.server";
 import { getStoreId } from "~/lib/auth-helpers.server";
 import { authenticate } from "~/shopify.server";
+import { triggerCampaignSegmentSync } from "~/domains/targeting/services/campaign-segment-sync.server";
 
 // ============================================================================
 // LOADER (GET /api/campaigns/:campaignId)
@@ -49,6 +54,13 @@ export const action = createMethodRouter({
         admin
       );
       validateResourceExists(campaign, "Campaign");
+
+      // Trigger async segment membership sync if campaign has Shopify segment targeting
+      triggerCampaignSegmentSync({
+        storeId,
+        targetRules: validatedData.targetRules as TargetRulesConfig | undefined,
+        admin,
+      });
 
       return { campaign };
     },

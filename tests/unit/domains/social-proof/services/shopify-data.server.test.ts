@@ -110,6 +110,7 @@ describe('ShopifyDataService', () => {
         shop: 'test-store.myshopify.com',
         accessToken: 'test-token',
         isOnline: false,
+        scope: 'read_orders,write_products',
       });
 
       const mockOrders = {
