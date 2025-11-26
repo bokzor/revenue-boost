@@ -119,7 +119,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  const { session } = await authenticate.admin(request);
+  const { session, billing } = await authenticate.admin(request);
   const formData = await request.formData();
   const actionType = formData.get("actionType");
 
@@ -282,7 +282,26 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     }
   }
 
-  // Update plan
+  // For paid plans, use Shopify billing API
+  const planKey = BillingService.getBillingPlanKey(targetPlan);
+
+  if (planKey) {
+    // Paid plan - redirect to Shopify billing
+    const appUrl = process.env.SHOPIFY_APP_URL || `https://${request.headers.get("host")}`;
+    const returnUrl = `${appUrl}/app/settings?shop=${session.shop}`;
+
+    await billing.request({
+      plan: planKey as "Starter" | "Growth" | "Pro" | "Enterprise",
+      isTest: process.env.NODE_ENV !== "production",
+      returnUrl,
+    });
+
+    // billing.request() will redirect, so this won't be reached
+    return { success: true };
+  }
+
+  // For FREE plan (downgrade), update database directly
+  // Note: In production, you might want to use billing.cancel() instead
   await prisma.store.update({
     where: { id: store.id },
     data: {

@@ -39,13 +39,13 @@ uri = "/webhooks/app/scopes_update"
 
 [access_scopes]
 # Required scopes - requested at install time (core functionality)
-scopes = "read_discounts,write_discounts,write_products,read_themes"
+# read_orders is required for orders/create webhook (revenue attribution)
+scopes = "read_discounts,write_discounts,write_products,read_themes,read_orders"
 # Optional scopes - requested just-in-time when specific features are enabled
 # - read_customers, write_customers: Customer segment targeting
-# - read_orders: Social proof (recent purchases), order analytics
 # - write_files: Custom image uploads for popups
 # - write_marketing_events, read_marketing_events: Marketing attribution tracking
-optional_scopes = ["read_customers", "write_customers", "read_orders", "write_files", "write_marketing_events", "read_marketing_events"]
+optional_scopes = ["read_customers", "write_customers", "write_files", "write_marketing_events", "read_marketing_events"]
 
 [auth]
 redirect_urls = [ "https://localhost:3000/api/auth" ]

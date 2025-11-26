@@ -62,7 +62,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 // =============================================================================
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  const { billing } = await authenticate.admin(request);
+  const { billing, session } = await authenticate.admin(request);
   const formData = await request.formData();
   const intent = formData.get("intent");
 
@@ -74,10 +74,15 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       return { error: "Invalid plan selected" };
     }
 
+    // Build the return URL - redirect back to billing page after approval/decline
+    const appUrl = process.env.SHOPIFY_APP_URL || `https://${request.headers.get("host")}`;
+    const returnUrl = `${appUrl}/app/billing?shop=${session.shop}`;
+
     // Request billing - this will redirect to Shopify's confirmation page
     await billing.request({
       plan: planKey as "Starter" | "Growth" | "Pro" | "Enterprise",
       isTest: process.env.NODE_ENV !== "production",
+      returnUrl,
     });
   }
 
