@@ -64,6 +64,7 @@ interface CampaignIndexTableProps {
   onExperimentClick?: (experimentId: string) => void;
   onDeleteClick?: (campaignId: string) => void;
   onDuplicateClick?: (campaignId: string) => void;
+  onAnalyticsClick?: (campaignId: string) => void;
   // Bulk actions
   onBulkActivate?: (campaignIds: string[]) => Promise<void>;
   onBulkPause?: (campaignIds: string[]) => Promise<void>;
@@ -73,6 +74,8 @@ interface CampaignIndexTableProps {
   formatMoney?: (amount: number) => string;
   showMetrics?: boolean;
   loading?: boolean;
+  /** ID of campaign currently being toggled (shows loading indicator) */
+  togglingCampaignId?: string | null;
 }
 
 interface ExperimentGroup {
@@ -95,6 +98,7 @@ export function CampaignIndexTable({
   onExperimentClick,
   onDeleteClick,
   onDuplicateClick,
+  onAnalyticsClick,
   onBulkActivate,
   onBulkPause,
   onBulkArchive,
@@ -103,6 +107,7 @@ export function CampaignIndexTable({
   formatMoney = (amount) => `$${amount.toFixed(0)}`,
   showMetrics = true,
   loading = false,
+  togglingCampaignId = null,
 }: CampaignIndexTableProps) {
   // State for status filter
   const [statusFilter, setStatusFilter] = useState<"ALL" | CampaignStatus>("ALL");
@@ -816,10 +821,24 @@ export function CampaignIndexTable({
                           Edit
                         </Button>
                       </div>
+                      {onAnalyticsClick && (
+                        <div onClick={(e) => e.stopPropagation()}>
+                          <Button
+                            size="micro"
+                            onClick={() => {
+                              onAnalyticsClick(id);
+                            }}
+                          >
+                            Analytics
+                          </Button>
+                        </div>
+                      )}
                       {onToggleStatus && (
                         <div onClick={(e) => e.stopPropagation()}>
                           <Button
                             size="micro"
+                            loading={togglingCampaignId === id}
+                            disabled={togglingCampaignId === id}
                             onClick={() => {
                               onToggleStatus(id, status);
                             }}
@@ -924,10 +943,24 @@ export function CampaignIndexTable({
                           Edit
                         </Button>
                       </div>
+                      {onAnalyticsClick && (
+                        <div onClick={(e) => e.stopPropagation()}>
+                          <Button
+                            size="micro"
+                            onClick={() => {
+                              onAnalyticsClick(id);
+                            }}
+                          >
+                            Analytics
+                          </Button>
+                        </div>
+                      )}
                       {onToggleStatus && (
                         <div onClick={(e) => e.stopPropagation()}>
                           <Button
                             size="micro"
+                            loading={togglingCampaignId === id}
+                            disabled={togglingCampaignId === id}
                             onClick={() => {
                               onToggleStatus(id, status);
                             }}

@@ -157,8 +157,11 @@ export class ProductDataHook implements PreDisplayHook {
                 title: 'Preview Hoodie',
                 price: '59.00',
                 compareAtPrice: '79.00',
-                imageUrl: '',
+                imageUrl:
+                    'https://images.pexels.com/photos/7671166/pexels-photo-7671166.jpeg?auto=compress&cs=tinysrgb&w=400',
                 handle: 'preview-hoodie',
+                rating: 4.8,
+                reviewCount: 128,
             },
             {
                 id: 'preview-product-2',
@@ -166,8 +169,11 @@ export class ProductDataHook implements PreDisplayHook {
                 title: 'Preview Sneakers',
                 price: '89.00',
                 compareAtPrice: '119.00',
-                imageUrl: '',
+                imageUrl:
+                    'https://images.pexels.com/photos/2529148/pexels-photo-2529148.jpeg?auto=compress&cs=tinysrgb&w=400',
                 handle: 'preview-sneakers',
+                rating: 4.9,
+                reviewCount: 212,
             },
             {
                 id: 'preview-product-3',
@@ -175,8 +181,11 @@ export class ProductDataHook implements PreDisplayHook {
                 title: 'Preview Backpack',
                 price: '49.00',
                 compareAtPrice: '69.00',
-                imageUrl: '',
+                imageUrl:
+                    'https://images.pexels.com/photos/1152077/pexels-photo-1152077.jpeg?auto=compress&cs=tinysrgb&w=400',
                 handle: 'preview-backpack',
+                rating: 4.6,
+                reviewCount: 87,
             },
             {
                 id: 'preview-product-4',
@@ -184,8 +193,11 @@ export class ProductDataHook implements PreDisplayHook {
                 title: 'Preview Cap',
                 price: '24.00',
                 compareAtPrice: '29.00',
-                imageUrl: '',
+                imageUrl:
+                    'https://images.pexels.com/photos/1124465/pexels-photo-1124465.jpeg?auto=compress&cs=tinysrgb&w=400',
                 handle: 'preview-cap',
+                rating: 4.5,
+                reviewCount: 56,
             },
         ];
 

@@ -102,6 +102,21 @@ export function FlashSaleContentSection({
     } as Partial<FlashSaleContent>["presentation"]);
   };
 
+  // Detect which theme matches the current design config
+  const detectCurrentTheme = (): FlashSaleThemeKey | null => {
+    for (const [key, theme] of Object.entries(FLASH_SALE_THEMES)) {
+      const themeDesign = themeColorsToDesignConfig(theme);
+      // Check if key colors match
+      if (
+        designConfig.backgroundColor === themeDesign.backgroundColor &&
+        designConfig.buttonColor === themeDesign.buttonColor
+      ) {
+        return key as FlashSaleThemeKey;
+      }
+    }
+    return null;
+  };
+
   // Handle theme selection - applies all colors from the theme
   const handleThemeChange = (themeKey: FlashSaleThemeKey) => {
     if (!onDesignChange) return;
@@ -398,11 +413,11 @@ export function FlashSaleContentSection({
                     label="Pseudo Max Inventory"
                     name="inventory.pseudoMax"
                     value={
-                      (content.inventory as Record<string, unknown>)?.pseudoMax?.toString() || "50"
+                      (content.inventory as Record<string, unknown>)?.pseudoMax?.toString() || "8"
                     }
-                    placeholder="50"
-                    helpText="Fake maximum inventory count"
-                    onChange={(value) => updateInventoryField("pseudoMax", parseInt(value) || 50)}
+                    placeholder="8"
+                    helpText="Simulated stock count. Set below threshold to show 'Only X Left' message."
+                    onChange={(value) => updateInventoryField("pseudoMax", parseInt(value) || 8)}
                   />
                 )}
 
@@ -611,80 +626,74 @@ export function FlashSaleContentSection({
                 <div
                   style={{
                     display: "grid",
-                    gridTemplateColumns: "repeat(4, 1fr)",
-                    gap: "12px",
+                    gridTemplateColumns: "repeat(auto-fill, minmax(64px, 1fr))",
+                    gap: "10px",
+                    maxWidth: 560,
                   }}
                 >
                   {Object.entries(FLASH_SALE_THEMES).map(([key, theme]) => {
-                    const isGradient = theme.background.includes("gradient");
-                    const gradientMatch = isGradient
-                      ? theme.background.match(/#[0-9a-f]{6}/gi)
-                      : null;
-                    const bgStyle =
-                      isGradient && gradientMatch
-                        ? {
-                            background: `linear-gradient(135deg, ${gradientMatch[0]} 0%, ${gradientMatch[1]} 100%)`,
-                          }
-                        : { backgroundColor: theme.background };
+                    const isSelected = detectCurrentTheme() === key;
+                    const label = key
+                      .split("_")
+                      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+                      .join(" ");
+
+                    // Build swatch background: left half = background, right half = CTA color
+                    const bg = theme.background || "#FFFFFF";
+                    const isGradient = bg.includes("gradient");
+                    const swatchBg = isGradient
+                      ? bg
+                      : `linear-gradient(90deg, ${bg} 50%, ${theme.ctaBg || theme.primary || "#007BFF"} 50%)`;
 
                     return (
-                      <button
-                        type="button"
+                      <div
                         key={key}
-                        onClick={() => handleThemeChange(key as FlashSaleThemeKey)}
-                        style={{
-                          width: "100%",
-                          height: "52px",
-                          borderRadius: "8px",
-                          border: "2px solid #e5e7eb",
-                          cursor: "pointer",
-                          position: "relative",
-                          overflow: "hidden",
-                          padding: 0,
-                          ...bgStyle,
-                        }}
-                        title={key
-                          .split("_")
-                          .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-                          .join(" ")}
+                        style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}
                       >
-                        {/* CTA preview button */}
-                        <div
-                          style={{
-                            position: "absolute",
-                            bottom: "4px",
-                            left: "50%",
-                            transform: "translateX(-50%)",
-                            padding: "2px 8px",
-                            borderRadius: "4px",
-                            fontSize: "10px",
-                            fontWeight: "600",
-                            backgroundColor: theme.ctaBg || theme.primary,
-                            color: theme.ctaText || "#ffffff",
-                          }}
-                        >
-                          CTA
+                        <div style={{ position: "relative" }}>
+                          <button
+                            type="button"
+                            onClick={() => handleThemeChange(key as FlashSaleThemeKey)}
+                            aria-label={label}
+                            title={label}
+                            style={{
+                              width: 52,
+                              height: 36,
+                              borderRadius: 8,
+                              border: isSelected ? "2px solid #202223" : "1px solid #D2D5D8",
+                              background: swatchBg,
+                              cursor: "pointer",
+                              boxShadow: isSelected ? "0 0 0 2px rgba(32,34,35,0.15)" : "none",
+                            }}
+                          />
+                          {isSelected && (
+                            <span
+                              aria-hidden="true"
+                              style={{
+                                position: "absolute",
+                                top: -6,
+                                right: -6,
+                                width: 18,
+                                height: 18,
+                                borderRadius: "50%",
+                                background: "#FFFFFF",
+                                border: "1px solid #202223",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                fontSize: 12,
+                                lineHeight: "12px",
+                              }}
+                            >
+                              ✓
+                            </span>
+                          )}
                         </div>
-                      </button>
+                        <span style={{ fontSize: 12, color: "#6D7175" }}>{label}</span>
+                      </div>
                     );
                   })}
                 </div>
-
-                {/* Theme Dropdown */}
-                <Select
-                  label="Theme"
-                  labelHidden
-                  value=""
-                  placeholder="Select a Flash Sale theme"
-                  options={Object.keys(FLASH_SALE_THEMES).map((key) => ({
-                    label: key
-                      .split("_")
-                      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-                      .join(" "),
-                    value: key,
-                  }))}
-                  onChange={(value) => handleThemeChange(value as FlashSaleThemeKey)}
-                />
               </BlockStack>
 
               <Divider />

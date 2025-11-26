@@ -63,7 +63,7 @@ export function ProductUpsellContentSection({
       : "ai";
 
   const layout: ProductUpsellContent["layout"] =
-    content.layout === "grid" || content.layout === "carousel" || content.layout === "card"
+    content.layout === "grid" || content.layout === "card"
       ? (content.layout as ProductUpsellContent["layout"])
       : "grid";
 
@@ -85,7 +85,6 @@ export function ProductUpsellContentSection({
     if (
       content.layout !== layout &&
       content.layout !== "grid" &&
-      content.layout !== "carousel" &&
       content.layout !== "card"
     ) {
       updateField("layout", layout);
@@ -315,7 +314,6 @@ export function ProductUpsellContentSection({
                     name="content.layout"
                     options={[
                       { label: "Grid", value: "grid" },
-                      { label: "Carousel", value: "carousel" },
                       { label: "Card", value: "card" },
                     ]}
                     helpText="Choose how upsell products are laid out."

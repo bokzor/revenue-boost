@@ -58,32 +58,35 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
       },
     },
     designConfig: {
-      // Use the "modern" newsletter theme as the default seeded look
-      theme: "modern",
+      // Use the "ocean" newsletter theme as the default seeded look (matching the campaign)
+      theme: "ocean",
       position: "center",
       size: "medium",
       popupSize: "standard",
       borderRadius: 8,
       animation: "fade",
 
-      imageUrl: "/newsletter-backgrounds/modern.png",
+      // Background image preset & URL
+      backgroundImageMode: "preset",
+      backgroundImagePresetKey: "ocean",
+      imageUrl: "/apps/revenue-boost/assets/newsletter-backgrounds/ocean.jpg",
       imagePosition: "left",
 
-      // Modern theme colors (aligned with NEWSLETTER_THEMES.modern)
-      backgroundColor: "#ffffff",
-      textColor: "#111827",
-      descriptionColor: "#52525b",
-      accentColor: "#dbeafe",
+      // Ocean theme colors (aligned with the campaign's ocean theme)
+      backgroundColor: "#f0f9ff",
+      textColor: "#0c4a6e",
+      descriptionColor: "#0369a1",
+      accentColor: "#0ea5e9",
 
-      buttonColor: "#3b82f6",
+      buttonColor: "#0ea5e9",
       buttonTextColor: "#ffffff",
 
-      inputBackgroundColor: "#f3f4f6",
+      inputBackgroundColor: "#e0f2fe",
       inputTextColor: "#111827",
-      inputBorderColor: "#d4d4d8",
+      inputBorderColor: "#7dd3fc",
 
-      imageBgColor: "#f4f4f5",
-      successColor: "#10b981",
+      imageBgColor: "#e0f2fe",
+      successColor: "#14b8a6",
       overlayOpacity: 0.8,
 
       fontFamily: "inherit",
@@ -97,9 +100,7 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
       showInPreview: true,
       valueType: "PERCENTAGE",
       value: 10,
-      deliveryMode: "show_code_fallback",
-      autoApplyMode: "ajax",
-      codePresentation: "show_code",
+      behavior: "SHOW_CODE_AND_AUTO_APPLY",
       expiryDays: 30,
     },
     isDefault: true,
@@ -144,7 +145,7 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
         frequency_capping: getServerFrequencyCapping("FLASH_SALE"),
       },
     },
-    // Use Modern theme-inspired colors for seeded design
+    // Modern theme with red urgency colors
     designConfig: {
       theme: "modern",
       position: "center",
@@ -152,18 +153,39 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
       popupSize: "wide",
       borderRadius: 8,
       animation: "fade",
-      imagePosition: "left",
+
+      // Main colors - urgency red theme
       backgroundColor: "#ffffff",
-      textColor: "#111827",
-      descriptionColor: "#52525b",
-      accentColor: "#dbeafe",
-      buttonColor: "#3b82f6",
+      textColor: "#1f2937",
+      descriptionColor: "#6b7280",
+      accentColor: "#ef4444",
+
+      // Button colors - red for urgency
+      buttonColor: "#ef4444",
       buttonTextColor: "#ffffff",
-      inputBackgroundColor: "#f3f4f6",
-      inputBorderColor: "#d4d4d8",
-      imageBgColor: "#f4f4f5",
+
+      // Input field colors - light red tints
+      inputBackgroundColor: "#fee2e2",
+      inputTextColor: "#111827",
+      inputBorderColor: "#fca5a5",
+
+      // Image / surface colors
+      imageBgColor: "#fef2f2",
+      imagePosition: "left",
+      backgroundImageMode: "none",
+
+      // State colors
       successColor: "#10b981",
-      overlayOpacity: 0.8,
+
+      // Overlay
+      overlayOpacity: 0.5,
+
+      // Typography
+      fontFamily: "inherit",
+      titleFontSize: "2rem",
+      titleFontWeight: "800",
+      descriptionFontSize: "1rem",
+      descriptionFontWeight: "500",
     },
     // Valid DiscountConfig defaults (💰 Discount Configuration)
     discountConfig: {
@@ -174,9 +196,7 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
       value: 30,
       prefix: "FLASH30-", // Will generate unique codes like FLASH30-ABC123
       expiryDays: 2,
-      deliveryMode: "show_code_always",
-      autoApplyMode: "ajax",
-      codePresentation: "show_code",
+      behavior: "SHOW_CODE_ONLY",
     },
     isDefault: true,
     priority: 2,
@@ -194,7 +214,7 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
       headline: "Spin to Win!",
       subheadline: "Try your luck for exclusive discounts",
       buttonText: "Spin Now",
-      successMessage: "You won {{prize}}! Use code {{code}} at checkout.",
+      successMessage: "Thanks!",
       failureMessage: "Thanks for playing!",
       ctaText: "Spin Now",
       emailRequired: true,
@@ -202,96 +222,89 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
       collectName: true,
       showGdprCheckbox: true,
       gdprLabel: "I agree to receive marketing emails and accept the privacy policy",
+      spinButtonText: "Spin to Win!",
+      wheelBorderColor: "#ffffff",
+      wheelBorderWidth: 7,
       wheelSegments: [
         {
           id: "segment-5-off",
           label: "5% OFF",
           probability: 0.35,
-          color: "#10B981",
+          color: "#a855f7",
           discountConfig: {
             enabled: true,
             showInPreview: true,
             valueType: "PERCENTAGE" as const,
             value: 5,
-            deliveryMode: "show_code_fallback" as const,
+            behavior: "SHOW_CODE_AND_AUTO_APPLY" as const,
             expiryDays: 30,
             type: "single_use" as const,
-            autoApplyMode: "ajax" as const,
-            codePresentation: "show_code" as const,
           },
         },
         {
           id: "segment-10-off",
           label: "10% OFF",
           probability: 0.25,
-          color: "#3B82F6",
+          color: "#9333ea",
           discountConfig: {
             enabled: true,
             showInPreview: true,
             valueType: "PERCENTAGE" as const,
             value: 10,
-            deliveryMode: "show_code_fallback" as const,
+            behavior: "SHOW_CODE_AND_AUTO_APPLY" as const,
             expiryDays: 30,
             type: "single_use" as const,
-            autoApplyMode: "ajax" as const,
-            codePresentation: "show_code" as const,
           },
         },
         {
           id: "segment-15-off",
           label: "15% OFF",
           probability: 0.15,
-          color: "#F59E0B",
+          color: "#7e22ce",
           discountConfig: {
             enabled: true,
             showInPreview: true,
             valueType: "PERCENTAGE" as const,
             value: 15,
-            deliveryMode: "show_code_fallback" as const,
+            behavior: "SHOW_CODE_AND_AUTO_APPLY" as const,
             expiryDays: 30,
             type: "single_use" as const,
-            autoApplyMode: "ajax" as const,
-            codePresentation: "show_code" as const,
           },
         },
         {
           id: "segment-20-off",
           label: "20% OFF",
           probability: 0.1,
-          color: "#EF4444",
+          color: "#6b21a8",
           discountConfig: {
             enabled: true,
             showInPreview: true,
             valueType: "PERCENTAGE" as const,
             value: 20,
-            deliveryMode: "show_code_fallback" as const,
+            behavior: "SHOW_CODE_AND_AUTO_APPLY" as const,
             expiryDays: 30,
             type: "single_use" as const,
-            autoApplyMode: "ajax" as const,
-            codePresentation: "show_code" as const,
           },
         },
         {
           id: "segment-free-shipping",
           label: "FREE SHIPPING",
           probability: 0.1,
-          color: "#8B5CF6",
+          color: "#581c87",
           discountConfig: {
             enabled: true,
             showInPreview: true,
             valueType: "FREE_SHIPPING" as const,
-            deliveryMode: "show_code_fallback" as const,
+            behavior: "SHOW_CODE_AND_AUTO_APPLY" as const,
             expiryDays: 30,
             type: "single_use" as const,
-            autoApplyMode: "ajax" as const,
-            codePresentation: "show_code" as const,
           },
         },
         {
           id: "segment-try-again",
           label: "Try Again",
           probability: 0.05,
-          color: "#6B7280",
+          color: "#c084fc",
           // No discount config for "try again" segment
         },
       ],
@@ -309,36 +322,49 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
       },
     },
     designConfig: {
-      // Minimal theme default colors (aligned with NEWSLETTER_THEMES.minimal)
-      theme: "minimal",
+      // Purple gradient theme
+      theme: "gradient",
       position: "center",
       size: "medium",
+      popupSize: "wide",
       borderRadius: 24,
       animation: "fade",
 
-      // Main colors
-      backgroundColor: "#fafafa",
-      textColor: "#18181b",
-      descriptionColor: "#71717a",
-      accentColor: "#e4e4e7",
+      // Main colors - purple gradient
+      backgroundColor: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+      textColor: "#ffffff",
+      descriptionColor: "#e0e7ff",
+      accentColor: "#e0e7ff",
 
       // Button colors
-      buttonColor: "#18181b",
-      buttonTextColor: "#ffffff",
+      buttonColor: "#ffffff",
+      buttonTextColor: "#667eea",
 
-      // Input field colors
-      inputBackgroundColor: "#f4f4f5",
-      inputTextColor: "#111827",
-      inputBorderColor: "#d4d4d8",
+      // Input field colors - glassmorphism style
+      inputBackgroundColor: "rgba(255, 255, 255, 0.15)",
+      inputTextColor: "#ffffff",
+      inputBorderColor: "rgba(255, 255, 255, 0.3)",
+      inputBackdropFilter: "blur(10px)",
 
       // Image / surface colors
-      imageBgColor: "#f4f4f5",
+      imageBgColor: "rgba(255, 255, 255, 0.1)",
+      imagePosition: "left",
+      backgroundImageMode: "preset",
+      backgroundImagePresetKey: "gradient",
+      imageUrl: "/apps/revenue-boost/assets/newsletter-backgrounds/gradient.jpg",
 
       // State colors
-      successColor: "#22c55e",
+      successColor: "#10b981",
 
       // Overlay
       overlayOpacity: 0.5,
+
+      // Typography
+      fontFamily: "inherit",
+      titleFontSize: "2rem",
+      titleFontWeight: "700",
+      descriptionFontSize: "1rem",
+      descriptionFontWeight: "400",
     },
     isDefault: true,
     priority: 3,
@@ -399,7 +425,8 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
       subheadline: "Reveal your surprise",
       buttonText: "Reveal",
       successMessage: "You won!",
-      ctaText: "Reveal"
+      ctaText: "Reveal",
+      emailBeforeScratching: true
     },
     fields: [
       { id: "headline", type: "text", label: "Headline", category: "content" },
@@ -485,18 +512,14 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
         idle_timer: { enabled: true, idle_duration: 30 },
         frequency_capping: getServerFrequencyCapping("CART_ABANDONMENT"),
       },
+      // Advanced targeting disabled by default so Free plan users can use this template
+      // Paid users can enable and configure session rules for cart targeting
       audienceTargeting: {
-        enabled: true,
+        enabled: false,
         shopifySegmentIds: [],
         sessionRules: {
-          enabled: true,
-          conditions: [
-            {
-              field: "cartItemCount",
-              operator: "gt",
-              value: 0,
-            },
-          ],
+          enabled: false,
+          conditions: [],
           logicOperator: "AND",
         },
       },
@@ -530,7 +553,12 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
       ctaText: "Add to Cart",
       productSelectionMethod: "ai",
       layout: "grid",
+      columns: 2,
       maxProducts: 3,
+      multiSelect: true,
+      showImages: true,
+      showPrices: true,
+      showCompareAtPrice: true,
       showRatings: true,
       showReviewCount: true,
     },
@@ -544,8 +572,9 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
         page_load: { enabled: true, delay: 3000 },
         frequency_capping: getServerFrequencyCapping("PRODUCT_UPSELL"),
       },
+      // Advanced targeting disabled by default so Free plan users can use this template
       audienceTargeting: {
-        enabled: true,
+        enabled: false,
         shopifySegmentIds: [],
         sessionRules: {
           enabled: false,
@@ -555,13 +584,49 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
       },
     },
     designConfig: {
-      // Modern default colors
-      backgroundColor: "#FFFFFF",
-      textColor: "#1A202C",
-      buttonColor: "#3B82F6",
-      buttonTextColor: "#FFFFFF",
-      position: "right",
-      size: "medium"
+      // Glass theme - frosted glass effect
+      theme: "glass",
+      position: "center",
+      size: "large",
+      popupSize: "wide",
+      borderRadius: 8,
+      animation: "fade",
+
+      // Main colors - glass effect
+      backgroundColor: "rgba(255, 255, 255, 0.7)",
+      textColor: "#18181b",
+      descriptionColor: "#52525b",
+      accentColor: "#6366f1",
+
+      // Button colors - indigo
+      buttonColor: "#6366f1",
+      buttonTextColor: "#ffffff",
+
+      // Input field colors - glass effect
+      inputBackgroundColor: "rgba(255, 255, 255, 0.5)",
+      inputTextColor: "#111827",
+      inputBorderColor: "rgba(212, 212, 216, 0.5)",
+      inputBackdropFilter: "blur(10px)",
+
+      // Image / surface colors
+      imageBgColor: "rgba(244, 244, 245, 0.8)",
+      imagePosition: "left",
+      backgroundImageMode: "preset",
+      backgroundImagePresetKey: "glass",
+      imageUrl: "/apps/revenue-boost/assets/newsletter-backgrounds/glass.jpg",
+
+      // State colors
+      successColor: "#10b981",
+
+      // Overlay
+      overlayOpacity: 0.5,
+
+      // Typography
+      fontFamily: "inherit",
+      titleFontSize: "1.875rem",
+      titleFontWeight: "700",
+      descriptionFontSize: "1rem",
+      descriptionFontWeight: "400",
     },
     isDefault: true,
     priority: 10,
@@ -582,8 +647,13 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
       successMessage: "Added to cart!",
       ctaText: "Add {count} & Save",
       productSelectionMethod: "ai",
-      layout: "carousel",
-      maxProducts: 5,
+      layout: "grid",
+      columns: 2,
+      maxProducts: 4,
+      multiSelect: true,
+      showImages: true,
+      showPrices: true,
+      showCompareAtPrice: true,
       bundleDiscount: 15,
     },
     fields: [
@@ -596,30 +666,61 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
         cart_drawer_open: { enabled: true },
         frequency_capping: getServerFrequencyCapping("PRODUCT_UPSELL"),
       },
+      // Advanced targeting disabled by default so Free plan users can use this template
       audienceTargeting: {
-        enabled: true,
+        enabled: false,
         shopifySegmentIds: [],
         sessionRules: {
-          enabled: true,
-          conditions: [
-            {
-              field: "cartItemCount",
-              operator: "gt",
-              value: 0,
-            },
-          ],
+          enabled: false,
+          conditions: [],
           logicOperator: "AND",
         },
       },
     },
     designConfig: {
-      // Modern default colors
-      backgroundColor: "#FFFFFF",
-      textColor: "#1A202C",
-      buttonColor: "#3B82F6",
-      buttonTextColor: "#FFFFFF",
-      position: "right",
-      size: "medium"
+      // Glass theme - frosted glass effect
+      theme: "glass",
+      position: "center",
+      size: "large",
+      popupSize: "wide",
+      borderRadius: 8,
+      animation: "fade",
+
+      // Main colors - glass effect
+      backgroundColor: "rgba(255, 255, 255, 0.7)",
+      textColor: "#18181b",
+      descriptionColor: "#52525b",
+      accentColor: "#6366f1",
+
+      // Button colors - indigo
+      buttonColor: "#6366f1",
+      buttonTextColor: "#ffffff",
+
+      // Input field colors - glass effect
+      inputBackgroundColor: "rgba(255, 255, 255, 0.5)",
+      inputTextColor: "#111827",
+      inputBorderColor: "rgba(212, 212, 216, 0.5)",
+      inputBackdropFilter: "blur(10px)",
+
+      // Image / surface colors
+      imageBgColor: "rgba(244, 244, 245, 0.8)",
+      imagePosition: "left",
+      backgroundImageMode: "preset",
+      backgroundImagePresetKey: "glass",
+      imageUrl: "/apps/revenue-boost/assets/newsletter-backgrounds/glass.jpg",
+
+      // State colors
+      successColor: "#10b981",
+
+      // Overlay
+      overlayOpacity: 0.5,
+
+      // Typography
+      fontFamily: "inherit",
+      titleFontSize: "1.875rem",
+      titleFontWeight: "700",
+      descriptionFontSize: "1rem",
+      descriptionFontWeight: "400",
     },
     isDefault: true,
     priority: 11,
@@ -641,7 +742,12 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
       ctaText: "Add {count} to Cart",
       productSelectionMethod: "ai",
       layout: "grid",
+      columns: 2,
       maxProducts: 3,
+      multiSelect: true,
+      showImages: true,
+      showPrices: true,
+      showCompareAtPrice: true,
       bundleDiscount: 20,
     },
     fields: [
@@ -654,8 +760,9 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
         scroll_depth: { enabled: true, depth_percentage: 50 },
         frequency_capping: getServerFrequencyCapping("PRODUCT_UPSELL"),
       },
+      // Advanced targeting disabled by default so Free plan users can use this template
       audienceTargeting: {
-        enabled: true,
+        enabled: false,
         shopifySegmentIds: [],
         sessionRules: {
           enabled: false,
@@ -665,77 +772,56 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
       },
     },
     designConfig: {
-      // Modern default colors
-      backgroundColor: "#FFFFFF",
-      textColor: "#1A202C",
-      buttonColor: "#3B82F6",
-      buttonTextColor: "#FFFFFF",
+      // Glass theme - frosted glass effect
+      theme: "glass",
       position: "center",
-      size: "medium"
+      size: "large",
+      popupSize: "wide",
+      borderRadius: 8,
+      animation: "fade",
+
+      // Main colors - glass effect
+      backgroundColor: "rgba(255, 255, 255, 0.7)",
+      textColor: "#18181b",
+      descriptionColor: "#52525b",
+      accentColor: "#6366f1",
+
+      // Button colors - indigo
+      buttonColor: "#6366f1",
+      buttonTextColor: "#ffffff",
+
+      // Input field colors - glass effect
+      inputBackgroundColor: "rgba(255, 255, 255, 0.5)",
+      inputTextColor: "#111827",
+      inputBorderColor: "rgba(212, 212, 216, 0.5)",
+      inputBackdropFilter: "blur(10px)",
+
+      // Image / surface colors
+      imageBgColor: "rgba(244, 244, 245, 0.8)",
+      imagePosition: "left",
+      backgroundImageMode: "preset",
+      backgroundImagePresetKey: "glass",
+      imageUrl: "/apps/revenue-boost/assets/newsletter-backgrounds/glass.jpg",
+
+      // State colors
+      successColor: "#10b981",
+
+      // Overlay
+      overlayOpacity: 0.5,
+
+      // Typography
+      fontFamily: "inherit",
+      titleFontSize: "1.875rem",
+      titleFontWeight: "700",
+      descriptionFontSize: "1rem",
+      descriptionFontWeight: "400",
     },
     isDefault: true,
     priority: 12,
     icon: "🔗",
     conversionRate: 3.8
   },
-  // Post-Add Upsell
-  {
-    name: "Post-Add Upsell",
-    description: "Offer a relevant upsell after add-to-cart",
-    category: "sales",
-    templateType: "PRODUCT_UPSELL",
-    goals: ["INCREASE_REVENUE"],
-    contentConfig: {
-      headline: "Great pick! Add this too",
-      subheadline: "Bundle and save more",
-      buttonText: "Add {count} & Save",
-      successMessage: "Added to cart!",
-      ctaText: "Add {count} & Save",
-      productSelectionMethod: "ai",
-      layout: "card",
-      maxProducts: 2,
-      bundleDiscount: 10,
-    },
-    fields: [
-      { id: "headline", type: "text", label: "Headline", category: "content" },
-      { id: "subheadline", type: "text", label: "Subheadline", category: "content" },
-      { id: "ctaText", type: "text", label: "Button Text", category: "content" }
-    ],
-    targetRules: {
-      enhancedTriggers: {
-        add_to_cart: { enabled: true },
-        frequency_capping: getServerFrequencyCapping("PRODUCT_UPSELL"),
-      },
-      audienceTargeting: {
-        enabled: true,
-        shopifySegmentIds: [],
-        sessionRules: {
-          enabled: true,
-          conditions: [
-            {
-              field: "cartItemCount",
-              operator: "gt",
-              value: 0,
-            },
-          ],
-          logicOperator: "AND",
-        },
-      },
-    },
-    designConfig: {
-      // Modern default colors
-      backgroundColor: "#FFFFFF",
-      textColor: "#1A202C",
-      buttonColor: "#3B82F6",
-      buttonTextColor: "#FFFFFF",
-      position: "right",
-      size: "medium"
-    },
-    isDefault: true,
-    priority: 13,
-    icon: "🛍️",
-    conversionRate: 4.4
-  },
+
   // Social Proof Notifications
   {
     name: "Social Proof Notifications",
@@ -763,8 +849,9 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
         page_load: { enabled: true, delay: 2000 },
         frequency_capping: getServerFrequencyCapping("SOCIAL_PROOF"),
       },
+      // Advanced targeting disabled by default so Free plan users can use this template
       audienceTargeting: {
-        enabled: true,
+        enabled: false,
         shopifySegmentIds: [],
         sessionRules: {
           enabled: false,
@@ -820,18 +907,13 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
         },
         frequency_capping: getServerFrequencyCapping("FREE_SHIPPING"),
       },
+      // Advanced targeting disabled by default so Free plan users can use this template
       audienceTargeting: {
-        enabled: true,
+        enabled: false,
         shopifySegmentIds: [],
         sessionRules: {
-          enabled: true,
-          conditions: [
-            {
-              field: "cartItemCount",
-              operator: "gt",
-              value: 0,
-            },
-          ],
+          enabled: false,
+          conditions: [],
           logicOperator: "AND",
         },
       },
@@ -847,9 +929,7 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
       enabled: true,
       showInPreview: true,
       valueType: "FREE_SHIPPING",
-      deliveryMode: "auto_apply_only",
-      autoApplyMode: "ajax",
-      codePresentation: "show_code",
+      behavior: "SHOW_CODE_AND_AUTO_APPLY",
       expiryDays: 30,
       minimumAmount: 50,
     },

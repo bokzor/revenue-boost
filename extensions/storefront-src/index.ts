@@ -162,7 +162,7 @@ class RevenueBoostApp {
         session.getSessionId(),
         session.getVisitorId()
       );
-      const { campaigns, globalCustomCSS } = response;
+      const { campaigns, globalCustomCSS, showBranding } = response;
       this.globalCustomCSS = globalCustomCSS || undefined;
 
       // NOTE: Do NOT set designConfig.previewMode here.
@@ -174,6 +174,8 @@ class RevenueBoostApp {
         ...c,
         globalCustomCSS: globalCustomCSS || undefined,
         customCSS: (c.designConfig as Record<string, unknown> | undefined)?.customCSS as string | undefined,
+        // Pass showBranding flag for "Powered by Revenue Boost" badge (true for free tier)
+        showBranding: showBranding,
       }));
 
       console.log(`[Revenue Boost] ✅ Campaigns received: ${campaignList?.length || 0}`);
@@ -322,7 +324,7 @@ class RevenueBoostApp {
         return;
       } else {
         console.error("[Revenue Boost] ❌ Preview campaign not found!");
-        console.log("[Revenue Boost] Looking for:", this.config.previewId || "first campaign");
+        console.log("[Revenue Boost] Looking for: first campaign");
         console.log("[Revenue Boost] Available campaigns:", available.map(c => c.id));
         return;
       }

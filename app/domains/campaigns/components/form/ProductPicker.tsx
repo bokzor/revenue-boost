@@ -248,11 +248,29 @@ export function ProductPicker({
 
   const isLoadingAny = isLoading || isFetchingInitial;
 
+  // Show count indicator when we have selectedIds but haven't loaded details yet
+  const showLoadingIndicator = isFetchingInitial && selectedIds.length > 0 && selections.length === 0;
+
   return (
     <BlockStack gap="200">
-      <Button icon={getIcon()} onClick={openPicker} loading={isLoadingAny} disabled={isLoadingAny}>
-        {getButtonLabel()}
-      </Button>
+      <InlineStack gap="300" blockAlign="center">
+        <Button icon={getIcon()} onClick={openPicker} loading={isLoadingAny} disabled={isLoadingAny}>
+          {getButtonLabel()}
+        </Button>
+        {!isFetchingInitial && selectedIds.length > 0 && (
+          <Badge tone="info">
+            {`${selectedIds.length} ${mode === "collection" ? (selectedIds.length === 1 ? "collection" : "collections") : (selectedIds.length === 1 ? "product" : "products")} selected`}
+          </Badge>
+        )}
+      </InlineStack>
+
+      {showLoadingIndicator && (
+        <Box paddingBlockStart="200">
+          <Text as="p" variant="bodySm" tone="subdued">
+            Loading {selectedIds.length} selected {mode === "collection" ? (selectedIds.length === 1 ? "collection" : "collections") : (selectedIds.length === 1 ? "product" : "products")}...
+          </Text>
+        </Box>
+      )}
 
       {error && (
         <Text as="p" tone="critical" variant="bodySm">

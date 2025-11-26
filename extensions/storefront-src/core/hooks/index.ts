@@ -42,6 +42,7 @@ HookRegistry.register('CART_ABANDONMENT', cartDataHook);
 HookRegistry.register('CART_ABANDONMENT', backgroundImageHook); // Preload background images
 
 // Register hooks for FLASH_SALE template
+HookRegistry.register('FLASH_SALE', challengeTokenHook);
 HookRegistry.register('FLASH_SALE', backgroundImageHook);
 HookRegistry.register('FLASH_SALE', productDataHook);
 HookRegistry.register('FLASH_SALE', inventoryDataHook);

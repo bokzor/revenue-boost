@@ -3,7 +3,6 @@
  *
  * This script seeds the database with:
  * - Global system templates (3+ templates)
- * - Global system segments (11 segments)
  * - Demo store for development/testing
  *
  * Uses Prisma types for type safety and consistency with database schema.
@@ -11,7 +10,6 @@
 
 import { PrismaClient, type Prisma } from "@prisma/client";
 import { GLOBAL_SYSTEM_TEMPLATES } from "./template-data";
-import { DEFAULT_SEGMENTS } from "../app/data/segments";
 
 const prisma = new PrismaClient();
 
@@ -22,10 +20,6 @@ async function seed() {
     // Seed global system templates first
     console.log("🌟 Seeding global system templates...");
     await seedGlobalSystemTemplates();
-
-    // Seed global system segments
-    console.log("🎯 Seeding global system segments...");
-    await seedGlobalSystemSegments();
 
     // Get or create demo stores for development and E2E tests
     console.log("🏪 Setting up demo stores...");
@@ -150,50 +144,6 @@ async function seedGlobalSystemTemplates(): Promise<void> {
 
   console.log(
     `✅ Successfully seeded ${GLOBAL_SYSTEM_TEMPLATES.length} global system templates`
-  );
-}
-
-async function seedGlobalSystemSegments(): Promise<void> {
-  console.log(
-    `🎯 Seeding ${DEFAULT_SEGMENTS.length} global system segments...`
-  );
-
-  for (const segment of DEFAULT_SEGMENTS) {
-    // Prepare create data with proper Prisma types
-    const createData: Prisma.CustomerSegmentCreateInput = {
-      name: segment.name,
-      description: segment.description,
-      conditions: segment.conditions as Prisma.InputJsonValue,
-      icon: segment.icon,
-      priority: segment.priority,
-      isDefault: true,
-      // Allow individual segments to opt out via SegmentSeedData.isActive
-      isActive: segment.isActive ?? true,
-    };
-
-    // Prepare update data with proper Prisma types
-    const updateData: Prisma.CustomerSegmentUpdateInput = {
-      description: segment.description,
-      conditions: segment.conditions as Prisma.InputJsonValue,
-      icon: segment.icon,
-      priority: segment.priority,
-      isActive: segment.isActive ?? true,
-    };
-
-    await prisma.customerSegment.upsert({
-      where: {
-        name_isDefault: {
-          name: segment.name,
-          isDefault: true,
-        },
-      },
-      create: createData,
-      update: updateData,
-    });
-  }
-
-  console.log(
-    `✅ Successfully seeded ${DEFAULT_SEGMENTS.length} global system segments`
   );
 }
 

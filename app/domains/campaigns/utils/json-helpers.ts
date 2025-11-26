@@ -229,8 +229,7 @@ export function parseDiscountConfig(jsonValue: unknown): DiscountConfig {
   return parseJsonField(jsonValue, DiscountConfigSchema, {
     enabled: false,
     showInPreview: true,
-    autoApplyMode: "ajax",
-    codePresentation: "show_code",
+    behavior: "SHOW_CODE_AND_AUTO_APPLY",
   });
 }
 

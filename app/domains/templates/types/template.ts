@@ -191,8 +191,7 @@ export const TemplateWithConfigsSchema = BaseTemplateSchema.extend({
   discountConfig: DiscountConfigSchema.default({
     enabled: false,
     showInPreview: true,
-    autoApplyMode: "ajax",
-    codePresentation: "show_code",
+    behavior: "SHOW_CODE_AND_AUTO_APPLY",
   }), // Discount configuration
 });
 
@@ -222,9 +221,7 @@ export const NewsletterTemplateSchema = BaseTemplateSchema.extend({
     showInPreview: true,
     valueType: "PERCENTAGE",
     value: 10,
-    deliveryMode: "show_code_fallback",
-    autoApplyMode: "ajax",
-    codePresentation: "show_code",
+    behavior: "SHOW_CODE_AND_AUTO_APPLY",
     expiryDays: 30,
   }),
 });
@@ -251,9 +248,7 @@ export const FlashSaleTemplateSchema = BaseTemplateSchema.extend({
     showInPreview: true,
     valueType: "PERCENTAGE",
     value: 20,
-    deliveryMode: "show_code_always",
-    autoApplyMode: "ajax",
-    codePresentation: "show_code",
+    behavior: "SHOW_CODE_ONLY",
     expiryDays: 3,
   }),
 });
@@ -277,8 +272,7 @@ export const SpinToWinTemplateSchema = BaseTemplateSchema.extend({
   discountConfig: DiscountConfigSchema.default({
     enabled: false,
     showInPreview: true,
-    autoApplyMode: "ajax",
-    codePresentation: "show_code",
+    behavior: "SHOW_CODE_AND_AUTO_APPLY",
   }),
 });
 
@@ -302,9 +296,7 @@ export const FreeShippingTemplateSchema = BaseTemplateSchema.extend({
     enabled: true,
     showInPreview: true,
     valueType: "FREE_SHIPPING",
-    deliveryMode: "auto_apply_only",
-    autoApplyMode: "ajax",
-    codePresentation: "show_code",
+    behavior: "SHOW_CODE_AND_AUTO_APPLY",
     expiryDays: 30,
     minimumAmount: 75,
   }),

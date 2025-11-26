@@ -16,6 +16,22 @@ vi.mock('~/domains/campaigns', () => {
   };
 });
 
+vi.mock('~/domains/billing/services/plan-guard.server', () => ({
+  PlanGuardService: {
+    getPlanContext: vi.fn().mockResolvedValue({
+      planTier: 'FREE',
+      definition: {
+        name: 'Free',
+        features: {
+          advancedTargeting: false,
+          experiments: false,
+          customTemplates: false,
+        },
+      },
+    }),
+  },
+}));
+
 import { getStoreId as getStoreIdMock } from '~/lib/auth-helpers.server';
 import { CampaignService } from '~/domains/campaigns';
 import { loader } from '~/routes/app.campaigns.$campaignId_.edit';

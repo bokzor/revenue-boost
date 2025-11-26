@@ -158,6 +158,7 @@ export function DesignStepContent({
                   <CustomCSSEditor
                     value={designConfig.customCSS || ""}
                     globalCustomCSS={globalCustomCSS}
+                    templateType={templateType}
                     onChange={(css) =>
                       onDesignChange({
                         ...designConfig,

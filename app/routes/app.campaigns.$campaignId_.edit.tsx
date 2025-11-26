@@ -18,6 +18,7 @@ import type { CampaignFormData } from "~/shared/hooks/useWizardState";
 import type { FrequencyCappingConfig } from "~/domains/targeting/components";
 import prisma from "~/db.server";
 import { StoreSettingsSchema } from "~/domains/store/types/settings";
+import { PlanGuardService } from "~/domains/billing/services/plan-guard.server";
 
 // ============================================================================
 // TYPES
@@ -28,6 +29,7 @@ interface LoaderData {
   storeId: string;
   shopDomain: string;
   globalCustomCSS?: string;
+  advancedTargetingEnabled: boolean;
 }
 
 // ============================================================================
@@ -56,6 +58,10 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     const storeId = await getStoreId(request);
     console.log("[Campaign Edit Loader] StoreId:", storeId);
 
+    // Fetch plan context to determine feature availability
+    const planContext = await PlanGuardService.getPlanContext(storeId);
+    const advancedTargetingEnabled = planContext.definition.features.advancedTargeting;
+
     const store = await prisma.store.findUnique({
       where: { id: storeId },
       select: { settings: true },
@@ -72,6 +78,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       storeId,
       shopDomain: session.shop,
       globalCustomCSS: parsedSettings.success ? parsedSettings.data.globalCustomCSS : undefined,
+      advancedTargetingEnabled,
     });
   } catch (error) {
     console.error("[Campaign Edit Loader] Failed to load campaign for editing:", error);
@@ -82,6 +89,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         storeId: "",
         shopDomain: "",
         globalCustomCSS: undefined,
+        advancedTargetingEnabled: false,
       },
       { status: 404 }
     );
@@ -94,7 +102,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
 export default function CampaignEditPage() {
   console.log("[Campaign Edit Page] Component rendering");
-  const { campaign, storeId, shopDomain, globalCustomCSS } = useLoaderData<typeof loader>();
+  const { campaign, storeId, shopDomain, globalCustomCSS, advancedTargetingEnabled } =
+    useLoaderData<typeof loader>();
   console.log("[Campaign Edit Page] Loaded data - campaign:", campaign?.id, "storeId:", storeId);
   const navigate = useNavigate();
 
@@ -123,9 +132,38 @@ export default function CampaignEditPage() {
     setToastError(isError);
   };
 
+  // Default disabled audience targeting config for Free plan users
+  const defaultDisabledAudienceTargeting: {
+    enabled: boolean;
+    shopifySegmentIds: string[];
+    sessionRules: {
+      enabled: boolean;
+      conditions: Array<{
+        field: string;
+        operator: "in" | "eq" | "ne" | "gt" | "gte" | "lt" | "lte" | "nin";
+        value: string | number | boolean | string[];
+      }>;
+      logicOperator: "AND" | "OR";
+    };
+  } = {
+    enabled: false,
+    shopifySegmentIds: [],
+    sessionRules: {
+      enabled: false,
+      conditions: [],
+      logicOperator: "AND",
+    },
+  };
+
   // Convert campaign to form data format
   const getInitialFormData = (): Partial<CampaignFormData> | null => {
     if (!campaign) return null;
+
+    // For Free plan users (advancedTargetingEnabled = false), always show disabled audience targeting
+    // This ensures they see a clean UI even if the campaign has stale advanced targeting config from before downgrade
+    const audienceTargeting = advancedTargetingEnabled
+      ? campaign.targetRules?.audienceTargeting ?? defaultDisabledAudienceTargeting
+      : defaultDisabledAudienceTargeting;
 
     return {
       name: campaign.name,
@@ -138,15 +176,7 @@ export default function CampaignEditPage() {
       contentConfig: campaign.contentConfig,
       designConfig: campaign.designConfig,
       enhancedTriggers: campaign.targetRules?.enhancedTriggers || {},
-      audienceTargeting: campaign.targetRules?.audienceTargeting ?? {
-        enabled: false,
-        shopifySegmentIds: [],
-        sessionRules: {
-          enabled: false,
-          conditions: [],
-          logicOperator: "AND" as const,
-        },
-      },
+      audienceTargeting,
       pageTargeting: campaign.targetRules?.pageTargeting || {
         enabled: false,
         pages: [],
@@ -298,6 +328,7 @@ export default function CampaignEditPage() {
         initialData={initialData}
         campaignId={campaign?.id}
         globalCustomCSS={globalCustomCSS}
+        advancedTargetingEnabled={advancedTargetingEnabled}
         onSave={handleSave}
         onCancel={handleCancel}
       />

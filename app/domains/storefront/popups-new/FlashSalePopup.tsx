@@ -1,25 +1,30 @@
 /**
- * FlashSalePopup Component - Enhanced
+ * FlashSalePopup Component v2
  *
- * Complete redesign featuring:
- * - Multiple discount types (basic, tiered, BOGO, free gift)
- * - Advanced timer modes (duration, fixed_end, personal, stock_limited)
- * - Real-time inventory tracking via API
- * - Reservation timer countdown
- * - Enhanced expired states
- * - Responsive design with themes
+ * A high-converting flash sale popup with:
+ * - Mobile-first responsive design (60%+ traffic is mobile)
+ * - Clean, focused layout with prominent countdown timer
+ * - Large, bold timer digits for maximum visibility
+ * - Touch-friendly CTA buttons (48px+ tap targets)
+ * - Multiple display modes: modal (default) and banner
+ * - Real-time inventory tracking
+ * - Discount code display with copy functionality
+ * - Container queries for preview/device-based responsiveness
+ * - Fully responsive with container-relative units (no vh/vw)
  */
 
 import React, { useState, useEffect } from "react";
 import type { PopupDesignConfig, DiscountConfig as StorefrontDiscountConfig } from "./types";
 import type { FlashSaleContent } from "~/domains/campaigns/types/campaign";
 import { PopupPortal } from "./PopupPortal";
+import { getSizeDimensions } from "./utils";
+import { getContainerPadding, POPUP_SPACING } from "./spacing";
 
 // Import custom hooks
-import { useCountdownTimer, useDiscountCode, usePopupAnimation } from "./hooks";
+import { useCountdownTimer, useDiscountCode } from "./hooks";
 
-// Import reusable components
-import { SubmitButton } from "./components";
+// Import shared components
+import { DiscountCodeDisplay, PopupCloseButton, TimerDisplay } from "./components/shared";
 
 /**
  * FlashSale-specific configuration
@@ -40,11 +45,8 @@ export interface FlashSalePopupProps {
   onCtaClick?: () => void;
   issueDiscount?: (options?: {
     cartSubtotalCents?: number;
-  }) => Promise<{ code?: string; autoApplyMode?: string } | null>;
+  }) => Promise<{ code?: string; behavior?: string } | null>;
 }
-
-// TimeRemaining interface now imported from hooks
-import type { TimeRemaining } from "./hooks";
 
 export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
   config,
@@ -76,9 +78,6 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
 
   // Use discount code hook
   const { discountCode, setDiscountCode, copiedCode, handleCopyCode } = useDiscountCode();
-
-  // Use animation hook
-  const { showContent } = usePopupAnimation({ isVisible });
 
   // Component-specific state
   const [inventoryTotal, setInventoryTotal] = useState<number | null>(null);
@@ -266,41 +265,13 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
     return null;
   };
 
-  // Size configuration
-  const popupSize = config.popupSize || "wide";
-  const maxWidth =
-    popupSize === "compact"
-      ? "24rem"
-      : popupSize === "wide"
-        ? "56rem"
-        : popupSize === "full"
-          ? "90%"
-          : "32rem";
-
-  const designSize = config.size || "medium";
-  const sizeScale = designSize === "small" ? 0.9 : designSize === "large" ? 1.1 : 1;
-  const effectiveMaxWidth = sizeScale === 1 ? maxWidth : `calc(${maxWidth} * ${sizeScale})`;
-
-  const padding =
-    popupSize === "compact"
-      ? "2rem 1.5rem"
-      : popupSize === "wide" || popupSize === "full"
-        ? "3rem"
-        : "2.5rem 2rem";
-
-  const headlineSize =
-    popupSize === "compact"
-      ? "2rem"
-      : popupSize === "wide" || popupSize === "full"
-        ? "3rem"
-        : "2.5rem";
-
-  const discountSize =
-    popupSize === "compact"
-      ? "6rem"
-      : popupSize === "wide" || popupSize === "full"
-        ? "10rem"
-        : "8rem";
+  // Design tokens
+  const accentColor = config.accentColor || "#EF4444";
+  const textColor = config.textColor || "#111827";
+  const bgColor = config.backgroundColor || "#FFFFFF";
+  const borderRadius = typeof config.borderRadius === "number" 
+    ? config.borderRadius 
+    : parseFloat(config.borderRadius || "16");
 
   const discountMessage = getDiscountMessage();
 
@@ -324,17 +295,19 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
         <style>{`
           .flash-sale-banner {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            container-type: inline-size;
+            container-name: flash-banner;
           }
           .flash-sale-banner-inner {
-            max-width: 1200px;
+            max-width: 75rem;
             margin: 0 auto;
-            padding: 1rem 1.5rem;
+            padding: 1em 1.5em;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 1.25rem;
+            gap: 1.25em;
             position: relative;
-            padding-right: 3.5rem;
+            padding-right: 3.5em;
           }
           .flash-sale-banner-left {
             flex: 1;
@@ -343,122 +316,126 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
           .flash-sale-banner-badge {
             display: inline-flex;
             align-items: center;
-            gap: 0.5rem;
-            padding: 0.25rem 0.75rem;
+            gap: 0.5em;
+            padding: 0.25em 0.75em;
             border-radius: 9999px;
-            font-size: 0.75rem;
+            font-size: clamp(0.625rem, 2cqi, 0.75rem);
             font-weight: 700;
             letter-spacing: 0.08em;
             text-transform: uppercase;
-            margin-bottom: 0.25rem;
-            background: ${config.accentColor || "#ef4444"};
-            color: ${config.backgroundColor || "#ffffff"};
+            margin-bottom: 0.25em;
+            background: ${accentColor};
+            color: ${bgColor};
           }
           .flash-sale-banner-headline {
-            font-size: 1.125rem;
+            font-size: clamp(0.9375rem, 3cqi, 1.125rem);
             font-weight: 700;
             line-height: 1.4;
-            margin: 0 0 0.25rem 0;
+            margin: 0 0 0.25em 0;
           }
           .flash-sale-banner-subheadline {
-            font-size: 0.875rem;
+            font-size: clamp(0.75rem, 2.5cqi, 0.875rem);
             line-height: 1.4;
             margin: 0;
             opacity: 0.9;
           }
           .flash-sale-banner-discount {
-            margin-top: 0.5rem;
-            font-size: 0.875rem;
+            margin-top: 0.5em;
+            font-size: clamp(0.75rem, 2.5cqi, 0.875rem);
             font-weight: 600;
           }
           .flash-sale-banner-center {
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 0.5rem;
+            gap: 0.5em;
           }
           .flash-sale-banner-timer {
             display: flex;
-            gap: 0.5rem;
+            gap: 0.5em;
             align-items: center;
+            flex-wrap: wrap;
+            justify-content: center;
           }
           .flash-sale-banner-timer-unit {
             display: flex;
             flex-direction: column;
             align-items: center;
-            padding: 0.5rem 0.75rem;
-            border-radius: 0.375rem;
-            min-width: 3.25rem;
+            padding: 0.5em 0.75em;
+            border-radius: 0.375em;
+            min-width: clamp(2.5rem, 8cqi, 3.25rem);
           }
           .flash-sale-banner-timer-value {
-            font-size: 1.35rem;
+            font-size: clamp(1rem, 3.5cqi, 1.35rem);
             font-weight: 700;
             line-height: 1;
             font-variant-numeric: tabular-nums;
           }
           .flash-sale-banner-timer-label {
-            font-size: 0.625rem;
+            font-size: clamp(0.5rem, 1.5cqi, 0.625rem);
             text-transform: uppercase;
             opacity: 0.85;
-            margin-top: 0.15rem;
+            margin-top: 0.15em;
             letter-spacing: 0.5px;
           }
           .flash-sale-banner-timer-separator {
-            font-size: 1.25rem;
+            font-size: clamp(1rem, 3cqi, 1.25rem);
             font-weight: 700;
             opacity: 0.6;
           }
           .flash-sale-banner-stock {
-            font-size: 0.75rem;
+            font-size: clamp(0.625rem, 2cqi, 0.75rem);
             font-weight: 600;
-            padding: 0.25rem 0.75rem;
+            padding: 0.25em 0.75em;
             border-radius: 999px;
             background: rgba(255, 255, 255, 0.2);
             white-space: nowrap;
           }
           .flash-sale-banner-reservation {
-            font-size: 0.75rem;
+            font-size: clamp(0.625rem, 2cqi, 0.75rem);
             font-weight: 500;
             opacity: 0.9;
           }
           .flash-sale-banner-right {
             display: flex;
             align-items: center;
-            gap: 0.75rem;
+            gap: 0.75em;
           }
           .flash-sale-banner-cta {
-            padding: 0.75rem 1.5rem;
-            font-size: 0.95rem;
+            padding: 0.75em 1.5em;
+            font-size: clamp(0.8125rem, 2.5cqi, 0.95rem);
             font-weight: 600;
             border: none;
-            border-radius: 0.375rem;
+            border-radius: 0.375em;
             cursor: pointer;
             white-space: nowrap;
             transition: transform 0.2s, box-shadow 0.2s;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 0.125em 0.25em rgba(0, 0, 0, 0.1);
+            min-height: 2.75rem;
           }
           .flash-sale-banner-cta:hover:not(:disabled) {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+            transform: translateY(-0.0625em);
+            box-shadow: 0 0.25em 0.5em rgba(0, 0, 0, 0.15);
           }
           .flash-sale-banner-cta:disabled {
             opacity: 0.5;
             cursor: not-allowed;
+            transform: none;
           }
           .flash-sale-banner-close {
             position: absolute;
-            top: 0.75rem;
-            right: 0.75rem;
+            top: 0.75em;
+            right: 0.75em;
             background: transparent;
             border: none;
-            font-size: 1.5rem;
+            font-size: 1.5em;
             line-height: 1;
             cursor: pointer;
             opacity: 0.7;
             transition: opacity 0.2s;
-            padding: 0.25rem;
-            width: 2rem;
-            height: 2rem;
+            padding: 0.25em;
+            width: 2em;
+            height: 2em;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -469,15 +446,17 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
           .flash-sale-banner-expired {
             text-align: center;
             font-weight: 600;
-            font-size: 0.875rem;
+            font-size: clamp(0.75rem, 2.5cqi, 0.875rem);
           }
-          @media (max-width: 768px) {
+
+          /* Banner container query: small screens */
+          @container flash-banner (max-width: 600px) {
             .flash-sale-banner-inner {
               flex-direction: column;
-              padding: 1.1rem 1rem;
-              gap: 0.75rem;
+              padding: 1em;
+              gap: 0.75em;
               text-align: center;
-              padding-right: 3rem;
+              padding-right: 2.5em;
             }
             .flash-sale-banner-right {
               width: 100%;
@@ -486,19 +465,46 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
             .flash-sale-banner-cta {
               width: 100%;
             }
-            .flash-sale-banner-headline {
-              font-size: 1rem;
+          }
+
+          /* Fallback media query for browsers without container query support */
+          @supports not (container-type: inline-size) {
+            @media (max-width: 768px) {
+              .flash-sale-banner-inner {
+                flex-direction: column;
+                padding: 1em;
+                gap: 0.75em;
+                text-align: center;
+                padding-right: 2.5em;
+              }
+              .flash-sale-banner-right {
+                width: 100%;
+                justify-content: center;
+              }
+              .flash-sale-banner-cta {
+                width: 100%;
+              }
             }
-            .flash-sale-banner-subheadline {
-              font-size: 0.8125rem;
+          }
+
+          /* Reduced motion support */
+          @media (prefers-reduced-motion: reduce) {
+            .flash-sale-banner-cta,
+            .flash-sale-banner-close {
+              transition: none !important;
             }
+          }
+
+          @keyframes flash-sale-spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
           }
         `}</style>
 
         <div
           className="flash-sale-banner"
           style={{
-            position: "fixed",
+            position: config.previewMode ? "absolute" : "fixed",
             [bannerPosition]: 0,
             left: 0,
             right: 0,
@@ -531,12 +537,16 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
               {(discountCode || discountMessage) && (
                 <div className="flash-sale-banner-discount">
                   {discountCode ? (
-                    <div onClick={() => handleCopyCode()} style={{ cursor: "pointer" }}>
-                      Use code <strong>{discountCode}</strong> at checkout.
-                      {copiedCode && (
-                        <span style={{ marginLeft: "0.5rem", color: "#10B981" }}>✓ Copied!</span>
-                      )}
-                    </div>
+                    <DiscountCodeDisplay
+                      code={discountCode}
+                      onCopy={handleCopyCode}
+                      copied={copiedCode}
+                      label="Use code at checkout:"
+                      variant="minimal"
+                      size="sm"
+                      accentColor={config.accentColor || "#ef4444"}
+                      textColor={config.textColor}
+                    />
                   ) : (
                     discountMessage
                   )}
@@ -556,76 +566,15 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
               ) : (
                 <>
                   {config.showCountdown && timeRemaining.total > 0 && (
-                    <div className="flash-sale-banner-timer">
-                      {timeRemaining.days > 0 && (
-                        <>
-                          <div
-                            className="flash-sale-banner-timer-unit"
-                            style={{
-                              background: config.accentColor
-                                ? `${config.accentColor}20`
-                                : "rgba(239, 68, 68, 0.15)",
-                              color: config.accentColor || "#ffffff",
-                            }}
-                          >
-                            <div className="flash-sale-banner-timer-value">
-                              {String(timeRemaining.days).padStart(2, "0")}
-                            </div>
-                            <div className="flash-sale-banner-timer-label">Days</div>
-                          </div>
-                          <span className="flash-sale-banner-timer-separator">:</span>
-                        </>
-                      )}
-
-                      <div
-                        className="flash-sale-banner-timer-unit"
-                        style={{
-                          background: config.accentColor
-                            ? `${config.accentColor}20`
-                            : "rgba(239, 68, 68, 0.15)",
-                          color: config.accentColor || "#ffffff",
-                        }}
-                      >
-                        <div className="flash-sale-banner-timer-value">
-                          {String(timeRemaining.hours).padStart(2, "0")}
-                        </div>
-                        <div className="flash-sale-banner-timer-label">Hours</div>
-                      </div>
-
-                      <span className="flash-sale-banner-timer-separator">:</span>
-
-                      <div
-                        className="flash-sale-banner-timer-unit"
-                        style={{
-                          background: config.accentColor
-                            ? `${config.accentColor}20`
-                            : "rgba(239, 68, 68, 0.15)",
-                          color: config.accentColor || "#ffffff",
-                        }}
-                      >
-                        <div className="flash-sale-banner-timer-value">
-                          {String(timeRemaining.minutes).padStart(2, "0")}
-                        </div>
-                        <div className="flash-sale-banner-timer-label">Mins</div>
-                      </div>
-
-                      <span className="flash-sale-banner-timer-separator">:</span>
-
-                      <div
-                        className="flash-sale-banner-timer-unit"
-                        style={{
-                          background: config.accentColor
-                            ? `${config.accentColor}20`
-                            : "rgba(239, 68, 68, 0.15)",
-                          color: config.accentColor || "#ffffff",
-                        }}
-                      >
-                        <div className="flash-sale-banner-timer-value">
-                          {String(timeRemaining.seconds).padStart(2, "0")}
-                        </div>
-                        <div className="flash-sale-banner-timer-label">Secs</div>
-                      </div>
-                    </div>
+                    <TimerDisplay
+                      timeRemaining={timeRemaining}
+                      format="full"
+                      showDays={timeRemaining.days > 0}
+                      showLabels={true}
+                      accentColor={config.accentColor || "#ef4444"}
+                      textColor={config.textColor}
+                      className="flash-sale-banner-timer"
+                    />
                   )}
 
                   {showInventory && inventoryTotal !== null && (
@@ -655,23 +604,23 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
                     color: config.buttonTextColor || config.textColor || "#111827",
                     borderRadius:
                       typeof config.borderRadius === "number"
-                        ? `${config.borderRadius}px`
-                        : config.borderRadius || "6px",
+                        ? `${config.borderRadius / 16}rem`
+                        : config.borderRadius || "0.375rem",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    gap: "8px",
+                    gap: "0.5em",
                   }}
                 >
                   {isClaimingDiscount && (
                     <span
                       style={{
-                        width: "16px",
-                        height: "16px",
-                        border: "2px solid rgba(255,255,255,0.3)",
+                        width: "1em",
+                        height: "1em",
+                        border: "0.125em solid rgba(255,255,255,0.3)",
                         borderTopColor: config.buttonTextColor || config.textColor || "#111827",
                         borderRadius: "50%",
-                        animation: "spin 0.8s linear infinite",
+                        animation: "flash-sale-spin 0.8s linear infinite",
                       }}
                     />
                   )}
@@ -684,6 +633,10 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
       </>
     );
   }
+
+  // Get responsive size dimensions
+  const sizeDimensions = getSizeDimensions(config.size || "medium", config.previewMode);
+  const containerPadding = getContainerPadding(config.size || "medium");
 
   return (
     <PopupPortal
@@ -698,9 +651,11 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
         type: config.animation || "zoom",
       }}
       position={config.position || "center"}
+      size={config.size || "medium"}
       closeOnEscape={config.closeOnEscape !== false}
       closeOnBackdropClick={config.closeOnOverlayClick !== false}
       previewMode={config.previewMode}
+      showBranding={config.showBranding}
       ariaLabel={config.ariaLabel || config.headline || "Flash Sale"}
       ariaDescribedBy={config.ariaDescribedBy}
       customCSS={config.customCSS}
@@ -710,12 +665,12 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
         .flash-sale-container {
           position: relative;
           width: 100%;
-          max-width: ${effectiveMaxWidth};
-          border-radius: ${typeof config.borderRadius === "number" ? config.borderRadius : parseFloat(config.borderRadius || "16")}px;
+          max-width: ${sizeDimensions.maxWidth};
+          border-radius: ${borderRadius}px;
           overflow: hidden;
-          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-          background: ${config.backgroundColor || "#ffffff"};
-          color: ${config.textColor || "#111827"};
+          box-shadow: 0 1.5625em 3.125em -0.75em rgba(0, 0, 0, 0.25);
+          background: ${bgColor};
+          color: ${textColor};
           font-family: ${config.fontFamily || "inherit"};
           container-type: inline-size;
           container-name: flash-sale;
@@ -723,16 +678,16 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
 
         .flash-sale-close {
           position: absolute;
-          top: 1rem;
-          right: 1rem;
+          top: 1em;
+          right: 1em;
           z-index: 10;
-          padding: 0.5rem;
+          padding: 0.5em;
           border-radius: 9999px;
           background: rgba(0, 0, 0, 0.1);
           border: none;
           cursor: pointer;
           transition: background 0.2s;
-          color: ${config.descriptionColor || config.textColor || "#52525b"};
+          color: ${config.descriptionColor || textColor};
         }
 
         .flash-sale-close:hover {
@@ -740,85 +695,87 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
         }
 
         .flash-sale-content {
-          padding: ${padding};
+          padding: ${containerPadding};
           text-align: center;
         }
 
         .flash-sale-badge {
           display: inline-block;
-          padding: 0.5rem 1.5rem;
+          padding: 0.5em 1.5em;
           border-radius: 9999px;
-          font-size: 0.875rem;
+          font-size: clamp(0.75rem, 2.5cqi, 0.875rem);
           font-weight: 700;
           letter-spacing: 0.05em;
-          margin-bottom: 1rem;
+          margin-bottom: ${POPUP_SPACING.section.md};
           text-transform: uppercase;
-          background: ${config.accentColor || "#ef4444"};
-          color: ${config.backgroundColor || "#ffffff"};
+          background: ${accentColor};
+          color: ${bgColor};
         }
 
         .flash-sale-headline {
-          font-size: ${headlineSize};
+          font-size: clamp(1.5rem, 8cqi, 2.5rem);
           font-weight: 900;
           line-height: 1.1;
-          margin-bottom: 0.75rem;
-          color: ${config.textColor || "#111827"};
+          margin-bottom: ${POPUP_SPACING.section.sm};
+          color: ${textColor};
         }
 
         .flash-sale-supporting {
-          font-size: 1.125rem;
+          font-size: clamp(0.875rem, 4cqi, 1.125rem);
           line-height: 1.6;
-          margin-bottom: 2rem;
-          color: ${config.descriptionColor || config.textColor || "#52525b"};
+          margin-bottom: ${POPUP_SPACING.section.xl};
+          color: ${config.descriptionColor || textColor};
         }
 
         .flash-sale-discount-message {
-          font-size: 1rem;
+          font-size: clamp(0.875rem, 3.5cqi, 1rem);
           font-weight: 600;
-          padding: 1rem 1.5rem;
-          border-radius: 0.5rem;
-          margin-bottom: 1.5rem;
-          background: ${config.accentColor ? `${config.accentColor}15` : "rgba(239, 68, 68, 0.1)"};
-          color: ${config.accentColor || "#ef4444"};
-          border: 2px solid ${config.accentColor ? `${config.accentColor}40` : "rgba(239, 68, 68, 0.25)"};
+          padding: 1em 1.5em;
+          border-radius: 0.5em;
+          margin-bottom: ${POPUP_SPACING.section.lg};
+          background: ${accentColor}15;
+          color: ${accentColor};
+          border: 2px solid ${accentColor}40;
         }
 
         .flash-sale-urgency {
-          font-size: 0.875rem;
+          font-size: clamp(0.75rem, 3cqi, 0.875rem);
           font-weight: 600;
           text-transform: uppercase;
           letter-spacing: 0.1em;
-          margin-bottom: 1rem;
-          color: ${config.descriptionColor || config.textColor || "#52525b"};
+          margin-bottom: ${POPUP_SPACING.section.md};
+          color: ${config.descriptionColor || textColor};
         }
 
         .flash-sale-timer {
           display: flex;
-          gap: 0.75rem;
+          gap: clamp(0.5rem, 2cqi, 0.75rem);
           justify-content: center;
-          margin-bottom: 1.5rem;
+          flex-wrap: wrap;
+          margin-bottom: ${POPUP_SPACING.section.lg};
         }
 
         .flash-sale-timer-unit {
           display: flex;
           flex-direction: column;
           align-items: center;
-          gap: 0.5rem;
-          min-width: 4rem;
-          padding: 1rem 0.75rem;
-          border-radius: 0.5rem;
-          background: ${config.accentColor ? `${config.accentColor}20` : "rgba(239, 68, 68, 0.1)"};
-          color: ${config.accentColor || "#ef4444"};
+          gap: 0.375em;
+          min-width: clamp(3rem, 12cqi, 4rem);
+          padding: clamp(0.625rem, 2.5cqi, 1rem) clamp(0.5rem, 2cqi, 0.75rem);
+          border-radius: 0.5em;
+          background: ${accentColor}20;
+          color: ${accentColor};
         }
 
         .flash-sale-timer-value {
-          font-size: 2rem;
+          font-size: clamp(1.25rem, 6cqi, 2rem);
           font-weight: 900;
           line-height: 1;
+          font-variant-numeric: tabular-nums;
         }
 
         .flash-sale-timer-label {
-          font-size: 0.75rem;
+          font-size: clamp(0.625rem, 2.5cqi, 0.75rem);
           font-weight: 500;
           text-transform: uppercase;
           letter-spacing: 0.05em;
@@ -828,29 +785,29 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
         .flash-sale-inventory {
           display: inline-flex;
           align-items: center;
-          gap: 0.5rem;
-          padding: 0.75rem 1.25rem;
+          gap: 0.5em;
+          padding: 0.75em 1.25em;
           border-radius: 9999px;
-          font-size: 0.875rem;
+          font-size: clamp(0.75rem, 3cqi, 0.875rem);
           font-weight: 600;
-          margin-bottom: 1.5rem;
-          background: ${config.accentColor ? `${config.accentColor}20` : "rgba(239, 68, 68, 0.1)"};
-          color: ${config.accentColor || "#ef4444"};
+          margin-bottom: ${POPUP_SPACING.section.lg};
+          background: ${accentColor}20;
+          color: ${accentColor};
         }
 
         .flash-sale-inventory-dot {
-          width: 0.5rem;
-          height: 0.5rem;
+          width: 0.5em;
+          height: 0.5em;
           border-radius: 9999px;
-          background: ${config.accentColor || "#ef4444"};
-          animation: pulse 2s infinite;
+          background: ${accentColor};
+          animation: flash-sale-pulse 2s infinite;
         }
 
         .flash-sale-reservation {
-          font-size: 0.875rem;
-          padding: 0.75rem 1rem;
-          border-radius: 0.5rem;
-          margin-bottom: 1rem;
+          font-size: clamp(0.75rem, 3cqi, 0.875rem);
+          padding: 0.75em 1em;
+          border-radius: 0.5em;
+          margin-bottom: ${POPUP_SPACING.section.md};
           background: rgba(59, 130, 246, 0.1);
           color: #3b82f6;
           border: 1px solid rgba(59, 130, 246, 0.3);
@@ -858,40 +815,44 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
 
         .flash-sale-cta {
           width: 100%;
-          padding: 1rem 2rem;
-          border-radius: 0.5rem;
+          min-height: 3rem;
+          padding: 1em 2em;
+          border-radius: 0.5em;
           border: none;
-          font-size: 1.125rem;
+          font-size: clamp(0.9375rem, 4cqi, 1.125rem);
           font-weight: 700;
           cursor: pointer;
           transition: all 0.2s;
           text-transform: uppercase;
           letter-spacing: 0.05em;
-          background: ${config.buttonColor || config.accentColor || "#ef4444"};
+          background: ${config.buttonColor || accentColor};
           color: ${config.buttonTextColor || "#ffffff"};
         }
 
-        .flash-sale-cta:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+        .flash-sale-cta:hover:not(:disabled) {
+          transform: translateY(-0.125em);
+          box-shadow: 0 0.625em 1.5625em -0.3125em rgba(0, 0, 0, 0.3);
         }
 
         .flash-sale-cta:disabled {
           opacity: 0.5;
           cursor: not-allowed;
+          transform: none;
         }
 
         .flash-sale-secondary-cta {
-          margin-top: 0.75rem;
+          margin-top: ${POPUP_SPACING.section.sm};
           width: 100%;
-          padding: 0.75rem 2rem;
-          border-radius: 0.5rem;
+          min-height: 2.75rem;
+          padding: 0.75em 2em;
+          border-radius: 0.5em;
           border: 1px solid rgba(148, 163, 184, 0.6);
           background: transparent;
-          color: ${config.textColor || "#e5e7eb"};
-          font-size: 0.875rem;
+          color: ${textColor};
+          font-size: clamp(0.8125rem, 3cqi, 0.875rem);
           font-weight: 500;
           cursor: pointer;
+          transition: background 0.2s;
         }
 
         .flash-sale-secondary-cta:hover {
@@ -899,60 +860,93 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
         }
 
         .flash-sale-expired {
-          padding: 2rem;
+          padding: 2em;
           text-align: center;
+        }
+
+        .flash-sale-expired h3 {
+          font-size: clamp(1.25rem, 5cqi, 1.5rem);
         }
 
         .flash-sale-sold-out {
-          padding: 2rem;
+          padding: 2em;
           text-align: center;
         }
 
-        @keyframes pulse {
+        .flash-sale-sold-out h3 {
+          font-size: clamp(1.25rem, 5cqi, 1.5rem);
+        }
+
+        @keyframes flash-sale-pulse {
           0%, 100% { opacity: 1; }
           50% { opacity: 0.5; }
         }
 
-        /* Container query for preview/device-based responsiveness */
-        @container flash-sale (max-width: 640px) {
+        @keyframes flash-sale-spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+
+        /* Container query: small containers */
+        @container flash-sale (max-width: 400px) {
           .flash-sale-content {
-            padding: 2rem 1.5rem;
+            padding: 1.5rem 1rem;
           }
 
-          .flash-sale-headline {
-            font-size: 2rem;
+          .flash-sale-timer {
+            gap: 0.375rem;
           }
 
           .flash-sale-timer-unit {
-            min-width: 3.5rem;
-            padding: 0.75rem 0.5rem;
+            min-width: 2.75rem;
+            padding: 0.5rem 0.375rem;
           }
 
-          .flash-sale-timer-value {
-            font-size: 1.5rem;
+          .flash-sale-cta,
+          .flash-sale-secondary-cta {
+            padding-left: 1em;
+            padding-right: 1em;
           }
         }
 
+        /* Container query: medium containers */
+        @container flash-sale (min-width: 401px) and (max-width: 640px) {
+          .flash-sale-content {
+            padding: 2rem 1.5rem;
+          }
+        }
+
+        /* Container query: large containers */
+        @container flash-sale (min-width: 641px) {
+          .flash-sale-content {
+            padding: 2.5rem 2rem;
+          }
+        }
+
+        /* Reduced motion support */
+        @media (prefers-reduced-motion: reduce) {
+          .flash-sale-cta,
+          .flash-sale-secondary-cta,
+          .flash-sale-close,
+          .flash-sale-inventory-dot {
+            animation: none !important;
+            transition: none !important;
+          }
+        }
       `}</style>
 
-      <div className="flash-sale-container">
-        <button onClick={onClose} className="flash-sale-close" aria-label="Close popup">
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-          >
-            <line x1="18" y1="6" x2="6" y2="18" />
-            <line x1="6" y1="6" x2="18" y2="18" />
-          </svg>
-        </button>
+      <div className="flash-sale-container" data-splitpop="true" data-template="flash-sale">
+        <PopupCloseButton
+          onClose={onClose}
+          color={config.textColor}
+          size={20}
+          className="flash-sale-close"
+          position="custom"
+        />
 
         {isSoldOut && config.inventory?.soldOutBehavior === "missed_it" ? (
           <div className="flash-sale-sold-out">
-            <h3 style={{ marginBottom: "0.5rem", fontSize: "1.5rem", fontWeight: "700" }}>
+            <h3 style={{ marginBottom: "0.5em", fontWeight: "700" }}>
               You Missed It!
             </h3>
             <p style={{ opacity: 0.8 }}>
@@ -961,7 +955,7 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
           </div>
         ) : hasExpired ? (
           <div className="flash-sale-expired">
-            <h3 style={{ marginBottom: "0.5rem", fontSize: "1.5rem", fontWeight: "700" }}>
+            <h3 style={{ marginBottom: "0.5em", fontWeight: "700" }}>
               Sale Ended
             </h3>
             <p style={{ opacity: 0.8 }}>
@@ -982,12 +976,16 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
             {(discountCode || discountMessage) && (
               <div className="flash-sale-discount-message">
                 {discountCode ? (
-                  <div onClick={() => handleCopyCode()} style={{ cursor: "pointer" }}>
-                    Use code <strong>{discountCode}</strong> at checkout.
-                    {copiedCode && (
-                      <span style={{ marginLeft: "0.5rem", color: "#10B981" }}>✓ Copied!</span>
-                    )}
-                  </div>
+                  <DiscountCodeDisplay
+                    code={discountCode}
+                    onCopy={handleCopyCode}
+                    copied={copiedCode}
+                    label="Use code at checkout:"
+                    variant="minimal"
+                    size="sm"
+                    accentColor={config.accentColor || "#ef4444"}
+                    textColor={config.textColor}
+                  />
                 ) : (
                   discountMessage
                 )}
@@ -999,34 +997,15 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
             )}
 
             {config.showCountdown && timeRemaining.total > 0 && (
-              <div className="flash-sale-timer">
-                {timeRemaining.days > 0 && (
-                  <div className="flash-sale-timer-unit">
-                    <div className="flash-sale-timer-value">
-                      {String(timeRemaining.days).padStart(2, "0")}
-                    </div>
-                    <div className="flash-sale-timer-label">Days</div>
-                  </div>
-                )}
-                <div className="flash-sale-timer-unit">
-                  <div className="flash-sale-timer-value">
-                    {String(timeRemaining.hours).padStart(2, "0")}
-                  </div>
-                  <div className="flash-sale-timer-label">Hours</div>
-                </div>
-                <div className="flash-sale-timer-unit">
-                  <div className="flash-sale-timer-value">
-                    {String(timeRemaining.minutes).padStart(2, "0")}
-                  </div>
-                  <div className="flash-sale-timer-label">Mins</div>
-                </div>
-                <div className="flash-sale-timer-unit">
-                  <div className="flash-sale-timer-value">
-                    {String(timeRemaining.seconds).padStart(2, "0")}
-                  </div>
-                  <div className="flash-sale-timer-label">Secs</div>
-                </div>
-              </div>
+              <TimerDisplay
+                timeRemaining={timeRemaining}
+                format="full"
+                showDays={timeRemaining.days > 0}
+                showLabels={true}
+                accentColor={config.accentColor || "#ef4444"}
+                textColor={config.textColor}
+                className="flash-sale-timer"
+              />
             )}
 
             {showInventory && (
@@ -1041,7 +1020,7 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
                 {config.reserve?.label || "Offer reserved for:"} {reservationTime.minutes}:
                 {String(reservationTime.seconds).padStart(2, "0")}
                 {config.reserve?.disclaimer && (
-                  <div style={{ fontSize: "0.75rem", marginTop: "0.25rem", opacity: 0.7 }}>
+                  <div style={{ fontSize: "0.85em", marginTop: "0.25em", opacity: 0.7 }}>
                     {config.reserve.disclaimer}
                   </div>
                 )}

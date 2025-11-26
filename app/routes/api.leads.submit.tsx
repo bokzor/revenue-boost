@@ -145,7 +145,7 @@ export async function action({ request }: ActionFunctionArgs) {
           leadId: "preview-lead-id",
           message: "Preview mode: Lead submission successful (not saved to database)",
           discountCode: undefined, // Don't generate discount codes in preview
-          deliveryMode: "show_code_fallback",
+          behavior: "SHOW_CODE_AND_AUTO_APPLY",
         },
         { status: 200, headers: storefrontCors() }
       );
@@ -206,10 +206,10 @@ export async function action({ request }: ActionFunctionArgs) {
         );
       }
 
-      // Parse discount config to determine delivery mode
+      // Parse discount config to determine behavior
       const discountConfig = parseDiscountConfig(campaign.discountConfig);
-      const deliveryMode = discountConfig.deliveryMode || "show_code_fallback";
-      const showCode = shouldShowDiscountCode(deliveryMode);
+      const behavior = discountConfig.behavior || "SHOW_CODE_AND_AUTO_APPLY";
+      const showCode = shouldShowDiscountCode(behavior);
 
       // If a code already exists for this lead, return it immediately
       if (existingLead.discountCode) {
@@ -218,8 +218,8 @@ export async function action({ request }: ActionFunctionArgs) {
             success: true,
             leadId: existingLead.id,
             discountCode: showCode ? existingLead.discountCode : undefined,
-            deliveryMode,
-            message: getSuccessMessage(deliveryMode),
+            behavior,
+            message: getSuccessMessage(behavior),
           },
           { status: 200, headers: storefrontCors() }
         );
@@ -242,7 +242,7 @@ export async function action({ request }: ActionFunctionArgs) {
       const admin = createAdminApiContext(campaign.store.shopifyDomain, campaign.store.accessToken);
 
       // Adjust discount config for email-authorization mode
-      if (discountConfig.deliveryMode === "show_in_popup_authorized_only") {
+      if (discountConfig.behavior === "SHOW_CODE_AND_ASSIGN_TO_EMAIL") {
         discountConfig.authorizedEmail = validatedData.email;
         discountConfig.requireEmailMatch = true;
       }
@@ -271,8 +271,8 @@ export async function action({ request }: ActionFunctionArgs) {
             leadId: existingLead.id,
             discountCode: showCode ? discountResult.discountCode : undefined,
             discountId: discountResult.discountId,
-            deliveryMode,
-            message: getSuccessMessage(deliveryMode),
+            behavior,
+            message: getSuccessMessage(behavior),
           },
           { status: 200, headers: storefrontCors() }
         );
@@ -331,7 +331,7 @@ export async function action({ request }: ActionFunctionArgs) {
     const discountConfig = parseDiscountConfig(campaign.discountConfig);
 
     // For email authorization, add the subscriber's email to the config
-    if (discountConfig.deliveryMode === "show_in_popup_authorized_only") {
+    if (discountConfig.behavior === "SHOW_CODE_AND_ASSIGN_TO_EMAIL") {
       discountConfig.authorizedEmail = validatedData.email;
       discountConfig.requireEmailMatch = true;
     }
@@ -413,9 +413,9 @@ export async function action({ request }: ActionFunctionArgs) {
       ipAddress
     );
 
-    // Determine what to return based on delivery mode
-    const deliveryMode = discountConfig.deliveryMode || "show_code_fallback";
-    const showCode = shouldShowDiscountCode(deliveryMode);
+    // Determine what to return based on behavior
+    const behavior = discountConfig.behavior || "SHOW_CODE_AND_AUTO_APPLY";
+    const showCode = shouldShowDiscountCode(behavior);
 
     // Check if this is a free gift campaign and include product details
     const freeGift = discountConfig.freeGift;
@@ -443,8 +443,8 @@ export async function action({ request }: ActionFunctionArgs) {
         discountCode: showCode ? discountResult.discountCode : undefined,
         discountId: discountResult.discountId,
         isNewCustomer: customerResult.isNewCustomer,
-        deliveryMode,
-        message: getSuccessMessage(deliveryMode),
+        behavior,
+        message: getSuccessMessage(behavior),
         freeGift: freeGiftData, // Include free gift details for cart addition
       },
       {

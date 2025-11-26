@@ -152,64 +152,44 @@ describe('DiscountConfigSchema - Discount Type & Value', () => {
   });
 });
 
-describe('DiscountConfigSchema - Delivery Mode', () => {
-  it('accepts deliveryMode as auto_apply_only', () => {
-    const config = { deliveryMode: 'auto_apply_only' as const };
+describe('DiscountConfigSchema - Behavior', () => {
+  it('defaults behavior to SHOW_CODE_AND_AUTO_APPLY', () => {
+    const config = {};
     const result = DiscountConfigSchema.safeParse(config);
 
     expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.deliveryMode).toBe('auto_apply_only');
+      expect(result.data.behavior).toBe('SHOW_CODE_AND_AUTO_APPLY');
     }
   });
 
-  it('accepts deliveryMode as show_code_fallback', () => {
-    const config = { deliveryMode: 'show_code_fallback' as const };
+  it('accepts behavior as SHOW_CODE_AND_AUTO_APPLY', () => {
+    const config = { behavior: 'SHOW_CODE_AND_AUTO_APPLY' as const };
     const result = DiscountConfigSchema.safeParse(config);
 
     expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.deliveryMode).toBe('show_code_fallback');
+      expect(result.data.behavior).toBe('SHOW_CODE_AND_AUTO_APPLY');
     }
   });
 
-  it('accepts deliveryMode as show_code_always', () => {
-    const config = { deliveryMode: 'show_code_always' as const };
+  it('accepts behavior as SHOW_CODE_ONLY', () => {
+    const config = { behavior: 'SHOW_CODE_ONLY' as const };
     const result = DiscountConfigSchema.safeParse(config);
 
     expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.deliveryMode).toBe('show_code_always');
+      expect(result.data.behavior).toBe('SHOW_CODE_ONLY');
     }
   });
 
-  it('accepts deliveryMode as show_in_popup_authorized_only', () => {
-    const config = { deliveryMode: 'show_in_popup_authorized_only' as const };
+  it('accepts behavior as SHOW_CODE_AND_ASSIGN_TO_EMAIL', () => {
+    const config = { behavior: 'SHOW_CODE_AND_ASSIGN_TO_EMAIL' as const };
     const result = DiscountConfigSchema.safeParse(config);
 
     expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.deliveryMode).toBe('show_in_popup_authorized_only');
-    }
-  });
-
-  it('accepts requireLogin', () => {
-    const config = { requireLogin: true };
-    const result = DiscountConfigSchema.safeParse(config);
-
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data.requireLogin).toBe(true);
-    }
-  });
-
-  it('accepts storeInMetafield', () => {
-    const config = { storeInMetafield: true };
-    const result = DiscountConfigSchema.safeParse(config);
-
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data.storeInMetafield).toBe(true);
+      expect(result.data.behavior).toBe('SHOW_CODE_AND_ASSIGN_TO_EMAIL');
     }
   });
 
@@ -336,53 +316,26 @@ describe('DiscountConfigSchema - Expiry & Limits', () => {
   });
 });
 
-describe('DiscountConfigSchema - Auto-Apply & Code Presentation', () => {
-  it('defaults autoApplyMode to ajax', () => {
-    const config = {};
-    const result = DiscountConfigSchema.safeParse(config);
+describe('DiscountConfigSchema - Behavior Values', () => {
+  it('accepts all behavior values', () => {
+    const behaviors = ['SHOW_CODE_AND_AUTO_APPLY', 'SHOW_CODE_ONLY', 'SHOW_CODE_AND_ASSIGN_TO_EMAIL'] as const;
 
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data.autoApplyMode).toBe('ajax');
-    }
-  });
-
-  it('accepts all autoApplyMode values', () => {
-    const modes = ['ajax', 'redirect', 'none'] as const;
-
-    modes.forEach(mode => {
-      const config = { autoApplyMode: mode };
+    behaviors.forEach(behavior => {
+      const config = { behavior };
       const result = DiscountConfigSchema.safeParse(config);
 
       expect(result.success).toBe(true);
       if (result.success) {
-        expect(result.data.autoApplyMode).toBe(mode);
+        expect(result.data.behavior).toBe(behavior);
       }
     });
   });
 
-  it('defaults codePresentation to show_code', () => {
-    const config = {};
+  it('rejects invalid behavior values', () => {
+    const config = { behavior: 'invalid_behavior' };
     const result = DiscountConfigSchema.safeParse(config);
 
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data.codePresentation).toBe('show_code');
-    }
-  });
-
-  it('accepts all codePresentation values', () => {
-    const presentations = ['show_code', 'hide_code'] as const;
-
-    presentations.forEach(presentation => {
-      const config = { codePresentation: presentation };
-      const result = DiscountConfigSchema.safeParse(config);
-
-      expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.data.codePresentation).toBe(presentation);
-      }
-    });
+    expect(result.success).toBe(false);
   });
 });
 

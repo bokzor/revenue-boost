@@ -282,7 +282,7 @@ const TemplatePreviewComponent = forwardRef<TemplatePreviewRef, TemplatePreviewP
 
       const previewIssueDiscount = async (options?: {
         cartSubtotalCents?: number;
-      }): Promise<{ code?: string; autoApplyMode?: string } | null> => {
+      }): Promise<{ code?: string; behavior?: string } | null> => {
         const pct =
           typeof flashConfig.discountPercentage === "number" ? flashConfig.discountPercentage : 20;
         const baseCode = flashConfig.discount?.code || "FLASH-PREVIEW";
@@ -291,7 +291,7 @@ const TemplatePreviewComponent = forwardRef<TemplatePreviewRef, TemplatePreviewP
 
         // Simulate network delay so merchants see loading states
         await new Promise((resolve) => setTimeout(resolve, 400));
-        return { code, autoApplyMode: "ajax" };
+        return { code, behavior: "SHOW_CODE_AND_AUTO_APPLY" };
       };
 
       return (
@@ -336,9 +336,9 @@ const TemplatePreviewComponent = forwardRef<TemplatePreviewRef, TemplatePreviewP
 
       const previewIssueDiscount = async (_options?: {
         cartSubtotalCents?: number;
-      }): Promise<{ code?: string; autoApplyMode?: string } | null> => {
+      }): Promise<{ code?: string; behavior?: string } | null> => {
         await new Promise((resolve) => setTimeout(resolve, 400));
-        return { code: previewCode, autoApplyMode: "ajax" };
+        return { code: previewCode, behavior: "SHOW_CODE_AND_AUTO_APPLY" };
       };
 
       const previewOnSubmit = async (_data: { email: string }): Promise<string | undefined> => {
@@ -379,14 +379,14 @@ const TemplatePreviewComponent = forwardRef<TemplatePreviewRef, TemplatePreviewP
           title: "Premium Hoodie",
           quantity: 1,
           price: 59.0,
-          imageUrl: undefined,
+          imageUrl: "https://images.pexels.com/photos/7671166/pexels-photo-7671166.jpeg?auto=compress&cs=tinysrgb&w=150",
         },
         {
           id: "preview-item-2",
           title: "Classic Sneakers",
           quantity: 1,
           price: 89.0,
-          imageUrl: undefined,
+          imageUrl: "https://images.pexels.com/photos/2529148/pexels-photo-2529148.jpeg?auto=compress&cs=tinysrgb&w=150",
         },
       ];
 
@@ -400,9 +400,9 @@ const TemplatePreviewComponent = forwardRef<TemplatePreviewRef, TemplatePreviewP
 
       const previewIssueDiscount = async (_options?: {
         cartSubtotalCents?: number;
-      }): Promise<{ code?: string; autoApplyMode?: string } | null> => {
+      }): Promise<{ code?: string; behavior?: string } | null> => {
         await new Promise((resolve) => setTimeout(resolve, 400));
-        return { code: previewCode, autoApplyMode: "ajax" };
+        return { code: previewCode, behavior: "SHOW_CODE_AND_AUTO_APPLY" };
       };
 
       const previewOnEmailRecovery = async (_email: string): Promise<string | undefined> => {

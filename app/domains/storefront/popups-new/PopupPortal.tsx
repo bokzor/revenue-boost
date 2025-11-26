@@ -18,6 +18,7 @@ import React, { useState, useEffect, useCallback, useRef, useMemo } from "react"
 import { createPortal } from "react-dom";
 import type { PopupSize } from "./types";
 import { getSizeDimensions } from "./utils";
+import { PoweredByBadge } from "./components/primitives/PoweredByBadge";
 
 export type AnimationType = "fade" | "slide" | "zoom" | "bounce" | "none";
 
@@ -57,6 +58,9 @@ export interface PopupPortalProps {
   closeOnEscape?: boolean;
   closeOnBackdropClick?: boolean;
   previewMode?: boolean;
+
+  // Branding (for free tier)
+  showBranding?: boolean;
 
   // Accessibility
   ariaLabel?: string;
@@ -103,6 +107,7 @@ export const PopupPortal: React.FC<PopupPortalProps> = ({
   closeOnEscape = true,
   closeOnBackdropClick = true,
   previewMode = false,
+  showBranding = false,
   ariaLabel,
   ariaDescribedBy,
 }) => {
@@ -415,9 +420,13 @@ export const PopupPortal: React.FC<PopupPortalProps> = ({
         {frameStyles ? (
           <div className="popup-portal-frame" style={frameStyles}>
             {children}
+            {showBranding && <PoweredByBadge position="bottom-right" />}
           </div>
         ) : (
-          children
+          <>
+            {children}
+            {showBranding && <PoweredByBadge position="bottom-right" />}
+          </>
         )}
       </div>
     </div>

@@ -19,6 +19,7 @@ import { Modal, Text, Toast, Frame } from "@shopify/polaris";
 import type { UnifiedTemplate } from "~/domains/popups/services/templates/unified-template-service.server";
 import prisma from "~/db.server";
 import { StoreSettingsSchema } from "~/domains/store/types/settings";
+import { PlanGuardService } from "~/domains/billing/services/plan-guard.server";
 
 // ============================================================================
 // LOADER - Fetch necessary data for form
@@ -29,6 +30,10 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
   try {
     const storeId = await getStoreId(request);
+
+    // Fetch plan context to determine feature availability
+    const planContext = await PlanGuardService.getPlanContext(storeId);
+    const advancedTargetingEnabled = planContext.definition.features.advancedTargeting;
 
     const store = await prisma.store.findUnique({
       where: { id: storeId },
@@ -65,6 +70,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
       templateType: templateParam || undefined,
       preselectedGoal,
       globalCustomCSS: parsedSettings.success ? parsedSettings.data.globalCustomCSS : undefined,
+      advancedTargetingEnabled,
       success: true,
     });
   } catch (error) {
@@ -74,6 +80,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
       success: false,
       error: error instanceof Error ? error.message : "Failed to load data",
       globalCustomCSS: undefined,
+      advancedTargetingEnabled: false,
     });
   }
 }
@@ -106,16 +113,24 @@ export default function NewCampaign() {
   const [createdCampaignId, setCreatedCampaignId] = useState<string | null>(null);
   const [activating, setActivating] = useState(false);
 
-  const { storeId, shopDomain, templates, templateType, preselectedGoal, globalCustomCSS } =
-    loaderData as {
-      storeId: string;
-      shopDomain: string;
-      templates: UnifiedTemplate[];
-      templateType?: string;
-      preselectedGoal?: string;
-      globalCustomCSS?: string;
-      success: boolean;
-    };
+  const {
+    storeId,
+    shopDomain,
+    templates,
+    templateType,
+    preselectedGoal,
+    globalCustomCSS,
+    advancedTargetingEnabled,
+  } = loaderData as {
+    storeId: string;
+    shopDomain: string;
+    templates: UnifiedTemplate[];
+    templateType?: string;
+    preselectedGoal?: string;
+    globalCustomCSS?: string;
+    advancedTargetingEnabled?: boolean;
+    success: boolean;
+  };
 
   // Handle save - create campaign(s) via API
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -359,6 +374,7 @@ export default function NewCampaign() {
         onCancel={handleCancel}
         initialTemplates={templates}
         globalCustomCSS={globalCustomCSS}
+        advancedTargetingEnabled={advancedTargetingEnabled ?? false}
         initialData={
           templateType || preselectedGoal
             ? {

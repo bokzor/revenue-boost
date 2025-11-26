@@ -27,6 +27,17 @@ import { usePopupForm, useDiscountCode, usePopupAnimation } from "./hooks";
 // Import reusable components
 import { EmailInput, NameInput, GdprCheckbox, SubmitButton } from "./components";
 
+// Import shared components from Phase 1 & 2
+import {
+  SuccessState,
+  DiscountCodeDisplay,
+  LeadCaptureForm,
+  PopupHeader,
+} from "./components/shared";
+
+// Import shared animations
+import "./components/shared/animations.css";
+
 /**
  * Newsletter-specific configuration
  */
@@ -117,12 +128,12 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
   const description =
     config.subheadline || "Subscribe to get special offers, free giveaways, and exclusive deals.";
   const buttonText = config.submitButtonText || config.buttonText || "Subscribe";
-  const deliveryMode = config.discount?.deliveryMode || "show_code_fallback";
+  const behavior = config.discount?.behavior || "SHOW_CODE_AND_AUTO_APPLY";
   const successMessage =
     config.successMessage ??
-    (deliveryMode === "auto_apply_only"
+    (behavior === "SHOW_CODE_AND_AUTO_APPLY"
       ? "Thanks for subscribing! Your discount will be automatically applied when you checkout."
-      : deliveryMode === "show_in_popup_authorized_only"
+      : behavior === "SHOW_CODE_AND_ASSIGN_TO_EMAIL"
         ? "Thanks for subscribing! Your discount code is authorized for your email address only."
         : "Thanks for subscribing! Your discount code is ready to use.");
   const showGdprCheckbox = config.consentFieldEnabled ?? false;
@@ -179,58 +190,40 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
       closeOnEscape={config.closeOnEscape !== false}
       closeOnBackdropClick={config.closeOnOverlayClick !== false}
       previewMode={config.previewMode}
+      showBranding={config.showBranding}
       ariaLabel={config.headline || "Newsletter Signup"}
       customCSS={config.customCSS}
       globalCustomCSS={config.globalCustomCSS}
     >
       <style>
         {`
-        /* Image Cell */
+        /* Image Cell - Responsive */
         .email-popup-image {
           position: relative;
           overflow: hidden;
-          display: flex;
-          align-items: center;
-          justify-content: center;
+          display: block;
           background: ${config.imageBgColor || config.inputBackgroundColor || "#f4f4f5"};
-          min-height: 200px;
           width: 100%;
-          height: 100%;
+          height: 180px;
+          flex-shrink: 0;
         }
 
         .email-popup-image img {
           width: 100%;
           height: 100%;
           object-fit: cover;
-          position: absolute;
-          inset: 0;
+          display: block;
         }
 
-        /* Form Cell */
+        /* Form Cell - Responsive padding */
         .email-popup-form-section {
-          padding: ${getContainerPadding(config.size)};
+          padding: 1.5rem;
           display: flex;
           flex-direction: column;
           justify-content: center;
           background: ${hasGradientBg ? config.backgroundColor : "transparent"};
           width: 100%;
-        }
-
-        .email-popup-title {
-          font-size: ${config.titleFontSize || config.fontSize || "1.875rem"};
-          font-weight: ${config.titleFontWeight || config.fontWeight || "900"};
-          margin-bottom: ${SPACING_GUIDELINES.afterHeadline};
-          color: ${config.textColor || "#111827"};
-          line-height: 1.1;
-          ${config.titleTextShadow ? `text-shadow: ${config.titleTextShadow};` : ""}
-        }
-
-        .email-popup-description {
-          font-size: ${config.descriptionFontSize || config.fontSize || "1rem"};
-          line-height: 1.6;
-          margin-bottom: ${SPACING_GUIDELINES.afterDescription};
-          color: ${config.descriptionColor || "#52525b"};
-          font-weight: ${config.descriptionFontWeight || config.fontWeight || "400"};
+          min-width: 0;
         }
 
         .email-popup-form {
@@ -245,13 +238,13 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
 
         .email-popup-input {
           width: 100%;
-          height: 3rem;
-          padding: 0 1rem;
+          height: 2.75rem;
+          padding: 0 0.875rem;
           border-radius: 0.5rem;
           border: 2px solid ${config.inputBorderColor || "#d4d4d8"};
           background: ${config.inputBackgroundColor || "#ffffff"};
           color: ${config.inputTextColor || "#111827"};
-          font-size: 1rem;
+          font-size: 0.9375rem;
           transition: all 0.2s;
           outline: none;
           ${config.inputBackdropFilter ? `backdrop-filter: ${config.inputBackdropFilter};` : ""}
@@ -259,7 +252,7 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
         }
 
         .email-popup-input::placeholder {
-          color: ${config.inputTextColor ? `${config.inputTextColor}80` : "#9ca3af"};
+          color: ${config.inputTextColor ? `${config.inputTextColor}b3` : "#9ca3af"};
           opacity: 1;
         }
 
@@ -274,47 +267,47 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
 
         .email-popup-error {
           color: #ef4444;
-          font-size: 0.875rem;
+          font-size: 0.8125rem;
           margin-top: 0.25rem;
         }
 
         .email-popup-label {
           display: block;
-          font-size: 0.875rem;
+          font-size: 0.8125rem;
           font-weight: 500;
-          margin-bottom: 0.5rem;
+          margin-bottom: 0.375rem;
           color: ${config.textColor || "#111827"};
         }
 
         .email-popup-checkbox-wrapper {
           display: flex;
           align-items: flex-start;
-          gap: 0.75rem;
+          gap: 0.625rem;
           margin-top: 0.25rem;
         }
 
         .email-popup-checkbox {
-          margin-top: 0.25rem;
-          width: 1.125rem;
-          height: 1.125rem;
+          margin-top: 0.125rem;
+          width: 1rem;
+          height: 1rem;
           cursor: pointer;
           flex-shrink: 0;
         }
 
         .email-popup-checkbox-label {
-          font-size: 0.875rem;
+          font-size: 0.8125rem;
           color: ${config.descriptionColor || "#52525b"};
           line-height: 1.4;
         }
 
         .email-popup-button {
           width: 100%;
-          padding: ${POPUP_SPACING.component.button};
+          padding: 0.75rem 1rem;
           border-radius: 0.5rem;
           border: none;
           background: ${config.buttonColor || "#3b82f6"};
           color: ${config.buttonTextColor || "#ffffff"};
-          font-size: 1rem;
+          font-size: 0.9375rem;
           font-weight: 700;
           cursor: pointer;
           transition: all 0.2s;
@@ -322,7 +315,7 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
           align-items: center;
           justify-content: center;
           gap: 0.5rem;
-          margin-top: ${POPUP_SPACING.section.md};
+          margin-top: 0.75rem;
           text-transform: uppercase;
           letter-spacing: 0.05em;
         }
@@ -338,12 +331,12 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
         }
 
         .email-popup-secondary-button {
-          margin-top: ${SPACING_GUIDELINES.betweenButtons};
+          margin-top: 0.625rem;
           width: 100%;
           background: transparent;
           border: none;
           color: ${config.descriptionColor || "#6b7280"};
-          font-size: 0.875rem;
+          font-size: 0.8125rem;
           font-weight: 500;
           cursor: pointer;
         }
@@ -352,120 +345,97 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
           text-decoration: underline;
         }
 
-        .email-popup-success {
-          text-align: center;
-          padding: ${POPUP_SPACING.section.xl} 0;
-          animation: fadeInUp 0.5s ease-out;
-        }
+        /* ========================================
+           CONTAINER QUERY RESPONSIVE STYLES
+           Adapts to container width, not viewport
+           ======================================== */
 
-        .email-popup-success-icon {
-          width: 4rem;
-          height: 4rem;
-          border-radius: 9999px;
-          background: ${config.successColor ? `${config.successColor}20` : "#dcfce7"};
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          margin: 0 auto ${POPUP_SPACING.section.md};
-          animation: bounceIn 0.6s ease-out;
-        }
-
-        .email-popup-success-icon svg {
-          stroke: ${config.successColor || "#16a34a"};
-        }
-
-        .email-popup-success-message {
-          font-size: ${config.titleFontSize || config.fontSize || "1.875rem"};
-          font-weight: ${config.titleFontWeight || config.fontWeight || "900"};
-          color: ${config.textColor || "#111827"};
-          margin-bottom: ${POPUP_SPACING.section.lg};
-          line-height: 1.1;
-          ${config.titleTextShadow ? `text-shadow: ${config.titleTextShadow};` : ""}
-        }
-
-        .email-popup-discount {
-          display: inline-block;
-          padding: 0.75rem 1.5rem;
-          border-radius: 0.5rem;
-          border: 2px dashed ${config.accentColor || config.buttonColor || "#3b82f6"};
-          background: ${config.accentColor ? `${config.accentColor}15` : config.inputBackgroundColor || "#f4f4f5"};
-        }
-
-        .email-popup-discount-label {
-          font-size: 0.875rem;
-          font-weight: 500;
-          margin-bottom: 0.25rem;
-          color: ${config.descriptionColor || "#52525b"};
-        }
-
-        .email-popup-discount-code {
-          font-size: 1.5rem;
-          font-weight: 700;
-          letter-spacing: 0.05em;
-          color: ${config.accentColor || config.buttonColor || config.textColor || "#111827"};
-        }
-
-        .email-popup-spinner {
-          width: 1.25rem;
-          height: 1.25rem;
-          border: 2px solid ${config.buttonTextColor || "#ffffff"}40;
-          border-top-color: ${config.buttonTextColor || "#ffffff"};
-          border-radius: 50%;
-          animation: spin 0.6s linear infinite;
-        }
-
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-
-        @keyframes zoomIn {
-          from {
-            opacity: 0;
-            transform: scale(0.95);
-          }
-          to {
-            opacity: 1;
-            transform: scale(1);
-          }
-        }
-
-        @keyframes fadeInUp {
-          from {
-            opacity: 0;
-            transform: translateY(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        @keyframes bounceIn {
-          0% {
-            opacity: 0;
-            transform: scale(0.3);
-          }
-          50% {
-            opacity: 1;
-            transform: scale(1.05);
-          }
-          70% {
-            transform: scale(0.9);
-          }
-          100% {
-            transform: scale(1);
-          }
-        }
-
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-
-        /* Desktop Layout (Side-by-Side) - Specific overrides if needed */
-        @container popup (min-width: 600px) {
+        /* Small containers: Compact layout (stacked) */
+        @container popup (max-width: 399px) {
           .email-popup-form-section {
-            padding: 3rem;
+            padding: 1.25rem 1rem;
+          }
+
+          .email-popup-image {
+            height: 140px;
+          }
+
+          .email-popup-input {
+            height: 2.5rem;
+            font-size: 0.875rem;
+          }
+
+          .email-popup-button {
+            padding: 0.625rem 0.875rem;
+            font-size: 0.875rem;
+          }
+        }
+
+        /* Medium containers: Balanced layout (stacked) */
+        @container popup (min-width: 400px) and (max-width: 519px) {
+          .email-popup-form-section {
+            padding: 2rem 1.5rem;
+          }
+
+          .email-popup-image {
+            height: 200px;
+          }
+        }
+
+        /* Wide containers (side-by-side): Image fills height */
+        @container popup (min-width: 520px) {
+          .email-popup-form-section {
+            padding: 2rem 2rem;
+          }
+
+          .email-popup-image {
+            height: auto;
+            min-height: 380px;
+            flex: 1;
+          }
+
+          .email-popup-input {
+            height: 3rem;
+            padding: 0 1rem;
+            font-size: 1rem;
+          }
+
+          .email-popup-button {
+            padding: 0.875rem 1.25rem;
+            font-size: 1rem;
+            margin-top: 1rem;
+          }
+
+          .email-popup-label {
+            font-size: 0.875rem;
+            margin-bottom: 0.5rem;
+          }
+
+          .email-popup-checkbox {
+            width: 1.125rem;
+            height: 1.125rem;
+          }
+
+          .email-popup-checkbox-label,
+          .email-popup-error {
+            font-size: 0.875rem;
+          }
+        }
+
+        /* Large containers: Maximum comfort */
+        @container popup (min-width: 700px) {
+          .email-popup-form-section {
+            padding: 2.5rem 3rem;
+          }
+
+          .email-popup-button {
+            padding: 1rem 1.5rem;
+            margin-top: 1.25rem;
+          }
+
+          .email-popup-secondary-button {
+            margin-top: 0.75rem;
+            font-size: 0.875rem;
           }
         }
 
@@ -499,125 +469,74 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
         {/* Form Section */}
         <div className="email-popup-form-section">
           {isSubmitted ? (
-            <div className="email-popup-success">
-              <div className="email-popup-success-icon">
-                <svg
-                  width="32"
-                  height="32"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="3"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
-              </div>
-              <h3 className="email-popup-success-message">
-                {config.successMessage || "Thanks for subscribing!"}
-              </h3>
-              {displayDiscountCode && (
-                <div className="email-popup-discount">
-                  <div className="email-popup-discount-label">Your discount code:</div>
-                  <div
-                    className="email-popup-discount-code"
-                    onClick={() => handleCopyCode()}
-                    style={{ cursor: "pointer" }}
-                    title="Click to copy"
-                  >
-                    {displayDiscountCode}
-                  </div>
-                  {copiedCode && (
-                    <div style={{ fontSize: "0.875rem", color: "#10B981", marginTop: "0.5rem" }}>
-                      ✓ Copied to clipboard!
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
+            <SuccessState
+              message={config.successMessage || "Thanks for subscribing!"}
+              discountCode={displayDiscountCode || undefined}
+              onCopyCode={handleCopyCode}
+              copiedCode={copiedCode}
+              discountLabel="Your discount code:"
+              accentColor={config.accentColor || config.buttonColor}
+              successColor={config.successColor}
+              textColor={config.textColor}
+              animation="bounce"
+              fontSize={config.titleFontSize || config.fontSize}
+              fontWeight={config.titleFontWeight || config.fontWeight}
+            />
           ) : (
             <>
-              {config.headline && <h2 className="email-popup-title">{config.headline}</h2>}
-              {config.subheadline && (
-                <p className="email-popup-description">{config.subheadline}</p>
-              )}
+              <PopupHeader
+                headline={config.headline || "Join Our Newsletter"}
+                subheadline={config.subheadline}
+                textColor={config.textColor}
+                descriptionColor={config.descriptionColor}
+                headlineFontSize={config.titleFontSize || config.fontSize}
+                subheadlineFontSize={config.descriptionFontSize || config.fontSize}
+                headlineFontWeight={config.titleFontWeight || config.fontWeight}
+                subheadlineFontWeight={config.descriptionFontWeight || config.fontWeight}
+                align="center"
+                marginBottom={SPACING_GUIDELINES.afterDescription}
+              />
 
-              <form
-                className="email-popup-form"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  handleSubmit();
+              <LeadCaptureForm
+                data={formState}
+                errors={errors}
+                onEmailChange={setEmail}
+                onNameChange={setName}
+                onGdprChange={setGdprConsent}
+                onSubmit={handleSubmit}
+                isSubmitting={isSubmitting}
+                showName={collectName}
+                nameRequired={config.nameFieldRequired}
+                showGdpr={showGdprCheckbox}
+                gdprRequired={config.consentFieldRequired}
+                emailRequired={config.emailRequired !== false}
+                labels={{
+                  email: config.emailLabel,
+                  name: config.firstNameLabel || "Name",
+                  gdpr: gdprLabel,
+                  submit: buttonText,
                 }}
-              >
-                {collectName && (
-                  <div className="email-popup-input-wrapper">
-                    <NameInput
-                      value={formState.name}
-                      onChange={setName}
-                      placeholder={config.nameFieldPlaceholder || "Your name"}
-                      label={config.firstNameLabel || "Name"}
-                      error={errors.name}
-                      required={config.nameFieldRequired}
+                placeholders={{
+                  email: config.emailPlaceholder || "Enter your email",
+                  name: config.nameFieldPlaceholder || "Your name",
+                }}
+                accentColor={config.accentColor}
+                textColor={config.textColor}
+                backgroundColor={config.backgroundColor}
+                buttonTextColor={config.buttonTextColor}
+                extraFields={
+                  config.dismissLabel ? (
+                    <button
+                      type="button"
+                      className="email-popup-secondary-button"
+                      onClick={onClose}
                       disabled={isSubmitting}
-                      accentColor={config.accentColor}
-                      textColor={config.textColor}
-                      backgroundColor={config.backgroundColor}
-                    />
-                  </div>
-                )}
-
-                <div className="email-popup-input-wrapper">
-                  <EmailInput
-                    value={formState.email}
-                    onChange={setEmail}
-                    placeholder={config.emailPlaceholder || "Enter your email"}
-                    label={config.emailLabel}
-                    error={errors.email}
-                    required={config.emailRequired !== false}
-                    disabled={isSubmitting}
-                    accentColor={config.accentColor}
-                    textColor={config.textColor}
-                    backgroundColor={config.backgroundColor}
-                  />
-                </div>
-
-                {showGdprCheckbox && (
-                  <div className="email-popup-checkbox-wrapper">
-                    <GdprCheckbox
-                      checked={formState.gdprConsent}
-                      onChange={setGdprConsent}
-                      text={gdprLabel}
-                      error={errors.gdpr}
-                      required={config.consentFieldRequired}
-                      disabled={isSubmitting}
-                      accentColor={config.accentColor}
-                      textColor={config.textColor}
-                    />
-                  </div>
-                )}
-
-                <SubmitButton
-                  type="submit"
-                  disabled={isSubmitting}
-                  loading={isSubmitting}
-                  accentColor={config.accentColor}
-                  textColor={config.buttonTextColor || "#FFFFFF"}
-                >
-                  {buttonText}
-                </SubmitButton>
-
-                {config.dismissLabel && (
-                  <button
-                    type="button"
-                    className="email-popup-secondary-button"
-                    onClick={onClose}
-                    disabled={isSubmitting}
-                  >
-                    {config.dismissLabel}
-                  </button>
-                )}
-              </form>
+                    >
+                      {config.dismissLabel}
+                    </button>
+                  ) : undefined
+                }
+              />
             </>
           )}
         </div>

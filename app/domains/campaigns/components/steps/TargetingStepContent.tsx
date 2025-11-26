@@ -18,6 +18,8 @@ interface TargetingStepContentProps {
   audienceTargeting: AudienceTargetingConfig;
   onTriggersChange: (config: EnhancedTriggerConfig) => void;
   onAudienceChange: (config: AudienceTargetingConfig) => void;
+  /** Whether advanced targeting (Shopify segments, session rules) is enabled for the current plan */
+  advancedTargetingEnabled?: boolean;
 }
 
 export function TargetingStepContent({
@@ -26,6 +28,7 @@ export function TargetingStepContent({
   audienceTargeting,
   onTriggersChange,
   onAudienceChange,
+  advancedTargetingEnabled = false,
 }: TargetingStepContentProps) {
   return (
     <BlockStack gap="600">
@@ -53,6 +56,7 @@ export function TargetingStepContent({
             storeId={storeId}
             config={audienceTargeting}
             onConfigChange={onAudienceChange}
+            disabled={!advancedTargetingEnabled}
           />
         </BlockStack>
       </Card>

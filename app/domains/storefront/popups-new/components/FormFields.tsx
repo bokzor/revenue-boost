@@ -18,6 +18,8 @@ export interface EmailInputProps {
   accentColor?: string;
   textColor?: string;
   backgroundColor?: string;
+  placeholderColor?: string;
+  className?: string;
 }
 
 export const EmailInput: React.FC<EmailInputProps> = ({
@@ -31,9 +33,23 @@ export const EmailInput: React.FC<EmailInputProps> = ({
   accentColor = "#4F46E5",
   textColor = "#1F2937",
   backgroundColor = "#FFFFFF",
+  placeholderColor,
+  className,
 }) => {
+  // Generate unique ID for scoped placeholder styling
+  const inputId = React.useId();
+  const computedPlaceholderColor = placeholderColor || `${textColor}99`;
+
   return (
     <div style={{ marginBottom: "1rem" }}>
+      <style>
+        {`
+          #${CSS.escape(inputId)}::placeholder {
+            color: ${computedPlaceholderColor};
+            opacity: 1;
+          }
+        `}
+      </style>
       {label && (
         <label
           style={{
@@ -49,6 +65,7 @@ export const EmailInput: React.FC<EmailInputProps> = ({
         </label>
       )}
       <input
+        id={inputId}
         type="email"
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -57,6 +74,7 @@ export const EmailInput: React.FC<EmailInputProps> = ({
         disabled={disabled}
         aria-invalid={!!error}
         aria-describedby={error ? "email-error" : undefined}
+        className={className}
         style={{
           width: "100%",
           padding: "0.75rem",
@@ -107,6 +125,8 @@ export interface NameInputProps {
   accentColor?: string;
   textColor?: string;
   backgroundColor?: string;
+  placeholderColor?: string;
+  className?: string;
 }
 
 export const NameInput: React.FC<NameInputProps> = ({
@@ -120,9 +140,23 @@ export const NameInput: React.FC<NameInputProps> = ({
   accentColor = "#4F46E5",
   textColor = "#1F2937",
   backgroundColor = "#FFFFFF",
+  placeholderColor,
+  className,
 }) => {
+  // Generate unique ID for scoped placeholder styling
+  const inputId = React.useId();
+  const computedPlaceholderColor = placeholderColor || `${textColor}99`;
+
   return (
     <div style={{ marginBottom: "1rem" }}>
+      <style>
+        {`
+          #${CSS.escape(inputId)}::placeholder {
+            color: ${computedPlaceholderColor};
+            opacity: 1;
+          }
+        `}
+      </style>
       <label
         style={{
           display: "block",
@@ -136,6 +170,7 @@ export const NameInput: React.FC<NameInputProps> = ({
         {required && <span style={{ color: "#EF4444" }}> *</span>}
       </label>
       <input
+        id={inputId}
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -144,6 +179,7 @@ export const NameInput: React.FC<NameInputProps> = ({
         disabled={disabled}
         aria-invalid={!!error}
         aria-describedby={error ? "name-error" : undefined}
+        className={className}
         style={{
           width: "100%",
           padding: "0.75rem",

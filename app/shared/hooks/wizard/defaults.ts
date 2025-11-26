@@ -104,7 +104,7 @@ export function getDefaultDiscountConfig(initialData?: Partial<CampaignFormData>
     value: 10,
     expiryDays: 7,
     prefix: "SAVE",
-    deliveryMode: "show_code_fallback" as const,
+    behavior: "SHOW_CODE_AND_AUTO_APPLY" as const,
     ...(initialData?.discountConfig || {}),
   };
 }

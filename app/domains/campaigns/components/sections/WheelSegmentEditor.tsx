@@ -83,13 +83,13 @@ export function WheelSegmentEditor({ segments, onChange, errors }: WheelSegmentE
       parts.push(`${config.expiryDays}d`);
     }
 
-    // Delivery mode
-    if (config.deliveryMode === "auto_apply_only") {
-      parts.push("Auto-apply");
-    } else if (config.deliveryMode === "show_code_fallback") {
+    // Behavior
+    if (config.behavior === "SHOW_CODE_AND_AUTO_APPLY") {
       parts.push("Show + Auto-apply");
-    } else if (config.deliveryMode === "show_code_always") {
+    } else if (config.behavior === "SHOW_CODE_ONLY") {
       parts.push("Show code");
+    } else if (config.behavior === "SHOW_CODE_AND_ASSIGN_TO_EMAIL") {
+      parts.push("Assign to email");
     }
 
     return parts.join(" • ");

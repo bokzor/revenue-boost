@@ -330,3 +330,34 @@ export function debounce<T extends (...args: any[]) => any>(
     timeout = setTimeout(later, wait);
   };
 }
+
+/**
+ * Get background styles for gradient or solid colors
+ * Handles both gradient strings and solid color values
+ *
+ * @param backgroundColor - Color value (can be gradient string or solid color)
+ * @returns CSS properties for background
+ *
+ * @example
+ * ```tsx
+ * // Gradient
+ * const styles = getBackgroundStyles("linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)");
+ * // Returns: { backgroundImage: "linear-gradient(...)", backgroundColor: "transparent" }
+ *
+ * // Solid color
+ * const styles = getBackgroundStyles("#3b82f6");
+ * // Returns: { backgroundColor: "#3b82f6" }
+ * ```
+ */
+export function getBackgroundStyles(backgroundColor: string): React.CSSProperties {
+  const hasGradient = backgroundColor.includes("gradient");
+
+  return hasGradient
+    ? {
+        backgroundImage: backgroundColor,
+        backgroundColor: "transparent",
+      }
+    : {
+        backgroundColor,
+      };
+}

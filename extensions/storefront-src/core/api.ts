@@ -17,19 +17,20 @@ export interface FetchCampaignsResponse {
   success: boolean;
   globalCustomCSS?: string;
   timestamp?: string;
+  /** Whether to show "Powered by Revenue Boost" branding (true for free tier) */
+  showBranding?: boolean;
 }
 
 type IssueDiscountResponse = {
   code?: string;
   type?: string;
-  autoApplyMode?: string;
+  behavior?: string;
   error?: string;
 };
 
 type EmailRecoveryResponse = {
   discountCode?: string;
-  deliveryMode?: string;
-  autoApplyMode?: string;
+  behavior?: string;
   message?: string;
   error?: string;
 };
@@ -368,7 +369,7 @@ export class ApiClient {
     success: boolean;
     code?: string;
     type?: string;
-    autoApplyMode?: string;
+    behavior?: string;
     error?: string;
   }> {
     const params = new URLSearchParams({
@@ -407,7 +408,7 @@ export class ApiClient {
         success: true,
         code: (result as IssueDiscountResponse).code,
         type: (result as IssueDiscountResponse).type,
-        autoApplyMode: (result as IssueDiscountResponse).autoApplyMode,
+        behavior: (result as IssueDiscountResponse).behavior,
       };
     } catch (error) {
       console.error("[Revenue Boost API] Failed to issue discount:", error);
@@ -426,8 +427,7 @@ export class ApiClient {
   }): Promise<{
     success: boolean;
     discountCode?: string;
-    deliveryMode?: string;
-    autoApplyMode?: string;
+    behavior?: string;
     message?: string;
     error?: string;
   }> {
@@ -458,8 +458,7 @@ export class ApiClient {
       return {
         success: true,
         discountCode: (result as EmailRecoveryResponse).discountCode,
-        deliveryMode: (result as EmailRecoveryResponse).deliveryMode,
-        autoApplyMode: (result as EmailRecoveryResponse).autoApplyMode,
+        behavior: (result as EmailRecoveryResponse).behavior,
         message: (result as EmailRecoveryResponse).message,
       };
     } catch (error) {

@@ -125,6 +125,8 @@ interface CampaignFormWithABTestingProps {
   }>;
   currentVariantKey?: string | null;
   initialTemplates?: UnifiedTemplate[];
+  /** Whether advanced targeting (Shopify segments, session rules) is enabled for the current plan */
+  advancedTargetingEnabled?: boolean;
 }
 
 // ============================================================================
@@ -144,6 +146,7 @@ export function CampaignFormWithABTesting({
   allVariants,
   currentVariantKey,
   initialTemplates,
+  advancedTargetingEnabled = false,
 }: CampaignFormWithABTestingProps) {
   // ============================================================================
   // STATE - Wizard Navigation
@@ -405,6 +408,7 @@ export function CampaignFormWithABTesting({
       abTestingEnabled,
       initialTemplates,
       globalCustomCSS,
+      advancedTargetingEnabled,
     };
 
     switch (step.id) {

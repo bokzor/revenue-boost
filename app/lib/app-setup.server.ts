@@ -260,8 +260,7 @@ async function createWelcomeCampaign(storeId: string) {
       discountConfig: {
         enabled: false,
         showInPreview: true,
-        autoApplyMode: "ajax",
-        codePresentation: "show_code",
+        behavior: "SHOW_CODE_AND_AUTO_APPLY",
       },
     });
 

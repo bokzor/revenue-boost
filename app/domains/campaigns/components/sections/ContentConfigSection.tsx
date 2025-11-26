@@ -84,21 +84,26 @@ export function ContentConfigSection({
         return (
           <FlashSaleContentSection
             content={content as Partial<FlashSaleContent>}
+            designConfig={designConfig}
             discountConfig={discountConfig}
             errors={errors}
             onChange={onChange as (c: Partial<FlashSaleContent>) => void}
+            onDesignChange={onDesignChange}
             onDiscountChange={onDiscountChange}
           />
         );
 
       case "COUNTDOWN_TIMER":
+        // COUNTDOWN_TIMER doesn't support discount issuance (no challenge token hook)
+        // Use FlashSaleContentSection but without discount config
         return (
           <FlashSaleContentSection
             content={content as Partial<FlashSaleContent>}
-            discountConfig={discountConfig}
+            designConfig={designConfig}
             errors={errors}
             onChange={onChange as (c: Partial<FlashSaleContent>) => void}
-            onDiscountChange={onDiscountChange}
+            onDesignChange={onDesignChange}
+            // Note: discountConfig and onDiscountChange intentionally omitted
           />
         );
 

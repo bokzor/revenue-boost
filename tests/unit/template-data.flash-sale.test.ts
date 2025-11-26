@@ -36,11 +36,11 @@ describe("GLOBAL_SYSTEM_TEMPLATES – Flash Sale Alert", () => {
 
     const design = flashSale.designConfig as any;
 
-    // Theme + key colors from Modern newsletter preset
+    // Theme + key colors from Modern newsletter preset with urgency red
     expect(design.theme).toBe("modern");
     expect(design.backgroundColor).toBe("#ffffff");
-    expect(design.textColor).toBe("#111827");
-    expect(design.buttonColor).toBe("#3b82f6");
+    expect(design.textColor).toBe("#1f2937"); // Gray-800, matches template-data
+    expect(design.buttonColor).toBe("#ef4444"); // Red for urgency
     expect(design.buttonTextColor).toBe("#ffffff");
   });
 
@@ -101,9 +101,7 @@ describe("GLOBAL_SYSTEM_TEMPLATES – Flash Sale Alert", () => {
     expect(config.value).toBe(30);
     expect(config.prefix).toBe("FLASH30-");
     expect(config.expiryDays).toBe(2);
-    expect(config.deliveryMode).toBe("show_code_always");
-    expect(config.autoApplyMode).toBe("ajax");
-    expect(config.codePresentation).toBe("show_code");
+    expect(config.behavior).toBe("SHOW_CODE_ONLY");
   });
 });
 

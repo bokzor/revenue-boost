@@ -12,14 +12,18 @@
  * - Multiple color scheme presets
  */
 
-import React, { useCallback, useMemo } from "react";
+import React, { useMemo } from "react";
 import type { PopupDesignConfig } from "./types";
 import type { AnnouncementContent } from "~/domains/campaigns/types/campaign";
 import { POPUP_SPACING, SPACING_GUIDELINES } from "./spacing";
 
 // Import custom hooks
-import { usePopupAnimation } from "./hooks";
+import { usePopupAnimation, useColorScheme } from "./hooks";
 import { buildScopedCss } from "~/domains/storefront/shared/css";
+import { getBackgroundStyles } from "./utils";
+
+// Import shared components
+import { CTAButton } from "./components/shared";
 
 /**
  * AnnouncementConfig - Extends both design config AND campaign content type
@@ -50,19 +54,12 @@ export const AnnouncementPopup: React.FC<AnnouncementPopupProps> = ({
   // Use animation hook
   const { showContent } = usePopupAnimation({ isVisible });
 
-  const handleCtaClick = useCallback(() => {
-    if (onCtaClick) {
-      onCtaClick();
-    }
-
-    if (config.ctaUrl) {
-      if (config.ctaOpenInNewTab) {
-        window.open(config.ctaUrl, "_blank", "noopener,noreferrer");
-      } else {
-        window.location.href = config.ctaUrl;
-      }
-    }
-  }, [config, onCtaClick]);
+  // Use color scheme hook
+  const schemeColors = useColorScheme(config.colorScheme || "custom", {
+    backgroundColor: config.backgroundColor,
+    textColor: config.textColor,
+    accentColor: config.buttonColor,
+  });
 
   if (!isVisible) return null;
 
@@ -77,58 +74,8 @@ export const AnnouncementPopup: React.FC<AnnouncementPopupProps> = ({
     [config.customCSS, config.globalCustomCSS],
   );
 
-  // Color scheme presets
-  const getColorScheme = () => {
-    switch (config.colorScheme) {
-      case "info":
-        return {
-          backgroundColor: "#2563EB",
-          textColor: "#FFFFFF",
-          buttonColor: "#FFFFFF",
-          buttonTextColor: "#2563EB",
-        };
-      case "success":
-        return {
-          backgroundColor: "#059669",
-          textColor: "#FFFFFF",
-          buttonColor: "#FFFFFF",
-          buttonTextColor: "#059669",
-        };
-      case "urgent":
-        return {
-          backgroundColor: "#D97706",
-          textColor: "#FFFFFF",
-          buttonColor: "#FFFFFF",
-          buttonTextColor: "#D97706",
-        };
-
-      default:
-        return {
-          backgroundColor: config.backgroundColor,
-          textColor: config.textColor,
-          buttonColor: config.buttonColor,
-          buttonTextColor: config.buttonTextColor,
-        };
-    }
-  };
-
-  const colors = getColorScheme();
-
-  // Support both solid and gradient backgrounds. For gradient themes (e.g.
-  // "bold", "gradient"), backgroundColor will be a linear-gradient string,
-  // which must be applied via backgroundImage/background instead of
-  // backgroundColor.
-  const hasGradientBg =
-    typeof colors.backgroundColor === "string" && colors.backgroundColor.includes("gradient");
-
-  const bannerBackgroundStyles: React.CSSProperties = hasGradientBg
-    ? {
-        backgroundImage: colors.backgroundColor,
-        backgroundColor: "transparent",
-      }
-    : {
-        backgroundColor: colors.backgroundColor,
-      };
+  // Get background styles (handles gradients)
+  const bannerBackgroundStyles = getBackgroundStyles(schemeColors.backgroundColor);
 
   const bannerStyles: React.CSSProperties = {
     position: config.sticky ? "sticky" : "fixed",
@@ -136,7 +83,7 @@ export const AnnouncementPopup: React.FC<AnnouncementPopupProps> = ({
     left: 0,
     right: 0,
     ...bannerBackgroundStyles,
-    color: colors.textColor,
+    color: schemeColors.textColor,
     padding: "14px 20px",
     zIndex: 10000,
     boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
@@ -161,27 +108,12 @@ export const AnnouncementPopup: React.FC<AnnouncementPopupProps> = ({
     justifyContent: "center",
   };
 
-  const buttonStyles: React.CSSProperties = {
-    padding: POPUP_SPACING.component.buttonCompact,
-    fontSize: "14px",
-    fontWeight: 700,
-    border: "none",
-    borderRadius: `${config.borderRadius ?? 6}px`,
-    backgroundColor: colors.buttonColor,
-    color: colors.buttonTextColor,
-    cursor: "pointer",
-    whiteSpace: "nowrap",
-    transition: "all 0.2s",
-    textTransform: "uppercase",
-    letterSpacing: "0.05em",
-  };
-
   const dismissButtonStyles: React.CSSProperties = {
     padding: "0 4px",
     fontSize: "13px",
     border: "none",
     background: "transparent",
-    color: colors.textColor,
+    color: schemeColors.textColor,
     cursor: "pointer",
     textDecoration: "underline",
     whiteSpace: "nowrap",
@@ -194,7 +126,7 @@ export const AnnouncementPopup: React.FC<AnnouncementPopupProps> = ({
     right: 0,
     background: "transparent",
     border: "none",
-    color: colors.textColor,
+    color: schemeColors.textColor,
     fontSize: "24px",
     cursor: "pointer",
     padding: "0 8px",
@@ -202,8 +134,29 @@ export const AnnouncementPopup: React.FC<AnnouncementPopupProps> = ({
     lineHeight: 1,
   };
 
+  // Responsive CSS for dismiss/close button visibility
+  // Desktop & Tablet: Show "No Thanks" only
+  // Mobile: Show close button (×) only
+  const responsiveButtonCss = `
+    [data-rb-banner] .rb-dismiss-btn {
+      display: inline-block;
+    }
+    [data-rb-banner] .rb-close-btn {
+      display: none;
+    }
+    @media (max-width: 768px) {
+      [data-rb-banner] .rb-dismiss-btn {
+        display: none;
+      }
+      [data-rb-banner] .rb-close-btn {
+        display: block;
+      }
+    }
+  `;
+
   return (
     <div style={bannerStyles} data-rb-banner>
+      <style dangerouslySetInnerHTML={{ __html: responsiveButtonCss }} />
       {scopedCss ? <style dangerouslySetInnerHTML={{ __html: scopedCss }} /> : null}
       <div style={containerStyles}>
         <div style={contentStyles}>
@@ -224,19 +177,27 @@ export const AnnouncementPopup: React.FC<AnnouncementPopupProps> = ({
 
           {/* CTA button */}
           {(config.buttonText || config.ctaText) && (
-            <button
-              onClick={handleCtaClick}
-              style={buttonStyles}
-              onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.9")}
-              onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
-            >
-              {config.buttonText || config.ctaText}
-            </button>
+            <CTAButton
+              text={config.buttonText || config.ctaText || ""}
+              url={config.ctaUrl}
+              openInNewTab={config.ctaOpenInNewTab}
+              onClick={onCtaClick}
+              accentColor={config.buttonColor || schemeColors.textColor}
+              textColor={config.buttonTextColor || schemeColors.backgroundColor}
+              style={{
+                padding: POPUP_SPACING.component.buttonCompact,
+                fontSize: "14px",
+                textTransform: "uppercase",
+                letterSpacing: "0.05em",
+                borderRadius: `${config.borderRadius ?? 6}px`,
+              }}
+            />
           )}
 
-          {/* Dismiss text button */}
+          {/* Dismiss text button - Desktop & Tablet only */}
           <button
             type="button"
+            className="rb-dismiss-btn"
             onClick={onClose}
             style={dismissButtonStyles}
             onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
@@ -246,9 +207,10 @@ export const AnnouncementPopup: React.FC<AnnouncementPopupProps> = ({
           </button>
         </div>
 
-        {/* Close button */}
+        {/* Close button (×) - Mobile only */}
         {config.showCloseButton !== false && (
           <button
+            className="rb-close-btn"
             onClick={onClose}
             style={closeButtonStyles}
             aria-label="Close announcement"

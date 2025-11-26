@@ -53,12 +53,20 @@ export function AudienceTargetingPanel({
   onConfigChange,
   disabled = false,
 }: AudienceTargetingPanelProps) {
+  // Guard config changes when disabled (e.g., plan doesn't include advanced targeting)
   const updateConfig = useCallback(
     (updates: Partial<AudienceTargetingConfig>) => {
+      if (disabled) return; // Prevent state mutations when feature is locked
       onConfigChange({ ...config, ...updates });
     },
-    [config, onConfigChange]
+    [config, onConfigChange, disabled]
   );
+
+  // Detect if campaign has existing advanced targeting but it's disabled by plan (e.g., after downgrade)
+  const hasExistingAdvancedTargeting =
+    config.enabled ||
+    (config.shopifySegmentIds?.length ?? 0) > 0 ||
+    config.sessionRules?.enabled;
 
   // ---------------------------------------------------------------------------
   // Session Rules (anonymous / session-level audience logic)
@@ -213,6 +221,26 @@ export function AudienceTargetingPanel({
 
   return (
     <BlockStack gap="400">
+      {/* Upsell Banner when advanced targeting is disabled by plan */}
+      {disabled && (
+        <Banner tone="info">
+          <Text as="p" variant="bodySm">
+            Audience targeting (Shopify segments and session rules) is not available on your current
+            plan. Upgrade to precisely control who sees this campaign.
+          </Text>
+        </Banner>
+      )}
+
+      {/* Downgrade Warning: campaign has existing targeting but it's now locked */}
+      {disabled && hasExistingAdvancedTargeting && (
+        <Banner tone="warning">
+          <Text as="p" variant="bodySm">
+            This campaign has existing audience targeting configuration, but it is inactive on your
+            current plan. The targeting rules will be ignored until you upgrade.
+          </Text>
+        </Banner>
+      )}
+
       {/* Enable/Disable Toggle */}
       <Card>
         <BlockStack gap="400">
@@ -225,7 +253,7 @@ export function AudienceTargetingPanel({
             data-test-id="audience-targeting-enabled-checkbox"
           />
 
-          {config.enabled && (
+          {config.enabled && !disabled && (
             <Banner tone="info">
               <Text as="p" variant="bodySm">
                 Your campaign will only show to visitors who match your Shopify customer segments

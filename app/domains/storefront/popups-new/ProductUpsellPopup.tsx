@@ -1,16 +1,15 @@
 /**
- * ProductUpsellPopup Component - Enhanced Design
+ * ProductUpsellPopup Component - Enhanced Design v2
  *
  * A premium product upsell/cross-sell popup optimized for Shopify stores with:
- * - Modern, polished design with smooth animations
- * - Multiple product display (grid/carousel/card layouts)
- * - Enhanced product cards with hover effects
- * - Product images with zoom on hover
+ * - Mobile-first responsive design using container queries
+ * - Clean, uncluttered layout following e-commerce best practices
+ * - Two layout modes: Grid (default) and List
+ * - Touch-friendly interactions (48px+ tap targets)
  * - Multi-select capability with visual feedback
  * - Add to cart functionality with loading states
- * - Product ratings and reviews
+ * - Product ratings and reviews display
  * - Bundle discount display with savings calculator
- * - Responsive layouts
  * - Beautiful by default, fully customizable
  */
 
@@ -19,7 +18,7 @@ import { PopupPortal } from "./PopupPortal";
 import type { PopupDesignConfig, Product } from "./types";
 import type { ProductUpsellContent } from "~/domains/campaigns/types/campaign";
 import { formatCurrency, getSizeDimensions } from "./utils";
-import { POPUP_SPACING, getContainerPadding, SPACING_GUIDELINES } from "./spacing";
+import { PopupCloseButton } from "./components/shared";
 
 // Import custom hooks
 import { usePopupAnimation } from "./hooks";
@@ -66,8 +65,6 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
   // Component-specific state
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(false);
-  const [hoveredProduct, setHoveredProduct] = useState<string | null>(null);
-  const [currentSlide, setCurrentSlide] = useState(0);
 
   const products = useMemo(
     () => propProducts || config.products || [],
@@ -93,6 +90,8 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
       } else {
         setSelectedProducts(new Set([productId]));
       }
+      // Note: onProductClick is NOT called during selection
+      // It's only used if the popup needs explicit "view product" navigation
     },
     [config.multiSelect]
   );
@@ -193,539 +192,130 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
     return bundleSavings ? total - bundleSavings : total;
   }, [calculateTotal, calculateBundleSavings]);
 
-  // Keep scroll focus inside the upsell content when possible
-  const handleContentWheel = useCallback((event: React.WheelEvent<HTMLDivElement>) => {
-    const container = event.currentTarget;
-    const { scrollTop, scrollHeight, clientHeight } = container;
-    const deltaY = event.deltaY;
-
-    const atTop = scrollTop <= 0;
-    const atBottom = scrollTop + clientHeight >= scrollHeight - 1;
-
-    // If the content can still scroll in this direction, handle it here and
-    // stop the event from bubbling up to parent scroll containers (like
-    // the admin preview frame or page).
-    if ((deltaY < 0 && !atTop) || (deltaY > 0 && !atBottom)) {
-      event.stopPropagation();
-    }
-  }, []);
-
-  const handlePrevSlide = useCallback(() => {
-    if (displayProducts.length === 0) return;
-    setCurrentSlide((prev) => (prev - 1 + displayProducts.length) % displayProducts.length);
-  }, [displayProducts.length]);
-
-  const handleNextSlide = useCallback(() => {
-    if (displayProducts.length === 0) return;
-    setCurrentSlide((prev) => (prev + 1) % displayProducts.length);
-  }, [displayProducts.length]);
-
-  const handleGoToSlide = useCallback(
-    (index: number) => {
-      if (index < 0 || index >= displayProducts.length) return;
-      setCurrentSlide(index);
-    },
-    [displayProducts.length]
-  );
-
-  // Enhanced default colors and settings
+  // Design tokens
   const accentColor = config.accentColor || config.buttonColor || "#6366F1";
   const borderRadius =
     typeof config.borderRadius === "string"
       ? parseFloat(config.borderRadius) || 12
       : (config.borderRadius ?? 12);
-  const animDuration = config.animationDuration ?? 300;
-  const imageHeight =
-    config.imageAspectRatio === "portrait"
-      ? "280px"
-      : config.imageAspectRatio === "landscape"
-        ? "180px"
-        : "240px";
   const textColor = config.textColor || "#111827";
-  const secondaryColor = config.inputBackgroundColor || "#F3F4F6";
-  const borderColor = config.inputBorderColor || "rgba(148, 163, 184, 0.5)";
+  const secondaryBg = config.inputBackgroundColor || "#F9FAFB";
+  const borderColor = config.inputBorderColor || "#E5E7EB";
   const baseBackground = config.backgroundColor || "#FFFFFF";
-  const backgroundStyles: React.CSSProperties = baseBackground.startsWith("linear-gradient(")
-    ? { backgroundImage: baseBackground, backgroundColor: "transparent" }
-    : { backgroundColor: baseBackground };
 
-  const { width: sizeWidth, maxWidth: sizeMaxWidth } = getSizeDimensions(
-    config.size || "medium",
-    config.previewMode
-  );
+  const { maxWidth: sizeMaxWidth } = getSizeDimensions(config.size || "medium", config.previewMode);
 
-  const renderProduct = (product: Product, index: number) => {
+  // Render individual product card (grid layout)
+  const renderProductCard = (product: Product, index: number) => {
     const isSelected = selectedProducts.has(product.id);
-    const isHovered = hoveredProduct === product.id;
-
-    const cardStyles: React.CSSProperties = {
-      border: `2px solid ${isSelected ? accentColor : config.inputBorderColor || "#E5E7EB"}`,
-      borderRadius: `${borderRadius}px`,
-      padding: "0",
-      cursor: "pointer",
-      transition: `all ${animDuration}ms cubic-bezier(0.4, 0, 0.2, 1)`,
-      ...backgroundStyles,
-      boxShadow: isSelected
-        ? `0 8px 24px ${accentColor}30, 0 0 0 3px ${accentColor}15`
-        : isHovered
-          ? "0 8px 24px rgba(0,0,0,0.12)"
-          : "0 2px 8px rgba(0,0,0,0.08)",
-      transform: isSelected ? "scale(1.02)" : isHovered ? "translateY(-4px)" : "translateY(0)",
-      overflow: "hidden",
-      opacity: showContent ? 1 : 0,
-      animation: showContent ? `fadeInUp 0.5s ease-out ${index * 0.1}s both` : "none",
-      position: "relative",
-    };
+    const savingsPercent = getSavingsPercent(product);
 
     return (
       <div
         key={product.id}
-        style={cardStyles}
-        onClick={() => {
-          handleProductSelect(product.id);
-          if (onProductClick) {
-            onProductClick(product);
-          }
-        }}
-        onMouseEnter={() => setHoveredProduct(product.id)}
-        onMouseLeave={() => setHoveredProduct(null)}
+        className={`upsell-product-card ${isSelected ? "upsell-product-card--selected" : ""}`}
+        onClick={() => handleProductSelect(product.id)}
+        style={{ animationDelay: `${index * 0.05}s` }}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => e.key === "Enter" && handleProductSelect(product.id)}
+        aria-pressed={isSelected}
       >
-        {/* Selection checkmark badge */}
+        {/* Selection badge */}
         {isSelected && (
-          <div
-            style={{
-              position: "absolute",
-              top: "12px",
-              right: "12px",
-              width: "32px",
-              height: "32px",
-              borderRadius: "50%",
-              backgroundColor: accentColor,
-              color: "#FFFFFF",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: "16px",
-              fontWeight: 700,
-              zIndex: 10,
-              boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
-              animation: "bounceIn 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55)",
-            }}
-          >
-            ✓
+          <div className="upsell-product-badge">
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="3"
+            >
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
           </div>
+        )}
+
+        {/* Savings badge */}
+        {savingsPercent !== null && (
+          <div className="upsell-product-savings">-{savingsPercent}%</div>
         )}
 
         {/* Product image */}
         {config.showImages !== false && product.imageUrl && (
-          <div
-            style={{
-              width: "100%",
-              height: imageHeight,
-              overflow: "hidden",
-              position: "relative",
-              backgroundColor: "#F9FAFB",
-            }}
-          >
-            <img
-              src={product.imageUrl}
-              alt={product.title}
-              style={{
-                width: "100%",
-                height: "100%",
-                objectFit: "cover",
-                transition: `transform ${animDuration}ms ease-out`,
-                transform: isHovered ? "scale(1.08)" : "scale(1)",
-              }}
-            />
-            {/* Overlay on hover */}
-            {isHovered && !isSelected && (
-              <div
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  backgroundColor: "rgba(0,0,0,0.05)",
-                  transition: `opacity ${animDuration}ms`,
-                }}
-              />
-            )}
+          <div className="upsell-product-image">
+            <img src={product.imageUrl} alt={product.title} loading="lazy" />
           </div>
         )}
 
-        {/* Product details */}
-        <div style={{ padding: "16px" }}>
-          {/* Product title */}
-          <h3
-            style={{
-              fontSize: "16px",
-              fontWeight: 700,
-              margin: "0 0 8px 0",
-              lineHeight: 1.4,
-              color: config.textColor || "#111827",
-              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-            }}
-          >
-            {product.title}
-          </h3>
+        {/* Product info */}
+        <div className="upsell-product-info">
+          <h3 className="upsell-product-title">{product.title}</h3>
 
           {/* Rating */}
           {config.showRatings && product.rating && (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "6px",
-                marginBottom: "10px",
-              }}
-            >
-              <div style={{ color: "#F59E0B", fontSize: "14px", lineHeight: 1 }}>
+            <div className="upsell-product-rating">
+              <span className="upsell-rating-stars">
                 {"★".repeat(Math.floor(product.rating))}
                 {"☆".repeat(5 - Math.floor(product.rating))}
-              </div>
+              </span>
               {config.showReviewCount && product.reviewCount && (
-                <span
-                  style={{
-                    fontSize: "13px",
-                    color: config.textColor || "#6B7280",
-                    fontWeight: 500,
-                  }}
-                >
-                  ({product.reviewCount})
-                </span>
+                <span className="upsell-rating-count">({product.reviewCount})</span>
               )}
             </div>
           )}
 
           {/* Price */}
           {config.showPrices !== false && (
-            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "12px" }}>
-              <span
-                style={{
-                  fontSize: "20px",
-                  fontWeight: 800,
-                  color: config.textColor || "#111827",
-                  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                }}
-              >
+            <div className="upsell-product-price">
+              <span className="upsell-price-current">
                 {formatCurrency(product.price, config.currency)}
               </span>
               {config.showCompareAtPrice && product.compareAtPrice && (
-                <>
-                  <span
-                    style={{
-                      fontSize: "15px",
-                      textDecoration: "line-through",
-                      color: config.textColor || "#9CA3AF",
-                      fontWeight: 500,
-                    }}
-                  >
-                    {formatCurrency(product.compareAtPrice, config.currency)}
-                  </span>
-                  {getSavingsPercent(product) !== null && (
-                    <span
-                      style={{
-                        fontSize: "12px",
-                        fontWeight: 700,
-                        color: config.buttonTextColor || "#FFFFFF",
-                        backgroundColor: config.accentColor || config.buttonColor || "#EF4444",
-                        padding: "2px 8px",
-                        borderRadius: "4px",
-                      }}
-                    >
-                      SAVE {getSavingsPercent(product)}%
-                    </span>
-                  )}
-                </>
+                <span className="upsell-price-compare">
+                  {formatCurrency(product.compareAtPrice, config.currency)}
+                </span>
               )}
             </div>
           )}
 
-          {/* Selection button */}
-          <div
-            style={{
-              marginTop: "14px",
-              padding: "10px 16px",
-              backgroundColor: isSelected ? accentColor : config.inputBackgroundColor || "#F3F4F6",
-              color: isSelected ? "#FFFFFF" : config.textColor || "#374151",
-              borderRadius: `${borderRadius - 4}px`,
-              fontSize: "14px",
-              fontWeight: 700,
-              textAlign: "center",
-              transition: `all ${animDuration}ms`,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "6px",
-            }}
+          {/* Select button */}
+          <button
+            type="button"
+            className={`upsell-product-select ${isSelected ? "upsell-product-select--selected" : ""}`}
           >
             {isSelected ? (
               <>
-                <span>✓</span> Selected
+                <span className="upsell-select-icon">✓</span> Selected
               </>
             ) : (
               <>
-                {config.showAddIcon !== false && <span>+</span>}
-                {config.multiSelect ? "Add to Bundle" : "Select"}
+                <span className="upsell-select-icon">+</span>{" "}
+                {config.multiSelect ? "Add" : "Select"}
               </>
             )}
-          </div>
+          </button>
         </div>
       </div>
     );
   };
 
-  const getGridStyles = (): React.CSSProperties => {
-    return {
-      display: "grid",
-      gap: "16px",
-      marginBottom: "24px",
-    };
-  };
-
+  // Render products section based on layout
   const renderProductsSection = (): React.ReactNode => {
     if (displayProducts.length === 0) {
       return (
-        <div
-          style={{
-            padding: "40px 20px",
-            textAlign: "center",
-            color: config.textColor || "#9CA3AF",
-          }}
-        >
-          <div style={{ fontSize: "48px", marginBottom: "16px" }}>📦</div>
+        <div className="upsell-empty">
+          <span className="upsell-empty-icon">📦</span>
           <p>No products available</p>
         </div>
       );
     }
 
-    if (config.layout === "carousel") {
-      const product = displayProducts[Math.min(currentSlide, displayProducts.length - 1)];
-      const isSelected = selectedProducts.has(product.id);
-      const savingsPercent = getSavingsPercent(product);
-
-      return (
-        <div
-          className="upsell-carousel-container"
-          style={{
-            position: "relative",
-          }}
-        >
-          {/* Previous button */}
-          <button
-            type="button"
-            onClick={handlePrevSlide}
-            aria-label="Previous product"
-            style={{
-              borderRadius: "9999px",
-              border: `1px solid ${config.inputBorderColor || "#E5E7EB"}`,
-              backgroundColor: config.inputBackgroundColor || "#F3F4F6",
-              width: 40,
-              height: 40,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              cursor: "pointer",
-            }}
-          >
-            <span style={{ fontSize: 18 }}>‹</span>
-          </button>
-
-          {/* Main carousel product */}
-          <div
-            className="upsell-carousel-product"
-            style={{
-              width: "100%",
-              maxWidth: 720,
-            }}
-          >
-            {config.showImages !== false && product.imageUrl && (
-              <div
-                style={{
-                  flex: 1,
-                  maxWidth: 280,
-                  aspectRatio: "1 / 1",
-                  borderRadius: 16,
-                  overflow: "hidden",
-                  position: "relative",
-                  backgroundColor: "#F9FAFB",
-                }}
-              >
-                <img
-                  src={product.imageUrl}
-                  alt={product.title}
-                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                />
-                {savingsPercent !== null && (
-                  <div
-                    style={{
-                      position: "absolute",
-                      top: 12,
-                      left: 12,
-                      padding: "4px 10px",
-                      borderRadius: 9999,
-                      backgroundColor: config.accentColor || config.buttonColor || "#22C55E",
-                      color: "#FFFFFF",
-                      fontSize: 12,
-                      fontWeight: 700,
-                    }}
-                  >
-                    SAVE {savingsPercent}%
-                  </div>
-                )}
-              </div>
-            )}
-
-            <div
-              style={{
-                flex: 1,
-                display: "flex",
-                flexDirection: "column",
-                gap: 12,
-              }}
-            >
-              <h3
-                style={{
-                  fontSize: 20,
-                  fontWeight: 700,
-                  margin: 0,
-                  color: config.textColor || "#111827",
-                }}
-              >
-                {product.title}
-              </h3>
-
-              {config.showRatings && product.rating && (
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <div style={{ color: "#F59E0B", fontSize: 14 }}>
-                    {"★".repeat(Math.floor(product.rating))}
-                    {"☆".repeat(5 - Math.floor(product.rating))}
-                  </div>
-                  {config.showReviewCount && product.reviewCount && (
-                    <span
-                      style={{
-                        fontSize: 13,
-                        color: config.textColor || "#6B7280",
-                      }}
-                    >
-                      ({product.reviewCount})
-                    </span>
-                  )}
-                </div>
-              )}
-
-              {config.showPrices !== false && (
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <span
-                    style={{
-                      fontSize: 22,
-                      fontWeight: 800,
-                      color: config.textColor || "#111827",
-                    }}
-                  >
-                    {formatCurrency(product.price, config.currency)}
-                  </span>
-                  {config.showCompareAtPrice && product.compareAtPrice && (
-                    <span
-                      style={{
-                        fontSize: 14,
-                        textDecoration: "line-through",
-                        color: config.textColor || "#9CA3AF",
-                      }}
-                    >
-                      {formatCurrency(product.compareAtPrice, config.currency)}
-                    </span>
-                  )}
-                </div>
-              )}
-
-              <button
-                type="button"
-                onClick={() => handleProductSelect(product.id)}
-                style={{
-                  marginTop: 8,
-                  padding: "10px 18px",
-                  borderRadius: 9999,
-                  border: `2px solid ${accentColor}`,
-                  backgroundColor: isSelected ? accentColor : "transparent",
-                  color: isSelected ? "#FFFFFF" : accentColor,
-                  fontSize: 14,
-                  fontWeight: 600,
-                  cursor: "pointer",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 8,
-                }}
-              >
-                {isSelected ? "Selected" : "Select Product"}
-              </button>
-            </div>
-          </div>
-
-          {/* Next button */}
-          <button
-            type="button"
-            onClick={handleNextSlide}
-            aria-label="Next product"
-            style={{
-              borderRadius: "9999px",
-              border: `1px solid ${config.inputBorderColor || "#E5E7EB"}`,
-              backgroundColor: config.inputBackgroundColor || "#F3F4F6",
-              width: 40,
-              height: 40,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              cursor: "pointer",
-            }}
-          >
-            <span style={{ fontSize: 18 }}>›</span>
-          </button>
-
-          {/* Dots */}
-          <div
-            style={{
-              position: "absolute",
-              bottom: 8,
-              left: "50%",
-              transform: "translateX(-50%)",
-              display: "flex",
-              gap: 6,
-            }}
-          >
-            {displayProducts.map((p, index) => (
-              <button
-                // eslint-disable-next-line react/no-array-index-key
-                key={index}
-                type="button"
-                onClick={() => handleGoToSlide(index)}
-                style={{
-                  width: index === currentSlide ? 18 : 8,
-                  height: 8,
-                  borderRadius: 9999,
-                  border: "none",
-                  padding: 0,
-                  cursor: "pointer",
-                  backgroundColor:
-                    index === currentSlide ? accentColor : config.inputBorderColor || "#E5E7EB",
-                }}
-              />
-            ))}
-          </div>
-        </div>
-      );
-    }
-
+    // Card/List layout
     if (config.layout === "card") {
       return (
-        <div
-          className="upsell-cards-container"
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 16,
-            marginBottom: 24,
-          }}
-        >
+        <div className="upsell-list">
           {displayProducts.map((product) => {
             const isSelected = selectedProducts.has(product.id);
             const savingsPercent = getSavingsPercent(product);
@@ -733,108 +323,43 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
             return (
               <div
                 key={product.id}
-                className="upsell-card"
-                style={{
-                  display: "flex",
-                  gap: 16,
-                  alignItems: "center",
-                  border: `2px solid ${
-                    isSelected ? accentColor : config.inputBorderColor || "#E5E7EB"
-                  }`,
-                  borderRadius: borderRadius,
-                  padding: "12px 16px",
-                  ...backgroundStyles,
-                }}
+                className={`upsell-list-item ${isSelected ? "upsell-list-item--selected" : ""}`}
+                onClick={() => handleProductSelect(product.id)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => e.key === "Enter" && handleProductSelect(product.id)}
               >
                 {config.showImages !== false && product.imageUrl && (
-                  <div
-                    className="upsell-card-image-wrapper"
-                    style={{
-                      width: 96,
-                      height: 96,
-                      borderRadius: 12,
-                      overflow: "hidden",
-                      position: "relative",
-                      backgroundColor: "#F9FAFB",
-                      flexShrink: 0,
-                    }}
-                  >
-                    <img
-                      src={product.imageUrl}
-                      alt={product.title}
-                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                    />
+                  <div className="upsell-list-image">
+                    <img src={product.imageUrl} alt={product.title} />
                     {savingsPercent !== null && (
-                      <div
-                        style={{
-                          position: "absolute",
-                          top: 8,
-                          left: 8,
-                          padding: "2px 8px",
-                          borderRadius: 9999,
-                          backgroundColor: config.accentColor || config.buttonColor || "#22C55E",
-                          color: "#FFFFFF",
-                          fontSize: 11,
-                          fontWeight: 700,
-                        }}
-                      >
-                        SAVE {savingsPercent}%
-                      </div>
+                      <span className="upsell-list-savings">-{savingsPercent}%</span>
                     )}
                   </div>
                 )}
 
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <h3
-                    style={{
-                      fontSize: 16,
-                      fontWeight: 600,
-                      margin: 0,
-                      marginBottom: 4,
-                      color: config.textColor || "#111827",
-                    }}
-                  >
-                    {product.title}
-                  </h3>
+                <div className="upsell-list-info">
+                  <h3 className="upsell-list-title">{product.title}</h3>
 
                   {config.showRatings && product.rating && (
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                      <div style={{ color: "#F59E0B", fontSize: 14 }}>
+                    <div className="upsell-list-rating">
+                      <span className="upsell-rating-stars">
                         {"★".repeat(Math.floor(product.rating))}
                         {"☆".repeat(5 - Math.floor(product.rating))}
-                      </div>
+                      </span>
                       {config.showReviewCount && product.reviewCount && (
-                        <span
-                          style={{
-                            fontSize: 13,
-                            color: config.textColor || "#6B7280",
-                          }}
-                        >
-                          ({product.reviewCount})
-                        </span>
+                        <span className="upsell-rating-count">({product.reviewCount})</span>
                       )}
                     </div>
                   )}
 
                   {config.showPrices !== false && (
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span
-                        style={{
-                          fontSize: 18,
-                          fontWeight: 700,
-                          color: config.textColor || "#111827",
-                        }}
-                      >
+                    <div className="upsell-list-price">
+                      <span className="upsell-price-current">
                         {formatCurrency(product.price, config.currency)}
                       </span>
                       {config.showCompareAtPrice && product.compareAtPrice && (
-                        <span
-                          style={{
-                            fontSize: 14,
-                            textDecoration: "line-through",
-                            color: config.textColor || "#9CA3AF",
-                          }}
-                        >
+                        <span className="upsell-price-compare">
                           {formatCurrency(product.compareAtPrice, config.currency)}
                         </span>
                       )}
@@ -844,23 +369,13 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
 
                 <button
                   type="button"
-                  className="upsell-card-action-btn"
-                  onClick={() => handleProductSelect(product.id)}
-                  style={{
-                    padding: "10px 16px",
-                    borderRadius: 9999,
-                    border: `2px solid ${accentColor}`,
-                    backgroundColor: isSelected ? accentColor : "transparent",
-                    color: isSelected ? "#FFFFFF" : accentColor,
-                    fontSize: 14,
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 8,
+                  className={`upsell-list-action ${isSelected ? "upsell-list-action--selected" : ""}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleProductSelect(product.id);
                   }}
                 >
-                  {isSelected ? "Added" : "Add"}
+                  {isSelected ? "✓" : "+"}
                 </button>
               </div>
             );
@@ -872,111 +387,613 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
     // Default grid layout
     return (
       <div
-        className="upsell-products-grid"
-        style={
-          {
-            ...getGridStyles(),
-            // Use CSS variable for configured columns (don't limit by product count)
-            "--upsell-columns": config.columns || 2,
-          } as React.CSSProperties
-        }
+        className="upsell-grid"
+        style={{ "--upsell-columns": config.columns || 2 } as React.CSSProperties}
       >
-        {displayProducts.map((product, index) => renderProduct(product, index))}
+        {displayProducts.map((product, index) => renderProductCard(product, index))}
       </div>
     );
   };
 
-  const buttonStyles: React.CSSProperties = {
-    flex: 1,
-    padding: "10px 14px",
-    fontSize: "14px",
-    fontWeight: 700,
-    border: "none",
-    borderRadius: `${borderRadius}px`,
-    backgroundColor: config.buttonColor || "#6366F1",
-    color: config.buttonTextColor || "#FFFFFF",
-    cursor: selectedProducts.size === 0 || isLoading ? "not-allowed" : "pointer",
-    opacity: selectedProducts.size === 0 || isLoading ? 0.5 : 1,
-    transition: `all ${animDuration}ms cubic-bezier(0.4, 0, 0.2, 1)`,
-    boxShadow:
-      selectedProducts.size > 0 && !isLoading ? "0 4px 12px rgba(99, 102, 241, 0.3)" : "none",
-    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: "8px",
-  };
-
-  const savings = calculateTotalSavings();
-  const total = calculateTotal();
+  // Calculate values for summary
+  const totalSavings = calculateTotalSavings();
   const discountedTotal = calculateDiscountedTotal();
 
-  const popupConfig = {
-    ...config,
-    padding: 0,
-    maxWidth: config.maxWidth || sizeMaxWidth || "56rem",
-  };
+  const popupMaxWidth = config.maxWidth || sizeMaxWidth || "56rem";
 
-  // Auto-close timer (migrated from BasePopup)
+  // Auto-close timer
   useEffect(() => {
-    if (!isVisible || !popupConfig.autoCloseDelay || popupConfig.autoCloseDelay <= 0) return;
-
-    const timer = setTimeout(onClose, popupConfig.autoCloseDelay * 1000);
+    if (!isVisible || !config.autoCloseDelay || config.autoCloseDelay <= 0) return;
+    const timer = setTimeout(onClose, config.autoCloseDelay * 1000);
     return () => clearTimeout(timer);
-  }, [isVisible, popupConfig.autoCloseDelay, onClose]);
+  }, [isVisible, config.autoCloseDelay, onClose]);
 
   if (!isVisible) return null;
+
+  // Get CTA button label
+  const getCtaLabel = () => {
+    const count = selectedProducts.size;
+    const baseLabel = config.buttonText || config.ctaText;
+
+    if (baseLabel) {
+      return baseLabel.includes("{count}")
+        ? baseLabel.replace("{count}", String(count || 0))
+        : baseLabel;
+    }
+
+    return count > 0 ? `Add ${count} to Cart` : "Select Products";
+  };
 
   return (
     <PopupPortal
       isVisible={isVisible}
       onClose={onClose}
       backdrop={{
-        color: popupConfig.overlayColor || "rgba(0, 0, 0, 1)",
-        opacity: popupConfig.overlayOpacity ?? 0.6,
+        color: config.overlayColor || "rgba(0, 0, 0, 0.6)",
+        opacity: config.overlayOpacity ?? 0.6,
         blur: 4,
       }}
-      animation={{
-        type: popupConfig.animation || "fade",
-      }}
-      position={popupConfig.position || "center"}
-      closeOnEscape={popupConfig.closeOnEscape !== false}
-      closeOnBackdropClick={popupConfig.closeOnOverlayClick !== false}
-      previewMode={popupConfig.previewMode}
-      ariaLabel={popupConfig.ariaLabel || popupConfig.headline}
-      ariaDescribedBy={popupConfig.ariaDescribedBy}
-      customCSS={popupConfig.customCSS}
-      globalCustomCSS={popupConfig.globalCustomCSS}
+      animation={{ type: config.animation || "fade" }}
+      position={config.position || "center"}
+      closeOnEscape={config.closeOnEscape !== false}
+      closeOnBackdropClick={config.closeOnOverlayClick !== false}
+      previewMode={config.previewMode}
+      showBranding={config.showBranding}
+      ariaLabel={config.ariaLabel || config.headline}
+      ariaDescribedBy={config.ariaDescribedBy}
+      customCSS={config.customCSS}
+      globalCustomCSS={config.globalCustomCSS}
     >
-      <div
-        className="upsell-container"
-        data-splitpop="true"
-        data-template="product-upsell"
-        style={
-          {
-            display: "flex",
-            flexDirection: "column",
-            gap: 0,
-            opacity: showContent ? 1 : 0,
-            transform: showContent ? "translateY(0)" : "translateY(10px)",
-            transition: `all ${animDuration}ms cubic-bezier(0.4, 0, 0.2, 1)`,
-            ...backgroundStyles,
-            borderRadius: `${borderRadius}px`,
-            // Expose design tokens as CSS variables so css can mirror the mock precisely
-            "--upsell-bg": baseBackground,
-            "--upsell-text": textColor,
-            "--upsell-primary": accentColor,
-            "--upsell-secondary": secondaryColor,
-            "--upsell-accent": accentColor,
-            "--upsell-border": borderColor,
-            "--upsell-success": config.successColor || accentColor || "#10B981",
-            "--upsell-badge": accentColor,
-          } as React.CSSProperties
+      <style>{`
+        /* ===== BASE CONTAINER ===== */
+        .upsell-popup {
+          position: relative;
+          width: 100%;
+          max-width: ${popupMaxWidth};
+          margin: 0 auto;
+          border-radius: ${borderRadius}px;
+          overflow: hidden;
+          background: ${baseBackground};
+          color: ${textColor};
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+          display: flex;
+          flex-direction: column;
+          max-height: 90%;
+          container-type: inline-size;
+          container-name: upsell;
+
+          /* CSS Custom Properties for theming */
+          --upsell-accent: ${accentColor};
+          --upsell-text: ${textColor};
+          --upsell-text-muted: ${config.descriptionColor || "#6B7280"};
+          --upsell-bg: ${baseBackground};
+          --upsell-bg-secondary: ${secondaryBg};
+          --upsell-border: ${borderColor};
+          --upsell-radius: ${borderRadius}px;
+          --upsell-success: ${config.successColor || "#10B981"};
         }
-      >
+
+        /* ===== CLOSE BUTTON ===== */
+        .upsell-close {
+          position: absolute;
+          top: 0.75rem;
+          right: 0.75rem;
+          z-index: 10;
+          width: 2rem;
+          height: 2rem;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 50%;
+          background: rgba(0, 0, 0, 0.05);
+          border: none;
+          cursor: pointer;
+          color: var(--upsell-text-muted);
+          transition: background 0.2s, color 0.2s;
+        }
+        .upsell-close:hover {
+          background: rgba(0, 0, 0, 0.1);
+          color: var(--upsell-text);
+        }
+
+        /* ===== HEADER ===== */
+        .upsell-header {
+          padding: 1.5rem 2rem 1rem;
+          text-align: center;
+          flex-shrink: 0;
+        }
+        .upsell-headline {
+          font-size: 1.5rem;
+          font-weight: 800;
+          line-height: 1.2;
+          margin: 0 0 0.5rem;
+          color: var(--upsell-text);
+        }
+        .upsell-subheadline {
+          font-size: 0.9375rem;
+          line-height: 1.5;
+          color: var(--upsell-text-muted);
+          margin: 0;
+        }
+
+        /* ===== BUNDLE BANNER ===== */
+        .upsell-bundle-banner {
+          background: var(--upsell-accent);
+          color: #fff;
+          padding: 0.625rem 1rem;
+          text-align: center;
+          font-size: 0.8125rem;
+          font-weight: 600;
+          flex-shrink: 0;
+        }
+
+        /* ===== CONTENT AREA ===== */
+        .upsell-content {
+          flex: 1;
+          overflow-y: auto;
+          padding: 1rem 1.5rem;
+          min-height: 0;
+        }
+
+        /* ===== EMPTY STATE ===== */
+        .upsell-empty {
+          padding: 2.5rem 1rem;
+          text-align: center;
+          color: var(--upsell-text-muted);
+        }
+        .upsell-empty-icon {
+          font-size: 3rem;
+          display: block;
+          margin-bottom: 0.75rem;
+        }
+
+        /* ===== GRID LAYOUT ===== */
+        .upsell-grid {
+          display: grid;
+          grid-template-columns: repeat(var(--upsell-columns, 2), 1fr);
+          gap: 1rem;
+        }
+
+        /* Product Card */
+        .upsell-product-card {
+          position: relative;
+          border: 2px solid var(--upsell-border);
+          border-radius: calc(var(--upsell-radius) - 2px);
+          background: var(--upsell-bg);
+          overflow: hidden;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          animation: fadeInUp 0.3s ease-out backwards;
+        }
+        .upsell-product-card:hover {
+          border-color: var(--upsell-accent);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+        .upsell-product-card--selected {
+          border-color: var(--upsell-accent);
+          box-shadow: 0 0 0 3px color-mix(in srgb, var(--upsell-accent) 20%, transparent);
+        }
+
+        .upsell-product-badge {
+          position: absolute;
+          top: 0.5rem;
+          right: 0.5rem;
+          z-index: 5;
+          width: 1.75rem;
+          height: 1.75rem;
+          border-radius: 50%;
+          background: var(--upsell-accent);
+          color: #fff;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          animation: bounceIn 0.3s ease;
+        }
+
+        .upsell-product-savings {
+          position: absolute;
+          top: 0.5rem;
+          left: 0.5rem;
+          z-index: 5;
+          padding: 0.25rem 0.5rem;
+          border-radius: 4px;
+          background: #EF4444;
+          color: #fff;
+          font-size: 0.6875rem;
+          font-weight: 700;
+        }
+
+        .upsell-product-image {
+          aspect-ratio: 1;
+          background: var(--upsell-bg-secondary);
+          overflow: hidden;
+        }
+        .upsell-product-image img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          transition: transform 0.3s ease;
+        }
+        .upsell-product-card:hover .upsell-product-image img {
+          transform: scale(1.05);
+        }
+
+        .upsell-product-info {
+          padding: 0.875rem;
+        }
+
+        .upsell-product-title {
+          font-size: 0.875rem;
+          font-weight: 600;
+          line-height: 1.3;
+          margin: 0 0 0.375rem;
+          color: var(--upsell-text);
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+        }
+
+        .upsell-product-rating,
+        .upsell-carousel-rating,
+        .upsell-list-rating {
+          display: flex;
+          align-items: center;
+          gap: 0.375rem;
+          margin-bottom: 0.375rem;
+        }
+        .upsell-rating-stars {
+          color: #F59E0B;
+          font-size: 0.75rem;
+          line-height: 1;
+        }
+        .upsell-rating-count {
+          font-size: 0.6875rem;
+          color: var(--upsell-text-muted);
+        }
+
+        .upsell-product-price,
+        .upsell-carousel-price,
+        .upsell-list-price {
+          display: flex;
+          align-items: baseline;
+          gap: 0.375rem;
+          flex-wrap: wrap;
+        }
+        .upsell-price-current {
+          font-size: 1rem;
+          font-weight: 700;
+          color: var(--upsell-text);
+        }
+        .upsell-price-compare {
+          font-size: 0.8125rem;
+          color: var(--upsell-text-muted);
+          text-decoration: line-through;
+        }
+
+        .upsell-product-select {
+          width: 100%;
+          margin-top: 0.75rem;
+          padding: 0.625rem 0.75rem;
+          border: none;
+          border-radius: calc(var(--upsell-radius) - 4px);
+          background: var(--upsell-bg-secondary);
+          color: var(--upsell-text);
+          font-size: 0.8125rem;
+          font-weight: 600;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.375rem;
+          transition: all 0.2s ease;
+        }
+        .upsell-product-select--selected {
+          background: var(--upsell-accent);
+          color: #fff;
+        }
+        .upsell-select-icon {
+          font-size: 1rem;
+        }
+
+        /* ===== LIST LAYOUT ===== */
+        .upsell-list {
+          display: flex;
+          flex-direction: column;
+          gap: 0.75rem;
+        }
+
+        .upsell-list-item {
+          display: flex;
+          align-items: center;
+          gap: 0.875rem;
+          padding: 0.75rem;
+          border: 2px solid var(--upsell-border);
+          border-radius: calc(var(--upsell-radius) - 2px);
+          background: var(--upsell-bg);
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+        .upsell-list-item:hover {
+          border-color: var(--upsell-accent);
+        }
+        .upsell-list-item--selected {
+          border-color: var(--upsell-accent);
+          background: color-mix(in srgb, var(--upsell-accent) 5%, var(--upsell-bg));
+        }
+
+        .upsell-list-image {
+          position: relative;
+          flex-shrink: 0;
+          width: 4.5rem;
+          height: 4.5rem;
+          border-radius: 0.5rem;
+          overflow: hidden;
+          background: var(--upsell-bg-secondary);
+        }
+        .upsell-list-image img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+        .upsell-list-savings {
+          position: absolute;
+          top: 0.25rem;
+          left: 0.25rem;
+          padding: 0.125rem 0.375rem;
+          border-radius: 3px;
+          background: #EF4444;
+          color: #fff;
+          font-size: 0.5625rem;
+          font-weight: 700;
+        }
+
+        .upsell-list-info {
+          flex: 1;
+          min-width: 0;
+        }
+        .upsell-list-title {
+          font-size: 0.9375rem;
+          font-weight: 600;
+          margin: 0 0 0.25rem;
+          color: var(--upsell-text);
+        }
+        .upsell-list-price {
+          margin-top: 0.25rem;
+        }
+
+        .upsell-list-action {
+          flex-shrink: 0;
+          width: 2.5rem;
+          height: 2.5rem;
+          border-radius: 50%;
+          border: 2px solid var(--upsell-accent);
+          background: transparent;
+          color: var(--upsell-accent);
+          font-size: 1.125rem;
+          font-weight: 600;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.2s ease;
+        }
+        .upsell-list-action--selected {
+          background: var(--upsell-accent);
+          color: #fff;
+        }
+
+        /* ===== FOOTER ===== */
+        .upsell-footer {
+          border-top: 1px solid var(--upsell-border);
+          padding: 1rem 1.5rem;
+          background: var(--upsell-bg-secondary);
+          flex-shrink: 0;
+        }
+
+        .upsell-summary {
+          margin-bottom: 0.875rem;
+        }
+        .upsell-summary-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          font-size: 0.8125rem;
+          color: var(--upsell-text);
+        }
+        .upsell-summary-row + .upsell-summary-row {
+          margin-top: 0.25rem;
+        }
+        .upsell-summary-label {
+          color: var(--upsell-text-muted);
+        }
+        .upsell-summary-original {
+          text-decoration: line-through;
+          opacity: 0.6;
+        }
+        .upsell-summary-total {
+          font-size: 1rem;
+          font-weight: 700;
+          padding-top: 0.5rem;
+          margin-top: 0.5rem;
+          border-top: 1px solid var(--upsell-border);
+        }
+        .upsell-summary-savings {
+          color: var(--upsell-success);
+          font-weight: 600;
+        }
+
+        .upsell-actions {
+          display: flex;
+          gap: 0.75rem;
+        }
+
+        .upsell-cta {
+          flex: 1;
+          padding: 0.875rem 1rem;
+          border: none;
+          border-radius: calc(var(--upsell-radius) - 2px);
+          background: var(--upsell-accent);
+          color: #fff;
+          font-size: 0.9375rem;
+          font-weight: 700;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.5rem;
+          transition: all 0.2s ease;
+        }
+        .upsell-cta:hover:not(:disabled) {
+          filter: brightness(1.1);
+          transform: translateY(-1px);
+        }
+        .upsell-cta:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+        .upsell-cta-icon {
+          font-size: 1.125rem;
+        }
+        .upsell-cta-spinner {
+          width: 1rem;
+          height: 1rem;
+          border: 2px solid rgba(255,255,255,0.3);
+          border-top-color: #fff;
+          border-radius: 50%;
+          animation: spin 0.8s linear infinite;
+        }
+
+        .upsell-dismiss {
+          flex: 1;
+          padding: 0.875rem 1rem;
+          border: 2px solid var(--upsell-border);
+          border-radius: calc(var(--upsell-radius) - 2px);
+          background: transparent;
+          color: var(--upsell-text-muted);
+          font-size: 0.9375rem;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+        .upsell-dismiss:hover {
+          background: var(--upsell-bg-secondary);
+          color: var(--upsell-text);
+        }
+
+        /* ===== ANIMATIONS ===== */
+        @keyframes fadeInUp {
+          from {
+            opacity: 0;
+            transform: translateY(10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        @keyframes bounceIn {
+          0% { transform: scale(0); }
+          50% { transform: scale(1.2); }
+          100% { transform: scale(1); }
+        }
+
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+
+        /* ===== RESPONSIVE - CONTAINER QUERIES ===== */
+        @container upsell (max-width: 540px) {
+          .upsell-header {
+            padding: 1.25rem 1rem 0.75rem;
+          }
+          .upsell-headline {
+            font-size: 1.25rem;
+          }
+          .upsell-subheadline {
+            font-size: 0.8125rem;
+          }
+
+          .upsell-content {
+            padding: 0.875rem 1rem;
+          }
+
+          .upsell-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.75rem;
+          }
+
+          .upsell-product-info {
+            padding: 0.625rem;
+          }
+          .upsell-product-title {
+            font-size: 0.8125rem;
+          }
+          .upsell-price-current {
+            font-size: 0.9375rem;
+          }
+          .upsell-product-select {
+            padding: 0.5rem;
+            font-size: 0.75rem;
+          }
+
+          /* List mobile */
+          .upsell-list-item {
+            padding: 0.625rem;
+            gap: 0.625rem;
+          }
+          .upsell-list-image {
+            width: 3.5rem;
+            height: 3.5rem;
+          }
+          .upsell-list-title {
+            font-size: 0.8125rem;
+          }
+          .upsell-list-action {
+            width: 2rem;
+            height: 2rem;
+            font-size: 1rem;
+          }
+
+          .upsell-footer {
+            padding: 0.875rem 1rem;
+          }
+          .upsell-actions {
+            flex-direction: column;
+            gap: 0.5rem;
+          }
+          .upsell-cta,
+          .upsell-dismiss {
+            width: 100%;
+            padding: 0.75rem;
+          }
+        }
+
+        @container upsell (max-width: 380px) {
+          .upsell-grid {
+            grid-template-columns: 1fr;
+          }
+          .upsell-product-image {
+            aspect-ratio: 4/3;
+          }
+        }
+      `}</style>
+
+      <div className="upsell-popup" data-splitpop="true" data-template="product-upsell">
+        {/* Close button */}
+        <PopupCloseButton
+          onClose={onClose}
+          color={textColor}
+          size={18}
+          className="upsell-close"
+          position="custom"
+        />
+
         {/* Header */}
         <div className="upsell-header">
-          <h2 className="upsell-headline">{config.headline}</h2>
+          <h2 className="upsell-headline">{config.headline || "Complete Your Order"}</h2>
           {config.subheadline && <p className="upsell-subheadline">{config.subheadline}</p>}
         </div>
 
@@ -987,407 +1004,76 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           </div>
         )}
 
-        {/* Products grid / layout */}
-        <div className="upsell-content" onWheel={handleContentWheel}>
-          {renderProductsSection()}
-        </div>
+        {/* Products */}
+        <div className="upsell-content">{renderProductsSection()}</div>
 
-        {/* Footer: selection summary + actions */}
+        {/* Footer with summary and actions */}
         <div className="upsell-footer">
-          {selectedProducts.size > 0 &&
-            (() => {
-              const total = calculateTotal();
-              const originalTotal = calculateOriginalTotal();
-              const compareAtSavings = calculateCompareAtSavings();
-              const bundleSavings = calculateBundleSavings();
-              const totalSavings = calculateTotalSavings();
-              const discountedTotal = calculateDiscountedTotal();
-              const hasCompareAtSavings = compareAtSavings && compareAtSavings > 0;
-              const hasBundleSavings = bundleSavings && bundleSavings > 0;
+          {/* Summary */}
+          {selectedProducts.size > 0 && (
+            <div className="upsell-summary">
+              <div className="upsell-summary-row">
+                <span className="upsell-summary-label">
+                  {selectedProducts.size} item{selectedProducts.size !== 1 ? "s" : ""} selected
+                </span>
+                {calculateCompareAtSavings() && (
+                  <span className="upsell-summary-original">
+                    {formatCurrency(calculateOriginalTotal(), config.currency)}
+                  </span>
+                )}
+              </div>
 
-              return (
-                <div className="upsell-summary">
-                  {/* Item count */}
-                  <div className="upsell-summary-row">
-                    <span className="upsell-summary-label">
-                      {selectedProducts.size} item{selectedProducts.size !== 1 ? "s" : ""} selected
-                    </span>
-                    {hasCompareAtSavings && (
-                      <span className="upsell-summary-value upsell-summary-original">
-                        {formatCurrency(originalTotal, config.currency)}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Subtotal (current prices before bundle discount) */}
-                  {hasCompareAtSavings && (
-                    <div className="upsell-summary-row" style={{ fontSize: "14px", opacity: 0.8 }}>
-                      <span>Subtotal</span>
-                      <span>{formatCurrency(total, config.currency)}</span>
-                    </div>
-                  )}
-
-                  {/* Bundle discount line */}
-                  {hasBundleSavings && (
-                    <div
-                      className="upsell-summary-row"
-                      style={{ fontSize: "14px", color: accentColor }}
-                    >
-                      <span>Bundle Discount ({config.bundleDiscount}%)</span>
-                      <span>-{formatCurrency(bundleSavings, config.currency)}</span>
-                    </div>
-                  )}
-
-                  {/* Total */}
-                  <div className="upsell-summary-row upsell-summary-total">
-                    <span>Total</span>
-                    <span>{formatCurrency(discountedTotal, config.currency)}</span>
-                  </div>
-
-                  {/* Total savings breakdown */}
-                  {totalSavings && totalSavings > 0 && (
-                    <div className="upsell-summary-row">
-                      <span className="upsell-summary-savings">
-                        {hasCompareAtSavings && hasBundleSavings ? (
-                          <>
-                            You save {formatCurrency(totalSavings, config.currency)}!
-                            <span
-                              style={{
-                                fontSize: "12px",
-                                display: "block",
-                                opacity: 0.8,
-                                marginTop: "2px",
-                              }}
-                            >
-                              ({formatCurrency(compareAtSavings, config.currency)} sale +{" "}
-                              {formatCurrency(bundleSavings, config.currency)} bundle)
-                            </span>
-                          </>
-                        ) : (
-                          <>You save {formatCurrency(totalSavings, config.currency)}!</>
-                        )}
-                      </span>
-                    </div>
-                  )}
+              {calculateBundleSavings() && (
+                <div className="upsell-summary-row" style={{ color: accentColor }}>
+                  <span>Bundle discount ({config.bundleDiscount}%)</span>
+                  <span>-{formatCurrency(calculateBundleSavings()!, config.currency)}</span>
                 </div>
-              );
-            })()}
+              )}
 
+              <div className="upsell-summary-row upsell-summary-total">
+                <span>Total</span>
+                <span>{formatCurrency(discountedTotal, config.currency)}</span>
+              </div>
+
+              {totalSavings && totalSavings > 0 && (
+                <div className="upsell-summary-row">
+                  <span className="upsell-summary-savings">
+                    You save {formatCurrency(totalSavings, config.currency)}!
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Action buttons */}
           <div className="upsell-actions">
             <button
+              type="button"
+              className="upsell-cta"
               onClick={handleAddToCart}
               disabled={selectedProducts.size === 0 || isLoading}
-              style={buttonStyles}
-              onMouseEnter={(e) => {
-                if (selectedProducts.size > 0 && !isLoading) {
-                  e.currentTarget.style.transform = "translateY(-2px)";
-                  e.currentTarget.style.boxShadow = "0 8px 20px rgba(99, 102, 241, 0.4)";
-                }
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = "translateY(0)";
-                e.currentTarget.style.boxShadow =
-                  selectedProducts.size > 0 ? "0 4px 12px rgba(99, 102, 241, 0.3)" : "none";
+              style={{
+                background: config.buttonColor || accentColor,
+                color: config.buttonTextColor || "#fff",
               }}
             >
               {isLoading ? (
                 <>
-                  <span
-                    style={{
-                      width: "16px",
-                      height: "16px",
-                      border: "2px solid rgba(255,255,255,0.3)",
-                      borderTopColor: "#FFF",
-                      borderRadius: "50%",
-                      animation: "spin 0.8s linear infinite",
-                    }}
-                  />
-                  Adding to Cart...
+                  <span className="upsell-cta-spinner" /> Adding...
                 </>
               ) : (
                 <>
-                  <span style={{ fontSize: "18px" }}>🛒</span>
-                  {(() => {
-                    const count = selectedProducts.size;
-                    const baseLabel = config.buttonText || config.ctaText;
-
-                    if (baseLabel) {
-                      return baseLabel.includes("{count}")
-                        ? baseLabel.replace("{count}", String(count || 0))
-                        : baseLabel;
-                    }
-
-                    if (count > 0) {
-                      return `Add ${count} to Cart`;
-                    }
-
-                    return "Select Products";
-                  })()}
+                  <span className="upsell-cta-icon">🛒</span> {getCtaLabel()}
                 </>
               )}
             </button>
 
-            <button
-              onClick={onClose}
-              style={{
-                ...buttonStyles,
-                backgroundColor: "transparent",
-                color: config.textColor || "#6B7280",
-                border: `2px solid ${config.inputBorderColor || "#E5E7EB"}`,
-                boxShadow: "none",
-                opacity: 0.9,
-                cursor: "pointer",
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
-              onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.9")}
-            >
+            <button type="button" className="upsell-dismiss" onClick={onClose}>
               {config.secondaryCtaLabel || config.dismissLabel || "No thanks"}
             </button>
           </div>
         </div>
       </div>
-
-      {/* Keyframe animations & responsive layout helpers */}
-      <style>{`
-        /* Layout and typography closely aligned with docs/mockup ProductUpsellPopup */
-        .upsell-container {
-          width: 100%;
-          max-width: ${popupConfig.maxWidth || sizeMaxWidth || "56rem"};
-          margin: 0 auto;
-          display: flex;
-          flex-direction: column;
-          max-height: 100%;
-          /* Enable container queries for preview/device-based responsiveness */
-          container-type: inline-size;
-          container-name: upsell;
-        }
-
-        .upsell-header {
-          padding: ${getContainerPadding(config.size)};
-          padding-bottom: ${POPUP_SPACING.section.md};
-          text-align: center;
-          border-bottom: 1px solid var(--upsell-border, ${borderColor});
-          flex-shrink: 0;
-        }
-
-        .upsell-headline {
-          font-size: 1.875rem;
-          font-weight: 900;
-          line-height: 1.1;
-          margin: 0 0 ${SPACING_GUIDELINES.afterHeadline} 0;
-          color: var(--upsell-text, ${textColor});
-        }
-
-        .upsell-subheadline {
-          font-size: 1rem;
-          line-height: 1.6;
-          color: var(--upsell-text, ${textColor});
-          opacity: 0.8;
-          margin: 0;
-        }
-
-        .upsell-bundle-banner {
-          background: var(--upsell-accent, ${accentColor});
-          padding: 0.5rem 1rem;
-          text-align: center;
-          font-weight: 600;
-          font-size: 0.8125rem;
-          color: #FFFFFF;
-          border-bottom: 1px solid var(--upsell-border, ${borderColor});
-          flex-shrink: 0;
-        }
-
-        .upsell-content {
-          flex: 1;
-          overflow-y: auto;
-          padding: ${POPUP_SPACING.section.lg} ${POPUP_SPACING.section.xl};
-          min-height: 0;
-        }
-
-        .upsell-footer {
-          border-top: 2px solid var(--upsell-border, ${borderColor});
-          padding: ${POPUP_SPACING.section.lg} ${POPUP_SPACING.section.xl};
-          background: var(--upsell-secondary, ${secondaryColor});
-          flex-shrink: 0;
-        }
-
-        .upsell-actions {
-          display: flex;
-          gap: ${SPACING_GUIDELINES.betweenButtons};
-          margin-top: ${POPUP_SPACING.section.md};
-        }
-
-        .upsell-summary {
-          margin-bottom: ${POPUP_SPACING.section.md};
-        }
-
-        .upsell-summary-row {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 0.375rem;
-          font-size: 0.8125rem;
-          color: var(--upsell-text, ${textColor});
-        }
-
-        .upsell-summary-label {
-          opacity: 0.7;
-        }
-
-        .upsell-summary-value {
-          font-weight: 600;
-        }
-
-        .upsell-summary-original {
-          text-decoration: line-through;
-          opacity: 0.5;
-        }
-
-        .upsell-summary-total {
-          font-size: 1.125rem;
-          font-weight: 700;
-          padding-top: 0.5rem;
-          border-top: 1px solid var(--upsell-border, ${borderColor});
-          margin-bottom: 0.375rem;
-        }
-
-        .upsell-summary-savings {
-          color: var(--upsell-success, ${config.successColor || accentColor || "#10B981"});
-          font-size: 0.8125rem;
-          font-weight: 600;
-        }
-
-        .upsell-products-grid {
-          display: grid;
-          /* Use auto-fit to only create columns for existing items */
-          /* Minimum width ensures max columns = configured value */
-          /* Formula: max(100% / columns, 180px) ensures items don't get too small */
-          grid-template-columns: repeat(auto-fit, minmax(clamp(180px, calc(100% / var(--upsell-columns, 2)), 100%), 1fr));
-          gap: ${POPUP_SPACING.gap.md};
-          margin-bottom: ${SPACING_GUIDELINES.beforeCTA};
-        }
-
-        .upsell-carousel-container {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          min-height: 300px;
-          padding: 1rem 3rem 2.5rem;
-          gap: 1rem;
-        }
-
-        .upsell-carousel-product {
-          display: flex;
-          gap: 1rem;
-          align-items: center;
-          width: 100%;
-          max-width: 720px;
-        }
-
-        .upsell-card {
-          display: flex;
-          gap: 1rem;
-          align-items: center;
-        }
-
-        .upsell-card-image-wrapper {
-          position: relative;
-          border-radius: 12px;
-          overflow: hidden;
-          background-color: #F9FAFB;
-          flex-shrink: 0;
-        }
-
-        .upsell-card-action-btn {
-          display: inline-flex;
-          align-items: center;
-          gap: 0.5rem;
-        }
-
-        /* Container query for preview/device-based responsiveness */
-        @container upsell (max-width: 768px) {
-          .upsell-header {
-            padding: 1rem 1.25rem 0.75rem;
-          }
-
-          .upsell-headline {
-            font-size: 1.25rem;
-          }
-
-          .upsell-subheadline {
-            font-size: 0.75rem;
-          }
-
-          .upsell-content {
-            padding: 1rem 1.25rem;
-          }
-
-          .upsell-footer {
-            padding: 0.75rem 1.25rem;
-          }
-
-          .upsell-actions {
-            gap: 0.5rem;
-          }
-
-          .upsell-products-grid {
-            /* On mobile, use auto-fit with smaller minimum width */
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-            gap: 0.875rem;
-          }
-
-          .upsell-carousel-container {
-            padding: 0.75rem 2.5rem;
-            min-height: 280px;
-          }
-
-          .upsell-carousel-product {
-            flex-direction: column;
-            text-align: center;
-          }
-
-          .upsell-card {
-            flex-direction: column;
-            align-items: stretch;
-            padding: 1rem;
-          }
-
-          .upsell-card-image-wrapper {
-            width: 100%;
-            height: 150px;
-          }
-
-          .upsell-card-action-btn {
-            align-self: stretch;
-            margin-left: 0;
-            margin-top: 0.5rem;
-            justify-content: center;
-          }
-        }
-
-
-
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-        @keyframes bounceIn {
-          0% { transform: scale(0); opacity: 0; }
-          50% { transform: scale(1.2); }
-          100% { transform: scale(1); opacity: 1; }
-        }
-        @keyframes fadeInUp {
-          from { opacity: 0; transform: translateY(20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-        @keyframes slideIn {
-          from { opacity: 0; transform: translateY(-10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-      `}</style>
     </PopupPortal>
   );
 };

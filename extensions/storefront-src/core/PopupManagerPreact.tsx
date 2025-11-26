@@ -24,6 +24,8 @@ export interface StorefrontCampaign {
   variantKey?: string | null;
   globalCustomCSS?: string;
   customCSS?: string;
+  /** Whether to show "Powered by Revenue Boost" branding (true for free tier) */
+  showBranding?: boolean;
 }
 
 export interface PopupManagerProps {
@@ -115,6 +117,174 @@ async function applyDiscountViaAjax(code: string): Promise<boolean> {
       errorMessage: error instanceof Error ? error.message : String(error),
     });
     return false;
+  }
+}
+
+// Type definitions for cart drawer elements and window extensions
+interface CartDrawerElement extends Element {
+  renderContents?: (payload: { sections?: Record<string, string>; [key: string]: unknown }) => void;
+  getSectionsToRender?: () => Array<{ id: string; section?: string; selector?: string }>;
+}
+
+interface CartNotificationElement extends Element {
+  renderContents?: (payload: { sections?: Record<string, string>; [key: string]: unknown }) => void;
+  getSectionsToRender?: () => Array<{ id: string; section?: string; selector?: string }>;
+}
+
+interface WindowWithTheme {
+  Shopify?: {
+    theme?: {
+      cart?: { getCart?: () => void; refresh?: () => void };
+      sections?: { load?: (section: string) => void };
+    };
+  };
+  theme?: { cart?: { getCart?: () => void; refresh?: () => void } };
+  cart?: { refresh?: () => void };
+}
+
+/**
+ * Detect which sections to request for cart drawer refresh.
+ * Dawn theme and similar themes use cart-drawer and cart-icon-bubble.
+ */
+function getSectionsToRender(): string[] {
+  const sections: string[] = [];
+
+  // Check for Dawn-style cart-drawer custom element
+  const cartDrawer = document.querySelector('cart-drawer') as CartDrawerElement | null;
+  if (cartDrawer?.getSectionsToRender) {
+    const drawerSections = cartDrawer.getSectionsToRender();
+    drawerSections.forEach(s => {
+      if (s.id && !sections.includes(s.id)) {
+        sections.push(s.id);
+      }
+    });
+  }
+
+  // Check for cart-notification custom element
+  const cartNotification = document.querySelector('cart-notification') as CartNotificationElement | null;
+  if (cartNotification?.getSectionsToRender) {
+    const notifSections = cartNotification.getSectionsToRender();
+    notifSections.forEach(s => {
+      if (s.id && !sections.includes(s.id)) {
+        sections.push(s.id);
+      }
+    });
+  }
+
+  // Default sections used by Dawn theme if we couldn't detect dynamically
+  if (sections.length === 0) {
+    sections.push('cart-drawer', 'cart-icon-bubble');
+  }
+
+  return sections;
+}
+
+/**
+ * Refresh cart drawer after adding items to cart.
+ * Uses Section Rendering API response to properly update Dawn theme and similar themes.
+ */
+async function refreshCartDrawer(
+  cartData: { sections?: Record<string, string>; item_count?: number; [key: string]: unknown },
+  root: string
+): Promise<void> {
+  // Trigger comprehensive cart update events for different themes
+  document.dispatchEvent(new CustomEvent('cart:updated'));
+  document.dispatchEvent(new CustomEvent('cart.requestUpdate'));
+  document.dispatchEvent(new CustomEvent('cart:update'));
+  document.dispatchEvent(new CustomEvent('cart:change'));
+  document.dispatchEvent(new CustomEvent('theme:cart:update'));
+  document.dispatchEvent(new CustomEvent('cart:item-added'));
+  document.dispatchEvent(new CustomEvent('cart:add'));
+
+  // Dispatch cart refresh with the cart data
+  document.dispatchEvent(new CustomEvent('cart:refresh', { detail: cartData }));
+
+  // Update cart count in header (common selectors)
+  const cartCountSelectors = '.cart-count, [data-cart-count], .cart__count, #cart-icon-bubble span';
+  const cartCount = document.querySelector(cartCountSelectors);
+  if (cartCount && cartData.item_count !== undefined) {
+    cartCount.textContent = String(cartData.item_count);
+  }
+
+  // If we have sections from Section Rendering API, use them to update the drawer
+  if (cartData.sections) {
+    try {
+      // Dawn theme (Web Components) - cart-drawer element
+      const cartDrawer = document.querySelector('cart-drawer') as CartDrawerElement | null;
+      if (cartDrawer && typeof cartDrawer.renderContents === 'function') {
+        console.log("[PopupManager] Refreshing Dawn cart-drawer with sections");
+        cartDrawer.renderContents(cartData);
+      }
+
+      // Dawn theme - cart-notification element
+      const cartNotification = document.querySelector('cart-notification') as CartNotificationElement | null;
+      if (cartNotification && typeof cartNotification.renderContents === 'function') {
+        console.log("[PopupManager] Refreshing Dawn cart-notification with sections");
+        cartNotification.renderContents(cartData);
+      }
+    } catch (e) {
+      console.debug("[PopupManager] Error using renderContents:", e);
+    }
+  } else {
+    // Fallback: fetch sections separately if not included in response
+    try {
+      const sectionsToRender = getSectionsToRender();
+      const sectionsParam = sectionsToRender.join(',');
+      const sectionsRes = await fetch(`${root}cart.js?sections=${sectionsParam}`);
+
+      if (sectionsRes.ok) {
+        const sectionsData = await sectionsRes.json() as { sections?: Record<string, string>; item_count?: number };
+
+        // Update cart count if available
+        if (sectionsData.item_count !== undefined) {
+          const countEl = document.querySelector(cartCountSelectors);
+          if (countEl) {
+            countEl.textContent = String(sectionsData.item_count);
+          }
+        }
+
+        // Try Dawn theme renderContents with fetched sections
+        const cartDrawer = document.querySelector('cart-drawer') as CartDrawerElement | null;
+        if (cartDrawer && typeof cartDrawer.renderContents === 'function' && sectionsData.sections) {
+          console.log("[PopupManager] Refreshing Dawn cart-drawer with fetched sections");
+          cartDrawer.renderContents(sectionsData);
+        }
+
+        const cartNotification = document.querySelector('cart-notification') as CartNotificationElement | null;
+        if (cartNotification && typeof cartNotification.renderContents === 'function' && sectionsData.sections) {
+          console.log("[PopupManager] Refreshing Dawn cart-notification with fetched sections");
+          cartNotification.renderContents(sectionsData);
+        }
+      }
+    } catch (e) {
+      console.debug("[PopupManager] Fallback section fetch failed:", e);
+    }
+  }
+
+  // Also try legacy theme-specific methods as additional fallback
+  try {
+    const w = window as WindowWithTheme;
+
+    // Dawn/Debut theme methods
+    if (typeof w.Shopify?.theme?.cart?.getCart === 'function') {
+      w.Shopify.theme.cart.getCart();
+    }
+    if (typeof w.theme?.cart?.getCart === 'function') {
+      w.theme.cart.getCart();
+    }
+    if (typeof w.theme?.cart?.refresh === 'function') {
+      w.theme.cart.refresh();
+    }
+    if (typeof w.cart?.refresh === 'function') {
+      w.cart.refresh();
+    }
+
+    // Trigger Shopify section rendering (used by many themes)
+    if (typeof w.Shopify?.theme?.sections?.load === 'function') {
+      w.Shopify.theme.sections.load('cart-drawer');
+    }
+  } catch (themeError) {
+    console.debug("[PopupManager] Theme-specific cart refresh not available:", themeError);
   }
 }
 
@@ -252,7 +422,10 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, tri
           // Extract variant ID number from GID (e.g., "gid://shopify/ProductVariant/123" -> "123")
           const variantId = result.freeGift.variantId.split('/').pop() || result.freeGift.variantId;
 
-          // Add to cart using Shopify's Cart API
+          // Detect which sections to render for cart drawer refresh
+          const sectionsToRender = getSectionsToRender();
+
+          // Add to cart using Shopify's Cart API with Section Rendering
           const cartResponse = await fetch('/cart/add.js', {
             method: 'POST',
             headers: {
@@ -263,91 +436,19 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, tri
                 id: variantId,
                 quantity: result.freeGift.quantity,
               }],
+              sections: sectionsToRender,
+              sections_url: window.location.pathname,
             }),
           });
 
           if (!cartResponse.ok) {
             console.error("[PopupManager] Failed to add free gift to cart:", await cartResponse.text());
           } else {
+            const cartData = await cartResponse.json();
             console.log("[PopupManager] Free gift added to cart successfully");
 
-            // Trigger comprehensive cart update events for different themes
-            document.dispatchEvent(new CustomEvent('cart:updated'));
-            document.dispatchEvent(new CustomEvent('cart.requestUpdate'));
-            document.dispatchEvent(new CustomEvent('cart:update'));
-            document.dispatchEvent(new CustomEvent('cart:change'));
-            document.dispatchEvent(new CustomEvent('theme:cart:update'));
-            document.dispatchEvent(new CustomEvent('cart:item-added'));
-            document.dispatchEvent(new CustomEvent('cart:add'));
-
-            // Trigger Shopify theme events
-            if (typeof window !== 'undefined') {
-              const w = window as {
-                Shopify?: { theme?: { cart?: { getCart?: () => void } } };
-                theme?: { cart?: { getCart?: () => void; refresh?: () => void } };
-                cart?: { refresh?: () => void };
-              };
-
-              // Dawn theme and similar
-              if (w.Shopify?.theme?.cart) {
-                w.Shopify.theme.cart.getCart?.();
-              }
-
-              // Debut theme
-              if (w.theme?.cart) {
-                w.theme.cart.getCart?.();
-              }
-
-              // Fetch cart to trigger section rendering
-              fetch('/cart.js')
-                .then(res => res.json())
-                .then(cart => {
-                  // Dispatch with cart data
-                  document.dispatchEvent(new CustomEvent('cart:refresh', { detail: cart }));
-
-                  // Update cart count in header (common selector)
-                  const cartCount = document.querySelector('.cart-count, [data-cart-count], .cart__count, #cart-icon-bubble span');
-                  if (cartCount && cart.item_count !== undefined) {
-                    cartCount.textContent = String(cart.item_count);
-                  }
-
-                  // Try to trigger theme-specific cart drawer refresh methods
-                  try {
-                    // Dawn theme (Web Components) - cart-drawer element
-                    const cartDrawer = document.querySelector('cart-drawer') as Element & { renderContents?: (payload: unknown) => void } | null;
-                    if (cartDrawer && typeof cartDrawer.renderContents === 'function') {
-                      console.log("[PopupManager] Refreshing Dawn cart-drawer");
-                      cartDrawer.renderContents(cart);
-                    }
-
-                    // Dawn theme - cart-notification element
-                    const cartNotification = document.querySelector('cart-notification') as Element & { renderContents?: (payload: unknown) => void } | null;
-                    if (cartNotification && typeof cartNotification.renderContents === 'function') {
-                      console.log("[PopupManager] Refreshing Dawn cart-notification");
-                      cartNotification.renderContents(cart);
-                    }
-
-                    // Legacy Dawn theme methods
-                    if (typeof w.theme?.cart?.refresh === 'function') {
-                      w.theme.cart.refresh();
-                    }
-
-                    // Some themes use a global cart object
-                    if (typeof w.cart?.refresh === 'function') {
-                      w.cart.refresh();
-                    }
-
-                    // Trigger Shopify section rendering (used by many themes)
-                    if (typeof (window as { Shopify?: { theme?: { sections?: { load?: (section: string) => void } } } }).Shopify?.theme?.sections?.load === 'function') {
-                      (window as { Shopify?: { theme?: { sections?: { load?: (section: string) => void } } } }).Shopify?.theme?.sections?.load?.('cart-drawer');
-                    }
-                  } catch (themeError) {
-                    // Silent fail - theme-specific methods may not exist
-                    console.debug("[PopupManager] Theme-specific cart refresh not available:", themeError);
-                  }
-                })
-                .catch(err => console.error("[PopupManager] Failed to fetch cart:", err));
-            }
+            // Refresh cart drawer using Section Rendering API response
+            await refreshCartDrawer(cartData, '/');
           }
         } catch (cartError) {
           console.error("[PopupManager] Error adding free gift to cart:", cartError);
@@ -357,11 +458,14 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, tri
 
       // Auto-apply discount via AJAX when configured to do so
       const discountCode = result.discountCode;
-      const deliveryMode = (campaign.discountConfig as { deliveryMode?: string } | undefined)?.deliveryMode;
+      const discountConfig = campaign.discountConfig as
+        | { behavior?: string }
+        | undefined;
+      const behavior = discountConfig?.behavior;
 
+      // Check if auto-apply is enabled based on behavior field
       const shouldAutoApply =
-        !!discountCode &&
-        (deliveryMode === "auto_apply_only" || deliveryMode === "show_code_fallback");
+        !!discountCode && behavior === "SHOW_CODE_AND_AUTO_APPLY";
 
       if (shouldAutoApply) {
         // Fire-and-forget; don't block the success UI on cart update
@@ -411,26 +515,25 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, tri
       }
 
       const code = result.code;
-      const autoApplyMode = result.autoApplyMode || "ajax";
-      const deliveryMode = (campaign.discountConfig as { deliveryMode?: string } | undefined)?.deliveryMode;
+      const discountConfig = campaign.discountConfig as
+        | { behavior?: string }
+        | undefined;
+      const behavior = discountConfig?.behavior;
 
       console.log("[PopupManager] 🎟️ Discount issued:", {
         code,
-        autoApplyMode,
-        deliveryMode,
+        behavior,
         campaignId: campaign.id,
       });
 
+      // Check if auto-apply is enabled based on behavior field
       const shouldAutoApply =
-        !!code &&
-        autoApplyMode !== "none" &&
-        (deliveryMode === "auto_apply_only" || deliveryMode === "show_code_fallback");
+        !!code && behavior === "SHOW_CODE_AND_AUTO_APPLY";
 
       console.log("[PopupManager] 🎟️ Should auto-apply discount?", {
         shouldAutoApply,
         hasCode: !!code,
-        autoApplyMode,
-        deliveryMode,
+        behavior,
       });
 
       if (shouldAutoApply) {
@@ -506,23 +609,24 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, tri
       }
 
       const code = result.discountCode;
-      const autoApplyMode = result.autoApplyMode || "ajax";
-      const deliveryMode = (campaign.discountConfig as { deliveryMode?: string } | undefined)?.deliveryMode;
+      const discountConfig = campaign.discountConfig as
+        | { behavior?: string }
+        | undefined;
+      const behavior = discountConfig?.behavior;
 
+      // Check if auto-apply is enabled based on behavior field
       const shouldAutoApply =
-        !!code &&
-        autoApplyMode !== "none" &&
-        (deliveryMode === "auto_apply_only" || deliveryMode === "show_code_fallback");
+        !!code && behavior === "SHOW_CODE_AND_AUTO_APPLY";
 
       if (shouldAutoApply && code) {
         // Fire-and-forget; don't block popup interactions
         void applyDiscountViaAjax(code);
       }
 
-      // For modes that are meant to show the code in the popup, don't redirect automatically.
+      // For modes that show the code in the popup, don't redirect automatically
       if (
-        deliveryMode === "show_code_always" ||
-        deliveryMode === "show_in_popup_authorized_only"
+        behavior === "SHOW_CODE_ONLY" ||
+        behavior === "SHOW_CODE_AND_ASSIGN_TO_EMAIL"
       ) {
         return code || undefined;
       }
@@ -600,8 +704,12 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, tri
         return;
       }
 
-      // Add to cart using Shopify's Cart API
+      // Add to cart using Shopify's Cart API with Section Rendering
       const root = getShopifyRoot();
+
+      // Detect which sections to render for cart drawer refresh
+      const sectionsToRender = getSectionsToRender();
+
       const cartResponse = await fetch(`${root}cart/add.js`, {
         method: "POST",
         headers: {
@@ -609,6 +717,8 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, tri
         },
         body: JSON.stringify({
           items: itemsToAdd,
+          sections: sectionsToRender,
+          sections_url: window.location.pathname,
         }),
       });
 
@@ -617,6 +727,7 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, tri
         throw new Error("Failed to add items to cart");
       }
 
+      const cartData = await cartResponse.json();
       console.log("[PopupManager] Items added to cart successfully");
 
       // Check if we need to apply a discount
@@ -641,50 +752,8 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, tri
         await handleIssueDiscount({ cartSubtotalCents });
       }
 
-      // Trigger comprehensive cart update events for different themes
-      document.dispatchEvent(new CustomEvent("cart:updated"));
-      document.dispatchEvent(new CustomEvent("cart.requestUpdate"));
-      document.dispatchEvent(new CustomEvent("cart:update"));
-      document.dispatchEvent(new CustomEvent("cart:change"));
-      document.dispatchEvent(new CustomEvent("theme:cart:update"));
-      document.dispatchEvent(new CustomEvent("cart:item-added"));
-      document.dispatchEvent(new CustomEvent("cart:add"));
-
-      // Fetch new cart to ensure UI is in sync
-      try {
-        const cartRes = await fetch(`${root}cart.js`);
-          if (cartRes.ok) {
-            const cart = await cartRes.json();
-            document.dispatchEvent(new CustomEvent("cart:refresh", { detail: cart }));
-
-            // Update cart count logic (compatible with common themes)
-            const cartCount = document.querySelector(".cart-count, [data-cart-count], .cart__count");
-            if (cartCount && cart.item_count !== undefined) {
-              cartCount.textContent = String(cart.item_count);
-            }
-
-            // Try to trigger theme-specific cart drawer refresh methods
-            try {
-              // Dawn theme and similar
-              if (typeof (window as { theme?: { cart?: { refresh?: () => void } } }).theme?.cart?.refresh === 'function') {
-                (window as { theme?: { cart?: { refresh?: () => void } } }).theme?.cart?.refresh?.();
-              }
-              // Some themes use a global cart object
-              if (typeof (window as { cart?: { refresh?: () => void } }).cart?.refresh === 'function') {
-                (window as { cart?: { refresh?: () => void } }).cart?.refresh?.();
-              }
-              // Trigger Shopify section rendering (used by many themes)
-              if (typeof (window as { Shopify?: { theme?: { sections?: { load?: (section: string) => void } } } }).Shopify?.theme?.sections?.load === 'function') {
-                (window as { Shopify?: { theme?: { sections?: { load?: (section: string) => void } } } }).Shopify?.theme?.sections?.load?.('cart-drawer');
-              }
-            } catch (themeError) {
-              // Silent fail - theme-specific methods may not exist
-              console.debug("[PopupManager] Theme-specific cart refresh not available:", themeError);
-            }
-        }
-      } catch (e) {
-        console.error("Error fetching cart after update", e);
-      }
+      // Refresh cart drawer using Section Rendering API response
+      await refreshCartDrawer(cartData, root)
 
     } catch (error) {
       console.error("[PopupManager] Error adding to cart:", error);
@@ -761,6 +830,8 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, tri
       campaignId: campaign.id,
       challengeToken: challengeToken || undefined,
       currentCartTotal,
+      // Show "Powered by Revenue Boost" branding for free tier
+      showBranding: campaign.showBranding,
       // Pass discount config if enabled
       discount: campaign.discountConfig?.enabled ? {
         enabled: true,
@@ -772,7 +843,7 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, tri
           ? campaign.discountConfig.value
           : undefined,
         type: campaign.discountConfig.valueType || campaign.discountConfig.type,
-        deliveryMode: campaign.discountConfig.deliveryMode,
+        behavior: campaign.discountConfig.behavior,
         expiryDays: campaign.discountConfig.expiryDays,
         description: campaign.discountConfig.description,
       } : undefined,

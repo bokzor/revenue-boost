@@ -20,6 +20,7 @@ export const PlanFeaturesSchema = z.object({
   customTemplates: z.boolean(),
   advancedAnalytics: z.boolean(),
   prioritySupport: z.boolean(),
+  removeBranding: z.boolean(), // Remove "Powered by Revenue Boost" badge
 });
 export type PlanFeatures = z.infer<typeof PlanFeaturesSchema>;
 
@@ -49,6 +50,7 @@ export const PLAN_DEFINITIONS: Record<PlanTier, PlanDefinition> = {
       customTemplates: false,
       advancedAnalytics: false,
       prioritySupport: false,
+      removeBranding: false, // Shows "Powered by Revenue Boost"
     },
   },
   STARTER: {
@@ -67,6 +69,7 @@ export const PLAN_DEFINITIONS: Record<PlanTier, PlanDefinition> = {
       customTemplates: true,
       advancedAnalytics: false,
       prioritySupport: false,
+      removeBranding: true,
     },
   },
   GROWTH: {
@@ -85,6 +88,7 @@ export const PLAN_DEFINITIONS: Record<PlanTier, PlanDefinition> = {
       customTemplates: true,
       advancedAnalytics: true,
       prioritySupport: true,
+      removeBranding: true,
     },
   },
   PRO: {
@@ -103,6 +107,7 @@ export const PLAN_DEFINITIONS: Record<PlanTier, PlanDefinition> = {
       customTemplates: true,
       advancedAnalytics: true,
       prioritySupport: true,
+      removeBranding: true,
     },
   },
   ENTERPRISE: {
@@ -121,6 +126,7 @@ export const PLAN_DEFINITIONS: Record<PlanTier, PlanDefinition> = {
       customTemplates: true,
       advancedAnalytics: true,
       prioritySupport: true,
+      removeBranding: true,
     },
   },
 };

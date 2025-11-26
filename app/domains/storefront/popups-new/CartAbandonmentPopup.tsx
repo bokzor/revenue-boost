@@ -9,20 +9,31 @@
  * - "Save for Later" option
  * - Stock warnings
  * - CTA to resume checkout
+ *
+ * RESPONSIVE DESIGN:
+ * - Uses CSS Container Queries for true container-based responsiveness
+ * - Mobile: Bottom sheet with slide-up animation
+ * - Tablet/Desktop: Centered card with responsive sizing
+ * - All sizing uses container-relative units (cqi, cqmin, clamp)
  */
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { PopupPortal } from "./PopupPortal";
 import type { PopupDesignConfig, CartItem, DiscountConfig } from "./types";
 import type { CartAbandonmentContent } from "~/domains/campaigns/types/campaign";
 import { formatCurrency } from "./utils";
-import { POPUP_SPACING, getContainerPadding, SPACING_GUIDELINES } from "./spacing";
+import { POPUP_SPACING, POPUP_BREAKPOINTS, getContainerPadding, SPACING_GUIDELINES } from "./spacing";
 
 // Import custom hooks
-import { useCountdownTimer, useDiscountCode, usePopupAnimation, usePopupForm } from "./hooks";
+import { useCountdownTimer, useDiscountCode, usePopupForm } from "./hooks";
 
-// Import reusable components
-import { EmailInput, SubmitButton } from "./components";
+// Import shared components from Phase 1 & 2
+import {
+  TimerDisplay,
+  DiscountCodeDisplay,
+  LeadCaptureForm,
+  PopupCloseButton,
+} from "./components/shared";
 
 /**
  * CartAbandonmentConfig - Extends both design config AND campaign content type
@@ -48,7 +59,7 @@ export interface CartAbandonmentPopupProps {
   onEmailRecovery?: (email: string) => Promise<string | void> | string | void;
   issueDiscount?: (options?: {
     cartSubtotalCents?: number;
-  }) => Promise<{ code?: string; autoApplyMode?: string } | null>;
+  }) => Promise<{ code?: string; behavior?: string } | null>;
   onTrack?: (metadata?: Record<string, unknown>) => void;
 }
 
@@ -76,9 +87,6 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
 
   // Use discount code hook
   const { discountCode, setDiscountCode, copiedCode, handleCopyCode } = useDiscountCode();
-
-  // Use animation hook
-  const { showContent } = usePopupAnimation({ isVisible });
 
   // Use form hook for email recovery
   const {
@@ -109,13 +117,13 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
   // Component-specific state
   const [emailSuccessMessage, setEmailSuccessMessage] = useState<string | null>(null);
 
-  const discountDeliveryMode = config.discount?.deliveryMode || "show_code_fallback";
+  const discountBehavior = config.discount?.behavior || "SHOW_CODE_AND_AUTO_APPLY";
 
   const emailSuccessCopy =
     config.emailSuccessMessage ||
-    (discountDeliveryMode === "auto_apply_only"
+    (discountBehavior === "SHOW_CODE_AND_AUTO_APPLY"
       ? "We'll automatically apply your discount at checkout."
-      : discountDeliveryMode === "show_in_popup_authorized_only"
+      : discountBehavior === "SHOW_CODE_AND_ASSIGN_TO_EMAIL"
         ? "Your discount code is authorized for this email address only."
         : "Your discount code is ready to use at checkout.");
 
@@ -142,11 +150,8 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
         const result = await issueDiscount(cartSubtotalCents ? { cartSubtotalCents } : undefined);
 
         const code = result?.code;
-        const shouldShowCodeFromCta =
-          !!code &&
-          (discountDeliveryMode === "show_code_always" ||
-            discountDeliveryMode === "show_code_fallback" ||
-            discountDeliveryMode === "show_in_popup_authorized_only");
+        // All behaviors show the code, so show it if we have one
+        const shouldShowCodeFromCta = !!code;
 
         if (shouldShowCodeFromCta && code) {
           setDiscountCode(code);
@@ -177,7 +182,7 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
     config.ctaUrl,
     cartTotal,
     discountCode,
-    discountDeliveryMode,
+    discountBehavior,
     issueDiscount,
     onResumeCheckout,
     setDiscountCode,
@@ -194,7 +199,7 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
   }, [onSaveForLater, onClose]);
 
   const handleEmailSubmit = useCallback(
-    async (e?: React.FormEvent<HTMLFormElement>) => {
+    async (e?: React.FormEvent): Promise<void> => {
       if (e) e.preventDefault();
 
       if (!config.enableEmailRecovery) {
@@ -223,53 +228,42 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
 
   const displayItems = cartItems.slice(0, config.maxItemsToShow || 3);
 
-  const isBottomPosition = (config.position || "center") === "bottom";
-
   const isEmailGateActive =
     !!config.enableEmailRecovery && !!config.requireEmailBeforeCheckout && !discountCode;
+
+  // Computed styles
   const borderRadiusValue =
     typeof config.borderRadius === "number"
       ? `${config.borderRadius}px`
       : config.borderRadius || "16px";
-  const cardMaxWidth =
-    config.maxWidth ||
-    (config.size === "small" ? "24rem" : config.size === "large" ? "32rem" : "28rem");
+
+  // Container-relative max widths based on size
+  const cardMaxWidth = useMemo(() => {
+    if (config.maxWidth) return config.maxWidth;
+    switch (config.size) {
+      case "small": return "min(420px, 95cqi)";
+      case "large": return "min(520px, 95cqi)";
+      default: return "min(460px, 95cqi)";
+    }
+  }, [config.maxWidth, config.size]);
+
   const descriptionColor = config.descriptionColor || "#6b7280";
 
-  const buttonStyles: React.CSSProperties = {
-    width: "100%",
-    padding: "14px 24px",
-    fontSize: "16px",
-    fontWeight: 600,
-    border: "none",
-    borderRadius: `${config.borderRadius ?? 8}px`,
-    backgroundColor: config.buttonColor,
-    color: config.buttonTextColor,
-    cursor: "pointer",
-    transition: "transform 0.1s",
-  };
-
-  const secondaryButtonStyles: React.CSSProperties = {
-    ...buttonStyles,
-    backgroundColor: "transparent",
-    color: config.textColor,
-    border: `2px solid ${config.textColor}`,
-    opacity: 0.7,
-  };
-
-  const dismissButtonStyles: React.CSSProperties = {
-    background: "transparent",
-    border: "none",
-    padding: 0,
-    marginTop: "4px",
-    color: config.textColor,
-    fontSize: "14px",
-    opacity: 0.7,
-    cursor: "pointer",
-    textDecoration: "underline",
-    alignSelf: "center",
-    transition: "opacity 0.15s ease-out",
-  };
+  // CSS Custom Properties for dynamic theming
+  const cssVars = useMemo(() => `
+    --cart-ab-bg: ${config.backgroundColor || "#ffffff"};
+    --cart-ab-text: ${config.textColor || "#111827"};
+    --cart-ab-desc: ${descriptionColor};
+    --cart-ab-btn-bg: ${config.buttonColor || "#3b82f6"};
+    --cart-ab-btn-text: ${config.buttonTextColor || "#ffffff"};
+    --cart-ab-accent: ${config.accentColor || "#f59e0b"};
+    --cart-ab-success: ${config.successColor || "#16a34a"};
+    --cart-ab-border: ${config.inputBorderColor || "rgba(0,0,0,0.1)"};
+    --cart-ab-input-bg: ${config.inputBackgroundColor || "#ffffff"};
+    --cart-ab-input-text: ${config.inputTextColor || config.textColor || "#111827"};
+    --cart-ab-radius: ${borderRadiusValue};
+    --cart-ab-max-width: ${typeof cardMaxWidth === "number" ? `${cardMaxWidth}px` : cardMaxWidth};
+  `, [config, descriptionColor, borderRadiusValue, cardMaxWidth]);
 
   // Auto-close timer (migrated from BasePopup)
   useEffect(() => {
@@ -297,98 +291,154 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
       closeOnEscape={config.closeOnEscape !== false}
       closeOnBackdropClick={config.closeOnOverlayClick !== false}
       previewMode={config.previewMode}
+      showBranding={config.showBranding}
       ariaLabel={config.ariaLabel || config.headline}
       ariaDescribedBy={config.ariaDescribedBy}
       customCSS={config.customCSS}
       globalCustomCSS={config.globalCustomCSS}
     >
       <style>{`
-        /* Base Container (Mobile First - Bottom Sheet) */
+        /* ============================================
+         * CSS CUSTOM PROPERTIES (Container Theming)
+         * ============================================ */
+        .cart-ab-popup-container {
+          ${cssVars}
+
+          /* Responsive spacing using container-relative units */
+          --cart-ab-padding-x: clamp(1rem, 5cqi, 2rem);
+          --cart-ab-padding-y: clamp(1.25rem, 4cqi, 2rem);
+          --cart-ab-gap: clamp(0.875rem, 3cqi, 1.5rem);
+          --cart-ab-item-gap: clamp(0.75rem, 2.5cqi, 1rem);
+
+          /* Typography scaling */
+          --cart-ab-title-size: clamp(1.25rem, 5cqi, 1.875rem);
+          --cart-ab-body-size: clamp(0.875rem, 3cqi, 1rem);
+          --cart-ab-small-size: clamp(0.75rem, 2.5cqi, 0.875rem);
+
+          /* Item image sizing */
+          --cart-ab-img-size: clamp(3rem, 12cqi, 4.5rem);
+        }
+
+        /* ============================================
+         * BASE CONTAINER (Mobile-First)
+         * ============================================ */
         .cart-ab-popup-container {
           width: 100%;
-          background: ${config.backgroundColor || "#ffffff"};
-          color: ${config.textColor || "#111827"};
-          border-radius: 1.5rem 1.5rem 0 0; /* Bottom sheet rounded top */
-          padding: 1.5rem;
+          background: var(--cart-ab-bg);
+          color: var(--cart-ab-text);
+          font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+          /* Bottom sheet style on mobile */
+          border-radius: clamp(1rem, 4cqi, 1.5rem) clamp(1rem, 4cqi, 1.5rem) 0 0;
+          padding: var(--cart-ab-padding-y) var(--cart-ab-padding-x);
+          padding-bottom: calc(var(--cart-ab-padding-y) + env(safe-area-inset-bottom, 0px));
           box-shadow: 0 -4px 25px rgba(0, 0, 0, 0.15);
+
+          /* Position at bottom on mobile */
           position: fixed;
           bottom: 0;
           left: 0;
           right: 0;
           max-height: 90vh;
+          max-height: 90dvh;
           overflow-y: auto;
-          animation: slideUp 0.3s ease-out forwards;
+          overscroll-behavior: contain;
+          -webkit-overflow-scrolling: touch;
+
+          /* Smooth entrance animation */
+          animation: cart-ab-slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
           z-index: 10000;
-          
-          /* Enable container queries */
+
+          /* Container query context */
           container-type: inline-size;
           container-name: cart-popup;
         }
 
-        @keyframes slideUp {
-          from { transform: translateY(100%); }
-          to { transform: translateY(0); }
+        @keyframes cart-ab-slideUp {
+          from {
+            transform: translateY(100%);
+            opacity: 0.8;
+          }
+          to {
+            transform: translateY(0);
+            opacity: 1;
+          }
         }
 
-        /* Desktop/Tablet Overrides (Centered Card) via Container Query */
-        @container cart-popup (min-width: 480px) {
+        /* ============================================
+         * TABLET+ LAYOUT (Container Query @ 420px)
+         * Transforms to centered card
+         * ============================================ */
+        @container cart-popup (min-width: 420px) {
           .cart-ab-popup-container {
+            /* Center the card */
             position: relative;
             bottom: auto;
             left: auto;
             right: auto;
-            max-width: ${cardMaxWidth};
-            border-radius: ${borderRadiusValue};
-            padding: ${getContainerPadding(config.size)};
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-            animation: fadeIn 0.3s ease-out forwards;
             margin: 0 auto;
-          }
 
-          /* Ensure buttons have normal padding on desktop */
-          .cart-ab-primary-button {
-            padding: ${POPUP_SPACING.component.button};
-          }
-          
-          .cart-ab-email-row {
-            flex-direction: row;
-          }
+            /* Responsive max-width */
+            max-width: var(--cart-ab-max-width);
 
-          @keyframes fadeIn {
-            from { opacity: 0; transform: scale(0.95); }
-            to { opacity: 1; transform: scale(1); }
+            /* Card styling */
+            border-radius: var(--cart-ab-radius);
+            padding: var(--cart-ab-padding-y) var(--cart-ab-padding-x);
+            box-shadow:
+              0 25px 50px -12px rgba(0, 0, 0, 0.25),
+              0 0 0 1px rgba(0, 0, 0, 0.03);
+
+            /* Different animation for card */
+            animation: cart-ab-fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
           }
         }
 
+        @keyframes cart-ab-fadeIn {
+          from {
+            opacity: 0;
+            transform: scale(0.96) translateY(8px);
+          }
+          to {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+          }
+        }
+
+        /* ============================================
+         * HEADER SECTION
+         * ============================================ */
         .cart-ab-header {
           display: flex;
           align-items: flex-start;
           justify-content: space-between;
-          gap: ${POPUP_SPACING.gap.md};
-          margin-bottom: ${SPACING_GUIDELINES.afterDescription};
+          gap: var(--cart-ab-item-gap);
+          margin-bottom: var(--cart-ab-gap);
         }
 
         .cart-ab-header-text {
           flex: 1;
+          min-width: 0;
         }
 
         .cart-ab-title {
-          font-size: 1.875rem;
-          font-weight: 900;
-          line-height: 1.1;
-          margin: 0 0 ${SPACING_GUIDELINES.afterHeadline} 0;
+          font-size: var(--cart-ab-title-size);
+          font-weight: 800;
+          line-height: 1.15;
+          margin: 0 0 clamp(0.375rem, 1.5cqi, 0.625rem) 0;
           letter-spacing: -0.02em;
+          color: var(--cart-ab-text);
         }
 
         .cart-ab-subtitle {
           margin: 0;
-          font-size: 1rem;
-          line-height: 1.6;
-          color: ${descriptionColor};
+          font-size: var(--cart-ab-body-size);
+          line-height: 1.5;
+          color: var(--cart-ab-desc);
         }
 
+        /* Close button */
         .cart-ab-close {
-          padding: 0.5rem;
+          padding: clamp(0.375rem, 1.5cqi, 0.5rem);
           border-radius: 50%;
           background: rgba(0, 0, 0, 0.05);
           border: none;
@@ -396,7 +446,7 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          color: ${descriptionColor};
+          color: var(--cart-ab-desc);
           transition: all 0.2s ease;
           flex-shrink: 0;
         }
@@ -406,78 +456,106 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
           transform: rotate(90deg);
         }
 
+        .cart-ab-close:focus-visible {
+          outline: 2px solid var(--cart-ab-btn-bg);
+          outline-offset: 2px;
+        }
+
+        /* ============================================
+         * BODY SECTION
+         * ============================================ */
         .cart-ab-body {
           display: flex;
           flex-direction: column;
-          gap: ${SPACING_GUIDELINES.betweenSections};
+          gap: var(--cart-ab-gap);
         }
 
+        /* ============================================
+         * URGENCY BANNER
+         * ============================================ */
         .cart-ab-urgency {
-          padding: 0.75rem 1rem;
-          border-radius: 0.75rem;
-          font-size: 0.95rem;
+          padding: clamp(0.625rem, 2cqi, 0.875rem) clamp(0.875rem, 3cqi, 1.25rem);
+          border-radius: clamp(0.5rem, 2cqi, 0.75rem);
+          font-size: var(--cart-ab-small-size);
           font-weight: 600;
-          background: transparent;
-          color: ${config.accentColor || "#b45309"};
-          border: 1px solid ${config.accentColor || "#fcd34d"};
+          background: color-mix(in srgb, var(--cart-ab-accent) 8%, transparent);
+          color: var(--cart-ab-accent);
+          border: 1px solid color-mix(in srgb, var(--cart-ab-accent) 30%, transparent);
           text-align: center;
           display: flex;
           align-items: center;
           justify-content: center;
-          gap: 0.5rem;
-          opacity: 0.9;
+          gap: clamp(0.375rem, 1.5cqi, 0.5rem);
+          flex-wrap: wrap;
         }
 
+        /* ============================================
+         * DISCOUNT HIGHLIGHT
+         * ============================================ */
         .cart-ab-discount {
-          padding: 1rem;
-          border-radius: 1rem;
+          padding: clamp(0.875rem, 3cqi, 1.25rem);
+          border-radius: clamp(0.75rem, 2.5cqi, 1rem);
           text-align: center;
-          background: rgba(0, 0, 0, 0.03);
-          border: 1px dashed ${config.buttonColor || "#3b82f6"};
+          background: color-mix(in srgb, var(--cart-ab-btn-bg) 6%, transparent);
+          border: 2px dashed color-mix(in srgb, var(--cart-ab-btn-bg) 40%, transparent);
         }
 
         .cart-ab-discount-label {
-          margin: 0 0 0.25rem 0;
-          font-size: 0.875rem;
+          margin: 0 0 clamp(0.25rem, 1cqi, 0.375rem) 0;
+          font-size: var(--cart-ab-small-size);
           font-weight: 600;
-          color: ${descriptionColor};
+          color: var(--cart-ab-desc);
           text-transform: uppercase;
           letter-spacing: 0.05em;
         }
 
         .cart-ab-discount-amount {
-          font-size: 1.5rem;
+          font-size: clamp(1.25rem, 4.5cqi, 1.75rem);
           font-weight: 800;
-          color: ${config.buttonColor || "#1d4ed8"};
+          color: var(--cart-ab-btn-bg);
         }
 
         .cart-ab-discount-code {
           display: inline-block;
-          margin-top: 0.5rem;
-          padding: 0.25rem 0.75rem;
-          border-radius: 0.5rem;
-          font-size: 0.9rem;
+          margin-top: clamp(0.375rem, 1.5cqi, 0.5rem);
+          padding: clamp(0.25rem, 1cqi, 0.375rem) clamp(0.625rem, 2cqi, 0.875rem);
+          border-radius: clamp(0.375rem, 1.5cqi, 0.5rem);
+          font-size: var(--cart-ab-small-size);
           font-weight: 700;
+          font-family: ui-monospace, monospace;
           letter-spacing: 0.05em;
-          background: rgba(255, 255, 255, 0.5);
-          border: 1px solid rgba(0,0,0,0.1);
+          background: rgba(255, 255, 255, 0.6);
+          border: 1px solid var(--cart-ab-border);
         }
 
+        .cart-ab-discount-hint {
+          margin: 0;
+          margin-top: clamp(0.25rem, 1cqi, 0.375rem);
+          font-size: var(--cart-ab-small-size);
+          color: var(--cart-ab-desc);
+          font-style: italic;
+        }
+
+        /* ============================================
+         * CART ITEMS LIST
+         * ============================================ */
         .cart-ab-items {
-          border-radius: 1rem;
-          border: 1px solid ${config.inputBorderColor || "rgba(0,0,0,0.1)"};
+          border-radius: clamp(0.75rem, 2.5cqi, 1rem);
+          border: 1px solid var(--cart-ab-border);
           padding: 0;
-          max-height: 250px;
+          max-height: clamp(180px, 35cqi, 280px);
           overflow-y: auto;
+          overscroll-behavior: contain;
           background: transparent;
         }
 
         .cart-ab-item {
           display: flex;
-          gap: 1rem;
-          padding: 1rem;
-          border-bottom: 1px solid ${config.inputBorderColor || "rgba(0,0,0,0.1)"};
+          gap: var(--cart-ab-item-gap);
+          padding: var(--cart-ab-item-gap);
+          border-bottom: 1px solid var(--cart-ab-border);
           background: transparent;
+          align-items: center;
         }
 
         .cart-ab-item:last-child {
@@ -485,164 +563,260 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
         }
 
         .cart-ab-item-image {
-          width: 4rem;
-          height: 4rem;
-          border-radius: 0.5rem;
+          width: var(--cart-ab-img-size);
+          height: var(--cart-ab-img-size);
+          border-radius: clamp(0.375rem, 1.5cqi, 0.5rem);
           object-fit: cover;
           flex-shrink: 0;
-          border: 1px solid rgba(0,0,0,0.05);
+          border: 1px solid rgba(0, 0, 0, 0.05);
+          background: var(--cart-ab-input-bg);
         }
 
         .cart-ab-item-main {
           flex: 1;
+          min-width: 0;
           display: flex;
           flex-direction: column;
           justify-content: center;
+          gap: clamp(0.125rem, 0.5cqi, 0.25rem);
         }
 
         .cart-ab-item-title {
-          font-size: 0.95rem;
+          font-size: var(--cart-ab-body-size);
           font-weight: 600;
-          margin-bottom: 0.25rem;
-          line-height: 1.4;
+          line-height: 1.35;
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
         }
 
         .cart-ab-item-meta {
-          font-size: 0.85rem;
-          color: ${descriptionColor};
+          font-size: var(--cart-ab-small-size);
+          color: var(--cart-ab-desc);
         }
 
         .cart-ab-item-price {
-          font-size: 1rem;
+          font-size: var(--cart-ab-body-size);
           font-weight: 700;
-          align-self: center;
+          flex-shrink: 0;
+          text-align: right;
+        }
+
+        /* Discounted price display */
+        .cart-ab-price-discounted {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-end;
+          gap: 0.125rem;
+        }
+
+        .cart-ab-price-original {
+          text-decoration: line-through;
+          opacity: 0.55;
+          font-size: 0.9em;
+          font-weight: 500;
+        }
+
+        .cart-ab-price-new {
+          color: var(--cart-ab-success);
+          font-weight: 700;
         }
 
         .cart-ab-more {
-          padding: 0.75rem;
+          padding: clamp(0.5rem, 2cqi, 0.75rem);
           text-align: center;
-          font-size: 0.875rem;
-          color: ${descriptionColor};
+          font-size: var(--cart-ab-small-size);
+          color: var(--cart-ab-desc);
           font-weight: 500;
-          background: transparent;
+          background: color-mix(in srgb, var(--cart-ab-border) 50%, transparent);
+          border-top: 1px solid var(--cart-ab-border);
         }
 
+        /* ============================================
+         * TOTAL SECTION
+         * ============================================ */
         .cart-ab-total-section {
-          background: transparent;
-          border: 1px solid ${config.accentColor || "#e5e7eb"};
-          border-radius: 1rem;
-          padding: 1rem 1.25rem;
+          background: color-mix(in srgb, var(--cart-ab-accent) 5%, transparent);
+          border: 1px solid color-mix(in srgb, var(--cart-ab-accent) 20%, transparent);
+          border-radius: clamp(0.75rem, 2.5cqi, 1rem);
+          padding: clamp(0.875rem, 3cqi, 1.25rem);
           display: flex;
           flex-direction: column;
-          gap: 0.5rem;
+          gap: clamp(0.375rem, 1.5cqi, 0.5rem);
         }
 
         .cart-ab-total {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          font-size: 1.1rem;
+          font-size: var(--cart-ab-body-size);
           font-weight: 600;
+        }
+
+        .cart-ab-total-struck {
+          text-decoration: line-through;
+          opacity: 0.6;
         }
 
         .cart-ab-new-total {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          font-size: 1.25rem;
+          font-size: clamp(1.125rem, 4cqi, 1.375rem);
           font-weight: 800;
-          color: ${config.successColor || "#16a34a"};
+          color: var(--cart-ab-success);
         }
 
         .cart-ab-savings {
-          font-size: 0.9rem;
-          color: ${config.successColor || "#16a34a"};
+          font-size: var(--cart-ab-small-size);
+          color: var(--cart-ab-success);
           text-align: right;
           font-weight: 600;
         }
 
+        /* ============================================
+         * STOCK WARNING
+         * ============================================ */
         .cart-ab-stock-warning {
-          padding: 0.75rem 1rem;
-          border-radius: 0.75rem;
-          background: rgba(254, 226, 226, 0.5);
+          padding: clamp(0.625rem, 2cqi, 0.875rem) clamp(0.875rem, 3cqi, 1.25rem);
+          border-radius: clamp(0.5rem, 2cqi, 0.75rem);
+          background: rgba(254, 226, 226, 0.6);
           color: #991b1b;
-          font-size: 0.9rem;
+          font-size: var(--cart-ab-small-size);
           font-weight: 600;
           text-align: center;
-          border: 1px solid #fecaca;
+          border: 1px solid rgba(254, 202, 202, 0.8);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: clamp(0.375rem, 1.5cqi, 0.5rem);
         }
 
+        /* ============================================
+         * FOOTER (Actions)
+         * ============================================ */
         .cart-ab-footer {
-          margin-top: 1.5rem;
+          margin-top: var(--cart-ab-gap);
           display: flex;
           flex-direction: column;
-          gap: 1rem;
+          gap: clamp(0.625rem, 2cqi, 0.875rem);
         }
 
-        .cart-ab-primary-button {
-          width: 100%;
-          padding: 1rem;
-          font-size: 1.1rem;
-          font-weight: 700;
-          border-radius: ${config.borderRadius ?? 12}px;
-          transition: transform 0.2s, box-shadow 0.2s;
-          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-        }
-
-        .cart-ab-primary-button:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-        }
-
-        .cart-ab-secondary-button {
-          width: 100%;
-          padding: 0.875rem;
-          font-size: 1rem;
-          font-weight: 600;
-        }
-
+        /* Email form */
         .cart-ab-email-form {
           display: flex;
           flex-direction: column;
-          gap: 0.75rem;
+          gap: clamp(0.5rem, 2cqi, 0.75rem);
         }
 
         .cart-ab-email-row {
           display: flex;
-          flex-direction: column; /* Stack input and button for better readability */
-          gap: 0.75rem;
+          flex-direction: column;
+          gap: clamp(0.5rem, 2cqi, 0.75rem);
+        }
+
+        /* Side-by-side email form on larger containers */
+        @container cart-popup (min-width: 380px) {
+          .cart-ab-email-row {
+            flex-direction: row;
+          }
         }
 
         .cart-ab-email-input {
           flex: 1;
           min-width: 0;
-          padding: 0.875rem 1rem;
-          border-radius: 0.75rem;
-          border: 1px solid ${config.inputBorderColor || "#d1d5db"};
-          background: ${config.inputBackgroundColor || "#ffffff"};
-          color: ${config.inputTextColor || config.textColor || "#111827"};
-          font-size: 1rem;
+          padding: clamp(0.75rem, 2.5cqi, 1rem) clamp(0.875rem, 3cqi, 1.25rem);
+          border-radius: clamp(0.5rem, 2cqi, 0.75rem);
+          border: 1px solid var(--cart-ab-border);
+          background: var(--cart-ab-input-bg);
+          color: var(--cart-ab-input-text);
+          font-size: var(--cart-ab-body-size);
           transition: border-color 0.2s, box-shadow 0.2s;
         }
 
         .cart-ab-email-input:focus {
           outline: none;
-          border-color: ${config.buttonColor};
-          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+          border-color: var(--cart-ab-btn-bg);
+          box-shadow: 0 0 0 3px color-mix(in srgb, var(--cart-ab-btn-bg) 15%, transparent);
         }
 
+        .cart-ab-email-input::placeholder {
+          color: var(--cart-ab-desc);
+        }
+
+        /* Primary CTA Button */
+        .cart-ab-primary-button {
+          width: 100%;
+          padding: clamp(0.875rem, 3cqi, 1.125rem) clamp(1rem, 4cqi, 1.5rem);
+          font-size: clamp(0.9375rem, 3.5cqi, 1.125rem);
+          font-weight: 700;
+          border: none;
+          border-radius: var(--cart-ab-radius);
+          background: var(--cart-ab-btn-bg);
+          color: var(--cart-ab-btn-text);
+          cursor: pointer;
+          transition: transform 0.15s ease, box-shadow 0.15s ease;
+          box-shadow:
+            0 4px 6px -1px rgba(0, 0, 0, 0.1),
+            0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        .cart-ab-primary-button:hover {
+          transform: translateY(-2px);
+          box-shadow:
+            0 10px 20px -5px rgba(0, 0, 0, 0.15),
+            0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        .cart-ab-primary-button:active {
+          transform: translateY(0);
+        }
+
+        .cart-ab-primary-button:focus-visible {
+          outline: 2px solid var(--cart-ab-text);
+          outline-offset: 2px;
+        }
+
+        /* Secondary CTA Button */
+        .cart-ab-secondary-button {
+          width: 100%;
+          padding: clamp(0.75rem, 2.5cqi, 0.875rem) clamp(1rem, 4cqi, 1.5rem);
+          font-size: var(--cart-ab-body-size);
+          font-weight: 600;
+          border: 2px solid color-mix(in srgb, var(--cart-ab-text) 25%, transparent);
+          border-radius: var(--cart-ab-radius);
+          background: transparent;
+          color: var(--cart-ab-text);
+          cursor: pointer;
+          transition: all 0.15s ease;
+          opacity: 0.85;
+        }
+
+        .cart-ab-secondary-button:hover {
+          opacity: 1;
+          border-color: color-mix(in srgb, var(--cart-ab-text) 50%, transparent);
+          background: color-mix(in srgb, var(--cart-ab-text) 5%, transparent);
+        }
+
+        .cart-ab-secondary-button:focus-visible {
+          outline: 2px solid var(--cart-ab-btn-bg);
+          outline-offset: 2px;
+        }
+
+        /* Dismiss link */
         .cart-ab-dismiss-button {
           background: transparent;
           border: none;
-          padding: 0.5rem;
-          margin-top: 0.5rem;
-          font-size: 0.9rem;
-          color: ${descriptionColor};
+          padding: clamp(0.375rem, 1.5cqi, 0.5rem);
+          margin-top: clamp(0.25rem, 1cqi, 0.5rem);
+          font-size: var(--cart-ab-small-size);
+          color: var(--cart-ab-desc);
           text-decoration: none;
           cursor: pointer;
           align-self: center;
-          opacity: 0.8;
-          transition: opacity 0.2s;
+          opacity: 0.75;
+          transition: opacity 0.15s ease;
         }
 
         .cart-ab-dismiss-button:hover {
@@ -650,20 +824,74 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
           text-decoration: underline;
         }
 
-        /* Mobile specific adjustments via Container Query */
-        @container cart-popup (max-width: 480px) {
-          .cart-ab-email-row {
-            flex-direction: column;
+        .cart-ab-dismiss-button:focus-visible {
+          outline: 1px solid var(--cart-ab-desc);
+          outline-offset: 2px;
+        }
+
+        /* ============================================
+         * SMALL CONTAINER ADJUSTMENTS (< 360px)
+         * ============================================ */
+        @container cart-popup (max-width: 360px) {
+          .cart-ab-item {
+            flex-wrap: wrap;
           }
 
-          .cart-ab-primary-button {
-            padding: 1.125rem; /* Larger touch target */
+          .cart-ab-item-image {
+            width: clamp(2.5rem, 20cqi, 3rem);
+            height: clamp(2.5rem, 20cqi, 3rem);
           }
+
+          .cart-ab-item-price {
+            width: 100%;
+            text-align: left;
+            margin-top: 0.25rem;
+            padding-left: calc(var(--cart-ab-img-size) + var(--cart-ab-item-gap));
+          }
+        }
+
+        /* ============================================
+         * LARGE CONTAINER ENHANCEMENTS (> 480px)
+         * ============================================ */
+        @container cart-popup (min-width: 480px) {
+          .cart-ab-popup-container {
+            --cart-ab-padding-x: clamp(1.5rem, 6cqi, 2.5rem);
+            --cart-ab-padding-y: clamp(1.5rem, 5cqi, 2.5rem);
+          }
+
+          .cart-ab-discount {
+            padding: clamp(1rem, 4cqi, 1.5rem);
+          }
+
+          .cart-ab-items {
+            max-height: clamp(220px, 40cqi, 320px);
+          }
+        }
+
+        /* ============================================
+         * REDUCED MOTION
+         * ============================================ */
+        @media (prefers-reduced-motion: reduce) {
+          .cart-ab-popup-container,
+          .cart-ab-primary-button,
+          .cart-ab-secondary-button,
+          .cart-ab-close {
+            animation: none !important;
+            transition: none !important;
+          }
+        }
+
+        /* ============================================
+         * PREVIEW MODE
+         * Keep popup inside preview frame instead of viewport
+         * ============================================ */
+        .cart-ab-popup-container.cart-ab-preview-mode {
+          position: absolute;
         }
       `}</style>
 
       <div
-        className="cart-ab-popup-container"
+        className={`cart-ab-popup-container${config.previewMode ? ' cart-ab-preview-mode' : ''}`}
         data-splitpop="true"
         data-template="cart-abandonment"
       >
@@ -673,37 +901,54 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
             {config.subheadline && <p className="cart-ab-subtitle">{config.subheadline}</p>}
           </div>
 
-          {config.showCloseButton !== false && (
-            <button className="cart-ab-close" onClick={onClose} aria-label="Close popup">
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
-            </button>
-          )}
+          <PopupCloseButton
+            onClose={onClose}
+            color={config.textColor}
+            size={20}
+            show={config.showCloseButton !== false}
+            className="cart-ab-close"
+            position="custom"
+          />
         </div>
 
         <div className="cart-ab-body">
           {config.showUrgency && config.urgencyTimer && timeRemaining.total > 0 && (
             <div className="cart-ab-urgency">
-              {config.urgencyMessage?.replace(
-                "{{time}}",
-                `${timeRemaining.minutes}:${String(timeRemaining.seconds).padStart(2, "0")}`
-              ) ||
-                `Complete your order in ${timeRemaining.minutes}:${String(
-                  timeRemaining.seconds
-                ).padStart(2, "0")}`}
+              {config.urgencyMessage ? (
+                config.urgencyMessage.includes("{{time}}") ? (
+                  config.urgencyMessage.replace(
+                    "{{time}}",
+                    `${timeRemaining.minutes}:${String(timeRemaining.seconds).padStart(2, "0")}`
+                  )
+                ) : (
+                  <>
+                    {config.urgencyMessage}{" "}
+                    <TimerDisplay
+                      timeRemaining={timeRemaining}
+                      format="compact"
+                      showDays={false}
+                      accentColor={config.accentColor || config.buttonColor}
+                      textColor={config.textColor}
+                    />
+                  </>
+                )
+              ) : (
+                <>
+                  Complete your order in{" "}
+                  <TimerDisplay
+                    timeRemaining={timeRemaining}
+                    format="compact"
+                    showDays={false}
+                    accentColor={config.accentColor || config.buttonColor}
+                    textColor={config.textColor}
+                  />
+                </>
+              )}
             </div>
           )}
 
-          {config.discount?.enabled && config.discount.code && (
+          {/* Discount teaser - only show amount/percentage, not the code (code shown after CTA click) */}
+          {config.discount?.enabled && !discountCode && (config.discount.percentage || config.discount.value) && (
             <div className="cart-ab-discount">
               <p className="cart-ab-discount-label">Special offer for you!</p>
               <div className="cart-ab-discount-amount">
@@ -712,7 +957,7 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
                   !config.discount.percentage &&
                   `$${config.discount.value} OFF`}
               </div>
-              <code className="cart-ab-discount-code">{config.discount.code}</code>
+              <p className="cart-ab-discount-hint">Click below to claim your discount</p>
             </div>
           )}
 
@@ -738,27 +983,16 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
                     </div>
                     <div className="cart-ab-item-price">
                       {config.discount?.enabled &&
+                      discountCode &&
                       typeof config.discount.percentage === "number" ? (
-                        <div
-                          style={{
-                            display: "flex",
-                            flexDirection: "column",
-                            alignItems: "flex-end",
-                          }}
-                        >
-                          <span
-                            style={{
-                              textDecoration: "line-through",
-                              opacity: 0.6,
-                              fontSize: "0.9em",
-                            }}
-                          >
+                        <span className="cart-ab-price-discounted">
+                          <span className="cart-ab-price-original">
                             {formatCurrency(safeBasePrice, config.currency)}
                           </span>
-                          <span style={{ color: config.successColor || "#16a34a" }}>
+                          <span className="cart-ab-price-new">
                             {formatCurrency(discountedPrice, config.currency)}
                           </span>
-                        </div>
+                        </span>
                       ) : (
                         formatCurrency(safeBasePrice, config.currency)
                       )}
@@ -780,29 +1014,21 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
             <div className="cart-ab-total-section">
               <div className="cart-ab-total">
                 <span>Total:</span>
-                <span
-                  style={{
-                    textDecoration:
-                      config.discount?.enabled &&
-                      (config.discount.percentage || config.discount.value) &&
-                      config.discount.type !== "free_shipping"
-                        ? "line-through"
-                        : "none",
-                    opacity:
-                      config.discount?.enabled &&
-                      (config.discount.percentage || config.discount.value) &&
-                      config.discount.type !== "free_shipping"
-                        ? 0.7
-                        : 1,
-                  }}
-                >
+                <span className={
+                  config.discount?.enabled &&
+                  discountCode &&
+                  (config.discount.percentage || config.discount.value) &&
+                  config.discount.type !== "free_shipping"
+                    ? "cart-ab-total-struck"
+                    : ""
+                }>
                   {typeof cartTotal === "number"
                     ? formatCurrency(cartTotal, config.currency)
                     : cartTotal}
                 </span>
               </div>
 
-              {config.discount?.enabled &&
+              {config.discount?.enabled && discountCode &&
                 (() => {
                   // Case 1: Free Shipping
                   if (config.discount.type === "free_shipping") {
@@ -863,59 +1089,59 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
           <div className="cart-ab-footer">
             {(config.enableEmailRecovery ||
               (config.previewMode && config.requireEmailBeforeCheckout)) && (
-              <form onSubmit={handleEmailSubmit} className="cart-ab-email-form">
-                <div className="cart-ab-email-row">
-                  <EmailInput
-                    value={formState.email}
-                    onChange={setEmail}
-                    placeholder={
+              <div className="cart-ab-email-form">
+                <LeadCaptureForm
+                  data={formState}
+                  errors={errors}
+                  onEmailChange={setEmail}
+                  onNameChange={() => {}}
+                  onGdprChange={() => {}}
+                  onSubmit={handleEmailSubmit}
+                  isSubmitting={isEmailSubmitting}
+                  showName={false}
+                  showGdpr={false}
+                  emailRequired={true}
+                  placeholders={{
+                    email:
                       config.emailPlaceholder ||
-                      "Enter your email to receive your cart and discount"
-                    }
-                    error={errors.email}
-                    required={true}
-                    disabled={isEmailSubmitting}
-                    accentColor={config.accentColor || config.buttonColor}
-                    textColor={config.textColor}
-                    backgroundColor={config.inputBackgroundColor}
-                  />
-                  <SubmitButton
-                    type="submit"
-                    loading={isEmailSubmitting}
-                    disabled={isEmailSubmitting}
-                    accentColor={config.accentColor || config.buttonColor}
-                    textColor={config.buttonTextColor}
-                  >
-                    {config.emailButtonText || "Email me my cart"}
-                  </SubmitButton>
-                </div>
-                {emailSuccessMessage && (
-                  <p className="cart-ab-email-success">{emailSuccessMessage}</p>
-                )}
-              </form>
+                      "Enter your email to receive your cart and discount",
+                  }}
+                  labels={{
+                    submit: config.emailButtonText || "Email me my cart",
+                  }}
+                  accentColor={config.accentColor || config.buttonColor}
+                  textColor={config.textColor}
+                  backgroundColor={config.inputBackgroundColor}
+                  buttonTextColor={config.buttonTextColor}
+                  extraFields={
+                    emailSuccessMessage ? (
+                      <p className="cart-ab-email-success">{emailSuccessMessage}</p>
+                    ) : undefined
+                  }
+                />
+              </div>
             )}
 
             {discountCode && (
-              <div
-                className="cart-ab-code-block"
-                onClick={() => handleCopyCode()}
-                style={{ cursor: "pointer" }}
-              >
-                <p className="cart-ab-code-label">Your discount code:</p>
-                <p className="cart-ab-code-value">{discountCode}</p>
-                <button type="button" className="cart-ab-code-copy">
-                  {copiedCode ? "Copied!" : "Copy"}
-                </button>
+              <div className="cart-ab-code-block">
+                <DiscountCodeDisplay
+                  code={discountCode}
+                  onCopy={handleCopyCode}
+                  copied={copiedCode}
+                  label="Your discount code:"
+                  variant="dashed"
+                  accentColor={config.accentColor || config.buttonColor}
+                  textColor={config.textColor}
+                  size="md"
+                />
               </div>
             )}
 
             {!isEmailGateActive && (
               <button
                 onClick={handleResumeCheckout}
-                style={buttonStyles}
                 className="cart-ab-primary-button"
-                onMouseEnter={(e) => (e.currentTarget.style.transform = "translateY(-1px)")}
-                onMouseLeave={(e) => (e.currentTarget.style.transform = "translateY(0)")}
+                type="button"
               >
                 {config.buttonText || config.ctaText || "Resume Checkout"}
               </button>
@@ -924,10 +1150,8 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
             {config.saveForLaterText && !isEmailGateActive && (
               <button
                 onClick={handleSaveForLater}
-                style={secondaryButtonStyles}
                 className="cart-ab-secondary-button"
-                onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
-                onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.7")}
+                type="button"
               >
                 {config.saveForLaterText}
               </button>
@@ -936,10 +1160,7 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
             <button
               type="button"
               onClick={onClose}
-              style={dismissButtonStyles}
               className="cart-ab-dismiss-button"
-              onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
-              onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.7")}
             >
               {config.dismissLabel || "No thanks"}
             </button>

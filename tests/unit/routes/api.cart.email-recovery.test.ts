@@ -114,8 +114,7 @@ describe("api.cart.email-recovery action", () => {
     parseDiscountConfigMock.mockImplementation((cfg: any) => ({
       ...cfg,
       enabled: true,
-      deliveryMode: "show_code_fallback",
-      autoApplyMode: "ajax",
+      behavior: "SHOW_CODE_ONLY",
     }));
     getCampaignDiscountCodeMock.mockResolvedValue({
       success: true,
@@ -146,8 +145,7 @@ describe("api.cart.email-recovery action", () => {
 
     expect(payload.success).toBe(true);
     expect(payload.discountCode).toBe("SAVE10");
-    expect(payload.deliveryMode).toBe("show_code_fallback");
-    expect(payload.autoApplyMode).toBe("ajax");
+    expect(payload.behavior).toBe("SHOW_CODE_ONLY");
 
     expect(getCampaignDiscountCodeMock).toHaveBeenCalledWith(
       {},
@@ -161,7 +159,7 @@ describe("api.cart.email-recovery action", () => {
     );
   });
 
-  it("authorizes email when deliveryMode is show_in_popup_authorized_only", async () => {
+  it("authorizes email when behavior is SHOW_CODE_AND_ASSIGN_TO_EMAIL", async () => {
     appProxyMock.mockResolvedValue({
       admin: {},
       session: { shop: "test.myshopify.com" },
@@ -178,8 +176,7 @@ describe("api.cart.email-recovery action", () => {
     parseDiscountConfigMock.mockImplementation((cfg: any) => ({
       ...cfg,
       enabled: true,
-      deliveryMode: "show_in_popup_authorized_only",
-      autoApplyMode: "ajax",
+      behavior: "SHOW_CODE_AND_ASSIGN_TO_EMAIL",
     }));
 
     getCampaignDiscountCodeMock.mockResolvedValue({

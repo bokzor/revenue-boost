@@ -10,7 +10,7 @@ import type { ContentDiscountType } from "~/domains/campaigns/types/campaign";
 // Re-export types from campaign domain for consistency
 export type {
   DiscountConfig,
-  DiscountDeliveryMode,
+  DiscountBehavior,
   ContentDiscountType,
 } from "~/domains/campaigns/types/campaign";
 

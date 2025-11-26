@@ -31,9 +31,7 @@ export function buildDiscountConfig(
       value: 10,
       expiryDays: 7,
       prefix: "SAVE",
-      deliveryMode: "show_code_fallback" as const,
-      autoApplyMode: "ajax" as const,
-      codePresentation: "show_code" as const,
+      behavior: "SHOW_CODE_AND_AUTO_APPLY" as const,
     };
   }
 
@@ -45,13 +43,8 @@ export function buildDiscountConfig(
     value: defaults.discount.value,
     expiryDays: defaults.discount.expiryDays,
     prefix: defaults.discount.prefix,
-    deliveryMode: defaults.discount.deliveryMode as
-      | "auto_apply_only"
-      | "show_code_fallback"
-      | "show_code_always",
+    behavior: defaults.discount.behavior,
     usageLimit: defaults.discount.singleUse ? 1 : undefined,
-    autoApplyMode: "ajax" as const,
-    codePresentation: "show_code" as const,
   };
 }
 

@@ -47,8 +47,7 @@ export type EmailRecoveryRequest = z.infer<typeof EmailRecoveryRequestSchema>;
 interface EmailRecoveryResponse {
   success: boolean;
   discountCode?: string;
-  deliveryMode?: string;
-  autoApplyMode?: string;
+  behavior?: string;
   message?: string;
   error?: string;
 }
@@ -155,7 +154,7 @@ export async function action({ request }: ActionFunctionArgs) {
     }
 
     // When using email-locked discounts, authorize this email
-    if (discountConfig.deliveryMode === "show_in_popup_authorized_only") {
+    if (discountConfig.behavior === "SHOW_CODE_AND_ASSIGN_TO_EMAIL") {
       discountConfig.authorizedEmail = validated.email;
       discountConfig.requireEmailMatch = true;
     }
@@ -208,16 +207,14 @@ export async function action({ request }: ActionFunctionArgs) {
       }
     }
 
-    const deliveryMode = discountConfig.deliveryMode || "show_code_fallback";
-    const autoApplyMode = discountConfig.autoApplyMode || "ajax";
-    const showCode = shouldShowDiscountCode(deliveryMode);
+    const behavior = discountConfig.behavior || "SHOW_CODE_AND_AUTO_APPLY";
+    const showCode = shouldShowDiscountCode(behavior);
 
     const response: EmailRecoveryResponse = {
       success: true,
       discountCode: showCode ? discountResult.discountCode : undefined,
-      deliveryMode,
-      autoApplyMode,
-      message: getSuccessMessage(deliveryMode),
+      behavior,
+      message: getSuccessMessage(behavior),
     };
 
     return data<EmailRecoveryResponse>(response, { status: 200 });

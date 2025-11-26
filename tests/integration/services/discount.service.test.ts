@@ -47,8 +47,7 @@ describe.skip('Discount Service - getCampaignDiscountCode', () => {
           value: 15,
           code: 'BUNDLE15',
           showInPreview: true,
-          autoApplyMode: 'none' as const,
-          codePresentation: 'show_code' as const,
+          behavior: 'SHOW_CODE_ONLY' as const,
         },
       };
 
@@ -78,8 +77,7 @@ describe.skip('Discount Service - getCampaignDiscountCode', () => {
           valueType: 'PERCENTAGE' as const,
           value: 20,
           showInPreview: true,
-          autoApplyMode: 'none' as const,
-          codePresentation: 'show_code' as const,
+          behavior: 'SHOW_CODE_ONLY' as const,
           // No code yet
         },
       };
