@@ -58,6 +58,9 @@ test.describe.serial('Interaction Patterns - Cross-Template Tests', () => {
             }
         });
 
+        // Wait for cache invalidation
+        await page.waitForTimeout(500);
+
         await mockChallengeToken(page);
 
         page.on('console', msg => {

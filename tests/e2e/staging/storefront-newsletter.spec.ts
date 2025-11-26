@@ -57,6 +57,9 @@ test.describe.serial('Newsletter Template - E2E', () => {
             }
         });
 
+        // Wait for cache invalidation
+        await page.waitForTimeout(500);
+
         // Mock challenge token to avoid rate limits
         await mockChallengeToken(page);
 
