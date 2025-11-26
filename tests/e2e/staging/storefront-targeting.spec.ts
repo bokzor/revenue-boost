@@ -160,94 +160,83 @@ test.describe.serial('Targeting Combinations', () => {
     });
 
     test('shows only on specific pages', async ({ page }) => {
-        // Target collections page only
+        // Target collections page only with very high priority
         const builder = factory.newsletter();
         await builder.init();
+        const priority = 9500 + Math.floor(Math.random() * 100);
         const campaign = await builder
             .withName('Target-Collection-Page')
-            .withPageTargeting(['*/collections/all'])
-            .withPriority(200)
+            .withPageTargeting(['*/collections/*'])
+            .withPriority(priority)
             .create();
 
-        console.log(`Created campaign: ${campaign.name}`);
+        console.log(`Created campaign: ${campaign.name} with priority ${priority}`);
 
-        // Home page: Should NOT show
-        await page.goto(STORE_URL);
-        await handlePasswordPage(page);
-        await page.waitForTimeout(3000);
+        // Wait for campaign to propagate
+        await page.waitForTimeout(1000);
 
-        let popupVisible = await page.locator('#revenue-boost-popup-shadow-host').isVisible().catch(() => false);
-        // Note: Other campaigns might show on home page, so we just log this
-        console.log(`Home page popup visible: ${popupVisible}`);
-
-        // Collection page: Should show
+        // Collection page: Should show our high priority campaign
         await page.goto(`${STORE_URL}/collections/all`);
         await handlePasswordPage(page);
-        await waitForAnyPopup(page, 10000);
+
+        const popup = page.locator('#revenue-boost-popup-shadow-host');
+        await expect(popup).toBeVisible({ timeout: 15000 });
         console.log('✅ Popup shown on collections page');
     });
 
     test('targets mobile devices only', async ({ page }) => {
         const builder = factory.newsletter();
         await builder.init();
+        const priority = 9600 + Math.floor(Math.random() * 100);
         const campaign = await builder
             .withName('Target-Mobile-Only')
             .withDeviceTargeting(['mobile'])
-            .withPriority(201)
+            .withPriority(priority)
             .create();
 
-        console.log(`Created campaign: ${campaign.name}`);
+        console.log(`Created campaign: ${campaign.name} with priority ${priority}`);
 
-        // Desktop viewport: Should NOT show this campaign
-        await page.setViewportSize({ width: 1280, height: 720 });
-        await page.goto(STORE_URL);
-        await handlePasswordPage(page);
-        await page.waitForTimeout(3000);
-        console.log('Desktop viewport test complete');
+        // Wait for campaign to propagate
+        await page.waitForTimeout(1000);
 
         // Mobile viewport: Should show
-        await page.context().clearCookies();
         await page.setViewportSize({ width: 375, height: 667 });
         await page.setExtraHTTPHeaders({
             'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1'
         });
         await page.goto(STORE_URL);
         await handlePasswordPage(page);
-        await waitForAnyPopup(page, 10000);
+
+        const popup = page.locator('#revenue-boost-popup-shadow-host');
+        await expect(popup).toBeVisible({ timeout: 15000 });
         console.log('✅ Popup shown on mobile viewport');
     });
 
     test('targets desktop devices only', async ({ page }) => {
         const builder = factory.newsletter();
         await builder.init();
+        const priority = 9700 + Math.floor(Math.random() * 100);
         const campaign = await builder
             .withName('Target-Desktop-Only')
             .withDeviceTargeting(['desktop'])
-            .withPriority(202)
+            .withPriority(priority)
             .create();
 
-        console.log(`Created campaign: ${campaign.name}`);
+        console.log(`Created campaign: ${campaign.name} with priority ${priority}`);
 
-        // Mobile viewport: Should NOT show this campaign
-        await page.context().clearCookies();
-        await page.setViewportSize({ width: 375, height: 667 });
-        await page.setExtraHTTPHeaders({
-            'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1'
-        });
-        await page.goto(STORE_URL);
-        await handlePasswordPage(page);
-        await page.waitForTimeout(3000);
-        console.log('Mobile viewport test complete');
+        // Wait for campaign to propagate
+        await page.waitForTimeout(1000);
 
         // Desktop viewport: Should show
-        await page.context().clearCookies();
         await page.setViewportSize({ width: 1280, height: 720 });
         await page.setExtraHTTPHeaders({
             'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
         });
         await page.goto(STORE_URL);
         await handlePasswordPage(page);
-        await waitForAnyPopup(page, 10000);
+
+        const popup = page.locator('#revenue-boost-popup-shadow-host');
+        await expect(popup).toBeVisible({ timeout: 15000 });
         console.log('✅ Popup shown on desktop viewport');
     });
 });

@@ -410,14 +410,29 @@ export function ProductUpsellContentSection({
                 timingFunction: "ease-in-out",
               }}
             >
-              <BlockStack gap="300">
+              <BlockStack gap="400">
+                <Banner tone="info">
+                  <BlockStack gap="200">
+                    <Text as="p" variant="bodyMd">
+                      <strong>How Bundle Discounts Work:</strong>
+                    </Text>
+                    <Text as="p" variant="bodySm">
+                      The bundle discount is applied <strong>only when the customer adds ALL suggested products</strong> to their cart together.
+                      If the customer selects only some products, the bundle discount will not be applied.
+                    </Text>
+                    <Text as="p" variant="bodySm" tone="subdued">
+                      💡 To enable the discount at checkout, make sure to configure the <strong>Discount</strong> step with a percentage discount matching your bundle discount value.
+                    </Text>
+                  </BlockStack>
+                </Banner>
+
                 <FormGrid columns={2}>
                   <TextField
                     label="Bundle Discount (%)"
                     name="content.bundleDiscount"
                     value={content.bundleDiscount?.toString() || "15"}
                     placeholder="15"
-                    helpText="Percentage discount when buying together"
+                    helpText="Applied when customer adds ALL suggested products to cart"
                     onChange={(value) => updateField("bundleDiscount", parseInt(value) || 15)}
                   />
 
@@ -426,6 +441,7 @@ export function ProductUpsellContentSection({
                     name="content.bundleDiscountText"
                     value={content.bundleDiscountText || ""}
                     placeholder="Save 15% when you buy together!"
+                    helpText="Promotional text shown to customers"
                     onChange={(value) => updateField("bundleDiscountText", value)}
                   />
                 </FormGrid>

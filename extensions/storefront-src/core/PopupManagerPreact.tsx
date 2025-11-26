@@ -187,17 +187,21 @@ async function refreshCartDrawer(
   cartData: { sections?: Record<string, string>; item_count?: number; [key: string]: unknown },
   root: string
 ): Promise<void> {
+  // Prepare event detail with cart data - many themes expect event.detail or event.detail.data
+  const eventDetail = { data: cartData, ...cartData };
+
   // Trigger comprehensive cart update events for different themes
-  document.dispatchEvent(new CustomEvent('cart:updated'));
-  document.dispatchEvent(new CustomEvent('cart.requestUpdate'));
-  document.dispatchEvent(new CustomEvent('cart:update'));
-  document.dispatchEvent(new CustomEvent('cart:change'));
-  document.dispatchEvent(new CustomEvent('theme:cart:update'));
-  document.dispatchEvent(new CustomEvent('cart:item-added'));
-  document.dispatchEvent(new CustomEvent('cart:add'));
+  // Pass cart data in the detail to prevent "Cannot read properties of null (reading 'data')" errors
+  document.dispatchEvent(new CustomEvent('cart:updated', { detail: eventDetail }));
+  document.dispatchEvent(new CustomEvent('cart.requestUpdate', { detail: eventDetail }));
+  document.dispatchEvent(new CustomEvent('cart:update', { detail: eventDetail }));
+  document.dispatchEvent(new CustomEvent('cart:change', { detail: eventDetail }));
+  document.dispatchEvent(new CustomEvent('theme:cart:update', { detail: eventDetail }));
+  document.dispatchEvent(new CustomEvent('cart:item-added', { detail: eventDetail }));
+  document.dispatchEvent(new CustomEvent('cart:add', { detail: eventDetail }));
 
   // Dispatch cart refresh with the cart data
-  document.dispatchEvent(new CustomEvent('cart:refresh', { detail: cartData }));
+  document.dispatchEvent(new CustomEvent('cart:refresh', { detail: eventDetail }));
 
   // Update cart count in header (common selectors)
   const cartCountSelectors = '.cart-count, [data-cart-count], .cart__count, #cart-icon-bubble span';
@@ -730,8 +734,34 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, tri
       const cartData = await cartResponse.json();
       console.log("[PopupManager] Items added to cart successfully");
 
-      // Check if we need to apply a discount
-      if (campaign.discountConfig?.enabled) {
+      // Check if we need to apply a bundle discount
+      // Bundle discount requires ALL suggested products to be selected
+      const contentConfig = campaign.contentConfig || {};
+      const bundleDiscount = (contentConfig as { bundleDiscount?: number }).bundleDiscount;
+      const maxProducts = (contentConfig as { maxProducts?: number }).maxProducts;
+
+      // Determine total available products (limited by maxProducts if set)
+      const totalAvailableProducts = maxProducts
+        ? Math.min(products.length, maxProducts)
+        : products.length;
+
+      // Check if ALL products were selected for bundle discount eligibility
+      const allProductsSelected = productIds.length >= totalAvailableProducts && totalAvailableProducts > 0;
+
+      console.log("[PopupManager] Bundle discount eligibility check:", {
+        bundleDiscount,
+        selectedCount: productIds.length,
+        totalAvailableProducts,
+        allProductsSelected,
+        discountEnabled: campaign.discountConfig?.enabled,
+      });
+
+      // Only apply discount if enabled AND all products are selected (for bundle discounts)
+      // If bundleDiscount is set in contentConfig, require all products to be selected
+      const shouldApplyDiscount = campaign.discountConfig?.enabled &&
+        (bundleDiscount ? allProductsSelected : true);
+
+      if (shouldApplyDiscount) {
         // Fetch cart total for tiered discount support
         let cartSubtotalCents: number | undefined;
         try {
@@ -750,6 +780,11 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, tri
         }
 
         await handleIssueDiscount({ cartSubtotalCents });
+      } else if (bundleDiscount && !allProductsSelected) {
+        console.log("[PopupManager] Bundle discount not applied - not all products selected", {
+          required: totalAvailableProducts,
+          selected: productIds.length,
+        });
       }
 
       // Refresh cart drawer using Section Rendering API response

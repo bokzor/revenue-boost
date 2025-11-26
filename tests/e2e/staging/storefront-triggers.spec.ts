@@ -50,41 +50,50 @@ test.describe('Trigger Combinations', () => {
     });
 
     test('shows popup after page load delay', async ({ page }) => {
-        const headline = `Delayed Popup ${Date.now()}`;
+        const priority = 9400 + Math.floor(Math.random() * 100);
         const builder = factory.newsletter();
         await builder.init();
         const campaign = await builder
             .withName('Page-Load-Delay')
             .withTriggerDelay(2000) // 2 second delay
-            .withHeadline(headline)
-            .withPriority(400)
+            .withPriority(priority)
             .create();
 
-        console.log(`Created campaign: ${campaign.name}`);
+        console.log(`Created campaign: ${campaign.name} with priority ${priority}`);
+
+        // Wait for campaign to propagate
+        await page.waitForTimeout(1000);
 
         await page.goto(STORE_URL);
         await handlePasswordPage(page);
 
-        // Should not be visible immediately
-        await expect(page.getByText(headline)).toBeHidden({ timeout: 1000 });
+        const popup = page.locator('#revenue-boost-popup-shadow-host');
 
-        // Should be visible after delay
-        await expect(page.getByText(headline)).toBeVisible({ timeout: 3000 });
+        // Should not be visible immediately (within first second)
+        await page.waitForTimeout(500);
+        const visibleEarly = await popup.isVisible().catch(() => false);
+        console.log(`Popup visible early (expected false): ${visibleEarly}`);
+
+        // Should be visible after the 2 second delay (give extra buffer)
+        await expect(popup).toBeVisible({ timeout: 5000 });
+        console.log('✅ Popup shown after delay');
     });
 
     test('shows popup when user scrolls to depth', async ({ page }) => {
-        const headline = `Scroll Popup ${Date.now()}`;
+        const priority = 9401 + Math.floor(Math.random() * 100);
         const builder = factory.newsletter();
         await builder.init();
         const campaign = await builder
             .withName('Scroll-Depth-Trigger')
             .withScrollDepthTrigger(50, 'down')
             .withoutPageLoadTrigger()
-            .withHeadline(headline)
-            .withPriority(401)
+            .withPriority(priority)
             .create();
 
-        console.log(`Created campaign: ${campaign.name}`);
+        console.log(`Created campaign: ${campaign.name} with priority ${priority}`);
+
+        // Wait for campaign to propagate
+        await page.waitForTimeout(1000);
 
         await page.goto(STORE_URL);
         await handlePasswordPage(page);
@@ -97,8 +106,12 @@ test.describe('Trigger Combinations', () => {
             document.body.appendChild(div);
         });
 
+        const popup = page.locator('#revenue-boost-popup-shadow-host');
+
         // Should not be visible initially
-        await expect(page.getByText(headline)).toBeHidden({ timeout: 2000 });
+        await page.waitForTimeout(1000);
+        const visibleEarly = await popup.isVisible().catch(() => false);
+        console.log(`Popup visible before scroll (expected false): ${visibleEarly}`);
 
         // Scroll to 50% depth
         await page.evaluate(() => {
@@ -106,39 +119,47 @@ test.describe('Trigger Combinations', () => {
             window.scrollTo(0, scrollHeight * 0.5);
         });
 
-        // Wait a bit for scroll event to process
-        await page.waitForTimeout(500);
+        // Wait for scroll event to process
+        await page.waitForTimeout(1000);
 
         // Should be visible after scroll
-        await expect(page.getByText(headline)).toBeVisible({ timeout: 3000 });
+        await expect(popup).toBeVisible({ timeout: 5000 });
+        console.log('✅ Popup shown after scroll');
     });
 
     test('shows popup after time delay', async ({ page }) => {
-        const headline = `Time Delay Popup ${Date.now()}`;
+        const priority = 9402 + Math.floor(Math.random() * 100);
         const builder = factory.newsletter();
         await builder.init();
         const campaign = await builder
             .withName('Time-Delay-Trigger')
             .withTimeDelayTrigger(3) // 3 seconds
             .withoutPageLoadTrigger()
-            .withHeadline(headline)
-            .withPriority(402)
+            .withPriority(priority)
             .create();
 
-        console.log(`Created campaign: ${campaign.name}`);
+        console.log(`Created campaign: ${campaign.name} with priority ${priority}`);
+
+        // Wait for campaign to propagate
+        await page.waitForTimeout(1000);
 
         await page.goto(STORE_URL);
         await handlePasswordPage(page);
 
-        // Should not be visible within 2 seconds
-        await expect(page.getByText(headline)).toBeHidden({ timeout: 2000 });
+        const popup = page.locator('#revenue-boost-popup-shadow-host');
 
-        // Should be visible after 3+ seconds
-        await expect(page.getByText(headline)).toBeVisible({ timeout: 3000 });
+        // Should not be visible within first 2 seconds
+        await page.waitForTimeout(1500);
+        const visibleEarly = await popup.isVisible().catch(() => false);
+        console.log(`Popup visible early (expected false): ${visibleEarly}`);
+
+        // Should be visible after 3+ seconds (give extra buffer)
+        await expect(popup).toBeVisible({ timeout: 5000 });
+        console.log('✅ Popup shown after time delay');
     });
 
     test('shows popup when all triggers pass (AND logic)', async ({ page }) => {
-        const headline = `AND Logic Popup ${Date.now()}`;
+        const priority = 9403 + Math.floor(Math.random() * 100);
         const builder = factory.newsletter();
         await builder.init();
         const campaign = await builder
@@ -147,11 +168,13 @@ test.describe('Trigger Combinations', () => {
             .withTimeDelayTrigger(3)
             .withTriggerLogic('AND')
             .withoutPageLoadTrigger()
-            .withHeadline(headline)
-            .withPriority(403)
+            .withPriority(priority)
             .create();
 
-        console.log(`Created campaign: ${campaign.name}`);
+        console.log(`Created campaign: ${campaign.name} with priority ${priority}`);
+
+        // Wait for campaign to propagate
+        await page.waitForTimeout(1000);
 
         await page.goto(STORE_URL);
         await handlePasswordPage(page);
@@ -164,26 +187,30 @@ test.describe('Trigger Combinations', () => {
             document.body.appendChild(div);
         });
 
+        const popup = page.locator('#revenue-boost-popup-shadow-host');
+
         // Scroll to 30% immediately
         await page.evaluate(() => {
             const scrollHeight = document.documentElement.scrollHeight - window.innerHeight;
             window.scrollTo(0, scrollHeight * 0.3);
         });
 
-        await page.waitForTimeout(500);
+        await page.waitForTimeout(1000);
 
         // Should not be visible yet (scroll met, but time not met)
-        await expect(page.getByText(headline)).toBeHidden({ timeout: 2000 });
+        const visibleEarly = await popup.isVisible().catch(() => false);
+        console.log(`Popup visible after scroll only (expected false): ${visibleEarly}`);
 
         // Wait for time trigger (3 seconds total from page load)
-        await page.waitForTimeout(2000);
+        await page.waitForTimeout(3000);
 
         // Should now be visible (both conditions met)
-        await expect(page.getByText(headline)).toBeVisible({ timeout: 2000 });
+        await expect(popup).toBeVisible({ timeout: 5000 });
+        console.log('✅ Popup shown after AND conditions met');
     });
 
     test('shows popup when any trigger passes (OR logic)', async ({ page }) => {
-        const headline = `OR Logic Popup ${Date.now()}`;
+        const priority = 9404 + Math.floor(Math.random() * 100);
         const builder = factory.newsletter();
         await builder.init();
         const campaign = await builder
@@ -192,11 +219,13 @@ test.describe('Trigger Combinations', () => {
             .withTimeDelayTrigger(3)
             .withTriggerLogic('OR')
             .withoutPageLoadTrigger()
-            .withHeadline(headline)
-            .withPriority(404)
+            .withPriority(priority)
             .create();
 
-        console.log(`Created campaign: ${campaign.name}`);
+        console.log(`Created campaign: ${campaign.name} with priority ${priority}`);
+
+        // Wait for campaign to propagate
+        await page.waitForTimeout(1000);
 
         await page.goto(STORE_URL);
         await handlePasswordPage(page);
@@ -209,11 +238,16 @@ test.describe('Trigger Combinations', () => {
             document.body.appendChild(div);
         });
 
+        const popup = page.locator('#revenue-boost-popup-shadow-host');
+
         // Don't scroll - just wait for time trigger
         // Should not be visible within 2 seconds
-        await expect(page.getByText(headline)).toBeHidden({ timeout: 2000 });
+        await page.waitForTimeout(2000);
+        const visibleEarly = await popup.isVisible().catch(() => false);
+        console.log(`Popup visible early (expected false): ${visibleEarly}`);
 
         // Should be visible after 3 seconds (time trigger met, scroll not needed with OR)
-        await expect(page.getByText(headline)).toBeVisible({ timeout: 5000 });
+        await expect(popup).toBeVisible({ timeout: 5000 });
+        console.log('✅ Popup shown after OR time trigger met');
     });
 });

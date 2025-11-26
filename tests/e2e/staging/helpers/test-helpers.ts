@@ -730,3 +730,144 @@ export async function performNewsletterSignup(
         return { success: false, error: String(error) };
     }
 }
+
+/**
+ * Wait for campaign to be available in API
+ * This helps with race conditions where campaign is created but not yet visible
+ */
+export async function waitForCampaignInAPI(
+    page: Page,
+    campaignId: string,
+    timeout: number = 10000
+): Promise<boolean> {
+    const startTime = Date.now();
+
+    while (Date.now() - startTime < timeout) {
+        try {
+            const response = await page.evaluate(async (id) => {
+                const res = await fetch(`/apps/revenue-boost/api/campaigns/${id}`);
+                return res.ok;
+            }, campaignId);
+
+            if (response) {
+                return true;
+            }
+        } catch {
+            // Ignore errors and retry
+        }
+
+        await page.waitForTimeout(500);
+    }
+
+    return false;
+}
+
+/**
+ * Robust test setup - ensures clean state before each test
+ */
+export async function setupTestEnvironment(
+    page: Page,
+    prisma: any,
+    options: {
+        cleanupPrefix?: string;
+        waitTime?: number;
+    } = {}
+): Promise<void> {
+    const { cleanupPrefix = 'E2E-Test-', waitTime = 1000 } = options;
+
+    // 1. Clean up old test campaigns
+    const deleted = await prisma.campaign.deleteMany({
+        where: {
+            name: { startsWith: cleanupPrefix }
+        }
+    });
+
+    if (deleted.count > 0) {
+        console.log(`[Test Setup] Cleaned up ${deleted.count} old test campaigns`);
+    }
+
+    // 2. Wait for cleanup to propagate
+    await page.waitForTimeout(waitTime);
+    console.log('[Test Setup] Waited for cleanup to propagate');
+
+    // 3. Mock challenge token
+    await mockChallengeToken(page);
+}
+
+/**
+ * Generate a unique high priority for test campaigns
+ * Uses timestamp to ensure uniqueness across parallel tests
+ */
+export function generateTestPriority(base: number = 9000): number {
+    return base + Math.floor(Math.random() * 1000);
+}
+
+/**
+ * Retry an async operation with exponential backoff
+ */
+export async function retryOperation<T>(
+    operation: () => Promise<T>,
+    options: {
+        maxRetries?: number;
+        initialDelay?: number;
+        maxDelay?: number;
+        onRetry?: (attempt: number, error: Error) => void;
+    } = {}
+): Promise<T> {
+    const {
+        maxRetries = 3,
+        initialDelay = 500,
+        maxDelay = 5000,
+        onRetry
+    } = options;
+
+    let lastError: Error | undefined;
+    let delay = initialDelay;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            return await operation();
+        } catch (error) {
+            lastError = error as Error;
+
+            if (attempt < maxRetries) {
+                onRetry?.(attempt, lastError);
+                await new Promise(resolve => setTimeout(resolve, delay));
+                delay = Math.min(delay * 2, maxDelay);
+            }
+        }
+    }
+
+    throw lastError;
+}
+
+/**
+ * Wait for popup with retry - handles timing issues
+ */
+export async function waitForPopupWithRetry(
+    page: Page,
+    options: {
+        timeout?: number;
+        retries?: number;
+        reloadOnRetry?: boolean;
+    } = {}
+): Promise<boolean> {
+    const { timeout = 10000, retries = 2, reloadOnRetry = true } = options;
+
+    for (let attempt = 1; attempt <= retries; attempt++) {
+        try {
+            const popup = page.locator('#revenue-boost-popup-shadow-host');
+            await popup.waitFor({ state: 'visible', timeout });
+            return true;
+        } catch {
+            if (attempt < retries && reloadOnRetry) {
+                console.log(`[Retry ${attempt}] Popup not visible, reloading page...`);
+                await page.reload();
+                await handlePasswordPage(page);
+                await page.waitForTimeout(2000);
+            }
+        }
+    }
+
+    return false;
+}
