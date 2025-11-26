@@ -2,7 +2,7 @@
 
 client_id = "eaca0ccfd74444b9f79cd7c0cc8e87be"
 name = "Revenue Boost"
-application_url = "https://revenue-boost.app/app"
+application_url = "https://app.revenue-boost.app"
 embedded = true
 
 [webhooks]
@@ -37,15 +37,16 @@ use_legacy_install_flow = false
 
 [auth]
 redirect_urls = [
-  "https://revenue-boost.app/auth/callback",
-  "https://revenue-boost.app/auth/shopify/callback",
-  "https://revenue-boost.app/api/auth/callback"
+  "https://app.revenue-boost.app/auth/callback",
+  "https://app.revenue-boost.app/auth/shopify/callback",
+  "https://app.revenue-boost.app/api/auth/callback"
 ]
 
 [app_proxy]
-url = "https://revenue-boost.app"
+url = "https://app.revenue-boost.app"
 subpath = "revenue-boost"
 prefix = "apps"
+
 [pos]
 embedded = false
 
