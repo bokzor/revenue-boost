@@ -66,7 +66,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     session.accessToken || "",
     admin
   );
-  const themeEditorUrl = `https://${session.shop}/admin/themes/current/editor`;
+  const themeEditorUrl = `https://${session.shop}/admin/themes/current/editor?context=apps`;
 
   // Calculate usage
   const activeCampaignsCount = await prisma.campaign.count({

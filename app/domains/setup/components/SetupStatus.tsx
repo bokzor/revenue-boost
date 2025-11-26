@@ -7,6 +7,7 @@
  */
 
 import { Card, BlockStack, Text, List, InlineStack, Badge, Banner, Button } from "@shopify/polaris";
+import { useCallback } from "react";
 
 export interface SetupStatusData {
   themeExtensionEnabled: boolean;
@@ -27,6 +28,19 @@ export function SetupStatus({
   themeEditorUrl,
   compact = false,
 }: SetupStatusProps) {
+  // Use Shopify's open API to properly open external URLs from embedded app
+  const openThemeEditor = useCallback(() => {
+    if (themeEditorUrl) {
+      // Use shopify.open() for embedded apps - opens in new tab correctly
+      if (typeof window !== "undefined" && window.shopify?.open) {
+        window.shopify.open(themeEditorUrl);
+      } else {
+        // Fallback for non-embedded context
+        window.open(themeEditorUrl, "_blank");
+      }
+    }
+  }, [themeEditorUrl]);
+
   if (compact && setupComplete) {
     return (
       <Banner tone="success">
@@ -44,7 +58,7 @@ export function SetupStatus({
           themeEditorUrl
             ? {
                 content: "Enable in Theme Editor",
-                onAction: () => window.open(themeEditorUrl, "_blank"),
+                onAction: openThemeEditor,
               }
             : undefined
         }
@@ -122,7 +136,7 @@ export function SetupStatus({
               To enable the theme extension, open your theme editor and toggle on &quot;Revenue Boost
               Popups&quot; under App embeds.
             </Text>
-            <Button url={themeEditorUrl} target="_blank" variant="primary">
+            <Button onClick={openThemeEditor} variant="primary">
               Open Theme Editor
             </Button>
           </BlockStack>

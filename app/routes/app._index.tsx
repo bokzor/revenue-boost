@@ -76,7 +76,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     session.accessToken || "",
     admin
   );
-  const themeEditorUrl = `https://${session.shop}/admin/themes/current/editor`;
+  const themeEditorUrl = `https://${session.shop}/admin/themes/current/editor?context=apps`;
 
   // 1. Fetch all campaigns
   const allCampaigns = await CampaignService.getAllCampaigns(storeId);
