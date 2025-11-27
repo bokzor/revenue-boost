@@ -6,6 +6,7 @@ import * as dotenv from 'dotenv';
 import { CampaignFactory } from './factories/campaign-factory';
 import {
     STORE_URL,
+    API_PROPAGATION_DELAY_MS,
     handlePasswordPage,
     mockChallengeToken,
     fillEmailInShadowDOM,
@@ -14,13 +15,16 @@ import {
     hasTextInShadowDOM,
     getFormInputsFromShadowDOM,
     performNewsletterSignup,
-    mockLeadSubmission
+    mockLeadSubmission,
+    getTestPrefix,
+    waitForPopupWithRetry
 } from './helpers/test-helpers';
 
 // Load staging environment variables
 dotenv.config({ path: path.resolve(process.cwd(), '.env.staging.env'), override: true });
 
 const STORE_DOMAIN = 'revenue-boost-staging.myshopify.com';
+const TEST_PREFIX = getTestPrefix('storefront-interaction-patterns.spec.ts');
 
 test.describe.serial('Interaction Patterns - Cross-Template Tests', () => {
     let prisma: PrismaClient;
@@ -43,18 +47,24 @@ test.describe.serial('Interaction Patterns - Cross-Template Tests', () => {
         }
 
         storeId = store.id;
-        factory = new CampaignFactory(prisma, storeId);
+        factory = new CampaignFactory(prisma, storeId, TEST_PREFIX);
     });
 
     test.afterAll(async () => {
+        // Clean up campaigns created by this test file only
+        await prisma.campaign.deleteMany({
+            where: {
+                name: { startsWith: TEST_PREFIX }
+            }
+        });
         await prisma.$disconnect();
     });
 
     test.beforeEach(async ({ page }) => {
-        // Clean up old test campaigns
+        // Clean up campaigns from previous runs of THIS test file only
         await prisma.campaign.deleteMany({
             where: {
-                name: { startsWith: 'E2E-Test-' }
+                name: { startsWith: TEST_PREFIX }
             }
         });
 
@@ -117,14 +127,21 @@ test.describe.serial('Interaction Patterns - Cross-Template Tests', () => {
     test.describe('Email Validation', () => {
         test('validates email format in Newsletter form', async ({ page }) => {
             // Create Newsletter campaign
-            await (await factory.newsletter().init()).create();
+            const campaign = await (await factory.newsletter().init()).create();
+            console.log(`✅ Campaign created: ${campaign.id}`);
+
+            // Wait for campaign to propagate to API (Cloud Run caching)
+            await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
 
             await page.goto(STORE_URL);
             await handlePasswordPage(page);
 
-            // Wait for popup shadow host
-            const popupHost = page.locator('#revenue-boost-popup-shadow-host');
-            await expect(popupHost).toBeVisible({ timeout: 10000 });
+            // Wait for popup shadow host (with retry for API propagation)
+            const popupVisible = await waitForPopupWithRetry(page, { timeout: 10000, retries: 3 });
+            expect(popupVisible).toBe(true);
+
+            // Wait for shadow DOM to render content
+            await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
 
             // Verify form inputs exist in shadow DOM
             const formInputs = await getFormInputsFromShadowDOM(page);
@@ -140,7 +157,8 @@ test.describe.serial('Interaction Patterns - Cross-Template Tests', () => {
             await page.waitForTimeout(500);
 
             // Popup should still be visible (form not submitted successfully)
-            await expect(popupHost).toBeVisible();
+            const popupStillVisible = await waitForPopupWithRetry(page, { timeout: 5000, retries: 1 });
+            expect(popupStillVisible).toBe(true);
 
             console.log('✅ Email validation working - invalid email prevented submission');
         });
@@ -149,7 +167,11 @@ test.describe.serial('Interaction Patterns - Cross-Template Tests', () => {
             // Mock the lead submission API
             await mockLeadSubmission(page, 'TESTCODE');
 
-            await (await factory.newsletter().init()).create();
+            const campaign = await (await factory.newsletter().init()).create();
+            console.log(`✅ Campaign created: ${campaign.id}`);
+
+            // Wait for campaign to propagate to API (Cloud Run caching)
+            await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
 
             await page.goto(STORE_URL);
             await handlePasswordPage(page);
@@ -200,7 +222,7 @@ test.describe.serial('Interaction Patterns - Cross-Template Tests', () => {
 
             // Try to submit - should fail without GDPR consent
             await submitFormInShadowDOM(page);
-            await page.waitForTimeout(1000);
+            await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
 
             // Popup should still be visible (submission blocked)
             await expect(popupHost).toBeVisible();

@@ -25,7 +25,10 @@ const SpinWinRequestSchema = z.object({
   ),
   email: z.string().email(),
   sessionId: z.string(),
-  challengeToken: z.string(), // REQUIRED: Challenge token for security
+  visitorId: z.string().optional(),
+  // Bot detection fields
+  popupShownAt: z.number().optional(),
+  honeypot: z.string().optional(),
 });
 
 // Type for SpinWinRequest is inferred from schema
@@ -81,28 +84,24 @@ export async function action({ request }: ActionFunctionArgs) {
       return data({ success: false, error: "Invalid campaign type" }, { status: 400 });
     }
 
-    // SECURITY: Validate challenge token
-    const ip =
-      request.headers.get("x-forwarded-for")?.split(",")[0] ||
-      request.headers.get("x-real-ip") ||
-      "unknown";
-
-    const { validateAndConsumeToken } = await import(
-      "~/domains/security/services/challenge-token.server"
+    // SECURITY: Generic storefront request validation
+    const { validateStorefrontRequest } = await import(
+      "~/domains/security/services/submission-validator.server"
     );
-    const tokenValidation = await validateAndConsumeToken(
-      validatedRequest.challengeToken,
-      validatedRequest.campaignId,
-      validatedRequest.sessionId,
-      ip,
-      false
-    );
+    const validation = await validateStorefrontRequest(request, validatedRequest);
 
-    if (!tokenValidation.valid) {
-      console.warn(`[Spin-to-Win] Token validation failed: ${tokenValidation.error}`);
+    if (!validation.valid) {
+      if (validation.isBotLikely) {
+        const ip = request.headers.get("x-forwarded-for")?.split(",")[0] || "unknown";
+        console.warn(`[Spin-to-Win] 🤖 Bot detected (${validation.reason}) for campaign ${validatedRequest.campaignId}, IP: ${ip}`);
+        return data(
+          { success: true, prize: { id: "thanks", label: "Thank You!" }, discountCode: "THANKS10" },
+          { status: 200 }
+        );
+      }
       return data(
-        { success: false, error: tokenValidation.error || "Invalid or expired token" },
-        { status: 403 }
+        { success: false, error: validation.reason === "session_expired" ? "Session expired. Please refresh the page." : "Invalid request" },
+        { status: 400 }
       );
     }
 

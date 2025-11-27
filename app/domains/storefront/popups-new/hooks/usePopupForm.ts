@@ -7,14 +7,13 @@
  * Features:
  * - Email, name, and GDPR consent state management
  * - Validation with customizable error messages
- * - Secure submission with challenge token
+ * - Secure submission with bot detection (honeypot + timing)
  * - Loading and success states
  * - Automatic form reset
  */
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { validateEmail } from "../utils";
-import { submitWithChallengeToken } from "../utils/secure-submission";
 
 export interface PopupFormConfig {
   emailRequired?: boolean;
@@ -66,6 +65,9 @@ export function usePopupForm(options: UsePopupFormOptions) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [generatedDiscountCode, setGeneratedDiscountCode] = useState<string | null>(null);
+
+  // Track when form was mounted (for bot detection timing)
+  const formMountedAtRef = useRef<number>(Date.now());
 
   // Validation
   const validateForm = useCallback((): boolean => {
@@ -140,9 +142,8 @@ export function usePopupForm(options: UsePopupFormOptions) {
           // Default secure submission
           if (!config.campaignId) {
             // In preview mode (admin editor, WYSIWYG preview, etc.) we don't
-            // have a real campaignId or challenge token available. Treat this
-            // as a mocked success so merchants can exercise the flow without
-            // hitting the secure submission endpoint.
+            // have a real campaignId. Treat this as a mocked success so
+            // merchants can exercise the flow without hitting the endpoint.
             if (config.previewMode) {
               setIsSubmitted(true);
               return { success: true, discountCode: undefined };
@@ -151,11 +152,24 @@ export function usePopupForm(options: UsePopupFormOptions) {
             throw new Error("Missing campaignId for secure submission");
           }
 
-          const result = await submitWithChallengeToken({
-            campaignId: config.campaignId,
-            endpoint,
-            data: formData,
+          // Use secure API helper (includes sessionId, visitorId, popupShownAt)
+          const { createSecureRequest } = await import("../utils/popup-api");
+          const requestBody = createSecureRequest(config.campaignId, {
+            ...formData,
+            popupShownAt: formMountedAtRef.current, // Override with form-specific timing
           });
+
+          const response = await fetch(endpoint, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(requestBody),
+          });
+
+          const result = await response.json();
+
+          if (!response.ok) {
+            throw new Error(result.error || "Submission failed");
+          }
 
           if (result.success) {
             if (result.discountCode) {

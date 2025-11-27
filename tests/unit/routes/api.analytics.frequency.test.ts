@@ -133,6 +133,7 @@ describe("api.analytics.frequency action", () => {
           // No trackingKey provided so it should default to campaignId
           experimentId: "exp_1",
           sessionId: "sess_1",
+          visitorId: "visitor-abc", // Client-provided visitorId (from localStorage)
           pageUrl: "/collections/frontpage",
           referrer: "https://google.com",
         }),

@@ -24,8 +24,8 @@ vi.mock("~/domains/commerce/services/discount.server", () => ({
   getCampaignDiscountCode: vi.fn(),
 }));
 
-vi.mock("~/domains/security/services/challenge-token.server", () => ({
-  validateAndConsumeToken: vi.fn(),
+vi.mock("~/domains/security/services/submission-validator.server", () => ({
+  validateStorefrontRequest: vi.fn().mockResolvedValue({ valid: true }),
 }));
 
 vi.mock("~/domains/analytics/popup-events.server", () => ({
@@ -130,21 +130,20 @@ vi.mock("~/db.server", () => {
 import { authenticate } from "~/shopify.server";
 import prisma from "~/db.server";
 import * as discountModule from "~/domains/commerce/services/discount.server";
-import * as challengeTokenModule from "~/domains/security/services/challenge-token.server";
+import * as submissionValidatorModule from "~/domains/security/services/submission-validator.server";
 import * as customerModule from "~/lib/shopify/customer.server";
 
 const appProxyMock = authenticate.public.appProxy as unknown as ReturnType<typeof vi.fn>;
 const getCampaignDiscountCodeMock = discountModule.getCampaignDiscountCode as unknown as ReturnType<typeof vi.fn>;
-const validateAndConsumeTokenMock = challengeTokenModule.validateAndConsumeToken as unknown as ReturnType<typeof vi.fn>;
+const validateStorefrontRequestMock = submissionValidatorModule.validateStorefrontRequest as unknown as ReturnType<typeof vi.fn>;
 const upsertCustomerMock = customerModule.upsertCustomer as unknown as ReturnType<typeof vi.fn>;
 
 import { action as scratchCardAction } from "~/routes/api.popups.scratch-card";
 import { action as saveEmailAction } from "~/routes/api.leads.save-email";
 
-describe("Scratch Card Challenge Token Flow - Integration", () => {
+describe("Scratch Card Submission Validation Flow - Integration", () => {
   const mockCampaignId = "cm123456789012345678901234";
   const mockSessionId = "session_integration_test";
-  const mockChallengeToken = "challenge_token_integration";
   const mockStoreId = "store_integration";
   const mockShop = "test.myshopify.com";
   const mockEmail = "integration@example.com";
@@ -179,7 +178,7 @@ describe("Scratch Card Challenge Token Flow - Integration", () => {
       session: { shop: mockShop },
     });
 
-    validateAndConsumeTokenMock.mockResolvedValue({ valid: true });
+    validateStorefrontRequestMock.mockResolvedValue({ valid: true });
 
     getCampaignDiscountCodeMock.mockResolvedValue({
       success: true,
@@ -206,7 +205,7 @@ describe("Scratch Card Challenge Token Flow - Integration", () => {
         body: JSON.stringify({
           campaignId: mockCampaignId,
           sessionId: mockSessionId,
-          challengeToken: mockChallengeToken,
+          popupShownAt: Date.now() - 5000,
           // NO EMAIL
         }),
       });
@@ -220,14 +219,14 @@ describe("Scratch Card Challenge Token Flow - Integration", () => {
       expect(scratchPayload.success).toBe(true);
       expect(scratchPayload.discountCode).toBe("SCRATCH10");
 
-      // Verify challenge token was validated and consumed
-      expect(validateAndConsumeTokenMock).toHaveBeenCalledTimes(1);
-      expect(validateAndConsumeTokenMock).toHaveBeenCalledWith(
-        mockChallengeToken,
-        mockCampaignId,
-        mockSessionId,
-        expect.any(String),
-        false
+      // Verify submission was validated
+      expect(validateStorefrontRequestMock).toHaveBeenCalledTimes(1);
+      expect(validateStorefrontRequestMock).toHaveBeenCalledWith(
+        expect.any(Request),
+        expect.objectContaining({
+          campaignId: mockCampaignId,
+          sessionId: mockSessionId,
+        })
       );
 
       // Verify anonymous lead was created
@@ -265,8 +264,8 @@ describe("Scratch Card Challenge Token Flow - Integration", () => {
       expect(saveEmailPayload.success).toBe(true);
       expect(saveEmailPayload.discountCode).toBe("SCRATCH10");
 
-      // Verify challenge token was NOT validated again (already consumed)
-      expect(validateAndConsumeTokenMock).toHaveBeenCalledTimes(1); // Still only 1 call
+      // Verify submission validation was NOT called again
+      expect(validateStorefrontRequestMock).toHaveBeenCalledTimes(1); // Still only 1 call
 
       // Verify lead was updated with real email
       expect(prisma.lead.update).toHaveBeenCalledWith({
@@ -309,7 +308,7 @@ describe("Scratch Card Challenge Token Flow - Integration", () => {
         body: JSON.stringify({
           campaignId: mockCampaignId,
           sessionId: mockSessionId,
-          challengeToken: mockChallengeToken,
+          popupShownAt: Date.now() - 5000,
           email: mockEmail, // ← Email provided upfront
         }),
       });
@@ -323,14 +322,14 @@ describe("Scratch Card Challenge Token Flow - Integration", () => {
       expect(scratchPayload.success).toBe(true);
       expect(scratchPayload.discountCode).toBe("SCRATCH10");
 
-      // Verify challenge token was validated and consumed ONCE
-      expect(validateAndConsumeTokenMock).toHaveBeenCalledTimes(1);
-      expect(validateAndConsumeTokenMock).toHaveBeenCalledWith(
-        mockChallengeToken,
-        mockCampaignId,
-        mockSessionId,
-        expect.any(String),
-        false
+      // Verify submission was validated ONCE
+      expect(validateStorefrontRequestMock).toHaveBeenCalledTimes(1);
+      expect(validateStorefrontRequestMock).toHaveBeenCalledWith(
+        expect.any(Request),
+        expect.objectContaining({
+          campaignId: mockCampaignId,
+          sessionId: mockSessionId,
+        })
       );
 
       // Verify lead was created with email (not anonymous)
@@ -368,7 +367,7 @@ describe("Scratch Card Challenge Token Flow - Integration", () => {
         body: JSON.stringify({
           campaignId: mockCampaignId,
           sessionId: mockSessionId,
-          challengeToken: mockChallengeToken,
+          popupShownAt: Date.now() - 5000,
         }),
       });
 
@@ -402,15 +401,15 @@ describe("Scratch Card Challenge Token Flow - Integration", () => {
 
       expect(saveEmailPayload.success).toBe(true);
 
-      // Verify only ONE challenge token validation occurred
-      expect(validateAndConsumeTokenMock).toHaveBeenCalledTimes(1);
+      // Verify only ONE submission validation occurred
+      expect(validateStorefrontRequestMock).toHaveBeenCalledTimes(1);
     });
   });
 
-  describe("Security: Challenge Token Reuse Prevention", () => {
-    it("should reject reused challenge token in scratch-card API", async () => {
+  describe("Security: Bot Detection", () => {
+    it("should detect bots via honeypot field", async () => {
       // First request succeeds
-      validateAndConsumeTokenMock.mockResolvedValueOnce({ valid: true });
+      validateStorefrontRequestMock.mockResolvedValueOnce({ valid: true });
 
       const request1 = new Request("http://localhost/api/popups/scratch-card", {
         method: "POST",
@@ -418,7 +417,7 @@ describe("Scratch Card Challenge Token Flow - Integration", () => {
         body: JSON.stringify({
           campaignId: mockCampaignId,
           sessionId: mockSessionId,
-          challengeToken: mockChallengeToken,
+          popupShownAt: Date.now() - 5000,
         }),
       });
 
@@ -429,10 +428,11 @@ describe("Scratch Card Challenge Token Flow - Integration", () => {
 
       expect(payload1.success).toBe(true);
 
-      // Second request with same token fails
-      validateAndConsumeTokenMock.mockResolvedValueOnce({
+      // Second request with honeypot filled is detected as bot
+      validateStorefrontRequestMock.mockResolvedValueOnce({
         valid: false,
-        error: "Token already used",
+        reason: "honeypot",
+        isBotLikely: true,
       });
 
       const request2 = new Request("http://localhost/api/popups/scratch-card", {
@@ -441,7 +441,7 @@ describe("Scratch Card Challenge Token Flow - Integration", () => {
         body: JSON.stringify({
           campaignId: mockCampaignId,
           sessionId: mockSessionId,
-          challengeToken: mockChallengeToken, // Same token
+          honeypot: "bot-filled-this", // Bot indicator
         }),
       });
 
@@ -450,11 +450,11 @@ describe("Scratch Card Challenge Token Flow - Integration", () => {
       } as unknown as ActionFunctionArgs);
       const payload2 = (response2 as any).data as any;
 
-      expect(payload2.success).toBe(false);
-      expect(payload2.error).toBe("Token already used");
+      // Bots get fake success
+      expect(payload2.success).toBe(true);
     });
 
-    it("should NOT require challenge token in save-email API", async () => {
+    it("should NOT require submission validation in save-email API", async () => {
       // Create anonymous lead first
       await prisma.lead.create({
         data: {
@@ -467,7 +467,7 @@ describe("Scratch Card Challenge Token Flow - Integration", () => {
         },
       });
 
-      // Save email without challenge token
+      // Save email
       const request = new Request(`http://localhost/api/leads/save-email?shop=${mockShop}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -476,7 +476,6 @@ describe("Scratch Card Challenge Token Flow - Integration", () => {
           campaignId: mockCampaignId,
           sessionId: mockSessionId,
           discountCode: "SCRATCH10",
-          // NO CHALLENGE TOKEN
         }),
       });
 
@@ -487,8 +486,8 @@ describe("Scratch Card Challenge Token Flow - Integration", () => {
 
       expect(payload.success).toBe(true);
 
-      // Verify challenge token validation was never called for save-email
-      expect(validateAndConsumeTokenMock).not.toHaveBeenCalled();
+      // Verify submission validation was never called for save-email
+      expect(validateStorefrontRequestMock).not.toHaveBeenCalled();
     });
   });
 });

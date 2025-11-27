@@ -14,10 +14,6 @@ import React, { useEffect, useState, useRef, useCallback, useMemo } from "react"
 import type { PopupDesignConfig, DiscountConfig as StorefrontDiscountConfig } from "./types";
 import type { FreeShippingContent } from "~/domains/campaigns/types/campaign";
 import { debounce } from "./utils";
-import {
-  requestChallengeToken,
-  challengeTokenStore,
-} from "~/domains/storefront/services/challenge-token.client";
 import { POPUP_SPACING } from "./spacing";
 
 // Import custom hooks
@@ -122,13 +118,11 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
   const [internalDismissed, setInternalDismissed] = useState(false);
   const [celebrating, setCelebrating] = useState(false);
   const [claimError, setClaimError] = useState<string | null>(null);
-  const [_isLoadingToken, setIsLoadingToken] = useState(false);
   const prevUnlockedRef = useRef(false);
   const hasIssuedDiscountRef = useRef(false);
   const currencyCodeRef = useRef<string | undefined>(undefined);
   const bannerRef = useRef<HTMLDivElement>(null);
   const _hasPlayedEntranceRef = useRef(false);
-  const tokenRequestedRef = useRef(false);
 
   const remaining = Math.max(0, threshold - cartTotal);
   const progress = Math.min(1, Math.max(0, cartTotal / threshold));
@@ -172,51 +166,7 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
     return `${currency}${value.toFixed(2)}`;
   };
 
-  // Lazy-load challenge token when needed (only for email-gated claims)
-  const ensureChallengeToken = useCallback(async (campaignId: string): Promise<boolean> => {
-    // Check if token already exists and is valid
-    const existingToken = challengeTokenStore.get(campaignId);
-    if (existingToken) {
-      console.log("[FreeShippingPopup] Using existing challenge token");
-      return true;
-    }
-
-    // Prevent duplicate requests
-    if (tokenRequestedRef.current) {
-      console.log("[FreeShippingPopup] Token request already in progress");
-      return false;
-    }
-
-    tokenRequestedRef.current = true;
-    setIsLoadingToken(true);
-
-    try {
-      console.log("[FreeShippingPopup] Requesting challenge token for email claim");
-
-      // Get session ID from global session manager or fallback
-      const sessionId =
-        sessionModule?.getSessionId?.() ||
-        (typeof window !== "undefined" ? (window as any).__RB_SESSION_ID : null) ||
-        "unknown";
-
-      const response = await requestChallengeToken(campaignId, sessionId);
-
-      if (response.success && response.challengeToken && response.expiresAt) {
-        challengeTokenStore.set(campaignId, response.challengeToken, response.expiresAt);
-        console.log("[FreeShippingPopup] Challenge token acquired successfully");
-        return true;
-      } else {
-        console.error("[FreeShippingPopup] Failed to acquire challenge token:", response.error);
-        return false;
-      }
-    } catch (error) {
-      console.error("[FreeShippingPopup] Error requesting challenge token:", error);
-      return false;
-    } finally {
-      setIsLoadingToken(false);
-      tokenRequestedRef.current = false; // Reset for retry
-    }
-  }, []);
+  // NOTE: Challenge token validation removed - now handled server-side via bot detection
 
   // Animation is now handled by usePopupAnimation hook
 
@@ -404,22 +354,12 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
 
       setDiscountCode(result.code);
 
-      // Step 2: Save email with the discount code (using save-email endpoint, no token needed)
+      // Step 2: Save email with the discount code (using save-email endpoint)
       if (formState.email && config.campaignId) {
-        const sessionId =
-          sessionModule?.getSessionId?.() ||
-          (typeof window !== "undefined" ? (window as any).__RB_SESSION_ID : null) ||
-          "unknown";
-
-        await fetch("/apps/revenue-boost/api/leads/save-email", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            campaignId: config.campaignId,
-            sessionId,
-            email: formState.email,
-            discountCode: result.code,
-          }),
+        const { securePost } = await import("./utils/popup-api");
+        await securePost("/apps/revenue-boost/api/leads/save-email", config.campaignId, {
+          email: formState.email,
+          discountCode: result.code,
         });
       }
 
@@ -471,19 +411,6 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
 
         (async () => {
           try {
-            // Fetch challenge token before issuing discount (for non-email-required flow)
-            const campaignId = (config as any).campaignId || (config as any).id;
-            if (campaignId) {
-              console.log("[FreeShippingPopup] 🔐 Fetching challenge token for auto-issue...");
-              const tokenReady = await ensureChallengeToken(campaignId);
-              if (!tokenReady) {
-                console.error(
-                  "[FreeShippingPopup] ❌ Failed to fetch challenge token, cannot issue discount"
-                );
-                return;
-              }
-            }
-
             console.log(
               "[FreeShippingPopup] 🎟️ Calling issueDiscount with cartSubtotalCents:",
               cartSubtotalCents

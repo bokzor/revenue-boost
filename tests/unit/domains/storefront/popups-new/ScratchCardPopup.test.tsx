@@ -237,12 +237,17 @@ describe("ScratchCardPopup", () => {
     await new Promise((resolve) => setTimeout(resolve, 100));
 
     // In this configuration, fetchPrize is called once on mount (without email)
-    // Since email is empty, the API call returns early (line 103 in component)
-    // So we should see 0 API calls
-    expect(mockFetch).not.toHaveBeenCalled();
+    // The API should be called once to fetch the prize
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+
+    // Clear the mock to verify no additional calls happen
+    mockFetch.mockClear();
 
     // The important thing is that even if we were to change email state,
     // it wouldn't trigger re-fetches because email is not in fetchPrize's deps
+    // Wait again - no additional calls should be made
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(mockFetch).not.toHaveBeenCalled();
   });
 
   it("does not re-fetch prize when email changes after initial fetch", async () => {

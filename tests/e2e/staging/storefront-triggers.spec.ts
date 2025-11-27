@@ -3,10 +3,12 @@ import { PrismaClient } from '@prisma/client';
 import path from 'path';
 import * as dotenv from 'dotenv';
 import { CampaignFactory } from './factories/campaign-factory';
-import { STORE_URL, STORE_DOMAIN, handlePasswordPage, mockChallengeToken } from './helpers/test-helpers';
+import { STORE_URL, STORE_DOMAIN, API_PROPAGATION_DELAY_MS, handlePasswordPage, mockChallengeToken, getTestPrefix } from './helpers/test-helpers';
 
 // Load staging environment variables
 dotenv.config({ path: path.resolve(process.cwd(), '.env.staging.env'), override: true });
+
+const TEST_PREFIX = getTestPrefix('storefront-triggers.spec.ts');
 
 test.describe.configure({ mode: 'serial' });
 
@@ -32,14 +34,27 @@ test.describe('Trigger Combinations', () => {
             throw new Error('No store found in database');
         }
 
-        factory = new CampaignFactory(prisma, store.id);
+        factory = new CampaignFactory(prisma, store.id, TEST_PREFIX);
     });
 
     test.afterAll(async () => {
+        // Clean up campaigns created by this test file only
+        await prisma.campaign.deleteMany({
+            where: {
+                name: { startsWith: TEST_PREFIX }
+            }
+        });
         await prisma.$disconnect();
     });
 
     test.beforeEach(async ({ page }) => {
+        // Clean up campaigns from previous runs of THIS test file only
+        await prisma.campaign.deleteMany({
+            where: {
+                name: { startsWith: TEST_PREFIX }
+            }
+        });
+
         await mockChallengeToken(page);
         // Log browser console for debugging
         page.on('console', msg => {
@@ -62,7 +77,7 @@ test.describe('Trigger Combinations', () => {
         console.log(`Created campaign: ${campaign.name} with priority ${priority}`);
 
         // Wait for campaign to propagate
-        await page.waitForTimeout(1000);
+        await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
 
         await page.goto(STORE_URL);
         await handlePasswordPage(page);
@@ -93,7 +108,7 @@ test.describe('Trigger Combinations', () => {
         console.log(`Created campaign: ${campaign.name} with priority ${priority}`);
 
         // Wait for campaign to propagate
-        await page.waitForTimeout(1000);
+        await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
 
         await page.goto(STORE_URL);
         await handlePasswordPage(page);
@@ -109,7 +124,7 @@ test.describe('Trigger Combinations', () => {
         const popup = page.locator('#revenue-boost-popup-shadow-host');
 
         // Should not be visible initially
-        await page.waitForTimeout(1000);
+        await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
         const visibleEarly = await popup.isVisible().catch(() => false);
         console.log(`Popup visible before scroll (expected false): ${visibleEarly}`);
 
@@ -120,7 +135,7 @@ test.describe('Trigger Combinations', () => {
         });
 
         // Wait for scroll event to process
-        await page.waitForTimeout(1000);
+        await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
 
         // Should be visible after scroll
         await expect(popup).toBeVisible({ timeout: 5000 });
@@ -141,7 +156,7 @@ test.describe('Trigger Combinations', () => {
         console.log(`Created campaign: ${campaign.name} with priority ${priority}`);
 
         // Wait for campaign to propagate
-        await page.waitForTimeout(1000);
+        await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
 
         await page.goto(STORE_URL);
         await handlePasswordPage(page);
@@ -174,7 +189,7 @@ test.describe('Trigger Combinations', () => {
         console.log(`Created campaign: ${campaign.name} with priority ${priority}`);
 
         // Wait for campaign to propagate
-        await page.waitForTimeout(1000);
+        await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
 
         await page.goto(STORE_URL);
         await handlePasswordPage(page);
@@ -195,7 +210,7 @@ test.describe('Trigger Combinations', () => {
             window.scrollTo(0, scrollHeight * 0.3);
         });
 
-        await page.waitForTimeout(1000);
+        await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
 
         // Should not be visible yet (scroll met, but time not met)
         const visibleEarly = await popup.isVisible().catch(() => false);
@@ -225,7 +240,7 @@ test.describe('Trigger Combinations', () => {
         console.log(`Created campaign: ${campaign.name} with priority ${priority}`);
 
         // Wait for campaign to propagate
-        await page.waitForTimeout(1000);
+        await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
 
         await page.goto(STORE_URL);
         await handlePasswordPage(page);

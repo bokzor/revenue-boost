@@ -397,25 +397,18 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
       if (!config.previewMode && config.campaignId) {
         setIsGeneratingCode(true);
         try {
-          // Get sessionId from global session object (set by storefront extension)
-          const sessionId =
-            typeof window !== "undefined"
-              ? (window as any).__RB_SESSION_ID ||
-                window.sessionStorage?.getItem("revenue_boost_session") ||
-                ""
-              : "";
-
-          const response = await fetch("/apps/revenue-boost/api/popups/spin-win", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              campaignId: config.campaignId,
-              email: formState.email,
-              sessionId,
-              challengeToken: config.challengeToken,
-            }),
+          // Use secure API helper (includes sessionId, visitorId, popupShownAt)
+          const { securePost } = await import("./utils/popup-api");
+          const data = await securePost<{
+            success: boolean;
+            prize?: { id: string; label: string; color?: string };
+            discountCode?: string;
+            autoApply?: boolean;
+            error?: string;
+          }>("/apps/revenue-boost/api/popups/spin-win", config.campaignId, {
+            email: formState.email,
           });
-          const data = await response.json();
+
           if (data.success && data.prize && data.discountCode) {
             serverPrize = {
               id: data.prize.id,
@@ -425,7 +418,7 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
               generatedCode: data.discountCode,
             };
             generatedCode = data.discountCode;
-            autoApply = data.autoApply;
+            autoApply = data.autoApply ?? false;
             if (generatedCode) {
               setDiscountCode(generatedCode);
             }
@@ -489,7 +482,11 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
         if (onWin && serverPrize) onWin(serverPrize);
 
         if (autoApply && generatedCode && typeof window !== "undefined") {
-          window.localStorage.setItem("rb_discount_code", generatedCode);
+          // Use centralized storefront utility for auto-apply
+          const { handleDiscountAutoApply } = await import(
+            "../../../../extensions/storefront-src/utils/discount"
+          );
+          void handleDiscountAutoApply(generatedCode, true, "SpinToWin");
         }
       }
     } catch (error) {

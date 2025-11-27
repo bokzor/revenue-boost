@@ -5,12 +5,19 @@
  */
 
 import { h, render, type ComponentType } from "preact";
-import { useState, useEffect } from "preact/hooks";
+import { useState, useEffect, useRef } from "preact/hooks";
 import { ComponentLoader, type TemplateType } from "./component-loader";
 import type { ApiClient } from "./api";
 import { session } from "./session";
-import { challengeTokenStore } from "./challenge-token";
 import { executeHooksForCampaign, clearCampaignCache } from "./hooks";
+import {
+  getShopifyRoot,
+  applyDiscountToCart,
+  shouldAutoApply,
+  getSectionsToRender,
+  refreshCartDrawer,
+  addUTMParams,
+} from "../utils";
 
 export interface StorefrontCampaign {
   id: string;
@@ -38,277 +45,22 @@ export interface PopupManagerProps {
   globalCustomCSS?: string;
 }
 
-function getShopifyRoot(): string {
-  try {
-    const w = window as unknown as {
-      Shopify?: { routes?: { root?: string } };
-    };
-    return w?.Shopify?.routes?.root || "/";
-  } catch {
-    return "/";
-  }
-}
-
-/**
- * Apply discount code via Shopify Cart AJAX API
- *
- * Uses POST /cart/update.js with the `discount` parameter
- * Docs: https://shopify.dev/docs/api/ajax/reference/cart#update-discounts-in-the-cart
- *
- * @param code - The discount code to apply
- * @returns Promise<boolean> - true if successful, false otherwise
- */
-async function applyDiscountViaAjax(code: string): Promise<boolean> {
-  if (!code) {
-    console.warn("[PopupManager] Cannot apply discount: no code provided");
-    return false;
-  }
-
-  console.log("[PopupManager] 🎟️ Applying discount code via AJAX:", code);
-
-  try {
-    const root = getShopifyRoot();
-    const url = `${root}cart/update.js`;
-
-    console.log("[PopupManager] 🎟️ Sending discount to:", url);
-
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
-      credentials: "same-origin",
-      body: JSON.stringify({ discount: code }),
-    });
-
-    console.log("[PopupManager] 🎟️ Discount application response status:", response.status);
-
-    if (!response.ok) {
-      let message = "";
-      try {
-        message = await response.text();
-      } catch {
-        // ignore
-      }
-      console.error("[PopupManager] ❌ Failed to apply discount via AJAX:", {
-        status: response.status,
-        statusText: response.statusText,
-        message: message || "(no error message)",
-        code,
-      });
-      return false;
-    }
-
-    try {
-      const cart = await response.json();
-      console.log("[PopupManager] ✅ Discount applied successfully via AJAX. Cart updated:", {
-        code,
-        itemCount: cart?.item_count,
-        totalPrice: cart?.total_price,
-        totalDiscount: cart?.total_discount,
-        cartLevelDiscounts: cart?.cart_level_discount_applications,
-      });
-
-      if (cart) {
-        document.dispatchEvent(new CustomEvent("cart:refresh", { detail: cart }));
-      }
-    } catch (parseError) {
-      console.warn("[PopupManager] ⚠️ Discount may have been applied, but failed to parse cart response:", parseError);
-    }
-
-    document.dispatchEvent(new CustomEvent("cart:discount-applied", { detail: { code } }));
-    document.dispatchEvent(new CustomEvent("cart:updated"));
-    console.log("[PopupManager] 🎟️ Discount application events dispatched");
-    return true;
-  } catch (error) {
-    console.error("[PopupManager] ❌ Error applying discount via AJAX:", {
-      error,
-      code,
-      errorMessage: error instanceof Error ? error.message : String(error),
-    });
-    return false;
-  }
-}
-
-// Type definitions for cart drawer elements and window extensions
-interface CartDrawerElement extends Element {
-  renderContents?: (payload: { sections?: Record<string, string>; [key: string]: unknown }) => void;
-  getSectionsToRender?: () => Array<{ id: string; section?: string; selector?: string }>;
-}
-
-interface CartNotificationElement extends Element {
-  renderContents?: (payload: { sections?: Record<string, string>; [key: string]: unknown }) => void;
-  getSectionsToRender?: () => Array<{ id: string; section?: string; selector?: string }>;
-}
-
-interface WindowWithTheme {
-  Shopify?: {
-    theme?: {
-      cart?: { getCart?: () => void; refresh?: () => void };
-      sections?: { load?: (section: string) => void };
-    };
-  };
-  theme?: { cart?: { getCart?: () => void; refresh?: () => void } };
-  cart?: { refresh?: () => void };
-}
-
-/**
- * Detect which sections to request for cart drawer refresh.
- * Dawn theme and similar themes use cart-drawer and cart-icon-bubble.
- */
-function getSectionsToRender(): string[] {
-  const sections: string[] = [];
-
-  // Check for Dawn-style cart-drawer custom element
-  const cartDrawer = document.querySelector('cart-drawer') as CartDrawerElement | null;
-  if (cartDrawer?.getSectionsToRender) {
-    const drawerSections = cartDrawer.getSectionsToRender();
-    drawerSections.forEach(s => {
-      if (s.id && !sections.includes(s.id)) {
-        sections.push(s.id);
-      }
-    });
-  }
-
-  // Check for cart-notification custom element
-  const cartNotification = document.querySelector('cart-notification') as CartNotificationElement | null;
-  if (cartNotification?.getSectionsToRender) {
-    const notifSections = cartNotification.getSectionsToRender();
-    notifSections.forEach(s => {
-      if (s.id && !sections.includes(s.id)) {
-        sections.push(s.id);
-      }
-    });
-  }
-
-  // Default sections used by Dawn theme if we couldn't detect dynamically
-  if (sections.length === 0) {
-    sections.push('cart-drawer', 'cart-icon-bubble');
-  }
-
-  return sections;
-}
-
-/**
- * Refresh cart drawer after adding items to cart.
- * Uses Section Rendering API response to properly update Dawn theme and similar themes.
- */
-async function refreshCartDrawer(
-  cartData: { sections?: Record<string, string>; item_count?: number; [key: string]: unknown },
-  root: string
-): Promise<void> {
-  // Prepare event detail with cart data - many themes expect event.detail or event.detail.data
-  const eventDetail = { data: cartData, ...cartData };
-
-  // Trigger comprehensive cart update events for different themes
-  // Pass cart data in the detail to prevent "Cannot read properties of null (reading 'data')" errors
-  document.dispatchEvent(new CustomEvent('cart:updated', { detail: eventDetail }));
-  document.dispatchEvent(new CustomEvent('cart.requestUpdate', { detail: eventDetail }));
-  document.dispatchEvent(new CustomEvent('cart:update', { detail: eventDetail }));
-  document.dispatchEvent(new CustomEvent('cart:change', { detail: eventDetail }));
-  document.dispatchEvent(new CustomEvent('theme:cart:update', { detail: eventDetail }));
-  document.dispatchEvent(new CustomEvent('cart:item-added', { detail: eventDetail }));
-  document.dispatchEvent(new CustomEvent('cart:add', { detail: eventDetail }));
-
-  // Dispatch cart refresh with the cart data
-  document.dispatchEvent(new CustomEvent('cart:refresh', { detail: eventDetail }));
-
-  // Update cart count in header (common selectors)
-  const cartCountSelectors = '.cart-count, [data-cart-count], .cart__count, #cart-icon-bubble span';
-  const cartCount = document.querySelector(cartCountSelectors);
-  if (cartCount && cartData.item_count !== undefined) {
-    cartCount.textContent = String(cartData.item_count);
-  }
-
-  // If we have sections from Section Rendering API, use them to update the drawer
-  if (cartData.sections) {
-    try {
-      // Dawn theme (Web Components) - cart-drawer element
-      const cartDrawer = document.querySelector('cart-drawer') as CartDrawerElement | null;
-      if (cartDrawer && typeof cartDrawer.renderContents === 'function') {
-        console.log("[PopupManager] Refreshing Dawn cart-drawer with sections");
-        cartDrawer.renderContents(cartData);
-      }
-
-      // Dawn theme - cart-notification element
-      const cartNotification = document.querySelector('cart-notification') as CartNotificationElement | null;
-      if (cartNotification && typeof cartNotification.renderContents === 'function') {
-        console.log("[PopupManager] Refreshing Dawn cart-notification with sections");
-        cartNotification.renderContents(cartData);
-      }
-    } catch (e) {
-      console.debug("[PopupManager] Error using renderContents:", e);
-    }
-  } else {
-    // Fallback: fetch sections separately if not included in response
-    try {
-      const sectionsToRender = getSectionsToRender();
-      const sectionsParam = sectionsToRender.join(',');
-      const sectionsRes = await fetch(`${root}cart.js?sections=${sectionsParam}`);
-
-      if (sectionsRes.ok) {
-        const sectionsData = await sectionsRes.json() as { sections?: Record<string, string>; item_count?: number };
-
-        // Update cart count if available
-        if (sectionsData.item_count !== undefined) {
-          const countEl = document.querySelector(cartCountSelectors);
-          if (countEl) {
-            countEl.textContent = String(sectionsData.item_count);
-          }
-        }
-
-        // Try Dawn theme renderContents with fetched sections
-        const cartDrawer = document.querySelector('cart-drawer') as CartDrawerElement | null;
-        if (cartDrawer && typeof cartDrawer.renderContents === 'function' && sectionsData.sections) {
-          console.log("[PopupManager] Refreshing Dawn cart-drawer with fetched sections");
-          cartDrawer.renderContents(sectionsData);
-        }
-
-        const cartNotification = document.querySelector('cart-notification') as CartNotificationElement | null;
-        if (cartNotification && typeof cartNotification.renderContents === 'function' && sectionsData.sections) {
-          console.log("[PopupManager] Refreshing Dawn cart-notification with fetched sections");
-          cartNotification.renderContents(sectionsData);
-        }
-      }
-    } catch (e) {
-      console.debug("[PopupManager] Fallback section fetch failed:", e);
-    }
-  }
-
-  // Also try legacy theme-specific methods as additional fallback
-  try {
-    const w = window as WindowWithTheme;
-
-    // Dawn/Debut theme methods
-    if (typeof w.Shopify?.theme?.cart?.getCart === 'function') {
-      w.Shopify.theme.cart.getCart();
-    }
-    if (typeof w.theme?.cart?.getCart === 'function') {
-      w.theme.cart.getCart();
-    }
-    if (typeof w.theme?.cart?.refresh === 'function') {
-      w.theme.cart.refresh();
-    }
-    if (typeof w.cart?.refresh === 'function') {
-      w.cart.refresh();
-    }
-
-    // Trigger Shopify section rendering (used by many themes)
-    if (typeof w.Shopify?.theme?.sections?.load === 'function') {
-      w.Shopify.theme.sections.load('cart-drawer');
-    }
-  } catch (themeError) {
-    console.debug("[PopupManager] Theme-specific cart refresh not available:", themeError);
-  }
-}
-
 export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, triggerContext }: PopupManagerProps) {
   const [Component, setComponent] = useState<ComponentType<Record<string, unknown>> | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [challengeToken, setChallengeToken] = useState<string | null>(null);
   const [preloadedResources, setPreloadedResources] = useState<Record<string, unknown> | null>(null);
+
+  // Track when popup was shown (for bot detection timing validation)
+  const popupShownAtRef = useRef<number>(Date.now());
+
+  // Expose popupShownAt and visitorId as globals for popup components to use
+  // This avoids passing these through props and keeps bundle size small
+  useEffect(() => {
+    const w = window as { __RB_POPUP_SHOWN_AT?: number; __RB_VISITOR_ID?: string };
+    w.__RB_POPUP_SHOWN_AT = popupShownAtRef.current;
+    w.__RB_VISITOR_ID = session.getVisitorId();
+  }, []);
 
   // Execute pre-display hooks and load component
   useEffect(() => {
@@ -345,11 +97,6 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, tri
 
         // Set preloaded resources
         setPreloadedResources(hooksResult.loadedResources);
-
-        // Set challenge token if loaded via hook
-        if (hooksResult.loadedResources.challengeToken) {
-          setChallengeToken(hooksResult.loadedResources.challengeToken as string);
-        }
 
         // Set component
         setComponent(() => comp as ComponentType<Record<string, unknown>>);
@@ -406,13 +153,6 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, tri
 
       trackClick({ action: "submit" });
 
-      // SECURITY: Retrieve challenge token
-      const challengeToken = challengeTokenStore.get(campaign.id);
-
-      if (!challengeToken) {
-        throw new Error("Security check failed. Please refresh the page.");
-      }
-
       const result = await api.submitLead({
         email: data.email,
         campaignId: campaign.id,
@@ -420,7 +160,8 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, tri
         visitorId: session.getVisitorId(),
         consent: data.gdprConsent,
         firstName: data.name,
-        challengeToken,
+        // Bot detection: send timing info
+        popupShownAt: popupShownAtRef.current,
       });
 
       if (!result.success) {
@@ -478,13 +219,9 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, tri
         | undefined;
       const behavior = discountConfig?.behavior;
 
-      // Check if auto-apply is enabled based on behavior field
-      const shouldAutoApply =
-        !!discountCode && behavior === "SHOW_CODE_AND_AUTO_APPLY";
-
-      if (shouldAutoApply) {
+      if (discountCode && shouldAutoApply(behavior)) {
         // Fire-and-forget; don't block the success UI on cart update
-        void applyDiscountViaAjax(discountCode);
+        void applyDiscountToCart(discountCode, "PopupManager");
       }
 
       // Return the discount code if available (for UI display)
@@ -508,23 +245,12 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, tri
         cartSubtotalCents: options?.cartSubtotalCents,
       });
 
-      // SECURITY: Retrieve challenge token
-      const token = challengeTokenStore.get(campaign.id);
-
-      if (!token) {
-        console.error("[PopupManager] ❌ Cannot issue discount: no challenge token available");
-        return {
-          success: false,
-          error: "Security check failed. Please refresh the page.",
-        };
-      }
-
-      console.log("[PopupManager] 🎟️ Using challenge token for discount issuance");
-
       const result = await api.issueDiscount({
         campaignId: campaign.id,
         sessionId: session.getSessionId(),
-        challengeToken: token,
+        visitorId: session.getVisitorId(),
+        // Bot detection: send timing info
+        popupShownAt: popupShownAtRef.current,
         cartSubtotalCents: options?.cartSubtotalCents,
         selectedProductIds: options?.selectedProductIds,
         bundleDiscountPercent: options?.bundleDiscountPercent,
@@ -547,20 +273,18 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, tri
         campaignId: campaign.id,
       });
 
-      // Check if auto-apply is enabled based on behavior field
-      const shouldAutoApply =
-        !!code && behavior === "SHOW_CODE_AND_AUTO_APPLY";
+      const autoApplyEnabled = code && shouldAutoApply(behavior);
 
       console.log("[PopupManager] 🎟️ Should auto-apply discount?", {
-        shouldAutoApply,
+        autoApplyEnabled,
         hasCode: !!code,
         behavior,
       });
 
-      if (shouldAutoApply) {
+      if (autoApplyEnabled) {
         console.log("[PopupManager] 🎟️ Auto-applying discount code:", code);
         // Fire-and-forget; don't block popup interactions
-        void applyDiscountViaAjax(code);
+        void applyDiscountToCart(code, "PopupManager");
       } else {
         console.log("[PopupManager] ℹ️ Discount will not be auto-applied (manual application required)");
       }
@@ -635,13 +359,9 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, tri
         | undefined;
       const behavior = discountConfig?.behavior;
 
-      // Check if auto-apply is enabled based on behavior field
-      const shouldAutoApply =
-        !!code && behavior === "SHOW_CODE_AND_AUTO_APPLY";
-
-      if (shouldAutoApply && code) {
+      if (code && shouldAutoApply(behavior)) {
         // Fire-and-forget; don't block popup interactions
-        void applyDiscountViaAjax(code);
+        void applyDiscountToCart(code, "PopupManager");
       }
 
       // For modes that show the code in the popup, don't redirect automatically
@@ -676,26 +396,6 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, tri
       throw error;
     }
   };
-
-  function addUTMParams(
-    url: string | null | undefined,
-    data: { utmCampaign?: string | null; utmSource?: string | null; utmMedium?: string | null },
-  ) {
-    if (!url || !data?.utmCampaign) return url;
-    try {
-      const urlObj = new URL(url, url.startsWith("http") ? undefined : "https://placeholder.local");
-      urlObj.searchParams.set("utm_campaign", data.utmCampaign);
-      if (data.utmSource) urlObj.searchParams.set("utm_source", data.utmSource);
-      if (data.utmMedium) urlObj.searchParams.set("utm_medium", data.utmMedium);
-
-      if (!url.startsWith("http")) {
-        return `${urlObj.pathname}${urlObj.search}${urlObj.hash}`;
-      }
-      return urlObj.toString();
-    } catch {
-      return url;
-    }
-  }
 
   const handleAddToCart = async (productIds: string[]) => {
     try {
@@ -869,7 +569,6 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, tri
       ...decoratedDesignConfig,
       id: campaign.id,
       campaignId: campaign.id,
-      challengeToken: challengeToken || undefined,
       currentCartTotal,
       // Show "Powered by Revenue Boost" branding for free tier
       showBranding: campaign.showBranding,

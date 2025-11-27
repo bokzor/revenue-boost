@@ -5,14 +5,17 @@ import * as dotenv from 'dotenv';
 import { CampaignFactory } from './factories/campaign-factory';
 import {
     STORE_URL,
+    API_PROPAGATION_DELAY_MS,
     handlePasswordPage,
-    mockChallengeToken
+    mockChallengeToken,
+    getTestPrefix
 } from './helpers/test-helpers';
 
 // Load staging environment variables
 dotenv.config({ path: path.resolve(process.cwd(), '.env.staging.env'), override: true });
 
 const STORE_DOMAIN = 'revenue-boost-staging.myshopify.com';
+const TEST_PREFIX = getTestPrefix('storefront-complete-flows.spec.ts');
 
 test.describe.serial('Complete User Flows - E2E', () => {
     let prisma: PrismaClient;
@@ -35,17 +38,21 @@ test.describe.serial('Complete User Flows - E2E', () => {
         }
 
         storeId = store.id;
-        factory = new CampaignFactory(prisma, storeId);
+        factory = new CampaignFactory(prisma, storeId, TEST_PREFIX);
     });
 
     test.afterAll(async () => {
+        // Clean up campaigns created by this test file only
+        await prisma.campaign.deleteMany({
+            where: { name: { startsWith: TEST_PREFIX } }
+        });
         await prisma.$disconnect();
     });
 
     test.beforeEach(async ({ page }) => {
-        // Clean up old test campaigns
+        // Clean up campaigns from previous runs of THIS test file only
         await prisma.campaign.deleteMany({
-            where: { name: { startsWith: 'E2E-Test-' } }
+            where: { name: { startsWith: TEST_PREFIX } }
         });
 
         // Mock challenge token
@@ -219,6 +226,9 @@ test.describe.serial('Complete User Flows - E2E', () => {
             .withName('E2E-Test-FlashSale-Flow')
             .create();
         console.log(`✅ Campaign created: ${campaign.id}`);
+
+        // Wait for campaign to propagate to API (Cloud Run caching)
+        await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
 
         await page.goto(STORE_URL);
         await handlePasswordPage(page);

@@ -36,8 +36,8 @@ vi.mock("~/domains/commerce/services/discount.server", () => ({
   getCampaignDiscountCode: vi.fn(),
 }));
 
-vi.mock("~/domains/security/services/challenge-token.server", () => ({
-  validateAndConsumeToken: vi.fn(),
+vi.mock("~/domains/security/services/submission-validator.server", () => ({
+  validateStorefrontRequest: vi.fn(),
 }));
 
 vi.mock("~/domains/analytics/popup-events.server", () => ({
@@ -63,21 +63,20 @@ vi.mock("~/domains/security/services/rate-limit.server", () => ({
 import { authenticate } from "~/shopify.server";
 import prisma from "~/db.server";
 import * as discountModule from "~/domains/commerce/services/discount.server";
-import * as challengeTokenModule from "~/domains/security/services/challenge-token.server";
+import * as submissionValidatorModule from "~/domains/security/services/submission-validator.server";
 
 const appProxyMock = authenticate.public.appProxy as unknown as ReturnType<typeof vi.fn>;
 const campaignFindUniqueMock = prisma.campaign.findUnique as unknown as ReturnType<typeof vi.fn>;
 const leadCreateMock = prisma.lead.create as unknown as ReturnType<typeof vi.fn>;
 const leadUpsertMock = prisma.lead.upsert as unknown as ReturnType<typeof vi.fn>;
 const getCampaignDiscountCodeMock = discountModule.getCampaignDiscountCode as unknown as ReturnType<typeof vi.fn>;
-const validateAndConsumeTokenMock = challengeTokenModule.validateAndConsumeToken as unknown as ReturnType<typeof vi.fn>;
+const validateStorefrontRequestMock = submissionValidatorModule.validateStorefrontRequest as unknown as ReturnType<typeof vi.fn>;
 
 import { action as scratchCardAction } from "~/routes/api.popups.scratch-card";
 
 describe("api.popups.scratch-card action", () => {
   const mockCampaignId = "cm123456789012345678901234";
   const mockSessionId = "session_123";
-  const mockChallengeToken = "challenge_token_123";
   const mockStoreId = "store_123";
 
   beforeEach(() => {
@@ -89,15 +88,15 @@ describe("api.popups.scratch-card action", () => {
       session: { shop: "test.myshopify.com" },
     });
 
-    validateAndConsumeTokenMock.mockResolvedValue({ valid: true });
+    validateStorefrontRequestMock.mockResolvedValue({ valid: true });
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
-  describe("Challenge Token Validation", () => {
-    it("should validate and consume challenge token", async () => {
+  describe("Submission Validation", () => {
+    it("should validate submission for bot detection", async () => {
       campaignFindUniqueMock.mockResolvedValue({
         id: mockCampaignId,
         storeId: mockStoreId,
@@ -123,25 +122,27 @@ describe("api.popups.scratch-card action", () => {
         body: JSON.stringify({
           campaignId: mockCampaignId,
           sessionId: mockSessionId,
-          challengeToken: mockChallengeToken,
+          popupShownAt: Date.now() - 5000, // 5 seconds ago
         }),
       });
 
       await scratchCardAction({ request } as unknown as ActionFunctionArgs);
 
-      expect(validateAndConsumeTokenMock).toHaveBeenCalledWith(
-        mockChallengeToken,
-        mockCampaignId,
-        mockSessionId,
-        expect.any(String),
-        false
+      // validateStorefrontRequest is called with (request, body)
+      expect(validateStorefrontRequestMock).toHaveBeenCalledWith(
+        expect.any(Request),
+        expect.objectContaining({
+          campaignId: mockCampaignId,
+          sessionId: mockSessionId,
+        })
       );
     });
 
-    it("should reject invalid challenge token", async () => {
-      validateAndConsumeTokenMock.mockResolvedValue({
+    it("should return fake success for likely bots", async () => {
+      validateStorefrontRequestMock.mockResolvedValue({
         valid: false,
-        error: "Token already used",
+        reason: "honeypot",
+        isBotLikely: true,
       });
 
       const request = new Request("http://localhost/api/popups/scratch-card", {
@@ -150,15 +151,15 @@ describe("api.popups.scratch-card action", () => {
         body: JSON.stringify({
           campaignId: mockCampaignId,
           sessionId: mockSessionId,
-          challengeToken: mockChallengeToken,
+          honeypot: "bot-filled-this", // Simulates bot filling honeypot
         }),
       });
 
       const response = await scratchCardAction({ request } as unknown as ActionFunctionArgs);
       const payload = (response as any).data as any;
 
-      expect(payload.success).toBe(false);
-      expect(payload.error).toBe("Token already used");
+      // Bots get fake success to avoid revealing detection
+      expect(payload.success).toBe(true);
     });
   });
 
@@ -189,7 +190,7 @@ describe("api.popups.scratch-card action", () => {
         body: JSON.stringify({
           campaignId: mockCampaignId,
           sessionId: mockSessionId,
-          challengeToken: mockChallengeToken,
+          popupShownAt: Date.now() - 5000,
           // NO EMAIL PROVIDED
         }),
       });
@@ -241,7 +242,7 @@ describe("api.popups.scratch-card action", () => {
         body: JSON.stringify({
           campaignId: mockCampaignId,
           sessionId: mockSessionId,
-          challengeToken: mockChallengeToken,
+          popupShownAt: Date.now() - 5000,
           email: testEmail,
         }),
       });
@@ -299,7 +300,7 @@ describe("api.popups.scratch-card action", () => {
         body: JSON.stringify({
           campaignId: mockCampaignId,
           sessionId: mockSessionId,
-          challengeToken: mockChallengeToken,
+          popupShownAt: Date.now() - 5000,
         }),
       });
 

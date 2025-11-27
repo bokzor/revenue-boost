@@ -8,8 +8,8 @@
 import { data, type ActionFunctionArgs } from "react-router";
 import { FrequencyCapService } from "~/domains/targeting/services/frequency-cap.server";
 import { PopupEventService } from "~/domains/analytics/popup-events.server";
+import { recordImpression } from "~/domains/security/services/submission-validator.server";
 import { storefrontCors } from "~/lib/cors.server";
-import { getOrCreateVisitorId } from "~/lib/visitor-id.server";
 import { getStoreIdFromShop } from "~/lib/auth-helpers.server";
 import prisma from "~/db.server";
 import type { StoreSettings } from "~/domains/store/types/settings";
@@ -31,6 +31,7 @@ export async function action({ request }: ActionFunctionArgs) {
       trackingKey: rawTrackingKey,
       experimentId,
       sessionId,
+      visitorId: bodyVisitorId, // Use visitorId from client (localStorage-based)
       pageUrl: bodyPageUrl,
       referrer: bodyReferrer,
     } = body;
@@ -46,8 +47,9 @@ export async function action({ request }: ActionFunctionArgs) {
 
     const storeId = await getStoreIdFromShop(shop);
 
-    // Get or create visitor ID from cookie
-    const visitorId = await getOrCreateVisitorId(request);
+    // Use visitorId from body (client's localStorage) for consistent tracking across requests
+    // This avoids cross-origin cookie issues with SameSite policies
+    const visitorId = bodyVisitorId || sessionId || "anonymous";
     const userAgent = request.headers.get("User-Agent") || null;
     const deviceType = detectDeviceTypeFromUserAgent(userAgent);
     const pageUrl = bodyPageUrl || request.headers.get("referer") || "/";
@@ -87,6 +89,9 @@ export async function action({ request }: ActionFunctionArgs) {
       storeSettings,
       campaign?.templateType
     );
+
+    // Record impression for submission validation (bot detection)
+    await recordImpression(visitorId, campaignId);
 
     // Also record a VIEW event in PopupEvent for long-term analytics
     try {

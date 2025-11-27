@@ -26,7 +26,7 @@ const EmailRecoveryRequestSchema = z.object({
   ),
   email: z.string().email(),
   sessionId: z.string(),
-  challengeToken: z.string(), // REQUIRED: Challenge token for security
+  visitorId: z.string().optional(),
   cartSubtotalCents: z.number().int().min(0).optional(),
   cartItems: z
     .array(
@@ -40,6 +40,9 @@ const EmailRecoveryRequestSchema = z.object({
       })
     )
     .optional(),
+  // Bot detection fields
+  popupShownAt: z.number().optional(),
+  honeypot: z.string().optional(),
 });
 
 export type EmailRecoveryRequest = z.infer<typeof EmailRecoveryRequestSchema>;
@@ -84,28 +87,24 @@ export async function action({ request }: ActionFunctionArgs) {
       );
     }
 
-    // SECURITY: Validate challenge token
-    const ip =
-      request.headers.get("x-forwarded-for")?.split(",")[0] ||
-      request.headers.get("x-real-ip") ||
-      "unknown";
-
-    const { validateAndConsumeToken } = await import(
-      "~/domains/security/services/challenge-token.server"
+    // SECURITY: Generic storefront request validation
+    const { validateStorefrontRequest } = await import(
+      "~/domains/security/services/submission-validator.server"
     );
-    const tokenValidation = await validateAndConsumeToken(
-      validated.challengeToken,
-      validated.campaignId,
-      validated.sessionId,
-      ip,
-      false
-    );
+    const validation = await validateStorefrontRequest(request, validated);
 
-    if (!tokenValidation.valid) {
-      console.warn(`[Cart Recovery] Token validation failed: ${tokenValidation.error}`);
+    if (!validation.valid) {
+      if (validation.isBotLikely) {
+        const ip = request.headers.get("x-forwarded-for")?.split(",")[0] || "unknown";
+        console.warn(`[Cart Recovery] 🤖 Bot detected (${validation.reason}) for campaign ${validated.campaignId}, IP: ${ip}`);
+        return data<EmailRecoveryResponse>(
+          { success: true, message: "Thank you!" },
+          { status: 200 }
+        );
+      }
       return data<EmailRecoveryResponse>(
-        { success: false, error: tokenValidation.error || "Invalid or expired token" },
-        { status: 403 }
+        { success: false, error: validation.reason === "session_expired" ? "Session expired. Please refresh the page." : "Invalid request" },
+        { status: 400 }
       );
     }
 

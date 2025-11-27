@@ -1,14 +1,16 @@
 import { test, expect } from '@playwright/test';
 import { PrismaClient } from '@prisma/client';
 import * as dotenv from 'dotenv';
-import { STORE_DOMAIN, handlePasswordPage, mockChallengeToken } from './helpers/test-helpers';
+import { STORE_DOMAIN, handlePasswordPage, mockChallengeToken, getTestPrefix } from './helpers/test-helpers';
 import { CampaignFactory } from './factories/campaign-factory';
 
 dotenv.config({ path: '.env.staging.env' });
 
+const TEST_PREFIX = getTestPrefix('storefront-discount-configs.spec.ts');
+
 /**
  * Discount Configuration E2E Tests
- * 
+ *
  * Tests various discount configurations:
  * - Percentage discounts (10%, 25%, 50%)
  * - Fixed amount discounts ($5, $10)
@@ -35,21 +37,34 @@ test.describe('Discount Configurations', () => {
         }
 
         store = foundStore;
-        factory = new CampaignFactory(prisma, store.id);
+        factory = new CampaignFactory(prisma, store.id, TEST_PREFIX);
 
-        // Cleanup old test campaigns
+        // Cleanup campaigns from this test file only
         await prisma.campaign.deleteMany({
             where: {
-                name: { startsWith: 'E2E-Test-' }
+                name: { startsWith: TEST_PREFIX }
             }
         });
     });
 
     test.afterAll(async () => {
+        // Clean up campaigns created by this test file only
+        await prisma.campaign.deleteMany({
+            where: {
+                name: { startsWith: TEST_PREFIX }
+            }
+        });
         await prisma.$disconnect();
     });
 
     test.beforeEach(async ({ page }) => {
+        // Clean up campaigns from previous runs of THIS test file only
+        await prisma.campaign.deleteMany({
+            where: {
+                name: { startsWith: TEST_PREFIX }
+            }
+        });
+
         await mockChallengeToken(page);
 
         // Log browser console messages

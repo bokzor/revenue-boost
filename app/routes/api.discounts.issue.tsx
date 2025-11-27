@@ -25,7 +25,7 @@ const IssueDiscountRequestSchema = z.object({
   ),
   cartSubtotalCents: z.number().int().min(0).optional(),
   sessionId: z.string(),
-  challengeToken: z.string(), // REQUIRED: Challenge token for security
+  visitorId: z.string().optional(),
   lineItems: z
     .array(
       z.object({
@@ -38,6 +38,9 @@ const IssueDiscountRequestSchema = z.object({
   selectedProductIds: z.array(z.string()).optional(),
   // Product Upsell: bundle discount from contentConfig (auto-sync mode)
   bundleDiscountPercent: z.number().min(0).max(100).optional(),
+  // Bot detection fields
+  popupShownAt: z.number().optional(),
+  honeypot: z.string().optional(),
 });
 
 // Response types
@@ -125,33 +128,37 @@ export async function action({ request }: ActionFunctionArgs) {
       campaignId,
       cartSubtotalCents,
       sessionId,
-      challengeToken,
+      visitorId,
       selectedProductIds,
       bundleDiscountPercent,
+      popupShownAt,
+      honeypot,
     } = validatedRequest;
 
-    // SECURITY: Validate challenge token
-    const ip =
-      request.headers.get("x-forwarded-for")?.split(",")[0] ||
-      request.headers.get("x-real-ip") ||
-      "unknown";
-
-    const { validateAndConsumeToken } = await import(
-      "~/domains/security/services/challenge-token.server"
+    // SECURITY: Generic storefront request validation
+    const { validateStorefrontRequest } = await import(
+      "~/domains/security/services/submission-validator.server"
     );
-    const tokenValidation = await validateAndConsumeToken(
-      challengeToken,
+    const validation = await validateStorefrontRequest(request, {
       campaignId,
       sessionId,
-      ip,
-      false
-    );
+      visitorId,
+      popupShownAt,
+      honeypot,
+    });
 
-    if (!tokenValidation.valid) {
-      console.warn(`[Discount Issue] Token validation failed: ${tokenValidation.error}`);
+    if (!validation.valid) {
+      if (validation.isBotLikely) {
+        const ip = request.headers.get("x-forwarded-for")?.split(",")[0] || "unknown";
+        console.warn(`[Discount Issue] 🤖 Bot detected (${validation.reason}) for campaign ${campaignId}, IP: ${ip}`);
+        return data(
+          { success: true, code: "THANK-YOU-10", type: "PERCENTAGE", behavior: "SHOW_CODE_ONLY" },
+          { status: 200 }
+        );
+      }
       return data(
-        { success: false, error: tokenValidation.error || "Invalid or expired token" },
-        { status: 403 }
+        { success: false, error: validation.reason === "session_expired" ? "Session expired. Please refresh the page." : "Invalid request" },
+        { status: 400 }
       );
     }
 

@@ -19,7 +19,10 @@ const ScratchCardRequestSchema = z.object({
   ),
   email: z.string().email().optional(), // Optional: email may not be required before scratching
   sessionId: z.string().min(1, "Session ID is required"),
-  challengeToken: z.string().min(1, "Challenge token is required"), // REQUIRED: Challenge token for security
+  visitorId: z.string().optional(),
+  // Bot detection fields
+  popupShownAt: z.number().optional(),
+  honeypot: z.string().optional(),
 });
 
 // Type for ScratchCardRequest is inferred from schema
@@ -104,28 +107,24 @@ export async function action({ request }: ActionFunctionArgs) {
             : "No email required",
     });
 
-    // SECURITY: Validate challenge token
-    const ip =
-      request.headers.get("x-forwarded-for")?.split(",")[0] ||
-      request.headers.get("x-real-ip") ||
-      "unknown";
-
-    const { validateAndConsumeToken } = await import(
-      "~/domains/security/services/challenge-token.server"
+    // SECURITY: Generic storefront request validation
+    const { validateStorefrontRequest } = await import(
+      "~/domains/security/services/submission-validator.server"
     );
-    const tokenValidation = await validateAndConsumeToken(
-      validatedRequest.challengeToken,
-      validatedRequest.campaignId,
-      validatedRequest.sessionId,
-      ip,
-      false
-    );
+    const validation = await validateStorefrontRequest(request, validatedRequest);
 
-    if (!tokenValidation.valid) {
-      console.warn(`[Scratch Card] Token validation failed: ${tokenValidation.error}`);
+    if (!validation.valid) {
+      if (validation.isBotLikely) {
+        const ip = request.headers.get("x-forwarded-for")?.split(",")[0] || "unknown";
+        console.warn(`[Scratch Card] 🤖 Bot detected (${validation.reason}) for campaign ${validatedRequest.campaignId}, IP: ${ip}`);
+        return data(
+          { success: true, prize: { type: "discount", value: "10% OFF" }, discountCode: "THANKS10" },
+          { status: 200 }
+        );
+      }
       return data(
-        { success: false, error: tokenValidation.error || "Invalid or expired token" },
-        { status: 403 }
+        { success: false, error: validation.reason === "session_expired" ? "Session expired. Please refresh the page." : "Invalid request" },
+        { status: 400 }
       );
     }
 

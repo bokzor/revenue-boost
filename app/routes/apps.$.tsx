@@ -140,11 +140,6 @@ export async function action({ request, params }: LoaderFunctionArgs) {
       const { action: apiAction } = await import("./apps.revenue-boost.api.analytics.track");
       return apiAction({ request, params } as LoaderFunctionArgs);
     }
-
-    if (path === "api/challenge/request") {
-      const { action: apiAction } = await import("./apps.revenue-boost.api.challenge.request");
-      return apiAction({ request, params } as LoaderFunctionArgs);
-    }
   }
 
   return data({ error: "Not found" }, { status: 404 });

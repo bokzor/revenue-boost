@@ -10,6 +10,69 @@ export const STORE_DOMAIN = 'revenue-boost-staging.myshopify.com';
 export const STORE_PASSWORD = process.env.STORE_PASSWORD || 'a';
 
 /**
+ * Time to wait for API to propagate new campaigns (in milliseconds)
+ * Cloud Run has caching that requires time to reflect database changes
+ */
+export const API_PROPAGATION_DELAY_MS = 2500;
+
+/**
+ * Generate a unique test session ID to avoid conflicts between parallel tests.
+ * This ID can be used to clear browser storage and ensure fresh sessions.
+ */
+export function generateTestSessionId(): string {
+    return `e2e_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+}
+
+/**
+ * Clear browser storage to ensure a fresh session.
+ * This prevents campaigns from being cached in the browser across tests.
+ */
+export async function clearBrowserSession(page: Page): Promise<void> {
+    await page.evaluate(() => {
+        localStorage.clear();
+        sessionStorage.clear();
+    });
+}
+
+/**
+ * Navigate to storefront with a fresh session.
+ * Clears storage, navigates to the URL, and handles password page.
+ */
+export async function navigateToStorefrontFresh(page: Page, url: string = STORE_URL): Promise<void> {
+    // Clear any existing session data first
+    try {
+        await page.goto(url);
+        await clearBrowserSession(page);
+    } catch {
+        // First navigation might fail, that's ok
+    }
+
+    // Navigate fresh
+    await page.goto(url);
+    await handlePasswordPage(page);
+
+    // Clear storage again after password page
+    await clearBrowserSession(page);
+}
+
+/**
+ * Generate a unique prefix for test campaigns based on the test file name.
+ * This prevents race conditions when tests run in parallel by ensuring
+ * each test file only cleans up its own campaigns.
+ *
+ * @param testFileName - The test file name (e.g., 'storefront-newsletter.spec.ts')
+ * @returns A unique prefix like 'E2E-newsletter-'
+ */
+export function getTestPrefix(testFileName: string): string {
+    // Extract the template/feature name from the test file name
+    // e.g., 'storefront-newsletter.spec.ts' -> 'newsletter'
+    // e.g., 'storefront-flash-sale.spec.ts' -> 'flash-sale'
+    const match = testFileName.match(/storefront-([a-z-]+)\.spec\.ts$/i);
+    const feature = match ? match[1] : 'generic';
+    return `E2E-${feature}-`;
+}
+
+/**
  * Handle Shopify password protection page
  */
 export async function handlePasswordPage(page: Page) {
@@ -869,5 +932,42 @@ export async function waitForPopupWithRetry(
         }
     }
 
+    return false;
+}
+
+/**
+ * Wait for API to reflect a newly created campaign.
+ * This is necessary because Cloud Run may cache the campaign list
+ * and take a few seconds to reflect new campaigns.
+ *
+ * @param page - Playwright Page instance
+ * @param campaignId - ID of the campaign to wait for
+ * @param maxWaitMs - Maximum time to wait (default 5000ms)
+ */
+export async function waitForCampaignInApi(
+    page: Page,
+    campaignId: string,
+    maxWaitMs: number = 5000
+): Promise<boolean> {
+    const startTime = Date.now();
+    const apiUrl = `/apps/revenue-boost/api/campaigns/active?shop=${STORE_DOMAIN}`;
+
+    while (Date.now() - startTime < maxWaitMs) {
+        try {
+            const response = await page.request.get(`${STORE_URL}${apiUrl}`);
+            if (response.ok()) {
+                const data = await response.json();
+                if (data.campaigns?.some((c: { id: string }) => c.id === campaignId)) {
+                    console.log(`✅ Campaign ${campaignId} found in API after ${Date.now() - startTime}ms`);
+                    return true;
+                }
+            }
+        } catch {
+            // Ignore errors during polling
+        }
+        await page.waitForTimeout(500);
+    }
+
+    console.log(`⚠️ Campaign ${campaignId} not found in API after ${maxWaitMs}ms`);
     return false;
 }

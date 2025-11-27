@@ -1,14 +1,16 @@
 import { test, expect } from '@playwright/test';
 import { PrismaClient } from '@prisma/client';
 import * as dotenv from 'dotenv';
-import { STORE_DOMAIN, handlePasswordPage, mockChallengeToken } from './helpers/test-helpers';
+import { STORE_DOMAIN, handlePasswordPage, mockChallengeToken, getTestPrefix } from './helpers/test-helpers';
 import { CampaignFactory } from './factories/campaign-factory';
 
 dotenv.config({ path: '.env.staging.env' });
 
+const TEST_PREFIX = getTestPrefix('storefront-session-rules.spec.ts');
+
 /**
  * Session Rules & Frequency Capping E2E Tests
- * 
+ *
  * Tests session rules and frequency capping configurations:
  * - Max impressions per session
  * - Cooldown between triggers
@@ -32,29 +34,35 @@ test.describe('Session Rules & Frequency Capping', () => {
         }
 
         store = foundStore;
-        factory = new CampaignFactory(prisma, store.id);
+        factory = new CampaignFactory(prisma, store.id, TEST_PREFIX);
 
-        // Cleanup old test campaigns
+        // Cleanup campaigns from this test file only
         await prisma.campaign.deleteMany({
             where: {
-                name: { startsWith: 'E2E-Test-' }
+                name: { startsWith: TEST_PREFIX }
             }
         });
     });
 
     test.afterAll(async () => {
+        // Clean up campaigns created by this test file only
+        await prisma.campaign.deleteMany({
+            where: {
+                name: { startsWith: TEST_PREFIX }
+            }
+        });
         await prisma.$disconnect();
     });
 
     test.beforeEach(async ({ page }) => {
-        // CRITICAL: Delete ALL E2E test campaigns before each test
-        // This ensures only ONE campaign exists when the test runs
+        // Delete campaigns from THIS test file only before each test
+        // This ensures only ONE campaign from this file exists when the test runs
         await prisma.campaign.deleteMany({
             where: {
-                name: { startsWith: 'E2E-Test-' }
+                name: { startsWith: TEST_PREFIX }
             }
         });
-        console.log('[Test Setup] Cleaned up all E2E test campaigns');
+        console.log(`[Test Setup] Cleaned up ${TEST_PREFIX}* campaigns`);
 
         // Wait for cleanup to propagate to the API server
         // Cloud Run may have cached campaign data
@@ -82,10 +90,16 @@ test.describe('Session Rules & Frequency Capping', () => {
 
         try {
             // Verify the config was set correctly
+            console.log(`📋 Campaign created with ID: ${campaign.id}`);
+            console.log(`📋 Campaign name: ${campaign.name}`);
+
             const dbCampaign = await prisma.campaign.findUnique({
                 where: { id: campaign.id },
-                select: { targetRules: true }
+                select: { id: true, name: true, targetRules: true }
             });
+
+            console.log('📋 dbCampaign found:', dbCampaign ? `yes (id: ${dbCampaign.id}, name: ${dbCampaign.name})` : 'NO!');
+            console.log('📋 targetRules from DB:', JSON.stringify(dbCampaign?.targetRules, null, 2));
 
             const frequencyCapping = (dbCampaign?.targetRules as any)?.enhancedTriggers?.frequency_capping;
             expect(frequencyCapping).toBeDefined();

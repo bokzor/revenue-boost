@@ -230,6 +230,41 @@ export const DiscountCodeDisplay: React.FC<DiscountCodeDisplayProps> = ({
     maxWidth: "100%",
   };
 
+  const codeWrapperStyles: React.CSSProperties = {
+    position: "relative",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    width: "100%",
+  };
+
+  // Success green color
+  const successColor = "#10b981";
+
+  const overlayStyles: React.CSSProperties = {
+    position: "absolute",
+    top: "-2px",
+    left: "-2px",
+    right: "-2px",
+    bottom: "-2px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "0.5rem",
+    // Solid background with subtle gradient for depth
+    background: `linear-gradient(135deg, ${successColor}15, ${successColor}25)`,
+    backdropFilter: "blur(2px)",
+    borderRadius: sizeStyles.borderRadius,
+    border: `2px solid ${successColor}40`,
+    color: successColor,
+    fontWeight: 700,
+    fontSize: size === "sm" ? "0.875rem" : size === "lg" ? "1.25rem" : "1rem",
+    letterSpacing: "0.05em",
+    textTransform: "uppercase",
+    boxShadow: `0 0 20px ${successColor}30, inset 0 0 20px ${successColor}10`,
+    animation: "copiedPulse 0.4s ease-out",
+  };
+
   // Wrap onCopy to prevent event leakage (don't pass MouseEvent as argument)
   const handleClick = onCopy
     ? () => {
@@ -252,10 +287,56 @@ export const DiscountCodeDisplay: React.FC<DiscountCodeDisplayProps> = ({
         }
       }}
     >
+      {/* Inline keyframe animation for the copied pulse effect */}
+      <style>{`
+        @keyframes copiedPulse {
+          0% {
+            opacity: 0;
+            transform: scale(0.95);
+          }
+          50% {
+            transform: scale(1.02);
+          }
+          100% {
+            opacity: 1;
+            transform: scale(1);
+          }
+        }
+        @keyframes checkmarkDraw {
+          0% {
+            stroke-dashoffset: 24;
+          }
+          100% {
+            stroke-dashoffset: 0;
+          }
+        }
+      `}</style>
       {label && <div style={labelStyles}>{label}</div>}
-      <div style={codeStyles}>
-        {code}
-        {copied && <CheckmarkIcon size={size === "sm" ? 16 : size === "lg" ? 24 : 20} color="#10b981" />}
+      <div style={codeWrapperStyles}>
+        <div style={{ ...codeStyles, opacity: copied ? 0.3 : 1, transition: "opacity 0.2s" }}>
+          {code}
+        </div>
+        {copied && (
+          <div style={overlayStyles}>
+            <div style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: size === "sm" ? 24 : size === "lg" ? 36 : 30,
+              height: size === "sm" ? 24 : size === "lg" ? 36 : 30,
+              borderRadius: "50%",
+              backgroundColor: `${successColor}20`,
+              border: `2px solid ${successColor}`,
+            }}>
+              <CheckmarkIcon
+                size={size === "sm" ? 14 : size === "lg" ? 22 : 18}
+                color={successColor}
+                strokeWidth={3}
+              />
+            </div>
+            <span>Copied!</span>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -50,8 +50,8 @@ vi.mock("~/lib/shopify/customer.server", () => ({
   extractCustomerId: vi.fn((gid: string) => gid.split("/").pop()),
 }));
 
-vi.mock("~/domains/security/services/challenge-token.server", () => ({
-  validateAndConsumeToken: vi.fn(),
+vi.mock("~/domains/security/services/submission-validator.server", () => ({
+  validateStorefrontRequest: vi.fn().mockResolvedValue({ valid: true }),
 }));
 
 vi.mock("~/domains/commerce/services/discount.server", () => ({
@@ -89,7 +89,7 @@ vi.mock("~/domains/security/services/rate-limit.server", () => ({
 
 import { authenticate } from "~/shopify.server";
 import prisma from "~/db.server";
-import { validateAndConsumeToken } from "~/domains/security/services/challenge-token.server";
+import { validateStorefrontRequest } from "~/domains/security/services/submission-validator.server";
 import { getCampaignDiscountCode } from "~/domains/commerce/services/discount.server";
 import { checkRateLimit } from "~/domains/security/services/rate-limit.server";
 
@@ -98,7 +98,6 @@ describe("Free Shipping Email-Required Flow - Integration Tests", () => {
   const mockStoreId = "store123456789";
   const mockSessionId = "session456789";
   const mockEmail = "customer@example.com";
-  const mockChallengeToken = "validchallengetokenxyz";
   const mockDiscountCode = "FREESHIP50";
 
   let mockAdmin: any;
@@ -154,8 +153,8 @@ describe("Free Shipping Email-Required Flow - Integration Tests", () => {
 
       vi.mocked(prisma.campaign.findUnique).mockResolvedValue(mockCampaign as any);
 
-      // Mock challenge token validation
-      vi.mocked(validateAndConsumeToken).mockResolvedValue({
+      // Mock submission validation (bot detection)
+      vi.mocked(validateStorefrontRequest).mockResolvedValue({
         valid: true,
       });
 
@@ -166,14 +165,14 @@ describe("Free Shipping Email-Required Flow - Integration Tests", () => {
         isNewDiscount: true,
       });
 
-      // Step 1: Issue discount (consumes challenge token)
+      // Step 1: Issue discount (validates submission)
       const issueRequest = new Request("http://localhost/api/discounts/issue", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           campaignId: mockCampaignId,
           sessionId: mockSessionId,
-          challengeToken: mockChallengeToken,
+          popupShownAt: Date.now() - 5000,
           cartSubtotalCents: 5000, // $50 cart
         }),
       });
@@ -185,14 +184,14 @@ describe("Free Shipping Email-Required Flow - Integration Tests", () => {
       expect(issuePayload.success).toBe(true);
       expect(issuePayload.code).toBe(mockDiscountCode);
 
-      // Verify challenge token was validated and consumed ONCE
-      expect(validateAndConsumeToken).toHaveBeenCalledTimes(1);
-      expect(validateAndConsumeToken).toHaveBeenCalledWith(
-        mockChallengeToken,
-        mockCampaignId,
-        mockSessionId,
-        expect.any(String), // IP address
-        false // skipRateLimitCheck
+      // Verify submission was validated ONCE
+      expect(validateStorefrontRequest).toHaveBeenCalledTimes(1);
+      expect(validateStorefrontRequest).toHaveBeenCalledWith(
+        expect.any(Request),
+        expect.objectContaining({
+          campaignId: mockCampaignId,
+          sessionId: mockSessionId,
+        })
       );
 
       // Setup mocks for save-email action
@@ -239,8 +238,8 @@ describe("Free Shipping Email-Required Flow - Integration Tests", () => {
       // Verify email was saved successfully
       expect(saveEmailPayload.success).toBe(true);
 
-      // Verify challenge token was NOT validated again (still only 1 call)
-      expect(validateAndConsumeToken).toHaveBeenCalledTimes(1);
+      // Verify submission validation was NOT called again (still only 1 call)
+      expect(validateStorefrontRequest).toHaveBeenCalledTimes(1);
 
       // Verify lead was updated with real email
       expect(prisma.lead.update).toHaveBeenCalledWith({
@@ -272,7 +271,7 @@ describe("Free Shipping Email-Required Flow - Integration Tests", () => {
       };
 
       vi.mocked(prisma.campaign.findUnique).mockResolvedValue(mockCampaign as any);
-      vi.mocked(validateAndConsumeToken).mockResolvedValue({
+      vi.mocked(validateStorefrontRequest).mockResolvedValue({
         valid: true,
       });
 
@@ -290,7 +289,7 @@ describe("Free Shipping Email-Required Flow - Integration Tests", () => {
         body: JSON.stringify({
           campaignId: mockCampaignId,
           sessionId: uniqueSessionId, // Use unique session
-          challengeToken: mockChallengeToken,
+          popupShownAt: Date.now() - 5000,
           cartSubtotalCents: 5000,
         }),
       });
@@ -302,11 +301,11 @@ describe("Free Shipping Email-Required Flow - Integration Tests", () => {
       expect(issuePayload.success).toBe(false);
       expect(issuePayload.error).toBeDefined();
 
-      // Challenge token was still consumed
-      expect(validateAndConsumeToken).toHaveBeenCalledTimes(1);
+      // Submission was still validated
+      expect(validateStorefrontRequest).toHaveBeenCalledTimes(1);
     });
 
-    it("should fail if challenge token is invalid", async () => {
+    it("should detect bots via submission validation", async () => {
       const mockCampaign = {
         id: mockCampaignId,
         storeId: mockStoreId,
@@ -316,10 +315,11 @@ describe("Free Shipping Email-Required Flow - Integration Tests", () => {
 
       vi.mocked(prisma.campaign.findUnique).mockResolvedValue(mockCampaign as any);
 
-      // Mock invalid challenge token
-      vi.mocked(validateAndConsumeToken).mockResolvedValue({
+      // Mock bot detection (honeypot triggered)
+      vi.mocked(validateStorefrontRequest).mockResolvedValue({
         valid: false,
-        error: "Token expired",
+        reason: "honeypot",
+        isBotLikely: true,
       });
 
       const issueRequest = new Request("http://localhost/api/discounts/issue", {
@@ -328,7 +328,7 @@ describe("Free Shipping Email-Required Flow - Integration Tests", () => {
         body: JSON.stringify({
           campaignId: mockCampaignId,
           sessionId: mockSessionId,
-          challengeToken: "invalid-token",
+          honeypot: "bot-filled-this", // Simulates bot filling honeypot
           cartSubtotalCents: 5000,
         }),
       });
@@ -336,11 +336,8 @@ describe("Free Shipping Email-Required Flow - Integration Tests", () => {
       const issueResponse = await issueDiscountAction({ request: issueRequest } as any);
       const issuePayload = (issueResponse as any).data as any;
 
-      // Verify request failed due to invalid token
-      expect(issuePayload.success).toBe(false);
-      expect(issuePayload.error).toBeDefined();
-      // Error message could be "Token expired" or "Security check failed"
-      expect(issuePayload.error).toMatch(/Token expired|Security check failed/);
+      // Bots get fake success to avoid revealing detection
+      expect(issuePayload.success).toBe(true);
 
       // Discount code generation should NOT have been called
       expect(getCampaignDiscountCode).not.toHaveBeenCalled();
@@ -367,7 +364,7 @@ describe("Free Shipping Email-Required Flow - Integration Tests", () => {
       };
 
       vi.mocked(prisma.campaign.findUnique).mockResolvedValue(mockCampaign as any);
-      vi.mocked(validateAndConsumeToken).mockResolvedValue({
+      vi.mocked(validateStorefrontRequest).mockResolvedValue({
         valid: true,
       });
       vi.mocked(getCampaignDiscountCode).mockResolvedValue({
@@ -382,7 +379,7 @@ describe("Free Shipping Email-Required Flow - Integration Tests", () => {
         body: JSON.stringify({
           campaignId: mockCampaignId,
           sessionId: mockSessionId,
-          challengeToken: mockChallengeToken,
+          popupShownAt: Date.now() - 5000,
           cartSubtotalCents: 5000,
         }),
       });
@@ -394,8 +391,8 @@ describe("Free Shipping Email-Required Flow - Integration Tests", () => {
       expect(issuePayload.success).toBe(true);
       expect(issuePayload.code).toBe(mockDiscountCode);
 
-      // Challenge token consumed once
-      expect(validateAndConsumeToken).toHaveBeenCalledTimes(1);
+      // Submission validated once
+      expect(validateStorefrontRequest).toHaveBeenCalledTimes(1);
 
       // No email saved (email not required)
       expect(prisma.lead.upsert).not.toHaveBeenCalled();

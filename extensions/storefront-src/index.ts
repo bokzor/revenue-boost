@@ -12,7 +12,6 @@ import { ComponentLoader } from "./core/component-loader";
 import { renderPopup, type StorefrontCampaign } from "./core/PopupManagerPreact";
 import { TriggerManager, type EnhancedTriggers, type SessionRulesConfig } from "./core/TriggerManager";
 import { initCartTracking } from "./utils/cart-tracking";
-import { challengeTokenStore } from "./core/challenge-token";
 
 // Initialize hook registry (configures all pre-display hooks)
 import "./core/hooks";
@@ -51,11 +50,7 @@ if (typeof window !== "undefined") {
   (w as any).__RB_SESSION = session;
   (w as any).__RB_SESSION_ID = session.getSessionId();
 
-  // Expose challenge token store globally so popup bundles can share the same instance
-  (w as any).__RB_CHALLENGE_TOKEN_STORE = challengeTokenStore;
-
   console.log("[Revenue Boost] ⚛️ Preact runtime exposed globally");
-  console.log("[Revenue Boost] 🔐 Challenge token store exposed globally");
 }
 
 interface Config {
@@ -512,6 +507,7 @@ class RevenueBoostApp {
       const trackingKey = campaign.experimentId || campaign.id;
       await this.api.recordFrequency({
         sessionId: session.getSessionId(),
+        visitorId: session.getVisitorId(), // Add visitorId for consistent tracking
         campaignId: campaign.id,
         experimentId: campaign.experimentId,
         trackingKey,

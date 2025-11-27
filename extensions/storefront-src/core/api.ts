@@ -307,7 +307,10 @@ export class ApiClient {
     lastName?: string;
     phone?: string;
     metadata?: Record<string, unknown>;
-    challengeToken: string;
+    /** Timestamp when popup was shown (for bot detection) */
+    popupShownAt?: number;
+    /** Honeypot field - should always be empty */
+    honeypot?: string;
   }): Promise<{
     success: boolean;
     leadId?: string;
@@ -365,7 +368,11 @@ export class ApiClient {
     campaignId: string;
     cartSubtotalCents?: number;
     sessionId: string;
-    challengeToken: string;
+    visitorId?: string;
+    /** Timestamp when popup was shown (for bot detection) */
+    popupShownAt?: number;
+    /** Honeypot field - should always be empty */
+    honeypot?: string;
     // Product Upsell: selected product IDs for bundle discount scoping
     selectedProductIds?: string[];
     // Product Upsell: bundle discount from contentConfig (auto-sync mode)
@@ -387,7 +394,6 @@ export class ApiClient {
       campaignId: data.campaignId,
       cartSubtotalCents: data.cartSubtotalCents,
       sessionId: data.sessionId,
-      hasChallengeToken: !!data.challengeToken,
     });
 
     try {
@@ -477,6 +483,7 @@ export class ApiClient {
 
   async recordFrequency(input: {
     sessionId: string;
+    visitorId: string;
     campaignId: string;
     trackingKey: string;
     experimentId?: string | null;
@@ -498,24 +505,48 @@ export class ApiClient {
 
     const url = `${this.getApiUrl("/api/analytics/frequency")}?${params.toString()}`;
 
-    try {
-      await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          sessionId: input.sessionId,
-          campaignId: input.campaignId,
-          trackingKey: input.trackingKey,
-          experimentId: input.experimentId,
-          pageUrl: input.pageUrl,
-          referrer: input.referrer,
-          timestamp: Date.now(),
-        }),
-      });
-    } catch (error) {
-      console.error("[Revenue Boost API] Failed to record frequency:", error);
+    const body = JSON.stringify({
+      sessionId: input.sessionId,
+      visitorId: input.visitorId, // Include visitorId for consistent impression tracking
+      campaignId: input.campaignId,
+      trackingKey: input.trackingKey,
+      experimentId: input.experimentId,
+      pageUrl: input.pageUrl,
+      referrer: input.referrer,
+      timestamp: Date.now(),
+    });
+
+    // Attempt with one retry for reliability
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      try {
+        const response = await fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body,
+        });
+
+        if (response.ok) {
+          return; // Success
+        }
+
+        // Server error - retry on first attempt
+        if (attempt === 1 && response.status >= 500) {
+          console.warn("[Revenue Boost API] Frequency tracking failed, retrying...");
+          continue;
+        }
+
+        // Client error or second failure - log and continue
+        console.error("[Revenue Boost API] Failed to record frequency:", response.status);
+        return;
+      } catch (error) {
+        if (attempt === 1) {
+          console.warn("[Revenue Boost API] Frequency tracking error, retrying:", error);
+          continue;
+        }
+        console.error("[Revenue Boost API] Failed to record frequency after retry:", error);
+      }
     }
   }
 

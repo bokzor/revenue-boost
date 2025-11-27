@@ -29,7 +29,6 @@ const LeadSubmissionSchema = z.object({
   email: z.string().email(),
   campaignId: z.string(),
   sessionId: z.string(),
-  challengeToken: z.string(), // REQUIRED: Challenge token for security
   visitorId: z.string().optional(),
   consent: z.boolean().optional(),
   firstName: z.string().optional(),
@@ -42,6 +41,9 @@ const LeadSubmissionSchema = z.object({
   utmMedium: z.string().optional(),
   utmCampaign: z.string().optional(),
   metadata: z.record(z.string(), z.unknown()).optional(),
+  // Bot detection fields
+  popupShownAt: z.number().optional(),
+  honeypot: z.string().optional(),
 });
 
 export async function action({ request }: ActionFunctionArgs) {
@@ -110,28 +112,24 @@ export async function action({ request }: ActionFunctionArgs) {
       }
     }
 
-    // SECURITY: Validate challenge token
-    const ip =
-      request.headers.get("x-forwarded-for")?.split(",")[0] ||
-      request.headers.get("x-real-ip") ||
-      "unknown";
-
-    const { validateAndConsumeToken } = await import(
-      "~/domains/security/services/challenge-token.server"
+    // SECURITY: Generic storefront request validation
+    const { validateStorefrontRequest } = await import(
+      "~/domains/security/services/submission-validator.server"
     );
-    const tokenValidation = await validateAndConsumeToken(
-      validatedData.challengeToken,
-      validatedData.campaignId,
-      validatedData.sessionId,
-      ip,
-      false // Don't enforce strict IP check for mobile users
-    );
+    const validation = await validateStorefrontRequest(request, validatedData);
 
-    if (!tokenValidation.valid) {
-      console.warn(`[Lead Submit] Token validation failed: ${tokenValidation.error}`);
+    if (!validation.valid) {
+      if (validation.isBotLikely) {
+        const ip = request.headers.get("x-forwarded-for")?.split(",")[0] || "unknown";
+        console.warn(`[Lead Submit] 🤖 Bot detected (${validation.reason}) for campaign ${validatedData.campaignId}, IP: ${ip}`);
+        return data(
+          { success: true, leadId: "processed", message: "Thank you!" },
+          { status: 200, headers: storefrontCors() }
+        );
+      }
       return data(
-        { success: false, error: tokenValidation.error || "Invalid or expired token" },
-        { status: 403, headers: storefrontCors() }
+        { success: false, error: validation.reason === "session_expired" ? "Session expired. Please refresh the page." : "Invalid request" },
+        { status: 400, headers: storefrontCors() }
       );
     }
 

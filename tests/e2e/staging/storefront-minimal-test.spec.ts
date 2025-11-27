@@ -1,14 +1,16 @@
 import { test, expect } from '@playwright/test';
 import { PrismaClient } from '@prisma/client';
 import * as dotenv from 'dotenv';
-import { STORE_DOMAIN, handlePasswordPage, mockChallengeToken } from './helpers/test-helpers';
+import { STORE_DOMAIN, handlePasswordPage, mockChallengeToken, getTestPrefix } from './helpers/test-helpers';
 import { CampaignFactory } from './factories/campaign-factory';
 
 dotenv.config({ path: '.env.staging.env' });
 
+const TEST_PREFIX = getTestPrefix('storefront-minimal-test.spec.ts');
+
 /**
  * MINIMAL REPRODUCTION TEST
- * 
+ *
  * This test creates the simplest possible campaign to isolate
  * why campaigns aren't showing up on the storefront.
  */
@@ -30,12 +32,12 @@ test.describe('Minimal Reproduction', () => {
         }
 
         store = foundStore;
-        factory = new CampaignFactory(prisma, store.id);
+        factory = new CampaignFactory(prisma, store.id, TEST_PREFIX);
 
-        // Cleanup all E2E test campaigns
+        // Cleanup campaigns from this test file only
         await prisma.campaign.deleteMany({
             where: {
-                name: { startsWith: 'E2E-Test-' }
+                name: { startsWith: TEST_PREFIX }
             }
         });
 
@@ -43,6 +45,12 @@ test.describe('Minimal Reproduction', () => {
     });
 
     test.afterAll(async () => {
+        // Clean up campaigns created by this test file only
+        await prisma.campaign.deleteMany({
+            where: {
+                name: { startsWith: TEST_PREFIX }
+            }
+        });
         await prisma.$disconnect();
     });
 

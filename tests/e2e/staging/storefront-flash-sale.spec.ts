@@ -4,12 +4,13 @@ import fs from 'fs';
 import path from 'path';
 import * as dotenv from 'dotenv';
 import { CampaignFactory } from './factories/campaign-factory';
-import { STORE_URL, handlePasswordPage, mockChallengeToken } from './helpers/test-helpers';
+import { STORE_URL, API_PROPAGATION_DELAY_MS, handlePasswordPage, mockChallengeToken, getTestPrefix, waitForPopupWithRetry } from './helpers/test-helpers';
 
 // Load staging environment variables
 dotenv.config({ path: path.resolve(process.cwd(), '.env.staging.env'), override: true });
 
 const STORE_DOMAIN = 'revenue-boost-staging.myshopify.com';
+const TEST_PREFIX = getTestPrefix('storefront-flash-sale.spec.ts');
 
 test.describe.serial('Flash Sale Template - E2E', () => {
     let prisma: PrismaClient;
@@ -33,18 +34,24 @@ test.describe.serial('Flash Sale Template - E2E', () => {
         }
 
         storeId = store.id;
-        factory = new CampaignFactory(prisma, storeId);
+        factory = new CampaignFactory(prisma, storeId, TEST_PREFIX);
     });
 
     test.afterAll(async () => {
+        // Clean up campaigns created by this test file only
+        await prisma.campaign.deleteMany({
+            where: {
+                name: { startsWith: TEST_PREFIX }
+            }
+        });
         await prisma.$disconnect();
     });
 
     test.beforeEach(async ({ page }) => {
-        // Clean up old test campaigns
+        // Clean up campaigns from previous runs of THIS test file only
         await prisma.campaign.deleteMany({
             where: {
-                name: { startsWith: 'E2E-Test-' }
+                name: { startsWith: TEST_PREFIX }
             }
         });
 
@@ -74,11 +81,14 @@ test.describe.serial('Flash Sale Template - E2E', () => {
         const campaign = await (await factory.flashSale().init()).create();
         console.log(`✅ Campaign created: ${campaign.id}`);
 
-        // 2. Navigate to storefront
+        // 2. Wait for campaign to propagate to API (Cloud Run caching)
+        await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
+
+        // 3. Navigate to storefront
         await page.goto(STORE_URL);
         await handlePasswordPage(page);
 
-        // 3. Wait for popup shadow host to appear
+        // 4. Wait for popup shadow host to appear
         const popupHost = page.locator('#revenue-boost-popup-shadow-host');
         await expect(popupHost).toBeVisible({ timeout: 10000 });
         console.log('✅ Flash Sale popup visible');
@@ -129,13 +139,16 @@ test.describe.serial('Flash Sale Template - E2E', () => {
 
         console.log(`✅ Campaign created: ${campaign.id}`);
 
-        // 2. Navigate to storefront
+        // 2. Wait for campaign to propagate to API (Cloud Run caching)
+        await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
+
+        // 3. Navigate to storefront
         await page.goto(STORE_URL);
         await handlePasswordPage(page);
 
-        // 3. Verify popup is visible
-        const popupHost = page.locator('#revenue-boost-popup-shadow-host');
-        await expect(popupHost).toBeVisible({ timeout: 10000 });
+        // 4. Verify popup is visible (with retry for API propagation)
+        const popupVisible = await waitForPopupWithRetry(page, { timeout: 10000, retries: 3 });
+        expect(popupVisible).toBe(true);
         console.log('✅ Flash Sale with stock counter visible');
     });
 });

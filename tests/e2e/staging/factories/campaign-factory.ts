@@ -28,10 +28,25 @@ export class CampaignFactory {
     private prisma: PrismaClient;
     private storeId: string;
     private templateCache: Map<TemplateType, string> = new Map();
+    private testPrefix: string;
 
-    constructor(prisma: PrismaClient, storeId: string) {
+    /**
+     * @param prisma - Prisma client instance
+     * @param storeId - Store ID to create campaigns for
+     * @param testPrefix - Optional prefix for campaign names (defaults to 'E2E-Test-')
+     *                     Use getTestPrefix() from test-helpers to generate unique prefixes per test file
+     */
+    constructor(prisma: PrismaClient, storeId: string, testPrefix: string = 'E2E-Test-') {
         this.prisma = prisma;
         this.storeId = storeId;
+        this.testPrefix = testPrefix;
+    }
+
+    /**
+     * Get the test prefix used by this factory
+     */
+    getPrefix(): string {
+        return this.testPrefix;
     }
 
     /**
@@ -62,12 +77,12 @@ export class CampaignFactory {
         const templateId = await this.getTemplateId(templateType);
 
         return {
-            name: `E2E-Test-${templateType}-${Date.now()}`,
+            name: `${this.testPrefix}${templateType}-${Date.now()}`,
             templateType,
             templateId,
             storeId: this.storeId,
             status: 'ACTIVE',
-            priority: 100, // Very high priority to ensure test campaigns are selected
+            priority: 99999, // Maximum priority to ensure test campaigns always show first
             goal: 'NEWSLETTER_SIGNUP',
             // Complete targetRules structure (required to pass filters)
             targetRules: {
@@ -224,10 +239,11 @@ class BaseBuilder<T extends BaseBuilder<T>> {
 
     /**
      * Set custom name for the campaign
+     * Note: The factory prefix is automatically prepended
      */
     withName(name: string): T {
         if (!this.config) throw new Error('Config not initialized');
-        this.config.name = `E2E-Test-${name}`;
+        this.config.name = `${this.factory.getPrefix()}${name}`;
         return this as unknown as T;
     }
 

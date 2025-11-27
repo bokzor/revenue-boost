@@ -31,8 +31,9 @@ export default defineConfig({
   // Retry on CI only
   retries: process.env.CI ? 2 : 0,
 
-  // Opt out of parallel tests on CI
-  workers: process.env.CI ? 1 : undefined,
+  // Single worker for staging tests to avoid race conditions
+  // The staging environment has caching that causes issues with parallel tests
+  workers: 1,
 
   // Reporter to use
   reporter: [
@@ -69,9 +70,13 @@ export default defineConfig({
     },
 
     // Storefront tests - run against real Shopify store
+    // Uses single worker to avoid race conditions with shared staging environment
     {
       name: 'storefront',
       testMatch: '**/storefront-*.spec.ts',
+      // Force single worker for storefront tests to avoid race conditions
+      // The staging environment has caching that causes issues with parallel tests
+      fullyParallel: false,
       use: {
         ...devices['Desktop Chrome'],
         // Storefront tests don't use baseURL - they use STORE_URL directly

@@ -3,7 +3,6 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 
 import { CartAbandonmentPopup } from "~/domains/storefront/popups-new/CartAbandonmentPopup";
-import { challengeTokenStore } from "~/domains/storefront/services/challenge-token.client";
 
 function createConfig(overrides: Partial<any> = {}) {
   const baseConfig: any = {
@@ -61,13 +60,6 @@ describe("CartAbandonmentPopup", () => {
       enableEmailRecovery: true,
       campaignId,
     });
-
-    // Seed challenge token and session id for secure submission
-    challengeTokenStore.set(
-      campaignId,
-      "test-token",
-      new Date(Date.now() + 600_000).toISOString(),
-    );
 
     const sessionGetItem = vi
       .spyOn(window.sessionStorage.__proto__, "getItem")
@@ -182,12 +174,6 @@ describe("CartAbandonmentPopup", () => {
         deliveryMode: "show_code_always",
       },
     });
-
-    challengeTokenStore.set(
-      campaignId,
-      "test-token",
-      new Date(Date.now() + 600_000).toISOString(),
-    );
 
     vi
       .spyOn(window.sessionStorage.__proto__, "getItem")

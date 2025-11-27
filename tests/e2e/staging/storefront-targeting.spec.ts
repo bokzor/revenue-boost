@@ -4,12 +4,13 @@ import fs from 'fs';
 import path from 'path';
 import * as dotenv from 'dotenv';
 import { CampaignFactory } from './factories/campaign-factory';
-import { STORE_URL, handlePasswordPage, mockChallengeToken, waitForAnyPopup } from './helpers/test-helpers';
+import { STORE_URL, API_PROPAGATION_DELAY_MS, handlePasswordPage, mockChallengeToken, waitForAnyPopup, getTestPrefix } from './helpers/test-helpers';
 
 // Load staging environment variables
 dotenv.config({ path: path.resolve(process.cwd(), '.env.staging.env'), override: true });
 
 const STORE_DOMAIN = 'revenue-boost-staging.myshopify.com';
+const TEST_PREFIX = getTestPrefix('storefront-targeting.spec.ts');
 
 test.describe.serial('Targeting Combinations', () => {
     let prisma: PrismaClient;
@@ -32,17 +33,27 @@ test.describe.serial('Targeting Combinations', () => {
         }
 
         storeId = store.id;
-        factory = new CampaignFactory(prisma, storeId);
+        factory = new CampaignFactory(prisma, storeId, TEST_PREFIX);
     });
 
     test.afterAll(async () => {
-        // Cleanup campaigns created during tests
-        // Note: In a real scenario, we might want to delete them.
-        // For now, we rely on the unique names to avoid collisions.
+        // Clean up campaigns created by this test file only
+        await prisma.campaign.deleteMany({
+            where: {
+                name: { startsWith: TEST_PREFIX }
+            }
+        });
         await prisma.$disconnect();
     });
 
     test.beforeEach(async ({ page }) => {
+        // Clean up campaigns from previous runs of THIS test file only
+        await prisma.campaign.deleteMany({
+            where: {
+                name: { startsWith: TEST_PREFIX }
+            }
+        });
+
         // Mock API calls to prevent actual backend processing where not needed
         // This ensures we don't spam the backend with leads/discounts during targeting tests
         await page.route(/\/.*\/api\/leads\/submit.*/, async route => {
@@ -173,7 +184,7 @@ test.describe.serial('Targeting Combinations', () => {
         console.log(`Created campaign: ${campaign.name} with priority ${priority}`);
 
         // Wait for campaign to propagate
-        await page.waitForTimeout(1000);
+        await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
 
         // Collection page: Should show our high priority campaign
         await page.goto(`${STORE_URL}/collections/all`);
@@ -197,7 +208,7 @@ test.describe.serial('Targeting Combinations', () => {
         console.log(`Created campaign: ${campaign.name} with priority ${priority}`);
 
         // Wait for campaign to propagate
-        await page.waitForTimeout(1000);
+        await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
 
         // Mobile viewport: Should show
         await page.setViewportSize({ width: 375, height: 667 });
@@ -225,7 +236,7 @@ test.describe.serial('Targeting Combinations', () => {
         console.log(`Created campaign: ${campaign.name} with priority ${priority}`);
 
         // Wait for campaign to propagate
-        await page.waitForTimeout(1000);
+        await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
 
         // Desktop viewport: Should show
         await page.setViewportSize({ width: 1280, height: 720 });

@@ -17,7 +17,6 @@ import type { PopupDesignConfig, Prize } from "./types";
 import type { ScratchCardContent } from "~/domains/campaigns/types/campaign";
 import { getSizeDimensions } from "./utils";
 import { POPUP_SPACING } from "./spacing";
-import { challengeTokenStore } from "~/domains/storefront/services/challenge-token.client";
 
 // Import custom hooks
 import { usePopupForm, useDiscountCode, usePopupAnimation } from "./hooks";
@@ -42,7 +41,6 @@ export interface ScratchCardConfig extends PopupDesignConfig, ScratchCardContent
   scratchOverlayColor?: string;
   scratchOverlayImage?: string;
   loadingText?: string;
-  challengeToken?: string; // Pre-loaded challenge token from PopupManager
 
   // Typography (optional, can be set from design theme)
   titleFontSize?: string;
@@ -154,74 +152,41 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
       }
 
       try {
-        // Get sessionId from global session object (set by storefront extension)
-        const sessionId =
-          typeof window !== "undefined"
-            ? (window as any).__RB_SESSION_ID ||
-              window.sessionStorage?.getItem("revenue_boost_session") ||
-              window.sessionStorage?.getItem("rb_session_id") ||
-              ""
-            : "";
-
-        // Get challenge token - prefer from config (passed by PopupManager), fallback to store
-        const challengeToken = config.challengeToken || challengeTokenStore.get(config.campaignId);
-
-        if (!sessionId) {
-          console.error("[Scratch Card] No session ID available", {
-            hasWindow: typeof window !== "undefined",
-            sessionStorageKeys:
-              typeof window !== "undefined" ? Object.keys(window.sessionStorage || {}) : [],
-          });
-          return;
-        }
-
-        if (!challengeToken) {
-          console.error("[Scratch Card] No challenge token available", {
-            fromConfig: !!config.challengeToken,
-            fromStore: !!challengeTokenStore.get(config.campaignId),
-            campaignId: config.campaignId,
-            previewMode: config.previewMode,
-          });
-          return;
-        }
+        // Use secure API helper (includes sessionId, visitorId, popupShownAt)
+        const { securePost } = await import("./utils/popup-api");
 
         console.log("[Scratch Card] Fetching prize from server", {
           campaignId: config.campaignId,
           hasEmail: !!emailValue,
-          hasSessionId: !!sessionId,
-          hasChallengeToken: !!challengeToken,
         });
 
-        const requestBody: any = {
-          campaignId: config.campaignId,
-          sessionId: sessionId,
-          challengeToken: challengeToken,
-        };
-
-        // Only include email if it's provided
-        if (emailValue) {
-          requestBody.email = emailValue;
-        }
-
-        const response = await fetch("/apps/revenue-boost/api/popups/scratch-card", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(requestBody),
+        const data = await securePost<{
+          success: boolean;
+          prize?: { id: string; label: string };
+          discountCode?: string;
+          autoApply?: boolean;
+          error?: string;
+        }>("/apps/revenue-boost/api/popups/scratch-card", config.campaignId, {
+          ...(emailValue ? { email: emailValue } : {}),
         });
-
-        const data = await response.json();
 
         if (data.success && data.prize && data.discountCode) {
           const serverPrize: Prize = {
             id: data.prize.id,
             label: data.prize.label,
-            probability: 0, // Not needed
+            probability: 0,
             generatedCode: data.discountCode,
-            discountCode: data.discountCode, // For backward compatibility
+            discountCode: data.discountCode,
           };
           setWonPrize(serverPrize);
+
+          // Auto-apply discount if configured
+          if (data.autoApply && data.discountCode) {
+            const { handleDiscountAutoApply } = await import(
+              "../../../../extensions/storefront-src/utils/discount"
+            );
+            void handleDiscountAutoApply(data.discountCode, true, "ScratchCard");
+          }
         } else {
           console.error("[Scratch Card] Failed to fetch prize:", data);
         }
@@ -492,37 +457,26 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
       setIsSubmittingEmail(true);
 
       try {
-        const sessionId =
-          typeof window !== "undefined"
-            ? window.sessionStorage?.getItem("revenue_boost_session") ||
-              window.sessionStorage?.getItem("rb_session_id")
-            : undefined;
-
-        if (!sessionId) {
-          console.error("[Scratch Card] Missing session ID");
+        if (!config.campaignId) {
+          console.error("[Scratch Card] Missing campaignId");
           return;
         }
 
-        const response = await fetch("/apps/revenue-boost/api/leads/save-email", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            email: formState.email,
-            campaignId: config.campaignId,
-            sessionId: sessionId!,
-            discountCode: wonPrize.discountCode, // Use existing code
-            consent: formState.gdprConsent,
-          }),
+        // Use secure API helper for consistency
+        const { securePost } = await import("./utils/popup-api");
+        const data = await securePost<{
+          success: boolean;
+          discountCode?: string;
+          error?: string;
+        }>("/apps/revenue-boost/api/leads/save-email", config.campaignId, {
+          email: formState.email,
+          discountCode: wonPrize.discountCode,
+          consent: formState.gdprConsent,
         });
-
-        const data = await response.json();
 
         if (data.success) {
           console.log("[Scratch Card] Email saved successfully");
           setEmailSubmitted(true);
-          // Update discount code in hook (should be same as wonPrize.discountCode)
           if (data.discountCode) {
             setDiscountCode(data.discountCode);
           }
