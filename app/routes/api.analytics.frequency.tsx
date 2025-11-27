@@ -54,6 +54,19 @@ export async function action({ request }: ActionFunctionArgs) {
     const referrer = bodyReferrer || request.headers.get("referer") || null;
     const ipAddress = getClientIP(request);
 
+    // Fetch campaign to get frequency capping rules
+    const campaign = await prisma.campaign.findUnique({
+      where: { id: campaignId },
+      select: {
+        targetRules: true,
+        templateType: true,
+      },
+    });
+
+    // Extract frequency capping rules from campaign
+    const targetRules = campaign?.targetRules as { enhancedTriggers?: { frequency_capping?: Record<string, unknown> } } | null;
+    const frequencyRules = targetRules?.enhancedTriggers?.frequency_capping;
+
     // Fetch store settings for global frequency capping
     const store = await prisma.store.findUnique({
       where: { id: storeId },
@@ -70,8 +83,9 @@ export async function action({ request }: ActionFunctionArgs) {
         pageUrl,
         deviceType: deviceType || "desktop",
       },
-      undefined,
-      storeSettings
+      frequencyRules,
+      storeSettings,
+      campaign?.templateType
     );
 
     // Also record a VIEW event in PopupEvent for long-term analytics

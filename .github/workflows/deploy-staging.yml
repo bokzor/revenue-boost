@@ -259,38 +259,6 @@ jobs:
           echo "url=$SERVICE_URL" >> $GITHUB_OUTPUT
           echo "SERVICE_URL=$SERVICE_URL" >> $GITHUB_ENV
 
-      - name: 🌱 Seed database (templates & segments)
-        run: |
-          echo "🌱 Seeding templates and segments..."
-
-          # Wait for service to be ready (max 60 seconds)
-          for i in {1..12}; do
-            if curl -f -s "${{ steps.service-url.outputs.url }}/api/health" > /dev/null 2>&1; then
-              echo "✅ Service is ready"
-              break
-            fi
-            echo "⏳ Waiting for service to be ready... ($i/12)"
-            sleep 5
-          done
-
-          # Seed templates
-          SEED_RESPONSE=$(curl -X POST "${{ steps.service-url.outputs.url }}/api/seed-templates" \
-            -H "Content-Type: application/json" \
-            -w "\n%{http_code}" \
-            -s)
-
-          HTTP_CODE=$(echo "$SEED_RESPONSE" | tail -n1)
-          RESPONSE_BODY=$(echo "$SEED_RESPONSE" | sed '$d')
-
-          if [ "$HTTP_CODE" -eq 200 ]; then
-            echo "✅ Templates seeded successfully"
-            echo "$RESPONSE_BODY"
-          else
-            echo "⚠️  Template seeding returned HTTP $HTTP_CODE"
-            echo "$RESPONSE_BODY"
-            echo "Note: This may be expected if templates are already seeded"
-          fi
-
       - name: 🔄 Update service with real URL (if initial deployment)
         run: |
           # Check if we used the temporary URL

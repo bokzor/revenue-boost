@@ -49,17 +49,27 @@ function getShopifyRoot(): string {
   }
 }
 
+/**
+ * Apply discount code via Shopify Cart AJAX API
+ *
+ * Uses POST /cart/update.js with the `discount` parameter
+ * Docs: https://shopify.dev/docs/api/ajax/reference/cart#update-discounts-in-the-cart
+ *
+ * @param code - The discount code to apply
+ * @returns Promise<boolean> - true if successful, false otherwise
+ */
 async function applyDiscountViaAjax(code: string): Promise<boolean> {
   if (!code) {
     console.warn("[PopupManager] Cannot apply discount: no code provided");
     return false;
   }
 
-  console.log("[PopupManager] 🎟️ Attempting to apply discount code via AJAX:", code);
+  console.log("[PopupManager] 🎟️ Applying discount code via AJAX:", code);
 
   try {
     const root = getShopifyRoot();
     const url = `${root}cart/update.js`;
+
     console.log("[PopupManager] 🎟️ Sending discount to:", url);
 
     const response = await fetch(url, {
@@ -92,11 +102,12 @@ async function applyDiscountViaAjax(code: string): Promise<boolean> {
 
     try {
       const cart = await response.json();
-      console.log("[PopupManager] ✅ Discount applied successfully. Cart updated:", {
+      console.log("[PopupManager] ✅ Discount applied successfully via AJAX. Cart updated:", {
         code,
         itemCount: cart?.item_count,
         totalPrice: cart?.total_price,
-        appliedDiscount: cart?.total_discount,
+        totalDiscount: cart?.total_discount,
+        cartLevelDiscounts: cart?.cart_level_discount_applications,
       });
 
       if (cart) {

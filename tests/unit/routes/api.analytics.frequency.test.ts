@@ -28,11 +28,24 @@ vi.mock("~/lib/cors.server", () => ({
   })),
 }));
 
+// Mock Prisma
+vi.mock("~/db.server", () => ({
+  default: {
+    campaign: {
+      findUnique: vi.fn(),
+    },
+    store: {
+      findUnique: vi.fn(),
+    },
+  },
+}));
+
 import { FrequencyCapService } from "~/domains/targeting/services/frequency-cap.server";
 import { PopupEventService } from "~/domains/analytics/popup-events.server";
 import { getStoreIdFromShop } from "~/lib/auth-helpers.server";
 import { getOrCreateVisitorId } from "~/lib/visitor-id.server";
 import { storefrontCors } from "~/lib/cors.server";
+import prisma from "~/db.server";
 
 const recordDisplayMock =
   FrequencyCapService.recordDisplay as unknown as ReturnType<typeof vi.fn>;
@@ -43,6 +56,8 @@ const getStoreIdFromShopMock =
 const getOrCreateVisitorIdMock =
   getOrCreateVisitorId as unknown as ReturnType<typeof vi.fn>;
 const storefrontCorsMock = storefrontCors as unknown as ReturnType<typeof vi.fn>;
+const prismaCampaignFindUniqueMock = prisma.campaign.findUnique as unknown as ReturnType<typeof vi.fn>;
+const prismaStoreFindUniqueMock = prisma.store.findUnique as unknown as ReturnType<typeof vi.fn>;
 
 import { action as frequencyAction } from "~/routes/api.analytics.frequency";
 
@@ -83,6 +98,26 @@ describe("api.analytics.frequency action", () => {
     getStoreIdFromShopMock.mockResolvedValue("store-123");
     getOrCreateVisitorIdMock.mockResolvedValue("visitor-abc");
 
+    // Mock campaign with frequency capping rules
+    const mockFrequencyRules = {
+      max_triggers_per_session: 1,
+      max_triggers_per_day: 3,
+      cooldown_between_triggers: 3600,
+    };
+
+    prismaCampaignFindUniqueMock.mockResolvedValue({
+      targetRules: {
+        enhancedTriggers: {
+          frequency_capping: mockFrequencyRules,
+        },
+      },
+      templateType: "SPIN_TO_WIN",
+    });
+
+    prismaStoreFindUniqueMock.mockResolvedValue({
+      settings: { frequencyCapping: { enabled: true } },
+    });
+
     const request = new Request(
       "https://example.com/api/analytics/frequency?shop=test.myshopify.com",
       {
@@ -113,7 +148,13 @@ describe("api.analytics.frequency action", () => {
     expect(payload.success).toBe(true);
     expect(storefrontCorsMock).toHaveBeenCalled();
 
-    // FrequencyCapService should be called with trackingKey derived from campaignId
+    // Verify campaign was fetched to get frequency capping rules
+    expect(prismaCampaignFindUniqueMock).toHaveBeenCalledWith({
+      where: { id: "camp_1" },
+      select: { targetRules: true, templateType: true },
+    });
+
+    // FrequencyCapService should be called WITH the frequency capping rules from the campaign
     expect(recordDisplayMock).toHaveBeenCalledWith(
       "camp_1",
       expect.objectContaining({
@@ -122,8 +163,9 @@ describe("api.analytics.frequency action", () => {
         pageUrl: "/collections/frontpage",
         deviceType: "mobile",
       }),
-      undefined, // rules parameter
-      undefined, // storeSettings parameter (no store settings in mock)
+      mockFrequencyRules, // rules parameter - MUST be passed!
+      expect.objectContaining({ frequencyCapping: { enabled: true } }), // storeSettings
+      "SPIN_TO_WIN", // templateType
     );
 
     // PopupEventService should record a VIEW event with correct metadata
@@ -145,6 +187,89 @@ describe("api.analytics.frequency action", () => {
           source: "frequency_endpoint",
         }),
       }),
+    );
+  });
+
+  it("handles campaign without frequency capping rules", async () => {
+    getStoreIdFromShopMock.mockResolvedValue("store-123");
+    getOrCreateVisitorIdMock.mockResolvedValue("visitor-abc");
+
+    // Mock campaign WITHOUT frequency capping rules
+    prismaCampaignFindUniqueMock.mockResolvedValue({
+      targetRules: {
+        enhancedTriggers: {
+          page_load: { enabled: true },
+          // No frequency_capping
+        },
+      },
+      templateType: "NEWSLETTER",
+    });
+
+    prismaStoreFindUniqueMock.mockResolvedValue({ settings: null });
+
+    const request = new Request(
+      "https://example.com/api/analytics/frequency?shop=test.myshopify.com",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          campaignId: "camp_2",
+          sessionId: "sess_1",
+        }),
+      },
+    );
+
+    const response = await frequencyAction({
+      request,
+    } as unknown as ActionFunctionArgs);
+
+    const payload = (response as any).data as any;
+    expect(payload.success).toBe(true);
+
+    // Should still be called, but with undefined rules
+    expect(recordDisplayMock).toHaveBeenCalledWith(
+      "camp_2",
+      expect.any(Object),
+      undefined, // No frequency_capping in campaign
+      null, // Store settings is null
+      "NEWSLETTER",
+    );
+  });
+
+  it("handles campaign not found in database", async () => {
+    getStoreIdFromShopMock.mockResolvedValue("store-123");
+    getOrCreateVisitorIdMock.mockResolvedValue("visitor-abc");
+
+    // Campaign not found
+    prismaCampaignFindUniqueMock.mockResolvedValue(null);
+    prismaStoreFindUniqueMock.mockResolvedValue({ settings: null });
+
+    const request = new Request(
+      "https://example.com/api/analytics/frequency?shop=test.myshopify.com",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          campaignId: "non_existent_camp",
+          sessionId: "sess_1",
+        }),
+      },
+    );
+
+    const response = await frequencyAction({
+      request,
+    } as unknown as ActionFunctionArgs);
+
+    const payload = (response as any).data as any;
+    expect(payload.success).toBe(true);
+
+    // Should still work, but with undefined rules and templateType
+    expect(recordDisplayMock).toHaveBeenCalledWith(
+      "non_existent_camp",
+      expect.any(Object),
+      undefined, // No rules since campaign not found
+      null, // Store settings is null
+      undefined, // No templateType since campaign not found
     );
   });
 });

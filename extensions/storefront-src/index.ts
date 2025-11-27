@@ -192,14 +192,9 @@ class RevenueBoostApp {
         return;
       }
 
-      // Preload popup components for faster display
-      const templateTypes = campaignList.map(c => c.templateType).filter(Boolean);
-      if (templateTypes.length > 0) {
-        this.log("Preloading popup components:", templateTypes);
-        this.loader.preloadComponents(templateTypes as any[]).catch(err => {
-          this.log("Component preload failed (non-critical):", err);
-        });
-      }
+      // Preload popup components with priority for instant triggers (exit intent, scroll, idle)
+      // These triggers can fire at any moment, so we need the bundles ready
+      await this.preloadCampaignComponents(campaignList);
 
       // Setup campaigns
       this.setupCampaigns(campaignList);
@@ -208,6 +203,62 @@ class RevenueBoostApp {
       console.log("[Revenue Boost] ✅ Initialization complete!");
     } catch (error) {
       console.error("[Revenue Boost] ❌ Error fetching campaigns:", error);
+    }
+  }
+
+  /**
+   * Preload popup components with smart prioritization
+   *
+   * Priority order:
+   * 1. HIGH PRIORITY (await): Exit intent, scroll, idle triggers - can fire anytime
+   * 2. LOW PRIORITY (background): Delayed triggers like page_load with delay
+   *
+   * This ensures instant popups are ready when triggered.
+   */
+  private async preloadCampaignComponents(campaigns: ClientCampaign[]): Promise<void> {
+    if (campaigns.length === 0) return;
+
+    // Categorize campaigns by trigger urgency
+    const highPriority: Set<string> = new Set();
+    const lowPriority: Set<string> = new Set();
+
+    for (const campaign of campaigns) {
+      const templateType = campaign.templateType;
+      if (!templateType) continue;
+
+      const triggers = campaign.clientTriggers?.enhancedTriggers;
+
+      // Check if campaign has instant triggers (can fire at any moment)
+      const hasInstantTrigger = triggers && (
+        triggers.exit_intent?.enabled ||
+        triggers.scroll_depth?.enabled ||
+        triggers.idle_timer?.enabled ||
+        triggers.cart_drawer_open?.enabled ||
+        triggers.add_to_cart?.enabled
+      );
+
+      if (hasInstantTrigger) {
+        highPriority.add(templateType);
+      } else {
+        lowPriority.add(templateType);
+      }
+    }
+
+    // Preload high priority components first (await them)
+    if (highPriority.size > 0) {
+      const types = Array.from(highPriority);
+      this.log("⚡ Preloading HIGH priority components (instant triggers):", types);
+      await this.loader.preloadComponents(types as any[]);
+      this.log("✅ High priority components ready");
+    }
+
+    // Preload low priority components in background (don't await)
+    const remaining = Array.from(lowPriority).filter(t => !highPriority.has(t));
+    if (remaining.length > 0) {
+      this.log("📦 Preloading LOW priority components (background):", remaining);
+      this.loader.preloadComponents(remaining as any[]).catch(err => {
+        this.log("Component preload failed (non-critical):", err);
+      });
     }
   }
 
