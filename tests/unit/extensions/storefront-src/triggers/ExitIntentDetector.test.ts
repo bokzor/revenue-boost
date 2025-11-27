@@ -80,7 +80,8 @@ describe("ExitIntentDetector", () => {
 
       expect(addEventListenerSpy).toHaveBeenCalledWith(
         "mousemove",
-        expect.any(Function)
+        expect.any(Function),
+        { passive: true }
       );
 
       addEventListenerSpy.mockRestore();
