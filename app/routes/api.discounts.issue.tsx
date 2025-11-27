@@ -177,25 +177,33 @@ export async function action({ request }: ActionFunctionArgs) {
       );
     }
 
-    // PRODUCTION MODE: Rate limit per session/IP
-    const { checkRateLimit, RATE_LIMITS, createSessionKey } = await import(
-      "~/domains/security/services/rate-limit.server"
-    );
-    // Use session ID for rate limiting as we might not have email here
-    const rateLimitKey = createSessionKey(sessionId);
-    const rateLimitResult = await checkRateLimit(
-      rateLimitKey,
-      "discount_issue",
-      RATE_LIMITS.DISCOUNT_GENERATION, // 5 per hour
-      { sessionId, campaignId }
-    );
+    // Check if rate limiting is bypassed (for staging/dev/testing)
+    const { getEnv, isDevelopment } = await import("~/lib/env.server");
+    const rateLimitBypass = getEnv().RATE_LIMIT_BYPASS || isDevelopment();
 
-    if (!rateLimitResult.allowed) {
-      console.warn(`[Discount Issue] Rate limit exceeded for session ${sessionId}`);
-      return data(
-        { success: false, error: "Too many requests. Please try again later." },
-        { status: 429 }
+    if (!rateLimitBypass) {
+      // PRODUCTION MODE: Rate limit per session/IP
+      const { checkRateLimit, RATE_LIMITS, createSessionKey } = await import(
+        "~/domains/security/services/rate-limit.server"
       );
+      // Use session ID for rate limiting as we might not have email here
+      const rateLimitKey = createSessionKey(sessionId);
+      const rateLimitResult = await checkRateLimit(
+        rateLimitKey,
+        "discount_issue",
+        RATE_LIMITS.DISCOUNT_GENERATION, // 5 per hour
+        { sessionId, campaignId }
+      );
+
+      if (!rateLimitResult.allowed) {
+        console.warn(`[Discount Issue] Rate limit exceeded for session ${sessionId}`);
+        return data(
+          { success: false, error: "Too many requests. Please try again later." },
+          { status: 429 }
+        );
+      }
+    } else {
+      console.log(`[Discount Issue] ⚠️ Rate limiting bypassed (RATE_LIMIT_BYPASS=true)`);
     }
 
     // Check idempotency: if this session recently issued a code for this campaign, reuse it

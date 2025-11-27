@@ -52,6 +52,13 @@ const envSchema = z.object({
     .string()
     .optional()
     .transform((val) => val === "true"),
+
+  // Rate Limit Configuration
+  // Set to "true" to bypass rate limiting (for staging/testing)
+  RATE_LIMIT_BYPASS: z
+    .string()
+    .optional()
+    .transform((val) => val === "true"),
 });
 
 /**

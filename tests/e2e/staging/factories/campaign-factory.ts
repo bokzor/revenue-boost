@@ -553,6 +553,87 @@ class BaseBuilder<T extends BaseBuilder<T>> {
     }
 
     /**
+     * Configure product view trigger
+     * Shows popup when user views a specific product page
+     */
+    withProductViewTrigger(options?: {
+        productIds?: string[];
+        timeOnPageSeconds?: number;
+        requireScroll?: boolean;
+    }): T {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.targetRules.enhancedTriggers.product_view = {
+            enabled: true,
+            product_ids: options?.productIds || [],
+            time_on_page_seconds: options?.timeOnPageSeconds ?? 0,
+            require_scroll: options?.requireScroll ?? false
+        };
+        // Disable page_load to avoid conflicts
+        this.config.targetRules.enhancedTriggers.page_load = {
+            enabled: false
+        };
+        return this as unknown as T;
+    }
+
+    /**
+     * Configure idle timer trigger
+     * Shows popup after user has been inactive for specified time
+     */
+    withIdleTimerTrigger(idleSeconds: number = 30): T {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.targetRules.enhancedTriggers.idle_timer = {
+            enabled: true,
+            idle_seconds: idleSeconds
+        };
+        // Disable page_load to avoid conflicts
+        this.config.targetRules.enhancedTriggers.page_load = {
+            enabled: false
+        };
+        return this as unknown as T;
+    }
+
+    /**
+     * Configure custom event trigger
+     * Shows popup when a custom DOM event is dispatched
+     */
+    withCustomEventTrigger(eventName: string): T {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.targetRules.enhancedTriggers.custom_event = {
+            enabled: true,
+            event_name: eventName
+        };
+        // Disable page_load to avoid conflicts
+        this.config.targetRules.enhancedTriggers.page_load = {
+            enabled: false
+        };
+        return this as unknown as T;
+    }
+
+    /**
+     * Configure add-to-cart trigger with product filtering
+     */
+    withAddToCartTriggerFiltered(options?: {
+        productIds?: string[];
+        collectionIds?: string[];
+        delaySeconds?: number;
+        immediate?: boolean;
+    }): T {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.targetRules.enhancedTriggers.add_to_cart = {
+            enabled: true,
+            product_ids: options?.productIds || [],
+            collection_ids: options?.collectionIds || [],
+            delay_seconds: options?.delaySeconds ?? 0,
+            immediate: options?.immediate ?? true
+        };
+        // Disable page_load to avoid conflicts
+        this.config.targetRules.enhancedTriggers.page_load = {
+            enabled: false
+        };
+        return this as unknown as T;
+    }
+
+    /**
      * Create the campaign in the database
      */
     async create() {
