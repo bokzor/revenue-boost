@@ -2,6 +2,12 @@ name: "🧩 Deploy Shopify app & extensions to Staging"
 
 on:
   workflow_dispatch:
+  workflow_run:
+    workflows: ["🚀 Deploy to Staging"]
+    types:
+      - completed
+    branches:
+      - develop
 
 # Avoid overlapping extension deploys
 concurrency:
@@ -11,6 +17,8 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    # Only run if triggered manually OR if the staging deploy succeeded
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     environment: staging
     permissions:
       contents: read

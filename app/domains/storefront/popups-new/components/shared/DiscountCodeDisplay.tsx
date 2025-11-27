@@ -172,13 +172,17 @@ export const DiscountCodeDisplay: React.FC<DiscountCodeDisplayProps> = ({
   };
 
   const containerStyles: React.CSSProperties = {
-    display: "inline-block",
+    display: "block",
+    width: "100%",
+    maxWidth: "100%",
+    boxSizing: "border-box",
     padding: sizeStyles.padding,
     borderRadius: sizeStyles.borderRadius,
     textAlign: "center",
     cursor: onCopy ? "pointer" : "default",
     transition: "all 0.2s ease",
     userSelect: "none",
+    overflow: "hidden",
     ...variantStyles[variant],
     ...style,
   };
@@ -191,22 +195,53 @@ export const DiscountCodeDisplay: React.FC<DiscountCodeDisplayProps> = ({
     opacity: 0.8,
   };
 
+  // Calculate responsive font size based on code length
+  // For codes longer than 10 characters, scale down the font
+  const getResponsiveFontSize = () => {
+    const baseSize = sizeStyles.fontSize;
+    const codeLength = code.length;
+
+    // If code is short, use base size
+    if (codeLength <= 10) {
+      return baseSize;
+    }
+
+    // For longer codes, use a smaller size
+    // clamp ensures minimum readability
+    if (codeLength <= 15) {
+      return size === "lg" ? "1.5rem" : size === "md" ? "1.25rem" : "0.875rem";
+    }
+
+    // Very long codes get even smaller
+    return size === "lg" ? "1.25rem" : size === "md" ? "1rem" : "0.75rem";
+  };
+
   const codeStyles: React.CSSProperties = {
-    fontSize: sizeStyles.fontSize,
+    fontSize: getResponsiveFontSize(),
     fontWeight: 700,
-    letterSpacing: "0.05em",
+    letterSpacing: "0.025em",
     color: textColor || accentColor,
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
     gap: "0.5rem",
+    wordBreak: "break-all",
+    overflowWrap: "break-word",
+    maxWidth: "100%",
   };
+
+  // Wrap onCopy to prevent event leakage (don't pass MouseEvent as argument)
+  const handleClick = onCopy
+    ? () => {
+        onCopy();
+      }
+    : undefined;
 
   return (
     <div
       className={className}
       style={containerStyles}
-      onClick={onCopy}
+      onClick={handleClick}
       title={onCopy ? "Click to copy" : undefined}
       role={onCopy ? "button" : undefined}
       tabIndex={onCopy ? 0 : undefined}

@@ -36,45 +36,48 @@ import { DiscountCodeDisplay } from "./components/shared";
  * These scale based on the popup container size (cqi = container query inline)
  */
 const RESPONSIVE_CSS_VARS = `
-  /* ============================================
-   * CONTAINER-RELATIVE DESIGN TOKENS
-   * All values scale with popup container size
-   * ============================================ */
-  
-  /* Wheel Sizing - Uses cqmin for square proportions */
-  --stw-wheel-size: clamp(200px, 65cqmin, 380px);
-  --stw-wheel-size-mobile: clamp(180px, 55cqi, 280px);
-  
-  /* Center Button */
-  --stw-center-btn-size: clamp(50px, 18cqmin, 80px);
-  --stw-center-btn-font: clamp(9px, 2.5cqmin, 12px);
-  --stw-center-btn-border: clamp(2px, 0.8cqmin, 4px);
-  
-  /* Pointer */
-  --stw-pointer-size: clamp(12px, 3.5cqmin, 18px);
-  --stw-pointer-length: clamp(18px, 5cqmin, 28px);
-  
-  /* Typography - Fluid scaling */
-  --stw-headline-size: clamp(1.25rem, 5cqi, 2.25rem);
-  --stw-subheadline-size: clamp(0.875rem, 3cqi, 1.25rem);
-  --stw-body-size: clamp(0.875rem, 2.5cqi, 1rem);
-  --stw-button-size: clamp(0.9375rem, 3.5cqi, 1.125rem);
-  
-  /* Spacing - Container-relative */
-  --stw-padding-x: clamp(1rem, 4cqi, 2rem);
-  --stw-padding-y: clamp(1.25rem, 5cqi, 2.5rem);
-  --stw-gap-sm: clamp(0.5rem, 1.5cqi, 0.75rem);
-  --stw-gap-md: clamp(0.75rem, 2cqi, 1rem);
-  --stw-gap-lg: clamp(1rem, 3cqi, 1.5rem);
-  
-  /* Border Radius - Proportional */
-  --stw-radius-sm: clamp(6px, 1.5cqi, 10px);
-  --stw-radius-md: clamp(10px, 2.5cqi, 16px);
-  --stw-radius-lg: clamp(12px, 3cqi, 20px);
-  
-  /* Input Fields */
-  --stw-input-height: clamp(44px, 10cqi, 56px);
-  --stw-input-padding: clamp(12px, 3cqi, 16px);
+  .popup-grid-container.SpinToWinPopup {
+    /* ============================================
+     * CONTAINER-RELATIVE DESIGN TOKENS
+     * All values scale with popup container size
+     * ============================================ */
+
+    /* Wheel Sizing - Uses cqi with aspect-ratio for square proportions */
+    --stw-wheel-size: clamp(200px, 45cqi, 380px);
+    --stw-wheel-size-mobile: clamp(180px, 55cqi, 280px);
+
+    /* Center Button */
+    --stw-center-btn-size: clamp(50px, 12cqi, 80px);
+    --stw-center-btn-font: clamp(9px, 1.8cqi, 12px);
+    --stw-center-btn-border: clamp(2px, 0.5cqi, 4px);
+
+    /* Pointer */
+    --stw-pointer-size: clamp(12px, 2.5cqi, 18px);
+    --stw-pointer-length: clamp(18px, 3.5cqi, 28px);
+
+    /* Typography - Fluid scaling */
+    --stw-headline-size: clamp(1.25rem, 5cqi, 2.25rem);
+    --stw-subheadline-size: clamp(0.875rem, 3cqi, 1.25rem);
+    --stw-body-size: clamp(0.875rem, 2.5cqi, 1rem);
+    --stw-button-size: clamp(0.9375rem, 3.5cqi, 1.125rem);
+
+    /* Spacing - Container-relative */
+    --stw-padding-x: clamp(1rem, 4cqi, 2rem);
+    --stw-padding-y: clamp(1.25rem, 5cqi, 2.5rem);
+    --stw-gap-sm: clamp(0.5rem, 1.5cqi, 0.75rem);
+    --stw-gap-md: clamp(0.75rem, 2cqi, 1rem);
+    --stw-gap-lg: clamp(1rem, 3cqi, 1.5rem);
+    --stw-gap-xl: clamp(1.5rem, 4cqi, 2rem);
+
+    /* Border Radius - Proportional */
+    --stw-radius-sm: clamp(6px, 1.5cqi, 10px);
+    --stw-radius-md: clamp(10px, 2.5cqi, 16px);
+    --stw-radius-lg: clamp(12px, 3cqi, 20px);
+
+    /* Input Fields */
+    --stw-input-height: clamp(44px, 10cqi, 56px);
+    --stw-input-padding: clamp(12px, 3cqi, 16px);
+  }
 `;
 
 /**
@@ -632,11 +635,11 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
            * ============================================ */
           .spin-wheel-wrapper {
             position: relative;
-            /* Container-relative sizing using cqmin for square aspect */
+            /* Container-relative sizing with aspect-ratio for square */
             width: var(--stw-wheel-size-mobile);
-            height: var(--stw-wheel-size-mobile);
+            aspect-ratio: 1;
             z-index: 10;
-            transition: width 0.3s ease, height 0.3s ease;
+            transition: width 0.3s ease;
           }
 
           /* Wheel canvas container */
@@ -765,7 +768,7 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
             .spin-wheel-wrapper {
               /* Desktop uses larger wheel size */
               width: var(--stw-wheel-size);
-              height: var(--stw-wheel-size);
+              aspect-ratio: 1;
             }
 
             .spin-headline {
@@ -783,8 +786,8 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
           @container popup (min-width: 800px) {
             .spin-wheel-wrapper {
               /* Max out wheel size on large containers */
-              width: clamp(320px, 55cqmin, 400px);
-              height: clamp(320px, 55cqmin, 400px);
+              width: clamp(320px, 40cqi, 400px);
+              aspect-ratio: 1;
             }
 
             .spin-form-content {
@@ -987,7 +990,7 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
                   onClick={onClose}
                   style={{
                     ...buttonStyles,
-                    marginTop: "var(--stw-gap-lg)",
+                    marginTop: "24px",
                   }}
                 >
                   CONTINUE SHOPPING
