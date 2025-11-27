@@ -435,10 +435,115 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
           }
         }
 
+        /* Premium animations */
+        @keyframes shimmer {
+          0% { background-position: -200% 0; }
+          100% { background-position: 200% 0; }
+        }
+
+        @keyframes ripple {
+          0% { transform: scale(0); opacity: 0.6; }
+          100% { transform: scale(4); opacity: 0; }
+        }
+
+        @keyframes successPop {
+          0% { opacity: 0; transform: scale(0.5); }
+          50% { transform: scale(1.1); }
+          100% { opacity: 1; transform: scale(1); }
+        }
+
+        @keyframes staggerIn {
+          from { opacity: 0; transform: translateY(15px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes confettiDrop {
+          0% { opacity: 1; transform: translateY(0) rotate(0deg) scale(1); }
+          100% { opacity: 0; transform: translateY(100px) rotate(360deg) scale(0.5); }
+        }
+
+        /* Loading shimmer effect on button */
+        .email-popup-button.loading::after {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: linear-gradient(
+            90deg,
+            transparent,
+            rgba(255, 255, 255, 0.2),
+            transparent
+          );
+          background-size: 200% 100%;
+          animation: shimmer 1.5s infinite;
+          border-radius: inherit;
+        }
+
+        /* Button ripple effect container */
+        .email-popup-button {
+          position: relative;
+          overflow: hidden;
+        }
+
+        .email-popup-button .ripple {
+          position: absolute;
+          border-radius: 50%;
+          background: rgba(255, 255, 255, 0.3);
+          animation: ripple 0.6s ease-out forwards;
+          pointer-events: none;
+        }
+
+        /* Success state animation */
+        .email-popup-success {
+          animation: successPop 0.6s ease-out forwards;
+        }
+
+        .email-popup-success-title {
+          animation: staggerIn 0.4s ease-out 0.2s both;
+        }
+
+        .email-popup-success-code {
+          animation: staggerIn 0.5s ease-out 0.4s both;
+        }
+
+        /* Confetti for success */
+        .email-popup-confetti {
+          position: absolute;
+          pointer-events: none;
+          z-index: 100;
+        }
+
+        .email-popup-confetti:nth-child(1) { width: 8px; height: 8px; background: #fbbf24; left: 10%; top: 15%; animation: confettiDrop 1.3s ease-out 0s forwards; }
+        .email-popup-confetti:nth-child(2) { width: 6px; height: 6px; background: #ec4899; left: 25%; top: 10%; animation: confettiDrop 1.5s ease-out 0.1s forwards; border-radius: 50%; }
+        .email-popup-confetti:nth-child(3) { width: 10px; height: 10px; background: #8b5cf6; left: 80%; top: 12%; animation: confettiDrop 1.4s ease-out 0.15s forwards; }
+        .email-popup-confetti:nth-child(4) { width: 7px; height: 7px; background: #06b6d4; left: 90%; top: 18%; animation: confettiDrop 1.6s ease-out 0.08s forwards; border-radius: 50%; }
+        .email-popup-confetti:nth-child(5) { width: 9px; height: 9px; background: #10b981; left: 50%; top: 8%; animation: confettiDrop 1.35s ease-out 0.2s forwards; }
+        .email-popup-confetti:nth-child(6) { width: 8px; height: 8px; background: ${config.accentColor || config.buttonColor || "#3b82f6"}; left: 65%; top: 20%; animation: confettiDrop 1.45s ease-out 0.12s forwards; border-radius: 50%; }
+
+        /* Form field focus glow */
+        .email-popup-input:focus {
+          animation: subtlePulse 0.3s ease-out;
+        }
+
+        @keyframes subtlePulse {
+          0% { transform: scale(1); }
+          50% { transform: scale(1.01); }
+          100% { transform: scale(1); }
+        }
+
+        /* Hover effect on input */
+        .email-popup-input:not(:focus):hover {
+          border-color: ${config.accentColor || config.buttonColor || "#3b82f6"}80;
+        }
+
         @media (prefers-reduced-motion: reduce) {
           .email-popup-success,
           .email-popup-success-icon,
-          .email-popup-spinner {
+          .email-popup-spinner,
+          .email-popup-button::after,
+          .email-popup-confetti {
             animation: none !important;
             transition: none !important;
           }
@@ -463,21 +568,33 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
         )}
 
         {/* Form Section */}
-        <div className="email-popup-form-section">
+        <div className="email-popup-form-section" style={{ position: "relative" }}>
           {isSubmitted ? (
-            <SuccessState
-              message={config.successMessage || "Thanks for subscribing!"}
-              discountCode={displayDiscountCode || undefined}
-              onCopyCode={handleCopyCode}
-              copiedCode={copiedCode}
-              discountLabel="Your discount code:"
-              accentColor={config.accentColor || config.buttonColor}
-              successColor={config.successColor}
-              textColor={config.textColor}
-              animation="bounce"
-              fontSize={config.titleFontSize || config.fontSize}
-              fontWeight={config.titleFontWeight || config.fontWeight}
-            />
+            <>
+              {/* Confetti for success celebration */}
+              <div className="email-popup-confetti" />
+              <div className="email-popup-confetti" />
+              <div className="email-popup-confetti" />
+              <div className="email-popup-confetti" />
+              <div className="email-popup-confetti" />
+              <div className="email-popup-confetti" />
+
+              <div className="email-popup-success">
+                <SuccessState
+                  message={config.successMessage || "Thanks for subscribing!"}
+                  discountCode={displayDiscountCode || undefined}
+                  onCopyCode={handleCopyCode}
+                  copiedCode={copiedCode}
+                  discountLabel="Your discount code:"
+                  accentColor={config.accentColor || config.buttonColor}
+                  successColor={config.successColor}
+                  textColor={config.textColor}
+                  animation="bounce"
+                  fontSize={config.titleFontSize || config.fontSize}
+                  fontWeight={config.titleFontWeight || config.fontWeight}
+                />
+              </div>
+            </>
           ) : (
             <>
               <PopupHeader

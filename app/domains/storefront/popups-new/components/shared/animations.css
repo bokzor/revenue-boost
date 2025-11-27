@@ -216,6 +216,267 @@
 }
 
 /* ============================================
+   PREMIUM CELEBRATION ANIMATIONS
+   ============================================ */
+
+/* Confetti particle base - use with ::before/::after pseudo elements */
+@keyframes confettiDrop {
+  0% {
+    opacity: 1;
+    transform: translateY(0) rotateZ(0deg) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(150px) rotateZ(720deg) scale(0.5);
+  }
+}
+
+/* Particle burst from center */
+@keyframes particleBurst {
+  0% {
+    opacity: 1;
+    transform: scale(0) translate(0, 0);
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1) translate(var(--particle-x, 50px), var(--particle-y, -50px));
+  }
+}
+
+/* Shimmer effect for loading states */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Golden shimmer for prize reveals */
+@keyframes goldenShimmer {
+  0% {
+    background-position: -100% 0;
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    background-position: 100% 0;
+    opacity: 0;
+  }
+}
+
+/* Shake animation for attention */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
+  20%, 40%, 60%, 80% { transform: translateX(4px); }
+}
+
+/* Celebration pop with overshoot */
+@keyframes celebrationPop {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  70% {
+    transform: scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Success checkmark draw animation */
+@keyframes checkmarkDraw {
+  0% {
+    stroke-dashoffset: 100;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Circle expand behind checkmark */
+@keyframes circleExpand {
+  0% {
+    transform: scale(0);
+    opacity: 0.8;
+  }
+  50% {
+    opacity: 0.4;
+  }
+  100% {
+    transform: scale(2.5);
+    opacity: 0;
+  }
+}
+
+/* Staggered entrance for multiple elements */
+@keyframes staggerFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Prize card flip reveal */
+@keyframes prizeReveal {
+  0% {
+    opacity: 0;
+    transform: perspective(600px) rotateX(-30deg) translateY(20px);
+  }
+  60% {
+    transform: perspective(600px) rotateX(5deg) translateY(-5px);
+  }
+  100% {
+    opacity: 1;
+    transform: perspective(600px) rotateX(0) translateY(0);
+  }
+}
+
+/* Glowing pulse for discount codes */
+@keyframes glowPulse {
+  0%, 100% {
+    box-shadow: 0 0 5px var(--glow-color, rgba(59, 130, 246, 0.5)),
+                0 0 10px var(--glow-color, rgba(59, 130, 246, 0.3)),
+                0 0 15px var(--glow-color, rgba(59, 130, 246, 0.1));
+  }
+  50% {
+    box-shadow: 0 0 10px var(--glow-color, rgba(59, 130, 246, 0.6)),
+                0 0 20px var(--glow-color, rgba(59, 130, 246, 0.4)),
+                0 0 30px var(--glow-color, rgba(59, 130, 246, 0.2));
+  }
+}
+
+/* Ripple effect for buttons */
+@keyframes ripple {
+  0% {
+    transform: scale(0);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
+/* Float animation for decorative elements */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+/* Typing cursor blink */
+@keyframes cursorBlink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+/* Text reveal character by character */
+@keyframes textReveal {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+/* Scratch reveal sparkle */
+@keyframes sparkle {
+  0%, 100% {
+    opacity: 0;
+    transform: scale(0) rotate(0deg);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1) rotate(180deg);
+  }
+}
+
+/* Wheel spin with easing */
+@keyframes wheelSpin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(var(--spin-degrees, 1800deg));
+  }
+}
+
+/* Counter increment animation */
+@keyframes countUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Elastic bounce for playful elements */
+@keyframes elasticBounce {
+  0% {
+    transform: scale(0);
+  }
+  40% {
+    transform: scale(1.15);
+  }
+  60% {
+    transform: scale(0.9);
+  }
+  80% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Subtle attention pulse */
+@keyframes subtlePulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.02);
+  }
+}
+
+/* Loading dots animation */
+@keyframes loadingDots {
+  0%, 20% {
+    opacity: 0.3;
+  }
+  40% {
+    opacity: 1;
+  }
+  60%, 100% {
+    opacity: 0.3;
+  }
+}
+
+/* ============================================
    POPUP PORTAL ANIMATIONS
    (Used by PopupPortal component)
    ============================================ */

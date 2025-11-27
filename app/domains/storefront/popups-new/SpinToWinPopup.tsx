@@ -577,6 +577,107 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
             50% { box-shadow: 0 0 clamp(15px, 4cqi, 25px) clamp(3px, 1cqi, 6px) rgba(${accentColor}, 0.2); }
           }
 
+          /* Prize reveal celebration */
+          @keyframes prizeCardReveal {
+            0% {
+              opacity: 0;
+              transform: perspective(600px) rotateX(-20deg) translateY(30px) scale(0.9);
+            }
+            60% {
+              transform: perspective(600px) rotateX(5deg) translateY(-5px) scale(1.02);
+            }
+            100% {
+              opacity: 1;
+              transform: perspective(600px) rotateX(0) translateY(0) scale(1);
+            }
+          }
+
+          @keyframes celebrationBounce {
+            0% { transform: scale(0.3); opacity: 0; }
+            50% { transform: scale(1.1); }
+            70% { transform: scale(0.95); }
+            100% { transform: scale(1); opacity: 1; }
+          }
+
+          @keyframes confettiFloat {
+            0% {
+              opacity: 1;
+              transform: translateY(0) rotate(0deg) scale(1);
+            }
+            100% {
+              opacity: 0;
+              transform: translateY(120px) rotate(720deg) scale(0.3);
+            }
+          }
+
+          @keyframes shimmerSweep {
+            0% { left: -100%; opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { left: 100%; opacity: 0; }
+          }
+
+          @keyframes glowPulse {
+            0%, 100% {
+              box-shadow: 0 0 10px ${accentColor}40, 0 0 20px ${accentColor}20;
+            }
+            50% {
+              box-shadow: 0 0 20px ${accentColor}60, 0 0 40px ${accentColor}30, 0 0 60px ${accentColor}10;
+            }
+          }
+
+          /* Success section animations */
+          .spin-success-section {
+            animation: celebrationBounce 0.6s ease-out forwards;
+          }
+
+          .spin-discount-wrapper {
+            position: relative;
+            animation: prizeCardReveal 0.7s ease-out 0.2s both;
+          }
+
+          .spin-discount-wrapper::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+              90deg,
+              transparent,
+              rgba(255,255,255,0.4),
+              transparent
+            );
+            animation: shimmerSweep 1.5s ease-in-out 0.5s forwards;
+            pointer-events: none;
+          }
+
+          /* Prize label styling */
+          .spin-prize-label {
+            font-size: var(--stw-headline-size);
+            font-weight: 700;
+            color: ${descriptionColor};
+            margin-bottom: var(--stw-gap-md);
+            animation: slideUpFade 0.5s ease-out 0.1s both;
+          }
+
+          /* Confetti particles */
+          .spin-confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            pointer-events: none;
+            z-index: 100;
+          }
+
+          .spin-confetti:nth-child(1) { background: #fbbf24; left: 10%; top: 10%; animation: confettiFloat 1.5s ease-out 0s forwards; }
+          .spin-confetti:nth-child(2) { background: #ec4899; left: 20%; top: 5%; animation: confettiFloat 1.3s ease-out 0.1s forwards; border-radius: 50%; }
+          .spin-confetti:nth-child(3) { background: #8b5cf6; left: 30%; top: 15%; animation: confettiFloat 1.6s ease-out 0.2s forwards; }
+          .spin-confetti:nth-child(4) { background: #06b6d4; left: 70%; top: 10%; animation: confettiFloat 1.4s ease-out 0.15s forwards; border-radius: 50%; }
+          .spin-confetti:nth-child(5) { background: #10b981; left: 80%; top: 5%; animation: confettiFloat 1.5s ease-out 0.05s forwards; }
+          .spin-confetti:nth-child(6) { background: ${accentColor}; left: 90%; top: 15%; animation: confettiFloat 1.7s ease-out 0.25s forwards; border-radius: 50%; }
+
           /* Dynamic placeholder color - applies to all inputs in spin-input-wrapper */
           .spin-input-wrapper input::placeholder {
             color: ${inputTextColor ? `${inputTextColor}99` : "rgba(107, 114, 128, 0.7)"};
@@ -962,6 +1063,25 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
               </>
             ) : (
               <div className="spin-success-section">
+                {/* Confetti particles for celebration */}
+                {wonPrize?.generatedCode && (
+                  <>
+                    <div className="spin-confetti" />
+                    <div className="spin-confetti" />
+                    <div className="spin-confetti" />
+                    <div className="spin-confetti" />
+                    <div className="spin-confetti" />
+                    <div className="spin-confetti" />
+                  </>
+                )}
+
+                {/* Prize announcement */}
+                {wonPrize?.generatedCode && (
+                  <div className="spin-prize-label">
+                    🎉 {wonPrize.label || "You Won!"}
+                  </div>
+                )}
+
                 {wonPrize?.generatedCode ? (
                   <div className="spin-discount-wrapper">
                     <DiscountCodeDisplay
@@ -988,6 +1108,7 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
                   style={{
                     ...buttonStyles,
                     marginTop: "24px",
+                    animation: "slideUpFade 0.5s ease-out 0.5s both",
                   }}
                 >
                   CONTINUE SHOPPING

@@ -4,6 +4,96 @@ import { DiscountCodeDisplay } from "./DiscountCodeDisplay";
 import "./animations.css";
 
 /**
+ * Confetti particle component for celebration effect
+ */
+const ConfettiParticle: React.FC<{
+  delay: number;
+  color: string;
+  left: number;
+  size: number;
+}> = ({ delay, color, left, size }) => (
+  <div
+    style={{
+      position: "absolute",
+      top: "20%",
+      left: `${left}%`,
+      width: `${size}px`,
+      height: `${size}px`,
+      backgroundColor: color,
+      borderRadius: size > 6 ? "2px" : "50%",
+      animation: `confettiDrop 1.5s ease-out ${delay}s forwards`,
+      opacity: 0,
+      transform: `rotate(${Math.random() * 360}deg)`,
+      zIndex: 100,
+    }}
+  />
+);
+
+/**
+ * Animated checkmark with circle expand effect
+ */
+const AnimatedCheckmark: React.FC<{
+  size?: number;
+  color?: string;
+  bgColor?: string;
+}> = ({ size = 64, color = "#16a34a", bgColor }) => {
+  const circleSize = size * 1.5;
+  const bgColorValue = bgColor || `${color}20`;
+
+  return (
+    <div style={{ position: "relative", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+      {/* Expanding circle behind */}
+      <div
+        style={{
+          position: "absolute",
+          width: `${circleSize}px`,
+          height: `${circleSize}px`,
+          borderRadius: "50%",
+          backgroundColor: bgColorValue,
+          animation: "circleExpand 0.8s ease-out forwards",
+        }}
+      />
+      {/* Main circle */}
+      <div
+        style={{
+          width: `${size}px`,
+          height: `${size}px`,
+          borderRadius: "50%",
+          backgroundColor: bgColorValue,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          animation: "elasticBounce 0.6s ease-out forwards",
+          position: "relative",
+          zIndex: 1,
+        }}
+      >
+        <svg
+          width={size * 0.5}
+          height={size * 0.5}
+          viewBox="0 0 24 24"
+          fill="none"
+          style={{ overflow: "visible" }}
+        >
+          <path
+            d="M5 13l4 4L19 7"
+            stroke={color}
+            strokeWidth={3}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            style={{
+              strokeDasharray: 30,
+              strokeDashoffset: 30,
+              animation: "checkmarkDraw 0.4s ease-out 0.3s forwards",
+            }}
+          />
+        </svg>
+      </div>
+    </div>
+  );
+};
+
+/**
  * SuccessState Component
  *
  * A reusable component for displaying success messages with optional discount codes.
@@ -149,30 +239,22 @@ export const SuccessState: React.FC<SuccessStateProps> = ({
   className,
   style,
 }) => {
-  const animationMap: Record<string, string> = {
-    fade: "fadeInUp 0.5s ease-out",
-    bounce: "bounceIn 0.6s ease-out",
-    zoom: "zoomIn 0.4s ease-out",
-    slideUp: "slideUpFade 0.5s ease-out",
-  };
+  // Confetti colors based on accent
+  const confettiColors = [
+    successColor,
+    accentColor,
+    "#fbbf24", // gold
+    "#ec4899", // pink
+    "#8b5cf6", // purple
+    "#06b6d4", // cyan
+  ];
 
   const containerStyles: React.CSSProperties = {
     textAlign: "center",
-    padding: "2rem 0",
-    animation: animationMap[animation] || animationMap.bounce,
+    padding: "2rem 1rem",
+    position: "relative",
+    overflow: "hidden",
     ...style,
-  };
-
-  const iconContainerStyles: React.CSSProperties = {
-    width: "4rem",
-    height: "4rem",
-    borderRadius: "9999px",
-    background: `${successColor}20`,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    margin: "0 auto 1.5rem",
-    animation: "bounceIn 0.6s ease-out",
   };
 
   const messageStyles: React.CSSProperties = {
@@ -180,30 +262,61 @@ export const SuccessState: React.FC<SuccessStateProps> = ({
     fontWeight,
     color: textColor,
     marginBottom: discountCode ? "1.5rem" : "0",
-    lineHeight: 1.1,
+    lineHeight: 1.2,
+    animation: "staggerFadeIn 0.5s ease-out 0.4s both",
+  };
+
+  const discountContainerStyles: React.CSSProperties = {
+    animation: "prizeReveal 0.6s ease-out 0.6s both",
   };
 
   return (
     <div className={className} style={containerStyles}>
-      {/* Icon */}
-      <div style={iconContainerStyles}>
-        {icon || <CheckmarkIcon size={32} color={successColor} strokeWidth={3} />}
+      {/* Confetti particles */}
+      {confettiColors.map((color, i) => (
+        <React.Fragment key={i}>
+          <ConfettiParticle
+            delay={i * 0.1}
+            color={color}
+            left={10 + i * 15}
+            size={Math.random() * 6 + 4}
+          />
+          <ConfettiParticle
+            delay={i * 0.1 + 0.05}
+            color={confettiColors[(i + 2) % confettiColors.length]}
+            left={15 + i * 15}
+            size={Math.random() * 8 + 4}
+          />
+        </React.Fragment>
+      ))}
+
+      {/* Icon with animated checkmark */}
+      <div style={{ marginBottom: "1.5rem" }}>
+        {icon || (
+          <AnimatedCheckmark
+            size={64}
+            color={successColor}
+            bgColor={`${successColor}20`}
+          />
+        )}
       </div>
 
-      {/* Message */}
+      {/* Message with staggered entrance */}
       <h3 style={messageStyles}>{message}</h3>
 
-      {/* Optional Discount Code */}
+      {/* Optional Discount Code with reveal animation */}
       {discountCode && (
-        <DiscountCodeDisplay
-          code={discountCode}
-          onCopy={onCopyCode}
-          copied={copiedCode}
-          label={discountLabel}
-          variant="dashed"
-          accentColor={accentColor}
-          size="md"
-        />
+        <div style={discountContainerStyles}>
+          <DiscountCodeDisplay
+            code={discountCode}
+            onCopy={onCopyCode}
+            copied={copiedCode}
+            label={discountLabel}
+            variant="dashed"
+            accentColor={accentColor}
+            size="md"
+          />
+        </div>
       )}
     </div>
   );

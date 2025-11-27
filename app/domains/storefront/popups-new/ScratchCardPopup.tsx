@@ -724,6 +724,18 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
                       }}
                     />
 
+                    {/* Confetti particles on reveal */}
+                    {isRevealed && wonPrize?.discountCode && (
+                      <>
+                        <div className="scratch-confetti" />
+                        <div className="scratch-confetti" />
+                        <div className="scratch-confetti" />
+                        <div className="scratch-confetti" />
+                        <div className="scratch-confetti" />
+                        <div className="scratch-confetti" />
+                      </>
+                    )}
+
                     {/* Code overlay inside card after reveal */}
                     {/* Scenario 2: Show code immediately (email not required) */}
                     {/* Note: For email BEFORE/AFTER flows, code is shown in success section below */}
@@ -748,7 +760,7 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
                               code={wonPrize.discountCode}
                               onCopy={handleCopyCode}
                               copied={copiedCode}
-                              label="Code:"
+                              label="🎉 Your Code:"
                               variant="dashed"
                               size="md"
                               accentColor="#ffffff"
@@ -1147,17 +1159,97 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
         }
 
         @keyframes pulse {
-          0%, 100% {
-            transform: scale(1);
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.05); }
+        }
+
+        /* Premium reveal animations */
+        @keyframes goldenShimmer {
+          0% { left: -150%; opacity: 0; }
+          50% { opacity: 1; }
+          100% { left: 150%; opacity: 0; }
+        }
+
+        @keyframes celebrationPop {
+          0% { opacity: 0; transform: scale(0.5); }
+          60% { transform: scale(1.1); }
+          80% { transform: scale(0.95); }
+          100% { opacity: 1; transform: scale(1); }
+        }
+
+        @keyframes confettiDrop {
+          0% { opacity: 1; transform: translateY(0) rotate(0deg) scale(1); }
+          100% { opacity: 0; transform: translateY(100px) rotate(360deg) scale(0.5); }
+        }
+
+        @keyframes prizeReveal {
+          0% {
+            opacity: 0;
+            transform: perspective(500px) rotateX(-15deg) translateY(20px) scale(0.9);
           }
-          50% {
-            transform: scale(1.05);
+          100% {
+            opacity: 1;
+            transform: perspective(500px) rotateX(0) translateY(0) scale(1);
           }
         }
 
-        .revealed-animation {
-          animation: pulse 0.5s ease-out;
+        @keyframes glowPulse {
+          0%, 100% { box-shadow: 0 0 15px ${config.accentColor || config.buttonColor}40; }
+          50% { box-shadow: 0 0 30px ${config.accentColor || config.buttonColor}60, 0 0 45px ${config.accentColor || config.buttonColor}30; }
         }
+
+        .revealed-animation {
+          animation: celebrationPop 0.6s ease-out forwards;
+        }
+
+        /* Golden shimmer sweep on reveal */
+        .revealed-animation::after {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: -150%;
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(
+            90deg,
+            transparent,
+            rgba(255, 215, 0, 0.4),
+            rgba(255, 255, 255, 0.6),
+            rgba(255, 215, 0, 0.4),
+            transparent
+          );
+          animation: goldenShimmer 1s ease-in-out 0.3s forwards;
+          pointer-events: none;
+          z-index: 10;
+        }
+
+        /* Success section animations */
+        .scratch-success-section {
+          animation: prizeReveal 0.5s ease-out forwards;
+        }
+
+        .scratch-discount-wrapper {
+          animation: prizeReveal 0.6s ease-out 0.2s both;
+        }
+
+        /* Code overlay glow effect */
+        .scratch-card-code-overlay > div {
+          animation: glowPulse 2s ease-in-out infinite;
+        }
+
+        /* Confetti particles */
+        .scratch-confetti {
+          position: absolute;
+          pointer-events: none;
+          z-index: 100;
+        }
+
+        .scratch-confetti:nth-child(1) { width: 8px; height: 8px; background: #fbbf24; left: 15%; top: 20%; animation: confettiDrop 1.2s ease-out 0s forwards; }
+        .scratch-confetti:nth-child(2) { width: 6px; height: 6px; background: #ec4899; left: 25%; top: 15%; animation: confettiDrop 1.4s ease-out 0.1s forwards; border-radius: 50%; }
+        .scratch-confetti:nth-child(3) { width: 10px; height: 10px; background: #8b5cf6; left: 75%; top: 18%; animation: confettiDrop 1.3s ease-out 0.15s forwards; }
+        .scratch-confetti:nth-child(4) { width: 7px; height: 7px; background: #06b6d4; left: 85%; top: 22%; animation: confettiDrop 1.5s ease-out 0.08s forwards; border-radius: 50%; }
+        .scratch-confetti:nth-child(5) { width: 9px; height: 9px; background: #10b981; left: 45%; top: 12%; animation: confettiDrop 1.25s ease-out 0.2s forwards; }
+        .scratch-confetti:nth-child(6) { width: 8px; height: 8px; background: ${config.accentColor || config.buttonColor}; left: 55%; top: 25%; animation: confettiDrop 1.35s ease-out 0.12s forwards; border-radius: 50%; }
 
         /* Container Query: Mobile layout (<480px container width)
            Stack vertically with constrained image height. */
