@@ -157,7 +157,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
     // Request billing - this returns a redirect response to Shopify's confirmation page
     return billing.request({
-      plan: planKey as "Starter" | "Growth" | "Pro" | "Enterprise",
+      plan: planKey as "Starter" | "Growth" | "Pro",
       isTest: process.env.NODE_ENV !== "production",
       returnUrl,
     });

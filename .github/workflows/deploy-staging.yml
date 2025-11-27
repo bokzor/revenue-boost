@@ -1,6 +1,17 @@
 name: 🚀 Deploy to Staging
 
 on:
+  # Automatically deploy when PRs are merged to develop
+  push:
+    branches:
+      - develop
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.github/workflows/deploy-production.yml'
+      - '.github/workflows/deploy-extensions-production.yml'
+
+  # Manual trigger for ad-hoc deployments
   workflow_dispatch:
     inputs:
       environment:
