@@ -22,7 +22,7 @@ function buildSwatchBackground(themeKey: NewsletterThemeKey): string {
 }
 
 export const ThemePresetSelector: React.FC<ThemePresetSelectorProps> = ({
-  selected = "modern",
+  selected,
   onSelect,
   maxWidth = 560,
   title,

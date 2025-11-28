@@ -35,12 +35,18 @@ export function TriggerCard({
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const sectionId = `${title.toLowerCase().replace(/\s+/g, "-")}-settings`;
 
+  const handleEnabledChange = (checked: boolean) => {
+    onEnabledChange(checked);
+    // Auto-expand/collapse settings based on enabled state
+    setIsExpanded(checked);
+  };
+
   return (
     <Card>
       <BlockStack gap="300">
         <InlineStack align="space-between">
           <InlineStack gap="200" align="center">
-            <Checkbox label={title} checked={enabled} onChange={onEnabledChange} />
+            <Checkbox label={title} checked={enabled} onChange={handleEnabledChange} />
             {enabled && <Badge tone="success">Active</Badge>}
           </InlineStack>
           <Button

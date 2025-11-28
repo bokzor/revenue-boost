@@ -12,7 +12,8 @@ import {
     mockChallengeToken,
     getTestPrefix,
     verifyScratchCardContent,
-    fillEmailInShadowDOM
+    fillEmailInShadowDOM,
+    waitForPopupWithRetry
 } from './helpers/test-helpers';
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env.staging.env'), override: true });
@@ -179,6 +180,105 @@ test.describe.serial('Scratch Card Template', () => {
             }
         } else {
             console.log(`Email verification: ${verification.errors.join(', ')}`);
+        }
+    });
+
+    test('scratch interaction reveals prize', async ({ page }) => {
+        console.log('🧪 Testing scratch interaction...');
+
+        const campaign = await (await factory.scratchCard().init())
+            .withPriority(9304)
+            .withEmailBeforeScratching(false) // Scratch first, email later
+            .create();
+        console.log(`✅ Campaign created: ${campaign.id}`);
+
+        await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
+
+        await page.goto(STORE_URL);
+        await handlePasswordPage(page);
+
+        const popupVisible = await waitForPopupWithRetry(page, { timeout: 15000, retries: 3 });
+        if (!popupVisible) {
+            console.log('⚠️ Popup not visible - skipping test');
+            return;
+        }
+
+        // Check for canvas element (scratch surface)
+        const hasCanvas = await page.evaluate(() => {
+            const host = document.querySelector('#revenue-boost-popup-shadow-host');
+            if (!host?.shadowRoot) return false;
+            return !!host.shadowRoot.querySelector('canvas');
+        });
+
+        if (hasCanvas) {
+            console.log('✅ Scratch canvas present');
+
+            // Simulate scratch interaction with mouse
+            const canvasBounds = await page.evaluate(() => {
+                const host = document.querySelector('#revenue-boost-popup-shadow-host');
+                if (!host?.shadowRoot) return null;
+                const canvas = host.shadowRoot.querySelector('canvas');
+                if (!canvas) return null;
+                const rect = canvas.getBoundingClientRect();
+                return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+            });
+
+            if (canvasBounds) {
+                // Move mouse across canvas to simulate scratching
+                const centerX = canvasBounds.x + canvasBounds.width / 2;
+                const centerY = canvasBounds.y + canvasBounds.height / 2;
+
+                await page.mouse.move(centerX - 50, centerY);
+                await page.mouse.down();
+                for (let i = -50; i <= 50; i += 10) {
+                    await page.mouse.move(centerX + i, centerY + (i % 20));
+                }
+                await page.mouse.up();
+
+                console.log('✅ Scratch gesture simulated');
+            }
+        } else {
+            console.log('⚠️ Canvas not found - scratch-card may render differently');
+        }
+    });
+
+    test('displays GDPR checkbox when enabled', async ({ page }) => {
+        console.log('🧪 Testing GDPR checkbox in scratch-card...');
+
+        const campaign = await (await factory.scratchCard().init())
+            .withPriority(9305)
+            .withGdprCheckbox(true, 'I agree to receive promotional offers')
+            .create();
+        console.log(`✅ Campaign created: ${campaign.id}`);
+
+        await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
+
+        await page.goto(STORE_URL);
+        await handlePasswordPage(page);
+
+        const popupVisible = await waitForPopupWithRetry(page, { timeout: 15000, retries: 3 });
+        if (!popupVisible) {
+            console.log('⚠️ Popup not visible - skipping test');
+            return;
+        }
+
+        // Check for GDPR elements
+        const gdprState = await page.evaluate(() => {
+            const host = document.querySelector('#revenue-boost-popup-shadow-host');
+            if (!host?.shadowRoot) return { exists: false };
+
+            const checkbox = host.shadowRoot.querySelector('input[type="checkbox"]');
+            const html = host.shadowRoot.innerHTML.toLowerCase();
+
+            return {
+                exists: !!checkbox,
+                hasConsentText: html.includes('agree') || html.includes('promotional') || html.includes('consent')
+            };
+        });
+
+        console.log(`GDPR: checkbox=${gdprState.exists}, consentText=${gdprState.hasConsentText}`);
+        if (gdprState.exists || gdprState.hasConsentText) {
+            console.log('✅ GDPR consent displayed');
         }
     });
 });

@@ -281,6 +281,7 @@ export const SocialProofPopup: React.FC<SocialProofPopupProps> = ({
     // Use `background` so both solid colors and gradients work
     background,
     color: config.textColor,
+    fontFamily: config.fontFamily || 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
     borderRadius: `${config.borderRadius ?? 8}px`,
     padding: POPUP_SPACING.component.card,
     boxShadow: "0 4px 12px rgba(0,0,0,0.15)",

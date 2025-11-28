@@ -83,7 +83,7 @@ export async function action({ request }: ActionFunctionArgs) {
 
     // 6. Preview mode check
     if (campaignId.startsWith("preview-")) {
-      return createPreviewResponse(CONFIG);
+      return createPreviewResponse(CONFIG, campaignId);
     }
 
     // 7. Rate limiting (only if email is provided - scratch card allows anonymous plays)

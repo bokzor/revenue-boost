@@ -115,6 +115,17 @@ interface CampaignFormWithABTestingProps {
   initialData?: Partial<CampaignFormData>;
   shopDomain?: string;
   globalCustomCSS?: string;
+  /** Custom theme presets from store settings */
+  customThemePresets?: Array<{
+    id: string;
+    name: string;
+    brandColor: string;
+    backgroundColor: string;
+    textColor: string;
+    surfaceColor?: string;
+    successColor?: string;
+    fontFamily?: string;
+  }>;
   experimentId?: string;
   experimentData?: ExperimentData;
   allVariants?: Array<{
@@ -143,6 +154,7 @@ export function CampaignFormWithABTesting({
   initialData,
   shopDomain,
   globalCustomCSS,
+  customThemePresets,
   experimentId,
   experimentData,
   allVariants,
@@ -442,6 +454,7 @@ export function CampaignFormWithABTesting({
       abTestingEnabled,
       initialTemplates,
       globalCustomCSS,
+      customThemePresets,
       advancedTargetingEnabled,
     };
 
@@ -500,9 +513,6 @@ export function CampaignFormWithABTesting({
           <ABTestingPanel
             abTestingEnabled={abTestingEnabled}
             onToggle={handleAbTestingToggle}
-            selectedVariant={selectedVariant}
-            onVariantSelect={setSelectedVariant}
-            variantCount={variantCount}
             experimentId={experimentId}
             experimentName={experimentData?.name}
             currentVariantKey={currentVariantKey}
@@ -510,7 +520,7 @@ export function CampaignFormWithABTesting({
           />
         </Layout.Section>
 
-        {/* Experiment Configuration - Extracted Component */}
+        {/* Experiment Configuration - Extracted Component (includes variant selector) */}
         {abTestingEnabled && (
           <Layout.Section>
             <Card>
@@ -521,10 +531,12 @@ export function CampaignFormWithABTesting({
                     experimentDescription={experimentConfig.experimentDescription}
                     experimentHypothesis={experimentConfig.experimentHypothesis}
                     variantCount={variantCount}
+                    selectedVariant={selectedVariant}
                     onNameChange={experimentConfig.setExperimentName}
                     onDescriptionChange={experimentConfig.setExperimentDescription}
                     onHypothesisChange={experimentConfig.setExperimentHypothesis}
                     onVariantCountChange={handleVariantCountChange}
+                    onVariantSelect={setSelectedVariant}
                   />
                 </BlockStack>
               </div>

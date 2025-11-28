@@ -71,6 +71,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
       templateType: templateParam || undefined,
       preselectedGoal,
       globalCustomCSS: parsedSettings.success ? parsedSettings.data.globalCustomCSS : undefined,
+      customThemePresets: parsedSettings.success ? parsedSettings.data.customThemePresets : undefined,
       advancedTargetingEnabled,
       experimentsEnabled,
       success: true,
@@ -128,6 +129,7 @@ export default function NewCampaign() {
     templateType,
     preselectedGoal,
     globalCustomCSS,
+    customThemePresets,
     advancedTargetingEnabled,
     experimentsEnabled,
   } = loaderData as {
@@ -137,6 +139,16 @@ export default function NewCampaign() {
     templateType?: string;
     preselectedGoal?: string;
     globalCustomCSS?: string;
+    customThemePresets?: Array<{
+      id: string;
+      name: string;
+      brandColor: string;
+      backgroundColor: string;
+      textColor: string;
+      surfaceColor?: string;
+      successColor?: string;
+      fontFamily?: string;
+    }>;
     advancedTargetingEnabled?: boolean;
     experimentsEnabled?: boolean;
     success: boolean;
@@ -395,6 +407,7 @@ export default function NewCampaign() {
         onCancel={handleCancel}
         initialTemplates={templates}
         globalCustomCSS={globalCustomCSS}
+        customThemePresets={customThemePresets}
         advancedTargetingEnabled={advancedTargetingEnabled ?? false}
         experimentsEnabled={experimentsEnabled ?? false}
         initialData={

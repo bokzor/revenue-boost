@@ -10,8 +10,8 @@
  * - Switching templates preserves design values
  */
 
-import { useRef, useState } from "react";
-import type { ChangeEvent, KeyboardEvent } from "react";
+import { useRef } from "react";
+import type { ChangeEvent } from "react";
 import {
   Card,
   BlockStack,
@@ -20,11 +20,8 @@ import {
   Select,
   Banner,
   Button,
-  Collapsible,
-  InlineStack,
 } from "@shopify/polaris";
-import { ChevronDownIcon, ChevronUpIcon } from "@shopify/polaris-icons";
-import { ColorField, FormGrid } from "../form";
+import { ColorField, FormGrid, CollapsibleSection, useCollapsibleSections } from "../form";
 import type { DesignConfig, TemplateType } from "~/domains/campaigns/types/campaign";
 import {
   NEWSLETTER_THEMES,
@@ -34,16 +31,44 @@ import {
   getNewsletterBackgroundUrl,
 } from "~/config/color-presets";
 import { ThemePresetSelector } from "../shared/ThemePresetSelector";
+import { CustomPresetSelector } from "../shared/CustomPresetSelector";
 import { getDesignCapabilities } from "~/domains/templates/registry/design-capabilities";
 import { useShopifyFileUpload } from "~/shared/hooks/useShopifyFileUpload";
+import type { ThemePresetInput } from "~/domains/store/types/theme-preset";
+import { loadGoogleFont } from "~/shared/utils/google-fonts";
+
+// Font family options for the typography selector
+const FONT_FAMILY_OPTIONS = [
+  { label: "System Default", value: "inherit" },
+  { label: "Inter", value: "Inter, system-ui, sans-serif" },
+  { label: "Roboto", value: "Roboto, system-ui, sans-serif" },
+  { label: "Open Sans", value: "'Open Sans', system-ui, sans-serif" },
+  { label: "Lato", value: "Lato, system-ui, sans-serif" },
+  { label: "Montserrat", value: "Montserrat, system-ui, sans-serif" },
+  { label: "Playfair Display (Serif)", value: "'Playfair Display', Georgia, serif" },
+  { label: "Merriweather (Serif)", value: "Merriweather, Georgia, serif" },
+];
 
 export interface DesignConfigSectionProps {
   design: Partial<DesignConfig>;
   errors?: Record<string, string>;
   onChange: (design: Partial<DesignConfig>) => void;
   templateType?: string;
+  /** Custom theme presets from store settings */
+  customThemePresets?: Array<{
+    id: string;
+    name: string;
+    brandColor: string;
+    backgroundColor: string;
+    textColor: string;
+    surfaceColor?: string;
+    successColor?: string;
+    fontFamily?: string;
+  }>;
   /** Optional callback invoked when a theme preset is applied */
   onThemeChange?: (themeKey: NewsletterThemeKey) => void;
+  /** Optional callback to apply wheel colors when custom preset is applied (for Spin-to-Win) */
+  onCustomPresetApply?: (presetId: string, brandColor: string) => void;
 }
 
 export function DesignConfigSection({
@@ -51,7 +76,9 @@ export function DesignConfigSection({
   errors,
   onChange,
   templateType,
+  customThemePresets,
   onThemeChange,
+  onCustomPresetApply,
 }: DesignConfigSectionProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -62,25 +89,15 @@ export function DesignConfigSection({
     error: uploadError,
   } = useShopifyFileUpload();
 
-  // Collapsible section state
-  const [openSections, setOpenSections] = useState<Record<string, boolean>>({
+  // Collapsible section state using the new hook
+  const { openSections, toggle } = useCollapsibleSections({
     backgroundImage: false,
     mainColors: false,
+    typography: false,
     buttonColors: false,
     inputColors: false,
     overlaySettings: false,
   });
-
-  const toggleSection = (section: string) => {
-    setOpenSections((prev) => ({ ...prev, [section]: !prev[section] }));
-  };
-
-  const handleKeyDown = (section: string) => (e: KeyboardEvent<HTMLDivElement>) => {
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
-      toggleSection(section);
-    }
-  };
 
   // Resolve design capabilities for this template (gates which controls to show)
   const caps = templateType ? getDesignCapabilities(templateType as TemplateType) : undefined;
@@ -125,9 +142,11 @@ export function DesignConfigSection({
     const presetUrl = getNewsletterBackgroundUrl(themeKey);
 
     // Apply all theme colors and set default theme image
+    // Clear customThemePresetId when selecting a built-in theme
     onChange({
       ...design,
       theme: themeKey,
+      customThemePresetId: undefined, // Clear custom theme selection
       backgroundColor: designConfig.backgroundColor,
       textColor: designConfig.textColor,
       descriptionColor: designConfig.descriptionColor,
@@ -208,36 +227,79 @@ export function DesignConfigSection({
 
         <Divider />
 
-        {/* Theme Presets (Swatches) */}
+        {/* Custom Theme Presets (from store settings) */}
+        {customThemePresets && customThemePresets.length > 0 && (
+          <>
+            <CustomPresetSelector
+              presets={customThemePresets as ThemePresetInput[]}
+              appliedPresetId={design.customThemePresetId}
+              onApplyPreset={(expandedConfig, presetId) => {
+                // Apply expanded config while preserving non-color fields
+                // Clear theme when selecting a custom preset
+                onChange({
+                  ...design,
+                  ...expandedConfig,
+                  theme: undefined, // Clear built-in theme selection
+                  customThemePresetId: presetId, // Track the applied custom preset
+                });
+
+                // If callback provided (for Spin-to-Win wheel colors), call it
+                const preset = customThemePresets.find(p => p.id === presetId);
+                if (onCustomPresetApply && preset) {
+                  onCustomPresetApply(presetId, preset.brandColor);
+                }
+              }}
+              helpText="Apply your saved brand colors"
+            />
+            <Divider />
+          </>
+        )}
+
+        {/* Built-in Theme Presets (Swatches) */}
         <ThemePresetSelector
-          title="Theme Presets"
-          helpText="Theme presets apply color tokens universally. Gradient themes are supported. Fine-tune individual colors below."
-          selected={(design.theme as NewsletterThemeKey) || "modern"}
+          title="Built-in Themes"
+          helpText="Quick start themes with pre-configured colors. Fine-tune individual colors below."
+          selected={design.customThemePresetId ? undefined : (design.theme as NewsletterThemeKey)}
           onSelect={handleThemeChange}
         />
 
         <Divider />
 
-        {/* Position & Size */}
-        <FormGrid columns={2}>
-          <Select
-            label="Position"
-            value={design.position || "center"}
-            options={positionOptions}
-            onChange={(value) => updateField("position", value as DesignConfig["position"])}
-            helpText={
-              caps?.supportsPosition ? "Position options filtered for this template" : undefined
-            }
-          />
+        {/* Position & Size - only show if at least one option is available */}
+        {(positionOptions.length > 0 || sizeOptions.length > 0) && (
+          <FormGrid
+            columns={positionOptions.length > 0 && sizeOptions.length > 0 ? 2 : 1}
+          >
+            {positionOptions.length > 0 && (
+              <Select
+                label="Position"
+                value={design.position || "center"}
+                options={positionOptions}
+                onChange={(value) => updateField("position", value as DesignConfig["position"])}
+                helpText={
+                  caps?.supportsPosition ? "Position options filtered for this template" : undefined
+                }
+              />
+            )}
 
-          <Select
-            label="Size"
-            value={design.size || "medium"}
-            options={sizeOptions}
-            onChange={(value) => updateField("size", value as DesignConfig["size"])}
-            helpText={caps?.supportsSize ? "Size options filtered for this template" : undefined}
-          />
-        </FormGrid>
+            {sizeOptions.length > 0 && (
+              <Select
+                label="Size"
+                value={design.size || "medium"}
+                options={sizeOptions}
+                onChange={(value) => updateField("size", value as DesignConfig["size"])}
+                helpText={caps?.supportsSize ? "Size options filtered for this template" : undefined}
+              />
+            )}
+          </FormGrid>
+        )}
+
+        {/* TODO: Add Animation selector here
+         * The `animation` property exists in DesignConfigSchema (fade/slide/bounce/none)
+         * and is used by PopupPortal for entry animations. Currently not exposed in UI.
+         * Should be gated by template capabilities (e.g., banners might not need animation).
+         * Options: fade, slide, bounce, none
+         */}
 
         {/* Flash Sale specific popup size */}
         {templateType === "FLASH_SALE" && (
@@ -273,33 +335,12 @@ export function DesignConfigSection({
 
         {/* Image Configuration - Only show if template supports images */}
         {caps?.usesImage !== false && (
-          <BlockStack gap="300">
-            <div
-              role="button"
-              tabIndex={0}
-              style={{ cursor: "pointer" }}
-              onClick={() => toggleSection("backgroundImage")}
-              onKeyDown={handleKeyDown("backgroundImage")}
-            >
-              <InlineStack gap="200" blockAlign="center">
-                <Button
-                  variant="plain"
-                  icon={openSections.backgroundImage ? ChevronUpIcon : ChevronDownIcon}
-                />
-                <Text as="h4" variant="headingSm">
-                  Background Image
-                </Text>
-              </InlineStack>
-            </div>
-
-            <Collapsible
-              open={openSections.backgroundImage}
-              id="background-image-section"
-              transition={{
-                duration: "200ms",
-                timingFunction: "ease-in-out",
-              }}
-            >
+          <CollapsibleSection
+            id="background-image-section"
+            title="Background Image"
+            isOpen={openSections.backgroundImage}
+            onToggle={() => toggle("backgroundImage")}
+          >
               <BlockStack gap="300">
                 <FormGrid columns={2}>
                   <Select
@@ -414,41 +455,19 @@ export function DesignConfigSection({
                   </div>
                 )}
               </BlockStack>
-            </Collapsible>
-          </BlockStack>
+          </CollapsibleSection>
         )}
 
         {caps?.usesImage !== false && <Divider />}
 
         {/* Main Colors - Always shown */}
-        <BlockStack gap="300">
-          <div
-            role="button"
-            tabIndex={0}
-            style={{ cursor: "pointer" }}
-            onClick={() => toggleSection("mainColors")}
-            onKeyDown={handleKeyDown("mainColors")}
-          >
-            <InlineStack gap="200" blockAlign="center">
-              <Button
-                variant="plain"
-                icon={openSections.mainColors ? ChevronUpIcon : ChevronDownIcon}
-              />
-              <Text as="h4" variant="headingSm">
-                Main Colors
-              </Text>
-            </InlineStack>
-          </div>
-
-          <Collapsible
-            open={openSections.mainColors}
-            id="main-colors-section"
-            transition={{
-              duration: "200ms",
-              timingFunction: "ease-in-out",
-            }}
-          >
-            <BlockStack gap="300">
+        <CollapsibleSection
+          id="main-colors-section"
+          title="Main Colors"
+          isOpen={openSections.mainColors}
+          onToggle={() => toggle("mainColors")}
+        >
+          <BlockStack gap="300">
               <FormGrid columns={3}>
                 <ColorField
                   label="Background Color"
@@ -503,41 +522,43 @@ export function DesignConfigSection({
                 )}
               </FormGrid>
             </BlockStack>
-          </Collapsible>
-        </BlockStack>
+        </CollapsibleSection>
+
+        <Divider />
+
+        {/* Typography Section */}
+        <CollapsibleSection
+          id="typography-section"
+          title="Typography"
+          isOpen={openSections.typography}
+          onToggle={() => toggle("typography")}
+        >
+          <BlockStack gap="300">
+              <Select
+                label="Font Family"
+                value={design.fontFamily || "inherit"}
+                options={FONT_FAMILY_OPTIONS}
+                onChange={(value) => {
+                  // Load the Google Font when selected
+                  loadGoogleFont(value);
+                  updateField("fontFamily", value);
+                }}
+                helpText="Choose a font for your popup text"
+              />
+            </BlockStack>
+        </CollapsibleSection>
 
         <Divider />
 
         {/* Button Colors - Only show if template uses buttons */}
         {caps?.usesButtons !== false && (
-          <BlockStack gap="300">
-            <div
-              role="button"
-              tabIndex={0}
-              style={{ cursor: "pointer" }}
-              onClick={() => toggleSection("buttonColors")}
-              onKeyDown={handleKeyDown("buttonColors")}
-            >
-              <InlineStack gap="200" blockAlign="center">
-                <Button
-                  variant="plain"
-                  icon={openSections.buttonColors ? ChevronUpIcon : ChevronDownIcon}
-                />
-                <Text as="h4" variant="headingSm">
-                  Button Colors
-                </Text>
-              </InlineStack>
-            </div>
-
-            <Collapsible
-              open={openSections.buttonColors}
-              id="button-colors-section"
-              transition={{
-                duration: "200ms",
-                timingFunction: "ease-in-out",
-              }}
-            >
-              <BlockStack gap="300">
+          <CollapsibleSection
+            id="button-colors-section"
+            title="Button Colors"
+            isOpen={openSections.buttonColors}
+            onToggle={() => toggle("buttonColors")}
+          >
+            <BlockStack gap="300">
                 <FormGrid columns={2}>
                   <ColorField
                     label="Button Background"
@@ -558,42 +579,20 @@ export function DesignConfigSection({
                   />
                 </FormGrid>
               </BlockStack>
-            </Collapsible>
-          </BlockStack>
+          </CollapsibleSection>
         )}
 
         {caps?.usesButtons !== false && <Divider />}
 
         {/* Input Field Colors - Only show if template uses inputs */}
         {caps?.usesInputs !== false && (
-          <BlockStack gap="300">
-            <div
-              role="button"
-              tabIndex={0}
-              style={{ cursor: "pointer" }}
-              onClick={() => toggleSection("inputColors")}
-              onKeyDown={handleKeyDown("inputColors")}
-            >
-              <InlineStack gap="200" blockAlign="center">
-                <Button
-                  variant="plain"
-                  icon={openSections.inputColors ? ChevronUpIcon : ChevronDownIcon}
-                />
-                <Text as="h4" variant="headingSm">
-                  Input Field Colors
-                </Text>
-              </InlineStack>
-            </div>
-
-            <Collapsible
-              open={openSections.inputColors}
-              id="input-colors-section"
-              transition={{
-                duration: "200ms",
-                timingFunction: "ease-in-out",
-              }}
-            >
-              <BlockStack gap="300">
+          <CollapsibleSection
+            id="input-colors-section"
+            title="Input Field Colors"
+            isOpen={openSections.inputColors}
+            onToggle={() => toggle("inputColors")}
+          >
+            <BlockStack gap="300">
                 <FormGrid columns={3}>
                   <ColorField
                     label="Input Background"
@@ -634,42 +633,20 @@ export function DesignConfigSection({
                   />
                 </FormGrid>
               </BlockStack>
-            </Collapsible>
-          </BlockStack>
+          </CollapsibleSection>
         )}
 
         {caps?.usesInputs !== false && <Divider />}
 
         {/* Overlay Colors - Only show if template uses overlay */}
         {caps?.usesOverlay !== false && (
-          <BlockStack gap="300">
-            <div
-              role="button"
-              tabIndex={0}
-              style={{ cursor: "pointer" }}
-              onClick={() => toggleSection("overlaySettings")}
-              onKeyDown={handleKeyDown("overlaySettings")}
-            >
-              <InlineStack gap="200" blockAlign="center">
-                <Button
-                  variant="plain"
-                  icon={openSections.overlaySettings ? ChevronUpIcon : ChevronDownIcon}
-                />
-                <Text as="h4" variant="headingSm">
-                  Overlay Settings
-                </Text>
-              </InlineStack>
-            </div>
-
-            <Collapsible
-              open={openSections.overlaySettings}
-              id="overlay-settings-section"
-              transition={{
-                duration: "200ms",
-                timingFunction: "ease-in-out",
-              }}
-            >
-              <BlockStack gap="300">
+          <CollapsibleSection
+            id="overlay-settings-section"
+            title="Overlay Settings"
+            isOpen={openSections.overlaySettings}
+            onToggle={() => toggle("overlaySettings")}
+          >
+            <BlockStack gap="300">
                 <FormGrid columns={2}>
                   <ColorField
                     label="Overlay Color"
@@ -700,8 +677,7 @@ export function DesignConfigSection({
                   />
                 </FormGrid>
               </BlockStack>
-            </Collapsible>
-          </BlockStack>
+          </CollapsibleSection>
         )}
       </BlockStack>
     </Card>

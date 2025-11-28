@@ -662,26 +662,7 @@ export const TemplatePreview = memo(TemplatePreviewComponent, (prevProps, nextPr
   const designConfigEqual = deepEqual(prevProps.designConfig, nextProps.designConfig);
 
   // Return true if configs are the same (no re-render needed)
-  const shouldSkipRender = configEqual && designConfigEqual;
-
-  // Debug log for re-render decisions (throttled for upsell templates)
-  if (
-    !shouldSkipRender &&
-    (nextProps.templateType?.includes("upsell") ||
-      nextProps.templateType?.includes("cart") ||
-      nextProps.templateType === "product-recommendation")
-  ) {
-    console.log("🔄 [TemplatePreview] Re-render triggered for", nextProps.templateType, {
-      configEqual,
-      designConfigEqual,
-      prevConfigKeys: Object.keys(prevProps.config || {}),
-      nextConfigKeys: Object.keys(nextProps.config || {}),
-      prevDesignKeys: Object.keys(prevProps.designConfig || {}),
-      nextDesignKeys: Object.keys(nextProps.designConfig || {}),
-    });
-  }
-
-  return shouldSkipRender;
+  return configEqual && designConfigEqual;
 });
 
 TemplatePreview.displayName = "TemplatePreview";

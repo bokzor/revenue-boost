@@ -240,7 +240,7 @@ application_url = "https://revenue-boost.app/app"
 embedded = true
 
 [access_scopes]
-scopes = "read_discounts,write_discounts,write_products,read_themes"
+scopes = "read_discounts,write_discounts,read_products,read_themes,read_orders,write_marketing_events,read_marketing_events,read_customers,write_customers,write_files"
 
 [auth]
 redirect_urls = [

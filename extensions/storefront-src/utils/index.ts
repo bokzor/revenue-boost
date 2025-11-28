@@ -33,3 +33,5 @@ export {
   type UTMParams,
 } from "./url";
 
+// Google Fonts utilities
+export { loadGoogleFont, loadFontFromDesignConfig } from "./google-fonts";

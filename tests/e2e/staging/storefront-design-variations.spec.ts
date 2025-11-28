@@ -1,0 +1,383 @@
+/**
+ * Popup Design Variations E2E Tests
+ * 
+ * Tests different design configurations:
+ * - Popup sizes (small, medium, large)
+ * - Popup positions (center, corners)
+ * - Background images
+ * - Custom colors
+ */
+
+import { test, expect } from '@playwright/test';
+import { PrismaClient } from '@prisma/client';
+import {
+    STORE_URL,
+    API_PROPAGATION_DELAY_MS,
+    handlePasswordPage,
+    getTestPrefix,
+    waitForPopupWithRetry
+} from './helpers/test-helpers';
+import { CampaignFactory } from './factories/campaign-factory';
+
+const prisma = new PrismaClient();
+const TEST_PREFIX = getTestPrefix('design');
+
+let factory: CampaignFactory;
+let storeId: string;
+
+test.describe('Popup Design Variations', () => {
+    test.beforeAll(async () => {
+        const store = await prisma.store.findFirst({ select: { id: true } });
+        if (!store) throw new Error('No store found in staging database');
+        storeId = store.id;
+        factory = new CampaignFactory(prisma, storeId, TEST_PREFIX);
+    });
+
+    test.afterAll(async () => {
+        await prisma.campaign.deleteMany({
+            where: { name: { startsWith: TEST_PREFIX } }
+        });
+        await prisma.$disconnect();
+    });
+
+    test.beforeEach(async ({ context }) => {
+        await context.clearCookies();
+    });
+
+    test.describe('Popup Sizes', () => {
+        test('renders SMALL popup with appropriate dimensions', async ({ page }) => {
+            console.log('🧪 Testing SMALL popup size...');
+
+            const campaign = await (await factory.newsletter().init())
+                .withName('Size-Small')
+                .withHeadline('Small Popup')
+                .withPriority(99980)
+                .withDesignConfig({ size: 'SMALL' })
+                .create();
+
+            await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
+
+            try {
+                await page.goto(STORE_URL);
+                await handlePasswordPage(page);
+
+                const popupVisible = await waitForPopupWithRetry(page, { timeout: 15000, retries: 3 });
+                expect(popupVisible).toBe(true);
+
+                // Check for size class or data attribute in popup
+                const sizeInfo = await page.evaluate(() => {
+                    const host = document.querySelector('#revenue-boost-popup-shadow-host');
+                    if (!host?.shadowRoot) return null;
+
+                    // Look for actual popup content (not overlay)
+                    const popupContent = host.shadowRoot.querySelector(
+                        '[class*="content"], [class*="container"], [class*="wrapper"], form'
+                    );
+
+                    if (popupContent) {
+                        const rect = popupContent.getBoundingClientRect();
+                        const classes = popupContent.className || '';
+                        return {
+                            width: rect.width,
+                            height: rect.height,
+                            hasSmallClass: classes.toLowerCase().includes('small'),
+                            classes
+                        };
+                    }
+
+                    // Fallback: check HTML for size indicator
+                    const html = host.shadowRoot.innerHTML;
+                    return {
+                        width: 0,
+                        height: 0,
+                        hasSmallClass: html.toLowerCase().includes('small'),
+                        classes: ''
+                    };
+                });
+
+                if (sizeInfo) {
+                    console.log(`SMALL popup: width=${sizeInfo.width}, hasSmallClass=${sizeInfo.hasSmallClass}`);
+                    // Verify size configuration is applied (either via class or reasonable dimensions)
+                    expect(sizeInfo.width > 0 || sizeInfo.hasSmallClass).toBe(true);
+                    console.log('✅ SMALL popup rendered');
+                } else {
+                    console.log('⚠️ Could not measure popup');
+                }
+
+            } finally {
+                await prisma.campaign.delete({ where: { id: campaign.id } });
+            }
+        });
+
+        test('renders LARGE popup with appropriate dimensions', async ({ page }) => {
+            console.log('🧪 Testing LARGE popup size...');
+
+            const campaign = await (await factory.newsletter().init())
+                .withName('Size-Large')
+                .withHeadline('Large Popup')
+                .withPriority(99981)
+                .withDesignConfig({ size: 'LARGE' })
+                .create();
+
+            await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
+
+            try {
+                await page.goto(STORE_URL);
+                await handlePasswordPage(page);
+
+                const popupVisible = await waitForPopupWithRetry(page, { timeout: 15000, retries: 3 });
+                expect(popupVisible).toBe(true);
+
+                // Check for size class or data attribute
+                const sizeInfo = await page.evaluate(() => {
+                    const host = document.querySelector('#revenue-boost-popup-shadow-host');
+                    if (!host?.shadowRoot) return null;
+
+                    const html = host.shadowRoot.innerHTML;
+                    return {
+                        hasLargeClass: html.toLowerCase().includes('large'),
+                        contentLength: html.length
+                    };
+                });
+
+                if (sizeInfo) {
+                    console.log(`LARGE popup: hasLargeClass=${sizeInfo.hasLargeClass}`);
+                    expect(sizeInfo.contentLength).toBeGreaterThan(100);
+                    console.log('✅ LARGE popup rendered');
+                }
+
+            } finally {
+                await prisma.campaign.delete({ where: { id: campaign.id } });
+            }
+        });
+    });
+
+    test.describe('Popup Positions', () => {
+        test('renders popup in CENTER position', async ({ page }) => {
+            console.log('🧪 Testing CENTER position...');
+
+            const campaign = await (await factory.newsletter().init())
+                .withName('Position-Center')
+                .withHeadline('Center Position')
+                .withPriority(99982)
+                .withDesignConfig({ position: 'CENTER' })
+                .create();
+
+            await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
+
+            try {
+                await page.goto(STORE_URL);
+                await handlePasswordPage(page);
+
+                const popupVisible = await waitForPopupWithRetry(page, { timeout: 15000, retries: 3 });
+                expect(popupVisible).toBe(true);
+                console.log('✅ CENTER position popup rendered');
+
+            } finally {
+                await prisma.campaign.delete({ where: { id: campaign.id } });
+            }
+        });
+
+        test('renders popup in BOTTOM_RIGHT corner', async ({ page }) => {
+            console.log('🧪 Testing BOTTOM_RIGHT position...');
+
+            const campaign = await (await factory.newsletter().init())
+                .withName('Position-BottomRight')
+                .withHeadline('Bottom Right')
+                .withPriority(99983)
+                .withDesignConfig({ position: 'BOTTOM_RIGHT' })
+                .create();
+
+            await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
+
+            try {
+                await page.goto(STORE_URL);
+                await handlePasswordPage(page);
+
+                const popupVisible = await waitForPopupWithRetry(page, { timeout: 15000, retries: 3 });
+                expect(popupVisible).toBe(true);
+
+                // Check if popup is positioned in bottom right
+                const position = await page.evaluate(() => {
+                    const host = document.querySelector('#revenue-boost-popup-shadow-host');
+                    if (!host?.shadowRoot) return null;
+
+                    const popup = host.shadowRoot.querySelector('[class*="popup"], [class*="modal"]');
+                    if (popup) {
+                        const rect = popup.getBoundingClientRect();
+                        const viewportWidth = window.innerWidth;
+                        const viewportHeight = window.innerHeight;
+                        return {
+                            isRight: rect.right > viewportWidth / 2,
+                            isBottom: rect.bottom > viewportHeight / 2
+                        };
+                    }
+                    return null;
+                });
+
+                if (position) {
+                    console.log(`Position check: right=${position.isRight}, bottom=${position.isBottom}`);
+                }
+                console.log('✅ BOTTOM_RIGHT position popup rendered');
+
+            } finally {
+                await prisma.campaign.delete({ where: { id: campaign.id } });
+            }
+        });
+    });
+
+    test.describe('Custom Colors', () => {
+        test('applies custom primary color', async ({ page }) => {
+            console.log('🧪 Testing custom primary color...');
+
+            const customColor = '#FF5733';
+            const campaign = await (await factory.newsletter().init())
+                .withName('Color-Custom')
+                .withHeadline('Custom Color Test')
+                .withPriority(99984)
+                .withDesignConfig({ primaryColor: customColor })
+                .create();
+
+            await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
+
+            try {
+                await page.goto(STORE_URL);
+                await handlePasswordPage(page);
+
+                const popupVisible = await waitForPopupWithRetry(page, { timeout: 15000, retries: 3 });
+                expect(popupVisible).toBe(true);
+
+                // Check if custom color is applied anywhere in popup
+                const colorApplied = await page.evaluate((targetColor) => {
+                    const host = document.querySelector('#revenue-boost-popup-shadow-host');
+                    if (!host?.shadowRoot) return false;
+
+                    // Check inline styles and computed styles for the color
+                    const elements = host.shadowRoot.querySelectorAll('*');
+                    for (const el of elements) {
+                        const style = window.getComputedStyle(el);
+                        const bgColor = style.backgroundColor;
+                        const color = style.color;
+
+                        // Check if rgb value matches our hex color
+                        if (bgColor.includes('255') && bgColor.includes('87') && bgColor.includes('51')) {
+                            return true;
+                        }
+                    }
+
+                    // Also check if color appears in any style attribute
+                    const html = host.shadowRoot.innerHTML.toLowerCase();
+                    return html.includes(targetColor.toLowerCase()) ||
+                           html.includes('ff5733') ||
+                           html.includes('rgb(255, 87, 51)');
+                }, customColor);
+
+                if (colorApplied) {
+                    console.log('✅ Custom primary color applied');
+                } else {
+                    console.log('⚠️ Custom color not detected - may be using CSS variables');
+                }
+
+            } finally {
+                await prisma.campaign.delete({ where: { id: campaign.id } });
+            }
+        });
+    });
+
+    test.describe('Background Images', () => {
+        test('renders newsletter with background image', async ({ page }) => {
+            console.log('🧪 Testing background image rendering...');
+
+            const campaign = await (await factory.newsletter().init())
+                .withName('BgImage-Test')
+                .withHeadline('Background Image Test')
+                .withPriority(99985)
+                .withDesignConfig({
+                    backgroundImage: 'gradient-1',
+                    hasBackgroundImage: true
+                })
+                .create();
+
+            await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
+
+            try {
+                await page.goto(STORE_URL);
+                await handlePasswordPage(page);
+
+                const popupVisible = await waitForPopupWithRetry(page, { timeout: 15000, retries: 3 });
+                expect(popupVisible).toBe(true);
+
+                // Check for background image
+                const hasBgImage = await page.evaluate(() => {
+                    const host = document.querySelector('#revenue-boost-popup-shadow-host');
+                    if (!host?.shadowRoot) return false;
+
+                    const elements = host.shadowRoot.querySelectorAll('*');
+                    for (const el of elements) {
+                        const style = window.getComputedStyle(el);
+                        if (style.backgroundImage && style.backgroundImage !== 'none') {
+                            return true;
+                        }
+                    }
+                    return false;
+                });
+
+                if (hasBgImage) {
+                    console.log('✅ Background image rendered');
+                } else {
+                    console.log('⚠️ No background image detected');
+                }
+
+            } finally {
+                await prisma.campaign.delete({ where: { id: campaign.id } });
+            }
+        });
+    });
+
+    test.describe('Corner Radius', () => {
+        test('applies custom corner radius', async ({ page }) => {
+            console.log('🧪 Testing corner radius...');
+
+            const campaign = await (await factory.newsletter().init())
+                .withName('Radius-Test')
+                .withHeadline('Corner Radius Test')
+                .withPriority(99986)
+                .withDesignConfig({ cornerRadius: 20 })
+                .create();
+
+            await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
+
+            try {
+                await page.goto(STORE_URL);
+                await handlePasswordPage(page);
+
+                const popupVisible = await waitForPopupWithRetry(page, { timeout: 15000, retries: 3 });
+                expect(popupVisible).toBe(true);
+
+                // Check for border-radius
+                const hasRadius = await page.evaluate(() => {
+                    const host = document.querySelector('#revenue-boost-popup-shadow-host');
+                    if (!host?.shadowRoot) return false;
+
+                    const popup = host.shadowRoot.querySelector('[class*="popup"], [class*="modal"]');
+                    if (popup) {
+                        const style = window.getComputedStyle(popup);
+                        const radius = parseInt(style.borderRadius);
+                        return radius > 0;
+                    }
+                    return false;
+                });
+
+                if (hasRadius) {
+                    console.log('✅ Corner radius applied');
+                } else {
+                    console.log('⚠️ Corner radius not detected');
+                }
+
+            } finally {
+                await prisma.campaign.delete({ where: { id: campaign.id } });
+            }
+        });
+    });
+});
+

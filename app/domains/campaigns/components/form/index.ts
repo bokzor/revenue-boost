@@ -37,3 +37,9 @@ export {
   type ProductPickerProps,
   type ProductPickerSelection,
 } from "./ProductPicker";
+
+export {
+  CollapsibleSection,
+  useCollapsibleSections,
+  type CollapsibleSectionProps,
+} from "./CollapsibleSection";

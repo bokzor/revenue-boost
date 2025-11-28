@@ -224,7 +224,10 @@ function buildCommonConfig(
 
     // Preview mode
     previewMode: true,
-    showCloseButton: true,
+    // Show close button respects user preference (default to true for preview)
+    showCloseButton: mergedConfig.showCloseButton ?? designConfig.showCloseButton ?? true,
+    // Display mode for modal/banner templates
+    displayMode: mergedConfig.displayMode || designConfig.displayMode || "modal",
   };
 }
 
@@ -339,9 +342,8 @@ export const TEMPLATE_PREVIEW_REGISTRY: Record<string, TemplatePreviewEntry<any>
 
         // Design-specific (FlashSale)
         popupSize: mergedConfig.popupSize || designConfig.popupSize || "wide",
-        displayMode: mergedConfig.displayMode || designConfig.displayMode || "modal",
 
-        // All common config (colors, typography, layout)
+        // All common config (colors, typography, layout) - includes displayMode
         ...buildCommonConfig(mergedConfig, designConfig),
       };
     },
@@ -350,10 +352,26 @@ export const TEMPLATE_PREVIEW_REGISTRY: Record<string, TemplatePreviewEntry<any>
   [TemplateTypeEnum.COUNTDOWN_TIMER]: {
     component: CountdownTimerPopup,
     buildConfig: (
-      mergedConfig: Partial<CountdownTimerConfig>,
+      mergedConfig: Partial<CountdownTimerConfig> & {
+        inventory?: { showOnlyXLeft?: boolean; pseudoMax?: number };
+        presentation?: { showInventory?: boolean };
+      },
       designConfig: Partial<PopupDesignConfig>
-    ): CountdownTimerConfig =>
-      ({
+    ): CountdownTimerConfig => {
+      // Map from FlashSaleContentSection fields to CountdownTimerPopup fields:
+      // - Form uses "presentation.showInventory" and "inventory"
+      // - CountdownTimerPopup uses "showStockCounter" and "stockCount"
+      const showStockCounter =
+        mergedConfig.showStockCounter ??
+        (mergedConfig.presentation?.showInventory && mergedConfig.inventory?.showOnlyXLeft) ??
+        false;
+
+      const stockCount =
+        mergedConfig.stockCount ??
+        mergedConfig.inventory?.pseudoMax ??
+        undefined;
+
+      return {
         id: "preview-countdown",
 
         // Base content fields
@@ -368,8 +386,8 @@ export const TEMPLATE_PREVIEW_REGISTRY: Record<string, TemplatePreviewEntry<any>
         endTime: mergedConfig.endTime || new Date(Date.now() + 3600000).toISOString(),
         countdownDuration: mergedConfig.countdownDuration ?? 3600,
         hideOnExpiry: mergedConfig.hideOnExpiry ?? true,
-        showStockCounter: mergedConfig.showStockCounter ?? false,
-        stockCount: mergedConfig.stockCount,
+        showStockCounter,
+        stockCount,
         sticky: mergedConfig.sticky ?? true,
         ctaUrl: mergedConfig.ctaUrl,
         colorScheme: mergedConfig.colorScheme || "custom",
@@ -379,7 +397,8 @@ export const TEMPLATE_PREVIEW_REGISTRY: Record<string, TemplatePreviewEntry<any>
 
         // All common config (colors, typography, layout)
         ...buildCommonConfig(mergedConfig, designConfig),
-      }),
+      };
+    },
   },
 
   [TemplateTypeEnum.SOCIAL_PROOF]: {

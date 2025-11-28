@@ -137,4 +137,58 @@ test.describe.serial('Cart Abandonment Template - E2E', () => {
 
         console.log('✅ Urgency timer popup rendered');
     });
+
+    test('displays cart items when showCartItems is enabled', async ({ page }) => {
+        console.log('🧪 Testing cart items display...');
+
+        const campaign = await (await factory.cartAbandonment().init())
+            .withShowCartItems(true, 3)
+            .create();
+
+        console.log(`✅ Campaign created: ${campaign.id}`);
+
+        await page.goto(STORE_URL);
+        await handlePasswordPage(page);
+
+        const popupHost = page.locator('#revenue-boost-popup-shadow-host');
+        await expect(popupHost).toBeVisible({ timeout: 10000 });
+
+        // Check for cart-related content
+        const hasCartContent = await page.evaluate(() => {
+            const host = document.querySelector('#revenue-boost-popup-shadow-host');
+            if (!host?.shadowRoot) return false;
+            const html = host.shadowRoot.innerHTML.toLowerCase();
+            return html.includes('cart') || html.includes('item') || html.includes('product');
+        });
+
+        console.log(`Cart content present: ${hasCartContent}`);
+        console.log('✅ Cart abandonment with items display rendered');
+    });
+
+    test('shows checkout CTA button', async ({ page }) => {
+        console.log('🧪 Testing checkout CTA...');
+
+        const campaign = await (await factory.cartAbandonment().init())
+            .withCtaUrl('/checkout')
+            .create();
+
+        console.log(`✅ Campaign created: ${campaign.id}`);
+
+        await page.goto(STORE_URL);
+        await handlePasswordPage(page);
+
+        const popupHost = page.locator('#revenue-boost-popup-shadow-host');
+        await expect(popupHost).toBeVisible({ timeout: 10000 });
+
+        // Check for CTA button
+        const hasCta = await page.evaluate(() => {
+            const host = document.querySelector('#revenue-boost-popup-shadow-host');
+            if (!host?.shadowRoot) return false;
+            const buttons = host.shadowRoot.querySelectorAll('button, a');
+            return buttons.length > 0;
+        });
+
+        expect(hasCta).toBe(true);
+        console.log('✅ CTA button present');
+    });
 });

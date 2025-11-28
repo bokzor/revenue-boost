@@ -42,6 +42,17 @@ export interface StepRendererProps {
   abTestingEnabled?: boolean;
   initialTemplates?: UnifiedTemplate[];
   globalCustomCSS?: string;
+  /** Custom theme presets from store settings */
+  customThemePresets?: Array<{
+    id: string;
+    name: string;
+    brandColor: string;
+    backgroundColor: string;
+    textColor: string;
+    surfaceColor?: string;
+    successColor?: string;
+    fontFamily?: string;
+  }>;
   /** Whether advanced targeting (Shopify segments, session rules) is enabled for the current plan */
   advancedTargetingEnabled?: boolean;
 }
@@ -84,6 +95,7 @@ export function renderDesignStep(props: StepRendererProps) {
     campaignId,
     setTemplateType,
     initialTemplates,
+    customThemePresets,
   } = props;
   const { globalCustomCSS } = props;
 
@@ -122,6 +134,7 @@ export function renderDesignStep(props: StepRendererProps) {
       discountConfig={wizardState.discountConfig}
       targetRules={targetRules}
       globalCustomCSS={globalCustomCSS}
+      customThemePresets={customThemePresets}
       onContentChange={(content) => updateData({ contentConfig: content })}
       onDesignChange={(design) => updateData({ designConfig: design })}
       onDiscountChange={(config) => updateData({ discountConfig: config })}

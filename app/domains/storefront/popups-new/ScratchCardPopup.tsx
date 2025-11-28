@@ -127,16 +127,33 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
   const fetchPrize = useCallback(
     async (emailToUse?: string) => {
       if (config.previewMode) {
-        // Preview mode: select random prize locally and generate mock discount code
+        // Preview mode: select a winning prize locally and generate mock discount code
         console.log("[Scratch Card] Preview mode - selecting random prize locally");
         const prizes = config.prizes || [];
         if (prizes.length > 0) {
-          const randomPrize = prizes[Math.floor(Math.random() * prizes.length)];
-          // Add mock discount code for preview (same pattern as SpinToWin)
+          // Filter out non-winning prizes (e.g., "Try Again")
+          const winningPrizes = prizes.filter(
+            (p) => p.label?.toLowerCase() !== "try again" && p.discountConfig?.enabled !== false
+          );
+          const prizesToPickFrom = winningPrizes.length > 0 ? winningPrizes : prizes;
+          const randomPrize = prizesToPickFrom[Math.floor(Math.random() * prizesToPickFrom.length)];
+
+          // Generate a simple preview code based on the prize's label
+          // e.g., "15% OFF" -> "PREVIEW-15OFF", "FREE SHIPPING" -> "PREVIEW-FREESHIP"
+          const label = randomPrize.label || "";
+          let previewCode: string;
+          if (label.toLowerCase().includes("shipping")) {
+            previewCode = "PREVIEW-FREESHIP";
+          } else {
+            const match = label.match(/(\d+)/);
+            previewCode = match ? `PREVIEW-${match[1]}OFF` : "PREVIEW-SAVE";
+          }
+
+          // Add mock discount code for preview
           setWonPrize({
             ...randomPrize,
-            generatedCode: "PREVIEW10",
-            discountCode: "PREVIEW10",
+            generatedCode: previewCode,
+            discountCode: previewCode,
           });
         }
         return;
@@ -648,9 +665,10 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
                   error={errors.email}
                   required={true}
                   disabled={isSubmitting}
-                  accentColor={config.accentColor || config.buttonColor}
-                  textColor={config.textColor}
+                  accentColor={config.accentColor}
+                  textColor={config.inputTextColor || config.textColor}
                   backgroundColor={config.inputBackgroundColor}
+                  borderColor={config.inputBorderColor}
                 />
 
                 {config.showGdprCheckbox && (
@@ -671,7 +689,8 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
                   type="submit"
                   loading={isSubmitting}
                   disabled={isSubmitting}
-                  accentColor={config.accentColor || config.buttonColor}
+                  buttonColor={config.buttonColor}
+                  accentColor={config.accentColor}
                   textColor={config.buttonTextColor}
                 >
                   Unlock Scratch Card
@@ -860,9 +879,10 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
                             error={errors.email}
                             required={true}
                             disabled={isSubmitting || isSubmittingEmail}
-                            accentColor={config.accentColor || config.buttonColor}
-                            textColor={config.textColor}
+                            accentColor={config.accentColor}
+                            textColor={config.inputTextColor || config.textColor}
                             backgroundColor={config.inputBackgroundColor}
+                            borderColor={config.inputBorderColor}
                           />
 
                           {config.showGdprCheckbox && (
@@ -873,7 +893,7 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
                               error={errors.gdpr}
                               required={true}
                               disabled={isSubmitting || isSubmittingEmail}
-                              accentColor={config.accentColor || config.buttonColor}
+                              accentColor={config.accentColor}
                               textColor={config.textColor}
                               privacyPolicyUrl={config.privacyPolicyUrl}
                             />
@@ -884,7 +904,8 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
                           type="submit"
                           loading={isSubmitting || isSubmittingEmail}
                           disabled={isSubmitting || isSubmittingEmail}
-                          accentColor={config.accentColor || config.buttonColor}
+                          buttonColor={config.buttonColor}
+                          accentColor={config.accentColor}
                           textColor={config.buttonTextColor}
                         >
                           {config.buttonText || "Get My Discount Code"}

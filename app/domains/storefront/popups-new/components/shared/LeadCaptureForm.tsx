@@ -145,10 +145,15 @@ export interface LeadCaptureFormProps {
     name?: string;
   };
   /**
-   * Accent color for inputs and button
+   * Accent color for inputs focus state and highlights
    * @default "#4F46E5"
    */
   accentColor?: string;
+  /**
+   * Button background color (preferred over accentColor for buttons)
+   * @default accentColor
+   */
+  buttonColor?: string;
   /**
    * Text color for labels and text
    * @default "#1F2937"
@@ -164,6 +169,16 @@ export interface LeadCaptureFormProps {
    * @default "#FFFFFF"
    */
   buttonTextColor?: string;
+  /**
+   * Input text color
+   * @default "#1F2937"
+   */
+  inputTextColor?: string;
+  /**
+   * Input border color
+   * @default "#D1D5DB"
+   */
+  inputBorderColor?: string;
   /**
    * Optional extra fields to render between inputs and submit button
    * Useful for template-specific fields (e.g., phone number, custom questions)
@@ -237,15 +252,20 @@ export const LeadCaptureForm: React.FC<LeadCaptureFormProps> = ({
   labels,
   placeholders,
   accentColor = "#4F46E5",
+  buttonColor,
   textColor = "#1F2937",
   backgroundColor = "#FFFFFF",
   buttonTextColor = "#FFFFFF",
+  inputTextColor,
+  inputBorderColor,
   extraFields,
   className,
   style,
   layout = "vertical",
   privacyPolicyUrl,
 }) => {
+  // Use buttonColor if provided, otherwise fall back to accentColor
+  const effectiveButtonColor = buttonColor || accentColor;
   const isInline = layout === "inline";
 
   return (
@@ -276,15 +296,16 @@ export const LeadCaptureForm: React.FC<LeadCaptureFormProps> = ({
             required={emailRequired}
             disabled={isSubmitting}
             accentColor={accentColor}
-            textColor={textColor}
+            textColor={inputTextColor || textColor}
             backgroundColor={backgroundColor}
+            borderColor={inputBorderColor}
           />
           <div style={{ marginBottom: "1rem" }}>
             <SubmitButton
               type="submit"
               loading={isSubmitting}
               disabled={isSubmitting}
-              accentColor={accentColor}
+              buttonColor={effectiveButtonColor}
               textColor={buttonTextColor}
               fullWidth={false}
             >
@@ -305,8 +326,9 @@ export const LeadCaptureForm: React.FC<LeadCaptureFormProps> = ({
             required={emailRequired}
             disabled={isSubmitting}
             accentColor={accentColor}
-            textColor={textColor}
+            textColor={inputTextColor || textColor}
             backgroundColor={backgroundColor}
+            borderColor={inputBorderColor}
           />
 
           {/* Name Input (optional) */}
@@ -320,8 +342,9 @@ export const LeadCaptureForm: React.FC<LeadCaptureFormProps> = ({
               required={nameRequired}
               disabled={isSubmitting}
               accentColor={accentColor}
-              textColor={textColor}
+              textColor={inputTextColor || textColor}
               backgroundColor={backgroundColor}
+              borderColor={inputBorderColor}
             />
           )}
 
@@ -348,7 +371,7 @@ export const LeadCaptureForm: React.FC<LeadCaptureFormProps> = ({
             type="submit"
             loading={isSubmitting}
             disabled={isSubmitting}
-            accentColor={accentColor}
+            buttonColor={effectiveButtonColor}
             textColor={buttonTextColor}
             fullWidth
           >

@@ -775,13 +775,15 @@ export const DesignConfigSchema = z.object({
       "neon",
       "ocean",
     ])
-    .default("modern"),
+    .optional(), // Optional when using a custom theme preset
+  customThemePresetId: z.string().optional(), // ID of the applied custom theme preset
   position: z.enum(["center", "top", "bottom", "left", "right"]).default("center"),
   size: z.enum(["small", "medium", "large"]).default("medium"),
   popupSize: z.enum(["compact", "standard", "wide", "full"]).default("wide").optional(), // For FlashSale
   borderRadius: z.number().min(0).max(50).default(8),
   animation: z.enum(["fade", "slide", "bounce", "none"]).default("fade"),
   displayMode: z.enum(["modal", "banner"]).optional(),
+  showCloseButton: z.boolean().default(true).optional(),
 
   // Image settings
   imageUrl: z.string().optional(),

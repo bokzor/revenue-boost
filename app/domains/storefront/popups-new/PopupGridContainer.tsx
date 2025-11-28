@@ -41,6 +41,7 @@ export const PopupGridContainer: React.FC<PopupGridContainerProps> = ({
           margin: 0 auto;
           overflow: hidden;
           background-color: #ffffff;
+          font-family: ${config.fontFamily || 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'};
 
           /* Enable container queries */
           container-type: inline-size;

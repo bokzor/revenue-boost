@@ -459,7 +459,7 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           overflow: hidden;
           background: ${baseBackground};
           color: ${textColor};
-          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+          font-family: ${config.fontFamily || 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'};
           box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
           display: flex;
           flex-direction: column;

@@ -152,7 +152,7 @@ jobs:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/revenue_boost_test
           SHOPIFY_API_KEY: test_api_key_12345
           SHOPIFY_API_SECRET: test_api_secret_12345
-          SCOPES: write_products,write_customers,read_orders,write_script_tags,read_themes,write_discounts
+          SCOPES: read_discounts,write_discounts,read_products,read_themes,read_orders,write_marketing_events,read_marketing_events,read_customers,write_customers,write_files
           SESSION_SECRET: test_session_secret_minimum_32_chars_long_for_validation
           INTERNAL_API_SECRET: test_internal_api_secret_minimum_32_chars_long_validation
           SHOPIFY_APP_URL: http://localhost:3000

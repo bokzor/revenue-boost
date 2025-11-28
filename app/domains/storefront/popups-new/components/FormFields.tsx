@@ -19,6 +19,7 @@ export interface EmailInputProps {
   accentColor?: string;
   textColor?: string;
   backgroundColor?: string;
+  borderColor?: string;
   placeholderColor?: string;
   className?: string;
 }
@@ -34,6 +35,7 @@ export const EmailInput: React.FC<EmailInputProps> = ({
   accentColor = "#4F46E5",
   textColor = "#1F2937",
   backgroundColor = "#FFFFFF",
+  borderColor = "#D1D5DB",
   placeholderColor,
   className,
 }) => {
@@ -79,8 +81,9 @@ export const EmailInput: React.FC<EmailInputProps> = ({
         style={{
           width: "100%",
           padding: "0.75rem",
+          fontFamily: "inherit",
           fontSize: "1rem",
-          border: error ? "2px solid #EF4444" : "1px solid #D1D5DB",
+          border: error ? "2px solid #EF4444" : `1px solid ${borderColor}`,
           borderRadius: "0.5rem",
           backgroundColor,
           color: textColor,
@@ -94,7 +97,7 @@ export const EmailInput: React.FC<EmailInputProps> = ({
         }}
         onBlur={(e) => {
           if (!error) {
-            e.target.style.borderColor = "#D1D5DB";
+            e.target.style.borderColor = borderColor;
           }
         }}
       />
@@ -126,6 +129,7 @@ export interface NameInputProps {
   accentColor?: string;
   textColor?: string;
   backgroundColor?: string;
+  borderColor?: string;
   placeholderColor?: string;
   className?: string;
 }
@@ -141,6 +145,7 @@ export const NameInput: React.FC<NameInputProps> = ({
   accentColor = "#4F46E5",
   textColor = "#1F2937",
   backgroundColor = "#FFFFFF",
+  borderColor = "#D1D5DB",
   placeholderColor,
   className,
 }) => {
@@ -184,8 +189,9 @@ export const NameInput: React.FC<NameInputProps> = ({
         style={{
           width: "100%",
           padding: "0.75rem",
+          fontFamily: "inherit",
           fontSize: "1rem",
-          border: error ? "2px solid #EF4444" : "1px solid #D1D5DB",
+          border: error ? "2px solid #EF4444" : `1px solid ${borderColor}`,
           borderRadius: "0.5rem",
           backgroundColor,
           color: textColor,
@@ -199,7 +205,7 @@ export const NameInput: React.FC<NameInputProps> = ({
         }}
         onBlur={(e) => {
           if (!error) {
-            e.target.style.borderColor = "#D1D5DB";
+            e.target.style.borderColor = borderColor;
           }
         }}
       />
@@ -356,6 +362,13 @@ export interface SubmitButtonProps {
   type?: "button" | "submit";
   disabled?: boolean;
   loading?: boolean;
+  /**
+   * Button background color (preferred over accentColor)
+   */
+  buttonColor?: string;
+  /**
+   * @deprecated Use buttonColor instead. Kept for backward compatibility.
+   */
   accentColor?: string;
   textColor?: string;
   fullWidth?: boolean;
@@ -367,11 +380,14 @@ export const SubmitButton: React.FC<SubmitButtonProps> = ({
   type = "submit",
   disabled = false,
   loading = false,
+  buttonColor,
   accentColor = "#4F46E5",
   textColor = "#FFFFFF",
   fullWidth = true,
 }) => {
   const isDisabled = disabled || loading;
+  // Prefer buttonColor over accentColor for button background
+  const bgColor = buttonColor || accentColor;
 
   return (
     <>
@@ -390,10 +406,11 @@ export const SubmitButton: React.FC<SubmitButtonProps> = ({
         style={{
           width: fullWidth ? "100%" : "auto",
           padding: "0.875rem 1.5rem",
+          fontFamily: "inherit",
           fontSize: "1rem",
           fontWeight: "600",
           color: textColor,
-          backgroundColor: isDisabled ? "#9CA3AF" : accentColor,
+          backgroundColor: isDisabled ? "#9CA3AF" : bgColor,
           border: "none",
           borderRadius: "0.5rem",
           cursor: isDisabled ? "not-allowed" : "pointer",

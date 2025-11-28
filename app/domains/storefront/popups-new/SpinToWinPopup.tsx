@@ -260,7 +260,7 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
   // Input colors derived from design config (theme-aware)
   const inputBackground = config.inputBackgroundColor || "#FFFFFF";
   const inputTextColor = config.inputTextColor || "#111827";
-  const _inputBorderColor = config.inputBorderColor || "#E5E7EB";
+  const inputBorderColor = config.inputBorderColor || "#E5E7EB";
 
   // Theme-aware colors for success/prize surfaces
   const _successColor = (config as any).successColor || accentColor;
@@ -437,10 +437,30 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
           setIsGeneratingCode(false);
         }
       } else {
-        // Preview mode: pick random
-        const randomIdx = Math.floor(Math.random() * segments.length);
-        serverPrize = segments[randomIdx];
-        generatedCode = "PREVIEW10";
+        // Preview mode: pick a winning prize (not "Try Again")
+        // Filter out non-winning segments first
+        const winningSegments = segments.filter(
+          (s) => s.label?.toLowerCase() !== "try again" && s.discountConfig?.enabled !== false
+        );
+        const segmentsToPickFrom = winningSegments.length > 0 ? winningSegments : segments;
+        const randomIdx = Math.floor(Math.random() * segmentsToPickFrom.length);
+        const selectedSegment = segmentsToPickFrom[randomIdx];
+
+        // Generate a simple preview code based on the segment's label
+        // e.g., "15% OFF" -> "PREVIEW-15OFF", "FREE SHIPPING" -> "PREVIEW-FREESHIP"
+        const label = selectedSegment.label || "";
+        if (label.toLowerCase().includes("shipping")) {
+          generatedCode = "PREVIEW-FREESHIP";
+        } else {
+          const match = label.match(/(\d+)/);
+          generatedCode = match ? `PREVIEW-${match[1]}OFF` : "PREVIEW-SAVE";
+        }
+
+        // Clone the segment and add the generated code so the UI displays it
+        serverPrize = {
+          ...selectedSegment,
+          generatedCode,
+        };
         setDiscountCode(generatedCode);
       }
 
@@ -516,7 +536,7 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
     color: config.buttonTextColor || "#FFFFFF",
     cursor: "pointer",
     transition: `all ${animDuration}ms cubic-bezier(0.4, 0, 0.2, 1)`,
-    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    fontFamily: config.fontFamily || 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
     textTransform: "uppercase",
     letterSpacing: "0.05em",
   };
@@ -795,7 +815,7 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
             font-weight: 600;
             letter-spacing: 0.12em;
             text-transform: uppercase;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-family: ${config.fontFamily || 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'};
             box-shadow: 0 clamp(2px, 0.5cqi, 4px) clamp(8px, 2cqi, 12px) rgba(15,23,42,0.4);
             pointer-events: none;
             z-index: 15;
@@ -974,6 +994,7 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
                       accentColor={accentColor}
                       textColor={inputTextColor}
                       backgroundColor={inputBackground}
+                      borderColor={inputBorderColor}
                     />
                   </div>
                 )}
@@ -991,6 +1012,7 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
                       accentColor={accentColor}
                       textColor={inputTextColor}
                       backgroundColor={inputBackground}
+                      borderColor={inputBorderColor}
                     />
                   </div>
                 )}

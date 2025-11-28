@@ -57,7 +57,7 @@ export async function action({ request }: ActionFunctionArgs) {
 
     // 5. Preview mode check
     if (campaignId.startsWith("preview-")) {
-      return createPreviewResponse(CONFIG);
+      return createPreviewResponse(CONFIG, campaignId);
     }
 
     // 6. Rate limiting (email is required for spin-to-win)
