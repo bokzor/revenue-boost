@@ -40,9 +40,6 @@ jobs:
       - name: 🏗️ Build storefront assets (PRODUCTION - minified)
         run: npm run build:storefront
 
-      - name: 🛠 Install Shopify CLI
-        run: npm install -g @shopify/cli@latest @shopify/app@latest
-
       - name: 🔗 Verify production app URL in shopify.app.prod.toml
         run: |
           echo "Verifying application_url in shopify.app.prod.toml:"
@@ -56,7 +53,7 @@ jobs:
           SHOPIFY_API_KEY: ${{ secrets.SHOPIFY_API_KEY }}
           COMMIT_URL: ${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}
         run: |
-          shopify app deploy \
+          npx shopify app deploy \
             --config prod \
             --force \
             --source-control-url "$COMMIT_URL"

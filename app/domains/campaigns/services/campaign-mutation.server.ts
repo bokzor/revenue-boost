@@ -176,6 +176,11 @@ export class CampaignMutationService {
               templateType: true,
             },
           },
+          experiment: {
+            select: {
+              name: true,
+            },
+          },
         },
       });
 
@@ -191,6 +196,8 @@ export class CampaignMutationService {
             startDate: campaign.startDate,
             endDate: campaign.endDate,
             templateType: campaign.template?.templateType,
+            experimentName: campaign.experiment?.name,
+            variantKey: campaign.variantKey || undefined,
           },
           appUrl
         );

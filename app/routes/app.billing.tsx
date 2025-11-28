@@ -1,6 +1,7 @@
 import type { LoaderFunctionArgs, ActionFunctionArgs, HeadersFunction } from "react-router";
 import { useLoaderData, useSubmit, useNavigation, redirect, useRouteError } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
+import { useState } from "react";
 import {
   Page,
   Card,
@@ -15,12 +16,22 @@ import {
   Icon,
   Banner,
   ProgressBar,
+  Collapsible,
+  Tooltip,
 } from "@shopify/polaris";
-import { CheckIcon, XIcon, StarFilledIcon } from "@shopify/polaris-icons";
+import { CheckIcon, XIcon, StarFilledIcon, ChevronDownIcon, ChevronUpIcon, LockIcon } from "@shopify/polaris-icons";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
-import { PLAN_DEFINITIONS, ENABLED_PLAN_ORDER, type PlanTier, type PlanFeatures } from "../domains/billing/types/plan";
+import {
+  PLAN_DEFINITIONS,
+  ENABLED_PLAN_ORDER,
+  FEATURE_METADATA,
+  getFeaturesByCategory,
+  type PlanTier,
+  type PlanFeatures,
+} from "../domains/billing/types/plan";
 import { BillingService } from "../domains/billing/services/billing.server";
+import { PlanGuardService } from "../domains/billing/services/plan-guard.server";
 import { isBillingBypassed } from "../lib/env.server";
 
 // =============================================================================
@@ -39,6 +50,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     throw new Response("Store not found", { status: 404 });
   }
 
+  // Fetch real usage data using the existing service
+  const usageSummary = await PlanGuardService.getUsageSummary(store.id);
+
   // When billing is bypassed (staging), use database values directly
   if (billingBypassed) {
     return {
@@ -49,6 +63,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         : null,
       isTrialing: store.planStatus === "TRIALING",
       trialEndsAt: store.trialEndsAt?.toISOString() || null,
+      currentPeriodEnd: store.currentPeriodEnd?.toISOString() || null,
       shopifyHasPayment: false,
       appSubscriptions: [],
       plans: ENABLED_PLAN_ORDER.map((tier) => ({
@@ -56,6 +71,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         ...PLAN_DEFINITIONS[tier],
       })),
       billingBypassed: true,
+      usage: usageSummary.usage,
     };
   }
 
@@ -71,6 +87,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     subscription: billingContext.subscription,
     isTrialing: billingContext.isTrialing,
     trialEndsAt: billingContext.trialEndsAt?.toISOString() || null,
+    currentPeriodEnd: billingContext.subscription?.currentPeriodEnd || null,
     shopifyHasPayment: hasActivePayment,
     appSubscriptions,
     plans: ENABLED_PLAN_ORDER.map((tier) => ({
@@ -78,6 +95,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       ...PLAN_DEFINITIONS[tier],
     })),
     billingBypassed: false,
+    usage: usageSummary.usage,
   };
 };
 
@@ -207,38 +225,8 @@ const PLAN_DESCRIPTIONS: Record<PlanTier, { tagline: string; idealFor: string }>
   },
 };
 
-// Features organized by category for better display
-const FEATURE_CATEGORIES: { name: string; features: (keyof PlanFeatures)[] }[] = [
-  {
-    name: "Core Features",
-    features: ["advancedTargeting", "advancedAnalytics", "scheduledCampaigns"],
-  },
-  {
-    name: "Templates",
-    features: ["customTemplates", "gamificationTemplates", "socialProofTemplates"],
-  },
-  {
-    name: "Customization",
-    features: ["removeBranding", "customCss"],
-  },
-  {
-    name: "Advanced",
-    features: ["experiments", "prioritySupport"],
-  },
-];
-
-const FEATURE_DISPLAY_NAMES: Record<keyof PlanFeatures, string> = {
-  experiments: "A/B Testing",
-  advancedTargeting: "Advanced Targeting",
-  customTemplates: "Custom Templates",
-  advancedAnalytics: "Advanced Analytics",
-  prioritySupport: "Priority Support",
-  removeBranding: "Remove Branding",
-  customCss: "Custom CSS",
-  gamificationTemplates: "Gamification",
-  socialProofTemplates: "Social Proof & FOMO",
-  scheduledCampaigns: "Scheduled Campaigns",
-};
+// Feature categories derived from single source of truth
+const FEATURE_CATEGORIES = getFeaturesByCategory();
 
 // =============================================================================
 // HELPERS
@@ -249,6 +237,39 @@ function formatNumber(num: number | null): string {
   if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
   if (num >= 1000) return `${(num / 1000).toFixed(0)}K`;
   return num.toString();
+}
+
+function getProgressTone(percentage: number | null): "primary" | "critical" {
+  if (percentage === null) return "primary";
+  if (percentage >= 80) return "critical";
+  return "primary";
+}
+
+// =============================================================================
+// TRUST BADGE COMPONENT
+// =============================================================================
+
+function TrustBadges() {
+  return (
+    <Box paddingBlockStart="400">
+      <InlineStack gap="400" align="center" wrap>
+        <InlineStack gap="200" blockAlign="center">
+          <Icon source={LockIcon} tone="subdued" />
+          <Text as="span" variant="bodySm" tone="subdued">
+            Billed securely through Shopify
+          </Text>
+        </InlineStack>
+        <Text as="span" variant="bodySm" tone="subdued">•</Text>
+        <Text as="span" variant="bodySm" tone="subdued">
+          14-day money-back guarantee
+        </Text>
+        <Text as="span" variant="bodySm" tone="subdued">•</Text>
+        <Text as="span" variant="bodySm" tone="subdued">
+          Cancel anytime
+        </Text>
+      </InlineStack>
+    </Box>
+  );
 }
 
 // =============================================================================
@@ -379,51 +400,60 @@ function PlanCard({
 
         <Divider />
 
-        {/* Key features */}
+        {/* Key features with tooltips */}
         <BlockStack gap="200">
           <Text as="h4" variant="headingSm">
             Key Features
           </Text>
           {keyFeatures.map((feature) => (
-            <InlineStack key={feature} gap="200" blockAlign="center">
-              <Box>
-                <Icon
-                  source={features[feature] ? CheckIcon : XIcon}
-                  tone={features[feature] ? "success" : "subdued"}
-                />
-              </Box>
-              <Text
-                as="span"
-                tone={features[feature] ? undefined : "subdued"}
-                variant="bodySm"
-              >
-                {FEATURE_DISPLAY_NAMES[feature]}
-              </Text>
-            </InlineStack>
+            <Tooltip key={feature} content={FEATURE_METADATA[feature].description} preferredPosition="above">
+              <InlineStack gap="200" blockAlign="center">
+                <Box>
+                  <Icon
+                    source={features[feature] ? CheckIcon : XIcon}
+                    tone={features[feature] ? "success" : "subdued"}
+                  />
+                </Box>
+                <Text
+                  as="span"
+                  tone={features[feature] ? undefined : "subdued"}
+                  variant="bodySm"
+                >
+                  {FEATURE_METADATA[feature].name}
+                </Text>
+              </InlineStack>
+            </Tooltip>
           ))}
         </BlockStack>
 
         {/* CTA Button */}
         <Box paddingBlockStart="200">
-          {isCurrentPlan ? (
-            <Button disabled fullWidth>
-              Current Plan
-            </Button>
-          ) : isPaid ? (
-            <Button
-              variant={isPopular ? "primary" : undefined}
-              tone={isDowngrade ? "critical" : undefined}
-              onClick={onSelect}
-              loading={isLoading}
-              fullWidth
-            >
-              {isDowngrade ? `Downgrade to ${name}` : `Upgrade to ${name}`}
-            </Button>
-          ) : (
-            <Button tone="critical" onClick={onSelect} loading={isLoading} fullWidth>
-              Downgrade to Free
-            </Button>
-          )}
+          <BlockStack gap="200">
+            {isCurrentPlan ? (
+              <Button disabled fullWidth>
+                Current Plan
+              </Button>
+            ) : isPaid ? (
+              <Button
+                variant={isPopular ? "primary" : undefined}
+                tone={isDowngrade ? "critical" : undefined}
+                onClick={onSelect}
+                loading={isLoading}
+                fullWidth
+              >
+                {isDowngrade ? `Downgrade to ${name}` : `Upgrade to ${name}`}
+              </Button>
+            ) : (
+              <Button tone="critical" onClick={onSelect} loading={isLoading} fullWidth>
+                Downgrade to Free
+              </Button>
+            )}
+            {isPopular && !isCurrentPlan && (
+              <Text as="p" variant="bodySm" tone="subdued" alignment="center">
+                Most stores choose this plan
+              </Text>
+            )}
+          </BlockStack>
         </Box>
       </BlockStack>
     </Card>
@@ -431,29 +461,50 @@ function PlanCard({
 }
 
 // Current subscription summary component
+interface UsageData {
+  impressions: { current: number; max: number | null; percentage: number | null };
+  leads: { current: number; max: number | null; percentage: number | null };
+  activeCampaigns: { current: number; max: number | null };
+  experiments: { current: number; max: number | null };
+}
+
 interface CurrentPlanSummaryProps {
   currentPlan: PlanTier;
   isTrialing: boolean;
   trialEndsAt: string | null;
-  monthlyImpressionCap: number | null;
+  currentPeriodEnd: string | null;
+  usage: UsageData;
 }
 
 function CurrentPlanSummary({
   currentPlan,
   isTrialing,
   trialEndsAt,
-  monthlyImpressionCap,
+  currentPeriodEnd,
+  usage,
 }: CurrentPlanSummaryProps) {
   const planDef = PLAN_DEFINITIONS[currentPlan];
-  const usedImpressions = 0; // TODO: Get actual usage from loader
-  const usagePercent = monthlyImpressionCap
-    ? Math.min((usedImpressions / monthlyImpressionCap) * 100, 100)
+
+  // Calculate progress percentages
+  const impressionPercent = usage.impressions.percentage ?? 0;
+  const leadsPercent = usage.leads.percentage ?? 0;
+  const campaignsPercent = usage.activeCampaigns.max
+    ? Math.round((usage.activeCampaigns.current / usage.activeCampaigns.max) * 100)
     : 0;
+
+  // Format renewal date
+  const renewalDate = currentPeriodEnd
+    ? new Date(currentPeriodEnd).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      })
+    : null;
 
   return (
     <Card>
       <BlockStack gap="400">
-        <InlineStack align="space-between" blockAlign="center">
+        <InlineStack align="space-between" blockAlign="start" wrap={false}>
           <BlockStack gap="100">
             <InlineStack gap="200" blockAlign="center">
               <Text as="h2" variant="headingMd">
@@ -463,55 +514,125 @@ function CurrentPlanSummary({
                 {`${planDef.name}${isTrialing ? " (Trial)" : ""}`}
               </Badge>
             </InlineStack>
-            {isTrialing && trialEndsAt && (
+            {isTrialing && trialEndsAt ? (
               <Text as="p" tone="subdued" variant="bodySm">
-                Trial ends {new Date(trialEndsAt).toLocaleDateString()}
+                Trial ends {new Date(trialEndsAt).toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                })}
+              </Text>
+            ) : renewalDate ? (
+              <Text as="p" tone="subdued" variant="bodySm">
+                Renews {renewalDate}
+              </Text>
+            ) : null}
+          </BlockStack>
+          <BlockStack gap="050" inlineAlign="end">
+            <Text as="span" variant="headingLg" fontWeight="bold">
+              ${planDef.price}/mo
+            </Text>
+            {planDef.price > 0 && (
+              <Text as="span" variant="bodySm" tone="subdued">
+                Billed via Shopify
               </Text>
             )}
           </BlockStack>
-          <Text as="span" variant="headingLg" fontWeight="bold">
-            ${planDef.price}/mo
-          </Text>
         </InlineStack>
 
         <Divider />
 
-        <InlineGrid columns={{ xs: 1, sm: 3 }} gap="400">
+        {/* Usage metrics grid */}
+        <InlineGrid columns={{ xs: 1, sm: 2, md: 4 }} gap="400">
           {/* Impressions usage */}
           <BlockStack gap="200">
-            <Text as="span" variant="bodySm" fontWeight="semibold">
-              Monthly Impressions
-            </Text>
+            <InlineStack align="space-between">
+              <Text as="span" variant="bodySm" fontWeight="semibold">
+                Monthly Impressions
+              </Text>
+              <Text as="span" variant="bodySm" tone="subdued">
+                {usage.impressions.current.toLocaleString()} / {formatNumber(usage.impressions.max)}
+              </Text>
+            </InlineStack>
             <ProgressBar
-              progress={usagePercent}
-              tone={usagePercent > 80 ? "critical" : "primary"}
+              progress={Math.min(impressionPercent, 100)}
+              tone={getProgressTone(impressionPercent)}
               size="small"
             />
-            <Text as="span" variant="bodySm" tone="subdued">
-              {formatNumber(usedImpressions)} / {formatNumber(monthlyImpressionCap)} used
-            </Text>
+            {impressionPercent >= 90 && usage.impressions.max !== null && (
+              <Text as="span" variant="bodySm" tone="critical">
+                {impressionPercent >= 100 ? "Limit reached!" : "Almost at limit"}
+              </Text>
+            )}
+          </BlockStack>
+
+          {/* Leads usage */}
+          <BlockStack gap="200">
+            <InlineStack align="space-between">
+              <Text as="span" variant="bodySm" fontWeight="semibold">
+                Leads This Month
+              </Text>
+              <Text as="span" variant="bodySm" tone="subdued">
+                {usage.leads.current.toLocaleString()} / {formatNumber(usage.leads.max)}
+              </Text>
+            </InlineStack>
+            <ProgressBar
+              progress={Math.min(leadsPercent, 100)}
+              tone={getProgressTone(leadsPercent)}
+              size="small"
+            />
           </BlockStack>
 
           {/* Active campaigns */}
           <BlockStack gap="200">
-            <Text as="span" variant="bodySm" fontWeight="semibold">
-              Active Campaigns
-            </Text>
-            <Text as="span" variant="headingSm">
-              0 / {formatNumber(planDef.limits.maxActiveCampaigns)}
-            </Text>
+            <InlineStack align="space-between">
+              <Text as="span" variant="bodySm" fontWeight="semibold">
+                Active Campaigns
+              </Text>
+              <Text as="span" variant="bodySm" tone="subdued">
+                {usage.activeCampaigns.current} / {formatNumber(usage.activeCampaigns.max)}
+              </Text>
+            </InlineStack>
+            <ProgressBar
+              progress={Math.min(campaignsPercent, 100)}
+              tone={getProgressTone(campaignsPercent)}
+              size="small"
+            />
           </BlockStack>
 
-          {/* Leads this month */}
-          <BlockStack gap="200">
-            <Text as="span" variant="bodySm" fontWeight="semibold">
-              Leads This Month
-            </Text>
-            <Text as="span" variant="headingSm">
-              0 / {formatNumber(planDef.limits.maxLeadsPerMonth)}
-            </Text>
-          </BlockStack>
+          {/* Experiments */}
+          {planDef.features.experiments && (
+            <BlockStack gap="200">
+              <InlineStack align="space-between">
+                <Text as="span" variant="bodySm" fontWeight="semibold">
+                  Experiments
+                </Text>
+                <Text as="span" variant="bodySm" tone="subdued">
+                  {usage.experiments.current} / {formatNumber(usage.experiments.max)}
+                </Text>
+              </InlineStack>
+              <ProgressBar
+                progress={
+                  usage.experiments.max
+                    ? Math.min((usage.experiments.current / usage.experiments.max) * 100, 100)
+                    : 0
+                }
+                tone="primary"
+                size="small"
+              />
+            </BlockStack>
+          )}
         </InlineGrid>
+
+        {/* Warning banner if near/at limits */}
+        {impressionPercent >= 100 && usage.impressions.max !== null && (
+          <Banner tone="critical">
+            <p>
+              You've reached your monthly impression limit. Popups will stop showing to visitors.{" "}
+              <strong>Upgrade your plan</strong> to continue capturing leads.
+            </p>
+          </Banner>
+        )}
       </BlockStack>
     </Card>
   );
@@ -527,13 +648,25 @@ export default function BillingPage() {
     subscription,
     isTrialing,
     trialEndsAt,
+    currentPeriodEnd,
     plans,
     billingBypassed,
+    usage,
   } = useLoaderData<typeof loader>();
   const submit = useSubmit();
   const navigation = useNavigation();
   const isLoading = navigation.state !== "idle";
   const currentPlanDef = PLAN_DEFINITIONS[currentPlan as PlanTier];
+
+  // State for collapsible feature sections
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
+
+  const toggleSection = (categoryName: string) => {
+    setOpenSections((prev) => ({
+      ...prev,
+      [categoryName]: !prev[categoryName],
+    }));
+  };
 
   const handleSelectPlan = (tier: PlanTier) => {
     // In bypass mode, we can switch to any plan including FREE
@@ -580,26 +713,37 @@ export default function BillingPage() {
           <Banner tone="info" title="You're on a free trial">
             <p>
               Your trial of {currentPlanDef.name} ends on{" "}
-              {new Date(trialEndsAt).toLocaleDateString()}. Choose a plan to
-              continue using all features.
+              {new Date(trialEndsAt).toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              })}. Choose a plan to continue using all features.
             </p>
           </Banner>
         )}
 
-        {/* Current plan summary */}
+        {/* Current plan summary with real usage data */}
         <CurrentPlanSummary
           currentPlan={currentPlan as PlanTier}
           isTrialing={isTrialing}
           trialEndsAt={trialEndsAt}
-          monthlyImpressionCap={currentPlanDef.monthlyImpressionCap}
+          currentPeriodEnd={currentPeriodEnd}
+          usage={usage}
         />
 
-        {/* Plan cards */}
+        {/* Plan cards - optimized for 3 enabled plans */}
         <BlockStack gap="400">
-          <Text as="h2" variant="headingLg">
-            Available Plans
-          </Text>
-          <InlineGrid columns={{ xs: 1, sm: 2, md: 3, lg: 5 }} gap="400">
+          <BlockStack gap="200">
+            <Text as="h2" variant="headingLg">
+              Available Plans
+            </Text>
+            <Text as="p" tone="subdued">
+              All plans include unlimited popups, email support, and regular updates
+            </Text>
+          </BlockStack>
+
+          {/* Responsive grid: 1 col on mobile, 2 on tablet, 3 on desktop */}
+          <InlineGrid columns={{ xs: 1, sm: 1, md: 2, lg: 3 }} gap="400">
             {plans.map((plan) => (
               <PlanCard
                 key={plan.tier}
@@ -617,68 +761,109 @@ export default function BillingPage() {
               />
             ))}
           </InlineGrid>
+
+          {/* Trust badges */}
+          <TrustBadges />
         </BlockStack>
 
-        {/* Feature comparison section */}
+        {/* Collapsible Feature comparison section */}
         <Card>
           <BlockStack gap="400">
             <Text as="h2" variant="headingMd">
-              All Features by Plan
+              Detailed Feature Comparison
             </Text>
             <Text as="p" tone="subdued">
-              Compare what&apos;s included in each plan
+              Click each category to expand and see what&apos;s included
             </Text>
 
             <Divider />
 
-            {FEATURE_CATEGORIES.map((category) => (
-              <BlockStack key={category.name} gap="300">
-                <Text as="h3" variant="headingSm" fontWeight="semibold">
-                  {category.name}
-                </Text>
-                <InlineGrid columns={{ xs: 1, md: 3 }} gap="200">
-                  {ENABLED_PLAN_ORDER.map((tier) => (
-                    <Box key={tier} padding="200">
-                      <BlockStack gap="200">
-                        <Text as="span" variant="bodySm" fontWeight="semibold">
-                          {PLAN_DEFINITIONS[tier].name}
+            {FEATURE_CATEGORIES.map((category) => {
+              const isOpen = openSections[category.name] ?? false;
+
+              return (
+                <BlockStack key={category.name} gap="200">
+                  {/* Collapsible header */}
+                  <Box
+                    paddingBlock="200"
+                    paddingInline="200"
+                    background="bg-surface-secondary"
+                    borderRadius="200"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => toggleSection(category.name)}
+                      style={{
+                        width: "100%",
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        padding: 0,
+                      }}
+                    >
+                      <InlineStack align="space-between" blockAlign="center">
+                        <Text as="h3" variant="headingSm" fontWeight="semibold">
+                          {category.name}
                         </Text>
-                        {category.features.map((feature) => (
-                          <InlineStack key={feature} gap="100" blockAlign="center" wrap={false}>
-                            <Box minWidth="20px">
-                              <Icon
-                                source={
-                                  PLAN_DEFINITIONS[tier].features[feature]
-                                    ? CheckIcon
-                                    : XIcon
-                                }
-                                tone={
-                                  PLAN_DEFINITIONS[tier].features[feature]
-                                    ? "success"
-                                    : "subdued"
-                                }
-                              />
-                            </Box>
-                            <Text
-                              as="span"
-                              variant="bodySm"
-                              tone={
-                                PLAN_DEFINITIONS[tier].features[feature]
-                                  ? undefined
-                                  : "subdued"
-                              }
-                            >
-                              {FEATURE_DISPLAY_NAMES[feature]}
-                            </Text>
-                          </InlineStack>
+                        <Icon source={isOpen ? ChevronUpIcon : ChevronDownIcon} tone="subdued" />
+                      </InlineStack>
+                    </button>
+                  </Box>
+
+                  {/* Collapsible content */}
+                  <Collapsible open={isOpen} id={`feature-${category.name}`}>
+                    <Box paddingBlock="200">
+                      <InlineGrid columns={{ xs: 1, md: 3 }} gap="400">
+                        {ENABLED_PLAN_ORDER.map((tier) => (
+                          <Box key={tier} padding="200" background="bg-surface-secondary" borderRadius="200">
+                            <BlockStack gap="200">
+                              <Text as="span" variant="bodySm" fontWeight="bold">
+                                {PLAN_DEFINITIONS[tier].name}
+                              </Text>
+                              {category.features.map((feature) => (
+                                <Tooltip
+                                  key={feature}
+                                  content={FEATURE_METADATA[feature].description}
+                                  preferredPosition="above"
+                                >
+                                  <InlineStack gap="200" blockAlign="center" wrap={false}>
+                                    <Box minWidth="20px">
+                                      <Icon
+                                        source={
+                                          PLAN_DEFINITIONS[tier].features[feature]
+                                            ? CheckIcon
+                                            : XIcon
+                                        }
+                                        tone={
+                                          PLAN_DEFINITIONS[tier].features[feature]
+                                            ? "success"
+                                            : "subdued"
+                                        }
+                                      />
+                                    </Box>
+                                    <Text
+                                      as="span"
+                                      variant="bodySm"
+                                      tone={
+                                        PLAN_DEFINITIONS[tier].features[feature]
+                                          ? undefined
+                                          : "subdued"
+                                      }
+                                    >
+                                      {FEATURE_METADATA[feature].name}
+                                    </Text>
+                                  </InlineStack>
+                                </Tooltip>
+                              ))}
+                            </BlockStack>
+                          </Box>
                         ))}
-                      </BlockStack>
+                      </InlineGrid>
                     </Box>
-                  ))}
-                </InlineGrid>
-                <Divider />
-              </BlockStack>
-            ))}
+                  </Collapsible>
+                </BlockStack>
+              );
+            })}
           </BlockStack>
         </Card>
 
@@ -733,6 +918,10 @@ export default function BillingPage() {
                 </Text>
               </BlockStack>
             </InlineGrid>
+
+            {/* Bottom trust reminder */}
+            <Divider />
+            <TrustBadges />
           </BlockStack>
         </Card>
       </BlockStack>

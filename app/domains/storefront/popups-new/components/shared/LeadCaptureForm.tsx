@@ -182,6 +182,10 @@ export interface LeadCaptureFormProps {
    * @default 'vertical'
    */
   layout?: "vertical" | "inline";
+  /**
+   * GDPR: URL to privacy policy page
+   */
+  privacyPolicyUrl?: string;
 }
 
 /**
@@ -240,6 +244,7 @@ export const LeadCaptureForm: React.FC<LeadCaptureFormProps> = ({
   className,
   style,
   layout = "vertical",
+  privacyPolicyUrl,
 }) => {
   const isInline = layout === "inline";
 
@@ -334,6 +339,7 @@ export const LeadCaptureForm: React.FC<LeadCaptureFormProps> = ({
               disabled={isSubmitting}
               accentColor={accentColor}
               textColor={textColor}
+              privacyPolicyUrl={privacyPolicyUrl}
             />
           )}
 

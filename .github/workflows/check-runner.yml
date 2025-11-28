@@ -1,0 +1,83 @@
+name: 🔍 Check Runner Availability
+
+on:
+  workflow_call:
+    inputs:
+      runner_labels:
+        description: 'Labels to match for self-hosted runner (comma-separated)'
+        required: false
+        default: 'self-hosted'
+        type: string
+    outputs:
+      runner:
+        description: 'Runner to use (self-hosted label or ubuntu-latest)'
+        value: ${{ jobs.check.outputs.runner }}
+      is_self_hosted:
+        description: 'Whether using self-hosted runner'
+        value: ${{ jobs.check.outputs.is_self_hosted }}
+
+jobs:
+  check:
+    name: Check Runner
+    runs-on: ubuntu-latest
+    outputs:
+      runner: ${{ steps.check.outputs.runner }}
+      is_self_hosted: ${{ steps.check.outputs.is_self_hosted }}
+    steps:
+      - name: Check self-hosted runner availability
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          
+          REQUIRED_LABELS="${{ inputs.runner_labels }}"
+          echo "🔍 Looking for runners with labels: $REQUIRED_LABELS"
+          
+          # Get all runners for this repository
+          RUNNERS_JSON=$(gh api repos/${{ github.repository }}/actions/runners 2>/dev/null || echo '{"runners":[]}')
+          
+          # Check for online runners with required labels
+          # Convert comma-separated labels to check
+          IFS=',' read -ra LABEL_ARRAY <<< "$REQUIRED_LABELS"
+          
+          ONLINE_RUNNER=""
+          for runner in $(echo "$RUNNERS_JSON" | jq -r '.runners[] | @base64'); do
+            _jq() {
+              echo "$runner" | base64 --decode | jq -r "$1"
+            }
+            
+            STATUS=$(_jq '.status')
+            BUSY=$(_jq '.busy')
+            NAME=$(_jq '.name')
+            LABELS=$(_jq '[.labels[].name] | join(",")')
+            
+            if [[ "$STATUS" == "online" ]]; then
+              # Check if runner has all required labels
+              HAS_ALL_LABELS=true
+              for label in "${LABEL_ARRAY[@]}"; do
+                label=$(echo "$label" | xargs) # trim whitespace
+                if [[ ! ",$LABELS," == *",$label,"* ]]; then
+                  HAS_ALL_LABELS=false
+                  break
+                fi
+              done
+              
+              if [[ "$HAS_ALL_LABELS" == "true" ]]; then
+                ONLINE_RUNNER="$NAME"
+                echo "✅ Found online runner: $NAME (busy: $BUSY, labels: $LABELS)"
+                break
+              fi
+            fi
+          done
+          
+          if [[ -n "$ONLINE_RUNNER" ]]; then
+            echo "🎯 Using self-hosted runner"
+            echo "runner=$REQUIRED_LABELS" >> $GITHUB_OUTPUT
+            echo "is_self_hosted=true" >> $GITHUB_OUTPUT
+          else
+            echo "⚠️ No matching self-hosted runner online, using GitHub-hosted"
+            echo "runner=ubuntu-latest" >> $GITHUB_OUTPUT
+            echo "is_self_hosted=false" >> $GITHUB_OUTPUT
+          fi
+

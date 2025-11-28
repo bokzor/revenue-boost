@@ -10,6 +10,7 @@
 import { data, type ActionFunctionArgs } from "react-router";
 import { z } from "zod";
 import { authenticate } from "~/shopify.server";
+import { handleApiError } from "~/lib/api-error-handler.server";
 import prisma from "~/db.server";
 import {
   getCampaignDiscountCode,
@@ -219,18 +220,7 @@ export async function action({ request }: ActionFunctionArgs) {
     return data<EmailRecoveryResponse>(response, { status: 200 });
   } catch (error) {
     console.error("[Cart Email Recovery] Error:", error);
-
-    if (error instanceof z.ZodError) {
-      return data<EmailRecoveryResponse>(
-        { success: false, error: "Invalid request data" },
-        { status: 400 }
-      );
-    }
-
-    return data<EmailRecoveryResponse>(
-      { success: false, error: "Failed to process email recovery" },
-      { status: 500 }
-    );
+    return handleApiError(error, "POST /api/cart/email-recovery");
   }
 }
 

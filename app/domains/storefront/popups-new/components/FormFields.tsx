@@ -229,6 +229,10 @@ export interface GdprCheckboxProps {
   disabled?: boolean;
   accentColor?: string;
   textColor?: string;
+  /** GDPR: URL to privacy policy page */
+  privacyPolicyUrl?: string;
+  /** GDPR: Custom text for privacy policy link (default: "Privacy Policy") */
+  privacyPolicyLinkText?: string;
 }
 
 export const GdprCheckbox: React.FC<GdprCheckboxProps> = ({
@@ -240,7 +244,58 @@ export const GdprCheckbox: React.FC<GdprCheckboxProps> = ({
   disabled = false,
   accentColor = "#4F46E5",
   textColor = "#1F2937",
+  privacyPolicyUrl,
+  privacyPolicyLinkText = "Privacy Policy",
 }) => {
+  // Build the display text with optional privacy policy link
+  const renderConsentText = () => {
+    if (!privacyPolicyUrl) {
+      return text;
+    }
+
+    // If the text contains {privacyPolicy}, replace it with the link
+    if (text.includes("{privacyPolicy}")) {
+      const parts = text.split("{privacyPolicy}");
+      return (
+        <>
+          {parts[0]}
+          <a
+            href={privacyPolicyUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              color: accentColor,
+              textDecoration: "underline",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {privacyPolicyLinkText}
+          </a>
+          {parts[1]}
+        </>
+      );
+    }
+
+    // Otherwise, append the privacy policy link
+    return (
+      <>
+        {text}{" "}
+        <a
+          href={privacyPolicyUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            color: accentColor,
+            textDecoration: "underline",
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {privacyPolicyLinkText}
+        </a>
+      </>
+    );
+  };
+
   return (
     <div style={{ marginBottom: "1rem" }}>
       <label
@@ -274,7 +329,7 @@ export const GdprCheckbox: React.FC<GdprCheckboxProps> = ({
             lineHeight: "1.5",
           }}
         >
-          {text}
+          {renderConsentText()}
           {required && <span style={{ color: "#EF4444" }}> *</span>}
         </span>
       </label>

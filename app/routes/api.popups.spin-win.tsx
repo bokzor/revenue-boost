@@ -2,7 +2,7 @@
  * API Route: Spin-to-Win Prize Code Generation
  *
  * Dynamically generates unique discount codes when users win prizes on the spin-to-win popup.
- * Integrates with DiscountService to create single-use codes based on segment configuration.
+ * Uses the shared GamePopupHandler for common logic.
  *
  * Features:
  * - Per-segment discount configuration
@@ -13,300 +13,75 @@
 
 import { data, type ActionFunctionArgs } from "react-router";
 import { z } from "zod";
-import { authenticate } from "~/shopify.server";
-import prisma from "~/db.server";
-import { getCampaignDiscountCode } from "~/domains/commerce/services/discount.server";
+import {
+  SpinToWinRequestSchema,
+  GAME_POPUP_CONFIGS,
+  authenticateRequest,
+  validateSecurityRequest,
+  checkGameRateLimit,
+  fetchAndValidateCampaign,
+  createPreviewResponse,
+  createErrorResponse,
+  createZodErrorResponse,
+  handleGamePopupPrize,
+} from "~/domains/popups/services/game-popup-handler.server";
 
-// Request validation schema - NO prizeId (security fix)
-const SpinWinRequestSchema = z.object({
-  campaignId: z.string().min(1).refine(
-    (id) => id.startsWith("preview-") || /^[cC][^\s-]{8,}$/.test(id),
-    "Invalid campaign ID format"
-  ),
-  email: z.string().email(),
-  sessionId: z.string(),
-  visitorId: z.string().optional(),
-  // Bot detection fields
-  popupShownAt: z.number().optional(),
-  honeypot: z.string().optional(),
-});
-
-// Type for SpinWinRequest is inferred from schema
-
-// Response types
-interface SpinWinResponse {
-  success: boolean;
-  prize?: {
-    id: string;
-    label: string;
-    color?: string;
-  };
-  discountCode?: string;
-  displayCode?: boolean; // Whether to show code to user
-  autoApply?: boolean; // Whether to auto-apply
-  behavior?: string;
-  expiresAt?: string;
-  error?: string;
-}
+const CONFIG = GAME_POPUP_CONFIGS.SPIN_TO_WIN;
 
 export async function action({ request }: ActionFunctionArgs) {
   try {
-    // Authenticate via app proxy (storefront context)
-    const { admin, session } = await authenticate.public.appProxy(request);
-
-    if (!session?.shop) {
-      return data({ success: false, error: "Invalid session" }, { status: 401 });
+    // 1. Authenticate via app proxy
+    const authResult = await authenticateRequest(request, CONFIG);
+    if (!("admin" in authResult)) {
+      return authResult; // Error response
     }
+    const { admin } = authResult;
 
-    // Parse and validate request body
+    // 2. Parse and validate request body
     const body = await request.json();
-    const validatedRequest = SpinWinRequestSchema.parse(body);
+    const validatedRequest = SpinToWinRequestSchema.parse(body);
+    const { campaignId, email } = validatedRequest;
 
-    const { campaignId, email, sessionId } = validatedRequest;
+    // 3. Fetch and validate campaign
+    const campaignResult = await fetchAndValidateCampaign(campaignId, CONFIG);
+    if (!("id" in campaignResult)) {
+      return campaignResult; // Error response
+    }
+    const campaign = campaignResult;
 
-    // Fetch campaign with full config
-    const campaign = await prisma.campaign.findUnique({
-      where: { id: campaignId },
-      select: {
-        id: true,
-        storeId: true,
-        name: true,
-        templateType: true,
-        contentConfig: true,
-      },
-    });
-
-    if (!campaign) {
-      return data({ success: false, error: "Campaign not found" }, { status: 404 });
+    // 4. Security validation (bot detection)
+    const securityResult = await validateSecurityRequest(request, validatedRequest, CONFIG);
+    if (!("valid" in securityResult)) {
+      return securityResult; // Bot honeypot or error response
     }
 
-    if (campaign.templateType !== "SPIN_TO_WIN") {
-      return data({ success: false, error: "Invalid campaign type" }, { status: 400 });
+    // 5. Preview mode check
+    if (campaignId.startsWith("preview-")) {
+      return createPreviewResponse(CONFIG);
     }
 
-    // SECURITY: Generic storefront request validation
-    const { validateStorefrontRequest } = await import(
-      "~/domains/security/services/submission-validator.server"
-    );
-    const validation = await validateStorefrontRequest(request, validatedRequest);
-
-    if (!validation.valid) {
-      if (validation.isBotLikely) {
-        const ip = request.headers.get("x-forwarded-for")?.split(",")[0] || "unknown";
-        console.warn(`[Spin-to-Win] 🤖 Bot detected (${validation.reason}) for campaign ${validatedRequest.campaignId}, IP: ${ip}`);
-        return data(
-          { success: true, prize: { id: "thanks", label: "Thank You!" }, discountCode: "THANKS10" },
-          { status: 200 }
-        );
-      }
-      return data(
-        { success: false, error: validation.reason === "session_expired" ? "Session expired. Please refresh the page." : "Invalid request" },
-        { status: 400 }
-      );
+    // 6. Rate limiting (email is required for spin-to-win)
+    const rateLimitResult = await checkGameRateLimit(email, campaignId, CONFIG);
+    if (!("allowed" in rateLimitResult)) {
+      return rateLimitResult; // Rate limit exceeded response
     }
 
-    // PREVIEW MODE: Return mock prize
-    // BYPASS RATE LIMITING for preview mode to allow unlimited testing
-    const isPreviewCampaign = validatedRequest.campaignId.startsWith("preview-");
-    if (isPreviewCampaign) {
-      console.log(`[Spin-to-Win] ✅ Preview mode - returning mock prize (BYPASSING RATE LIMITS)`);
-      return data(
-        {
-          success: true,
-          prize: {
-            id: "preview-prize",
-            label: "10% OFF",
-            discountCode: "PREVIEW10",
-          },
-          message: "Preview mode: Prize revealed (mock data)",
-        },
-        { status: 200 }
-      );
-    }
-
-    // SECURITY: Rate limit per email+campaign
-    const { checkRateLimit, RATE_LIMITS, createEmailCampaignKey } = await import(
-      "~/domains/security/services/rate-limit.server"
-    );
-    const rateLimitKey = createEmailCampaignKey(email, validatedRequest.campaignId);
-    const rateLimitResult = await checkRateLimit(
-      rateLimitKey,
-      "spin_to_win",
-      RATE_LIMITS.EMAIL_PER_CAMPAIGN,
-      { email, campaignId: validatedRequest.campaignId }
-    );
-
-    if (!rateLimitResult.allowed) {
-      console.warn(`[Spin-to-Win] Rate limit exceeded for ${email}`);
-      return data({ success: false, error: "You've already played today" }, { status: 429 });
-    }
-
-    // Extract wheel segments from content config
-    let contentConfig = campaign.contentConfig as any;
-    if (typeof contentConfig === "string") {
-      try {
-        contentConfig = JSON.parse(contentConfig);
-      } catch (e) {
-        console.error("[Spin-to-Win] Failed to parse contentConfig:", e);
-        contentConfig = {};
-      }
-    }
-    const wheelSegments = contentConfig?.wheelSegments || [];
-
-    if (wheelSegments.length === 0) {
-      return data({ success: false, error: "No wheel segments configured" }, { status: 400 });
-    }
-
-    // SERVER-SIDE PRIZE SELECTION (SECURITY FIX)
-    // Calculate total probability
-    const totalProbability = wheelSegments.reduce(
-      (sum: number, seg: any) => sum + (seg.probability || 0),
-      0
-    );
-
-    // Select a random segment based on probability
-    let random = Math.random() * totalProbability;
-    let winningSegment = wheelSegments[0]; // Fallback
-
-    for (const segment of wheelSegments) {
-      random -= segment.probability || 0;
-      if (random <= 0) {
-        winningSegment = segment;
-        break;
-      }
-    }
-
-    console.log(`[Spin-to-Win] Server selected prize:`, {
-      prizeId: winningSegment.id,
-      label: winningSegment.label,
-    });
-
-    // Check if segment has discount config
-    const discountConfig = winningSegment.discountConfig;
-
-    if (!discountConfig || !discountConfig.enabled) {
-      return data(
-        { success: false, error: "No discount configured for this prize" },
-        { status: 400 }
-      );
-    }
-
-    // Generate unique discount code using DiscountService
-    const result = await getCampaignDiscountCode(
+    // 7. Handle prize selection, discount generation, and lead storage
+    return handleGamePopupPrize({
+      config: CONFIG,
+      validatedRequest,
       admin,
-      campaign.storeId,
-      campaignId,
-      discountConfig,
-      email
-    );
-
-    if (!result.success || !result.discountCode) {
-      console.error("[Spin-to-Win] Code generation failed:", result.errors);
-      return data(
-        {
-          success: false,
-          error: result.errors?.join(", ") || "Failed to generate discount code",
-        },
-        { status: 500 }
-      );
-    }
-
-    // Store lead with generated code
-    try {
-      const prizeId = winningSegment.id;
-      await prisma.lead.upsert({
-        where: {
-          storeId_campaignId_email: {
-            storeId: campaign.storeId,
-            campaignId,
-            email,
-          },
-        },
-        create: {
-          email,
-          campaignId,
-          storeId: campaign.storeId,
-          sessionId,
-          discountCode: result.discountCode,
-          metadata: JSON.stringify({
-            prizeId,
-            segmentLabel: winningSegment.label,
-            sessionId,
-            generatedAt: new Date().toISOString(),
-            source: "spin_to_win_popup",
-          }),
-        },
-        update: {
-          discountCode: result.discountCode,
-          metadata: JSON.stringify({
-            prizeId,
-            segmentLabel: winningSegment.label,
-            sessionId,
-            generatedAt: new Date().toISOString(),
-            source: "spin_to_win_popup",
-          }),
-          updatedAt: new Date(),
-        },
-      });
-    } catch (error) {
-      console.error("[Spin-to-Win] Lead storage failed:", error);
-      // Continue anyway - code was generated successfully
-    }
-
-    // Track the win event
-    // TODO: Uncomment when PopupEventService.trackEvent is available
-    /*
-        try {
-            const prizeId = winningSegment.id;
-            await PopupEventService.track({
-                campaignId,
-                storeId: campaign.storeId,
-                eventType: "win",
-                sessionId: sessionId || undefined,
-                metadata: {
-                    prizeId,
-                    segmentLabel: winningSegment.label,
-                    discountCode: result.discountCode,
-                    email,
-                },
-            });
-        } catch (error) {
-            console.error("[Spin-to-Win] Event tracking failed:", error);
-            // Continue anyway
-        }
-        */
-
-    // Determine display settings based on behavior
-    const behavior = discountConfig.behavior || "SHOW_CODE_AND_AUTO_APPLY";
-
-    const response: SpinWinResponse = {
-      success: true,
-      prize: {
-        id: winningSegment.id,
-        label: winningSegment.label,
-        color: winningSegment.color,
-      },
-      discountCode: result.discountCode,
-      behavior,
-      displayCode: true, // All behaviors show the code
-      autoApply: behavior === "SHOW_CODE_AND_AUTO_APPLY",
-    };
-
-    return data(response, { status: 200 });
+      campaign,
+      contentConfig: campaign.contentConfig,
+      leadSource: "spin_to_win_popup",
+    });
   } catch (error) {
     console.error("[Spin-to-Win API] Error:", error);
 
     if (error instanceof z.ZodError) {
-      return data(
-        {
-          success: false,
-          error: "Invalid request data",
-          details: error.issues,
-        },
-        { status: 400 }
-      );
+      return createZodErrorResponse(error);
     }
 
-    return data({ success: false, error: "Internal server error" }, { status: 500 });
+    return createErrorResponse("Internal server error", 500);
   }
 }

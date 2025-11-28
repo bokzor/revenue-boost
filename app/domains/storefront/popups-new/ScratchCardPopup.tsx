@@ -49,10 +49,7 @@ export interface ScratchCardConfig extends PopupDesignConfig, ScratchCardContent
   descriptionFontSize?: string;
   descriptionFontWeight?: string;
 
-  // Consent (GDPR-style checkbox)
-  showGdprCheckbox?: boolean;
-  gdprLabel?: string;
-
+  // Note: showGdprCheckbox and gdprLabel come from ScratchCardContent
   // Note: prizes, emailRequired, emailPlaceholder, scratchThreshold, etc.
   // all come from ScratchCardContent
 }
@@ -666,6 +663,7 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
                     disabled={isSubmitting}
                     accentColor={config.accentColor || config.buttonColor}
                     textColor={config.textColor}
+                    privacyPolicyUrl={config.privacyPolicyUrl}
                   />
                 )}
 
@@ -877,6 +875,7 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
                               disabled={isSubmitting || isSubmittingEmail}
                               accentColor={config.accentColor || config.buttonColor}
                               textColor={config.textColor}
+                              privacyPolicyUrl={config.privacyPolicyUrl}
                             />
                           )}
                         </div>

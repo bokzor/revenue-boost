@@ -123,7 +123,7 @@ describe("PlanGuardService", () => {
       expect(canAccess).toBe(false);
     });
 
-    it("should return true for customCss on STARTER plan", async () => {
+    it("should return false for customCss on STARTER plan", async () => {
       vi.mocked(prisma.store.findUnique).mockResolvedValue({
         id: "store-1",
         planTier: "STARTER",
@@ -131,8 +131,9 @@ describe("PlanGuardService", () => {
         shopifySubscriptionStatus: "ACTIVE",
       } as any);
 
+      // customCss is only available on GROWTH plan and above
       const canAccess = await PlanGuardService.canAccessFeature("store-1", "customCss");
-      expect(canAccess).toBe(true);
+      expect(canAccess).toBe(false);
     });
 
     it("should return false when subscription is inactive", async () => {
@@ -228,22 +229,24 @@ describe("PlanGuardService", () => {
         shopifySubscriptionStatus: "ACTIVE",
       } as any);
 
-      // STARTER plan now has customCss, so this should NOT throw
+      // customCss is only available on GROWTH plan and above, so STARTER should throw
       await expect(
         PlanGuardService.assertCanUseCustomCss("store-1")
-      ).resolves.not.toThrow();
+      ).rejects.toThrow(PlanLimitError);
     });
   });
 
   describe("getMinimumPlanForFeature", () => {
-    it("should return STARTER for customCss", () => {
+    it("should return GROWTH for customCss", () => {
+      // customCss is only available on GROWTH plan and above
       const minPlan = PlanGuardService.getMinimumPlanForFeature("customCss");
-      expect(minPlan).toBe("STARTER");
+      expect(minPlan).toBe("GROWTH");
     });
 
-    it("should return FREE for removeBranding (available on STARTER)", () => {
+    it("should return GROWTH for removeBranding", () => {
+      // removeBranding is only available on GROWTH plan and above
       const minPlan = PlanGuardService.getMinimumPlanForFeature("removeBranding");
-      expect(minPlan).toBe("STARTER");
+      expect(minPlan).toBe("GROWTH");
     });
 
     it("should return GROWTH for experiments", () => {

@@ -153,12 +153,21 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, tri
 
       trackClick({ action: "submit" });
 
+      // GDPR: Get the consent text from campaign config to store with the lead
+      const contentConfig = campaign.contentConfig as Record<string, unknown>;
+      const consentText = data.gdprConsent
+        ? (contentConfig.consentFieldText as string) ||
+          (contentConfig.gdprLabel as string) ||
+          "I agree to receive marketing emails"
+        : undefined;
+
       const result = await api.submitLead({
         email: data.email,
         campaignId: campaign.id,
         sessionId: session.getSessionId(),
         visitorId: session.getVisitorId(),
         consent: data.gdprConsent,
+        consentText, // GDPR: Include the consent text the user agreed to
         firstName: data.name,
         // Bot detection: send timing info
         popupShownAt: popupShownAtRef.current,

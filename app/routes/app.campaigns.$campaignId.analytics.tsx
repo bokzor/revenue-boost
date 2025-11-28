@@ -1,6 +1,5 @@
-import type { LoaderFunctionArgs, ActionFunctionArgs } from "react-router";
-import { data, useLoaderData, useFetcher } from "react-router";
-import { useState, useEffect } from "react";
+import type { LoaderFunctionArgs } from "react-router";
+import { data, useLoaderData } from "react-router";
 import {
   Page,
   Card,
@@ -11,14 +10,13 @@ import {
   Divider,
   DataTable,
   Tooltip,
-  Toast,
 } from "@shopify/polaris";
 import { authenticate } from "~/shopify.server";
 import { CampaignAnalyticsService } from "~/domains/campaigns/services/campaign-analytics.server";
 import { CampaignService } from "~/domains/campaigns";
 import { getStoreId } from "~/lib/auth-helpers.server";
 import { getStoreCurrency } from "~/lib/currency.server";
-import { MarketingEventsService } from "~/domains/marketing-events/services/marketing-events.server";
+import { PopupEventService } from "~/domains/analytics/popup-events.server";
 import prisma from "~/db.server";
 
 // --- Types ---
@@ -26,11 +24,12 @@ interface LoaderData {
   campaignName: string;
   summary: {
     impressions: number;
+    clicks: number;
     leads: number;
     orders: number;
     revenue: number;
     conversionRate: number; // Leads / Impressions
-    salesConversionRate: number; // Orders / Impressions
+    clickThroughRate: number; // Clicks / Impressions
     aov: number;
   };
   dailyMetrics: Array<{
@@ -49,40 +48,6 @@ interface LoaderData {
   currency: string;
 }
 
-// --- Action ---
-export async function action({ request, params }: ActionFunctionArgs) {
-  const { admin } = await authenticate.admin(request);
-  const storeId = await getStoreId(request);
-  const campaignId = params.campaignId;
-
-  if (!campaignId) return data({ error: "Campaign ID required" }, { status: 400 });
-
-  const campaign = await CampaignService.getCampaignById(campaignId, storeId);
-  if (!campaign || !campaign.marketingEventId) {
-    return data({ error: "Campaign or Marketing Event not found" }, { status: 404 });
-  }
-
-  const statsMap = await CampaignAnalyticsService.getCampaignStats([campaignId]);
-  const stats = statsMap.get(campaignId);
-
-  if (!stats) return data({ error: "No stats available" }, { status: 404 });
-
-  const success = await MarketingEventsService.syncEngagementMetrics(
-    admin,
-    campaign.marketingEventId,
-    {
-      views: stats.impressions,
-      clicks: 0, // Clicks not currently tracked in stats
-    }
-  );
-
-  if (success) {
-    return data({ success: true });
-  } else {
-    return data({ error: "Failed to sync metrics" }, { status: 500 });
-  }
-}
-
 // --- Loader ---
 export async function loader({ request, params }: LoaderFunctionArgs) {
   console.log("[CampaignAnalytics] loader hit", {
@@ -98,34 +63,32 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   }
 
   // 1. Get Campaign Details & other data in parallel
-  const [campaign, statsMap, revenueMap, dailyMetrics, currency, conversions] = await Promise.all([
-    CampaignService.getCampaignById(campaignId, storeId),
-    CampaignAnalyticsService.getCampaignStats([campaignId]),
-    CampaignAnalyticsService.getRevenueBreakdownByCampaignIds([campaignId]),
-    CampaignAnalyticsService.getDailyMetrics(campaignId, 30), // Last 30 days
-    getStoreCurrency(admin),
-    prisma.campaignConversion.findMany({
-      where: { campaignId },
-      orderBy: { createdAt: "desc" },
-      take: 50,
-    }),
-  ]);
+  const [campaign, statsMap, revenueMap, dailyMetrics, currency, conversions, clicksMap] =
+    await Promise.all([
+      CampaignService.getCampaignById(campaignId, storeId),
+      CampaignAnalyticsService.getCampaignStats([campaignId]),
+      CampaignAnalyticsService.getRevenueBreakdownByCampaignIds([campaignId]),
+      CampaignAnalyticsService.getDailyMetrics(campaignId, 30), // Last 30 days
+      getStoreCurrency(admin),
+      prisma.campaignConversion.findMany({
+        where: { campaignId },
+        orderBy: { createdAt: "desc" },
+        take: 50,
+      }),
+      PopupEventService.getClickCountsByCampaign([campaignId]),
+    ]);
 
   if (!campaign) throw new Response("Campaign not found", { status: 404 });
 
-  const _stats = statsMap.get(campaignId);
   const revenueStats = revenueMap.get(campaignId);
+  const clicks = clicksMap.get(campaignId) || 0;
 
-  // 3. Calculate Summary Metrics
+  // Calculate Summary Metrics
   // We use daily metrics sum for "Recent" values to be consistent with the chart
   const recentImpressions = dailyMetrics.reduce((sum, d) => sum + d.impressions, 0);
   const recentLeads = dailyMetrics.reduce((sum, d) => sum + d.leads, 0);
 
-  // Use lifetime stats for total revenue/orders as that's usually what's expected in "Total" cards,
-  // but for "Last 30 Days" context we might want recent.
-  // The UI subtitle says "Last 30 Days Performance", so let's try to stick to recent if possible,
-  // but revenueStats is lifetime.
-  // Let's use lifetime for Revenue/Orders/AOV for now as it's more robustly calculated in the service.
+  // Use lifetime stats for total revenue/orders
   const totalRevenue = revenueStats?.revenue || 0;
   const totalOrders = revenueStats?.orderCount || 0;
 
@@ -133,11 +96,12 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     campaignName: campaign.name,
     summary: {
       impressions: recentImpressions,
+      clicks,
       leads: recentLeads,
       orders: totalOrders,
       revenue: totalRevenue,
       conversionRate: recentImpressions > 0 ? (recentLeads / recentImpressions) * 100 : 0,
-      salesConversionRate: recentImpressions > 0 ? (totalOrders / recentImpressions) * 100 : 0,
+      clickThroughRate: recentImpressions > 0 ? (clicks / recentImpressions) * 100 : 0,
       aov: revenueStats?.aov || 0,
     },
     dailyMetrics,
@@ -164,47 +128,15 @@ const formatMoney = (amount: number, currency: string = "USD") => {
 export default function CampaignAnalyticsPage() {
   const { campaignName, summary, dailyMetrics, conversions, currency } =
     useLoaderData<typeof loader>();
-  console.log("[CampaignAnalyticsPage] render", {
-    campaignName,
-    currency,
-    dailyPoints: dailyMetrics.length,
-  });
-
-  const fetcher = useFetcher<typeof action>();
-  const isSyncing = fetcher.state !== "idle";
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const [toastError, setToastError] = useState(false);
-
-  useEffect(() => {
-    const data = fetcher.data;
-    if (!data) return;
-
-    if ("success" in data && data.success) {
-      setToastMessage("Metrics synced to Shopify");
-      setToastError(false);
-    } else if ("error" in data && data.error) {
-      setToastMessage(data.error);
-      setToastError(true);
-    }
-  }, [fetcher.data]);
-
-  const toastMarkup = toastMessage ? (
-    <Toast content={toastMessage} error={toastError} onDismiss={() => setToastMessage(null)} />
-  ) : null;
 
   return (
     <Page
       title={`Analytics: ${campaignName}`}
       backAction={{ content: "Back to Campaign", url: "../" }}
       subtitle="Last 30 Days Performance"
-      primaryAction={{
-        content: "Sync to Shopify",
-        onAction: () => fetcher.submit({}, { method: "post" }),
-        loading: isSyncing,
-      }}
     >
       <BlockStack gap="500">
-        {/* Summary Cards */}
+        {/* Summary Cards - Row 1: Key Metrics */}
         <InlineGrid columns={{ xs: 1, sm: 2, md: 4 }} gap="400">
           <Card>
             <BlockStack gap="200">
@@ -214,38 +146,8 @@ export default function CampaignAnalyticsPage() {
               <Text as="p" variant="headingLg">
                 {formatMoney(summary.revenue, currency)}
               </Text>
-              <InlineGrid columns="auto auto" gap="200" alignItems="center">
-                <Text as="span" tone="success">
-                  {summary.orders} orders
-                </Text>
-              </InlineGrid>
-            </BlockStack>
-          </Card>
-
-          <Card>
-            <BlockStack gap="200">
-              <Text as="h3" variant="headingSm" tone="subdued">
-                Conversion Rate
-              </Text>
-              <Text as="p" variant="headingLg">
-                {summary.conversionRate.toFixed(1)}%
-              </Text>
-              <Text as="span" tone="subdued">
-                Lead Capture
-              </Text>
-            </BlockStack>
-          </Card>
-
-          <Card>
-            <BlockStack gap="200">
-              <Text as="h3" variant="headingSm" tone="subdued">
-                Impressions
-              </Text>
-              <Text as="p" variant="headingLg">
-                {summary.impressions.toLocaleString()}
-              </Text>
-              <Text as="span" tone="subdued">
-                Views
+              <Text as="span" tone="success">
+                {summary.orders} orders
               </Text>
             </BlockStack>
           </Card>
@@ -260,6 +162,34 @@ export default function CampaignAnalyticsPage() {
               </Text>
               <Text as="span" tone="subdued">
                 Per Order
+              </Text>
+            </BlockStack>
+          </Card>
+
+          <Card>
+            <BlockStack gap="200">
+              <Text as="h3" variant="headingSm" tone="subdued">
+                Lead Conversion
+              </Text>
+              <Text as="p" variant="headingLg">
+                {summary.conversionRate.toFixed(1)}%
+              </Text>
+              <Text as="span" tone="subdued">
+                {summary.leads} leads from {summary.impressions.toLocaleString()} views
+              </Text>
+            </BlockStack>
+          </Card>
+
+          <Card>
+            <BlockStack gap="200">
+              <Text as="h3" variant="headingSm" tone="subdued">
+                Click-Through Rate
+              </Text>
+              <Text as="p" variant="headingLg">
+                {summary.clickThroughRate.toFixed(1)}%
+              </Text>
+              <Text as="span" tone="subdued">
+                {summary.clicks.toLocaleString()} clicks
               </Text>
             </BlockStack>
           </Card>
@@ -353,7 +283,6 @@ export default function CampaignAnalyticsPage() {
           </BlockStack>
         </Card>
       </BlockStack>
-      {toastMarkup}
     </Page>
   );
 }

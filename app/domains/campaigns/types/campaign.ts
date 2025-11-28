@@ -265,6 +265,8 @@ export const NewsletterContentSchema = BaseContentConfigSchema.extend({
 
   consentFieldRequired: z.boolean().default(false),
   consentFieldText: z.string().optional(),
+  // GDPR: Privacy policy URL for consent checkbox link
+  privacyPolicyUrl: z.string().url().optional(),
 });
 
 /**
@@ -378,6 +380,8 @@ export const SpinToWinContentSchema = SpinToWinBaseContentSchema.extend({
   showGdprCheckbox: z.boolean().default(false),
   consentFieldRequired: z.boolean().default(false),
   gdprLabel: z.string().optional(),
+  // GDPR: Privacy policy URL for consent checkbox link
+  privacyPolicyUrl: z.string().url().optional(),
 
   // Wheel configuration
   wheelSegments: z
@@ -651,6 +655,11 @@ export const ScratchCardContentSchema = ScratchCardBaseContentSchema.extend({
     )
     .min(1, "At least one prize required")
     .default(DEFAULT_SCRATCH_CARD_PRIZES),
+  // GDPR consent fields
+  showGdprCheckbox: z.boolean().default(false),
+  gdprLabel: z.string().optional(),
+  // GDPR: Privacy policy URL for consent checkbox link
+  privacyPolicyUrl: z.string().url().optional(),
 });
 
 /**
@@ -1171,6 +1180,35 @@ export const CampaignCreateDataSchema = z.object({
     .union([z.coerce.date(), z.literal(""), z.undefined()])
     .optional()
     .transform((val) => (val === "" ? undefined : val)),
+}).superRefine((data, ctx) => {
+  // Validate that endDate is after startDate if both are provided
+  if (data.startDate && data.endDate) {
+    const start = data.startDate instanceof Date ? data.startDate : new Date(data.startDate);
+    const end = data.endDate instanceof Date ? data.endDate : new Date(data.endDate);
+
+    if (end <= start) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "End date must be after start date",
+        path: ["endDate"],
+      });
+    }
+  }
+
+  // Validate that startDate is not in the past (with 1 minute tolerance for form submission delay)
+  if (data.startDate) {
+    const start = data.startDate instanceof Date ? data.startDate : new Date(data.startDate);
+    const now = new Date();
+    now.setMinutes(now.getMinutes() - 1); // 1 minute tolerance
+
+    if (start < now) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Start date cannot be in the past",
+        path: ["startDate"],
+      });
+    }
+  }
 });
 
 export const CampaignUpdateDataSchema = CampaignCreateDataSchema.partial();

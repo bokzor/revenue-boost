@@ -263,14 +263,16 @@ model SegmentMembership {
 }
 
 model Lead {
-  id                String   @id @default(cuid())
+  id                String    @id @default(cuid())
   storeId           String
   campaignId        String
   email             String
   firstName         String?
   lastName          String?
   phone             String?
-  marketingConsent  Boolean  @default(false)
+  marketingConsent  Boolean   @default(false)
+  consentedAt       DateTime? // GDPR: Timestamp when consent was given
+  consentText       String?   // GDPR: The exact consent text that was agreed to
   sessionId         String
   visitorId         String?
   shopifyCustomerId BigInt? // Numeric Shopify customer ID

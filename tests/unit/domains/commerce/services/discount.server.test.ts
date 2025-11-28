@@ -40,6 +40,24 @@ import {
   getCampaignDiscountCode,
   createEmailSpecificDiscount,
 } from "~/domains/commerce/services/discount.server";
+import type { DiscountConfig } from "~/domains/campaigns/types/campaign";
+
+// ==========================================================================
+// TEST HELPERS
+// ==========================================================================
+
+/**
+ * Creates a valid DiscountConfig with required fields and optional overrides.
+ * This ensures tests pass TypeScript validation while keeping test code concise.
+ */
+function createDiscountConfig(overrides: Partial<DiscountConfig>): DiscountConfig {
+  return {
+    enabled: false,
+    showInPreview: true,
+    behavior: "SHOW_CODE_AND_AUTO_APPLY",
+    ...overrides,
+  };
+}
 
 // ==========================================================================
 // APPLICABILITY WIRING TESTS (existing tests)
@@ -196,7 +214,7 @@ describe("DiscountService - getCampaignDiscountCode", () => {
         mockAdmin,
         "test-store",
         "campaign-123",
-        { enabled: false },
+        createDiscountConfig({ enabled: false }),
         undefined,
         5000
       );
@@ -212,7 +230,7 @@ describe("DiscountService - getCampaignDiscountCode", () => {
         mockAdmin,
         "test-store",
         "campaign-123",
-        { enabled: true },
+        createDiscountConfig({ enabled: true }),
         undefined,
         5000
       );
@@ -233,7 +251,7 @@ describe("DiscountService - getCampaignDiscountCode", () => {
         mockAdmin,
         "test-store",
         "campaign-123",
-        { enabled: true },
+        createDiscountConfig({ enabled: true }),
         undefined,
         5000
       );
@@ -279,7 +297,7 @@ describe("DiscountService - getCampaignDiscountCode", () => {
         mockAdmin,
         "test-store",
         "campaign-123",
-        { enabled: true, type: "shared", valueType: "PERCENTAGE", value: 10 },
+        createDiscountConfig({ enabled: true, type: "shared", valueType: "PERCENTAGE", value: 10 }),
         undefined,
         5000
       );
@@ -304,13 +322,13 @@ describe("DiscountService - getCampaignDiscountCode", () => {
         mockAdmin,
         "test-store",
         "campaign-123",
-        {
+        createDiscountConfig({
           enabled: true,
           type: "shared",
           valueType: "PERCENTAGE",
           value: 15,
           prefix: "WELCOME",
-        },
+        }),
         undefined,
         5000
       );
@@ -347,7 +365,7 @@ describe("DiscountService - getCampaignDiscountCode", () => {
         mockAdmin,
         "test-store",
         "campaign-123",
-        { enabled: true, type: "shared", valueType: "PERCENTAGE", value: 10, prefix: "NEW" },
+        createDiscountConfig({ enabled: true, type: "shared", valueType: "PERCENTAGE", value: 10, prefix: "NEW" }),
         undefined,
         5000
       );
@@ -378,13 +396,13 @@ describe("DiscountService - getCampaignDiscountCode", () => {
         mockAdmin,
         "test-store",
         "campaign-123",
-        {
+        createDiscountConfig({
           enabled: true,
           type: "single_use",
           valueType: "PERCENTAGE",
           value: 20,
           prefix: "SINGLE",
-        },
+        }),
         "customer@example.com",
         5000
       );
@@ -409,13 +427,13 @@ describe("DiscountService - getCampaignDiscountCode", () => {
         mockAdmin,
         "test-store",
         "campaign-123",
-        {
+        createDiscountConfig({
           enabled: true,
           type: "single_use",
           valueType: "PERCENTAGE",
           value: 20,
           prefix: "SINGLE",
-        },
+        }),
         "john@example.com",
         5000
       );
@@ -431,7 +449,7 @@ describe("DiscountService - getCampaignDiscountCode", () => {
   // ==========================================================================
 
   describe("Tiered Discounts", () => {
-    const tieredConfig = {
+    const tieredConfig = createDiscountConfig({
       enabled: true,
       type: "shared" as const,
       valueType: "PERCENTAGE" as const,
@@ -441,7 +459,7 @@ describe("DiscountService - getCampaignDiscountCode", () => {
         { thresholdCents: 5000, discount: { kind: "percentage" as const, value: 15 } },
         { thresholdCents: 10000, discount: { kind: "percentage" as const, value: 20 } },
       ],
-    };
+    });
 
     it("should create tier codes when none exist", async () => {
       // Store reference to campaign config that we can mutate
@@ -467,7 +485,7 @@ describe("DiscountService - getCampaignDiscountCode", () => {
           tierIndex,
           code,
           discountId,
-          thresholdCents: tieredConfig.tiers[tierIndex].thresholdCents,
+          thresholdCents: tieredConfig.tiers![tierIndex].thresholdCents,
         });
 
         return {
@@ -484,14 +502,14 @@ describe("DiscountService - getCampaignDiscountCode", () => {
       });
 
       // Mock campaign update to simulate actual DB update behavior
-      vi.mocked(prisma.campaign.update).mockImplementation(async ({ data }: any) => {
+      vi.mocked(prisma.campaign.update).mockImplementation((async ({ data }: any) => {
         // Parse the new config and update our reference
         if (data.discountConfig) {
           const parsed = JSON.parse(data.discountConfig);
           Object.assign(campaignConfig._meta, parsed._meta);
         }
         return {} as any;
-      });
+      }) as any);
 
       // After tiers are created, getDiscountCode will be called to verify them
       vi.mocked(shopifyDiscountModule.getDiscountCode).mockImplementation(async (_, discountId) => {
@@ -720,12 +738,12 @@ describe("DiscountService - getCampaignDiscountCode", () => {
         mockAdmin,
         "test-store",
         "campaign-123",
-        {
+        createDiscountConfig({
           enabled: true,
           type: "shared",
           valueType: "FREE_SHIPPING",
           prefix: "FREESHIP",
-        },
+        }),
         undefined,
         5000
       );
@@ -760,7 +778,7 @@ describe("DiscountService - getCampaignDiscountCode", () => {
         mockAdmin,
         "test-store",
         "campaign-123",
-        { enabled: true, type: "shared", valueType: "PERCENTAGE", value: 10 },
+        createDiscountConfig({ enabled: true, type: "shared", valueType: "PERCENTAGE", value: 10 }),
         undefined,
         5000
       );
@@ -782,7 +800,7 @@ describe("DiscountService - getCampaignDiscountCode", () => {
         mockAdmin,
         "test-store",
         "campaign-123",
-        { enabled: true, type: "shared", valueType: "PERCENTAGE", value: 10 },
+        createDiscountConfig({ enabled: true, type: "shared", valueType: "PERCENTAGE", value: 10 }),
         undefined,
         5000
       );
@@ -809,13 +827,13 @@ describe("DiscountService - getCampaignDiscountCode", () => {
         mockAdmin,
         "test-store",
         "campaign-123",
-        {
+        createDiscountConfig({
           enabled: true,
           type: "shared",
           valueType: "PERCENTAGE",
           value: 10,
           minimumAmount: 50,
-        },
+        }),
         undefined,
         5000
       );
@@ -840,13 +858,13 @@ describe("DiscountService - getCampaignDiscountCode", () => {
         mockAdmin,
         "test-store",
         "campaign-123",
-        {
+        createDiscountConfig({
           enabled: true,
           type: "shared",
           valueType: "PERCENTAGE",
           value: 10,
           expiryDays: 30,
-        },
+        }),
         undefined,
         5000
       );

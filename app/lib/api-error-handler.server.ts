@@ -7,9 +7,10 @@
  */
 
 import { data } from "react-router";
+import { z } from "zod";
 import { createApiResponse } from "~/lib/api-types";
 import { ServiceError } from "~/lib/errors.server";
-import { ValidationError } from "~/lib/validation-helpers";
+import { ValidationError, formatZodErrors } from "~/lib/validation-helpers";
 import { isProduction } from "./env.server";
 import { PlanLimitError } from "~/domains/billing/errors";
 
@@ -99,6 +100,14 @@ export function handleApiError(error: unknown, context: string) {
 
   // Log error with full details (server-side only)
   logError(error, context);
+
+  // Handle Zod validation errors (safe to expose - user input validation)
+  if (error instanceof z.ZodError) {
+    return data(
+      createApiResponse(false, undefined, "Invalid request data", formatZodErrors(error)),
+      { status: 400 }
+    );
+  }
 
   // Handle plan/feature limit errors explicitly so the client can react
   if (error instanceof PlanLimitError) {

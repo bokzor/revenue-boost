@@ -14,6 +14,7 @@ import { data, type ActionFunctionArgs } from "react-router";
 import { z } from "zod";
 import { authenticate } from "~/shopify.server";
 import prisma from "~/db.server";
+import { handleApiError } from "~/lib/api-error-handler.server";
 import { PopupEventService } from "~/domains/analytics/popup-events.server";
 import { getCampaignDiscountCode } from "~/domains/commerce/services/discount.server";
 
@@ -387,15 +388,7 @@ export async function action({ request }: ActionFunctionArgs) {
     return data(response);
   } catch (error) {
     console.error("[Discount Issue] Error:", error);
-
-    if (error instanceof z.ZodError) {
-      return data(
-        { success: false, error: "Invalid request data", details: error.issues },
-        { status: 400 }
-      );
-    }
-
-    return data({ success: false, error: "Failed to issue discount code" }, { status: 500 });
+    return handleApiError(error, "POST /api/discounts/issue");
   }
 }
 

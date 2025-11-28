@@ -22,6 +22,7 @@ import { getStoreId } from "~/lib/auth-helpers.server";
 import { withAuthRateLimit, withWriteRateLimit } from "~/lib/rate-limit-middleware.server";
 import { authenticate } from "~/shopify.server";
 import { triggerCampaignSegmentSync } from "~/domains/targeting/services/campaign-segment-sync.server";
+import { PlanGuardService } from "~/domains/billing/services/plan-guard.server";
 
 function sanitizeDesignCustomCss(designConfig?: { customCSS?: unknown }) {
   if (!designConfig) return;
@@ -83,6 +84,11 @@ export async function action(args: { request: Request; params: any; context: any
           "Campaign Create Data"
         );
 
+        // Enforce scheduledCampaigns feature gate if dates are provided
+        if (validatedData.startDate || validatedData.endDate) {
+          await PlanGuardService.assertCanUseScheduledCampaigns(storeId);
+        }
+
         try {
           sanitizeDesignCustomCss(validatedData.designConfig);
         } catch (error) {
@@ -118,6 +124,11 @@ export async function action(args: { request: Request; params: any; context: any
           rawData,
           "Campaign Update Data"
         );
+
+        // Enforce scheduledCampaigns feature gate if dates are provided
+        if (validatedData.startDate || validatedData.endDate) {
+          await PlanGuardService.assertCanUseScheduledCampaigns(storeId);
+        }
 
         try {
           sanitizeDesignCustomCss(validatedData.designConfig);

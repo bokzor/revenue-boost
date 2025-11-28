@@ -105,7 +105,7 @@ export const PLAN_DEFINITIONS: Record<PlanTier, PlanDefinition> = {
       advancedAnalytics: true,
       prioritySupport: false,
       removeBranding: false, // Show "Powered by" branding on Starter plan
-      customCss: true,
+      customCss: false, // Custom CSS starts at Growth plan
       gamificationTemplates: false,
       socialProofTemplates: true,
       scheduledCampaigns: true,
@@ -218,3 +218,161 @@ export const SOCIAL_PROOF_TEMPLATE_TYPES = [
   "LIVE_VISITOR_COUNT",
   "LOW_STOCK_ALERT",
 ] as const;
+
+// =============================================================================
+// FEATURE METADATA - Single Source of Truth
+// =============================================================================
+
+/**
+ * Feature category for organizing features in the UI
+ */
+export type FeatureCategory = "core" | "templates" | "customization" | "advanced";
+
+/**
+ * Complete metadata for a single feature
+ * This is the single source of truth for feature display across the app
+ */
+export interface FeatureMetadata {
+  /** Display name shown in UI */
+  name: string;
+  /** Short description for tooltips and upgrade prompts */
+  description: string;
+  /** Category for grouping in feature comparison tables */
+  category: FeatureCategory;
+  /** Order within category (lower = higher priority) */
+  order: number;
+}
+
+/**
+ * Single source of truth for all feature metadata
+ * Used by: billing page, upgrade banners, feature gates, plan comparison
+ */
+export const FEATURE_METADATA: Record<keyof PlanFeatures, FeatureMetadata> = {
+  // Core Features
+  advancedTargeting: {
+    name: "Advanced Targeting",
+    description: "Target visitors by location, device, behavior, and custom rules",
+    category: "core",
+    order: 1,
+  },
+  advancedAnalytics: {
+    name: "Advanced Analytics",
+    description: "Detailed conversion funnels, heatmaps, and performance insights",
+    category: "core",
+    order: 2,
+  },
+  scheduledCampaigns: {
+    name: "Scheduled Campaigns",
+    description: "Schedule campaigns to start and stop at specific times",
+    category: "core",
+    order: 3,
+  },
+
+  // Templates
+  customTemplates: {
+    name: "Custom Templates",
+    description: "Create and save your own popup templates for reuse",
+    category: "templates",
+    order: 1,
+  },
+  gamificationTemplates: {
+    name: "Gamification",
+    description: "Spin-to-Win, Scratch Cards, Pick-a-Gift interactive popups",
+    category: "templates",
+    order: 2,
+  },
+  socialProofTemplates: {
+    name: "Social Proof & FOMO",
+    description: "Recent sales, visitor counts, low stock alerts to drive urgency",
+    category: "templates",
+    order: 3,
+  },
+
+  // Customization
+  removeBranding: {
+    name: "Remove Branding",
+    description: "Remove 'Powered by Revenue Boost' from your popups",
+    category: "customization",
+    order: 1,
+  },
+  customCss: {
+    name: "Custom CSS",
+    description: "Add custom CSS to fully customize popup appearance",
+    category: "customization",
+    order: 2,
+  },
+
+  // Advanced
+  experiments: {
+    name: "A/B Testing",
+    description: "Run A/B tests to optimize popup performance and conversion rates",
+    category: "advanced",
+    order: 1,
+  },
+  prioritySupport: {
+    name: "Priority Support",
+    description: "Get faster responses and dedicated support via email and chat",
+    category: "advanced",
+    order: 2,
+  },
+};
+
+/**
+ * Category display configuration
+ */
+export const FEATURE_CATEGORY_CONFIG: Record<FeatureCategory, { name: string; order: number }> = {
+  core: { name: "Core Features", order: 1 },
+  templates: { name: "Templates", order: 2 },
+  customization: { name: "Customization", order: 3 },
+  advanced: { name: "Advanced", order: 4 },
+};
+
+/**
+ * Get features organized by category for UI display
+ * Returns categories with their features sorted by order
+ */
+export function getFeaturesByCategory(): Array<{
+  category: FeatureCategory;
+  name: string;
+  features: Array<keyof PlanFeatures>;
+}> {
+  const categories = Object.entries(FEATURE_CATEGORY_CONFIG)
+    .sort(([, a], [, b]) => a.order - b.order)
+    .map(([category, config]) => ({
+      category: category as FeatureCategory,
+      name: config.name,
+      features: (Object.entries(FEATURE_METADATA) as Array<[keyof PlanFeatures, FeatureMetadata]>)
+        .filter(([, meta]) => meta.category === category)
+        .sort(([, a], [, b]) => a.order - b.order)
+        .map(([key]) => key),
+    }));
+
+  return categories;
+}
+
+/**
+ * Get the minimum plan tier required for a feature
+ * Checks ALL plans (including disabled ones) to ensure accurate gating
+ */
+export function getMinimumPlanForFeature(feature: keyof PlanFeatures): PlanTier | null {
+  for (const tier of PLAN_ORDER) {
+    if (PLAN_DEFINITIONS[tier].features[feature]) {
+      return tier;
+    }
+  }
+  return null;
+}
+
+/**
+ * Get feature display name
+ */
+export function getFeatureName(feature: keyof PlanFeatures): string {
+  return FEATURE_METADATA[feature].name;
+}
+
+/**
+ * Get feature description
+ */
+export function getFeatureDescription(feature: keyof PlanFeatures): string {
+  return FEATURE_METADATA[feature].description;
+}
