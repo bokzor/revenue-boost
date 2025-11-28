@@ -294,7 +294,7 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
       <>
         <style>{`
           .flash-sale-banner {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            font-family: ${config.fontFamily || 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'};
             container-type: inline-size;
             container-name: flash-banner;
           }
@@ -403,6 +403,7 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
           }
           .flash-sale-banner-cta {
             padding: 0.75em 1.5em;
+            font-family: inherit;
             font-size: clamp(0.8125rem, 2.5cqi, 0.95rem);
             font-weight: 600;
             border: none;
@@ -819,6 +820,7 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
           padding: 1em 2em;
           border-radius: 0.5em;
           border: none;
+          font-family: inherit;
           font-size: clamp(0.9375rem, 4cqi, 1.125rem);
           font-weight: 700;
           cursor: pointer;
@@ -849,6 +851,7 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
           border: 1px solid rgba(148, 163, 184, 0.6);
           background: transparent;
           color: ${textColor};
+          font-family: inherit;
           font-size: clamp(0.8125rem, 3cqi, 0.875rem);
           font-weight: 500;
           cursor: pointer;

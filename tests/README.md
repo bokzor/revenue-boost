@@ -49,7 +49,7 @@ Integration tests use a real PostgreSQL database to test database operations and
 export DATABASE_URL='postgresql://postgres:postgres@localhost:5432/revenue_boost_test'
 export SHOPIFY_API_KEY='test_api_key_12345'
 export SHOPIFY_API_SECRET='test_api_secret_12345'
-export SCOPES='write_products,write_customers,read_orders'
+export SCOPES='read_discounts,write_discounts,read_products,read_themes,read_orders,write_marketing_events,read_marketing_events,read_customers,write_customers,write_files'
 export SESSION_SECRET='test_session_secret_minimum_32_chars_long_for_validation'
 export INTERNAL_API_SECRET='test_internal_api_secret_minimum_32_chars_long_validation'
 export SHOPIFY_APP_URL='http://localhost:3000'

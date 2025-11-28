@@ -33,7 +33,7 @@ uri = "/webhooks"
 # write_marketing_events, read_marketing_events: Marketing attribution tracking in Shopify's Marketing section
 # read_customers, write_customers: Create/update customers when emails are collected via popups
 # write_files: Custom image uploads for popup backgrounds
-scopes = "read_discounts,write_discounts,write_products,read_themes,read_orders,write_marketing_events,read_marketing_events,read_customers,write_customers,write_files"
+scopes = "read_discounts,write_discounts,read_products,read_themes,read_orders,write_marketing_events,read_marketing_events,read_customers,write_customers,write_files"
 
 [auth]
 redirect_urls = [ "https://revenueboost-staging-532516069850.us-central1.run.app/api/auth" ]

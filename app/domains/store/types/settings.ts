@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { CustomCssSchema } from "~/lib/css-guards";
+import { ThemePresetsArraySchema } from "./theme-preset";
 
 /**
  * Global Frequency Capping Settings
@@ -28,6 +29,21 @@ export const StoreSettingsSchema = z.object({
   socialProofFrequencyCapping: GlobalFrequencyCappingSettingsSchema.optional(), // Specific for Social Proof
   bannerFrequencyCapping: GlobalFrequencyCappingSettingsSchema.optional(),
   globalCustomCSS: CustomCssSchema.optional(),
+
+  /** Custom theme presets created by the merchant */
+  customThemePresets: ThemePresetsArraySchema.optional(),
 });
 
 export type StoreSettings = z.infer<typeof StoreSettingsSchema>;
+
+// Re-export theme preset types for convenience
+export type { ThemePresetInput, ThemePresetsArray } from "./theme-preset";
+export {
+  ThemePresetInputSchema,
+  ThemePresetsArraySchema,
+  expandThemePreset,
+  createEmptyThemePreset,
+  parseThemePreset,
+  parseThemePresets,
+  getWheelColorsFromPreset,
+} from "./theme-preset";

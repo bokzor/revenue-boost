@@ -18,6 +18,9 @@ vi.mock("~/db.server", () => ({
     popupEvent: {
       count: vi.fn(),
     },
+    lead: {
+      count: vi.fn(),
+    },
     campaign: {
       count: vi.fn(),
     },
@@ -418,7 +421,7 @@ describe("PlanGuardService", () => {
         planStatus: "ACTIVE",
         shopifySubscriptionStatus: null,
       } as any);
-      vi.mocked(prisma.popupEvent.count).mockResolvedValue(50); // Under 100 limit
+      vi.mocked(prisma.lead.count).mockResolvedValue(50); // Under 100 limit
 
       const result = await PlanGuardService.checkLeadLimit("store-1");
 
@@ -435,7 +438,7 @@ describe("PlanGuardService", () => {
         planStatus: "ACTIVE",
         shopifySubscriptionStatus: null,
       } as any);
-      vi.mocked(prisma.popupEvent.count).mockResolvedValue(100); // At limit
+      vi.mocked(prisma.lead.count).mockResolvedValue(100); // At limit
 
       const result = await PlanGuardService.checkLeadLimit("store-1");
 
@@ -450,7 +453,7 @@ describe("PlanGuardService", () => {
         planStatus: "ACTIVE",
         shopifySubscriptionStatus: "ACTIVE",
       } as any);
-      vi.mocked(prisma.popupEvent.count).mockResolvedValue(500); // At limit
+      vi.mocked(prisma.lead.count).mockResolvedValue(500); // At limit
 
       const result = await PlanGuardService.checkLeadLimit("store-1");
 
@@ -467,7 +470,7 @@ describe("PlanGuardService", () => {
         planStatus: "ACTIVE",
         shopifySubscriptionStatus: "ACTIVE",
       } as any);
-      vi.mocked(prisma.popupEvent.count).mockResolvedValue(15000); // Over 10000 limit
+      vi.mocked(prisma.lead.count).mockResolvedValue(15000); // Over 10000 limit
 
       const result = await PlanGuardService.checkLeadLimit("store-1");
 
@@ -483,7 +486,7 @@ describe("PlanGuardService", () => {
         planStatus: "ACTIVE",
         shopifySubscriptionStatus: null,
       } as any);
-      vi.mocked(prisma.popupEvent.count).mockResolvedValue(85); // 85% of 100
+      vi.mocked(prisma.lead.count).mockResolvedValue(85); // 85% of 100
 
       const result = await PlanGuardService.checkLeadLimit("store-1");
 
@@ -514,7 +517,7 @@ describe("PlanGuardService", () => {
         planStatus: "ACTIVE",
         shopifySubscriptionStatus: null,
       } as any);
-      vi.mocked(prisma.popupEvent.count).mockResolvedValue(50);
+      vi.mocked(prisma.lead.count).mockResolvedValue(50);
 
       await expect(
         PlanGuardService.assertCanCaptureLead("store-1")
@@ -528,7 +531,7 @@ describe("PlanGuardService", () => {
         planStatus: "ACTIVE",
         shopifySubscriptionStatus: null,
       } as any);
-      vi.mocked(prisma.popupEvent.count).mockResolvedValue(100);
+      vi.mocked(prisma.lead.count).mockResolvedValue(100);
 
       await expect(
         PlanGuardService.assertCanCaptureLead("store-1")
@@ -673,9 +676,8 @@ describe("PlanGuardService", () => {
         planStatus: "ACTIVE",
         shopifySubscriptionStatus: "ACTIVE",
       } as any);
-      vi.mocked(prisma.popupEvent.count)
-        .mockResolvedValueOnce(5000) // impressions
-        .mockResolvedValueOnce(150); // leads
+      vi.mocked(prisma.popupEvent.count).mockResolvedValue(5000); // impressions
+      vi.mocked(prisma.lead.count).mockResolvedValue(150); // leads
       vi.mocked(prisma.campaign.count).mockResolvedValue(3);
       vi.mocked(prisma.experiment.count).mockResolvedValue(1);
 
@@ -702,9 +704,8 @@ describe("PlanGuardService", () => {
         planStatus: "ACTIVE",
         shopifySubscriptionStatus: "ACTIVE",
       } as any);
-      vi.mocked(prisma.popupEvent.count)
-        .mockResolvedValueOnce(500000)
-        .mockResolvedValueOnce(50000);
+      vi.mocked(prisma.popupEvent.count).mockResolvedValue(500000); // impressions
+      vi.mocked(prisma.lead.count).mockResolvedValue(50000); // leads
       vi.mocked(prisma.campaign.count).mockResolvedValue(50);
       vi.mocked(prisma.experiment.count).mockResolvedValue(20);
 

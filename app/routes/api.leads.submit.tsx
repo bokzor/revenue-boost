@@ -20,6 +20,10 @@ import {
   getSuccessMessage,
 } from "~/domains/commerce/services/discount.server";
 import {
+  generatePreviewDiscountCode,
+  isPreviewCampaign as checkIsPreviewCampaign,
+} from "~/lib/preview-discount.server";
+import {
   upsertCustomer,
   sanitizeCustomerData,
   extractCustomerId,
@@ -139,15 +143,65 @@ export async function action({ request }: ActionFunctionArgs) {
     // BYPASS RATE LIMITING for preview mode to allow unlimited testing
     if (isPreviewCampaign) {
       console.log(`[Lead Submit] ✅ Preview mode - returning mock success response (BYPASSING RATE LIMITS)`);
+
+      // Try to fetch discount config from Redis preview session
+      let previewDiscountCode: string | undefined;
+      let previewBehavior = "SHOW_CODE_AND_AUTO_APPLY";
+
+      try {
+        // Extract token from campaign ID (format: "preview-{token}")
+        const previewToken = validatedData.campaignId.replace("preview-", "");
+        if (previewToken) {
+          const { getRedis, REDIS_PREFIXES } = await import("~/lib/redis.server");
+          const redis = getRedis();
+          if (redis) {
+            const PREVIEW_PREFIX = `${REDIS_PREFIXES.SESSION}:preview`;
+            const redisKey = `${PREVIEW_PREFIX}:${previewToken}`;
+            const sessionDataStr = await redis.get(redisKey);
+
+            if (sessionDataStr) {
+              const sessionData = JSON.parse(sessionDataStr);
+              const discountConfig = sessionData.data?.discountConfig;
+
+              if (discountConfig) {
+                previewDiscountCode = generatePreviewDiscountCode(discountConfig);
+                previewBehavior = discountConfig.behavior || "SHOW_CODE_AND_AUTO_APPLY";
+                console.log(`[Lead Submit] 🎟️ Preview discount code generated: ${previewDiscountCode}`);
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.warn("[Lead Submit] Failed to fetch preview discount config:", error);
+        // Fallback to generic preview code
+        previewDiscountCode = "PREVIEW-SAVE";
+      }
+
       return data(
         {
           success: true,
           leadId: "preview-lead-id",
           message: "Preview mode: Lead submission successful (not saved to database)",
-          discountCode: undefined, // Don't generate discount codes in preview
-          behavior: "SHOW_CODE_AND_AUTO_APPLY",
+          discountCode: previewDiscountCode,
+          behavior: previewBehavior,
         },
         { status: 200, headers: storefrontCors() }
+      );
+    }
+
+    // PLAN LIMIT CHECK: Enforce monthly lead capture limits based on plan
+    const { PlanGuardService } = await import("~/domains/billing/services/plan-guard.server");
+    const leadLimitResult = await PlanGuardService.checkLeadLimit(storeId);
+
+    if (!leadLimitResult.allowed) {
+      console.warn(`[Lead Submit] Monthly lead limit reached for store ${storeId}: ${leadLimitResult.current}/${leadLimitResult.max}`);
+      return data(
+        {
+          success: false,
+          error: "We're currently at capacity. Please try again later.",
+          limitReached: true,
+        },
+        { status: 429, headers: storefrontCors() }
       );
     }
 

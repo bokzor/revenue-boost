@@ -84,6 +84,7 @@ export const AnnouncementPopup: React.FC<AnnouncementPopupProps> = ({
     right: 0,
     ...bannerBackgroundStyles,
     color: schemeColors.textColor,
+    fontFamily: config.fontFamily || 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
     padding: "14px 20px",
     zIndex: 10000,
     boxShadow: "0 2px 8px rgba(0,0,0,0.1)",

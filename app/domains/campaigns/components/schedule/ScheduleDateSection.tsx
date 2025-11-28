@@ -18,7 +18,11 @@ import {
   Box,
   Banner,
 } from "@shopify/polaris";
-import { formatDateForInput, formatDateRange } from "../../utils/schedule-helpers";
+import {
+  formatDateForInput,
+  formatDateRange,
+  validateScheduleDates,
+} from "../../utils/schedule-helpers";
 import { UpgradeBanner } from "~/domains/billing/components/UpgradeBanner";
 import { useFeatureAccess } from "~/domains/billing/components/UpgradeBanner";
 
@@ -53,42 +57,6 @@ function getMinDateTime(timezone?: string): string {
   return now.toISOString().slice(0, 16);
 }
 
-/**
- * Validate schedule dates
- */
-function validateScheduleDates(
-  startDate?: string,
-  endDate?: string,
-  timezone?: string
-): { startDateError?: string; endDateError?: string } {
-  const errors: { startDateError?: string; endDateError?: string } = {};
-  const now = new Date();
-
-  if (startDate) {
-    const start = new Date(startDate);
-    if (start < now) {
-      errors.startDateError = "Start date cannot be in the past";
-    }
-  }
-
-  if (endDate) {
-    const end = new Date(endDate);
-    if (end < now) {
-      errors.endDateError = "End date cannot be in the past";
-    }
-  }
-
-  if (startDate && endDate) {
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    if (end <= start) {
-      errors.endDateError = "End date must be after start date";
-    }
-  }
-
-  return errors;
-}
-
 export function ScheduleDateSection({
   startDate,
   endDate,
@@ -100,8 +68,8 @@ export function ScheduleDateSection({
   const dateRangeText = formatDateRange(startDate, endDate, timezone);
   const minDateTime = useMemo(() => getMinDateTime(timezone), [timezone]);
   const validationErrors = useMemo(
-    () => validateScheduleDates(startDate, endDate, timezone),
-    [startDate, endDate, timezone]
+    () => validateScheduleDates(startDate, endDate),
+    [startDate, endDate]
   );
 
   const currentTime = timezone

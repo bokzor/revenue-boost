@@ -19,6 +19,7 @@ import { PLAN_DEFINITIONS } from "../domains/billing/types/plan";
 import { PlanGuardService } from "../domains/billing/services/plan-guard.server";
 import { GlobalCappingSettings } from "../domains/store/components/GlobalCappingSettings";
 import { GlobalCSSSettings } from "../domains/store/components/GlobalCSSSettings";
+import { ThemePresetsSettings } from "../domains/store/components/ThemePresetsSettings";
 import { StoreSettingsSchema, type StoreSettings } from "../domains/store/types/settings";
 import { SetupStatus } from "../domains/setup/components/SetupStatus";
 import { getSetupStatus } from "../lib/setup-status.server";
@@ -299,6 +300,10 @@ export default function SettingsPage() {
                 </BlockStack>
               </BlockStack>
             </Card>
+          </Layout.Section>
+
+          <Layout.Section>
+            <ThemePresetsSettings settings={storeSettings} onChange={handleSettingsChange} />
           </Layout.Section>
 
           <Layout.Section>

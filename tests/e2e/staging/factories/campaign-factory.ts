@@ -206,6 +206,13 @@ export class CampaignFactory {
     }
 
     /**
+     * Create an A/B test experiment builder
+     */
+    experiment() {
+        return new ExperimentBuilder(this.prisma, this.storeId, this.testPrefix, this.templateCache);
+    }
+
+    /**
      * Internal method used by builders to create campaigns
      */
     async _createCampaign(config: BaseCampaignConfig) {
@@ -714,6 +721,28 @@ class BaseBuilder<T extends BaseBuilder<T>> {
             prefix: options.prefix || 'SAVE',
             behavior: 'SHOW_CODE_ONLY',
             expiryDays: 30
+        };
+        return this as unknown as T;
+    }
+
+    /**
+     * Configure design settings (size, position, colors, etc.)
+     */
+    withDesignConfig(designUpdates: {
+        size?: 'SMALL' | 'MEDIUM' | 'LARGE';
+        position?: 'CENTER' | 'TOP_LEFT' | 'TOP_RIGHT' | 'BOTTOM_LEFT' | 'BOTTOM_RIGHT';
+        primaryColor?: string;
+        secondaryColor?: string;
+        textColor?: string;
+        cornerRadius?: number;
+        overlayOpacity?: number;
+        backgroundImage?: string;
+        hasBackgroundImage?: boolean;
+    }): T {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.designConfig = {
+            ...this.config.designConfig,
+            ...designUpdates
         };
         return this as unknown as T;
     }
@@ -1474,5 +1503,241 @@ export class ExitIntentBuilder extends BaseBuilder<ExitIntentBuilder> {
         if (!this.config) throw new Error('Config not initialized');
         this.config.contentConfig.headline = headline;
         return this;
+    }
+}
+
+// ============================================================================
+// EXPERIMENT BUILDER
+// ============================================================================
+
+export interface ExperimentConfig {
+    name: string;
+    storeId: string;
+    status: 'DRAFT' | 'RUNNING' | 'PAUSED' | 'COMPLETED' | 'ARCHIVED';
+    trafficAllocation: Record<string, number>;
+    statisticalConfig: {
+        confidenceLevel: number;
+        minimumSampleSize: number;
+        minimumDetectableEffect: number;
+    };
+    successMetrics: {
+        primary: string;
+        secondary: string[];
+    };
+}
+
+export interface VariantConfig {
+    variantKey: 'A' | 'B' | 'C' | 'D';
+    isControl: boolean;
+    headline: string;
+    templateType: TemplateType;
+}
+
+/**
+ * Builder for A/B test experiments with multiple campaign variants
+ */
+export class ExperimentBuilder {
+    private prisma: PrismaClient;
+    private storeId: string;
+    private testPrefix: string;
+    private config: ExperimentConfig | null = null;
+    private variants: VariantConfig[] = [];
+    private templateCache: Map<TemplateType, string>;
+
+    constructor(
+        prisma: PrismaClient,
+        storeId: string,
+        testPrefix: string,
+        templateCache: Map<TemplateType, string>
+    ) {
+        this.prisma = prisma;
+        this.storeId = storeId;
+        this.testPrefix = testPrefix;
+        this.templateCache = templateCache;
+    }
+
+    /**
+     * Initialize with default experiment configuration
+     */
+    async init(): Promise<this> {
+        this.config = {
+            name: `${this.testPrefix}Experiment-${Date.now()}`,
+            storeId: this.storeId,
+            status: 'RUNNING',
+            trafficAllocation: { A: 50, B: 50 },
+            statisticalConfig: {
+                confidenceLevel: 0.95,
+                minimumSampleSize: 100,
+                minimumDetectableEffect: 0.05
+            },
+            successMetrics: {
+                primary: 'CONVERSION_RATE',
+                secondary: ['CLICK_THROUGH_RATE']
+            }
+        };
+        return this;
+    }
+
+    /**
+     * Set experiment name
+     */
+    withName(name: string): this {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.name = `${this.testPrefix}${name}`;
+        return this;
+    }
+
+    /**
+     * Set experiment status
+     */
+    withStatus(status: 'DRAFT' | 'RUNNING' | 'PAUSED' | 'COMPLETED' | 'ARCHIVED'): this {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.status = status;
+        return this;
+    }
+
+    /**
+     * Set traffic allocation between variants
+     */
+    withTrafficAllocation(allocation: Record<string, number>): this {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.trafficAllocation = allocation;
+        return this;
+    }
+
+    /**
+     * Add a variant to the experiment
+     */
+    addVariant(config: Partial<VariantConfig> & { variantKey: 'A' | 'B' | 'C' | 'D' }): this {
+        this.variants.push({
+            variantKey: config.variantKey,
+            isControl: config.isControl ?? (config.variantKey === 'A'),
+            headline: config.headline ?? `Variant ${config.variantKey} Headline`,
+            templateType: config.templateType ?? 'NEWSLETTER'
+        });
+        return this;
+    }
+
+    /**
+     * Add default A/B variants (50/50 split, newsletter template)
+     */
+    withDefaultVariants(headlineA: string, headlineB: string): this {
+        this.variants = [
+            { variantKey: 'A', isControl: true, headline: headlineA, templateType: 'NEWSLETTER' },
+            { variantKey: 'B', isControl: false, headline: headlineB, templateType: 'NEWSLETTER' }
+        ];
+        return this;
+    }
+
+    /**
+     * Get template ID for a template type
+     */
+    private async getTemplateId(templateType: TemplateType): Promise<string> {
+        if (this.templateCache.has(templateType)) {
+            return this.templateCache.get(templateType)!;
+        }
+
+        const template = await this.prisma.template.findFirst({
+            where: { templateType },
+            select: { id: true }
+        });
+
+        if (!template) {
+            throw new Error(`Template not found for type: ${templateType}`);
+        }
+
+        this.templateCache.set(templateType, template.id);
+        return template.id;
+    }
+
+    /**
+     * Create the experiment with all variants in the database
+     */
+    async create(): Promise<{ experiment: any; variants: any[] }> {
+        if (!this.config) throw new Error('Config not initialized');
+        if (this.variants.length < 2) {
+            throw new Error('Experiment requires at least 2 variants');
+        }
+
+        // Create experiment
+        const experiment = await this.prisma.experiment.create({
+            data: {
+                storeId: this.storeId,
+                name: this.config.name,
+                status: this.config.status,
+                trafficAllocation: this.config.trafficAllocation,
+                statisticalConfig: this.config.statisticalConfig,
+                successMetrics: this.config.successMetrics,
+                startDate: new Date()
+            }
+        });
+
+        // Create variant campaigns
+        const createdVariants = [];
+        for (const variant of this.variants) {
+            const templateId = await this.getTemplateId(variant.templateType);
+
+            const campaign = await this.prisma.campaign.create({
+                data: {
+                    storeId: this.storeId,
+                    templateId,
+                    templateType: variant.templateType,
+                    experimentId: experiment.id,
+                    variantKey: variant.variantKey,
+                    isControl: variant.isControl,
+                    name: `${this.config.name} - Variant ${variant.variantKey}`,
+                    status: 'ACTIVE',
+                    priority: 99999, // High priority for testing
+                    goal: 'NEWSLETTER_SIGNUP',
+                    targetRules: {
+                        pageTargeting: { enabled: false },
+                        deviceTargeting: { enabled: false },
+                        geoTargeting: { enabled: false },
+                        audienceTargeting: { enabled: false },
+                        enhancedTriggers: {
+                            trigger_type: 'PAGE_LOAD',
+                            delay_seconds: 0
+                        }
+                    },
+                    contentConfig: {
+                        headline: variant.headline,
+                        subheadline: `Test variant ${variant.variantKey}`,
+                        emailPlaceholder: 'Enter your email',
+                        submitButtonText: 'Subscribe',
+                        privacyPolicyText: 'We respect your privacy',
+                        showGdprCheckbox: false
+                    },
+                    designConfig: {
+                        size: 'MEDIUM',
+                        position: 'CENTER',
+                        showCloseButton: true,
+                        closeButtonPosition: 'TOP_RIGHT',
+                        overlayOpacity: 0.5,
+                        cornerRadius: 8,
+                        primaryColor: '#000000',
+                        secondaryColor: '#ffffff',
+                        textColor: '#333333'
+                    }
+                }
+            });
+            createdVariants.push(campaign);
+        }
+
+        return { experiment, variants: createdVariants };
+    }
+
+    /**
+     * Delete experiment and all its variants
+     */
+    async cleanup(experimentId: string): Promise<void> {
+        // Delete campaigns first (due to foreign key)
+        await this.prisma.campaign.deleteMany({
+            where: { experimentId }
+        });
+
+        // Then delete experiment
+        await this.prisma.experiment.delete({
+            where: { id: experimentId }
+        });
     }
 }

@@ -22,6 +22,7 @@ import type { UnifiedTemplate } from "../../hooks/useTemplates";
 import { getSpinToWinSliceColors, getSpinToWinWheelBorder } from "~/config/color-presets";
 import { CustomCSSEditor } from "../CustomCSSEditor";
 import { UpgradeBanner, useFeatureAccess } from "~/domains/billing";
+import { getWheelColorsFromPreset, type ThemePresetInput } from "~/domains/store/types/theme-preset";
 
 interface DesignStepContentProps {
   goal?: CampaignGoal;
@@ -35,6 +36,17 @@ interface DesignStepContentProps {
   discountConfig?: DiscountConfig;
   targetRules?: Record<string, any>;
   globalCustomCSS?: string;
+  /** Custom theme presets from store settings */
+  customThemePresets?: Array<{
+    id: string;
+    name: string;
+    brandColor: string;
+    backgroundColor: string;
+    textColor: string;
+    surfaceColor?: string;
+    successColor?: string;
+    fontFamily?: string;
+  }>;
   onContentChange: (content: Partial<ContentConfig>) => void;
   onDesignChange: (design: Partial<DesignConfig>) => void;
   onDiscountChange?: (config: DiscountConfig) => void;
@@ -55,6 +67,7 @@ export function DesignStepContent({
   discountConfig,
   targetRules,
   globalCustomCSS,
+  customThemePresets,
   onContentChange,
   onDesignChange,
   onDiscountChange,
@@ -129,6 +142,7 @@ export function DesignStepContent({
                     design={designConfig}
                     templateType={templateType}
                     onChange={onDesignChange}
+                    customThemePresets={customThemePresets}
                     onThemeChange={(themeKey) => {
                       if (templateType === "SPIN_TO_WIN") {
                         const spinContent = contentConfig as Partial<SpinToWinContent>;
@@ -150,6 +164,34 @@ export function DesignStepContent({
                           wheelSegments: updatedSegments,
                           wheelBorderColor: border.color,
                           wheelBorderWidth: border.width,
+                        });
+                      }
+                    }}
+                    onCustomPresetApply={(presetId, brandColor) => {
+                      // Apply custom preset colors to Spin-to-Win wheel segments
+                      if (templateType === "SPIN_TO_WIN") {
+                        const spinContent = contentConfig as Partial<SpinToWinContent>;
+                        const segments = spinContent.wheelSegments;
+                        if (!segments || segments.length === 0) {
+                          return;
+                        }
+
+                        // Find the preset and generate colors from it
+                        const preset = customThemePresets?.find(p => p.id === presetId);
+                        if (!preset) return;
+
+                        const colors = getWheelColorsFromPreset(preset as ThemePresetInput, segments.length);
+
+                        const updatedSegments = segments.map((segment, index) => ({
+                          ...segment,
+                          color: colors[index % colors.length],
+                        }));
+
+                        onContentChange({
+                          ...contentConfig,
+                          wheelSegments: updatedSegments,
+                          wheelBorderColor: brandColor,
+                          wheelBorderWidth: 4,
                         });
                       }
                     }}

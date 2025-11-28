@@ -183,18 +183,81 @@ export function createBotHoneypotResponse(): ReturnType<typeof data> {
 }
 
 /**
- * Create preview mode response
+ * Create preview mode response with realistic discount code
  */
-export function createPreviewResponse(config: GamePopupConfig): ReturnType<typeof data> {
+export async function createPreviewResponse(
+  config: GamePopupConfig,
+  campaignId?: string
+): Promise<ReturnType<typeof data>> {
   console.log(`${config.logPrefix} ✅ Preview mode - returning mock prize (BYPASSING RATE LIMITS)`);
+
+  // Default preview values
+  let prize = {
+    id: "preview-prize",
+    label: "10% OFF",
+  };
+  let discountCode = "PREVIEW-10OFF";
+  let behavior = "SHOW_CODE_AND_AUTO_APPLY";
+
+  // Try to fetch actual config from Redis preview session
+  if (campaignId?.startsWith("preview-")) {
+    try {
+      const previewToken = campaignId.replace("preview-", "");
+      const { getRedis, REDIS_PREFIXES } = await import("~/lib/redis.server");
+      const { generatePreviewDiscountCode } = await import("~/lib/preview-discount.server");
+      const redis = getRedis();
+
+      if (redis && previewToken) {
+        const PREVIEW_PREFIX = `${REDIS_PREFIXES.SESSION}:preview`;
+        const redisKey = `${PREVIEW_PREFIX}:${previewToken}`;
+        const sessionDataStr = await redis.get(redisKey);
+
+        if (sessionDataStr) {
+          const sessionData = JSON.parse(sessionDataStr);
+          const contentConfig = sessionData.data?.contentConfig;
+
+          // Get prizes from the appropriate field (wheelSegments for spin, prizes for scratch)
+          const prizes: Prize[] = contentConfig?.[config.prizesField] || [];
+
+          if (prizes.length > 0) {
+            // Filter out "try again" or no-discount prizes and pick a valid one
+            const validPrizes = prizes.filter(
+              (p: Prize) => p.discountConfig?.enabled !== false && p.label?.toLowerCase() !== "try again"
+            );
+
+            const selectedPrize = validPrizes.length > 0 ? validPrizes[0] : prizes[0];
+            if (selectedPrize) {
+              prize = {
+                id: selectedPrize.id || "preview-prize",
+                label: selectedPrize.label || "10% OFF",
+              };
+
+              if (selectedPrize.discountConfig) {
+                discountCode = generatePreviewDiscountCode(selectedPrize.discountConfig) || "PREVIEW-SAVE";
+                behavior = selectedPrize.discountConfig.behavior || "SHOW_CODE_AND_AUTO_APPLY";
+              }
+            }
+          }
+
+          console.log(`${config.logPrefix} 🎟️ Preview prize selected: ${prize.label} -> ${discountCode}`);
+        }
+      }
+    } catch (error) {
+      console.warn(`${config.logPrefix} Failed to fetch preview config:`, error);
+      // Continue with defaults
+    }
+  }
+
   return data(
     {
       success: true,
       prize: {
-        id: "preview-prize",
-        label: "10% OFF",
-        discountCode: "PREVIEW10",
+        id: prize.id,
+        label: prize.label,
+        discountCode,
       },
+      discountCode,
+      behavior,
       message: "Preview mode: Prize revealed (mock data)",
     },
     { status: 200 }

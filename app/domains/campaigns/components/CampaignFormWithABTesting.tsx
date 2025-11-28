@@ -115,6 +115,17 @@ interface CampaignFormWithABTestingProps {
   initialData?: Partial<CampaignFormData>;
   shopDomain?: string;
   globalCustomCSS?: string;
+  /** Custom theme presets from store settings */
+  customThemePresets?: Array<{
+    id: string;
+    name: string;
+    brandColor: string;
+    backgroundColor: string;
+    textColor: string;
+    surfaceColor?: string;
+    successColor?: string;
+    fontFamily?: string;
+  }>;
   experimentId?: string;
   experimentData?: ExperimentData;
   allVariants?: Array<{
@@ -143,6 +154,7 @@ export function CampaignFormWithABTesting({
   initialData,
   shopDomain,
   globalCustomCSS,
+  customThemePresets,
   experimentId,
   experimentData,
   allVariants,
@@ -442,6 +454,7 @@ export function CampaignFormWithABTesting({
       abTestingEnabled,
       initialTemplates,
       globalCustomCSS,
+      customThemePresets,
       advancedTargetingEnabled,
     };
 

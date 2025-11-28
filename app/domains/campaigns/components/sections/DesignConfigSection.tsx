@@ -34,16 +34,44 @@ import {
   getNewsletterBackgroundUrl,
 } from "~/config/color-presets";
 import { ThemePresetSelector } from "../shared/ThemePresetSelector";
+import { CustomPresetSelector } from "../shared/CustomPresetSelector";
 import { getDesignCapabilities } from "~/domains/templates/registry/design-capabilities";
 import { useShopifyFileUpload } from "~/shared/hooks/useShopifyFileUpload";
+import type { ThemePresetInput } from "~/domains/store/types/theme-preset";
+import { loadGoogleFont } from "~/shared/utils/google-fonts";
+
+// Font family options for the typography selector
+const FONT_FAMILY_OPTIONS = [
+  { label: "System Default", value: "inherit" },
+  { label: "Inter", value: "Inter, system-ui, sans-serif" },
+  { label: "Roboto", value: "Roboto, system-ui, sans-serif" },
+  { label: "Open Sans", value: "'Open Sans', system-ui, sans-serif" },
+  { label: "Lato", value: "Lato, system-ui, sans-serif" },
+  { label: "Montserrat", value: "Montserrat, system-ui, sans-serif" },
+  { label: "Playfair Display (Serif)", value: "'Playfair Display', Georgia, serif" },
+  { label: "Merriweather (Serif)", value: "Merriweather, Georgia, serif" },
+];
 
 export interface DesignConfigSectionProps {
   design: Partial<DesignConfig>;
   errors?: Record<string, string>;
   onChange: (design: Partial<DesignConfig>) => void;
   templateType?: string;
+  /** Custom theme presets from store settings */
+  customThemePresets?: Array<{
+    id: string;
+    name: string;
+    brandColor: string;
+    backgroundColor: string;
+    textColor: string;
+    surfaceColor?: string;
+    successColor?: string;
+    fontFamily?: string;
+  }>;
   /** Optional callback invoked when a theme preset is applied */
   onThemeChange?: (themeKey: NewsletterThemeKey) => void;
+  /** Optional callback to apply wheel colors when custom preset is applied (for Spin-to-Win) */
+  onCustomPresetApply?: (presetId: string, brandColor: string) => void;
 }
 
 export function DesignConfigSection({
@@ -51,7 +79,9 @@ export function DesignConfigSection({
   errors,
   onChange,
   templateType,
+  customThemePresets,
   onThemeChange,
+  onCustomPresetApply,
 }: DesignConfigSectionProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -66,6 +96,7 @@ export function DesignConfigSection({
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
     backgroundImage: false,
     mainColors: false,
+    typography: false,
     buttonColors: false,
     inputColors: false,
     overlaySettings: false,
@@ -208,10 +239,34 @@ export function DesignConfigSection({
 
         <Divider />
 
-        {/* Theme Presets (Swatches) */}
+        {/* Custom Theme Presets (from store settings) */}
+        {customThemePresets && customThemePresets.length > 0 && (
+          <>
+            <CustomPresetSelector
+              presets={customThemePresets as ThemePresetInput[]}
+              onApplyPreset={(expandedConfig, presetId) => {
+                // Apply expanded config while preserving non-color fields
+                onChange({
+                  ...design,
+                  ...expandedConfig,
+                });
+
+                // If callback provided (for Spin-to-Win wheel colors), call it
+                const preset = customThemePresets.find(p => p.id === presetId);
+                if (onCustomPresetApply && preset) {
+                  onCustomPresetApply(presetId, preset.brandColor);
+                }
+              }}
+              helpText="Apply your saved brand colors"
+            />
+            <Divider />
+          </>
+        )}
+
+        {/* Built-in Theme Presets (Swatches) */}
         <ThemePresetSelector
-          title="Theme Presets"
-          helpText="Theme presets apply color tokens universally. Gradient themes are supported. Fine-tune individual colors below."
+          title="Built-in Themes"
+          helpText="Quick start themes with pre-configured colors. Fine-tune individual colors below."
           selected={(design.theme as NewsletterThemeKey) || "modern"}
           onSelect={handleThemeChange}
         />
@@ -502,6 +557,52 @@ export function DesignConfigSection({
                   />
                 )}
               </FormGrid>
+            </BlockStack>
+          </Collapsible>
+        </BlockStack>
+
+        <Divider />
+
+        {/* Typography Section */}
+        <BlockStack gap="300">
+          <div
+            role="button"
+            tabIndex={0}
+            style={{ cursor: "pointer" }}
+            onClick={() => toggleSection("typography")}
+            onKeyDown={handleKeyDown("typography")}
+          >
+            <InlineStack gap="200" blockAlign="center">
+              <Button
+                variant="plain"
+                icon={openSections.typography ? ChevronUpIcon : ChevronDownIcon}
+              />
+              <Text as="h4" variant="headingSm">
+                Typography
+              </Text>
+            </InlineStack>
+          </div>
+
+          <Collapsible
+            open={openSections.typography}
+            id="typography-section"
+            transition={{
+              duration: "200ms",
+              timingFunction: "ease-in-out",
+            }}
+          >
+            <BlockStack gap="300">
+              <Select
+                label="Font Family"
+                value={design.fontFamily || "inherit"}
+                options={FONT_FAMILY_OPTIONS}
+                onChange={(value) => {
+                  // Load the Google Font when selected
+                  loadGoogleFont(value);
+                  updateField("fontFamily", value);
+                }}
+                helpText="Choose a font for your popup text"
+              />
             </BlockStack>
           </Collapsible>
         </BlockStack>

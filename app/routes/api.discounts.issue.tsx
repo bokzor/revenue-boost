@@ -17,6 +17,7 @@ import prisma from "~/db.server";
 import { handleApiError } from "~/lib/api-error-handler.server";
 import { PopupEventService } from "~/domains/analytics/popup-events.server";
 import { getCampaignDiscountCode } from "~/domains/commerce/services/discount.server";
+import { generatePreviewDiscountCode } from "~/lib/preview-discount.server";
 
 // Request validation schema
 const IssueDiscountRequestSchema = z.object({
@@ -168,10 +169,43 @@ export async function action({ request }: ActionFunctionArgs) {
     const isPreviewCampaign = campaignId.startsWith("preview-");
     if (isPreviewCampaign) {
       console.log(`[Discount Issue] ✅ Preview mode - returning mock discount code (BYPASSING RATE LIMITS)`);
+
+      // Try to fetch discount config from Redis preview session
+      let previewDiscountCode = "PREVIEW-SAVE";
+      let previewBehavior = "SHOW_CODE_AND_AUTO_APPLY";
+
+      try {
+        // Extract token from campaign ID (format: "preview-{token}")
+        const previewToken = campaignId.replace("preview-", "");
+        if (previewToken) {
+          const { getRedis, REDIS_PREFIXES } = await import("~/lib/redis.server");
+          const redis = getRedis();
+          if (redis) {
+            const PREVIEW_PREFIX = `${REDIS_PREFIXES.SESSION}:preview`;
+            const redisKey = `${PREVIEW_PREFIX}:${previewToken}`;
+            const sessionDataStr = await redis.get(redisKey);
+
+            if (sessionDataStr) {
+              const sessionData = JSON.parse(sessionDataStr);
+              const discountConfig = sessionData.data?.discountConfig;
+
+              if (discountConfig) {
+                previewDiscountCode = generatePreviewDiscountCode(discountConfig) || "PREVIEW-SAVE";
+                previewBehavior = discountConfig.behavior || "SHOW_CODE_AND_AUTO_APPLY";
+                console.log(`[Discount Issue] 🎟️ Preview discount code generated: ${previewDiscountCode}`);
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.warn("[Discount Issue] Failed to fetch preview discount config:", error);
+      }
+
       return data(
         {
           success: true,
-          discountCode: "PREVIEW10",
+          code: previewDiscountCode,
+          behavior: previewBehavior,
           message: "Preview mode: Discount code generated (mock code)",
         },
         { status: 200 }

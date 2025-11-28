@@ -133,7 +133,7 @@ export const CountdownTimerPopup: React.FC<CountdownTimerPopupProps> = ({
       {scopedCss ? <style dangerouslySetInnerHTML={{ __html: scopedCss }} /> : null}
       <style>{`
         .countdown-banner {
-          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+          font-family: ${config.fontFamily || 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'};
           container-type: inline-size;
           container-name: countdown-banner;
         }

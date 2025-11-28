@@ -17,6 +17,7 @@ import {
   getSectionsToRender,
   refreshCartDrawer,
   addUTMParams,
+  loadFontFromDesignConfig,
 } from "../utils";
 
 export interface StorefrontCampaign {
@@ -69,6 +70,9 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, tri
     async function initialize() {
       try {
         console.log("[PopupManager] Initializing popup for:", campaign.templateType);
+
+        // Load custom Google Font if specified in design config
+        loadFontFromDesignConfig(campaign.designConfig);
 
         // Execute hooks and load component in parallel for faster initialization
         const [hooksResult, comp] = await Promise.all([
@@ -410,6 +414,9 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, tri
     try {
       console.log("[PopupManager] Adding products to cart:", productIds);
 
+      // Track the add to cart click
+      trackClick({ action: "add_to_cart", productIds });
+
       if (!productIds || productIds.length === 0) return;
 
       // Get products from preloaded resources
@@ -612,6 +619,8 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, tri
     // Pass preloaded inventory for Flash Sale
     inventoryTotal: (preloadedResources.inventory as { total?: number } | undefined)?.total,
     onTrack: trackClick,
+    // Pass onCtaClick for popups that use it (FlashSale, Announcement, etc.)
+    onCtaClick: () => trackClick({ action: "cta_click" }),
     onAddToCart: handleAddToCart,
     onProductClick: handleProductClick,
   });

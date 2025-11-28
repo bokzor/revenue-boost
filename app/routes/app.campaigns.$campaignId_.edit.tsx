@@ -29,6 +29,16 @@ interface LoaderData {
   storeId: string;
   shopDomain: string;
   globalCustomCSS?: string;
+  customThemePresets?: Array<{
+    id: string;
+    name: string;
+    brandColor: string;
+    backgroundColor: string;
+    textColor: string;
+    surfaceColor?: string;
+    successColor?: string;
+    fontFamily?: string;
+  }>;
   advancedTargetingEnabled: boolean;
   experimentsEnabled: boolean;
 }
@@ -80,6 +90,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       storeId,
       shopDomain: session.shop,
       globalCustomCSS: parsedSettings.success ? parsedSettings.data.globalCustomCSS : undefined,
+      customThemePresets: parsedSettings.success ? parsedSettings.data.customThemePresets : undefined,
       advancedTargetingEnabled,
       experimentsEnabled,
     });
@@ -92,6 +103,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         storeId: "",
         shopDomain: "",
         globalCustomCSS: undefined,
+        customThemePresets: undefined,
         advancedTargetingEnabled: false,
         experimentsEnabled: false,
       },
@@ -106,7 +118,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
 export default function CampaignEditPage() {
   console.log("[Campaign Edit Page] Component rendering");
-  const { campaign, storeId, shopDomain, globalCustomCSS, advancedTargetingEnabled, experimentsEnabled } =
+  const { campaign, storeId, shopDomain, globalCustomCSS, customThemePresets, advancedTargetingEnabled, experimentsEnabled } =
     useLoaderData<typeof loader>();
   console.log("[Campaign Edit Page] Loaded data - campaign:", campaign?.id, "storeId:", storeId);
   const navigate = useNavigate();
@@ -337,6 +349,7 @@ export default function CampaignEditPage() {
         initialData={initialData}
         campaignId={campaign?.id}
         globalCustomCSS={globalCustomCSS}
+        customThemePresets={customThemePresets}
         advancedTargetingEnabled={advancedTargetingEnabled}
         experimentsEnabled={experimentsEnabled}
         onSave={handleSave}

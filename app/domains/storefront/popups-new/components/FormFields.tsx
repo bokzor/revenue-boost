@@ -79,6 +79,7 @@ export const EmailInput: React.FC<EmailInputProps> = ({
         style={{
           width: "100%",
           padding: "0.75rem",
+          fontFamily: "inherit",
           fontSize: "1rem",
           border: error ? "2px solid #EF4444" : "1px solid #D1D5DB",
           borderRadius: "0.5rem",
@@ -184,6 +185,7 @@ export const NameInput: React.FC<NameInputProps> = ({
         style={{
           width: "100%",
           padding: "0.75rem",
+          fontFamily: "inherit",
           fontSize: "1rem",
           border: error ? "2px solid #EF4444" : "1px solid #D1D5DB",
           borderRadius: "0.5rem",
@@ -390,6 +392,7 @@ export const SubmitButton: React.FC<SubmitButtonProps> = ({
         style={{
           width: fullWidth ? "100%" : "auto",
           padding: "0.875rem 1.5rem",
+          fontFamily: "inherit",
           fontSize: "1rem",
           fontWeight: "600",
           color: textColor,

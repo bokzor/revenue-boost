@@ -324,7 +324,7 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
           width: 100%;
           background: var(--cart-ab-bg);
           color: var(--cart-ab-text);
-          font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          font-family: ${config.fontFamily || 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'};
 
           /* Bottom sheet style on mobile */
           border-radius: clamp(1rem, 4cqi, 1.5rem) clamp(1rem, 4cqi, 1.5rem) 0 0;

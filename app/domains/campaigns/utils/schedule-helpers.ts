@@ -166,6 +166,56 @@ export function formatDateRange(
 // SCHEDULE VALIDATION HELPERS
 // ============================================================================
 
+export interface ScheduleDateValidationErrors {
+  startDateError?: string;
+  endDateError?: string;
+}
+
+/**
+ * Validate schedule dates for campaign form
+ *
+ * @param startDate - Start date string (ISO or datetime-local format)
+ * @param endDate - End date string (ISO or datetime-local format)
+ * @returns Object with validation errors (empty if valid)
+ *
+ * Validates:
+ * - Start date cannot be in the past
+ * - End date cannot be in the past
+ * - End date must be after start date
+ */
+export function validateScheduleDates(
+  startDate?: string,
+  endDate?: string
+): ScheduleDateValidationErrors {
+  const errors: ScheduleDateValidationErrors = {};
+  const now = new Date();
+
+  if (startDate) {
+    const start = new Date(startDate);
+    if (start < now) {
+      errors.startDateError = "Start date cannot be in the past";
+    }
+  }
+
+  if (endDate) {
+    const end = new Date(endDate);
+    if (end < now) {
+      errors.endDateError = "End date cannot be in the past";
+    }
+  }
+
+  // Check end > start only if both are provided and neither has a "past" error
+  if (startDate && endDate && !errors.startDateError && !errors.endDateError) {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    if (end <= start) {
+      errors.endDateError = "End date must be after start date";
+    }
+  }
+
+  return errors;
+}
+
 /**
  * Check if current time is within campaign schedule (timezone-aware)
  *

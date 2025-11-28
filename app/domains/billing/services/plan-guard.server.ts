@@ -359,10 +359,9 @@ export class PlanGuardService {
     startOfMonth.setUTCDate(1);
     startOfMonth.setUTCHours(0, 0, 0, 0);
 
-    const current = await prisma.popupEvent.count({
+    const current = await prisma.lead.count({
       where: {
         storeId,
-        eventType: "SUBMIT",
         createdAt: { gte: startOfMonth },
       },
     });
@@ -544,8 +543,8 @@ export class PlanGuardService {
       prisma.popupEvent.count({
         where: { storeId, eventType: "VIEW", createdAt: { gte: startOfMonth } },
       }),
-      prisma.popupEvent.count({
-        where: { storeId, eventType: "SUBMIT", createdAt: { gte: startOfMonth } },
+      prisma.lead.count({
+        where: { storeId, createdAt: { gte: startOfMonth } },
       }),
       prisma.campaign.count({
         where: { storeId, status: "ACTIVE" },
