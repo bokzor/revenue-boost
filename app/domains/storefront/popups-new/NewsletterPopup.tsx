@@ -634,9 +634,12 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
                   name: config.nameFieldPlaceholder || "Your name",
                 }}
                 accentColor={config.accentColor}
+                buttonColor={config.buttonColor}
                 textColor={config.textColor}
-                backgroundColor={config.backgroundColor}
+                backgroundColor={config.inputBackgroundColor || config.backgroundColor}
                 buttonTextColor={config.buttonTextColor}
+                inputTextColor={config.inputTextColor}
+                inputBorderColor={config.inputBorderColor}
                 privacyPolicyUrl={config.privacyPolicyUrl}
                 extraFields={
                   config.dismissLabel ? (

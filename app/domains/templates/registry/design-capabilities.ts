@@ -153,7 +153,7 @@ export const TEMPLATE_DESIGN_CAPABILITIES: Record<TemplateType, DesignCapabiliti
     supportsSize: ["small", "medium", "large"],
   },
 
-  // Corner notification (fixed size, always small)
+  // Corner notification (uses cornerPosition from content config, not design position)
   SOCIAL_PROOF: {
     usesButtons: false,
     usesInputs: false,
@@ -162,7 +162,7 @@ export const TEMPLATE_DESIGN_CAPABILITIES: Record<TemplateType, DesignCapabiliti
     usesTypographyAdvanced: false,
     usesAccent: true,
     usesSuccessWarning: false,
-    supportsPosition: ["bottom", "top", "left", "right"],
+    supportsPosition: [], // Uses cornerPosition (bottom-left/top-right/etc) from content config instead
     supportsSize: [], // Fixed corner notification, size not applicable
   },
 

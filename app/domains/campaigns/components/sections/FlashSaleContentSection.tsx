@@ -1,8 +1,9 @@
 /**
  * Flash Sale Content Configuration Section
  *
- * Enhanced self-contained section for Flash Sale campaigns.
- * Includes Content, Advanced Features, Discount (with tiers/BOGO/gifts), and Design subsections.
+ * Template-specific content section for Flash Sale campaigns.
+ * Contains Content, Timer Settings, Inventory, Reservation, and Discount subsections.
+ * Design configuration is handled by the shared DesignConfigSection.
  *
  * Follows the Newsletter pattern with Card-based organization
  */
@@ -21,53 +22,38 @@ import {
   Popover,
 } from "@shopify/polaris";
 import { ChevronDownIcon, ChevronUpIcon } from "@shopify/polaris-icons";
-import { TextField, CheckboxField, FormGrid, ColorField, ProductPicker } from "../form";
+import { TextField, CheckboxField, FormGrid, ProductPicker } from "../form";
 import { GenericDiscountComponent } from "../form/GenericDiscountComponent";
-import type { FlashSaleContentSchema, DesignConfig } from "../../types/campaign";
+import type { FlashSaleContentSchema } from "../../types/campaign";
 import type { DiscountConfig } from "~/domains/commerce/services/discount.server";
 import { z } from "zod";
 import { useFieldUpdater } from "~/shared/hooks/useFieldUpdater";
-import {
-  FLASH_SALE_THEMES,
-  type FlashSaleThemeKey,
-  themeColorsToDesignConfig,
-} from "~/config/color-presets";
 
 export type FlashSaleContent = z.infer<typeof FlashSaleContentSchema>;
 
 export interface FlashSaleContentSectionProps {
   content: Partial<FlashSaleContent>;
-  designConfig?: Partial<DesignConfig>;
   discountConfig?: DiscountConfig;
   errors?: Record<string, string>;
   onChange: (content: Partial<FlashSaleContent>) => void;
-  onDesignChange?: (design: Partial<DesignConfig>) => void;
   onDiscountChange?: (config: DiscountConfig) => void;
+  /** Template type - used to customize UI (e.g., hide "Show Timer" for COUNTDOWN_TIMER) */
+  templateType?: "FLASH_SALE" | "COUNTDOWN_TIMER";
 }
 
 export function FlashSaleContentSection({
   content,
-  designConfig = {},
   discountConfig,
   errors,
   onChange,
-  onDesignChange,
   onDiscountChange,
+  templateType = "FLASH_SALE",
 }: FlashSaleContentSectionProps) {
   const updateField = useFieldUpdater(content, onChange);
+
   const [showAdvancedTimer, setShowAdvancedTimer] = useState(false);
   const [showInventory, setShowInventory] = useState(false);
   const [showReservation, setShowReservation] = useState(false);
-
-  // Design field updater
-  const updateDesignField = <K extends keyof DesignConfig>(
-    field: K,
-    value: DesignConfig[K] | undefined
-  ) => {
-    if (onDesignChange) {
-      onDesignChange({ ...designConfig, [field]: value });
-    }
-  };
 
   // Nested field updaters for enhanced features
   const updateTimerField = (field: string, value: unknown) => {
@@ -96,35 +82,6 @@ export function FlashSaleContentSection({
     } as Partial<FlashSaleContent>["presentation"]);
   };
 
-  // Detect which theme matches the current design config
-  const detectCurrentTheme = (): FlashSaleThemeKey | null => {
-    for (const [key, theme] of Object.entries(FLASH_SALE_THEMES)) {
-      const themeDesign = themeColorsToDesignConfig(theme);
-      // Check if key colors match
-      if (
-        designConfig.backgroundColor === themeDesign.backgroundColor &&
-        designConfig.buttonColor === themeDesign.buttonColor
-      ) {
-        return key as FlashSaleThemeKey;
-      }
-    }
-    return null;
-  };
-
-  // Handle theme selection - applies all colors from the theme
-  const handleThemeChange = (themeKey: FlashSaleThemeKey) => {
-    if (!onDesignChange) return;
-
-    const themeColors = FLASH_SALE_THEMES[themeKey];
-    const designUpdates = themeColorsToDesignConfig(themeColors);
-
-    // Apply all theme colors to design config
-    onDesignChange({
-      ...designConfig,
-      ...designUpdates,
-    });
-  };
-
   return (
     <>
       {/* ========== CONTENT SECTION ========== */}
@@ -132,10 +89,12 @@ export function FlashSaleContentSection({
         <BlockStack gap="400">
           <BlockStack gap="200">
             <Text as="h3" variant="headingMd">
-              ⚡ Content
+              {templateType === "COUNTDOWN_TIMER" ? "⏱️ Content" : "⚡ Content"}
             </Text>
             <Text as="p" tone="subdued">
-              Configure the text and messaging for your flash sale popup
+              {templateType === "COUNTDOWN_TIMER"
+                ? "Configure the text and messaging for your countdown timer banner"
+                : "Configure the text and messaging for your flash sale popup"}
             </Text>
           </BlockStack>
 
@@ -148,21 +107,24 @@ export function FlashSaleContentSection({
               value={content.headline || ""}
               error={errors?.headline}
               required
-              placeholder="Flash Sale! Limited Time Only"
+              placeholder={templateType === "COUNTDOWN_TIMER" ? "Limited Time Offer" : "Flash Sale! Limited Time Only"}
               helpText="Main headline that grabs attention"
               onChange={(value) => updateField("headline", value)}
             />
 
-            <TextField
-              label="Urgency Message"
-              name="content.urgencyMessage"
-              value={content.urgencyMessage || ""}
-              error={errors?.urgencyMessage}
-              required
-              placeholder="Hurry! Sale ends soon"
-              helpText="Message that creates urgency"
-              onChange={(value) => updateField("urgencyMessage", value)}
-            />
+            {/* Urgency message - only for Flash Sale */}
+            {templateType === "FLASH_SALE" && (
+              <TextField
+                label="Urgency Message"
+                name="content.urgencyMessage"
+                value={content.urgencyMessage || ""}
+                error={errors?.urgencyMessage}
+                required
+                placeholder="Hurry! Sale ends soon"
+                helpText="Message that creates urgency"
+                onChange={(value) => updateField("urgencyMessage", value)}
+              />
+            )}
 
             <TextField
               label="Subheadline"
@@ -234,10 +196,12 @@ export function FlashSaleContentSection({
         <BlockStack gap="400">
           <BlockStack gap="200">
             <Text as="h3" variant="headingMd">
-              ⚙️ Advanced Features
+              ⏱️ Timer Settings
             </Text>
             <Text as="p" tone="subdued">
-              Countdown timers, inventory tracking, and reservation options
+              {templateType === "COUNTDOWN_TIMER"
+                ? "Configure countdown timer duration and behavior"
+                : "Countdown timers, inventory tracking, and reservation options"}
             </Text>
           </BlockStack>
 
@@ -245,15 +209,20 @@ export function FlashSaleContentSection({
 
           {/* Basic Timer Options */}
           <BlockStack gap="300">
-            <CheckboxField
-              label="Show Countdown Timer"
-              name="content.showCountdown"
-              checked={content.showCountdown !== false}
-              helpText="Display a countdown timer for urgency"
-              onChange={(checked) => updateField("showCountdown", checked)}
-            />
+            {/* Only show "Show Countdown Timer" checkbox for FLASH_SALE -
+                COUNTDOWN_TIMER always shows the timer (it's the core feature) */}
+            {templateType === "FLASH_SALE" && (
+              <CheckboxField
+                label="Show Countdown Timer"
+                name="content.showCountdown"
+                checked={content.showCountdown !== false}
+                helpText="Display a countdown timer for urgency"
+                onChange={(checked) => updateField("showCountdown", checked)}
+              />
+            )}
 
-            {content.showCountdown !== false && (
+            {/* Timer duration - always show for COUNTDOWN_TIMER, conditional for FLASH_SALE */}
+            {(templateType === "COUNTDOWN_TIMER" || content.showCountdown !== false) && (
               <TextField
                 label="Countdown Duration (seconds)"
                 name="content.countdownDuration"
@@ -366,41 +335,44 @@ export function FlashSaleContentSection({
             </Collapsible>
           </BlockStack>
 
-          <Divider />
+          {/* Inventory and Reservation sections - only for FLASH_SALE */}
+          {templateType === "FLASH_SALE" && (
+            <>
+              <Divider />
 
-          {/* Inventory Tracking - Collapsible */}
-          <BlockStack gap="300">
-            <InlineStack align="space-between" blockAlign="center">
-              <Text as="h4" variant="headingSm">
-                🔢 Inventory Tracking
-              </Text>
-              <Button
-                variant="plain"
-                onClick={() => setShowInventory(!showInventory)}
-                icon={showInventory ? ChevronUpIcon : ChevronDownIcon}
-              >
-                {showInventory ? "Hide" : "Show"}
-              </Button>
-            </InlineStack>
-
-            <Collapsible
-              open={showInventory}
-              id="inventory-options"
-              transition={{ duration: "200ms", timingFunction: "ease-in-out" }}
-            >
+              {/* Inventory Tracking - Collapsible */}
               <BlockStack gap="300">
-                <Select
-                  label="Inventory Mode"
-                  value={
-                    ((content.inventory as Record<string, unknown>)?.mode as string) || "pseudo"
-                  }
-                  options={[
-                    { label: "Pseudo - Simulated stock counter", value: "pseudo" },
-                    { label: "Real - Live Shopify inventory", value: "real" },
-                  ]}
-                  onChange={(value) => updateInventoryField("mode", value)}
-                  helpText="Use real inventory or simulated stock"
-                />
+                <InlineStack align="space-between" blockAlign="center">
+                  <Text as="h4" variant="headingSm">
+                    🔢 Inventory Tracking
+                  </Text>
+                  <Button
+                    variant="plain"
+                    onClick={() => setShowInventory(!showInventory)}
+                    icon={showInventory ? ChevronUpIcon : ChevronDownIcon}
+                  >
+                    {showInventory ? "Hide" : "Show"}
+                  </Button>
+                </InlineStack>
+
+                <Collapsible
+                  open={showInventory}
+                  id="inventory-options"
+                  transition={{ duration: "200ms", timingFunction: "ease-in-out" }}
+                >
+                  <BlockStack gap="300">
+                    <Select
+                      label="Inventory Mode"
+                      value={
+                        ((content.inventory as Record<string, unknown>)?.mode as string) || "pseudo"
+                      }
+                      options={[
+                        { label: "Pseudo - Simulated stock counter", value: "pseudo" },
+                        { label: "Real - Live Shopify inventory", value: "real" },
+                      ]}
+                      onChange={(value) => updateInventoryField("mode", value)}
+                      helpText="Use real inventory or simulated stock"
+                    />
 
                 {(content.inventory as Record<string, unknown>)?.mode === "pseudo" && (
                   <TextField
@@ -446,7 +418,18 @@ export function FlashSaleContentSection({
                     checked={
                       (content.inventory as Record<string, unknown>)?.showOnlyXLeft !== false
                     }
-                    onChange={(checked) => updateInventoryField("showOnlyXLeft", checked)}
+                    onChange={(checked) => {
+                      // When enabling, also set default values if not already set
+                      const currentInventory = (content.inventory || {}) as Record<string, unknown>;
+                      const updates: Record<string, unknown> = { showOnlyXLeft: checked };
+                      if (checked) {
+                        if (!currentInventory.showThreshold) updates.showThreshold = 10;
+                        if (!currentInventory.pseudoMax && currentInventory.mode !== "real") {
+                          updates.pseudoMax = 50; // Default pseudo inventory
+                        }
+                      }
+                      updateField("inventory", { ...currentInventory, ...updates } as Partial<FlashSaleContent>["inventory"]);
+                    }}
                   />
 
                   {(content.inventory as Record<string, unknown>)?.showOnlyXLeft !== false && (
@@ -530,7 +513,15 @@ export function FlashSaleContentSection({
                     ((content.reserve as Record<string, unknown>)?.enabled as boolean) || false
                   }
                   helpText='"X minutes to claim this offer" timer'
-                  onChange={(checked) => updateReserveField("enabled", checked)}
+                  onChange={(checked) => {
+                    // When enabling, also set default minutes if not already set
+                    const currentReserve = (content.reserve || {}) as Record<string, unknown>;
+                    const updates: Record<string, unknown> = { enabled: checked };
+                    if (checked && !currentReserve.minutes) {
+                      updates.minutes = 10; // Default 10 minutes
+                    }
+                    updateField("reserve", { ...currentReserve, ...updates } as Partial<FlashSaleContent>["reserve"]);
+                  }}
                 />
 
                 {Boolean((content.reserve as Record<string, unknown>)?.enabled) && (
@@ -569,6 +560,8 @@ export function FlashSaleContentSection({
               </BlockStack>
             </Collapsible>
           </BlockStack>
+            </>
+          )}
         </BlockStack>
       </Card>
 
@@ -592,322 +585,6 @@ export function FlashSaleContentSection({
               discountConfig={discountConfig}
               onConfigChange={onDiscountChange}
             />
-          </BlockStack>
-        </Card>
-      )}
-
-      {/* ========== DESIGN SECTION ========== */}
-      {onDesignChange && (
-        <Card>
-          <BlockStack gap="400">
-            <BlockStack gap="200">
-              <Text as="h3" variant="headingMd">
-                🎨 Design & Presentation
-              </Text>
-              <Text as="p" tone="subdued">
-                Customize the visual appearance and placement of your flash sale popup
-              </Text>
-            </BlockStack>
-
-            <Divider />
-
-            <BlockStack gap="400">
-              {/* Theme Selection with Visual Swatches */}
-              <BlockStack gap="300">
-                <Text as="h4" variant="headingSm">
-                  Flash Sale Theme
-                </Text>
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(auto-fill, minmax(64px, 1fr))",
-                    gap: "10px",
-                    maxWidth: 560,
-                  }}
-                >
-                  {Object.entries(FLASH_SALE_THEMES).map(([key, theme]) => {
-                    const isSelected = detectCurrentTheme() === key;
-                    const label = key
-                      .split("_")
-                      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-                      .join(" ");
-
-                    // Build swatch background: left half = background, right half = CTA color
-                    const bg = theme.background || "#FFFFFF";
-                    const isGradient = bg.includes("gradient");
-                    const swatchBg = isGradient
-                      ? bg
-                      : `linear-gradient(90deg, ${bg} 50%, ${theme.ctaBg || theme.primary || "#007BFF"} 50%)`;
-
-                    return (
-                      <div
-                        key={key}
-                        style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}
-                      >
-                        <div style={{ position: "relative" }}>
-                          <button
-                            type="button"
-                            onClick={() => handleThemeChange(key as FlashSaleThemeKey)}
-                            aria-label={label}
-                            title={label}
-                            style={{
-                              width: 52,
-                              height: 36,
-                              borderRadius: 8,
-                              border: isSelected ? "2px solid #202223" : "1px solid #D2D5D8",
-                              background: swatchBg,
-                              cursor: "pointer",
-                              boxShadow: isSelected ? "0 0 0 2px rgba(32,34,35,0.15)" : "none",
-                            }}
-                          />
-                          {isSelected && (
-                            <span
-                              aria-hidden="true"
-                              style={{
-                                position: "absolute",
-                                top: -6,
-                                right: -6,
-                                width: 18,
-                                height: 18,
-                                borderRadius: "50%",
-                                background: "#FFFFFF",
-                                border: "1px solid #202223",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                fontSize: 12,
-                                lineHeight: "12px",
-                              }}
-                            >
-                              ✓
-                            </span>
-                          )}
-                        </div>
-                        <span style={{ fontSize: 12, color: "#6D7175" }}>{label}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </BlockStack>
-
-              <Divider />
-
-              {/* Position, Size & Display Mode */}
-              <FormGrid columns={2}>
-                <Select
-                  label="Position"
-                  value={designConfig.position || "center"}
-                  options={[
-                    { label: "Center", value: "center" },
-                    { label: "Top", value: "top" },
-                    { label: "Bottom", value: "bottom" },
-                    { label: "Left", value: "left" },
-                    { label: "Right", value: "right" },
-                  ]}
-                  onChange={(value) =>
-                    updateDesignField("position", value as DesignConfig["position"])
-                  }
-                />
-
-                <Select
-                  label="Size"
-                  value={designConfig.size || "medium"}
-                  options={[
-                    { label: "Small", value: "small" },
-                    { label: "Medium", value: "medium" },
-                    { label: "Large", value: "large" },
-                  ]}
-                  onChange={(value) => updateDesignField("size", value as DesignConfig["size"])}
-                />
-              </FormGrid>
-
-              <Select
-                label="Display Mode"
-                value={designConfig.displayMode || "modal"}
-                options={[
-                  { label: "Popup (modal)", value: "modal" },
-                  { label: "Banner (top or bottom)", value: "banner" },
-                ]}
-                onChange={(value) =>
-                  updateDesignField("displayMode", value as DesignConfig["displayMode"])
-                }
-                helpText="Choose whether this flash sale appears as a popup or a top/bottom banner on your store."
-              />
-
-              <Divider />
-
-              {/* Main Colors */}
-              <BlockStack gap="300">
-                <Text as="h4" variant="headingSm">
-                  Main Colors
-                </Text>
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(2, 1fr)",
-                    gap: "16px",
-                  }}
-                >
-                  <ColorField
-                    label="Background Color"
-                    name="design.backgroundColor"
-                    value={designConfig.backgroundColor || "#ffffff"}
-                    onChange={(value: string) => updateDesignField("backgroundColor", value)}
-                  />
-                  <ColorField
-                    label="Text Color"
-                    name="design.textColor"
-                    value={designConfig.textColor || "#1f2937"}
-                    onChange={(value: string) => updateDesignField("textColor", value)}
-                  />
-                  <ColorField
-                    label="Description Color"
-                    name="design.descriptionColor"
-                    value={designConfig.descriptionColor || "#6b7280"}
-                    onChange={(value: string) => updateDesignField("descriptionColor", value)}
-                  />
-                  <ColorField
-                    label="Accent Color"
-                    name="design.accentColor"
-                    value={designConfig.accentColor || "#3b82f6"}
-                    onChange={(value: string) => updateDesignField("accentColor", value)}
-                  />
-                  <ColorField
-                    label="Success Color"
-                    name="design.successColor"
-                    value={designConfig.successColor || "#10b981"}
-                    onChange={(value: string) => updateDesignField("successColor", value)}
-                  />
-                </div>
-              </BlockStack>
-
-              <Divider />
-
-              {/* Button Colors */}
-              <BlockStack gap="300">
-                <Text as="h4" variant="headingSm">
-                  Button Colors
-                </Text>
-                <FormGrid columns={2}>
-                  <ColorField
-                    label="Button Background"
-                    name="design.buttonColor"
-                    value={designConfig.buttonColor || "#3b82f6"}
-                    onChange={(value: string) => updateDesignField("buttonColor", value)}
-                  />
-                  <ColorField
-                    label="Button Text"
-                    name="design.buttonTextColor"
-                    value={designConfig.buttonTextColor || "#ffffff"}
-                    onChange={(value: string) => updateDesignField("buttonTextColor", value)}
-                  />
-                </FormGrid>
-              </BlockStack>
-
-              <Divider />
-
-              {/* Overlay Settings */}
-              <BlockStack gap="300">
-                <Text as="h4" variant="headingSm">
-                  Overlay Settings
-                </Text>
-                <FormGrid columns={2}>
-                  <ColorField
-                    label="Overlay Color"
-                    name="design.overlayColor"
-                    value={designConfig.overlayColor || "#000000"}
-                    onChange={(value: string) => updateDesignField("overlayColor", value)}
-                  />
-                  <Select
-                    label="Overlay Opacity"
-                    value={String(Math.round((designConfig.overlayOpacity ?? 0.7) * 100))}
-                    options={[
-                      { label: "0%", value: "0" },
-                      { label: "10%", value: "10" },
-                      { label: "20%", value: "20" },
-                      { label: "30%", value: "30" },
-                      { label: "40%", value: "40" },
-                      { label: "50%", value: "50" },
-                      { label: "60%", value: "60" },
-                      { label: "70%", value: "70" },
-                      { label: "80%", value: "80" },
-                      { label: "90%", value: "90" },
-                      { label: "100%", value: "100" },
-                    ]}
-                    onChange={(value) => updateDesignField("overlayOpacity", parseInt(value) / 100)}
-                  />
-                </FormGrid>
-              </BlockStack>
-
-              <Divider />
-
-              {/* Presentation Options */}
-              <BlockStack gap="300">
-                <Text as="h4" variant="headingSm">
-                  Presentation Options
-                </Text>
-                <FormGrid columns={2}>
-                  <Select
-                    label="Badge Style"
-                    value={
-                      ((content.presentation as Record<string, unknown>)?.badgeStyle as string) ||
-                      "pill"
-                    }
-                    options={[
-                      { label: "Pill", value: "pill" },
-                      { label: "Tag", value: "tag" },
-                    ]}
-                    onChange={(value) => updatePresentationField("badgeStyle", value)}
-                  />
-                </FormGrid>
-
-                <FormGrid columns={2}>
-                  <CheckboxField
-                    label="Show Timer in Popup"
-                    name="presentation.showTimer"
-                    checked={(content.presentation as Record<string, unknown>)?.showTimer !== false}
-                    onChange={(checked) => updatePresentationField("showTimer", checked)}
-                  />
-
-                  <CheckboxField
-                    label="Show Inventory in Popup"
-                    name="presentation.showInventory"
-                    checked={
-                      (content.presentation as Record<string, unknown>)?.showInventory !== false
-                    }
-                    onChange={(checked) => updatePresentationField("showInventory", checked)}
-                  />
-                </FormGrid>
-              </BlockStack>
-
-              <Divider />
-
-              {/* Legacy Options */}
-              <BlockStack gap="300">
-                <Text as="h4" variant="headingSm">
-                  Legacy Options
-                </Text>
-                <FormGrid columns={2}>
-                  <CheckboxField
-                    label="Hide on Expiry (Legacy)"
-                    name="content.hideOnExpiry"
-                    checked={content.hideOnExpiry !== false}
-                    helpText="Automatically hide popup when timer expires"
-                    onChange={(checked) => updateField("hideOnExpiry", checked)}
-                  />
-
-                  <CheckboxField
-                    label="Auto-Hide on Expire"
-                    name="content.autoHideOnExpire"
-                    checked={
-                      ((content as Record<string, unknown>).autoHideOnExpire as boolean) || false
-                    }
-                    helpText="Auto-hide 2 seconds after expiry"
-                    onChange={(checked) => updateField("autoHideOnExpire", checked)}
-                  />
-                </FormGrid>
-              </BlockStack>
-            </BlockStack>
           </BlockStack>
         </Card>
       )}

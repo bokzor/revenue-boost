@@ -56,12 +56,16 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
   onCtaClick,
   issueDiscount,
 }) => {
+  // Respect both showCountdown and presentation.showTimer flags
+  // showCountdown = top-level toggle, presentation.showTimer = presentation toggle
+  const shouldShowTimer = config.showCountdown !== false && config.presentation?.showTimer !== false;
+
   // Use countdown timer hook
   const timerMode = config.timer?.mode || "duration";
   // Map 'stock_limited' to 'duration' for the hook (stock_limited is handled separately)
   const hookTimerMode = timerMode === "stock_limited" ? "duration" : timerMode;
   const { timeRemaining, hasExpired } = useCountdownTimer({
-    enabled: config.showCountdown !== false,
+    enabled: shouldShowTimer,
     mode: hookTimerMode,
     duration: config.countdownDuration,
     endTime: config.timer?.endTimeISO || config.endTime,
@@ -566,7 +570,7 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
                 </div>
               ) : (
                 <>
-                  {config.showCountdown && timeRemaining.total > 0 && (
+                  {shouldShowTimer && timeRemaining.total > 0 && (
                     <TimerDisplay
                       timeRemaining={timeRemaining}
                       format="full"
@@ -698,61 +702,74 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
         .flash-sale-content {
           padding: ${containerPadding};
           text-align: center;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+        }
+
+        .flash-sale-header {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          margin-bottom: ${POPUP_SPACING.section.md};
         }
 
         .flash-sale-badge {
           display: inline-block;
-          padding: 0.5em 1.5em;
+          padding: 0.4em 1.25em;
           border-radius: 9999px;
-          font-size: clamp(0.75rem, 2.5cqi, 0.875rem);
+          font-size: clamp(0.65rem, 2cqi, 0.75rem);
           font-weight: 700;
-          letter-spacing: 0.05em;
-          margin-bottom: ${POPUP_SPACING.section.md};
+          letter-spacing: 0.08em;
+          margin-bottom: 0.75rem;
           text-transform: uppercase;
           background: ${accentColor};
           color: ${bgColor};
         }
 
         .flash-sale-headline {
-          font-size: clamp(1.5rem, 8cqi, 2.5rem);
-          font-weight: 900;
-          line-height: 1.1;
-          margin-bottom: ${POPUP_SPACING.section.sm};
+          font-size: clamp(1.5rem, 7cqi, 2.25rem);
+          font-weight: 800;
+          line-height: 1.15;
+          margin: 0;
           color: ${textColor};
         }
 
         .flash-sale-supporting {
-          font-size: clamp(0.875rem, 4cqi, 1.125rem);
-          line-height: 1.6;
-          margin-bottom: ${POPUP_SPACING.section.xl};
+          font-size: clamp(0.875rem, 3.5cqi, 1rem);
+          line-height: 1.5;
+          margin: 0;
+          margin-bottom: ${POPUP_SPACING.section.lg};
           color: ${config.descriptionColor || textColor};
+          opacity: 0.85;
+          max-width: 32ch;
         }
 
         .flash-sale-discount-message {
-          font-size: clamp(0.875rem, 3.5cqi, 1rem);
+          font-size: clamp(0.8rem, 3cqi, 0.9375rem);
           font-weight: 600;
-          padding: 1em 1.5em;
+          padding: 0.75em 1.25em;
           border-radius: 0.5em;
-          margin-bottom: ${POPUP_SPACING.section.lg};
+          margin-bottom: ${POPUP_SPACING.section.md};
           background: ${accentColor}15;
           color: ${accentColor};
-          border: 2px solid ${accentColor}40;
+          border: 1.5px solid ${accentColor}35;
         }
 
         .flash-sale-urgency {
-          font-size: clamp(0.75rem, 3cqi, 0.875rem);
+          font-size: clamp(0.7rem, 2.5cqi, 0.8rem);
           font-weight: 600;
           text-transform: uppercase;
-          letter-spacing: 0.1em;
-          margin-bottom: ${POPUP_SPACING.section.md};
+          letter-spacing: 0.08em;
+          margin-bottom: ${POPUP_SPACING.section.sm};
           color: ${config.descriptionColor || textColor};
+          opacity: 0.7;
         }
 
         .flash-sale-timer {
           display: flex;
-          gap: clamp(0.5rem, 2cqi, 0.75rem);
+          gap: clamp(0.5rem, 2cqi, 0.625rem);
           justify-content: center;
-          flex-wrap: wrap;
           margin-bottom: ${POPUP_SPACING.section.lg};
         }
 
@@ -760,106 +777,131 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
           display: flex;
           flex-direction: column;
           align-items: center;
-          gap: 0.375em;
-          min-width: clamp(3rem, 12cqi, 4rem);
-          padding: clamp(0.625rem, 2.5cqi, 1rem) clamp(0.5rem, 2cqi, 0.75rem);
+          gap: 0.25em;
+          min-width: clamp(3.25rem, 11cqi, 4rem);
+          padding: clamp(0.625rem, 2cqi, 0.875rem) clamp(0.5rem, 1.5cqi, 0.625rem);
           border-radius: 0.5em;
-          background: ${accentColor}20;
-          color: ${accentColor};
+          background: ${accentColor}12;
+          border: 1px solid ${accentColor}25;
         }
 
         .flash-sale-timer-value {
-          font-size: clamp(1.25rem, 6cqi, 2rem);
-          font-weight: 900;
+          font-size: clamp(1.35rem, 5.5cqi, 1.75rem);
+          font-weight: 800;
           line-height: 1;
           font-variant-numeric: tabular-nums;
+          color: ${textColor};
         }
 
         .flash-sale-timer-label {
-          font-size: clamp(0.625rem, 2.5cqi, 0.75rem);
-          font-weight: 500;
+          font-size: clamp(0.55rem, 2cqi, 0.65rem);
+          font-weight: 600;
           text-transform: uppercase;
-          letter-spacing: 0.05em;
-          opacity: 0.8;
+          letter-spacing: 0.04em;
+          color: ${config.descriptionColor || textColor};
+          opacity: 0.6;
+        }
+
+        .flash-sale-timer-separator {
+          font-size: clamp(1.25rem, 5cqi, 1.5rem);
+          font-weight: 700;
+          color: ${textColor};
+          opacity: 0.3;
+          align-self: center;
+          margin-top: -0.25em;
         }
 
         .flash-sale-inventory {
           display: inline-flex;
           align-items: center;
           gap: 0.5em;
-          padding: 0.75em 1.25em;
+          padding: 0.5em 1em;
           border-radius: 9999px;
-          font-size: clamp(0.75rem, 3cqi, 0.875rem);
+          font-size: clamp(0.7rem, 2.5cqi, 0.8rem);
           font-weight: 600;
-          margin-bottom: ${POPUP_SPACING.section.lg};
-          background: ${accentColor}20;
+          margin-bottom: ${POPUP_SPACING.section.md};
+          background: ${accentColor}15;
           color: ${accentColor};
         }
 
         .flash-sale-inventory-dot {
-          width: 0.5em;
-          height: 0.5em;
+          width: 0.4em;
+          height: 0.4em;
           border-radius: 9999px;
           background: ${accentColor};
-          animation: flash-sale-pulse 2s infinite;
+          animation: flash-sale-pulse 1.5s ease-in-out infinite;
         }
 
         .flash-sale-reservation {
-          font-size: clamp(0.75rem, 3cqi, 0.875rem);
-          padding: 0.75em 1em;
-          border-radius: 0.5em;
-          margin-bottom: ${POPUP_SPACING.section.md};
-          background: rgba(59, 130, 246, 0.1);
+          font-size: clamp(0.7rem, 2.5cqi, 0.8rem);
+          padding: 0.625em 1em;
+          border-radius: 0.375em;
+          margin-bottom: ${POPUP_SPACING.section.sm};
+          background: rgba(59, 130, 246, 0.08);
           color: #3b82f6;
-          border: 1px solid rgba(59, 130, 246, 0.3);
+          border: 1px solid rgba(59, 130, 246, 0.2);
+        }
+
+        .flash-sale-actions {
+          width: 100%;
+          max-width: 20rem;
+          display: flex;
+          flex-direction: column;
+          gap: 0.625rem;
         }
 
         .flash-sale-cta {
           width: 100%;
           min-height: 3rem;
-          padding: 1em 2em;
+          padding: 0.875em 1.5em;
           border-radius: 0.5em;
           border: none;
           font-family: inherit;
-          font-size: clamp(0.9375rem, 4cqi, 1.125rem);
+          font-size: clamp(0.875rem, 3.5cqi, 1rem);
           font-weight: 700;
           cursor: pointer;
-          transition: all 0.2s;
+          transition: all 0.2s ease;
           text-transform: uppercase;
-          letter-spacing: 0.05em;
+          letter-spacing: 0.04em;
           background: ${config.buttonColor || accentColor};
           color: ${config.buttonTextColor || "#ffffff"};
+          box-shadow: 0 2px 8px ${accentColor}30;
         }
 
         .flash-sale-cta:hover:not(:disabled) {
-          transform: translateY(-0.125em);
-          box-shadow: 0 0.625em 1.5625em -0.3125em rgba(0, 0, 0, 0.3);
+          transform: translateY(-2px);
+          box-shadow: 0 6px 20px ${accentColor}40;
+        }
+
+        .flash-sale-cta:active:not(:disabled) {
+          transform: translateY(0);
         }
 
         .flash-sale-cta:disabled {
           opacity: 0.5;
           cursor: not-allowed;
           transform: none;
+          box-shadow: none;
         }
 
         .flash-sale-secondary-cta {
-          margin-top: ${POPUP_SPACING.section.sm};
           width: 100%;
-          min-height: 2.75rem;
-          padding: 0.75em 2em;
+          min-height: 2.5rem;
+          padding: 0.625em 1.5em;
           border-radius: 0.5em;
-          border: 1px solid rgba(148, 163, 184, 0.6);
+          border: none;
           background: transparent;
           color: ${textColor};
           font-family: inherit;
-          font-size: clamp(0.8125rem, 3cqi, 0.875rem);
+          font-size: clamp(0.75rem, 2.5cqi, 0.8125rem);
           font-weight: 500;
           cursor: pointer;
-          transition: background 0.2s;
+          transition: opacity 0.2s;
+          opacity: 0.6;
         }
 
         .flash-sale-secondary-cta:hover {
-          background: rgba(15, 23, 42, 0.08);
+          opacity: 1;
         }
 
         .flash-sale-expired {
@@ -890,36 +932,145 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
           to { transform: rotate(360deg); }
         }
 
-        /* Container query: small containers */
+        /* ============================================
+         * MOBILE-FIRST: Small containers (< 400px)
+         * Optimized compact layout for small screens
+         * ============================================ */
         @container flash-sale (max-width: 400px) {
           .flash-sale-content {
-            padding: 1.5rem 1rem;
+            padding: 1.25rem 1rem 1.5rem;
+          }
+
+          .flash-sale-close {
+            top: 0.5rem;
+            right: 0.5rem;
+            padding: 0.35rem;
+          }
+
+          .flash-sale-badge {
+            padding: 0.35em 1em;
+            font-size: 0.65rem;
+            margin-bottom: 0.75rem;
+          }
+
+          .flash-sale-headline {
+            font-size: 1.35rem;
+            margin-bottom: 0.5rem;
+            line-height: 1.15;
+          }
+
+          .flash-sale-supporting {
+            font-size: 0.8rem;
+            margin-bottom: 1rem;
+            line-height: 1.5;
+          }
+
+          .flash-sale-urgency {
+            font-size: 0.7rem;
+            margin-bottom: 0.625rem;
+            letter-spacing: 0.08em;
           }
 
           .flash-sale-timer {
-            gap: 0.375rem;
+            gap: 0.35rem;
+            margin-bottom: 1rem;
           }
 
           .flash-sale-timer-unit {
-            min-width: 2.75rem;
-            padding: 0.5rem 0.375rem;
+            min-width: 3.25rem;
+            padding: 0.5rem 0.35rem;
+            border-radius: 0.375rem;
           }
 
-          .flash-sale-cta,
+          .flash-sale-timer-value {
+            font-size: 1.25rem;
+          }
+
+          .flash-sale-timer-label {
+            font-size: 0.55rem;
+            margin-top: 0.15rem;
+          }
+
+          .flash-sale-discount-message {
+            font-size: 0.8rem;
+            padding: 0.75em 1em;
+            margin-bottom: 1rem;
+          }
+
+          .flash-sale-inventory {
+            font-size: 0.7rem;
+            padding: 0.5em 1em;
+            margin-bottom: 1rem;
+          }
+
+          .flash-sale-reservation {
+            font-size: 0.7rem;
+            padding: 0.625em 0.875em;
+            margin-bottom: 0.75rem;
+          }
+
+          .flash-sale-cta {
+            min-height: 2.75rem;
+            padding: 0.875em 1.25em;
+            font-size: 0.875rem;
+            border-radius: 0.5rem;
+          }
+
           .flash-sale-secondary-cta {
-            padding-left: 1em;
-            padding-right: 1em;
+            margin-top: 0.625rem;
+            min-height: 2.25rem;
+            padding: 0.5em 1em;
+            font-size: 0.75rem;
+          }
+
+          .flash-sale-expired,
+          .flash-sale-sold-out {
+            padding: 1.5rem 1rem;
+          }
+
+          .flash-sale-expired h3,
+          .flash-sale-sold-out h3 {
+            font-size: 1.125rem;
+            margin-bottom: 0.375rem;
+          }
+
+          .flash-sale-expired p,
+          .flash-sale-sold-out p {
+            font-size: 0.8rem;
           }
         }
 
-        /* Container query: medium containers */
+        /* ============================================
+         * MEDIUM: Containers 401px - 640px
+         * Balanced layout with more breathing room
+         * ============================================ */
         @container flash-sale (min-width: 401px) and (max-width: 640px) {
           .flash-sale-content {
-            padding: 2rem 1.5rem;
+            padding: 1.75rem 1.5rem 2rem;
+          }
+
+          .flash-sale-badge {
+            margin-bottom: 1rem;
+          }
+
+          .flash-sale-headline {
+            font-size: 1.75rem;
+          }
+
+          .flash-sale-timer-unit {
+            min-width: 3.5rem;
+            padding: 0.625rem 0.5rem;
+          }
+
+          .flash-sale-timer-value {
+            font-size: 1.5rem;
           }
         }
 
-        /* Container query: large containers */
+        /* ============================================
+         * LARGE: Containers 641px+
+         * Full desktop experience
+         * ============================================ */
         @container flash-sale (min-width: 641px) {
           .flash-sale-content {
             padding: 2.5rem 2rem;
@@ -945,6 +1096,7 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
           size={20}
           className="flash-sale-close"
           position="custom"
+          show={config.showCloseButton !== false}
         />
 
         {isSoldOut && config.inventory?.soldOutBehavior === "missed_it" ? (
@@ -968,9 +1120,11 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
           </div>
         ) : (
           <div className="flash-sale-content">
-            <div className="flash-sale-badge">Limited Time</div>
-
-            <h2 className="flash-sale-headline">{config.headline || "Flash Sale!"}</h2>
+            {/* Centered Header: Badge + Headline */}
+            <div className="flash-sale-header">
+              <div className="flash-sale-badge">Limited Time</div>
+              <h2 className="flash-sale-headline">{config.headline || "Flash Sale!"}</h2>
+            </div>
 
             <p className="flash-sale-supporting">
               {config.subheadline || "Limited time offer - Don't miss out!"}
@@ -999,7 +1153,7 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
               <div className="flash-sale-urgency">{config.urgencyMessage}</div>
             )}
 
-            {config.showCountdown && timeRemaining.total > 0 && (
+            {shouldShowTimer && timeRemaining.total > 0 && (
               <TimerDisplay
                 timeRemaining={timeRemaining}
                 format="full"
@@ -1030,17 +1184,20 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
               </div>
             )}
 
-            <button
-              onClick={handleCtaClick}
-              className="flash-sale-cta"
-              disabled={hasExpired || isSoldOutAndMissed || isClaimingDiscount}
-            >
-              {getCtaLabel()}
-            </button>
+            {/* Actions: CTA + Dismiss */}
+            <div className="flash-sale-actions">
+              <button
+                onClick={handleCtaClick}
+                className="flash-sale-cta"
+                disabled={hasExpired || isSoldOutAndMissed || isClaimingDiscount}
+              >
+                {getCtaLabel()}
+              </button>
 
-            <button type="button" onClick={onClose} className="flash-sale-secondary-cta">
-              {config.dismissLabel || "No thanks"}
-            </button>
+              <button type="button" onClick={onClose} className="flash-sale-secondary-cta">
+                {config.dismissLabel || "No thanks"}
+              </button>
+            </div>
           </div>
         )}
       </div>

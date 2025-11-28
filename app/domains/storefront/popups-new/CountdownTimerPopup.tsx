@@ -1,13 +1,16 @@
 /**
  * CountdownTimerPopup Component
  *
- * Banner-style countdown timer popup featuring:
- * - Live countdown timer (compact format)
- * - Top/bottom positioning
- * - Sticky option for persistent visibility
+ * Countdown timer popup with two display modes:
+ * - Banner: Top/bottom bar with countdown (default)
+ * - Modal: Centered popup with countdown
+ *
+ * Features:
+ * - Live countdown timer (compact format for banner, full for modal)
+ * - Top/bottom positioning for banner, center for modal
+ * - Sticky option for persistent visibility (banner mode)
  * - Auto-hide on expiry
  * - Optional stock counter
- * - Minimal height for non-intrusive display
  * - CTA button
  */
 
@@ -23,6 +26,7 @@ import { getBackgroundStyles } from "./utils";
 
 // Import shared components from Phase 1 & 2
 import { TimerDisplay, CTAButton, PopupCloseButton } from "./components/shared";
+import { PopupPortal } from "./PopupPortal";
 
 /**
  * CountdownTimerConfig - Extends both design config AND campaign content type
@@ -77,6 +81,9 @@ export const CountdownTimerPopup: React.FC<CountdownTimerPopupProps> = ({
 
   if (!isVisible || (hasExpired && config.hideOnExpiry)) return null;
 
+  // Determine display mode (default to "banner" for CountdownTimer)
+  const displayMode = config.displayMode || "banner";
+
   // Determine background (gradient for presets, solid for custom)
   const backgroundValue =
     config.colorScheme === "urgent"
@@ -101,6 +108,184 @@ export const CountdownTimerPopup: React.FC<CountdownTimerPopupProps> = ({
 
   const isPreview = (config as any)?.previewMode;
 
+  // Modal display mode
+  if (displayMode === "modal") {
+    return (
+      <PopupPortal
+        isVisible={isVisible}
+        onClose={onClose}
+        backdrop={{
+          color: config.overlayColor || "#000000",
+          opacity: config.overlayOpacity ?? 0.5,
+        }}
+        animation={{ type: (config.animation as "fade" | "slide" | "zoom" | "bounce" | "none") || "fade" }}
+        position={config.position || "center"}
+        size={config.size || "medium"}
+        closeOnEscape
+        closeOnBackdropClick
+        previewMode={isPreview}
+      >
+        <style>{`
+          .countdown-modal {
+            font-family: ${config.fontFamily || 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'};
+            container-type: inline-size;
+            container-name: countdown-modal;
+            border-radius: ${config.borderRadius ?? 12}px;
+            padding: 2rem;
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+          }
+          .countdown-modal-headline {
+            font-size: 1.75rem;
+            font-weight: 800;
+            line-height: 1.2;
+            margin: 0 0 0.5rem 0;
+          }
+          .countdown-modal-subheadline {
+            font-size: 1rem;
+            line-height: 1.5;
+            margin: 0 0 1.5rem 0;
+            opacity: 0.9;
+          }
+          .countdown-modal-timer {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+          }
+          .countdown-modal-stock {
+            font-size: 0.875rem;
+            font-weight: 600;
+            padding: 0.5rem 1rem;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.2);
+            display: inline-block;
+            margin-bottom: 1.5rem;
+          }
+          .countdown-modal-cta {
+            padding: 0.875rem 2rem;
+            font-size: 1rem;
+            font-weight: 700;
+            border: none;
+            border-radius: ${config.borderRadius ?? 8}px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+          }
+          .countdown-modal-cta:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+          }
+          .countdown-modal-cta:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+          }
+          .countdown-modal-expired {
+            font-size: 1.25rem;
+            font-weight: 600;
+            padding: 1rem;
+          }
+          .countdown-modal-close {
+            position: absolute;
+            top: 0.75rem;
+            right: 0.75rem;
+            background: transparent;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+            padding: 0.25rem;
+            width: 2rem;
+            height: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+          .countdown-modal-close:hover {
+            opacity: 1;
+          }
+
+          @container countdown-modal (max-width: 400px) {
+            .countdown-modal {
+              padding: 1.5rem;
+            }
+            .countdown-modal-headline {
+              font-size: 1.5rem;
+            }
+            .countdown-modal-subheadline {
+              font-size: 0.875rem;
+            }
+          }
+        `}</style>
+
+        <div
+          className="countdown-modal"
+          style={{
+            ...getBackgroundStyles(backgroundValue),
+            color: schemeColors.textColor,
+            position: "relative",
+          }}
+        >
+          <PopupCloseButton
+            onClose={onClose}
+            color={schemeColors.textColor}
+            size={24}
+            show={config.showCloseButton !== false}
+            className="countdown-modal-close"
+            position="custom"
+          />
+
+          <h2 className="countdown-modal-headline">{config.headline}</h2>
+          {config.subheadline && (
+            <p className="countdown-modal-subheadline">{config.subheadline}</p>
+          )}
+
+          {!hasExpired ? (
+            <>
+              <div className="countdown-modal-timer">
+                <TimerDisplay
+                  timeRemaining={timeRemaining}
+                  format="full"
+                  showDays={timeRemaining.days > 0}
+                  showLabels={true}
+                  backgroundColor={timerBg}
+                  textColor={timerText}
+                  accentColor={ctaBg}
+                />
+              </div>
+
+              {config.showStockCounter && config.stockCount && (
+                <div className="countdown-modal-stock" style={{ color: schemeColors.textColor }}>
+                  ⚡ Only {config.stockCount} left in stock
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="countdown-modal-expired" style={{ color: schemeColors.textColor }}>
+              Offer has ended
+            </div>
+          )}
+
+          {(config.buttonText || config.ctaText || hasExpired) && (
+            <CTAButton
+              text={hasExpired ? "Offer Expired" : config.buttonText || config.ctaText || ""}
+              url={hasExpired ? undefined : config.ctaUrl}
+              openInNewTab={config.ctaOpenInNewTab}
+              onClick={hasExpired ? undefined : onCtaClick}
+              disabled={hasExpired}
+              accentColor={ctaBg}
+              textColor={ctaText}
+              className="countdown-modal-cta"
+            />
+          )}
+        </div>
+      </PopupPortal>
+    );
+  }
+
+  // Banner display mode (default)
   const positionStyle: React.CSSProperties = isPreview
     ? {
         // In admin preview, keep the banner constrained to the preview

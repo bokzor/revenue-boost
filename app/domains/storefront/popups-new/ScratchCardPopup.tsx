@@ -665,9 +665,10 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
                   error={errors.email}
                   required={true}
                   disabled={isSubmitting}
-                  accentColor={config.accentColor || config.buttonColor}
-                  textColor={config.textColor}
+                  accentColor={config.accentColor}
+                  textColor={config.inputTextColor || config.textColor}
                   backgroundColor={config.inputBackgroundColor}
+                  borderColor={config.inputBorderColor}
                 />
 
                 {config.showGdprCheckbox && (
@@ -688,7 +689,8 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
                   type="submit"
                   loading={isSubmitting}
                   disabled={isSubmitting}
-                  accentColor={config.accentColor || config.buttonColor}
+                  buttonColor={config.buttonColor}
+                  accentColor={config.accentColor}
                   textColor={config.buttonTextColor}
                 >
                   Unlock Scratch Card
@@ -877,9 +879,10 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
                             error={errors.email}
                             required={true}
                             disabled={isSubmitting || isSubmittingEmail}
-                            accentColor={config.accentColor || config.buttonColor}
-                            textColor={config.textColor}
+                            accentColor={config.accentColor}
+                            textColor={config.inputTextColor || config.textColor}
                             backgroundColor={config.inputBackgroundColor}
+                            borderColor={config.inputBorderColor}
                           />
 
                           {config.showGdprCheckbox && (
@@ -890,7 +893,7 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
                               error={errors.gdpr}
                               required={true}
                               disabled={isSubmitting || isSubmittingEmail}
-                              accentColor={config.accentColor || config.buttonColor}
+                              accentColor={config.accentColor}
                               textColor={config.textColor}
                               privacyPolicyUrl={config.privacyPolicyUrl}
                             />
@@ -901,7 +904,8 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
                           type="submit"
                           loading={isSubmitting || isSubmittingEmail}
                           disabled={isSubmitting || isSubmittingEmail}
-                          accentColor={config.accentColor || config.buttonColor}
+                          buttonColor={config.buttonColor}
+                          accentColor={config.accentColor}
                           textColor={config.buttonTextColor}
                         >
                           {config.buttonText || "Get My Discount Code"}

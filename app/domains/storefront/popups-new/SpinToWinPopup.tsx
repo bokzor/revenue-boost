@@ -260,7 +260,7 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
   // Input colors derived from design config (theme-aware)
   const inputBackground = config.inputBackgroundColor || "#FFFFFF";
   const inputTextColor = config.inputTextColor || "#111827";
-  const _inputBorderColor = config.inputBorderColor || "#E5E7EB";
+  const inputBorderColor = config.inputBorderColor || "#E5E7EB";
 
   // Theme-aware colors for success/prize surfaces
   const _successColor = (config as any).successColor || accentColor;
@@ -994,6 +994,7 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
                       accentColor={accentColor}
                       textColor={inputTextColor}
                       backgroundColor={inputBackground}
+                      borderColor={inputBorderColor}
                     />
                   </div>
                 )}
@@ -1011,6 +1012,7 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
                       accentColor={accentColor}
                       textColor={inputTextColor}
                       backgroundColor={inputBackground}
+                      borderColor={inputBorderColor}
                     />
                   </div>
                 )}

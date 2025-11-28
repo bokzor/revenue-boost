@@ -3,7 +3,7 @@
  *
  * Properly separated design step with:
  * - ContentConfigSection for template-specific content fields
- * - DesignConfigSection for universal design/color fields
+ * - DesignConfigSection for universal design/color fields (used by ALL templates)
  */
 
 import { Banner, Text, BlockStack, Card, Divider, Layout } from "@shopify/polaris";
@@ -11,6 +11,8 @@ import { ContentConfigSection } from "../sections/ContentConfigSection";
 import { DesignConfigSection } from "../sections/DesignConfigSection";
 import { NewsletterContentSection } from "../sections/NewsletterContentSection";
 import type { NewsletterContent } from "../sections/NewsletterContentSection";
+import { FlashSaleContentSection } from "../sections/FlashSaleContentSection";
+import type { FlashSaleContent } from "../sections/FlashSaleContentSection";
 import { TemplateSelector, type SelectedTemplate } from "../TemplateSelector";
 import { LivePreviewPanel } from "~/domains/popups/components/preview/LivePreviewPanel";
 import { Affix } from "~/shared/components/ui/Affix";
@@ -112,21 +114,58 @@ export function DesignStepContent({
           {/* Only show configuration if template is selected */}
           {templateType && (
             <>
-              {/* Newsletter Template - Self-contained with Content, Discount, and Design */}
+              {/* Newsletter/Exit Intent - Content section + shared Design section */}
               {templateType === "NEWSLETTER" || templateType === "EXIT_INTENT" ? (
                 <>
                   <NewsletterContentSection
                     content={contentConfig as Partial<NewsletterContent>}
-                    designConfig={designConfig}
                     discountConfig={discountConfig}
                     onChange={onContentChange as (c: Partial<NewsletterContent>) => void}
-                    onDesignChange={onDesignChange}
                     onDiscountChange={onDiscountChange}
+                  />
+                  <DesignConfigSection
+                    design={designConfig}
+                    templateType={templateType}
+                    onChange={onDesignChange}
+                    customThemePresets={customThemePresets}
+                  />
+                </>
+              ) : templateType === "FLASH_SALE" ? (
+                <>
+                  <FlashSaleContentSection
+                    content={contentConfig as Partial<FlashSaleContent>}
+                    discountConfig={discountConfig}
+                    errors={{}}
+                    onChange={onContentChange as (c: Partial<FlashSaleContent>) => void}
+                    onDiscountChange={onDiscountChange}
+                    templateType="FLASH_SALE"
+                  />
+                  <DesignConfigSection
+                    design={designConfig}
+                    templateType={templateType}
+                    onChange={onDesignChange}
+                    customThemePresets={customThemePresets}
+                  />
+                </>
+              ) : templateType === "COUNTDOWN_TIMER" ? (
+                <>
+                  <FlashSaleContentSection
+                    content={contentConfig as Partial<FlashSaleContent>}
+                    errors={{}}
+                    onChange={onContentChange as (c: Partial<FlashSaleContent>) => void}
+                    templateType="COUNTDOWN_TIMER"
+                    // Note: CountdownTimer doesn't support discount issuance
+                  />
+                  <DesignConfigSection
+                    design={designConfig}
+                    templateType={templateType}
+                    onChange={onDesignChange}
+                    customThemePresets={customThemePresets}
                   />
                 </>
               ) : (
                 <>
-                  {/* Other Templates - Content and Design sections without wrapper */}
+                  {/* Other Templates - Content section + separate Design section */}
                   <ContentConfigSection
                     templateType={templateType}
                     content={contentConfig}
@@ -196,20 +235,21 @@ export function DesignStepContent({
                       }
                     }}
                   />
-
-                  <CustomCSSEditorWithBilling
-                    value={designConfig.customCSS || ""}
-                    globalCustomCSS={globalCustomCSS}
-                    templateType={templateType}
-                    onChange={(css) =>
-                      onDesignChange({
-                        ...designConfig,
-                        customCSS: css,
-                      })
-                    }
-                  />
                 </>
               )}
+
+              {/* Custom CSS Editor - shown for all templates */}
+              <CustomCSSEditorWithBilling
+                value={designConfig.customCSS || ""}
+                globalCustomCSS={globalCustomCSS}
+                templateType={templateType}
+                onChange={(css) =>
+                  onDesignChange({
+                    ...designConfig,
+                    customCSS: css,
+                  })
+                }
+              />
             </>
           )}
         </BlockStack>

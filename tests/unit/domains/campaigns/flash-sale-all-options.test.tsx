@@ -1,11 +1,13 @@
 /**
  * Comprehensive Unit Tests for Flash Sale Configuration Options
- * 
- * Tests ALL 50+ configuration options available in the Flash Sale admin form:
+ *
+ * Tests ALL content and discount options available in the Flash Sale admin form:
  * - Content Section (8 fields)
  * - Advanced Features Section (20+ fields)
  * - Discount Configuration
- * - Design & Presentation Section (20+ fields)
+ *
+ * NOTE: Design & Presentation tests are now in DesignConfigSection tests
+ * since design controls are handled by the shared DesignConfigSection component.
  */
 
 import React from "react";
@@ -17,7 +19,6 @@ import userEvent from "@testing-library/user-event";
 
 import { FlashSaleContentSection } from "~/domains/campaigns/components/sections/FlashSaleContentSection";
 import type { FlashSaleContent } from "~/domains/campaigns/components/sections/FlashSaleContentSection";
-import type { DesignConfig } from "~/domains/campaigns/types/campaign";
 import type { DiscountConfig } from "~/domains/commerce/services/discount.server";
 
 function renderWithPolaris(ui: React.ReactNode) {
@@ -554,374 +555,11 @@ describe("FlashSaleContentSection - ALL Configuration Options", () => {
     });
   });
 
-  // ========== DESIGN & PRESENTATION SECTION TESTS ==========
-
-  describe("Design & Presentation - Layout Options", () => {
-    it("should support center position", () => {
-      const onChange = vi.fn();
-      const onDesignChange = vi.fn();
-      const designConfig: Partial<DesignConfig> = { position: "center" };
-
-      renderWithPolaris(
-        <FlashSaleContentSection
-          content={{}}
-          designConfig={designConfig}
-          onChange={onChange}
-          onDesignChange={onDesignChange}
-        />
-      );
-
-      expect(designConfig.position).toBe("center");
-    });
-
-    it("should support top position", () => {
-      const onChange = vi.fn();
-      const onDesignChange = vi.fn();
-      const designConfig: Partial<DesignConfig> = { position: "top" };
-
-      renderWithPolaris(
-        <FlashSaleContentSection
-          content={{}}
-          designConfig={designConfig}
-          onChange={onChange}
-          onDesignChange={onDesignChange}
-        />
-      );
-
-      expect(designConfig.position).toBe("top");
-    });
-
-    it("should support bottom position", () => {
-      const onChange = vi.fn();
-      const onDesignChange = vi.fn();
-      const designConfig: Partial<DesignConfig> = { position: "bottom" };
-
-      renderWithPolaris(
-        <FlashSaleContentSection
-          content={{}}
-          designConfig={designConfig}
-          onChange={onChange}
-          onDesignChange={onDesignChange}
-        />
-      );
-
-      expect(designConfig.position).toBe("bottom");
-    });
-
-    it("should support left position", () => {
-      const onChange = vi.fn();
-      const onDesignChange = vi.fn();
-      const designConfig: Partial<DesignConfig> = { position: "left" };
-
-      renderWithPolaris(
-        <FlashSaleContentSection
-          content={{}}
-          designConfig={designConfig}
-          onChange={onChange}
-          onDesignChange={onDesignChange}
-        />
-      );
-
-      expect(designConfig.position).toBe("left");
-    });
-
-    it("should support right position", () => {
-      const onChange = vi.fn();
-      const onDesignChange = vi.fn();
-      const designConfig: Partial<DesignConfig> = { position: "right" };
-
-      renderWithPolaris(
-        <FlashSaleContentSection
-          content={{}}
-          designConfig={designConfig}
-          onChange={onChange}
-          onDesignChange={onDesignChange}
-        />
-      );
-
-      expect(designConfig.position).toBe("right");
-    });
-
-    it("should support small size", () => {
-      const onChange = vi.fn();
-      const onDesignChange = vi.fn();
-      const designConfig: Partial<DesignConfig> = { size: "small" };
-
-      renderWithPolaris(
-        <FlashSaleContentSection
-          content={{}}
-          designConfig={designConfig}
-          onChange={onChange}
-          onDesignChange={onDesignChange}
-        />
-      );
-
-      expect(designConfig.size).toBe("small");
-    });
-
-    it("should support medium size", () => {
-      const onChange = vi.fn();
-      const onDesignChange = vi.fn();
-      const designConfig: Partial<DesignConfig> = { size: "medium" };
-
-      renderWithPolaris(
-        <FlashSaleContentSection
-          content={{}}
-          designConfig={designConfig}
-          onChange={onChange}
-          onDesignChange={onDesignChange}
-        />
-      );
-
-      expect(designConfig.size).toBe("medium");
-    });
-
-    it("should support large size", () => {
-      const onChange = vi.fn();
-      const onDesignChange = vi.fn();
-      const designConfig: Partial<DesignConfig> = { size: "large" };
-
-      renderWithPolaris(
-        <FlashSaleContentSection
-          content={{}}
-          designConfig={designConfig}
-          onChange={onChange}
-          onDesignChange={onDesignChange}
-        />
-      );
-
-      expect(designConfig.size).toBe("large");
-    });
-
-    it("should support modal display mode", () => {
-      const onChange = vi.fn();
-      const onDesignChange = vi.fn();
-      const designConfig: Partial<DesignConfig> = { displayMode: "modal" };
-
-      renderWithPolaris(
-        <FlashSaleContentSection
-          content={{}}
-          designConfig={designConfig}
-          onChange={onChange}
-          onDesignChange={onDesignChange}
-        />
-      );
-
-      expect(designConfig.displayMode).toBe("modal");
-    });
-
-    it("should support banner display mode", () => {
-      const onChange = vi.fn();
-      const onDesignChange = vi.fn();
-      const designConfig: Partial<DesignConfig> = { displayMode: "banner" };
-
-      renderWithPolaris(
-        <FlashSaleContentSection
-          content={{}}
-          designConfig={designConfig}
-          onChange={onChange}
-          onDesignChange={onDesignChange}
-        />
-      );
-
-      expect(designConfig.displayMode).toBe("banner");
-    });
-  });
-
-  describe("Design & Presentation - Main Colors", () => {
-    it("should support custom background color", () => {
-      const onChange = vi.fn();
-      const onDesignChange = vi.fn();
-      const designConfig: Partial<DesignConfig> = { backgroundColor: "#FF0000" };
-
-      renderWithPolaris(
-        <FlashSaleContentSection
-          content={{}}
-          designConfig={designConfig}
-          onChange={onChange}
-          onDesignChange={onDesignChange}
-        />
-      );
-
-      expect(designConfig.backgroundColor).toBe("#FF0000");
-    });
-
-    it("should support custom text color", () => {
-      const onChange = vi.fn();
-      const onDesignChange = vi.fn();
-      const designConfig: Partial<DesignConfig> = { textColor: "#000000" };
-
-      renderWithPolaris(
-        <FlashSaleContentSection
-          content={{}}
-          designConfig={designConfig}
-          onChange={onChange}
-          onDesignChange={onDesignChange}
-        />
-      );
-
-      expect(designConfig.textColor).toBe("#000000");
-    });
-
-    it("should support custom description color", () => {
-      const onChange = vi.fn();
-      const onDesignChange = vi.fn();
-      const designConfig: Partial<DesignConfig> = { descriptionColor: "#6b7280" };
-
-      renderWithPolaris(
-        <FlashSaleContentSection
-          content={{}}
-          designConfig={designConfig}
-          onChange={onChange}
-          onDesignChange={onDesignChange}
-        />
-      );
-
-      expect(designConfig.descriptionColor).toBe("#6b7280");
-    });
-
-    it("should support custom accent color", () => {
-      const onChange = vi.fn();
-      const onDesignChange = vi.fn();
-      const designConfig: Partial<DesignConfig> = { accentColor: "#3b82f6" };
-
-      renderWithPolaris(
-        <FlashSaleContentSection
-          content={{}}
-          designConfig={designConfig}
-          onChange={onChange}
-          onDesignChange={onDesignChange}
-        />
-      );
-
-      expect(designConfig.accentColor).toBe("#3b82f6");
-    });
-
-    it("should support custom success color", () => {
-      const onChange = vi.fn();
-      const onDesignChange = vi.fn();
-      const designConfig: Partial<DesignConfig> = { successColor: "#10b981" };
-
-      renderWithPolaris(
-        <FlashSaleContentSection
-          content={{}}
-          designConfig={designConfig}
-          onChange={onChange}
-          onDesignChange={onDesignChange}
-        />
-      );
-
-      expect(designConfig.successColor).toBe("#10b981");
-    });
-  });
-
-  describe("Design & Presentation - Button Colors", () => {
-    it("should support custom button background color", () => {
-      const onChange = vi.fn();
-      const onDesignChange = vi.fn();
-      const designConfig: Partial<DesignConfig> = { buttonColor: "#3b82f6" };
-
-      renderWithPolaris(
-        <FlashSaleContentSection
-          content={{}}
-          designConfig={designConfig}
-          onChange={onChange}
-          onDesignChange={onDesignChange}
-        />
-      );
-
-      expect(designConfig.buttonColor).toBe("#3b82f6");
-    });
-
-    it("should support custom button text color", () => {
-      const onChange = vi.fn();
-      const onDesignChange = vi.fn();
-      const designConfig: Partial<DesignConfig> = { buttonTextColor: "#ffffff" };
-
-      renderWithPolaris(
-        <FlashSaleContentSection
-          content={{}}
-          designConfig={designConfig}
-          onChange={onChange}
-          onDesignChange={onDesignChange}
-        />
-      );
-
-      expect(designConfig.buttonTextColor).toBe("#ffffff");
-    });
-  });
-
-  describe("Design & Presentation - Overlay Settings", () => {
-    it("should support custom overlay color", () => {
-      const onChange = vi.fn();
-      const onDesignChange = vi.fn();
-      const designConfig: Partial<DesignConfig> = { overlayColor: "#000000" };
-
-      renderWithPolaris(
-        <FlashSaleContentSection
-          content={{}}
-          designConfig={designConfig}
-          onChange={onChange}
-          onDesignChange={onDesignChange}
-        />
-      );
-
-      expect(designConfig.overlayColor).toBe("#000000");
-    });
-
-    it("should support custom overlay opacity", () => {
-      const onChange = vi.fn();
-      const onDesignChange = vi.fn();
-      const designConfig: Partial<DesignConfig> = { overlayOpacity: 0.5 };
-
-      renderWithPolaris(
-        <FlashSaleContentSection
-          content={{}}
-          designConfig={designConfig}
-          onChange={onChange}
-          onDesignChange={onDesignChange}
-        />
-      );
-
-      expect(designConfig.overlayOpacity).toBe(0.5);
-    });
-
-    it("should support 0% overlay opacity", () => {
-      const onChange = vi.fn();
-      const onDesignChange = vi.fn();
-      const designConfig: Partial<DesignConfig> = { overlayOpacity: 0 };
-
-      renderWithPolaris(
-        <FlashSaleContentSection
-          content={{}}
-          designConfig={designConfig}
-          onChange={onChange}
-          onDesignChange={onDesignChange}
-        />
-      );
-
-      expect(designConfig.overlayOpacity).toBe(0);
-    });
-
-    it("should support 100% overlay opacity", () => {
-      const onChange = vi.fn();
-      const onDesignChange = vi.fn();
-      const designConfig: Partial<DesignConfig> = { overlayOpacity: 1 };
-
-      renderWithPolaris(
-        <FlashSaleContentSection
-          content={{}}
-          designConfig={designConfig}
-          onChange={onChange}
-          onDesignChange={onDesignChange}
-        />
-      );
-
-      expect(designConfig.overlayOpacity).toBe(1);
-    });
-  });
-
-  describe("Design & Presentation - Presentation Options", () => {
+  // NOTE: Design & Presentation tests (position, size, displayMode, colors, overlay)
+  // moved to DesignConfigSection tests as design controls are now handled by
+  // the shared DesignConfigSection component
+
+  describe("Content Presentation Options", () => {
     it("should support pill badge style", () => {
       const onChange = vi.fn();
       const content: Partial<FlashSaleContent> = {
@@ -1174,7 +812,6 @@ describe("FlashSaleContentSection - ALL Configuration Options", () => {
   describe("Integration - Complete Configuration", () => {
     it("should handle a fully configured flash sale", () => {
       const onChange = vi.fn();
-      const onDesignChange = vi.fn();
       const onDiscountChange = vi.fn();
 
       const content: Partial<FlashSaleContent> = {
@@ -1219,18 +856,6 @@ describe("FlashSaleContentSection - ALL Configuration Options", () => {
         }
       };
 
-      const designConfig: Partial<DesignConfig> = {
-        position: "center",
-        size: "medium",
-        displayMode: "modal",
-        backgroundColor: "#ffffff",
-        textColor: "#000000",
-        buttonColor: "#3b82f6",
-        buttonTextColor: "#ffffff",
-        overlayColor: "#000000",
-        overlayOpacity: 0.7
-      };
-
       const discountConfig: DiscountConfig = {
         enabled: true,
         valueType: "PERCENTAGE",
@@ -1243,20 +868,17 @@ describe("FlashSaleContentSection - ALL Configuration Options", () => {
       renderWithPolaris(
         <FlashSaleContentSection
           content={content}
-          designConfig={designConfig}
           discountConfig={discountConfig}
           onChange={onChange}
-          onDesignChange={onDesignChange}
           onDiscountChange={onDiscountChange}
         />
       );
 
-      // Verify all sections are configured
+      // Verify all content sections are configured
       expect(content.headline).toBe("Flash Sale! 50% Off");
       expect(content.timer?.mode).toBe("fixed_end");
       expect(content.inventory?.mode).toBe("real");
       expect(content.reserve?.enabled).toBe(true);
-      expect(designConfig.position).toBe("center");
       expect(discountConfig.valueType).toBe("PERCENTAGE");
     });
   });
