@@ -77,16 +77,40 @@ export const AnnouncementPopup: React.FC<AnnouncementPopupProps> = ({
   // Get background styles (handles gradients)
   const bannerBackgroundStyles = getBackgroundStyles(schemeColors.backgroundColor);
 
+  // Determine position style based on preview mode vs storefront
+  const positionStyle: React.CSSProperties = config.previewMode
+    ? {
+        // In admin preview, use absolute positioning to keep the banner
+        // constrained within the preview frame instead of the full window
+        position: "absolute",
+        [config.position === "bottom" ? "bottom" : "top"]: 0,
+        left: 0,
+        right: 0,
+      }
+    : config.sticky
+      ? {
+          // Storefront behavior: stick to the top/bottom of the viewport
+          position: "sticky",
+          [config.position === "bottom" ? "bottom" : "top"]: 0,
+          left: 0,
+          right: 0,
+          zIndex: 10000,
+        }
+      : {
+          // Non-sticky storefront: fixed position
+          position: "fixed",
+          [config.position === "bottom" ? "bottom" : "top"]: 0,
+          left: 0,
+          right: 0,
+          zIndex: 10000,
+        };
+
   const bannerStyles: React.CSSProperties = {
-    position: config.sticky ? "sticky" : "fixed",
-    [config.position === "bottom" ? "bottom" : "top"]: 0,
-    left: 0,
-    right: 0,
+    ...positionStyle,
     ...bannerBackgroundStyles,
     color: schemeColors.textColor,
     fontFamily: config.fontFamily || 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
     padding: "14px 20px",
-    zIndex: 10000,
     boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
   };
 

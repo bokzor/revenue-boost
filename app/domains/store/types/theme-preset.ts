@@ -92,7 +92,10 @@ export type ThemePresetsArray = z.infer<typeof ThemePresetsArraySchema>;
  */
 function lightenColor(hex: string, percent: number): string {
   const rgb = hexToRgb(hex);
-  if (!rgb) return hex;
+  if (!rgb) {
+    console.warn(`Invalid hex color provided to lightenColor: ${hex}`);
+    return "#FFFFFF"; // Return a safe fallback
+  }
 
   const factor = percent / 100;
   const r = Math.min(255, Math.round(rgb.r + (255 - rgb.r) * factor));
@@ -107,7 +110,10 @@ function lightenColor(hex: string, percent: number): string {
  */
 function darkenColor(hex: string, percent: number): string {
   const rgb = hexToRgb(hex);
-  if (!rgb) return hex;
+  if (!rgb) {
+    console.warn(`Invalid hex color provided to darkenColor: ${hex}`);
+    return "#000000"; // Return a safe fallback
+  }
 
   const factor = 1 - percent / 100;
   const r = Math.max(0, Math.round(rgb.r * factor));
@@ -192,7 +198,7 @@ export function expandThemePreset(preset: ThemePresetInput): Partial<DesignConfi
   // Compute description color (muted version of text)
   const descriptionColor = isDark
     ? hexToRgba(textColor, 0.8)
-    : darkenColor(lightenColor(textColor, 40), 0);
+    : lightenColor(textColor, 40);
 
   // Compute input border color
   const inputBorderColor = isDark
@@ -234,11 +240,22 @@ export function expandThemePreset(preset: ThemePresetInput): Partial<DesignConfi
 }
 
 /**
+ * Generate a UUID, with fallback for environments without crypto.randomUUID
+ */
+function generateUUID(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  // Fallback for older browsers or non-secure contexts
+  return `preset-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+}
+
+/**
  * Create a new theme preset with defaults
  */
 export function createEmptyThemePreset(overrides?: Partial<ThemePresetInput>): ThemePresetInput {
   return {
-    id: crypto.randomUUID(),
+    id: generateUUID(),
     name: "",
     brandColor: "#3B82F6",
     backgroundColor: "#FFFFFF",
@@ -273,7 +290,7 @@ export function parseThemePresets(data: unknown): ThemePresetsArray {
  * Creates a harmonious color palette based on the brand color
  */
 export function getWheelColorsFromPreset(preset: ThemePresetInput, segmentCount: number): string[] {
-  const { brandColor, backgroundColor, textColor } = preset;
+  const { brandColor, backgroundColor } = preset;
 
   // Parse brand color to HSL for color manipulation
   const brandRgb = hexToRgb(brandColor);

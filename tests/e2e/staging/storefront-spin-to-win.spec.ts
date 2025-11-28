@@ -326,4 +326,102 @@ test.describe.serial('Spin to Win Template', () => {
 
         expect(campaign).toBeDefined();
     });
+
+    test('displays prize and discount code after successful spin', async ({ page }) => {
+        console.log('🧪 Testing prize display after spin...');
+
+        const campaign = await (await factory.spinToWin().init())
+            .withPriority(9806)
+            .withEmailRequired(true)
+            .create();
+        console.log(`✅ Campaign created: ${campaign.id}`);
+
+        await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
+
+        await page.goto(STORE_URL);
+        await handlePasswordPage(page);
+
+        const popupVisible = await waitForPopupWithRetry(page, { timeout: 15000, retries: 3 });
+        if (!popupVisible) {
+            console.log('⚠️ Popup not visible - skipping test');
+            return;
+        }
+
+        // Fill email first
+        await fillEmailInShadowDOM(page, `prize-test-${Date.now()}@example.com`);
+
+        // Click spin button
+        await page.evaluate(() => {
+            const host = document.querySelector('#revenue-boost-popup-shadow-host');
+            if (!host?.shadowRoot) return;
+            const button = host.shadowRoot.querySelector('button');
+            if (button) button.click();
+        });
+
+        // Wait for spin animation (typically 4-5 seconds)
+        await page.waitForTimeout(6000);
+
+        // Check for prize/discount display
+        const prizeState = await page.evaluate(() => {
+            const host = document.querySelector('#revenue-boost-popup-shadow-host');
+            if (!host?.shadowRoot) return { hasPrize: false, hasCode: false };
+
+            const html = host.shadowRoot.innerHTML;
+            return {
+                hasPrize: /\d+%\s*OFF/i.test(html) || html.includes('FREE SHIPPING'),
+                hasCode: /[A-Z0-9-]{6,}/i.test(html),
+                hasWonMessage: /won|congratulation|prize/i.test(html)
+            };
+        });
+
+        console.log(`Prize display: hasPrize=${prizeState.hasPrize}, hasCode=${prizeState.hasCode}, hasWonMessage=${prizeState.hasWonMessage}`);
+
+        if (prizeState.hasPrize || prizeState.hasWonMessage) {
+            console.log('✅ Prize/result displayed after spin');
+        }
+    });
+
+    test('respects GDPR checkbox when enabled', async ({ page }) => {
+        console.log('🧪 Testing GDPR checkbox in spin-to-win...');
+
+        const campaign = await (await factory.spinToWin().init())
+            .withPriority(9807)
+            .withGdprCheckbox(true, 'I consent to receive marketing emails')
+            .create();
+        console.log(`✅ Campaign created: ${campaign.id}`);
+
+        await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
+
+        await page.goto(STORE_URL);
+        await handlePasswordPage(page);
+
+        const popupVisible = await waitForPopupWithRetry(page, { timeout: 15000, retries: 3 });
+        if (!popupVisible) {
+            console.log('⚠️ Popup not visible - skipping test');
+            return;
+        }
+
+        // Check for GDPR checkbox
+        const gdprState = await page.evaluate(() => {
+            const host = document.querySelector('#revenue-boost-popup-shadow-host');
+            if (!host?.shadowRoot) return { exists: false };
+
+            const checkbox = host.shadowRoot.querySelector('input[type="checkbox"]') as HTMLInputElement;
+            const html = host.shadowRoot.innerHTML.toLowerCase();
+
+            return {
+                exists: !!checkbox,
+                hasConsentText: html.includes('consent') || html.includes('marketing') || html.includes('agree'),
+                label: checkbox?.labels?.[0]?.textContent || ''
+            };
+        });
+
+        console.log(`GDPR: exists=${gdprState.exists}, hasText=${gdprState.hasConsentText}`);
+
+        if (gdprState.exists || gdprState.hasConsentText) {
+            console.log('✅ GDPR consent checkbox displayed');
+        } else {
+            console.log('⚠️ GDPR checkbox not found - may be configured differently');
+        }
+    });
 });

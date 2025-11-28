@@ -76,7 +76,7 @@ export const TEMPLATE_DESIGN_CAPABILITIES: Record<TemplateType, DesignCapabiliti
     supportsSize: ["small", "medium", "large"],
   },
 
-  // Banner/bar templates (no overlay, no inputs)
+  // Banner/bar templates (no overlay, no inputs, full-width)
   FREE_SHIPPING: {
     usesButtons: false,
     usesInputs: false,
@@ -86,10 +86,10 @@ export const TEMPLATE_DESIGN_CAPABILITIES: Record<TemplateType, DesignCapabiliti
     usesAccent: true,
     usesSuccessWarning: true,
     supportsPosition: ["top", "bottom"],
-    supportsSize: ["small", "medium"],
+    supportsSize: [], // Full-width bar, size not applicable
   },
 
-  // Promotional modals
+  // Promotional modals (uses popupSize instead of size)
   FLASH_SALE: {
     usesButtons: true,
     usesInputs: false,
@@ -99,7 +99,7 @@ export const TEMPLATE_DESIGN_CAPABILITIES: Record<TemplateType, DesignCapabiliti
     usesAccent: true,
     usesSuccessWarning: true,
     supportsPosition: ["center", "top", "bottom"],
-    supportsSize: ["small", "medium", "large"],
+    supportsSize: [], // Uses popupSize (compact/standard/wide/full) instead
   },
 
   // Gamification templates
@@ -153,7 +153,7 @@ export const TEMPLATE_DESIGN_CAPABILITIES: Record<TemplateType, DesignCapabiliti
     supportsSize: ["small", "medium", "large"],
   },
 
-  // Corner notification
+  // Corner notification (fixed size, always small)
   SOCIAL_PROOF: {
     usesButtons: false,
     usesInputs: false,
@@ -163,10 +163,10 @@ export const TEMPLATE_DESIGN_CAPABILITIES: Record<TemplateType, DesignCapabiliti
     usesAccent: true,
     usesSuccessWarning: false,
     supportsPosition: ["bottom", "top", "left", "right"],
-    supportsSize: ["small"],
+    supportsSize: [], // Fixed corner notification, size not applicable
   },
 
-  // Banner/sticky templates
+  // Banner/sticky templates (full-width)
   COUNTDOWN_TIMER: {
     usesButtons: true,
     usesInputs: false,
@@ -176,7 +176,7 @@ export const TEMPLATE_DESIGN_CAPABILITIES: Record<TemplateType, DesignCapabiliti
     usesAccent: true,
     usesSuccessWarning: true,
     supportsPosition: ["top", "bottom"],
-    supportsSize: ["small", "medium"],
+    supportsSize: [], // Full-width banner, size not applicable
   },
 
   ANNOUNCEMENT: {
@@ -188,7 +188,7 @@ export const TEMPLATE_DESIGN_CAPABILITIES: Record<TemplateType, DesignCapabiliti
     usesAccent: true,
     usesSuccessWarning: false,
     supportsPosition: ["top", "bottom"],
-    supportsSize: ["small", "medium"],
+    supportsSize: [], // Full-width banner, size not applicable
   },
 };
 

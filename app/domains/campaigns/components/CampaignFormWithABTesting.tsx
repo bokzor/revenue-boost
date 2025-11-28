@@ -513,9 +513,6 @@ export function CampaignFormWithABTesting({
           <ABTestingPanel
             abTestingEnabled={abTestingEnabled}
             onToggle={handleAbTestingToggle}
-            selectedVariant={selectedVariant}
-            onVariantSelect={setSelectedVariant}
-            variantCount={variantCount}
             experimentId={experimentId}
             experimentName={experimentData?.name}
             currentVariantKey={currentVariantKey}
@@ -523,7 +520,7 @@ export function CampaignFormWithABTesting({
           />
         </Layout.Section>
 
-        {/* Experiment Configuration - Extracted Component */}
+        {/* Experiment Configuration - Extracted Component (includes variant selector) */}
         {abTestingEnabled && (
           <Layout.Section>
             <Card>
@@ -534,10 +531,12 @@ export function CampaignFormWithABTesting({
                     experimentDescription={experimentConfig.experimentDescription}
                     experimentHypothesis={experimentConfig.experimentHypothesis}
                     variantCount={variantCount}
+                    selectedVariant={selectedVariant}
                     onNameChange={experimentConfig.setExperimentName}
                     onDescriptionChange={experimentConfig.setExperimentDescription}
                     onHypothesisChange={experimentConfig.setExperimentHypothesis}
                     onVariantCountChange={handleVariantCountChange}
+                    onVariantSelect={setSelectedVariant}
                   />
                 </BlockStack>
               </div>

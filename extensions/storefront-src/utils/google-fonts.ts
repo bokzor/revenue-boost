@@ -44,12 +44,10 @@ export function loadGoogleFont(fontFamily: string | undefined): void {
   const link = document.createElement("link");
   link.id = linkId;
   link.rel = "stylesheet";
-  link.href = `https://fonts.googleapis.com/css2?family=${googleFontId}&display=swap`;
+  link.href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(googleFontId)}&display=swap`;
   document.head.appendChild(link);
 
   loadedFonts.add(googleFontId);
-  
-  console.log(`[RevenueBoost] Loaded font: ${fontFamily}`);
 }
 
 /**

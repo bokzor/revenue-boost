@@ -819,6 +819,18 @@ export class SpinToWinBuilder extends BaseBuilder<SpinToWinBuilder> {
         this.config.contentConfig.headline = headline;
         return this;
     }
+
+    /**
+     * Enable GDPR checkbox with custom text
+     */
+    withGdprCheckbox(enabled: boolean, text?: string): this {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.contentConfig.showGdprCheckbox = enabled;
+        if (text) {
+            this.config.contentConfig.gdprLabel = text;
+        }
+        return this;
+    }
 }
 
 /**
@@ -938,6 +950,25 @@ export class CartAbandonmentBuilder extends BaseBuilder<CartAbandonmentBuilder> 
         this.config.contentConfig.headline = headline;
         return this;
     }
+
+    /**
+     * Configure cart items display
+     */
+    withShowCartItems(show: boolean, maxItems: number = 3): this {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.contentConfig.showCartItems = show;
+        this.config.contentConfig.maxItemsToShow = maxItems;
+        return this;
+    }
+
+    /**
+     * Set CTA URL for checkout redirect
+     */
+    withCtaUrl(url: string): this {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.contentConfig.ctaUrl = url;
+        return this;
+    }
 }
 
 /**
@@ -1005,6 +1036,18 @@ export class ScratchCardBuilder extends BaseBuilder<ScratchCardBuilder> {
     withHeadline(headline: string): this {
         if (!this.config) throw new Error('Config not initialized');
         this.config.contentConfig.headline = headline;
+        return this;
+    }
+
+    /**
+     * Enable GDPR checkbox with custom text
+     */
+    withGdprCheckbox(enabled: boolean, text?: string): this {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.contentConfig.showGdprCheckbox = enabled;
+        if (text) {
+            this.config.contentConfig.gdprLabel = text;
+        }
         return this;
     }
 }

@@ -274,7 +274,7 @@ export function DesignConfigSection({
         <Divider />
 
         {/* Position & Size */}
-        <FormGrid columns={2}>
+        <FormGrid columns={sizeOptions.length > 0 ? 2 : 1}>
           <Select
             label="Position"
             value={design.position || "center"}
@@ -285,13 +285,15 @@ export function DesignConfigSection({
             }
           />
 
-          <Select
-            label="Size"
-            value={design.size || "medium"}
-            options={sizeOptions}
-            onChange={(value) => updateField("size", value as DesignConfig["size"])}
-            helpText={caps?.supportsSize ? "Size options filtered for this template" : undefined}
-          />
+          {sizeOptions.length > 0 && (
+            <Select
+              label="Size"
+              value={design.size || "medium"}
+              options={sizeOptions}
+              onChange={(value) => updateField("size", value as DesignConfig["size"])}
+              helpText={caps?.supportsSize ? "Size options filtered for this template" : undefined}
+            />
+          )}
         </FormGrid>
 
         {/* Flash Sale specific popup size */}
