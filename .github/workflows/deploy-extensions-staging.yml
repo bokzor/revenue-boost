@@ -39,9 +39,6 @@ jobs:
       - name: 🏗️ Build storefront assets (STAGING - with console.log and sourcemaps)
         run: npm run build:storefront:staging
 
-      - name: 🛠 Install Shopify CLI
-        run: npm install -g @shopify/cli@latest @shopify/app@latest
-
       - name: 🔗 Inject STAGING_APP_URL into shopify.app.staging.toml
         env:
           STAGING_APP_URL: ${{ secrets.STAGING_APP_URL }}
@@ -66,7 +63,7 @@ jobs:
           SHOPIFY_API_KEY: ${{ secrets.SHOPIFY_API_KEY }}
           COMMIT_URL: ${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}
         run: |
-          shopify app deploy \
+          npx shopify app deploy \
             --config staging \
             --force \
             --source-control-url "$COMMIT_URL"

@@ -8,6 +8,7 @@ import { data, type ActionFunctionArgs } from "react-router";
 import { z } from "zod";
 import prisma from "~/db.server";
 import { storefrontCors } from "~/lib/cors.server";
+import { formatZodErrors } from "~/lib/validation-helpers";
 import { getStoreIdFromShop, createAdminApiContext } from "~/lib/auth-helpers.server";
 import {
   upsertCustomer,
@@ -255,7 +256,7 @@ export async function action({ request }: ActionFunctionArgs) {
         {
           success: false,
           error: "Invalid request data",
-          errors: error.issues,
+          errors: formatZodErrors(error),
         },
         { status: 400, headers: storefrontCors() }
       );

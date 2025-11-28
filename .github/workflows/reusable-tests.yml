@@ -1,0 +1,159 @@
+name: 🧪 Reusable Tests
+
+on:
+  workflow_call:
+    inputs:
+      runner:
+        description: 'Runner to use for tests'
+        required: false
+        default: 'ubuntu-latest'
+        type: string
+      run_unit_tests:
+        description: 'Run unit tests'
+        required: false
+        default: true
+        type: boolean
+      run_integration_tests:
+        description: 'Run integration tests'
+        required: false
+        default: true
+        type: boolean
+      run_lint:
+        description: 'Run linting'
+        required: false
+        default: true
+        type: boolean
+      run_typecheck:
+        description: 'Run type checking'
+        required: false
+        default: true
+        type: boolean
+      node_version:
+        description: 'Node.js version'
+        required: false
+        default: '24'
+        type: string
+    outputs:
+      unit_tests_result:
+        description: 'Unit tests result'
+        value: ${{ jobs.unit-tests.result }}
+      integration_tests_result:
+        description: 'Integration tests result'
+        value: ${{ jobs.integration-tests.result }}
+
+env:
+  NODE_VERSION: ${{ inputs.node_version }}
+
+jobs:
+  lint-and-typecheck:
+    name: 🎨 Lint & Typecheck
+    runs-on: ${{ inputs.runner }}
+    if: ${{ inputs.run_lint || inputs.run_typecheck }}
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 🔧 Install dependencies
+        run: npm ci
+
+      - name: 🎨 Lint
+        if: ${{ inputs.run_lint }}
+        run: npm run lint
+        continue-on-error: true
+
+      - name: 🔍 Typecheck
+        if: ${{ inputs.run_typecheck }}
+        run: npm run typecheck
+
+  unit-tests:
+    name: 🧪 Unit Tests
+    runs-on: ${{ inputs.runner }}
+    needs: [lint-and-typecheck]
+    if: ${{ always() && inputs.run_unit_tests && (needs.lint-and-typecheck.result == 'success' || needs.lint-and-typecheck.result == 'skipped') }}
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 🔧 Install dependencies
+        run: npm ci
+
+      - name: 🌱 Generate Prisma Client
+        run: npx prisma generate
+
+      - name: 🧪 Run unit tests
+        run: npm run test:run
+        env:
+          NODE_ENV: test
+
+      - name: 📊 Upload test coverage
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: unit-test-coverage-${{ github.run_id }}
+          path: coverage/
+          retention-days: 7
+
+  integration-tests:
+    name: 🔗 Integration Tests
+    runs-on: ${{ inputs.runner }}
+    needs: [lint-and-typecheck]
+    if: ${{ always() && inputs.run_integration_tests && (needs.lint-and-typecheck.result == 'success' || needs.lint-and-typecheck.result == 'skipped') }}
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: revenue_boost_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 🔧 Install dependencies
+        run: npm ci
+
+      - name: 🗄️ Setup database
+        run: npx prisma migrate deploy
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/revenue_boost_test
+
+      - name: 🌱 Generate Prisma Client
+        run: npx prisma generate
+
+      - name: 🧪 Run integration tests
+        run: npx vitest run -c vitest.integration.config.ts
+        env:
+          NODE_ENV: test
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/revenue_boost_test
+          SHOPIFY_API_KEY: test_api_key_12345
+          SHOPIFY_API_SECRET: test_api_secret_12345
+          SCOPES: write_products,write_customers,read_orders,write_script_tags,read_themes,write_discounts
+          SESSION_SECRET: test_session_secret_minimum_32_chars_long_for_validation
+          INTERNAL_API_SECRET: test_internal_api_secret_minimum_32_chars_long_validation
+          SHOPIFY_APP_URL: http://localhost:3000
+

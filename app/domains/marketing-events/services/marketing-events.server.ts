@@ -10,6 +10,19 @@ interface EngagementMetrics {
   isCumulative?: boolean;
 }
 
+interface CampaignForMarketing {
+  id: string;
+  name: string;
+  description?: string;
+  status: string;
+  startDate?: Date | null;
+  endDate?: Date | null;
+  templateType?: string;
+  // Experiment context for UTM generation
+  experimentName?: string;
+  variantKey?: string;
+}
+
 export class MarketingEventsService {
   /**
    * Create a marketing event in Shopify.
@@ -17,15 +30,7 @@ export class MarketingEventsService {
    */
   static async createMarketingEvent(
     admin: AdminApiContext,
-    campaign: {
-      id: string;
-      name: string;
-      description?: string;
-      status: string;
-      startDate?: Date | null;
-      endDate?: Date | null;
-      templateType?: string;
-    },
+    campaign: CampaignForMarketing,
     appUrl: string
   ): Promise<{
     marketingEventId: string;
@@ -34,10 +39,7 @@ export class MarketingEventsService {
     utmMedium: string;
   } | null> {
     try {
-      const { utmCampaign, utmSource, utmMedium } = this.generateUTMParams(
-        campaign.id,
-        campaign.templateType
-      );
+      const { utmCampaign, utmSource, utmMedium } = this.generateUTMParams(campaign);
       const start = campaign.startDate ?? new Date();
 
       const response = await admin.graphql(
@@ -251,12 +253,53 @@ export class MarketingEventsService {
     }
   }
 
-  private static generateUTMParams(campaignId: string, templateType?: string) {
-    const normalizedTemplate = (templateType || "popup").toLowerCase().replace(/_/g, "-");
+  /**
+   * Generate human-readable UTM parameters for a campaign.
+   *
+   * UTM structure:
+   * - utm_campaign: slugified campaign name (or experiment-name-variant-X for A/B tests)
+   * - utm_source: "revenue-boost"
+   * - utm_medium: template type (newsletter, spin-to-win, etc.)
+   *
+   * Falls back to campaign ID if name is empty/invalid.
+   */
+  private static generateUTMParams(campaign: CampaignForMarketing) {
+    const normalizedTemplate = (campaign.templateType || "popup").toLowerCase().replace(/_/g, "-");
+
+    // Generate utm_campaign based on context
+    let utmCampaign: string;
+
+    if (campaign.experimentName && campaign.variantKey) {
+      // For A/B test variants: "experiment-name-variant-a"
+      const experimentSlug = this.slugify(campaign.experimentName);
+      utmCampaign = `${experimentSlug}-variant-${campaign.variantKey.toLowerCase()}`;
+    } else if (campaign.name) {
+      // For regular campaigns: use campaign name
+      utmCampaign = this.slugify(campaign.name);
+    } else {
+      // Fallback to campaign ID
+      utmCampaign = `campaign-${campaign.id}`;
+    }
+
     return {
-      utmCampaign: `revenue-boost-${campaignId}`,
-      utmSource: "revenue-boost-app",
+      utmCampaign,
+      utmSource: "revenue-boost",
       utmMedium: normalizedTemplate,
     };
+  }
+
+  /**
+   * Convert a string to a URL-safe slug.
+   * "Black Friday Sale!" → "black-friday-sale"
+   */
+  private static slugify(text: string): string {
+    return text
+      .toLowerCase()
+      .trim()
+      .replace(/[^\w\s-]/g, "") // Remove non-word chars (except spaces and hyphens)
+      .replace(/\s+/g, "-") // Replace spaces with hyphens
+      .replace(/-+/g, "-") // Replace multiple hyphens with single hyphen
+      .replace(/^-+|-+$/g, "") // Remove leading/trailing hyphens
+      .slice(0, 50); // Limit length for URL friendliness
   }
 }

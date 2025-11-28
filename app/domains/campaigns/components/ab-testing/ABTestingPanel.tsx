@@ -55,7 +55,7 @@ export function ABTestingPanel({
                 <Text as="p" variant="bodySm">
                   Upgrade to the Growth plan or higher to create A/B test experiments and optimize
                   your campaigns with data-driven insights.{" "}
-                  <Link url="/app/settings/billing">View plans</Link>
+                  <Link url="/app/billing">View plans</Link>
                 </Text>
               </BlockStack>
             </Banner>

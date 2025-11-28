@@ -265,6 +265,8 @@ export const NewsletterContentSchema = BaseContentConfigSchema.extend({
 
   consentFieldRequired: z.boolean().default(false),
   consentFieldText: z.string().optional(),
+  // GDPR: Privacy policy URL for consent checkbox link
+  privacyPolicyUrl: z.string().url().optional(),
 });
 
 /**
@@ -378,6 +380,8 @@ export const SpinToWinContentSchema = SpinToWinBaseContentSchema.extend({
   showGdprCheckbox: z.boolean().default(false),
   consentFieldRequired: z.boolean().default(false),
   gdprLabel: z.string().optional(),
+  // GDPR: Privacy policy URL for consent checkbox link
+  privacyPolicyUrl: z.string().url().optional(),
 
   // Wheel configuration
   wheelSegments: z
@@ -651,6 +655,11 @@ export const ScratchCardContentSchema = ScratchCardBaseContentSchema.extend({
     )
     .min(1, "At least one prize required")
     .default(DEFAULT_SCRATCH_CARD_PRIZES),
+  // GDPR consent fields
+  showGdprCheckbox: z.boolean().default(false),
+  gdprLabel: z.string().optional(),
+  // GDPR: Privacy policy URL for consent checkbox link
+  privacyPolicyUrl: z.string().url().optional(),
 });
 
 /**

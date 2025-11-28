@@ -26,6 +26,7 @@ export interface FieldConfigurationSectionProps {
   consentFieldRequired?: boolean;
   consentFieldText?: string;
   gdprLabel?: string; // Alternative prop name for SpinToWin compatibility
+  privacyPolicyUrl?: string; // GDPR: URL to privacy policy page
 
   // Callbacks
   onChange: (updates: Partial<FieldConfig>) => void;
@@ -45,6 +46,7 @@ export interface FieldConfig {
   consentFieldRequired?: boolean;
   consentFieldText?: string;
   gdprLabel?: string;
+  privacyPolicyUrl?: string; // GDPR: URL to privacy policy page
 }
 
 export function FieldConfigurationSection({
@@ -60,6 +62,7 @@ export function FieldConfigurationSection({
   consentFieldRequired,
   consentFieldText,
   gdprLabel,
+  privacyPolicyUrl,
   onChange,
   errors,
 }: FieldConfigurationSectionProps) {
@@ -151,30 +154,43 @@ export function FieldConfigurationSection({
       />
 
       {isConsentFieldEnabled && (
-        <FormGrid columns={2}>
-          <CheckboxField
-            label="Require Consent"
-            name="consentFieldRequired"
-            checked={consentFieldRequired || false}
-            onChange={(checked) => updateField("consentFieldRequired", checked)}
-          />
+        <BlockStack gap="400">
+          <FormGrid columns={2}>
+            <CheckboxField
+              label="Require Consent"
+              name="consentFieldRequired"
+              checked={consentFieldRequired || false}
+              onChange={(checked) => updateField("consentFieldRequired", checked)}
+            />
+
+            <TextField
+              label="Consent Text"
+              name="consentFieldText"
+              value={consentText || ""}
+              placeholder="I agree to receive marketing emails and accept the {privacyPolicy}"
+              helpText="Use {privacyPolicy} to insert a link to your privacy policy"
+              multiline
+              rows={2}
+              onChange={(value) => {
+                // Update both prop names for compatibility
+                onChange({
+                  consentFieldText: value,
+                  gdprLabel: value,
+                });
+              }}
+            />
+          </FormGrid>
 
           <TextField
-            label="Consent Text"
-            name="consentFieldText"
-            value={consentText || ""}
-            placeholder="I agree to receive marketing emails"
-            multiline
-            rows={2}
-            onChange={(value) => {
-              // Update both prop names for compatibility
-              onChange({
-                consentFieldText: value,
-                gdprLabel: value,
-              });
-            }}
+            label="Privacy Policy URL"
+            name="privacyPolicyUrl"
+            value={privacyPolicyUrl || ""}
+            placeholder="https://your-store.com/privacy-policy"
+            helpText="GDPR compliance: Link to your privacy policy (required for EU customers)"
+            onChange={(value) => updateField("privacyPolicyUrl", value)}
+            error={errors?.privacyPolicyUrl}
           />
-        </FormGrid>
+        </BlockStack>
       )}
     </BlockStack>
   );

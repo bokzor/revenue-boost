@@ -637,6 +637,7 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
                 textColor={config.textColor}
                 backgroundColor={config.backgroundColor}
                 buttonTextColor={config.buttonTextColor}
+                privacyPolicyUrl={config.privacyPolicyUrl}
                 extraFields={
                   config.dismissLabel ? (
                     <button

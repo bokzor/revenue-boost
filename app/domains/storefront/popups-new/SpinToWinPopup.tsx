@@ -135,7 +135,12 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
   const { showContent: _showContent } = usePopupAnimation({ isVisible });
 
   // Use discount code hook
-  const { discountCode: _discountCode, setDiscountCode, copiedCode, handleCopyCode } = useDiscountCode();
+  const {
+    discountCode: _discountCode,
+    setDiscountCode,
+    copiedCode,
+    handleCopyCode,
+  } = useDiscountCode();
 
   const [hasSpun, setHasSpun] = useState(false);
   const [isSpinning, setIsSpinning] = useState(false);
@@ -926,9 +931,7 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
             <div className="spin-pointer" />
 
             {/* Center button - uses container-relative CSS */}
-            <div className="spin-center-button">
-              {isSpinning ? "..." : "SPIN"}
-            </div>
+            <div className="spin-center-button">{isSpinning ? "..." : "SPIN"}</div>
           </div>
         </div>
 
@@ -950,10 +953,7 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
                     : "CONGRATS!"
                   : config.headline || "SPIN TO WIN!"}
               </h2>
-              <p
-                className="spin-subheadline"
-                style={{ color: descriptionColor }}
-              >
+              <p className="spin-subheadline" style={{ color: descriptionColor }}>
                 {resultMessage || config.subheadline || "Try your luck to win exclusive discounts!"}
               </p>
             </div>
@@ -1005,6 +1005,7 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
                     disabled={isSpinning || isGeneratingCode}
                     accentColor={accentColor}
                     textColor={descriptionColor}
+                    privacyPolicyUrl={config.privacyPolicyUrl}
                   />
                 )}
 
@@ -1026,7 +1027,14 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
                   }}
                 >
                   {isSpinning ? (
-                    <span style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "10px" }}>
+                    <span
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "10px",
+                      }}
+                    >
                       <span
                         style={{
                           width: "16px",
@@ -1056,7 +1064,7 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
                     onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
                     onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.9")}
                   >
-                    {isSpinning ? "Close" : (config.dismissLabel || "No thanks")}
+                    {isSpinning ? "Close" : config.dismissLabel || "No thanks"}
                   </button>
                 )}
               </>
@@ -1076,9 +1084,7 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
 
                 {/* Prize announcement */}
                 {wonPrize?.generatedCode && (
-                  <div className="spin-prize-label">
-                    🎉 {wonPrize.label || "You Won!"}
-                  </div>
+                  <div className="spin-prize-label">🎉 {wonPrize.label || "You Won!"}</div>
                 )}
 
                 {wonPrize?.generatedCode ? (

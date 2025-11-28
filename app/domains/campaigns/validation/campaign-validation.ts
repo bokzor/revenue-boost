@@ -14,6 +14,7 @@ import { CampaignCreateDataSchema, CampaignUpdateDataSchema } from "../types/cam
 import { getContentSchemaForTemplate } from "~/domains/templates/registry/template-registry.js";
 import type { ExperimentCreateData, ExperimentUpdateData } from "../types/experiment.js";
 import { ExperimentCreateDataSchema, ExperimentUpdateDataSchema } from "../types/experiment.js";
+import { formatZodErrors } from "~/lib/validation-helpers";
 
 // ============================================================================
 // VALIDATION RESULT TYPES
@@ -56,7 +57,7 @@ export function validateContentConfig(
     } else {
       return {
         success: false,
-        errors: result.error.issues.map((err) => `${err.path.join(".")}: ${err.message}`),
+        errors: formatZodErrors(result.error),
       };
     }
   } catch (error) {
@@ -100,7 +101,7 @@ export function validateCampaignCreateData(data: unknown): ValidationResult<Camp
   } else {
     return {
       success: false,
-      errors: result.error.issues.map((err) => `${err.path.join(".")}: ${err.message}`),
+      errors: formatZodErrors(result.error),
     };
   }
 }
@@ -134,7 +135,7 @@ export function validateCampaignUpdateData(data: unknown): ValidationResult<Camp
   } else {
     return {
       success: false,
-      errors: result.error.issues.map((err) => `${err.path.join(".")}: ${err.message}`),
+      errors: formatZodErrors(result.error),
     };
   }
 }
@@ -159,7 +160,7 @@ export function validateExperimentCreateData(
   } else {
     return {
       success: false,
-      errors: result.error.issues.map((err) => `${err.path.join(".")}: ${err.message}`),
+      errors: formatZodErrors(result.error),
     };
   }
 }
@@ -180,7 +181,7 @@ export function validateExperimentUpdateData(
   } else {
     return {
       success: false,
-      errors: result.error.issues.map((err) => `${err.path.join(".")}: ${err.message}`),
+      errors: formatZodErrors(result.error),
     };
   }
 }

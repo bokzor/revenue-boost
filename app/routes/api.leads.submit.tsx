@@ -10,6 +10,7 @@ import { data } from "react-router";
 import { z } from "zod";
 import prisma from "~/db.server";
 import { storefrontCors } from "~/lib/cors.server";
+import { formatZodErrors } from "~/lib/validation-helpers";
 import { getStoreIdFromShop, createAdminApiContext } from "~/lib/auth-helpers.server";
 import { PopupEventService } from "~/domains/analytics/popup-events.server";
 import {
@@ -31,6 +32,7 @@ const LeadSubmissionSchema = z.object({
   sessionId: z.string(),
   visitorId: z.string().optional(),
   consent: z.boolean().optional(),
+  consentText: z.string().optional(), // GDPR: The exact consent text that was agreed to
   firstName: z.string().optional(),
   lastName: z.string().optional(),
   phone: z.string().optional(),
@@ -369,6 +371,8 @@ export async function action({ request }: ActionFunctionArgs) {
     const ipAddress = getClientIP(request);
 
     // Create lead record
+    // GDPR: Record consent timestamp and text when consent is given
+    const consentGiven = validatedData.consent === true;
     const lead = await prisma.lead.create({
       data: {
         storeId,
@@ -377,7 +381,9 @@ export async function action({ request }: ActionFunctionArgs) {
         firstName: validatedData.firstName || null,
         lastName: validatedData.lastName || null,
         phone: validatedData.phone || null,
-        marketingConsent: validatedData.consent || false,
+        marketingConsent: consentGiven,
+        consentedAt: consentGiven ? new Date() : null,
+        consentText: consentGiven ? (validatedData.consentText || null) : null,
         sessionId: validatedData.sessionId,
         visitorId: validatedData.visitorId || null,
         shopifyCustomerId: customerResult.shopifyCustomerId
@@ -458,7 +464,7 @@ export async function action({ request }: ActionFunctionArgs) {
         {
           success: false,
           error: "Invalid request data",
-          errors: error.issues,
+          errors: formatZodErrors(error),
         },
         { status: 400, headers: storefrontCors() }
       );

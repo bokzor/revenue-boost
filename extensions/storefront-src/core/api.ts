@@ -303,6 +303,8 @@ export class ApiClient {
     sessionId: string;
     visitorId?: string;
     consent?: boolean;
+    /** GDPR: The exact consent text the user agreed to */
+    consentText?: string;
     firstName?: string;
     lastName?: string;
     phone?: string;

@@ -16,14 +16,6 @@ on:
   # Manual trigger for ad-hoc deployments
   workflow_dispatch:
     inputs:
-      environment:
-        description: 'Deployment environment'
-        required: true
-        default: 'staging'
-        type: choice
-        options:
-          - staging
-          - production
       skip_tests:
         description: 'Skip tests (for quick deployments)'
         required: false
@@ -44,97 +36,35 @@ env:
   PROJECT_ID: revenueboost-staging
   REGION: us-central1
   SERVICE_NAME: revenueboost-staging
+  NODE_VERSION: '24'
 
 jobs:
-  test:
-    name: Unit Tests
+  # Check if self-hosted runner is available for tests
+  check-runner:
+    name: 🔍 Check Runner
     if: ${{ !inputs.skip_tests }}
-    runs-on: ubuntu-latest
-    environment: staging
-    steps:
-      - name: 📥 Checkout code
-        uses: actions/checkout@v4
+    uses: ./.github/workflows/check-runner.yml
+    with:
+      runner_labels: 'self-hosted'
 
-      - name: 📦 Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '24'
-          cache: 'npm'
-
-      - name: 🔧 Install dependencies
-        run: npm ci
-
-      - name: 🧪 Run unit tests
-        run: npm run test:run
-        env:
-          NODE_ENV: test
-
-      - name: 🔍 Type check
-        run: npm run typecheck
-
-      - name: 🎨 Lint code
-        run: npm run lint --if-present
-        continue-on-error: true
-
-  integration-test:
-    name: Integration Tests
+  # Run tests using reusable workflow
+  tests:
+    name: 🧪 Tests
+    needs: check-runner
     if: ${{ !inputs.skip_tests }}
-    runs-on: ubuntu-latest
-    environment: staging
-
-    # PostgreSQL service container
-    services:
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: revenue_boost_test
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
-
-    steps:
-      - name: 📥 Checkout code
-        uses: actions/checkout@v4
-
-      - name: 📦 Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '24'
-          cache: 'npm'
-
-      - name: 🔧 Install dependencies
-        run: npm ci
-
-      - name: 🗄️ Setup database
-        run: npx prisma migrate deploy
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/revenue_boost_test
-
-      - name: 🌱 Generate Prisma Client
-        run: npx prisma generate
-
-      - name: 🧪 Run integration tests
-        run: npx vitest run -c vitest.integration.config.ts
-        env:
-          NODE_ENV: test
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/revenue_boost_test
-          SHOPIFY_API_KEY: test_api_key_12345
-          SHOPIFY_API_SECRET: test_api_secret_12345
-          SCOPES: write_products,write_customers,read_orders,write_script_tags,read_themes,write_discounts
-          SESSION_SECRET: test_session_secret_minimum_32_chars_long_for_validation
-          INTERNAL_API_SECRET: test_internal_api_secret_minimum_32_chars_long_validation
-          SHOPIFY_APP_URL: http://localhost:3000
+    uses: ./.github/workflows/reusable-tests.yml
+    with:
+      runner: ${{ needs.check-runner.outputs.runner }}
+      run_unit_tests: true
+      run_integration_tests: true
+      run_lint: true
+      run_typecheck: true
+      node_version: '24'
 
   deploy:
-    name: Deploy to Staging
-    needs: [test, integration-test]
-    if: always() && (needs.test.result == 'success' || needs.test.result == 'skipped') && (needs.integration-test.result == 'success' || needs.integration-test.result == 'skipped')
+    name: 🚀 Deploy to Staging
+    needs: [tests]
+    if: always() && (needs.tests.result == 'success' || needs.tests.result == 'skipped')
     runs-on: ubuntu-latest
     environment: staging
     permissions:
@@ -148,7 +78,7 @@ jobs:
       - name: 📦 Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '24'
+          node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
 
       - name: 🔧 Install dependencies
@@ -235,7 +165,7 @@ jobs:
           SHOPIFY_API_SECRET: "${{ secrets.SHOPIFY_API_SECRET }}"
           SCOPES: "write_products,write_customers,read_orders,write_script_tags,read_themes,write_discounts"
           SHOPIFY_SCOPES: "write_products,write_customers,read_orders,write_script_tags,read_themes,write_discounts"
-          INTERNAL_API_SECRET: "${{ secrets.INTERNAL_API_SECRET || '039f6db6170268d95ed3b49838abd1ab1ba034ca9119647f5026b9e41864254c' }}"
+          INTERNAL_API_SECRET: "${{ secrets.INTERNAL_API_SECRET }}"
           BILLING_BYPASS: "true"
           RATE_LIMIT_BYPASS: "true"
           EOF
@@ -283,7 +213,7 @@ jobs:
           SHOPIFY_API_SECRET: "${{ secrets.SHOPIFY_API_SECRET }}"
           SCOPES: "write_products,write_customers,read_orders,write_script_tags,read_themes,write_discounts"
           SHOPIFY_SCOPES: "write_products,write_customers,read_orders,write_script_tags,read_themes,write_discounts"
-          INTERNAL_API_SECRET: "${{ secrets.INTERNAL_API_SECRET || '039f6db6170268d95ed3b49838abd1ab1ba034ca9119647f5026b9e41864254c' }}"
+          INTERNAL_API_SECRET: "${{ secrets.INTERNAL_API_SECRET }}"
           BILLING_BYPASS: "true"
           RATE_LIMIT_BYPASS: "true"
           EOF
