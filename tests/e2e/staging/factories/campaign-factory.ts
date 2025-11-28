@@ -634,6 +634,91 @@ class BaseBuilder<T extends BaseBuilder<T>> {
     }
 
     /**
+     * Configure geographic targeting (country-based)
+     * Uses Shopify's X-Country-Code header (ISO 3166-1 alpha-2)
+     */
+    withGeoTargeting(options: {
+        mode: 'include' | 'exclude';
+        countries: string[]; // e.g., ['US', 'CA', 'GB']
+    }): T {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.targetRules.geoTargeting = {
+            enabled: true,
+            mode: options.mode,
+            countries: options.countries.map(c => c.toUpperCase())
+        };
+        return this as unknown as T;
+    }
+
+    /**
+     * Configure audience targeting with session rules
+     */
+    withSessionRules(options: {
+        conditions: Array<{
+            field: string;
+            operator: 'eq' | 'ne' | 'gt' | 'gte' | 'lt' | 'lte' | 'in' | 'nin';
+            value: string | number | boolean | string[];
+        }>;
+        logicOperator?: 'AND' | 'OR';
+    }): T {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.targetRules.audienceTargeting = {
+            enabled: true,
+            shopifySegmentIds: [],
+            sessionRules: {
+                enabled: true,
+                conditions: options.conditions,
+                logicOperator: options.logicOperator || 'AND'
+            }
+        };
+        return this as unknown as T;
+    }
+
+    /**
+     * Configure discount with auto-apply behavior
+     */
+    withAutoApplyDiscount(options: {
+        valueType: 'PERCENTAGE' | 'FIXED_AMOUNT' | 'FREE_SHIPPING';
+        value: number;
+        prefix?: string;
+    }): T {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.discountConfig = {
+            enabled: true,
+            showInPreview: true,
+            type: 'shared',
+            valueType: options.valueType,
+            value: options.value,
+            prefix: options.prefix || 'AUTO',
+            behavior: 'SHOW_CODE_AND_AUTO_APPLY',
+            expiryDays: 30
+        };
+        return this as unknown as T;
+    }
+
+    /**
+     * Configure discount with show code only (no auto-apply)
+     */
+    withShowCodeOnlyDiscount(options: {
+        valueType: 'PERCENTAGE' | 'FIXED_AMOUNT' | 'FREE_SHIPPING';
+        value: number;
+        prefix?: string;
+    }): T {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.discountConfig = {
+            enabled: true,
+            showInPreview: true,
+            type: 'shared',
+            valueType: options.valueType,
+            value: options.value,
+            prefix: options.prefix || 'SAVE',
+            behavior: 'SHOW_CODE_ONLY',
+            expiryDays: 30
+        };
+        return this as unknown as T;
+    }
+
+    /**
      * Create the campaign in the database
      */
     async create() {
@@ -747,6 +832,25 @@ export class NewsletterBuilder extends BaseBuilder<NewsletterBuilder> {
     withHeadline(headline: string): this {
         if (!this.config) throw new Error('Config not initialized');
         this.config.contentConfig.headline = headline;
+        return this;
+    }
+
+    /**
+     * Set button text
+     */
+    withButtonText(text: string): this {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.contentConfig.buttonText = text;
+        this.config.contentConfig.submitButtonText = text;
+        return this;
+    }
+
+    /**
+     * Set email placeholder text
+     */
+    withEmailPlaceholder(placeholder: string): this {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.contentConfig.emailPlaceholder = placeholder;
         return this;
     }
 }

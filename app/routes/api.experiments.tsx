@@ -9,6 +9,7 @@ import { validateData } from "~/lib/validation-helpers";
 import { createSuccessResponse } from "~/lib/api-helpers.server";
 import { handleApiError } from "~/lib/api-error-handler.server";
 import { getStoreId } from "~/lib/auth-helpers.server";
+import { PlanGuardService } from "~/domains/billing/services/plan-guard.server";
 
 export async function loader({ request }: { request: Request }) {
   try {
@@ -33,6 +34,10 @@ export async function action({ request }: { request: Request }) {
   try {
     if (request.method === "POST") {
       const storeId = await getStoreId(request);
+
+      // Check plan allows experiments (A/B testing requires higher plan)
+      await PlanGuardService.assertCanCreateExperiment(storeId);
+
       const rawData = await request.json();
       const validatedData = validateData(
         ExperimentCreateDataSchema,

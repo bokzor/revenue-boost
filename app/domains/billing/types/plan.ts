@@ -104,7 +104,7 @@ export const PLAN_DEFINITIONS: Record<PlanTier, PlanDefinition> = {
       customTemplates: true,
       advancedAnalytics: true,
       prioritySupport: false,
-      removeBranding: true,
+      removeBranding: false, // Show "Powered by" branding on Starter plan
       customCss: true,
       gamificationTemplates: false,
       socialProofTemplates: true,

@@ -251,17 +251,15 @@ export const DiscountCodeDisplay: React.FC<DiscountCodeDisplayProps> = ({
     alignItems: "center",
     justifyContent: "center",
     gap: "0.5rem",
-    // Solid background with subtle gradient for depth
-    background: `linear-gradient(135deg, ${successColor}15, ${successColor}25)`,
-    backdropFilter: "blur(2px)",
+    background: successColor,
     borderRadius: sizeStyles.borderRadius,
-    border: `2px solid ${successColor}40`,
-    color: successColor,
+    border: `2px solid ${successColor}`,
+    color: "#ffffff",
     fontWeight: 700,
     fontSize: size === "sm" ? "0.875rem" : size === "lg" ? "1.25rem" : "1rem",
     letterSpacing: "0.05em",
     textTransform: "uppercase",
-    boxShadow: `0 0 20px ${successColor}30, inset 0 0 20px ${successColor}10`,
+    boxShadow: `0 0 20px ${successColor}50`,
     animation: "copiedPulse 0.4s ease-out",
   };
 
@@ -325,12 +323,12 @@ export const DiscountCodeDisplay: React.FC<DiscountCodeDisplayProps> = ({
               width: size === "sm" ? 24 : size === "lg" ? 36 : 30,
               height: size === "sm" ? 24 : size === "lg" ? 36 : 30,
               borderRadius: "50%",
-              backgroundColor: `${successColor}20`,
-              border: `2px solid ${successColor}`,
+              backgroundColor: "rgba(255, 255, 255, 0.2)",
+              border: "2px solid #ffffff",
             }}>
               <CheckmarkIcon
                 size={size === "sm" ? 14 : size === "lg" ? 22 : 18}
-                color={successColor}
+                color="#ffffff"
                 strokeWidth={3}
               />
             </div>

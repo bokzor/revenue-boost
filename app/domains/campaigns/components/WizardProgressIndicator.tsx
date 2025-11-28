@@ -8,6 +8,7 @@
  * - Checkmarks for completed steps
  * - Mobile-responsive (vertical on small screens)
  * - Accessible with ARIA labels
+ * - Integrated navigation buttons (Previous/Next)
  *
  * OPTIMIZED: Memoized to prevent unnecessary re-renders
  * - useMemo for expensive calculations
@@ -15,7 +16,7 @@
  */
 
 import React, { useMemo } from "react";
-import { BlockStack, InlineStack, Text, Badge, ProgressBar } from "@shopify/polaris";
+import { BlockStack, InlineStack, Text, Badge, ProgressBar, Button } from "@shopify/polaris";
 import styles from "./WizardProgressIndicator.module.css";
 
 export interface WizardStep {
@@ -25,11 +26,69 @@ export interface WizardStep {
   isRequired: boolean;
 }
 
+type VariantKey = "A" | "B" | "C" | "D";
+
+interface NavigationProps {
+  isLastStep: boolean;
+  isSubmitting: boolean;
+  campaignId?: string;
+  onPrevious: () => void;
+  onNext: () => void;
+  onSave: () => void;
+  abTestingEnabled?: boolean;
+  selectedVariant?: VariantKey;
+  variantCount?: number;
+  onContinueToNextVariant?: () => void;
+}
+
 interface WizardProgressIndicatorProps {
   steps: WizardStep[];
   currentStep: number;
   completedSteps: boolean[]; // Array indicating which steps are completed
   onStepClick: (stepIndex: number) => void;
+  navigation?: NavigationProps;
+}
+
+/**
+ * Get the next variant key in sequence
+ */
+function getNextVariantKey(current: VariantKey): VariantKey {
+  const sequence: VariantKey[] = ["A", "B", "C", "D"];
+  const currentIndex = sequence.indexOf(current);
+  return sequence[currentIndex + 1] || current;
+}
+
+/**
+ * Check if we're on the last variant
+ */
+function isLastVariant(selectedVariant: VariantKey, variantCount: number): boolean {
+  const sequence: VariantKey[] = ["A", "B", "C", "D"];
+  const currentIndex = sequence.indexOf(selectedVariant);
+  return currentIndex >= variantCount - 1;
+}
+
+/**
+ * Get appropriate button text based on context
+ */
+function getButtonText(
+  campaignId: string | undefined,
+  abTestingEnabled: boolean,
+  selectedVariant: VariantKey,
+  variantCount: number
+): string {
+  if (campaignId) {
+    return "Save Changes";
+  }
+
+  if (abTestingEnabled) {
+    if (isLastVariant(selectedVariant, variantCount)) {
+      return "Create Campaign";
+    }
+    const nextVariant = getNextVariantKey(selectedVariant);
+    return `Continue to Variant ${nextVariant}`;
+  }
+
+  return "Create Campaign";
 }
 
 export const WizardProgressIndicator = React.memo(function WizardProgressIndicator({
@@ -37,6 +96,7 @@ export const WizardProgressIndicator = React.memo(function WizardProgressIndicat
   currentStep,
   completedSteps,
   onStepClick,
+  navigation,
 }: WizardProgressIndicatorProps) {
   // Memoize expensive calculations
   const { completedCount, progressPercentage } = useMemo(() => {
@@ -45,16 +105,82 @@ export const WizardProgressIndicator = React.memo(function WizardProgressIndicat
     return { completedCount: count, progressPercentage: percentage };
   }, [completedSteps, steps.length]);
 
+  // Navigation button logic
+  const renderNavigation = () => {
+    if (!navigation) return null;
+
+    const {
+      isLastStep,
+      isSubmitting,
+      campaignId,
+      onPrevious,
+      onNext,
+      onSave,
+      abTestingEnabled = false,
+      selectedVariant = "A",
+      variantCount = 2,
+      onContinueToNextVariant,
+    } = navigation;
+
+    const buttonText = getButtonText(campaignId, abTestingEnabled, selectedVariant, variantCount);
+    const isOnLastVariant = isLastVariant(selectedVariant, variantCount);
+
+    const handlePrimaryClick = () => {
+      if (abTestingEnabled && !isOnLastVariant && !campaignId && onContinueToNextVariant) {
+        onContinueToNextVariant();
+      } else {
+        onSave();
+      }
+    };
+
+    return (
+      <InlineStack gap="200">
+        <Button
+          onClick={onPrevious}
+          disabled={currentStep === 0}
+          size="slim"
+          data-test-id="wizard-previous-btn"
+        >
+          ← Previous
+        </Button>
+        {isLastStep ? (
+          <Button
+            variant="primary"
+            onClick={handlePrimaryClick}
+            disabled={isSubmitting}
+            loading={isSubmitting}
+            size="slim"
+            data-test-id="wizard-save-btn"
+          >
+            {buttonText}
+          </Button>
+        ) : (
+          <Button
+            variant="primary"
+            onClick={onNext}
+            size="slim"
+            data-test-id="wizard-next-btn"
+          >
+            Next →
+          </Button>
+        )}
+      </InlineStack>
+    );
+  };
+
   return (
     <BlockStack gap="400">
-      {/* Header with progress */}
-      <InlineStack align="space-between" blockAlign="center">
-        <Text as="h2" variant="headingMd">
-          Campaign Setup Progress
-        </Text>
-        <Badge tone={progressPercentage === 100 ? "success" : "info"}>
-          {`${completedCount} of ${steps.length} completed`}
-        </Badge>
+      {/* Header with progress and navigation */}
+      <InlineStack align="space-between" blockAlign="center" wrap={false}>
+        <InlineStack gap="300" blockAlign="center">
+          <Text as="h2" variant="headingMd">
+            Campaign Setup
+          </Text>
+          <Badge tone={progressPercentage === 100 ? "success" : "info"}>
+            {`${completedCount}/${steps.length}`}
+          </Badge>
+        </InlineStack>
+        {renderNavigation()}
       </InlineStack>
 
       {/* Progress bar */}

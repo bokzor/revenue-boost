@@ -127,6 +127,8 @@ interface CampaignFormWithABTestingProps {
   initialTemplates?: UnifiedTemplate[];
   /** Whether advanced targeting (Shopify segments, session rules) is enabled for the current plan */
   advancedTargetingEnabled?: boolean;
+  /** Whether A/B testing experiments are enabled for the current plan (Growth plan and above) */
+  experimentsEnabled?: boolean;
 }
 
 // ============================================================================
@@ -147,6 +149,7 @@ export function CampaignFormWithABTesting({
   currentVariantKey,
   initialTemplates,
   advancedTargetingEnabled = false,
+  experimentsEnabled = false,
 }: CampaignFormWithABTestingProps) {
   // ============================================================================
   // STATE - Wizard Navigation
@@ -322,10 +325,16 @@ export function CampaignFormWithABTesting({
   }, []);
 
   const handleNext = useCallback(() => {
-    if (currentStep < WIZARD_STEPS.length - 1) {
+    // Calculate effective steps length based on current A/B testing state
+    const effectiveStepsLength =
+      abTestingEnabled && selectedVariant !== "A"
+        ? WIZARD_STEPS.filter((s) => s.id !== "schedule").length
+        : WIZARD_STEPS.length;
+
+    if (currentStep < effectiveStepsLength - 1) {
       setCurrentStep(currentStep + 1);
     }
-  }, [currentStep]);
+  }, [currentStep, abTestingEnabled, selectedVariant]);
 
   const handlePrevious = useCallback(() => {
     if (currentStep > 0) {
@@ -403,14 +412,23 @@ export function CampaignFormWithABTesting({
   // COMPUTED VALUES
   // ============================================================================
 
-  const isLastStep = currentStep === WIZARD_STEPS.length - 1;
+  // For A/B testing, Schedule step is only shown for Control variant (A)
+  // Other variants inherit schedule settings from Control
+  const effectiveSteps = useMemo(() => {
+    if (abTestingEnabled && selectedVariant !== "A") {
+      return WIZARD_STEPS.filter((step) => step.id !== "schedule");
+    }
+    return WIZARD_STEPS;
+  }, [abTestingEnabled, selectedVariant]);
+
+  const isLastStep = currentStep === effectiveSteps.length - 1;
 
   // ============================================================================
   // RENDER - Step Content (refactored to use extracted renderers)
   // ============================================================================
 
   const renderStepContent = () => {
-    const step = WIZARD_STEPS[currentStep];
+    const step = effectiveSteps[currentStep];
 
     const rendererProps: StepRendererProps = {
       wizardState,
@@ -488,6 +506,7 @@ export function CampaignFormWithABTesting({
             experimentId={experimentId}
             experimentName={experimentData?.name}
             currentVariantKey={currentVariantKey}
+            experimentsEnabled={experimentsEnabled}
           />
         </Layout.Section>
 
@@ -513,37 +532,27 @@ export function CampaignFormWithABTesting({
           </Layout.Section>
         )}
 
-        {/* Wizard Progress Indicator */}
+        {/* Wizard Progress Indicator with integrated navigation */}
         <Layout.Section>
           <Card>
             <div style={{ padding: "16px" }}>
               <WizardProgressIndicator
-                steps={WIZARD_STEPS}
+                steps={effectiveSteps}
                 currentStep={currentStep}
-                completedSteps={WIZARD_STEPS.map((_, index) => index <= currentStep)}
+                completedSteps={effectiveSteps.map((_, index) => index <= currentStep)}
                 onStepClick={handleStepChange}
-              />
-            </div>
-          </Card>
-        </Layout.Section>
-
-        {/* Top Navigation Buttons */}
-        <Layout.Section>
-          <Card>
-            <div style={{ padding: "16px" }}>
-              <WizardNavigationButtons
-                currentStep={currentStep}
-                totalSteps={WIZARD_STEPS.length}
-                isLastStep={isLastStep}
-                isSubmitting={isSubmitting}
-                campaignId={campaignId}
-                onPrevious={handlePrevious}
-                onNext={handleNext}
-                onSave={handleSave}
-                abTestingEnabled={abTestingEnabled}
-                selectedVariant={selectedVariant}
-                variantCount={variantCount}
-                onContinueToNextVariant={handleContinueToNextVariant}
+                navigation={{
+                  isLastStep,
+                  isSubmitting,
+                  campaignId,
+                  onPrevious: handlePrevious,
+                  onNext: handleNext,
+                  onSave: handleSave,
+                  abTestingEnabled,
+                  selectedVariant,
+                  variantCount,
+                  onContinueToNextVariant: handleContinueToNextVariant,
+                }}
               />
             </div>
           </Card>
@@ -558,7 +567,7 @@ export function CampaignFormWithABTesting({
             <Card>
               <WizardNavigationButtons
                 currentStep={currentStep}
-                totalSteps={WIZARD_STEPS.length}
+                totalSteps={effectiveSteps.length}
                 isLastStep={isLastStep}
                 isSubmitting={isSubmitting}
                 campaignId={campaignId}

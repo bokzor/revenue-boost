@@ -1,6 +1,8 @@
-client_id = "6d807bf0201e5a3acbec919a27ccfe62"
-name = "revenue-boost"
-application_url = "https://localhost:3000"
+# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
+
+client_id = "14ac1bdcbc333469966346c4551556fa"
+name = "Revenue Boost - DEV"
+application_url = "https://example.com"
 embedded = true
 
 [build]
@@ -8,36 +10,32 @@ automatically_update_urls_on_dev = true
 include_config_on_deploy = true
 
 [webhooks]
-api_version = "2026-01"
+api_version = "2025-10"
 
-[[webhooks.subscriptions]]
-topics = ["app/uninstalled"]
-uri = "/webhooks/app/uninstalled"
+  [[webhooks.subscriptions]]
+  uri = "/webhooks"
+  compliance_topics = [ "customers/data_request", "customers/redact", "shop/redact" ]
 
-[[webhooks.subscriptions]]
-topics = ["app/scopes_update"]
-uri = "/webhooks/app/scopes_update"
+  [[webhooks.subscriptions]]
+  topics = [ "app/scopes_update" ]
+  uri = "/webhooks/app/scopes_update"
 
-[[webhooks.subscriptions]]
-topics = ["orders/create"]
-uri = "/webhooks/orders/create"
+  [[webhooks.subscriptions]]
+  topics = [ "app/uninstalled" ]
+  uri = "/webhooks/app/uninstalled"
 
-# GDPR/Privacy mandatory compliance webhooks
-[[webhooks.subscriptions]]
-compliance_topics = ["customers/data_request", "customers/redact", "shop/redact"]
-uri = "/webhooks"
+  [[webhooks.subscriptions]]
+  topics = [ "orders/create" ]
+  uri = "/webhooks/orders/create"
 
 [access_scopes]
-# Required scopes - requested at install time (core functionality)
-# read_orders: for orders/create webhook (revenue attribution)
-# write_marketing_events, read_marketing_events: Marketing attribution tracking in Shopify's Marketing section
-# read_customers, write_customers: Create/update customers when emails are collected via popups
-# write_files: Custom image uploads for popup backgrounds
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
 scopes = "read_discounts,write_discounts,write_products,read_themes,read_orders,write_marketing_events,read_marketing_events,read_customers,write_customers,write_files"
+optional_scopes = [ ]
+use_legacy_install_flow = false
 
 [auth]
-redirect_urls = [ "https://localhost:3000/api/auth" ]
-
+redirect_urls = [ ]
 [app_proxy]
 url = "https://localhost:3000"
 subpath = "revenue-boost"

@@ -8,8 +8,10 @@ on:
     paths-ignore:
       - '**.md'
       - 'docs/**'
+      - 'website/**'
       - '.github/workflows/deploy-production.yml'
       - '.github/workflows/deploy-extensions-production.yml'
+      - '.github/workflows/deploy-website.yml'
 
   # Manual trigger for ad-hoc deployments
   workflow_dispatch:

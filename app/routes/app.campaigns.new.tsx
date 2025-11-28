@@ -34,6 +34,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
     // Fetch plan context to determine feature availability
     const planContext = await PlanGuardService.getPlanContext(storeId);
     const advancedTargetingEnabled = planContext.definition.features.advancedTargeting;
+    const experimentsEnabled = planContext.definition.features.experiments;
 
     const store = await prisma.store.findUnique({
       where: { id: storeId },
@@ -71,6 +72,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
       preselectedGoal,
       globalCustomCSS: parsedSettings.success ? parsedSettings.data.globalCustomCSS : undefined,
       advancedTargetingEnabled,
+      experimentsEnabled,
       success: true,
     });
   } catch (error) {
@@ -81,6 +83,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
       error: error instanceof Error ? error.message : "Failed to load data",
       globalCustomCSS: undefined,
       advancedTargetingEnabled: false,
+      experimentsEnabled: false,
     });
   }
 }
@@ -113,6 +116,11 @@ export default function NewCampaign() {
   const [createdCampaignId, setCreatedCampaignId] = useState<string | null>(null);
   const [activating, setActivating] = useState(false);
 
+  // Post-create activation modal state (experiment/A/B test)
+  const [experimentActivatePromptOpen, setExperimentActivatePromptOpen] = useState(false);
+  const [createdExperimentId, setCreatedExperimentId] = useState<string | null>(null);
+  const [activatingExperiment, setActivatingExperiment] = useState(false);
+
   const {
     storeId,
     shopDomain,
@@ -121,6 +129,7 @@ export default function NewCampaign() {
     preselectedGoal,
     globalCustomCSS,
     advancedTargetingEnabled,
+    experimentsEnabled,
   } = loaderData as {
     storeId: string;
     shopDomain: string;
@@ -129,6 +138,7 @@ export default function NewCampaign() {
     preselectedGoal?: string;
     globalCustomCSS?: string;
     advancedTargetingEnabled?: boolean;
+    experimentsEnabled?: boolean;
     success: boolean;
   };
 
@@ -198,8 +208,21 @@ export default function NewCampaign() {
         const expBody = await expResponse.json();
         const experiment = expBody?.data?.experiment ?? expBody?.data;
 
+        // Schedule & Settings are only configured on Control variant (A)
+        // Propagate these settings to all other variants for consistency
+        const controlVariant = campaignData[0];
+        const scheduleSettings = {
+          status: controlVariant.status,
+          priority: controlVariant.priority,
+          startDate: controlVariant.startDate,
+          endDate: controlVariant.endDate,
+          tags: controlVariant.tags,
+        };
+
         // Create campaigns for each variant via API
         const campaignPromises = campaignData.map(async (variant, index) => {
+          // For non-Control variants, use schedule settings from Control
+          const effectiveSchedule = index === 0 ? variant : { ...variant, ...scheduleSettings };
           // Extract frequency capping fields (already in server format)
           const {
             enabled,
@@ -221,8 +244,9 @@ export default function NewCampaign() {
             name: variant.name || `${experimentData.name} - Variant ${["A", "B", "C", "D"][index]}`,
             description: variant.description,
             goal: variant.goal,
-            status: variant.status || "DRAFT",
-            priority: variant.priority || 0,
+            // Use effectiveSchedule for schedule-related fields (inherited from Control for non-Control variants)
+            status: effectiveSchedule.status || "DRAFT",
+            priority: effectiveSchedule.priority || 0,
             templateId: variant.templateId,
             templateType: variant.templateType,
             contentConfig: variant.contentConfig,
@@ -239,9 +263,9 @@ export default function NewCampaign() {
             experimentId: experiment.id,
             variantKey: ["A", "B", "C", "D"][index] as "A" | "B" | "C" | "D",
             isControl: index === 0,
-            startDate: variant.startDate,
-            endDate: variant.endDate,
-            tags: variant.tags,
+            startDate: effectiveSchedule.startDate,
+            endDate: effectiveSchedule.endDate,
+            tags: effectiveSchedule.tags,
           };
 
           const response = await fetch("/api/campaigns", {
@@ -265,12 +289,10 @@ export default function NewCampaign() {
 
         await Promise.all(campaignPromises);
 
-        // Redirect to experiment detail page
-        const shouldActivate = window.confirm("Activate all experiment variants now?");
-        if (shouldActivate) {
-          await fetch(`/api/experiments/${experiment.id}/activate-all`, { method: "POST" });
-        }
-        navigate(`/app/experiments/${experiment.id}`);
+        // Show activation prompt modal for experiment
+        setCreatedExperimentId(experiment.id);
+        setExperimentActivatePromptOpen(true);
+        return;
       } else {
         // Single campaign
         // Extract frequency capping fields (already in server format)
@@ -374,6 +396,7 @@ export default function NewCampaign() {
         initialTemplates={templates}
         globalCustomCSS={globalCustomCSS}
         advancedTargetingEnabled={advancedTargetingEnabled ?? false}
+        experimentsEnabled={experimentsEnabled ?? false}
         initialData={
           templateType || preselectedGoal
             ? {
@@ -428,6 +451,50 @@ export default function NewCampaign() {
           </Text>
         </div>
       </Modal>
+
+      <Modal
+        open={experimentActivatePromptOpen}
+        onClose={() => {
+          setExperimentActivatePromptOpen(false);
+          if (createdExperimentId) navigate(`/app/experiments/${createdExperimentId}`);
+        }}
+        title="Activate Experiment"
+        primaryAction={{
+          content: "Activate now",
+          loading: activatingExperiment,
+          onAction: async () => {
+            if (!createdExperimentId) return;
+            try {
+              setActivatingExperiment(true);
+              await fetch(`/api/experiments/${createdExperimentId}/activate-all`, {
+                method: "POST",
+              });
+            } catch (e) {
+              // no-op, navigate regardless
+            } finally {
+              setActivatingExperiment(false);
+              setExperimentActivatePromptOpen(false);
+              navigate(`/app/experiments/${createdExperimentId}`);
+            }
+          },
+        }}
+        secondaryActions={[
+          {
+            content: "Not now",
+            onAction: () => {
+              setExperimentActivatePromptOpen(false);
+              if (createdExperimentId) navigate(`/app/experiments/${createdExperimentId}`);
+            },
+          },
+        ]}
+      >
+        <div style={{ padding: 16 }}>
+          <Text as="p" variant="bodyMd">
+            All experiment variants are still drafts. Activate them now to start the A/B test?
+          </Text>
+        </div>
+      </Modal>
+
       {toastMarkup}
     </Frame>
   );

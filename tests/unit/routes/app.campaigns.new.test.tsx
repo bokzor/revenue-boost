@@ -5,7 +5,13 @@ import { render, waitFor, screen } from '@testing-library/react';
 
 // Mock Polaris Modal/Text/Frame to avoid AppProvider requirement in tests
 vi.mock('@shopify/polaris', () => ({
-  Modal: (props: any) => React.createElement('div', null, props.children),
+  Modal: (props: any) => {
+    // Auto-trigger "Not now" (secondary action) when modal opens to allow navigation
+    if (props.open && props.secondaryActions?.[0]?.onAction) {
+      setTimeout(() => props.secondaryActions[0].onAction(), 0);
+    }
+    return React.createElement('div', null, props.children);
+  },
   Text: (props: any) => React.createElement('span', null, props.children),
   Frame: (props: any) => React.createElement('div', null, props.children),
 }));
@@ -110,9 +116,6 @@ describe('NewCampaign route - creation redirects', () => {
       .mockResolvedValueOnce({ ok: true, json: async () => ({ success: true, data: { campaign: { id: 'c_A' } } }) })
       // POST /api/campaigns (B)
       .mockResolvedValueOnce({ ok: true, json: async () => ({ success: true, data: { campaign: { id: 'c_B' } } }) });
-
-    // Stub window.confirm so the test environment doesn't throw
-    (window as any).confirm = vi.fn().mockReturnValue(false);
 
     render(<NewCampaign />);
 

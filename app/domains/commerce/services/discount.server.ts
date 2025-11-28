@@ -795,13 +795,14 @@ async function getOrCreateTieredDiscount(
     }
   }
 
+  // Array to hold newly created tier codes (used when needsRecreation is true)
+  let newTierCodes: TierCodeMetadata[] = [];
+
   // Create tier codes if needed
   if (needsRecreation) {
     console.log(
       `[Discount Service] Creating ${tiers.length} tier codes for campaign ${campaign.id}`
     );
-
-    const newTierCodes: TierCodeMetadata[] = [];
 
     for (let i = 0; i < tiers.length; i++) {
       const tier = tiers[i];
@@ -862,15 +863,16 @@ async function getOrCreateTieredDiscount(
   }
 
   // Select best tier based on cart subtotal
-  const freshMeta = (existingConfig._meta || {}) as {
-    tierCodes?: TierCodeMetadata[];
-  };
-  const freshTierCodes: TierCodeMetadata[] = freshMeta.tierCodes || [];
+  // Use newTierCodes if we just created them, otherwise read from existingConfig._meta
+  const tierCodesToUse: TierCodeMetadata[] = needsRecreation
+    ? newTierCodes
+    : ((existingConfig._meta as { tierCodes?: TierCodeMetadata[] })?.tierCodes || []);
+
   let selectedTierIndex = 0;
 
   if (cartSubtotalCents !== undefined) {
     // Find highest threshold <= cart subtotal
-    const eligibleTiers = freshTierCodes
+    const eligibleTiers = tierCodesToUse
       .filter((tc) => tc.thresholdCents <= cartSubtotalCents)
       .sort((a, b) => b.thresholdCents - a.thresholdCents);
 
@@ -879,7 +881,7 @@ async function getOrCreateTieredDiscount(
     }
   }
 
-  const selectedTier = freshTierCodes[selectedTierIndex];
+  const selectedTier = tierCodesToUse[selectedTierIndex];
 
   if (!selectedTier) {
     return {

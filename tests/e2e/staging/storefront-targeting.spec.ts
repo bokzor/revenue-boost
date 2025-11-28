@@ -95,80 +95,8 @@ test.describe.serial('Targeting Combinations', () => {
         });
     });
 
-    test('respects "once per session" frequency cap - config is correct', async ({ page }) => {
-        const builder = factory.newsletter();
-        await builder.init();
-        const campaign = await builder
-            .withName('Freq-Cap-Session')
-            .withFrequencyCapping(1, 100, 0) // 1 per session, many per day
-            .create();
-
-        console.log(`Created campaign: ${campaign.name}`);
-
-        // Verify frequency cap config
-        const dbCampaign = await prisma.campaign.findUnique({
-            where: { id: campaign.id },
-            select: { targetRules: true }
-        });
-
-        const frequencyCapping = (dbCampaign?.targetRules as any)?.enhancedTriggers?.frequency_capping;
-        expect(frequencyCapping).toBeDefined();
-        expect(frequencyCapping.max_triggers_per_session).toBe(1);
-
-        console.log('✅ Frequency cap config correct');
-    });
-
-    test('respects "once per day" frequency cap - config is correct', async ({ page }) => {
-        const builder = factory.newsletter();
-        await builder.init();
-        const campaign = await builder
-            .withName('Freq-Cap-Daily')
-            .withFrequencyCapping(100, 1, 86400) // Many per session, 1 per day
-            .create();
-
-        console.log(`Created campaign: ${campaign.name}`);
-
-        // Verify config
-        const dbCampaign = await prisma.campaign.findUnique({
-            where: { id: campaign.id },
-            select: { targetRules: true }
-        });
-
-        const frequencyCapping = (dbCampaign?.targetRules as any)?.enhancedTriggers?.frequency_capping;
-        expect(frequencyCapping).toBeDefined();
-        expect(frequencyCapping.max_triggers_per_day).toBe(1);
-
-        console.log('✅ Daily frequency cap config correct');
-    });
-
-    test('targets new visitors only - config is correct', async ({ page }) => {
-        const builder = factory.newsletter();
-        await builder.init();
-        const campaign = await builder
-            .withName('Target-New-Visitor')
-            .withSessionTargeting('new_visitor')
-            .create();
-
-        console.log(`Created campaign: ${campaign.name}`);
-
-        // Verify config
-        const dbCampaign = await prisma.campaign.findUnique({
-            where: { id: campaign.id },
-            select: { targetRules: true }
-        });
-
-        // Session targeting is stored in audienceTargeting.sessionRules
-        const sessionRules = (dbCampaign?.targetRules as any)?.audienceTargeting?.sessionRules;
-        expect(sessionRules).toBeDefined();
-        expect(sessionRules.enabled).toBe(true);
-        expect(Array.isArray(sessionRules.conditions)).toBe(true);
-
-        // Should have a condition for isReturningVisitor = false
-        const visitorCondition = sessionRules.conditions?.find((c: any) => c.field === 'isReturningVisitor');
-        expect(visitorCondition).toBeDefined();
-
-        console.log('✅ New visitor targeting config correct');
-    });
+    // NOTE: DB-only config tests for frequency capping and visitor targeting have been
+    // moved to unit tests. Browser tests for frequency capping are in storefront-session-rules.spec.ts
 
     test('shows only on specific pages', async ({ page }) => {
         // Target collections page only with very high priority

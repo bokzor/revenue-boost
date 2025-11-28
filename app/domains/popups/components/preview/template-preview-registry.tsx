@@ -31,10 +31,50 @@ import type {
   SocialProofConfig,
   AnnouncementConfig,
   PopupDesignConfig,
-  DiscountConfig,
+  DiscountConfig as StorefrontDiscountConfig,
 } from "~/domains/storefront/popups-new";
 
+import type { DiscountConfig as AdminDiscountConfig } from "~/domains/campaigns/types/campaign";
+
 import { TemplateTypeEnum } from "~/lib/template-types.enum";
+
+// =============================================================================
+// DISCOUNT CONFIG TRANSFORMATION
+// =============================================================================
+
+/**
+ * Transforms admin form DiscountConfig to storefront popup DiscountConfig
+ *
+ * Admin form uses:   { enabled, valueType, value, prefix, behavior, ... }
+ * Storefront uses:   { enabled, percentage, value, type, code, behavior }
+ *
+ * @param adminConfig - The discount config from the admin form (campaign.discountConfig)
+ * @param defaultCode - Default code prefix if none is configured
+ * @returns StorefrontDiscountConfig or undefined if no config provided
+ */
+export function transformDiscountConfig(
+  adminConfig: Partial<AdminDiscountConfig> | undefined,
+  defaultCode: string = "DISCOUNT"
+): StorefrontDiscountConfig | undefined {
+  if (!adminConfig) return undefined;
+
+  const isPercentage = adminConfig.valueType === "PERCENTAGE";
+  const isFixedAmount = adminConfig.valueType === "FIXED_AMOUNT";
+  const value = typeof adminConfig.value === "number" ? adminConfig.value : undefined;
+
+  return {
+    enabled: adminConfig.enabled !== false,
+    percentage: isPercentage && value !== undefined ? value : undefined,
+    value: value,
+    type: isPercentage
+      ? "percentage"
+      : isFixedAmount
+        ? "fixed_amount"
+        : "free_shipping",
+    code: adminConfig.prefix || defaultCode,
+    behavior: adminConfig.behavior || "SHOW_CODE_AND_AUTO_APPLY",
+  };
+}
 
 /**
  * Default preview prizes for scratch card
@@ -195,7 +235,7 @@ export const TEMPLATE_PREVIEW_REGISTRY: Record<string, TemplatePreviewEntry<any>
   [TemplateTypeEnum.NEWSLETTER]: {
     component: NewsletterPopup,
     buildConfig: (
-      mergedConfig: Partial<NewsletterConfig> & { discountConfig?: Record<string, unknown> },
+      mergedConfig: Partial<NewsletterConfig> & { discountConfig?: Partial<AdminDiscountConfig> },
       designConfig: Partial<PopupDesignConfig>
     ): NewsletterConfig => ({
         id: "preview-newsletter",
@@ -228,8 +268,8 @@ export const TEMPLATE_PREVIEW_REGISTRY: Record<string, TemplatePreviewEntry<any>
         imageUrl: mergedConfig.imageUrl || designConfig.imageUrl,
         imagePosition: mergedConfig.imagePosition || designConfig.imagePosition || "top",
 
-        // Discount (campaign stores as discountConfig, component expects discount)
-        discount: (mergedConfig.discountConfig as DiscountConfig | undefined) || mergedConfig.discount,
+        // Discount: transform admin config to storefront format
+        discount: transformDiscountConfig(mergedConfig.discountConfig, "WELCOME") || mergedConfig.discount,
 
         // All common config (colors, typography, layout)
         ...buildCommonConfig(mergedConfig, designConfig),
@@ -239,24 +279,17 @@ export const TEMPLATE_PREVIEW_REGISTRY: Record<string, TemplatePreviewEntry<any>
   [TemplateTypeEnum.FLASH_SALE]: {
     component: FlashSalePopup,
     buildConfig: (
-      mergedConfig: Partial<FlashSaleConfig>,
+      mergedConfig: Partial<FlashSaleConfig> & { discountConfig?: Partial<AdminDiscountConfig> },
       designConfig: Partial<PopupDesignConfig>
     ): FlashSaleConfig => {
-      // Discount configuration coming from the admin form (GenericDiscountComponent)
-      const dc = mergedConfig.discountConfig as
-        | {
-            enabled?: boolean;
-            valueType?: string;
-            value?: number;
-            code?: string;
-            prefix?: string;
-            behavior?: string;
-          }
-        | undefined;
+      const dc = mergedConfig.discountConfig;
+      const storefrontDiscount = transformDiscountConfig(dc, "FLASH");
 
-      // Derive a simple percentage from DiscountConfig when applicable
-      const percentFromConfig =
-        dc && dc.valueType === "PERCENTAGE" && typeof dc.value === "number" ? dc.value : undefined;
+      // Derive discount percentage for FlashSale-specific display
+      const discountPercentage =
+        storefrontDiscount?.percentage ??
+        mergedConfig.discountPercentage ??
+        50;
 
       return {
         id: "preview-flash-sale",
@@ -266,20 +299,13 @@ export const TEMPLATE_PREVIEW_REGISTRY: Record<string, TemplatePreviewEntry<any>
         subheadline: mergedConfig.subheadline || "Limited time offer - Don't miss out!",
         buttonText: mergedConfig.buttonText || "Shop Now",
         dismissLabel: mergedConfig.dismissLabel,
-        successMessage: mergedConfig.successMessage || "Success!", // Required by BaseContentConfigSchema but not used
-        failureMessage: mergedConfig.failureMessage, // Required by BaseContentConfigSchema but not used
-        ctaText: mergedConfig.ctaText, // Required by BaseContentConfigSchema but not used
+        successMessage: mergedConfig.successMessage || "Success!",
+        failureMessage: mergedConfig.failureMessage,
+        ctaText: mergedConfig.ctaText,
 
         // FlashSale-specific content fields
         urgencyMessage: mergedConfig.urgencyMessage || "Hurry! Sale ends soon!",
-        // Prefer the percentage coming from the admin discountConfig when present,
-        // fall back to contentConfig.discountPercentage, then a sane default.
-        discountPercentage:
-          (typeof percentFromConfig === "number"
-            ? percentFromConfig
-            : typeof mergedConfig.discountPercentage === "number"
-              ? mergedConfig.discountPercentage
-              : undefined) ?? 50,
+        discountPercentage,
         originalPrice: mergedConfig.originalPrice,
         salePrice: mergedConfig.salePrice,
         showCountdown: mergedConfig.showCountdown ?? true,
@@ -294,7 +320,6 @@ export const TEMPLATE_PREVIEW_REGISTRY: Record<string, TemplatePreviewEntry<any>
         // Enhanced features from content config
         timer: mergedConfig.timer,
         inventory: {
-          // Sensible preview defaults so inventory banner shows even before merchant tweaks settings
           mode: "pseudo",
           pseudoMax: 50,
           showOnlyXLeft: true,
@@ -308,24 +333,9 @@ export const TEMPLATE_PREVIEW_REGISTRY: Record<string, TemplatePreviewEntry<any>
         // Storefront-specific
         ctaOpenInNewTab: mergedConfig.ctaOpenInNewTab ?? false,
 
-        // Legacy/advanced discount configuration used by FlashSalePopup
-        discountConfig: dc,
-        // Normalized storefront discount summary for preview flows (issueDiscount, etc.)
-        discount: dc
-          ? {
-              enabled: dc.enabled !== false,
-              percentage: percentFromConfig,
-              value: typeof dc.value === "number" ? dc.value : percentFromConfig,
-              type:
-                dc.valueType === "PERCENTAGE"
-                  ? "percentage"
-                  : dc.valueType === "FIXED_AMOUNT"
-                    ? "fixed_amount"
-                    : "free_shipping",
-              code: dc.prefix || "FLASH",
-              behavior: (dc.behavior as "SHOW_CODE_AND_AUTO_APPLY" | "SHOW_CODE_ONLY" | "SHOW_CODE_AND_ASSIGN_TO_EMAIL") || "SHOW_CODE_AND_AUTO_APPLY",
-            }
-          : undefined,
+        // Discount: keep original for legacy compatibility, add transformed version
+        discountConfig: dc as FlashSaleConfig["discountConfig"],
+        discount: storefrontDiscount,
 
         // Design-specific (FlashSale)
         popupSize: mergedConfig.popupSize || designConfig.popupSize || "wide",
@@ -585,13 +595,13 @@ TEMPLATE_PREVIEW_REGISTRY[TemplateTypeEnum.ANNOUNCEMENT] = {
 TEMPLATE_PREVIEW_REGISTRY[TemplateTypeEnum.FREE_SHIPPING] = {
   component: FreeShippingPopup,
   buildConfig: (
-    mergedConfig: Partial<FreeShippingConfig>,
+    mergedConfig: Partial<FreeShippingConfig> & { discountConfig?: Partial<AdminDiscountConfig> },
     designConfig: Partial<PopupDesignConfig>
   ): FreeShippingConfig =>
     ({
       id: "preview-free-shipping",
 
-      // FreeShipping-specific content fields (from mockup)
+      // FreeShipping-specific content fields
       threshold: mergedConfig.threshold ?? 75,
       currency: mergedConfig.currency || "$",
       nearMissThreshold: mergedConfig.nearMissThreshold ?? 10,
@@ -599,7 +609,7 @@ TEMPLATE_PREVIEW_REGISTRY[TemplateTypeEnum.FREE_SHIPPING] = {
       progressMessage: mergedConfig.progressMessage || "You're {remaining} away from free shipping",
       nearMissMessage: mergedConfig.nearMissMessage || "Only {remaining} to go!",
       unlockedMessage: mergedConfig.unlockedMessage || "You've unlocked free shipping! 🎉",
-      barPosition: mergedConfig.barPosition || "top", // Use barPosition instead of position
+      barPosition: mergedConfig.barPosition || "top",
       dismissible: mergedConfig.dismissible ?? true,
       dismissLabel: mergedConfig.dismissLabel,
       showIcon: mergedConfig.showIcon ?? true,
@@ -617,6 +627,9 @@ TEMPLATE_PREVIEW_REGISTRY[TemplateTypeEnum.FREE_SHIPPING] = {
       // Preview cart total mapping into component config
       currentCartTotal: mergedConfig.previewCartTotal,
 
+      // Discount: transform admin config to storefront format
+      discount: transformDiscountConfig(mergedConfig.discountConfig, "FREESHIP") || mergedConfig.discount,
+
       // All common config (colors, typography, layout)
       ...buildCommonConfig(mergedConfig, designConfig),
     }),
@@ -625,7 +638,7 @@ TEMPLATE_PREVIEW_REGISTRY[TemplateTypeEnum.FREE_SHIPPING] = {
 TEMPLATE_PREVIEW_REGISTRY[TemplateTypeEnum.CART_ABANDONMENT] = {
   component: CartAbandonmentPopup,
   buildConfig: (
-    mergedConfig: Partial<CartAbandonmentConfig> & { discountConfig?: Record<string, unknown> },
+    mergedConfig: Partial<CartAbandonmentConfig> & { discountConfig?: Partial<AdminDiscountConfig> },
     designConfig: Partial<PopupDesignConfig>
   ): CartAbandonmentConfig =>
     ({
@@ -653,7 +666,7 @@ TEMPLATE_PREVIEW_REGISTRY[TemplateTypeEnum.CART_ABANDONMENT] = {
       dismissLabel: mergedConfig.dismissLabel,
       currency: mergedConfig.currency || "USD",
 
-      // Email recovery preview fields (driven by admin content config)
+      // Email recovery preview fields
       enableEmailRecovery: mergedConfig.enableEmailRecovery ?? false,
       emailPlaceholder: mergedConfig.emailPlaceholder,
       emailSuccessMessage: mergedConfig.emailSuccessMessage,
@@ -661,29 +674,8 @@ TEMPLATE_PREVIEW_REGISTRY[TemplateTypeEnum.CART_ABANDONMENT] = {
       emailButtonText: mergedConfig.emailButtonText,
       requireEmailBeforeCheckout: mergedConfig.requireEmailBeforeCheckout ?? false,
 
-      // Discount configuration for preview
-      discount: mergedConfig.discountConfig
-        ? {
-            enabled: (mergedConfig.discountConfig as Record<string, unknown>).enabled !== false,
-            percentage:
-              (mergedConfig.discountConfig as Record<string, unknown>).valueType === "PERCENTAGE" &&
-              typeof (mergedConfig.discountConfig as Record<string, unknown>).value === "number"
-                ? ((mergedConfig.discountConfig as Record<string, unknown>).value as number)
-                : undefined,
-            value:
-              typeof (mergedConfig.discountConfig as Record<string, unknown>).value === "number"
-                ? ((mergedConfig.discountConfig as Record<string, unknown>).value as number)
-                : undefined,
-            type:
-              (mergedConfig.discountConfig as Record<string, unknown>).valueType === "PERCENTAGE"
-                ? ("percentage" as const)
-                : (mergedConfig.discountConfig as Record<string, unknown>).valueType === "FIXED_AMOUNT"
-                  ? ("fixed_amount" as const)
-                  : ("free_shipping" as const),
-            code: ((mergedConfig.discountConfig as Record<string, unknown>).prefix as string) || "PREVIEW",
-            behavior: ((mergedConfig.discountConfig as Record<string, unknown>).behavior as "SHOW_CODE_AND_AUTO_APPLY" | "SHOW_CODE_ONLY" | "SHOW_CODE_AND_ASSIGN_TO_EMAIL") || "SHOW_CODE_AND_AUTO_APPLY",
-          }
-        : undefined,
+      // Discount: transform admin config to storefront format
+      discount: transformDiscountConfig(mergedConfig.discountConfig, "SAVE"),
 
       // All common config (colors, typography, layout)
       ...buildCommonConfig(mergedConfig, designConfig),

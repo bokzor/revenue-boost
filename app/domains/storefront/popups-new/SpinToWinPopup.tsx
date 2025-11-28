@@ -611,10 +611,8 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
           }
 
           @keyframes shimmerSweep {
-            0% { left: -100%; opacity: 0; }
-            10% { opacity: 1; }
-            90% { opacity: 1; }
-            100% { left: 100%; opacity: 0; }
+            0% { left: -100%; }
+            100% { left: 100%; }
           }
 
           @keyframes glowPulse {
@@ -633,6 +631,7 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
 
           .spin-discount-wrapper {
             position: relative;
+            overflow: hidden;
             animation: prizeCardReveal 0.7s ease-out 0.2s both;
           }
 
@@ -641,15 +640,15 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
             position: absolute;
             top: 0;
             left: -100%;
-            width: 100%;
+            width: 200%;
             height: 100%;
             background: linear-gradient(
               90deg,
-              transparent,
-              rgba(255,255,255,0.4),
-              transparent
+              transparent 0%,
+              rgba(255,255,255,0.4) 50%,
+              transparent 100%
             );
-            animation: shimmerSweep 1.5s ease-in-out 0.5s forwards;
+            animation: shimmerSweep 1s ease-in-out 0.5s forwards;
             pointer-events: none;
           }
 

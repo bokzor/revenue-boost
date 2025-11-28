@@ -24,6 +24,8 @@ import { useState, useEffect } from "react";
 import type { ExperimentWithVariants } from "~/domains/campaigns/types/experiment";
 import { SetupStatus, type SetupStatusData } from "~/domains/setup/components/SetupStatus";
 import { getSetupStatus } from "~/lib/setup-status.server";
+import { PostBillingReviewTrigger } from "~/domains/reviews";
+import { BillingService } from "~/domains/billing/index.server";
 
 // --- Types ---
 
@@ -60,6 +62,13 @@ interface LoaderData {
   setupStatus?: SetupStatusData;
   setupComplete?: boolean;
   themeEditorUrl?: string;
+  // Review trigger data
+  chargeId: string | null;
+  recentUpgrade: {
+    fromPlan: string;
+    toPlan: string;
+    createdAt: string;
+  } | null;
 }
 
 // --- Loader ---
@@ -69,6 +78,28 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const storeId = await getStoreId(request);
   const url = new URL(request.url);
   const timeRange = url.searchParams.get("timeRange") || "30d";
+
+  // Check for post-billing redirect (charge_id present after successful payment)
+  const chargeId = url.searchParams.get("charge_id");
+  let recentUpgrade: LoaderData["recentUpgrade"] = null;
+
+  if (chargeId) {
+    // If we have a charge_id, check current billing status to confirm upgrade
+    try {
+      const billingContext = await BillingService.getBillingContextFromDbByDomain(session.shop);
+      if (billingContext && billingContext.planTier !== "FREE" && billingContext.hasActiveSubscription) {
+        // We have an active paid subscription - this is likely a recent upgrade
+        recentUpgrade = {
+          fromPlan: "FREE", // We don't track previous plan, assume upgrade from FREE
+          toPlan: billingContext.planTier,
+          createdAt: new Date().toISOString(),
+        };
+        console.log("[Dashboard] Detected post-billing upgrade:", recentUpgrade);
+      }
+    } catch (error) {
+      console.error("[Dashboard] Error checking billing context:", error);
+    }
+  }
 
   // Check setup status using shared utility
   const { status: setupStatus, setupComplete } = await getSetupStatus(
@@ -93,6 +124,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       setupStatus,
       setupComplete,
       themeEditorUrl,
+      chargeId,
+      recentUpgrade,
     };
 
     return loaderData;
@@ -184,6 +217,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     setupStatus,
     setupComplete,
     themeEditorUrl,
+    chargeId,
+    recentUpgrade,
   };
 
   return loaderData;
@@ -381,6 +416,8 @@ export default function Dashboard() {
     setupStatus,
     setupComplete,
     themeEditorUrl,
+    chargeId,
+    recentUpgrade,
   } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
   const fetcher = useFetcher();
@@ -475,6 +512,9 @@ export default function Dashboard() {
   if (!hasCampaigns) {
     return (
       <Page title="Dashboard">
+        {/* Post-billing review trigger (invisible component) */}
+        <PostBillingReviewTrigger chargeId={chargeId} recentUpgrade={recentUpgrade} />
+
         <Layout>
           {/* Setup Status Banner - Show if setup incomplete OR if there are any issues */}
           {setupStatus &&
@@ -559,6 +599,9 @@ export default function Dashboard() {
         />
       }
     >
+      {/* Post-billing review trigger (invisible component) */}
+      <PostBillingReviewTrigger chargeId={chargeId} recentUpgrade={recentUpgrade} />
+
       <Layout>
         {/* Setup Status Banner - Show if setup incomplete OR if there are any issues */}
         {setupStatus &&

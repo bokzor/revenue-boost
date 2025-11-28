@@ -8,8 +8,10 @@ on:
     paths-ignore:
       - '**.md'
       - 'docs/**'
+      - 'website/**'
       - '.github/workflows/deploy-staging.yml'
       - '.github/workflows/deploy-extensions-staging.yml'
+      - '.github/workflows/deploy-website.yml'
   workflow_dispatch:
     inputs:
       skip_tests:

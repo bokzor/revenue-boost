@@ -30,6 +30,7 @@ interface LoaderData {
   shopDomain: string;
   globalCustomCSS?: string;
   advancedTargetingEnabled: boolean;
+  experimentsEnabled: boolean;
 }
 
 // ============================================================================
@@ -61,6 +62,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     // Fetch plan context to determine feature availability
     const planContext = await PlanGuardService.getPlanContext(storeId);
     const advancedTargetingEnabled = planContext.definition.features.advancedTargeting;
+    const experimentsEnabled = planContext.definition.features.experiments;
 
     const store = await prisma.store.findUnique({
       where: { id: storeId },
@@ -79,6 +81,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       shopDomain: session.shop,
       globalCustomCSS: parsedSettings.success ? parsedSettings.data.globalCustomCSS : undefined,
       advancedTargetingEnabled,
+      experimentsEnabled,
     });
   } catch (error) {
     console.error("[Campaign Edit Loader] Failed to load campaign for editing:", error);
@@ -90,6 +93,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         shopDomain: "",
         globalCustomCSS: undefined,
         advancedTargetingEnabled: false,
+        experimentsEnabled: false,
       },
       { status: 404 }
     );
@@ -102,7 +106,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
 export default function CampaignEditPage() {
   console.log("[Campaign Edit Page] Component rendering");
-  const { campaign, storeId, shopDomain, globalCustomCSS, advancedTargetingEnabled } =
+  const { campaign, storeId, shopDomain, globalCustomCSS, advancedTargetingEnabled, experimentsEnabled } =
     useLoaderData<typeof loader>();
   console.log("[Campaign Edit Page] Loaded data - campaign:", campaign?.id, "storeId:", storeId);
   const navigate = useNavigate();
@@ -334,6 +338,7 @@ export default function CampaignEditPage() {
         campaignId={campaign?.id}
         globalCustomCSS={globalCustomCSS}
         advancedTargetingEnabled={advancedTargetingEnabled}
+        experimentsEnabled={experimentsEnabled}
         onSave={handleSave}
         onCancel={handleCancel}
       />

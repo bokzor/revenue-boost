@@ -11,9 +11,10 @@ export const STORE_PASSWORD = process.env.STORE_PASSWORD || 'a';
 
 /**
  * Time to wait for API to propagate new campaigns (in milliseconds)
- * Cloud Run has caching that requires time to reflect database changes
+ * Cloud Run has caching that requires time to reflect database changes.
+ * Increased to 5 seconds for more reliable staging tests.
  */
-export const API_PROPAGATION_DELAY_MS = 2500;
+export const API_PROPAGATION_DELAY_MS = 5000;
 
 /**
  * Generate a unique test session ID to avoid conflicts between parallel tests.
@@ -970,4 +971,644 @@ export async function waitForCampaignInApi(
 
     console.log(`⚠️ Campaign ${campaignId} not found in API after ${maxWaitMs}ms`);
     return false;
+}
+
+// =============================================================================
+// TEMPLATE-SPECIFIC VERIFICATION HELPERS
+// These helpers verify actual rendered content, not just presence
+// =============================================================================
+
+/**
+ * Verify newsletter popup content is rendered correctly
+ */
+export async function verifyNewsletterContent(page: Page, expected: {
+    headline?: string;
+    emailPlaceholder?: string;
+    buttonText?: string;
+    hasGdprCheckbox?: boolean;
+    hasEmailInput?: boolean;
+}): Promise<{ valid: boolean; errors: string[] }> {
+    return page.evaluate((exp) => {
+        const errors: string[] = [];
+        const host = document.querySelector('#revenue-boost-popup-shadow-host');
+        const shadow = host?.shadowRoot;
+
+        if (!shadow) {
+            return { valid: false, errors: ['Shadow DOM not found'] };
+        }
+
+        // Check headline
+        if (exp.headline) {
+            const hasHeadline = shadow.innerHTML.toLowerCase().includes(exp.headline.toLowerCase());
+            if (!hasHeadline) {
+                errors.push(`Headline "${exp.headline}" not found`);
+            }
+        }
+
+        // Check email input
+        const emailInput = shadow.querySelector('input[type="email"]') as HTMLInputElement;
+        if (exp.hasEmailInput !== undefined) {
+            if (exp.hasEmailInput && !emailInput) {
+                errors.push('Email input expected but not found');
+            } else if (!exp.hasEmailInput && emailInput) {
+                errors.push('Email input found but not expected');
+            }
+        }
+
+        if (emailInput && exp.emailPlaceholder) {
+            const placeholder = emailInput.placeholder?.toLowerCase() || '';
+            if (!placeholder.includes(exp.emailPlaceholder.toLowerCase())) {
+                errors.push(`Email placeholder "${exp.emailPlaceholder}" not found, got "${emailInput.placeholder}"`);
+            }
+        }
+
+        // Check button text
+        if (exp.buttonText) {
+            const buttons = shadow.querySelectorAll('button');
+            const hasButton = Array.from(buttons).some(btn =>
+                btn.textContent?.toLowerCase().includes(exp.buttonText!.toLowerCase())
+            );
+            if (!hasButton) {
+                errors.push(`Button with text "${exp.buttonText}" not found`);
+            }
+        }
+
+        // Check GDPR checkbox
+        if (exp.hasGdprCheckbox !== undefined) {
+            const checkbox = shadow.querySelector('input[type="checkbox"]');
+            if (exp.hasGdprCheckbox && !checkbox) {
+                errors.push('GDPR checkbox expected but not found');
+            } else if (!exp.hasGdprCheckbox && checkbox) {
+                errors.push('GDPR checkbox found but not expected');
+            }
+        }
+
+        return { valid: errors.length === 0, errors };
+    }, expected);
+}
+
+/**
+ * Verify spin-to-win popup content is rendered correctly
+ */
+export async function verifySpinToWinContent(page: Page, expected: {
+    headline?: string;
+    segments?: string[];
+    hasSpinButton?: boolean;
+    hasEmailInput?: boolean;
+}): Promise<{ valid: boolean; errors: string[] }> {
+    return page.evaluate((exp) => {
+        const errors: string[] = [];
+        const host = document.querySelector('#revenue-boost-popup-shadow-host');
+        const shadow = host?.shadowRoot;
+
+        if (!shadow) {
+            return { valid: false, errors: ['Shadow DOM not found'] };
+        }
+
+        const html = shadow.innerHTML.toLowerCase();
+
+        // Check headline
+        if (exp.headline) {
+            if (!html.includes(exp.headline.toLowerCase())) {
+                errors.push(`Headline "${exp.headline}" not found`);
+            }
+        }
+
+        // Check wheel segments
+        if (exp.segments && exp.segments.length > 0) {
+            for (const segment of exp.segments) {
+                if (!html.includes(segment.toLowerCase())) {
+                    errors.push(`Wheel segment "${segment}" not found`);
+                }
+            }
+        }
+
+        // Check for spin button
+        if (exp.hasSpinButton !== false) {
+            const hasSpinBtn = html.includes('spin') ||
+                shadow.querySelector('button[class*="spin" i], [data-spin-button]');
+            if (!hasSpinBtn) {
+                errors.push('Spin button not found');
+            }
+        }
+
+        // Check email input
+        if (exp.hasEmailInput) {
+            const emailInput = shadow.querySelector('input[type="email"]');
+            if (!emailInput) {
+                errors.push('Email input expected but not found');
+            }
+        }
+
+        return { valid: errors.length === 0, errors };
+    }, expected);
+}
+
+/**
+ * Verify flash sale popup content is rendered correctly
+ */
+export async function verifyFlashSaleContent(page: Page, expected: {
+    headline?: string;
+    urgencyMessage?: string;
+    discountPercentage?: number;
+    hasCountdown?: boolean;
+}): Promise<{ valid: boolean; errors: string[] }> {
+    return page.evaluate((exp) => {
+        const errors: string[] = [];
+        const host = document.querySelector('#revenue-boost-popup-shadow-host');
+        const shadow = host?.shadowRoot;
+
+        if (!shadow) {
+            return { valid: false, errors: ['Shadow DOM not found'] };
+        }
+
+        const html = shadow.innerHTML.toLowerCase();
+
+        // Check headline
+        if (exp.headline) {
+            if (!html.includes(exp.headline.toLowerCase())) {
+                errors.push(`Headline "${exp.headline}" not found`);
+            }
+        }
+
+        // Check urgency message
+        if (exp.urgencyMessage) {
+            if (!html.includes(exp.urgencyMessage.toLowerCase())) {
+                errors.push(`Urgency message "${exp.urgencyMessage}" not found`);
+            }
+        }
+
+        // Check discount percentage
+        if (exp.discountPercentage) {
+            if (!html.includes(`${exp.discountPercentage}%`)) {
+                errors.push(`Discount "${exp.discountPercentage}%" not found`);
+            }
+        }
+
+        // Check countdown
+        if (exp.hasCountdown) {
+            // Look for countdown indicators (digits, colons, timer elements)
+            const hasTimer = shadow.querySelector('[class*="countdown" i], [class*="timer" i], [data-countdown]') ||
+                html.match(/\d{1,2}:\d{2}/);
+            if (!hasTimer) {
+                errors.push('Countdown timer not found');
+            }
+        }
+
+        return { valid: errors.length === 0, errors };
+    }, expected);
+}
+
+/**
+ * Verify scratch card popup content is rendered correctly
+ */
+export async function verifyScratchCardContent(page: Page, expected: {
+    headline?: string;
+    hasCanvas?: boolean;
+    hasEmailInput?: boolean;
+}): Promise<{ valid: boolean; errors: string[] }> {
+    return page.evaluate((exp) => {
+        const errors: string[] = [];
+        const host = document.querySelector('#revenue-boost-popup-shadow-host');
+        const shadow = host?.shadowRoot;
+
+        if (!shadow) {
+            return { valid: false, errors: ['Shadow DOM not found'] };
+        }
+
+        const html = shadow.innerHTML.toLowerCase();
+
+        // Check headline
+        if (exp.headline) {
+            if (!html.includes(exp.headline.toLowerCase())) {
+                errors.push(`Headline "${exp.headline}" not found`);
+            }
+        }
+
+        // Check for scratch canvas
+        if (exp.hasCanvas !== false) {
+            const canvas = shadow.querySelector('canvas');
+            if (!canvas) {
+                errors.push('Scratch canvas not found');
+            }
+        }
+
+        // Check email input
+        if (exp.hasEmailInput) {
+            const emailInput = shadow.querySelector('input[type="email"]');
+            if (!emailInput) {
+                errors.push('Email input expected but not found');
+            }
+        }
+
+        return { valid: errors.length === 0, errors };
+    }, expected);
+}
+
+/**
+ * Verify exit intent popup content is rendered correctly
+ */
+export async function verifyExitIntentContent(page: Page, expected: {
+    headline?: string;
+    hasEmailInput?: boolean;
+    hasGdprCheckbox?: boolean;
+}): Promise<{ valid: boolean; errors: string[] }> {
+    return page.evaluate((exp) => {
+        const errors: string[] = [];
+        const host = document.querySelector('#revenue-boost-popup-shadow-host');
+        const shadow = host?.shadowRoot;
+
+        if (!shadow) {
+            return { valid: false, errors: ['Shadow DOM not found'] };
+        }
+
+        const html = shadow.innerHTML.toLowerCase();
+
+        // Check headline
+        if (exp.headline) {
+            if (!html.includes(exp.headline.toLowerCase())) {
+                errors.push(`Headline "${exp.headline}" not found`);
+            }
+        }
+
+        // Check email input
+        if (exp.hasEmailInput !== false) {
+            const emailInput = shadow.querySelector('input[type="email"]');
+            if (!emailInput) {
+                errors.push('Email input not found');
+            }
+        }
+
+        // Check GDPR checkbox
+        if (exp.hasGdprCheckbox) {
+            const checkbox = shadow.querySelector('input[type="checkbox"]');
+            if (!checkbox) {
+                errors.push('GDPR checkbox expected but not found');
+            }
+        }
+
+        return { valid: errors.length === 0, errors };
+    }, expected);
+}
+
+/**
+ * Verify free shipping bar content is rendered correctly
+ */
+export async function verifyFreeShippingContent(page: Page, expected: {
+    threshold?: number;
+    currency?: string;
+    message?: string;
+}): Promise<{ valid: boolean; errors: string[] }> {
+    return page.evaluate((exp) => {
+        const errors: string[] = [];
+        const host = document.querySelector('#revenue-boost-popup-shadow-host');
+        const shadow = host?.shadowRoot;
+
+        if (!shadow) {
+            return { valid: false, errors: ['Shadow DOM not found'] };
+        }
+
+        const html = shadow.innerHTML.toLowerCase();
+
+        // Check for threshold amount
+        if (exp.threshold) {
+            const thresholdStr = exp.threshold.toString();
+            if (!html.includes(thresholdStr)) {
+                errors.push(`Threshold amount "${exp.threshold}" not found`);
+            }
+        }
+
+        // Check currency symbol
+        if (exp.currency) {
+            if (!shadow.innerHTML.includes(exp.currency)) {
+                errors.push(`Currency symbol "${exp.currency}" not found`);
+            }
+        }
+
+        // Check message
+        if (exp.message) {
+            if (!html.includes(exp.message.toLowerCase())) {
+                errors.push(`Message "${exp.message}" not found`);
+            }
+        }
+
+        return { valid: errors.length === 0, errors };
+    }, expected);
+}
+
+/**
+ * Verify social proof notification content is rendered correctly
+ */
+export async function verifySocialProofContent(page: Page, expected: {
+    hasProductImage?: boolean;
+    hasTimestamp?: boolean;
+}): Promise<{ valid: boolean; errors: string[] }> {
+    return page.evaluate((exp) => {
+        const errors: string[] = [];
+        const host = document.querySelector('#revenue-boost-popup-shadow-host');
+        const shadow = host?.shadowRoot;
+
+        if (!shadow) {
+            return { valid: false, errors: ['Shadow DOM not found'] };
+        }
+
+        // Check for product image
+        if (exp.hasProductImage) {
+            const img = shadow.querySelector('img');
+            if (!img) {
+                errors.push('Product image not found');
+            }
+        }
+
+        // Check for timestamp
+        if (exp.hasTimestamp) {
+            const html = shadow.innerHTML.toLowerCase();
+            const hasTime = html.includes('ago') || html.includes('minute') ||
+                html.includes('hour') || html.includes('just now');
+            if (!hasTime) {
+                errors.push('Timestamp not found');
+            }
+        }
+
+        return { valid: errors.length === 0, errors };
+    }, expected);
+}
+
+/**
+ * Verify announcement bar content is rendered correctly
+ */
+export async function verifyAnnouncementContent(page: Page, expected: {
+    headline?: string;
+    hasCtaButton?: boolean;
+}): Promise<{ valid: boolean; errors: string[] }> {
+    return page.evaluate((exp) => {
+        const errors: string[] = [];
+        const host = document.querySelector('#revenue-boost-popup-shadow-host');
+        const shadow = host?.shadowRoot;
+
+        if (!shadow) {
+            return { valid: false, errors: ['Shadow DOM not found'] };
+        }
+
+        const html = shadow.innerHTML.toLowerCase();
+
+        // Check headline
+        if (exp.headline) {
+            if (!html.includes(exp.headline.toLowerCase())) {
+                errors.push(`Headline "${exp.headline}" not found`);
+            }
+        }
+
+        // Check for CTA button/link
+        if (exp.hasCtaButton) {
+            const hasLink = shadow.querySelector('a[href], button');
+            if (!hasLink) {
+                errors.push('CTA button/link not found');
+            }
+        }
+
+        return { valid: errors.length === 0, errors };
+    }, expected);
+}
+
+/**
+ * Verify countdown timer content is rendered correctly
+ */
+export async function verifyCountdownTimerContent(page: Page, expected: {
+    headline?: string;
+    hasTimer?: boolean;
+}): Promise<{ valid: boolean; errors: string[] }> {
+    return page.evaluate((exp) => {
+        const errors: string[] = [];
+        const host = document.querySelector('#revenue-boost-popup-shadow-host');
+        const shadow = host?.shadowRoot;
+
+        if (!shadow) {
+            return { valid: false, errors: ['Shadow DOM not found'] };
+        }
+
+        const html = shadow.innerHTML.toLowerCase();
+
+        // Check headline
+        if (exp.headline) {
+            if (!html.includes(exp.headline.toLowerCase())) {
+                errors.push(`Headline "${exp.headline}" not found`);
+            }
+        }
+
+        // Check for timer
+        if (exp.hasTimer !== false) {
+            const hasTimer = shadow.querySelector('[class*="countdown" i], [class*="timer" i], [data-countdown]') ||
+                html.match(/\d{1,2}:\d{2}/);
+            if (!hasTimer) {
+                errors.push('Countdown timer not found');
+            }
+        }
+
+        return { valid: errors.length === 0, errors };
+    }, expected);
+}
+
+/**
+ * Verify cart abandonment popup content is rendered correctly
+ */
+export async function verifyCartAbandonmentContent(page: Page, expected: {
+    headline?: string;
+    hasUrgencyTimer?: boolean;
+    hasEmailInput?: boolean;
+}): Promise<{ valid: boolean; errors: string[] }> {
+    return page.evaluate((exp) => {
+        const errors: string[] = [];
+        const host = document.querySelector('#revenue-boost-popup-shadow-host');
+        const shadow = host?.shadowRoot;
+
+        if (!shadow) {
+            return { valid: false, errors: ['Shadow DOM not found'] };
+        }
+
+        const html = shadow.innerHTML.toLowerCase();
+
+        // Check headline
+        if (exp.headline) {
+            if (!html.includes(exp.headline.toLowerCase())) {
+                errors.push(`Headline "${exp.headline}" not found`);
+            }
+        }
+
+        // Check urgency timer
+        if (exp.hasUrgencyTimer) {
+            const hasTimer = shadow.querySelector('[class*="timer" i], [class*="countdown" i]') ||
+                html.match(/\d{1,2}:\d{2}/);
+            if (!hasTimer) {
+                errors.push('Urgency timer not found');
+            }
+        }
+
+        // Check email input
+        if (exp.hasEmailInput) {
+            const emailInput = shadow.querySelector('input[type="email"]');
+            if (!emailInput) {
+                errors.push('Email input not found');
+            }
+        }
+
+        return { valid: errors.length === 0, errors };
+    }, expected);
+}
+
+/**
+ * Verify product upsell popup content is rendered correctly
+ */
+export async function verifyProductUpsellContent(page: Page, expected: {
+    headline?: string;
+    productCount?: number;
+    hasImages?: boolean;
+    hasPrices?: boolean;
+}): Promise<{ valid: boolean; errors: string[] }> {
+    return page.evaluate((exp) => {
+        const errors: string[] = [];
+        const host = document.querySelector('#revenue-boost-popup-shadow-host');
+        const shadow = host?.shadowRoot;
+
+        if (!shadow) {
+            return { valid: false, errors: ['Shadow DOM not found'] };
+        }
+
+        const html = shadow.innerHTML.toLowerCase();
+
+        // Check headline
+        if (exp.headline) {
+            if (!html.includes(exp.headline.toLowerCase())) {
+                errors.push(`Headline "${exp.headline}" not found`);
+            }
+        }
+
+        // Check product images
+        if (exp.hasImages) {
+            const images = shadow.querySelectorAll('img');
+            if (images.length === 0) {
+                errors.push('Product images not found');
+            }
+        }
+
+        // Check for prices
+        if (exp.hasPrices) {
+            const hasPrices = html.includes('$') || html.includes('€') || html.includes('£');
+            if (!hasPrices) {
+                errors.push('Prices not found');
+            }
+        }
+
+        return { valid: errors.length === 0, errors };
+    }, expected);
+}
+
+/**
+ * Get the current popup state (visible, form state, etc.)
+ */
+export async function getPopupState(page: Page): Promise<{
+    isVisible: boolean;
+    hasContent: boolean;
+    templateType: string | null;
+    formState: 'initial' | 'success' | 'error' | 'loading' | 'unknown';
+}> {
+    return page.evaluate(() => {
+        const host = document.querySelector('#revenue-boost-popup-shadow-host');
+        const shadow = host?.shadowRoot;
+
+        if (!shadow) {
+            return {
+                isVisible: false,
+                hasContent: false,
+                templateType: null,
+                formState: 'unknown' as const
+            };
+        }
+
+        const html = shadow.innerHTML.toLowerCase();
+        const isVisible = host instanceof HTMLElement &&
+            window.getComputedStyle(host).display !== 'none';
+
+        // Detect form state
+        let formState: 'initial' | 'success' | 'error' | 'loading' | 'unknown' = 'unknown';
+        if (html.includes('thank') || html.includes('success') || html.includes('congratulation')) {
+            formState = 'success';
+        } else if (html.includes('error') || html.includes('invalid') || html.includes('required')) {
+            formState = 'error';
+        } else if (html.includes('loading') || html.includes('submitting')) {
+            formState = 'loading';
+        } else if (shadow.querySelector('form, input[type="email"]')) {
+            formState = 'initial';
+        }
+
+        // Detect template type from content
+        let templateType: string | null = null;
+        if (html.includes('spin') && html.includes('wheel')) {
+            templateType = 'SPIN_TO_WIN';
+        } else if (html.includes('scratch')) {
+            templateType = 'SCRATCH_CARD';
+        } else if (html.includes('flash') || html.includes('sale')) {
+            templateType = 'FLASH_SALE';
+        } else if (html.includes('free shipping')) {
+            templateType = 'FREE_SHIPPING';
+        } else if (shadow.querySelector('input[type="email"]')) {
+            templateType = 'NEWSLETTER';
+        }
+
+        return {
+            isVisible,
+            hasContent: html.length > 50,
+            templateType,
+            formState
+        };
+    });
+}
+
+/**
+ * Wait for popup to show success state after form submission
+ */
+export async function waitForFormSuccess(page: Page, timeout: number = 5000): Promise<boolean> {
+    const startTime = Date.now();
+
+    while (Date.now() - startTime < timeout) {
+        const state = await getPopupState(page);
+        if (state.formState === 'success') {
+            return true;
+        }
+        await page.waitForTimeout(200);
+    }
+
+    return false;
+}
+
+/**
+ * Verify discount code is displayed after form submission
+ */
+export async function verifyDiscountCodeDisplayed(page: Page, expectedCode?: string): Promise<{
+    found: boolean;
+    code: string | null;
+}> {
+    return page.evaluate((expected) => {
+        const host = document.querySelector('#revenue-boost-popup-shadow-host');
+        const shadow = host?.shadowRoot;
+
+        if (!shadow) {
+            return { found: false, code: null };
+        }
+
+        // Look for discount code patterns
+        const html = shadow.innerHTML;
+
+        // Match common discount code patterns (uppercase alphanumeric, 6-20 chars)
+        const codeMatch = html.match(/\b[A-Z0-9]{6,20}\b/g);
+
+        if (expected) {
+            const found = html.toUpperCase().includes(expected.toUpperCase());
+            return { found, code: expected };
+        }
+
+        // Return first found code
+        const code = codeMatch ? codeMatch[0] : null;
+        return { found: !!code, code };
+    }, expectedCode);
 }
