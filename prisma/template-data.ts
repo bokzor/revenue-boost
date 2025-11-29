@@ -407,7 +407,8 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
       buttonColor: "#3B82F6",
       buttonTextColor: "#FFFFFF",
       position: "top",
-      size: "medium"
+      size: "medium",
+      displayMode: "banner", // Default to banner mode (top/bottom bar)
     },
     isDefault: true,
     priority: 4,

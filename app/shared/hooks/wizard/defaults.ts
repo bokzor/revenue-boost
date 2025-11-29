@@ -35,20 +35,28 @@ export function getDefaultPopupDesign() {
 }
 
 // Default enhanced triggers configuration
+// Structure must match EnhancedTriggersConfigSchema from campaign.ts
 export function getDefaultEnhancedTriggers() {
   return {
-    enabled: true,
-    triggers: [
-      {
-        type: "page_load" as const,
-        config: {
-          delay: 3000,
-          scrollDepth: 50,
-          exitIntentSensitivity: "medium" as const,
-          conditions: [],
-        },
-      },
-    ],
+    // Individual trigger objects with enabled flags
+    page_load: {
+      enabled: true, // Default to page load enabled
+      delay: 3000, // 3 seconds delay
+      require_dom_ready: true,
+    },
+    // Other triggers disabled by default
+    exit_intent: {
+      enabled: false,
+      sensitivity: "medium" as const,
+    },
+    scroll_depth: {
+      enabled: false,
+      depth_percentage: 50,
+    },
+    idle_timer: {
+      enabled: false,
+      idle_duration: 30,
+    },
   };
 }
 
