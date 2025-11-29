@@ -10,8 +10,8 @@
 export type PopupPosition = "center" | "top" | "bottom" | "left" | "right";
 export type PopupSize = "small" | "medium" | "large";
 export type PopupAnimation = "fade" | "slide" | "bounce" | "none";
-export type DisplayMode = "modal" | "banner" | "slide-in" | "inline";
-export type ImagePosition = "left" | "right" | "top" | "bottom" | "none";
+export type DisplayMode = "popup" | "banner" | "slide-in" | "inline";
+export type ImagePosition = "left" | "right" | "top" | "bottom" | "full" | "none";
 
 /**
  * PopupDesignConfig - Pure design/visual properties
@@ -41,10 +41,11 @@ export interface PopupDesignConfig {
   imageBgColor?: string; // Background color for image placeholder
   successColor?: string; // Success state color
 
-  // Background image configuration (used by Newsletter and compatible templates)
+  // Background image configuration (used by Newsletter, FlashSale, and compatible templates)
   backgroundImageMode?: "none" | "preset" | "file";
   backgroundImagePresetKey?: string;
   backgroundImageFileId?: string;
+  backgroundOverlayOpacity?: number; // Overlay opacity for full background images (0-1)
 
   // Layout Properties
   position: PopupPosition;
@@ -87,6 +88,9 @@ export interface PopupDesignConfig {
 
   // Branding (for free tier)
   showBranding?: boolean;
+
+  // Theme selection (from admin DesignConfig)
+  theme?: string;
 
   // Accessibility
   ariaLabel?: string;

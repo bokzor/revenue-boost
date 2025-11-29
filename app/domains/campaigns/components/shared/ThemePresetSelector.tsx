@@ -9,6 +9,24 @@ export interface ThemePresetSelectorProps {
   helpText?: string;
 }
 
+/**
+ * Display-friendly labels for theme keys
+ * Maps hyphenated keys to cleaner display names
+ */
+const THEME_DISPLAY_NAMES: Record<NewsletterThemeKey, string> = {
+  modern: "Modern",
+  minimal: "Minimal",
+  elegant: "Elegant",
+  bold: "Bold",
+  glass: "Glass",
+  dark: "Dark",
+  gradient: "Gradient",
+  luxury: "Luxury",
+  neon: "Neon",
+  ocean: "Ocean",
+  "summer-sale": "Summer",
+};
+
 function buildSwatchBackground(themeKey: NewsletterThemeKey): string {
   const t = NEWSLETTER_THEMES[themeKey];
   const bg = t.background || "#FFFFFF";
@@ -44,7 +62,7 @@ export const ThemePresetSelector: React.FC<ThemePresetSelectorProps> = ({
       >
         {(Object.keys(NEWSLETTER_THEMES) as NewsletterThemeKey[]).map((key) => {
           const isSelected = selected === key;
-          const label = key.charAt(0).toUpperCase() + key.slice(1);
+          const label = THEME_DISPLAY_NAMES[key];
           const swatchBg = buildSwatchBackground(key);
           return (
             <div

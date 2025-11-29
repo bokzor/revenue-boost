@@ -3,11 +3,11 @@
  *
  * Countdown timer popup with two display modes:
  * - Banner: Top/bottom bar with countdown (default)
- * - Modal: Centered popup with countdown
+ * - Popup: Centered popup with countdown
  *
  * Features:
- * - Live countdown timer (compact format for banner, full for modal)
- * - Top/bottom positioning for banner, center for modal
+ * - Live countdown timer (compact format for banner, full for popup)
+ * - Top/bottom positioning for banner, center for popup
  * - Sticky option for persistent visibility (banner mode)
  * - Auto-hide on expiry
  * - Optional stock counter
@@ -81,7 +81,7 @@ export const CountdownTimerPopup: React.FC<CountdownTimerPopupProps> = ({
 
   if (!isVisible || (hasExpired && config.hideOnExpiry)) return null;
 
-  // Determine display mode (default to "banner" for CountdownTimer)
+  // Get displayMode (defaults to banner for countdown timers)
   const displayMode = config.displayMode || "banner";
 
   // Determine background (gradient for presets, solid for custom)
@@ -108,8 +108,11 @@ export const CountdownTimerPopup: React.FC<CountdownTimerPopupProps> = ({
 
   const isPreview = (config as any)?.previewMode;
 
-  // Modal display mode
-  if (displayMode === "modal") {
+  // Check if using full background image (modal mode only)
+  const hasFullBgImage = config.imageUrl && config.imagePosition === "full";
+
+  // Popup/Modal display mode (centered overlay)
+  if (displayMode === "popup") {
     return (
       <PopupPortal
         isVisible={isVisible}
@@ -134,6 +137,32 @@ export const CountdownTimerPopup: React.FC<CountdownTimerPopupProps> = ({
             padding: 2rem;
             width: min(500px, calc(100% - 2rem));
             text-align: center;
+            overflow: hidden;
+          }
+          /* Full background image support */
+          .countdown-modal.has-bg-image {
+            position: relative;
+          }
+          .countdown-modal-bg-image {
+            position: absolute;
+            inset: 0;
+            z-index: 0;
+          }
+          .countdown-modal-bg-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+          }
+          .countdown-modal-bg-overlay {
+            position: absolute;
+            inset: 0;
+            z-index: 1;
+            background: ${config.backgroundColor || "#000000"};
+            opacity: ${config.backgroundOverlayOpacity ?? 0.6};
+          }
+          .countdown-modal-content {
+            position: relative;
+            z-index: 2;
           }
           .countdown-modal-headline {
             font-size: 1.75rem;
@@ -201,6 +230,7 @@ export const CountdownTimerPopup: React.FC<CountdownTimerPopupProps> = ({
             display: flex;
             align-items: center;
             justify-content: center;
+            z-index: 10;
           }
           .countdown-modal-close:hover {
             opacity: 1;
@@ -220,65 +250,78 @@ export const CountdownTimerPopup: React.FC<CountdownTimerPopupProps> = ({
         `}</style>
 
         <div
-          className="countdown-modal"
+          className={`countdown-modal${hasFullBgImage ? " has-bg-image" : ""}`}
           style={{
-            ...getBackgroundStyles(backgroundValue),
+            ...(hasFullBgImage ? {} : getBackgroundStyles(backgroundValue)),
             color: schemeColors.textColor,
             position: "relative",
           }}
         >
-          <PopupCloseButton
-            onClose={onClose}
-            color={schemeColors.textColor}
-            size={24}
-            show={config.showCloseButton !== false}
-            className="countdown-modal-close"
-            position="custom"
-          />
-
-          <h2 className="countdown-modal-headline">{config.headline}</h2>
-          {config.subheadline && (
-            <p className="countdown-modal-subheadline">{config.subheadline}</p>
-          )}
-
-          {!hasExpired ? (
+          {/* Background image with overlay */}
+          {hasFullBgImage && (
             <>
-              <div className="countdown-modal-timer">
-                <TimerDisplay
-                  timeRemaining={timeRemaining}
-                  format="full"
-                  showDays={timeRemaining.days > 0}
-                  showLabels={true}
-                  backgroundColor={timerBg}
-                  textColor={timerText}
-                  accentColor={ctaBg}
-                />
+              <div className="countdown-modal-bg-image">
+                <img src={config.imageUrl} alt="" aria-hidden="true" />
               </div>
-
-              {config.showStockCounter && config.stockCount && (
-                <div className="countdown-modal-stock" style={{ color: schemeColors.textColor }}>
-                  ⚡ Only {config.stockCount} left in stock
-                </div>
-              )}
+              <div className="countdown-modal-bg-overlay" />
             </>
-          ) : (
-            <div className="countdown-modal-expired" style={{ color: schemeColors.textColor }}>
-              Offer has ended
-            </div>
           )}
 
-          {(config.buttonText || config.ctaText || hasExpired) && (
-            <CTAButton
-              text={hasExpired ? "Offer Expired" : config.buttonText || config.ctaText || ""}
-              url={hasExpired ? undefined : config.ctaUrl}
-              openInNewTab={config.ctaOpenInNewTab}
-              onClick={hasExpired ? undefined : onCtaClick}
-              disabled={hasExpired}
-              accentColor={ctaBg}
-              textColor={ctaText}
-              className="countdown-modal-cta"
+          {/* Content wrapper for z-index layering above background */}
+          <div className="countdown-modal-content">
+            <PopupCloseButton
+              onClose={onClose}
+              color={schemeColors.textColor}
+              size={24}
+              show={config.showCloseButton !== false}
+              className="countdown-modal-close"
+              position="custom"
             />
-          )}
+
+            <h2 className="countdown-modal-headline">{config.headline}</h2>
+            {config.subheadline && (
+              <p className="countdown-modal-subheadline">{config.subheadline}</p>
+            )}
+
+            {!hasExpired ? (
+              <>
+                <div className="countdown-modal-timer">
+                  <TimerDisplay
+                    timeRemaining={timeRemaining}
+                    format="full"
+                    showDays={timeRemaining.days > 0}
+                    showLabels={true}
+                    backgroundColor={timerBg}
+                    textColor={timerText}
+                    accentColor={ctaBg}
+                  />
+                </div>
+
+                {config.showStockCounter && config.stockCount && (
+                  <div className="countdown-modal-stock" style={{ color: schemeColors.textColor }}>
+                    ⚡ Only {config.stockCount} left in stock
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="countdown-modal-expired" style={{ color: schemeColors.textColor }}>
+                Offer has ended
+              </div>
+            )}
+
+            {(config.buttonText || config.ctaText || hasExpired) && (
+              <CTAButton
+                text={hasExpired ? "Offer Expired" : config.buttonText || config.ctaText || ""}
+                url={hasExpired ? undefined : config.ctaUrl}
+                openInNewTab={config.ctaOpenInNewTab}
+                onClick={hasExpired ? undefined : onCtaClick}
+                disabled={hasExpired}
+                accentColor={ctaBg}
+                textColor={ctaText}
+                className="countdown-modal-cta"
+              />
+            )}
+          </div>
         </div>
       </PopupPortal>
     );

@@ -558,9 +558,11 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
   const showScratchCard = !showEmailForm;
 
   const imagePosition = config.imagePosition || "left";
-  const showImage = !!config.imageUrl && imagePosition !== "none";
+  const isFullBackground = imagePosition === "full" && !!config.imageUrl;
+  const showImage = !!config.imageUrl && imagePosition !== "none" && !isFullBackground;
   const isVertical = imagePosition === "left" || imagePosition === "right";
   const imageFirst = imagePosition === "left" || imagePosition === "top";
+  const bgOverlayOpacity = config.backgroundOverlayOpacity ?? 0.6;
 
   const baseSizeDimensions = getSizeDimensions(config.size || "medium", config.previewMode);
 
@@ -600,10 +602,26 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
       globalCustomCSS={config.globalCustomCSS}
     >
       <div className="scratch-popup-container" data-splitpop="true" data-template="scratch-card">
+        {/* Full Background Mode */}
+        {isFullBackground && (
+          <>
+            <div className="scratch-full-bg-image">
+              <img src={config.imageUrl} alt="" aria-hidden="true" />
+            </div>
+            <div
+              className="scratch-full-bg-overlay"
+              style={{
+                background: config.backgroundColor || "#ffffff",
+                opacity: bgOverlayOpacity
+              }}
+            />
+          </>
+        )}
         <div
           className={`scratch-popup-content ${
-            !showImage ? "single-column" : isVertical ? "vertical" : "horizontal"
-          } ${!imageFirst && showImage ? "reverse" : ""}`}
+            !showImage && !isFullBackground ? "single-column" : isVertical && !isFullBackground ? "vertical" : "horizontal"
+          } ${!imageFirst && showImage ? "reverse" : ""} ${isFullBackground ? "full-bg-mode" : ""}`}
+          style={isFullBackground ? { position: "relative", zIndex: 2 } : undefined}
         >
           {showImage && (
             <div
@@ -998,6 +1016,30 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
           container-type: inline-size;
           container-name: scratch-popup;
           font-family: ${config.fontFamily || "inherit"};
+        }
+
+        /* Full Background Mode Styles */
+        .scratch-full-bg-image {
+          position: absolute;
+          inset: 0;
+          z-index: 0;
+        }
+
+        .scratch-full-bg-image img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+
+        .scratch-full-bg-overlay {
+          position: absolute;
+          inset: 0;
+          z-index: 1;
+        }
+
+        .scratch-popup-content.full-bg-mode {
+          position: relative;
+          z-index: 2;
         }
 
         @container scratch-popup (max-width: 640px) {

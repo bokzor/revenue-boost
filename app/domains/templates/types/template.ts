@@ -172,27 +172,16 @@ export const BaseTemplateSchema = z.object({
 /**
  * Template with JSON Configs Schema (Generic)
  * This represents how templates are stored in the database with generic contentConfig
+ *
+ * NOTE: These are optional since seeded data is the source of truth.
  */
 export const TemplateWithConfigsSchema = BaseTemplateSchema.extend({
   // JSON configurations (matching Prisma schema field names exactly with proper typing)
-  contentConfig: z.union([BaseContentConfigSchema, z.record(z.string(), z.unknown())]).default({}), // Default content values for this template (can be typed or generic)
-  fields: z.array(TemplateFieldSchema).default([]), // Array of TemplateField definitions
-  targetRules: TargetRulesConfigSchema.default({}), // Default trigger/targeting configuration
-  designConfig: DesignConfigSchema.default({
-    theme: "modern",
-    position: "center",
-    size: "medium",
-    borderRadius: 8,
-    imagePosition: "left",
-    overlayOpacity: 0.8,
-    backgroundImageMode: "none",
-    animation: "fade",
-  }), // Default design configuration
-  discountConfig: DiscountConfigSchema.default({
-    enabled: false,
-    showInPreview: true,
-    behavior: "SHOW_CODE_AND_AUTO_APPLY",
-  }), // Discount configuration
+  contentConfig: z.union([BaseContentConfigSchema, z.record(z.string(), z.unknown())]).optional(),
+  fields: z.array(TemplateFieldSchema).default([]),
+  targetRules: TargetRulesConfigSchema.optional(),
+  designConfig: DesignConfigSchema.optional(), // Optional - seeded data is source of truth
+  discountConfig: DiscountConfigSchema.optional(), // Optional - seeded data is source of truth
 });
 
 /**
@@ -232,17 +221,7 @@ export const FlashSaleTemplateSchema = BaseTemplateSchema.extend({
   contentConfig: FlashSaleContentSchema,
   fields: z.array(TemplateFieldSchema).default([]),
   targetRules: TargetRulesConfigSchema.default({}),
-  designConfig: DesignConfigSchema.default({
-    theme: "bold",
-    position: "center",
-    size: "medium",
-    popupSize: "wide",
-    borderRadius: 8,
-    imagePosition: "left",
-    overlayOpacity: 0.8,
-    backgroundImageMode: "none",
-    animation: "fade",
-  }),
+  designConfig: DesignConfigSchema.optional(),
   discountConfig: DiscountConfigSchema.default({
     enabled: true,
     showInPreview: true,

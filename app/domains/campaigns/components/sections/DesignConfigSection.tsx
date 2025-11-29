@@ -10,21 +10,25 @@
  * - Switching templates preserves design values
  */
 
-import { useRef } from "react";
+import { useRef, useMemo } from "react";
 import type { ChangeEvent } from "react";
-import { Card, BlockStack, Text, Divider, Select, Banner, Button } from "@shopify/polaris";
+import { Card, BlockStack, Text, Divider, Select, Banner, Button, RangeSlider } from "@shopify/polaris";
 import { ColorField, FormGrid, CollapsibleSection, useCollapsibleSections } from "../form";
 import type { DesignConfig, TemplateType } from "~/domains/campaigns/types/campaign";
 import {
-  NEWSLETTER_THEMES,
   themeColorsToDesignConfig,
   type NewsletterThemeKey,
   NEWSLETTER_BACKGROUND_PRESETS,
   getNewsletterBackgroundUrl,
 } from "~/config/color-presets";
+import {
+  getThemeConfigForTemplate,
+  getThemeBackgroundUrl,
+  type ThemeKey,
+} from "~/config/theme-config";
 import { ThemePresetSelector } from "../shared/ThemePresetSelector";
 import { CustomPresetSelector } from "../shared/CustomPresetSelector";
-import { getDesignCapabilities } from "~/domains/templates/registry/design-capabilities";
+import { getDesignCapabilities, type ImagePositionOption } from "~/domains/templates/registry/design-capabilities";
 import { useShopifyFileUpload } from "~/shared/hooks/useShopifyFileUpload";
 import type { ThemePresetInput } from "~/domains/store/types/theme-preset";
 import { loadGoogleFont } from "~/shared/utils/google-fonts";
@@ -97,9 +101,11 @@ export function DesignConfigSection({
   // Position/Size filtering based on capabilities
   const ALL_POSITIONS = ["center", "top", "bottom", "left", "right"] as const;
   const ALL_SIZES = ["small", "medium", "large"] as const;
+  const ALL_IMAGE_POSITIONS: ImagePositionOption[] = ["left", "right", "top", "bottom", "full", "none"];
 
   const allowedPositions = caps?.supportsPosition ?? ALL_POSITIONS;
   const allowedSizes = caps?.supportsSize ?? ALL_SIZES;
+  const allowedImagePositions = caps?.supportedImagePositions ?? ALL_IMAGE_POSITIONS;
 
   // Build filtered option lists
   const positionOptions = [
@@ -116,6 +122,19 @@ export function DesignConfigSection({
     { label: "Large", value: "large" },
   ].filter((opt) => allowedSizes.includes(opt.value as (typeof allowedSizes)[number]));
 
+  // Build filtered image position options
+  const imagePositionOptions = useMemo(() => {
+    const allOptions = [
+      { label: "Left side", value: "left" },
+      { label: "Right side", value: "right" },
+      { label: "Top", value: "top" },
+      { label: "Bottom", value: "bottom" },
+      { label: "Full background", value: "full" },
+      { label: "No image", value: "none" },
+    ];
+    return allOptions.filter((opt) => allowedImagePositions.includes(opt.value as ImagePositionOption));
+  }, [allowedImagePositions]);
+
   const updateField = <K extends keyof DesignConfig>(
     field: K,
     value: DesignConfig[K] | undefined
@@ -126,30 +145,45 @@ export function DesignConfigSection({
   const imageMode = (design.backgroundImageMode ?? "none") as DesignConfig["backgroundImageMode"];
   const selectedPresetKey = design.backgroundImagePresetKey as NewsletterThemeKey | undefined;
   const previewImageUrl = design.imageUrl;
+  const isFullBackground = design.imagePosition === "full";
 
-  // Handle theme selection - applies all theme colors and default image
+  // Handle theme selection - applies all theme colors and template-specific overrides
   const handleThemeChange = (themeKey: NewsletterThemeKey) => {
-    const themeColors = NEWSLETTER_THEMES[themeKey];
-    const designConfig = themeColorsToDesignConfig(themeColors);
-    const presetUrl = getNewsletterBackgroundUrl(themeKey);
+    // Get template-specific theme configuration
+    const resolvedTheme = getThemeConfigForTemplate(
+      themeKey as ThemeKey,
+      (templateType as TemplateType) ?? "NEWSLETTER"
+    );
 
-    // Apply all theme colors and set default theme image
+    // Convert base colors to design config format
+    const designConfig = themeColorsToDesignConfig(resolvedTheme.colors);
+
+    // Get the background image URL (will be undefined if template doesn't use images)
+    const backgroundUrl = getThemeBackgroundUrl(
+      themeKey as ThemeKey,
+      (templateType as TemplateType) ?? "NEWSLETTER"
+    );
+
+    // Apply all theme colors and template-specific image settings
     // Clear customThemePresetId when selecting a built-in theme
     onChange({
       ...design,
       theme: themeKey,
       customThemePresetId: undefined, // Clear custom theme selection
+
+      // Colors from base theme
       backgroundColor: designConfig.backgroundColor,
       textColor: designConfig.textColor,
       descriptionColor: designConfig.descriptionColor,
-      accentColor: designConfig.accentColor,
-      buttonColor: designConfig.buttonColor,
+      accentColor: resolvedTheme.accentColorOverride ?? designConfig.accentColor,
+      buttonColor: resolvedTheme.buttonColorOverride ?? designConfig.buttonColor,
       buttonTextColor: designConfig.buttonTextColor,
       inputBackgroundColor: designConfig.inputBackgroundColor,
       inputTextColor: designConfig.inputTextColor,
       inputBorderColor: designConfig.inputBorderColor,
       imageBgColor: designConfig.imageBgColor,
       successColor: designConfig.successColor,
+
       // Typography
       fontFamily: designConfig.fontFamily,
       titleFontSize: designConfig.titleFontSize,
@@ -157,13 +191,18 @@ export function DesignConfigSection({
       titleTextShadow: designConfig.titleTextShadow,
       descriptionFontSize: designConfig.descriptionFontSize,
       descriptionFontWeight: designConfig.descriptionFontWeight,
+
       // Input styling
       inputBackdropFilter: designConfig.inputBackdropFilter,
       inputBoxShadow: designConfig.inputBoxShadow,
-      backgroundImageMode: "preset",
-      backgroundImagePresetKey: themeKey,
+
+      // Template-specific background image settings
+      backgroundImageMode: resolvedTheme.backgroundImageMode,
+      backgroundImagePresetKey: resolvedTheme.backgroundImagePresetKey,
       backgroundImageFileId: undefined,
-      imageUrl: presetUrl,
+      imageUrl: backgroundUrl,
+      imagePosition: resolvedTheme.imagePosition,
+      backgroundOverlayOpacity: resolvedTheme.backgroundOverlayOpacity,
     });
 
     // Allow template-specific integrations (e.g., Spin-to-Win wheel colors)
@@ -290,8 +329,8 @@ export function DesignConfigSection({
          * Options: fade, slide, bounce, none
          */}
 
-        {/* Flash Sale specific popup size */}
-        {templateType === "FLASH_SALE" && (
+        {/* Flash Sale specific popup size - only show for popup mode, not banner */}
+        {templateType === "FLASH_SALE" && design.displayMode !== "banner" && (
           <Select
             label="Popup size"
             value={design.popupSize || "wide"}
@@ -311,9 +350,9 @@ export function DesignConfigSection({
         {caps?.supportsDisplayMode && (
           <Select
             label="Display Mode"
-            value={design.displayMode || "modal"}
+            value={design.displayMode || "popup"}
             options={[
-              { label: "Popup (centered modal)", value: "modal" },
+              { label: "Popup (centered overlay)", value: "popup" },
               { label: "Banner (top or bottom)", value: "banner" },
             ]}
             onChange={(value) => updateField("displayMode", value as DesignConfig["displayMode"])}
@@ -335,18 +374,14 @@ export function DesignConfigSection({
               <FormGrid columns={2}>
                 <Select
                   label="Image position"
-                  value={design.imagePosition || "left"}
-                  options={[
-                    { label: "Left side", value: "left" },
-                    { label: "Right side", value: "right" },
-                    { label: "Top", value: "top" },
-                    { label: "Bottom", value: "bottom" },
-                    { label: "No image", value: "none" },
-                  ]}
+                  value={design.imagePosition || (imagePositionOptions[0]?.value ?? "none")}
+                  options={imagePositionOptions}
                   onChange={(value) =>
                     updateField("imagePosition", value as DesignConfig["imagePosition"])
                   }
-                  helpText="Position of the background image in the popup"
+                  helpText={isFullBackground
+                    ? "Full background with overlay for better text readability"
+                    : "Position of the background image in the popup"}
                 />
 
                 <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
@@ -411,6 +446,29 @@ export function DesignConfigSection({
                   </BlockStack>
                 </div>
               </FormGrid>
+
+              {/* Overlay opacity slider - only show for full background mode */}
+              {isFullBackground && previewImageUrl && design.imagePosition !== "none" && (
+                <BlockStack gap="200">
+                  <Text as="p" variant="bodySm" fontWeight="medium">
+                    Overlay Opacity: {Math.round((design.backgroundOverlayOpacity ?? 0.6) * 100)}%
+                  </Text>
+                  <RangeSlider
+                    label="Overlay opacity"
+                    labelHidden
+                    value={(design.backgroundOverlayOpacity ?? 0.6) * 100}
+                    min={0}
+                    max={100}
+                    step={5}
+                    onChange={(value) => updateField("backgroundOverlayOpacity", (value as number) / 100)}
+                    output
+                    suffix={<Text as="span" variant="bodySm">%</Text>}
+                  />
+                  <Text as="p" variant="bodySm" tone="subdued">
+                    Higher values make the overlay darker for better text readability
+                  </Text>
+                </BlockStack>
+              )}
 
               {previewImageUrl && design.imagePosition !== "none" && (
                 <div

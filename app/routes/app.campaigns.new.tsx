@@ -18,7 +18,7 @@ import { useState } from "react";
 import { Modal, Text, Toast, Frame } from "@shopify/polaris";
 import type { UnifiedTemplate } from "~/domains/popups/services/templates/unified-template-service.server";
 import prisma from "~/db.server";
-import { StoreSettingsSchema } from "~/domains/store/types/settings";
+import { StoreSettingsSchema, GLOBAL_FREQUENCY_BEST_PRACTICES } from "~/domains/store/types/settings";
 import { PlanGuardService } from "~/domains/billing/services/plan-guard.server";
 
 // ============================================================================
@@ -65,6 +65,13 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
     const parsedSettings = StoreSettingsSchema.partial().safeParse(store?.settings || {});
 
+    // Use best practice defaults if store hasn't configured frequency capping yet
+    const storeFrequencyCapping = parsedSettings.success ? parsedSettings.data.frequencyCapping : undefined;
+    const globalFrequencyCapping = storeFrequencyCapping ?? {
+      enabled: true,
+      ...GLOBAL_FREQUENCY_BEST_PRACTICES,
+    };
+
     return data({
       storeId,
       shopDomain: session.shop,
@@ -72,6 +79,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
       preselectedGoal,
       globalCustomCSS: parsedSettings.success ? parsedSettings.data.globalCustomCSS : undefined,
       customThemePresets: parsedSettings.success ? parsedSettings.data.customThemePresets : undefined,
+      globalFrequencyCapping,
       advancedTargetingEnabled,
       experimentsEnabled,
       success: true,
@@ -83,6 +91,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
       success: false,
       error: error instanceof Error ? error.message : "Failed to load data",
       globalCustomCSS: undefined,
+      globalFrequencyCapping: undefined,
       advancedTargetingEnabled: false,
       experimentsEnabled: false,
     });
@@ -130,6 +139,7 @@ export default function NewCampaign() {
     preselectedGoal,
     globalCustomCSS,
     customThemePresets,
+    globalFrequencyCapping,
     advancedTargetingEnabled,
     experimentsEnabled,
   } = loaderData as {
@@ -149,6 +159,12 @@ export default function NewCampaign() {
       successColor?: string;
       fontFamily?: string;
     }>;
+    globalFrequencyCapping?: {
+      enabled: boolean;
+      max_per_session?: number;
+      max_per_day?: number;
+      cooldown_between_popups?: number;
+    };
     advancedTargetingEnabled?: boolean;
     experimentsEnabled?: boolean;
     success: boolean;
@@ -408,6 +424,7 @@ export default function NewCampaign() {
         initialTemplates={templates}
         globalCustomCSS={globalCustomCSS}
         customThemePresets={customThemePresets}
+        globalFrequencyCapping={globalFrequencyCapping}
         advancedTargetingEnabled={advancedTargetingEnabled ?? false}
         experimentsEnabled={experimentsEnabled ?? false}
         initialData={

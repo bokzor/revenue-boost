@@ -1125,6 +1125,28 @@ export class ProductUpsellBuilder extends BaseBuilder<ProductUpsellBuilder> {
         this.config.contentConfig.headline = headline;
         return this;
     }
+
+    /**
+     * Enable/disable product info display
+     */
+    withShowProductInfo(show: boolean): this {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.contentConfig.showPrices = show;
+        this.config.contentConfig.showImages = show;
+        return this;
+    }
+
+    /**
+     * Set upsell type
+     */
+    withUpsellType(type: 'recommended' | 'frequently_bought_together' | 'related' | 'manual'): this {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.contentConfig.upsellType = type;
+        if (type === 'frequently_bought_together') {
+            this.config.contentConfig.headline = 'Frequently Bought Together';
+        }
+        return this;
+    }
 }
 
 /**
@@ -1264,6 +1286,15 @@ export class FreeShippingBuilder extends BaseBuilder<FreeShippingBuilder> {
         if (messages.unlocked) this.config.contentConfig.unlockedMessage = messages.unlocked;
         return this;
     }
+
+    /**
+     * Enable/disable celebration animation on unlock
+     */
+    withCelebration(enabled: boolean): this {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.contentConfig.celebrateOnUnlock = enabled;
+        return this;
+    }
 }
 
 /**
@@ -1330,6 +1361,23 @@ export class CountdownTimerBuilder extends BaseBuilder<CountdownTimerBuilder> {
         this.config.contentConfig.headline = headline;
         return this;
     }
+
+    /**
+     * Set countdown duration (alias for withCountdownDuration)
+     */
+    withDuration(seconds: number): this {
+        return this.withCountdownDuration(seconds);
+    }
+
+    /**
+     * Set CTA button text and URL
+     */
+    withCtaButton(text: string, url: string): this {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.contentConfig.buttonText = text;
+        this.config.contentConfig.ctaUrl = url;
+        return this;
+    }
 }
 
 /**
@@ -1393,6 +1441,15 @@ export class AnnouncementBuilder extends BaseBuilder<AnnouncementBuilder> {
     withHeadline(headline: string): this {
         if (!this.config) throw new Error('Config not initialized');
         this.config.contentConfig.headline = headline;
+        return this;
+    }
+
+    /**
+     * Set dismissible (show close button)
+     */
+    withDismissible(dismissible: boolean = true): this {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.contentConfig.dismissible = dismissible;
         return this;
     }
 }
@@ -1473,6 +1530,15 @@ export class SocialProofBuilder extends BaseBuilder<SocialProofBuilder> {
     withRotationInterval(seconds: number): this {
         if (!this.config) throw new Error('Config not initialized');
         this.config.contentConfig.rotationInterval = seconds;
+        return this;
+    }
+
+    /**
+     * Set max notifications per session
+     */
+    withMaxNotifications(max: number): this {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.contentConfig.maxNotificationsPerSession = max;
         return this;
     }
 

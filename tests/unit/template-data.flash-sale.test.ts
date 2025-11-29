@@ -30,18 +30,22 @@ describe("GLOBAL_SYSTEM_TEMPLATES – Flash Sale Alert", () => {
     expect(flashSale.isDefault).toBe(true);
   });
 
-  it("should use Minimal theme-inspired design defaults", () => {
+  it("should use Summer Sale theme-inspired design defaults", () => {
     expect(flashSale).toBeDefined();
     if (!flashSale) return;
 
     const design = flashSale.designConfig as any;
 
-    // Theme + key colors from Modern newsletter preset with urgency red
-    expect(design.theme).toBe("modern");
-    expect(design.backgroundColor).toBe("#ffffff");
-    expect(design.textColor).toBe("#1f2937"); // Gray-800, matches template-data
-    expect(design.buttonColor).toBe("#ef4444"); // Red for urgency
+    // Theme + key colors from Summer Sale preset (matches theme-config.ts)
+    expect(design.theme).toBe("summer-sale");
+    expect(design.displayMode).toBe("popup");
+    expect(design.backgroundColor).toBe("#FFFBEB");
+    expect(design.textColor).toBe("#1E3A5F");
+    expect(design.buttonColor).toBe("#FF5733"); // Summer sale orange
     expect(design.buttonTextColor).toBe("#ffffff");
+    expect(design.imagePosition).toBe("full");
+    expect(design.backgroundImageMode).toBe("preset");
+    expect(design.backgroundImagePresetKey).toBe("summer-sale");
   });
 
   it("should provide content defaults that satisfy FlashSaleContentSchema and match expected values", () => {

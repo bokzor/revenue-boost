@@ -17,7 +17,8 @@ import React, { useState, useEffect } from "react";
 import type { PopupDesignConfig, DiscountConfig as StorefrontDiscountConfig } from "./types";
 import type { FlashSaleContent } from "~/domains/campaigns/types/campaign";
 import { PopupPortal } from "./PopupPortal";
-import { getSizeDimensions } from "./utils";
+import { BannerPortal } from "./BannerPortal";
+
 import { getContainerPadding, POPUP_SPACING } from "./spacing";
 
 // Import custom hooks
@@ -28,6 +29,8 @@ import { DiscountCodeDisplay, PopupCloseButton, TimerDisplay } from "./component
 
 /**
  * FlashSale-specific configuration
+ * Background image settings (imageUrl, imagePosition, backgroundImageMode, backgroundOverlayOpacity)
+ * come from PopupDesignConfig
  */
 export interface FlashSaleConfig extends PopupDesignConfig, FlashSaleContent {
   // Storefront-specific fields
@@ -295,7 +298,11 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
     const bannerPosition = config.position === "bottom" ? "bottom" : "top";
 
     return (
-      <>
+      <BannerPortal
+        isVisible={isVisible}
+        position={bannerPosition}
+        previewMode={config.previewMode}
+      >
         <style>{`
           .flash-sale-banner {
             font-family: ${config.fontFamily || 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'};
@@ -306,18 +313,20 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
             max-width: 75rem;
             margin: 0 auto;
             padding: 1em 1.5em;
-            display: flex;
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            grid-template-rows: auto auto;
+            grid-template-areas:
+              "badge badge badge"
+              "left center right";
             align-items: center;
-            justify-content: space-between;
-            gap: 1.25em;
+            gap: 0.75em 1.25em;
             position: relative;
             padding-right: 3.5em;
           }
-          .flash-sale-banner-left {
-            flex: 1;
-            min-width: 0;
-          }
           .flash-sale-banner-badge {
+            grid-area: badge;
+            justify-self: center;
             display: inline-flex;
             align-items: center;
             gap: 0.5em;
@@ -327,9 +336,12 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
             font-weight: 700;
             letter-spacing: 0.08em;
             text-transform: uppercase;
-            margin-bottom: 0.25em;
             background: ${accentColor};
             color: ${bgColor};
+          }
+          .flash-sale-banner-left {
+            grid-area: left;
+            min-width: 0;
           }
           .flash-sale-banner-headline {
             font-size: clamp(0.9375rem, 3cqi, 1.125rem);
@@ -349,6 +361,7 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
             font-weight: 600;
           }
           .flash-sale-banner-center {
+            grid-area: center;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -401,8 +414,10 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
             opacity: 0.9;
           }
           .flash-sale-banner-right {
+            grid-area: right;
             display: flex;
             align-items: center;
+            justify-content: flex-end;
             gap: 0.75em;
           }
           .flash-sale-banner-cta {
@@ -454,14 +469,18 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
             font-size: clamp(0.75rem, 2.5cqi, 0.875rem);
           }
 
-          /* Banner container query: small screens */
+          /* Banner container query: small screens - single column layout */
           @container flash-banner (max-width: 600px) {
             .flash-sale-banner-inner {
+              display: flex;
               flex-direction: column;
               padding: 1em;
               gap: 0.75em;
               text-align: center;
               padding-right: 2.5em;
+            }
+            .flash-sale-banner-badge {
+              align-self: center;
             }
             .flash-sale-banner-right {
               width: 100%;
@@ -476,11 +495,15 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
           @supports not (container-type: inline-size) {
             @media (max-width: 768px) {
               .flash-sale-banner-inner {
+                display: flex;
                 flex-direction: column;
                 padding: 1em;
                 gap: 0.75em;
                 text-align: center;
                 padding-right: 2.5em;
+              }
+              .flash-sale-banner-badge {
+                align-self: center;
               }
               .flash-sale-banner-right {
                 width: 100%;
@@ -509,11 +532,6 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
         <div
           className="flash-sale-banner"
           style={{
-            position: config.previewMode ? "absolute" : "fixed",
-            [bannerPosition]: 0,
-            left: 0,
-            right: 0,
-            zIndex: 9999,
             background: config.backgroundColor || "#111827",
             color: config.textColor || "#ffffff",
             boxShadow:
@@ -533,8 +551,10 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
               </button>
             )}
 
+            {/* Badge centered at top spanning full width */}
+            <div className="flash-sale-banner-badge">Limited Time Offer</div>
+
             <div className="flash-sale-banner-left">
-              <div className="flash-sale-banner-badge">Limited Time Offer</div>
               <h2 className="flash-sale-banner-headline">{config.headline || "Flash Sale!"}</h2>
               {config.subheadline && (
                 <p className="flash-sale-banner-subheadline">{config.subheadline}</p>
@@ -635,13 +655,29 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
             </div>
           </div>
         </div>
-      </>
+      </BannerPortal>
     );
   }
 
-  // Get responsive size dimensions
-  const sizeDimensions = getSizeDimensions(config.size || "medium", config.previewMode);
-  const containerPadding = getContainerPadding(config.size || "medium");
+  // Get responsive size dimensions based on popupSize (Flash Sale specific)
+  // Map popupSize to dimensions: compact=400px, standard=520px, wide=700px, full=900px
+  const getFlashSaleSizeDimensions = (popupSize?: "compact" | "standard" | "wide" | "full") => {
+    switch (popupSize) {
+      case "compact":
+        return { width: "100%", maxWidth: "400px" };
+      case "standard":
+        return { width: "100%", maxWidth: "520px" };
+      case "full":
+        return { width: "100%", maxWidth: "900px" };
+      case "wide":
+      default:
+        return { width: "100%", maxWidth: "700px" };
+    }
+  };
+  const sizeDimensions = getFlashSaleSizeDimensions(config.popupSize);
+  // Map popupSize to spacing: compact=small, standard/wide=medium, full=large
+  const sizeForPadding = config.popupSize === "compact" ? "small" : config.popupSize === "full" ? "large" : "medium";
+  const containerPadding = getContainerPadding(sizeForPadding);
 
   return (
     <PopupPortal
@@ -681,6 +717,34 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
           container-name: flash-sale;
         }
 
+        /* Background image support */
+        .flash-sale-bg-image {
+          position: absolute;
+          inset: 0;
+          z-index: 0;
+        }
+
+        .flash-sale-bg-image img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+
+        .flash-sale-bg-overlay {
+          position: absolute;
+          inset: 0;
+          background: ${bgColor};
+          opacity: ${config.backgroundOverlayOpacity ?? 0.6};
+          z-index: 1;
+        }
+
+        .flash-sale-container.has-bg-image .flash-sale-content,
+        .flash-sale-container.has-bg-image .flash-sale-expired,
+        .flash-sale-container.has-bg-image .flash-sale-sold-out {
+          position: relative;
+          z-index: 2;
+        }
+
         .flash-sale-close {
           position: absolute;
           top: 1em;
@@ -693,6 +757,11 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
           cursor: pointer;
           transition: background 0.2s;
           color: ${config.descriptionColor || textColor};
+        }
+
+        /* Ensure close button stays above background image */
+        .flash-sale-container.has-bg-image .flash-sale-close {
+          z-index: 10;
         }
 
         .flash-sale-close:hover {
@@ -768,8 +837,8 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
 
         .flash-sale-timer {
           display: flex;
-          gap: clamp(0.5rem, 2cqi, 0.625rem);
           justify-content: center;
+          gap: clamp(0.5rem, 2cqi, 0.625rem);
           margin-bottom: ${POPUP_SPACING.section.lg};
         }
 
@@ -856,7 +925,7 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
           padding: 0.875em 1.5em;
           border-radius: 0.5em;
           border: none;
-          font-family: inherit;
+          font-family: ${config.fontFamily || 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'};
           font-size: clamp(0.875rem, 3.5cqi, 1rem);
           font-weight: 700;
           cursor: pointer;
@@ -892,7 +961,7 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
           border: none;
           background: transparent;
           color: ${textColor};
-          font-family: inherit;
+          font-family: ${config.fontFamily || 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'};
           font-size: clamp(0.75rem, 2.5cqi, 0.8125rem);
           font-weight: 500;
           cursor: pointer;
@@ -1089,7 +1158,21 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
         }
       `}</style>
 
-      <div className="flash-sale-container" data-splitpop="true" data-template="flash-sale">
+      <div
+        className={`flash-sale-container${config.imageUrl && config.imagePosition === "full" ? " has-bg-image" : ""}`}
+        data-splitpop="true"
+        data-template="flash-sale"
+      >
+        {/* Background image with overlay */}
+        {config.imageUrl && config.imagePosition === "full" && (
+          <>
+            <div className="flash-sale-bg-image">
+              <img src={config.imageUrl} alt="" aria-hidden="true" />
+            </div>
+            <div className="flash-sale-bg-overlay" />
+          </>
+        )}
+
         <PopupCloseButton
           onClose={onClose}
           color={config.textColor}
@@ -1154,15 +1237,16 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
             )}
 
             {shouldShowTimer && timeRemaining.total > 0 && (
-              <TimerDisplay
-                timeRemaining={timeRemaining}
-                format="full"
-                showDays={timeRemaining.days > 0}
-                showLabels={true}
-                accentColor={config.accentColor || "#ef4444"}
-                textColor={config.textColor}
-                className="flash-sale-timer"
-              />
+              <div className="flash-sale-timer">
+                <TimerDisplay
+                  timeRemaining={timeRemaining}
+                  format="full"
+                  showDays={timeRemaining.days > 0}
+                  showLabels={true}
+                  accentColor={config.accentColor || "#ef4444"}
+                  textColor={config.textColor}
+                />
+              </div>
             )}
 
             {showInventory && (

@@ -88,15 +88,16 @@ describe("TemplatePreview CountdownTimer form-to-preview bridge", () => {
       });
     });
 
-    it("renders as modal when displayMode is modal", async () => {
-      renderCountdownPreview({}, { displayMode: "modal" });
+    it("renders as popup when displayMode is popup", async () => {
+      renderCountdownPreview({}, { displayMode: "popup" });
 
       await screen.findByText(/Limited Time Offer/i);
       await waitFor(() => {
-        const modalDialog = document.querySelector('[role="dialog"]');
-        const modalContent = document.querySelector('.countdown-modal');
-        expect(modalDialog).toBeTruthy();
-        expect(modalContent).toBeTruthy();
+        const popupDialog = document.querySelector('[role="dialog"]');
+        // Component uses countdown-modal class for popup display mode
+        const popupContent = document.querySelector('.countdown-modal');
+        expect(popupDialog).toBeTruthy();
+        expect(popupContent).toBeTruthy();
       });
     });
   });

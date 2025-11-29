@@ -58,6 +58,12 @@ export function parseJsonField<T>(jsonValue: unknown, schema: z.ZodSchema<T>, de
 
     // Validate with schema
     const result = schema.safeParse(parsed);
+    if (!result.success) {
+      console.warn("[parseJsonField] Zod validation failed:", {
+        errors: result.error.issues,
+        inputKeys: parsed && typeof parsed === "object" ? Object.keys(parsed) : [],
+      });
+    }
     return result.success ? result.data : defaultValue;
   } catch (error) {
     console.warn("Failed to parse JSON field:", error);

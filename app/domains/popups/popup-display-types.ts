@@ -4,7 +4,7 @@
  * Defines display modes and configurations for popup components
  */
 
-export type DisplayMode = "modal" | "drawer-overlay" | "slide-in" | "banner";
+export type DisplayMode = "popup" | "drawer-overlay" | "slide-in" | "banner";
 export type DrawerPosition = "top" | "bottom" | "left" | "right" | "bottom-of-drawer";
 export type AnimationStyle =
   | "fade"
@@ -84,9 +84,9 @@ export interface BannerDisplayConfig extends PopupDisplayConfig {
  * Display preset configurations
  */
 export const DISPLAY_PRESETS = {
-  // Modal presets
-  "modal-center": {
-    mode: "modal" as const,
+  // Popup presets
+  "popup-center": {
+    mode: "popup" as const,
     animation: "fade" as const,
     animationDuration: 300,
     overlayOpacity: 0.6,
@@ -94,8 +94,8 @@ export const DISPLAY_PRESETS = {
     showCloseButton: true,
     zIndex: 1000,
   },
-  "modal-zoom": {
-    mode: "modal" as const,
+  "popup-zoom": {
+    mode: "popup" as const,
     animation: "zoom" as const,
     animationDuration: 400,
     overlayOpacity: 0.7,

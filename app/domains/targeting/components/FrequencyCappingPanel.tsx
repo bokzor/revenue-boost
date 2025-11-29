@@ -7,6 +7,7 @@ import { FrequencyLimitsCard } from "./FrequencyLimitsCard";
 import { GlobalFrequencyCapCard } from "./GlobalFrequencyCapCard";
 import { FrequencyBestPracticesCard } from "./FrequencyBestPracticesCard";
 import type { TemplateType } from "~/domains/campaigns/types/campaign";
+import type { GlobalFrequencyCappingSettings } from "~/domains/store/types/settings";
 import { getFrequencyCappingHelpText } from "~/domains/campaigns/utils/frequency-defaults";
 
 /**
@@ -26,12 +27,15 @@ export interface FrequencyCappingPanelProps {
   config: FrequencyCappingConfig;
   onConfigChange: (config: FrequencyCappingConfig) => void;
   templateType?: TemplateType;
+  /** Global frequency capping settings from store - passed to GlobalFrequencyCapCard */
+  globalSettings?: GlobalFrequencyCappingSettings;
 }
 
 export function FrequencyCappingPanel({
   config,
   onConfigChange,
   templateType,
+  globalSettings,
 }: FrequencyCappingPanelProps) {
   const helpText = templateType ? getFrequencyCappingHelpText(templateType) : null;
 
@@ -73,6 +77,7 @@ export function FrequencyCappingPanel({
             onGlobalCapChange={(respectGlobalCap) =>
               onConfigChange({ ...config, respectGlobalCap })
             }
+            globalSettings={globalSettings}
           />
 
           <FrequencyBestPracticesCard />

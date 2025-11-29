@@ -579,10 +579,14 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, tri
     window.location.href = `${root}${normalized}`;
   };
 
+  // IMPORTANT: Spread designConfig FIRST, then contentConfig
+  // This ensures content fields (headline, subheadline, buttonText, etc.)
+  // from contentConfig are NOT overwritten by any accidentally included
+  // content fields in designConfig (which should only have design fields)
   return h(Component, {
     config: {
-      ...decoratedContentConfig,
       ...decoratedDesignConfig,
+      ...decoratedContentConfig,
       id: campaign.id,
       campaignId: campaign.id,
       currentCartTotal,

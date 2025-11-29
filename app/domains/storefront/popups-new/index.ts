@@ -22,6 +22,9 @@ export type {
   AnimationType,
 } from "./PopupPortal";
 
+export { BannerPortal } from "./BannerPortal";
+export type { BannerPortalProps, BannerPosition } from "./BannerPortal";
+
 // Newsletter components
 export { NewsletterPopup } from "./NewsletterPopup";
 export type { NewsletterConfig, NewsletterPopupProps, NewsletterFormData } from "./NewsletterPopup";

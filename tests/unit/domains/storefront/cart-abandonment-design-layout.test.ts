@@ -18,7 +18,7 @@ interface DesignLayoutConfig {
   padding?: string | number;
   maxWidth?: string | number;
   animation?: 'fade' | 'slide' | 'bounce' | 'none';
-  displayMode?: 'modal' | 'banner' | 'slide-in' | 'inline';
+  displayMode?: 'popup' | 'banner' | 'slide-in' | 'inline';
   boxShadow?: string;
   fontFamily?: string;
   fontSize?: string;
@@ -115,8 +115,8 @@ describe('Cart Abandonment Design - Animation', () => {
 
 describe('Cart Abandonment Design - Display Mode', () => {
   it('accepts all displayMode values', () => {
-    const modes: Array<'modal' | 'banner' | 'slide-in' | 'inline'> = 
-      ['modal', 'banner', 'slide-in', 'inline'];
+    const modes: Array<'popup' | 'banner' | 'slide-in' | 'inline'> =
+      ['popup', 'banner', 'slide-in', 'inline'];
 
     modes.forEach(mode => {
       const config = createConfig({ displayMode: mode });
@@ -299,7 +299,7 @@ describe('Cart Abandonment Design - Complete Layout Configuration', () => {
       padding: '24px',
       maxWidth: '600px',
       animation: 'fade',
-      displayMode: 'modal',
+      displayMode: 'popup',
       boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
       fontFamily: 'Inter, sans-serif',
       fontSize: '16px',
@@ -313,7 +313,7 @@ describe('Cart Abandonment Design - Complete Layout Configuration', () => {
     expect(config.padding).toBe('24px');
     expect(config.maxWidth).toBe('600px');
     expect(config.animation).toBe('fade');
-    expect(config.displayMode).toBe('modal');
+    expect(config.displayMode).toBe('popup');
     expect(config.boxShadow).toBe('0 4px 6px rgba(0, 0, 0, 0.1)');
     expect(config.fontFamily).toBe('Inter, sans-serif');
     expect(config.fontSize).toBe('16px');

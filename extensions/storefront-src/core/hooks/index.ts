@@ -36,17 +36,22 @@ HookRegistry.register('CART_ABANDONMENT', cartDataHook);
 // Register hooks for FLASH_SALE template
 HookRegistry.register('FLASH_SALE', productDataHook);
 HookRegistry.register('FLASH_SALE', inventoryDataHook);
+HookRegistry.register('FLASH_SALE', backgroundImageHook);
 
 // Register hooks for EXIT_INTENT template (usually similar to newsletter)
 HookRegistry.register('EXIT_INTENT', backgroundImageHook);
+
+// Register hooks for COUNTDOWN_TIMER template (modal mode supports background images)
+HookRegistry.register('COUNTDOWN_TIMER', backgroundImageHook);
+
+// Register hooks for SPIN_TO_WIN template (supports full background images)
+HookRegistry.register('SPIN_TO_WIN', backgroundImageHook);
 
 // Register hooks for FREE_SHIPPING template
 // No pre-loading needed - banners just show progress
 
 // Register hooks for SOCIAL_PROOF template
 // Social proof typically doesn't need pre-loading
-
-// SPIN_TO_WIN - no hooks needed, renders immediately
 
 console.log('[PreDisplayHook] Hook registry initialized');
 

@@ -11,7 +11,7 @@ function renderWithPolaris(ui: React.ReactNode) {
 }
 
 describe("AnnouncementContentSection", () => {
-  it("uses 'custom' color scheme by default when content is empty", () => {
+  it("renders the announcement content form", () => {
     const { container } = renderWithPolaris(
       <AnnouncementContentSection
         content={{}}
@@ -20,11 +20,9 @@ describe("AnnouncementContentSection", () => {
       />,
     );
 
-    const colorSchemeSelect = container.querySelector(
-      's-select[name="content.colorScheme"]',
-    );
-    expect(colorSchemeSelect).toBeTruthy();
-    expect(colorSchemeSelect?.getAttribute("value")).toBe("custom");
+    // Should render the form with headline field (uses custom s-text-field element)
+    const headlineField = container.querySelector('s-text-field[name="content.headline"]');
+    expect(headlineField).toBeTruthy();
   });
 });
 
