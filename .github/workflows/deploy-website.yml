@@ -77,7 +77,7 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy website/out --project-name=revenue-boost-website --branch=${{ github.head_ref || github.ref_name }}
+          command: pages deploy website/out --project-name=revenue-boost-app --branch=${{ github.head_ref || github.ref_name }}
 
       - name: 💬 Comment PR with preview URL
         if: github.event_name == 'pull_request'
