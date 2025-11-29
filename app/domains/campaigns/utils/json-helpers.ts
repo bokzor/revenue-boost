@@ -207,9 +207,19 @@ export function parseContentConfig(
 
 /**
  * Parse campaign designConfig JSON field
+ * Coerces legacy "modal" displayMode to "popup" for backward compatibility
  */
 export function parseDesignConfig(jsonValue: unknown): DesignConfig {
-  return parseJsonField(jsonValue, DesignConfigSchema, {
+  // Coerce legacy "modal" displayMode to "popup" before validation
+  let sanitized = jsonValue;
+  if (jsonValue && typeof jsonValue === "object" && !Array.isArray(jsonValue)) {
+    const obj = jsonValue as Record<string, unknown>;
+    if (obj.displayMode === "modal") {
+      sanitized = { ...obj, displayMode: "popup" };
+    }
+  }
+
+  return parseJsonField(sanitized, DesignConfigSchema, {
     theme: "modern",
     position: "center",
     size: "medium",
