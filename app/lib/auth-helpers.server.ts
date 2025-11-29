@@ -7,6 +7,7 @@
 import prisma from "~/db.server";
 import { authenticate, apiVersion } from "~/shopify.server";
 import type { AdminApiContext } from "@shopify/shopify-app-react-router/server";
+import { GLOBAL_FREQUENCY_BEST_PRACTICES } from "~/domains/store/types/settings";
 
 /**
  * Shopify Session with access token
@@ -68,12 +69,19 @@ export async function getStoreId(request: Request): Promise<string> {
     throw new Error("Could not resolve Shopify shop id to provision Store record");
   }
 
+  // Create store with default settings (best practices for frequency capping)
   const created = await prisma.store.create({
     data: {
       shopifyDomain: shopDomain,
       shopifyShopId: shopNumericId,
       accessToken: (session as any).accessToken,
       isActive: true,
+      settings: {
+        frequencyCapping: {
+          enabled: true,
+          ...GLOBAL_FREQUENCY_BEST_PRACTICES,
+        },
+      },
     },
   });
 

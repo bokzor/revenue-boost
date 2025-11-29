@@ -10,6 +10,7 @@
 import type { CampaignFormData, TemplateType } from "~/shared/hooks/useWizardState";
 import type { CampaignGoal } from "@prisma/client";
 import type { UnifiedTemplate } from "../hooks/useTemplates";
+import type { GlobalFrequencyCappingSettings } from "~/domains/store/types/settings";
 import {
   GoalStepContent,
   DesignStepContent,
@@ -55,6 +56,8 @@ export interface StepRendererProps {
   }>;
   /** Whether advanced targeting (Shopify segments, session rules) is enabled for the current plan */
   advancedTargetingEnabled?: boolean;
+  /** Global frequency capping settings from store - displayed in Cross-Campaign Coordination card */
+  globalFrequencyCapping?: GlobalFrequencyCappingSettings;
 }
 // ============================================================================
 // STEP RENDERERS
@@ -141,6 +144,14 @@ export function renderDesignStep(props: StepRendererProps) {
       initialTemplates={initialTemplates}
       preselectedTemplateType={wizardState.templateType}
       onTemplateSelect={(template) => {
+        console.log("[step-renderers] Template selected:", {
+          id: template.id,
+          templateType: template.templateType,
+          hasDesignConfig: !!template.designConfig,
+          designConfigKeys: template.designConfig ? Object.keys(template.designConfig) : [],
+          imageUrl: (template.designConfig as any)?.imageUrl,
+        });
+
         // Ensure required base content fields exist even if the user doesn't edit them
         // The UI shows placeholders, but the server schema requires real values
         const baseDefaults: Record<string, unknown> = {
@@ -210,13 +221,14 @@ export function renderTargetingStep(props: StepRendererProps) {
 }
 
 export function renderFrequencyStep(props: StepRendererProps) {
-  const { wizardState, updateData } = props;
+  const { wizardState, updateData, globalFrequencyCapping } = props;
 
   return (
     <FrequencyStepContent
       config={wizardState.frequencyCapping}
       onConfigChange={(config) => updateData({ frequencyCapping: config })}
       templateType={wizardState.templateType}
+      globalSettings={globalFrequencyCapping}
     />
   );
 }

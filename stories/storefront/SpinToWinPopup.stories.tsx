@@ -38,3 +38,29 @@ export default meta;
 type Story = StoryObj<typeof SpinToWinPopup>;
 
 export const Default: Story = {};
+
+/** Spin to Win with full background image */
+export const WithFullBackground: Story = {
+  args: {
+    config: {
+      ...baseConfig,
+      imageUrl: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&h=600&fit=crop",
+      imagePosition: "full",
+      backgroundOverlayOpacity: 0.75,
+      backgroundColor: "#0f172a",
+    } as SpinToWinConfig,
+  },
+};
+
+/** Spin to Win with lighter background overlay */
+export const FullBackgroundLightOverlay: Story = {
+  args: {
+    config: {
+      ...baseConfig,
+      imageUrl: "https://images.unsplash.com/photo-1542838132-92c53300491e?w=800&h=600&fit=crop",
+      imagePosition: "full",
+      backgroundOverlayOpacity: 0.5,
+      backgroundColor: "#1e293b",
+    } as SpinToWinConfig,
+  },
+};

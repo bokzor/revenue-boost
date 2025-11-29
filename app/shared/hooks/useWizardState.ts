@@ -256,6 +256,8 @@ export function useWizardState(initialData?: Partial<CampaignFormData>) {
         hasTemplateObject: !!templateObject,
         hasContentDefaults: !!templateObject?.contentDefaults,
         hasTargetRules: !!templateObject?.targetRules,
+        hasDesign: !!templateObject?.design,
+        designKeys: templateObject?.design ? Object.keys(templateObject.design) : [],
       });
 
       // Get template metadata for default design fields
@@ -270,6 +272,8 @@ export function useWizardState(initialData?: Partial<CampaignFormData>) {
       console.log("[useWizardState] Applying template configuration from database:", templateType, {
         hasDefaultDesignFields: Object.keys(defaultDesignFields).length > 0,
         defaultDesignFields,
+        templateDesignKeys: Object.keys(templateDesign),
+        templateDesignImageUrl: (templateDesign as Record<string, unknown>)?.imageUrl,
       });
 
       // Extract page targeting from template's targetRules (if available)
@@ -287,14 +291,14 @@ export function useWizardState(initialData?: Partial<CampaignFormData>) {
 
       const next: Partial<CampaignFormData> = {
         templateType,
-        // Apply content defaults from database template (already includes recipe merge if any)
+        // REPLACE content config entirely with template defaults (don't merge with previous template's data)
+        // This ensures switching templates doesn't retain data from previous template (e.g., backgroundImage)
         contentConfig: {
-          ...state.data.contentConfig,
           ...templateDefaults,
         },
-        // Apply design from database template (seed), then registry-level defaults as a light override
+        // REPLACE design config entirely with template defaults, then apply registry-level defaults
+        // This ensures switching templates doesn't retain design settings from previous template
         designConfig: {
-          ...state.data.designConfig,
           ...templateDesign,
           ...defaultDesignFields,
         },
@@ -314,7 +318,7 @@ export function useWizardState(initialData?: Partial<CampaignFormData>) {
 
       updateData(next);
     },
-    [updateData, state.data.contentConfig, state.data.designConfig]
+    [updateData]
   );
 
   // Apply goal-based defaults when goal is selected

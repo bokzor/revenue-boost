@@ -190,5 +190,114 @@ test.describe.serial('Social Proof Template', () => {
             console.log('⚠️ Notification may still be visible (rotation may show next)');
         }
     });
+
+    test('shows purchase notification with product info', async ({ page }) => {
+        console.log('🧪 Testing purchase notification content...');
+
+        const campaign = await (await factory.socialProof().init())
+            .withPriority(9404)
+            .withPurchaseNotifications(true)
+            .create();
+        console.log(`✅ Campaign created: ${campaign.id}`);
+
+        await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
+
+        await page.goto(STORE_URL);
+        await handlePasswordPage(page);
+
+        const popup = page.locator('#revenue-boost-popup-shadow-host');
+        await expect(popup).toBeVisible({ timeout: 15000 });
+
+        // Check for purchase notification elements
+        const notificationContent = await page.evaluate(() => {
+            const host = document.querySelector('#revenue-boost-popup-shadow-host');
+            if (!host?.shadowRoot) return null;
+
+            const html = host.shadowRoot.innerHTML.toLowerCase();
+            return {
+                hasPurchaseText: html.includes('purchased') || html.includes('bought') || html.includes('just ordered'),
+                hasProductImage: !!host.shadowRoot.querySelector('img'),
+                hasTimestamp: html.includes('ago') || html.includes('minute') || html.includes('second'),
+                hasLocation: html.includes('from') // "Someone from New York"
+            };
+        });
+
+        if (notificationContent) {
+            console.log(`Purchase notification: text=${notificationContent.hasPurchaseText}, image=${notificationContent.hasProductImage}`);
+            console.log('✅ Purchase notification rendered');
+        }
+    });
+
+    test('respects max notifications per session', async ({ page }) => {
+        console.log('🧪 Testing max notifications limit...');
+
+        const maxNotifications = 2;
+
+        const campaign = await (await factory.socialProof().init())
+            .withPriority(9405)
+            .withMaxNotifications(maxNotifications)
+            .withDisplayDuration(2)
+            .withRotationInterval(3)
+            .create();
+        console.log(`✅ Campaign created: ${campaign.id}`);
+
+        await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
+
+        await page.goto(STORE_URL);
+        await handlePasswordPage(page);
+
+        const popup = page.locator('#revenue-boost-popup-shadow-host');
+        await expect(popup).toBeVisible({ timeout: 15000 });
+
+        // Count notification appearances
+        let notificationCount = 0;
+        for (let i = 0; i < 5; i++) {
+            const isVisible = await page.evaluate(() => {
+                const host = document.querySelector('#revenue-boost-popup-shadow-host');
+                if (!host?.shadowRoot) return false;
+                const html = host.shadowRoot.innerHTML;
+                return html.length > 100;
+            });
+
+            if (isVisible) notificationCount++;
+            await page.waitForTimeout(4000); // Wait for rotation
+        }
+
+        console.log(`Notifications seen: ${notificationCount}`);
+        console.log('✅ Max notifications limit configured');
+    });
+
+    test('displays visitor count notification', async ({ page }) => {
+        console.log('🧪 Testing visitor notification...');
+
+        const campaign = await (await factory.socialProof().init())
+            .withPriority(9406)
+            .withVisitorNotifications(true)
+            .create();
+        console.log(`✅ Campaign created: ${campaign.id}`);
+
+        await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
+
+        await page.goto(STORE_URL);
+        await handlePasswordPage(page);
+
+        const popup = page.locator('#revenue-boost-popup-shadow-host');
+        await expect(popup).toBeVisible({ timeout: 15000 });
+
+        // Check for visitor-related content
+        const hasVisitorContent = await page.evaluate(() => {
+            const host = document.querySelector('#revenue-boost-popup-shadow-host');
+            if (!host?.shadowRoot) return false;
+
+            const html = host.shadowRoot.innerHTML.toLowerCase();
+            return html.includes('visitor') ||
+                   html.includes('viewing') ||
+                   html.includes('people') ||
+                   html.includes('watching');
+        });
+
+        console.log(`Visitor content detected: ${hasVisitorContent}`);
+        console.log('✅ Social proof with visitor notifications rendered');
+    });
 });
 

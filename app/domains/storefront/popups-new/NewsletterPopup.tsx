@@ -147,7 +147,9 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
 
   if (!isVisible) return null;
 
-  const showImage = imagePosition !== "none";
+  // Full background mode - image covers entire popup with overlay
+  const isFullBackground = imagePosition === "full";
+  const showImage = imagePosition !== "none" && !isFullBackground;
   const isVertical = imagePosition === "left" || imagePosition === "right";
   const imageFirst = imagePosition === "left" || imagePosition === "top";
   const _defaultImage =
@@ -167,6 +169,9 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
 
   // Detect gradient background
   const hasGradientBg = config.backgroundColor?.includes("gradient");
+
+  // Background overlay opacity for full background mode
+  const bgOverlayOpacity = config.backgroundOverlayOpacity ?? 0.6;
 
   return (
     <PopupPortal
@@ -193,6 +198,81 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
     >
       <style>
         {`
+        /* Full Background Mode - responsive with optional 4:3 on larger screens */
+        .newsletter-full-bg-container {
+          position: relative;
+          width: 100%;
+          overflow: hidden;
+          border-radius: ${config.borderRadius ?? 16}px;
+          /* Enable container queries */
+          container-type: inline-size;
+          container-name: popup;
+        }
+
+        /* Mobile: auto height based on content */
+        .newsletter-full-bg-container {
+          min-height: auto;
+        }
+
+        /* Tablet and up: use 4:3 aspect ratio */
+        @container popup (min-width: 520px) {
+          .newsletter-full-bg-container {
+            aspect-ratio: 4 / 3;
+            max-height: 80vh;
+          }
+        }
+
+        .newsletter-full-bg-image {
+          position: absolute;
+          inset: 0;
+          z-index: 0;
+        }
+
+        .newsletter-full-bg-image img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+
+        .newsletter-full-bg-overlay {
+          position: absolute;
+          inset: 0;
+          background: ${config.backgroundColor || "#ffffff"};
+          opacity: ${bgOverlayOpacity};
+          z-index: 1;
+        }
+
+        .newsletter-full-bg-content {
+          position: relative;
+          z-index: 2;
+          padding: 1.5rem;
+          min-height: 100%;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+        }
+
+        /* Mobile: more padding and ensure content fits */
+        @container popup (max-width: 399px) {
+          .newsletter-full-bg-content {
+            padding: 1.25rem 1rem;
+          }
+        }
+
+        /* Medium: balanced padding */
+        @container popup (min-width: 400px) and (max-width: 519px) {
+          .newsletter-full-bg-content {
+            padding: 2rem 1.5rem;
+          }
+        }
+
+        /* Large: generous padding */
+        @container popup (min-width: 520px) {
+          .newsletter-full-bg-content {
+            padding: 2.5rem;
+          }
+        }
+
         /* Image Cell - Responsive */
         .email-popup-image {
           position: relative;
@@ -217,7 +297,7 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
           display: flex;
           flex-direction: column;
           justify-content: center;
-          background: ${hasGradientBg ? config.backgroundColor : "transparent"};
+          background: ${hasGradientBg && !isFullBackground ? config.backgroundColor : "transparent"};
           width: 100%;
           min-width: 0;
         }
@@ -551,113 +631,240 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
         `}
       </style>
 
-      <PopupGridContainer
-        config={config}
-        onClose={onClose}
-        imagePosition={imagePosition === "right" ? "right" : "left"}
-        singleColumn={!imageUrl || imagePosition === "none"}
-        className="NewsletterPopup"
-        data-splitpop="true"
-        data-template="newsletter"
-      >
-        {/* Image Section */}
-        {imageUrl && (
-          <div className="email-popup-image">
-            <img src={imageUrl} alt={config.headline || "Newsletter"} />
+      {isFullBackground && imageUrl ? (
+        /* Full Background Mode - Image covers entire popup with overlay */
+        <div className="newsletter-full-bg-container NewsletterPopup" data-splitpop="true" data-template="newsletter">
+          <div className="newsletter-full-bg-image">
+            <img src={imageUrl} alt="" aria-hidden="true" />
           </div>
-        )}
-
-        {/* Form Section */}
-        <div className="email-popup-form-section" style={{ position: "relative" }}>
-          {isSubmitted ? (
-            <>
-              {/* Confetti for success celebration */}
-              <div className="email-popup-confetti" />
-              <div className="email-popup-confetti" />
-              <div className="email-popup-confetti" />
-              <div className="email-popup-confetti" />
-              <div className="email-popup-confetti" />
-              <div className="email-popup-confetti" />
-
-              <div className="email-popup-success">
-                <SuccessState
-                  message={config.successMessage || "Thanks for subscribing!"}
-                  discountCode={displayDiscountCode || undefined}
-                  onCopyCode={handleCopyCode}
-                  copiedCode={copiedCode}
-                  discountLabel="Your discount code:"
-                  accentColor={config.accentColor || config.buttonColor}
-                  successColor={config.successColor}
-                  textColor={config.textColor}
-                  animation="bounce"
-                  fontSize={config.titleFontSize || config.fontSize}
-                  fontWeight={config.titleFontWeight || config.fontWeight}
-                />
-              </div>
-            </>
-          ) : (
-            <>
-              <PopupHeader
-                headline={config.headline || "Join Our Newsletter"}
-                subheadline={config.subheadline}
-                textColor={config.textColor}
-                descriptionColor={config.descriptionColor}
-                headlineFontSize={config.titleFontSize || config.fontSize}
-                subheadlineFontSize={config.descriptionFontSize || config.fontSize}
-                headlineFontWeight={config.titleFontWeight || config.fontWeight}
-                subheadlineFontWeight={config.descriptionFontWeight || config.fontWeight}
-                align="center"
-                marginBottom={SPACING_GUIDELINES.afterDescription}
-              />
-
-              <LeadCaptureForm
-                data={formState}
-                errors={errors}
-                onEmailChange={setEmail}
-                onNameChange={setName}
-                onGdprChange={setGdprConsent}
-                onSubmit={handleSubmit}
-                isSubmitting={isSubmitting}
-                showName={collectName}
-                nameRequired={config.nameFieldRequired}
-                showGdpr={showGdprCheckbox}
-                gdprRequired={config.consentFieldRequired}
-                emailRequired={config.emailRequired !== false}
-                labels={{
-                  email: config.emailLabel,
-                  name: config.firstNameLabel || "Name",
-                  gdpr: gdprLabel,
-                  submit: buttonText,
+          <div className="newsletter-full-bg-overlay" />
+          <div className="newsletter-full-bg-content">
+            {/* Close button for full background mode */}
+            {config.showCloseButton !== false && (
+              <button
+                type="button"
+                onClick={onClose}
+                className="email-popup-close-btn"
+                aria-label="Close"
+                style={{
+                  position: "absolute",
+                  top: "0.75rem",
+                  right: "0.75rem",
+                  zIndex: 10,
+                  background: "rgba(0,0,0,0.3)",
+                  border: "none",
+                  borderRadius: "50%",
+                  width: "2rem",
+                  height: "2rem",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#fff",
                 }}
-                placeholders={{
-                  email: config.emailPlaceholder || "Enter your email",
-                  name: config.nameFieldPlaceholder || "Your name",
-                }}
-                accentColor={config.accentColor}
-                buttonColor={config.buttonColor}
-                textColor={config.textColor}
-                backgroundColor={config.inputBackgroundColor || config.backgroundColor}
-                buttonTextColor={config.buttonTextColor}
-                inputTextColor={config.inputTextColor}
-                inputBorderColor={config.inputBorderColor}
-                privacyPolicyUrl={config.privacyPolicyUrl}
-                extraFields={
-                  config.dismissLabel ? (
-                    <button
-                      type="button"
-                      className="email-popup-secondary-button"
-                      onClick={onClose}
-                      disabled={isSubmitting}
-                    >
-                      {config.dismissLabel}
-                    </button>
-                  ) : undefined
-                }
-              />
-            </>
-          )}
+              >
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M1 1L13 13M1 13L13 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                </svg>
+              </button>
+            )}
+
+            {/* Form Section for Full Background Mode */}
+            <div className="email-popup-form-section" style={{ position: "relative" }}>
+              {isSubmitted ? (
+                <>
+                  <div className="email-popup-confetti" />
+                  <div className="email-popup-confetti" />
+                  <div className="email-popup-confetti" />
+                  <div className="email-popup-confetti" />
+                  <div className="email-popup-confetti" />
+                  <div className="email-popup-confetti" />
+                  <div className="email-popup-success">
+                    <SuccessState
+                      message={config.successMessage || "Thanks for subscribing!"}
+                      discountCode={displayDiscountCode || undefined}
+                      onCopyCode={handleCopyCode}
+                      copiedCode={copiedCode}
+                      discountLabel="Your discount code:"
+                      accentColor={config.accentColor || config.buttonColor}
+                      successColor={config.successColor}
+                      textColor={config.textColor}
+                      animation="bounce"
+                      fontSize={config.titleFontSize || config.fontSize}
+                      fontWeight={config.titleFontWeight || config.fontWeight}
+                    />
+                  </div>
+                </>
+              ) : (
+                <>
+                  <PopupHeader
+                    headline={config.headline || "Join Our Newsletter"}
+                    subheadline={config.subheadline}
+                    textColor={config.textColor}
+                    descriptionColor={config.descriptionColor}
+                    headlineFontSize={config.titleFontSize || config.fontSize}
+                    subheadlineFontSize={config.descriptionFontSize || config.fontSize}
+                    headlineFontWeight={config.titleFontWeight || config.fontWeight}
+                    subheadlineFontWeight={config.descriptionFontWeight || config.fontWeight}
+                    align="center"
+                    marginBottom={SPACING_GUIDELINES.afterDescription}
+                  />
+                  <LeadCaptureForm
+                    data={formState}
+                    errors={errors}
+                    onEmailChange={setEmail}
+                    onNameChange={setName}
+                    onGdprChange={setGdprConsent}
+                    onSubmit={handleSubmit}
+                    isSubmitting={isSubmitting}
+                    showName={collectName}
+                    nameRequired={config.nameFieldRequired}
+                    showGdpr={showGdprCheckbox}
+                    gdprRequired={config.consentFieldRequired}
+                    emailRequired={config.emailRequired !== false}
+                    labels={{
+                      email: config.emailLabel,
+                      name: config.firstNameLabel || "Name",
+                      gdpr: gdprLabel,
+                      submit: buttonText,
+                    }}
+                    placeholders={{
+                      email: config.emailPlaceholder || "Enter your email",
+                      name: config.nameFieldPlaceholder || "Your name",
+                    }}
+                    accentColor={config.accentColor}
+                    buttonColor={config.buttonColor}
+                    textColor={config.textColor}
+                    backgroundColor={config.inputBackgroundColor || config.backgroundColor}
+                    buttonTextColor={config.buttonTextColor}
+                    inputTextColor={config.inputTextColor}
+                    inputBorderColor={config.inputBorderColor}
+                    privacyPolicyUrl={config.privacyPolicyUrl}
+                    extraFields={
+                      config.dismissLabel ? (
+                        <button
+                          type="button"
+                          className="email-popup-secondary-button"
+                          onClick={onClose}
+                          disabled={isSubmitting}
+                        >
+                          {config.dismissLabel}
+                        </button>
+                      ) : undefined
+                    }
+                  />
+                </>
+              )}
+            </div>
+          </div>
         </div>
-      </PopupGridContainer>
+      ) : (
+        /* Regular Grid Layout Mode */
+        <PopupGridContainer
+          config={config}
+          onClose={onClose}
+          imagePosition={imagePosition === "right" ? "right" : "left"}
+          singleColumn={!imageUrl || imagePosition === "none"}
+          className="NewsletterPopup"
+          data-splitpop="true"
+          data-template="newsletter"
+        >
+          {/* Image Section */}
+          {imageUrl && (
+            <div className="email-popup-image">
+              <img src={imageUrl} alt={config.headline || "Newsletter"} />
+            </div>
+          )}
+
+          {/* Form Section */}
+          <div className="email-popup-form-section" style={{ position: "relative" }}>
+            {isSubmitted ? (
+              <>
+                <div className="email-popup-confetti" />
+                <div className="email-popup-confetti" />
+                <div className="email-popup-confetti" />
+                <div className="email-popup-confetti" />
+                <div className="email-popup-confetti" />
+                <div className="email-popup-confetti" />
+                <div className="email-popup-success">
+                  <SuccessState
+                    message={config.successMessage || "Thanks for subscribing!"}
+                    discountCode={displayDiscountCode || undefined}
+                    onCopyCode={handleCopyCode}
+                    copiedCode={copiedCode}
+                    discountLabel="Your discount code:"
+                    accentColor={config.accentColor || config.buttonColor}
+                    successColor={config.successColor}
+                    textColor={config.textColor}
+                    animation="bounce"
+                    fontSize={config.titleFontSize || config.fontSize}
+                    fontWeight={config.titleFontWeight || config.fontWeight}
+                  />
+                </div>
+              </>
+            ) : (
+              <>
+                <PopupHeader
+                  headline={config.headline || "Join Our Newsletter"}
+                  subheadline={config.subheadline}
+                  textColor={config.textColor}
+                  descriptionColor={config.descriptionColor}
+                  headlineFontSize={config.titleFontSize || config.fontSize}
+                  subheadlineFontSize={config.descriptionFontSize || config.fontSize}
+                  headlineFontWeight={config.titleFontWeight || config.fontWeight}
+                  subheadlineFontWeight={config.descriptionFontWeight || config.fontWeight}
+                  align="center"
+                  marginBottom={SPACING_GUIDELINES.afterDescription}
+                />
+                <LeadCaptureForm
+                  data={formState}
+                  errors={errors}
+                  onEmailChange={setEmail}
+                  onNameChange={setName}
+                  onGdprChange={setGdprConsent}
+                  onSubmit={handleSubmit}
+                  isSubmitting={isSubmitting}
+                  showName={collectName}
+                  nameRequired={config.nameFieldRequired}
+                  showGdpr={showGdprCheckbox}
+                  gdprRequired={config.consentFieldRequired}
+                  emailRequired={config.emailRequired !== false}
+                  labels={{
+                    email: config.emailLabel,
+                    name: config.firstNameLabel || "Name",
+                    gdpr: gdprLabel,
+                    submit: buttonText,
+                  }}
+                  placeholders={{
+                    email: config.emailPlaceholder || "Enter your email",
+                    name: config.nameFieldPlaceholder || "Your name",
+                  }}
+                  accentColor={config.accentColor}
+                  buttonColor={config.buttonColor}
+                  textColor={config.textColor}
+                  backgroundColor={config.inputBackgroundColor || config.backgroundColor}
+                  buttonTextColor={config.buttonTextColor}
+                  inputTextColor={config.inputTextColor}
+                  inputBorderColor={config.inputBorderColor}
+                  privacyPolicyUrl={config.privacyPolicyUrl}
+                  extraFields={
+                    config.dismissLabel ? (
+                      <button
+                        type="button"
+                        className="email-popup-secondary-button"
+                        onClick={onClose}
+                        disabled={isSubmitting}
+                      >
+                        {config.dismissLabel}
+                      </button>
+                    ) : undefined
+                  }
+                />
+              </>
+            )}
+          </div>
+        </PopupGridContainer>
+      )}
     </PopupPortal>
   );
 };

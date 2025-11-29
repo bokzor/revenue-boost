@@ -172,7 +172,8 @@ export type NewsletterThemeKey =
   | "gradient"
   | "luxury"
   | "neon"
-  | "ocean";
+  | "ocean"
+  | "summer-sale";
 
 /**
  * Theme color configuration from mockup
@@ -454,6 +455,29 @@ export const NEWSLETTER_THEMES: Record<NewsletterThemeKey, ThemeColors> = {
     descriptionFontSize: "1rem",
     descriptionFontWeight: "400",
   },
+  "summer-sale": {
+    background: "#FFFBEB", // Warm light yellow-cream background
+    text: "#1E3A5F", // Navy blue for headlines
+    primary: "#FF5733", // Vibrant orange
+    secondary: "#FEF3C7", // Light cream/yellow
+    accent: "#38BDF8", // Bright turquoise accent
+    border: "#FBBF24", // Golden yellow border
+    success: "#10B981",
+    warning: "#EF4444",
+    imageBg: "#FEF9C3", // Light yellow image background
+    descColor: "#0F766E", // Dark teal for description text
+    inputBorder: "#FBBF24", // Golden yellow
+    timerBg: "rgba(255, 87, 51, 0.1)", // Orange tint
+    timerText: "#FF5733", // Vibrant orange
+    ctaBg: "#FF5733", // Vibrant orange button
+    ctaText: "#FFFFFF", // White button text
+    // Typography
+    fontFamily: "inherit",
+    titleFontSize: "1.875rem",
+    titleFontWeight: "700",
+    descriptionFontSize: "1rem",
+    descriptionFontWeight: "400",
+  },
 };
 
 export const NEWSLETTER_BACKGROUND_PRESETS: {
@@ -470,6 +494,7 @@ export const NEWSLETTER_BACKGROUND_PRESETS: {
   { key: "luxury", label: "Luxury theme image" },
   { key: "neon", label: "Neon theme image" },
   { key: "ocean", label: "Ocean theme image" },
+  { key: "summer-sale", label: "Summer Sale theme image" },
 ];
 
 export function getNewsletterBackgroundUrl(key: NewsletterThemeKey): string {
@@ -695,6 +720,29 @@ export const NEWSLETTER_THEMES_2: Record<NewsletterThemeKey, ThemeColors> = {
     descriptionFontSize: "1rem",
     descriptionFontWeight: "400",
   },
+  "summer-sale": {
+    background: "#FFFBEB",
+    text: "#1E3A5F",
+    primary: "#FF5733",
+    secondary: "#FEF3C7",
+    accent: "#38BDF8",
+    border: "#FBBF24",
+    success: "#10B981",
+    warning: "#EF4444",
+    imageBg: "#FEF9C3",
+    descColor: "#0F766E",
+    inputBorder: "#FBBF24",
+    timerBg: "rgba(255, 87, 51, 0.1)",
+    timerText: "#FF5733",
+    ctaBg: "#FF5733",
+    ctaText: "#FFFFFF",
+    // Typography
+    fontFamily: "inherit",
+    titleFontSize: "1.875rem",
+    titleFontWeight: "700",
+    descriptionFontSize: "1rem",
+    descriptionFontWeight: "400",
+  },
 };
 
 // ============================================================================
@@ -727,6 +775,7 @@ export function getSpinToWinSliceColors(theme: NewsletterThemeKey, sliceCount: n
     luxury: ["#d97706", "#b45309", "#92400e", "#78350f", "#ca8a04", "#f59e0b"],
     neon: ["#06b6d4", "#8b5cf6", "#ec4899", "#f59e0b", "#10b981", "#6366f1"],
     ocean: ["#06b6d4", "#0891b2", "#0e7490", "#155e75", "#22d3ee", "#67e8f9"],
+    "summer-sale": ["#FF5733", "#FF7849", "#FBBF24", "#38BDF8", "#0EA5E9", "#F97316"],
   };
 
   const base = themeMap[theme] || themeMap.modern;
@@ -760,6 +809,7 @@ const SPIN_TO_WIN_WHEEL_BORDER_DEFAULTS: Record<NewsletterThemeKey, SpinToWinWhe
   luxury: { color: "#d4af37", width: 6 },
   neon: { color: "#00ffff", width: 5 },
   ocean: { color: "#0ea5e9", width: 6 },
+  "summer-sale": { color: "#FF5733", width: 6 },
 };
 
 export function getSpinToWinWheelBorder(theme: NewsletterThemeKey): SpinToWinWheelBorder {
@@ -1105,6 +1155,7 @@ function getColorThemeForNewsletterTheme(theme: NewsletterThemeKey): ColorTheme 
     luxury: "elegant",
     neon: "playful",
     ocean: "professional",
+    "summer-sale": "vibrant",
   };
   return mapping[theme];
 }
@@ -1124,6 +1175,7 @@ function getNewsletterThemeDescription(theme: NewsletterThemeKey): string {
     luxury: "Gold on black, premium feel",
     neon: "Cyberpunk glow effects",
     ocean: "Fresh blue/teal palette",
+    "summer-sale": "Sunny orange & turquoise",
   };
   return descriptions[theme] || "";
 }

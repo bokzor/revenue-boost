@@ -194,10 +194,11 @@ export const TimerDisplay: React.FC<TimerDisplayProps> = ({
 
   // Full format: Separate boxes with labels
   const unitBg = backgroundColor || `${accentColor}20`;
-  
+
   const containerStyles: React.CSSProperties = {
     display: "flex",
     alignItems: "center",
+    justifyContent: "center",
     gap: "0.5rem",
     ...style,
   };

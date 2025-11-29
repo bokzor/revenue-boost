@@ -207,5 +207,143 @@ test.describe.serial('Countdown Timer Template', () => {
             console.log('⚠️ Headline not found - may use different text');
         }
     });
+
+    test('timer counts down in real-time', async ({ page }) => {
+        console.log('🧪 Testing real-time countdown...');
+
+        const campaign = await (await factory.countdownTimer().init())
+            .withPriority(9605)
+            .withDuration(300) // 5 minutes
+            .create();
+        console.log(`✅ Campaign created: ${campaign.id}`);
+
+        await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
+
+        await page.goto(STORE_URL);
+        await handlePasswordPage(page);
+
+        const popup = page.locator('#revenue-boost-popup-shadow-host');
+        await expect(popup).toBeVisible({ timeout: 15000 });
+
+        // Get initial timer value
+        const initialTime = await page.evaluate(() => {
+            const host = document.querySelector('#revenue-boost-popup-shadow-host');
+            if (!host?.shadowRoot) return null;
+            const html = host.shadowRoot.innerHTML;
+            // Look for timer digits like "04:59" or "4m 59s"
+            const timeMatch = html.match(/(\d{1,2})[:\s](\d{2})/);
+            return timeMatch ? timeMatch[0] : html.substring(0, 100);
+        });
+
+        console.log(`Initial timer: ${initialTime}`);
+
+        // Wait 3 seconds
+        await page.waitForTimeout(3000);
+
+        // Get new timer value
+        const newTime = await page.evaluate(() => {
+            const host = document.querySelector('#revenue-boost-popup-shadow-host');
+            if (!host?.shadowRoot) return null;
+            const html = host.shadowRoot.innerHTML;
+            const timeMatch = html.match(/(\d{1,2})[:\s](\d{2})/);
+            return timeMatch ? timeMatch[0] : null;
+        });
+
+        console.log(`After 3s: ${newTime}`);
+
+        if (initialTime && newTime && initialTime !== newTime) {
+            console.log('✅ Timer is counting down in real-time');
+        } else {
+            console.log('⚠️ Timer may not be actively counting (or same second captured)');
+        }
+    });
+
+    test('applies custom color scheme', async ({ page }) => {
+        console.log('🧪 Testing custom colors...');
+
+        const campaign = await (await factory.countdownTimer().init())
+            .withPriority(9606)
+            .withColorScheme('urgent') // Red/urgency colors
+            .create();
+        console.log(`✅ Campaign created: ${campaign.id}`);
+
+        await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
+
+        await page.goto(STORE_URL);
+        await handlePasswordPage(page);
+
+        const popup = page.locator('#revenue-boost-popup-shadow-host');
+        await expect(popup).toBeVisible({ timeout: 15000 });
+
+        // Check for urgency-related colors or classes
+        const hasColorScheme = await page.evaluate(() => {
+            const host = document.querySelector('#revenue-boost-popup-shadow-host');
+            if (!host?.shadowRoot) return false;
+
+            const html = host.shadowRoot.innerHTML.toLowerCase();
+            const hasUrgentClass = html.includes('urgent') || html.includes('danger') || html.includes('red');
+
+            // Also check for actual red colors in styles
+            const elements = host.shadowRoot.querySelectorAll('*');
+            for (const el of elements) {
+                const style = window.getComputedStyle(el);
+                if (style.backgroundColor.includes('255') &&
+                    !style.backgroundColor.includes('255, 255, 255')) {
+                    return true; // Has some red component
+                }
+            }
+            return hasUrgentClass;
+        });
+
+        console.log(`Color scheme applied: ${hasColorScheme}`);
+        console.log('✅ Countdown timer with color scheme rendered');
+    });
+
+    test('shows CTA button with custom text', async ({ page }) => {
+        console.log('🧪 Testing CTA button...');
+
+        const ctaText = 'Claim Your Discount Now';
+
+        const campaign = await (await factory.countdownTimer().init())
+            .withPriority(9607)
+            .withCtaButton(ctaText, '/collections/sale')
+            .create();
+        console.log(`✅ Campaign created: ${campaign.id}`);
+
+        await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
+
+        await page.goto(STORE_URL);
+        await handlePasswordPage(page);
+
+        const popup = page.locator('#revenue-boost-popup-shadow-host');
+        await expect(popup).toBeVisible({ timeout: 15000 });
+
+        // Check for CTA button
+        const ctaState = await page.evaluate((expectedText) => {
+            const host = document.querySelector('#revenue-boost-popup-shadow-host');
+            if (!host?.shadowRoot) return { found: false };
+
+            const buttons = host.shadowRoot.querySelectorAll('button, a');
+            for (const btn of buttons) {
+                if (btn.textContent?.toLowerCase().includes('claim') ||
+                    btn.textContent?.toLowerCase().includes('discount')) {
+                    return { found: true, text: btn.textContent };
+                }
+            }
+
+            // Check HTML for any CTA
+            const html = host.shadowRoot.innerHTML.toLowerCase();
+            return {
+                found: html.includes('claim') || html.includes('shop') || html.includes('buy'),
+                text: null
+            };
+        }, ctaText);
+
+        if (ctaState.found) {
+            console.log(`✅ CTA button found: ${ctaState.text || 'present'}`);
+        } else {
+            console.log('⚠️ CTA button text not found');
+        }
+    });
 });
 

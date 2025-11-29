@@ -10,8 +10,9 @@ import { NEWSLETTER_THEMES } from "~/config/color-presets";
 import { getDefaultButtonText } from "~/domains/templates/registry/template-registry";
 
 // Preview helpers: typed content mappers and theme-based color defaults
+// Use NonNullable to handle the optional theme field
 const THEME_DEFAULTS: Record<
-  DesignConfig["theme"],
+  NonNullable<DesignConfig["theme"]>,
   { background: string; text: string; button: string }
 > = {
   modern: {
@@ -64,6 +65,11 @@ const THEME_DEFAULTS: Record<
     text: NEWSLETTER_THEMES.ocean.text,
     button: NEWSLETTER_THEMES.ocean.primary,
   },
+  "summer-sale": {
+    background: NEWSLETTER_THEMES["summer-sale"].background,
+    text: NEWSLETTER_THEMES["summer-sale"].text,
+    button: NEWSLETTER_THEMES["summer-sale"].primary,
+  },
 };
 
 function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
@@ -78,11 +84,11 @@ function pickReadableTextColor(bgHex: string): string {
   return yiq >= 128 ? "#000000" : "#FFFFFF";
 }
 
-function getDesignPreviewColors(design: DesignConfig) {
-  const defaults = THEME_DEFAULTS[design.theme] ?? THEME_DEFAULTS["modern"];
-  const backgroundColor = design.backgroundColor ?? defaults.background;
-  const textColor = design.textColor ?? defaults.text;
-  const buttonColor = design.buttonColor ?? defaults.button;
+function getDesignPreviewColors(design: DesignConfig | undefined) {
+  const defaults = THEME_DEFAULTS[design?.theme ?? "modern"] ?? THEME_DEFAULTS["modern"];
+  const backgroundColor = design?.backgroundColor ?? defaults.background;
+  const textColor = design?.textColor ?? defaults.text;
+  const buttonColor = design?.buttonColor ?? defaults.button;
   const buttonTextColor = pickReadableTextColor(buttonColor);
   return { backgroundColor, textColor, buttonColor, buttonTextColor };
 }

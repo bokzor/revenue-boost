@@ -58,6 +58,12 @@ export function parseJsonField<T>(jsonValue: unknown, schema: z.ZodSchema<T>, de
 
     // Validate with schema
     const result = schema.safeParse(parsed);
+    if (!result.success) {
+      console.warn("[parseJsonField] Zod validation failed:", {
+        errors: result.error.issues,
+        inputKeys: parsed && typeof parsed === "object" ? Object.keys(parsed) : [],
+      });
+    }
     return result.success ? result.data : defaultValue;
   } catch (error) {
     console.warn("Failed to parse JSON field:", error);
@@ -201,9 +207,19 @@ export function parseContentConfig(
 
 /**
  * Parse campaign designConfig JSON field
+ * Coerces legacy "modal" displayMode to "popup" for backward compatibility
  */
 export function parseDesignConfig(jsonValue: unknown): DesignConfig {
-  return parseJsonField(jsonValue, DesignConfigSchema, {
+  // Coerce legacy "modal" displayMode to "popup" before validation
+  let sanitized = jsonValue;
+  if (jsonValue && typeof jsonValue === "object" && !Array.isArray(jsonValue)) {
+    const obj = jsonValue as Record<string, unknown>;
+    if (obj.displayMode === "modal") {
+      sanitized = { ...obj, displayMode: "popup" };
+    }
+  }
+
+  return parseJsonField(sanitized, DesignConfigSchema, {
     theme: "modern",
     position: "center",
     size: "medium",

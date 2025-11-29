@@ -1,7 +1,7 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { createPortal } from "react-dom";
+import React, { useEffect, useMemo } from "react";
 import { buildScopedCss } from "../shared/css";
 import type { PopupConfig } from "../popups-new/types";
+import { BannerPortal } from "../popups-new/BannerPortal";
 
 export interface BannerPopupProps {
   config: PopupConfig & {
@@ -22,17 +22,11 @@ export const BannerPopup: React.FC<BannerPopupProps> = ({
   onClose,
   onButtonClick,
 }) => {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-    return () => setMounted(false);
-  }, []);
+  const position = config.position || "top";
 
   useEffect(() => {
     if (isVisible && config.sticky) {
       // Add padding to body to prevent content from being hidden behind banner
-      const position = config.position || "top";
       const height = config.height || "80px";
 
       if (position === "top") {
@@ -46,9 +40,8 @@ export const BannerPopup: React.FC<BannerPopupProps> = ({
         document.body.style.paddingBottom = "";
       };
     }
-  }, [isVisible, config.sticky, config.position, config.height]);
+  }, [isVisible, config.sticky, position, config.height]);
 
-  const position = config.position || "top";
   const scopedCss = useMemo(
     () =>
       buildScopedCss(
@@ -60,21 +53,11 @@ export const BannerPopup: React.FC<BannerPopupProps> = ({
     [config]
   );
 
-  if (!mounted || !isVisible) {
-    return null;
-  }
-
   const bannerStyle: React.CSSProperties = {
-    position: config.sticky ? "fixed" : "relative",
-    [position]: 0,
-    left: 0,
-    right: 0,
     backgroundColor: config.backgroundColor,
     color: config.textColor,
-    zIndex: 999999,
     boxShadow:
       position === "top" ? "0 2px 10px rgba(0, 0, 0, 0.1)" : "0 -2px 10px rgba(0, 0, 0, 0.1)",
-    transition: "transform 0.3s ease-out",
     minHeight: config.height || "auto",
   };
 
@@ -152,65 +135,68 @@ export const BannerPopup: React.FC<BannerPopupProps> = ({
     justifyContent: "center",
   };
 
-  const content = (
-    <div style={bannerStyle} data-rb-banner>
-      {scopedCss ? <style>{scopedCss}</style> : null}
-      <div style={containerStyle}>
-        <div style={contentStyle}>
-          {config.imageUrl && (
-            <img
-              src={config.imageUrl}
-              alt={config.title}
-              style={{
-                width: "40px",
-                height: "40px",
-                borderRadius: "4px",
-                objectFit: "cover",
-              }}
-            />
-          )}
+  return (
+    <BannerPortal
+      isVisible={isVisible}
+      position={position}
+    >
+      <div style={bannerStyle} data-rb-banner>
+        {scopedCss ? <style>{scopedCss}</style> : null}
+        <div style={containerStyle}>
+          <div style={contentStyle}>
+            {config.imageUrl && (
+              <img
+                src={config.imageUrl}
+                alt={config.title}
+                style={{
+                  width: "40px",
+                  height: "40px",
+                  borderRadius: "4px",
+                  objectFit: "cover",
+                }}
+              />
+            )}
 
-          <div style={textContentStyle}>
-            <h4 style={titleStyle}>{config.title}</h4>
-            <p style={descriptionStyle}>{config.description}</p>
+            <div style={textContentStyle}>
+              <h4 style={titleStyle}>{config.title}</h4>
+              <p style={descriptionStyle}>{config.description}</p>
+            </div>
+          </div>
+
+          <div style={actionsStyle}>
+            <button
+              style={buttonStyle}
+              onClick={onButtonClick}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = "translateY(-1px)";
+                e.currentTarget.style.boxShadow = "0 2px 8px rgba(0, 0, 0, 0.15)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = "translateY(0)";
+                e.currentTarget.style.boxShadow = "none";
+              }}
+            >
+              {config.buttonText}
+            </button>
+
+            <button
+              style={closeButtonStyle}
+              onClick={onClose}
+              aria-label="Close banner"
+              onMouseEnter={(e) => {
+                e.currentTarget.style.opacity = "1";
+                e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.1)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.opacity = "0.7";
+                e.currentTarget.style.backgroundColor = "transparent";
+              }}
+            >
+              ×
+            </button>
           </div>
         </div>
-
-        <div style={actionsStyle}>
-          <button
-            style={buttonStyle}
-            onClick={onButtonClick}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = "translateY(-1px)";
-              e.currentTarget.style.boxShadow = "0 2px 8px rgba(0, 0, 0, 0.15)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = "translateY(0)";
-              e.currentTarget.style.boxShadow = "none";
-            }}
-          >
-            {config.buttonText}
-          </button>
-
-          <button
-            style={closeButtonStyle}
-            onClick={onClose}
-            aria-label="Close banner"
-            onMouseEnter={(e) => {
-              e.currentTarget.style.opacity = "1";
-              e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.1)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.opacity = "0.7";
-              e.currentTarget.style.backgroundColor = "transparent";
-            }}
-          >
-            ×
-          </button>
-        </div>
       </div>
-    </div>
+    </BannerPortal>
   );
-
-  return createPortal(content, document.body as Element);
 };

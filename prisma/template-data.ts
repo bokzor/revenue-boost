@@ -58,35 +58,36 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
       },
     },
     designConfig: {
-      // Use the "ocean" newsletter theme as the default seeded look (matching the campaign)
-      theme: "ocean",
+      // Use the "summer-sale" newsletter theme as the default seeded look
+      theme: "summer-sale",
       position: "center",
       size: "medium",
       popupSize: "standard",
       borderRadius: 8,
       animation: "fade",
 
-      // Background image preset & URL
+      // Background image preset & URL - full background mode for summer-sale
       backgroundImageMode: "preset",
-      backgroundImagePresetKey: "ocean",
-      imageUrl: "/apps/revenue-boost/assets/newsletter-backgrounds/ocean.jpg",
-      imagePosition: "left",
+      backgroundImagePresetKey: "summer-sale",
+      imageUrl: "/apps/revenue-boost/assets/newsletter-backgrounds/summer-sale.jpg",
+      imagePosition: "full", // Summer sale uses full background
+      backgroundOverlayOpacity: 0.4, // Light overlay to keep text readable
 
-      // Ocean theme colors (aligned with the campaign's ocean theme)
-      backgroundColor: "#f0f9ff",
-      textColor: "#0c4a6e",
-      descriptionColor: "#0369a1",
-      accentColor: "#0ea5e9",
+      // Summer Sale theme colors - vibrant orange & turquoise
+      backgroundColor: "#FFFBEB", // Warm light yellow-cream
+      textColor: "#1E3A5F", // Navy blue for headlines
+      descriptionColor: "#0F766E", // Dark teal for description
+      accentColor: "#38BDF8", // Bright turquoise
 
-      buttonColor: "#0ea5e9",
-      buttonTextColor: "#ffffff",
+      buttonColor: "#FF5733", // Vibrant orange
+      buttonTextColor: "#FFFFFF", // White
 
-      inputBackgroundColor: "#e0f2fe",
-      inputTextColor: "#111827",
-      inputBorderColor: "#7dd3fc",
+      inputBackgroundColor: "#FEF3C7", // Light cream/yellow
+      inputTextColor: "#1E3A5F", // Navy blue
+      inputBorderColor: "#FBBF24", // Golden yellow
 
-      imageBgColor: "#e0f2fe",
-      successColor: "#14b8a6",
+      imageBgColor: "#FEF9C3", // Light yellow
+      successColor: "#10B981",
       overlayOpacity: 0.8,
 
       fontFamily: "inherit",
@@ -146,37 +147,41 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
         frequency_capping: getServerFrequencyCapping("FLASH_SALE"),
       },
     },
-    // Modern theme with red urgency colors
+    // Summer sale theme with vibrant colors (matches theme-config.ts summer-sale)
     designConfig: {
-      theme: "modern",
+      theme: "summer-sale",
       position: "center",
       size: "medium",
       popupSize: "wide",
+      displayMode: "popup",
       borderRadius: 8,
       animation: "fade",
 
-      // Main colors - urgency red theme
-      backgroundColor: "#ffffff",
-      textColor: "#1f2937",
-      descriptionColor: "#6b7280",
-      accentColor: "#ef4444",
+      // Summer sale theme colors (from theme-config.ts)
+      backgroundColor: "#FFFBEB",
+      textColor: "#1E3A5F",
+      descriptionColor: "#0F766E",
+      accentColor: "#38BDF8",
 
-      // Button colors - red for urgency
-      buttonColor: "#ef4444",
+      // Button colors - summer sale orange
+      buttonColor: "#FF5733",
       buttonTextColor: "#ffffff",
 
-      // Input field colors - light red tints
-      inputBackgroundColor: "#fee2e2",
-      inputTextColor: "#111827",
-      inputBorderColor: "#fca5a5",
+      // Input field colors - warm tints
+      inputBackgroundColor: "#FEF3C7",
+      inputTextColor: "#1E3A5F",
+      inputBorderColor: "#FBBF24",
 
-      // Image / surface colors
-      imageBgColor: "#fef2f2",
-      imagePosition: "left",
-      backgroundImageMode: "none",
+      // Image / surface colors with summer-sale preset background
+      imageBgColor: "#FEF9C3",
+      imagePosition: "full",
+      backgroundImageMode: "preset",
+      backgroundImagePresetKey: "summer-sale",
+      imageUrl: "/apps/revenue-boost/assets/newsletter-backgrounds/summer-sale.jpg",
+      backgroundOverlayOpacity: 0.5,
 
       // State colors
-      successColor: "#10b981",
+      successColor: "#10B981",
 
       // Overlay
       overlayOpacity: 0.5,
@@ -374,8 +379,8 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
   },
   // Countdown Timer Banner
   {
-    name: "Countdown Timer Banner",
-    description: "Banner with countdown to drive urgency and conversions",
+    name: "Countdown Timer",
+    description: "Countdown to drive urgency and conversions",
     category: "sales",
     templateType: "COUNTDOWN_TIMER",
     goals: ["INCREASE_REVENUE"],

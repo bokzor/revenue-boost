@@ -160,7 +160,7 @@ const TemplatePreviewComponent = forwardRef<TemplatePreviewRef, TemplatePreviewP
       }
 
       return baseConfig;
-    }, [config, designConfig, templateType]);
+    }, [config, designConfig, templateType, globalCustomCSS]);
 
     const scopedCss = useMemo(
       () => buildScopedStyles(globalCustomCSS, campaignCustomCSS),
@@ -654,6 +654,14 @@ TemplatePreviewComponent.displayName = "TemplatePreviewComponent";
 export const TemplatePreview = memo(TemplatePreviewComponent, (prevProps, nextProps) => {
   // Only re-render if template type changes or if configs have actually changed content
   if (prevProps.templateType !== nextProps.templateType) {
+    return false; // Re-render
+  }
+
+  // Check CSS props changes
+  if (prevProps.globalCustomCSS !== nextProps.globalCustomCSS) {
+    return false; // Re-render
+  }
+  if (prevProps.campaignCustomCSS !== nextProps.campaignCustomCSS) {
     return false; // Re-render
   }
 

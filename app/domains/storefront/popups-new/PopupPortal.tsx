@@ -130,6 +130,8 @@ export const PopupPortal: React.FC<PopupPortalProps> = ({
       width,
       maxWidth,
       margin: "0 auto",
+      display: "flex",
+      justifyContent: "center",
     };
   }, [size, previewMode]);
 

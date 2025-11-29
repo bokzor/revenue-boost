@@ -112,7 +112,7 @@ export const FreeShipping: Story = {
       icon: "🚚",
       headline: "Free shipping on orders $50+",
       subheadline: "No code needed",
-      buttonText: undefined,
+      buttonText: "", // Empty string to hide button
       backgroundColor: "#16a34a",
       colorScheme: "success",
     } as AnnouncementConfig,
@@ -142,8 +142,8 @@ export const Minimal: Story = {
       ...baseConfig,
       icon: "ℹ️",
       headline: "New arrivals just dropped!",
-      subheadline: undefined,
-      buttonText: undefined,
+      subheadline: "", // Empty string to hide subheadline
+      buttonText: "", // Empty string to hide button
       backgroundColor: "#6366f1",
     } as AnnouncementConfig,
   },

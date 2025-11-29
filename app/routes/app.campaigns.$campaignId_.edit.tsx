@@ -17,7 +17,7 @@ import type { CampaignWithConfigs } from "~/domains/campaigns/types/campaign";
 import type { CampaignFormData } from "~/shared/hooks/useWizardState";
 import type { FrequencyCappingConfig } from "~/domains/targeting/components";
 import prisma from "~/db.server";
-import { StoreSettingsSchema } from "~/domains/store/types/settings";
+import { StoreSettingsSchema, GLOBAL_FREQUENCY_BEST_PRACTICES } from "~/domains/store/types/settings";
 import { PlanGuardService } from "~/domains/billing/services/plan-guard.server";
 
 // ============================================================================
@@ -39,6 +39,12 @@ interface LoaderData {
     successColor?: string;
     fontFamily?: string;
   }>;
+  globalFrequencyCapping?: {
+    enabled: boolean;
+    max_per_session?: number;
+    max_per_day?: number;
+    cooldown_between_popups?: number;
+  };
   advancedTargetingEnabled: boolean;
   experimentsEnabled: boolean;
 }
@@ -80,6 +86,13 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     });
     const parsedSettings = StoreSettingsSchema.partial().safeParse(store?.settings || {});
 
+    // Use best practice defaults if store hasn't configured frequency capping yet
+    const storeFrequencyCapping = parsedSettings.success ? parsedSettings.data.frequencyCapping : undefined;
+    const globalFrequencyCapping = storeFrequencyCapping ?? {
+      enabled: true,
+      ...GLOBAL_FREQUENCY_BEST_PRACTICES,
+    };
+
     // Get campaign details
     console.log("[Campaign Edit Loader] Fetching campaign by ID:", campaignId);
     const campaign = await CampaignService.getCampaignById(campaignId, storeId);
@@ -91,6 +104,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       shopDomain: session.shop,
       globalCustomCSS: parsedSettings.success ? parsedSettings.data.globalCustomCSS : undefined,
       customThemePresets: parsedSettings.success ? parsedSettings.data.customThemePresets : undefined,
+      globalFrequencyCapping,
       advancedTargetingEnabled,
       experimentsEnabled,
     });
@@ -104,6 +118,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         shopDomain: "",
         globalCustomCSS: undefined,
         customThemePresets: undefined,
+        globalFrequencyCapping: undefined,
         advancedTargetingEnabled: false,
         experimentsEnabled: false,
       },
@@ -118,7 +133,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
 export default function CampaignEditPage() {
   console.log("[Campaign Edit Page] Component rendering");
-  const { campaign, storeId, shopDomain, globalCustomCSS, customThemePresets, advancedTargetingEnabled, experimentsEnabled } =
+  const { campaign, storeId, shopDomain, globalCustomCSS, customThemePresets, globalFrequencyCapping, advancedTargetingEnabled, experimentsEnabled } =
     useLoaderData<typeof loader>();
   console.log("[Campaign Edit Page] Loaded data - campaign:", campaign?.id, "storeId:", storeId);
   const navigate = useNavigate();
@@ -350,6 +365,7 @@ export default function CampaignEditPage() {
         campaignId={campaign?.id}
         globalCustomCSS={globalCustomCSS}
         customThemePresets={customThemePresets}
+        globalFrequencyCapping={globalFrequencyCapping}
         advancedTargetingEnabled={advancedTargetingEnabled}
         experimentsEnabled={experimentsEnabled}
         onSave={handleSave}

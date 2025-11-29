@@ -4,7 +4,18 @@ import { ThemePresetsArraySchema } from "./theme-preset";
 
 /**
  * Global Frequency Capping Settings
+ *
+ * Best practice defaults (used when settings are undefined or for recommendations):
+ * - max_per_session: 2 - reasonable limit per visit
+ * - max_per_day: 5 - allows engagement without being intrusive
+ * - cooldown_between_popups: 30 seconds - prevents rapid-fire popups
  */
+export const GLOBAL_FREQUENCY_BEST_PRACTICES = {
+  max_per_session: 2,
+  max_per_day: 5,
+  cooldown_between_popups: 30, // seconds
+} as const;
+
 export const GlobalFrequencyCappingSettingsSchema = z.object({
   enabled: z.boolean().default(false),
   max_per_session: z.number().int().min(1).optional(),

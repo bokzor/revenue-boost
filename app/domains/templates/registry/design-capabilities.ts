@@ -10,6 +10,9 @@
 
 import type { TemplateType } from "~/domains/campaigns/types/campaign";
 
+/** Image position options for templates */
+export type ImagePositionOption = "left" | "right" | "top" | "bottom" | "full" | "none";
+
 /**
  * Design capability flags for a template
  */
@@ -43,6 +46,13 @@ export type DesignCapabilities = {
 
   /** Whether template supports displayMode toggle (banner vs popup) */
   supportsDisplayMode?: boolean;
+
+  /** Supported image position values (constrains Image Position dropdown options)
+   *  - "left", "right", "top", "bottom": side panel image
+   *  - "full": full background image with overlay
+   *  - "none": no image
+   */
+  supportedImagePositions?: ImagePositionOption[];
 };
 
 /**
@@ -65,6 +75,7 @@ export const TEMPLATE_DESIGN_CAPABILITIES: Record<TemplateType, DesignCapabiliti
     usesSuccessWarning: true,
     supportsPosition: ["center", "top", "bottom", "left", "right"],
     supportsSize: ["small", "medium", "large"],
+    supportedImagePositions: ["left", "right", "top", "bottom", "full", "none"],
   },
 
   EXIT_INTENT: {
@@ -77,6 +88,7 @@ export const TEMPLATE_DESIGN_CAPABILITIES: Record<TemplateType, DesignCapabiliti
     usesSuccessWarning: true,
     supportsPosition: ["center", "top", "bottom", "left", "right"],
     supportsSize: ["small", "medium", "large"],
+    supportedImagePositions: ["left", "right", "top", "bottom", "full", "none"],
   },
 
   // Banner/bar templates (no overlay, no inputs, full-width)
@@ -97,13 +109,14 @@ export const TEMPLATE_DESIGN_CAPABILITIES: Record<TemplateType, DesignCapabiliti
     usesButtons: true,
     usesInputs: false,
     usesOverlay: true,
-    usesImage: false, // Uses layout/colors only; no background image
+    usesImage: true, // Supports full background image with overlay
     usesTypographyAdvanced: true,
     usesAccent: true,
     usesSuccessWarning: true,
     supportsPosition: ["center", "top", "bottom"],
     supportsSize: [], // Uses popupSize (compact/standard/wide/full) instead
     supportsDisplayMode: true, // Show display mode toggle (banner vs popup)
+    supportedImagePositions: ["full", "none"], // Only full background or no image
   },
 
   // Gamification templates
@@ -111,12 +124,13 @@ export const TEMPLATE_DESIGN_CAPABILITIES: Record<TemplateType, DesignCapabiliti
     usesButtons: true,
     usesInputs: true,
     usesOverlay: true,
-    usesImage: false, // No standalone background image; wheel is primary visual
+    usesImage: true, // Now supports full background image
     usesTypographyAdvanced: false,
     usesAccent: true,
     usesSuccessWarning: true,
     supportsPosition: ["center"],
     supportsSize: ["medium", "large"],
+    supportedImagePositions: ["full", "none"], // Only full background or no image
   },
 
   SCRATCH_CARD: {
@@ -129,6 +143,7 @@ export const TEMPLATE_DESIGN_CAPABILITIES: Record<TemplateType, DesignCapabiliti
     usesSuccessWarning: true,
     supportsPosition: ["center"],
     supportsSize: ["small", "medium"],
+    supportedImagePositions: ["left", "right", "full", "none"], // Side panels or full background
   },
 
   // Recovery/cart templates
@@ -175,7 +190,8 @@ export const TEMPLATE_DESIGN_CAPABILITIES: Record<TemplateType, DesignCapabiliti
     usesButtons: true,
     usesInputs: false,
     usesOverlay: true, // Popup mode uses overlay
-    usesImage: false,
+    usesImage: true, // Full background support (modal mode)
+    supportedImagePositions: ["full", "none"], // Only full background or none
     usesTypographyAdvanced: false,
     usesAccent: true,
     usesSuccessWarning: true,

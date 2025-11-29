@@ -15,7 +15,7 @@ import { join, resolve } from "node:path";
 const PUBLIC_DIR = resolve(process.cwd(), "public");
 
 // Allowed asset paths (whitelist for security)
-const ALLOWED_ASSET_PATHS = [/^newsletter-backgrounds\/[a-z]+\.(png|jpg|jpeg)$/];
+const ALLOWED_ASSET_PATHS = [/^newsletter-backgrounds\/[a-z-]+\.(png|jpg|jpeg)$/];
 
 /**
  * Build response headers for static assets

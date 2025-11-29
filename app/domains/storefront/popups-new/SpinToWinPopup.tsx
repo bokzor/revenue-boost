@@ -552,6 +552,11 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
     letterSpacing: "normal",
   };
 
+  // Full background mode detection
+  const imagePosition = config.imagePosition || "none";
+  const isFullBackground = imagePosition === "full" && !!config.imageUrl;
+  const bgOverlayOpacity = config.backgroundOverlayOpacity ?? 0.6;
+
   if (!isVisible) return null;
 
   return (
@@ -581,6 +586,70 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
       {/* Inject container-relative CSS for truly responsive design */}
       <style>
         {`
+          /* ============================================
+           * FULL BACKGROUND MODE STYLES
+           * Background elements are absolutely positioned
+           * and excluded from flex layout
+           * ============================================ */
+          .SpinToWinPopup .stw-full-bg-image,
+          .SpinToWinPopup .stw-full-bg-overlay {
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            pointer-events: none;
+            /* Exclude from flex layout calculations */
+            flex: 0 0 0 !important;
+            width: 0 !important;
+            height: auto !important;
+            min-width: 0 !important;
+            min-height: 0 !important;
+            overflow: visible !important;
+          }
+
+          .SpinToWinPopup .stw-full-bg-image {
+            z-index: 0;
+            width: 100% !important;
+            height: 100% !important;
+          }
+
+          .SpinToWinPopup .stw-full-bg-image img {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+          }
+
+          .SpinToWinPopup .stw-full-bg-overlay {
+            background: ${config.backgroundColor || "#ffffff"};
+            opacity: ${bgOverlayOpacity};
+            z-index: 1;
+            width: 100% !important;
+            height: 100% !important;
+          }
+
+          /* Content layers above background */
+          .SpinToWinPopup.has-full-bg .spin-wheel-cell,
+          .SpinToWinPopup.has-full-bg .spin-form-cell {
+            position: relative;
+            z-index: 2;
+            background: transparent !important;
+          }
+
+          /* Override flex distribution when background is present */
+          .SpinToWinPopup.has-full-bg .popup-grid-content > .spin-wheel-cell {
+            flex: 1 1 45% !important;
+          }
+          .SpinToWinPopup.has-full-bg .popup-grid-content > .spin-form-cell {
+            flex: 1 1 55% !important;
+          }
+          @container popup (min-width: 700px) {
+            .SpinToWinPopup.has-full-bg .popup-grid-content > .spin-wheel-cell,
+            .SpinToWinPopup.has-full-bg .popup-grid-content > .spin-form-cell {
+              flex: 1 1 50% !important;
+            }
+          }
+
           /* ============================================
            * CONTAINER-RELATIVE DESIGN SYSTEM
            * Uses cqi/cqmin for proportional scaling
@@ -684,6 +753,19 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
             color: ${descriptionColor};
             margin-bottom: var(--stw-gap-md);
             animation: slideUpFade 0.5s ease-out 0.1s both;
+            max-width: 100%;
+            word-wrap: break-word;
+            line-height: 1.2;
+          }
+
+          /* Smaller font for medium-length labels (8-12 chars) */
+          .spin-prize-label--medium {
+            font-size: calc(var(--stw-headline-size) * 0.75);
+          }
+
+          /* Even smaller for long labels (13+ chars) */
+          .spin-prize-label--long {
+            font-size: calc(var(--stw-headline-size) * 0.6);
           }
 
           /* Confetti particles */
@@ -922,11 +1004,20 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
       <PopupGridContainer
         config={config}
         onClose={onClose}
-        imagePosition="left" // Wheel is always left (or top on mobile)
-        className="SpinToWinPopup"
+        imagePosition="left"
+        className={`SpinToWinPopup ${isFullBackground ? "has-full-bg" : ""}`}
         data-splitpop="true"
         data-template="spin-to-win"
       >
+        {/* Full Background (when enabled) */}
+        {isFullBackground && (
+          <>
+            <div className="stw-full-bg-image">
+              <img src={config.imageUrl} alt="" aria-hidden="true" />
+            </div>
+            <div className="stw-full-bg-overlay" />
+          </>
+        )}
         {/* Wheel Cell */}
         <div className="spin-wheel-cell" ref={wheelCellRef}>
           <div className="spin-wheel-wrapper">
@@ -1106,7 +1197,10 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
 
                 {/* Prize announcement */}
                 {wonPrize?.generatedCode && (
-                  <div className="spin-prize-label">🎉 {wonPrize.label || "You Won!"}</div>
+                  <div className={`spin-prize-label${
+                    (wonPrize.label?.length ?? 0) > 12 ? ' spin-prize-label--long' :
+                    (wonPrize.label?.length ?? 0) > 7 ? ' spin-prize-label--medium' : ''
+                  }`}>🎉 {wonPrize.label || "You Won!"}</div>
                 )}
 
                 {wonPrize?.generatedCode ? (

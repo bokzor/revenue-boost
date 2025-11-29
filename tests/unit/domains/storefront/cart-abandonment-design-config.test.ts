@@ -40,7 +40,7 @@ interface CartAbandonmentDesignConfig {
   padding?: string | number;
   maxWidth?: string | number;
   animation?: 'fade' | 'slide' | 'bounce' | 'none';
-  displayMode?: 'modal' | 'banner' | 'slide-in' | 'inline';
+  displayMode?: 'popup' | 'banner' | 'slide-in' | 'inline';
 
   // Additional styles
   boxShadow?: string;

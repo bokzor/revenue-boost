@@ -395,7 +395,9 @@ export const PopupDesignEditorV2: React.FC<PopupDesignEditorProps> = ({
         ...designConfig,
         // Merge all content defaults from database (includes template-specific fields)
         ...(fetchedContent || {}),
-        // Design fields from template
+        // Merge all design fields from database template (includes background image settings)
+        ...(fetchedDesign || {}),
+        // Design fields from template (fallback to existing designConfig)
         backgroundColor:
           (fetchedDesign?.backgroundColor ?? template?.backgroundColor) ||
           designConfig.backgroundColor,

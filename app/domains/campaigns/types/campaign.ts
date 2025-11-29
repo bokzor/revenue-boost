@@ -426,6 +426,9 @@ export const FlashSaleContentSchema = BaseContentConfigSchema.extend({
   stockMessage: z.string().optional(),
   ctaUrl: z.string().optional(),
 
+  // Note: Background image configuration is now in DesignConfigSchema
+  // (imageUrl, imagePosition, backgroundImageMode, backgroundOverlayOpacity)
+
   // === ENHANCED FEATURES ===
 
   // Advanced timer configuration
@@ -774,6 +777,7 @@ export const DesignConfigSchema = z.object({
       "luxury",
       "neon",
       "ocean",
+      "summer-sale",
     ])
     .optional(), // Optional when using a custom theme preset
   customThemePresetId: z.string().optional(), // ID of the applied custom theme preset
@@ -782,15 +786,16 @@ export const DesignConfigSchema = z.object({
   popupSize: z.enum(["compact", "standard", "wide", "full"]).default("wide").optional(), // For FlashSale
   borderRadius: z.number().min(0).max(50).default(8),
   animation: z.enum(["fade", "slide", "bounce", "none"]).default("fade"),
-  displayMode: z.enum(["modal", "banner"]).optional(),
+  displayMode: z.enum(["popup", "banner", "slide-in", "inline"]).optional(),
   showCloseButton: z.boolean().default(true).optional(),
 
   // Image settings
   imageUrl: z.string().optional(),
-  imagePosition: z.enum(["left", "right", "top", "bottom", "none"]).default("left"),
+  imagePosition: z.enum(["left", "right", "top", "bottom", "full", "none"]).default("left"),
   backgroundImageMode: z.enum(["none", "preset", "file"]).default("none"),
   backgroundImagePresetKey: z.string().optional(),
   backgroundImageFileId: z.string().optional(),
+  backgroundOverlayOpacity: z.number().min(0).max(1).default(0.6).optional(), // Overlay opacity for full background images
 
   // Main colors
   backgroundColor: z.string().optional(), // Supports gradients and rgba

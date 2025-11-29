@@ -140,6 +140,13 @@ interface CampaignFormWithABTestingProps {
   advancedTargetingEnabled?: boolean;
   /** Whether A/B testing experiments are enabled for the current plan (Growth plan and above) */
   experimentsEnabled?: boolean;
+  /** Global frequency capping settings from store - displayed in Cross-Campaign Coordination card */
+  globalFrequencyCapping?: {
+    enabled: boolean;
+    max_per_session?: number;
+    max_per_day?: number;
+    cooldown_between_popups?: number;
+  };
 }
 
 // ============================================================================
@@ -162,6 +169,7 @@ export function CampaignFormWithABTesting({
   initialTemplates,
   advancedTargetingEnabled = false,
   experimentsEnabled = false,
+  globalFrequencyCapping,
 }: CampaignFormWithABTestingProps) {
   // ============================================================================
   // STATE - Wizard Navigation
@@ -456,6 +464,7 @@ export function CampaignFormWithABTesting({
       globalCustomCSS,
       customThemePresets,
       advancedTargetingEnabled,
+      globalFrequencyCapping,
     };
 
     switch (step.id) {

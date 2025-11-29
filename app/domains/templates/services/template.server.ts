@@ -34,6 +34,9 @@ import { globalOrStoreWhere } from "~/lib/service-helpers.server";
 /**
  * Parse template entity from database with proper JSON field parsing
  * Uses template-type specific parsing for contentConfig
+ *
+ * NOTE: Default values are intentionally minimal - seeded data is the source of truth.
+ * These defaults are only used when the database field is null/undefined.
  */
 function parseTemplateEntity(rawTemplate: Template): TemplateWithConfigs {
   const parsed = parseEntityJsonFields(rawTemplate, [
@@ -50,24 +53,12 @@ function parseTemplateEntity(rawTemplate: Template): TemplateWithConfigs {
     {
       key: "designConfig",
       schema: DesignConfigSchema,
-      defaultValue: {
-        theme: "modern",
-        position: "center",
-        size: "medium",
-        borderRadius: 8,
-        imagePosition: "left",
-        overlayOpacity: 0.8,
-        animation: "fade",
-      },
+      defaultValue: {}, // Empty - seeded data is source of truth
     },
     {
       key: "discountConfig",
       schema: DiscountConfigSchema,
-      defaultValue: {
-        enabled: false,
-        showInPreview: true,
-        behavior: "SHOW_CODE_AND_AUTO_APPLY",
-      },
+      defaultValue: {}, // Empty - seeded data is source of truth
     },
   ]);
 

@@ -108,7 +108,7 @@ export const Minimal: Story = {
   args: {
     config: {
       ...baseConfig,
-      urgencyMessage: undefined,
+      urgencyMessage: "", // Empty string to hide urgency message
       subheadline: "Limited time offer",
     } as FlashSaleConfig,
   },
@@ -121,6 +121,37 @@ export const BannerMode: Story = {
       ...baseConfig,
       displayMode: "banner",
       position: "top",
+    } as FlashSaleConfig,
+  },
+};
+
+/** With background image */
+export const WithBackgroundImage: Story = {
+  args: {
+    config: {
+      ...baseConfig,
+      backgroundImageMode: "file",
+      imageUrl: "https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=800&q=80",
+      backgroundOverlayOpacity: 0.7,
+      headline: "Black Friday Sale",
+      subheadline: "Up to 50% off all items",
+    } as FlashSaleConfig,
+  },
+};
+
+/** Background image with lower overlay */
+export const BackgroundImageLightOverlay: Story = {
+  args: {
+    config: {
+      ...baseConfig,
+      backgroundImageMode: "file",
+      imageUrl: "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=800&q=80",
+      backgroundOverlayOpacity: 0.5,
+      backgroundColor: "#1a1a2e",
+      accentColor: "#e94560",
+      buttonColor: "#e94560",
+      headline: "Summer Clearance",
+      subheadline: "Everything must go!",
     } as FlashSaleConfig,
   },
 };

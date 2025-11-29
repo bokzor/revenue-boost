@@ -222,12 +222,19 @@ function buildCommonConfig(
     inputBackdropFilter: mergedConfig.inputBackdropFilter || designConfig.inputBackdropFilter,
     inputBoxShadow: mergedConfig.inputBoxShadow || designConfig.inputBoxShadow,
 
+    // Background image (for templates that support full background mode)
+    // imageUrl and imagePosition are set by DesignConfigSection when themes or files are selected
+    imageUrl: mergedConfig.imageUrl || designConfig.imageUrl,
+    imagePosition: mergedConfig.imagePosition || designConfig.imagePosition,
+    backgroundImageMode: mergedConfig.backgroundImageMode || designConfig.backgroundImageMode || "none",
+    backgroundOverlayOpacity: mergedConfig.backgroundOverlayOpacity ?? designConfig.backgroundOverlayOpacity ?? 0.6,
+
     // Preview mode
     previewMode: true,
     // Show close button respects user preference (default to true for preview)
     showCloseButton: mergedConfig.showCloseButton ?? designConfig.showCloseButton ?? true,
-    // Display mode for modal/banner templates
-    displayMode: mergedConfig.displayMode || designConfig.displayMode || "modal",
+    // Display mode for popup/banner templates
+    displayMode: (mergedConfig.displayMode || designConfig.displayMode || "popup") as "popup" | "banner",
   };
 }
 
@@ -267,15 +274,13 @@ export const TEMPLATE_PREVIEW_REGISTRY: Record<string, TemplatePreviewEntry<any>
         consentFieldRequired: mergedConfig.consentFieldRequired ?? false,
         consentFieldText: mergedConfig.consentFieldText || "I agree to receive marketing emails",
 
-        // Image
-        imageUrl: mergedConfig.imageUrl || designConfig.imageUrl,
-        imagePosition: mergedConfig.imagePosition || designConfig.imagePosition || "top",
-
         // Discount: transform admin config to storefront format
         discount: transformDiscountConfig(mergedConfig.discountConfig, "WELCOME") || mergedConfig.discount,
 
-        // All common config (colors, typography, layout)
+        // All common config (colors, typography, layout, image settings)
         ...buildCommonConfig(mergedConfig, designConfig),
+        // Override imagePosition default for Newsletter (top instead of left)
+        imagePosition: mergedConfig.imagePosition || designConfig.imagePosition || "top",
       }),
   },
 
@@ -471,10 +476,6 @@ export const TEMPLATE_PREVIEW_REGISTRY: Record<string, TemplatePreviewEntry<any>
         minSpins: mergedConfig.minSpins ?? 5,
         loadingText: mergedConfig.loadingText,
 
-        // Image / layout
-        imageUrl: mergedConfig.imageUrl || designConfig.imageUrl,
-        imagePosition: mergedConfig.imagePosition || designConfig.imagePosition || "left",
-
         // Name & consent config (matching NewsletterContentSchema)
         collectName: mergedConfig.collectName ?? false,
         nameFieldRequired: mergedConfig.nameFieldRequired ?? false,
@@ -484,9 +485,11 @@ export const TEMPLATE_PREVIEW_REGISTRY: Record<string, TemplatePreviewEntry<any>
         consentFieldRequired: mergedConfig.consentFieldRequired ?? false,
         gdprLabel: mergedConfig.gdprLabel,
 
-        // All common config (colors, typography, layout)
+        // All common config (colors, typography, layout, image settings)
         ...buildCommonConfig(mergedConfig, designConfig),
 
+        // Override imagePosition default for SpinToWin (left instead of none)
+        imagePosition: mergedConfig.imagePosition || designConfig.imagePosition || "left",
         // Preview-only layout tweak: keep popup anchored to top so the wheel
         // doesn't visually jump when the prize box appears.
         position: "top",
@@ -524,16 +527,14 @@ export const TEMPLATE_PREVIEW_REGISTRY: Record<string, TemplatePreviewEntry<any>
             ? mergedConfig.prizes
             : SCRATCH_CARD_PREVIEW_PRIZES,
 
-        // Image / layout
-        imageUrl: mergedConfig.imageUrl || designConfig.imageUrl,
-        imagePosition: mergedConfig.imagePosition || designConfig.imagePosition || "left",
-
         // Consent (GDPR-style checkbox)
         showGdprCheckbox: mergedConfig.showGdprCheckbox ?? false,
         gdprLabel: mergedConfig.gdprLabel,
 
-        // All common config (colors, typography, layout)
+        // All common config (colors, typography, layout, image settings)
         ...buildCommonConfig(mergedConfig, designConfig),
+        // Override imagePosition default for ScratchCard (left instead of none)
+        imagePosition: mergedConfig.imagePosition || designConfig.imagePosition || "left",
       }),
   },
 };
@@ -608,6 +609,9 @@ TEMPLATE_PREVIEW_REGISTRY[TemplateTypeEnum.ANNOUNCEMENT] = {
 
       // All common config (colors, typography, layout)
       ...buildCommonConfig(mergedConfig, designConfig),
+
+      // Override position: announcements are banners, default to "top" not "center"
+      position: mergedConfig.position || designConfig.position || "top",
     }),
 };
 

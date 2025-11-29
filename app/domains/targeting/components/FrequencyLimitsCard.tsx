@@ -16,6 +16,32 @@ interface FrequencyLimitsCardProps {
   onCooldownChange: (value: string) => void;
 }
 
+/**
+ * Format a duration in seconds to a human-readable string
+ */
+function formatCooldownDuration(seconds: number): string {
+  if (seconds <= 0) return "";
+
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const remainingSeconds = seconds % 60;
+
+  const parts: string[] = [];
+
+  if (hours > 0) {
+    parts.push(`${hours} hour${hours !== 1 ? "s" : ""}`);
+  }
+  if (minutes > 0) {
+    parts.push(`${minutes} minute${minutes !== 1 ? "s" : ""}`);
+  }
+  if (remainingSeconds > 0 && hours === 0) {
+    // Only show seconds if less than an hour
+    parts.push(`${remainingSeconds} second${remainingSeconds !== 1 ? "s" : ""}`);
+  }
+
+  return parts.join(" ");
+}
+
 export function FrequencyLimitsCard({
   maxTriggersPerSession,
   maxTriggersPerDay,
@@ -24,8 +50,8 @@ export function FrequencyLimitsCard({
   onMaxTriggersPerDayChange,
   onCooldownChange,
 }: FrequencyLimitsCardProps) {
-  // Convert seconds to hours for display
-  const cooldownHours = cooldownBetweenTriggers ? cooldownBetweenTriggers / 3600 : 0;
+  // Format cooldown for display
+  const formattedCooldown = formatCooldownDuration(cooldownBetweenTriggers);
 
   return (
     <Card>
@@ -97,16 +123,10 @@ export function FrequencyLimitsCard({
                   )}
                 </>
               )}
-              {cooldownBetweenTriggers && cooldownBetweenTriggers > 0 && (
+              {cooldownBetweenTriggers && cooldownBetweenTriggers > 0 && formattedCooldown && (
                 <span>
                   {" "}
-                  with a{" "}
-                  <strong>
-                    {cooldownHours < 1
-                      ? `${Math.round(cooldownHours * 60)} minute`
-                      : `${cooldownHours} hour`}
-                  </strong>{" "}
-                  cooldown between displays
+                  with a <strong>{formattedCooldown}</strong> cooldown between displays
                 </span>
               )}
             </p>
