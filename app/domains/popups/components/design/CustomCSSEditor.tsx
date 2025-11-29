@@ -13,7 +13,6 @@ import {
 import { ViewIcon, ResetIcon } from "@shopify/polaris-icons";
 import { CustomCssSchema, CUSTOM_CSS_MAX_LENGTH } from "~/lib/css-guards";
 import {
-  CSS_VARIABLES,
   getCustomCssConfig,
   getCssSnippets,
   type CssSnippet,
@@ -358,104 +357,6 @@ export const CustomCSSEditor: React.FC<CustomCSSEditorProps> = ({
               </BlockStack>
             </Banner>
           )}
-
-          {/* CSS hooks & variables */}
-          <Card background="bg-surface-secondary">
-            <Box padding="300">
-              <BlockStack gap="300">
-                <Text as="span" variant="bodyMd" fontWeight="semibold">
-                  Available hooks
-                </Text>
-
-                <BlockStack gap="150">
-                  <Text as="span" tone="subdued" variant="bodySm">
-                    Shared shell (applies to all popups)
-                  </Text>
-                  {sharedHooks.map((hook) => (
-                    <Box
-                      key={hook.selector}
-                      padding="150"
-                      background="bg-surface-secondary"
-                      borderWidth="025"
-                      borderColor="border"
-                      borderRadius="200"
-                    >
-                      <InlineStack align="space-between" gap="150">
-                        <Text as="span" variant="bodySm" fontWeight="semibold">
-                          Shared
-                        </Text>
-                        <Badge tone="info">{hook.selector}</Badge>
-                      </InlineStack>
-                      <Text as="p" variant="bodySm" tone="subdued">
-                        {hook.description}
-                      </Text>
-                    </Box>
-                  ))}
-                </BlockStack>
-
-                {templateHooks.length > 0 && (
-                  <BlockStack gap="150">
-                    <Text as="span" tone="subdued" variant="bodySm">
-                      This template
-                    </Text>
-                    {templateHooks.map((hook) => (
-                      <Box
-                        key={hook.selector}
-                        padding="150"
-                        background="bg-surface-secondary"
-                        borderWidth="025"
-                        borderColor="border"
-                        borderRadius="200"
-                      >
-                        <InlineStack align="space-between" gap="150">
-                          <Text as="span" variant="bodySm" fontWeight="semibold">
-                            Template
-                          </Text>
-                          <Badge tone="info">{hook.selector}</Badge>
-                        </InlineStack>
-                        <Text as="p" variant="bodySm" tone="subdued">
-                          {hook.description}
-                        </Text>
-                      </Box>
-                    ))}
-                  </BlockStack>
-                )}
-
-                <Box padding="150" borderWidth="025" borderColor="border" borderRadius="200">
-                  <BlockStack gap="150">
-                    <InlineStack align="space-between">
-                      <Text as="span" variant="bodySm" fontWeight="semibold">
-                        Design tokens
-                      </Text>
-                      <Badge tone="info">CSS variables</Badge>
-                    </InlineStack>
-                    <InlineStack wrap gap="150">
-                      {CSS_VARIABLES.map((variable) => (
-                        <Box
-                          key={variable.name}
-                          paddingInlineStart="150"
-                          paddingInlineEnd="150"
-                          paddingBlockStart="100"
-                          paddingBlockEnd="100"
-                          background="bg-surface"
-                          borderWidth="025"
-                          borderColor="border"
-                          borderRadius="150"
-                        >
-                          <Text as="span" variant="bodySm" fontWeight="semibold">
-                            {variable.name}
-                          </Text>
-                          <Text as="p" variant="bodyXs" tone="subdued">
-                            {variable.description}
-                          </Text>
-                        </Box>
-                      ))}
-                    </InlineStack>
-                  </BlockStack>
-                </Box>
-              </BlockStack>
-            </Box>
-          </Card>
 
           {/* CSS Snippets */}
           <Card background="bg-surface-secondary">

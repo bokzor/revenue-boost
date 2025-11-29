@@ -669,8 +669,8 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
       <style>{`
         .flash-sale-container {
           position: relative;
-          width: 100%;
-          max-width: ${sizeDimensions.maxWidth};
+          /* Use min() to allow proper centering while respecting max-width */
+          width: min(${sizeDimensions.maxWidth}, calc(100vw - 2rem));
           border-radius: ${borderRadius}px;
           overflow: hidden;
           box-shadow: 0 1.5625em 3.125em -0.75em rgba(0, 0, 0, 0.25);

@@ -12,15 +12,7 @@
 
 import { useRef } from "react";
 import type { ChangeEvent } from "react";
-import {
-  Card,
-  BlockStack,
-  Text,
-  Divider,
-  Select,
-  Banner,
-  Button,
-} from "@shopify/polaris";
+import { Card, BlockStack, Text, Divider, Select, Banner, Button } from "@shopify/polaris";
 import { ColorField, FormGrid, CollapsibleSection, useCollapsibleSections } from "../form";
 import type { DesignConfig, TemplateType } from "~/domains/campaigns/types/campaign";
 import {
@@ -244,7 +236,7 @@ export function DesignConfigSection({
                 });
 
                 // If callback provided (for Spin-to-Win wheel colors), call it
-                const preset = customThemePresets.find(p => p.id === presetId);
+                const preset = customThemePresets.find((p) => p.id === presetId);
                 if (onCustomPresetApply && preset) {
                   onCustomPresetApply(presetId, preset.brandColor);
                 }
@@ -267,9 +259,7 @@ export function DesignConfigSection({
 
         {/* Position & Size - only show if at least one option is available */}
         {(positionOptions.length > 0 || sizeOptions.length > 0) && (
-          <FormGrid
-            columns={positionOptions.length > 0 && sizeOptions.length > 0 ? 2 : 1}
-          >
+          <FormGrid columns={positionOptions.length > 0 && sizeOptions.length > 0 ? 2 : 1}>
             {positionOptions.length > 0 && (
               <Select
                 label="Position"
@@ -288,7 +278,6 @@ export function DesignConfigSection({
                 value={design.size || "medium"}
                 options={sizeOptions}
                 onChange={(value) => updateField("size", value as DesignConfig["size"])}
-                helpText={caps?.supportsSize ? "Size options filtered for this template" : undefined}
               />
             )}
           </FormGrid>
@@ -318,16 +307,17 @@ export function DesignConfigSection({
         )}
 
         {/* Flash Sale specific display mode */}
-        {templateType === "FLASH_SALE" && (
+        {/* Display Mode - Show for templates that support banner/popup toggle */}
+        {caps?.supportsDisplayMode && (
           <Select
             label="Display Mode"
             value={design.displayMode || "modal"}
             options={[
-              { label: "Popup (modal)", value: "modal" },
+              { label: "Popup (centered modal)", value: "modal" },
               { label: "Banner (top or bottom)", value: "banner" },
             ]}
             onChange={(value) => updateField("displayMode", value as DesignConfig["displayMode"])}
-            helpText="Choose whether this flash sale appears as a popup or as a top/bottom banner."
+            helpText="Choose whether this appears as a centered popup or as a top/bottom banner."
           />
         )}
 
@@ -341,120 +331,118 @@ export function DesignConfigSection({
             isOpen={openSections.backgroundImage}
             onToggle={() => toggle("backgroundImage")}
           >
-              <BlockStack gap="300">
-                <FormGrid columns={2}>
+            <BlockStack gap="300">
+              <FormGrid columns={2}>
+                <Select
+                  label="Image position"
+                  value={design.imagePosition || "left"}
+                  options={[
+                    { label: "Left side", value: "left" },
+                    { label: "Right side", value: "right" },
+                    { label: "Top", value: "top" },
+                    { label: "Bottom", value: "bottom" },
+                    { label: "No image", value: "none" },
+                  ]}
+                  onChange={(value) =>
+                    updateField("imagePosition", value as DesignConfig["imagePosition"])
+                  }
+                  helpText="Position of the background image in the popup"
+                />
+
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
                   <Select
-                    label="Image position"
-                    value={design.imagePosition || "left"}
+                    label="Preset background"
+                    value={imageMode === "preset" && selectedPresetKey ? selectedPresetKey : "none"}
                     options={[
-                      { label: "Left side", value: "left" },
-                      { label: "Right side", value: "right" },
-                      { label: "Top", value: "top" },
-                      { label: "Bottom", value: "bottom" },
-                      { label: "No image", value: "none" },
+                      { label: "No preset image", value: "none" },
+                      ...NEWSLETTER_BACKGROUND_PRESETS.map((preset) => ({
+                        label: preset.label,
+                        value: preset.key,
+                      })),
                     ]}
-                    onChange={(value) =>
-                      updateField("imagePosition", value as DesignConfig["imagePosition"])
-                    }
-                    helpText="Position of the background image in the popup"
-                  />
-
-                  <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-                    <Select
-                      label="Preset background"
-                      value={
-                        imageMode === "preset" && selectedPresetKey ? selectedPresetKey : "none"
-                      }
-                      options={[
-                        { label: "No preset image", value: "none" },
-                        ...NEWSLETTER_BACKGROUND_PRESETS.map((preset) => ({
-                          label: preset.label,
-                          value: preset.key,
-                        })),
-                      ]}
-                      onChange={(value) => {
-                        if (value === "none") {
-                          onChange({
-                            ...design,
-                            backgroundImageMode: "none",
-                            backgroundImagePresetKey: undefined,
-                            backgroundImageFileId: undefined,
-                            imageUrl: undefined,
-                          });
-                          return;
-                        }
-
-                        const key = value as NewsletterThemeKey;
-                        const url = getNewsletterBackgroundUrl(key);
+                    onChange={(value) => {
+                      if (value === "none") {
                         onChange({
                           ...design,
-                          backgroundImageMode: "preset",
-                          backgroundImagePresetKey: key,
+                          backgroundImageMode: "none",
+                          backgroundImagePresetKey: undefined,
                           backgroundImageFileId: undefined,
-                          imageUrl: url,
+                          imageUrl: undefined,
                         });
-                      }}
-                      helpText="Use one of the built-in background images"
-                    />
+                        return;
+                      }
 
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      style={{ display: "none" }}
-                      onChange={handleBackgroundFileChange}
-                    />
-
-                    <BlockStack gap="200">
-                      <Button
-                        onClick={handleBackgroundFileClick}
-                        loading={isUploadingBackground}
-                        disabled={isUploadingBackground}
-                      >
-                        {imageMode === "file" && previewImageUrl
-                          ? "Change background image"
-                          : "Upload image from your computer"}
-                      </Button>
-                      {uploadError && (
-                        <Text as="p" variant="bodySm" tone="critical">
-                          {uploadError}
-                        </Text>
-                      )}
-                    </BlockStack>
-                  </div>
-                </FormGrid>
-
-                {previewImageUrl && design.imagePosition !== "none" && (
-                  <div
-                    style={{
-                      marginTop: "0.5rem",
-                      padding: "1rem",
-                      border: "1px solid #e1e3e5",
-                      borderRadius: "8px",
-                      backgroundColor: "#f6f6f7",
+                      const key = value as NewsletterThemeKey;
+                      const url = getNewsletterBackgroundUrl(key);
+                      onChange({
+                        ...design,
+                        backgroundImageMode: "preset",
+                        backgroundImagePresetKey: key,
+                        backgroundImageFileId: undefined,
+                        imageUrl: url,
+                      });
                     }}
-                  >
-                    <Text as="p" variant="bodySm" tone="subdued" fontWeight="semibold">
-                      Image preview:
-                    </Text>
-                    <div style={{ marginTop: "0.5rem", maxWidth: "200px" }}>
-                      <img
-                        src={previewImageUrl}
-                        alt="Background preview"
-                        style={{
-                          width: "100%",
-                          height: "auto",
-                          borderRadius: "4px",
-                          border: "1px solid #c9cccf",
-                        }}
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).style.display = "none";
-                        }}
-                      />
-                    </div>
+                    helpText="Use one of the built-in background images"
+                  />
+
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    style={{ display: "none" }}
+                    onChange={handleBackgroundFileChange}
+                  />
+
+                  <BlockStack gap="200">
+                    <Button
+                      onClick={handleBackgroundFileClick}
+                      loading={isUploadingBackground}
+                      disabled={isUploadingBackground}
+                    >
+                      {imageMode === "file" && previewImageUrl
+                        ? "Change background image"
+                        : "Upload image from your computer"}
+                    </Button>
+                    {uploadError && (
+                      <Text as="p" variant="bodySm" tone="critical">
+                        {uploadError}
+                      </Text>
+                    )}
+                  </BlockStack>
+                </div>
+              </FormGrid>
+
+              {previewImageUrl && design.imagePosition !== "none" && (
+                <div
+                  style={{
+                    marginTop: "0.5rem",
+                    padding: "1rem",
+                    border: "1px solid #e1e3e5",
+                    borderRadius: "8px",
+                    backgroundColor: "#f6f6f7",
+                  }}
+                >
+                  <Text as="p" variant="bodySm" tone="subdued" fontWeight="semibold">
+                    Image preview:
+                  </Text>
+                  <div style={{ marginTop: "0.5rem", maxWidth: "200px" }}>
+                    <img
+                      src={previewImageUrl}
+                      alt="Background preview"
+                      style={{
+                        width: "100%",
+                        height: "auto",
+                        borderRadius: "4px",
+                        border: "1px solid #c9cccf",
+                      }}
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = "none";
+                      }}
+                    />
                   </div>
-                )}
-              </BlockStack>
+                </div>
+              )}
+            </BlockStack>
           </CollapsibleSection>
         )}
 
@@ -468,60 +456,60 @@ export function DesignConfigSection({
           onToggle={() => toggle("mainColors")}
         >
           <BlockStack gap="300">
-              <FormGrid columns={3}>
+            <FormGrid columns={3}>
+              <ColorField
+                label="Background Color"
+                name="design.backgroundColor"
+                value={design.backgroundColor || "#FFFFFF"}
+                error={errors?.backgroundColor}
+                helpText="Popup background color (supports gradients)"
+                onChange={(value) => updateField("backgroundColor", value)}
+              />
+
+              <ColorField
+                label="Heading Text Color"
+                name="design.textColor"
+                value={design.textColor || "#333333"}
+                error={errors?.textColor}
+                helpText="Heading and title text color"
+                onChange={(value) => updateField("textColor", value)}
+              />
+
+              <ColorField
+                label="Description Color"
+                name="design.descriptionColor"
+                value={design.descriptionColor || "#666666"}
+                error={errors?.descriptionColor}
+                helpText="Description and subheadline text color"
+                onChange={(value) => updateField("descriptionColor", value)}
+              />
+            </FormGrid>
+
+            {/* Accent and Success - Conditionally shown */}
+            <FormGrid columns={2}>
+              {caps?.usesAccent !== false && (
                 <ColorField
-                  label="Background Color"
-                  name="design.backgroundColor"
-                  value={design.backgroundColor || "#FFFFFF"}
-                  error={errors?.backgroundColor}
-                  helpText="Popup background color (supports gradients)"
-                  onChange={(value) => updateField("backgroundColor", value)}
+                  label="Accent Color"
+                  name="design.accentColor"
+                  value={design.accentColor || "#007BFF"}
+                  error={errors?.accentColor}
+                  helpText="Accent and highlight color"
+                  onChange={(value) => updateField("accentColor", value)}
                 />
+              )}
 
+              {caps?.usesSuccessWarning !== false && (
                 <ColorField
-                  label="Heading Text Color"
-                  name="design.textColor"
-                  value={design.textColor || "#333333"}
-                  error={errors?.textColor}
-                  helpText="Heading and title text color"
-                  onChange={(value) => updateField("textColor", value)}
+                  label="Success Color"
+                  name="design.successColor"
+                  value={design.successColor || "#10b981"}
+                  error={errors?.successColor}
+                  helpText="Success state color"
+                  onChange={(value) => updateField("successColor", value)}
                 />
-
-                <ColorField
-                  label="Description Color"
-                  name="design.descriptionColor"
-                  value={design.descriptionColor || "#666666"}
-                  error={errors?.descriptionColor}
-                  helpText="Description and subheadline text color"
-                  onChange={(value) => updateField("descriptionColor", value)}
-                />
-              </FormGrid>
-
-              {/* Accent and Success - Conditionally shown */}
-              <FormGrid columns={2}>
-                {caps?.usesAccent !== false && (
-                  <ColorField
-                    label="Accent Color"
-                    name="design.accentColor"
-                    value={design.accentColor || "#007BFF"}
-                    error={errors?.accentColor}
-                    helpText="Accent and highlight color"
-                    onChange={(value) => updateField("accentColor", value)}
-                  />
-                )}
-
-                {caps?.usesSuccessWarning !== false && (
-                  <ColorField
-                    label="Success Color"
-                    name="design.successColor"
-                    value={design.successColor || "#10b981"}
-                    error={errors?.successColor}
-                    helpText="Success state color"
-                    onChange={(value) => updateField("successColor", value)}
-                  />
-                )}
-              </FormGrid>
-            </BlockStack>
+              )}
+            </FormGrid>
+          </BlockStack>
         </CollapsibleSection>
 
         <Divider />
@@ -534,18 +522,18 @@ export function DesignConfigSection({
           onToggle={() => toggle("typography")}
         >
           <BlockStack gap="300">
-              <Select
-                label="Font Family"
-                value={design.fontFamily || "inherit"}
-                options={FONT_FAMILY_OPTIONS}
-                onChange={(value) => {
-                  // Load the Google Font when selected
-                  loadGoogleFont(value);
-                  updateField("fontFamily", value);
-                }}
-                helpText="Choose a font for your popup text"
-              />
-            </BlockStack>
+            <Select
+              label="Font Family"
+              value={design.fontFamily || "inherit"}
+              options={FONT_FAMILY_OPTIONS}
+              onChange={(value) => {
+                // Load the Google Font when selected
+                loadGoogleFont(value);
+                updateField("fontFamily", value);
+              }}
+              helpText="Choose a font for your popup text"
+            />
+          </BlockStack>
         </CollapsibleSection>
 
         <Divider />
@@ -559,26 +547,26 @@ export function DesignConfigSection({
             onToggle={() => toggle("buttonColors")}
           >
             <BlockStack gap="300">
-                <FormGrid columns={2}>
-                  <ColorField
-                    label="Button Background"
-                    name="design.buttonColor"
-                    value={design.buttonColor || "#007BFF"}
-                    error={errors?.buttonColor}
-                    helpText="CTA button background"
-                    onChange={(value) => updateField("buttonColor", value)}
-                  />
+              <FormGrid columns={2}>
+                <ColorField
+                  label="Button Background"
+                  name="design.buttonColor"
+                  value={design.buttonColor || "#007BFF"}
+                  error={errors?.buttonColor}
+                  helpText="CTA button background"
+                  onChange={(value) => updateField("buttonColor", value)}
+                />
 
-                  <ColorField
-                    label="Button Text"
-                    name="design.buttonTextColor"
-                    value={design.buttonTextColor || "#FFFFFF"}
-                    error={errors?.buttonTextColor}
-                    helpText="CTA button text color"
-                    onChange={(value) => updateField("buttonTextColor", value)}
-                  />
-                </FormGrid>
-              </BlockStack>
+                <ColorField
+                  label="Button Text"
+                  name="design.buttonTextColor"
+                  value={design.buttonTextColor || "#FFFFFF"}
+                  error={errors?.buttonTextColor}
+                  helpText="CTA button text color"
+                  onChange={(value) => updateField("buttonTextColor", value)}
+                />
+              </FormGrid>
+            </BlockStack>
           </CollapsibleSection>
         )}
 
@@ -593,46 +581,46 @@ export function DesignConfigSection({
             onToggle={() => toggle("inputColors")}
           >
             <BlockStack gap="300">
-                <FormGrid columns={3}>
-                  <ColorField
-                    label="Input Background"
-                    name="design.inputBackgroundColor"
-                    value={design.inputBackgroundColor || "#FFFFFF"}
-                    error={errors?.inputBackgroundColor}
-                    helpText="Email/form input background (supports rgba)"
-                    onChange={(value) => updateField("inputBackgroundColor", value)}
-                  />
+              <FormGrid columns={3}>
+                <ColorField
+                  label="Input Background"
+                  name="design.inputBackgroundColor"
+                  value={design.inputBackgroundColor || "#FFFFFF"}
+                  error={errors?.inputBackgroundColor}
+                  helpText="Email/form input background (supports rgba)"
+                  onChange={(value) => updateField("inputBackgroundColor", value)}
+                />
 
-                  <ColorField
-                    label="Input Text"
-                    name="design.inputTextColor"
-                    value={design.inputTextColor || "#333333"}
-                    error={errors?.inputTextColor}
-                    helpText="Email/form input text"
-                    onChange={(value) => updateField("inputTextColor", value)}
-                  />
+                <ColorField
+                  label="Input Text"
+                  name="design.inputTextColor"
+                  value={design.inputTextColor || "#333333"}
+                  error={errors?.inputTextColor}
+                  helpText="Email/form input text"
+                  onChange={(value) => updateField("inputTextColor", value)}
+                />
 
-                  <ColorField
-                    label="Input Border"
-                    name="design.inputBorderColor"
-                    value={design.inputBorderColor || "#D1D5DB"}
-                    error={errors?.inputBorderColor}
-                    helpText="Email/form input border (supports rgba)"
-                    onChange={(value) => updateField("inputBorderColor", value)}
-                  />
-                </FormGrid>
+                <ColorField
+                  label="Input Border"
+                  name="design.inputBorderColor"
+                  value={design.inputBorderColor || "#D1D5DB"}
+                  error={errors?.inputBorderColor}
+                  helpText="Email/form input border (supports rgba)"
+                  onChange={(value) => updateField("inputBorderColor", value)}
+                />
+              </FormGrid>
 
-                <FormGrid columns={1}>
-                  <ColorField
-                    label="Image Background Color"
-                    name="design.imageBgColor"
-                    value={design.imageBgColor || "#F4F4F5"}
-                    error={errors?.imageBgColor}
-                    helpText="Background color for image placeholder (supports rgba)"
-                    onChange={(value) => updateField("imageBgColor", value)}
-                  />
-                </FormGrid>
-              </BlockStack>
+              <FormGrid columns={1}>
+                <ColorField
+                  label="Image Background Color"
+                  name="design.imageBgColor"
+                  value={design.imageBgColor || "#F4F4F5"}
+                  error={errors?.imageBgColor}
+                  helpText="Background color for image placeholder (supports rgba)"
+                  onChange={(value) => updateField("imageBgColor", value)}
+                />
+              </FormGrid>
+            </BlockStack>
           </CollapsibleSection>
         )}
 
@@ -647,36 +635,36 @@ export function DesignConfigSection({
             onToggle={() => toggle("overlaySettings")}
           >
             <BlockStack gap="300">
-                <FormGrid columns={2}>
-                  <ColorField
-                    label="Overlay Color"
-                    name="design.overlayColor"
-                    value={design.overlayColor || "#000000"}
-                    error={errors?.overlayColor}
-                    helpText="Background overlay color"
-                    onChange={(value) => updateField("overlayColor", value)}
-                  />
+              <FormGrid columns={2}>
+                <ColorField
+                  label="Overlay Color"
+                  name="design.overlayColor"
+                  value={design.overlayColor || "#000000"}
+                  error={errors?.overlayColor}
+                  helpText="Background overlay color"
+                  onChange={(value) => updateField("overlayColor", value)}
+                />
 
-                  <Select
-                    label="Overlay Opacity"
-                    value={String(design.overlayOpacity || 0.5)}
-                    options={[
-                      { label: "0% (Transparent)", value: "0" },
-                      { label: "10%", value: "0.1" },
-                      { label: "20%", value: "0.2" },
-                      { label: "30%", value: "0.3" },
-                      { label: "40%", value: "0.4" },
-                      { label: "50%", value: "0.5" },
-                      { label: "60%", value: "0.6" },
-                      { label: "70%", value: "0.7" },
-                      { label: "80%", value: "0.8" },
-                      { label: "90%", value: "0.9" },
-                      { label: "100% (Opaque)", value: "1" },
-                    ]}
-                    onChange={(value) => updateField("overlayOpacity", parseFloat(value))}
-                  />
-                </FormGrid>
-              </BlockStack>
+                <Select
+                  label="Overlay Opacity"
+                  value={String(design.overlayOpacity || 0.5)}
+                  options={[
+                    { label: "0% (Transparent)", value: "0" },
+                    { label: "10%", value: "0.1" },
+                    { label: "20%", value: "0.2" },
+                    { label: "30%", value: "0.3" },
+                    { label: "40%", value: "0.4" },
+                    { label: "50%", value: "0.5" },
+                    { label: "60%", value: "0.6" },
+                    { label: "70%", value: "0.7" },
+                    { label: "80%", value: "0.8" },
+                    { label: "90%", value: "0.9" },
+                    { label: "100% (Opaque)", value: "1" },
+                  ]}
+                  onChange={(value) => updateField("overlayOpacity", parseFloat(value))}
+                />
+              </FormGrid>
+            </BlockStack>
           </CollapsibleSection>
         )}
       </BlockStack>

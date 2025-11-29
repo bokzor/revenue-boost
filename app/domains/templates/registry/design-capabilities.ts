@@ -40,6 +40,9 @@ export type DesignCapabilities = {
 
   /** Supported size values (constrains Size dropdown options) */
   supportsSize?: Array<"small" | "medium" | "large">;
+
+  /** Whether template supports displayMode toggle (banner vs popup) */
+  supportsDisplayMode?: boolean;
 };
 
 /**
@@ -100,6 +103,7 @@ export const TEMPLATE_DESIGN_CAPABILITIES: Record<TemplateType, DesignCapabiliti
     usesSuccessWarning: true,
     supportsPosition: ["center", "top", "bottom"],
     supportsSize: [], // Uses popupSize (compact/standard/wide/full) instead
+    supportsDisplayMode: true, // Show display mode toggle (banner vs popup)
   },
 
   // Gamification templates
@@ -166,17 +170,18 @@ export const TEMPLATE_DESIGN_CAPABILITIES: Record<TemplateType, DesignCapabiliti
     supportsSize: [], // Fixed corner notification, size not applicable
   },
 
-  // Banner/sticky templates (full-width)
+  // Countdown Timer - supports both banner and popup mode
   COUNTDOWN_TIMER: {
     usesButtons: true,
     usesInputs: false,
-    usesOverlay: false,
+    usesOverlay: true, // Popup mode uses overlay
     usesImage: false,
     usesTypographyAdvanced: false,
     usesAccent: true,
     usesSuccessWarning: true,
-    supportsPosition: ["top", "bottom"],
-    supportsSize: [], // Full-width banner, size not applicable
+    supportsPosition: ["center", "top", "bottom"], // Center for popup, top/bottom for banner
+    supportsSize: ["small", "medium", "large"], // Size applies in popup mode
+    supportsDisplayMode: true, // Show display mode toggle (banner vs popup)
   },
 
   ANNOUNCEMENT: {

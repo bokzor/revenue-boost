@@ -132,8 +132,7 @@ export const CountdownTimerPopup: React.FC<CountdownTimerPopupProps> = ({
             container-name: countdown-modal;
             border-radius: ${config.borderRadius ?? 12}px;
             padding: 2rem;
-            max-width: 500px;
-            width: 100%;
+            width: min(500px, calc(100% - 2rem));
             text-align: center;
           }
           .countdown-modal-headline {
