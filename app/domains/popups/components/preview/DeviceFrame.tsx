@@ -14,13 +14,14 @@ export interface DeviceFrameProps {
 
 export const DeviceFrame: React.FC<DeviceFrameProps> = ({ device, children }) => {
   if (device === "mobile") {
+    // iPhone 14/15 dimensions (390×844) - more representative of modern phones
     return (
       <div
         style={{
-          width: "375px",
-          height: "667px",
+          width: "390px",
+          height: "844px",
           border: "12px solid #1A1A1A",
-          borderRadius: "36px",
+          borderRadius: "44px",
           backgroundColor: "#FFFFFF",
           boxShadow: "0 20px 60px rgba(0, 0, 0, 0.3)",
           position: "relative",
