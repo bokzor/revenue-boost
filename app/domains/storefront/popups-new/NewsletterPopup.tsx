@@ -115,7 +115,7 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
 
   // Background image configuration (preset vs Shopify file vs none)
   const backgroundImageMode: "none" | "preset" | "file" =
-    (config.backgroundImageMode as any) ?? (config.imageUrl ? "file" : "none");
+    (config.backgroundImageMode as "none" | "preset" | "file" | undefined) ?? (config.imageUrl ? "file" : "none");
 
   // Use image URL from config when mode is not "none" (admin sets this for preset/file)
   const imageUrl = backgroundImageMode === "none" ? undefined : config.imageUrl;

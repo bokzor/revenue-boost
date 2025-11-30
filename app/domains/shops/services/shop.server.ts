@@ -29,7 +29,7 @@ export class ShopService {
    * @param storeId - Database store ID
    * @returns IANA timezone string (e.g., "America/New_York")
    */
-  static async getShopTimezone(admin: any, storeId: string): Promise<string> {
+  static async getShopTimezone(admin: { graphql: (query: string) => Promise<Response> }, storeId: string): Promise<string> {
     try {
       const store = await prisma.store.findUnique({
         where: { id: storeId },
@@ -84,7 +84,7 @@ export class ShopService {
    * @param admin - Shopify Admin API client
    * @returns Shop details including IANA timezone
    */
-  static async fetchShopDetails(admin: any): Promise<ShopDetails> {
+  static async fetchShopDetails(admin: { graphql: (query: string) => Promise<Response> }): Promise<ShopDetails> {
     const query = `
       query {
         shop {

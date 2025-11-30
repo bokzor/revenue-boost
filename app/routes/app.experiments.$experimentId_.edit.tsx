@@ -197,11 +197,6 @@ export default function ExperimentEditPage() {
     audienceTargeting: targetVariant.targetRules?.audienceTargeting || {
       enabled: false,
       shopifySegmentIds: [],
-      sessionRules: {
-        enabled: false,
-        conditions: [],
-        logicOperator: "AND",
-      },
     },
     pageTargeting: targetVariant.targetRules?.pageTargeting || {
       enabled: false,

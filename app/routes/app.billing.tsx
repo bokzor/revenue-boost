@@ -628,7 +628,7 @@ function CurrentPlanSummary({
         {impressionPercent >= 100 && usage.impressions.max !== null && (
           <Banner tone="critical">
             <p>
-              You've reached your monthly impression limit. Popups will stop showing to visitors.{" "}
+              You&apos;ve reached your monthly impression limit. Popups will stop showing to visitors.{" "}
               <strong>Upgrade your plan</strong> to continue capturing leads.
             </p>
           </Banner>

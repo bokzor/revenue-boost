@@ -28,6 +28,7 @@ export class ProductDataHook implements PreDisplayHook {
                 console.log('[ProductDataHook] Using product ID from trigger context:', triggerProductId);
             }
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- products from API are dynamically typed
             let products: any[] = [];
 
             if (templateType === 'PRODUCT_UPSELL') {
@@ -57,6 +58,7 @@ export class ProductDataHook implements PreDisplayHook {
                 }
             } else if (templateType === 'FLASH_SALE') {
                 // Flash sale may have product configuration
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any -- campaign config is dynamically typed
                 const contentConfig = campaign.contentConfig as any;
                 if (contentConfig.productIds?.length > 0) {
                     products = await this.fetchFlashSaleProducts(campaign.id);
@@ -96,6 +98,7 @@ export class ProductDataHook implements PreDisplayHook {
             };
         }
     }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- products from API are dynamically typed
     private async fetchUpsellProducts(campaignId: string, triggerProductId?: string): Promise<any[]> {
         const params = new URLSearchParams({
             campaignId,
@@ -118,6 +121,7 @@ export class ProductDataHook implements PreDisplayHook {
         const data = await response.json();
         return Array.isArray(data.products) ? data.products : [];
     }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- products from API are dynamically typed
     private async fetchFlashSaleProducts(campaignId: string): Promise<any[]> {
         // Similar to upsell products, but for flash sale
         // This could be a different endpoint or the same one depending on your implementation
@@ -141,6 +145,7 @@ export class ProductDataHook implements PreDisplayHook {
      * The mock is only used when no real products are returned so that
      * merchants can still see the popup layout in storefront preview.
      */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- products are dynamically typed
     private buildPreviewMockProducts(campaign: { contentConfig?: unknown }): any[] {
         const contentConfig = (campaign.contentConfig || {}) as { maxProducts?: number };
         const maxFromConfig =

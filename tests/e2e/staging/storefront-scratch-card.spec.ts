@@ -1,6 +1,5 @@
 import { test, expect } from '@playwright/test';
 import { PrismaClient } from '@prisma/client';
-import fs from 'fs';
 import path from 'path';
 import * as dotenv from 'dotenv';
 import { CampaignFactory } from './factories/campaign-factory';
@@ -23,10 +22,12 @@ const TEST_PREFIX = getTestPrefix('storefront-scratch-card.spec.ts');
 /**
  * Scratch Card Template E2E Tests
  *
- * Tests ACTUAL scratch card content:
+ * Tests ACTUAL scratch card content against deployed extension code:
  * - Canvas element is present
  * - Email input appears when required
  * - Custom headline is displayed
+ *
+ * NOTE: No bundle mocking - tests use deployed extension code.
  */
 
 test.describe.serial('Scratch Card Template', () => {
@@ -68,15 +69,7 @@ test.describe.serial('Scratch Card Template', () => {
         await mockChallengeToken(page);
         await page.context().clearCookies();
 
-        await page.route('**/scratch-card.bundle.js*', async route => {
-            const bundlePath = path.join(process.cwd(), 'extensions/storefront-popup/assets/scratch-card.bundle.js');
-            const content = fs.readFileSync(bundlePath);
-            await route.fulfill({
-                status: 200,
-                contentType: 'application/javascript',
-                body: content,
-            });
-        });
+        // No bundle mocking - tests use deployed extension code
     });
 
     test('renders with scratch canvas element', async ({ page }) => {

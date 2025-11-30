@@ -1,7 +1,5 @@
 import { test, expect } from '@playwright/test';
 import { PrismaClient } from '@prisma/client';
-import fs from 'fs';
-import path from 'path';
 import * as dotenv from 'dotenv';
 import {
     STORE_URL,
@@ -10,7 +8,9 @@ import {
     handlePasswordPage,
     mockChallengeToken,
     getTestPrefix,
-    waitForPopupWithRetry
+    waitForPopupWithRetry,
+    cleanupAllE2ECampaigns,
+    MAX_TEST_PRIORITY
 } from './helpers/test-helpers';
 import { CampaignFactory } from './factories/campaign-factory';
 
@@ -21,11 +21,14 @@ const TEST_PREFIX = getTestPrefix('storefront-advanced-features.spec.ts');
 /**
  * Advanced Features E2E Tests
  *
- * Tests for:
- * - Discount auto-apply at checkout
- * - Geographic targeting (country-based)
+ * Tests for REAL advanced features:
+ * - Discount auto-apply at checkout (real Shopify discounts)
+ * - Geographic targeting (using real X-Country-Code header)
  * - Session rules (visitor behavior targeting)
- * - Bundle discounts for Product Upsell
+ * - Bundle discounts for Product Upsell (real API)
+ *
+ * NOTE: These tests run against deployed extension code (no bundle mocking)
+ * and real API endpoints (no API mocking).
  */
 
 test.describe.serial('Advanced Features', () => {
@@ -56,9 +59,8 @@ test.describe.serial('Advanced Features', () => {
     });
 
     test.beforeEach(async ({ page }) => {
-        await prisma.campaign.deleteMany({
-            where: { name: { startsWith: TEST_PREFIX } }
-        });
+        // Clean up ALL E2E campaigns to avoid priority conflicts
+        await cleanupAllE2ECampaigns(prisma);
         await page.waitForTimeout(500);
         await mockChallengeToken(page);
 
@@ -68,43 +70,18 @@ test.describe.serial('Advanced Features', () => {
             }
         });
 
-        // Intercept bundle requests
-        const bundles = ['newsletter', 'spin-to-win', 'product-upsell'];
-        for (const bundle of bundles) {
-            await page.route(`**/${bundle}.bundle.js*`, async route => {
-                const bundlePath = path.join(process.cwd(), `extensions/storefront-popup/assets/${bundle}.bundle.js`);
-                if (fs.existsSync(bundlePath)) {
-                    const content = fs.readFileSync(bundlePath);
-                    await route.fulfill({ status: 200, contentType: 'application/javascript', body: content });
-                } else {
-                    await route.continue();
-                }
-            });
-        }
-
-        // Mock upsell products API
-        await page.route('**/api/upsell-products*', async route => {
-            await route.fulfill({
-                status: 200,
-                contentType: 'application/json',
-                body: JSON.stringify({
-                    products: [
-                        { id: 'gid://shopify/Product/1', variantId: 'gid://shopify/ProductVariant/1', title: 'Test Product 1', price: '29.99', handle: 'test-1' },
-                        { id: 'gid://shopify/Product/2', variantId: 'gid://shopify/ProductVariant/2', title: 'Test Product 2', price: '49.99', handle: 'test-2' },
-                    ],
-                }),
-            });
-        });
+        // No bundle mocking - tests use deployed extension code
+        // No API mocking - tests use real upsell-products API
     });
 
     test.describe('Geographic Targeting', () => {
         test('campaign shows for matching country (mocked US visitor)', async ({ page }) => {
             console.log('🧪 Testing geo targeting behavior (US visitor)...');
 
-            // Create campaign that only shows to US visitors with very high priority
+            // Create campaign that only shows to US visitors with max priority
             const campaign = await (await factory.newsletter().init())
                 .withName('GeoTarget-USOnly')
-                .withPriority(99990)
+                .withPriority(MAX_TEST_PRIORITY)
                 .withHeadline('US Exclusive Offer!')
                 .withGeoTargeting({ mode: 'include', countries: ['US'] })
                 .create();
@@ -219,7 +196,6 @@ test.describe.serial('Advanced Features', () => {
         test('popup displays discount code after form submission', async ({ page }) => {
             console.log('🧪 Testing discount code display...');
 
-            const discountCode = 'SAVE20-TEST';
             const campaign = await (await factory.newsletter().init())
                 .withName('Discount-Display-Test')
                 .withPriority(99993)
@@ -233,21 +209,7 @@ test.describe.serial('Advanced Features', () => {
             console.log(`✅ Campaign created: ${campaign.id}`);
             await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
 
-            // Mock the lead submission API to return discount code
-            await page.route('**/api/leads*', async route => {
-                if (route.request().method() === 'POST') {
-                    await route.fulfill({
-                        status: 200,
-                        contentType: 'application/json',
-                        body: JSON.stringify({
-                            success: true,
-                            discountCode: discountCode
-                        })
-                    });
-                } else {
-                    await route.continue();
-                }
-            });
+            // No API mocking - test against real lead submission API
 
             await page.goto(STORE_URL);
             await handlePasswordPage(page);
@@ -255,13 +217,13 @@ test.describe.serial('Advanced Features', () => {
             const popup = page.locator('#revenue-boost-popup-shadow-host');
             await expect(popup).toBeVisible({ timeout: 15000 });
 
-            // Fill and submit email
+            // Fill and submit email - hard assertions
             const emailFilled = await page.evaluate(() => {
                 const host = document.querySelector('#revenue-boost-popup-shadow-host');
                 if (!host?.shadowRoot) return false;
                 const input = host.shadowRoot.querySelector('input[type="email"]') as HTMLInputElement;
                 if (!input) return false;
-                input.value = 'test@example.com';
+                input.value = `test-${Date.now()}@example.com`;
                 input.dispatchEvent(new Event('input', { bubbles: true }));
                 return true;
             });
@@ -279,31 +241,17 @@ test.describe.serial('Advanced Features', () => {
             expect(formSubmitted).toBe(true);
 
             // Wait for success state with discount code
-            await page.waitForTimeout(2000);
+            await page.waitForTimeout(3000);
 
-            // Verify discount code is displayed
-            const discountVisible = await page.evaluate((code) => {
+            // Verify success state (discount code or thank you message) - hard assertion
+            const hasSuccessState = await page.evaluate(() => {
                 const host = document.querySelector('#revenue-boost-popup-shadow-host');
                 if (!host?.shadowRoot) return false;
-                const html = host.shadowRoot.innerHTML;
-                return html.includes(code) || html.includes('SAVE20');
-            }, discountCode);
-
-            // Log result - discount display may vary by template
-            if (discountVisible) {
-                console.log('✅ Discount code displayed after submission');
-            } else {
-                console.log('⚠️ Discount code not visible - checking success state');
-                // Check for success state instead
-                const hasSuccessState = await page.evaluate(() => {
-                    const host = document.querySelector('#revenue-boost-popup-shadow-host');
-                    if (!host?.shadowRoot) return false;
-                    const html = host.shadowRoot.innerHTML.toLowerCase();
-                    return html.includes('thank') || html.includes('success') || html.includes('subscribed');
-                });
-                expect(hasSuccessState).toBe(true);
-                console.log('✅ Success state verified after form submission');
-            }
+                const html = host.shadowRoot.innerHTML.toLowerCase();
+                return html.includes('thank') || html.includes('success') || html.includes('subscribed') || html.includes('save20');
+            });
+            expect(hasSuccessState).toBe(true);
+            console.log('✅ Success state verified after form submission');
         });
 
         test('spin to win displays won discount code', async ({ page }) => {
@@ -322,22 +270,7 @@ test.describe.serial('Advanced Features', () => {
             console.log(`✅ Campaign created: ${campaign.id}`);
             await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
 
-            // Mock spin result API
-            await page.route('**/api/spin*', async route => {
-                await route.fulfill({
-                    status: 200,
-                    contentType: 'application/json',
-                    body: JSON.stringify({
-                        success: true,
-                        prize: {
-                            label: '15% Off',
-                            discountCode: 'SPIN15-WIN123',
-                            value: 15,
-                            valueType: 'PERCENTAGE'
-                        }
-                    })
-                });
-            });
+            // No API mocking - test against real spin API
 
             await page.goto(STORE_URL);
             await handlePasswordPage(page);
@@ -345,7 +278,7 @@ test.describe.serial('Advanced Features', () => {
             const popup = page.locator('#revenue-boost-popup-shadow-host');
             await expect(popup).toBeVisible({ timeout: 15000 });
 
-            // Verify spin wheel is rendered
+            // Verify spin wheel is rendered - hard assertion
             const hasWheel = await page.evaluate(() => {
                 const host = document.querySelector('#revenue-boost-popup-shadow-host');
                 if (!host?.shadowRoot) return false;
@@ -376,20 +309,15 @@ test.describe.serial('Advanced Features', () => {
             const popup = page.locator('#revenue-boost-popup-shadow-host');
             await expect(popup).toBeVisible({ timeout: 15000 });
 
-            // Check for bundle discount text in shadow DOM
+            // Check for bundle discount text in shadow DOM - hard assertion
             const hasBundleText = await page.evaluate(() => {
                 const host = document.querySelector('#revenue-boost-popup-shadow-host');
                 if (!host?.shadowRoot) return false;
                 const html = host.shadowRoot.innerHTML.toLowerCase();
                 return html.includes('bundle') || html.includes('save') || html.includes('25%') || html.includes('discount');
             });
-
-            if (hasBundleText) {
-                console.log('✅ Bundle discount text verified in popup');
-            } else {
-                // Product upsell may not always show bundle text prominently
-                console.log('⚠️ Bundle text not prominent - verifying popup rendered');
-            }
+            expect(hasBundleText).toBe(true);
+            console.log('✅ Bundle discount text verified in popup');
 
             // Verify it's a product upsell popup (has product-related content)
             const hasProductContent = await page.evaluate(() => {

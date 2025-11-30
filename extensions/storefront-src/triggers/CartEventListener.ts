@@ -25,6 +25,28 @@ function isCartUpdateDetail(v: unknown): v is { total?: number } {
   return v != null && typeof v === "object" && typeof (v as { total?: unknown }).total === "number";
 }
 
+/**
+ * Check if detail has total_price (Shopify cart format)
+ */
+function hasShopifyCartTotal(v: unknown): v is { total_price?: number } {
+  return v != null && typeof v === "object" && typeof (v as { total_price?: unknown }).total_price === "number";
+}
+
+/**
+ * Get current cart value from window.Shopify.cart
+ * Returns value in dollars (not cents)
+ */
+function getGlobalCartValue(): number {
+  type ShopifyGlobal = { Shopify?: { cart?: { total_price: number } } };
+  const w = window as unknown as ShopifyGlobal;
+
+  if (w.Shopify && w.Shopify.cart && typeof w.Shopify.cart.total_price === "number") {
+    return w.Shopify.cart.total_price / 100;
+  }
+
+  return 0;
+}
+
 
 export class CartEventListener {
   private config: Required<CartEventConfig>;
@@ -146,12 +168,30 @@ export class CartEventListener {
 
     // Check cart value threshold if tracking is enabled
     if (this.config.trackCartValue && eventType === "cart_update") {
+      // Try multiple sources for cart value (in priority order):
+      // 1. detail.total (normalized by CartJS handler)
+      // 2. detail.total_price (raw Shopify cart format, divide by 100)
+      // 3. window.Shopify.cart.total_price (global fallback)
       let cartValue = 0;
+
       if (isCartUpdateDetail(detail)) {
         cartValue = detail.total ?? 0;
+      } else if (hasShopifyCartTotal(detail)) {
+        // Handle Shopify cart format (cents -> dollars)
+        cartValue = (detail.total_price ?? 0) / 100;
+      } else {
+        // Fallback: check global Shopify.cart
+        cartValue = getGlobalCartValue();
       }
 
+      console.log("[Revenue Boost] CartEventListener checking cart value:", {
+        cartValue,
+        minCartValue: this.config.minCartValue,
+        maxCartValue: this.config.maxCartValue,
+      });
+
       if (cartValue < this.config.minCartValue || cartValue > this.config.maxCartValue) {
+        console.log("[Revenue Boost] CartEventListener: cart value outside threshold, ignoring event");
         return; // Don't trigger if outside threshold
       }
     }
@@ -179,7 +219,7 @@ export class CartEventListener {
       return;
     }
 
-    const w = window as any;
+    const w = window as Window & { CartJS?: { on?: (event: string, handler: (...args: unknown[]) => void) => void; off?: (event: string, handler: (...args: unknown[]) => void) => void } };
     const cartJs = w.CartJS;
 
     if (!cartJs || typeof cartJs.on !== "function") {
@@ -188,22 +228,23 @@ export class CartEventListener {
 
     // Map add_to_cart -> CartJS "item:added" event
     if (this.config.events.includes("add_to_cart")) {
-      const handler = (cart: any, item: any) => {
+      const handler = (cart: unknown, item: unknown) => {
         this.emitCartEventFromDetail("add_to_cart", { cart, item });
       };
       cartJs.on("item:added", handler);
 
       if (typeof cartJs.off === "function") {
-        this.cartJsUnsubscribeFns.push(() => cartJs.off("item:added", handler));
+        this.cartJsUnsubscribeFns.push(() => cartJs.off!("item:added", handler));
       }
     }
 
     // Map cart_update -> CartJS "cart:updated" event and derive a numeric total
     if (this.config.events.includes("cart_update")) {
-      const handler = (cart: any) => {
+      const handler = (cart: unknown) => {
+        const cartObj = cart as { total_price?: number } | null;
         const total =
-          cart && typeof cart.total_price === "number"
-            ? cart.total_price / 100
+          cartObj && typeof cartObj.total_price === "number"
+            ? cartObj.total_price / 100
             : undefined;
 
         this.emitCartEventFromDetail("cart_update", {
@@ -215,7 +256,7 @@ export class CartEventListener {
       cartJs.on("cart:updated", handler);
 
       if (typeof cartJs.off === "function") {
-        this.cartJsUnsubscribeFns.push(() => cartJs.off("cart:updated", handler));
+        this.cartJsUnsubscribeFns.push(() => cartJs.off!("cart:updated", handler));
       }
     }
   }

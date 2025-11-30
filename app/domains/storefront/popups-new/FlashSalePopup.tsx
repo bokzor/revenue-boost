@@ -32,10 +32,26 @@ import { DiscountCodeDisplay, PopupCloseButton, TimerDisplay } from "./component
  * Background image settings (imageUrl, imagePosition, backgroundImageMode, backgroundOverlayOpacity)
  * come from PopupDesignConfig
  */
+// Discount tier type
+interface DiscountTier {
+  thresholdCents: number;
+  discount: { kind: string; value: number };
+}
+
+// Advanced discount config type
+interface AdvancedDiscountConfig {
+  tiers?: DiscountTier[];
+  bogo?: {
+    buy: { quantity: number };
+    get: { quantity: number; discount: { kind: string; value: number } };
+  };
+  freeGift?: { enabled: boolean };
+}
+
 export interface FlashSaleConfig extends PopupDesignConfig, FlashSaleContent {
   // Storefront-specific fields
   ctaOpenInNewTab?: boolean;
-  discountConfig?: any; // Legacy/advanced config (tiers, BOGO, free gift)
+  discountConfig?: AdvancedDiscountConfig; // Legacy/advanced config (tiers, BOGO, free gift)
   discount?: StorefrontDiscountConfig; // Normalized storefront discount summary
   currentCartTotal?: number; // Injected by storefront runtime
 }
@@ -92,10 +108,13 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
   const [isClaimingDiscount, setIsClaimingDiscount] = useState(false);
   const [_discountError, setDiscountError] = useState<string | null>(null);
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- config has dynamic fields
+  const configRecord = config as any;
+
   // Fetch inventory if configured
   useEffect(() => {
     // In preview mode, avoid real API calls and rely on pseudo config only
-    if ((config as any).previewMode) {
+    if (configRecord.previewMode) {
       if (!config.inventory || config.inventory.mode === "pseudo") {
         if (config.inventory?.pseudoMax) {
           setInventoryTotal(config.inventory.pseudoMax);
@@ -139,6 +158,7 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
     fetchInventory();
     const interval = setInterval(fetchInventory, 10000); // Refresh every 10s
     return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- Only re-run when inventory config changes
   }, [config.inventory]);
 
   // Timer is now handled by useCountdownTimer hook
@@ -152,10 +172,8 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
 
   const reservationTime = reservationTimer.hasExpired ? null : reservationTimer.timeRemaining;
 
-  const isPreview = (config as any).previewMode;
-  const discount = (config.discount ?? (config as any).discount) as
-    | StorefrontDiscountConfig
-    | undefined;
+  const isPreview = configRecord.previewMode;
+  const discount = config.discount as StorefrontDiscountConfig | undefined;
   // In preview, always behave as if a discount exists so the full flow can be exercised
   const hasDiscount = isPreview ? true : !!discount?.enabled;
 
@@ -240,7 +258,7 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
 
     if (dc?.tiers?.length) {
       // Tiered discount
-      const tiers = dc.tiers.map((t: any) => {
+      const tiers = dc.tiers.map((t: DiscountTier) => {
         const threshold = (t.thresholdCents / 100).toFixed(0);
         if (t.discount.kind === "free_shipping") return `$${threshold} free ship`;
         return `$${threshold} get ${t.discount.value}${t.discount.kind === "percentage" ? "%" : "$"} off`;
@@ -258,8 +276,10 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
     }
 
     if (dc?.freeGift) {
-      const min = dc.freeGift.minSubtotalCents
-        ? `over $${(dc.freeGift.minSubtotalCents / 100).toFixed(0)}`
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- freeGift has dynamic shape
+      const freeGift = dc.freeGift as any;
+      const min = freeGift.minSubtotalCents
+        ? `over $${(freeGift.minSubtotalCents / 100).toFixed(0)}`
         : "";
       return `Free gift with purchase ${min}`.trim();
     }

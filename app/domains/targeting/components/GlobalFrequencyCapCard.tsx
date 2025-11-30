@@ -61,7 +61,7 @@ export function GlobalFrequencyCapCard({
 
           <Text as="p" variant="bodySm" tone="subdued">
             Prevent popup fatigue by coordinating with other campaigns. This setting ensures
-            visitors don't see too many popups across all your active campaigns.
+            visitors don&apos;t see too many popups across all your active campaigns.
           </Text>
 
           <Checkbox
@@ -80,7 +80,7 @@ export function GlobalFrequencyCapCard({
                       Global coordination enabled
                     </Text>
                     <Text as="p" variant="bodySm">
-                      This campaign will respect your store's global frequency limits:
+                      This campaign will respect your store&apos;s global frequency limits:
                     </Text>
                     <Box paddingBlockStart="100">
                       <List type="bullet">
@@ -129,7 +129,7 @@ export function GlobalFrequencyCapCard({
                       Global coordination enabled, but no limits set
                     </Text>
                     <Text as="p" variant="bodySm">
-                      This campaign will coordinate with other campaigns, but you haven't configured
+                      This campaign will coordinate with other campaigns, but you haven&apos;t configured
                       global frequency limits yet. We recommend setting up global limits to prevent
                       popup fatigue.
                     </Text>

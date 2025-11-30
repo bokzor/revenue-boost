@@ -63,7 +63,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   }
 
   // 1. Get Campaign Details & other data in parallel
-  const [campaign, statsMap, revenueMap, dailyMetrics, currency, conversions, clicksMap] =
+  const [campaign, _statsMap, revenueMap, dailyMetrics, currency, conversions, clicksMap] =
     await Promise.all([
       CampaignService.getCampaignById(campaignId, storeId),
       CampaignAnalyticsService.getCampaignStats([campaignId]),

@@ -36,7 +36,7 @@ interface DesignStepContentProps {
   contentConfig: Partial<ContentConfig>;
   designConfig: Partial<DesignConfig>;
   discountConfig?: DiscountConfig;
-  targetRules?: Record<string, any>;
+  targetRules?: Record<string, unknown>;
   globalCustomCSS?: string;
   /** Custom theme presets from store settings */
   customThemePresets?: Array<{

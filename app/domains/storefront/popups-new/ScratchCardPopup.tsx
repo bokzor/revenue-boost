@@ -75,7 +75,7 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
     setEmail,
     setGdprConsent,
     errors,
-    handleSubmit: handleFormSubmit,
+    handleSubmit: _handleFormSubmit,
     validateForm,
     isSubmitting,
     isSubmitted: _isSubmitted,
@@ -207,9 +207,9 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
       } catch (error) {
         console.error("[Scratch Card] Network error fetching prize:", error);
       }
-      // Note: email is NOT in dependencies to prevent re-fetching on every keystroke
-      // eslint-disable-next-line react-hooks/exhaustive-deps
+      // Note: formState.email is NOT in dependencies to prevent re-fetching on every keystroke
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- formState.email intentionally excluded
     [config.campaignId, config.previewMode, config.prizes]
   );
 
@@ -503,7 +503,8 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
         setIsSubmittingEmail(false);
       }
     },
-    [handleFormSubmit, validateForm, config, formState, wonPrize, fetchPrize, setDiscountCode]
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- handleFormSubmit is intentionally excluded to avoid loops
+    [validateForm, config, formState, wonPrize, fetchPrize, setDiscountCode]
   );
 
   // Fetch prize on mount if email is not required before scratching

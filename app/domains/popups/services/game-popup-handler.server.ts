@@ -304,7 +304,7 @@ export interface AuthResult {
  */
 export async function authenticateRequest(
   request: Request,
-  config: GamePopupConfig
+  _config: GamePopupConfig
 ): Promise<AuthResult | ReturnType<typeof data>> {
   const { admin, session } = await authenticate.public.appProxy(request);
 

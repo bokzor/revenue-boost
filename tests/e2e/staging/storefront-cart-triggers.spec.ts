@@ -1,7 +1,5 @@
 import { test, expect } from '@playwright/test';
 import { PrismaClient } from '@prisma/client';
-import fs from 'fs';
-import path from 'path';
 import * as dotenv from 'dotenv';
 import {
     STORE_URL,
@@ -27,6 +25,9 @@ const TEST_PREFIX = getTestPrefix('storefront-cart-triggers.spec.ts');
  * - Product view trigger (fires on product page)
  * - Idle timer trigger (fires after inactivity)
  * - Custom event trigger (fires on custom JS event)
+ *
+ * NOTE: These tests run against deployed extension code (no bundle mocking)
+ * and real API endpoints (no API mocking).
  */
 
 test.describe.serial('Cart & Product Triggers', () => {
@@ -72,23 +73,14 @@ test.describe.serial('Cart & Product Triggers', () => {
 
         await mockChallengeToken(page);
 
-        // Log browser console messages
+        // Log browser console messages for debugging
         page.on('console', msg => {
             if (msg.text().includes('[Revenue Boost]')) {
                 console.log(`[BROWSER] ${msg.text()}`);
             }
         });
 
-        // Intercept the newsletter bundle request and serve the local file
-        await page.route('**/newsletter.bundle.js*', async route => {
-            const bundlePath = path.join(process.cwd(), 'extensions/storefront-popup/assets/newsletter.bundle.js');
-            const content = fs.readFileSync(bundlePath);
-            await route.fulfill({
-                status: 200,
-                contentType: 'application/javascript',
-                body: content,
-            });
-        });
+        // No bundle mocking - tests use deployed extension code
     });
 
     test.describe('Add to Cart Trigger', () => {
@@ -116,7 +108,8 @@ test.describe.serial('Cart & Product Triggers', () => {
             // Popup should NOT be visible yet (waiting for add-to-cart event)
             const popupHostEarly = page.locator('#revenue-boost-popup-shadow-host');
             const visibleEarly = await popupHostEarly.isVisible().catch(() => false);
-            console.log(`Popup visible before add-to-cart (expected false): ${visibleEarly}`);
+            expect(visibleEarly).toBe(false);
+            console.log('✅ Popup correctly hidden before add-to-cart event');
 
             // Simulate add-to-cart event (this is how Shopify themes typically dispatch it)
             await page.evaluate(() => {
@@ -138,17 +131,10 @@ test.describe.serial('Cart & Product Triggers', () => {
             // Wait for popup to appear
             await page.waitForTimeout(2000);
 
-            // Check if popup appeared
+            // Popup MUST appear after add-to-cart event - hard assertion
             const popupVisible = await waitForPopupWithRetry(page, { timeout: 5000, retries: 2, reloadOnRetry: false });
-
-            if (popupVisible) {
-                console.log('✅ Popup shown after add-to-cart event');
-            } else {
-                console.log('⚠️ Popup did not show - add-to-cart event may not be supported in this theme');
-            }
-
-            // Test passes if we reach here - we're testing the trigger configuration works
-            expect(campaign).toBeDefined();
+            expect(popupVisible).toBe(true);
+            console.log('✅ Popup shown after add-to-cart event');
         });
 
         test('add-to-cart trigger respects delay config', async ({ page }) => {
@@ -181,19 +167,16 @@ test.describe.serial('Cart & Product Triggers', () => {
             await page.waitForTimeout(500);
             const popupHost = page.locator('#revenue-boost-popup-shadow-host');
             const visibleEarly = await popupHost.isVisible().catch(() => false);
-            console.log(`Popup visible at 0.5s (expected false): ${visibleEarly}`);
+            expect(visibleEarly).toBe(false);
+            console.log('✅ Popup correctly delayed (not visible at 0.5s)');
 
             // Wait for delay to pass + buffer
             await page.waitForTimeout(2500);
 
-            // Check if popup appeared after delay
+            // Popup MUST appear after delay - hard assertion
             const popupVisible = await waitForPopupWithRetry(page, { timeout: 5000, retries: 2, reloadOnRetry: false });
-
-            if (popupVisible) {
-                console.log('✅ Popup appeared after configured delay');
-            } else {
-                console.log('⚠️ Popup did not appear - trigger may need debugging');
-            }
+            expect(popupVisible).toBe(true);
+            console.log('✅ Popup appeared after configured delay');
         });
     });
 
@@ -222,7 +205,8 @@ test.describe.serial('Cart & Product Triggers', () => {
             // Popup should NOT be visible yet (cart is empty)
             const popupHostEarly = page.locator('#revenue-boost-popup-shadow-host');
             const visibleEarly = await popupHostEarly.isVisible().catch(() => false);
-            console.log(`Popup visible before cart update (expected false): ${visibleEarly}`);
+            expect(visibleEarly).toBe(false);
+            console.log('✅ Popup correctly hidden before cart exceeds threshold');
 
             // Simulate cart update event with value exceeding threshold
             await page.evaluate(() => {
@@ -240,16 +224,10 @@ test.describe.serial('Cart & Product Triggers', () => {
             // Wait for popup to appear
             await page.waitForTimeout(2000);
 
-            // Check if popup appeared
+            // Popup MUST appear after cart value exceeds threshold - hard assertion
             const popupVisible = await waitForPopupWithRetry(page, { timeout: 5000, retries: 2, reloadOnRetry: false });
-
-            if (popupVisible) {
-                console.log('✅ Popup shown after cart value exceeded threshold');
-            } else {
-                console.log('⚠️ Popup did not show - cart value event may require real cart interaction');
-            }
-
-            expect(campaign).toBeDefined();
+            expect(popupVisible).toBe(true);
+            console.log('✅ Popup shown after cart value exceeded threshold');
         });
     });
 
@@ -275,36 +253,23 @@ test.describe.serial('Cart & Product Triggers', () => {
             await page.goto(`${STORE_URL}/collections/all`);
             await handlePasswordPage(page);
 
-            // Try to find and click on a product
+            // Find and click on a product - this MUST exist for E2E tests
             const productLink = page.locator('a[href*="/products/"]').first();
-            const hasProduct = await productLink.isVisible().catch(() => false);
+            await expect(productLink).toBeVisible({ timeout: 10000 });
+            await productLink.click();
+            await page.waitForLoadState('networkidle');
 
-            if (hasProduct) {
-                await productLink.click();
-                await page.waitForLoadState('networkidle');
+            // Verify we're on a product page
+            expect(page.url()).toContain('/products/');
+            console.log(`✅ On product page: ${page.url()}`);
 
-                // Verify we're on a product page
-                const isProductPage = page.url().includes('/products/');
-                console.log(`On product page: ${isProductPage}`);
+            // Wait for the time delay (2 seconds) + buffer
+            await page.waitForTimeout(3000);
 
-                if (isProductPage) {
-                    // Wait for the time delay (2 seconds) + buffer
-                    await page.waitForTimeout(3000);
-
-                    // Check if popup appeared
-                    const popupVisible = await waitForPopupWithRetry(page, { timeout: 5000, retries: 2, reloadOnRetry: false });
-
-                    if (popupVisible) {
-                        console.log('✅ Popup shown on product page after time delay');
-                    } else {
-                        console.log('⚠️ Popup did not show - product view trigger may need adjustment');
-                    }
-                }
-            } else {
-                console.log('⚠️ No products found in collection - skipping behavioral test');
-            }
-
-            expect(campaign).toBeDefined();
+            // Popup MUST appear on product page - hard assertion
+            const popupVisible = await waitForPopupWithRetry(page, { timeout: 5000, retries: 2, reloadOnRetry: false });
+            expect(popupVisible).toBe(true);
+            console.log('✅ Popup shown on product page after time delay');
         });
     });
 
@@ -337,22 +302,17 @@ test.describe.serial('Cart & Product Triggers', () => {
             // Popup should NOT be visible yet
             const popupHostEarly = page.locator('#revenue-boost-popup-shadow-host');
             const visibleEarly = await popupHostEarly.isVisible().catch(() => false);
-            console.log(`Popup visible before idle (expected false): ${visibleEarly}`);
+            expect(visibleEarly).toBe(false);
+            console.log('✅ Popup correctly hidden during activity');
 
             // Now stay idle for the trigger duration + buffer
             console.log('Staying idle for 5 seconds...');
             await page.waitForTimeout(5000);
 
-            // Check if popup appeared
+            // Popup MUST appear after idle time - hard assertion
             const popupVisible = await waitForPopupWithRetry(page, { timeout: 5000, retries: 2, reloadOnRetry: false });
-
-            if (popupVisible) {
-                console.log('✅ Popup shown after user was idle');
-            } else {
-                console.log('⚠️ Popup did not show after idle time');
-            }
-
-            expect(campaign).toBeDefined();
+            expect(popupVisible).toBe(true);
+            console.log('✅ Popup shown after user was idle');
         });
     });
 
@@ -383,7 +343,8 @@ test.describe.serial('Cart & Product Triggers', () => {
             // Popup should NOT be visible yet
             const popupHostEarly = page.locator('#revenue-boost-popup-shadow-host');
             const visibleEarly = await popupHostEarly.isVisible().catch(() => false);
-            console.log(`Popup visible before custom event (expected false): ${visibleEarly}`);
+            expect(visibleEarly).toBe(false);
+            console.log('✅ Popup correctly hidden before custom event');
 
             // Dispatch the custom event
             await page.evaluate((evtName) => {
@@ -398,16 +359,10 @@ test.describe.serial('Cart & Product Triggers', () => {
             // Wait for popup to appear
             await page.waitForTimeout(2000);
 
-            // Check if popup appeared
+            // Popup MUST appear after custom event - hard assertion
             const popupVisible = await waitForPopupWithRetry(page, { timeout: 5000, retries: 2, reloadOnRetry: false });
-
-            if (popupVisible) {
-                console.log('✅ Popup shown after custom event dispatched');
-            } else {
-                console.log('⚠️ Popup did not show after custom event');
-            }
-
-            expect(campaign).toBeDefined();
+            expect(popupVisible).toBe(true);
+            console.log('✅ Popup shown after custom event dispatched');
         });
     });
 });

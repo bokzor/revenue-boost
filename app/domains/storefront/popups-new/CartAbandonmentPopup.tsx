@@ -175,6 +175,7 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
         discountApplied: !!discountCode,
       });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- onTrack is stable callback from parent
   }, [
     config.discount?.enabled,
     config.ctaUrl,
@@ -194,6 +195,7 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
       onTrack({ action: "save_for_later" });
     }
     onClose();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- onTrack is stable callback from parent
   }, [onSaveForLater, onClose]);
 
   const handleEmailSubmit = useCallback(

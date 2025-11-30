@@ -3,6 +3,9 @@
  *
  * Tests for the plan-based sanitization of advanced targeting (audience targeting)
  * in campaign create/update operations.
+ *
+ * Note: Session rules have been removed. Cart-based targeting is now handled
+ * by the cart_value trigger in Enhanced Triggers (client-side).
  */
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
@@ -25,22 +28,10 @@ vi.mock("~/domains/billing/services/plan-guard.server", () => ({
   },
 }));
 
-// Type for session rule condition
-type SessionRuleCondition = {
-  field: string;
-  operator: "in" | "eq" | "ne" | "gt" | "gte" | "lt" | "lte" | "nin";
-  value: string | number | boolean | string[];
-};
-
 // Default disabled audience targeting config (mirrors production)
 const DISABLED_AUDIENCE_TARGETING: AudienceTargetingConfig = {
   enabled: false,
   shopifySegmentIds: [],
-  sessionRules: {
-    enabled: false,
-    conditions: [] as SessionRuleCondition[],
-    logicOperator: "AND" as const,
-  },
 };
 
 // Simulated sanitizer function (mirrors production implementation)
@@ -90,11 +81,6 @@ describe("Advanced Targeting Sanitization", () => {
           audienceTargeting: {
             enabled: true,
             shopifySegmentIds: ["segment-1", "segment-2"],
-            sessionRules: {
-              enabled: true,
-              conditions: [{ field: "cartValue", operator: "gt", value: 50 }],
-              logicOperator: "AND",
-            },
           },
         };
 
@@ -109,36 +95,12 @@ describe("Advanced Targeting Sanitization", () => {
           audienceTargeting: {
             enabled: false,
             shopifySegmentIds: ["segment-1"],
-            sessionRules: {
-              enabled: false,
-              conditions: [],
-              logicOperator: "AND",
-            },
           },
         };
 
         const result = await sanitizeTargetRulesForPlan("store-123", targetRules);
 
         expect(result?.audienceTargeting?.shopifySegmentIds).toEqual([]);
-      });
-
-      it("should strip session rules even when enabled is false", async () => {
-        const targetRules: TargetRulesConfig = {
-          audienceTargeting: {
-            enabled: false,
-            shopifySegmentIds: [],
-            sessionRules: {
-              enabled: true,
-              conditions: [{ field: "cartItemCount", operator: "gt", value: 0 }],
-              logicOperator: "AND",
-            },
-          },
-        };
-
-        const result = await sanitizeTargetRulesForPlan("store-123", targetRules);
-
-        expect(result?.audienceTargeting?.sessionRules?.enabled).toBe(false);
-        expect(result?.audienceTargeting?.sessionRules?.conditions).toEqual([]);
       });
 
       it("should preserve enhancedTriggers while stripping audienceTargeting", async () => {
@@ -151,11 +113,6 @@ describe("Advanced Targeting Sanitization", () => {
           audienceTargeting: {
             enabled: true,
             shopifySegmentIds: ["segment-1"],
-            sessionRules: {
-              enabled: false,
-              conditions: [],
-              logicOperator: "AND" as const,
-            },
           },
         };
 
@@ -182,11 +139,6 @@ describe("Advanced Targeting Sanitization", () => {
           audienceTargeting: {
             enabled: true,
             shopifySegmentIds: ["segment-1"],
-            sessionRules: {
-              enabled: false,
-              conditions: [],
-              logicOperator: "AND" as const,
-            },
           },
         };
 
@@ -223,11 +175,6 @@ describe("Advanced Targeting Sanitization", () => {
           audienceTargeting: {
             enabled: true,
             shopifySegmentIds: ["segment-1", "segment-2"],
-            sessionRules: {
-              enabled: true,
-              conditions: [{ field: "cartValue", operator: "gt", value: 50 }],
-              logicOperator: "AND",
-            },
           },
         };
 
@@ -235,7 +182,6 @@ describe("Advanced Targeting Sanitization", () => {
 
         expect(result?.audienceTargeting?.enabled).toBe(true);
         expect(result?.audienceTargeting?.shopifySegmentIds).toEqual(["segment-1", "segment-2"]);
-        expect(result?.audienceTargeting?.sessionRules?.enabled).toBe(true);
       });
 
       it("should preserve all targeting config unchanged", async () => {
@@ -244,11 +190,6 @@ describe("Advanced Targeting Sanitization", () => {
           audienceTargeting: {
             enabled: true,
             shopifySegmentIds: ["segment-1"],
-            sessionRules: {
-              enabled: true,
-              conditions: [{ field: "cartItemCount", operator: "gt", value: 0 }],
-              logicOperator: "OR",
-            },
           },
           pageTargeting: {
             enabled: true,
@@ -281,28 +222,18 @@ describe("Advanced Targeting Sanitization", () => {
         });
       });
 
-      it("should preserve complex audience targeting config", async () => {
+      it("should preserve audience targeting with multiple segments", async () => {
         const targetRules: TargetRulesConfig = {
           audienceTargeting: {
             enabled: true,
             shopifySegmentIds: ["vip-customers", "repeat-buyers", "high-value"],
-            sessionRules: {
-              enabled: true,
-              conditions: [
-                { field: "cartValue", operator: "gte", value: 100 },
-                { field: "visitCount", operator: "gte", value: 2 },
-              ],
-              logicOperator: "AND",
-            },
           },
         };
 
         const result = await sanitizeTargetRulesForPlan("store-123", targetRules);
 
         expect(result?.audienceTargeting?.shopifySegmentIds).toHaveLength(3);
-        expect(result?.audienceTargeting?.sessionRules?.conditions).toHaveLength(2);
       });
     });
   });
 });
-

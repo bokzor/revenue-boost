@@ -11,7 +11,7 @@
  * - Support for all discount types (%, fixed, free shipping)
  */
 
-import { data, type ActionFunctionArgs } from "react-router";
+import { type ActionFunctionArgs } from "react-router";
 import { z } from "zod";
 import {
   ScratchCardRequestSchema,

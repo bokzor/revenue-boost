@@ -1,6 +1,5 @@
 import { test, expect } from '@playwright/test';
 import { PrismaClient } from '@prisma/client';
-import fs from 'fs';
 import path from 'path';
 import * as dotenv from 'dotenv';
 import { CampaignFactory } from './factories/campaign-factory';
@@ -15,9 +14,10 @@ import {
     hasTextInShadowDOM,
     getFormInputsFromShadowDOM,
     performNewsletterSignup,
-    mockLeadSubmission,
     getTestPrefix,
-    waitForPopupWithRetry
+    waitForPopupWithRetry,
+    cleanupAllE2ECampaigns,
+    MAX_TEST_PRIORITY
 } from './helpers/test-helpers';
 
 // Load staging environment variables
@@ -25,6 +25,18 @@ dotenv.config({ path: path.resolve(process.cwd(), '.env.staging.env'), override:
 
 const STORE_DOMAIN = 'revenue-boost-staging.myshopify.com';
 const TEST_PREFIX = getTestPrefix('storefront-interaction-patterns.spec.ts');
+
+/**
+ * Interaction Patterns E2E Tests
+ *
+ * Tests ACTUAL user interaction patterns against REAL APIs:
+ * - Form submissions (real lead submission API)
+ * - Button clicks and form validation
+ * - Close behaviors
+ *
+ * NOTE: These tests run against deployed extension code (no bundle mocking)
+ * and real API endpoints (no API mocking).
+ */
 
 test.describe.serial('Interaction Patterns - Cross-Template Tests', () => {
     let prisma: PrismaClient;
@@ -61,12 +73,8 @@ test.describe.serial('Interaction Patterns - Cross-Template Tests', () => {
     });
 
     test.beforeEach(async ({ page }) => {
-        // Clean up campaigns from previous runs of THIS test file only
-        await prisma.campaign.deleteMany({
-            where: {
-                name: { startsWith: TEST_PREFIX }
-            }
-        });
+        // Clean up ALL E2E campaigns to avoid priority conflicts
+        await cleanupAllE2ECampaigns(prisma);
 
         // Wait for cache invalidation
         await page.waitForTimeout(500);
@@ -77,57 +85,16 @@ test.describe.serial('Interaction Patterns - Cross-Template Tests', () => {
             console.log(`[BROWSER] ${msg.type()}: ${msg.text()}`);
         });
 
-        // Intercept all popup bundles
-        await page.route('**/newsletter.bundle.js*', async route => {
-            const bundlePath = path.join(process.cwd(), 'extensions/storefront-popup/assets/newsletter.bundle.js');
-            await route.fulfill({
-                status: 200,
-                contentType: 'application/javascript',
-                body: fs.readFileSync(bundlePath),
-            });
-        });
-
-        await page.route('**/spin-to-win.bundle.js*', async route => {
-            const bundlePath = path.join(process.cwd(), 'extensions/storefront-popup/assets/spin-to-win.bundle.js');
-            await route.fulfill({
-                status: 200,
-                contentType: 'application/javascript',
-                body: fs.readFileSync(bundlePath),
-            });
-        });
-
-        // Mock API endpoints to avoid "Invalid token" errors
-        await page.route(/.*\/api\/leads\/submit.*/, async route => {
-            console.log('intercepted: lead submission');
-            await route.fulfill({
-                status: 200,
-                contentType: 'application/json',
-                body: JSON.stringify({
-                    success: true,
-                    leadId: 'mock-lead-id',
-                    discountCode: 'MOCK-DISCOUNT-123'
-                })
-            });
-        });
-
-        await page.route(/.*\/api\/discounts\/issue.*/, async route => {
-            console.log('intercepted: discount issue');
-            await route.fulfill({
-                status: 200,
-                contentType: 'application/json',
-                body: JSON.stringify({
-                    success: true,
-                    code: 'MOCK-DISCOUNT-123',
-                    type: 'fixed_amount'
-                })
-            });
-        });
+        // No bundle mocking - tests use deployed extension code
+        // No API mocking - tests use real API endpoints
     });
 
     test.describe('Email Validation', () => {
         test('validates email format in Newsletter form', async ({ page }) => {
-            // Create Newsletter campaign
-            const campaign = await (await factory.newsletter().init()).create();
+            // Create Newsletter campaign with max priority
+            const campaign = await (await factory.newsletter().init())
+                .withPriority(MAX_TEST_PRIORITY)
+                .create();
             console.log(`✅ Campaign created: ${campaign.id}`);
 
             // Wait for campaign to propagate to API (Cloud Run caching)
@@ -164,10 +131,11 @@ test.describe.serial('Interaction Patterns - Cross-Template Tests', () => {
         });
 
         test('accepts valid email format and submits form', async ({ page }) => {
-            // Mock the lead submission API
-            await mockLeadSubmission(page, 'TESTCODE');
+            // No API mocking - test against real lead submission API
 
-            const campaign = await (await factory.newsletter().init()).create();
+            const campaign = await (await factory.newsletter().init())
+                .withPriority(MAX_TEST_PRIORITY)
+                .create();
             console.log(`✅ Campaign created: ${campaign.id}`);
 
             // Wait for campaign to propagate to API (Cloud Run caching)
@@ -179,8 +147,9 @@ test.describe.serial('Interaction Patterns - Cross-Template Tests', () => {
             const popupHost = page.locator('#revenue-boost-popup-shadow-host');
             await expect(popupHost).toBeVisible({ timeout: 10000 });
 
-            // Fill valid email
-            const filled = await fillEmailInShadowDOM(page, 'test@example.com');
+            // Fill valid email with unique timestamp to avoid duplicates
+            const testEmail = `test-${Date.now()}@example.com`;
+            const filled = await fillEmailInShadowDOM(page, testEmail);
             expect(filled).toBe(true);
 
             // Submit form
@@ -188,21 +157,23 @@ test.describe.serial('Interaction Patterns - Cross-Template Tests', () => {
             expect(submitted).toBe(true);
 
             // Wait for success state
-            await page.waitForTimeout(2000);
+            await page.waitForTimeout(3000);
 
-            // Check for success message or discount code
+            // Check for success message - hard assertion
             const hasSuccess = await hasTextInShadowDOM(page, 'thank') ||
                                await hasTextInShadowDOM(page, 'success') ||
-                               await hasTextInShadowDOM(page, 'TESTCODE');
+                               await hasTextInShadowDOM(page, 'subscribed');
 
-            console.log(`✅ Valid email accepted, success state: ${hasSuccess}`);
+            expect(hasSuccess).toBe(true);
+            console.log('✅ Valid email accepted, success state verified');
         });
     });
 
     test.describe('GDPR Consent', () => {
         test('requires GDPR consent when enabled', async ({ page }) => {
-            // Create Newsletter with GDPR checkbox
+            // Create Newsletter with GDPR checkbox and max priority
             await (await factory.newsletter().init())
+                .withPriority(MAX_TEST_PRIORITY)
                 .withGdprCheckbox(true, 'I agree to receive emails')
                 .create();
 
@@ -231,12 +202,14 @@ test.describe.serial('Interaction Patterns - Cross-Template Tests', () => {
         });
 
         test('allows submission when GDPR consent is checked', async ({ page }) => {
-            // Mock the lead submission API
-            await mockLeadSubmission(page, 'GDPR-TEST-CODE');
+            // No API mocking - test against real lead submission API
 
             await (await factory.newsletter().init())
+                .withPriority(MAX_TEST_PRIORITY)
                 .withGdprCheckbox(true, 'I agree to receive emails')
                 .create();
+
+            await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
 
             await page.goto(STORE_URL);
             await handlePasswordPage(page);
@@ -245,17 +218,21 @@ test.describe.serial('Interaction Patterns - Cross-Template Tests', () => {
             const popupHost = page.locator('#revenue-boost-popup-shadow-host');
             await expect(popupHost).toBeVisible({ timeout: 10000 });
 
-            // Complete the signup flow with GDPR
-            const result = await performNewsletterSignup(page, 'gdpr-test@example.com', { checkGdpr: true });
+            // Complete the signup flow with GDPR - use unique email
+            const testEmail = `gdpr-test-${Date.now()}@example.com`;
+            const result = await performNewsletterSignup(page, testEmail, { checkGdpr: true });
 
-            console.log(`✅ GDPR consent form submitted: ${result.success}`);
+            expect(result.success).toBe(true);
+            console.log('✅ GDPR consent form submitted successfully');
         });
     });
 
     test.describe('Discount Code Generation', () => {
         test('spin button becomes available for interaction', async ({ page }) => {
-            // Create Spin to Win campaign
-            await (await factory.spinToWin().init()).create();
+            // Create Spin to Win campaign with max priority
+            await (await factory.spinToWin().init())
+                .withPriority(MAX_TEST_PRIORITY)
+                .create();
 
             await page.goto(STORE_URL);
             await handlePasswordPage(page);
@@ -279,7 +256,9 @@ test.describe.serial('Interaction Patterns - Cross-Template Tests', () => {
     test.describe('Multi-Step Workflows', () => {
         test('completes email-then-action workflow', async ({ page }) => {
             // Use Newsletter which has clear email -> success flow
-            await (await factory.newsletter().init()).create();
+            await (await factory.newsletter().init())
+                .withPriority(MAX_TEST_PRIORITY)
+                .create();
 
             await page.goto(STORE_URL);
             await handlePasswordPage(page);
@@ -302,7 +281,9 @@ test.describe.serial('Interaction Patterns - Cross-Template Tests', () => {
 
     test.describe('Form Field Validation', () => {
         test('shows required field error for empty email', async ({ page }) => {
-            await (await factory.newsletter().init()).create();
+            await (await factory.newsletter().init())
+                .withPriority(MAX_TEST_PRIORITY)
+                .create();
 
             await page.goto(STORE_URL);
             await handlePasswordPage(page);

@@ -74,7 +74,7 @@ export async function getStoreId(request: Request): Promise<string> {
     data: {
       shopifyDomain: shopDomain,
       shopifyShopId: shopNumericId,
-      accessToken: (session as any).accessToken,
+      accessToken: (session as { accessToken?: string }).accessToken ?? "",
       isActive: true,
       settings: {
         frequencyCapping: {
@@ -122,7 +122,7 @@ export async function getStoreIdFromShop(shop: string): Promise<string> {
  */
 export function createAdminApiContext(shopDomain: string, accessToken: string): AdminApiContext {
   return {
-    graphql: async (query: string, options?: { variables?: Record<string, any> }) => {
+    graphql: async (query: string, options?: { variables?: Record<string, unknown> }) => {
       const response = await fetch(`https://${shopDomain}/admin/api/${apiVersion}/graphql.json`, {
         method: "POST",
         headers: {

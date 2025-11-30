@@ -37,8 +37,8 @@ export async function checkThemeExtensionEnabled({
       return false;
     }
 
-    const themesData = await themesResponse.json();
-    const publishedTheme = themesData.themes?.find((t: any) => t.role === "main");
+    const themesData = await themesResponse.json() as { themes?: { id: string; role: string }[] };
+    const publishedTheme = themesData.themes?.find((t) => t.role === "main");
 
     if (!publishedTheme) {
       console.error("[Setup] No published theme found");
@@ -74,13 +74,14 @@ export async function checkThemeExtensionEnabled({
     const blocks = settings.current?.blocks || {};
 
     // Check if our app embed is enabled
-    const appEmbedEnabled = Object.values(blocks).some((block: any) => {
+    const appEmbedEnabled = Object.values(blocks).some((block: unknown) => {
+      const b = block as { type?: string; disabled?: boolean };
       const isOurApp =
-        block.type?.includes("revenue-boost") ||
-        block.type?.includes("storefront-popup") ||
-        block.type?.includes("revenue_boost");
-      const isAppsBlock = block.type?.startsWith("shopify://apps/");
-      const notDisabled = block.disabled !== true;
+        b.type?.includes("revenue-boost") ||
+        b.type?.includes("storefront-popup") ||
+        b.type?.includes("revenue_boost");
+      const isAppsBlock = b.type?.startsWith("shopify://apps/");
+      const notDisabled = b.disabled !== true;
 
       return (isOurApp || isAppsBlock) && notDisabled;
     });
@@ -96,7 +97,7 @@ export async function checkThemeExtensionEnabled({
 /**
  * Check if merchant has overridden the API URL via metafield
  */
-export async function checkCustomProxyUrl(admin: any): Promise<string | null> {
+export async function checkCustomProxyUrl(admin: { graphql: (query: string) => Promise<Response> }): Promise<string | null> {
   try {
     const metafieldQuery = `
       query {
@@ -164,10 +165,11 @@ export async function checkAppProxyReachable(
     }
 
     const data = await response.json();
-    const isHealthy = data.status === "ok";
+    // Accept both "ok" and "degraded" as reachable - degraded means backend works but some non-critical services (like Redis) may be down
+    const isReachable = data.status === "ok" || data.status === "degraded";
 
-    console.log("[Setup] App health check result:", isHealthy ? "OK" : "ERROR", data);
-    return isHealthy;
+    console.log("[Setup] App health check result:", isReachable ? "REACHABLE" : "ERROR", data);
+    return isReachable;
   } catch (error) {
     console.error("[Setup] Error checking app health:", error);
     return false;
@@ -180,7 +182,7 @@ export async function checkAppProxyReachable(
 export async function getSetupStatus(
   shop: string,
   accessToken: string,
-  admin: any
+  admin: { graphql: (query: string) => Promise<Response> }
 ): Promise<{ status: SetupStatusData; setupComplete: boolean }> {
   // Run checks in parallel for better performance
   const [themeExtensionEnabled, customProxyUrl] = await Promise.all([

@@ -15,6 +15,7 @@ export class InventoryDataHook implements PreDisplayHook {
     async execute(context: PreDisplayHookContext): Promise<PreDisplayHookResult> {
         try {
             const { campaign } = context;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- campaign config is dynamically typed from API
             const contentConfig = campaign.contentConfig as any;
             const inventory = contentConfig.inventory;
 

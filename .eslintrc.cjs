@@ -90,6 +90,9 @@ module.exports = {
             caughtErrorsIgnorePattern: "^_",
           },
         ],
+        // Downgrade no-explicit-any to warning - many legacy usages exist
+        // TODO: Gradually fix and re-enable as error
+        "@typescript-eslint/no-explicit-any": "warn",
         // Disable prop-types validation for TypeScript files
         // TypeScript provides compile-time type checking, making prop-types redundant
         "react/prop-types": "off",

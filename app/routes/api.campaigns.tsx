@@ -39,7 +39,7 @@ function sanitizeDesignCustomCss(designConfig?: { customCSS?: unknown }) {
   }
 }
 
-export async function loader(args: { request: Request; params: any; context: any }) {
+export async function loader(args: { request: Request; params: Record<string, string | undefined>; context: unknown }) {
   return withAuthRateLimit(args, async ({ request }) => {
     try {
       const storeId = await getStoreId(request);
@@ -66,7 +66,7 @@ export async function loader(args: { request: Request; params: any; context: any
   });
 }
 
-export async function action(args: { request: Request; params: any; context: any }) {
+export async function action(args: { request: Request; params: Record<string, string | undefined>; context: unknown }) {
   return withWriteRateLimit(args, async ({ request }) => {
     try {
       const { admin } = await authenticate.admin(request);

@@ -1,7 +1,5 @@
 import { test, expect } from '@playwright/test';
 import { PrismaClient } from '@prisma/client';
-import fs from 'fs';
-import path from 'path';
 import * as dotenv from 'dotenv';
 import {
     STORE_URL,
@@ -10,8 +8,7 @@ import {
     handlePasswordPage,
     mockChallengeToken,
     getTestPrefix,
-    waitForPopupWithRetry,
-    closePopupInShadowDOM
+    waitForPopupWithRetry
 } from './helpers/test-helpers';
 import { CampaignFactory } from './factories/campaign-factory';
 
@@ -22,11 +19,15 @@ const TEST_PREFIX = getTestPrefix('storefront-checkout-flow.spec.ts');
 /**
  * Checkout Flow E2E Tests
  *
- * Tests for:
- * - Adding products to cart
- * - Discount code auto-apply at checkout
+ * Tests for REAL checkout flows:
+ * - Adding real products to cart
+ * - Discount code auto-apply at checkout (real Shopify discounts)
  * - Bundle discounts with multiple products
  * - Cart value triggers
+ *
+ * NOTE: These tests run against deployed extension code (no bundle mocking)
+ * and real API endpoints (no API mocking).
+ * REQUIRES: Staging store must have at least one product available.
  */
 
 test.describe.serial('Checkout Flow', () => {
@@ -69,19 +70,7 @@ test.describe.serial('Checkout Flow', () => {
             }
         });
 
-        // Intercept bundles
-        const bundles = ['newsletter', 'spin-to-win', 'flash-sale'];
-        for (const bundle of bundles) {
-            await page.route(`**/${bundle}.bundle.js*`, async route => {
-                const bundlePath = path.join(process.cwd(), `extensions/storefront-popup/assets/${bundle}.bundle.js`);
-                if (fs.existsSync(bundlePath)) {
-                    const content = fs.readFileSync(bundlePath);
-                    await route.fulfill({ status: 200, contentType: 'application/javascript', body: content });
-                } else {
-                    await route.continue();
-                }
-            });
-        }
+        // No bundle mocking - tests use deployed extension code
     });
 
     /**
@@ -103,12 +92,24 @@ test.describe.serial('Checkout Flow', () => {
             return page.url().includes('/products/');
         }
 
-        // Fallback: try direct product URL patterns
-        const commonPaths = ['/products', '/collections/all/products'];
-        for (const p of commonPaths) {
-            await page.goto(`${STORE_URL}${p}`);
+        // Fallback: try direct navigation to known product
+        // This is the staging store's test product
+        const knownProducts = [
+            '/products/the-multi-managed-snowboard',
+            '/products/the-collection-snowboard-liquid',
+            '/products/the-3p-fulfilled-snowboard'
+        ];
+
+        for (const productPath of knownProducts) {
+            await page.goto(`${STORE_URL}${productPath}`);
             await handlePasswordPage(page);
-            if (page.url().includes('/products/')) return true;
+            await page.waitForLoadState('networkidle');
+
+            // Check if we're on a valid product page (not 404)
+            const is404 = await page.locator('text=404, text=not found, text=page not found').first().isVisible({ timeout: 1000 }).catch(() => false);
+            if (!is404 && page.url().includes('/products/')) {
+                return true;
+            }
         }
 
         return false;
@@ -236,39 +237,28 @@ test.describe.serial('Checkout Flow', () => {
 
             const foundProduct = await navigateToProductPage(page);
 
-            if (foundProduct) {
-                console.log(`✅ Found product page: ${page.url()}`);
-                expect(page.url()).toContain('/products/');
-            } else {
-                console.log('⚠️ No products found in store - this is expected for empty stores');
-            }
+            // Product page navigation MUST succeed for E2E tests
+            expect(foundProduct).toBe(true);
+            expect(page.url()).toContain('/products/');
+            console.log(`✅ Found product page: ${page.url()}`);
         });
 
         test('can add product to cart', async ({ page }) => {
             console.log('🧪 Testing add to cart...');
 
             const foundProduct = await navigateToProductPage(page);
-
-            if (!foundProduct) {
-                console.log('⚠️ No products found - skipping add to cart test');
-                return;
-            }
+            expect(foundProduct).toBe(true);
 
             const added = await addToCart(page);
+            expect(added).toBe(true);
+            console.log('✅ Product added to cart');
 
-            if (added) {
-                console.log('✅ Product added to cart');
+            // Verify cart has items
+            const cartInfo = await getCartInfo(page);
+            console.log(`Cart info: ${cartInfo.itemCount} items, total: ${cartInfo.total}`);
 
-                // Verify cart has items
-                const cartInfo = await getCartInfo(page);
-                console.log(`Cart info: ${cartInfo.itemCount} items, total: ${cartInfo.total}`);
-
-                if (cartInfo.itemCount > 0) {
-                    console.log('✅ Cart contains items');
-                }
-            } else {
-                console.log('⚠️ Could not find add to cart button');
-            }
+            expect(cartInfo.itemCount).toBeGreaterThan(0);
+            console.log('✅ Cart contains items');
         });
 
         test('can navigate to checkout', async ({ page }) => {
@@ -276,22 +266,15 @@ test.describe.serial('Checkout Flow', () => {
 
             // First add a product
             const foundProduct = await navigateToProductPage(page);
-            if (!foundProduct) {
-                console.log('⚠️ No products found - skipping checkout test');
-                return;
-            }
+            expect(foundProduct).toBe(true);
 
             await addToCart(page);
             await page.waitForTimeout(1000);
 
             // Try to go to checkout
             const atCheckout = await navigateToCheckout(page);
-
-            if (atCheckout) {
-                console.log(`✅ Navigated to checkout: ${page.url()}`);
-            } else {
-                console.log('⚠️ Could not navigate to checkout (may require login or cart items)');
-            }
+            expect(atCheckout).toBe(true);
+            console.log(`✅ Navigated to checkout: ${page.url()}`);
         });
     });
 
@@ -312,43 +295,25 @@ test.describe.serial('Checkout Flow', () => {
             console.log(`✅ Campaign created: ${campaign.id}`);
             await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
 
-            // Mock the discount issue API to return a code
-            await page.route('**/api/discounts/issue*', async route => {
-                await route.fulfill({
-                    status: 200,
-                    contentType: 'application/json',
-                    body: JSON.stringify({
-                        success: true,
-                        code: 'CHECKOUT15-TEST',
-                        value: 15,
-                        valueType: 'PERCENTAGE',
-                        autoApply: true
-                    }),
-                });
-            });
+            // No API mocking - test against real discount issue API
 
             await page.goto(STORE_URL);
             await handlePasswordPage(page);
 
             const popupVisible = await waitForPopupWithRetry(page, { timeout: 15000, retries: 3 });
+            expect(popupVisible).toBe(true);
+            console.log('✅ Popup displayed with auto-apply discount');
 
-            if (popupVisible) {
-                console.log('✅ Popup displayed with auto-apply discount');
+            // Check for discount code in popup - hard assertion
+            const hasDiscountText = await page.evaluate(() => {
+                const host = document.querySelector('#revenue-boost-popup-shadow-host');
+                if (!host?.shadowRoot) return false;
+                const html = host.shadowRoot.innerHTML.toLowerCase();
+                return html.includes('discount') || html.includes('code') || html.includes('%') || html.includes('off');
+            });
 
-                // Check for discount code in popup
-                const hasDiscountText = await page.evaluate(() => {
-                    const host = document.querySelector('#revenue-boost-popup-shadow-host');
-                    if (!host?.shadowRoot) return false;
-                    const html = host.shadowRoot.innerHTML.toLowerCase();
-                    return html.includes('discount') || html.includes('code') || html.includes('%') || html.includes('off');
-                });
-
-                if (hasDiscountText) {
-                    console.log('✅ Discount information found in popup');
-                }
-            }
-
-            expect(campaign).toBeDefined();
+            expect(hasDiscountText).toBe(true);
+            console.log('✅ Discount information found in popup');
         });
 
         test('discount code persists to checkout URL', async ({ page }) => {
@@ -369,11 +334,7 @@ test.describe.serial('Checkout Flow', () => {
 
             // Navigate to product and add to cart
             const foundProduct = await navigateToProductPage(page);
-            if (!foundProduct) {
-                console.log('⚠️ No products found - test incomplete');
-                expect(campaign).toBeDefined();
-                return;
-            }
+            expect(foundProduct).toBe(true);
 
             await addToCart(page);
 
@@ -383,17 +344,13 @@ test.describe.serial('Checkout Flow', () => {
             await page.goto(checkoutUrl);
             await page.waitForLoadState('networkidle');
 
-            if (page.url().includes('/checkout')) {
-                console.log('✅ Navigated to checkout with discount parameter');
+            expect(page.url()).toContain('/checkout');
+            console.log('✅ Navigated to checkout with discount parameter');
 
-                // Check if the discount was applied
-                const discountResult = await checkDiscountApplied(page, 'URL10');
-                console.log(`Discount check result: ${JSON.stringify(discountResult)}`);
-            } else {
-                console.log('⚠️ Could not reach checkout (may need valid cart)');
-            }
-
-            expect(campaign).toBeDefined();
+            // Check if the discount was applied
+            const discountResult = await checkDiscountApplied(page, 'URL10');
+            console.log(`Discount check result: ${JSON.stringify(discountResult)}`);
+            expect(discountResult.applied).toBe(true);
         });
     });
 
@@ -412,11 +369,7 @@ test.describe.serial('Checkout Flow', () => {
 
             // Navigate to product and add to cart
             const foundProduct = await navigateToProductPage(page);
-            if (!foundProduct) {
-                console.log('⚠️ No products found - test incomplete');
-                expect(campaign).toBeDefined();
-                return;
-            }
+            expect(foundProduct).toBe(true);
 
             await addToCart(page);
 
@@ -425,16 +378,10 @@ test.describe.serial('Checkout Flow', () => {
             await handlePasswordPage(page);
             await page.waitForTimeout(3000);
 
-            // Check if popup appeared
+            // Popup MUST appear when cart value exceeds threshold
             const popupVisible = await waitForPopupWithRetry(page, { timeout: 10000, retries: 2, reloadOnRetry: false });
-
-            if (popupVisible) {
-                console.log('✅ Cart value trigger activated popup on cart page');
-            } else {
-                console.log('⚠️ Popup did not appear - cart value may be below threshold or trigger not firing');
-            }
-
-            expect(campaign).toBeDefined();
+            expect(popupVisible).toBe(true);
+            console.log('✅ Cart value trigger activated popup on cart page');
         });
     });
 });

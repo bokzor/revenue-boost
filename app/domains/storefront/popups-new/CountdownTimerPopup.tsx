@@ -14,7 +14,7 @@
  * - CTA button
  */
 
-import React from "react";
+import React, { useState, useEffect, useRef } from "react";
 import type { PopupDesignConfig } from "./types";
 import type { CountdownTimerContent } from "~/domains/campaigns/types/campaign";
 import { POPUP_SPACING } from "./spacing";
@@ -23,6 +23,9 @@ import { POPUP_SPACING } from "./spacing";
 import { useCountdownTimer, useColorScheme } from "./hooks";
 import { buildScopedCss } from "~/domains/storefront/shared/css";
 import { getBackgroundStyles } from "./utils";
+
+// Animation duration for banner enter/exit
+const BANNER_ANIMATION_DURATION = 300;
 
 // Import shared components from Phase 1 & 2
 import { TimerDisplay, CTAButton, PopupCloseButton } from "./components/shared";
@@ -106,7 +109,8 @@ export const CountdownTimerPopup: React.FC<CountdownTimerPopupProps> = ({
       ? schemeColors.backgroundColor
       : config.buttonTextColor || "#ffffff";
 
-  const isPreview = (config as any)?.previewMode;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- config has dynamic previewMode field
+  const isPreview = (config as any).previewMode;
 
   // Check if using full background image (modal mode only)
   const hasFullBgImage = config.imageUrl && config.imagePosition === "full";
@@ -126,7 +130,7 @@ export const CountdownTimerPopup: React.FC<CountdownTimerPopupProps> = ({
         size={config.size || "medium"}
         closeOnEscape
         closeOnBackdropClick
-        previewMode={isPreview}
+        previewMode={isPreview as boolean | undefined}
       >
         <style>{`
           .countdown-modal {
@@ -328,6 +332,62 @@ export const CountdownTimerPopup: React.FC<CountdownTimerPopupProps> = ({
   }
 
   // Banner display mode (default)
+  // Animation state for banner enter/exit
+  const [animState, setAnimState] = useState<"entering" | "visible" | "exiting" | "hidden">(
+    isVisible ? "entering" : "hidden"
+  );
+  const hasInitialized = useRef(false);
+
+  // Check for reduced motion preference
+  const prefersReducedMotion =
+    typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  const effectiveDuration = prefersReducedMotion ? 0 : BANNER_ANIMATION_DURATION;
+
+  // Handle visibility state transitions for banner
+  useEffect(() => {
+    // Skip if not in banner mode (popup mode uses PopupPortal for animations)
+    if (displayMode !== "banner") return;
+
+    // Skip the first render if we already initialized with the correct state
+    if (!hasInitialized.current) {
+      hasInitialized.current = true;
+      // If we started visible, transition from entering to visible
+      if (isVisible && animState === "entering") {
+        const timer = setTimeout(() => setAnimState("visible"), effectiveDuration);
+        return () => clearTimeout(timer);
+      }
+      return;
+    }
+
+    if (isVisible && (animState === "hidden" || animState === "exiting")) {
+      setAnimState("entering");
+      const timer = setTimeout(() => setAnimState("visible"), effectiveDuration);
+      return () => clearTimeout(timer);
+    } else if (!isVisible && (animState === "visible" || animState === "entering")) {
+      setAnimState("exiting");
+      const timer = setTimeout(() => setAnimState("hidden"), effectiveDuration);
+      return () => clearTimeout(timer);
+    }
+  }, [isVisible, displayMode, effectiveDuration, animState]);
+
+  // Get animation class for banner
+  const getBannerAnimationClass = () => {
+    if (prefersReducedMotion || isPreview) return "";
+
+    const position = config.position === "bottom" ? "bottom" : "top";
+    if (animState === "entering") {
+      return `countdown-banner-slide-in-${position}`;
+    }
+    if (animState === "exiting") {
+      return `countdown-banner-slide-out-${position}`;
+    }
+    return "";
+  };
+
+  // Don't render if hidden (after exit animation)
+  if (displayMode === "banner" && animState === "hidden") return null;
+
   const positionStyle: React.CSSProperties = isPreview
     ? {
         // In admin preview, keep the banner constrained to the preview
@@ -548,10 +608,40 @@ export const CountdownTimerPopup: React.FC<CountdownTimerPopupProps> = ({
             font-size: 1rem;
           }
         }
+
+        /* Banner enter/exit animations */
+        @keyframes countdown-banner-slide-in-from-top {
+          from { transform: translateY(-100%); opacity: 0; }
+          to { transform: translateY(0); opacity: 1; }
+        }
+        @keyframes countdown-banner-slide-out-to-top {
+          from { transform: translateY(0); opacity: 1; }
+          to { transform: translateY(-100%); opacity: 0; }
+        }
+        @keyframes countdown-banner-slide-in-from-bottom {
+          from { transform: translateY(100%); opacity: 0; }
+          to { transform: translateY(0); opacity: 1; }
+        }
+        @keyframes countdown-banner-slide-out-to-bottom {
+          from { transform: translateY(0); opacity: 1; }
+          to { transform: translateY(100%); opacity: 0; }
+        }
+        .countdown-banner-slide-in-top {
+          animation: countdown-banner-slide-in-from-top ${effectiveDuration}ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        .countdown-banner-slide-out-top {
+          animation: countdown-banner-slide-out-to-top ${effectiveDuration}ms cubic-bezier(0.4, 0, 1, 1) forwards;
+        }
+        .countdown-banner-slide-in-bottom {
+          animation: countdown-banner-slide-in-from-bottom ${effectiveDuration}ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        .countdown-banner-slide-out-bottom {
+          animation: countdown-banner-slide-out-to-bottom ${effectiveDuration}ms cubic-bezier(0.4, 0, 1, 1) forwards;
+        }
       `}</style>
 
       <div
-        className="countdown-banner"
+        className={`countdown-banner ${getBannerAnimationClass()}`.trim()}
         data-rb-banner
         style={{
           ...positionStyle,

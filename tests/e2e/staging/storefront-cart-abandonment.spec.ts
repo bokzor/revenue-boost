@@ -1,6 +1,5 @@
 import { test, expect } from '@playwright/test';
 import { PrismaClient } from '@prisma/client';
-import fs from 'fs';
 import path from 'path';
 import * as dotenv from 'dotenv';
 import { CampaignFactory } from './factories/campaign-factory';
@@ -11,6 +10,17 @@ dotenv.config({ path: path.resolve(process.cwd(), '.env.staging.env'), override:
 
 const STORE_DOMAIN = 'revenue-boost-staging.myshopify.com';
 const TEST_PREFIX = getTestPrefix('storefront-cart-abandonment.spec.ts');
+
+/**
+ * Cart Abandonment Template E2E Tests
+ *
+ * Tests ACTUAL cart abandonment behavior against deployed extension code:
+ * - Popup displays cart items
+ * - Email recovery flow works
+ * - Urgency timer displays
+ *
+ * NOTE: No bundle mocking - tests use deployed extension code.
+ */
 
 test.describe.serial('Cart Abandonment Template - E2E', () => {
     let prisma: PrismaClient;
@@ -63,17 +73,7 @@ test.describe.serial('Cart Abandonment Template - E2E', () => {
             console.log(`[BROWSER] ${msg.type()}: ${msg.text()}`);
         });
 
-        // Intercept the cart-abandonment bundle request and serve the local file
-        await page.route('**/cart-abandonment.bundle.js*', async route => {
-            console.log('Intercepting cart-abandonment.bundle.js request');
-            const bundlePath = path.join(process.cwd(), 'extensions/storefront-popup/assets/cart-abandonment.bundle.js');
-            const content = fs.readFileSync(bundlePath);
-            await route.fulfill({
-                status: 200,
-                contentType: 'application/javascript',
-                body: content,
-            });
-        });
+        // No bundle mocking - tests use deployed extension code
     });
 
     test('renders cart abandonment popup with default configuration', async ({ page }) => {

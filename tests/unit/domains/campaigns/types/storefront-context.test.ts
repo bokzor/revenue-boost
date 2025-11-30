@@ -12,13 +12,14 @@ import {
 describe("StorefrontContext", () => {
   describe("buildStorefrontContext", () => {
     it("should build context from URL params and headers", () => {
+      // Note: cartValue and cartItemCount are now handled client-side only
+      // via the cart_value trigger in Enhanced Triggers
       const searchParams = new URLSearchParams({
         pageUrl: "/products/example",
         pageType: "product",
         customerId: "123",
         sessionId: "abc",
-        cartValue: "99.99",
-        cartItemCount: "3",
+        cartToken: "cart-token-abc",
       });
 
       const headers = new Headers({
@@ -31,8 +32,7 @@ describe("StorefrontContext", () => {
       expect(context.pageType).toBe("product");
       expect(context.customerId).toBe("123");
       expect(context.sessionId).toBe("abc");
-      expect(context.cartValue).toBe(99.99);
-      expect(context.cartItemCount).toBe(3);
+      expect(context.cartToken).toBe("cart-token-abc");
       expect(context.deviceType).toBe("mobile");
     });
 
@@ -44,7 +44,7 @@ describe("StorefrontContext", () => {
 
       expect(context.pageUrl).toBeUndefined();
       expect(context.customerId).toBeUndefined();
-      expect(context.cartValue).toBeUndefined();
+      expect(context.cartToken).toBeUndefined();
     });
 
     it("should parse customer tags from comma-separated string", () => {
@@ -106,12 +106,13 @@ describe("StorefrontContext", () => {
 
   describe("validateStorefrontContext", () => {
     it("should validate valid context", () => {
+      // Note: cartValue is now handled client-side only via cart_value trigger
       const validContext: StorefrontContext = {
         pageUrl: "/products/example",
         pageType: "product",
         customerId: "123",
         sessionId: "abc",
-        cartValue: 99.99,
+        cartToken: "cart-token-abc",
         deviceType: "mobile",
       };
 
@@ -121,14 +122,6 @@ describe("StorefrontContext", () => {
     it("should reject invalid email", () => {
       const invalidContext = {
         customerEmail: "not-an-email",
-      };
-
-      expect(() => validateStorefrontContext(invalidContext)).toThrow();
-    });
-
-    it("should reject negative cart value", () => {
-      const invalidContext = {
-        cartValue: -10,
       };
 
       expect(() => validateStorefrontContext(invalidContext)).toThrow();

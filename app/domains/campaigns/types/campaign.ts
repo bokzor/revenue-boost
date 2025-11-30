@@ -983,35 +983,14 @@ export const EnhancedTriggersConfigSchema = z.object({
 /**
  * Audience Targeting Configuration Schema
  *
- * Shopify-first: customer-level audiences are defined via Shopify customer segments,
- * while sessionRules cover anonymous/session-only storefront context.
+ * Shopify-first: customer-level audiences are defined via Shopify customer segments.
+ * Cart-based targeting is now handled by the cart_value trigger in Enhanced Triggers.
  */
 export const AudienceTargetingConfigSchema = z.object({
   enabled: z.boolean().default(false),
 
   // Shopify customer segments (primary "who" for known customers)
   shopifySegmentIds: z.array(z.string()).default([]),
-
-  // Session-level / anonymous rules evaluated against StorefrontContext
-  sessionRules: z
-    .object({
-      enabled: z.boolean().default(false),
-      conditions: z
-        .array(
-          z.object({
-            field: z.string(), // e.g. "cartValue", "visitCount", "pageType"
-            operator: z.enum(["eq", "ne", "gt", "gte", "lt", "lte", "in", "nin"]),
-            value: z.union([z.string(), z.number(), z.boolean(), z.array(z.string())]),
-          })
-        )
-        .default([]),
-      logicOperator: z.enum(["AND", "OR"]).default("AND"),
-    })
-    .default({
-      enabled: false,
-      conditions: [],
-      logicOperator: "AND",
-    }),
 });
 
 /**

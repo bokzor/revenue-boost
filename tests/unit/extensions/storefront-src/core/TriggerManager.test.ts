@@ -7,33 +7,53 @@ import { TriggerManager } from "../../../../../extensions/storefront-src/core/Tr
 
 describe("TriggerManager", () => {
   let manager: TriggerManager;
-	  let originalWindow: unknown;
+  let originalWindow: unknown;
+  let originalFetch: typeof globalThis.fetch;
 
   beforeEach(() => {
-	    manager = new TriggerManager();
+    manager = new TriggerManager();
 
-	    // Ensure a minimal window object exists for tests that rely on it
-	    // (happy-dom may not expose window.setTimeout / clearTimeout directly).
-	    // We preserve any existing properties from the test environment.
-	    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-	    const g: any = globalThis as any;
-	    originalWindow = g.window;
-	    if (!g.window) {
-	      g.window = {};
-	    }
-	    if (typeof g.window.setTimeout !== "function") {
-	      g.window.setTimeout = setTimeout;
-	    }
-	    if (typeof g.window.clearTimeout !== "function") {
-	      g.window.clearTimeout = clearTimeout;
-	    }
+    // Ensure a minimal window object exists for tests that rely on it
+    // (happy-dom may not expose window.setTimeout / clearTimeout directly).
+    // We preserve any existing properties from the test environment.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const g: any = globalThis as any;
+    originalWindow = g.window;
+    if (!g.window) {
+      g.window = {};
+    }
+    if (typeof g.window.setTimeout !== "function") {
+      g.window.setTimeout = setTimeout;
+    }
+    if (typeof g.window.clearTimeout !== "function") {
+      g.window.clearTimeout = clearTimeout;
+    }
+
+    // Mock fetch for /cart.js calls
+    // The mock returns cart data based on current window.Shopify.cart
+    originalFetch = globalThis.fetch;
+    globalThis.fetch = vi.fn(async (url: RequestInfo | URL) => {
+      if (url === "/cart.js") {
+        const w = g.window as { Shopify?: { cart?: { total_price: number; item_count: number } } };
+        const cart = w.Shopify?.cart || { total_price: 0, item_count: 0 };
+        return {
+          ok: true,
+          json: async () => cart,
+        } as Response;
+      }
+      // For other URLs, throw an error (we shouldn't be fetching anything else in tests)
+      throw new Error(`Unexpected fetch call to: ${url}`);
+    });
   });
 
-	  afterEach(() => {
-	    // Restore original window reference to avoid cross-test pollution
-	    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-	    (globalThis as any).window = originalWindow as any;
-	  });
+  afterEach(() => {
+    // Restore original window reference to avoid cross-test pollution
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (globalThis as any).window = originalWindow as any;
+
+    // Restore original fetch
+    globalThis.fetch = originalFetch;
+  });
 
   describe("evaluateTriggers", () => {
     it("should return true if no triggers are defined", async () => {
@@ -522,6 +542,7 @@ describe("TriggerManager", () => {
             cart_value: {
               enabled: true,
               min_value: 50,
+              check_interval: 50, // Use short polling interval for faster test
             },
           },
         },
@@ -532,7 +553,10 @@ describe("TriggerManager", () => {
       // Give it a moment to check current value
       await new Promise((r) => setTimeout(r, 10));
 
-      // Above threshold - should resolve
+      // Update global cart value (simulating what happens when cart is updated)
+      w.Shopify.cart.total_price = 7500; // $75.00 in cents
+
+      // Also dispatch event (trigger will check global cart value on event)
       const aboveEvent = new CustomEvent("cart:update", {
         detail: { total: 75 },
       });
@@ -593,6 +617,7 @@ describe("TriggerManager", () => {
               enabled: true,
               min_value: 50,
               max_value: 100,
+              check_interval: 50, // Use short polling interval for faster test
             },
           },
         },
@@ -603,7 +628,10 @@ describe("TriggerManager", () => {
       // Give it a moment to check current value (should not resolve)
       await new Promise((r) => setTimeout(r, 10));
 
-      // Update to value within range - should resolve
+      // Update global cart value to be within range
+      w.Shopify.cart.total_price = 7500; // $75.00 in cents (within range)
+
+      // Also dispatch event
       const withinRangeEvent = new CustomEvent("cart:update", {
         detail: { total: 75 },
       });

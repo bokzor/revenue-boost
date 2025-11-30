@@ -248,7 +248,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 /**
  * Resolve variant IDs from product IDs
  */
-async function resolveProductVariants(admin: any, productIds: string[]): Promise<string[]> {
+async function resolveProductVariants(admin: { graphql: (query: string, options?: { variables?: Record<string, unknown> }) => Promise<Response> }, productIds: string[]): Promise<string[]> {
   const response = await admin.graphql(PRODUCT_VARIANTS_QUERY, {
     variables: { productIds },
   });

@@ -17,7 +17,9 @@ import {
     handlePasswordPage,
     getTestPrefix,
     waitForPopupWithRetry,
-    fillEmailInShadowDOM
+    fillEmailInShadowDOM,
+    cleanupAllE2ECampaigns,
+    MAX_TEST_PRIORITY
 } from './helpers/test-helpers';
 import { CampaignFactory } from './factories/campaign-factory';
 
@@ -50,6 +52,8 @@ test.describe('Analytics Event Tracking', () => {
     });
 
     test.beforeEach(async ({ context }) => {
+        // Clean up ALL E2E campaigns to avoid priority conflicts
+        await cleanupAllE2ECampaigns(prisma);
         await context.clearCookies();
     });
 
@@ -60,7 +64,7 @@ test.describe('Analytics Event Tracking', () => {
             const campaign = await (await factory.newsletter().init())
                 .withName('Analytics-View')
                 .withHeadline('View Tracking Test')
-                .withPriority(99970)
+                .withPriority(MAX_TEST_PRIORITY)
                 .create();
 
             await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
@@ -121,7 +125,7 @@ test.describe('Analytics Event Tracking', () => {
             const campaign = await (await factory.newsletter().init())
                 .withName('Analytics-View-Context')
                 .withHeadline('View Context Test')
-                .withPriority(99971)
+                .withPriority(MAX_TEST_PRIORITY)
                 .create();
 
             await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
@@ -167,7 +171,7 @@ test.describe('Analytics Event Tracking', () => {
             const campaign = await (await factory.newsletter().init())
                 .withName('Analytics-Click')
                 .withHeadline('Click Tracking Test')
-                .withPriority(99972)
+                .withPriority(MAX_TEST_PRIORITY)
                 .create();
 
             await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
@@ -229,7 +233,7 @@ test.describe('Analytics Event Tracking', () => {
             const campaign = await (await factory.newsletter().init())
                 .withName('Analytics-Close')
                 .withHeadline('Close Tracking Test')
-                .withPriority(99973)
+                .withPriority(MAX_TEST_PRIORITY)
                 .create();
 
             await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
@@ -305,7 +309,7 @@ test.describe('Analytics Event Tracking', () => {
             const campaign = await (await factory.newsletter().init())
                 .withName('Analytics-Submit')
                 .withHeadline('Submit Tracking Test')
-                .withPriority(99974)
+                .withPriority(MAX_TEST_PRIORITY)
                 .create();
 
             await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
@@ -424,7 +428,7 @@ test.describe('Analytics Event Tracking', () => {
             const campaign = await (await factory.newsletter().init())
                 .withName('Analytics-PageContext')
                 .withHeadline('Page Context Test')
-                .withPriority(99975)
+                .withPriority(MAX_TEST_PRIORITY)
                 .create();
 
             await page.waitForTimeout(API_PROPAGATION_DELAY_MS);

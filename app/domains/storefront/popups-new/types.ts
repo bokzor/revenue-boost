@@ -113,7 +113,7 @@ export interface PopupConfig extends PopupDesignConfig {
 
 export interface PopupCallbacks {
   onClose: () => void;
-  onSuccess?: (data?: any) => void;
+  onSuccess?: (data?: unknown) => void;
   onError?: (error: Error) => void;
 }
 

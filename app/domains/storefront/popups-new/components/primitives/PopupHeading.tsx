@@ -26,7 +26,7 @@ export const PopupHeading: React.FC<PopupHeadingProps> = ({
     lineHeight: 1.2,
     color: "inherit",
     fontSize: "1.5rem",
-    textAlign: alignMap[align] as any,
+    textAlign: alignMap[align] as React.CSSProperties["textAlign"],
     wordBreak: "break-word",
     ...style,
   };

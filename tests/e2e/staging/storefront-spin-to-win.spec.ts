@@ -1,6 +1,5 @@
 import { test, expect } from '@playwright/test';
 import { PrismaClient } from '@prisma/client';
-import fs from 'fs';
 import path from 'path';
 import * as dotenv from 'dotenv';
 import { CampaignFactory } from './factories/campaign-factory';
@@ -23,11 +22,13 @@ const TEST_PREFIX = getTestPrefix('storefront-spin-to-win.spec.ts');
 /**
  * Spin to Win Template E2E Tests
  *
- * Tests ACTUAL wheel rendering and content:
+ * Tests ACTUAL wheel rendering and content against deployed extension code:
  * - Wheel segments are rendered with correct labels
  * - Email input appears when required
  * - Spin button is functional
  * - Custom headlines are displayed
+ *
+ * NOTE: No bundle mocking - tests use deployed extension code.
  */
 
 test.describe.serial('Spin to Win Template', () => {
@@ -73,16 +74,7 @@ test.describe.serial('Spin to Win Template', () => {
         await mockChallengeToken(page);
         await page.context().clearCookies();
 
-        // Intercept bundle to test latest code
-        await page.route('**/spin-to-win.bundle.js*', async route => {
-            const bundlePath = path.join(process.cwd(), 'extensions/storefront-popup/assets/spin-to-win.bundle.js');
-            const content = fs.readFileSync(bundlePath);
-            await route.fulfill({
-                status: 200,
-                contentType: 'application/javascript',
-                body: content,
-            });
-        });
+        // No bundle mocking - tests use deployed extension code
     });
 
     test('renders wheel with default segments', async ({ page }) => {

@@ -6,6 +6,12 @@
 
 import type { AdminApiContext } from "@shopify/shopify-app-react-router/server";
 
+// Common types for GraphQL responses
+interface GraphQLUserError { message: string; field?: string[] }
+interface GraphQLError { message: string }
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- GraphQL responses are dynamically typed
+type GraphQLResponse = { data?: Record<string, any>; errors?: GraphQLError[] };
+
 export interface DiscountCodeInput {
   title: string;
   code: string;
@@ -330,18 +336,16 @@ export async function createDiscountCode(
       },
     });
 
-    const data: any = await response.json();
+    const data = await response.json() as GraphQLResponse;
+    const userErrors = data.data?.discountCodeBasicCreate?.userErrors as GraphQLUserError[] | undefined;
 
     // Log full response for debugging
     console.log("[Shopify Discount] GraphQL Response:", JSON.stringify(data, null, 2));
 
-    if (data.data?.discountCodeBasicCreate?.userErrors?.length > 0) {
-      console.error(
-        "[Shopify Discount] User errors:",
-        data.data.discountCodeBasicCreate.userErrors
-      );
+    if (userErrors?.length) {
+      console.error("[Shopify Discount] User errors:", userErrors);
       return {
-        errors: data.data.discountCodeBasicCreate.userErrors.map((error: any) => error.message),
+        errors: userErrors.map((error) => error.message),
       };
     }
 
@@ -349,7 +353,7 @@ export async function createDiscountCode(
     if (data.errors) {
       console.error("[Shopify Discount] GraphQL errors:", data.errors);
       return {
-        errors: data.errors.map((error: any) => error.message),
+        errors: data.errors.map((error) => error.message),
       };
     }
 
@@ -433,7 +437,8 @@ async function createFreeShippingDiscount(
       },
     });
 
-    const data: any = await response.json();
+    const data = await response.json() as GraphQLResponse;
+    const userErrors = data.data?.discountCodeFreeShippingCreate?.userErrors as GraphQLUserError[] | undefined;
 
     // Log full response for debugging
     console.log(
@@ -441,15 +446,10 @@ async function createFreeShippingDiscount(
       JSON.stringify(data, null, 2)
     );
 
-    if (data.data?.discountCodeFreeShippingCreate?.userErrors?.length > 0) {
-      console.error(
-        "[Shopify Discount] Free shipping user errors:",
-        data.data.discountCodeFreeShippingCreate.userErrors
-      );
+    if (userErrors?.length) {
+      console.error("[Shopify Discount] Free shipping user errors:", userErrors);
       return {
-        errors: data.data.discountCodeFreeShippingCreate.userErrors.map(
-          (error: any) => error.message
-        ),
+        errors: userErrors.map((error) => error.message),
       };
     }
 
@@ -457,7 +457,7 @@ async function createFreeShippingDiscount(
     if (data.errors) {
       console.error("[Shopify Discount] Free shipping GraphQL errors:", data.errors);
       return {
-        errors: data.errors.map((error: any) => error.message),
+        errors: data.errors.map((error) => error.message),
       };
     }
 
@@ -503,7 +503,7 @@ export async function getDiscountCode(
       },
     });
 
-    const data: any = await response.json();
+    const data = await response.json() as GraphQLResponse;
     const discountNode = data.data?.codeDiscountNode;
 
     if (discountNode) {
@@ -554,7 +554,7 @@ function buildItemsSelection(applicability?: DiscountCodeInput["applicability"])
     // Build the products selection
     // Note: Shopify's productVariantsToAdd expects variant IDs, not product IDs
     // For product-level discounts, we need to use productsToAdd instead
-    const productsSelection: any = {};
+    const productsSelection: { productsToAdd?: string[]; productVariantsToAdd?: string[] } = {};
 
     // Add products (all variants of these products)
     if (productIds.length > 0) {
@@ -614,7 +614,7 @@ export async function createBxGyDiscountCode(
     // - If quantity is set: use quantity
     // - If value (minSubtotal) is set: use amount
     // - If neither: don't set value (any purchase qualifies)
-    const customerBuysValue: any = {};
+    const customerBuysValue: { quantity?: string; amount?: string } = {};
     if (bxgy.buy.quantity) {
       customerBuysValue.quantity = bxgy.buy.quantity.toString();
     }
@@ -671,18 +671,16 @@ export async function createBxGyDiscountCode(
       },
     });
 
-    const data: any = await response.json();
+    const data = await response.json() as GraphQLResponse;
+    const userErrors = data.data?.discountCodeBxgyCreate?.userErrors as GraphQLUserError[] | undefined;
 
     // Log the full response for debugging
     console.log("[Shopify Discount] BxGy GraphQL Response:", JSON.stringify(data, null, 2));
 
-    if (data.data?.discountCodeBxgyCreate?.userErrors?.length > 0) {
-      console.error(
-        "[Shopify Discount] BxGy User Errors:",
-        data.data.discountCodeBxgyCreate.userErrors
-      );
+    if (userErrors?.length) {
+      console.error("[Shopify Discount] BxGy User Errors:", userErrors);
       return {
-        errors: data.data.discountCodeBxgyCreate.userErrors.map((error: any) => error.message),
+        errors: userErrors.map((error) => error.message),
       };
     }
 
@@ -690,7 +688,7 @@ export async function createBxGyDiscountCode(
     if (data.errors) {
       console.error("[Shopify Discount] BxGy GraphQL Errors:", data.errors);
       return {
-        errors: data.errors.map((error: any) => error.message),
+        errors: data.errors.map((error) => error.message),
       };
     }
 

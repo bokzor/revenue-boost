@@ -1445,6 +1445,42 @@ export class AnnouncementBuilder extends BaseBuilder<AnnouncementBuilder> {
     }
 
     /**
+     * Set subheadline text
+     */
+    withSubheadline(subheadline: string): this {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.contentConfig.subheadline = subheadline;
+        return this;
+    }
+
+    /**
+     * Set button text
+     */
+    withButtonText(buttonText: string): this {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.contentConfig.buttonText = buttonText;
+        return this;
+    }
+
+    /**
+     * Set dismiss label text
+     */
+    withDismissLabel(dismissLabel: string): this {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.contentConfig.dismissLabel = dismissLabel;
+        return this;
+    }
+
+    /**
+     * Set position (top or bottom)
+     */
+    withPosition(position: 'top' | 'bottom'): this {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.designConfig.position = position;
+        return this;
+    }
+
+    /**
      * Set dismissible (show close button)
      */
     withDismissible(dismissible: boolean = true): this {

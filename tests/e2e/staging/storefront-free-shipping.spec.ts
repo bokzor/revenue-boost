@@ -1,6 +1,5 @@
 import { test, expect } from '@playwright/test';
 import { PrismaClient } from '@prisma/client';
-import fs from 'fs';
 import path from 'path';
 import * as dotenv from 'dotenv';
 import { CampaignFactory } from './factories/campaign-factory';
@@ -10,7 +9,9 @@ import {
     API_PROPAGATION_DELAY_MS,
     handlePasswordPage,
     mockChallengeToken,
-    getTestPrefix
+    getTestPrefix,
+    cleanupAllE2ECampaigns,
+    MAX_TEST_PRIORITY
 } from './helpers/test-helpers';
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env.staging.env'), override: true });
@@ -20,10 +21,12 @@ const TEST_PREFIX = getTestPrefix('storefront-free-shipping.spec.ts');
 /**
  * Free Shipping Template E2E Tests
  *
- * Tests ACTUAL free shipping bar content:
+ * Tests ACTUAL free shipping bar content against deployed extension code:
  * - Progress bar is displayed
  * - Threshold amount is shown
  * - Currency symbol is correct
+ *
+ * NOTE: No bundle mocking - tests use deployed extension code.
  */
 
 test.describe.serial('Free Shipping Template', () => {
@@ -58,29 +61,28 @@ test.describe.serial('Free Shipping Template', () => {
     });
 
     test.beforeEach(async ({ page }) => {
-        await prisma.campaign.deleteMany({
-            where: { name: { startsWith: TEST_PREFIX } }
-        });
+        // Clean up ALL E2E campaigns to avoid priority conflicts
+        await cleanupAllE2ECampaigns(prisma);
 
         await mockChallengeToken(page);
         await page.context().clearCookies();
 
-        await page.route('**/free-shipping.bundle.js*', async route => {
-            const bundlePath = path.join(process.cwd(), 'extensions/storefront-popup/assets/free-shipping.bundle.js');
-            const content = fs.readFileSync(bundlePath);
-            await route.fulfill({
-                status: 200,
-                contentType: 'application/javascript',
-                body: content,
-            });
+        // Log browser console for debugging
+        page.on('console', msg => {
+            const text = msg.text();
+            if (text.includes('[Revenue Boost]') || text.includes('Error')) {
+                console.log(`[BROWSER] ${text}`);
+            }
         });
+
+        // No bundle mocking - tests use deployed extension code
     });
 
     test('displays free shipping message with threshold', async ({ page }) => {
         const threshold = 100;
 
         const campaign = await (await factory.freeShipping().init())
-            .withPriority(9801)
+            .withPriority(MAX_TEST_PRIORITY)
             .withThreshold(threshold)
             .create();
         console.log(`✅ Campaign created: ${campaign.id}`);
@@ -90,37 +92,29 @@ test.describe.serial('Free Shipping Template', () => {
         await page.goto(STORE_URL);
         await handlePasswordPage(page);
 
-        const popup = page.locator('#revenue-boost-popup-shadow-host');
-        await expect(popup).toBeVisible({ timeout: 15000 });
+        // Free Shipping uses a banner (not shadow DOM modal)
+        // It renders directly to document.body with [data-rb-banner] attribute
+        const banner = page.locator('[data-rb-banner].free-shipping-bar');
+        await expect(banner).toBeVisible({ timeout: 15000 });
 
         // Verify free shipping content
-        const hasFreeShippingContent = await page.evaluate((amount) => {
-            const host = document.querySelector('#revenue-boost-popup-shadow-host');
-            if (!host?.shadowRoot) return false;
-            const html = host.shadowRoot.innerHTML.toLowerCase();
-            return html.includes('free shipping') ||
-                   html.includes('shipping') ||
-                   html.includes(`${amount}`) ||
-                   html.includes('$');
-        }, threshold);
+        const bannerText = await banner.textContent();
+        const hasFreeShippingContent = bannerText?.toLowerCase().includes('shipping') ||
+                                       bannerText?.includes(`${threshold}`) ||
+                                       bannerText?.includes('$');
 
         if (hasFreeShippingContent) {
             console.log('✅ Free shipping message with threshold displayed');
         } else {
-            // Verify popup has content
-            const hasContent = await page.evaluate(() => {
-                const host = document.querySelector('#revenue-boost-popup-shadow-host');
-                if (!host?.shadowRoot) return false;
-                return host.shadowRoot.innerHTML.length > 100;
-            });
-            expect(hasContent).toBe(true);
+            // Verify banner has content
+            expect(bannerText?.length).toBeGreaterThan(0);
             console.log('✅ Free shipping bar rendered');
         }
     });
 
     test('shows progress bar element', async ({ page }) => {
         const campaign = await (await factory.freeShipping().init())
-            .withPriority(9802)
+            .withPriority(MAX_TEST_PRIORITY)
             .withThreshold(75)
             .create();
         console.log(`✅ Campaign created: ${campaign.id}`);
@@ -130,20 +124,13 @@ test.describe.serial('Free Shipping Template', () => {
         await page.goto(STORE_URL);
         await handlePasswordPage(page);
 
-        const popup = page.locator('#revenue-boost-popup-shadow-host');
-        await expect(popup).toBeVisible({ timeout: 15000 });
+        // Free Shipping uses a banner (not shadow DOM modal)
+        const banner = page.locator('[data-rb-banner].free-shipping-bar');
+        await expect(banner).toBeVisible({ timeout: 15000 });
 
-        // Check for progress bar
-        const hasProgressBar = await page.evaluate(() => {
-            const host = document.querySelector('#revenue-boost-popup-shadow-host');
-            if (!host?.shadowRoot) return false;
-            const html = host.shadowRoot.innerHTML.toLowerCase();
-            // Look for progress-related elements or styles
-            return html.includes('progress') ||
-                   html.includes('bar') ||
-                   !!host.shadowRoot.querySelector('[class*="progress"]') ||
-                   !!host.shadowRoot.querySelector('[role="progressbar"]');
-        });
+        // Check for progress bar element
+        const progressBar = banner.locator('.free-shipping-bar-progress');
+        const hasProgressBar = await progressBar.isVisible().catch(() => false);
 
         if (hasProgressBar) {
             console.log('✅ Progress bar element displayed');
@@ -157,7 +144,7 @@ test.describe.serial('Free Shipping Template', () => {
         const threshold = 50;
 
         const campaign = await (await factory.freeShipping().init())
-            .withPriority(9803)
+            .withPriority(MAX_TEST_PRIORITY)
             .withCurrency(currency)
             .withThreshold(threshold)
             .create();
@@ -168,15 +155,13 @@ test.describe.serial('Free Shipping Template', () => {
         await page.goto(STORE_URL);
         await handlePasswordPage(page);
 
-        const popup = page.locator('#revenue-boost-popup-shadow-host');
-        await expect(popup).toBeVisible({ timeout: 15000 });
+        // Free Shipping uses a banner (not shadow DOM modal)
+        const banner = page.locator('[data-rb-banner].free-shipping-bar');
+        await expect(banner).toBeVisible({ timeout: 15000 });
 
         // Verify currency symbol
-        const hasCurrency = await page.evaluate((symbol) => {
-            const host = document.querySelector('#revenue-boost-popup-shadow-host');
-            if (!host?.shadowRoot) return false;
-            return host.shadowRoot.innerHTML.includes(symbol);
-        }, currency);
+        const bannerText = await banner.textContent();
+        const hasCurrency = bannerText?.includes(currency);
 
         if (hasCurrency) {
             console.log(`✅ Currency symbol "${currency}" displayed`);
@@ -187,7 +172,7 @@ test.describe.serial('Free Shipping Template', () => {
 
     test('bar appears at specified position', async ({ page }) => {
         const campaign = await (await factory.freeShipping().init())
-            .withPriority(9804)
+            .withPriority(MAX_TEST_PRIORITY)
             .withPosition('bottom')
             .create();
         console.log(`✅ Campaign created: ${campaign.id}`);
@@ -197,18 +182,13 @@ test.describe.serial('Free Shipping Template', () => {
         await page.goto(STORE_URL);
         await handlePasswordPage(page);
 
-        const popup = page.locator('#revenue-boost-popup-shadow-host');
-        await expect(popup).toBeVisible({ timeout: 15000 });
+        // Free Shipping uses a banner (not shadow DOM modal)
+        const banner = page.locator('[data-rb-banner].free-shipping-bar');
+        await expect(banner).toBeVisible({ timeout: 15000 });
 
-        // Check for bottom positioning
-        const hasBottomPosition = await page.evaluate(() => {
-            const host = document.querySelector('#revenue-boost-popup-shadow-host');
-            if (!host?.shadowRoot) return false;
-            const html = host.shadowRoot.innerHTML.toLowerCase();
-            return html.includes('bottom') ||
-                   html.includes('fixed') ||
-                   html.includes('sticky');
-        });
+        // Check for bottom positioning via data attribute
+        const position = await banner.getAttribute('data-position');
+        const hasBottomPosition = position === 'bottom';
 
         if (hasBottomPosition) {
             console.log('✅ Bottom position styling detected');
@@ -221,7 +201,7 @@ test.describe.serial('Free Shipping Template', () => {
         console.log('🧪 Testing free shipping state messages...');
 
         const campaign = await (await factory.freeShipping().init())
-            .withPriority(9805)
+            .withPriority(MAX_TEST_PRIORITY)
             .withThreshold(75)
             .withMessages({
                 empty: 'Add items to unlock free shipping',
@@ -237,48 +217,39 @@ test.describe.serial('Free Shipping Template', () => {
         await page.goto(STORE_URL);
         await handlePasswordPage(page);
 
-        const popup = page.locator('#revenue-boost-popup-shadow-host');
-        await expect(popup).toBeVisible({ timeout: 15000 });
+        // Free Shipping uses a banner (not shadow DOM modal)
+        const banner = page.locator('[data-rb-banner].free-shipping-bar');
+        await expect(banner).toBeVisible({ timeout: 15000 });
 
         // Check for state-based messaging
-        const messageState = await page.evaluate(() => {
-            const host = document.querySelector('#revenue-boost-popup-shadow-host');
-            if (!host?.shadowRoot) return null;
+        const bannerText = await banner.textContent() || '';
+        const html = bannerText.toLowerCase();
 
-            const html = host.shadowRoot.innerHTML.toLowerCase();
-            return {
-                hasEmptyMessage: html.includes('add items') || html.includes('add to'),
-                hasProgressMessage: html.includes('away from') || html.includes('remaining'),
-                hasNearMissMessage: html.includes('only') && (html.includes('to go') || html.includes('left')),
-                hasUnlockedMessage: html.includes('unlocked') || html.includes('free shipping') && html.includes('!')
+        const messageState = {
+            hasEmptyMessage: html.includes('add items') || html.includes('add to'),
+            hasProgressMessage: html.includes('away from') || html.includes('remaining'),
+            hasNearMissMessage: html.includes('only') && (html.includes('to go') || html.includes('left')),
+            hasUnlockedMessage: html.includes('unlocked') || (html.includes('free shipping') && html.includes('!'))
+        };
+
+        console.log(`State messages: empty=${messageState.hasEmptyMessage}, progress=${messageState.hasProgressMessage}, nearMiss=${messageState.hasNearMissMessage}, unlocked=${messageState.hasUnlockedMessage}`);
+        // At least one state message should be present, or generic shipping text
+        const hasAnyMessage = Object.values(messageState).some(v => v);
+        if (hasAnyMessage) {
+            console.log('✅ State-based messaging configured');
+        } else {
+            // Check for generic shipping content or any popup content
+            const popupContent = {
+                hasShipping: html.includes('shipping'),
+                hasContent: bannerText.length > 10
             };
-        });
 
-        if (messageState) {
-            console.log(`State messages: empty=${messageState.hasEmptyMessage}, progress=${messageState.hasProgressMessage}, nearMiss=${messageState.hasNearMissMessage}, unlocked=${messageState.hasUnlockedMessage}`);
-            // At least one state message should be present, or generic shipping text
-            const hasAnyMessage = Object.values(messageState).some(v => v);
-            if (hasAnyMessage) {
-                console.log('✅ State-based messaging configured');
+            if (popupContent.hasShipping) {
+                console.log('✅ Free shipping content displayed');
+            } else if (popupContent.hasContent) {
+                console.log('⚠️ Banner has content - free shipping messages tested via config');
             } else {
-                // Check for generic shipping content or any popup content
-                const popupContent = await page.evaluate(() => {
-                    const host = document.querySelector('#revenue-boost-popup-shadow-host');
-                    if (!host?.shadowRoot) return { hasShipping: false, hasContent: false };
-                    const html = host.shadowRoot.innerHTML.toLowerCase();
-                    return {
-                        hasShipping: html.includes('shipping'),
-                        hasContent: html.length > 100
-                    };
-                });
-
-                if (popupContent.hasShipping) {
-                    console.log('✅ Free shipping content displayed');
-                } else if (popupContent.hasContent) {
-                    console.log('⚠️ Another campaign showing - free shipping messages tested via config');
-                } else {
-                    console.log('⚠️ Popup has minimal content');
-                }
+                console.log('⚠️ Banner has minimal content');
             }
         }
     });
@@ -287,7 +258,7 @@ test.describe.serial('Free Shipping Template', () => {
         console.log('🧪 Testing unlock celebration...');
 
         const campaign = await (await factory.freeShipping().init())
-            .withPriority(9806)
+            .withPriority(MAX_TEST_PRIORITY)
             .withThreshold(10) // Low threshold for testing
             .withCelebration(true)
             .create();
@@ -298,21 +269,17 @@ test.describe.serial('Free Shipping Template', () => {
         await page.goto(STORE_URL);
         await handlePasswordPage(page);
 
-        const popup = page.locator('#revenue-boost-popup-shadow-host');
-        await expect(popup).toBeVisible({ timeout: 15000 });
+        // Free Shipping uses a banner (not shadow DOM modal)
+        const banner = page.locator('[data-rb-banner].free-shipping-bar');
+        await expect(banner).toBeVisible({ timeout: 15000 });
 
         // Check for celebration/animation classes or elements
-        const hasCelebration = await page.evaluate(() => {
-            const host = document.querySelector('#revenue-boost-popup-shadow-host');
-            if (!host?.shadowRoot) return false;
+        const bannerClass = await banner.getAttribute('class') || '';
+        const bannerText = await banner.textContent() || '';
 
-            const html = host.shadowRoot.innerHTML.toLowerCase();
-            return html.includes('celebration') ||
-                   html.includes('confetti') ||
-                   html.includes('🎉') ||
-                   html.includes('unlocked') ||
-                   html.includes('animate');
-        });
+        const hasCelebration = bannerClass.includes('celebrating') ||
+                               bannerText.includes('🎉') ||
+                               bannerText.toLowerCase().includes('unlocked');
 
         console.log(`Celebration elements: ${hasCelebration}`);
         console.log('✅ Free shipping bar with celebration option rendered');

@@ -21,7 +21,7 @@ import {
 } from "~/domains/commerce/services/discount.server";
 import {
   generatePreviewDiscountCode,
-  isPreviewCampaign as checkIsPreviewCampaign,
+  isPreviewCampaign as _checkIsPreviewCampaign,
 } from "~/lib/preview-discount.server";
 import {
   upsertCustomer,

@@ -35,34 +35,23 @@ function ensureDiscountCode(discountConfig?: DiscountConfig): DiscountConfig | u
 
 /**
  * Default disabled audience targeting config
+ *
+ * Note: Session rules have been removed. Cart-based targeting is now
+ * handled by the cart_value trigger in Enhanced Triggers (client-side).
  */
 const DISABLED_AUDIENCE_TARGETING: {
   enabled: boolean;
   shopifySegmentIds: string[];
-  sessionRules: {
-    enabled: boolean;
-    conditions: Array<{
-      field: string;
-      operator: "in" | "eq" | "ne" | "gt" | "gte" | "lt" | "lte" | "nin";
-      value: string | number | boolean | string[];
-    }>;
-    logicOperator: "AND" | "OR";
-  };
 } = {
   enabled: false,
   shopifySegmentIds: [],
-  sessionRules: {
-    enabled: false,
-    conditions: [],
-    logicOperator: "AND",
-  },
 };
 
 /**
  * Sanitize target rules for plan-based feature restrictions.
  *
  * For stores on plans that don't include advancedTargeting, this function
- * strips audience targeting fields (Shopify segments, session rules) to prevent
+ * strips audience targeting fields (Shopify segments) to prevent
  * accidental use of locked features.
  *
  * This approach replaces the previous 403 error behavior with silent sanitization,

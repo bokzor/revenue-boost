@@ -22,6 +22,7 @@ import { getStoreId } from "~/lib/auth-helpers.server";
 import { getStoreCurrency } from "~/lib/currency.server";
 import { useState, useEffect } from "react";
 import type { ExperimentWithVariants } from "~/domains/campaigns/types/experiment";
+import type { CampaignStatus } from "~/domains/campaigns/types/campaign";
 import { SetupStatus, type SetupStatusData } from "~/domains/setup/components/SetupStatus";
 import { getSetupStatus } from "~/lib/setup-status.server";
 import { PostBillingReviewTrigger } from "~/domains/reviews";
@@ -237,7 +238,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const currentStatus = formData.get("currentStatus") as string;
     const newStatus = currentStatus === "ACTIVE" ? "PAUSED" : "ACTIVE";
 
-    await CampaignService.updateCampaign(campaignId, storeId, { status: newStatus as any }, admin);
+    await CampaignService.updateCampaign(campaignId, storeId, { status: newStatus as CampaignStatus }, admin);
     return data({ success: true });
   }
 
@@ -245,7 +246,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const campaignIds = JSON.parse(formData.get("campaignIds") as string);
     const results = await Promise.allSettled(
       campaignIds.map((id: string) =>
-        CampaignService.updateCampaign(id, storeId, { status: "ACTIVE" as any }, admin)
+        CampaignService.updateCampaign(id, storeId, { status: "ACTIVE" as CampaignStatus }, admin)
       )
     );
     const failed = results.filter((r) => r.status === "rejected").length;
@@ -260,7 +261,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const campaignIds = JSON.parse(formData.get("campaignIds") as string);
     const results = await Promise.allSettled(
       campaignIds.map((id: string) =>
-        CampaignService.updateCampaign(id, storeId, { status: "PAUSED" as any }, admin)
+        CampaignService.updateCampaign(id, storeId, { status: "PAUSED" as CampaignStatus }, admin)
       )
     );
     const failed = results.filter((r) => r.status === "rejected").length;
@@ -275,7 +276,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const campaignIds = JSON.parse(formData.get("campaignIds") as string);
     const results = await Promise.allSettled(
       campaignIds.map((id: string) =>
-        CampaignService.updateCampaign(id, storeId, { status: "ARCHIVED" as any }, admin)
+        CampaignService.updateCampaign(id, storeId, { status: "ARCHIVED" as CampaignStatus }, admin)
       )
     );
     const failed = results.filter((r) => r.status === "rejected").length;
@@ -311,7 +312,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           name: `${campaign.name} (Copy)`,
           description: campaign.description || undefined,
           goal: campaign.goal,
-          status: "DRAFT" as any,
+          status: "DRAFT" as CampaignStatus,
           priority: campaign.priority,
           templateId: campaign.templateId || undefined,
           templateType: campaign.templateType,
@@ -378,7 +379,7 @@ function TemplateTile({
 }: {
   title: string;
   description: string;
-  icon: any;
+  icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
   onSelect: () => void;
 }) {
   return (
@@ -421,9 +422,15 @@ export default function Dashboard() {
   } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
   const fetcher = useFetcher();
+  const setupFetcher = useFetcher<{ status: SetupStatusData; setupComplete: boolean }>();
 
   // Track which campaign is being toggled
   const [togglingCampaignId, setTogglingCampaignId] = useState<string | null>(null);
+
+  // Use refreshed setup status if available, otherwise use loader data
+  const currentSetupStatus = setupFetcher.data?.status ?? setupStatus;
+  const currentSetupComplete = setupFetcher.data?.setupComplete ?? setupComplete;
+  const isRefreshingSetup = setupFetcher.state === "loading";
 
   // Reset toggling state when fetcher completes
   useEffect(() => {
@@ -431,6 +438,10 @@ export default function Dashboard() {
       setTogglingCampaignId(null);
     }
   }, [fetcher.state, togglingCampaignId]);
+
+  const handleRefreshSetupStatus = () => {
+    setupFetcher.load("/api/setup/status");
+  };
 
   const formatMoney = (amount: number) => {
     return new Intl.NumberFormat("en-US", {
@@ -517,14 +528,16 @@ export default function Dashboard() {
 
         <Layout>
           {/* Setup Status Banner - Show if setup incomplete OR if there are any issues */}
-          {setupStatus &&
-            (!setupComplete || !setupStatus.themeExtensionEnabled || !setupStatus.appProxyOk) && (
+          {currentSetupStatus &&
+            (!currentSetupComplete || !currentSetupStatus.themeExtensionEnabled || !currentSetupStatus.appProxyOk) && (
               <Layout.Section>
                 <SetupStatus
-                  status={setupStatus}
-                  setupComplete={setupComplete ?? false}
+                  status={currentSetupStatus}
+                  setupComplete={currentSetupComplete ?? false}
                   themeEditorUrl={themeEditorUrl}
                   compact
+                  onRefresh={handleRefreshSetupStatus}
+                  isRefreshing={isRefreshingSetup}
                 />
               </Layout.Section>
             )}
@@ -604,14 +617,16 @@ export default function Dashboard() {
 
       <Layout>
         {/* Setup Status Banner - Show if setup incomplete OR if there are any issues */}
-        {setupStatus &&
-          (!setupComplete || !setupStatus.themeExtensionEnabled || !setupStatus.appProxyOk) && (
+        {currentSetupStatus &&
+          (!currentSetupComplete || !currentSetupStatus.themeExtensionEnabled || !currentSetupStatus.appProxyOk) && (
             <Layout.Section>
               <SetupStatus
-                status={setupStatus}
-                setupComplete={setupComplete ?? false}
+                status={currentSetupStatus}
+                setupComplete={currentSetupComplete ?? false}
                 themeEditorUrl={themeEditorUrl}
                 compact
+                onRefresh={handleRefreshSetupStatus}
+                isRefreshing={isRefreshingSetup}
               />
             </Layout.Section>
           )}

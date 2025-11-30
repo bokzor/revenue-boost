@@ -120,7 +120,7 @@ export function useFormField<K extends keyof CampaignFormData>(
  * Hook to update nested config objects
  * Convenience hook for updating contentConfig, designConfig, etc.
  */
-export function useConfigField<TConfig extends Record<string, any>>(
+export function useConfigField<TConfig extends Record<string, unknown>>(
   configName: keyof CampaignFormData,
   initialValue: TConfig = {} as TConfig
 ): [TConfig, (updates: Partial<TConfig> | TConfig) => void] {
@@ -130,7 +130,7 @@ export function useConfigField<TConfig extends Record<string, any>>(
 
   const updateConfig = (updates: Partial<TConfig> | TConfig) => {
     const newConfig = { ...config, ...updates };
-    updateWizardState({ [configName]: newConfig as any });
+    updateWizardState({ [configName]: newConfig as CampaignFormData[typeof configName] });
   };
 
   return [config, updateConfig];

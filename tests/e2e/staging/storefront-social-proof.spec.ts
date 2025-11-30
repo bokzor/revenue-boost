@@ -1,6 +1,5 @@
 import { test, expect } from '@playwright/test';
 import { PrismaClient } from '@prisma/client';
-import fs from 'fs';
 import path from 'path';
 import * as dotenv from 'dotenv';
 import { CampaignFactory } from './factories/campaign-factory';
@@ -20,10 +19,12 @@ const TEST_PREFIX = getTestPrefix('storefront-social-proof.spec.ts');
 /**
  * Social Proof Template E2E Tests
  *
- * Tests ACTUAL notification content:
+ * Tests ACTUAL notification content against deployed extension code:
  * - Notification appears in correct position
  * - Purchase notification content is displayed
  * - Notification auto-hides after duration
+ *
+ * NOTE: No bundle mocking - tests use deployed extension code.
  */
 
 test.describe.serial('Social Proof Template', () => {
@@ -65,15 +66,7 @@ test.describe.serial('Social Proof Template', () => {
         await mockChallengeToken(page);
         await page.context().clearCookies();
 
-        await page.route('**/social-proof.bundle.js*', async route => {
-            const bundlePath = path.join(process.cwd(), 'extensions/storefront-popup/assets/social-proof.bundle.js');
-            const content = fs.readFileSync(bundlePath);
-            await route.fulfill({
-                status: 200,
-                contentType: 'application/javascript',
-                body: content,
-            });
-        });
+        // No bundle mocking - tests use deployed extension code
     });
 
     test('renders notification with purchase content', async ({ page }) => {

@@ -163,9 +163,12 @@ export type ConfigBuilder<T = unknown> = (
 
 /**
  * Template preview component entry
+ * Component type uses 'any' for additional props since preview components
+ * have varying extra props (onSubmit, issueDiscount, etc.)
  */
 export interface TemplatePreviewEntry<TConfig = unknown> {
-  component: React.ComponentType<any>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Components have varying additional props
+  component: React.ComponentType<{ config: TConfig; isVisible: boolean; onClose: () => void } & Record<string, any>>;
   buildConfig: ConfigBuilder<TConfig>;
 }
 
@@ -241,6 +244,7 @@ function buildCommonConfig(
 /**
  * Template Preview Component Registry
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Registry supports multiple config types
 export const TEMPLATE_PREVIEW_REGISTRY: Record<string, TemplatePreviewEntry<any>> = {
   [TemplateTypeEnum.NEWSLETTER]: {
     component: NewsletterPopup,

@@ -131,7 +131,7 @@ export function parseTemplateContentConfig(
 
     // Validate with schema
     const result = schema.safeParse(parsed);
-    return result.success ? result.data : ({} as BaseContentConfig);
+    return result.success ? (result.data as ContentConfig | BaseContentConfig) : ({} as BaseContentConfig);
   } catch (error) {
     console.warn("Failed to parse template contentConfig:", error);
     return {} as BaseContentConfig;

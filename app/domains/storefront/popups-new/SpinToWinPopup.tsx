@@ -32,6 +32,26 @@ import { EmailInput, NameInput, GdprCheckbox } from "./components";
 import { DiscountCodeDisplay } from "./components/shared";
 
 /**
+ * Utility function to adjust color brightness
+ * Used for creating 3D effects on buttons and elements
+ */
+function adjustBrightness(hex: string, percent: number): string {
+  // Handle rgba/rgb colors
+  if (hex.startsWith("rgb")) return hex;
+
+  // Remove # if present
+  const cleanHex = hex.replace("#", "");
+
+  // Parse hex
+  const num = parseInt(cleanHex, 16);
+  const r = Math.min(255, Math.max(0, ((num >> 16) & 0xff) + Math.round(255 * percent / 100)));
+  const g = Math.min(255, Math.max(0, ((num >> 8) & 0xff) + Math.round(255 * percent / 100)));
+  const b = Math.min(255, Math.max(0, (num & 0xff) + Math.round(255 * percent / 100)));
+
+  return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
+}
+
+/**
  * CSS Custom Properties for container-relative responsive design
  * These scale based on the popup container size (cqi = container query inline)
  */
@@ -90,6 +110,10 @@ export interface SpinToWinConfig extends PopupDesignConfig, SpinToWinContent {
   animationDuration?: number;
   showConfetti?: boolean;
 
+  // Audio & Haptic feedback options (default: true)
+  enableSound?: boolean;
+  enableHaptic?: boolean;
+
   // Note: wheelSegments, emailRequired, emailPlaceholder, spinButtonText, etc.
   // all come from SpinToWinContent
 }
@@ -144,6 +168,7 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
 
   const [hasSpun, setHasSpun] = useState(false);
   const [isSpinning, setIsSpinning] = useState(false);
+  const [isSlowingDown, setIsSlowingDown] = useState(false); // Track anticipation phase
   const [isGeneratingCode, setIsGeneratingCode] = useState(false);
   const [wonPrize, setWonPrize] = useState<Prize | null>(null);
   const [_codeError, setCodeError] = useState("");
@@ -263,8 +288,10 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
   const inputBorderColor = config.inputBorderColor || "#E5E7EB";
 
   // Theme-aware colors for success/prize surfaces
-  const _successColor = (config as any).successColor || accentColor;
-  const descriptionColor = (config as any).descriptionColor || "#6B7280";
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- config has dynamic fields
+  const configRecord = config as any;
+  const _successColor = (configRecord.successColor as string) || accentColor;
+  const descriptionColor = (configRecord.descriptionColor as string) || "#6B7280";
 
   // Optional extended behavior flags (storefront-only)
   const collectName = config.collectName ?? false;
@@ -278,6 +305,94 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
         ? `You won ${wonPrize.label}!`
         : config.failureMessage || wonPrize.label || "Thanks for playing!"
       : null;
+
+  // ============================================
+  // TICK SOUND & HAPTIC FEEDBACK
+  // ============================================
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const lastTickSegmentRef = useRef<number>(-1);
+  const enableSound = config.enableSound !== false; // Default to true
+  const enableHaptic = config.enableHaptic !== false; // Default to true
+
+  // Create tick sound using Web Audio API
+  const playTickSound = useCallback(() => {
+    if (!enableSound || prefersReducedMotion()) return;
+
+    try {
+      // Lazy-init AudioContext (requires user interaction)
+      if (!audioContextRef.current) {
+        audioContextRef.current = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+      }
+
+      const ctx = audioContextRef.current;
+      if (ctx.state === "suspended") {
+        ctx.resume();
+      }
+
+      // Create a short "tick" sound
+      const oscillator = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+
+      oscillator.connect(gainNode);
+      gainNode.connect(ctx.destination);
+
+      // High-pitched click sound
+      oscillator.frequency.setValueAtTime(1800, ctx.currentTime);
+      oscillator.frequency.exponentialRampToValueAtTime(800, ctx.currentTime + 0.02);
+
+      // Quick attack and decay
+      gainNode.gain.setValueAtTime(0.15, ctx.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.03);
+
+      oscillator.start(ctx.currentTime);
+      oscillator.stop(ctx.currentTime + 0.03);
+    } catch {
+      // Silently fail if audio isn't available
+    }
+  }, [enableSound]);
+
+  // Trigger haptic feedback
+  const triggerHaptic = useCallback(() => {
+    if (!enableHaptic || prefersReducedMotion()) return;
+
+    try {
+      if (navigator.vibrate) {
+        navigator.vibrate(10); // Short 10ms vibration
+      }
+    } catch {
+      // Silently fail if haptic isn't available
+    }
+  }, [enableHaptic]);
+
+  // Track segment changes during spin for tick effect
+  useEffect(() => {
+    if (!isSpinning || segments.length === 0) {
+      lastTickSegmentRef.current = -1;
+      return;
+    }
+
+    const segmentAngle = 360 / segments.length;
+    // Normalize rotation to 0-360 range
+    const normalizedRotation = ((rotation % 360) + 360) % 360;
+    // Calculate which segment is at the pointer (right side / 0 degrees)
+    const currentSegment = Math.floor(((360 - normalizedRotation + 90) % 360) / segmentAngle);
+
+    if (lastTickSegmentRef.current !== currentSegment && lastTickSegmentRef.current !== -1) {
+      playTickSound();
+      triggerHaptic();
+    }
+
+    lastTickSegmentRef.current = currentSegment;
+  }, [rotation, isSpinning, segments.length, playTickSound, triggerHaptic]);
+
+  // Cleanup audio context
+  useEffect(() => {
+    return () => {
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
+      }
+    };
+  }, []);
 
   // Canvas-based wheel rendering using WheelRenderer utility
   useEffect(() => {
@@ -293,6 +408,7 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
       wheelBorderWidth,
       hasSpun,
       wonPrize,
+      enableEnhancedStyle: true,
     });
   }, [
     segments,
@@ -377,6 +493,11 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
       const current = spinFromRef.current + (spinToRef.current - spinFromRef.current) * eased;
       setRotation(current);
 
+      // Detect slowing down phase (last 30% of animation) for anticipation wobble
+      if (t > 0.7 && t < 1) {
+        setIsSlowingDown(true);
+      }
+
       if (t < 1) {
         spinAnimationFrameRef.current = requestAnimationFrame(animate);
       } else {
@@ -384,6 +505,7 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
         setRotation(spinToRef.current);
         setHasSpun(true);
         setIsSpinning(false);
+        setIsSlowingDown(false);
       }
     };
 
@@ -518,6 +640,7 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
       console.error("Spin error:", error);
       setIsSpinning(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- gdprConsent/name intentionally excluded to avoid re-renders
   }, [handleFormSubmit, config, formState.email, onSpin, segments, onWin, setDiscountCode]);
 
   // Wheel sizing is now primarily handled by CSS container queries (--stw-wheel-size)
@@ -671,6 +794,103 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
             50% { box-shadow: 0 0 clamp(15px, 4cqi, 25px) clamp(3px, 1cqi, 6px) rgba(${accentColor}, 0.2); }
           }
 
+          /* ============================================
+           * POINTER ANIMATIONS
+           * ============================================ */
+          @keyframes pointerBounce {
+            0%, 100% { transform: translateY(-50%) translateX(0); }
+            25% { transform: translateY(-50%) translateX(-4px); }
+            50% { transform: translateY(-50%) translateX(0); }
+            75% { transform: translateY(-50%) translateX(-2px); }
+          }
+
+          @keyframes pointerGlow {
+            0%, 100% {
+              filter: drop-shadow(-2px 0 6px rgba(255, 215, 0, 0.3))
+                      drop-shadow(-1px 0 3px rgba(255, 215, 0, 0.5));
+            }
+            50% {
+              filter: drop-shadow(-4px 0 12px rgba(255, 215, 0, 0.6))
+                      drop-shadow(-2px 0 6px rgba(255, 215, 0, 0.8));
+            }
+          }
+
+          @keyframes pointerWinBounce {
+            0% { transform: translateY(-50%) translateX(0) scale(1); }
+            15% { transform: translateY(-50%) translateX(-8px) scale(1.1); }
+            30% { transform: translateY(-50%) translateX(4px) scale(0.95); }
+            45% { transform: translateY(-50%) translateX(-4px) scale(1.05); }
+            60% { transform: translateY(-50%) translateX(2px) scale(0.98); }
+            75% { transform: translateY(-50%) translateX(-1px) scale(1.02); }
+            100% { transform: translateY(-50%) translateX(0) scale(1); }
+          }
+
+          /* ============================================
+           * CENTER BUTTON ANIMATIONS
+           * ============================================ */
+          @keyframes centerButtonPulse {
+            0%, 100% {
+              transform: translate(-50%, -50%) scale(1);
+              box-shadow: 0 2px 8px rgba(15,23,42,0.4),
+                          0 0 0 0 ${accentColor}40;
+            }
+            50% {
+              transform: translate(-50%, -50%) scale(1.03);
+              box-shadow: 0 4px 16px rgba(15,23,42,0.5),
+                          0 0 20px 4px ${accentColor}30;
+            }
+          }
+
+          @keyframes centerButtonGlow {
+            0%, 100% {
+              box-shadow: 0 2px 8px rgba(15,23,42,0.4),
+                          inset 0 -2px 4px rgba(0,0,0,0.2),
+                          inset 0 2px 4px rgba(255,255,255,0.1);
+            }
+            50% {
+              box-shadow: 0 4px 20px rgba(15,23,42,0.5),
+                          0 0 30px 8px ${accentColor}40,
+                          inset 0 -2px 4px rgba(0,0,0,0.2),
+                          inset 0 2px 4px rgba(255,255,255,0.1);
+            }
+          }
+
+          /* ============================================
+           * ANTICIPATION EFFECTS (non-rotational)
+           * Uses scale and shadow pulse to avoid interfering with wheel spin
+           * ============================================ */
+          @keyframes anticipationPulse {
+            0%, 100% {
+              transform: scale(1);
+              filter: drop-shadow(0 8px 20px rgba(15,23,42,0.35));
+            }
+            50% {
+              transform: scale(1.02);
+              filter: drop-shadow(0 12px 30px rgba(15,23,42,0.5));
+            }
+          }
+
+          @keyframes pointerAnticipation {
+            0%, 100% {
+              transform: translateY(-50%) translateX(0);
+            }
+            30% {
+              transform: translateY(-50%) translateX(-3px);
+            }
+            60% {
+              transform: translateY(-50%) translateX(1px);
+            }
+          }
+
+          /* ============================================
+           * TICK SOUND VISUAL FEEDBACK
+           * ============================================ */
+          @keyframes tickPulse {
+            0% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(0.98); }
+            100% { opacity: 1; transform: scale(1); }
+          }
+
           /* Prize reveal celebration */
           @keyframes prizeCardReveal {
             0% {
@@ -717,6 +937,134 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
               box-shadow: 0 0 20px ${accentColor}60, 0 0 40px ${accentColor}30, 0 0 60px ${accentColor}10;
             }
           }
+
+          /* ============================================
+           * ENHANCED PARTICLE EFFECTS
+           * ============================================ */
+          @keyframes sparkleFloat {
+            0% {
+              opacity: 1;
+              transform: translateY(0) translateX(0) rotate(0deg) scale(1);
+            }
+            50% {
+              opacity: 1;
+              transform: translateY(-30px) translateX(var(--sparkle-x, 10px)) rotate(180deg) scale(1.2);
+            }
+            100% {
+              opacity: 0;
+              transform: translateY(-60px) translateX(var(--sparkle-x2, 20px)) rotate(360deg) scale(0);
+            }
+          }
+
+          @keyframes rayBurst {
+            0% {
+              opacity: 0;
+              transform: scaleY(0) rotate(var(--ray-angle, 0deg));
+            }
+            30% {
+              opacity: 1;
+              transform: scaleY(1) rotate(var(--ray-angle, 0deg));
+            }
+            100% {
+              opacity: 0;
+              transform: scaleY(1.5) rotate(var(--ray-angle, 0deg));
+            }
+          }
+
+          @keyframes starPop {
+            0% {
+              opacity: 0;
+              transform: scale(0) rotate(0deg);
+            }
+            50% {
+              opacity: 1;
+              transform: scale(1.3) rotate(180deg);
+            }
+            100% {
+              opacity: 0;
+              transform: scale(0.5) rotate(360deg);
+            }
+          }
+
+          /* Sparkle particles */
+          .spin-sparkle {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            pointer-events: none;
+            z-index: 100;
+          }
+
+          .spin-sparkle::before,
+          .spin-sparkle::after {
+            content: '';
+            position: absolute;
+            background: #FFD700;
+            border-radius: 2px;
+          }
+
+          .spin-sparkle::before {
+            width: 100%;
+            height: 30%;
+            top: 35%;
+            left: 0;
+          }
+
+          .spin-sparkle::after {
+            width: 30%;
+            height: 100%;
+            top: 0;
+            left: 35%;
+          }
+
+          .spin-sparkle:nth-child(1) { --sparkle-x: 15px; --sparkle-x2: 25px; left: 15%; top: 20%; animation: sparkleFloat 1.2s ease-out 0s forwards; }
+          .spin-sparkle:nth-child(2) { --sparkle-x: -10px; --sparkle-x2: -20px; left: 25%; top: 15%; animation: sparkleFloat 1s ease-out 0.1s forwards; }
+          .spin-sparkle:nth-child(3) { --sparkle-x: 20px; --sparkle-x2: 35px; left: 75%; top: 18%; animation: sparkleFloat 1.3s ease-out 0.15s forwards; }
+          .spin-sparkle:nth-child(4) { --sparkle-x: -15px; --sparkle-x2: -30px; left: 85%; top: 22%; animation: sparkleFloat 1.1s ease-out 0.05s forwards; }
+
+          /* Ray burst effect */
+          .spin-rays {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 200px;
+            height: 200px;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            z-index: 99;
+          }
+
+          .spin-ray {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 4px;
+            height: 80px;
+            background: linear-gradient(to top, transparent, ${accentColor}80, #FFD70080);
+            transform-origin: bottom center;
+            border-radius: 2px;
+          }
+
+          .spin-ray:nth-child(1) { --ray-angle: 0deg; animation: rayBurst 0.8s ease-out 0s forwards; }
+          .spin-ray:nth-child(2) { --ray-angle: 45deg; animation: rayBurst 0.8s ease-out 0.05s forwards; }
+          .spin-ray:nth-child(3) { --ray-angle: 90deg; animation: rayBurst 0.8s ease-out 0.1s forwards; }
+          .spin-ray:nth-child(4) { --ray-angle: 135deg; animation: rayBurst 0.8s ease-out 0.15s forwards; }
+          .spin-ray:nth-child(5) { --ray-angle: 180deg; animation: rayBurst 0.8s ease-out 0.2s forwards; }
+          .spin-ray:nth-child(6) { --ray-angle: 225deg; animation: rayBurst 0.8s ease-out 0.25s forwards; }
+          .spin-ray:nth-child(7) { --ray-angle: 270deg; animation: rayBurst 0.8s ease-out 0.3s forwards; }
+          .spin-ray:nth-child(8) { --ray-angle: 315deg; animation: rayBurst 0.8s ease-out 0.35s forwards; }
+
+          /* Star pop effect */
+          .spin-star {
+            position: absolute;
+            font-size: 20px;
+            pointer-events: none;
+            z-index: 101;
+          }
+
+          .spin-star:nth-child(1) { left: 10%; top: 25%; animation: starPop 0.6s ease-out 0.2s forwards; }
+          .spin-star:nth-child(2) { left: 90%; top: 30%; animation: starPop 0.7s ease-out 0.3s forwards; }
+          .spin-star:nth-child(3) { left: 50%; top: 10%; animation: starPop 0.5s ease-out 0.4s forwards; }
 
           /* Success section animations */
           .spin-success-section {
@@ -846,6 +1194,16 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
             transition: width 0.3s ease;
           }
 
+          /* Anticipation effects when slowing down - uses scale pulse instead of rotation */
+          .spin-wheel-wrapper.is-slowing .spin-wheel-canvas-container {
+            animation: anticipationPulse 0.25s ease-in-out infinite;
+          }
+
+          /* Pointer oscillation during slowdown */
+          .spin-wheel-wrapper.is-slowing .spin-pointer {
+            animation: pointerAnticipation 0.2s ease-in-out infinite;
+          }
+
           /* Wheel canvas container */
           .spin-wheel-canvas-container {
             position: relative;
@@ -860,24 +1218,87 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
           }
 
           /* ============================================
-           * POINTER - Container-Relative
+           * 3D POINTER - Metallic Arrow with Animations
            * ============================================ */
           .spin-pointer {
             position: absolute;
             top: 50%;
-            right: calc(-1 * var(--stw-pointer-length) * 0.5);
+            right: calc(-1 * var(--stw-pointer-length) * 0.3);
             transform: translateY(-50%);
-            width: 0;
-            height: 0;
-            border-top: var(--stw-pointer-size) solid transparent;
-            border-bottom: var(--stw-pointer-size) solid transparent;
-            border-right: var(--stw-pointer-length) solid #FFFFFF;
-            filter: drop-shadow(clamp(-1px, -0.3cqi, -2px) 0 clamp(2px, 0.6cqi, 4px) rgba(0,0,0,0.25));
+            width: var(--stw-pointer-length);
+            height: calc(var(--stw-pointer-size) * 2.2);
             z-index: 20;
+            /* Reset border-based triangle */
+            border: none;
+            /* 3D Arrow shape using clip-path */
+            clip-path: polygon(0% 50%, 100% 0%, 85% 50%, 100% 100%);
+            /* Metallic gradient */
+            background: linear-gradient(
+              135deg,
+              #f0f0f0 0%,
+              #ffffff 15%,
+              #d4d4d4 30%,
+              #ffffff 45%,
+              #e8e8e8 60%,
+              #c0c0c0 80%,
+              #a0a0a0 100%
+            );
+            /* Multiple shadows for 3D depth */
+            filter:
+              drop-shadow(-3px 0 6px rgba(0,0,0,0.4))
+              drop-shadow(-1px 0 2px rgba(0,0,0,0.3));
+            transition: filter 0.3s ease, transform 0.3s ease;
+          }
+
+          /* Pointer inner highlight for 3D effect */
+          .spin-pointer::before {
+            content: '';
+            position: absolute;
+            inset: 15% 20% 15% 10%;
+            background: linear-gradient(
+              180deg,
+              rgba(255,255,255,0.9) 0%,
+              rgba(255,255,255,0.3) 50%,
+              rgba(0,0,0,0.1) 100%
+            );
+            clip-path: polygon(0% 50%, 100% 10%, 80% 50%, 100% 90%);
+          }
+
+          /* Golden accent edge */
+          .spin-pointer::after {
+            content: '';
+            position: absolute;
+            left: -2px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 4px;
+            height: 60%;
+            background: linear-gradient(
+              180deg,
+              #ffd700 0%,
+              #ffec8b 50%,
+              #ffd700 100%
+            );
+            border-radius: 2px;
+            box-shadow: 0 0 8px rgba(255, 215, 0, 0.6);
+          }
+
+          /* Spinning state - subtle glow animation */
+          .spin-wheel-wrapper.is-spinning .spin-pointer {
+            animation: pointerGlow 0.3s ease-in-out infinite;
+          }
+
+          /* Stopped/Won state - bounce animation */
+          .spin-wheel-wrapper.has-won .spin-pointer {
+            animation: pointerWinBounce 0.8s ease-out 1;
+            filter:
+              drop-shadow(-4px 0 12px rgba(255, 215, 0, 0.6))
+              drop-shadow(-2px 0 6px rgba(255, 215, 0, 0.8))
+              drop-shadow(-3px 0 6px rgba(0,0,0,0.4));
           }
 
           /* ============================================
-           * CENTER BUTTON - Container-Relative
+           * CENTER BUTTON - Enhanced 3D with Pulse
            * ============================================ */
           .spin-center-button {
             position: absolute;
@@ -887,20 +1308,66 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
             width: var(--stw-center-btn-size);
             height: var(--stw-center-btn-size);
             border-radius: 50%;
-            background-color: ${accentColor};
-            border: var(--stw-center-btn-border) solid rgba(15,23,42,0.85);
+            /* 3D gradient background */
+            background:
+              radial-gradient(circle at 30% 30%,
+                rgba(255,255,255,0.4) 0%,
+                transparent 50%),
+              radial-gradient(circle at 70% 70%,
+                rgba(0,0,0,0.2) 0%,
+                transparent 50%),
+              linear-gradient(
+                145deg,
+                ${adjustBrightness(accentColor, 20)} 0%,
+                ${accentColor} 50%,
+                ${adjustBrightness(accentColor, -15)} 100%
+              );
+            /* Metallic border */
+            border: var(--stw-center-btn-border) solid;
+            border-color:
+              ${adjustBrightness(accentColor, -30)}
+              ${adjustBrightness(accentColor, -40)}
+              ${adjustBrightness(accentColor, -50)}
+              ${adjustBrightness(accentColor, -35)};
             display: flex;
             align-items: center;
             justify-content: center;
             color: #F9FAFB;
             font-size: var(--stw-center-btn-font);
-            font-weight: 600;
-            letter-spacing: 0.12em;
+            font-weight: 700;
+            letter-spacing: 0.15em;
             text-transform: uppercase;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
             font-family: ${config.fontFamily || 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'};
-            box-shadow: 0 clamp(2px, 0.5cqi, 4px) clamp(8px, 2cqi, 12px) rgba(15,23,42,0.4);
+            /* 3D shadow layers */
+            box-shadow:
+              0 clamp(2px, 0.5cqi, 4px) clamp(8px, 2cqi, 12px) rgba(15,23,42,0.4),
+              inset 0 -3px 6px rgba(0,0,0,0.2),
+              inset 0 3px 6px rgba(255,255,255,0.15),
+              0 0 0 2px rgba(255,255,255,0.1);
             pointer-events: none;
             z-index: 15;
+            transition: all 0.3s ease;
+          }
+
+          /* Idle state - pulsing glow to attract attention */
+          .spin-wheel-wrapper:not(.is-spinning):not(.has-won) .spin-center-button {
+            animation: centerButtonPulse 2s ease-in-out infinite;
+          }
+
+          /* Spinning state - steady glow */
+          .spin-wheel-wrapper.is-spinning .spin-center-button {
+            animation: centerButtonGlow 1s ease-in-out infinite;
+            transform: translate(-50%, -50%) scale(0.98);
+          }
+
+          /* Won state - celebratory glow */
+          .spin-wheel-wrapper.has-won .spin-center-button {
+            box-shadow:
+              0 clamp(4px, 1cqi, 8px) clamp(16px, 4cqi, 24px) rgba(15,23,42,0.5),
+              0 0 30px 10px ${accentColor}50,
+              inset 0 -3px 6px rgba(0,0,0,0.2),
+              inset 0 3px 6px rgba(255,255,255,0.2);
           }
 
           /* ============================================
@@ -1020,11 +1487,13 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
         )}
         {/* Wheel Cell */}
         <div className="spin-wheel-cell" ref={wheelCellRef}>
-          <div className="spin-wheel-wrapper">
+          <div
+            className={`spin-wheel-wrapper ${isSpinning ? "is-spinning" : ""} ${isSlowingDown ? "is-slowing" : ""} ${hasSpun && wonPrize ? "has-won" : ""}`}
+          >
             {/* Rotating wheel canvas - uses CSS for sizing */}
             <div
               ref={wheelContainerRef}
-              className={`spin-wheel-canvas-container ${hasSpun ? "has-spun" : ""}`}
+              className={`spin-wheel-canvas-container ${hasSpun ? "has-spun" : ""} ${isSpinning ? "is-spinning" : ""} ${isSlowingDown ? "is-slowing" : ""}`}
             >
               <canvas
                 ref={canvasRef}
@@ -1038,10 +1507,10 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
               />
             </div>
 
-            {/* Pointer - uses container-relative CSS */}
+            {/* 3D Pointer with metallic gradient */}
             <div className="spin-pointer" />
 
-            {/* Center button - uses container-relative CSS */}
+            {/* Center button with pulsing animation */}
             <div className="spin-center-button">{isSpinning ? "..." : "SPIN"}</div>
           </div>
         </div>
@@ -1055,7 +1524,7 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
                 className="spin-headline"
                 style={{
                   color: config.textColor || "#111827",
-                  textShadow: (config as any).titleTextShadow,
+                  textShadow: configRecord.titleTextShadow as string | undefined,
                 }}
               >
                 {wonPrize
@@ -1077,8 +1546,8 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
                     <NameInput
                       value={formState.name}
                       onChange={setName}
-                      placeholder={(config as any).nameFieldPlaceholder || "Your Name"}
-                      label={(config as any).nameFieldLabel}
+                      placeholder={(configRecord.nameFieldPlaceholder as string) || "Your Name"}
+                      label={configRecord.nameFieldLabel as string | undefined}
                       error={errors.name}
                       required={config.nameFieldRequired}
                       disabled={isSpinning || isGeneratingCode}
@@ -1183,9 +1652,33 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
               </>
             ) : (
               <div className="spin-success-section">
-                {/* Confetti particles for celebration */}
+                {/* Enhanced celebration effects */}
                 {wonPrize?.generatedCode && (
                   <>
+                    {/* Ray burst from center */}
+                    <div className="spin-rays">
+                      <div className="spin-ray" />
+                      <div className="spin-ray" />
+                      <div className="spin-ray" />
+                      <div className="spin-ray" />
+                      <div className="spin-ray" />
+                      <div className="spin-ray" />
+                      <div className="spin-ray" />
+                      <div className="spin-ray" />
+                    </div>
+
+                    {/* Sparkle particles */}
+                    <div className="spin-sparkle" />
+                    <div className="spin-sparkle" />
+                    <div className="spin-sparkle" />
+                    <div className="spin-sparkle" />
+
+                    {/* Star pop effects */}
+                    <div className="spin-star">⭐</div>
+                    <div className="spin-star">✨</div>
+                    <div className="spin-star">🌟</div>
+
+                    {/* Original confetti */}
                     <div className="spin-confetti" />
                     <div className="spin-confetti" />
                     <div className="spin-confetti" />

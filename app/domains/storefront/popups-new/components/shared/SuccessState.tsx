@@ -1,5 +1,4 @@
 import React from "react";
-import { CheckmarkIcon } from "./icons/CheckmarkIcon";
 import { DiscountCodeDisplay } from "./DiscountCodeDisplay";
 import "./animations.css";
 
@@ -233,7 +232,7 @@ export const SuccessState: React.FC<SuccessStateProps> = ({
   successColor = "#16a34a",
   textColor = "#111827",
   descriptionColor: _descriptionColor, // Reserved for future use
-  animation = "bounceIn",
+  animation: _animation = "bounceIn",
   fontSize = "1.875rem",
   fontWeight = "700",
   className,

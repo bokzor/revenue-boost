@@ -10,7 +10,7 @@
  * - Dismissible with close button
  */
 
-import React, { useEffect, useState, useRef, useCallback, useMemo } from "react";
+import React, { useEffect, useState, useRef, useMemo } from "react";
 import type { PopupDesignConfig, DiscountConfig as StorefrontDiscountConfig } from "./types";
 import type { FreeShippingContent } from "~/domains/campaigns/types/campaign";
 import { debounce } from "./utils";
@@ -24,11 +24,12 @@ import { buildScopedCss } from "~/domains/storefront/shared/css";
 import { LeadCaptureForm, PopupCloseButton } from "./components/shared";
 
 // Import session for lazy token loading (only in storefront context)
-let sessionModule: any = null;
+let _sessionModule: unknown = null;
 if (typeof window !== "undefined") {
   try {
     // Dynamic import for storefront bundle
-    sessionModule = (window as any).__RB_SESSION;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- window extension
+    _sessionModule = (window as any).__RB_SESSION;
   } catch {
     // Fallback - will use window.__RB_SESSION_ID if available
   }
@@ -76,11 +77,13 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
   const showIcon = config.showIcon ?? true;
   const animationDuration = config.animationDuration ?? 500;
   const discount = config.discount as StorefrontDiscountConfig | undefined;
-  const requireEmailToClaim = (config as any).requireEmailToClaim ?? false;
-  const claimButtonLabel = (config as any).claimButtonLabel || "Claim discount";
-  const claimEmailPlaceholder = (config as any).claimEmailPlaceholder || "Enter your email";
-  const claimSuccessMessage = (config as any).claimSuccessMessage as string | undefined;
-  const claimErrorMessage = (config as any).claimErrorMessage as string | undefined;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- config has dynamic fields
+  const configRecord = config as any;
+  const requireEmailToClaim = (configRecord.requireEmailToClaim as boolean) ?? false;
+  const claimButtonLabel = (configRecord.claimButtonLabel as string) || "Claim discount";
+  const claimEmailPlaceholder = (configRecord.claimEmailPlaceholder as string) || "Enter your email";
+  const claimSuccessMessage = configRecord.claimSuccessMessage as string | undefined;
+  const claimErrorMessage = configRecord.claimErrorMessage as string | undefined;
 
   // Use animation hook
   const { showContent, isAnimating } = usePopupAnimation({
@@ -215,7 +218,7 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
   // Read currency ISO from app embed if available
   useEffect(() => {
     try {
-      const w: any = window as any;
+      const w = window as Window & { REVENUE_BOOST_CONFIG?: { currency?: string } };
       const iso = w?.REVENUE_BOOST_CONFIG?.currency;
       if (typeof iso === "string") {
         currencyCodeRef.current = iso;
@@ -253,15 +256,16 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
       "cart:item-added",
       "cart:add",
     ];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- EventListener type mismatch
     eventNames.forEach((name) => document.addEventListener(name, debouncedRefresh as any));
 
     // Always perform an initial sync from /cart.js so we include any existing cart items
-    if (!(config as any)?.previewMode) {
+    if (!configRecord.previewMode) {
       void refresh();
     }
 
     // Optional: intercept cart mutations via fetch (guard for double-wrapping)
-    const w: any = window as any;
+    const w = window as Window & { __RB_FETCH_INTERCEPTED?: boolean };
     let originalFetch: typeof window.fetch | null = null;
     if (!w.__RB_FETCH_INTERCEPTED) {
       try {
@@ -269,12 +273,12 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
         window.fetch = (async (...args: Parameters<typeof fetch>) => {
           const [url, opts] = args;
           const urlStr = typeof url === "string" ? url : url?.toString?.();
-          const method = (opts as any)?.method ? String((opts as any).method).toUpperCase() : "GET";
+          const method = (opts as RequestInit | undefined)?.method ? String((opts as RequestInit).method).toUpperCase() : "GET";
           const isCartMutation = !!urlStr && urlStr.includes("/cart") && method !== "GET";
-          const response = await (originalFetch as any)(...args);
+          const response = await originalFetch!(...args);
           if (isCartMutation) debouncedRefresh();
           return response;
-        }) as any;
+        });
         w.__RB_FETCH_INTERCEPTED = true;
       } catch {
         // ignore
@@ -282,6 +286,7 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
     }
 
     return () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- EventListener type mismatch
       eventNames.forEach((name) => document.removeEventListener(name, debouncedRefresh as any));
       try {
         if (originalFetch) {
@@ -292,11 +297,12 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
         console.error("[FreeShippingPopup] Failed to restore fetch:", error);
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- Only run on visibility change
   }, [isVisible]);
 
   // In preview mode (admin), allow external control of cart total via prop or config
   useEffect(() => {
-    if ((config as any)?.previewMode) {
+    if (configRecord.previewMode) {
       const next =
         typeof propCartTotal === "number"
           ? propCartTotal
@@ -305,7 +311,7 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
             : undefined;
       if (typeof next === "number") setCartTotal(next);
     }
-  }, [propCartTotal, config.currentCartTotal, config]);
+  }, [propCartTotal, config.currentCartTotal, config, configRecord.previewMode]);
 
   const getMessage = () => {
     const remainingFormatted = formatCurrency(remaining);
@@ -453,6 +459,7 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
     }
 
     prevUnlockedRef.current = isUnlocked;
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- setDiscountCode is stable setter
   }, [
     state,
     celebrateOnUnlock,
@@ -866,11 +873,11 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
         aria-live="polite"
         aria-atomic="true"
         style={{
-          position: (config as any)?.previewMode ? "absolute" : undefined,
+          position: configRecord.previewMode ? "absolute" : undefined,
           background: config.backgroundColor || "#ffffff",
           color: config.textColor || "#111827",
-          ["--shipping-bar-progress-bg" as any]: getProgressColor(),
-        }}
+          "--shipping-bar-progress-bg": getProgressColor(),
+        } as React.CSSProperties}
       >
         <div
           className="free-shipping-bar-progress"

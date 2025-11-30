@@ -30,9 +30,9 @@ import { TemplatePreview } from "./TemplatePreview";
 
 export interface LivePreviewPanelProps {
   templateType?: string;
-  config: Record<string, any>;
-  designConfig: Record<string, any>;
-  targetRules?: Record<string, any>;
+  config: Record<string, unknown>;
+  designConfig: Record<string, unknown>;
+  targetRules?: Record<string, unknown>;
   onPreviewElementReady?: (element: HTMLElement | null) => void;
   shopDomain?: string;
   campaignId?: string;

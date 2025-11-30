@@ -312,6 +312,7 @@ export async function loader(args: LoaderFunctionArgs) {
  * Extract client-side triggers from targetRules
  * Server-side rules (audience, page targeting) are already filtered
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- targetRules is dynamically typed from campaign config
 function extractClientTriggers(targetRules: any) {
   if (!targetRules) return {};
 

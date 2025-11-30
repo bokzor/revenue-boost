@@ -422,14 +422,20 @@ export default function CampaignEditPage() {
   );
 }
 
+interface PlanLimitErrorDetails {
+  limit?: number;
+  current?: number;
+  tier?: string;
+}
+
 async function tryParsePlanLimitError(
   response: Response
-): Promise<{ message: string; details: any } | null> {
+): Promise<{ message: string; details: PlanLimitErrorDetails } | null> {
   try {
     if (response.status !== 403) return null;
-    const body: any = await response.json();
+    const body = await response.json() as { errorCode?: string; error?: string; errorDetails?: PlanLimitErrorDetails };
     if (body?.errorCode !== "PLAN_LIMIT_EXCEEDED") return null;
-    return { message: body.error ?? "Plan limit reached", details: body.errorDetails };
+    return { message: body.error ?? "Plan limit reached", details: body.errorDetails ?? {} };
   } catch {
     return null;
   }

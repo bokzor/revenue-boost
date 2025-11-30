@@ -87,7 +87,7 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
     display: "inline-flex",
     alignItems: "center",
     justifyContent: centered ? "center" : "flex-start",
-    flexDirection: flexDirectionMap[textPosition] as any,
+    flexDirection: flexDirectionMap[textPosition] as React.CSSProperties["flexDirection"],
     gap: text ? gap : 0,
     color,
     ...style,

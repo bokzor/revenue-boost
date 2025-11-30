@@ -1,6 +1,5 @@
 import { test, expect } from '@playwright/test';
 import { PrismaClient } from '@prisma/client';
-import fs from 'fs';
 import path from 'path';
 import * as dotenv from 'dotenv';
 import { CampaignFactory } from './factories/campaign-factory';
@@ -21,11 +20,13 @@ const TEST_PREFIX = getTestPrefix('storefront-flash-sale.spec.ts');
 /**
  * Flash Sale Template E2E Tests
  *
- * Tests ACTUAL content rendering:
+ * Tests ACTUAL content rendering against deployed extension code:
  * - Urgency messages are displayed
  * - Discount percentages are shown
  * - Countdown timer is functional
  * - Stock counter displays correctly
+ *
+ * NOTE: No bundle mocking - tests use deployed extension code.
  */
 
 test.describe.serial('Flash Sale Template', () => {
@@ -71,15 +72,7 @@ test.describe.serial('Flash Sale Template', () => {
         await mockChallengeToken(page);
         await page.context().clearCookies();
 
-        await page.route('**/flash-sale.bundle.js*', async route => {
-            const bundlePath = path.join(process.cwd(), 'extensions/storefront-popup/assets/flash-sale.bundle.js');
-            const content = fs.readFileSync(bundlePath);
-            await route.fulfill({
-                status: 200,
-                contentType: 'application/javascript',
-                body: content,
-            });
-        });
+        // No bundle mocking - tests use deployed extension code
     });
 
     test('renders flash sale popup with countdown timer', async ({ page }) => {

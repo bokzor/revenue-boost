@@ -7,7 +7,6 @@
 
 import type { CampaignWithConfigs } from "~/domains/campaigns/types/campaign";
 import type { StorefrontContext } from "~/domains/campaigns/types/storefront-context";
-import type { AudienceCondition } from "~/domains/targeting/utils/condition-adapter";
 import { FrequencyCapService } from "~/domains/targeting/services/frequency-cap.server";
 import {
   hasSegmentMembershipData,
@@ -224,7 +223,7 @@ export class CampaignFilterService {
   }
 
   /**
-   * Filter campaigns by audience targeting (Shopify segments + session rules).
+   * Filter campaigns by audience targeting (Shopify segments).
    *
    * Shopify segments are stored in our own database (SegmentMembership) via
    * background sync and are NEVER exposed to the storefront. This method does
@@ -232,19 +231,19 @@ export class CampaignFilterService {
    *
    * Runtime behavior:
    * - If shopifySegmentIds are configured AND membership data exists for those
-   *   segments, the visitor MUST belong to at least one of them AND
-   * - sessionRules (if any) MUST also match the StorefrontContext.
+   *   segments, the visitor MUST belong to at least one of them.
    * - If NO membership data exists yet for the configured segments, we ignore
-   *   the segment filter and fall back to sessionRules-only (fail-open).
+   *   the segment filter (fail-open).
+   *
+   * Note: Cart-based targeting is now handled by the cart_value trigger in
+   * Enhanced Triggers (client-side) via polling /cart.js.
    */
   static async filterByAudienceSegments(
     campaigns: CampaignWithConfigs[],
     context: StorefrontContext,
     storeId: string
   ): Promise<CampaignWithConfigs[]> {
-    console.log(
-      "[Revenue Boost] 👥 Filtering campaigns by audience targeting (Shopify segments + session rules)"
-    );
+    console.log("[Revenue Boost] 👥 Filtering campaigns by audience targeting (Shopify segments)");
 
     if (!campaigns || campaigns.length === 0) {
       return [];
@@ -298,7 +297,7 @@ export class CampaignFilterService {
 
         if (!hasData) {
           console.log(
-            `[Revenue Boost] ⚠️ Campaign "${campaign.name}" (${campaign.id}): Shopify segments configured (${JSON.stringify(segmentIds)}) but no membership data found for store ${storeId}; ignoring segment filter and falling back to sessionRules-only`
+            `[Revenue Boost] ⚠️ Campaign "${campaign.name}" (${campaign.id}): Shopify segments configured (${JSON.stringify(segmentIds)}) but no membership data found for store ${storeId}; ignoring segment filter (fail-open)`
           );
           segmentsMatch = true;
         } else if (!shopifyCustomerId) {
@@ -327,43 +326,12 @@ export class CampaignFilterService {
         }
       }
 
-      const sessionRules = targeting.sessionRules;
-      let sessionMatch = true;
-
-      if (
-        sessionRules &&
-        sessionRules.enabled &&
-        sessionRules.conditions &&
-        sessionRules.conditions.length > 0
-      ) {
-        sessionMatch = this.evaluateAudienceSessionRules(sessionRules, context);
-
-        if (sessionMatch) {
-          console.log(
-            `[Revenue Boost] ✅ Campaign "${campaign.name}" (${campaign.id}): audience session rules matched`
-          );
-        } else {
-          console.log(
-            `[Revenue Boost] ❌ Campaign "${campaign.name}" (${campaign.id}): audience session rules did NOT match`
-          );
-        }
-      } else {
-        console.log(
-          `[Revenue Boost] ✅ Campaign "${campaign.name}" (${campaign.id}): No session rules configured, including`
-        );
-      }
-
-      const matches = segmentsMatch && sessionMatch;
-
-      if (!matches) {
-        console.log(
-          `[Revenue Boost] ❌ Campaign "${campaign.name}" (${campaign.id}): audience targeting overall did NOT match (segments=${segmentsMatch}, sessionRules=${sessionMatch})`
-        );
+      if (!segmentsMatch) {
         continue;
       }
 
       console.log(
-        `[Revenue Boost] ✅ Campaign "${campaign.name}" (${campaign.id}): audience targeting overall matched`
+        `[Revenue Boost] ✅ Campaign "${campaign.name}" (${campaign.id}): audience targeting matched`
       );
       result.push(campaign);
     }
@@ -371,141 +339,6 @@ export class CampaignFilterService {
     console.log(
       `[Revenue Boost] 👥 Audience targeting filter result: ${result.length} of ${campaigns.length} campaigns matched`
     );
-
-    return result;
-  }
-
-  /**
-   * Evaluate AudienceTargetingConfig.sessionRules against the storefront context.
-   */
-  private static evaluateAudienceSessionRules(
-    sessionRules: {
-      enabled?: boolean;
-      logicOperator?: "AND" | "OR";
-      conditions?: AudienceCondition[];
-    },
-    context: StorefrontContext
-  ): boolean {
-    const conditions = sessionRules.conditions || [];
-    if (!sessionRules.enabled || conditions.length === 0) {
-      return true;
-    }
-
-    const op = sessionRules.logicOperator || "AND";
-    const ctx: Record<string, unknown> = context as Record<string, unknown>;
-
-    const results = conditions.map((cond) => this.evaluateAudienceCondition(cond, ctx));
-
-    if (op === "OR") {
-      return results.some(Boolean);
-    }
-
-    return results.every(Boolean);
-  }
-
-  /**
-   * Evaluate a single audience condition against the provided context map.
-   */
-  private static evaluateAudienceCondition(
-    condition: AudienceCondition,
-    ctx: Record<string, unknown>
-  ): boolean {
-    const { field, operator, value } = condition;
-
-    const actual = ctx[field];
-
-    console.log("[Revenue Boost] 🔍 Evaluating audience condition", {
-      field,
-      operator,
-      expected: value,
-      actual,
-    });
-
-    if (actual === undefined || actual === null) {
-      console.log("[Revenue Boost] ❌ Audience condition failed: actual value is null/undefined");
-      return false;
-    }
-
-    const asNumber = (v: unknown): number => {
-      if (typeof v === "number") return v;
-      if (typeof v === "string") {
-        const parsed = parseFloat(v);
-        return Number.isNaN(parsed) ? NaN : parsed;
-      }
-      return NaN;
-    };
-
-    const actualNum = asNumber(actual);
-    const targetNum = asNumber(value);
-
-    const normalizeToPrimitiveArray = (input: unknown): Array<string | number | boolean> => {
-      if (Array.isArray(input)) {
-        return input.filter(
-          (item): item is string | number | boolean =>
-            typeof item === "string" || typeof item === "number" || typeof item === "boolean"
-        );
-      }
-
-      if (
-        typeof input === "string" ||
-        typeof input === "number" ||
-        typeof input === "boolean"
-      ) {
-        return [input];
-      }
-
-      return [];
-    };
-
-    let result: boolean;
-
-    switch (operator) {
-      case "gt":
-        result = actualNum > targetNum;
-        break;
-      case "gte":
-        result = actualNum >= targetNum;
-        break;
-      case "lt":
-        result = actualNum < targetNum;
-        break;
-      case "lte":
-        result = actualNum <= targetNum;
-        break;
-      case "eq":
-        result = actual === value;
-        break;
-      case "ne":
-        result = actual !== value;
-        break;
-      case "in": {
-        const expectedValues = normalizeToPrimitiveArray(value);
-        const actualValues = normalizeToPrimitiveArray(actual);
-        result =
-          expectedValues.length > 0 &&
-          actualValues.some((candidate) => expectedValues.includes(candidate));
-        break;
-      }
-      case "nin": {
-        const expectedValues = normalizeToPrimitiveArray(value);
-        const actualValues = normalizeToPrimitiveArray(actual);
-        result =
-          expectedValues.length === 0 ||
-          actualValues.every((candidate) => !expectedValues.includes(candidate));
-        break;
-      }
-      default:
-        result = true;
-        break;
-    }
-
-    console.log("[Revenue Boost] 🔍 Audience condition result", {
-      field,
-      operator,
-      expected: value,
-      actual,
-      result,
-    });
 
     return result;
   }
