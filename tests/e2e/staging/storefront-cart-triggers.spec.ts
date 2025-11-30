@@ -179,10 +179,10 @@ test.describe.serial('Cart & Product Triggers', () => {
     });
 
     test.describe('Cart Value Trigger', () => {
-        // Skip: cart_value trigger polling doesn't detect cart updates after navigation.
-        // The trigger starts polling on page load, but when navigating to a new page,
-        // the entire Revenue Boost script re-initializes. Need to investigate if this
-        // is a bug in the cart_value trigger implementation.
+        // Skip: Staging store is running OLD SDK version without polling implementation.
+        // The current code has polling logic but hasn't been deployed to staging.
+        // After deploying the extension (`shopify app deploy`), re-enable this test.
+        // See docs/E2E_REMAINING_ISSUES.md for details.
         test.skip('popup shows when cart value exceeds min threshold', async ({ page }) => {
             console.log('🧪 Testing cart value trigger behavior...');
 

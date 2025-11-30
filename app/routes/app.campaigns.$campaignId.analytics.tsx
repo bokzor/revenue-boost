@@ -6,11 +6,11 @@ import {
   Text,
   BlockStack,
   InlineGrid,
-  Box,
   Divider,
   DataTable,
-  Tooltip,
 } from "@shopify/polaris";
+import { PolarisVizProvider, BarChart } from "@shopify/polaris-viz";
+import "@shopify/polaris-viz/build/esm/styles.css";
 import { authenticate } from "~/shopify.server";
 import { CampaignAnalyticsService } from "~/domains/campaigns/services/campaign-analytics.server";
 import { CampaignService } from "~/domains/campaigns";
@@ -203,31 +203,30 @@ export default function CampaignAnalyticsPage() {
             <Text as="h2" variant="headingMd">
               Performance Over Time
             </Text>
-            <Box padding="400" background="bg-surface-secondary" borderRadius="200">
-              <div style={{ height: "300px", display: "flex", alignItems: "flex-end", gap: "4px" }}>
-                {/* Simple CSS Bar Chart */}
-                {dailyMetrics.map((day) => {
-                  const maxRevenue = Math.max(...dailyMetrics.map((d) => d.revenue), 1);
-                  const height = (day.revenue / maxRevenue) * 100;
-                  return (
-                    <Tooltip
-                      key={day.date}
-                      content={`${day.date}: ${formatMoney(day.revenue, currency)}`}
-                    >
-                      <div
-                        style={{
-                          height: `${Math.max(height, 1)}%`,
-                          flex: 1,
-                          backgroundColor: "#10b981",
-                          borderRadius: "2px 2px 0 0",
-                          opacity: 0.8,
-                        }}
-                      />
-                    </Tooltip>
-                  );
-                })}
+            <PolarisVizProvider>
+              <div style={{ height: "300px" }}>
+                <BarChart
+                  data={[
+                    {
+                      name: "Revenue",
+                      data: dailyMetrics.map((day) => ({
+                        key: day.date,
+                        value: day.revenue,
+                      })),
+                    },
+                  ]}
+                  xAxisOptions={{
+                    labelFormatter: (value) => {
+                      const date = new Date(value);
+                      return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+                    },
+                  }}
+                  yAxisOptions={{
+                    labelFormatter: (value) => formatMoney(Number(value), currency),
+                  }}
+                />
               </div>
-            </Box>
+            </PolarisVizProvider>
             <Text as="p" tone="subdued" alignment="center">
               Daily Revenue (Last 30 Days)
             </Text>

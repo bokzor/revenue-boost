@@ -32,6 +32,59 @@ export interface DateRangeOptions {
   to?: Date;
 }
 
+// ============================================================================
+// Global Analytics Types
+// ============================================================================
+
+export interface GlobalMetrics {
+  totalRevenue: number;
+  totalLeads: number;
+  totalImpressions: number;
+  totalClicks: number;
+  totalOrders: number;
+  avgConversionRate: number;
+  avgOrderValue: number;
+}
+
+export interface GlobalMetricsWithComparison {
+  current: GlobalMetrics;
+  previous: GlobalMetrics;
+  changes: {
+    revenue: number;
+    leads: number;
+    impressions: number;
+    orders: number;
+    conversionRate: number;
+    aov: number;
+  };
+}
+
+export interface CampaignRanking {
+  id: string;
+  name: string;
+  templateType: string;
+  status: string;
+  impressions: number;
+  leads: number;
+  clicks: number;
+  revenue: number;
+  orders: number;
+  conversionRate: number;
+  aov: number;
+}
+
+export interface TemplatePerformance {
+  templateType: string;
+  campaignCount: number;
+  totalImpressions: number;
+  totalLeads: number;
+  totalClicks: number;
+  totalRevenue: number;
+  totalOrders: number;
+  avgConversionRate: number;
+  avgOrderValue: number;
+}
+
 /**
  * Campaign Analytics Service
  * Provides optimized analytics queries
@@ -352,9 +405,14 @@ export class CampaignAnalyticsService {
       // 3. Merge and format
       const metricsMap = new Map<string, { impressions: number; leads: number; revenue: number }>();
 
-      // Initialize map with empty days if needed, or just sparse
-      // For charts, sparse is usually fine if the frontend handles it,
-      // but filling gaps is nicer. Let's just return sparse for now.
+      // Initialize map with all days in range (fill gaps for better chart rendering)
+      const today = new Date();
+      for (let i = days - 1; i >= 0; i--) {
+        const date = new Date(today);
+        date.setDate(date.getDate() - i);
+        const dateKey = date.toISOString().split("T")[0];
+        metricsMap.set(dateKey, { impressions: 0, leads: 0, revenue: 0 });
+      }
 
       events.forEach((row) => {
         const dateKey = row.date.toISOString().split("T")[0];
@@ -389,6 +447,334 @@ export class CampaignAnalyticsService {
       console.error("Failed to fetch daily metrics:", error);
       // Return empty array instead of throwing to avoid breaking the whole page
       return [];
+    }
+  }
+
+  // ============================================================================
+  // Global Analytics Methods (Store-wide aggregations)
+  // ============================================================================
+
+  /**
+   * Get aggregated metrics across all campaigns for a store.
+   * Used by the global analytics dashboard.
+   */
+  static async getGlobalMetrics(
+    storeId: string,
+    options?: DateRangeOptions
+  ): Promise<GlobalMetrics> {
+    try {
+      // 1. Get all campaign IDs for this store
+      const campaigns = await prisma.campaign.findMany({
+        where: { storeId },
+        select: { id: true },
+      });
+      const campaignIds = campaigns.map((c) => c.id);
+
+      if (campaignIds.length === 0) {
+        return {
+          totalRevenue: 0,
+          totalLeads: 0,
+          totalImpressions: 0,
+          totalClicks: 0,
+          totalOrders: 0,
+          avgConversionRate: 0,
+          avgOrderValue: 0,
+        };
+      }
+
+      // 2. Fetch all stats in parallel
+      const [leadCounts, impressionCounts, clickCounts, revenueBreakdown] = await Promise.all([
+        this.getLeadCounts(campaignIds, options),
+        PopupEventService.getImpressionCountsByCampaign(campaignIds, {
+          from: options?.from,
+          to: options?.to,
+        }),
+        PopupEventService.getClickCountsByCampaign(campaignIds, {
+          from: options?.from,
+          to: options?.to,
+        }),
+        this.getRevenueBreakdownByCampaignIds(campaignIds, options),
+      ]);
+
+      // 3. Aggregate totals
+      let totalLeads = 0;
+      let totalImpressions = 0;
+      let totalClicks = 0;
+      let totalRevenue = 0;
+      let totalOrders = 0;
+
+      leadCounts.forEach((count) => (totalLeads += count));
+      impressionCounts.forEach((count) => (totalImpressions += count));
+      clickCounts.forEach((count) => (totalClicks += count));
+      revenueBreakdown.forEach((breakdown) => {
+        totalRevenue += breakdown.revenue;
+        totalOrders += breakdown.orderCount;
+      });
+
+      return {
+        totalRevenue,
+        totalLeads,
+        totalImpressions,
+        totalClicks,
+        totalOrders,
+        avgConversionRate: totalImpressions > 0 ? (totalLeads / totalImpressions) * 100 : 0,
+        avgOrderValue: totalOrders > 0 ? totalRevenue / totalOrders : 0,
+      };
+    } catch (error) {
+      throw new CampaignServiceError(
+        "FETCH_GLOBAL_METRICS_FAILED",
+        "Failed to fetch global metrics",
+        error
+      );
+    }
+  }
+
+  /**
+   * Get global metrics with comparison to previous period.
+   * Calculates percentage changes between current and previous periods.
+   */
+  static async getGlobalMetricsWithComparison(
+    storeId: string,
+    currentRange: DateRangeOptions,
+    previousRange: DateRangeOptions
+  ): Promise<GlobalMetricsWithComparison> {
+    const [current, previous] = await Promise.all([
+      this.getGlobalMetrics(storeId, currentRange),
+      this.getGlobalMetrics(storeId, previousRange),
+    ]);
+
+    const calcChange = (curr: number, prev: number): number => {
+      if (prev === 0) return curr > 0 ? 100 : 0;
+      return ((curr - prev) / prev) * 100;
+    };
+
+    return {
+      current,
+      previous,
+      changes: {
+        revenue: calcChange(current.totalRevenue, previous.totalRevenue),
+        leads: calcChange(current.totalLeads, previous.totalLeads),
+        impressions: calcChange(current.totalImpressions, previous.totalImpressions),
+        orders: calcChange(current.totalOrders, previous.totalOrders),
+        conversionRate: calcChange(current.avgConversionRate, previous.avgConversionRate),
+        aov: calcChange(current.avgOrderValue, previous.avgOrderValue),
+      },
+    };
+  }
+
+  /**
+   * Get daily metrics aggregated across all campaigns for a store.
+   * Used for the global analytics revenue chart.
+   */
+  static async getGlobalDailyMetrics(
+    storeId: string,
+    days: number = 30
+  ): Promise<Array<{ date: string; impressions: number; leads: number; revenue: number }>> {
+    try {
+      // Get all campaign IDs for this store
+      const campaigns = await prisma.campaign.findMany({
+        where: { storeId },
+        select: { id: true },
+      });
+      const campaignIds = campaigns.map((c) => c.id);
+
+      if (campaignIds.length === 0) {
+        return [];
+      }
+
+      // Reuse the existing getDailyMetrics method which already supports multiple campaign IDs
+      return this.getDailyMetrics(campaignIds, days);
+    } catch (error) {
+      console.error("Failed to fetch global daily metrics:", error);
+      return [];
+    }
+  }
+
+  /**
+   * Get campaign rankings sorted by a specific metric.
+   * Used for the campaign performance table in global analytics.
+   */
+  static async getCampaignRankings(
+    storeId: string,
+    options: DateRangeOptions | undefined,
+    sortBy: "revenue" | "leads" | "conversionRate" | "impressions" = "revenue",
+    limit: number = 20
+  ): Promise<CampaignRanking[]> {
+    try {
+      // 1. Get all campaigns with basic info
+      const campaigns = await prisma.campaign.findMany({
+        where: { storeId },
+        select: {
+          id: true,
+          name: true,
+          templateType: true,
+          status: true,
+        },
+      });
+
+      if (campaigns.length === 0) {
+        return [];
+      }
+
+      const campaignIds = campaigns.map((c) => c.id);
+
+      // 2. Fetch all stats in parallel
+      const [leadCounts, impressionCounts, clickCounts, revenueBreakdown] = await Promise.all([
+        this.getLeadCounts(campaignIds, options),
+        PopupEventService.getImpressionCountsByCampaign(campaignIds, {
+          from: options?.from,
+          to: options?.to,
+        }),
+        PopupEventService.getClickCountsByCampaign(campaignIds, {
+          from: options?.from,
+          to: options?.to,
+        }),
+        this.getRevenueBreakdownByCampaignIds(campaignIds, options),
+      ]);
+
+      // 3. Build rankings array
+      const rankings: CampaignRanking[] = campaigns.map((campaign) => {
+        const leads = leadCounts.get(campaign.id) || 0;
+        const impressions = impressionCounts.get(campaign.id) || 0;
+        const clicks = clickCounts.get(campaign.id) || 0;
+        const revData = revenueBreakdown.get(campaign.id) || {
+          revenue: 0,
+          orderCount: 0,
+          aov: 0,
+        };
+
+        return {
+          id: campaign.id,
+          name: campaign.name,
+          templateType: campaign.templateType,
+          status: campaign.status,
+          impressions,
+          leads,
+          clicks,
+          revenue: revData.revenue,
+          orders: revData.orderCount,
+          conversionRate: impressions > 0 ? (leads / impressions) * 100 : 0,
+          aov: revData.aov,
+        };
+      });
+
+      // 4. Sort by requested metric (descending)
+      rankings.sort((a, b) => {
+        switch (sortBy) {
+          case "revenue":
+            return b.revenue - a.revenue;
+          case "leads":
+            return b.leads - a.leads;
+          case "conversionRate":
+            return b.conversionRate - a.conversionRate;
+          case "impressions":
+            return b.impressions - a.impressions;
+          default:
+            return b.revenue - a.revenue;
+        }
+      });
+
+      // 5. Limit results
+      return rankings.slice(0, limit);
+    } catch (error) {
+      throw new CampaignServiceError(
+        "FETCH_CAMPAIGN_RANKINGS_FAILED",
+        "Failed to fetch campaign rankings",
+        error
+      );
+    }
+  }
+
+  /**
+   * Get performance metrics grouped by template type.
+   * Used for the template performance table in global analytics.
+   */
+  static async getPerformanceByTemplateType(
+    storeId: string,
+    options?: DateRangeOptions
+  ): Promise<TemplatePerformance[]> {
+    try {
+      // 1. Get all campaigns grouped by template type
+      const campaigns = await prisma.campaign.findMany({
+        where: { storeId },
+        select: {
+          id: true,
+          templateType: true,
+        },
+      });
+
+      if (campaigns.length === 0) {
+        return [];
+      }
+
+      // Group campaign IDs by template type
+      const templateGroups = new Map<string, string[]>();
+      campaigns.forEach((campaign) => {
+        const ids = templateGroups.get(campaign.templateType) || [];
+        ids.push(campaign.id);
+        templateGroups.set(campaign.templateType, ids);
+      });
+
+      const campaignIds = campaigns.map((c) => c.id);
+
+      // 2. Fetch all stats in parallel
+      const [leadCounts, impressionCounts, clickCounts, revenueBreakdown] = await Promise.all([
+        this.getLeadCounts(campaignIds, options),
+        PopupEventService.getImpressionCountsByCampaign(campaignIds, {
+          from: options?.from,
+          to: options?.to,
+        }),
+        PopupEventService.getClickCountsByCampaign(campaignIds, {
+          from: options?.from,
+          to: options?.to,
+        }),
+        this.getRevenueBreakdownByCampaignIds(campaignIds, options),
+      ]);
+
+      // 3. Aggregate by template type
+      const performances: TemplatePerformance[] = [];
+
+      templateGroups.forEach((ids, templateType) => {
+        let totalImpressions = 0;
+        let totalLeads = 0;
+        let totalClicks = 0;
+        let totalRevenue = 0;
+        let totalOrders = 0;
+
+        ids.forEach((id) => {
+          totalLeads += leadCounts.get(id) || 0;
+          totalImpressions += impressionCounts.get(id) || 0;
+          totalClicks += clickCounts.get(id) || 0;
+          const revData = revenueBreakdown.get(id);
+          if (revData) {
+            totalRevenue += revData.revenue;
+            totalOrders += revData.orderCount;
+          }
+        });
+
+        performances.push({
+          templateType,
+          campaignCount: ids.length,
+          totalImpressions,
+          totalLeads,
+          totalClicks,
+          totalRevenue,
+          totalOrders,
+          avgConversionRate: totalImpressions > 0 ? (totalLeads / totalImpressions) * 100 : 0,
+          avgOrderValue: totalOrders > 0 ? totalRevenue / totalOrders : 0,
+        });
+      });
+
+      // Sort by revenue descending
+      performances.sort((a, b) => b.totalRevenue - a.totalRevenue);
+
+      return performances;
+    } catch (error) {
+      throw new CampaignServiceError(
+        "FETCH_TEMPLATE_PERFORMANCE_FAILED",
+        "Failed to fetch template performance",
+        error
+      );
     }
   }
 }

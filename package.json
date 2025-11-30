@@ -56,6 +56,7 @@
     "@sentry/react": "^10.27.0",
     "@shopify/app-bridge-react": "^4.2.4",
     "@shopify/polaris": "^13.9.5",
+    "@shopify/polaris-viz": "^16.16.0",
     "@shopify/shopify-app-react-router": "^1.0.0",
     "@shopify/shopify-app-session-storage-prisma": "^7.0.0",
     "dotenv": "^17.2.3",

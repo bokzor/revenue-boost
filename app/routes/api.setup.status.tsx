@@ -1,10 +1,13 @@
 /**
  * Setup Status API
  *
+ * GET /api/setup/status?refresh=true
+ *
  * Checks if the app is properly set up:
  * - Theme extension enabled
- * - Metafield set
- * - Welcome campaign created
+ * - App proxy reachable
+ *
+ * Results are cached for 5 minutes. Use ?refresh=true to bypass cache.
  */
 
 import { data, type LoaderFunctionArgs } from "react-router";
@@ -20,16 +23,21 @@ export async function loader({ request }: LoaderFunctionArgs) {
       return data({ error: "No shop session" }, { status: 401 });
     }
 
-    // Check if store exists
+    // Check if force refresh is requested
+    const url = new URL(request.url);
+    const forceRefresh = url.searchParams.get("refresh") === "true";
+
+    // Check if store exists (fast DB lookup)
     const store = await prisma.store.findUnique({
       where: { shopifyDomain: session.shop },
     });
 
-    // Get setup status using shared utility
+    // Get setup status using shared utility (cached unless forceRefresh)
     const { status: setupStatus, setupComplete } = await getSetupStatus(
       session.shop,
       session.accessToken || "",
-      admin
+      admin,
+      { forceRefresh }
     );
 
     return data({

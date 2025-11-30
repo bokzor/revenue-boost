@@ -323,7 +323,8 @@ class RevenueBoostApp {
       const trackingKey = campaign.experimentId || campaign.id;
 
       // Check if campaign has frequency capping rules
-      const enhancedTriggers = campaign.targetRules?.enhancedTriggers;
+      // API returns triggers in clientTriggers.enhancedTriggers (not targetRules)
+      const enhancedTriggers = (campaign as unknown as { clientTriggers?: { enhancedTriggers?: Record<string, unknown> } }).clientTriggers?.enhancedTriggers || campaign.targetRules?.enhancedTriggers;
       const hasFrequencyCapping = !!(
         enhancedTriggers &&
         typeof enhancedTriggers === 'object' &&

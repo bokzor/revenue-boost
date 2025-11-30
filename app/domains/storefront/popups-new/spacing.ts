@@ -9,50 +9,13 @@
  * - Generous padding on containers (prevents cramped feeling)
  */
 
-/**
- * Responsive Breakpoints
- *
- * Standard breakpoints used across all popup components for consistent responsive behavior.
- * Use these in @media queries and @container queries.
- */
-export const POPUP_BREAKPOINTS = {
-  /** Mobile devices (portrait phones) */
-  mobile: 480,
-  /** Tablets (portrait) and large phones (landscape) */
-  tablet: 768,
-  /** Desktop and tablets (landscape) */
-  desktop: 1024,
-  /** Large desktop screens */
-  wide: 1280,
-} as const;
-
-/**
- * Helper function to generate media query strings
- * @example
- * ```css
- * @media ${mediaQuery('mobile')} {
- *   .popup { width: 100%; }
- * }
- * ```
- */
-export const mediaQuery = (breakpoint: keyof typeof POPUP_BREAKPOINTS, type: 'max' | 'min' = 'max') => {
-  const px = POPUP_BREAKPOINTS[breakpoint];
-  return type === 'max' ? `(max-width: ${px}px)` : `(min-width: ${px + 1}px)`;
-};
-
-/**
- * Helper function to generate container query strings
- * @example
- * ```css
- * @container ${containerQuery('mobile')} {
- *   .popup-content { padding: 1rem; }
- * }
- * ```
- */
-export const containerQuery = (breakpoint: keyof typeof POPUP_BREAKPOINTS, type: 'max' | 'min' = 'max') => {
-  const px = POPUP_BREAKPOINTS[breakpoint];
-  return type === 'max' ? `(max-width: ${px}px)` : `(min-width: ${px + 1}px)`;
-};
+// Re-export breakpoints from central location for backward compatibility
+// New code should import directly from '~/shared/constants/breakpoints'
+export {
+  BREAKPOINTS as POPUP_BREAKPOINTS,
+  mediaQuery,
+  containerQuery,
+} from '~/shared/constants/breakpoints';
 
 /**
  * Spacing constants based on FlashSale's system
