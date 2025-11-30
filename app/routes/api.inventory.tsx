@@ -73,6 +73,29 @@ const PRODUCT_VARIANTS_QUERY = `
   }
 `;
 
+/**
+ * GraphQL query to resolve products from collection IDs
+ */
+const COLLECTION_PRODUCTS_QUERY = `
+  query getCollectionProducts($collectionIds: [ID!]!) {
+    nodes(ids: $collectionIds) {
+      ... on Collection {
+        id
+        products(first: 250) {
+          nodes {
+            id
+            variants(first: 250) {
+              nodes {
+                id
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+`;
+
 export async function loader({ request }: LoaderFunctionArgs) {
   try {
     // Authenticate request (requires valid Shopify session or app proxy signature)
@@ -153,10 +176,10 @@ export async function loader({ request }: LoaderFunctionArgs) {
       allVariantIds = [...allVariantIds, ...productVariants];
     }
 
-    // Resolve variants from collections (TODO: implement collection->product->variant resolution)
+    // Resolve variants from collections
     if (validatedQuery.collectionIds?.length) {
-      // Placeholder - requires collection products query
-      console.warn("[Inventory API] Collection resolution not yet implemented");
+      const collectionVariants = await resolveCollectionVariants(admin, validatedQuery.collectionIds);
+      allVariantIds = [...allVariantIds, ...collectionVariants];
     }
 
     // Deduplicate variant IDs
@@ -262,6 +285,37 @@ async function resolveProductVariants(admin: { graphql: (query: string, options?
         for (const variant of product.variants.nodes) {
           if (variant?.id) {
             variantIds.push(variant.id);
+          }
+        }
+      }
+    }
+  }
+
+  return variantIds;
+}
+
+/**
+ * Resolve variant IDs from collection IDs
+ * Fetches all products in a collection, then extracts all variant IDs
+ */
+async function resolveCollectionVariants(admin: { graphql: (query: string, options?: { variables?: Record<string, unknown> }) => Promise<Response> }, collectionIds: string[]): Promise<string[]> {
+  const response = await admin.graphql(COLLECTION_PRODUCTS_QUERY, {
+    variables: { collectionIds },
+  });
+
+  const responseData = await response.json();
+  const variantIds: string[] = [];
+
+  if (responseData.data?.nodes) {
+    for (const collection of responseData.data.nodes) {
+      if (collection?.products?.nodes) {
+        for (const product of collection.products.nodes) {
+          if (product?.variants?.nodes) {
+            for (const variant of product.variants.nodes) {
+              if (variant?.id) {
+                variantIds.push(variant.id);
+              }
+            }
           }
         }
       }

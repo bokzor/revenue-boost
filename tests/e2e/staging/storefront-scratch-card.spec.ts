@@ -12,7 +12,9 @@ import {
     getTestPrefix,
     verifyScratchCardContent,
     fillEmailInShadowDOM,
-    waitForPopupWithRetry
+    waitForPopupWithRetry,
+    cleanupAllE2ECampaigns,
+    MAX_TEST_PRIORITY
 } from './helpers/test-helpers';
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env.staging.env'), override: true });
@@ -62,9 +64,8 @@ test.describe.serial('Scratch Card Template', () => {
     });
 
     test.beforeEach(async ({ page }) => {
-        await prisma.campaign.deleteMany({
-            where: { name: { startsWith: TEST_PREFIX } }
-        });
+        // Clean up ALL E2E campaigns to avoid priority conflicts
+        await cleanupAllE2ECampaigns(prisma);
 
         await mockChallengeToken(page);
         await page.context().clearCookies();
@@ -74,7 +75,7 @@ test.describe.serial('Scratch Card Template', () => {
 
     test('renders with scratch canvas element', async ({ page }) => {
         const campaign = await (await factory.scratchCard().init())
-            .withPriority(9301)
+            .withPriority(MAX_TEST_PRIORITY)
             .create();
         console.log(`✅ Campaign created: ${campaign.id}`);
 
@@ -112,7 +113,7 @@ test.describe.serial('Scratch Card Template', () => {
         const headline = 'Scratch to Win a Prize!';
 
         const campaign = await (await factory.scratchCard().init())
-            .withPriority(9302)
+            .withPriority(MAX_TEST_PRIORITY)
             .withHeadline(headline)
             .create();
         console.log(`✅ Campaign created: ${campaign.id}`);
@@ -147,7 +148,7 @@ test.describe.serial('Scratch Card Template', () => {
 
     test('shows email input when required before scratching', async ({ page }) => {
         const campaign = await (await factory.scratchCard().init())
-            .withPriority(9303)
+            .withPriority(MAX_TEST_PRIORITY)
             .withEmailBeforeScratching(true)
             .create();
         console.log(`✅ Campaign created: ${campaign.id}`);
@@ -180,7 +181,7 @@ test.describe.serial('Scratch Card Template', () => {
         console.log('🧪 Testing scratch interaction...');
 
         const campaign = await (await factory.scratchCard().init())
-            .withPriority(9304)
+            .withPriority(MAX_TEST_PRIORITY)
             .withEmailBeforeScratching(false) // Scratch first, email later
             .create();
         console.log(`✅ Campaign created: ${campaign.id}`);
@@ -239,7 +240,7 @@ test.describe.serial('Scratch Card Template', () => {
         console.log('🧪 Testing GDPR checkbox in scratch-card...');
 
         const campaign = await (await factory.scratchCard().init())
-            .withPriority(9305)
+            .withPriority(MAX_TEST_PRIORITY)
             .withGdprCheckbox(true, 'I agree to receive promotional offers')
             .create();
         console.log(`✅ Campaign created: ${campaign.id}`);

@@ -99,6 +99,7 @@ export async function action({ request }: ActionFunctionArgs) {
         select: {
           id: true,
           name: true,
+          templateType: true, // For email marketing platform tags
           discountConfig: true,
           store: {
             select: {
@@ -363,24 +364,6 @@ export async function action({ request }: ActionFunctionArgs) {
 
     const admin = createAdminApiContext(campaign.store.shopifyDomain, campaign.store.accessToken);
 
-    // Sanitize customer data
-    const customerData: CustomerUpsertData = sanitizeCustomerData({
-      email: validatedData.email,
-      firstName: validatedData.firstName,
-      lastName: validatedData.lastName,
-      phone: validatedData.phone,
-      marketingConsent: validatedData.consent,
-      source: "revenue-boost-popup",
-      campaignId: validatedData.campaignId,
-    });
-
-    // Upsert customer in Shopify
-    const customerResult = await upsertCustomer(admin, customerData);
-    if (!customerResult.success) {
-      console.warn("[Lead Submission] Failed to create/update customer:", customerResult.errors);
-      // Continue without customer - not critical
-    }
-
     // Parse discount config
     const discountConfig = parseDiscountConfig(campaign.discountConfig);
 
@@ -397,6 +380,7 @@ export async function action({ request }: ActionFunctionArgs) {
     // of issuing here, to avoid UX confusion when cart value changes after code generation.
 
     // Get or create discount code via Shopify Admin API
+    // NOTE: We generate this BEFORE creating the customer so we can include the discount code in customer tags
     const discountResult = await getCampaignDiscountCode(
       admin,
       storeId,
@@ -408,6 +392,31 @@ export async function action({ request }: ActionFunctionArgs) {
     if (!discountResult.success) {
       console.warn("[Lead Submission] Failed to create discount code:", discountResult.errors);
       // Continue without discount code - don't fail the entire process
+    }
+
+    // Sanitize customer data with enhanced fields for email marketing integration
+    // These fields generate tags that sync to Klaviyo, Mailchimp, etc.
+    const customerData: CustomerUpsertData = sanitizeCustomerData({
+      email: validatedData.email,
+      firstName: validatedData.firstName,
+      lastName: validatedData.lastName,
+      phone: validatedData.phone,
+      marketingConsent: validatedData.consent,
+      source: "revenue-boost-popup",
+      campaignId: validatedData.campaignId,
+      // Enhanced fields for email marketing platform tags
+      campaignName: campaign.name,
+      templateType: campaign.templateType,
+      discountCode: discountResult.discountCode || undefined,
+    });
+
+    // Upsert customer in Shopify
+    // This creates/updates a Shopify customer with marketing consent and tags
+    // Email platforms (Klaviyo, Mailchimp, etc.) automatically sync these customers
+    const customerResult = await upsertCustomer(admin, customerData);
+    if (!customerResult.success) {
+      console.warn("[Lead Submission] Failed to create/update customer:", customerResult.errors);
+      // Continue without customer - not critical
     }
 
     // Build metadata

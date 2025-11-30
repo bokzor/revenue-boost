@@ -67,9 +67,10 @@ export async function loader({ request }: LoaderFunctionArgs) {
     const parsedSettings = StoreSettingsSchema.partial().safeParse(store?.settings || {});
 
     // Use best practice defaults if store hasn't configured frequency capping yet
+    // Global capping is disabled by default to maximize impressions
     const storeFrequencyCapping = parsedSettings.success ? parsedSettings.data.frequencyCapping : undefined;
     const globalFrequencyCapping = storeFrequencyCapping ?? {
-      enabled: true,
+      enabled: false,
       ...GLOBAL_FREQUENCY_BEST_PRACTICES,
     };
 

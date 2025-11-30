@@ -1,6 +1,9 @@
 import { Prisma } from "@prisma/client";
 import prisma from "~/db.server";
 
+// Attribution window for view-through conversions (7 days in milliseconds)
+const VIEW_THROUGH_ATTRIBUTION_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+
 export interface OrderPayload {
   id: number;
   name: string;
@@ -24,12 +27,8 @@ export async function handleOrderCreate(shop: string, payload: OrderPayload) {
     orderId: payload.id,
     orderNumber: payload.name,
     discounts: payload.discount_codes,
+    customerId: payload.customer?.id,
   });
-
-  if (!payload.discount_codes || payload.discount_codes.length === 0) {
-    console.log("[Webhook] No discount codes in order, skipping attribution");
-    return;
-  }
 
   // 1. Find store
   const store = await prisma.store.findUnique({
@@ -41,71 +40,176 @@ export async function handleOrderCreate(shop: string, payload: OrderPayload) {
     return;
   }
 
-  // 2. Check each discount code to see if it belongs to a campaign
-  for (const discount of payload.discount_codes) {
-    const code = discount.code;
+  // Track if we've already attributed this order to prevent double-counting
+  let attributed = false;
 
-    // Try to find a campaign that generated this code
-    // We check two places:
-    // A. The Campaign model itself (if it has a static code or prefix)
-    // B. The Lead model (if we stored the generated code there)
-    // C. The PopupEvent metadata (if we stored it there)
+  // 2. First, try discount code attribution (highest confidence)
+  if (payload.discount_codes && payload.discount_codes.length > 0) {
+    for (const discount of payload.discount_codes) {
+      const code = discount.code;
 
-    // For MVP, let's look up the code in the Lead table first, as that's the most direct link
-    // for unique codes.
-    const lead = await prisma.lead.findFirst({
-      where: {
-        storeId: store.id,
-        discountCode: code,
-      },
-      include: {
-        campaign: true,
-      },
-    });
-
-    if (lead) {
-      console.log(`[Webhook] Found lead attribution for code ${code}`, {
-        leadId: lead.id,
-        campaignId: lead.campaignId,
+      // Try to find a campaign that generated this code
+      // Check Lead table first (for unique codes from Spin To Win, Scratch Card, etc.)
+      const lead = await prisma.lead.findFirst({
+        where: {
+          storeId: store.id,
+          discountCode: code,
+        },
+        include: {
+          campaign: true,
+        },
       });
 
-      await recordConversion({
-        storeId: store.id,
-        campaignId: lead.campaignId,
-        orderPayload: payload,
-        discountCode: code,
-        discountAmount: discount.amount,
-        customerId: lead.shopifyCustomerId ? String(lead.shopifyCustomerId) : undefined,
-        source: "discount_code",
-      });
-      continue; // Done with this code
-    }
+      if (lead) {
+        console.log(`[Webhook] Found lead attribution for code ${code}`, {
+          leadId: lead.id,
+          campaignId: lead.campaignId,
+        });
 
-    // If not found in leads, attempt static/prefix matching from campaign.discountConfig
-    const campaign = await findCampaignByDiscountCode(store.id, code);
-    if (campaign) {
-      console.log(`[Webhook] Found campaign attribution for code ${code}`, {
-        campaignId: campaign.id,
-      });
+        await recordConversion({
+          storeId: store.id,
+          campaignId: lead.campaignId,
+          orderPayload: payload,
+          discountCode: code,
+          discountAmount: discount.amount,
+          customerId: lead.shopifyCustomerId ? String(lead.shopifyCustomerId) : undefined,
+          source: "discount_code",
+        });
+        attributed = true;
+        continue;
+      }
 
-      await recordConversion({
-        storeId: store.id,
-        campaignId: campaign.id,
-        orderPayload: payload,
-        discountCode: code,
-        discountAmount: discount.amount,
-        customerId: payload.customer ? String(payload.customer.id) : undefined,
-        source: "discount_code",
-      });
+      // If not found in leads, attempt static/prefix matching from campaign.discountConfig
+      const campaign = await findCampaignByDiscountCode(store.id, code);
+      if (campaign) {
+        console.log(`[Webhook] Found campaign attribution for code ${code}`, {
+          campaignId: campaign.id,
+        });
+
+        await recordConversion({
+          storeId: store.id,
+          campaignId: campaign.id,
+          orderPayload: payload,
+          discountCode: code,
+          discountAmount: discount.amount,
+          customerId: payload.customer ? String(payload.customer.id) : undefined,
+          source: "discount_code",
+        });
+        attributed = true;
+      }
     }
   }
+
+  // 3. If no discount code attribution, try view-through attribution
+  // This captures conversions where user saw/interacted with popup but didn't use code
+  if (!attributed && payload.customer?.id) {
+    await tryViewThroughAttribution(store.id, payload);
+  }
+}
+
+/**
+ * Attempt view-through attribution for orders without discount codes.
+ *
+ * Looks for recent popup interactions (VIEW, SUBMIT, CLICK) by the customer
+ * within the attribution window. This captures:
+ * - User saw popup, closed it, but was influenced to purchase
+ * - User submitted email but forgot to use the code
+ * - Newsletter signups that led to purchase without discount
+ */
+async function tryViewThroughAttribution(
+  storeId: string,
+  payload: OrderPayload
+): Promise<void> {
+  const customerId = payload.customer?.id;
+  if (!customerId) return;
+
+  const attributionWindowStart = new Date(Date.now() - VIEW_THROUGH_ATTRIBUTION_WINDOW_MS);
+
+  console.log(`[Webhook] Attempting view-through attribution for customer ${customerId}`);
+
+  // Strategy 1: Find leads by Shopify customer ID (most reliable)
+  const leadByCustomer = await prisma.lead.findFirst({
+    where: {
+      storeId,
+      shopifyCustomerId: BigInt(customerId),
+      createdAt: { gte: attributionWindowStart },
+    },
+    include: {
+      campaign: {
+        select: { id: true, status: true },
+      },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  if (leadByCustomer) {
+    console.log(`[Webhook] View-through: Found lead for customer ${customerId}`, {
+      leadId: leadByCustomer.id,
+      campaignId: leadByCustomer.campaignId,
+      hadDiscountCode: !!leadByCustomer.discountCode,
+    });
+
+    await recordConversion({
+      storeId,
+      campaignId: leadByCustomer.campaignId,
+      orderPayload: payload,
+      discountCode: null,
+      discountAmount: "0",
+      customerId: String(customerId),
+      source: leadByCustomer.discountCode ? "view_through_with_code" : "view_through",
+    });
+    return;
+  }
+
+  // Strategy 2: Find popup events by customer ID in metadata
+  // This catches cases where we tracked impressions but no lead was created
+  // (e.g., user saw popup but didn't submit)
+  const recentPopupEvent = await prisma.popupEvent.findFirst({
+    where: {
+      storeId,
+      eventType: { in: ["VIEW", "SUBMIT", "CLICK"] },
+      createdAt: { gte: attributionWindowStart },
+      // Look for customer ID in metadata (stored during checkout tracking)
+      metadata: {
+        path: ["customerId"],
+        equals: String(customerId),
+      },
+    },
+    include: {
+      campaign: {
+        select: { id: true, status: true },
+      },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  if (recentPopupEvent) {
+    console.log(`[Webhook] View-through: Found popup event for customer ${customerId}`, {
+      eventId: recentPopupEvent.id,
+      eventType: recentPopupEvent.eventType,
+      campaignId: recentPopupEvent.campaignId,
+    });
+
+    await recordConversion({
+      storeId,
+      campaignId: recentPopupEvent.campaignId,
+      orderPayload: payload,
+      discountCode: null,
+      discountAmount: "0",
+      customerId: String(customerId),
+      source: "view_through",
+    });
+    return;
+  }
+
+  console.log(`[Webhook] No view-through attribution found for customer ${customerId}`);
 }
 
 async function recordConversion(params: {
   storeId: string;
   campaignId: string;
   orderPayload: OrderPayload;
-  discountCode: string;
+  discountCode: string | null;
   discountAmount: string;
   customerId?: string;
   source: string;
@@ -120,13 +224,13 @@ async function recordConversion(params: {
         orderNumber: orderPayload.name,
         totalPrice: orderPayload.total_price,
         discountAmount: discountAmount,
-        discountCodes: [discountCode],
+        discountCodes: discountCode ? [discountCode] : [],
         customerId:
           customerId || (orderPayload.customer ? String(orderPayload.customer.id) : undefined),
         source,
       },
     });
-    console.log(`[Webhook] Recorded conversion for campaign ${campaignId}`);
+    console.log(`[Webhook] Recorded conversion for campaign ${campaignId} (source: ${source})`);
   } catch (error) {
     // Ignore unique constraint violations (idempotency)
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {

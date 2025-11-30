@@ -33,6 +33,7 @@ import type {
   TemplateType,
 } from "~/domains/campaigns/types/campaign";
 import { getTemplateLabel } from "~/domains/templates/registry/template-registry";
+import { CampaignConfigurationSummary } from "./CampaignConfigurationSummary";
 
 // ============================================================================
 // TYPES
@@ -384,6 +385,9 @@ export function CampaignDetail({
           </BlockStack>
         </Box>
       </Card>
+
+      {/* Configuration Summary */}
+      <CampaignConfigurationSummary campaign={campaign} />
     </BlockStack>
   );
 

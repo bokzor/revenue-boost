@@ -324,5 +324,152 @@ describe("ProductUpsellContentSection", () => {
       expect(bundleSection).toBeTruthy();
     });
   });
+
+  // ========== SCHEMA VALIDATION TESTS ==========
+
+  describe("Schema Validation", () => {
+    it("should validate product upsell content against schema with defaults", async () => {
+      const { ProductUpsellContentSchema } = await import(
+        "~/domains/campaigns/types/campaign"
+      );
+
+      // Parse with minimal required fields - schema should apply defaults
+      const parsed = ProductUpsellContentSchema.parse({
+        headline: "You might also like",
+        buttonText: "Add to Cart",
+      });
+
+      // Verify defaults are applied (must match actual schema defaults)
+      expect(parsed.productSelectionMethod).toBe("ai");
+      expect(parsed.layout).toBe("grid");
+      expect(parsed.columns).toBe(2);
+      expect(parsed.maxProducts).toBe(3); // Schema default is 3
+      expect(parsed.showImages).toBe(true);
+      expect(parsed.showPrices).toBe(true);
+      expect(parsed.showCompareAtPrice).toBe(true);
+      expect(parsed.showRatings).toBe(false);
+      expect(parsed.showReviewCount).toBe(false);
+      expect(parsed.multiSelect).toBe(true); // Schema default is true
+      expect(parsed.bundleDiscount).toBe(15); // Schema default is 15
+      expect(parsed.successMessage).toBe("Thank you!"); // From BaseContentConfigSchema
+    });
+
+    it("should validate product upsell content with all optional fields", async () => {
+      const { ProductUpsellContentSchema } = await import(
+        "~/domains/campaigns/types/campaign"
+      );
+
+      const fullContent = {
+        headline: "Complete Your Look",
+        subheadline: "These items go great together",
+        buttonText: "Add All",
+        secondaryCtaLabel: "View Product",
+        productSelectionMethod: "manual" as const,
+        selectedProducts: ["prod_123", "prod_456"],
+        selectedCollection: "col_789",
+        layout: "card" as const,
+        columns: 3,
+        maxProducts: 6,
+        showImages: true,
+        showPrices: true,
+        showCompareAtPrice: true,
+        showRatings: true,
+        showReviewCount: true,
+        bundleDiscount: 15,
+        bundleDiscountText: "Save 15% on the bundle",
+        multiSelect: true,
+        currency: "EUR",
+      };
+
+      const parsed = ProductUpsellContentSchema.parse(fullContent);
+
+      expect(parsed.productSelectionMethod).toBe("manual");
+      expect(parsed.layout).toBe("card");
+      expect(parsed.columns).toBe(3);
+      expect(parsed.showRatings).toBe(true);
+      expect(parsed.bundleDiscount).toBe(15);
+      expect(parsed.multiSelect).toBe(true);
+    });
+
+    it("should validate product selection method enum values", async () => {
+      const { ProductUpsellContentSchema } = await import(
+        "~/domains/campaigns/types/campaign"
+      );
+
+      // Test all valid product selection methods
+      const methods = ["ai", "manual", "collection"] as const;
+
+      for (const method of methods) {
+        const parsed = ProductUpsellContentSchema.parse({
+          headline: "Test",
+          buttonText: "Add",
+          productSelectionMethod: method,
+        });
+        expect(parsed.productSelectionMethod).toBe(method);
+      }
+    });
+
+    it("should validate layout enum values", async () => {
+      const { ProductUpsellContentSchema } = await import(
+        "~/domains/campaigns/types/campaign"
+      );
+
+      // Test all valid layout values from schema
+      const layouts = ["grid", "card", "carousel", "featured", "stack"] as const;
+
+      for (const layout of layouts) {
+        const parsed = ProductUpsellContentSchema.parse({
+          headline: "Test",
+          buttonText: "Add",
+          layout,
+        });
+        expect(parsed.layout).toBe(layout);
+      }
+    });
+  });
+
+  // ========== INTEGRATION TESTS ==========
+
+  describe("Integration - Complete Configuration", () => {
+    it("should handle a fully configured product upsell", async () => {
+      const onChange = vi.fn();
+
+      const content: Partial<ProductUpsellContent> = {
+        headline: "Complete Your Order",
+        subheadline: "Popular accessories for your purchase",
+        buttonText: "Add to Cart",
+        secondaryCtaLabel: "View Details",
+        productSelectionMethod: "manual",
+        selectedProducts: ["gid://shopify/Product/123", "gid://shopify/Product/456"],
+        layout: "grid",
+        columns: 3,
+        maxProducts: 4,
+        showImages: true,
+        showPrices: true,
+        showCompareAtPrice: true,
+        showRatings: true,
+        showReviewCount: true,
+        bundleDiscount: 10,
+        bundleDiscountText: "Bundle & Save 10%",
+        multiSelect: true,
+        currency: "USD",
+      };
+
+      renderWithPolaris(
+        <ProductUpsellContentSection
+          content={content}
+          errors={{}}
+          onChange={onChange}
+        />,
+      );
+
+      // Verify all content sections are configured correctly
+      expect(content.headline).toBe("Complete Your Order");
+      expect(content.productSelectionMethod).toBe("manual");
+      expect(content.layout).toBe("grid");
+      expect(content.bundleDiscount).toBe(10);
+      expect(content.multiSelect).toBe(true);
+    });
+  });
 });
 

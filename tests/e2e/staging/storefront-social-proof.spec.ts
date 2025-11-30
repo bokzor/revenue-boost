@@ -9,7 +9,9 @@ import {
     API_PROPAGATION_DELAY_MS,
     handlePasswordPage,
     mockChallengeToken,
-    getTestPrefix
+    getTestPrefix,
+    cleanupAllE2ECampaigns,
+    MAX_TEST_PRIORITY
 } from './helpers/test-helpers';
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env.staging.env'), override: true });
@@ -59,9 +61,8 @@ test.describe.serial('Social Proof Template', () => {
     });
 
     test.beforeEach(async ({ page }) => {
-        await prisma.campaign.deleteMany({
-            where: { name: { startsWith: TEST_PREFIX } }
-        });
+        // Clean up ALL E2E campaigns to avoid priority conflicts
+        await cleanupAllE2ECampaigns(prisma);
 
         await mockChallengeToken(page);
         await page.context().clearCookies();
@@ -69,9 +70,12 @@ test.describe.serial('Social Proof Template', () => {
         // No bundle mocking - tests use deployed extension code
     });
 
+    // SocialProofPopup renders with [data-rb-social-proof] attribute directly to body (NO shadow DOM)
+    const SOCIAL_PROOF_SELECTOR = '[data-rb-social-proof]';
+
     test('renders notification with purchase content', async ({ page }) => {
         const campaign = await (await factory.socialProof().init())
-            .withPriority(9401)
+            .withPriority(MAX_TEST_PRIORITY)
             .withPurchaseNotifications(true)
             .create();
         console.log(`✅ Campaign created: ${campaign.id}`);
@@ -81,38 +85,31 @@ test.describe.serial('Social Proof Template', () => {
         await page.goto(STORE_URL);
         await handlePasswordPage(page);
 
-        const popup = page.locator('#revenue-boost-popup-shadow-host');
+        // SocialProofPopup renders directly with [data-rb-social-proof] attribute
+        const popup = page.locator(SOCIAL_PROOF_SELECTOR);
         await expect(popup).toBeVisible({ timeout: 15000 });
 
         // Verify social proof content
-        const hasSocialProofContent = await page.evaluate(() => {
-            const host = document.querySelector('#revenue-boost-popup-shadow-host');
-            if (!host?.shadowRoot) return false;
-            const html = host.shadowRoot.innerHTML.toLowerCase();
-            // Look for purchase-related content
-            return html.includes('purchased') ||
-                   html.includes('bought') ||
-                   html.includes('just') ||
-                   html.includes('recently');
-        });
+        const popupText = await popup.textContent() || '';
+        const hasSocialProofContent = popupText.toLowerCase().includes('purchased') ||
+                   popupText.toLowerCase().includes('bought') ||
+                   popupText.toLowerCase().includes('just') ||
+                   popupText.toLowerCase().includes('recently') ||
+                   popupText.toLowerCase().includes('viewing') ||
+                   popupText.toLowerCase().includes('people');
 
         if (hasSocialProofContent) {
             console.log('✅ Social proof purchase notification content displayed');
         } else {
             // At minimum verify popup has content
-            const hasContent = await page.evaluate(() => {
-                const host = document.querySelector('#revenue-boost-popup-shadow-host');
-                if (!host?.shadowRoot) return false;
-                return host.shadowRoot.innerHTML.length > 100;
-            });
-            expect(hasContent).toBe(true);
+            expect(popupText.length).toBeGreaterThan(0);
             console.log('✅ Social proof notification rendered');
         }
     });
 
     test('notification appears in corner position', async ({ page }) => {
         const campaign = await (await factory.socialProof().init())
-            .withPriority(9402)
+            .withPriority(MAX_TEST_PRIORITY)
             .withCornerPosition('bottom-right')
             .create();
         console.log(`✅ Campaign created: ${campaign.id}`);
@@ -122,33 +119,28 @@ test.describe.serial('Social Proof Template', () => {
         await page.goto(STORE_URL);
         await handlePasswordPage(page);
 
-        const popup = page.locator('#revenue-boost-popup-shadow-host');
+        const popup = page.locator(SOCIAL_PROOF_SELECTOR);
         await expect(popup).toBeVisible({ timeout: 15000 });
 
-        // Check for corner positioning styles
-        const hasCornerPosition = await page.evaluate(() => {
-            const host = document.querySelector('#revenue-boost-popup-shadow-host');
-            if (!host?.shadowRoot) return false;
-            const html = host.shadowRoot.innerHTML.toLowerCase();
-            // Look for position-related styles or classes
-            return html.includes('bottom') ||
-                   html.includes('right') ||
-                   html.includes('corner') ||
-                   html.includes('fixed');
+        // Check for corner positioning via computed styles
+        const position = await popup.evaluate((el) => {
+            const style = window.getComputedStyle(el);
+            return {
+                position: style.position,
+                bottom: style.bottom,
+                right: style.right
+            };
         });
 
-        if (hasCornerPosition) {
-            console.log('✅ Corner position styling detected');
-        } else {
-            console.log('✅ Social proof notification rendered (position may be inline)');
-        }
+        console.log(`Position styles: ${JSON.stringify(position)}`);
+        console.log('✅ Social proof notification rendered');
     });
 
     test('notification auto-hides after display duration', async ({ page }) => {
         const displayDuration = 3; // 3 seconds
 
         const campaign = await (await factory.socialProof().init())
-            .withPriority(9403)
+            .withPriority(MAX_TEST_PRIORITY)
             .withDisplayDuration(displayDuration)
             .withRotationInterval(10)
             .create();
@@ -159,7 +151,7 @@ test.describe.serial('Social Proof Template', () => {
         await page.goto(STORE_URL);
         await handlePasswordPage(page);
 
-        const popup = page.locator('#revenue-boost-popup-shadow-host');
+        const popup = page.locator(SOCIAL_PROOF_SELECTOR);
         await expect(popup).toBeVisible({ timeout: 15000 });
         console.log('✅ Notification appeared');
 
@@ -167,17 +159,8 @@ test.describe.serial('Social Proof Template', () => {
         await page.waitForTimeout((displayDuration + 2) * 1000);
 
         // Check if notification is hidden or has changed
-        const isHiddenOrChanged = await page.evaluate(() => {
-            const host = document.querySelector('#revenue-boost-popup-shadow-host');
-            if (!host?.shadowRoot) return true; // Host removed = hidden
-            const html = host.shadowRoot.innerHTML;
-            // Check for hidden state or empty content
-            return html.length < 50 ||
-                   html.includes('hidden') ||
-                   html.includes('display: none');
-        });
-
-        if (isHiddenOrChanged) {
+        const isStillVisible = await popup.isVisible();
+        if (!isStillVisible) {
             console.log('✅ Notification auto-hidden after duration');
         } else {
             console.log('⚠️ Notification may still be visible (rotation may show next)');
@@ -188,7 +171,7 @@ test.describe.serial('Social Proof Template', () => {
         console.log('🧪 Testing purchase notification content...');
 
         const campaign = await (await factory.socialProof().init())
-            .withPriority(9404)
+            .withPriority(MAX_TEST_PRIORITY)
             .withPurchaseNotifications(true)
             .create();
         console.log(`✅ Campaign created: ${campaign.id}`);
@@ -198,27 +181,21 @@ test.describe.serial('Social Proof Template', () => {
         await page.goto(STORE_URL);
         await handlePasswordPage(page);
 
-        const popup = page.locator('#revenue-boost-popup-shadow-host');
+        const popup = page.locator(SOCIAL_PROOF_SELECTOR);
         await expect(popup).toBeVisible({ timeout: 15000 });
 
         // Check for purchase notification elements
-        const notificationContent = await page.evaluate(() => {
-            const host = document.querySelector('#revenue-boost-popup-shadow-host');
-            if (!host?.shadowRoot) return null;
+        const popupText = await popup.textContent() || '';
+        const hasProductImage = await popup.locator('img').count() > 0;
+        const notificationContent = {
+            hasPurchaseText: popupText.toLowerCase().includes('purchased') || popupText.toLowerCase().includes('bought'),
+            hasProductImage,
+            hasTimestamp: popupText.toLowerCase().includes('ago') || popupText.toLowerCase().includes('minute'),
+            hasLocation: popupText.toLowerCase().includes('from')
+        };
 
-            const html = host.shadowRoot.innerHTML.toLowerCase();
-            return {
-                hasPurchaseText: html.includes('purchased') || html.includes('bought') || html.includes('just ordered'),
-                hasProductImage: !!host.shadowRoot.querySelector('img'),
-                hasTimestamp: html.includes('ago') || html.includes('minute') || html.includes('second'),
-                hasLocation: html.includes('from') // "Someone from New York"
-            };
-        });
-
-        if (notificationContent) {
-            console.log(`Purchase notification: text=${notificationContent.hasPurchaseText}, image=${notificationContent.hasProductImage}`);
-            console.log('✅ Purchase notification rendered');
-        }
+        console.log(`Purchase notification: text=${notificationContent.hasPurchaseText}, image=${notificationContent.hasProductImage}`);
+        console.log('✅ Purchase notification rendered');
     });
 
     test('respects max notifications per session', async ({ page }) => {
@@ -227,7 +204,7 @@ test.describe.serial('Social Proof Template', () => {
         const maxNotifications = 2;
 
         const campaign = await (await factory.socialProof().init())
-            .withPriority(9405)
+            .withPriority(MAX_TEST_PRIORITY)
             .withMaxNotifications(maxNotifications)
             .withDisplayDuration(2)
             .withRotationInterval(3)
@@ -239,19 +216,13 @@ test.describe.serial('Social Proof Template', () => {
         await page.goto(STORE_URL);
         await handlePasswordPage(page);
 
-        const popup = page.locator('#revenue-boost-popup-shadow-host');
+        const popup = page.locator(SOCIAL_PROOF_SELECTOR);
         await expect(popup).toBeVisible({ timeout: 15000 });
 
         // Count notification appearances
         let notificationCount = 0;
         for (let i = 0; i < 5; i++) {
-            const isVisible = await page.evaluate(() => {
-                const host = document.querySelector('#revenue-boost-popup-shadow-host');
-                if (!host?.shadowRoot) return false;
-                const html = host.shadowRoot.innerHTML;
-                return html.length > 100;
-            });
-
+            const isVisible = await popup.isVisible();
             if (isVisible) notificationCount++;
             await page.waitForTimeout(4000); // Wait for rotation
         }
@@ -264,7 +235,7 @@ test.describe.serial('Social Proof Template', () => {
         console.log('🧪 Testing visitor notification...');
 
         const campaign = await (await factory.socialProof().init())
-            .withPriority(9406)
+            .withPriority(MAX_TEST_PRIORITY)
             .withVisitorNotifications(true)
             .create();
         console.log(`✅ Campaign created: ${campaign.id}`);
@@ -274,20 +245,15 @@ test.describe.serial('Social Proof Template', () => {
         await page.goto(STORE_URL);
         await handlePasswordPage(page);
 
-        const popup = page.locator('#revenue-boost-popup-shadow-host');
+        const popup = page.locator(SOCIAL_PROOF_SELECTOR);
         await expect(popup).toBeVisible({ timeout: 15000 });
 
         // Check for visitor-related content
-        const hasVisitorContent = await page.evaluate(() => {
-            const host = document.querySelector('#revenue-boost-popup-shadow-host');
-            if (!host?.shadowRoot) return false;
-
-            const html = host.shadowRoot.innerHTML.toLowerCase();
-            return html.includes('visitor') ||
-                   html.includes('viewing') ||
-                   html.includes('people') ||
-                   html.includes('watching');
-        });
+        const popupText = await popup.textContent() || '';
+        const hasVisitorContent = popupText.toLowerCase().includes('visitor') ||
+                   popupText.toLowerCase().includes('viewing') ||
+                   popupText.toLowerCase().includes('people') ||
+                   popupText.toLowerCase().includes('watching');
 
         console.log(`Visitor content detected: ${hasVisitorContent}`);
         console.log('✅ Social proof with visitor notifications rendered');

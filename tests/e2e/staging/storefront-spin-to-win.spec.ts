@@ -12,7 +12,9 @@ import {
     getTestPrefix,
     verifySpinToWinContent,
     fillEmailInShadowDOM,
-    waitForPopupWithRetry
+    waitForPopupWithRetry,
+    cleanupAllE2ECampaigns,
+    MAX_TEST_PRIORITY
 } from './helpers/test-helpers';
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env.staging.env'), override: true });
@@ -67,9 +69,8 @@ test.describe.serial('Spin to Win Template', () => {
     });
 
     test.beforeEach(async ({ page }) => {
-        await prisma.campaign.deleteMany({
-            where: { name: { startsWith: TEST_PREFIX } }
-        });
+        // Clean up ALL E2E campaigns to avoid priority conflicts
+        await cleanupAllE2ECampaigns(prisma);
 
         await mockChallengeToken(page);
         await page.context().clearCookies();
@@ -79,7 +80,7 @@ test.describe.serial('Spin to Win Template', () => {
 
     test('renders wheel with default segments', async ({ page }) => {
         const campaign = await (await factory.spinToWin().init())
-            .withPriority(9801)
+            .withPriority(MAX_TEST_PRIORITY)
             .create();
         console.log(`✅ Campaign created: ${campaign.id}`);
 
@@ -123,7 +124,7 @@ test.describe.serial('Spin to Win Template', () => {
         ];
 
         const campaign = await (await factory.spinToWin().init())
-            .withPriority(9802)
+            .withPriority(MAX_TEST_PRIORITY)
             .withSegments(customSegments)
             .create();
         console.log(`✅ Campaign created: ${campaign.id}`);
@@ -162,7 +163,7 @@ test.describe.serial('Spin to Win Template', () => {
 
     test('shows email input when required', async ({ page }) => {
         const campaign = await (await factory.spinToWin().init())
-            .withPriority(9803)
+            .withPriority(MAX_TEST_PRIORITY)
             .withEmailRequired(true)
             .create();
         console.log(`✅ Campaign created: ${campaign.id}`);
@@ -195,7 +196,7 @@ test.describe.serial('Spin to Win Template', () => {
         const customHeadline = 'Spin to Win Amazing Prizes!';
 
         const campaign = await (await factory.spinToWin().init())
-            .withPriority(9804)
+            .withPriority(MAX_TEST_PRIORITY)
             .withHeadline(customHeadline)
             .create();
         console.log(`✅ Campaign created: ${campaign.id}`);
@@ -233,7 +234,7 @@ test.describe.serial('Spin to Win Template', () => {
 
     test('spin button triggers wheel animation', async ({ page }) => {
         const campaign = await (await factory.spinToWin().init())
-            .withPriority(9805)
+            .withPriority(MAX_TEST_PRIORITY)
             .withEmailRequired(false) // No email required, spin directly
             .create();
         console.log(`✅ Campaign created: ${campaign.id}`);
@@ -323,7 +324,7 @@ test.describe.serial('Spin to Win Template', () => {
         console.log('🧪 Testing prize display after spin...');
 
         const campaign = await (await factory.spinToWin().init())
-            .withPriority(9806)
+            .withPriority(MAX_TEST_PRIORITY)
             .withEmailRequired(true)
             .create();
         console.log(`✅ Campaign created: ${campaign.id}`);
@@ -377,7 +378,7 @@ test.describe.serial('Spin to Win Template', () => {
         console.log('🧪 Testing GDPR checkbox in spin-to-win...');
 
         const campaign = await (await factory.spinToWin().init())
-            .withPriority(9807)
+            .withPriority(MAX_TEST_PRIORITY)
             .withGdprCheckbox(true, 'I consent to receive marketing emails')
             .create();
         console.log(`✅ Campaign created: ${campaign.id}`);

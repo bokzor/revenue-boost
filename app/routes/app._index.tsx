@@ -338,6 +338,42 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     });
   }
 
+  // Single campaign duplicate action
+  if (intent === "duplicate") {
+    const campaignId = formData.get("campaignId") as string;
+    if (!campaignId) {
+      return data({ success: false, message: "Campaign ID is required" }, { status: 400 });
+    }
+
+    const campaign = await CampaignService.getCampaignById(campaignId, storeId);
+    if (!campaign) {
+      return data({ success: false, message: "Campaign not found" }, { status: 404 });
+    }
+
+    // Extract only the fields needed for CampaignCreateData
+    const createData = {
+      name: `${campaign.name} (Copy)`,
+      description: campaign.description || undefined,
+      goal: campaign.goal,
+      status: "DRAFT" as CampaignStatus,
+      priority: campaign.priority,
+      templateId: campaign.templateId || undefined,
+      templateType: campaign.templateType,
+      contentConfig: campaign.contentConfig,
+      designConfig: campaign.designConfig,
+      targetRules: campaign.targetRules,
+      discountConfig: campaign.discountConfig,
+      experimentId: undefined, // Don't copy experiment association
+      variantKey: undefined,
+      isControl: undefined,
+      startDate: campaign.startDate || undefined,
+      endDate: campaign.endDate || undefined,
+    };
+
+    const newCampaign = await CampaignService.createCampaign(storeId, createData, admin);
+    return data({ success: true, campaignId: newCampaign.id });
+  }
+
   return null;
 };
 
@@ -519,6 +555,15 @@ export default function Dashboard() {
     await fetcher.submit(formData, { method: "post" });
   };
 
+  // Single campaign duplicate handler
+  const handleDuplicateClick = (campaignId: string) => {
+    const formData = new FormData();
+    formData.append("intent", "duplicate");
+    formData.append("campaignId", campaignId);
+
+    fetcher.submit(formData, { method: "post" });
+  };
+
   // --- Zero State ---
   if (!hasCampaigns) {
     return (
@@ -666,6 +711,7 @@ export default function Dashboard() {
             onEditClick={handleEditClick}
             onAnalyticsClick={handleAnalyticsClick}
             onToggleStatus={handleToggleStatus}
+            onDuplicateClick={handleDuplicateClick}
             onBulkActivate={handleBulkActivate}
             onBulkPause={handleBulkPause}
             onBulkArchive={handleBulkArchive}

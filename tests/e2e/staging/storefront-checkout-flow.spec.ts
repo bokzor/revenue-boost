@@ -8,7 +8,9 @@ import {
     handlePasswordPage,
     mockChallengeToken,
     getTestPrefix,
-    waitForPopupWithRetry
+    waitForPopupWithRetry,
+    cleanupAllE2ECampaigns,
+    MAX_TEST_PRIORITY
 } from './helpers/test-helpers';
 import { CampaignFactory } from './factories/campaign-factory';
 
@@ -58,9 +60,8 @@ test.describe.serial('Checkout Flow', () => {
     });
 
     test.beforeEach(async ({ page }) => {
-        await prisma.campaign.deleteMany({
-            where: { name: { startsWith: TEST_PREFIX } }
-        });
+        // Clean up ALL E2E campaigns to avoid priority conflicts
+        await cleanupAllE2ECampaigns(prisma);
         await page.waitForTimeout(500);
         await mockChallengeToken(page);
 

@@ -7,7 +7,11 @@
 import prisma from "~/db.server";
 import { authenticate, apiVersion } from "~/shopify.server";
 import type { AdminApiContext } from "@shopify/shopify-app-react-router/server";
-import { GLOBAL_FREQUENCY_BEST_PRACTICES } from "~/domains/store/types/settings";
+import {
+  POPUP_FREQUENCY_BEST_PRACTICES,
+  SOCIAL_PROOF_FREQUENCY_BEST_PRACTICES,
+  BANNER_FREQUENCY_BEST_PRACTICES,
+} from "~/domains/store/types/settings";
 
 /**
  * Shopify Session with access token
@@ -69,7 +73,8 @@ export async function getStoreId(request: Request): Promise<string> {
     throw new Error("Could not resolve Shopify shop id to provision Store record");
   }
 
-  // Create store with default settings (best practices for frequency capping)
+  // Create store with default settings (global capping disabled to maximize impressions)
+  // Per-campaign frequency controls are still active
   const created = await prisma.store.create({
     data: {
       shopifyDomain: shopDomain,
@@ -77,9 +82,20 @@ export async function getStoreId(request: Request): Promise<string> {
       accessToken: (session as { accessToken?: string }).accessToken ?? "",
       isActive: true,
       settings: {
+        // Popups: disabled by default, stricter limits when enabled
         frequencyCapping: {
-          enabled: true,
-          ...GLOBAL_FREQUENCY_BEST_PRACTICES,
+          enabled: false,
+          ...POPUP_FREQUENCY_BEST_PRACTICES,
+        },
+        // Social Proof: disabled by default, higher limits (less intrusive)
+        socialProofFrequencyCapping: {
+          enabled: false,
+          ...SOCIAL_PROOF_FREQUENCY_BEST_PRACTICES,
+        },
+        // Banners: disabled by default, no limits (persistent by nature)
+        bannerFrequencyCapping: {
+          enabled: false,
+          ...BANNER_FREQUENCY_BEST_PRACTICES,
         },
       },
     },

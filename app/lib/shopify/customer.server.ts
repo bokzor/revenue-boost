@@ -27,6 +27,10 @@ export interface CustomerUpsertData {
   tags?: string[];
   source?: string;
   campaignId?: string;
+  // Enhanced fields for email marketing integration
+  campaignName?: string;
+  templateType?: string;
+  discountCode?: string;
 }
 
 export interface CustomerUpsertResult {
@@ -330,31 +334,30 @@ export async function upsertCustomer(
       };
     }
 
-    // Build tags
-    const tags = data.tags || [];
-    if (data.source) {
-      tags.push(`source:${data.source}`);
-    }
-    if (data.campaignId) {
-      tags.push(`campaign:${data.campaignId}`);
-    }
-
     if (findResult.customer) {
-      // Customer exists - update if needed
+      // Customer exists - update with merged tags
       const existingCustomer = findResult.customer;
+
+      // Build enhanced tags, merging with existing customer tags
+      const tags = buildCustomerTags({
+        source: data.source,
+        campaignId: data.campaignId,
+        campaignName: data.campaignName,
+        templateType: data.templateType,
+        discountCode: data.discountCode,
+        existingTags: existingCustomer.tags,
+      });
+
       const needsUpdate =
         data.firstName || data.lastName || data.phone || data.marketingConsent || tags.length > 0;
 
       if (needsUpdate) {
-        // Merge tags (don't duplicate)
-        const mergedTags = Array.from(new Set([...existingCustomer.tags, ...tags]));
-
         const updateResult = await updateCustomer(admin, existingCustomer.id, {
           firstName: data.firstName || existingCustomer.firstName,
           lastName: data.lastName || existingCustomer.lastName,
           phone: data.phone || existingCustomer.phone,
           acceptsMarketing: data.marketingConsent ?? existingCustomer.acceptsMarketing,
-          tags: mergedTags,
+          tags,
         });
 
         if (updateResult.errors) {
@@ -371,7 +374,16 @@ export async function upsertCustomer(
         isNewCustomer: false,
       };
     } else {
-      // Customer doesn't exist - create new
+      // Customer doesn't exist - create new with enhanced tags
+      const tags = buildCustomerTags({
+        source: data.source,
+        campaignId: data.campaignId,
+        campaignName: data.campaignName,
+        templateType: data.templateType,
+        discountCode: data.discountCode,
+        existingTags: data.tags,
+      });
+
       const createResult = await createCustomer(admin, {
         email: data.email,
         firstName: data.firstName,
@@ -416,6 +428,10 @@ export function sanitizeCustomerData(data: CustomerUpsertData): CustomerUpsertDa
     tags: data.tags || [],
     source: data.source,
     campaignId: data.campaignId,
+    // Enhanced fields for email marketing integration
+    campaignName: data.campaignName?.trim() || undefined,
+    templateType: data.templateType?.trim() || undefined,
+    discountCode: data.discountCode?.trim() || undefined,
   };
 }
 
@@ -426,4 +442,90 @@ export function sanitizeCustomerData(data: CustomerUpsertData): CustomerUpsertDa
 export function extractCustomerId(gid: string): string {
   const parts = gid.split("/");
   return parts[parts.length - 1];
+}
+
+/**
+ * Slugify a string for use in tags
+ * - Converts to lowercase
+ * - Replaces non-alphanumeric characters with hyphens
+ * - Removes leading/trailing hyphens
+ * - Limits to 40 characters (Shopify tag limit is 255, but we keep it short)
+ */
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 40);
+}
+
+/**
+ * Build enhanced customer tags for email marketing platform integration
+ *
+ * These tags are synced to Klaviyo, Mailchimp, and other platforms that
+ * integrate with Shopify customers. Merchants can use these tags to:
+ * - Segment leads by source (Revenue Boost popups)
+ * - Filter by template type (newsletter, spin-to-win, etc.)
+ * - Create cohorts by signup month
+ * - Track which campaigns drove signups
+ *
+ * Tag structure:
+ * - `revenue-boost` - Master tag for all RB leads
+ * - `rb-popup` - Source type indicator
+ * - `rb-template:{type}` - Template type (lowercase)
+ * - `rb-campaign:{slug}` - Campaign name (slugified)
+ * - `rb-date:{YYYY-MM}` - Signup month for cohort analysis
+ * - `rb-discount:{code}` - Discount code received (if any)
+ */
+export function buildCustomerTags(data: {
+  source?: string;
+  campaignId?: string;
+  campaignName?: string;
+  templateType?: string;
+  discountCode?: string;
+  existingTags?: string[];
+}): string[] {
+  const tags: string[] = [];
+
+  // Master tag - identifies all Revenue Boost leads
+  tags.push("revenue-boost");
+
+  // Source type
+  if (data.source === "revenue-boost-popup") {
+    tags.push("rb-popup");
+  }
+
+  // Template type (e.g., rb-template:newsletter, rb-template:spin-to-win)
+  if (data.templateType) {
+    const templateSlug = slugify(data.templateType);
+    tags.push(`rb-template:${templateSlug}`);
+  }
+
+  // Campaign name (slugified for readability)
+  if (data.campaignName) {
+    const campaignSlug = slugify(data.campaignName);
+    tags.push(`rb-campaign:${campaignSlug}`);
+  }
+
+  // Legacy: Also include campaign ID for backwards compatibility
+  if (data.campaignId) {
+    tags.push(`rb-campaign-id:${data.campaignId}`);
+  }
+
+  // Signup month for cohort analysis (e.g., rb-date:2025-01)
+  const month = new Date().toISOString().slice(0, 7); // "2025-01"
+  tags.push(`rb-date:${month}`);
+
+  // Discount code received (if any)
+  if (data.discountCode) {
+    const discountSlug = slugify(data.discountCode);
+    tags.push(`rb-discount:${discountSlug}`);
+  }
+
+  // Merge with any existing tags, removing duplicates
+  if (data.existingTags && data.existingTags.length > 0) {
+    return Array.from(new Set([...data.existingTags, ...tags]));
+  }
+
+  return tags;
 }

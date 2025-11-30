@@ -12,7 +12,9 @@ import {
     getTestPrefix,
     verifyExitIntentContent,
     hasTextInShadowDOM,
-    fillEmailInShadowDOM
+    fillEmailInShadowDOM,
+    cleanupAllE2ECampaigns,
+    MAX_TEST_PRIORITY
 } from './helpers/test-helpers';
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env.staging.env'), override: true });
@@ -67,9 +69,8 @@ test.describe.serial('Exit Intent Template', () => {
     });
 
     test.beforeEach(async ({ page }) => {
-        await prisma.campaign.deleteMany({
-            where: { name: { startsWith: TEST_PREFIX } }
-        });
+        // Clean up ALL E2E campaigns to avoid priority conflicts
+        await cleanupAllE2ECampaigns(prisma);
 
         await mockChallengeToken(page);
         await page.context().clearCookies();
@@ -121,7 +122,7 @@ test.describe.serial('Exit Intent Template', () => {
 
     test('renders popup with email input on exit intent', async ({ page }) => {
         const campaign = await (await factory.exitIntent().init())
-            .withPriority(9101)
+            .withPriority(MAX_TEST_PRIORITY)
             .create();
         console.log(`✅ Campaign created: ${campaign.id}`);
 
@@ -163,7 +164,7 @@ test.describe.serial('Exit Intent Template', () => {
         const headline = 'Wait! Before you go...';
 
         const campaign = await (await factory.exitIntent().init())
-            .withPriority(9102)
+            .withPriority(MAX_TEST_PRIORITY)
             .withHeadline(headline)
             .create();
 
@@ -202,7 +203,7 @@ test.describe.serial('Exit Intent Template', () => {
         const gdprText = 'I agree to receive marketing emails';
 
         const campaign = await (await factory.exitIntent().init())
-            .withPriority(9103)
+            .withPriority(MAX_TEST_PRIORITY)
             .withGdprCheckbox(true, gdprText)
             .create();
 
@@ -239,7 +240,7 @@ test.describe.serial('Exit Intent Template', () => {
 
     test('email input is functional', async ({ page }) => {
         const campaign = await (await factory.exitIntent().init())
-            .withPriority(9104)
+            .withPriority(MAX_TEST_PRIORITY)
             .create();
 
         console.log(`✅ Campaign created: ${campaign.id}`);

@@ -17,7 +17,9 @@ import {
     waitForPopupWithRetry,
     verifyNewsletterContent,
     waitForFormSuccess,
-    verifyDiscountCodeDisplayed
+    verifyDiscountCodeDisplayed,
+    cleanupAllE2ECampaigns,
+    MAX_TEST_PRIORITY
 } from './helpers/test-helpers';
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env.staging.env'), override: true });
@@ -74,9 +76,8 @@ test.describe.serial('Newsletter Template', () => {
     });
 
     test.beforeEach(async ({ page }) => {
-        await prisma.campaign.deleteMany({
-            where: { name: { startsWith: TEST_PREFIX } }
-        });
+        // Clean up ALL E2E campaigns to avoid priority conflicts
+        await cleanupAllE2ECampaigns(prisma);
 
         await page.waitForTimeout(500);
         await mockChallengeToken(page);
@@ -87,7 +88,7 @@ test.describe.serial('Newsletter Template', () => {
 
     test('renders with email input and submit button', async ({ page }) => {
         const campaign = await (await factory.newsletter().init())
-            .withPriority(9001)
+            .withPriority(MAX_TEST_PRIORITY)
             .create();
         console.log(`✅ Campaign created: ${campaign.id}`);
 
@@ -120,7 +121,7 @@ test.describe.serial('Newsletter Template', () => {
         const gdprText = 'I agree to receive marketing emails';
 
         const campaign = await (await factory.newsletter().init())
-            .withPriority(9002)
+            .withPriority(MAX_TEST_PRIORITY)
             .withGdprCheckbox(true, gdprText)
             .create();
 
@@ -217,7 +218,7 @@ test.describe.serial('Newsletter Template', () => {
         // No API mocking - test against real lead submission API
 
         const campaign = await (await factory.newsletter().init())
-            .withPriority(9004)
+            .withPriority(MAX_TEST_PRIORITY)
             .withHeadline('Get 10% Off')
             .create();
 

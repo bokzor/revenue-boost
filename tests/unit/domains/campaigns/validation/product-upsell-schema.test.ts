@@ -142,24 +142,48 @@ describe("ProductUpsellContentSchema Validation", () => {
       expect(result.success).toBe(true);
     });
 
-    it("accepts 'grid' as layout", () => {
-      const config = {
-        headline: "Test",
-        buttonText: "Add",
-        successMessage: "Done",
-        layout: "grid" as const,
-      };
-
-      const result = ProductUpsellContentSchema.safeParse(config);
-      expect(result.success).toBe(true);
-    });
-
     it("accepts 'card' as layout", () => {
       const config = {
         headline: "Test",
         buttonText: "Add",
         successMessage: "Done",
         layout: "card" as const,
+      };
+
+      const result = ProductUpsellContentSchema.safeParse(config);
+      expect(result.success).toBe(true);
+    });
+
+    it("accepts 'carousel' as layout", () => {
+      const config = {
+        headline: "Test",
+        buttonText: "Add",
+        successMessage: "Done",
+        layout: "carousel" as const,
+      };
+
+      const result = ProductUpsellContentSchema.safeParse(config);
+      expect(result.success).toBe(true);
+    });
+
+    it("accepts 'featured' as layout", () => {
+      const config = {
+        headline: "Test",
+        buttonText: "Add",
+        successMessage: "Done",
+        layout: "featured" as const,
+      };
+
+      const result = ProductUpsellContentSchema.safeParse(config);
+      expect(result.success).toBe(true);
+    });
+
+    it("accepts 'stack' as layout", () => {
+      const config = {
+        headline: "Test",
+        buttonText: "Add",
+        successMessage: "Done",
+        layout: "stack" as const,
       };
 
       const result = ProductUpsellContentSchema.safeParse(config);

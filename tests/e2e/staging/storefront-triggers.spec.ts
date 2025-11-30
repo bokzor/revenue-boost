@@ -3,7 +3,7 @@ import { PrismaClient } from '@prisma/client';
 import path from 'path';
 import * as dotenv from 'dotenv';
 import { CampaignFactory } from './factories/campaign-factory';
-import { STORE_URL, STORE_DOMAIN, API_PROPAGATION_DELAY_MS, handlePasswordPage, mockChallengeToken, getTestPrefix } from './helpers/test-helpers';
+import { STORE_URL, STORE_DOMAIN, API_PROPAGATION_DELAY_MS, handlePasswordPage, mockChallengeToken, getTestPrefix, cleanupAllE2ECampaigns, MAX_TEST_PRIORITY } from './helpers/test-helpers';
 
 // Load staging environment variables
 dotenv.config({ path: path.resolve(process.cwd(), '.env.staging.env'), override: true });
@@ -48,12 +48,8 @@ test.describe('Trigger Combinations', () => {
     });
 
     test.beforeEach(async ({ page }) => {
-        // Clean up campaigns from previous runs of THIS test file only
-        await prisma.campaign.deleteMany({
-            where: {
-                name: { startsWith: TEST_PREFIX }
-            }
-        });
+        // Clean up ALL E2E campaigns to avoid priority conflicts
+        await cleanupAllE2ECampaigns(prisma);
 
         await mockChallengeToken(page);
         // Log browser console for debugging
@@ -65,16 +61,15 @@ test.describe('Trigger Combinations', () => {
     });
 
     test('shows popup after page load delay', async ({ page }) => {
-        const priority = 9400 + Math.floor(Math.random() * 100);
         const builder = factory.newsletter();
         await builder.init();
         const campaign = await builder
             .withName('Page-Load-Delay')
             .withTriggerDelay(2000) // 2 second delay
-            .withPriority(priority)
+            .withPriority(MAX_TEST_PRIORITY)
             .create();
 
-        console.log(`Created campaign: ${campaign.name} with priority ${priority}`);
+        console.log(`Created campaign: ${campaign.name} with priority ${MAX_TEST_PRIORITY}`);
 
         // Wait for campaign to propagate
         await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
@@ -95,17 +90,17 @@ test.describe('Trigger Combinations', () => {
     });
 
     test('shows popup when user scrolls to depth', async ({ page }) => {
-        const priority = 9401 + Math.floor(Math.random() * 100);
+        
         const builder = factory.newsletter();
         await builder.init();
         const campaign = await builder
             .withName('Scroll-Depth-Trigger')
             .withScrollDepthTrigger(50, 'down')
             .withoutPageLoadTrigger()
-            .withPriority(priority)
+            .withPriority(MAX_TEST_PRIORITY)
             .create();
 
-        console.log(`Created campaign: ${campaign.name} with priority ${priority}`);
+        console.log(`Created campaign: ${campaign.name} with priority ${MAX_TEST_PRIORITY}`);
 
         // Wait for campaign to propagate
         await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
@@ -143,17 +138,17 @@ test.describe('Trigger Combinations', () => {
     });
 
     test('shows popup after time delay', async ({ page }) => {
-        const priority = 9402 + Math.floor(Math.random() * 100);
+        
         const builder = factory.newsletter();
         await builder.init();
         const campaign = await builder
             .withName('Time-Delay-Trigger')
             .withTimeDelayTrigger(3) // 3 seconds
             .withoutPageLoadTrigger()
-            .withPriority(priority)
+            .withPriority(MAX_TEST_PRIORITY)
             .create();
 
-        console.log(`Created campaign: ${campaign.name} with priority ${priority}`);
+        console.log(`Created campaign: ${campaign.name} with priority ${MAX_TEST_PRIORITY}`);
 
         // Wait for campaign to propagate
         await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
@@ -174,7 +169,7 @@ test.describe('Trigger Combinations', () => {
     });
 
     test('shows popup when all triggers pass (AND logic)', async ({ page }) => {
-        const priority = 9403 + Math.floor(Math.random() * 100);
+        
         const builder = factory.newsletter();
         await builder.init();
         const campaign = await builder
@@ -183,10 +178,10 @@ test.describe('Trigger Combinations', () => {
             .withTimeDelayTrigger(3)
             .withTriggerLogic('AND')
             .withoutPageLoadTrigger()
-            .withPriority(priority)
+            .withPriority(MAX_TEST_PRIORITY)
             .create();
 
-        console.log(`Created campaign: ${campaign.name} with priority ${priority}`);
+        console.log(`Created campaign: ${campaign.name} with priority ${MAX_TEST_PRIORITY}`);
 
         // Wait for campaign to propagate
         await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
@@ -225,7 +220,7 @@ test.describe('Trigger Combinations', () => {
     });
 
     test('shows popup when any trigger passes (OR logic)', async ({ page }) => {
-        const priority = 9404 + Math.floor(Math.random() * 100);
+        
         const builder = factory.newsletter();
         await builder.init();
         const campaign = await builder
@@ -234,10 +229,10 @@ test.describe('Trigger Combinations', () => {
             .withTimeDelayTrigger(3)
             .withTriggerLogic('OR')
             .withoutPageLoadTrigger()
-            .withPriority(priority)
+            .withPriority(MAX_TEST_PRIORITY)
             .create();
 
-        console.log(`Created campaign: ${campaign.name} with priority ${priority}`);
+        console.log(`Created campaign: ${campaign.name} with priority ${MAX_TEST_PRIORITY}`);
 
         // Wait for campaign to propagate
         await page.waitForTimeout(API_PROPAGATION_DELAY_MS);

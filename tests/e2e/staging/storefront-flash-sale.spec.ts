@@ -10,7 +10,9 @@ import {
     handlePasswordPage,
     mockChallengeToken,
     getTestPrefix,
-    verifyFlashSaleContent
+    verifyFlashSaleContent,
+    cleanupAllE2ECampaigns,
+    MAX_TEST_PRIORITY
 } from './helpers/test-helpers';
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env.staging.env'), override: true });
@@ -65,9 +67,8 @@ test.describe.serial('Flash Sale Template', () => {
     });
 
     test.beforeEach(async ({ page }) => {
-        await prisma.campaign.deleteMany({
-            where: { name: { startsWith: TEST_PREFIX } }
-        });
+        // Clean up ALL E2E campaigns to avoid priority conflicts
+        await cleanupAllE2ECampaigns(prisma);
 
         await mockChallengeToken(page);
         await page.context().clearCookies();
@@ -77,7 +78,7 @@ test.describe.serial('Flash Sale Template', () => {
 
     test('renders flash sale popup with countdown timer', async ({ page }) => {
         const campaign = await (await factory.flashSale().init())
-            .withPriority(9901)
+            .withPriority(MAX_TEST_PRIORITY)
             .create();
         console.log(`✅ Campaign created: ${campaign.id}`);
 
@@ -121,7 +122,7 @@ test.describe.serial('Flash Sale Template', () => {
         const urgencyMessage = 'Only 2 hours left!';
 
         const campaign = await (await factory.flashSale().init())
-            .withPriority(9902)
+            .withPriority(MAX_TEST_PRIORITY)
             .withUrgencyMessage(urgencyMessage)
             .create();
 
@@ -162,7 +163,7 @@ test.describe.serial('Flash Sale Template', () => {
         const discountPercent = 30;
 
         const campaign = await (await factory.flashSale().init())
-            .withPriority(9903)
+            .withPriority(MAX_TEST_PRIORITY)
             .withDiscountPercentage(discountPercent)
             .create();
 
@@ -206,7 +207,7 @@ test.describe.serial('Flash Sale Template', () => {
         const stockMessage = 'Only 5 left in stock!';
 
         const campaign = await (await factory.flashSale().init())
-            .withPriority(9904)
+            .withPriority(MAX_TEST_PRIORITY)
             .withStockCounter(true, stockMessage)
             .create();
 
@@ -240,7 +241,7 @@ test.describe.serial('Flash Sale Template', () => {
 
     test('CTA button is clickable', async ({ page }) => {
         const campaign = await (await factory.flashSale().init())
-            .withPriority(9905)
+            .withPriority(MAX_TEST_PRIORITY)
             .create();
 
         console.log(`✅ Campaign created: ${campaign.id}`);

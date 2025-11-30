@@ -1,6 +1,6 @@
 /**
  * Popup Design Variations E2E Tests
- * 
+ *
  * Tests different design configurations:
  * - Popup sizes (small, medium, large)
  * - Popup positions (center, corners)
@@ -15,7 +15,10 @@ import {
     API_PROPAGATION_DELAY_MS,
     handlePasswordPage,
     getTestPrefix,
-    waitForPopupWithRetry
+    waitForPopupWithRetry,
+    cleanupAllE2ECampaigns,
+    MAX_TEST_PRIORITY,
+    mockChallengeToken
 } from './helpers/test-helpers';
 import { CampaignFactory } from './factories/campaign-factory';
 
@@ -40,8 +43,12 @@ test.describe('Popup Design Variations', () => {
         await prisma.$disconnect();
     });
 
-    test.beforeEach(async ({ context }) => {
+    test.beforeEach(async ({ context, page }) => {
+        // Clean up ALL E2E campaigns to avoid priority conflicts
+        await cleanupAllE2ECampaigns(prisma);
         await context.clearCookies();
+        // Mock challenge token to bypass bot protection
+        await mockChallengeToken(page);
     });
 
     test.describe('Popup Sizes', () => {
@@ -51,7 +58,7 @@ test.describe('Popup Design Variations', () => {
             const campaign = await (await factory.newsletter().init())
                 .withName('Size-Small')
                 .withHeadline('Small Popup')
-                .withPriority(99980)
+                .withPriority(MAX_TEST_PRIORITY)
                 .withDesignConfig({ size: 'SMALL' })
                 .create();
 
@@ -115,7 +122,7 @@ test.describe('Popup Design Variations', () => {
             const campaign = await (await factory.newsletter().init())
                 .withName('Size-Large')
                 .withHeadline('Large Popup')
-                .withPriority(99981)
+                .withPriority(MAX_TEST_PRIORITY)
                 .withDesignConfig({ size: 'LARGE' })
                 .create();
 
@@ -159,7 +166,7 @@ test.describe('Popup Design Variations', () => {
             const campaign = await (await factory.newsletter().init())
                 .withName('Position-Center')
                 .withHeadline('Center Position')
-                .withPriority(99982)
+                .withPriority(MAX_TEST_PRIORITY)
                 .withDesignConfig({ position: 'CENTER' })
                 .create();
 
@@ -184,7 +191,7 @@ test.describe('Popup Design Variations', () => {
             const campaign = await (await factory.newsletter().init())
                 .withName('Position-BottomRight')
                 .withHeadline('Bottom Right')
-                .withPriority(99983)
+                .withPriority(MAX_TEST_PRIORITY)
                 .withDesignConfig({ position: 'BOTTOM_RIGHT' })
                 .create();
 
@@ -234,7 +241,7 @@ test.describe('Popup Design Variations', () => {
             const campaign = await (await factory.newsletter().init())
                 .withName('Color-Custom')
                 .withHeadline('Custom Color Test')
-                .withPriority(99984)
+                .withPriority(MAX_TEST_PRIORITY)
                 .withDesignConfig({ primaryColor: customColor })
                 .create();
 
@@ -291,7 +298,7 @@ test.describe('Popup Design Variations', () => {
             const campaign = await (await factory.newsletter().init())
                 .withName('BgImage-Test')
                 .withHeadline('Background Image Test')
-                .withPriority(99985)
+                .withPriority(MAX_TEST_PRIORITY)
                 .withDesignConfig({
                     backgroundImage: 'gradient-1',
                     hasBackgroundImage: true
@@ -341,7 +348,7 @@ test.describe('Popup Design Variations', () => {
             const campaign = await (await factory.newsletter().init())
                 .withName('Radius-Test')
                 .withHeadline('Corner Radius Test')
-                .withPriority(99986)
+                .withPriority(MAX_TEST_PRIORITY)
                 .withDesignConfig({ cornerRadius: 20 })
                 .create();
 

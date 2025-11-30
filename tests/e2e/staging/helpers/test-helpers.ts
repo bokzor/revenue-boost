@@ -150,6 +150,57 @@ export async function mockChallengeToken(page: Page) {
 }
 
 /**
+ * Mock upsell products API to bypass app proxy authentication in E2E tests.
+ * Returns sample products for product upsell popup testing.
+ *
+ * Note: For tests that verify actual cart operations, use real product/variant IDs
+ * from the staging store by passing custom products array.
+ */
+export async function mockUpsellProducts(page: Page, products?: Array<{
+  id: string;
+  title: string;
+  price: string;
+  variantId?: string;
+  compareAtPrice?: string | null;
+  imageUrl?: string;
+}>) {
+  // Default mock products (for visual/render tests - won't work with real cart operations)
+  const defaultProducts = [
+    {
+      id: "gid://shopify/Product/1",
+      title: "Test Product 1",
+      price: "29.99",
+      variantId: "gid://shopify/ProductVariant/1",
+      compareAtPrice: "39.99",
+      imageUrl: "https://cdn.shopify.com/s/files/1/0000/0000/products/test1.jpg",
+    },
+    {
+      id: "gid://shopify/Product/2",
+      title: "Test Product 2",
+      price: "19.99",
+      variantId: "gid://shopify/ProductVariant/2",
+      compareAtPrice: null,
+      imageUrl: "https://cdn.shopify.com/s/files/1/0000/0000/products/test2.jpg",
+    },
+    {
+      id: "gid://shopify/Product/3",
+      title: "Test Product 3",
+      price: "49.99",
+      variantId: "gid://shopify/ProductVariant/3",
+      compareAtPrice: "59.99",
+      imageUrl: "https://cdn.shopify.com/s/files/1/0000/0000/products/test3.jpg",
+    },
+  ];
+
+  await page.route("**/api/upsell-products*", async (route) => {
+    const json = {
+      products: products || defaultProducts,
+    };
+    await route.fulfill({ json });
+  });
+}
+
+/**
  * Clear Redis frequency capping state for tests
  *
  * This prevents Redis state pollution between test runs that can cause

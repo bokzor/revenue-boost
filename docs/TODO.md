@@ -1,6 +1,6 @@
 # Revenue Boost - Feature Roadmap & TODO
 
-> Last updated: 2025-11-26
+> Last updated: 2025-11-30
 
 ## Priority Legend
 - **P0** - Critical / Next Sprint
@@ -10,23 +10,47 @@
 
 ---
 
+## ✅ Recently Completed
+
+### [x] Email Marketing Integrations (via Shopify Native Sync)
+**Status:** ✅ COMPLETE | **Shipped:** 2025-11-30
+
+**How it works:**
+When a lead signs up via a Revenue Boost popup, we create a Shopify Customer with:
+- Email marketing consent (`emailMarketingConsent.marketingState: "SUBSCRIBED"`)
+- Tags for segmentation (`source:revenue-boost-popup`, `campaign:{id}`, template type, etc.)
+
+Any ESP that syncs Shopify customers (Klaviyo, Mailchimp, Omnisend, ActiveCampaign, etc.) automatically receives these leads with **zero configuration**.
+
+**Benefits:**
+- Works with ALL ESPs that have Shopify integrations
+- No API key management in Revenue Boost
+- Tags flow through for segmentation in ESP
+- Merchants configure sync once in their ESP app
+
+See `docs/INTEGRATIONS_PLAN.md` for full details and tag reference.
+
+### [x] Campaign Duplication
+**Status:** ✅ COMPLETE | **Shipped:** 2025-11-30
+
+- Single campaign duplicate from dashboard table
+- Bulk duplicate via multi-select
+- Copies all config (content, design, targeting, discounts)
+- New campaign created as DRAFT
+
+### [x] Real Inventory API for Flash Sale
+**Status:** ✅ COMPLETE | **Shipped:** 2025-11-30
+
+- Shopify Inventory API integration for real stock levels
+- Supports: variant IDs, product IDs, collection IDs
+- "Only X left!" with actual inventory data
+- Flash Sale template `inventory.mode: "real"` now functional
+
+---
+
 ## 🚀 P0 - Critical Features
 
-### [ ] Email Marketing Integrations
-**Impact:** 🔥🔥🔥 | **Effort:** Medium
-
-Native integrations with popular ESPs:
-- [ ] **Klaviyo** - OAuth flow + subscriber sync with tags
-- [ ] **Mailchimp** - OAuth flow + list/audience sync
-- [ ] **Omnisend** - API integration
-- [ ] **ActiveCampaign** - API integration
-
-**Why:** Leads without ESP sync have limited value. Table stakes for popup apps.
-
-**Implementation Notes:**
-- Extend `Lead` submission to sync with configured ESP
-- Add ESP config to Store settings
-- Support tag mapping from campaign metadata
+*No critical blockers remaining!*
 
 ---
 
@@ -35,22 +59,22 @@ Native integrations with popular ESPs:
 ### [ ] Geo-Targeting & Localization
 **Impact:** 🔥🔥🔥 | **Effort:** Medium
 
-- [ ] Country/region targeting (IP-based via MaxMind GeoLite2)
+- [x] Country/region targeting (via Shopify `X-Country-Code` header) ✅
 - [ ] Multi-language content variants per campaign
 - [ ] Currency-aware discount display
 - [ ] Timezone-aware scheduling
 
 **Why:** Essential for international stores. Enables regional campaigns (Black Friday US-only).
 
-### [ ] Low Stock & Urgency Alerts
+### [ ] Low Stock Threshold Triggers
 **Impact:** 🔥🔥 | **Effort:** Low
 
-- [ ] Inventory API integration for real stock levels
-- [ ] "Only X left!" notifications
+- [x] Inventory API integration for real stock levels ✅
+- [x] "Only X left!" notifications with real data ✅
 - [ ] Stock threshold triggers (show popup when inventory < N)
 - [ ] Restock notifications
 
-**Why:** +15-25% conversion per research. Already in social proof roadmap.
+**Why:** +15-25% conversion per research. Real inventory now available.
 
 ### [ ] Campaign Scheduling Improvements
 **Impact:** 🔥🔥 | **Effort:** Low

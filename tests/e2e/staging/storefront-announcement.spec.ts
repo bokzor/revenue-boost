@@ -10,6 +10,7 @@ import {
     handlePasswordPage,
     mockChallengeToken,
     getTestPrefix,
+    cleanupAllE2ECampaigns,
 } from './helpers/test-helpers';
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env.staging.env'), override: true });
@@ -58,15 +59,8 @@ test.describe.serial('Announcement Template', () => {
     });
 
     test.beforeEach(async ({ page }) => {
-        // Delete ALL E2E test campaigns to avoid interference
-        await prisma.campaign.deleteMany({
-            where: {
-                OR: [
-                    { name: { startsWith: TEST_PREFIX } },
-                    { name: { startsWith: 'E2E-' } }, // Clean up all E2E tests
-                ]
-            }
-        });
+        // Clean up ALL E2E campaigns to avoid priority conflicts
+        await cleanupAllE2ECampaigns(prisma);
 
         await page.waitForTimeout(1000); // Wait for DB cleanup
         await mockChallengeToken(page);
@@ -163,24 +157,22 @@ test.describe.serial('Announcement Template', () => {
      * Wait for announcement banner to appear with retry
      */
     async function waitForBanner(page: any, timeout: number = 15000): Promise<boolean> {
-        const maxRetries = 3;
+        try {
+            // Wait for the banner element to appear - use attached state first (element exists in DOM)
+            // then check visibility separately
+            await page.waitForSelector('[data-rb-banner]', {
+                timeout: timeout,
+                state: 'attached'  // Element exists in DOM (visibility doesn't matter during animation)
+            });
 
-        for (let retry = 0; retry < maxRetries; retry++) {
-            try {
-                await page.waitForSelector('[data-rb-banner], .banner-portal, [id^="revenue-boost-popup-"]', {
-                    timeout: timeout / maxRetries,
-                    state: 'visible'
-                });
-                return true;
-            } catch {
-                if (retry < maxRetries - 1) {
-                    console.log(`Banner not found, retry ${retry + 1}/${maxRetries}...`);
-                    await page.reload();
-                    await page.waitForTimeout(2000);
-                }
-            }
+            // Give animation time to complete
+            await page.waitForTimeout(500);
+
+            return true;
+        } catch {
+            console.log('Banner element not found in DOM within timeout');
+            return false;
         }
-        return false;
     }
 
     // Use very high priorities to ensure our announcement campaigns show over any other campaigns

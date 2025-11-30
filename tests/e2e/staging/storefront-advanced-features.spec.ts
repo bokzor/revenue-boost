@@ -7,6 +7,7 @@ import {
     API_PROPAGATION_DELAY_MS,
     handlePasswordPage,
     mockChallengeToken,
+    mockUpsellProducts,
     getTestPrefix,
     waitForPopupWithRetry,
     cleanupAllE2ECampaigns,
@@ -65,9 +66,20 @@ test.describe.serial('Advanced Features', () => {
         await mockChallengeToken(page);
 
         page.on('console', msg => {
-            if (msg.text().includes('[Revenue Boost]')) {
-                console.log(`[BROWSER] ${msg.text()}`);
+            const text = msg.text();
+            // Capture all popup-related logs
+            if (text.includes('[Revenue Boost]') ||
+                text.includes('[PopupManager]') ||
+                text.includes('[PreDisplayHook]') ||
+                text.includes('[ProductDataHook]') ||
+                text.includes('Hook') ||
+                msg.type() === 'error' ||
+                msg.type() === 'warning') {
+                console.log(`[BROWSER ${msg.type()}] ${text}`);
             }
+        });
+        page.on('pageerror', err => {
+            console.log(`[BROWSER PAGE ERROR] ${err.message}`);
         });
 
         // No bundle mocking - tests use deployed extension code
@@ -293,6 +305,9 @@ test.describe.serial('Advanced Features', () => {
     test.describe('Product Upsell Bundle Discount', () => {
         test('product upsell popup renders with bundle discount banner', async ({ page }) => {
             console.log('🧪 Testing product upsell bundle discount rendering...');
+
+            // Mock upsell products API to bypass app proxy authentication
+            await mockUpsellProducts(page);
 
             const campaign = await (await factory.productUpsell().init())
                 .withName('Upsell-Bundle-Render')

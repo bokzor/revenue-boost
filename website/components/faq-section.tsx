@@ -34,7 +34,7 @@ const faqs = [
   {
     question: "Can I use Revenue Boost with my existing email marketing tools?",
     answer:
-      "Yes! Revenue Boost integrates seamlessly with popular email platforms like Klaviyo, Mailchimp, Omnisend, and many more. Collected emails are automatically synced to your preferred platform.",
+      "Yes! Revenue Boost works seamlessly with Klaviyo, Mailchimp, Omnisend, ActiveCampaign, and any email platform that syncs with Shopify customers. When someone signs up through your popup, they're added as a Shopify customer with marketing consent and campaign tags — your email platform picks them up automatically. No API keys or extra setup required.",
   },
 ]
 
