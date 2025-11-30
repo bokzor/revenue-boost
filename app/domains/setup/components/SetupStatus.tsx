@@ -87,7 +87,6 @@ export function SetupStatus({
             ? {
                 content: isRefreshing ? "Checking..." : "Refresh",
                 onAction: onRefresh,
-                loading: isRefreshing,
               }
             : undefined
         }

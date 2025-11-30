@@ -312,9 +312,9 @@ describe("ScratchCardContentSection - ALL Configuration Options", () => {
         showGdprCheckbox: true,
         gdprLabel: "I agree to receive marketing emails",
         prizes: [
-          { id: "1", label: "10% OFF", probability: 0.4, color: "#FF0000" },
-          { id: "2", label: "20% OFF", probability: 0.3, color: "#00FF00" },
-          { id: "3", label: "Try Again", probability: 0.3, color: "#0000FF" },
+          { id: "1", label: "10% OFF", probability: 0.4 },
+          { id: "2", label: "20% OFF", probability: 0.3 },
+          { id: "3", label: "Try Again", probability: 0.3 },
         ],
       };
 

@@ -319,12 +319,9 @@ describe("SocialProofContentSection - ALL Configuration Options", () => {
         enablePurchaseNotifications: true,
         enableVisitorNotifications: true,
         enableReviewNotifications: true,
-        purchaseMessageTemplate: "{{customer}} just bought {{product}}",
-        visitorMessageTemplate: "{{count}} people viewing now",
-        reviewMessageTemplate: "{{customer}} rated {{rating}} stars",
         cornerPosition: "bottom-right",
-        displayDuration: 7000,
-        rotationInterval: 12000,
+        displayDuration: 7,
+        rotationInterval: 12,
         maxNotificationsPerSession: 15,
         showProductImage: true,
         showTimer: true,
@@ -343,7 +340,7 @@ describe("SocialProofContentSection - ALL Configuration Options", () => {
       expect(content.enablePurchaseNotifications).toBe(true);
       expect(content.enableReviewNotifications).toBe(true);
       expect(content.cornerPosition).toBe("bottom-right");
-      expect(content.displayDuration).toBe(7000);
+      expect(content.displayDuration).toBe(7);
       expect(content.minVisitorCount).toBe(8);
     });
   });
