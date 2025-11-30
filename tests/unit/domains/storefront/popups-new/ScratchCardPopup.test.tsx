@@ -1,6 +1,6 @@
 import React from "react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, waitFor, fireEvent } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent, cleanup } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import { ScratchCardPopup } from "~/domains/storefront/popups-new/ScratchCardPopup";
@@ -48,16 +48,100 @@ function createConfig(overrides: Partial<any> = {}) {
   return { ...baseConfig, ...overrides };
 }
 
+// Helper to create a comprehensive canvas context mock
+function createMockCanvasContext() {
+  // Create a factory for ImageData that returns properly sized data
+  const createImageData = (width: number, height: number) => ({
+    data: new Uint8ClampedArray(width * height * 4),
+    width,
+    height,
+    colorSpace: "srgb" as PredefinedColorSpace,
+  });
+
+  return {
+    fillStyle: "",
+    font: "",
+    textAlign: "",
+    textBaseline: "",
+    shadowColor: "",
+    shadowBlur: 0,
+    shadowOffsetX: 0,
+    shadowOffsetY: 0,
+    fillText: vi.fn(),
+    fillRect: vi.fn(),
+    clearRect: vi.fn(),
+    strokeRect: vi.fn(),
+    setTransform: vi.fn(),
+    createLinearGradient: vi.fn(() => ({
+      addColorStop: vi.fn(),
+    })),
+    globalCompositeOperation: "",
+    globalAlpha: 1,
+    beginPath: vi.fn(),
+    arc: vi.fn(),
+    fill: vi.fn(),
+    stroke: vi.fn(),
+    moveTo: vi.fn(),
+    lineTo: vi.fn(),
+    save: vi.fn(),
+    restore: vi.fn(),
+    translate: vi.fn(),
+    strokeStyle: "",
+    lineWidth: 0,
+    lineCap: "",
+    lineJoin: "",
+    getImageData: vi.fn((x: number, y: number, w: number, h: number) => createImageData(w, h)),
+    putImageData: vi.fn(),
+    createImageData: vi.fn((w: number, h: number) => createImageData(w, h)),
+    createRadialGradient: vi.fn(() => ({
+      addColorStop: vi.fn(),
+    })),
+    createPattern: vi.fn(),
+    drawImage: vi.fn(),
+    measureText: vi.fn(() => ({ width: 100 })),
+    setLineDash: vi.fn(),
+    getLineDash: vi.fn(() => []),
+    closePath: vi.fn(),
+    quadraticCurveTo: vi.fn(),
+    bezierCurveTo: vi.fn(),
+    arcTo: vi.fn(),
+    rect: vi.fn(),
+    roundRect: vi.fn(),
+    clip: vi.fn(),
+    scale: vi.fn(),
+    rotate: vi.fn(),
+    transform: vi.fn(),
+    resetTransform: vi.fn(),
+    isPointInPath: vi.fn(() => false),
+    isPointInStroke: vi.fn(() => false),
+    ellipse: vi.fn(),
+    canvas: { width: 384, height: 216 },
+  };
+}
+
 describe("ScratchCardPopup", () => {
   let mockFetch: ReturnType<typeof vi.fn>;
+  let getContextSpy: ReturnType<typeof vi.spyOn> | null = null;
 
   beforeEach(() => {
     // Mock fetch for API calls
     mockFetch = vi.fn() as any;
     global.fetch = mockFetch as any;
+
+    // Default canvas mock that works for most tests
+    const mockContext = createMockCanvasContext();
+    getContextSpy = vi
+      .spyOn(HTMLCanvasElement.prototype, "getContext")
+      .mockReturnValue(mockContext as any);
   });
 
-  afterEach(() => {
+  afterEach(async () => {
+    // Cleanup React Testing Library to prevent "Should not already be working" errors
+    await cleanup();
+    if (getContextSpy) {
+      getContextSpy.mockRestore();
+      getContextSpy = null;
+    }
     vi.restoreAllMocks();
   });
 
@@ -90,7 +174,9 @@ describe("ScratchCardPopup", () => {
   });
 
   it("blocks scratch canvas init when email is required before scratching", async () => {
-    const getContextSpy = vi
+    // Clear the beforeEach spy and set up a fresh one to track calls
+    if (getContextSpy) getContextSpy.mockRestore();
+    const localSpy = vi
       .spyOn(HTMLCanvasElement.prototype as any, "getContext")
       .mockReturnValue(null);
 
@@ -106,14 +192,16 @@ describe("ScratchCardPopup", () => {
 
     // Wait a tick for useEffect to run
     await waitFor(() => {
-      expect(getContextSpy).not.toHaveBeenCalled();
+      expect(localSpy).not.toHaveBeenCalled();
     });
 
-    getContextSpy.mockRestore();
+    localSpy.mockRestore();
   });
 
   it("allows scratch canvas init when email is optional but 'ask before scratching' is on", async () => {
-    const getContextSpy = vi
+    // Clear the beforeEach spy and set up a fresh one to track calls
+    if (getContextSpy) getContextSpy.mockRestore();
+    const localSpy = vi
       .spyOn(HTMLCanvasElement.prototype as any, "getContext")
       .mockReturnValue(null);
 
@@ -128,46 +216,23 @@ describe("ScratchCardPopup", () => {
     );
 
     await waitFor(() => {
-      expect(getContextSpy).toHaveBeenCalled();
+      expect(localSpy).toHaveBeenCalled();
     });
 
-    getContextSpy.mockRestore();
+    localSpy.mockRestore();
   });
 
   it("does not show 'Loading' text on canvas in preview mode", async () => {
     // Mock canvas context to capture fillText calls
     const fillTextCalls: string[] = [];
-    const mockContext = {
-      fillStyle: "",
-      font: "",
-      textAlign: "",
-      textBaseline: "",
-      fillText: vi.fn((text: string) => {
-        fillTextCalls.push(text);
-      }),
-      fillRect: vi.fn(),
-      clearRect: vi.fn(),
-      setTransform: vi.fn(),
-      createLinearGradient: vi.fn(() => ({
-        addColorStop: vi.fn(),
-      })),
-      globalCompositeOperation: "",
-      globalAlpha: 1,
-      beginPath: vi.fn(),
-      arc: vi.fn(),
-      fill: vi.fn(),
-      stroke: vi.fn(),
-      moveTo: vi.fn(),
-      lineTo: vi.fn(),
-      save: vi.fn(),
-      restore: vi.fn(),
-      translate: vi.fn(),
-      strokeStyle: "",
-      lineWidth: 0,
-      lineCap: "",
-    };
+    const mockContext = createMockCanvasContext();
+    mockContext.fillText = vi.fn((text: string) => {
+      fillTextCalls.push(text);
+    });
 
-    const getContextSpy = vi
+    // Clear the beforeEach spy and set up our custom one
+    if (getContextSpy) getContextSpy.mockRestore();
+    const localSpy = vi
       .spyOn(HTMLCanvasElement.prototype, "getContext")
       .mockReturnValue(mockContext as any);
 
@@ -186,7 +251,7 @@ describe("ScratchCardPopup", () => {
 
     // Wait for canvas to initialize
     await waitFor(() => {
-      expect(getContextSpy).toHaveBeenCalled();
+      expect(localSpy).toHaveBeenCalled();
     });
 
     // Check that "Loading" or "Loading..." was never drawn
@@ -199,7 +264,7 @@ describe("ScratchCardPopup", () => {
     const hasPrizeText = fillTextCalls.some((text) => text.includes("10% OFF"));
     expect(hasPrizeText).toBe(true);
 
-    getContextSpy.mockRestore();
+    localSpy.mockRestore();
   });
 
   it("does not trigger API requests on every email keystroke", async () => {
@@ -513,39 +578,7 @@ describe("ScratchCardPopup", () => {
     });
 
     it("hides discount code until email is submitted", async () => {
-      // Mock canvas context
-      const mockContext = {
-        fillStyle: "",
-        font: "",
-        textAlign: "",
-        textBaseline: "",
-        fillText: vi.fn(),
-        fillRect: vi.fn(),
-        clearRect: vi.fn(),
-        setTransform: vi.fn(),
-        createLinearGradient: vi.fn(() => ({
-          addColorStop: vi.fn(),
-        })),
-        globalCompositeOperation: "",
-        globalAlpha: 1,
-        beginPath: vi.fn(),
-        arc: vi.fn(),
-        fill: vi.fn(),
-        stroke: vi.fn(),
-        moveTo: vi.fn(),
-        lineTo: vi.fn(),
-        save: vi.fn(),
-        restore: vi.fn(),
-        translate: vi.fn(),
-        strokeStyle: "",
-        lineWidth: 0,
-        lineCap: "",
-      };
-
-      vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(
-        mockContext as any,
-      );
-
+      // Uses global canvas mock from beforeEach
       mockFetch.mockResolvedValue({
         ok: true,
         json: async () => ({

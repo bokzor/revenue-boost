@@ -30,5 +30,14 @@ export { CampaignFilterService } from "./services/campaign-filter.server.js";
 
 export { ExperimentService } from "./services/experiment.server.js";
 
+export { CampaignAnalyticsService } from "./services/campaign-analytics.server.js";
+export type {
+  GlobalMetrics,
+  GlobalMetricsWithComparison,
+  CampaignRanking,
+  TemplatePerformance,
+  DateRangeOptions,
+} from "./services/campaign-analytics.server.js";
+
 // Service errors are now exported from ~/lib/errors.server
 export { CampaignServiceError, ExperimentServiceError } from "~/lib/errors.server";

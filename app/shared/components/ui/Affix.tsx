@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useLayoutEffect, useRef } from "react";
+import { BREAKPOINTS } from "~/shared/constants/breakpoints";
 
 interface AffixProps {
   children: React.ReactNode;
@@ -8,7 +9,7 @@ interface AffixProps {
    */
   offsetTop?: number;
   offsetVar?: string; // e.g., "--app-sticky-top"
-  /** Disable affix under this viewport width (e.g., mobile). Default: 768 */
+  /** Disable affix under this viewport width (e.g., mobile). Default: BREAKPOINTS.tablet (768) */
   disableBelowWidth?: number;
   zIndex?: number;
   /** Enable verbose console logging for diagnostics (default off) */
@@ -28,7 +29,7 @@ export function Affix({
   children,
   offsetTop,
   offsetVar = "--app-sticky-top",
-  disableBelowWidth = 768,
+  disableBelowWidth = BREAKPOINTS.tablet,
   zIndex = 3,
   debug,
   className,

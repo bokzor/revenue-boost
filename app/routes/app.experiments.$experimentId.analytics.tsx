@@ -8,8 +8,9 @@ import {
   InlineGrid,
   Box,
   DataTable,
-  Tooltip,
 } from "@shopify/polaris";
+import { PolarisVizProvider, BarChart } from "@shopify/polaris-viz";
+import "@shopify/polaris-viz/build/esm/styles.css";
 import { authenticate } from "~/shopify.server";
 import { CampaignAnalyticsService } from "~/domains/campaigns/services/campaign-analytics.server";
 import { ExperimentService } from "~/domains/campaigns";
@@ -128,14 +129,6 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
 export default function ExperimentAnalyticsPage() {
   const { experimentName, summary, dailyMetrics, currency } = useLoaderData<typeof loader>();
-  console.log("[ExperimentAnalyticsPage] render", {
-    experimentName,
-    currency,
-    dailyPoints: dailyMetrics.length,
-  });
-
-  // Simple max value for chart scaling
-  const maxRevenue = Math.max(...dailyMetrics.map((d) => d.revenue), 1);
 
   return (
     <Page
@@ -187,61 +180,38 @@ export default function ExperimentAnalyticsPage() {
           </Card>
         </InlineGrid>
 
-        {/* Daily Revenue Chart (Simple CSS Bar Chart) */}
+        {/* Daily Revenue Chart */}
         <Card>
           <Box padding="400">
             <BlockStack gap="400">
               <Text as="h3" variant="headingMd">
                 Daily Revenue (Last 30 Days)
               </Text>
-              <Box paddingBlockStart="400" paddingBlockEnd="200">
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "flex-end",
-                    height: "200px",
-                    gap: "4px",
-                  }}
-                >
-                  {dailyMetrics.map((day) => (
-                    <Tooltip
-                      key={day.date}
-                      content={`${new Date(day.date).toLocaleDateString()}: ${formatMoney(day.revenue, currency)}`}
-                    >
-                      <div
-                        style={{
-                          flex: 1,
-                          backgroundColor: "#005BD3",
-                          height: `${(day.revenue / maxRevenue) * 100}%`,
-                          minHeight: "4px",
-                          borderRadius: "2px 2px 0 0",
-                          opacity: 0.8,
-                        }}
-                      />
-                    </Tooltip>
-                  ))}
+              <PolarisVizProvider>
+                <div style={{ height: "250px" }}>
+                  <BarChart
+                    data={[
+                      {
+                        name: "Revenue",
+                        data: dailyMetrics.map((day) => ({
+                          key: day.date,
+                          value: day.revenue,
+                        })),
+                      },
+                    ]}
+                    xAxisOptions={{
+                      labelFormatter: (value) => {
+                        if (value === null || value === undefined) return "";
+                        const date = new Date(value);
+                        return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+                      },
+                    }}
+                    yAxisOptions={{
+                      labelFormatter: (value) => formatMoney(Number(value), currency),
+                    }}
+                  />
                 </div>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    marginTop: "8px",
-                    color: "#6D7175",
-                    fontSize: "12px",
-                  }}
-                >
-                  <span>
-                    {dailyMetrics.length > 0
-                      ? new Date(dailyMetrics[0].date).toLocaleDateString()
-                      : ""}
-                  </span>
-                  <span>
-                    {dailyMetrics.length > 0
-                      ? new Date(dailyMetrics[dailyMetrics.length - 1].date).toLocaleDateString()
-                      : ""}
-                  </span>
-                </div>
-              </Box>
+              </PolarisVizProvider>
             </BlockStack>
           </Box>
         </Card>

@@ -82,10 +82,50 @@ export const CountdownTimerPopup: React.FC<CountdownTimerPopupProps> = ({
     accentColor: config.buttonColor,
   });
 
-  if (!isVisible || (hasExpired && config.hideOnExpiry)) return null;
-
   // Get displayMode (defaults to banner for countdown timers)
   const displayMode = config.displayMode || "banner";
+
+  // Banner animation state (must be declared before any early returns due to rules of hooks)
+  const [animState, setAnimState] = useState<"entering" | "visible" | "exiting" | "hidden">(
+    isVisible ? "entering" : "hidden"
+  );
+  const hasInitialized = useRef(false);
+
+  // Check for reduced motion preference
+  const prefersReducedMotion =
+    typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  const effectiveDuration = prefersReducedMotion ? 0 : BANNER_ANIMATION_DURATION;
+
+  // Handle visibility state transitions for banner
+  useEffect(() => {
+    // Skip if not in banner mode (popup mode uses PopupPortal for animations)
+    if (displayMode !== "banner") return;
+
+    // Skip the first render if we already initialized with the correct state
+    if (!hasInitialized.current) {
+      hasInitialized.current = true;
+      // If we started visible, transition from entering to visible
+      if (isVisible && animState === "entering") {
+        const timer = setTimeout(() => setAnimState("visible"), effectiveDuration);
+        return () => clearTimeout(timer);
+      }
+      return;
+    }
+
+    if (isVisible && (animState === "hidden" || animState === "exiting")) {
+      setAnimState("entering");
+      const timer = setTimeout(() => setAnimState("visible"), effectiveDuration);
+      return () => clearTimeout(timer);
+    } else if (!isVisible && (animState === "visible" || animState === "entering")) {
+      setAnimState("exiting");
+      const timer = setTimeout(() => setAnimState("hidden"), effectiveDuration);
+      return () => clearTimeout(timer);
+    }
+  }, [isVisible, displayMode, effectiveDuration, animState]);
+
+  // Early return after all hooks are called
+  if (!isVisible || (hasExpired && config.hideOnExpiry)) return null;
 
   // Determine background (gradient for presets, solid for custom)
   const backgroundValue =
@@ -332,45 +372,6 @@ export const CountdownTimerPopup: React.FC<CountdownTimerPopupProps> = ({
   }
 
   // Banner display mode (default)
-  // Animation state for banner enter/exit
-  const [animState, setAnimState] = useState<"entering" | "visible" | "exiting" | "hidden">(
-    isVisible ? "entering" : "hidden"
-  );
-  const hasInitialized = useRef(false);
-
-  // Check for reduced motion preference
-  const prefersReducedMotion =
-    typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-  const effectiveDuration = prefersReducedMotion ? 0 : BANNER_ANIMATION_DURATION;
-
-  // Handle visibility state transitions for banner
-  useEffect(() => {
-    // Skip if not in banner mode (popup mode uses PopupPortal for animations)
-    if (displayMode !== "banner") return;
-
-    // Skip the first render if we already initialized with the correct state
-    if (!hasInitialized.current) {
-      hasInitialized.current = true;
-      // If we started visible, transition from entering to visible
-      if (isVisible && animState === "entering") {
-        const timer = setTimeout(() => setAnimState("visible"), effectiveDuration);
-        return () => clearTimeout(timer);
-      }
-      return;
-    }
-
-    if (isVisible && (animState === "hidden" || animState === "exiting")) {
-      setAnimState("entering");
-      const timer = setTimeout(() => setAnimState("visible"), effectiveDuration);
-      return () => clearTimeout(timer);
-    } else if (!isVisible && (animState === "visible" || animState === "entering")) {
-      setAnimState("exiting");
-      const timer = setTimeout(() => setAnimState("hidden"), effectiveDuration);
-      return () => clearTimeout(timer);
-    }
-  }, [isVisible, displayMode, effectiveDuration, animState]);
-
   // Get animation class for banner
   const getBannerAnimationClass = () => {
     if (prefersReducedMotion || isPreview) return "";

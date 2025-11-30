@@ -17,6 +17,7 @@ export interface SocialProofContent {
 
   // Display & rotation settings used by SocialProofPopup
   cornerPosition?: "bottom-left" | "bottom-right" | "top-left" | "top-right";
+  displayDuration?: number; // seconds (1-30)
   rotationInterval?: number;
   maxNotificationsPerSession?: number;
 

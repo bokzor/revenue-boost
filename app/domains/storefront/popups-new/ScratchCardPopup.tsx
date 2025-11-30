@@ -431,7 +431,7 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const prizeCanvasRef = useRef<HTMLCanvasElement>(null);
-  const particleCanvasRef = useRef<HTMLCanvasElement>(null);
+  const _particleCanvasRef = useRef<HTMLCanvasElement>(null);
   const isDrawingRef = useRef(false);
   const audioContextRef = useRef<AudioContext | null>(null);
   const lastScratchTimeRef = useRef(0);
@@ -544,8 +544,9 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
   }, [enableParticles, config.scratchOverlayColor]);
 
   // Animate particles
+  const hasParticles = particles.length > 0;
   useEffect(() => {
-    if (particles.length === 0) return;
+    if (!hasParticles) return;
 
     const animate = () => {
       setParticles(prev =>
@@ -571,7 +572,7 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [particles.length > 0]);
+  }, [hasParticles]);
 
   // Cleanup audio context
   useEffect(() => {

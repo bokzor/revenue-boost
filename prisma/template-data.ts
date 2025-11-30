@@ -58,36 +58,35 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
       },
     },
     designConfig: {
-      // Use the "summer-sale" newsletter theme as the default seeded look
-      theme: "summer-sale",
+      // Use the "ocean" newsletter theme as the default seeded look (matching the campaign)
+      theme: "ocean",
       position: "center",
       size: "medium",
       popupSize: "standard",
       borderRadius: 8,
       animation: "fade",
 
-      // Background image preset & URL - full background mode for summer-sale
+      // Background image preset & URL
       backgroundImageMode: "preset",
-      backgroundImagePresetKey: "summer-sale",
-      imageUrl: "/apps/revenue-boost/assets/newsletter-backgrounds/summer-sale.jpg",
-      imagePosition: "full", // Summer sale uses full background
-      backgroundOverlayOpacity: 0.4, // Light overlay to keep text readable
+      backgroundImagePresetKey: "ocean",
+      imageUrl: "/apps/revenue-boost/assets/newsletter-backgrounds/ocean.jpg",
+      imagePosition: "left",
 
-      // Summer Sale theme colors - vibrant orange & turquoise
-      backgroundColor: "#FFFBEB", // Warm light yellow-cream
-      textColor: "#1E3A5F", // Navy blue for headlines
-      descriptionColor: "#0F766E", // Dark teal for description
-      accentColor: "#38BDF8", // Bright turquoise
+      // Ocean theme colors (aligned with the campaign's ocean theme)
+      backgroundColor: "#f0f9ff",
+      textColor: "#0c4a6e",
+      descriptionColor: "#0369a1",
+      accentColor: "#0ea5e9",
 
-      buttonColor: "#FF5733", // Vibrant orange
-      buttonTextColor: "#FFFFFF", // White
+      buttonColor: "#0ea5e9",
+      buttonTextColor: "#ffffff",
 
-      inputBackgroundColor: "#FEF3C7", // Light cream/yellow
-      inputTextColor: "#1E3A5F", // Navy blue
-      inputBorderColor: "#FBBF24", // Golden yellow
+      inputBackgroundColor: "#e0f2fe",
+      inputTextColor: "#111827",
+      inputBorderColor: "#7dd3fc",
 
-      imageBgColor: "#FEF9C3", // Light yellow
-      successColor: "#10B981",
+      imageBgColor: "#e0f2fe",
+      successColor: "#14b8a6",
       overlayOpacity: 0.8,
 
       fontFamily: "inherit",

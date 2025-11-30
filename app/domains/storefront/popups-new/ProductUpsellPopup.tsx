@@ -140,10 +140,12 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
   );
 
   // Create ripple effect on card
-  const createRipple = useCallback((productId: string, event: React.MouseEvent) => {
+  const createRipple = useCallback((productId: string, event: React.MouseEvent | React.KeyboardEvent) => {
     const rect = event.currentTarget.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
+    // For keyboard events, center the ripple; for mouse events, use click position
+    const isMouseEvent = 'clientX' in event;
+    const x = isMouseEvent ? event.clientX - rect.left : rect.width / 2;
+    const y = isMouseEvent ? event.clientY - rect.top : rect.height / 2;
     const id = rippleIdRef.current++;
 
     setRipples(prev => {
@@ -165,7 +167,7 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
   }, []);
 
   const handleProductSelect = useCallback(
-    (productId: string, event?: React.MouseEvent) => {
+    (productId: string, event?: React.MouseEvent | React.KeyboardEvent) => {
       // Trigger haptic feedback
       triggerHaptic(15);
 
@@ -535,8 +537,11 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           return (
             <div
               key={product.id}
+              role="button"
+              tabIndex={isActive ? 0 : -1}
               className={`upsell-carousel-slide ${isActive ? 'upsell-carousel-slide--active' : ''} ${isSelected ? 'upsell-carousel-slide--selected' : ''}`}
               onClick={(e) => isActive && handleProductSelect(product.id, e)}
+              onKeyDown={(e) => isActive && e.key === 'Enter' && handleProductSelect(product.id, e)}
             >
               {/* Full product card for carousel */}
               <div className="upsell-carousel-card">
@@ -625,8 +630,11 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
       <div className="upsell-featured-layout">
         {/* Hero product */}
         <div
+          role="button"
+          tabIndex={0}
           className={`upsell-featured-hero ${isSelected ? 'upsell-featured-hero--selected' : ''}`}
           onClick={(e) => handleProductSelect(featuredProduct.id, e)}
+          onKeyDown={(e) => e.key === 'Enter' && handleProductSelect(featuredProduct.id, e)}
         >
           {isSelected && <div className="upsell-selection-glow" />}
 
@@ -704,6 +712,8 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
         return (
           <div
             key={product.id}
+            role="button"
+            tabIndex={0}
             className={`upsell-stack-card ${isSelected ? 'upsell-stack-card--selected' : ''} ${isExpanded ? 'upsell-stack-card--expanded' : ''}`}
             style={{
               '--stack-offset': `${offset}px`,
@@ -716,6 +726,16 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
               } else {
                 setStackExpandedIndex(index);
                 triggerHaptic(10);
+              }
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                if (isExpanded) {
+                  handleProductSelect(product.id, e);
+                } else {
+                  setStackExpandedIndex(index);
+                  triggerHaptic(10);
+                }
               }
             }}
           >
@@ -866,7 +886,7 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
   };
 
   // Calculate values for summary
-  const totalSavings = calculateTotalSavings();
+  const _totalSavings = calculateTotalSavings();
   const discountedTotal = calculateDiscountedTotal();
 
   const popupMaxWidth = config.maxWidth || sizeMaxWidth || "56rem";

@@ -1,7 +1,8 @@
 /**
  * Setup Status Utilities
  *
- * Shared utilities for checking app setup status across routes
+ * Shared utilities for checking app setup status across routes.
+ * Includes in-memory caching to avoid expensive API calls on every request.
  */
 
 import type { SetupStatusData } from "~/domains/setup/components/SetupStatus";
@@ -10,6 +11,70 @@ interface CheckThemeExtensionParams {
   shop: string;
   accessToken: string;
 }
+
+// ============================================================================
+// SETUP STATUS CACHING
+// ============================================================================
+
+interface CachedSetupStatus {
+  status: SetupStatusData;
+  setupComplete: boolean;
+  timestamp: number;
+}
+
+const setupStatusCache = new Map<string, CachedSetupStatus>();
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+/**
+ * Get cached setup status if still valid
+ */
+function getCachedStatus(shop: string): CachedSetupStatus | null {
+  const cached = setupStatusCache.get(shop);
+  if (!cached) return null;
+
+  const isExpired = Date.now() - cached.timestamp > CACHE_TTL_MS;
+  if (isExpired) {
+    setupStatusCache.delete(shop);
+    console.log(`[Setup Cache] EXPIRED for shop: ${shop}`);
+    return null;
+  }
+
+  console.log(`[Setup Cache] HIT for shop: ${shop}`);
+  return cached;
+}
+
+/**
+ * Cache setup status for a shop
+ */
+function setCachedStatus(shop: string, status: SetupStatusData, setupComplete: boolean): void {
+  setupStatusCache.set(shop, {
+    status,
+    setupComplete,
+    timestamp: Date.now(),
+  });
+  console.log(`[Setup Cache] SET for shop: ${shop} (setupComplete: ${setupComplete})`);
+}
+
+/**
+ * Invalidate cached setup status for a shop
+ * Call this when user explicitly refreshes or when settings change
+ */
+export function invalidateSetupStatusCache(shop: string): void {
+  setupStatusCache.delete(shop);
+  console.log(`[Setup Cache] INVALIDATED for shop: ${shop}`);
+}
+
+/**
+ * Clear all cached setup statuses
+ */
+export function clearSetupStatusCache(): void {
+  setupStatusCache.clear();
+  console.log("[Setup Cache] All entries cleared");
+}
+
+// ============================================================================
+// SETUP STATUS CHECKS
+// ============================================================================
 
 /**
  * Check if theme extension is enabled using REST API
@@ -177,13 +242,30 @@ export async function checkAppProxyReachable(
 }
 
 /**
- * Get complete setup status
+ * Get complete setup status (with caching)
+ *
+ * Returns cached result if available and not expired (5 min TTL).
+ * Use `forceRefresh: true` to bypass cache (e.g., when user clicks refresh).
  */
 export async function getSetupStatus(
   shop: string,
   accessToken: string,
-  admin: { graphql: (query: string) => Promise<Response> }
+  admin: { graphql: (query: string) => Promise<Response> },
+  options?: { forceRefresh?: boolean }
 ): Promise<{ status: SetupStatusData; setupComplete: boolean }> {
+  // Check cache first (unless force refresh)
+  if (!options?.forceRefresh) {
+    const cached = getCachedStatus(shop);
+    if (cached) {
+      return { status: cached.status, setupComplete: cached.setupComplete };
+    }
+  } else {
+    // Invalidate cache on force refresh
+    invalidateSetupStatusCache(shop);
+  }
+
+  console.log(`[Setup Cache] MISS for shop: ${shop} - fetching from APIs`);
+
   // Run checks in parallel for better performance
   const [themeExtensionEnabled, customProxyUrl] = await Promise.all([
     checkThemeExtensionEnabled({ shop, accessToken }),
@@ -201,6 +283,9 @@ export async function getSetupStatus(
 
   // Setup is complete when both theme extension is enabled AND app proxy is reachable
   const setupComplete = themeExtensionEnabled && appProxyOk;
+
+  // Cache the result
+  setCachedStatus(shop, status, setupComplete);
 
   return { status, setupComplete };
 }

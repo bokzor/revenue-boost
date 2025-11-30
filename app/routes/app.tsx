@@ -112,6 +112,7 @@ export default function App() {
         <BillingContext.Provider value={billingContextValue}>
           <s-app-nav>
             <s-link href="/app">Dashboard</s-link>
+            <s-link href="/app/analytics">Analytics</s-link>
             <s-link href="/app/campaigns/new">New campaign</s-link>
             <s-link href="/app/billing">Plans</s-link>
             <s-link href="/app/settings">Settings</s-link>
