@@ -196,7 +196,7 @@ export const NewsletterTemplateSchema = BaseTemplateSchema.extend({
   fields: z.array(TemplateFieldSchema).default([]),
   targetRules: TargetRulesConfigSchema.default({}),
   designConfig: DesignConfigSchema.default({
-    theme: "modern",
+    theme: "gradient",
     position: "center",
     size: "medium",
     borderRadius: 8,

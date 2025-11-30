@@ -9,13 +9,16 @@
  * - Prize reveal with confetti effect
  * - Configurable scratch threshold and brush radius
  * - Copy discount code functionality
+ * - Enhanced metallic foil overlay with holographic shimmer
+ * - Scratch particles and sound effects
+ * - Premium reveal animations
  */
 
 import React, { useState, useCallback, useRef, useEffect } from "react";
 import { PopupPortal } from "./PopupPortal";
 import type { PopupDesignConfig, Prize } from "./types";
 import type { ScratchCardContent } from "~/domains/campaigns/types/campaign";
-import { getSizeDimensions } from "./utils";
+import { getSizeDimensions, prefersReducedMotion } from "./utils";
 import { POPUP_SPACING } from "./spacing";
 
 // Import custom hooks
@@ -26,6 +29,314 @@ import { EmailInput, GdprCheckbox, SubmitButton } from "./components";
 
 // Import shared components from Phase 1 & 2
 import { DiscountCodeDisplay } from "./components/shared";
+
+/**
+ * Scratch particle system for visual feedback while scratching
+ */
+interface ScratchParticle {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  size: number;
+  opacity: number;
+  color: string;
+  life: number;
+}
+
+/**
+ * Draw enhanced metallic foil overlay with holographic pattern
+ */
+function drawMetallicOverlay(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  baseColor: string,
+  instruction: string,
+  accentColor: string
+) {
+  // Create metallic gradient
+  const gradient = ctx.createLinearGradient(0, 0, width, height);
+  gradient.addColorStop(0, adjustBrightness(baseColor, 15));
+  gradient.addColorStop(0.2, adjustBrightness(baseColor, 30));
+  gradient.addColorStop(0.4, baseColor);
+  gradient.addColorStop(0.5, adjustBrightness(baseColor, 40));
+  gradient.addColorStop(0.6, baseColor);
+  gradient.addColorStop(0.8, adjustBrightness(baseColor, 25));
+  gradient.addColorStop(1, adjustBrightness(baseColor, 10));
+
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, width, height);
+
+  // Add noise texture for realistic scratch surface
+  drawNoiseTexture(ctx, width, height, 0.03);
+
+  // Add holographic rainbow pattern
+  drawHolographicPattern(ctx, width, height, accentColor);
+
+  // Draw decorative corner elements
+  drawCornerDecorations(ctx, width, height, accentColor);
+
+  // Draw dashed border
+  drawDashedBorder(ctx, width, height);
+
+  // Draw instruction with icon
+  drawScratchInstruction(ctx, width, height, instruction);
+
+  // Draw ticket serial number
+  drawSerialNumber(ctx, width, height);
+}
+
+/**
+ * Draw noise texture for realistic scratch surface
+ */
+function drawNoiseTexture(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  intensity: number
+) {
+  const imageData = ctx.getImageData(0, 0, width, height);
+  const pixels = imageData.data;
+
+  for (let i = 0; i < pixels.length; i += 4) {
+    const noise = (Math.random() - 0.5) * 255 * intensity;
+    pixels[i] = Math.max(0, Math.min(255, pixels[i] + noise));
+    pixels[i + 1] = Math.max(0, Math.min(255, pixels[i + 1] + noise));
+    pixels[i + 2] = Math.max(0, Math.min(255, pixels[i + 2] + noise));
+  }
+
+  ctx.putImageData(imageData, 0, 0);
+}
+
+/**
+ * Draw holographic rainbow pattern
+ */
+function drawHolographicPattern(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  accentColor: string
+) {
+  ctx.save();
+  ctx.globalAlpha = 0.15;
+  ctx.globalCompositeOperation = "overlay";
+
+  // Create diagonal holographic stripes
+  const stripeWidth = 30;
+  const colors = [
+    "rgba(255, 0, 128, 0.3)",
+    "rgba(0, 255, 255, 0.3)",
+    "rgba(255, 255, 0, 0.3)",
+    "rgba(128, 0, 255, 0.3)",
+    accentColor + "40",
+  ];
+
+  for (let i = -height; i < width + height; i += stripeWidth) {
+    const colorIndex = Math.floor(Math.abs(i / stripeWidth)) % colors.length;
+    ctx.fillStyle = colors[colorIndex];
+    ctx.beginPath();
+    ctx.moveTo(i, 0);
+    ctx.lineTo(i + stripeWidth / 2, 0);
+    ctx.lineTo(i + stripeWidth / 2 + height, height);
+    ctx.lineTo(i + height, height);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  ctx.restore();
+
+  // Add sparkle dots
+  ctx.save();
+  ctx.globalAlpha = 0.5;
+  for (let i = 0; i < 40; i++) {
+    const x = Math.random() * width;
+    const y = Math.random() * height;
+    const size = Math.random() * 3 + 1;
+
+    const sparkleGradient = ctx.createRadialGradient(x, y, 0, x, y, size);
+    sparkleGradient.addColorStop(0, "rgba(255, 255, 255, 0.9)");
+    sparkleGradient.addColorStop(0.5, "rgba(255, 255, 255, 0.3)");
+    sparkleGradient.addColorStop(1, "rgba(255, 255, 255, 0)");
+
+    ctx.fillStyle = sparkleGradient;
+    ctx.beginPath();
+    ctx.arc(x, y, size, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+/**
+ * Draw ornate corner decorations
+ */
+function drawCornerDecorations(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  accentColor: string
+) {
+  ctx.save();
+  ctx.strokeStyle = accentColor;
+  ctx.lineWidth = 2;
+  ctx.globalAlpha = 0.6;
+
+  const cornerSize = 25;
+  const offset = 8;
+
+  // Top-left corner
+  ctx.beginPath();
+  ctx.moveTo(offset, offset + cornerSize);
+  ctx.lineTo(offset, offset);
+  ctx.lineTo(offset + cornerSize, offset);
+  ctx.stroke();
+
+  // Top-right corner
+  ctx.beginPath();
+  ctx.moveTo(width - offset - cornerSize, offset);
+  ctx.lineTo(width - offset, offset);
+  ctx.lineTo(width - offset, offset + cornerSize);
+  ctx.stroke();
+
+  // Bottom-left corner
+  ctx.beginPath();
+  ctx.moveTo(offset, height - offset - cornerSize);
+  ctx.lineTo(offset, height - offset);
+  ctx.lineTo(offset + cornerSize, height - offset);
+  ctx.stroke();
+
+  // Bottom-right corner
+  ctx.beginPath();
+  ctx.moveTo(width - offset - cornerSize, height - offset);
+  ctx.lineTo(width - offset, height - offset);
+  ctx.lineTo(width - offset, height - offset - cornerSize);
+  ctx.stroke();
+
+  // Add decorative dots at corners
+  ctx.fillStyle = accentColor;
+  const dotSize = 3;
+  ctx.beginPath();
+  ctx.arc(offset + 3, offset + 3, dotSize, 0, Math.PI * 2);
+  ctx.arc(width - offset - 3, offset + 3, dotSize, 0, Math.PI * 2);
+  ctx.arc(offset + 3, height - offset - 3, dotSize, 0, Math.PI * 2);
+  ctx.arc(width - offset - 3, height - offset - 3, dotSize, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.restore();
+}
+
+/**
+ * Draw dashed border for ticket authenticity
+ */
+function drawDashedBorder(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number
+) {
+  ctx.save();
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.4)";
+  ctx.lineWidth = 1;
+  ctx.setLineDash([6, 4]);
+
+  const inset = 4;
+  ctx.strokeRect(inset, inset, width - inset * 2, height - inset * 2);
+
+  ctx.restore();
+}
+
+/**
+ * Draw scratch instruction with coin icon
+ */
+function drawScratchInstruction(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  instruction: string
+) {
+  ctx.save();
+
+  // Draw coin icon
+  const coinX = width / 2 - 80;
+  const coinY = height / 2;
+  const coinRadius = 14;
+
+  // Coin gradient
+  const coinGradient = ctx.createRadialGradient(
+    coinX - 3, coinY - 3, 0,
+    coinX, coinY, coinRadius
+  );
+  coinGradient.addColorStop(0, "#FFE066");
+  coinGradient.addColorStop(0.5, "#FFD700");
+  coinGradient.addColorStop(1, "#B8860B");
+
+  ctx.fillStyle = coinGradient;
+  ctx.beginPath();
+  ctx.arc(coinX, coinY, coinRadius, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Coin border
+  ctx.strokeStyle = "#B8860B";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // Dollar sign on coin
+  ctx.fillStyle = "#8B6914";
+  ctx.font = "bold 14px system-ui";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("$", coinX, coinY);
+
+  // Instruction text with shadow
+  ctx.shadowColor = "rgba(0, 0, 0, 0.5)";
+  ctx.shadowBlur = 4;
+  ctx.shadowOffsetX = 1;
+  ctx.shadowOffsetY = 2;
+
+  ctx.fillStyle = "#FFFFFF";
+  ctx.font = "600 24px system-ui, -apple-system, BlinkMacSystemFont, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(instruction, width / 2 + 10, height / 2);
+
+  ctx.restore();
+}
+
+/**
+ * Draw ticket serial number for authenticity
+ */
+function drawSerialNumber(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number
+) {
+  ctx.save();
+  ctx.globalAlpha = 0.4;
+  ctx.fillStyle = "#FFFFFF";
+  ctx.font = "10px monospace";
+  ctx.textAlign = "right";
+  ctx.textBaseline = "bottom";
+
+  // Generate pseudo-random serial
+  const serial = `#${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+  ctx.fillText(serial, width - 12, height - 8);
+
+  ctx.restore();
+}
+
+/**
+ * Utility function to adjust color brightness
+ */
+function adjustBrightness(hex: string, percent: number): string {
+  if (hex.startsWith("rgb")) return hex;
+
+  const cleanHex = hex.replace("#", "");
+  const num = parseInt(cleanHex, 16);
+  const r = Math.min(255, Math.max(0, ((num >> 16) & 0xff) + Math.round(255 * percent / 100)));
+  const g = Math.min(255, Math.max(0, ((num >> 8) & 0xff) + Math.round(255 * percent / 100)));
+  const b = Math.min(255, Math.max(0, (num & 0xff) + Math.round(255 * percent / 100)));
+
+  return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
+}
 
 /**
  * ScratchCardConfig - Extends both design config AND campaign content type
@@ -48,6 +359,12 @@ export interface ScratchCardConfig extends PopupDesignConfig, ScratchCardContent
   titleTextShadow?: string;
   descriptionFontSize?: string;
   descriptionFontWeight?: string;
+
+  // Enhanced scratch card features
+  enableSound?: boolean;
+  enableHaptic?: boolean;
+  enableParticles?: boolean;
+  enableMetallicOverlay?: boolean;
 
   // Note: showGdprCheckbox and gdprLabel come from ScratchCardContent
   // Note: prizes, emailRequired, emailPlaceholder, scratchThreshold, etc.
@@ -109,10 +426,16 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
   const [scratchPercentage, setScratchPercentage] = useState(0);
   const [isRevealed, setIsRevealed] = useState(false);
   const [wonPrize, setWonPrize] = useState<Prize | null>(null);
+  const [particles, setParticles] = useState<ScratchParticle[]>([]);
+  const [isNearThreshold, setIsNearThreshold] = useState(false);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const prizeCanvasRef = useRef<HTMLCanvasElement>(null);
+  const particleCanvasRef = useRef<HTMLCanvasElement>(null);
   const isDrawingRef = useRef(false);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const lastScratchTimeRef = useRef(0);
+  const animationFrameRef = useRef<number | null>(null);
 
   const DEFAULT_CARD_WIDTH = 384;
   const DEFAULT_CARD_HEIGHT = 216;
@@ -121,6 +444,152 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
   const cardHeight = config.scratchCardHeight || DEFAULT_CARD_HEIGHT;
   const threshold = config.scratchThreshold || 50;
   const brushRadius = config.scratchRadius || 20;
+
+  // Feature flags
+  const enableSound = config.enableSound !== false;
+  const enableHaptic = config.enableHaptic !== false;
+  const enableParticles = config.enableParticles !== false;
+
+  // ============================================
+  // SCRATCH SOUND & HAPTIC FEEDBACK
+  // ============================================
+  const playScratchSound = useCallback(() => {
+    if (!enableSound || prefersReducedMotion()) return;
+
+    const now = performance.now();
+    // Throttle sound to avoid overwhelming audio
+    if (now - lastScratchTimeRef.current < 50) return;
+    lastScratchTimeRef.current = now;
+
+    try {
+      if (!audioContextRef.current) {
+        audioContextRef.current = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+      }
+
+      const ctx = audioContextRef.current;
+      if (ctx.state === "suspended") {
+        ctx.resume();
+      }
+
+      // Create scratch sound (noise burst)
+      const bufferSize = 2048;
+      const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+
+      for (let i = 0; i < bufferSize; i++) {
+        data[i] = (Math.random() * 2 - 1) * 0.15;
+      }
+
+      const source = ctx.createBufferSource();
+      source.buffer = buffer;
+
+      // Filter to make it sound more like scratching
+      const filter = ctx.createBiquadFilter();
+      filter.type = "highpass";
+      filter.frequency.value = 2000;
+
+      const gainNode = ctx.createGain();
+      gainNode.gain.setValueAtTime(0.1, ctx.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.05);
+
+      source.connect(filter);
+      filter.connect(gainNode);
+      gainNode.connect(ctx.destination);
+
+      source.start(ctx.currentTime);
+      source.stop(ctx.currentTime + 0.05);
+    } catch {
+      // Silently fail if audio isn't available
+    }
+  }, [enableSound]);
+
+  const triggerHaptic = useCallback(() => {
+    if (!enableHaptic || prefersReducedMotion()) return;
+
+    try {
+      if (navigator.vibrate) {
+        navigator.vibrate(5);
+      }
+    } catch {
+      // Silently fail
+    }
+  }, [enableHaptic]);
+
+  // ============================================
+  // PARTICLE SYSTEM
+  // ============================================
+  const createParticles = useCallback((x: number, y: number) => {
+    if (!enableParticles || prefersReducedMotion()) return;
+
+    const overlayColor = config.scratchOverlayColor || "#C0C0C0";
+    const newParticles: ScratchParticle[] = [];
+    const particleCount = 3 + Math.floor(Math.random() * 3);
+
+    for (let i = 0; i < particleCount; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 1 + Math.random() * 3;
+      newParticles.push({
+        x,
+        y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - 2, // Bias upward
+        size: 2 + Math.random() * 4,
+        opacity: 0.8 + Math.random() * 0.2,
+        color: overlayColor,
+        life: 1,
+      });
+    }
+
+    setParticles(prev => [...prev.slice(-30), ...newParticles]); // Keep max 30 particles
+  }, [enableParticles, config.scratchOverlayColor]);
+
+  // Animate particles
+  useEffect(() => {
+    if (particles.length === 0) return;
+
+    const animate = () => {
+      setParticles(prev =>
+        prev
+          .map(p => ({
+            ...p,
+            x: p.x + p.vx,
+            y: p.y + p.vy,
+            vy: p.vy + 0.15, // Gravity
+            life: p.life - 0.03,
+            opacity: p.opacity * 0.95,
+          }))
+          .filter(p => p.life > 0 && p.opacity > 0.1)
+      );
+
+      animationFrameRef.current = requestAnimationFrame(animate);
+    };
+
+    animationFrameRef.current = requestAnimationFrame(animate);
+
+    return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
+  }, [particles.length > 0]);
+
+  // Cleanup audio context
+  useEffect(() => {
+    return () => {
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
+      }
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
+  }, []);
+
+  // Track proximity to threshold for glow effect
+  useEffect(() => {
+    const nearThreshold = scratchPercentage >= threshold * 0.7 && scratchPercentage < threshold;
+    setIsNearThreshold(nearThreshold);
+  }, [scratchPercentage, threshold]);
 
   // Fetch prize from server
   // Note: email is passed as a parameter to avoid triggering re-fetches on every keystroke
@@ -282,30 +751,40 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
       prizeCtx.restore();
     }
 
-    // Draw scratch overlay
+    // Draw scratch overlay (enhanced metallic or basic)
     ctx.globalCompositeOperation = "source-over";
-    ctx.fillStyle = config.scratchOverlayColor || "#C0C0C0";
-    ctx.fillRect(0, 0, cardWidth, cardHeight);
 
-    // Add scratch text on overlay
-    ctx.fillStyle = "#FFFFFF";
-    ctx.font = "600 28px system-ui, -apple-system, BlinkMacSystemFont, sans-serif";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(config.scratchInstruction || "Scratch to reveal!", cardWidth / 2, cardHeight / 2);
+    const enableMetallic = config.enableMetallicOverlay !== false; // Default to true
+    const overlayColor = config.scratchOverlayColor || "#C0C0C0";
+    const accentColor = config.accentColor || config.buttonColor || "#FFD700";
+    const instruction = config.scratchInstruction || "Scratch to reveal!";
 
-    // Add sparkles / pattern on overlay
-    ctx.globalAlpha = 0.3;
-    const sparkleColor = config.accentColor || config.buttonColor || "#FFFFFF";
-    ctx.fillStyle = sparkleColor;
-    for (let i = 0; i < 20; i++) {
-      const x = Math.random() * cardWidth;
-      const y = Math.random() * cardHeight;
-      ctx.beginPath();
-      ctx.arc(x, y, 2, 0, Math.PI * 2);
-      ctx.fill();
+    if (enableMetallic) {
+      // Use enhanced metallic overlay with holographic effects
+      drawMetallicOverlay(ctx, cardWidth, cardHeight, overlayColor, instruction, accentColor);
+    } else {
+      // Basic overlay (fallback)
+      ctx.fillStyle = overlayColor;
+      ctx.fillRect(0, 0, cardWidth, cardHeight);
+
+      ctx.fillStyle = "#FFFFFF";
+      ctx.font = "600 28px system-ui, -apple-system, BlinkMacSystemFont, sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(instruction, cardWidth / 2, cardHeight / 2);
+
+      // Add sparkles
+      ctx.globalAlpha = 0.3;
+      ctx.fillStyle = accentColor;
+      for (let i = 0; i < 20; i++) {
+        const x = Math.random() * cardWidth;
+        const y = Math.random() * cardHeight;
+        ctx.beginPath();
+        ctx.arc(x, y, 2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
     }
-    ctx.globalAlpha = 1;
 
     // Set composite operation for erasing
     ctx.globalCompositeOperation = "destination-out";
@@ -333,7 +812,7 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
     return (transparentPixels / (cardWidth * cardHeight)) * 100;
   }, [cardWidth, cardHeight]);
 
-  // Scratch function
+  // Scratch function with enhanced effects
   const scratch = useCallback(
     (x: number, y: number) => {
       if (!canvasRef.current) return;
@@ -345,9 +824,29 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
 
       // Set composite operation to erase mode
       ctx.globalCompositeOperation = "destination-out";
+
+      // Use irregular brush shape for more realistic scratch
+      const irregularity = 0.3;
+      const points = 8;
       ctx.beginPath();
-      ctx.arc(x, y, brushRadius, 0, 2 * Math.PI);
+      for (let i = 0; i <= points; i++) {
+        const angle = (i / points) * Math.PI * 2;
+        const radiusVariation = brushRadius * (1 + (Math.random() - 0.5) * irregularity);
+        const px = x + Math.cos(angle) * radiusVariation;
+        const py = y + Math.sin(angle) * radiusVariation;
+        if (i === 0) {
+          ctx.moveTo(px, py);
+        } else {
+          ctx.lineTo(px, py);
+        }
+      }
+      ctx.closePath();
       ctx.fill();
+
+      // Trigger feedback effects
+      playScratchSound();
+      triggerHaptic();
+      createParticles(x, y);
 
       // Check scratch percentage
       const percentage = calculateScratchPercentage();
@@ -355,12 +854,16 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
 
       if (percentage >= threshold && !isRevealed) {
         setIsRevealed(true);
+        // Strong haptic on reveal
+        if (enableHaptic && navigator.vibrate) {
+          navigator.vibrate([50, 30, 100]);
+        }
         if (wonPrize && onReveal) {
           onReveal(wonPrize);
         }
       }
     },
-    [brushRadius, calculateScratchPercentage, threshold, isRevealed, wonPrize, onReveal]
+    [brushRadius, calculateScratchPercentage, threshold, isRevealed, wonPrize, onReveal, playScratchSound, triggerHaptic, createParticles, enableHaptic]
   );
 
   // Mouse/touch event handlers
@@ -717,16 +1220,17 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
               </form>
             ) : (
               showScratchCard && (
-                // Scratch card
+                // Scratch card with enhanced effects
                 <>
                   <div
-                    className={`scratch-card-container ${isRevealed ? "revealed-animation" : ""}`}
+                    className={`scratch-card-container ${isRevealed ? "revealed-animation" : ""} ${isNearThreshold ? "near-threshold" : ""} ${isScratching ? "is-scratching" : ""}`}
                   >
                     {/* Prize canvas (bottom layer) */}
                     <canvas
                       ref={prizeCanvasRef}
                       width={cardWidth}
                       height={cardHeight}
+                      className="scratch-prize-canvas"
                       style={{
                         position: "absolute",
                         inset: 0,
@@ -754,15 +1258,62 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
                         inset: 0,
                         width: "100%",
                         height: "100%",
-                        cursor: isScratching ? "grabbing" : "grab",
+                        cursor: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%23FFD700' stroke='%23B8860B' stroke-width='2'/%3E%3Ctext x='16' y='21' font-size='14' font-weight='bold' text-anchor='middle' fill='%238B6914'%3E$%3C/text%3E%3C/svg%3E") 16 16, ${isScratching ? "grabbing" : "grab"}`,
                         touchAction: "none",
                         zIndex: 2,
                       }}
                     />
 
-                    {/* Confetti particles on reveal */}
+                    {/* Scratch particles layer */}
+                    {enableParticles && particles.length > 0 && (
+                      <div className="scratch-particles-layer" style={{ position: "absolute", inset: 0, zIndex: 3, pointerEvents: "none", overflow: "hidden" }}>
+                        {particles.map((p, i) => (
+                          <div
+                            key={i}
+                            className="scratch-particle"
+                            style={{
+                              position: "absolute",
+                              left: `${(p.x / cardWidth) * 100}%`,
+                              top: `${(p.y / cardHeight) * 100}%`,
+                              width: p.size,
+                              height: p.size,
+                              backgroundColor: p.color,
+                              opacity: p.opacity,
+                              borderRadius: "50%",
+                              transform: "translate(-50%, -50%)",
+                              boxShadow: `0 0 ${p.size}px ${p.color}`,
+                            }}
+                          />
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Progress indicator */}
+                    {!isRevealed && scratchPercentage > 5 && (
+                      <div className="scratch-progress-indicator">
+                        <div
+                          className="scratch-progress-bar"
+                          style={{ width: `${Math.min(100, (scratchPercentage / threshold) * 100)}%` }}
+                        />
+                      </div>
+                    )}
+
+                    {/* Enhanced celebration effects on reveal */}
                     {isRevealed && wonPrize?.discountCode && (
                       <>
+                        {/* Sparkle burst */}
+                        <div className="scratch-sparkle-burst">
+                          {[...Array(12)].map((_, i) => (
+                            <div key={i} className="scratch-sparkle" style={{ "--sparkle-angle": `${i * 30}deg` } as React.CSSProperties} />
+                          ))}
+                        </div>
+
+                        {/* Star effects */}
+                        <div className="scratch-star" style={{ left: "15%", top: "20%" }}>⭐</div>
+                        <div className="scratch-star" style={{ left: "85%", top: "25%" }}>✨</div>
+                        <div className="scratch-star" style={{ left: "50%", top: "10%" }}>🌟</div>
+
+                        {/* Confetti particles */}
                         <div className="scratch-confetti" />
                         <div className="scratch-confetti" />
                         <div className="scratch-confetti" />
@@ -1313,6 +1864,209 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
         .scratch-confetti:nth-child(4) { width: 7px; height: 7px; background: #06b6d4; left: 85%; top: 22%; animation: confettiDrop 1.5s ease-out 0.08s forwards; border-radius: 50%; }
         .scratch-confetti:nth-child(5) { width: 9px; height: 9px; background: #10b981; left: 45%; top: 12%; animation: confettiDrop 1.25s ease-out 0.2s forwards; }
         .scratch-confetti:nth-child(6) { width: 8px; height: 8px; background: ${config.accentColor || config.buttonColor}; left: 55%; top: 25%; animation: confettiDrop 1.35s ease-out 0.12s forwards; border-radius: 50%; }
+
+        /* ============================================
+         * ENHANCED SCRATCH CARD EFFECTS
+         * ============================================ */
+
+        /* Card entrance animation */
+        @keyframes cardEntrance {
+          0% {
+            opacity: 0;
+            transform: perspective(600px) rotateX(-10deg) translateY(20px) scale(0.95);
+          }
+          100% {
+            opacity: 1;
+            transform: perspective(600px) rotateX(0) translateY(0) scale(1);
+          }
+        }
+
+        .scratch-card-container {
+          animation: cardEntrance 0.5s ease-out forwards;
+          transform-style: preserve-3d;
+          transition: transform 0.15s ease-out, box-shadow 0.3s ease;
+        }
+
+        /* Hover tilt effect */
+        .scratch-card-container:hover:not(.revealed-animation) {
+          transform: perspective(600px) rotateX(2deg) rotateY(-2deg) scale(1.02);
+          box-shadow:
+            0 15px 35px -10px rgba(0,0,0,0.3),
+            0 5px 15px -5px rgba(0,0,0,0.2);
+        }
+
+        /* Scratching state */
+        .scratch-card-container.is-scratching {
+          transform: perspective(600px) scale(1.01);
+          box-shadow:
+            0 20px 40px -12px rgba(0,0,0,0.35),
+            0 8px 20px -8px rgba(0,0,0,0.25);
+        }
+
+        /* Near threshold glow effect */
+        .scratch-card-container.near-threshold {
+          animation: thresholdPulse 0.8s ease-in-out infinite;
+        }
+
+        @keyframes thresholdPulse {
+          0%, 100% {
+            box-shadow:
+              0 10px 25px -5px rgba(0,0,0,0.2),
+              0 0 0 0 ${config.accentColor || config.buttonColor}00;
+          }
+          50% {
+            box-shadow:
+              0 10px 25px -5px rgba(0,0,0,0.2),
+              0 0 20px 4px ${config.accentColor || config.buttonColor}60;
+          }
+        }
+
+        /* Progress indicator */
+        .scratch-progress-indicator {
+          position: absolute;
+          bottom: 8px;
+          left: 50%;
+          transform: translateX(-50%);
+          width: 60%;
+          height: 4px;
+          background: rgba(0,0,0,0.2);
+          border-radius: 2px;
+          overflow: hidden;
+          z-index: 10;
+          opacity: 0.8;
+        }
+
+        .scratch-progress-bar {
+          height: 100%;
+          background: linear-gradient(90deg, ${config.accentColor || config.buttonColor}, #FFD700);
+          border-radius: 2px;
+          transition: width 0.1s ease-out;
+          box-shadow: 0 0 8px ${config.accentColor || config.buttonColor}80;
+        }
+
+        /* Holographic shimmer overlay animation */
+        @keyframes holoShimmer {
+          0% { background-position: -200% 0; }
+          100% { background-position: 200% 0; }
+        }
+
+        .scratch-card-canvas::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(
+            120deg,
+            transparent 30%,
+            rgba(255,255,255,0.1) 38%,
+            rgba(255,255,255,0.2) 40%,
+            rgba(255,255,255,0.1) 42%,
+            transparent 50%
+          );
+          background-size: 200% 100%;
+          animation: holoShimmer 3s linear infinite;
+          pointer-events: none;
+          z-index: 5;
+        }
+
+        /* Sparkle burst effect on reveal */
+        .scratch-sparkle-burst {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          width: 0;
+          height: 0;
+          z-index: 101;
+          pointer-events: none;
+        }
+
+        @keyframes sparkleBurst {
+          0% {
+            transform: translateX(-50%) translateY(-50%) rotate(var(--sparkle-angle)) scaleY(0);
+            opacity: 0;
+          }
+          20% {
+            opacity: 1;
+            transform: translateX(-50%) translateY(-50%) rotate(var(--sparkle-angle)) scaleY(1);
+          }
+          100% {
+            opacity: 0;
+            transform: translateX(-50%) translateY(-50%) rotate(var(--sparkle-angle)) scaleY(1.5) translateY(-40px);
+          }
+        }
+
+        .scratch-sparkle {
+          position: absolute;
+          width: 3px;
+          height: 60px;
+          background: linear-gradient(to top, transparent, ${config.accentColor || config.buttonColor}80, #FFD70080);
+          transform-origin: bottom center;
+          border-radius: 2px;
+          animation: sparkleBurst 0.8s ease-out forwards;
+          animation-delay: calc(var(--sparkle-angle) * 0.001s);
+        }
+
+        /* Star pop effects */
+        @keyframes starPop {
+          0% {
+            opacity: 0;
+            transform: scale(0) rotate(0deg);
+          }
+          50% {
+            opacity: 1;
+            transform: scale(1.3) rotate(180deg);
+          }
+          100% {
+            opacity: 0;
+            transform: scale(0.5) rotate(360deg);
+          }
+        }
+
+        .scratch-star {
+          position: absolute;
+          font-size: 24px;
+          pointer-events: none;
+          z-index: 102;
+          animation: starPop 0.8s ease-out forwards;
+        }
+
+        .scratch-star:nth-of-type(1) { animation-delay: 0.2s; }
+        .scratch-star:nth-of-type(2) { animation-delay: 0.35s; }
+        .scratch-star:nth-of-type(3) { animation-delay: 0.5s; }
+
+        /* Prize canvas glow on reveal */
+        .revealed-animation .scratch-prize-canvas {
+          animation: prizeGlow 1.5s ease-in-out infinite;
+        }
+
+        @keyframes prizeGlow {
+          0%, 100% {
+            filter: drop-shadow(0 0 5px ${config.accentColor || config.buttonColor}40);
+          }
+          50% {
+            filter: drop-shadow(0 0 15px ${config.accentColor || config.buttonColor}60)
+                    drop-shadow(0 0 30px #FFD70040);
+          }
+        }
+
+        /* 3D flip reveal effect */
+        @keyframes flipReveal {
+          0% {
+            transform: perspective(600px) rotateY(-90deg);
+            opacity: 0;
+          }
+          50% {
+            transform: perspective(600px) rotateY(10deg);
+            opacity: 1;
+          }
+          100% {
+            transform: perspective(600px) rotateY(0deg);
+            opacity: 1;
+          }
+        }
+
+        .revealed-animation .scratch-prize-canvas {
+          animation: flipReveal 0.6s ease-out forwards, prizeGlow 1.5s ease-in-out 0.6s infinite;
+        }
 
         /* Container Query: Mobile layout (<480px container width)
            Stack vertically with constrained image height. */

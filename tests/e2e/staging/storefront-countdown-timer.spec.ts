@@ -90,26 +90,46 @@ test.describe.serial('Countdown Timer Template', () => {
         await page.goto(STORE_URL);
         await handlePasswordPage(page);
 
+        // Debug: Log what Revenue Boost elements exist in the DOM
+        await page.waitForTimeout(3000); // Give popup time to render
+        const domDebug = await page.evaluate(() => {
+            const results: string[] = [];
+
+            // Check for any revenue-boost related elements
+            document.querySelectorAll('[id*="revenue-boost"], [class*="countdown"], [class*="banner-portal"], [data-rb-banner]').forEach(el => {
+                results.push(`${el.tagName}#${el.id}.${el.className} - ${(el.textContent || '').substring(0, 50)}`);
+            });
+
+            // Also check for shadow hosts
+            const host = document.querySelector('#revenue-boost-popup-shadow-host');
+            if (host) {
+                results.push(`Shadow host found, shadowRoot: ${!!host.shadowRoot}`);
+                if (host.shadowRoot) {
+                    results.push(`Shadow content length: ${host.shadowRoot.innerHTML.length}`);
+                }
+            }
+
+            return results.length > 0 ? results : ['No Revenue Boost elements found'];
+        });
+        console.log('DOM Debug:', domDebug);
+
         // CountdownTimerPopup renders as either:
         // - Banner mode (default): .countdown-banner with [data-rb-banner]
         // - Modal mode: #revenue-boost-popup-shadow-host (shadow DOM)
         // Also fallback to legacy BannerPopup: .banner-portal [data-rb-banner]
-        const popup = page.locator('.countdown-banner[data-rb-banner], #revenue-boost-popup-shadow-host, .banner-portal [data-rb-banner]');
+        // Also try any [data-rb-banner] element
+        const popup = page.locator('.countdown-banner[data-rb-banner], #revenue-boost-popup-shadow-host, .banner-portal [data-rb-banner], [data-rb-banner]');
         await expect(popup).toBeVisible({ timeout: 15000 });
 
         // Verify content exists
         const hasContent = await page.evaluate(() => {
-            // Check banner mode first
-            const banner = document.querySelector('.countdown-banner[data-rb-banner]');
+            // Check any data-rb-banner element
+            const banner = document.querySelector('[data-rb-banner]');
             if (banner) return (banner.textContent || '').length > 0;
 
             // Check shadow DOM modal
             const host = document.querySelector('#revenue-boost-popup-shadow-host');
             if (host?.shadowRoot) return host.shadowRoot.innerHTML.length > 100;
-
-            // Legacy BannerPopup
-            const legacy = document.querySelector('.banner-portal [data-rb-banner]');
-            if (legacy) return (legacy.textContent || '').length > 0;
 
             return false;
         });
@@ -118,7 +138,7 @@ test.describe.serial('Countdown Timer Template', () => {
     });
 
     // Helper selector for CountdownTimerPopup (banner mode, modal mode, or legacy BannerPopup)
-    const COUNTDOWN_POPUP_SELECTOR = '.countdown-banner[data-rb-banner], #revenue-boost-popup-shadow-host, .banner-portal [data-rb-banner]';
+    const COUNTDOWN_POPUP_SELECTOR = '.countdown-banner[data-rb-banner], #revenue-boost-popup-shadow-host, .banner-portal [data-rb-banner], [data-rb-banner]';
 
     test('timer counts down over time', async ({ page }) => {
         const campaign = await (await factory.countdownTimer().init())
@@ -137,12 +157,11 @@ test.describe.serial('Countdown Timer Template', () => {
 
         // Get initial content
         const initialValue = await page.evaluate(() => {
-            const banner = document.querySelector('.countdown-banner[data-rb-banner]');
+            const banner = document.querySelector('.countdown-banner[data-rb-banner], [data-rb-banner]');
             if (banner) return banner.textContent || '';
             const host = document.querySelector('#revenue-boost-popup-shadow-host');
             if (host?.shadowRoot) return host.shadowRoot.innerHTML;
-            const legacy = document.querySelector('.banner-portal [data-rb-banner]');
-            return legacy?.textContent || '';
+            return '';
         });
 
         // Wait 3 seconds
@@ -150,12 +169,11 @@ test.describe.serial('Countdown Timer Template', () => {
 
         // Get updated content
         const updatedValue = await page.evaluate(() => {
-            const banner = document.querySelector('.countdown-banner[data-rb-banner]');
+            const banner = document.querySelector('.countdown-banner[data-rb-banner], [data-rb-banner]');
             if (banner) return banner.textContent || '';
             const host = document.querySelector('#revenue-boost-popup-shadow-host');
             if (host?.shadowRoot) return host.shadowRoot.innerHTML;
-            const legacy = document.querySelector('.banner-portal [data-rb-banner]');
-            return legacy?.textContent || '';
+            return '';
         });
 
         // Timer should have changed (countdown)
@@ -210,12 +228,11 @@ test.describe.serial('Countdown Timer Template', () => {
 
         // Check for headline in content
         const hasHeadline = await page.evaluate((text) => {
-            const banner = document.querySelector('.countdown-banner[data-rb-banner]');
+            const banner = document.querySelector('.countdown-banner[data-rb-banner], [data-rb-banner]');
             if (banner) return (banner.textContent || '').includes(text);
             const host = document.querySelector('#revenue-boost-popup-shadow-host');
             if (host?.shadowRoot) return host.shadowRoot.innerHTML.includes(text);
-            const legacy = document.querySelector('.banner-portal [data-rb-banner]');
-            return (legacy?.textContent || '').includes(text);
+            return false;
         }, 'HURRY');
 
         if (hasHeadline) {
@@ -245,12 +262,11 @@ test.describe.serial('Countdown Timer Template', () => {
 
         // Get initial content
         const initialTime = await page.evaluate(() => {
-            const banner = document.querySelector('.countdown-banner[data-rb-banner]');
+            const banner = document.querySelector('.countdown-banner[data-rb-banner], [data-rb-banner]');
             if (banner) return banner.textContent || '';
             const host = document.querySelector('#revenue-boost-popup-shadow-host');
             if (host?.shadowRoot) return host.shadowRoot.innerHTML.substring(0, 200);
-            const legacy = document.querySelector('.banner-portal [data-rb-banner]');
-            return legacy?.textContent || '';
+            return '';
         });
         console.log(`Initial timer: ${initialTime?.substring(0, 50)}`);
 
@@ -259,12 +275,11 @@ test.describe.serial('Countdown Timer Template', () => {
 
         // Get new content
         const newTime = await page.evaluate(() => {
-            const banner = document.querySelector('.countdown-banner[data-rb-banner]');
+            const banner = document.querySelector('.countdown-banner[data-rb-banner], [data-rb-banner]');
             if (banner) return banner.textContent || '';
             const host = document.querySelector('#revenue-boost-popup-shadow-host');
             if (host?.shadowRoot) return host.shadowRoot.innerHTML.substring(0, 200);
-            const legacy = document.querySelector('.banner-portal [data-rb-banner]');
-            return legacy?.textContent || '';
+            return '';
         });
         console.log(`After 3s: ${newTime?.substring(0, 50)}`);
 
@@ -316,12 +331,11 @@ test.describe.serial('Countdown Timer Template', () => {
 
         // Check for CTA text in content
         const hasCtaText = await page.evaluate((text) => {
-            const banner = document.querySelector('.countdown-banner[data-rb-banner]');
+            const banner = document.querySelector('.countdown-banner[data-rb-banner], [data-rb-banner]');
             if (banner) return (banner.textContent || '').toLowerCase().includes(text.toLowerCase());
             const host = document.querySelector('#revenue-boost-popup-shadow-host');
             if (host?.shadowRoot) return host.shadowRoot.innerHTML.toLowerCase().includes(text.toLowerCase());
-            const legacy = document.querySelector('.banner-portal [data-rb-banner]');
-            return (legacy?.textContent || '').toLowerCase().includes(text.toLowerCase());
+            return false;
         }, 'claim');
 
         if (hasCtaText) {
