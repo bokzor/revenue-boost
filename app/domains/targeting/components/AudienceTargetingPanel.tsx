@@ -3,7 +3,9 @@
  *
  * Shopify-first audience model:
  * - Shopify customer segments define customer-level "who" for known customers.
- * - Session rules define anonymous/session-only audience logic on StorefrontContext.
+ *
+ * Note: Cart-based targeting is now handled by the cart_value trigger in
+ * Enhanced Triggers (client-side) via polling /cart.js.
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -18,25 +20,12 @@ import {
   Button,
 } from "@shopify/polaris";
 import type { AudienceTargetingConfig } from "~/domains/campaigns/types/campaign";
-import {
-  audienceConditionsToUi,
-  uiConditionsToAudience,
-} from "~/domains/targeting/utils/condition-adapter";
-import type { TriggerCondition, LogicOperator } from "./types";
-import { ConditionBuilder } from "./ConditionBuilder";
 import { ShopifySegmentSelector, type ShopifySegmentOption } from "./ShopifySegmentSelector";
 
 const computePreviewConfigKey = (config: AudienceTargetingConfig) => {
-  const sessionRules = config.sessionRules ?? {
-    enabled: false,
-    conditions: [],
-    logicOperator: "AND" as LogicOperator,
-  };
-
   return JSON.stringify({
     enabled: config.enabled,
     shopifySegmentIds: config.shopifySegmentIds ?? [],
-    sessionRules,
   });
 };
 
@@ -64,18 +53,10 @@ export function AudienceTargetingPanel({
 
   // Detect if campaign has existing advanced targeting but it's disabled by plan (e.g., after downgrade)
   const hasExistingAdvancedTargeting =
-    config.enabled ||
-    (config.shopifySegmentIds?.length ?? 0) > 0 ||
-    config.sessionRules?.enabled;
+    config.enabled || (config.shopifySegmentIds?.length ?? 0) > 0;
 
-  // ---------------------------------------------------------------------------
-  // Session Rules (anonymous / session-level audience logic)
-  // ---------------------------------------------------------------------------
-
-  const sessionUi = audienceConditionsToUi(config.sessionRules?.conditions ?? []);
-  const hasSessionRules = (config.sessionRules?.enabled ?? false) && sessionUi.length > 0;
   const hasShopifySegments = (config.shopifySegmentIds?.length ?? 0) > 0;
-  const hasTargeting = hasShopifySegments || hasSessionRules;
+  const hasTargeting = hasShopifySegments;
 
   const [shopifySegments, setShopifySegments] = useState<ShopifySegmentOption[]>([]);
   const [previewLoading, setPreviewLoading] = useState(false);
@@ -155,78 +136,14 @@ export function AudienceTargetingPanel({
     refreshPreview,
   ]);
 
-  const updateSessionRules = useCallback(
-    (
-      updates: Partial<{
-        enabled: boolean;
-        conditions: TriggerCondition[];
-        logicOperator: LogicOperator;
-      }>
-    ) => {
-      const nextUi: {
-        enabled: boolean;
-        conditions: TriggerCondition[];
-        logicOperator: LogicOperator;
-      } = {
-        enabled: config.sessionRules?.enabled ?? false,
-        conditions: sessionUi,
-        logicOperator: (config.sessionRules?.logicOperator as LogicOperator) ?? "AND",
-        ...updates,
-      };
-
-      updateConfig({
-        sessionRules: {
-          enabled: nextUi.enabled,
-          conditions: uiConditionsToAudience(nextUi.conditions),
-          logicOperator: nextUi.logicOperator,
-        },
-      });
-    },
-    [config.sessionRules?.enabled, config.sessionRules?.logicOperator, sessionUi, updateConfig]
-  );
-
-  const handleAddSessionCondition = useCallback(() => {
-    const newCondition: TriggerCondition = {
-      id: `session_${Date.now()}`,
-      type: "cart-value",
-      operator: "greater-than",
-      value: 0,
-    };
-
-    const conditions = sessionUi || [];
-    updateSessionRules({ conditions: [...conditions, newCondition], enabled: true });
-  }, [sessionUi, updateSessionRules]);
-
-  const handleUpdateSessionCondition = useCallback(
-    (id: string, updates: Partial<TriggerCondition>) => {
-      const conditions = sessionUi || [];
-      updateSessionRules({
-        conditions: conditions.map((c: TriggerCondition) =>
-          c.id === id ? { ...c, ...updates } : c
-        ),
-      });
-    },
-    [sessionUi, updateSessionRules]
-  );
-
-  const handleRemoveSessionCondition = useCallback(
-    (id: string) => {
-      const conditions = sessionUi || [];
-      updateSessionRules({
-        conditions: conditions.filter((c: TriggerCondition) => c.id !== id),
-      });
-    },
-    [sessionUi, updateSessionRules]
-  );
-
   return (
     <BlockStack gap="400">
       {/* Upsell Banner when advanced targeting is disabled by plan */}
       {disabled && (
         <Banner tone="info">
           <Text as="p" variant="bodySm">
-            Audience targeting (Shopify segments and session rules) is not available on your current
-            plan. Upgrade to precisely control who sees this campaign.
+            Audience targeting (Shopify segments) is not available on your current plan. Upgrade
+            to precisely control who sees this campaign.
           </Text>
         </Banner>
       )}
@@ -249,15 +166,15 @@ export function AudienceTargetingPanel({
             checked={config.enabled}
             onChange={(checked) => updateConfig({ enabled: checked })}
             disabled={disabled}
-            helpText="Only show this campaign to a subset of visitors based on segments and session rules."
+            helpText="Only show this campaign to visitors who match your Shopify customer segments."
             data-test-id="audience-targeting-enabled-checkbox"
           />
 
           {config.enabled && !disabled && (
             <Banner tone="info">
               <Text as="p" variant="bodySm">
-                Your campaign will only show to visitors who match your Shopify customer segments
-                and/or the session rules configured below.
+                Your campaign will only show to visitors who match your selected Shopify customer
+                segments. Use Cart Value Threshold trigger for cart-based targeting.
               </Text>
             </Banner>
           )}
@@ -285,61 +202,6 @@ export function AudienceTargetingPanel({
         </Card>
       )}
 
-      {/* Session Rules (only show if enabled) */}
-      {config.enabled && (
-        <Card>
-          <BlockStack gap="400">
-            <InlineStack align="space-between" blockAlign="center">
-              <BlockStack gap="100">
-                <Text as="h3" variant="headingSm">
-                  Session Rules (anonymous / in-session)
-                </Text>
-                <Text as="p" variant="bodySm" tone="subdued">
-                  Define rules based on current session context like cart value or page type. These
-                  rules apply even when the visitor is not yet a Shopify customer.
-                </Text>
-              </BlockStack>
-
-              <Checkbox
-                label="Enable session rules"
-                checked={config.sessionRules?.enabled ?? false}
-                onChange={(checked) => updateSessionRules({ enabled: checked })}
-                disabled={disabled}
-              />
-            </InlineStack>
-
-            {config.sessionRules?.enabled && (
-              <BlockStack gap="400">
-                {sessionUi.length > 0 ? (
-                  <ConditionBuilder
-                    conditions={sessionUi}
-                    logicOperator={(config.sessionRules?.logicOperator as LogicOperator) ?? "AND"}
-                    onUpdateCondition={handleUpdateSessionCondition}
-                    onRemoveCondition={handleRemoveSessionCondition}
-                    onLogicOperatorChange={(operator) =>
-                      updateSessionRules({ logicOperator: operator })
-                    }
-                  />
-                ) : (
-                  <Banner tone="info">
-                    <Text as="p" variant="bodySm">
-                      No session rules yet. Add a condition to start narrowing your audience based
-                      on in-session behavior.
-                    </Text>
-                  </Banner>
-                )}
-
-                <Box>
-                  <button type="button" onClick={handleAddSessionCondition} disabled={disabled}>
-                    Add session condition
-                  </button>
-                </Box>
-              </BlockStack>
-            )}
-          </BlockStack>
-        </Card>
-      )}
-
       {/* Summary */}
       {config.enabled && hasTargeting && (
         <Card>
@@ -357,18 +219,6 @@ export function AudienceTargetingPanel({
                   {config.shopifySegmentIds?.length ?? 0} selected
                 </Text>
               </InlineStack>
-
-              {hasSessionRules && (
-                <InlineStack gap="200" blockAlign="center">
-                  <Text as="span" variant="bodySm" fontWeight="semibold">
-                    Session rules:
-                  </Text>
-                  <Text as="span" variant="bodySm">
-                    {sessionUi.length} condition(s) with{" "}
-                    {(config.sessionRules?.logicOperator as LogicOperator) ?? "AND"} logic
-                  </Text>
-                </InlineStack>
-              )}
             </BlockStack>
 
             <Box paddingBlockStart="200">

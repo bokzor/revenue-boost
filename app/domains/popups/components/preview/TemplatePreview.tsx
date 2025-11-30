@@ -465,7 +465,7 @@ const TemplatePreviewComponent = forwardRef<TemplatePreviewRef, TemplatePreviewP
         maxNotificationsPerSession: 0,
       } as SocialProofConfig;
 
-      const previewNotifications = buildSocialProofPreviewNotifications(socialProofConfig);
+      const previewNotifications = buildSocialProofPreviewNotifications(socialProofConfig as unknown as Record<string, unknown>);
 
       console.log("[TemplatePreview][SocialProof] Rendering social proof preview", {
         templateType,
@@ -503,7 +503,7 @@ const TemplatePreviewComponent = forwardRef<TemplatePreviewRef, TemplatePreviewP
 );
 
 function buildSocialProofPreviewNotifications(
-  config: Record<string, any>
+  config: Record<string, unknown>
 ): PreviewSocialProofNotification[] {
   const notifications: PreviewSocialProofNotification[] = [];
   const now = new Date();
@@ -628,20 +628,22 @@ function buildSocialProofPreviewNotifications(
 }
 
 // Helper function for deep comparison with stability
-function deepEqual(obj1: any, obj2: any): boolean {
+function deepEqual(obj1: unknown, obj2: unknown): boolean {
   if (obj1 === obj2) return true;
   if (!obj1 || !obj2) return obj1 === obj2;
   if (typeof obj1 !== typeof obj2) return false;
   if (typeof obj1 !== "object") return obj1 === obj2;
 
-  const keys1 = Object.keys(obj1);
-  const keys2 = Object.keys(obj2);
+  const o1 = obj1 as Record<string, unknown>;
+  const o2 = obj2 as Record<string, unknown>;
+  const keys1 = Object.keys(o1);
+  const keys2 = Object.keys(o2);
 
   if (keys1.length !== keys2.length) return false;
 
   for (const key of keys1) {
     if (!keys2.includes(key)) return false;
-    if (!deepEqual(obj1[key], obj2[key])) return false;
+    if (!deepEqual(o1[key], o2[key])) return false;
   }
 
   return true;

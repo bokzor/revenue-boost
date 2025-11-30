@@ -5,7 +5,7 @@
  * Displays a list of presets with options to create, edit, and delete.
  */
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import {
   Card,
   BlockStack,
@@ -41,7 +41,8 @@ export function ThemePresetsSettings({ settings, onChange }: ThemePresetsSetting
   const [deleteConfirmPresetId, setDeleteConfirmPresetId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
-  const presets = settings.customThemePresets || [];
+  // Memoize presets to avoid useCallback dependency warnings
+  const presets = useMemo(() => settings.customThemePresets || [], [settings.customThemePresets]);
 
   // Handlers
   const handleCreateNew = useCallback(() => {
@@ -243,7 +244,7 @@ export function ThemePresetsSettings({ settings, onChange }: ThemePresetsSetting
         <Modal.Section>
           <Text as="p">
             Are you sure you want to delete this theme preset? This action cannot be undone.
-            Campaigns using this preset will keep their current colors but won't be linked
+            Campaigns using this preset will keep their current colors but won&apos;t be linked
             to the preset anymore.
           </Text>
         </Modal.Section>

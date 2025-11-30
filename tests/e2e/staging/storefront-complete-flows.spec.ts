@@ -16,7 +16,9 @@ import {
     verifyFlashSaleContent,
     fillEmailInShadowDOM,
     submitFormInShadowDOM,
-    waitForFormSuccess
+    waitForFormSuccess,
+    cleanupAllE2ECampaigns,
+    MAX_TEST_PRIORITY
 } from './helpers/test-helpers';
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env.staging.env'), override: true });
@@ -26,11 +28,14 @@ const TEST_PREFIX = getTestPrefix('storefront-complete-flows.spec.ts');
 /**
  * Complete User Flows E2E Tests
  *
- * Tests ACTUAL end-to-end flows:
- * - Campaign appears on storefront
+ * Tests ACTUAL end-to-end flows against REAL APIs:
+ * - Campaign appears on storefront (deployed extension code)
  * - Template-specific content renders
- * - Form submission works
+ * - Form submission works (real lead submission API)
  * - Success state is achieved
+ *
+ * NOTE: These tests run against deployed extension code (no bundle mocking)
+ * and real API endpoints (no API mocking).
  */
 
 test.describe.serial('Complete User Flows', () => {
@@ -69,44 +74,21 @@ test.describe.serial('Complete User Flows', () => {
     });
 
     test.beforeEach(async ({ page }) => {
-        await prisma.campaign.deleteMany({
-            where: { name: { startsWith: TEST_PREFIX } }
-        });
+        // Clean up ALL E2E campaigns to avoid priority conflicts
+        await cleanupAllE2ECampaigns(prisma);
 
         await mockChallengeToken(page);
         await page.context().clearCookies();
 
-        // Intercept bundle requests
-        const fs = await import('fs');
-        const bundles = ['newsletter', 'spin-to-win', 'scratch-card', 'flash-sale'];
-        for (const bundle of bundles) {
-            await page.route(`**/${bundle}.bundle.js*`, async route => {
-                const bundlePath = path.join(process.cwd(), `extensions/storefront-popup/assets/${bundle}.bundle.js`);
-                try {
-                    const content = fs.readFileSync(bundlePath);
-                    await route.fulfill({ status: 200, contentType: 'application/javascript', body: content });
-                } catch {
-                    await route.continue();
-                }
-            });
-        }
+        // No bundle mocking - tests use deployed extension code
     });
 
     test('Newsletter: complete signup flow', async ({ page }) => {
-        const discountCode = 'FLOW-NL-10';
-
-        // Mock lead submission
-        await page.route('**/apps/revenue-boost/api/leads/submit*', async route => {
-            await route.fulfill({
-                status: 200,
-                contentType: 'application/json',
-                body: JSON.stringify({ success: true, discountCode })
-            });
-        });
+        // No lead submission mocking - test against real API
 
         const campaign = await (await factory.newsletter().init())
             .withName('E2E-Newsletter-Complete')
-            .withPriority(9201)
+            .withPriority(MAX_TEST_PRIORITY)
             .create();
         console.log(`✅ Campaign created: ${campaign.id}`);
 
@@ -134,19 +116,16 @@ test.describe.serial('Complete User Flows', () => {
         await submitFormInShadowDOM(page);
         console.log('✅ Form submitted');
 
-        // Wait for success
+        // Wait for success - hard assertion
         const success = await waitForFormSuccess(page, 10000);
-        if (success) {
-            console.log('✅ COMPLETE: Newsletter signup flow successful!');
-        } else {
-            console.log('⚠️ Success state not detected - may need manual verification');
-        }
+        expect(success).toBe(true);
+        console.log('✅ COMPLETE: Newsletter signup flow successful!');
     });
 
     test('Spin-to-Win: complete flow', async ({ page }) => {
         const campaign = await (await factory.spinToWin().init())
             .withName('E2E-SpinToWin-Complete')
-            .withPriority(9202)
+            .withPriority(MAX_TEST_PRIORITY)
             .create();
         console.log(`✅ Campaign created: ${campaign.id}`);
 
@@ -159,12 +138,10 @@ test.describe.serial('Complete User Flows', () => {
         await expect(popup).toBeVisible({ timeout: 15000 });
         console.log('✅ Spin-to-Win popup appeared');
 
-        // Verify wheel content
+        // Verify wheel content - hard assertion
         const verification = await verifySpinToWinContent(page, { hasSpinButton: true });
-
-        if (verification.valid) {
-            console.log('✅ Spin button verified');
-        }
+        expect(verification.valid).toBe(true);
+        console.log('✅ Spin button verified');
 
         // Check for wheel canvas or wheel-related content
         const hasWheel = await page.evaluate(() => {
@@ -174,17 +151,15 @@ test.describe.serial('Complete User Flows', () => {
                    host.shadowRoot.innerHTML.toLowerCase().includes('wheel');
         });
 
-        if (hasWheel) {
-            console.log('✅ Wheel content verified');
-        }
-
+        expect(hasWheel).toBe(true);
+        console.log('✅ Wheel content verified');
         console.log('✅ COMPLETE: Spin-to-Win popup rendered with wheel');
     });
 
     test('Scratch Card: complete flow', async ({ page }) => {
         const campaign = await (await factory.scratchCard().init())
             .withName('E2E-ScratchCard-Complete')
-            .withPriority(9203)
+            .withPriority(MAX_TEST_PRIORITY)
             .create();
         console.log(`✅ Campaign created: ${campaign.id}`);
 
@@ -197,32 +172,23 @@ test.describe.serial('Complete User Flows', () => {
         await expect(popup).toBeVisible({ timeout: 15000 });
         console.log('✅ Scratch Card popup appeared');
 
-        // Verify scratch card content
-        const verification = await verifyScratchCardContent(page, { hasCanvas: true });
+        // Verify scratch card content - hard assertion
+        const hasScratchContent = await page.evaluate(() => {
+            const host = document.querySelector('#revenue-boost-popup-shadow-host');
+            if (!host?.shadowRoot) return false;
+            const html = host.shadowRoot.innerHTML.toLowerCase();
+            return html.includes('scratch') || !!host.shadowRoot.querySelector('canvas');
+        });
 
-        if (verification.valid) {
-            console.log('✅ Scratch canvas verified');
-        } else {
-            // Fallback check for scratch-related content
-            const hasScratchContent = await page.evaluate(() => {
-                const host = document.querySelector('#revenue-boost-popup-shadow-host');
-                if (!host?.shadowRoot) return false;
-                const html = host.shadowRoot.innerHTML.toLowerCase();
-                return html.includes('scratch') || !!host.shadowRoot.querySelector('canvas');
-            });
-
-            if (hasScratchContent) {
-                console.log('✅ Scratch content detected');
-            }
-        }
-
+        expect(hasScratchContent).toBe(true);
+        console.log('✅ Scratch content verified');
         console.log('✅ COMPLETE: Scratch Card popup rendered');
     });
 
     test('Flash Sale: complete flow', async ({ page }) => {
         const campaign = await (await factory.flashSale().init())
             .withName('E2E-FlashSale-Complete')
-            .withPriority(9204)
+            .withPriority(MAX_TEST_PRIORITY)
             .withDiscountPercentage(20)
             .withUrgencyMessage('Limited time offer!')
             .create();
@@ -237,16 +203,14 @@ test.describe.serial('Complete User Flows', () => {
         await expect(popup).toBeVisible({ timeout: 15000 });
         console.log('✅ Flash Sale popup appeared');
 
-        // Verify flash sale content
+        // Verify flash sale content - hard assertion
         const verification = await verifyFlashSaleContent(page, {
             hasCountdown: true
         });
+        expect(verification.valid).toBe(true);
+        console.log('✅ Countdown timer verified');
 
-        if (verification.valid) {
-            console.log('✅ Countdown timer verified');
-        }
-
-        // Check for discount content
+        // Check for discount content - hard assertion
         const hasDiscountContent = await page.evaluate(() => {
             const host = document.querySelector('#revenue-boost-popup-shadow-host');
             if (!host?.shadowRoot) return false;
@@ -254,10 +218,8 @@ test.describe.serial('Complete User Flows', () => {
             return html.includes('20%') || html.toLowerCase().includes('off');
         });
 
-        if (hasDiscountContent) {
-            console.log('✅ Discount content verified');
-        }
-
+        expect(hasDiscountContent).toBe(true);
+        console.log('✅ Discount content verified');
         console.log('✅ COMPLETE: Flash Sale popup rendered with urgency elements');
     });
 
@@ -283,9 +245,7 @@ test.describe.serial('Complete User Flows', () => {
         const popup = page.locator('#revenue-boost-popup-shadow-host');
         await expect(popup).toBeVisible({ timeout: 15000 });
 
-        // Verify it's the spin-to-win (high priority)
-        const verification = await verifySpinToWinContent(page, {});
-
+        // Verify it's the spin-to-win (high priority) - hard assertion
         const isSpinToWin = await page.evaluate(() => {
             const host = document.querySelector('#revenue-boost-popup-shadow-host');
             if (!host?.shadowRoot) return false;
@@ -294,11 +254,8 @@ test.describe.serial('Complete User Flows', () => {
                    !!host.shadowRoot.querySelector('canvas');
         });
 
-        if (isSpinToWin) {
-            console.log('✅ COMPLETE: High priority Spin-to-Win campaign displayed over Newsletter');
-        } else {
-            console.log('⚠️ Priority ordering may need verification');
-        }
+        expect(isSpinToWin).toBe(true);
+        console.log('✅ COMPLETE: High priority Spin-to-Win campaign displayed over Newsletter');
     });
 });
 

@@ -106,7 +106,7 @@ export const PopupButton: React.FC<PopupButtonProps> = ({
         data-testid={testId}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
-        {...(rest as any)}
+        {...(rest as React.AnchorHTMLAttributes<HTMLAnchorElement>)}
       >
         {children}
       </a>

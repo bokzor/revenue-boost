@@ -1,16 +1,27 @@
 import { test, expect } from '@playwright/test';
 import { PrismaClient } from '@prisma/client';
-import fs from 'fs';
 import path from 'path';
 import * as dotenv from 'dotenv';
 import { CampaignFactory } from './factories/campaign-factory';
-import { STORE_URL, API_PROPAGATION_DELAY_MS, handlePasswordPage, mockChallengeToken, waitForAnyPopup, getTestPrefix } from './helpers/test-helpers';
+import { STORE_URL, API_PROPAGATION_DELAY_MS, handlePasswordPage, mockChallengeToken, waitForAnyPopup, getTestPrefix, cleanupAllE2ECampaigns, MAX_TEST_PRIORITY } from './helpers/test-helpers';
 
 // Load staging environment variables
 dotenv.config({ path: path.resolve(process.cwd(), '.env.staging.env'), override: true });
 
 const STORE_DOMAIN = 'revenue-boost-staging.myshopify.com';
 const TEST_PREFIX = getTestPrefix('storefront-targeting.spec.ts');
+
+/**
+ * Targeting Combinations E2E Tests
+ *
+ * Tests ACTUAL targeting behavior against deployed extension code:
+ * - Frequency capping
+ * - Device targeting
+ * - Page targeting
+ *
+ * NOTE: No bundle mocking - tests use deployed extension code.
+ * No API mocking - tests use real API endpoints.
+ */
 
 test.describe.serial('Targeting Combinations', () => {
     let prisma: PrismaClient;
@@ -47,48 +58,14 @@ test.describe.serial('Targeting Combinations', () => {
     });
 
     test.beforeEach(async ({ page }) => {
-        // Clean up campaigns from previous runs of THIS test file only
-        await prisma.campaign.deleteMany({
-            where: {
-                name: { startsWith: TEST_PREFIX }
-            }
-        });
+        // Clean up ALL E2E campaigns to avoid priority conflicts
+        await cleanupAllE2ECampaigns(prisma);
 
-        // Mock API calls to prevent actual backend processing where not needed
-        // This ensures we don't spam the backend with leads/discounts during targeting tests
-        await page.route(/\/.*\/api\/leads\/submit.*/, async route => {
-            const json = { success: true, leadId: 'mock-lead-id', discountCode: 'MOCK-DISCOUNT-123' };
-            await route.fulfill({ json });
-        });
-
-        await page.route(/\/.*\/api\/discounts\/issue.*/, async route => {
-            const json = { success: true, discountCode: 'MOCK-DISCOUNT-123' };
-            await route.fulfill({ json });
-        });
+        // No API mocking - tests use real API endpoints
+        // No bundle mocking - tests use deployed extension code
 
         // Mock challenge token to avoid rate limits
         await mockChallengeToken(page);
-
-        // Intercept bundle requests to serve local files
-        await page.route('**/newsletter.bundle.js*', async route => {
-            const bundlePath = path.join(process.cwd(), 'extensions/storefront-popup/assets/newsletter.bundle.js');
-            const content = fs.readFileSync(bundlePath, 'utf8');
-            await route.fulfill({
-                status: 200,
-                contentType: 'application/javascript',
-                body: content
-            });
-        });
-
-        await page.route('**/spin-to-win.bundle.js*', async route => {
-            const bundlePath = path.join(process.cwd(), 'extensions/storefront-popup/assets/spin-to-win.bundle.js');
-            const content = fs.readFileSync(bundlePath, 'utf8');
-            await route.fulfill({
-                status: 200,
-                contentType: 'application/javascript',
-                body: content
-            });
-        });
 
         page.on('console', msg => {
             console.log(`[BROWSER] ${msg.type()}: ${msg.text()}`);
@@ -96,18 +73,17 @@ test.describe.serial('Targeting Combinations', () => {
     });
 
     test('frequency capping limits popup display in browser', async ({ page }) => {
-        // Create campaign with max 1 impression per session
+        // Create campaign with max 1 impression per session and max priority
         const builder = factory.newsletter();
         await builder.init();
-        const priority = 99800 + Math.floor(Math.random() * 100);
         const campaign = await builder
             .withName('FreqCap-Once')
             .withHeadline('One Time Offer')
             .withFrequencyCapping(1, 100, 0)
-            .withPriority(priority)
+            .withPriority(MAX_TEST_PRIORITY)
             .create();
 
-        console.log(`Created campaign: ${campaign.name} with priority ${priority}`);
+        console.log(`Created campaign: ${campaign.name} with priority ${MAX_TEST_PRIORITY}`);
         await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
 
         // First visit - popup should appear
@@ -163,15 +139,14 @@ test.describe.serial('Targeting Combinations', () => {
     test('new visitor targeting shows popup only to first-time visitors', async ({ page, context }) => {
         const builder = factory.newsletter();
         await builder.init();
-        const priority = 99850 + Math.floor(Math.random() * 100);
         const campaign = await builder
             .withName('NewVisitor-Only')
             .withHeadline('Welcome New Visitor!')
             .withSessionTargeting('new_visitor')
-            .withPriority(priority)
+            .withPriority(MAX_TEST_PRIORITY)
             .create();
 
-        console.log(`Created campaign: ${campaign.name} with priority ${priority}`);
+        console.log(`Created campaign: ${campaign.name} with priority ${MAX_TEST_PRIORITY}`);
         await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
 
         // Clear cookies to simulate new visitor (localStorage clear must happen after navigation)
@@ -210,17 +185,16 @@ test.describe.serial('Targeting Combinations', () => {
     });
 
     test('shows only on specific pages', async ({ page }) => {
-        // Target collections page only with very high priority
+        // Target collections page only with max priority
         const builder = factory.newsletter();
         await builder.init();
-        const priority = 9500 + Math.floor(Math.random() * 100);
         const campaign = await builder
             .withName('Target-Collection-Page')
             .withPageTargeting(['*/collections/*'])
-            .withPriority(priority)
+            .withPriority(MAX_TEST_PRIORITY)
             .create();
 
-        console.log(`Created campaign: ${campaign.name} with priority ${priority}`);
+        console.log(`Created campaign: ${campaign.name} with priority ${MAX_TEST_PRIORITY}`);
 
         // Wait for campaign to propagate
         await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
@@ -237,14 +211,13 @@ test.describe.serial('Targeting Combinations', () => {
     test('targets mobile devices only', async ({ page }) => {
         const builder = factory.newsletter();
         await builder.init();
-        const priority = 9600 + Math.floor(Math.random() * 100);
         const campaign = await builder
             .withName('Target-Mobile-Only')
             .withDeviceTargeting(['mobile'])
-            .withPriority(priority)
+            .withPriority(MAX_TEST_PRIORITY)
             .create();
 
-        console.log(`Created campaign: ${campaign.name} with priority ${priority}`);
+        console.log(`Created campaign: ${campaign.name} with priority ${MAX_TEST_PRIORITY}`);
 
         // Wait for campaign to propagate
         await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
@@ -265,14 +238,13 @@ test.describe.serial('Targeting Combinations', () => {
     test('targets desktop devices only', async ({ page }) => {
         const builder = factory.newsletter();
         await builder.init();
-        const priority = 9700 + Math.floor(Math.random() * 100);
         const campaign = await builder
             .withName('Target-Desktop-Only')
             .withDeviceTargeting(['desktop'])
-            .withPriority(priority)
+            .withPriority(MAX_TEST_PRIORITY)
             .create();
 
-        console.log(`Created campaign: ${campaign.name} with priority ${priority}`);
+        console.log(`Created campaign: ${campaign.name} with priority ${MAX_TEST_PRIORITY}`);
 
         // Wait for campaign to propagate
         await page.waitForTimeout(API_PROPAGATION_DELAY_MS);

@@ -169,14 +169,11 @@ export function validateAudienceStep(data: CampaignFormData): ValidationResult {
     const hasShopifySegments =
       !!data.audienceTargeting.shopifySegmentIds &&
       data.audienceTargeting.shopifySegmentIds.length > 0;
-    const hasSessionRules =
-      !!data.audienceTargeting.sessionRules?.enabled &&
-      (data.audienceTargeting.sessionRules?.conditions?.length ?? 0) > 0;
 
-    if (!hasShopifySegments && !hasSessionRules) {
+    if (!hasShopifySegments) {
       result.warnings.push({
         field: "audienceTargeting",
-        message: "Add Shopify segments or session rules for better targeting",
+        message: "Add Shopify segments for better targeting",
       });
     }
   }

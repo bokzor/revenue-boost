@@ -141,6 +141,7 @@ export class ApiClient {
           productTags?: string[];
           collectionId?: string;
           collectionHandle?: string;
+          countryCode?: string;
         };
       };
       const w = window as unknown as W;
@@ -156,6 +157,9 @@ export class ApiClient {
 
       if (cfg.collectionId) context.collectionId = String(cfg.collectionId);
       if (cfg.collectionHandle) context.collectionHandle = String(cfg.collectionHandle);
+
+      // Geographic targeting: country code from Shopify Liquid
+      if (cfg.countryCode) context.countryCode = String(cfg.countryCode);
     } catch {
       // Ignore errors reading REVENUE_BOOST_CONFIG
     }
@@ -220,23 +224,17 @@ export class ApiClient {
       // Ignore storage errors (e.g. disabled cookies)
     }
 
-    // Add cart info if available
-    type ShopifyGlobal = { Shopify?: { cart?: { total_price: number; item_count: number } } };
-    const w = window as unknown as ShopifyGlobal;
-    if (typeof w.Shopify !== "undefined") {
-      const shopify = w.Shopify!;
-      if (shopify.cart) {
-        context.cartValue = String(shopify.cart.total_price / 100);
-        context.cartItemCount = String(shopify.cart.item_count);
-      }
-    }
+    // Note: Cart-based targeting (cartValue, cartItemCount) is handled CLIENT-SIDE only
+    // via the cart_value trigger in Enhanced Triggers, which polls /cart.js.
+    // We no longer send cart data to the server as it's not used for filtering.
 
     return context;
   }
 
   /**
-   * Ensure Shopify.cart snapshot is populated so cart-based rules work
+   * Ensure Shopify.cart snapshot is populated so cart-based triggers work
    * even on themes/pages that do not expose window.Shopify.cart.
+   * This is used by the cart_value trigger in TriggerManager.
    */
   private async ensureCartSnapshot(): Promise<void> {
     try {

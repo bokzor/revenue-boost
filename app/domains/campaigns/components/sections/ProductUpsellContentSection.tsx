@@ -62,8 +62,10 @@ export function ProductUpsellContentSection({
       ? (content.productSelectionMethod as ProductUpsellContent["productSelectionMethod"])
       : "ai";
 
+  // Valid layout options
+  const validLayouts = ["grid", "card", "carousel", "featured", "stack"] as const;
   const layout: ProductUpsellContent["layout"] =
-    content.layout === "grid" || content.layout === "card"
+    validLayouts.includes(content.layout as typeof validLayouts[number])
       ? (content.layout as ProductUpsellContent["layout"])
       : "grid";
 
@@ -84,8 +86,7 @@ export function ProductUpsellContentSection({
   useEffect(() => {
     if (
       content.layout !== layout &&
-      content.layout !== "grid" &&
-      content.layout !== "card"
+      !validLayouts.includes(content.layout as typeof validLayouts[number])
     ) {
       updateField("layout", layout);
     }
@@ -314,9 +315,20 @@ export function ProductUpsellContentSection({
                     name="content.layout"
                     options={[
                       { label: "Grid", value: "grid" },
-                      { label: "Card", value: "card" },
+                      { label: "List", value: "card" },
+                      { label: "Carousel", value: "carousel" },
+                      { label: "Featured + Grid", value: "featured" },
+                      { label: "Stack", value: "stack" },
                     ]}
-                    helpText="Choose how upsell products are laid out."
+                    helpText={
+                      layout === "carousel"
+                        ? "One product at a time with swipe navigation - great for mobile"
+                        : layout === "featured"
+                          ? "First product highlighted as hero, others in smaller grid"
+                          : layout === "stack"
+                            ? "Overlapping cards - interactive and fun"
+                            : "Choose how upsell products are laid out"
+                    }
                     value={layout}
                     onChange={(value) =>
                       updateField("layout", value as ProductUpsellContent["layout"])

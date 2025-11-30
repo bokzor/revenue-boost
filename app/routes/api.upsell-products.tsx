@@ -67,7 +67,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
       return data({ error: "Campaign not found" }, { status: 404 });
     }
 
-    const contentConfig = (campaign as any).contentConfig || {};
+    const contentConfig = (campaign as { contentConfig?: Record<string, unknown> }).contentConfig || {};
     const method = contentConfig.productSelectionMethod || "ai";
 
     // Manual: expect selectedProducts to contain Shopify product IDs / GIDs
@@ -88,7 +88,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
     // Collection mode: resolve products from the configured collection
     if (method === "collection") {
-      const collectionKey: string | undefined = contentConfig.selectedCollection;
+      const collectionKey = contentConfig.selectedCollection as string | undefined;
 
       if (!collectionKey) {
         return data({ products: [] } satisfies UpsellProductsResponse);

@@ -232,7 +232,10 @@ export const BaseContentConfigSchema = z.object({
   subheadline: z.string().optional(),
   buttonText: z.string().min(1, "Button text is required"),
   dismissLabel: z.string().optional(),
-  successMessage: z.string().min(1, "Success message is required"),
+  // Made optional with default - many templates don't show this field in the UI
+  // but still need it for validation. Templates that use it (Newsletter, Flash Sale)
+  // can override this in their forms.
+  successMessage: z.string().default("Thank you!"),
   failureMessage: z.string().optional(),
   ctaText: z.string().optional(), // Call-to-action text (alternative to buttonText)
 });
@@ -524,7 +527,15 @@ export const ProductUpsellContentSchema = BaseContentConfigSchema.extend({
   selectedProducts: z.array(z.string()).optional(),
   selectedCollection: z.string().optional(),
   maxProducts: z.number().int().min(1).max(12).default(3),
-  layout: z.enum(["grid", "card"]).default("grid"),
+  /**
+   * Layout options:
+   * - grid: Traditional grid layout (default)
+   * - card: Horizontal list items
+   * - carousel: One product at a time with peek of next/prev - great for mobile
+   * - featured: Hero product prominently displayed + smaller grid of others
+   * - stack: Overlapping cards like a deck - interactive and fun
+   */
+  layout: z.enum(["grid", "card", "carousel", "featured", "stack"]).default("grid"),
   columns: z.number().int().min(1).max(4).default(2),
   showPrices: z.boolean().default(true),
   showCompareAtPrice: z.boolean().default(true),
@@ -983,35 +994,14 @@ export const EnhancedTriggersConfigSchema = z.object({
 /**
  * Audience Targeting Configuration Schema
  *
- * Shopify-first: customer-level audiences are defined via Shopify customer segments,
- * while sessionRules cover anonymous/session-only storefront context.
+ * Shopify-first: customer-level audiences are defined via Shopify customer segments.
+ * Cart-based targeting is now handled by the cart_value trigger in Enhanced Triggers.
  */
 export const AudienceTargetingConfigSchema = z.object({
   enabled: z.boolean().default(false),
 
   // Shopify customer segments (primary "who" for known customers)
   shopifySegmentIds: z.array(z.string()).default([]),
-
-  // Session-level / anonymous rules evaluated against StorefrontContext
-  sessionRules: z
-    .object({
-      enabled: z.boolean().default(false),
-      conditions: z
-        .array(
-          z.object({
-            field: z.string(), // e.g. "cartValue", "visitCount", "pageType"
-            operator: z.enum(["eq", "ne", "gt", "gte", "lt", "lte", "in", "nin"]),
-            value: z.union([z.string(), z.number(), z.boolean(), z.array(z.string())]),
-          })
-        )
-        .default([]),
-      logicOperator: z.enum(["AND", "OR"]).default("AND"),
-    })
-    .default({
-      enabled: false,
-      conditions: [],
-      logicOperator: "AND",
-    }),
 });
 
 /**

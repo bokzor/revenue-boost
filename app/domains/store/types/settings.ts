@@ -3,18 +3,36 @@ import { CustomCssSchema } from "~/lib/css-guards";
 import { ThemePresetsArraySchema } from "./theme-preset";
 
 /**
- * Global Frequency Capping Settings
+ * Global Frequency Capping Best Practices
  *
- * Best practice defaults (used when settings are undefined or for recommendations):
- * - max_per_session: 2 - reasonable limit per visit
- * - max_per_day: 5 - allows engagement without being intrusive
- * - cooldown_between_popups: 30 seconds - prevents rapid-fire popups
+ * These are recommended defaults shown when merchants enable capping.
+ * Note: Global capping is DISABLED by default at install to maximize impressions.
+ * Per-campaign frequency controls are still active.
  */
-export const GLOBAL_FREQUENCY_BEST_PRACTICES = {
-  max_per_session: 2,
-  max_per_day: 5,
+
+/** Popups - Most intrusive, need stricter limits */
+export const POPUP_FREQUENCY_BEST_PRACTICES = {
+  max_per_session: 3,
+  max_per_day: 8,
   cooldown_between_popups: 30, // seconds
 } as const;
+
+/** Social Proof - Small notifications, less intrusive, higher limits */
+export const SOCIAL_PROOF_FREQUENCY_BEST_PRACTICES = {
+  max_per_session: 10,
+  max_per_day: 30,
+  cooldown_between_popups: 10, // seconds
+} as const;
+
+/** Banners - Persistent by nature, no limits, just cooldown between different banners */
+export const BANNER_FREQUENCY_BEST_PRACTICES = {
+  max_per_session: undefined, // unlimited
+  max_per_day: undefined, // unlimited
+  cooldown_between_popups: 5, // seconds
+} as const;
+
+/** @deprecated Use POPUP_FREQUENCY_BEST_PRACTICES instead */
+export const GLOBAL_FREQUENCY_BEST_PRACTICES = POPUP_FREQUENCY_BEST_PRACTICES;
 
 export const GlobalFrequencyCappingSettingsSchema = z.object({
   enabled: z.boolean().default(false),

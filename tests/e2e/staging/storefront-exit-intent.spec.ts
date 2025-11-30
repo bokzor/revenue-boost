@@ -1,6 +1,5 @@
 import { test, expect } from '@playwright/test';
 import { PrismaClient } from '@prisma/client';
-import fs from 'fs';
 import path from 'path';
 import * as dotenv from 'dotenv';
 import { CampaignFactory } from './factories/campaign-factory';
@@ -13,7 +12,9 @@ import {
     getTestPrefix,
     verifyExitIntentContent,
     hasTextInShadowDOM,
-    fillEmailInShadowDOM
+    fillEmailInShadowDOM,
+    cleanupAllE2ECampaigns,
+    MAX_TEST_PRIORITY
 } from './helpers/test-helpers';
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env.staging.env'), override: true });
@@ -23,11 +24,13 @@ const TEST_PREFIX = getTestPrefix('storefront-exit-intent.spec.ts');
 /**
  * Exit Intent Template E2E Tests
  *
- * Tests ACTUAL exit intent behavior:
+ * Tests ACTUAL exit intent behavior against deployed extension code:
  * - Popup triggers on mouse exit
  * - Custom headlines are displayed
  * - Email input is functional
  * - GDPR checkbox appears when enabled
+ *
+ * NOTE: No bundle mocking - tests use deployed extension code.
  */
 
 test.describe.serial('Exit Intent Template', () => {
@@ -66,38 +69,60 @@ test.describe.serial('Exit Intent Template', () => {
     });
 
     test.beforeEach(async ({ page }) => {
-        await prisma.campaign.deleteMany({
-            where: { name: { startsWith: TEST_PREFIX } }
-        });
+        // Clean up ALL E2E campaigns to avoid priority conflicts
+        await cleanupAllE2ECampaigns(prisma);
 
         await mockChallengeToken(page);
         await page.context().clearCookies();
 
-        await page.route('**/exit-intent.bundle.js*', async route => {
-            const bundlePath = path.join(process.cwd(), 'extensions/storefront-popup/assets/exit-intent.bundle.js');
-            const content = fs.readFileSync(bundlePath);
-            await route.fulfill({
-                status: 200,
-                contentType: 'application/javascript',
-                body: content,
-            });
+        // No bundle mocking - tests use deployed extension code
+
+        // Log browser console for debugging
+        page.on('console', msg => {
+            const text = msg.text();
+            if (text.includes('[Revenue Boost]') || text.includes('exit_intent') || text.includes('Error')) {
+                console.log(`[BROWSER] ${text}`);
+            }
         });
     });
 
     /**
-     * Helper to trigger exit intent by moving mouse to top of viewport
+     * Helper to trigger exit intent by dispatching mouseleave event
+     *
+     * Playwright's page.mouse.move() does NOT trigger native mouseleave events
+     * when moving outside the viewport. We need to manually dispatch the event
+     * with the correct clientY to simulate leaving from the top of the page.
      */
     async function triggerExitIntent(page: any) {
-        await page.mouse.move(500, 100);
-        await page.waitForTimeout(500);
-        await page.mouse.move(500, 0);
+        // First, simulate some mouse movement to build velocity history
+        await page.mouse.move(500, 300);
         await page.waitForTimeout(100);
-        await page.mouse.move(500, -10);
+        await page.mouse.move(500, 200);
+        await page.waitForTimeout(100);
+        await page.mouse.move(500, 100);
+        await page.waitForTimeout(100);
+        await page.mouse.move(500, 50);
+        await page.waitForTimeout(100);
+        await page.mouse.move(500, 10);
+        await page.waitForTimeout(100);
+
+        // Dispatch a mouseleave event on document.documentElement with clientY <= 0
+        // This simulates the mouse leaving from the top of the viewport
+        await page.evaluate(() => {
+            const event = new MouseEvent('mouseleave', {
+                bubbles: true,
+                cancelable: true,
+                clientX: 500,
+                clientY: -10, // Leaving from top
+                view: window
+            });
+            document.documentElement.dispatchEvent(event);
+        });
     }
 
     test('renders popup with email input on exit intent', async ({ page }) => {
         const campaign = await (await factory.exitIntent().init())
-            .withPriority(9101)
+            .withPriority(MAX_TEST_PRIORITY)
             .create();
         console.log(`✅ Campaign created: ${campaign.id}`);
 
@@ -139,7 +164,7 @@ test.describe.serial('Exit Intent Template', () => {
         const headline = 'Wait! Before you go...';
 
         const campaign = await (await factory.exitIntent().init())
-            .withPriority(9102)
+            .withPriority(MAX_TEST_PRIORITY)
             .withHeadline(headline)
             .create();
 
@@ -178,7 +203,7 @@ test.describe.serial('Exit Intent Template', () => {
         const gdprText = 'I agree to receive marketing emails';
 
         const campaign = await (await factory.exitIntent().init())
-            .withPriority(9103)
+            .withPriority(MAX_TEST_PRIORITY)
             .withGdprCheckbox(true, gdprText)
             .create();
 
@@ -215,7 +240,7 @@ test.describe.serial('Exit Intent Template', () => {
 
     test('email input is functional', async ({ page }) => {
         const campaign = await (await factory.exitIntent().init())
-            .withPriority(9104)
+            .withPriority(MAX_TEST_PRIORITY)
             .create();
 
         console.log(`✅ Campaign created: ${campaign.id}`);

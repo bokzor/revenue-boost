@@ -33,9 +33,9 @@ export const StorefrontContextSchema = z.object({
   productViewCount: z.number().int().nonnegative().optional(),
   addedToCartInSession: z.boolean().optional(),
 
-  // Cart Context
-  cartValue: z.number().nonnegative().optional(),
-  cartItemCount: z.number().int().nonnegative().optional(),
+  // Note: Cart-based targeting (cartValue, cartItemCount) is handled CLIENT-SIDE only
+  // via the cart_value trigger in Enhanced Triggers, which polls /cart.js.
+  // We keep cartToken for potential future use (e.g., abandoned cart recovery).
   cartToken: z.string().optional(),
 
   // Device Context
@@ -72,9 +72,13 @@ export function buildStorefrontContext(
 ): StorefrontContext {
   const userAgent = headers.get("user-agent") || "";
 
-  // Extract country code from Shopify's X-Country-Code header (ISO 3166-1 alpha-2)
-  // This header is set by Shopify's CDN based on the visitor's IP address
-  const countryCode = headers.get("X-Country-Code")?.toUpperCase() || undefined;
+  // Extract country code from:
+  // 1. Query param (sent by storefront JS from Shopify Liquid's localization.country.iso_code)
+  // 2. Fallback to X-Country-Code header (may not be forwarded through App Proxy)
+  const countryCode =
+    searchParams.get("countryCode")?.toUpperCase() ||
+    headers.get("X-Country-Code")?.toUpperCase() ||
+    undefined;
 
   return {
     // Page Context
@@ -98,9 +102,8 @@ export function buildStorefrontContext(
     productViewCount: parseInt(searchParams.get("productViewCount") || "0") || undefined,
     addedToCartInSession: searchParams.get("addedToCartInSession") === "true" || undefined,
 
-    // Cart Context
-    cartValue: parseFloat(searchParams.get("cartValue") || "0") || undefined,
-    cartItemCount: parseInt(searchParams.get("cartItemCount") || "0") || undefined,
+    // Cart Context (cartToken kept for potential abandoned cart recovery)
+    // Note: cartValue and cartItemCount are handled CLIENT-SIDE only via cart_value trigger
     cartToken: searchParams.get("cartToken") || undefined,
 
     // Device Context

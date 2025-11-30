@@ -1,6 +1,6 @@
 /**
  * Popup Interaction E2E Tests
- * 
+ *
  * Tests user interaction patterns:
  * - ESC key to close popup
  * - Click outside to dismiss
@@ -15,7 +15,10 @@ import {
     API_PROPAGATION_DELAY_MS,
     handlePasswordPage,
     getTestPrefix,
-    waitForPopupWithRetry
+    waitForPopupWithRetry,
+    cleanupAllE2ECampaigns,
+    MAX_TEST_PRIORITY,
+    mockChallengeToken
 } from './helpers/test-helpers';
 import { CampaignFactory } from './factories/campaign-factory';
 
@@ -40,8 +43,12 @@ test.describe('Popup Interactions', () => {
         await prisma.$disconnect();
     });
 
-    test.beforeEach(async ({ context }) => {
+    test.beforeEach(async ({ context, page }) => {
+        // Clean up ALL E2E campaigns to avoid priority conflicts
+        await cleanupAllE2ECampaigns(prisma);
         await context.clearCookies();
+        // Mock challenge token to bypass bot protection
+        await mockChallengeToken(page);
     });
 
     test.describe('Close Button', () => {
@@ -51,7 +58,7 @@ test.describe('Popup Interactions', () => {
             const campaign = await (await factory.newsletter().init())
                 .withName('CloseButton-Test')
                 .withHeadline('Close Button Test Popup')
-                .withPriority(99990)
+                .withPriority(MAX_TEST_PRIORITY)
                 .create();
 
             await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
@@ -127,7 +134,7 @@ test.describe('Popup Interactions', () => {
             const campaign = await (await factory.newsletter().init())
                 .withName('ESC-Dismiss-Test')
                 .withHeadline('Press ESC to Close')
-                .withPriority(99991)
+                .withPriority(MAX_TEST_PRIORITY)
                 .create();
 
             await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
@@ -173,7 +180,7 @@ test.describe('Popup Interactions', () => {
             const campaign = await (await factory.newsletter().init())
                 .withName('Tab-Navigation-Test')
                 .withHeadline('Tab Navigation Test')
-                .withPriority(99992)
+                .withPriority(MAX_TEST_PRIORITY)
                 .create();
 
             await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
@@ -230,7 +237,7 @@ test.describe('Popup Interactions', () => {
             const campaign = await (await factory.newsletter().init())
                 .withName('Overlay-Click-Test')
                 .withHeadline('Click Outside to Close')
-                .withPriority(99993)
+                .withPriority(MAX_TEST_PRIORITY)
                 .create();
 
             await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
@@ -295,8 +302,10 @@ test.describe('Form Validation', () => {
         factory = new CampaignFactory(prisma, storeId, TEST_PREFIX);
     });
 
-    test.beforeEach(async ({ context }) => {
+    test.beforeEach(async ({ context, page }) => {
         await context.clearCookies();
+        // Mock challenge token to bypass bot protection
+        await mockChallengeToken(page);
     });
 
     test('shows error for invalid email format', async ({ page }) => {
@@ -305,7 +314,7 @@ test.describe('Form Validation', () => {
         const campaign = await (await factory.newsletter().init())
             .withName('Invalid-Email-Test')
             .withHeadline('Enter Your Email')
-            .withPriority(99994)
+            .withPriority(MAX_TEST_PRIORITY)
             .create();
 
         await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
@@ -386,7 +395,7 @@ test.describe('Form Validation', () => {
         const campaign = await (await factory.newsletter().init())
             .withName('Empty-Email-Test')
             .withHeadline('Email Required')
-            .withPriority(99995)
+            .withPriority(MAX_TEST_PRIORITY)
             .create();
 
         await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
@@ -440,7 +449,7 @@ test.describe('Form Validation', () => {
             .withName('GDPR-Required-Test')
             .withHeadline('GDPR Test')
             .withGdprCheckbox(true, 'I agree to the privacy policy')
-            .withPriority(99996)
+            .withPriority(MAX_TEST_PRIORITY)
             .create();
 
         await page.waitForTimeout(API_PROPAGATION_DELAY_MS);

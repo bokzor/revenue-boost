@@ -15,6 +15,7 @@ export class BackgroundImageHook implements PreDisplayHook {
     async execute(context: PreDisplayHookContext): Promise<PreDisplayHookResult> {
         try {
             const { campaign } = context;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- campaign config is dynamically typed from API
             const designConfig = campaign.designConfig as any;
 
             // Check if there's an image to preload

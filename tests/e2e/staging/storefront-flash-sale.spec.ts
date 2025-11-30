@@ -1,6 +1,5 @@
 import { test, expect } from '@playwright/test';
 import { PrismaClient } from '@prisma/client';
-import fs from 'fs';
 import path from 'path';
 import * as dotenv from 'dotenv';
 import { CampaignFactory } from './factories/campaign-factory';
@@ -11,7 +10,9 @@ import {
     handlePasswordPage,
     mockChallengeToken,
     getTestPrefix,
-    verifyFlashSaleContent
+    verifyFlashSaleContent,
+    cleanupAllE2ECampaigns,
+    MAX_TEST_PRIORITY
 } from './helpers/test-helpers';
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env.staging.env'), override: true });
@@ -21,11 +22,13 @@ const TEST_PREFIX = getTestPrefix('storefront-flash-sale.spec.ts');
 /**
  * Flash Sale Template E2E Tests
  *
- * Tests ACTUAL content rendering:
+ * Tests ACTUAL content rendering against deployed extension code:
  * - Urgency messages are displayed
  * - Discount percentages are shown
  * - Countdown timer is functional
  * - Stock counter displays correctly
+ *
+ * NOTE: No bundle mocking - tests use deployed extension code.
  */
 
 test.describe.serial('Flash Sale Template', () => {
@@ -64,27 +67,18 @@ test.describe.serial('Flash Sale Template', () => {
     });
 
     test.beforeEach(async ({ page }) => {
-        await prisma.campaign.deleteMany({
-            where: { name: { startsWith: TEST_PREFIX } }
-        });
+        // Clean up ALL E2E campaigns to avoid priority conflicts
+        await cleanupAllE2ECampaigns(prisma);
 
         await mockChallengeToken(page);
         await page.context().clearCookies();
 
-        await page.route('**/flash-sale.bundle.js*', async route => {
-            const bundlePath = path.join(process.cwd(), 'extensions/storefront-popup/assets/flash-sale.bundle.js');
-            const content = fs.readFileSync(bundlePath);
-            await route.fulfill({
-                status: 200,
-                contentType: 'application/javascript',
-                body: content,
-            });
-        });
+        // No bundle mocking - tests use deployed extension code
     });
 
     test('renders flash sale popup with countdown timer', async ({ page }) => {
         const campaign = await (await factory.flashSale().init())
-            .withPriority(9901)
+            .withPriority(MAX_TEST_PRIORITY)
             .create();
         console.log(`✅ Campaign created: ${campaign.id}`);
 
@@ -128,7 +122,7 @@ test.describe.serial('Flash Sale Template', () => {
         const urgencyMessage = 'Only 2 hours left!';
 
         const campaign = await (await factory.flashSale().init())
-            .withPriority(9902)
+            .withPriority(MAX_TEST_PRIORITY)
             .withUrgencyMessage(urgencyMessage)
             .create();
 
@@ -169,7 +163,7 @@ test.describe.serial('Flash Sale Template', () => {
         const discountPercent = 30;
 
         const campaign = await (await factory.flashSale().init())
-            .withPriority(9903)
+            .withPriority(MAX_TEST_PRIORITY)
             .withDiscountPercentage(discountPercent)
             .create();
 
@@ -213,7 +207,7 @@ test.describe.serial('Flash Sale Template', () => {
         const stockMessage = 'Only 5 left in stock!';
 
         const campaign = await (await factory.flashSale().init())
-            .withPriority(9904)
+            .withPriority(MAX_TEST_PRIORITY)
             .withStockCounter(true, stockMessage)
             .create();
 
@@ -247,7 +241,7 @@ test.describe.serial('Flash Sale Template', () => {
 
     test('CTA button is clickable', async ({ page }) => {
         const campaign = await (await factory.flashSale().init())
-            .withPriority(9905)
+            .withPriority(MAX_TEST_PRIORITY)
             .create();
 
         console.log(`✅ Campaign created: ${campaign.id}`);

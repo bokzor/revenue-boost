@@ -37,7 +37,7 @@ export const PopupText: React.FC<PopupTextProps> = ({
     fontSize: variant === "caption" ? "0.875rem" : tone === "subdued" ? "0.9375rem" : "1rem",
     lineHeight: 1.5,
     color: toneColors[tone],
-    textAlign: alignMap[align] as any,
+    textAlign: alignMap[align] as React.CSSProperties["textAlign"],
     wordBreak: "break-word",
     ...style,
   };

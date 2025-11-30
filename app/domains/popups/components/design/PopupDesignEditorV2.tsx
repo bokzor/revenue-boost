@@ -208,14 +208,15 @@ export const PopupDesignEditorV2: React.FC<PopupDesignEditorProps> = ({
   const [previewElement, setPreviewElement] = useState<HTMLElement | null>(null);
 
   const [designConfig, setDesignConfig] = useState<PopupDesignConfig>(() => {
+    const initConfig = initialConfig as Record<string, unknown> | undefined;
     return {
       id: "popup-design",
       // Content fields (using unified field names)
-      headline: (initialConfig as any)?.headline || "Your Popup Title",
-      subheadline: (initialConfig as any)?.subheadline || "Your popup description goes here.",
+      headline: (initConfig?.headline as string) || "Your Popup Title",
+      subheadline: (initConfig?.subheadline as string) || "Your popup description goes here.",
       buttonText:
-        (initialConfig as any)?.buttonText || (initialConfig as any)?.ctaText || "Click Here",
-      successMessage: (initialConfig as any)?.successMessage || "Thank you!",
+        (initConfig?.buttonText as string) || (initConfig?.ctaText as string) || "Click Here",
+      successMessage: (initConfig?.successMessage as string) || "Thank you!",
       // Design fields
       backgroundColor: "#FFFFFF",
       textColor: "#333333",
@@ -436,7 +437,7 @@ export const PopupDesignEditorV2: React.FC<PopupDesignEditorProps> = ({
 
         // Extract enhancedTriggers from the nested structure if present
         // Templates store triggers as: { enhancedTriggers: {...}, targetingRules: {...}, ... }
-        const triggersToConvert = (fetchedTriggers as any).enhancedTriggers || fetchedTriggers;
+        const triggersToConvert = (fetchedTriggers as Record<string, unknown>).enhancedTriggers || fetchedTriggers;
 
         const enhancedTriggers = convertDatabaseTriggersAuto(triggersToConvert);
         console.log(
@@ -508,9 +509,9 @@ export const PopupDesignEditorV2: React.FC<PopupDesignEditorProps> = ({
         templateType: selectedTemplate.templateType,
         category: selectedTemplate.templateType,
         description: "",
-        contentConfig: selectedTemplate.contentConfig as any,
-        designConfig: selectedTemplate.designConfig as any,
-        targetRules: selectedTemplate.targetRules as any,
+        contentConfig: selectedTemplate.contentConfig as Record<string, unknown>,
+        designConfig: selectedTemplate.designConfig as Record<string, unknown>,
+        targetRules: selectedTemplate.targetRules as Record<string, unknown>,
       };
       handleTemplateSelect(templateObject);
     },
@@ -1436,7 +1437,7 @@ export const PopupDesignEditorV2: React.FC<PopupDesignEditorProps> = ({
                 <div className={styles.stickyPreviewScrollable} data-affix-scrollable>
                   <LivePreviewPanel
                     templateType={currentTemplateType}
-                    config={debouncedConfig}
+                    config={debouncedConfig as unknown as Record<string, unknown>}
                     designConfig={{}}
                     onPreviewElementReady={setPreviewElement}
                     shopDomain={shopDomain}

@@ -30,9 +30,9 @@ export interface TemplateMetadata {
   description: string;
   category: string;
   icon?: string;
-  contentSchema: z.ZodType<any>;
-  defaultFields?: Record<string, any>;
-  defaultDesignFields?: Record<string, any>;
+  contentSchema: z.ZodType<unknown>;
+  defaultFields?: Record<string, unknown>;
+  defaultDesignFields?: Record<string, unknown>;
   requiresDiscount?: boolean;
   requiresProduct?: boolean;
 }

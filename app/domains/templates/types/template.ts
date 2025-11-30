@@ -131,7 +131,7 @@ export function parseTemplateContentConfig(
 
     // Validate with schema
     const result = schema.safeParse(parsed);
-    return result.success ? result.data : ({} as BaseContentConfig);
+    return result.success ? (result.data as ContentConfig | BaseContentConfig) : ({} as BaseContentConfig);
   } catch (error) {
     console.warn("Failed to parse template contentConfig:", error);
     return {} as BaseContentConfig;
@@ -196,7 +196,7 @@ export const NewsletterTemplateSchema = BaseTemplateSchema.extend({
   fields: z.array(TemplateFieldSchema).default([]),
   targetRules: TargetRulesConfigSchema.default({}),
   designConfig: DesignConfigSchema.default({
-    theme: "modern",
+    theme: "gradient",
     position: "center",
     size: "medium",
     borderRadius: 8,

@@ -26,6 +26,7 @@
         window.REVENUE_BOOST_CONFIG.cartToken = {{ cart.token | json }};
         window.REVENUE_BOOST_CONFIG.pageType = '{{ request.page_type }}';
         window.REVENUE_BOOST_CONFIG.pageUrl = '{{ request.path }}';
+        window.REVENUE_BOOST_CONFIG.countryCode = '{{ localization.country.iso_code | upcase }}';
 
         // Detect preview mode from URL parameter (token-based only)
         var urlParams = new URLSearchParams(window.location.search);

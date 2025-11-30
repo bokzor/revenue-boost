@@ -11,7 +11,12 @@ import type { LoaderFunctionArgs } from "react-router";
 import { ShopService } from "~/domains/shops/services/shop.server";
 
 // Cache server time response for 5 seconds to reduce load
-let cachedResponse: { data: any; timestamp: number; shopDomain: string } | null = null;
+interface TimeResponseData {
+  serverTimeISO: string;
+  serverTimeUnix: number;
+  shopTimezone: string;
+}
+let cachedResponse: { data: TimeResponseData; timestamp: number; shopDomain: string } | null = null;
 const CACHE_TTL_MS = 5000;
 
 export async function loader({ request }: LoaderFunctionArgs) {

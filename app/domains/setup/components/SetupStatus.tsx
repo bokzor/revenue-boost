@@ -20,6 +20,8 @@ interface SetupStatusProps {
   setupComplete: boolean;
   themeEditorUrl?: string;
   compact?: boolean;
+  onRefresh?: () => void;
+  isRefreshing?: boolean;
 }
 
 export function SetupStatus({
@@ -27,6 +29,8 @@ export function SetupStatus({
   setupComplete,
   themeEditorUrl,
   compact = false,
+  onRefresh,
+  isRefreshing = false,
 }: SetupStatusProps) {
   // Use Shopify's open API to properly open external URLs from embedded app
   const openThemeEditor = useCallback(() => {
@@ -50,23 +54,45 @@ export function SetupStatus({
   }
 
   if (compact && !setupComplete) {
+    // Determine what's wrong and show appropriate message
+    const themeIssue = !status.themeExtensionEnabled;
+    const proxyIssue = !status.appProxyOk;
+
+    let title = "Setup Required";
+    let message = "";
+    let action = undefined;
+
+    if (themeIssue && proxyIssue) {
+      message = "Theme extension needs to be enabled and the app backend is unreachable.";
+      action = themeEditorUrl
+        ? { content: "Enable in Theme Editor", onAction: openThemeEditor }
+        : undefined;
+    } else if (themeIssue) {
+      message = "Theme extension needs to be enabled in your theme editor for popups to appear on your storefront.";
+      action = themeEditorUrl
+        ? { content: "Enable in Theme Editor", onAction: openThemeEditor }
+        : undefined;
+    } else if (proxyIssue) {
+      title = "Connection Issue";
+      message = "Unable to reach the app backend. This may be a temporary issue. Try refreshing the status.";
+    }
+
     return (
       <Banner
         tone="warning"
-        title="Setup Required"
-        action={
-          themeEditorUrl
+        title={title}
+        action={action}
+        secondaryAction={
+          onRefresh
             ? {
-                content: "Enable in Theme Editor",
-                onAction: openThemeEditor,
+                content: isRefreshing ? "Checking..." : "Refresh",
+                onAction: onRefresh,
+                loading: isRefreshing,
               }
             : undefined
         }
       >
-        <p>
-          Theme extension needs to be enabled in your theme editor for popups to appear on your
-          storefront.
-        </p>
+        <p>{message}</p>
       </Banner>
     );
   }
@@ -106,7 +132,7 @@ export function SetupStatus({
               {status.appProxyOk ? (
                 <Badge tone="success">✓ Reachable</Badge>
               ) : (
-                <Badge tone="attention">Check Pending</Badge>
+                <Badge tone="critical">Unreachable</Badge>
               )}
             </InlineStack>
           </List.Item>
@@ -140,6 +166,14 @@ export function SetupStatus({
               Open Theme Editor
             </Button>
           </BlockStack>
+        )}
+
+        {onRefresh && (
+          <InlineStack align="end">
+            <Button onClick={onRefresh} loading={isRefreshing} variant="plain">
+              Refresh Status
+            </Button>
+          </InlineStack>
         )}
       </BlockStack>
     </Card>

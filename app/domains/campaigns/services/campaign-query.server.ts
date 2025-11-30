@@ -107,7 +107,10 @@ export class CampaignQueryService {
           status: "ACTIVE",
         },
         orderBy: { priority: "desc" },
-        include: CAMPAIGN_TEMPLATE_INCLUDE,
+        include: {
+          ...CAMPAIGN_TEMPLATE_INCLUDE,
+          ...CAMPAIGN_EXPERIMENT_INCLUDE,
+        },
       });
 
       // Parse JSON fields

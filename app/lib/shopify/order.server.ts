@@ -109,7 +109,7 @@ export async function createDraftOrder(
       console.error("[Order Service] Draft order creation errors:", result.userErrors);
       return {
         success: false,
-        errors: result.userErrors.map((e: any) => e.message),
+        errors: result.userErrors.map((e: { message: string }) => e.message),
       };
     }
 

@@ -106,24 +106,31 @@ export async function loader({ request }: LoaderFunctionArgs) {
     const body = await response.json();
     const nodes = body?.data?.nodes || [];
 
+    // Type for GraphQL node response
+    type GraphQLNode = Record<string, unknown>;
+    type ImageEdge = { node: { url: string; altText?: string } };
+    type VariantEdge = { node: { id: string; title: string; price: string } };
+
     // Map to ResourceDetails format
     const resources: ResourceDetails[] = nodes
-      .filter((node: any) => node && node.id)
-      .map((node: any) => {
+      .filter((node: GraphQLNode) => node && node.id)
+      .map((node: GraphQLNode) => {
         const base: ResourceDetails = {
-          id: node.id,
-          title: node.title || "Untitled",
-          handle: node.handle || "",
+          id: node.id as string,
+          title: (node.title as string) || "Untitled",
+          handle: (node.handle as string) || "",
         };
 
         if (type === "product") {
           // Map product images and variants
-          const images = node.images?.edges?.map((edge: any) => ({
+          const imagesEdges = node.images as { edges?: ImageEdge[] } | undefined;
+          const images = imagesEdges?.edges?.map((edge) => ({
             url: edge.node.url,
             altText: edge.node.altText,
           }));
 
-          const variants = node.variants?.edges?.map((edge: any) => ({
+          const variantsEdges = node.variants as { edges?: VariantEdge[] } | undefined;
+          const variants = variantsEdges?.edges?.map((edge) => ({
             id: edge.node.id,
             title: edge.node.title,
             price: edge.node.price,
@@ -136,8 +143,9 @@ export async function loader({ request }: LoaderFunctionArgs) {
           };
         } else {
           // Map collection image
-          const images = node.image
-            ? [{ url: node.image.url, altText: node.image.altText }]
+          const nodeImage = node.image as { url?: string; altText?: string } | undefined;
+          const images = nodeImage
+            ? [{ url: nodeImage.url, altText: nodeImage.altText }]
             : undefined;
 
           return {

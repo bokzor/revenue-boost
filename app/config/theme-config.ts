@@ -366,6 +366,11 @@ export const THEME_REGISTRY: Record<ThemeKey, ThemeConfig> = {
         wheelBorderColor: "#3b82f6",
         wheelBorderWidth: 6,
       },
+      SCRATCH_CARD: {
+        backgroundImageMode: "preset",
+        backgroundImagePresetKey: "modern",
+        imagePosition: "left",
+      },
     },
   },
 
@@ -411,6 +416,11 @@ export const THEME_REGISTRY: Record<ThemeKey, ThemeConfig> = {
         wheelBorderColor: "#d4d4d8",
         wheelBorderWidth: 3,
       },
+      SCRATCH_CARD: {
+        backgroundImageMode: "preset",
+        backgroundImagePresetKey: "minimal",
+        imagePosition: "left",
+      },
     },
   },
 
@@ -455,6 +465,11 @@ export const THEME_REGISTRY: Record<ThemeKey, ThemeConfig> = {
         imagePosition: "none",
         wheelBorderColor: "#a855f7",
         wheelBorderWidth: 5,
+      },
+      SCRATCH_CARD: {
+        backgroundImageMode: "preset",
+        backgroundImagePresetKey: "elegant",
+        imagePosition: "left",
       },
     },
   },
@@ -503,6 +518,11 @@ export const THEME_REGISTRY: Record<ThemeKey, ThemeConfig> = {
         wheelBorderColor: "#ffffff",
         wheelBorderWidth: 8,
       },
+      SCRATCH_CARD: {
+        backgroundImageMode: "preset",
+        backgroundImagePresetKey: "bold",
+        imagePosition: "left",
+      },
     },
   },
 
@@ -550,6 +570,11 @@ export const THEME_REGISTRY: Record<ThemeKey, ThemeConfig> = {
         wheelBorderColor: "rgba(99, 102, 241, 0.4)",
         wheelBorderWidth: 4,
       },
+      SCRATCH_CARD: {
+        backgroundImageMode: "preset",
+        backgroundImagePresetKey: "glass",
+        imagePosition: "left",
+      },
     },
   },
 
@@ -594,6 +619,11 @@ export const THEME_REGISTRY: Record<ThemeKey, ThemeConfig> = {
         imagePosition: "none",
         wheelBorderColor: "#4b5563",
         wheelBorderWidth: 5,
+      },
+      SCRATCH_CARD: {
+        backgroundImageMode: "preset",
+        backgroundImagePresetKey: "dark",
+        imagePosition: "left",
       },
     },
   },
@@ -642,6 +672,11 @@ export const THEME_REGISTRY: Record<ThemeKey, ThemeConfig> = {
         wheelBorderColor: "rgba(255, 255, 255, 0.4)",
         wheelBorderWidth: 5,
       },
+      SCRATCH_CARD: {
+        backgroundImageMode: "preset",
+        backgroundImagePresetKey: "gradient",
+        imagePosition: "left",
+      },
     },
   },
 
@@ -686,6 +721,11 @@ export const THEME_REGISTRY: Record<ThemeKey, ThemeConfig> = {
         imagePosition: "none",
         wheelBorderColor: "#d4af37",
         wheelBorderWidth: 5,
+      },
+      SCRATCH_CARD: {
+        backgroundImageMode: "preset",
+        backgroundImagePresetKey: "luxury",
+        imagePosition: "left",
       },
     },
   },
@@ -734,6 +774,11 @@ export const THEME_REGISTRY: Record<ThemeKey, ThemeConfig> = {
         wheelBorderColor: "#00ffff",
         wheelBorderWidth: 6,
       },
+      SCRATCH_CARD: {
+        backgroundImageMode: "preset",
+        backgroundImagePresetKey: "neon",
+        imagePosition: "left",
+      },
     },
   },
 
@@ -778,6 +823,11 @@ export const THEME_REGISTRY: Record<ThemeKey, ThemeConfig> = {
         imagePosition: "none",
         wheelBorderColor: "#0ea5e9",
         wheelBorderWidth: 6,
+      },
+      SCRATCH_CARD: {
+        backgroundImageMode: "preset",
+        backgroundImagePresetKey: "ocean",
+        imagePosition: "left",
       },
     },
   },
@@ -827,6 +877,12 @@ export const THEME_REGISTRY: Record<ThemeKey, ThemeConfig> = {
         imagePosition: "none",
         wheelBorderColor: "#FF5733",
         wheelBorderWidth: 6,
+      },
+      SCRATCH_CARD: {
+        backgroundImageMode: "preset",
+        backgroundImagePresetKey: "summer-sale",
+        imagePosition: "full",
+        backgroundOverlayOpacity: 0.4,
       },
     },
   },

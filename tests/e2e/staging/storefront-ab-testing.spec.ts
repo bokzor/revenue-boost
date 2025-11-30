@@ -1,6 +1,6 @@
 /**
  * A/B Testing E2E Tests
- * 
+ *
  * Tests experiment variant selection, traffic allocation, and consistent
  * variant assignment across page reloads for the same visitor.
  */
@@ -12,7 +12,10 @@ import {
     API_PROPAGATION_DELAY_MS,
     handlePasswordPage,
     getTestPrefix,
-    waitForPopupWithRetry
+    waitForPopupWithRetry,
+    cleanupAllE2ECampaigns,
+    MAX_TEST_PRIORITY,
+    mockChallengeToken
 } from './helpers/test-helpers';
 import { CampaignFactory, ExperimentBuilder } from './factories/campaign-factory';
 
@@ -46,6 +49,8 @@ test.describe('A/B Testing Experiments', () => {
     });
 
     test.beforeEach(async ({ context }) => {
+        // Clean up ALL E2E campaigns to avoid priority conflicts
+        await cleanupAllE2ECampaigns(prisma);
         // Clear cookies to ensure clean visitor state
         await context.clearCookies();
     });
@@ -67,8 +72,51 @@ test.describe('A/B Testing Experiments', () => {
         console.log(`✅ Created experiment: ${experiment.id} with ${variants.length} variants`);
         console.log(`Variant IDs: ${variants.map(v => `${v.variantKey}: ${v.id}`).join(', ')}`);
 
+        // Log created campaign details
+        for (const variant of variants) {
+            console.log(`📋 Variant ${variant.variantKey} config:`, JSON.stringify({
+                id: variant.id,
+                experimentId: variant.experimentId,
+                variantKey: variant.variantKey,
+                status: variant.status,
+                priority: variant.priority
+            }, null, 2));
+        }
+
+        // Mock challenge token to bypass bot protection
+        await mockChallengeToken(page);
+
+        // Intercept API calls to see what campaigns are returned
+        let apiResponse: { campaigns: any[] } | null = null;
+        await page.route('**/api/campaigns/active*', async route => {
+            const response = await route.fetch();
+            apiResponse = await response.json();
+            console.log(`📡 API returned ${apiResponse?.campaigns?.length || 0} campaigns`);
+            if (apiResponse?.campaigns?.length) {
+                apiResponse.campaigns.forEach((c: any, i: number) => {
+                    console.log(`  ${i + 1}. ${c.name} (${c.id})`, {
+                        experimentId: c.experimentId,
+                        variantKey: c.variantKey,
+                        priority: c.priority
+                    });
+                });
+            }
+            await route.fulfill({ response });
+        });
+
         // Wait longer for API propagation in staging
         await page.waitForTimeout(API_PROPAGATION_DELAY_MS * 2);
+
+        // Capture browser console logs AND errors
+        page.on('console', msg => {
+            const text = msg.text();
+            if (text.includes('Revenue Boost') || msg.type() === 'error' || msg.type() === 'warning') {
+                console.log(`   [BROWSER ${msg.type().toUpperCase()}] ${text}`);
+            }
+        });
+        page.on('pageerror', error => {
+            console.log(`   [BROWSER PAGE ERROR] ${error.message}`);
+        });
 
         try {
             await page.goto(STORE_URL);
@@ -113,6 +161,9 @@ test.describe('A/B Testing Experiments', () => {
 
     test('same visitor sees same variant after page reload', async ({ page }) => {
         console.log('🧪 Testing variant persistence across page reloads...');
+
+        // Mock challenge token to bypass bot protection
+        await mockChallengeToken(page);
 
         const builder = factory.experiment();
         await builder.init();
@@ -210,6 +261,9 @@ test.describe('A/B Testing Experiments', () => {
                 const context = await browser.newContext();
                 const page = await context.newPage();
 
+                // Mock challenge token for this page
+                await mockChallengeToken(page);
+
                 await page.goto(STORE_URL);
                 await handlePasswordPage(page);
 
@@ -273,6 +327,9 @@ test.describe('A/B Testing Experiments', () => {
             const context = await browser.newContext();
             const page = await context.newPage();
 
+            // Mock challenge token to bypass bot protection
+            await mockChallengeToken(page);
+
             await page.goto(STORE_URL);
             await handlePasswordPage(page);
 
@@ -327,6 +384,9 @@ test.describe('A/B Testing Experiments', () => {
     test('experiment popup includes experimentId and variantKey in data', async ({ page }) => {
         console.log('🧪 Testing experiment metadata in popup...');
 
+        // Mock challenge token to bypass bot protection
+        await mockChallengeToken(page);
+
         const builder = factory.experiment();
         await builder.init();
         const { experiment, variants } = await builder
@@ -378,6 +438,9 @@ test.describe('A/B Testing Experiments', () => {
 
     test('non-experiment campaigns are not affected by variant selection', async ({ page }) => {
         console.log('🧪 Testing standalone campaign alongside experiment...');
+
+        // Mock challenge token to bypass bot protection
+        await mockChallengeToken(page);
 
         // Create a standalone campaign (not part of experiment)
         const standaloneCampaign = await (await factory.newsletter().init())

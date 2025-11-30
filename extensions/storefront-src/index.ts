@@ -10,7 +10,7 @@ import { ApiClient } from "./core/api";
 import { session } from "./core/session";
 import { ComponentLoader } from "./core/component-loader";
 import { renderPopup, type StorefrontCampaign } from "./core/PopupManagerPreact";
-import { TriggerManager, type EnhancedTriggers, type SessionRulesConfig } from "./core/TriggerManager";
+import { TriggerManager, type EnhancedTriggers } from "./core/TriggerManager";
 import { initCartTracking } from "./utils/cart-tracking";
 
 // Initialize hook registry (configures all pre-display hooks)
@@ -47,7 +47,9 @@ if (typeof window !== "undefined") {
   } as Record<string, unknown>;
 
   // Expose session for lazy token loading in popups
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- window extension for cross-script communication
   (w as any).__RB_SESSION = session;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- window extension for cross-script communication
   (w as any).__RB_SESSION_ID = session.getSessionId();
 
   console.log("[Revenue Boost] ⚛️ Preact runtime exposed globally");
@@ -97,7 +99,6 @@ type ClientCampaign = StorefrontCampaign & {
   priority?: number;
   clientTriggers?: {
     enhancedTriggers?: EnhancedTriggers;
-    sessionRules?: SessionRulesConfig;
   };
   experimentId?: string | null;
   [key: string]: unknown;
@@ -243,6 +244,7 @@ class RevenueBoostApp {
     if (highPriority.size > 0) {
       const types = Array.from(highPriority);
       this.log("⚡ Preloading HIGH priority components (instant triggers):", types);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TemplateType compatibility
       await this.loader.preloadComponents(types as any[]);
       this.log("✅ High priority components ready");
     }
@@ -251,6 +253,7 @@ class RevenueBoostApp {
     const remaining = Array.from(lowPriority).filter(t => !highPriority.has(t));
     if (remaining.length > 0) {
       this.log("📦 Preloading LOW priority components (background):", remaining);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TemplateType compatibility
       this.loader.preloadComponents(remaining as any[]).catch(err => {
         this.log("Component preload failed (non-critical):", err);
       });
@@ -325,7 +328,7 @@ class RevenueBoostApp {
         enhancedTriggers &&
         typeof enhancedTriggers === 'object' &&
         'frequency_capping' in enhancedTriggers &&
-        (enhancedTriggers as any).frequency_capping
+        (enhancedTriggers as Record<string, unknown>).frequency_capping
       );
 
       // If frequency capping is enabled, server controls all visibility logic via Redis

@@ -202,7 +202,9 @@ export function parseContentConfig(
   templateType?: TemplateType
 ): ContentConfig | BaseContentConfig {
   const schema = getContentSchemaForTemplate(templateType);
-  return parseJsonField(jsonValue, schema, {} as BaseContentConfig);
+  // Cast to proper schema type since getContentSchemaForTemplate returns z.ZodType<unknown>
+  const result = schema.safeParse(jsonValue);
+  return result.success ? (result.data as ContentConfig | BaseContentConfig) : ({} as BaseContentConfig);
 }
 
 /**

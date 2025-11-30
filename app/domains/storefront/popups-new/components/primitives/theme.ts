@@ -40,7 +40,7 @@ export function varsFromDesign(
 
     // Gap
     "--rb-popup-gap": "1.5rem",
-  } as any;
+  } as React.CSSProperties;
 
   return { style, "data-size": actualSize };
 }

@@ -149,7 +149,7 @@ export function renderDesignStep(props: StepRendererProps) {
           templateType: template.templateType,
           hasDesignConfig: !!template.designConfig,
           designConfigKeys: template.designConfig ? Object.keys(template.designConfig) : [],
-          imageUrl: (template.designConfig as any)?.imageUrl,
+          imageUrl: (template.designConfig as Record<string, unknown> | undefined)?.imageUrl,
         });
 
         // Ensure required base content fields exist even if the user doesn't edit them
@@ -167,7 +167,7 @@ export function renderDesignStep(props: StepRendererProps) {
 
         // Extract enhanced triggers from the selected template (if provided)
         // Templates store triggers under targetRules.enhancedTriggers in the DB
-        const enhancedFromTemplate = (template.targetRules as any)?.enhancedTriggers;
+        const enhancedFromTemplate = (template.targetRules as Record<string, unknown> | undefined)?.enhancedTriggers;
 
         const nextUpdate: Partial<CampaignFormData> = {
           templateId: template.id,
@@ -188,8 +188,8 @@ export function renderDesignStep(props: StepRendererProps) {
         // can merge them into wizard state (including seeded design from DB)
         setTemplateType(template.templateType, {
           contentDefaults: contentWithDefaults,
-          targetRules: template.targetRules as any,
-          design: template.designConfig as any,
+          targetRules: template.targetRules as Record<string, unknown> | undefined,
+          design: template.designConfig as Record<string, unknown> | undefined,
         });
       }}
     />
@@ -237,7 +237,7 @@ export function renderDiscountStep(props: StepRendererProps) {
   const { wizardState, updateData } = props;
 
   // Detect if email capture is enabled from contentConfig
-  const contentConfig = wizardState.contentConfig as any;
+  const contentConfig = wizardState.contentConfig as Record<string, unknown> | undefined;
   const hasEmailCapture =
     contentConfig?.emailRequired === true ||
     contentConfig?.emailPlaceholder !== undefined ||

@@ -1,4 +1,4 @@
-export async function getStoreCurrency(admin: any): Promise<string> {
+export async function getStoreCurrency(admin: { graphql: (query: string) => Promise<Response> }): Promise<string> {
   try {
     const response = await admin.graphql(`
       query {

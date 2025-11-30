@@ -15,7 +15,7 @@ export default function PrivacyPolicy() {
         <section style={styles.section}>
           <h2 style={styles.subheading}>1. Introduction</h2>
           <p style={styles.text}>
-            Revenue Boost ("we", "our", or "us") is a Shopify application that helps merchants
+            Revenue Boost (&quot;we&quot;, &quot;our&quot;, or &quot;us&quot;) is a Shopify application that helps merchants
             increase their revenue through popup campaigns, email collection, and promotional tools.
             This Privacy Policy explains how we collect, use, and protect information when you use
             our application.
@@ -71,7 +71,7 @@ export default function PrivacyPolicy() {
           <h2 style={styles.subheading}>5. Data Retention</h2>
           <p style={styles.text}>
             We retain your data for as long as your app is installed. Upon uninstallation,
-            we process data deletion requests in accordance with Shopify's requirements
+            we process data deletion requests in accordance with Shopify&apos;s requirements
             (typically within 48 hours of receiving the shop/redact webhook).
           </p>
         </section>

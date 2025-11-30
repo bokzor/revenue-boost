@@ -12,23 +12,10 @@ import { IdleTimer } from "../triggers/IdleTimer";
 import { CartEventListener } from "../triggers/CartEventListener";
 import { CustomEventHandler } from "../triggers/CustomEventHandler";
 
-export interface SessionCondition {
-  field: string;
-  operator: "eq" | "ne" | "gt" | "gte" | "lt" | "lte" | "in" | "nin";
-  value: string | number | boolean | string[];
-}
-
-export interface SessionRulesConfig {
-  enabled?: boolean;
-  conditions?: SessionCondition[];
-  logicOperator?: "AND" | "OR";
-}
-
 export interface Campaign {
   id: string;
   clientTriggers?: {
     enhancedTriggers?: EnhancedTriggers;
-    sessionRules?: SessionRulesConfig;
   };
 }
 
@@ -337,27 +324,13 @@ export class TriggerManager {
       }
     }
 
-    // If trigger evaluation failed, no need to check session rules
     if (!triggersPassed) {
       console.log("[Revenue Boost] ❌ Campaign will not show - trigger conditions failed");
       return false;
     }
 
-    // Evaluate session-level rules (SessionTrigger) on live client context
-    const sessionRules = campaign.clientTriggers?.sessionRules;
-    if (sessionRules && sessionRules.enabled && sessionRules.conditions && sessionRules.conditions.length > 0) {
-      const sessionOk = this.evaluateSessionRules(sessionRules);
-      console.log(
-        `[Revenue Boost] ${sessionOk ? "✅" : "❌"} Session rules ` +
-        `${sessionOk ? "passed" : "failed"} for campaign ${campaign.id}`,
-      );
-      if (!sessionOk) {
-        return false;
-      }
-    }
-
     console.log(
-      `[Revenue Boost] ✅ CAMPAIGN WILL SHOW - Final result: triggers + session rules passed for ${campaign.id}`,
+      `[Revenue Boost] ✅ CAMPAIGN WILL SHOW - All trigger conditions passed for ${campaign.id}`,
     );
 
     return true;
@@ -373,159 +346,6 @@ export class TriggerManager {
     const result = await checkFn();
     console.log(`[Revenue Boost] ${result ? "✅" : "❌"} ${name} trigger ${result ? "passed" : "failed"}`);
     return { name, result };
-  }
-
-  /**
-   * Evaluate session-level rules (SessionTrigger) using live client context.
-   * This mirrors AudienceTargetingConfig.sessionRules on the server.
-   */
-  private evaluateSessionRules(sessionRules: SessionRulesConfig): boolean {
-    const conditions = sessionRules.conditions || [];
-    if (!sessionRules.enabled || conditions.length === 0) {
-      console.log("[Revenue Boost] ℹ️ Session rules disabled or empty, skipping session evaluation");
-      return true;
-    }
-
-    const ctx = this.buildRuntimeContext();
-    const op = sessionRules.logicOperator || "AND";
-
-    console.log("[Revenue Boost] 🧩 Evaluating session rules", {
-      logicOperator: op,
-      conditions,
-      runtimeContext: ctx,
-    });
-
-    const results = conditions.map((cond) => this.evaluateSessionCondition(cond, ctx));
-
-    console.log("[Revenue Boost] 🧩 Session rule results", results);
-
-    if (op === "OR") {
-      return results.some(Boolean);
-    }
-    return results.every(Boolean);
-  }
-
-  /**
-   * Minimal runtime context available on the storefront for session rules.
-   * Currently supports cartValue and cartItemCount via Shopify global cart.
-   */
-  private buildRuntimeContext(): { cartValue?: number; cartItemCount?: number } {
-    const ctx: { cartValue?: number; cartItemCount?: number } = {};
-
-    type ShopifyGlobal = { Shopify?: { cart?: { total_price: number; item_count: number } } };
-    const w = window as unknown as ShopifyGlobal;
-    if (w.Shopify && w.Shopify.cart) {
-      const cart = w.Shopify.cart;
-      ctx.cartValue = typeof cart.total_price === "number" ? cart.total_price / 100 : undefined;
-      ctx.cartItemCount = typeof cart.item_count === "number" ? cart.item_count : undefined;
-    }
-
-    return ctx;
-  }
-
-  /**
-   * Evaluate a single session condition against the runtime context.
-   */
-  private evaluateSessionCondition(
-    condition: SessionCondition,
-    ctx: { cartValue?: number; cartItemCount?: number },
-  ): boolean {
-    const field = condition.field;
-
-    let value: unknown;
-    switch (field) {
-      case "cart-item-count":
-      case "cartItemCount": {
-        value = ctx.cartItemCount;
-        break;
-      }
-      case "cart-value":
-      case "cartValue": {
-        value = ctx.cartValue;
-        break;
-      }
-      default: {
-        console.log(
-          "[Revenue Boost] ⚠️ Unknown session rule field, skipping condition:",
-          field,
-        );
-        return true; // Fail-open for unknown fields to avoid breaking campaigns
-      }
-    }
-
-    const op = condition.operator;
-    const target = condition.value;
-
-    console.log("[Revenue Boost] 🔍 Evaluating session condition", {
-      field,
-      operator: op,
-      target,
-      runtimeValue: value,
-    });
-
-    if (value == null) {
-      console.log("[Revenue Boost] ❌ Session condition failed: runtime value is null/undefined");
-      return false;
-    }
-
-    // Numeric comparison helpers
-    const asNumber = (v: unknown): number => {
-      if (typeof v === "number") return v;
-      if (typeof v === "string") {
-        const parsed = parseFloat(v);
-        return Number.isNaN(parsed) ? NaN : parsed;
-      }
-      return NaN;
-    };
-
-    const valNum = asNumber(value);
-    const targetNum = asNumber(target);
-
-    let result: boolean;
-
-    switch (op) {
-      case "gt":
-        result = valNum > targetNum;
-        break;
-      case "gte":
-        result = valNum >= targetNum;
-        break;
-      case "lt":
-        result = valNum < targetNum;
-        break;
-      case "lte":
-        result = valNum <= targetNum;
-        break;
-      case "eq":
-        result = value === target;
-        break;
-      case "ne":
-        result = value !== target;
-        break;
-      case "in": {
-        const arr: unknown[] = Array.isArray(target) ? target : [target];
-        result = Array.isArray(value) ? false : arr.includes(value);
-        break;
-      }
-      case "nin": {
-        const arr: unknown[] = Array.isArray(target) ? target : [target];
-        result = Array.isArray(value) ? true : !arr.includes(value);
-        break;
-      }
-      default:
-        result = true;
-        break;
-    }
-
-    console.log("[Revenue Boost] 🔍 Session condition result", {
-      field,
-      operator: op,
-      target,
-      runtimeValue: value,
-      result,
-    });
-
-    return result;
   }
 
   /**
@@ -1091,8 +911,18 @@ export class TriggerManager {
   }
 
   /**
-   * Check cart_value trigger
-   * First checks current cart value, then listens for cart updates if needed.
+   * Check cart_value trigger using Shopify's recommended approach.
+   *
+   * IMPORTANT: Shopify does NOT provide standard DOM events for cart changes.
+   * Events like cart:update, cart:change are THEME-SPECIFIC and not reliable.
+   *
+   * The ONLY reliable method is polling /cart.js - this is the documented Shopify approach.
+   * See: https://shopify.dev/docs/api/ajax/reference/cart
+   *
+   * Strategy:
+   * 1. First check current cart value (from window.Shopify.cart or fetch /cart.js)
+   * 2. If not met, poll /cart.js at regular intervals (the ONLY reliable method)
+   * 3. Optionally listen for theme events as an optimization (but don't rely on them)
    */
   private async checkCartValue(trigger: CartValueTrigger): Promise<boolean> {
     if (!trigger.enabled) {
@@ -1108,60 +938,121 @@ export class TriggerManager {
     const maxCartValue = trigger.max_value ?? Infinity;
 
     console.log(
-      `[Revenue Boost] 💰 Checking cart_value trigger: cart total must be between ${minCartValue} and ${maxCartValue}`,
+      `[Revenue Boost] 💰 Checking cart_value trigger: cart must be between $${minCartValue} and $${maxCartValue === Infinity ? "∞" : maxCartValue}`,
     );
 
-    // First, check the current cart value
-    const currentCartValue = this.getCurrentCartValue();
-    console.log(`[Revenue Boost] 💰 Current cart value: ${currentCartValue}`);
+    // Helper to fetch cart value from /cart.js (Shopify's recommended approach)
+    const fetchCartValue = async (): Promise<number> => {
+      try {
+        const response = await fetch("/cart.js", {
+          credentials: "same-origin",
+          headers: { Accept: "application/json" },
+        });
+        if (response.ok) {
+          const cart = await response.json();
+          const cartValue = typeof cart.total_price === "number" ? cart.total_price / 100 : 0;
+
+          // Update global Shopify.cart for consistency
+          type ShopifyGlobal = { Shopify?: { cart?: { total_price: number; item_count: number } } };
+          const w = window as unknown as ShopifyGlobal;
+          if (!w.Shopify) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            w.Shopify = {} as any;
+          }
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (w.Shopify as any).cart = {
+            total_price: cart.total_price ?? 0,
+            item_count: cart.item_count ?? 0,
+          };
+
+          return cartValue;
+        }
+      } catch {
+        // Ignore fetch errors, fall back to global
+      }
+      return this.getCurrentCartValue();
+    };
+
+    // Check if cart value is in range
+    const isInRange = (value: number): boolean => value >= minCartValue && value <= maxCartValue;
+
+    // First, check the current cart value (try global first, then fetch)
+    let currentCartValue = this.getCurrentCartValue();
+    if (currentCartValue === 0) {
+      // Global not available, fetch from /cart.js
+      currentCartValue = await fetchCartValue();
+    }
+    console.log(`[Revenue Boost] 💰 Current cart value: $${currentCartValue}`);
 
     // If current cart value meets the criteria, resolve immediately
-    if (currentCartValue >= minCartValue && currentCartValue <= maxCartValue) {
+    if (isInRange(currentCartValue)) {
       console.log("[Revenue Boost] ✅ cart_value trigger conditions met (current cart value)");
       return true;
     }
 
-    // If check_interval is specified, poll the cart value periodically
-    const checkInterval = trigger.check_interval;
-    if (checkInterval && checkInterval > 0) {
-      console.log(
-        `[Revenue Boost] 💰 cart_value trigger will poll every ${checkInterval}ms for cart value changes`,
-      );
+    // Poll /cart.js at regular intervals (Shopify's ONLY reliable method)
+    // Default: 2 seconds - balance between responsiveness and API load
+    const checkInterval = trigger.check_interval ?? 2000;
 
-      return new Promise((resolve) => {
-        const intervalId = window.setInterval(() => {
-          const cartValue = this.getCurrentCartValue();
-          console.log(`[Revenue Boost] 💰 Polling cart value: ${cartValue}`);
-
-          if (cartValue >= minCartValue && cartValue <= maxCartValue) {
-            console.log("[Revenue Boost] ✅ cart_value trigger conditions met (polling)");
-            window.clearInterval(intervalId);
-            resolve(true);
-          }
-        }, checkInterval);
-
-        // Store cleanup function
-        this.cleanupFunctions.push(() => window.clearInterval(intervalId));
-      });
-    }
-
-    // Otherwise, wait for cart update events
     console.log(
-      `[Revenue Boost] 💰 cart_value trigger waiting for cart update events (current value ${currentCartValue} is outside range)`,
+      `[Revenue Boost] 💰 cart_value trigger: polling /cart.js every ${checkInterval}ms`,
     );
 
     return new Promise((resolve) => {
+      let resolved = false;
+      let pollIntervalId: number | null = null;
+
+      const resolveOnce = (source: string) => {
+        if (resolved) return;
+        resolved = true;
+        console.log(`[Revenue Boost] ✅ cart_value trigger conditions met (${source})`);
+
+        // Cleanup
+        if (pollIntervalId) {
+          window.clearInterval(pollIntervalId);
+        }
+        if (this.cartEventListener) {
+          this.cartEventListener.destroy();
+          this.cartEventListener = null;
+        }
+
+        resolve(true);
+      };
+
+      // PRIMARY: Poll /cart.js at regular intervals (the ONLY reliable Shopify method)
+      pollIntervalId = window.setInterval(async () => {
+        const cartValue = await fetchCartValue();
+        console.log(`[Revenue Boost] 💰 Polling /cart.js: $${cartValue}`);
+
+        if (isInRange(cartValue)) {
+          resolveOnce("polling /cart.js");
+        }
+      }, checkInterval);
+
+      // OPTIMIZATION: Also listen for theme events (may trigger faster on some themes)
+      // Note: These events are NOT standardized by Shopify - themes may or may not emit them
       this.cartEventListener = new CartEventListener({
-        events: ["cart_update"],
-        trackCartValue: true,
-        minCartValue,
-        maxCartValue,
+        events: ["cart_update", "add_to_cart"],
+        trackCartValue: false, // Don't rely on event detail, we'll check /cart.js
+        minCartValue: 0,
+        maxCartValue: Infinity,
       });
 
-      this.cartEventListener.start((event) => {
-        if (event.type !== "cart_update") return;
-        console.log("[Revenue Boost] ✅ cart_value trigger conditions met (cart update event)");
-        resolve(true);
+      this.cartEventListener.start(async () => {
+        // On any cart event, immediately poll /cart.js to get accurate value
+        const cartValue = await fetchCartValue();
+        console.log(`[Revenue Boost] 💰 Cart event detected, fetched /cart.js: $${cartValue}`);
+
+        if (isInRange(cartValue)) {
+          resolveOnce("cart event + /cart.js check");
+        }
+      });
+
+      // Store cleanup functions
+      this.cleanupFunctions.push(() => {
+        if (pollIntervalId) {
+          window.clearInterval(pollIntervalId);
+        }
       });
     });
   }

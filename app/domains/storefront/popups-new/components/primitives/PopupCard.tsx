@@ -37,11 +37,11 @@ export const PopupCard: React.FC<PopupCardProps> = ({
   const theme = varsFromDesign(design, size);
 
   // Adjust max-width for cart variant if needed (per spec analysis)
-  const variantStyle = { ...theme.style };
+  const variantStyle = { ...theme.style } as Record<string, string>;
   if (variant === "cart") {
     // Cart often needs a bit more width on medium/large to fit table + sidebar
-    if (size === "medium") (variantStyle as any)["--rb-popup-max-w"] = "640px";
-    if (size === "large") (variantStyle as any)["--rb-popup-max-w"] = "840px";
+    if (size === "medium") variantStyle["--rb-popup-max-w"] = "640px";
+    if (size === "large") variantStyle["--rb-popup-max-w"] = "840px";
   }
 
   const cardStyles: React.CSSProperties = {
@@ -63,7 +63,7 @@ export const PopupCard: React.FC<PopupCardProps> = ({
     boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
 
     // Container queries via CSS variable
-    containerType: "inline-size" as any,
+    containerType: "inline-size",
     containerName: "popup-card",
 
     ...variantStyle,

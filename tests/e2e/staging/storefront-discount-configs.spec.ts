@@ -12,7 +12,9 @@ import {
     fillEmailInShadowDOM,
     submitFormInShadowDOM,
     waitForFormSuccess,
-    verifyDiscountCodeDisplayed
+    verifyDiscountCodeDisplayed,
+    cleanupAllE2ECampaigns,
+    MAX_TEST_PRIORITY
 } from './helpers/test-helpers';
 import { CampaignFactory } from './factories/campaign-factory';
 
@@ -61,9 +63,8 @@ test.describe.serial('Discount Configurations', () => {
     });
 
     test.beforeEach(async ({ page }) => {
-        await prisma.campaign.deleteMany({
-            where: { name: { startsWith: TEST_PREFIX } }
-        });
+        // Clean up ALL E2E campaigns to avoid priority conflicts
+        await cleanupAllE2ECampaigns(prisma);
 
         await mockChallengeToken(page);
         await page.context().clearCookies();
@@ -93,7 +94,7 @@ test.describe.serial('Discount Configurations', () => {
 
         const campaign = await (await factory.newsletter().init())
             .withName('Discount-Percentage-25')
-            .withPriority(9701)
+            .withPriority(MAX_TEST_PRIORITY)
             .withPercentageDiscount(25, discountCode)
             .create();
 
@@ -149,7 +150,7 @@ test.describe.serial('Discount Configurations', () => {
     test('shows percentage discount value in popup content', async ({ page }) => {
         const campaign = await (await factory.newsletter().init())
             .withName('Discount-ShowPercent')
-            .withPriority(9702)
+            .withPriority(MAX_TEST_PRIORITY)
             .withPercentageDiscount(25, 'PERCENT25')
             .withHeadline('Get 25% Off Your Order!')
             .create();
@@ -183,7 +184,7 @@ test.describe.serial('Discount Configurations', () => {
     test('shows fixed amount discount in popup', async ({ page }) => {
         const campaign = await (await factory.newsletter().init())
             .withName('Discount-Fixed-10')
-            .withPriority(9703)
+            .withPriority(MAX_TEST_PRIORITY)
             .withFixedAmountDiscount(10, 'SAVE10')
             .withHeadline('Get $10 Off Your Order!')
             .create();
@@ -215,7 +216,7 @@ test.describe.serial('Discount Configurations', () => {
     test('shows free shipping messaging', async ({ page }) => {
         const campaign = await (await factory.newsletter().init())
             .withName('Discount-FreeShip')
-            .withPriority(9704)
+            .withPriority(MAX_TEST_PRIORITY)
             .withFreeShippingDiscount('FREESHIP')
             .withHeadline('Get Free Shipping!')
             .create();
@@ -252,7 +253,7 @@ test.describe.serial('Discount Configurations', () => {
 
         const campaign = await (await factory.newsletter().init())
             .withName('Discount-Copy-Test')
-            .withPriority(9705)
+            .withPriority(MAX_TEST_PRIORITY)
             .withPercentageDiscount(20, discountCode)
             .create();
 

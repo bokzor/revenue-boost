@@ -84,6 +84,22 @@ export function HeroSection() {
               <span className="font-semibold text-foreground">Free plan available</span>
             </div>
           </div>
+
+          {/* ESP Integrations */}
+          <div className="mt-6 flex flex-col items-center gap-2">
+            <span className="text-xs text-muted-foreground">Works with your email platform</span>
+            <div className="flex items-center gap-4 text-sm font-medium text-muted-foreground/70">
+              <span>Klaviyo</span>
+              <span>•</span>
+              <span>Mailchimp</span>
+              <span>•</span>
+              <span>Omnisend</span>
+              <span>•</span>
+              <span>ActiveCampaign</span>
+              <span>•</span>
+              <span className="text-muted-foreground/50">+ any Shopify-synced ESP</span>
+            </div>
+          </div>
         </div>
 
         {/* Hero Preview */}

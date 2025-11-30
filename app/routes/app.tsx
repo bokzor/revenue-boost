@@ -107,6 +107,7 @@ export default function App() {
 
   return (
     <AppProvider embedded apiKey={apiKey}>
+      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any -- Polaris Link type incompatibility */}
       <PolarisAppProvider i18n={en} linkComponent={Link as any}>
         <BillingContext.Provider value={billingContextValue}>
           <s-app-nav>

@@ -74,7 +74,7 @@ export function FlashSaleContentSection({
     updateField("reserve", { ...reserve, [field]: value } as Partial<FlashSaleContent>["reserve"]);
   };
 
-  const updatePresentationField = (field: string, value: unknown) => {
+  const _updatePresentationField = (field: string, value: unknown) => {
     const presentation = (content.presentation || {}) as Record<string, unknown>;
     updateField("presentation", {
       ...presentation,
@@ -624,7 +624,7 @@ function DateTimePickerField({ label, value, onChange, helpText }: DateTimePicke
     { label: "45", value: "45" },
   ];
 
-  const handleDateChange = (newDate: any) => {
+  const handleDateChange = (newDate: unknown) => {
     try {
       console.log("DatePicker returned:", newDate);
 
@@ -632,17 +632,20 @@ function DateTimePickerField({ label, value, onChange, helpText }: DateTimePicke
       let dateToUse;
 
       if (newDate && typeof newDate === "object") {
+        // Type for DatePicker range object
+        const dateObj = newDate as { start?: Date; year?: number; month?: number; day?: number };
+
         // If it's a range object with start/end, use the start date
-        if (newDate.start) {
-          dateToUse = newDate.start;
+        if (dateObj.start) {
+          dateToUse = dateObj.start;
         }
         // If it's already a date object with year/month/day
         else if (
-          newDate.year !== undefined &&
-          newDate.month !== undefined &&
-          newDate.day !== undefined
+          dateObj.year !== undefined &&
+          dateObj.month !== undefined &&
+          dateObj.day !== undefined
         ) {
-          dateToUse = new Date(newDate.year, newDate.month, newDate.day);
+          dateToUse = new Date(dateObj.year, dateObj.month, dateObj.day);
         }
         // If it's a Date object
         else if (newDate instanceof Date) {

@@ -1,6 +1,5 @@
 import { test, expect } from '@playwright/test';
 import { PrismaClient } from '@prisma/client';
-import fs from 'fs';
 import path from 'path';
 import * as dotenv from 'dotenv';
 import { CampaignFactory } from './factories/campaign-factory';
@@ -14,12 +13,13 @@ import {
     submitFormInShadowDOM,
     hasTextInShadowDOM,
     getFormInputsFromShadowDOM,
-    mockLeadSubmission,
     getTestPrefix,
     waitForPopupWithRetry,
     verifyNewsletterContent,
     waitForFormSuccess,
-    verifyDiscountCodeDisplayed
+    verifyDiscountCodeDisplayed,
+    cleanupAllE2ECampaigns,
+    MAX_TEST_PRIORITY
 } from './helpers/test-helpers';
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env.staging.env'), override: true });
@@ -29,12 +29,15 @@ const TEST_PREFIX = getTestPrefix('storefront-newsletter.spec.ts');
 /**
  * Newsletter Template E2E Tests
  *
- * Tests ACTUAL newsletter popup functionality:
+ * Tests ACTUAL newsletter popup functionality against deployed extension code:
  * - Email input is present and functional
  * - Custom headlines display correctly
  * - GDPR checkbox appears when enabled
- * - Form submission shows discount code
+ * - Form submission shows discount code (real API)
  * - Validation errors display properly
+ *
+ * NOTE: No bundle mocking - tests use deployed extension code.
+ * No API mocking - tests use real lead submission API.
  */
 
 test.describe.serial('Newsletter Template', () => {
@@ -73,28 +76,19 @@ test.describe.serial('Newsletter Template', () => {
     });
 
     test.beforeEach(async ({ page }) => {
-        await prisma.campaign.deleteMany({
-            where: { name: { startsWith: TEST_PREFIX } }
-        });
+        // Clean up ALL E2E campaigns to avoid priority conflicts
+        await cleanupAllE2ECampaigns(prisma);
 
         await page.waitForTimeout(500);
         await mockChallengeToken(page);
         await page.context().clearCookies();
 
-        await page.route('**/newsletter.bundle.js*', async route => {
-            const bundlePath = path.join(process.cwd(), 'extensions/storefront-popup/assets/newsletter.bundle.js');
-            const content = fs.readFileSync(bundlePath);
-            await route.fulfill({
-                status: 200,
-                contentType: 'application/javascript',
-                body: content,
-            });
-        });
+        // No bundle mocking - tests use deployed extension code
     });
 
     test('renders with email input and submit button', async ({ page }) => {
         const campaign = await (await factory.newsletter().init())
-            .withPriority(9001)
+            .withPriority(MAX_TEST_PRIORITY)
             .create();
         console.log(`✅ Campaign created: ${campaign.id}`);
 
@@ -127,7 +121,7 @@ test.describe.serial('Newsletter Template', () => {
         const gdprText = 'I agree to receive marketing emails';
 
         const campaign = await (await factory.newsletter().init())
-            .withPriority(9002)
+            .withPriority(MAX_TEST_PRIORITY)
             .withGdprCheckbox(true, gdprText)
             .create();
 
@@ -221,12 +215,10 @@ test.describe.serial('Newsletter Template', () => {
     });
 
     test('email input accepts valid email and submits form', async ({ page }) => {
-        const discountCode = 'NEWSLETTER10';
-
-        await mockLeadSubmission(page, discountCode);
+        // No API mocking - test against real lead submission API
 
         const campaign = await (await factory.newsletter().init())
-            .withPriority(9004)
+            .withPriority(MAX_TEST_PRIORITY)
             .withHeadline('Get 10% Off')
             .create();
 
@@ -238,18 +230,13 @@ test.describe.serial('Newsletter Template', () => {
         await handlePasswordPage(page);
 
         const popupVisible = await waitForPopupWithRetry(page, { timeout: 15000, retries: 3 });
-        if (!popupVisible) {
-            console.log('⚠️ Popup not visible - skipping form submission test');
-            return;
-        }
+        expect(popupVisible).toBe(true);
+        console.log('✅ Popup visible');
 
-        // Fill email
+        // Fill email with unique timestamp
         const testEmail = `test-${Date.now()}@example.com`;
         const emailFilled = await fillEmailInShadowDOM(page, testEmail);
-        if (!emailFilled) {
-            console.log('⚠️ Could not fill email - popup may have different structure');
-            return;
-        }
+        expect(emailFilled).toBe(true);
         console.log(`✅ Email "${testEmail}" filled successfully`);
 
         // Submit form
@@ -257,28 +244,18 @@ test.describe.serial('Newsletter Template', () => {
         expect(submitted).toBe(true);
         console.log('✅ Form submitted');
 
-        // Wait for success state
+        // Wait for success state - hard assertion
         const success = await waitForFormSuccess(page, 10000);
+        expect(success).toBe(true);
+        console.log('✅ Form submission success state detected');
 
-        if (success) {
-            console.log('✅ Form submission success state detected');
-
-            // Verify discount code appears
-            const discountResult = await verifyDiscountCodeDisplayed(page, discountCode);
-            if (discountResult.found) {
-                console.log(`✅ Discount code "${discountCode}" displayed`);
-            } else {
-                // Check for any success message
-                const hasSuccessMessage = await hasTextInShadowDOM(page, 'thank') ||
-                    await hasTextInShadowDOM(page, 'success') ||
-                    await hasTextInShadowDOM(page, 'congratulation');
-                if (hasSuccessMessage) {
-                    console.log('✅ Success message displayed');
-                }
-            }
-        } else {
-            console.log('⚠️ Form submission success not detected - may need API verification');
-        }
+        // Verify success message is displayed
+        const hasSuccessMessage = await hasTextInShadowDOM(page, 'thank') ||
+            await hasTextInShadowDOM(page, 'success') ||
+            await hasTextInShadowDOM(page, 'congratulation') ||
+            await hasTextInShadowDOM(page, 'subscribed');
+        expect(hasSuccessMessage).toBe(true);
+        console.log('✅ Success message displayed');
     });
 
     test('custom button text is displayed', async ({ page }) => {

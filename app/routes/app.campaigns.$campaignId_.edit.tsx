@@ -87,9 +87,10 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     const parsedSettings = StoreSettingsSchema.partial().safeParse(store?.settings || {});
 
     // Use best practice defaults if store hasn't configured frequency capping yet
+    // Global capping is disabled by default to maximize impressions
     const storeFrequencyCapping = parsedSettings.success ? parsedSettings.data.frequencyCapping : undefined;
     const globalFrequencyCapping = storeFrequencyCapping ?? {
-      enabled: true,
+      enabled: false,
       ...GLOBAL_FREQUENCY_BEST_PRACTICES,
     };
 
@@ -422,14 +423,20 @@ export default function CampaignEditPage() {
   );
 }
 
+interface PlanLimitErrorDetails {
+  limit?: number;
+  current?: number;
+  tier?: string;
+}
+
 async function tryParsePlanLimitError(
   response: Response
-): Promise<{ message: string; details: any } | null> {
+): Promise<{ message: string; details: PlanLimitErrorDetails } | null> {
   try {
     if (response.status !== 403) return null;
-    const body: any = await response.json();
+    const body = await response.json() as { errorCode?: string; error?: string; errorDetails?: PlanLimitErrorDetails };
     if (body?.errorCode !== "PLAN_LIMIT_EXCEEDED") return null;
-    return { message: body.error ?? "Plan limit reached", details: body.errorDetails };
+    return { message: body.error ?? "Plan limit reached", details: body.errorDetails ?? {} };
   } catch {
     return null;
   }

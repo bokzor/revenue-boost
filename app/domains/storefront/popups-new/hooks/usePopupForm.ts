@@ -181,12 +181,13 @@ export function usePopupForm(options: UsePopupFormOptions) {
             throw new Error(result.error || "Submission failed");
           }
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error("Form submission error:", error);
+        const errorMessage = error instanceof Error ? error.message : "Something went wrong. Please try again.";
         setErrors({
-          email: error.message || "Something went wrong. Please try again.",
+          email: errorMessage,
         });
-        return { success: false, error: error.message };
+        return { success: false, error: errorMessage };
       } finally {
         setIsSubmitting(false);
       }

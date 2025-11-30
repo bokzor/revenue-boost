@@ -796,7 +796,7 @@ async function getOrCreateTieredDiscount(
   }
 
   // Array to hold newly created tier codes (used when needsRecreation is true)
-  let newTierCodes: TierCodeMetadata[] = [];
+  const newTierCodes: TierCodeMetadata[] = [];
 
   // Create tier codes if needed
   if (needsRecreation) {

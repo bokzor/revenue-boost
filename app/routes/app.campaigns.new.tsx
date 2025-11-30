@@ -14,6 +14,7 @@ import { authenticate } from "~/shopify.server";
 import { getStoreId } from "~/lib/auth-helpers.server";
 import { CampaignFormWithABTesting } from "~/domains/campaigns/components/CampaignFormWithABTesting";
 import type { CampaignFormData } from "~/shared/hooks/useWizardState";
+import type { TemplateType, CampaignGoal } from "~/domains/campaigns/types/campaign";
 import { useState } from "react";
 import { Modal, Text, Toast, Frame } from "@shopify/polaris";
 import type { UnifiedTemplate } from "~/domains/popups/services/templates/unified-template-service.server";
@@ -66,9 +67,10 @@ export async function loader({ request }: LoaderFunctionArgs) {
     const parsedSettings = StoreSettingsSchema.partial().safeParse(store?.settings || {});
 
     // Use best practice defaults if store hasn't configured frequency capping yet
+    // Global capping is disabled by default to maximize impressions
     const storeFrequencyCapping = parsedSettings.success ? parsedSettings.data.frequencyCapping : undefined;
     const globalFrequencyCapping = storeFrequencyCapping ?? {
-      enabled: true,
+      enabled: false,
       ...GLOBAL_FREQUENCY_BEST_PRACTICES,
     };
 
@@ -430,8 +432,8 @@ export default function NewCampaign() {
         initialData={
           templateType || preselectedGoal
             ? {
-                templateType: templateType as any,
-                goal: preselectedGoal as any,
+                templateType: templateType as TemplateType | undefined,
+                goal: preselectedGoal as CampaignGoal | undefined,
               }
             : undefined
         }
@@ -530,14 +532,20 @@ export default function NewCampaign() {
   );
 }
 
+interface PlanLimitErrorDetails {
+  limit?: number;
+  current?: number;
+  tier?: string;
+}
+
 async function tryParsePlanLimitError(
   response: Response
-): Promise<{ message: string; details: any } | null> {
+): Promise<{ message: string; details: PlanLimitErrorDetails } | null> {
   try {
     if (response.status !== 403) return null;
-    const body: any = await response.json();
+    const body = await response.json() as { errorCode?: string; error?: string; errorDetails?: PlanLimitErrorDetails };
     if (body?.errorCode !== "PLAN_LIMIT_EXCEEDED") return null;
-    return { message: body.error ?? "Plan limit reached", details: body.errorDetails };
+    return { message: body.error ?? "Plan limit reached", details: body.errorDetails ?? {} };
   } catch {
     return null;
   }

@@ -23,8 +23,7 @@ import {
   formatDateRange,
   validateScheduleDates,
 } from "../../utils/schedule-helpers";
-import { UpgradeBanner } from "~/domains/billing/components/UpgradeBanner";
-import { useFeatureAccess } from "~/domains/billing/components/UpgradeBanner";
+import { UpgradeBanner , useFeatureAccess } from "~/domains/billing/components/UpgradeBanner";
 
 interface ScheduleDateSectionProps {
   startDate?: string;

@@ -568,85 +568,6 @@ describe("CampaignFilterService", () => {
   });
 
   describe("filterByAudienceSegments", () => {
-    it("should include campaigns when session rules match context", async () => {
-      const campaigns: CampaignWithConfigs[] = [
-        {
-          id: "campaign-active-shopper",
-          name: "Active Shopper Campaign",
-          storeId: "store-1",
-          templateType: "NEWSLETTER",
-          status: "ACTIVE",
-          priority: 0,
-          targetRules: {
-            audienceTargeting: {
-              enabled: true,
-              sessionRules: {
-                enabled: true,
-                logicOperator: "AND",
-                conditions: [
-                  { field: "cartItemCount", operator: "gt", value: 0 },
-                  { field: "addedToCartInSession", operator: "eq", value: true },
-                ],
-              },
-            },
-          },
-        } as CampaignWithConfigs,
-      ];
-
-      const context: StorefrontContext = {
-        cartItemCount: 2,
-        addedToCartInSession: true,
-      };
-
-      const filtered = await CampaignFilterService.filterByAudienceSegments(
-        campaigns,
-        context,
-        "store-1",
-      );
-
-      expect(filtered).toHaveLength(1);
-      expect(filtered[0].id).toBe("campaign-active-shopper");
-    });
-
-    it("should exclude campaigns when session rules do not match context", async () => {
-      const campaigns: CampaignWithConfigs[] = [
-        {
-          id: "campaign-active-shopper",
-          name: "Active Shopper Campaign",
-          storeId: "store-1",
-          templateType: "NEWSLETTER",
-          status: "ACTIVE",
-          priority: 0,
-          targetRules: {
-            audienceTargeting: {
-              enabled: true,
-              sessionRules: {
-                enabled: true,
-                logicOperator: "AND",
-                conditions: [
-                  { field: "cartItemCount", operator: "gt", value: 0 },
-                  { field: "addedToCartInSession", operator: "eq", value: true },
-                ],
-              },
-            },
-          },
-        } as CampaignWithConfigs,
-      ];
-
-      const context: StorefrontContext = {
-        cartItemCount: 0,
-        addedToCartInSession: false,
-      };
-
-      const filtered = await CampaignFilterService.filterByAudienceSegments(
-        campaigns,
-        context,
-        "store-1",
-      );
-
-      expect(filtered).toHaveLength(0);
-    });
-
     it("should include campaign when audience targeting is disabled", async () => {
       const campaigns: CampaignWithConfigs[] = [
         {
@@ -659,19 +580,13 @@ describe("CampaignFilterService", () => {
           targetRules: {
             audienceTargeting: {
               enabled: false,
-              sessionRules: {
-                enabled: true,
-                logicOperator: "AND",
-                conditions: [{ field: "cartItemCount", operator: "gt", value: 0 }],
-              },
+              shopifySegmentIds: [],
             },
           },
-        } as CampaignWithConfigs,
+        } as unknown as CampaignWithConfigs,
       ];
 
-      const context: StorefrontContext = {
-        cartItemCount: 0,
-      };
+      const context: StorefrontContext = {};
 
       const filtered = await CampaignFilterService.filterByAudienceSegments(
         campaigns,
@@ -683,11 +598,11 @@ describe("CampaignFilterService", () => {
       expect(filtered[0].id).toBe("campaign-no-audience");
     });
 
-    it("should include campaign when no session rules are configured", async () => {
+    it("should include campaign when audience targeting is enabled without segments", async () => {
       const campaigns: CampaignWithConfigs[] = [
         {
-          id: "campaign-no-session-rules",
-          name: "No Session Rules",
+          id: "campaign-no-segments",
+          name: "No Segments",
           storeId: "store-1",
           templateType: "NEWSLETTER",
           status: "ACTIVE",
@@ -695,15 +610,13 @@ describe("CampaignFilterService", () => {
           targetRules: {
             audienceTargeting: {
               enabled: true,
-              // sessionRules: undefined
+              shopifySegmentIds: [],
             },
           },
-        } as CampaignWithConfigs,
+        } as unknown as CampaignWithConfigs,
       ];
 
-      const context: StorefrontContext = {
-        cartItemCount: 0,
-      };
+      const context: StorefrontContext = {};
 
       const filtered = await CampaignFilterService.filterByAudienceSegments(
         campaigns,
@@ -712,7 +625,7 @@ describe("CampaignFilterService", () => {
       );
 
       expect(filtered).toHaveLength(1);
-      expect(filtered[0].id).toBe("campaign-no-session-rules");
+      expect(filtered[0].id).toBe("campaign-no-segments");
     });
 
   });

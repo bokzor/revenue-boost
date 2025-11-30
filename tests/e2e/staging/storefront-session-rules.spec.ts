@@ -10,7 +10,9 @@ import {
     getTestPrefix,
     closePopupInShadowDOM,
     waitForPopupWithRetry,
-    verifyNewsletterContent
+    verifyNewsletterContent,
+    cleanupAllE2ECampaigns,
+    MAX_TEST_PRIORITY
 } from './helpers/test-helpers';
 import { CampaignFactory } from './factories/campaign-factory';
 
@@ -60,9 +62,8 @@ test.describe.serial('Session Rules & Frequency Capping', () => {
     });
 
     test.beforeEach(async ({ page }) => {
-        await prisma.campaign.deleteMany({
-            where: { name: { startsWith: TEST_PREFIX } }
-        });
+        // Clean up ALL E2E campaigns to avoid priority conflicts
+        await cleanupAllE2ECampaigns(prisma);
 
         await mockChallengeToken(page);
 
@@ -74,7 +75,7 @@ test.describe.serial('Session Rules & Frequency Capping', () => {
         // Create campaign with max 1 impression per session
         const campaign = await (await factory.newsletter().init())
             .withName('Session-Max-1-Browser')
-            .withPriority(9501)
+            .withPriority(MAX_TEST_PRIORITY)
             .withMaxImpressionsPerSession(1)
             .create();
 
@@ -133,7 +134,7 @@ test.describe.serial('Session Rules & Frequency Capping', () => {
         // Create campaign with max 1 impression per session
         const campaign = await (await factory.newsletter().init())
             .withName('Session-Reset-Test')
-            .withPriority(9502)
+            .withPriority(MAX_TEST_PRIORITY)
             .withMaxImpressionsPerSession(1)
             .create();
 
@@ -196,7 +197,7 @@ test.describe.serial('Session Rules & Frequency Capping', () => {
         // Create campaign with max 3 impressions per session
         const campaign = await (await factory.newsletter().init())
             .withName('Session-Max-3-Browser')
-            .withPriority(9503)
+            .withPriority(MAX_TEST_PRIORITY)
             .withMaxImpressionsPerSession(3)
             .create();
 
@@ -243,7 +244,7 @@ test.describe.serial('Session Rules & Frequency Capping', () => {
         // Create campaign with max 1 impression per session
         const campaign = await (await factory.newsletter().init())
             .withName('Session-Navigation-Test')
-            .withPriority(9504)
+            .withPriority(MAX_TEST_PRIORITY)
             .withMaxImpressionsPerSession(1)
             .create();
 

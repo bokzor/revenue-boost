@@ -16,6 +16,9 @@ import { SpinToWinPopup, type SpinToWinConfig } from "../popups-new/SpinToWinPop
 import type { StorefrontCampaign } from "~/shared/types/campaign";
 import { PopupManagerCore, type PopupManagerCallbacks } from "./PopupManagerCore";
 
+// Type alias for dynamic campaign configuration access
+type CampaignRecord = Record<string, unknown>;
+
 // Re-export types from the original PopupManager for compatibility
 export interface CampaignPopupConfig extends PopupConfig {
   campaignId: string;
@@ -307,8 +310,9 @@ export const PopupManager: React.FC<PopupManagerProps> = ({
       case "newsletter":
       case "newsletter-elegant":
       case "newsletter-minimal": {
-        const content = activeCampaign.contentConfig as any;
-        const design = (activeCampaign as any).designConfig || {};
+        const content = activeCampaign.contentConfig as CampaignRecord;
+        const design = ((activeCampaign as CampaignRecord).designConfig || {}) as CampaignRecord;
+        const campaignRecord = activeCampaign as CampaignRecord;
 
         return (
           <NewsletterPopup
@@ -318,8 +322,8 @@ export const PopupManager: React.FC<PopupManagerProps> = ({
               {
                 ...content,
                 ...design,
-                id: activeCampaign.campaignId || (activeCampaign as any).id,
-                campaignId: activeCampaign.campaignId || (activeCampaign as any).id,
+                id: activeCampaign.campaignId || (campaignRecord.id as string),
+                campaignId: activeCampaign.campaignId || (campaignRecord.id as string),
                 headline: content.headline || activeCampaign.title || "Join our newsletter",
                 subheadline: content.subheadline || activeCampaign.description || "",
                 buttonText: content.buttonText || activeCampaign.buttonText || "Subscribe",
@@ -334,7 +338,7 @@ export const PopupManager: React.FC<PopupManagerProps> = ({
                   design.buttonTextColor || activeCampaign.buttonTextColor || "#FFFFFF",
                 imageUrl: design.imageUrl || activeCampaign.imageUrl,
                 imagePosition: design.imagePosition || activeCampaign.imagePosition,
-                theme: design.theme || (activeCampaign as any).theme,
+                theme: design.theme || campaignRecord.theme,
                 discount: activeCampaign.discountConfig?.enabled
                   ? {
                       enabled: true,
@@ -362,8 +366,9 @@ export const PopupManager: React.FC<PopupManagerProps> = ({
       case "spin-to-win":
       // falls through
       case "lottery": {
-        const content = activeCampaign.contentConfig as any;
-        const design = (activeCampaign as any).designConfig || {};
+        const content = activeCampaign.contentConfig as CampaignRecord;
+        const design = ((activeCampaign as CampaignRecord).designConfig || {}) as CampaignRecord;
+        const campaignRecord = activeCampaign as CampaignRecord;
 
         return (
           <SpinToWinPopup
@@ -375,8 +380,8 @@ export const PopupManager: React.FC<PopupManagerProps> = ({
                 ...content,
                 ...design,
                 // IDs
-                id: activeCampaign.campaignId || (activeCampaign as any).id,
-                campaignId: activeCampaign.campaignId || (activeCampaign as any).id,
+                id: activeCampaign.campaignId || (campaignRecord.id as string),
+                campaignId: activeCampaign.campaignId || (campaignRecord.id as string),
                 // Ensure wheelSegments are present for the wheel
                 wheelSegments: content.wheelSegments || [],
                 // Fallbacks for core copy
@@ -401,8 +406,9 @@ export const PopupManager: React.FC<PopupManagerProps> = ({
       }
 
       case "scratch-card": {
-        const content = activeCampaign.contentConfig as any;
-        const design = (activeCampaign as any).designConfig || {};
+        const content = activeCampaign.contentConfig as CampaignRecord;
+        const design = ((activeCampaign as CampaignRecord).designConfig || {}) as CampaignRecord;
+        const campaignRecord = activeCampaign as CampaignRecord;
 
         return (
           <ScratchCardPopup
@@ -412,8 +418,8 @@ export const PopupManager: React.FC<PopupManagerProps> = ({
               {
                 ...content,
                 ...design,
-                id: activeCampaign.campaignId || (activeCampaign as any).id,
-                campaignId: activeCampaign.campaignId || (activeCampaign as any).id,
+                id: activeCampaign.campaignId || (campaignRecord.id as string),
+                campaignId: activeCampaign.campaignId || (campaignRecord.id as string),
                 prizes: content.prizes || [],
                 headline: content.headline || activeCampaign.title || "Scratch to Win!",
                 subheadline: content.subheadline || activeCampaign.description || "",
@@ -512,14 +518,14 @@ export const PopupManager: React.FC<PopupManagerProps> = ({
                   activeCampaign.buttonText ||
                   "Continue",
                 emailPlaceholder:
-                  (activeCampaign.contentConfig as any)?.emailPlaceholder || "Enter your email",
+                  (activeCampaign.contentConfig as CampaignRecord | undefined)?.emailPlaceholder as string || "Enter your email",
                 backgroundColor: activeCampaign.backgroundColor || "#FFFFFF",
                 textColor: activeCampaign.textColor || "#000000",
                 buttonColor: activeCampaign.buttonColor || "#007BFF",
                 buttonTextColor: activeCampaign.buttonTextColor || "#FFFFFF",
                 imageUrl: activeCampaign.imageUrl,
                 imagePosition: activeCampaign.imagePosition,
-                theme: (activeCampaign as any).theme,
+                theme: (activeCampaign as CampaignRecord).theme,
                 discount: activeCampaign.discountConfig?.enabled
                   ? {
                       enabled: true,

@@ -1,6 +1,5 @@
 import { test, expect } from '@playwright/test';
 import { PrismaClient } from '@prisma/client';
-import fs from 'fs';
 import path from 'path';
 import * as dotenv from 'dotenv';
 import { CampaignFactory } from './factories/campaign-factory';
@@ -13,7 +12,9 @@ import {
     getTestPrefix,
     verifySpinToWinContent,
     fillEmailInShadowDOM,
-    waitForPopupWithRetry
+    waitForPopupWithRetry,
+    cleanupAllE2ECampaigns,
+    MAX_TEST_PRIORITY
 } from './helpers/test-helpers';
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env.staging.env'), override: true });
@@ -23,11 +24,13 @@ const TEST_PREFIX = getTestPrefix('storefront-spin-to-win.spec.ts');
 /**
  * Spin to Win Template E2E Tests
  *
- * Tests ACTUAL wheel rendering and content:
+ * Tests ACTUAL wheel rendering and content against deployed extension code:
  * - Wheel segments are rendered with correct labels
  * - Email input appears when required
  * - Spin button is functional
  * - Custom headlines are displayed
+ *
+ * NOTE: No bundle mocking - tests use deployed extension code.
  */
 
 test.describe.serial('Spin to Win Template', () => {
@@ -66,28 +69,18 @@ test.describe.serial('Spin to Win Template', () => {
     });
 
     test.beforeEach(async ({ page }) => {
-        await prisma.campaign.deleteMany({
-            where: { name: { startsWith: TEST_PREFIX } }
-        });
+        // Clean up ALL E2E campaigns to avoid priority conflicts
+        await cleanupAllE2ECampaigns(prisma);
 
         await mockChallengeToken(page);
         await page.context().clearCookies();
 
-        // Intercept bundle to test latest code
-        await page.route('**/spin-to-win.bundle.js*', async route => {
-            const bundlePath = path.join(process.cwd(), 'extensions/storefront-popup/assets/spin-to-win.bundle.js');
-            const content = fs.readFileSync(bundlePath);
-            await route.fulfill({
-                status: 200,
-                contentType: 'application/javascript',
-                body: content,
-            });
-        });
+        // No bundle mocking - tests use deployed extension code
     });
 
     test('renders wheel with default segments', async ({ page }) => {
         const campaign = await (await factory.spinToWin().init())
-            .withPriority(9801)
+            .withPriority(MAX_TEST_PRIORITY)
             .create();
         console.log(`✅ Campaign created: ${campaign.id}`);
 
@@ -131,7 +124,7 @@ test.describe.serial('Spin to Win Template', () => {
         ];
 
         const campaign = await (await factory.spinToWin().init())
-            .withPriority(9802)
+            .withPriority(MAX_TEST_PRIORITY)
             .withSegments(customSegments)
             .create();
         console.log(`✅ Campaign created: ${campaign.id}`);
@@ -170,7 +163,7 @@ test.describe.serial('Spin to Win Template', () => {
 
     test('shows email input when required', async ({ page }) => {
         const campaign = await (await factory.spinToWin().init())
-            .withPriority(9803)
+            .withPriority(MAX_TEST_PRIORITY)
             .withEmailRequired(true)
             .create();
         console.log(`✅ Campaign created: ${campaign.id}`);
@@ -203,7 +196,7 @@ test.describe.serial('Spin to Win Template', () => {
         const customHeadline = 'Spin to Win Amazing Prizes!';
 
         const campaign = await (await factory.spinToWin().init())
-            .withPriority(9804)
+            .withPriority(MAX_TEST_PRIORITY)
             .withHeadline(customHeadline)
             .create();
         console.log(`✅ Campaign created: ${campaign.id}`);
@@ -241,7 +234,7 @@ test.describe.serial('Spin to Win Template', () => {
 
     test('spin button triggers wheel animation', async ({ page }) => {
         const campaign = await (await factory.spinToWin().init())
-            .withPriority(9805)
+            .withPriority(MAX_TEST_PRIORITY)
             .withEmailRequired(false) // No email required, spin directly
             .create();
         console.log(`✅ Campaign created: ${campaign.id}`);
@@ -331,7 +324,7 @@ test.describe.serial('Spin to Win Template', () => {
         console.log('🧪 Testing prize display after spin...');
 
         const campaign = await (await factory.spinToWin().init())
-            .withPriority(9806)
+            .withPriority(MAX_TEST_PRIORITY)
             .withEmailRequired(true)
             .create();
         console.log(`✅ Campaign created: ${campaign.id}`);
@@ -385,7 +378,7 @@ test.describe.serial('Spin to Win Template', () => {
         console.log('🧪 Testing GDPR checkbox in spin-to-win...');
 
         const campaign = await (await factory.spinToWin().init())
-            .withPriority(9807)
+            .withPriority(MAX_TEST_PRIORITY)
             .withGdprCheckbox(true, 'I consent to receive marketing emails')
             .create();
         console.log(`✅ Campaign created: ${campaign.id}`);

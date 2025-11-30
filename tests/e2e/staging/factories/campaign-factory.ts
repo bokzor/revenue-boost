@@ -590,7 +590,7 @@ class BaseBuilder<T extends BaseBuilder<T>> {
         if (!this.config) throw new Error('Config not initialized');
         this.config.targetRules.enhancedTriggers.idle_timer = {
             enabled: true,
-            idle_seconds: idleSeconds
+            idle_duration: idleSeconds  // Schema expects `idle_duration`, not `idle_seconds`
         };
         // Disable page_load to avoid conflicts
         this.config.targetRules.enhancedTriggers.page_load = {
@@ -628,9 +628,9 @@ class BaseBuilder<T extends BaseBuilder<T>> {
         if (!this.config) throw new Error('Config not initialized');
         this.config.targetRules.enhancedTriggers.add_to_cart = {
             enabled: true,
-            product_ids: options?.productIds || [],
-            collection_ids: options?.collectionIds || [],
-            delay_seconds: options?.delaySeconds ?? 0,
+            productIds: options?.productIds || [],
+            collectionIds: options?.collectionIds || [],
+            delay: options?.delaySeconds ?? 0,  // schema expects `delay`, not `delay_seconds`
             immediate: options?.immediate ?? true
         };
         // Disable page_load to avoid conflicts
@@ -1445,6 +1445,42 @@ export class AnnouncementBuilder extends BaseBuilder<AnnouncementBuilder> {
     }
 
     /**
+     * Set subheadline text
+     */
+    withSubheadline(subheadline: string): this {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.contentConfig.subheadline = subheadline;
+        return this;
+    }
+
+    /**
+     * Set button text
+     */
+    withButtonText(buttonText: string): this {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.contentConfig.buttonText = buttonText;
+        return this;
+    }
+
+    /**
+     * Set dismiss label text
+     */
+    withDismissLabel(dismissLabel: string): this {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.contentConfig.dismissLabel = dismissLabel;
+        return this;
+    }
+
+    /**
+     * Set position (top or bottom)
+     */
+    withPosition(position: 'top' | 'bottom'): this {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.designConfig.position = position;
+        return this;
+    }
+
+    /**
      * Set dismissible (show close button)
      */
     withDismissible(dismissible: boolean = true): this {
@@ -1799,13 +1835,38 @@ export class ExperimentBuilder {
                     priority: 99999, // High priority for testing
                     goal: 'NEWSLETTER_SIGNUP',
                     targetRules: {
-                        pageTargeting: { enabled: false },
-                        deviceTargeting: { enabled: false },
-                        geoTargeting: { enabled: false },
-                        audienceTargeting: { enabled: false },
+                        pageTargeting: {
+                            enabled: false,
+                            pages: [],
+                            excludePages: [],
+                            collections: [],
+                            productTags: [],
+                            customPatterns: []
+                        },
                         enhancedTriggers: {
-                            trigger_type: 'PAGE_LOAD',
-                            delay_seconds: 0
+                            enabled: true,
+                            page_load: {
+                                enabled: true,
+                                delay: 0
+                            },
+                            device_targeting: {
+                                enabled: true,
+                                device_types: ['desktop', 'tablet', 'mobile']
+                            },
+                            frequency_capping: {
+                                max_triggers_per_session: 999,
+                                max_triggers_per_day: 999,
+                                cooldown_between_triggers: 0
+                            }
+                        },
+                        audienceTargeting: {
+                            enabled: false,
+                            shopifySegmentIds: [],
+                            sessionRules: {
+                                enabled: false,
+                                conditions: [],
+                                logicOperator: 'AND'
+                            }
                         }
                     },
                     contentConfig: {

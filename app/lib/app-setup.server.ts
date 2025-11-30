@@ -20,6 +20,7 @@ import { ShopService } from "~/domains/shops/services/shop.server";
  *
  * Note: Store creation is handled by getStoreId in auth-helpers.server.ts
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- admin type varies by context
 export async function setupAppOnInstall(admin: any, shopDomain: string) {
   try {
     console.log(`[App Setup] Setting up app for ${shopDomain}`);
@@ -108,6 +109,7 @@ async function markSetupCompleted(storeId: string) {
 /**
  * Set app URL metafield so storefront knows where to fetch campaigns
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- admin type varies by context
 async function setAppUrlMetafield(admin: any, shop: string) {
   try {
     const appUrl = process.env.SHOPIFY_APP_URL;
@@ -242,11 +244,6 @@ async function createWelcomeCampaign(storeId: string) {
         audienceTargeting: {
           enabled: false,
           shopifySegmentIds: [],
-          sessionRules: {
-            enabled: false,
-            conditions: [],
-            logicOperator: "AND",
-          },
         },
         pageTargeting: {
           enabled: false,

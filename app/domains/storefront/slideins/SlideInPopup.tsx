@@ -34,7 +34,7 @@ export const SlideInPopup: React.FC<SlideInPopupProps> = ({
 
   const slideDirection = config.slideDirection || "right";
   const backgroundImageMode: "none" | "preset" | "file" =
-    (config.backgroundImageMode as any) ?? (config.imageUrl ? "file" : "none");
+    (config.backgroundImageMode as "none" | "preset" | "file" | undefined) ?? (config.imageUrl ? "file" : "none");
   const imageUrl = backgroundImageMode === "none" ? undefined : config.imageUrl;
 
   const getPositionStyles = (): React.CSSProperties => {

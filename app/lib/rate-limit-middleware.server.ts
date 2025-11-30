@@ -9,8 +9,8 @@ import { RateLimiter, RATE_LIMIT_CONFIGS } from "./rate-limiter.server";
 import type { RateLimitConfig } from "./rate-limiter.server";
 
 // Type definitions for loader/action args
-type LoaderFunctionArgs = { request: Request; params: any; context: any };
-type ActionFunctionArgs = { request: Request; params: any; context: any };
+type LoaderFunctionArgs = { request: Request; params: Record<string, string | undefined>; context: unknown };
+type ActionFunctionArgs = { request: Request; params: Record<string, string | undefined>; context: unknown };
 
 /**
  * Create JSON response

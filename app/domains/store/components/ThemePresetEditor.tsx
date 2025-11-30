@@ -101,6 +101,7 @@ export function ThemePresetEditor({
   // Generate wheel segment colors from the preset (recomputes when brandColor changes)
   const wheelColors = useMemo(
     () => getWheelColorsFromPreset(preset, 6),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- Only recompute on specific color changes, not entire preset object
     [preset.brandColor, preset.backgroundColor, preset.textColor]
   );
 
