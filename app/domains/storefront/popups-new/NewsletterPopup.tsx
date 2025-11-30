@@ -407,7 +407,7 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
         }
 
         .email-popup-secondary-button {
-          margin-top: 0.625rem;
+          margin-top: 1rem;
           width: 100%;
           background: transparent;
           border: none;
@@ -740,19 +740,15 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
                     inputTextColor={config.inputTextColor}
                     inputBorderColor={config.inputBorderColor}
                     privacyPolicyUrl={config.privacyPolicyUrl}
-                    extraFields={
-                      config.dismissLabel ? (
-                        <button
-                          type="button"
-                          className="email-popup-secondary-button"
-                          onClick={onClose}
-                          disabled={isSubmitting}
-                        >
-                          {config.dismissLabel}
-                        </button>
-                      ) : undefined
-                    }
                   />
+                  <button
+                    type="button"
+                    className="email-popup-secondary-button"
+                    onClick={onClose}
+                    disabled={isSubmitting}
+                  >
+                    {config.dismissLabel || "No thanks"}
+                  </button>
                 </>
               )}
             </div>
@@ -847,19 +843,15 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
                   inputTextColor={config.inputTextColor}
                   inputBorderColor={config.inputBorderColor}
                   privacyPolicyUrl={config.privacyPolicyUrl}
-                  extraFields={
-                    config.dismissLabel ? (
-                      <button
-                        type="button"
-                        className="email-popup-secondary-button"
-                        onClick={onClose}
-                        disabled={isSubmitting}
-                      >
-                        {config.dismissLabel}
-                      </button>
-                    ) : undefined
-                  }
                 />
+                <button
+                  type="button"
+                  className="email-popup-secondary-button"
+                  onClick={onClose}
+                  disabled={isSubmitting}
+                >
+                  {config.dismissLabel || "No thanks"}
+                </button>
               </>
             )}
           </div>

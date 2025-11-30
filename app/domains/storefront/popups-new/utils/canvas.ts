@@ -15,7 +15,7 @@ export interface WheelRenderOptions {
   wheelBorderWidth: number;
   hasSpun: boolean;
   wonPrize: Prize | null;
-  /** Optional: Enable enhanced casino-style rendering */
+  /** @deprecated No longer used - wheel now uses clean design by default */
   enableEnhancedStyle?: boolean;
 }
 
@@ -53,7 +53,7 @@ function getLuminance(hex: string): number {
 
 /**
  * Wheel Renderer for Spin-to-Win popup
- * Enhanced with casino-style visuals: gradients, decorative rings, metallic effects
+ * Clean, modern design with subtle gradients - colors are the primary differentiator
  */
 export class WheelRenderer {
   private canvas: HTMLCanvasElement;
@@ -75,7 +75,7 @@ export class WheelRenderer {
       wheelBorderWidth,
       hasSpun,
       wonPrize,
-      enableEnhancedStyle = true,
+      enableEnhancedStyle: _enableEnhancedStyle = true,
     } = options;
     const ctx = this.ctx;
 
@@ -87,19 +87,15 @@ export class WheelRenderer {
 
     const centerX = wheelSize / 2;
     const centerY = wheelSize / 2;
-    const outerRingWidth = enableEnhancedStyle ? wheelSize * 0.06 : 0;
-    const radiusPx = wheelSize / 2 - 10 - outerRingWidth;
+    // Clean design: no outer ring, just padding for the border
+    const padding = Math.max(wheelBorderWidth + 2, 8);
+    const radiusPx = wheelSize / 2 - padding;
     const segmentAngleRad = (2 * Math.PI) / Math.max(1, segments.length);
     const rotationRad = (rotation * Math.PI) / 180;
 
     ctx.clearRect(0, 0, wheelSize, wheelSize);
 
-    if (enableEnhancedStyle) {
-      // Draw outer decorative ring with tick marks (casino style)
-      this.drawOuterRing(ctx, centerX, centerY, radiusPx, outerRingWidth, segments.length, wheelBorderColor, rotationRad);
-    }
-
-    // Draw segments with gradients
+    // Draw segments with subtle gradients
     segments.forEach((segment, index) => {
       const baseAngle = index * segmentAngleRad - Math.PI / 2;
       const startAngle = rotationRad + baseAngle;
@@ -107,28 +103,11 @@ export class WheelRenderer {
       const baseColor = segment.color || accentColor;
       const isWinningSegment = hasSpun && wonPrize !== null && segment.id === wonPrize.id;
 
-      if (enableEnhancedStyle) {
-        // Draw segment with gradient fill
-        this.drawGradientSegment(ctx, centerX, centerY, radiusPx, startAngle, endAngle, baseColor, !!isWinningSegment);
+      // Draw segment with subtle gradient fill
+      this.drawCleanSegment(ctx, centerX, centerY, radiusPx, startAngle, endAngle, baseColor, !!isWinningSegment);
 
-        // Draw metallic segment separator
-        this.drawMetallicSeparator(ctx, centerX, centerY, radiusPx, startAngle, wheelBorderWidth);
-      } else {
-        // Draw basic segment
-        ctx.beginPath();
-        ctx.moveTo(centerX, centerY);
-        ctx.arc(centerX, centerY, radiusPx, startAngle, endAngle);
-        ctx.closePath();
-        ctx.fillStyle = baseColor;
-        ctx.fill();
-
-        // Draw border
-        const borderColor = isWinningSegment ? "#FFD700" : wheelBorderColor;
-        const borderWidth = isWinningSegment ? wheelBorderWidth + 2 : wheelBorderWidth;
-        ctx.strokeStyle = borderColor;
-        ctx.lineWidth = borderWidth;
-        ctx.stroke();
-      }
+      // Draw thin separator line between segments
+      this.drawSimpleSeparator(ctx, centerX, centerY, radiusPx, startAngle);
 
       // Draw text
       this.drawSegmentText(
@@ -144,97 +123,28 @@ export class WheelRenderer {
       );
     });
 
-    if (enableEnhancedStyle) {
-      // Draw inner decorative ring around center
-      this.drawInnerRing(ctx, centerX, centerY, wheelSize * 0.15, accentColor);
+    // Draw clean outer border
+    this.drawCleanBorder(ctx, centerX, centerY, radiusPx, wheelBorderColor, wheelBorderWidth);
 
-      // Draw winning segment highlight glow
-      if (hasSpun && wonPrize) {
-        const winningIndex = segments.findIndex((s) => s.id === wonPrize.id);
-        if (winningIndex !== -1) {
-          const baseAngle = winningIndex * segmentAngleRad - Math.PI / 2;
-          const startAngle = rotationRad + baseAngle;
-          const endAngle = startAngle + segmentAngleRad;
-          this.drawWinningGlow(ctx, centerX, centerY, radiusPx, startAngle, endAngle);
-        }
+    // Draw simple center circle
+    this.drawCleanCenter(ctx, centerX, centerY, wheelSize * 0.12, accentColor);
+
+    // Draw subtle winning highlight if applicable
+    if (hasSpun && wonPrize) {
+      const winningIndex = segments.findIndex((s) => s.id === wonPrize.id);
+      if (winningIndex !== -1) {
+        const baseAngle = winningIndex * segmentAngleRad - Math.PI / 2;
+        const startAngle = rotationRad + baseAngle;
+        const endAngle = startAngle + segmentAngleRad;
+        this.drawSubtleWinHighlight(ctx, centerX, centerY, radiusPx, startAngle, endAngle, accentColor);
       }
     }
   }
 
   /**
-   * Draw outer decorative ring with tick marks (casino style)
+   * Draw segment with subtle radial gradient for depth (clean style)
    */
-  private drawOuterRing(
-    ctx: CanvasRenderingContext2D,
-    centerX: number,
-    centerY: number,
-    innerRadius: number,
-    ringWidth: number,
-    segmentCount: number,
-    borderColor: string,
-    rotationRad: number
-  ) {
-    const outerRadius = innerRadius + ringWidth;
-
-    // Create metallic gradient for outer ring
-    const ringGradient = ctx.createRadialGradient(
-      centerX, centerY, innerRadius,
-      centerX, centerY, outerRadius
-    );
-    ringGradient.addColorStop(0, "#2a2a2a");
-    ringGradient.addColorStop(0.3, "#4a4a4a");
-    ringGradient.addColorStop(0.5, "#6a6a6a");
-    ringGradient.addColorStop(0.7, "#4a4a4a");
-    ringGradient.addColorStop(1, "#1a1a1a");
-
-    // Draw ring background
-    ctx.beginPath();
-    ctx.arc(centerX, centerY, outerRadius, 0, Math.PI * 2);
-    ctx.arc(centerX, centerY, innerRadius, 0, Math.PI * 2, true);
-    ctx.closePath();
-    ctx.fillStyle = ringGradient;
-    ctx.fill();
-
-    // Draw tick marks for each segment
-    const tickCount = segmentCount * 2; // Double the ticks for visual density
-    for (let i = 0; i < tickCount; i++) {
-      const angle = rotationRad + (i * Math.PI * 2) / tickCount - Math.PI / 2;
-      const isMainTick = i % 2 === 0;
-      const tickInner = isMainTick ? innerRadius + ringWidth * 0.2 : innerRadius + ringWidth * 0.4;
-      const tickOuter = innerRadius + ringWidth * 0.85;
-
-      const x1 = centerX + Math.cos(angle) * tickInner;
-      const y1 = centerY + Math.sin(angle) * tickInner;
-      const x2 = centerX + Math.cos(angle) * tickOuter;
-      const y2 = centerY + Math.sin(angle) * tickOuter;
-
-      ctx.beginPath();
-      ctx.moveTo(x1, y1);
-      ctx.lineTo(x2, y2);
-      ctx.strokeStyle = isMainTick ? "#FFD700" : "#888888";
-      ctx.lineWidth = isMainTick ? 3 : 1.5;
-      ctx.lineCap = "round";
-      ctx.stroke();
-    }
-
-    // Draw outer ring border with golden accent
-    ctx.beginPath();
-    ctx.arc(centerX, centerY, outerRadius, 0, Math.PI * 2);
-    ctx.strokeStyle = "#FFD700";
-    ctx.lineWidth = 2;
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.arc(centerX, centerY, innerRadius, 0, Math.PI * 2);
-    ctx.strokeStyle = borderColor;
-    ctx.lineWidth = 2;
-    ctx.stroke();
-  }
-
-  /**
-   * Draw segment with radial gradient for depth
-   */
-  private drawGradientSegment(
+  private drawCleanSegment(
     ctx: CanvasRenderingContext2D,
     centerX: number,
     centerY: number,
@@ -242,19 +152,19 @@ export class WheelRenderer {
     startAngle: number,
     endAngle: number,
     baseColor: string,
-    isWinning: boolean
+    _isWinning: boolean
   ) {
-    // Create radial gradient for depth effect
+    // Create subtle radial gradient for slight depth
     const gradient = ctx.createRadialGradient(
       centerX, centerY, 0,
       centerX, centerY, radius
     );
 
-    const lighterColor = adjustBrightness(baseColor, 25);
-    const darkerColor = adjustBrightness(baseColor, -15);
+    const lighterColor = adjustBrightness(baseColor, 10);
+    const darkerColor = adjustBrightness(baseColor, -8);
 
     gradient.addColorStop(0, lighterColor);
-    gradient.addColorStop(0.5, baseColor);
+    gradient.addColorStop(0.6, baseColor);
     gradient.addColorStop(1, darkerColor);
 
     ctx.beginPath();
@@ -263,161 +173,89 @@ export class WheelRenderer {
     ctx.closePath();
     ctx.fillStyle = gradient;
     ctx.fill();
-
-    // Add subtle inner shadow for depth
-    ctx.save();
-    ctx.beginPath();
-    ctx.moveTo(centerX, centerY);
-    ctx.arc(centerX, centerY, radius, startAngle, endAngle);
-    ctx.closePath();
-    ctx.clip();
-
-    // Shadow gradient from center
-    const shadowGradient = ctx.createRadialGradient(
-      centerX, centerY, radius * 0.7,
-      centerX, centerY, radius
-    );
-    shadowGradient.addColorStop(0, "rgba(0,0,0,0)");
-    shadowGradient.addColorStop(1, "rgba(0,0,0,0.2)");
-    ctx.fillStyle = shadowGradient;
-    ctx.fill();
-    ctx.restore();
-
-    // Add highlight for winning segment
-    if (isWinning) {
-      ctx.save();
-      ctx.beginPath();
-      ctx.moveTo(centerX, centerY);
-      ctx.arc(centerX, centerY, radius, startAngle, endAngle);
-      ctx.closePath();
-      ctx.clip();
-
-      const highlightGradient = ctx.createRadialGradient(
-        centerX, centerY, 0,
-        centerX, centerY, radius
-      );
-      highlightGradient.addColorStop(0, "rgba(255,215,0,0.3)");
-      highlightGradient.addColorStop(0.5, "rgba(255,215,0,0.15)");
-      highlightGradient.addColorStop(1, "rgba(255,215,0,0.05)");
-      ctx.fillStyle = highlightGradient;
-      ctx.fill();
-      ctx.restore();
-    }
   }
 
   /**
-   * Draw metallic separator line between segments
+   * Draw simple thin separator line between segments
    */
-  private drawMetallicSeparator(
+  private drawSimpleSeparator(
     ctx: CanvasRenderingContext2D,
     centerX: number,
     centerY: number,
     radius: number,
-    angle: number,
-    baseWidth: number
+    angle: number
   ) {
-    const x1 = centerX;
-    const y1 = centerY;
     const x2 = centerX + Math.cos(angle) * radius;
     const y2 = centerY + Math.sin(angle) * radius;
 
-    // Draw shadow first
     ctx.beginPath();
-    ctx.moveTo(x1, y1);
+    ctx.moveTo(centerX, centerY);
     ctx.lineTo(x2, y2);
-    ctx.strokeStyle = "rgba(0,0,0,0.4)";
-    ctx.lineWidth = baseWidth + 2;
-    ctx.lineCap = "round";
-    ctx.stroke();
-
-    // Draw metallic highlight
-    ctx.beginPath();
-    ctx.moveTo(x1, y1);
-    ctx.lineTo(x2, y2);
-
-    // Create linear gradient along the separator for metallic effect
-    const gradient = ctx.createLinearGradient(x1, y1, x2, y2);
-    gradient.addColorStop(0, "#888888");
-    gradient.addColorStop(0.3, "#CCCCCC");
-    gradient.addColorStop(0.5, "#FFFFFF");
-    gradient.addColorStop(0.7, "#CCCCCC");
-    gradient.addColorStop(1, "#888888");
-
-    ctx.strokeStyle = gradient;
-    ctx.lineWidth = baseWidth;
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.5)";
+    ctx.lineWidth = 1.5;
     ctx.lineCap = "round";
     ctx.stroke();
   }
 
   /**
-   * Draw inner decorative ring around center button area
+   * Draw clean outer border
    */
-  private drawInnerRing(
+  private drawCleanBorder(
+    ctx: CanvasRenderingContext2D,
+    centerX: number,
+    centerY: number,
+    radius: number,
+    borderColor: string,
+    borderWidth: number
+  ) {
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+    ctx.strokeStyle = borderColor;
+    ctx.lineWidth = borderWidth;
+    ctx.stroke();
+  }
+
+  /**
+   * Draw simple center circle
+   */
+  private drawCleanCenter(
     ctx: CanvasRenderingContext2D,
     centerX: number,
     centerY: number,
     radius: number,
     accentColor: string
   ) {
-    const innerRadius = radius * 0.85;
-
-    // Create metallic gradient
-    const gradient = ctx.createRadialGradient(
-      centerX, centerY, innerRadius,
-      centerX, centerY, radius
-    );
-    gradient.addColorStop(0, "#4a4a4a");
-    gradient.addColorStop(0.3, "#6a6a6a");
-    gradient.addColorStop(0.5, "#888888");
-    gradient.addColorStop(0.7, "#6a6a6a");
-    gradient.addColorStop(1, "#3a3a3a");
-
+    // Fill center with accent color
     ctx.beginPath();
     ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
-    ctx.arc(centerX, centerY, innerRadius, 0, Math.PI * 2, true);
-    ctx.closePath();
-    ctx.fillStyle = gradient;
+    ctx.fillStyle = accentColor;
     ctx.fill();
 
-    // Add golden highlight
-    ctx.beginPath();
-    ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
-    ctx.strokeStyle = "#FFD700";
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.arc(centerX, centerY, innerRadius, 0, Math.PI * 2);
-    ctx.strokeStyle = accentColor;
-    ctx.lineWidth = 1;
+    // Add subtle border
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.3)";
+    ctx.lineWidth = 2;
     ctx.stroke();
   }
 
   /**
-   * Draw glowing effect on winning segment
+   * Draw subtle highlight on winning segment (uses accent color instead of gold)
    */
-  private drawWinningGlow(
+  private drawSubtleWinHighlight(
     ctx: CanvasRenderingContext2D,
     centerX: number,
     centerY: number,
     radius: number,
     startAngle: number,
-    endAngle: number
+    endAngle: number,
+    accentColor: string
   ) {
     ctx.save();
 
-    // Create pulsing glow effect
-    const midAngle = (startAngle + endAngle) / 2;
-    const glowX = centerX + Math.cos(midAngle) * (radius * 0.5);
-    const glowY = centerY + Math.sin(midAngle) * (radius * 0.5);
-
-    const glowGradient = ctx.createRadialGradient(
-      glowX, glowY, 0,
-      glowX, glowY, radius * 0.6
-    );
-    glowGradient.addColorStop(0, "rgba(255,215,0,0.4)");
-    glowGradient.addColorStop(0.5, "rgba(255,215,0,0.15)");
-    glowGradient.addColorStop(1, "rgba(255,215,0,0)");
+    // Parse accent color for highlight
+    const rgb = hexToRgb(accentColor);
+    const highlightColor = rgb
+      ? `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.25)`
+      : "rgba(255, 255, 255, 0.2)";
 
     ctx.beginPath();
     ctx.moveTo(centerX, centerY);
@@ -425,8 +263,9 @@ export class WheelRenderer {
     ctx.closePath();
     ctx.clip();
 
-    ctx.fillStyle = glowGradient;
-    ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    // Simple overlay highlight
+    ctx.fillStyle = highlightColor;
+    ctx.fill();
 
     ctx.restore();
   }

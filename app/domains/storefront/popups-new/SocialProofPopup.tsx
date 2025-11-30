@@ -175,8 +175,10 @@ export const SocialProofPopup: React.FC<SocialProofPopupProps> = ({
 
   const getPositionStyles = (): React.CSSProperties => {
     const position = config.cornerPosition || "bottom-left";
+    // In preview mode, use absolute positioning to stay within the preview frame
+    // In storefront, use fixed positioning to anchor to viewport corners
     const base: React.CSSProperties = {
-      position: "fixed",
+      position: config.previewMode ? "absolute" : "fixed",
       zIndex: 10000,
     };
 

@@ -20,7 +20,7 @@ database.sqlite
 # Environment variables
 .env
 .env.*
-
+website/.next
 # Extensions
 /extensions/*/dist
 

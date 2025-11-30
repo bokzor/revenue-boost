@@ -20,6 +20,7 @@ export type {
   BackdropConfig,
   AnimationConfig,
   AnimationType,
+  MobileConfig,
 } from "./PopupPortal";
 
 export { BannerPortal } from "./BannerPortal";
