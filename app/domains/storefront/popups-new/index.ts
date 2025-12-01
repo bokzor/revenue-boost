@@ -14,13 +14,12 @@
  */
 
 // Base components
-export { PopupPortal, usePopupClose } from "./PopupPortal";
+export { PopupPortal } from "./PopupPortal";
 export type {
   PopupPortalProps,
   BackdropConfig,
   AnimationConfig,
   AnimationType,
-  MobileConfig,
 } from "./PopupPortal";
 
 export { BannerPortal } from "./BannerPortal";
