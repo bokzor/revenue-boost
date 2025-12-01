@@ -11,6 +11,7 @@ node_modules
 /public/build/
 /public/_dev
 /app/public/build
+website/out
 
 # Database
 /prisma/dev.sqlite
@@ -20,7 +21,7 @@ database.sqlite
 # Environment variables
 .env
 .env.*
-
+website/.next
 # Extensions
 /extensions/*/dist
 

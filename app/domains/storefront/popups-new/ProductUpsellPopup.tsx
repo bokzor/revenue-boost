@@ -108,8 +108,12 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
   const [animatedSavings, setAnimatedSavings] = useState(0);
   const [carouselIndex, setCarouselIndex] = useState(0);
   const [stackExpandedIndex, setStackExpandedIndex] = useState<number | null>(null);
+  const [isSummaryExpanded, setIsSummaryExpanded] = useState(true);
   const rippleIdRef = useRef(0);
   const carouselRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const summaryCollapseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hasUserInteractedWithSummary = useRef(false);
 
   // Feature flags
   const enableHaptic = config.enableHaptic !== false;
@@ -336,6 +340,68 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
     requestAnimationFrame(animate);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [totalSavingsValue]);
+
+  // Auto-collapse summary after 4 seconds when items are selected
+  useEffect(() => {
+    // Only start timer when there are selected products and summary is expanded
+    if (selectedProducts.size > 0 && isSummaryExpanded && !hasUserInteractedWithSummary.current) {
+      summaryCollapseTimerRef.current = setTimeout(() => {
+        if (!hasUserInteractedWithSummary.current) {
+          setIsSummaryExpanded(false);
+        }
+      }, 4000);
+    }
+
+    return () => {
+      if (summaryCollapseTimerRef.current) {
+        clearTimeout(summaryCollapseTimerRef.current);
+      }
+    };
+  }, [selectedProducts.size, isSummaryExpanded]);
+
+  // Collapse summary on scroll
+  useEffect(() => {
+    const contentElement = contentRef.current;
+    if (!contentElement) return;
+
+    let scrollTimeout: ReturnType<typeof setTimeout>;
+    const handleScroll = () => {
+      // Collapse on any scroll if expanded and not manually interacted
+      if (isSummaryExpanded && selectedProducts.size > 0 && !hasUserInteractedWithSummary.current) {
+        clearTimeout(scrollTimeout);
+        scrollTimeout = setTimeout(() => {
+          setIsSummaryExpanded(false);
+        }, 100); // Small debounce to avoid flickering
+      }
+    };
+
+    contentElement.addEventListener("scroll", handleScroll, { passive: true });
+    return () => {
+      contentElement.removeEventListener("scroll", handleScroll);
+      clearTimeout(scrollTimeout);
+    };
+  }, [isSummaryExpanded, selectedProducts.size]);
+
+  // Reset summary state when selection changes to include new items
+  useEffect(() => {
+    if (selectedProducts.size > 0) {
+      // Re-expand briefly when new items are added (unless user manually collapsed)
+      if (!hasUserInteractedWithSummary.current) {
+        setIsSummaryExpanded(true);
+      }
+    } else {
+      // Reset everything when no items selected
+      setIsSummaryExpanded(true);
+      hasUserInteractedWithSummary.current = false;
+    }
+  }, [selectedProducts.size]);
+
+  // Toggle summary expanded/collapsed
+  const toggleSummary = useCallback(() => {
+    hasUserInteractedWithSummary.current = true;
+    setIsSummaryExpanded((prev) => !prev);
+    triggerHaptic(10);
+  }, [triggerHaptic]);
 
   // Design tokens
   const accentColor = config.accentColor || config.buttonColor || "#6366F1";
@@ -2059,6 +2125,76 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           font-weight: 600;
         }
 
+        /* Collapsible summary styles */
+        .upsell-summary {
+          cursor: pointer;
+          transition: all 0.3s ease;
+          position: relative;
+        }
+        .upsell-summary--expanded {
+          flex-wrap: wrap;
+        }
+        .upsell-summary--collapsed {
+          align-items: center;
+          margin-bottom: 0.75rem;
+        }
+
+        /* Compact view (collapsed) */
+        .upsell-summary-compact {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          width: 100%;
+          animation: compactSlide 0.3s ease-out;
+        }
+        @keyframes compactSlide {
+          from { opacity: 0; transform: translateY(-10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .upsell-summary-thumbs--compact {
+          flex-shrink: 0;
+        }
+        .upsell-summary-thumb--small {
+          width: 28px;
+          height: 28px;
+          border-radius: 4px;
+          margin-left: -6px;
+        }
+        .upsell-summary-thumb--small:first-child {
+          margin-left: 0;
+        }
+        .upsell-summary-compact-text {
+          flex: 1;
+          font-size: 0.8125rem;
+          color: var(--upsell-text);
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .upsell-summary-compact-savings {
+          color: var(--upsell-success);
+          font-weight: 500;
+        }
+        .upsell-summary-compact-total {
+          font-size: 1rem;
+          font-weight: 700;
+          color: var(--upsell-accent);
+          flex-shrink: 0;
+        }
+        .upsell-summary-expand-icon,
+        .upsell-summary-collapse-icon {
+          font-size: 0.625rem;
+          color: var(--upsell-text-muted);
+          flex-shrink: 0;
+          transition: transform 0.2s ease;
+          opacity: 0.6;
+          margin-left: 0.25rem;
+        }
+        .upsell-summary:hover .upsell-summary-expand-icon,
+        .upsell-summary:hover .upsell-summary-collapse-icon {
+          opacity: 1;
+        }
+
         /* Success message */
         .upsell-success-message {
           display: flex;
@@ -2419,7 +2555,7 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
         )}
 
         {/* Products */}
-        <div className="upsell-content">{renderProductsSection()}</div>
+        <div ref={contentRef} className="upsell-content">{renderProductsSection()}</div>
 
         {/* Footer with summary and actions */}
         <div className={`upsell-footer ${addedSuccess ? 'upsell-footer--success' : ''}`}>
@@ -2432,63 +2568,113 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
             </div>
           )}
 
-          {/* Summary with mini thumbnails */}
+          {/* Summary with mini thumbnails - Collapsible */}
           {selectedProducts.size > 0 && !addedSuccess && (
-            <div className="upsell-summary">
-              {/* Mini product thumbnails */}
-              <div className="upsell-summary-thumbs">
-                {Array.from(selectedProducts).slice(0, 4).map((id) => {
-                  const product = products.find(p => p.id === id);
-                  return product?.imageUrl ? (
-                    <div key={id} className="upsell-summary-thumb">
-                      <img src={product.imageUrl} alt={product.title} />
-                    </div>
-                  ) : null;
-                })}
-                {selectedProducts.size > 4 && (
-                  <div className="upsell-summary-thumb upsell-summary-thumb--more">
-                    +{selectedProducts.size - 4}
-                  </div>
-                )}
-              </div>
-
-              <div className="upsell-summary-details">
-                <div className="upsell-summary-row">
-                  <span className="upsell-summary-label">
-                    {selectedProducts.size} item{selectedProducts.size !== 1 ? "s" : ""} selected
-                  </span>
-                  {calculateCompareAtSavings() && (
-                    <span className="upsell-summary-original">
-                      {formatCurrency(calculateOriginalTotal(), config.currency)}
-                    </span>
-                  )}
-                </div>
-
-                {calculateBundleSavings() && (
-                  <div className="upsell-summary-row upsell-bundle-row">
-                    <span>🎉 {config.bundleDiscount}% bundle discount</span>
-                    <span className="upsell-bundle-savings">-{formatCurrency(calculateBundleSavings()!, config.currency)}</span>
-                  </div>
-                )}
-
-                <div className="upsell-summary-row upsell-summary-total">
-                  <span>Total</span>
-                  <div className="upsell-total-price">
-                    {calculateCompareAtSavings() && (
-                      <span className="upsell-total-original">{formatCurrency(calculateOriginalTotal(), config.currency)}</span>
+            <div
+              className={`upsell-summary ${isSummaryExpanded ? 'upsell-summary--expanded' : 'upsell-summary--collapsed'}`}
+              onClick={toggleSummary}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => e.key === 'Enter' && toggleSummary()}
+              aria-expanded={isSummaryExpanded}
+            >
+              {/* Collapsed view - compact single line */}
+              {!isSummaryExpanded && (
+                <div className="upsell-summary-compact">
+                  {/* Mini product thumbnails */}
+                  <div className="upsell-summary-thumbs upsell-summary-thumbs--compact">
+                    {Array.from(selectedProducts).slice(0, 3).map((id) => {
+                      const product = products.find(p => p.id === id);
+                      return product?.imageUrl ? (
+                        <div key={id} className="upsell-summary-thumb upsell-summary-thumb--small">
+                          <img src={product.imageUrl} alt={product.title} />
+                        </div>
+                      ) : null;
+                    })}
+                    {selectedProducts.size > 3 && (
+                      <div className="upsell-summary-thumb upsell-summary-thumb--small upsell-summary-thumb--more">
+                        +{selectedProducts.size - 3}
+                      </div>
                     )}
-                    <span className="upsell-total-current">{formatCurrency(discountedTotal, config.currency)}</span>
                   </div>
-                </div>
 
-                {animatedSavings > 0 && (
-                  <div className="upsell-summary-row upsell-savings-highlight">
-                    <span className="upsell-summary-savings">
-                      🎉 You save {formatCurrency(animatedSavings, config.currency)}!
-                    </span>
+                  <span className="upsell-summary-compact-text">
+                    {selectedProducts.size} item{selectedProducts.size !== 1 ? 's' : ''}
+                    {animatedSavings > 0 && (
+                      <span className="upsell-summary-compact-savings">
+                        • Save {formatCurrency(animatedSavings, config.currency)}
+                      </span>
+                    )}
+                  </span>
+
+                  <span className="upsell-summary-compact-total">
+                    {formatCurrency(discountedTotal, config.currency)}
+                  </span>
+
+                  <span className="upsell-summary-expand-icon">▲</span>
+                </div>
+              )}
+
+              {/* Expanded view - full details */}
+              {isSummaryExpanded && (
+                <>
+                  {/* Mini product thumbnails */}
+                  <div className="upsell-summary-thumbs">
+                    {Array.from(selectedProducts).slice(0, 4).map((id) => {
+                      const product = products.find(p => p.id === id);
+                      return product?.imageUrl ? (
+                        <div key={id} className="upsell-summary-thumb">
+                          <img src={product.imageUrl} alt={product.title} />
+                        </div>
+                      ) : null;
+                    })}
+                    {selectedProducts.size > 4 && (
+                      <div className="upsell-summary-thumb upsell-summary-thumb--more">
+                        +{selectedProducts.size - 4}
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
+
+                  <div className="upsell-summary-details">
+                    <div className="upsell-summary-row">
+                      <span className="upsell-summary-label">
+                        {selectedProducts.size} item{selectedProducts.size !== 1 ? "s" : ""} selected
+                        <span className="upsell-summary-collapse-icon">▼</span>
+                      </span>
+                      {calculateCompareAtSavings() && (
+                        <span className="upsell-summary-original">
+                          {formatCurrency(calculateOriginalTotal(), config.currency)}
+                        </span>
+                      )}
+                    </div>
+
+                    {calculateBundleSavings() && (
+                      <div className="upsell-summary-row upsell-bundle-row">
+                        <span>🎉 {config.bundleDiscount}% bundle discount</span>
+                        <span className="upsell-bundle-savings">-{formatCurrency(calculateBundleSavings()!, config.currency)}</span>
+                      </div>
+                    )}
+
+                    <div className="upsell-summary-row upsell-summary-total">
+                      <span>Total</span>
+                      <div className="upsell-total-price">
+                        {calculateCompareAtSavings() && (
+                          <span className="upsell-total-original">{formatCurrency(calculateOriginalTotal(), config.currency)}</span>
+                        )}
+                        <span className="upsell-total-current">{formatCurrency(discountedTotal, config.currency)}</span>
+                      </div>
+                    </div>
+
+                    {animatedSavings > 0 && (
+                      <div className="upsell-summary-row upsell-savings-highlight">
+                        <span className="upsell-summary-savings">
+                          🎉 You save {formatCurrency(animatedSavings, config.currency)}!
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
           )}
 

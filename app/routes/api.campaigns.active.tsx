@@ -115,8 +115,14 @@ export async function loader(args: LoaderFunctionArgs) {
       // Build storefront context from request
       const context = buildStorefrontContext(url.searchParams, request.headers);
 
-      // Add visitor ID to context (for frequency capping)
-      context.visitorId = visitorId;
+      // Use client-provided visitorId (from localStorage) if available, otherwise fall back to cookie-based
+      // This ensures frequency capping uses the same ID as the recordFrequency endpoint
+      const clientVisitorId = url.searchParams.get("visitorId");
+      context.visitorId = clientVisitorId || visitorId;
+
+      if (clientVisitorId) {
+        console.log(`[Active Campaigns API] Using client visitorId: ${clientVisitorId}`);
+      }
 
       // Preview mode: token-based preview sessions (covers saved and unsaved campaigns)
       const previewToken = url.searchParams.get("previewToken");

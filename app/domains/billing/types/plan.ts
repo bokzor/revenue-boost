@@ -100,7 +100,7 @@ export const PLAN_DEFINITIONS: Record<PlanTier, PlanDefinition> = {
     },
     features: {
       experiments: false,
-      advancedTargeting: true,
+      advancedTargeting: false, // Shopify segment sync has DB cost - Growth+ only
       customTemplates: true,
       advancedAnalytics: true,
       prioritySupport: false,

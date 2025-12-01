@@ -181,26 +181,25 @@ export function AudienceTargetingPanel({
         </BlockStack>
       </Card>
 
-      {config.enabled && (
-        <Card>
-          <BlockStack gap="400">
-            <Text as="h3" variant="headingSm">
-              Shopify customer segments
-            </Text>
-            <Text as="p" variant="bodySm" tone="subdued">
-              Choose which Shopify customer segments this campaign should target. These filters
-              apply when the visitor is recognized as a customer.
-            </Text>
+      {/* Always show the Shopify segments section so users can see what they're missing */}
+      <Card>
+        <BlockStack gap="400">
+          <Text as="h3" variant="headingSm">
+            Shopify customer segments
+          </Text>
+          <Text as="p" variant="bodySm" tone="subdued">
+            Choose which Shopify customer segments this campaign should target. These filters
+            apply when the visitor is recognized as a customer.
+          </Text>
 
-            <ShopifySegmentSelector
-              selectedSegmentIds={config.shopifySegmentIds ?? []}
-              onChange={(ids) => updateConfig({ shopifySegmentIds: ids })}
-              disabled={disabled}
-              onSegmentsLoaded={setShopifySegments}
-            />
-          </BlockStack>
-        </Card>
-      )}
+          <ShopifySegmentSelector
+            selectedSegmentIds={config.shopifySegmentIds ?? []}
+            onChange={(ids) => updateConfig({ shopifySegmentIds: ids })}
+            disabled={disabled || !config.enabled}
+            onSegmentsLoaded={setShopifySegments}
+          />
+        </BlockStack>
+      </Card>
 
       {/* Summary */}
       {config.enabled && hasTargeting && (

@@ -25,11 +25,7 @@ import { SPACING_GUIDELINES } from "./spacing";
 import { usePopupForm, useDiscountCode, usePopupAnimation } from "./hooks";
 
 // Import shared components from Phase 1 & 2
-import {
-  LeadCaptureForm,
-  PopupHeader,
-  SuccessState,
-} from "./components/shared";
+import { LeadCaptureForm, PopupHeader, SuccessState } from "./components/shared";
 
 // Import shared animations
 import "./components/shared/animations.css";
@@ -115,7 +111,8 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
 
   // Background image configuration (preset vs Shopify file vs none)
   const backgroundImageMode: "none" | "preset" | "file" =
-    (config.backgroundImageMode as "none" | "preset" | "file" | undefined) ?? (config.imageUrl ? "file" : "none");
+    (config.backgroundImageMode as "none" | "preset" | "file" | undefined) ??
+    (config.imageUrl ? "file" : "none");
 
   // Use image URL from config when mode is not "none" (admin sets this for preset/file)
   const imageUrl = backgroundImageMode === "none" ? undefined : config.imageUrl;
@@ -407,7 +404,7 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
         }
 
         .email-popup-secondary-button {
-          margin-top: 0.625rem;
+          margin-top: 1rem;
           width: 100%;
           background: transparent;
           border: none;
@@ -633,7 +630,11 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
 
       {isFullBackground && imageUrl ? (
         /* Full Background Mode - Image covers entire popup with overlay */
-        <div className="newsletter-full-bg-container NewsletterPopup" data-splitpop="true" data-template="newsletter">
+        <div
+          className="newsletter-full-bg-container NewsletterPopup"
+          data-splitpop="true"
+          data-template="newsletter"
+        >
           <div className="newsletter-full-bg-image">
             <img src={imageUrl} alt="" aria-hidden="true" />
           </div>
@@ -663,8 +664,19 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
                   color: "#fff",
                 }}
               >
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M1 1L13 13M1 13L13 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 14 14"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M1 1L13 13M1 13L13 1"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                  />
                 </svg>
               </button>
             )}
@@ -740,19 +752,15 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
                     inputTextColor={config.inputTextColor}
                     inputBorderColor={config.inputBorderColor}
                     privacyPolicyUrl={config.privacyPolicyUrl}
-                    extraFields={
-                      config.dismissLabel ? (
-                        <button
-                          type="button"
-                          className="email-popup-secondary-button"
-                          onClick={onClose}
-                          disabled={isSubmitting}
-                        >
-                          {config.dismissLabel}
-                        </button>
-                      ) : undefined
-                    }
                   />
+                  <button
+                    type="button"
+                    className="email-popup-secondary-button"
+                    onClick={onClose}
+                    disabled={isSubmitting}
+                  >
+                    {config.dismissLabel || "No thanks"}
+                  </button>
                 </>
               )}
             </div>
@@ -847,19 +855,15 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
                   inputTextColor={config.inputTextColor}
                   inputBorderColor={config.inputBorderColor}
                   privacyPolicyUrl={config.privacyPolicyUrl}
-                  extraFields={
-                    config.dismissLabel ? (
-                      <button
-                        type="button"
-                        className="email-popup-secondary-button"
-                        onClick={onClose}
-                        disabled={isSubmitting}
-                      >
-                        {config.dismissLabel}
-                      </button>
-                    ) : undefined
-                  }
                 />
+                <button
+                  type="button"
+                  className="email-popup-secondary-button"
+                  onClick={onClose}
+                  disabled={isSubmitting}
+                >
+                  {config.dismissLabel || "No thanks"}
+                </button>
               </>
             )}
           </div>

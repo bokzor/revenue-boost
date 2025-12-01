@@ -8,6 +8,15 @@
 import React from "react";
 import { useId } from "../hooks/useId";
 
+// Polyfill for CSS.escape (not available in Node.js SSR)
+const cssEscape = (value: string): string => {
+  if (typeof CSS !== "undefined" && CSS.escape) {
+    return CSS.escape(value);
+  }
+  // Simple fallback for SSR - escape special chars
+  return value.replace(/([^\w-])/g, "\\$1");
+};
+
 export interface EmailInputProps {
   value: string;
   onChange: (value: string) => void;
@@ -47,7 +56,7 @@ export const EmailInput: React.FC<EmailInputProps> = ({
     <div style={{ marginBottom: "1rem" }}>
       <style>
         {`
-          #${CSS.escape(inputId)}::placeholder {
+          #${cssEscape(inputId)}::placeholder {
             color: ${computedPlaceholderColor};
             opacity: 1;
           }
@@ -157,7 +166,7 @@ export const NameInput: React.FC<NameInputProps> = ({
     <div style={{ marginBottom: "1rem" }}>
       <style>
         {`
-          #${CSS.escape(inputId)}::placeholder {
+          #${cssEscape(inputId)}::placeholder {
             color: ${computedPlaceholderColor};
             opacity: 1;
           }

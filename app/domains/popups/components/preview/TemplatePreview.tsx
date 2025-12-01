@@ -83,6 +83,8 @@ export interface TemplatePreviewProps {
   onPreviewElementReady?: (element: HTMLElement | null) => void;
   globalCustomCSS?: string;
   campaignCustomCSS?: string;
+  /** Optional callback when popup is closed (for demo/marketing respawn behavior) */
+  onClose?: () => void;
 }
 
 export interface TemplatePreviewRef {
@@ -98,6 +100,7 @@ const TemplatePreviewComponent = forwardRef<TemplatePreviewRef, TemplatePreviewP
       onPreviewElementReady,
       globalCustomCSS,
       campaignCustomCSS,
+      onClose: externalOnClose,
     },
     ref
   ) => {
@@ -125,6 +128,11 @@ const TemplatePreviewComponent = forwardRef<TemplatePreviewRef, TemplatePreviewP
       },
       [onPreviewElementReady]
     );
+
+    // Close handler - calls external callback if provided
+    const handleClose = useCallback(() => {
+      externalOnClose?.();
+    }, [externalOnClose]);
 
     // Memoize merged config to prevent re-renders with more stable dependencies
   const mergedConfig: Record<string, unknown> = useMemo(() => {
@@ -219,7 +227,7 @@ const TemplatePreviewComponent = forwardRef<TemplatePreviewRef, TemplatePreviewP
         return (
           <PreviewContainer scopedStylesNode={scopedStylesNode}>
             <div ref={setPreviewElementRef} data-popup-preview style={{ display: "contents" }}>
-              <PreviewComponent config={componentConfig} isVisible={true} onClose={() => {}} />
+              <PreviewComponent config={componentConfig} isVisible={true} onClose={handleClose} />
             </div>
           </PreviewContainer>
         );
@@ -267,7 +275,7 @@ const TemplatePreviewComponent = forwardRef<TemplatePreviewRef, TemplatePreviewP
             <PreviewComponent
               config={newsletterConfig}
               isVisible={true}
-              onClose={() => {}}
+              onClose={handleClose}
               onSubmit={previewOnSubmit}
             />
           </div>
@@ -299,7 +307,7 @@ const TemplatePreviewComponent = forwardRef<TemplatePreviewRef, TemplatePreviewP
             <PreviewComponent
               config={flashConfig}
               isVisible={true}
-              onClose={() => {}}
+              onClose={handleClose}
               issueDiscount={previewIssueDiscount}
             />
           </div>
@@ -356,7 +364,7 @@ const TemplatePreviewComponent = forwardRef<TemplatePreviewRef, TemplatePreviewP
             <PreviewComponent
               config={configWithCart}
               isVisible={true}
-              onClose={() => {}}
+              onClose={handleClose}
               cartTotal={previewCartTotal}
               issueDiscount={previewIssueDiscount}
               onSubmit={previewOnSubmit}
@@ -415,7 +423,7 @@ const TemplatePreviewComponent = forwardRef<TemplatePreviewRef, TemplatePreviewP
             <PreviewComponent
               config={cartConfig}
               isVisible={true}
-              onClose={() => {}}
+              onClose={handleClose}
               cartItems={mockCartItems}
               cartTotal={previewCartTotal}
               issueDiscount={previewIssueDiscount}
@@ -443,7 +451,7 @@ const TemplatePreviewComponent = forwardRef<TemplatePreviewRef, TemplatePreviewP
             <PreviewComponent
               config={upsellConfig}
               isVisible={true}
-              onClose={() => {}}
+              onClose={handleClose}
               onAddToCart={previewOnAddToCart}
             />
           </div>
@@ -484,7 +492,7 @@ const TemplatePreviewComponent = forwardRef<TemplatePreviewRef, TemplatePreviewP
             <PreviewComponent
               config={socialProofConfig}
               isVisible={true}
-              onClose={() => {}}
+              onClose={handleClose}
               notifications={previewNotifications}
             />
           </div>
@@ -495,7 +503,7 @@ const TemplatePreviewComponent = forwardRef<TemplatePreviewRef, TemplatePreviewP
     return (
       <PreviewContainer scopedStylesNode={scopedStylesNode}>
         <div ref={setPreviewElementRef} data-popup-preview style={{ display: "contents" }}>
-          <PreviewComponent config={componentConfig} isVisible={true} onClose={() => {}} />
+          <PreviewComponent config={componentConfig} isVisible={true} onClose={handleClose} />
         </div>
       </PreviewContainer>
     );

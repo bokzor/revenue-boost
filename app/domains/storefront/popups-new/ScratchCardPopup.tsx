@@ -1218,6 +1218,17 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
                 >
                   Unlock Scratch Card
                 </SubmitButton>
+
+                {/* Dismiss button for email-before-scratching form */}
+                <div style={{ marginTop: "16px", textAlign: "center" }}>
+                  <button
+                    type="button"
+                    className="scratch-popup-dismiss-button"
+                    onClick={onClose}
+                  >
+                    {config.dismissLabel || "No thanks"}
+                  </button>
+                </div>
               </form>
             ) : (
               showScratchCard && (

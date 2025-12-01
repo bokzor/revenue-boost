@@ -3,7 +3,7 @@ import { HeroSection } from "@/components/hero-section"
 import { FeaturesSection } from "@/components/features-section"
 import { SocialProofSection } from "@/components/social-proof-section"
 import { HowItWorksSection } from "@/components/how-it-works-section"
-import { TemplatesSection } from "@/components/templates-section"
+import { TemplatesSectionLive } from "@/components/templates-section-live"
 import { PricingSection } from "@/components/pricing-section"
 import { TestimonialsSection } from "@/components/testimonials-section"
 import { FaqSection } from "@/components/faq-section"
@@ -18,7 +18,7 @@ export default function Home() {
       <FeaturesSection />
       <SocialProofSection />
       <HowItWorksSection />
-      <TemplatesSection />
+      <TemplatesSectionLive />
       <PricingSection />
       <TestimonialsSection />
       <FaqSection />
