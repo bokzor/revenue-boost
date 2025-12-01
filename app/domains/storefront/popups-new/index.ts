@@ -14,7 +14,7 @@
  */
 
 // Base components
-export { PopupPortal } from "./PopupPortal";
+export { PopupPortal, usePopupClose } from "./PopupPortal";
 export type {
   PopupPortalProps,
   BackdropConfig,
