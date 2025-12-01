@@ -58,7 +58,11 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pnpm-store-
 
-      - name: 🔧 Install dependencies
+      - name: 🔧 Install root dependencies
+        run: npm ci
+        # Website imports code from ../app which needs root dependencies
+
+      - name: 🔧 Install website dependencies
         working-directory: ./website
         run: pnpm install --frozen-lockfile
 

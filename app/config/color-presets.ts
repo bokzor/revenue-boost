@@ -799,17 +799,17 @@ export interface SpinToWinWheelBorder {
 }
 
 const SPIN_TO_WIN_WHEEL_BORDER_DEFAULTS: Record<NewsletterThemeKey, SpinToWinWheelBorder> = {
-  modern: { color: "#3b82f6", width: 6 },
-  minimal: { color: "#d4d4d8", width: 3 },
-  elegant: { color: "#a855f7", width: 5 },
-  bold: { color: "#ffffff", width: 8 },
-  glass: { color: "rgba(99, 102, 241, 0.4)", width: 4 },
-  dark: { color: "#3b82f6", width: 6 },
-  gradient: { color: "#ffffff", width: 7 },
-  luxury: { color: "#d4af37", width: 6 },
-  neon: { color: "#00ffff", width: 5 },
-  ocean: { color: "#0ea5e9", width: 6 },
-  "summer-sale": { color: "#FF5733", width: 6 },
+  modern: { color: "#3b82f6", width: 3 },
+  minimal: { color: "#d4d4d8", width: 2 },
+  elegant: { color: "#a855f7", width: 3 },
+  bold: { color: "#ffffff", width: 4 },
+  glass: { color: "rgba(99, 102, 241, 0.4)", width: 2 },
+  dark: { color: "#3b82f6", width: 3 },
+  gradient: { color: "#ffffff", width: 3 },
+  luxury: { color: "#d4af37", width: 3 },
+  neon: { color: "#00ffff", width: 3 },
+  ocean: { color: "#0ea5e9", width: 3 },
+  "summer-sale": { color: "#FF5733", width: 3 },
 };
 
 export function getSpinToWinWheelBorder(theme: NewsletterThemeKey): SpinToWinWheelBorder {

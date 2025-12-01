@@ -179,11 +179,7 @@ test.describe.serial('Cart & Product Triggers', () => {
     });
 
     test.describe('Cart Value Trigger', () => {
-        // Skip: Staging store is running OLD SDK version without polling implementation.
-        // The current code has polling logic but hasn't been deployed to staging.
-        // After deploying the extension (`shopify app deploy`), re-enable this test.
-        // See docs/E2E_REMAINING_ISSUES.md for details.
-        test.skip('popup shows when cart value exceeds min threshold', async ({ page }) => {
+        test('popup shows when cart value exceeds min threshold', async ({ page }) => {
             console.log('🧪 Testing cart value trigger behavior...');
 
             const campaign = await (await factory.newsletter().init())

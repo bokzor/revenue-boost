@@ -29,7 +29,7 @@ env:
   PROJECT_ID: revenueboost-prod
   REGION: us-east1
   SERVICE_NAME: revenueboost-prod
-  PROD_DOMAIN: revenue-boost.app
+  PROD_DOMAIN: app.revenue-boost.app
   NODE_VERSION: '24'
 
 jobs:

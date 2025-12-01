@@ -8,61 +8,52 @@ After fixing 148 E2E tests, 5 tests remain skipped due to deeper issues in the S
 
 ---
 
-## Issue 1: SDK Frequency Capping Detection (HIGH PRIORITY)
+## Issue 1: Server-Side Frequency Capping NOT Enforcing Limits (HIGH PRIORITY)
 
 **Test:** `storefront-session-rules.spec.ts` - "multiple impressions allowed when configured"
 
-**Symptom:** Popup shows once but doesn't show again after reload, even when `maxImpressionsPerSession: 3` is configured.
+**Symptom:** Popup shows 4 times even though `maxImpressionsPerSession: 3` is configured. The server-side frequency capping is not enforcing the limit.
 
-**Root Cause:** 
-The SDK was checking for frequency capping in the wrong location:
-- API returns: `clientTriggers.enhancedTriggers.frequency_capping`
-- SDK was checking: `targetRules.enhancedTriggers.frequency_capping` (always empty)
-
-**Fix Applied:** Updated `extensions/storefront-src/index.ts` line 326 to check both locations:
-```typescript
-const enhancedTriggers = (campaign as unknown as { clientTriggers?: { enhancedTriggers?: Record<string, unknown> } }).clientTriggers?.enhancedTriggers || campaign.targetRules?.enhancedTriggers;
+**Previous Fix (SDK - DEPLOYED ✅):**
+The SDK now correctly detects frequency capping and defers to server control:
+```
+[Revenue Boost] Campaign has frequency capping enabled, server controls visibility
 ```
 
-**Action Required:** 
-- [ ] Deploy the storefront extension to Shopify (`shopify app deploy`)
-- [ ] Re-enable the skipped test after deployment
-- [ ] Verify frequency capping works on staging store
+**Current Issue (Server-Side):**
+The server at `/api/campaigns/active` is returning the campaign on ALL requests, regardless of impression count. The server should track impressions (via Redis or session) and filter out campaigns that have exceeded their `max_triggers_per_session` limit.
+
+**Investigation Needed:**
+1. Check how the server tracks session impressions
+2. Verify Redis/session storage is properly incrementing impression counts
+3. Check `CampaignFilterService` for frequency capping logic
+4. Ensure the `sessionId` is being used to track impressions per session
 
 **Files:**
-- `extensions/storefront-src/index.ts` (fix applied)
-- `tests/e2e/staging/storefront-session-rules.spec.ts:196` (test skipped)
+- `app/routes/api.campaigns.active.tsx` - API endpoint
+- `app/domains/campaigns/services/campaign-filter.server.ts` - filtering logic
+- Redis/session configuration for impression tracking
+- `tests/e2e/staging/storefront-session-rules.spec.ts:194` (test failing)
 
 ---
 
-## Issue 2: Cart Value Trigger - SDK Needs Deployment (HIGH PRIORITY)
+## Issue 2: Cart Value Trigger - RESOLVED ✅
 
 **Test:** `storefront-cart-triggers.spec.ts` - "popup shows when cart value exceeds min threshold"
 
-**Symptom:** Cart value trigger doesn't detect cart updates. Logs show old message `cart_value trigger waiting for cart update events` instead of the current polling implementation.
+**Status:** FIXED - SDK deployed and test passing.
 
-**Root Cause:**
-The staging store is running an **OLD version of the SDK** that doesn't have the polling implementation. The current local code in `extensions/storefront-src/core/TriggerManager.ts` has been updated with polling logic (`💰 Polling /cart.js every ${checkInterval}ms`) but this has **NOT been deployed** to the staging store.
+**What was fixed:**
+- SDK now has polling implementation for `/cart.js`
+- Cart events are properly detected
+- Popup shows when cart value exceeds threshold
 
-Evidence from logs:
-- Old SDK shows: `cart_value trigger waiting for cart update events (current value 0 is outside range)`
-- Current code should show: `cart_value trigger: polling /cart.js every ${checkInterval}ms`
-
-**Fix Required:**
-Deploy the storefront extension to staging:
-```bash
-shopify app deploy
+**Evidence from logs:**
 ```
-
-**Action Items:**
-- [ ] Deploy the storefront extension to Shopify
-- [ ] Verify polling logs appear after deployment
-- [ ] Re-enable the skipped test
-
-**Files:**
-- `extensions/storefront-src/core/TriggerManager.ts` - has the polling implementation
-- `extensions/storefront-popup/` - needs deployment
-- `tests/e2e/staging/storefront-cart-triggers.spec.ts:181` (test skipped)
+[Revenue Boost] 💰 cart_value trigger: polling /cart.js every 2000ms
+[Revenue Boost] 💰 Cart event detected, fetched /cart.js: $629.95
+[Revenue Boost] ✅ cart_value trigger conditions met (cart event + /cart.js check)
+```
 
 ---
 
@@ -139,25 +130,47 @@ This test requires actual Shopify discount codes to be pre-configured in the sto
 
 ---
 
+## Issue 6: Geographic Targeting Not Filtering (MEDIUM PRIORITY)
+
+**Test:** `storefront-advanced-features.spec.ts` - "campaign hides for non-matching country (mocked FR visitor)"
+
+**Symptom:** US-only campaign still shows when `X-Country-Code: FR` header is sent.
+
+**Root Cause:**
+Server-side geo-targeting filtering is not working. The campaign with `geoTargeting: { mode: 'include', countries: ['US'] }` is still being returned for FR visitors.
+
+**Investigation Needed:**
+1. Check how the server reads country code (header vs IP geolocation)
+2. Verify `CampaignFilterService` handles geo-targeting
+3. Check if `X-Country-Code` header is being processed
+
+**Files:**
+- `app/domains/campaigns/services/campaign-filter.server.ts`
+- `tests/e2e/staging/storefront-advanced-features.spec.ts:133` (test skipped)
+
+---
+
 ## Summary Table
 
 | Issue | Priority | Type | Effort | Status |
 |-------|----------|------|--------|--------|
-| Frequency Capping Detection | HIGH | SDK Bug | Low (deploy) | Fix applied, needs deploy |
-| Cart Value Polling | HIGH | SDK Outdated | Low (deploy) | Local code ready, needs deploy |
+| Frequency Capping Enforcement | HIGH | Server Bug | Medium | Server not enforcing limits |
+| Cart Value Polling | - | - | - | ✅ RESOLVED |
 | Session Rules Filtering | MEDIUM | Server Bug | Medium | Investigation needed |
 | Page Targeting Wildcards | LOW | Server Bug | Low | Investigation needed |
+| Geographic Targeting | MEDIUM | Server Bug | Medium | Investigation needed |
 | Discount URL Persistence | LOW | Test Setup | Low | Needs store config |
 
 ---
 
 ## Next Steps
 
-1. **Immediate:** Deploy SDK changes (`shopify app deploy`) to unblock:
-   - Frequency capping test (Issue 1)
-   - Cart value trigger test (Issue 2)
-2. **Short-term:** Investigate server-side filtering issues:
+1. **High Priority:** Fix server-side frequency capping enforcement (Issue 1)
+   - Investigate how impressions are tracked per session
+   - Check Redis/session storage implementation
+   - Ensure `max_triggers_per_session` is enforced
+2. **Medium Priority:** Investigate server-side filtering issues:
    - Session rules filtering (Issue 3)
    - Page targeting wildcards (Issue 4)
-3. **Low priority:** Set up discount codes in staging store (Issue 5)
+3. **Low Priority:** Set up discount codes in staging store (Issue 5)
 
