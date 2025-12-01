@@ -20,6 +20,7 @@ import { authenticate } from "~/shopify.server";
 import prisma from "~/db.server";
 import { getCampaignDiscountCode } from "~/domains/commerce/services/discount.server";
 import { formatZodErrors } from "~/lib/validation-helpers";
+import { PopupEventService } from "~/domains/analytics/popup-events.server";
 
 // ============================================================================
 // TYPES
@@ -491,6 +492,7 @@ export interface LeadMetadata {
 /**
  * Store lead with generated discount code
  * Handles both email and anonymous leads
+ * Returns the lead ID if created successfully
  */
 export async function storeLead(
   campaign: CampaignData,
@@ -500,7 +502,7 @@ export async function storeLead(
   sessionId: string,
   source: string,
   config: GamePopupConfig
-): Promise<void> {
+): Promise<{ id: string } | null> {
   try {
     const leadMetadata: LeadMetadata = {
       source,
@@ -512,7 +514,7 @@ export async function storeLead(
 
     if (email) {
       // If email provided, upsert by email
-      await prisma.lead.upsert({
+      const lead = await prisma.lead.upsert({
         where: {
           storeId_campaignId_email: {
             storeId: campaign.storeId,
@@ -533,11 +535,13 @@ export async function storeLead(
           metadata: JSON.stringify(leadMetadata),
           updatedAt: new Date(),
         },
+        select: { id: true },
       });
+      return lead;
     } else {
       // If no email, create anonymous lead record for this session
       const anonymousEmail = `session_${sessionId}@anonymous.local`;
-      await prisma.lead.create({
+      const lead = await prisma.lead.create({
         data: {
           email: anonymousEmail,
           campaignId: campaign.id,
@@ -546,11 +550,99 @@ export async function storeLead(
           sessionId,
           metadata: JSON.stringify(leadMetadata),
         },
+        select: { id: true },
       });
+      return lead;
     }
   } catch (error) {
     console.error(`${config.logPrefix} Lead storage failed:`, error);
     // Continue anyway - code was generated successfully
+    return null;
+  }
+}
+
+/**
+ * Record SUBMIT and COUPON_ISSUED events for game popup interactions
+ * This ensures game popups are tracked in analytics alongside newsletter submissions
+ */
+interface RecordGamePopupEventsParams {
+  storeId: string;
+  campaignId: string;
+  leadId?: string;
+  sessionId: string;
+  visitorId?: string;
+  discountCode: string;
+  email?: string;
+  prizeId: string;
+  prizeLabel: string;
+  source: string;
+  config: GamePopupConfig;
+}
+
+async function recordGamePopupEvents(params: RecordGamePopupEventsParams): Promise<void> {
+  const {
+    storeId,
+    campaignId,
+    leadId,
+    sessionId,
+    visitorId,
+    discountCode,
+    email,
+    prizeId,
+    prizeLabel,
+    source,
+    config,
+  } = params;
+
+  try {
+    // Record SUBMIT event (user completed the game interaction)
+    await PopupEventService.recordEvent({
+      storeId,
+      campaignId,
+      leadId: leadId ?? null,
+      sessionId,
+      visitorId: visitorId ?? null,
+      eventType: "SUBMIT",
+      pageUrl: null,
+      pageTitle: null,
+      referrer: null,
+      userAgent: null,
+      ipAddress: null,
+      deviceType: null,
+      metadata: {
+        email: email ?? null,
+        source,
+        prizeId,
+        prizeLabel,
+        gameType: config.type,
+      },
+    });
+
+    // Record COUPON_ISSUED event (discount code was generated)
+    await PopupEventService.recordEvent({
+      storeId,
+      campaignId,
+      leadId: leadId ?? null,
+      sessionId,
+      visitorId: visitorId ?? null,
+      eventType: "COUPON_ISSUED",
+      pageUrl: null,
+      userAgent: null,
+      ipAddress: null,
+      deviceType: null,
+      metadata: {
+        discountCode,
+        prizeId,
+        prizeLabel,
+        source,
+        gameType: config.type,
+      },
+    });
+
+    console.log(`${config.logPrefix} Analytics events recorded (SUBMIT + COUPON_ISSUED)`);
+  } catch (error) {
+    // Don't fail the request if analytics recording fails
+    console.error(`${config.logPrefix} Failed to record analytics events:`, error);
   }
 }
 
@@ -641,7 +733,7 @@ export async function handleGamePopupPrize(
   const { discountCode } = discountResult;
 
   // Store lead
-  await storeLead(
+  const lead = await storeLead(
     campaign,
     winningPrize,
     discountCode,
@@ -650,6 +742,21 @@ export async function handleGamePopupPrize(
     leadSource,
     config
   );
+
+  // Record analytics events (SUBMIT and COUPON_ISSUED)
+  await recordGamePopupEvents({
+    storeId: campaign.storeId,
+    campaignId: campaign.id,
+    leadId: lead?.id,
+    sessionId,
+    visitorId: validatedRequest.visitorId,
+    discountCode,
+    email,
+    prizeId: winningPrize.id,
+    prizeLabel: winningPrize.label,
+    source: leadSource,
+    config,
+  });
 
   // Build and return success response
   const response = buildSuccessResponse(
