@@ -778,6 +778,7 @@ export const DesignConfigSchema = z.object({
   // Layout
   theme: z
     .enum([
+      // Generic themes
       "modern",
       "minimal",
       "elegant",
@@ -788,7 +789,14 @@ export const DesignConfigSchema = z.object({
       "luxury",
       "neon",
       "ocean",
-      "summer-sale",
+      // Seasonal themes (for styled recipes)
+      "summer",
+      "summer-sale", // Legacy, kept for backward compatibility
+      "black-friday",
+      "cyber-monday",
+      "holiday",
+      "valentine",
+      "spring",
     ])
     .optional(), // Optional when using a custom theme preset
   customThemePresetId: z.string().optional(), // ID of the applied custom theme preset
@@ -799,6 +807,23 @@ export const DesignConfigSchema = z.object({
   animation: z.enum(["fade", "slide", "bounce", "none"]).default("fade"),
   displayMode: z.enum(["popup", "banner", "slide-in", "inline"]).optional(),
   showCloseButton: z.boolean().default(true).optional(),
+
+  // Layout variant (used to pick component variant, e.g., FlashSaleCentered vs FlashSaleSplit)
+  // This enables recipes to specify different component layouts without database schema changes
+  // Optional for backward compatibility - defaults to "centered" when not specified
+  layout: z
+    .enum([
+      "centered", // Default modal in center
+      "split-left", // Image on left, content on right
+      "split-right", // Content on left, image on right
+      "fullscreen", // Full viewport
+      "banner-top", // Top sticky bar
+      "banner-bottom", // Bottom sticky bar
+      "sidebar-left", // Slide-in from left
+      "sidebar-right", // Slide-in from right
+    ])
+    .default("centered")
+    .optional(),
 
   // Image settings
   imageUrl: z.string().optional(),

@@ -461,6 +461,10 @@ export default function Dashboard() {
 
   // --- Handlers ---
   const handleCreateCampaign = () => {
+    navigate("/app/campaigns/recipe");
+  };
+
+  const handleCreateFromScratch = () => {
     navigate("/app/campaigns/new");
   };
 
@@ -562,40 +566,44 @@ export default function Dashboard() {
             <EmptyState
               heading="Start turning visitors into customers"
               action={{
-                content: "Create your first campaign",
+                content: "Browse campaign recipes",
                 onAction: handleCreateCampaign,
+              }}
+              secondaryAction={{
+                content: "Build from scratch",
+                onAction: handleCreateFromScratch,
               }}
               image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
             >
               <p>
                 Revenue Boost helps you capture leads and increase sales with high-converting
-                popups. Choose a template to get started in minutes.
+                popups. Pick a ready-made recipe to get started in minutes.
               </p>
             </EmptyState>
           </Layout.Section>
           <Layout.Section>
             <Text as="h2" variant="headingMd">
-              Quick Start Templates
+              Popular Recipes
             </Text>
             <Box paddingBlockStart="400">
               <InlineGrid columns={{ xs: 1, sm: 1, md: 2, lg: 3 }} gap="400">
                 <TemplateTile
-                  title="Newsletter Signup"
-                  description="Grow your email list with a classic popup."
+                  title="🎁 Welcome Discount"
+                  description="10% off for new subscribers"
                   icon={CalendarIcon}
-                  onSelect={() => navigate("/app/campaigns/new?template=NEWSLETTER")}
+                  onSelect={() => navigate("/app/campaigns/recipe")}
                 />
                 <TemplateTile
-                  title="Flash Sale"
-                  description="Offer a discount to convert visitors."
+                  title="⚡ Flash Sale"
+                  description="Limited time offers with countdown"
                   icon={ChartVerticalFilledIcon}
-                  onSelect={() => navigate("/app/campaigns/new?template=FLASH_SALE")}
+                  onSelect={() => navigate("/app/campaigns/recipe")}
                 />
                 <TemplateTile
-                  title="Spin to Win"
-                  description="Gamify your offers to boost engagement."
+                  title="🎡 Spin to Win"
+                  description="Gamified email capture"
                   icon={ChartVerticalFilledIcon}
-                  onSelect={() => navigate("/app/campaigns/new?template=SPIN_TO_WIN")}
+                  onSelect={() => navigate("/app/campaigns/recipe")}
                 />
               </InlineGrid>
             </Box>
@@ -721,22 +729,22 @@ export default function Dashboard() {
           <Box paddingBlockStart="400">
             <InlineGrid columns={{ xs: 1, sm: 1, md: 2, lg: 3 }} gap="400">
               <TemplateTile
-                title="Newsletter Signup"
-                description="Grow your email list with a classic popup."
+                title="🎁 Welcome Discount"
+                description="10% off for new subscribers"
                 icon={CalendarIcon}
-                onSelect={() => navigate("/app/campaigns/new?template=NEWSLETTER")}
+                onSelect={() => navigate("/app/campaigns/recipe")}
               />
               <TemplateTile
-                title="Flash Sale"
-                description="Offer a discount to convert visitors."
+                title="⚡ Flash Sale"
+                description="Limited time offers with countdown"
                 icon={ChartVerticalFilledIcon}
-                onSelect={() => navigate("/app/campaigns/new?template=FLASH_SALE")}
+                onSelect={() => navigate("/app/campaigns/recipe")}
               />
               <TemplateTile
-                title="Spin to Win"
-                description="Gamify your offers to boost engagement."
+                title="🎡 Spin to Win"
+                description="Gamified email capture"
                 icon={ChartVerticalFilledIcon}
-                onSelect={() => navigate("/app/campaigns/new?template=SPIN_TO_WIN")}
+                onSelect={() => navigate("/app/campaigns/recipe")}
               />
             </InlineGrid>
           </Box>

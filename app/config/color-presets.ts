@@ -161,8 +161,10 @@ export function getPopularColorPresets(): ColorPreset[] {
 
 /**
  * Newsletter theme keys
+ * Includes both generic themes and seasonal themes for styled recipes
  */
 export type NewsletterThemeKey =
+  // Generic themes
   | "modern"
   | "minimal"
   | "elegant"
@@ -173,7 +175,14 @@ export type NewsletterThemeKey =
   | "luxury"
   | "neon"
   | "ocean"
-  | "summer-sale";
+  // Seasonal themes (for styled recipes)
+  | "summer"
+  | "summer-sale" // Legacy, kept for backward compatibility
+  | "black-friday"
+  | "cyber-monday"
+  | "holiday"
+  | "valentine"
+  | "spring";
 
 /**
  * Theme color configuration from mockup
@@ -478,6 +487,162 @@ export const NEWSLETTER_THEMES: Record<NewsletterThemeKey, ThemeColors> = {
     descriptionFontSize: "1rem",
     descriptionFontWeight: "400",
   },
+
+  // ==========================================================================
+  // SEASONAL THEMES (for styled recipes)
+  // ==========================================================================
+
+  // Summer theme - warm, playful, coral/turquoise
+  summer: {
+    background: "linear-gradient(135deg, #FF6B6B 0%, #FFE66D 100%)",
+    text: "#FFFFFF",
+    primary: "#4ECDC4", // Turquoise
+    secondary: "rgba(255, 255, 255, 0.2)",
+    accent: "#FFE66D", // Yellow
+    border: "rgba(255, 255, 255, 0.3)",
+    success: "#4ECDC4",
+    warning: "#FF6B6B",
+    imageBg: "rgba(255, 255, 255, 0.15)",
+    descColor: "#FFF5E6",
+    inputBorder: "rgba(255, 255, 255, 0.3)",
+    inputTextColor: "#FFFFFF",
+    timerBg: "rgba(255, 255, 255, 0.25)",
+    timerText: "#FFFFFF",
+    ctaBg: "#4ECDC4",
+    ctaText: "#FFFFFF",
+    fontFamily: "inherit",
+    titleFontSize: "2rem",
+    titleFontWeight: "800",
+    descriptionFontSize: "1rem",
+    descriptionFontWeight: "500",
+  },
+
+  // Black Friday theme - urgent, high contrast, black/yellow
+  "black-friday": {
+    background: "#0A0A0A",
+    text: "#FFFFFF",
+    primary: "#FFD700", // Gold
+    secondary: "#1A1A1A",
+    accent: "#FFD700",
+    border: "#333333",
+    success: "#00FF00",
+    warning: "#FF0000",
+    imageBg: "#1A1A1A",
+    descColor: "#CCCCCC",
+    inputBorder: "#FFD700",
+    inputTextColor: "#FFFFFF",
+    timerBg: "#FFD700",
+    timerText: "#0A0A0A",
+    ctaBg: "#FFD700",
+    ctaText: "#0A0A0A",
+    fontFamily: "inherit",
+    titleFontSize: "2.5rem",
+    titleFontWeight: "900",
+    titleTextShadow: "0 0 20px rgba(255, 215, 0, 0.5)",
+    descriptionFontSize: "1.125rem",
+    descriptionFontWeight: "600",
+  },
+
+  // Cyber Monday theme - tech, neon, dark with purple/blue
+  "cyber-monday": {
+    background: "linear-gradient(135deg, #0F0F23 0%, #1A1A2E 100%)",
+    text: "#FFFFFF",
+    primary: "#00D9FF", // Cyan
+    secondary: "rgba(0, 217, 255, 0.1)",
+    accent: "#FF00FF", // Magenta
+    border: "rgba(0, 217, 255, 0.3)",
+    success: "#00FF88",
+    warning: "#FF0066",
+    imageBg: "rgba(0, 217, 255, 0.1)",
+    descColor: "#B8B8D1",
+    inputBorder: "rgba(0, 217, 255, 0.5)",
+    inputTextColor: "#FFFFFF",
+    timerBg: "rgba(0, 217, 255, 0.2)",
+    timerText: "#00D9FF",
+    ctaBg: "linear-gradient(90deg, #00D9FF 0%, #FF00FF 100%)",
+    ctaText: "#FFFFFF",
+    fontFamily: "inherit",
+    titleFontSize: "2rem",
+    titleFontWeight: "800",
+    titleTextShadow: "0 0 30px rgba(0, 217, 255, 0.6)",
+    descriptionFontSize: "1rem",
+    descriptionFontWeight: "400",
+  },
+
+  // Holiday theme - festive, red/green/gold
+  holiday: {
+    background: "linear-gradient(135deg, #1A472A 0%, #2D5A3D 100%)", // Forest green
+    text: "#FFFFFF",
+    primary: "#C41E3A", // Christmas red
+    secondary: "rgba(255, 255, 255, 0.1)",
+    accent: "#FFD700", // Gold
+    border: "rgba(255, 215, 0, 0.3)",
+    success: "#228B22",
+    warning: "#C41E3A",
+    imageBg: "rgba(255, 215, 0, 0.1)",
+    descColor: "#E8E8E8",
+    inputBorder: "rgba(255, 215, 0, 0.4)",
+    inputTextColor: "#FFFFFF",
+    timerBg: "rgba(196, 30, 58, 0.3)",
+    timerText: "#FFD700",
+    ctaBg: "#C41E3A",
+    ctaText: "#FFFFFF",
+    fontFamily: "inherit",
+    titleFontSize: "2rem",
+    titleFontWeight: "700",
+    descriptionFontSize: "1rem",
+    descriptionFontWeight: "400",
+  },
+
+  // Valentine theme - romantic, pink/red
+  valentine: {
+    background: "linear-gradient(135deg, #FFB6C1 0%, #FF69B4 100%)",
+    text: "#8B0A50",
+    primary: "#FF1493", // Deep pink
+    secondary: "rgba(255, 255, 255, 0.3)",
+    accent: "#DC143C", // Crimson
+    border: "rgba(255, 20, 147, 0.3)",
+    success: "#FF1493",
+    warning: "#DC143C",
+    imageBg: "rgba(255, 255, 255, 0.2)",
+    descColor: "#A0204C",
+    inputBorder: "rgba(255, 20, 147, 0.4)",
+    inputTextColor: "#8B0A50",
+    timerBg: "rgba(255, 255, 255, 0.4)",
+    timerText: "#FF1493",
+    ctaBg: "#FF1493",
+    ctaText: "#FFFFFF",
+    fontFamily: "inherit",
+    titleFontSize: "2rem",
+    titleFontWeight: "600",
+    descriptionFontSize: "1rem",
+    descriptionFontWeight: "400",
+  },
+
+  // Spring theme - fresh, pastels, green/pink
+  spring: {
+    background: "linear-gradient(135deg, #E8F5E9 0%, #F3E5F5 100%)",
+    text: "#2E7D32",
+    primary: "#66BB6A", // Green
+    secondary: "#F8BBD9", // Light pink
+    accent: "#AB47BC", // Purple
+    border: "#C8E6C9",
+    success: "#4CAF50",
+    warning: "#FF9800",
+    imageBg: "#F1F8E9",
+    descColor: "#558B2F",
+    inputBorder: "#A5D6A7",
+    inputTextColor: "#2E7D32",
+    timerBg: "rgba(102, 187, 106, 0.2)",
+    timerText: "#2E7D32",
+    ctaBg: "#66BB6A",
+    ctaText: "#FFFFFF",
+    fontFamily: "inherit",
+    titleFontSize: "1.875rem",
+    titleFontWeight: "600",
+    descriptionFontSize: "1rem",
+    descriptionFontWeight: "400",
+  },
 };
 
 export const NEWSLETTER_BACKGROUND_PRESETS: {
@@ -743,6 +908,13 @@ export const NEWSLETTER_THEMES_2: Record<NewsletterThemeKey, ThemeColors> = {
     descriptionFontSize: "1rem",
     descriptionFontWeight: "400",
   },
+  // Inherit seasonal themes from NEWSLETTER_THEMES
+  summer: NEWSLETTER_THEMES.summer,
+  "black-friday": NEWSLETTER_THEMES["black-friday"],
+  "cyber-monday": NEWSLETTER_THEMES["cyber-monday"],
+  holiday: NEWSLETTER_THEMES.holiday,
+  valentine: NEWSLETTER_THEMES.valentine,
+  spring: NEWSLETTER_THEMES.spring,
 };
 
 // ============================================================================
@@ -776,6 +948,13 @@ export function getSpinToWinSliceColors(theme: NewsletterThemeKey, sliceCount: n
     neon: ["#06b6d4", "#8b5cf6", "#ec4899", "#f59e0b", "#10b981", "#6366f1"],
     ocean: ["#06b6d4", "#0891b2", "#0e7490", "#155e75", "#22d3ee", "#67e8f9"],
     "summer-sale": ["#FF5733", "#FF7849", "#FBBF24", "#38BDF8", "#0EA5E9", "#F97316"],
+    // Seasonal themes
+    summer: ["#FF6B6B", "#FFE66D", "#4ECDC4", "#FF8E53", "#45B7D1", "#F7DC6F"],
+    "black-friday": ["#FFD700", "#FFC107", "#FFAB00", "#FF9100", "#FF6D00", "#FFD54F"],
+    "cyber-monday": ["#00D9FF", "#FF00FF", "#7B68EE", "#00BFFF", "#9370DB", "#00CED1"],
+    holiday: ["#C41E3A", "#228B22", "#FFD700", "#DC143C", "#006400", "#B8860B"],
+    valentine: ["#FF1493", "#FF69B4", "#DC143C", "#FFB6C1", "#DB7093", "#C71585"],
+    spring: ["#66BB6A", "#AB47BC", "#81C784", "#BA68C8", "#A5D6A7", "#CE93D8"],
   };
 
   const base = themeMap[theme] || themeMap.modern;
@@ -810,6 +989,13 @@ const SPIN_TO_WIN_WHEEL_BORDER_DEFAULTS: Record<NewsletterThemeKey, SpinToWinWhe
   neon: { color: "#00ffff", width: 3 },
   ocean: { color: "#0ea5e9", width: 3 },
   "summer-sale": { color: "#FF5733", width: 3 },
+  // Seasonal themes
+  summer: { color: "#4ECDC4", width: 3 },
+  "black-friday": { color: "#FFD700", width: 4 },
+  "cyber-monday": { color: "#00D9FF", width: 3 },
+  holiday: { color: "#FFD700", width: 3 },
+  valentine: { color: "#FF1493", width: 3 },
+  spring: { color: "#66BB6A", width: 3 },
 };
 
 export function getSpinToWinWheelBorder(theme: NewsletterThemeKey): SpinToWinWheelBorder {
@@ -1156,6 +1342,13 @@ function getColorThemeForNewsletterTheme(theme: NewsletterThemeKey): ColorTheme 
     neon: "playful",
     ocean: "professional",
     "summer-sale": "vibrant",
+    // Seasonal themes
+    summer: "playful",
+    "black-friday": "dark",
+    "cyber-monday": "dark",
+    holiday: "vibrant",
+    valentine: "elegant",
+    spring: "playful",
   };
   return mapping[theme];
 }
@@ -1176,6 +1369,13 @@ function getNewsletterThemeDescription(theme: NewsletterThemeKey): string {
     neon: "Cyberpunk glow effects",
     ocean: "Fresh blue/teal palette",
     "summer-sale": "Sunny orange & turquoise",
+    // Seasonal themes
+    summer: "Warm coral & turquoise summer vibes",
+    "black-friday": "Bold black & gold urgency",
+    "cyber-monday": "Neon tech aesthetic",
+    holiday: "Festive red, green & gold",
+    valentine: "Romantic pink & red",
+    spring: "Fresh pastels & greens",
   };
   return descriptions[theme] || "";
 }

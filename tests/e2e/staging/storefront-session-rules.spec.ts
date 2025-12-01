@@ -195,12 +195,7 @@ test.describe.serial("Session Rules & Frequency Capping", () => {
     expect(campaign).toBeDefined();
   });
 
-  // Skip: Server uses cookie-based visitorId for frequency cap CHECKING,
-  // but SDK sends localStorage-based visitorId for RECORDING.
-  // These mismatched IDs cause frequency caps to not work.
-  // Fix applied to api.campaigns.active.tsx (uses client visitorId from query params),
-  // but needs deployment to staging.
-  test.skip("multiple impressions allowed when configured", async ({ page }) => {
+  test("multiple impressions allowed when configured", async ({ page }) => {
 
     // Create campaign with max 3 impressions per session
     const campaign = await (await factory.newsletter().init())

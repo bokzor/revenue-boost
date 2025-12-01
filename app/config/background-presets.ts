@@ -1,0 +1,373 @@
+/**
+ * Background Presets Configuration
+ *
+ * Defines available background images and their theme affinity.
+ * Used by styled recipes to auto-select matching backgrounds.
+ *
+ * @see docs/RECIPE_SYSTEM_ARCHITECTURE.md
+ * @see docs/BACKGROUND_IMAGES.md
+ */
+
+import type { NewsletterThemeKey } from "./color-presets";
+
+// =============================================================================
+// TYPES
+// =============================================================================
+
+export type BackgroundCategory =
+  | "theme" // Matches a specific theme (modern, bold, etc.)
+  | "seasonal" // Seasonal backgrounds (holiday, summer, etc.)
+  | "abstract" // Generic abstract patterns
+  | "minimal" // Clean, minimal backgrounds
+  | "custom"; // User-uploaded
+
+export type TemplateTypeForBackground =
+  | "NEWSLETTER"
+  | "FLASH_SALE"
+  | "SPIN_TO_WIN"
+  | "SCRATCH_CARD"
+  | "ANNOUNCEMENT"
+  | "ALL";
+
+export interface BackgroundPreset {
+  /** Unique identifier */
+  id: string;
+
+  /** Filename in public/newsletter-backgrounds/ */
+  filename: string;
+
+  /** Display name */
+  name: string;
+
+  /** Short description */
+  description: string;
+
+  /** Themes this background works well with */
+  suggestedForThemes: NewsletterThemeKey[];
+
+  /** Primary theme (if this is the "default" background for a theme) */
+  primaryTheme?: NewsletterThemeKey;
+
+  /** Is this a seasonal background */
+  seasonal?: boolean;
+
+  /** Category for organization in picker */
+  category: BackgroundCategory;
+
+  /** Which template types this works for */
+  templateTypes: TemplateTypeForBackground[];
+
+  /** Is this featured/popular */
+  featured?: boolean;
+}
+
+// =============================================================================
+// BACKGROUND PRESETS
+// =============================================================================
+
+export const BACKGROUND_PRESETS: BackgroundPreset[] = [
+  // ============================================
+  // THEME-MATCHED BACKGROUNDS
+  // ============================================
+  {
+    id: "bg-modern",
+    filename: "modern.jpg",
+    name: "Modern",
+    description: "Clean blue gradient",
+    suggestedForThemes: ["modern", "glass"],
+    primaryTheme: "modern",
+    category: "theme",
+    templateTypes: ["ALL"],
+    featured: true,
+  },
+  {
+    id: "bg-minimal",
+    filename: "minimal.jpg",
+    name: "Minimal",
+    description: "Ultra-light, subtle",
+    suggestedForThemes: ["minimal", "elegant"],
+    primaryTheme: "minimal",
+    category: "theme",
+    templateTypes: ["ALL"],
+  },
+  {
+    id: "bg-elegant",
+    filename: "elegant.jpg",
+    name: "Elegant",
+    description: "Warm sophisticated tones",
+    suggestedForThemes: ["elegant", "luxury"],
+    primaryTheme: "elegant",
+    category: "theme",
+    templateTypes: ["ALL"],
+  },
+  {
+    id: "bg-bold",
+    filename: "bold.jpg",
+    name: "Bold",
+    description: "High contrast vibrant",
+    suggestedForThemes: ["bold", "neon"],
+    primaryTheme: "bold",
+    category: "theme",
+    templateTypes: ["ALL"],
+    featured: true,
+  },
+  {
+    id: "bg-glass",
+    filename: "glass.jpg",
+    name: "Glass",
+    description: "Glassmorphism blur effect",
+    suggestedForThemes: ["glass", "modern"],
+    primaryTheme: "glass",
+    category: "theme",
+    templateTypes: ["ALL"],
+  },
+  {
+    id: "bg-dark",
+    filename: "dark.jpg",
+    name: "Dark",
+    description: "Dark mode optimized",
+    suggestedForThemes: ["dark", "black-friday", "cyber-monday"],
+    primaryTheme: "dark",
+    category: "theme",
+    templateTypes: ["ALL"],
+    featured: true,
+  },
+  {
+    id: "bg-gradient",
+    filename: "gradient.jpg",
+    name: "Gradient",
+    description: "Purple gradient background",
+    suggestedForThemes: ["gradient"],
+    primaryTheme: "gradient",
+    category: "theme",
+    templateTypes: ["ALL"],
+  },
+  {
+    id: "bg-luxury",
+    filename: "luxury.jpg",
+    name: "Luxury",
+    description: "Gold on dark, premium",
+    suggestedForThemes: ["luxury", "elegant"],
+    primaryTheme: "luxury",
+    category: "theme",
+    templateTypes: ["ALL"],
+  },
+  {
+    id: "bg-neon",
+    filename: "neon.jpg",
+    name: "Neon",
+    description: "Cyberpunk glow effects",
+    suggestedForThemes: ["neon", "cyber-monday"],
+    primaryTheme: "neon",
+    category: "theme",
+    templateTypes: ["ALL"],
+  },
+  {
+    id: "bg-ocean",
+    filename: "ocean.jpg",
+    name: "Ocean",
+    description: "Fresh blue/teal palette",
+    suggestedForThemes: ["ocean", "modern"],
+    primaryTheme: "ocean",
+    category: "theme",
+    templateTypes: ["ALL"],
+  },
+
+  // ============================================
+  // SEASONAL BACKGROUNDS
+  // ============================================
+  {
+    id: "bg-summer",
+    filename: "summer-sale.jpg",
+    name: "Summer Sale",
+    description: "Warm sunny vibes",
+    suggestedForThemes: ["summer", "summer-sale"],
+    primaryTheme: "summer",
+    seasonal: true,
+    category: "seasonal",
+    templateTypes: ["ALL"],
+    featured: true,
+  },
+  {
+    id: "bg-black-friday",
+    filename: "lucid-origin_A_vibrant_landscape_rectangular_abstract_background_with_sharp_corners_for_a_Bla-2.jpg",
+    name: "Black Friday",
+    description: "Bold black with gold accents",
+    suggestedForThemes: ["black-friday", "dark", "luxury"],
+    primaryTheme: "black-friday",
+    seasonal: true,
+    category: "seasonal",
+    templateTypes: ["ALL"],
+    featured: true,
+  },
+  {
+    id: "bg-cyber-monday",
+    filename: "lucid-origin_A_vibrant_landscape_rectangular_abstract_background_with_sharp_corners_for_a_Bac-3.jpg",
+    name: "Cyber Monday",
+    description: "Neon tech aesthetic",
+    suggestedForThemes: ["cyber-monday", "neon"],
+    primaryTheme: "cyber-monday",
+    seasonal: true,
+    category: "seasonal",
+    templateTypes: ["ALL"],
+  },
+  {
+    id: "bg-holiday",
+    filename: "christmas.jpg",
+    name: "Holiday / Christmas",
+    description: "Festive red and green",
+    suggestedForThemes: ["holiday"],
+    primaryTheme: "holiday",
+    seasonal: true,
+    category: "seasonal",
+    templateTypes: ["ALL"],
+    featured: true,
+  },
+  {
+    id: "bg-valentine",
+    filename: "lucid-origin_A_vibrant_landscape_rectangular_abstract_background_with_sharp_corners_for_a_Val-2.jpg",
+    name: "Valentine's Day",
+    description: "Romantic pink and red",
+    suggestedForThemes: ["valentine"],
+    primaryTheme: "valentine",
+    seasonal: true,
+    category: "seasonal",
+    templateTypes: ["ALL"],
+  },
+  {
+    id: "bg-easter",
+    filename: "lucid-origin_A_vibrant_landscape_rectangular_abstract_background_with_sharp_corners_for_an_Ea-2.jpg",
+    name: "Easter / Spring",
+    description: "Fresh pastels and spring colors",
+    suggestedForThemes: ["spring"],
+    primaryTheme: "spring",
+    seasonal: true,
+    category: "seasonal",
+    templateTypes: ["ALL"],
+  },
+  {
+    id: "bg-halloween",
+    filename: "lucid-origin_A_vibrant_landscape_rectangular_abstract_background_with_sharp_corners_for_a_Hal-0.jpg",
+    name: "Halloween",
+    description: "Spooky orange and black",
+    suggestedForThemes: ["dark", "neon"],
+    seasonal: true,
+    category: "seasonal",
+    templateTypes: ["ALL"],
+  },
+  {
+    id: "bg-thanksgiving",
+    filename: "lucid-origin_A_vibrant_landscape_rectangular_abstract_background_with_sharp_corners_for_a_Tha-3.jpg",
+    name: "Thanksgiving",
+    description: "Warm autumn tones",
+    suggestedForThemes: ["elegant", "luxury"],
+    seasonal: true,
+    category: "seasonal",
+    templateTypes: ["ALL"],
+  },
+  {
+    id: "bg-new-year",
+    filename: "lucid-origin_A_vibrant_landscape_rectangular_abstract_background_with_sharp_corners_for_a_New-0.jpg",
+    name: "New Year",
+    description: "Celebratory gold and sparkles",
+    suggestedForThemes: ["luxury", "gradient"],
+    seasonal: true,
+    category: "seasonal",
+    templateTypes: ["ALL"],
+  },
+  {
+    id: "bg-winter",
+    filename: "lucid-origin_A_vibrant_landscape_rectangular_abstract_background_with_sharp_corners_for_a_Win-1.jpg",
+    name: "Winter",
+    description: "Cool blue winter scene",
+    suggestedForThemes: ["ocean", "glass"],
+    seasonal: true,
+    category: "seasonal",
+    templateTypes: ["ALL"],
+  },
+];
+
+// =============================================================================
+// HELPER FUNCTIONS
+// =============================================================================
+
+/**
+ * Get all backgrounds suggested for a specific theme
+ */
+export function getBackgroundsForTheme(theme: NewsletterThemeKey): BackgroundPreset[] {
+  return BACKGROUND_PRESETS.filter((bg) => bg.suggestedForThemes.includes(theme));
+}
+
+/**
+ * Get the primary/default background for a theme
+ * Returns the background where this theme is the primaryTheme
+ */
+export function getDefaultBackgroundForTheme(
+  theme: NewsletterThemeKey
+): BackgroundPreset | undefined {
+  return BACKGROUND_PRESETS.find((bg) => bg.primaryTheme === theme);
+}
+
+/**
+ * Get background by ID
+ */
+export function getBackgroundById(id: string): BackgroundPreset | undefined {
+  return BACKGROUND_PRESETS.find((bg) => bg.id === id);
+}
+
+/**
+ * Get all backgrounds in a category
+ */
+export function getBackgroundsByCategory(category: BackgroundCategory): BackgroundPreset[] {
+  return BACKGROUND_PRESETS.filter((bg) => bg.category === category);
+}
+
+/**
+ * Get featured backgrounds
+ */
+export function getFeaturedBackgrounds(): BackgroundPreset[] {
+  return BACKGROUND_PRESETS.filter((bg) => bg.featured);
+}
+
+/**
+ * Get seasonal backgrounds
+ */
+export function getSeasonalBackgrounds(): BackgroundPreset[] {
+  return BACKGROUND_PRESETS.filter((bg) => bg.seasonal);
+}
+
+/**
+ * Get backgrounds compatible with a template type
+ */
+export function getBackgroundsForTemplateType(
+  templateType: TemplateTypeForBackground
+): BackgroundPreset[] {
+  return BACKGROUND_PRESETS.filter(
+    (bg) => bg.templateTypes.includes("ALL") || bg.templateTypes.includes(templateType)
+  );
+}
+
+/**
+ * Build the full URL for a background image
+ * Works for both admin preview and storefront
+ */
+export function getBackgroundUrl(preset: BackgroundPreset, baseUrl?: string): string {
+  const base = baseUrl || "";
+  return `${base}/newsletter-backgrounds/${preset.filename}`;
+}
+
+/**
+ * Check if a theme has a dedicated background
+ */
+export function themeHasDedicatedBackground(theme: NewsletterThemeKey): boolean {
+  return BACKGROUND_PRESETS.some((bg) => bg.primaryTheme === theme);
+}
+
+/**
+ * Get background preset ID for a theme (for use in recipes)
+ */
+export function getBackgroundIdForTheme(theme: NewsletterThemeKey): string | undefined {
+  const preset = getDefaultBackgroundForTheme(theme);
+  return preset?.id;
+}
+
