@@ -147,7 +147,7 @@ export const NameInput: React.FC<NameInputProps> = ({
   value,
   onChange,
   placeholder = "Enter your name",
-  label = "Name",
+  label,
   error,
   required = false,
   disabled = false,
@@ -172,18 +172,20 @@ export const NameInput: React.FC<NameInputProps> = ({
           }
         `}
       </style>
-      <label
-        style={{
-          display: "block",
-          marginBottom: "0.5rem",
-          fontSize: "0.875rem",
-          fontWeight: "500",
-          color: textColor,
-        }}
-      >
-        {label}
-        {required && <span style={{ color: "#EF4444" }}> *</span>}
-      </label>
+      {label && (
+        <label
+          style={{
+            display: "block",
+            marginBottom: "0.5rem",
+            fontSize: "0.875rem",
+            fontWeight: "500",
+            color: textColor,
+          }}
+        >
+          {label}
+          {required && <span style={{ color: "#EF4444" }}> *</span>}
+        </label>
+      )}
       <input
         id={inputId}
         type="text"

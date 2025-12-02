@@ -44,7 +44,9 @@ export function loadGoogleFont(fontFamily: string | undefined): void {
   const link = document.createElement("link");
   link.id = linkId;
   link.rel = "stylesheet";
-  link.href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(googleFontId)}&display=swap`;
+  // Note: googleFontId is already URL-formatted (e.g., "Playfair+Display:wght@400;500;600;700")
+  // Don't encode it again - Google Fonts expects the + and : characters as-is
+  link.href = `https://fonts.googleapis.com/css2?family=${googleFontId}&display=swap`;
   document.head.appendChild(link);
 
   loadedFonts.add(googleFontId);

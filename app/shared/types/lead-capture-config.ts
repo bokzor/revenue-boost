@@ -110,7 +110,7 @@ export const LEAD_CAPTURE_DEFAULTS: Required<LeadCaptureConfig> = {
   // Name
   nameFieldEnabled: false,
   nameFieldRequired: false,
-  nameFieldLabel: "Name",
+  nameFieldLabel: "",
   nameFieldPlaceholder: "Your name",
   // Consent
   consentFieldEnabled: false,

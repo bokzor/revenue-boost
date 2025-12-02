@@ -80,7 +80,7 @@ const goldenReveal: StyledRecipe = {
   editableFields: SCRATCH_CARD_EDITABLE_FIELDS,
   defaults: {
     contentConfig: {
-      headline: "Reveal Your Exclusive Reward",
+      headline: "Exclusive Reward",
       subheadline: "A special gift awaits our valued guests",
       scratchInstruction: "Gently scratch to unveil your reward",
       buttonText: "Claim Now",
@@ -111,9 +111,11 @@ const goldenReveal: StyledRecipe = {
       buttonColor: "#D4AF37",
       buttonTextColor: "#1A1814",
       scratchCardBackgroundColor: "#F5F0E8",
+      scratchCardTextColor: "#1A1814", // Dark text on cream prize background
       scratchOverlayColor: "#D4AF37",
       scratchOverlayImage: "/recipes/scratch-card/golden-reveal-overlay.jpg",
       inputBackgroundColor: "rgba(255,255,255,0.1)",
+      inputTextColor: "#F5F0E8", // Light text for dark input
       inputBorderColor: "#D4AF37",
       accentColor: "#D4AF37",
       fontFamily: "'Playfair Display', Georgia, serif",
@@ -192,9 +194,11 @@ const neonArcade: StyledRecipe = {
       buttonColor: "#EC4899",
       buttonTextColor: "#FFFFFF",
       scratchCardBackgroundColor: "#1A1625",
+      scratchCardTextColor: "#FFFFFF", // White text on dark prize background
       scratchOverlayColor: "#00FFFF",
       scratchOverlayImage: "/recipes/scratch-card/neon-arcade-overlay.jpg",
       inputBackgroundColor: "rgba(167, 139, 250, 0.2)",
+      inputTextColor: "#FFFFFF", // White text on dark purple input
       inputBorderColor: "#A78BFA",
       accentColor: "#EC4899",
       fontFamily: "'Space Grotesk', 'Courier New', monospace",
@@ -269,9 +273,11 @@ const paperLuck: StyledRecipe = {
       buttonColor: "#EF4444",
       buttonTextColor: "#FFFFFF",
       scratchCardBackgroundColor: "#FFFFFF",
+      scratchCardTextColor: "#1F2937", // Dark text on white prize background
       scratchOverlayColor: "#9CA3AF",
       scratchOverlayImage: "/recipes/scratch-card/paper-luck-overlay.jpg",
       inputBackgroundColor: "#FFFFFF",
+      inputTextColor: "#1F2937", // Dark text on white input
       inputBorderColor: "#E5E7EB",
       accentColor: "#EF4444",
       fontFamily: "'Comic Neue', 'Comic Sans MS', cursive",
@@ -344,9 +350,11 @@ const roseGoldDream: StyledRecipe = {
       buttonColor: "#DB2777",
       buttonTextColor: "#FFFFFF",
       scratchCardBackgroundColor: "#FFFFFF",
+      scratchCardTextColor: "#831843", // Dark pink text on white prize background
       scratchOverlayColor: "#F9A8D4",
       scratchOverlayImage: "/recipes/scratch-card/rose-gold-overlay.jpg",
       inputBackgroundColor: "#FFFFFF",
+      inputTextColor: "#831843", // Dark pink text on white input
       inputBorderColor: "#FBCFE8",
       accentColor: "#F472B6",
       fontFamily: "'Cormorant Garamond', Georgia, serif",
@@ -424,9 +432,11 @@ const minimalSilver: StyledRecipe = {
       buttonColor: "#111827",
       buttonTextColor: "#FFFFFF",
       scratchCardBackgroundColor: "#F9FAFB",
+      scratchCardTextColor: "#111827", // Dark text on light gray prize background
       scratchOverlayColor: "#9CA3AF",
       scratchOverlayImage: "/recipes/scratch-card/minimal-silver-overlay.jpg",
       inputBackgroundColor: "#F9FAFB",
+      inputTextColor: "#111827", // Dark text on light gray input
       inputBorderColor: "#E5E7EB",
       accentColor: "#3B82F6",
       fontFamily: "'Inter', system-ui, sans-serif",
@@ -503,9 +513,11 @@ const holidayMagic: StyledRecipe = {
       buttonColor: "#FCD34D",
       buttonTextColor: "#7F1D1D",
       scratchCardBackgroundColor: "#FEF3C7",
+      scratchCardTextColor: "#7F1D1D", // Dark red text on cream prize background
       scratchOverlayColor: "#60A5FA",
       scratchOverlayImage: "/recipes/scratch-card/holiday-magic-overlay.jpg",
       inputBackgroundColor: "rgba(255,255,255,0.9)",
+      inputTextColor: "#7F1D1D", // Dark red text on white input (critical fix!)
       inputBorderColor: "#FDE68A",
       accentColor: "#FCD34D",
       fontFamily: "'Playfair Display', Georgia, serif",
@@ -584,9 +596,11 @@ const woodArtisan: StyledRecipe = {
       buttonColor: "#78350F",
       buttonTextColor: "#FFFFFF",
       scratchCardBackgroundColor: "#FEF3C7",
+      scratchCardTextColor: "#422006", // Dark brown text on cream prize background
       scratchOverlayColor: "#D97706",
       scratchOverlayImage: "/recipes/scratch-card/wood-artisan-overlay.jpg",
       inputBackgroundColor: "#FFFFFF",
+      inputTextColor: "#422006", // Dark brown text on white input
       inputBorderColor: "#FDE68A",
       accentColor: "#92400E",
       fontFamily: "'DM Sans', 'Helvetica Neue', sans-serif",
@@ -662,9 +676,11 @@ const holographicHype: StyledRecipe = {
       buttonColor: "#FFFFFF",
       buttonTextColor: "#9333EA",
       scratchCardBackgroundColor: "#1F2937",
+      scratchCardTextColor: "#FFFFFF", // White text on dark prize background
       scratchOverlayColor: "#E879F9",
       scratchOverlayImage: "/recipes/scratch-card/holographic-hype-overlay.jpg",
       inputBackgroundColor: "rgba(255,255,255,0.2)",
+      inputTextColor: "#FFFFFF", // White text on transparent input
       inputBorderColor: "#FFFFFF",
       accentColor: "#FDE68A",
       fontFamily: "'Space Grotesk', 'Poppins', sans-serif",

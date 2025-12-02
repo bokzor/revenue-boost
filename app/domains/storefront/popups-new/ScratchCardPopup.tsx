@@ -441,6 +441,9 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
   const [overlayImage, setOverlayImage] = useState<HTMLImageElement | null>(null);
   const overlayImageLoadedRef = useRef(false);
 
+  // State for delayed email overlay appearance (wait for reveal animation)
+  const [showEmailOverlay, setShowEmailOverlay] = useState(false);
+
   const DEFAULT_CARD_WIDTH = 384;
   const DEFAULT_CARD_HEIGHT = 216;
 
@@ -480,6 +483,28 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
       img.onerror = null;
     };
   }, [config.scratchOverlayImage]);
+
+  // ============================================
+  // DELAYED EMAIL OVERLAY (wait for reveal animation)
+  // ============================================
+  useEffect(() => {
+    // Only show overlay for email-after-scratch flow when revealed
+    if (
+      isRevealed &&
+      config.emailRequired &&
+      !config.emailBeforeScratching &&
+      !emailSubmitted
+    ) {
+      // Wait 1.5 seconds for the reveal celebration to complete
+      const timer = setTimeout(() => {
+        setShowEmailOverlay(true);
+      }, 1500);
+
+      return () => clearTimeout(timer);
+    } else {
+      setShowEmailOverlay(false);
+    }
+  }, [isRevealed, config.emailRequired, config.emailBeforeScratching, emailSubmitted]);
 
   // ============================================
   // SCRATCH SOUND & HAPTIC FEEDBACK
@@ -1204,13 +1229,15 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
           )}
 
           <div className="scratch-popup-form-section">
-            {/* Headline */}
-            <div style={{ textAlign: "center" }}>
+            {/* Headline - using best practices from PopupHeader component */}
+            <div style={{ textAlign: "center", marginBottom: "1.5rem" }}>
               <h2
                 style={{
-                  fontSize: config.titleFontSize || "28px",
+                  fontSize: config.titleFontSize || "1.875rem",
                   fontWeight: config.titleFontWeight || 700,
-                  margin: "0 0 8px 0",
+                  lineHeight: 1.2,
+                  margin: 0,
+                  marginBottom: (config.subheadline || showEmailForm) ? "0.75rem" : 0,
                   textShadow: config.titleTextShadow,
                 }}
               >
@@ -1219,10 +1246,11 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
               {(config.subheadline || showEmailForm) && (
                 <p
                   style={{
-                    fontSize: config.descriptionFontSize || "16px",
+                    fontSize: config.descriptionFontSize || "1rem",
                     fontWeight: config.descriptionFontWeight || 400,
+                    lineHeight: 1.6,
                     margin: 0,
-                    opacity: 0.8,
+                    opacity: config.descriptionColor ? 1 : 0.85,
                     color: config.descriptionColor || config.textColor,
                   }}
                 >
@@ -1472,67 +1500,7 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
                     </div>
                   )}
 
-                  {/* Post-reveal email capture - Scenario 3: Email required after scratching */}
-                  {isRevealed &&
-                    config.emailRequired &&
-                    !config.emailBeforeScratching &&
-                    !emailSubmitted && (
-                      <form
-                        onSubmit={handleEmailSubmit}
-                        style={{
-                          marginTop: "1.5rem",
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: "1rem",
-                          maxWidth: "400px",
-                          marginLeft: "auto",
-                          marginRight: "auto",
-                        }}
-                      >
-                        <div>
-                          <EmailInput
-                            value={formState.email}
-                            onChange={setEmail}
-                            placeholder={config.emailPlaceholder || "Enter your email"}
-                            label={
-                              config.emailLabel || "Enter your email to receive your discount code"
-                            }
-                            error={errors.email}
-                            required={true}
-                            disabled={isSubmitting || isSubmittingEmail}
-                            accentColor={config.accentColor}
-                            textColor={config.inputTextColor || config.textColor}
-                            backgroundColor={config.inputBackgroundColor}
-                            borderColor={config.inputBorderColor}
-                          />
-
-                          {config.consentFieldEnabled && (
-                            <GdprCheckbox
-                              checked={formState.gdprConsent}
-                              onChange={setGdprConsent}
-                              text={config.consentFieldText}
-                              error={errors.gdpr}
-                              required={config.consentFieldRequired}
-                              disabled={isSubmitting || isSubmittingEmail}
-                              accentColor={config.accentColor}
-                              textColor={config.textColor}
-                              privacyPolicyUrl={config.privacyPolicyUrl}
-                            />
-                          )}
-                        </div>
-
-                        <SubmitButton
-                          type="submit"
-                          loading={isSubmitting || isSubmittingEmail}
-                          disabled={isSubmitting || isSubmittingEmail}
-                          buttonColor={config.buttonColor}
-                          accentColor={config.accentColor}
-                          textColor={config.buttonTextColor}
-                        >
-                          {config.buttonText || "Get My Discount Code"}
-                        </SubmitButton>
-                      </form>
-                    )}
+                  {/* Post-reveal email capture moved to overlay panel below */}
 
                   {/* Success state after claiming prize - same pattern as SpinToWin */}
                   {isRevealed && emailSubmitted && (
@@ -1604,6 +1572,68 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
             )}
           </div>
         </div>
+
+        {/* Email Capture Overlay Panel - slides up after reveal animation completes */}
+        {showEmailOverlay && (
+          <div className="scratch-email-overlay">
+            <div className="scratch-email-overlay-content">
+              <h3 style={{
+                color: config.textColor,
+                lineHeight: 1.2,
+                margin: "0 0 0.5rem 0",
+              }}>
+                🎉 {wonPrize?.label || "You Won!"}
+              </h3>
+              <p style={{
+                color: config.descriptionColor || config.textColor,
+                lineHeight: 1.5,
+                opacity: config.descriptionColor ? 1 : 0.85,
+                margin: "0 0 1rem 0",
+              }}>
+                Enter your email to claim your prize
+              </p>
+              <form onSubmit={handleEmailSubmit}>
+                <EmailInput
+                  value={formState.email}
+                  onChange={setEmail}
+                  placeholder={config.emailPlaceholder || "Enter your email"}
+                  error={errors.email}
+                  required={true}
+                  disabled={isSubmitting || isSubmittingEmail}
+                  accentColor={config.accentColor}
+                  textColor={config.inputTextColor || config.textColor}
+                  backgroundColor={config.inputBackgroundColor}
+                  borderColor={config.inputBorderColor}
+                />
+
+                {config.consentFieldEnabled && (
+                  <GdprCheckbox
+                    checked={formState.gdprConsent}
+                    onChange={setGdprConsent}
+                    text={config.consentFieldText}
+                    error={errors.gdpr}
+                    required={config.consentFieldRequired}
+                    disabled={isSubmitting || isSubmittingEmail}
+                    accentColor={config.accentColor}
+                    textColor={config.textColor}
+                    privacyPolicyUrl={config.privacyPolicyUrl}
+                  />
+                )}
+
+                <SubmitButton
+                  type="submit"
+                  loading={isSubmitting || isSubmittingEmail}
+                  disabled={isSubmitting || isSubmittingEmail}
+                  buttonColor={config.buttonColor}
+                  accentColor={config.accentColor}
+                  textColor={config.buttonTextColor}
+                >
+                  {config.buttonText || "Claim My Prize"}
+                </SubmitButton>
+              </form>
+            </div>
+          </div>
+        )}
 
         <style>{`
         .scratch-popup-container {
@@ -1986,6 +2016,56 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
           border-radius: 2px;
           transition: width 0.1s ease-out;
           box-shadow: 0 0 8px ${config.accentColor || config.buttonColor}80;
+        }
+
+        /* Email Capture Overlay Panel */
+        .scratch-email-overlay {
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          background: ${config.backgroundColor || "#ffffff"}f0;
+          backdrop-filter: blur(16px);
+          -webkit-backdrop-filter: blur(16px);
+          border-top: 1px solid rgba(255,255,255,0.3);
+          border-radius: 20px 20px 0 0;
+          padding: 1.5rem;
+          z-index: 100;
+          animation: slideUpOverlay 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+          box-shadow: 0 -10px 40px rgba(0,0,0,0.2);
+        }
+
+        @keyframes slideUpOverlay {
+          from {
+            transform: translateY(100%);
+            opacity: 0;
+          }
+          to {
+            transform: translateY(0);
+            opacity: 1;
+          }
+        }
+
+        .scratch-email-overlay-content {
+          max-width: 400px;
+          margin: 0 auto;
+        }
+
+        .scratch-email-overlay h3 {
+          font-size: 1.25rem;
+          font-weight: 600;
+          text-align: center;
+        }
+
+        .scratch-email-overlay p {
+          font-size: 0.9375rem;
+          text-align: center;
+        }
+
+        .scratch-email-overlay form {
+          display: flex;
+          flex-direction: column;
+          gap: 0.75rem;
         }
 
         /* Holographic shimmer overlay animation */

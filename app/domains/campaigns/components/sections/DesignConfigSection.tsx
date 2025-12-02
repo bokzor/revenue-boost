@@ -466,7 +466,10 @@ export function DesignConfigSection({
                   helpText="Use one of the built-in background images"
                 />
 
-                <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                <BlockStack gap="100">
+                  <Text as="span" variant="bodySm" fontWeight="medium">
+                    Or upload your own
+                  </Text>
                   <input
                     ref={fileInputRef}
                     type="file"
@@ -474,24 +477,21 @@ export function DesignConfigSection({
                     style={{ display: "none" }}
                     onChange={handleBackgroundFileChange}
                   />
-
-                  <BlockStack gap="200">
-                    <Button
-                      onClick={handleBackgroundFileClick}
-                      loading={isUploadingBackground}
-                      disabled={isUploadingBackground}
-                    >
-                      {imageMode === "file" && previewImageUrl
-                        ? "Change background image"
-                        : "Upload image from your computer"}
-                    </Button>
-                    {uploadError && (
-                      <Text as="p" variant="bodySm" tone="critical">
-                        {uploadError}
-                      </Text>
-                    )}
-                  </BlockStack>
-                </div>
+                  <Button
+                    onClick={handleBackgroundFileClick}
+                    loading={isUploadingBackground}
+                    disabled={isUploadingBackground}
+                  >
+                    {imageMode === "file" && previewImageUrl
+                      ? "Change background image"
+                      : "Upload image"}
+                  </Button>
+                  {uploadError && (
+                    <Text as="p" variant="bodySm" tone="critical">
+                      {uploadError}
+                    </Text>
+                  )}
+                </BlockStack>
               </FormGrid>
 
               {/* Overlay opacity slider - only show for full background mode */}
