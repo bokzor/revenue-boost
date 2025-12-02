@@ -399,9 +399,9 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
   } = usePopupForm({
     config: {
       emailRequired: config.emailRequired,
-      emailErrorMessage: undefined,
-      consentFieldEnabled: config.showGdprCheckbox,
-      consentFieldRequired: config.showGdprCheckbox,
+      emailErrorMessage: config.emailErrorMessage,
+      consentFieldEnabled: config.consentFieldEnabled,
+      consentFieldRequired: config.consentFieldRequired,
       campaignId: config.campaignId,
       previewMode: config.previewMode,
     },
@@ -1194,13 +1194,13 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
                   borderColor={config.inputBorderColor}
                 />
 
-                {config.showGdprCheckbox && (
+                {config.consentFieldEnabled && (
                   <GdprCheckbox
                     checked={formState.gdprConsent}
                     onChange={setGdprConsent}
-                    text={config.gdprLabel || "I agree to receive promotional emails"}
+                    text={config.consentFieldText}
                     error={errors.gdpr}
-                    required={true}
+                    required={config.consentFieldRequired}
                     disabled={isSubmitting}
                     accentColor={config.accentColor || config.buttonColor}
                     textColor={config.textColor}
@@ -1467,13 +1467,13 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
                             borderColor={config.inputBorderColor}
                           />
 
-                          {config.showGdprCheckbox && (
+                          {config.consentFieldEnabled && (
                             <GdprCheckbox
                               checked={formState.gdprConsent}
                               onChange={setGdprConsent}
-                              text={config.gdprLabel || "I agree to receive promotional emails"}
+                              text={config.consentFieldText}
                               error={errors.gdpr}
-                              required={true}
+                              required={config.consentFieldRequired}
                               disabled={isSubmitting || isSubmittingEmail}
                               accentColor={config.accentColor}
                               textColor={config.textColor}

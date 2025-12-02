@@ -5,30 +5,24 @@
  * @see docs/RECIPE_SYSTEM_ARCHITECTURE.md
  */
 
-// Recipe picker (step 1)
+// Recipe picker - main component for selecting recipes
 export { RecipePicker } from "./RecipePicker";
 export type { RecipePickerProps } from "./RecipePicker";
 
-// Recipe quick setup (step 2)
-export { RecipeQuickSetup } from "./RecipeQuickSetup";
-export type { RecipeQuickSetupProps } from "./RecipeQuickSetup";
-
-// Recipe editor (step 3)
-export { RecipeEditor } from "./RecipeEditor";
-export type { RecipeEditorProps } from "./RecipeEditor";
-
-// Recipe card
+// Recipe card - individual recipe display
 export { RecipeCard } from "./RecipeCard";
 export type { RecipeCardProps } from "./RecipeCard";
 
-// Recipe category section
-export { RecipeCategorySection } from "./RecipeCategorySection";
-export type { RecipeCategorySectionProps } from "./RecipeCategorySection";
-
-// Mini popup preview
+// Mini popup preview - scaled-down preview in cards
 export { MiniPopupPreview } from "./MiniPopupPreview";
 export type { MiniPopupPreviewProps } from "./MiniPopupPreview";
 
-// Legacy modal (to be refactored)
+// Legacy components (kept for backwards compatibility)
 export { RecipeConfigurationModal } from "./RecipeConfigurationModal";
+export { RecipeCategorySection } from "./RecipeCategorySection";
+export type { RecipeCategorySectionProps } from "./RecipeCategorySection";
+export { RecipeQuickSetup } from "./RecipeQuickSetup";
+export type { RecipeQuickSetupProps } from "./RecipeQuickSetup";
+export { RecipeEditor } from "./RecipeEditor";
+export type { RecipeEditorProps } from "./RecipeEditor";
 

@@ -480,14 +480,15 @@ export const TEMPLATE_PREVIEW_REGISTRY: Record<string, TemplatePreviewEntry<any>
         minSpins: mergedConfig.minSpins ?? 5,
         loadingText: mergedConfig.loadingText,
 
-        // Name & consent config (matching NewsletterContentSchema)
-        collectName: mergedConfig.collectName ?? false,
+        // Name & consent config (matching LeadCaptureConfig)
+        nameFieldEnabled: mergedConfig.nameFieldEnabled ?? false,
         nameFieldRequired: mergedConfig.nameFieldRequired ?? false,
+        nameFieldLabel: mergedConfig.nameFieldLabel,
         nameFieldPlaceholder: mergedConfig.nameFieldPlaceholder,
 
-        showGdprCheckbox: mergedConfig.showGdprCheckbox ?? false,
+        consentFieldEnabled: mergedConfig.consentFieldEnabled ?? false,
         consentFieldRequired: mergedConfig.consentFieldRequired ?? false,
-        gdprLabel: mergedConfig.gdprLabel,
+        consentFieldText: mergedConfig.consentFieldText,
 
         // All common config (colors, typography, layout, image settings)
         ...buildCommonConfig(mergedConfig, designConfig),
@@ -531,9 +532,16 @@ export const TEMPLATE_PREVIEW_REGISTRY: Record<string, TemplatePreviewEntry<any>
             ? mergedConfig.prizes
             : SCRATCH_CARD_PREVIEW_PRIZES,
 
+        // Name field config
+        nameFieldEnabled: mergedConfig.nameFieldEnabled ?? false,
+        nameFieldRequired: mergedConfig.nameFieldRequired ?? false,
+        nameFieldLabel: mergedConfig.nameFieldLabel,
+        nameFieldPlaceholder: mergedConfig.nameFieldPlaceholder,
+
         // Consent (GDPR-style checkbox)
-        showGdprCheckbox: mergedConfig.showGdprCheckbox ?? false,
-        gdprLabel: mergedConfig.gdprLabel,
+        consentFieldEnabled: mergedConfig.consentFieldEnabled ?? false,
+        consentFieldRequired: mergedConfig.consentFieldRequired ?? false,
+        consentFieldText: mergedConfig.consentFieldText,
 
         // All common config (colors, typography, layout, image settings)
         ...buildCommonConfig(mergedConfig, designConfig),

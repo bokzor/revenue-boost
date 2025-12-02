@@ -15,7 +15,7 @@ import { getStoreId } from "~/lib/auth-helpers.server";
 import { CampaignFormWithABTesting } from "~/domains/campaigns/components/CampaignFormWithABTesting";
 import type { CampaignFormData } from "~/shared/hooks/useWizardState";
 import type { TemplateType, CampaignGoal } from "~/domains/campaigns/types/campaign";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Modal, Text, Toast, Frame } from "@shopify/polaris";
 import type { UnifiedTemplate } from "~/domains/popups/services/templates/unified-template-service.server";
 import prisma from "~/db.server";
@@ -171,6 +171,23 @@ export default function NewCampaign() {
     experimentsEnabled?: boolean;
     success: boolean;
   };
+
+  // Check for recipe initial data from sessionStorage (passed from recipe flow)
+  const [recipeInitialData, setRecipeInitialData] = useState<Record<string, unknown> | null>(null);
+
+  useEffect(() => {
+    const storedData = sessionStorage.getItem("recipeInitialData");
+    if (storedData) {
+      try {
+        const parsedData = JSON.parse(storedData);
+        setRecipeInitialData(parsedData);
+        // Clear after reading so it doesn't persist across navigations
+        sessionStorage.removeItem("recipeInitialData");
+      } catch (e) {
+        console.error("Failed to parse recipe initial data:", e);
+      }
+    }
+  }, []);
 
   // Handle save - create campaign(s) via API
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -430,12 +447,14 @@ export default function NewCampaign() {
         advancedTargetingEnabled={advancedTargetingEnabled ?? false}
         experimentsEnabled={experimentsEnabled ?? false}
         initialData={
-          templateType || preselectedGoal
-            ? {
-                templateType: templateType as TemplateType | undefined,
-                goal: preselectedGoal as CampaignGoal | undefined,
-              }
-            : undefined
+          recipeInitialData
+            ? (recipeInitialData as Parameters<typeof CampaignFormWithABTesting>[0]["initialData"])
+            : templateType || preselectedGoal
+              ? {
+                  templateType: templateType as TemplateType | undefined,
+                  goal: preselectedGoal as CampaignGoal | undefined,
+                }
+              : undefined
         }
       />
 

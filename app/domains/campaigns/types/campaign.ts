@@ -5,6 +5,47 @@
  */
 
 import { z } from "zod";
+import type { LeadCaptureConfig } from "~/shared/types/lead-capture-config";
+
+// =============================================================================
+// LEAD CAPTURE CONFIG - Zod Schema matching the shared interface
+// =============================================================================
+
+/**
+ * Zod schema for LeadCaptureConfig.
+ * This MUST stay in sync with the LeadCaptureConfig interface.
+ * TypeScript will error if the interface and schema diverge.
+ */
+export const LeadCaptureConfigSchema = z.object({
+  // Email
+  emailRequired: z.boolean().default(true),
+  emailLabel: z.string().optional(),
+  emailPlaceholder: z.string().default("Enter your email"),
+  emailErrorMessage: z.string().optional(),
+  // Name
+  nameFieldEnabled: z.boolean().default(false),
+  nameFieldRequired: z.boolean().default(false),
+  nameFieldLabel: z.string().optional(),
+  nameFieldPlaceholder: z.string().optional(),
+  // Consent
+  consentFieldEnabled: z.boolean().default(false),
+  consentFieldRequired: z.boolean().default(false),
+  consentFieldText: z.string().optional(),
+  privacyPolicyUrl: z.string().url().optional().or(z.literal("")),
+});
+
+/**
+ * Type derived from Zod schema - use this for runtime-validated data.
+ * The interface LeadCaptureConfig is for documentation and IDE support.
+ */
+export type LeadCaptureConfigParsed = z.infer<typeof LeadCaptureConfigSchema>;
+
+// Type-check: Ensure the schema output is compatible with the interface
+// This will error at compile time if we add a field to the interface but not the schema
+type _AssertSchemaHasAllFields = Required<LeadCaptureConfig> extends LeadCaptureConfigParsed
+  ? true
+  : "Schema is missing fields from LeadCaptureConfig interface";
+const _schemaCheck: _AssertSchemaHasAllFields = true;
 
 // ============================================================================
 // ENUMS & CONSTANTS
@@ -248,28 +289,15 @@ export type BaseContentConfig = z.infer<typeof BaseContentConfigSchema>;
 
 /**
  * Newsletter-specific content fields
+ *
+ * Extends BaseContentConfigSchema with:
+ * - LeadCaptureConfigSchema (email, name, consent fields)
+ * - Newsletter-specific fields (submitButtonText)
+ * - Legacy fields (firstNameLabel) for backward compatibility
  */
-export const NewsletterContentSchema = BaseContentConfigSchema.extend({
-  emailPlaceholder: z.string().default("Enter your email"),
-  emailLabel: z.string().optional(),
-  emailRequired: z.boolean().default(true),
-  emailErrorMessage: z.string().optional(),
-  submitButtonText: z.string().default("Subscribe"),
-  nameFieldEnabled: z.boolean().default(false),
-  nameFieldRequired: z.boolean().default(false),
-  nameFieldPlaceholder: z.string().optional(),
-  consentFieldEnabled: z.boolean().default(false),
-  // Optional labels/placeholders for name fields and error handling used by UI
-  firstNameLabel: z.string().optional(),
-  lastNameLabel: z.string().optional(),
-  firstNamePlaceholder: z.string().optional(),
-  lastNamePlaceholder: z.string().optional(),
-  errorMessage: z.string().optional(),
-
-  consentFieldRequired: z.boolean().default(false),
-  consentFieldText: z.string().optional(),
-  // GDPR: Privacy policy URL for consent checkbox link
-  privacyPolicyUrl: z.string().url().optional(),
+export const NewsletterContentSchema = BaseContentConfigSchema.merge(LeadCaptureConfigSchema).extend({
+  // Newsletter-specific
+  submitButtonText: z.string(),
 });
 
 /**
@@ -367,24 +395,8 @@ const SpinToWinBaseContentSchema = BaseContentConfigSchema.omit({
   successMessage: true,
 });
 
-export const SpinToWinContentSchema = SpinToWinBaseContentSchema.extend({
-  spinButtonText: z.string().default("Spin to Win!"),
-
-  // Email capture config
-  emailRequired: z.boolean().default(true),
-  emailPlaceholder: z.string().default("Enter your email to spin"),
-  emailLabel: z.string().optional(),
-
-  // Name & consent config (matching NewsletterContentSchema)
-  collectName: z.boolean().default(false),
-  nameFieldRequired: z.boolean().default(false),
-  nameFieldPlaceholder: z.string().optional(),
-
-  showGdprCheckbox: z.boolean().default(false),
-  consentFieldRequired: z.boolean().default(false),
-  gdprLabel: z.string().optional(),
-  // GDPR: Privacy policy URL for consent checkbox link
-  privacyPolicyUrl: z.string().url().optional(),
+export const SpinToWinContentSchema = SpinToWinBaseContentSchema.merge(LeadCaptureConfigSchema).extend({
+  spinButtonText: z.string(),
 
   // Wheel configuration
   wheelSegments: z
@@ -650,11 +662,8 @@ const ScratchCardBaseContentSchema = BaseContentConfigSchema.omit({
   successMessage: true,
 });
 
-export const ScratchCardContentSchema = ScratchCardBaseContentSchema.extend({
-  scratchInstruction: z.string().default("Scratch to reveal your prize!"),
-  emailRequired: z.boolean().default(true),
-  emailPlaceholder: z.string().default("Enter your email"),
-  emailLabel: z.string().optional(),
+export const ScratchCardContentSchema = ScratchCardBaseContentSchema.merge(LeadCaptureConfigSchema).extend({
+  scratchInstruction: z.string(),
   emailBeforeScratching: z.boolean().default(false),
   scratchThreshold: z.number().min(0).max(100).default(50),
   scratchRadius: z.number().min(5).max(100).default(20),
@@ -669,11 +678,6 @@ export const ScratchCardContentSchema = ScratchCardBaseContentSchema.extend({
     )
     .min(1, "At least one prize required")
     .default(DEFAULT_SCRATCH_CARD_PRIZES),
-  // GDPR consent fields
-  showGdprCheckbox: z.boolean().default(false),
-  gdprLabel: z.string().optional(),
-  // GDPR: Privacy policy URL for consent checkbox link
-  privacyPolicyUrl: z.string().url().optional(),
 });
 
 /**

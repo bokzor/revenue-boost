@@ -28,7 +28,8 @@ import {
 } from "~/config/theme-config";
 import { ThemePresetSelector } from "../shared/ThemePresetSelector";
 import { CustomPresetSelector } from "../shared/CustomPresetSelector";
-import { getDesignCapabilities, type ImagePositionOption } from "~/domains/templates/registry/design-capabilities";
+import { LayoutSelector, type LayoutOption } from "../shared/LayoutSelector";
+import { getDesignCapabilities } from "~/domains/templates/registry/design-capabilities";
 import { useShopifyFileUpload } from "~/shared/hooks/useShopifyFileUpload";
 import type { ThemePresetInput } from "~/domains/store/types/theme-preset";
 import { loadGoogleFont } from "~/shared/utils/google-fonts";
@@ -67,6 +68,44 @@ export interface DesignConfigSectionProps {
   onCustomPresetApply?: (presetId: string, brandColor: string) => void;
 }
 
+/**
+ * Maps the legacy imagePosition values to new LayoutOption values
+ */
+function mapImagePositionToLayout(imagePosition?: DesignConfig["imagePosition"]): LayoutOption {
+  switch (imagePosition) {
+    case "left":
+      return "split-left";
+    case "right":
+      return "split-right";
+    case "top":
+      return "hero";
+    case "full":
+      return "full";
+    case "none":
+    case "bottom":
+    default:
+      return "minimal";
+  }
+}
+
+/**
+ * Maps LayoutOption to imagePosition for storage
+ */
+function mapLayoutToImagePosition(layout: LayoutOption): DesignConfig["imagePosition"] {
+  switch (layout) {
+    case "split-left":
+      return "left";
+    case "split-right":
+      return "right";
+    case "hero":
+      return "top";
+    case "full":
+      return "full";
+    case "minimal":
+      return "none";
+  }
+}
+
 export function DesignConfigSection({
   design,
   errors,
@@ -101,11 +140,9 @@ export function DesignConfigSection({
   // Position/Size filtering based on capabilities
   const ALL_POSITIONS = ["center", "top", "bottom", "left", "right"] as const;
   const ALL_SIZES = ["small", "medium", "large"] as const;
-  const ALL_IMAGE_POSITIONS: ImagePositionOption[] = ["left", "right", "top", "bottom", "full", "none"];
 
   const allowedPositions = caps?.supportsPosition ?? ALL_POSITIONS;
   const allowedSizes = caps?.supportsSize ?? ALL_SIZES;
-  const allowedImagePositions = caps?.supportedImagePositions ?? ALL_IMAGE_POSITIONS;
 
   // Build filtered option lists
   const positionOptions = [
@@ -121,19 +158,6 @@ export function DesignConfigSection({
     { label: "Medium", value: "medium" },
     { label: "Large", value: "large" },
   ].filter((opt) => allowedSizes.includes(opt.value as (typeof allowedSizes)[number]));
-
-  // Build filtered image position options
-  const imagePositionOptions = useMemo(() => {
-    const allOptions = [
-      { label: "Left side", value: "left" },
-      { label: "Right side", value: "right" },
-      { label: "Top", value: "top" },
-      { label: "Bottom", value: "bottom" },
-      { label: "Full background", value: "full" },
-      { label: "No image", value: "none" },
-    ];
-    return allOptions.filter((opt) => allowedImagePositions.includes(opt.value as ImagePositionOption));
-  }, [allowedImagePositions]);
 
   const updateField = <K extends keyof DesignConfig>(
     field: K,
@@ -296,6 +320,23 @@ export function DesignConfigSection({
 
         <Divider />
 
+        {/* Layout Selector - Visual layout picker */}
+        {caps?.usesImage !== false && (
+          <>
+            <LayoutSelector
+              title="Layout"
+              helpText="Choose how the image and form are arranged"
+              selected={mapImagePositionToLayout(design.imagePosition)}
+              onSelect={(layout) => {
+                const imagePosition = mapLayoutToImagePosition(layout);
+                updateField("imagePosition", imagePosition);
+              }}
+            />
+            <Divider />
+          </>
+        )}
+
+
         {/* Position & Size - only show if at least one option is available */}
         {(positionOptions.length > 0 || sizeOptions.length > 0) && (
           <FormGrid columns={positionOptions.length > 0 && sizeOptions.length > 0 ? 2 : 1}>
@@ -362,8 +403,8 @@ export function DesignConfigSection({
 
         <Divider />
 
-        {/* Image Configuration - Only show if template supports images */}
-        {caps?.usesImage !== false && (
+        {/* Image Configuration - Only show if template supports images and layout is not minimal */}
+        {caps?.usesImage !== false && design.imagePosition !== "none" && (
           <CollapsibleSection
             id="background-image-section"
             title="Background Image"
@@ -373,53 +414,41 @@ export function DesignConfigSection({
             <BlockStack gap="300">
               <FormGrid columns={2}>
                 <Select
-                  label="Image position"
-                  value={design.imagePosition || (imagePositionOptions[0]?.value ?? "none")}
-                  options={imagePositionOptions}
-                  onChange={(value) =>
-                    updateField("imagePosition", value as DesignConfig["imagePosition"])
-                  }
-                  helpText={isFullBackground
-                    ? "Full background with overlay for better text readability"
-                    : "Position of the background image in the popup"}
+                  label="Preset background"
+                  value={imageMode === "preset" && selectedPresetKey ? selectedPresetKey : "none"}
+                  options={[
+                    { label: "No preset image", value: "none" },
+                    ...NEWSLETTER_BACKGROUND_PRESETS.map((preset) => ({
+                      label: preset.label,
+                      value: preset.key,
+                    })),
+                  ]}
+                  onChange={(value) => {
+                    if (value === "none") {
+                      onChange({
+                        ...design,
+                        backgroundImageMode: "none",
+                        backgroundImagePresetKey: undefined,
+                        backgroundImageFileId: undefined,
+                        imageUrl: undefined,
+                      });
+                      return;
+                    }
+
+                    const key = value as NewsletterThemeKey;
+                    const url = getNewsletterBackgroundUrl(key);
+                    onChange({
+                      ...design,
+                      backgroundImageMode: "preset",
+                      backgroundImagePresetKey: key,
+                      backgroundImageFileId: undefined,
+                      imageUrl: url,
+                    });
+                  }}
+                  helpText="Use one of the built-in background images"
                 />
 
                 <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-                  <Select
-                    label="Preset background"
-                    value={imageMode === "preset" && selectedPresetKey ? selectedPresetKey : "none"}
-                    options={[
-                      { label: "No preset image", value: "none" },
-                      ...NEWSLETTER_BACKGROUND_PRESETS.map((preset) => ({
-                        label: preset.label,
-                        value: preset.key,
-                      })),
-                    ]}
-                    onChange={(value) => {
-                      if (value === "none") {
-                        onChange({
-                          ...design,
-                          backgroundImageMode: "none",
-                          backgroundImagePresetKey: undefined,
-                          backgroundImageFileId: undefined,
-                          imageUrl: undefined,
-                        });
-                        return;
-                      }
-
-                      const key = value as NewsletterThemeKey;
-                      const url = getNewsletterBackgroundUrl(key);
-                      onChange({
-                        ...design,
-                        backgroundImageMode: "preset",
-                        backgroundImagePresetKey: key,
-                        backgroundImageFileId: undefined,
-                        imageUrl: url,
-                      });
-                    }}
-                    helpText="Use one of the built-in background images"
-                  />
-
                   <input
                     ref={fileInputRef}
                     type="file"
@@ -448,7 +477,7 @@ export function DesignConfigSection({
               </FormGrid>
 
               {/* Overlay opacity slider - only show for full background mode */}
-              {isFullBackground && previewImageUrl && design.imagePosition !== "none" && (
+              {isFullBackground && previewImageUrl && (
                 <BlockStack gap="200">
                   <Text as="p" variant="bodySm" fontWeight="medium">
                     Overlay Opacity: {Math.round((design.backgroundOverlayOpacity ?? 0.6) * 100)}%
@@ -470,7 +499,7 @@ export function DesignConfigSection({
                 </BlockStack>
               )}
 
-              {previewImageUrl && design.imagePosition !== "none" && (
+              {previewImageUrl && (
                 <div
                   style={{
                     marginTop: "0.5rem",

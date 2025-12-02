@@ -7,7 +7,7 @@
 import { Card, BlockStack, Text, Divider } from "@shopify/polaris";
 import { TextField, FormGrid } from "../form";
 import { WheelSegmentEditor } from "./WheelSegmentEditor";
-import { FieldConfigurationSection } from "./FieldConfigurationSection";
+import { LeadCaptureFormSection } from "./LeadCaptureFormSection";
 import type { SpinToWinContentSchema } from "../../types/campaign";
 import { z } from "zod";
 import { useFieldUpdater } from "~/shared/hooks/useFieldUpdater";
@@ -112,21 +112,23 @@ export function SpinToWinContentSection({
               />
             </FormGrid>
 
-            {/* Field Configuration Section - Email, Name, GDPR */}
+            {/* Lead Capture Form - Email, Name, GDPR */}
             <BlockStack gap="300">
               <Text as="h4" variant="headingSm">
-                Field Configuration
+                Lead Capture Form
               </Text>
-              <FieldConfigurationSection
+              <LeadCaptureFormSection
                 emailRequired={content.emailRequired}
                 emailLabel={content.emailLabel}
                 emailPlaceholder={content.emailPlaceholder}
-                collectName={content.collectName}
+                nameFieldEnabled={content.nameFieldEnabled}
                 nameFieldRequired={content.nameFieldRequired}
+                nameFieldLabel={content.nameFieldLabel}
                 nameFieldPlaceholder={content.nameFieldPlaceholder}
-                showGdprCheckbox={content.showGdprCheckbox}
+                consentFieldEnabled={content.consentFieldEnabled}
                 consentFieldRequired={content.consentFieldRequired}
-                gdprLabel={content.gdprLabel}
+                consentFieldText={content.consentFieldText}
+                privacyPolicyUrl={content.privacyPolicyUrl}
                 onChange={(updates) => onChange({ ...content, ...updates })}
                 errors={errors}
               />

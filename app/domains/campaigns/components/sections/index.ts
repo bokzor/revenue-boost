@@ -62,3 +62,9 @@ export {
   type ABTestingSectionProps,
   type ABTestingConfig,
 } from "./ABTestingSection";
+
+// Lead Capture Form Section (for email/name/consent configuration)
+export {
+  LeadCaptureFormSection,
+  type LeadCaptureFormSectionProps,
+} from "./LeadCaptureFormSection";

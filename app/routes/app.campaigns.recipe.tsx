@@ -1,46 +1,35 @@
 /**
  * Recipe-based Campaign Creation Route
  *
- * New simplified flow for creating campaigns using styled recipes.
+ * Simplified flow for creating campaigns using styled recipes.
  * Route: /app/campaigns/recipe
  *
- * Steps:
- * 1. Pick a recipe (RecipePicker)
- * 2. Quick setup (RecipeQuickSetup) - 1-3 essential inputs
- * 3. Customize (RecipeEditor) - full editor with editable fields
- * 4. Save → redirect to campaign detail
+ * Flow:
+ * 1. Pick a recipe (RecipePicker - full width with categories)
+ * 2. Configure quick inputs (Modal)
+ * 3. Redirect to full campaign form with pre-filled data
  *
  * @see docs/RECIPE_SYSTEM_ARCHITECTURE.md
  */
 
-import React, { useState, useCallback } from "react";
-import { data, redirect, type LoaderFunctionArgs, type ActionFunctionArgs } from "react-router";
-import { useLoaderData, useNavigate, useSubmit } from "react-router";
-import { Page, Layout, Card } from "@shopify/polaris";
+import React, { useState, useCallback, useMemo } from "react";
+import { data, type LoaderFunctionArgs } from "react-router";
+import { useLoaderData, useNavigate } from "react-router";
+import { Page, Modal, BlockStack, Text, Card, TextField, RangeSlider } from "@shopify/polaris";
 
 import { authenticate } from "~/shopify.server";
-import prisma from "~/db.server";
-import {
-  RecipePicker,
-  RecipeQuickSetup,
-  RecipeEditor,
-} from "~/domains/campaigns/components/recipes";
+import { RecipePicker } from "~/domains/campaigns/components/recipes";
 import { STYLED_RECIPES } from "~/domains/campaigns/recipes/styled-recipe-catalog";
+import { NEWSLETTER_THEMES, type NewsletterThemeKey } from "~/config/color-presets";
+import { getBackgroundById, getBackgroundUrl } from "~/config/background-presets";
 import type {
   StyledRecipe,
   RecipeContext,
-  RecipeOutput,
+  QuickInput,
 } from "~/domains/campaigns/recipes/styled-recipe-types";
-
-// =============================================================================
-// TYPES
-// =============================================================================
-
-type RecipeFlowStep = "pick" | "setup" | "edit";
 
 interface LoaderData {
   recipes: StyledRecipe[];
-  storeId: string;
 }
 
 // =============================================================================
@@ -48,76 +37,11 @@ interface LoaderData {
 // =============================================================================
 
 export async function loader({ request }: LoaderFunctionArgs) {
-  const { session } = await authenticate.admin(request);
-  const shopDomain = session.shop;
-
-  // Get store ID
-  const store = await prisma.store.findUnique({
-    where: { shopifyDomain: shopDomain },
-    select: { id: true },
-  });
-
-  if (!store) {
-    throw new Response("Store not found", { status: 404 });
-  }
+  await authenticate.admin(request);
 
   return data<LoaderData>({
     recipes: STYLED_RECIPES,
-    storeId: store.id,
   });
-}
-
-// =============================================================================
-// ACTION
-// =============================================================================
-
-export async function action({ request }: ActionFunctionArgs) {
-  const { session } = await authenticate.admin(request);
-  const shopDomain = session.shop;
-  const formData = await request.formData();
-
-  const recipeOutput = JSON.parse(formData.get("recipeOutput") as string) as RecipeOutput;
-  const templateType = formData.get("templateType") as string;
-  const goal = formData.get("goal") as string;
-
-  // Get store
-  const store = await prisma.store.findUnique({
-    where: { shopifyDomain: shopDomain },
-    select: { id: true },
-  });
-
-  if (!store) {
-    return data({ error: "Store not found" }, { status: 404 });
-  }
-
-  try {
-    // Create the campaign
-    // Note: Discount codes are created at runtime when customers interact with the popup,
-    // not during campaign creation. The discountConfig just stores the configuration
-    // (type, value, valueType, etc.) that will be used to generate codes later.
-    const campaign = await prisma.campaign.create({
-      data: {
-        storeId: store.id,
-        name: recipeOutput.name,
-        description: `Created from recipe`,
-        goal: goal as "NEWSLETTER_SIGNUP" | "INCREASE_REVENUE" | "ENGAGEMENT",
-        status: "DRAFT",
-        templateType: templateType as Parameters<typeof prisma.campaign.create>[0]["data"]["templateType"],
-        contentConfig: recipeOutput.contentConfig as object,
-        designConfig: recipeOutput.designConfig as object,
-        targetRules: (recipeOutput.targetRules || {}) as object,
-        discountConfig: (recipeOutput.discountConfig || {}) as object,
-      },
-    });
-
-    return redirect(`/app/campaigns/${campaign.id}`);
-  } catch (error) {
-    console.error("Error creating campaign from recipe:", error);
-    return data(
-      { error: error instanceof Error ? error.message : "Failed to create campaign" },
-      { status: 500 }
-    );
-  }
 }
 
 // =============================================================================
@@ -127,19 +51,24 @@ export async function action({ request }: ActionFunctionArgs) {
 export default function RecipeCampaignCreation() {
   const { recipes } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
-  const submit = useSubmit();
 
-  // Flow state
-  const [step, setStep] = useState<RecipeFlowStep>("pick");
+  // Modal state
   const [selectedRecipe, setSelectedRecipe] = useState<StyledRecipe | null>(null);
-  const [context, setContext] = useState<RecipeContext>({});
-  const [isSaving, setIsSaving] = useState(false);
-  const [error, setError] = useState<string | undefined>();
+  const [modalOpen, setModalOpen] = useState(false);
+  const [contextData, setContextData] = useState<RecipeContext>({});
 
-  // Step 1: Recipe selected
+  // Recipe selected - open configuration modal
   const handleRecipeSelect = useCallback((recipe: StyledRecipe) => {
     setSelectedRecipe(recipe);
-    setStep("setup");
+    // Initialize default values for inputs
+    const defaults: RecipeContext = {};
+    recipe.inputs.forEach((input) => {
+      if ("defaultValue" in input && input.defaultValue !== undefined) {
+        defaults[input.key] = input.defaultValue;
+      }
+    });
+    setContextData(defaults);
+    setModalOpen(true);
   }, []);
 
   // Build from scratch - redirect to legacy flow
@@ -147,71 +76,147 @@ export default function RecipeCampaignCreation() {
     navigate("/app/campaigns/new");
   }, [navigate]);
 
-  // Step 2: Quick setup complete
-  const handleQuickSetupContinue = useCallback((ctx: RecipeContext) => {
-    setContext(ctx);
-    setStep("edit");
-  }, []);
-
-  // Step 2: Skip to edit with defaults
-  const handleQuickSetupSkip = useCallback(() => {
-    setStep("edit");
-  }, []);
-
-  // Step 3: Save campaign
-  const handleSave = useCallback(
-    (output: RecipeOutput) => {
-      if (!selectedRecipe) return;
-
-      setIsSaving(true);
-      setError(undefined);
-
-      const formData = new FormData();
-      formData.append("recipeOutput", JSON.stringify(output));
-      formData.append("templateType", selectedRecipe.templateType);
-      formData.append("goal", selectedRecipe.goal);
-
-      submit(formData, { method: "post" });
-    },
-    [selectedRecipe, submit]
-  );
-
-  // Back navigation
-  const handleBackToRecipes = useCallback(() => {
-    setStep("pick");
+  // Close modal
+  const handleModalClose = useCallback(() => {
+    setModalOpen(false);
     setSelectedRecipe(null);
-    setContext({});
+    setContextData({});
   }, []);
 
-  const handleBackToSetup = useCallback(() => {
-    setStep("setup");
+  // Input change handler
+  const handleInputChange = useCallback((key: string, value: unknown) => {
+    setContextData((prev) => ({ ...prev, [key]: value }));
   }, []);
 
-  // Render current step (setup and edit only - pick is handled separately)
-  const renderStep = () => {
-    switch (step) {
-      case "setup":
-        if (!selectedRecipe) return null;
+  // Build initial data for the campaign form from recipe + context
+  const buildInitialData = useCallback(() => {
+    if (!selectedRecipe) return {};
+
+    const theme = (selectedRecipe.theme as NewsletterThemeKey) || "modern";
+    const themeColors = NEWSLETTER_THEMES[theme] || NEWSLETTER_THEMES.modern;
+
+    // Build content config from recipe defaults and apply context values
+    const contentConfig = { ...selectedRecipe.defaults.contentConfig };
+
+    // Apply discount value to content if present
+    if (contextData.discountValue !== undefined) {
+      // Update subheadline with discount value
+      if (typeof contentConfig.subheadline === "string") {
+        contentConfig.subheadline = contentConfig.subheadline.replace(
+          /\d+%/,
+          `${contextData.discountValue}%`
+        );
+      }
+    }
+
+    // Build design config
+    let imageUrl: string | undefined;
+    let backgroundImageMode: "none" | "preset" = "none";
+    let backgroundImagePresetKey: string | undefined;
+
+    if (selectedRecipe.backgroundPresetId) {
+      const preset = getBackgroundById(selectedRecipe.backgroundPresetId);
+      if (preset) {
+        imageUrl = getBackgroundUrl(preset);
+        backgroundImageMode = "preset";
+        backgroundImagePresetKey = preset.id;
+      }
+    }
+
+    const designConfig = {
+      theme,
+      layout: selectedRecipe.layout,
+      position: selectedRecipe.defaults.designConfig?.position || "center",
+      size: selectedRecipe.defaults.designConfig?.size || "medium",
+      backgroundColor: themeColors.background,
+      textColor: themeColors.text,
+      primaryColor: themeColors.primary,
+      buttonColor: themeColors.ctaBg || themeColors.primary,
+      buttonTextColor: themeColors.ctaText || "#FFFFFF",
+      backgroundImageMode,
+      backgroundImagePresetKey,
+      imageUrl,
+      imagePosition: "full" as const,
+      backgroundOverlayOpacity: 0.6,
+      ...selectedRecipe.defaults.designConfig,
+    };
+
+    // Build discount config
+    const discountValue = contextData.discountValue as number | undefined;
+    const discountConfig = discountValue
+      ? {
+          enabled: true,
+          type: "AUTOMATIC",
+          valueType: "PERCENTAGE",
+          value: discountValue,
+          behavior: "SHOW_CODE_AND_AUTO_APPLY",
+        }
+      : selectedRecipe.defaults.discountConfig;
+
+    return {
+      name: selectedRecipe.name,
+      goal: selectedRecipe.goal,
+      templateType: selectedRecipe.templateType,
+      contentConfig,
+      designConfig,
+      targetRules: selectedRecipe.defaults.targetRules || {},
+      discountConfig: discountConfig || {},
+    };
+  }, [selectedRecipe, contextData]);
+
+  // Create campaign - navigate to full form with initial data
+  const handleCreateCampaign = useCallback(() => {
+    const initialData = buildInitialData();
+
+    // Store initial data in sessionStorage for the form to pick up
+    sessionStorage.setItem("recipeInitialData", JSON.stringify(initialData));
+
+    // Navigate to the campaign form
+    navigate("/app/campaigns/new?fromRecipe=true");
+  }, [buildInitialData, navigate]);
+
+  // Render input field based on type
+  const renderInput = (input: QuickInput) => {
+    const value = contextData[input.key];
+    const defaultValue = "defaultValue" in input ? input.defaultValue : undefined;
+
+    switch (input.type) {
+      case "discount_percentage":
         return (
-          <RecipeQuickSetup
-            recipe={selectedRecipe}
-            initialContext={context}
-            onBack={handleBackToRecipes}
-            onContinue={handleQuickSetupContinue}
-            onSkip={handleQuickSetupSkip}
+          <RangeSlider
+            key={input.key}
+            label={input.label}
+            value={typeof value === "number" ? value : (defaultValue as number) || 10}
+            min={5}
+            max={50}
+            step={5}
+            onChange={(val) => handleInputChange(input.key, val)}
+            output
+            suffix={<Text as="span" variant="bodyMd">{typeof value === "number" ? value : defaultValue}%</Text>}
           />
         );
 
-      case "edit":
-        if (!selectedRecipe) return null;
+      case "currency_amount":
         return (
-          <RecipeEditor
-            recipe={selectedRecipe}
-            context={context}
-            onBack={handleBackToSetup}
-            onSave={handleSave}
-            isSaving={isSaving}
-            error={error}
+          <TextField
+            key={input.key}
+            label={input.label}
+            type="number"
+            value={String(value ?? defaultValue ?? "")}
+            onChange={(val) => handleInputChange(input.key, Number(val))}
+            autoComplete="off"
+            prefix="$"
+          />
+        );
+
+      case "text":
+        return (
+          <TextField
+            key={input.key}
+            label={input.label}
+            value={String(value ?? defaultValue ?? "")}
+            onChange={(val) => handleInputChange(input.key, val)}
+            autoComplete="off"
           />
         );
 
@@ -220,50 +225,63 @@ export default function RecipeCampaignCreation() {
     }
   };
 
-  // Page title based on step
-  const getPageTitle = () => {
-    switch (step) {
-      case "pick":
-        return "Create Campaign";
-      case "setup":
-        return selectedRecipe?.name || "Quick Setup";
-      case "edit":
-        return `Customize: ${selectedRecipe?.name}`;
-      default:
-        return "Create Campaign";
-    }
-  };
-
-  // Render content based on step
-  const renderContent = () => {
-    if (step === "pick") {
-      // RecipePicker has its own sidebar layout, no wrapper needed
-      return (
-        <RecipePicker
-          recipes={recipes}
-          selectedRecipeId={selectedRecipe?.id}
-          onSelect={handleRecipeSelect}
-          onBuildFromScratch={handleBuildFromScratch}
-          showPreviews={true}
-        />
-      );
-    }
-
-    // Setup and Edit steps have their own Layout with left/right columns
-    return renderStep();
-  };
-
   return (
     <Page
-      title={getPageTitle()}
+      title="Create Campaign"
       fullWidth={true}
-      backAction={
-        step === "pick"
-          ? { content: "Campaigns", url: "/app/campaigns" }
-          : undefined
-      }
+      backAction={{ content: "Campaigns", url: "/app/campaigns" }}
     >
-      {renderContent()}
+      <RecipePicker
+        recipes={recipes}
+        selectedRecipeId={selectedRecipe?.id}
+        onSelect={handleRecipeSelect}
+        onBuildFromScratch={handleBuildFromScratch}
+        showPreviews={true}
+      />
+
+      {/* Recipe Configuration Modal */}
+      {selectedRecipe && (
+        <Modal
+          open={modalOpen}
+          onClose={handleModalClose}
+          title={`Setup: ${selectedRecipe.name}`}
+          primaryAction={{
+            content: "Create Campaign",
+            onAction: handleCreateCampaign,
+          }}
+          secondaryActions={[
+            {
+              content: "Cancel",
+              onAction: handleModalClose,
+            },
+          ]}
+        >
+          <Modal.Section>
+            <BlockStack gap="400">
+              {/* Recipe description */}
+              <Text as="p" tone="subdued">
+                {selectedRecipe.description}
+              </Text>
+
+              {/* Quick inputs */}
+              {selectedRecipe.inputs.length > 0 ? (
+                <Card>
+                  <BlockStack gap="400">
+                    <Text as="h3" variant="headingSm">
+                      Configure your campaign
+                    </Text>
+                    {selectedRecipe.inputs.map((input) => renderInput(input))}
+                  </BlockStack>
+                </Card>
+              ) : (
+                <Text as="p" variant="bodySm" tone="subdued">
+                  This recipe is ready to go! Click "Create Campaign" to continue.
+                </Text>
+              )}
+            </BlockStack>
+          </Modal.Section>
+        </Modal>
+      )}
     </Page>
   );
 }

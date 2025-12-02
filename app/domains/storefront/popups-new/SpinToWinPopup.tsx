@@ -145,10 +145,10 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
   } = usePopupForm({
     config: {
       emailRequired: config.emailRequired,
-      emailErrorMessage: undefined, // SpinToWinContent doesn't have this field
-      nameFieldEnabled: config.collectName,
+      emailErrorMessage: config.emailErrorMessage,
+      nameFieldEnabled: config.nameFieldEnabled,
       nameFieldRequired: config.nameFieldRequired,
-      consentFieldEnabled: config.showGdprCheckbox,
+      consentFieldEnabled: config.consentFieldEnabled,
       consentFieldRequired: config.consentFieldRequired,
       campaignId: config.campaignId,
       previewMode: config.previewMode,
@@ -294,10 +294,8 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
   const descriptionColor = (configRecord.descriptionColor as string) || "#6B7280";
 
   // Optional extended behavior flags (storefront-only)
-  const collectName = config.collectName ?? false;
-  const showGdpr = config.showGdprCheckbox ?? false;
-  const gdprLabel =
-    config.gdprLabel || "I agree to receive marketing emails and accept the privacy policy";
+  const collectName = config.nameFieldEnabled ?? false;
+  const showGdpr = config.consentFieldEnabled ?? false;
 
   const resultMessage =
     hasSpun && wonPrize
@@ -1581,7 +1579,7 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
                   <GdprCheckbox
                     checked={formState.gdprConsent}
                     onChange={setGdprConsent}
-                    text={gdprLabel}
+                    text={config.consentFieldText}
                     error={errors.gdpr}
                     required={config.consentFieldRequired}
                     disabled={isSpinning || isGeneratingCode}

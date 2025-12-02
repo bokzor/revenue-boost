@@ -117,21 +117,8 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
   // Use image URL from config when mode is not "none" (admin sets this for preset/file)
   const imageUrl = backgroundImageMode === "none" ? undefined : config.imageUrl;
 
-  const _title = config.headline || "Join Our Newsletter";
-  const _description =
-    config.subheadline || "Subscribe to get special offers, free giveaways, and exclusive deals.";
-  const buttonText = config.submitButtonText || config.buttonText || "Subscribe";
   const behavior = config.discount?.behavior || "SHOW_CODE_AND_AUTO_APPLY";
-  const _successMessage =
-    config.successMessage ??
-    (behavior === "SHOW_CODE_AND_AUTO_APPLY"
-      ? "Thanks for subscribing! Your discount will be automatically applied when you checkout."
-      : behavior === "SHOW_CODE_AND_ASSIGN_TO_EMAIL"
-        ? "Thanks for subscribing! Your discount code is authorized for your email address only."
-        : "Thanks for subscribing! Your discount code is ready to use.");
   const showGdprCheckbox = config.consentFieldEnabled ?? false;
-  const gdprLabel =
-    config.consentFieldText || "I agree to receive marketing emails and accept the privacy policy";
   const collectName = config.nameFieldEnabled ?? false;
   const _sizeDimensions = getSizeDimensions(config.size || "medium", config.previewMode);
 
@@ -189,7 +176,7 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
       closeOnBackdropClick={config.closeOnOverlayClick !== false}
       previewMode={config.previewMode}
       showBranding={config.showBranding}
-      ariaLabel={config.headline || "Newsletter Signup"}
+      ariaLabel={config.headline}
       customCSS={config.customCSS}
       globalCustomCSS={config.globalCustomCSS}
     >
@@ -693,7 +680,7 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
                   <div className="email-popup-confetti" />
                   <div className="email-popup-success">
                     <SuccessState
-                      message={config.successMessage || "Thanks for subscribing!"}
+                      message={config.successMessage}
                       discountCode={displayDiscountCode || undefined}
                       onCopyCode={handleCopyCode}
                       copiedCode={copiedCode}
@@ -710,7 +697,7 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
               ) : (
                 <>
                   <PopupHeader
-                    headline={config.headline || "Join Our Newsletter"}
+                    headline={config.headline}
                     subheadline={config.subheadline}
                     textColor={config.textColor}
                     descriptionColor={config.descriptionColor}
@@ -733,16 +720,16 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
                     nameRequired={config.nameFieldRequired}
                     showGdpr={showGdprCheckbox}
                     gdprRequired={config.consentFieldRequired}
-                    emailRequired={config.emailRequired !== false}
+                    emailRequired={config.emailRequired}
                     labels={{
                       email: config.emailLabel,
-                      name: config.firstNameLabel || "Name",
-                      gdpr: gdprLabel,
-                      submit: buttonText,
+                      name: config.nameFieldLabel,
+                      gdpr: config.consentFieldText,
+                      submit: config.submitButtonText,
                     }}
                     placeholders={{
-                      email: config.emailPlaceholder || "Enter your email",
-                      name: config.nameFieldPlaceholder || "Your name",
+                      email: config.emailPlaceholder,
+                      name: config.nameFieldPlaceholder,
                     }}
                     accentColor={config.accentColor}
                     buttonColor={config.buttonColor}
@@ -759,7 +746,7 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
                     onClick={onClose}
                     disabled={isSubmitting}
                   >
-                    {config.dismissLabel || "No thanks"}
+                    {config.dismissLabel}
                   </button>
                 </>
               )}
@@ -780,7 +767,7 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
           {/* Image Section */}
           {imageUrl && (
             <div className="email-popup-image">
-              <img src={imageUrl} alt={config.headline || "Newsletter"} />
+              <img src={imageUrl} alt={config.headline} />
             </div>
           )}
 
@@ -796,7 +783,7 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
                 <div className="email-popup-confetti" />
                 <div className="email-popup-success">
                   <SuccessState
-                    message={config.successMessage || "Thanks for subscribing!"}
+                    message={config.successMessage}
                     discountCode={displayDiscountCode || undefined}
                     onCopyCode={handleCopyCode}
                     copiedCode={copiedCode}
@@ -813,7 +800,7 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
             ) : (
               <>
                 <PopupHeader
-                  headline={config.headline || "Join Our Newsletter"}
+                  headline={config.headline}
                   subheadline={config.subheadline}
                   textColor={config.textColor}
                   descriptionColor={config.descriptionColor}
@@ -839,13 +826,13 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
                   emailRequired={config.emailRequired !== false}
                   labels={{
                     email: config.emailLabel,
-                    name: config.firstNameLabel || "Name",
-                    gdpr: gdprLabel,
-                    submit: buttonText,
+                    name: config.nameFieldLabel,
+                    gdpr: config.consentFieldText,
+                    submit: config.submitButtonText,
                   }}
                   placeholders={{
-                    email: config.emailPlaceholder || "Enter your email",
-                    name: config.nameFieldPlaceholder || "Your name",
+                    email: config.emailPlaceholder,
+                    name: config.nameFieldPlaceholder,
                   }}
                   accentColor={config.accentColor}
                   buttonColor={config.buttonColor}
@@ -862,7 +849,7 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
                   onClick={onClose}
                   disabled={isSubmitting}
                 >
-                  {config.dismissLabel || "No thanks"}
+                  {config.dismissLabel}
                 </button>
               </>
             )}
