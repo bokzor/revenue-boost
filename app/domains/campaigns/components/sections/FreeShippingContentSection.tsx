@@ -356,6 +356,7 @@ export function FreeShippingContentSection({
               goal="INCREASE_REVENUE"
               discountConfig={discountConfig}
               onConfigChange={onDiscountChange}
+              allowedValueTypes={["FREE_SHIPPING"]}
             />
           </BlockStack>
         </Card>

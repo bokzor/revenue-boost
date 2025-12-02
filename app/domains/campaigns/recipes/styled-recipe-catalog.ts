@@ -15,7 +15,9 @@ import type {
   RecipeOutput,
   EditableField,
   QuickInput,
+  RecipeTag,
 } from "./styled-recipe-types";
+import { NEWSLETTER_DESIGN_RECIPES } from "./newsletter-design-recipes";
 
 // =============================================================================
 // HELPER: Build function factory
@@ -864,7 +866,7 @@ const holidayAnnouncement: StyledRecipe = {
 // CATALOG EXPORT
 // =============================================================================
 
-/** All styled recipes */
+/** All styled recipes (existing + newsletter design recipes) */
 export const STYLED_RECIPES: StyledRecipe[] = [
   // Email & Leads
   welcomeDiscount,
@@ -892,6 +894,8 @@ export const STYLED_RECIPES: StyledRecipe[] = [
   newArrival,
   storeUpdate,
   holidayAnnouncement,
+  // Newsletter Design Recipes (new industry-specific designs)
+  ...NEWSLETTER_DESIGN_RECIPES,
 ];
 
 /** Get all recipes with build functions attached */
@@ -930,5 +934,33 @@ export function getRecipeCountByCategory(): Record<RecipeCategory, number> {
     cart_recovery: getStyledRecipesByCategory("cart_recovery").length,
     announcements: getStyledRecipesByCategory("announcements").length,
   };
+}
+
+/** Get recipes by tag */
+export function getStyledRecipesByTag(tag: RecipeTag): StyledRecipe[] {
+  return STYLED_RECIPES.filter((r) => r.tags?.includes(tag));
+}
+
+/** Get recipes by multiple tags (AND logic) */
+export function getStyledRecipesByTags(tags: RecipeTag[]): StyledRecipe[] {
+  return STYLED_RECIPES.filter((r) =>
+    tags.every((tag) => r.tags?.includes(tag))
+  );
+}
+
+/** Get recipes by any of the tags (OR logic) */
+export function getStyledRecipesByAnyTag(tags: RecipeTag[]): StyledRecipe[] {
+  return STYLED_RECIPES.filter((r) =>
+    tags.some((tag) => r.tags?.includes(tag))
+  );
+}
+
+/** Get all unique tags from recipes */
+export function getAllRecipeTags(): RecipeTag[] {
+  const tagSet = new Set<RecipeTag>();
+  STYLED_RECIPES.forEach((r) => {
+    r.tags?.forEach((tag) => tagSet.add(tag));
+  });
+  return Array.from(tagSet);
 }
 

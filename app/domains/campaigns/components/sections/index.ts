@@ -55,8 +55,6 @@ export { DesignConfigSection, type DesignConfigSectionProps } from "./DesignConf
 
 export { TargetingConfigSection, type TargetingConfigSectionProps } from "./TargetingConfigSection";
 
-export { DiscountConfigSection, type DiscountConfigSectionProps } from "./DiscountConfigSection";
-
 export {
   ABTestingSection,
   type ABTestingSectionProps,

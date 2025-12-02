@@ -178,10 +178,10 @@ export const BACKGROUND_PRESETS: BackgroundPreset[] = [
   // ============================================
   {
     id: "bg-summer",
-    filename: "summer-sale.jpg",
-    name: "Summer Sale",
+    filename: "summer.jpg",
+    name: "Summer",
     description: "Warm sunny vibes",
-    suggestedForThemes: ["summer", "summer-sale"],
+    suggestedForThemes: ["summer"],
     primaryTheme: "summer",
     seasonal: true,
     category: "seasonal",
@@ -299,8 +299,8 @@ export function getBackgroundsForTheme(theme: NewsletterThemeKey): BackgroundPre
 }
 
 /**
- * Get the primary/default background for a theme
- * Returns the background where this theme is the primaryTheme
+ * Get the primary/default background for a theme.
+ * Returns the background where this theme is the primaryTheme.
  */
 export function getDefaultBackgroundForTheme(
   theme: NewsletterThemeKey

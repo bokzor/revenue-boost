@@ -169,7 +169,8 @@ export type QuickInputType =
   | "product_picker"
   | "collection_picker"
   | "text"
-  | "datetime";
+  | "datetime"
+  | "select";
 
 export interface QuickInputBase {
   type: QuickInputType;
@@ -219,6 +220,12 @@ export interface DateTimeInput extends QuickInputBase {
   type: "datetime";
 }
 
+export interface SelectInput extends QuickInputBase {
+  type: "select";
+  defaultValue: string;
+  options: Array<{ value: string; label: string }>;
+}
+
 export type QuickInput =
   | DiscountPercentageInput
   | DiscountAmountInput
@@ -227,7 +234,8 @@ export type QuickInput =
   | ProductPickerInput
   | CollectionPickerInput
   | TextInput
-  | DateTimeInput;
+  | DateTimeInput
+  | SelectInput;
 
 // =============================================================================
 // COMPONENT NAMES (maps to actual popup components)
@@ -238,6 +246,8 @@ export type PopupComponentName =
   | "NewsletterSplit"
   | "NewsletterMinimal"
   | "NewsletterCentered"
+  | "NewsletterHero"
+  | "NewsletterFullscreen"
   // Flash sale variants
   | "FlashSaleCentered"
   | "FlashSaleSplit"
@@ -265,7 +275,8 @@ export type PopupLayout =
   | "centered" // Default modal in center
   | "split-left" // Image on left, content on right
   | "split-right" // Content on left, image on right
-  | "fullscreen" // Full viewport
+  | "hero" // Image on top, content below
+  | "fullscreen" // Full viewport with overlay
   | "banner" // Generic banner
   | "banner-top" // Top sticky bar
   | "banner-bottom" // Bottom sticky bar
@@ -284,6 +295,101 @@ export interface StyledRecipeDefaults {
   discountConfig?: Record<string, unknown>;
 }
 
+// =============================================================================
+// RECIPE TAGS (for filtering and discovery)
+// =============================================================================
+
+export type RecipeTag =
+  // Industry/Niche
+  | "fashion"
+  | "beauty"
+  | "food"
+  | "tech"
+  | "fitness"
+  | "home"
+  | "outdoor"
+  | "wellness"
+  | "luxury"
+  // Style
+  | "minimal"
+  | "bold"
+  | "elegant"
+  | "playful"
+  | "modern"
+  | "warm"
+  | "dark"
+  // Layout
+  | "split"
+  | "hero"
+  | "fullscreen"
+  | "centered"
+  // Incentive type
+  | "discount"
+  | "free-shipping"
+  | "free-gift"
+  | "early-access"
+  | "no-incentive"
+  // Seasonal
+  | "holiday"
+  | "summer"
+  | "winter"
+  | "spring"
+  | "black-friday"
+  | "valentines"
+  // Trigger type
+  | "exit-intent"
+  | "time-delay"
+  | "scroll-trigger"
+  | "page-load";
+
+export const RECIPE_TAG_LABELS: Record<RecipeTag, string> = {
+  // Industry
+  fashion: "Fashion",
+  beauty: "Beauty",
+  food: "Food & Beverage",
+  tech: "Tech & SaaS",
+  fitness: "Fitness",
+  home: "Home & Living",
+  outdoor: "Outdoor",
+  wellness: "Wellness",
+  luxury: "Luxury",
+  // Style
+  minimal: "Minimal",
+  bold: "Bold",
+  elegant: "Elegant",
+  playful: "Playful",
+  modern: "Modern",
+  warm: "Warm",
+  dark: "Dark Mode",
+  // Layout
+  split: "Split Layout",
+  hero: "Hero Image",
+  fullscreen: "Fullscreen",
+  centered: "Centered",
+  // Incentive
+  discount: "Discount",
+  "free-shipping": "Free Shipping",
+  "free-gift": "Free Gift",
+  "early-access": "Early Access",
+  "no-incentive": "No Incentive",
+  // Seasonal
+  holiday: "Holiday",
+  summer: "Summer",
+  winter: "Winter",
+  spring: "Spring",
+  "black-friday": "Black Friday",
+  valentines: "Valentine's",
+  // Trigger
+  "exit-intent": "Exit Intent",
+  "time-delay": "Time Delay",
+  "scroll-trigger": "Scroll Trigger",
+  "page-load": "Page Load",
+};
+
+// =============================================================================
+// STYLED RECIPE DEFINITION
+// =============================================================================
+
 export interface StyledRecipe {
   // Identity
   id: string; // e.g., "black-friday-sale"
@@ -296,6 +402,9 @@ export interface StyledRecipe {
   category: RecipeCategory;
   goal: CampaignGoal;
   templateType: TemplateType;
+
+  // Tags for filtering and discovery (optional for backward compatibility)
+  tags?: RecipeTag[];
 
   // Internal reference (for understanding structure)
   baseRecipeId?: string; // e.g., "flash-sale"
@@ -315,6 +424,9 @@ export interface StyledRecipe {
   // Whether to use theme's built-in CSS gradient instead of an image
   // Useful for seasonal themes that have gradient backgrounds
   useThemeBackground?: boolean;
+
+  // Image for recipe (for split/hero layouts)
+  imageUrl?: string;
 
   // Quick setup (1-3 inputs shown in step 2)
   inputs: QuickInput[];

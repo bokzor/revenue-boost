@@ -35,16 +35,43 @@ import type {
   DiscountBehavior,
 } from "~/domains/commerce/services/discount.server";
 
+/**
+ * Discount strategy types that can be shown in the component.
+ * - basic: Simple percentage, fixed amount, or free shipping
+ * - tiered: Spend more, save more (e.g., $50 = 10%, $100 = 20%)
+ * - bogo: Buy X, Get Y deals
+ * - free_gift: Free gift with purchase
+ */
+export type DiscountStrategy = "basic" | "tiered" | "bogo" | "free_gift";
+
 interface GenericDiscountComponentProps {
   goal?: string;
   discountConfig?: DiscountConfig;
   onConfigChange: (config: DiscountConfig) => void;
+  /**
+   * Which discount strategies to show in the selector.
+   * Defaults to all strategies: ['basic', 'tiered', 'bogo', 'free_gift']
+   *
+   * For gamified templates (Spin-to-Win, Scratch Card), use ['basic', 'free_gift']
+   * since tiered and BOGO don't make sense for per-segment/prize discounts.
+   */
+  allowedStrategies?: DiscountStrategy[];
 }
+
+const ALL_STRATEGIES: DiscountStrategy[] = ["basic", "tiered", "bogo", "free_gift"];
+
+const STRATEGY_OPTIONS: Record<DiscountStrategy, { label: string; value: string }> = {
+  basic: { label: "Basic Discount - Simple percentage or fixed amount", value: "basic" },
+  tiered: { label: "Tiered Discounts - Spend more, save more", value: "tiered" },
+  bogo: { label: "BOGO Deal - Buy X, Get Y", value: "bogo" },
+  free_gift: { label: "Free Gift - Gift with purchase", value: "free_gift" },
+};
 
 export function GenericDiscountComponent({
   goal = "NEWSLETTER_SIGNUP",
   discountConfig,
   onConfigChange,
+  allowedStrategies = ALL_STRATEGIES,
 }: GenericDiscountComponentProps) {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [freeGiftVariants, setFreeGiftVariants] = useState<Array<{ id: string; title: string }>>();
@@ -155,30 +182,26 @@ export function GenericDiscountComponent({
 
       {config.enabled !== false && (
         <BlockStack gap="400">
-          {/* Advanced Discount Type Selector */}
-          <Box padding="300" background="bg-surface-secondary" borderRadius="200">
-            <BlockStack gap="300">
-              <Text as="h4" variant="headingSm">
-                Discount Strategy
-              </Text>
-              <Select
-                label=""
-                options={[
-                  { label: "Basic Discount - Simple percentage or fixed amount", value: "basic" },
-                  { label: "Tiered Discounts - Spend more, save more", value: "tiered" },
-                  { label: "BOGO Deal - Buy X, Get Y", value: "bogo" },
-                  { label: "Free Gift - Gift with purchase", value: "free_gift" },
-                ]}
-                value={
-                  config.bogo
-                    ? "bogo"
-                    : config.freeGift
-                      ? "free_gift"
-                      : config.tiers?.length
-                        ? "tiered"
-                        : "basic"
-                }
-                onChange={(value) => {
+          {/* Advanced Discount Type Selector - only show if more than one strategy allowed */}
+          {allowedStrategies.length > 1 && (
+            <Box padding="300" background="bg-surface-secondary" borderRadius="200">
+              <BlockStack gap="300">
+                <Text as="h4" variant="headingSm">
+                  Discount Strategy
+                </Text>
+                <Select
+                  label=""
+                  options={allowedStrategies.map((strategy) => STRATEGY_OPTIONS[strategy])}
+                  value={
+                    config.bogo && allowedStrategies.includes("bogo")
+                      ? "bogo"
+                      : config.freeGift && allowedStrategies.includes("free_gift")
+                        ? "free_gift"
+                        : config.tiers?.length && allowedStrategies.includes("tiered")
+                          ? "tiered"
+                          : "basic"
+                  }
+                  onChange={(value) => {
                   // Build a single new config to avoid stale merges across sequential updates
                   const base = {
                     ...config,
@@ -214,12 +237,13 @@ export function GenericDiscountComponent({
                     };
                   }
 
-                  onConfigChange(base);
-                }}
-                helpText="Choose your discount strategy"
-              />
-            </BlockStack>
-          </Box>
+                    onConfigChange(base);
+                  }}
+                  helpText="Choose your discount strategy"
+                />
+              </BlockStack>
+            </Box>
+          )}
 
           {/* Basic Discount Configuration */}
           {!hasAdvancedDiscount && (
@@ -346,7 +370,7 @@ export function GenericDiscountComponent({
           )}
 
           {/* ========== TIERED DISCOUNTS SECTION ========== */}
-          {config.tiers && config.tiers.length > 0 && (
+          {allowedStrategies.includes("tiered") && config.tiers && config.tiers.length > 0 && (
             <Box padding="400" background="bg-surface-secondary" borderRadius="200">
               <BlockStack gap="400">
                 <InlineStack align="space-between" blockAlign="center">
@@ -447,7 +471,7 @@ export function GenericDiscountComponent({
           )}
 
           {/* ========== BOGO SECTION ========== */}
-          {config.bogo && (
+          {allowedStrategies.includes("bogo") && config.bogo && (
             <Box padding="400" background="bg-surface-secondary" borderRadius="200">
               <BlockStack gap="400">
                 <Text as="h4" variant="headingSm">
@@ -599,7 +623,7 @@ export function GenericDiscountComponent({
           )}
 
           {/* ========== FREE GIFT SECTION ========== */}
-          {config.freeGift && (
+          {allowedStrategies.includes("free_gift") && config.freeGift && (
             <Box padding="400" background="bg-surface-secondary" borderRadius="200">
               <BlockStack gap="400">
                 <Text as="h4" variant="headingSm">

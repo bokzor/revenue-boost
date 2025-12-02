@@ -795,7 +795,6 @@ export const DesignConfigSchema = z.object({
       "ocean",
       // Seasonal themes (for styled recipes)
       "summer",
-      "summer-sale", // Legacy, kept for backward compatibility
       "black-friday",
       "cyber-monday",
       "holiday",

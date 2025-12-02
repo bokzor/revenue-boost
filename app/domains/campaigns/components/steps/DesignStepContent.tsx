@@ -55,6 +55,7 @@ interface DesignStepContentProps {
   onTemplateSelect: (template: SelectedTemplate) => void;
   initialTemplates?: UnifiedTemplate[];
   preselectedTemplateType?: string; // For auto-selecting template from URL param
+  skipAutoSelect?: boolean; // Skip auto-selection when content is prefilled from recipe
 }
 
 export function DesignStepContent({
@@ -76,6 +77,7 @@ export function DesignStepContent({
   onTemplateSelect,
   initialTemplates,
   preselectedTemplateType,
+  skipAutoSelect = false,
 }: DesignStepContentProps) {
   if (!goal) {
     return (
@@ -107,6 +109,7 @@ export function DesignStepContent({
                 onSelect={onTemplateSelect}
                 initialTemplates={initialTemplates}
                 preselectedTemplateType={preselectedTemplateType}
+                skipAutoSelect={skipAutoSelect}
               />
             </BlockStack>
           </Card>

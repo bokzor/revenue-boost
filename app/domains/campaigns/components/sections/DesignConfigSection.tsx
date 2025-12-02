@@ -16,16 +16,11 @@ import { Card, BlockStack, Text, Divider, Select, Banner, Button, RangeSlider } 
 import { ColorField, FormGrid, CollapsibleSection, useCollapsibleSections } from "../form";
 import type { DesignConfig, TemplateType } from "~/domains/campaigns/types/campaign";
 import {
-  themeColorsToDesignConfig,
   type NewsletterThemeKey,
   NEWSLETTER_BACKGROUND_PRESETS,
-  getNewsletterBackgroundUrl,
+  resolveThemeForTemplate,
 } from "~/config/color-presets";
-import {
-  getThemeConfigForTemplate,
-  getThemeBackgroundUrl,
-  type ThemeKey,
-} from "~/config/theme-config";
+import { getDefaultBackgroundForTheme, getBackgroundUrl } from "~/config/background-presets";
 import { ThemePresetSelector } from "../shared/ThemePresetSelector";
 import { CustomPresetSelector } from "../shared/CustomPresetSelector";
 import { LayoutSelector, type LayoutOption } from "../shared/LayoutSelector";
@@ -137,28 +132,6 @@ export function DesignConfigSection({
   // Resolve design capabilities for this template (gates which controls to show)
   const caps = templateType ? getDesignCapabilities(templateType as TemplateType) : undefined;
 
-  // Position/Size filtering based on capabilities
-  const ALL_POSITIONS = ["center", "top", "bottom", "left", "right"] as const;
-  const ALL_SIZES = ["small", "medium", "large"] as const;
-
-  const allowedPositions = caps?.supportsPosition ?? ALL_POSITIONS;
-  const allowedSizes = caps?.supportsSize ?? ALL_SIZES;
-
-  // Build filtered option lists
-  const positionOptions = [
-    { label: "Center", value: "center" },
-    { label: "Top", value: "top" },
-    { label: "Bottom", value: "bottom" },
-    { label: "Left", value: "left" },
-    { label: "Right", value: "right" },
-  ].filter((opt) => allowedPositions.includes(opt.value as (typeof allowedPositions)[number]));
-
-  const sizeOptions = [
-    { label: "Small", value: "small" },
-    { label: "Medium", value: "medium" },
-    { label: "Large", value: "large" },
-  ].filter((opt) => allowedSizes.includes(opt.value as (typeof allowedSizes)[number]));
-
   const updateField = <K extends keyof DesignConfig>(
     field: K,
     value: DesignConfig[K] | undefined
@@ -173,18 +146,9 @@ export function DesignConfigSection({
 
   // Handle theme selection - applies all theme colors and template-specific overrides
   const handleThemeChange = (themeKey: NewsletterThemeKey) => {
-    // Get template-specific theme configuration
-    const resolvedTheme = getThemeConfigForTemplate(
-      themeKey as ThemeKey,
-      (templateType as TemplateType) ?? "NEWSLETTER"
-    );
-
-    // Convert base colors to design config format
-    const designConfig = themeColorsToDesignConfig(resolvedTheme.colors);
-
-    // Get the background image URL (will be undefined if template doesn't use images)
-    const backgroundUrl = getThemeBackgroundUrl(
-      themeKey as ThemeKey,
+    // Resolve theme with template-specific behavior
+    const resolved = resolveThemeForTemplate(
+      themeKey,
       (templateType as TemplateType) ?? "NEWSLETTER"
     );
 
@@ -195,38 +159,38 @@ export function DesignConfigSection({
       theme: themeKey,
       customThemePresetId: undefined, // Clear custom theme selection
 
-      // Colors from base theme
-      backgroundColor: designConfig.backgroundColor,
-      textColor: designConfig.textColor,
-      descriptionColor: designConfig.descriptionColor,
-      accentColor: resolvedTheme.accentColorOverride ?? designConfig.accentColor,
-      buttonColor: resolvedTheme.buttonColorOverride ?? designConfig.buttonColor,
-      buttonTextColor: designConfig.buttonTextColor,
-      inputBackgroundColor: designConfig.inputBackgroundColor,
-      inputTextColor: designConfig.inputTextColor,
-      inputBorderColor: designConfig.inputBorderColor,
-      imageBgColor: designConfig.imageBgColor,
-      successColor: designConfig.successColor,
+      // Colors from resolved theme
+      backgroundColor: resolved.colors.backgroundColor,
+      textColor: resolved.colors.textColor,
+      descriptionColor: resolved.colors.descriptionColor,
+      accentColor: resolved.colors.accentColor,
+      buttonColor: resolved.colors.buttonColor,
+      buttonTextColor: resolved.colors.buttonTextColor,
+      inputBackgroundColor: resolved.colors.inputBackgroundColor,
+      inputTextColor: resolved.colors.inputTextColor,
+      inputBorderColor: resolved.colors.inputBorderColor,
+      imageBgColor: resolved.colors.imageBgColor,
+      successColor: resolved.colors.successColor,
 
       // Typography
-      fontFamily: designConfig.fontFamily,
-      titleFontSize: designConfig.titleFontSize,
-      titleFontWeight: designConfig.titleFontWeight,
-      titleTextShadow: designConfig.titleTextShadow,
-      descriptionFontSize: designConfig.descriptionFontSize,
-      descriptionFontWeight: designConfig.descriptionFontWeight,
+      fontFamily: resolved.colors.fontFamily,
+      titleFontSize: resolved.colors.titleFontSize,
+      titleFontWeight: resolved.colors.titleFontWeight,
+      titleTextShadow: resolved.colors.titleTextShadow,
+      descriptionFontSize: resolved.colors.descriptionFontSize,
+      descriptionFontWeight: resolved.colors.descriptionFontWeight,
 
       // Input styling
-      inputBackdropFilter: designConfig.inputBackdropFilter,
-      inputBoxShadow: designConfig.inputBoxShadow,
+      inputBackdropFilter: resolved.colors.inputBackdropFilter,
+      inputBoxShadow: resolved.colors.inputBoxShadow,
 
       // Template-specific background image settings
-      backgroundImageMode: resolvedTheme.backgroundImageMode,
-      backgroundImagePresetKey: resolvedTheme.backgroundImagePresetKey,
+      backgroundImageMode: resolved.backgroundImageMode,
+      backgroundImagePresetKey: resolved.backgroundImagePresetKey,
       backgroundImageFileId: undefined,
-      imageUrl: backgroundUrl,
-      imagePosition: resolvedTheme.imagePosition,
-      backgroundOverlayOpacity: resolvedTheme.backgroundOverlayOpacity,
+      imageUrl: resolved.backgroundImageUrl,
+      imagePosition: resolved.behavior.defaultImagePosition,
+      backgroundOverlayOpacity: resolved.behavior.defaultOverlayOpacity,
     });
 
     // Allow template-specific integrations (e.g., Spin-to-Win wheel colors)
@@ -336,33 +300,6 @@ export function DesignConfigSection({
           </>
         )}
 
-
-        {/* Position & Size - only show if at least one option is available */}
-        {(positionOptions.length > 0 || sizeOptions.length > 0) && (
-          <FormGrid columns={positionOptions.length > 0 && sizeOptions.length > 0 ? 2 : 1}>
-            {positionOptions.length > 0 && (
-              <Select
-                label="Position"
-                value={design.position || "center"}
-                options={positionOptions}
-                onChange={(value) => updateField("position", value as DesignConfig["position"])}
-                helpText={
-                  caps?.supportsPosition ? "Position options filtered for this template" : undefined
-                }
-              />
-            )}
-
-            {sizeOptions.length > 0 && (
-              <Select
-                label="Size"
-                value={design.size || "medium"}
-                options={sizeOptions}
-                onChange={(value) => updateField("size", value as DesignConfig["size"])}
-              />
-            )}
-          </FormGrid>
-        )}
-
         {/* TODO: Add Animation selector here
          * The `animation` property exists in DesignConfigSchema (fade/slide/bounce/none)
          * and is used by PopupPortal for entry animations. Currently not exposed in UI.
@@ -436,11 +373,12 @@ export function DesignConfigSection({
                     }
 
                     const key = value as NewsletterThemeKey;
-                    const url = getNewsletterBackgroundUrl(key);
+                    const bgPreset = getDefaultBackgroundForTheme(key);
+                    const url = bgPreset ? getBackgroundUrl(bgPreset) : undefined;
                     onChange({
                       ...design,
                       backgroundImageMode: "preset",
-                      backgroundImagePresetKey: key,
+                      backgroundImagePresetKey: bgPreset?.id ?? key,
                       backgroundImageFileId: undefined,
                       imageUrl: url,
                     });

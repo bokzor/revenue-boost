@@ -18,6 +18,7 @@ import {
   Button,
   Card,
   Layout,
+  Select,
 } from "@shopify/polaris";
 import { ChevronLeftIcon, ChevronRightIcon } from "@shopify/polaris-icons";
 import type { StyledRecipe, QuickInput, RecipeContext } from "../../recipes/styled-recipe-types";
@@ -153,6 +154,21 @@ function TextInputRenderer({ input, value, onChange }: InputRendererProps) {
   );
 }
 
+function SelectInputRenderer({ input, value, onChange }: InputRendererProps) {
+  const defaultVal = getDefaultValue(input);
+  const strValue = typeof value === "string" ? value : (typeof defaultVal === "string" ? defaultVal : "");
+  const options = "options" in input ? input.options : [];
+
+  return (
+    <Select
+      label={input.label}
+      options={options}
+      value={strValue}
+      onChange={(val) => onChange(input.key, val)}
+    />
+  );
+}
+
 function renderQuickInput(
   input: QuickInput,
   value: unknown,
@@ -169,6 +185,8 @@ function renderQuickInput(
       return <CurrencyAmountInput {...props} />;
     case "text":
       return <TextInputRenderer {...props} />;
+    case "select":
+      return <SelectInputRenderer {...props} />;
     default:
       return <TextInputRenderer {...props} />;
   }
@@ -230,10 +248,16 @@ export function RecipeQuickSetup({
 
     // Get background image if recipe has one
     let imageUrl: string | undefined;
-    let backgroundImageMode: "none" | "preset" = "none";
+    let backgroundImageMode: "none" | "preset" | "file" = "none";
     let backgroundImagePresetKey: string | undefined;
 
-    if (recipe.backgroundPresetId) {
+    // First check for direct imageUrl on recipe (for split/hero layouts)
+    if (recipe.imageUrl) {
+      imageUrl = recipe.imageUrl;
+      backgroundImageMode = "file";
+    }
+    // Then check for background preset (for full background mode)
+    else if (recipe.backgroundPresetId) {
       const preset = getBackgroundById(recipe.backgroundPresetId);
       if (preset) {
         imageUrl = getBackgroundUrl(preset);
@@ -241,6 +265,12 @@ export function RecipeQuickSetup({
         backgroundImagePresetKey = preset.id;
       }
     }
+
+    // Determine imagePosition based on layout
+    const imagePosition = recipe.defaults.designConfig?.imagePosition ||
+      (recipe.layout === "hero" ? "top" :
+       recipe.layout === "fullscreen" ? "full" :
+       recipe.layout === "split-right" ? "right" : "left");
 
     return {
       theme,
@@ -257,7 +287,7 @@ export function RecipeQuickSetup({
       backgroundImageMode,
       backgroundImagePresetKey,
       imageUrl,
-      imagePosition: "full" as const,
+      imagePosition,
       backgroundOverlayOpacity: 0.6,
       ...recipe.defaults.designConfig,
     };

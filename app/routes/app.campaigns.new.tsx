@@ -9,14 +9,14 @@
  */
 
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
-import { data, useLoaderData, useNavigate } from "react-router";
+import { data, useLoaderData, useNavigate, useLocation } from "react-router";
 import { authenticate } from "~/shopify.server";
 import { getStoreId } from "~/lib/auth-helpers.server";
 import { CampaignFormWithABTesting } from "~/domains/campaigns/components/CampaignFormWithABTesting";
 import type { CampaignFormData } from "~/shared/hooks/useWizardState";
 import type { TemplateType, CampaignGoal } from "~/domains/campaigns/types/campaign";
-import { useState, useEffect } from "react";
-import { Modal, Text, Toast, Frame } from "@shopify/polaris";
+import { useState } from "react";
+import { Modal, Toast, Frame } from "@shopify/polaris";
 import type { UnifiedTemplate } from "~/domains/popups/services/templates/unified-template-service.server";
 import prisma from "~/db.server";
 import { StoreSettingsSchema, GLOBAL_FREQUENCY_BEST_PRACTICES } from "~/domains/store/types/settings";
@@ -123,6 +123,11 @@ export async function action({ request }: ActionFunctionArgs) {
 export default function NewCampaign() {
   const loaderData = useLoaderData<typeof loader>();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Get recipe initial data from navigation state (passed from recipe flow)
+  const recipeInitialData = (location.state as { recipeInitialData?: Record<string, unknown> } | null)?.recipeInitialData;
+
   // Post-create activation modal state (single campaign)
   const [activatePromptOpen, setActivatePromptOpen] = useState(false);
   const [createdCampaignId, setCreatedCampaignId] = useState<string | null>(null);
@@ -171,23 +176,6 @@ export default function NewCampaign() {
     experimentsEnabled?: boolean;
     success: boolean;
   };
-
-  // Check for recipe initial data from sessionStorage (passed from recipe flow)
-  const [recipeInitialData, setRecipeInitialData] = useState<Record<string, unknown> | null>(null);
-
-  useEffect(() => {
-    const storedData = sessionStorage.getItem("recipeInitialData");
-    if (storedData) {
-      try {
-        const parsedData = JSON.parse(storedData);
-        setRecipeInitialData(parsedData);
-        // Clear after reading so it doesn't persist across navigations
-        sessionStorage.removeItem("recipeInitialData");
-      } catch (e) {
-        console.error("Failed to parse recipe initial data:", e);
-      }
-    }
-  }, []);
 
   // Handle save - create campaign(s) via API
   const [toastMessage, setToastMessage] = useState<string | null>(null);

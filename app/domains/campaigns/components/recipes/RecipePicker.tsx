@@ -16,14 +16,41 @@ import {
   Button,
   InlineGrid,
   Card,
+  Tag,
+  Divider,
 } from "@shopify/polaris";
-import { ChevronRightIcon } from "@shopify/polaris-icons";
+import { ChevronRightIcon, XSmallIcon } from "@shopify/polaris-icons";
 import {
   RECIPE_CATEGORIES,
+  RECIPE_TAG_LABELS,
   type RecipeCategory,
+  type RecipeTag,
   type StyledRecipe,
 } from "../../recipes/styled-recipe-types";
 import { RecipeCard } from "./RecipeCard";
+
+// Industry tags for filtering newsletter design recipes
+const INDUSTRY_TAGS: RecipeTag[] = [
+  "fashion",
+  "beauty",
+  "food",
+  "tech",
+  "fitness",
+  "home",
+  "outdoor",
+  "wellness",
+  "luxury",
+];
+
+// Style tags for filtering
+const STYLE_TAGS: RecipeTag[] = [
+  "minimal",
+  "bold",
+  "elegant",
+  "warm",
+  "dark",
+  "modern",
+];
 
 // =============================================================================
 // TYPES
@@ -85,6 +112,19 @@ export function RecipePicker({
   const [selectedCategory, setSelectedCategory] = useState<RecipeCategory | "all">("all");
   const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
 
+  // Track selected tags for filtering
+  const [selectedTags, setSelectedTags] = useState<RecipeTag[]>([]);
+
+  // Toggle a tag selection
+  const toggleTag = (tag: RecipeTag) => {
+    setSelectedTags((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+    );
+  };
+
+  // Clear all tag filters
+  const clearTags = () => setSelectedTags([]);
+
   // Group recipes by category
   const recipesByCategory = useMemo(() => {
     const grouped: Record<RecipeCategory, StyledRecipe[]> = {
@@ -113,18 +153,30 @@ export function RecipePicker({
     return grouped;
   }, [recipes]);
 
-  // Get filtered recipes based on selected category
+  // Get filtered recipes based on selected category AND tags
   const filteredRecipes = useMemo(() => {
+    let result: StyledRecipe[];
+
     if (selectedCategory === "all") {
-      // Show all recipes, sorted by featured then name
-      return [...recipes].sort((a, b) => {
-        if (a.featured && !b.featured) return -1;
-        if (!a.featured && b.featured) return 1;
-        return a.name.localeCompare(b.name);
-      });
+      result = [...recipes];
+    } else {
+      result = recipesByCategory[selectedCategory] || [];
     }
-    return recipesByCategory[selectedCategory] || [];
-  }, [selectedCategory, recipes, recipesByCategory]);
+
+    // Apply tag filters (AND logic - must match all selected tags)
+    if (selectedTags.length > 0) {
+      result = result.filter((recipe) =>
+        selectedTags.every((tag) => recipe.tags?.includes(tag))
+      );
+    }
+
+    // Sort: featured first, then by name
+    return result.sort((a, b) => {
+      if (a.featured && !b.featured) return -1;
+      if (!a.featured && b.featured) return 1;
+      return a.name.localeCompare(b.name);
+    });
+  }, [selectedCategory, selectedTags, recipes, recipesByCategory]);
 
   // Order of categories to display
   const categoryOrder: RecipeCategory[] = [
@@ -262,8 +314,68 @@ export function RecipePicker({
             </Text>
           </InlineStack>
 
+          {/* Tag Filters */}
+          <Card>
+            <BlockStack gap="300">
+              {/* Industry Tags */}
+              <BlockStack gap="200">
+                <Text as="span" variant="bodySm" fontWeight="semibold">
+                  Industry
+                </Text>
+                <InlineStack gap="200" wrap>
+                  {INDUSTRY_TAGS.map((tag) => (
+                    <Tag
+                      key={tag}
+                      onClick={() => toggleTag(tag)}
+                    >
+                      <span style={{
+                        opacity: selectedTags.includes(tag) ? 1 : 0.6,
+                        fontWeight: selectedTags.includes(tag) ? 600 : 400,
+                      }}>
+                        {selectedTags.includes(tag) ? "✓ " : ""}{RECIPE_TAG_LABELS[tag]}
+                      </span>
+                    </Tag>
+                  ))}
+                </InlineStack>
+              </BlockStack>
+
+              <Divider />
+
+              {/* Style Tags */}
+              <BlockStack gap="200">
+                <Text as="span" variant="bodySm" fontWeight="semibold">
+                  Style
+                </Text>
+                <InlineStack gap="200" wrap>
+                  {STYLE_TAGS.map((tag) => (
+                    <Tag
+                      key={tag}
+                      onClick={() => toggleTag(tag)}
+                    >
+                      <span style={{
+                        opacity: selectedTags.includes(tag) ? 1 : 0.6,
+                        fontWeight: selectedTags.includes(tag) ? 600 : 400,
+                      }}>
+                        {selectedTags.includes(tag) ? "✓ " : ""}{RECIPE_TAG_LABELS[tag]}
+                      </span>
+                    </Tag>
+                  ))}
+                </InlineStack>
+              </BlockStack>
+
+              {/* Clear filters */}
+              {selectedTags.length > 0 && (
+                <InlineStack align="end">
+                  <Button variant="plain" onClick={clearTags}>
+                    {`Clear filters (${selectedTags.length})`}
+                  </Button>
+                </InlineStack>
+              )}
+            </BlockStack>
+          </Card>
+
           {/* Recipe Grid */}
-          <InlineGrid columns={{ xs: 1, sm: 2, md: 3, lg: 4 }} gap="400">
+          <InlineGrid columns={{ xs: 1, sm: 2, md: 3, lg: 3 }} gap="400">
             {filteredRecipes.map((recipe) => (
               <RecipeCard
                 key={recipe.id}
@@ -281,9 +393,18 @@ export function RecipePicker({
             <Box padding="800" background="bg-surface-secondary" borderRadius="200">
               <BlockStack gap="200" inlineAlign="center">
                 <Text as="p" variant="bodyMd" tone="subdued">
-                  No recipes in this category yet.
+                  {selectedTags.length > 0
+                    ? "No recipes match the selected filters."
+                    : "No recipes in this category yet."}
                 </Text>
-                <Button onClick={() => setSelectedCategory("all")}>View all recipes</Button>
+                <InlineStack gap="200">
+                  {selectedTags.length > 0 && (
+                    <Button onClick={clearTags}>Clear filters</Button>
+                  )}
+                  <Button onClick={() => { setSelectedCategory("all"); clearTags(); }}>
+                    View all recipes
+                  </Button>
+                </InlineStack>
               </BlockStack>
             </Box>
           )}

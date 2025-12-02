@@ -556,10 +556,19 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, tri
     });
   }
 
+  // Get transformed image URL from BackgroundImageHook if available
+  // This ensures preset background images use the correct App Proxy URL
+  const backgroundImageData = preloadedResources?.backgroundImage as
+    | { imageUrl?: string; preloaded?: boolean }
+    | undefined;
+  const transformedImageUrl = backgroundImageData?.imageUrl;
+
   const decoratedDesignConfig: Record<string, unknown> = {
     ...(campaign.designConfig as Record<string, unknown>),
     globalCustomCSS: campaign.globalCustomCSS,
     customCSS: (campaign.designConfig as Record<string, unknown>)?.customCSS,
+    // Override imageUrl with transformed URL from hook (for preset backgrounds)
+    ...(transformedImageUrl ? { imageUrl: transformedImageUrl } : {}),
   };
 
   if (decoratedDesignConfig.buttonUrl) {

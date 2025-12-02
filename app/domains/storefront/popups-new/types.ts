@@ -78,6 +78,23 @@ export interface PopupDesignConfig {
   // Input styling (template-specific)
   inputBackdropFilter?: string;
   inputBoxShadow?: string;
+  inputBorderRadius?: string | number;
+  inputStyle?: "outlined" | "filled" | "underline";
+
+  // Button styling
+  buttonBorderRadius?: string | number;
+  buttonStyle?: "filled" | "outline" | "ghost";
+  buttonBoxShadow?: string;
+  secondaryButtonColor?: string;
+  secondaryButtonTextColor?: string;
+
+  // Text alignment and spacing
+  textAlign?: "left" | "center" | "right";
+  contentSpacing?: "compact" | "comfortable" | "spacious";
+
+  // Image effects
+  imageFilter?: string; // CSS filter (e.g., "brightness(0.8) contrast(1.1)")
+  imageBorderRadius?: string | number;
 
   // Behavior Properties
   previewMode?: boolean;
@@ -95,6 +112,9 @@ export interface PopupDesignConfig {
   // Accessibility
   ariaLabel?: string;
   ariaDescribedBy?: string;
+
+  // CSS Scoping (for mini previews to prevent style leakage)
+  scopeId?: string;
 }
 
 /**

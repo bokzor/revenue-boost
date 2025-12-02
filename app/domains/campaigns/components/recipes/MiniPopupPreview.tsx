@@ -6,12 +6,16 @@
  *
  * Uses the actual TemplatePreview component with CSS transform scaling
  * to ensure the preview matches the real popup appearance.
+ *
+ * Each instance gets a unique scopeId passed through config to scope CSS
+ * selectors and prevent style leakage between multiple preview instances.
  */
 
 import React, { useMemo, useRef, useState, useLayoutEffect } from "react";
 import { NEWSLETTER_THEMES, type NewsletterThemeKey } from "~/config/color-presets";
 import { getBackgroundById, getBackgroundUrl } from "~/config/background-presets";
 import { TemplatePreview } from "~/domains/popups/components/preview/TemplatePreview";
+import { ShadowDomWrapper } from "./ShadowDomWrapper";
 import type { StyledRecipe } from "../../recipes/styled-recipe-types";
 
 // =============================================================================
@@ -137,10 +141,16 @@ export function MiniPopupPreview({
 
     // Get background image if recipe has one
     let imageUrl: string | undefined;
-    let backgroundImageMode: "none" | "preset" = "none";
+    let backgroundImageMode: "none" | "preset" | "file" = "none";
     let backgroundImagePresetKey: string | undefined;
 
-    if (recipe.backgroundPresetId) {
+    // First check for direct imageUrl on recipe (for split/hero layouts)
+    if (recipe.imageUrl) {
+      imageUrl = recipe.imageUrl;
+      backgroundImageMode = "file";
+    }
+    // Then check for background preset (for full background mode)
+    else if (recipe.backgroundPresetId) {
       const preset = getBackgroundById(recipe.backgroundPresetId);
       if (preset) {
         imageUrl = getBackgroundUrl(preset);
@@ -148,6 +158,12 @@ export function MiniPopupPreview({
         backgroundImagePresetKey = preset.id;
       }
     }
+
+    // Determine imagePosition based on layout
+    const imagePosition = recipe.defaults.designConfig?.imagePosition ||
+      (recipe.layout === "hero" ? "top" :
+       recipe.layout === "fullscreen" ? "full" :
+       recipe.layout === "split-right" ? "right" : "left");
 
     return {
       theme,
@@ -164,7 +180,7 @@ export function MiniPopupPreview({
       backgroundImageMode,
       backgroundImagePresetKey,
       imageUrl,
-      imagePosition: "full" as const,
+      imagePosition,
       backgroundOverlayOpacity: 0.6,
       // Preview mode settings
       previewMode: true,
@@ -177,8 +193,33 @@ export function MiniPopupPreview({
   const containerWidthProp = width || "100%";
   const containerHeightProp = height || 180; // Taller default to fit popup
 
-  // For banners: use virtual viewport approach with calculated scale
-  // The banner renders at virtualWidth, then scales to fit container
+  // Styles to inject into Shadow DOM for banner previews
+  const bannerShadowStyles = `
+    [data-mini-banner-preview] .free-shipping-bar,
+    [data-mini-banner-preview] [data-rb-banner],
+    [data-mini-banner-preview] .announcement-bar,
+    [data-mini-banner-preview] [class*="announcement"],
+    [data-mini-banner-preview] [class*="social-proof"] {
+      position: relative !important;
+      top: auto !important;
+      bottom: auto !important;
+      left: auto !important;
+      right: auto !important;
+      width: 100% !important;
+      transform: none !important;
+      animation: none !important;
+    }
+    [data-mini-banner-preview] .free-shipping-bar-close,
+    [data-mini-banner-preview] .free-shipping-bar-dismiss {
+      display: none !important;
+    }
+  `;
+
+  // For banners: use two-layer scaling for container queries
+  // Outer layer clips and scales, inner layer renders at full size
+  const bannerScaledWidth = virtualWidth * effectiveScale;
+  const bannerScaledHeight = 80; // Fixed height for banner preview
+
   if (isBanner) {
     return (
       <div
@@ -192,49 +233,46 @@ export function MiniPopupPreview({
           justifyContent: "center",
         }}
       >
-        {/* Virtual viewport for banner - scales to fit container width */}
-        <div
-          data-mini-banner-preview="true"
-          style={{
-            width: virtualWidth,
-            position: "relative",
-            transform: `scale(${effectiveScale})`,
-            transformOrigin: "center center",
-            pointerEvents: "none",
-          }}
-        >
-          {/* Override fixed positioning for banner previews */}
-          <style>{`
-            [data-mini-banner-preview] .free-shipping-bar,
-            [data-mini-banner-preview] [data-rb-banner],
-            [data-mini-banner-preview] .announcement-bar,
-            [data-mini-banner-preview] [class*="announcement"],
-            [data-mini-banner-preview] [class*="social-proof"] {
-              position: relative !important;
-              top: auto !important;
-              bottom: auto !important;
-              left: auto !important;
-              right: auto !important;
-              width: 100% !important;
-              transform: none !important;
-              animation: none !important;
-            }
-            [data-mini-banner-preview] .free-shipping-bar-close,
-            [data-mini-banner-preview] .free-shipping-bar-dismiss {
-              display: none !important;
-            }
-          `}</style>
-          <TemplatePreview
-            templateType={recipe.templateType}
-            config={contentConfig}
-            designConfig={designConfig}
-          />
-        </div>
+        <ShadowDomWrapper styles={bannerShadowStyles}>
+          {/* Outer clip container */}
+          <div
+            style={{
+              width: bannerScaledWidth,
+              height: bannerScaledHeight,
+              overflow: "hidden",
+              position: "relative",
+              pointerEvents: "none",
+            }}
+          >
+            {/* Inner viewport - renders at full size */}
+            <div
+              data-mini-banner-preview="true"
+              style={{
+                width: virtualWidth,
+                position: "absolute",
+                top: "50%",
+                left: "50%",
+                transform: `translate(-50%, -50%) scale(${effectiveScale})`,
+                transformOrigin: "center center",
+              }}
+            >
+              <TemplatePreview
+                templateType={recipe.templateType}
+                config={contentConfig}
+                designConfig={designConfig}
+              />
+            </div>
+          </div>
+        </ShadowDomWrapper>
       </div>
     );
   }
 
-  // Popup style: use virtual viewport with calculated scale
+  // Popup style: use two-layer scaling for container queries
+  // Outer layer clips and scales, inner layer renders at full size
+  const scaledWidth = virtualWidth * effectiveScale;
+  const scaledHeight = virtualHeight * effectiveScale;
+
   return (
     <div
       ref={containerRef}
@@ -247,23 +285,37 @@ export function MiniPopupPreview({
         justifyContent: "center",
       }}
     >
-      {/* Virtual viewport - popup renders at fixed size then scales to fit */}
-      <div
-        style={{
-          width: virtualWidth,
-          height: virtualHeight,
-          position: "relative",
-          transform: `scale(${effectiveScale})`,
-          transformOrigin: "center center",
-          pointerEvents: "none",
-        }}
-      >
-        <TemplatePreview
-          templateType={recipe.templateType}
-          config={contentConfig}
-          designConfig={designConfig}
-        />
-      </div>
+      <ShadowDomWrapper>
+        {/* Outer clip container - sized to the scaled dimensions */}
+        <div
+          style={{
+            width: scaledWidth,
+            height: scaledHeight,
+            overflow: "hidden",
+            position: "relative",
+            pointerEvents: "none",
+          }}
+        >
+          {/* Inner viewport - renders at full size so container queries work */}
+          <div
+            style={{
+              width: virtualWidth,
+              height: virtualHeight,
+              position: "absolute",
+              top: "50%",
+              left: "50%",
+              transform: `translate(-50%, -50%) scale(${effectiveScale})`,
+              transformOrigin: "center center",
+            }}
+          >
+            <TemplatePreview
+              templateType={recipe.templateType}
+              config={contentConfig}
+              designConfig={designConfig}
+            />
+          </div>
+        </div>
+      </ShadowDomWrapper>
     </div>
   );
 }

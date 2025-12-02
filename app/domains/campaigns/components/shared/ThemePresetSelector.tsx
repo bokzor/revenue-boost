@@ -27,7 +27,6 @@ const THEME_DISPLAY_NAMES: Record<NewsletterThemeKey, string> = {
   ocean: "Ocean",
   // Seasonal themes
   summer: "Summer",
-  "summer-sale": "Summer Sale",
   "black-friday": "Black Friday",
   "cyber-monday": "Cyber Monday",
   holiday: "Holiday",

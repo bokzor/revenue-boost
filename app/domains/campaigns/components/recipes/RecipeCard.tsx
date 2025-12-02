@@ -12,6 +12,7 @@ import { Box, Text, InlineStack, Badge, Tooltip, Icon, Portal } from "@shopify/p
 import { InfoIcon } from "@shopify/polaris-icons";
 import type { StyledRecipe } from "../../recipes/styled-recipe-types";
 import { MiniPopupPreview } from "./MiniPopupPreview";
+import { ShadowDomWrapper } from "./ShadowDomWrapper";
 import { TemplatePreview } from "~/domains/popups/components/preview/TemplatePreview";
 import { NEWSLETTER_THEMES, type NewsletterThemeKey } from "~/config/color-presets";
 import { getBackgroundById, getBackgroundUrl } from "~/config/background-presets";
@@ -59,7 +60,7 @@ const getCardStyle = (isSelected: boolean, isHovered: boolean): React.CSSPropert
 });
 
 const previewContainerStyle: React.CSSProperties = {
-  height: "180px",
+  aspectRatio: "1 / 1",
   overflow: "hidden",
   backgroundColor: "var(--p-color-bg-surface-secondary)",
   display: "flex",
@@ -110,10 +111,16 @@ function useRecipeDesignConfig(recipe: StyledRecipe) {
     const themeColors = NEWSLETTER_THEMES[theme] || NEWSLETTER_THEMES.modern;
 
     let imageUrl: string | undefined;
-    let backgroundImageMode: "none" | "preset" = "none";
+    let backgroundImageMode: "none" | "preset" | "file" = "none";
     let backgroundImagePresetKey: string | undefined;
 
-    if (recipe.backgroundPresetId) {
+    // First check for direct imageUrl on recipe (for split/hero layouts)
+    if (recipe.imageUrl) {
+      imageUrl = recipe.imageUrl;
+      backgroundImageMode = "file";
+    }
+    // Then check for background preset (for full background mode)
+    else if (recipe.backgroundPresetId) {
       const preset = getBackgroundById(recipe.backgroundPresetId);
       if (preset) {
         imageUrl = getBackgroundUrl(preset);
@@ -121,6 +128,12 @@ function useRecipeDesignConfig(recipe: StyledRecipe) {
         backgroundImagePresetKey = preset.id;
       }
     }
+
+    // Determine imagePosition based on layout
+    const imagePosition = recipe.defaults.designConfig?.imagePosition ||
+      (recipe.layout === "hero" ? "top" :
+       recipe.layout === "fullscreen" ? "full" :
+       recipe.layout === "split-right" ? "right" : "left");
 
     return {
       theme,
@@ -135,7 +148,7 @@ function useRecipeDesignConfig(recipe: StyledRecipe) {
       backgroundImageMode,
       backgroundImagePresetKey,
       imageUrl,
-      imagePosition: "full" as const,
+      imagePosition,
       backgroundOverlayOpacity: 0.6,
       previewMode: true,
       ...recipe.defaults.designConfig,
@@ -367,24 +380,45 @@ export function RecipeCard({
               </InlineStack>
             </div>
 
-            {/* Preview Content */}
+            {/* Preview Content - Tablet viewport simulation */}
             <div style={hoverPreviewContentStyle}>
-              <div
-                style={{
-                  width: 380,
-                  height: 480,
-                  position: "relative",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <TemplatePreview
-                  templateType={recipe.templateType}
-                  config={contentConfig}
-                  designConfig={designConfig}
-                />
-              </div>
+              <ShadowDomWrapper>
+                {/*
+                  Two-layer scaling approach for container queries:
+                  - Outer div: clips overflow and applies visual scale
+                  - Inner div: renders at full tablet size (768px) so container queries work
+                */}
+                <div
+                  style={{
+                    width: 400,
+                    height: 320,
+                    overflow: "hidden",
+                    position: "relative",
+                    pointerEvents: "none",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 768,
+                      minHeight: 600,
+                      position: "absolute",
+                      top: "50%",
+                      left: "50%",
+                      transform: "translate(-50%, -50%) scale(0.52)",
+                      transformOrigin: "center center",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <TemplatePreview
+                      templateType={recipe.templateType}
+                      config={contentConfig}
+                      designConfig={designConfig}
+                    />
+                  </div>
+                </div>
+              </ShadowDomWrapper>
             </div>
 
             {/* Footer hint */}
@@ -397,7 +431,7 @@ export function RecipeCard({
               }}
             >
               <Text as="span" variant="bodySm" tone="subdued">
-                Click anywhere to select this recipe
+                Tablet preview • Click to select
               </Text>
             </div>
           </div>

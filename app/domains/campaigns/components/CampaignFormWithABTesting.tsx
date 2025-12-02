@@ -219,7 +219,7 @@ export function CampaignFormWithABTesting({
         return JSON.parse(JSON.stringify(obj)) as T;
       };
 
-      return {
+      const variantData = {
         ...initialData,
         variantKey: key,
         isControl: index === 0,
@@ -235,6 +235,8 @@ export function CampaignFormWithABTesting({
         pageTargeting: deepCopy(initialData?.pageTargeting),
         frequencyCapping: deepCopy(initialData?.frequencyCapping),
       } as VariantCampaignData;
+
+      return variantData;
     },
     [initialData]
   );

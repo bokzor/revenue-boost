@@ -124,6 +124,14 @@ export function renderDesignStep(props: StepRendererProps) {
     pageTargeting: wizardState.pageTargeting || {},
   };
 
+  // Check if content is prefilled from a recipe (has headline or other meaningful content)
+  // If so, skip auto-selection to preserve the recipe data
+  const hasPrefilledContent = !!(
+    wizardState.contentConfig?.headline ||
+    wizardState.contentConfig?.subheadline ||
+    wizardState.contentConfig?.buttonText
+  );
+
   return (
     <DesignStepContent
       goal={wizardState.goal}
@@ -143,6 +151,7 @@ export function renderDesignStep(props: StepRendererProps) {
       onDiscountChange={(config) => updateData({ discountConfig: config })}
       initialTemplates={initialTemplates}
       preselectedTemplateType={wizardState.templateType}
+      skipAutoSelect={hasPrefilledContent}
       onTemplateSelect={(template) => {
         console.log("[step-renderers] Template selected:", {
           id: template.id,

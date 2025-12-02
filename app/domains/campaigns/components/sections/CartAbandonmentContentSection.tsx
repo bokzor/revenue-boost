@@ -17,9 +17,8 @@ import {
   InlineStack,
 } from "@shopify/polaris";
 import { ChevronDownIcon, ChevronUpIcon } from "@shopify/polaris-icons";
-import { TextField, CheckboxField, FormGrid } from "../form";
+import { TextField, CheckboxField, FormGrid, GenericDiscountComponent } from "../form";
 import { useFieldUpdater } from "~/shared/hooks/useFieldUpdater";
-import { DiscountSection } from "~/domains/popups/components/design/DiscountSection";
 import type { DiscountConfig } from "~/domains/popups/services/discounts/discount.server";
 
 export interface CartAbandonmentContent {
@@ -527,10 +526,11 @@ export function CartAbandonmentContentSection({
 
             <Divider />
 
-            <DiscountSection
+            <GenericDiscountComponent
               goal="CART_RECOVERY"
               discountConfig={discountConfig}
               onConfigChange={onDiscountChange}
+              allowedStrategies={["basic", "tiered"]}
             />
           </BlockStack>
         </Card>

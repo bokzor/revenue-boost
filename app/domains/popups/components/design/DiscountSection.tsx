@@ -27,30 +27,56 @@ import type {
 } from "~/domains/popups/services/discounts/discount.server";
 import type { DiscountBehavior } from "~/domains/campaigns/types/campaign";
 
+/**
+ * Allowed discount value types for the DiscountSection component.
+ */
+export type DiscountValueTypeOption = "PERCENTAGE" | "FIXED_AMOUNT" | "FREE_SHIPPING";
+
 interface DiscountSectionProps {
   goal?: string;
   discountConfig?: DiscountConfig;
   onConfigChange: (config: DiscountConfig) => void;
+  /**
+   * Which discount value types to show in the selector.
+   * Defaults to all types: ['PERCENTAGE', 'FIXED_AMOUNT', 'FREE_SHIPPING']
+   *
+   * For Free Shipping Bar, use ['FREE_SHIPPING'] to hide irrelevant options.
+   */
+  allowedValueTypes?: DiscountValueTypeOption[];
 }
+
+const ALL_VALUE_TYPES: DiscountValueTypeOption[] = ["PERCENTAGE", "FIXED_AMOUNT", "FREE_SHIPPING"];
+
+const VALUE_TYPE_OPTIONS: Record<DiscountValueTypeOption, { label: string; value: string }> = {
+  PERCENTAGE: { label: "Percentage Off", value: "PERCENTAGE" },
+  FIXED_AMOUNT: { label: "Fixed Amount Off", value: "FIXED_AMOUNT" },
+  FREE_SHIPPING: { label: "Free Shipping", value: "FREE_SHIPPING" },
+};
 
 export function DiscountSection({
   goal = "NEWSLETTER_SIGNUP",
   discountConfig,
   onConfigChange,
+  allowedValueTypes = ALL_VALUE_TYPES,
 }: DiscountSectionProps) {
   const [showAdvanced, setShowAdvanced] = useState(false);
+
+  // Determine default value type based on allowed types
+  const defaultValueType = allowedValueTypes.includes("PERCENTAGE")
+    ? "PERCENTAGE"
+    : allowedValueTypes[0];
 
   // Initialize with defaults if not provided
   const config: DiscountConfig = {
     enabled: discountConfig?.enabled !== false,
     showInPreview: discountConfig?.showInPreview !== false,
     type: discountConfig?.type || "shared",
-    valueType: discountConfig?.valueType || "PERCENTAGE",
+    valueType: discountConfig?.valueType || defaultValueType,
     value: discountConfig?.valueType === "FREE_SHIPPING" ? undefined : discountConfig?.value || 10,
     minimumAmount: discountConfig?.minimumAmount,
     usageLimit: discountConfig?.usageLimit,
     expiryDays: discountConfig?.expiryDays || 30,
-    prefix: discountConfig?.prefix || "WELCOME",
+    prefix: discountConfig?.prefix || "FREESHIP",
     behavior: discountConfig?.behavior || "SHOW_CODE_AND_AUTO_APPLY",
   };
 
@@ -85,29 +111,27 @@ export function DiscountSection({
 
       {config.enabled !== false && (
         <FormLayout>
-          {/* Discount Type */}
-          <Select
-            label="Discount Type"
-            options={[
-              { label: "Percentage Off", value: "PERCENTAGE" },
-              { label: "Fixed Amount Off", value: "FIXED_AMOUNT" },
-              { label: "Free Shipping", value: "FREE_SHIPPING" },
-            ]}
-            value={config.valueType}
-            onChange={(valueType) => {
-              const updates: Partial<DiscountConfig> = {
-                valueType: valueType as "PERCENTAGE" | "FIXED_AMOUNT" | "FREE_SHIPPING",
-              };
-              // Clear value when switching to FREE_SHIPPING
-              if (valueType === "FREE_SHIPPING") {
-                updates.value = undefined;
-              } else if (!config.value) {
-                // Set default value when switching from FREE_SHIPPING
-                updates.value = getRecommendedValue();
-              }
-              updateConfig(updates);
-            }}
-          />
+          {/* Discount Type - only show if more than one type allowed */}
+          {allowedValueTypes.length > 1 && (
+            <Select
+              label="Discount Type"
+              options={allowedValueTypes.map((type) => VALUE_TYPE_OPTIONS[type])}
+              value={config.valueType}
+              onChange={(valueType) => {
+                const updates: Partial<DiscountConfig> = {
+                  valueType: valueType as DiscountValueTypeOption,
+                };
+                // Clear value when switching to FREE_SHIPPING
+                if (valueType === "FREE_SHIPPING") {
+                  updates.value = undefined;
+                } else if (!config.value) {
+                  // Set default value when switching from FREE_SHIPPING
+                  updates.value = getRecommendedValue();
+                }
+                updateConfig(updates);
+              }}
+            />
+          )}
 
           {/* Discount Value */}
           {config.valueType !== "FREE_SHIPPING" && (

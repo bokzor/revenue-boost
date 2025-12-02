@@ -65,11 +65,6 @@ const THEME_DEFAULTS: Record<
     text: NEWSLETTER_THEMES.ocean.text,
     button: NEWSLETTER_THEMES.ocean.primary,
   },
-  "summer-sale": {
-    background: NEWSLETTER_THEMES["summer-sale"].background,
-    text: NEWSLETTER_THEMES["summer-sale"].text,
-    button: NEWSLETTER_THEMES["summer-sale"].primary,
-  },
   // Seasonal themes
   summer: {
     background: NEWSLETTER_THEMES.summer.background,

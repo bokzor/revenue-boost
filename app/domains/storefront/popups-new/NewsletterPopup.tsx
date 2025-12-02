@@ -216,6 +216,7 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
           width: 100%;
           height: 100%;
           object-fit: cover;
+          object-position: center center;
         }
 
         .newsletter-full-bg-overlay {
@@ -257,22 +258,26 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
           }
         }
 
-        /* Image Cell - Responsive */
+        /* Image Cell - Fills container height on desktop */
         .email-popup-image {
-          position: relative;
           overflow: hidden;
-          display: block;
+          display: flex;
           background: ${config.imageBgColor || config.inputBackgroundColor || "#f4f4f5"};
           width: 100%;
-          height: 180px;
-          flex-shrink: 0;
+          min-height: 180px;
+          /* Stretch to fill flex parent on desktop */
+          align-self: stretch;
         }
 
         .email-popup-image img {
           width: 100%;
           height: 100%;
           object-fit: cover;
+          object-position: center center;
           display: block;
+          /* Ensure image fills the flex container */
+          flex: 1;
+          min-height: 0;
         }
 
         /* Form Cell - Responsive padding */
@@ -406,96 +411,56 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
         }
 
         /* ========================================
-           CONTAINER QUERY RESPONSIVE STYLES
-           Adapts to container width, not viewport
+           RESPONSIVE: Mobile (<520px)
+           - Bottom-sheet optimized
+           - Hide images for split layouts
+           - 44px touch targets
            ======================================== */
-
-        /* Small containers: Compact layout (stacked) */
-        @container popup (max-width: 399px) {
+        @container popup (max-width: 519px) {
           .email-popup-form-section {
-            padding: 1.25rem 1rem;
+            padding: 1.5rem 1rem;
           }
 
           .email-popup-image {
-            height: 140px;
+            display: ${imagePosition === "left" || imagePosition === "right" ? "none" : "block"};
+            height: ${imagePosition === "top" ? "120px" : "auto"};
           }
 
-          .email-popup-input {
-            height: 2.5rem;
-            font-size: 0.875rem;
-          }
-
-          .email-popup-button {
-            padding: 0.625rem 0.875rem;
-            font-size: 0.875rem;
-          }
-        }
-
-        /* Medium containers: Balanced layout (stacked) */
-        @container popup (min-width: 400px) and (max-width: 519px) {
-          .email-popup-form-section {
-            padding: 2rem 1.5rem;
-          }
-
-          .email-popup-image {
-            height: 200px;
-          }
-        }
-
-        /* Wide containers (side-by-side): Image fills height */
-        @container popup (min-width: 520px) {
-          .email-popup-form-section {
-            padding: 2rem 2rem;
-          }
-
-          .email-popup-image {
-            height: auto;
-            min-height: 380px;
-            flex: 1;
-          }
-
-          .email-popup-input {
-            height: 3rem;
-            padding: 0 1rem;
+          .email-popup-input,
+          .email-popup-button,
+          .email-popup-secondary-button {
+            min-height: 44px;
             font-size: 1rem;
-          }
-
-          .email-popup-button {
-            padding: 0.875rem 1.25rem;
-            font-size: 1rem;
-            margin-top: 1rem;
-          }
-
-          .email-popup-label {
-            font-size: 0.875rem;
-            margin-bottom: 0.5rem;
           }
 
           .email-popup-checkbox {
-            width: 1.125rem;
-            height: 1.125rem;
-          }
-
-          .email-popup-checkbox-label,
-          .email-popup-error {
-            font-size: 0.875rem;
+            width: 1.25rem;
+            height: 1.25rem;
           }
         }
 
-        /* Large containers: Maximum comfort */
+        /* ========================================
+           RESPONSIVE: Desktop (≥520px)
+           - Two-column layouts
+           - Image fills full height of container
+           ======================================== */
+        @container popup (min-width: 520px) {
+          .email-popup-form-section {
+            padding: 2rem;
+          }
+
+          /* Image stretches to fill column height - already handled by align-self: stretch */
+          .email-popup-image {
+            min-height: 380px;
+          }
+        }
+
+        /* ========================================
+           RESPONSIVE: Large Desktop (≥700px)
+           ======================================== */
         @container popup (min-width: 700px) {
           .email-popup-form-section {
             padding: 2.5rem 3rem;
-          }
-
-          .email-popup-button {
-            padding: 1rem 1.5rem;
-            margin-top: 1.25rem;
-          }
-
-          .email-popup-secondary-button {
-            margin-top: 0.75rem;
-            font-size: 0.875rem;
           }
         }
 
@@ -764,8 +729,8 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
           data-splitpop="true"
           data-template="newsletter"
         >
-          {/* Image Section */}
-          {imageUrl && (
+          {/* Image Section - Only render if showImage is true */}
+          {showImage && imageUrl && (
             <div className="email-popup-image">
               <img src={imageUrl} alt={config.headline} />
             </div>

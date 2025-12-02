@@ -118,6 +118,12 @@ export const PopupPortal: React.FC<PopupPortalProps> = ({
   const shadowHostRef = useRef<HTMLDivElement | null>(null);
   const shadowRootRef = useRef<ShadowRoot | null>(null);
 
+  // Swipe-to-dismiss state
+  const [dragOffset, setDragOffset] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStartY = useRef(0);
+  const dragStartTime = useRef(0);
+
   // Get animation timing
   const animationType = animation.type || "fade";
   const choreography = ANIMATION_CHOREOGRAPHY[animationType];
@@ -241,6 +247,53 @@ export const PopupPortal: React.FC<PopupPortalProps> = ({
   const handleContentClick: React.MouseEventHandler<HTMLDivElement> = useCallback((e) => {
     e.stopPropagation();
   }, []);
+
+  // ========================================
+  // SWIPE-TO-DISMISS (Mobile Bottom Sheet)
+  // ========================================
+  const SWIPE_THRESHOLD = 100; // px to trigger dismiss
+  const VELOCITY_THRESHOLD = 0.5; // px/ms for fast swipe
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    dragStartY.current = touch.clientY;
+    dragStartTime.current = Date.now();
+    setIsDragging(true);
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!isDragging) return;
+
+    const touch = e.touches[0];
+    const deltaY = touch.clientY - dragStartY.current;
+
+    // Only allow dragging down (positive deltaY)
+    if (deltaY > 0) {
+      setDragOffset(deltaY);
+      // Add resistance as you drag further
+      // e.preventDefault(); // Prevent scroll - but be careful with this
+    }
+  }, [isDragging]);
+
+  const handleTouchEnd = useCallback(() => {
+    if (!isDragging) return;
+
+    const elapsed = Date.now() - dragStartTime.current;
+    const velocity = dragOffset / elapsed; // px/ms
+
+    // Dismiss if dragged past threshold OR fast swipe
+    if (dragOffset > SWIPE_THRESHOLD || velocity > VELOCITY_THRESHOLD) {
+      // Trigger haptic feedback if available
+      if (navigator.vibrate) {
+        navigator.vibrate(10);
+      }
+      handleClose();
+    }
+
+    // Reset drag state
+    setDragOffset(0);
+    setIsDragging(false);
+  }, [isDragging, dragOffset, handleClose]);
 
   // Focus management
   useEffect(() => {
@@ -385,7 +438,16 @@ export const PopupPortal: React.FC<PopupPortalProps> = ({
 
   // Render content
   const content = (
-    <div style={overlayStyles} role="presentation">
+    <div
+      className="popup-portal-root"
+      style={{
+        ...overlayStyles,
+        // Make this a container for container queries
+        containerType: 'inline-size',
+        containerName: 'popup-viewport',
+      }}
+      role="presentation"
+    >
       {/* Base styles for Shadow DOM - ensures proper rendering */}
       <style
         dangerouslySetInnerHTML={{
@@ -412,15 +474,27 @@ export const PopupPortal: React.FC<PopupPortalProps> = ({
       <div
         ref={contentRef}
         className={`popup-portal-dialog-wrapper ${contentAnimationClass}`}
-        style={contentWrapperStyles}
+        style={{
+          ...contentWrapperStyles,
+          // Apply drag offset for swipe-to-dismiss
+          transform: dragOffset > 0 ? `translateY(${dragOffset}px)` : undefined,
+          transition: isDragging ? 'none' : 'transform 0.2s ease-out',
+        }}
         onClick={handleContentClick}
         onKeyDown={(e) => e.stopPropagation()}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
         role="dialog"
         aria-modal="true"
         aria-label={ariaLabel}
         aria-describedby={ariaDescribedBy}
         tabIndex={-1}
       >
+        {/* Drag Handle - Only visible on mobile */}
+        <div className="popup-drag-handle" aria-hidden="true">
+          <div className="popup-drag-handle-bar" />
+        </div>
         {frameStyles ? (
           <div className="popup-portal-frame" style={frameStyles}>
             {children}
@@ -473,7 +547,7 @@ function getAnimationKeyframes(previewMode: boolean, position: PopupPosition): s
   };
 
   return `
-    /* Base positioning for dialog wrapper */
+    /* Base positioning for dialog wrapper - DESKTOP default */
     .popup-portal-dialog-wrapper {
       position: absolute;
       inset: 0;
@@ -482,9 +556,148 @@ function getAnimationKeyframes(previewMode: boolean, position: PopupPosition): s
       display: flex;
       align-items: ${alignMap[position]};
       justify-content: ${justifyMap[position]};
-      /* Enable container queries for popup content (e.g. mobile full-width layouts) */
+      /* Enable container queries for popup content (used by PopupGridContainer) */
       container-type: inline-size;
       container-name: viewport;
+    }
+
+    /* ========================================
+       DRAG HANDLE (for swipe-to-dismiss)
+       Hidden on desktop, visible on mobile
+       ======================================== */
+    .popup-drag-handle {
+      display: none;
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 28px;
+      z-index: 100;
+      touch-action: none;
+      cursor: grab;
+    }
+
+    .popup-drag-handle:active {
+      cursor: grabbing;
+    }
+
+    .popup-drag-handle-bar {
+      position: absolute;
+      top: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 36px;
+      height: 4px;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 2px;
+    }
+
+    /* ========================================
+       MOBILE STYLES (container < 520px)
+       Uses container query for preview compatibility
+       AND media query fallback for storefront
+       ======================================== */
+    @container popup-viewport (max-width: 519px) {
+      .popup-portal-dialog-wrapper {
+        align-items: flex-end !important;
+        justify-content: center !important;
+        padding: 0 !important;
+        padding-bottom: env(safe-area-inset-bottom, 0) !important;
+      }
+
+      .popup-drag-handle {
+        display: block;
+      }
+
+      .popup-portal-frame,
+      .popup-grid-container {
+        width: 100%;
+        max-width: 100%;
+        border-radius: 1.5rem 1.5rem 0 0 !important;
+        max-height: 90vh;
+        max-height: 90dvh;
+        overflow-y: auto;
+      }
+
+      /* Slide-up animation on mobile */
+      .popup-portal-dialog-wrapper.popup-portal-slide-enter,
+      .popup-portal-dialog-wrapper.popup-portal-fade-enter,
+      .popup-portal-dialog-wrapper.popup-portal-zoom-enter,
+      .popup-portal-dialog-wrapper.popup-portal-bounce-enter {
+        animation-name: popup-portal-mobile-slide-up-enter !important;
+        animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1) !important;
+      }
+
+      .popup-portal-dialog-wrapper.popup-portal-slide-exit,
+      .popup-portal-dialog-wrapper.popup-portal-fade-exit,
+      .popup-portal-dialog-wrapper.popup-portal-zoom-exit,
+      .popup-portal-dialog-wrapper.popup-portal-bounce-exit {
+        animation-name: popup-portal-mobile-slide-down-exit !important;
+        animation-timing-function: ease-in !important;
+      }
+    }
+
+    /* Fallback for storefront (where container queries may not apply) */
+    @media (max-width: 519px) {
+      .popup-portal-dialog-wrapper {
+        align-items: flex-end !important;
+        justify-content: center !important;
+        padding: 0 !important;
+        padding-bottom: env(safe-area-inset-bottom, 0) !important;
+      }
+
+      .popup-drag-handle {
+        display: block;
+      }
+
+      .popup-portal-frame,
+      .popup-grid-container {
+        width: 100%;
+        max-width: 100%;
+        border-radius: 1.5rem 1.5rem 0 0 !important;
+        max-height: 90vh;
+        max-height: 90dvh;
+        overflow-y: auto;
+      }
+
+      .popup-portal-dialog-wrapper.popup-portal-slide-enter,
+      .popup-portal-dialog-wrapper.popup-portal-fade-enter,
+      .popup-portal-dialog-wrapper.popup-portal-zoom-enter,
+      .popup-portal-dialog-wrapper.popup-portal-bounce-enter {
+        animation-name: popup-portal-mobile-slide-up-enter !important;
+        animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1) !important;
+      }
+
+      .popup-portal-dialog-wrapper.popup-portal-slide-exit,
+      .popup-portal-dialog-wrapper.popup-portal-fade-exit,
+      .popup-portal-dialog-wrapper.popup-portal-zoom-exit,
+      .popup-portal-dialog-wrapper.popup-portal-bounce-exit {
+        animation-name: popup-portal-mobile-slide-down-exit !important;
+        animation-timing-function: ease-in !important;
+      }
+    }
+
+    /* Mobile slide-up animation (from bottom) */
+    @keyframes popup-portal-mobile-slide-up-enter {
+      from {
+        opacity: 0;
+        transform: translateY(100%);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes popup-portal-mobile-slide-down-exit {
+      from {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      to {
+        opacity: 0;
+        transform: translateY(100%);
+      }
     }
 
     /* Fade animations */

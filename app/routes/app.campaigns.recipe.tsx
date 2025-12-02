@@ -15,7 +15,7 @@
 import React, { useState, useCallback, useMemo } from "react";
 import { data, type LoaderFunctionArgs } from "react-router";
 import { useLoaderData, useNavigate } from "react-router";
-import { Page, Modal, BlockStack, Text, Card, TextField, RangeSlider } from "@shopify/polaris";
+import { Page, Modal, BlockStack, Text, Card, TextField, RangeSlider, Select } from "@shopify/polaris";
 
 import { authenticate } from "~/shopify.server";
 import { RecipePicker } from "~/domains/campaigns/components/recipes";
@@ -111,10 +111,16 @@ export default function RecipeCampaignCreation() {
 
     // Build design config
     let imageUrl: string | undefined;
-    let backgroundImageMode: "none" | "preset" = "none";
+    let backgroundImageMode: "none" | "preset" | "file" = "none";
     let backgroundImagePresetKey: string | undefined;
 
-    if (selectedRecipe.backgroundPresetId) {
+    // First check for direct imageUrl on recipe (for split/hero layouts)
+    if (selectedRecipe.imageUrl) {
+      imageUrl = selectedRecipe.imageUrl;
+      backgroundImageMode = "file";
+    }
+    // Then check for background preset (for full background mode)
+    else if (selectedRecipe.backgroundPresetId) {
       const preset = getBackgroundById(selectedRecipe.backgroundPresetId);
       if (preset) {
         imageUrl = getBackgroundUrl(preset);
@@ -122,6 +128,12 @@ export default function RecipeCampaignCreation() {
         backgroundImagePresetKey = preset.id;
       }
     }
+
+    // Determine imagePosition based on layout
+    const imagePosition = selectedRecipe.defaults.designConfig?.imagePosition ||
+      (selectedRecipe.layout === "hero" ? "top" :
+       selectedRecipe.layout === "fullscreen" ? "full" :
+       selectedRecipe.layout === "split-right" ? "right" : "left");
 
     const designConfig = {
       theme,
@@ -136,7 +148,7 @@ export default function RecipeCampaignCreation() {
       backgroundImageMode,
       backgroundImagePresetKey,
       imageUrl,
-      imagePosition: "full" as const,
+      imagePosition,
       backgroundOverlayOpacity: 0.6,
       ...selectedRecipe.defaults.designConfig,
     };
@@ -168,11 +180,10 @@ export default function RecipeCampaignCreation() {
   const handleCreateCampaign = useCallback(() => {
     const initialData = buildInitialData();
 
-    // Store initial data in sessionStorage for the form to pick up
-    sessionStorage.setItem("recipeInitialData", JSON.stringify(initialData));
-
-    // Navigate to the campaign form
-    navigate("/app/campaigns/new?fromRecipe=true");
+    // Navigate to the campaign form with state (more reliable than sessionStorage)
+    navigate("/app/campaigns/new?fromRecipe=true", {
+      state: { recipeInitialData: initialData },
+    });
   }, [buildInitialData, navigate]);
 
   // Render input field based on type
@@ -217,6 +228,18 @@ export default function RecipeCampaignCreation() {
             value={String(value ?? defaultValue ?? "")}
             onChange={(val) => handleInputChange(input.key, val)}
             autoComplete="off"
+          />
+        );
+
+      case "select":
+        const options = "options" in input ? input.options : [];
+        return (
+          <Select
+            key={input.key}
+            label={input.label}
+            options={options}
+            value={String(value ?? defaultValue ?? "")}
+            onChange={(val) => handleInputChange(input.key, val)}
           />
         );
 

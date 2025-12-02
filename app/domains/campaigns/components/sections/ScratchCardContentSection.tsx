@@ -473,6 +473,7 @@ export function ScratchCardContentSection({
                             goal="INCREASE_REVENUE"
                             discountConfig={p.discountConfig as DiscountConfig | undefined}
                             onConfigChange={(config) => updatePrize(i, { discountConfig: config })}
+                            allowedStrategies={["basic", "free_gift"]}
                           />
                         </BlockStack>
                       </BlockStack>

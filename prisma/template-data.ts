@@ -146,9 +146,9 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
         frequency_capping: getServerFrequencyCapping("FLASH_SALE"),
       },
     },
-    // Summer sale theme with vibrant colors (matches theme-config.ts summer-sale)
+    // Summer theme with vibrant colors (from color-presets.ts)
     designConfig: {
-      theme: "summer-sale",
+      theme: "summer",
       position: "center",
       size: "medium",
       popupSize: "wide",
@@ -156,27 +156,27 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
       borderRadius: 8,
       animation: "fade",
 
-      // Summer sale theme colors (from theme-config.ts)
-      backgroundColor: "#FFFBEB",
-      textColor: "#1E3A5F",
-      descriptionColor: "#0F766E",
-      accentColor: "#38BDF8",
+      // Summer theme colors (from color-presets.ts)
+      backgroundColor: "linear-gradient(135deg, #FF6B6B 0%, #FFE66D 100%)",
+      textColor: "#FFFFFF",
+      descriptionColor: "#FFF9C4",
+      accentColor: "#4ECDC4",
 
-      // Button colors - summer sale orange
-      buttonColor: "#FF5733",
-      buttonTextColor: "#ffffff",
+      // Button colors - turquoise
+      buttonColor: "#FFFFFF",
+      buttonTextColor: "#FF6B6B",
 
-      // Input field colors - warm tints
-      inputBackgroundColor: "#FEF3C7",
-      inputTextColor: "#1E3A5F",
-      inputBorderColor: "#FBBF24",
+      // Input field colors
+      inputBackgroundColor: "rgba(255, 255, 255, 0.2)",
+      inputTextColor: "#FFFFFF",
+      inputBorderColor: "rgba(255, 255, 255, 0.3)",
 
-      // Image / surface colors with summer-sale preset background
-      imageBgColor: "#FEF9C3",
+      // Image / surface colors with summer preset background
+      imageBgColor: "rgba(255, 255, 255, 0.15)",
       imagePosition: "full",
       backgroundImageMode: "preset",
-      backgroundImagePresetKey: "summer-sale",
-      imageUrl: "/apps/revenue-boost/assets/newsletter-backgrounds/summer-sale.jpg",
+      backgroundImagePresetKey: "bg-summer",
+      imageUrl: "/apps/revenue-boost/assets/newsletter-backgrounds/summer.jpg",
       backgroundOverlayOpacity: 0.5,
 
       // State colors
