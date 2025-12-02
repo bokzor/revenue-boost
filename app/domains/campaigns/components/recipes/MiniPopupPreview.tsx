@@ -104,9 +104,16 @@ export function MiniPopupPreview({
     BANNER_TEMPLATES.includes(recipe.templateType) ||
     BANNER_LAYOUTS.includes(recipe.layout);
 
+  // Determine if this recipe should render as mobile (fullscreen or bottom-sheet mode)
+  // These modes are mobile-specific and need 9:16 aspect ratio viewport
+  const mobilePresentationMode = recipe.defaults.contentConfig?.mobilePresentationMode;
+  const isMobilePresentation = mobilePresentationMode === "fullscreen" || mobilePresentationMode === "bottom-sheet";
+
   // Virtual viewport sizes - the "native" size at which we render the popup
-  const virtualWidth = isBanner ? 600 : 380;
-  const virtualHeight = isBanner ? 80 : 450;
+  // Mobile presentation modes use 9:16 (375×667) to show the full mobile layout
+  // Desktop/modal uses 380×450 (more square)
+  const virtualWidth = isBanner ? 600 : (isMobilePresentation ? 375 : 380);
+  const virtualHeight = isBanner ? 80 : (isMobilePresentation ? 667 : 450);
 
   // Calculate scale to fit entire popup in container
   // Use min of width ratio and height ratio to ensure everything fits
@@ -190,8 +197,9 @@ export function MiniPopupPreview({
   }, [recipe]);
 
   // Calculate container dimensions
+  // Mobile presentation modes (fullscreen, bottom-sheet) need taller containers for 9:16 aspect
   const containerWidthProp = width || "100%";
-  const containerHeightProp = height || 180; // Taller default to fit popup
+  const containerHeightProp = height || (isMobilePresentation ? 280 : 180);
 
   // Styles to inject into Shadow DOM for banner previews
   const bannerShadowStyles = `
@@ -306,7 +314,10 @@ export function MiniPopupPreview({
               left: "50%",
               transform: `translate(-50%, -50%) scale(${effectiveScale})`,
               transformOrigin: "center center",
-            }}
+              // Enable container queries for popup components
+              containerType: "inline-size",
+              containerName: "popup-viewport",
+            } as React.CSSProperties}
           >
             <TemplatePreview
               templateType={recipe.templateType}

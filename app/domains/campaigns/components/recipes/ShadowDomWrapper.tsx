@@ -57,7 +57,10 @@ export function ShadowDomWrapper({
     if (!container) {
       container = document.createElement("div");
       container.className = "shadow-content";
-      container.style.display = "contents";
+      // Use 100% dimensions instead of display:contents to maintain
+      // positioning context for children that use position:absolute
+      container.style.width = "100%";
+      container.style.height = "100%";
       shadowRoot.appendChild(container);
     }
 
@@ -68,7 +71,7 @@ export function ShadowDomWrapper({
   // This prevents hydration mismatch and ensures content is visible
   if (!isClient) {
     return (
-      <div className={className} style={{ display: "contents", ...style }}>
+      <div className={className} style={{ width: "100%", height: "100%", ...style }}>
         {styles && <style>{styles}</style>}
         {children}
       </div>
@@ -80,7 +83,10 @@ export function ShadowDomWrapper({
       ref={hostRef}
       className={className}
       style={{
-        display: "contents",
+        // Use 100% width/height instead of display:contents to maintain
+        // positioning context for children that use position:absolute
+        width: "100%",
+        height: "100%",
         ...style,
       }}
     >

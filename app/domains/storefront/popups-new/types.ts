@@ -11,7 +11,34 @@ export type PopupPosition = "center" | "top" | "bottom" | "left" | "right";
 export type PopupSize = "small" | "medium" | "large";
 export type PopupAnimation = "fade" | "slide" | "bounce" | "none";
 export type DisplayMode = "popup" | "banner" | "slide-in" | "inline";
-export type ImagePosition = "left" | "right" | "top" | "bottom" | "full" | "none";
+
+// Layout types for Lead Capture family (Newsletter, Spin-to-Win, Scratch Card)
+export type DesktopLayout =
+  | "split-left"    // Visual left, form right (50/50)
+  | "split-right"   // Form left, visual right (50/50)
+  | "stacked"       // Visual top, form bottom
+  | "overlay"       // Full background, form overlays
+  | "content-only"; // No visual, just form
+
+export type MobileLayout =
+  | "stacked"       // Visual top, form bottom
+  | "overlay"       // Full background, form overlays
+  | "content-only"; // No visual, just form
+
+export interface LayoutConfig {
+  desktop: DesktopLayout;
+  mobile: MobileLayout;
+  /** Size of visual area on desktop (e.g., "50%", "45%") */
+  visualSizeDesktop?: string;
+  /** Size of visual area on mobile (e.g., "40%", "45%") */
+  visualSizeMobile?: string;
+  /** Negative margin to overlap content with visual (e.g., "-2rem") */
+  contentOverlap?: string;
+  /** Show gradient overlay on visual area */
+  visualGradient?: boolean;
+}
+
+
 
 /**
  * PopupDesignConfig - Pure design/visual properties
@@ -57,6 +84,10 @@ export interface PopupDesignConfig {
   animation?: PopupAnimation;
   displayMode?: DisplayMode;
 
+  // Lead Capture Layout (Newsletter, Spin-to-Win, Scratch Card)
+  // Note: Named 'leadCaptureLayout' to avoid conflict with ProductUpsell's 'layout' field
+  leadCaptureLayout?: LayoutConfig;
+
   // Additional style/customization
   boxShadow?: string;
   fontFamily?: string;
@@ -65,7 +96,6 @@ export interface PopupDesignConfig {
   customCSS?: string;
   globalCustomCSS?: string;
   imageUrl?: string;
-  imagePosition?: ImagePosition;
   buttonUrl?: string;
 
   // Typography (template-specific)

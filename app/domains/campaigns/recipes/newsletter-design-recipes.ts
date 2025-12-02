@@ -83,7 +83,12 @@ const elegantLuxe: StyledRecipe = {
       inputBorderColor: "#E8E6E3",
       accentColor: "#C9A962",
       fontFamily: "'Playfair Display', Georgia, serif",
-      imagePosition: "left",
+      // Layout configuration
+      leadCaptureLayout: {
+        desktop: "split-left",
+        mobile: "content-only",
+        visualSizeDesktop: "50%",
+      },
       // Elegant rounded corners
       borderRadius: 16,
       buttonBorderRadius: 8,
@@ -152,7 +157,12 @@ const streetStyle: StyledRecipe = {
       inputBorderColor: "#333333",
       accentColor: "#FF3366",
       fontFamily: "'Space Grotesk', 'Arial Black', sans-serif",
-      imagePosition: "right",
+      // Layout configuration
+      leadCaptureLayout: {
+        desktop: "split-right",
+        mobile: "content-only",
+        visualSizeDesktop: "50%",
+      },
       // Sharp, bold aesthetic
       borderRadius: 0,
       buttonBorderRadius: 0,
@@ -216,7 +226,11 @@ const minimalTech: StyledRecipe = {
       inputBorderColor: "#E5E7EB",
       accentColor: "#6366F1",
       fontFamily: "'Inter', system-ui, sans-serif",
-      imagePosition: "none",
+      // Layout configuration - content only (no image)
+      leadCaptureLayout: {
+        desktop: "content-only",
+        mobile: "content-only",
+      },
       // Pill-shaped, centered
       borderRadius: 12,
       buttonBorderRadius: 999, // Pill shape
@@ -279,7 +293,11 @@ const darkMode: StyledRecipe = {
       inputBorderColor: "rgba(255,255,255,0.2)",
       accentColor: "#8B5CF6",
       fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
-      imagePosition: "none",
+      // Layout configuration - content only (no image)
+      leadCaptureLayout: {
+        desktop: "content-only",
+        mobile: "content-only",
+      },
       // Glassmorphism effect
       borderRadius: 16,
       buttonBorderRadius: 8,
@@ -342,7 +360,12 @@ const freshOrganic: StyledRecipe = {
       inputBorderColor: "#E2E5D8",
       accentColor: "#7C9A3E",
       fontFamily: "'DM Sans', 'Helvetica Neue', sans-serif",
-      imagePosition: "left",
+      // Layout configuration
+      leadCaptureLayout: {
+        desktop: "split-left",
+        mobile: "content-only",
+        visualSizeDesktop: "50%",
+      },
       // Natural, organic feel
       borderRadius: 12,
       buttonBorderRadius: 24, // Rounded button
@@ -408,7 +431,15 @@ const cafeWarm: StyledRecipe = {
       inputBorderColor: "#E8DDD4",
       accentColor: "#C4956A",
       fontFamily: "'Libre Baskerville', Georgia, serif",
-      imagePosition: "top",
+      // Layout configuration - stacked (hero image on top)
+      leadCaptureLayout: {
+        desktop: "stacked",
+        mobile: "stacked",
+        visualSizeDesktop: "40%",
+        visualSizeMobile: "30%",
+        contentOverlap: "-2rem",
+        visualGradient: true,
+      },
       // Warm, inviting rounded corners
       borderRadius: 16,
       buttonBorderRadius: 8,
@@ -472,7 +503,12 @@ const softGlow: StyledRecipe = {
       inputBorderColor: "#F0E4E6",
       accentColor: "#E8B4BC",
       fontFamily: "'Cormorant Garamond', Georgia, serif",
-      imagePosition: "right",
+      // Layout configuration
+      leadCaptureLayout: {
+        desktop: "split-right",
+        mobile: "content-only",
+        visualSizeDesktop: "50%",
+      },
       // Soft, rounded aesthetic
       borderRadius: 20,
       buttonBorderRadius: 999, // Pill shape
@@ -544,8 +580,14 @@ const spaSerenity: StyledRecipe = {
       inputBorderColor: "#D4DED6",
       accentColor: "#8BA888",
       fontFamily: "'Lora', Georgia, serif",
-      imagePosition: "full",
-      overlayOpacity: 0.3,
+      // Layout configuration - overlay (full background image)
+      leadCaptureLayout: {
+        desktop: "overlay",
+        mobile: "overlay",
+        visualSizeDesktop: "100%",
+        visualSizeMobile: "100%",
+      },
+      backgroundOverlayOpacity: 0.3,
       // Zen, calm aesthetic
       borderRadius: 16,
       buttonBorderRadius: 999, // Pill button
@@ -614,7 +656,12 @@ const scandinavian: StyledRecipe = {
       inputBorderColor: "#E5E5E5",
       accentColor: "#D4A574",
       fontFamily: "'Nunito Sans', 'Helvetica Neue', sans-serif",
-      imagePosition: "left",
+      // Layout configuration
+      leadCaptureLayout: {
+        desktop: "split-left",
+        mobile: "content-only",
+        visualSizeDesktop: "50%",
+      },
       // Clean Scandinavian aesthetic - underline inputs
       borderRadius: 0,
       buttonBorderRadius: 0,
@@ -683,7 +730,15 @@ const cozyComfort: StyledRecipe = {
       inputBorderColor: "#E8E2DB",
       accentColor: "#C4B5A3",
       fontFamily: "'Source Serif Pro', Georgia, serif",
-      imagePosition: "top",
+      // Layout configuration - stacked (hero image on top)
+      leadCaptureLayout: {
+        desktop: "stacked",
+        mobile: "stacked",
+        visualSizeDesktop: "40%",
+        visualSizeMobile: "30%",
+        contentOverlap: "-2rem",
+        visualGradient: true,
+      },
       // Soft, cozy aesthetic
       borderRadius: 20,
       buttonBorderRadius: 10,
@@ -753,7 +808,15 @@ const boldEnergy: StyledRecipe = {
       inputBorderColor: "#333333",
       accentColor: "#FF6B35",
       fontFamily: "'Oswald', 'Impact', sans-serif",
-      imagePosition: "right",
+      // Layout configuration
+      leadCaptureLayout: {
+        desktop: "split-right",
+        mobile: "stacked",
+        visualSizeDesktop: "50%",
+        visualSizeMobile: "45%",
+        contentOverlap: "-2rem",
+        visualGradient: true,
+      },
       // Bold, athletic aesthetic
       borderRadius: 8,
       buttonBorderRadius: 4,
@@ -825,7 +888,12 @@ const activeLife: StyledRecipe = {
       inputBorderColor: "#D1E7E7",
       accentColor: "#2DD4BF",
       fontFamily: "'Montserrat', 'Helvetica Neue', sans-serif",
-      imagePosition: "left",
+      // Layout configuration
+      leadCaptureLayout: {
+        desktop: "split-left",
+        mobile: "content-only",
+        visualSizeDesktop: "50%",
+      },
       // Fresh, outdoor aesthetic
       borderRadius: 12,
       buttonBorderRadius: 8,

@@ -385,30 +385,27 @@ export function RecipeCard({
               <ShadowDomWrapper>
                 {/*
                   Two-layer scaling approach for container queries:
-                  - Outer div: clips overflow and applies visual scale
-                  - Inner div: renders at full tablet size (768px) so container queries work
+                  - Outer div: sized to fit the scaled popup
+                  - Inner div: renders at tablet size (520px+) so container queries trigger tablet layout
                 */}
                 <div
                   style={{
-                    width: 400,
-                    height: 320,
+                    width: 380,
+                    height: 450,
                     overflow: "hidden",
                     position: "relative",
                     pointerEvents: "none",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
                   }}
                 >
                   <div
                     style={{
-                      width: 768,
-                      minHeight: 600,
+                      width: 540,
                       position: "absolute",
-                      top: "50%",
-                      left: "50%",
-                      transform: "translate(-50%, -50%) scale(0.52)",
+                      transform: "scale(0.7)",
                       transformOrigin: "center center",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
                     }}
                   >
                     <TemplatePreview

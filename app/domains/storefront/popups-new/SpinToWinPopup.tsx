@@ -673,9 +673,8 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
     letterSpacing: "normal",
   };
 
-  // Full background mode detection
-  const imagePosition = config.imagePosition || "none";
-  const isFullBackground = imagePosition === "full" && !!config.imageUrl;
+  // Full background mode detection (derive from leadCaptureLayout)
+  const isFullBackground = config.leadCaptureLayout?.desktop === "overlay" && !!config.imageUrl;
   const bgOverlayOpacity = config.backgroundOverlayOpacity ?? 0.6;
 
   if (!isVisible) return null;

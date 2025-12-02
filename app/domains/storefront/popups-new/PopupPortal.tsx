@@ -22,6 +22,16 @@ import { PoweredByBadge } from "./components/primitives/PoweredByBadge";
 
 export type AnimationType = "fade" | "slide" | "zoom" | "bounce" | "none";
 
+/**
+ * Mobile Presentation Mode
+ * Determines how the popup is displayed on mobile devices (<520px)
+ *
+ * - "modal": Centered modal (same as desktop, scaled down)
+ * - "bottom-sheet": Slides up from bottom with rounded top corners, swipe-to-dismiss
+ * - "fullscreen": Full viewport height (100dvh), hero image layout
+ */
+export type MobilePresentationMode = "modal" | "bottom-sheet" | "fullscreen";
+
 export interface BackdropConfig {
   color?: string; // Base color (hex, rgb, rgba)
   opacity?: number; // Applied opacity (0-1)
@@ -53,6 +63,14 @@ export interface PopupPortalProps {
   // Layout
   position?: PopupPosition;
   size?: PopupSize;
+
+  /**
+   * Mobile presentation mode (only applies on viewports < 520px)
+   * - "modal": Centered modal (same as desktop)
+   * - "bottom-sheet": Slides from bottom, swipe-to-dismiss (default)
+   * - "fullscreen": Full viewport height, hero layout
+   */
+  mobilePresentationMode?: MobilePresentationMode;
 
   // Behavior
   closeOnEscape?: boolean;
@@ -104,6 +122,7 @@ export const PopupPortal: React.FC<PopupPortalProps> = ({
   animation = { type: "fade" },
   position = "center",
   size,
+  mobilePresentationMode = "bottom-sheet", // Default for backwards compatibility
   closeOnEscape = true,
   closeOnBackdropClick = true,
   previewMode = false,
@@ -135,6 +154,7 @@ export const PopupPortal: React.FC<PopupPortalProps> = ({
     return {
       width,
       maxWidth,
+      // Note: maxHeight is set via CSS (not inline) so mobile can override it
       margin: "0 auto",
       display: "flex",
       justifyContent: "center",
@@ -409,6 +429,8 @@ export const PopupPortal: React.FC<PopupPortalProps> = ({
   const overlayStyles: React.CSSProperties = {
     position: "absolute",
     inset: 0,
+    width: "100%",
+    height: "100%",
     zIndex: 1,
     pointerEvents: "auto", // Enable pointer events in shadow DOM
   };
@@ -455,7 +477,7 @@ export const PopupPortal: React.FC<PopupPortalProps> = ({
         * {
           box-sizing: border-box;
         }
-        ${getAnimationKeyframes(previewMode, position)}
+        ${getAnimationKeyframes(position, mobilePresentationMode)}
       `,
         }}
       />
@@ -528,7 +550,10 @@ export const PopupPortal: React.FC<PopupPortalProps> = ({
 /**
  * Generate CSS keyframes for animations
  */
-function getAnimationKeyframes(previewMode: boolean, position: PopupPosition): string {
+function getAnimationKeyframes(
+  position: PopupPosition,
+  mobilePresentationMode: MobilePresentationMode
+): string {
   // Map position to flexbox alignment
   const alignMap = {
     center: "center",
@@ -546,13 +571,110 @@ function getAnimationKeyframes(previewMode: boolean, position: PopupPosition): s
     right: "flex-end",
   };
 
+  // Generate mobile-specific styles based on presentation mode
+  const getMobileStyles = () => {
+    switch (mobilePresentationMode) {
+      case "modal":
+        // Modal: Same as desktop, just scaled down. No special mobile treatment.
+        return `
+      .popup-portal-dialog-wrapper {
+        padding: 0.5rem;
+      }
+      .popup-drag-handle {
+        display: none;
+      }
+    `;
+
+      case "fullscreen":
+        // Fullscreen: Takes full container height, content fills space
+        // Use 100% instead of 100dvh so it works in both preview and production
+        // (PopupPortal root already fills viewport in production)
+        return `
+      .popup-portal-dialog-wrapper {
+        align-items: stretch !important;
+        justify-content: stretch !important;
+        padding: 0 !important;
+        height: 100%;
+      }
+      .popup-drag-handle {
+        display: block;
+      }
+      .popup-portal-frame,
+      .popup-grid-container {
+        width: 100%;
+        max-width: 100% !important;
+        max-height: 100% !important; /* Override desktop constraint for fullscreen */
+        height: 100%;
+        border-radius: 0 !important;
+        overflow-y: auto;
+      }
+      /* Slide-up animation for fullscreen */
+      .popup-portal-dialog-wrapper.popup-portal-slide-enter,
+      .popup-portal-dialog-wrapper.popup-portal-fade-enter,
+      .popup-portal-dialog-wrapper.popup-portal-zoom-enter,
+      .popup-portal-dialog-wrapper.popup-portal-bounce-enter {
+        animation-name: popup-portal-mobile-slide-up-enter !important;
+        animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1) !important;
+      }
+      .popup-portal-dialog-wrapper.popup-portal-slide-exit,
+      .popup-portal-dialog-wrapper.popup-portal-fade-exit,
+      .popup-portal-dialog-wrapper.popup-portal-zoom-exit,
+      .popup-portal-dialog-wrapper.popup-portal-bounce-exit {
+        animation-name: popup-portal-mobile-slide-down-exit !important;
+        animation-timing-function: ease-in !important;
+      }
+    `;
+
+      case "bottom-sheet":
+      default:
+        // Bottom sheet: Slides from bottom, rounded top corners, swipe-to-dismiss
+        return `
+      .popup-portal-dialog-wrapper {
+        align-items: flex-end !important;
+        justify-content: center !important;
+        padding: 0 !important;
+        padding-bottom: env(safe-area-inset-bottom, 0) !important;
+      }
+      .popup-drag-handle {
+        display: block;
+      }
+      .popup-portal-frame,
+      .popup-grid-container {
+        width: 100%;
+        max-width: 100% !important;
+        border-radius: 1.5rem 1.5rem 0 0 !important;
+        max-height: 90vh !important;
+        max-height: 90dvh !important; /* Override desktop constraint for bottom-sheet */
+        overflow-y: auto;
+      }
+      /* Slide-up animation for bottom-sheet */
+      .popup-portal-dialog-wrapper.popup-portal-slide-enter,
+      .popup-portal-dialog-wrapper.popup-portal-fade-enter,
+      .popup-portal-dialog-wrapper.popup-portal-zoom-enter,
+      .popup-portal-dialog-wrapper.popup-portal-bounce-enter {
+        animation-name: popup-portal-mobile-slide-up-enter !important;
+        animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1) !important;
+      }
+      .popup-portal-dialog-wrapper.popup-portal-slide-exit,
+      .popup-portal-dialog-wrapper.popup-portal-fade-exit,
+      .popup-portal-dialog-wrapper.popup-portal-zoom-exit,
+      .popup-portal-dialog-wrapper.popup-portal-bounce-exit {
+        animation-name: popup-portal-mobile-slide-down-exit !important;
+        animation-timing-function: ease-in !important;
+      }
+    `;
+    }
+  };
+
+  const mobileStyles = getMobileStyles();
+
   return `
     /* Base positioning for dialog wrapper - DESKTOP default */
     .popup-portal-dialog-wrapper {
       position: absolute;
       inset: 0;
       z-index: 1;
-      padding: 1rem;
+      padding: 1.5rem;
       display: flex;
       align-items: ${alignMap[position]};
       justify-content: ${justifyMap[position]};
@@ -562,8 +684,26 @@ function getAnimationKeyframes(previewMode: boolean, position: PopupPosition): s
     }
 
     /* ========================================
+       POPUP FRAME (contains the actual popup)
+       Properly constrains size and enables
+       scrolling when content overflows
+       ======================================== */
+    .popup-portal-frame {
+      position: relative;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+      /* Desktop: constrain height to leave breathing room */
+      max-height: calc(100vh - 3rem);
+      max-height: calc(100dvh - 3rem); /* Dynamic viewport height for mobile browsers */
+      /* Enable container query for child components */
+      container-type: inline-size;
+      container-name: popup-viewport;
+    }
+
+    /* ========================================
        DRAG HANDLE (for swipe-to-dismiss)
-       Hidden on desktop, visible on mobile
+       Hidden on desktop, visible based on mobile mode
        ======================================== */
     .popup-drag-handle {
       display: none;
@@ -594,90 +734,20 @@ function getAnimationKeyframes(previewMode: boolean, position: PopupPosition): s
 
     /* ========================================
        MOBILE STYLES (container < 520px)
+       Mode-specific styles based on mobilePresentationMode
        Uses container query for preview compatibility
        AND media query fallback for storefront
        ======================================== */
     @container popup-viewport (max-width: 519px) {
-      .popup-portal-dialog-wrapper {
-        align-items: flex-end !important;
-        justify-content: center !important;
-        padding: 0 !important;
-        padding-bottom: env(safe-area-inset-bottom, 0) !important;
-      }
-
-      .popup-drag-handle {
-        display: block;
-      }
-
-      .popup-portal-frame,
-      .popup-grid-container {
-        width: 100%;
-        max-width: 100%;
-        border-radius: 1.5rem 1.5rem 0 0 !important;
-        max-height: 90vh;
-        max-height: 90dvh;
-        overflow-y: auto;
-      }
-
-      /* Slide-up animation on mobile */
-      .popup-portal-dialog-wrapper.popup-portal-slide-enter,
-      .popup-portal-dialog-wrapper.popup-portal-fade-enter,
-      .popup-portal-dialog-wrapper.popup-portal-zoom-enter,
-      .popup-portal-dialog-wrapper.popup-portal-bounce-enter {
-        animation-name: popup-portal-mobile-slide-up-enter !important;
-        animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1) !important;
-      }
-
-      .popup-portal-dialog-wrapper.popup-portal-slide-exit,
-      .popup-portal-dialog-wrapper.popup-portal-fade-exit,
-      .popup-portal-dialog-wrapper.popup-portal-zoom-exit,
-      .popup-portal-dialog-wrapper.popup-portal-bounce-exit {
-        animation-name: popup-portal-mobile-slide-down-exit !important;
-        animation-timing-function: ease-in !important;
-      }
+      ${mobileStyles}
     }
 
     /* Fallback for storefront (where container queries may not apply) */
     @media (max-width: 519px) {
-      .popup-portal-dialog-wrapper {
-        align-items: flex-end !important;
-        justify-content: center !important;
-        padding: 0 !important;
-        padding-bottom: env(safe-area-inset-bottom, 0) !important;
-      }
-
-      .popup-drag-handle {
-        display: block;
-      }
-
-      .popup-portal-frame,
-      .popup-grid-container {
-        width: 100%;
-        max-width: 100%;
-        border-radius: 1.5rem 1.5rem 0 0 !important;
-        max-height: 90vh;
-        max-height: 90dvh;
-        overflow-y: auto;
-      }
-
-      .popup-portal-dialog-wrapper.popup-portal-slide-enter,
-      .popup-portal-dialog-wrapper.popup-portal-fade-enter,
-      .popup-portal-dialog-wrapper.popup-portal-zoom-enter,
-      .popup-portal-dialog-wrapper.popup-portal-bounce-enter {
-        animation-name: popup-portal-mobile-slide-up-enter !important;
-        animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1) !important;
-      }
-
-      .popup-portal-dialog-wrapper.popup-portal-slide-exit,
-      .popup-portal-dialog-wrapper.popup-portal-fade-exit,
-      .popup-portal-dialog-wrapper.popup-portal-zoom-exit,
-      .popup-portal-dialog-wrapper.popup-portal-bounce-exit {
-        animation-name: popup-portal-mobile-slide-down-exit !important;
-        animation-timing-function: ease-in !important;
-      }
+      ${mobileStyles}
     }
 
-    /* Mobile slide-up animation (from bottom) */
+    /* Mobile slide-up animation (from bottom) - used by bottom-sheet and fullscreen */
     @keyframes popup-portal-mobile-slide-up-enter {
       from {
         opacity: 0;

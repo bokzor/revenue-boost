@@ -205,11 +205,11 @@ export interface LeadCaptureFormProps {
 
 /**
  * LeadCaptureForm Component
- * 
+ *
  * Reusable form component for capturing leads (email, name, GDPR consent).
  * Composes existing FormFields components with consistent styling and validation.
  * Integrates seamlessly with the usePopupForm hook.
- * 
+ *
  * @example
  * ```tsx
  * const {
@@ -221,7 +221,7 @@ export interface LeadCaptureFormProps {
  *   handleSubmit,
  *   isSubmitting,
  * } = usePopupForm({ config });
- * 
+ *
  * <LeadCaptureForm
  *   data={formState}
  *   errors={errors}
@@ -337,7 +337,7 @@ export const LeadCaptureForm: React.FC<LeadCaptureFormProps> = ({
               value={data.name || ""}
               onChange={onNameChange}
               placeholder={placeholders?.name || "Enter your name"}
-              label={labels?.name || "Name"}
+              label={labels?.name}
               error={errors.name}
               required={nameRequired}
               disabled={isSubmitting}
@@ -382,4 +382,3 @@ export const LeadCaptureForm: React.FC<LeadCaptureFormProps> = ({
     </form>
   );
 };
-

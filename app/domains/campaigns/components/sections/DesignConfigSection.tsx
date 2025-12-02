@@ -63,41 +63,79 @@ export interface DesignConfigSectionProps {
   onCustomPresetApply?: (presetId: string, brandColor: string) => void;
 }
 
+// Mobile layout options for the dropdown
+const MOBILE_LAYOUT_OPTIONS = [
+  { label: "Form only (recommended)", value: "content-only" },
+  { label: "Stacked (image + form)", value: "stacked" },
+  { label: "Overlay (image behind)", value: "overlay" },
+];
+
 /**
- * Maps the legacy imagePosition values to new LayoutOption values
+ * Maps LayoutOption to leadCaptureLayout config (preserving existing fine-tuning)
  */
-function mapImagePositionToLayout(imagePosition?: DesignConfig["imagePosition"]): LayoutOption {
-  switch (imagePosition) {
-    case "left":
-      return "split-left";
-    case "right":
-      return "split-right";
-    case "top":
-      return "hero";
+function mapLayoutOptionToConfig(
+  layout: LayoutOption,
+  existing?: DesignConfig["leadCaptureLayout"]
+): DesignConfig["leadCaptureLayout"] {
+  // Preserve existing mobile/visualSize settings when changing desktop layout
+  const preservedMobile = existing?.mobile || "content-only";
+  const preservedVisualSize = existing?.visualSizeDesktop || "50%";
+
+  switch (layout) {
+    case "split-left":
+      return { desktop: "split-left", mobile: preservedMobile, visualSizeDesktop: preservedVisualSize };
+    case "split-right":
+      return { desktop: "split-right", mobile: preservedMobile, visualSizeDesktop: preservedVisualSize };
+    case "hero":
+      return { desktop: "stacked", mobile: "stacked", visualSizeDesktop: "40%", visualGradient: true };
     case "full":
-      return "full";
-    case "none":
-    case "bottom":
-    default:
-      return "minimal";
+      return { desktop: "overlay", mobile: "overlay", visualSizeDesktop: "100%" };
+    case "minimal":
+      return { desktop: "content-only", mobile: "content-only" };
   }
 }
 
 /**
- * Maps LayoutOption to imagePosition for storage
+ * Maps leadCaptureLayout config to LayoutOption for UI display
  */
-function mapLayoutToImagePosition(layout: LayoutOption): DesignConfig["imagePosition"] {
-  switch (layout) {
+function mapConfigToLayoutOption(config?: DesignConfig["leadCaptureLayout"]): LayoutOption {
+  if (!config) return "split-left"; // Default
+
+  switch (config.desktop) {
     case "split-left":
-      return "left";
+      return "split-left";
     case "split-right":
-      return "right";
-    case "hero":
-      return "top";
-    case "full":
+      return "split-right";
+    case "stacked":
+      return "hero";
+    case "overlay":
       return "full";
-    case "minimal":
-      return "none";
+    case "content-only":
+      return "minimal";
+    default:
+      return "split-left";
+  }
+}
+
+/**
+ * Maps legacy imagePosition to leadCaptureLayout (for theme presets that still use it)
+ */
+function mapLegacyImagePositionToLayout(
+  imagePosition: "left" | "right" | "top" | "bottom" | "full" | "none"
+): DesignConfig["leadCaptureLayout"] {
+  switch (imagePosition) {
+    case "left":
+      return { desktop: "split-left", mobile: "content-only", visualSizeDesktop: "50%" };
+    case "right":
+      return { desktop: "split-right", mobile: "content-only", visualSizeDesktop: "50%" };
+    case "top":
+    case "bottom":
+      return { desktop: "stacked", mobile: "stacked", visualSizeDesktop: "40%" };
+    case "full":
+      return { desktop: "overlay", mobile: "overlay", visualSizeDesktop: "100%" };
+    case "none":
+    default:
+      return { desktop: "content-only", mobile: "content-only" };
   }
 }
 
@@ -142,7 +180,9 @@ export function DesignConfigSection({
   const imageMode = (design.backgroundImageMode ?? "none") as DesignConfig["backgroundImageMode"];
   const selectedPresetKey = design.backgroundImagePresetKey as NewsletterThemeKey | undefined;
   const previewImageUrl = design.imageUrl;
-  const isFullBackground = design.imagePosition === "full";
+  const currentLayout = design.leadCaptureLayout;
+  const isFullBackground = currentLayout?.desktop === "overlay";
+  const isMinimalLayout = currentLayout?.desktop === "content-only";
 
   // Handle theme selection - applies all theme colors and template-specific overrides
   const handleThemeChange = (themeKey: NewsletterThemeKey) => {
@@ -189,7 +229,8 @@ export function DesignConfigSection({
       backgroundImagePresetKey: resolved.backgroundImagePresetKey,
       backgroundImageFileId: undefined,
       imageUrl: resolved.backgroundImageUrl,
-      imagePosition: resolved.behavior.defaultImagePosition,
+      // Map legacy defaultImagePosition to leadCaptureLayout
+      leadCaptureLayout: mapLegacyImagePositionToLayout(resolved.behavior.defaultImagePosition),
       backgroundOverlayOpacity: resolved.behavior.defaultOverlayOpacity,
     });
 
@@ -284,18 +325,57 @@ export function DesignConfigSection({
 
         <Divider />
 
-        {/* Layout Selector - Visual layout picker */}
+        {/* Layout Selector - Visual layout picker with fine-tuning */}
         {caps?.usesImage !== false && (
           <>
             <LayoutSelector
               title="Layout"
               helpText="Choose how the image and form are arranged"
-              selected={mapImagePositionToLayout(design.imagePosition)}
+              selected={mapConfigToLayoutOption(currentLayout)}
               onSelect={(layout) => {
-                const imagePosition = mapLayoutToImagePosition(layout);
-                updateField("imagePosition", imagePosition);
+                const newLayout = mapLayoutOptionToConfig(layout, currentLayout);
+                updateField("leadCaptureLayout", newLayout);
               }}
             />
+
+            {/* Fine-tuning controls - only show for layouts with visual area */}
+            {currentLayout && currentLayout.desktop !== "content-only" && (
+              <BlockStack gap="300">
+                {/* Visual Size Slider - only for split layouts */}
+                {(currentLayout.desktop === "split-left" || currentLayout.desktop === "split-right") && (
+                  <RangeSlider
+                    label="Image width"
+                    value={parseInt(currentLayout.visualSizeDesktop || "50")}
+                    min={30}
+                    max={60}
+                    step={5}
+                    suffix={<Text as="span" variant="bodySm">{currentLayout.visualSizeDesktop || "50%"}</Text>}
+                    onChange={(value) => {
+                      updateField("leadCaptureLayout", {
+                        ...currentLayout,
+                        visualSizeDesktop: `${value}%`,
+                      });
+                    }}
+                  />
+                )}
+
+                {/* Mobile Layout Selector */}
+                {currentLayout.desktop !== "overlay" && (
+                  <Select
+                    label="Mobile layout"
+                    value={currentLayout.mobile || "content-only"}
+                    options={MOBILE_LAYOUT_OPTIONS}
+                    onChange={(value) => {
+                      updateField("leadCaptureLayout", {
+                        ...currentLayout,
+                        mobile: value as "stacked" | "overlay" | "content-only",
+                      });
+                    }}
+                    helpText="How the popup appears on mobile devices"
+                  />
+                )}
+              </BlockStack>
+            )}
             <Divider />
           </>
         )}
@@ -341,7 +421,7 @@ export function DesignConfigSection({
         <Divider />
 
         {/* Image Configuration - Only show if template supports images and layout is not minimal */}
-        {caps?.usesImage !== false && design.imagePosition !== "none" && (
+        {caps?.usesImage !== false && !isMinimalLayout && (
           <CollapsibleSection
             id="background-image-section"
             title="Background Image"

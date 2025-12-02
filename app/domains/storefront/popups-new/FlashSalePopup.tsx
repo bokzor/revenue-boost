@@ -1179,12 +1179,12 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
       `}</style>
 
       <div
-        className={`flash-sale-container${config.imageUrl && config.imagePosition === "full" ? " has-bg-image" : ""}`}
+        className={`flash-sale-container${config.imageUrl && config.leadCaptureLayout?.desktop === "overlay" ? " has-bg-image" : ""}`}
         data-splitpop="true"
         data-template="flash-sale"
       >
         {/* Background image with overlay */}
-        {config.imageUrl && config.imagePosition === "full" && (
+        {config.imageUrl && config.leadCaptureLayout?.desktop === "overlay" && (
           <>
             <div className="flash-sale-bg-image">
               <img src={config.imageUrl} alt="" aria-hidden="true" />

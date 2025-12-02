@@ -10,6 +10,7 @@
  */
 
 import type { CampaignGoal, TemplateType } from "../types/campaign";
+import type { LayoutConfig } from "~/domains/storefront/popups-new/types";
 
 // =============================================================================
 // RECIPE CATEGORIES

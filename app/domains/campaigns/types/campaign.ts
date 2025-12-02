@@ -288,6 +288,23 @@ export type BaseContentConfig = z.infer<typeof BaseContentConfigSchema>;
 // ============================================================================
 
 /**
+ * Mobile Presentation Mode Schema
+ * Determines how the popup is displayed on mobile devices (<520px)
+ *
+ * - "modal": Centered modal (same as desktop, scaled down)
+ * - "bottom-sheet": Slides up from bottom with rounded top corners, swipe-to-dismiss (default)
+ * - "fullscreen": Full viewport height (100dvh), hero image layout
+ *
+ * This is an internal option - not exposed in the campaign builder UI.
+ * Set via recipes or advanced configuration only.
+ */
+export const MobilePresentationModeSchema = z
+  .enum(["modal", "bottom-sheet", "fullscreen"])
+  .default("bottom-sheet");
+
+export type MobilePresentationMode = z.infer<typeof MobilePresentationModeSchema>;
+
+/**
  * Newsletter-specific content fields
  *
  * Extends BaseContentConfigSchema with:
@@ -298,6 +315,9 @@ export type BaseContentConfig = z.infer<typeof BaseContentConfigSchema>;
 export const NewsletterContentSchema = BaseContentConfigSchema.merge(LeadCaptureConfigSchema).extend({
   // Newsletter-specific
   submitButtonText: z.string(),
+
+  // Mobile presentation mode (internal, set via recipes)
+  mobilePresentationMode: MobilePresentationModeSchema.optional(),
 });
 
 /**
@@ -830,11 +850,22 @@ export const DesignConfigSchema = z.object({
 
   // Image settings
   imageUrl: z.string().optional(),
-  imagePosition: z.enum(["left", "right", "top", "bottom", "full", "none"]).default("left"),
   backgroundImageMode: z.enum(["none", "preset", "file"]).default("none"),
   backgroundImagePresetKey: z.string().optional(),
   backgroundImageFileId: z.string().optional(),
   backgroundOverlayOpacity: z.number().min(0).max(1).default(0.6).optional(), // Overlay opacity for full background images
+
+  // Lead Capture Layout (Newsletter, Spin-to-Win, Scratch Card)
+  leadCaptureLayout: z
+    .object({
+      desktop: z.enum(["split-left", "split-right", "stacked", "overlay", "content-only"]),
+      mobile: z.enum(["stacked", "overlay", "content-only"]),
+      visualSizeDesktop: z.string().optional(),
+      visualSizeMobile: z.string().optional(),
+      contentOverlap: z.string().optional(),
+      visualGradient: z.boolean().optional(),
+    })
+    .optional(),
 
   // Main colors
   backgroundColor: z.string().optional(), // Supports gradients and rgba

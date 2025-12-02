@@ -8,22 +8,50 @@ import type { PopupSize, PopupPosition, PopupAnimation } from "./types";
 
 /**
  * Get size dimensions based on size prop
- * In preview mode, use smaller percentages to show relative size on screen
+ *
+ * Best practices for modal sizing:
+ * - max-width: Controls horizontal size, prevents ultra-wide modals
+ * - max-height: Controls vertical size, prevents full-height modals on desktop
+ *   - Use viewport units (vh) for desktop to leave breathing room
+ *   - Mobile uses 100vh (fullscreen) or 90vh (bottom sheet)
+ * - Aspect ratio is implicitly controlled by content + these constraints
+ *
+ * Size guidelines:
+ * - small: Compact, text-focused popups (alerts, confirmations)
+ * - medium: Balanced for forms with optional small image
+ * - large: Content-heavy with split image layouts (newsletter, games)
  */
 export function getSizeDimensions(
   size: PopupSize,
   _previewMode?: boolean
-): { width: string; maxWidth: string } {
-  // Production mode - use full responsive widths
+): { width: string; maxWidth: string; maxHeight: string } {
+  // Production mode - use full responsive widths with height constraints
+  // Max height uses calc(100vh - padding) to ensure popup fits in viewport
   switch (size) {
     case "small":
-      return { width: "100%", maxWidth: "400px" };
+      return {
+        width: "100%",
+        maxWidth: "420px",
+        maxHeight: "calc(100vh - 3rem)", // Small: fits most viewports
+      };
     case "medium":
-      return { width: "100%", maxWidth: "700px" };
+      return {
+        width: "100%",
+        maxWidth: "520px",
+        maxHeight: "calc(100vh - 3rem)", // Medium: balanced
+      };
     case "large":
-      return { width: "100%", maxWidth: "900px" };
+      return {
+        width: "100%",
+        maxWidth: "680px",
+        maxHeight: "calc(100vh - 3rem)", // Large: for split layouts
+      };
     default:
-      return { width: "100%", maxWidth: "700px" };
+      return {
+        width: "100%",
+        maxWidth: "520px",
+        maxHeight: "calc(100vh - 3rem)",
+      };
   }
 }
 

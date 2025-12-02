@@ -153,7 +153,7 @@ export const CountdownTimerPopup: React.FC<CountdownTimerPopupProps> = ({
   const isPreview = (config as any).previewMode;
 
   // Check if using full background image (modal mode only)
-  const hasFullBgImage = config.imageUrl && config.imagePosition === "full";
+  const hasFullBgImage = config.imageUrl && config.leadCaptureLayout?.desktop === "overlay";
 
   // Popup/Modal display mode (centered overlay)
   if (displayMode === "popup") {

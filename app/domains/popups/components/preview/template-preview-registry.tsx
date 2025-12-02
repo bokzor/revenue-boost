@@ -226,11 +226,12 @@ function buildCommonConfig(
     inputBoxShadow: mergedConfig.inputBoxShadow || designConfig.inputBoxShadow,
 
     // Background image (for templates that support full background mode)
-    // imageUrl and imagePosition are set by DesignConfigSection when themes or files are selected
     imageUrl: mergedConfig.imageUrl || designConfig.imageUrl,
-    imagePosition: mergedConfig.imagePosition || designConfig.imagePosition,
     backgroundImageMode: mergedConfig.backgroundImageMode || designConfig.backgroundImageMode || "none",
     backgroundOverlayOpacity: mergedConfig.backgroundOverlayOpacity ?? designConfig.backgroundOverlayOpacity ?? 0.6,
+
+    // Lead Capture Layout (Newsletter, Spin-to-Win, Scratch Card)
+    leadCaptureLayout: mergedConfig.leadCaptureLayout || designConfig.leadCaptureLayout,
 
     // Preview mode
     previewMode: true,
@@ -283,8 +284,6 @@ export const TEMPLATE_PREVIEW_REGISTRY: Record<string, TemplatePreviewEntry<any>
 
         // All common config (colors, typography, layout, image settings)
         ...buildCommonConfig(mergedConfig, designConfig),
-        // Override imagePosition default for Newsletter (top instead of left)
-        imagePosition: mergedConfig.imagePosition || designConfig.imagePosition || "top",
       }),
   },
 
@@ -492,9 +491,6 @@ export const TEMPLATE_PREVIEW_REGISTRY: Record<string, TemplatePreviewEntry<any>
 
         // All common config (colors, typography, layout, image settings)
         ...buildCommonConfig(mergedConfig, designConfig),
-
-        // Override imagePosition default for SpinToWin (left instead of none)
-        imagePosition: mergedConfig.imagePosition || designConfig.imagePosition || "left",
         // Preview-only layout tweak: keep popup anchored to top so the wheel
         // doesn't visually jump when the prize box appears.
         position: "top",
@@ -545,8 +541,6 @@ export const TEMPLATE_PREVIEW_REGISTRY: Record<string, TemplatePreviewEntry<any>
 
         // All common config (colors, typography, layout, image settings)
         ...buildCommonConfig(mergedConfig, designConfig),
-        // Override imagePosition default for ScratchCard (left instead of none)
-        imagePosition: mergedConfig.imagePosition || designConfig.imagePosition || "left",
       }),
   },
 };

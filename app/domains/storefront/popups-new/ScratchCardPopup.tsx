@@ -1062,11 +1062,13 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
   const showEmailForm = config.emailRequired && config.emailBeforeScratching && !emailSubmitted;
   const showScratchCard = !showEmailForm;
 
-  const imagePosition = config.imagePosition || "left";
-  const isFullBackground = imagePosition === "full" && !!config.imageUrl;
-  const showImage = !!config.imageUrl && imagePosition !== "none" && !isFullBackground;
-  const isVertical = imagePosition === "left" || imagePosition === "right";
-  const imageFirst = imagePosition === "left" || imagePosition === "top";
+  // Derive layout from leadCaptureLayout
+  const desktopLayout = config.leadCaptureLayout?.desktop || "split-left";
+  const isFullBackground = desktopLayout === "overlay" && !!config.imageUrl;
+  const isContentOnly = desktopLayout === "content-only";
+  const showImage = !!config.imageUrl && !isContentOnly && !isFullBackground;
+  const isVertical = desktopLayout === "split-left" || desktopLayout === "split-right";
+  const imageFirst = desktopLayout === "split-left" || desktopLayout === "stacked";
   const bgOverlayOpacity = config.backgroundOverlayOpacity ?? 0.6;
 
   const baseSizeDimensions = getSizeDimensions(config.size || "medium", config.previewMode);
