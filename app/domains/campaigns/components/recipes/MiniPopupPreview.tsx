@@ -109,17 +109,11 @@ export function MiniPopupPreview({
     BANNER_TEMPLATES.includes(recipe.templateType) ||
     BANNER_LAYOUTS.includes(recipe.layout);
 
-  // Determine if this recipe should render as mobile (fullscreen or bottom-sheet mode)
-  // These modes are mobile-specific and need 9:16 aspect ratio viewport
-  const mobilePresentationMode = recipe.defaults.contentConfig?.mobilePresentationMode;
-  const isMobilePresentation = mobilePresentationMode === "fullscreen" || mobilePresentationMode === "bottom-sheet";
-
   // Virtual viewport sizes - the "native" size at which we render the popup
   // Mini preview always renders as iPhone 14 (390×844) with device frame to show mobile layout
   // Banners use wider aspect ratio without device frame
-  // DeviceFrame adds 24px border (12px each side) and 44px status bar
+  // DeviceFrame adds 24px border (12px each side)
   const DEVICE_FRAME_BORDER = 24;
-  const DEVICE_FRAME_STATUS_BAR = 44;
   const virtualWidth = isBanner ? 600 : (IPHONE_14_WIDTH + DEVICE_FRAME_BORDER);
   const virtualHeight = isBanner ? 80 : (IPHONE_14_HEIGHT + DEVICE_FRAME_BORDER);
 

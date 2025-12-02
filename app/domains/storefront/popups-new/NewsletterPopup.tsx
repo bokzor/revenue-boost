@@ -137,11 +137,10 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
 
   if (!isVisible) return null;
 
-  // Determine mobile presentation mode from layout
+  // Mobile presentation mode - use config value or default to bottom-sheet
+  // Recipes can set "fullscreen" for immersive mobile experiences (e.g., Bold Energy)
   const mobilePresentationMode: MobilePresentationMode =
-    layout.mobile === "stacked" ? "fullscreen" :
-    layout.mobile === "overlay" ? "fullscreen" :
-    "bottom-sheet";
+    config.mobilePresentationMode || "bottom-sheet";
 
   return (
     <PopupPortal

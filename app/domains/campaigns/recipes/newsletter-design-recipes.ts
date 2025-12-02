@@ -14,13 +14,36 @@ import type { StyledRecipe, RecipeTag } from "./styled-recipe-types";
 // =============================================================================
 
 const NEWSLETTER_EDITABLE_FIELDS = [
-  { key: "headline", type: "text" as const, label: "Headline", group: "content", validation: { required: true, maxLength: 100 } },
-  { key: "subheadline", type: "text" as const, label: "Description", group: "content", validation: { maxLength: 200 } },
-  { key: "buttonText", type: "text" as const, label: "Button Text", group: "content", validation: { required: true, maxLength: 30 } },
+  {
+    key: "headline",
+    type: "text" as const,
+    label: "Headline",
+    group: "content",
+    validation: { required: true, maxLength: 100 },
+  },
+  {
+    key: "subheadline",
+    type: "text" as const,
+    label: "Description",
+    group: "content",
+    validation: { maxLength: 200 },
+  },
+  {
+    key: "buttonText",
+    type: "text" as const,
+    label: "Button Text",
+    group: "content",
+    validation: { required: true, maxLength: 30 },
+  },
   { key: "emailPlaceholder", type: "text" as const, label: "Email Placeholder", group: "content" },
 ];
 
-const DISCOUNT_INPUT = { type: "discount_percentage" as const, key: "discountValue", label: "Discount Percentage", defaultValue: 10 };
+const DISCOUNT_INPUT = {
+  type: "discount_percentage" as const,
+  key: "discountValue",
+  label: "Discount Percentage",
+  defaultValue: 10,
+};
 
 // Trigger type selection input
 const TRIGGER_INPUT = {
@@ -44,12 +67,20 @@ const elegantLuxe: StyledRecipe = {
   id: "newsletter-elegant-luxe",
   name: "Elegant Luxe",
   tagline: "Join the Inner Circle",
-  description: "Sophisticated newsletter popup for high-end fashion and luxury retail.",
+  description: "Best for premium brands where trust matters. Collects name for personalized VIP treatment.",
   icon: "✨",
   category: "email_leads",
   goal: "NEWSLETTER_SIGNUP",
   templateType: "NEWSLETTER",
-  tags: ["fashion", "luxury", "elegant", "split", "discount", "exit-intent", "time-delay"] as RecipeTag[],
+  tags: [
+    "fashion",
+    "luxury",
+    "elegant",
+    "split",
+    "discount",
+    "exit-intent",
+    "time-delay",
+  ] as RecipeTag[],
   component: "NewsletterSplit",
   theme: "elegant-luxe",
   layout: "split-left",
@@ -119,7 +150,7 @@ const streetStyle: StyledRecipe = {
   id: "newsletter-street-style",
   name: "Street Style",
   tagline: "DROP ALERTS",
-  description: "Bold, edgy newsletter popup for streetwear and urban fashion brands.",
+  description: "Perfect for limited drops and exclusive releases. Creates FOMO with early access hooks.",
   icon: "🔥",
   category: "email_leads",
   goal: "NEWSLETTER_SIGNUP",
@@ -189,7 +220,7 @@ const minimalTech: StyledRecipe = {
   id: "newsletter-minimal-tech",
   name: "Minimal Tech",
   tagline: "Stay in the loop",
-  description: "Clean, minimal newsletter popup for SaaS and technology companies.",
+  description: "Low-friction signup for product updates. Great for SaaS, apps, or tech products.",
   icon: "💻",
   category: "email_leads",
   goal: "NEWSLETTER_SIGNUP",
@@ -256,7 +287,7 @@ const darkMode: StyledRecipe = {
   id: "newsletter-dark-mode",
   name: "Dark Mode",
   tagline: "Join the Beta",
-  description: "Sleek dark gradient popup for tech, gaming, and developer tools.",
+  description: "Ideal for beta signups and waitlists. Appeals to tech-savvy, developer-focused audiences.",
   icon: "🌙",
   category: "email_leads",
   goal: "NEWSLETTER_SIGNUP",
@@ -323,7 +354,7 @@ const freshOrganic: StyledRecipe = {
   id: "newsletter-fresh-organic",
   name: "Fresh & Organic",
   tagline: "Farm Fresh Updates",
-  description: "Natural, earthy newsletter popup for organic food and grocery stores.",
+  description: "Works well for recurring purchases like groceries. Highlights weekly deals and seasonal offers.",
   icon: "🥗",
   category: "email_leads",
   goal: "NEWSLETTER_SIGNUP",
@@ -394,7 +425,7 @@ const cafeWarm: StyledRecipe = {
   id: "newsletter-cafe-warm",
   name: "Cafe Warm",
   tagline: "Start Your Morning Right",
-  description: "Warm, inviting newsletter popup for coffee shops and bakeries.",
+  description: "Great for local or artisan businesses. Creates a friendly, personal connection with visitors.",
   icon: "☕",
   category: "email_leads",
   goal: "NEWSLETTER_SIGNUP",
@@ -463,7 +494,7 @@ const softGlow: StyledRecipe = {
   id: "newsletter-soft-glow",
   name: "Soft Glow",
   tagline: "Unlock Your Glow",
-  description: "Elegant, feminine newsletter popup for beauty and skincare brands.",
+  description: "Builds trust for skincare and beauty. Uses subtle design to match premium product positioning.",
   icon: "💄",
   category: "email_leads",
   goal: "NEWSLETTER_SIGNUP",
@@ -539,7 +570,7 @@ const spaSerenity: StyledRecipe = {
   id: "newsletter-spa-serenity",
   name: "Spa Serenity",
   tagline: "Find Your Balance",
-  description: "Calm, zen-like newsletter popup for spas and wellness brands.",
+  description: "Non-intrusive design for wellness-focused visitors. Respects the calm browsing experience.",
   icon: "🧘",
   category: "email_leads",
   goal: "NEWSLETTER_SIGNUP",
@@ -549,7 +580,14 @@ const spaSerenity: StyledRecipe = {
   theme: "spa-serenity",
   layout: "fullscreen",
   imageUrl: "/recipes/newsletter/spa-serenity.jpg",
-  inputs: [{ ...DISCOUNT_INPUT, defaultValue: 25, type: "currency_amount" as const, label: "Discount Amount" }],
+  inputs: [
+    {
+      ...DISCOUNT_INPUT,
+      defaultValue: 25,
+      type: "currency_amount" as const,
+      label: "Discount Amount",
+    },
+  ],
   editableFields: NEWSLETTER_EDITABLE_FIELDS,
   defaults: {
     contentConfig: {
@@ -571,17 +609,17 @@ const spaSerenity: StyledRecipe = {
       position: "center",
       size: "large",
       animation: "fade",
-      // Use semi-transparent white overlay for readability
-      backgroundColor: "rgba(255, 255, 255, 0.92)",
-      textColor: "#1A2E22",
-      descriptionColor: "#3D5347",
-      // Darker teal button for contrast against beige/green background
-      buttonColor: "#2D5A47",
+      // Solid white background for maximum readability
+      backgroundColor: "#FFFFFF",
+      textColor: "#2F3E36",
+      descriptionColor: "#5A6B5D",
+      // Muted sage button for wellness aesthetic with good contrast
+      buttonColor: "#5A6B5D",
       buttonTextColor: "#FFFFFF",
-      inputBackgroundColor: "rgba(255,255,255,0.95)",
-      inputBorderColor: "#8BA888",
-      inputTextColor: "#1A2E22",
-      accentColor: "#2D5A47",
+      inputBackgroundColor: "#FFFFFF",
+      inputBorderColor: "#D4DED6",
+      inputTextColor: "#2F3E36",
+      accentColor: "#8BA888",
       fontFamily: "'Lora', Georgia, serif",
       // Layout configuration - overlay (full background image)
       leadCaptureLayout: {
@@ -590,12 +628,12 @@ const spaSerenity: StyledRecipe = {
         visualSizeDesktop: "100%",
         visualSizeMobile: "100%",
       },
-      backgroundOverlayOpacity: 0.4,
+      // Higher overlay for readability over image
+      backgroundOverlayOpacity: 0.35,
       // Zen, calm aesthetic
       borderRadius: 16,
       buttonBorderRadius: 999, // Pill button
       inputBorderRadius: 12,
-      inputBackdropFilter: "blur(8px)",
       textAlign: "center",
       contentSpacing: "spacious",
     },
@@ -622,7 +660,7 @@ const scandinavian: StyledRecipe = {
   id: "newsletter-scandinavian",
   name: "Scandinavian",
   tagline: "Design for Living",
-  description: "Clean, minimal newsletter popup for furniture and home decor brands.",
+  description: "Minimal design that won't clash with your product imagery. Best for design-conscious brands.",
   icon: "🏠",
   category: "email_leads",
   goal: "NEWSLETTER_SIGNUP",
@@ -696,7 +734,7 @@ const cozyComfort: StyledRecipe = {
   id: "newsletter-cozy-comfort",
   name: "Cozy Comfort",
   tagline: "Sleep Better, Live Better",
-  description: "Warm, inviting newsletter popup for bedding and lifestyle brands.",
+  description: "Warm, reassuring design for high-consideration purchases. Builds confidence before buying.",
   icon: "🛋️",
   category: "email_leads",
   goal: "NEWSLETTER_SIGNUP",
@@ -774,7 +812,7 @@ const boldEnergy: StyledRecipe = {
   id: "newsletter-bold-energy",
   name: "Bold Energy",
   tagline: "LEVEL UP",
-  description: "High-energy newsletter popup for fitness and sports nutrition brands.",
+  description: "High-impact fullscreen experience. Best for action-oriented audiences who respond to bold CTAs.",
   icon: "💪",
   category: "email_leads",
   goal: "NEWSLETTER_SIGNUP",
@@ -800,6 +838,8 @@ const boldEnergy: StyledRecipe = {
       nameFieldRequired: true,
       nameFieldPlaceholder: "Your name",
       consentFieldEnabled: false,
+      // Use fullscreen mobile presentation for immersive experience
+      mobilePresentationMode: "fullscreen",
     },
     designConfig: {
       position: "center",
@@ -855,7 +895,7 @@ const activeLife: StyledRecipe = {
   id: "newsletter-active-life",
   name: "Active Life",
   tagline: "Adventure Awaits",
-  description: "Fresh, adventurous newsletter popup for outdoor and activewear brands.",
+  description: "Energetic but not aggressive. Good for brands that inspire action without hard-selling.",
   icon: "🏔️",
   category: "email_leads",
   goal: "NEWSLETTER_SIGNUP",
@@ -960,8 +1000,17 @@ export function getNewsletterRecipesByTag(tag: RecipeTag): StyledRecipe[] {
 
 /** Get newsletter recipes by industry tags */
 export function getNewsletterRecipesByIndustry(industry: RecipeTag): StyledRecipe[] {
-  const industryTags: RecipeTag[] = ["fashion", "beauty", "food", "tech", "fitness", "home", "outdoor", "wellness", "luxury"];
+  const industryTags: RecipeTag[] = [
+    "fashion",
+    "beauty",
+    "food",
+    "tech",
+    "fitness",
+    "home",
+    "outdoor",
+    "wellness",
+    "luxury",
+  ];
   if (!industryTags.includes(industry)) return [];
   return NEWSLETTER_DESIGN_RECIPES.filter((r) => r.tags?.includes(industry));
 }
-

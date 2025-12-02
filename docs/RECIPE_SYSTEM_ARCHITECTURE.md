@@ -844,7 +844,7 @@ All recipes are **mobile-first by default**. No separate mobile template selecti
   right: 0;
   border-radius: 24px 24px 0 0;
   padding-bottom: env(safe-area-inset-bottom);
-  max-height: 90vh;
+  max-height: 80vh;
 }
 
 /* Desktop override */

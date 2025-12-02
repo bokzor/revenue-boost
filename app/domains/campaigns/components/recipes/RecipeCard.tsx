@@ -8,7 +8,7 @@
  */
 
 import React, { useRef, useState, useCallback, useEffect } from "react";
-import { Box, Text, InlineStack, Badge, Tooltip, Icon, Portal } from "@shopify/polaris";
+import { Text, InlineStack, Tooltip, Icon, Portal } from "@shopify/polaris";
 import { ViewIcon } from "@shopify/polaris-icons";
 import type { StyledRecipe } from "../../recipes/styled-recipe-types";
 import { RECIPE_TAG_LABELS } from "../../recipes/styled-recipe-types";
@@ -19,6 +19,7 @@ import { DeviceFrame } from "~/domains/popups/components/preview/DeviceFrame";
 import { NEWSLETTER_THEMES, type NewsletterThemeKey } from "~/config/color-presets";
 import { getBackgroundById, getBackgroundUrl } from "~/config/background-presets";
 import { usePreviewContext } from "./PreviewContext";
+import { LazyLoad } from "~/components/LazyLoad";
 
 // =============================================================================
 // TYPES
@@ -172,24 +173,190 @@ const hoverPreviewOverlayStyle: React.CSSProperties = {
   transition: "opacity 0.2s ease, transform 0.2s ease",
 };
 
-// MacBook Air 13" dimensions: 1440 x 900 (scaled down to fit)
-// DeviceFrame adds 40px browser chrome + 2px border
-const MACBOOK_AIR_WIDTH = 1440;
-const MACBOOK_AIR_HEIGHT = 900;
-const BROWSER_CHROME_HEIGHT = 42; // 40px chrome + 2px border
-const DESKTOP_FRAME_WIDTH = MACBOOK_AIR_WIDTH;
-const DESKTOP_FRAME_HEIGHT = MACBOOK_AIR_HEIGHT + BROWSER_CHROME_HEIGHT;
-const DESKTOP_PREVIEW_SCALE = 0.45;
+// Container dimensions for the large preview modal
+// Sized to fit comfortably within Shopify admin viewport
+const PREVIEW_CONTAINER_WIDTH = 560;
+const PREVIEW_CONTAINER_HEIGHT = 480;
+const PREVIEW_MARGIN = 16; // Margin around browser frame
 
-const hoverPreviewContentStyle: React.CSSProperties = {
-  width: `${DESKTOP_FRAME_WIDTH * DESKTOP_PREVIEW_SCALE}px`, // ~648px
-  height: `${DESKTOP_FRAME_HEIGHT * DESKTOP_PREVIEW_SCALE}px`, // ~424px
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  backgroundColor: "var(--p-color-bg-surface-secondary)",
-  position: "relative",
-};
+// =============================================================================
+// PREVIEW SKELETON (shown while lazy loading)
+// =============================================================================
+
+function PreviewSkeleton() {
+  return (
+    <div
+      style={{
+        width: "100%",
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: "12px",
+        backgroundColor: "var(--p-color-bg-surface-secondary)",
+      }}
+    >
+      {/* Phone outline skeleton */}
+      <div
+        style={{
+          width: "60%",
+          maxWidth: "120px",
+          aspectRatio: "9 / 16",
+          borderRadius: "12px",
+          backgroundColor: "var(--p-color-bg-surface-tertiary)",
+          animation: "pulse 1.5s ease-in-out infinite",
+        }}
+      />
+      {/* Inline keyframes for pulse animation */}
+      <style>{`
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.5; }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+// =============================================================================
+// LARGE PREVIEW CONTENT COMPONENT
+// Renders popup inside a browser frame with dynamic scaling
+// =============================================================================
+
+interface LargePreviewContentProps {
+  recipe: StyledRecipe;
+  contentConfig: Record<string, unknown>;
+  designConfig: Record<string, unknown>;
+  previewPosition: { top: number; left: number };
+  showLargePreview: boolean;
+  onMouseEnter: () => void;
+  onMouseLeave: () => void;
+  onClick: () => void;
+}
+
+// Browser frame adds ~42px for chrome (40px + border)
+const BROWSER_CHROME_HEIGHT = 42;
+
+function LargePreviewContent({
+  recipe,
+  contentConfig,
+  designConfig,
+  previewPosition,
+  showLargePreview,
+  onMouseEnter,
+  onMouseLeave,
+  onClick,
+}: LargePreviewContentProps) {
+  // We render a simulated browser at a larger size then scale it down
+  // This gives realistic proportions while fitting in the container
+  const BROWSER_WIDTH = 900;
+  const BROWSER_HEIGHT = 600;
+
+  // Calculate scale to fit browser in container
+  const availableWidth = PREVIEW_CONTAINER_WIDTH - PREVIEW_MARGIN * 2;
+  const availableHeight = PREVIEW_CONTAINER_HEIGHT - PREVIEW_MARGIN * 2;
+  const scale = Math.min(
+    availableWidth / BROWSER_WIDTH,
+    availableHeight / (BROWSER_HEIGHT + BROWSER_CHROME_HEIGHT),
+    1.0
+  );
+
+  return (
+    <div
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
+      style={{
+        ...hoverPreviewOverlayStyle,
+        top: previewPosition.top,
+        left: previewPosition.left,
+        opacity: showLargePreview ? 1 : 0,
+        transform: showLargePreview ? "scale(1)" : "scale(0.95)",
+        pointerEvents: "auto",
+        cursor: "pointer",
+      }}
+    >
+      {/* Header */}
+      <div
+        style={{
+          padding: "10px 16px",
+          borderBottom: "1px solid var(--p-color-border-secondary)",
+          backgroundColor: "var(--p-color-bg-surface)",
+        }}
+      >
+        <InlineStack gap="200" blockAlign="center">
+          <span style={{ fontSize: "18px" }}>{recipe.icon}</span>
+          <Text as="span" variant="headingSm">
+            {recipe.name}
+          </Text>
+        </InlineStack>
+      </div>
+
+      {/* Preview Content - Browser frame with popup */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: "#e8e8e8",
+          position: "relative",
+        }}
+      >
+        <ShadowDomWrapper>
+          {/* Outer container clips to scaled size */}
+          <div
+            style={{
+              width: BROWSER_WIDTH * scale,
+              height: (BROWSER_HEIGHT + BROWSER_CHROME_HEIGHT) * scale,
+              overflow: "hidden",
+              position: "relative",
+              pointerEvents: "none",
+            }}
+          >
+            {/* Inner container renders at full size then scales */}
+            <div
+              style={{
+                width: BROWSER_WIDTH,
+                height: BROWSER_HEIGHT + BROWSER_CHROME_HEIGHT,
+                position: "absolute",
+                top: 0,
+                left: 0,
+                transform: `scale(${scale})`,
+                transformOrigin: "top left",
+              }}
+            >
+              <DeviceFrame device="desktop" showShadow={false}>
+                <TemplatePreview
+                  templateType={recipe.templateType}
+                  config={contentConfig}
+                  designConfig={designConfig}
+                />
+              </DeviceFrame>
+            </div>
+          </div>
+        </ShadowDomWrapper>
+      </div>
+
+      {/* Footer hint */}
+      <div
+        style={{
+          padding: "6px 16px",
+          borderTop: "1px solid var(--p-color-border-secondary)",
+          backgroundColor: "var(--p-color-bg-surface)",
+          textAlign: "center",
+        }}
+      >
+        <Text as="span" variant="bodySm" tone="subdued">
+          Click to select
+        </Text>
+      </div>
+    </div>
+  );
+}
 
 // =============================================================================
 // HOOK: Build design config from recipe
@@ -307,27 +474,38 @@ export function RecipeCard({
     const rect = cardRef.current.getBoundingClientRect();
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
-    // Preview size: Desktop frame scaled + header/footer (~80px for recipe header + hint)
-    const previewWidth = DESKTOP_FRAME_WIDTH * DESKTOP_PREVIEW_SCALE;
-    const previewHeight = DESKTOP_FRAME_HEIGHT * DESKTOP_PREVIEW_SCALE + 80;
+    // Preview size: container dimensions + header/footer (~60px for recipe header + hint)
+    const previewWidth = PREVIEW_CONTAINER_WIDTH;
+    const previewHeight = PREVIEW_CONTAINER_HEIGHT + 60;
+
+    // Shopify admin menu is typically ~240px, add safety margin
+    const leftBoundary = 60;
+    const rightBoundary = 20;
+    const topBoundary = 60;
+    const bottomBoundary = 20;
 
     // Position to the right of the card by default
     let left = rect.right + 16;
     let top = rect.top;
 
-    // If it would overflow right, position to the left
-    if (left + previewWidth > viewportWidth - 20) {
+    // If it would overflow right, position to the left of the card
+    if (left + previewWidth > viewportWidth - rightBoundary) {
       left = rect.left - previewWidth - 16;
     }
 
+    // Ensure it doesn't go behind left menu
+    if (left < leftBoundary) {
+      left = leftBoundary;
+    }
+
     // If it would overflow bottom, adjust top
-    if (top + previewHeight > viewportHeight - 20) {
-      top = viewportHeight - previewHeight - 20;
+    if (top + previewHeight > viewportHeight - bottomBoundary) {
+      top = viewportHeight - previewHeight - bottomBoundary;
     }
 
     // Ensure it doesn't go above viewport
-    if (top < 20) {
-      top = 20;
+    if (top < topBoundary) {
+      top = topBoundary;
     }
 
     setPreviewPosition({ top, left });
@@ -460,10 +638,12 @@ export function RecipeCard({
         aria-pressed={isSelected}
         aria-label={`Select ${recipe.name} recipe`}
       >
-        {/* Mini Preview */}
+        {/* Mini Preview - Lazy loaded for performance */}
         {showPreview && (
           <div style={previewContainerStyle}>
-            <MiniPopupPreview recipe={recipe} />
+            <LazyLoad height="100%" width="100%" rootMargin="150px" loader={<PreviewSkeleton />}>
+              <MiniPopupPreview recipe={recipe} />
+            </LazyLoad>
           </div>
         )}
 
@@ -476,9 +656,26 @@ export function RecipeCard({
 
               {/* Subtitle with stats icon */}
               <div style={subtitleStyle}>
-                <svg style={subtitleIconStyle} viewBox="0 0 18 19" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M16.3125 3.95557L9.5625 10.7056L6.75 7.89307L1.6875 12.9556" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M16.3125 8.45557V3.95557H11.8125" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                <svg
+                  style={subtitleIconStyle}
+                  viewBox="0 0 18 19"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M16.3125 3.95557L9.5625 10.7056L6.75 7.89307L1.6875 12.9556"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <path
+                    d="M16.3125 8.45557V3.95557H11.8125"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
                 </svg>
                 <span style={subtitleTextStyle}>{recipe.tagline}</span>
               </div>
@@ -529,94 +726,16 @@ export function RecipeCard({
       {/* Large Preview Portal - Interactive */}
       {showLargePreview && (
         <Portal>
-          <div
+          <LargePreviewContent
+            recipe={recipe}
+            contentConfig={contentConfig}
+            designConfig={designConfig}
+            previewPosition={previewPosition}
+            showLargePreview={showLargePreview}
             onMouseEnter={handlePreviewMouseEnter}
             onMouseLeave={handlePreviewMouseLeave}
-            onClick={(e) => {
-              e.stopPropagation();
-              handlePreviewClick();
-            }}
-            style={{
-              ...hoverPreviewOverlayStyle,
-              top: previewPosition.top,
-              left: previewPosition.left,
-              opacity: showLargePreview ? 1 : 0,
-              transform: showLargePreview ? "scale(1)" : "scale(0.95)",
-              pointerEvents: "auto",
-              cursor: "pointer",
-            }}
-          >
-            {/* Header */}
-            <div
-              style={{
-                padding: "12px 16px",
-                borderBottom: "1px solid var(--p-color-border-secondary)",
-                backgroundColor: "var(--p-color-bg-surface)",
-              }}
-            >
-              <InlineStack gap="200" blockAlign="center">
-                <span style={{ fontSize: "20px" }}>{recipe.icon}</span>
-                <Text as="span" variant="headingSm">
-                  {recipe.name}
-                </Text>
-              </InlineStack>
-            </div>
-
-            {/* Preview Content - Desktop viewport simulation with browser frame */}
-            <div style={hoverPreviewContentStyle}>
-              <ShadowDomWrapper>
-                {/*
-                  Two-layer scaling approach for container queries:
-                  - Outer div: sized to fit the scaled frame visually
-                  - Inner div: renders at MacBook Air 13" size with DeviceFrame
-                  - Scale transform reduces it to fit in the preview container
-                */}
-                <div
-                  style={{
-                    width: DESKTOP_FRAME_WIDTH * DESKTOP_PREVIEW_SCALE,
-                    height: DESKTOP_FRAME_HEIGHT * DESKTOP_PREVIEW_SCALE,
-                    overflow: "hidden",
-                    position: "relative",
-                    pointerEvents: "none",
-                  }}
-                >
-                  <div
-                    style={{
-                      width: DESKTOP_FRAME_WIDTH,
-                      height: DESKTOP_FRAME_HEIGHT,
-                      position: "absolute",
-                      top: "50%",
-                      left: "50%",
-                      transform: `translate(-50%, -50%) scale(${DESKTOP_PREVIEW_SCALE})`,
-                      transformOrigin: "center center",
-                    }}
-                  >
-                    <DeviceFrame device="desktop">
-                      <TemplatePreview
-                        templateType={recipe.templateType}
-                        config={contentConfig}
-                        designConfig={designConfig}
-                      />
-                    </DeviceFrame>
-                  </div>
-                </div>
-              </ShadowDomWrapper>
-            </div>
-
-            {/* Footer hint */}
-            <div
-              style={{
-                padding: "8px 16px",
-                borderTop: "1px solid var(--p-color-border-secondary)",
-                backgroundColor: "var(--p-color-bg-surface)",
-                textAlign: "center",
-              }}
-            >
-              <Text as="span" variant="bodySm" tone="subdued">
-                Desktop preview • Click to select
-              </Text>
-            </div>
-          </div>
+            onClick={handlePreviewClick}
+          />
         </Portal>
       )}
     </>

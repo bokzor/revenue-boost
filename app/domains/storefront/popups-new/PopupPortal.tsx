@@ -643,8 +643,8 @@ function getAnimationKeyframes(
         width: 100%;
         max-width: 100% !important;
         border-radius: 1.5rem 1.5rem 0 0 !important;
-        max-height: 90vh !important;
-        max-height: 90dvh !important; /* Override desktop constraint for bottom-sheet */
+        max-height: 80vh !important;
+        max-height: 80dvh !important; /* Override desktop constraint for bottom-sheet */
         overflow-y: auto;
       }
       /* Slide-up animation for bottom-sheet */

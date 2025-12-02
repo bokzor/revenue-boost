@@ -282,6 +282,9 @@ export const TEMPLATE_PREVIEW_REGISTRY: Record<string, TemplatePreviewEntry<any>
         // Discount: transform admin config to storefront format
         discount: transformDiscountConfig(mergedConfig.discountConfig, "WELCOME") || mergedConfig.discount,
 
+        // Mobile presentation mode (fullscreen, bottom-sheet, modal)
+        mobilePresentationMode: mergedConfig.mobilePresentationMode,
+
         // All common config (colors, typography, layout, image settings)
         ...buildCommonConfig(mergedConfig, designConfig),
       }),
