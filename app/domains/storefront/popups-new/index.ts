@@ -41,6 +41,13 @@ export type { SpinToWinConfig, SpinToWinPopupProps } from "./SpinToWinPopup";
 export { ScratchCardPopup } from "./ScratchCardPopup";
 export type { ScratchCardConfig, ScratchCardPopupProps } from "./ScratchCardPopup";
 
+// Refactored ScratchCard with LeadCaptureLayout (use this for new implementations)
+export { ScratchCardPopupRefactored } from "./ScratchCardPopupRefactored";
+export type {
+  ScratchCardConfig as ScratchCardConfigV2,
+  ScratchCardPopupProps as ScratchCardPopupPropsV2
+} from "./ScratchCardPopupRefactored";
+
 // Sales components
 export { FlashSalePopup } from "./FlashSalePopup";
 export type { FlashSaleConfig, FlashSalePopupProps } from "./FlashSalePopup";

@@ -227,8 +227,15 @@ function buildCommonConfig(
 
     // Background image (for templates that support full background mode)
     imageUrl: mergedConfig.imageUrl || designConfig.imageUrl,
+    imagePosition: mergedConfig.imagePosition || designConfig.imagePosition,
     backgroundImageMode: mergedConfig.backgroundImageMode || designConfig.backgroundImageMode || "none",
     backgroundOverlayOpacity: mergedConfig.backgroundOverlayOpacity ?? designConfig.backgroundOverlayOpacity ?? 0.6,
+
+    // Scratch Card specific design properties
+    scratchCardBackgroundColor: mergedConfig.scratchCardBackgroundColor || designConfig.scratchCardBackgroundColor,
+    scratchCardTextColor: mergedConfig.scratchCardTextColor || designConfig.scratchCardTextColor,
+    scratchOverlayColor: mergedConfig.scratchOverlayColor || designConfig.scratchOverlayColor,
+    scratchOverlayImage: mergedConfig.scratchOverlayImage || designConfig.scratchOverlayImage,
 
     // Lead Capture Layout (Newsletter, Spin-to-Win, Scratch Card)
     leadCaptureLayout: mergedConfig.leadCaptureLayout || designConfig.leadCaptureLayout,

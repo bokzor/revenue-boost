@@ -437,6 +437,10 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
   const lastScratchTimeRef = useRef(0);
   const animationFrameRef = useRef<number | null>(null);
 
+  // State for loaded overlay image
+  const [overlayImage, setOverlayImage] = useState<HTMLImageElement | null>(null);
+  const overlayImageLoadedRef = useRef(false);
+
   const DEFAULT_CARD_WIDTH = 384;
   const DEFAULT_CARD_HEIGHT = 216;
 
@@ -449,6 +453,33 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
   const enableSound = config.enableSound !== false;
   const enableHaptic = config.enableHaptic !== false;
   const enableParticles = config.enableParticles !== false;
+
+  // ============================================
+  // LOAD OVERLAY IMAGE (if provided)
+  // ============================================
+  useEffect(() => {
+    if (!config.scratchOverlayImage || overlayImageLoadedRef.current) return;
+
+    const img = new Image();
+    img.crossOrigin = "anonymous"; // Allow CORS for canvas manipulation
+
+    img.onload = () => {
+      setOverlayImage(img);
+      overlayImageLoadedRef.current = true;
+    };
+
+    img.onerror = () => {
+      console.warn("Failed to load scratch overlay image:", config.scratchOverlayImage);
+      overlayImageLoadedRef.current = true; // Mark as loaded (failed) to prevent retries
+    };
+
+    img.src = config.scratchOverlayImage;
+
+    return () => {
+      img.onload = null;
+      img.onerror = null;
+    };
+  }, [config.scratchOverlayImage]);
 
   // ============================================
   // SCRATCH SOUND & HAPTIC FEEDBACK
@@ -752,7 +783,7 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
       prizeCtx.restore();
     }
 
-    // Draw scratch overlay (enhanced metallic or basic)
+    // Draw scratch overlay (image-based, enhanced metallic, or basic)
     ctx.globalCompositeOperation = "source-over";
 
     const enableMetallic = config.enableMetallicOverlay !== false; // Default to true
@@ -760,7 +791,40 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
     const accentColor = config.accentColor || config.buttonColor || "#FFD700";
     const instruction = config.scratchInstruction || "Scratch to reveal!";
 
-    if (enableMetallic) {
+    // Priority: 1. Custom overlay image, 2. Metallic effect, 3. Basic solid color
+    if (overlayImage) {
+      // Draw custom overlay image (covers entire scratch area)
+      ctx.drawImage(overlayImage, 0, 0, cardWidth, cardHeight);
+
+      // Add instruction text on top of the image
+      ctx.save();
+      // Create a semi-transparent background for the text
+      const textY = cardHeight / 2;
+      const textMetrics = ctx.measureText(instruction);
+      const textWidth = textMetrics.width || 200;
+      const padding = 16;
+
+      ctx.fillStyle = "rgba(0, 0, 0, 0.4)";
+      ctx.beginPath();
+      ctx.roundRect(
+        (cardWidth - textWidth) / 2 - padding,
+        textY - 18,
+        textWidth + padding * 2,
+        36,
+        8
+      );
+      ctx.fill();
+
+      // Draw the instruction text
+      ctx.fillStyle = "#FFFFFF";
+      ctx.font = "600 20px system-ui, -apple-system, BlinkMacSystemFont, sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.shadowColor = "rgba(0, 0, 0, 0.5)";
+      ctx.shadowBlur = 4;
+      ctx.fillText(instruction, cardWidth / 2, textY);
+      ctx.restore();
+    } else if (enableMetallic) {
       // Use enhanced metallic overlay with holographic effects
       drawMetallicOverlay(ctx, cardWidth, cardHeight, overlayColor, instruction, accentColor);
     } else {
@@ -789,7 +853,7 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
 
     // Set composite operation for erasing
     ctx.globalCompositeOperation = "destination-out";
-  }, [emailSubmitted, config, cardWidth, cardHeight, wonPrize]);
+  }, [emailSubmitted, config, cardWidth, cardHeight, wonPrize, overlayImage]);
 
   // Calculate scratch percentage
   const calculateScratchPercentage = useCallback(() => {
@@ -1379,34 +1443,7 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
 
                   </div>
 
-                  {/* Progress indicator */}
-                  {scratchPercentage > 0 && scratchPercentage < threshold && (
-                    <div style={{ width: "100%", maxWidth: cardWidth, margin: "0 auto" }}>
-                      <div
-                        style={{
-                          height: "8px",
-                          backgroundColor: "#E5E7EB",
-                          borderRadius: "4px",
-                          overflow: "hidden",
-                        }}
-                      >
-                        <div
-                          style={{
-                            height: "100%",
-                            width: `${scratchPercentage}%`,
-                            backgroundColor: config.accentColor || config.buttonColor,
-                            transition: "width 0.3s",
-                          }}
-                        />
-                      </div>
-                      <p
-                        className="scratch-progress"
-                        style={{ fontSize: "12px", marginTop: "4px" }}
-                      >
-                        {Math.round(scratchPercentage)}% revealed
-                      </p>
-                    </div>
-                  )}
+                  {/* Progress indicator removed - already shown inside the scratch card canvas */}
 
                   {/* Prize reveal fallback (non-discount prizes) */}
                   {isRevealed && wonPrize && !wonPrize.discountCode && (
@@ -1684,13 +1721,6 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
           inset: 0;
           cursor: pointer;
           touch-action: none;
-        }
-
-        .scratch-progress {
-          font-size: 0.875rem;
-          text-align: center;
-          margin-top: 0.5rem;
-          opacity: 0.7;
         }
 
         .scratch-popup-input {

@@ -255,6 +255,9 @@ export type PopupComponentName =
   | "FlashSaleBanner"
   // Spin to win
   | "SpinToWin"
+  // Scratch card
+  | "ScratchCard"
+  | "ScratchCardPopup"
   // Cart recovery
   | "CartRecovery"
   | "CartRecoveryUrgent"

@@ -125,6 +125,13 @@ export interface PopupDesignConfig {
   // Image effects
   imageFilter?: string; // CSS filter (e.g., "brightness(0.8) contrast(1.1)")
   imageBorderRadius?: string | number;
+  imagePosition?: "left" | "right" | "top" | "bottom" | "full"; // Image layout position
+
+  // Scratch Card specific design properties (visual only - content fields come from ScratchCardContent)
+  scratchCardBackgroundColor?: string; // Background color of the prize reveal area
+  scratchCardTextColor?: string; // Text color in the prize reveal area
+  scratchOverlayColor?: string; // Color of the scratch overlay (fallback if no image)
+  scratchOverlayImage?: string; // URL of the scratch overlay texture image
 
   // Behavior Properties
   previewMode?: boolean;

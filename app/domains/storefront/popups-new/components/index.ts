@@ -11,3 +11,6 @@ export type {
   GdprCheckboxProps,
   SubmitButtonProps,
 } from "./FormFields";
+
+export { ScratchCardCanvas } from "./ScratchCardCanvas";
+export type { ScratchCardCanvasProps } from "./ScratchCardCanvas";

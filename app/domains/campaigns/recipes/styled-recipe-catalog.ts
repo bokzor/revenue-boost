@@ -18,6 +18,7 @@ import type {
   RecipeTag,
 } from "./styled-recipe-types";
 import { NEWSLETTER_DESIGN_RECIPES } from "./newsletter-design-recipes";
+import { SCRATCH_CARD_DESIGN_RECIPES } from "./scratch-card-design-recipes";
 
 // =============================================================================
 // HELPER: Build function factory
@@ -896,6 +897,8 @@ export const STYLED_RECIPES: StyledRecipe[] = [
   holidayAnnouncement,
   // Newsletter Design Recipes (new industry-specific designs)
   ...NEWSLETTER_DESIGN_RECIPES,
+  // Scratch Card Design Recipes (gamified engagement)
+  ...SCRATCH_CARD_DESIGN_RECIPES,
 ];
 
 /** Get all recipes with build functions attached */
