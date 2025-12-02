@@ -27,8 +27,11 @@ export { BannerPortal } from "./BannerPortal";
 export type { BannerPortalProps, BannerPosition } from "./BannerPortal";
 
 // Layout components (shared across template families)
-export { LeadCaptureLayout } from "./LeadCaptureLayout";
-export type { LeadCaptureLayoutProps, LayoutSize } from "./LeadCaptureLayout";
+export { LeadCaptureLayout } from "app/domains/storefront/popups-new/components/shared/LeadCaptureLayout";
+export type {
+  LeadCaptureLayoutProps,
+  LayoutSize,
+} from "app/domains/storefront/popups-new/components/shared/LeadCaptureLayout";
 
 // Newsletter components
 export { NewsletterPopup } from "./NewsletterPopup";
@@ -40,13 +43,6 @@ export type { SpinToWinConfig, SpinToWinPopupProps } from "./SpinToWinPopup";
 
 export { ScratchCardPopup } from "./ScratchCardPopup";
 export type { ScratchCardConfig, ScratchCardPopupProps } from "./ScratchCardPopup";
-
-// Refactored ScratchCard with LeadCaptureLayout (use this for new implementations)
-export { ScratchCardPopupRefactored } from "./ScratchCardPopupRefactored";
-export type {
-  ScratchCardConfig as ScratchCardConfigV2,
-  ScratchCardPopupProps as ScratchCardPopupPropsV2
-} from "./ScratchCardPopupRefactored";
 
 // Sales components
 export { FlashSalePopup } from "./FlashSalePopup";
@@ -111,4 +107,4 @@ export {
   formatTimeRemaining,
   prefersReducedMotion,
   debounce,
-} from "./utils";
+} from "app/domains/storefront/popups-new/utils/utils";

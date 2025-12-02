@@ -17,7 +17,7 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
 import type { PopupSize } from "./types";
-import { getSizeDimensions } from "./utils";
+import { getSizeDimensions } from "app/domains/storefront/popups-new/utils/utils";
 import { PoweredByBadge } from "./components/primitives/PoweredByBadge";
 
 export type AnimationType = "fade" | "slide" | "zoom" | "bounce" | "none";
@@ -281,19 +281,22 @@ export const PopupPortal: React.FC<PopupPortalProps> = ({
     setIsDragging(true);
   }, []);
 
-  const handleTouchMove = useCallback((e: React.TouchEvent) => {
-    if (!isDragging) return;
+  const handleTouchMove = useCallback(
+    (e: React.TouchEvent) => {
+      if (!isDragging) return;
 
-    const touch = e.touches[0];
-    const deltaY = touch.clientY - dragStartY.current;
+      const touch = e.touches[0];
+      const deltaY = touch.clientY - dragStartY.current;
 
-    // Only allow dragging down (positive deltaY)
-    if (deltaY > 0) {
-      setDragOffset(deltaY);
-      // Add resistance as you drag further
-      // e.preventDefault(); // Prevent scroll - but be careful with this
-    }
-  }, [isDragging]);
+      // Only allow dragging down (positive deltaY)
+      if (deltaY > 0) {
+        setDragOffset(deltaY);
+        // Add resistance as you drag further
+        // e.preventDefault(); // Prevent scroll - but be careful with this
+      }
+    },
+    [isDragging]
+  );
 
   const handleTouchEnd = useCallback(() => {
     if (!isDragging) return;
@@ -465,8 +468,8 @@ export const PopupPortal: React.FC<PopupPortalProps> = ({
       style={{
         ...overlayStyles,
         // Make this a container for container queries
-        containerType: 'inline-size',
-        containerName: 'popup-viewport',
+        containerType: "inline-size",
+        containerName: "popup-viewport",
       }}
       role="presentation"
     >
@@ -500,7 +503,7 @@ export const PopupPortal: React.FC<PopupPortalProps> = ({
           ...contentWrapperStyles,
           // Apply drag offset for swipe-to-dismiss
           transform: dragOffset > 0 ? `translateY(${dragOffset}px)` : undefined,
-          transition: isDragging ? 'none' : 'transform 0.2s ease-out',
+          transition: isDragging ? "none" : "transform 0.2s ease-out",
         }}
         onClick={handleContentClick}
         onKeyDown={(e) => e.stopPropagation()}

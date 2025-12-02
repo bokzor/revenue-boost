@@ -4,7 +4,11 @@
  * Shared helper functions used across popup components
  */
 
-import type { PopupSize, PopupPosition, PopupAnimation } from "./types";
+import type {
+  PopupSize,
+  PopupPosition,
+  PopupAnimation,
+} from "app/domains/storefront/popups-new/types";
 
 /**
  * Get size dimensions based on size prop

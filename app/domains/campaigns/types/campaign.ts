@@ -288,36 +288,15 @@ export type BaseContentConfig = z.infer<typeof BaseContentConfigSchema>;
 // ============================================================================
 
 /**
- * Mobile Presentation Mode Schema
- * Determines how the popup is displayed on mobile devices (<520px)
- *
- * - "modal": Centered modal (same as desktop, scaled down)
- * - "bottom-sheet": Slides up from bottom with rounded top corners, swipe-to-dismiss (default)
- * - "fullscreen": Full viewport height (100dvh), hero image layout
- *
- * This is an internal option - not exposed in the campaign builder UI.
- * Set via recipes or advanced configuration only.
- */
-export const MobilePresentationModeSchema = z
-  .enum(["modal", "bottom-sheet", "fullscreen"])
-  .default("bottom-sheet");
-
-export type MobilePresentationMode = z.infer<typeof MobilePresentationModeSchema>;
-
-/**
  * Newsletter-specific content fields
  *
  * Extends BaseContentConfigSchema with:
  * - LeadCaptureConfigSchema (email, name, consent fields)
  * - Newsletter-specific fields (submitButtonText)
- * - Legacy fields (firstNameLabel) for backward compatibility
  */
 export const NewsletterContentSchema = BaseContentConfigSchema.merge(LeadCaptureConfigSchema).extend({
   // Newsletter-specific
   submitButtonText: z.string(),
-
-  // Mobile presentation mode (internal, set via recipes)
-  mobilePresentationMode: MobilePresentationModeSchema.optional(),
 });
 
 /**
@@ -859,7 +838,7 @@ export const DesignConfigSchema = z.object({
   leadCaptureLayout: z
     .object({
       desktop: z.enum(["split-left", "split-right", "stacked", "overlay", "content-only"]),
-      mobile: z.enum(["stacked", "overlay", "content-only"]),
+      mobile: z.enum(["stacked", "overlay", "fullscreen", "content-only"]),
       visualSizeDesktop: z.string().optional(),
       visualSizeMobile: z.string().optional(),
       contentOverlap: z.string().optional(),

@@ -13,8 +13,8 @@
 import React, { useEffect, useState, useRef, useMemo } from "react";
 import type { PopupDesignConfig, DiscountConfig as StorefrontDiscountConfig } from "./types";
 import type { FreeShippingContent } from "~/domains/campaigns/types/campaign";
-import { debounce } from "./utils";
-import { POPUP_SPACING } from "./spacing";
+import { debounce } from "app/domains/storefront/popups-new/utils/utils";
+import { POPUP_SPACING } from "app/domains/storefront/popups-new/utils/spacing";
 
 // Import custom hooks
 import { usePopupAnimation, usePopupForm, useDiscountCode } from "./hooks";
@@ -81,7 +81,8 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
   const configRecord = config as any;
   const requireEmailToClaim = (configRecord.requireEmailToClaim as boolean) ?? false;
   const claimButtonLabel = (configRecord.claimButtonLabel as string) || "Claim discount";
-  const claimEmailPlaceholder = (configRecord.claimEmailPlaceholder as string) || "Enter your email";
+  const claimEmailPlaceholder =
+    (configRecord.claimEmailPlaceholder as string) || "Enter your email";
   const claimSuccessMessage = configRecord.claimSuccessMessage as string | undefined;
   const claimErrorMessage = configRecord.claimErrorMessage as string | undefined;
 
@@ -270,15 +271,17 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
     if (!w.__RB_FETCH_INTERCEPTED) {
       try {
         originalFetch = window.fetch.bind(window);
-        window.fetch = (async (...args: Parameters<typeof fetch>) => {
+        window.fetch = async (...args: Parameters<typeof fetch>) => {
           const [url, opts] = args;
           const urlStr = typeof url === "string" ? url : url?.toString?.();
-          const method = (opts as RequestInit | undefined)?.method ? String((opts as RequestInit).method).toUpperCase() : "GET";
+          const method = (opts as RequestInit | undefined)?.method
+            ? String((opts as RequestInit).method).toUpperCase()
+            : "GET";
           const isCartMutation = !!urlStr && urlStr.includes("/cart") && method !== "GET";
           const response = await originalFetch!(...args);
           if (isCartMutation) debouncedRefresh();
           return response;
-        });
+        };
         w.__RB_FETCH_INTERCEPTED = true;
       } catch {
         // ignore
@@ -492,13 +495,8 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
 
   const scopedCss = useMemo(
     () =>
-      buildScopedCss(
-        config.globalCustomCSS,
-        config.customCSS,
-        "data-rb-banner",
-        "free-shipping",
-      ),
-    [config.customCSS, config.globalCustomCSS],
+      buildScopedCss(config.globalCustomCSS, config.customCSS, "data-rb-banner", "free-shipping"),
+    [config.customCSS, config.globalCustomCSS]
   );
 
   // Don't render if not visible and not animating
@@ -872,12 +870,14 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
         role="region"
         aria-live="polite"
         aria-atomic="true"
-        style={{
-          position: configRecord.previewMode ? "absolute" : undefined,
-          background: config.backgroundColor || "#ffffff",
-          color: config.textColor || "#111827",
-          "--shipping-bar-progress-bg": getProgressColor(),
-        } as React.CSSProperties}
+        style={
+          {
+            position: configRecord.previewMode ? "absolute" : undefined,
+            background: config.backgroundColor || "#ffffff",
+            color: config.textColor || "#111827",
+            "--shipping-bar-progress-bg": getProgressColor(),
+          } as React.CSSProperties
+        }
       >
         <div
           className="free-shipping-bar-progress"
@@ -937,7 +937,9 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
             {state === "unlocked" &&
               discount &&
               (!requireEmailToClaim || hasClaimed) &&
-              (discount.behavior === "SHOW_CODE_AND_AUTO_APPLY" && !discountCode && !discount.code ? (
+              (discount.behavior === "SHOW_CODE_AND_AUTO_APPLY" &&
+              !discountCode &&
+              !discount.code ? (
                 <p className="free-shipping-bar-discount-text">
                   Free shipping will be applied automatically at checkout.
                 </p>
@@ -945,7 +947,9 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
                 <span
                   className="free-shipping-bar-discount-text"
                   onClick={() => handleCopyCode()}
-                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleCopyCode(); }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") handleCopyCode();
+                  }}
                   role="button"
                   tabIndex={0}
                   style={{ cursor: "pointer" }}

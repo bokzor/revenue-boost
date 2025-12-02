@@ -15,15 +15,17 @@ import type { ChangeEvent } from "react";
 import { Card, BlockStack, Text, Divider, Select, Banner, Button, RangeSlider } from "@shopify/polaris";
 import { ColorField, FormGrid, CollapsibleSection, useCollapsibleSections } from "../form";
 import type { DesignConfig, TemplateType } from "~/domains/campaigns/types/campaign";
+import { type NewsletterThemeKey, resolveThemeForTemplate } from "~/config/color-presets";
 import {
-  type NewsletterThemeKey,
-  NEWSLETTER_BACKGROUND_PRESETS,
-  resolveThemeForTemplate,
-} from "~/config/color-presets";
-import { getDefaultBackgroundForTheme, getBackgroundUrl } from "~/config/background-presets";
+  BACKGROUND_PRESETS,
+  getBackgroundById,
+  getBackgroundUrl,
+  getDefaultBackgroundForTheme,
+} from "~/config/background-presets";
 import { ThemePresetSelector } from "../shared/ThemePresetSelector";
 import { CustomPresetSelector } from "../shared/CustomPresetSelector";
 import { LayoutSelector, type LayoutOption } from "../shared/LayoutSelector";
+import { MobileLayoutSelector, type MobileLayoutOption } from "../shared/MobileLayoutSelector";
 import { getDesignCapabilities } from "~/domains/templates/registry/design-capabilities";
 import { useShopifyFileUpload } from "~/shared/hooks/useShopifyFileUpload";
 import type { ThemePresetInput } from "~/domains/store/types/theme-preset";
@@ -63,12 +65,7 @@ export interface DesignConfigSectionProps {
   onCustomPresetApply?: (presetId: string, brandColor: string) => void;
 }
 
-// Mobile layout options for the dropdown
-const MOBILE_LAYOUT_OPTIONS = [
-  { label: "Form only (recommended)", value: "content-only" },
-  { label: "Stacked (image + form)", value: "stacked" },
-  { label: "Overlay (image behind)", value: "overlay" },
-];
+
 
 /**
  * Maps LayoutOption to leadCaptureLayout config (preserving existing fine-tuning)
@@ -361,16 +358,15 @@ export function DesignConfigSection({
 
                 {/* Mobile Layout Selector */}
                 {currentLayout.desktop !== "overlay" && (
-                  <Select
-                    label="Mobile layout"
-                    value={currentLayout.mobile || "content-only"}
-                    options={MOBILE_LAYOUT_OPTIONS}
-                    onChange={(value) => {
+                  <MobileLayoutSelector
+                    selected={(currentLayout.mobile || "content-only") as MobileLayoutOption}
+                    onSelect={(value) => {
                       updateField("leadCaptureLayout", {
                         ...currentLayout,
-                        mobile: value as "stacked" | "overlay" | "content-only",
+                        mobile: value,
                       });
                     }}
+                    title="Mobile Layout"
                     helpText="How the popup appears on mobile devices"
                   />
                 )}
@@ -420,157 +416,171 @@ export function DesignConfigSection({
 
         <Divider />
 
-        {/* Image Configuration - Only show if template supports images and layout is not minimal */}
-        {caps?.usesImage !== false && !isMinimalLayout && (
-          <CollapsibleSection
-            id="background-image-section"
-            title="Background Image"
-            isOpen={openSections.backgroundImage}
-            onToggle={() => toggle("backgroundImage")}
-          >
-            <BlockStack gap="300">
-              <FormGrid columns={2}>
-                <Select
-                  label="Preset background"
-                  value={imageMode === "preset" && selectedPresetKey ? selectedPresetKey : "none"}
-                  options={[
-                    { label: "No preset image", value: "none" },
-                    ...NEWSLETTER_BACKGROUND_PRESETS.map((preset) => ({
-                      label: preset.label,
-                      value: preset.key,
-                    })),
-                  ]}
-                  onChange={(value) => {
-                    if (value === "none") {
-                      onChange({
-                        ...design,
-                        backgroundImageMode: "none",
-                        backgroundImagePresetKey: undefined,
-                        backgroundImageFileId: undefined,
-                        imageUrl: undefined,
-                      });
-                      return;
-                    }
-
-                    const key = value as NewsletterThemeKey;
-                    const bgPreset = getDefaultBackgroundForTheme(key);
-                    const url = bgPreset ? getBackgroundUrl(bgPreset) : undefined;
-                    onChange({
-                      ...design,
-                      backgroundImageMode: "preset",
-                      backgroundImagePresetKey: bgPreset?.id ?? key,
-                      backgroundImageFileId: undefined,
-                      imageUrl: url,
-                    });
-                  }}
-                  helpText="Use one of the built-in background images"
-                />
-
-                <BlockStack gap="100">
-                  <Text as="span" variant="bodySm" fontWeight="medium">
-                    Or upload your own
-                  </Text>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    style={{ display: "none" }}
-                    onChange={handleBackgroundFileChange}
-                  />
-                  <Button
-                    onClick={handleBackgroundFileClick}
-                    loading={isUploadingBackground}
-                    disabled={isUploadingBackground}
-                  >
-                    {imageMode === "file" && previewImageUrl
-                      ? "Change background image"
-                      : "Upload image"}
-                  </Button>
-                  {uploadError && (
-                    <Text as="p" variant="bodySm" tone="critical">
-                      {uploadError}
-                    </Text>
-                  )}
-                </BlockStack>
-              </FormGrid>
-
-              {/* Overlay opacity slider - only show for full background mode */}
-              {isFullBackground && previewImageUrl && (
-                <BlockStack gap="200">
-                  <Text as="p" variant="bodySm" fontWeight="medium">
-                    Overlay Opacity: {Math.round((design.backgroundOverlayOpacity ?? 0.6) * 100)}%
-                  </Text>
-                  <RangeSlider
-                    label="Overlay opacity"
-                    labelHidden
-                    value={(design.backgroundOverlayOpacity ?? 0.6) * 100}
-                    min={0}
-                    max={100}
-                    step={5}
-                    onChange={(value) => updateField("backgroundOverlayOpacity", (value as number) / 100)}
-                    output
-                    suffix={<Text as="span" variant="bodySm">%</Text>}
-                  />
-                  <Text as="p" variant="bodySm" tone="subdued">
-                    Higher values make the overlay darker for better text readability
-                  </Text>
-                </BlockStack>
-              )}
-
-              {previewImageUrl && (
-                <div
-                  style={{
-                    marginTop: "0.5rem",
-                    padding: "1rem",
-                    border: "1px solid #e1e3e5",
-                    borderRadius: "8px",
-                    backgroundColor: "#f6f6f7",
-                  }}
-                >
-                  <Text as="p" variant="bodySm" tone="subdued" fontWeight="semibold">
-                    Image preview:
-                  </Text>
-                  <div style={{ marginTop: "0.5rem", maxWidth: "200px" }}>
-                    <img
-                      src={previewImageUrl}
-                      alt="Background preview"
-                      style={{
-                        width: "100%",
-                        height: "auto",
-                        borderRadius: "4px",
-                        border: "1px solid #c9cccf",
-                      }}
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).style.display = "none";
-                      }}
-                    />
-                  </div>
-                </div>
-              )}
-            </BlockStack>
-          </CollapsibleSection>
-        )}
-
-        {caps?.usesImage !== false && <Divider />}
-
-        {/* Main Colors - Always shown */}
+        {/* Background - Color and optional image */}
         <CollapsibleSection
-          id="main-colors-section"
-          title="Main Colors"
+          id="background-section"
+          title="Background"
+          isOpen={openSections.backgroundImage}
+          onToggle={() => toggle("backgroundImage")}
+        >
+          <BlockStack gap="400">
+            {/* Background Color */}
+            <ColorField
+              label="Background Color"
+              name="design.backgroundColor"
+              value={design.backgroundColor || "#FFFFFF"}
+              error={errors?.backgroundColor}
+              helpText="Popup background color (supports gradients)"
+              onChange={(value) => updateField("backgroundColor", value)}
+            />
+
+            {/* Background Image - Only show if template supports images and layout is not minimal */}
+            {caps?.usesImage !== false && !isMinimalLayout && (
+              <>
+                <Divider />
+                <Text as="h3" variant="headingSm">Background Image</Text>
+                <FormGrid columns={2}>
+                  <Select
+                    label="Preset background"
+                    value={imageMode === "preset" && selectedPresetKey ? selectedPresetKey : "none"}
+                    options={[
+                      { label: "No preset image", value: "none" },
+                      // Theme-matched backgrounds
+                      ...BACKGROUND_PRESETS.filter((bg) => bg.category === "theme").map((preset) => ({
+                        label: preset.name,
+                        value: preset.id,
+                      })),
+                      // Seasonal backgrounds
+                      ...BACKGROUND_PRESETS.filter((bg) => bg.category === "seasonal").map(
+                        (preset) => ({
+                          label: `🎄 ${preset.name}`,
+                          value: preset.id,
+                        })
+                      ),
+                    ]}
+                    onChange={(value) => {
+                      if (value === "none") {
+                        onChange({
+                          ...design,
+                          backgroundImageMode: "none",
+                          backgroundImagePresetKey: undefined,
+                          backgroundImageFileId: undefined,
+                          imageUrl: undefined,
+                        });
+                        return;
+                      }
+
+                      const bgPreset = getBackgroundById(value);
+                      if (bgPreset) {
+                        onChange({
+                          ...design,
+                          backgroundImageMode: "preset",
+                          backgroundImagePresetKey: bgPreset.id,
+                          backgroundImageFileId: undefined,
+                          imageUrl: getBackgroundUrl(bgPreset),
+                        });
+                      }
+                    }}
+                    helpText="Use one of the built-in background images"
+                  />
+
+                  <BlockStack gap="100">
+                    <Text as="span" variant="bodySm" fontWeight="medium">
+                      Or upload your own
+                    </Text>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      style={{ display: "none" }}
+                      onChange={handleBackgroundFileChange}
+                    />
+                    <Button
+                      onClick={handleBackgroundFileClick}
+                      loading={isUploadingBackground}
+                      disabled={isUploadingBackground}
+                    >
+                      {imageMode === "file" && previewImageUrl
+                        ? "Change background image"
+                        : "Upload image"}
+                    </Button>
+                    {uploadError && (
+                      <Text as="p" variant="bodySm" tone="critical">
+                        {uploadError}
+                      </Text>
+                    )}
+                  </BlockStack>
+                </FormGrid>
+
+                {/* Overlay opacity slider - only show for full background mode */}
+                {isFullBackground && previewImageUrl && (
+                  <BlockStack gap="200">
+                    <Text as="p" variant="bodySm" fontWeight="medium">
+                      Overlay Opacity: {Math.round((design.backgroundOverlayOpacity ?? 0.6) * 100)}%
+                    </Text>
+                    <RangeSlider
+                      label="Overlay opacity"
+                      labelHidden
+                      value={(design.backgroundOverlayOpacity ?? 0.6) * 100}
+                      min={0}
+                      max={100}
+                      step={5}
+                      onChange={(value) => updateField("backgroundOverlayOpacity", (value as number) / 100)}
+                      output
+                      suffix={<Text as="span" variant="bodySm">%</Text>}
+                    />
+                    <Text as="p" variant="bodySm" tone="subdued">
+                      Higher values make the overlay darker for better text readability
+                    </Text>
+                  </BlockStack>
+                )}
+
+                {previewImageUrl && (
+                  <div
+                    style={{
+                      marginTop: "0.5rem",
+                      padding: "1rem",
+                      border: "1px solid #e1e3e5",
+                      borderRadius: "8px",
+                      backgroundColor: "#f6f6f7",
+                    }}
+                  >
+                    <Text as="p" variant="bodySm" tone="subdued" fontWeight="semibold">
+                      Image preview:
+                    </Text>
+                    <div style={{ marginTop: "0.5rem", maxWidth: "200px" }}>
+                      <img
+                        src={previewImageUrl}
+                        alt="Background preview"
+                        style={{
+                          width: "100%",
+                          height: "auto",
+                          borderRadius: "4px",
+                          border: "1px solid #c9cccf",
+                        }}
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = "none";
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </BlockStack>
+        </CollapsibleSection>
+
+        <Divider />
+
+        {/* Text Colors - Heading, description, accent */}
+        <CollapsibleSection
+          id="text-colors-section"
+          title="Text Colors"
           isOpen={openSections.mainColors}
           onToggle={() => toggle("mainColors")}
         >
           <BlockStack gap="300">
-            <FormGrid columns={3}>
-              <ColorField
-                label="Background Color"
-                name="design.backgroundColor"
-                value={design.backgroundColor || "#FFFFFF"}
-                error={errors?.backgroundColor}
-                helpText="Popup background color (supports gradients)"
-                onChange={(value) => updateField("backgroundColor", value)}
-              />
-
+            <FormGrid columns={2}>
               <ColorField
                 label="Heading Text Color"
                 name="design.textColor"

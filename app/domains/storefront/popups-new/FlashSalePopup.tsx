@@ -19,7 +19,10 @@ import type { FlashSaleContent } from "~/domains/campaigns/types/campaign";
 import { PopupPortal } from "./PopupPortal";
 import { BannerPortal } from "./BannerPortal";
 
-import { getContainerPadding, POPUP_SPACING } from "./spacing";
+import {
+  getContainerPadding,
+  POPUP_SPACING,
+} from "app/domains/storefront/popups-new/utils/spacing";
 
 // Import custom hooks
 import { useCountdownTimer, useDiscountCode } from "./hooks";
@@ -77,7 +80,8 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
 }) => {
   // Respect both showCountdown and presentation.showTimer flags
   // showCountdown = top-level toggle, presentation.showTimer = presentation toggle
-  const shouldShowTimer = config.showCountdown !== false && config.presentation?.showTimer !== false;
+  const shouldShowTimer =
+    config.showCountdown !== false && config.presentation?.showTimer !== false;
 
   // Use countdown timer hook
   const timerMode = config.timer?.mode || "duration";
@@ -296,9 +300,10 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
   const accentColor = config.accentColor || "#EF4444";
   const textColor = config.textColor || "#111827";
   const bgColor = config.backgroundColor || "#FFFFFF";
-  const borderRadius = typeof config.borderRadius === "number" 
-    ? config.borderRadius 
-    : parseFloat(config.borderRadius || "16");
+  const borderRadius =
+    typeof config.borderRadius === "number"
+      ? config.borderRadius
+      : parseFloat(config.borderRadius || "16");
 
   const discountMessage = getDiscountMessage();
 
@@ -696,7 +701,8 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
   };
   const sizeDimensions = getFlashSaleSizeDimensions(config.popupSize);
   // Map popupSize to spacing: compact=small, standard/wide=medium, full=large
-  const sizeForPadding = config.popupSize === "compact" ? "small" : config.popupSize === "full" ? "large" : "medium";
+  const sizeForPadding =
+    config.popupSize === "compact" ? "small" : config.popupSize === "full" ? "large" : "medium";
   const containerPadding = getContainerPadding(sizeForPadding);
 
   return (
@@ -1204,18 +1210,14 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
 
         {isSoldOut && config.inventory?.soldOutBehavior === "missed_it" ? (
           <div className="flash-sale-sold-out">
-            <h3 style={{ marginBottom: "0.5em", fontWeight: "700" }}>
-              You Missed It!
-            </h3>
+            <h3 style={{ marginBottom: "0.5em", fontWeight: "700" }}>You Missed It!</h3>
             <p style={{ opacity: 0.8 }}>
               {config.inventory.soldOutMessage || "This deal is sold out. Check back later!"}
             </p>
           </div>
         ) : hasExpired ? (
           <div className="flash-sale-expired">
-            <h3 style={{ marginBottom: "0.5em", fontWeight: "700" }}>
-              Sale Ended
-            </h3>
+            <h3 style={{ marginBottom: "0.5em", fontWeight: "700" }}>Sale Ended</h3>
             <p style={{ opacity: 0.8 }}>
               {config.timer?.expiredMessage ||
                 "This flash sale has expired. Check back soon for more deals!"}

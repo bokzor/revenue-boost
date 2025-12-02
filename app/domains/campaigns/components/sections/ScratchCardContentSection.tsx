@@ -19,6 +19,7 @@ import {
 } from "@shopify/polaris";
 import { TextField, FormGrid } from "../form";
 import { GenericDiscountComponent } from "../form/GenericDiscountComponent";
+import { LeadCaptureFormSection } from "./LeadCaptureFormSection";
 import type { ScratchCardContentSchema, DiscountConfig } from "../../types/campaign";
 import { z } from "zod";
 import { useFieldUpdater } from "~/shared/hooks/useFieldUpdater";
@@ -262,34 +263,41 @@ export function ScratchCardContentSection({
                 onChange={(v) => updateField("buttonText", v)}
               />
               <TextField
-                label="Email Label"
-                name="content.emailLabel"
-                value={content.emailLabel || ""}
-                placeholder="Email"
-                onChange={(v) => updateField("emailLabel", v)}
+                label="Dismiss Button Text"
+                name="content.dismissLabel"
+                value={content.dismissLabel || ""}
+                error={errors?.dismissLabel}
+                placeholder="No thanks"
+                helpText="Secondary button text that closes the popup"
+                onChange={(v) => updateField("dismissLabel", v)}
               />
             </FormGrid>
 
-            <TextField
-              label="Dismiss Button Text"
-              name="content.dismissLabel"
-              value={content.dismissLabel || ""}
-              error={errors?.dismissLabel}
-              placeholder="No thanks"
-              helpText="Secondary button text that closes the popup"
-              onChange={(v) => updateField("dismissLabel", v)}
-            />
-
-            <FormGrid columns={2}>
+            <FormGrid columns={1}>
               <TextField
-                label="Email Placeholder"
-                name="content.emailPlaceholder"
-                value={content.emailPlaceholder || "Enter your email"}
-                placeholder="Enter your email"
-                onChange={(v) => updateField("emailPlaceholder", v)}
+                label="Failure Message"
+                name="content.failureMessage"
+                value={content.failureMessage || ""}
+                placeholder="Better luck next time!"
+                helpText="Shown when a user wins a non-discount prize"
+                onChange={(v) => updateField("failureMessage", v)}
               />
+            </FormGrid>
+
+            <Divider />
+
+            {/* Lead Capture Form - Email, Name, GDPR */}
+            <BlockStack gap="300">
+              <Text as="h4" variant="headingSm">
+                📧 Lead Capture Form
+              </Text>
+              <Text as="p" tone="subdued">
+                Configure when and how to collect visitor information
+              </Text>
+
+              {/* Email Collection Timing (Scratch Card specific) */}
               <Select
-                label="Email collection"
+                label="Email collection timing"
                 value={emailCollectionMode}
                 options={[
                   { label: "Don't collect email", value: "none" },
@@ -310,18 +318,25 @@ export function ScratchCardContentSection({
                   }
                 }}
               />
-            </FormGrid>
 
-            <FormGrid columns={1}>
-              <TextField
-                label="Failure Message"
-                name="content.failureMessage"
-                value={content.failureMessage || ""}
-                placeholder="Better luck next time!"
-                helpText="Shown when a user wins a non-discount prize"
-                onChange={(v) => updateField("failureMessage", v)}
-              />
-            </FormGrid>
+              {emailRequired && (
+                <LeadCaptureFormSection
+                  emailRequired={content.emailRequired}
+                  emailLabel={content.emailLabel}
+                  emailPlaceholder={content.emailPlaceholder}
+                  nameFieldEnabled={content.nameFieldEnabled}
+                  nameFieldRequired={content.nameFieldRequired}
+                  nameFieldLabel={content.nameFieldLabel}
+                  nameFieldPlaceholder={content.nameFieldPlaceholder}
+                  consentFieldEnabled={content.consentFieldEnabled}
+                  consentFieldRequired={content.consentFieldRequired}
+                  consentFieldText={content.consentFieldText}
+                  privacyPolicyUrl={content.privacyPolicyUrl}
+                  onChange={(updates) => onChange({ ...content, ...updates })}
+                  errors={errors}
+                />
+              )}
+            </BlockStack>
           </BlockStack>
         </BlockStack>
       </Card>

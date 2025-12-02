@@ -15,7 +15,7 @@ export {
   BREAKPOINTS as POPUP_BREAKPOINTS,
   mediaQuery,
   containerQuery,
-} from '~/shared/constants/breakpoints';
+} from "app/shared/constants/breakpoints";
 
 /**
  * Spacing constants based on FlashSale's system
@@ -123,13 +123,13 @@ export const SPACING_CSS_VARS = `
   --popup-padding-compact: ${POPUP_SPACING.padding.compact};
   --popup-padding-medium: ${POPUP_SPACING.padding.medium};
   --popup-padding-wide: ${POPUP_SPACING.padding.wide};
-  
+
   --popup-section-xs: ${POPUP_SPACING.section.xs};
   --popup-section-sm: ${POPUP_SPACING.section.sm};
   --popup-section-md: ${POPUP_SPACING.section.md};
   --popup-section-lg: ${POPUP_SPACING.section.lg};
   --popup-section-xl: ${POPUP_SPACING.section.xl};
-  
+
   --popup-gap-xs: ${POPUP_SPACING.gap.xs};
   --popup-gap-sm: ${POPUP_SPACING.gap.sm};
   --popup-gap-md: ${POPUP_SPACING.gap.md};

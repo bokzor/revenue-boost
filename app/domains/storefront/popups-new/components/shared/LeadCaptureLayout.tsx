@@ -16,7 +16,7 @@
  */
 
 import React from "react";
-import type { DesktopLayout, MobileLayout } from "./types";
+import type { DesktopLayout, MobileLayout } from "app/domains/storefront/popups-new/types";
 
 // =============================================================================
 // TYPES
@@ -313,23 +313,61 @@ export function LeadCaptureLayout({
           .lead-capture-layout[data-mobile="content-only"] .lead-capture-visual {
             display: none;
           }
+
+          /* Mobile Fullscreen - Image fills entire viewport, form floats at bottom */
+          .lead-capture-layout[data-mobile="fullscreen"] {
+            grid-template-columns: 1fr;
+            grid-template-rows: 1fr;
+            grid-template-areas: "stack";
+          }
+          .lead-capture-layout[data-mobile="fullscreen"] .lead-capture-visual,
+          .lead-capture-layout[data-mobile="fullscreen"] .lead-capture-form {
+            grid-area: stack;
+          }
+          .lead-capture-layout[data-mobile="fullscreen"] .lead-capture-visual {
+            z-index: 0;
+          }
+          .lead-capture-layout[data-mobile="fullscreen"] .lead-capture-form {
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            padding-bottom: 1.5rem;
+            background: linear-gradient(
+              to bottom,
+              transparent 0%,
+              transparent 40%,
+              rgba(0, 0, 0, 0.4) 70%,
+              rgba(0, 0, 0, 0.7) 100%
+            );
+          }
+          .lead-capture-layout[data-mobile="fullscreen"] .lead-capture-visual-gradient {
+            background: linear-gradient(
+              to bottom,
+              transparent 0%,
+              transparent 50%,
+              rgba(0, 0, 0, 0.6) 100%
+            );
+          }
         }
       `}</style>
-      
+
       <div
         className={`lead-capture-layout ${className}`}
         data-desktop={desktopLayout}
         data-mobile={mobileLayout}
-        style={{
-          "--lcl-visual-desktop": visualSize.desktop,
-          "--lcl-visual-mobile": visualSize.mobile,
-          "--lcl-content-overlap": contentOverlap,
-          "--lcl-bg-color": backgroundColor,
-          "--lcl-border-radius": `${borderRadius}px`,
-          "--lcl-gradient-color": gradientColor || backgroundColor,
-          "--lcl-overlay-opacity": overlayOpacity,
-          ...style,
-        } as React.CSSProperties}
+        style={
+          {
+            "--lcl-visual-desktop": visualSize.desktop,
+            "--lcl-visual-mobile": visualSize.mobile,
+            "--lcl-content-overlap": contentOverlap,
+            "--lcl-bg-color": backgroundColor,
+            "--lcl-border-radius": `${borderRadius}px`,
+            "--lcl-gradient-color": gradientColor || backgroundColor,
+            "--lcl-overlay-opacity": overlayOpacity,
+            ...style,
+          } as React.CSSProperties
+        }
         {...dataAttributes}
       >
         {/* Close Button */}
@@ -340,8 +378,19 @@ export function LeadCaptureLayout({
             className="lead-capture-close-btn"
             aria-label="Close"
           >
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M1 1L13 13M1 13L13 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 14 14"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M1 1L13 13M1 13L13 1"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+              />
             </svg>
           </button>
         )}
@@ -349,26 +398,15 @@ export function LeadCaptureLayout({
         {/* Visual Area */}
         {visualSlot && !hideVisualDesktop && (
           <div className="lead-capture-visual">
-            <div className="lead-capture-visual-content">
-              {visualSlot}
-            </div>
-            {visualGradient && (
-              <div className="lead-capture-visual-gradient" />
-            )}
-            {visualActions && (
-              <div className="lead-capture-visual-actions">
-                {visualActions}
-              </div>
-            )}
+            <div className="lead-capture-visual-content">{visualSlot}</div>
+            {visualGradient && <div className="lead-capture-visual-gradient" />}
+            {visualActions && <div className="lead-capture-visual-actions">{visualActions}</div>}
           </div>
         )}
 
         {/* Form Area */}
-        <div className="lead-capture-form">
-          {formSlot}
-        </div>
+        <div className="lead-capture-form">{formSlot}</div>
       </div>
     </>
   );
 }
-

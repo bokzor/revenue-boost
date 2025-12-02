@@ -18,7 +18,7 @@ import type { AnnouncementContent } from "~/domains/campaigns/types/campaign";
 // Import custom hooks
 import { usePopupAnimation, useColorScheme } from "./hooks";
 import { buildScopedCss } from "~/domains/storefront/shared/css";
-import { getBackgroundStyles } from "./utils";
+import { getBackgroundStyles } from "app/domains/storefront/popups-new/utils/utils";
 
 // Import shared components
 import { CTAButton } from "./components/shared";
@@ -61,13 +61,8 @@ export const AnnouncementPopup: React.FC<AnnouncementPopupProps> = ({
 
   const scopedCss = useMemo(
     () =>
-      buildScopedCss(
-        config.globalCustomCSS,
-        config.customCSS,
-        "data-rb-banner",
-        "announcement",
-      ),
-    [config.customCSS, config.globalCustomCSS],
+      buildScopedCss(config.globalCustomCSS, config.customCSS, "data-rb-banner", "announcement"),
+    [config.customCSS, config.globalCustomCSS]
   );
 
   // Build responsive CSS using container queries (mobile-first)
@@ -309,7 +304,13 @@ export const AnnouncementPopup: React.FC<AnnouncementPopupProps> = ({
         }
       }
     `;
-  }, [schemeColors, config.fontFamily, config.buttonColor, config.buttonTextColor, config.borderRadius]);
+  }, [
+    schemeColors,
+    config.fontFamily,
+    config.buttonColor,
+    config.buttonTextColor,
+    config.borderRadius,
+  ]);
 
   if (!isVisible) return null;
 
@@ -390,11 +391,7 @@ export const AnnouncementPopup: React.FC<AnnouncementPopupProps> = ({
           )}
 
           {/* Dismiss text button - Desktop & Tablet only (hidden via CSS on mobile) */}
-          <button
-            type="button"
-            className="rb-dismiss-btn"
-            onClick={onClose}
-          >
+          <button type="button" className="rb-dismiss-btn" onClick={onClose}>
             {config.dismissLabel || "No thanks"}
           </button>
         </div>

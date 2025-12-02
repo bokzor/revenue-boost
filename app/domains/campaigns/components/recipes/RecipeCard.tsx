@@ -8,7 +8,7 @@
  */
 
 import React, { useRef, useState, useCallback, useEffect } from "react";
-import { Text, InlineStack, Tooltip, Icon, Portal } from "@shopify/polaris";
+import { Text, InlineStack, Tooltip, Icon, Portal, Button } from "@shopify/polaris";
 import { ViewIcon } from "@shopify/polaris-icons";
 import type { StyledRecipe } from "../../recipes/styled-recipe-types";
 import { RECIPE_TAG_LABELS } from "../../recipes/styled-recipe-types";
@@ -50,7 +50,6 @@ export interface RecipeCardProps {
 // =============================================================================
 
 const getCardStyle = (isSelected: boolean, isHovered: boolean): React.CSSProperties => ({
-  cursor: "pointer",
   borderRadius: "12px",
   border: isSelected
     ? "2px solid var(--p-color-border-interactive)"
@@ -64,6 +63,9 @@ const getCardStyle = (isSelected: boolean, isHovered: boolean): React.CSSPropert
   overflow: "hidden",
   boxShadow: isSelected ? "0 0 0 2px var(--p-color-border-interactive)" : undefined,
   position: "relative",
+  display: "flex",
+  flexDirection: "column",
+  height: "100%",
 });
 
 // Preview container uses iPhone 14 aspect ratio (390:844 ≈ 9:19)
@@ -83,6 +85,9 @@ const previewContainerStyle: React.CSSProperties = {
 const contentStyle: React.CSSProperties = {
   padding: "12px",
   position: "relative",
+  display: "flex",
+  flexDirection: "column",
+  flex: 1,
 };
 
 const titleRowStyle: React.CSSProperties = {
@@ -624,19 +629,8 @@ export function RecipeCard({
       <div
         ref={cardRef}
         style={getCardStyle(isSelected, isHovered)}
-        onClick={handleCardClick}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            onSelect();
-          }
-        }}
-        aria-pressed={isSelected}
-        aria-label={`Select ${recipe.name} recipe`}
       >
         {/* Mini Preview - Lazy loaded for performance */}
         {showPreview && (
@@ -720,6 +714,17 @@ export function RecipeCard({
               ))}
             </div>
           )}
+
+          {/* Select Button - pushed to bottom with marginTop: auto */}
+          <div style={{ marginTop: "auto", paddingTop: "12px" }}>
+            <Button
+              variant={isSelected ? "primary" : "secondary"}
+              fullWidth
+              onClick={() => onSelect()}
+            >
+              {isSelected ? "Selected" : "Select"}
+            </Button>
+          </div>
         </div>
       </div>
 

@@ -13,23 +13,23 @@
 
 import React, { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { PopupPortal } from "./PopupPortal";
-import { PopupGridContainer } from "./PopupGridContainer";
+import { PopupGridContainer } from "app/domains/storefront/popups-new/components/shared/PopupGridContainer";
 import type { PopupDesignConfig, Prize } from "./types";
 import type { SpinToWinContent } from "~/domains/campaigns/types/campaign";
-import { prefersReducedMotion, debounce } from "./utils";
-import { POPUP_SPACING } from "./spacing";
+import { prefersReducedMotion, debounce } from "app/domains/storefront/popups-new/utils/utils";
+import { POPUP_SPACING } from "app/domains/storefront/popups-new/utils/spacing";
 
 // Import custom hooks
 import { usePopupForm, useDiscountCode, usePopupAnimation } from "./hooks";
 
 // Import canvas utilities
-import { WheelRenderer } from "./utils/canvas";
 
 // Import reusable components
 import { EmailInput, NameInput, GdprCheckbox } from "./components";
 
 // Import shared components from Phase 1 & 2
 import { DiscountCodeDisplay } from "./components/shared";
+import { WheelRenderer } from "app/domains/storefront/popups-new/utils/wheel-canvas";
 
 /**
  * Utility function to adjust color brightness
@@ -44,9 +44,9 @@ function adjustBrightness(hex: string, percent: number): string {
 
   // Parse hex
   const num = parseInt(cleanHex, 16);
-  const r = Math.min(255, Math.max(0, ((num >> 16) & 0xff) + Math.round(255 * percent / 100)));
-  const g = Math.min(255, Math.max(0, ((num >> 8) & 0xff) + Math.round(255 * percent / 100)));
-  const b = Math.min(255, Math.max(0, (num & 0xff) + Math.round(255 * percent / 100)));
+  const r = Math.min(255, Math.max(0, ((num >> 16) & 0xff) + Math.round((255 * percent) / 100)));
+  const g = Math.min(255, Math.max(0, ((num >> 8) & 0xff) + Math.round((255 * percent) / 100)));
+  const b = Math.min(255, Math.max(0, (num & 0xff) + Math.round((255 * percent) / 100)));
 
   return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
 }
@@ -319,7 +319,8 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
     try {
       // Lazy-init AudioContext (requires user interaction)
       if (!audioContextRef.current) {
-        audioContextRef.current = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+        audioContextRef.current = new (window.AudioContext ||
+          (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
       }
 
       const ctx = audioContextRef.current;
@@ -657,7 +658,9 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
     color: config.buttonTextColor || "#FFFFFF",
     cursor: "pointer",
     transition: `all ${animDuration}ms cubic-bezier(0.4, 0, 0.2, 1)`,
-    fontFamily: config.fontFamily || 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    fontFamily:
+      config.fontFamily ||
+      'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
     textTransform: "uppercase",
     letterSpacing: "0.05em",
   };
@@ -1687,10 +1690,17 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
 
                 {/* Prize announcement */}
                 {wonPrize?.generatedCode && (
-                  <div className={`spin-prize-label${
-                    (wonPrize.label?.length ?? 0) > 12 ? ' spin-prize-label--long' :
-                    (wonPrize.label?.length ?? 0) > 7 ? ' spin-prize-label--medium' : ''
-                  }`}>🎉 {wonPrize.label || "You Won!"}</div>
+                  <div
+                    className={`spin-prize-label${
+                      (wonPrize.label?.length ?? 0) > 12
+                        ? " spin-prize-label--long"
+                        : (wonPrize.label?.length ?? 0) > 7
+                          ? " spin-prize-label--medium"
+                          : ""
+                    }`}
+                  >
+                    🎉 {wonPrize.label || "You Won!"}
+                  </div>
                 )}
 
                 {wonPrize?.generatedCode ? (

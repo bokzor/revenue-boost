@@ -23,6 +23,7 @@ export type DesktopLayout =
 export type MobileLayout =
   | "stacked"       // Visual top, form bottom
   | "overlay"       // Full background, form overlays
+  | "fullscreen"    // Visual fills entire viewport, minimal form floats on top
   | "content-only"; // No visual, just form
 
 export interface LayoutConfig {

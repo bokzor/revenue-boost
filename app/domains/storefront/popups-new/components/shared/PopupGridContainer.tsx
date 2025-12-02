@@ -10,7 +10,7 @@
  */
 
 import React from "react";
-import type { PopupDesignConfig } from "./types";
+import type { PopupDesignConfig } from "app/domains/storefront/popups-new/types";
 
 interface PopupGridContainerProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;

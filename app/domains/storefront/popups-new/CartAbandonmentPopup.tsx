@@ -21,7 +21,7 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { PopupPortal } from "./PopupPortal";
 import type { PopupDesignConfig, CartItem, DiscountConfig } from "./types";
 import type { CartAbandonmentContent } from "~/domains/campaigns/types/campaign";
-import { formatCurrency } from "./utils";
+import { formatCurrency } from "app/domains/storefront/popups-new/utils/utils";
 
 // Import custom hooks
 import { useCountdownTimer, useDiscountCode, usePopupForm } from "./hooks";
@@ -331,16 +331,20 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
   const cardMaxWidth = useMemo(() => {
     if (config.maxWidth) return config.maxWidth;
     switch (config.size) {
-      case "small": return "min(420px, 95cqi)";
-      case "large": return "min(520px, 95cqi)";
-      default: return "min(460px, 95cqi)";
+      case "small":
+        return "min(420px, 95cqi)";
+      case "large":
+        return "min(520px, 95cqi)";
+      default:
+        return "min(460px, 95cqi)";
     }
   }, [config.maxWidth, config.size]);
 
   const descriptionColor = config.descriptionColor || "#6b7280";
 
   // CSS Custom Properties for dynamic theming
-  const cssVars = useMemo(() => `
+  const cssVars = useMemo(
+    () => `
     --cart-ab-bg: ${config.backgroundColor || "#ffffff"};
     --cart-ab-text: ${config.textColor || "#111827"};
     --cart-ab-desc: ${descriptionColor};
@@ -353,7 +357,9 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
     --cart-ab-input-text: ${config.inputTextColor || config.textColor || "#111827"};
     --cart-ab-radius: ${borderRadiusValue};
     --cart-ab-max-width: ${typeof cardMaxWidth === "number" ? `${cardMaxWidth}px` : cardMaxWidth};
-  `, [config, descriptionColor, borderRadiusValue, cardMaxWidth]);
+  `,
+    [config, descriptionColor, borderRadiusValue, cardMaxWidth]
+  );
 
   // Auto-close timer (migrated from BasePopup)
   useEffect(() => {
@@ -981,7 +987,7 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
       `}</style>
 
       <div
-        className={`cart-ab-popup-container${config.previewMode ? ' cart-ab-preview-mode' : ''}`}
+        className={`cart-ab-popup-container${config.previewMode ? " cart-ab-preview-mode" : ""}`}
         data-splitpop="true"
         data-template="cart-abandonment"
       >
@@ -1049,7 +1055,8 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
                   </div>
                   {tieredInfo.currentTier && (
                     <p className="cart-ab-discount-hint">
-                      Current discount: {tieredInfo.currentTier.discount.kind === "percentage"
+                      Current discount:{" "}
+                      {tieredInfo.currentTier.discount.kind === "percentage"
                         ? `${tieredInfo.currentTier.discount.value}% off`
                         : tieredInfo.currentTier.discount.kind === "free_shipping"
                           ? "Free shipping"
@@ -1127,21 +1134,24 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
             <div className="cart-ab-total-section">
               <div className="cart-ab-total">
                 <span>Total:</span>
-                <span className={
-                  config.discount?.enabled &&
-                  discountCode &&
-                  (config.discount.percentage || config.discount.value) &&
-                  config.discount.type !== "free_shipping"
-                    ? "cart-ab-total-struck"
-                    : ""
-                }>
+                <span
+                  className={
+                    config.discount?.enabled &&
+                    discountCode &&
+                    (config.discount.percentage || config.discount.value) &&
+                    config.discount.type !== "free_shipping"
+                      ? "cart-ab-total-struck"
+                      : ""
+                  }
+                >
                   {typeof cartTotal === "number"
                     ? formatCurrency(cartTotal, config.currency)
                     : cartTotal}
                 </span>
               </div>
 
-              {config.discount?.enabled && discountCode &&
+              {config.discount?.enabled &&
+                discountCode &&
                 (() => {
                   // Case 1: Free Shipping
                   if (config.discount.type === "free_shipping") {
@@ -1270,11 +1280,7 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
               </button>
             )}
 
-            <button
-              type="button"
-              onClick={onClose}
-              className="cart-ab-dismiss-button"
-            >
+            <button type="button" onClick={onClose} className="cart-ab-dismiss-button">
               {config.dismissLabel || "No thanks"}
             </button>
           </div>

@@ -104,7 +104,16 @@ export class WheelRenderer {
       const isWinningSegment = hasSpun && wonPrize !== null && segment.id === wonPrize.id;
 
       // Draw segment with subtle gradient fill
-      this.drawCleanSegment(ctx, centerX, centerY, radiusPx, startAngle, endAngle, baseColor, !!isWinningSegment);
+      this.drawCleanSegment(
+        ctx,
+        centerX,
+        centerY,
+        radiusPx,
+        startAngle,
+        endAngle,
+        baseColor,
+        !!isWinningSegment
+      );
 
       // Draw thin separator line between segments
       this.drawSimpleSeparator(ctx, centerX, centerY, radiusPx, startAngle);
@@ -136,7 +145,15 @@ export class WheelRenderer {
         const baseAngle = winningIndex * segmentAngleRad - Math.PI / 2;
         const startAngle = rotationRad + baseAngle;
         const endAngle = startAngle + segmentAngleRad;
-        this.drawSubtleWinHighlight(ctx, centerX, centerY, radiusPx, startAngle, endAngle, accentColor);
+        this.drawSubtleWinHighlight(
+          ctx,
+          centerX,
+          centerY,
+          radiusPx,
+          startAngle,
+          endAngle,
+          accentColor
+        );
       }
     }
   }
@@ -155,10 +172,7 @@ export class WheelRenderer {
     _isWinning: boolean
   ) {
     // Create subtle radial gradient for slight depth
-    const gradient = ctx.createRadialGradient(
-      centerX, centerY, 0,
-      centerX, centerY, radius
-    );
+    const gradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, radius);
 
     const lighterColor = adjustBrightness(baseColor, 10);
     const darkerColor = adjustBrightness(baseColor, -8);
@@ -322,100 +336,5 @@ export class WheelRenderer {
     }
 
     ctx.restore();
-  }
-}
-
-export interface ScratchCardRenderOptions {
-  cardWidth: number;
-  cardHeight: number;
-  overlayColor: string;
-  instruction: string;
-  accentColor: string;
-  prizeLabel?: string;
-  prizeTextColor?: string;
-  backgroundColor?: string;
-}
-
-/**
- * Scratch Card Renderer for Scratch Card popup
- */
-export class ScratchCardRenderer {
-  private canvas: HTMLCanvasElement;
-  private ctx: CanvasRenderingContext2D | null;
-  private isScratching = false;
-  private scratchedPixels = 0;
-  private totalPixels = 0;
-
-  constructor(canvas: HTMLCanvasElement) {
-    this.canvas = canvas;
-    this.ctx = canvas.getContext("2d", { willReadFrequently: true });
-  }
-
-  initializeOverlay(options: ScratchCardRenderOptions) {
-    if (!this.ctx) return;
-
-    const { cardWidth, cardHeight, overlayColor, instruction, accentColor: _accentColor } = options;
-    const ctx = this.ctx;
-
-    // Set canvas size
-    const dpr = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
-    this.canvas.width = cardWidth * dpr;
-    this.canvas.height = cardHeight * dpr;
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-
-    // Draw overlay
-    ctx.fillStyle = overlayColor;
-    ctx.fillRect(0, 0, cardWidth, cardHeight);
-
-    // Draw instruction text
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "bold 18px sans-serif";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(instruction, cardWidth / 2, cardHeight / 2);
-
-    // Calculate total pixels for percentage
-    this.totalPixels = cardWidth * cardHeight;
-  }
-
-  scratch(x: number, y: number, radius: number = 30) {
-    if (!this.ctx) return;
-
-    const ctx = this.ctx;
-    ctx.globalCompositeOperation = "destination-out";
-    ctx.beginPath();
-    ctx.arc(x, y, radius, 0, 2 * Math.PI);
-    ctx.fill();
-    ctx.globalCompositeOperation = "source-over";
-  }
-
-  calculateScratchPercentage(): number {
-    if (!this.ctx) return 0;
-
-    const { width, height } = this.canvas;
-    const imageData = this.ctx.getImageData(0, 0, width, height);
-    const pixels = imageData.data;
-
-    let transparentPixels = 0;
-    for (let i = 3; i < pixels.length; i += 4) {
-      if (pixels[i] < 128) {
-        transparentPixels++;
-      }
-    }
-
-    return (transparentPixels / (width * height)) * 100;
-  }
-
-  clear() {
-    if (!this.ctx) return;
-    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-  }
-
-  setScratching(scratching: boolean) {
-    this.isScratching = scratching;
-  }
-
-  getIsScratching(): boolean {
-    return this.isScratching;
   }
 }

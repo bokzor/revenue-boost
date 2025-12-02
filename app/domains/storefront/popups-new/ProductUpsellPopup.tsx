@@ -26,7 +26,11 @@ import React, { useState, useCallback, useEffect, useMemo, useRef } from "react"
 import { PopupPortal } from "./PopupPortal";
 import type { PopupDesignConfig, Product } from "./types";
 import type { ProductUpsellContent } from "~/domains/campaigns/types/campaign";
-import { formatCurrency, getSizeDimensions, prefersReducedMotion } from "./utils";
+import {
+  formatCurrency,
+  getSizeDimensions,
+  prefersReducedMotion,
+} from "app/domains/storefront/popups-new/utils/utils";
 import { PopupCloseButton } from "./components/shared";
 
 // Import custom hooks
@@ -120,19 +124,23 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
   const enableParticles = config.enableParticles !== false;
 
   // Determine active layout (layoutMode takes precedence over layout from content)
-  const activeLayout: ProductUpsellLayout = config.layoutMode || (config.layout as ProductUpsellLayout) || "grid";
+  const activeLayout: ProductUpsellLayout =
+    config.layoutMode || (config.layout as ProductUpsellLayout) || "grid";
 
   // Haptic feedback helper
-  const triggerHaptic = useCallback((pattern: number | number[] = 10) => {
-    if (!enableHaptic || prefersReducedMotion()) return;
-    try {
-      if (navigator.vibrate) {
-        navigator.vibrate(pattern);
+  const triggerHaptic = useCallback(
+    (pattern: number | number[] = 10) => {
+      if (!enableHaptic || prefersReducedMotion()) return;
+      try {
+        if (navigator.vibrate) {
+          navigator.vibrate(pattern);
+        }
+      } catch {
+        // Silently fail
       }
-    } catch {
-      // Silently fail
-    }
-  }, [enableHaptic]);
+    },
+    [enableHaptic]
+  );
 
   const products = useMemo(
     () => propProducts || config.products || [],
@@ -144,31 +152,37 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
   );
 
   // Create ripple effect on card
-  const createRipple = useCallback((productId: string, event: React.MouseEvent | React.KeyboardEvent) => {
-    const rect = event.currentTarget.getBoundingClientRect();
-    // For keyboard events, center the ripple; for mouse events, use click position
-    const isMouseEvent = 'clientX' in event;
-    const x = isMouseEvent ? event.clientX - rect.left : rect.width / 2;
-    const y = isMouseEvent ? event.clientY - rect.top : rect.height / 2;
-    const id = rippleIdRef.current++;
+  const createRipple = useCallback(
+    (productId: string, event: React.MouseEvent | React.KeyboardEvent) => {
+      const rect = event.currentTarget.getBoundingClientRect();
+      // For keyboard events, center the ripple; for mouse events, use click position
+      const isMouseEvent = "clientX" in event;
+      const x = isMouseEvent ? event.clientX - rect.left : rect.width / 2;
+      const y = isMouseEvent ? event.clientY - rect.top : rect.height / 2;
+      const id = rippleIdRef.current++;
 
-    setRipples(prev => {
-      const newMap = new Map(prev);
-      const productRipples = newMap.get(productId) || [];
-      newMap.set(productId, [...productRipples, { x, y, id }]);
-      return newMap;
-    });
-
-    // Remove ripple after animation
-    setTimeout(() => {
-      setRipples(prev => {
+      setRipples((prev) => {
         const newMap = new Map(prev);
         const productRipples = newMap.get(productId) || [];
-        newMap.set(productId, productRipples.filter(r => r.id !== id));
+        newMap.set(productId, [...productRipples, { x, y, id }]);
         return newMap;
       });
-    }, 600);
-  }, []);
+
+      // Remove ripple after animation
+      setTimeout(() => {
+        setRipples((prev) => {
+          const newMap = new Map(prev);
+          const productRipples = newMap.get(productId) || [];
+          newMap.set(
+            productId,
+            productRipples.filter((r) => r.id !== id)
+          );
+          return newMap;
+        });
+      }, 600);
+    },
+    []
+  );
 
   const handleProductSelect = useCallback(
     (productId: string, event?: React.MouseEvent | React.KeyboardEvent) => {
@@ -338,7 +352,7 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
     };
 
     requestAnimationFrame(animate);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [totalSavingsValue]);
 
   // Auto-collapse summary after 4 seconds when items are selected
@@ -440,7 +454,7 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
         aria-pressed={isSelected}
       >
         {/* Ripple effects */}
-        {productRipples.map(ripple => (
+        {productRipples.map((ripple) => (
           <span
             key={ripple.id}
             className="upsell-ripple"
@@ -507,7 +521,7 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
                 {[...Array(5)].map((_, i) => (
                   <span
                     key={i}
-                    className={`upsell-star ${i < Math.floor(product.rating!) ? 'upsell-star--filled' : ''} ${i === Math.floor(product.rating!) && product.rating! % 1 > 0 ? 'upsell-star--half' : ''}`}
+                    className={`upsell-star ${i < Math.floor(product.rating!) ? "upsell-star--filled" : ""} ${i === Math.floor(product.rating!) && product.rating! % 1 > 0 ? "upsell-star--half" : ""}`}
                   >
                     ★
                   </span>
@@ -563,12 +577,12 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
 
   // Carousel navigation
   const goToNextSlide = useCallback(() => {
-    setCarouselIndex(prev => Math.min(prev + 1, displayProducts.length - 1));
+    setCarouselIndex((prev) => Math.min(prev + 1, displayProducts.length - 1));
     triggerHaptic(8);
   }, [displayProducts.length, triggerHaptic]);
 
   const goToPrevSlide = useCallback(() => {
-    setCarouselIndex(prev => Math.max(prev - 1, 0));
+    setCarouselIndex((prev) => Math.max(prev - 1, 0));
     triggerHaptic(8);
   }, [triggerHaptic]);
 
@@ -591,23 +605,24 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
       <div
         ref={carouselRef}
         className="upsell-carousel-track"
-        style={{ '--carousel-index': carouselIndex } as React.CSSProperties }
+        style={{ "--carousel-index": carouselIndex } as React.CSSProperties}
       >
         {displayProducts.map((product, index) => {
           const isActive = index === carouselIndex;
           const isSelected = selectedProducts.has(product.id);
           const savingsPercent = getSavingsPercent(product);
           const savingsAmount = product.compareAtPrice
-            ? parseFloat(product.compareAtPrice) - parseFloat(product.price) : null;
+            ? parseFloat(product.compareAtPrice) - parseFloat(product.price)
+            : null;
 
           return (
             <div
               key={product.id}
               role="button"
               tabIndex={isActive ? 0 : -1}
-              className={`upsell-carousel-slide ${isActive ? 'upsell-carousel-slide--active' : ''} ${isSelected ? 'upsell-carousel-slide--selected' : ''}`}
+              className={`upsell-carousel-slide ${isActive ? "upsell-carousel-slide--active" : ""} ${isSelected ? "upsell-carousel-slide--selected" : ""}`}
               onClick={(e) => isActive && handleProductSelect(product.id, e)}
-              onKeyDown={(e) => isActive && e.key === 'Enter' && handleProductSelect(product.id, e)}
+              onKeyDown={(e) => isActive && e.key === "Enter" && handleProductSelect(product.id, e)}
             >
               {/* Full product card for carousel */}
               <div className="upsell-carousel-card">
@@ -638,29 +653,45 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
                     <div className="upsell-carousel-rating">
                       <span className="upsell-rating-stars">
                         {[...Array(5)].map((_, i) => (
-                          <span key={i} className={`upsell-star ${i < Math.floor(product.rating!) ? 'upsell-star--filled' : ''}`}>★</span>
+                          <span
+                            key={i}
+                            className={`upsell-star ${i < Math.floor(product.rating!) ? "upsell-star--filled" : ""}`}
+                          >
+                            ★
+                          </span>
                         ))}
                       </span>
-                      {product.reviewCount && <span className="upsell-rating-count">({product.reviewCount} reviews)</span>}
+                      {product.reviewCount && (
+                        <span className="upsell-rating-count">({product.reviewCount} reviews)</span>
+                      )}
                     </div>
                   )}
 
                   <div className="upsell-carousel-price">
-                    <span className="upsell-price-current">{formatCurrency(product.price, config.currency)}</span>
+                    <span className="upsell-price-current">
+                      {formatCurrency(product.price, config.currency)}
+                    </span>
                     {product.compareAtPrice && (
-                      <span className="upsell-price-compare">{formatCurrency(product.compareAtPrice, config.currency)}</span>
+                      <span className="upsell-price-compare">
+                        {formatCurrency(product.compareAtPrice, config.currency)}
+                      </span>
                     )}
                     {savingsAmount && savingsAmount > 0 && (
-                      <span className="upsell-price-savings">Save {formatCurrency(savingsAmount.toString(), config.currency)}</span>
+                      <span className="upsell-price-savings">
+                        Save {formatCurrency(savingsAmount.toString(), config.currency)}
+                      </span>
                     )}
                   </div>
 
                   <button
                     type="button"
-                    className={`upsell-carousel-select ${isSelected ? 'upsell-carousel-select--selected' : ''}`}
-                    onClick={(e) => { e.stopPropagation(); handleProductSelect(product.id, e); }}
+                    className={`upsell-carousel-select ${isSelected ? "upsell-carousel-select--selected" : ""}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleProductSelect(product.id, e);
+                    }}
                   >
-                    {isSelected ? '✓ Added to Bundle' : '+ Add to Bundle'}
+                    {isSelected ? "✓ Added to Bundle" : "+ Add to Bundle"}
                   </button>
                 </div>
               </div>
@@ -674,8 +705,11 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
         {displayProducts.map((_, index) => (
           <button
             key={index}
-            className={`upsell-carousel-dot ${index === carouselIndex ? 'upsell-carousel-dot--active' : ''} ${selectedProducts.has(displayProducts[index].id) ? 'upsell-carousel-dot--selected' : ''}`}
-            onClick={() => { setCarouselIndex(index); triggerHaptic(5); }}
+            className={`upsell-carousel-dot ${index === carouselIndex ? "upsell-carousel-dot--active" : ""} ${selectedProducts.has(displayProducts[index].id) ? "upsell-carousel-dot--selected" : ""}`}
+            onClick={() => {
+              setCarouselIndex(index);
+              triggerHaptic(5);
+            }}
           />
         ))}
       </div>
@@ -690,7 +724,8 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
     const isSelected = selectedProducts.has(featuredProduct.id);
     const savingsPercent = getSavingsPercent(featuredProduct);
     const savingsAmount = featuredProduct.compareAtPrice
-      ? parseFloat(featuredProduct.compareAtPrice) - parseFloat(featuredProduct.price) : null;
+      ? parseFloat(featuredProduct.compareAtPrice) - parseFloat(featuredProduct.price)
+      : null;
 
     return (
       <div className="upsell-featured-layout">
@@ -698,9 +733,9 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
         <div
           role="button"
           tabIndex={0}
-          className={`upsell-featured-hero ${isSelected ? 'upsell-featured-hero--selected' : ''}`}
+          className={`upsell-featured-hero ${isSelected ? "upsell-featured-hero--selected" : ""}`}
           onClick={(e) => handleProductSelect(featuredProduct.id, e)}
-          onKeyDown={(e) => e.key === 'Enter' && handleProductSelect(featuredProduct.id, e)}
+          onKeyDown={(e) => e.key === "Enter" && handleProductSelect(featuredProduct.id, e)}
         >
           {isSelected && <div className="upsell-selection-glow" />}
 
@@ -729,25 +764,40 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
               <div className="upsell-featured-rating">
                 <span className="upsell-rating-stars">
                   {[...Array(5)].map((_, i) => (
-                    <span key={i} className={`upsell-star ${i < Math.floor(featuredProduct.rating!) ? 'upsell-star--filled' : ''}`}>★</span>
+                    <span
+                      key={i}
+                      className={`upsell-star ${i < Math.floor(featuredProduct.rating!) ? "upsell-star--filled" : ""}`}
+                    >
+                      ★
+                    </span>
                   ))}
                 </span>
-                {featuredProduct.reviewCount && <span className="upsell-rating-count">({featuredProduct.reviewCount})</span>}
+                {featuredProduct.reviewCount && (
+                  <span className="upsell-rating-count">({featuredProduct.reviewCount})</span>
+                )}
               </div>
             )}
 
             <div className="upsell-featured-price">
-              <span className="upsell-price-current">{formatCurrency(featuredProduct.price, config.currency)}</span>
+              <span className="upsell-price-current">
+                {formatCurrency(featuredProduct.price, config.currency)}
+              </span>
               {featuredProduct.compareAtPrice && (
-                <span className="upsell-price-compare">{formatCurrency(featuredProduct.compareAtPrice, config.currency)}</span>
+                <span className="upsell-price-compare">
+                  {formatCurrency(featuredProduct.compareAtPrice, config.currency)}
+                </span>
               )}
               {savingsAmount && savingsAmount > 0 && (
-                <span className="upsell-price-savings">Save {formatCurrency(savingsAmount.toString(), config.currency)}</span>
+                <span className="upsell-price-savings">
+                  Save {formatCurrency(savingsAmount.toString(), config.currency)}
+                </span>
               )}
             </div>
 
-            <button className={`upsell-featured-select ${isSelected ? 'upsell-featured-select--selected' : ''}`}>
-              {isSelected ? '✓ Added' : '+ Add to Bundle'}
+            <button
+              className={`upsell-featured-select ${isSelected ? "upsell-featured-select--selected" : ""}`}
+            >
+              {isSelected ? "✓ Added" : "+ Add to Bundle"}
             </button>
           </div>
         </div>
@@ -756,7 +806,12 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
         {otherProducts.length > 0 && (
           <div className="upsell-featured-grid">
             <h4 className="upsell-featured-grid-title">Also Consider</h4>
-            <div className="upsell-grid" style={{ '--upsell-columns': Math.min(3, otherProducts.length) } as React.CSSProperties}>
+            <div
+              className="upsell-grid"
+              style={
+                { "--upsell-columns": Math.min(3, otherProducts.length) } as React.CSSProperties
+              }
+            >
               {otherProducts.map((product, index) => renderProductCard(product, index))}
             </div>
           </div>
@@ -780,12 +835,14 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
             key={product.id}
             role="button"
             tabIndex={0}
-            className={`upsell-stack-card ${isSelected ? 'upsell-stack-card--selected' : ''} ${isExpanded ? 'upsell-stack-card--expanded' : ''}`}
-            style={{
-              '--stack-offset': `${offset}px`,
-              '--stack-rotate': `${(index - 1) * 2}deg`,
-              zIndex,
-            } as React.CSSProperties}
+            className={`upsell-stack-card ${isSelected ? "upsell-stack-card--selected" : ""} ${isExpanded ? "upsell-stack-card--expanded" : ""}`}
+            style={
+              {
+                "--stack-offset": `${offset}px`,
+                "--stack-rotate": `${(index - 1) * 2}deg`,
+                zIndex,
+              } as React.CSSProperties
+            }
             onClick={(e) => {
               if (isExpanded) {
                 handleProductSelect(product.id, e);
@@ -795,7 +852,7 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
               }
             }}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') {
+              if (e.key === "Enter") {
                 if (isExpanded) {
                   handleProductSelect(product.id, e);
                 } else {
@@ -822,15 +879,21 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
             <div className="upsell-stack-info">
               <h3 className="upsell-stack-title">{product.title}</h3>
               <div className="upsell-stack-price">
-                <span className="upsell-price-current">{formatCurrency(product.price, config.currency)}</span>
+                <span className="upsell-price-current">
+                  {formatCurrency(product.price, config.currency)}
+                </span>
                 {product.compareAtPrice && (
-                  <span className="upsell-price-compare">{formatCurrency(product.compareAtPrice, config.currency)}</span>
+                  <span className="upsell-price-compare">
+                    {formatCurrency(product.compareAtPrice, config.currency)}
+                  </span>
                 )}
               </div>
 
               {isExpanded && (
-                <button className={`upsell-stack-select ${isSelected ? 'upsell-stack-select--selected' : ''}`}>
-                  {isSelected ? '✓ Added' : '+ Add'}
+                <button
+                  className={`upsell-stack-select ${isSelected ? "upsell-stack-select--selected" : ""}`}
+                >
+                  {isSelected ? "✓ Added" : "+ Add"}
                 </button>
               )}
             </div>
@@ -2545,7 +2608,9 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
 
         {/* Bundle discount banner - enhanced with shimmer */}
         {config.bundleDiscount && config.bundleDiscount > 0 && (
-          <div className={`upsell-bundle-banner ${hasSelectedProducts ? "upsell-bundle-banner--active" : ""}`}>
+          <div
+            className={`upsell-bundle-banner ${hasSelectedProducts ? "upsell-bundle-banner--active" : ""}`}
+          >
             <span className="upsell-banner-icon">✨</span>
             <span className="upsell-banner-text">
               {config.bundleDiscountText || `Save ${config.bundleDiscount}% on selected items!`}
@@ -2555,15 +2620,21 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
         )}
 
         {/* Products */}
-        <div ref={contentRef} className="upsell-content">{renderProductsSection()}</div>
+        <div ref={contentRef} className="upsell-content">
+          {renderProductsSection()}
+        </div>
 
         {/* Footer with summary and actions */}
-        <div className={`upsell-footer ${addedSuccess ? 'upsell-footer--success' : ''}`}>
+        <div className={`upsell-footer ${addedSuccess ? "upsell-footer--success" : ""}`}>
           {/* Success confetti */}
           {showConfetti && (
             <div className="upsell-confetti-container">
               {[...Array(12)].map((_, i) => (
-                <div key={i} className="upsell-confetti-particle" style={{ '--particle-index': i } as React.CSSProperties} />
+                <div
+                  key={i}
+                  className="upsell-confetti-particle"
+                  style={{ "--particle-index": i } as React.CSSProperties}
+                />
               ))}
             </div>
           )}
@@ -2571,11 +2642,11 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           {/* Summary with mini thumbnails - Collapsible */}
           {selectedProducts.size > 0 && !addedSuccess && (
             <div
-              className={`upsell-summary ${isSummaryExpanded ? 'upsell-summary--expanded' : 'upsell-summary--collapsed'}`}
+              className={`upsell-summary ${isSummaryExpanded ? "upsell-summary--expanded" : "upsell-summary--collapsed"}`}
               onClick={toggleSummary}
               role="button"
               tabIndex={0}
-              onKeyDown={(e) => e.key === 'Enter' && toggleSummary()}
+              onKeyDown={(e) => e.key === "Enter" && toggleSummary()}
               aria-expanded={isSummaryExpanded}
             >
               {/* Collapsed view - compact single line */}
@@ -2583,14 +2654,19 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
                 <div className="upsell-summary-compact">
                   {/* Mini product thumbnails */}
                   <div className="upsell-summary-thumbs upsell-summary-thumbs--compact">
-                    {Array.from(selectedProducts).slice(0, 3).map((id) => {
-                      const product = products.find(p => p.id === id);
-                      return product?.imageUrl ? (
-                        <div key={id} className="upsell-summary-thumb upsell-summary-thumb--small">
-                          <img src={product.imageUrl} alt={product.title} />
-                        </div>
-                      ) : null;
-                    })}
+                    {Array.from(selectedProducts)
+                      .slice(0, 3)
+                      .map((id) => {
+                        const product = products.find((p) => p.id === id);
+                        return product?.imageUrl ? (
+                          <div
+                            key={id}
+                            className="upsell-summary-thumb upsell-summary-thumb--small"
+                          >
+                            <img src={product.imageUrl} alt={product.title} />
+                          </div>
+                        ) : null;
+                      })}
                     {selectedProducts.size > 3 && (
                       <div className="upsell-summary-thumb upsell-summary-thumb--small upsell-summary-thumb--more">
                         +{selectedProducts.size - 3}
@@ -2599,7 +2675,7 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
                   </div>
 
                   <span className="upsell-summary-compact-text">
-                    {selectedProducts.size} item{selectedProducts.size !== 1 ? 's' : ''}
+                    {selectedProducts.size} item{selectedProducts.size !== 1 ? "s" : ""}
                     {animatedSavings > 0 && (
                       <span className="upsell-summary-compact-savings">
                         • Save {formatCurrency(animatedSavings, config.currency)}
@@ -2620,14 +2696,16 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
                 <>
                   {/* Mini product thumbnails */}
                   <div className="upsell-summary-thumbs">
-                    {Array.from(selectedProducts).slice(0, 4).map((id) => {
-                      const product = products.find(p => p.id === id);
-                      return product?.imageUrl ? (
-                        <div key={id} className="upsell-summary-thumb">
-                          <img src={product.imageUrl} alt={product.title} />
-                        </div>
-                      ) : null;
-                    })}
+                    {Array.from(selectedProducts)
+                      .slice(0, 4)
+                      .map((id) => {
+                        const product = products.find((p) => p.id === id);
+                        return product?.imageUrl ? (
+                          <div key={id} className="upsell-summary-thumb">
+                            <img src={product.imageUrl} alt={product.title} />
+                          </div>
+                        ) : null;
+                      })}
                     {selectedProducts.size > 4 && (
                       <div className="upsell-summary-thumb upsell-summary-thumb--more">
                         +{selectedProducts.size - 4}
@@ -2638,7 +2716,8 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
                   <div className="upsell-summary-details">
                     <div className="upsell-summary-row">
                       <span className="upsell-summary-label">
-                        {selectedProducts.size} item{selectedProducts.size !== 1 ? "s" : ""} selected
+                        {selectedProducts.size} item{selectedProducts.size !== 1 ? "s" : ""}{" "}
+                        selected
                         <span className="upsell-summary-collapse-icon">▼</span>
                       </span>
                       {calculateCompareAtSavings() && (
@@ -2651,7 +2730,9 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
                     {calculateBundleSavings() && (
                       <div className="upsell-summary-row upsell-bundle-row">
                         <span>🎉 {config.bundleDiscount}% bundle discount</span>
-                        <span className="upsell-bundle-savings">-{formatCurrency(calculateBundleSavings()!, config.currency)}</span>
+                        <span className="upsell-bundle-savings">
+                          -{formatCurrency(calculateBundleSavings()!, config.currency)}
+                        </span>
                       </div>
                     )}
 
@@ -2659,9 +2740,13 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
                       <span>Total</span>
                       <div className="upsell-total-price">
                         {calculateCompareAtSavings() && (
-                          <span className="upsell-total-original">{formatCurrency(calculateOriginalTotal(), config.currency)}</span>
+                          <span className="upsell-total-original">
+                            {formatCurrency(calculateOriginalTotal(), config.currency)}
+                          </span>
                         )}
-                        <span className="upsell-total-current">{formatCurrency(discountedTotal, config.currency)}</span>
+                        <span className="upsell-total-current">
+                          {formatCurrency(discountedTotal, config.currency)}
+                        </span>
                       </div>
                     </div>
 
@@ -2692,16 +2777,20 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
 
           {/* Action buttons */}
           {!addedSuccess && (
-            <div className={`upsell-actions ${selectedProducts.size > 0 ? 'upsell-actions--active' : ''}`}>
+            <div
+              className={`upsell-actions ${selectedProducts.size > 0 ? "upsell-actions--active" : ""}`}
+            >
               <button
                 type="button"
-                className={`upsell-cta ${isLoading ? 'upsell-cta--loading' : ''}`}
+                className={`upsell-cta ${isLoading ? "upsell-cta--loading" : ""}`}
                 onClick={handleAddToCart}
                 disabled={selectedProducts.size === 0 || isLoading}
-                style={{
-                  '--button-color': config.buttonColor || accentColor,
-                  '--button-text-color': config.buttonTextColor || '#fff',
-                } as React.CSSProperties}
+                style={
+                  {
+                    "--button-color": config.buttonColor || accentColor,
+                    "--button-text-color": config.buttonTextColor || "#fff",
+                  } as React.CSSProperties
+                }
               >
                 {isLoading ? (
                   <>
@@ -2714,7 +2803,9 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
                     <span className="upsell-cta-icon">🛒</span>
                     <span className="upsell-cta-text">{getCtaLabel()}</span>
                     {selectedProducts.size > 0 && animatedSavings > 0 && (
-                      <span className="upsell-cta-savings">Save {formatCurrency(animatedSavings, config.currency)}</span>
+                      <span className="upsell-cta-savings">
+                        Save {formatCurrency(animatedSavings, config.currency)}
+                      </span>
                     )}
                   </>
                 )}

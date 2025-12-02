@@ -17,12 +17,12 @@
 import React, { useState, useEffect, useRef } from "react";
 import type { PopupDesignConfig } from "./types";
 import type { CountdownTimerContent } from "~/domains/campaigns/types/campaign";
-import { POPUP_SPACING } from "./spacing";
+import { POPUP_SPACING } from "app/domains/storefront/popups-new/utils/spacing";
 
 // Import custom hooks
 import { useCountdownTimer, useColorScheme } from "./hooks";
 import { buildScopedCss } from "~/domains/storefront/shared/css";
-import { getBackgroundStyles } from "./utils";
+import { getBackgroundStyles } from "app/domains/storefront/popups-new/utils/utils";
 
 // Animation duration for banner enter/exit
 const BANNER_ANIMATION_DURATION = 300;
@@ -143,7 +143,8 @@ export const CountdownTimerPopup: React.FC<CountdownTimerPopupProps> = ({
       ? "rgba(255, 255, 255, 0.2)"
       : config.inputBackgroundColor || "rgba(0, 0, 0, 0.08)";
   const timerText = config.colorScheme !== "custom" ? "#ffffff" : schemeColors.textColor;
-  const ctaBg = config.colorScheme !== "custom" ? "#ffffff" : config.buttonColor || schemeColors.accentColor;
+  const ctaBg =
+    config.colorScheme !== "custom" ? "#ffffff" : config.buttonColor || schemeColors.accentColor;
   const ctaText =
     config.colorScheme !== "custom"
       ? schemeColors.backgroundColor
@@ -165,7 +166,9 @@ export const CountdownTimerPopup: React.FC<CountdownTimerPopupProps> = ({
           color: config.overlayColor || "#000000",
           opacity: config.overlayOpacity ?? 0.5,
         }}
-        animation={{ type: (config.animation as "fade" | "slide" | "zoom" | "bounce" | "none") || "fade" }}
+        animation={{
+          type: (config.animation as "fade" | "slide" | "zoom" | "bounce" | "none") || "fade",
+        }}
         position={config.position || "center"}
         size={config.size || "medium"}
         closeOnEscape
@@ -414,7 +417,12 @@ export const CountdownTimerPopup: React.FC<CountdownTimerPopupProps> = ({
           position: "relative",
         };
 
-  const scopedCss = buildScopedCss(config.globalCustomCSS, config.customCSS, "data-rb-banner", "countdown");
+  const scopedCss = buildScopedCss(
+    config.globalCustomCSS,
+    config.customCSS,
+    "data-rb-banner",
+    "countdown"
+  );
 
   return (
     <>

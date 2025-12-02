@@ -838,8 +838,6 @@ const boldEnergy: StyledRecipe = {
       nameFieldRequired: true,
       nameFieldPlaceholder: "Your name",
       consentFieldEnabled: false,
-      // Use fullscreen mobile presentation for immersive experience
-      mobilePresentationMode: "fullscreen",
     },
     designConfig: {
       position: "center",
@@ -854,12 +852,12 @@ const boldEnergy: StyledRecipe = {
       inputBorderColor: "#333333",
       accentColor: "#FF6B35",
       fontFamily: "'Oswald', 'Impact', sans-serif",
-      // Layout configuration
+      // Layout configuration - fullscreen mobile for immersive experience
       leadCaptureLayout: {
         desktop: "split-right",
-        mobile: "stacked",
+        mobile: "fullscreen",
         visualSizeDesktop: "50%",
-        visualSizeMobile: "45%",
+        visualSizeMobile: "100%",
         contentOverlap: "-2rem",
         visualGradient: true,
       },

@@ -17,8 +17,8 @@ import type { NewsletterContent } from "~/domains/campaigns/types/campaign";
 
 import { PopupPortal } from "./PopupPortal";
 import type { MobilePresentationMode } from "./PopupPortal";
-import { LeadCaptureLayout } from "./LeadCaptureLayout";
-import { SPACING_GUIDELINES } from "./spacing";
+import { LeadCaptureLayout } from "app/domains/storefront/popups-new/components/shared/LeadCaptureLayout";
+import { SPACING_GUIDELINES } from "app/domains/storefront/popups-new/utils/spacing";
 
 // Import custom hooks
 import { usePopupForm, useDiscountCode, usePopupAnimation } from "./hooks";
@@ -137,10 +137,11 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
 
   if (!isVisible) return null;
 
-  // Mobile presentation mode - use config value or default to bottom-sheet
-  // Recipes can set "fullscreen" for immersive mobile experiences (e.g., Bold Energy)
+  // Infer mobile presentation mode from layout:
+  // - "fullscreen" layout → "fullscreen" presentation (fills viewport)
+  // - Other layouts → "bottom-sheet" presentation (slides from bottom)
   const mobilePresentationMode: MobilePresentationMode =
-    config.mobilePresentationMode || "bottom-sheet";
+    layout.mobile === "fullscreen" ? "fullscreen" : "bottom-sheet";
 
   return (
     <PopupPortal

@@ -487,22 +487,6 @@ export const NEWSLETTER_THEMES: Record<NewsletterThemeKey, ThemeColors> = {
   },
 };
 
-export const NEWSLETTER_BACKGROUND_PRESETS: {
-  key: NewsletterThemeKey;
-  label: string;
-}[] = [
-  { key: "modern", label: "Modern theme image" },
-  { key: "minimal", label: "Minimal theme image" },
-  { key: "elegant", label: "Elegant theme image" },
-  { key: "bold", label: "Bold theme image" },
-  { key: "glass", label: "Glass theme image" },
-  { key: "dark", label: "Dark theme image" },
-  { key: "gradient", label: "Gradient theme image" },
-  { key: "luxury", label: "Luxury theme image" },
-  { key: "neon", label: "Neon theme image" },
-  { key: "ocean", label: "Ocean theme image" },
-];
-
 // ============================================================================
 // Spin-to-Win wheel slice colors (admin-side theme mapping)
 // ============================================================================
