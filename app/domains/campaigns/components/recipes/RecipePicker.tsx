@@ -28,6 +28,7 @@ import {
   type StyledRecipe,
 } from "../../recipes/styled-recipe-types";
 import { RecipeCard } from "./RecipeCard";
+import { PreviewProvider } from "./PreviewContext";
 
 // Industry tags for filtering newsletter design recipes
 const INDUSTRY_TAGS: RecipeTag[] = [
@@ -74,6 +75,9 @@ export interface RecipePickerProps {
 
   /** Show mini previews in cards */
   showPreviews?: boolean;
+
+  /** Whether to show large preview on hover (default: true). When false, preview appears on click */
+  hoverPreviewEnabled?: boolean;
 }
 
 // =============================================================================
@@ -107,6 +111,7 @@ export function RecipePicker({
   onSelect,
   onBuildFromScratch,
   showPreviews = true,
+  hoverPreviewEnabled = true,
 }: RecipePickerProps) {
   // Track selected category (null = all)
   const [selectedCategory, setSelectedCategory] = useState<RecipeCategory | "all">("all");
@@ -187,9 +192,11 @@ export function RecipePicker({
   ];
 
   return (
+    <PreviewProvider>
     <div style={{ display: "flex", gap: "24px", minHeight: "600px" }}>
-      {/* Left Sidebar - Categories */}
+      {/* Left Sidebar - Categories (sticky) */}
       <div style={{ width: "240px", flexShrink: 0 }}>
+        <div style={{ position: "sticky", top: "16px" }}>
         <Card>
           <BlockStack gap="100">
             <Text as="h3" variant="headingMd">
@@ -297,6 +304,7 @@ export function RecipePicker({
             )}
           </BlockStack>
         </Card>
+        </div>
       </div>
 
       {/* Right Content - Recipe Cards */}
@@ -383,6 +391,7 @@ export function RecipePicker({
                 isSelected={recipe.id === selectedRecipeId}
                 onSelect={() => onSelect(recipe)}
                 showPreview={showPreviews}
+                hoverPreviewEnabled={hoverPreviewEnabled}
                 size="medium"
               />
             ))}
@@ -411,6 +420,7 @@ export function RecipePicker({
         </BlockStack>
       </div>
     </div>
+    </PreviewProvider>
   );
 }
 

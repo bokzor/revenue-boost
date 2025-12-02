@@ -9,6 +9,7 @@ import { Box, Text, InlineStack, BlockStack, Button } from "@shopify/polaris";
 import { ChevronDownIcon, ChevronUpIcon } from "@shopify/polaris-icons";
 import type { RecipeCategoryMeta, StyledRecipe } from "../../recipes/styled-recipe-types";
 import { RecipeCard } from "./RecipeCard";
+import { PreviewProvider } from "./PreviewContext";
 
 // =============================================================================
 // TYPES
@@ -29,6 +30,9 @@ export interface RecipeCategorySectionProps {
 
   /** Show mini previews */
   showPreviews?: boolean;
+
+  /** Whether to show large preview on hover (default: true). When false, preview appears on click */
+  hoverPreviewEnabled?: boolean;
 
   /** Is this category expanded */
   isExpanded?: boolean;
@@ -81,6 +85,7 @@ export function RecipeCategorySection({
   selectedRecipeId,
   onSelect,
   showPreviews = true,
+  hoverPreviewEnabled = true,
   isExpanded = false,
   showSeeAll = false,
   totalCount = 0,
@@ -89,6 +94,7 @@ export function RecipeCategorySection({
   const remainingCount = totalCount - recipes.length;
 
   return (
+    <PreviewProvider>
     <Box>
       {/* Category Header */}
       <div style={categoryHeaderStyle}>
@@ -130,11 +136,13 @@ export function RecipeCategorySection({
               isSelected={selectedRecipeId === recipe.id}
               onSelect={() => onSelect(recipe)}
               showPreview={showPreviews}
+              hoverPreviewEnabled={hoverPreviewEnabled}
             />
           </div>
         ))}
       </div>
     </Box>
+    </PreviewProvider>
   );
 }
 

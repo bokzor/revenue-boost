@@ -571,14 +571,17 @@ const spaSerenity: StyledRecipe = {
       position: "center",
       size: "large",
       animation: "fade",
-      backgroundColor: "#F5F7F4",
-      textColor: "#2F3E36",
-      descriptionColor: "#5A6B5D",
-      buttonColor: "#5A6B5D",
+      // Use semi-transparent white overlay for readability
+      backgroundColor: "rgba(255, 255, 255, 0.92)",
+      textColor: "#1A2E22",
+      descriptionColor: "#3D5347",
+      // Darker teal button for contrast against beige/green background
+      buttonColor: "#2D5A47",
       buttonTextColor: "#FFFFFF",
-      inputBackgroundColor: "rgba(255,255,255,0.8)",
-      inputBorderColor: "#D4DED6",
-      accentColor: "#8BA888",
+      inputBackgroundColor: "rgba(255,255,255,0.95)",
+      inputBorderColor: "#8BA888",
+      inputTextColor: "#1A2E22",
+      accentColor: "#2D5A47",
       fontFamily: "'Lora', Georgia, serif",
       // Layout configuration - overlay (full background image)
       leadCaptureLayout: {
@@ -587,7 +590,7 @@ const spaSerenity: StyledRecipe = {
         visualSizeDesktop: "100%",
         visualSizeMobile: "100%",
       },
-      backgroundOverlayOpacity: 0.3,
+      backgroundOverlayOpacity: 0.4,
       // Zen, calm aesthetic
       borderRadius: 16,
       buttonBorderRadius: 999, // Pill button
@@ -721,14 +724,17 @@ const cozyComfort: StyledRecipe = {
       position: "center",
       size: "large",
       animation: "fade",
-      backgroundColor: "#F9F6F2",
-      textColor: "#3D3630",
-      descriptionColor: "#7D756C",
-      buttonColor: "#3D3630",
+      // Soft blue-grey palette for modern home/lifestyle feel
+      backgroundColor: "#F5F7FA",
+      textColor: "#2D3748",
+      descriptionColor: "#5A6778",
+      // Muted navy button for sophistication
+      buttonColor: "#4A5568",
       buttonTextColor: "#FFFFFF",
       inputBackgroundColor: "#FFFFFF",
-      inputBorderColor: "#E8E2DB",
-      accentColor: "#C4B5A3",
+      inputBorderColor: "#CBD5E0",
+      inputTextColor: "#2D3748",
+      accentColor: "#718096",
       fontFamily: "'Source Serif Pro', Georgia, serif",
       // Layout configuration - stacked (hero image on top)
       leadCaptureLayout: {
@@ -745,7 +751,7 @@ const cozyComfort: StyledRecipe = {
       inputBorderRadius: 10,
       textAlign: "center",
       contentSpacing: "comfortable",
-      boxShadow: "0 25px 60px -12px rgba(0, 0, 0, 0.15)",
+      boxShadow: "0 25px 60px -12px rgba(0, 0, 0, 0.12)",
     },
     targetRules: {
       enhancedTriggers: {

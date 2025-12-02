@@ -161,6 +161,7 @@ export function LeadCaptureLayout({
           overflow-y: auto;
           display: flex;
           flex-direction: column;
+          justify-content: center;
         }
 
         /* ===========================================

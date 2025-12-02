@@ -260,6 +260,7 @@ export default function RecipeCampaignCreation() {
         onSelect={handleRecipeSelect}
         onBuildFromScratch={handleBuildFromScratch}
         showPreviews={true}
+        hoverPreviewEnabled={false}
       />
 
       {/* Recipe Configuration Modal */}

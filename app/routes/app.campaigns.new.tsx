@@ -16,7 +16,7 @@ import { CampaignFormWithABTesting } from "~/domains/campaigns/components/Campai
 import type { CampaignFormData } from "~/shared/hooks/useWizardState";
 import type { TemplateType, CampaignGoal } from "~/domains/campaigns/types/campaign";
 import { useState } from "react";
-import { Modal, Toast, Frame } from "@shopify/polaris";
+import { Modal, Toast, Frame, Text } from "@shopify/polaris";
 import type { UnifiedTemplate } from "~/domains/popups/services/templates/unified-template-service.server";
 import prisma from "~/db.server";
 import { StoreSettingsSchema, GLOBAL_FREQUENCY_BEST_PRACTICES } from "~/domains/store/types/settings";

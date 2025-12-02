@@ -15,8 +15,13 @@ import React, { useMemo, useRef, useState, useLayoutEffect } from "react";
 import { NEWSLETTER_THEMES, type NewsletterThemeKey } from "~/config/color-presets";
 import { getBackgroundById, getBackgroundUrl } from "~/config/background-presets";
 import { TemplatePreview } from "~/domains/popups/components/preview/TemplatePreview";
+import { DeviceFrame } from "~/domains/popups/components/preview/DeviceFrame";
 import { ShadowDomWrapper } from "./ShadowDomWrapper";
 import type { StyledRecipe } from "../../recipes/styled-recipe-types";
+
+// iPhone 14 dimensions (used by DeviceFrame for mobile)
+const IPHONE_14_WIDTH = 390;
+const IPHONE_14_HEIGHT = 844;
 
 // =============================================================================
 // TYPES
@@ -110,10 +115,13 @@ export function MiniPopupPreview({
   const isMobilePresentation = mobilePresentationMode === "fullscreen" || mobilePresentationMode === "bottom-sheet";
 
   // Virtual viewport sizes - the "native" size at which we render the popup
-  // Mobile presentation modes use 9:16 (375×667) to show the full mobile layout
-  // Desktop/modal uses 380×450 (more square)
-  const virtualWidth = isBanner ? 600 : (isMobilePresentation ? 375 : 380);
-  const virtualHeight = isBanner ? 80 : (isMobilePresentation ? 667 : 450);
+  // Mini preview always renders as iPhone 14 (390×844) with device frame to show mobile layout
+  // Banners use wider aspect ratio without device frame
+  // DeviceFrame adds 24px border (12px each side) and 44px status bar
+  const DEVICE_FRAME_BORDER = 24;
+  const DEVICE_FRAME_STATUS_BAR = 44;
+  const virtualWidth = isBanner ? 600 : (IPHONE_14_WIDTH + DEVICE_FRAME_BORDER);
+  const virtualHeight = isBanner ? 80 : (IPHONE_14_HEIGHT + DEVICE_FRAME_BORDER);
 
   // Calculate scale to fit entire popup in container
   // Use min of width ratio and height ratio to ensure everything fits
@@ -197,9 +205,9 @@ export function MiniPopupPreview({
   }, [recipe]);
 
   // Calculate container dimensions
-  // Mobile presentation modes (fullscreen, bottom-sheet) need taller containers for 9:16 aspect
+  // Default to 100% to fill parent container
   const containerWidthProp = width || "100%";
-  const containerHeightProp = height || (isMobilePresentation ? 280 : 180);
+  const containerHeightProp = height || "100%";
 
   // Styles to inject into Shadow DOM for banner previews
   const bannerShadowStyles = `
@@ -293,7 +301,15 @@ export function MiniPopupPreview({
         justifyContent: "center",
       }}
     >
-      <ShadowDomWrapper>
+      <ShadowDomWrapper
+        style={{
+          width: "auto",
+          height: "auto",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
         {/* Outer clip container - sized to the scaled dimensions */}
         <div
           style={{
@@ -319,11 +335,23 @@ export function MiniPopupPreview({
               containerName: "popup-viewport",
             } as React.CSSProperties}
           >
-            <TemplatePreview
-              templateType={recipe.templateType}
-              config={contentConfig}
-              designConfig={designConfig}
-            />
+            {isBanner ? (
+              // Banners render without device frame
+              <TemplatePreview
+                templateType={recipe.templateType}
+                config={contentConfig}
+                designConfig={designConfig}
+              />
+            ) : (
+              // Regular popups render inside iPhone frame (no shadow for mini preview)
+              <DeviceFrame device="mobile" showShadow={false}>
+                <TemplatePreview
+                  templateType={recipe.templateType}
+                  config={contentConfig}
+                  designConfig={designConfig}
+                />
+              </DeviceFrame>
+            )}
           </div>
         </div>
       </ShadowDomWrapper>
