@@ -86,6 +86,8 @@ function mapLayoutOptionToConfig(
   // Preserve existing mobile/visualSize settings when changing desktop layout
   const preservedMobile = existing?.mobile || "content-only";
   const preservedVisualSize = existing?.visualSizeDesktop || "50%";
+  // Enable gradient when stacked (smooth image-to-form transition)
+  const needsGradient = preservedMobile === "stacked";
 
   switch (layout) {
     case "split-left":
@@ -93,18 +95,21 @@ function mapLayoutOptionToConfig(
         desktop: "split-left",
         mobile: preservedMobile,
         visualSizeDesktop: preservedVisualSize,
+        visualGradient: needsGradient,
       };
     case "split-right":
       return {
         desktop: "split-right",
         mobile: preservedMobile,
         visualSizeDesktop: preservedVisualSize,
+        visualGradient: needsGradient,
       };
     case "hero":
       return {
         desktop: "stacked",
         mobile: "stacked",
         visualSizeDesktop: "40%",
+        visualSizeMobile: "30%",
         visualGradient: true,
       };
     case "full":
@@ -149,7 +154,12 @@ function mapLegacyImagePositionToLayout(
       return { desktop: "split-right", mobile: "content-only", visualSizeDesktop: "50%" };
     case "top":
     case "bottom":
-      return { desktop: "stacked", mobile: "stacked", visualSizeDesktop: "40%" };
+      return {
+        desktop: "stacked",
+        mobile: "stacked",
+        visualSizeDesktop: "40%",
+        visualSizeMobile: "30%",
+      };
     case "full":
       return { desktop: "overlay", mobile: "overlay", visualSizeDesktop: "100%" };
     case "none":
@@ -392,6 +402,8 @@ export function DesignConfigSection({
                       updateField("leadCaptureLayout", {
                         ...currentLayout,
                         mobile: value,
+                        // Enable gradient when stacked (smooth image-to-form transition)
+                        visualGradient: value === "stacked" || currentLayout.desktop === "stacked",
                       });
                       // Switch preview to mobile mode so user can see the effect
                       onMobileLayoutChange?.();

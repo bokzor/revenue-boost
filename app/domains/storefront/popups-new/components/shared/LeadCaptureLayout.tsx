@@ -120,6 +120,8 @@ export function LeadCaptureLayout({
           position: relative;
           overflow: hidden;
           min-height: 0;
+          /* Ensure visual stays within its grid area */
+          max-height: 100%;
         }
 
         .lead-capture-visual-content {
@@ -262,10 +264,17 @@ export function LeadCaptureLayout({
            =========================================== */
 
         @container popup-viewport (max-width: 519px) {
+          /* Reduce min-height on mobile to prevent overflow conflicts */
+          .lead-capture-layout {
+            min-height: 350px;
+          }
+
           /* Mobile Stacked */
           .lead-capture-layout[data-mobile="stacked"] {
             grid-template-columns: 1fr;
-            grid-template-rows: var(--lcl-visual-mobile, 45%) 1fr;
+            /* Use minmax to ensure form gets minimum space needed */
+            /* Visual gets max 30% or 120px, form gets at least 250px */
+            grid-template-rows: minmax(80px, min(var(--lcl-visual-mobile, 30%), 120px)) minmax(250px, 1fr);
             grid-template-areas:
               "visual"
               "form";
@@ -273,6 +282,9 @@ export function LeadCaptureLayout({
 
           .lead-capture-layout[data-mobile="stacked"] .lead-capture-form {
             margin-top: var(--lcl-content-overlap, 0);
+            /* Prevent centering from pushing content out of bounds */
+            justify-content: flex-start;
+            padding-top: 1rem;
           }
 
           /* Mobile stacked gradient */

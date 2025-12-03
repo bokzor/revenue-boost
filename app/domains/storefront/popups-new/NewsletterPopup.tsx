@@ -316,10 +316,10 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
         mobileLayout={layout.mobile}
         visualSize={{
           desktop: layout.visualSizeDesktop || "50%",
-          mobile: layout.visualSizeMobile || "45%",
+          mobile: layout.visualSizeMobile || "30%",
         }}
         contentOverlap={layout.contentOverlap || "0"}
-        visualGradient={layout.visualGradient || false}
+        visualGradient={layout.visualGradient ?? false}
         gradientColor={config.backgroundColor}
         backgroundColor={config.backgroundColor}
         borderRadius={typeof config.borderRadius === "number" ? config.borderRadius : 16}

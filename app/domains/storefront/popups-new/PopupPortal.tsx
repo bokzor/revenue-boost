@@ -516,17 +516,21 @@ export const PopupPortal: React.FC<PopupPortalProps> = ({
         aria-describedby={ariaDescribedBy}
         tabIndex={-1}
       >
-        {/* Drag Handle - Only visible on mobile */}
-        <div className="popup-drag-handle" aria-hidden="true">
-          <div className="popup-drag-handle-bar" />
-        </div>
         {frameStyles ? (
           <div className="popup-portal-frame" style={frameStyles}>
+            {/* Drag Handle - Only visible on mobile, now inside frame */}
+            <div className="popup-drag-handle" aria-hidden="true">
+              <div className="popup-drag-handle-bar" />
+            </div>
             {children}
             {showBranding && <PoweredByBadge position="bottom-right" />}
           </div>
         ) : (
           <>
+            {/* Drag Handle - Only visible on mobile */}
+            <div className="popup-drag-handle" aria-hidden="true">
+              <div className="popup-drag-handle-bar" />
+            </div>
             {children}
             {showBranding && <PoweredByBadge position="bottom-right" />}
           </>
