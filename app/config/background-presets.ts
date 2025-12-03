@@ -371,3 +371,50 @@ export function getBackgroundIdForTheme(theme: NewsletterThemeKey): string | und
   return preset?.id;
 }
 
+/**
+ * Get backgrounds that are proven to work with a specific layout.
+ * Derives suggestions from recipes that use the same layout - if a recipe
+ * uses background X with layout Y, that combination is "proven" to work.
+ *
+ * @param layout - The layout to get backgrounds for (matches leadCaptureLayout.desktop)
+ * @param recipes - Array of styled recipes to derive suggestions from
+ * @returns Array of background presets used by recipes with the given layout
+ */
+export function getBackgroundsForLayout(
+  layout: string | undefined,
+  recipes: Array<{ layout: string; backgroundPresetId?: string }>
+): BackgroundPreset[] {
+  if (!layout) return [];
+
+  // Map UI layout to recipe layouts
+  // The DesignConfigSection uses leadCaptureLayout.desktop values like "split-left", "split-right", "overlay", "stacked", "content-only"
+  // Recipes use PopupLayout values like "split-left", "split-right", "hero", "fullscreen", "centered"
+  const layoutMapping: Record<string, string[]> = {
+    "split-left": ["split-left"],
+    "split-right": ["split-right"],
+    "overlay": ["fullscreen", "centered"], // Full background mode maps to fullscreen/centered recipes
+    "stacked": ["hero"], // Stacked layout is similar to hero (image on top)
+    "content-only": ["centered"], // Content-only is similar to centered (no image focus)
+  };
+
+  const matchingRecipeLayouts = layoutMapping[layout] || [layout];
+
+  // Find all recipes that use matching layouts
+  const recipesWithLayout = recipes.filter((r) =>
+    matchingRecipeLayouts.includes(r.layout)
+  );
+
+  // Extract unique background preset IDs
+  const backgroundIds = new Set<string>();
+  for (const recipe of recipesWithLayout) {
+    if (recipe.backgroundPresetId) {
+      backgroundIds.add(recipe.backgroundPresetId);
+    }
+  }
+
+  // Return the actual presets
+  return Array.from(backgroundIds)
+    .map((id) => getBackgroundById(id))
+    .filter((bg): bg is BackgroundPreset => bg !== undefined);
+}
+

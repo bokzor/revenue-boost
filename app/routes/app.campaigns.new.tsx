@@ -74,6 +74,12 @@ export async function loader({ request }: LoaderFunctionArgs) {
       ...GLOBAL_FREQUENCY_BEST_PRACTICES,
     };
 
+    // Lazy-load background presets by layout from recipe service
+    const { getBackgroundsByLayoutMap } = await import(
+      "~/domains/campaigns/recipes/recipe-service.server"
+    );
+    const backgroundsByLayout = await getBackgroundsByLayoutMap();
+
     return data({
       storeId,
       shopDomain: session.shop,
@@ -84,6 +90,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
       globalFrequencyCapping,
       advancedTargetingEnabled,
       experimentsEnabled,
+      backgroundsByLayout,
       success: true,
     });
   } catch (error) {
@@ -149,6 +156,7 @@ export default function NewCampaign() {
     globalFrequencyCapping,
     advancedTargetingEnabled,
     experimentsEnabled,
+    backgroundsByLayout,
   } = loaderData as {
     storeId: string;
     shopDomain: string;
@@ -174,6 +182,7 @@ export default function NewCampaign() {
     };
     advancedTargetingEnabled?: boolean;
     experimentsEnabled?: boolean;
+    backgroundsByLayout?: Record<string, import("~/config/background-presets").BackgroundPreset[]>;
     success: boolean;
   };
 
@@ -434,6 +443,7 @@ export default function NewCampaign() {
         globalFrequencyCapping={globalFrequencyCapping}
         advancedTargetingEnabled={advancedTargetingEnabled ?? false}
         experimentsEnabled={experimentsEnabled ?? false}
+        backgroundsByLayout={backgroundsByLayout}
         initialData={
           recipeInitialData
             ? (recipeInitialData as Parameters<typeof CampaignFormWithABTesting>[0]["initialData"])

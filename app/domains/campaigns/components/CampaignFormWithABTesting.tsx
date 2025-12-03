@@ -147,6 +147,11 @@ interface CampaignFormWithABTestingProps {
     max_per_day?: number;
     cooldown_between_popups?: number;
   };
+  /**
+   * Map of layout -> proven background presets.
+   * Loaded once from recipe service, filtered by current layout in components.
+   */
+  backgroundsByLayout?: Record<string, import("~/config/background-presets").BackgroundPreset[]>;
 }
 
 // ============================================================================
@@ -170,6 +175,7 @@ export function CampaignFormWithABTesting({
   advancedTargetingEnabled = false,
   experimentsEnabled = false,
   globalFrequencyCapping,
+  backgroundsByLayout,
 }: CampaignFormWithABTestingProps) {
   // ============================================================================
   // STATE - Wizard Navigation
@@ -467,6 +473,7 @@ export function CampaignFormWithABTesting({
       customThemePresets,
       advancedTargetingEnabled,
       globalFrequencyCapping,
+      backgroundsByLayout,
     };
 
     switch (step.id) {

@@ -10,7 +10,7 @@
  * - Switching templates preserves design values
  */
 
-import { useRef, useMemo } from "react";
+import { useRef } from "react";
 import type { ChangeEvent } from "react";
 import {
   Card,
@@ -26,10 +26,10 @@ import { ColorField, FormGrid, CollapsibleSection, useCollapsibleSections } from
 import type { DesignConfig, TemplateType } from "~/domains/campaigns/types/campaign";
 import { type NewsletterThemeKey, resolveThemeForTemplate } from "~/config/color-presets";
 import {
-  BACKGROUND_PRESETS,
   getBackgroundById,
   getBackgroundUrl,
   getDefaultBackgroundForTheme,
+  type BackgroundPreset,
 } from "~/config/background-presets";
 import { ThemePresetSelector } from "../shared/ThemePresetSelector";
 import { CustomPresetSelector } from "../shared/CustomPresetSelector";
@@ -74,6 +74,12 @@ export interface DesignConfigSectionProps {
   onCustomPresetApply?: (presetId: string, brandColor: string) => void;
   /** Optional callback when mobile layout is changed - can be used to switch preview to mobile */
   onMobileLayoutChange?: () => void;
+  /**
+   * Background presets available for the current layout.
+   * Derived from recipes that use the same layout (proven combinations).
+   * Passed from loader via context.
+   */
+  availableBackgrounds?: BackgroundPreset[];
 }
 
 /**
@@ -177,6 +183,7 @@ export function DesignConfigSection({
   onThemeChange,
   onCustomPresetApply,
   onMobileLayoutChange,
+  availableBackgrounds = [],
 }: DesignConfigSectionProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -487,20 +494,11 @@ export function DesignConfigSection({
                     value={imageMode === "preset" && selectedPresetKey ? selectedPresetKey : "none"}
                     options={[
                       { label: "No preset image", value: "none" },
-                      // Theme-matched backgrounds
-                      ...BACKGROUND_PRESETS.filter((bg) => bg.category === "theme").map(
-                        (preset) => ({
-                          label: preset.name,
-                          value: preset.id,
-                        })
-                      ),
-                      // Seasonal backgrounds
-                      ...BACKGROUND_PRESETS.filter((bg) => bg.category === "seasonal").map(
-                        (preset) => ({
-                          label: `🎄 ${preset.name}`,
-                          value: preset.id,
-                        })
-                      ),
+                      // Show only backgrounds proven to work with this layout
+                      ...availableBackgrounds.map((preset) => ({
+                        label: preset.name,
+                        value: preset.id,
+                      })),
                     ]}
                     onChange={(value) => {
                       if (value === "none") {
@@ -525,7 +523,11 @@ export function DesignConfigSection({
                         });
                       }
                     }}
-                    helpText="Use one of the built-in background images"
+                    helpText={
+                      availableBackgrounds.length > 0
+                        ? "Backgrounds proven to work with this layout"
+                        : "No preset backgrounds for this layout - upload your own"
+                    }
                   />
 
                   <BlockStack gap="100">

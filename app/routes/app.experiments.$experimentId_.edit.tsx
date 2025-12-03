@@ -31,6 +31,7 @@ interface LoaderData {
   shopDomain: string;
   selectedVariant?: string | null;
   globalCustomCSS?: string;
+  backgroundsByLayout?: Record<string, import("~/config/background-presets").BackgroundPreset[]>;
 }
 
 // ============================================================================
@@ -90,6 +91,12 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       validVariants.map((v) => ({ id: v.id, variantKey: v.variantKey }))
     );
 
+    // Lazy-load background presets by layout from recipe service
+    const { getBackgroundsByLayoutMap } = await import(
+      "~/domains/campaigns/recipes/recipe-service.server"
+    );
+    const backgroundsByLayout = await getBackgroundsByLayoutMap();
+
     return data<LoaderData>({
       experiment,
       variants: validVariants,
@@ -97,6 +104,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       shopDomain: session.shop,
       selectedVariant: variantParam,
       globalCustomCSS: parsedSettings.success ? parsedSettings.data.globalCustomCSS : undefined,
+      backgroundsByLayout,
     });
   } catch (error) {
     console.error("Failed to load experiment for editing:", error);
@@ -119,7 +127,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 // ============================================================================
 
 export default function ExperimentEditPage() {
-  const { experiment, variants, storeId, shopDomain, selectedVariant, globalCustomCSS } =
+  const { experiment, variants, storeId, shopDomain, selectedVariant, globalCustomCSS, backgroundsByLayout } =
     useLoaderData<typeof loader>();
   const navigate = useNavigate();
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -256,6 +264,7 @@ export default function ExperimentEditPage() {
         experimentData={experimentData}
         allVariants={allVariantsInfo}
         currentVariantKey={targetVariant.variantKey || "A"}
+        backgroundsByLayout={backgroundsByLayout}
         onSave={handleSave}
         onCancel={handleCancel}
       />

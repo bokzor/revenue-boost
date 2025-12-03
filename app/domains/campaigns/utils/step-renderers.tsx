@@ -11,6 +11,7 @@ import type { CampaignFormData, TemplateType } from "~/shared/hooks/useWizardSta
 import type { CampaignGoal } from "@prisma/client";
 import type { UnifiedTemplate } from "../hooks/useTemplates";
 import type { GlobalFrequencyCappingSettings } from "~/domains/store/types/settings";
+import type { BackgroundPreset } from "~/config/background-presets";
 import {
   GoalStepContent,
   DesignStepContent,
@@ -58,6 +59,11 @@ export interface StepRendererProps {
   advancedTargetingEnabled?: boolean;
   /** Global frequency capping settings from store - displayed in Cross-Campaign Coordination card */
   globalFrequencyCapping?: GlobalFrequencyCappingSettings;
+  /**
+   * Map of layout -> proven background presets.
+   * Loaded once from recipe service, filtered by current layout in components.
+   */
+  backgroundsByLayout?: Record<string, BackgroundPreset[]>;
 }
 // ============================================================================
 // STEP RENDERERS
@@ -99,6 +105,7 @@ export function renderDesignStep(props: StepRendererProps) {
     setTemplateType,
     initialTemplates,
     customThemePresets,
+    backgroundsByLayout,
   } = props;
   const { globalCustomCSS } = props;
 
@@ -146,6 +153,7 @@ export function renderDesignStep(props: StepRendererProps) {
       targetRules={targetRules}
       globalCustomCSS={globalCustomCSS}
       customThemePresets={customThemePresets}
+      backgroundsByLayout={backgroundsByLayout}
       onContentChange={(content) => updateData({ contentConfig: content })}
       onDesignChange={(design) => updateData({ designConfig: design })}
       onDiscountChange={(config) => updateData({ discountConfig: config })}

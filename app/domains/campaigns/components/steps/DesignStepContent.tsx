@@ -6,7 +6,7 @@
  * - DesignConfigSection for universal design/color fields (used by ALL templates)
  */
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { Banner, Text, BlockStack, Card, Divider, Layout } from "@shopify/polaris";
 import { ContentConfigSection } from "../sections/ContentConfigSection";
 import { DesignConfigSection } from "../sections/DesignConfigSection";
@@ -26,6 +26,7 @@ import { getSpinToWinSliceColors, getSpinToWinWheelBorder } from "~/config/color
 import { CustomCSSEditor } from "../CustomCSSEditor";
 import { UpgradeBanner, useFeatureAccess } from "~/domains/billing";
 import { getWheelColorsFromPreset, type ThemePresetInput } from "~/domains/store/types/theme-preset";
+import type { BackgroundPreset } from "~/config/background-presets";
 
 interface DesignStepContentProps {
   goal?: CampaignGoal;
@@ -50,6 +51,11 @@ interface DesignStepContentProps {
     successColor?: string;
     fontFamily?: string;
   }>;
+  /**
+   * Map of layout -> proven background presets.
+   * Loaded once from recipe service, filtered by current layout in components.
+   */
+  backgroundsByLayout?: Record<string, BackgroundPreset[]>;
   onContentChange: (content: Partial<ContentConfig>) => void;
   onDesignChange: (design: Partial<DesignConfig>) => void;
   onDiscountChange?: (config: DiscountConfig) => void;
@@ -72,6 +78,7 @@ export function DesignStepContent({
   targetRules,
   globalCustomCSS,
   customThemePresets,
+  backgroundsByLayout,
   onContentChange,
   onDesignChange,
   onDiscountChange,
@@ -87,6 +94,14 @@ export function DesignStepContent({
   const handleMobileLayoutChange = useCallback(() => {
     setPreviewDevice("mobile");
   }, []);
+
+  // Compute available backgrounds for current layout from the map
+  const availableBackgrounds = useMemo(() => {
+    if (!backgroundsByLayout) return [];
+    const currentLayout = designConfig.leadCaptureLayout?.desktop;
+    if (!currentLayout) return [];
+    return backgroundsByLayout[currentLayout] || [];
+  }, [backgroundsByLayout, designConfig.leadCaptureLayout?.desktop]);
 
   if (!goal) {
     return (
@@ -140,6 +155,7 @@ export function DesignStepContent({
                     templateType={templateType}
                     onChange={onDesignChange}
                     customThemePresets={customThemePresets}
+                    availableBackgrounds={availableBackgrounds}
                     onMobileLayoutChange={handleMobileLayoutChange}
                   />
                 </>
@@ -158,6 +174,7 @@ export function DesignStepContent({
                     templateType={templateType}
                     onChange={onDesignChange}
                     customThemePresets={customThemePresets}
+                    availableBackgrounds={availableBackgrounds}
                     onMobileLayoutChange={handleMobileLayoutChange}
                   />
                 </>
@@ -175,6 +192,7 @@ export function DesignStepContent({
                     templateType={templateType}
                     onChange={onDesignChange}
                     customThemePresets={customThemePresets}
+                    availableBackgrounds={availableBackgrounds}
                     onMobileLayoutChange={handleMobileLayoutChange}
                   />
                 </>
@@ -197,6 +215,7 @@ export function DesignStepContent({
                     templateType={templateType}
                     onChange={onDesignChange}
                     customThemePresets={customThemePresets}
+                    availableBackgrounds={availableBackgrounds}
                     onMobileLayoutChange={handleMobileLayoutChange}
                     onThemeChange={(themeKey) => {
                       if (templateType === "SPIN_TO_WIN") {

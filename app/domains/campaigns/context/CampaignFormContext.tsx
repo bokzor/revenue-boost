@@ -11,8 +11,9 @@
  * - Type-safe context with TypeScript
  */
 
-import { createContext, useContext, ReactNode } from "react";
+import { createContext, useContext, ReactNode, useMemo } from "react";
 import type { CampaignFormData } from "~/shared/hooks/useWizardState";
+import type { BackgroundPreset } from "~/config/background-presets";
 
 /**
  * Campaign Form Context Value
@@ -35,6 +36,12 @@ export interface CampaignFormContextValue {
   // Utility functions
   setTemplateType?: (templateType: string) => void;
   applyGoalDefaults?: () => void;
+
+  /**
+   * Map of layout -> proven background presets.
+   * Loaded once from recipe service, filtered by current layout in components.
+   */
+  backgroundsByLayout?: Record<string, BackgroundPreset[]>;
 }
 
 /**
@@ -134,4 +141,24 @@ export function useConfigField<TConfig extends Record<string, unknown>>(
   };
 
   return [config, updateConfig];
+}
+
+/**
+ * Hook to get available backgrounds for the current layout.
+ * Uses the backgroundsByLayout map from context and filters by current design layout.
+ */
+export function useAvailableBackgrounds(): BackgroundPreset[] {
+  const { wizardState, backgroundsByLayout } = useCampaignForm();
+
+  return useMemo(() => {
+    if (!backgroundsByLayout) return [];
+
+    const currentLayout = (
+      wizardState.designConfig as { leadCaptureLayout?: { desktop?: string } } | undefined
+    )?.leadCaptureLayout?.desktop;
+
+    if (!currentLayout) return [];
+
+    return backgroundsByLayout[currentLayout] || [];
+  }, [backgroundsByLayout, wizardState.designConfig]);
 }
