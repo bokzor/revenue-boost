@@ -109,6 +109,8 @@ export interface PopupDesignEditorProps {
   onDiscountChange?: (config: DiscountConfig) => void;
   shopDomain?: string;
   isLoading?: boolean;
+  /** Whether the campaign captures email addresses (enables email-restricted discount behavior) */
+  hasEmailCapture?: boolean;
 }
 
 const defaultAnimations: AnimationSettings = {
@@ -160,6 +162,7 @@ export const PopupDesignEditorV2: React.FC<PopupDesignEditorProps> = ({
   onDiscountChange,
   shopDomain,
   isLoading = false,
+  hasEmailCapture,
 }) => {
   // Validate campaign goal - throw error for invalid values
   const validCampaignGoals = ["NEWSLETTER_SIGNUP", "INCREASE_REVENUE", "ENGAGEMENT"];
@@ -1292,6 +1295,7 @@ export const PopupDesignEditorV2: React.FC<PopupDesignEditorProps> = ({
                         goal={campaignGoal}
                         discountConfig={discountConfig}
                         onConfigChange={onDiscountChange || (() => {})}
+                        hasEmailCapture={hasEmailCapture}
                       />
                     </Box>
                   </Collapsible>

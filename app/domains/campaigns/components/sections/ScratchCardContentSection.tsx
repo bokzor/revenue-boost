@@ -255,11 +255,12 @@ export function ScratchCardContentSection({
 
             <FormGrid columns={2}>
               <TextField
-                label="Button Text"
+                label="Submit Button Text"
                 name="content.buttonText"
-                value={content.buttonText || "Reveal"}
+                value={content.buttonText || "Claim My Prize"}
                 required
-                placeholder="Reveal"
+                placeholder="Claim My Prize"
+                helpText="Text for the email submit button"
                 onChange={(v) => updateField("buttonText", v)}
               />
               <TextField
@@ -307,14 +308,11 @@ export function ScratchCardContentSection({
                 helpText="When to ask for email in the scratch card flow"
                 onChange={(mode) => {
                   if (mode === "none") {
-                    updateField("emailRequired", false);
-                    updateField("emailBeforeScratching", false);
+                    onChange({ ...content, emailRequired: false, emailBeforeScratching: false });
                   } else if (mode === "after") {
-                    updateField("emailRequired", true);
-                    updateField("emailBeforeScratching", false);
+                    onChange({ ...content, emailRequired: true, emailBeforeScratching: false });
                   } else if (mode === "before") {
-                    updateField("emailRequired", true);
-                    updateField("emailBeforeScratching", true);
+                    onChange({ ...content, emailRequired: true, emailBeforeScratching: true });
                   }
                 }}
               />

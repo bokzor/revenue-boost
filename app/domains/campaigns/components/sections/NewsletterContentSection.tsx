@@ -170,6 +170,7 @@ export function NewsletterContentSection({
               goal="NEWSLETTER_SIGNUP"
               discountConfig={discountConfig}
               onConfigChange={onDiscountChange}
+              hasEmailCapture={true}
             />
           </BlockStack>
         </Card>

@@ -288,6 +288,7 @@ export const TEMPLATE_PREVIEW_REGISTRY: Record<string, TemplatePreviewEntry<any>
 
         // Discount: transform admin config to storefront format
         discount: transformDiscountConfig(mergedConfig.discountConfig, "WELCOME") || mergedConfig.discount,
+        discountCodeLabel: mergedConfig.discountCodeLabel || "Your discount code:",
 
         // All common config (colors, typography, layout, image settings)
         ...buildCommonConfig(mergedConfig, designConfig),

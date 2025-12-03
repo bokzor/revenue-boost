@@ -844,7 +844,7 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
                     email: config.emailLabel,
                     name: config.nameFieldLabel,
                     gdpr: config.consentFieldText,
-                    submit: "Unlock Scratch Card",
+                    submit: config.buttonText || "Unlock Scratch Card",
                   }}
                   placeholders={{
                     email: config.emailPlaceholder || "Enter your email",

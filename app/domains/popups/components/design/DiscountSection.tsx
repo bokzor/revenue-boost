@@ -43,6 +43,11 @@ interface DiscountSectionProps {
    * For Free Shipping Bar, use ['FREE_SHIPPING'] to hide irrelevant options.
    */
   allowedValueTypes?: DiscountValueTypeOption[];
+  /**
+   * Whether the campaign captures email addresses.
+   * When true, enables the "Show Code + Assign to Email" behavior option.
+   */
+  hasEmailCapture?: boolean;
 }
 
 const ALL_VALUE_TYPES: DiscountValueTypeOption[] = ["PERCENTAGE", "FIXED_AMOUNT", "FREE_SHIPPING"];
@@ -58,6 +63,7 @@ export function DiscountSection({
   discountConfig,
   onConfigChange,
   allowedValueTypes = ALL_VALUE_TYPES,
+  hasEmailCapture,
 }: DiscountSectionProps) {
   const [showAdvanced, setShowAdvanced] = useState(false);
 
@@ -255,6 +261,7 @@ export function DiscountSection({
               onConfigChange={(newConfig) => {
                 onConfigChange(newConfig);
               }}
+              hasEmailCapture={hasEmailCapture}
             />
           </div>
         </Modal.Section>

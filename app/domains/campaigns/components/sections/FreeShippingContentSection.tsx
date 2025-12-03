@@ -357,6 +357,7 @@ export function FreeShippingContentSection({
               discountConfig={discountConfig}
               onConfigChange={onDiscountChange}
               allowedValueTypes={["FREE_SHIPPING"]}
+              hasEmailCapture={content.requireEmailToClaim}
             />
           </BlockStack>
         </Card>

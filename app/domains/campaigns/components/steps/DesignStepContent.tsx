@@ -6,6 +6,7 @@
  * - DesignConfigSection for universal design/color fields (used by ALL templates)
  */
 
+import { useState, useCallback } from "react";
 import { Banner, Text, BlockStack, Card, Divider, Layout } from "@shopify/polaris";
 import { ContentConfigSection } from "../sections/ContentConfigSection";
 import { DesignConfigSection } from "../sections/DesignConfigSection";
@@ -14,7 +15,7 @@ import type { NewsletterContent } from "../sections/NewsletterContentSection";
 import { FlashSaleContentSection } from "../sections/FlashSaleContentSection";
 import type { FlashSaleContent } from "../sections/FlashSaleContentSection";
 import { TemplateSelector, type SelectedTemplate } from "../TemplateSelector";
-import { LivePreviewPanel } from "~/domains/popups/components/preview/LivePreviewPanel";
+import { LivePreviewPanel, type PreviewDevice } from "~/domains/popups/components/preview/LivePreviewPanel";
 import { Affix } from "~/shared/components/ui/Affix";
 import type { CampaignGoal, TemplateType } from "~/shared/hooks/useWizardState";
 import type { ContentConfig, DesignConfig , SpinToWinContent } from "~/domains/campaigns/types/campaign";
@@ -79,6 +80,14 @@ export function DesignStepContent({
   preselectedTemplateType,
   skipAutoSelect = false,
 }: DesignStepContentProps) {
+  // Preview device state - controlled by both device toggle and mobile layout changes
+  const [previewDevice, setPreviewDevice] = useState<PreviewDevice>("tablet");
+
+  // Switch to mobile preview when mobile layout is changed
+  const handleMobileLayoutChange = useCallback(() => {
+    setPreviewDevice("mobile");
+  }, []);
+
   if (!goal) {
     return (
       <Banner tone="warning">
@@ -131,6 +140,7 @@ export function DesignStepContent({
                     templateType={templateType}
                     onChange={onDesignChange}
                     customThemePresets={customThemePresets}
+                    onMobileLayoutChange={handleMobileLayoutChange}
                   />
                 </>
               ) : templateType === "FLASH_SALE" ? (
@@ -148,6 +158,7 @@ export function DesignStepContent({
                     templateType={templateType}
                     onChange={onDesignChange}
                     customThemePresets={customThemePresets}
+                    onMobileLayoutChange={handleMobileLayoutChange}
                   />
                 </>
               ) : templateType === "COUNTDOWN_TIMER" ? (
@@ -164,6 +175,7 @@ export function DesignStepContent({
                     templateType={templateType}
                     onChange={onDesignChange}
                     customThemePresets={customThemePresets}
+                    onMobileLayoutChange={handleMobileLayoutChange}
                   />
                 </>
               ) : (
@@ -185,6 +197,7 @@ export function DesignStepContent({
                     templateType={templateType}
                     onChange={onDesignChange}
                     customThemePresets={customThemePresets}
+                    onMobileLayoutChange={handleMobileLayoutChange}
                     onThemeChange={(themeKey) => {
                       if (templateType === "SPIN_TO_WIN") {
                         const spinContent = contentConfig as Partial<SpinToWinContent>;
@@ -277,6 +290,9 @@ export function DesignStepContent({
                 shopDomain={shopDomain}
                 campaignId={campaignId}
                 globalCustomCSS={globalCustomCSS}
+                // Controlled device mode - switches to mobile when mobile layout is changed
+                device={previewDevice}
+                onDeviceChange={setPreviewDevice}
               />
             ) : (
               <Card>

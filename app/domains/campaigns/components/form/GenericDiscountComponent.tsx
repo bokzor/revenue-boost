@@ -56,6 +56,11 @@ interface GenericDiscountComponentProps {
    * since tiered and BOGO don't make sense for per-segment/prize discounts.
    */
   allowedStrategies?: DiscountStrategy[];
+  /**
+   * Whether the campaign captures email addresses.
+   * When true, enables the "Show Code + Assign to Email" behavior option.
+   */
+  hasEmailCapture?: boolean;
 }
 
 const ALL_STRATEGIES: DiscountStrategy[] = ["basic", "tiered", "bogo", "free_gift"];
@@ -72,6 +77,7 @@ export function GenericDiscountComponent({
   discountConfig,
   onConfigChange,
   allowedStrategies = ALL_STRATEGIES,
+  hasEmailCapture,
 }: GenericDiscountComponentProps) {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [freeGiftVariants, setFreeGiftVariants] = useState<Array<{ id: string; title: string }>>();
@@ -849,6 +855,7 @@ export function GenericDiscountComponent({
               onConfigChange={(newConfig) => {
                 onConfigChange(newConfig);
               }}
+              hasEmailCapture={hasEmailCapture}
             />
           </div>
         </Modal.Section>

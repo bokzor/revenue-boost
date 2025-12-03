@@ -297,6 +297,8 @@ export type BaseContentConfig = z.infer<typeof BaseContentConfigSchema>;
 export const NewsletterContentSchema = BaseContentConfigSchema.merge(LeadCaptureConfigSchema).extend({
   // Newsletter-specific
   submitButtonText: z.string(),
+  // Label shown above the discount code on success (e.g., "Your discount code:")
+  discountCodeLabel: z.string().default("Your discount code:"),
 });
 
 /**

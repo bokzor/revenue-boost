@@ -12,7 +12,16 @@
 
 import { useRef, useMemo } from "react";
 import type { ChangeEvent } from "react";
-import { Card, BlockStack, Text, Divider, Select, Banner, Button, RangeSlider } from "@shopify/polaris";
+import {
+  Card,
+  BlockStack,
+  Text,
+  Divider,
+  Select,
+  Banner,
+  Button,
+  RangeSlider,
+} from "@shopify/polaris";
 import { ColorField, FormGrid, CollapsibleSection, useCollapsibleSections } from "../form";
 import type { DesignConfig, TemplateType } from "~/domains/campaigns/types/campaign";
 import { type NewsletterThemeKey, resolveThemeForTemplate } from "~/config/color-presets";
@@ -63,9 +72,9 @@ export interface DesignConfigSectionProps {
   onThemeChange?: (themeKey: NewsletterThemeKey) => void;
   /** Optional callback to apply wheel colors when custom preset is applied (for Spin-to-Win) */
   onCustomPresetApply?: (presetId: string, brandColor: string) => void;
+  /** Optional callback when mobile layout is changed - can be used to switch preview to mobile */
+  onMobileLayoutChange?: () => void;
 }
-
-
 
 /**
  * Maps LayoutOption to leadCaptureLayout config (preserving existing fine-tuning)
@@ -80,11 +89,24 @@ function mapLayoutOptionToConfig(
 
   switch (layout) {
     case "split-left":
-      return { desktop: "split-left", mobile: preservedMobile, visualSizeDesktop: preservedVisualSize };
+      return {
+        desktop: "split-left",
+        mobile: preservedMobile,
+        visualSizeDesktop: preservedVisualSize,
+      };
     case "split-right":
-      return { desktop: "split-right", mobile: preservedMobile, visualSizeDesktop: preservedVisualSize };
+      return {
+        desktop: "split-right",
+        mobile: preservedMobile,
+        visualSizeDesktop: preservedVisualSize,
+      };
     case "hero":
-      return { desktop: "stacked", mobile: "stacked", visualSizeDesktop: "40%", visualGradient: true };
+      return {
+        desktop: "stacked",
+        mobile: "stacked",
+        visualSizeDesktop: "40%",
+        visualGradient: true,
+      };
     case "full":
       return { desktop: "overlay", mobile: "overlay", visualSizeDesktop: "100%" };
     case "minimal":
@@ -144,6 +166,7 @@ export function DesignConfigSection({
   customThemePresets,
   onThemeChange,
   onCustomPresetApply,
+  onMobileLayoutChange,
 }: DesignConfigSectionProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -339,14 +362,19 @@ export function DesignConfigSection({
             {currentLayout && currentLayout.desktop !== "content-only" && (
               <BlockStack gap="300">
                 {/* Visual Size Slider - only for split layouts */}
-                {(currentLayout.desktop === "split-left" || currentLayout.desktop === "split-right") && (
+                {(currentLayout.desktop === "split-left" ||
+                  currentLayout.desktop === "split-right") && (
                   <RangeSlider
                     label="Image width"
                     value={parseInt(currentLayout.visualSizeDesktop || "50")}
                     min={30}
                     max={60}
                     step={5}
-                    suffix={<Text as="span" variant="bodySm">{currentLayout.visualSizeDesktop || "50%"}</Text>}
+                    suffix={
+                      <Text as="span" variant="bodySm">
+                        {currentLayout.visualSizeDesktop || "50%"}
+                      </Text>
+                    }
                     onChange={(value) => {
                       updateField("leadCaptureLayout", {
                         ...currentLayout,
@@ -365,6 +393,8 @@ export function DesignConfigSection({
                         ...currentLayout,
                         mobile: value,
                       });
+                      // Switch preview to mobile mode so user can see the effect
+                      onMobileLayoutChange?.();
                     }}
                     title="Mobile Layout"
                     helpText="How the popup appears on mobile devices"
@@ -414,8 +444,6 @@ export function DesignConfigSection({
           />
         )}
 
-        <Divider />
-
         {/* Background - Color and optional image */}
         <CollapsibleSection
           id="background-section"
@@ -438,7 +466,9 @@ export function DesignConfigSection({
             {caps?.usesImage !== false && !isMinimalLayout && (
               <>
                 <Divider />
-                <Text as="h3" variant="headingSm">Background Image</Text>
+                <Text as="h3" variant="headingSm">
+                  Background Image
+                </Text>
                 <FormGrid columns={2}>
                   <Select
                     label="Preset background"
@@ -446,10 +476,12 @@ export function DesignConfigSection({
                     options={[
                       { label: "No preset image", value: "none" },
                       // Theme-matched backgrounds
-                      ...BACKGROUND_PRESETS.filter((bg) => bg.category === "theme").map((preset) => ({
-                        label: preset.name,
-                        value: preset.id,
-                      })),
+                      ...BACKGROUND_PRESETS.filter((bg) => bg.category === "theme").map(
+                        (preset) => ({
+                          label: preset.name,
+                          value: preset.id,
+                        })
+                      ),
                       // Seasonal backgrounds
                       ...BACKGROUND_PRESETS.filter((bg) => bg.category === "seasonal").map(
                         (preset) => ({
@@ -525,9 +557,15 @@ export function DesignConfigSection({
                       min={0}
                       max={100}
                       step={5}
-                      onChange={(value) => updateField("backgroundOverlayOpacity", (value as number) / 100)}
+                      onChange={(value) =>
+                        updateField("backgroundOverlayOpacity", (value as number) / 100)
+                      }
                       output
-                      suffix={<Text as="span" variant="bodySm">%</Text>}
+                      suffix={
+                        <Text as="span" variant="bodySm">
+                          %
+                        </Text>
+                      }
                     />
                     <Text as="p" variant="bodySm" tone="subdued">
                       Higher values make the overlay darker for better text readability

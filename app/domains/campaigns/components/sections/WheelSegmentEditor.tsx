@@ -216,6 +216,7 @@ export function WheelSegmentEditor({ segments, onChange }: WheelSegmentEditorPro
                       discountConfig={segment.discountConfig as DiscountConfig | undefined}
                       onConfigChange={(config) => updateSegmentDiscount(index, config)}
                       allowedStrategies={["basic", "free_gift"]}
+                      hasEmailCapture={true}
                     />
                   </BlockStack>
                 </BlockStack>

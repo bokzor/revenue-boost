@@ -531,6 +531,7 @@ export function CartAbandonmentContentSection({
               discountConfig={discountConfig}
               onConfigChange={onDiscountChange}
               allowedStrategies={["basic", "tiered"]}
+              hasEmailCapture={content.enableEmailRecovery}
             />
           </BlockStack>
         </Card>
