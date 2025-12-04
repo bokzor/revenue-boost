@@ -122,7 +122,7 @@ const goldenReveal: StyledRecipe = {
       // Full background mode - image fills popup, content overlays
       imageUrl: "/recipes/scratch-card/golden-reveal-bg.jpg",
       imagePosition: "full",
-      leadCaptureLayout: { desktop: "overlay", mobile: "stacked" },
+      leadCaptureLayout: { desktop: "overlay", mobile: "overlay" },
       backgroundOverlayOpacity: 0.6,
       borderRadius: 16,
       buttonBorderRadius: 8,
@@ -203,6 +203,7 @@ const neonArcade: StyledRecipe = {
       accentColor: "#EC4899",
       fontFamily: "'Space Grotesk', 'Courier New', monospace",
       imagePosition: "none",
+      leadCaptureLayout: { desktop: "overlay", mobile: "overlay" },
       borderRadius: 8,
       buttonBorderRadius: 4,
       inputBorderRadius: 4,
@@ -285,6 +286,8 @@ const paperLuck: StyledRecipe = {
       borderRadius: 12,
       buttonBorderRadius: 999,
       inputBorderRadius: 8,
+      leadCaptureLayout: { desktop: "overlay", mobile: "overlay" },
+
       textAlign: "center",
       contentSpacing: "comfortable",
     },
@@ -361,7 +364,7 @@ const roseGoldDream: StyledRecipe = {
       // Full background mode
       imageUrl: "/recipes/scratch-card/rose-gold-bg.jpg",
       imagePosition: "full",
-      leadCaptureLayout: { desktop: "overlay", mobile: "stacked" },
+      leadCaptureLayout: { desktop: "overlay", mobile: "overlay" },
       backgroundOverlayOpacity: 0.4,
       borderRadius: 20,
       buttonBorderRadius: 999,
@@ -524,7 +527,7 @@ const holidayMagic: StyledRecipe = {
       // Full background mode
       imageUrl: "/recipes/scratch-card/holiday-magic-bg.jpg",
       imagePosition: "full",
-      leadCaptureLayout: { desktop: "overlay", mobile: "stacked" },
+      leadCaptureLayout: { desktop: "overlay", mobile: "overlay" },
       backgroundOverlayOpacity: 0.4,
       borderRadius: 16,
       buttonBorderRadius: 8,
@@ -599,6 +602,7 @@ const woodArtisan: StyledRecipe = {
       scratchCardTextColor: "#422006", // Dark brown text on cream prize background
       scratchOverlayColor: "#D97706",
       scratchOverlayImage: "/recipes/scratch-card/wood-artisan-overlay.jpg",
+      leadCaptureLayout: { desktop: "overlay", mobile: "overlay" },
       inputBackgroundColor: "#FFFFFF",
       inputTextColor: "#422006", // Dark brown text on white input
       inputBorderColor: "#FDE68A",
@@ -687,7 +691,7 @@ const holographicHype: StyledRecipe = {
       // Full background mode
       imageUrl: "/recipes/scratch-card/holographic-hype-bg.jpg",
       imagePosition: "full",
-      leadCaptureLayout: { desktop: "overlay", mobile: "stacked" },
+      leadCaptureLayout: { desktop: "overlay", mobile: "overlay" },
       backgroundOverlayOpacity: 0.3,
       borderRadius: 24,
       buttonBorderRadius: 999,

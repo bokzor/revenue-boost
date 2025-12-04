@@ -17,3 +17,6 @@ export type { UsePopupAnimationOptions } from "./usePopupAnimation";
 
 export { useColorScheme, getColorSchemeGradient } from "./useColorScheme";
 export type { ColorSchemeType, ColorSchemeColors, CustomColors } from "./useColorScheme";
+
+export { useDesignVariables } from "./useDesignVariables";
+export type { CSSVariables } from "./useDesignVariables";

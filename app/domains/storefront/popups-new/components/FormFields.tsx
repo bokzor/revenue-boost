@@ -7,6 +7,7 @@
 
 import React from "react";
 import { useId } from "../hooks/useId";
+import { StyledCheckbox } from "./shared/StyledCheckbox";
 
 // Polyfill for CSS.escape (not available in Node.js SSR)
 const cssEscape = (value: string): string => {
@@ -53,12 +54,20 @@ export const EmailInput: React.FC<EmailInputProps> = ({
   const computedPlaceholderColor = placeholderColor || `${textColor}99`;
 
   return (
-    <div style={{ marginBottom: "1rem" }}>
+    <div>
       <style>
         {`
           #${cssEscape(inputId)}::placeholder {
             color: ${computedPlaceholderColor};
             opacity: 1;
+          }
+          #${cssEscape(inputId)}:focus {
+            border-color: ${accentColor};
+            box-shadow: 0 0 0 var(--rb-popup-input-focus-ring-width, 0px)
+                        var(--rb-popup-input-focus-ring-color, transparent);
+          }
+          #${cssEscape(inputId)}:not(:focus):hover:not(:disabled) {
+            border-color: ${borderColor}80;
           }
         `}
       </style>
@@ -89,25 +98,18 @@ export const EmailInput: React.FC<EmailInputProps> = ({
         className={className}
         style={{
           width: "100%",
-          padding: "0.75rem",
+          padding: "0.875rem 1rem",
           fontFamily: "inherit",
           fontSize: "1rem",
-          border: error ? "2px solid #EF4444" : `1px solid ${borderColor}`,
-          borderRadius: "0.5rem",
+          border: error
+            ? "2px solid #EF4444"
+            : `var(--rb-popup-input-border-width, 1px) solid ${borderColor}`,
+          borderRadius: "var(--rb-popup-input-radius, 0.75rem)",
           backgroundColor,
           color: textColor,
           outline: "none",
-          transition: "border-color 0.2s",
-        }}
-        onFocus={(e) => {
-          if (!error) {
-            e.target.style.borderColor = accentColor;
-          }
-        }}
-        onBlur={(e) => {
-          if (!error) {
-            e.target.style.borderColor = borderColor;
-          }
+          transition: "border-color 0.2s, box-shadow 0.2s",
+          boxShadow: "var(--rb-popup-input-shadow, none)",
         }}
       />
       {error && (
@@ -163,12 +165,20 @@ export const NameInput: React.FC<NameInputProps> = ({
   const computedPlaceholderColor = placeholderColor || `${textColor}99`;
 
   return (
-    <div style={{ marginBottom: "1rem" }}>
+    <div>
       <style>
         {`
           #${cssEscape(inputId)}::placeholder {
             color: ${computedPlaceholderColor};
             opacity: 1;
+          }
+          #${cssEscape(inputId)}:focus {
+            border-color: ${accentColor};
+            box-shadow: 0 0 0 var(--rb-popup-input-focus-ring-width, 0px)
+                        var(--rb-popup-input-focus-ring-color, transparent);
+          }
+          #${cssEscape(inputId)}:not(:focus):hover:not(:disabled) {
+            border-color: ${borderColor}80;
           }
         `}
       </style>
@@ -199,25 +209,18 @@ export const NameInput: React.FC<NameInputProps> = ({
         className={className}
         style={{
           width: "100%",
-          padding: "0.75rem",
+          padding: "0.875rem 1rem",
           fontFamily: "inherit",
           fontSize: "1rem",
-          border: error ? "2px solid #EF4444" : `1px solid ${borderColor}`,
-          borderRadius: "0.5rem",
+          border: error
+            ? "2px solid #EF4444"
+            : `var(--rb-popup-input-border-width, 1px) solid ${borderColor}`,
+          borderRadius: "var(--rb-popup-input-radius, 0.75rem)",
           backgroundColor,
           color: textColor,
           outline: "none",
-          transition: "border-color 0.2s",
-        }}
-        onFocus={(e) => {
-          if (!error) {
-            e.target.style.borderColor = accentColor;
-          }
-        }}
-        onBlur={(e) => {
-          if (!error) {
-            e.target.style.borderColor = borderColor;
-          }
+          transition: "border-color 0.2s, box-shadow 0.2s",
+          boxShadow: "var(--rb-popup-input-shadow, none)",
         }}
       />
       {error && (
@@ -314,31 +317,26 @@ export const GdprCheckbox: React.FC<GdprCheckboxProps> = ({
   };
 
   return (
-    <div style={{ marginBottom: "1rem" }}>
+    <div>
       <label
         style={{
           display: "flex",
           alignItems: "flex-start",
           cursor: disabled ? "not-allowed" : "pointer",
-          gap: "0.5rem",
+          gap: "0.75rem",
         }}
       >
-        <input
-          type="checkbox"
-          checked={checked}
-          onChange={(e) => onChange(e.target.checked)}
-          required={required}
-          disabled={disabled}
-          aria-invalid={!!error}
-          aria-describedby={error ? "gdpr-error" : undefined}
-          style={{
-            marginTop: "0.25rem",
-            width: "1rem",
-            height: "1rem",
-            accentColor,
-            cursor: disabled ? "not-allowed" : "pointer",
-          }}
-        />
+        <div style={{ marginTop: "0.125rem" }}>
+          <StyledCheckbox
+            checked={checked}
+            onChange={onChange}
+            required={required}
+            disabled={disabled}
+            accentColor={accentColor}
+            hasError={!!error}
+            ariaLabel={text}
+          />
+        </div>
         <span
           style={{
             fontSize: "0.875rem",
@@ -347,7 +345,7 @@ export const GdprCheckbox: React.FC<GdprCheckboxProps> = ({
           }}
         >
           {renderConsentText()}
-          {required && <span style={{ color: "#EF4444" }}> *</span>}
+          {required && <span style={{ color: accentColor, marginLeft: "0.25rem" }}>*</span>}
         </span>
       </label>
       {error && (
@@ -423,7 +421,8 @@ export const SubmitButton: React.FC<SubmitButtonProps> = ({
           color: textColor,
           backgroundColor: isDisabled ? "#9CA3AF" : bgColor,
           border: "none",
-          borderRadius: "0.5rem",
+          borderRadius: "var(--rb-popup-button-radius, 0.5rem)",
+          boxShadow: "var(--rb-popup-button-shadow, none)",
           cursor: isDisabled ? "not-allowed" : "pointer",
           transition: "all 0.2s",
           opacity: isDisabled ? 0.6 : 1,

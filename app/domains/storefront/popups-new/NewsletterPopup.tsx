@@ -21,10 +21,13 @@ import { LeadCaptureLayout } from "app/domains/storefront/popups-new/components/
 import { SPACING_GUIDELINES } from "app/domains/storefront/popups-new/utils/spacing";
 
 // Import custom hooks
-import { usePopupForm, useDiscountCode, usePopupAnimation } from "./hooks";
+import { usePopupForm, useDiscountCode, usePopupAnimation, useDesignVariables } from "./hooks";
 
 // Import shared components from Phase 1 & 2
 import { LeadCaptureForm, PopupHeader, SuccessState } from "./components/shared";
+
+// Import Phase C components (Spa Serenity Design System)
+import { TagBadge, FooterDisclaimer, ImageFloatingBadge } from "./components/shared";
 
 // Import shared animations
 import "./components/shared/animations.css";
@@ -117,6 +120,9 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
 
   // Use animation hook
   const { showContent: _showContent } = usePopupAnimation({ isVisible });
+
+  // Convert design config to CSS variables
+  const designVars = useDesignVariables(config);
 
   // Get layout config from design config (or use default)
   const layout = config.leadCaptureLayout || DEFAULT_LAYOUT;
@@ -327,21 +333,35 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
         showCloseButton={config.showCloseButton !== false}
         onClose={onClose}
         className="NewsletterPopup"
+        style={designVars as React.CSSProperties}
         data-splitpop="true"
         data-template="newsletter"
         visualSlot={
           hasVisual ? (
-            <img
-              src={imageUrl}
-              alt=""
-              aria-hidden="true"
-              style={{
-                width: "100%",
-                height: "100%",
-                objectFit: "cover",
-                objectPosition: "center",
-              }}
-            />
+            <div style={{ position: "relative", width: "100%", height: "100%" }}>
+              <img
+                src={imageUrl}
+                alt=""
+                aria-hidden="true"
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  objectPosition: "center",
+                }}
+              />
+              {/* Image Floating Badge (social proof) */}
+              {config.imageBadgeEnabled && config.imageBadgeValue && (
+                <ImageFloatingBadge
+                  icon={config.imageBadgeIcon || "leaf"}
+                  title={config.imageBadgeTitle}
+                  value={config.imageBadgeValue}
+                  position="bottom-left"
+                  accentColor={config.badgeBackgroundColor}
+                  textColor={config.textColor}
+                />
+              )}
+            </div>
           ) : undefined
         }
         formSlot={
@@ -372,6 +392,15 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
               </>
             ) : (
               <>
+                {/* Tag Badge (e.g., "Exclusive offers inside") */}
+                {config.tagText && (
+                  <div style={{ marginBottom: "1rem" }}>
+                    <TagBadge
+                      text={config.tagText}
+                      icon={config.tagIcon}
+                    />
+                  </div>
+                )}
                 <PopupHeader
                   headline={config.headline}
                   subheadline={config.subheadline}
@@ -383,6 +412,7 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
                   subheadlineFontWeight={config.descriptionFontWeight || config.fontWeight}
                   align={layout.desktop === "overlay" ? "center" : "left"}
                   marginBottom={SPACING_GUIDELINES.afterDescription}
+                  headlineFontFamily={config.headlineFontFamily}
                 />
                 <LeadCaptureForm
                   data={formState}
@@ -416,6 +446,10 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
                   inputBorderColor={config.inputBorderColor}
                   privacyPolicyUrl={config.privacyPolicyUrl}
                 />
+                {/* Footer Disclaimer */}
+                {config.footerText && (
+                  <FooterDisclaimer text={config.footerText} textColor={config.textColor} />
+                )}
                 <button
                   type="button"
                   className="email-popup-secondary-button"

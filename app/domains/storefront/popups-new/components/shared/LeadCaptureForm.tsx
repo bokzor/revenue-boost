@@ -275,7 +275,10 @@ export const LeadCaptureForm: React.FC<LeadCaptureFormProps> = ({
         onSubmit(e);
       }}
       className={className}
-      style={style}
+      style={{
+        textAlign: "var(--rb-popup-text-align, left)" as React.CSSProperties["textAlign"],
+        ...style,
+      }}
     >
       {isInline ? (
         // Inline layout: email + button on same line (responsive with CSS Grid)
@@ -314,8 +317,14 @@ export const LeadCaptureForm: React.FC<LeadCaptureFormProps> = ({
           </div>
         </div>
       ) : (
-        // Vertical layout (default)
-        <>
+        // Vertical layout (default) - uses CSS variable for spacing
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "var(--rb-popup-gap, 1rem)",
+          }}
+        >
           {/* Email Input */}
           <EmailInput
             value={data.email}
@@ -377,7 +386,7 @@ export const LeadCaptureForm: React.FC<LeadCaptureFormProps> = ({
           >
             {labels?.submit || "Submit"}
           </SubmitButton>
-        </>
+        </div>
       )}
     </form>
   );

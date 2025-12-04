@@ -564,7 +564,8 @@ const bogoWeekend: StyledRecipe = {
     discountConfig: {
       enabled: true,
       type: "shared",
-      valueType: "BOGO",
+      valueType: "PERCENTAGE",
+      value: 50, // BOGO equivalent: 50% off second item
     },
   },
 };

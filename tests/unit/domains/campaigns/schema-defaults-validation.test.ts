@@ -149,9 +149,9 @@ describe("Schema Defaults Validation", () => {
       const parsed = SpinToWinContentSchema.parse(SPIN_REQUIRED);
 
       expect(parsed.emailRequired).toBe(true);
-      expect(parsed.collectName).toBe(false);
+      expect(parsed.nameFieldEnabled).toBe(false);
       expect(parsed.nameFieldRequired).toBe(false);
-      expect(parsed.showGdprCheckbox).toBe(false);
+      expect(parsed.consentFieldEnabled).toBe(false);
       expect(parsed.consentFieldRequired).toBe(false);
     });
   });
@@ -170,7 +170,7 @@ describe("Schema Defaults Validation", () => {
       expect(parsed.emailBeforeScratching).toBe(false);
       expect(parsed.scratchThreshold).toBe(50);
       expect(parsed.scratchRadius).toBe(20);
-      expect(parsed.showGdprCheckbox).toBe(false);
+      expect(parsed.consentFieldEnabled).toBe(false);
     });
   });
 

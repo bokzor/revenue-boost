@@ -96,6 +96,10 @@ export interface PopupHeaderProps {
    */
   subheadlineFontWeight?: string | number;
   /**
+   * Font family for headline (e.g., "Georgia, serif")
+   */
+  headlineFontFamily?: string;
+  /**
    * Text alignment
    * @default "center"
    */
@@ -146,6 +150,7 @@ export const PopupHeader: React.FC<PopupHeaderProps> = ({
   subheadlineFontSize = "1rem",
   headlineFontWeight = "700",
   subheadlineFontWeight = "400",
+  headlineFontFamily,
   align = "center",
   spacing = "0.75rem",
   marginBottom = "1.5rem",
@@ -162,6 +167,7 @@ export const PopupHeader: React.FC<PopupHeaderProps> = ({
     margin: 0,
     fontSize: headlineFontSize,
     fontWeight: headlineFontWeight,
+    fontFamily: headlineFontFamily || "var(--rb-popup-headline-font, inherit)",
     color: textColor,
     lineHeight: 1.2,
     marginBottom: subheadline ? spacing : 0,

@@ -570,72 +570,97 @@ const spaSerenity: StyledRecipe = {
   id: "newsletter-spa-serenity",
   name: "Spa Serenity",
   tagline: "Find Your Balance",
-  description: "Non-intrusive design for wellness-focused visitors. Respects the calm browsing experience.",
+  description:
+    "Premium wellness design with serif typography, floating social proof badge, and mindful consent flow.",
   icon: "🧘",
   category: "email_leads",
   goal: "NEWSLETTER_SIGNUP",
   templateType: "NEWSLETTER",
-  tags: ["wellness", "elegant", "fullscreen", "discount"] as RecipeTag[],
-  component: "NewsletterFullscreen",
+  tags: ["wellness", "elegant", "split", "discount", "premium"] as RecipeTag[],
+  component: "NewsletterSplit",
   theme: "spa-serenity",
-  layout: "fullscreen",
+  layout: "split-left",
   imageUrl: "/recipes/newsletter/spa-serenity.jpg",
+  featured: true,
   inputs: [
     {
       ...DISCOUNT_INPUT,
-      defaultValue: 25,
-      type: "currency_amount" as const,
-      label: "Discount Amount",
+      defaultValue: 10,
+      type: "discount_percentage" as const,
+      label: "Discount Percentage",
     },
+    TRIGGER_INPUT,
   ],
   editableFields: NEWSLETTER_EDITABLE_FIELDS,
   defaults: {
     contentConfig: {
       headline: "Find Your Balance",
-      subheadline: "Wellness tips, self-care rituals, and exclusive retreat offers.",
-      emailPlaceholder: "Your email",
-      buttonText: "Subscribe",
-      secondaryButtonText: "Not today",
-      successMessage: "Namaste. Welcome to your journey.",
+      subheadline: "Wellness tips, self-care rituals, and exclusive retreat offers delivered to your inbox.",
+      emailPlaceholder: "Enter your email",
+      buttonText: "Start Your Journey",
+      secondaryButtonText: "Maybe later",
+      successMessage: "Welcome to your wellness journey.",
       // Wellness - consent for mindful marketing
       nameFieldEnabled: true,
       nameFieldRequired: false,
       nameFieldPlaceholder: "Your first name",
       consentFieldEnabled: true,
       consentFieldRequired: true,
-      consentFieldText: "I consent to receive wellness updates",
+      consentFieldText: "I agree to receive wellness tips and exclusive offers",
+      // New Spa Serenity features
+      tagText: "Exclusive offers inside",
+      tagIcon: "sparkle" as const,
+      imageBadgeEnabled: true,
+      imageBadgeIcon: "leaf" as const,
+      imageBadgeTitle: "Join",
+      imageBadgeValue: "10,000+ members",
+      footerText: "Unsubscribe anytime. We respect your privacy.",
+      successBadgeText: "10% off your first retreat",
+      successBadgeIcon: "sparkle" as const,
     },
     designConfig: {
       position: "center",
       size: "large",
       animation: "fade",
-      // Solid white background for maximum readability
+      // Clean white background
       backgroundColor: "#FFFFFF",
-      textColor: "#2F3E36",
-      descriptionColor: "#5A6B5D",
-      // Muted sage button for wellness aesthetic with good contrast
-      buttonColor: "#5A6B5D",
+      textColor: "#1F2937",
+      descriptionColor: "#6B7280",
+      // Wellness green accent
+      buttonColor: "#166534",
       buttonTextColor: "#FFFFFF",
       inputBackgroundColor: "#FFFFFF",
-      inputBorderColor: "#D4DED6",
-      inputTextColor: "#2F3E36",
-      accentColor: "#8BA888",
-      fontFamily: "'Lora', Georgia, serif",
-      // Layout configuration - overlay (full background image)
+      inputBorderColor: "#D1D5DB",
+      inputTextColor: "#1F2937",
+      accentColor: "#166534",
+      // Serif headline font for elegance
+      headlineFontFamily: "Georgia, 'Times New Roman', serif",
+      // Layout configuration - split with image
       leadCaptureLayout: {
-        desktop: "overlay",
-        mobile: "overlay",
-        visualSizeDesktop: "100%",
-        visualSizeMobile: "100%",
+        desktop: "split-left",
+        mobile: "content-only",
+        visualSizeDesktop: "50%",
+        visualSizeMobile: "0",
       },
-      // Higher overlay for readability over image
-      backgroundOverlayOpacity: 0.35,
-      // Zen, calm aesthetic
-      borderRadius: 16,
-      buttonBorderRadius: 999, // Pill button
+      // Rounded corners for soft aesthetic
+      borderRadius: 24,
+      buttonBorderRadius: 12,
       inputBorderRadius: 12,
-      textAlign: "center",
-      contentSpacing: "spacious",
+      textAlign: "left",
+      contentSpacing: "comfortable",
+      // Enhanced input styling
+      inputBorderWidth: 2,
+      inputFocusRingColor: "rgba(22, 101, 52, 0.1)",
+      inputFocusRingWidth: 4,
+      // Badge styling (wellness green theme)
+      badgeBackgroundColor: "#F0FDF4",
+      badgeTextColor: "#166534",
+      badgeBorderRadius: 999,
+      // Checkbox styling
+      checkboxBorderRadius: 6,
+      checkboxSize: 20,
+      // Button shadow for depth
+      buttonBoxShadow: "soft",
     },
     targetRules: {
       enhancedTriggers: {
@@ -646,8 +671,8 @@ const spaSerenity: StyledRecipe = {
     discountConfig: {
       enabled: true,
       type: "single_use",
-      valueType: "FIXED",
-      value: 25,
+      valueType: "PERCENTAGE",
+      value: 10,
     },
   },
 };

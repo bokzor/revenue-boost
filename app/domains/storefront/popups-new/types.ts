@@ -100,6 +100,7 @@ export interface PopupDesignConfig {
   buttonUrl?: string;
 
   // Typography (template-specific)
+  headlineFontFamily?: string; // e.g., "serif", "sans-serif", or full font stack
   titleFontSize?: string;
   titleFontWeight?: string;
   titleTextShadow?: string;
@@ -110,7 +111,10 @@ export interface PopupDesignConfig {
   inputBackdropFilter?: string;
   inputBoxShadow?: string;
   inputBorderRadius?: string | number;
+  inputBorderWidth?: number; // 1 or 2
   inputStyle?: "outlined" | "filled" | "underline";
+  inputFocusRingColor?: string; // Color for focus ring (e.g., "rgba(primary, 0.1)")
+  inputFocusRingWidth?: number; // Width of focus ring in pixels (e.g., 4)
 
   // Button styling
   buttonBorderRadius?: string | number;
@@ -118,6 +122,15 @@ export interface PopupDesignConfig {
   buttonBoxShadow?: string;
   secondaryButtonColor?: string;
   secondaryButtonTextColor?: string;
+
+  // Badge/Tag styling (for promotional badges like "Exclusive offers inside")
+  badgeBackgroundColor?: string;
+  badgeTextColor?: string;
+  badgeBorderRadius?: number;
+
+  // Checkbox styling
+  checkboxBorderRadius?: number; // 4 for rounded, 999 for pill
+  checkboxSize?: number; // Size in pixels (default 20)
 
   // Text alignment and spacing
   textAlign?: "left" | "center" | "right";

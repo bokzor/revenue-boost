@@ -9,7 +9,13 @@
  * @see docs/RECIPE_SYSTEM_ARCHITECTURE.md
  */
 
-import type { CampaignGoal, TemplateType } from "../types/campaign";
+import type {
+  CampaignGoal,
+  TemplateType,
+  DesignConfig,
+  TargetRulesConfig,
+  DiscountConfig,
+} from "../types/campaign";
 import type { LayoutConfig } from "~/domains/storefront/popups-new/types";
 
 // =============================================================================
@@ -294,9 +300,9 @@ export type PopupLayout =
 
 export interface StyledRecipeDefaults {
   contentConfig: Record<string, unknown>;
-  designConfig?: Record<string, unknown>;
-  targetRules?: Record<string, unknown>;
-  discountConfig?: Record<string, unknown>;
+  designConfig?: Partial<DesignConfig>;
+  targetRules?: Partial<TargetRulesConfig>;
+  discountConfig?: Partial<DiscountConfig>;
 }
 
 // =============================================================================

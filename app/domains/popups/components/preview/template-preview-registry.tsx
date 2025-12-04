@@ -286,6 +286,17 @@ export const TEMPLATE_PREVIEW_REGISTRY: Record<string, TemplatePreviewEntry<any>
         consentFieldRequired: mergedConfig.consentFieldRequired ?? false,
         consentFieldText: mergedConfig.consentFieldText || "I agree to receive marketing emails",
 
+        // Spa Serenity features (Phase C)
+        tagText: mergedConfig.tagText,
+        tagIcon: mergedConfig.tagIcon,
+        imageBadgeEnabled: mergedConfig.imageBadgeEnabled ?? false,
+        imageBadgeIcon: mergedConfig.imageBadgeIcon,
+        imageBadgeTitle: mergedConfig.imageBadgeTitle,
+        imageBadgeValue: mergedConfig.imageBadgeValue,
+        footerText: mergedConfig.footerText,
+        successBadgeText: mergedConfig.successBadgeText,
+        successBadgeIcon: mergedConfig.successBadgeIcon,
+
         // Discount: transform admin config to storefront format
         discount: transformDiscountConfig(mergedConfig.discountConfig, "WELCOME") || mergedConfig.discount,
         discountCodeLabel: mergedConfig.discountCodeLabel || "Your discount code:",

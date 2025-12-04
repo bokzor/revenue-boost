@@ -288,6 +288,21 @@ export type BaseContentConfig = z.infer<typeof BaseContentConfigSchema>;
 // ============================================================================
 
 /**
+ * Badge/Tag icon options for promotional badges
+ */
+export const BadgeIconSchema = z.enum([
+  "sparkle",
+  "leaf",
+  "star",
+  "gift",
+  "heart",
+  "percent",
+  "fire",
+  "none",
+]);
+export type BadgeIcon = z.infer<typeof BadgeIconSchema>;
+
+/**
  * Newsletter-specific content fields
  *
  * Extends BaseContentConfigSchema with:
@@ -299,6 +314,23 @@ export const NewsletterContentSchema = BaseContentConfigSchema.merge(LeadCapture
   submitButtonText: z.string(),
   // Label shown above the discount code on success (e.g., "Your discount code:")
   discountCodeLabel: z.string().default("Your discount code:"),
+
+  // Badge/Tag above headline (e.g., "Exclusive offers inside")
+  tagText: z.string().optional(),
+  tagIcon: BadgeIconSchema.optional(),
+
+  // Image floating badge (social proof)
+  imageBadgeEnabled: z.boolean().optional().default(false),
+  imageBadgeIcon: BadgeIconSchema.optional(),
+  imageBadgeTitle: z.string().optional(), // e.g., "Join"
+  imageBadgeValue: z.string().optional(), // e.g., "10,000+ members"
+
+  // Footer disclaimer text
+  footerText: z.string().optional(), // e.g., "Unsubscribe anytime. We respect your privacy."
+
+  // Success state enhancements
+  successBadgeText: z.string().optional(), // e.g., "10% off your first retreat"
+  successBadgeIcon: BadgeIconSchema.optional(),
 });
 
 /**
@@ -877,6 +909,7 @@ export const DesignConfigSchema = z.object({
   fontFamily: z.string().optional(),
   fontSize: z.string().optional(),
   fontWeight: z.string().optional(),
+  headlineFontFamily: z.string().optional(), // e.g., "Georgia, serif" for Spa Serenity
   titleFontSize: z.string().optional(),
   titleFontWeight: z.string().optional(),
   titleTextShadow: z.string().optional(),
@@ -886,8 +919,45 @@ export const DesignConfigSchema = z.object({
   // Input styling
   inputBackdropFilter: z.string().optional(),
   inputBoxShadow: z.string().optional(),
+  inputBorderRadius: z.union([z.string(), z.number()]).optional(),
+  inputBorderWidth: z.number().optional(), // 1 or 2
+  inputStyle: z.enum(["outlined", "filled", "underline"]).optional(),
+  inputFocusRingColor: z.string().optional(), // e.g., "rgba(22, 101, 52, 0.1)"
+  inputFocusRingWidth: z.number().optional(), // e.g., 4
+
+  // Button styling
+  buttonBorderRadius: z.union([z.string(), z.number()]).optional(),
+  buttonStyle: z.enum(["filled", "outline", "ghost"]).optional(),
+  buttonBoxShadow: z.string().optional(),
+  secondaryButtonColor: z.string().optional(),
+  secondaryButtonTextColor: z.string().optional(),
+
+  // Badge/Tag styling (for promotional badges like "Exclusive offers inside")
+  badgeBackgroundColor: z.string().optional(),
+  badgeTextColor: z.string().optional(),
+  badgeBorderRadius: z.number().optional(),
+
+  // Checkbox styling
+  checkboxBorderRadius: z.number().optional(), // 4 for rounded, 999 for pill
+  checkboxSize: z.number().optional(), // Size in pixels (default 20)
+
+  // Text alignment and spacing
+  textAlign: z.enum(["left", "center", "right"]).optional(),
+  contentSpacing: z.enum(["compact", "comfortable", "spacious"]).optional(),
+
+  // Image effects
+  imageFilter: z.string().optional(),
+  imageBorderRadius: z.union([z.string(), z.number()]).optional(),
+  imagePosition: z.enum(["left", "right", "top", "bottom", "full", "none"]).optional(),
+
+  // Scratch Card specific design properties
+  scratchCardBackgroundColor: z.string().optional(),
+  scratchCardTextColor: z.string().optional(),
+  scratchOverlayColor: z.string().optional(),
+  scratchOverlayImage: z.string().optional(),
 
   // Advanced
+  boxShadow: z.string().optional(),
   customCSS: z.string().optional(),
 });
 

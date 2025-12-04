@@ -249,17 +249,17 @@ describe("SpinToWinContentSection - ALL Configuration Options", () => {
       expect(nameFieldEnabledCheckbox?.getAttribute("checked")).toBe("false");
     });
 
-    it("should render nameFieldEnabled checkbox as true when collectName is true", () => {
+    it("should render nameFieldEnabled checkbox as true when nameFieldEnabled is true", () => {
       const onChange = vi.fn();
       const { container } = renderWithPolaris(
         <SpinToWinContentSection
-          content={{ collectName: true }}
+          content={{ nameFieldEnabled: true }}
           errors={{}}
           onChange={onChange}
         />,
       );
 
-      // FieldConfigurationSection normalizes collectName to nameFieldEnabled
+      // FieldConfigurationSection handles nameFieldEnabled
       const nameFieldEnabledCheckbox = container.querySelector('s-checkbox[name="nameFieldEnabled"]');
       expect(nameFieldEnabledCheckbox).toBeTruthy();
       expect(nameFieldEnabledCheckbox?.getAttribute("checked")).toBe("true");
@@ -269,7 +269,7 @@ describe("SpinToWinContentSection - ALL Configuration Options", () => {
       const onChange = vi.fn();
       const { container } = renderWithPolaris(
         <SpinToWinContentSection
-          content={{ collectName: true, nameFieldRequired: true }}
+          content={{ nameFieldEnabled: true, nameFieldRequired: true }}
           errors={{}}
           onChange={onChange}
         />,
@@ -300,17 +300,17 @@ describe("SpinToWinContentSection - ALL Configuration Options", () => {
       expect(consentFieldEnabledCheckbox?.getAttribute("checked")).toBe("false");
     });
 
-    it("should render consentFieldEnabled checkbox as true when showGdprCheckbox is true", () => {
+    it("should render consentFieldEnabled checkbox as true when consentFieldEnabled is true", () => {
       const onChange = vi.fn();
       const { container } = renderWithPolaris(
         <SpinToWinContentSection
-          content={{ showGdprCheckbox: true }}
+          content={{ consentFieldEnabled: true }}
           errors={{}}
           onChange={onChange}
         />,
       );
 
-      // FieldConfigurationSection normalizes showGdprCheckbox to consentFieldEnabled
+      // FieldConfigurationSection handles consentFieldEnabled
       const consentFieldEnabledCheckbox = container.querySelector('s-checkbox[name="consentFieldEnabled"]');
       expect(consentFieldEnabledCheckbox).toBeTruthy();
       expect(consentFieldEnabledCheckbox?.getAttribute("checked")).toBe("true");
@@ -320,7 +320,7 @@ describe("SpinToWinContentSection - ALL Configuration Options", () => {
       const onChange = vi.fn();
       const { container } = renderWithPolaris(
         <SpinToWinContentSection
-          content={{ showGdprCheckbox: true, consentFieldRequired: true }}
+          content={{ consentFieldEnabled: true, consentFieldRequired: true }}
           errors={{}}
           onChange={onChange}
         />,
@@ -486,9 +486,9 @@ describe("SpinToWinContentSection - ALL Configuration Options", () => {
         loadingText: "Spinning...",
         emailRequired: true,
         emailPlaceholder: "Enter your email",
-        collectName: true,
+        nameFieldEnabled: true,
         nameFieldRequired: false,
-        showGdprCheckbox: true,
+        consentFieldEnabled: true,
         consentFieldRequired: true,
         wheelSize: 350,
         wheelBorderWidth: 3,
@@ -513,8 +513,8 @@ describe("SpinToWinContentSection - ALL Configuration Options", () => {
       // Verify all content sections are configured correctly
       expect(content.headline).toBe("Spin to Win a Discount!");
       expect(content.wheelSize).toBe(350);
-      expect(content.collectName).toBe(true);
-      expect(content.showGdprCheckbox).toBe(true);
+      expect(content.nameFieldEnabled).toBe(true);
+      expect(content.consentFieldEnabled).toBe(true);
       expect(content.wheelSegments?.length).toBe(3);
     });
   });
@@ -537,8 +537,8 @@ describe("SpinToWinContentSection - ALL Configuration Options", () => {
       expect(parsed.spinButtonText).toBe("Spin to Win!");
       expect(parsed.emailRequired).toBe(true);
       expect(parsed.emailPlaceholder).toBe("Enter your email to spin");
-      expect(parsed.collectName).toBe(false);
-      expect(parsed.showGdprCheckbox).toBe(false);
+      expect(parsed.nameFieldEnabled).toBe(false);
+      expect(parsed.consentFieldEnabled).toBe(false);
       expect(parsed.wheelSize).toBe(400);
       expect(parsed.wheelBorderWidth).toBe(2);
       expect(parsed.spinDuration).toBe(4000);

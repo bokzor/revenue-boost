@@ -66,6 +66,8 @@ const mockCampaignData = {
   id: "campaign-123",
   storeId: "store-456",
   name: "Test Campaign",
+  templateType: "SPIN_TO_WIN",
+  contentConfig: { headline: "Spin to Win!" },
 };
 
 const mockPrize: Prize = {

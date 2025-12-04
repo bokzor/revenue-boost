@@ -16,7 +16,8 @@
 
 import React, { useState, useCallback, useRef, useEffect } from "react";
 import { PopupPortal } from "./PopupPortal";
-import type { PopupDesignConfig, Prize } from "./types";
+import type { MobilePresentationMode } from "./PopupPortal";
+import type { PopupDesignConfig, Prize, LayoutConfig } from "./types";
 import type { ScratchCardContent } from "~/domains/campaigns/types/campaign";
 import {
   getSizeDimensions,
@@ -24,9 +25,10 @@ import {
 } from "app/domains/storefront/popups-new/utils/utils";
 import { POPUP_SPACING } from "app/domains/storefront/popups-new/utils/spacing";
 import { ScratchCardRenderer } from "./utils/scratch-canvas";
+import { LeadCaptureLayout } from "app/domains/storefront/popups-new/components/shared/LeadCaptureLayout";
 
 // Import custom hooks
-import { usePopupForm, useDiscountCode, usePopupAnimation } from "./hooks";
+import { usePopupForm, useDiscountCode, usePopupAnimation, useDesignVariables } from "./hooks";
 
 // Import shared components from Phase 1 & 2
 import { DiscountCodeDisplay, LeadCaptureForm } from "./components/shared";
@@ -86,6 +88,19 @@ export interface ScratchCardPopupProps {
   onReveal?: (prize: Prize) => void;
 }
 
+// =============================================================================
+// DEFAULT LAYOUT CONFIG
+// =============================================================================
+
+const DEFAULT_LAYOUT: LayoutConfig = {
+  desktop: "split-left",
+  mobile: "stacked", // Default to stacked on mobile (image + scratch card visible)
+  visualSizeDesktop: "50%",
+  visualSizeMobile: "30%",
+  contentOverlap: "0",
+  visualGradient: false,
+};
+
 export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
   config,
   isVisible,
@@ -133,6 +148,9 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
 
   // Use animation hook
   const { showContent: _showContent } = usePopupAnimation({ isVisible });
+
+  // Convert design config to CSS variables
+  const designVars = useDesignVariables(config);
 
   // Component-specific state
   const [emailSubmitted, setEmailSubmitted] = useState(false);
@@ -711,19 +729,13 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
   const showEmailForm = config.emailRequired && config.emailBeforeScratching && !emailSubmitted;
   const showScratchCard = !showEmailForm;
 
-  // Derive layout from leadCaptureLayout
-  const desktopLayout = config.leadCaptureLayout?.desktop || "split-left";
-  const isFullBackground = desktopLayout === "overlay" && !!config.imageUrl;
-  const isContentOnly = desktopLayout === "content-only";
-  const showImage = !!config.imageUrl && !isContentOnly && !isFullBackground;
-  const isVertical = desktopLayout === "split-left" || desktopLayout === "split-right";
-  const imageFirst = desktopLayout === "split-left" || desktopLayout === "stacked";
-  const bgOverlayOpacity = config.backgroundOverlayOpacity ?? 0.6;
+  // Get layout config from design config (or use default)
+  const layout = config.leadCaptureLayout || DEFAULT_LAYOUT;
 
-  const baseSizeDimensions = getSizeDimensions(config.size || "medium", config.previewMode);
-
-  const sizeDimensions =
-    showImage && isVertical ? getSizeDimensions("large", config.previewMode) : baseSizeDimensions;
+  // Background image configuration - only the decorative image goes in visualSlot
+  // The scratch card canvas always stays in formSlot (never hidden)
+  const imageUrl = config.imageUrl;
+  const hasVisual = !!imageUrl && layout.desktop !== "content-only";
 
   // Auto-close timer (migrated from BasePopup)
   useEffect(() => {
@@ -734,6 +746,12 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
   }, [isVisible, config.autoCloseDelay, onClose]);
 
   if (!isVisible) return null;
+
+  // Infer mobile presentation mode from layout:
+  // - "fullscreen" layout → "fullscreen" presentation (fills viewport)
+  // - Other layouts → "bottom-sheet" presentation (slides from bottom)
+  const mobilePresentationMode: MobilePresentationMode =
+    layout.mobile === "fullscreen" ? "fullscreen" : "bottom-sheet";
 
   return (
     <PopupPortal
@@ -748,6 +766,8 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
         type: config.animation || "fade",
       }}
       position={config.position || "center"}
+      size={config.size || "medium"}
+      mobilePresentationMode={mobilePresentationMode}
       closeOnEscape={config.closeOnEscape !== false}
       closeOnBackdropClick={config.closeOnOverlayClick !== false}
       previewMode={config.previewMode}
@@ -757,42 +777,268 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
       customCSS={config.customCSS}
       globalCustomCSS={config.globalCustomCSS}
     >
-      <div className="scratch-popup-container" data-splitpop="true" data-template="scratch-card">
-        {/* Full Background Mode */}
-        {isFullBackground && (
-          <>
-            <div className="scratch-full-bg-image">
-              <img src={config.imageUrl} alt="" aria-hidden="true" />
-            </div>
-            <div
-              className="scratch-full-bg-overlay"
+      {/* Scratch Card specific styles */}
+      <style>{`
+        /* Scratch Card Form Section */
+        .scratch-popup-form-section {
+          padding: 2rem 1.5rem;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          gap: 1rem;
+          width: 100%;
+          min-width: 0;
+        }
+
+        @container popup-viewport (min-width: 520px) {
+          .scratch-popup-form-section {
+            padding: 2.5rem 2rem;
+          }
+        }
+
+        .scratch-popup-dismiss-button {
+          margin-top: 0.75rem;
+          background: transparent;
+          border: none;
+          color: ${config.descriptionColor || "rgba(15, 23, 42, 0.7)"};
+          font-size: 0.875rem;
+          cursor: pointer;
+        }
+
+        .scratch-popup-dismiss-button:hover {
+          text-decoration: underline;
+        }
+
+        .scratch-card-container {
+          position: relative;
+          width: 100%;
+          max-width: ${cardWidth}px;
+          margin: 0 auto 1.5rem;
+          border-radius: 0.75rem;
+          overflow: hidden;
+          box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.2);
+          aspect-ratio: ${cardWidth} / ${cardHeight};
+        }
+
+        .scratch-card-canvas {
+          position: absolute;
+          inset: 0;
+          cursor: pointer;
+          touch-action: none;
+        }
+
+        .scratch-popup-button {
+          width: 100%;
+          padding: ${POPUP_SPACING.component.button};
+          border-radius: 0.375rem;
+          border: none;
+          font-weight: 700;
+          cursor: pointer;
+          transition: all 0.2s;
+          font-size: 1rem;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+        }
+
+        .scratch-popup-button:hover:not(:disabled) {
+          transform: translateY(-2px);
+          box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+        }
+
+        .scratch-popup-button:active:not(:disabled) {
+          transform: translateY(0);
+        }
+
+        .scratch-popup-button:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+
+        .scratch-success-section {
+          text-align: center;
+          padding: 2rem 0;
+        }
+
+        .scratch-discount-wrapper {
+          margin-bottom: 0.5rem;
+        }
+
+        /* Email Capture Overlay (slides up after reveal) */
+        .scratch-email-overlay {
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          background: ${config.backgroundColor};
+          border-top: 1px solid rgba(0, 0, 0, 0.1);
+          padding: 1.5rem;
+          transform: translateY(100%);
+          animation: slideUp 0.4s ease-out forwards;
+          z-index: 10;
+        }
+
+        @keyframes slideUp {
+          to { transform: translateY(0); }
+        }
+
+        .scratch-email-overlay-content {
+          max-width: 400px;
+          margin: 0 auto;
+        }
+
+        /* Premium reveal animations */
+        @keyframes goldenShimmer {
+          0% { left: -150%; opacity: 0; }
+          50% { opacity: 1; }
+          100% { left: 150%; opacity: 0; }
+        }
+
+        @keyframes celebrationPop {
+          0% { opacity: 0; transform: scale(0.5); }
+          60% { transform: scale(1.1); }
+          80% { transform: scale(0.95); }
+          100% { opacity: 1; transform: scale(1); }
+        }
+
+        .revealed-animation {
+          animation: celebrationPop 0.6s ease-out forwards;
+        }
+
+        @keyframes glowPulse {
+          0%, 100% { box-shadow: 0 0 15px ${config.accentColor || config.buttonColor}40; }
+          50% { box-shadow: 0 0 30px ${config.accentColor || config.buttonColor}60, 0 0 45px ${config.accentColor || config.buttonColor}30; }
+        }
+
+        .revealed-animation .scratch-card-container {
+          animation: glowPulse 2s ease-in-out infinite;
+        }
+
+        /* Near threshold feedback */
+        .near-threshold .scratch-card-container {
+          animation: pulse 0.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.02); }
+        }
+
+        /* Scratching state */
+        .is-scratching .scratch-card-canvas {
+          cursor: grabbing;
+        }
+
+        /* Scratch sparkles */
+        @keyframes sparkleBurst {
+          0% { opacity: 0; transform: scaleY(0) rotate(var(--sparkle-angle)); }
+          30% { opacity: 1; transform: scaleY(1) rotate(var(--sparkle-angle)); }
+          100% { opacity: 0; transform: scaleY(0.5) translateY(-20px) rotate(var(--sparkle-angle)); }
+        }
+
+        .scratch-sparkle {
+          position: absolute;
+          width: 3px;
+          height: 60px;
+          background: linear-gradient(to top, transparent, ${config.accentColor || config.buttonColor}80, #FFD70080);
+          transform-origin: bottom center;
+          border-radius: 2px;
+          animation: sparkleBurst 0.8s ease-out forwards;
+          animation-delay: calc(var(--sparkle-angle) * 0.001s);
+        }
+
+        /* Star pop effects */
+        @keyframes starPop {
+          0% { opacity: 0; transform: scale(0) rotate(0deg); }
+          50% { opacity: 1; transform: scale(1.3) rotate(180deg); }
+          100% { opacity: 0; transform: scale(0.5) rotate(360deg); }
+        }
+
+        .scratch-star {
+          position: absolute;
+          font-size: 24px;
+          pointer-events: none;
+          z-index: 102;
+          animation: starPop 0.8s ease-out forwards;
+        }
+
+        .scratch-star:nth-of-type(1) { animation-delay: 0.2s; }
+        .scratch-star:nth-of-type(2) { animation-delay: 0.35s; }
+        .scratch-star:nth-of-type(3) { animation-delay: 0.5s; }
+
+        /* Prize canvas glow on reveal */
+        .revealed-animation .scratch-prize-canvas {
+          animation: prizeGlow 1.5s ease-in-out infinite;
+        }
+
+        @keyframes prizeGlow {
+          0%, 100% { filter: drop-shadow(0 0 5px ${config.accentColor || config.buttonColor}40); }
+          50% { filter: drop-shadow(0 0 15px ${config.accentColor || config.buttonColor}60) drop-shadow(0 0 30px #FFD70040); }
+        }
+
+        /* 3D flip reveal effect */
+        @keyframes flipReveal {
+          0% { transform: perspective(600px) rotateY(-90deg); opacity: 0; }
+          50% { transform: perspective(600px) rotateY(10deg); opacity: 1; }
+          100% { transform: perspective(600px) rotateY(0deg); opacity: 1; }
+        }
+
+        .revealed-animation .scratch-prize-canvas {
+          animation: flipReveal 0.6s ease-out forwards, prizeGlow 1.5s ease-in-out 0.6s infinite;
+        }
+
+        /* Reduced motion */
+        @media (prefers-reduced-motion: reduce) {
+          .revealed-animation,
+          .scratch-sparkle,
+          .scratch-star,
+          .scratch-email-overlay,
+          .near-threshold .scratch-card-container {
+            animation: none !important;
+            transition: none !important;
+          }
+          .scratch-email-overlay {
+            transform: translateY(0);
+          }
+        }
+      `}</style>
+
+      {/* Unified Layout using LeadCaptureLayout */}
+      <LeadCaptureLayout
+        desktopLayout={layout.desktop}
+        mobileLayout={layout.mobile}
+        visualSize={{
+          desktop: layout.visualSizeDesktop || "50%",
+          mobile: layout.visualSizeMobile || "30%",
+        }}
+        contentOverlap={layout.contentOverlap || "0"}
+        visualGradient={layout.visualGradient ?? false}
+        gradientColor={config.backgroundColor}
+        backgroundColor={config.backgroundColor}
+        borderRadius={typeof config.borderRadius === "number" ? config.borderRadius : 16}
+        overlayOpacity={config.backgroundOverlayOpacity ?? 0.6}
+        showCloseButton={config.showCloseButton !== false}
+        onClose={onClose}
+        className="ScratchCardPopup"
+        style={designVars as React.CSSProperties}
+        data-splitpop="true"
+        data-template="scratch-card"
+        visualSlot={
+          hasVisual ? (
+            <img
+              src={imageUrl}
+              alt=""
+              aria-hidden="true"
               style={{
-                background: config.backgroundColor || "#ffffff",
-                opacity: bgOverlayOpacity,
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+                objectPosition: "center",
               }}
             />
-          </>
-        )}
-        <div
-          className={`scratch-popup-content ${
-            !showImage && !isFullBackground
-              ? "single-column"
-              : isVertical && !isFullBackground
-                ? "vertical"
-                : "horizontal"
-          } ${!imageFirst && showImage ? "reverse" : ""} ${isFullBackground ? "full-bg-mode" : ""}`}
-          style={isFullBackground ? { position: "relative", zIndex: 2 } : undefined}
-        >
-          {showImage && (
-            <div
-              className="scratch-popup-image"
-              style={{ background: config.imageBgColor || "#F3F4F6" }}
-            >
-              <img src={config.imageUrl} alt={config.headline || "Scratch Card"} />
-            </div>
-          )}
-
-          <div className="scratch-popup-form-section">
+          ) : undefined
+        }
+        formSlot={
+          <div className="scratch-popup-form-section" style={{ position: "relative" }}>
             {/* Headline - using best practices from PopupHeader component */}
             <div style={{ textAlign: "center", marginBottom: "1.5rem" }}>
               <h2
@@ -803,6 +1049,7 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
                   margin: 0,
                   marginBottom: config.subheadline || showEmailForm ? "0.75rem" : 0,
                   textShadow: config.titleTextShadow,
+                  color: config.textColor,
                 }}
               >
                 {config.headline}
@@ -1134,160 +1381,71 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
                 </>
               )
             )}
+
+            {/* Email Capture Overlay Panel - slides up after reveal animation completes */}
+            {showEmailOverlay && (
+              <div className="scratch-email-overlay">
+                <div className="scratch-email-overlay-content">
+                  <h3
+                    style={{
+                      color: config.textColor,
+                      lineHeight: 1.2,
+                      margin: "0 0 0.5rem 0",
+                    }}
+                  >
+                    🎉 {wonPrize?.label || "You Won!"}
+                  </h3>
+                  <p
+                    style={{
+                      color: config.descriptionColor || config.textColor,
+                      lineHeight: 1.5,
+                      opacity: config.descriptionColor ? 1 : 0.85,
+                      margin: "0 0 1rem 0",
+                    }}
+                  >
+                    Enter your email to claim your prize
+                  </p>
+                  <LeadCaptureForm
+                    data={formState}
+                    errors={errors}
+                    onEmailChange={setEmail}
+                    onNameChange={setName}
+                    onGdprChange={setGdprConsent}
+                    onSubmit={handleEmailSubmit}
+                    isSubmitting={isSubmitting || isSubmittingEmail}
+                    showName={config.nameFieldEnabled}
+                    nameRequired={config.nameFieldRequired}
+                    showGdpr={config.consentFieldEnabled}
+                    gdprRequired={config.consentFieldRequired}
+                    labels={{
+                      email: config.emailLabel,
+                      name: config.nameFieldLabel,
+                      gdpr: config.consentFieldText,
+                      submit: config.buttonText || "Claim My Prize",
+                    }}
+                    placeholders={{
+                      email: config.emailPlaceholder || "Enter your email",
+                      name: config.nameFieldPlaceholder,
+                    }}
+                    accentColor={config.accentColor}
+                    buttonColor={config.buttonColor}
+                    textColor={config.textColor}
+                    backgroundColor={config.inputBackgroundColor}
+                    buttonTextColor={config.buttonTextColor}
+                    inputTextColor={config.inputTextColor}
+                    inputBorderColor={config.inputBorderColor}
+                    privacyPolicyUrl={config.privacyPolicyUrl}
+                  />
+                </div>
+              </div>
+            )}
           </div>
-        </div>
-
-        {/* Email Capture Overlay Panel - slides up after reveal animation completes */}
-        {showEmailOverlay && (
-          <div className="scratch-email-overlay">
-            <div className="scratch-email-overlay-content">
-              <h3
-                style={{
-                  color: config.textColor,
-                  lineHeight: 1.2,
-                  margin: "0 0 0.5rem 0",
-                }}
-              >
-                🎉 {wonPrize?.label || "You Won!"}
-              </h3>
-              <p
-                style={{
-                  color: config.descriptionColor || config.textColor,
-                  lineHeight: 1.5,
-                  opacity: config.descriptionColor ? 1 : 0.85,
-                  margin: "0 0 1rem 0",
-                }}
-              >
-                Enter your email to claim your prize
-              </p>
-              <LeadCaptureForm
-                data={formState}
-                errors={errors}
-                onEmailChange={setEmail}
-                onNameChange={setName}
-                onGdprChange={setGdprConsent}
-                onSubmit={handleEmailSubmit}
-                isSubmitting={isSubmitting || isSubmittingEmail}
-                showName={config.nameFieldEnabled}
-                nameRequired={config.nameFieldRequired}
-                showGdpr={config.consentFieldEnabled}
-                gdprRequired={config.consentFieldRequired}
-                labels={{
-                  email: config.emailLabel,
-                  name: config.nameFieldLabel,
-                  gdpr: config.consentFieldText,
-                  submit: config.buttonText || "Claim My Prize",
-                }}
-                placeholders={{
-                  email: config.emailPlaceholder || "Enter your email",
-                  name: config.nameFieldPlaceholder,
-                }}
-                accentColor={config.accentColor}
-                buttonColor={config.buttonColor}
-                textColor={config.textColor}
-                backgroundColor={config.inputBackgroundColor}
-                buttonTextColor={config.buttonTextColor}
-                inputTextColor={config.inputTextColor}
-                inputBorderColor={config.inputBorderColor}
-                privacyPolicyUrl={config.privacyPolicyUrl}
-              />
-            </div>
-          </div>
-        )}
-
-        <style>{`
-        .scratch-popup-container {
-          position: relative;
-          width: ${sizeDimensions.width};
-          max-width: ${sizeDimensions.maxWidth};
-          margin: 0 auto;
-          border-radius: ${typeof config.borderRadius === "number" ? config.borderRadius : parseFloat(String(config.borderRadius || 16))}px;
-          overflow: hidden;
-          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-          background: ${config.backgroundColor};
-          color: ${config.textColor};
-          container-type: inline-size;
-          container-name: scratch-popup;
-          font-family: ${config.fontFamily || "inherit"};
         }
-
-        /* Full Background Mode Styles */
-        .scratch-full-bg-image {
-          position: absolute;
-          inset: 0;
-          z-index: 0;
-        }
-
-        .scratch-full-bg-image img {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-        }
-
-        .scratch-full-bg-overlay {
-          position: absolute;
-          inset: 0;
-          z-index: 1;
-        }
-
-        .scratch-popup-content.full-bg-mode {
-          position: relative;
-          z-index: 2;
-        }
-
-        @container scratch-popup (max-width: 640px) {
-          .scratch-popup-container {
-            width: 100%;
-            max-width: 100%;
-          }
-        }
-
-        .scratch-popup-content {
-          display: flex;
-          width: 100%;
-          height: 100%;
-          align-items: stretch;
-        }
-
-        .scratch-popup-content.horizontal {
-          flex-direction: column;
-        }
-
-        .scratch-popup-content.horizontal.reverse {
-          flex-direction: column-reverse;
-        }
-
-        .scratch-popup-content.vertical {
-          flex-direction: column;
-        }
-
-        .scratch-popup-content.vertical.reverse {
-          flex-direction: column;
-        }
-
-        .scratch-popup-content.single-column {
-          flex-direction: column;
-        }
-
-        .scratch-popup-image {
-          position: relative;
-          overflow: hidden;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          background: ${config.imageBgColor || config.inputBackgroundColor || "#f4f4f5"};
-          width: 100%;
-        }
-
-        .scratch-popup-image img {
-          position: absolute;
-          inset: 0;
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-        }
-
+      />
+      <style>{`
+        /* Scratch Card Specific Styles */
         .scratch-popup-form-section {
+          position: relative;
           padding: 2.5rem 2rem;
           display: flex;
           flex-direction: column;
@@ -1752,54 +1910,14 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
           animation: flipReveal 0.6s ease-out forwards, prizeGlow 1.5s ease-in-out 0.6s infinite;
         }
 
-        /* Container Query: Mobile layout (<480px container width)
-           Stack vertically with constrained image height. */
-        @container scratch-popup (max-width: 479px) {
-          .scratch-popup-content.horizontal .scratch-popup-image,
-          .scratch-popup-content.vertical .scratch-popup-image {
-            height: 12rem;
-          }
-        }
-
-        /* Container Query: Desktop-ish layout (≥480px container width)
-           Match NewsletterPopup behavior so left/right images go side-by-side
-           once the popup has enough width, even inside the editor preview. */
-        @container scratch-popup (min-width: 480px) {
-          .scratch-popup-content.vertical {
-            flex-direction: row;
-            min-height: 450px;
-          }
-
-          .scratch-popup-content.vertical.reverse {
-            flex-direction: row-reverse;
-          }
-
-          .scratch-popup-content.horizontal .scratch-popup-image {
-            height: 16rem;
-          }
-
-          .scratch-popup-content.vertical .scratch-popup-image {
-            flex: 1 1 50%;
-            height: auto;
-            min-height: 400px;
-          }
-
-          .scratch-popup-content.vertical .scratch-popup-form-section {
-            flex: 1 1 50%;
-          }
-
+        /* Responsive adjustments for form section padding */
+        @container popup-viewport (min-width: 520px) {
           .scratch-popup-form-section {
-            padding: 4rem 3.5rem;
-          }
-
-          .scratch-popup-content.single-column .scratch-popup-form-section {
-            max-width: 36rem;
-            margin: 0 auto;
+            padding: 3rem 2.5rem;
           }
         }
 
       `}</style>
-      </div>
     </PopupPortal>
   );
 };

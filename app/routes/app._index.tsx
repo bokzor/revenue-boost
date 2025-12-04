@@ -461,11 +461,11 @@ export default function Dashboard() {
 
   // --- Handlers ---
   const handleCreateCampaign = () => {
-    navigate("/app/campaigns/recipe");
+    navigate("/app/campaigns/create");
   };
 
   const handleCreateFromScratch = () => {
-    navigate("/app/campaigns/new");
+    navigate("/app/campaigns/create");
   };
 
   const handleTimeRangeChange = (value: string) => {

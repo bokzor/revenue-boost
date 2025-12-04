@@ -58,6 +58,14 @@ export { CTAButton, type CTAButtonProps } from "./CTAButton";
 export { PopupCloseButton, type PopupCloseButtonProps } from "./PopupCloseButton";
 
 // ============================================
+// PHASE C COMPONENTS (Spa Serenity Design System)
+// ============================================
+export { TagBadge, type TagBadgeProps } from "./TagBadge";
+export { FooterDisclaimer, type FooterDisclaimerProps } from "./FooterDisclaimer";
+export { ImageFloatingBadge, type ImageFloatingBadgeProps } from "./ImageFloatingBadge";
+export { StyledCheckbox, type StyledCheckboxProps } from "./StyledCheckbox";
+
+// ============================================
 // HOOKS
 // ============================================
 export { usePopupTheme, type PopupTheme } from "./usePopupTheme";
