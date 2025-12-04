@@ -156,11 +156,33 @@ export function SetupStatus({
         </List>
 
         {!status.themeExtensionEnabled && themeEditorUrl && (
-          <BlockStack gap="200">
-            <Text as="p" variant="bodyMd" tone="subdued">
-              To enable the theme extension, open your theme editor and toggle on &quot;Revenue Boost
-              Popups&quot; under App embeds.
+          <BlockStack gap="400">
+            <Text as="h3" variant="headingSm">
+              How to Enable Revenue Boost Popups
             </Text>
+            <BlockStack gap="200">
+              <Text as="p" variant="bodyMd">
+                Follow these steps to enable popups on your storefront:
+              </Text>
+              <List type="number">
+                <List.Item>
+                  Click the &quot;Open Theme Editor&quot; button below to open your theme customizer
+                </List.Item>
+                <List.Item>
+                  In the left sidebar, look for &quot;App embeds&quot; section
+                </List.Item>
+                <List.Item>
+                  Find &quot;Revenue Boost Popups&quot; and toggle it ON
+                </List.Item>
+                <List.Item>
+                  Click &quot;Save&quot; in the top right corner
+                </List.Item>
+              </List>
+              <Text as="p" variant="bodySm" tone="subdued">
+                Once enabled, your active campaigns will automatically display on your storefront
+                based on their targeting rules.
+              </Text>
+            </BlockStack>
             <Button onClick={openThemeEditor} variant="primary">
               Open Theme Editor
             </Button>
