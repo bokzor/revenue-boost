@@ -170,9 +170,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       return { error: "Invalid plan selected" };
     }
 
-    // Build the return URL - redirect back to billing page after approval/decline
-    const appUrl = process.env.SHOPIFY_APP_URL || `https://${request.headers.get("host")}`;
-    const returnUrl = `${appUrl}/app/billing?shop=${session.shop}`;
+    // Build the return URL - must go through Shopify admin for proper authentication
+    // Format: https://admin.shopify.com/store/{store-handle}/apps/{app-handle}/billing
+    const storeHandle = session.shop.replace(".myshopify.com", "");
+    const appHandle = process.env.SHOPIFY_APP_HANDLE || "revenue-boost";
+    const returnUrl = `https://admin.shopify.com/store/${storeHandle}/apps/${appHandle}/billing`;
 
     // Check if this is a development store - dev stores require isTest: true
     // This is necessary for Shopify app review which uses development stores
