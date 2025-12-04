@@ -170,19 +170,15 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       return { error: "Invalid plan selected" };
     }
 
-    // For embedded apps, use a relative path - Shopify will handle the full URL construction
-    // The charge_id parameter will be appended automatically
-    const returnUrl = `/app/billing`;
-
     // Check if this is a development store - dev stores require isTest: true
     // This is necessary for Shopify app review which uses development stores
     const isDevStore = await ShopService.isDevelopmentStore(admin);
 
-    // Request billing - this returns a redirect response to Shopify's confirmation page
+    // Request billing - let the library handle returnUrl construction
+    // When omitted, it defaults to the current request URL
     return billing.request({
       plan: planKey as "Starter" | "Growth" | "Pro",
       isTest: isDevStore,
-      returnUrl,
     });
   }
 
