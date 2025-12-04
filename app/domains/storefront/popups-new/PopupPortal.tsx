@@ -91,19 +91,19 @@ export interface PopupPortalProps {
  */
 const ANIMATION_CHOREOGRAPHY = {
   fade: {
-    backdrop: { delay: 0, duration: 200 },
-    content: { delay: 0, duration: 200 },
-  },
-  slide: {
-    backdrop: { delay: 0, duration: 150 },
-    content: { delay: 50, duration: 300 },
-  },
-  zoom: {
-    backdrop: { delay: 0, duration: 250 },
+    backdrop: { delay: 0, duration: 300 },
     content: { delay: 0, duration: 300 },
   },
+  slide: {
+    backdrop: { delay: 0, duration: 300 },
+    content: { delay: 50, duration: 400 },
+  },
+  zoom: {
+    backdrop: { delay: 0, duration: 300 },
+    content: { delay: 0, duration: 350 },
+  },
   bounce: {
-    backdrop: { delay: 0, duration: 200 },
+    backdrop: { delay: 0, duration: 300 },
     content: { delay: 50, duration: 500 },
   },
   none: {
@@ -111,6 +111,28 @@ const ANIMATION_CHOREOGRAPHY = {
     content: { delay: 0, duration: 0 },
   },
 };
+
+/**
+ * Animation State Machine
+ *
+ * States:
+ * - 'unmounted': Not in DOM
+ * - 'entering': Playing enter animation
+ * - 'visible': Fully visible, interactive
+ * - 'exiting': Playing exit animation
+ *
+ * Transitions:
+ * - unmounted -> entering: when isVisible becomes true
+ * - entering -> visible: after enter animation completes
+ * - visible -> exiting: when isVisible becomes false (or swipe dismiss)
+ * - exiting -> unmounted: after exit animation completes
+ */
+type AnimationState = 'unmounted' | 'entering' | 'visible' | 'exiting';
+
+// Swipe-to-dismiss constants
+const SWIPE_THRESHOLD = 100; // px
+const VELOCITY_THRESHOLD = 0.5; // px/ms
+const SWIPE_DISMISS_DURATION = 300; // ms
 
 export const PopupPortal: React.FC<PopupPortalProps> = ({
   isVisible,
@@ -130,16 +152,19 @@ export const PopupPortal: React.FC<PopupPortalProps> = ({
   ariaLabel,
   ariaDescribedBy,
 }) => {
-  const [isExiting, setIsExiting] = useState(false);
-  const [isMounted, setIsMounted] = useState(false);
-  const previousFocusRef = useRef<HTMLElement | null>(null);
-  const contentRef = useRef<HTMLDivElement>(null);
-  const shadowHostRef = useRef<HTMLDivElement | null>(null);
-  const shadowRootRef = useRef<ShadowRoot | null>(null);
+  // Animation state machine
+  const [animationState, setAnimationState] = useState<AnimationState>('unmounted');
 
   // Swipe-to-dismiss state
   const [dragOffset, setDragOffset] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
+
+  // Refs
+  const previousFocusRef = useRef<HTMLElement | null>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const shadowHostRef = useRef<HTMLDivElement | null>(null);
+  const shadowRootRef = useRef<ShadowRoot | null>(null);
+  const animationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dragStartY = useRef(0);
   const dragStartTime = useRef(0);
 
@@ -221,23 +246,10 @@ export const PopupPortal: React.FC<PopupPortalProps> = ({
     return `rgba(0, 0, 0, ${opacity})`;
   }, [backdrop.color, backdrop.opacity]);
 
-  // Handle close with exit animation
+  // Handle close - just call onClose, the state machine handles animation
   const handleClose = useCallback(() => {
-    if (animationType !== "none") {
-      setIsExiting(true);
-      // Wait for the longest animation to complete
-      const maxDuration = Math.max(
-        backdropTiming.delay + backdropTiming.duration,
-        contentTiming.delay + contentTiming.duration
-      );
-      setTimeout(() => {
-        onClose();
-        setIsExiting(false);
-      }, maxDuration);
-    } else {
-      onClose();
-    }
-  }, [animationType, backdropTiming, contentTiming, onClose]);
+    onClose();
+  }, [onClose]);
 
   // Handle ESC key press
   useEffect(() => {
@@ -271,9 +283,6 @@ export const PopupPortal: React.FC<PopupPortalProps> = ({
   // ========================================
   // SWIPE-TO-DISMISS (Mobile Bottom Sheet)
   // ========================================
-  const SWIPE_THRESHOLD = 100; // px to trigger dismiss
-  const VELOCITY_THRESHOLD = 0.5; // px/ms for fast swipe
-
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     const touch = e.touches[0];
     dragStartY.current = touch.clientY;
@@ -291,8 +300,7 @@ export const PopupPortal: React.FC<PopupPortalProps> = ({
       // Only allow dragging down (positive deltaY)
       if (deltaY > 0) {
         setDragOffset(deltaY);
-        // Add resistance as you drag further
-        // e.preventDefault(); // Prevent scroll - but be careful with this
+        e.preventDefault(); // Prevent scroll while dragging
       }
     },
     [isDragging]
@@ -310,13 +318,22 @@ export const PopupPortal: React.FC<PopupPortalProps> = ({
       if (navigator.vibrate) {
         navigator.vibrate(10);
       }
-      handleClose();
-    }
 
-    // Reset drag state
-    setDragOffset(0);
-    setIsDragging(false);
-  }, [isDragging, dragOffset, handleClose]);
+      // Animate to bottom of screen then close
+      setIsDragging(false);
+      setDragOffset(window.innerHeight);
+      setAnimationState('exiting');
+
+      // After swipe animation completes, trigger close
+      setTimeout(() => {
+        onClose?.();
+      }, SWIPE_DISMISS_DURATION);
+    } else {
+      // Not enough to dismiss - snap back
+      setDragOffset(0);
+      setIsDragging(false);
+    }
+  }, [isDragging, dragOffset, onClose]);
 
   // Focus management
   useEffect(() => {
@@ -399,14 +416,60 @@ export const PopupPortal: React.FC<PopupPortalProps> = ({
     };
   }, [previewMode]);
 
-  // Mount/unmount management
+  // ========================================
+  // ANIMATION STATE MACHINE
+  // ========================================
+
+  // Calculate max animation duration
+  const animationDuration = useMemo(() => {
+    if (animationType === 'none') return 0;
+    return Math.max(
+      backdropTiming.delay + backdropTiming.duration,
+      contentTiming.delay + contentTiming.duration
+    );
+  }, [animationType, backdropTiming, contentTiming]);
+
+  // Handle state transitions based on isVisible prop
   useEffect(() => {
-    if (isVisible) {
-      setIsMounted(true);
-    } else if (!isExiting) {
-      setIsMounted(false);
+    // Clear any pending animation timer
+    if (animationTimerRef.current) {
+      clearTimeout(animationTimerRef.current);
+      animationTimerRef.current = null;
     }
-  }, [isVisible, isExiting]);
+
+    if (isVisible && animationState === 'unmounted') {
+      // Start entering
+      setAnimationState('entering');
+
+      // Transition to visible after animation
+      animationTimerRef.current = setTimeout(() => {
+        setAnimationState('visible');
+      }, animationDuration);
+    } else if (!isVisible && (animationState === 'visible' || animationState === 'entering')) {
+      // Start exiting
+      setAnimationState('exiting');
+
+      // Reset drag state
+      setDragOffset(0);
+      setIsDragging(false);
+
+      // Transition to unmounted after animation
+      animationTimerRef.current = setTimeout(() => {
+        setAnimationState('unmounted');
+      }, animationDuration);
+    } else if (!isVisible && animationState === 'exiting') {
+      // Already exiting (from swipe), just wait for unmount timer
+      animationTimerRef.current = setTimeout(() => {
+        setAnimationState('unmounted');
+      }, animationDuration);
+    }
+
+    return () => {
+      if (animationTimerRef.current) {
+        clearTimeout(animationTimerRef.current);
+      }
+    };
+  }, [isVisible, animationState, animationDuration]);
 
   // Check for reduced motion preference
   const prefersReducedMotion =
@@ -414,16 +477,28 @@ export const PopupPortal: React.FC<PopupPortalProps> = ({
 
   const effectiveAnimationType = prefersReducedMotion ? "none" : animationType;
 
-  // Animation classes
-  const getAnimationClass = () => {
+  // Derive animation class from state machine
+  // Backdrop always uses fade, content uses the configured animation type
+  const getAnimationClass = useCallback((forBackdrop: boolean = false) => {
     if (effectiveAnimationType === "none") return "";
+    if (isDragging) return ""; // No animation class while dragging
 
-    const direction = isExiting ? "exit" : "enter";
-    return `popup-portal-${effectiveAnimationType}-${direction}`;
-  };
+    const type = forBackdrop ? "fade" : effectiveAnimationType;
 
-  const backdropAnimationClass = getAnimationClass();
-  const contentAnimationClass = getAnimationClass();
+    switch (animationState) {
+      case 'entering':
+        return `popup-portal-${type}-enter`;
+      case 'exiting':
+        return `popup-portal-${type}-exit`;
+      default:
+        return ""; // 'visible' and 'unmounted' have no animation class
+    }
+  }, [effectiveAnimationType, animationState, isDragging]);
+
+  const backdropAnimationClass = getAnimationClass(true);  // Always fade
+  const contentAnimationClass = getAnimationClass(false); // Uses configured animation
+
+
 
   // Styles
   // In Shadow DOM, position: fixed doesn't work relative to viewport
@@ -458,8 +533,10 @@ export const PopupPortal: React.FC<PopupPortalProps> = ({
     [customCSS, globalCustomCSS]
   );
 
-  // Don't render if not mounted
-  if (!isMounted && !isVisible) return null;
+  // Don't render when unmounted
+  if (animationState === 'unmounted') {
+    return null;
+  }
 
   // Render content
   const content = (
@@ -489,7 +566,12 @@ export const PopupPortal: React.FC<PopupPortalProps> = ({
       {/* Backdrop */}
       <div
         className={backdropAnimationClass}
-        style={backdropStyles}
+        style={{
+          ...backdropStyles,
+          // Fade out backdrop during swipe-triggered exit
+          opacity: animationState === 'exiting' && dragOffset > 0 ? 0 : undefined,
+          transition: animationState === 'exiting' && dragOffset > 0 ? `opacity ${SWIPE_DISMISS_DURATION}ms ease-out` : undefined,
+        }}
         onClick={handleBackdropClick}
         aria-hidden="true"
       />
@@ -503,7 +585,16 @@ export const PopupPortal: React.FC<PopupPortalProps> = ({
           ...contentWrapperStyles,
           // Apply drag offset for swipe-to-dismiss
           transform: dragOffset > 0 ? `translateY(${dragOffset}px)` : undefined,
-          transition: isDragging ? "none" : "transform 0.2s ease-out",
+          // No transition while dragging, smooth snap-back when releasing, slide out when exiting
+          transition: isDragging
+            ? "none"
+            : animationState === 'exiting' && dragOffset > 0
+              ? `transform ${SWIPE_DISMISS_DURATION}ms ease-out, opacity ${SWIPE_DISMISS_DURATION}ms ease-out`
+              : "transform 0.2s ease-out",
+          // Fade out during swipe-triggered exit
+          opacity: animationState === 'exiting' && dragOffset > 0 ? 0 : undefined,
+          // Allow touch gestures for swipe-to-dismiss
+          touchAction: "pan-x pinch-zoom",
         }}
         onClick={handleContentClick}
         onKeyDown={(e) => e.stopPropagation()}

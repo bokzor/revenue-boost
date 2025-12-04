@@ -312,8 +312,6 @@ export const AnnouncementPopup: React.FC<AnnouncementPopupProps> = ({
     config.borderRadius,
   ]);
 
-  if (!isVisible) return null;
-
   // Get background styles (handles gradients)
   const bannerBackgroundStyles = getBackgroundStyles(schemeColors.backgroundColor);
 

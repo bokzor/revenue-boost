@@ -141,8 +141,6 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
     return () => clearTimeout(timer);
   }, [isVisible, config.autoCloseDelay, onClose]);
 
-  if (!isVisible) return null;
-
   // Infer mobile presentation mode from layout:
   // - "fullscreen" layout → "fullscreen" presentation (fills viewport)
   // - Other layouts → "bottom-sheet" presentation (slides from bottom)

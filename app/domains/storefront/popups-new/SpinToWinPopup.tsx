@@ -680,8 +680,6 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
   const isFullBackground = config.leadCaptureLayout?.desktop === "overlay" && !!config.imageUrl;
   const bgOverlayOpacity = config.backgroundOverlayOpacity ?? 0.6;
 
-  if (!isVisible) return null;
-
   return (
     <PopupPortal
       isVisible={isVisible}

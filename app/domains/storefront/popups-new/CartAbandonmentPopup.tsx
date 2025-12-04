@@ -369,8 +369,6 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
     return () => clearTimeout(timer);
   }, [isVisible, config.autoCloseDelay, onClose]);
 
-  if (!isVisible) return null;
-
   return (
     <PopupPortal
       isVisible={isVisible}

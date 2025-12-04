@@ -250,8 +250,6 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
     }
   };
 
-  if (!isVisible) return null;
-
   if (isSoldOut && config.inventory?.soldOutBehavior === "hide") {
     return null;
   }

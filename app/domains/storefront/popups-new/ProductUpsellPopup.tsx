@@ -1027,8 +1027,6 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
     return () => clearTimeout(timer);
   }, [isVisible, config.autoCloseDelay, onClose]);
 
-  if (!isVisible) return null;
-
   // Get CTA button label
   const getCtaLabel = () => {
     const count = selectedProducts.size;
