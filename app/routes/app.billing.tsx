@@ -33,6 +33,7 @@ import {
 import { BillingService } from "../domains/billing/services/billing.server";
 import { PlanGuardService } from "../domains/billing/services/plan-guard.server";
 import { isBillingBypassed } from "../lib/env.server";
+import { ShopService } from "../domains/shops/services/shop.server";
 
 // =============================================================================
 // LOADER
@@ -104,7 +105,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 // =============================================================================
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  const { billing, session } = await authenticate.admin(request);
+  const { billing, session, admin } = await authenticate.admin(request);
   const formData = await request.formData();
   const intent = formData.get("intent");
   const billingBypassed = isBillingBypassed();
@@ -173,10 +174,14 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const appUrl = process.env.SHOPIFY_APP_URL || `https://${request.headers.get("host")}`;
     const returnUrl = `${appUrl}/app/billing?shop=${session.shop}`;
 
+    // Check if this is a development store - dev stores require isTest: true
+    // This is necessary for Shopify app review which uses development stores
+    const isDevStore = await ShopService.isDevelopmentStore(admin);
+
     // Request billing - this returns a redirect response to Shopify's confirmation page
     return billing.request({
       plan: planKey as "Starter" | "Growth" | "Pro",
-      isTest: process.env.NODE_ENV !== "production",
+      isTest: isDevStore,
       returnUrl,
     });
   }

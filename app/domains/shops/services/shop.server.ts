@@ -146,4 +146,36 @@ export class ShopService {
       return "UTC";
     }
   }
+
+  /**
+   * Check if the shop is a development/partner store
+   *
+   * Development stores cannot process real billing charges and require isTest: true.
+   * This should be used when requesting billing to ensure dev stores can subscribe to plans.
+   *
+   * @param admin - Shopify Admin API client
+   * @returns true if shop is a development store
+   */
+  static async isDevelopmentStore(admin: any): Promise<boolean> {
+    try {
+      const query = `
+        query {
+          shop {
+            plan {
+              partnerDevelopment
+            }
+          }
+        }
+      `;
+
+      const response = await admin.graphql(query);
+      const data = await response.json();
+
+      return data.data?.shop?.plan?.partnerDevelopment ?? false;
+    } catch (error) {
+      console.error("[ShopService] Error checking if development store:", error);
+      // Default to false (production behavior) if we can't determine
+      return false;
+    }
+  }
 }
