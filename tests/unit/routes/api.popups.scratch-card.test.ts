@@ -1,6 +1,6 @@
 /**
  * Unit Tests for Scratch Card API
- * 
+ *
  * Tests the /api/popups/scratch-card endpoint including:
  * - Challenge token validation
  * - Prize selection
@@ -64,6 +64,7 @@ import { authenticate } from "~/shopify.server";
 import prisma from "~/db.server";
 import * as discountModule from "~/domains/commerce/services/discount.server";
 import * as submissionValidatorModule from "~/domains/security/services/submission-validator.server";
+import { PopupEventService } from "~/domains/analytics/popup-events.server";
 
 const appProxyMock = authenticate.public.appProxy as unknown as ReturnType<typeof vi.fn>;
 const campaignFindUniqueMock = prisma.campaign.findUnique as unknown as ReturnType<typeof vi.fn>;
@@ -71,6 +72,7 @@ const leadCreateMock = prisma.lead.create as unknown as ReturnType<typeof vi.fn>
 const leadUpsertMock = prisma.lead.upsert as unknown as ReturnType<typeof vi.fn>;
 const getCampaignDiscountCodeMock = discountModule.getCampaignDiscountCode as unknown as ReturnType<typeof vi.fn>;
 const validateStorefrontRequestMock = submissionValidatorModule.validateStorefrontRequest as unknown as ReturnType<typeof vi.fn>;
+const recordEventMock = PopupEventService.recordEvent as unknown as ReturnType<typeof vi.fn>;
 
 import { action as scratchCardAction } from "~/routes/api.popups.scratch-card";
 
@@ -201,16 +203,19 @@ describe("api.popups.scratch-card action", () => {
       expect(payload.success).toBe(true);
       expect(payload.discountCode).toBe("SCRATCH10");
 
-      // Verify anonymous lead was created
-      expect(leadCreateMock).toHaveBeenCalledWith({
-        data: expect.objectContaining({
-          email: `session_${mockSessionId}@anonymous.local`,
-          campaignId: mockCampaignId,
-          storeId: mockStoreId,
-          discountCode: "SCRATCH10",
-          sessionId: mockSessionId,
-        }),
-      });
+      // Verify anonymous lead was created (with select for returning ID)
+      expect(leadCreateMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            email: `session_${mockSessionId}@anonymous.local`,
+            campaignId: mockCampaignId,
+            storeId: mockStoreId,
+            discountCode: "SCRATCH10",
+            sessionId: mockSessionId,
+          }),
+          select: { id: true },
+        })
+      );
     });
 
     it("should create lead with email when email IS provided (Scenario 1)", async () => {
@@ -254,22 +259,25 @@ describe("api.popups.scratch-card action", () => {
       expect(payload.discountCode).toBe("SCRATCH10");
 
       // Verify lead was upserted with real email
-      expect(leadUpsertMock).toHaveBeenCalledWith({
-        where: {
-          storeId_campaignId_email: {
-            storeId: mockStoreId,
-            campaignId: mockCampaignId,
-            email: testEmail,
+      expect(leadUpsertMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            storeId_campaignId_email: {
+              storeId: mockStoreId,
+              campaignId: mockCampaignId,
+              email: testEmail,
+            },
           },
-        },
-        create: expect.objectContaining({
-          email: testEmail,
-          discountCode: "SCRATCH10",
-        }),
-        update: expect.objectContaining({
-          discountCode: "SCRATCH10",
-        }),
-      });
+          create: expect.objectContaining({
+            email: testEmail,
+            discountCode: "SCRATCH10",
+          }),
+          update: expect.objectContaining({
+            discountCode: "SCRATCH10",
+          }),
+          select: { id: true },
+        })
+      );
     });
   });
 
@@ -310,6 +318,81 @@ describe("api.popups.scratch-card action", () => {
       expect(payload.success).toBe(true);
       expect(payload.prize).toBeDefined();
       expect(["1", "2"]).toContain(payload.prize.id);
+    });
+  });
+
+  describe("Analytics Event Recording", () => {
+    it("should record SUBMIT and COUPON_ISSUED events on successful scratch", async () => {
+      const testEmail = "analytics@test.com";
+
+      campaignFindUniqueMock.mockResolvedValue({
+        id: mockCampaignId,
+        storeId: mockStoreId,
+        templateType: "SCRATCH_CARD",
+        contentConfig: {
+          emailRequired: true,
+          emailBeforeScratching: true,
+          prizes: [
+            { id: "prize-1", label: "15% OFF", probability: 1.0, discountConfig: { enabled: true } },
+          ],
+        },
+      });
+
+      getCampaignDiscountCodeMock.mockResolvedValue({
+        success: true,
+        discountCode: "SCRATCH15",
+      });
+
+      leadUpsertMock.mockResolvedValue({ id: "lead_analytics_123" });
+
+      const request = new Request("http://localhost/api/popups/scratch-card", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          campaignId: mockCampaignId,
+          sessionId: mockSessionId,
+          popupShownAt: Date.now() - 5000,
+          email: testEmail,
+        }),
+      });
+
+      const response = await scratchCardAction({ request } as unknown as ActionFunctionArgs);
+      const payload = (response as any).data as any;
+
+      expect(payload.success).toBe(true);
+
+      // Verify SUBMIT event was recorded
+      expect(recordEventMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          storeId: mockStoreId,
+          campaignId: mockCampaignId,
+          eventType: "SUBMIT",
+          sessionId: mockSessionId,
+          metadata: expect.objectContaining({
+            email: testEmail,
+            source: "scratch_card_popup",
+            gameType: "SCRATCH_CARD",
+          }),
+        })
+      );
+
+      // Verify COUPON_ISSUED event was recorded
+      expect(recordEventMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          storeId: mockStoreId,
+          campaignId: mockCampaignId,
+          eventType: "COUPON_ISSUED",
+          sessionId: mockSessionId,
+          metadata: expect.objectContaining({
+            discountCode: "SCRATCH15",
+            source: "scratch_card_popup",
+            gameType: "SCRATCH_CARD",
+          }),
+        })
+      );
+
+      // Should have been called exactly twice (SUBMIT + COUPON_ISSUED)
+      expect(recordEventMock).toHaveBeenCalledTimes(2);
     });
   });
 });

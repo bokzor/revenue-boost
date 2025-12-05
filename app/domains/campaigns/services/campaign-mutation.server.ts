@@ -17,6 +17,7 @@ import type { AdminApiContext } from "@shopify/shopify-app-react-router/server";
 import {
   validateCampaignCreateData,
   validateCampaignUpdateData,
+  validateCampaignForActivation,
 } from "../validation/campaign-validation.js";
 import { parseCampaignFields, prepareEntityJsonFields } from "../utils/json-helpers.js";
 import { CampaignServiceError } from "~/lib/errors.server";
@@ -233,16 +234,63 @@ export class CampaignMutationService {
       );
     }
 
-    // Enforce plan limits if activating
+    // Enforce plan limits and validate campaign if activating
     if (data.status === "ACTIVE") {
       const currentCampaign = await prisma.campaign.findUnique({
         where: { id },
-        select: { status: true },
+        select: {
+          status: true,
+          name: true,
+          templateType: true,
+          contentConfig: true,
+          designConfig: true,
+          discountConfig: true,
+          targetRules: true,
+        },
       });
 
       // Only check if we are changing status to ACTIVE (and it wasn't already)
       if (currentCampaign && currentCampaign.status !== "ACTIVE") {
+        // Check plan limits
         await PlanGuardService.assertCanCreateCampaign(storeId);
+
+        // Validate campaign is ready for activation
+        // Merge current campaign data with update data for validation
+        const campaignForValidation = {
+          id,
+          name: data.name || currentCampaign.name,
+          templateType: data.templateType || currentCampaign.templateType,
+          contentConfig: (data.contentConfig ||
+            currentCampaign.contentConfig ||
+            {}) as Record<string, unknown>,
+          designConfig: (data.designConfig ||
+            currentCampaign.designConfig ||
+            {}) as Record<string, unknown>,
+          discountConfig: (data.discountConfig || currentCampaign.discountConfig) as
+            | { enabled?: boolean; type?: string; valueType?: string; value?: number }
+            | undefined,
+          targetRules: (data.targetRules || currentCampaign.targetRules) as
+            | Record<string, unknown>
+            | undefined,
+        };
+
+        const activationValidation = validateCampaignForActivation(campaignForValidation);
+
+        if (!activationValidation.success) {
+          throw new CampaignServiceError(
+            "ACTIVATION_VALIDATION_FAILED",
+            "Campaign cannot be activated",
+            activationValidation.errors
+          );
+        }
+
+        // Log warnings but don't block activation
+        if (activationValidation.warnings && activationValidation.warnings.length > 0) {
+          console.warn(
+            `[Campaign Activation] Warnings for campaign ${id}:`,
+            activationValidation.warnings
+          );
+        }
       }
     }
 

@@ -224,7 +224,6 @@ async function createWelcomeCampaign(storeId: string) {
         position: "center",
         size: "medium",
         borderRadius: 8,
-        imagePosition: "left",
         animation: "fade",
         backgroundColor: "#ffffff",
         textColor: "#000000",
@@ -232,6 +231,11 @@ async function createWelcomeCampaign(storeId: string) {
         buttonTextColor: "#ffffff",
         overlayOpacity: 0.6,
         backgroundImageMode: "none",
+        leadCaptureLayout: {
+          desktop: "split-left",
+          mobile: "content-only",
+          visualSizeDesktop: "50%",
+        },
       },
       targetRules: {
         enhancedTriggers: {

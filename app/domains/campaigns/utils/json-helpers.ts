@@ -226,10 +226,14 @@ export function parseDesignConfig(jsonValue: unknown): DesignConfig {
     position: "center",
     size: "medium",
     borderRadius: 8,
-    imagePosition: "left",
     overlayOpacity: 0.8,
     animation: "fade",
     backgroundImageMode: "none",
+    leadCaptureLayout: {
+      desktop: "split-left",
+      mobile: "content-only",
+      visualSizeDesktop: "50%",
+    },
   });
 }
 

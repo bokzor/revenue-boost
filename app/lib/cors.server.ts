@@ -115,6 +115,9 @@ export function adminCors(requestOrigin?: string | null): Record<string, string>
  * 3. Proxies through Shopify's infrastructure
  *
  * The App Proxy authentication is the primary security layer.
+ *
+ * IMPORTANT: Cache-Control is set to no-store to prevent App Proxy caching.
+ * This is critical for E2E tests and real-time campaign updates.
  */
 export function storefrontCors(requestOrigin?: string | null): Record<string, string> {
   return {
@@ -123,5 +126,10 @@ export function storefrontCors(requestOrigin?: string | null): Record<string, st
     "Access-Control-Allow-Headers": "Content-Type, X-Shop-Domain",
     "Access-Control-Max-Age": "3600", // 1 hour
     "Vary": "Origin",
+    // Prevent Shopify App Proxy from caching responses
+    // This ensures campaigns are always fetched fresh from the database
+    "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+    "Pragma": "no-cache",
+    "Expires": "0",
   };
 }

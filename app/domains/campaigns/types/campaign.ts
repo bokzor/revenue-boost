@@ -5,6 +5,47 @@
  */
 
 import { z } from "zod";
+import type { LeadCaptureConfig } from "~/shared/types/lead-capture-config";
+
+// =============================================================================
+// LEAD CAPTURE CONFIG - Zod Schema matching the shared interface
+// =============================================================================
+
+/**
+ * Zod schema for LeadCaptureConfig.
+ * This MUST stay in sync with the LeadCaptureConfig interface.
+ * TypeScript will error if the interface and schema diverge.
+ */
+export const LeadCaptureConfigSchema = z.object({
+  // Email
+  emailRequired: z.boolean().default(true),
+  emailLabel: z.string().optional(),
+  emailPlaceholder: z.string().default("Enter your email"),
+  emailErrorMessage: z.string().optional(),
+  // Name
+  nameFieldEnabled: z.boolean().default(false),
+  nameFieldRequired: z.boolean().default(false),
+  nameFieldLabel: z.string().optional(),
+  nameFieldPlaceholder: z.string().optional(),
+  // Consent
+  consentFieldEnabled: z.boolean().default(false),
+  consentFieldRequired: z.boolean().default(false),
+  consentFieldText: z.string().optional(),
+  privacyPolicyUrl: z.string().url().optional().or(z.literal("")),
+});
+
+/**
+ * Type derived from Zod schema - use this for runtime-validated data.
+ * The interface LeadCaptureConfig is for documentation and IDE support.
+ */
+export type LeadCaptureConfigParsed = z.infer<typeof LeadCaptureConfigSchema>;
+
+// Type-check: Ensure the schema output is compatible with the interface
+// This will error at compile time if we add a field to the interface but not the schema
+type _AssertSchemaHasAllFields = Required<LeadCaptureConfig> extends LeadCaptureConfigParsed
+  ? true
+  : "Schema is missing fields from LeadCaptureConfig interface";
+const _schemaCheck: _AssertSchemaHasAllFields = true;
 
 // ============================================================================
 // ENUMS & CONSTANTS
@@ -230,7 +271,9 @@ export function requiresEmailRestriction(behavior: DiscountBehavior | undefined)
 export const BaseContentConfigSchema = z.object({
   headline: z.string().min(1, "Headline is required"),
   subheadline: z.string().optional(),
-  buttonText: z.string().min(1, "Button text is required"),
+  // buttonText is now optional - new templates use cta.label instead
+  // Legacy support: if cta is not defined, buttonText is used
+  buttonText: z.string().optional(),
   dismissLabel: z.string().optional(),
   // Made optional with default - many templates don't show this field in the UI
   // but still need it for validation. Templates that use it (Newsletter, Flash Sale)
@@ -247,29 +290,49 @@ export type BaseContentConfig = z.infer<typeof BaseContentConfigSchema>;
 // ============================================================================
 
 /**
- * Newsletter-specific content fields
+ * Badge/Tag icon options for promotional badges
  */
-export const NewsletterContentSchema = BaseContentConfigSchema.extend({
-  emailPlaceholder: z.string().default("Enter your email"),
-  emailLabel: z.string().optional(),
-  emailRequired: z.boolean().default(true),
-  emailErrorMessage: z.string().optional(),
-  submitButtonText: z.string().default("Subscribe"),
-  nameFieldEnabled: z.boolean().default(false),
-  nameFieldRequired: z.boolean().default(false),
-  nameFieldPlaceholder: z.string().optional(),
-  consentFieldEnabled: z.boolean().default(false),
-  // Optional labels/placeholders for name fields and error handling used by UI
-  firstNameLabel: z.string().optional(),
-  lastNameLabel: z.string().optional(),
-  firstNamePlaceholder: z.string().optional(),
-  lastNamePlaceholder: z.string().optional(),
-  errorMessage: z.string().optional(),
+export const BadgeIconSchema = z.enum([
+  "sparkle",
+  "leaf",
+  "star",
+  "gift",
+  "heart",
+  "percent",
+  "fire",
+  "none",
+]);
+export type BadgeIcon = z.infer<typeof BadgeIconSchema>;
 
-  consentFieldRequired: z.boolean().default(false),
-  consentFieldText: z.string().optional(),
-  // GDPR: Privacy policy URL for consent checkbox link
-  privacyPolicyUrl: z.string().url().optional(),
+/**
+ * Newsletter-specific content fields
+ *
+ * Extends BaseContentConfigSchema with:
+ * - LeadCaptureConfigSchema (email, name, consent fields)
+ * - Newsletter-specific fields (submitButtonText)
+ */
+export const NewsletterContentSchema = BaseContentConfigSchema.merge(LeadCaptureConfigSchema).extend({
+  // Newsletter-specific
+  submitButtonText: z.string(),
+  // Label shown above the discount code on success (e.g., "Your discount code:")
+  discountCodeLabel: z.string().default("Your discount code:"),
+
+  // Badge/Tag above headline (e.g., "Exclusive offers inside")
+  tagText: z.string().optional(),
+  tagIcon: BadgeIconSchema.optional(),
+
+  // Image floating badge (social proof)
+  imageBadgeEnabled: z.boolean().optional().default(false),
+  imageBadgeIcon: BadgeIconSchema.optional(),
+  imageBadgeTitle: z.string().optional(), // e.g., "Join"
+  imageBadgeValue: z.string().optional(), // e.g., "10,000+ members"
+
+  // Footer disclaimer text
+  footerText: z.string().optional(), // e.g., "Unsubscribe anytime. We respect your privacy."
+
+  // Success state enhancements
+  successBadgeText: z.string().optional(), // e.g., "10% off your first retreat"
+  successBadgeIcon: BadgeIconSchema.optional(),
 });
 
 /**
@@ -367,24 +430,8 @@ const SpinToWinBaseContentSchema = BaseContentConfigSchema.omit({
   successMessage: true,
 });
 
-export const SpinToWinContentSchema = SpinToWinBaseContentSchema.extend({
-  spinButtonText: z.string().default("Spin to Win!"),
-
-  // Email capture config
-  emailRequired: z.boolean().default(true),
-  emailPlaceholder: z.string().default("Enter your email to spin"),
-  emailLabel: z.string().optional(),
-
-  // Name & consent config (matching NewsletterContentSchema)
-  collectName: z.boolean().default(false),
-  nameFieldRequired: z.boolean().default(false),
-  nameFieldPlaceholder: z.string().optional(),
-
-  showGdprCheckbox: z.boolean().default(false),
-  consentFieldRequired: z.boolean().default(false),
-  gdprLabel: z.string().optional(),
-  // GDPR: Privacy policy URL for consent checkbox link
-  privacyPolicyUrl: z.string().url().optional(),
+export const SpinToWinContentSchema = SpinToWinBaseContentSchema.merge(LeadCaptureConfigSchema).extend({
+  spinButtonText: z.string(),
 
   // Wheel configuration
   wheelSegments: z
@@ -409,15 +456,35 @@ export const SpinToWinContentSchema = SpinToWinBaseContentSchema.extend({
   spinDuration: z.number().int().min(1000).max(10000).default(4000),
   minSpins: z.number().int().min(1).max(20).default(5),
   loadingText: z.string().optional(),
+
+  // Enhanced wheel styling (for premium themes like Lucky Fortune)
+  wheelGlowEnabled: z.boolean().default(false),
+  wheelGlowColor: z.string().optional(), // Defaults to accentColor if not specified
+  wheelCenterStyle: z.enum(["simple", "gradient", "metallic"]).default("simple"),
+
+  // Promotional badge (shown above headline)
+  badgeEnabled: z.boolean().default(false),
+  badgeText: z.string().optional(), // e.g., "Limited Time Offer"
+  badgeIcon: z.enum(["sparkles", "star", "gift", "fire", "clock"]).optional(),
+
+  // Result state customization
+  showResultIcon: z.boolean().default(false),
+  resultIconType: z.enum(["trophy", "gift", "star", "confetti"]).default("trophy"),
 });
 
 /**
  * Flash Sale specific content fields
  * Enhanced with advanced timer modes, real-time inventory, and reservation features
+ *
+ * Note: discountPercentage is optional because:
+ * - BOGO campaigns use discountConfig.bogo instead
+ * - Tiered campaigns use discountConfig.tiers instead
+ * - Free Gift campaigns use discountConfig.freeGift instead
+ * Only basic percentage discounts need discountPercentage in contentConfig
  */
 export const FlashSaleContentSchema = BaseContentConfigSchema.extend({
   urgencyMessage: z.string().min(1, "Urgency message is required"),
-  discountPercentage: z.number().min(0).max(100),
+  discountPercentage: z.number().min(0).max(100).optional(), // Optional for BOGO/Tiered/FreeGift
   originalPrice: z.number().min(0).optional(),
   salePrice: z.number().min(0).optional(),
   showCountdown: z.boolean().default(true),
@@ -472,14 +539,48 @@ export const FlashSaleContentSchema = BaseContentConfigSchema.extend({
     })
     .optional(),
 
-  // CTA configuration
+  // CTA (Call-to-Action) configuration - uses unified CTA system
+  // See app/domains/campaigns/types/cta.ts for full schema
   cta: z
     .object({
-      primaryLabel: z.string().default("Unlock Offer"),
-      primaryAction: z.enum(["apply", "navigate"]).default("apply"),
-      navigateUrl: z.string().optional(), // For navigate action
-      secondaryLabel: z.string().optional(),
-      secondaryUrl: z.string().optional(),
+      // Display
+      label: z.string().min(1).default("Shop Now"),
+      variant: z.enum(["primary", "secondary", "link"]).default("primary"),
+
+      // Action type
+      action: z
+        .enum([
+          "navigate_url",
+          "navigate_product",
+          "navigate_collection",
+          "add_to_cart",
+          "add_to_cart_checkout",
+        ])
+        .default("navigate_collection"),
+
+      // Navigation config
+      url: z.string().optional(),
+      productId: z.string().optional(),
+      productHandle: z.string().optional(),
+      collectionId: z.string().optional(),
+      collectionHandle: z.string().optional(),
+      openInNewTab: z.boolean().default(false),
+
+      // Cart config
+      variantId: z.string().optional(),
+      quantity: z.number().int().min(1).default(1),
+
+      // Discount integration
+      applyDiscountFirst: z.boolean().default(true),
+    })
+    .optional(),
+
+  // Secondary CTA (dismiss/alternative action)
+  secondaryCta: z
+    .object({
+      label: z.string().default("No thanks"),
+      action: z.enum(["dismiss", "navigate_url"]).default("dismiss"),
+      url: z.string().optional(),
     })
     .optional(),
 
@@ -650,11 +751,8 @@ const ScratchCardBaseContentSchema = BaseContentConfigSchema.omit({
   successMessage: true,
 });
 
-export const ScratchCardContentSchema = ScratchCardBaseContentSchema.extend({
-  scratchInstruction: z.string().default("Scratch to reveal your prize!"),
-  emailRequired: z.boolean().default(true),
-  emailPlaceholder: z.string().default("Enter your email"),
-  emailLabel: z.string().optional(),
+export const ScratchCardContentSchema = ScratchCardBaseContentSchema.merge(LeadCaptureConfigSchema).extend({
+  scratchInstruction: z.string(),
   emailBeforeScratching: z.boolean().default(false),
   scratchThreshold: z.number().min(0).max(100).default(50),
   scratchRadius: z.number().min(5).max(100).default(20),
@@ -669,11 +767,6 @@ export const ScratchCardContentSchema = ScratchCardBaseContentSchema.extend({
     )
     .min(1, "At least one prize required")
     .default(DEFAULT_SCRATCH_CARD_PRIZES),
-  // GDPR consent fields
-  showGdprCheckbox: z.boolean().default(false),
-  gdprLabel: z.string().optional(),
-  // GDPR: Privacy policy URL for consent checkbox link
-  privacyPolicyUrl: z.string().url().optional(),
 });
 
 /**
@@ -778,6 +871,7 @@ export const DesignConfigSchema = z.object({
   // Layout
   theme: z
     .enum([
+      // Generic themes
       "modern",
       "minimal",
       "elegant",
@@ -788,7 +882,13 @@ export const DesignConfigSchema = z.object({
       "luxury",
       "neon",
       "ocean",
-      "summer-sale",
+      // Seasonal themes (for styled recipes)
+      "summer",
+      "black-friday",
+      "cyber-monday",
+      "holiday",
+      "valentine",
+      "spring",
     ])
     .optional(), // Optional when using a custom theme preset
   customThemePresetId: z.string().optional(), // ID of the applied custom theme preset
@@ -800,13 +900,41 @@ export const DesignConfigSchema = z.object({
   displayMode: z.enum(["popup", "banner", "slide-in", "inline"]).optional(),
   showCloseButton: z.boolean().default(true).optional(),
 
+  // Layout variant (used to pick component variant, e.g., FlashSaleCentered vs FlashSaleSplit)
+  // This enables recipes to specify different component layouts without database schema changes
+  // Optional for backward compatibility - defaults to "centered" when not specified
+  layout: z
+    .enum([
+      "centered", // Default modal in center
+      "split-left", // Image on left, content on right
+      "split-right", // Content on left, image on right
+      "fullscreen", // Full viewport
+      "banner-top", // Top sticky bar
+      "banner-bottom", // Bottom sticky bar
+      "sidebar-left", // Slide-in from left
+      "sidebar-right", // Slide-in from right
+    ])
+    .default("centered")
+    .optional(),
+
   // Image settings
   imageUrl: z.string().optional(),
-  imagePosition: z.enum(["left", "right", "top", "bottom", "full", "none"]).default("left"),
   backgroundImageMode: z.enum(["none", "preset", "file"]).default("none"),
   backgroundImagePresetKey: z.string().optional(),
   backgroundImageFileId: z.string().optional(),
   backgroundOverlayOpacity: z.number().min(0).max(1).default(0.6).optional(), // Overlay opacity for full background images
+
+  // Lead Capture Layout (Newsletter, Spin-to-Win, Scratch Card)
+  leadCaptureLayout: z
+    .object({
+      desktop: z.enum(["split-left", "split-right", "stacked", "overlay", "content-only"]),
+      mobile: z.enum(["stacked", "overlay", "fullscreen", "content-only"]),
+      visualSizeDesktop: z.string().optional(),
+      visualSizeMobile: z.string().optional(),
+      contentOverlap: z.string().optional(),
+      visualGradient: z.boolean().optional(),
+    })
+    .optional(),
 
   // Main colors
   backgroundColor: z.string().optional(), // Supports gradients and rgba
@@ -837,6 +965,7 @@ export const DesignConfigSchema = z.object({
   fontFamily: z.string().optional(),
   fontSize: z.string().optional(),
   fontWeight: z.string().optional(),
+  headlineFontFamily: z.string().optional(), // e.g., "Georgia, serif" for Spa Serenity
   titleFontSize: z.string().optional(),
   titleFontWeight: z.string().optional(),
   titleTextShadow: z.string().optional(),
@@ -846,8 +975,45 @@ export const DesignConfigSchema = z.object({
   // Input styling
   inputBackdropFilter: z.string().optional(),
   inputBoxShadow: z.string().optional(),
+  inputBorderRadius: z.union([z.string(), z.number()]).optional(),
+  inputBorderWidth: z.number().optional(), // 1 or 2
+  inputStyle: z.enum(["outlined", "filled", "underline"]).optional(),
+  inputFocusRingColor: z.string().optional(), // e.g., "rgba(22, 101, 52, 0.1)"
+  inputFocusRingWidth: z.number().optional(), // e.g., 4
+
+  // Button styling
+  buttonBorderRadius: z.union([z.string(), z.number()]).optional(),
+  buttonStyle: z.enum(["filled", "outline", "ghost"]).optional(),
+  buttonBoxShadow: z.string().optional(),
+  secondaryButtonColor: z.string().optional(),
+  secondaryButtonTextColor: z.string().optional(),
+
+  // Badge/Tag styling (for promotional badges like "Exclusive offers inside")
+  badgeBackgroundColor: z.string().optional(),
+  badgeTextColor: z.string().optional(),
+  badgeBorderRadius: z.number().optional(),
+
+  // Checkbox styling
+  checkboxBorderRadius: z.number().optional(), // 4 for rounded, 999 for pill
+  checkboxSize: z.number().optional(), // Size in pixels (default 20)
+
+  // Text alignment and spacing
+  textAlign: z.enum(["left", "center", "right"]).optional(),
+  contentSpacing: z.enum(["compact", "comfortable", "spacious"]).optional(),
+
+  // Image effects
+  imageFilter: z.string().optional(),
+  imageBorderRadius: z.union([z.string(), z.number()]).optional(),
+  imagePosition: z.enum(["left", "right", "top", "bottom", "full", "none"]).optional(),
+
+  // Scratch Card specific design properties
+  scratchCardBackgroundColor: z.string().optional(),
+  scratchCardTextColor: z.string().optional(),
+  scratchOverlayColor: z.string().optional(),
+  scratchOverlayImage: z.string().optional(),
 
   // Advanced
+  boxShadow: z.string().optional(),
   customCSS: z.string().optional(),
 });
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { formatCurrency } from "~/domains/storefront/popups-new/utils";
+import { formatCurrency } from "~/domains/storefront/popups-new/utils/utils";
 
 /**
  * Unit tests for storefront popup utils - formatCurrency
@@ -38,4 +38,3 @@ describe("formatCurrency", () => {
     expect(result).toBe("$10.00");
   });
 });
-

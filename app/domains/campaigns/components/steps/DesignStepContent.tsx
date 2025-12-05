@@ -6,6 +6,7 @@
  * - DesignConfigSection for universal design/color fields (used by ALL templates)
  */
 
+import { useState, useCallback, useMemo } from "react";
 import { Banner, Text, BlockStack, Card, Divider, Layout } from "@shopify/polaris";
 import { ContentConfigSection } from "../sections/ContentConfigSection";
 import { DesignConfigSection } from "../sections/DesignConfigSection";
@@ -14,7 +15,7 @@ import type { NewsletterContent } from "../sections/NewsletterContentSection";
 import { FlashSaleContentSection } from "../sections/FlashSaleContentSection";
 import type { FlashSaleContent } from "../sections/FlashSaleContentSection";
 import { TemplateSelector, type SelectedTemplate } from "../TemplateSelector";
-import { LivePreviewPanel } from "~/domains/popups/components/preview/LivePreviewPanel";
+import { LivePreviewPanel, type PreviewDevice } from "~/domains/popups/components/preview/LivePreviewPanel";
 import { Affix } from "~/shared/components/ui/Affix";
 import type { CampaignGoal, TemplateType } from "~/shared/hooks/useWizardState";
 import type { ContentConfig, DesignConfig , SpinToWinContent } from "~/domains/campaigns/types/campaign";
@@ -25,6 +26,7 @@ import { getSpinToWinSliceColors, getSpinToWinWheelBorder } from "~/config/color
 import { CustomCSSEditor } from "../CustomCSSEditor";
 import { UpgradeBanner, useFeatureAccess } from "~/domains/billing";
 import { getWheelColorsFromPreset, type ThemePresetInput } from "~/domains/store/types/theme-preset";
+import type { BackgroundPreset } from "~/config/background-presets";
 
 interface DesignStepContentProps {
   goal?: CampaignGoal;
@@ -49,12 +51,18 @@ interface DesignStepContentProps {
     successColor?: string;
     fontFamily?: string;
   }>;
+  /**
+   * Map of layout -> proven background presets.
+   * Loaded once from recipe service, filtered by current layout in components.
+   */
+  backgroundsByLayout?: Record<string, BackgroundPreset[]>;
   onContentChange: (content: Partial<ContentConfig>) => void;
   onDesignChange: (design: Partial<DesignConfig>) => void;
   onDiscountChange?: (config: DiscountConfig) => void;
   onTemplateSelect: (template: SelectedTemplate) => void;
   initialTemplates?: UnifiedTemplate[];
   preselectedTemplateType?: string; // For auto-selecting template from URL param
+  skipAutoSelect?: boolean; // Skip auto-selection when content is prefilled from recipe
 }
 
 export function DesignStepContent({
@@ -70,13 +78,31 @@ export function DesignStepContent({
   targetRules,
   globalCustomCSS,
   customThemePresets,
+  backgroundsByLayout,
   onContentChange,
   onDesignChange,
   onDiscountChange,
   onTemplateSelect,
   initialTemplates,
   preselectedTemplateType,
+  skipAutoSelect = false,
 }: DesignStepContentProps) {
+  // Preview device state - controlled by both device toggle and mobile layout changes
+  const [previewDevice, setPreviewDevice] = useState<PreviewDevice>("tablet");
+
+  // Switch to mobile preview when mobile layout is changed
+  const handleMobileLayoutChange = useCallback(() => {
+    setPreviewDevice("mobile");
+  }, []);
+
+  // Compute available backgrounds for current layout from the map
+  const availableBackgrounds = useMemo(() => {
+    if (!backgroundsByLayout) return [];
+    const currentLayout = designConfig.leadCaptureLayout?.desktop;
+    if (!currentLayout) return [];
+    return backgroundsByLayout[currentLayout] || [];
+  }, [backgroundsByLayout, designConfig.leadCaptureLayout?.desktop]);
+
   if (!goal) {
     return (
       <Banner tone="warning">
@@ -107,6 +133,7 @@ export function DesignStepContent({
                 onSelect={onTemplateSelect}
                 initialTemplates={initialTemplates}
                 preselectedTemplateType={preselectedTemplateType}
+                skipAutoSelect={skipAutoSelect}
               />
             </BlockStack>
           </Card>
@@ -128,6 +155,8 @@ export function DesignStepContent({
                     templateType={templateType}
                     onChange={onDesignChange}
                     customThemePresets={customThemePresets}
+                    availableBackgrounds={availableBackgrounds}
+                    onMobileLayoutChange={handleMobileLayoutChange}
                   />
                 </>
               ) : templateType === "FLASH_SALE" ? (
@@ -145,6 +174,8 @@ export function DesignStepContent({
                     templateType={templateType}
                     onChange={onDesignChange}
                     customThemePresets={customThemePresets}
+                    availableBackgrounds={availableBackgrounds}
+                    onMobileLayoutChange={handleMobileLayoutChange}
                   />
                 </>
               ) : templateType === "COUNTDOWN_TIMER" ? (
@@ -161,6 +192,8 @@ export function DesignStepContent({
                     templateType={templateType}
                     onChange={onDesignChange}
                     customThemePresets={customThemePresets}
+                    availableBackgrounds={availableBackgrounds}
+                    onMobileLayoutChange={handleMobileLayoutChange}
                   />
                 </>
               ) : (
@@ -182,6 +215,8 @@ export function DesignStepContent({
                     templateType={templateType}
                     onChange={onDesignChange}
                     customThemePresets={customThemePresets}
+                    availableBackgrounds={availableBackgrounds}
+                    onMobileLayoutChange={handleMobileLayoutChange}
                     onThemeChange={(themeKey) => {
                       if (templateType === "SPIN_TO_WIN") {
                         const spinContent = contentConfig as Partial<SpinToWinContent>;
@@ -274,6 +309,9 @@ export function DesignStepContent({
                 shopDomain={shopDomain}
                 campaignId={campaignId}
                 globalCustomCSS={globalCustomCSS}
+                // Controlled device mode - switches to mobile when mobile layout is changed
+                device={previewDevice}
+                onDeviceChange={setPreviewDevice}
               />
             ) : (
               <Card>

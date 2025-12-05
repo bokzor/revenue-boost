@@ -205,11 +205,11 @@ export interface LeadCaptureFormProps {
 
 /**
  * LeadCaptureForm Component
- * 
+ *
  * Reusable form component for capturing leads (email, name, GDPR consent).
  * Composes existing FormFields components with consistent styling and validation.
  * Integrates seamlessly with the usePopupForm hook.
- * 
+ *
  * @example
  * ```tsx
  * const {
@@ -221,7 +221,7 @@ export interface LeadCaptureFormProps {
  *   handleSubmit,
  *   isSubmitting,
  * } = usePopupForm({ config });
- * 
+ *
  * <LeadCaptureForm
  *   data={formState}
  *   errors={errors}
@@ -275,7 +275,10 @@ export const LeadCaptureForm: React.FC<LeadCaptureFormProps> = ({
         onSubmit(e);
       }}
       className={className}
-      style={style}
+      style={{
+        textAlign: "var(--rb-popup-text-align, left)" as React.CSSProperties["textAlign"],
+        ...style,
+      }}
     >
       {isInline ? (
         // Inline layout: email + button on same line (responsive with CSS Grid)
@@ -314,8 +317,14 @@ export const LeadCaptureForm: React.FC<LeadCaptureFormProps> = ({
           </div>
         </div>
       ) : (
-        // Vertical layout (default)
-        <>
+        // Vertical layout (default) - uses CSS variable for spacing
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "var(--rb-popup-gap, 1rem)",
+          }}
+        >
           {/* Email Input */}
           <EmailInput
             value={data.email}
@@ -337,7 +346,7 @@ export const LeadCaptureForm: React.FC<LeadCaptureFormProps> = ({
               value={data.name || ""}
               onChange={onNameChange}
               placeholder={placeholders?.name || "Enter your name"}
-              label={labels?.name || "Name"}
+              label={labels?.name}
               error={errors.name}
               required={nameRequired}
               disabled={isSubmitting}
@@ -377,9 +386,8 @@ export const LeadCaptureForm: React.FC<LeadCaptureFormProps> = ({
           >
             {labels?.submit || "Submit"}
           </SubmitButton>
-        </>
+        </div>
       )}
     </form>
   );
 };
-

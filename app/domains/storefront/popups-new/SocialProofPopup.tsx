@@ -14,8 +14,8 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import type { PopupDesignConfig } from "./types";
 import type { SocialProofContent } from "~/domains/campaigns/types/campaign";
-import { prefersReducedMotion } from "./utils";
-import { POPUP_SPACING } from "./spacing";
+import { prefersReducedMotion } from "app/domains/storefront/popups-new/utils/utils";
+import { POPUP_SPACING } from "app/domains/storefront/popups-new/utils/spacing";
 
 // Import custom hooks
 import { usePopupAnimation } from "./hooks";
@@ -269,9 +269,9 @@ export const SocialProofPopup: React.FC<SocialProofPopupProps> = ({
         config.globalCustomCSS,
         config.customCSS,
         "data-rb-social-proof",
-        "social-proof",
+        "social-proof"
       ),
-    [config.customCSS, config.globalCustomCSS],
+    [config.customCSS, config.globalCustomCSS]
   );
 
   if (!isVisible || !currentNotification || filteredNotifications.length === 0) {
@@ -283,7 +283,9 @@ export const SocialProofPopup: React.FC<SocialProofPopupProps> = ({
     // Use `background` so both solid colors and gradients work
     background,
     color: config.textColor,
-    fontFamily: config.fontFamily || 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+    fontFamily:
+      config.fontFamily ||
+      'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
     borderRadius: `${config.borderRadius ?? 8}px`,
     padding: POPUP_SPACING.component.card,
     boxShadow: "0 4px 12px rgba(0,0,0,0.15)",

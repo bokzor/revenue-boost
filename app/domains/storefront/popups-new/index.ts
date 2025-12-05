@@ -20,10 +20,18 @@ export type {
   BackdropConfig,
   AnimationConfig,
   AnimationType,
+  MobilePresentationMode,
 } from "./PopupPortal";
 
 export { BannerPortal } from "./BannerPortal";
 export type { BannerPortalProps, BannerPosition } from "./BannerPortal";
+
+// Layout components (shared across template families)
+export { LeadCaptureLayout } from "app/domains/storefront/popups-new/components/shared/LeadCaptureLayout";
+export type {
+  LeadCaptureLayoutProps,
+  LayoutSize,
+} from "app/domains/storefront/popups-new/components/shared/LeadCaptureLayout";
 
 // Newsletter components
 export { NewsletterPopup } from "./NewsletterPopup";
@@ -80,6 +88,10 @@ export type {
   Prize,
   ValidationRule,
   FormField,
+  // Layout types (Lead Capture family)
+  DesktopLayout,
+  MobileLayout,
+  LayoutConfig,
 } from "./types";
 
 // Utility functions
@@ -95,4 +107,4 @@ export {
   formatTimeRemaining,
   prefersReducedMotion,
   debounce,
-} from "./utils";
+} from "app/domains/storefront/popups-new/utils/utils";

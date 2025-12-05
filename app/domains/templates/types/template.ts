@@ -200,10 +200,14 @@ export const NewsletterTemplateSchema = BaseTemplateSchema.extend({
     position: "center",
     size: "medium",
     borderRadius: 8,
-    imagePosition: "left",
     overlayOpacity: 0.8,
     backgroundImageMode: "none",
     animation: "fade",
+    leadCaptureLayout: {
+      desktop: "split-left",
+      mobile: "content-only",
+      visualSizeDesktop: "50%",
+    },
   }),
   discountConfig: DiscountConfigSchema.default({
     enabled: false,
@@ -243,10 +247,13 @@ export const SpinToWinTemplateSchema = BaseTemplateSchema.extend({
     position: "center",
     size: "medium",
     borderRadius: 8,
-    imagePosition: "none",
     overlayOpacity: 0.8,
     backgroundImageMode: "none",
     animation: "fade",
+    leadCaptureLayout: {
+      desktop: "content-only",
+      mobile: "content-only",
+    },
   }),
   discountConfig: DiscountConfigSchema.default({
     enabled: false,
@@ -255,7 +262,7 @@ export const SpinToWinTemplateSchema = BaseTemplateSchema.extend({
   }),
 });
 
-// Free Shipping Template
+// Free Shipping Template (uses banner layout, not LeadCaptureLayout)
 export const FreeShippingTemplateSchema = BaseTemplateSchema.extend({
   templateType: z.literal("FREE_SHIPPING"),
   contentConfig: FreeShippingContentSchema,
@@ -266,7 +273,6 @@ export const FreeShippingTemplateSchema = BaseTemplateSchema.extend({
     position: "top",
     size: "small",
     borderRadius: 0,
-    imagePosition: "left",
     overlayOpacity: 0,
     backgroundImageMode: "none",
     animation: "slide",

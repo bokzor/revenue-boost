@@ -356,6 +356,8 @@ export function FreeShippingContentSection({
               goal="INCREASE_REVENUE"
               discountConfig={discountConfig}
               onConfigChange={onDiscountChange}
+              allowedValueTypes={["FREE_SHIPPING"]}
+              hasEmailCapture={content.requireEmailToClaim}
             />
           </BlockStack>
         </Card>

@@ -8,32 +8,28 @@ After fixing 148 E2E tests, 5 tests remain skipped due to deeper issues in the S
 
 ---
 
-## Issue 1: Server-Side Frequency Capping NOT Enforcing Limits (HIGH PRIORITY)
+## Issue 1: Visitor ID Mismatch in Frequency Capping - RESOLVED ✅
 
 **Test:** `storefront-session-rules.spec.ts` - "multiple impressions allowed when configured"
 
-**Symptom:** Popup shows 4 times even though `maxImpressionsPerSession: 3` is configured. The server-side frequency capping is not enforcing the limit.
+**Status:** FIXED and DEPLOYED - Test passing.
 
-**Previous Fix (SDK - DEPLOYED ✅):**
-The SDK now correctly detects frequency capping and defers to server control:
+**Root Cause Was:**
+The server was using **different visitor IDs** for checking vs recording frequency caps - cookie-based for checking, but client-sent (localStorage-based) for recording.
+
+**Fix Applied:**
+Updated `app/routes/api.campaigns.active.tsx` to use client-provided visitorId:
+```typescript
+const clientVisitorId = url.searchParams.get("visitorId");
+context.visitorId = clientVisitorId || visitorId;
 ```
-[Revenue Boost] Campaign has frequency capping enabled, server controls visibility
+
+**Evidence:**
 ```
-
-**Current Issue (Server-Side):**
-The server at `/api/campaigns/active` is returning the campaign on ALL requests, regardless of impression count. The server should track impressions (via Redis or session) and filter out campaigns that have exceeded their `max_triggers_per_session` limit.
-
-**Investigation Needed:**
-1. Check how the server tracks session impressions
-2. Verify Redis/session storage is properly incrementing impression counts
-3. Check `CampaignFilterService` for frequency capping logic
-4. Ensure the `sessionId` is being used to track impressions per session
-
-**Files:**
-- `app/routes/api.campaigns.active.tsx` - API endpoint
-- `app/domains/campaigns/services/campaign-filter.server.ts` - filtering logic
-- Redis/session configuration for impression tracking
-- `tests/e2e/staging/storefront-session-rules.spec.ts:194` (test failing)
+[BROWSER] Campaigns received: 1  // Request 1, 2, 3 - campaign returned
+[BROWSER] Campaigns received: 0  // Request 4 - campaign NOT returned (limit enforced!)
+✅ Impression 4/3: Popup correctly NOT shown (limit enforced)
+```
 
 ---
 
@@ -154,7 +150,7 @@ Server-side geo-targeting filtering is not working. The campaign with `geoTarget
 
 | Issue | Priority | Type | Effort | Status |
 |-------|----------|------|--------|--------|
-| Frequency Capping Enforcement | HIGH | Server Bug | Medium | Server not enforcing limits |
+| Frequency Capping | - | - | - | ✅ RESOLVED |
 | Cart Value Polling | - | - | - | ✅ RESOLVED |
 | Session Rules Filtering | MEDIUM | Server Bug | Medium | Investigation needed |
 | Page Targeting Wildcards | LOW | Server Bug | Low | Investigation needed |
@@ -165,12 +161,9 @@ Server-side geo-targeting filtering is not working. The campaign with `geoTarget
 
 ## Next Steps
 
-1. **High Priority:** Fix server-side frequency capping enforcement (Issue 1)
-   - Investigate how impressions are tracked per session
-   - Check Redis/session storage implementation
-   - Ensure `max_triggers_per_session` is enforced
-2. **Medium Priority:** Investigate server-side filtering issues:
-   - Session rules filtering (Issue 3)
-   - Page targeting wildcards (Issue 4)
-3. **Low Priority:** Set up discount codes in staging store (Issue 5)
+1. **Medium Priority:** Investigate server-side filtering issues:
+   - Session rules filtering (Issue 3) - `isReturningVisitor` not filtering correctly
+   - Page targeting wildcards (Issue 4) - `*/collections/*` not matching
+   - Geographic targeting (Issue 6) - `X-Country-Code` header not being used
+2. **Low Priority:** Set up discount codes in staging store (Issue 5)
 

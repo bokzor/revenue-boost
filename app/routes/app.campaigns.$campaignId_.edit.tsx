@@ -47,6 +47,7 @@ interface LoaderData {
   };
   advancedTargetingEnabled: boolean;
   experimentsEnabled: boolean;
+  backgroundsByLayout?: Record<string, import("~/config/background-presets").BackgroundPreset[]>;
 }
 
 // ============================================================================
@@ -99,6 +100,12 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     const campaign = await CampaignService.getCampaignById(campaignId, storeId);
     console.log("[Campaign Edit Loader] Campaign fetched:", campaign ? campaign.id : "null");
 
+    // Lazy-load background presets by layout from recipe service
+    const { getBackgroundsByLayoutMap } = await import(
+      "~/domains/campaigns/recipes/recipe-service.server"
+    );
+    const backgroundsByLayout = await getBackgroundsByLayoutMap();
+
     return data<LoaderData>({
       campaign,
       storeId,
@@ -108,6 +115,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       globalFrequencyCapping,
       advancedTargetingEnabled,
       experimentsEnabled,
+      backgroundsByLayout,
     });
   } catch (error) {
     console.error("[Campaign Edit Loader] Failed to load campaign for editing:", error);
@@ -134,7 +142,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
 export default function CampaignEditPage() {
   console.log("[Campaign Edit Page] Component rendering");
-  const { campaign, storeId, shopDomain, globalCustomCSS, customThemePresets, globalFrequencyCapping, advancedTargetingEnabled, experimentsEnabled } =
+  const { campaign, storeId, shopDomain, globalCustomCSS, customThemePresets, globalFrequencyCapping, advancedTargetingEnabled, experimentsEnabled, backgroundsByLayout } =
     useLoaderData<typeof loader>();
   console.log("[Campaign Edit Page] Loaded data - campaign:", campaign?.id, "storeId:", storeId);
   const navigate = useNavigate();
@@ -369,6 +377,7 @@ export default function CampaignEditPage() {
         globalFrequencyCapping={globalFrequencyCapping}
         advancedTargetingEnabled={advancedTargetingEnabled}
         experimentsEnabled={experimentsEnabled}
+        backgroundsByLayout={backgroundsByLayout}
         onSave={handleSave}
         onCancel={handleCancel}
       />

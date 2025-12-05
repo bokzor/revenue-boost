@@ -28,6 +28,8 @@ import { ViewIcon } from "@shopify/polaris-icons";
 import { DeviceFrame } from "./DeviceFrame";
 import { TemplatePreview } from "./TemplatePreview";
 
+export type PreviewDevice = "mobile" | "tablet" | "desktop";
+
 export interface LivePreviewPanelProps {
   templateType?: string;
   config: Record<string, unknown>;
@@ -37,6 +39,10 @@ export interface LivePreviewPanelProps {
   shopDomain?: string;
   campaignId?: string;
   globalCustomCSS?: string;
+  /** Controlled device mode - when provided, overrides internal state */
+  device?: PreviewDevice;
+  /** Callback when device changes (for controlled mode) */
+  onDeviceChange?: (device: PreviewDevice) => void;
 }
 
 export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
@@ -48,8 +54,14 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
   shopDomain,
   campaignId,
   globalCustomCSS,
+  device: controlledDevice,
+  onDeviceChange,
 }) => {
-  const [device, setDevice] = useState<"mobile" | "tablet" | "desktop">("tablet");
+  const [internalDevice, setInternalDevice] = useState<PreviewDevice>("tablet");
+
+  // Support both controlled and uncontrolled modes
+  const device = controlledDevice ?? internalDevice;
+  const setDevice = onDeviceChange ?? setInternalDevice;
   const [zoom, setZoom] = useState(100);
 
   // ✅ KEY: Virtual viewport sizes - independent of physical container

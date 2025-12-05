@@ -9,14 +9,14 @@
  */
 
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
-import { data, useLoaderData, useNavigate } from "react-router";
+import { data, useLoaderData, useNavigate, useLocation } from "react-router";
 import { authenticate } from "~/shopify.server";
 import { getStoreId } from "~/lib/auth-helpers.server";
 import { CampaignFormWithABTesting } from "~/domains/campaigns/components/CampaignFormWithABTesting";
 import type { CampaignFormData } from "~/shared/hooks/useWizardState";
 import type { TemplateType, CampaignGoal } from "~/domains/campaigns/types/campaign";
 import { useState } from "react";
-import { Modal, Text, Toast, Frame } from "@shopify/polaris";
+import { Modal, Toast, Frame, Text } from "@shopify/polaris";
 import type { UnifiedTemplate } from "~/domains/popups/services/templates/unified-template-service.server";
 import prisma from "~/db.server";
 import { StoreSettingsSchema, GLOBAL_FREQUENCY_BEST_PRACTICES } from "~/domains/store/types/settings";
@@ -74,6 +74,12 @@ export async function loader({ request }: LoaderFunctionArgs) {
       ...GLOBAL_FREQUENCY_BEST_PRACTICES,
     };
 
+    // Lazy-load background presets by layout from recipe service
+    const { getBackgroundsByLayoutMap } = await import(
+      "~/domains/campaigns/recipes/recipe-service.server"
+    );
+    const backgroundsByLayout = await getBackgroundsByLayoutMap();
+
     return data({
       storeId,
       shopDomain: session.shop,
@@ -84,6 +90,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
       globalFrequencyCapping,
       advancedTargetingEnabled,
       experimentsEnabled,
+      backgroundsByLayout,
       success: true,
     });
   } catch (error) {
@@ -123,6 +130,11 @@ export async function action({ request }: ActionFunctionArgs) {
 export default function NewCampaign() {
   const loaderData = useLoaderData<typeof loader>();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Get recipe initial data from navigation state (passed from recipe flow)
+  const recipeInitialData = (location.state as { recipeInitialData?: Record<string, unknown> } | null)?.recipeInitialData;
+
   // Post-create activation modal state (single campaign)
   const [activatePromptOpen, setActivatePromptOpen] = useState(false);
   const [createdCampaignId, setCreatedCampaignId] = useState<string | null>(null);
@@ -144,6 +156,7 @@ export default function NewCampaign() {
     globalFrequencyCapping,
     advancedTargetingEnabled,
     experimentsEnabled,
+    backgroundsByLayout,
   } = loaderData as {
     storeId: string;
     shopDomain: string;
@@ -169,6 +182,7 @@ export default function NewCampaign() {
     };
     advancedTargetingEnabled?: boolean;
     experimentsEnabled?: boolean;
+    backgroundsByLayout?: Record<string, import("~/config/background-presets").BackgroundPreset[]>;
     success: boolean;
   };
 
@@ -429,13 +443,16 @@ export default function NewCampaign() {
         globalFrequencyCapping={globalFrequencyCapping}
         advancedTargetingEnabled={advancedTargetingEnabled ?? false}
         experimentsEnabled={experimentsEnabled ?? false}
+        backgroundsByLayout={backgroundsByLayout}
         initialData={
-          templateType || preselectedGoal
-            ? {
-                templateType: templateType as TemplateType | undefined,
-                goal: preselectedGoal as CampaignGoal | undefined,
-              }
-            : undefined
+          recipeInitialData
+            ? (recipeInitialData as Parameters<typeof CampaignFormWithABTesting>[0]["initialData"])
+            : templateType || preselectedGoal
+              ? {
+                  templateType: templateType as TemplateType | undefined,
+                  goal: preselectedGoal as CampaignGoal | undefined,
+                }
+              : undefined
         }
       />
 

@@ -15,7 +15,13 @@ import { join, resolve } from "node:path";
 const PUBLIC_DIR = resolve(process.cwd(), "public");
 
 // Allowed asset paths (whitelist for security)
-const ALLOWED_ASSET_PATHS = [/^newsletter-backgrounds\/[a-z-]+\.(png|jpg|jpeg)$/];
+// Pattern allows: letters (case-insensitive), numbers, hyphens, underscores in filenames
+const ALLOWED_ASSET_PATHS = [
+  /^newsletter-backgrounds\/[a-zA-Z0-9_-]+\.(png|jpg|jpeg)$/i,
+  /^recipes\/newsletter\/[a-zA-Z0-9_-]+\.(png|jpg|jpeg)$/i,
+  /^recipes\/scratch-card\/[a-zA-Z0-9_-]+\.(png|jpg|jpeg)$/i,
+  /^recipes\/flash-sale\/[a-zA-Z0-9_-]+\.(png|jpg|jpeg)$/i,
+];
 
 /**
  * Build response headers for static assets

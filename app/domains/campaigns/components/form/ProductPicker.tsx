@@ -27,6 +27,18 @@ import { useAppBridge } from "@shopify/app-bridge-react";
 import { Button, InlineStack, BlockStack, Text, Badge, Box } from "@shopify/polaris";
 import { ProductIcon, CollectionIcon } from "@shopify/polaris-icons";
 
+/**
+ * Convert title to URL handle (fallback when handle not provided)
+ * "Summer Sale Collection" -> "summer-sale-collection"
+ */
+function extractHandleFromTitle(title: string | undefined): string {
+  if (!title) return "";
+  return title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
 export interface ProductPickerSelection {
   id: string; // Shopify GID (e.g., gid://shopify/Product/123456789)
   title: string;
@@ -147,18 +159,30 @@ export function ProductPicker({
       });
 
       if (selected && Array.isArray(selected)) {
+        // Log raw selection for debugging
+        console.log("[ProductPicker] Raw selection:", JSON.stringify(selected, null, 2));
+
         const newSelections: ProductPickerSelection[] = (
           selected as unknown as Array<Record<string, unknown>>
         ).map((item) => {
+          // Extract handle - Shopify Resource Picker returns it at root level
+          const handle = (item.handle as string) || "";
+
+          // If no handle, try to extract from ID (gid://shopify/Collection/123456789)
+          // Note: This is a fallback - ideally we fetch the handle from the API
+          const fallbackHandle = handle || extractHandleFromTitle(item.title as string);
+
           const base: ProductPickerSelection = {
             id: item.id as string,
             title:
               (item.title as string) ||
               (item.displayName as string) ||
-              (item.handle as string) ||
+              fallbackHandle ||
               "Untitled",
-            handle: item.handle as string,
+            handle: handle || fallbackHandle,
           };
+
+          console.log("[ProductPicker] Processed item:", { id: base.id, title: base.title, handle: base.handle });
 
           // Normalize images (supports Resource Picker payload or GraphQL edges)
           const images = Array.isArray(item.images)

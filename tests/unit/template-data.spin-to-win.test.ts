@@ -9,7 +9,7 @@ import { SpinToWinContentSchema } from "~/domains/campaigns/types/campaign";
  * - The Spin to Win system template exists in GLOBAL_SYSTEM_TEMPLATES
  * - Its contentConfig matches SpinToWinContentSchema and has the expected defaults
  * - Prize configuration is exposed as wheelSegments with correct structure
- * - collectName and showGdprCheckbox are present and defaulted as expected
+ * - nameFieldEnabled and consentFieldEnabled are present and defaulted as expected
  */
 
 describe("GLOBAL_SYSTEM_TEMPLATES – Spin to Win", () => {
@@ -64,7 +64,7 @@ describe("GLOBAL_SYSTEM_TEMPLATES – Spin to Win", () => {
     }
   });
 
-  it("should enable collectName and showGdprCheckbox by default in seeded template", () => {
+  it("should enable nameFieldEnabled and consentFieldEnabled by default in seeded template", () => {
     expect(spinToWin).toBeDefined();
     if (!spinToWin) return;
 
@@ -78,10 +78,10 @@ describe("GLOBAL_SYSTEM_TEMPLATES – Spin to Win", () => {
 
     const content = result.data;
 
-    expect(content.collectName).toBe(true);
-    expect(content.showGdprCheckbox).toBe(true);
-    expect(typeof content.gdprLabel!).toBe("string");
-    expect(content.gdprLabel!.length).toBeGreaterThan(0);
+    expect(content.nameFieldEnabled).toBe(true);
+    expect(content.consentFieldEnabled).toBe(true);
+    expect(typeof content.consentFieldText!).toBe("string");
+    expect(content.consentFieldText!.length).toBeGreaterThan(0);
   });
 });
 

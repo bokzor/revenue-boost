@@ -65,10 +65,36 @@ const THEME_DEFAULTS: Record<
     text: NEWSLETTER_THEMES.ocean.text,
     button: NEWSLETTER_THEMES.ocean.primary,
   },
-  "summer-sale": {
-    background: NEWSLETTER_THEMES["summer-sale"].background,
-    text: NEWSLETTER_THEMES["summer-sale"].text,
-    button: NEWSLETTER_THEMES["summer-sale"].primary,
+  // Seasonal themes
+  summer: {
+    background: NEWSLETTER_THEMES.summer.background,
+    text: NEWSLETTER_THEMES.summer.text,
+    button: NEWSLETTER_THEMES.summer.primary,
+  },
+  "black-friday": {
+    background: NEWSLETTER_THEMES["black-friday"].background,
+    text: NEWSLETTER_THEMES["black-friday"].text,
+    button: NEWSLETTER_THEMES["black-friday"].primary,
+  },
+  "cyber-monday": {
+    background: NEWSLETTER_THEMES["cyber-monday"].background,
+    text: NEWSLETTER_THEMES["cyber-monday"].text,
+    button: NEWSLETTER_THEMES["cyber-monday"].primary,
+  },
+  holiday: {
+    background: NEWSLETTER_THEMES.holiday.background,
+    text: NEWSLETTER_THEMES.holiday.text,
+    button: NEWSLETTER_THEMES.holiday.primary,
+  },
+  valentine: {
+    background: NEWSLETTER_THEMES.valentine.background,
+    text: NEWSLETTER_THEMES.valentine.text,
+    button: NEWSLETTER_THEMES.valentine.primary,
+  },
+  spring: {
+    background: NEWSLETTER_THEMES.spring.background,
+    text: NEWSLETTER_THEMES.spring.text,
+    button: NEWSLETTER_THEMES.spring.primary,
   },
 };
 

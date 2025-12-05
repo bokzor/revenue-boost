@@ -290,7 +290,7 @@ describe("ScratchCardContentSection - ALL Configuration Options", () => {
   });
 
   // Note: GDPR/Consent fields are not currently rendered in ScratchCardContentSection.
-  // Schema has showGdprCheckbox and gdprLabel but the component doesn't expose these fields yet.
+  // Schema has consentFieldEnabled and consentText but the component doesn't expose these fields yet.
 
   // ========== INTEGRATION TESTS ==========
 
@@ -309,8 +309,8 @@ describe("ScratchCardContentSection - ALL Configuration Options", () => {
         emailBeforeScratching: true,
         scratchThreshold: 60,
         scratchRadius: 25,
-        showGdprCheckbox: true,
-        gdprLabel: "I agree to receive marketing emails",
+        consentFieldEnabled: true,
+        consentFieldText: "I agree to receive marketing emails",
         prizes: [
           { id: "1", label: "10% OFF", probability: 0.4 },
           { id: "2", label: "20% OFF", probability: 0.3 },
@@ -331,7 +331,7 @@ describe("ScratchCardContentSection - ALL Configuration Options", () => {
       expect(content.scratchThreshold).toBe(60);
       expect(content.scratchRadius).toBe(25);
       expect(content.emailBeforeScratching).toBe(true);
-      expect(content.showGdprCheckbox).toBe(true);
+      expect(content.consentFieldEnabled).toBe(true);
       expect(content.prizes?.length).toBe(3);
     });
   });
@@ -357,7 +357,7 @@ describe("ScratchCardContentSection - ALL Configuration Options", () => {
       expect(parsed.emailBeforeScratching).toBe(false);
       expect(parsed.scratchThreshold).toBe(50);
       expect(parsed.scratchRadius).toBe(20);
-      expect(parsed.showGdprCheckbox).toBe(false);
+      expect(parsed.consentFieldEnabled).toBe(false);
       expect(Array.isArray(parsed.prizes)).toBe(true);
       expect(parsed.prizes.length).toBeGreaterThan(0);
     });

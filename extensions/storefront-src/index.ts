@@ -5,7 +5,7 @@
 
 import * as preact from "preact";
 import * as hooks from "preact/hooks";
-import { createPortal } from "preact/compat";
+import { createPortal, memo } from "preact/compat";
 import { ApiClient } from "./core/api";
 import { session } from "./core/session";
 import { ComponentLoader } from "./core/component-loader";
@@ -43,6 +43,10 @@ if (typeof window !== "undefined") {
       useMemo: hooks.useMemo,
       useContext: hooks.useContext,
       useDebugValue: hooks.useDebugValue,
+    },
+    // Compat layer exports (memo, forwardRef, etc.)
+    compat: {
+      memo: memo,
     },
   } as Record<string, unknown>;
 
@@ -266,7 +270,7 @@ class RevenueBoostApp {
   private async trackPageView(): Promise<void> {
     try {
       const productId = this.getProductIdFromPage();
-      const pageUrl = window.location.pathname;
+      const pageUrl = window.location.href;
 
       await this.api.trackSocialProofEvent({
         eventType: productId ? 'product_view' : 'page_view',

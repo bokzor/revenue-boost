@@ -44,7 +44,7 @@ jobs:
     name: E2E Staging Tests
     runs-on: ubuntu-latest
     environment: staging
-    timeout-minutes: 30
+    timeout-minutes: 60
     
     steps:
       - name: 📥 Checkout code

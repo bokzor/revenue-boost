@@ -19,6 +19,7 @@ import {
 } from "@shopify/polaris";
 import { TextField, FormGrid } from "../form";
 import { GenericDiscountComponent } from "../form/GenericDiscountComponent";
+import { LeadCaptureFormSection } from "./LeadCaptureFormSection";
 import type { ScratchCardContentSchema, DiscountConfig } from "../../types/campaign";
 import { z } from "zod";
 import { useFieldUpdater } from "~/shared/hooks/useFieldUpdater";
@@ -254,61 +255,22 @@ export function ScratchCardContentSection({
 
             <FormGrid columns={2}>
               <TextField
-                label="Button Text"
+                label="Submit Button Text"
                 name="content.buttonText"
-                value={content.buttonText || "Reveal"}
+                value={content.buttonText || "Claim My Prize"}
                 required
-                placeholder="Reveal"
+                placeholder="Claim My Prize"
+                helpText="Text for the email submit button"
                 onChange={(v) => updateField("buttonText", v)}
               />
               <TextField
-                label="Email Label"
-                name="content.emailLabel"
-                value={content.emailLabel || ""}
-                placeholder="Email"
-                onChange={(v) => updateField("emailLabel", v)}
-              />
-            </FormGrid>
-
-            <TextField
-              label="Dismiss Button Text"
-              name="content.dismissLabel"
-              value={content.dismissLabel || ""}
-              error={errors?.dismissLabel}
-              placeholder="No thanks"
-              helpText="Secondary button text that closes the popup"
-              onChange={(v) => updateField("dismissLabel", v)}
-            />
-
-            <FormGrid columns={2}>
-              <TextField
-                label="Email Placeholder"
-                name="content.emailPlaceholder"
-                value={content.emailPlaceholder || "Enter your email"}
-                placeholder="Enter your email"
-                onChange={(v) => updateField("emailPlaceholder", v)}
-              />
-              <Select
-                label="Email collection"
-                value={emailCollectionMode}
-                options={[
-                  { label: "Don't collect email", value: "none" },
-                  { label: "Collect email after scratch", value: "after" },
-                  { label: "Collect email before scratch", value: "before" },
-                ]}
-                helpText="When to ask for email in the scratch card flow"
-                onChange={(mode) => {
-                  if (mode === "none") {
-                    updateField("emailRequired", false);
-                    updateField("emailBeforeScratching", false);
-                  } else if (mode === "after") {
-                    updateField("emailRequired", true);
-                    updateField("emailBeforeScratching", false);
-                  } else if (mode === "before") {
-                    updateField("emailRequired", true);
-                    updateField("emailBeforeScratching", true);
-                  }
-                }}
+                label="Dismiss Button Text"
+                name="content.dismissLabel"
+                value={content.dismissLabel || ""}
+                error={errors?.dismissLabel}
+                placeholder="No thanks"
+                helpText="Secondary button text that closes the popup"
+                onChange={(v) => updateField("dismissLabel", v)}
               />
             </FormGrid>
 
@@ -322,6 +284,57 @@ export function ScratchCardContentSection({
                 onChange={(v) => updateField("failureMessage", v)}
               />
             </FormGrid>
+
+            <Divider />
+
+            {/* Lead Capture Form - Email, Name, GDPR */}
+            <BlockStack gap="300">
+              <Text as="h4" variant="headingSm">
+                📧 Lead Capture Form
+              </Text>
+              <Text as="p" tone="subdued">
+                Configure when and how to collect visitor information
+              </Text>
+
+              {/* Email Collection Timing (Scratch Card specific) */}
+              <Select
+                label="Email collection timing"
+                value={emailCollectionMode}
+                options={[
+                  { label: "Don't collect email", value: "none" },
+                  { label: "Collect email after scratch", value: "after" },
+                  { label: "Collect email before scratch", value: "before" },
+                ]}
+                helpText="When to ask for email in the scratch card flow"
+                onChange={(mode) => {
+                  if (mode === "none") {
+                    onChange({ ...content, emailRequired: false, emailBeforeScratching: false });
+                  } else if (mode === "after") {
+                    onChange({ ...content, emailRequired: true, emailBeforeScratching: false });
+                  } else if (mode === "before") {
+                    onChange({ ...content, emailRequired: true, emailBeforeScratching: true });
+                  }
+                }}
+              />
+
+              {emailRequired && (
+                <LeadCaptureFormSection
+                  emailRequired={content.emailRequired}
+                  emailLabel={content.emailLabel}
+                  emailPlaceholder={content.emailPlaceholder}
+                  nameFieldEnabled={content.nameFieldEnabled}
+                  nameFieldRequired={content.nameFieldRequired}
+                  nameFieldLabel={content.nameFieldLabel}
+                  nameFieldPlaceholder={content.nameFieldPlaceholder}
+                  consentFieldEnabled={content.consentFieldEnabled}
+                  consentFieldRequired={content.consentFieldRequired}
+                  consentFieldText={content.consentFieldText}
+                  privacyPolicyUrl={content.privacyPolicyUrl}
+                  onChange={(updates) => onChange({ ...content, ...updates })}
+                  errors={errors}
+                />
+              )}
+            </BlockStack>
           </BlockStack>
         </BlockStack>
       </Card>
@@ -473,6 +486,7 @@ export function ScratchCardContentSection({
                             goal="INCREASE_REVENUE"
                             discountConfig={p.discountConfig as DiscountConfig | undefined}
                             onConfigChange={(config) => updatePrize(i, { discountConfig: config })}
+                            allowedStrategies={["basic", "free_gift"]}
                           />
                         </BlockStack>
                       </BlockStack>

@@ -35,16 +35,88 @@ import type {
   DiscountBehavior,
 } from "~/domains/commerce/services/discount.server";
 
+/**
+ * Discount strategy types that can be shown in the component.
+ * - basic: Simple percentage, fixed amount, or free shipping
+ * - tiered: Spend more, save more (e.g., $50 = 10%, $100 = 20%)
+ * - bogo: Buy X, Get Y deals
+ * - free_gift: Free gift with purchase
+ */
+export type DiscountStrategy = "basic" | "tiered" | "bogo" | "free_gift";
+
 interface GenericDiscountComponentProps {
   goal?: string;
   discountConfig?: DiscountConfig;
   onConfigChange: (config: DiscountConfig) => void;
+  /**
+   * Which discount strategies to show in the selector.
+   * Defaults to all strategies: ['basic', 'tiered', 'bogo', 'free_gift']
+   *
+   * For gamified templates (Spin-to-Win, Scratch Card), use ['basic', 'free_gift']
+   * since tiered and BOGO don't make sense for per-segment/prize discounts.
+   */
+  allowedStrategies?: DiscountStrategy[];
+  /**
+   * Whether the campaign captures email addresses.
+   * When true, enables the "Show Code + Assign to Email" behavior option.
+   */
+  hasEmailCapture?: boolean;
 }
+
+const ALL_STRATEGIES: DiscountStrategy[] = ["basic", "tiered", "bogo", "free_gift"];
+
+const STRATEGY_OPTIONS: Record<DiscountStrategy, { label: string; value: string }> = {
+  basic: { label: "Basic Discount - Simple percentage or fixed amount", value: "basic" },
+  tiered: { label: "Tiered Discounts - Spend more, save more", value: "tiered" },
+  bogo: { label: "BOGO Deal - Buy X, Get Y", value: "bogo" },
+  free_gift: { label: "Free Gift - Gift with purchase", value: "free_gift" },
+};
+
+// Tips and explanations for each discount strategy
+const STRATEGY_TIPS: Record<DiscountStrategy, { title: string; tips: string[] }> = {
+  basic: {
+    title: "💡 Basic Discount Tips",
+    tips: [
+      "10-15% off works well for welcome offers and newsletter signups",
+      "20-30% creates urgency for flash sales",
+      "Free shipping is highly effective - customers hate paying for shipping!",
+    ],
+  },
+  tiered: {
+    title: "📈 Tiered Discount Tips",
+    tips: [
+      "Set thresholds just above your average order value to encourage larger carts",
+      "Use 3 tiers maximum - more can confuse customers",
+      "Example: $50→10%, $100→20%, $150→30% works well for most stores",
+      "Display thresholds on your popup to motivate customers to add more",
+    ],
+  },
+  bogo: {
+    title: "🛍️ BOGO Tips",
+    tips: [
+      "\"Buy 1 Get 1 Free\" is one of the most compelling offers for customers",
+      "Great for moving excess inventory or introducing new products",
+      "Consider \"Buy 2 Get 1 Free\" for higher margins while still feeling generous",
+      "Limit to specific products/collections to protect your margins",
+    ],
+  },
+  free_gift: {
+    title: "🎁 Free Gift Tips",
+    tips: [
+      "Free gifts feel more valuable than equivalent discounts",
+      "Use low-cost, high-perceived-value items (samples, accessories)",
+      "Set a minimum purchase to protect margins and increase AOV",
+      "Great for product launches - give samples of new products",
+    ],
+  },
+};
 
 export function GenericDiscountComponent({
   goal = "NEWSLETTER_SIGNUP",
   discountConfig,
   onConfigChange,
+  allowedStrategies = ALL_STRATEGIES,
+  hasEmailCapture,
 }: GenericDiscountComponentProps) {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [freeGiftVariants, setFreeGiftVariants] = useState<Array<{ id: string; title: string }>>();
@@ -155,30 +227,46 @@ export function GenericDiscountComponent({
 
       {config.enabled !== false && (
         <BlockStack gap="400">
-          {/* Advanced Discount Type Selector */}
-          <Box padding="300" background="bg-surface-secondary" borderRadius="200">
-            <BlockStack gap="300">
-              <Text as="h4" variant="headingSm">
-                Discount Strategy
-              </Text>
-              <Select
-                label=""
-                options={[
-                  { label: "Basic Discount - Simple percentage or fixed amount", value: "basic" },
-                  { label: "Tiered Discounts - Spend more, save more", value: "tiered" },
-                  { label: "BOGO Deal - Buy X, Get Y", value: "bogo" },
-                  { label: "Free Gift - Gift with purchase", value: "free_gift" },
-                ]}
-                value={
-                  config.bogo
-                    ? "bogo"
-                    : config.freeGift
-                      ? "free_gift"
-                      : config.tiers?.length
-                        ? "tiered"
-                        : "basic"
-                }
-                onChange={(value) => {
+          {/* Determine current strategy for tips */}
+          {(() => {
+            const currentStrategy: DiscountStrategy =
+              config.bogo && allowedStrategies.includes("bogo") ? "bogo" :
+              config.freeGift && allowedStrategies.includes("free_gift") ? "free_gift" :
+              config.tiers?.length && allowedStrategies.includes("tiered") ? "tiered" :
+              "basic";
+            const tips = STRATEGY_TIPS[currentStrategy];
+
+            return (
+              <Banner tone="info" title={tips.title}>
+                <BlockStack gap="100">
+                  {tips.tips.map((tip, index) => (
+                    <Text key={index} as="p" variant="bodySm">• {tip}</Text>
+                  ))}
+                </BlockStack>
+              </Banner>
+            );
+          })()}
+
+          {/* Advanced Discount Type Selector - only show if more than one strategy allowed */}
+          {allowedStrategies.length > 1 && (
+            <Box padding="300" background="bg-surface-secondary" borderRadius="200">
+              <BlockStack gap="300">
+                <Text as="h4" variant="headingSm">
+                  Discount Strategy
+                </Text>
+                <Select
+                  label=""
+                  options={allowedStrategies.map((strategy) => STRATEGY_OPTIONS[strategy])}
+                  value={
+                    config.bogo && allowedStrategies.includes("bogo")
+                      ? "bogo"
+                      : config.freeGift && allowedStrategies.includes("free_gift")
+                        ? "free_gift"
+                        : config.tiers?.length && allowedStrategies.includes("tiered")
+                          ? "tiered"
+                          : "basic"
+                  }
+                  onChange={(value) => {
                   // Build a single new config to avoid stale merges across sequential updates
                   const base = {
                     ...config,
@@ -214,12 +302,13 @@ export function GenericDiscountComponent({
                     };
                   }
 
-                  onConfigChange(base);
-                }}
-                helpText="Choose your discount strategy"
-              />
-            </BlockStack>
-          </Box>
+                    onConfigChange(base);
+                  }}
+                  helpText="Choose your discount strategy"
+                />
+              </BlockStack>
+            </Box>
+          )}
 
           {/* Basic Discount Configuration */}
           {!hasAdvancedDiscount && (
@@ -346,7 +435,7 @@ export function GenericDiscountComponent({
           )}
 
           {/* ========== TIERED DISCOUNTS SECTION ========== */}
-          {config.tiers && config.tiers.length > 0 && (
+          {allowedStrategies.includes("tiered") && config.tiers && config.tiers.length > 0 && (
             <Box padding="400" background="bg-surface-secondary" borderRadius="200">
               <BlockStack gap="400">
                 <InlineStack align="space-between" blockAlign="center">
@@ -359,9 +448,21 @@ export function GenericDiscountComponent({
                 </InlineStack>
 
                 <Text as="p" variant="bodySm" tone="subdued">
-                  Reward higher spending with better discounts (e.g., &ldquo;Spend $50 get 10%, $100
-                  get 20%&rdquo;)
+                  The higher customers spend, the more they save. Great for increasing average order value!
                 </Text>
+
+                {/* Show preview of tiers */}
+                <Box padding="200" background="bg-surface" borderRadius="100">
+                  <InlineStack gap="200" wrap={false}>
+                    {config.tiers.map((tier, index) => (
+                      <Badge key={index} tone="success">
+                        {`$${tier.thresholdCents / 100} → ${tier.discount.kind === "free_shipping" ? "Free Ship" :
+                          tier.discount.kind === "percentage" ? `${tier.discount.value}% OFF` :
+                          `$${tier.discount.value} OFF`}`}
+                      </Badge>
+                    ))}
+                  </InlineStack>
+                </Box>
 
                 <BlockStack gap="300">
                   {config.tiers.map((tier, index) => (
@@ -375,7 +476,7 @@ export function GenericDiscountComponent({
                     >
                       <BlockStack gap="300">
                         <InlineStack align="space-between" blockAlign="center">
-                          <Badge tone="info">{`Tier ${index + 1}`}</Badge>
+                          <Badge tone="info">{`Tier ${index + 1}: Spend $${tier.thresholdCents / 100}+`}</Badge>
                           {config.tiers!.length > 1 && (
                             <Button
                               variant="plain"
@@ -447,16 +548,20 @@ export function GenericDiscountComponent({
           )}
 
           {/* ========== BOGO SECTION ========== */}
-          {config.bogo && (
+          {allowedStrategies.includes("bogo") && config.bogo && (
             <Box padding="400" background="bg-surface-secondary" borderRadius="200">
               <BlockStack gap="400">
-                <Text as="h4" variant="headingSm">
-                  🎁 BOGO Configuration
-                </Text>
-
-                <Text as="p" variant="bodySm" tone="subdued">
-                  Buy X Get Y deals (e.g., &ldquo;Buy 2 Get 1 Free&rdquo;)
-                </Text>
+                <InlineStack align="space-between" blockAlign="center">
+                  <Text as="h4" variant="headingSm">
+                    🎁 BOGO Configuration
+                  </Text>
+                  <Badge tone="success">
+                    {`Buy ${config.bogo.buy.quantity} Get ${config.bogo.get.quantity} ${
+                      config.bogo.get.discount.kind === "free_product" ? "FREE" :
+                      `${config.bogo.get.discount.value}% OFF`
+                    }`}
+                  </Badge>
+                </InlineStack>
 
                 {/* BUY Configuration */}
                 <Box
@@ -467,9 +572,14 @@ export function GenericDiscountComponent({
                   borderWidth="025"
                 >
                   <BlockStack gap="300">
-                    <Text as="h5" variant="headingSm">
-                      Buy Requirements
-                    </Text>
+                    <BlockStack gap="100">
+                      <Text as="h5" variant="headingSm">
+                        Step 1: What must customers buy?
+                      </Text>
+                      <Text as="p" variant="bodySm" tone="subdued">
+                        Define what products qualify for this BOGO deal
+                      </Text>
+                    </BlockStack>
 
                     <FormGrid columns={2}>
                       <Select
@@ -493,13 +603,28 @@ export function GenericDiscountComponent({
                       />
                     </FormGrid>
 
-                    {config.bogo.buy.scope !== "any" && (
-                      <Banner tone="info">
-                        <Text as="p" variant="bodySm">
-                          Product/Collection IDs will be configurable via Shopify picker (coming
-                          soon). For now, use Advanced Settings to add GIDs manually.
-                        </Text>
-                      </Banner>
+                    {config.bogo.buy.scope === "products" && (
+                      <ProductPicker
+                        mode="product"
+                        selectionType="multiple"
+                        selectedIds={config.bogo.buy.ids || []}
+                        onSelect={(items: ProductPickerSelection[]) =>
+                          updateBogoField("buy.ids", items.map((item) => item.id))
+                        }
+                        buttonLabel="Select products to buy"
+                      />
+                    )}
+
+                    {config.bogo.buy.scope === "collections" && (
+                      <ProductPicker
+                        mode="collection"
+                        selectionType="multiple"
+                        selectedIds={config.bogo.buy.ids || []}
+                        onSelect={(items: ProductPickerSelection[]) =>
+                          updateBogoField("buy.ids", items.map((item) => item.id))
+                        }
+                        buttonLabel="Select collections to buy from"
+                      />
                     )}
 
                     <TextField
@@ -533,13 +658,18 @@ export function GenericDiscountComponent({
                   borderWidth="025"
                 >
                   <BlockStack gap="300">
-                    <Text as="h5" variant="headingSm">
-                      Get Reward
-                    </Text>
+                    <BlockStack gap="100">
+                      <Text as="h5" variant="headingSm">
+                        Step 2: What do they get?
+                      </Text>
+                      <Text as="p" variant="bodySm" tone="subdued">
+                        Define the reward customers receive
+                      </Text>
+                    </BlockStack>
 
                     <FormGrid columns={2}>
                       <Select
-                        label="Get From"
+                        label="Reward Products From"
                         value={config.bogo.get.scope}
                         options={[
                           { label: "Specific Products", value: "products" },
@@ -557,6 +687,30 @@ export function GenericDiscountComponent({
                         autoComplete="off"
                       />
                     </FormGrid>
+
+                    {config.bogo.get.scope === "products" && (
+                      <ProductPicker
+                        mode="product"
+                        selectionType="multiple"
+                        selectedIds={config.bogo.get.ids || []}
+                        onSelect={(items: ProductPickerSelection[]) =>
+                          updateBogoField("get.ids", items.map((item) => item.id))
+                        }
+                        buttonLabel="Select products to get"
+                      />
+                    )}
+
+                    {config.bogo.get.scope === "collections" && (
+                      <ProductPicker
+                        mode="collection"
+                        selectionType="multiple"
+                        selectedIds={config.bogo.get.ids || []}
+                        onSelect={(items: ProductPickerSelection[]) =>
+                          updateBogoField("get.ids", items.map((item) => item.id))
+                        }
+                        buttonLabel="Select collections to get from"
+                      />
+                    )}
 
                     <FormGrid columns={2}>
                       <Select
@@ -599,7 +753,7 @@ export function GenericDiscountComponent({
           )}
 
           {/* ========== FREE GIFT SECTION ========== */}
-          {config.freeGift && (
+          {allowedStrategies.includes("free_gift") && config.freeGift && (
             <Box padding="400" background="bg-surface-secondary" borderRadius="200">
               <BlockStack gap="400">
                 <Text as="h4" variant="headingSm">
@@ -825,6 +979,7 @@ export function GenericDiscountComponent({
               onConfigChange={(newConfig) => {
                 onConfigChange(newConfig);
               }}
+              hasEmailCapture={hasEmailCapture}
             />
           </div>
         </Modal.Section>

@@ -110,16 +110,16 @@ export async function handleOrderCreate(shop: string, payload: OrderPayload) {
 /**
  * Attempt view-through attribution for orders without discount codes.
  *
- * Looks for recent popup interactions (VIEW, SUBMIT, CLICK) by the customer
- * within the attribution window. This captures:
- * - User saw popup, closed it, but was influenced to purchase
- * - User submitted email but forgot to use the code
- * - Newsletter signups that led to purchase without discount
+ * Requires actual user interaction (SUBMIT, CLICK, COUPON_ISSUED) - passive VIEW
+ * events are excluded to prevent attribution inflation from banners and popups
+ * that users may not have consciously engaged with.
+ *
+ * This captures:
+ * - User submitted email but forgot to use the discount code
+ * - User clicked CTA but didn't complete the action
+ * - Newsletter signups that led to purchase without using discount
  */
-async function tryViewThroughAttribution(
-  storeId: string,
-  payload: OrderPayload
-): Promise<void> {
+async function tryViewThroughAttribution(storeId: string, payload: OrderPayload): Promise<void> {
   const customerId = payload.customer?.id;
   if (!customerId) return;
 
@@ -127,7 +127,9 @@ async function tryViewThroughAttribution(
 
   console.log(`[Webhook] Attempting view-through attribution for customer ${customerId}`);
 
-  // Strategy 1: Find leads by Shopify customer ID (most reliable)
+  // Find leads by Shopify customer ID
+  // This is the primary attribution strategy - leads represent actual user engagement
+  // (form submission, game play, etc.) which is a strong signal of influence
   const leadByCustomer = await prisma.lead.findFirst({
     where: {
       storeId,
@@ -161,46 +163,11 @@ async function tryViewThroughAttribution(
     return;
   }
 
-  // Strategy 2: Find popup events by customer ID in metadata
-  // This catches cases where we tracked impressions but no lead was created
-  // (e.g., user saw popup but didn't submit)
-  const recentPopupEvent = await prisma.popupEvent.findFirst({
-    where: {
-      storeId,
-      eventType: { in: ["VIEW", "SUBMIT", "CLICK"] },
-      createdAt: { gte: attributionWindowStart },
-      // Look for customer ID in metadata (stored during checkout tracking)
-      metadata: {
-        path: ["customerId"],
-        equals: String(customerId),
-      },
-    },
-    include: {
-      campaign: {
-        select: { id: true, status: true },
-      },
-    },
-    orderBy: { createdAt: "desc" },
-  });
-
-  if (recentPopupEvent) {
-    console.log(`[Webhook] View-through: Found popup event for customer ${customerId}`, {
-      eventId: recentPopupEvent.id,
-      eventType: recentPopupEvent.eventType,
-      campaignId: recentPopupEvent.campaignId,
-    });
-
-    await recordConversion({
-      storeId,
-      campaignId: recentPopupEvent.campaignId,
-      orderPayload: payload,
-      discountCode: null,
-      discountAmount: "0",
-      customerId: String(customerId),
-      source: "view_through",
-    });
-    return;
-  }
+  // Note: We previously had a Strategy 2 that looked for PopupEvents by customerId
+  // in metadata, but this was removed because:
+  // 1. customerId is not available at popup interaction time (only at checkout)
+  // 2. The Lead-based lookup above covers all SUBMIT interactions
+  // 3. VIEW-only attribution was deemed too weak a signal for revenue attribution
 
   console.log(`[Webhook] No view-through attribution found for customer ${customerId}`);
 }

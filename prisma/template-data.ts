@@ -146,9 +146,9 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
         frequency_capping: getServerFrequencyCapping("FLASH_SALE"),
       },
     },
-    // Summer sale theme with vibrant colors (matches theme-config.ts summer-sale)
+    // Summer theme with vibrant colors (from color-presets.ts)
     designConfig: {
-      theme: "summer-sale",
+      theme: "summer",
       position: "center",
       size: "medium",
       popupSize: "wide",
@@ -156,27 +156,27 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
       borderRadius: 8,
       animation: "fade",
 
-      // Summer sale theme colors (from theme-config.ts)
-      backgroundColor: "#FFFBEB",
-      textColor: "#1E3A5F",
-      descriptionColor: "#0F766E",
-      accentColor: "#38BDF8",
+      // Summer theme colors (from color-presets.ts)
+      backgroundColor: "linear-gradient(135deg, #FF6B6B 0%, #FFE66D 100%)",
+      textColor: "#FFFFFF",
+      descriptionColor: "#FFF9C4",
+      accentColor: "#4ECDC4",
 
-      // Button colors - summer sale orange
-      buttonColor: "#FF5733",
-      buttonTextColor: "#ffffff",
+      // Button colors - turquoise
+      buttonColor: "#FFFFFF",
+      buttonTextColor: "#FF6B6B",
 
-      // Input field colors - warm tints
-      inputBackgroundColor: "#FEF3C7",
-      inputTextColor: "#1E3A5F",
-      inputBorderColor: "#FBBF24",
+      // Input field colors
+      inputBackgroundColor: "rgba(255, 255, 255, 0.2)",
+      inputTextColor: "#FFFFFF",
+      inputBorderColor: "rgba(255, 255, 255, 0.3)",
 
-      // Image / surface colors with summer-sale preset background
-      imageBgColor: "#FEF9C3",
+      // Image / surface colors with summer preset background
+      imageBgColor: "rgba(255, 255, 255, 0.15)",
       imagePosition: "full",
       backgroundImageMode: "preset",
-      backgroundImagePresetKey: "summer-sale",
-      imageUrl: "/apps/revenue-boost/assets/newsletter-backgrounds/summer-sale.jpg",
+      backgroundImagePresetKey: "bg-summer",
+      imageUrl: "/apps/revenue-boost/assets/newsletter-backgrounds/summer.jpg",
       backgroundOverlayOpacity: 0.5,
 
       // State colors
@@ -734,99 +734,6 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
     conversionRate: 4.9
   },
   // Product Page Cross-Sell
-  {
-    name: "Product Page Cross-Sell",
-    description: "Recommend complementary products on PDP",
-    category: "sales",
-    templateType: "PRODUCT_UPSELL",
-    goals: ["INCREASE_REVENUE"],
-    contentConfig: {
-      headline: "Customers also bought",
-      subheadline: "Complete the set with these picks",
-      buttonText: "Add {count} to Cart",
-      successMessage: "Added to cart!",
-      ctaText: "Add {count} to Cart",
-      productSelectionMethod: "ai",
-      layout: "grid",
-      columns: 2,
-      maxProducts: 3,
-      multiSelect: true,
-      showImages: true,
-      showPrices: true,
-      showCompareAtPrice: true,
-      bundleDiscount: 20,
-    },
-    fields: [
-      { id: "headline", type: "text", label: "Headline", category: "content" },
-      { id: "subheadline", type: "text", label: "Subheadline", category: "content" },
-      { id: "ctaText", type: "text", label: "Button Text", category: "content" }
-    ],
-    targetRules: {
-      enhancedTriggers: {
-        scroll_depth: { enabled: true, depth_percentage: 50 },
-        frequency_capping: getServerFrequencyCapping("PRODUCT_UPSELL"),
-      },
-      // Advanced targeting disabled by default so Free plan users can use this template
-      audienceTargeting: {
-        enabled: false,
-        shopifySegmentIds: [],
-        sessionRules: {
-          enabled: false,
-          conditions: [],
-          logicOperator: "AND",
-        },
-      },
-    },
-    designConfig: {
-      // Glass theme - frosted glass effect
-      theme: "glass",
-      position: "center",
-      size: "large",
-      popupSize: "wide",
-      borderRadius: 8,
-      animation: "fade",
-
-      // Main colors - glass effect
-      backgroundColor: "rgba(255, 255, 255, 0.7)",
-      textColor: "#18181b",
-      descriptionColor: "#52525b",
-      accentColor: "#6366f1",
-
-      // Button colors - indigo
-      buttonColor: "#6366f1",
-      buttonTextColor: "#ffffff",
-
-      // Input field colors - glass effect
-      inputBackgroundColor: "rgba(255, 255, 255, 0.5)",
-      inputTextColor: "#111827",
-      inputBorderColor: "rgba(212, 212, 216, 0.5)",
-      inputBackdropFilter: "blur(10px)",
-
-      // Image / surface colors
-      imageBgColor: "rgba(244, 244, 245, 0.8)",
-      imagePosition: "left",
-      backgroundImageMode: "preset",
-      backgroundImagePresetKey: "glass",
-      imageUrl: "/apps/revenue-boost/assets/newsletter-backgrounds/glass.jpg",
-
-      // State colors
-      successColor: "#10b981",
-
-      // Overlay
-      overlayOpacity: 0.5,
-
-      // Typography
-      fontFamily: "inherit",
-      titleFontSize: "1.875rem",
-      titleFontWeight: "700",
-      descriptionFontSize: "1rem",
-      descriptionFontWeight: "400",
-    },
-    isDefault: true,
-    priority: 12,
-    icon: "🔗",
-    conversionRate: 3.8
-  },
 
   // Social Proof Notifications
   {

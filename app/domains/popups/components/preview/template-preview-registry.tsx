@@ -226,11 +226,19 @@ function buildCommonConfig(
     inputBoxShadow: mergedConfig.inputBoxShadow || designConfig.inputBoxShadow,
 
     // Background image (for templates that support full background mode)
-    // imageUrl and imagePosition are set by DesignConfigSection when themes or files are selected
     imageUrl: mergedConfig.imageUrl || designConfig.imageUrl,
     imagePosition: mergedConfig.imagePosition || designConfig.imagePosition,
     backgroundImageMode: mergedConfig.backgroundImageMode || designConfig.backgroundImageMode || "none",
     backgroundOverlayOpacity: mergedConfig.backgroundOverlayOpacity ?? designConfig.backgroundOverlayOpacity ?? 0.6,
+
+    // Scratch Card specific design properties
+    scratchCardBackgroundColor: mergedConfig.scratchCardBackgroundColor || designConfig.scratchCardBackgroundColor,
+    scratchCardTextColor: mergedConfig.scratchCardTextColor || designConfig.scratchCardTextColor,
+    scratchOverlayColor: mergedConfig.scratchOverlayColor || designConfig.scratchOverlayColor,
+    scratchOverlayImage: mergedConfig.scratchOverlayImage || designConfig.scratchOverlayImage,
+
+    // Lead Capture Layout (Newsletter, Spin-to-Win, Scratch Card)
+    leadCaptureLayout: mergedConfig.leadCaptureLayout || designConfig.leadCaptureLayout,
 
     // Preview mode
     previewMode: true,
@@ -278,13 +286,23 @@ export const TEMPLATE_PREVIEW_REGISTRY: Record<string, TemplatePreviewEntry<any>
         consentFieldRequired: mergedConfig.consentFieldRequired ?? false,
         consentFieldText: mergedConfig.consentFieldText || "I agree to receive marketing emails",
 
+        // Spa Serenity features (Phase C)
+        tagText: mergedConfig.tagText,
+        tagIcon: mergedConfig.tagIcon,
+        imageBadgeEnabled: mergedConfig.imageBadgeEnabled ?? false,
+        imageBadgeIcon: mergedConfig.imageBadgeIcon,
+        imageBadgeTitle: mergedConfig.imageBadgeTitle,
+        imageBadgeValue: mergedConfig.imageBadgeValue,
+        footerText: mergedConfig.footerText,
+        successBadgeText: mergedConfig.successBadgeText,
+        successBadgeIcon: mergedConfig.successBadgeIcon,
+
         // Discount: transform admin config to storefront format
         discount: transformDiscountConfig(mergedConfig.discountConfig, "WELCOME") || mergedConfig.discount,
+        discountCodeLabel: mergedConfig.discountCodeLabel || "Your discount code:",
 
         // All common config (colors, typography, layout, image settings)
         ...buildCommonConfig(mergedConfig, designConfig),
-        // Override imagePosition default for Newsletter (top instead of left)
-        imagePosition: mergedConfig.imagePosition || designConfig.imagePosition || "top",
       }),
   },
 
@@ -341,6 +359,10 @@ export const TEMPLATE_PREVIEW_REGISTRY: Record<string, TemplatePreviewEntry<any>
         },
         reserve: mergedConfig.reserve,
         presentation: mergedConfig.presentation,
+
+        // CTA configuration (new unified system)
+        cta: mergedConfig.cta,
+        secondaryCta: mergedConfig.secondaryCta,
 
         // Storefront-specific
         ctaOpenInNewTab: mergedConfig.ctaOpenInNewTab ?? false,
@@ -480,20 +502,32 @@ export const TEMPLATE_PREVIEW_REGISTRY: Record<string, TemplatePreviewEntry<any>
         minSpins: mergedConfig.minSpins ?? 5,
         loadingText: mergedConfig.loadingText,
 
-        // Name & consent config (matching NewsletterContentSchema)
-        collectName: mergedConfig.collectName ?? false,
+        // Enhanced wheel styling (premium themes)
+        wheelGlowEnabled: mergedConfig.wheelGlowEnabled ?? false,
+        wheelGlowColor: mergedConfig.wheelGlowColor,
+        wheelCenterStyle: mergedConfig.wheelCenterStyle ?? "simple",
+
+        // Promotional badge
+        badgeEnabled: mergedConfig.badgeEnabled ?? false,
+        badgeText: mergedConfig.badgeText,
+        badgeIcon: mergedConfig.badgeIcon,
+
+        // Result state customization
+        showResultIcon: mergedConfig.showResultIcon ?? false,
+        resultIconType: mergedConfig.resultIconType ?? "trophy",
+
+        // Name & consent config (matching LeadCaptureConfig)
+        nameFieldEnabled: mergedConfig.nameFieldEnabled ?? false,
         nameFieldRequired: mergedConfig.nameFieldRequired ?? false,
+        nameFieldLabel: mergedConfig.nameFieldLabel,
         nameFieldPlaceholder: mergedConfig.nameFieldPlaceholder,
 
-        showGdprCheckbox: mergedConfig.showGdprCheckbox ?? false,
+        consentFieldEnabled: mergedConfig.consentFieldEnabled ?? false,
         consentFieldRequired: mergedConfig.consentFieldRequired ?? false,
-        gdprLabel: mergedConfig.gdprLabel,
+        consentFieldText: mergedConfig.consentFieldText,
 
         // All common config (colors, typography, layout, image settings)
         ...buildCommonConfig(mergedConfig, designConfig),
-
-        // Override imagePosition default for SpinToWin (left instead of none)
-        imagePosition: mergedConfig.imagePosition || designConfig.imagePosition || "left",
         // Preview-only layout tweak: keep popup anchored to top so the wheel
         // doesn't visually jump when the prize box appears.
         position: "top",
@@ -531,14 +565,19 @@ export const TEMPLATE_PREVIEW_REGISTRY: Record<string, TemplatePreviewEntry<any>
             ? mergedConfig.prizes
             : SCRATCH_CARD_PREVIEW_PRIZES,
 
+        // Name field config
+        nameFieldEnabled: mergedConfig.nameFieldEnabled ?? false,
+        nameFieldRequired: mergedConfig.nameFieldRequired ?? false,
+        nameFieldLabel: mergedConfig.nameFieldLabel,
+        nameFieldPlaceholder: mergedConfig.nameFieldPlaceholder,
+
         // Consent (GDPR-style checkbox)
-        showGdprCheckbox: mergedConfig.showGdprCheckbox ?? false,
-        gdprLabel: mergedConfig.gdprLabel,
+        consentFieldEnabled: mergedConfig.consentFieldEnabled ?? false,
+        consentFieldRequired: mergedConfig.consentFieldRequired ?? false,
+        consentFieldText: mergedConfig.consentFieldText,
 
         // All common config (colors, typography, layout, image settings)
         ...buildCommonConfig(mergedConfig, designConfig),
-        // Override imagePosition default for ScratchCard (left instead of none)
-        imagePosition: mergedConfig.imagePosition || designConfig.imagePosition || "left",
       }),
   },
 };

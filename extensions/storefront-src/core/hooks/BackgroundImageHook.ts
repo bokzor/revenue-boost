@@ -7,6 +7,35 @@
 
 import type { PreDisplayHook, PreDisplayHookContext, PreDisplayHookResult } from '../PreDisplayHook';
 
+/**
+ * Transform image URL for storefront loading
+ *
+ * Preset background images are stored as relative paths like `/newsletter-backgrounds/bold.jpg`
+ * but need to be loaded via App Proxy: `/apps/revenue-boost/assets/newsletter-backgrounds/bold.jpg`
+ *
+ * Full URLs (http/https) are returned as-is (e.g., Shopify file uploads, CDN URLs)
+ */
+function transformImageUrl(imageUrl: string): string {
+    // If it's already a full URL, use as-is
+    if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+        return imageUrl;
+    }
+
+    // If it's a preset background path like /newsletter-backgrounds/...
+    // Transform to App Proxy URL
+    if (imageUrl.startsWith('/newsletter-backgrounds/')) {
+        return `/apps/revenue-boost/assets${imageUrl}`;
+    }
+
+    // Other relative paths, try via assets proxy
+    if (imageUrl.startsWith('/')) {
+        return `/apps/revenue-boost/assets${imageUrl}`;
+    }
+
+    // Return as-is for any other format
+    return imageUrl;
+}
+
 export class BackgroundImageHook implements PreDisplayHook {
     readonly name = 'backgroundImage';
     readonly runInPreview = true; // Run in preview to show images
@@ -19,7 +48,7 @@ export class BackgroundImageHook implements PreDisplayHook {
             const designConfig = campaign.designConfig as any;
 
             // Check if there's an image to preload
-            const imageUrl = designConfig.imageUrl || designConfig.backgroundImageUrl;
+            let imageUrl = designConfig.imageUrl || designConfig.backgroundImageUrl;
 
             if (!imageUrl) {
                 // No image to preload, return success with null data
@@ -29,6 +58,14 @@ export class BackgroundImageHook implements PreDisplayHook {
                     data: null,
                     hookName: this.name,
                 };
+            }
+
+            // Transform URL for storefront loading (preset images use App Proxy)
+            const originalUrl = imageUrl;
+            imageUrl = transformImageUrl(imageUrl);
+
+            if (originalUrl !== imageUrl) {
+                console.log(`[BackgroundImageHook] Transformed URL: ${originalUrl} -> ${imageUrl}`);
             }
 
             console.log(`[BackgroundImageHook] Preloading image: ${imageUrl}`);

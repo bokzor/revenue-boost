@@ -21,7 +21,7 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { PopupPortal } from "./PopupPortal";
 import type { PopupDesignConfig, CartItem, DiscountConfig } from "./types";
 import type { CartAbandonmentContent } from "~/domains/campaigns/types/campaign";
-import { formatCurrency } from "./utils";
+import { formatCurrency } from "app/domains/storefront/popups-new/utils/utils";
 
 // Import custom hooks
 import { useCountdownTimer, useDiscountCode, usePopupForm } from "./hooks";
@@ -34,6 +34,80 @@ import {
   PopupCloseButton,
 } from "./components/shared";
 
+// Tiered discount types (for "Spend more, save more" messaging)
+interface DiscountTier {
+  thresholdCents: number;
+  discount: { kind: string; value: number };
+}
+
+interface TieredDiscountConfig {
+  tiers?: DiscountTier[];
+}
+
+/**
+ * Get tiered discount messaging based on cart total
+ * Returns messaging like "Spend $20 more to get 20% off!"
+ */
+function getTieredDiscountInfo(
+  tiers: DiscountTier[] | undefined,
+  cartTotalCents: number,
+  currency?: string
+): { message: string; currentTier?: DiscountTier; nextTier?: DiscountTier } | null {
+  if (!tiers?.length) return null;
+
+  // Sort tiers by threshold (ascending)
+  const sortedTiers = [...tiers].sort((a, b) => a.thresholdCents - b.thresholdCents);
+
+  // Find current and next tiers
+  let currentTier: DiscountTier | undefined;
+  let nextTier: DiscountTier | undefined;
+
+  for (const tier of sortedTiers) {
+    if (cartTotalCents >= tier.thresholdCents) {
+      currentTier = tier;
+    } else if (!nextTier) {
+      nextTier = tier;
+      break;
+    }
+  }
+
+  // Format discount display
+  const formatDiscount = (tier: DiscountTier) => {
+    if (tier.discount.kind === "free_shipping") return "free shipping";
+    if (tier.discount.kind === "percentage") return `${tier.discount.value}% off`;
+    return `${formatCurrency(tier.discount.value, currency)} off`;
+  };
+
+  // Generate appropriate message
+  if (nextTier) {
+    const amountNeeded = (nextTier.thresholdCents - cartTotalCents) / 100;
+    const nextDiscount = formatDiscount(nextTier);
+    if (currentTier) {
+      // Already qualified for one tier, show upgrade message
+      return {
+        message: `Add ${formatCurrency(amountNeeded, currency)} more to get ${nextDiscount}!`,
+        currentTier,
+        nextTier,
+      };
+    } else {
+      // Not yet qualified for any tier
+      return {
+        message: `Spend ${formatCurrency(amountNeeded, currency)} more to get ${nextDiscount}!`,
+        nextTier,
+      };
+    }
+  } else if (currentTier) {
+    // Already at highest tier
+    const currentDiscount = formatDiscount(currentTier);
+    return {
+      message: `You qualify for ${currentDiscount}!`,
+      currentTier,
+    };
+  }
+
+  return null;
+}
+
 /**
  * CartAbandonmentConfig - Extends both design config AND campaign content type
  * All content fields come from CartAbandonmentContent
@@ -41,7 +115,7 @@ import {
  */
 export interface CartAbandonmentConfig extends PopupDesignConfig, CartAbandonmentContent {
   // Storefront-specific fields only
-  discount?: DiscountConfig;
+  discount?: DiscountConfig & TieredDiscountConfig;
 
   // Note: headline, subheadline, urgencyMessage, ctaUrl, etc.
   // all come from CartAbandonmentContent
@@ -228,6 +302,22 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
 
   const displayItems = cartItems.slice(0, config.maxItemsToShow || 3);
 
+  // Calculate cart total in cents for tiered discount calculation
+  const cartTotalCents = useMemo(() => {
+    if (typeof cartTotal === "number") return Math.round(cartTotal * 100);
+    if (typeof cartTotal === "string") {
+      const parsed = parseFloat(cartTotal.replace(/[^0-9.-]+/g, ""));
+      if (!Number.isNaN(parsed)) return Math.round(parsed * 100);
+    }
+    return 0;
+  }, [cartTotal]);
+
+  // Get tiered discount info (for "Spend more, save more" messaging)
+  const tieredInfo = useMemo(() => {
+    if (!config.discount?.tiers?.length) return null;
+    return getTieredDiscountInfo(config.discount.tiers, cartTotalCents, config.currency);
+  }, [config.discount?.tiers, cartTotalCents, config.currency]);
+
   const isEmailGateActive =
     !!config.enableEmailRecovery && !!config.requireEmailBeforeCheckout && !discountCode;
 
@@ -241,16 +331,20 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
   const cardMaxWidth = useMemo(() => {
     if (config.maxWidth) return config.maxWidth;
     switch (config.size) {
-      case "small": return "min(420px, 95cqi)";
-      case "large": return "min(520px, 95cqi)";
-      default: return "min(460px, 95cqi)";
+      case "small":
+        return "min(420px, 95cqi)";
+      case "large":
+        return "min(520px, 95cqi)";
+      default:
+        return "min(460px, 95cqi)";
     }
   }, [config.maxWidth, config.size]);
 
   const descriptionColor = config.descriptionColor || "#6b7280";
 
   // CSS Custom Properties for dynamic theming
-  const cssVars = useMemo(() => `
+  const cssVars = useMemo(
+    () => `
     --cart-ab-bg: ${config.backgroundColor || "#ffffff"};
     --cart-ab-text: ${config.textColor || "#111827"};
     --cart-ab-desc: ${descriptionColor};
@@ -263,7 +357,9 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
     --cart-ab-input-text: ${config.inputTextColor || config.textColor || "#111827"};
     --cart-ab-radius: ${borderRadiusValue};
     --cart-ab-max-width: ${typeof cardMaxWidth === "number" ? `${cardMaxWidth}px` : cardMaxWidth};
-  `, [config, descriptionColor, borderRadiusValue, cardMaxWidth]);
+  `,
+    [config, descriptionColor, borderRadiusValue, cardMaxWidth]
+  );
 
   // Auto-close timer (migrated from BasePopup)
   useEffect(() => {
@@ -272,8 +368,6 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
     const timer = setTimeout(onClose, config.autoCloseDelay * 1000);
     return () => clearTimeout(timer);
   }, [isVisible, config.autoCloseDelay, onClose]);
-
-  if (!isVisible) return null;
 
   return (
     <PopupPortal
@@ -891,7 +985,7 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
       `}</style>
 
       <div
-        className={`cart-ab-popup-container${config.previewMode ? ' cart-ab-preview-mode' : ''}`}
+        className={`cart-ab-popup-container${config.previewMode ? " cart-ab-preview-mode" : ""}`}
         data-splitpop="true"
         data-template="cart-abandonment"
       >
@@ -948,17 +1042,41 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
           )}
 
           {/* Discount teaser - only show amount/percentage, not the code (code shown after CTA click) */}
-          {config.discount?.enabled && !discountCode && (config.discount.percentage || config.discount.value) && (
-            <div className="cart-ab-discount">
-              <p className="cart-ab-discount-label">Special offer for you!</p>
-              <div className="cart-ab-discount-amount">
-                {config.discount.percentage && `${config.discount.percentage}% OFF`}
-                {config.discount.value &&
-                  !config.discount.percentage &&
-                  `$${config.discount.value} OFF`}
-              </div>
-              <p className="cart-ab-discount-hint">Click below to claim your discount</p>
-            </div>
+          {config.discount?.enabled && !discountCode && (
+            <>
+              {/* Tiered discount messaging */}
+              {tieredInfo && (
+                <div className="cart-ab-discount cart-ab-discount--tiered">
+                  <p className="cart-ab-discount-label">🎯 Spend more, save more!</p>
+                  <div className="cart-ab-discount-amount cart-ab-discount-tiered-msg">
+                    {tieredInfo.message}
+                  </div>
+                  {tieredInfo.currentTier && (
+                    <p className="cart-ab-discount-hint">
+                      Current discount:{" "}
+                      {tieredInfo.currentTier.discount.kind === "percentage"
+                        ? `${tieredInfo.currentTier.discount.value}% off`
+                        : tieredInfo.currentTier.discount.kind === "free_shipping"
+                          ? "Free shipping"
+                          : `${formatCurrency(tieredInfo.currentTier.discount.value, config.currency)} off`}
+                    </p>
+                  )}
+                </div>
+              )}
+              {/* Basic discount teaser (percentage or fixed amount) */}
+              {!tieredInfo && (config.discount.percentage || config.discount.value) && (
+                <div className="cart-ab-discount">
+                  <p className="cart-ab-discount-label">Special offer for you!</p>
+                  <div className="cart-ab-discount-amount">
+                    {config.discount.percentage && `${config.discount.percentage}% OFF`}
+                    {config.discount.value &&
+                      !config.discount.percentage &&
+                      `${formatCurrency(config.discount.value, config.currency)} OFF`}
+                  </div>
+                  <p className="cart-ab-discount-hint">Click below to claim your discount</p>
+                </div>
+              )}
+            </>
           )}
 
           {config.showCartItems !== false && displayItems.length > 0 && (
@@ -1014,21 +1132,24 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
             <div className="cart-ab-total-section">
               <div className="cart-ab-total">
                 <span>Total:</span>
-                <span className={
-                  config.discount?.enabled &&
-                  discountCode &&
-                  (config.discount.percentage || config.discount.value) &&
-                  config.discount.type !== "free_shipping"
-                    ? "cart-ab-total-struck"
-                    : ""
-                }>
+                <span
+                  className={
+                    config.discount?.enabled &&
+                    discountCode &&
+                    (config.discount.percentage || config.discount.value) &&
+                    config.discount.type !== "free_shipping"
+                      ? "cart-ab-total-struck"
+                      : ""
+                  }
+                >
                   {typeof cartTotal === "number"
                     ? formatCurrency(cartTotal, config.currency)
                     : cartTotal}
                 </span>
               </div>
 
-              {config.discount?.enabled && discountCode &&
+              {config.discount?.enabled &&
+                discountCode &&
                 (() => {
                   // Case 1: Free Shipping
                   if (config.discount.type === "free_shipping") {
@@ -1157,11 +1278,7 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
               </button>
             )}
 
-            <button
-              type="button"
-              onClick={onClose}
-              className="cart-ab-dismiss-button"
-            >
+            <button type="button" onClick={onClose} className="cart-ab-dismiss-button">
               {config.dismissLabel || "No thanks"}
             </button>
           </div>

@@ -36,16 +36,16 @@ describe("GLOBAL_SYSTEM_TEMPLATES – Flash Sale Alert", () => {
 
     const design = flashSale.designConfig as any;
 
-    // Theme + key colors from Summer Sale preset (matches theme-config.ts)
-    expect(design.theme).toBe("summer-sale");
+    // Theme + key colors from Summer preset (from color-presets.ts)
+    expect(design.theme).toBe("summer");
     expect(design.displayMode).toBe("popup");
-    expect(design.backgroundColor).toBe("#FFFBEB");
-    expect(design.textColor).toBe("#1E3A5F");
-    expect(design.buttonColor).toBe("#FF5733"); // Summer sale orange
-    expect(design.buttonTextColor).toBe("#ffffff");
+    expect(design.backgroundColor).toBe("linear-gradient(135deg, #FF6B6B 0%, #FFE66D 100%)");
+    expect(design.textColor).toBe("#FFFFFF");
+    expect(design.buttonColor).toBe("#FFFFFF"); // Summer white button
+    expect(design.buttonTextColor).toBe("#FF6B6B");
     expect(design.imagePosition).toBe("full");
     expect(design.backgroundImageMode).toBe("preset");
-    expect(design.backgroundImagePresetKey).toBe("summer-sale");
+    expect(design.backgroundImagePresetKey).toBe("bg-summer");
   });
 
   it("should provide content defaults that satisfy FlashSaleContentSchema and match expected values", () => {

@@ -14,6 +14,7 @@ export interface ThemePresetSelectorProps {
  * Maps hyphenated keys to cleaner display names
  */
 const THEME_DISPLAY_NAMES: Record<NewsletterThemeKey, string> = {
+  // Generic themes
   modern: "Modern",
   minimal: "Minimal",
   elegant: "Elegant",
@@ -24,7 +25,13 @@ const THEME_DISPLAY_NAMES: Record<NewsletterThemeKey, string> = {
   luxury: "Luxury",
   neon: "Neon",
   ocean: "Ocean",
-  "summer-sale": "Summer",
+  // Seasonal themes
+  summer: "Summer",
+  "black-friday": "Black Friday",
+  "cyber-monday": "Cyber Monday",
+  holiday: "Holiday",
+  valentine: "Valentine",
+  spring: "Spring",
 };
 
 function buildSwatchBackground(themeKey: NewsletterThemeKey): string {
