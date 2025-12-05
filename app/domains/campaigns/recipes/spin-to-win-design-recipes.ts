@@ -89,7 +89,7 @@ const luckyFortune: StyledRecipe = {
   editableFields: SPIN_TO_WIN_EDITABLE_FIELDS,
   defaults: {
     contentConfig: {
-      headline: "Spin Your Fortune! 🎰",
+      headline: "Spin Your Fortune!",
       subheadline: "Try your luck and win exclusive rewards",
       spinButtonText: "SPIN TO WIN",
       buttonText: "Claim Prize",
@@ -106,6 +106,17 @@ const luckyFortune: StyledRecipe = {
       consentFieldEnabled: true,
       consentFieldRequired: true,
       consentFieldText: "I agree to receive promotional offers",
+      // Enhanced wheel styling
+      wheelGlowEnabled: true,
+      wheelGlowColor: "#D4AF37",
+      wheelCenterStyle: "metallic",
+      // Promotional badge
+      badgeEnabled: true,
+      badgeText: "Limited Time Offer",
+      badgeIcon: "sparkles",
+      // Result state
+      showResultIcon: true,
+      resultIconType: "trophy",
     },
     designConfig: {
       position: "center",
@@ -671,4 +682,3 @@ export const SPIN_TO_WIN_DESIGN_RECIPES: StyledRecipe[] = [
 ];
 
 export default SPIN_TO_WIN_DESIGN_RECIPES;
-

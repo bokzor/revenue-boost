@@ -449,9 +449,43 @@ export interface StyledRecipe {
 
   // Feature flags
   featured?: boolean; // Show in featured section
-  seasonal?: boolean; // Is this a seasonal recipe
+  seasonal?: boolean; // Is this a seasonal recipe (deprecated - use recipeType instead)
   new?: boolean; // Mark as new
+
+  // Recipe type for categorization and priority
+  recipeType?: RecipeType;
+
+  // Required configuration sections to show in recipe modal
+  // These sections are critical to the recipe and should be configured upfront
+  requiredConfig?: RequiredConfigSection[];
 }
+
+// =============================================================================
+// REQUIRED CONFIG SECTIONS
+// =============================================================================
+
+/**
+ * Configuration sections that can be shown in the recipe modal.
+ * When specified, the recipe modal will display these form sections
+ * with the recipe's defaults pre-populated.
+ *
+ * - "discount": Show discount configuration (BOGO, Tiered, basic percentage, etc.)
+ * - "targeting": Show targeting configuration (triggers, audience)
+ * - "schedule": Show scheduling configuration (start/end dates)
+ */
+export type RequiredConfigSection = "discount" | "targeting" | "schedule";
+
+// =============================================================================
+// RECIPE TYPE (for categorization and priority)
+// =============================================================================
+
+/**
+ * Recipe types determine how recipes are categorized and displayed:
+ * - use_case: Primary recipes focused on business strategies (BOGO, Tiered, etc.)
+ * - seasonal: Quick-start templates for seasonal events (Black Friday, Summer, etc.)
+ * - inspiration: Visual/design-focused recipes for inspiration
+ */
+export type RecipeType = "use_case" | "seasonal" | "inspiration";
 
 // =============================================================================
 // RECIPE CONTEXT (passed to build function)

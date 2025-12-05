@@ -27,6 +27,8 @@ import prisma from "~/db.server";
 import { validateCustomCss } from "~/lib/css-guards";
 import type { StoreSettings } from "~/domains/store/types/settings";
 import { PLAN_DEFINITIONS, type PlanTier } from "~/domains/billing/types/plan";
+import { parseContentConfig, parseDesignConfig } from "~/domains/campaigns/utils/json-helpers";
+import type { TemplateType } from "~/domains/campaigns/types/campaign";
 
 // ============================================================================
 // TYPES
@@ -186,13 +188,20 @@ export async function loader(args: LoaderFunctionArgs) {
           });
 
           // Format preview campaign data
+          // Parse contentConfig through Zod schema to apply defaults
+          const parsedContentConfig = parseContentConfig(
+            campaignData.contentConfig || {},
+            campaignData.templateType as TemplateType
+          );
+          const parsedDesignConfig = parseDesignConfig(campaignData.designConfig || {});
+
           const formattedPreview: ApiCampaignData = {
             id: `preview-${previewToken}`,
             name: campaignData.name || "Preview Campaign",
             templateType: campaignData.templateType,
             priority: campaignData.priority || 0,
-            contentConfig: campaignData.contentConfig || {},
-            designConfig: campaignData.designConfig || {},
+            contentConfig: parsedContentConfig,
+            designConfig: parsedDesignConfig,
             targetRules: campaignData.targetRules || {},
             discountConfig: campaignData.discountConfig || {},
             experimentId: null,
@@ -267,23 +276,33 @@ export async function loader(args: LoaderFunctionArgs) {
       }
 
       // Format campaigns for storefront consumption
+      // Parse contentConfig through Zod schema to apply defaults (showCountdown, countdownDuration, etc.)
       // Only send client-side triggers, not full targetRules
-      const formattedCampaigns = filteredCampaigns.map((campaign) => ({
-        id: campaign.id,
-        name: campaign.name,
-        templateType: campaign.templateType,
-        priority: campaign.priority,
-        contentConfig: campaign.contentConfig,
-        designConfig: campaign.designConfig,
-        customCSS: (campaign.designConfig as Record<string, unknown> | undefined)?.customCSS,
-        // Extract only client-side triggers
-        clientTriggers: extractClientTriggers(campaign.targetRules),
-        targetRules: {} as Record<string, unknown>,
-        discountConfig: campaign.discountConfig,
-        // Include experimentId for proper frequency capping tracking
-        experimentId: campaign.experimentId,
-        variantKey: campaign.variantKey,
-      }));
+      const formattedCampaigns = filteredCampaigns.map((campaign) => {
+        // Parse contentConfig through Zod schema to apply template-specific defaults
+        const parsedContentConfig = parseContentConfig(
+          campaign.contentConfig,
+          campaign.templateType as TemplateType
+        );
+        const parsedDesignConfig = parseDesignConfig(campaign.designConfig);
+
+        return {
+          id: campaign.id,
+          name: campaign.name,
+          templateType: campaign.templateType,
+          priority: campaign.priority,
+          contentConfig: parsedContentConfig,
+          designConfig: parsedDesignConfig,
+          customCSS: parsedDesignConfig.customCSS,
+          // Extract only client-side triggers
+          clientTriggers: extractClientTriggers(campaign.targetRules),
+          targetRules: {} as Record<string, unknown>,
+          discountConfig: campaign.discountConfig,
+          // Include experimentId for proper frequency capping tracking
+          experimentId: campaign.experimentId,
+          variantKey: campaign.variantKey,
+        };
+      });
 
       const response: ActiveCampaignsResponse = {
         campaigns: formattedCampaigns,

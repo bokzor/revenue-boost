@@ -112,7 +112,7 @@ export const PopupGridContainer: React.FC<PopupGridContainerProps> = ({
         @container popup (min-width: 520px) {
           .popup-grid-container.two-column .popup-grid-content {
             flex-direction: row;
-            min-height: 380px;
+            min-height: 420px;
             /* Ensure children stretch to fill height */
             align-items: stretch;
           }
@@ -144,7 +144,7 @@ export const PopupGridContainer: React.FC<PopupGridContainerProps> = ({
            ======================================== */
         @container popup (min-width: 700px) {
           .popup-grid-container.two-column .popup-grid-content {
-            min-height: 420px;
+            min-height: 480px;
           }
 
           .popup-grid-container.two-column .popup-grid-content > *:first-child,

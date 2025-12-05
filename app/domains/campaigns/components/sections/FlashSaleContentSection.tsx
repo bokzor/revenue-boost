@@ -22,8 +22,9 @@ import {
   Popover,
 } from "@shopify/polaris";
 import { ChevronDownIcon, ChevronUpIcon } from "@shopify/polaris-icons";
-import { TextField, CheckboxField, FormGrid, ProductPicker } from "../form";
+import { TextField, CheckboxField, FormGrid, ProductPicker, CTAConfigEditor } from "../form";
 import { GenericDiscountComponent } from "../form/GenericDiscountComponent";
+import type { CTAConfig } from "../../types/cta";
 import type { FlashSaleContentSchema } from "../../types/campaign";
 import type { DiscountConfig } from "~/domains/commerce/services/discount.server";
 import { z } from "zod";
@@ -136,36 +137,33 @@ export function FlashSaleContentSection({
               onChange={(value) => updateField("subheadline", value)}
             />
 
+            {/* CTA Configuration */}
+            <BlockStack gap="200">
+              <Text as="h4" variant="headingSm">
+                Call-to-Action Button
+              </Text>
+              <CTAConfigEditor
+                config={(content.cta as Partial<CTAConfig>) || { label: "Shop Now", action: "navigate_collection" }}
+                onChange={(cta) => updateField("cta", cta as FlashSaleContent["cta"])}
+                showDiscountOptions={!!discountConfig?.enabled}
+              />
+            </BlockStack>
+
+            {/* Secondary CTA (Dismiss Button) */}
             <FormGrid columns={2}>
               <TextField
-                label="Button Text"
-                name="content.buttonText"
-                value={content.buttonText || "Shop Now"}
-                error={errors?.buttonText}
-                required
-                placeholder="Shop Now"
-                onChange={(value) => updateField("buttonText", value)}
-              />
-
-              <TextField
-                label="CTA URL"
-                name="content.ctaUrl"
-                value={content.ctaUrl || ""}
-                placeholder="/collections/sale"
-                helpText="Where to send users when they click the button"
-                onChange={(value) => updateField("ctaUrl", value)}
+                label="Dismiss Button Text"
+                name="content.secondaryCta.label"
+                value={content.secondaryCta?.label || "No thanks"}
+                error={errors?.dismissLabel}
+                placeholder="No thanks"
+                helpText="Secondary button that closes the popup"
+                onChange={(value) => {
+                  const secondaryCta = content.secondaryCta || { action: "dismiss" as const };
+                  updateField("secondaryCta", { ...secondaryCta, label: value });
+                }}
               />
             </FormGrid>
-
-            <TextField
-              label="Dismiss Button Text"
-              name="content.dismissLabel"
-              value={content.dismissLabel || ""}
-              error={errors?.dismissLabel}
-              placeholder="No thanks"
-              helpText="Secondary button text that closes the popup"
-              onChange={(value) => updateField("dismissLabel", value)}
-            />
 
             <TextField
               label="Success Message"

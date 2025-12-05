@@ -360,6 +360,10 @@ export const TEMPLATE_PREVIEW_REGISTRY: Record<string, TemplatePreviewEntry<any>
         reserve: mergedConfig.reserve,
         presentation: mergedConfig.presentation,
 
+        // CTA configuration (new unified system)
+        cta: mergedConfig.cta,
+        secondaryCta: mergedConfig.secondaryCta,
+
         // Storefront-specific
         ctaOpenInNewTab: mergedConfig.ctaOpenInNewTab ?? false,
 
@@ -497,6 +501,20 @@ export const TEMPLATE_PREVIEW_REGISTRY: Record<string, TemplatePreviewEntry<any>
         spinDuration: mergedConfig.spinDuration ?? 4000,
         minSpins: mergedConfig.minSpins ?? 5,
         loadingText: mergedConfig.loadingText,
+
+        // Enhanced wheel styling (premium themes)
+        wheelGlowEnabled: mergedConfig.wheelGlowEnabled ?? false,
+        wheelGlowColor: mergedConfig.wheelGlowColor,
+        wheelCenterStyle: mergedConfig.wheelCenterStyle ?? "simple",
+
+        // Promotional badge
+        badgeEnabled: mergedConfig.badgeEnabled ?? false,
+        badgeText: mergedConfig.badgeText,
+        badgeIcon: mergedConfig.badgeIcon,
+
+        // Result state customization
+        showResultIcon: mergedConfig.showResultIcon ?? false,
+        resultIconType: mergedConfig.resultIconType ?? "trophy",
 
         // Name & consent config (matching LeadCaptureConfig)
         nameFieldEnabled: mergedConfig.nameFieldEnabled ?? false,

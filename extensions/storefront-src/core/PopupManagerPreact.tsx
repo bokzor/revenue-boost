@@ -5,7 +5,7 @@
  */
 
 import { h, render, type ComponentType } from "preact";
-import { useState, useEffect, useRef } from "preact/hooks";
+import { useState, useEffect, useRef, useCallback } from "preact/hooks";
 import { ComponentLoader, type TemplateType } from "./component-loader";
 import type { ApiClient } from "./api";
 import { session } from "./session";
@@ -46,14 +46,31 @@ export interface PopupManagerProps {
   globalCustomCSS?: string;
 }
 
+// Exit animation duration in ms - should match PopupPortal's animation timing
+const EXIT_ANIMATION_DURATION_MS = 1600; // Max of backdrop + content animation
+
 export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, triggerContext }: PopupManagerProps) {
   const [Component, setComponent] = useState<ComponentType<Record<string, unknown>> | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [preloadedResources, setPreloadedResources] = useState<Record<string, unknown> | null>(null);
 
+  // Track visibility for exit animation
+  const [isVisible, setIsVisible] = useState(true);
+
   // Track when popup was shown (for bot detection timing validation)
   const popupShownAtRef = useRef<number>(Date.now());
+
+  // Handle close with exit animation
+  const handleCloseWithAnimation = useCallback(() => {
+    // Set invisible first - triggers exit animation in PopupPortal
+    setIsVisible(false);
+
+    // After exit animation completes, call the actual onClose
+    setTimeout(() => {
+      onClose();
+    }, EXIT_ANIMATION_DURATION_MS);
+  }, [onClose]);
 
   // Expose popupShownAt and visitorId as globals for popup components to use
   // This avoids passing these through props and keeps bundle size small
@@ -619,8 +636,8 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, tri
       // Inject preloaded products if available
       ...(preloadedResources.products ? { products: preloadedResources.products } : {}),
     },
-    isVisible: true,
-    onClose,
+    isVisible,
+    onClose: handleCloseWithAnimation,
     onSubmit: handleSubmit,
     issueDiscount: handleIssueDiscount,
     campaignId: campaign.id,

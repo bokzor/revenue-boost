@@ -20,3 +20,12 @@ export type { ColorSchemeType, ColorSchemeColors, CustomColors } from "./useColo
 
 export { useDesignVariables } from "./useDesignVariables";
 export type { CSSVariables } from "./useDesignVariables";
+
+export { useCTAHandler } from "./useCTAHandler";
+export type {
+  CTAAction,
+  CTAConfig,
+  SecondaryCTAConfig,
+  UseCTAHandlerOptions,
+  UseCTAHandlerReturn,
+} from "./useCTAHandler";

@@ -11,7 +11,7 @@
  * selectors and prevent style leakage between multiple preview instances.
  */
 
-import React, { useMemo, useRef, useState, useLayoutEffect } from "react";
+import React, { useMemo, useRef, useState, useLayoutEffect, useCallback } from "react";
 import { NEWSLETTER_THEMES, type NewsletterThemeKey } from "~/config/color-presets";
 import { getBackgroundById, getBackgroundUrl } from "~/config/background-presets";
 import { TemplatePreview } from "~/domains/popups/components/preview/TemplatePreview";
@@ -55,32 +55,42 @@ const containerStyle: React.CSSProperties = {
 };
 
 // Template types that use banner/bar layout (full width)
-const BANNER_TEMPLATES = [
-  "ANNOUNCEMENT",
-  "FREE_SHIPPING",
-  "SOCIAL_PROOF",
-];
+const BANNER_TEMPLATES = ["ANNOUNCEMENT", "FREE_SHIPPING", "SOCIAL_PROOF"];
 
 // Layouts that indicate banner/bar style
-const BANNER_LAYOUTS = [
-  "banner-top",
-  "banner-bottom",
-  "bar",
-];
+const BANNER_LAYOUTS = ["banner-top", "banner-bottom", "bar"];
+
+// =============================================================================
+// CONSTANTS
+// =============================================================================
+
+// How long to wait before the popup reappears after closing
+const REAPPEAR_DELAY_MS = 2000;
 
 // =============================================================================
 // COMPONENT
 // =============================================================================
 
-export function MiniPopupPreview({
-  recipe,
-  scale,
-  width,
-  height,
-}: MiniPopupPreviewProps) {
+export function MiniPopupPreview({ recipe, scale, width, height }: MiniPopupPreviewProps) {
   // Ref to measure container dimensions for scaling
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerDimensions, setContainerDimensions] = useState({ width: 0, height: 0 });
+
+  // State for controlling popup visibility (for exit/enter animations)
+  const [isPopupVisible, setIsPopupVisible] = useState(true);
+  const [remountKey, setRemountKey] = useState(0);
+
+  // Handle close: trigger exit animation, then schedule reappear
+  const handleClose = useCallback(() => {
+    // Set invisible - this triggers exit animation in PopupPortal
+    setIsPopupVisible(false);
+
+    // After exit animation + delay, show popup again with fresh mount
+    setTimeout(() => {
+      setRemountKey(k => k + 1);
+      setIsPopupVisible(true);
+    }, REAPPEAR_DELAY_MS);
+  }, []);
 
   // Measure container on mount and resize
   useLayoutEffect(() => {
@@ -106,16 +116,15 @@ export function MiniPopupPreview({
 
   // Determine if this is a banner-style template by checking both templateType and layout
   const isBanner =
-    BANNER_TEMPLATES.includes(recipe.templateType) ||
-    BANNER_LAYOUTS.includes(recipe.layout);
+    BANNER_TEMPLATES.includes(recipe.templateType) || BANNER_LAYOUTS.includes(recipe.layout);
 
   // Virtual viewport sizes - the "native" size at which we render the popup
   // Mini preview always renders as iPhone 14 (390×844) with device frame to show mobile layout
   // Banners use wider aspect ratio without device frame
   // DeviceFrame adds 24px border (12px each side)
   const DEVICE_FRAME_BORDER = 24;
-  const virtualWidth = isBanner ? 600 : (IPHONE_14_WIDTH + DEVICE_FRAME_BORDER);
-  const virtualHeight = isBanner ? 80 : (IPHONE_14_HEIGHT + DEVICE_FRAME_BORDER);
+  const virtualWidth = isBanner ? 600 : IPHONE_14_WIDTH + DEVICE_FRAME_BORDER;
+  const virtualHeight = isBanner ? 80 : IPHONE_14_HEIGHT + DEVICE_FRAME_BORDER;
 
   // Calculate scale to fit entire popup in container
   // Use min of width ratio and height ratio to ensure everything fits
@@ -169,10 +178,15 @@ export function MiniPopupPreview({
     }
 
     // Determine imagePosition based on layout
-    const imagePosition = recipe.defaults.designConfig?.imagePosition ||
-      (recipe.layout === "hero" ? "top" :
-       recipe.layout === "fullscreen" ? "full" :
-       recipe.layout === "split-right" ? "right" : "left");
+    const imagePosition =
+      recipe.defaults.designConfig?.imagePosition ||
+      (recipe.layout === "hero"
+        ? "top"
+        : recipe.layout === "fullscreen"
+          ? "full"
+          : recipe.layout === "split-right"
+            ? "right"
+            : "left");
 
     return {
       theme,
@@ -183,6 +197,7 @@ export function MiniPopupPreview({
       backgroundColor: themeColors.background,
       textColor: themeColors.text,
       primaryColor: themeColors.primary,
+      accentColor: themeColors.primary,
       buttonColor: themeColors.ctaBg || themeColors.primary,
       buttonTextColor: themeColors.ctaText || "#FFFFFF",
       // Background image settings (matching full flow format)
@@ -236,8 +251,12 @@ export function MiniPopupPreview({
         ref={containerRef}
         style={{
           ...containerStyle,
-          width: typeof containerWidthProp === "number" ? `${containerWidthProp}px` : containerWidthProp,
-          height: typeof containerHeightProp === "number" ? `${containerHeightProp}px` : containerHeightProp,
+          width:
+            typeof containerWidthProp === "number" ? `${containerWidthProp}px` : containerWidthProp,
+          height:
+            typeof containerHeightProp === "number"
+              ? `${containerHeightProp}px`
+              : containerHeightProp,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -251,7 +270,6 @@ export function MiniPopupPreview({
               height: bannerScaledHeight,
               overflow: "hidden",
               position: "relative",
-              pointerEvents: "none",
             }}
           >
             {/* Inner viewport - renders at full size */}
@@ -267,9 +285,12 @@ export function MiniPopupPreview({
               }}
             >
               <TemplatePreview
+                key={remountKey}
                 templateType={recipe.templateType}
                 config={contentConfig}
                 designConfig={designConfig}
+                onClose={handleClose}
+                isVisible={isPopupVisible}
               />
             </div>
           </div>
@@ -288,8 +309,12 @@ export function MiniPopupPreview({
       ref={containerRef}
       style={{
         ...containerStyle,
-        width: typeof containerWidthProp === "number" ? `${containerWidthProp}px` : containerWidthProp,
-        height: typeof containerHeightProp === "number" ? `${containerHeightProp}px` : containerHeightProp,
+        width:
+          typeof containerWidthProp === "number" ? `${containerWidthProp}px` : containerWidthProp,
+        height:
+          typeof containerHeightProp === "number"
+            ? `${containerHeightProp}px`
+            : containerHeightProp,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -311,38 +336,45 @@ export function MiniPopupPreview({
             height: scaledHeight,
             overflow: "hidden",
             position: "relative",
-            pointerEvents: "none",
           }}
         >
           {/* Inner viewport - renders at full size so container queries work */}
           <div
-            style={{
-              width: virtualWidth,
-              height: virtualHeight,
-              position: "absolute",
-              top: "50%",
-              left: "50%",
-              transform: `translate(-50%, -50%) scale(${effectiveScale})`,
-              transformOrigin: "center center",
-              // Enable container queries for popup components
-              containerType: "inline-size",
-              containerName: "popup-viewport",
-            } as React.CSSProperties}
+            style={
+              {
+                width: virtualWidth,
+                height: virtualHeight,
+                position: "absolute",
+                top: "50%",
+                left: "50%",
+                transform: `translate(-50%, -50%) scale(${effectiveScale})`,
+                transformOrigin: "center center",
+                // Enable container queries for popup components
+                containerType: "inline-size",
+                containerName: "popup-viewport",
+              } as React.CSSProperties
+            }
           >
             {isBanner ? (
               // Banners render without device frame
               <TemplatePreview
+                key={remountKey}
                 templateType={recipe.templateType}
                 config={contentConfig}
                 designConfig={designConfig}
+                onClose={handleClose}
+                isVisible={isPopupVisible}
               />
             ) : (
               // Regular popups render inside iPhone frame (no shadow for mini preview)
               <DeviceFrame device="mobile" showShadow={false}>
                 <TemplatePreview
+                  key={remountKey}
                   templateType={recipe.templateType}
                   config={contentConfig}
                   designConfig={designConfig}
+                  onClose={handleClose}
+                  isVisible={isPopupVisible}
                 />
               </DeviceFrame>
             )}
@@ -352,4 +384,3 @@ export function MiniPopupPreview({
     </div>
   );
 }
-

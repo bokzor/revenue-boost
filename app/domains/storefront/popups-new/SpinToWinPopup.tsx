@@ -63,8 +63,9 @@ const RESPONSIVE_CSS_VARS = `
      * ============================================ */
 
     /* Wheel Sizing - Uses cqi with aspect-ratio for square proportions */
-    --stw-wheel-size: clamp(200px, 45cqi, 380px);
-    --stw-wheel-size-mobile: clamp(180px, 55cqi, 280px);
+    /* Increased max sizes for more prominent wheel display */
+    --stw-wheel-size: clamp(280px, 55cqi, 440px);
+    --stw-wheel-size-mobile: clamp(220px, 70cqi, 340px);
 
     /* Center Button */
     --stw-center-btn-size: clamp(50px, 12cqi, 80px);
@@ -271,6 +272,11 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
   const wheelBorderColor = config.wheelBorderColor || "#FFFFFF";
   const wheelBorderWidth = config.wheelBorderWidth ?? 3;
 
+  // Enhanced wheel styling (for premium themes like Lucky Fortune)
+  const wheelGlowEnabled = config.wheelGlowEnabled ?? false;
+  const wheelGlowColor = config.wheelGlowColor || accentColor;
+  const wheelCenterStyle = config.wheelCenterStyle || "simple";
+
   // Card background styling (supports gradient backgrounds from themes)
   const baseBackground = config.backgroundColor || "#FFFFFF";
   const _backgroundStyles: React.CSSProperties = baseBackground.startsWith("linear-gradient(")
@@ -408,6 +414,10 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
       hasSpun,
       wonPrize,
       enableEnhancedStyle: true,
+      // Enhanced styling options
+      wheelGlowEnabled,
+      wheelGlowColor,
+      wheelCenterStyle,
     });
   }, [
     segments,
@@ -418,6 +428,9 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
     hasSpun,
     wonPrize,
     rotation,
+    wheelGlowEnabled,
+    wheelGlowColor,
+    wheelCenterStyle,
   ]);
 
   // Auto-close timer
@@ -695,6 +708,7 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
       }}
       position="center"
       size={config.size || "large"}
+      mobilePresentationMode="fullscreen"
       closeOnEscape={config.closeOnEscape !== false}
       closeOnBackdropClick={config.closeOnOverlayClick !== false}
       previewMode={config.previewMode}
@@ -1142,6 +1156,16 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
           }
 
           /* ============================================
+           * MOBILE STACKED: Even space distribution
+           * ============================================ */
+          .SpinToWinPopup .popup-grid-content {
+            /* Distribute space evenly: top - wheel - middle - form - bottom */
+            justify-content: space-around;
+            /* Ensure full height on mobile fullscreen */
+            min-height: 100%;
+          }
+
+          /* ============================================
            * WHEEL CELL - Mobile First (Stacked Layout)
            * ============================================ */
           .spin-wheel-cell {
@@ -1152,9 +1176,9 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
             overflow: visible;
             padding: var(--stw-gap-md);
             z-index: 10;
-            /* Mobile: Use container width for height calculation */
-            min-height: clamp(220px, 60cqi, 320px);
             width: 100%;
+            /* Let space-around handle vertical distribution */
+            flex: 0 0 auto;
           }
 
           /* ============================================
@@ -1163,13 +1187,14 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
           .spin-form-cell {
             display: flex;
             flex-direction: column;
-            justify-content: center;
+            justify-content: flex-start;
             align-items: center;
-            /* Container-relative padding */
-            padding: var(--stw-padding-y) var(--stw-padding-x);
+            padding: var(--stw-gap-md) var(--stw-padding-x);
             z-index: 20;
             background-color: ${baseBackground};
             width: 100%;
+            /* Let space-around handle vertical distribution */
+            flex: 0 0 auto;
           }
 
           .spin-form-content {
@@ -1418,16 +1443,22 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
            * DESKTOP LAYOUT (Container Query @ 600px)
            * ============================================ */
           @container popup (min-width: 600px) {
-            .spin-wheel-cell {
-              justify-content: flex-end;
-              align-items: center;
+            /* Desktop: side-by-side layout, reset space-around */
+            .SpinToWinPopup .popup-grid-content {
+              justify-content: stretch;
               min-height: auto;
-              padding: var(--stw-gap-lg);
+            }
+
+            .spin-wheel-cell {
+              justify-content: center;
+              align-items: center;
+              padding: var(--stw-gap-xl);
             }
 
             .spin-form-cell {
-              padding: var(--stw-padding-y) var(--stw-padding-x);
+              padding: var(--stw-gap-lg) var(--stw-padding-x);
               background-color: transparent;
+              justify-content: center;
             }
 
             .spin-form-content {
@@ -1455,7 +1486,7 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
           @container popup (min-width: 800px) {
             .spin-wheel-wrapper {
               /* Max out wheel size on large containers */
-              width: clamp(320px, 40cqi, 400px);
+              width: clamp(340px, 48cqi, 460px);
               aspect-ratio: 1;
             }
 
@@ -1518,6 +1549,55 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
           <div className="spin-form-content">
             {/* Header - uses container-relative typography */}
             <div style={{ textAlign: "center", marginBottom: "var(--stw-gap-lg)" }}>
+              {/* Promotional Badge */}
+              {config.badgeEnabled && config.badgeText && !wonPrize && (
+                <div className="spin-badge" style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "0.5em",
+                  marginBottom: "var(--stw-gap-md)",
+                  padding: "0.5em 1em",
+                  backgroundColor: `${accentColor}20`,
+                  border: `1px solid ${accentColor}50`,
+                  borderRadius: "9999px",
+                  fontSize: "0.75rem",
+                  fontWeight: 600,
+                  color: accentColor,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.05em",
+                }}>
+                  {config.badgeIcon === "sparkles" && "✨"}
+                  {config.badgeIcon === "star" && "⭐"}
+                  {config.badgeIcon === "gift" && "🎁"}
+                  {config.badgeIcon === "fire" && "🔥"}
+                  {config.badgeIcon === "clock" && "⏰"}
+                  {config.badgeText}
+                </div>
+              )}
+
+              {/* Result Trophy Icon */}
+              {wonPrize && config.showResultIcon && (
+                <div className="spin-result-icon" style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: "4rem",
+                  height: "4rem",
+                  marginBottom: "var(--stw-gap-md)",
+                  backgroundColor: `${accentColor}20`,
+                  border: `2px solid ${accentColor}`,
+                  borderRadius: "50%",
+                  fontSize: "2rem",
+                  animation: "pulse 2s ease-in-out infinite",
+                }}>
+                  {config.resultIconType === "trophy" && "🏆"}
+                  {config.resultIconType === "gift" && "🎁"}
+                  {config.resultIconType === "star" && "⭐"}
+                  {config.resultIconType === "confetti" && "🎉"}
+                  {!config.resultIconType && "🏆"}
+                </div>
+              )}
+
               <h2
                 className="spin-headline"
                 style={{

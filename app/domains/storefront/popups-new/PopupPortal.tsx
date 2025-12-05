@@ -14,11 +14,92 @@
  * Popup content remains fully autonomous - just renders inside the portal.
  */
 
-import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useRef, useMemo, memo } from "react";
 import { createPortal } from "react-dom";
 import type { PopupSize } from "./types";
 import { getSizeDimensions } from "app/domains/storefront/popups-new/utils/utils";
 import { PoweredByBadge } from "./components/primitives/PoweredByBadge";
+
+/**
+ * Shallow comparison for BackdropConfig objects
+ */
+function areBackdropConfigsEqual(
+  prev: BackdropConfig | undefined,
+  next: BackdropConfig | undefined
+): boolean {
+  if (prev === next) return true;
+  if (!prev || !next) return prev === next;
+  return (
+    prev.color === next.color &&
+    prev.opacity === next.opacity &&
+    prev.blur === next.blur
+  );
+}
+
+/**
+ * Shallow comparison for AnimationConfig objects
+ */
+function areAnimationConfigsEqual(
+  prev: AnimationConfig | undefined,
+  next: AnimationConfig | undefined
+): boolean {
+  if (prev === next) return true;
+  if (!prev || !next) return prev === next;
+  return (
+    prev.type === next.type &&
+    prev.duration === next.duration &&
+    prev.backdropDelay === next.backdropDelay &&
+    prev.contentDelay === next.contentDelay
+  );
+}
+
+/**
+ * Custom comparison function for PopupPortalProps
+ * Performs shallow comparison for primitive props and deep comparison for object props
+ */
+function arePropsEqual(
+  prevProps: PopupPortalProps,
+  nextProps: PopupPortalProps
+): boolean {
+  // Check primitive props
+  if (
+    prevProps.isVisible !== nextProps.isVisible ||
+    prevProps.customCSS !== nextProps.customCSS ||
+    prevProps.globalCustomCSS !== nextProps.globalCustomCSS ||
+    prevProps.position !== nextProps.position ||
+    prevProps.size !== nextProps.size ||
+    prevProps.mobilePresentationMode !== nextProps.mobilePresentationMode ||
+    prevProps.closeOnEscape !== nextProps.closeOnEscape ||
+    prevProps.closeOnBackdropClick !== nextProps.closeOnBackdropClick ||
+    prevProps.previewMode !== nextProps.previewMode ||
+    prevProps.showBranding !== nextProps.showBranding ||
+    prevProps.ariaLabel !== nextProps.ariaLabel ||
+    prevProps.ariaDescribedBy !== nextProps.ariaDescribedBy
+  ) {
+    return false;
+  }
+
+  // Check callback reference (onClose should be stable via useCallback in parent)
+  if (prevProps.onClose !== nextProps.onClose) {
+    return false;
+  }
+
+  // Check children reference
+  if (prevProps.children !== nextProps.children) {
+    return false;
+  }
+
+  // Deep compare object props
+  if (!areBackdropConfigsEqual(prevProps.backdrop, nextProps.backdrop)) {
+    return false;
+  }
+
+  if (!areAnimationConfigsEqual(prevProps.animation, nextProps.animation)) {
+    return false;
+  }
+
+  return true;
+}
 
 export type AnimationType = "fade" | "slide" | "zoom" | "bounce" | "none";
 
@@ -134,7 +215,7 @@ const SWIPE_THRESHOLD = 100; // px
 const VELOCITY_THRESHOLD = 0.5; // px/ms
 const SWIPE_DISMISS_DURATION = 300; // ms
 
-export const PopupPortal: React.FC<PopupPortalProps> = ({
+const PopupPortalComponent: React.FC<PopupPortalProps> = ({
   isVisible,
   onClose,
   children,
@@ -568,9 +649,17 @@ export const PopupPortal: React.FC<PopupPortalProps> = ({
         className={backdropAnimationClass}
         style={{
           ...backdropStyles,
-          // Fade out backdrop during swipe-triggered exit
-          opacity: animationState === 'exiting' && dragOffset > 0 ? 0 : undefined,
-          transition: animationState === 'exiting' && dragOffset > 0 ? `opacity ${SWIPE_DISMISS_DURATION}ms ease-out` : undefined,
+          // Backdrop opacity follows drag distance
+          // At 0px drag: full opacity (1), at 300px drag: zero opacity (0)
+          opacity: isDragging || (animationState === 'exiting' && dragOffset > 0)
+            ? Math.max(0, 1 - dragOffset / 300)
+            : undefined,
+          // Smooth transition when snapping back, no transition while dragging
+          transition: isDragging
+            ? "none"
+            : animationState === 'exiting' && dragOffset > 0
+              ? `opacity ${SWIPE_DISMISS_DURATION}ms ease-out`
+              : "opacity 0.2s ease-out",
         }}
         onClick={handleBackdropClick}
         aria-hidden="true"
@@ -644,6 +733,14 @@ export const PopupPortal: React.FC<PopupPortalProps> = ({
   // Fallback: render to body if Shadow DOM not ready
   return null;
 };
+
+/**
+ * Memoized PopupPortal component
+ * Uses custom comparison to handle inline object props (backdrop, animation)
+ * that would otherwise cause unnecessary re-renders
+ */
+export const PopupPortal = memo(PopupPortalComponent, arePropsEqual);
+PopupPortal.displayName = "PopupPortal";
 
 /**
  * Generate CSS keyframes for animations

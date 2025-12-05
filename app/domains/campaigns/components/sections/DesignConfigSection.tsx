@@ -363,7 +363,8 @@ export function DesignConfigSection({
         <Divider />
 
         {/* Layout Selector - Visual layout picker with fine-tuning */}
-        {caps?.usesImage !== false && (
+        {/* Hidden for templates with fixed layout (e.g., SpinToWin has wheel+form fixed) */}
+        {caps?.usesImage !== false && caps?.usesLayout !== false && (
           <>
             <LayoutSelector
               title="Layout"
@@ -432,36 +433,12 @@ export function DesignConfigSection({
          * Options: fade, slide, bounce, none
          */}
 
-        {/* Flash Sale specific popup size - only show for popup mode, not banner */}
-        {templateType === "FLASH_SALE" && design.displayMode !== "banner" && (
-          <Select
-            label="Popup size"
-            value={design.popupSize || "wide"}
-            options={[
-              { label: "Compact", value: "compact" },
-              { label: "Standard", value: "standard" },
-              { label: "Wide", value: "wide" },
-              { label: "Full width", value: "full" },
-            ]}
-            onChange={(value) => updateField("popupSize", value as DesignConfig["popupSize"])}
-            helpText="Controls the overall footprint of the Flash Sale popup."
-          />
-        )}
-
-        {/* Flash Sale specific display mode */}
-        {/* Display Mode - Show for templates that support banner/popup toggle */}
-        {caps?.supportsDisplayMode && (
-          <Select
-            label="Display Mode"
-            value={design.displayMode || "popup"}
-            options={[
-              { label: "Popup (centered overlay)", value: "popup" },
-              { label: "Banner (top or bottom)", value: "banner" },
-            ]}
-            onChange={(value) => updateField("displayMode", value as DesignConfig["displayMode"])}
-            helpText="Choose whether this appears as a centered popup or as a top/bottom banner."
-          />
-        )}
+        {/*
+         * Flash Sale popup size and display mode are recipe-controlled only.
+         * - Popup size (compact/standard/wide/full) is set via recipe defaults
+         * - Display mode (popup/banner) is set via recipe defaults
+         * These are intentionally hidden from the UI to simplify the design flow.
+         */}
 
         {/* Background - Color and optional image */}
         <CollapsibleSection

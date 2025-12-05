@@ -8,10 +8,10 @@ import type { NewsletterThemeKey } from "~/config/color-presets";
 // ============================================================================
 
 export type RecipeCategory =
-  | "email_leads"     // 📧 Email & Leads
-  | "sales_promos"    // 🔥 Sales & Promos
-  | "cart_recovery"   // 🛒 Cart & Recovery
-  | "announcements";  // 📢 Announcements
+  | "email_leads" // 📧 Email & Leads
+  | "sales_promos" // 🔥 Sales & Promos
+  | "cart_recovery" // 🛒 Cart & Recovery
+  | "announcements"; // 📢 Announcements
 
 export interface RecipeCategoryMeta {
   label: string;
@@ -74,9 +74,9 @@ export interface RecipeDefinition {
   // Identity
   id: string;
   name: string;
-  tagline: string;               // Short compelling description
-  description: string;           // Longer explanation
-  icon: string;                  // Emoji for quick recognition
+  tagline: string; // Short compelling description
+  description: string; // Longer explanation
+  icon: string; // Emoji for quick recognition
 
   // Classification
   category: RecipeCategory;
@@ -154,7 +154,12 @@ const SALES_PROMOS_RECIPES: RecipeDefinition[] = [
     suggestedTheme: "elegant",
     inputs: [
       { type: "product_picker", label: "Select Product", key: "products" },
-      { type: "discount_percentage", label: "Discount Percentage", defaultValue: 20, key: "discountValue" },
+      {
+        type: "discount_percentage",
+        label: "Discount Percentage",
+        defaultValue: 20,
+        key: "discountValue",
+      },
     ],
     build: (context) => {
       const discountValue = getNumberFromContext(context.discountValue, 20);
@@ -286,7 +291,12 @@ const SALES_PROMOS_RECIPES: RecipeDefinition[] = [
     suggestedTheme: "modern",
     inputs: [
       { type: "collection_picker", label: "Select Collection", key: "collections" },
-      { type: "discount_percentage", label: "Discount Percentage", defaultValue: 15, key: "discountValue" },
+      {
+        type: "discount_percentage",
+        label: "Discount Percentage",
+        defaultValue: 15,
+        key: "discountValue",
+      },
     ],
     build: (context) => {
       const discountValue = getNumberFromContext(context.discountValue, 15);
@@ -363,7 +373,12 @@ const CART_RECOVERY_RECIPES: RecipeDefinition[] = [
     allowedTemplateNames: ["Product Spotlight"],
     inputs: [
       { type: "product_picker", label: "Select Product to Highlight", key: "products" },
-      { type: "discount_percentage", label: "Bundle Discount", defaultValue: 15, key: "discountValue" },
+      {
+        type: "discount_percentage",
+        label: "Bundle Discount",
+        defaultValue: 15,
+        key: "discountValue",
+      },
     ],
     build: (context) => {
       const discountValue = getNumberFromContext(context.discountValue, 15);
@@ -419,7 +434,12 @@ const CART_RECOVERY_RECIPES: RecipeDefinition[] = [
     },
     suggestedTheme: "modern",
     inputs: [
-      { type: "discount_percentage", label: "Recovery Discount", defaultValue: 15, key: "discountValue" },
+      {
+        type: "discount_percentage",
+        label: "Recovery Discount",
+        defaultValue: 15,
+        key: "discountValue",
+      },
     ],
     build: (context) => {
       const discountValue = getNumberFromContext(context.discountValue, 15);
@@ -472,7 +492,12 @@ const CART_RECOVERY_RECIPES: RecipeDefinition[] = [
     },
     suggestedTheme: "modern",
     inputs: [
-      { type: "currency_amount", label: "Free Shipping Threshold", defaultValue: 75, key: "threshold" },
+      {
+        type: "currency_amount",
+        label: "Free Shipping Threshold",
+        defaultValue: 75,
+        key: "threshold",
+      },
     ],
     build: (context) => {
       const threshold = getNumberFromContext(context.threshold, 75);
@@ -511,7 +536,8 @@ const EMAIL_LEADS_RECIPES: RecipeDefinition[] = [
     id: "welcome-discount",
     name: "Welcome Discount",
     tagline: "Get 10% off your first order",
-    description: "Classic email capture with a first-order discount. Best for new visitor conversion.",
+    description:
+      "Classic email capture with a first-order discount. Best for new visitor conversion.",
     icon: "🎁",
     category: "email_leads",
     goal: "NEWSLETTER_SIGNUP",
@@ -615,45 +641,6 @@ const EMAIL_LEADS_RECIPES: RecipeDefinition[] = [
     },
   },
   {
-    id: "spin-for-prize",
-    name: "Spin For Prize",
-    tagline: "Spin the wheel for a chance to win!",
-    description: "Gamified email capture with a spinning wheel. Higher engagement than standard forms.",
-    icon: "🎡",
-    category: "email_leads",
-    goal: "NEWSLETTER_SIGNUP",
-    templateType: "SPIN_TO_WIN",
-    structure: {
-      layout: "centered",
-      position: "center",
-      size: "large",
-      animation: "bounce",
-      sections: { image: false, subtitle: true },
-    },
-    suggestedTheme: "gradient",
-    inputs: [],
-    build: (context) => ({
-      name: "Spin For Prize",
-      designConfig: {
-        theme: context.selectedTheme || "gradient",
-        position: "center",
-        size: "large",
-        animation: "bounce",
-      },
-      contentConfig: {
-        headline: "Spin to Win!",
-        subheadline: "Enter your email for a chance to win a discount",
-        spinButtonText: "Spin the Wheel",
-        emailPlaceholder: "Enter your email to spin",
-      },
-      targetRules: {
-        enhancedTriggers: {
-          scroll_depth: { enabled: true, depth_percentage: 50 },
-        },
-      },
-    }),
-  },
-  {
     id: "vip-early-access",
     name: "VIP Early Access",
     tagline: "Join the VIP list for exclusive access",
@@ -712,9 +699,7 @@ const ANNOUNCEMENTS_RECIPES: RecipeDefinition[] = [
       sections: {},
     },
     suggestedTheme: "bold",
-    inputs: [
-      { type: "text", label: "Sale Name", key: "saleName", defaultValue: "Summer Sale" },
-    ],
+    inputs: [{ type: "text", label: "Sale Name", key: "saleName", defaultValue: "Summer Sale" }],
     build: (context) => ({
       name: "Sale Announcement",
       designConfig: {

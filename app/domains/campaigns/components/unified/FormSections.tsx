@@ -5,12 +5,13 @@
  * Each section contains the appropriate step content component.
  */
 
-import { BlockStack, Text, InlineGrid, Box, Button, Card } from "@shopify/polaris";
+import { BlockStack, Text, InlineGrid, Box, Button, Card, InlineStack } from "@shopify/polaris";
+import { useNavigate } from "react-router";
 import { CollapsibleSection } from "./CollapsibleSection";
 import { RecipeCard } from "../recipes/RecipeCard";
 import { PreviewProvider } from "../recipes/PreviewContext";
 import type { StyledRecipe } from "../../recipes/styled-recipe-types";
-import type { ContentConfig, DesignConfig, AudienceTargetingConfig, GeoTargetingConfig } from "../../types/campaign";
+import type { ContentConfig, DesignConfig, AudienceTargetingConfig, GeoTargetingConfig, CampaignGoal } from "../../types/campaign";
 import type { TemplateType } from "~/shared/hooks/useWizardState";
 import type { EnhancedTriggerConfig } from "~/domains/targeting/types/enhanced-triggers.types";
 import type { FrequencyCappingConfig } from "~/domains/targeting/components";
@@ -78,6 +79,12 @@ export interface FormSectionsProps {
   templateType?: TemplateType;
   /** Campaign goal for discount recommendations */
   campaignGoal?: string;
+  /** For A/B experiments: restrict recipe selection to this goal */
+  restrictRecipesToGoal?: CampaignGoal;
+  /** Label for the variant being configured (e.g., "Variant B") */
+  variantLabel?: string;
+  /** Current URL path to return to after recipe selection */
+  returnToPath?: string;
 }
 
 export function FormSections({
@@ -106,6 +113,9 @@ export function FormSections({
   advancedTargetingEnabled,
   templateType,
   campaignGoal,
+  restrictRecipesToGoal,
+  variantLabel,
+  returnToPath,
 }: FormSectionsProps) {
   return (
     <BlockStack gap="400">
@@ -126,6 +136,9 @@ export function FormSections({
               recipes={recipes}
               selectedRecipe={selectedRecipe}
               onSelect={onRecipeSelect}
+              restrictToGoal={restrictRecipesToGoal}
+              variantLabel={variantLabel}
+              returnToPath={returnToPath}
             />
           )}
           {section.id === "design" && templateType && (
@@ -184,14 +197,68 @@ interface RecipeSectionProps {
   recipes: StyledRecipe[];
   selectedRecipe?: StyledRecipe;
   onSelect: (recipe: StyledRecipe) => void;
+  /** For A/B experiments: only show recipes matching this goal */
+  restrictToGoal?: CampaignGoal;
+  /** Label for the variant being configured (e.g., "Variant B") */
+  variantLabel?: string;
+  /** Current URL path to return to after recipe selection */
+  returnToPath?: string;
 }
 
-function RecipeSection({ recipes, selectedRecipe, onSelect }: RecipeSectionProps) {
+function RecipeSection({
+  recipes,
+  selectedRecipe,
+  onSelect,
+  restrictToGoal,
+  variantLabel,
+  returnToPath,
+}: RecipeSectionProps) {
+  const navigate = useNavigate();
+
+  // Filter recipes by goal if restricted
+  const availableRecipes = restrictToGoal
+    ? recipes.filter((r) => r.goal === restrictToGoal)
+    : recipes;
+
   // Show first 6 recipes in a grid
-  const displayRecipes = recipes.slice(0, 6);
+  const displayRecipes = availableRecipes.slice(0, 6);
+
+  // Build URL for full-screen recipe picker
+  const buildRecipePickerUrl = () => {
+    const params = new URLSearchParams();
+    if (returnToPath) {
+      params.set("returnTo", returnToPath);
+    }
+    if (restrictToGoal) {
+      params.set("restrictToGoal", restrictToGoal);
+    }
+    if (variantLabel) {
+      params.set("variantLabel", variantLabel);
+    }
+    const queryString = params.toString();
+    return `/app/campaigns/recipe${queryString ? `?${queryString}` : ""}`;
+  };
+
+  const handleBrowseAll = () => {
+    navigate(buildRecipePickerUrl());
+  };
 
   return (
     <BlockStack gap="400">
+      {/* Goal restriction info */}
+      {restrictToGoal && (
+        <Box padding="300" background="bg-surface-info" borderRadius="200">
+          <InlineStack gap="200" blockAlign="center">
+            <Text as="span">ℹ️</Text>
+            <Text as="span" variant="bodySm">
+              {variantLabel
+                ? `Showing ${availableRecipes.length} recipes matching the Control variant's goal for A/B consistency.`
+                : `Showing ${availableRecipes.length} recipes with the same goal.`}
+            </Text>
+          </InlineStack>
+        </Box>
+      )}
+
       <PreviewProvider>
         <InlineGrid columns={{ xs: 1, sm: 2, md: 3 }} gap="400">
           {displayRecipes.map((recipe) => (
@@ -206,13 +273,13 @@ function RecipeSection({ recipes, selectedRecipe, onSelect }: RecipeSectionProps
           ))}
         </InlineGrid>
       </PreviewProvider>
-      {recipes.length > 6 && (
-        <Box paddingBlockStart="200">
-          <Text as="p" tone="subdued" alignment="center">
-            Showing 6 of {recipes.length} recipes
-          </Text>
-        </Box>
-      )}
+
+      {/* Browse all button */}
+      <InlineStack align="center">
+        <Button onClick={handleBrowseAll}>
+          {`Browse all ${availableRecipes.length} recipes`}
+        </Button>
+      </InlineStack>
     </BlockStack>
   );
 }

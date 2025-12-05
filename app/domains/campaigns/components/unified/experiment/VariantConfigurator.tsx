@@ -39,6 +39,10 @@ export function VariantConfigurator({
   advancedTargetingEnabled,
 }: VariantConfiguratorProps) {
   const activeVariant = experiment.variants.find((v) => v.id === activeVariantId);
+  const controlVariant = experiment.variants.find((v) => v.isControl);
+
+  // Get control variant's goal for filtering recipes in non-control variants
+  const controlGoal = controlVariant?.recipe?.goal || controlVariant?.campaignData?.recipe?.goal;
 
   if (!activeVariant) {
     return <Banner tone="critical">Variant not found</Banner>;
@@ -85,6 +89,7 @@ export function VariantConfigurator({
         advancedTargetingEnabled={advancedTargetingEnabled}
         onSave={handleSave}
         isControlVariant={activeVariant.isControl}
+        controlGoal={controlGoal}
       />
     </div>
   );

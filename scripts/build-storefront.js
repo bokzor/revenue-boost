@@ -185,6 +185,10 @@ async function build() {
                 const { h, Component, Fragment, render, createPortal, createContext } = window.RevenueBoostPreact;
                 const { useState, useEffect, useCallback, useRef, useMemo, useContext, useDebugValue } = window.RevenueBoostPreact.hooks;
                 const createElement = h;
+
+                // memo from preact/compat - uses the compat layer if available, otherwise simple passthrough
+                const memo = window.RevenueBoostPreact.compat?.memo || ((component) => component);
+
                 export {
                   h,
                   createElement,
@@ -200,6 +204,7 @@ async function build() {
                   useMemo,
                   useContext,
                   useDebugValue,
+                  memo,
                 };
                 export default {
                   h,
@@ -216,6 +221,7 @@ async function build() {
                   useMemo,
                   useContext,
                   useDebugValue,
+                  memo,
                 };
               `,
               loader: "js",

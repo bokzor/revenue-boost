@@ -17,8 +17,10 @@ import type {
   QuickInput,
   RecipeTag,
 } from "./styled-recipe-types";
+import { FLASH_SALE_DESIGN_RECIPES } from "./flash-sale-design-recipes";
 import { NEWSLETTER_DESIGN_RECIPES } from "./newsletter-design-recipes";
 import { SCRATCH_CARD_DESIGN_RECIPES } from "./scratch-card-design-recipes";
+import { SPIN_TO_WIN_DESIGN_RECIPES } from "./spin-to-win-design-recipes";
 
 // =============================================================================
 // HELPER: Build function factory
@@ -151,7 +153,8 @@ const welcomeDiscount: StyledRecipe = {
   id: "welcome-discount",
   name: "Welcome Discount",
   tagline: "Get 10% off your first order",
-  description: "Classic email capture with a first-order discount. Best for new visitor conversion.",
+  description:
+    "Classic email capture with a first-order discount. Best for new visitor conversion.",
   icon: "🎁",
   category: "email_leads",
   goal: "NEWSLETTER_SIGNUP",
@@ -220,36 +223,6 @@ const exitOffer: StyledRecipe = {
   },
 };
 
-const spinToWin: StyledRecipe = {
-  id: "spin-to-win",
-  name: "Spin to Win",
-  tagline: "Spin the wheel for a chance to win!",
-  description: "Gamified email capture with a spinning wheel. Higher engagement than standard forms.",
-  icon: "🎡",
-  category: "email_leads",
-  goal: "NEWSLETTER_SIGNUP",
-  templateType: "SPIN_TO_WIN",
-  component: "SpinToWin",
-  theme: "gradient",
-  layout: "centered",
-  backgroundPresetId: "bg-gradient",
-  featured: true,
-  inputs: [],
-  editableFields: [HEADLINE_FIELD, SUBHEADLINE_FIELD],
-  defaults: {
-    contentConfig: {
-      headline: "Spin to Win!",
-      subheadline: "Enter your email for a chance to win a discount",
-      spinButtonText: "Spin the Wheel",
-      emailPlaceholder: "Enter your email to spin",
-    },
-    designConfig: { position: "center", size: "large" },
-    targetRules: {
-      enhancedTriggers: { scroll_depth: { enabled: true, depth_percentage: 50 } },
-    },
-  },
-};
-
 const vipEarlyAccess: StyledRecipe = {
   id: "vip-early-access",
   name: "VIP Early Access",
@@ -311,289 +284,11 @@ const holidayNewsletter: StyledRecipe = {
 };
 
 // =============================================================================
-// 🔥 SALES & PROMOS - EVERGREEN
+// 🔥 FLASH SALE RECIPES - See flash-sale-design-recipes.ts
 // =============================================================================
 
-const flashSale: StyledRecipe = {
-  id: "flash-sale",
-  name: "Flash Sale",
-  tagline: "Limited time offer - don't miss out!",
-  description: "Create urgency with a time-limited discount and countdown timer.",
-  icon: "⚡",
-  category: "sales_promos",
-  goal: "INCREASE_REVENUE",
-  templateType: "FLASH_SALE",
-  component: "FlashSaleCentered",
-  theme: "bold",
-  layout: "centered",
-  backgroundPresetId: "bg-bold",
-  featured: true,
-  inputs: [
-    { ...DISCOUNT_PERCENTAGE_INPUT, defaultValue: 30 },
-    DURATION_HOURS_INPUT,
-  ],
-  editableFields: [HEADLINE_FIELD, SUBHEADLINE_FIELD, BUTTON_TEXT_FIELD],
-  defaults: {
-    contentConfig: {
-      headline: "Flash Sale!",
-      subheadline: "30% off everything - limited time only",
-      buttonText: "Shop Now",
-      showCountdown: true,
-      urgencyMessage: "Ends soon",
-    },
-    designConfig: { position: "center", size: "large" },
-    targetRules: {
-      enhancedTriggers: { page_load: { enabled: true, delay: 2000 } },
-    },
-    discountConfig: {
-      enabled: true,
-      type: "shared",
-      valueType: "PERCENTAGE",
-      value: 30,
-    },
-  },
-};
-
-// =============================================================================
-// 🔥 SALES & PROMOS - SEASONAL
-// =============================================================================
-
-const blackFridaySale: StyledRecipe = {
-  id: "black-friday-sale",
-  name: "Black Friday Sale",
-  tagline: "The biggest sale of the year",
-  description: "High-urgency flash sale with dark theme and bold messaging.",
-  icon: "🖤",
-  category: "sales_promos",
-  goal: "INCREASE_REVENUE",
-  templateType: "FLASH_SALE",
-  component: "FlashSaleCentered",
-  theme: "black-friday",
-  layout: "centered",
-  backgroundPresetId: "bg-black-friday",
-  seasonal: true,
-  featured: true,
-  inputs: [
-    { ...DISCOUNT_PERCENTAGE_INPUT, defaultValue: 50 },
-    DURATION_HOURS_INPUT,
-  ],
-  editableFields: [HEADLINE_FIELD, SUBHEADLINE_FIELD, BUTTON_TEXT_FIELD],
-  defaults: {
-    contentConfig: {
-      headline: "BLACK FRIDAY",
-      subheadline: "UP TO 50% OFF EVERYTHING",
-      buttonText: "SHOP NOW",
-      showCountdown: true,
-      urgencyMessage: "LIMITED TIME",
-    },
-    designConfig: { position: "center", size: "large" },
-    targetRules: {
-      enhancedTriggers: { page_load: { enabled: true, delay: 1000 } },
-    },
-    discountConfig: {
-      enabled: true,
-      type: "shared",
-      valueType: "PERCENTAGE",
-      value: 50,
-    },
-  },
-};
-
-const cyberMondaySale: StyledRecipe = {
-  id: "cyber-monday-sale",
-  name: "Cyber Monday Deal",
-  tagline: "Online exclusive savings",
-  description: "Tech-themed flash sale with neon aesthetic.",
-  icon: "💻",
-  category: "sales_promos",
-  goal: "INCREASE_REVENUE",
-  templateType: "FLASH_SALE",
-  component: "FlashSaleCentered",
-  theme: "cyber-monday",
-  layout: "centered",
-  backgroundPresetId: "bg-cyber-monday",
-  seasonal: true,
-  inputs: [
-    { ...DISCOUNT_PERCENTAGE_INPUT, defaultValue: 40 },
-    DURATION_HOURS_INPUT,
-  ],
-  editableFields: [HEADLINE_FIELD, SUBHEADLINE_FIELD, BUTTON_TEXT_FIELD],
-  defaults: {
-    contentConfig: {
-      headline: "CYBER MONDAY",
-      subheadline: "40% OFF - Online Only",
-      buttonText: "Shop Online Deals",
-      showCountdown: true,
-    },
-    designConfig: { position: "center", size: "large" },
-    discountConfig: {
-      enabled: true,
-      type: "shared",
-      valueType: "PERCENTAGE",
-      value: 40,
-    },
-  },
-};
-
-const summerSale: StyledRecipe = {
-  id: "summer-sale",
-  name: "Summer Sale",
-  tagline: "Hot summer deals are here!",
-  description: "Warm, playful flash sale perfect for summer promotions.",
-  icon: "☀️",
-  category: "sales_promos",
-  goal: "INCREASE_REVENUE",
-  templateType: "FLASH_SALE",
-  component: "FlashSaleSplit",
-  theme: "summer",
-  layout: "split-left",
-  backgroundPresetId: "bg-summer",
-  seasonal: true,
-  featured: true,
-  inputs: [{ ...DISCOUNT_PERCENTAGE_INPUT, defaultValue: 30 }],
-  editableFields: [HEADLINE_FIELD, SUBHEADLINE_FIELD, BUTTON_TEXT_FIELD],
-  defaults: {
-    contentConfig: {
-      headline: "Summer Sale ☀️",
-      subheadline: "30% off summer essentials",
-      buttonText: "Shop Summer",
-      showCountdown: true,
-    },
-    designConfig: { position: "center", size: "large" },
-    discountConfig: {
-      enabled: true,
-      type: "shared",
-      valueType: "PERCENTAGE",
-      value: 30,
-    },
-  },
-};
-
-const holidaySale: StyledRecipe = {
-  id: "holiday-sale",
-  name: "Holiday Sale",
-  tagline: "Festive savings for everyone",
-  description: "Festive flash sale for the holiday shopping season.",
-  icon: "🎄",
-  category: "sales_promos",
-  goal: "INCREASE_REVENUE",
-  templateType: "FLASH_SALE",
-  component: "FlashSaleCentered",
-  theme: "holiday",
-  layout: "centered",
-  backgroundPresetId: "bg-holiday",
-  seasonal: true,
-  inputs: [{ ...DISCOUNT_PERCENTAGE_INPUT, defaultValue: 25 }],
-  editableFields: [HEADLINE_FIELD, SUBHEADLINE_FIELD, BUTTON_TEXT_FIELD],
-  defaults: {
-    contentConfig: {
-      headline: "Holiday Sale 🎄",
-      subheadline: "25% off holiday favorites",
-      buttonText: "Shop Holiday Deals",
-      showCountdown: true,
-    },
-    designConfig: { position: "center", size: "large" },
-    discountConfig: {
-      enabled: true,
-      type: "shared",
-      valueType: "PERCENTAGE",
-      value: 25,
-    },
-  },
-};
-
-const valentineSale: StyledRecipe = {
-  id: "valentine-sale",
-  name: "Valentine's Sale",
-  tagline: "Show them you care ❤️",
-  description: "Romantic-themed sale for Valentine's Day.",
-  icon: "💝",
-  category: "sales_promos",
-  goal: "INCREASE_REVENUE",
-  templateType: "FLASH_SALE",
-  component: "FlashSaleSplit",
-  theme: "valentine",
-  layout: "split-left",
-  backgroundPresetId: "bg-valentine",
-  seasonal: true,
-  inputs: [{ ...DISCOUNT_PERCENTAGE_INPUT, defaultValue: 20 }],
-  editableFields: [HEADLINE_FIELD, SUBHEADLINE_FIELD, BUTTON_TEXT_FIELD],
-  defaults: {
-    contentConfig: {
-      headline: "Valentine's Sale ❤️",
-      subheadline: "20% off gifts for your loved ones",
-      buttonText: "Shop Gifts",
-    },
-    designConfig: { position: "center", size: "medium" },
-    discountConfig: {
-      enabled: true,
-      type: "shared",
-      valueType: "PERCENTAGE",
-      value: 20,
-    },
-  },
-};
-
-// =============================================================================
-// 🔥 SALES & PROMOS - OTHER TYPES
-// =============================================================================
-
-const bogoWeekend: StyledRecipe = {
-  id: "bogo-weekend",
-  name: "BOGO Weekend",
-  tagline: "Buy one, get one free!",
-  description: "Buy one get one free promotion for weekend sales.",
-  icon: "🛍️",
-  category: "sales_promos",
-  goal: "INCREASE_REVENUE",
-  templateType: "FLASH_SALE",
-  component: "FlashSaleCentered",
-  theme: "gradient",
-  layout: "centered",
-  backgroundPresetId: "bg-gradient",
-  inputs: [],
-  editableFields: [HEADLINE_FIELD, SUBHEADLINE_FIELD, BUTTON_TEXT_FIELD],
-  defaults: {
-    contentConfig: {
-      headline: "BOGO Weekend!",
-      subheadline: "Buy one, get one FREE",
-      buttonText: "Shop BOGO",
-      showCountdown: true,
-    },
-    designConfig: { position: "center", size: "large" },
-    discountConfig: {
-      enabled: true,
-      type: "shared",
-      valueType: "PERCENTAGE",
-      value: 50, // BOGO equivalent: 50% off second item
-    },
-  },
-};
-
-const spendMoreSaveMore: StyledRecipe = {
-  id: "spend-more-save-more",
-  name: "Spend More, Save More",
-  tagline: "The more you spend, the more you save",
-  description: "Tiered discount that encourages larger orders.",
-  icon: "📈",
-  category: "sales_promos",
-  goal: "INCREASE_REVENUE",
-  templateType: "FLASH_SALE",
-  component: "FlashSaleCentered",
-  theme: "elegant",
-  layout: "centered",
-  backgroundPresetId: "bg-elegant",
-  inputs: [],
-  editableFields: [HEADLINE_FIELD, SUBHEADLINE_FIELD, BUTTON_TEXT_FIELD],
-  defaults: {
-    contentConfig: {
-      headline: "Spend More, Save More",
-      subheadline: "$50→10% | $100→20% | $150→30%",
-      buttonText: "Start Shopping",
-    },
-    designConfig: { position: "center", size: "medium" },
-  },
-};
+// All Flash Sale recipes have been moved to flash-sale-design-recipes.ts
+// and are imported as FLASH_SALE_DESIGN_RECIPES
 
 // =============================================================================
 // 🛒 CART & RECOVERY RECIPES
@@ -764,7 +459,13 @@ const saleAnnouncement: StyledRecipe = {
   editableFields: [
     HEADLINE_FIELD,
     BUTTON_TEXT_FIELD,
-    { key: "ctaUrl", type: "text", label: "Button Link", placeholder: "/collections/sale", group: "content" },
+    {
+      key: "ctaUrl",
+      type: "text",
+      label: "Button Link",
+      placeholder: "/collections/sale",
+      group: "content",
+    },
   ],
   defaults: {
     contentConfig: {
@@ -795,7 +496,13 @@ const newArrival: StyledRecipe = {
     HEADLINE_FIELD,
     SUBHEADLINE_FIELD,
     BUTTON_TEXT_FIELD,
-    { key: "ctaUrl", type: "text", label: "Button Link", placeholder: "/products/new-product", group: "content" },
+    {
+      key: "ctaUrl",
+      type: "text",
+      label: "Button Link",
+      placeholder: "/products/new-product",
+      group: "content",
+    },
   ],
   defaults: {
     contentConfig: {
@@ -823,7 +530,13 @@ const storeUpdate: StyledRecipe = {
   inputs: [],
   editableFields: [
     HEADLINE_FIELD,
-    { key: "ctaUrl", type: "text", label: "Learn More Link", placeholder: "/pages/shipping", group: "content" },
+    {
+      key: "ctaUrl",
+      type: "text",
+      label: "Learn More Link",
+      placeholder: "/pages/shipping",
+      group: "content",
+    },
   ],
   defaults: {
     contentConfig: {
@@ -873,19 +586,10 @@ export const STYLED_RECIPES: StyledRecipe[] = [
   // Email & Leads
   welcomeDiscount,
   exitOffer,
-  spinToWin,
   vipEarlyAccess,
   holidayNewsletter,
-  // Sales & Promos - Evergreen
-  flashSale,
-  bogoWeekend,
-  spendMoreSaveMore,
-  // Sales & Promos - Seasonal
-  blackFridaySale,
-  cyberMondaySale,
-  summerSale,
-  holidaySale,
-  valentineSale,
+  // Flash Sale Design Recipes (sales & promos)
+  ...FLASH_SALE_DESIGN_RECIPES,
   // Cart & Recovery
   cartRecovery,
   urgentCartRecovery,
@@ -900,6 +604,8 @@ export const STYLED_RECIPES: StyledRecipe[] = [
   ...NEWSLETTER_DESIGN_RECIPES,
   // Scratch Card Design Recipes (gamified engagement)
   ...SCRATCH_CARD_DESIGN_RECIPES,
+  // Spin To Win Design Recipes (wheel of fortune engagement)
+  ...SPIN_TO_WIN_DESIGN_RECIPES,
 ];
 
 /** Get all recipes with build functions attached */
@@ -947,16 +653,12 @@ export function getStyledRecipesByTag(tag: RecipeTag): StyledRecipe[] {
 
 /** Get recipes by multiple tags (AND logic) */
 export function getStyledRecipesByTags(tags: RecipeTag[]): StyledRecipe[] {
-  return STYLED_RECIPES.filter((r) =>
-    tags.every((tag) => r.tags?.includes(tag))
-  );
+  return STYLED_RECIPES.filter((r) => tags.every((tag) => r.tags?.includes(tag)));
 }
 
 /** Get recipes by any of the tags (OR logic) */
 export function getStyledRecipesByAnyTag(tags: RecipeTag[]): StyledRecipe[] {
-  return STYLED_RECIPES.filter((r) =>
-    tags.some((tag) => r.tags?.includes(tag))
-  );
+  return STYLED_RECIPES.filter((r) => tags.some((tag) => r.tags?.includes(tag)));
 }
 
 /** Get all unique tags from recipes */
@@ -967,4 +669,3 @@ export function getAllRecipeTags(): RecipeTag[] {
   });
   return Array.from(tagSet);
 }
-

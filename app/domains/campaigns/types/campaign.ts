@@ -271,7 +271,9 @@ export function requiresEmailRestriction(behavior: DiscountBehavior | undefined)
 export const BaseContentConfigSchema = z.object({
   headline: z.string().min(1, "Headline is required"),
   subheadline: z.string().optional(),
-  buttonText: z.string().min(1, "Button text is required"),
+  // buttonText is now optional - new templates use cta.label instead
+  // Legacy support: if cta is not defined, buttonText is used
+  buttonText: z.string().optional(),
   dismissLabel: z.string().optional(),
   // Made optional with default - many templates don't show this field in the UI
   // but still need it for validation. Templates that use it (Newsletter, Flash Sale)
@@ -454,15 +456,35 @@ export const SpinToWinContentSchema = SpinToWinBaseContentSchema.merge(LeadCaptu
   spinDuration: z.number().int().min(1000).max(10000).default(4000),
   minSpins: z.number().int().min(1).max(20).default(5),
   loadingText: z.string().optional(),
+
+  // Enhanced wheel styling (for premium themes like Lucky Fortune)
+  wheelGlowEnabled: z.boolean().default(false),
+  wheelGlowColor: z.string().optional(), // Defaults to accentColor if not specified
+  wheelCenterStyle: z.enum(["simple", "gradient", "metallic"]).default("simple"),
+
+  // Promotional badge (shown above headline)
+  badgeEnabled: z.boolean().default(false),
+  badgeText: z.string().optional(), // e.g., "Limited Time Offer"
+  badgeIcon: z.enum(["sparkles", "star", "gift", "fire", "clock"]).optional(),
+
+  // Result state customization
+  showResultIcon: z.boolean().default(false),
+  resultIconType: z.enum(["trophy", "gift", "star", "confetti"]).default("trophy"),
 });
 
 /**
  * Flash Sale specific content fields
  * Enhanced with advanced timer modes, real-time inventory, and reservation features
+ *
+ * Note: discountPercentage is optional because:
+ * - BOGO campaigns use discountConfig.bogo instead
+ * - Tiered campaigns use discountConfig.tiers instead
+ * - Free Gift campaigns use discountConfig.freeGift instead
+ * Only basic percentage discounts need discountPercentage in contentConfig
  */
 export const FlashSaleContentSchema = BaseContentConfigSchema.extend({
   urgencyMessage: z.string().min(1, "Urgency message is required"),
-  discountPercentage: z.number().min(0).max(100),
+  discountPercentage: z.number().min(0).max(100).optional(), // Optional for BOGO/Tiered/FreeGift
   originalPrice: z.number().min(0).optional(),
   salePrice: z.number().min(0).optional(),
   showCountdown: z.boolean().default(true),
@@ -517,14 +539,48 @@ export const FlashSaleContentSchema = BaseContentConfigSchema.extend({
     })
     .optional(),
 
-  // CTA configuration
+  // CTA (Call-to-Action) configuration - uses unified CTA system
+  // See app/domains/campaigns/types/cta.ts for full schema
   cta: z
     .object({
-      primaryLabel: z.string().default("Unlock Offer"),
-      primaryAction: z.enum(["apply", "navigate"]).default("apply"),
-      navigateUrl: z.string().optional(), // For navigate action
-      secondaryLabel: z.string().optional(),
-      secondaryUrl: z.string().optional(),
+      // Display
+      label: z.string().min(1).default("Shop Now"),
+      variant: z.enum(["primary", "secondary", "link"]).default("primary"),
+
+      // Action type
+      action: z
+        .enum([
+          "navigate_url",
+          "navigate_product",
+          "navigate_collection",
+          "add_to_cart",
+          "add_to_cart_checkout",
+        ])
+        .default("navigate_collection"),
+
+      // Navigation config
+      url: z.string().optional(),
+      productId: z.string().optional(),
+      productHandle: z.string().optional(),
+      collectionId: z.string().optional(),
+      collectionHandle: z.string().optional(),
+      openInNewTab: z.boolean().default(false),
+
+      // Cart config
+      variantId: z.string().optional(),
+      quantity: z.number().int().min(1).default(1),
+
+      // Discount integration
+      applyDiscountFirst: z.boolean().default(true),
+    })
+    .optional(),
+
+  // Secondary CTA (dismiss/alternative action)
+  secondaryCta: z
+    .object({
+      label: z.string().default("No thanks"),
+      action: z.enum(["dismiss", "navigate_url"]).default("dismiss"),
+      url: z.string().optional(),
     })
     .optional(),
 

@@ -410,6 +410,7 @@ function useRecipeDesignConfig(recipe: StyledRecipe) {
       backgroundColor: themeColors.background,
       textColor: themeColors.text,
       primaryColor: themeColors.primary,
+      accentColor: themeColors.primary,
       buttonColor: themeColors.ctaBg || themeColors.primary,
       buttonTextColor: themeColors.ctaText || "#FFFFFF",
       backgroundImageMode,

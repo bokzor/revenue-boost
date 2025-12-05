@@ -285,6 +285,120 @@ export const BACKGROUND_PRESETS: BackgroundPreset[] = [
     category: "seasonal",
     templateTypes: ["ALL"],
   },
+
+  // ============================================
+  // FLASH SALE SPECIFIC BACKGROUNDS
+  // These are optimized for centered flash sale popups with overlay text
+  // Located in public/recipes/flash-sale/
+  // ============================================
+  {
+    id: "fs-bg-summer",
+    filename: "recipes/flash-sale/summer.jpg",
+    name: "Summer Flash Sale",
+    description: "Warm summer vibes for flash sales",
+    suggestedForThemes: ["summer"],
+    primaryTheme: "summer",
+    seasonal: true,
+    category: "seasonal",
+    templateTypes: ["FLASH_SALE"],
+    featured: true,
+  },
+  {
+    id: "fs-bg-black-friday",
+    filename: "recipes/flash-sale/black-friday-center-negative.jpg",
+    name: "Black Friday Flash Sale",
+    description: "Bold black with dramatic lighting",
+    suggestedForThemes: ["black-friday", "dark", "luxury"],
+    primaryTheme: "black-friday",
+    seasonal: true,
+    category: "seasonal",
+    templateTypes: ["FLASH_SALE"],
+    featured: true,
+  },
+  {
+    id: "fs-bg-christmas",
+    filename: "recipes/flash-sale/christman-center-negative.jpg",
+    name: "Christmas Flash Sale",
+    description: "Festive holiday atmosphere",
+    suggestedForThemes: ["holiday"],
+    primaryTheme: "holiday",
+    seasonal: true,
+    category: "seasonal",
+    templateTypes: ["FLASH_SALE"],
+    featured: true,
+  },
+  {
+    id: "fs-bg-valentine",
+    filename: "recipes/flash-sale/valentine-day-negative-center.jpg",
+    name: "Valentine's Flash Sale",
+    description: "Romantic pink and red tones",
+    suggestedForThemes: ["valentine"],
+    primaryTheme: "valentine",
+    seasonal: true,
+    category: "seasonal",
+    templateTypes: ["FLASH_SALE"],
+  },
+  {
+    id: "fs-bg-easter",
+    filename: "recipes/flash-sale/easter-negative-center.jpg",
+    name: "Easter Flash Sale",
+    description: "Fresh spring pastels",
+    suggestedForThemes: ["spring"],
+    primaryTheme: "spring",
+    seasonal: true,
+    category: "seasonal",
+    templateTypes: ["FLASH_SALE"],
+  },
+  {
+    id: "fs-bg-halloween",
+    filename: "recipes/flash-sale/halloween-center-negative.jpg",
+    name: "Halloween Flash Sale",
+    description: "Spooky orange and black",
+    suggestedForThemes: ["dark", "neon"],
+    seasonal: true,
+    category: "seasonal",
+    templateTypes: ["FLASH_SALE"],
+  },
+  {
+    id: "fs-bg-thanksgiving",
+    filename: "recipes/flash-sale/thanksgivin-center-negative.jpg",
+    name: "Thanksgiving Flash Sale",
+    description: "Warm autumn harvest tones",
+    suggestedForThemes: ["elegant", "luxury"],
+    seasonal: true,
+    category: "seasonal",
+    templateTypes: ["FLASH_SALE"],
+  },
+  {
+    id: "fs-bg-new-year",
+    filename: "recipes/flash-sale/new-year-center-negative.jpg",
+    name: "New Year Flash Sale",
+    description: "Celebratory gold and sparkles",
+    suggestedForThemes: ["luxury", "gradient"],
+    seasonal: true,
+    category: "seasonal",
+    templateTypes: ["FLASH_SALE"],
+  },
+  {
+    id: "fs-bg-winter",
+    filename: "recipes/flash-sale/winter-negative-center.jpg",
+    name: "Winter Flash Sale",
+    description: "Cool blue winter clearance",
+    suggestedForThemes: ["ocean", "glass"],
+    seasonal: true,
+    category: "seasonal",
+    templateTypes: ["FLASH_SALE"],
+  },
+  {
+    id: "fs-bg-back-to-school",
+    filename: "recipes/flash-sale/back-to-school-center-negative.jpg",
+    name: "Back to School Flash Sale",
+    description: "Academic season savings",
+    suggestedForThemes: ["modern", "bold"],
+    seasonal: true,
+    category: "seasonal",
+    templateTypes: ["FLASH_SALE"],
+  },
 ];
 
 // =============================================================================
@@ -350,9 +464,17 @@ export function getBackgroundsForTemplateType(
 /**
  * Build the full URL for a background image
  * Works for both admin preview and storefront
+ *
+ * If filename already includes a path (e.g., "recipes/flash-sale/summer.jpg"),
+ * it's used as-is. Otherwise, defaults to newsletter-backgrounds folder.
  */
 export function getBackgroundUrl(preset: BackgroundPreset, baseUrl?: string): string {
   const base = baseUrl || "";
+  // If filename already includes a path separator, use it as-is
+  if (preset.filename.includes("/")) {
+    return `${base}/${preset.filename}`;
+  }
+  // Default to newsletter-backgrounds folder for legacy filenames
   return `${base}/newsletter-backgrounds/${preset.filename}`;
 }
 

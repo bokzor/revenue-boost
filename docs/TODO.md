@@ -147,6 +147,11 @@ Inspired by Wisepops' multi-channel approach. Extends engagement beyond the curr
 
 **Why:** Re-engages visitors after they leave. Complements on-site popups. Key differentiator for retention.
 
+### [ ] New Popup Templates
+- [ ] Video popup (embed YouTube/Vimeo, product demos)
+- [ ] Survey popup (multi-question feedback, NPS scores)
+- [ ] Birthday Signup popup (collect DOB for birthday discounts)
+
 ### [ ] Custom Template Builder
 - [ ] Drag-and-drop element editor
 - [ ] Custom CSS injection

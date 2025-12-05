@@ -25,7 +25,7 @@ import {
 } from "app/domains/storefront/popups-new/utils/spacing";
 
 // Import custom hooks
-import { useCountdownTimer, useDiscountCode } from "./hooks";
+import { useCountdownTimer, useDiscountCode, useCTAHandler } from "./hooks";
 
 // Import shared components
 import { DiscountCodeDisplay, PopupCloseButton, TimerDisplay } from "./components/shared";
@@ -57,6 +57,7 @@ export interface FlashSaleConfig extends PopupDesignConfig, FlashSaleContent {
   discountConfig?: AdvancedDiscountConfig; // Legacy/advanced config (tiers, BOGO, free gift)
   discount?: StorefrontDiscountConfig; // Normalized storefront discount summary
   currentCartTotal?: number; // Injected by storefront runtime
+  // Note: cta and secondaryCta are inherited from FlashSaleContent
 }
 
 export interface FlashSalePopupProps {
@@ -103,14 +104,11 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
     autoHideDelay: 1000,
   });
 
-  // Use discount code hook
-  const { discountCode, setDiscountCode, copiedCode, handleCopyCode } = useDiscountCode();
+  // Use discount code hook for copy functionality (discountCode comes from useCTAHandler)
+  const { copiedCode, handleCopyCode } = useDiscountCode();
 
   // Component-specific state
   const [inventoryTotal, setInventoryTotal] = useState<number | null>(null);
-  const [hasClaimedDiscount, setHasClaimedDiscount] = useState(false);
-  const [isClaimingDiscount, setIsClaimingDiscount] = useState(false);
-  const [_discountError, setDiscountError] = useState<string | null>(null);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- config has dynamic fields
   const configRecord = config as any;
@@ -192,63 +190,35 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
     return undefined;
   };
 
-  const getCtaLabel = () => {
-    if (hasExpired || isSoldOutAndMissed) {
-      return config.buttonText || config.ctaText || "Offer unavailable";
-    }
-    if (isClaimingDiscount) {
-      return "Applying...";
-    }
-    if (hasDiscount && !hasClaimedDiscount) {
-      return config.buttonText || config.ctaText || "Get this offer";
-    }
-    return config.buttonText || config.ctaText || "Shop Now";
-  };
-
-  const handleCtaClick = async () => {
-    const canClaimDiscount =
-      hasDiscount && !hasClaimedDiscount && !hasExpired && !isSoldOutAndMissed;
-
-    if (canClaimDiscount) {
-      setDiscountError(null);
-      setIsClaimingDiscount(true);
-      try {
-        if (issueDiscount) {
-          const cartSubtotalCents = getCartSubtotalCents();
-          const result = await issueDiscount(cartSubtotalCents ? { cartSubtotalCents } : undefined);
-          if (result?.code) {
-            setDiscountCode(result.code);
-          }
-          setHasClaimedDiscount(true);
-        }
-      } catch (error) {
-        console.error("[FlashSalePopup] Failed to claim discount:", error);
-        setDiscountError("Something went wrong applying your discount. Please try again.");
-      } finally {
-        setIsClaimingDiscount(false);
-      }
-
-      // First click used to claim discount only
-      return;
-    }
-
-    // In preview mode, never navigate away from the editor
-    if (isPreview) {
-      return;
-    }
-
-    if (onCtaClick) {
-      onCtaClick();
-    }
-
-    if (config.ctaUrl) {
-      if (config.ctaOpenInNewTab) {
-        window.open(config.ctaUrl, "_blank", "noopener,noreferrer");
-      } else {
-        window.location.href = config.ctaUrl;
-      }
-    }
-  };
+  // Use shared CTA handler hook
+  const {
+    ctaLabel,
+    secondaryCtaLabel,
+    hasClaimedDiscount,
+    isClaimingDiscount,
+    discountCode,
+    discountError,
+    isCtaDisabled,
+    handleCtaClick,
+    handleSecondaryCta,
+    setDiscountCode,
+  } = useCTAHandler({
+    cta: config.cta,
+    secondaryCta: config.secondaryCta,
+    buttonText: config.buttonText || config.ctaText,
+    ctaUrl: config.ctaUrl,
+    ctaOpenInNewTab: config.ctaOpenInNewTab,
+    dismissLabel: config.dismissLabel,
+    hasDiscount,
+    isPreview,
+    hasExpired: hasExpired || isSoldOutAndMissed,
+    isSoldOut: isSoldOutAndMissed,
+    issueDiscount,
+    getCartSubtotalCents,
+    onCtaClick,
+    onClose,
+    failureMessage: config.failureMessage,
+  });
 
   if (isSoldOut && config.inventory?.soldOutBehavior === "hide") {
     return null;
@@ -582,6 +552,18 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
               {config.subheadline && (
                 <p className="flash-sale-banner-subheadline">{config.subheadline}</p>
               )}
+              {/* Success message after discount claimed */}
+              {hasClaimedDiscount && config.successMessage && (
+                <div className="flash-sale-success-message" style={{ color: "#22c55e" }}>
+                  {config.successMessage}
+                </div>
+              )}
+              {/* Error message if discount claim failed */}
+              {discountError && (
+                <div className="flash-sale-error-message" style={{ color: "#ef4444" }}>
+                  {discountError}
+                </div>
+              )}
               {(discountCode || discountMessage) && (
                 <div className="flash-sale-banner-discount">
                   {discountCode ? (
@@ -672,7 +654,7 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
                       }}
                     />
                   )}
-                  {getCtaLabel()}
+                  {ctaLabel}
                 </button>
               )}
             </div>
@@ -1233,6 +1215,20 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
               {config.subheadline || "Limited time offer - Don't miss out!"}
             </p>
 
+            {/* Success message after discount claimed */}
+            {hasClaimedDiscount && config.successMessage && (
+              <div className="flash-sale-success-message" style={{ color: "#22c55e" }}>
+                {config.successMessage}
+              </div>
+            )}
+
+            {/* Error message if discount claim failed */}
+            {discountError && (
+              <div className="flash-sale-error-message" style={{ color: "#ef4444" }}>
+                {discountError}
+              </div>
+            )}
+
             {(discountCode || discountMessage) && (
               <div className="flash-sale-discount-message">
                 {discountCode ? (
@@ -1293,13 +1289,13 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
               <button
                 onClick={handleCtaClick}
                 className="flash-sale-cta"
-                disabled={hasExpired || isSoldOutAndMissed || isClaimingDiscount}
+                disabled={isCtaDisabled}
               >
-                {getCtaLabel()}
+                {ctaLabel}
               </button>
 
-              <button type="button" onClick={onClose} className="flash-sale-secondary-cta">
-                {config.dismissLabel || "No thanks"}
+              <button type="button" onClick={handleSecondaryCta} className="flash-sale-secondary-cta">
+                {secondaryCtaLabel}
               </button>
             </div>
           </div>

@@ -9,24 +9,31 @@
  * 2. Configure quick inputs (Modal)
  * 3. Redirect to full campaign form with pre-filled data
  *
+ * Query Parameters:
+ * - returnTo: URL to redirect after selection (for embedding in flows)
+ * - restrictToGoal: Filter recipes by goal (for A/B experiments)
+ * - variantLabel: Label for the variant being configured (e.g., "Variant B")
+ *
  * @see docs/RECIPE_SYSTEM_ARCHITECTURE.md
  */
 
 import React, { useState, useCallback, useMemo } from "react";
 import { data, type LoaderFunctionArgs } from "react-router";
-import { useLoaderData, useNavigate } from "react-router";
-import { Page, Modal, BlockStack, Text, Card, TextField, RangeSlider, Select } from "@shopify/polaris";
+import { useLoaderData, useNavigate, useSearchParams } from "react-router";
+import { Page, Modal, BlockStack, Text, Card, TextField, RangeSlider, Select, Banner, Divider } from "@shopify/polaris";
 
 import { authenticate } from "~/shopify.server";
 import { RecipePicker } from "~/domains/campaigns/components/recipes";
 import { STYLED_RECIPES } from "~/domains/campaigns/recipes/styled-recipe-catalog";
 import { NEWSLETTER_THEMES, type NewsletterThemeKey } from "~/config/color-presets";
 import { getBackgroundById, getBackgroundUrl } from "~/config/background-presets";
+import { GenericDiscountComponent } from "~/domains/campaigns/components/form/GenericDiscountComponent";
 import type {
   StyledRecipe,
   RecipeContext,
   QuickInput,
 } from "~/domains/campaigns/recipes/styled-recipe-types";
+import type { CampaignGoal, DiscountConfig } from "~/domains/campaigns/types/campaign";
 
 interface LoaderData {
   recipes: StyledRecipe[];
@@ -51,11 +58,24 @@ export async function loader({ request }: LoaderFunctionArgs) {
 export default function RecipeCampaignCreation() {
   const { recipes } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  // Query parameters for embedded mode (A/B experiments)
+  const returnTo = searchParams.get("returnTo");
+  const restrictToGoal = searchParams.get("restrictToGoal") as CampaignGoal | null;
+  const variantLabel = searchParams.get("variantLabel");
+
+  // Filter recipes by goal if restricted (for A/B experiments)
+  const filteredRecipes = useMemo(() => {
+    if (!restrictToGoal) return recipes;
+    return recipes.filter((r) => r.goal === restrictToGoal);
+  }, [recipes, restrictToGoal]);
 
   // Modal state
   const [selectedRecipe, setSelectedRecipe] = useState<StyledRecipe | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [contextData, setContextData] = useState<RecipeContext>({});
+  const [discountConfig, setDiscountConfig] = useState<DiscountConfig | null>(null);
 
   // Recipe selected - open configuration modal
   const handleRecipeSelect = useCallback((recipe: StyledRecipe) => {
@@ -68,6 +88,12 @@ export default function RecipeCampaignCreation() {
       }
     });
     setContextData(defaults);
+    // Initialize discount config from recipe defaults if requiredConfig includes discount
+    if (recipe.requiredConfig?.includes("discount") && recipe.defaults.discountConfig) {
+      setDiscountConfig(recipe.defaults.discountConfig as DiscountConfig);
+    } else {
+      setDiscountConfig(null);
+    }
     setModalOpen(true);
   }, []);
 
@@ -81,6 +107,7 @@ export default function RecipeCampaignCreation() {
     setModalOpen(false);
     setSelectedRecipe(null);
     setContextData({});
+    setDiscountConfig(null);
   }, []);
 
   // Input change handler
@@ -143,6 +170,7 @@ export default function RecipeCampaignCreation() {
       backgroundColor: themeColors.background,
       textColor: themeColors.text,
       primaryColor: themeColors.primary,
+      accentColor: themeColors.primary,
       buttonColor: themeColors.ctaBg || themeColors.primary,
       buttonTextColor: themeColors.ctaText || "#FFFFFF",
       backgroundImageMode,
@@ -153,17 +181,29 @@ export default function RecipeCampaignCreation() {
       ...selectedRecipe.defaults.designConfig,
     };
 
-    // Build discount config
+    // Build discount config - prioritize:
+    // 1. User-configured discountConfig from requiredConfig modal
+    // 2. User-provided discountValue from quick inputs
+    // 3. Recipe's default discountConfig
     const discountValue = contextData.discountValue as number | undefined;
-    const discountConfig = discountValue
-      ? {
-          enabled: true,
-          type: "AUTOMATIC",
-          valueType: "PERCENTAGE",
-          value: discountValue,
-          behavior: "SHOW_CODE_AND_AUTO_APPLY",
-        }
-      : selectedRecipe.defaults.discountConfig;
+    let finalDiscountConfig: DiscountConfig | Record<string, unknown>;
+
+    if (discountConfig) {
+      // User configured discount in modal (BOGO, Tiered, etc.)
+      finalDiscountConfig = discountConfig;
+    } else if (discountValue) {
+      // User provided simple discount percentage via quick input
+      finalDiscountConfig = {
+        enabled: true,
+        type: "shared" as const,
+        valueType: "PERCENTAGE" as const,
+        value: discountValue,
+        behavior: "SHOW_CODE_AND_AUTO_APPLY" as const,
+      };
+    } else {
+      // Use recipe's default discount config
+      finalDiscountConfig = selectedRecipe.defaults.discountConfig || {};
+    }
 
     return {
       name: selectedRecipe.name,
@@ -172,19 +212,29 @@ export default function RecipeCampaignCreation() {
       contentConfig,
       designConfig,
       targetRules: selectedRecipe.defaults.targetRules || {},
-      discountConfig: discountConfig || {},
+      discountConfig: finalDiscountConfig,
     };
-  }, [selectedRecipe, contextData]);
+  }, [selectedRecipe, contextData, discountConfig]);
 
-  // Create campaign - navigate to full form with initial data
+  // Create campaign - navigate to full form with initial data or return to caller
   const handleCreateCampaign = useCallback(() => {
     const initialData = buildInitialData();
 
-    // Navigate to the campaign form with state (more reliable than sessionStorage)
-    navigate("/app/campaigns/new?fromRecipe=true", {
-      state: { recipeInitialData: initialData },
-    });
-  }, [buildInitialData, navigate]);
+    if (returnTo) {
+      // Embedded mode: return to caller with selected recipe data
+      navigate(returnTo, {
+        state: {
+          selectedRecipe,
+          recipeInitialData: initialData,
+        },
+      });
+    } else {
+      // Standalone mode: navigate to the campaign form
+      navigate("/app/campaigns/new?fromRecipe=true", {
+        state: { recipeInitialData: initialData },
+      });
+    }
+  }, [buildInitialData, navigate, returnTo, selectedRecipe]);
 
   // Render input field based on type
   const renderInput = (input: QuickInput) => {
@@ -248,20 +298,43 @@ export default function RecipeCampaignCreation() {
     }
   };
 
+  // Determine page title and back action
+  const pageTitle = variantLabel
+    ? `Choose Recipe for ${variantLabel}`
+    : "Create Campaign";
+
+  const backAction = returnTo
+    ? { content: "Back", url: returnTo }
+    : { content: "Campaigns", url: "/app/campaigns" };
+
   return (
     <Page
-      title="Create Campaign"
+      title={pageTitle}
       fullWidth={true}
-      backAction={{ content: "Campaigns", url: "/app/campaigns" }}
+      backAction={backAction}
     >
-      <RecipePicker
-        recipes={recipes}
-        selectedRecipeId={selectedRecipe?.id}
-        onSelect={handleRecipeSelect}
-        onBuildFromScratch={handleBuildFromScratch}
-        showPreviews={true}
-        hoverPreviewEnabled={false}
-      />
+      <BlockStack gap="400">
+        {/* A/B Experiment mode banner */}
+        {restrictToGoal && (
+          <Banner tone="info">
+            <Text as="p">
+              {variantLabel
+                ? `Selecting a recipe for ${variantLabel}. `
+                : ""}
+              Only showing recipes that match the Control variant's goal ({restrictToGoal.replace("_", " ").toLowerCase()}) for A/B test consistency.
+            </Text>
+          </Banner>
+        )}
+
+        <RecipePicker
+          recipes={filteredRecipes}
+          selectedRecipeId={selectedRecipe?.id}
+          onSelect={handleRecipeSelect}
+          onBuildFromScratch={returnTo ? undefined : handleBuildFromScratch}
+          showPreviews={true}
+          hoverPreviewEnabled={false}
+        />
+      </BlockStack>
 
       {/* Recipe Configuration Modal */}
       {selectedRecipe && (
@@ -270,7 +343,7 @@ export default function RecipeCampaignCreation() {
           onClose={handleModalClose}
           title={`Setup: ${selectedRecipe.name}`}
           primaryAction={{
-            content: "Create Campaign",
+            content: returnTo ? "Select Recipe" : "Create Campaign",
             onAction: handleCreateCampaign,
           }}
           secondaryActions={[
@@ -279,6 +352,7 @@ export default function RecipeCampaignCreation() {
               onAction: handleModalClose,
             },
           ]}
+          size={selectedRecipe.requiredConfig?.includes("discount") ? "large" : "small"}
         >
           <Modal.Section>
             <BlockStack gap="400">
@@ -288,18 +362,50 @@ export default function RecipeCampaignCreation() {
               </Text>
 
               {/* Quick inputs */}
-              {selectedRecipe.inputs.length > 0 ? (
+              {selectedRecipe.inputs.length > 0 && (
                 <Card>
                   <BlockStack gap="400">
                     <Text as="h3" variant="headingSm">
-                      Configure your campaign
+                      Quick Settings
                     </Text>
                     {selectedRecipe.inputs.map((input) => renderInput(input))}
                   </BlockStack>
                 </Card>
-              ) : (
+              )}
+
+              {/* Required discount configuration */}
+              {selectedRecipe.requiredConfig?.includes("discount") && discountConfig && (
+                <>
+                  <Divider />
+                  <Card>
+                    <BlockStack gap="400">
+                      <Text as="h3" variant="headingSm">
+                        Discount Configuration
+                      </Text>
+                      <Text as="p" variant="bodySm" tone="subdued">
+                        Configure your {selectedRecipe.name} discount settings
+                      </Text>
+                      <GenericDiscountComponent
+                        goal={selectedRecipe.goal}
+                        discountConfig={discountConfig}
+                        onConfigChange={(newConfig) => setDiscountConfig(newConfig)}
+                        allowedStrategies={
+                          discountConfig.bogo ? ["bogo"] :
+                          discountConfig.tiers ? ["tiered"] :
+                          discountConfig.freeGift ? ["free_gift"] :
+                          ["basic", "bogo", "tiered", "free_gift"]
+                        }
+                        hasEmailCapture={false}
+                      />
+                    </BlockStack>
+                  </Card>
+                </>
+              )}
+
+              {/* No inputs and no required config */}
+              {selectedRecipe.inputs.length === 0 && !selectedRecipe.requiredConfig?.length && (
                 <Text as="p" variant="bodySm" tone="subdued">
-                  This recipe is ready to go! Click "Create Campaign" to continue.
+                  This recipe is ready to go! Click "{returnTo ? "Select Recipe" : "Create Campaign"}" to continue.
                 </Text>
               )}
             </BlockStack>

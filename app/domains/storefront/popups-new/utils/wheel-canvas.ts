@@ -17,6 +17,11 @@ export interface WheelRenderOptions {
   wonPrize: Prize | null;
   /** @deprecated No longer used - wheel now uses clean design by default */
   enableEnhancedStyle?: boolean;
+
+  // Enhanced styling options (for premium themes like Lucky Fortune)
+  wheelGlowEnabled?: boolean;
+  wheelGlowColor?: string; // Defaults to accentColor
+  wheelCenterStyle?: "simple" | "gradient" | "metallic";
 }
 
 /**
@@ -76,6 +81,10 @@ export class WheelRenderer {
       hasSpun,
       wonPrize,
       enableEnhancedStyle: _enableEnhancedStyle = true,
+      // Enhanced styling options
+      wheelGlowEnabled = false,
+      wheelGlowColor,
+      wheelCenterStyle = "simple",
     } = options;
     const ctx = this.ctx;
 
@@ -87,13 +96,20 @@ export class WheelRenderer {
 
     const centerX = wheelSize / 2;
     const centerY = wheelSize / 2;
-    // Clean design: no outer ring, just padding for the border
-    const padding = Math.max(wheelBorderWidth + 2, 8);
+    // When glow is enabled, add more padding for the glow ring
+    const glowPadding = wheelGlowEnabled ? 12 : 0;
+    const padding = Math.max(wheelBorderWidth + 2, 8) + glowPadding;
     const radiusPx = wheelSize / 2 - padding;
     const segmentAngleRad = (2 * Math.PI) / Math.max(1, segments.length);
     const rotationRad = (rotation * Math.PI) / 180;
 
     ctx.clearRect(0, 0, wheelSize, wheelSize);
+
+    // Draw outer glow ring if enabled (before segments so it's behind)
+    if (wheelGlowEnabled) {
+      const glowColor = wheelGlowColor || accentColor;
+      this.drawGlowRing(ctx, centerX, centerY, radiusPx + 6, glowColor);
+    }
 
     // Draw segments with subtle gradients
     segments.forEach((segment, index) => {
@@ -135,8 +151,13 @@ export class WheelRenderer {
     // Draw clean outer border
     this.drawCleanBorder(ctx, centerX, centerY, radiusPx, wheelBorderColor, wheelBorderWidth);
 
-    // Draw simple center circle
-    this.drawCleanCenter(ctx, centerX, centerY, wheelSize * 0.12, accentColor);
+    // Draw center circle based on style
+    const centerRadius = wheelSize * 0.12;
+    if (wheelCenterStyle === "gradient" || wheelCenterStyle === "metallic") {
+      this.drawGradientCenter(ctx, centerX, centerY, centerRadius, accentColor, wheelCenterStyle);
+    } else {
+      this.drawCleanCenter(ctx, centerX, centerY, centerRadius, accentColor);
+    }
 
     // Draw subtle winning highlight if applicable
     if (hasSpun && wonPrize) {
@@ -334,6 +355,115 @@ export class WheelRenderer {
     } else {
       ctx.fillText(label, textDistance, 0);
     }
+
+    ctx.restore();
+  }
+
+  /**
+   * Draw outer glow ring effect (for premium themes)
+   * Creates a glowing ring around the wheel
+   */
+  private drawGlowRing(
+    ctx: CanvasRenderingContext2D,
+    centerX: number,
+    centerY: number,
+    radius: number,
+    glowColor: string
+  ) {
+    ctx.save();
+
+    // Parse glow color
+    const rgb = hexToRgb(glowColor);
+    if (!rgb) {
+      ctx.restore();
+      return;
+    }
+
+    // Draw multiple layers for glow effect
+    const layers = [
+      { offset: 0, alpha: 0.8, blur: 0 },    // Solid inner ring
+      { offset: 2, alpha: 0.4, blur: 6 },    // Inner glow
+      { offset: 4, alpha: 0.2, blur: 12 },   // Outer glow
+    ];
+
+    for (const layer of layers) {
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, radius + layer.offset, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${layer.alpha})`;
+      ctx.lineWidth = 3;
+      ctx.shadowColor = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${layer.alpha})`;
+      ctx.shadowBlur = layer.blur;
+      ctx.stroke();
+    }
+
+    ctx.restore();
+  }
+
+  /**
+   * Draw gradient center button (for premium themes)
+   * Creates a premium-looking center hub with radial gradient
+   */
+  private drawGradientCenter(
+    ctx: CanvasRenderingContext2D,
+    centerX: number,
+    centerY: number,
+    radius: number,
+    accentColor: string,
+    style: "gradient" | "metallic"
+  ) {
+    ctx.save();
+
+    // Create radial gradient
+    const gradient = ctx.createRadialGradient(
+      centerX - radius * 0.3,  // Offset for 3D effect
+      centerY - radius * 0.3,
+      0,
+      centerX,
+      centerY,
+      radius
+    );
+
+    if (style === "metallic") {
+      // Metallic gold look
+      gradient.addColorStop(0, adjustBrightness(accentColor, 40));
+      gradient.addColorStop(0.3, adjustBrightness(accentColor, 20));
+      gradient.addColorStop(0.5, accentColor);
+      gradient.addColorStop(0.7, adjustBrightness(accentColor, -20));
+      gradient.addColorStop(1, adjustBrightness(accentColor, -40));
+    } else {
+      // Simple gradient
+      gradient.addColorStop(0, adjustBrightness(accentColor, 30));
+      gradient.addColorStop(0.5, accentColor);
+      gradient.addColorStop(1, adjustBrightness(accentColor, -30));
+    }
+
+    // Outer ring shadow
+    ctx.shadowColor = "rgba(0, 0, 0, 0.4)";
+    ctx.shadowBlur = 8;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 3;
+
+    // Draw main circle with gradient
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+    ctx.fillStyle = gradient;
+    ctx.fill();
+
+    // Add highlight ring
+    ctx.shadowColor = "transparent";
+    ctx.shadowBlur = 0;
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius * 0.85, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(255, 255, 255, 0.3)`;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // Outer border
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+    ctx.strokeStyle = adjustBrightness(accentColor, -30);
+    ctx.lineWidth = 2;
+    ctx.stroke();
 
     ctx.restore();
   }

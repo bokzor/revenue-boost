@@ -11,7 +11,7 @@ import { FormSections, type TargetingConfig, type ScheduleConfig } from "../Form
 import { LivePreviewPanel, type PreviewDevice } from "~/domains/popups/components/preview/LivePreviewPanel";
 import { Affix } from "~/shared/components/ui/Affix";
 import type { StyledRecipe } from "../../../recipes/styled-recipe-types";
-import type { ContentConfig, DesignConfig, DiscountConfig } from "../../../types/campaign";
+import type { ContentConfig, DesignConfig, DiscountConfig, CampaignGoal } from "../../../types/campaign";
 import type { TemplateType } from "~/shared/hooks/useWizardState";
 import type { FrequencyCappingConfig } from "~/domains/targeting/components/FrequencyCappingPanel";
 import type { Variant } from "../types";
@@ -70,6 +70,8 @@ export interface VariantCampaignEditorProps {
   advancedTargetingEnabled?: boolean;
   onSave: (data: CampaignData) => Promise<void>;
   isControlVariant: boolean;
+  /** For non-control variants: restrict recipes to this goal (from control variant) */
+  controlGoal?: string;
 }
 
 export function VariantCampaignEditor({
@@ -80,6 +82,7 @@ export function VariantCampaignEditor({
   advancedTargetingEnabled,
   onSave,
   isControlVariant,
+  controlGoal,
 }: VariantCampaignEditorProps) {
   const initialData = variant.campaignData;
 
@@ -257,6 +260,8 @@ export function VariantCampaignEditor({
             advancedTargetingEnabled={advancedTargetingEnabled}
             templateType={templateType}
             campaignGoal={selectedRecipe?.goal}
+            restrictRecipesToGoal={!isControlVariant && controlGoal ? controlGoal as CampaignGoal : undefined}
+            variantLabel={!isControlVariant ? `Variant ${variant.name}` : undefined}
           />
         </Layout.Section>
       </Layout>

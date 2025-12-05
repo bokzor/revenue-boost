@@ -23,6 +23,7 @@ const ALLOWED_ASSET_PATHS = [
   /^newsletter-backgrounds\/[a-zA-Z0-9_-]+\.(png|jpg|jpeg)$/i,
   /^recipes\/newsletter\/[a-zA-Z0-9_-]+\.(png|jpg|jpeg)$/i,
   /^recipes\/scratch-card\/[a-zA-Z0-9_-]+\.(png|jpg|jpeg)$/i,
+  /^recipes\/flash-sale\/[a-zA-Z0-9_-]+\.(png|jpg|jpeg)$/i,
 ];
 
 /**
