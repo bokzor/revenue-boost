@@ -1110,12 +1110,11 @@ const exitIntentCartSaver: StyledRecipe = {
   category: "cart_recovery",
   goal: "INCREASE_REVENUE",
   templateType: "CART_ABANDONMENT",
-  component: "CartAbandonmentSplit",
+  component: "CartRecovery",
   theme: "bold",
-  layout: "split-right",
+  layout: "centered",
   featured: true,
-  recipeType: "use-case" as RecipeType,
-  tags: ["exit-intent", "cart", "recovery", "abandonment"] as unknown as StyledRecipe["tags"],
+  recipeType: "use_case",
   inputs: [
     {
       type: "discount_percentage" as const,
@@ -1170,18 +1169,16 @@ const exitIntentCartSaver: StyledRecipe = {
         },
       },
       audienceTargeting: {
-        sessionCount: { min: 1 },
+        enabled: true,
+        shopifySegmentIds: [],
       },
     },
     discountConfig: {
       enabled: true,
-      type: "generated" as const,
+      type: "shared",
       valueType: "PERCENTAGE" as const,
       value: 10,
       prefix: "SAVE",
-      expiryDays: 1, // Short expiry for urgency
-      usageLimit: 1,
-      deliveryMode: "show_code_always" as const,
     },
   },
 };

@@ -126,56 +126,67 @@ describe("CTA Action Options", () => {
 });
 
 describe("buildCTADestinationUrl", () => {
+  // Helper to create a valid CTAConfig from partial input
+  const makeConfig = (partial: Partial<CTAConfig>): CTAConfig => ({
+    label: "Default",
+    action: "navigate_collection",
+    variant: "primary",
+    openInNewTab: false,
+    quantity: 1,
+    applyDiscountFirst: true,
+    ...partial,
+  });
+
   it("builds collection URL", () => {
-    const config: CTAConfig = {
+    const config = makeConfig({
       label: "Shop",
       action: "navigate_collection",
       collectionHandle: "summer-sale",
-    };
+    });
 
     const url = buildCTADestinationUrl(config);
     expect(url).toBe("/collections/summer-sale");
   });
 
   it("builds product URL", () => {
-    const config: CTAConfig = {
+    const config = makeConfig({
       label: "View",
       action: "navigate_product",
       productHandle: "awesome-shirt",
-    };
+    });
 
     const url = buildCTADestinationUrl(config);
     expect(url).toBe("/products/awesome-shirt");
   });
 
   it("builds custom URL", () => {
-    const config: CTAConfig = {
+    const config = makeConfig({
       label: "Go",
       action: "navigate_url",
       url: "https://example.com/promo",
-    };
+    });
 
     const url = buildCTADestinationUrl(config);
     expect(url).toBe("https://example.com/promo");
   });
 
   it("returns null for add_to_cart (no navigation)", () => {
-    const config: CTAConfig = {
+    const config = makeConfig({
       label: "Add",
       action: "add_to_cart",
       variantId: "gid://shopify/ProductVariant/123",
-    };
+    });
 
     const url = buildCTADestinationUrl(config);
     expect(url).toBeNull();
   });
 
   it("returns checkout URL for add_to_cart_checkout", () => {
-    const config: CTAConfig = {
+    const config = makeConfig({
       label: "Buy Now",
       action: "add_to_cart_checkout",
       variantId: "gid://shopify/ProductVariant/123",
-    };
+    });
 
     const url = buildCTADestinationUrl(config);
     expect(url).toBe("/checkout");
@@ -184,11 +195,11 @@ describe("buildCTADestinationUrl", () => {
   it("returns null when handle is missing (admin schema)", () => {
     // Note: The admin schema returns null when handle is missing
     // The storefront useCTAHandler falls back to "all" for safety
-    const config: CTAConfig = {
+    const config = makeConfig({
       label: "Shop",
       action: "navigate_collection",
       // Missing collectionHandle
-    };
+    });
 
     const url = buildCTADestinationUrl(config);
     expect(url).toBeNull();
