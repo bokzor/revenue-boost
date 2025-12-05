@@ -906,6 +906,287 @@ const backToSchoolSale: StyledRecipe = {
 };
 
 // =============================================================================
+// 🎁 FREE GIFT WITH PURCHASE
+// =============================================================================
+// Use case: Increase AOV by offering a free gift when cart reaches threshold
+// Best for: Upselling, encouraging larger orders, clearing sample inventory
+// =============================================================================
+
+/**
+ * FREE GIFT WITH PURCHASE
+ *
+ * Two-step flow:
+ * 1. Show offer when cart is close to or above threshold
+ * 2. Click CTA → Add free gift to cart automatically
+ *
+ * Targeting: Cart value trigger (e.g., cart >= $50)
+ */
+const freeGiftWithPurchase: StyledRecipe = {
+  id: "free-gift-with-purchase",
+  name: "Free Gift with Purchase",
+  tagline: "Spend more, get a FREE gift!",
+  description: "Increase average order value by offering a free gift when customers reach a spending threshold. Perfect for moving sample inventory.",
+  icon: "🎁",
+  category: "sales_promos",
+  goal: "INCREASE_REVENUE",
+  templateType: "FLASH_SALE",
+  component: "FlashSaleCentered",
+  theme: "bold",
+  layout: "centered",
+  featured: true,
+  recipeType: "use_case",
+  inputs: [
+    {
+      type: "currency_amount" as const,
+      key: "threshold",
+      label: "Minimum Spend ($)",
+      defaultValue: 50,
+    },
+    {
+      type: "product_picker" as const,
+      key: "giftProduct",
+      label: "Free Gift Product",
+    },
+  ],
+  editableFields: [
+    HEADLINE_FIELD,
+    SUBHEADLINE_FIELD,
+    BUTTON_TEXT_FIELD,
+  ],
+  defaults: {
+    contentConfig: {
+      headline: "🎁 FREE Gift With Your Order!",
+      subheadline: "Spend $50+ and get a FREE sample pack",
+      showCountdown: false,
+      urgencyMessage: "While supplies last",
+      // CTA adds the free gift to cart
+      cta: {
+        label: "Add My Free Gift",
+        action: "add_to_cart" as const,
+        applyDiscountFirst: false, // No discount needed
+        quantity: 1,
+        // productId and variantId set via product picker
+      },
+      secondaryCta: {
+        label: "No thanks",
+        action: "dismiss" as const,
+      },
+    },
+    designConfig: {
+      position: "center",
+      size: "medium",
+    },
+    targetRules: {
+      enhancedTriggers: {
+        page_load: { enabled: false },
+        cart_value: {
+          enabled: true,
+          min_value: 50, // Threshold
+          check_interval: 2000,
+        },
+      },
+    },
+    // No discount - the gift IS the incentive
+    discountConfig: {
+      enabled: false,
+    },
+  },
+};
+
+// =============================================================================
+// 📦 BUNDLE DEAL
+// =============================================================================
+// Use case: Increase AOV by promoting product bundles with savings
+// Best for: Cross-selling, introducing new products, combo deals
+// =============================================================================
+
+/**
+ * BUNDLE DEAL
+ *
+ * Shows complementary products that can be added together for a discount.
+ * Uses Product Upsell template with bundle pricing display.
+ */
+const bundleDeal: StyledRecipe = {
+  id: "bundle-deal",
+  name: "Bundle Deal",
+  tagline: "Buy together and save!",
+  description: "Promote product bundles with combined savings. Perfect for cross-selling complementary items.",
+  icon: "📦",
+  category: "sales_promos",
+  goal: "INCREASE_REVENUE",
+  templateType: "PRODUCT_UPSELL",
+  component: "ProductUpsell",
+  theme: "bold",
+  layout: "centered",
+  featured: true,
+  recipeType: "use_case",
+  inputs: [
+    {
+      type: "discount_percentage" as const,
+      key: "bundleDiscount",
+      label: "Bundle Discount",
+      defaultValue: 15,
+    },
+    {
+      type: "product_picker" as const,
+      key: "bundleProducts",
+      label: "Bundle Products",
+      multiSelect: true,
+    },
+  ],
+  editableFields: [
+    HEADLINE_FIELD,
+    SUBHEADLINE_FIELD,
+    BUTTON_TEXT_FIELD,
+  ],
+  defaults: {
+    contentConfig: {
+      headline: "Complete Your Look & Save 15%",
+      subheadline: "Add these items together for extra savings",
+      buttonText: "Add Bundle to Cart",
+      productSelectionMethod: "manual" as const,
+      selectedProducts: [],
+      products: [],
+      layout: "grid" as const,
+      maxProducts: 3,
+      showPrices: true,
+      showOriginalPrices: true,
+      showRatings: false,
+      bundleDiscount: 15,
+      bundleDiscountText: "Bundle & Save 15%",
+      multiSelect: true,
+    },
+    designConfig: {
+      position: "center",
+      size: "large",
+    },
+    targetRules: {
+      enhancedTriggers: {
+        page_load: { enabled: false },
+        product_view: {
+          enabled: true,
+          time_on_page: 10,
+          require_scroll: true,
+        },
+      },
+      pageTargeting: {
+        enabled: true,
+        pages: [],
+        customPatterns: ["/products/*"],
+        excludePages: [],
+        productTags: [],
+        collections: [],
+      },
+    },
+    discountConfig: {
+      enabled: true,
+      type: "shared",
+      valueType: "PERCENTAGE" as const,
+      value: 15,
+      prefix: "BUNDLE",
+    },
+  },
+};
+
+// =============================================================================
+// 🛒 EXIT INTENT CART SAVER
+// =============================================================================
+// Use case: Recover abandoning visitors who have items in their cart
+// Best for: Reducing cart abandonment, last-chance conversions
+// =============================================================================
+
+/**
+ * EXIT INTENT CART SAVER
+ *
+ * Specifically targets users with items in cart who are about to leave.
+ * Shows their cart items + discount to complete purchase.
+ */
+const exitIntentCartSaver: StyledRecipe = {
+  id: "exit-intent-cart-saver",
+  name: "Exit Intent Cart Saver",
+  tagline: "Don't leave empty-handed!",
+  description: "Catch visitors about to leave with items in their cart. Show their cart items plus an incentive to complete their purchase.",
+  icon: "🛒",
+  category: "cart_recovery",
+  goal: "INCREASE_REVENUE",
+  templateType: "CART_ABANDONMENT",
+  component: "CartAbandonmentSplit",
+  theme: "bold",
+  layout: "split-right",
+  featured: true,
+  recipeType: "use-case" as RecipeType,
+  tags: ["exit-intent", "cart", "recovery", "abandonment"] as unknown as StyledRecipe["tags"],
+  inputs: [
+    {
+      type: "discount_percentage" as const,
+      key: "discountValue",
+      label: "Exit Discount",
+      defaultValue: 10,
+    },
+  ],
+  editableFields: [
+    HEADLINE_FIELD,
+    SUBHEADLINE_FIELD,
+    BUTTON_TEXT_FIELD,
+    {
+      key: "urgencyMessage",
+      type: "text" as const,
+      label: "Urgency Message",
+      group: "content",
+      validation: { maxLength: 100 },
+    },
+  ],
+  defaults: {
+    contentConfig: {
+      headline: "Wait! Your Cart Misses You 🛒",
+      subheadline: "Complete your order now and get 10% off",
+      buttonText: "Complete My Order",
+      showCartItems: true,
+      maxItemsToShow: 3,
+      showCartTotal: true,
+      showUrgency: true,
+      urgencyTimer: 300, // 5 minutes
+      urgencyMessage: "Offer expires in 5 minutes",
+      showStockWarnings: true,
+      stockWarningMessage: "Low stock on some items!",
+      ctaUrl: "/cart",
+      dismissLabel: "Keep browsing",
+    },
+    designConfig: {
+      position: "center",
+      size: "large",
+    },
+    targetRules: {
+      enhancedTriggers: {
+        page_load: { enabled: false },
+        exit_intent: {
+          enabled: true,
+          sensitivity: "medium" as const,
+        },
+        cart_value: {
+          enabled: true,
+          min_value: 1, // Any cart value
+          check_interval: 1000,
+        },
+      },
+      audienceTargeting: {
+        sessionCount: { min: 1 },
+      },
+    },
+    discountConfig: {
+      enabled: true,
+      type: "generated" as const,
+      valueType: "PERCENTAGE" as const,
+      value: 10,
+      prefix: "SAVE",
+      expiryDays: 1, // Short expiry for urgency
+      usageLimit: 1,
+      deliveryMode: "show_code_always" as const,
+    },
+  },
+};
+
+// =============================================================================
 // EXPORT
 // =============================================================================
 
@@ -913,6 +1194,9 @@ const backToSchoolSale: StyledRecipe = {
 export const USE_CASE_RECIPES: StyledRecipe[] = [
   flashSale,
   bogo,
+  freeGiftWithPurchase,
+  bundleDeal,
+  exitIntentCartSaver,
   tieredDiscount,
   firstPurchase,
   lastChance,

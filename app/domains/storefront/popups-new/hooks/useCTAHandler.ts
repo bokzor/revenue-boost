@@ -79,15 +79,25 @@ export interface UseCTAHandlerReturn {
 // =============================================================================
 
 async function addToCart(variantId: string, quantity: number = 1): Promise<void> {
+  // Extract numeric ID from GID (e.g., "gid://shopify/ProductVariant/123" -> "123")
   const numericId = variantId.includes("/") ? variantId.split("/").pop() : variantId;
+
+  console.log("[useCTAHandler] Adding to cart:", { variantId, numericId, quantity });
+
   const response = await fetch("/cart/add.js", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ items: [{ id: numericId, quantity }] }),
   });
+
   if (!response.ok) {
-    throw new Error("Failed to add item to cart");
+    const errorText = await response.text();
+    console.error("[useCTAHandler] Add to cart failed:", response.status, errorText);
+    throw new Error(`Failed to add item to cart: ${response.status}`);
   }
+
+  const result = await response.json();
+  console.log("[useCTAHandler] Add to cart success:", result);
 }
 
 function navigateTo(url: string, openInNewTab: boolean = false): void {
@@ -174,12 +184,27 @@ export function useCTAHandler(options: UseCTAHandlerOptions): UseCTAHandlerRetur
     try {
       if (cta) {
         const { action, variantId, quantity, openInNewTab } = cta;
-        if ((action === "add_to_cart" || action === "add_to_cart_checkout") && variantId) {
-          await addToCart(variantId, quantity || 1);
+
+        console.log("[useCTAHandler] Executing action:", { action, variantId, quantity });
+
+        // Handle cart actions
+        if (action === "add_to_cart" || action === "add_to_cart_checkout") {
+          if (variantId) {
+            await addToCart(variantId, quantity || 1);
+            console.log("[useCTAHandler] Item added to cart successfully");
+          } else {
+            console.warn("[useCTAHandler] No variantId provided for cart action");
+          }
         }
+
+        // Handle navigation
         const url = buildDestinationUrl(cta);
-        if (url) navigateTo(url, openInNewTab || false);
+        console.log("[useCTAHandler] Destination URL:", url);
+        if (url) {
+          navigateTo(url, openInNewTab || false);
+        }
       } else if (ctaUrl) {
+        console.log("[useCTAHandler] Using legacy ctaUrl:", ctaUrl);
         navigateTo(ctaUrl, ctaOpenInNewTab || false);
       }
     } catch (error) {
