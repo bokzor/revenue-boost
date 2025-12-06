@@ -5,6 +5,14 @@ import { AppProvider } from "@shopify/polaris";
 import en from "@shopify/polaris/locales/en.json";
 import userEvent from "@testing-library/user-event";
 
+// Mock App Bridge before importing components that use it
+const mockResourcePicker = vi.fn();
+vi.mock('@shopify/app-bridge-react', () => ({
+  useAppBridge: () => ({
+    resourcePicker: mockResourcePicker,
+  }),
+}));
+
 import { FlashSaleContentSection } from "~/domains/campaigns/components/sections/FlashSaleContentSection";
 import { ContentConfigSection } from "~/domains/campaigns/components/sections/ContentConfigSection";
 import type { FlashSaleContent } from "~/domains/campaigns/components/sections/FlashSaleContentSection";

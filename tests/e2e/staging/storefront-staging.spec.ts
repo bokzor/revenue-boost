@@ -143,7 +143,8 @@ test.describe('Staging Storefront E2E', () => {
             console.log('🔒 Password page detected, logging in...');
             await passwordInput.fill(STORE_PASSWORD);
             await page.click('button[type="submit"]');
-            await page.waitForLoadState('networkidle');
+            await page.waitForLoadState('domcontentloaded');
+            await page.waitForTimeout(2000);
         }
 
         // 4. Verify Popup

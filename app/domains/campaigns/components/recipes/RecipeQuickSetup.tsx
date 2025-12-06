@@ -225,7 +225,8 @@ export function RecipeQuickSetup({
 
   // Build content config with context values applied
   const contentConfig = useMemo(() => {
-    const content = { ...recipe.defaults.contentConfig };
+    // Cast to Record to allow dynamic property access since contentConfig is a union type
+    const content = { ...recipe.defaults.contentConfig } as Record<string, unknown>;
 
     // Apply context values to content
     if (context.discountValue !== undefined) {

@@ -193,7 +193,8 @@ export function RecipeEditor({
 }: RecipeEditorProps) {
   // Initialize content from recipe defaults and context
   const [content, setContent] = useState<Record<string, unknown>>(() => {
-    const initial = { ...recipe.defaults.contentConfig };
+    // Cast to Record to allow dynamic property access since contentConfig is a union type
+    const initial = { ...recipe.defaults.contentConfig } as Record<string, unknown>;
 
     // Apply context overrides
     if (context.headline) initial.headline = context.headline;

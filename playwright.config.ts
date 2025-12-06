@@ -14,10 +14,18 @@ dotenv.config({
  * 1. Admin tests - Test the admin UI (use mock-bridge to avoid CAPTCHA)
  * 2. Storefront tests - Test the storefront extension (real E2E)
  *
+ * Pre-flight checks run before all tests to verify:
+ * - Staging store exists in staging database
+ * - Correct app is installed (staging, not production)
+ * - App Proxy and backend are responding
+ *
  * See https://playwright.dev/docs/test-configuration
  */
 export default defineConfig({
   testDir: './tests/e2e',
+
+  // Run pre-flight checks before all tests
+  globalSetup: './tests/e2e/global-setup.ts',
 
   // Maximum time one test can run for
   timeout: 60 * 1000,

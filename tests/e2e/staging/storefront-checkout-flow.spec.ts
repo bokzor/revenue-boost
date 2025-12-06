@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { PrismaClient } from '@prisma/client';
+import path from 'path';
 import * as dotenv from 'dotenv';
 import {
     STORE_URL,
@@ -14,7 +15,7 @@ import {
 } from './helpers/test-helpers';
 import { CampaignFactory } from './factories/campaign-factory';
 
-dotenv.config({ path: '.env.staging.env' });
+dotenv.config({ path: path.resolve(process.cwd(), '.env.staging.env'), override: true });
 
 const TEST_PREFIX = getTestPrefix('storefront-checkout-flow.spec.ts');
 
@@ -81,7 +82,8 @@ test.describe.serial('Checkout Flow', () => {
         // Try collections page first
         await page.goto(`${STORE_URL}/collections/all`);
         await handlePasswordPage(page);
-        await page.waitForLoadState('networkidle');
+        await page.waitForLoadState('domcontentloaded');
+        await page.waitForTimeout(2000);
 
         // Look for product links
         const productLink = page.locator('a[href*="/products/"]').first();
@@ -89,7 +91,8 @@ test.describe.serial('Checkout Flow', () => {
 
         if (hasProduct) {
             await productLink.click();
-            await page.waitForLoadState('networkidle');
+            await page.waitForLoadState('domcontentloaded');
+            await page.waitForTimeout(2000);
             return page.url().includes('/products/');
         }
 
@@ -104,7 +107,8 @@ test.describe.serial('Checkout Flow', () => {
         for (const productPath of knownProducts) {
             await page.goto(`${STORE_URL}${productPath}`);
             await handlePasswordPage(page);
-            await page.waitForLoadState('networkidle');
+            await page.waitForLoadState('domcontentloaded');
+            await page.waitForTimeout(2000);
 
             // Check if we're on a valid product page (not 404)
             const is404 = await page.locator('text=404, text=not found, text=page not found').first().isVisible({ timeout: 1000 }).catch(() => false);
@@ -183,7 +187,8 @@ test.describe.serial('Checkout Flow', () => {
         // First go to cart
         await page.goto(`${STORE_URL}/cart`);
         await handlePasswordPage(page);
-        await page.waitForLoadState('networkidle');
+        await page.waitForLoadState('domcontentloaded');
+        await page.waitForTimeout(2000);
 
         // Look for checkout button
         const checkoutBtn = page.locator('button[name="checkout"], a[href*="/checkout"], input[name="checkout"], [data-checkout]').first();
@@ -191,14 +196,16 @@ test.describe.serial('Checkout Flow', () => {
 
         if (hasCheckoutBtn) {
             await checkoutBtn.click();
-            await page.waitForLoadState('networkidle');
+            await page.waitForLoadState('domcontentloaded');
+            await page.waitForTimeout(2000);
             // Checkout URLs typically contain /checkouts/ or /checkout
             return page.url().includes('/checkout');
         }
 
         // Fallback: direct navigation
         await page.goto(`${STORE_URL}/checkout`);
-        await page.waitForLoadState('networkidle');
+        await page.waitForLoadState('domcontentloaded');
+        await page.waitForTimeout(2000);
         return page.url().includes('/checkout');
     }
 
@@ -358,7 +365,8 @@ test.describe.serial('Checkout Flow', () => {
             // Shopify supports ?discount=CODE parameter
             const checkoutUrl = `${STORE_URL}/checkout?discount=URL10-TEST`;
             await page.goto(checkoutUrl);
-            await page.waitForLoadState('networkidle');
+            await page.waitForLoadState('domcontentloaded');
+            await page.waitForTimeout(2000);
 
             expect(page.url()).toContain('/checkout');
             console.log('✅ Navigated to checkout with discount parameter');

@@ -53,7 +53,12 @@ export function FlashSaleContentSection({
   const updateField = useFieldUpdater(content, onChange);
 
   const [showAdvancedTimer, setShowAdvancedTimer] = useState(false);
-  const [showInventory, setShowInventory] = useState(false);
+  // Auto-expand inventory section if inventory mode is already configured
+  const [showInventory, setShowInventory] = useState(() => {
+    const inventory = content.inventory as Record<string, unknown> | undefined;
+    // Show if inventory has been configured (mode set, pseudoMax defined, or products selected)
+    return Boolean(inventory?.mode || inventory?.pseudoMax || (inventory?.productIds as string[] | undefined)?.length);
+  });
   const [showReservation, setShowReservation] = useState(false);
 
   // Nested field updaters for enhanced features
@@ -372,7 +377,7 @@ export function FlashSaleContentSection({
                       helpText="Use real inventory or simulated stock"
                     />
 
-                {(content.inventory as Record<string, unknown>)?.mode === "pseudo" && (
+                {((content.inventory as Record<string, unknown>)?.mode ?? "pseudo") === "pseudo" && (
                   <TextField
                     label="Pseudo Max Inventory"
                     name="inventory.pseudoMax"

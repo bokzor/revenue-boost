@@ -40,9 +40,11 @@ describe("SpinToWinContentSection - ALL Configuration Options", () => {
         "~/domains/campaigns/types/campaign"
       );
       // Provide required base fields so schema validation passes and defaults are applied
+      // spinButtonText is required (no default)
       const parsed = SpinToWinContentSchema.parse({
         headline: "Test",
         buttonText: "Spin",
+        spinButtonText: "Spin Now",
       });
 
       expect(Array.isArray(parsed.wheelSegments)).toBe(true);
@@ -528,15 +530,17 @@ describe("SpinToWinContentSection - ALL Configuration Options", () => {
       );
 
       // Parse with minimal required fields - schema should apply defaults
+      // spinButtonText is required (no default)
       const parsed = SpinToWinContentSchema.parse({
         headline: "Test Spin",
         buttonText: "Spin",
+        spinButtonText: "Spin to Win!",
       });
 
       // Verify defaults are applied
       expect(parsed.spinButtonText).toBe("Spin to Win!");
       expect(parsed.emailRequired).toBe(true);
-      expect(parsed.emailPlaceholder).toBe("Enter your email to spin");
+      expect(parsed.emailPlaceholder).toBe("Enter your email"); // Default from LeadCaptureConfigSchema
       expect(parsed.nameFieldEnabled).toBe(false);
       expect(parsed.consentFieldEnabled).toBe(false);
       expect(parsed.wheelSize).toBe(400);
@@ -558,9 +562,11 @@ describe("SpinToWinContentSection - ALL Configuration Options", () => {
         { id: "seg2", label: "10% OFF", probability: 0.5, color: "#00FF00" },
       ];
 
+      // spinButtonText is required (no default)
       const parsed = SpinToWinContentSchema.parse({
         headline: "Test Spin",
         buttonText: "Spin",
+        spinButtonText: "Spin Now",
         wheelSegments: customSegments,
       });
 

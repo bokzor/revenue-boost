@@ -588,8 +588,10 @@ TEMPLATE_PREVIEW_REGISTRY[TemplateTypeEnum.PRODUCT_UPSELL] = {
   buildConfig: (
     mergedConfig: Partial<ProductUpsellConfig>,
     designConfig: Partial<PopupDesignConfig>
-  ): ProductUpsellConfig =>
-    ({
+  ): ProductUpsellConfig => {
+    // DEBUG: Log incoming mergedConfig.layout
+    console.log("[buildConfig][PRODUCT_UPSELL] mergedConfig.layout:", mergedConfig.layout);
+    return {
       id: "preview-product-upsell",
 
       // Base content fields
@@ -622,7 +624,8 @@ TEMPLATE_PREVIEW_REGISTRY[TemplateTypeEnum.PRODUCT_UPSELL] = {
 
       // All common config (colors, typography, layout)
       ...buildCommonConfig(mergedConfig, designConfig),
-    }),
+    };
+  },
 };
 
 TEMPLATE_PREVIEW_REGISTRY[TemplateTypeEnum.ANNOUNCEMENT] = {

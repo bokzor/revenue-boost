@@ -712,6 +712,15 @@ export function GenericDiscountComponent({
                       />
                     )}
 
+                    {/* Info banner explaining CTA behavior */}
+                    {config.bogo.get.ids && config.bogo.get.ids.length > 0 && (
+                      <Banner tone="info">
+                        <Text as="p" variant="bodySm">
+                          💡 When customers click the popup button, the first selected product will be automatically added to their cart with the BOGO discount applied.
+                        </Text>
+                      </Banner>
+                    )}
+
                     <FormGrid columns={2}>
                       <Select
                         label="Discount Type"

@@ -91,6 +91,10 @@ test.describe('BOGO & CTA Button Tests', () => {
     });
 
     test.beforeEach(async ({ context, page }) => {
+        // Clean up any existing test campaigns to ensure isolation
+        await prisma.campaign.deleteMany({
+            where: { name: { startsWith: TEST_PREFIX } }
+        });
         await context.clearCookies();
         await mockChallengeToken(page);
     });
@@ -178,6 +182,7 @@ test.describe('BOGO & CTA Button Tests', () => {
                 .create();
 
             console.log(`✅ Campaign created: ${campaign.id}`);
+            console.log(`📋 Campaign contentConfig:`, JSON.stringify(campaign.contentConfig, null, 2));
             await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
 
             await page.goto(STORE_URL);
@@ -264,6 +269,7 @@ test.describe('BOGO & CTA Button Tests', () => {
                 .create();
 
             console.log(`✅ Campaign created: ${campaign.id}`);
+            console.log(`📋 Campaign contentConfig:`, JSON.stringify(campaign.contentConfig, null, 2));
             await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
 
             await page.goto(STORE_URL);
@@ -374,6 +380,7 @@ test.describe('BOGO & CTA Button Tests', () => {
                 .create();
 
             console.log(`✅ Campaign created: ${campaign.id}`);
+            console.log(`📋 Campaign discountConfig:`, JSON.stringify(campaign.discountConfig, null, 2));
             await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
 
             await page.goto(STORE_URL);
@@ -390,7 +397,7 @@ test.describe('BOGO & CTA Button Tests', () => {
                 ctaBtn?.click();
             });
 
-            // Wait briefly
+            // Wait briefly for discount to be claimed
             await page.waitForTimeout(2000);
 
             // Should still be on the same page (discount was claimed, not navigated)

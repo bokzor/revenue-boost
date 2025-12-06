@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { PrismaClient } from "@prisma/client";
+import path from "path";
 import * as dotenv from "dotenv";
 import {
   STORE_URL,
@@ -16,7 +17,7 @@ import {
 } from "./helpers/test-helpers";
 import { CampaignFactory } from "./factories/campaign-factory";
 
-dotenv.config({ path: ".env.staging.env" });
+dotenv.config({ path: path.resolve(process.cwd(), ".env.staging.env"), override: true });
 
 const TEST_PREFIX = getTestPrefix("storefront-session-rules.spec.ts");
 
@@ -106,7 +107,7 @@ test.describe.serial("Session Rules & Frequency Capping", () => {
 
     // Reload page - popup should NOT appear again (limit reached)
     // Note: Use soft reload to preserve session storage
-    await page.reload({ waitUntil: "networkidle" });
+    await page.reload({ waitUntil: "domcontentloaded" });
     await handlePasswordPage(page);
 
     // Wait for Revenue Boost to initialize and evaluate triggers
@@ -159,7 +160,7 @@ test.describe.serial("Session Rules & Frequency Capping", () => {
     await page.waitForTimeout(2000);
 
     // Reload to test frequency cap
-    await page.reload({ waitUntil: "networkidle" });
+    await page.reload({ waitUntil: "domcontentloaded" });
     await handlePasswordPage(page);
     await page.waitForTimeout(4000);
 

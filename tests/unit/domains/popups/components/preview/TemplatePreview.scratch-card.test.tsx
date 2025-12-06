@@ -52,25 +52,26 @@ describe("TemplatePreview Scratch Card  email gate wiring", () => {
     expect(screen.queryByPlaceholderText(/enter your email/i)).toBeNull();
   });
 
-	  it("submits email in preview without requiring a campaignId secure submission", async () => {
-	    renderScratchCardPreview({
-	      emailRequired: true,
-	      emailBeforeScratching: true,
-	    });
+  it("submits email in preview without requiring a campaignId secure submission", async () => {
+    renderScratchCardPreview({
+      emailRequired: true,
+      emailBeforeScratching: true,
+      buttonText: "Unlock Scratch Card",
+    });
 
-	    const emailInput = await screen.findByPlaceholderText(/enter your email/i);
-	    fireEvent.change(emailInput, { target: { value: "test@example.com" } });
+    const emailInput = await screen.findByPlaceholderText(/enter your email/i);
+    fireEvent.change(emailInput, { target: { value: "test@example.com" } });
 
-	    const submitButton = await screen.findByRole("button", {
-	      name: /unlock scratch card/i,
-	    });
-	    fireEvent.click(submitButton);
+    const submitButton = await screen.findByRole("button", {
+      name: /unlock scratch card/i,
+    });
+    fireEvent.click(submitButton);
 
-	    await waitFor(() => {
-	      expect(
-	        screen.queryByText(/missing campaignid for secure submission/i)
-	      ).toBeNull();
-	    });
-	  });
+    await waitFor(() => {
+      expect(
+        screen.queryByText(/missing campaignid for secure submission/i)
+      ).toBeNull();
+    });
+  });
 });
 

@@ -34,6 +34,7 @@
     "test:e2e:storefront": "playwright test --project=storefront",
     "test:e2e:staging": "playwright test --project=storefront tests/e2e/staging/",
     "test:e2e:staging:headed": "playwright test --project=storefront tests/e2e/staging/ --headed",
+    "test:e2e:preflight": "npx tsx tests/e2e/staging/helpers/preflight-check.ts",
     "dev:test": "NODE_ENV=test DATABASE_URL='postgresql://postgres:postgres@localhost:5432/revenue-boost-test' react-router dev --port=56687",
     "build:storefront": "node scripts/build-storefront.js",
     "build:storefront:dev": "BUILD_MODE=development node scripts/build-storefront.js",

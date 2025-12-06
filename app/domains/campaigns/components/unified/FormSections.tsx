@@ -3,8 +3,15 @@
  *
  * Renders the collapsible form sections for the unified campaign creator.
  * Each section contains the appropriate step content component.
+ *
+ * Uses the same step components as the wizard form for feature parity:
+ * - DesignContentStep: Template-specific content + universal design + Custom CSS
+ * - TargetingStepContent: Triggers + Audience + Geo targeting
+ * - FrequencyStepContent: Frequency capping with global settings
+ * - ScheduleStepContent: Status, priority, dates, tags
  */
 
+import { useState, useMemo } from "react";
 import { BlockStack, Text, InlineGrid, Box, Button, Card, InlineStack } from "@shopify/polaris";
 import { useNavigate } from "react-router";
 import { CollapsibleSection } from "./CollapsibleSection";
@@ -15,15 +22,14 @@ import type { ContentConfig, DesignConfig, AudienceTargetingConfig, GeoTargeting
 import type { TemplateType } from "~/shared/hooks/useWizardState";
 import type { EnhancedTriggerConfig } from "~/domains/targeting/types/enhanced-triggers.types";
 import type { FrequencyCappingConfig } from "~/domains/targeting/components";
+import type { BackgroundPreset } from "~/config/background-presets";
+import type { GlobalFrequencyCappingSettings } from "~/domains/store/types/settings";
 
-// Import step content components
-import { DesignConfigSection } from "../sections/DesignConfigSection";
-import { ContentConfigSection } from "../sections/ContentConfigSection";
-import { AdvancedTriggersEditor } from "~/domains/targeting/components/AdvancedTriggersEditor";
-import { AudienceTargetingPanel } from "~/domains/targeting/components/AudienceTargetingPanel";
-import { GeoTargetingPanel } from "~/domains/targeting/components/GeoTargetingPanel";
-import { FrequencyCappingPanel } from "~/domains/targeting/components/FrequencyCappingPanel";
-import { ScheduleSettingsStep } from "../ScheduleSettingsStep";
+// Import reusable step content components (same as wizard form)
+import { DesignContentStep, type ThemePreset } from "../steps/DesignContentStep";
+import { TargetingStepContent } from "../steps/TargetingStepContent";
+import { FrequencyStepContent } from "../steps/FrequencyStepContent";
+import { ScheduleStepContent } from "../steps/ScheduleStepContent";
 import { DiscountSection as DiscountConfigPanel } from "~/domains/popups/components/design/DiscountSection";
 import type { DiscountConfig } from "../../types/campaign";
 
@@ -85,6 +91,17 @@ export interface FormSectionsProps {
   variantLabel?: string;
   /** Current URL path to return to after recipe selection */
   returnToPath?: string;
+  // === New props for feature parity ===
+  /** Custom theme presets from store settings */
+  customThemePresets?: ThemePreset[];
+  /** Map of layout -> background presets */
+  backgroundsByLayout?: Record<string, BackgroundPreset[]>;
+  /** Global custom CSS from store settings */
+  globalCustomCSS?: string;
+  /** Global frequency capping settings from store */
+  globalFrequencyCapping?: GlobalFrequencyCappingSettings;
+  /** Callback when mobile layout is changed (to switch preview device) */
+  onMobileLayoutChange?: () => void;
 }
 
 export function FormSections({
@@ -109,13 +126,18 @@ export function FormSections({
   onScheduleChange,
   onMarkComplete,
   storeId,
-  shopDomain,
   advancedTargetingEnabled,
   templateType,
   campaignGoal,
   restrictRecipesToGoal,
   variantLabel,
   returnToPath,
+  // New props for feature parity
+  customThemePresets,
+  backgroundsByLayout,
+  globalCustomCSS,
+  globalFrequencyCapping,
+  onMobileLayoutChange,
 }: FormSectionsProps) {
   return (
     <BlockStack gap="400">
@@ -142,13 +164,19 @@ export function FormSections({
             />
           )}
           {section.id === "design" && templateType && (
-            <DesignSection
+            <DesignSectionWrapper
               templateType={templateType}
               contentConfig={contentConfig}
               designConfig={designConfig}
+              discountConfig={discountConfig}
               onContentChange={onContentChange}
               onDesignChange={onDesignChange}
+              onDiscountChange={onDiscountChange}
               onComplete={() => onMarkComplete("design", "discount")}
+              customThemePresets={customThemePresets}
+              backgroundsByLayout={backgroundsByLayout}
+              globalCustomCSS={globalCustomCSS}
+              onMobileLayoutChange={onMobileLayoutChange}
             />
           )}
           {section.id === "discount" && onDiscountChange && (
@@ -161,7 +189,7 @@ export function FormSections({
             />
           )}
           {section.id === "targeting" && (
-            <TargetingSection
+            <TargetingSectionWrapper
               storeId={storeId}
               targetingConfig={targetingConfig}
               onChange={onTargetingChange}
@@ -170,14 +198,16 @@ export function FormSections({
             />
           )}
           {section.id === "frequency" && (
-            <FrequencySection
+            <FrequencySectionWrapper
               frequencyConfig={frequencyConfig}
+              templateType={templateType}
+              globalSettings={globalFrequencyCapping}
               onChange={onFrequencyChange}
               onComplete={() => onMarkComplete("frequency", "schedule")}
             />
           )}
           {section.id === "schedule" && (
-            <ScheduleSection
+            <ScheduleSectionWrapper
               scheduleConfig={scheduleConfig}
               onChange={onScheduleChange}
               onComplete={() => onMarkComplete("schedule")}
@@ -205,6 +235,14 @@ interface RecipeSectionProps {
   returnToPath?: string;
 }
 
+// Goal filter options for the recipe section
+const GOAL_FILTER_OPTIONS: { value: CampaignGoal | "ALL"; label: string; icon: string }[] = [
+  { value: "ALL", label: "All Recipes", icon: "📦" },
+  { value: "NEWSLETTER_SIGNUP", label: "Email & Leads", icon: "📧" },
+  { value: "INCREASE_REVENUE", label: "Sales & Revenue", icon: "💰" },
+  { value: "ENGAGEMENT", label: "Engagement", icon: "❤️" },
+];
+
 function RecipeSection({
   recipes,
   selectedRecipe,
@@ -214,14 +252,23 @@ function RecipeSection({
   returnToPath,
 }: RecipeSectionProps) {
   const navigate = useNavigate();
+  const [goalFilter, setGoalFilter] = useState<CampaignGoal | "ALL">(restrictToGoal || "ALL");
 
-  // Filter recipes by goal if restricted
-  const availableRecipes = restrictToGoal
-    ? recipes.filter((r) => r.goal === restrictToGoal)
-    : recipes;
+  // Filter recipes by goal
+  const filteredRecipes = useMemo(() => {
+    // If restricted to a goal (A/B testing), always use that
+    if (restrictToGoal) {
+      return recipes.filter((r) => r.goal === restrictToGoal);
+    }
+    // Otherwise use the user-selected filter
+    if (goalFilter === "ALL") {
+      return recipes;
+    }
+    return recipes.filter((r) => r.goal === goalFilter);
+  }, [recipes, restrictToGoal, goalFilter]);
 
   // Show first 6 recipes in a grid
-  const displayRecipes = availableRecipes.slice(0, 6);
+  const displayRecipes = filteredRecipes.slice(0, 6);
 
   // Build URL for full-screen recipe picker
   const buildRecipePickerUrl = () => {
@@ -231,6 +278,8 @@ function RecipeSection({
     }
     if (restrictToGoal) {
       params.set("restrictToGoal", restrictToGoal);
+    } else if (goalFilter !== "ALL") {
+      params.set("restrictToGoal", goalFilter);
     }
     if (variantLabel) {
       params.set("variantLabel", variantLabel);
@@ -245,18 +294,34 @@ function RecipeSection({
 
   return (
     <BlockStack gap="400">
-      {/* Goal restriction info */}
+      {/* Goal restriction info (for A/B testing) */}
       {restrictToGoal && (
         <Box padding="300" background="bg-surface-info" borderRadius="200">
           <InlineStack gap="200" blockAlign="center">
             <Text as="span">ℹ️</Text>
             <Text as="span" variant="bodySm">
               {variantLabel
-                ? `Showing ${availableRecipes.length} recipes matching the Control variant's goal for A/B consistency.`
-                : `Showing ${availableRecipes.length} recipes with the same goal.`}
+                ? `Showing ${filteredRecipes.length} recipes matching the Control variant's goal for A/B consistency.`
+                : `Showing ${filteredRecipes.length} recipes with the same goal.`}
             </Text>
           </InlineStack>
         </Box>
+      )}
+
+      {/* Goal filter tabs (only when not restricted) */}
+      {!restrictToGoal && (
+        <InlineStack gap="200" wrap={false}>
+          {GOAL_FILTER_OPTIONS.map((option) => (
+            <Button
+              key={option.value}
+              variant={goalFilter === option.value ? "primary" : "secondary"}
+              onClick={() => setGoalFilter(option.value)}
+              size="slim"
+            >
+              {`${option.icon} ${option.label}`}
+            </Button>
+          ))}
+        </InlineStack>
       )}
 
       <PreviewProvider>
@@ -277,46 +342,61 @@ function RecipeSection({
       {/* Browse all button */}
       <InlineStack align="center">
         <Button onClick={handleBrowseAll}>
-          {`Browse all ${availableRecipes.length} recipes`}
+          {`Browse all ${filteredRecipes.length} recipes`}
         </Button>
       </InlineStack>
     </BlockStack>
   );
 }
 
-interface DesignSectionProps {
+// =============================================================================
+// DESIGN SECTION WRAPPER - Uses DesignContentStep for full feature parity
+// =============================================================================
+
+interface DesignSectionWrapperProps {
   templateType: TemplateType;
   contentConfig: Partial<ContentConfig>;
   designConfig: Partial<DesignConfig>;
+  discountConfig?: DiscountConfig;
   onContentChange: (config: Partial<ContentConfig>) => void;
   onDesignChange: (config: Partial<DesignConfig>) => void;
+  onDiscountChange?: (config: DiscountConfig) => void;
   onComplete: () => void;
+  customThemePresets?: ThemePreset[];
+  backgroundsByLayout?: Record<string, BackgroundPreset[]>;
+  globalCustomCSS?: string;
+  onMobileLayoutChange?: () => void;
 }
 
-function DesignSection({
+function DesignSectionWrapper({
   templateType,
   contentConfig,
   designConfig,
+  discountConfig,
   onContentChange,
   onDesignChange,
+  onDiscountChange,
   onComplete,
-}: DesignSectionProps) {
+  customThemePresets,
+  backgroundsByLayout,
+  globalCustomCSS,
+  onMobileLayoutChange,
+}: DesignSectionWrapperProps) {
   return (
     <BlockStack gap="400">
-      {/* Content Configuration */}
-      <ContentConfigSection
+      <DesignContentStep
         templateType={templateType}
-        content={contentConfig}
-        onChange={onContentChange}
+        contentConfig={contentConfig}
+        designConfig={designConfig}
+        discountConfig={discountConfig}
+        onContentChange={onContentChange}
+        onDesignChange={onDesignChange}
+        onDiscountChange={onDiscountChange}
+        customThemePresets={customThemePresets}
+        backgroundsByLayout={backgroundsByLayout}
+        globalCustomCSS={globalCustomCSS}
+        onMobileLayoutChange={onMobileLayoutChange}
       />
-
-      {/* Design Configuration */}
-      <DesignConfigSection
-        design={designConfig}
-        onChange={onDesignChange}
-        templateType={templateType}
-      />
-
       <Button variant="primary" onClick={onComplete}>
         Save & Continue
       </Button>
@@ -324,7 +404,11 @@ function DesignSection({
   );
 }
 
-interface TargetingSectionProps {
+// =============================================================================
+// TARGETING SECTION WRAPPER - Uses TargetingStepContent for full feature parity
+// =============================================================================
+
+interface TargetingSectionWrapperProps {
   storeId: string;
   targetingConfig: TargetingConfig;
   onChange: (config: TargetingConfig) => void;
@@ -332,76 +416,24 @@ interface TargetingSectionProps {
   advancedTargetingEnabled?: boolean;
 }
 
-function TargetingSection({
+function TargetingSectionWrapper({
   storeId,
   targetingConfig,
   onChange,
   onComplete,
   advancedTargetingEnabled,
-}: TargetingSectionProps) {
+}: TargetingSectionWrapperProps) {
   return (
     <BlockStack gap="400">
-      <Card>
-        <BlockStack gap="400">
-          <Text as="h3" variant="headingMd">
-            When to Show (Triggers)
-          </Text>
-          <AdvancedTriggersEditor
-            config={targetingConfig.enhancedTriggers || {}}
-            onChange={(triggers) => onChange({ ...targetingConfig, enhancedTriggers: triggers })}
-          />
-        </BlockStack>
-      </Card>
-
-      <Card>
-        <BlockStack gap="400">
-          <Text as="h3" variant="headingMd">
-            Who to Show To (Audience)
-          </Text>
-          <AudienceTargetingPanel
-            storeId={storeId}
-            config={targetingConfig.audienceTargeting || {}}
-            onConfigChange={(audience) => onChange({ ...targetingConfig, audienceTargeting: audience })}
-            disabled={!advancedTargetingEnabled}
-          />
-        </BlockStack>
-      </Card>
-
-      <Card>
-        <BlockStack gap="400">
-          <Text as="h3" variant="headingMd">
-            Where to Show (Geographic)
-          </Text>
-          <GeoTargetingPanel
-            config={targetingConfig.geoTargeting || {}}
-            onConfigChange={(geo) => onChange({ ...targetingConfig, geoTargeting: geo })}
-          />
-        </BlockStack>
-      </Card>
-
-      <Button variant="primary" onClick={onComplete}>
-        Save & Continue
-      </Button>
-    </BlockStack>
-  );
-}
-
-interface FrequencySectionProps {
-  frequencyConfig: FrequencyCappingConfig;
-  onChange: (config: FrequencyCappingConfig) => void;
-  onComplete: () => void;
-}
-
-function FrequencySection({
-  frequencyConfig,
-  onChange,
-  onComplete,
-}: FrequencySectionProps) {
-  return (
-    <BlockStack gap="400">
-      <FrequencyCappingPanel
-        config={frequencyConfig}
-        onConfigChange={onChange}
+      <TargetingStepContent
+        storeId={storeId}
+        enhancedTriggers={targetingConfig.enhancedTriggers || {}}
+        audienceTargeting={targetingConfig.audienceTargeting || { enabled: false, shopifySegmentIds: [] }}
+        geoTargeting={targetingConfig.geoTargeting || { enabled: false, mode: "include", countries: [] }}
+        onTriggersChange={(triggers) => onChange({ ...targetingConfig, enhancedTriggers: triggers })}
+        onAudienceChange={(audience) => onChange({ ...targetingConfig, audienceTargeting: audience })}
+        onGeoChange={(geo) => onChange({ ...targetingConfig, geoTargeting: geo })}
+        advancedTargetingEnabled={advancedTargetingEnabled}
       />
       <Button variant="primary" onClick={onComplete}>
         Save & Continue
@@ -410,21 +442,63 @@ function FrequencySection({
   );
 }
 
-interface ScheduleSectionProps {
+// =============================================================================
+// FREQUENCY SECTION WRAPPER - Uses FrequencyStepContent with global settings
+// =============================================================================
+
+interface FrequencySectionWrapperProps {
+  frequencyConfig: FrequencyCappingConfig;
+  templateType?: TemplateType;
+  globalSettings?: GlobalFrequencyCappingSettings;
+  onChange: (config: FrequencyCappingConfig) => void;
+  onComplete: () => void;
+}
+
+function FrequencySectionWrapper({
+  frequencyConfig,
+  templateType,
+  globalSettings,
+  onChange,
+  onComplete,
+}: FrequencySectionWrapperProps) {
+  return (
+    <BlockStack gap="400">
+      <FrequencyStepContent
+        config={frequencyConfig}
+        onConfigChange={onChange}
+        templateType={templateType}
+        globalSettings={globalSettings}
+      />
+      <Button variant="primary" onClick={onComplete}>
+        Save & Continue
+      </Button>
+    </BlockStack>
+  );
+}
+
+// =============================================================================
+// SCHEDULE SECTION WRAPPER - Uses ScheduleStepContent
+// =============================================================================
+
+interface ScheduleSectionWrapperProps {
   scheduleConfig: ScheduleConfig;
   onChange: (config: ScheduleConfig) => void;
   onComplete: () => void;
 }
 
-function ScheduleSection({
+function ScheduleSectionWrapper({
   scheduleConfig,
   onChange,
   onComplete,
-}: ScheduleSectionProps) {
+}: ScheduleSectionWrapperProps) {
   return (
     <BlockStack gap="400">
-      <ScheduleSettingsStep
-        config={scheduleConfig}
+      <ScheduleStepContent
+        status={scheduleConfig.status || "DRAFT"}
+        priority={scheduleConfig.priority || 50}
+        startDate={scheduleConfig.startDate}
+        endDate={scheduleConfig.endDate}
+        tags={scheduleConfig.tags || []}
         onConfigChange={onChange}
       />
       <Button variant="primary" onClick={onComplete}>

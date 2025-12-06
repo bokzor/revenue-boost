@@ -131,9 +131,11 @@ describe("Schema Defaults Validation", () => {
 
   describe("SpinToWinContentSchema", () => {
     // SpinToWin omits successMessage from BaseContentConfigSchema
+    // spinButtonText is required (no default)
     const SPIN_REQUIRED = {
       headline: "Test",
       buttonText: "Spin",
+      spinButtonText: "Spin Now",
     };
 
     it("should have correct defaults for wheel configuration", () => {
@@ -158,9 +160,11 @@ describe("Schema Defaults Validation", () => {
 
   describe("ScratchCardContentSchema", () => {
     // ScratchCard also omits successMessage from BaseContentConfigSchema
+    // scratchInstruction is required (no default)
     const SCRATCH_REQUIRED = {
       headline: "Test",
       buttonText: "Reveal",
+      scratchInstruction: "Scratch to reveal your prize!",
     };
 
     it("should have correct defaults", () => {
@@ -175,10 +179,14 @@ describe("Schema Defaults Validation", () => {
   });
 
   describe("NewsletterContentSchema", () => {
+    // submitButtonText is required (no default)
+    const NEWSLETTER_REQUIRED = {
+      ...BASE_REQUIRED_FIELDS,
+      submitButtonText: "Subscribe",
+    };
+
     it("should have correct defaults for form fields", () => {
-      const parsed = NewsletterContentSchema.parse({
-        ...BASE_REQUIRED_FIELDS,
-      });
+      const parsed = NewsletterContentSchema.parse(NEWSLETTER_REQUIRED);
 
       expect(parsed.emailRequired).toBe(true);
       expect(parsed.nameFieldEnabled).toBe(false);

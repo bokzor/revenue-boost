@@ -144,7 +144,7 @@ const TemplatePreviewComponent = forwardRef<TemplatePreviewRef, TemplatePreviewP
     }
 
       // For newsletter templates, ensure discount config is properly merged
-      const baseConfig = {
+      const baseConfig: Record<string, unknown> = {
         ...config,
         ...designConfig,
         // Ensure popup is visible in preview
@@ -154,6 +154,12 @@ const TemplatePreviewComponent = forwardRef<TemplatePreviewRef, TemplatePreviewP
         // Pass global custom CSS through so scoped injection works for all templates (including banners/social proof)
         globalCustomCSS,
       };
+
+      // IMPORTANT: For ProductUpsell, preserve the content's `layout` field (grid/card/carousel/etc.)
+      // which gets overwritten by designConfig.layout (centered/split-left/etc.) - different meanings!
+      if (templateType === TemplateTypeEnum.PRODUCT_UPSELL && config.layout) {
+        baseConfig.layout = config.layout;
+      }
 
       // If this is a newsletter template, merge discount configuration
       if (templateType.includes("newsletter")) {

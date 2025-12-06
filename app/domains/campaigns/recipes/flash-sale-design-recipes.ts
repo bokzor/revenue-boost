@@ -73,7 +73,8 @@ const flashSale: StyledRecipe = {
   id: "flash-sale",
   name: "Flash Sale",
   tagline: "Limited time offer - don't miss out!",
-  description: "Create urgency with a time-limited discount and countdown timer. Perfect for driving immediate action.",
+  description:
+    "Create urgency with a time-limited discount and countdown timer. Perfect for driving immediate action.",
   icon: "⚡",
   category: "sales_promos",
   goal: "INCREASE_REVENUE",
@@ -94,8 +95,11 @@ const flashSale: StyledRecipe = {
       // Unified CTA configuration
       cta: {
         label: "Shop Now",
+        variant: "primary" as const,
         action: "navigate_collection" as const,
         collectionHandle: "all",
+        openInNewTab: false,
+        quantity: 1,
         applyDiscountFirst: true,
       },
       secondaryCta: {
@@ -125,7 +129,8 @@ const bogo: StyledRecipe = {
   id: "bogo",
   name: "Buy One Get One",
   tagline: "Buy one, get one free!",
-  description: "Classic BOGO promotion to move inventory and increase units per order. Great for weekend sales.",
+  description:
+    "Classic BOGO promotion to move inventory and increase units per order. Great for weekend sales.",
   icon: "🛍️",
   category: "sales_promos",
   goal: "INCREASE_REVENUE",
@@ -147,7 +152,9 @@ const bogo: StyledRecipe = {
       // Unified CTA configuration
       cta: {
         label: "Get My BOGO Deal",
+        variant: "primary" as const,
         action: "add_to_cart" as const,
+        openInNewTab: false,
         applyDiscountFirst: true,
         quantity: 1,
         // variantId will be configured by user via product picker
@@ -193,7 +200,8 @@ const tieredDiscount: StyledRecipe = {
   id: "tiered-discount",
   name: "Spend More, Save More",
   tagline: "The more you spend, the more you save",
-  description: "Tiered discount structure that encourages customers to add more to cart. Proven AOV booster.",
+  description:
+    "Tiered discount structure that encourages customers to add more to cart. Proven AOV booster.",
   icon: "📈",
   category: "sales_promos",
   goal: "INCREASE_REVENUE",
@@ -214,8 +222,11 @@ const tieredDiscount: StyledRecipe = {
       // Unified CTA configuration
       cta: {
         label: "Start Shopping",
+        variant: "primary" as const,
         action: "navigate_collection" as const,
         collectionHandle: "all",
+        openInNewTab: false,
+        quantity: 1,
         applyDiscountFirst: true,
       },
       secondaryCta: {
@@ -241,7 +252,7 @@ const tieredDiscount: StyledRecipe = {
       behavior: "SHOW_CODE_AND_AUTO_APPLY",
       // Tiered structure - Spend more, save more
       tiers: [
-        { thresholdCents: 5000, discount: { kind: "percentage", value: 10 } },  // $50 → 10%
+        { thresholdCents: 5000, discount: { kind: "percentage", value: 10 } }, // $50 → 10%
         { thresholdCents: 10000, discount: { kind: "percentage", value: 20 } }, // $100 → 20%
         { thresholdCents: 15000, discount: { kind: "percentage", value: 30 } }, // $150 → 30%
       ],
@@ -258,7 +269,8 @@ const firstPurchase: StyledRecipe = {
   id: "first-purchase",
   name: "First Purchase Discount",
   tagline: "Welcome! Here's your exclusive offer",
-  description: "Convert first-time visitors with an exclusive welcome discount. Great for building your customer base.",
+  description:
+    "Convert first-time visitors with an exclusive welcome discount. Great for building your customer base.",
   icon: "👋",
   category: "sales_promos",
   goal: "INCREASE_REVENUE",
@@ -304,7 +316,8 @@ const lastChance: StyledRecipe = {
   id: "last-chance",
   name: "Last Chance Alert",
   tagline: "Almost sold out!",
-  description: "Create urgency with scarcity messaging. Perfect for popular items or limited editions.",
+  description:
+    "Create urgency with scarcity messaging. Perfect for popular items or limited editions.",
   icon: "⏰",
   category: "sales_promos",
   goal: "INCREASE_REVENUE",
@@ -313,7 +326,14 @@ const lastChance: StyledRecipe = {
   component: "FlashSaleCentered",
   theme: "bold",
   layout: "centered",
-  inputs: [],
+  inputs: [
+    {
+      type: "product_picker" as const,
+      key: "inventoryProducts",
+      label: "Select products to track inventory",
+      multiSelect: true,
+    },
+  ],
   editableFields: FLASH_SALE_EDITABLE_FIELDS,
   defaults: {
     contentConfig: {
@@ -322,6 +342,14 @@ const lastChance: StyledRecipe = {
       buttonText: "Shop Now",
       showCountdown: false,
       urgencyMessage: "Almost sold out!",
+      // Real-time inventory tracking for scarcity messaging
+      inventory: {
+        mode: "real" as const,
+        productIds: [], // User will select products via modal
+        showOnlyXLeft: true,
+        showThreshold: 10, // Show "Only X left" when inventory ≤ 10
+        soldOutBehavior: "hide" as const,
+      },
     },
     designConfig: {
       position: "center",
@@ -344,7 +372,8 @@ const clearance: StyledRecipe = {
   id: "clearance",
   name: "Clearance Sale",
   tagline: "Everything must go!",
-  description: "Deep discounts for end-of-season or clearance items. Perfect for moving old inventory.",
+  description:
+    "Deep discounts for end-of-season or clearance items. Perfect for moving old inventory.",
   icon: "🏷️",
   category: "sales_promos",
   goal: "INCREASE_REVENUE",
@@ -435,7 +464,8 @@ const mysteryDiscount: StyledRecipe = {
   id: "mystery-discount",
   name: "Mystery Discount",
   tagline: "Reveal your secret discount!",
-  description: "Add an element of surprise with mystery discounts. Great for engagement and email capture.",
+  description:
+    "Add an element of surprise with mystery discounts. Great for engagement and email capture.",
   icon: "🎁",
   category: "sales_promos",
   goal: "ENGAGEMENT",
@@ -484,7 +514,8 @@ const blackFridaySale: StyledRecipe = {
   id: "black-friday-sale",
   name: "Black Friday Flash Sale",
   tagline: "The biggest sale of the year",
-  description: "High-urgency flash sale with Black Friday theme. Dark background with gold accents.",
+  description:
+    "High-urgency flash sale with Black Friday theme. Dark background with gold accents.",
   icon: "🖤",
   category: "sales_promos",
   goal: "INCREASE_REVENUE",
@@ -751,7 +782,6 @@ const halloweenSale: StyledRecipe = {
   },
 };
 
-
 const thanksgivingSale: StyledRecipe = {
   id: "thanksgiving-sale",
   name: "Thanksgiving Flash Sale",
@@ -925,7 +955,8 @@ const freeGiftWithPurchase: StyledRecipe = {
   id: "free-gift-with-purchase",
   name: "Free Gift with Purchase",
   tagline: "Spend more, get a FREE gift!",
-  description: "Increase average order value by offering a free gift when customers reach a spending threshold. Perfect for moving sample inventory.",
+  description:
+    "Increase average order value by offering a free gift when customers reach a spending threshold. Perfect for moving sample inventory.",
   icon: "🎁",
   category: "sales_promos",
   goal: "INCREASE_REVENUE",
@@ -948,11 +979,7 @@ const freeGiftWithPurchase: StyledRecipe = {
       label: "Free Gift Product",
     },
   ],
-  editableFields: [
-    HEADLINE_FIELD,
-    SUBHEADLINE_FIELD,
-    BUTTON_TEXT_FIELD,
-  ],
+  editableFields: [HEADLINE_FIELD, SUBHEADLINE_FIELD, BUTTON_TEXT_FIELD],
   defaults: {
     contentConfig: {
       headline: "🎁 FREE Gift With Your Order!",
@@ -962,7 +989,9 @@ const freeGiftWithPurchase: StyledRecipe = {
       // CTA adds the free gift to cart
       cta: {
         label: "Add My Free Gift",
+        variant: "primary" as const,
         action: "add_to_cart" as const,
+        openInNewTab: false,
         applyDiscountFirst: false, // No discount needed
         quantity: 1,
         // productId and variantId set via product picker
@@ -994,196 +1023,6 @@ const freeGiftWithPurchase: StyledRecipe = {
 };
 
 // =============================================================================
-// 📦 BUNDLE DEAL
-// =============================================================================
-// Use case: Increase AOV by promoting product bundles with savings
-// Best for: Cross-selling, introducing new products, combo deals
-// =============================================================================
-
-/**
- * BUNDLE DEAL
- *
- * Shows complementary products that can be added together for a discount.
- * Uses Product Upsell template with bundle pricing display.
- */
-const bundleDeal: StyledRecipe = {
-  id: "bundle-deal",
-  name: "Bundle Deal",
-  tagline: "Buy together and save!",
-  description: "Promote product bundles with combined savings. Perfect for cross-selling complementary items.",
-  icon: "📦",
-  category: "sales_promos",
-  goal: "INCREASE_REVENUE",
-  templateType: "PRODUCT_UPSELL",
-  component: "ProductUpsell",
-  theme: "bold",
-  layout: "centered",
-  featured: true,
-  recipeType: "use_case",
-  inputs: [
-    {
-      type: "discount_percentage" as const,
-      key: "bundleDiscount",
-      label: "Bundle Discount",
-      defaultValue: 15,
-    },
-    {
-      type: "product_picker" as const,
-      key: "bundleProducts",
-      label: "Bundle Products",
-      multiSelect: true,
-    },
-  ],
-  editableFields: [
-    HEADLINE_FIELD,
-    SUBHEADLINE_FIELD,
-    BUTTON_TEXT_FIELD,
-  ],
-  defaults: {
-    contentConfig: {
-      headline: "Complete Your Look & Save 15%",
-      subheadline: "Add these items together for extra savings",
-      buttonText: "Add Bundle to Cart",
-      productSelectionMethod: "manual" as const,
-      selectedProducts: [],
-      products: [],
-      layout: "grid" as const,
-      maxProducts: 3,
-      showPrices: true,
-      showOriginalPrices: true,
-      showRatings: false,
-      bundleDiscount: 15,
-      bundleDiscountText: "Bundle & Save 15%",
-      multiSelect: true,
-    },
-    designConfig: {
-      position: "center",
-      size: "large",
-    },
-    targetRules: {
-      enhancedTriggers: {
-        page_load: { enabled: false },
-        product_view: {
-          enabled: true,
-          time_on_page: 10,
-          require_scroll: true,
-        },
-      },
-      pageTargeting: {
-        enabled: true,
-        pages: [],
-        customPatterns: ["/products/*"],
-        excludePages: [],
-        productTags: [],
-        collections: [],
-      },
-    },
-    discountConfig: {
-      enabled: true,
-      type: "shared",
-      valueType: "PERCENTAGE" as const,
-      value: 15,
-      prefix: "BUNDLE",
-    },
-  },
-};
-
-// =============================================================================
-// 🛒 EXIT INTENT CART SAVER
-// =============================================================================
-// Use case: Recover abandoning visitors who have items in their cart
-// Best for: Reducing cart abandonment, last-chance conversions
-// =============================================================================
-
-/**
- * EXIT INTENT CART SAVER
- *
- * Specifically targets users with items in cart who are about to leave.
- * Shows their cart items + discount to complete purchase.
- */
-const exitIntentCartSaver: StyledRecipe = {
-  id: "exit-intent-cart-saver",
-  name: "Exit Intent Cart Saver",
-  tagline: "Don't leave empty-handed!",
-  description: "Catch visitors about to leave with items in their cart. Show their cart items plus an incentive to complete their purchase.",
-  icon: "🛒",
-  category: "cart_recovery",
-  goal: "INCREASE_REVENUE",
-  templateType: "CART_ABANDONMENT",
-  component: "CartRecovery",
-  theme: "bold",
-  layout: "centered",
-  featured: true,
-  recipeType: "use_case",
-  inputs: [
-    {
-      type: "discount_percentage" as const,
-      key: "discountValue",
-      label: "Exit Discount",
-      defaultValue: 10,
-    },
-  ],
-  editableFields: [
-    HEADLINE_FIELD,
-    SUBHEADLINE_FIELD,
-    BUTTON_TEXT_FIELD,
-    {
-      key: "urgencyMessage",
-      type: "text" as const,
-      label: "Urgency Message",
-      group: "content",
-      validation: { maxLength: 100 },
-    },
-  ],
-  defaults: {
-    contentConfig: {
-      headline: "Wait! Your Cart Misses You 🛒",
-      subheadline: "Complete your order now and get 10% off",
-      buttonText: "Complete My Order",
-      showCartItems: true,
-      maxItemsToShow: 3,
-      showCartTotal: true,
-      showUrgency: true,
-      urgencyTimer: 300, // 5 minutes
-      urgencyMessage: "Offer expires in 5 minutes",
-      showStockWarnings: true,
-      stockWarningMessage: "Low stock on some items!",
-      ctaUrl: "/cart",
-      dismissLabel: "Keep browsing",
-    },
-    designConfig: {
-      position: "center",
-      size: "large",
-    },
-    targetRules: {
-      enhancedTriggers: {
-        page_load: { enabled: false },
-        exit_intent: {
-          enabled: true,
-          sensitivity: "medium" as const,
-        },
-        cart_value: {
-          enabled: true,
-          min_value: 1, // Any cart value
-          check_interval: 1000,
-        },
-      },
-      audienceTargeting: {
-        enabled: true,
-        shopifySegmentIds: [],
-      },
-    },
-    discountConfig: {
-      enabled: true,
-      type: "shared",
-      valueType: "PERCENTAGE" as const,
-      value: 10,
-      prefix: "SAVE",
-    },
-  },
-};
-
-// =============================================================================
 // EXPORT
 // =============================================================================
 
@@ -1192,8 +1031,6 @@ export const USE_CASE_RECIPES: StyledRecipe[] = [
   flashSale,
   bogo,
   freeGiftWithPurchase,
-  bundleDeal,
-  exitIntentCartSaver,
   tieredDiscount,
   firstPurchase,
   lastChance,
@@ -1218,7 +1055,4 @@ export const SEASONAL_RECIPES: StyledRecipe[] = [
 ];
 
 // Combined export - use cases first, then seasonal
-export const FLASH_SALE_DESIGN_RECIPES: StyledRecipe[] = [
-  ...USE_CASE_RECIPES,
-  ...SEASONAL_RECIPES,
-];
+export const FLASH_SALE_DESIGN_RECIPES: StyledRecipe[] = [...USE_CASE_RECIPES, ...SEASONAL_RECIPES];

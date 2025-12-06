@@ -16,12 +16,13 @@ import type { PopupDesignConfig } from "./types";
 import type { AnnouncementContent } from "~/domains/campaigns/types/campaign";
 
 // Import custom hooks
-import { usePopupAnimation, useColorScheme } from "./hooks";
+import { useColorScheme } from "./hooks";
 import { buildScopedCss } from "~/domains/storefront/shared/css";
 import { getBackgroundStyles } from "app/domains/storefront/popups-new/utils/utils";
 
 // Import shared components
 import { CTAButton } from "./components/shared";
+import { BannerPortal } from "./BannerPortal";
 
 /**
  * AnnouncementConfig - Extends both design config AND campaign content type
@@ -49,9 +50,6 @@ export const AnnouncementPopup: React.FC<AnnouncementPopupProps> = ({
   onClose,
   onCtaClick,
 }) => {
-  // Use animation hook
-  const { showContent: _showContent } = usePopupAnimation({ isVisible });
-
   // Use color scheme hook
   const schemeColors = useColorScheme(config.colorScheme || "custom", {
     backgroundColor: config.backgroundColor,
@@ -355,57 +353,64 @@ export const AnnouncementPopup: React.FC<AnnouncementPopupProps> = ({
   const position = config.position === "bottom" ? "bottom" : "top";
 
   return (
-    <div style={bannerStyles} data-rb-banner data-position={position}>
-      <style dangerouslySetInnerHTML={{ __html: responsiveCss }} />
-      {scopedCss ? <style dangerouslySetInnerHTML={{ __html: scopedCss }} /> : null}
+    <BannerPortal
+      isVisible={isVisible}
+      onClose={onClose}
+      position={position}
+      previewMode={config.previewMode}
+    >
+      <div style={bannerStyles} data-rb-banner data-position={position}>
+        <style dangerouslySetInnerHTML={{ __html: responsiveCss }} />
+        {scopedCss ? <style dangerouslySetInnerHTML={{ __html: scopedCss }} /> : null}
 
-      <div className="rb-container">
-        <div className="rb-content">
-          {/* Text group: Icon + Headline + Separator + Subheadline */}
-          <div className="rb-text-group">
-            <div className="rb-headline-row">
-              {config.icon && <span className="rb-icon">{config.icon}</span>}
-              <p className="rb-headline">{config.headline}</p>
+        <div className="rb-container">
+          <div className="rb-content">
+            {/* Text group: Icon + Headline + Separator + Subheadline */}
+            <div className="rb-text-group">
+              <div className="rb-headline-row">
+                {config.icon && <span className="rb-icon">{config.icon}</span>}
+                <p className="rb-headline">{config.headline}</p>
+              </div>
+              {hasSubheadline && (
+                <>
+                  <span className="rb-separator" aria-hidden="true" />
+                  <p className="rb-subheadline">{config.subheadline}</p>
+                </>
+              )}
             </div>
-            {hasSubheadline && (
-              <>
-                <span className="rb-separator" aria-hidden="true" />
-                <p className="rb-subheadline">{config.subheadline}</p>
-              </>
+
+            {/* CTA button */}
+            {hasButton && (
+              <CTAButton
+                text={config.buttonText || config.ctaText || ""}
+                url={config.ctaUrl}
+                openInNewTab={config.ctaOpenInNewTab}
+                onClick={onCtaClick}
+                accentColor={config.buttonColor || schemeColors.textColor}
+                textColor={config.buttonTextColor || schemeColors.backgroundColor}
+                className="rb-cta-btn"
+              />
             )}
+
+            {/* Dismiss text button - Desktop & Tablet only (hidden via CSS on mobile) */}
+            <button type="button" className="rb-dismiss-btn" onClick={onClose}>
+              {config.dismissLabel || "No thanks"}
+            </button>
           </div>
 
-          {/* CTA button */}
-          {hasButton && (
-            <CTAButton
-              text={config.buttonText || config.ctaText || ""}
-              url={config.ctaUrl}
-              openInNewTab={config.ctaOpenInNewTab}
-              onClick={onCtaClick}
-              accentColor={config.buttonColor || schemeColors.textColor}
-              textColor={config.buttonTextColor || schemeColors.backgroundColor}
-              className="rb-cta-btn"
-            />
+          {/* Close button (×) - Mobile only (hidden via CSS on tablet+) */}
+          {config.showCloseButton !== false && (
+            <button
+              type="button"
+              className="rb-close-btn"
+              onClick={onClose}
+              aria-label="Close announcement"
+            >
+              ×
+            </button>
           )}
-
-          {/* Dismiss text button - Desktop & Tablet only (hidden via CSS on mobile) */}
-          <button type="button" className="rb-dismiss-btn" onClick={onClose}>
-            {config.dismissLabel || "No thanks"}
-          </button>
         </div>
-
-        {/* Close button (×) - Mobile only (hidden via CSS on tablet+) */}
-        {config.showCloseButton !== false && (
-          <button
-            type="button"
-            className="rb-close-btn"
-            onClick={onClose}
-            aria-label="Close announcement"
-          >
-            ×
-          </button>
-        )}
       </div>
-    </div>
+    </BannerPortal>
   );
 };

@@ -6,6 +6,13 @@
  * 2. Defines what fields the admin can edit (editableFields)
  * 3. Provides locked defaults for everything else
  *
+ * The StyledRecipe type is generic, mapping TemplateType to its corresponding
+ * ContentConfig type for full type safety:
+ *
+ *   StyledRecipe<"NEWSLETTER">      -> contentConfig: Partial<NewsletterContent>
+ *   StyledRecipe<"PRODUCT_UPSELL">  -> contentConfig: Partial<ProductUpsellContent>
+ *   StyledRecipe<"FLASH_SALE">      -> contentConfig: Partial<FlashSaleContent>
+ *
  * @see docs/RECIPE_SYSTEM_ARCHITECTURE.md
  */
 
@@ -15,8 +22,42 @@ import type {
   DesignConfig,
   TargetRulesConfig,
   DiscountConfig,
+  // Content types for generic mapping
+  NewsletterContent,
+  SpinToWinContent,
+  FlashSaleContent,
+  FreeShippingContent,
+  CartAbandonmentContent,
+  ProductUpsellContent,
+  SocialProofContent,
+  CountdownTimerContent,
+  ScratchCardContent,
+  AnnouncementContent,
+  ContentConfig,
 } from "../types/campaign";
 import type { LayoutConfig } from "~/domains/storefront/popups-new/types";
+
+// =============================================================================
+// TEMPLATE TO CONTENT TYPE MAPPING
+// =============================================================================
+
+/**
+ * Maps each TemplateType to its corresponding ContentConfig type.
+ * This enables type-safe recipes where defaults.contentConfig is properly typed.
+ */
+export type TemplateContentMap = {
+  NEWSLETTER: NewsletterContent;
+  SPIN_TO_WIN: SpinToWinContent;
+  FLASH_SALE: FlashSaleContent;
+  FREE_SHIPPING: FreeShippingContent;
+  EXIT_INTENT: CartAbandonmentContent;
+  CART_ABANDONMENT: CartAbandonmentContent;
+  PRODUCT_UPSELL: ProductUpsellContent;
+  SOCIAL_PROOF: SocialProofContent;
+  COUNTDOWN_TIMER: CountdownTimerContent;
+  SCRATCH_CARD: ScratchCardContent;
+  ANNOUNCEMENT: AnnouncementContent;
+};
 
 // =============================================================================
 // RECIPE CATEGORIES
@@ -295,10 +336,26 @@ export type PopupLayout =
   | "sidebar-right"; // Slide-in from right
 
 // =============================================================================
-// STYLED RECIPE DEFINITION
+// STYLED RECIPE DEFAULTS (Generic)
 // =============================================================================
 
-export interface StyledRecipeDefaults {
+/**
+ * Recipe defaults with type-safe contentConfig.
+ *
+ * @template TContent - The content type (e.g., NewsletterContent, ProductUpsellContent)
+ */
+export interface StyledRecipeDefaults<TContent extends ContentConfig = ContentConfig> {
+  contentConfig: Partial<TContent>;
+  designConfig?: Partial<DesignConfig>;
+  targetRules?: Partial<TargetRulesConfig>;
+  discountConfig?: Partial<DiscountConfig>;
+}
+
+/**
+ * Legacy non-generic version for backward compatibility.
+ * New recipes should use StyledRecipeDefaults<TContent>.
+ */
+export interface StyledRecipeDefaultsUntyped {
   contentConfig: Record<string, unknown>;
   designConfig?: Partial<DesignConfig>;
   targetRules?: Partial<TargetRulesConfig>;
@@ -328,6 +385,8 @@ export type RecipeTag =
   | "modern"
   | "warm"
   | "dark"
+  | "subtle"
+  | "urgent"
   // Layout
   | "split"
   | "hero"
@@ -350,7 +409,10 @@ export type RecipeTag =
   | "exit-intent"
   | "time-delay"
   | "scroll-trigger"
-  | "page-load";
+  | "page-load"
+  // Conversion
+  | "high-converting"
+  | "cart-recovery";
 
 export const RECIPE_TAG_LABELS: Record<RecipeTag, string> = {
   // Industry
@@ -371,6 +433,8 @@ export const RECIPE_TAG_LABELS: Record<RecipeTag, string> = {
   modern: "Modern",
   warm: "Warm",
   dark: "Dark Mode",
+  subtle: "Subtle",
+  urgent: "Urgent",
   // Layout
   split: "Split Layout",
   hero: "Hero Image",
@@ -394,13 +458,20 @@ export const RECIPE_TAG_LABELS: Record<RecipeTag, string> = {
   "time-delay": "Time Delay",
   "scroll-trigger": "Scroll Trigger",
   "page-load": "Page Load",
+  // Conversion
+  "high-converting": "High Converting",
+  "cart-recovery": "Cart Recovery",
 };
 
 // =============================================================================
-// STYLED RECIPE DEFINITION
+// STYLED RECIPE DEFINITION (Generic)
 // =============================================================================
 
-export interface StyledRecipe {
+/**
+ * Base interface for StyledRecipe without generics.
+ * Contains all non-template-specific fields.
+ */
+interface StyledRecipeBase {
   // Identity
   id: string; // e.g., "black-friday-sale"
   name: string; // e.g., "Black Friday Sale"
@@ -411,7 +482,6 @@ export interface StyledRecipe {
   // Classification
   category: RecipeCategory;
   goal: CampaignGoal;
-  templateType: TemplateType;
 
   // Tags for filtering and discovery (optional for backward compatibility)
   tags?: RecipeTag[];
@@ -444,9 +514,6 @@ export interface StyledRecipe {
   // Editable fields (shown in step 3)
   editableFields: EditableField[];
 
-  // Locked configuration (recipe decides these)
-  defaults: StyledRecipeDefaults;
-
   // Feature flags
   featured?: boolean; // Show in featured section
   seasonal?: boolean; // Is this a seasonal recipe (deprecated - use recipeType instead)
@@ -459,6 +526,83 @@ export interface StyledRecipe {
   // These sections are critical to the recipe and should be configured upfront
   requiredConfig?: RequiredConfigSection[];
 }
+
+/**
+ * Type-safe StyledRecipe with generic template type.
+ *
+ * The contentConfig in defaults is automatically typed based on templateType:
+ *
+ * @example
+ * ```typescript
+ * // contentConfig is Partial<ProductUpsellContent>
+ * const recipe: StyledRecipe<"PRODUCT_UPSELL"> = {
+ *   templateType: "PRODUCT_UPSELL",
+ *   defaults: {
+ *     contentConfig: {
+ *       headline: "Complete your look",
+ *       productSelectionMethod: "ai", // ✅ Type-checked!
+ *       layout: "grid",               // ✅ Type-checked!
+ *     }
+ *   }
+ * };
+ * ```
+ *
+ * @template T - The TemplateType (e.g., "NEWSLETTER", "PRODUCT_UPSELL")
+ */
+export interface StyledRecipe<T extends TemplateType = TemplateType> extends StyledRecipeBase {
+  templateType: T;
+  defaults: StyledRecipeDefaults<TemplateContentMap[T]>;
+}
+
+// =============================================================================
+// TYPE ALIASES FOR EACH TEMPLATE TYPE
+// =============================================================================
+
+/** Newsletter recipe with type-safe NewsletterContent */
+export type NewsletterRecipe = StyledRecipe<"NEWSLETTER">;
+
+/** Spin to Win recipe with type-safe SpinToWinContent */
+export type SpinToWinRecipe = StyledRecipe<"SPIN_TO_WIN">;
+
+/** Flash Sale recipe with type-safe FlashSaleContent */
+export type FlashSaleRecipe = StyledRecipe<"FLASH_SALE">;
+
+/** Free Shipping recipe with type-safe FreeShippingContent */
+export type FreeShippingRecipe = StyledRecipe<"FREE_SHIPPING">;
+
+/** Cart Abandonment recipe with type-safe CartAbandonmentContent */
+export type CartAbandonmentRecipe = StyledRecipe<"CART_ABANDONMENT">;
+
+/** Product Upsell recipe with type-safe ProductUpsellContent */
+export type ProductUpsellRecipe = StyledRecipe<"PRODUCT_UPSELL">;
+
+/** Social Proof recipe with type-safe SocialProofContent */
+export type SocialProofRecipe = StyledRecipe<"SOCIAL_PROOF">;
+
+/** Countdown Timer recipe with type-safe CountdownTimerContent */
+export type CountdownTimerRecipe = StyledRecipe<"COUNTDOWN_TIMER">;
+
+/** Scratch Card recipe with type-safe ScratchCardContent */
+export type ScratchCardRecipe = StyledRecipe<"SCRATCH_CARD">;
+
+/** Announcement recipe with type-safe AnnouncementContent */
+export type AnnouncementRecipe = StyledRecipe<"ANNOUNCEMENT">;
+
+/**
+ * Union type of all typed recipes.
+ * Use this when you need to accept any recipe type.
+ */
+export type AnyStyledRecipe =
+  | NewsletterRecipe
+  | SpinToWinRecipe
+  | FlashSaleRecipe
+  | FreeShippingRecipe
+  | CartAbandonmentRecipe
+  | ProductUpsellRecipe
+  | SocialProofRecipe
+  | CountdownTimerRecipe
+  | ScratchCardRecipe
+  | AnnouncementRecipe;
 
 // =============================================================================
 // REQUIRED CONFIG SECTIONS
@@ -526,7 +670,23 @@ export interface RecipeOutput {
 // HELPER TYPES
 // =============================================================================
 
-export type StyledRecipeWithBuild = StyledRecipe & {
+/**
+ * StyledRecipe with a build function for dynamic configuration.
+ *
+ * @template T - The TemplateType
+ */
+export type StyledRecipeWithBuild<T extends TemplateType = TemplateType> = StyledRecipe<T> & {
   build: (context: RecipeContext) => RecipeOutput;
 };
 
+/**
+ * Helper type to extract the content type from a StyledRecipe.
+ *
+ * @example
+ * ```typescript
+ * type UpsellContent = ExtractRecipeContent<ProductUpsellRecipe>;
+ * // UpsellContent = ProductUpsellContent
+ * ```
+ */
+export type ExtractRecipeContent<R extends StyledRecipe> =
+  R extends StyledRecipe<infer T> ? TemplateContentMap[T] : never;

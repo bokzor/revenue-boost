@@ -127,6 +127,13 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
   const activeLayout: ProductUpsellLayout =
     config.layoutMode || (config.layout as ProductUpsellLayout) || "grid";
 
+  // DEBUG: Log layout values
+  console.log("[ProductUpsellPopup] Layout debug:", {
+    configLayoutMode: config.layoutMode,
+    configLayout: config.layout,
+    activeLayout,
+  });
+
   // Haptic feedback helper
   const triggerHaptic = useCallback(
     (pattern: number | number[] = 10) => {

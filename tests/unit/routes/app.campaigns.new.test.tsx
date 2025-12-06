@@ -24,6 +24,7 @@ vi.mock('~/shopify.server', () => ({
 // Mocks for react-router hooks used by the route component
 const mockNavigate = vi.fn();
 const mockUseLoaderData = vi.fn(() => ({ storeId: 'store-1', shopDomain: 'test.myshopify.com' }));
+const mockUseLocation = vi.fn(() => ({ state: null, pathname: '/app/campaigns/new', search: '', hash: '' }));
 
 vi.mock('react-router', async () => {
   const actual = await vi.importActual<any>('react-router');
@@ -31,6 +32,7 @@ vi.mock('react-router', async () => {
     ...actual,
     useNavigate: () => mockNavigate,
     useLoaderData: () => mockUseLoaderData(),
+    useLocation: () => mockUseLocation(),
   };
 });
 

@@ -28,6 +28,7 @@ import { STYLED_RECIPES } from "~/domains/campaigns/recipes/styled-recipe-catalo
 import { NEWSLETTER_THEMES, type NewsletterThemeKey } from "~/config/color-presets";
 import { getBackgroundById, getBackgroundUrl } from "~/config/background-presets";
 import { GenericDiscountComponent } from "~/domains/campaigns/components/form/GenericDiscountComponent";
+import { ProductPicker } from "~/domains/campaigns/components/form/ProductPicker";
 import type {
   StyledRecipe,
   RecipeContext,
@@ -123,7 +124,8 @@ export default function RecipeCampaignCreation() {
     const themeColors = NEWSLETTER_THEMES[theme] || NEWSLETTER_THEMES.modern;
 
     // Build content config from recipe defaults and apply context values
-    const contentConfig = { ...selectedRecipe.defaults.contentConfig };
+    // Cast to Record to allow dynamic property access since contentConfig is a union type
+    const contentConfig = { ...selectedRecipe.defaults.contentConfig } as Record<string, unknown>;
 
     // Apply discount value to content if present
     if (contextData.discountValue !== undefined) {
@@ -133,6 +135,43 @@ export default function RecipeCampaignCreation() {
           /\d+%/,
           `${contextData.discountValue}%`
         );
+      }
+    }
+
+    // Pre-configure CTA with BOGO product selection
+    // When user selects products in the BOGO discount config, use the first "get" product for the CTA
+    const ctaConfig = contentConfig.cta as Record<string, unknown> | undefined;
+    if (discountConfig?.bogo?.get?.ids?.length && ctaConfig) {
+      const firstBogoProductId = discountConfig.bogo.get.ids[0];
+      contentConfig.cta = {
+        ...ctaConfig,
+        productId: firstBogoProductId,
+      };
+    }
+
+    // Pre-configure CTA with Free Gift product selection
+    // When user selects a gift product via quick input, use it for the CTA
+    if (contextData.giftProduct && ctaConfig) {
+      const giftSelection = contextData.giftProduct as Array<{ id: string; title?: string }>;
+      if (Array.isArray(giftSelection) && giftSelection.length > 0) {
+        contentConfig.cta = {
+          ...ctaConfig,
+          productId: giftSelection[0].id,
+        };
+      }
+    }
+
+    // Pre-configure inventory tracking with selected products
+    // When user selects products for inventory tracking, set them in contentConfig.inventory
+    if (contextData.inventoryProducts) {
+      const inventorySelection = contextData.inventoryProducts as Array<{ id: string; title?: string }>;
+      const existingInventory = contentConfig.inventory as Record<string, unknown> | undefined;
+      if (Array.isArray(inventorySelection) && inventorySelection.length > 0) {
+        contentConfig.inventory = {
+          ...(existingInventory || {}),
+          mode: "real" as const,
+          productIds: inventorySelection.map((p) => p.id),
+        };
       }
     }
 
@@ -205,13 +244,38 @@ export default function RecipeCampaignCreation() {
       finalDiscountConfig = selectedRecipe.defaults.discountConfig || {};
     }
 
+    // Build target rules - start with recipe defaults, then apply user inputs
+    const targetRules = { ...selectedRecipe.defaults.targetRules } as Record<string, unknown>;
+
+    // Update cart value threshold from Free Gift threshold input
+    if (contextData.threshold !== undefined) {
+      const threshold = contextData.threshold as number;
+      const enhancedTriggers = (targetRules.enhancedTriggers || {}) as Record<string, unknown>;
+      targetRules.enhancedTriggers = {
+        ...enhancedTriggers,
+        cart_value: {
+          ...(enhancedTriggers.cart_value as Record<string, unknown> || {}),
+          enabled: true,
+          min_value: threshold,
+        },
+      };
+
+      // Also update subheadline if it contains the default threshold
+      if (typeof contentConfig.subheadline === "string") {
+        contentConfig.subheadline = contentConfig.subheadline.replace(
+          /\$\d+\+?/,
+          `$${threshold}+`
+        );
+      }
+    }
+
     return {
       name: selectedRecipe.name,
       goal: selectedRecipe.goal,
       templateType: selectedRecipe.templateType,
       contentConfig,
       designConfig,
-      targetRules: selectedRecipe.defaults.targetRules || {},
+      targetRules,
       discountConfig: finalDiscountConfig,
     };
   }, [selectedRecipe, contextData, discountConfig]);
@@ -292,6 +356,36 @@ export default function RecipeCampaignCreation() {
             onChange={(val) => handleInputChange(input.key, val)}
           />
         );
+
+      case "product_picker": {
+        const selections = contextData[input.key] as Array<{ id: string; title?: string }> | undefined;
+        const hasSelection = Array.isArray(selections) && selections.length > 0;
+        const isGiftProduct = input.key === "giftProduct";
+
+        return (
+          <BlockStack key={input.key} gap="300">
+            <ProductPicker
+              mode="product"
+              selectionType={"multiSelect" in input && input.multiSelect ? "multiple" : "single"}
+              onSelect={(newSelections) => handleInputChange(input.key, newSelections)}
+              buttonLabel={input.label}
+              showSelected={true}
+            />
+            {isGiftProduct && (
+              <Text as="p" variant="bodySm" tone="subdued">
+                This product will be automatically added to the customer's cart when they click the popup button.
+              </Text>
+            )}
+            {hasSelection && isGiftProduct && (
+              <Banner tone="success">
+                <Text as="p" variant="bodySm">
+                  ✓ When customers click "{(selectedRecipe?.defaults.contentConfig as { cta?: { label?: string } })?.cta?.label || "the button"}", <strong>{selections[0].title}</strong> will be added to their cart.
+                </Text>
+              </Banner>
+            )}
+          </BlockStack>
+        );
+      }
 
       default:
         return null;

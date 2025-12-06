@@ -410,13 +410,13 @@ class BaseBuilder<T extends BaseBuilder<T>> {
         if (!this.config) throw new Error('Config not initialized');
         this.config.discountConfig = {
             enabled: true,
-            type: 'generated',
+            type: 'single_use', // Valid values: 'shared' | 'single_use'
             valueType: 'PERCENTAGE',
             value: percent,
             prefix: prefix,
             expiryDays: 30,
             usageLimit: 1,
-            deliveryMode: 'show_code_always',
+            behavior: 'SHOW_CODE_AND_AUTO_APPLY', // Valid values: 'SHOW_CODE_AND_AUTO_APPLY' | 'SHOW_CODE_ONLY' | 'SHOW_CODE_AND_ASSIGN_TO_EMAIL'
             showInPreview: true
         };
         return this as unknown as T;
@@ -429,13 +429,13 @@ class BaseBuilder<T extends BaseBuilder<T>> {
         if (!this.config) throw new Error('Config not initialized');
         this.config.discountConfig = {
             enabled: true,
-            type: 'generated',
+            type: 'single_use', // Valid values: 'shared' | 'single_use'
             valueType: 'FIXED_AMOUNT',
             value: amount,
             prefix: prefix,
             expiryDays: 30,
             usageLimit: 1,
-            deliveryMode: 'show_code_always',
+            behavior: 'SHOW_CODE_AND_AUTO_APPLY', // Valid values: 'SHOW_CODE_AND_AUTO_APPLY' | 'SHOW_CODE_ONLY' | 'SHOW_CODE_AND_ASSIGN_TO_EMAIL'
             showInPreview: true
         };
         return this as unknown as T;
@@ -448,13 +448,13 @@ class BaseBuilder<T extends BaseBuilder<T>> {
         if (!this.config) throw new Error('Config not initialized');
         this.config.discountConfig = {
             enabled: true,
-            type: 'generated',
+            type: 'single_use', // Valid values: 'shared' | 'single_use'
             valueType: 'FREE_SHIPPING',
             value: 0,
             prefix: prefix,
             expiryDays: 30,
             usageLimit: 1,
-            deliveryMode: 'show_code_always',
+            behavior: 'SHOW_CODE_AND_AUTO_APPLY', // Valid values: 'SHOW_CODE_AND_AUTO_APPLY' | 'SHOW_CODE_ONLY' | 'SHOW_CODE_AND_ASSIGN_TO_EMAIL'
             showInPreview: true
         };
         return this as unknown as T;
@@ -468,8 +468,8 @@ class BaseBuilder<T extends BaseBuilder<T>> {
         this.config.discountConfig = {
             enabled: true,
             type: 'shared',
-            singleCode: code,
-            deliveryMode: 'show_code_always',
+            code: code, // Use 'code' instead of 'singleCode' per schema
+            behavior: 'SHOW_CODE_AND_AUTO_APPLY', // Valid values: 'SHOW_CODE_AND_AUTO_APPLY' | 'SHOW_CODE_ONLY' | 'SHOW_CODE_AND_ASSIGN_TO_EMAIL'
             showInPreview: true
         };
         return this as unknown as T;
@@ -773,7 +773,7 @@ export class SpinToWinBuilder extends BaseBuilder<SpinToWinBuilder> {
             ],
             emailRequired: true,
             collectName: false,
-            buttonText: 'Spin Now!',
+            spinButtonText: 'Spin to Win!', // Required field per SpinToWinContentSchema
         };
         return this;
     }

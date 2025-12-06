@@ -94,7 +94,7 @@ const elegantLuxe: StyledRecipe = {
       subheadline: "Be the first to discover new collections and receive exclusive offers.",
       emailPlaceholder: "Your email address",
       buttonText: "Subscribe",
-      secondaryButtonText: "Maybe later",
+      dismissLabel: "Maybe later",
       successMessage: "Welcome to the family.",
       // VIP feel - collect name for personalization
       nameFieldEnabled: true,
@@ -169,7 +169,7 @@ const streetStyle: StyledRecipe = {
       subheadline: "Never miss a release. Get exclusive early access to limited drops.",
       emailPlaceholder: "Enter email",
       buttonText: "GET ACCESS",
-      secondaryButtonText: "Not now",
+      dismissLabel: "Not now",
       successMessage: "You're in. 🔥",
       // Quick signup - email only, no friction
       nameFieldEnabled: false,
@@ -238,7 +238,7 @@ const minimalTech: StyledRecipe = {
       subheadline: "Weekly insights on product, design, and engineering.",
       emailPlaceholder: "you@company.com",
       buttonText: "Subscribe",
-      secondaryButtonText: "No thanks",
+      dismissLabel: "No thanks",
       successMessage: "You're subscribed!",
       // Minimal - email only
       nameFieldEnabled: false,
@@ -305,7 +305,7 @@ const darkMode: StyledRecipe = {
       subheadline: "Get early access to new features and shape the roadmap.",
       emailPlaceholder: "dev@example.com",
       buttonText: "Request Access",
-      secondaryButtonText: "Learn more first",
+      dismissLabel: "Learn more first",
       successMessage: "Check your inbox for next steps.",
       // Developer-friendly - no unnecessary fields
       nameFieldEnabled: false,
@@ -372,7 +372,7 @@ const freshOrganic: StyledRecipe = {
       subheadline: "Seasonal recipes, nutrition tips, and exclusive member discounts.",
       emailPlaceholder: "Your email",
       buttonText: "Join the Community",
-      secondaryButtonText: "Not right now",
+      dismissLabel: "Not right now",
       successMessage: "Welcome! Your first recipe is on its way.",
       // Community-focused - email only
       nameFieldEnabled: false,
@@ -443,7 +443,7 @@ const cafeWarm: StyledRecipe = {
       subheadline: "Weekly brewing tips, new menu items, and loyalty rewards.",
       emailPlaceholder: "Enter your email",
       buttonText: "Sign Up",
-      secondaryButtonText: "Maybe later",
+      dismissLabel: "Maybe later",
       successMessage: "Welcome! Enjoy a free pastry on us.",
       // Cozy cafe feel - email only
       nameFieldEnabled: false,
@@ -513,7 +513,7 @@ const softGlow: StyledRecipe = {
       subheadline: "Beauty tips, exclusive launches, and member-only offers.",
       emailPlaceholder: "Enter your email",
       buttonText: "Join Now",
-      secondaryButtonText: "No thanks",
+      dismissLabel: "No thanks",
       successMessage: "Welcome, gorgeous! Check your inbox.",
       // GDPR-compliant for EU beauty brands
       nameFieldEnabled: false,
@@ -598,7 +598,7 @@ const spaSerenity: StyledRecipe = {
       subheadline: "Wellness tips, self-care rituals, and exclusive retreat offers delivered to your inbox.",
       emailPlaceholder: "Enter your email",
       buttonText: "Start Your Journey",
-      secondaryButtonText: "Maybe later",
+      dismissLabel: "Maybe later",
       successMessage: "Welcome to your wellness journey.",
       // Wellness - consent for mindful marketing
       nameFieldEnabled: true,
@@ -703,7 +703,7 @@ const scandinavian: StyledRecipe = {
       subheadline: "Curated inspiration and exclusive access to new collections.",
       emailPlaceholder: "Enter your email",
       buttonText: "Join Us",
-      secondaryButtonText: "Not now",
+      dismissLabel: "Not now",
       successMessage: "Welcome home.",
       // Scandinavian simplicity - email only
       nameFieldEnabled: false,
@@ -777,7 +777,7 @@ const cozyComfort: StyledRecipe = {
       subheadline: "Home styling tips and early access to seasonal sales.",
       emailPlaceholder: "Your email address",
       buttonText: "Subscribe",
-      secondaryButtonText: "Maybe later",
+      dismissLabel: "Maybe later",
       successMessage: "Welcome! Your comfort journey begins.",
       // Cozy home feel - email only
       nameFieldEnabled: false,
@@ -856,7 +856,7 @@ const boldEnergy: StyledRecipe = {
       subheadline: "Training tips, nutrition guides, and exclusive member deals.",
       emailPlaceholder: "Your email",
       buttonText: "JOIN THE TEAM",
-      secondaryButtonText: "Not ready",
+      dismissLabel: "Not ready",
       successMessage: "Let's crush it! 💪",
       // Personalized fitness - collect name
       nameFieldEnabled: true,
@@ -936,7 +936,7 @@ const activeLife: StyledRecipe = {
       subheadline: "Gear guides, trail tips, and exclusive outdoor deals.",
       emailPlaceholder: "Enter your email",
       buttonText: "Explore More",
-      secondaryButtonText: "Not today",
+      dismissLabel: "Not today",
       successMessage: "Welcome to the adventure!",
       // Adventurous - collect name for personalized recommendations
       nameFieldEnabled: true,

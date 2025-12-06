@@ -16,6 +16,9 @@ import type { TemplateType } from "~/shared/hooks/useWizardState";
 import type { FrequencyCappingConfig } from "~/domains/targeting/components/FrequencyCappingPanel";
 import type { Variant } from "../types";
 import type { CampaignData } from "../SingleCampaignFlow";
+import type { BackgroundPreset } from "~/config/background-presets";
+import type { GlobalFrequencyCappingSettings } from "~/domains/store/types/settings";
+import type { ThemePreset } from "../../steps/DesignContentStep";
 
 // Default configs
 const DEFAULT_TARGETING_CONFIG: TargetingConfig = {
@@ -72,6 +75,15 @@ export interface VariantCampaignEditorProps {
   isControlVariant: boolean;
   /** For non-control variants: restrict recipes to this goal (from control variant) */
   controlGoal?: string;
+  // === New props for feature parity ===
+  /** Custom theme presets from store settings */
+  customThemePresets?: ThemePreset[];
+  /** Map of layout -> background presets */
+  backgroundsByLayout?: Record<string, BackgroundPreset[]>;
+  /** Global custom CSS from store settings */
+  globalCustomCSS?: string;
+  /** Global frequency capping settings from store */
+  globalFrequencyCapping?: GlobalFrequencyCappingSettings;
 }
 
 export function VariantCampaignEditor({
@@ -83,6 +95,11 @@ export function VariantCampaignEditor({
   onSave,
   isControlVariant,
   controlGoal,
+  // New props for feature parity
+  customThemePresets,
+  backgroundsByLayout,
+  globalCustomCSS,
+  globalFrequencyCapping,
 }: VariantCampaignEditorProps) {
   const initialData = variant.campaignData;
 
@@ -256,12 +273,17 @@ export function VariantCampaignEditor({
             }}
             onMarkComplete={markComplete}
             storeId={storeId}
-            shopDomain={shopDomain}
             advancedTargetingEnabled={advancedTargetingEnabled}
             templateType={templateType}
             campaignGoal={selectedRecipe?.goal}
             restrictRecipesToGoal={!isControlVariant && controlGoal ? controlGoal as CampaignGoal : undefined}
             variantLabel={!isControlVariant ? `Variant ${variant.name}` : undefined}
+            // New props for feature parity
+            customThemePresets={customThemePresets}
+            backgroundsByLayout={backgroundsByLayout}
+            globalCustomCSS={globalCustomCSS}
+            globalFrequencyCapping={globalFrequencyCapping}
+            onMobileLayoutChange={() => setPreviewDevice("mobile")}
           />
         </Layout.Section>
       </Layout>

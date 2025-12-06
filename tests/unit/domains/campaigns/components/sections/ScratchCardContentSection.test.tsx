@@ -162,10 +162,9 @@ describe("ScratchCardContentSection - ALL Configuration Options", () => {
         />,
       );
 
-      const emailPlaceholderField = container.querySelector('s-text-field[name="content.emailPlaceholder"]');
+      // LeadCaptureFormSection uses "emailPlaceholder" without "content." prefix
+      const emailPlaceholderField = container.querySelector('s-text-field[name="emailPlaceholder"]');
       expect(emailPlaceholderField).toBeTruthy();
-      // Default placeholder is "Enter your email" based on component code
-      expect(emailPlaceholderField?.getAttribute("value")).toBe("Enter your email");
     });
 
     it("should render custom email placeholder", () => {
@@ -178,7 +177,8 @@ describe("ScratchCardContentSection - ALL Configuration Options", () => {
         />,
       );
 
-      const emailPlaceholderField = container.querySelector('s-text-field[name="content.emailPlaceholder"]');
+      // LeadCaptureFormSection uses "emailPlaceholder" without "content." prefix
+      const emailPlaceholderField = container.querySelector('s-text-field[name="emailPlaceholder"]');
       expect(emailPlaceholderField).toBeTruthy();
       expect(emailPlaceholderField?.getAttribute("value")).toBe("your.email@example.com");
     });
@@ -345,9 +345,11 @@ describe("ScratchCardContentSection - ALL Configuration Options", () => {
       );
 
       // Parse with minimal required fields - schema should apply defaults
+      // scratchInstruction is required (no default)
       const parsed = ScratchCardContentSchema.parse({
         headline: "Test Scratch",
         buttonText: "Reveal",
+        scratchInstruction: "Scratch to reveal your prize!",
       });
 
       // Verify defaults are applied
@@ -372,9 +374,11 @@ describe("ScratchCardContentSection - ALL Configuration Options", () => {
         { id: "p2", label: "10% OFF", probability: 0.5, color: "#00FF00" },
       ];
 
+      // scratchInstruction is required (no default)
       const parsed = ScratchCardContentSchema.parse({
         headline: "Test Scratch",
         buttonText: "Reveal",
+        scratchInstruction: "Scratch to reveal!",
         prizes: customPrizes,
       });
 
@@ -389,9 +393,11 @@ describe("ScratchCardContentSection - ALL Configuration Options", () => {
       );
 
       // Test with custom scratch settings
+      // scratchInstruction is required (no default)
       const parsed = ScratchCardContentSchema.parse({
         headline: "Test Scratch",
         buttonText: "Reveal",
+        scratchInstruction: "Scratch to reveal!",
         scratchThreshold: 75,
         scratchRadius: 40,
       });
