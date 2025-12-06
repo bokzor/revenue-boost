@@ -69,10 +69,11 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
   // Desktop uses a wider logical viewport so overlays (like upsell bars)
   // don't appear to span the *entire* browser width in preview.
   // Mobile uses iPhone 14/15 dimensions (390×844) - more representative of modern phones.
+  // Desktop height increased to 768px to accommodate content-heavy popups like Product Upsell.
   const virtualViewports = {
     mobile: { width: 390, height: 844 },
     tablet: { width: 768, height: 800 },
-    desktop: { width: 1024, height: 600 },
+    desktop: { width: 1024, height: 768 },
   };
 
   const viewport = virtualViewports[device];

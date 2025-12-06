@@ -597,6 +597,7 @@ const PopupPortalComponent: React.FC<PopupPortalProps> = ({
   const backdropStyles: React.CSSProperties = {
     position: "absolute",
     inset: 0,
+    zIndex: 0, // Ensure backdrop is below content (dialog-wrapper has z-index: 1)
     background: getBackdropColor(),
     backdropFilter: backdrop.blur ? `blur(${backdrop.blur}px)` : undefined,
     animationDelay: `${backdropTiming.delay}ms`,
@@ -687,34 +688,26 @@ const PopupPortalComponent: React.FC<PopupPortalProps> = ({
         }}
         onClick={handleContentClick}
         onKeyDown={(e) => e.stopPropagation()}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
         role="dialog"
         aria-modal="true"
         aria-label={ariaLabel}
         aria-describedby={ariaDescribedBy}
         tabIndex={-1}
       >
-        {frameStyles ? (
-          <div className="popup-portal-frame" style={frameStyles}>
-            {/* Drag Handle - Only visible on mobile, now inside frame */}
-            <div className="popup-drag-handle" aria-hidden="true">
-              <div className="popup-drag-handle-bar" />
-            </div>
-            {children}
-            {showBranding && <PoweredByBadge position="bottom-right" />}
+        <div className="popup-portal-frame" style={frameStyles}>
+          {/* Drag Handle - Only visible on mobile, swipe-to-dismiss only on this element */}
+          <div
+            className="popup-drag-handle"
+            aria-hidden="true"
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+          >
+            <div className="popup-drag-handle-bar" />
           </div>
-        ) : (
-          <>
-            {/* Drag Handle - Only visible on mobile */}
-            <div className="popup-drag-handle" aria-hidden="true">
-              <div className="popup-drag-handle-bar" />
-            </div>
-            {children}
-            {showBranding && <PoweredByBadge position="bottom-right" />}
-          </>
-        )}
+          {children}
+          {showBranding && <PoweredByBadge position="bottom-right" />}
+        </div>
       </div>
     </div>
   );
@@ -876,6 +869,8 @@ function getAnimationKeyframes(
       /* Enable container queries for popup content (used by PopupGridContainer) */
       container-type: inline-size;
       container-name: viewport;
+      /* Allow clicks to pass through to backdrop, children re-enable pointer-events */
+      pointer-events: none;
     }
 
     /* ========================================
@@ -894,6 +889,8 @@ function getAnimationKeyframes(
       /* Enable container query for child components */
       container-type: inline-size;
       container-name: popup-viewport;
+      /* Re-enable pointer events for the actual popup content */
+      pointer-events: auto;
     }
 
     /* ========================================

@@ -112,7 +112,7 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
   const [animatedSavings, setAnimatedSavings] = useState(0);
   const [carouselIndex, setCarouselIndex] = useState(0);
   const [stackExpandedIndex, setStackExpandedIndex] = useState<number | null>(null);
-  const [isSummaryExpanded, setIsSummaryExpanded] = useState(true);
+  const [isSummaryExpanded, setIsSummaryExpanded] = useState(false);
   const rippleIdRef = useRef(0);
   const carouselRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -126,13 +126,6 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
   // Determine active layout (layoutMode takes precedence over layout from content)
   const activeLayout: ProductUpsellLayout =
     config.layoutMode || (config.layout as ProductUpsellLayout) || "grid";
-
-  // DEBUG: Log layout values
-  console.log("[ProductUpsellPopup] Layout debug:", {
-    configLayoutMode: config.layoutMode,
-    configLayout: config.layout,
-    activeLayout,
-  });
 
   // Haptic feedback helper
   const triggerHaptic = useCallback(
@@ -403,16 +396,10 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
     };
   }, [isSummaryExpanded, selectedProducts.size]);
 
-  // Reset summary state when selection changes to include new items
+  // Reset summary interaction state when selection is cleared
   useEffect(() => {
-    if (selectedProducts.size > 0) {
-      // Re-expand briefly when new items are added (unless user manually collapsed)
-      if (!hasUserInteractedWithSummary.current) {
-        setIsSummaryExpanded(true);
-      }
-    } else {
-      // Reset everything when no items selected
-      setIsSummaryExpanded(true);
+    if (selectedProducts.size === 0) {
+      // Reset interaction tracking when no items selected
       hasUserInteractedWithSummary.current = false;
     }
   }, [selectedProducts.size]);
@@ -491,18 +478,16 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           </div>
         )}
 
-        {/* Savings badge - enhanced with pulse */}
+        {/* Savings badge */}
         {savingsPercent !== null && (
           <div className="upsell-product-savings">
             <span className="upsell-savings-text">-{savingsPercent}%</span>
-            <span className="upsell-savings-shine" />
           </div>
         )}
 
         {/* Product image with hover overlay */}
         {config.showImages !== false && product.imageUrl && (
           <div className="upsell-product-image">
-            <div className="upsell-image-skeleton" />
             <img src={product.imageUrl} alt={product.title} loading="lazy" />
             <div className="upsell-image-overlay">
               <span className="upsell-quick-add">+</span>
@@ -583,12 +568,14 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
   };
 
   // Carousel navigation
-  const goToNextSlide = useCallback(() => {
+  const goToNextSlide = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
     setCarouselIndex((prev) => Math.min(prev + 1, displayProducts.length - 1));
     triggerHaptic(8);
   }, [displayProducts.length, triggerHaptic]);
 
-  const goToPrevSlide = useCallback(() => {
+  const goToPrevSlide = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
     setCarouselIndex((prev) => Math.max(prev - 1, 0));
     triggerHaptic(8);
   }, [triggerHaptic]);
@@ -638,13 +625,11 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
                 {savingsPercent !== null && (
                   <div className="upsell-product-savings">
                     <span className="upsell-savings-text">-{savingsPercent}%</span>
-                    <span className="upsell-savings-shine" />
                   </div>
                 )}
 
                 {config.showImages !== false && product.imageUrl && (
                   <div className="upsell-carousel-image">
-                    <div className="upsell-image-skeleton" />
                     <img src={product.imageUrl} alt={product.title} loading="lazy" />
                   </div>
                 )}
@@ -746,12 +731,9 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
         >
           {isSelected && <div className="upsell-selection-glow" />}
 
-          <div className="upsell-featured-badge">⭐ FEATURED</div>
-
           {savingsPercent !== null && (
             <div className="upsell-product-savings upsell-product-savings--large">
               <span className="upsell-savings-text">-{savingsPercent}%</span>
-              <span className="upsell-savings-shine" />
             </div>
           )}
 
@@ -992,7 +974,6 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
     if (displayProducts.length === 0) {
       return (
         <div className="upsell-empty">
-          <span className="upsell-empty-icon">📦</span>
           <p>No products available</p>
         </div>
       );
@@ -1025,7 +1006,7 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
   const _totalSavings = calculateTotalSavings();
   const discountedTotal = calculateDiscountedTotal();
 
-  const popupMaxWidth = config.maxWidth || sizeMaxWidth || "56rem";
+  const popupMaxWidth = config.maxWidth || sizeMaxWidth || "520px";
 
   // Auto-close timer
   useEffect(() => {
@@ -1059,6 +1040,7 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
       }}
       animation={{ type: config.animation || "fade" }}
       position={config.position || "center"}
+      size={config.size || "medium"}
       closeOnEscape={config.closeOnEscape !== false}
       closeOnBackdropClick={config.closeOnOverlayClick !== false}
       previewMode={config.previewMode}
@@ -1083,7 +1065,8 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
           display: flex;
           flex-direction: column;
-          max-height: 90%;
+          /* In preview mode, don't constrain height so entire popup is visible */
+          max-height: ${config.previewMode ? "none" : "calc(100vh - 3rem)"};
           container-type: inline-size;
           container-name: upsell;
 
@@ -1158,33 +1141,9 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           justify-content: center;
           gap: 0.5rem;
         }
-        .upsell-banner-icon {
-          font-size: 1.1rem;
-          animation: bannerIconPulse 2s ease-in-out infinite;
-        }
-        .upsell-banner-shimmer {
-          position: absolute;
-          top: 0;
-          left: -100%;
-          width: 100%;
-          height: 100%;
-          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
-          animation: bannerShimmer 3s ease-in-out infinite;
-        }
-        @keyframes bannerShimmer {
-          0%, 100% { left: -100%; }
-          50% { left: 100%; }
-        }
-        @keyframes bannerIconPulse {
-          0%, 100% { transform: scale(1); }
-          50% { transform: scale(1.2); }
-        }
         .upsell-bundle-banner--active {
           background: linear-gradient(135deg, #10B981 0%, #059669 100%);
           box-shadow: 0 0 12px 2px rgba(16, 185, 129, 0.4);
-        }
-        .upsell-bundle-banner--active .upsell-banner-shimmer {
-          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
         }
 
         /* ===== CONTENT AREA ===== */
@@ -1193,6 +1152,12 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           overflow-y: auto;
           padding: 1rem 1.5rem;
           min-height: 0;
+          display: flex;
+          flex-direction: column;
+        }
+        /* When carousel is used, disable scrolling - carousel fits within */
+        .upsell-content:has(.upsell-carousel-container) {
+          overflow: hidden;
         }
 
         /* ===== EMPTY STATE ===== */
@@ -1200,11 +1165,6 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           padding: 2.5rem 1rem;
           text-align: center;
           color: var(--upsell-text-muted);
-        }
-        .upsell-empty-icon {
-          font-size: 3rem;
-          display: block;
-          margin-bottom: 0.75rem;
         }
 
         /* ===== GRID LAYOUT ===== */
@@ -1218,12 +1178,17 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
          * CAROUSEL LAYOUT
          * One product at a time with peek of next/prev
          * Always centered regardless of screen size
+         * Fits within available content height without scrolling
          * ============================================ */
         .upsell-carousel-container {
           position: relative;
           width: 100%;
+          height: 100%;
+          min-height: 0;
           overflow: hidden;
-          padding: 1rem 0;
+          padding: 0.5rem 0;
+          display: flex;
+          flex-direction: column;
           /* CSS custom properties for responsive sizing */
           --carousel-slide-width: 80%;
           --carousel-gap: 1rem;
@@ -1231,6 +1196,9 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
         .upsell-carousel-track {
           display: flex;
           gap: var(--carousel-gap);
+          flex: 1;
+          min-height: 0;
+          align-items: stretch;
           transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
           /*
            * Centering formula:
@@ -1247,6 +1215,8 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
         }
         .upsell-carousel-slide {
           flex: 0 0 var(--carousel-slide-width);
+          display: flex;
+          min-height: 0;
           transition: all 0.3s ease;
           opacity: 0.5;
           transform: scale(0.92);
@@ -1259,6 +1229,10 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
         }
         .upsell-carousel-card {
           position: relative;
+          width: 100%;
+          display: flex;
+          flex-direction: column;
+          min-height: 0;
           background: var(--upsell-bg);
           border: 2px solid var(--upsell-border);
           border-radius: var(--upsell-radius);
@@ -1274,7 +1248,8 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
         }
         .upsell-carousel-image {
           position: relative;
-          aspect-ratio: 16/10;
+          flex: 1;
+          min-height: 80px;
           background: var(--upsell-bg-secondary);
           overflow: hidden;
         }
@@ -1284,45 +1259,49 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           object-fit: cover;
         }
         .upsell-carousel-info {
-          padding: 1.25rem;
+          flex-shrink: 0;
+          padding: 1rem;
         }
         .upsell-carousel-title {
-          font-size: 1.25rem;
+          font-size: 1.125rem;
           font-weight: 700;
-          margin: 0 0 0.5rem;
+          margin: 0 0 0.375rem;
           color: var(--upsell-text);
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
         .upsell-carousel-desc {
-          font-size: 0.875rem;
+          font-size: 0.8125rem;
           color: var(--upsell-text-muted);
-          margin: 0 0 0.75rem;
-          line-height: 1.5;
+          margin: 0 0 0.5rem;
+          line-height: 1.4;
           display: -webkit-box;
           -webkit-line-clamp: 2;
           -webkit-box-orient: vertical;
           overflow: hidden;
         }
         .upsell-carousel-rating {
-          margin-bottom: 0.75rem;
+          margin-bottom: 0.5rem;
         }
         .upsell-carousel-price {
           display: flex;
           align-items: baseline;
           gap: 0.5rem;
           flex-wrap: wrap;
-          margin-bottom: 1rem;
+          margin-bottom: 0.75rem;
         }
         .upsell-carousel-price .upsell-price-current {
-          font-size: 1.5rem;
+          font-size: 1.25rem;
         }
         .upsell-carousel-select {
           width: 100%;
-          padding: 0.875rem;
+          padding: 0.75rem;
           border: none;
           border-radius: calc(var(--upsell-radius) - 4px);
           background: var(--upsell-accent);
           color: #fff;
-          font-size: 1rem;
+          font-size: 0.9375rem;
           font-weight: 600;
           cursor: pointer;
           transition: all 0.2s ease;
@@ -1418,19 +1397,6 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
         .upsell-featured-hero--selected {
           border-color: var(--upsell-accent);
           box-shadow: 0 0 0 3px color-mix(in srgb, var(--upsell-accent) 25%, transparent);
-        }
-        .upsell-featured-badge {
-          position: absolute;
-          top: 1rem;
-          left: 1rem;
-          padding: 0.375rem 0.75rem;
-          background: linear-gradient(135deg, #F59E0B, #FBBF24);
-          color: #fff;
-          font-size: 0.6875rem;
-          font-weight: 700;
-          border-radius: 4px;
-          z-index: 5;
-          box-shadow: 0 2px 8px rgba(245, 158, 11, 0.4);
         }
         .upsell-featured-image {
           aspect-ratio: 1;
@@ -1690,7 +1656,7 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           box-shadow: 0 2px 8px rgba(0,0,0,0.2);
         }
 
-        /* ===== SAVINGS BADGE - Enhanced with pulse ===== */
+        /* ===== SAVINGS BADGE ===== */
         .upsell-product-savings {
           position: absolute;
           top: 0.5rem;
@@ -1702,26 +1668,7 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           color: #fff;
           font-size: 0.75rem;
           font-weight: 700;
-          overflow: hidden;
-          animation: savingsPulse 2s ease-in-out infinite;
           box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4);
-        }
-        .upsell-savings-shine {
-          position: absolute;
-          top: 0;
-          left: -100%;
-          width: 100%;
-          height: 100%;
-          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
-          animation: savingsShine 2.5s ease-in-out infinite;
-        }
-        @keyframes savingsPulse {
-          0%, 100% { transform: scale(1); }
-          50% { transform: scale(1.05); }
-        }
-        @keyframes savingsShine {
-          0%, 100% { left: -100%; }
-          50% { left: 100%; }
         }
 
         /* ===== PRODUCT IMAGE - Enhanced with overlay ===== */
@@ -1730,17 +1677,6 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           aspect-ratio: 1;
           background: var(--upsell-bg-secondary);
           overflow: hidden;
-        }
-        .upsell-image-skeleton {
-          position: absolute;
-          inset: 0;
-          background: linear-gradient(90deg, var(--upsell-bg-secondary) 25%, #e5e7eb 50%, var(--upsell-bg-secondary) 75%);
-          background-size: 200% 100%;
-          animation: skeletonShimmer 1.5s infinite;
-        }
-        @keyframes skeletonShimmer {
-          0% { background-position: 200% 0; }
-          100% { background-position: -200% 0; }
         }
         .upsell-product-image img {
           position: relative;
@@ -2249,20 +2185,6 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           color: var(--upsell-accent);
           flex-shrink: 0;
         }
-        .upsell-summary-expand-icon,
-        .upsell-summary-collapse-icon {
-          font-size: 0.625rem;
-          color: var(--upsell-text-muted);
-          flex-shrink: 0;
-          transition: transform 0.2s ease;
-          opacity: 0.6;
-          margin-left: 0.25rem;
-        }
-        .upsell-summary:hover .upsell-summary-expand-icon,
-        .upsell-summary:hover .upsell-summary-collapse-icon {
-          opacity: 1;
-        }
-
         /* Success message */
         .upsell-success-message {
           display: flex;
@@ -2343,19 +2265,6 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
         .upsell-cta:disabled {
           opacity: 0.5;
           cursor: not-allowed;
-        }
-        .upsell-cta-icon {
-          font-size: 1.125rem;
-          transition: transform 0.3s ease;
-        }
-        .upsell-cta:hover .upsell-cta-icon {
-          animation: cartBounce 0.5s ease-out;
-        }
-        @keyframes cartBounce {
-          0%, 100% { transform: translateY(0); }
-          25% { transform: translateY(-4px) rotate(-5deg); }
-          50% { transform: translateY(0) rotate(5deg); }
-          75% { transform: translateY(-2px) rotate(0deg); }
         }
         .upsell-cta-text {
           position: relative;
@@ -2611,16 +2520,14 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           {config.subheadline && <p className="upsell-subheadline">{config.subheadline}</p>}
         </div>
 
-        {/* Bundle discount banner - enhanced with shimmer */}
+        {/* Bundle discount banner */}
         {config.bundleDiscount && config.bundleDiscount > 0 && (
           <div
             className={`upsell-bundle-banner ${hasSelectedProducts ? "upsell-bundle-banner--active" : ""}`}
           >
-            <span className="upsell-banner-icon">✨</span>
             <span className="upsell-banner-text">
               {config.bundleDiscountText || `Save ${config.bundleDiscount}% on selected items!`}
             </span>
-            <span className="upsell-banner-shimmer" />
           </div>
         )}
 
@@ -2692,7 +2599,7 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
                     {formatCurrency(discountedTotal, config.currency)}
                   </span>
 
-                  <span className="upsell-summary-expand-icon">▲</span>
+
                 </div>
               )}
 
@@ -2723,7 +2630,6 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
                       <span className="upsell-summary-label">
                         {selectedProducts.size} item{selectedProducts.size !== 1 ? "s" : ""}{" "}
                         selected
-                        <span className="upsell-summary-collapse-icon">▼</span>
                       </span>
                       {calculateCompareAtSavings() && (
                         <span className="upsell-summary-original">
@@ -2734,7 +2640,7 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
 
                     {calculateBundleSavings() && (
                       <div className="upsell-summary-row upsell-bundle-row">
-                        <span>🎉 {config.bundleDiscount}% bundle discount</span>
+                        <span>{config.bundleDiscount}% bundle discount</span>
                         <span className="upsell-bundle-savings">
                           -{formatCurrency(calculateBundleSavings()!, config.currency)}
                         </span>
@@ -2805,7 +2711,6 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
                   </>
                 ) : (
                   <>
-                    <span className="upsell-cta-icon">🛒</span>
                     <span className="upsell-cta-text">{getCtaLabel()}</span>
                     {selectedProducts.size > 0 && animatedSavings > 0 && (
                       <span className="upsell-cta-savings">
