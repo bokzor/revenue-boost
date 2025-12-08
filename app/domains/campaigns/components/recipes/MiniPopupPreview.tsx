@@ -59,12 +59,6 @@ const containerStyle: React.CSSProperties = {
   backgroundColor: "var(--p-color-bg-surface-secondary)",
 };
 
-// Template types that use banner/bar layout (full width)
-const BANNER_TEMPLATES = ["ANNOUNCEMENT", "FREE_SHIPPING", "SOCIAL_PROOF"];
-
-// Layouts that indicate banner/bar style
-const BANNER_LAYOUTS = ["banner-top", "banner-bottom", "bar"];
-
 // =============================================================================
 // CONSTANTS
 // =============================================================================
@@ -119,17 +113,12 @@ export function MiniPopupPreview({ recipe, scale, width, height, defaultThemeTok
     return () => resizeObserver.disconnect();
   }, []);
 
-  // Determine if this is a banner-style template by checking both templateType and layout
-  const isBanner =
-    BANNER_TEMPLATES.includes(recipe.templateType) || BANNER_LAYOUTS.includes(recipe.layout);
-
   // Virtual viewport sizes - the "native" size at which we render the popup
-  // Mini preview always renders as iPhone 14 (390×844) with device frame to show mobile layout
-  // Banners use wider aspect ratio without device frame
+  // All templates render as iPhone 14 (390×844) with device frame to show mobile layout
   // DeviceFrame adds 24px border (12px each side)
   const DEVICE_FRAME_BORDER = 24;
-  const virtualWidth = isBanner ? 600 : IPHONE_14_WIDTH + DEVICE_FRAME_BORDER;
-  const virtualHeight = isBanner ? 80 : IPHONE_14_HEIGHT + DEVICE_FRAME_BORDER;
+  const virtualWidth = IPHONE_14_WIDTH + DEVICE_FRAME_BORDER;
+  const virtualHeight = IPHONE_14_HEIGHT + DEVICE_FRAME_BORDER;
 
   // Calculate scale to fit entire popup in container
   // Use min of width ratio and height ratio to ensure everything fits
@@ -228,88 +217,6 @@ export function MiniPopupPreview({ recipe, scale, width, height, defaultThemeTok
   const containerWidthProp = width || "100%";
   const containerHeightProp = height || "100%";
 
-  // Styles to inject into Shadow DOM for banner previews
-  const bannerShadowStyles = `
-    [data-mini-banner-preview] .free-shipping-bar,
-    [data-mini-banner-preview] [data-rb-banner],
-    [data-mini-banner-preview] .announcement-bar,
-    [data-mini-banner-preview] [class*="announcement"],
-    [data-mini-banner-preview] [class*="social-proof"] {
-      position: relative !important;
-      top: auto !important;
-      bottom: auto !important;
-      left: auto !important;
-      right: auto !important;
-      width: 100% !important;
-      transform: none !important;
-      animation: none !important;
-    }
-    [data-mini-banner-preview] .free-shipping-bar-close,
-    [data-mini-banner-preview] .free-shipping-bar-dismiss {
-      display: none !important;
-    }
-  `;
-
-  // For banners: use two-layer scaling for container queries
-  // Outer layer clips and scales, inner layer renders at full size
-  const bannerScaledWidth = virtualWidth * effectiveScale;
-  const bannerScaledHeight = 80; // Fixed height for banner preview
-
-  if (isBanner) {
-    return (
-      <div
-        ref={containerRef}
-        style={{
-          ...containerStyle,
-          width:
-            typeof containerWidthProp === "number" ? `${containerWidthProp}px` : containerWidthProp,
-          height:
-            typeof containerHeightProp === "number"
-              ? `${containerHeightProp}px`
-              : containerHeightProp,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <ShadowDomWrapper styles={bannerShadowStyles}>
-          {/* Outer clip container */}
-          <div
-            style={{
-              width: bannerScaledWidth,
-              height: bannerScaledHeight,
-              overflow: "hidden",
-              position: "relative",
-            }}
-          >
-            {/* Inner viewport - renders at full size */}
-            <div
-              data-mini-banner-preview="true"
-              style={{
-                width: virtualWidth,
-                position: "absolute",
-                top: "50%",
-                left: "50%",
-                transform: `translate(-50%, -50%) scale(${effectiveScale})`,
-                transformOrigin: "center center",
-              }}
-            >
-              <TemplatePreview
-                key={remountKey}
-                templateType={recipe.templateType}
-                config={contentConfig}
-                designConfig={designConfig}
-                onClose={handleClose}
-                isVisible={isPopupVisible}
-                defaultThemeTokens={defaultThemeTokens}
-              />
-            </div>
-          </div>
-        </ShadowDomWrapper>
-      </div>
-    );
-  }
-
   // Popup style: use two-layer scaling for container queries
   // Outer layer clips and scales, inner layer renders at full size
   const scaledWidth = virtualWidth * effectiveScale;
@@ -366,8 +273,8 @@ export function MiniPopupPreview({ recipe, scale, width, height, defaultThemeTok
               } as React.CSSProperties
             }
           >
-            {isBanner ? (
-              // Banners render without device frame
+            {/* All templates render inside iPhone frame for consistent preview */}
+            <DeviceFrame device="mobile" showShadow={false}>
               <TemplatePreview
                 key={remountKey}
                 templateType={recipe.templateType}
@@ -377,20 +284,7 @@ export function MiniPopupPreview({ recipe, scale, width, height, defaultThemeTok
                 isVisible={isPopupVisible}
                 defaultThemeTokens={defaultThemeTokens}
               />
-            ) : (
-              // Regular popups render inside iPhone frame (no shadow for mini preview)
-              <DeviceFrame device="mobile" showShadow={false}>
-                <TemplatePreview
-                  key={remountKey}
-                  templateType={recipe.templateType}
-                  config={contentConfig}
-                  designConfig={designConfig}
-                  onClose={handleClose}
-                  isVisible={isPopupVisible}
-                  defaultThemeTokens={defaultThemeTokens}
-                />
-              </DeviceFrame>
-            )}
+            </DeviceFrame>
           </div>
         </div>
       </ShadowDomWrapper>

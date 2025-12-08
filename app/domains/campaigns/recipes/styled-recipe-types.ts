@@ -737,15 +737,18 @@ export const USE_CASE_RECIPE_IDS = [
  * Seasonal recipe IDs that should always use preset designs.
  */
 export const SEASONAL_RECIPE_IDS = [
-  // Flash Sale seasonal
-  "flash-sale-black-friday",
-  "flash-sale-cyber-monday",
-  "flash-sale-holiday",
-  "flash-sale-summer",
-  "flash-sale-spring",
-  "flash-sale-valentines",
-  "flash-sale-halloween",
-  "flash-sale-new-year",
+  // Flash Sale seasonal (IDs must match actual recipe IDs in flash-sale-design-recipes.ts)
+  "black-friday-sale",
+  "cyber-monday-sale",
+  "holiday-sale",
+  "summer-sale",
+  "easter-sale",
+  "valentine-sale",
+  "halloween-sale",
+  "thanksgiving-sale",
+  "new-year-sale",
+  "winter-sale",
+  "back-to-school-sale",
 ] as const;
 
 /**
