@@ -7,7 +7,6 @@ import {
     STORE_DOMAIN,
     API_PROPAGATION_DELAY_MS,
     handlePasswordPage,
-    mockChallengeToken,
     getTestPrefix,
     waitForPopupWithRetry,
     cleanupAllE2ECampaigns,
@@ -64,7 +63,6 @@ test.describe.serial('Checkout Flow', () => {
         // Clean up ALL E2E campaigns to avoid priority conflicts
         await cleanupAllE2ECampaigns(prisma);
         await page.waitForTimeout(500);
-        await mockChallengeToken(page);
 
         page.on('console', msg => {
             if (msg.text().includes('[Revenue Boost]') || msg.text().includes('[Checkout]')) {

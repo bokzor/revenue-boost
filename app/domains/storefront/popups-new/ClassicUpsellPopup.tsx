@@ -42,13 +42,30 @@ export const ClassicUpsellPopup: React.FC<ClassicUpsellPopupProps> = ({
 
   if (!product) return null;
 
-  const discount = product.compareAtPrice
-    ? Math.round(
-        ((parseFloat(product.compareAtPrice) - parseFloat(product.price)) /
-          parseFloat(product.compareAtPrice)) *
-          100
-      )
-    : 0;
+  // Calculate pricing with bundleDiscount
+  const originalPrice = parseFloat(product.price);
+  const bundleDiscount = config.bundleDiscount || 0;
+
+  // If bundleDiscount is configured, apply it to the product price
+  // Otherwise, fall back to compareAtPrice discount (existing product sale)
+  const hasUpsellDiscount = bundleDiscount > 0;
+  const discountedPrice = hasUpsellDiscount
+    ? originalPrice * (1 - bundleDiscount / 100)
+    : originalPrice;
+
+  // For display: show original price as compare-at when bundleDiscount is applied
+  // Or use product's compareAtPrice if no bundleDiscount
+  const displayPrice = hasUpsellDiscount ? discountedPrice : originalPrice;
+  const compareAtPrice = hasUpsellDiscount
+    ? originalPrice
+    : (product.compareAtPrice ? parseFloat(product.compareAtPrice) : null);
+
+  // Calculate savings percentage for display
+  const savingsPercent = hasUpsellDiscount
+    ? bundleDiscount
+    : (product.compareAtPrice
+        ? Math.round(((parseFloat(product.compareAtPrice) - originalPrice) / parseFloat(product.compareAtPrice)) * 100)
+        : 0);
 
   const handleAddToCart = async () => {
     if (!onAddToCart || isLoading) return;
@@ -147,8 +164,11 @@ export const ClassicUpsellPopup: React.FC<ClassicUpsellPopupProps> = ({
           </svg>
         </button>
 
-        {product.savingsPercent && (
-          <div className="classic-upsell-badge">{product.savingsPercent}% OFF</div>
+        {/* Discount badge - show bundleDiscount or product savings */}
+        {savingsPercent > 0 && (
+          <div className="classic-upsell-badge">
+            {config.bundleDiscountText || `${savingsPercent}% OFF`}
+          </div>
         )}
 
         {config.showImages !== false && product.imageUrl && (
@@ -162,15 +182,19 @@ export const ClassicUpsellPopup: React.FC<ClassicUpsellPopupProps> = ({
           {product.description && <p className="classic-upsell-desc">{product.description}</p>}
 
           <div className="classic-upsell-price">
+            {/* Show discounted price as current price */}
             <span className="classic-price-current">
-              {formatCurrency(product.price, config.currency)}
+              {formatCurrency(displayPrice, config.currency)}
             </span>
-            {product.compareAtPrice && (
+            {/* Show original price as compare-at (struck through) */}
+            {compareAtPrice && compareAtPrice > displayPrice && (
               <span className="classic-price-compare">
-                {formatCurrency(product.compareAtPrice, config.currency)}
+                {formatCurrency(compareAtPrice, config.currency)}
               </span>
             )}
-            {discount > 0 && <span className="classic-price-savings">Save {discount}%</span>}
+            {savingsPercent > 0 && (
+              <span className="classic-price-savings">Save {savingsPercent}%</span>
+            )}
           </div>
 
           <div className="classic-upsell-actions">
@@ -183,7 +207,7 @@ export const ClassicUpsellPopup: React.FC<ClassicUpsellPopupProps> = ({
                 ? "✓ Added to Cart"
                 : isLoading
                   ? "Adding..."
-                  : `Add to Cart — ${formatCurrency(product.price, config.currency)}`}
+                  : `Add to Cart — ${formatCurrency(displayPrice, config.currency)}`}
             </button>
             <button className="classic-upsell-decline" onClick={onClose}>
               {config.secondaryCtaLabel || "No thanks, continue without"}

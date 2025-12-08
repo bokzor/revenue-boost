@@ -28,12 +28,15 @@ export interface ProductUpsellContentSectionProps {
   content: Partial<ProductUpsellContent>;
   errors?: Record<string, string>;
   onChange: (content: Partial<ProductUpsellContent>) => void;
+  /** When true, only allows single product selection and hides multi-product options (layout, columns, maxProducts, multiSelect) */
+  singleProductMode?: boolean;
 }
 
 export function ProductUpsellContentSection({
   content,
   errors,
   onChange,
+  singleProductMode = false,
 }: ProductUpsellContentSectionProps) {
   // Collapsible section state
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
@@ -240,13 +243,13 @@ export function ProductUpsellContentSection({
                 {selectionMethod === "manual" && (
                   <ProductPicker
                     mode="product"
-                    selectionType="multiple"
+                    selectionType={singleProductMode ? "single" : "multiple"}
                     selectedIds={content.selectedProducts || []}
                     onSelect={(selections: ProductPickerSelection[]) => {
                       const productIds = selections.map((s) => s.id);
                       updateField("selectedProducts", productIds);
                     }}
-                    buttonLabel="Select products to feature"
+                    buttonLabel={singleProductMode ? "Select product to feature" : "Select products to feature"}
                     showSelected={true}
                   />
                 )}
@@ -265,15 +268,17 @@ export function ProductUpsellContentSection({
                   />
                 )}
 
-                <TextField
-                  label="Maximum Products to Display"
-                  name="content.maxProducts"
-                  value={content.maxProducts?.toString() ?? ""}
-                  error={errors?.maxProducts}
-                  placeholder="3"
-                  helpText="Maximum number of products to show (1-12)"
-                  onChange={(value) => updateField("maxProducts", (value === "" ? undefined : parseInt(value)) as number)}
-                />
+                {!singleProductMode && (
+                  <TextField
+                    label="Maximum Products to Display"
+                    name="content.maxProducts"
+                    value={content.maxProducts?.toString() ?? ""}
+                    error={errors?.maxProducts}
+                    placeholder="3"
+                    helpText="Maximum number of products to show (1-12)"
+                    onChange={(value) => updateField("maxProducts", (value === "" ? undefined : parseInt(value)) as number)}
+                  />
+                )}
               </BlockStack>
             </Collapsible>
           </BlockStack>
@@ -295,7 +300,7 @@ export function ProductUpsellContentSection({
                   icon={openSections.layoutDisplay ? ChevronUpIcon : ChevronDownIcon}
                 />
                 <Text as="h4" variant="headingSm">
-                  Layout & Display
+                  {singleProductMode ? "Display Options" : "Layout & Display"}
                 </Text>
               </InlineStack>
             </div>
@@ -309,43 +314,46 @@ export function ProductUpsellContentSection({
               }}
             >
               <BlockStack gap="300">
-                <FormGrid columns={2}>
-                  <Select
-                    label="Layout"
-                    name="content.layout"
-                    options={[
-                      { label: "Grid", value: "grid" },
-                      { label: "List", value: "card" },
-                      { label: "Carousel", value: "carousel" },
-                      { label: "Featured + Grid", value: "featured" },
-                      { label: "Stack", value: "stack" },
-                    ]}
-                    helpText={
-                      layout === "carousel"
-                        ? "One product at a time with swipe navigation - great for mobile"
-                        : layout === "featured"
-                          ? "First product highlighted as hero, others in smaller grid"
-                          : layout === "stack"
-                            ? "Overlapping cards - interactive and fun"
-                            : "Choose how upsell products are laid out"
-                    }
-                    value={layout}
-                    onChange={(value) =>
-                      updateField("layout", value as ProductUpsellContent["layout"])
-                    }
-                  />
-
-                  {layout === "grid" && (
-                    <TextField
-                      label="Number of Columns"
-                      name="content.columns"
-                      value={content.columns?.toString() ?? ""}
-                      placeholder="2"
-                      helpText="Columns in grid layout (1-4)"
-                      onChange={(value) => updateField("columns", (value === "" ? undefined : parseInt(value)) as number)}
+                {/* Layout options only for multi-product mode */}
+                {!singleProductMode && (
+                  <FormGrid columns={2}>
+                    <Select
+                      label="Layout"
+                      name="content.layout"
+                      options={[
+                        { label: "Grid", value: "grid" },
+                        { label: "List", value: "card" },
+                        { label: "Carousel", value: "carousel" },
+                        { label: "Featured + Grid", value: "featured" },
+                        { label: "Stack", value: "stack" },
+                      ]}
+                      helpText={
+                        layout === "carousel"
+                          ? "One product at a time with swipe navigation - great for mobile"
+                          : layout === "featured"
+                            ? "First product highlighted as hero, others in smaller grid"
+                            : layout === "stack"
+                              ? "Overlapping cards - interactive and fun"
+                              : "Choose how upsell products are laid out"
+                      }
+                      value={layout}
+                      onChange={(value) =>
+                        updateField("layout", value as ProductUpsellContent["layout"])
+                      }
                     />
-                  )}
-                </FormGrid>
+
+                    {layout === "grid" && (
+                      <TextField
+                        label="Number of Columns"
+                        name="content.columns"
+                        value={content.columns?.toString() ?? ""}
+                        placeholder="2"
+                        helpText="Columns in grid layout (1-4)"
+                        onChange={(value) => updateField("columns", (value === "" ? undefined : parseInt(value)) as number)}
+                      />
+                    )}
+                  </FormGrid>
+                )}
 
                 <FormGrid columns={2}>
                   <CheckboxField
@@ -501,13 +509,16 @@ export function ProductUpsellContentSection({
               }}
             >
               <BlockStack gap="300">
-                <CheckboxField
-                  label="Allow Multi-Select"
-                  name="content.multiSelect"
-                  checked={content.multiSelect !== false}
-                  helpText="Allow customers to select multiple products"
-                  onChange={(checked) => updateField("multiSelect", checked)}
-                />
+                {/* Multi-select only for multi-product mode */}
+                {!singleProductMode && (
+                  <CheckboxField
+                    label="Allow Multi-Select"
+                    name="content.multiSelect"
+                    checked={content.multiSelect !== false}
+                    helpText="Allow customers to select multiple products"
+                    onChange={(checked) => updateField("multiSelect", checked)}
+                  />
+                )}
 
                 <FormGrid columns={2}>
                   <TextField

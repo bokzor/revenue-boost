@@ -245,16 +245,6 @@ export function CTAConfigEditor({
           </BlockStack>
         )}
 
-        {/* Discount options */}
-        {showDiscountOptions && (
-          <Checkbox
-            label="Apply discount before action"
-            checked={config.applyDiscountFirst !== false}
-            onChange={(checked) => updateConfig({ applyDiscountFirst: checked })}
-            helpText="Issue the discount code before executing the button action"
-          />
-        )}
-
         {/* Open in new tab (for navigation actions) */}
         {(currentAction === "navigate_url" ||
           currentAction === "navigate_product" ||
@@ -264,6 +254,108 @@ export function CTAConfigEditor({
             checked={config.openInNewTab === true}
             onChange={(checked) => updateConfig({ openInNewTab: checked })}
           />
+        )}
+
+        {/* Success Behavior (shown for non-navigation actions or when discount options enabled) */}
+        {showDiscountOptions && (
+          <BlockStack gap="300">
+            <Text as="h4" variant="headingSm">
+              After Action Completes
+            </Text>
+
+            <Checkbox
+              label="Show discount code"
+              checked={config.successBehavior?.showDiscountCode !== false}
+              onChange={(checked) =>
+                updateConfig({
+                  successBehavior: {
+                    ...config.successBehavior,
+                    showDiscountCode: checked,
+                  },
+                })
+              }
+              helpText="Display the discount code in the success state"
+            />
+
+            <TextField
+              label="Auto-close delay (seconds)"
+              type="number"
+              value={String(config.successBehavior?.autoCloseDelay ?? 5)}
+              onChange={(value) =>
+                updateConfig({
+                  successBehavior: {
+                    ...config.successBehavior,
+                    autoCloseDelay: parseInt(value) || 0,
+                  },
+                })
+              }
+              min={0}
+              max={30}
+              autoComplete="off"
+              helpText="Popup closes automatically after this delay (0 = no auto-close)"
+            />
+
+            <BlockStack gap="200">
+              <Checkbox
+                label="Show secondary action button"
+                checked={!!config.successBehavior?.secondaryAction}
+                onChange={(checked) =>
+                  updateConfig({
+                    successBehavior: {
+                      ...config.successBehavior,
+                      secondaryAction: checked
+                        ? { label: "View Cart", url: "/cart" }
+                        : undefined,
+                    },
+                  })
+                }
+                helpText="Add a button like 'View Cart' or 'Continue Shopping'"
+              />
+
+              {config.successBehavior?.secondaryAction && (
+                <InlineStack gap="300" wrap={false}>
+                  <Box minWidth="120px">
+                    <TextField
+                      label="Button Label"
+                      value={config.successBehavior.secondaryAction.label || ""}
+                      onChange={(value) =>
+                        updateConfig({
+                          successBehavior: {
+                            ...config.successBehavior,
+                            secondaryAction: {
+                              ...config.successBehavior?.secondaryAction!,
+                              label: value,
+                            },
+                          },
+                        })
+                      }
+                      placeholder="View Cart"
+                      autoComplete="off"
+                    />
+                  </Box>
+                  <Box minWidth="200px">
+                    <TextField
+                      label="URL"
+                      value={config.successBehavior.secondaryAction.url || ""}
+                      onChange={(value) =>
+                        updateConfig({
+                          successBehavior: {
+                            ...config.successBehavior,
+                            secondaryAction: {
+                              ...config.successBehavior?.secondaryAction!,
+                              url: value,
+                            },
+                          },
+                        })
+                      }
+                      placeholder="/cart"
+                      autoComplete="off"
+                    />
+                  </Box>
+                </InlineStack>
+              )}
+            </BlockStack>
+          </BlockStack>
         )}
       </BlockStack>
     </Box>

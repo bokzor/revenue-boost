@@ -15,7 +15,6 @@ import {
     waitForPopupWithRetry,
     cleanupAllE2ECampaigns,
     MAX_TEST_PRIORITY,
-    mockChallengeToken
 } from './helpers/test-helpers';
 import { CampaignFactory, ExperimentBuilder } from './factories/campaign-factory';
 
@@ -84,7 +83,6 @@ test.describe('A/B Testing Experiments', () => {
         }
 
         // Mock challenge token to bypass bot protection
-        await mockChallengeToken(page);
 
         // Intercept API calls to see what campaigns are returned
         let apiResponse: { campaigns: any[] } | null = null;
@@ -163,7 +161,6 @@ test.describe('A/B Testing Experiments', () => {
         console.log('🧪 Testing variant persistence across page reloads...');
 
         // Mock challenge token to bypass bot protection
-        await mockChallengeToken(page);
 
         const builder = factory.experiment();
         await builder.init();
@@ -262,7 +259,6 @@ test.describe('A/B Testing Experiments', () => {
                 const page = await context.newPage();
 
                 // Mock challenge token for this page
-                await mockChallengeToken(page);
 
                 await page.goto(STORE_URL);
                 await handlePasswordPage(page);
@@ -328,7 +324,6 @@ test.describe('A/B Testing Experiments', () => {
             const page = await context.newPage();
 
             // Mock challenge token to bypass bot protection
-            await mockChallengeToken(page);
 
             await page.goto(STORE_URL);
             await handlePasswordPage(page);
@@ -385,7 +380,6 @@ test.describe('A/B Testing Experiments', () => {
         console.log('🧪 Testing experiment metadata in popup...');
 
         // Mock challenge token to bypass bot protection
-        await mockChallengeToken(page);
 
         const builder = factory.experiment();
         await builder.init();
@@ -440,7 +434,6 @@ test.describe('A/B Testing Experiments', () => {
         console.log('🧪 Testing standalone campaign alongside experiment...');
 
         // Mock challenge token to bypass bot protection
-        await mockChallengeToken(page);
 
         // Create a standalone campaign (not part of experiment)
         const standaloneCampaign = await (await factory.newsletter().init())

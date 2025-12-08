@@ -159,10 +159,16 @@ export function RecipePicker({
       }
     });
 
-    // Sort each category: featured first, then by name
+    // Sort each category: "Uses store theme" (use_case) first, then featured, then by name
     Object.keys(grouped).forEach((key) => {
       const category = key as RecipeCategory;
       grouped[category].sort((a, b) => {
+        // "Uses store theme" recipes first
+        const aUsesStoreTheme = a.recipeType === "use_case";
+        const bUsesStoreTheme = b.recipeType === "use_case";
+        if (aUsesStoreTheme && !bUsesStoreTheme) return -1;
+        if (!aUsesStoreTheme && bUsesStoreTheme) return 1;
+        // Then featured
         if (a.featured && !b.featured) return -1;
         if (!a.featured && b.featured) return 1;
         return a.name.localeCompare(b.name);
@@ -189,8 +195,14 @@ export function RecipePicker({
       );
     }
 
-    // Sort: featured first, then by name
+    // Sort: "Uses store theme" (use_case) first, then featured, then by name
     return result.sort((a, b) => {
+      // "Uses store theme" recipes first
+      const aUsesStoreTheme = a.recipeType === "use_case";
+      const bUsesStoreTheme = b.recipeType === "use_case";
+      if (aUsesStoreTheme && !bUsesStoreTheme) return -1;
+      if (!aUsesStoreTheme && bUsesStoreTheme) return 1;
+      // Then featured
       if (a.featured && !b.featured) return -1;
       if (!a.featured && b.featured) return 1;
       return a.name.localeCompare(b.name);

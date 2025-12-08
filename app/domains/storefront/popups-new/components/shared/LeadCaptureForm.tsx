@@ -293,7 +293,7 @@ export const LeadCaptureForm: React.FC<LeadCaptureFormProps> = ({
             display: "grid",
             gridTemplateColumns: "1fr auto",
             gap: "0.5rem",
-            alignItems: "end",
+            alignItems: "center",
           }}
         >
           <EmailInput
@@ -310,18 +310,16 @@ export const LeadCaptureForm: React.FC<LeadCaptureFormProps> = ({
             borderColor={inputBorderColor}
             placeholderColor={inputPlaceholderColor}
           />
-          <div style={{ marginBottom: "1rem" }}>
-            <SubmitButton
-              type="submit"
-              loading={isSubmitting}
-              disabled={isSubmitting}
-              buttonColor={effectiveButtonColor}
-              textColor={buttonTextColor}
-              fullWidth={false}
-            >
-              {labels?.submit || "Submit"}
-            </SubmitButton>
-          </div>
+          <SubmitButton
+            type="submit"
+            loading={isSubmitting}
+            disabled={isSubmitting}
+            buttonColor={effectiveButtonColor}
+            textColor={buttonTextColor}
+            fullWidth={false}
+          >
+            {labels?.submit || "Submit"}
+          </SubmitButton>
         </div>
       ) : (
         // Vertical layout (default) - uses CSS variable for spacing

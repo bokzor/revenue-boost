@@ -33,8 +33,12 @@ export interface DiscountCodeInput {
   excludeShippingRatesOver?: number;
 
   // Product/collection scoping (ENHANCED)
+  // - "all": Entire store (any products) - good for newsletter/welcome discounts
+  // - "cart": Entire cart (current cart items) - good for cart abandonment
+  // - "products": Specific products only
+  // - "collections": Specific collections only
   applicability?: {
-    scope: "all" | "products" | "collections";
+    scope: "all" | "cart" | "products" | "collections";
     productIds?: string[]; // Shopify product GIDs
     collectionIds?: string[]; // Shopify collection GIDs
   };
@@ -273,6 +277,8 @@ export async function createDiscountCode(
     }
 
     // Build customer gets value
+    // Note: discountOnQuantity is ONLY permitted with BXGY discounts, not basic discounts
+    // For basic discounts, the percentage/amount applies to ALL matching items in cart
     const customerGets = {
       value:
         discountData.valueType === "PERCENTAGE"
@@ -287,15 +293,18 @@ export async function createDiscountCode(
     };
 
     // Build minimum requirement
+    // Note: Shopify's DiscountMinimumRequirementInput uses `quantity` and `subtotal` wrapper objects
     const minimumRequirement = discountData.minimumRequirement
       ? discountData.minimumRequirement.greaterThanOrEqualToQuantity
         ? {
-            greaterThanOrEqualToQuantity:
-              discountData.minimumRequirement.greaterThanOrEqualToQuantity,
+            quantity: {
+              greaterThanOrEqualToQuantity:
+                discountData.minimumRequirement.greaterThanOrEqualToQuantity.toString(),
+            },
           }
         : {
-            greaterThanOrEqualToSubtotal: {
-              amount:
+            subtotal: {
+              greaterThanOrEqualToSubtotal:
                 discountData.minimumRequirement.greaterThanOrEqualToSubtotal?.toString() || "0",
             },
           }
@@ -391,10 +400,12 @@ async function createFreeShippingDiscount(
   discountData: DiscountCodeInput
 ): Promise<{ discount?: ShopifyDiscount; errors?: string[] }> {
   try {
+    // Note: Shopify's DiscountMinimumRequirementInput uses `subtotal` wrapper object
     const minimumRequirement = discountData.minimumRequirement?.greaterThanOrEqualToSubtotal
       ? {
-          greaterThanOrEqualToSubtotal: {
-            amount: discountData.minimumRequirement.greaterThanOrEqualToSubtotal.toString(),
+          subtotal: {
+            greaterThanOrEqualToSubtotal:
+              discountData.minimumRequirement.greaterThanOrEqualToSubtotal.toString(),
           },
         }
       : null;
@@ -534,11 +545,16 @@ export async function getDiscountCode(
  * Helper: Build items selection for customerGets/customerBuys
  */
 function buildItemsSelection(applicability?: DiscountCodeInput["applicability"]) {
-  if (!applicability || applicability.scope === "all") {
+  console.log("[Shopify Discount] buildItemsSelection called with:", JSON.stringify(applicability, null, 2));
+
+  // "all" and "cart" both apply to entire order (no product/collection restrictions)
+  if (!applicability || applicability.scope === "all" || applicability.scope === "cart") {
+    console.log("[Shopify Discount] Using 'all' items selection (scope:", applicability?.scope || "undefined", ")");
     return { all: true };
   }
 
   if (applicability.scope === "products" && applicability.productIds?.length) {
+    console.log("[Shopify Discount] Using product-scoped selection with", applicability.productIds.length, "products");
     // Separate product IDs from variant IDs
     const productIds: string[] = [];
     const variantIds: string[] = [];

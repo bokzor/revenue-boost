@@ -22,7 +22,6 @@ export { MiniPopupPreview } from "./MiniPopupPreview";
 export type { MiniPopupPreviewProps } from "./MiniPopupPreview";
 
 // Legacy components (kept for backwards compatibility)
-export { RecipeConfigurationModal } from "./RecipeConfigurationModal";
 export { RecipeCategorySection } from "./RecipeCategorySection";
 export type { RecipeCategorySectionProps } from "./RecipeCategorySection";
 export { RecipeQuickSetup } from "./RecipeQuickSetup";

@@ -199,6 +199,15 @@ interface DiscountConfigForValidation {
   valueType?: string;
   value?: number;
   behavior?: string;
+  // Advanced discount types (these don't require valueType/value)
+  freeGift?: {
+    productId?: string;
+    variantId?: string;
+    productTitle?: string;
+    productImageUrl?: string;
+  };
+  bogo?: Record<string, unknown>;
+  tiers?: Array<Record<string, unknown>>;
 }
 
 /**
@@ -263,24 +272,39 @@ export function validateCampaignForActivation(
           "Customers won't receive a discount code."
       );
     } else {
-      // Discount is enabled - validate the configuration
-      if (!discountConfig.valueType) {
-        errors.push("Discount is enabled but value type (percentage/fixed/free shipping) is not set");
-      }
+      // Check if using an advanced discount type (freeGift, BOGO, or tiers)
+      // These don't require valueType/value - they have their own configuration
+      const hasFreeGift = discountConfig.freeGift && discountConfig.freeGift.productId;
+      const hasBogo = discountConfig.bogo && Object.keys(discountConfig.bogo).length > 0;
+      const hasTiers = discountConfig.tiers && discountConfig.tiers.length > 0;
+      const hasAdvancedDiscount = hasFreeGift || hasBogo || hasTiers;
 
-      if (
-        discountConfig.valueType !== "FREE_SHIPPING" &&
-        (discountConfig.value === undefined || discountConfig.value === null)
-      ) {
-        errors.push("Discount is enabled but discount value is not set");
-      }
+      if (hasAdvancedDiscount) {
+        // Advanced discount types are self-contained - no additional validation needed
+        // Free gift validation: ensure product is configured
+        if (hasFreeGift && !discountConfig.freeGift?.productId) {
+          errors.push("Free gift discount requires a product to be selected");
+        }
+      } else {
+        // Standard discount - validate valueType and value
+        if (!discountConfig.valueType) {
+          errors.push("Discount is enabled but value type (percentage/fixed/free shipping) is not set");
+        }
 
-      if (discountConfig.value !== undefined && discountConfig.value <= 0) {
-        errors.push("Discount value must be greater than 0");
-      }
+        if (
+          discountConfig.valueType !== "FREE_SHIPPING" &&
+          (discountConfig.value === undefined || discountConfig.value === null)
+        ) {
+          errors.push("Discount is enabled but discount value is not set");
+        }
 
-      if (discountConfig.valueType === "PERCENTAGE" && discountConfig.value && discountConfig.value > 100) {
-        errors.push("Percentage discount cannot exceed 100%");
+        if (discountConfig.value !== undefined && discountConfig.value <= 0) {
+          errors.push("Discount value must be greater than 0");
+        }
+
+        if (discountConfig.valueType === "PERCENTAGE" && discountConfig.value && discountConfig.value > 100) {
+          errors.push("Percentage discount cannot exceed 100%");
+        }
       }
     }
   }
@@ -321,7 +345,18 @@ export function hasValidDiscountConfig(discountConfig?: DiscountConfigForValidat
     return true;
   }
 
-  // Other types need a positive value
+  // Advanced discount types are valid if their specific config exists
+  if (discountConfig.freeGift && discountConfig.freeGift.productId) {
+    return true;
+  }
+  if (discountConfig.bogo && Object.keys(discountConfig.bogo).length > 0) {
+    return true;
+  }
+  if (discountConfig.tiers && discountConfig.tiers.length > 0) {
+    return true;
+  }
+
+  // Standard types need a positive value
   return (
     discountConfig.value !== undefined &&
     discountConfig.value !== null &&

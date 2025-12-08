@@ -70,13 +70,30 @@ export const CountdownUrgencyPopup: React.FC<CountdownUrgencyPopupProps> = ({
 
   if (!product) return null;
 
-  const discount = product.compareAtPrice
-    ? Math.round(
-        ((parseFloat(product.compareAtPrice) - parseFloat(product.price)) /
-          parseFloat(product.compareAtPrice)) *
-          100
-      )
-    : 0;
+  // Calculate pricing with bundleDiscount
+  const originalPrice = parseFloat(product.price);
+  const bundleDiscount = config.bundleDiscount || 0;
+
+  // If bundleDiscount is configured, apply it to the product price
+  // Otherwise, fall back to compareAtPrice discount (existing product sale)
+  const hasUpsellDiscount = bundleDiscount > 0;
+  const discountedPrice = hasUpsellDiscount
+    ? originalPrice * (1 - bundleDiscount / 100)
+    : originalPrice;
+
+  // For display: show original price as compare-at when bundleDiscount is applied
+  // Or use product's compareAtPrice if no bundleDiscount
+  const displayPrice = hasUpsellDiscount ? discountedPrice : originalPrice;
+  const compareAtPrice = hasUpsellDiscount
+    ? originalPrice
+    : (product.compareAtPrice ? parseFloat(product.compareAtPrice) : null);
+
+  // Calculate savings percentage for display
+  const savingsPercent = hasUpsellDiscount
+    ? bundleDiscount
+    : (product.compareAtPrice
+        ? Math.round(((parseFloat(product.compareAtPrice) - originalPrice) / parseFloat(product.compareAtPrice)) * 100)
+        : 0);
 
   const minutes = Math.floor(timeLeft / 60);
   const seconds = timeLeft % 60;
@@ -211,22 +228,29 @@ export const CountdownUrgencyPopup: React.FC<CountdownUrgencyPopupProps> = ({
             </div>
           </div>
 
-          <div className="countdown-price-box">
-            <div>
-              <p className="countdown-price-label">Limited Time Price</p>
-              <div className="countdown-prices">
-                <span className="countdown-price-current">
-                  {formatCurrency(product.price, config.currency)}
-                </span>
-                {product.compareAtPrice && (
-                  <span className="countdown-price-compare">
-                    {formatCurrency(product.compareAtPrice, config.currency)}
+          {/* Only show price box if showPrices is enabled (default true) */}
+          {config.showPrices !== false && (
+            <div className="countdown-price-box">
+              <div>
+                <p className="countdown-price-label">
+                  {config.bundleDiscountText || "Limited Time Price"}
+                </p>
+                <div className="countdown-prices">
+                  {/* Show discounted price as current price */}
+                  <span className="countdown-price-current">
+                    {formatCurrency(displayPrice, config.currency)}
                   </span>
-                )}
+                  {/* Show original price as compare-at (struck through) - only if showCompareAtPrice enabled */}
+                  {config.showCompareAtPrice !== false && compareAtPrice && compareAtPrice > displayPrice && (
+                    <span className="countdown-price-compare">
+                      {formatCurrency(compareAtPrice, config.currency)}
+                    </span>
+                  )}
+                </div>
               </div>
+              {savingsPercent > 0 && <div className="countdown-discount">-{savingsPercent}%</div>}
             </div>
-            {discount > 0 && <div className="countdown-discount">-{discount}%</div>}
-          </div>
+          )}
 
           {config.socialProofMessage && (
             <div className="countdown-social">

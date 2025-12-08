@@ -3,7 +3,7 @@ import { PrismaClient } from '@prisma/client';
 import path from 'path';
 import * as dotenv from 'dotenv';
 import { CampaignFactory } from './factories/campaign-factory';
-import { STORE_URL, API_PROPAGATION_DELAY_MS, handlePasswordPage, mockChallengeToken, waitForAnyPopup, getTestPrefix, cleanupAllE2ECampaigns, MAX_TEST_PRIORITY } from './helpers/test-helpers';
+import { STORE_URL, API_PROPAGATION_DELAY_MS, handlePasswordPage, waitForAnyPopup, getTestPrefix, cleanupAllE2ECampaigns, MAX_TEST_PRIORITY } from './helpers/test-helpers';
 
 // Load staging environment variables
 dotenv.config({ path: path.resolve(process.cwd(), '.env.staging.env'), override: true });
@@ -65,7 +65,6 @@ test.describe.serial('Targeting Combinations', () => {
         // No bundle mocking - tests use deployed extension code
 
         // Mock challenge token to avoid rate limits
-        await mockChallengeToken(page);
 
         page.on('console', msg => {
             console.log(`[BROWSER] ${msg.type()}: ${msg.text()}`);

@@ -376,12 +376,13 @@ export function GenericDiscountComponent({
                       label="Discount applies to"
                       options={[
                         { label: "Entire store", value: "all" },
+                        { label: "Entire cart", value: "cart" },
                         { label: "Specific products", value: "products" },
                         { label: "Specific collections", value: "collections" },
                       ]}
                       value={config.applicability?.scope || "all"}
                       onChange={(scope) => {
-                        const nextScope = scope as "all" | "products" | "collections";
+                        const nextScope = scope as "all" | "cart" | "products" | "collections";
                         const current = config.applicability || { scope: nextScope };
                         updateConfig({
                           applicability: {

@@ -21,7 +21,9 @@ import {
   getThemeModeForRecipeType,
   getPresetIdForRecipe,
 } from "./styled-recipe-types";
+import { CART_ABANDONMENT_DESIGN_RECIPES } from "./cart-abandonment-design-recipes";
 import { FLASH_SALE_DESIGN_RECIPES } from "./flash-sale-design-recipes";
+import { FREE_SHIPPING_DESIGN_RECIPES } from "./free-shipping-design-recipes";
 import { NEWSLETTER_DESIGN_RECIPES } from "./newsletter-design-recipes";
 import { SCRATCH_CARD_DESIGN_RECIPES } from "./scratch-card-design-recipes";
 import { SPIN_TO_WIN_DESIGN_RECIPES } from "./spin-to-win-design-recipes";
@@ -156,8 +158,12 @@ const THRESHOLD_INPUT: QuickInput = {
 
 /** All styled recipes (existing + newsletter design recipes) */
 export const STYLED_RECIPES: StyledRecipe[] = [
+  // Cart Abandonment Design Recipes (cart recovery)
+  ...CART_ABANDONMENT_DESIGN_RECIPES,
   // Flash Sale Design Recipes (sales & promos)
   ...FLASH_SALE_DESIGN_RECIPES,
+  // Free Shipping Design Recipes (cart recovery / AOV increase)
+  ...FREE_SHIPPING_DESIGN_RECIPES,
   // Newsletter Design Recipes (new industry-specific designs)
   ...NEWSLETTER_DESIGN_RECIPES,
   // Scratch Card Design Recipes (gamified engagement)

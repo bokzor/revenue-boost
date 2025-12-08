@@ -34,6 +34,30 @@ export const CTAActionSchema = z.enum([
 export type CTAAction = z.infer<typeof CTAActionSchema>;
 
 // =============================================================================
+// SUCCESS BEHAVIOR SCHEMA
+// =============================================================================
+
+/**
+ * Configuration for what happens after CTA action completes
+ *
+ * Note: Success message is defined in contentConfig.successMessage, not here.
+ * This avoids duplication and keeps the message with other content.
+ */
+export const SuccessBehaviorSchema = z.object({
+  /** Show the discount code in success state */
+  showDiscountCode: z.boolean().optional(),
+  /** Seconds before auto-close (0 = no auto-close). Defaults to 5 in handler. */
+  autoCloseDelay: z.number().int().min(0).optional(),
+  /** Optional secondary action in success state */
+  secondaryAction: z.object({
+    label: z.string(),
+    url: z.string(),
+  }).optional(),
+});
+
+export type SuccessBehavior = z.infer<typeof SuccessBehaviorSchema>;
+
+// =============================================================================
 // CTA CONFIGURATION SCHEMA
 // =============================================================================
 
@@ -63,7 +87,11 @@ export const CTAConfigSchema = z.object({
   quantity: z.number().int().min(1).default(1),
 
   // Discount integration
-  applyDiscountFirst: z.boolean().default(true), // Apply discount before action
+  /** @deprecated Use successBehavior instead */
+  applyDiscountFirst: z.boolean().optional(), // Apply discount before action (defaults to true in handler)
+
+  // Success behavior (new single-click flow)
+  successBehavior: SuccessBehaviorSchema.optional(),
 });
 
 export type CTAConfig = z.infer<typeof CTAConfigSchema>;

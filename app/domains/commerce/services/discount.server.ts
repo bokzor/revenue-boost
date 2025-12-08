@@ -1076,8 +1076,10 @@ async function getOrCreateFreeGiftDiscount(
   const productIdToUse = freeGift.productId || freeGift.variantId;
 
   // For free gift discounts, use a basic percentage discount (100% off) on the specific product
-  // with a minimum purchase requirement. This is simpler than BxGy and works for "any purchase".
-  // Note: BxGy doesn't support "buy anything" - it requires specific products/collections
+  // with a minimum purchase requirement.
+  // Note: Shopify's discountOnQuantity (to limit to 1 item) is ONLY available for BXGY discounts.
+  // BXGY cannot use "all products" for customer buys, so we use a basic discount.
+  // The popup only adds 1 item to cart. If customer manually adds more, they'd all be free.
 
   const discountInput: DiscountCodeInput = {
     title: `${campaign.name} - Free Gift`,

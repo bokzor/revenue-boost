@@ -7,7 +7,6 @@ import {
   STORE_DOMAIN,
   API_PROPAGATION_DELAY_MS,
   handlePasswordPage,
-  mockChallengeToken,
   getTestPrefix,
   closePopupInShadowDOM,
   waitForPopupWithRetry,
@@ -66,7 +65,6 @@ test.describe.serial("Session Rules & Frequency Capping", () => {
     // Clean up ALL E2E campaigns to avoid priority conflicts
     await cleanupAllE2ECampaigns(prisma);
 
-    await mockChallengeToken(page);
 
     // Clear browser storage to ensure fresh session
     await page.context().clearCookies();

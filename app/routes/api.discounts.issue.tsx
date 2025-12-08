@@ -40,6 +40,8 @@ const IssueDiscountRequestSchema = z.object({
   selectedProductIds: z.array(z.string()).optional(),
   // Product Upsell: bundle discount from contentConfig (auto-sync mode)
   bundleDiscountPercent: z.number().min(0).max(100).optional(),
+  // Cart Abandonment: product IDs from cart for cart-scoped discounts
+  cartProductIds: z.array(z.string()).optional(),
   // Bot detection fields
   popupShownAt: z.number().optional(),
   honeypot: z.string().optional(),
@@ -133,6 +135,7 @@ export async function action({ request }: ActionFunctionArgs) {
       visitorId,
       selectedProductIds,
       bundleDiscountPercent,
+      cartProductIds,
       popupShownAt,
       honeypot,
     } = validatedRequest;
@@ -315,6 +318,28 @@ export async function action({ request }: ActionFunctionArgs) {
         { success: false, error: "Discount not enabled for this campaign" },
         { status: 400 }
       );
+    }
+
+    // CART-SCOPED DISCOUNT:
+    // If scope is "cart" and cartProductIds are provided, convert to product-scoped discount
+    if (
+      discountConfig?.applicability?.scope === "cart" &&
+      cartProductIds &&
+      cartProductIds.length > 0
+    ) {
+      console.log("[Discount Issue] Cart-scoped discount mode:", {
+        cartProductIds,
+        originalScope: discountConfig.applicability.scope,
+      });
+
+      // Override applicability to use product IDs from cart
+      discountConfig = {
+        ...discountConfig,
+        applicability: {
+          scope: "products",
+          productIds: cartProductIds,
+        },
+      };
     }
 
     // NOTE [Tiered discounts]: we select the highest eligible tier based on cartSubtotalCents.

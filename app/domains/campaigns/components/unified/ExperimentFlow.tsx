@@ -9,6 +9,7 @@
  */
 
 import { useState, useCallback } from "react";
+import { Modal, Text, BlockStack } from "@shopify/polaris";
 import { VariantConfigurator } from "./experiment/VariantConfigurator";
 import { ExperimentSetupView } from "./experiment/ExperimentSetupView";
 import type { StyledRecipe } from "../../recipes/styled-recipe-types";
@@ -146,6 +147,65 @@ export function ExperimentFlow({
     setExperiment((prev) => ({ ...prev, trafficAllocation: allocation }));
   }, [experiment.variants]);
 
+  // =============================================================================
+  // DELETE VARIANT WITH CONFIRMATION
+  // =============================================================================
+
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{ open: boolean; variantId: string | null; variantName: string }>({
+    open: false,
+    variantId: null,
+    variantName: "",
+  });
+
+  const handleDeleteVariantRequest = useCallback((variantId: string) => {
+    const variant = experiment.variants.find((v) => v.id === variantId);
+    if (!variant || variant.isControl) return; // Can't delete control variant
+
+    setDeleteConfirmation({
+      open: true,
+      variantId,
+      variantName: variant.name,
+    });
+  }, [experiment.variants]);
+
+  const handleDeleteVariantConfirm = useCallback(() => {
+    const variantId = deleteConfirmation.variantId;
+    if (!variantId) return;
+
+    // Remove variant and redistribute traffic
+    const remainingVariants = experiment.variants.filter((v) => v.id !== variantId);
+
+    if (remainingVariants.length < 2) {
+      // Don't allow deleting if it would leave less than 2 variants
+      setDeleteConfirmation({ open: false, variantId: null, variantName: "" });
+      return;
+    }
+
+    // Redistribute traffic equally among remaining variants
+    const newPercentage = Math.floor(100 / remainingVariants.length);
+    const newAllocation: TrafficAllocation[] = remainingVariants.map((v, i) => ({
+      variantId: v.id,
+      percentage: i === 0 ? 100 - newPercentage * (remainingVariants.length - 1) : newPercentage,
+    }));
+
+    setExperiment((prev) => ({
+      ...prev,
+      variants: remainingVariants,
+      trafficAllocation: newAllocation,
+    }));
+
+    // If deleted variant was active, switch to first variant
+    if (activeVariantId === variantId) {
+      setActiveVariantId(remainingVariants[0].id);
+    }
+
+    setDeleteConfirmation({ open: false, variantId: null, variantName: "" });
+  }, [deleteConfirmation.variantId, experiment.variants, activeVariantId]);
+
+  const handleDeleteVariantCancel = useCallback(() => {
+    setDeleteConfirmation({ open: false, variantId: null, variantName: "" });
+  }, []);
+
   const handleExperimentChange = useCallback((updates: Partial<Experiment>) => {
     setExperiment((prev) => ({ ...prev, ...updates }));
   }, []);
@@ -166,18 +226,50 @@ export function ExperimentFlow({
   // Step 2: Variant Configurator
   if (step === "configure" && activeVariantId) {
     return (
-      <VariantConfigurator
-        experiment={experiment}
-        activeVariantId={activeVariantId}
-        onBack={() => setStep("setup")}
-        onVariantChange={setActiveVariantId}
-        onVariantUpdate={handleVariantUpdate}
-        onAddVariant={handleAddVariant}
-        recipes={recipes}
-        storeId={storeId}
-        shopDomain={shopDomain}
-        advancedTargetingEnabled={advancedTargetingEnabled}
-      />
+      <>
+        <VariantConfigurator
+          experiment={experiment}
+          activeVariantId={activeVariantId}
+          onBack={() => setStep("setup")}
+          onVariantChange={setActiveVariantId}
+          onVariantUpdate={handleVariantUpdate}
+          onAddVariant={handleAddVariant}
+          onDeleteVariant={handleDeleteVariantRequest}
+          recipes={recipes}
+          storeId={storeId}
+          shopDomain={shopDomain}
+          advancedTargetingEnabled={advancedTargetingEnabled}
+        />
+
+        {/* Delete Confirmation Modal */}
+        <Modal
+          open={deleteConfirmation.open}
+          onClose={handleDeleteVariantCancel}
+          title={`Delete Variant ${deleteConfirmation.variantName}?`}
+          primaryAction={{
+            content: "Delete",
+            destructive: true,
+            onAction: handleDeleteVariantConfirm,
+          }}
+          secondaryActions={[
+            {
+              content: "Cancel",
+              onAction: handleDeleteVariantCancel,
+            },
+          ]}
+        >
+          <Modal.Section>
+            <BlockStack gap="300">
+              <Text as="p">
+                Are you sure you want to delete <strong>Variant {deleteConfirmation.variantName}</strong>?
+              </Text>
+              <Text as="p" tone="subdued">
+                This will remove all configuration for this variant and redistribute traffic among the remaining variants.
+              </Text>
+            </BlockStack>
+          </Modal.Section>
+        </Modal>
+      </>
     );
   }
 

@@ -272,6 +272,7 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, tri
     cartSubtotalCents?: number;
     selectedProductIds?: string[];
     bundleDiscountPercent?: number;
+    cartProductIds?: string[];
   }) => {
     try {
       console.log("[PopupManager] Issuing discount for campaign:", campaign.id, options);
@@ -290,6 +291,7 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, tri
         cartSubtotalCents: options?.cartSubtotalCents,
         selectedProductIds: options?.selectedProductIds,
         bundleDiscountPercent: options?.bundleDiscountPercent,
+        cartProductIds: options?.cartProductIds,
       });
 
       if (!result.success) {
@@ -627,7 +629,11 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, tri
       designTokensCSS: campaign.designTokensCSS,
       // Show "Powered by Revenue Boost" branding for free tier
       showBranding: campaign.showBranding,
-      // Pass discount config if enabled
+      // Pass full discountConfig for advanced discount types (freeGift, bogo, tiers)
+      // FlashSalePopup uses discountConfig.freeGift, discountConfig.bogo, discountConfig.tiers
+      // for PromotionDisplay rendering
+      discountConfig: campaign.discountConfig?.enabled ? campaign.discountConfig : undefined,
+      // Pass simplified discount config for legacy templates that use the `discount` prop
       discount: campaign.discountConfig?.enabled ? {
         enabled: true,
         code: campaign.discountConfig.code || '',

@@ -8,7 +8,6 @@ import {
     STORE_DOMAIN,
     API_PROPAGATION_DELAY_MS,
     handlePasswordPage,
-    mockChallengeToken,
     getTestPrefix,
     cleanupAllE2ECampaigns,
 } from './helpers/test-helpers';
@@ -63,7 +62,6 @@ test.describe.serial('Announcement Template', () => {
         await cleanupAllE2ECampaigns(prisma);
 
         await page.waitForTimeout(1000); // Wait for DB cleanup
-        await mockChallengeToken(page);
         await page.context().clearCookies();
 
         // Clear session storage to avoid frequency capping from previous tests

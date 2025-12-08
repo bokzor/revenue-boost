@@ -140,18 +140,9 @@ export const MinimalSlideUpPopup: React.FC<MinimalSlideUpPopupProps> = ({
         .minimal-upsell-add--success { background: #10b981; }
 
         /* ===== DESKTOP: Horizontal layout (image LEFT, content RIGHT) for wider viewports ===== */
-        /* Uses PopupPortal's container query context */
-        @container popup-viewport (min-width: 480px) {
-          .minimal-upsell-row { flex-direction: row; }
-          .minimal-upsell-image { width: 144px; height: auto; min-height: 120px; align-self: stretch; }
-          .minimal-upsell-content { padding: 16px 20px; }
-          .minimal-upsell-footer { flex-direction: row; align-items: center; justify-content: space-between; }
-          .minimal-upsell-price { justify-content: flex-start; }
-          .minimal-upsell-actions { justify-content: flex-end; }
-        }
-
-        /* Fallback media query for storefront (768px matches Tailwind's md: breakpoint) */
-        @media (min-width: 768px) {
+        /* Uses PopupPortal's container query context on .popup-portal-frame
+           Medium size = 520px max-width, so use 521px to ensure medium stays in mobile/column layout */
+        @container popup-viewport (min-width: 521px) {
           .minimal-upsell-row { flex-direction: row; }
           .minimal-upsell-image { width: 144px; height: auto; min-height: 120px; align-self: stretch; }
           .minimal-upsell-content { padding: 16px 20px; }

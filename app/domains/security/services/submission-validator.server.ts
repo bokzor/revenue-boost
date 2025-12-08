@@ -1,10 +1,8 @@
 /**
  * Submission Validator Service
  *
- * Validates lead/discount submissions without requiring pre-fetched challenge tokens.
+ * Validates lead/discount submissions using zero-latency security checks.
  * Uses honeypot fields, timing validation, and impression verification for bot detection.
- *
- * Replaces the challenge token system with zero-latency security checks.
  */
 
 import { getRedis, REDIS_PREFIXES } from "~/lib/redis.server";

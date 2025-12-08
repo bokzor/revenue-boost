@@ -209,12 +209,42 @@ export default function RecipeCampaignCreation() {
 
     // Pre-configure CTA with Free Gift product selection
     // When user selects a gift product via quick input, use it for the CTA
+    // Note: discountConfig.freeGift is populated later in finalDiscountConfig building
+    let freeGiftProduct: {
+      id: string;
+      title?: string;
+      handle?: string;
+      variantId?: string;
+      imageUrl?: string;
+    } | null = null;
+
     if (contextData.giftProduct && ctaConfig) {
-      const giftSelection = contextData.giftProduct as Array<{ id: string; title?: string }>;
+      const giftSelection = contextData.giftProduct as Array<{
+        id: string;
+        title?: string;
+        handle?: string;
+        images?: Array<{ originalSrc: string }>;
+        variants?: Array<{ id: string; title: string }>;
+      }>;
       if (Array.isArray(giftSelection) && giftSelection.length > 0) {
+        const product = giftSelection[0];
+        const firstVariantId = product.variants?.[0]?.id;
+        const firstImageUrl = product.images?.[0]?.originalSrc;
+
+        freeGiftProduct = {
+          id: product.id,
+          title: product.title,
+          handle: product.handle,
+          variantId: firstVariantId,
+          imageUrl: firstImageUrl,
+        };
+
+        // Update CTA with product info for add-to-cart action
         contentConfig.cta = {
           ...ctaConfig,
-          productId: giftSelection[0].id,
+          productId: product.id,
+          productHandle: product.handle,
+          ...(firstVariantId && { variantId: firstVariantId }),
         };
       }
     }
@@ -313,6 +343,26 @@ export default function RecipeCampaignCreation() {
     } else {
       // Use recipe's default discount config
       finalDiscountConfig = selectedRecipe.defaults.discountConfig || {};
+    }
+
+    // Add freeGift product info if a gift product was selected
+    // Uses a basic 100% discount with quantityLimit to limit to 1 free item per order
+    if (freeGiftProduct) {
+      const threshold = contextData.threshold as number | undefined;
+      const minSubtotalCents = threshold ? threshold * 100 : 5000;
+
+      finalDiscountConfig = {
+        ...finalDiscountConfig,
+        enabled: true,
+        freeGift: {
+          productId: freeGiftProduct.id,
+          variantId: freeGiftProduct.variantId || "",
+          productTitle: freeGiftProduct.title,
+          ...(freeGiftProduct.imageUrl && { productImageUrl: freeGiftProduct.imageUrl }),
+          quantity: 1, // Limits to 1 free item per order
+          minSubtotalCents,
+        },
+      };
     }
 
     // Build target rules - start with recipe defaults, then apply user inputs

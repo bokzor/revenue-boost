@@ -58,6 +58,27 @@ const DURATION_HOURS_INPUT = {
 const FLASH_SALE_EDITABLE_FIELDS = [HEADLINE_FIELD, SUBHEADLINE_FIELD, BUTTON_TEXT_FIELD];
 
 // =============================================================================
+// COMMON TARGETING CONFIGURATION FOR FLASH SALES
+// =============================================================================
+
+// Frequency capping for flash sales - once per session, max twice per day
+const FLASH_SALE_FREQUENCY_CAPPING = {
+  max_triggers_per_session: 1,
+  max_triggers_per_day: 2,
+  cooldown_between_triggers: 43200, // 12 hours in seconds
+};
+
+// Page targeting - exclude checkout and cart pages to avoid checkout disruption
+const FLASH_SALE_PAGE_TARGETING = {
+  enabled: true,
+  pages: [] as string[],
+  customPatterns: [] as string[],
+  excludePages: ["/checkout", "/checkout/*", "/cart", "/*/checkouts/*"],
+  productTags: [] as string[],
+  collections: [] as string[],
+};
+
+// =============================================================================
 // 🎯 USE CASE RECIPES (Primary - Business Strategies)
 // =============================================================================
 // These are the main recipes focused on specific business goals.
@@ -100,7 +121,10 @@ const flashSale: FlashSaleRecipe = {
         collectionHandle: "all",
         openInNewTab: false,
         quantity: 1,
-        applyDiscountFirst: true,
+        successBehavior: {
+          showDiscountCode: true,
+          autoCloseDelay: 5,
+        },
       },
       secondaryCta: {
         label: "No thanks",
@@ -109,7 +133,11 @@ const flashSale: FlashSaleRecipe = {
     },
     designConfig: { position: "center", size: "large" },
     targetRules: {
-      enhancedTriggers: { page_load: { enabled: true, delay: 2000 } },
+      enhancedTriggers: {
+        page_load: { enabled: true, delay: 3000 },
+        frequency_capping: FLASH_SALE_FREQUENCY_CAPPING,
+      },
+      pageTargeting: FLASH_SALE_PAGE_TARGETING,
     },
     discountConfig: {
       enabled: true,
@@ -121,16 +149,18 @@ const flashSale: FlashSaleRecipe = {
 };
 
 /**
- * 2. BOGO - Buy One Get One
+ * 2. BOGO - Buy One Get One (Shop Now variant)
  * Use case: Move inventory, increase units per order
  * Best for: Overstocked items, product launches, weekend promotions
+ *
+ * Flow: Customer clicks → Discount code issued → Navigate to collection → Discount auto-applies at checkout
  */
 const bogo: FlashSaleRecipe = {
   id: "bogo",
   name: "Buy One Get One",
   tagline: "Buy one, get one free!",
   description:
-    "Classic BOGO promotion to move inventory and increase units per order. Great for weekend sales.",
+    "Classic BOGO promotion to move inventory and increase units per order. Customer is directed to shop eligible products with discount auto-applied.",
   icon: "🛍️",
   category: "sales_promos",
   goal: "INCREASE_REVENUE",
@@ -149,15 +179,19 @@ const bogo: FlashSaleRecipe = {
       subheadline: "Limited time offer - double your order",
       showCountdown: true,
       urgencyMessage: "While supplies last",
-      // Unified CTA configuration
+      successMessage: "Discount applied!",
+      // Unified CTA configuration - Navigate to collection flow
       cta: {
-        label: "Get My BOGO Deal",
+        label: "Shop BOGO Deals",
         variant: "primary" as const,
-        action: "add_to_cart" as const,
+        action: "navigate_collection" as const,
+        collectionHandle: "all", // Merchant should update to eligible collection
         openInNewTab: false,
-        applyDiscountFirst: true,
         quantity: 1,
-        // variantId will be configured by user via product picker
+        successBehavior: {
+          showDiscountCode: true,
+          autoCloseDelay: 3, // Shorter delay since we're navigating
+        },
       },
       secondaryCta: {
         label: "Maybe later",
@@ -166,7 +200,11 @@ const bogo: FlashSaleRecipe = {
     },
     designConfig: { position: "center", size: "large" },
     targetRules: {
-      enhancedTriggers: { page_load: { enabled: true, delay: 3000 } },
+      enhancedTriggers: {
+        page_load: { enabled: true, delay: 3000 },
+        frequency_capping: FLASH_SALE_FREQUENCY_CAPPING,
+      },
+      pageTargeting: FLASH_SALE_PAGE_TARGETING,
     },
     discountConfig: {
       enabled: true,
@@ -227,7 +265,10 @@ const tieredDiscount: FlashSaleRecipe = {
         collectionHandle: "all",
         openInNewTab: false,
         quantity: 1,
-        applyDiscountFirst: true,
+        successBehavior: {
+          showDiscountCode: true,
+          autoCloseDelay: 5,
+        },
       },
       secondaryCta: {
         label: "Maybe later",
@@ -243,7 +284,9 @@ const tieredDiscount: FlashSaleRecipe = {
       enhancedTriggers: {
         page_load: { enabled: true, delay: 4000 },
         exit_intent: { enabled: true, sensitivity: "medium" },
+        frequency_capping: FLASH_SALE_FREQUENCY_CAPPING,
       },
+      pageTargeting: FLASH_SALE_PAGE_TARGETING,
     },
     discountConfig: {
       enabled: true,
@@ -296,7 +339,9 @@ const firstPurchase: FlashSaleRecipe = {
     targetRules: {
       enhancedTriggers: {
         time_delay: { enabled: true, delay: 5000 },
+        frequency_capping: FLASH_SALE_FREQUENCY_CAPPING,
       },
+      pageTargeting: FLASH_SALE_PAGE_TARGETING,
     },
     discountConfig: {
       enabled: true,
@@ -358,7 +403,9 @@ const lastChance: FlashSaleRecipe = {
     targetRules: {
       enhancedTriggers: {
         scroll_depth: { enabled: true, depth_percentage: 30 },
+        frequency_capping: FLASH_SALE_FREQUENCY_CAPPING,
       },
+      pageTargeting: FLASH_SALE_PAGE_TARGETING,
     },
   },
 };
@@ -398,8 +445,10 @@ const clearance: FlashSaleRecipe = {
     },
     targetRules: {
       enhancedTriggers: {
-        page_load: { enabled: true, delay: 2000 },
+        page_load: { enabled: true, delay: 3000 },
+        frequency_capping: FLASH_SALE_FREQUENCY_CAPPING,
       },
+      pageTargeting: FLASH_SALE_PAGE_TARGETING,
     },
     discountConfig: {
       enabled: true,
@@ -444,7 +493,9 @@ const newArrival: FlashSaleRecipe = {
     targetRules: {
       enhancedTriggers: {
         page_load: { enabled: true, delay: 3000 },
+        frequency_capping: FLASH_SALE_FREQUENCY_CAPPING,
       },
+      pageTargeting: FLASH_SALE_PAGE_TARGETING,
     },
     discountConfig: {
       enabled: true,
@@ -491,7 +542,9 @@ const mysteryDiscount: FlashSaleRecipe = {
       enhancedTriggers: {
         time_delay: { enabled: true, delay: 6000 },
         exit_intent: { enabled: true, sensitivity: "medium" },
+        frequency_capping: FLASH_SALE_FREQUENCY_CAPPING,
       },
+      pageTargeting: FLASH_SALE_PAGE_TARGETING,
     },
     discountConfig: {
       enabled: true,
@@ -542,7 +595,11 @@ const blackFridaySale: FlashSaleRecipe = {
       leadCaptureLayout: { desktop: "overlay", mobile: "overlay" },
     },
     targetRules: {
-      enhancedTriggers: { page_load: { enabled: true, delay: 1000 } },
+      enhancedTriggers: {
+        page_load: { enabled: true, delay: 3000 },
+        frequency_capping: FLASH_SALE_FREQUENCY_CAPPING,
+      },
+      pageTargeting: FLASH_SALE_PAGE_TARGETING,
     },
     discountConfig: {
       enabled: true,
@@ -581,6 +638,13 @@ const cyberMondaySale: FlashSaleRecipe = {
       position: "center",
       size: "large",
       leadCaptureLayout: { desktop: "content-only", mobile: "content-only" },
+    },
+    targetRules: {
+      enhancedTriggers: {
+        page_load: { enabled: true, delay: 3000 },
+        frequency_capping: FLASH_SALE_FREQUENCY_CAPPING,
+      },
+      pageTargeting: FLASH_SALE_PAGE_TARGETING,
     },
     discountConfig: {
       enabled: true,
@@ -621,6 +685,13 @@ const summerSale: FlashSaleRecipe = {
       size: "large",
       leadCaptureLayout: { desktop: "overlay", mobile: "overlay" },
     },
+    targetRules: {
+      enhancedTriggers: {
+        page_load: { enabled: true, delay: 3000 },
+        frequency_capping: FLASH_SALE_FREQUENCY_CAPPING,
+      },
+      pageTargeting: FLASH_SALE_PAGE_TARGETING,
+    },
     discountConfig: {
       enabled: true,
       type: "shared",
@@ -659,6 +730,13 @@ const holidaySale: FlashSaleRecipe = {
       size: "large",
       backgroundOverlayOpacity: 0,
       leadCaptureLayout: { desktop: "overlay", mobile: "overlay" },
+    },
+    targetRules: {
+      enhancedTriggers: {
+        page_load: { enabled: true, delay: 3000 },
+        frequency_capping: FLASH_SALE_FREQUENCY_CAPPING,
+      },
+      pageTargeting: FLASH_SALE_PAGE_TARGETING,
     },
     discountConfig: {
       enabled: true,
@@ -699,6 +777,13 @@ const valentineSale: FlashSaleRecipe = {
       backgroundOverlayOpacity: 0,
       leadCaptureLayout: { desktop: "overlay", mobile: "overlay" },
     },
+    targetRules: {
+      enhancedTriggers: {
+        page_load: { enabled: true, delay: 3000 },
+        frequency_capping: FLASH_SALE_FREQUENCY_CAPPING,
+      },
+      pageTargeting: FLASH_SALE_PAGE_TARGETING,
+    },
     discountConfig: {
       enabled: true,
       type: "shared",
@@ -736,6 +821,13 @@ const easterSale: FlashSaleRecipe = {
       position: "center",
       size: "large",
       leadCaptureLayout: { desktop: "overlay", mobile: "overlay" },
+    },
+    targetRules: {
+      enhancedTriggers: {
+        page_load: { enabled: true, delay: 3000 },
+        frequency_capping: FLASH_SALE_FREQUENCY_CAPPING,
+      },
+      pageTargeting: FLASH_SALE_PAGE_TARGETING,
     },
     discountConfig: {
       enabled: true,
@@ -777,6 +869,13 @@ const halloweenSale: FlashSaleRecipe = {
       backgroundOverlayOpacity: 0,
       leadCaptureLayout: { desktop: "overlay", mobile: "overlay" },
     },
+    targetRules: {
+      enhancedTriggers: {
+        page_load: { enabled: true, delay: 3000 },
+        frequency_capping: FLASH_SALE_FREQUENCY_CAPPING,
+      },
+      pageTargeting: FLASH_SALE_PAGE_TARGETING,
+    },
     discountConfig: {
       enabled: true,
       type: "shared",
@@ -815,6 +914,13 @@ const thanksgivingSale: FlashSaleRecipe = {
       size: "large",
       backgroundOverlayOpacity: 0,
       leadCaptureLayout: { desktop: "overlay", mobile: "overlay" },
+    },
+    targetRules: {
+      enhancedTriggers: {
+        page_load: { enabled: true, delay: 3000 },
+        frequency_capping: FLASH_SALE_FREQUENCY_CAPPING,
+      },
+      pageTargeting: FLASH_SALE_PAGE_TARGETING,
     },
     discountConfig: {
       enabled: true,
@@ -855,6 +961,13 @@ const newYearSale: FlashSaleRecipe = {
       size: "large",
       leadCaptureLayout: { desktop: "overlay", mobile: "overlay" },
     },
+    targetRules: {
+      enhancedTriggers: {
+        page_load: { enabled: true, delay: 3000 },
+        frequency_capping: FLASH_SALE_FREQUENCY_CAPPING,
+      },
+      pageTargeting: FLASH_SALE_PAGE_TARGETING,
+    },
     discountConfig: {
       enabled: true,
       type: "shared",
@@ -893,6 +1006,13 @@ const winterSale: FlashSaleRecipe = {
       size: "large",
       leadCaptureLayout: { desktop: "overlay", mobile: "overlay" },
     },
+    targetRules: {
+      enhancedTriggers: {
+        page_load: { enabled: true, delay: 3000 },
+        frequency_capping: FLASH_SALE_FREQUENCY_CAPPING,
+      },
+      pageTargeting: FLASH_SALE_PAGE_TARGETING,
+    },
     discountConfig: {
       enabled: true,
       type: "shared",
@@ -930,6 +1050,13 @@ const backToSchoolSale: FlashSaleRecipe = {
       position: "center",
       size: "large",
       leadCaptureLayout: { desktop: "overlay", mobile: "overlay" },
+    },
+    targetRules: {
+      enhancedTriggers: {
+        page_load: { enabled: true, delay: 3000 },
+        frequency_capping: FLASH_SALE_FREQUENCY_CAPPING,
+      },
+      pageTargeting: FLASH_SALE_PAGE_TARGETING,
     },
     discountConfig: {
       enabled: true,
@@ -991,15 +1118,22 @@ const freeGiftWithPurchase: FlashSaleRecipe = {
       subheadline: "Spend $50+ and get a FREE sample pack",
       showCountdown: false,
       urgencyMessage: "While supplies last",
-      // CTA adds the free gift to cart
+      // CTA adds the free gift to cart - variantId populated via product picker
       cta: {
         label: "Add My Free Gift",
         variant: "primary" as const,
         action: "add_to_cart" as const,
         openInNewTab: false,
-        applyDiscountFirst: false, // No discount needed
         quantity: 1,
-        // productId and variantId set via product picker
+        // variantId will be set via product picker input (key: giftProduct)
+        successBehavior: {
+          showDiscountCode: false, // No discount code display needed - item is simply free
+          autoCloseDelay: 5,
+          secondaryAction: {
+            label: "View Cart",
+            url: "/cart",
+          },
+        },
       },
       secondaryCta: {
         label: "No thanks",
@@ -1018,19 +1152,28 @@ const freeGiftWithPurchase: FlashSaleRecipe = {
           min_value: 50, // Threshold
           check_interval: 2000,
         },
+        frequency_capping: FLASH_SALE_FREQUENCY_CAPPING,
       },
+      pageTargeting: FLASH_SALE_PAGE_TARGETING,
     },
-    // Free gift configuration - the gift IS the incentive (no discount code needed)
+    // Free gift discount: Creates a 100% off discount for the selected product
+    // Uses quantityLimit to limit to 1 free item per order
+    // The product picker (giftProduct) will populate:
+    // - discountConfig.freeGift (productId, variantId, productTitle, productImageUrl)
+    // - contentConfig.cta.variantId (for add-to-cart action)
     discountConfig: {
-      enabled: false,
+      enabled: true,
       showInPreview: true,
+      minimumAmount: 50, // $50 minimum spend threshold
+      // Free gift with quantity limit of 1 (via discountOnQuantity in Shopify)
       freeGift: {
-        productId: "", // User will configure via product picker
-        variantId: "", // User will configure via product picker
-        productTitle: "", // Will use dummy for preview if empty
-        productImageUrl: "", // Will use dummy for preview if empty
-        quantity: 1,
-        minSubtotalCents: 5000, // $50 minimum spend
+        productId: "preview-free-gift-product", // Placeholder for preview
+        variantId: "preview-free-gift-variant", // Placeholder for preview
+        productTitle: "Premium Gift Box",
+        productImageUrl:
+          "https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=400&q=80",
+        quantity: 1, // Limits discount to 1 item per order
+        minSubtotalCents: 5000, // $50 minimum cart value
       },
     },
   },

@@ -31,23 +31,33 @@ export class ProductDataHook implements PreDisplayHook {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any -- products from API are dynamically typed
             let products: any[] = [];
 
-            if (templateType === 'PRODUCT_UPSELL') {
+            // All upsell template types that require product data
+            const upsellTemplates = [
+                'PRODUCT_UPSELL',
+                'CLASSIC_UPSELL',
+                'MINIMAL_SLIDE_UP',
+                'PREMIUM_FULLSCREEN',
+                'BUNDLE_DEAL',
+                'COUNTDOWN_URGENCY',
+            ];
+
+            if (upsellTemplates.includes(templateType)) {
                 // Pass trigger product ID to exclude it from recommendations
                 products = await this.fetchUpsellProducts(campaign.id, triggerProductId);
 
-                // In normal storefront mode, a Product Upsell popup should
+                // In normal storefront mode, an upsell popup should
                 // never render without real products. In preview, however,
                 // we fall back to mocked products so merchants can still see
                 // what the popup will look like.
                 if (!products || products.length === 0) {
                     if (previewMode) {
                         console.warn(
-                            `[ProductDataHook][Preview] No products available for Product Upsell campaign ${campaign.id}. Using mocked preview products instead.`,
+                            `[ProductDataHook][Preview] No products available for ${templateType} campaign ${campaign.id}. Using mocked preview products instead.`,
                         );
                         products = this.buildPreviewMockProducts(campaign);
                     } else {
                         console.warn(
-                            `[ProductDataHook] No products available for Product Upsell campaign ${campaign.id}. Popup will not display.`,
+                            `[ProductDataHook] No products available for ${templateType} campaign ${campaign.id}. Popup will not display.`,
                         );
                         return {
                             success: false,
@@ -79,7 +89,15 @@ export class ProductDataHook implements PreDisplayHook {
             // In preview mode, fall back to mocked products even if the
             // network request failed so that the merchant still sees a
             // realistic popup.
-            if (previewMode && campaign.templateType === 'PRODUCT_UPSELL') {
+            const upsellTemplatesForFallback = [
+                'PRODUCT_UPSELL',
+                'CLASSIC_UPSELL',
+                'MINIMAL_SLIDE_UP',
+                'PREMIUM_FULLSCREEN',
+                'BUNDLE_DEAL',
+                'COUNTDOWN_URGENCY',
+            ];
+            if (previewMode && upsellTemplatesForFallback.includes(campaign.templateType)) {
                 console.warn(
                     '[ProductDataHook][Preview] Falling back to mocked products due to fetch error.',
                 );

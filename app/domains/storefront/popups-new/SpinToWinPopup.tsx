@@ -292,6 +292,7 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
   const inputBackground = config.inputBackgroundColor || "#FFFFFF";
   const inputTextColor = config.inputTextColor || "#111827";
   const inputBorderColor = config.inputBorderColor || "#E5E7EB";
+  const inputPlaceholderColor = config.inputPlaceholderColor || `${inputTextColor}99`; // Default: inputTextColor with 60% opacity
 
   // Theme-aware colors for success/prize surfaces
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- config has dynamic fields
@@ -1147,12 +1148,12 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
 
           /* Dynamic placeholder color - applies to all inputs in spin-input-wrapper */
           .spin-input-wrapper input::placeholder {
-            color: ${inputTextColor ? `${inputTextColor}99` : "rgba(107, 114, 128, 0.7)"};
+            color: ${inputPlaceholderColor};
             opacity: 1;
           }
 
           .spin-to-win-input::placeholder {
-            color: ${inputTextColor ? `${inputTextColor}99` : "rgba(107, 114, 128, 0.7)"};
+            color: ${inputPlaceholderColor};
             opacity: 1;
           }
 
@@ -1640,6 +1641,7 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
                       textColor={inputTextColor}
                       backgroundColor={inputBackground}
                       borderColor={inputBorderColor}
+                      placeholderColor={inputPlaceholderColor}
                     />
                   </div>
                 )}
@@ -1658,6 +1660,7 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
                       textColor={inputTextColor}
                       backgroundColor={inputBackground}
                       borderColor={inputBorderColor}
+                      placeholderColor={inputPlaceholderColor}
                     />
                   </div>
                 )}

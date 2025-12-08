@@ -30,6 +30,7 @@ export type {
   CTAAction,
   CTAConfig,
   SecondaryCTAConfig,
+  SuccessBehavior,
   UseCTAHandlerOptions,
   UseCTAHandlerReturn,
 } from "./useCTAHandler";

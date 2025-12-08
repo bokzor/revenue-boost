@@ -66,3 +66,13 @@ export {
   LeadCaptureFormSection,
   type LeadCaptureFormSectionProps,
 } from "./LeadCaptureFormSection";
+
+export {
+  CountdownUrgencyContentSection,
+  type CountdownUrgencyContentSectionProps,
+} from "./CountdownUrgencyContentSection";
+
+export {
+  PremiumFullscreenContentSection,
+  type PremiumFullscreenContentSectionProps,
+} from "./PremiumFullscreenContentSection";

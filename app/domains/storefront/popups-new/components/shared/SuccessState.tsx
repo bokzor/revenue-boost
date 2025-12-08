@@ -198,6 +198,21 @@ export interface SuccessStateProps {
    * Additional inline styles
    */
   style?: React.CSSProperties;
+  /**
+   * Seconds remaining before auto-close (null = no countdown)
+   */
+  autoCloseIn?: number | null;
+  /**
+   * Callback to cancel auto-close
+   */
+  onCancelAutoClose?: () => void;
+  /**
+   * Optional secondary action button (e.g., "Go to Cart")
+   */
+  secondaryAction?: {
+    label: string;
+    onClick: () => void;
+  };
 }
 
 /**
@@ -237,6 +252,9 @@ export const SuccessState: React.FC<SuccessStateProps> = ({
   fontWeight = "700",
   className,
   style,
+  autoCloseIn,
+  onCancelAutoClose,
+  secondaryAction,
 }) => {
   // Use CSS variable with fallback to prop value for design token integration
   const resolvedSuccessColor = successColor || "var(--rb-success, #16a34a)";
@@ -274,6 +292,45 @@ export const SuccessState: React.FC<SuccessStateProps> = ({
 
   const discountContainerStyles: React.CSSProperties = {
     animation: "prizeReveal 0.6s ease-out 0.6s both",
+  };
+
+  const footerStyles: React.CSSProperties = {
+    marginTop: "1.5rem",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    gap: "0.75rem",
+    animation: "staggerFadeIn 0.5s ease-out 0.8s both",
+  };
+
+  const primaryButtonStyles: React.CSSProperties = {
+    padding: "0.75rem 1.5rem",
+    fontSize: "1rem",
+    fontWeight: 600,
+    borderRadius: "0.5rem",
+    border: "none",
+    cursor: "pointer",
+    transition: "all 0.2s ease",
+    backgroundColor: resolvedAccentColor,
+    color: "#ffffff",
+  };
+
+  const countdownStyles: React.CSSProperties = {
+    fontSize: "0.875rem",
+    color: "#6b7280",
+    display: "flex",
+    alignItems: "center",
+    gap: "0.5rem",
+  };
+
+  const keepOpenButtonStyles: React.CSSProperties = {
+    background: "none",
+    border: "none",
+    color: resolvedAccentColor,
+    cursor: "pointer",
+    textDecoration: "underline",
+    fontSize: "0.875rem",
+    padding: 0,
   };
 
   return (
@@ -321,6 +378,30 @@ export const SuccessState: React.FC<SuccessStateProps> = ({
             accentColor={resolvedAccentColor}
             size="md"
           />
+        </div>
+      )}
+
+      {/* Footer: Secondary Action + Auto-close countdown */}
+      {(secondaryAction || (autoCloseIn !== null && autoCloseIn !== undefined && autoCloseIn > 0)) && (
+        <div style={footerStyles}>
+          {/* Secondary Action Button */}
+          {secondaryAction && (
+            <button style={primaryButtonStyles} onClick={secondaryAction.onClick}>
+              {secondaryAction.label}
+            </button>
+          )}
+
+          {/* Auto-close Countdown */}
+          {autoCloseIn !== null && autoCloseIn !== undefined && autoCloseIn > 0 && (
+            <div style={countdownStyles}>
+              <span>Closing in {autoCloseIn}s...</span>
+              {onCancelAutoClose && (
+                <button style={keepOpenButtonStyles} onClick={onCancelAutoClose}>
+                  Keep open
+                </button>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>

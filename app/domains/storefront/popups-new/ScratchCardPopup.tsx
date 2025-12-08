@@ -1111,6 +1111,7 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
                   buttonTextColor={config.buttonTextColor}
                   inputTextColor={config.inputTextColor}
                   inputBorderColor={config.inputBorderColor}
+                  inputPlaceholderColor={config.inputPlaceholderColor}
                   privacyPolicyUrl={config.privacyPolicyUrl}
                   style={{
                     width: "100%",
@@ -1441,6 +1442,7 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
                     buttonTextColor={config.buttonTextColor}
                     inputTextColor={config.inputTextColor}
                     inputBorderColor={config.inputBorderColor}
+                    inputPlaceholderColor={config.inputPlaceholderColor}
                     privacyPolicyUrl={config.privacyPolicyUrl}
                   />
                 </div>

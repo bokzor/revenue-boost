@@ -136,20 +136,6 @@ export async function closePopup(page: Page) {
 }
 
 /**
- * Mock challenge token request to avoid rate limits
- */
-export async function mockChallengeToken(page: Page) {
-  await page.route("**/api/challenge/request", async (route) => {
-    const json = {
-      success: true,
-      challengeToken: "mock-challenge-token-" + Date.now(),
-      expiresAt: new Date(Date.now() + 600000).toISOString(),
-    };
-    await route.fulfill({ json });
-  });
-}
-
-/**
  * Mock upsell products API to bypass app proxy authentication in E2E tests.
  * Returns sample products for product upsell popup testing.
  *
@@ -926,9 +912,6 @@ export async function setupTestEnvironment(
   // 2. Wait for cleanup to propagate
   await page.waitForTimeout(waitTime);
   console.log("[Test Setup] Waited for cleanup to propagate");
-
-  // 3. Mock challenge token
-  await mockChallengeToken(page);
 }
 
 /**

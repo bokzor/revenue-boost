@@ -30,6 +30,12 @@ HookRegistry.register('SCRATCH_CARD', backgroundImageHook);
 // Register hooks for PRODUCT_UPSELL template
 HookRegistry.register('PRODUCT_UPSELL', productDataHook);
 
+// Register hooks for new upsell popup templates
+HookRegistry.register('CLASSIC_UPSELL', productDataHook);
+HookRegistry.register('MINIMAL_SLIDE_UP', productDataHook);
+HookRegistry.register('PREMIUM_FULLSCREEN', productDataHook);
+HookRegistry.register('COUNTDOWN_URGENCY', productDataHook);
+
 // Register hooks for CART_ABANDONMENT template
 HookRegistry.register('CART_ABANDONMENT', cartDataHook);
 

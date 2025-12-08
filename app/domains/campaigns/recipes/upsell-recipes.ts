@@ -7,11 +7,10 @@
  * Recipes:
  * 1. Complete the Look - Trigger: add_to_cart
  * 2. You Might Also Like - Trigger: product_view (time-based)
- * 3. Spend More, Save More - Trigger: cart_value threshold
- * 4. Last Chance Upsell - Trigger: exit_intent
- * 5. Frequently Bought Together - Trigger: page_load on product pages
- * 6. Post-Purchase Recommendations - Trigger: page_load on thank-you page
- * 7. Scroll-Triggered Recommendations - Trigger: scroll_depth on product pages
+ * 3. Last Chance Upsell - Trigger: exit_intent
+ * 4. Frequently Bought Together - Trigger: page_load on product pages
+ * 5. Post-Purchase Recommendations - Trigger: page_load on thank-you page
+ * 6. Scroll-Triggered Recommendations - Trigger: scroll_depth on product pages
  *
  * Note: cart_drawer_open trigger is not reliably supported across Shopify themes,
  * so we use add_to_cart instead (cart drawer typically opens after add-to-cart).
@@ -24,7 +23,6 @@ import type {
   ClassicUpsellRecipe,
   MinimalSlideUpRecipe,
   PremiumFullscreenRecipe,
-  BundleDealRecipe,
   CountdownUrgencyRecipe,
   EditableField,
   QuickInput,
@@ -69,6 +67,27 @@ export const UPSELL_EDITABLE_FIELDS: EditableField[] = [
 // =============================================================================
 // SHARED QUICK INPUTS FOR UPSELL RECIPES
 // =============================================================================
+
+// =============================================================================
+// COMMON TARGETING CONFIGURATION FOR UPSELLS
+// =============================================================================
+
+// Frequency capping for upsells - allow more triggers but with limits
+const UPSELL_FREQUENCY_CAPPING = {
+  max_triggers_per_session: 2,
+  max_triggers_per_day: 5,
+  cooldown_between_triggers: 300, // 5 minutes in seconds
+};
+
+// Page targeting - exclude checkout pages to avoid disruption
+const UPSELL_PAGE_TARGETING = {
+  enabled: true,
+  pages: [] as string[],
+  customPatterns: [] as string[],
+  excludePages: ["/checkout", "/checkout/*", "/*/checkouts/*"],
+  productTags: [] as string[],
+  collections: [] as string[],
+};
 
 const BUNDLE_DISCOUNT_INPUT: QuickInput = {
   type: "discount_percentage",
@@ -152,7 +171,9 @@ export const completeTheLook: ProductUpsellRecipe = {
     targetRules: {
       enhancedTriggers: {
         add_to_cart: { enabled: true },
+        frequency_capping: UPSELL_FREQUENCY_CAPPING,
       },
+      pageTargeting: UPSELL_PAGE_TARGETING,
     },
   },
 };
@@ -221,12 +242,13 @@ export const productPageCrossSell: ProductUpsellRecipe = {
           enabled: true,
           time_on_page: 15,
         },
+        frequency_capping: UPSELL_FREQUENCY_CAPPING,
       },
       pageTargeting: {
         enabled: true,
         pages: [],
         customPatterns: ["/products/*"],
-        excludePages: [],
+        excludePages: ["/checkout", "/checkout/*", "/*/checkouts/*"],
         productTags: [],
         collections: [],
       },
@@ -235,86 +257,7 @@ export const productPageCrossSell: ProductUpsellRecipe = {
 };
 
 // =============================================================================
-// 3. SPEND MORE, SAVE MORE
-// Trigger: When cart value reaches threshold
-// =============================================================================
-
-export const spendMoreSaveMore: ProductUpsellRecipe = {
-  id: "upsell-spend-more-save-more",
-  name: "Spend More, Save More",
-  tagline: "Tiered discounts to increase AOV",
-  description:
-    "Show upsell products when cart reaches a value threshold. Encourage customers to add more to unlock bigger discounts.",
-  icon: "💰",
-  category: "sales_promos",
-  goal: "INCREASE_REVENUE",
-  templateType: "PRODUCT_UPSELL",
-  tags: ["bold", "high-converting", "discount"],
-  component: "ProductUpsell",
-  theme: "gradient",
-  layout: "centered",
-  featured: true,
-  recipeType: "use_case",
-  inputs: [
-    {
-      type: "currency_amount",
-      key: "cartValueThreshold",
-      label: "Cart Value Threshold ($)",
-      defaultValue: 50,
-    },
-    BUNDLE_DISCOUNT_INPUT,
-    PRODUCT_SELECTION_INPUT,
-  ],
-  editableFields: UPSELL_EDITABLE_FIELDS,
-  defaults: {
-    contentConfig: {
-      headline: "You're Almost There!",
-      subheadline: "Add a bit more to unlock 20% off your entire order",
-      buttonText: "Add & Save",
-      productSelectionMethod: "ai",
-      layout: "featured",
-      columns: 2,
-      maxProducts: 4,
-      showPrices: true,
-      showCompareAtPrice: true,
-      showImages: true,
-      showRatings: false,
-      bundleDiscount: 20,
-      bundleDiscountText: "Unlock 20% off!",
-      multiSelect: true,
-    },
-    designConfig: {
-      theme: "gradient",
-      position: "center",
-      size: "large",
-      animation: "bounce",
-    },
-    targetRules: {
-      enhancedTriggers: {
-        cart_value: {
-          enabled: true,
-          min_value: 50,
-          max_value: 100,
-        },
-      },
-    },
-    discountConfig: {
-      enabled: true,
-      type: "shared",
-      showInPreview: true,
-      behavior: "SHOW_CODE_AND_AUTO_APPLY",
-      // Tiered structure - Spend more, save more
-      tiers: [
-        { thresholdCents: 5000, discount: { kind: "percentage", value: 10 } }, // $50 → 10%
-        { thresholdCents: 10000, discount: { kind: "percentage", value: 20 } }, // $100 → 20%
-        { thresholdCents: 15000, discount: { kind: "percentage", value: 30 } }, // $150 → 30%
-      ],
-    },
-  },
-};
-
-// =============================================================================
-// 4. LAST CHANCE UPSELL
+// 3. LAST CHANCE UPSELL
 // Trigger: Exit intent
 // =============================================================================
 
@@ -367,7 +310,9 @@ export const lastChanceUpsell: ProductUpsellRecipe = {
     targetRules: {
       enhancedTriggers: {
         exit_intent: { enabled: true },
+        frequency_capping: UPSELL_FREQUENCY_CAPPING,
       },
+      pageTargeting: UPSELL_PAGE_TARGETING,
     },
   },
 };
@@ -422,14 +367,15 @@ export const frequentlyBoughtTogether: ProductUpsellRecipe = {
       enhancedTriggers: {
         page_load: {
           enabled: true,
-          delay: 2000,
+          delay: 3000,
         },
+        frequency_capping: UPSELL_FREQUENCY_CAPPING,
       },
       pageTargeting: {
         enabled: true,
         pages: [],
         customPatterns: ["/products/*"],
-        excludePages: [],
+        excludePages: ["/checkout", "/checkout/*", "/*/checkouts/*"],
         productTags: [],
         collections: [],
       },
@@ -438,16 +384,30 @@ export const frequentlyBoughtTogether: ProductUpsellRecipe = {
 };
 
 // =============================================================================
-// 6. POST-PURCHASE CROSS-SELL
+// 6. THANK-YOU PAGE CROSS-SELL (Popup-based)
 // Trigger: Page load on thank-you/order confirmation page
+//
+// NOTE: This is a POPUP-based implementation that displays on the thank-you page.
+// When customers select products and click "Add to Cart", they are redirected to
+// a NEW cart with the selected items - this creates a SECOND ORDER, not modifying
+// the original order.
+//
+// TODO: Implement Shopify's native Post-Purchase Checkout Extension for true
+// one-click upsells that modify the existing order. Key differences:
+// - Appears BETWEEN checkout completion and thank-you page
+// - Uses vaulted payment method for one-click purchase
+// - Modifies the EXISTING order (no second checkout needed)
+// - Limitations: Credit card only, beta access required, single app per store
+// - See: https://shopify.dev/docs/apps/build/checkout/product-offers#post-purchase-product-offers
+// - CLI: shopify app generate extension --template post_purchase_ui
 // =============================================================================
 
 export const postPurchaseCrossSell: ProductUpsellRecipe = {
   id: "upsell-post-purchase",
-  name: "Post-Purchase Recommendations",
-  tagline: "Cross-sell on the thank-you page",
+  name: "Thank-You Page Recommendations",
+  tagline: "Cross-sell popup on the order confirmation page",
   description:
-    "Show complementary products on the order confirmation page. Customers are in a buying mood - capitalize on it!",
+    "Show a popup with complementary products on the thank-you page. Customers can add items to a new cart for a follow-up purchase. Works with ALL payment methods (unlike native post-purchase extensions).",
   icon: "🎁",
   category: "sales_promos",
   goal: "INCREASE_REVENUE",
@@ -457,7 +417,7 @@ export const postPurchaseCrossSell: ProductUpsellRecipe = {
   theme: "modern",
   layout: "centered",
   featured: true,
-  new: true,
+  new: false,
   recipeType: "use_case",
   inputs: [BUNDLE_DISCOUNT_INPUT, PRODUCT_SELECTION_INPUT, MAX_PRODUCTS_INPUT],
   editableFields: UPSELL_EDITABLE_FIELDS,
@@ -465,7 +425,7 @@ export const postPurchaseCrossSell: ProductUpsellRecipe = {
     contentConfig: {
       headline: "Thanks for Your Order!",
       subheadline: "Customers who bought this also loved these items",
-      buttonText: "Add to Order",
+      buttonText: "Add to Cart",
       productSelectionMethod: "ai",
       layout: "grid",
       columns: 3,
@@ -488,8 +448,9 @@ export const postPurchaseCrossSell: ProductUpsellRecipe = {
       enhancedTriggers: {
         page_load: {
           enabled: true,
-          delay: 1000,
+          delay: 2000,
         },
+        frequency_capping: UPSELL_FREQUENCY_CAPPING,
       },
       pageTargeting: {
         enabled: true,
@@ -569,12 +530,13 @@ export const scrollBasedRecommendations: ProductUpsellRecipe = {
           depth_percentage: 60,
           direction: "down",
         },
+        frequency_capping: UPSELL_FREQUENCY_CAPPING,
       },
       pageTargeting: {
         enabled: true,
         pages: [],
         customPatterns: ["/products/*"],
-        excludePages: [],
+        excludePages: ["/checkout", "/checkout/*", "/*/checkouts/*"],
         productTags: [],
         collections: [],
       },
@@ -617,7 +579,7 @@ export const classicUpsellModal: ClassicUpsellRecipe = {
       showCompareAtPrice: true,
       showImages: true,
       showRatings: true,
-      discountPercent: 15,
+      bundleDiscount: 15,
       currency: "USD",
     },
     designConfig: {
@@ -629,7 +591,9 @@ export const classicUpsellModal: ClassicUpsellRecipe = {
     targetRules: {
       enhancedTriggers: {
         add_to_cart: { enabled: true },
+        frequency_capping: UPSELL_FREQUENCY_CAPPING,
       },
+      pageTargeting: UPSELL_PAGE_TARGETING,
     },
   },
 };
@@ -678,7 +642,9 @@ export const minimalSlideUp: MinimalSlideUpRecipe = {
     targetRules: {
       enhancedTriggers: {
         add_to_cart: { enabled: true },
+        frequency_capping: UPSELL_FREQUENCY_CAPPING,
       },
+      pageTargeting: UPSELL_PAGE_TARGETING,
     },
   },
 };
@@ -735,7 +701,7 @@ export const premiumFullscreen: PremiumFullscreenRecipe = {
       showImages: true,
       showRatings: true,
       showReviewCount: true,
-      discountPercent: 20,
+      bundleDiscount: 20,
       currency: "USD",
       features: [
         "Premium quality materials",
@@ -754,7 +720,9 @@ export const premiumFullscreen: PremiumFullscreenRecipe = {
     targetRules: {
       enhancedTriggers: {
         exit_intent: { enabled: true },
+        frequency_capping: UPSELL_FREQUENCY_CAPPING,
       },
+      pageTargeting: UPSELL_PAGE_TARGETING,
     },
   },
 };
@@ -818,7 +786,7 @@ export const countdownUrgency: CountdownUrgencyRecipe = {
       showPrices: true,
       showCompareAtPrice: true,
       showImages: true,
-      discountPercent: 25,
+      bundleDiscount: 25,
       currency: "USD",
       expiresInSeconds: 300,
       socialProofMessage: "🔥 47 people are viewing this right now",
@@ -832,7 +800,9 @@ export const countdownUrgency: CountdownUrgencyRecipe = {
     targetRules: {
       enhancedTriggers: {
         exit_intent: { enabled: true },
+        frequency_capping: UPSELL_FREQUENCY_CAPPING,
       },
+      pageTargeting: UPSELL_PAGE_TARGETING,
     },
   },
 };
@@ -845,7 +815,6 @@ export const UPSELL_RECIPES: AnyStyledRecipe[] = [
   // Original recipes (PRODUCT_UPSELL template type)
   completeTheLook,
   productPageCrossSell,
-  spendMoreSaveMore,
   lastChanceUpsell,
   frequentlyBoughtTogether,
   postPurchaseCrossSell,

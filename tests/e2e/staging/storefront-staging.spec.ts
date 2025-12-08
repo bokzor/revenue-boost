@@ -1,7 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { PrismaClient } from '@prisma/client';
 import './helpers/load-staging-env';
-import { mockChallengeToken } from './helpers/test-helpers';
 
 
 const STORE_URL = 'https://revenue-boost-staging.myshopify.com';
@@ -42,7 +41,6 @@ test.describe('Staging Storefront E2E', () => {
     });
 
     test.beforeEach(async ({ page }) => {
-        await mockChallengeToken(page);
         // Clean up any existing test campaigns
         await prisma.campaign.deleteMany({
             where: {

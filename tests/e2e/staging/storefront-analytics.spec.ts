@@ -20,7 +20,6 @@ import {
     fillEmailInShadowDOM,
     cleanupAllE2ECampaigns,
     MAX_TEST_PRIORITY,
-    mockChallengeToken
 } from './helpers/test-helpers';
 import { CampaignFactory } from './factories/campaign-factory';
 
@@ -63,7 +62,6 @@ test.describe('Analytics Event Tracking', () => {
             console.log('🧪 Testing VIEW event tracking...');
 
             // Mock challenge token to bypass bot protection
-            await mockChallengeToken(page);
 
             const campaign = await (await factory.newsletter().init())
                 .withName('Analytics-View')
@@ -127,7 +125,6 @@ test.describe('Analytics Event Tracking', () => {
             console.log('🧪 Testing VIEW event includes visitor context...');
 
             // Mock challenge token to bypass bot protection
-            await mockChallengeToken(page);
 
             const campaign = await (await factory.newsletter().init())
                 .withName('Analytics-View-Context')
@@ -177,7 +174,6 @@ test.describe('Analytics Event Tracking', () => {
             console.log('🧪 Testing CLICK event tracking...');
 
             // Mock challenge token to bypass bot protection
-            await mockChallengeToken(page);
 
             const campaign = await (await factory.newsletter().init())
                 .withName('Analytics-Click')
@@ -242,7 +238,6 @@ test.describe('Analytics Event Tracking', () => {
             console.log('🧪 Testing CLOSE event tracking...');
 
             // Mock challenge token to bypass bot protection
-            await mockChallengeToken(page);
 
             const campaign = await (await factory.newsletter().init())
                 .withName('Analytics-Close')
@@ -321,7 +316,6 @@ test.describe('Analytics Event Tracking', () => {
             console.log('🧪 Testing SUBMIT event tracking...');
 
             // Mock challenge token to bypass bot protection
-            await mockChallengeToken(page);
 
             const campaign = await (await factory.newsletter().init())
                 .withName('Analytics-Submit')
@@ -391,7 +385,6 @@ test.describe('Analytics Event Tracking', () => {
             console.log('🧪 Testing experiment tracking metadata...');
 
             // Mock challenge token to bypass bot protection
-            await mockChallengeToken(page);
 
             // Create experiment
             const builder = factory.experiment();
@@ -446,7 +439,6 @@ test.describe('Analytics Event Tracking', () => {
             console.log('🧪 Testing page context in analytics...');
 
             // Mock challenge token to bypass bot protection
-            await mockChallengeToken(page);
 
             const campaign = await (await factory.newsletter().init())
                 .withName('Analytics-PageContext')
@@ -500,7 +492,6 @@ test.describe('Analytics Event Tracking', () => {
             console.log('🧪 Testing social proof page view tracking...');
 
             // Mock challenge token to bypass bot protection
-            await mockChallengeToken(page);
 
             const socialProofEvents: any[] = [];
             await page.route('**/api/social-proof/track**', async route => {

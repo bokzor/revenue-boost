@@ -132,6 +132,8 @@ export interface CartAbandonmentPopupProps {
   onEmailRecovery?: (email: string) => Promise<string | void> | string | void;
   issueDiscount?: (options?: {
     cartSubtotalCents?: number;
+    /** Product IDs from cart items - for cart-scoped discounts */
+    cartProductIds?: string[];
   }) => Promise<{ code?: string; behavior?: string } | null>;
   onTrack?: (metadata?: Record<string, unknown>) => void;
 }
@@ -219,7 +221,15 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
         const cartSubtotalCents =
           typeof numericTotal === "number" ? Math.round(numericTotal * 100) : undefined;
 
-        const result = await issueDiscount(cartSubtotalCents ? { cartSubtotalCents } : undefined);
+        // Extract product IDs from cart items for cart-scoped discounts
+        const cartProductIds = cartItems
+          .map((item) => item.productId || item.id)
+          .filter((id): id is string => !!id);
+
+        const result = await issueDiscount({
+          cartSubtotalCents,
+          cartProductIds: cartProductIds.length > 0 ? cartProductIds : undefined,
+        });
 
         const code = result?.code;
         // All behaviors show the code, so show it if we have one
@@ -253,6 +263,7 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
   }, [
     config.discount?.enabled,
     config.ctaUrl,
+    cartItems,
     cartTotal,
     discountCode,
     discountBehavior,
@@ -382,6 +393,8 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
         type: config.animation || "fade",
       }}
       position={config.position || "center"}
+      size={config.size || "medium"}
+      mobilePresentationMode="bottom-sheet"
       closeOnEscape={config.closeOnEscape !== false}
       closeOnBackdropClick={config.closeOnOverlayClick !== false}
       previewMode={config.previewMode}
@@ -432,10 +445,6 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
           /* Let PopupPortal handle positioning - don't override with fixed positioning */
           /* The cart items list (.cart-ab-items) handles its own scrolling */
           overflow: visible;
-
-          /* Container query context */
-          container-type: inline-size;
-          container-name: cart-popup;
         }
 
         @keyframes cart-ab-slideUp {
@@ -452,8 +461,9 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
         /* ============================================
          * TABLET+ LAYOUT (Container Query @ 420px)
          * Transforms to centered card
+         * Uses popup-viewport container from PopupPortal
          * ============================================ */
-        @container cart-popup (min-width: 420px) {
+        @container popup-viewport (min-width: 420px) {
           .cart-ab-popup-container {
             /* Center the card */
             position: relative;
@@ -463,7 +473,6 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
             margin: 0 auto;
 
             /* Responsive max-width */
-            max-width: var(--cart-ab-max-width);
 
             /* Card styling */
             border-radius: var(--cart-ab-radius);
@@ -801,7 +810,7 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
         }
 
         /* Side-by-side email form on larger containers */
-        @container cart-popup (min-width: 380px) {
+        @container popup-viewport (min-width: 380px) {
           .cart-ab-email-row {
             flex-direction: row;
           }
@@ -916,7 +925,7 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
         /* ============================================
          * SMALL CONTAINER ADJUSTMENTS (< 360px)
          * ============================================ */
-        @container cart-popup (max-width: 360px) {
+        @container popup-viewport (max-width: 360px) {
           .cart-ab-item {
             flex-wrap: wrap;
           }
@@ -937,7 +946,7 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
         /* ============================================
          * LARGE CONTAINER ENHANCEMENTS (> 480px)
          * ============================================ */
-        @container cart-popup (min-width: 480px) {
+        @container popup-viewport (min-width: 480px) {
           .cart-ab-popup-container {
             --cart-ab-padding-x: clamp(1.5rem, 6cqi, 2.5rem);
             --cart-ab-padding-y: clamp(1.5rem, 5cqi, 2.5rem);
@@ -965,17 +974,10 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
           }
         }
 
-        /* ============================================
-         * PREVIEW MODE
-         * Keep popup inside preview frame instead of viewport
-         * ============================================ */
-        .cart-ab-popup-container.cart-ab-preview-mode {
-          position: absolute;
-        }
       `}</style>
 
       <div
-        className={`cart-ab-popup-container${config.previewMode ? " cart-ab-preview-mode" : ""}`}
+        className="cart-ab-popup-container"
         data-splitpop="true"
         data-template="cart-abandonment"
       >

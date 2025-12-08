@@ -43,13 +43,36 @@ export const PremiumFullscreenPopup: React.FC<PremiumFullscreenPopupProps> = ({
 
   if (!product) return null;
 
-  const discount = product.compareAtPrice
-    ? Math.round(
-        ((parseFloat(product.compareAtPrice) - parseFloat(product.price)) /
-          parseFloat(product.compareAtPrice)) *
-          100
-      )
-    : 0;
+  // Calculate pricing with bundleDiscount
+  const originalPrice = parseFloat(product.price);
+  const bundleDiscount = config.bundleDiscount || 0;
+
+  // If bundleDiscount is configured, apply it to the product price
+  // Otherwise, fall back to compareAtPrice discount (existing product sale)
+  const hasUpsellDiscount = bundleDiscount > 0;
+  const discountedPrice = hasUpsellDiscount
+    ? originalPrice * (1 - bundleDiscount / 100)
+    : originalPrice;
+
+  // For display: show original price as compare-at when bundleDiscount is applied
+  // Or use product's compareAtPrice if no bundleDiscount
+  const displayPrice = hasUpsellDiscount ? discountedPrice : originalPrice;
+  const compareAtPrice = hasUpsellDiscount
+    ? originalPrice
+    : product.compareAtPrice
+      ? parseFloat(product.compareAtPrice)
+      : null;
+
+  // Calculate savings percentage for display
+  const savingsPercent = hasUpsellDiscount
+    ? bundleDiscount
+    : product.compareAtPrice
+      ? Math.round(
+          ((parseFloat(product.compareAtPrice) - originalPrice) /
+            parseFloat(product.compareAtPrice)) *
+            100
+        )
+      : 0;
 
   const handleAddToCart = async () => {
     if (!onAddToCart || isLoading) return;
@@ -235,17 +258,21 @@ export const PremiumFullscreenPopup: React.FC<PremiumFullscreenPopupProps> = ({
               </div>
             )}
 
-            <div className="premium-price">
-              <span className="premium-price-current">
-                {formatCurrency(product.price, config.currency)}
-              </span>
-              {product.compareAtPrice && (
-                <span className="premium-price-compare">
-                  {formatCurrency(product.compareAtPrice, config.currency)}
+            {/* Only show price if showPrices is enabled (default true) */}
+            {config.showPrices !== false && (
+              <div className="premium-price">
+                <span className="premium-price-current">
+                  {formatCurrency(displayPrice, config.currency)}
                 </span>
-              )}
-              {discount > 0 && <span className="premium-discount">-{discount}%</span>}
-            </div>
+                {/* Show compare-at price if enabled and there's a discount */}
+                {config.showCompareAtPrice !== false && compareAtPrice && compareAtPrice > displayPrice && (
+                  <span className="premium-price-compare">
+                    {formatCurrency(compareAtPrice, config.currency)}
+                  </span>
+                )}
+                {savingsPercent > 0 && <span className="premium-discount">-{savingsPercent}%</span>}
+              </div>
+            )}
 
             <div className="premium-actions">
               <button
@@ -254,10 +281,10 @@ export const PremiumFullscreenPopup: React.FC<PremiumFullscreenPopupProps> = ({
                 disabled={isLoading || addedSuccess}
               >
                 {addedSuccess
-                  ? "✓ Added to My Order!"
+                  ? (config.successMessage || "✓ Added to My Order!")
                   : isLoading
                     ? "Adding..."
-                    : "Yes, Add to My Order!"}
+                    : (config.buttonText || "Claim This Deal")}
               </button>
               <button className="premium-decline" onClick={onClose}>
                 {config.secondaryCtaLabel || "No thanks, I'll pass on this deal"}

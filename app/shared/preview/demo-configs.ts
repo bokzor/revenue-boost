@@ -325,7 +325,7 @@ export const DEMO_CONFIGS: Record<
       showCompareAtPrice: true,
       showImages: true,
       showRatings: true,
-      discountPercent: 15,
+      bundleDiscount: 15,
       currency: "USD",
     },
     design: {
@@ -367,7 +367,7 @@ export const DEMO_CONFIGS: Record<
       showImages: true,
       showRatings: true,
       showReviewCount: true,
-      discountPercent: 20,
+      bundleDiscount: 20,
       currency: "USD",
       features: [
         "Premium quality materials",
@@ -393,7 +393,7 @@ export const DEMO_CONFIGS: Record<
       showPrices: true,
       showCompareAtPrice: true,
       showImages: true,
-      discountPercent: 25,
+      bundleDiscount: 25,
       currency: "USD",
       expiresInSeconds: 300,
       socialProofMessage: "🔥 47 people are viewing this right now",

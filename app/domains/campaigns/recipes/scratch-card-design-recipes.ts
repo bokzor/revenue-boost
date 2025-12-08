@@ -58,6 +58,27 @@ const TRIGGER_INPUT = {
 };
 
 // =============================================================================
+// COMMON TARGETING CONFIGURATION FOR SCRATCH CARDS
+// =============================================================================
+
+// Strict frequency capping for gamification - once per session, once per day
+const SCRATCH_CARD_FREQUENCY_CAPPING = {
+  max_triggers_per_session: 1,
+  max_triggers_per_day: 1,
+  cooldown_between_triggers: 86400, // 24 hours in seconds
+};
+
+// Page targeting - exclude checkout and cart pages
+const SCRATCH_CARD_PAGE_TARGETING = {
+  enabled: true,
+  pages: [] as string[],
+  customPatterns: [] as string[],
+  excludePages: ["/checkout", "/checkout/*", "/cart", "/*/checkouts/*"],
+  productTags: [] as string[],
+  collections: [] as string[],
+};
+
+// =============================================================================
 // 1. GOLDEN REVEAL (Luxury Fashion)
 // =============================================================================
 
@@ -117,6 +138,7 @@ const goldenReveal: ScratchCardRecipe = {
       scratchOverlayImage: "/recipes/scratch-card/golden-reveal-overlay.jpg",
       inputBackgroundColor: "rgba(255,255,255,0.1)",
       inputTextColor: "#F5F0E8", // Light text for dark input
+      inputPlaceholderColor: "rgba(245, 240, 232, 0.6)", // Light cream placeholder with opacity
       inputBorderColor: "#D4AF37",
       accentColor: "#D4AF37",
       fontFamily: "'Playfair Display', Georgia, serif",
@@ -131,7 +153,7 @@ const goldenReveal: ScratchCardRecipe = {
         contentOverlap: "0",
         visualGradient: true,
       },
-      backgroundOverlayOpacity: 0,
+      backgroundOverlayOpacity: 0.6, // Dark overlay for text readability
       borderRadius: 16,
       buttonBorderRadius: 8,
       inputBorderRadius: 8,
@@ -142,7 +164,9 @@ const goldenReveal: ScratchCardRecipe = {
       enhancedTriggers: {
         time_delay: { enabled: true, delay: 5000 },
         exit_intent: { enabled: true, sensitivity: "medium" },
+        frequency_capping: SCRATCH_CARD_FREQUENCY_CAPPING,
       },
+      pageTargeting: SCRATCH_CARD_PAGE_TARGETING,
     },
     discountConfig: {
       enabled: true,
@@ -208,6 +232,7 @@ const neonArcade: ScratchCardRecipe = {
       scratchOverlayImage: "/recipes/scratch-card/neon-arcade-overlay.jpg",
       inputBackgroundColor: "rgba(167, 139, 250, 0.2)",
       inputTextColor: "#FFFFFF", // White text on dark purple input
+      inputPlaceholderColor: "rgba(255, 255, 255, 0.6)", // White placeholder with opacity
       inputBorderColor: "#A78BFA",
       accentColor: "#EC4899",
       fontFamily: "'Space Grotesk', 'Courier New', monospace",
@@ -225,9 +250,11 @@ const neonArcade: ScratchCardRecipe = {
     },
     targetRules: {
       enhancedTriggers: {
-        time_delay: { enabled: true, delay: 4000 },
+        time_delay: { enabled: true, delay: 5000 },
         scroll_depth: { enabled: true, depth_percentage: 30 },
+        frequency_capping: SCRATCH_CARD_FREQUENCY_CAPPING,
       },
+      pageTargeting: SCRATCH_CARD_PAGE_TARGETING,
     },
     discountConfig: {
       enabled: true,
@@ -309,7 +336,9 @@ const paperLuck: ScratchCardRecipe = {
     targetRules: {
       enhancedTriggers: {
         time_delay: { enabled: true, delay: 5000 },
+        frequency_capping: SCRATCH_CARD_FREQUENCY_CAPPING,
       },
+      pageTargeting: SCRATCH_CARD_PAGE_TARGETING,
     },
   },
 };
@@ -399,7 +428,9 @@ const roseGoldDream: ScratchCardRecipe = {
       enhancedTriggers: {
         time_delay: { enabled: true, delay: 6000 },
         scroll_depth: { enabled: true, depth_percentage: 35 },
+        frequency_capping: SCRATCH_CARD_FREQUENCY_CAPPING,
       },
+      pageTargeting: SCRATCH_CARD_PAGE_TARGETING,
     },
     discountConfig: {
       enabled: true,
@@ -453,19 +484,7 @@ const minimalSilver: ScratchCardRecipe = {
       position: "center",
       size: "medium",
       animation: "fade",
-      backgroundColor: "#FFFFFF",
-      textColor: "#111827",
-      descriptionColor: "#6B7280",
-      buttonColor: "#111827",
-      buttonTextColor: "#FFFFFF",
-      scratchCardBackgroundColor: "#F9FAFB",
-      scratchCardTextColor: "#111827", // Dark text on light gray prize background
-      scratchOverlayColor: "#9CA3AF",
       scratchOverlayImage: "/recipes/scratch-card/minimal-silver-overlay.jpg",
-      inputBackgroundColor: "#F9FAFB",
-      inputTextColor: "#111827", // Dark text on light gray input
-      inputBorderColor: "#E5E7EB",
-      accentColor: "#3B82F6",
       fontFamily: "'Inter', system-ui, sans-serif",
       imagePosition: "none",
       leadCaptureLayout: {
@@ -482,7 +501,9 @@ const minimalSilver: ScratchCardRecipe = {
       enhancedTriggers: {
         time_delay: { enabled: true, delay: 8000 },
         exit_intent: { enabled: true, sensitivity: "medium" },
+        frequency_capping: SCRATCH_CARD_FREQUENCY_CAPPING,
       },
+      pageTargeting: SCRATCH_CARD_PAGE_TARGETING,
     },
     discountConfig: {
       enabled: true,
@@ -573,8 +594,10 @@ const holidayMagic: ScratchCardRecipe = {
     },
     targetRules: {
       enhancedTriggers: {
-        time_delay: { enabled: true, delay: 4000 },
+        time_delay: { enabled: true, delay: 5000 },
+        frequency_capping: SCRATCH_CARD_FREQUENCY_CAPPING,
       },
+      pageTargeting: SCRATCH_CARD_PAGE_TARGETING,
     },
     discountConfig: {
       enabled: true,
@@ -659,7 +682,9 @@ const woodArtisan: ScratchCardRecipe = {
       enhancedTriggers: {
         time_delay: { enabled: true, delay: 6000 },
         scroll_depth: { enabled: true, depth_percentage: 40 },
+        frequency_capping: SCRATCH_CARD_FREQUENCY_CAPPING,
       },
+      pageTargeting: SCRATCH_CARD_PAGE_TARGETING,
     },
     discountConfig: {
       enabled: true,
@@ -750,9 +775,11 @@ const holographicHype: ScratchCardRecipe = {
     },
     targetRules: {
       enhancedTriggers: {
-        time_delay: { enabled: true, delay: 3000 },
+        time_delay: { enabled: true, delay: 5000 },
         scroll_depth: { enabled: true, depth_percentage: 20 },
+        frequency_capping: SCRATCH_CARD_FREQUENCY_CAPPING,
       },
+      pageTargeting: SCRATCH_CARD_PAGE_TARGETING,
     },
     discountConfig: {
       enabled: true,

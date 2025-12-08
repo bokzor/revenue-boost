@@ -418,25 +418,6 @@ enum PopupEventType {
 // SECURITY MODELS
 // ============================================================================
 
-/// Challenge token for preventing discount code abuse
-/// Used in token-based authentication for discount generation
-model ChallengeToken {
-  id         String   @id @default(cuid())
-  token      String   @unique
-  campaignId String
-  sessionId  String
-  ip         String
-  used       Boolean  @default(false)
-  createdAt  DateTime @default(now())
-  expiresAt  DateTime
-
-  @@index([token])
-  @@index([campaignId])
-  @@index([expiresAt])
-  @@index([sessionId])
-  @@map("challenge_tokens")
-}
-
 /// Rate limiting log for API abuse prevention
 /// Tracks requests by key (IP, email, or session) for rate limit enforcement
 model RateLimitLog {

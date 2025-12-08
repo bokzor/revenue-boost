@@ -7,7 +7,6 @@ import {
     STORE_DOMAIN,
     API_PROPAGATION_DELAY_MS,
     handlePasswordPage,
-    mockChallengeToken,
     getTestPrefix,
     verifyNewsletterContent,
     fillEmailInShadowDOM,
@@ -67,7 +66,6 @@ test.describe.serial('Discount Configurations', () => {
         // Clean up ALL E2E campaigns to avoid priority conflicts
         await cleanupAllE2ECampaigns(prisma);
 
-        await mockChallengeToken(page);
         await page.context().clearCookies();
 
         // Mock lead submission to return discount code

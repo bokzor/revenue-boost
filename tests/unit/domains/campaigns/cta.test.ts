@@ -83,7 +83,8 @@ describe("CTA Schema Validation", () => {
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.quantity).toBe(1);
-      expect(result.data.applyDiscountFirst).toBe(true);
+      // applyDiscountFirst is now optional (deprecated in favor of successBehavior)
+      expect(result.data.applyDiscountFirst).toBeUndefined();
       expect(result.data.openInNewTab).toBe(false);
     }
   });

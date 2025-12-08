@@ -60,6 +60,27 @@ const TRIGGER_INPUT = {
 };
 
 // =============================================================================
+// COMMON TARGETING CONFIGURATION FOR NEWSLETTERS
+// =============================================================================
+
+// Frequency capping for newsletter popups - show once per session, max once per day
+const NEWSLETTER_FREQUENCY_CAPPING = {
+  max_triggers_per_session: 1,
+  max_triggers_per_day: 1,
+  cooldown_between_triggers: 86400, // 24 hours in seconds
+};
+
+// Page targeting - exclude checkout and cart pages to avoid disruption
+const NEWSLETTER_PAGE_TARGETING = {
+  enabled: true,
+  pages: [] as string[],
+  customPatterns: [] as string[],
+  excludePages: ["/checkout", "/checkout/*", "/cart", "/*/checkouts/*"],
+  productTags: [] as string[],
+  collections: [] as string[],
+};
+
+// =============================================================================
 // 1. ELEGANT LUXE (Fashion/Luxury)
 // =============================================================================
 
@@ -67,7 +88,8 @@ const elegantLuxe: NewsletterRecipe = {
   id: "newsletter-elegant-luxe",
   name: "Elegant Luxe",
   tagline: "Join the Inner Circle",
-  description: "Best for premium brands where trust matters. Collects name for personalized VIP treatment.",
+  description:
+    "Best for premium brands where trust matters. Collects name for personalized VIP treatment.",
   icon: "✨",
   category: "email_leads",
   goal: "NEWSLETTER_SIGNUP",
@@ -132,7 +154,9 @@ const elegantLuxe: NewsletterRecipe = {
       enhancedTriggers: {
         time_delay: { enabled: true, delay: 8000 },
         exit_intent: { enabled: true, sensitivity: "medium" },
+        frequency_capping: NEWSLETTER_FREQUENCY_CAPPING,
       },
+      pageTargeting: NEWSLETTER_PAGE_TARGETING,
     },
     discountConfig: {
       enabled: true,
@@ -151,7 +175,8 @@ const streetStyle: NewsletterRecipe = {
   id: "newsletter-street-style",
   name: "Street Style",
   tagline: "DROP ALERTS",
-  description: "Perfect for limited drops and exclusive releases. Creates FOMO with early access hooks.",
+  description:
+    "Perfect for limited drops and exclusive releases. Creates FOMO with early access hooks.",
   icon: "🔥",
   category: "email_leads",
   goal: "NEWSLETTER_SIGNUP",
@@ -209,7 +234,9 @@ const streetStyle: NewsletterRecipe = {
       enhancedTriggers: {
         time_delay: { enabled: true, delay: 5000 },
         scroll_depth: { enabled: true, depth_percentage: 25 },
+        frequency_capping: NEWSLETTER_FREQUENCY_CAPPING,
       },
+      pageTargeting: NEWSLETTER_PAGE_TARGETING,
     },
   },
 };
@@ -227,7 +254,7 @@ const minimalTech: NewsletterRecipe = {
   category: "email_leads",
   goal: "NEWSLETTER_SIGNUP",
   templateType: "NEWSLETTER",
-  recipeType: "use_case", // Functional design - inherits store theme
+  recipeType: "inspiration", // Uses preset colors (not store theme)
   tags: ["tech", "minimal", "modern", "centered", "no-incentive"] as RecipeTag[],
   component: "NewsletterMinimal",
   theme: "minimal-tech",
@@ -277,7 +304,9 @@ const minimalTech: NewsletterRecipe = {
       enhancedTriggers: {
         time_delay: { enabled: true, delay: 10000 },
         scroll_depth: { enabled: true, depth_percentage: 50 },
+        frequency_capping: NEWSLETTER_FREQUENCY_CAPPING,
       },
+      pageTargeting: NEWSLETTER_PAGE_TARGETING,
     },
   },
 };
@@ -290,12 +319,13 @@ const darkMode: NewsletterRecipe = {
   id: "newsletter-dark-mode",
   name: "Dark Mode",
   tagline: "Join the Beta",
-  description: "Ideal for beta signups and waitlists. Appeals to tech-savvy, developer-focused audiences.",
+  description:
+    "Ideal for beta signups and waitlists. Appeals to tech-savvy, developer-focused audiences.",
   icon: "🌙",
   category: "email_leads",
   goal: "NEWSLETTER_SIGNUP",
   templateType: "NEWSLETTER",
-  recipeType: "use_case", // Functional design - inherits store theme
+  recipeType: "inspiration", // Functional design - inherits store theme
   tags: ["tech", "dark", "modern", "centered", "early-access"] as RecipeTag[],
   component: "NewsletterMinimal",
   theme: "dark-mode",
@@ -345,7 +375,9 @@ const darkMode: NewsletterRecipe = {
       enhancedTriggers: {
         time_delay: { enabled: true, delay: 5000 },
         exit_intent: { enabled: true, sensitivity: "medium" },
+        frequency_capping: NEWSLETTER_FREQUENCY_CAPPING,
       },
+      pageTargeting: NEWSLETTER_PAGE_TARGETING,
     },
   },
 };
@@ -358,7 +390,8 @@ const freshOrganic: NewsletterRecipe = {
   id: "newsletter-fresh-organic",
   name: "Fresh & Organic",
   tagline: "Farm Fresh Updates",
-  description: "Works well for recurring purchases like groceries. Highlights weekly deals and seasonal offers.",
+  description:
+    "Works well for recurring purchases like groceries. Highlights weekly deals and seasonal offers.",
   icon: "🥗",
   category: "email_leads",
   goal: "NEWSLETTER_SIGNUP",
@@ -413,7 +446,9 @@ const freshOrganic: NewsletterRecipe = {
       enhancedTriggers: {
         time_delay: { enabled: true, delay: 6000 },
         scroll_depth: { enabled: true, depth_percentage: 30 },
+        frequency_capping: NEWSLETTER_FREQUENCY_CAPPING,
       },
+      pageTargeting: NEWSLETTER_PAGE_TARGETING,
     },
     discountConfig: {
       enabled: true,
@@ -430,7 +465,8 @@ const cafeWarm: NewsletterRecipe = {
   id: "newsletter-cafe-warm",
   name: "Cafe Warm",
   tagline: "Start Your Morning Right",
-  description: "Great for local or artisan businesses. Creates a friendly, personal connection with visitors.",
+  description:
+    "Great for local or artisan businesses. Creates a friendly, personal connection with visitors.",
   icon: "☕",
   category: "email_leads",
   goal: "NEWSLETTER_SIGNUP",
@@ -487,7 +523,9 @@ const cafeWarm: NewsletterRecipe = {
     targetRules: {
       enhancedTriggers: {
         time_delay: { enabled: true, delay: 5000 },
+        frequency_capping: NEWSLETTER_FREQUENCY_CAPPING,
       },
+      pageTargeting: NEWSLETTER_PAGE_TARGETING,
     },
   },
 };
@@ -500,7 +538,8 @@ const softGlow: NewsletterRecipe = {
   id: "newsletter-soft-glow",
   name: "Soft Glow",
   tagline: "Unlock Your Glow",
-  description: "Builds trust for skincare and beauty. Uses subtle design to match premium product positioning.",
+  description:
+    "Builds trust for skincare and beauty. Uses subtle design to match premium product positioning.",
   icon: "💄",
   category: "email_leads",
   goal: "NEWSLETTER_SIGNUP",
@@ -558,7 +597,9 @@ const softGlow: NewsletterRecipe = {
       enhancedTriggers: {
         time_delay: { enabled: true, delay: 7000 },
         scroll_depth: { enabled: true, depth_percentage: 40 },
+        frequency_capping: NEWSLETTER_FREQUENCY_CAPPING,
       },
+      pageTargeting: NEWSLETTER_PAGE_TARGETING,
     },
     discountConfig: {
       enabled: true,
@@ -603,7 +644,8 @@ const spaSerenity: NewsletterRecipe = {
   defaults: {
     contentConfig: {
       headline: "Find Your Balance",
-      subheadline: "Wellness tips, self-care rituals, and exclusive retreat offers delivered to your inbox.",
+      subheadline:
+        "Wellness tips, self-care rituals, and exclusive retreat offers delivered to your inbox.",
       emailPlaceholder: "Enter your email",
       buttonText: "Start Your Journey",
       dismissLabel: "Maybe later",
@@ -674,7 +716,9 @@ const spaSerenity: NewsletterRecipe = {
       enhancedTriggers: {
         time_delay: { enabled: true, delay: 8000 },
         exit_intent: { enabled: true, sensitivity: "medium" },
+        frequency_capping: NEWSLETTER_FREQUENCY_CAPPING,
       },
+      pageTargeting: NEWSLETTER_PAGE_TARGETING,
     },
     discountConfig: {
       enabled: true,
@@ -693,12 +737,13 @@ const scandinavian: NewsletterRecipe = {
   id: "newsletter-scandinavian",
   name: "Scandinavian",
   tagline: "Design for Living",
-  description: "Minimal design that won't clash with your product imagery. Best for design-conscious brands.",
+  description:
+    "Minimal design that won't clash with your product imagery. Best for design-conscious brands.",
   icon: "🏠",
   category: "email_leads",
   goal: "NEWSLETTER_SIGNUP",
   templateType: "NEWSLETTER",
-  recipeType: "use_case", // Functional design - inherits store theme
+  recipeType: "inspiration", // Functional design - inherits store theme
   tags: ["home", "minimal", "split", "discount"] as RecipeTag[],
   component: "NewsletterSplit",
   theme: "scandinavian",
@@ -749,7 +794,9 @@ const scandinavian: NewsletterRecipe = {
       enhancedTriggers: {
         time_delay: { enabled: true, delay: 6000 },
         scroll_depth: { enabled: true, depth_percentage: 35 },
+        frequency_capping: NEWSLETTER_FREQUENCY_CAPPING,
       },
+      pageTargeting: NEWSLETTER_PAGE_TARGETING,
     },
     discountConfig: {
       enabled: true,
@@ -768,7 +815,8 @@ const cozyComfort: NewsletterRecipe = {
   id: "newsletter-cozy-comfort",
   name: "Cozy Comfort",
   tagline: "Sleep Better, Live Better",
-  description: "Warm, reassuring design for high-consideration purchases. Builds confidence before buying.",
+  description:
+    "Warm, reassuring design for high-consideration purchases. Builds confidence before buying.",
   icon: "🛋️",
   category: "email_leads",
   goal: "NEWSLETTER_SIGNUP",
@@ -830,7 +878,9 @@ const cozyComfort: NewsletterRecipe = {
       enhancedTriggers: {
         time_delay: { enabled: true, delay: 5000 },
         scroll_depth: { enabled: true, depth_percentage: 25 },
+        frequency_capping: NEWSLETTER_FREQUENCY_CAPPING,
       },
+      pageTargeting: NEWSLETTER_PAGE_TARGETING,
     },
     discountConfig: {
       enabled: true,
@@ -847,7 +897,8 @@ const boldEnergy: NewsletterRecipe = {
   id: "newsletter-bold-energy",
   name: "Bold Energy",
   tagline: "LEVEL UP",
-  description: "High-impact fullscreen experience. Best for action-oriented audiences who respond to bold CTAs.",
+  description:
+    "High-impact fullscreen experience. Best for action-oriented audiences who respond to bold CTAs.",
   icon: "💪",
   category: "email_leads",
   goal: "NEWSLETTER_SIGNUP",
@@ -910,7 +961,9 @@ const boldEnergy: NewsletterRecipe = {
       enhancedTriggers: {
         time_delay: { enabled: true, delay: 4000 },
         scroll_depth: { enabled: true, depth_percentage: 20 },
+        frequency_capping: NEWSLETTER_FREQUENCY_CAPPING,
       },
+      pageTargeting: NEWSLETTER_PAGE_TARGETING,
     },
     discountConfig: {
       enabled: true,
@@ -929,7 +982,8 @@ const activeLife: NewsletterRecipe = {
   id: "newsletter-active-life",
   name: "Active Life",
   tagline: "Adventure Awaits",
-  description: "Energetic but not aggressive. Good for brands that inspire action without hard-selling.",
+  description:
+    "Energetic but not aggressive. Good for brands that inspire action without hard-selling.",
   icon: "🏔️",
   category: "email_leads",
   goal: "NEWSLETTER_SIGNUP",
@@ -987,7 +1041,9 @@ const activeLife: NewsletterRecipe = {
       enhancedTriggers: {
         time_delay: { enabled: true, delay: 6000 },
         scroll_depth: { enabled: true, depth_percentage: 30 },
+        frequency_capping: NEWSLETTER_FREQUENCY_CAPPING,
       },
+      pageTargeting: NEWSLETTER_PAGE_TARGETING,
     },
     discountConfig: {
       enabled: true,

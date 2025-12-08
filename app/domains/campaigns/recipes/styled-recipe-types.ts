@@ -38,10 +38,8 @@ import type {
   ClassicUpsellContent,
   MinimalSlideUpContent,
   PremiumFullscreenContent,
-  BundleDealContent,
   CountdownUrgencyContent,
 } from "../types/campaign";
-import type { LayoutConfig } from "~/domains/storefront/popups-new/types";
 
 // =============================================================================
 // TEMPLATE TO CONTENT TYPE MAPPING
@@ -634,7 +632,6 @@ export type AnyStyledRecipe =
   | ClassicUpsellRecipe
   | MinimalSlideUpRecipe
   | PremiumFullscreenRecipe
-  | BundleDealRecipe
   | CountdownUrgencyRecipe;
 
 // =============================================================================

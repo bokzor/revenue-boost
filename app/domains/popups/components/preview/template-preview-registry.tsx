@@ -847,7 +847,8 @@ TEMPLATE_PREVIEW_REGISTRY[TemplateTypeEnum.CLASSIC_UPSELL] = {
     showCompareAtPrice: (mergedConfig.showCompareAtPrice as boolean) ?? true,
     showImages: (mergedConfig.showImages as boolean) ?? true,
     showRatings: (mergedConfig.showRatings as boolean) ?? true,
-    discountPercent: (mergedConfig.discountPercent as number) ?? 15,
+    bundleDiscount: (mergedConfig.bundleDiscount as number) ?? 15,
+    bundleDiscountText: (mergedConfig.bundleDiscountText as string) || undefined,
     currency: (mergedConfig.currency as string) || "USD",
     products:
       (mergedConfig.products as typeof PRODUCT_UPSELL_PREVIEW_PRODUCTS) ||
@@ -906,7 +907,7 @@ TEMPLATE_PREVIEW_REGISTRY[TemplateTypeEnum.PREMIUM_FULLSCREEN] = {
     showImages: (mergedConfig.showImages as boolean) ?? true,
     showRatings: (mergedConfig.showRatings as boolean) ?? true,
     showReviewCount: (mergedConfig.showReviewCount as boolean) ?? true,
-    discountPercent: (mergedConfig.discountPercent as number) ?? 20,
+    bundleDiscount: (mergedConfig.bundleDiscount as number) ?? 20,
     currency: (mergedConfig.currency as string) || "USD",
     features: (mergedConfig.features as string[]) || [
       "Premium Quality",
@@ -941,7 +942,8 @@ TEMPLATE_PREVIEW_REGISTRY[TemplateTypeEnum.COUNTDOWN_URGENCY] = {
     showPrices: (mergedConfig.showPrices as boolean) ?? true,
     showCompareAtPrice: (mergedConfig.showCompareAtPrice as boolean) ?? true,
     showImages: (mergedConfig.showImages as boolean) ?? true,
-    discountPercent: (mergedConfig.discountPercent as number) ?? 25,
+    bundleDiscount: (mergedConfig.bundleDiscount as number) ?? 25,
+    bundleDiscountText: (mergedConfig.bundleDiscountText as string) || undefined,
     currency: (mergedConfig.currency as string) || "USD",
     expiresInSeconds: (mergedConfig.expiresInSeconds as number) ?? 300,
     socialProofMessage:

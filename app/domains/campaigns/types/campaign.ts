@@ -155,9 +155,13 @@ export const DiscountConfigSchema = z.object({
   // === ENHANCED FEATURES ===
 
   // Applicability: Scope discount to specific products/collections
+  // - "all": Entire store (any products) - good for newsletter/welcome discounts
+  // - "cart": Entire cart (current cart items) - good for cart abandonment
+  // - "products": Specific products only
+  // - "collections": Specific collections only
   applicability: z
     .object({
-      scope: z.enum(["all", "products", "collections"]).default("all"),
+      scope: z.enum(["all", "cart", "products", "collections"]).default("all"),
       productIds: z.array(z.string()).optional(), // Shopify product GIDs
       collectionIds: z.array(z.string()).optional(), // Shopify collection GIDs
     })
@@ -587,7 +591,19 @@ export const FlashSaleContentSchema = BaseContentConfigSchema.extend({
       quantity: z.number().int().min(1).default(1),
 
       // Discount integration
-      applyDiscountFirst: z.boolean().default(true),
+      /** @deprecated Use successBehavior instead */
+      applyDiscountFirst: z.boolean().optional(), // Defaults to true in handler
+
+      // Success behavior (new single-click flow)
+      // Note: successMessage is in contentConfig, not here (to avoid duplication)
+      successBehavior: z.object({
+        showDiscountCode: z.boolean().optional(),
+        autoCloseDelay: z.number().int().min(0).optional(), // Defaults to 5 in handler
+        secondaryAction: z.object({
+          label: z.string(),
+          url: z.string(),
+        }).optional(),
+      }).optional(),
     })
     .optional(),
 
@@ -902,8 +918,9 @@ export const ClassicUpsellContentSchema = BaseContentConfigSchema.extend({
   showCompareAtPrice: z.boolean().default(true),
   showImages: z.boolean().default(true),
   showRatings: z.boolean().default(true),
-  discountPercent: z.number().min(0).max(100).default(15),
-  discountText: z.string().optional(),
+  // Use bundleDiscount to align with ProductUpsell and enable discount code issuance
+  bundleDiscount: z.number().min(0).max(100).default(15),
+  bundleDiscountText: z.string().optional(),
   secondaryCtaLabel: z.string().default("No thanks"),
   currency: z.string().default("USD"),
 });
@@ -934,8 +951,9 @@ export const PremiumFullscreenContentSchema = BaseContentConfigSchema.extend({
   showImages: z.boolean().default(true),
   showRatings: z.boolean().default(true),
   showReviewCount: z.boolean().default(true),
-  discountPercent: z.number().min(0).max(100).default(20),
-  discountText: z.string().optional(),
+  // Use bundleDiscount to align with other upsell templates and enable discount code issuance
+  bundleDiscount: z.number().min(0).max(100).default(20),
+  bundleDiscountText: z.string().optional(),
   secondaryCtaLabel: z.string().default("Maybe later"),
   currency: z.string().default("USD"),
   /** Features list displayed in premium layout */
@@ -976,8 +994,9 @@ export const CountdownUrgencyContentSchema = BaseContentConfigSchema.extend({
   showPrices: z.boolean().default(true),
   showCompareAtPrice: z.boolean().default(true),
   showImages: z.boolean().default(true),
-  discountPercent: z.number().min(0).max(100).default(25),
-  discountText: z.string().optional(),
+  // Use bundleDiscount to align with other upsell templates and enable discount code issuance
+  bundleDiscount: z.number().min(0).max(100).default(25),
+  bundleDiscountText: z.string().optional(),
   secondaryCtaLabel: z.string().default("No thanks"),
   currency: z.string().default("USD"),
   /** Countdown duration in seconds (default: 300 = 5 minutes) */
@@ -1116,6 +1135,7 @@ export const DesignConfigSchema = z.object({
   inputBackgroundColor: z.string().optional(), // Supports rgba
   inputTextColor: z.string().optional(), // Supports rgba
   inputBorderColor: z.string().optional(), // Supports rgba
+  inputPlaceholderColor: z.string().optional(), // Explicit placeholder text color
 
   // Image colors
   imageBgColor: z.string().optional(), // Background color for image placeholder

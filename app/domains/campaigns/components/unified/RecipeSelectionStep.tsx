@@ -411,10 +411,44 @@ function buildRecipeInitialData(
   }
 
   // Pre-configure CTA with Free Gift product selection
+  // When user selects a gift product via quick input, use it for the CTA
+  // Note: discountConfig.freeGift is populated later in finalDiscountConfig building
+  let freeGiftProduct: {
+    id: string;
+    title?: string;
+    handle?: string;
+    variantId?: string;
+    imageUrl?: string;
+  } | null = null;
+
   if (contextData.giftProduct && ctaConfig) {
-    const giftSelection = contextData.giftProduct as Array<{ id: string }>;
+    const giftSelection = contextData.giftProduct as Array<{
+      id: string;
+      title?: string;
+      handle?: string;
+      images?: Array<{ originalSrc: string }>;
+      variants?: Array<{ id: string; title: string }>;
+    }>;
     if (Array.isArray(giftSelection) && giftSelection.length > 0) {
-      contentConfig.cta = { ...ctaConfig, productId: giftSelection[0].id };
+      const product = giftSelection[0];
+      const firstVariantId = product.variants?.[0]?.id;
+      const firstImageUrl = product.images?.[0]?.originalSrc;
+
+      freeGiftProduct = {
+        id: product.id,
+        title: product.title,
+        handle: product.handle,
+        variantId: firstVariantId,
+        imageUrl: firstImageUrl,
+      };
+
+      // Update CTA with product info for add-to-cart action
+      contentConfig.cta = {
+        ...ctaConfig,
+        productId: product.id,
+        productHandle: product.handle,
+        ...(firstVariantId && { variantId: firstVariantId }),
+      };
     }
   }
 
@@ -480,21 +514,44 @@ function buildRecipeInitialData(
   };
 
   // Build discount config
+  // Start with recipe defaults, then override with modal state or input values
   const discountValue = contextData.discountValue as number | undefined;
+  const recipeDiscountDefaults = recipe.defaults.discountConfig || {};
   let finalDiscountConfig: DiscountConfig | Record<string, unknown>;
 
   if (discountConfig) {
+    // Modal state has full discount config (from requiredConfig: ["discount"])
     finalDiscountConfig = discountConfig;
-  } else if (discountValue) {
+  } else if (discountValue !== undefined) {
+    // Merge recipe defaults with the discount value from input
+    // This preserves applicability, behavior, etc. from recipe while allowing value override
     finalDiscountConfig = {
+      ...recipeDiscountDefaults,
       enabled: true,
-      type: "shared" as const,
-      valueType: "PERCENTAGE" as const,
+      type: recipeDiscountDefaults.type || ("shared" as const),
+      valueType: recipeDiscountDefaults.valueType || ("PERCENTAGE" as const),
       value: discountValue,
-      behavior: "SHOW_CODE_AND_AUTO_APPLY" as const,
+      behavior: recipeDiscountDefaults.behavior || ("SHOW_CODE_AND_AUTO_APPLY" as const),
     };
   } else {
-    finalDiscountConfig = recipe.defaults.discountConfig || {};
+    finalDiscountConfig = recipeDiscountDefaults;
+  }
+
+  // Add freeGift product info if a gift product was selected
+  if (freeGiftProduct) {
+    const threshold = contextData.threshold as number | undefined;
+    finalDiscountConfig = {
+      ...finalDiscountConfig,
+      enabled: true,
+      freeGift: {
+        productId: freeGiftProduct.id,
+        variantId: freeGiftProduct.variantId || "",
+        productTitle: freeGiftProduct.title,
+        ...(freeGiftProduct.imageUrl && { productImageUrl: freeGiftProduct.imageUrl }),
+        quantity: 1,
+        minSubtotalCents: threshold ? threshold * 100 : 5000,
+      },
+    };
   }
 
   // Build target rules

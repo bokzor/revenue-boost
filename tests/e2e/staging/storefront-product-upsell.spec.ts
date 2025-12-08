@@ -8,7 +8,6 @@ import {
     STORE_DOMAIN,
     API_PROPAGATION_DELAY_MS,
     handlePasswordPage,
-    mockChallengeToken,
     mockUpsellProducts,
     getTestPrefix,
     cleanupAllE2ECampaigns,
@@ -67,7 +66,6 @@ test.describe.serial('Product Upsell Template', () => {
         // Clean up ALL E2E campaigns to avoid priority conflicts
         await cleanupAllE2ECampaigns(prisma);
 
-        await mockChallengeToken(page);
         // Mock upsell products API to bypass app proxy authentication
         await mockUpsellProducts(page);
         await page.context().clearCookies();

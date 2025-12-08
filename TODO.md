@@ -162,3 +162,109 @@ filtered = filtered.filter(c => !convertedCampaignIds.has(c.id));
 - **Maximize conversion** (show them they unlocked a better deal)
 
 **Priority**: Low - Need to think through UX implications before implementing.
+
+---
+
+## Unified Discount Strategy for PRODUCT_UPSELL
+
+### Problem: Split Data Model
+
+Currently, discount configuration is split across two locations:
+
+```typescript
+contentConfig: {
+  bundleDiscount: 15,        // ← Simple bundle discount lives here
+  bundleDiscountText: "..."
+}
+
+discountConfig: {
+  enabled: true,
+  tiers: [...],              // ← Tiered discounts live here
+  bogo: {...},
+  freeGift: {...}
+}
+```
+
+This causes issues:
+- "Spend More, Save More" recipe sets `discountConfig.tiers` but popup reads `contentConfig.bundleDiscount`
+- Admin UI has two places to configure discounts (confusing)
+- Storefront has to check both locations
+
+### Proposed Solution: Add `strategy` field to discountConfig
+
+```typescript
+discountConfig: {
+  enabled: true,
+
+  // NEW: Which discount strategy to use
+  strategy: "bundle" | "tiered" | "bogo" | "free_gift" | "simple",
+
+  // For "simple" and "bundle" strategies
+  valueType: "PERCENTAGE" | "FIXED_AMOUNT" | "FREE_SHIPPING",
+  value: 15,  // e.g., 15% off
+
+  // For "bundle" strategy only
+  bundleText: "Save 15% on selected items!",
+
+  // For "tiered" strategy
+  tiers: [...],
+
+  // For "bogo" / "free_gift"
+  bogo: {...},
+  freeGift: {...},
+}
+```
+
+### Admin UI Changes
+
+Replace separate "Bundle Discount" section in `ProductUpsellContentSection` with unified strategy selector in `GenericDiscountComponent`:
+
+```
+Discount Strategy:
+○ Simple         - Fixed % or $ off entire order
+● Bundle         - % off selected upsell products
+○ Tiered         - Spend more, save more
+○ BOGO           - Buy X get Y free
+○ Free Gift      - Free product with purchase
+```
+
+### Implementation Tasks
+
+| Task | Effort |
+|------|--------|
+| Add `strategy` and `bundleText` to `DiscountConfigSchema` | Low |
+| Add "Bundle" strategy option to `GenericDiscountComponent` | Medium |
+| Remove "Bundle Discount" section from `ProductUpsellContentSection` | Low |
+| Update `ProductUpsellPopup` to read from `discountConfig.strategy` | Medium |
+| Update `ProductUpsellPopup` to call `issueDiscount()` for tiered | Medium |
+| Update recipes to use new `discountConfig.strategy` approach | Low |
+| Add backward compatibility fallback to `contentConfig.bundleDiscount` | Low |
+| Deprecate `bundleDiscount` from `ProductUpsellContentSchema` | Low |
+
+### Affected Files
+
+- `app/domains/campaigns/types/campaign.ts` - Add strategy to schema
+- `app/domains/campaigns/components/form/GenericDiscountComponent.tsx` - Add bundle strategy UI
+- `app/domains/campaigns/components/sections/ProductUpsellContentSection.tsx` - Remove bundle discount section
+- `app/domains/storefront/popups-new/ProductUpsellPopup.tsx` - Read from discountConfig, issue discount
+- `app/domains/campaigns/recipes/upsell-recipes.ts` - Update recipes
+
+### Storefront Flow After Implementation
+
+```
+1. Popup shows with either:
+   - Bundle banner: "Save 15% on selected items!"
+   - Tiered progress: "Spend $50 → 10%, $100 → 20%, $150 → 30%"
+
+2. User selects products & clicks "Add & Save"
+
+3. handleAddToCart() executes:
+   a) Add selected products to cart
+   b) Call issueDiscount({ cartSubtotalCents, selectedProductIds })
+   c) Backend creates appropriate discount code
+   d) Apply discount code to cart
+
+4. Show success state with discount code
+```
+
+**Priority**: Medium - Blocks "Spend More, Save More" recipe from working properly.

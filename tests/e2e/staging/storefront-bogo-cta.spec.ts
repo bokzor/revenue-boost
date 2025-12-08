@@ -19,7 +19,6 @@ import { PrismaClient } from '@prisma/client';
 import { CampaignFactory, FlashSaleBuilder } from './factories/campaign-factory';
 import {
     handlePasswordPage,
-    mockChallengeToken,
     API_PROPAGATION_DELAY_MS,
     STORE_URL,
     verifyFlashSaleContent,
@@ -96,7 +95,6 @@ test.describe('BOGO & CTA Button Tests', () => {
             where: { name: { startsWith: TEST_PREFIX } }
         });
         await context.clearCookies();
-        await mockChallengeToken(page);
     });
 
     test.describe('CTA Configuration', () => {

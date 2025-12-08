@@ -8,7 +8,6 @@ import {
     STORE_DOMAIN,
     API_PROPAGATION_DELAY_MS,
     handlePasswordPage,
-    mockChallengeToken,
     getTestPrefix,
     cleanupAllE2ECampaigns,
     MAX_TEST_PRIORITY
@@ -64,7 +63,6 @@ test.describe.serial('Social Proof Template', () => {
         // Clean up ALL E2E campaigns to avoid priority conflicts
         await cleanupAllE2ECampaigns(prisma);
 
-        await mockChallengeToken(page);
         await page.context().clearCookies();
 
         // No bundle mocking - tests use deployed extension code

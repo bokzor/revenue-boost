@@ -56,6 +56,27 @@ const TRIGGER_INPUT = {
 };
 
 // =============================================================================
+// COMMON TARGETING CONFIGURATION FOR SPIN-TO-WIN
+// =============================================================================
+
+// Strict frequency capping for gamification - once per session, once per day
+const SPIN_TO_WIN_FREQUENCY_CAPPING = {
+  max_triggers_per_session: 1,
+  max_triggers_per_day: 1,
+  cooldown_between_triggers: 86400, // 24 hours in seconds
+};
+
+// Page targeting - exclude checkout and cart pages
+const SPIN_TO_WIN_PAGE_TARGETING = {
+  enabled: true,
+  pages: [] as string[],
+  customPatterns: [] as string[],
+  excludePages: ["/checkout", "/checkout/*", "/cart", "/*/checkouts/*"],
+  productTags: [] as string[],
+  collections: [] as string[],
+};
+
+// =============================================================================
 // DEFAULT WHEEL SEGMENTS (can be customized per recipe)
 // =============================================================================
 
@@ -97,11 +118,12 @@ const luckyFortune: SpinToWinRecipe = {
       emailPlaceholder: "Enter your email",
       emailRequired: true,
       wheelSegments: [
-        { id: "prize-1", label: "10% OFF", probability: 0.3, color: "#D4AF37" },
-        { id: "prize-2", label: "15% OFF", probability: 0.25, color: "#1A1814" },
-        { id: "prize-3", label: "Free Gift", probability: 0.2, color: "#D4AF37" },
+        { id: "prize-1", label: "10% OFF", probability: 0.25, color: "#D4AF37" },
+        { id: "prize-2", label: "15% OFF", probability: 0.2, color: "#1A1814" },
+        { id: "prize-3", label: "Free Gift", probability: 0.15, color: "#D4AF37" },
         { id: "prize-4", label: "Try Again", probability: 0.15, color: "#1A1814" },
-        { id: "prize-5", label: "25% OFF", probability: 0.1, color: "#D4AF37" },
+        { id: "prize-5", label: "25% OFF", probability: 0.15, color: "#D4AF37" },
+        { id: "prize-6", label: "5% OFF", probability: 0.1, color: "#1A1814" },
       ],
       nameFieldEnabled: false,
       consentFieldEnabled: true,
@@ -130,6 +152,7 @@ const luckyFortune: SpinToWinRecipe = {
       buttonTextColor: "#1A1814",
       inputBackgroundColor: "rgba(212, 175, 55, 0.1)",
       inputTextColor: "#F5F0E8",
+      inputPlaceholderColor: "rgba(245, 240, 232, 0.6)", // Light cream placeholder with opacity
       inputBorderColor: "#D4AF37",
       accentColor: "#D4AF37",
       fontFamily: "'Playfair Display', Georgia, serif",
@@ -143,7 +166,9 @@ const luckyFortune: SpinToWinRecipe = {
       enhancedTriggers: {
         time_delay: { enabled: true, delay: 5000 },
         exit_intent: { enabled: true, sensitivity: "medium" },
+        frequency_capping: SPIN_TO_WIN_FREQUENCY_CAPPING,
       },
+      pageTargeting: SPIN_TO_WIN_PAGE_TARGETING,
     },
     discountConfig: {
       enabled: true,
@@ -204,6 +229,7 @@ const neonNights: SpinToWinRecipe = {
       buttonTextColor: "#FFFFFF",
       inputBackgroundColor: "rgba(167, 139, 250, 0.2)",
       inputTextColor: "#FFFFFF",
+      inputPlaceholderColor: "rgba(255, 255, 255, 0.6)", // White placeholder with opacity
       inputBorderColor: "#A78BFA",
       accentColor: "#EC4899",
       fontFamily: "'Space Grotesk', 'Courier New', monospace",
@@ -216,9 +242,11 @@ const neonNights: SpinToWinRecipe = {
     },
     targetRules: {
       enhancedTriggers: {
-        time_delay: { enabled: true, delay: 4000 },
+        time_delay: { enabled: true, delay: 5000 },
         scroll_depth: { enabled: true, depth_percentage: 30 },
+        frequency_capping: SPIN_TO_WIN_FREQUENCY_CAPPING,
       },
+      pageTargeting: SPIN_TO_WIN_PAGE_TARGETING,
     },
     discountConfig: {
       enabled: true,
@@ -296,7 +324,9 @@ const pastelDream: SpinToWinRecipe = {
       enhancedTriggers: {
         time_delay: { enabled: true, delay: 6000 },
         scroll_depth: { enabled: true, depth_percentage: 35 },
+        frequency_capping: SPIN_TO_WIN_FREQUENCY_CAPPING,
       },
+      pageTargeting: SPIN_TO_WIN_PAGE_TARGETING,
     },
     discountConfig: {
       enabled: true,
@@ -368,7 +398,9 @@ const oceanBreeze: SpinToWinRecipe = {
     targetRules: {
       enhancedTriggers: {
         time_delay: { enabled: true, delay: 5000 },
+        frequency_capping: SPIN_TO_WIN_FREQUENCY_CAPPING,
       },
+      pageTargeting: SPIN_TO_WIN_PAGE_TARGETING,
     },
     discountConfig: {
       enabled: true,
@@ -421,16 +453,6 @@ const minimalMono: SpinToWinRecipe = {
       position: "center",
       size: "medium",
       animation: "fade",
-      backgroundColor: "#FFFFFF",
-      textColor: "#111827",
-      descriptionColor: "#6B7280",
-      buttonColor: "#111827",
-      buttonTextColor: "#FFFFFF",
-      inputBackgroundColor: "#F9FAFB",
-      inputTextColor: "#111827",
-      inputBorderColor: "#E5E7EB",
-      accentColor: "#3B82F6",
-      fontFamily: "'Inter', system-ui, sans-serif",
       borderRadius: 12,
       buttonBorderRadius: 8,
       inputBorderRadius: 6,
@@ -441,7 +463,9 @@ const minimalMono: SpinToWinRecipe = {
       enhancedTriggers: {
         time_delay: { enabled: true, delay: 8000 },
         exit_intent: { enabled: true, sensitivity: "medium" },
+        frequency_capping: SPIN_TO_WIN_FREQUENCY_CAPPING,
       },
+      pageTargeting: SPIN_TO_WIN_PAGE_TARGETING,
     },
     discountConfig: {
       enabled: true,
@@ -513,9 +537,11 @@ const retroArcade: SpinToWinRecipe = {
     },
     targetRules: {
       enhancedTriggers: {
-        time_delay: { enabled: true, delay: 4000 },
+        time_delay: { enabled: true, delay: 5000 },
         scroll_depth: { enabled: true, depth_percentage: 25 },
+        frequency_capping: SPIN_TO_WIN_FREQUENCY_CAPPING,
       },
+      pageTargeting: SPIN_TO_WIN_PAGE_TARGETING,
     },
     discountConfig: {
       enabled: true,
@@ -590,7 +616,9 @@ const earthyOrganic: SpinToWinRecipe = {
       enhancedTriggers: {
         time_delay: { enabled: true, delay: 6000 },
         scroll_depth: { enabled: true, depth_percentage: 40 },
+        frequency_capping: SPIN_TO_WIN_FREQUENCY_CAPPING,
       },
+      pageTargeting: SPIN_TO_WIN_PAGE_TARGETING,
     },
     discountConfig: {
       enabled: true,

@@ -18,7 +18,6 @@ import {
     waitForPopupWithRetry,
     cleanupAllE2ECampaigns,
     MAX_TEST_PRIORITY,
-    mockChallengeToken
 } from './helpers/test-helpers';
 import { CampaignFactory } from './factories/campaign-factory';
 
@@ -48,7 +47,6 @@ test.describe('Popup Design Variations', () => {
         await cleanupAllE2ECampaigns(prisma);
         await context.clearCookies();
         // Mock challenge token to bypass bot protection
-        await mockChallengeToken(page);
     });
 
     test.describe('Popup Sizes', () => {

@@ -378,12 +378,12 @@ const TemplatePreviewComponent = forwardRef<TemplatePreviewRef, TemplatePreviewP
           ? freeShippingConfig.nearMissThreshold
           : 10;
 
-      // Start slightly above the threshold so the bar is unlocked and the
-      // discount issuance flow can be exercised reliably in preview.
+      // Show progress state by default (60% of threshold) so users can see
+      // the "in progress" bar instead of "goal already reached".
       const previewCartTotal =
         typeof freeShippingConfig.currentCartTotal === "number"
           ? freeShippingConfig.currentCartTotal
-          : threshold + nearMiss;
+          : Math.round(threshold * 0.6);
 
       const baseCode = freeShippingConfig.discount?.code || "FREESHIP";
       const amount = Math.round(threshold);

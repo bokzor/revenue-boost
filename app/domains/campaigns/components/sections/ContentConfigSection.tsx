@@ -18,6 +18,8 @@ import type { ScratchCardContent } from "./ScratchCardContentSection";
 
 import { CartAbandonmentContentSection } from "./CartAbandonmentContentSection";
 import { ProductUpsellContentSection } from "./ProductUpsellContentSection";
+import { CountdownUrgencyContentSection } from "./CountdownUrgencyContentSection";
+import { PremiumFullscreenContentSection } from "./PremiumFullscreenContentSection";
 import { FreeShippingContentSection } from "./FreeShippingContentSection";
 import type { FreeShippingContent } from "./FreeShippingContentSection";
 import { SocialProofContentSection } from "./SocialProofContentSection";
@@ -117,6 +119,37 @@ export function ContentConfigSection({
       case "PRODUCT_UPSELL":
         return (
           <ProductUpsellContentSection content={content} errors={errors} onChange={onChange} />
+        );
+
+      // Single-product upsell variant
+      case "CLASSIC_UPSELL":
+        return (
+          <ProductUpsellContentSection
+            content={content}
+            errors={errors}
+            onChange={onChange}
+            singleProductMode
+          />
+        );
+
+      // Countdown urgency - dedicated section with countdown-specific fields
+      case "COUNTDOWN_URGENCY":
+        return (
+          <CountdownUrgencyContentSection
+            content={content}
+            errors={errors}
+            onChange={onChange}
+          />
+        );
+
+      // Premium fullscreen - immersive full-page takeover with features list
+      case "PREMIUM_FULLSCREEN":
+        return (
+          <PremiumFullscreenContentSection
+            content={content}
+            errors={errors}
+            onChange={onChange}
+          />
         );
 
       case "FREE_SHIPPING":

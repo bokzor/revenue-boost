@@ -7,7 +7,6 @@ import {
     STORE_DOMAIN,
     API_PROPAGATION_DELAY_MS,
     handlePasswordPage,
-    mockChallengeToken,
     getTestPrefix,
     waitForPopupWithRetry,
     cleanupAllE2ECampaigns,
@@ -70,7 +69,6 @@ test.describe.serial('Cart & Product Triggers', () => {
         // Wait for cache invalidation
         await page.waitForTimeout(500);
 
-        await mockChallengeToken(page);
 
         // Log browser console messages for debugging
         page.on('console', msg => {

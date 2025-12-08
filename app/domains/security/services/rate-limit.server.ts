@@ -24,7 +24,6 @@ export interface RateLimitResult {
  * Common rate limit configurations
  */
 export const RATE_LIMITS = {
-  CHALLENGE_REQUEST: { maxRequests: 3, windowSeconds: 600 }, // 3 per 10 min
   DISCOUNT_GENERATION: { maxRequests: 5, windowSeconds: 3600 }, // 5 per hour
   LEAD_SUBMISSION: { maxRequests: 10, windowSeconds: 3600 }, // 10 per hour
   EMAIL_PER_CAMPAIGN: { maxRequests: 1, windowSeconds: 86400 }, // 1 per day per email per campaign

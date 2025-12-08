@@ -63,6 +63,7 @@ export interface PopupDesignConfig {
   inputBackgroundColor?: string;
   inputTextColor?: string;
   inputBorderColor?: string;
+  inputPlaceholderColor?: string; // Explicit placeholder text color
   accentColor?: string;
   overlayColor?: string;
   overlayOpacity?: number;
@@ -241,6 +242,8 @@ export interface CartItem {
   quantity: number;
   imageUrl: string;
   variantId: string;
+  /** Shopify product GID (e.g., gid://shopify/Product/123) - used for cart-scoped discounts */
+  productId?: string;
   handle?: string;
 }
 
