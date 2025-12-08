@@ -88,10 +88,10 @@ export const PremiumFullscreenPopup: React.FC<PremiumFullscreenPopupProps> = ({
     }
   };
 
-  const accentColor = config.accentColor || config.buttonColor || "#000";
-  const textColor = config.textColor || "#1f2937";
-  const mutedColor = config.descriptionColor || "#6b7280";
-  const bgColor = config.backgroundColor || "#ffffff";
+  const accentColor = config.accentColor || config.buttonColor || "var(--rb-primary, #000)";
+  const textColor = config.textColor || "var(--rb-foreground, #1f2937)";
+  const mutedColor = config.descriptionColor || "var(--rb-muted, #6b7280)";
+  const bgColor = config.backgroundColor || "var(--rb-background, #ffffff)";
   const features = config.features || [];
 
   // Determine mobile presentation mode and size from config
@@ -139,7 +139,7 @@ export const PremiumFullscreenPopup: React.FC<PremiumFullscreenPopupProps> = ({
         .premium-upsell-desc { font-size: 15px; color: ${mutedColor}; margin: 0 0 20px; line-height: 1.5; }
         .premium-features { list-style: none; padding: 0; margin: 0 0 20px; display: flex; flex-direction: column; gap: 10px; }
         .premium-feature { display: flex; align-items: center; gap: 10px; font-size: 14px; color: ${textColor}; }
-        .premium-feature svg { width: 18px; height: 18px; color: #10b981; flex-shrink: 0; }
+        .premium-feature svg { width: 18px; height: 18px; color: var(--rb-success, #10b981); flex-shrink: 0; }
         .premium-rating { display: flex; align-items: center; gap: 8px; margin-bottom: 20px; }
         .premium-stars { display: flex; }
         .premium-star { width: 18px; height: 18px; color: #d1d5db; }
@@ -148,12 +148,12 @@ export const PremiumFullscreenPopup: React.FC<PremiumFullscreenPopupProps> = ({
         .premium-price { display: flex; align-items: baseline; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
         .premium-price-current { font-size: 28px; font-weight: 700; color: ${textColor}; }
         .premium-price-compare { font-size: 18px; color: ${mutedColor}; text-decoration: line-through; }
-        .premium-discount { padding: 4px 8px; font-size: 13px; font-weight: 600; border-radius: 4px; background: rgba(16,185,129,0.2); color: #10b981; }
+        .premium-discount { padding: 4px 8px; font-size: 13px; font-weight: 600; border-radius: 4px; background: rgba(16,185,129,0.2); color: var(--rb-success, #10b981); }
         .premium-actions { display: flex; flex-direction: column; gap: 10px; }
         .premium-cta { width: 100%; padding: 14px 20px; border-radius: 12px; background: ${config.buttonColor || accentColor}; color: ${config.buttonTextColor || "#fff"}; font-size: 15px; font-weight: 600; border: none; cursor: pointer; transition: opacity 0.2s; }
         .premium-cta:hover { opacity: 0.9; }
         .premium-cta:disabled { opacity: 0.6; cursor: not-allowed; }
-        .premium-cta--success { background: #10b981; }
+        .premium-cta--success { background: var(--rb-success, #10b981); }
         .premium-decline { width: 100%; padding: 10px 20px; background: transparent; border: none; color: ${mutedColor}; font-size: 14px; cursor: pointer; transition: color 0.2s; }
         .premium-decline:hover { color: ${textColor}; }
 

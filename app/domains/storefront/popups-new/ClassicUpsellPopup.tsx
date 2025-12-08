@@ -81,10 +81,10 @@ export const ClassicUpsellPopup: React.FC<ClassicUpsellPopupProps> = ({
     }
   };
 
-  const accentColor = config.accentColor || config.buttonColor || "#000";
-  const textColor = config.textColor || "#1f2937";
-  const mutedColor = config.descriptionColor || "#6b7280";
-  const bgColor = config.backgroundColor || "#ffffff";
+  const accentColor = config.accentColor || config.buttonColor || "var(--rb-primary, #000)";
+  const textColor = config.textColor || "var(--rb-foreground, #1f2937)";
+  const mutedColor = config.descriptionColor || "var(--rb-muted, #6b7280)";
+  const bgColor = config.backgroundColor || "var(--rb-background, #ffffff)";
   const borderRadius = config.borderRadius || 12;
 
   return (
@@ -118,12 +118,12 @@ export const ClassicUpsellPopup: React.FC<ClassicUpsellPopupProps> = ({
         .classic-upsell-price { display: flex; align-items: baseline; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
         .classic-price-current { font-size: 24px; font-weight: 700; color: ${accentColor}; }
         .classic-price-compare { font-size: 16px; color: ${mutedColor}; text-decoration: line-through; }
-        .classic-price-savings { font-size: 14px; font-weight: 500; color: #10b981; }
+        .classic-price-savings { font-size: 14px; font-weight: 500; color: var(--rb-success, #10b981); }
         .classic-upsell-actions { display: flex; flex-direction: column; gap: 12px; }
         .classic-upsell-cta { width: 100%; padding: 14px 16px; border-radius: 8px; background: ${config.buttonColor || accentColor}; color: ${config.buttonTextColor || "#fff"}; font-size: 14px; font-weight: 600; border: none; cursor: pointer; transition: opacity 0.2s; }
         .classic-upsell-cta:hover { opacity: 0.9; }
         .classic-upsell-cta:disabled { opacity: 0.6; cursor: not-allowed; }
-        .classic-upsell-cta--success { background: #10b981; }
+        .classic-upsell-cta--success { background: var(--rb-success, #10b981); }
         .classic-upsell-decline { width: 100%; padding: 10px 16px; background: transparent; border: none; color: ${mutedColor}; font-size: 14px; cursor: pointer; transition: color 0.2s; }
         .classic-upsell-decline:hover { color: ${textColor}; }
 

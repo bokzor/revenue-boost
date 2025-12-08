@@ -475,7 +475,7 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
 
   // Get progress bar color based on state
   const getProgressColor = () => {
-    if (state === "unlocked") return config.accentColor || "#10B981";
+    if (state === "unlocked") return config.accentColor || "var(--rb-success, #10B981)";
     if (state === "near-miss") return "#F59E0B"; // Warning color
     return config.accentColor || "#3B82F6"; // Primary color
   };
@@ -537,7 +537,7 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
             conic-gradient(
               from var(--rb-border-angle),
               ${config.accentColor || "#3B82F6"},
-              #22c55e,
+              var(--rb-success, #22c55e),
               #facc15,
               ${config.accentColor || "#3B82F6"}
             ) border-box;
@@ -961,7 +961,7 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
                     </span>{" "}
                     at checkout.
                     {copiedCode && (
-                      <span style={{ marginLeft: "0.5rem", color: "#10B981" }}>✓ Copied!</span>
+                      <span style={{ marginLeft: "0.5rem", color: "var(--rb-success, #10B981)" }}>✓ Copied!</span>
                     )}
                   </>
                 </span>

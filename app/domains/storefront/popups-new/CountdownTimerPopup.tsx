@@ -130,9 +130,9 @@ export const CountdownTimerPopup: React.FC<CountdownTimerPopupProps> = ({
   // Determine background (gradient for presets, solid for custom)
   const backgroundValue =
     config.colorScheme === "urgent"
-      ? "linear-gradient(135deg, #dc2626 0%, #f97316 100%)"
+      ? "linear-gradient(135deg, var(--rb-error, #dc2626) 0%, #f97316 100%)"
       : config.colorScheme === "success"
-        ? "linear-gradient(135deg, #10b981 0%, #14b8a6 100%)"
+        ? "linear-gradient(135deg, var(--rb-success, #10b981) 0%, #14b8a6 100%)"
         : config.colorScheme === "info"
           ? "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)"
           : schemeColors.backgroundColor;

@@ -1362,7 +1362,7 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
                           textTransform: "uppercase",
                           letterSpacing: "0.05em",
                           color: config.buttonTextColor || "#FFFFFF",
-                          backgroundColor: config.buttonColor || "#22c55e",
+                          backgroundColor: config.buttonColor || "var(--rb-success, #22c55e)",
                           border: "none",
                           borderRadius: "8px",
                           cursor: "pointer",
@@ -1495,7 +1495,7 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
         }
 
         .scratch-popup-input.error {
-          border-color: #dc2626;
+          border-color: var(--rb-error, #dc2626);
         }
 
         .scratch-popup-checkbox {
@@ -1558,7 +1558,7 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
 
         .scratch-popup-error {
           font-size: 0.875rem;
-          color: #dc2626;
+          color: var(--rb-error, #dc2626);
           margin-top: 0.25rem;
         }
 
@@ -1663,7 +1663,7 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
         .scratch-confetti:nth-child(2) { width: 6px; height: 6px; background: #ec4899; left: 25%; top: 15%; animation: confettiDrop 1.4s ease-out 0.1s forwards; border-radius: 50%; }
         .scratch-confetti:nth-child(3) { width: 10px; height: 10px; background: #8b5cf6; left: 75%; top: 18%; animation: confettiDrop 1.3s ease-out 0.15s forwards; }
         .scratch-confetti:nth-child(4) { width: 7px; height: 7px; background: #06b6d4; left: 85%; top: 22%; animation: confettiDrop 1.5s ease-out 0.08s forwards; border-radius: 50%; }
-        .scratch-confetti:nth-child(5) { width: 9px; height: 9px; background: #10b981; left: 45%; top: 12%; animation: confettiDrop 1.25s ease-out 0.2s forwards; }
+        .scratch-confetti:nth-child(5) { width: 9px; height: 9px; background: var(--rb-success, #10b981); left: 45%; top: 12%; animation: confettiDrop 1.25s ease-out 0.2s forwards; }
         .scratch-confetti:nth-child(6) { width: 8px; height: 8px; background: ${config.accentColor || config.buttonColor}; left: 55%; top: 25%; animation: confettiDrop 1.35s ease-out 0.12s forwards; border-radius: 50%; }
 
         /* ============================================

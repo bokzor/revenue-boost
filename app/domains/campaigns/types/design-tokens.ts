@@ -1,8 +1,13 @@
 /**
  * Design Tokens Schema
  *
- * Simplified 12-token design system for popup styling.
+ * 14-token design system for popup styling with Simple/Standard/Advanced modes.
  * Replaces the legacy 50+ field DesignConfigSchema.
+ *
+ * Token Tiers:
+ * - Simple Mode (5 tokens): background, foreground, primary, muted, radius
+ * - Standard Mode (+5 tokens): primaryForeground, surface, border, overlay, fontFamily
+ * - Advanced Mode (+4 tokens): success, error, ring, headingFontFamily
  *
  * Theme Modes:
  * - "shopify": Inherit colors/fonts from merchant's Shopify theme (auto-sync)
@@ -27,46 +32,72 @@ export const ThemeModeSchema = z.enum(["default", "shopify", "preset", "custom"]
 export type ThemeMode = z.infer<typeof ThemeModeSchema>;
 
 // =============================================================================
-// DESIGN TOKENS (12 Semantic Tokens)
+// DESIGN TOKENS (14 Semantic Tokens)
 // =============================================================================
 
 /**
- * Simplified design tokens - 12 semantic values that control all popup styling.
+ * Complete design tokens - 14 semantic values that control all popup styling.
  * These map directly to CSS custom properties (--rb-*).
+ *
+ * Simple Mode (user sees 5):
+ * - background, foreground, primary, muted, borderRadius
+ *
+ * Standard Mode (user sees 10):
+ * - + primaryForeground, surface, border, overlay, fontFamily
+ *
+ * Advanced Mode (user sees 14):
+ * - + success, error, ring, headingFontFamily
  */
 export const DesignTokensSchema = z.object({
-  // === Colors (7) ===
+  // === TIER 1: Essential Colors (Simple Mode - 5 tokens) ===
   /** Primary background color */
   background: z.string().default("#ffffff"),
   /** Primary text color */
   foreground: z.string().default("#1a1a1a"),
-  /** Muted/secondary text color (derived from foreground if not set) */
-  muted: z.string().optional(),
-  /** Primary action color (buttons, links) */
+  /** Primary action color (buttons, links, accents) */
   primary: z.string().default("#000000"),
-  /** Text color on primary background */
-  primaryForeground: z.string().default("#ffffff"),
-  /** Surface/card background color (derived from background if not set) */
-  surface: z.string().optional(),
-  /** Border color (derived from foreground if not set) */
-  border: z.string().optional(),
-  /** Success state color */
-  success: z.string().default("#10B981"),
+  /** Muted/secondary text color (descriptions, placeholders) */
+  muted: z.string().optional(),
+  /** Border radius for buttons and inputs (in pixels) */
+  borderRadius: z.number().min(0).max(50).default(8),
 
-  // === Typography (2) ===
-  /** Body text font family (CSS font-family string with fallbacks) */
+  // === TIER 2: Common Colors (Standard Mode - +5 tokens) ===
+  /** Text color on primary background (button text) */
+  primaryForeground: z.string().default("#ffffff"),
+  /** Surface/card/input background color */
+  surface: z.string().optional(),
+  /** Border color for inputs, dividers */
+  border: z.string().optional(),
+  /** Modal backdrop overlay (rgba color string) */
+  overlay: z.string().optional(),
+  /** Body text font family */
   fontFamily: z.string().default("system-ui, -apple-system, sans-serif"),
+
+  // === TIER 3: Advanced (Power User - +4 tokens) ===
+  /** Success state color (confirmations, checkmarks) - defaults to green #10B981 */
+  success: z.string().optional(),
+  /** Error state color (validation errors, alerts) - defaults to red #EF4444 */
+  error: z.string().optional(),
+  /** Focus ring color (accessibility) */
+  ring: z.string().optional(),
   /** Heading font family (optional, defaults to fontFamily) */
   headingFontFamily: z.string().optional(),
 
-  // === Border Radius (2) ===
-  /** Border radius for buttons and inputs (in pixels) */
-  borderRadius: z.number().min(0).max(50).default(8),
+  // === STRUCTURAL (always available) ===
   /** Border radius for the popup container (in pixels) */
   popupBorderRadius: z.number().min(0).max(50).default(16),
 });
 
 export type DesignTokens = z.infer<typeof DesignTokensSchema>;
+
+/**
+ * Minimal required tokens - everything else can be derived from these 3.
+ */
+export interface RequiredTokens {
+  background: string;
+  foreground: string;
+  primary: string;
+}
 
 // =============================================================================
 // PRESET DESIGN (for artistic/seasonal templates)
@@ -74,7 +105,7 @@ export type DesignTokens = z.infer<typeof DesignTokensSchema>;
 
 /**
  * Preset design - complete design package for inspiration/seasonal recipes.
- * Includes all 12 tokens plus additional styling that can't be auto-derived.
+ * Includes all 14 tokens plus additional styling that can't be auto-derived.
  */
 export const PresetDesignSchema = DesignTokensSchema.extend({
   /** Preset identifier (e.g., "bold-energy", "black-friday") */
@@ -340,18 +371,118 @@ export type CampaignDesign = z.infer<typeof CampaignDesignSchema>;
  * Default design tokens (used when no theme is available)
  */
 export const DEFAULT_DESIGN_TOKENS: DesignTokens = {
+  // Tier 1: Essential
   background: "#ffffff",
   foreground: "#1a1a1a",
-  muted: "rgba(26, 26, 26, 0.6)",
   primary: "#000000",
+  muted: "rgba(26, 26, 26, 0.6)",
+  borderRadius: 8,
+
+  // Tier 2: Common
   primaryForeground: "#ffffff",
   surface: "#f5f5f5",
   border: "rgba(26, 26, 26, 0.2)",
-  success: "#10B981",
+  overlay: "rgba(0, 0, 0, 0.6)",
   fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-  borderRadius: 8,
+
+  // Tier 3: Advanced
+  success: "#10B981",
+  error: "#EF4444",
+  ring: "rgba(0, 0, 0, 0.1)",
+  headingFontFamily: undefined,
+
+  // Structural
   popupBorderRadius: 16,
 };
+
+// =============================================================================
+// TOKEN DERIVATION UTILITIES
+// =============================================================================
+
+/**
+ * Check if a color is dark (for contrast calculation)
+ */
+function isDarkColor(hexColor: string): boolean {
+  // Handle rgba/rgb colors
+  if (hexColor.startsWith("rgba") || hexColor.startsWith("rgb")) {
+    return false; // Assume light for complex colors
+  }
+
+  // Remove # if present
+  const hex = hexColor.replace("#", "");
+  if (hex.length !== 6 && hex.length !== 3) {
+    return false;
+  }
+
+  // Expand 3-digit hex to 6-digit
+  const fullHex =
+    hex.length === 3 ? hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2] : hex;
+
+  const r = parseInt(fullHex.substring(0, 2), 16);
+  const g = parseInt(fullHex.substring(2, 4), 16);
+  const b = parseInt(fullHex.substring(4, 6), 16);
+
+  // Calculate relative luminance
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance < 0.5;
+}
+
+/**
+ * Get contrasting text color (white or black) for a background
+ */
+function getContrastColor(backgroundColor: string): string {
+  return isDarkColor(backgroundColor) ? "#ffffff" : "#000000";
+}
+
+/**
+ * Derive complete design tokens from minimal required tokens.
+ * Only 3 values are truly required - everything else can be auto-derived.
+ *
+ * @param input Required tokens (background, foreground, primary)
+ * @param overrides Optional overrides for any derived token
+ */
+export function deriveTokens(
+  input: RequiredTokens,
+  overrides?: Partial<Omit<DesignTokens, keyof RequiredTokens>>
+): DesignTokens {
+  const { background, foreground, primary } = input;
+  const isDark = isDarkColor(background);
+
+  // Derive all tokens from the 3 required ones
+  const derived: DesignTokens = {
+    // Required (user provides)
+    background,
+    foreground,
+    primary,
+
+    // Tier 1: Derived from foreground
+    muted: isDark ? "rgba(255, 255, 255, 0.6)" : "rgba(0, 0, 0, 0.6)",
+    borderRadius: 8,
+
+    // Tier 2: Derived from primary/background
+    primaryForeground: getContrastColor(primary),
+    surface: isDark ? "rgba(255, 255, 255, 0.05)" : "rgba(0, 0, 0, 0.03)",
+    border: isDark ? "rgba(255, 255, 255, 0.15)" : "rgba(0, 0, 0, 0.1)",
+    overlay: "rgba(0, 0, 0, 0.6)",
+    fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+
+    // Tier 3: Semantic defaults
+    success: "#10B981",
+    error: "#EF4444",
+    ring: isDark ? "rgba(255, 255, 255, 0.2)" : "rgba(0, 0, 0, 0.1)",
+    headingFontFamily: undefined,
+
+    // Structural
+    popupBorderRadius: 16,
+  };
+
+  // Apply any overrides
+  if (overrides) {
+    return { ...derived, ...overrides };
+  }
+
+  return derived;
+}
 
 /**
  * Resolve final design tokens based on the campaign design configuration.
@@ -382,17 +513,24 @@ export function resolveDesignTokens(
       const preset = design.presetId ? getPresetDesign(design.presetId) : undefined;
       baseTokens = preset
         ? {
+            // Tier 1: Essential
             background: preset.background,
             foreground: preset.foreground,
-            muted: preset.muted,
             primary: preset.primary,
+            muted: preset.muted,
+            borderRadius: preset.borderRadius,
+            // Tier 2: Common
             primaryForeground: preset.primaryForeground,
             surface: preset.surface,
             border: preset.border,
-            success: preset.success,
+            overlay: preset.overlay,
             fontFamily: preset.fontFamily,
+            // Tier 3: Advanced
+            success: preset.success,
+            error: preset.error || DEFAULT_DESIGN_TOKENS.error,
+            ring: preset.ring,
             headingFontFamily: preset.headingFontFamily,
-            borderRadius: preset.borderRadius,
+            // Structural
             popupBorderRadius: preset.popupBorderRadius,
           }
         : DEFAULT_DESIGN_TOKENS;
@@ -429,17 +567,24 @@ export function resolveDesignTokens(
  */
 export function tokensToCSSString(tokens: DesignTokens): string {
   const vars: string[] = [
+    // Tier 1: Essential
     `--rb-background: ${tokens.background}`,
     `--rb-foreground: ${tokens.foreground}`,
-    `--rb-muted: ${tokens.muted || "rgba(0, 0, 0, 0.6)"}`,
     `--rb-primary: ${tokens.primary}`,
+    `--rb-muted: ${tokens.muted || "rgba(0, 0, 0, 0.6)"}`,
+    `--rb-radius: ${tokens.borderRadius}px`,
+    // Tier 2: Common
     `--rb-primary-foreground: ${tokens.primaryForeground}`,
     `--rb-surface: ${tokens.surface || tokens.background}`,
     `--rb-border: ${tokens.border || "rgba(0, 0, 0, 0.1)"}`,
-    `--rb-success: ${tokens.success}`,
+    `--rb-overlay: ${tokens.overlay || "rgba(0, 0, 0, 0.6)"}`,
     `--rb-font-family: ${tokens.fontFamily}`,
+    // Tier 3: Advanced
+    `--rb-success: ${tokens.success || "#10B981"}`,
+    `--rb-error: ${tokens.error || "#EF4444"}`,
+    `--rb-ring: ${tokens.ring || "rgba(0, 0, 0, 0.1)"}`,
     `--rb-heading-font-family: ${tokens.headingFontFamily || tokens.fontFamily}`,
-    `--rb-radius: ${tokens.borderRadius}px`,
+    // Structural
     `--rb-popup-radius: ${tokens.popupBorderRadius}px`,
   ];
 

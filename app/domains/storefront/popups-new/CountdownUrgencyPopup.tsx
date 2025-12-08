@@ -113,15 +113,15 @@ export const CountdownUrgencyPopup: React.FC<CountdownUrgencyPopupProps> = ({
     }
   };
 
-  const accentColor = config.accentColor || config.buttonColor || "#000";
-  const textColor = config.textColor || "#1f2937";
-  const mutedColor = config.descriptionColor || "#6b7280";
-  const bgColor = config.backgroundColor || "#ffffff";
+  const accentColor = config.accentColor || config.buttonColor || "var(--rb-primary, #000)";
+  const textColor = config.textColor || "var(--rb-foreground, #1f2937)";
+  const mutedColor = config.descriptionColor || "var(--rb-muted, #6b7280)";
+  const bgColor = config.backgroundColor || "var(--rb-background, #ffffff)";
   const borderRadius = config.borderRadius || 16;
 
-  // Urgency colors
+  // Urgency colors - high uses error token, medium is warning (kept static), low uses accent
   const urgencyColors = {
-    high: { bg: "#ef4444", text: "#fff" },
+    high: { bg: "var(--rb-error, #ef4444)", text: "#fff" },
     medium: { bg: "#f59e0b", text: "#fff" },
     low: { bg: accentColor, text: "#fff" },
   };
@@ -166,15 +166,15 @@ export const CountdownUrgencyPopup: React.FC<CountdownUrgencyPopupProps> = ({
         .countdown-prices { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
         .countdown-price-current { font-size: 22px; font-weight: 700; color: ${textColor}; }
         .countdown-price-compare { font-size: 14px; color: ${mutedColor}; text-decoration: line-through; }
-        .countdown-discount { padding: 6px 12px; border-radius: 999px; background: #10b981; color: #fff; font-size: 14px; font-weight: 700; }
+        .countdown-discount { padding: 6px 12px; border-radius: 999px; background: var(--rb-success, #10b981); color: #fff; font-size: 14px; font-weight: 700; }
         .countdown-social { display: flex; align-items: center; gap: 8px; font-size: 13px; color: ${mutedColor}; margin-bottom: 16px; }
-        .countdown-social svg { width: 16px; height: 16px; color: #10b981; }
+        .countdown-social svg { width: 16px; height: 16px; color: var(--rb-success, #10b981); }
         .countdown-actions { display: flex; flex-direction: column; gap: 12px; }
         .countdown-cta { width: 100%; padding: 14px 16px; border-radius: 10px; background: ${config.buttonColor || accentColor}; color: ${config.buttonTextColor || "#fff"}; font-size: 14px; font-weight: 600; border: none; cursor: pointer; transition: all 0.2s; }
         .countdown-cta:hover { opacity: 0.9; }
         .countdown-cta:disabled { opacity: 0.6; cursor: not-allowed; }
-        .countdown-cta--high { background: #ef4444; animation: pulse 1s infinite; }
-        .countdown-cta--success { background: #10b981; animation: none; }
+        .countdown-cta--high { background: var(--rb-error, #ef4444); animation: pulse 1s infinite; }
+        .countdown-cta--success { background: var(--rb-success, #10b981); animation: none; }
         .countdown-decline { width: 100%; padding: 10px 16px; background: transparent; border: none; color: ${mutedColor}; font-size: 14px; cursor: pointer; transition: color 0.2s; }
         .countdown-decline:hover { color: ${textColor}; }
 

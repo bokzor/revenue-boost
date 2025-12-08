@@ -283,8 +283,8 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
     return null;
   };
 
-  // Design tokens
-  const accentColor = config.accentColor || "#EF4444";
+  // Design tokens - accent falls back to error color (red) for flash sales
+  const accentColor = config.accentColor || "var(--rb-error, #EF4444)";
   const textColor = config.textColor || "#111827";
   const bgColor = config.backgroundColor || "#FFFFFF";
   const borderRadius =
@@ -573,13 +573,13 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
               )}
               {/* Success message after action completed */}
               {actionCompleted && (successMessage || config.successMessage) && (
-                <div className="flash-sale-success-message" style={{ color: "#22c55e" }}>
+                <div className="flash-sale-success-message" style={{ color: "var(--rb-success, #22c55e)" }}>
                   {successMessage || config.successMessage}
                 </div>
               )}
               {/* Error message if action failed */}
               {actionError && (
-                <div className="flash-sale-error-message" style={{ color: "#ef4444" }}>
+                <div className="flash-sale-error-message" style={{ color: "var(--rb-error, #ef4444)" }}>
                   {actionError}
                 </div>
               )}
@@ -593,7 +593,7 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
                       label="Use code at checkout:"
                       variant="minimal"
                       size="sm"
-                      accentColor={config.accentColor || "#ef4444"}
+                      accentColor={config.accentColor || "var(--rb-error, #ef4444)"}
                       textColor={config.textColor}
                     />
                   ) : (
@@ -620,7 +620,7 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
                       format="full"
                       showDays={timeRemaining.days > 0}
                       showLabels={true}
-                      accentColor={config.accentColor || "#ef4444"}
+                      accentColor={config.accentColor || "var(--rb-error, #ef4444)"}
                       textColor={config.textColor}
                       className="flash-sale-banner-timer"
                     />
@@ -1259,7 +1259,7 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
 
             {/* Error message if action failed */}
             {actionError && (
-              <div className="flash-sale-error-message" style={{ color: "#ef4444", marginBottom: "1rem" }}>
+              <div className="flash-sale-error-message" style={{ color: "var(--rb-error, #ef4444)", marginBottom: "1rem" }}>
                 {actionError}
               </div>
             )}
@@ -1299,7 +1299,7 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
                   format="full"
                   showDays={timeRemaining.days > 0}
                   showLabels={true}
-                  accentColor={config.accentColor || "#ef4444"}
+                  accentColor={config.accentColor || "var(--rb-error, #ef4444)"}
                   textColor={config.textColor}
                 />
               </div>

@@ -31,7 +31,7 @@ export const ThemePresetInputSchema = z.object({
   isDefault: z.boolean().optional().default(false),
 
   // ============================================================================
-  // COLORS (7 tokens) - Maps to DesignTokens
+  // COLORS (10 tokens) - Maps to DesignTokens
   // ============================================================================
 
   /** Background color - popup background (solid hex or CSS gradient) */
@@ -55,8 +55,17 @@ export const ThemePresetInputSchema = z.object({
   /** Border color - input borders, dividers */
   borderColor: z.string().optional(),
 
-  /** Success color - success states */
+  /** Success color - success states (confirmations, checkmarks) */
   successColor: z.string().regex(/^#([A-Fa-f0-9]{6})$/, "Must be a valid hex color").optional(),
+
+  /** Error color - error states (validation errors, alerts) */
+  errorColor: z.string().regex(/^#([A-Fa-f0-9]{6})$/, "Must be a valid hex color").optional(),
+
+  /** Ring color - focus ring for accessibility (optional, derived from primary) */
+  ringColor: z.string().optional(),
+
+  /** Overlay color - modal backdrop (rgba string or hex) */
+  overlayColor: z.string().optional(),
 
   // ============================================================================
   // TYPOGRAPHY (2 tokens)
@@ -294,6 +303,9 @@ export function createEmptyThemePreset(overrides?: Partial<ThemePresetInput>): T
     surfaceColor: "#F3F4F6",
     borderColor: undefined,
     successColor: "#10B981",
+    errorColor: "#EF4444",
+    ringColor: undefined,
+    overlayColor: undefined,
     // Typography
     fontFamily: "inherit",
     headingFontFamily: undefined,
@@ -346,13 +358,14 @@ export function presetToDesignTokens(preset: ThemePresetInput): {
   surface?: string;
   border?: string;
   success: string;
+  error: string;
+  ring?: string;
+  overlay?: string;
   fontFamily: string;
   headingFontFamily?: string;
   borderRadius: number;
   popupBorderRadius: number;
 } {
-  const isDark = isBackgroundDark(preset.backgroundColor);
-
   return {
     background: preset.backgroundColor,
     foreground: preset.textColor,
@@ -362,6 +375,9 @@ export function presetToDesignTokens(preset: ThemePresetInput): {
     surface: preset.surfaceColor,
     border: preset.borderColor,
     success: preset.successColor || "#10B981",
+    error: preset.errorColor || "#EF4444",
+    ring: preset.ringColor,
+    overlay: preset.overlayColor,
     fontFamily: preset.fontFamily || "system-ui, -apple-system, sans-serif",
     headingFontFamily: preset.headingFontFamily,
     borderRadius: preset.borderRadius ?? 8,
@@ -399,6 +415,9 @@ export function createPresetFromShopifyTheme(
     surfaceColor: undefined,
     borderColor: undefined,
     successColor: "#10B981",
+    errorColor: "#EF4444",
+    ringColor: undefined,
+    overlayColor: undefined,
     // Typography from Shopify theme
     fontFamily: shopifyTheme.fontFamily || "inherit",
     headingFontFamily: shopifyTheme.headingFontFamily,

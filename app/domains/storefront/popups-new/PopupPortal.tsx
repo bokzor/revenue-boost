@@ -651,19 +651,26 @@ const PopupPortalComponent: React.FC<PopupPortalProps> = ({
       <style
         dangerouslySetInnerHTML={{
           __html: `
-            /* Default design token values (fallbacks) */
+            /* Default design token values (fallbacks) - 14 tokens */
             .popup-portal-root {
+              /* Tier 1: Essential */
               --rb-background: #ffffff;
               --rb-foreground: #1a1a1a;
-              --rb-muted: rgba(26, 26, 26, 0.6);
               --rb-primary: #000000;
+              --rb-muted: rgba(26, 26, 26, 0.6);
+              --rb-radius: 8px;
+              /* Tier 2: Common */
               --rb-primary-foreground: #ffffff;
               --rb-surface: #f5f5f5;
               --rb-border: rgba(26, 26, 26, 0.15);
-              --rb-success: #10B981;
+              --rb-overlay: rgba(0, 0, 0, 0.6);
               --rb-font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+              /* Tier 3: Advanced */
+              --rb-success: #10B981;
+              --rb-error: #EF4444;
+              --rb-ring: rgba(0, 0, 0, 0.1);
               --rb-heading-font-family: var(--rb-font-family);
-              --rb-radius: 8px;
+              /* Structural */
               --rb-popup-radius: 16px;
               ${designTokensCSS || ""}
             }

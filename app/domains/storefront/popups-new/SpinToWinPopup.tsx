@@ -298,7 +298,7 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- config has dynamic fields
   const configRecord = config as any;
   const _successColor = (configRecord.successColor as string) || accentColor;
-  const descriptionColor = (configRecord.descriptionColor as string) || "#6B7280";
+  const descriptionColor = (configRecord.descriptionColor as string) || "var(--rb-muted, #6B7280)";
 
   // Optional extended behavior flags (storefront-only)
   const collectName = config.nameFieldEnabled ?? false;
@@ -683,7 +683,7 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
     ...buttonStyles,
     padding: POPUP_SPACING.component.buttonSecondary,
     backgroundColor: "transparent",
-    color: config.textColor || "#4B5563",
+    color: config.textColor || "var(--rb-muted, #4B5563)",
     boxShadow: "none",
     cursor: "pointer",
     textTransform: "none",
@@ -1143,7 +1143,7 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
           .spin-confetti:nth-child(2) { background: #ec4899; left: 20%; top: 5%; animation: confettiFloat 1.3s ease-out 0.1s forwards; border-radius: 50%; }
           .spin-confetti:nth-child(3) { background: #8b5cf6; left: 30%; top: 15%; animation: confettiFloat 1.6s ease-out 0.2s forwards; }
           .spin-confetti:nth-child(4) { background: #06b6d4; left: 70%; top: 10%; animation: confettiFloat 1.4s ease-out 0.15s forwards; border-radius: 50%; }
-          .spin-confetti:nth-child(5) { background: #10b981; left: 80%; top: 5%; animation: confettiFloat 1.5s ease-out 0.05s forwards; }
+          .spin-confetti:nth-child(5) { background: var(--rb-success, #10b981); left: 80%; top: 5%; animation: confettiFloat 1.5s ease-out 0.05s forwards; }
           .spin-confetti:nth-child(6) { background: ${accentColor}; left: 90%; top: 15%; animation: confettiFloat 1.7s ease-out 0.25s forwards; border-radius: 50%; }
 
           /* Dynamic placeholder color - applies to all inputs in spin-input-wrapper */

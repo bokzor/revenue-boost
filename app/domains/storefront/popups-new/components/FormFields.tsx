@@ -89,7 +89,7 @@ export const EmailInput: React.FC<EmailInputProps> = ({
           }}
         >
           {label}
-          {required && <span style={{ color: "#EF4444" }}> *</span>}
+          {required && <span style={{ color: "var(--rb-error, #EF4444)" }}> *</span>}
         </label>
       )}
       <input
@@ -109,7 +109,7 @@ export const EmailInput: React.FC<EmailInputProps> = ({
           fontFamily: "var(--rb-font-family, inherit)",
           fontSize: "1rem",
           border: error
-            ? "2px solid #EF4444"
+            ? "2px solid var(--rb-error, #EF4444)"
             : `var(--rb-popup-input-border-width, 1px) solid ${resolvedBorderColor}`,
           borderRadius: "var(--rb-radius, 0.75rem)",
           backgroundColor: resolvedBgColor,
@@ -126,7 +126,7 @@ export const EmailInput: React.FC<EmailInputProps> = ({
           style={{
             marginTop: "0.5rem",
             fontSize: "0.875rem",
-            color: "#EF4444",
+            color: "var(--rb-error, #EF4444)",
           }}
         >
           {error}
@@ -207,7 +207,7 @@ export const NameInput: React.FC<NameInputProps> = ({
           }}
         >
           {label}
-          {required && <span style={{ color: "#EF4444" }}> *</span>}
+          {required && <span style={{ color: "var(--rb-error, #EF4444)" }}> *</span>}
         </label>
       )}
       <input
@@ -227,7 +227,7 @@ export const NameInput: React.FC<NameInputProps> = ({
           fontFamily: "var(--rb-font-family, inherit)",
           fontSize: "1rem",
           border: error
-            ? "2px solid #EF4444"
+            ? "2px solid var(--rb-error, #EF4444)"
             : `var(--rb-popup-input-border-width, 1px) solid ${resolvedBorderColor}`,
           borderRadius: "var(--rb-radius, 0.75rem)",
           backgroundColor: resolvedBgColor,
@@ -244,7 +244,7 @@ export const NameInput: React.FC<NameInputProps> = ({
           style={{
             marginTop: "0.5rem",
             fontSize: "0.875rem",
-            color: "#EF4444",
+            color: "var(--rb-error, #EF4444)",
           }}
         >
           {error}
@@ -369,7 +369,7 @@ export const GdprCheckbox: React.FC<GdprCheckboxProps> = ({
           style={{
             marginTop: "0.5rem",
             fontSize: "0.875rem",
-            color: "#EF4444",
+            color: "var(--rb-error, #EF4444)",
           }}
         >
           {error}

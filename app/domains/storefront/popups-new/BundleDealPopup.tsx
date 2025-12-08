@@ -63,10 +63,10 @@ export const BundleDealPopup: React.FC<BundleDealPopupProps> = ({
     }
   };
 
-  const accentColor = config.accentColor || config.buttonColor || "#000";
-  const textColor = config.textColor || "#1f2937";
-  const mutedColor = config.descriptionColor || "#6b7280";
-  const bgColor = config.backgroundColor || "#ffffff";
+  const accentColor = config.accentColor || config.buttonColor || "var(--rb-primary, #000)";
+  const textColor = config.textColor || "var(--rb-foreground, #1f2937)";
+  const mutedColor = config.descriptionColor || "var(--rb-muted, #6b7280)";
+  const bgColor = config.backgroundColor || "var(--rb-background, #ffffff)";
   const borderRadius = config.borderRadius || 16;
 
   return (
@@ -113,7 +113,7 @@ export const BundleDealPopup: React.FC<BundleDealPopupProps> = ({
         .bundle-cta { width: 100%; padding: 14px 16px; border-radius: 12px; background: ${config.buttonColor || accentColor}; color: ${config.buttonTextColor || "#fff"}; font-size: 14px; font-weight: 600; border: none; cursor: pointer; transition: opacity 0.2s; }
         .bundle-cta:hover { opacity: 0.9; }
         .bundle-cta:disabled { opacity: 0.6; cursor: not-allowed; }
-        .bundle-cta--success { background: #10b981; }
+        .bundle-cta--success { background: var(--rb-success, #10b981); }
         .bundle-decline { width: 100%; padding: 10px 16px; background: transparent; border: none; color: ${mutedColor}; font-size: 14px; cursor: pointer; transition: color 0.2s; }
         .bundle-decline:hover { color: ${textColor}; }
 

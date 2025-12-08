@@ -351,7 +351,7 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
     }
   }, [config.maxWidth, config.size]);
 
-  const descriptionColor = config.descriptionColor || "#6b7280";
+  const descriptionColor = config.descriptionColor || "var(--rb-muted, #6b7280)";
 
   // CSS Custom Properties for dynamic theming
   const cssVars = useMemo(
@@ -362,7 +362,7 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
     --cart-ab-btn-bg: ${config.buttonColor || "#3b82f6"};
     --cart-ab-btn-text: ${config.buttonTextColor || "#ffffff"};
     --cart-ab-accent: ${config.accentColor || "#f59e0b"};
-    --cart-ab-success: ${config.successColor || "#16a34a"};
+    --cart-ab-success: ${config.successColor || "var(--rb-success, #16a34a)"};
     --cart-ab-border: ${config.inputBorderColor || "rgba(0,0,0,0.1)"};
     --cart-ab-input-bg: ${config.inputBackgroundColor || "#ffffff"};
     --cart-ab-input-text: ${config.inputTextColor || config.textColor || "#111827"};

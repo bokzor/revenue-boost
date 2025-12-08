@@ -56,10 +56,10 @@ export const MinimalSlideUpPopup: React.FC<MinimalSlideUpPopupProps> = ({
     }
   };
 
-  const accentColor = config.accentColor || config.buttonColor || "#000";
-  const textColor = config.textColor || "#1f2937";
-  const mutedColor = config.descriptionColor || "#6b7280";
-  const bgColor = config.backgroundColor || "#ffffff";
+  const accentColor = config.accentColor || config.buttonColor || "var(--rb-primary, #000)";
+  const textColor = config.textColor || "var(--rb-foreground, #1f2937)";
+  const mutedColor = config.descriptionColor || "var(--rb-muted, #6b7280)";
+  const bgColor = config.backgroundColor || "var(--rb-background, #ffffff)";
   const borderRadius = config.borderRadius || 16;
 
   return (
@@ -138,7 +138,7 @@ export const MinimalSlideUpPopup: React.FC<MinimalSlideUpPopupProps> = ({
         .minimal-upsell-add { padding: 8px 16px; border-radius: 8px; background: ${config.buttonColor || accentColor}; color: ${config.buttonTextColor || "#fff"}; font-size: 14px; font-weight: 500; border: none; cursor: pointer; transition: opacity 0.2s; }
         .minimal-upsell-add:hover { opacity: 0.9; }
         .minimal-upsell-add:disabled { opacity: 0.6; cursor: not-allowed; }
-        .minimal-upsell-add--success { background: #10b981; }
+        .minimal-upsell-add--success { background: var(--rb-success, #10b981); }
 
         /* ===== DESKTOP: Horizontal layout (image LEFT) when popup is wide enough ===== */
         /* Container query on .minimal-upsell itself - more reliable than parent frame */

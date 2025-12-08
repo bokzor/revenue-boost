@@ -1099,12 +1099,12 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           /* CSS Custom Properties for theming */
           --upsell-accent: ${accentColor};
           --upsell-text: ${textColor};
-          --upsell-text-muted: ${config.descriptionColor || "#6B7280"};
+          --upsell-text-muted: ${config.descriptionColor || "var(--rb-muted, #6B7280)"};
           --upsell-bg: ${baseBackground};
           --upsell-bg-secondary: ${secondaryBg};
           --upsell-border: ${borderColor};
           --upsell-radius: ${borderRadius}px;
-          --upsell-success: ${config.successColor || "#10B981"};
+          --upsell-success: ${config.successColor || "var(--rb-success, #10B981)"};
         }
 
         /* ===== CLOSE BUTTON ===== */
@@ -1168,7 +1168,7 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           gap: 0.5rem;
         }
         .upsell-bundle-banner--active {
-          background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+          background: linear-gradient(135deg, var(--rb-success, #10B981) 0%, #059669 100%);
           box-shadow: 0 0 12px 2px rgba(16, 185, 129, 0.4);
         }
 
@@ -1693,7 +1693,7 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           z-index: 5;
           padding: 0.3rem 0.6rem;
           border-radius: 6px;
-          background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
+          background: linear-gradient(135deg, var(--rb-error, #EF4444) 0%, #DC2626 100%);
           color: #fff;
           font-size: 0.75rem;
           font-weight: 700;
@@ -1775,7 +1775,7 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
         /* Social proof badge */
         .upsell-social-proof {
           font-size: 0.6875rem;
-          color: #EF4444;
+          color: var(--rb-error, #EF4444);
           margin-bottom: 0.375rem;
           font-weight: 500;
           animation: socialProofFade 0.5s ease-out;
@@ -1853,7 +1853,7 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           top: 50%;
           width: 100%;
           height: 1.5px;
-          background: #EF4444;
+          background: var(--rb-error, #EF4444);
           animation: strikeThrough 0.3s ease-out forwards;
         }
         @keyframes strikeThrough {
@@ -1863,7 +1863,7 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
         .upsell-price-savings {
           font-size: 0.6875rem;
           font-weight: 600;
-          color: #10B981;
+          color: var(--rb-success, #10B981);
           background: rgba(16, 185, 129, 0.1);
           padding: 0.125rem 0.375rem;
           border-radius: 4px;
@@ -1953,7 +1953,7 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           left: 0.25rem;
           padding: 0.125rem 0.375rem;
           border-radius: 3px;
-          background: #EF4444;
+          background: var(--rb-error, #EF4444);
           color: #fff;
           font-size: 0.5625rem;
           font-weight: 700;
@@ -2005,7 +2005,7 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           overflow: hidden;
         }
         .upsell-footer--success {
-          background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+          background: linear-gradient(135deg, var(--rb-success, #10B981) 0%, #059669 100%);
         }
 
         /* Confetti container */
@@ -2026,10 +2026,10 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           animation-delay: calc(var(--particle-index) * 0.05s);
         }
         .upsell-confetti-particle:nth-child(1) { background: #F59E0B; }
-        .upsell-confetti-particle:nth-child(2) { background: #EF4444; }
+        .upsell-confetti-particle:nth-child(2) { background: var(--rb-error, #EF4444); }
         .upsell-confetti-particle:nth-child(3) { background: #8B5CF6; }
         .upsell-confetti-particle:nth-child(4) { background: #06B6D4; }
-        .upsell-confetti-particle:nth-child(5) { background: #10B981; }
+        .upsell-confetti-particle:nth-child(5) { background: var(--rb-success, #10B981); }
         .upsell-confetti-particle:nth-child(6) { background: #EC4899; }
         .upsell-confetti-particle:nth-child(7) { background: #F59E0B; border-radius: 50%; }
         .upsell-confetti-particle:nth-child(8) { background: #6366F1; }
@@ -2116,7 +2116,7 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           opacity: 0.6;
         }
         .upsell-bundle-row {
-          color: #10B981;
+          color: var(--rb-success, #10B981);
         }
         .upsell-bundle-savings {
           font-weight: 600;

@@ -54,19 +54,26 @@ export function useDesignTokens(
     // Resolve tokens based on theme mode
     const tokens = resolveDesignTokens(design, shopifyTokens);
 
-    // Convert tokens to CSS custom properties
+    // Convert tokens to CSS custom properties (all 14 tokens)
     const tokenStyles: TokenStyles = {
+      // Tier 1: Essential (5 tokens)
       "--rb-background": tokens.background,
       "--rb-foreground": tokens.foreground,
-      "--rb-muted": tokens.muted || `${tokens.foreground}99`, // 60% opacity fallback
       "--rb-primary": tokens.primary,
+      "--rb-muted": tokens.muted || `${tokens.foreground}99`, // 60% opacity fallback
+      "--rb-radius": `${tokens.borderRadius}px`,
+      // Tier 2: Common (5 tokens)
       "--rb-primary-foreground": tokens.primaryForeground,
       "--rb-surface": tokens.surface || tokens.background,
       "--rb-border": tokens.border || `${tokens.foreground}26`, // 15% opacity fallback
-      "--rb-success": tokens.success,
+      "--rb-overlay": tokens.overlay || "rgba(0, 0, 0, 0.6)",
       "--rb-font-family": tokens.fontFamily,
+      // Tier 3: Advanced (4 tokens)
+      "--rb-success": tokens.success || "#10B981",
+      "--rb-error": tokens.error || "#EF4444",
+      "--rb-ring": tokens.ring || tokens.primary,
       "--rb-heading-font-family": tokens.headingFontFamily || tokens.fontFamily,
-      "--rb-radius": `${tokens.borderRadius}px`,
+      // Structural
       "--rb-popup-radius": `${tokens.popupBorderRadius}px`,
     } as TokenStyles;
 

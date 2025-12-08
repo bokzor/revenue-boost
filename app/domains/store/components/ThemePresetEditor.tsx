@@ -375,6 +375,22 @@ export function ThemePresetEditor({
                     helpText="Success states and confirmations"
                   />
 
+                  <ColorField
+                    label="❌ Error Color"
+                    name="errorColor"
+                    value={preset.errorColor || "#EF4444"}
+                    onChange={(value) => updateField("errorColor", value)}
+                    helpText="Validation errors and alerts"
+                  />
+
+                  <ColorField
+                    label="🔵 Focus Ring Color"
+                    name="ringColor"
+                    value={preset.ringColor || ""}
+                    onChange={(value) => updateField("ringColor", value || undefined)}
+                    helpText="Focus ring for accessibility (auto-derived if empty)"
+                  />
+
                   <Divider />
 
                   {/* Typography */}
