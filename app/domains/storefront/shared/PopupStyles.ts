@@ -212,12 +212,14 @@ export const getPopupContentContainerStyles = (): CSSProperties => ({
 /**
  * Size-specific width and padding
  */
-export const getPopupSizeStyles = (size?: "small" | "medium" | "large") => {
+export const getPopupSizeStyles = (size?: "small" | "medium" | "large" | "fullscreen") => {
   switch (size) {
     case "small":
       return { width: "360px", padding: "24px" };
     case "large":
       return { width: "520px", padding: "40px" };
+    case "fullscreen":
+      return { width: "100%", padding: "0" };
     default:
       return { width: "420px", padding: "32px" };
   }

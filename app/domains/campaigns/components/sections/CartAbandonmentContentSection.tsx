@@ -206,11 +206,11 @@ export function CartAbandonmentContentSection({
                     <TextField
                       label="Max Items to Show"
                       name="content.maxItemsToShow"
-                      value={content.maxItemsToShow?.toString() || "3"}
+                      value={content.maxItemsToShow?.toString() ?? ""}
                       error={errors?.maxItemsToShow}
                       placeholder="3"
                       helpText="Maximum number of cart items to display"
-                      onChange={(value) => updateField("maxItemsToShow", parseInt(value) || 3)}
+                      onChange={(value) => updateField("maxItemsToShow", value === "" ? undefined : parseInt(value))}
                     />
                   )}
                 </BlockStack>
@@ -262,11 +262,11 @@ export function CartAbandonmentContentSection({
                         <TextField
                           label="Urgency Timer (seconds)"
                           name="content.urgencyTimer"
-                          value={content.urgencyTimer?.toString() || "300"}
+                          value={content.urgencyTimer?.toString() ?? ""}
                           error={errors?.urgencyTimer}
                           placeholder="300"
                           helpText="Timer duration (default: 5 minutes)"
-                          onChange={(value) => updateField("urgencyTimer", parseInt(value) || 300)}
+                          onChange={(value) => updateField("urgencyTimer", value === "" ? undefined : parseInt(value))}
                         />
 
                         <TextField

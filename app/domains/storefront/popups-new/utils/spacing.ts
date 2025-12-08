@@ -77,18 +77,18 @@ export const POPUP_SPACING = {
 
 /**
  * Get container padding based on popup size
- * Accepts both PopupSize ('small' | 'medium' | 'large') and FlashSale-specific sizes
+ * Accepts both PopupSize ('small' | 'medium' | 'large' | 'fullscreen') and FlashSale-specific sizes
  */
 export function getContainerPadding(
-  popupSize?: "compact" | "medium" | "wide" | "full" | "small" | "large"
+  popupSize?: "compact" | "medium" | "wide" | "full" | "small" | "large" | "fullscreen"
 ): string {
   // Map PopupSize to FlashSale size format
   let size: "compact" | "medium" | "wide" | "full" = "medium";
 
   if (popupSize === "small") {
     size = "compact";
-  } else if (popupSize === "large") {
-    size = "wide";
+  } else if (popupSize === "large" || popupSize === "fullscreen") {
+    size = "full";
   } else if (
     popupSize === "compact" ||
     popupSize === "medium" ||

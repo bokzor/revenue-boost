@@ -19,7 +19,17 @@
  * @see docs/RECIPE_SYSTEM_ARCHITECTURE.md
  */
 
-import type { ProductUpsellRecipe, EditableField, QuickInput } from "./styled-recipe-types";
+import type {
+  ProductUpsellRecipe,
+  ClassicUpsellRecipe,
+  MinimalSlideUpRecipe,
+  PremiumFullscreenRecipe,
+  BundleDealRecipe,
+  CountdownUrgencyRecipe,
+  EditableField,
+  QuickInput,
+  AnyStyledRecipe,
+} from "./styled-recipe-types";
 
 // =============================================================================
 // SHARED EDITABLE FIELDS FOR UPSELL RECIPES
@@ -109,7 +119,7 @@ export const completeTheLook: ProductUpsellRecipe = {
   templateType: "PRODUCT_UPSELL",
   tags: ["fashion", "elegant", "high-converting"],
   component: "ProductUpsell",
-  theme: "elegant",
+  theme: "luxury",
   layout: "centered",
   featured: true,
   recipeType: "use_case",
@@ -133,10 +143,11 @@ export const completeTheLook: ProductUpsellRecipe = {
       multiSelect: true,
     },
     designConfig: {
-      theme: "elegant",
+      theme: "luxury",
       position: "center",
       size: "medium",
       animation: "fade",
+      mobileFullScreen: true, // Full-screen on mobile for better product browsing
     },
     targetRules: {
       enhancedTriggers: {
@@ -240,7 +251,7 @@ export const spendMoreSaveMore: ProductUpsellRecipe = {
   templateType: "PRODUCT_UPSELL",
   tags: ["bold", "high-converting", "discount"],
   component: "ProductUpsell",
-  theme: "bold",
+  theme: "gradient",
   layout: "centered",
   featured: true,
   recipeType: "use_case",
@@ -273,7 +284,7 @@ export const spendMoreSaveMore: ProductUpsellRecipe = {
       multiSelect: true,
     },
     designConfig: {
-      theme: "bold",
+      theme: "gradient",
       position: "center",
       size: "large",
       animation: "bounce",
@@ -286,6 +297,18 @@ export const spendMoreSaveMore: ProductUpsellRecipe = {
           max_value: 100,
         },
       },
+    },
+    discountConfig: {
+      enabled: true,
+      type: "shared",
+      showInPreview: true,
+      behavior: "SHOW_CODE_AND_AUTO_APPLY",
+      // Tiered structure - Spend more, save more
+      tiers: [
+        { thresholdCents: 5000, discount: { kind: "percentage", value: 10 } }, // $50 → 10%
+        { thresholdCents: 10000, discount: { kind: "percentage", value: 20 } }, // $100 → 20%
+        { thresholdCents: 15000, discount: { kind: "percentage", value: 30 } }, // $150 → 30%
+      ],
     },
   },
 };
@@ -307,7 +330,7 @@ export const lastChanceUpsell: ProductUpsellRecipe = {
   templateType: "PRODUCT_UPSELL",
   tags: ["urgent", "exit-intent", "high-converting"],
   component: "ProductUpsell",
-  theme: "bold",
+  theme: "gradient",
   layout: "centered",
   recipeType: "use_case",
   inputs: [
@@ -336,7 +359,7 @@ export const lastChanceUpsell: ProductUpsellRecipe = {
       multiSelect: true,
     },
     designConfig: {
-      theme: "bold",
+      theme: "gradient",
       position: "center",
       size: "medium",
       animation: "bounce",
@@ -560,10 +583,266 @@ export const scrollBasedRecommendations: ProductUpsellRecipe = {
 };
 
 // =============================================================================
+// 8. CLASSIC UPSELL MODAL
+// Template: CLASSIC_UPSELL - Traditional centered modal with image, pricing, and clear CTAs
+// =============================================================================
+
+export const classicUpsellModal: ClassicUpsellRecipe = {
+  id: "upsell-classic-modal",
+  name: "Classic Upsell Modal",
+  tagline: "Traditional centered popup for single product offers",
+  description:
+    "Clean, focused modal that highlights a single product with clear pricing and call-to-action. Perfect for hero product promotions and seasonal specials.",
+  icon: "🎯",
+  category: "sales_promos",
+  goal: "INCREASE_REVENUE",
+  templateType: "CLASSIC_UPSELL",
+  tags: ["centered", "high-converting"],
+  component: "ClassicUpsellPopup",
+  theme: "modern",
+  layout: "centered",
+  featured: true,
+  new: true,
+  recipeType: "use_case",
+  inputs: [BUNDLE_DISCOUNT_INPUT, PRODUCT_SELECTION_INPUT],
+  editableFields: UPSELL_EDITABLE_FIELDS,
+  defaults: {
+    contentConfig: {
+      headline: "Special Offer Just For You",
+      subheadline: "Don't miss out on this exclusive deal",
+      buttonText: "Add to Cart",
+      secondaryCtaLabel: "No thanks",
+      productSelectionMethod: "manual",
+      showPrices: true,
+      showCompareAtPrice: true,
+      showImages: true,
+      showRatings: true,
+      discountPercent: 15,
+      currency: "USD",
+    },
+    designConfig: {
+      theme: "modern",
+      position: "center",
+      size: "medium",
+      animation: "fade",
+    },
+    targetRules: {
+      enhancedTriggers: {
+        add_to_cart: { enabled: true },
+      },
+    },
+  },
+};
+
+// =============================================================================
+// 9. MINIMAL SLIDE-UP
+// Template: MINIMAL_SLIDE_UP - Compact bottom sheet for mobile-first experiences
+// =============================================================================
+
+export const minimalSlideUp: MinimalSlideUpRecipe = {
+  id: "upsell-minimal-slide-up",
+  name: "Minimal Slide-Up",
+  tagline: "Non-intrusive bottom sheet for mobile shoppers",
+  description:
+    "Compact, mobile-optimized slide-up panel that doesn't interrupt the shopping experience. Ideal for subtle cross-sells and quick add-to-cart flows.",
+  icon: "📱",
+  category: "sales_promos",
+  goal: "INCREASE_REVENUE",
+  templateType: "MINIMAL_SLIDE_UP",
+  tags: ["minimal", "subtle"],
+  component: "MinimalSlideUpPopup",
+  theme: "minimal",
+  layout: "bottom-sheet",
+  new: true,
+  recipeType: "use_case",
+  inputs: [PRODUCT_SELECTION_INPUT],
+  editableFields: UPSELL_EDITABLE_FIELDS,
+  defaults: {
+    contentConfig: {
+      headline: "Complete Your Order",
+      subheadline: "Add this for just",
+      buttonText: "Quick Add",
+      secondaryCtaLabel: "Continue shopping",
+      productSelectionMethod: "ai",
+      showPrices: true,
+      showCompareAtPrice: true,
+      showImages: true,
+      currency: "USD",
+    },
+    designConfig: {
+      theme: "minimal",
+      position: "bottom",
+      size: "small",
+      animation: "slide",
+    },
+    targetRules: {
+      enhancedTriggers: {
+        add_to_cart: { enabled: true },
+      },
+    },
+  },
+};
+
+// =============================================================================
+// 10. PREMIUM FULLSCREEN EXPERIENCE
+// Template: PREMIUM_FULLSCREEN - Immersive full-page takeover for high-value products
+// =============================================================================
+
+export const premiumFullscreen: PremiumFullscreenRecipe = {
+  id: "upsell-premium-fullscreen",
+  name: "Premium Fullscreen Experience",
+  tagline: "Immersive full-page offer for luxury products",
+  description:
+    "Stunning fullscreen takeover that showcases premium products with rich imagery, feature lists, and ratings. Best for high-ticket items where visual impact drives conversions.",
+  icon: "💎",
+  category: "sales_promos",
+  goal: "INCREASE_REVENUE",
+  templateType: "PREMIUM_FULLSCREEN",
+  tags: ["fullscreen", "elegant", "high-converting"],
+  component: "PremiumFullscreenPopup",
+  theme: "luxury",
+  layout: "fullscreen",
+  featured: true,
+  new: true,
+  recipeType: "use_case",
+  inputs: [BUNDLE_DISCOUNT_INPUT, PRODUCT_SELECTION_INPUT],
+  editableFields: [
+    ...UPSELL_EDITABLE_FIELDS,
+    {
+      key: "features",
+      type: "text",
+      label: "Product Features (comma-separated)",
+      group: "content",
+      validation: { maxLength: 500 },
+    },
+    {
+      key: "urgencyMessage",
+      type: "text",
+      label: "Urgency Message",
+      group: "content",
+      validation: { maxLength: 100 },
+    },
+  ],
+  defaults: {
+    contentConfig: {
+      headline: "Exclusive Offer",
+      subheadline: "Upgrade your experience with our premium selection",
+      buttonText: "Claim This Deal",
+      secondaryCtaLabel: "Maybe later",
+      productSelectionMethod: "manual",
+      showPrices: true,
+      showCompareAtPrice: true,
+      showImages: true,
+      showRatings: true,
+      showReviewCount: true,
+      discountPercent: 20,
+      currency: "USD",
+      features: [
+        "Premium quality materials",
+        "Free express shipping",
+        "30-day money-back guarantee",
+      ],
+      urgencyMessage: "🔥 Limited time offer - Only 3 left in stock!",
+    },
+    designConfig: {
+      theme: "luxury",
+      position: "center",
+      size: "large",
+      animation: "fade",
+      mobileFullScreen: true, // Full-screen on mobile for immersive experience
+    },
+    targetRules: {
+      enhancedTriggers: {
+        exit_intent: { enabled: true },
+      },
+    },
+  },
+};
+
+// =============================================================================
+// 12. COUNTDOWN URGENCY
+// Template: COUNTDOWN_URGENCY - Time-limited offer with live countdown timer
+// =============================================================================
+
+export const countdownUrgency: CountdownUrgencyRecipe = {
+  id: "upsell-countdown-urgency",
+  name: "Flash Deal Countdown",
+  tagline: "Create urgency with a live countdown timer",
+  description:
+    "Time-limited offers that create genuine urgency. The countdown timer drives immediate action and auto-closes when expired. Perfect for flash sales and limited inventory.",
+  icon: "⏱️",
+  category: "sales_promos",
+  goal: "INCREASE_REVENUE",
+  templateType: "COUNTDOWN_URGENCY",
+  tags: ["urgent", "high-converting"],
+  component: "CountdownUrgencyPopup",
+  theme: "gradient",
+  layout: "centered",
+  featured: true,
+  new: true,
+  recipeType: "use_case",
+  inputs: [
+    {
+      type: "select",
+      key: "expiresInSeconds",
+      label: "Countdown Duration",
+      defaultValue: "300",
+      options: [
+        { value: "60", label: "1 minute" },
+        { value: "180", label: "3 minutes" },
+        { value: "300", label: "5 minutes (recommended)" },
+        { value: "600", label: "10 minutes" },
+        { value: "900", label: "15 minutes" },
+      ],
+    },
+    BUNDLE_DISCOUNT_INPUT,
+    PRODUCT_SELECTION_INPUT,
+  ],
+  editableFields: [
+    ...UPSELL_EDITABLE_FIELDS,
+    {
+      key: "socialProofMessage",
+      type: "text",
+      label: "Social Proof Message",
+      group: "content",
+      validation: { maxLength: 150 },
+    },
+  ],
+  defaults: {
+    contentConfig: {
+      headline: "Flash Deal!",
+      subheadline: "This exclusive offer expires soon",
+      buttonText: "Claim This Deal Now",
+      secondaryCtaLabel: "No thanks",
+      productSelectionMethod: "manual",
+      showPrices: true,
+      showCompareAtPrice: true,
+      showImages: true,
+      discountPercent: 25,
+      currency: "USD",
+      expiresInSeconds: 300,
+      socialProofMessage: "🔥 47 people are viewing this right now",
+    },
+    designConfig: {
+      theme: "gradient",
+      position: "center",
+      size: "medium",
+      animation: "fade",
+    },
+    targetRules: {
+      enhancedTriggers: {
+        exit_intent: { enabled: true },
+      },
+    },
+  },
+};
+
+// =============================================================================
 // EXPORT ALL UPSELL RECIPES
 // =============================================================================
 
-export const UPSELL_RECIPES: ProductUpsellRecipe[] = [
+export const UPSELL_RECIPES: AnyStyledRecipe[] = [
+  // Original recipes (PRODUCT_UPSELL template type)
   completeTheLook,
   productPageCrossSell,
   spendMoreSaveMore,
@@ -571,4 +850,9 @@ export const UPSELL_RECIPES: ProductUpsellRecipe[] = [
   frequentlyBoughtTogether,
   postPurchaseCrossSell,
   scrollBasedRecommendations,
+  // New template-specific recipes
+  classicUpsellModal,
+  minimalSlideUp,
+  premiumFullscreen,
+  countdownUrgency,
 ];

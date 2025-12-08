@@ -158,19 +158,19 @@ export function SpinToWinContentSection({
                 <TextField
                   label="Wheel Size (px)"
                   name="content.wheelSize"
-                  value={content.wheelSize?.toString() || "400"}
+                  value={content.wheelSize?.toString() ?? ""}
                   placeholder="400"
                   helpText="Diameter of the wheel in pixels"
-                  onChange={(value) => updateField("wheelSize", parseInt(value) || 400)}
+                  onChange={(value) => updateField("wheelSize", (value === "" ? undefined : parseInt(value)) as number)}
                 />
 
                 <TextField
                   label="Wheel Border Width (px)"
                   name="content.wheelBorderWidth"
-                  value={content.wheelBorderWidth?.toString() || "2"}
+                  value={content.wheelBorderWidth?.toString() ?? ""}
                   placeholder="2"
                   helpText="Border thickness around wheel"
-                  onChange={(value) => updateField("wheelBorderWidth", parseInt(value) || 2)}
+                  onChange={(value) => updateField("wheelBorderWidth", (value === "" ? undefined : parseInt(value)) as number)}
                 />
 
                 <TextField
@@ -187,19 +187,19 @@ export function SpinToWinContentSection({
                 <TextField
                   label="Spin Duration (ms)"
                   name="content.spinDuration"
-                  value={content.spinDuration?.toString() || "4000"}
+                  value={content.spinDuration?.toString() ?? ""}
                   placeholder="4000"
                   helpText="How long the spin animation lasts (milliseconds)"
-                  onChange={(value) => updateField("spinDuration", parseInt(value) || 4000)}
+                  onChange={(value) => updateField("spinDuration", (value === "" ? undefined : parseInt(value)) as number)}
                 />
 
                 <TextField
                   label="Minimum Spins"
                   name="content.minSpins"
-                  value={content.minSpins?.toString() || "5"}
+                  value={content.minSpins?.toString() ?? ""}
                   placeholder="5"
                   helpText="Minimum number of full rotations"
-                  onChange={(value) => updateField("minSpins", parseInt(value) || 5)}
+                  onChange={(value) => updateField("minSpins", (value === "" ? undefined : parseInt(value)) as number)}
                 />
               </FormGrid>
             </BlockStack>

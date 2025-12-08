@@ -28,7 +28,7 @@ import {
 import { useCountdownTimer, useDiscountCode, useCTAHandler } from "./hooks";
 
 // Import shared components
-import { DiscountCodeDisplay, PopupCloseButton, TimerDisplay } from "./components/shared";
+import { DiscountCodeDisplay, PopupCloseButton, TimerDisplay, PromotionDisplay } from "./components/shared";
 
 /**
  * FlashSale-specific configuration
@@ -48,7 +48,15 @@ interface AdvancedDiscountConfig {
     buy: { quantity: number };
     get: { quantity: number; discount: { kind: string; value: number } };
   };
-  freeGift?: { enabled: boolean };
+  freeGift?: {
+    enabled?: boolean;
+    productId?: string;
+    variantId?: string;
+    productTitle?: string;
+    productImageUrl?: string;
+    quantity?: number;
+    minSubtotalCents?: number;
+  };
 }
 
 export interface FlashSaleConfig extends PopupDesignConfig, FlashSaleContent {
@@ -707,6 +715,7 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
       ariaDescribedBy={config.ariaDescribedBy}
       customCSS={config.customCSS}
       globalCustomCSS={config.globalCustomCSS}
+      designTokensCSS={config.designTokensCSS}
     >
       <style>{`
         .flash-sale-container {
@@ -1229,22 +1238,43 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
               </div>
             )}
 
-            {(discountCode || discountMessage) && (
+            {/* Promotion Display - Visual representation of discount type */}
+            {config.discountConfig && (
+              <div className="flash-sale-promotion" style={{ marginBottom: POPUP_SPACING.section.md }}>
+                <PromotionDisplay
+                  tiers={config.discountConfig.tiers}
+                  bogo={config.discountConfig.bogo}
+                  freeGift={config.discountConfig.freeGift}
+                  discountPercentage={config.discountPercentage}
+                  currentCartTotalCents={config.currentCartTotal ? Math.round(config.currentCartTotal * 100) : 0}
+                  accentColor={accentColor}
+                  textColor={textColor}
+                  backgroundColor={bgColor}
+                  size="md"
+                />
+              </div>
+            )}
+
+            {/* Discount Code Display - Shows when a code has been issued */}
+            {discountCode && (
               <div className="flash-sale-discount-message">
-                {discountCode ? (
-                  <DiscountCodeDisplay
-                    code={discountCode}
-                    onCopy={handleCopyCode}
-                    copied={copiedCode}
-                    label="Use code at checkout:"
-                    variant="minimal"
-                    size="sm"
-                    accentColor={config.accentColor || "#ef4444"}
-                    textColor={config.textColor}
-                  />
-                ) : (
-                  discountMessage
-                )}
+                <DiscountCodeDisplay
+                  code={discountCode}
+                  onCopy={handleCopyCode}
+                  copied={copiedCode}
+                  label="Use code at checkout:"
+                  variant="minimal"
+                  size="sm"
+                  accentColor={config.accentColor || "#ef4444"}
+                  textColor={config.textColor}
+                />
+              </div>
+            )}
+
+            {/* Fallback text message for simple discounts without visual display */}
+            {!config.discountConfig && discountMessage && !discountCode && (
+              <div className="flash-sale-discount-message">
+                {discountMessage}
               </div>
             )}
 
@@ -1286,15 +1316,15 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
 
             {/* Actions: CTA + Dismiss */}
             <div className="flash-sale-actions">
-              <button
-                onClick={handleCtaClick}
-                className="flash-sale-cta"
-                disabled={isCtaDisabled}
-              >
+              <button onClick={handleCtaClick} className="flash-sale-cta" disabled={isCtaDisabled}>
                 {ctaLabel}
               </button>
 
-              <button type="button" onClick={handleSecondaryCta} className="flash-sale-secondary-cta">
+              <button
+                type="button"
+                onClick={handleSecondaryCta}
+                className="flash-sale-secondary-cta"
+              >
                 {secondaryCtaLabel}
               </button>
             </div>

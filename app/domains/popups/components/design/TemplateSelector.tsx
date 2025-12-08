@@ -25,21 +25,6 @@ const THEME_DEFAULTS: Record<
     text: NEWSLETTER_THEMES.minimal.text,
     button: NEWSLETTER_THEMES.minimal.primary,
   },
-  elegant: {
-    background: NEWSLETTER_THEMES.elegant.background,
-    text: NEWSLETTER_THEMES.elegant.text,
-    button: NEWSLETTER_THEMES.elegant.primary,
-  },
-  bold: {
-    background: NEWSLETTER_THEMES.bold.background,
-    text: NEWSLETTER_THEMES.bold.text,
-    button: NEWSLETTER_THEMES.bold.primary,
-  },
-  glass: {
-    background: NEWSLETTER_THEMES.glass.background,
-    text: NEWSLETTER_THEMES.glass.text,
-    button: NEWSLETTER_THEMES.glass.primary,
-  },
   dark: {
     background: NEWSLETTER_THEMES.dark.background,
     text: NEWSLETTER_THEMES.dark.text,

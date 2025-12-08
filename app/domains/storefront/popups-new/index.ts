@@ -72,6 +72,22 @@ export type {
 export { AnnouncementPopup } from "./AnnouncementPopup";
 export type { AnnouncementConfig, AnnouncementPopupProps } from "./AnnouncementPopup";
 
+// New Upsell Popup Variants
+export { ClassicUpsellPopup } from "./ClassicUpsellPopup";
+export type { ClassicUpsellConfig, ClassicUpsellPopupProps } from "./ClassicUpsellPopup";
+
+export { MinimalSlideUpPopup } from "./MinimalSlideUpPopup";
+export type { MinimalSlideUpConfig, MinimalSlideUpPopupProps } from "./MinimalSlideUpPopup";
+
+export { PremiumFullscreenPopup } from "./PremiumFullscreenPopup";
+export type { PremiumFullscreenConfig, PremiumFullscreenPopupProps } from "./PremiumFullscreenPopup";
+
+export { BundleDealPopup } from "./BundleDealPopup";
+export type { BundleDealConfig, BundleDealPopupProps } from "./BundleDealPopup";
+
+export { CountdownUrgencyPopup } from "./CountdownUrgencyPopup";
+export type { CountdownUrgencyConfig, CountdownUrgencyPopupProps } from "./CountdownUrgencyPopup";
+
 // Shared types
 export type {
   PopupConfig, // @deprecated - Use PopupDesignConfig + content types instead

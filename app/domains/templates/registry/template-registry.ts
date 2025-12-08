@@ -19,6 +19,12 @@ import {
   FreeShippingContentSchema,
   AnnouncementContentSchema,
   BaseContentConfigSchema,
+  // New upsell popup content schemas
+  ClassicUpsellContentSchema,
+  MinimalSlideUpContentSchema,
+  PremiumFullscreenContentSchema,
+  BundleDealContentSchema,
+  CountdownUrgencyContentSchema,
 } from "~/domains/campaigns/types/campaign";
 
 /**
@@ -193,6 +199,80 @@ export const TEMPLATE_REGISTRY: Record<TemplateType, TemplateMetadata> = {
       ctaLabel: "Learn More",
     },
   },
+
+  // New Upsell Popup Template Types
+  CLASSIC_UPSELL: {
+    type: "CLASSIC_UPSELL",
+    label: "Classic Upsell",
+    description: "Traditional centered modal with image, pricing, and clear CTAs",
+    category: "Revenue",
+    icon: "🎯",
+    contentSchema: ClassicUpsellContentSchema,
+    requiresProduct: true,
+    defaultFields: {
+      headline: "Special Offer Just For You",
+      subheadline: "Don't miss out on this exclusive deal",
+      buttonText: "Add to Cart",
+      secondaryCtaLabel: "No thanks",
+    },
+  },
+
+  MINIMAL_SLIDE_UP: {
+    type: "MINIMAL_SLIDE_UP",
+    label: "Minimal Slide-Up",
+    description: "Compact bottom sheet for mobile-first experiences",
+    category: "Revenue",
+    icon: "📱",
+    contentSchema: MinimalSlideUpContentSchema,
+    requiresProduct: true,
+    defaultFields: {
+      headline: "Complete Your Order",
+      subheadline: "Add this for just",
+      buttonText: "Quick Add",
+      secondaryCtaLabel: "Continue shopping",
+    },
+    defaultDesignFields: {
+      position: "bottom",
+      size: "small",
+      animation: "slide",
+    },
+  },
+
+  PREMIUM_FULLSCREEN: {
+    type: "PREMIUM_FULLSCREEN",
+    label: "Premium Fullscreen",
+    description: "Immersive full-page takeover for high-value products",
+    category: "Revenue",
+    icon: "💎",
+    contentSchema: PremiumFullscreenContentSchema,
+    requiresProduct: true,
+    defaultFields: {
+      headline: "Exclusive Offer",
+      subheadline: "Upgrade your experience with our premium selection",
+      buttonText: "Claim This Deal",
+      secondaryCtaLabel: "Maybe later",
+    },
+    defaultDesignFields: {
+      size: "fullscreen",
+    },
+  },
+
+  COUNTDOWN_URGENCY: {
+    type: "COUNTDOWN_URGENCY",
+    label: "Countdown Urgency",
+    description: "Time-limited offer with live countdown timer",
+    category: "Revenue",
+    icon: "⏱️",
+    contentSchema: CountdownUrgencyContentSchema,
+    requiresProduct: true,
+    requiresDiscount: true,
+    defaultFields: {
+      headline: "Flash Deal!",
+      subheadline: "This exclusive offer expires soon",
+      buttonText: "Claim This Deal Now",
+      secondaryCtaLabel: "No thanks",
+    },
+  },
 };
 
 /**
@@ -276,6 +356,11 @@ export function getDefaultButtonText(templateType: TemplateType): string {
     PRODUCT_UPSELL: "Add to Cart",
     SOCIAL_PROOF: "Learn More",
     ANNOUNCEMENT: "Learn More",
+    // New upsell popup template types
+    CLASSIC_UPSELL: "Add to Cart",
+    MINIMAL_SLIDE_UP: "Quick Add",
+    PREMIUM_FULLSCREEN: "Claim This Deal",
+    COUNTDOWN_URGENCY: "Claim This Deal Now",
   };
   return defaults[templateType] || "Select";
 }

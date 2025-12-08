@@ -129,15 +129,15 @@ export function FreeShippingContentSection({
             <TextField
               label="Discount Threshold"
               name="content.threshold"
-              value={content.threshold?.toString() || "75"}
+              value={content.threshold?.toString() ?? ""}
               error={errors?.threshold}
               required
               placeholder="75"
               helpText="Minimum cart value to unlock this discount"
               onChange={(value) => {
-                const threshold = parseFloat(value) || 75;
+                const threshold = value === "" ? undefined : parseFloat(value);
                 updateField("threshold", threshold);
-                if (onDiscountChange && discountConfig) {
+                if (onDiscountChange && discountConfig && threshold !== undefined) {
                   onDiscountChange({ ...discountConfig, minimumAmount: threshold });
                 }
               }}
@@ -156,10 +156,12 @@ export function FreeShippingContentSection({
           <TextField
             label="Near-Miss Threshold"
             name="content.nearMissThreshold"
-            value={content.nearMissThreshold?.toString() || "10"}
+            value={content.nearMissThreshold?.toString() ?? ""}
             placeholder="10"
             helpText="Amount remaining to trigger urgency state (e.g., 'Only $10 to go!')"
-            onChange={(value) => updateField("nearMissThreshold", parseFloat(value) || 10)}
+            onChange={(value) =>
+              updateField("nearMissThreshold", value === "" ? undefined : parseFloat(value))
+            }
           />
 
           {/* Preview: Cart total slider (for admin preview only) */}
@@ -225,7 +227,7 @@ export function FreeShippingContentSection({
             label="Unlocked Message"
             name="content.unlockedMessage"
             value={content.unlockedMessage || ""}
-            placeholder="You've unlocked free shipping! 🎉"
+            placeholder="You've unlocked free shipping! "
             helpText="Message when threshold is reached"
             onChange={(value) => updateField("unlockedMessage", value)}
           />
@@ -293,10 +295,12 @@ export function FreeShippingContentSection({
           <TextField
             label="Animation Duration (ms)"
             name="content.animationDuration"
-            value={content.animationDuration?.toString() || "500"}
+            value={content.animationDuration?.toString() ?? ""}
             placeholder="500"
             helpText="Progress bar animation duration in milliseconds (100-2000)"
-            onChange={(value) => updateField("animationDuration", parseInt(value) || 500)}
+            onChange={(value) =>
+              updateField("animationDuration", value === "" ? undefined : parseInt(value))
+            }
           />
 
           <Text as="h3" variant="headingMd">

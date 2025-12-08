@@ -53,9 +53,10 @@ export function ProductViewTrigger({ config, onChange }: ProductViewTriggerProps
           autoComplete="off"
           label="Time on page (seconds)"
           type="number"
-          value={config.product_view?.time_on_page?.toString() || "5"}
-          onChange={(value) => updateConfig({ time_on_page: parseInt(value) || 5 })}
+          value={config.product_view?.time_on_page?.toString() ?? ""}
+          onChange={(value) => updateConfig({ time_on_page: value === "" ? undefined : parseInt(value) })}
           helpText="Seconds customer must spend on product page before triggering"
+          placeholder="5"
         />
 
         <Checkbox

@@ -42,16 +42,21 @@ export const EmailInput: React.FC<EmailInputProps> = ({
   error,
   required = true,
   disabled = false,
-  accentColor = "#4F46E5",
-  textColor = "#1F2937",
-  backgroundColor = "#FFFFFF",
-  borderColor = "#D1D5DB",
+  accentColor,
+  textColor,
+  backgroundColor,
+  borderColor,
   placeholderColor,
   className,
 }) => {
   // Generate unique ID for scoped placeholder styling (use polyfill for Preact compatibility)
   const inputId = useId();
-  const computedPlaceholderColor = placeholderColor || `${textColor}99`;
+  // Use CSS variable with fallback to prop value for design token integration
+  const resolvedTextColor = textColor || "var(--rb-foreground, #1F2937)";
+  const resolvedBgColor = backgroundColor || "var(--rb-surface, #FFFFFF)";
+  const resolvedBorderColor = borderColor || "var(--rb-border, #D1D5DB)";
+  const resolvedAccentColor = accentColor || "var(--rb-primary, #4F46E5)";
+  const computedPlaceholderColor = placeholderColor || "var(--rb-muted, rgba(0,0,0,0.5))";
 
   return (
     <div>
@@ -62,12 +67,13 @@ export const EmailInput: React.FC<EmailInputProps> = ({
             opacity: 1;
           }
           #${cssEscape(inputId)}:focus {
-            border-color: ${accentColor};
-            box-shadow: 0 0 0 var(--rb-popup-input-focus-ring-width, 0px)
-                        var(--rb-popup-input-focus-ring-color, transparent);
+            border-color: ${resolvedAccentColor};
+            box-shadow: 0 0 0 var(--rb-popup-input-focus-ring-width, 2px)
+                        var(--rb-popup-input-focus-ring-color, rgba(0,0,0,0.1));
           }
           #${cssEscape(inputId)}:not(:focus):hover:not(:disabled) {
-            border-color: ${borderColor}80;
+            border-color: var(--rb-primary, ${resolvedBorderColor});
+            opacity: 0.8;
           }
         `}
       </style>
@@ -78,7 +84,8 @@ export const EmailInput: React.FC<EmailInputProps> = ({
             marginBottom: "0.5rem",
             fontSize: "0.875rem",
             fontWeight: "500",
-            color: textColor,
+            color: resolvedTextColor,
+            fontFamily: "var(--rb-font-family, inherit)",
           }}
         >
           {label}
@@ -99,14 +106,14 @@ export const EmailInput: React.FC<EmailInputProps> = ({
         style={{
           width: "100%",
           padding: "0.875rem 1rem",
-          fontFamily: "inherit",
+          fontFamily: "var(--rb-font-family, inherit)",
           fontSize: "1rem",
           border: error
             ? "2px solid #EF4444"
-            : `var(--rb-popup-input-border-width, 1px) solid ${borderColor}`,
-          borderRadius: "var(--rb-popup-input-radius, 0.75rem)",
-          backgroundColor,
-          color: textColor,
+            : `var(--rb-popup-input-border-width, 1px) solid ${resolvedBorderColor}`,
+          borderRadius: "var(--rb-radius, 0.75rem)",
+          backgroundColor: resolvedBgColor,
+          color: resolvedTextColor,
           outline: "none",
           transition: "border-color 0.2s, box-shadow 0.2s",
           boxShadow: "var(--rb-popup-input-shadow, none)",
@@ -153,16 +160,21 @@ export const NameInput: React.FC<NameInputProps> = ({
   error,
   required = false,
   disabled = false,
-  accentColor = "#4F46E5",
-  textColor = "#1F2937",
-  backgroundColor = "#FFFFFF",
-  borderColor = "#D1D5DB",
+  accentColor,
+  textColor,
+  backgroundColor,
+  borderColor,
   placeholderColor,
   className,
 }) => {
   // Generate unique ID for scoped placeholder styling (use polyfill for Preact compatibility)
   const inputId = useId();
-  const computedPlaceholderColor = placeholderColor || `${textColor}99`;
+  // Use CSS variable with fallback to prop value for design token integration
+  const resolvedTextColor = textColor || "var(--rb-foreground, #1F2937)";
+  const resolvedBgColor = backgroundColor || "var(--rb-surface, #FFFFFF)";
+  const resolvedBorderColor = borderColor || "var(--rb-border, #D1D5DB)";
+  const resolvedAccentColor = accentColor || "var(--rb-primary, #4F46E5)";
+  const computedPlaceholderColor = placeholderColor || "var(--rb-muted, rgba(0,0,0,0.5))";
 
   return (
     <div>
@@ -173,12 +185,13 @@ export const NameInput: React.FC<NameInputProps> = ({
             opacity: 1;
           }
           #${cssEscape(inputId)}:focus {
-            border-color: ${accentColor};
-            box-shadow: 0 0 0 var(--rb-popup-input-focus-ring-width, 0px)
-                        var(--rb-popup-input-focus-ring-color, transparent);
+            border-color: ${resolvedAccentColor};
+            box-shadow: 0 0 0 var(--rb-popup-input-focus-ring-width, 2px)
+                        var(--rb-popup-input-focus-ring-color, rgba(0,0,0,0.1));
           }
           #${cssEscape(inputId)}:not(:focus):hover:not(:disabled) {
-            border-color: ${borderColor}80;
+            border-color: var(--rb-primary, ${resolvedBorderColor});
+            opacity: 0.8;
           }
         `}
       </style>
@@ -189,7 +202,8 @@ export const NameInput: React.FC<NameInputProps> = ({
             marginBottom: "0.5rem",
             fontSize: "0.875rem",
             fontWeight: "500",
-            color: textColor,
+            color: resolvedTextColor,
+            fontFamily: "var(--rb-font-family, inherit)",
           }}
         >
           {label}
@@ -210,14 +224,14 @@ export const NameInput: React.FC<NameInputProps> = ({
         style={{
           width: "100%",
           padding: "0.875rem 1rem",
-          fontFamily: "inherit",
+          fontFamily: "var(--rb-font-family, inherit)",
           fontSize: "1rem",
           border: error
             ? "2px solid #EF4444"
-            : `var(--rb-popup-input-border-width, 1px) solid ${borderColor}`,
-          borderRadius: "var(--rb-popup-input-radius, 0.75rem)",
-          backgroundColor,
-          color: textColor,
+            : `var(--rb-popup-input-border-width, 1px) solid ${resolvedBorderColor}`,
+          borderRadius: "var(--rb-radius, 0.75rem)",
+          backgroundColor: resolvedBgColor,
+          color: resolvedTextColor,
           outline: "none",
           transition: "border-color 0.2s, box-shadow 0.2s",
           boxShadow: "var(--rb-popup-input-shadow, none)",
@@ -390,13 +404,15 @@ export const SubmitButton: React.FC<SubmitButtonProps> = ({
   disabled = false,
   loading = false,
   buttonColor,
-  accentColor = "#4F46E5",
-  textColor = "#FFFFFF",
+  accentColor,
+  textColor,
   fullWidth = true,
 }) => {
   const isDisabled = disabled || loading;
+  // Use CSS variable with fallback to prop value for design token integration
   // Prefer buttonColor over accentColor for button background
-  const bgColor = buttonColor || accentColor;
+  const resolvedBgColor = buttonColor || accentColor || "var(--rb-primary, #4F46E5)";
+  const resolvedTextColor = textColor || "var(--rb-primary-foreground, #FFFFFF)";
 
   return (
     <>
@@ -415,13 +431,13 @@ export const SubmitButton: React.FC<SubmitButtonProps> = ({
         style={{
           width: fullWidth ? "100%" : "auto",
           padding: "0.875rem 1.5rem",
-          fontFamily: "inherit",
+          fontFamily: "var(--rb-font-family, inherit)",
           fontSize: "1rem",
           fontWeight: "600",
-          color: textColor,
-          backgroundColor: isDisabled ? "#9CA3AF" : bgColor,
+          color: resolvedTextColor,
+          backgroundColor: isDisabled ? "#9CA3AF" : resolvedBgColor,
           border: "none",
-          borderRadius: "var(--rb-popup-button-radius, 0.5rem)",
+          borderRadius: "var(--rb-radius, 0.5rem)",
           boxShadow: "var(--rb-popup-button-shadow, none)",
           cursor: isDisabled ? "not-allowed" : "pointer",
           transition: "all 0.2s",

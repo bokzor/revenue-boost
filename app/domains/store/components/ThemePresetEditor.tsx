@@ -44,19 +44,7 @@ export interface ThemePresetEditorProps {
   isSaving?: boolean;
 }
 
-import { loadGoogleFont } from "~/shared/utils/google-fonts";
-
-// Font family options
-const FONT_OPTIONS = [
-  { label: "System Default", value: "inherit" },
-  { label: "Inter", value: "Inter, system-ui, sans-serif" },
-  { label: "Roboto", value: "Roboto, system-ui, sans-serif" },
-  { label: "Open Sans", value: "'Open Sans', system-ui, sans-serif" },
-  { label: "Lato", value: "Lato, system-ui, sans-serif" },
-  { label: "Montserrat", value: "Montserrat, system-ui, sans-serif" },
-  { label: "Playfair Display (Serif)", value: "'Playfair Display', Georgia, serif" },
-  { label: "Merriweather (Serif)", value: "Merriweather, Georgia, serif" },
-];
+import { loadGoogleFont, getFontSelectOptionsFlat } from "~/shared/utils/google-fonts";
 
 // Template options for preview
 const PREVIEW_TEMPLATE_OPTIONS = [
@@ -97,6 +85,12 @@ export function ThemePresetEditor({
 
   // Compute expanded design config for preview
   const expandedDesignConfig = useMemo(() => expandThemePreset(preset), [preset]);
+
+  // Get font options including any custom font from current preset
+  const fontOptions = useMemo(
+    () => getFontSelectOptionsFlat(preset.fontFamily),
+    [preset.fontFamily]
+  );
 
   // Generate wheel segment colors from the preset (recomputes when brandColor changes)
   const wheelColors = useMemo(
@@ -338,12 +332,39 @@ export function ThemePresetEditor({
 
               <Collapsible open={showAdvanced} id="advanced-options">
                 <BlockStack gap="400">
+                  {/* Additional Colors */}
+                  <Text as="h3" variant="headingSm">Additional Colors</Text>
+
                   <ColorField
                     label="🔲 Surface Color"
                     name="surfaceColor"
                     value={preset.surfaceColor || "#F3F4F6"}
                     onChange={(value) => updateField("surfaceColor", value)}
                     helpText="Input fields and card backgrounds"
+                  />
+
+                  <ColorField
+                    label="📝 Muted Text Color"
+                    name="mutedColor"
+                    value={preset.mutedColor || ""}
+                    onChange={(value) => updateField("mutedColor", value || undefined)}
+                    helpText="Secondary text and descriptions (auto-derived if empty)"
+                  />
+
+                  <ColorField
+                    label="🔘 Button Text Color"
+                    name="primaryForegroundColor"
+                    value={preset.primaryForegroundColor || ""}
+                    onChange={(value) => updateField("primaryForegroundColor", value || undefined)}
+                    helpText="Text color on buttons (auto-contrast if empty)"
+                  />
+
+                  <ColorField
+                    label="📏 Border Color"
+                    name="borderColor"
+                    value={preset.borderColor || ""}
+                    onChange={(value) => updateField("borderColor", value || undefined)}
+                    helpText="Input borders and dividers (auto-derived if empty)"
                   />
 
                   <ColorField
@@ -354,12 +375,50 @@ export function ThemePresetEditor({
                     helpText="Success states and confirmations"
                   />
 
+                  <Divider />
+
+                  {/* Typography */}
+                  <Text as="h3" variant="headingSm">Typography</Text>
+
                   <Select
-                    label="📝 Font Family"
-                    options={FONT_OPTIONS.map(({ label, value }) => ({ label, value }))}
+                    label="📝 Body Font"
+                    options={fontOptions}
                     value={preset.fontFamily || "inherit"}
                     onChange={(value) => updateField("fontFamily", value)}
-                    helpText="Typography for popup text"
+                    helpText="Font for body text"
+                  />
+
+                  <Select
+                    label="📰 Heading Font"
+                    options={fontOptions}
+                    value={preset.headingFontFamily || preset.fontFamily || "inherit"}
+                    onChange={(value) => updateField("headingFontFamily", value)}
+                    helpText="Font for headlines (defaults to body font)"
+                  />
+
+                  <Divider />
+
+                  {/* Border Radius */}
+                  <Text as="h3" variant="headingSm">Border Radius</Text>
+
+                  <TextField
+                    label="🔘 Button/Input Radius"
+                    type="number"
+                    value={String(preset.borderRadius ?? 8)}
+                    onChange={(value) => updateField("borderRadius", parseInt(value, 10) || 0)}
+                    suffix="px"
+                    helpText="Corner roundness for buttons and inputs (0-50)"
+                    autoComplete="off"
+                  />
+
+                  <TextField
+                    label="📦 Popup Radius"
+                    type="number"
+                    value={String(preset.popupBorderRadius ?? 16)}
+                    onChange={(value) => updateField("popupBorderRadius", parseInt(value, 10) || 0)}
+                    suffix="px"
+                    helpText="Corner roundness for the popup container (0-50)"
+                    autoComplete="off"
                   />
                 </BlockStack>
               </Collapsible>

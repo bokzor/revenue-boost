@@ -40,7 +40,10 @@ const BASE_DESIGN = {
 // TEMPLATE DEMO CONFIGS
 // =============================================================================
 
-export const DEMO_CONFIGS: Record<TemplateType, { content: Record<string, unknown>; design: Record<string, unknown> }> = {
+export const DEMO_CONFIGS: Record<
+  TemplateType,
+  { content: Record<string, unknown>; design: Record<string, unknown> }
+> = {
   NEWSLETTER: {
     content: {
       headline: "Get 15% Off Your First Order",
@@ -58,7 +61,12 @@ export const DEMO_CONFIGS: Record<TemplateType, { content: Record<string, unknow
       size: "medium",
       imagePosition: "left",
       imageUrl: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400&h=600&fit=crop",
-      discount: { enabled: true, percentage: 15, code: "WELCOME15", behavior: "SHOW_CODE_AND_AUTO_APPLY" },
+      discount: {
+        enabled: true,
+        percentage: 15,
+        code: "WELCOME15",
+        behavior: "SHOW_CODE_AND_AUTO_APPLY",
+      },
     },
   },
 
@@ -69,12 +77,48 @@ export const DEMO_CONFIGS: Record<TemplateType, { content: Record<string, unknow
       emailPlaceholder: "Enter your email to spin",
       spinButtonText: "Spin the Wheel",
       wheelSegments: [
-        { id: "1", label: "10% OFF", color: "#6366F1", probability: 0.25, discountConfig: { enabled: true, value: 10, valueType: "PERCENTAGE" } },
-        { id: "2", label: "15% OFF", color: "#10B981", probability: 0.20, discountConfig: { enabled: true, value: 15, valueType: "PERCENTAGE" } },
-        { id: "3", label: "FREE SHIP", color: "#F59E0B", probability: 0.20, discountConfig: { enabled: true, valueType: "FREE_SHIPPING" } },
-        { id: "4", label: "20% OFF", color: "#EC4899", probability: 0.15, discountConfig: { enabled: true, value: 20, valueType: "PERCENTAGE" } },
-        { id: "5", label: "Try Again", color: "#9CA3AF", probability: 0.10, discountConfig: { enabled: false } },
-        { id: "6", label: "25% OFF", color: "#8B5CF6", probability: 0.10, discountConfig: { enabled: true, value: 25, valueType: "PERCENTAGE" } },
+        {
+          id: "1",
+          label: "10% OFF",
+          color: "#6366F1",
+          probability: 0.25,
+          discountConfig: { enabled: true, value: 10, valueType: "PERCENTAGE" },
+        },
+        {
+          id: "2",
+          label: "15% OFF",
+          color: "#10B981",
+          probability: 0.2,
+          discountConfig: { enabled: true, value: 15, valueType: "PERCENTAGE" },
+        },
+        {
+          id: "3",
+          label: "FREE SHIP",
+          color: "#F59E0B",
+          probability: 0.2,
+          discountConfig: { enabled: true, valueType: "FREE_SHIPPING" },
+        },
+        {
+          id: "4",
+          label: "20% OFF",
+          color: "#EC4899",
+          probability: 0.15,
+          discountConfig: { enabled: true, value: 20, valueType: "PERCENTAGE" },
+        },
+        {
+          id: "5",
+          label: "Try Again",
+          color: "#9CA3AF",
+          probability: 0.1,
+          discountConfig: { enabled: false },
+        },
+        {
+          id: "6",
+          label: "25% OFF",
+          color: "#8B5CF6",
+          probability: 0.1,
+          discountConfig: { enabled: true, value: 25, valueType: "PERCENTAGE" },
+        },
       ],
     },
     design: {
@@ -257,7 +301,108 @@ export const DEMO_CONFIGS: Record<TemplateType, { content: Record<string, unknow
       backgroundColor: "#FEF3C7",
       textColor: "#92400E",
       buttonColor: "#D97706",
-      discount: { enabled: true, percentage: 10, code: "STAY10", behavior: "SHOW_CODE_AND_AUTO_APPLY" },
+      discount: {
+        enabled: true,
+        percentage: 10,
+        code: "STAY10",
+        behavior: "SHOW_CODE_AND_AUTO_APPLY",
+      },
+    },
+  },
+
+  // =============================================================================
+  // NEW UPSELL POPUP TEMPLATES
+  // =============================================================================
+
+  CLASSIC_UPSELL: {
+    content: {
+      headline: "Special Offer Just For You",
+      subheadline: "Don't miss out on this exclusive deal",
+      buttonText: "Add to Cart",
+      secondaryCtaLabel: "No thanks",
+      productSelectionMethod: "manual",
+      showPrices: true,
+      showCompareAtPrice: true,
+      showImages: true,
+      showRatings: true,
+      discountPercent: 15,
+      currency: "USD",
+    },
+    design: {
+      ...BASE_DESIGN,
+      position: "center",
+      size: "medium",
+    },
+  },
+
+  MINIMAL_SLIDE_UP: {
+    content: {
+      headline: "Complete Your Order",
+      subheadline: "Add this for just",
+      buttonText: "Quick Add",
+      secondaryCtaLabel: "Continue shopping",
+      productSelectionMethod: "ai",
+      showPrices: true,
+      showCompareAtPrice: true,
+      showImages: true,
+      currency: "USD",
+    },
+    design: {
+      ...BASE_DESIGN,
+      position: "bottom",
+      size: "small",
+      animation: "slide",
+    },
+  },
+
+  PREMIUM_FULLSCREEN: {
+    content: {
+      headline: "Exclusive Offer",
+      subheadline: "Upgrade your experience with our premium selection",
+      buttonText: "Claim This Deal",
+      secondaryCtaLabel: "Maybe later",
+      productSelectionMethod: "manual",
+      showPrices: true,
+      showCompareAtPrice: true,
+      showImages: true,
+      showRatings: true,
+      showReviewCount: true,
+      discountPercent: 20,
+      currency: "USD",
+      features: [
+        "Premium quality materials",
+        "Free express shipping",
+        "30-day money-back guarantee",
+      ],
+      urgencyMessage: "🔥 Limited time offer - Only 3 left in stock!",
+    },
+    design: {
+      ...BASE_DESIGN,
+      position: "center",
+      size: "fullscreen",
+    },
+  },
+
+  COUNTDOWN_URGENCY: {
+    content: {
+      headline: "Flash Deal!",
+      subheadline: "This exclusive offer expires soon",
+      buttonText: "Claim This Deal Now",
+      secondaryCtaLabel: "No thanks",
+      productSelectionMethod: "manual",
+      showPrices: true,
+      showCompareAtPrice: true,
+      showImages: true,
+      discountPercent: 25,
+      currency: "USD",
+      expiresInSeconds: 300,
+      socialProofMessage: "🔥 47 people are viewing this right now",
+    },
+    design: {
+      ...BASE_DESIGN,
+      position: "center",
+      size: "medium",
+      buttonColor: "#DC2626", // Red for urgency
     },
   },
 };
@@ -286,7 +431,10 @@ export function getAllDemoConfigs() {
 /**
  * Template metadata for marketing display
  */
-export const TEMPLATE_MARKETING_INFO: Record<TemplateType, { title: string; description: string; category: string }> = {
+export const TEMPLATE_MARKETING_INFO: Record<
+  TemplateType,
+  { title: string; description: string; category: string }
+> = {
   NEWSLETTER: {
     title: "Newsletter Signup",
     description: "Grow your email list with beautiful opt-in popups",
@@ -342,5 +490,25 @@ export const TEMPLATE_MARKETING_INFO: Record<TemplateType, { title: string; desc
     description: "Capture leaving visitors with last-chance offers",
     category: "Lead Generation",
   },
+  // New upsell popup templates
+  CLASSIC_UPSELL: {
+    title: "Classic Upsell",
+    description: "Traditional centered modal for single product offers",
+    category: "Conversion",
+  },
+  MINIMAL_SLIDE_UP: {
+    title: "Minimal Slide-Up",
+    description: "Non-intrusive bottom sheet for mobile shoppers",
+    category: "Conversion",
+  },
+  PREMIUM_FULLSCREEN: {
+    title: "Premium Fullscreen",
+    description: "Immersive full-page offer for luxury products",
+    category: "Conversion",
+  },
+  COUNTDOWN_URGENCY: {
+    title: "Flash Deal Countdown",
+    description: "Time-limited offers with live countdown timer",
+    category: "Sales & Urgency",
+  },
 };
-

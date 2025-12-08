@@ -196,6 +196,7 @@ export const NewsletterTemplateSchema = BaseTemplateSchema.extend({
   fields: z.array(TemplateFieldSchema).default([]),
   targetRules: TargetRulesConfigSchema.default({}),
   designConfig: DesignConfigSchema.default({
+    themeMode: "default",
     theme: "gradient",
     position: "center",
     size: "medium",
@@ -243,6 +244,7 @@ export const SpinToWinTemplateSchema = BaseTemplateSchema.extend({
   fields: z.array(TemplateFieldSchema).default([]),
   targetRules: TargetRulesConfigSchema.default({}),
   designConfig: DesignConfigSchema.default({
+    themeMode: "default",
     theme: "gradient",
     position: "center",
     size: "medium",
@@ -269,6 +271,7 @@ export const FreeShippingTemplateSchema = BaseTemplateSchema.extend({
   fields: z.array(TemplateFieldSchema).default([]),
   targetRules: TargetRulesConfigSchema.default({}),
   designConfig: DesignConfigSchema.default({
+    themeMode: "default",
     theme: "minimal",
     position: "top",
     size: "small",

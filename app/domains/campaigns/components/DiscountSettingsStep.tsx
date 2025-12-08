@@ -244,8 +244,8 @@ export function DiscountSettingsStep({
                             label={getValueLabel()}
                             type="number"
                             suffix={getValueSuffix()}
-                            value={config.value?.toString() || ""}
-                            onChange={(value) => updateConfig({ value: parseFloat(value) || 0 })}
+                            value={config.value?.toString() ?? ""}
+                            onChange={(value) => updateConfig({ value: value === "" ? undefined : parseFloat(value) })}
                             placeholder={getValuePlaceholder()}
                             autoComplete="off"
                             min={0}
@@ -285,10 +285,10 @@ export function DiscountSettingsStep({
                           label="Minimum Order Amount (Optional)"
                           type="number"
                           prefix="$"
-                          value={config.minimumAmount?.toString() || ""}
+                          value={config.minimumAmount?.toString() ?? ""}
                           onChange={(value) =>
                             updateConfig({
-                              minimumAmount: parseFloat(value) || undefined,
+                              minimumAmount: value === "" ? undefined : parseFloat(value),
                             })
                           }
                           placeholder="0.00"
@@ -394,8 +394,8 @@ export function DiscountSettingsStep({
                     <TextField
                       label="Expires After (Days)"
                       type="number"
-                      value={config.expiryDays?.toString() || "30"}
-                      onChange={(value) => updateConfig({ expiryDays: parseInt(value) || 30 })}
+                      value={config.expiryDays?.toString() ?? ""}
+                      onChange={(value) => updateConfig({ expiryDays: value === "" ? undefined : parseInt(value) })}
                       placeholder="30"
                       autoComplete="off"
                       min={1}
@@ -408,9 +408,9 @@ export function DiscountSettingsStep({
                       <TextField
                         label="Usage Limit (Optional)"
                         type="number"
-                        value={config.usageLimit?.toString() || ""}
+                        value={config.usageLimit?.toString() ?? ""}
                         onChange={(value) =>
-                          updateConfig({ usageLimit: parseInt(value) || undefined })
+                          updateConfig({ usageLimit: value === "" ? undefined : parseInt(value) })
                         }
                         placeholder="1000"
                         autoComplete="off"

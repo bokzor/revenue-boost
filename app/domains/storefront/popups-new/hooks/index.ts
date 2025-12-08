@@ -21,6 +21,10 @@ export type { ColorSchemeType, ColorSchemeColors, CustomColors } from "./useColo
 export { useDesignVariables } from "./useDesignVariables";
 export type { CSSVariables } from "./useDesignVariables";
 
+// New design tokens system (replaces useDesignVariables for simplified theming)
+export { useDesignTokens } from "./useDesignTokens";
+export type { TokenStyles, UseDesignTokensResult } from "./useDesignTokens";
+
 export { useCTAHandler } from "./useCTAHandler";
 export type {
   CTAAction,

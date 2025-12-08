@@ -80,27 +80,31 @@ export const CTAButton: React.FC<CTAButtonProps> = ({
     }
   }, [url, openInNewTab, onClick, disabled]);
 
+  // Use CSS variables with fallback to prop values for design token integration
   const baseStyles: React.CSSProperties = {
     padding: "0.75rem 1.5rem",
-    borderRadius: "0.5rem",
+    borderRadius: "var(--rb-radius, 0.5rem)",
     fontSize: "0.9375rem",
     fontWeight: 600,
+    fontFamily: "var(--rb-font-family, inherit)",
     cursor: disabled ? "not-allowed" : "pointer",
     border: "none",
     transition: "all 0.2s ease",
     opacity: disabled ? 0.5 : 1,
   };
 
+  // For primary variant: use --rb-primary and --rb-primary-foreground
+  // For secondary variant: use --rb-primary for border/text, transparent bg
   const variantStyles: React.CSSProperties =
     variant === "primary"
       ? {
-          backgroundColor: accentColor,
-          color: textColor,
+          backgroundColor: accentColor || "var(--rb-primary, #3b82f6)",
+          color: textColor || "var(--rb-primary-foreground, #ffffff)",
         }
       : {
           backgroundColor: "transparent",
-          color: accentColor,
-          border: `2px solid ${accentColor}`,
+          color: accentColor || "var(--rb-primary, #3b82f6)",
+          border: `2px solid ${accentColor || "var(--rb-primary, #3b82f6)"}`,
         };
 
   return (

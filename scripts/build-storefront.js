@@ -60,6 +60,12 @@ const popupBundles = [
   "countdown-timer", // COUNTDOWN_TIMER
   "scratch-card", // SCRATCH_CARD
   "announcement", // ANNOUNCEMENT
+  // New upsell popup variants
+  "classic-upsell", // CLASSIC_UPSELL
+  "minimal-slide-up", // MINIMAL_SLIDE_UP
+  "premium-fullscreen", // PREMIUM_FULLSCREEN
+  "bundle-deal", // BUNDLE_DEAL
+  "countdown-urgency", // COUNTDOWN_URGENCY
 ];
 
 /**

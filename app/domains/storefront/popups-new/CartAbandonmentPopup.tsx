@@ -390,6 +390,7 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
       ariaDescribedBy={config.ariaDescribedBy}
       customCSS={config.customCSS}
       globalCustomCSS={config.globalCustomCSS}
+      designTokensCSS={config.designTokensCSS}
     >
       <style>{`
         /* ============================================
@@ -428,20 +429,9 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
           padding-bottom: calc(var(--cart-ab-padding-y) + env(safe-area-inset-bottom, 0px));
           box-shadow: 0 -4px 25px rgba(0, 0, 0, 0.15);
 
-          /* Position at bottom on mobile */
-          position: fixed;
-          bottom: 0;
-          left: 0;
-          right: 0;
-          max-height: 90vh;
-          max-height: 90dvh;
-          overflow-y: auto;
-          overscroll-behavior: contain;
-          -webkit-overflow-scrolling: touch;
-
-          /* Smooth entrance animation */
-          animation: cart-ab-slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-          z-index: 10000;
+          /* Let PopupPortal handle positioning - don't override with fixed positioning */
+          /* The cart items list (.cart-ab-items) handles its own scrolling */
+          overflow: visible;
 
           /* Container query context */
           container-type: inline-size;

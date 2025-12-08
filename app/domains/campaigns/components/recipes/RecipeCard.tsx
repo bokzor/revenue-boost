@@ -11,12 +11,13 @@ import React, { useRef, useState, useCallback, useEffect } from "react";
 import { Text, InlineStack, Tooltip, Icon, Portal, Button } from "@shopify/polaris";
 import { ViewIcon } from "@shopify/polaris-icons";
 import type { StyledRecipe } from "../../recipes/styled-recipe-types";
-import { RECIPE_TAG_LABELS } from "../../recipes/styled-recipe-types";
+import { RECIPE_TAG_LABELS, getThemeModeForRecipeType, getPresetIdForRecipe } from "../../recipes/styled-recipe-types";
+import type { DesignTokens } from "../../types/design-tokens";
 import { MiniPopupPreview } from "./MiniPopupPreview";
 import { ShadowDomWrapper } from "./ShadowDomWrapper";
 import { TemplatePreview } from "~/domains/popups/components/preview/TemplatePreview";
 import { DeviceFrame } from "~/domains/popups/components/preview/DeviceFrame";
-import { NEWSLETTER_THEMES, type NewsletterThemeKey } from "~/config/color-presets";
+import type { NewsletterThemeKey } from "~/config/color-presets";
 import { getBackgroundById, getBackgroundUrl } from "~/config/background-presets";
 import { usePreviewContext } from "./PreviewContext";
 import { LazyLoad } from "~/components/LazyLoad";
@@ -43,6 +44,9 @@ export interface RecipeCardProps {
 
   /** Whether to show large preview on hover (default: true). When false, preview appears on click */
   hoverPreviewEnabled?: boolean;
+
+  /** Default theme tokens from store's default preset (for preview when themeMode is "default") */
+  defaultThemeTokens?: DesignTokens;
 }
 
 // =============================================================================
@@ -146,6 +150,18 @@ const tagStyle: React.CSSProperties = {
   color: "var(--p-color-text-secondary)",
 };
 
+const storeThemeBadgeStyle: React.CSSProperties = {
+  fontSize: "10px",
+  padding: "2px 6px",
+  borderRadius: "4px",
+  backgroundColor: "var(--p-color-bg-fill-success)",
+  color: "#FFFFFF",
+  fontWeight: 500,
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "4px",
+};
+
 const eyeButtonStyle: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
@@ -238,6 +254,7 @@ interface LargePreviewContentProps {
   onMouseEnter: () => void;
   onMouseLeave: () => void;
   onClick: () => void;
+  defaultThemeTokens?: DesignTokens;
 }
 
 // Browser frame adds ~42px for chrome (40px + border)
@@ -252,6 +269,7 @@ function LargePreviewContent({
   onMouseEnter,
   onMouseLeave,
   onClick,
+  defaultThemeTokens,
 }: LargePreviewContentProps) {
   // We render a simulated browser at a larger size then scale it down
   // This gives realistic proportions while fitting in the container
@@ -339,6 +357,7 @@ function LargePreviewContent({
                   templateType={recipe.templateType}
                   config={contentConfig}
                   designConfig={designConfig}
+                  defaultThemeTokens={defaultThemeTokens}
                 />
               </DeviceFrame>
             </div>
@@ -370,7 +389,10 @@ function LargePreviewContent({
 function useRecipeDesignConfig(recipe: StyledRecipe) {
   return React.useMemo(() => {
     const theme = (recipe.theme as NewsletterThemeKey) || "modern";
-    const themeColors = NEWSLETTER_THEMES[theme] || NEWSLETTER_THEMES.modern;
+
+    // Determine theme mode based on recipe type
+    const themeMode = getThemeModeForRecipeType(recipe.recipeType);
+    const presetId = themeMode === "preset" ? getPresetIdForRecipe(recipe.id) : undefined;
 
     let imageUrl: string | undefined;
     let backgroundImageMode: "none" | "preset" | "file" = "none";
@@ -407,19 +429,18 @@ function useRecipeDesignConfig(recipe: StyledRecipe) {
       layout: recipe.layout,
       position: recipe.defaults.designConfig?.position || "center",
       size: recipe.defaults.designConfig?.size || "medium",
-      backgroundColor: themeColors.background,
-      textColor: themeColors.text,
-      primaryColor: themeColors.primary,
-      accentColor: themeColors.primary,
-      buttonColor: themeColors.ctaBg || themeColors.primary,
-      buttonTextColor: themeColors.ctaText || "#FFFFFF",
       backgroundImageMode,
       backgroundImagePresetKey,
       imageUrl,
       imagePosition,
       backgroundOverlayOpacity: 0.6,
       previewMode: true,
+      // For "preset" mode (inspiration/seasonal), use recipe's own colors from designConfig
+      // For "default" mode (use_case), don't set colors - they come from defaultThemeTokens
       ...recipe.defaults.designConfig,
+      // Theme mode for the design token system
+      themeMode,
+      presetId,
     };
   }, [recipe]);
 }
@@ -435,6 +456,7 @@ export function RecipeCard({
   showPreview = true,
   size = "medium",
   hoverPreviewEnabled = true,
+  defaultThemeTokens,
 }: RecipeCardProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [localShowPreview, setLocalShowPreview] = useState(false);
@@ -471,7 +493,11 @@ export function RecipeCard({
   }, [previewContext]);
 
   const designConfig = useRecipeDesignConfig(recipe);
-  const contentConfig = recipe.defaults.contentConfig || {};
+  const contentConfig = {
+    ...(recipe.defaults.contentConfig || {}),
+    // Include discount config for tiered discounts, BOGO, etc.
+    discountConfig: recipe.defaults.discountConfig,
+  };
 
   // Calculate preview position based on card position
   const calculatePreviewPosition = useCallback(() => {
@@ -637,7 +663,7 @@ export function RecipeCard({
         {showPreview && (
           <div style={previewContainerStyle}>
             <LazyLoad height="100%" width="100%" rootMargin="150px" loader={<PreviewSkeleton />}>
-              <MiniPopupPreview recipe={recipe} />
+              <MiniPopupPreview recipe={recipe} defaultThemeTokens={defaultThemeTokens} />
             </LazyLoad>
           </div>
         )}
@@ -705,6 +731,15 @@ export function RecipeCard({
           {/* Description */}
           <p style={descriptionStyle}>{recipe.description}</p>
 
+          {/* Store Theme Badge - shown for use_case recipes */}
+          {recipe.recipeType === "use_case" && (
+            <div style={{ marginTop: "4px" }}>
+              <span style={storeThemeBadgeStyle}>
+                🎨 Uses store theme
+              </span>
+            </div>
+          )}
+
           {/* Tags (max 3) */}
           {recipe.tags && recipe.tags.length > 0 && (
             <div style={tagsContainerStyle}>
@@ -741,6 +776,7 @@ export function RecipeCard({
             onMouseEnter={handlePreviewMouseEnter}
             onMouseLeave={handlePreviewMouseLeave}
             onClick={handlePreviewClick}
+            defaultThemeTokens={defaultThemeTokens}
           />
         </Portal>
       )}

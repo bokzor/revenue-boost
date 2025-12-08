@@ -29,6 +29,8 @@ import {
 } from "~/domains/campaigns/components/unified";
 import prisma from "~/db.server";
 import { StoreSettingsSchema } from "~/domains/store/types/settings";
+import { presetToDesignTokens, type ThemePresetInput } from "~/domains/store/types/theme-preset";
+import type { DesignTokens } from "~/domains/campaigns/types/design-tokens";
 
 // =============================================================================
 // LOADER
@@ -48,6 +50,16 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
     const parsedSettings = StoreSettingsSchema.partial().safeParse(store?.settings || {});
 
+    // Get default theme tokens from store's default preset
+    let defaultThemeTokens: DesignTokens | undefined;
+    if (parsedSettings.success) {
+      const presets = parsedSettings.data.customThemePresets as ThemePresetInput[] | undefined;
+      const defaultPreset = presets?.find((p) => p.isDefault);
+      if (defaultPreset) {
+        defaultThemeTokens = presetToDesignTokens(defaultPreset);
+      }
+    }
+
     return data({
       storeId,
       shopDomain: session.shop,
@@ -55,6 +67,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
       advancedTargetingEnabled: planContext.definition.features.advancedTargeting,
       experimentsEnabled: planContext.definition.features.experiments,
       globalCustomCSS: parsedSettings.success ? parsedSettings.data.globalCustomCSS : undefined,
+      defaultThemeTokens,
       success: true,
     });
   } catch (error) {
@@ -66,6 +79,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
       advancedTargetingEnabled: false,
       experimentsEnabled: false,
       globalCustomCSS: undefined,
+      defaultThemeTokens: undefined,
       success: false,
     });
   }
@@ -191,6 +205,7 @@ export default function UnifiedCampaignCreate() {
           shopDomain={loaderData.shopDomain}
           globalCustomCSS={loaderData.globalCustomCSS}
           advancedTargetingEnabled={loaderData.advancedTargetingEnabled}
+          defaultThemeTokens={loaderData.defaultThemeTokens}
         />
         {toastMessage && (
           <Toast content={toastMessage} onDismiss={() => setToastMessage(null)} />

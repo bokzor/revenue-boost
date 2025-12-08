@@ -268,11 +268,11 @@ export function ProductUpsellContentSection({
                 <TextField
                   label="Maximum Products to Display"
                   name="content.maxProducts"
-                  value={content.maxProducts?.toString() || "3"}
+                  value={content.maxProducts?.toString() ?? ""}
                   error={errors?.maxProducts}
                   placeholder="3"
                   helpText="Maximum number of products to show (1-12)"
-                  onChange={(value) => updateField("maxProducts", parseInt(value) || 3)}
+                  onChange={(value) => updateField("maxProducts", (value === "" ? undefined : parseInt(value)) as number)}
                 />
               </BlockStack>
             </Collapsible>
@@ -339,10 +339,10 @@ export function ProductUpsellContentSection({
                     <TextField
                       label="Number of Columns"
                       name="content.columns"
-                      value={content.columns?.toString() || "2"}
+                      value={content.columns?.toString() ?? ""}
                       placeholder="2"
                       helpText="Columns in grid layout (1-4)"
-                      onChange={(value) => updateField("columns", parseInt(value) || 2)}
+                      onChange={(value) => updateField("columns", (value === "" ? undefined : parseInt(value)) as number)}
                     />
                   )}
                 </FormGrid>
@@ -442,10 +442,10 @@ export function ProductUpsellContentSection({
                   <TextField
                     label="Bundle Discount (%)"
                     name="content.bundleDiscount"
-                    value={content.bundleDiscount?.toString() || "15"}
+                    value={content.bundleDiscount?.toString() ?? ""}
                     placeholder="15"
                     helpText="Discount applied to selected upsell products"
-                    onChange={(value) => updateField("bundleDiscount", parseInt(value) || 15)}
+                    onChange={(value) => updateField("bundleDiscount", (value === "" ? undefined : parseInt(value)) as number)}
                   />
 
                   <TextField

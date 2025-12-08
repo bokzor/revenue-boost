@@ -21,6 +21,13 @@ export interface ApiCampaignData {
   priority: number;
   contentConfig: Record<string, unknown>;
   designConfig: Record<string, unknown>;
+  /**
+   * Pre-resolved CSS custom properties for design tokens.
+   * Format: "--rb-background: #fff; --rb-primary: #000; ..."
+   * This enables the storefront to apply theme-aware styles without
+   * needing to resolve tokens client-side.
+   */
+  designTokensCSS?: string;
   targetRules: Record<string, unknown>;
   discountConfig: Record<string, unknown>;
   experimentId?: string | null;

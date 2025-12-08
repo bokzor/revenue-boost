@@ -344,8 +344,8 @@ export function GenericDiscountComponent({
                     label={getValueLabel()}
                     type="number"
                     suffix={getValueSuffix()}
-                    value={config.value?.toString() || ""}
-                    onChange={(value) => updateConfig({ value: parseFloat(value) || 0 })}
+                    value={config.value?.toString() ?? ""}
+                    onChange={(value) => updateConfig({ value: value === "" ? undefined : parseFloat(value) })}
                     placeholder={getRecommendedValue().toString()}
                     autoComplete="off"
                     min={0}
@@ -525,10 +525,10 @@ export function GenericDiscountComponent({
                             <TextField
                               label="Discount Value"
                               type="number"
-                              value={tier.discount.value.toString()}
+                              value={tier.discount.value.toString() ?? ""}
                               onChange={(value) =>
                                 updateTier(index, {
-                                  discount: { ...tier.discount, value: parseFloat(value) || 0 },
+                                  discount: { ...tier.discount, value: value === "" ? 0 : parseFloat(value) },
                                 })
                               }
                               suffix={tier.discount.kind === "percentage" ? "%" : "$"}
@@ -596,8 +596,8 @@ export function GenericDiscountComponent({
                       <TextField
                         label="Quantity"
                         type="number"
-                        value={config.bogo.buy.quantity.toString()}
-                        onChange={(value) => updateBogoField("buy.quantity", parseInt(value) || 1)}
+                        value={config.bogo.buy.quantity.toString() ?? ""}
+                        onChange={(value) => updateBogoField("buy.quantity", value === "" ? 1 : parseInt(value))}
                         min={1}
                         autoComplete="off"
                       />
@@ -681,8 +681,8 @@ export function GenericDiscountComponent({
                       <TextField
                         label="Quantity"
                         type="number"
-                        value={config.bogo.get.quantity.toString()}
-                        onChange={(value) => updateBogoField("get.quantity", parseInt(value) || 1)}
+                        value={config.bogo.get.quantity.toString() ?? ""}
+                        onChange={(value) => updateBogoField("get.quantity", value === "" ? 1 : parseInt(value))}
                         min={1}
                         autoComplete="off"
                       />
@@ -693,9 +693,22 @@ export function GenericDiscountComponent({
                         mode="product"
                         selectionType="multiple"
                         selectedIds={config.bogo.get.ids || []}
-                        onSelect={(items: ProductPickerSelection[]) =>
-                          updateBogoField("get.ids", items.map((item) => item.id))
-                        }
+                        onSelect={(items: ProductPickerSelection[]) => {
+                          // Store product IDs
+                          updateBogoField("get.ids", items.map((item) => item.id));
+                          // Store first variant ID for each product (for add-to-cart)
+                          const variantIds = items.map((item) =>
+                            item.variants?.[0]?.id || ""
+                          ).filter(Boolean);
+                          if (variantIds.length > 0) {
+                            updateBogoField("get.variantIds", variantIds);
+                          }
+                          // Store product handles (for navigation)
+                          const handles = items.map((item) => item.handle || "").filter(Boolean);
+                          if (handles.length > 0) {
+                            updateBogoField("get.productHandles", handles);
+                          }
+                        }}
                         buttonLabel="Select products to get"
                       />
                     )}
@@ -737,9 +750,9 @@ export function GenericDiscountComponent({
                         <TextField
                           label="Discount Value"
                           type="number"
-                          value={config.bogo.get.discount.value.toString()}
+                          value={config.bogo.get.discount.value.toString() ?? ""}
                           onChange={(value) =>
-                            updateBogoField("get.discount.value", parseFloat(value) || 0)
+                            updateBogoField("get.discount.value", value === "" ? 0 : parseFloat(value))
                           }
                           suffix={config.bogo.get.discount.kind === "percentage" ? "%" : "$"}
                           min={0}
@@ -789,6 +802,13 @@ export function GenericDiscountComponent({
                     const first = items[0];
                     if (!first) return;
                     updateFreeGiftField("productId", first.id);
+                    // Store product title for storefront display
+                    updateFreeGiftField("productTitle", first.title);
+                    // Store first product image URL for storefront display
+                    const firstImageUrl = first.images?.[0]?.originalSrc;
+                    if (firstImageUrl) {
+                      updateFreeGiftField("productImageUrl", firstImageUrl);
+                    }
                     // If variants are present, default to the first one
                     const variants = (first.variants || []).map((v) => ({
                       id: v.id,
@@ -837,8 +857,8 @@ export function GenericDiscountComponent({
                   <TextField
                     label="Quantity"
                     type="number"
-                    value={config.freeGift.quantity.toString()}
-                    onChange={(value) => updateFreeGiftField("quantity", parseInt(value) || 1)}
+                    value={config.freeGift.quantity.toString() ?? ""}
+                    onChange={(value) => updateFreeGiftField("quantity", value === "" ? 1 : parseInt(value))}
                     min={1}
                     autoComplete="off"
                   />

@@ -160,7 +160,8 @@ export function LeadCaptureLayout({
           grid-area: form;
           position: relative;
           z-index: 1;
-          overflow-y: auto;
+          /* Let PopupPortal handle overflow - don't force scroll on form area */
+          overflow: visible;
           display: flex;
           flex-direction: column;
           justify-content: center;

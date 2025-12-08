@@ -11,7 +11,7 @@
  * recipes are quick-start templates that apply a theme + copy to Flash Sale.
  */
 
-import type { StyledRecipe, RecipeType } from "./styled-recipe-types";
+import type { FlashSaleRecipe, RecipeType } from "./styled-recipe-types";
 
 // =============================================================================
 // HELPER: Common editable fields for flash sale recipes
@@ -69,7 +69,7 @@ const FLASH_SALE_EDITABLE_FIELDS = [HEADLINE_FIELD, SUBHEADLINE_FIELD, BUTTON_TE
  * Use case: Create urgency with countdown timer for quick sales boost
  * Best for: Clearing inventory, driving immediate action, weekend sales
  */
-const flashSale: StyledRecipe = {
+const flashSale: FlashSaleRecipe = {
   id: "flash-sale",
   name: "Flash Sale",
   tagline: "Limited time offer - don't miss out!",
@@ -81,7 +81,7 @@ const flashSale: StyledRecipe = {
   templateType: "FLASH_SALE",
   recipeType: "use_case",
   component: "FlashSaleCentered",
-  theme: "bold",
+  theme: "gradient",
   layout: "centered",
   featured: true,
   inputs: [{ ...DISCOUNT_PERCENTAGE_INPUT, defaultValue: 30 }, DURATION_HOURS_INPUT],
@@ -125,7 +125,7 @@ const flashSale: StyledRecipe = {
  * Use case: Move inventory, increase units per order
  * Best for: Overstocked items, product launches, weekend promotions
  */
-const bogo: StyledRecipe = {
+const bogo: FlashSaleRecipe = {
   id: "bogo",
   name: "Buy One Get One",
   tagline: "Buy one, get one free!",
@@ -196,7 +196,7 @@ const bogo: StyledRecipe = {
  * Use case: Increase average order value (AOV)
  * Best for: Encouraging larger orders, clearing inventory at scale
  */
-const tieredDiscount: StyledRecipe = {
+const tieredDiscount: FlashSaleRecipe = {
   id: "tiered-discount",
   name: "Spend More, Save More",
   tagline: "The more you spend, the more you save",
@@ -208,7 +208,7 @@ const tieredDiscount: StyledRecipe = {
   templateType: "FLASH_SALE",
   recipeType: "use_case",
   component: "FlashSaleCentered",
-  theme: "elegant",
+  theme: "luxury",
   layout: "centered",
   featured: true,
   requiredConfig: ["discount"], // Show tiered discount config in recipe modal
@@ -217,7 +217,7 @@ const tieredDiscount: StyledRecipe = {
   defaults: {
     contentConfig: {
       headline: "Spend More, Save More",
-      subheadline: "$50 → 10% OFF  |  $100 → 20% OFF  |  $150 → 30% OFF",
+      subheadline: "Unlock bigger savings with every dollar you spend",
       showCountdown: false,
       // Unified CTA configuration
       cta: {
@@ -265,7 +265,7 @@ const tieredDiscount: StyledRecipe = {
  * Use case: Convert first-time visitors into customers
  * Best for: New visitor welcome, email capture
  */
-const firstPurchase: StyledRecipe = {
+const firstPurchase: FlashSaleRecipe = {
   id: "first-purchase",
   name: "First Purchase Discount",
   tagline: "Welcome! Here's your exclusive offer",
@@ -312,7 +312,7 @@ const firstPurchase: StyledRecipe = {
  * Use case: Create FOMO with scarcity messaging
  * Best for: Popular items, limited editions, closing sales
  */
-const lastChance: StyledRecipe = {
+const lastChance: FlashSaleRecipe = {
   id: "last-chance",
   name: "Last Chance Alert",
   tagline: "Almost sold out!",
@@ -324,7 +324,7 @@ const lastChance: StyledRecipe = {
   templateType: "FLASH_SALE",
   recipeType: "use_case",
   component: "FlashSaleCentered",
-  theme: "bold",
+  theme: "gradient",
   layout: "centered",
   inputs: [
     {
@@ -368,7 +368,7 @@ const lastChance: StyledRecipe = {
  * Use case: Move old inventory at deep discounts
  * Best for: Season transitions, discontinued items, warehouse clearing
  */
-const clearance: StyledRecipe = {
+const clearance: FlashSaleRecipe = {
   id: "clearance",
   name: "Clearance Sale",
   tagline: "Everything must go!",
@@ -380,7 +380,7 @@ const clearance: StyledRecipe = {
   templateType: "FLASH_SALE",
   recipeType: "use_case",
   component: "FlashSaleCentered",
-  theme: "bold",
+  theme: "gradient",
   layout: "centered",
   inputs: [{ ...DISCOUNT_PERCENTAGE_INPUT, defaultValue: 50 }],
   editableFields: FLASH_SALE_EDITABLE_FIELDS,
@@ -415,7 +415,7 @@ const clearance: StyledRecipe = {
  * Use case: Promote new products with early access discount
  * Best for: Product launches, new collections, exclusive previews
  */
-const newArrival: StyledRecipe = {
+const newArrival: FlashSaleRecipe = {
   id: "new-arrival",
   name: "New Arrival Promo",
   tagline: "Be first to shop the new collection",
@@ -426,7 +426,7 @@ const newArrival: StyledRecipe = {
   templateType: "FLASH_SALE",
   recipeType: "use_case",
   component: "FlashSaleCentered",
-  theme: "elegant",
+  theme: "luxury",
   layout: "centered",
   inputs: [{ ...DISCOUNT_PERCENTAGE_INPUT, defaultValue: 20 }],
   editableFields: FLASH_SALE_EDITABLE_FIELDS,
@@ -460,7 +460,7 @@ const newArrival: StyledRecipe = {
  * Use case: Gamify the shopping experience, email capture
  * Best for: Engagement, building email list, fun shopping experience
  */
-const mysteryDiscount: StyledRecipe = {
+const mysteryDiscount: FlashSaleRecipe = {
   id: "mystery-discount",
   name: "Mystery Discount",
   tagline: "Reveal your secret discount!",
@@ -510,7 +510,7 @@ const mysteryDiscount: StyledRecipe = {
 // Merchants can also apply any theme to the use-case recipes above.
 // =============================================================================
 
-const blackFridaySale: StyledRecipe = {
+const blackFridaySale: FlashSaleRecipe = {
   id: "black-friday-sale",
   name: "Black Friday Flash Sale",
   tagline: "The biggest sale of the year",
@@ -553,7 +553,7 @@ const blackFridaySale: StyledRecipe = {
   },
 };
 
-const cyberMondaySale: StyledRecipe = {
+const cyberMondaySale: FlashSaleRecipe = {
   id: "cyber-monday-sale",
   name: "Cyber Monday Flash Sale",
   tagline: "Online exclusive savings",
@@ -591,7 +591,7 @@ const cyberMondaySale: StyledRecipe = {
   },
 };
 
-const summerSale: StyledRecipe = {
+const summerSale: FlashSaleRecipe = {
   id: "summer-sale",
   name: "Summer Flash Sale",
   tagline: "Hot summer deals are here!",
@@ -617,6 +617,7 @@ const summerSale: StyledRecipe = {
     },
     designConfig: {
       position: "center",
+      backgroundOverlayOpacity: 0,
       size: "large",
       leadCaptureLayout: { desktop: "overlay", mobile: "overlay" },
     },
@@ -629,7 +630,7 @@ const summerSale: StyledRecipe = {
   },
 };
 
-const holidaySale: StyledRecipe = {
+const holidaySale: FlashSaleRecipe = {
   id: "holiday-sale",
   name: "Holiday Flash Sale",
   tagline: "Festive savings for everyone",
@@ -642,7 +643,7 @@ const holidaySale: StyledRecipe = {
   component: "FlashSaleCentered",
   theme: "holiday",
   layout: "centered",
-  backgroundPresetId: "fs-bg-christmas",
+  imageUrl: "/recipes/flash-sale/christman-center-negative.jpg",
   seasonal: true,
   inputs: [{ ...DISCOUNT_PERCENTAGE_INPUT, defaultValue: 25 }, DURATION_HOURS_INPUT],
   editableFields: FLASH_SALE_EDITABLE_FIELDS,
@@ -656,6 +657,7 @@ const holidaySale: StyledRecipe = {
     designConfig: {
       position: "center",
       size: "large",
+      backgroundOverlayOpacity: 0,
       leadCaptureLayout: { desktop: "overlay", mobile: "overlay" },
     },
     discountConfig: {
@@ -667,7 +669,7 @@ const holidaySale: StyledRecipe = {
   },
 };
 
-const valentineSale: StyledRecipe = {
+const valentineSale: FlashSaleRecipe = {
   id: "valentine-sale",
   name: "Valentine's Flash Sale",
   tagline: "Show them you care ❤️",
@@ -694,6 +696,7 @@ const valentineSale: StyledRecipe = {
     designConfig: {
       position: "center",
       size: "large",
+      backgroundOverlayOpacity: 0,
       leadCaptureLayout: { desktop: "overlay", mobile: "overlay" },
     },
     discountConfig: {
@@ -705,10 +708,10 @@ const valentineSale: StyledRecipe = {
   },
 };
 
-const easterSale: StyledRecipe = {
+const easterSale: FlashSaleRecipe = {
   id: "easter-sale",
   name: "Easter Flash Sale",
-  tagline: "Spring into savings! 🐰",
+  tagline: "Spring into savings!",
   description: "Fresh spring flash sale with Easter theme. Pastel greens and pinks.",
   icon: "🐰",
   category: "sales_promos",
@@ -743,10 +746,10 @@ const easterSale: StyledRecipe = {
   },
 };
 
-const halloweenSale: StyledRecipe = {
+const halloweenSale: FlashSaleRecipe = {
   id: "halloween-sale",
   name: "Halloween Flash Sale",
-  tagline: "Spooky savings are here! 🎃",
+  tagline: "Spooky savings are here!",
   description: "Spooky flash sale with dark Halloween theme.",
   icon: "🎃",
   category: "sales_promos",
@@ -771,6 +774,7 @@ const halloweenSale: StyledRecipe = {
     designConfig: {
       position: "center",
       size: "large",
+      backgroundOverlayOpacity: 0,
       leadCaptureLayout: { desktop: "overlay", mobile: "overlay" },
     },
     discountConfig: {
@@ -782,7 +786,7 @@ const halloweenSale: StyledRecipe = {
   },
 };
 
-const thanksgivingSale: StyledRecipe = {
+const thanksgivingSale: FlashSaleRecipe = {
   id: "thanksgiving-sale",
   name: "Thanksgiving Flash Sale",
   tagline: "Thankful for savings! 🦃",
@@ -793,7 +797,7 @@ const thanksgivingSale: StyledRecipe = {
   templateType: "FLASH_SALE",
   recipeType: "seasonal",
   component: "FlashSaleCentered",
-  theme: "elegant",
+  theme: "luxury",
   layout: "centered",
   backgroundPresetId: "fs-bg-thanksgiving",
   seasonal: true,
@@ -801,7 +805,7 @@ const thanksgivingSale: StyledRecipe = {
   editableFields: FLASH_SALE_EDITABLE_FIELDS,
   defaults: {
     contentConfig: {
-      headline: "Thanksgiving Sale 🦃",
+      headline: "Thanksgiving Sale",
       subheadline: "30% off - we're thankful for you!",
       buttonText: "Shop Thanksgiving Deals",
       showCountdown: true,
@@ -809,6 +813,7 @@ const thanksgivingSale: StyledRecipe = {
     designConfig: {
       position: "center",
       size: "large",
+      backgroundOverlayOpacity: 0,
       leadCaptureLayout: { desktop: "overlay", mobile: "overlay" },
     },
     discountConfig: {
@@ -820,7 +825,7 @@ const thanksgivingSale: StyledRecipe = {
   },
 };
 
-const newYearSale: StyledRecipe = {
+const newYearSale: FlashSaleRecipe = {
   id: "new-year-sale",
   name: "New Year Flash Sale",
   tagline: "Start the year with savings! 🎆",
@@ -859,7 +864,7 @@ const newYearSale: StyledRecipe = {
   },
 };
 
-const winterSale: StyledRecipe = {
+const winterSale: FlashSaleRecipe = {
   id: "winter-sale",
   name: "Winter Flash Sale",
   tagline: "Cool deals for the cold season! ❄️",
@@ -897,7 +902,7 @@ const winterSale: StyledRecipe = {
   },
 };
 
-const backToSchoolSale: StyledRecipe = {
+const backToSchoolSale: FlashSaleRecipe = {
   id: "back-to-school-sale",
   name: "Back to School Flash Sale",
   tagline: "Get ready for the new school year! 📚",
@@ -951,7 +956,7 @@ const backToSchoolSale: StyledRecipe = {
  *
  * Targeting: Cart value trigger (e.g., cart >= $50)
  */
-const freeGiftWithPurchase: StyledRecipe = {
+const freeGiftWithPurchase: FlashSaleRecipe = {
   id: "free-gift-with-purchase",
   name: "Free Gift with Purchase",
   tagline: "Spend more, get a FREE gift!",
@@ -962,7 +967,7 @@ const freeGiftWithPurchase: StyledRecipe = {
   goal: "INCREASE_REVENUE",
   templateType: "FLASH_SALE",
   component: "FlashSaleCentered",
-  theme: "bold",
+  theme: "gradient",
   layout: "centered",
   featured: true,
   recipeType: "use_case",
@@ -1015,9 +1020,18 @@ const freeGiftWithPurchase: StyledRecipe = {
         },
       },
     },
-    // No discount - the gift IS the incentive
+    // Free gift configuration - the gift IS the incentive (no discount code needed)
     discountConfig: {
       enabled: false,
+      showInPreview: true,
+      freeGift: {
+        productId: "", // User will configure via product picker
+        variantId: "", // User will configure via product picker
+        productTitle: "", // Will use dummy for preview if empty
+        productImageUrl: "", // Will use dummy for preview if empty
+        quantity: 1,
+        minSubtotalCents: 5000, // $50 minimum spend
+      },
     },
   },
 };
@@ -1027,7 +1041,7 @@ const freeGiftWithPurchase: StyledRecipe = {
 // =============================================================================
 
 // Use Case recipes (primary) - ordered by popularity/utility
-export const USE_CASE_RECIPES: StyledRecipe[] = [
+export const USE_CASE_RECIPES: FlashSaleRecipe[] = [
   flashSale,
   bogo,
   freeGiftWithPurchase,
@@ -1040,7 +1054,7 @@ export const USE_CASE_RECIPES: StyledRecipe[] = [
 ];
 
 // Seasonal quick-starts (secondary) - ordered by calendar
-export const SEASONAL_RECIPES: StyledRecipe[] = [
+export const SEASONAL_RECIPES: FlashSaleRecipe[] = [
   blackFridaySale,
   cyberMondaySale,
   holidaySale,
@@ -1055,4 +1069,4 @@ export const SEASONAL_RECIPES: StyledRecipe[] = [
 ];
 
 // Combined export - use cases first, then seasonal
-export const FLASH_SALE_DESIGN_RECIPES: StyledRecipe[] = [...USE_CASE_RECIPES, ...SEASONAL_RECIPES];
+export const FLASH_SALE_DESIGN_RECIPES: FlashSaleRecipe[] = [...USE_CASE_RECIPES, ...SEASONAL_RECIPES];

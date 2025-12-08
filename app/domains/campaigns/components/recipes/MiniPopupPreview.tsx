@@ -12,12 +12,14 @@
  */
 
 import React, { useMemo, useRef, useState, useLayoutEffect, useCallback } from "react";
-import { NEWSLETTER_THEMES, type NewsletterThemeKey } from "~/config/color-presets";
+import type { NewsletterThemeKey } from "~/config/color-presets";
 import { getBackgroundById, getBackgroundUrl } from "~/config/background-presets";
 import { TemplatePreview } from "~/domains/popups/components/preview/TemplatePreview";
 import { DeviceFrame } from "~/domains/popups/components/preview/DeviceFrame";
 import { ShadowDomWrapper } from "./ShadowDomWrapper";
 import type { StyledRecipe } from "../../recipes/styled-recipe-types";
+import { getThemeModeForRecipeType, getPresetIdForRecipe } from "../../recipes/styled-recipe-types";
+import type { DesignTokens } from "../../types/design-tokens";
 
 // iPhone 14 dimensions (used by DeviceFrame for mobile)
 const IPHONE_14_WIDTH = 390;
@@ -39,6 +41,9 @@ export interface MiniPopupPreviewProps {
 
   /** Height of the preview container */
   height?: number;
+
+  /** Default theme tokens from store's default preset (for preview when themeMode is "default") */
+  defaultThemeTokens?: DesignTokens;
 }
 
 // =============================================================================
@@ -71,7 +76,7 @@ const REAPPEAR_DELAY_MS = 2000;
 // COMPONENT
 // =============================================================================
 
-export function MiniPopupPreview({ recipe, scale, width, height }: MiniPopupPreviewProps) {
+export function MiniPopupPreview({ recipe, scale, width, height, defaultThemeTokens }: MiniPopupPreviewProps) {
   // Ref to measure container dimensions for scaling
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerDimensions, setContainerDimensions] = useState({ width: 0, height: 0 });
@@ -147,15 +152,20 @@ export function MiniPopupPreview({ recipe, scale, width, height }: MiniPopupPrev
   const contentConfig = useMemo(() => {
     return {
       ...recipe.defaults.contentConfig,
+      // Include discount config for tiered discounts, BOGO, etc.
+      discountConfig: recipe.defaults.discountConfig,
       // Add preview mode flag
       previewMode: true,
     };
-  }, [recipe.defaults.contentConfig]);
+  }, [recipe.defaults.contentConfig, recipe.defaults.discountConfig]);
 
   // Build design config from recipe
   const designConfig = useMemo(() => {
     const theme = (recipe.theme as NewsletterThemeKey) || "modern";
-    const themeColors = NEWSLETTER_THEMES[theme] || NEWSLETTER_THEMES.modern;
+
+    // Determine theme mode based on recipe type
+    const themeMode = getThemeModeForRecipeType(recipe.recipeType);
+    const presetId = themeMode === "preset" ? getPresetIdForRecipe(recipe.id) : undefined;
 
     // Get background image if recipe has one
     let imageUrl: string | undefined;
@@ -188,18 +198,11 @@ export function MiniPopupPreview({ recipe, scale, width, height }: MiniPopupPrev
             ? "right"
             : "left");
 
-    return {
+    const result = {
       theme,
       layout: recipe.layout,
       position: recipe.defaults.designConfig?.position || "center",
       size: recipe.defaults.designConfig?.size || "medium",
-      // Colors from theme
-      backgroundColor: themeColors.background,
-      textColor: themeColors.text,
-      primaryColor: themeColors.primary,
-      accentColor: themeColors.primary,
-      buttonColor: themeColors.ctaBg || themeColors.primary,
-      buttonTextColor: themeColors.ctaText || "#FFFFFF",
       // Background image settings (matching full flow format)
       backgroundImageMode,
       backgroundImagePresetKey,
@@ -209,8 +212,15 @@ export function MiniPopupPreview({ recipe, scale, width, height }: MiniPopupPrev
       // Preview mode settings
       previewMode: true,
       disablePortal: true,
+      // For "preset" mode (inspiration/seasonal), use recipe's own colors from designConfig
+      // For "default" mode (use_case), don't set colors - they come from defaultThemeTokens
       ...recipe.defaults.designConfig,
+      // Theme mode for the design token system
+      themeMode,
+      presetId,
     };
+
+    return result;
   }, [recipe]);
 
   // Calculate container dimensions
@@ -291,6 +301,7 @@ export function MiniPopupPreview({ recipe, scale, width, height }: MiniPopupPrev
                 designConfig={designConfig}
                 onClose={handleClose}
                 isVisible={isPopupVisible}
+                defaultThemeTokens={defaultThemeTokens}
               />
             </div>
           </div>
@@ -364,6 +375,7 @@ export function MiniPopupPreview({ recipe, scale, width, height }: MiniPopupPrev
                 designConfig={designConfig}
                 onClose={handleClose}
                 isVisible={isPopupVisible}
+                defaultThemeTokens={defaultThemeTokens}
               />
             ) : (
               // Regular popups render inside iPhone frame (no shadow for mini preview)
@@ -375,6 +387,7 @@ export function MiniPopupPreview({ recipe, scale, width, height }: MiniPopupPrev
                   designConfig={designConfig}
                   onClose={handleClose}
                   isVisible={isPopupVisible}
+                  defaultThemeTokens={defaultThemeTokens}
                 />
               </DeviceFrame>
             )}

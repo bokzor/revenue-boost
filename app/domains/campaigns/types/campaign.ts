@@ -42,9 +42,10 @@ export type LeadCaptureConfigParsed = z.infer<typeof LeadCaptureConfigSchema>;
 
 // Type-check: Ensure the schema output is compatible with the interface
 // This will error at compile time if we add a field to the interface but not the schema
-type _AssertSchemaHasAllFields = Required<LeadCaptureConfig> extends LeadCaptureConfigParsed
-  ? true
-  : "Schema is missing fields from LeadCaptureConfig interface";
+type _AssertSchemaHasAllFields =
+  Required<LeadCaptureConfig> extends LeadCaptureConfigParsed
+    ? true
+    : "Schema is missing fields from LeadCaptureConfig interface";
 const _schemaCheck: _AssertSchemaHasAllFields = true;
 
 // ============================================================================
@@ -67,6 +68,11 @@ export const TemplateTypeSchema = z.enum([
   "COUNTDOWN_TIMER",
   "SCRATCH_CARD",
   "ANNOUNCEMENT",
+  // New upsell popup template types
+  "CLASSIC_UPSELL",
+  "MINIMAL_SLIDE_UP",
+  "PREMIUM_FULLSCREEN",
+  "COUNTDOWN_URGENCY",
 ]);
 
 /**
@@ -182,6 +188,10 @@ export const DiscountConfigSchema = z.object({
       get: z.object({
         scope: z.enum(["products", "collections"]),
         ids: z.array(z.string()), // Product/collection GIDs (required)
+        // Variant IDs for add-to-cart functionality (parallel array to ids)
+        variantIds: z.array(z.string()).optional(),
+        // Product handles for navigation (parallel array to ids)
+        productHandles: z.array(z.string()).optional(),
         quantity: z.number().int().min(1),
         discount: z.object({
           kind: z.enum(["percentage", "fixed", "free_product"]),
@@ -197,6 +207,8 @@ export const DiscountConfigSchema = z.object({
     .object({
       productId: z.string(), // Shopify product GID
       variantId: z.string(), // Shopify variant GID
+      productTitle: z.string().optional(), // Product title for storefront display
+      productImageUrl: z.string().url().optional(), // Product image URL for storefront display
       quantity: z.number().int().min(1).default(1),
       minSubtotalCents: z.number().int().min(0).optional(),
     })
@@ -311,7 +323,9 @@ export type BadgeIcon = z.infer<typeof BadgeIconSchema>;
  * - LeadCaptureConfigSchema (email, name, consent fields)
  * - Newsletter-specific fields (submitButtonText)
  */
-export const NewsletterContentSchema = BaseContentConfigSchema.merge(LeadCaptureConfigSchema).extend({
+export const NewsletterContentSchema = BaseContentConfigSchema.merge(
+  LeadCaptureConfigSchema
+).extend({
   // Newsletter-specific
   submitButtonText: z.string(),
   // Label shown above the discount code on success (e.g., "Your discount code:")
@@ -430,7 +444,9 @@ const SpinToWinBaseContentSchema = BaseContentConfigSchema.omit({
   successMessage: true,
 });
 
-export const SpinToWinContentSchema = SpinToWinBaseContentSchema.merge(LeadCaptureConfigSchema).extend({
+export const SpinToWinContentSchema = SpinToWinBaseContentSchema.merge(
+  LeadCaptureConfigSchema
+).extend({
   spinButtonText: z.string(),
 
   // Wheel configuration
@@ -635,8 +651,26 @@ export const ProductUpsellContentSchema = BaseContentConfigSchema.extend({
    * - carousel: One product at a time with peek of next/prev - great for mobile
    * - featured: Hero product prominently displayed + smaller grid of others
    * - stack: Overlapping cards like a deck - interactive and fun
+   * - classic: Traditional centered modal with image, pricing, and clear CTAs (single product)
+   * - minimal-slide-up: Compact bottom sheet ideal for mobile-first experiences (single product)
+   * - premium-fullscreen: Immersive full-page takeover for high-value products (single product)
+   * - bundle-deal: Multi-product bundle offer with combined savings
+   * - countdown-urgency: Time-limited offer with live countdown timer (single product)
    */
-  layout: z.enum(["grid", "card", "carousel", "featured", "stack"]).default("grid"),
+  layout: z
+    .enum([
+      "grid",
+      "card",
+      "carousel",
+      "featured",
+      "stack",
+      "classic",
+      "minimal-slide-up",
+      "premium-fullscreen",
+      "bundle-deal",
+      "countdown-urgency",
+    ])
+    .default("grid"),
   columns: z.number().int().min(1).max(4).default(2),
   showPrices: z.boolean().default(true),
   showCompareAtPrice: z.boolean().default(true),
@@ -648,6 +682,24 @@ export const ProductUpsellContentSchema = BaseContentConfigSchema.extend({
   multiSelect: z.boolean().default(true),
   secondaryCtaLabel: z.string().optional(),
   currency: z.string().default("USD"),
+
+  // Premium Fullscreen layout specific fields
+  /** Features list displayed in premium-fullscreen layout */
+  features: z.array(z.string()).optional(),
+  /** Urgency message displayed at the top (e.g., "Limited time offer") */
+  urgencyMessage: z.string().optional(),
+
+  // Countdown Urgency layout specific fields
+  /** Countdown duration in seconds (default: 300 = 5 minutes) */
+  expiresInSeconds: z.number().int().min(30).max(3600).default(300),
+  /** Social proof message (e.g., "127 people added this in the last hour") */
+  socialProofMessage: z.string().optional(),
+
+  // Bundle Deal layout specific fields
+  /** Header text for bundle deal (e.g., "Bundle & Save 15%") */
+  bundleHeaderText: z.string().optional(),
+  /** Subheader text for bundle deal */
+  bundleSubheaderText: z.string().optional(),
 });
 
 /**
@@ -751,7 +803,9 @@ const ScratchCardBaseContentSchema = BaseContentConfigSchema.omit({
   successMessage: true,
 });
 
-export const ScratchCardContentSchema = ScratchCardBaseContentSchema.merge(LeadCaptureConfigSchema).extend({
+export const ScratchCardContentSchema = ScratchCardBaseContentSchema.merge(
+  LeadCaptureConfigSchema
+).extend({
   scratchInstruction: z.string(),
   emailBeforeScratching: z.boolean().default(false),
   scratchThreshold: z.number().min(0).max(100).default(50),
@@ -833,6 +887,105 @@ export const AnnouncementContentSchema = BaseContentConfigSchema.extend({
   colorScheme: z.enum(["urgent", "success", "info", "custom"]).default("custom"),
 });
 
+// ============================================================================
+// NEW UPSELL POPUP TEMPLATE CONTENT SCHEMAS
+// ============================================================================
+
+/**
+ * Classic Upsell - Traditional centered modal with image, pricing, and clear CTAs
+ */
+export const ClassicUpsellContentSchema = BaseContentConfigSchema.extend({
+  productSelectionMethod: z.enum(["ai", "manual", "collection"]).default("manual"),
+  selectedProducts: z.array(z.string()).optional(),
+  selectedCollection: z.string().optional(),
+  showPrices: z.boolean().default(true),
+  showCompareAtPrice: z.boolean().default(true),
+  showImages: z.boolean().default(true),
+  showRatings: z.boolean().default(true),
+  discountPercent: z.number().min(0).max(100).default(15),
+  discountText: z.string().optional(),
+  secondaryCtaLabel: z.string().default("No thanks"),
+  currency: z.string().default("USD"),
+});
+
+/**
+ * Minimal Slide-Up - Compact bottom sheet for mobile-first experiences
+ */
+export const MinimalSlideUpContentSchema = BaseContentConfigSchema.extend({
+  productSelectionMethod: z.enum(["ai", "manual", "collection"]).default("ai"),
+  selectedProducts: z.array(z.string()).optional(),
+  selectedCollection: z.string().optional(),
+  showPrices: z.boolean().default(true),
+  showCompareAtPrice: z.boolean().default(true),
+  showImages: z.boolean().default(true),
+  secondaryCtaLabel: z.string().default("Continue shopping"),
+  currency: z.string().default("USD"),
+});
+
+/**
+ * Premium Fullscreen - Immersive full-page takeover for high-value products
+ */
+export const PremiumFullscreenContentSchema = BaseContentConfigSchema.extend({
+  productSelectionMethod: z.enum(["ai", "manual", "collection"]).default("manual"),
+  selectedProducts: z.array(z.string()).optional(),
+  selectedCollection: z.string().optional(),
+  showPrices: z.boolean().default(true),
+  showCompareAtPrice: z.boolean().default(true),
+  showImages: z.boolean().default(true),
+  showRatings: z.boolean().default(true),
+  showReviewCount: z.boolean().default(true),
+  discountPercent: z.number().min(0).max(100).default(20),
+  discountText: z.string().optional(),
+  secondaryCtaLabel: z.string().default("Maybe later"),
+  currency: z.string().default("USD"),
+  /** Features list displayed in premium layout */
+  features: z
+    .array(z.string())
+    .default(["Premium quality materials", "Free express shipping", "30-day money-back guarantee"]),
+  /** Urgency message displayed at the top */
+  urgencyMessage: z.string().optional(),
+});
+
+/**
+ * Bundle Deal - Multi-product bundle offer with combined savings
+ */
+export const BundleDealContentSchema = BaseContentConfigSchema.extend({
+  productSelectionMethod: z.enum(["ai", "manual", "collection"]).default("ai"),
+  selectedProducts: z.array(z.string()).optional(),
+  selectedCollection: z.string().optional(),
+  maxProducts: z.number().int().min(2).max(6).default(4),
+  showPrices: z.boolean().default(true),
+  showCompareAtPrice: z.boolean().default(true),
+  showImages: z.boolean().default(true),
+  bundleDiscount: z.number().min(0).max(100).default(20),
+  secondaryCtaLabel: z.string().default("Just the original item"),
+  currency: z.string().default("USD"),
+  /** Header text for bundle deal */
+  bundleHeaderText: z.string().default("Bundle & Save 20%"),
+  /** Subheader text for bundle deal */
+  bundleSubheaderText: z.string().default("Complete your purchase with these items"),
+});
+
+/**
+ * Countdown Urgency - Time-limited offer with live countdown timer
+ */
+export const CountdownUrgencyContentSchema = BaseContentConfigSchema.extend({
+  productSelectionMethod: z.enum(["ai", "manual", "collection"]).default("manual"),
+  selectedProducts: z.array(z.string()).optional(),
+  selectedCollection: z.string().optional(),
+  showPrices: z.boolean().default(true),
+  showCompareAtPrice: z.boolean().default(true),
+  showImages: z.boolean().default(true),
+  discountPercent: z.number().min(0).max(100).default(25),
+  discountText: z.string().optional(),
+  secondaryCtaLabel: z.string().default("No thanks"),
+  currency: z.string().default("USD"),
+  /** Countdown duration in seconds (default: 300 = 5 minutes) */
+  expiresInSeconds: z.number().int().min(30).max(3600).default(300),
+  /** Social proof message */
+  socialProofMessage: z.string().optional(),
+});
+
 /**
  * Generic ContentConfig type (union of all possible content types)
  */
@@ -846,7 +999,12 @@ export type ContentConfig =
   | z.infer<typeof ScratchCardContentSchema>
   | z.infer<typeof FreeShippingContentSchema>
   | z.infer<typeof CountdownTimerContentSchema>
-  | z.infer<typeof AnnouncementContentSchema>;
+  | z.infer<typeof AnnouncementContentSchema>
+  | z.infer<typeof ClassicUpsellContentSchema>
+  | z.infer<typeof MinimalSlideUpContentSchema>
+  | z.infer<typeof PremiumFullscreenContentSchema>
+  | z.infer<typeof BundleDealContentSchema>
+  | z.infer<typeof CountdownUrgencyContentSchema>;
 
 // Export individual content types
 export type NewsletterContent = z.infer<typeof NewsletterContentSchema>;
@@ -859,6 +1017,11 @@ export type ScratchCardContent = z.infer<typeof ScratchCardContentSchema>;
 export type FreeShippingContent = z.infer<typeof FreeShippingContentSchema>;
 export type CountdownTimerContent = z.infer<typeof CountdownTimerContentSchema>;
 export type AnnouncementContent = z.infer<typeof AnnouncementContentSchema>;
+export type ClassicUpsellContent = z.infer<typeof ClassicUpsellContentSchema>;
+export type MinimalSlideUpContent = z.infer<typeof MinimalSlideUpContentSchema>;
+export type PremiumFullscreenContent = z.infer<typeof PremiumFullscreenContentSchema>;
+export type BundleDealContent = z.infer<typeof BundleDealContentSchema>;
+export type CountdownUrgencyContent = z.infer<typeof CountdownUrgencyContentSchema>;
 
 // ============================================================================
 // OTHER CONFIGURATION SCHEMAS
@@ -868,15 +1031,18 @@ export type AnnouncementContent = z.infer<typeof AnnouncementContentSchema>;
  * Design Configuration Schema
  */
 export const DesignConfigSchema = z.object({
+  // Theme Mode (new simplified design token system)
+  // "default" = use store's default theme preset, "shopify" = legacy (same as default),
+  // "preset" = use artistic preset, "custom" = manual colors
+  themeMode: z.enum(["default", "shopify", "preset", "custom"]).optional().default("default"),
+  presetId: z.string().optional(), // Preset ID when themeMode is "preset"
+
   // Layout
   theme: z
     .enum([
       // Generic themes
       "modern",
       "minimal",
-      "elegant",
-      "bold",
-      "glass",
       "dark",
       "gradient",
       "luxury",
@@ -893,7 +1059,7 @@ export const DesignConfigSchema = z.object({
     .optional(), // Optional when using a custom theme preset
   customThemePresetId: z.string().optional(), // ID of the applied custom theme preset
   position: z.enum(["center", "top", "bottom", "left", "right"]).default("center"),
-  size: z.enum(["small", "medium", "large"]).default("medium"),
+  size: z.enum(["small", "medium", "large", "fullscreen"]).default("medium"),
   popupSize: z.enum(["compact", "standard", "wide", "full"]).default("wide").optional(), // For FlashSale
   borderRadius: z.number().min(0).max(50).default(8),
   animation: z.enum(["fade", "slide", "bounce", "none"]).default("fade"),
@@ -1011,6 +1177,10 @@ export const DesignConfigSchema = z.object({
   scratchCardTextColor: z.string().optional(),
   scratchOverlayColor: z.string().optional(),
   scratchOverlayImage: z.string().optional(),
+
+  // Mobile-specific settings
+  // When true, popup takes full viewport height on mobile (useful for Product Upsell, etc.)
+  mobileFullScreen: z.boolean().optional(),
 
   // Advanced
   boxShadow: z.string().optional(),
@@ -1306,73 +1476,75 @@ export const CampaignWithConfigsSchema = BaseCampaignSchema.extend({
 /**
  * Campaign Create Data Schema
  */
-export const CampaignCreateDataSchema = z.object({
-  name: z.string().min(1, "Campaign name is required").max(255),
-  description: z.string().max(1000).optional(),
-  goal: CampaignGoalSchema,
-  status: CampaignStatusSchema.optional(),
-  priority: z.number().int().min(0).optional(),
+export const CampaignCreateDataSchema = z
+  .object({
+    name: z.string().min(1, "Campaign name is required").max(255),
+    description: z.string().max(1000).optional(),
+    goal: CampaignGoalSchema,
+    status: CampaignStatusSchema.optional(),
+    priority: z.number().int().min(0).optional(),
 
-  // Template reference (optional - can be CUID or system template identifier like SYSTEM_xxx)
-  templateId: z
-    .union([z.cuid(), z.string().startsWith("SYSTEM_"), z.literal(""), z.undefined()])
-    .optional()
-    .transform((val) => (val === "" ? undefined : val)),
-  templateType: TemplateTypeSchema, // Required for validation
+    // Template reference (optional - can be CUID or system template identifier like SYSTEM_xxx)
+    templateId: z
+      .union([z.cuid(), z.string().startsWith("SYSTEM_"), z.literal(""), z.undefined()])
+      .optional()
+      .transform((val) => (val === "" ? undefined : val)),
+    templateType: TemplateTypeSchema, // Required for validation
 
-  // JSON configurations
-  contentConfig: z.record(z.string(), z.unknown()).optional(), // Generic object, validated separately by templateType
-  designConfig: DesignConfigSchema.optional(),
-  targetRules: TargetRulesConfigSchema.optional(),
-  discountConfig: DiscountConfigSchema.optional(),
+    // JSON configurations
+    contentConfig: z.record(z.string(), z.unknown()).optional(), // Generic object, validated separately by templateType
+    designConfig: DesignConfigSchema.optional(),
+    targetRules: TargetRulesConfigSchema.optional(),
+    discountConfig: DiscountConfigSchema.optional(),
 
-  // A/B Testing
-  experimentId: z
-    .union([z.cuid(), z.literal(""), z.undefined()])
-    .optional()
-    .transform((val) => (val === "" ? undefined : val)),
-  variantKey: z.enum(["A", "B", "C", "D"]).optional(),
-  isControl: z.boolean().optional(),
+    // A/B Testing
+    experimentId: z
+      .union([z.cuid(), z.literal(""), z.undefined()])
+      .optional()
+      .transform((val) => (val === "" ? undefined : val)),
+    variantKey: z.enum(["A", "B", "C", "D"]).optional(),
+    isControl: z.boolean().optional(),
 
-  // Schedule (coerce strings to dates for form compatibility, handle empty strings)
-  startDate: z
-    .union([z.coerce.date(), z.literal(""), z.undefined()])
-    .optional()
-    .transform((val) => (val === "" ? undefined : val)),
-  endDate: z
-    .union([z.coerce.date(), z.literal(""), z.undefined()])
-    .optional()
-    .transform((val) => (val === "" ? undefined : val)),
-}).superRefine((data, ctx) => {
-  // Validate that endDate is after startDate if both are provided
-  if (data.startDate && data.endDate) {
-    const start = data.startDate instanceof Date ? data.startDate : new Date(data.startDate);
-    const end = data.endDate instanceof Date ? data.endDate : new Date(data.endDate);
+    // Schedule (coerce strings to dates for form compatibility, handle empty strings)
+    startDate: z
+      .union([z.coerce.date(), z.literal(""), z.undefined()])
+      .optional()
+      .transform((val) => (val === "" ? undefined : val)),
+    endDate: z
+      .union([z.coerce.date(), z.literal(""), z.undefined()])
+      .optional()
+      .transform((val) => (val === "" ? undefined : val)),
+  })
+  .superRefine((data, ctx) => {
+    // Validate that endDate is after startDate if both are provided
+    if (data.startDate && data.endDate) {
+      const start = data.startDate instanceof Date ? data.startDate : new Date(data.startDate);
+      const end = data.endDate instanceof Date ? data.endDate : new Date(data.endDate);
 
-    if (end <= start) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "End date must be after start date",
-        path: ["endDate"],
-      });
+      if (end <= start) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "End date must be after start date",
+          path: ["endDate"],
+        });
+      }
     }
-  }
 
-  // Validate that startDate is not in the past (with 1 minute tolerance for form submission delay)
-  if (data.startDate) {
-    const start = data.startDate instanceof Date ? data.startDate : new Date(data.startDate);
-    const now = new Date();
-    now.setMinutes(now.getMinutes() - 1); // 1 minute tolerance
+    // Validate that startDate is not in the past (with 1 minute tolerance for form submission delay)
+    if (data.startDate) {
+      const start = data.startDate instanceof Date ? data.startDate : new Date(data.startDate);
+      const now = new Date();
+      now.setMinutes(now.getMinutes() - 1); // 1 minute tolerance
 
-    if (start < now) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Start date cannot be in the past",
-        path: ["startDate"],
-      });
+      if (start < now) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Start date cannot be in the past",
+          path: ["startDate"],
+        });
+      }
     }
-  }
-});
+  });
 
 export const CampaignUpdateDataSchema = CampaignCreateDataSchema.partial();
 

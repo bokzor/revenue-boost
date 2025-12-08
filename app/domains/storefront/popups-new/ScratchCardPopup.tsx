@@ -195,18 +195,26 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
   // LOAD OVERLAY IMAGE (if provided)
   // ============================================
   useEffect(() => {
+    console.log("[ScratchCardPopup] scratchOverlayImage:", config.scratchOverlayImage);
     if (!config.scratchOverlayImage || overlayImageLoadedRef.current) return;
 
     const img = new Image();
     img.crossOrigin = "anonymous"; // Allow CORS for canvas manipulation
 
     img.onload = () => {
+      console.log(
+        "[ScratchCardPopup] Overlay image loaded successfully:",
+        config.scratchOverlayImage
+      );
       setOverlayImage(img);
       overlayImageLoadedRef.current = true;
     };
 
     img.onerror = () => {
-      console.warn("Failed to load scratch overlay image:", config.scratchOverlayImage);
+      console.warn(
+        "[ScratchCardPopup] Failed to load scratch overlay image:",
+        config.scratchOverlayImage
+      );
       overlayImageLoadedRef.current = true; // Mark as loaded (failed) to prevent retries
     };
 
@@ -774,6 +782,7 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
       ariaDescribedBy={config.ariaDescribedBy}
       customCSS={config.customCSS}
       globalCustomCSS={config.globalCustomCSS}
+      designTokensCSS={config.designTokensCSS}
     >
       {/* Scratch Card specific styles */}
       <style>{`
@@ -1264,7 +1273,7 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
                             code={wonPrize.discountCode}
                             onCopy={handleCopyCode}
                             copied={copiedCode}
-                            label="🎉 Your Code:"
+                            label="Your Code:"
                             variant="dashed"
                             size="md"
                             accentColor="#ffffff"
@@ -1391,7 +1400,7 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
                       margin: "0 0 0.5rem 0",
                     }}
                   >
-                    🎉 {wonPrize?.label || "You Won!"}
+                    {wonPrize?.label || "You Won!"}
                   </h3>
                   <p
                     style={{

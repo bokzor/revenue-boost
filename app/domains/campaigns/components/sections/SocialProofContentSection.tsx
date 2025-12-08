@@ -123,21 +123,21 @@ export function SocialProofContentSection({
             <TextField
               label="Rotation Interval (seconds)"
               name="content.rotationInterval"
-              value={content.rotationInterval?.toString() || "8"}
+              value={content.rotationInterval?.toString() ?? ""}
               error={errors?.rotationInterval}
               placeholder="8"
               helpText="Time between notifications (storefront rotation interval)"
-              onChange={(value) => updateField("rotationInterval", parseInt(value) || 8)}
+              onChange={(value) => updateField("rotationInterval", value === "" ? undefined : parseInt(value))}
             />
 
             <TextField
               label="Max Notifications Per Session"
               name="content.maxNotificationsPerSession"
-              value={content.maxNotificationsPerSession?.toString() || "5"}
+              value={content.maxNotificationsPerSession?.toString() ?? ""}
               error={errors?.maxNotificationsPerSession}
               placeholder="5"
               helpText="Hard cap per visitor for this campaign"
-              onChange={(value) => updateField("maxNotificationsPerSession", parseInt(value) || 5)}
+              onChange={(value) => updateField("maxNotificationsPerSession", value === "" ? undefined : parseInt(value))}
             />
           </FormGrid>
 
@@ -145,21 +145,21 @@ export function SocialProofContentSection({
             <TextField
               label="Min Visitor Count"
               name="content.minVisitorCount"
-              value={content.minVisitorCount?.toString() || "5"}
+              value={content.minVisitorCount?.toString() ?? ""}
               error={errors?.minVisitorCount}
               placeholder="5"
               helpText="Only show visitor count notifications when at least this many visitors are active"
-              onChange={(value) => updateField("minVisitorCount", parseInt(value) || 5)}
+              onChange={(value) => updateField("minVisitorCount", value === "" ? undefined : parseInt(value))}
             />
 
             <TextField
               label="Min Review Rating"
               name="content.minReviewRating"
-              value={content.minReviewRating?.toString() || "4.0"}
+              value={content.minReviewRating?.toString() ?? ""}
               error={errors?.minReviewRating}
               placeholder="4.0"
               helpText="Only show review notifications with rating >= this value"
-              onChange={(value) => updateField("minReviewRating", parseFloat(value) || 4.0)}
+              onChange={(value) => updateField("minReviewRating", value === "" ? undefined : parseFloat(value))}
             />
           </FormGrid>
 

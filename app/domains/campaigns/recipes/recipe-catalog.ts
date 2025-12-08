@@ -151,7 +151,7 @@ const SALES_PROMOS_RECIPES: RecipeDefinition[] = [
       animation: "fade",
       sections: { image: true, subtitle: true, countdown: false },
     },
-    suggestedTheme: "elegant",
+    suggestedTheme: "luxury",
     inputs: [
       { type: "product_picker", label: "Select Product", key: "products" },
       {
@@ -169,7 +169,7 @@ const SALES_PROMOS_RECIPES: RecipeDefinition[] = [
       return {
         name: `Spotlight: ${product.title}`,
         designConfig: {
-          theme: context.selectedTheme || "elegant",
+          theme: context.selectedTheme || "luxury",
           position: "center",
           size: "large",
           animation: "fade",
@@ -230,7 +230,7 @@ const SALES_PROMOS_RECIPES: RecipeDefinition[] = [
       animation: "bounce",
       sections: { image: false, subtitle: true, countdown: true },
     },
-    suggestedTheme: "bold",
+    suggestedTheme: "gradient",
     inputs: [
       { type: "discount_percentage", label: "Discount", defaultValue: 30, key: "discountValue" },
       { type: "duration_hours", label: "Duration (hours)", defaultValue: 24, key: "durationHours" },
@@ -242,7 +242,7 @@ const SALES_PROMOS_RECIPES: RecipeDefinition[] = [
       return {
         name: "Flash Sale",
         designConfig: {
-          theme: context.selectedTheme || "bold",
+          theme: context.selectedTheme || "gradient",
           position: "center",
           size: "large",
           animation: "bounce",
@@ -513,7 +513,7 @@ const CART_RECOVERY_RECIPES: RecipeDefinition[] = [
           barPosition: "top",
           emptyMessage: "Add items to unlock free shipping",
           progressMessage: "You're {remaining} away from free shipping!",
-          unlockedMessage: "🎉 You've unlocked free shipping!",
+          unlockedMessage: "You've unlocked free shipping!",
         },
         discountConfig: {
           enabled: true,
@@ -698,12 +698,12 @@ const ANNOUNCEMENTS_RECIPES: RecipeDefinition[] = [
       animation: "slide",
       sections: {},
     },
-    suggestedTheme: "bold",
+    suggestedTheme: "gradient",
     inputs: [{ type: "text", label: "Sale Name", key: "saleName", defaultValue: "Summer Sale" }],
     build: (context) => ({
       name: "Sale Announcement",
       designConfig: {
-        theme: context.selectedTheme || "bold",
+        theme: context.selectedTheme || "gradient",
         position: "top",
       },
       contentConfig: {

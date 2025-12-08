@@ -8,7 +8,7 @@
  */
 
 export type PopupPosition = "center" | "top" | "bottom" | "left" | "right";
-export type PopupSize = "small" | "medium" | "large";
+export type PopupSize = "small" | "medium" | "large" | "fullscreen";
 export type PopupAnimation = "fade" | "slide" | "bounce" | "none";
 export type DisplayMode = "popup" | "banner" | "slide-in" | "inline";
 
@@ -96,6 +96,12 @@ export interface PopupDesignConfig {
   fontWeight?: string;
   customCSS?: string;
   globalCustomCSS?: string;
+  /**
+   * Pre-resolved CSS custom properties for design tokens.
+   * Format: "--rb-background: #fff; --rb-primary: #000; ..."
+   * Applied on the popup container so child components can use var(--rb-*).
+   */
+  designTokensCSS?: string;
   imageUrl?: string;
   buttonUrl?: string;
 
@@ -146,6 +152,10 @@ export interface PopupDesignConfig {
   scratchCardTextColor?: string; // Text color in the prize reveal area
   scratchOverlayColor?: string; // Color of the scratch overlay (fallback if no image)
   scratchOverlayImage?: string; // URL of the scratch overlay texture image
+
+  // Mobile-specific settings
+  // When true, popup takes full viewport height on mobile (useful for Product Upsell, etc.)
+  mobileFullScreen?: boolean;
 
   // Behavior Properties
   previewMode?: boolean;

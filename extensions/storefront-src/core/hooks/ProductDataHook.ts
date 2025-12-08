@@ -163,7 +163,7 @@ export class ProductDataHook implements PreDisplayHook {
                 price: '59.00',
                 compareAtPrice: '79.00',
                 imageUrl:
-                    'https://images.pexels.com/photos/7671166/pexels-photo-7671166.jpeg?auto=compress&cs=tinysrgb&w=400',
+                    'https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=400&q=80',
                 handle: 'preview-hoodie',
                 rating: 4.8,
                 reviewCount: 128,
@@ -175,7 +175,7 @@ export class ProductDataHook implements PreDisplayHook {
                 price: '89.00',
                 compareAtPrice: '119.00',
                 imageUrl:
-                    'https://images.pexels.com/photos/2529148/pexels-photo-2529148.jpeg?auto=compress&cs=tinysrgb&w=400',
+                    'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&q=80',
                 handle: 'preview-sneakers',
                 rating: 4.9,
                 reviewCount: 212,
@@ -187,7 +187,7 @@ export class ProductDataHook implements PreDisplayHook {
                 price: '49.00',
                 compareAtPrice: '69.00',
                 imageUrl:
-                    'https://images.pexels.com/photos/1152077/pexels-photo-1152077.jpeg?auto=compress&cs=tinysrgb&w=400',
+                    'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400&q=80',
                 handle: 'preview-backpack',
                 rating: 4.6,
                 reviewCount: 87,
@@ -199,7 +199,7 @@ export class ProductDataHook implements PreDisplayHook {
                 price: '24.00',
                 compareAtPrice: '29.00',
                 imageUrl:
-                    'https://images.pexels.com/photos/1124465/pexels-photo-1124465.jpeg?auto=compress&cs=tinysrgb&w=400',
+                    'https://images.unsplash.com/photo-1588850561407-ed78c282e89b?w=400&q=80',
                 handle: 'preview-cap',
                 rating: 4.5,
                 reviewCount: 56,

@@ -1,13 +1,15 @@
 /**
  * VariantCampaignEditor Component
  *
- * Embedded campaign editor for configuring a single variant.
- * Uses the same FormSections and LivePreviewPanel as SingleCampaignFlow.
+ * Two-step flow for configuring a single A/B test variant:
+ * 1. Recipe Selection: Goal-first recipe picker with configuration
+ * 2. Campaign Editor: 2-column layout with preview and form sections
  */
 
 import { useState, useCallback } from "react";
-import { Layout, Card, BlockStack, Text, Box, Banner } from "@shopify/polaris";
+import { Layout, Card, BlockStack, Text, Box, Banner, Page, InlineStack, Button } from "@shopify/polaris";
 import { FormSections, type TargetingConfig, type ScheduleConfig } from "../FormSections";
+import { RecipeSelectionStep, type RecipeSelectionResult } from "../RecipeSelectionStep";
 import { LivePreviewPanel, type PreviewDevice } from "~/domains/popups/components/preview/LivePreviewPanel";
 import { Affix } from "~/shared/components/ui/Affix";
 import type { StyledRecipe } from "../../../recipes/styled-recipe-types";
@@ -15,7 +17,7 @@ import type { ContentConfig, DesignConfig, DiscountConfig, CampaignGoal } from "
 import type { TemplateType } from "~/shared/hooks/useWizardState";
 import type { FrequencyCappingConfig } from "~/domains/targeting/components/FrequencyCappingPanel";
 import type { Variant } from "../types";
-import type { CampaignData } from "../SingleCampaignFlow";
+import type { CampaignData, DefaultThemeTokens } from "../SingleCampaignFlow";
 import type { BackgroundPreset } from "~/config/background-presets";
 import type { GlobalFrequencyCappingSettings } from "~/domains/store/types/settings";
 import type { ThemePreset } from "../../steps/DesignContentStep";
@@ -51,10 +53,11 @@ const DEFAULT_DISCOUNT_CONFIG: DiscountConfig = {
   behavior: "SHOW_CODE_AND_AUTO_APPLY",
 };
 
-type SectionId = "recipe" | "design" | "discount" | "targeting" | "frequency" | "schedule";
+type SectionId = "recipe" | "basics" | "design" | "discount" | "targeting" | "frequency" | "schedule";
 
-const SECTIONS: { id: SectionId; icon: string; title: string; subtitle: string }[] = [
-  { id: "recipe", icon: "📦", title: "Choose a Recipe", subtitle: "Select a pre-designed popup template" },
+// Editor sections (recipe is now a separate step)
+// Note: "basics" is available for variants that need name editing, but variants typically use preset names
+const EDITOR_SECTIONS: { id: SectionId; icon: string; title: string; subtitle: string }[] = [
   { id: "design", icon: "🎨", title: "Customize Design", subtitle: "Adjust colors, content, and styling" },
   { id: "discount", icon: "🎁", title: "Discount & Incentives", subtitle: "Configure discount codes and rewards" },
   { id: "targeting", icon: "🎯", title: "Targeting & Triggers", subtitle: "Define who sees your popup and when" },
@@ -63,7 +66,7 @@ const SECTIONS: { id: SectionId; icon: string; title: string; subtitle: string }
 ];
 
 // Non-control variants don't see schedule (inherits from control)
-const VARIANT_SECTIONS = SECTIONS.filter((s) => s.id !== "schedule");
+const VARIANT_SECTIONS = EDITOR_SECTIONS.filter((s) => s.id !== "schedule");
 
 export interface VariantCampaignEditorProps {
   variant: Variant;
@@ -84,6 +87,12 @@ export interface VariantCampaignEditorProps {
   globalCustomCSS?: string;
   /** Global frequency capping settings from store */
   globalFrequencyCapping?: GlobalFrequencyCappingSettings;
+  /** Default theme tokens from store's default preset (for preview) */
+  defaultThemeTokens?: DefaultThemeTokens;
+  /** Callback when user wants to go back from recipe selection */
+  onBack?: () => void;
+  /** Callback to navigate back to variant list (shown at end of form) */
+  onBackToVariants?: () => void;
 }
 
 export function VariantCampaignEditor({
@@ -100,8 +109,15 @@ export function VariantCampaignEditor({
   backgroundsByLayout,
   globalCustomCSS,
   globalFrequencyCapping,
+  defaultThemeTokens,
+  onBack,
+  onBackToVariants,
 }: VariantCampaignEditorProps) {
   const initialData = variant.campaignData;
+  const hasExistingRecipe = !!(initialData?.recipe || variant.recipe);
+
+  // Flow step: "recipe" (selection) or "editor" (configuration)
+  const [step, setStep] = useState<"recipe" | "editor">(hasExistingRecipe ? "editor" : "recipe");
 
   const [selectedRecipe, setSelectedRecipe] = useState<StyledRecipe | undefined>(
     initialData?.recipe || variant.recipe
@@ -125,10 +141,9 @@ export function VariantCampaignEditor({
     initialData?.scheduleConfig || DEFAULT_SCHEDULE_CONFIG
   );
 
-  const [expandedSections, setExpandedSections] = useState<SectionId[]>(["recipe"]);
-  const [completedSections, setCompletedSections] = useState<SectionId[]>(
-    selectedRecipe ? ["recipe"] : []
-  );
+  // Section state (starts with design expanded since recipe selection is done)
+  const [expandedSections, setExpandedSections] = useState<SectionId[]>(["design"]);
+  const [completedSections, setCompletedSections] = useState<SectionId[]>([]);
   const [previewDevice, setPreviewDevice] = useState<PreviewDevice>("tablet");
 
   const toggleSection = useCallback((id: SectionId) => {
@@ -157,12 +172,46 @@ export function VariantCampaignEditor({
     scheduleConfig,
   }), [variant.name, selectedRecipe, contentConfig, designConfig, discountConfig, targetingConfig, frequencyConfig, scheduleConfig]);
 
+  // Handler for RecipeSelectionStep (step 1 → step 2)
+  const handleRecipeSelected = useCallback((result: RecipeSelectionResult) => {
+    const { recipe, initialData: recipeData } = result;
+    setSelectedRecipe(recipe);
+    setContentConfig(recipeData.contentConfig as Partial<ContentConfig>);
+    setDesignConfig(recipeData.designConfig as Partial<DesignConfig>);
+    if (recipeData.discountConfig && "enabled" in recipeData.discountConfig) {
+      setDiscountConfig(recipeData.discountConfig as DiscountConfig);
+    }
+    if (recipeData.targetRules) {
+      setTargetingConfig((prev) => ({
+        ...prev,
+        enhancedTriggers: (recipeData.targetRules.enhancedTriggers as TargetingConfig["enhancedTriggers"]) || prev.enhancedTriggers,
+      }));
+    }
+    // Move to editor step
+    setStep("editor");
+    setExpandedSections(["design"]);
+    // Auto-save on recipe select
+    onSave({
+      name: variant.name,
+      recipe,
+      templateType: recipe.templateType as TemplateType,
+      contentConfig: recipeData.contentConfig as Partial<ContentConfig>,
+      designConfig: recipeData.designConfig as Partial<DesignConfig>,
+      discountConfig: recipeData.discountConfig && "enabled" in recipeData.discountConfig
+        ? recipeData.discountConfig as DiscountConfig
+        : discountConfig,
+      targetingConfig,
+      frequencyConfig,
+      scheduleConfig,
+    });
+  }, [onSave, variant.name, discountConfig, targetingConfig, frequencyConfig, scheduleConfig]);
+
+  // Legacy handler for FormSections (when changing recipe in editor)
   const handleRecipeSelect = useCallback((recipe: StyledRecipe) => {
     setSelectedRecipe(recipe);
     setContentConfig(recipe.defaults.contentConfig || {});
     setDesignConfig(recipe.defaults.designConfig || {});
     markComplete("recipe", "design");
-    // Auto-save on recipe select
     onSave({
       name: variant.name,
       recipe,
@@ -176,6 +225,17 @@ export function VariantCampaignEditor({
     });
   }, [markComplete, onSave, variant.name, discountConfig, targetingConfig, frequencyConfig, scheduleConfig]);
 
+  // Back handler that respects the step
+  const handleBack = useCallback(() => {
+    if (step === "editor") {
+      // Go back to recipe selection
+      setStep("recipe");
+    } else if (onBack) {
+      // Go back to variant list
+      onBack();
+    }
+  }, [step, onBack]);
+
   const saveCurrentState = useCallback(() => {
     if (selectedRecipe) {
       onSave(buildCampaignData());
@@ -183,8 +243,36 @@ export function VariantCampaignEditor({
   }, [selectedRecipe, buildCampaignData, onSave]);
 
   const templateType = selectedRecipe?.templateType as TemplateType | undefined;
-  const sectionsToShow = isControlVariant ? SECTIONS : VARIANT_SECTIONS;
+  const sectionsToShow = isControlVariant ? EDITOR_SECTIONS : VARIANT_SECTIONS;
 
+  // =============================================================================
+  // STEP 1: RECIPE SELECTION
+  // =============================================================================
+  if (step === "recipe") {
+    const variantLabel = isControlVariant ? "Control (A)" : `Variant ${variant.name}`;
+    return (
+      <Page
+        title={`Choose a Recipe for ${variantLabel}`}
+        subtitle="Select a pre-designed popup template for this variant"
+        backAction={onBack ? { onAction: onBack, content: "Back" } : undefined}
+        fullWidth
+      >
+        <RecipeSelectionStep
+          recipes={recipes}
+          onRecipeSelected={handleRecipeSelected}
+          onBuildFromScratch={undefined}
+          storeId={storeId}
+          defaultThemeTokens={defaultThemeTokens}
+          restrictToGoal={!isControlVariant && controlGoal ? controlGoal as CampaignGoal : undefined}
+          variantLabel={variantLabel}
+        />
+      </Page>
+    );
+  }
+
+  // =============================================================================
+  // STEP 2: CAMPAIGN EDITOR
+  // =============================================================================
   return (
     <div style={{ maxWidth: "1400px", margin: "0 auto", padding: "24px" }}>
       {/* Info banner for non-control variants */}
@@ -285,6 +373,24 @@ export function VariantCampaignEditor({
             globalFrequencyCapping={globalFrequencyCapping}
             onMobileLayoutChange={() => setPreviewDevice("mobile")}
           />
+
+          {/* Back to Variants button at the bottom */}
+          {onBackToVariants && (
+            <Box paddingBlockStart="600">
+              <Card>
+                <BlockStack gap="400">
+                  <Text as="p" variant="bodyMd" tone="subdued">
+                    Done configuring this variant? Go back to see all variants or configure another one.
+                  </Text>
+                  <InlineStack align="end">
+                    <Button onClick={onBackToVariants} variant="primary">
+                      ← Back to Variants
+                    </Button>
+                  </InlineStack>
+                </BlockStack>
+              </Card>
+            </Box>
+          )}
         </Layout.Section>
       </Layout>
     </div>

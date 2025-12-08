@@ -50,6 +50,12 @@ export function getSizeDimensions(
         maxWidth: "680px",
         maxHeight: "calc(100vh - 3rem)", // Large: for split layouts
       };
+    case "fullscreen":
+      return {
+        width: "100%",
+        maxWidth: "100%",
+        maxHeight: "100vh", // Fullscreen: takes entire viewport
+      };
     default:
       return {
         width: "100%",

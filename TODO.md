@@ -113,3 +113,52 @@ filtered = filtered.filter(c => !convertedCampaignIds.has(c.id));
 
 **Priority**: Medium - Currently client-side dismissal handles this partially, but server-side is more reliable.
 
+---
+
+## Tiered Discount UX Issue
+
+### Problem: Users can miss higher discount tiers after dismissing popup
+
+**Scenario**:
+1. User has $40 cart, next tier is at $50 (15% off)
+2. Popup shows progress: "Spend $10 more to unlock 15% OFF!"
+3. User dismisses/closes the popup
+4. User adds more items later, reaching $60
+5. **Problem**: User never sees they now qualify for a better tier (or any tier)
+
+**Current behavior**:
+- Discount code is issued when user clicks CTA (e.g., "Resume Checkout")
+- Code is selected based on cart value at issuance time
+- Once popup is dismissed, it won't re-show (frequency capping)
+- Even a persistent progress bar can be dismissed
+
+**Possible solutions to explore**:
+
+1. **Tiered Progress Bar** (like Free Shipping bar)
+   - Always visible, live cart updates
+   - Issue code on "Claim" button click
+   - Problem: User can still dismiss it
+
+2. **Re-trigger on tier threshold crossing**
+   - Track cart value, re-show popup when crossing a new tier
+   - Problem: Can feel pushy/annoying
+
+3. **Cart drawer integration**
+   - Show tier progress inside cart drawer (less dismissible)
+   - Problem: Requires theme integration
+
+4. **Checkout-time tier evaluation**
+   - Don't issue code until checkout
+   - Evaluate best tier at that moment
+   - Problem: Less urgency/engagement
+
+5. **"Undismissible" mini-widget**
+   - Small floating indicator showing current tier status
+   - Less intrusive than full bar
+   - Always visible, cannot be fully dismissed
+
+**Key insight**: The core tension is between:
+- **Respect user intent** (they dismissed it, leave them alone)
+- **Maximize conversion** (show them they unlocked a better deal)
+
+**Priority**: Low - Need to think through UX implications before implementing.

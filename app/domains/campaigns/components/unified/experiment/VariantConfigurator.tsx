@@ -6,8 +6,9 @@
  */
 
 import { useCallback } from "react";
-import { InlineStack, Text, Button, Banner } from "@shopify/polaris";
-import { ArrowLeftIcon, PlusIcon } from "@shopify/polaris-icons";
+import { InlineStack, Text, Button, Banner, Popover, ActionList } from "@shopify/polaris";
+import { ArrowLeftIcon, PlusIcon, DeleteIcon, MenuHorizontalIcon } from "@shopify/polaris-icons";
+import { useState } from "react";
 import { VariantCampaignEditor } from "./VariantCampaignEditor";
 import type { StyledRecipe } from "../../../recipes/styled-recipe-types";
 import type { Experiment, Variant } from "../types";
@@ -20,6 +21,8 @@ export interface VariantConfiguratorProps {
   onVariantChange: (variantId: string) => void;
   onVariantUpdate: (variant: Variant) => void;
   onAddVariant: () => void;
+  /** Callback to delete a variant (only non-control variants can be deleted) */
+  onDeleteVariant?: (variantId: string) => void;
   recipes: StyledRecipe[];
   storeId: string;
   shopDomain?: string;
@@ -33,6 +36,7 @@ export function VariantConfigurator({
   onVariantChange,
   onVariantUpdate,
   onAddVariant,
+  onDeleteVariant,
   recipes,
   storeId,
   shopDomain,
@@ -77,6 +81,7 @@ export function VariantConfigurator({
         onBack={onBack}
         onVariantChange={onVariantChange}
         onAddVariant={onAddVariant}
+        onDeleteVariant={onDeleteVariant}
       />
 
       {/* Embedded campaign editor for active variant */}
@@ -90,6 +95,7 @@ export function VariantConfigurator({
         onSave={handleSave}
         isControlVariant={activeVariant.isControl}
         controlGoal={controlGoal}
+        onBackToVariants={onBack}
       />
     </div>
   );
@@ -105,6 +111,7 @@ interface VariantTabsHeaderProps {
   onBack: () => void;
   onVariantChange: (variantId: string) => void;
   onAddVariant: () => void;
+  onDeleteVariant?: (variantId: string) => void;
 }
 
 function VariantTabsHeader({
@@ -113,7 +120,10 @@ function VariantTabsHeader({
   onBack,
   onVariantChange,
   onAddVariant,
+  onDeleteVariant,
 }: VariantTabsHeaderProps) {
+  const [popoverActiveId, setPopoverActiveId] = useState<string | null>(null);
+
   return (
     <div
       style={{
@@ -140,15 +150,46 @@ function VariantTabsHeader({
 
           <InlineStack gap="200">
             {variants.map((v) => (
-              <Button
-                key={v.id}
-                variant={v.id === activeVariantId ? "primary" : "secondary"}
-                onClick={() => onVariantChange(v.id)}
-                size="slim"
-              >
-                {v.isControl ? `${v.name} (Control)` : v.name}{" "}
-                {v.status === "configured" ? "✓" : ""}
-              </Button>
+              <InlineStack key={v.id} gap="100" blockAlign="center">
+                <Button
+                  variant={v.id === activeVariantId ? "primary" : "secondary"}
+                  onClick={() => onVariantChange(v.id)}
+                  size="slim"
+                >
+                  {v.isControl ? `${v.name} (Control)` : v.name}{" "}
+                  {v.status === "configured" ? "✓" : ""}
+                </Button>
+                {/* Delete button for non-control variants */}
+                {!v.isControl && onDeleteVariant && variants.length > 2 && (
+                  <Popover
+                    active={popoverActiveId === v.id}
+                    activator={
+                      <Button
+                        icon={MenuHorizontalIcon}
+                        variant="tertiary"
+                        size="slim"
+                        onClick={() => setPopoverActiveId(popoverActiveId === v.id ? null : v.id)}
+                        accessibilityLabel={`Options for ${v.name}`}
+                      />
+                    }
+                    onClose={() => setPopoverActiveId(null)}
+                  >
+                    <ActionList
+                      items={[
+                        {
+                          content: `Delete ${v.name}`,
+                          icon: DeleteIcon,
+                          destructive: true,
+                          onAction: () => {
+                            setPopoverActiveId(null);
+                            onDeleteVariant(v.id);
+                          },
+                        },
+                      ]}
+                    />
+                  </Popover>
+                )}
+              </InlineStack>
             ))}
             {variants.length < 4 && (
               <Button icon={PlusIcon} onClick={onAddVariant} size="slim" variant="tertiary" />

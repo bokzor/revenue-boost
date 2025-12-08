@@ -59,9 +59,10 @@ export function CustomEventTrigger({ config, onChange }: CustomEventTriggerProps
           autoComplete="off"
           label="Debounce time (milliseconds)"
           type="number"
-          value={config.custom_event?.debounce_time?.toString() || "100"}
-          onChange={(value) => updateConfig({ debounce_time: parseInt(value) || 100 })}
+          value={config.custom_event?.debounce_time?.toString() ?? ""}
+          onChange={(value) => updateConfig({ debounce_time: value === "" ? undefined : parseInt(value) })}
           helpText="Delay between event triggers to prevent excessive firing"
+          placeholder="100"
         />
       </FormLayout>
     </TriggerCard>

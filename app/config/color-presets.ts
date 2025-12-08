@@ -33,9 +33,6 @@ export type NewsletterThemeKey =
   // Generic themes
   | "modern"
   | "minimal"
-  | "elegant"
-  | "bold"
-  | "glass"
   | "dark"
   | "gradient"
   | "luxury"
@@ -135,79 +132,6 @@ export const NEWSLETTER_THEMES: Record<NewsletterThemeKey, ThemeColors> = {
     descriptionFontSize: "0.875rem",
     descriptionFontWeight: "400",
   },
-  elegant: {
-    background: "#fefce8",
-    text: "#44403c",
-    primary: "#a855f7",
-    secondary: "#fef3c7",
-    accent: "#f3e8ff",
-    border: "#e7e5e4",
-    success: "#a855f7",
-    warning: "#dc2626",
-    imageBg: "#fef3c7",
-    descColor: "#78716c",
-    // Typography
-    fontFamily: "serif",
-    titleFontSize: "1.875rem",
-    titleFontWeight: "700",
-    descriptionFontSize: "1rem",
-    descriptionFontWeight: "400",
-    inputBorder: "#e7e5e4",
-    timerBg: "rgba(168, 85, 247, 0.1)",
-    timerText: "#a855f7",
-    ctaBg: "#a855f7",
-    ctaText: "#ffffff",
-  },
-  bold: {
-    background: "linear-gradient(135deg, #ec4899 0%, #f59e0b 100%)",
-    text: "#ffffff",
-    primary: "#fde68a",
-    secondary: "rgba(255, 255, 255, 0.2)",
-    accent: "#fde68a",
-    border: "rgba(255, 255, 255, 0.3)",
-    success: "#10b981",
-    warning: "#fca5a5",
-    imageBg: "rgba(255, 255, 255, 0.15)",
-    descColor: "#fef3c7",
-    inputBorder: "rgba(255, 255, 255, 0.3)",
-    inputTextColor: "#ffffff",
-    timerBg: "rgba(255, 255, 255, 0.25)",
-    timerText: "#ffffff",
-    ctaBg: "#ffffff",
-    ctaText: "#ec4899",
-    // Typography
-    fontFamily: "inherit",
-    titleFontSize: "2rem",
-    titleFontWeight: "900",
-    descriptionFontSize: "1rem",
-    descriptionFontWeight: "500",
-  },
-  glass: {
-    background: "rgba(255, 255, 255, 0.7)",
-    text: "#18181b",
-    primary: "#6366f1",
-    secondary: "rgba(255, 255, 255, 0.5)",
-    accent: "rgba(99, 102, 241, 0.1)",
-    border: "rgba(255, 255, 255, 0.3)",
-    success: "#10b981",
-    warning: "#ef4444",
-    imageBg: "rgba(244, 244, 245, 0.8)",
-    descColor: "#52525b",
-    inputBorder: "rgba(212, 212, 216, 0.5)",
-    timerBg: "rgba(99, 102, 241, 0.15)",
-    timerText: "#6366f1",
-    ctaBg: "#6366f1",
-    ctaText: "#ffffff",
-    blur: true,
-    // Typography
-    fontFamily: "inherit",
-    titleFontSize: "1.875rem",
-    titleFontWeight: "700",
-    descriptionFontSize: "1rem",
-    descriptionFontWeight: "400",
-    // Input styling
-    inputBackdropFilter: "blur(10px)",
-  },
   dark: {
     background: "#111827",
     text: "#f9fafb",
@@ -274,7 +198,7 @@ export const NEWSLETTER_THEMES: Record<NewsletterThemeKey, ThemeColors> = {
     ctaBg: "#d4af37",
     ctaText: "#1a1a0a",
     // Typography
-    fontFamily: "serif",
+    fontFamily: "'Playfair Display', Georgia, serif",
     titleFontSize: "1.875rem",
     titleFontWeight: "700",
     descriptionFontSize: "1rem",
@@ -502,16 +426,6 @@ export function getSpinToWinSliceColors(theme: NewsletterThemeKey, sliceCount: n
   const themeMap: Record<NewsletterThemeKey, string[]> = {
     modern: ["#3b82f6", "#2563eb", "#1d4ed8", "#1e40af", "#1e3a8a", "#60a5fa"],
     minimal: ["#6b7280", "#4b5563", "#374151", "#1f2937", "#9ca3af", "#d1d5db"],
-    elegant: ["#be185d", "#9f1239", "#831843", "#701a40", "#ec4899", "#f9a8d4"],
-    bold: ["#dc2626", "#ea580c", "#d97706", "#ca8a04", "#eab308", "#84cc16"],
-    glass: [
-      "rgba(59, 130, 246, 0.5)",
-      "rgba(99, 102, 241, 0.5)",
-      "rgba(139, 92, 246, 0.5)",
-      "rgba(168, 85, 247, 0.5)",
-      "rgba(236, 72, 153, 0.5)",
-      "rgba(244, 114, 182, 0.5)",
-    ],
     dark: ["#3b82f6", "#8b5cf6", "#ec4899", "#ef4444", "#f59e0b", "#10b981"],
     gradient: ["#a855f7", "#9333ea", "#7e22ce", "#6b21a8", "#581c87", "#c084fc"],
     luxury: ["#d97706", "#b45309", "#92400e", "#78350f", "#ca8a04", "#f59e0b"],
@@ -549,9 +463,6 @@ export interface SpinToWinWheelBorder {
 const SPIN_TO_WIN_WHEEL_BORDER_DEFAULTS: Record<NewsletterThemeKey, SpinToWinWheelBorder> = {
   modern: { color: "#3b82f6", width: 3 },
   minimal: { color: "#d4d4d8", width: 2 },
-  elegant: { color: "#a855f7", width: 3 },
-  bold: { color: "#ffffff", width: 4 },
-  glass: { color: "rgba(99, 102, 241, 0.4)", width: 2 },
   dark: { color: "#3b82f6", width: 3 },
   gradient: { color: "#ffffff", width: 3 },
   luxury: { color: "#d4af37", width: 3 },
@@ -890,7 +801,7 @@ export function getNewsletterThemePresets(): ColorPreset[] {
     description: getNewsletterThemeDescription(key as NewsletterThemeKey),
     colors: themeColorsToDesignConfig(theme),
     theme: getColorThemeForNewsletterTheme(key as NewsletterThemeKey),
-    isPopular: ["modern", "minimal", "elegant", "glass"].includes(key),
+    isPopular: ["modern", "minimal", "dark", "luxury"].includes(key),
   }));
 }
 
@@ -901,9 +812,6 @@ function getColorThemeForNewsletterTheme(theme: NewsletterThemeKey): ColorTheme 
   const mapping: Record<NewsletterThemeKey, ColorTheme> = {
     modern: "professional",
     minimal: "minimal",
-    elegant: "elegant",
-    bold: "vibrant",
-    glass: "minimal",
     dark: "dark",
     gradient: "vibrant",
     luxury: "elegant",
@@ -927,9 +835,6 @@ function getNewsletterThemeDescription(theme: NewsletterThemeKey): string {
   const descriptions: Record<NewsletterThemeKey, string> = {
     modern: "Clean black & white",
     minimal: "Ultra-light, subtle accents",
-    elegant: "Warm yellow tones",
-    bold: "Vibrant gradient",
-    glass: "Glassmorphism with blur",
     dark: "Dark mode optimized",
     gradient: "Purple gradient background",
     luxury: "Gold on black, premium feel",

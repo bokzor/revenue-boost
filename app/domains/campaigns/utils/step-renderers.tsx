@@ -64,6 +64,8 @@ export interface StepRendererProps {
    * Loaded once from recipe service, filtered by current layout in components.
    */
   backgroundsByLayout?: Record<string, BackgroundPreset[]>;
+  /** Default theme tokens for preview (from store's default preset or Shopify theme) */
+  defaultThemeTokens?: import("~/domains/campaigns/types/design-tokens").DesignTokens;
 }
 // ============================================================================
 // STEP RENDERERS
@@ -106,6 +108,7 @@ export function renderDesignStep(props: StepRendererProps) {
     initialTemplates,
     customThemePresets,
     backgroundsByLayout,
+    defaultThemeTokens,
   } = props;
   const { globalCustomCSS } = props;
 
@@ -154,6 +157,7 @@ export function renderDesignStep(props: StepRendererProps) {
       globalCustomCSS={globalCustomCSS}
       customThemePresets={customThemePresets}
       backgroundsByLayout={backgroundsByLayout}
+      defaultThemeTokens={defaultThemeTokens}
       onContentChange={(content) => updateData({ contentConfig: content })}
       onDesignChange={(design) => updateData({ designConfig: design })}
       onDiscountChange={(config) => updateData({ discountConfig: config })}

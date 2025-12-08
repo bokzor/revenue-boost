@@ -17,6 +17,10 @@ import type {
   QuickInput,
   RecipeTag,
 } from "./styled-recipe-types";
+import {
+  getThemeModeForRecipeType,
+  getPresetIdForRecipe,
+} from "./styled-recipe-types";
 import { FLASH_SALE_DESIGN_RECIPES } from "./flash-sale-design-recipes";
 import { NEWSLETTER_DESIGN_RECIPES } from "./newsletter-design-recipes";
 import { SCRATCH_CARD_DESIGN_RECIPES } from "./scratch-card-design-recipes";
@@ -33,6 +37,10 @@ function createBuildFunction(
   return (context: RecipeContext): RecipeOutput => {
     const defaults = recipe.defaults;
     const theme = context.selectedTheme || recipe.theme;
+
+    // Determine theme mode based on recipe type
+    const themeMode = getThemeModeForRecipeType(recipe.recipeType);
+    const presetId = themeMode === "preset" ? getPresetIdForRecipe(recipe.id) : undefined;
 
     // Merge context values into content config
     // Cast to Record to allow dynamic property access since contentConfig is a union type
@@ -79,6 +87,8 @@ function createBuildFunction(
       designConfig,
       discountConfig,
       targetRules: defaults.targetRules,
+      themeMode,
+      presetId,
     };
   };
 }

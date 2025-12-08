@@ -20,24 +20,32 @@
 import React, { useState, useCallback, useMemo } from "react";
 import { data, type LoaderFunctionArgs } from "react-router";
 import { useLoaderData, useNavigate, useSearchParams } from "react-router";
-import { Page, Modal, BlockStack, Text, Card, TextField, RangeSlider, Select, Banner, Divider } from "@shopify/polaris";
+import { Page, Modal, BlockStack, Text, Card, TextField, RangeSlider, Select, Banner, Divider, Box } from "@shopify/polaris";
 
 import { authenticate } from "~/shopify.server";
 import { RecipePicker } from "~/domains/campaigns/components/recipes";
+import { GoalFilter } from "~/domains/campaigns/components/goals/GoalFilter";
 import { STYLED_RECIPES } from "~/domains/campaigns/recipes/styled-recipe-catalog";
 import { NEWSLETTER_THEMES, type NewsletterThemeKey } from "~/config/color-presets";
 import { getBackgroundById, getBackgroundUrl } from "~/config/background-presets";
 import { GenericDiscountComponent } from "~/domains/campaigns/components/form/GenericDiscountComponent";
 import { ProductPicker } from "~/domains/campaigns/components/form/ProductPicker";
-import type {
-  StyledRecipe,
-  RecipeContext,
-  QuickInput,
+import {
+  getThemeModeForRecipeType,
+  getPresetIdForRecipe,
+  type StyledRecipe,
+  type RecipeContext,
+  type QuickInput,
 } from "~/domains/campaigns/recipes/styled-recipe-types";
 import type { CampaignGoal, DiscountConfig } from "~/domains/campaigns/types/campaign";
+import type { DesignTokens } from "~/domains/campaigns/types/design-tokens";
+import { getDefaultPreset, presetToDesignTokens, type ThemePresetInput } from "~/domains/store/types/theme-preset";
+import { StoreSettingsSchema } from "~/domains/store/types/settings";
+import db from "~/db.server";
 
 interface LoaderData {
   recipes: StyledRecipe[];
+  defaultThemeTokens?: DesignTokens;
 }
 
 // =============================================================================
@@ -45,10 +53,33 @@ interface LoaderData {
 // =============================================================================
 
 export async function loader({ request }: LoaderFunctionArgs) {
-  await authenticate.admin(request);
+  const { session } = await authenticate.admin(request);
+
+  // Fetch store settings to get default theme tokens
+  let defaultThemeTokens: DesignTokens | undefined;
+
+  try {
+    const store = await db.store.findFirst({
+      where: { shopifyDomain: session.shop },
+    });
+
+    if (store?.settings) {
+      const parsedSettings = StoreSettingsSchema.safeParse(store.settings);
+      if (parsedSettings.success) {
+        const presets = parsedSettings.data.customThemePresets as ThemePresetInput[] | undefined;
+        const defaultPreset = presets ? getDefaultPreset(presets) : undefined;
+        if (defaultPreset) {
+          defaultThemeTokens = presetToDesignTokens(defaultPreset) as DesignTokens;
+        }
+      }
+    }
+  } catch (error) {
+    console.error("Error fetching default theme tokens:", error);
+  }
 
   return data<LoaderData>({
     recipes: STYLED_RECIPES,
+    defaultThemeTokens,
   });
 }
 
@@ -57,7 +88,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 // =============================================================================
 
 export default function RecipeCampaignCreation() {
-  const { recipes } = useLoaderData<typeof loader>();
+  const { recipes, defaultThemeTokens } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
@@ -66,11 +97,32 @@ export default function RecipeCampaignCreation() {
   const restrictToGoal = searchParams.get("restrictToGoal") as CampaignGoal | null;
   const variantLabel = searchParams.get("variantLabel");
 
-  // Filter recipes by goal if restricted (for A/B experiments)
+  // Goal filter state (user-selected goal for filtering, null = all)
+  const [selectedGoal, setSelectedGoal] = useState<CampaignGoal | null>(null);
+
+  // Calculate recipe counts per goal (for GoalFilter badges)
+  const recipeCounts = useMemo(() => {
+    const counts: Record<CampaignGoal, number> = {
+      NEWSLETTER_SIGNUP: 0,
+      INCREASE_REVENUE: 0,
+      ENGAGEMENT: 0,
+    };
+    recipes.forEach((r) => {
+      if (counts[r.goal as CampaignGoal] !== undefined) {
+        counts[r.goal as CampaignGoal]++;
+      }
+    });
+    return counts;
+  }, [recipes]);
+
+  // Effective goal filter: restrictToGoal (from A/B experiment) takes precedence over user selection
+  const effectiveGoal = restrictToGoal || selectedGoal;
+
+  // Filter recipes by goal (for A/B experiments or user selection)
   const filteredRecipes = useMemo(() => {
-    if (!restrictToGoal) return recipes;
-    return recipes.filter((r) => r.goal === restrictToGoal);
-  }, [recipes, restrictToGoal]);
+    if (!effectiveGoal) return recipes;
+    return recipes.filter((r) => r.goal === effectiveGoal);
+  }, [recipes, effectiveGoal]);
 
   // Modal state
   const [selectedRecipe, setSelectedRecipe] = useState<StyledRecipe | null>(null);
@@ -143,9 +195,15 @@ export default function RecipeCampaignCreation() {
     const ctaConfig = contentConfig.cta as Record<string, unknown> | undefined;
     if (discountConfig?.bogo?.get?.ids?.length && ctaConfig) {
       const firstBogoProductId = discountConfig.bogo.get.ids[0];
+      const firstBogoVariantId = discountConfig.bogo.get.variantIds?.[0];
+      const firstBogoProductHandle = discountConfig.bogo.get.productHandles?.[0];
       contentConfig.cta = {
         ...ctaConfig,
         productId: firstBogoProductId,
+        // Include variantId for add-to-cart functionality
+        ...(firstBogoVariantId && { variantId: firstBogoVariantId }),
+        // Include productHandle for navigation
+        ...(firstBogoProductHandle && { productHandle: firstBogoProductHandle }),
       };
     }
 
@@ -201,23 +259,36 @@ export default function RecipeCampaignCreation() {
        selectedRecipe.layout === "fullscreen" ? "full" :
        selectedRecipe.layout === "split-right" ? "right" : "left");
 
+    // Determine theme mode based on recipe type
+    const recipeThemeMode = getThemeModeForRecipeType(selectedRecipe.recipeType);
+    const recipePresetId = recipeThemeMode === "preset" ? getPresetIdForRecipe(selectedRecipe.id) : undefined;
+
+    // Build design config - only apply hardcoded colors for "preset" mode recipes
+    // For "default" mode, let the preview and storefront use the store's default theme
     const designConfig = {
       theme,
       layout: selectedRecipe.layout,
       position: selectedRecipe.defaults.designConfig?.position || "center",
       size: selectedRecipe.defaults.designConfig?.size || "medium",
-      backgroundColor: themeColors.background,
-      textColor: themeColors.text,
-      primaryColor: themeColors.primary,
-      accentColor: themeColors.primary,
-      buttonColor: themeColors.ctaBg || themeColors.primary,
-      buttonTextColor: themeColors.ctaText || "#FFFFFF",
       backgroundImageMode,
       backgroundImagePresetKey,
       imageUrl,
       imagePosition,
       backgroundOverlayOpacity: 0.6,
       ...selectedRecipe.defaults.designConfig,
+      // Only apply preset colors when using "preset" mode (inspiration/seasonal recipes)
+      // For "default" mode, colors will be derived from the store's default theme
+      ...(recipeThemeMode === "preset" ? {
+        backgroundColor: themeColors.background,
+        textColor: themeColors.text,
+        primaryColor: themeColors.primary,
+        accentColor: themeColors.primary,
+        buttonColor: themeColors.ctaBg || themeColors.primary,
+        buttonTextColor: themeColors.ctaText || "#FFFFFF",
+      } : {}),
+      // Theme mode for the new design token system
+      themeMode: recipeThemeMode,
+      presetId: recipePresetId,
     };
 
     // Build discount config - prioritize:
@@ -407,7 +478,7 @@ export default function RecipeCampaignCreation() {
       fullWidth={true}
       backAction={backAction}
     >
-      <BlockStack gap="400">
+      <BlockStack gap="600">
         {/* A/B Experiment mode banner */}
         {restrictToGoal && (
           <Banner tone="info">
@@ -420,6 +491,18 @@ export default function RecipeCampaignCreation() {
           </Banner>
         )}
 
+        {/* Goal Filter - only show when not in A/B experiment mode */}
+        {!restrictToGoal && (
+          <Card>
+            <GoalFilter
+              value={selectedGoal}
+              onChange={setSelectedGoal}
+              recipeCounts={recipeCounts}
+              totalRecipes={recipes.length}
+            />
+          </Card>
+        )}
+
         <RecipePicker
           recipes={filteredRecipes}
           selectedRecipeId={selectedRecipe?.id}
@@ -427,6 +510,8 @@ export default function RecipeCampaignCreation() {
           onBuildFromScratch={returnTo ? undefined : handleBuildFromScratch}
           showPreviews={true}
           hoverPreviewEnabled={false}
+          defaultThemeTokens={defaultThemeTokens}
+          selectedGoal={effectiveGoal}
         />
       </BlockStack>
 

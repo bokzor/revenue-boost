@@ -223,6 +223,70 @@ export const TEMPLATE_DESIGN_CAPABILITIES: Record<TemplateType, DesignCapabiliti
     supportsPosition: ["top", "bottom"],
     supportsSize: [], // Full-width banner, size not applicable
   },
+
+  // =============================================================================
+  // NEW UPSELL POPUP TEMPLATES
+  // =============================================================================
+
+  // Classic centered modal for single product upsells
+  CLASSIC_UPSELL: {
+    usesButtons: true,
+    usesInputs: false,
+    usesOverlay: true,
+    usesImage: true,
+    usesTypographyAdvanced: false,
+    usesAccent: true,
+    usesSuccessWarning: false,
+    supportsPosition: ["center"],
+    supportsSize: ["small", "medium", "large"],
+    supportedImagePositions: ["left", "right", "none"],
+    usesLayout: false, // Fixed layout
+  },
+
+  // Minimal slide-up bottom sheet for mobile
+  MINIMAL_SLIDE_UP: {
+    usesButtons: true,
+    usesInputs: false,
+    usesOverlay: true,
+    usesImage: true,
+    usesTypographyAdvanced: false,
+    usesAccent: true,
+    usesSuccessWarning: false,
+    supportsPosition: ["bottom"],
+    supportsSize: ["small", "medium"],
+    supportedImagePositions: ["left", "none"],
+    usesLayout: false, // Fixed bottom sheet layout
+  },
+
+  // Premium fullscreen takeover for high-value products
+  PREMIUM_FULLSCREEN: {
+    usesButtons: true,
+    usesInputs: false,
+    usesOverlay: true,
+    usesImage: true,
+    usesTypographyAdvanced: true,
+    usesAccent: true,
+    usesSuccessWarning: false,
+    supportsPosition: ["center"],
+    supportsSize: ["large"],
+    supportedImagePositions: ["left", "right", "full"],
+    usesLayout: false, // Fixed fullscreen layout
+  },
+
+  // Countdown urgency with timer
+  COUNTDOWN_URGENCY: {
+    usesButtons: true,
+    usesInputs: false,
+    usesOverlay: true,
+    usesImage: true,
+    usesTypographyAdvanced: false,
+    usesAccent: true,
+    usesSuccessWarning: true, // Uses warning colors for urgency
+    supportsPosition: ["center"],
+    supportsSize: ["medium", "large"],
+    supportedImagePositions: ["left", "right", "none"],
+    usesLayout: false, // Fixed countdown layout
+  },
 };
 
 /**

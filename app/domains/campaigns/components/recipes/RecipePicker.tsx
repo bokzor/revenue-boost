@@ -27,6 +27,7 @@ import {
   type RecipeTag,
   type StyledRecipe,
 } from "../../recipes/styled-recipe-types";
+import type { DesignTokens } from "../../types/design-tokens";
 import { RecipeCard } from "./RecipeCard";
 import { PreviewProvider } from "./PreviewContext";
 
@@ -46,8 +47,7 @@ const INDUSTRY_TAGS: RecipeTag[] = [
 // Style tags for filtering
 const STYLE_TAGS: RecipeTag[] = [
   "minimal",
-  "bold",
-  "elegant",
+  "luxury",
   "warm",
   "dark",
   "modern",
@@ -78,6 +78,12 @@ export interface RecipePickerProps {
 
   /** Whether to show large preview on hover (default: true). When false, preview appears on click */
   hoverPreviewEnabled?: boolean;
+
+  /** Default theme tokens from store's default preset (for preview when themeMode is "default") */
+  defaultThemeTokens?: DesignTokens;
+
+  /** Filter recipes by goal (null = show all) */
+  selectedGoal?: string | null;
 }
 
 // =============================================================================
@@ -112,6 +118,8 @@ export function RecipePicker({
   onBuildFromScratch,
   showPreviews = true,
   hoverPreviewEnabled = true,
+  defaultThemeTokens,
+  selectedGoal = null,
 }: RecipePickerProps) {
   // Track selected category (null = all)
   const [selectedCategory, setSelectedCategory] = useState<RecipeCategory | "all">("all");
@@ -130,7 +138,13 @@ export function RecipePicker({
   // Clear all tag filters
   const clearTags = () => setSelectedTags([]);
 
-  // Group recipes by category
+  // Filter recipes by goal first (if a goal is selected)
+  const goalFilteredRecipes = useMemo(() => {
+    if (!selectedGoal) return recipes;
+    return recipes.filter((recipe) => recipe.goal === selectedGoal);
+  }, [recipes, selectedGoal]);
+
+  // Group recipes by category (respecting goal filter)
   const recipesByCategory = useMemo(() => {
     const grouped: Record<RecipeCategory, StyledRecipe[]> = {
       email_leads: [],
@@ -139,7 +153,7 @@ export function RecipePicker({
       announcements: [],
     };
 
-    recipes.forEach((recipe) => {
+    goalFilteredRecipes.forEach((recipe) => {
       if (grouped[recipe.category]) {
         grouped[recipe.category].push(recipe);
       }
@@ -156,14 +170,14 @@ export function RecipePicker({
     });
 
     return grouped;
-  }, [recipes]);
+  }, [goalFilteredRecipes]);
 
   // Get filtered recipes based on selected category AND tags
   const filteredRecipes = useMemo(() => {
     let result: StyledRecipe[];
 
     if (selectedCategory === "all") {
-      result = [...recipes];
+      result = [...goalFilteredRecipes];
     } else {
       result = recipesByCategory[selectedCategory] || [];
     }
@@ -181,7 +195,7 @@ export function RecipePicker({
       if (!a.featured && b.featured) return 1;
       return a.name.localeCompare(b.name);
     });
-  }, [selectedCategory, selectedTags, recipes, recipesByCategory]);
+  }, [selectedCategory, selectedTags, goalFilteredRecipes, recipesByCategory]);
 
   // Order of categories to display
   const categoryOrder: RecipeCategory[] = [
@@ -228,7 +242,7 @@ export function RecipePicker({
                     </Text>
                   </InlineStack>
                   <Text as="span" variant="bodySm" tone="subdued">
-                    {recipes.length}
+                    {goalFilteredRecipes.length}
                   </Text>
                 </InlineStack>
               </div>
@@ -393,6 +407,7 @@ export function RecipePicker({
                 showPreview={showPreviews}
                 hoverPreviewEnabled={hoverPreviewEnabled}
                 size="medium"
+                defaultThemeTokens={defaultThemeTokens}
               />
             ))}
           </InlineGrid>

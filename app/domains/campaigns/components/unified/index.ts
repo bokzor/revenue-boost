@@ -8,10 +8,11 @@
  */
 
 export { ModeSelector, type CreationMode } from "./ModeSelector";
-export { SingleCampaignFlow, type SingleCampaignFlowProps, type CampaignData } from "./SingleCampaignFlow";
+export { SingleCampaignFlow, type SingleCampaignFlowProps, type CampaignData, type DefaultThemeTokens } from "./SingleCampaignFlow";
 export { CollapsibleSection, type CollapsibleSectionProps } from "./CollapsibleSection";
 export { FormSections, type FormSectionsProps } from "./FormSections";
 export { ExperimentFlow, type ExperimentFlowProps } from "./ExperimentFlow";
+export { RecipeSelectionStep, type RecipeSelectionStepProps, type RecipeSelectionResult } from "./RecipeSelectionStep";
 
 // Re-export types from types.ts
 export type { Experiment, Variant, TrafficAllocation, SuccessMetric } from "./types";

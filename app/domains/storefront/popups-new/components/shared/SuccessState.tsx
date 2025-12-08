@@ -228,9 +228,9 @@ export const SuccessState: React.FC<SuccessStateProps> = ({
   copiedCode = false,
   discountLabel,
   icon,
-  accentColor = "#16a34a",
-  successColor = "#16a34a",
-  textColor = "#111827",
+  accentColor,
+  successColor,
+  textColor,
   descriptionColor: _descriptionColor, // Reserved for future use
   animation: _animation = "bounceIn",
   fontSize = "1.875rem",
@@ -238,10 +238,15 @@ export const SuccessState: React.FC<SuccessStateProps> = ({
   className,
   style,
 }) => {
+  // Use CSS variable with fallback to prop value for design token integration
+  const resolvedSuccessColor = successColor || "var(--rb-success, #16a34a)";
+  const resolvedAccentColor = accentColor || "var(--rb-primary, #16a34a)";
+  const resolvedTextColor = textColor || "var(--rb-foreground, #111827)";
+
   // Confetti colors based on accent
   const confettiColors = [
-    successColor,
-    accentColor,
+    resolvedSuccessColor,
+    resolvedAccentColor,
     "#fbbf24", // gold
     "#ec4899", // pink
     "#8b5cf6", // purple
@@ -253,13 +258,15 @@ export const SuccessState: React.FC<SuccessStateProps> = ({
     padding: "2rem 1rem",
     position: "relative",
     overflow: "hidden",
+    fontFamily: "var(--rb-font-family, inherit)",
     ...style,
   };
 
   const messageStyles: React.CSSProperties = {
     fontSize,
     fontWeight,
-    color: textColor,
+    fontFamily: "var(--rb-heading-font-family, var(--rb-font-family, inherit))",
+    color: resolvedTextColor,
     marginBottom: discountCode ? "1.5rem" : "0",
     lineHeight: 1.2,
     animation: "staggerFadeIn 0.5s ease-out 0.4s both",
@@ -294,8 +301,7 @@ export const SuccessState: React.FC<SuccessStateProps> = ({
         {icon || (
           <AnimatedCheckmark
             size={64}
-            color={successColor}
-            bgColor={`${successColor}20`}
+            color={resolvedSuccessColor}
           />
         )}
       </div>
@@ -312,7 +318,7 @@ export const SuccessState: React.FC<SuccessStateProps> = ({
             copied={copiedCode}
             label={discountLabel}
             variant="dashed"
-            accentColor={accentColor}
+            accentColor={resolvedAccentColor}
             size="md"
           />
         </div>

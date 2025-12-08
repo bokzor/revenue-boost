@@ -26,6 +26,12 @@ export interface StorefrontCampaign {
   templateType: TemplateType;
   contentConfig: Record<string, unknown>;
   designConfig: Record<string, unknown>;
+  /**
+   * Pre-resolved CSS custom properties for design tokens.
+   * Format: "--rb-background: #fff; --rb-primary: #000; ..."
+   * When present, applied as inline styles on the popup container.
+   */
+  designTokensCSS?: string;
   targetRules?: Record<string, unknown>;
   discountConfig?: Record<string, unknown>;
   experimentId?: string | null;
@@ -616,6 +622,9 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, tri
       id: campaign.id,
       campaignId: campaign.id,
       currentCartTotal,
+      // Design tokens as CSS custom properties (--rb-background, --rb-primary, etc.)
+      // This enables theme-aware styling without complex token resolution client-side
+      designTokensCSS: campaign.designTokensCSS,
       // Show "Powered by Revenue Boost" branding for free tier
       showBranding: campaign.showBranding,
       // Pass discount config if enabled

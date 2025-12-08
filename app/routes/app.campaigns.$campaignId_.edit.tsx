@@ -48,6 +48,7 @@ interface LoaderData {
   advancedTargetingEnabled: boolean;
   experimentsEnabled: boolean;
   backgroundsByLayout?: Record<string, import("~/config/background-presets").BackgroundPreset[]>;
+  defaultThemeTokens?: import("~/domains/campaigns/types/design-tokens").DesignTokens;
 }
 
 // ============================================================================
@@ -106,6 +107,33 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     );
     const backgroundsByLayout = await getBackgroundsByLayoutMap();
 
+    // Get default theme tokens for preview
+    // Priority: 1) Store's default theme preset, 2) Fallback to Shopify theme settings
+    const { getDefaultPreset, presetToDesignTokens } = await import(
+      "~/domains/store/types/theme-preset"
+    );
+    let defaultThemeTokens: import("~/domains/campaigns/types/design-tokens").DesignTokens | undefined;
+
+    // Try to get from store's default preset first
+    const customPresets = parsedSettings.success ? parsedSettings.data.customThemePresets : undefined;
+    if (customPresets && customPresets.length > 0) {
+      const defaultPreset = getDefaultPreset(customPresets);
+      if (defaultPreset) {
+        defaultThemeTokens = presetToDesignTokens(defaultPreset) as import("~/domains/campaigns/types/design-tokens").DesignTokens;
+      }
+    }
+
+    // Fallback: fetch from Shopify theme if no default preset
+    if (!defaultThemeTokens && session.shop && session.accessToken) {
+      const { fetchThemeSettings, themeSettingsToDesignTokens } = await import(
+        "~/lib/shopify/theme-settings.server"
+      );
+      const themeResult = await fetchThemeSettings(session.shop, session.accessToken);
+      if (themeResult.success && themeResult.settings) {
+        defaultThemeTokens = themeSettingsToDesignTokens(themeResult.settings);
+      }
+    }
+
     return data<LoaderData>({
       campaign,
       storeId,
@@ -116,6 +144,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       advancedTargetingEnabled,
       experimentsEnabled,
       backgroundsByLayout,
+      defaultThemeTokens,
     });
   } catch (error) {
     console.error("[Campaign Edit Loader] Failed to load campaign for editing:", error);
@@ -142,7 +171,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
 export default function CampaignEditPage() {
   console.log("[Campaign Edit Page] Component rendering");
-  const { campaign, storeId, shopDomain, globalCustomCSS, customThemePresets, globalFrequencyCapping, advancedTargetingEnabled, experimentsEnabled, backgroundsByLayout } =
+  const { campaign, storeId, shopDomain, globalCustomCSS, customThemePresets, globalFrequencyCapping, advancedTargetingEnabled, experimentsEnabled, backgroundsByLayout, defaultThemeTokens } =
     useLoaderData<typeof loader>();
   console.log("[Campaign Edit Page] Loaded data - campaign:", campaign?.id, "storeId:", storeId);
   const navigate = useNavigate();
@@ -378,6 +407,7 @@ export default function CampaignEditPage() {
         advancedTargetingEnabled={advancedTargetingEnabled}
         experimentsEnabled={experimentsEnabled}
         backgroundsByLayout={backgroundsByLayout}
+        defaultThemeTokens={defaultThemeTokens}
         onSave={handleSave}
         onCancel={handleCancel}
       />

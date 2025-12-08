@@ -73,10 +73,15 @@ export async function getStoreId(request: Request): Promise<string> {
     throw new Error("Could not resolve Shopify shop id to provision Store record");
   }
 
-  // Create store with default settings (global capping disabled to maximize impressions)
-  // Per-campaign frequency controls are still active
-  const created = await prisma.store.create({
-    data: {
+  // Use upsert to handle race conditions where multiple requests
+  // might try to create the store simultaneously
+  const upserted = await prisma.store.upsert({
+    where: { shopifyDomain: shopDomain },
+    update: {
+      // Only update access token if it's newer (store already exists)
+      accessToken: (session as { accessToken?: string }).accessToken ?? "",
+    },
+    create: {
       shopifyDomain: shopDomain,
       shopifyShopId: shopNumericId,
       accessToken: (session as { accessToken?: string }).accessToken ?? "",
@@ -101,7 +106,7 @@ export async function getStoreId(request: Request): Promise<string> {
     },
   });
 
-  return created.id;
+  return upserted.id;
 }
 
 /**

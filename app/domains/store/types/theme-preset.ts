@@ -14,12 +14,12 @@ import { getContrastingTextColor, hexToRgb } from "~/shared/utils/color-utilitie
 // ============================================================================
 
 /**
- * Simplified theme preset input schema
- * Merchants only need to configure 4-5 colors + font
+ * Theme preset input schema with all 12 design tokens
+ * Maps directly to the DesignTokens system (--rb-* CSS variables)
  */
 export const ThemePresetInputSchema = z.object({
-  /** Unique identifier for the preset */
-  id: z.string().uuid(),
+  /** Unique identifier for the preset (UUID or custom ID format) */
+  id: z.string().min(1),
 
   /** Human-readable name for the preset */
   name: z.string().min(1).max(50),
@@ -27,41 +27,56 @@ export const ThemePresetInputSchema = z.object({
   /** Optional description */
   description: z.string().max(200).optional(),
 
+  /** Whether this is the store's default theme */
+  isDefault: z.boolean().optional().default(false),
+
   // ============================================================================
-  // CORE COLORS (Required)
+  // COLORS (7 tokens) - Maps to DesignTokens
   // ============================================================================
 
-  /** Brand/Primary color - used for buttons, CTAs, accents, highlights */
-  brandColor: z.string().regex(/^#([A-Fa-f0-9]{6})$/, "Must be a valid hex color"),
-
-  /** Background color - popup background (solid color or CSS gradient) */
+  /** Background color - popup background (solid hex or CSS gradient) */
   backgroundColor: z.string().min(1),
 
-  /** Text color - headings and primary text */
+  /** Text color - primary text and headings (foreground) */
   textColor: z.string().regex(/^#([A-Fa-f0-9]{6})$/, "Must be a valid hex color"),
 
+  /** Muted color - secondary/description text (optional, derived from textColor) */
+  mutedColor: z.string().optional(),
+
+  /** Primary/Brand color - buttons, CTAs, accents */
+  brandColor: z.string().regex(/^#([A-Fa-f0-9]{6})$/, "Must be a valid hex color"),
+
+  /** Primary foreground - text color on primary/brand buttons */
+  primaryForegroundColor: z.string().regex(/^#([A-Fa-f0-9]{6})$/, "Must be a valid hex color").optional(),
+
+  /** Surface color - input fields, cards background */
+  surfaceColor: z.string().regex(/^#([A-Fa-f0-9]{6})$/, "Must be a valid hex color").optional(),
+
+  /** Border color - input borders, dividers */
+  borderColor: z.string().optional(),
+
+  /** Success color - success states */
+  successColor: z.string().regex(/^#([A-Fa-f0-9]{6})$/, "Must be a valid hex color").optional(),
+
   // ============================================================================
-  // OPTIONAL COLORS (With smart defaults)
+  // TYPOGRAPHY (2 tokens)
   // ============================================================================
 
-  /** Surface color - input fields, cards (default: derived from background) */
-  surfaceColor: z
-    .string()
-    .regex(/^#([A-Fa-f0-9]{6})$/, "Must be a valid hex color")
-    .optional(),
-
-  /** Success color - success states (default: #10B981) */
-  successColor: z
-    .string()
-    .regex(/^#([A-Fa-f0-9]{6})$/, "Must be a valid hex color")
-    .optional(),
-
-  // ============================================================================
-  // TYPOGRAPHY
-  // ============================================================================
-
-  /** Font family (default: "inherit") */
+  /** Body text font family */
   fontFamily: z.string().optional(),
+
+  /** Heading font family (optional, defaults to fontFamily) */
+  headingFontFamily: z.string().optional(),
+
+  // ============================================================================
+  // BORDER RADIUS (2 tokens)
+  // ============================================================================
+
+  /** Border radius for buttons and inputs (in pixels) */
+  borderRadius: z.number().min(0).max(50).optional(),
+
+  /** Border radius for the popup container (in pixels) */
+  popupBorderRadius: z.number().min(0).max(50).optional(),
 
   // ============================================================================
   // METADATA
@@ -167,9 +182,9 @@ function isBackgroundDark(backgroundColor: string): boolean {
 // ============================================================================
 
 /**
- * Expand a simplified theme preset into a full DesignConfig
+ * Expand a theme preset into a full DesignConfig
  *
- * This function takes the 4-5 colors that merchants configure and derives
+ * This function takes the 12 design tokens that merchants configure and derives
  * all 15+ design config properties using color theory and accessibility rules.
  *
  * Derivation rules:
@@ -184,9 +199,15 @@ export function expandThemePreset(preset: ThemePresetInput): Partial<DesignConfi
     brandColor,
     backgroundColor,
     textColor,
+    mutedColor,
+    primaryForegroundColor,
     surfaceColor,
+    borderColor,
     successColor,
     fontFamily,
+    headingFontFamily,
+    borderRadius,
+    popupBorderRadius,
   } = preset;
 
   const isDark = isBackgroundDark(backgroundColor);
@@ -195,18 +216,18 @@ export function expandThemePreset(preset: ThemePresetInput): Partial<DesignConfi
   const computedSurfaceColor =
     surfaceColor || (isDark ? lightenColor(extractSolidColor(backgroundColor), 10) : "#F3F4F6");
 
-  // Compute description color (muted version of text)
-  const descriptionColor = isDark
+  // Compute description/muted color if not provided
+  const descriptionColor = mutedColor || (isDark
     ? hexToRgba(textColor, 0.8)
-    : lightenColor(textColor, 40);
+    : lightenColor(textColor, 40));
 
-  // Compute input border color
-  const inputBorderColor = isDark
+  // Compute input border color if not provided
+  const inputBorderColor = borderColor || (isDark
     ? hexToRgba(textColor, 0.3)
-    : darkenColor(computedSurfaceColor, 15);
+    : darkenColor(computedSurfaceColor, 15));
 
-  // Auto-contrast for button text
-  const buttonTextColor = getContrastingTextColor(brandColor);
+  // Use provided button text color or auto-contrast
+  const buttonTextColor = primaryForegroundColor || getContrastingTextColor(brandColor);
 
   return {
     // Main colors
@@ -236,6 +257,12 @@ export function expandThemePreset(preset: ThemePresetInput): Partial<DesignConfi
 
     // Typography
     fontFamily: fontFamily || "inherit",
+    headlineFontFamily: headingFontFamily || fontFamily || "inherit",
+
+    // Border radius
+    borderRadius: borderRadius ?? 8,
+    buttonBorderRadius: borderRadius ?? 8,
+    inputBorderRadius: borderRadius ?? 8,
   };
 }
 
@@ -257,12 +284,23 @@ export function createEmptyThemePreset(overrides?: Partial<ThemePresetInput>): T
   return {
     id: generateUUID(),
     name: "",
-    brandColor: "#3B82F6",
+    isDefault: false,
+    // Colors
     backgroundColor: "#FFFFFF",
     textColor: "#111827",
+    mutedColor: undefined,
+    brandColor: "#3B82F6",
+    primaryForegroundColor: "#FFFFFF",
     surfaceColor: "#F3F4F6",
+    borderColor: undefined,
     successColor: "#10B981",
+    // Typography
     fontFamily: "inherit",
+    headingFontFamily: undefined,
+    // Border radius
+    borderRadius: 8,
+    popupBorderRadius: 16,
+    // Metadata
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     ...overrides,
@@ -283,6 +321,94 @@ export function parseThemePreset(data: unknown): ThemePresetInput | null {
 export function parseThemePresets(data: unknown): ThemePresetsArray {
   const result = ThemePresetsArraySchema.safeParse(data);
   return result.success ? result.data : [];
+}
+
+/**
+ * Get the default theme preset from a list of presets
+ * Returns the preset marked as default, or the first preset if none is marked
+ */
+export function getDefaultPreset(presets: ThemePresetsArray): ThemePresetInput | null {
+  if (presets.length === 0) return null;
+  const defaultPreset = presets.find((p) => p.isDefault);
+  return defaultPreset || presets[0];
+}
+
+/**
+ * Convert a ThemePresetInput to DesignTokens format
+ * This is used by the storefront API to generate CSS variables
+ */
+export function presetToDesignTokens(preset: ThemePresetInput): {
+  background: string;
+  foreground: string;
+  muted?: string;
+  primary: string;
+  primaryForeground: string;
+  surface?: string;
+  border?: string;
+  success: string;
+  fontFamily: string;
+  headingFontFamily?: string;
+  borderRadius: number;
+  popupBorderRadius: number;
+} {
+  const isDark = isBackgroundDark(preset.backgroundColor);
+
+  return {
+    background: preset.backgroundColor,
+    foreground: preset.textColor,
+    muted: preset.mutedColor,
+    primary: preset.brandColor,
+    primaryForeground: preset.primaryForegroundColor || getContrastingTextColor(preset.brandColor),
+    surface: preset.surfaceColor,
+    border: preset.borderColor,
+    success: preset.successColor || "#10B981",
+    fontFamily: preset.fontFamily || "system-ui, -apple-system, sans-serif",
+    headingFontFamily: preset.headingFontFamily,
+    borderRadius: preset.borderRadius ?? 8,
+    popupBorderRadius: preset.popupBorderRadius ?? 16,
+  };
+}
+
+/**
+ * Create a theme preset from Shopify theme settings
+ * Used during app installation to create the default theme
+ */
+export function createPresetFromShopifyTheme(
+  shopifyTheme: {
+    background?: string;
+    foreground?: string;
+    primary?: string;
+    primaryForeground?: string;
+    fontFamily?: string;
+    headingFontFamily?: string;
+    borderRadius?: number;
+  },
+  options?: { name?: string; isDefault?: boolean }
+): ThemePresetInput {
+  return {
+    id: `store-theme-${Date.now()}`,
+    name: options?.name || "Store Theme",
+    isDefault: options?.isDefault ?? true,
+    // Colors from Shopify theme
+    backgroundColor: shopifyTheme.background || "#FFFFFF",
+    textColor: shopifyTheme.foreground || "#111827",
+    brandColor: shopifyTheme.primary || "#3B82F6",
+    primaryForegroundColor: shopifyTheme.primaryForeground || "#FFFFFF",
+    // Derived colors (will be computed if not set)
+    mutedColor: undefined,
+    surfaceColor: undefined,
+    borderColor: undefined,
+    successColor: "#10B981",
+    // Typography from Shopify theme
+    fontFamily: shopifyTheme.fontFamily || "inherit",
+    headingFontFamily: shopifyTheme.headingFontFamily,
+    // Border radius from Shopify theme
+    borderRadius: shopifyTheme.borderRadius ?? 8,
+    popupBorderRadius: (shopifyTheme.borderRadius ?? 8) * 2,
+    // Metadata
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
 }
 
 /**

@@ -222,6 +222,7 @@ export function parseDesignConfig(jsonValue: unknown): DesignConfig {
   }
 
   return parseJsonField(sanitized, DesignConfigSchema, {
+    themeMode: "default",
     theme: "modern",
     position: "center",
     size: "medium",

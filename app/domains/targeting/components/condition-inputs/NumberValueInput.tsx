@@ -18,7 +18,17 @@ export function NumberValueInput({ value, onChange }: NumberValueInputProps) {
       labelHidden
       type="number"
       value={String(value)}
-      onChange={(val) => onChange(Number(val) || 0)}
+      onChange={(val) => {
+        // Allow empty string to clear field; only convert to number when value is provided
+        if (val === "") {
+          onChange(0);
+        } else {
+          const num = Number(val);
+          if (!isNaN(num)) {
+            onChange(num);
+          }
+        }
+      }}
       autoComplete="off"
       min={0}
     />

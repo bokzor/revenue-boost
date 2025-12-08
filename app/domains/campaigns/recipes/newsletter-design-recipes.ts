@@ -7,7 +7,7 @@
  * @see docs/design-recipes/NEWSLETTER_RECIPES_PLAN.md
  */
 
-import type { StyledRecipe, RecipeTag } from "./styled-recipe-types";
+import type { NewsletterRecipe, RecipeTag } from "./styled-recipe-types";
 
 // =============================================================================
 // HELPER: Common editable fields for newsletter recipes
@@ -63,7 +63,7 @@ const TRIGGER_INPUT = {
 // 1. ELEGANT LUXE (Fashion/Luxury)
 // =============================================================================
 
-const elegantLuxe: StyledRecipe = {
+const elegantLuxe: NewsletterRecipe = {
   id: "newsletter-elegant-luxe",
   name: "Elegant Luxe",
   tagline: "Join the Inner Circle",
@@ -72,6 +72,7 @@ const elegantLuxe: StyledRecipe = {
   category: "email_leads",
   goal: "NEWSLETTER_SIGNUP",
   templateType: "NEWSLETTER",
+  recipeType: "inspiration", // Artistic design - uses preset colors
   tags: [
     "fashion",
     "luxury",
@@ -146,7 +147,7 @@ const elegantLuxe: StyledRecipe = {
 // 2. STREET STYLE (Urban Fashion)
 // =============================================================================
 
-const streetStyle: StyledRecipe = {
+const streetStyle: NewsletterRecipe = {
   id: "newsletter-street-style",
   name: "Street Style",
   tagline: "DROP ALERTS",
@@ -155,6 +156,7 @@ const streetStyle: StyledRecipe = {
   category: "email_leads",
   goal: "NEWSLETTER_SIGNUP",
   templateType: "NEWSLETTER",
+  recipeType: "inspiration", // Artistic design - uses preset colors
   tags: ["fashion", "bold", "dark", "split", "early-access"] as RecipeTag[],
   component: "NewsletterSplit",
   theme: "street-style",
@@ -216,7 +218,7 @@ const streetStyle: StyledRecipe = {
 // 3. MINIMAL TECH (SaaS/Tech)
 // =============================================================================
 
-const minimalTech: StyledRecipe = {
+const minimalTech: NewsletterRecipe = {
   id: "newsletter-minimal-tech",
   name: "Minimal Tech",
   tagline: "Stay in the loop",
@@ -225,6 +227,7 @@ const minimalTech: StyledRecipe = {
   category: "email_leads",
   goal: "NEWSLETTER_SIGNUP",
   templateType: "NEWSLETTER",
+  recipeType: "use_case", // Functional design - inherits store theme
   tags: ["tech", "minimal", "modern", "centered", "no-incentive"] as RecipeTag[],
   component: "NewsletterMinimal",
   theme: "minimal-tech",
@@ -283,7 +286,7 @@ const minimalTech: StyledRecipe = {
 // 4. DARK MODE (Tech/Gaming)
 // =============================================================================
 
-const darkMode: StyledRecipe = {
+const darkMode: NewsletterRecipe = {
   id: "newsletter-dark-mode",
   name: "Dark Mode",
   tagline: "Join the Beta",
@@ -292,6 +295,7 @@ const darkMode: StyledRecipe = {
   category: "email_leads",
   goal: "NEWSLETTER_SIGNUP",
   templateType: "NEWSLETTER",
+  recipeType: "use_case", // Functional design - inherits store theme
   tags: ["tech", "dark", "modern", "centered", "early-access"] as RecipeTag[],
   component: "NewsletterMinimal",
   theme: "dark-mode",
@@ -350,7 +354,7 @@ const darkMode: StyledRecipe = {
 // 5. FRESH & ORGANIC (Food)
 // =============================================================================
 
-const freshOrganic: StyledRecipe = {
+const freshOrganic: NewsletterRecipe = {
   id: "newsletter-fresh-organic",
   name: "Fresh & Organic",
   tagline: "Farm Fresh Updates",
@@ -359,6 +363,7 @@ const freshOrganic: StyledRecipe = {
   category: "email_leads",
   goal: "NEWSLETTER_SIGNUP",
   templateType: "NEWSLETTER",
+  recipeType: "inspiration", // Artistic design - uses preset colors
   tags: ["food", "warm", "split", "free-shipping"] as RecipeTag[],
   component: "NewsletterSplit",
   theme: "fresh-organic",
@@ -421,7 +426,7 @@ const freshOrganic: StyledRecipe = {
 // 6. CAFE WARM (Coffee/Bakery)
 // =============================================================================
 
-const cafeWarm: StyledRecipe = {
+const cafeWarm: NewsletterRecipe = {
   id: "newsletter-cafe-warm",
   name: "Cafe Warm",
   tagline: "Start Your Morning Right",
@@ -430,6 +435,7 @@ const cafeWarm: StyledRecipe = {
   category: "email_leads",
   goal: "NEWSLETTER_SIGNUP",
   templateType: "NEWSLETTER",
+  recipeType: "inspiration", // Artistic design - uses preset colors
   tags: ["food", "warm", "hero", "free-gift"] as RecipeTag[],
   component: "NewsletterHero",
   theme: "cafe-warm",
@@ -490,7 +496,7 @@ const cafeWarm: StyledRecipe = {
 // 7. SOFT GLOW (Beauty)
 // =============================================================================
 
-const softGlow: StyledRecipe = {
+const softGlow: NewsletterRecipe = {
   id: "newsletter-soft-glow",
   name: "Soft Glow",
   tagline: "Unlock Your Glow",
@@ -499,6 +505,7 @@ const softGlow: StyledRecipe = {
   category: "email_leads",
   goal: "NEWSLETTER_SIGNUP",
   templateType: "NEWSLETTER",
+  recipeType: "inspiration", // Artistic design - uses preset colors
   tags: ["beauty", "elegant", "split", "discount"] as RecipeTag[],
   component: "NewsletterSplit",
   theme: "soft-glow",
@@ -566,7 +573,7 @@ const softGlow: StyledRecipe = {
 // 8. SPA SERENITY (Wellness)
 // =============================================================================
 
-const spaSerenity: StyledRecipe = {
+const spaSerenity: NewsletterRecipe = {
   id: "newsletter-spa-serenity",
   name: "Spa Serenity",
   tagline: "Find Your Balance",
@@ -576,6 +583,7 @@ const spaSerenity: StyledRecipe = {
   category: "email_leads",
   goal: "NEWSLETTER_SIGNUP",
   templateType: "NEWSLETTER",
+  recipeType: "inspiration", // Artistic design - uses preset colors
   tags: ["wellness", "elegant", "split", "discount", "premium"] as RecipeTag[],
   component: "NewsletterSplit",
   theme: "spa-serenity",
@@ -681,7 +689,7 @@ const spaSerenity: StyledRecipe = {
 // 9. SCANDINAVIAN (Home & Living)
 // =============================================================================
 
-const scandinavian: StyledRecipe = {
+const scandinavian: NewsletterRecipe = {
   id: "newsletter-scandinavian",
   name: "Scandinavian",
   tagline: "Design for Living",
@@ -690,6 +698,7 @@ const scandinavian: StyledRecipe = {
   category: "email_leads",
   goal: "NEWSLETTER_SIGNUP",
   templateType: "NEWSLETTER",
+  recipeType: "use_case", // Functional design - inherits store theme
   tags: ["home", "minimal", "split", "discount"] as RecipeTag[],
   component: "NewsletterSplit",
   theme: "scandinavian",
@@ -755,7 +764,7 @@ const scandinavian: StyledRecipe = {
 // 10. COZY COMFORT (Home/Lifestyle)
 // =============================================================================
 
-const cozyComfort: StyledRecipe = {
+const cozyComfort: NewsletterRecipe = {
   id: "newsletter-cozy-comfort",
   name: "Cozy Comfort",
   tagline: "Sleep Better, Live Better",
@@ -764,6 +773,7 @@ const cozyComfort: StyledRecipe = {
   category: "email_leads",
   goal: "NEWSLETTER_SIGNUP",
   templateType: "NEWSLETTER",
+  recipeType: "inspiration", // Artistic design - uses preset colors
   tags: ["home", "warm", "hero", "free-shipping"] as RecipeTag[],
   component: "NewsletterHero",
   theme: "cozy-comfort",
@@ -833,7 +843,7 @@ const cozyComfort: StyledRecipe = {
 // 11. BOLD ENERGY (Fitness)
 // =============================================================================
 
-const boldEnergy: StyledRecipe = {
+const boldEnergy: NewsletterRecipe = {
   id: "newsletter-bold-energy",
   name: "Bold Energy",
   tagline: "LEVEL UP",
@@ -842,6 +852,7 @@ const boldEnergy: StyledRecipe = {
   category: "email_leads",
   goal: "NEWSLETTER_SIGNUP",
   templateType: "NEWSLETTER",
+  recipeType: "inspiration", // Artistic design - uses preset colors
   tags: ["fitness", "bold", "dark", "split", "discount"] as RecipeTag[],
   component: "NewsletterSplit",
   theme: "bold-energy",
@@ -914,7 +925,7 @@ const boldEnergy: StyledRecipe = {
 // 12. ACTIVE LIFE (Outdoor/Adventure)
 // =============================================================================
 
-const activeLife: StyledRecipe = {
+const activeLife: NewsletterRecipe = {
   id: "newsletter-active-life",
   name: "Active Life",
   tagline: "Adventure Awaits",
@@ -923,6 +934,7 @@ const activeLife: StyledRecipe = {
   category: "email_leads",
   goal: "NEWSLETTER_SIGNUP",
   templateType: "NEWSLETTER",
+  recipeType: "inspiration", // Artistic design - uses preset colors
   tags: ["outdoor", "modern", "split", "discount"] as RecipeTag[],
   component: "NewsletterSplit",
   theme: "active-life",
@@ -991,7 +1003,7 @@ const activeLife: StyledRecipe = {
 // =============================================================================
 
 /** All newsletter design recipes */
-export const NEWSLETTER_DESIGN_RECIPES: StyledRecipe[] = [
+export const NEWSLETTER_DESIGN_RECIPES: NewsletterRecipe[] = [
   elegantLuxe,
   streetStyle,
   minimalTech,
@@ -1007,22 +1019,22 @@ export const NEWSLETTER_DESIGN_RECIPES: StyledRecipe[] = [
 ];
 
 /** Get newsletter recipe by ID */
-export function getNewsletterRecipeById(id: string): StyledRecipe | undefined {
+export function getNewsletterRecipeById(id: string): NewsletterRecipe | undefined {
   return NEWSLETTER_DESIGN_RECIPES.find((r) => r.id === id);
 }
 
 /** Get featured newsletter recipes */
-export function getFeaturedNewsletterRecipes(): StyledRecipe[] {
+export function getFeaturedNewsletterRecipes(): NewsletterRecipe[] {
   return NEWSLETTER_DESIGN_RECIPES.filter((r) => r.featured);
 }
 
 /** Get newsletter recipes by tag */
-export function getNewsletterRecipesByTag(tag: RecipeTag): StyledRecipe[] {
+export function getNewsletterRecipesByTag(tag: RecipeTag): NewsletterRecipe[] {
   return NEWSLETTER_DESIGN_RECIPES.filter((r) => r.tags?.includes(tag));
 }
 
 /** Get newsletter recipes by industry tags */
-export function getNewsletterRecipesByIndustry(industry: RecipeTag): StyledRecipe[] {
+export function getNewsletterRecipesByIndustry(industry: RecipeTag): NewsletterRecipe[] {
   const industryTags: RecipeTag[] = [
     "fashion",
     "beauty",

@@ -17,6 +17,11 @@ import type {
   ProductUpsellConfig,
   SocialProofNotification as PreviewSocialProofNotification,
   SocialProofConfig,
+  ClassicUpsellConfig,
+  MinimalSlideUpConfig,
+  PremiumFullscreenConfig,
+  BundleDealConfig,
+  CountdownUrgencyConfig,
 } from "~/domains/storefront/popups-new";
 import type { ReactNode } from "react";
 
@@ -83,6 +88,8 @@ export interface TemplatePreviewProps {
   onPreviewElementReady?: (element: HTMLElement | null) => void;
   globalCustomCSS?: string;
   campaignCustomCSS?: string;
+  /** Default theme tokens for preview (from store's default preset or Shopify theme) */
+  defaultThemeTokens?: import("~/domains/campaigns/types/design-tokens").DesignTokens;
   /** Optional callback when popup is closed (for demo/marketing respawn behavior) */
   onClose?: () => void;
   /** Controls popup visibility - when false, triggers exit animation */
@@ -102,6 +109,7 @@ const TemplatePreviewComponent = forwardRef<TemplatePreviewRef, TemplatePreviewP
       onPreviewElementReady,
       globalCustomCSS,
       campaignCustomCSS,
+      defaultThemeTokens,
       onClose: externalOnClose,
       isVisible: externalIsVisible = true,
     },
@@ -138,14 +146,41 @@ const TemplatePreviewComponent = forwardRef<TemplatePreviewRef, TemplatePreviewP
     }, [externalOnClose]);
 
     // Memoize merged config to prevent re-renders with more stable dependencies
-  const mergedConfig: Record<string, unknown> = useMemo(() => {
-    if (!templateType) {
-      return { ...config, ...designConfig, globalCustomCSS };
-    }
+    const mergedConfig: Record<string, unknown> = useMemo(() => {
+      if (!templateType) {
+        return { ...config, ...designConfig, globalCustomCSS };
+      }
+
+      // Apply default theme tokens when themeMode is "default" or "shopify"
+      // This ensures the preview uses the store's default theme colors
+      const themeMode = designConfig.themeMode as string | undefined;
+      const shouldApplyDefaultTokens =
+        (themeMode === "default" || themeMode === "shopify" || !themeMode) && defaultThemeTokens;
+
+      // Map design tokens to popup config properties
+      const defaultTokenColors = shouldApplyDefaultTokens
+        ? {
+            backgroundColor: defaultThemeTokens.background,
+            textColor: defaultThemeTokens.foreground,
+            descriptionColor: defaultThemeTokens.muted,
+            buttonColor: defaultThemeTokens.primary,
+            buttonTextColor: defaultThemeTokens.primaryForeground,
+            accentColor: defaultThemeTokens.primary,
+            successColor: defaultThemeTokens.success,
+            fontFamily: defaultThemeTokens.fontFamily,
+            borderRadius: defaultThemeTokens.borderRadius,
+            inputBackgroundColor: defaultThemeTokens.surface,
+            inputBorderColor: defaultThemeTokens.border,
+          }
+        : {};
 
       // For newsletter templates, ensure discount config is properly merged
       const baseConfig: Record<string, unknown> = {
+        // Apply default theme tokens first (lowest priority)
+        ...defaultTokenColors,
+        // Then content config
         ...config,
+        // Then design config (can override default tokens if explicitly set)
         ...designConfig,
         // Ensure popup is visible in preview
         isVisible: true,
@@ -177,7 +212,7 @@ const TemplatePreviewComponent = forwardRef<TemplatePreviewRef, TemplatePreviewP
       }
 
       return baseConfig;
-    }, [config, designConfig, templateType, globalCustomCSS]);
+    }, [config, designConfig, templateType, globalCustomCSS, defaultThemeTokens]);
 
     const scopedCss = useMemo(
       () => buildScopedStyles(globalCustomCSS, campaignCustomCSS),
@@ -236,7 +271,11 @@ const TemplatePreviewComponent = forwardRef<TemplatePreviewRef, TemplatePreviewP
         return (
           <PreviewContainer scopedStylesNode={scopedStylesNode}>
             <div ref={setPreviewElementRef} data-popup-preview style={{ display: "contents" }}>
-              <PreviewComponent config={componentConfig} isVisible={externalIsVisible} onClose={handleClose} />
+              <PreviewComponent
+                config={componentConfig}
+                isVisible={externalIsVisible}
+                onClose={handleClose}
+              />
             </div>
           </PreviewContainer>
         );
@@ -395,14 +434,16 @@ const TemplatePreviewComponent = forwardRef<TemplatePreviewRef, TemplatePreviewP
           title: "Premium Hoodie",
           quantity: 1,
           price: 59.0,
-          imageUrl: "https://images.pexels.com/photos/7671166/pexels-photo-7671166.jpeg?auto=compress&cs=tinysrgb&w=150",
+          imageUrl:
+            "https://images.pexels.com/photos/7671166/pexels-photo-7671166.jpeg?auto=compress&cs=tinysrgb&w=150",
         },
         {
           id: "preview-item-2",
           title: "Classic Sneakers",
           quantity: 1,
           price: 89.0,
-          imageUrl: "https://images.pexels.com/photos/2529148/pexels-photo-2529148.jpeg?auto=compress&cs=tinysrgb&w=150",
+          imageUrl:
+            "https://images.pexels.com/photos/2529148/pexels-photo-2529148.jpeg?auto=compress&cs=tinysrgb&w=150",
         },
       ];
 
@@ -468,6 +509,42 @@ const TemplatePreviewComponent = forwardRef<TemplatePreviewRef, TemplatePreviewP
       );
     }
 
+    // Special handling for new upsell popup variants: provide mocked add-to-cart callback
+    const upsellVariantTypes = [
+      TemplateTypeEnum.CLASSIC_UPSELL,
+      TemplateTypeEnum.MINIMAL_SLIDE_UP,
+      TemplateTypeEnum.PREMIUM_FULLSCREEN,
+      TemplateTypeEnum.COUNTDOWN_URGENCY,
+    ] as const;
+
+    if (upsellVariantTypes.includes(templateType as (typeof upsellVariantTypes)[number])) {
+      type UpsellVariantConfig =
+        | ClassicUpsellConfig
+        | MinimalSlideUpConfig
+        | PremiumFullscreenConfig
+        | BundleDealConfig
+        | CountdownUrgencyConfig;
+      const upsellVariantConfig = componentConfig as UpsellVariantConfig;
+
+      const previewOnAddToCart = async (productIds: string[]): Promise<void> => {
+        console.log(`[TemplatePreview][${templateType}] Preview add to cart`, { productIds });
+        await new Promise((resolve) => setTimeout(resolve, 400));
+      };
+
+      return (
+        <PreviewContainer scopedStylesNode={scopedStylesNode}>
+          <div ref={setPreviewElementRef} data-popup-preview style={{ display: "contents" }}>
+            <PreviewComponent
+              config={upsellVariantConfig}
+              isVisible={externalIsVisible}
+              onClose={handleClose}
+              onAddToCart={previewOnAddToCart}
+            />
+          </div>
+        </PreviewContainer>
+      );
+    }
+
     // Special handling for Social Proof preview: inject mock notifications and
     // disable per-session limits so merchants can see all enabled types.
     if (templateType === TemplateTypeEnum.SOCIAL_PROOF) {
@@ -482,7 +559,9 @@ const TemplatePreviewComponent = forwardRef<TemplatePreviewRef, TemplatePreviewP
         maxNotificationsPerSession: 0,
       } as SocialProofConfig;
 
-      const previewNotifications = buildSocialProofPreviewNotifications(socialProofConfig as unknown as Record<string, unknown>);
+      const previewNotifications = buildSocialProofPreviewNotifications(
+        socialProofConfig as unknown as Record<string, unknown>
+      );
 
       console.log("[TemplatePreview][SocialProof] Rendering social proof preview", {
         templateType,
@@ -512,7 +591,11 @@ const TemplatePreviewComponent = forwardRef<TemplatePreviewRef, TemplatePreviewP
     return (
       <PreviewContainer scopedStylesNode={scopedStylesNode}>
         <div ref={setPreviewElementRef} data-popup-preview style={{ display: "contents" }}>
-          <PreviewComponent config={componentConfig} isVisible={externalIsVisible} onClose={handleClose} />
+          <PreviewComponent
+            config={componentConfig}
+            isVisible={externalIsVisible}
+            onClose={handleClose}
+          />
         </div>
       </PreviewContainer>
     );

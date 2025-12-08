@@ -66,6 +66,17 @@ export { ImageFloatingBadge, type ImageFloatingBadgeProps } from "./ImageFloatin
 export { StyledCheckbox, type StyledCheckboxProps } from "./StyledCheckbox";
 
 // ============================================
+// PROMOTION DISPLAY COMPONENT
+// ============================================
+export {
+  PromotionDisplay,
+  type PromotionDisplayProps,
+  type DiscountTier,
+  type FreeGiftConfig,
+  type BogoConfig,
+} from "./PromotionDisplay";
+
+// ============================================
 // HOOKS
 // ============================================
 export { usePopupTheme, type PopupTheme } from "./usePopupTheme";

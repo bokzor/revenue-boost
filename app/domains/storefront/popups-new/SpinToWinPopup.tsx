@@ -717,6 +717,7 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
       ariaDescribedBy={config.ariaDescribedBy}
       customCSS={config.customCSS}
       globalCustomCSS={config.globalCustomCSS}
+      designTokensCSS={config.designTokensCSS}
     >
       {/* Inject container-relative CSS for truly responsive design */}
       <style>
@@ -1551,21 +1552,24 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
             <div style={{ textAlign: "center", marginBottom: "var(--stw-gap-lg)" }}>
               {/* Promotional Badge */}
               {config.badgeEnabled && config.badgeText && !wonPrize && (
-                <div className="spin-badge" style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "0.5em",
-                  marginBottom: "var(--stw-gap-md)",
-                  padding: "0.5em 1em",
-                  backgroundColor: `${accentColor}20`,
-                  border: `1px solid ${accentColor}50`,
-                  borderRadius: "9999px",
-                  fontSize: "0.75rem",
-                  fontWeight: 600,
-                  color: accentColor,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.05em",
-                }}>
+                <div
+                  className="spin-badge"
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "0.5em",
+                    marginBottom: "var(--stw-gap-md)",
+                    padding: "0.5em 1em",
+                    backgroundColor: `${accentColor}20`,
+                    border: `1px solid ${accentColor}50`,
+                    borderRadius: "9999px",
+                    fontSize: "0.75rem",
+                    fontWeight: 600,
+                    color: accentColor,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.05em",
+                  }}
+                >
                   {config.badgeIcon === "sparkles" && "✨"}
                   {config.badgeIcon === "star" && "⭐"}
                   {config.badgeIcon === "gift" && "🎁"}
@@ -1577,19 +1581,22 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
 
               {/* Result Trophy Icon */}
               {wonPrize && config.showResultIcon && (
-                <div className="spin-result-icon" style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  width: "4rem",
-                  height: "4rem",
-                  marginBottom: "var(--stw-gap-md)",
-                  backgroundColor: `${accentColor}20`,
-                  border: `2px solid ${accentColor}`,
-                  borderRadius: "50%",
-                  fontSize: "2rem",
-                  animation: "pulse 2s ease-in-out infinite",
-                }}>
+                <div
+                  className="spin-result-icon"
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    width: "4rem",
+                    height: "4rem",
+                    marginBottom: "var(--stw-gap-md)",
+                    backgroundColor: `${accentColor}20`,
+                    border: `2px solid ${accentColor}`,
+                    borderRadius: "50%",
+                    fontSize: "2rem",
+                    animation: "pulse 2s ease-in-out infinite",
+                  }}
+                >
                   {config.resultIconType === "trophy" && "🏆"}
                   {config.resultIconType === "gift" && "🎁"}
                   {config.resultIconType === "star" && "⭐"}
@@ -1777,7 +1784,7 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
                           : ""
                     }`}
                   >
-                    🎉 {wonPrize.label || "You Won!"}
+                    {wonPrize.label || "You Won!"}
                   </div>
                 )}
 

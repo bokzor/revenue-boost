@@ -152,6 +152,8 @@ interface CampaignFormWithABTestingProps {
    * Loaded once from recipe service, filtered by current layout in components.
    */
   backgroundsByLayout?: Record<string, import("~/config/background-presets").BackgroundPreset[]>;
+  /** Default theme tokens for preview (from store's default preset or Shopify theme) */
+  defaultThemeTokens?: import("~/domains/campaigns/types/design-tokens").DesignTokens;
 }
 
 // ============================================================================
@@ -176,6 +178,7 @@ export function CampaignFormWithABTesting({
   experimentsEnabled = false,
   globalFrequencyCapping,
   backgroundsByLayout,
+  defaultThemeTokens,
 }: CampaignFormWithABTestingProps) {
   // ============================================================================
   // STATE - Wizard Navigation
@@ -474,6 +477,7 @@ export function CampaignFormWithABTesting({
       advancedTargetingEnabled,
       globalFrequencyCapping,
       backgroundsByLayout,
+      defaultThemeTokens,
     };
 
     switch (step.id) {

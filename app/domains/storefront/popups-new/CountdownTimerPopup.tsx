@@ -174,6 +174,7 @@ export const CountdownTimerPopup: React.FC<CountdownTimerPopupProps> = ({
         closeOnEscape
         closeOnBackdropClick
         previewMode={isPreview as boolean | undefined}
+        designTokensCSS={config.designTokensCSS}
       >
         <style>{`
           .countdown-modal {

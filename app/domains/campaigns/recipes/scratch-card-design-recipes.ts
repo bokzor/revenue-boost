@@ -7,7 +7,7 @@
  * @see docs/design-recipes/SCRATCH_CARD_RECIPES_PLAN.md
  */
 
-import type { StyledRecipe, RecipeTag } from "./styled-recipe-types";
+import type { ScratchCardRecipe, RecipeTag } from "./styled-recipe-types";
 
 // =============================================================================
 // HELPER: Common editable fields for scratch card recipes
@@ -61,7 +61,7 @@ const TRIGGER_INPUT = {
 // 1. GOLDEN REVEAL (Luxury Fashion)
 // =============================================================================
 
-const goldenReveal: StyledRecipe = {
+const goldenReveal: ScratchCardRecipe = {
   id: "scratch-card-golden-reveal",
   name: "Golden Reveal",
   tagline: "Reveal Your Exclusive Reward",
@@ -70,6 +70,7 @@ const goldenReveal: StyledRecipe = {
   category: "email_leads",
   goal: "ENGAGEMENT",
   templateType: "SCRATCH_CARD",
+  recipeType: "inspiration", // Artistic design - uses preset colors
   tags: ["luxury", "elegant", "gold", "centered"] as RecipeTag[],
   component: "ScratchCardPopup",
   theme: "golden-reveal",
@@ -123,14 +124,14 @@ const goldenReveal: StyledRecipe = {
       imageUrl: "/recipes/scratch-card/golden-reveal-bg.jpg",
       imagePosition: "full",
       leadCaptureLayout: {
-        desktop: "split-left",
-        mobile: "stacked",
+        desktop: "overlay",
+        mobile: "overlay",
         visualSizeDesktop: "50%",
         visualSizeMobile: "35%",
         contentOverlap: "0",
         visualGradient: true,
       },
-      backgroundOverlayOpacity: 0.6,
+      backgroundOverlayOpacity: 0,
       borderRadius: 16,
       buttonBorderRadius: 8,
       inputBorderRadius: 8,
@@ -156,7 +157,7 @@ const goldenReveal: StyledRecipe = {
 // 2. NEON ARCADE (Gaming/Tech)
 // =============================================================================
 
-const neonArcade: StyledRecipe = {
+const neonArcade: ScratchCardRecipe = {
   id: "scratch-card-neon-arcade",
   name: "Neon Arcade",
   tagline: "SCRATCH TO WIN",
@@ -165,6 +166,7 @@ const neonArcade: StyledRecipe = {
   category: "email_leads",
   goal: "ENGAGEMENT",
   templateType: "SCRATCH_CARD",
+  recipeType: "inspiration", // Artistic design - uses preset colors
   tags: ["gaming", "tech", "dark", "neon", "centered"] as RecipeTag[],
   component: "ScratchCardPopup",
   theme: "neon-arcade",
@@ -240,7 +242,7 @@ const neonArcade: StyledRecipe = {
 // 3. PAPER LUCK (Casual/Food)
 // =============================================================================
 
-const paperLuck: StyledRecipe = {
+const paperLuck: ScratchCardRecipe = {
   id: "scratch-card-paper-luck",
   name: "Paper Luck",
   tagline: "Try Your Luck!",
@@ -249,6 +251,7 @@ const paperLuck: StyledRecipe = {
   category: "email_leads",
   goal: "ENGAGEMENT",
   templateType: "SCRATCH_CARD",
+  recipeType: "inspiration", // Artistic design - uses preset colors
   tags: ["food", "playful", "casual", "centered"] as RecipeTag[],
   component: "ScratchCardPopup",
   theme: "paper-luck",
@@ -315,7 +318,7 @@ const paperLuck: StyledRecipe = {
 // 4. ROSE GOLD DREAM (Beauty)
 // =============================================================================
 
-const roseGoldDream: StyledRecipe = {
+const roseGoldDream: ScratchCardRecipe = {
   id: "scratch-card-rose-gold-dream",
   name: "Rose Gold Dream",
   tagline: "Reveal Your Beauty Gift",
@@ -324,6 +327,7 @@ const roseGoldDream: StyledRecipe = {
   category: "email_leads",
   goal: "ENGAGEMENT",
   templateType: "SCRATCH_CARD",
+  recipeType: "inspiration", // Artistic design - uses preset colors
   tags: ["beauty", "feminine", "elegant", "centered"] as RecipeTag[],
   component: "ScratchCardPopup",
   theme: "rose-gold-dream",
@@ -378,13 +382,13 @@ const roseGoldDream: StyledRecipe = {
       imagePosition: "full",
       leadCaptureLayout: {
         desktop: "overlay",
-        mobile: "stacked",
+        mobile: "overlay",
         visualSizeDesktop: "100%",
         visualSizeMobile: "35%",
         contentOverlap: "-2rem",
         visualGradient: true,
       },
-      backgroundOverlayOpacity: 0.4,
+      backgroundOverlayOpacity: 0,
       borderRadius: 20,
       buttonBorderRadius: 999,
       inputBorderRadius: 12,
@@ -410,7 +414,7 @@ const roseGoldDream: StyledRecipe = {
 // 5. MINIMAL SILVER (Tech/Modern)
 // =============================================================================
 
-const minimalSilver: StyledRecipe = {
+const minimalSilver: ScratchCardRecipe = {
   id: "scratch-card-minimal-silver",
   name: "Minimal Silver",
   tagline: "Scratch to Unlock",
@@ -419,6 +423,7 @@ const minimalSilver: StyledRecipe = {
   category: "email_leads",
   goal: "ENGAGEMENT",
   templateType: "SCRATCH_CARD",
+  recipeType: "use_case", // Functional design - inherits store theme
   tags: ["tech", "minimal", "modern", "centered"] as RecipeTag[],
   component: "ScratchCardPopup",
   theme: "minimal-silver",
@@ -492,7 +497,7 @@ const minimalSilver: StyledRecipe = {
 // 6. HOLIDAY MAGIC (Seasonal)
 // =============================================================================
 
-const holidayMagic: StyledRecipe = {
+const holidayMagic: ScratchCardRecipe = {
   id: "scratch-card-holiday-magic",
   name: "Holiday Magic",
   tagline: "Unwrap Your Holiday Surprise!",
@@ -501,6 +506,7 @@ const holidayMagic: StyledRecipe = {
   category: "email_leads",
   goal: "ENGAGEMENT",
   templateType: "SCRATCH_CARD",
+  recipeType: "seasonal", // Seasonal design - uses preset colors
   tags: ["seasonal", "holiday", "festive", "centered"] as RecipeTag[],
   component: "ScratchCardPopup",
   theme: "holiday-magic",
@@ -511,7 +517,7 @@ const holidayMagic: StyledRecipe = {
   editableFields: SCRATCH_CARD_EDITABLE_FIELDS,
   defaults: {
     contentConfig: {
-      headline: "Unwrap Your Holiday Surprise! 🎄",
+      headline: "Unwrap Your Holiday Surprise!",
       subheadline: "Santa brought something special",
       scratchInstruction: "Scratch to reveal your gift",
       buttonText: "Open My Gift",
@@ -558,7 +564,7 @@ const holidayMagic: StyledRecipe = {
         contentOverlap: "0",
         visualGradient: true,
       },
-      backgroundOverlayOpacity: 0.4,
+      backgroundOverlayOpacity: 0,
       borderRadius: 16,
       buttonBorderRadius: 8,
       inputBorderRadius: 8,
@@ -583,7 +589,7 @@ const holidayMagic: StyledRecipe = {
 // 7. WOOD ARTISAN (Organic/Craft)
 // =============================================================================
 
-const woodArtisan: StyledRecipe = {
+const woodArtisan: ScratchCardRecipe = {
   id: "scratch-card-wood-artisan",
   name: "Wood Artisan",
   tagline: "Scratch Your Handcrafted Reward",
@@ -592,6 +598,7 @@ const woodArtisan: StyledRecipe = {
   category: "email_leads",
   goal: "ENGAGEMENT",
   templateType: "SCRATCH_CARD",
+  recipeType: "inspiration", // Artistic design - uses preset colors
   tags: ["organic", "natural", "artisan", "centered"] as RecipeTag[],
   component: "ScratchCardPopup",
   theme: "wood-artisan",
@@ -667,7 +674,7 @@ const woodArtisan: StyledRecipe = {
 // 8. HOLOGRAPHIC HYPE (Youth/Trend)
 // =============================================================================
 
-const holographicHype: StyledRecipe = {
+const holographicHype: ScratchCardRecipe = {
   id: "scratch-card-holographic-hype",
   name: "Holographic Hype",
   tagline: "SCRATCH FOR THE TEA ☕",
@@ -676,6 +683,7 @@ const holographicHype: StyledRecipe = {
   category: "email_leads",
   goal: "ENGAGEMENT",
   templateType: "SCRATCH_CARD",
+  recipeType: "inspiration", // Artistic design - uses preset colors
   tags: ["trendy", "youth", "bold", "centered"] as RecipeTag[],
   component: "ScratchCardPopup",
   theme: "holographic-hype",
@@ -759,7 +767,7 @@ const holographicHype: StyledRecipe = {
 // EXPORT ALL RECIPES
 // =============================================================================
 
-export const SCRATCH_CARD_DESIGN_RECIPES: StyledRecipe[] = [
+export const SCRATCH_CARD_DESIGN_RECIPES: ScratchCardRecipe[] = [
   goldenReveal,
   neonArcade,
   paperLuck,

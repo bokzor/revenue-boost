@@ -125,7 +125,12 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
   const designVars = useDesignVariables(config);
 
   // Get layout config from design config (or use default)
+  // DEBUG: Log leadCaptureLayout to understand why fullscreen isn't working
+  console.log("[NewsletterPopup] config.leadCaptureLayout:", config.leadCaptureLayout);
+  console.log("[NewsletterPopup] DEFAULT_LAYOUT:", DEFAULT_LAYOUT);
   const layout = config.leadCaptureLayout || DEFAULT_LAYOUT;
+  console.log("[NewsletterPopup] final layout:", layout);
+  console.log("[NewsletterPopup] layout.mobile:", layout.mobile);
 
   // Background image configuration
   const imageUrl = config.imageUrl;
@@ -170,6 +175,7 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
       ariaLabel={config.headline}
       customCSS={config.customCSS}
       globalCustomCSS={config.globalCustomCSS}
+      designTokensCSS={config.designTokensCSS}
     >
       <style>
         {`
@@ -442,6 +448,7 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
                   buttonTextColor={config.buttonTextColor}
                   inputTextColor={config.inputTextColor}
                   inputBorderColor={config.inputBorderColor}
+                  inputPlaceholderColor={config.descriptionColor || config.textColor}
                   privacyPolicyUrl={config.privacyPolicyUrl}
                 />
                 {/* Footer Disclaimer */}

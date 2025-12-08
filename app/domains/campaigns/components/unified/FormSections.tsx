@@ -12,7 +12,7 @@
  */
 
 import { useState, useMemo } from "react";
-import { BlockStack, Text, InlineGrid, Box, Button, Card, InlineStack } from "@shopify/polaris";
+import { BlockStack, Text, InlineGrid, Box, Button, Card, InlineStack, TextField } from "@shopify/polaris";
 import { useNavigate } from "react-router";
 import { CollapsibleSection } from "./CollapsibleSection";
 import { RecipeCard } from "../recipes/RecipeCard";
@@ -33,7 +33,7 @@ import { ScheduleStepContent } from "../steps/ScheduleStepContent";
 import { DiscountSection as DiscountConfigPanel } from "~/domains/popups/components/design/DiscountSection";
 import type { DiscountConfig } from "../../types/campaign";
 
-type SectionId = "recipe" | "design" | "discount" | "targeting" | "frequency" | "schedule";
+type SectionId = "recipe" | "basics" | "design" | "discount" | "targeting" | "frequency" | "schedule";
 
 interface SectionDef {
   id: SectionId;
@@ -66,6 +66,12 @@ export interface FormSectionsProps {
   recipes: StyledRecipe[];
   selectedRecipe?: StyledRecipe;
   onRecipeSelect: (recipe: StyledRecipe) => void;
+  // Campaign basics (name & description)
+  campaignName?: string;
+  campaignDescription?: string;
+  onNameChange?: (name: string) => void;
+  onDescriptionChange?: (description: string) => void;
+  // Content & Design
   contentConfig: Partial<ContentConfig>;
   designConfig: Partial<DesignConfig>;
   discountConfig?: DiscountConfig;
@@ -112,6 +118,12 @@ export function FormSections({
   recipes,
   selectedRecipe,
   onRecipeSelect,
+  // Campaign basics
+  campaignName,
+  campaignDescription,
+  onNameChange,
+  onDescriptionChange,
+  // Content & Design
   contentConfig,
   designConfig,
   discountConfig,
@@ -161,6 +173,15 @@ export function FormSections({
               restrictToGoal={restrictRecipesToGoal}
               variantLabel={variantLabel}
               returnToPath={returnToPath}
+            />
+          )}
+          {section.id === "basics" && onNameChange && (
+            <BasicsSectionWrapper
+              campaignName={campaignName || ""}
+              campaignDescription={campaignDescription || ""}
+              onNameChange={onNameChange}
+              onDescriptionChange={onDescriptionChange}
+              onComplete={() => onMarkComplete("basics", "design")}
             />
           )}
           {section.id === "design" && templateType && (
@@ -343,6 +364,59 @@ function RecipeSection({
       <InlineStack align="center">
         <Button onClick={handleBrowseAll}>
           {`Browse all ${filteredRecipes.length} recipes`}
+        </Button>
+      </InlineStack>
+    </BlockStack>
+  );
+}
+
+// =============================================================================
+// BASICS SECTION WRAPPER - Campaign name and description
+// =============================================================================
+
+interface BasicsSectionWrapperProps {
+  campaignName: string;
+  campaignDescription: string;
+  onNameChange: (name: string) => void;
+  onDescriptionChange?: (description: string) => void;
+  onComplete: () => void;
+}
+
+function BasicsSectionWrapper({
+  campaignName,
+  campaignDescription,
+  onNameChange,
+  onDescriptionChange,
+  onComplete,
+}: BasicsSectionWrapperProps) {
+  const isValid = campaignName.trim().length > 0;
+
+  return (
+    <BlockStack gap="400">
+      <TextField
+        label="Campaign Name"
+        value={campaignName}
+        onChange={onNameChange}
+        placeholder="e.g., Summer Sale Newsletter Popup"
+        autoComplete="off"
+        requiredIndicator
+        error={campaignName.trim().length === 0 ? "Campaign name is required" : undefined}
+        helpText="Give your campaign a descriptive name to identify it later"
+      />
+
+      <TextField
+        label="Description (optional)"
+        value={campaignDescription}
+        onChange={onDescriptionChange || (() => {})}
+        placeholder="e.g., 10% off popup for summer collection launch"
+        autoComplete="off"
+        multiline={2}
+        helpText="Add notes or context about this campaign"
+      />
+
+      <InlineStack align="end">
+        <Button variant="primary" onClick={onComplete} disabled={!isValid}>
+          Continue to Design
         </Button>
       </InlineStack>
     </BlockStack>

@@ -56,6 +56,8 @@ interface DesignStepContentProps {
    * Loaded once from recipe service, filtered by current layout in components.
    */
   backgroundsByLayout?: Record<string, BackgroundPreset[]>;
+  /** Default theme tokens for preview (from store's default preset or Shopify theme) */
+  defaultThemeTokens?: import("~/domains/campaigns/types/design-tokens").DesignTokens;
   onContentChange: (content: Partial<ContentConfig>) => void;
   onDesignChange: (design: Partial<DesignConfig>) => void;
   onDiscountChange?: (config: DiscountConfig) => void;
@@ -79,6 +81,7 @@ export function DesignStepContent({
   globalCustomCSS,
   customThemePresets,
   backgroundsByLayout,
+  defaultThemeTokens,
   onContentChange,
   onDesignChange,
   onDiscountChange,
@@ -309,6 +312,7 @@ export function DesignStepContent({
                 shopDomain={shopDomain}
                 campaignId={campaignId}
                 globalCustomCSS={globalCustomCSS}
+                defaultThemeTokens={defaultThemeTokens}
                 // Controlled device mode - switches to mobile when mobile layout is changed
                 device={previewDevice}
                 onDeviceChange={setPreviewDevice}

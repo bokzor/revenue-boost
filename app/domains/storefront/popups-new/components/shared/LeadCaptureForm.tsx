@@ -180,6 +180,11 @@ export interface LeadCaptureFormProps {
    */
   inputBorderColor?: string;
   /**
+   * Input placeholder text color
+   * @default Uses --rb-muted CSS variable or falls back to a semi-transparent version of textColor
+   */
+  inputPlaceholderColor?: string;
+  /**
    * Optional extra fields to render between inputs and submit button
    * Useful for template-specific fields (e.g., phone number, custom questions)
    */
@@ -258,6 +263,7 @@ export const LeadCaptureForm: React.FC<LeadCaptureFormProps> = ({
   buttonTextColor = "#FFFFFF",
   inputTextColor,
   inputBorderColor,
+  inputPlaceholderColor,
   extraFields,
   className,
   style,
@@ -302,6 +308,7 @@ export const LeadCaptureForm: React.FC<LeadCaptureFormProps> = ({
             textColor={inputTextColor || textColor}
             backgroundColor={backgroundColor}
             borderColor={inputBorderColor}
+            placeholderColor={inputPlaceholderColor}
           />
           <div style={{ marginBottom: "1rem" }}>
             <SubmitButton
@@ -338,6 +345,7 @@ export const LeadCaptureForm: React.FC<LeadCaptureFormProps> = ({
             textColor={inputTextColor || textColor}
             backgroundColor={backgroundColor}
             borderColor={inputBorderColor}
+            placeholderColor={inputPlaceholderColor}
           />
 
           {/* Name Input (optional) */}
@@ -354,6 +362,7 @@ export const LeadCaptureForm: React.FC<LeadCaptureFormProps> = ({
               textColor={inputTextColor || textColor}
               backgroundColor={backgroundColor}
               borderColor={inputBorderColor}
+              placeholderColor={inputPlaceholderColor}
             />
           )}
 

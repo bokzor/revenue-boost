@@ -28,6 +28,10 @@ import type {
   RecipeContext,
   RecipeOutput,
 } from "../../recipes/styled-recipe-types";
+import {
+  getThemeModeForRecipeType,
+  getPresetIdForRecipe,
+} from "../../recipes/styled-recipe-types";
 import { LivePreviewPanel } from "~/domains/popups/components/preview/LivePreviewPanel";
 import { ThemePresetSelector } from "../shared/ThemePresetSelector";
 import { NEWSLETTER_THEMES, type NewsletterThemeKey } from "~/config/color-presets";
@@ -276,6 +280,10 @@ export function RecipeEditor({
 
   // Handle save
   const handleSave = useCallback(() => {
+    // Determine theme mode based on recipe type
+    const themeMode = getThemeModeForRecipeType(recipe.recipeType);
+    const presetId = themeMode === "preset" ? getPresetIdForRecipe(recipe.id) : undefined;
+
     const output: RecipeOutput = {
       name: campaignName,
       contentConfig: content,
@@ -285,9 +293,14 @@ export function RecipeEditor({
         position: recipe.defaults.designConfig?.position || "center",
         size: recipe.defaults.designConfig?.size || "medium",
         ...recipe.defaults.designConfig,
+        // Include themeMode in designConfig so preview and storefront use correct theme
+        themeMode,
+        presetId,
       },
       discountConfig: recipe.defaults.discountConfig,
       targetRules: recipe.defaults.targetRules,
+      themeMode,
+      presetId,
     };
 
     // Apply context values to discount

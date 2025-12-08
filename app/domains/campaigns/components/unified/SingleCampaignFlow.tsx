@@ -1,9 +1,9 @@
 /**
  * SingleCampaignFlow Component
  *
- * Full-width 2-column layout for creating a single campaign.
- * Left: Live preview (sticky)
- * Right: Collapsible sections for recipe, design, targeting, frequency, schedule
+ * Two-step flow for creating a single campaign:
+ * 1. Recipe Selection: Goal-first recipe picker with configuration
+ * 2. Campaign Editor: 2-column layout with preview and form sections
  */
 
 import { useState, useCallback, useMemo } from "react";
@@ -15,15 +15,16 @@ import {
   BlockStack,
   InlineStack,
   Button,
-  TextField,
   Box,
   Banner,
 } from "@shopify/polaris";
 import { ArrowLeftIcon, SaveIcon } from "@shopify/polaris-icons";
 import { FormSections, type TargetingConfig, type ScheduleConfig } from "./FormSections";
+import { RecipeSelectionStep, type RecipeSelectionResult } from "./RecipeSelectionStep";
 import { LivePreviewPanel, type PreviewDevice } from "~/domains/popups/components/preview/LivePreviewPanel";
 import { Affix } from "~/shared/components/ui/Affix";
 import type { StyledRecipe } from "../../recipes/styled-recipe-types";
+import { getThemeModeForRecipeType, getPresetIdForRecipe } from "../../recipes/styled-recipe-types";
 import type { ContentConfig, DesignConfig, DiscountConfig, CampaignGoal } from "../../types/campaign";
 import type { TemplateType } from "~/shared/hooks/useWizardState";
 import type { FrequencyCappingConfig } from "~/domains/targeting/components/FrequencyCappingPanel";
@@ -76,17 +77,20 @@ const DEFAULT_DISCOUNT_CONFIG: DiscountConfig = {
   behavior: "SHOW_CODE_AND_AUTO_APPLY",
 };
 
-// Section definitions
-type SectionId = "recipe" | "design" | "discount" | "targeting" | "frequency" | "schedule";
+// Section definitions (recipe is now a separate step, not a section)
+type SectionId = "recipe" | "basics" | "design" | "discount" | "targeting" | "frequency" | "schedule";
 
-const SECTIONS: { id: SectionId; icon: string; title: string; subtitle: string }[] = [
-  { id: "recipe", icon: "📦", title: "Choose a Recipe", subtitle: "Select a pre-designed popup template" },
+const EDITOR_SECTIONS: { id: SectionId; icon: string; title: string; subtitle: string }[] = [
+  { id: "basics", icon: "📝", title: "Campaign Name & Description", subtitle: "Give your campaign a name and optional description" },
   { id: "design", icon: "🎨", title: "Customize Design", subtitle: "Adjust colors, content, and styling" },
   { id: "discount", icon: "🎁", title: "Discount & Incentives", subtitle: "Configure discount codes and rewards" },
   { id: "targeting", icon: "🎯", title: "Targeting & Triggers", subtitle: "Define who sees your popup and when" },
   { id: "frequency", icon: "🔄", title: "Frequency", subtitle: "Control how often the popup appears" },
   { id: "schedule", icon: "📅", title: "Schedule & Settings", subtitle: "Set start/end dates and priority" },
 ];
+
+/** Design tokens from the store's default theme preset (matches DesignTokens shape) */
+export type DefaultThemeTokens = import("~/domains/campaigns/types/design-tokens").DesignTokens;
 
 export interface SingleCampaignFlowProps {
   onBack: () => void;
@@ -106,6 +110,8 @@ export interface SingleCampaignFlowProps {
   globalCustomCSS?: string;
   /** Global frequency capping settings from store */
   globalFrequencyCapping?: GlobalFrequencyCappingSettings;
+  /** Default theme tokens from store's default preset (for preview) */
+  defaultThemeTokens?: DefaultThemeTokens;
 }
 
 export interface CampaignData {
@@ -135,7 +141,12 @@ export function SingleCampaignFlow({
   backgroundsByLayout,
   globalCustomCSS,
   globalFrequencyCapping,
+  defaultThemeTokens,
 }: SingleCampaignFlowProps) {
+  // Flow step: "recipe" (selection) or "editor" (configuration)
+  // If initialData has a recipe, skip to editor
+  const [step, setStep] = useState<"recipe" | "editor">(initialData?.recipe ? "editor" : "recipe");
+
   // Campaign state
   const [campaignName, setCampaignName] = useState(initialData?.name || "");
   const [campaignDescription, setCampaignDescription] = useState(initialData?.description || "");
@@ -155,8 +166,8 @@ export function SingleCampaignFlow({
     initialData?.scheduleConfig || DEFAULT_SCHEDULE_CONFIG
   );
 
-  // Section state
-  const [expandedSections, setExpandedSections] = useState<SectionId[]>(["recipe"]);
+  // Section state (starts with basics expanded since recipe selection is done)
+  const [expandedSections, setExpandedSections] = useState<SectionId[]>(["basics"]);
   const [completedSections, setCompletedSections] = useState<SectionId[]>([]);
 
   // Preview state
@@ -182,15 +193,59 @@ export function SingleCampaignFlow({
     }
   }, []);
 
+  // Handler for RecipeSelectionStep (step 1 → step 2)
+  const handleRecipeSelected = useCallback((result: RecipeSelectionResult) => {
+    const { recipe, initialData: recipeData } = result;
+    setSelectedRecipe(recipe);
+    setCampaignName(recipeData.name || "");
+    setContentConfig(recipeData.contentConfig as Partial<ContentConfig>);
+    setDesignConfig(recipeData.designConfig as Partial<DesignConfig>);
+    if (recipeData.discountConfig && "enabled" in recipeData.discountConfig) {
+      setDiscountConfig(recipeData.discountConfig as DiscountConfig);
+    }
+    if (recipeData.targetRules) {
+      setTargetingConfig((prev) => ({
+        ...prev,
+        enhancedTriggers: (recipeData.targetRules.enhancedTriggers as TargetingConfig["enhancedTriggers"]) || prev.enhancedTriggers,
+      }));
+    }
+    // Clear validation errors
+    setValidationErrors([]);
+    setValidationWarnings([]);
+    // Move to editor step
+    setStep("editor");
+    setExpandedSections(["basics"]);
+  }, []);
+
+  // Legacy handler for FormSections (when changing recipe in editor)
   const handleRecipeSelect = useCallback((recipe: StyledRecipe) => {
     setSelectedRecipe(recipe);
     setContentConfig(recipe.defaults.contentConfig || {});
-    setDesignConfig(recipe.defaults.designConfig || {});
+
+    // Determine theme mode based on recipe type
+    const themeMode = getThemeModeForRecipeType(recipe.recipeType);
+    const presetId = themeMode === "preset" ? getPresetIdForRecipe(recipe.id) : undefined;
+
+    setDesignConfig({
+      ...recipe.defaults.designConfig,
+      themeMode,
+      presetId,
+    });
     markComplete("recipe", "design");
-    // Clear validation errors when recipe changes
     setValidationErrors([]);
     setValidationWarnings([]);
   }, [markComplete]);
+
+  // Back handler that respects the step
+  const handleBack = useCallback(() => {
+    if (step === "editor") {
+      // Go back to recipe selection
+      setStep("recipe");
+    } else {
+      // Go back to mode selector / previous page
+      onBack();
+    }
+  }, [step, onBack]);
 
   const getCampaignData = useCallback((): CampaignData => ({
     name: campaignName,
@@ -301,15 +356,37 @@ export function SingleCampaignFlow({
 
   const templateType = selectedRecipe?.templateType as TemplateType | undefined;
 
+  // =============================================================================
+  // STEP 1: RECIPE SELECTION
+  // =============================================================================
+  if (step === "recipe") {
+    return (
+      <Page
+        title="Choose a Recipe"
+        subtitle="Select a pre-designed popup template to get started"
+        backAction={{ onAction: onBack, content: "Back" }}
+        fullWidth
+      >
+        <RecipeSelectionStep
+          recipes={recipes}
+          onRecipeSelected={handleRecipeSelected}
+          onBuildFromScratch={undefined} // Could add legacy flow option
+          storeId={storeId}
+          defaultThemeTokens={defaultThemeTokens}
+        />
+      </Page>
+    );
+  }
+
+  // =============================================================================
+  // STEP 2: CAMPAIGN EDITOR
+  // =============================================================================
   return (
     <div style={{ minHeight: "100vh", backgroundColor: "var(--p-color-bg-surface)" }}>
       {/* Sticky Header */}
       <StickyHeader
         campaignName={campaignName}
-        campaignDescription={campaignDescription}
-        onNameChange={setCampaignName}
-        onDescriptionChange={setCampaignDescription}
-        onBack={onBack}
+        onBack={handleBack}
         onSaveDraft={handleSaveDraft}
         onPublish={handleSave}
         isSaving={isSaving}
@@ -364,19 +441,26 @@ export function SingleCampaignFlow({
               globalCustomCSS={globalCustomCSS}
               previewDevice={previewDevice}
               onDeviceChange={setPreviewDevice}
+              defaultThemeTokens={defaultThemeTokens}
             />
           </Layout.Section>
 
-          {/* Right Column - Form Sections */}
+          {/* Right Column - Form Sections (without recipe section) */}
           <Layout.Section variant="oneHalf">
             <FormSections
-              sections={SECTIONS}
+              sections={EDITOR_SECTIONS}
               expandedSections={expandedSections}
               completedSections={completedSections}
               onToggle={toggleSection}
               recipes={recipes}
               selectedRecipe={selectedRecipe}
               onRecipeSelect={handleRecipeSelect}
+              // Campaign basics
+              campaignName={campaignName}
+              campaignDescription={campaignDescription}
+              onNameChange={setCampaignName}
+              onDescriptionChange={setCampaignDescription}
+              // Content & Design
               contentConfig={contentConfig}
               designConfig={designConfig}
               discountConfig={discountConfig}
@@ -414,9 +498,6 @@ export function SingleCampaignFlow({
 
 interface StickyHeaderProps {
   campaignName: string;
-  campaignDescription?: string;
-  onNameChange: (name: string) => void;
-  onDescriptionChange?: (description: string) => void;
   onBack: () => void;
   onSaveDraft: () => void;
   onPublish: () => void;
@@ -426,9 +507,6 @@ interface StickyHeaderProps {
 
 function StickyHeader({
   campaignName,
-  campaignDescription,
-  onNameChange,
-  onDescriptionChange,
   onBack,
   onSaveDraft,
   onPublish,
@@ -447,57 +525,33 @@ function StickyHeader({
       }}
     >
       <div style={{ maxWidth: "1400px", margin: "0 auto", padding: "16px 24px" }}>
-        <BlockStack gap="200">
-          <InlineStack align="space-between" blockAlign="center">
-            {/* Left: Back button and campaign name */}
-            <InlineStack gap="400" blockAlign="center">
-              <Button icon={ArrowLeftIcon} onClick={onBack} variant="tertiary" />
-              <TextField
-                label=""
-                labelHidden
-                value={campaignName}
-                onChange={onNameChange}
-                placeholder="Campaign name..."
-                autoComplete="off"
-                connectedLeft={
-                  <div style={{ padding: "0 8px", display: "flex", alignItems: "center" }}>
-                    <Text as="span" variant="headingMd">📣</Text>
-                  </div>
-                }
-              />
-            </InlineStack>
-
-            {/* Right: Action buttons */}
-            <InlineStack gap="300">
-              <Button onClick={onSaveDraft} disabled={isSaving} icon={SaveIcon}>
-                Save Draft
-              </Button>
-              <Button
-                variant="primary"
-                onClick={onPublish}
-                disabled={isSaving || !canPublish}
-                loading={isSaving}
-              >
-                Publish
-              </Button>
+        <InlineStack align="space-between" blockAlign="center">
+          {/* Left: Back button and campaign name */}
+          <InlineStack gap="400" blockAlign="center">
+            <Button icon={ArrowLeftIcon} onClick={onBack} variant="tertiary" />
+            <InlineStack gap="200" blockAlign="center">
+              <Text as="span" variant="headingMd">📣</Text>
+              <Text as="h1" variant="headingLg">
+                {campaignName || "New Campaign"}
+              </Text>
             </InlineStack>
           </InlineStack>
 
-          {/* Description field (optional) */}
-          {onDescriptionChange && (
-            <div style={{ marginLeft: "52px" }}>
-              <TextField
-                label=""
-                labelHidden
-                value={campaignDescription || ""}
-                onChange={onDescriptionChange}
-                placeholder="Add a description (optional)..."
-                autoComplete="off"
-                multiline={1}
-              />
-            </div>
-          )}
-        </BlockStack>
+          {/* Right: Action buttons */}
+          <InlineStack gap="300">
+            <Button onClick={onSaveDraft} disabled={isSaving} icon={SaveIcon}>
+              Save Draft
+            </Button>
+            <Button
+              variant="primary"
+              onClick={onPublish}
+              disabled={isSaving || !canPublish}
+              loading={isSaving}
+            >
+              Publish
+            </Button>
+          </InlineStack>
+        </InlineStack>
       </div>
     </div>
   );
@@ -513,6 +567,7 @@ interface PreviewColumnProps {
   globalCustomCSS?: string;
   previewDevice: PreviewDevice;
   onDeviceChange: (device: PreviewDevice) => void;
+  defaultThemeTokens?: DefaultThemeTokens;
 }
 
 function PreviewColumn({
@@ -524,6 +579,7 @@ function PreviewColumn({
   globalCustomCSS,
   previewDevice,
   onDeviceChange,
+  defaultThemeTokens,
 }: PreviewColumnProps) {
   return (
     <div data-affix-boundary style={{ position: "relative", alignSelf: "flex-start" }}>
@@ -538,6 +594,7 @@ function PreviewColumn({
             globalCustomCSS={globalCustomCSS}
             device={previewDevice}
             onDeviceChange={onDeviceChange}
+            defaultThemeTokens={defaultThemeTokens}
           />
         ) : (
           <Card>

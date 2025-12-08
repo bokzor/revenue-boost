@@ -229,10 +229,10 @@ export function FlashSaleContentSection({
               <TextField
                 label="Countdown Duration (seconds)"
                 name="content.countdownDuration"
-                value={content.countdownDuration?.toString() || "3600"}
+                value={content.countdownDuration?.toString() ?? ""}
                 placeholder="3600"
                 helpText="Duration in seconds (default: 3600 = 1 hour)"
-                onChange={(value) => updateField("countdownDuration", parseInt(value) || 3600)}
+                onChange={(value) => updateField("countdownDuration", (value === "" ? undefined : parseInt(value)) as number)}
               />
             )}
 
@@ -285,12 +285,12 @@ export function FlashSaleContentSection({
                     value={
                       (
                         content.timer as Record<string, unknown>
-                      )?.personalWindowSeconds?.toString() || "1800"
+                      )?.personalWindowSeconds?.toString() ?? ""
                     }
                     placeholder="1800"
                     helpText="Countdown from first view (e.g., 1800 = 30 min)"
                     onChange={(value) =>
-                      updateTimerField("personalWindowSeconds", parseInt(value) || 1800)
+                      updateTimerField("personalWindowSeconds", value === "" ? undefined : parseInt(value))
                     }
                   />
                 )}
@@ -382,11 +382,11 @@ export function FlashSaleContentSection({
                     label="Pseudo Max Inventory"
                     name="inventory.pseudoMax"
                     value={
-                      (content.inventory as Record<string, unknown>)?.pseudoMax?.toString() || "8"
+                      (content.inventory as Record<string, unknown>)?.pseudoMax?.toString() ?? ""
                     }
                     placeholder="8"
                     helpText="Simulated stock count. Set below threshold to show 'Only X Left' message."
-                    onChange={(value) => updateInventoryField("pseudoMax", parseInt(value) || 8)}
+                    onChange={(value) => updateInventoryField("pseudoMax", value === "" ? undefined : parseInt(value))}
                   />
                 )}
 
@@ -440,13 +440,13 @@ export function FlashSaleContentSection({
                       label="Show Threshold"
                       name="inventory.showThreshold"
                       value={
-                        (content.inventory as Record<string, unknown>)?.showThreshold?.toString() ||
-                        "10"
+                        (content.inventory as Record<string, unknown>)?.showThreshold?.toString() ??
+                        ""
                       }
                       placeholder="10"
                       helpText="Show warning when ≤ this value"
                       onChange={(value) =>
-                        updateInventoryField("showThreshold", parseInt(value) || 10)
+                        updateInventoryField("showThreshold", value === "" ? undefined : parseInt(value))
                       }
                     />
                   )}
@@ -533,11 +533,11 @@ export function FlashSaleContentSection({
                       label="Reservation Minutes"
                       name="reserve.minutes"
                       value={
-                        (content.reserve as Record<string, unknown>)?.minutes?.toString() || "10"
+                        (content.reserve as Record<string, unknown>)?.minutes?.toString() ?? ""
                       }
                       placeholder="10"
                       helpText="Minutes to claim the reserved offer"
-                      onChange={(value) => updateReserveField("minutes", parseInt(value) || 10)}
+                      onChange={(value) => updateReserveField("minutes", value === "" ? undefined : parseInt(value))}
                     />
 
                     <TextField

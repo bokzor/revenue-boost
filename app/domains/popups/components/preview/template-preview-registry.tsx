@@ -17,6 +17,11 @@ import {
   FreeShippingPopup,
   SocialProofPopup,
   AnnouncementPopup,
+  ClassicUpsellPopup,
+  MinimalSlideUpPopup,
+  PremiumFullscreenPopup,
+  BundleDealPopup,
+  CountdownUrgencyPopup,
 } from "~/domains/storefront/popups-new";
 
 import type {
@@ -30,6 +35,11 @@ import type {
   FreeShippingConfig,
   SocialProofConfig,
   AnnouncementConfig,
+  ClassicUpsellConfig,
+  MinimalSlideUpConfig,
+  PremiumFullscreenConfig,
+  BundleDealConfig,
+  CountdownUrgencyConfig,
   PopupDesignConfig,
   DiscountConfig as StorefrontDiscountConfig,
 } from "~/domains/storefront/popups-new";
@@ -66,11 +76,7 @@ export function transformDiscountConfig(
     enabled: adminConfig.enabled !== false,
     percentage: isPercentage && value !== undefined ? value : undefined,
     value: value,
-    type: isPercentage
-      ? "percentage"
-      : isFixedAmount
-        ? "fixed_amount"
-        : "free_shipping",
+    type: isPercentage ? "percentage" : isFixedAmount ? "fixed_amount" : "free_shipping",
     code: adminConfig.prefix || defaultCode,
     behavior: adminConfig.behavior || "SHOW_CODE_AND_AUTO_APPLY",
   };
@@ -107,6 +113,19 @@ const SCRATCH_CARD_PREVIEW_PRIZES = [
   },
 ];
 
+/**
+ * Dummy free gift product for preview when no product is selected
+ */
+const DUMMY_FREE_GIFT_PRODUCT = {
+  productId: "preview-free-gift-product",
+  variantId: "preview-free-gift-variant",
+  productTitle: "Premium Gift Box",
+  productImageUrl:
+    "https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=400&q=80",
+  quantity: 1,
+  minSubtotalCents: 5000, // $50 minimum
+};
+
 const PRODUCT_UPSELL_PREVIEW_PRODUCTS = [
   {
     id: "preview-hoodie",
@@ -114,7 +133,7 @@ const PRODUCT_UPSELL_PREVIEW_PRODUCTS = [
     price: "79.00",
     compareAtPrice: "99.00",
     imageUrl:
-      "https://images.pexels.com/photos/7671166/pexels-photo-7671166.jpeg?auto=compress&cs=tinysrgb&w=600",
+      "https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=600&q=80",
     variantId: "preview-hoodie-variant",
     handle: "premium-fleece-hoodie",
     description: "Cozy, heavyweight hoodie perfect for cooler days.",
@@ -128,7 +147,7 @@ const PRODUCT_UPSELL_PREVIEW_PRODUCTS = [
     price: "59.00",
     compareAtPrice: "79.00",
     imageUrl:
-      "https://images.pexels.com/photos/7671176/pexels-photo-7671176.jpeg?auto=compress&cs=tinysrgb&w=600",
+      "https://images.unsplash.com/photo-1620799140408-edc6dcb6d633?w=600&q=80",
     variantId: "preview-joggers-variant",
     handle: "essential-jogger-pants",
     description: "Tapered fit joggers with soft brushed interior.",
@@ -142,7 +161,7 @@ const PRODUCT_UPSELL_PREVIEW_PRODUCTS = [
     price: "89.00",
     compareAtPrice: "119.00",
     imageUrl:
-      "https://images.pexels.com/photos/2529148/pexels-photo-2529148.jpeg?auto=compress&cs=tinysrgb&w=600",
+      "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&q=80",
     variantId: "preview-sneakers-variant",
     handle: "everyday-comfort-sneakers",
     description: "Lightweight sneakers built for all-day wear.",
@@ -168,7 +187,9 @@ export type ConfigBuilder<T = unknown> = (
  */
 export interface TemplatePreviewEntry<TConfig = unknown> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Components have varying additional props
-  component: React.ComponentType<{ config: TConfig; isVisible: boolean; onClose: () => void } & Record<string, any>>;
+  component: React.ComponentType<
+    { config: TConfig; isVisible: boolean; onClose: () => void } & Record<string, any>
+  >;
   buildConfig: ConfigBuilder<TConfig>;
 }
 
@@ -179,7 +200,7 @@ function buildCommonConfig(
   mergedConfig: Partial<PopupDesignConfig>,
   designConfig: Partial<PopupDesignConfig>
 ) {
-  return {
+  const result = {
     // Main colors
     backgroundColor: mergedConfig.backgroundColor || designConfig.backgroundColor || "#FFFFFF",
     textColor: mergedConfig.textColor || designConfig.textColor || "#1A1A1A",
@@ -228,11 +249,14 @@ function buildCommonConfig(
     // Background image (for templates that support full background mode)
     imageUrl: mergedConfig.imageUrl || designConfig.imageUrl,
     imagePosition: mergedConfig.imagePosition || designConfig.imagePosition,
-    backgroundImageMode: mergedConfig.backgroundImageMode || designConfig.backgroundImageMode || "none",
-    backgroundOverlayOpacity: mergedConfig.backgroundOverlayOpacity ?? designConfig.backgroundOverlayOpacity ?? 0.6,
+    backgroundImageMode:
+      mergedConfig.backgroundImageMode || designConfig.backgroundImageMode || "none",
+    backgroundOverlayOpacity:
+      mergedConfig.backgroundOverlayOpacity ?? designConfig.backgroundOverlayOpacity ?? 0.6,
 
     // Scratch Card specific design properties
-    scratchCardBackgroundColor: mergedConfig.scratchCardBackgroundColor || designConfig.scratchCardBackgroundColor,
+    scratchCardBackgroundColor:
+      mergedConfig.scratchCardBackgroundColor || designConfig.scratchCardBackgroundColor,
     scratchCardTextColor: mergedConfig.scratchCardTextColor || designConfig.scratchCardTextColor,
     scratchOverlayColor: mergedConfig.scratchOverlayColor || designConfig.scratchOverlayColor,
     scratchOverlayImage: mergedConfig.scratchOverlayImage || designConfig.scratchOverlayImage,
@@ -245,8 +269,15 @@ function buildCommonConfig(
     // Show close button respects user preference (default to true for preview)
     showCloseButton: mergedConfig.showCloseButton ?? designConfig.showCloseButton ?? true,
     // Display mode for popup/banner templates
-    displayMode: (mergedConfig.displayMode || designConfig.displayMode || "popup") as "popup" | "banner",
+    displayMode: (mergedConfig.displayMode || designConfig.displayMode || "popup") as
+      | "popup"
+      | "banner",
+
+    // Mobile-specific settings
+    mobileFullScreen: mergedConfig.mobileFullScreen ?? designConfig.mobileFullScreen,
   };
+
+  return result;
 }
 
 /**
@@ -259,7 +290,17 @@ export const TEMPLATE_PREVIEW_REGISTRY: Record<string, TemplatePreviewEntry<any>
     buildConfig: (
       mergedConfig: Partial<NewsletterConfig> & { discountConfig?: Partial<AdminDiscountConfig> },
       designConfig: Partial<PopupDesignConfig>
-    ): NewsletterConfig => ({
+    ): NewsletterConfig => {
+      // DEBUG: Log leadCaptureLayout sources
+      console.log(
+        "[NEWSLETTER buildConfig] mergedConfig.leadCaptureLayout:",
+        mergedConfig.leadCaptureLayout
+      );
+      console.log(
+        "[NEWSLETTER buildConfig] designConfig.leadCaptureLayout:",
+        designConfig.leadCaptureLayout
+      );
+      return {
         id: "preview-newsletter",
 
         // Content
@@ -298,12 +339,18 @@ export const TEMPLATE_PREVIEW_REGISTRY: Record<string, TemplatePreviewEntry<any>
         successBadgeIcon: mergedConfig.successBadgeIcon,
 
         // Discount: transform admin config to storefront format
-        discount: transformDiscountConfig(mergedConfig.discountConfig, "WELCOME") || mergedConfig.discount,
+        discount:
+          transformDiscountConfig(mergedConfig.discountConfig, "WELCOME") || mergedConfig.discount,
         discountCodeLabel: mergedConfig.discountCodeLabel || "Your discount code:",
 
         // All common config (colors, typography, layout, image settings)
         ...buildCommonConfig(mergedConfig, designConfig),
-      }),
+
+        // Explicitly pass leadCaptureLayout to ensure it's not lost in the spread
+        // This is needed because buildCommonConfig may not receive it correctly from mergedConfig
+        leadCaptureLayout: mergedConfig.leadCaptureLayout || designConfig.leadCaptureLayout,
+      };
+    },
   },
 
   [TemplateTypeEnum.FLASH_SALE]: {
@@ -316,10 +363,15 @@ export const TEMPLATE_PREVIEW_REGISTRY: Record<string, TemplatePreviewEntry<any>
       const storefrontDiscount = transformDiscountConfig(dc, "FLASH");
 
       // Derive discount percentage for FlashSale-specific display
-      const discountPercentage =
-        storefrontDiscount?.percentage ??
-        mergedConfig.discountPercentage ??
-        50;
+      // For tiered discounts, BOGO, or free gift - don't use the 50% fallback
+      // Let PromotionDisplay handle the advanced discount visualization
+      const hasTiers = dc?.tiers && dc.tiers.length > 0;
+      const hasBogo = !!dc?.bogo;
+      const hasFreeGift = !!dc?.freeGift;
+      const hasAdvancedDiscount = hasTiers || hasBogo || hasFreeGift;
+      const discountPercentage = hasAdvancedDiscount
+        ? undefined // Don't set a percentage for advanced discount types
+        : storefrontDiscount?.percentage ?? mergedConfig.discountPercentage ?? 50;
 
       return {
         id: "preview-flash-sale",
@@ -368,7 +420,19 @@ export const TEMPLATE_PREVIEW_REGISTRY: Record<string, TemplatePreviewEntry<any>
         ctaOpenInNewTab: mergedConfig.ctaOpenInNewTab ?? false,
 
         // Discount: keep original for legacy compatibility, add transformed version
-        discountConfig: dc as FlashSaleConfig["discountConfig"],
+        // Inject dummy product for free gift preview when no product is selected
+        discountConfig: dc?.freeGift
+          ? {
+              ...dc,
+              freeGift: {
+                ...DUMMY_FREE_GIFT_PRODUCT,
+                ...dc.freeGift,
+                // Ensure we have product display data for preview
+                productTitle: dc.freeGift.productTitle || DUMMY_FREE_GIFT_PRODUCT.productTitle,
+                productImageUrl: dc.freeGift.productImageUrl || DUMMY_FREE_GIFT_PRODUCT.productImageUrl,
+              },
+            }
+          : (dc as FlashSaleConfig["discountConfig"]),
         discount: storefrontDiscount,
 
         // Design-specific (FlashSale)
@@ -397,10 +461,7 @@ export const TEMPLATE_PREVIEW_REGISTRY: Record<string, TemplatePreviewEntry<any>
         (mergedConfig.presentation?.showInventory && mergedConfig.inventory?.showOnlyXLeft) ??
         false;
 
-      const stockCount =
-        mergedConfig.stockCount ??
-        mergedConfig.inventory?.pseudoMax ??
-        undefined;
+      const stockCount = mergedConfig.stockCount ?? mergedConfig.inventory?.pseudoMax ?? undefined;
 
       return {
         id: "preview-countdown",
@@ -437,38 +498,37 @@ export const TEMPLATE_PREVIEW_REGISTRY: Record<string, TemplatePreviewEntry<any>
     buildConfig: (
       mergedConfig: Partial<SocialProofConfig>,
       designConfig: Partial<PopupDesignConfig>
-    ): SocialProofConfig =>
-      ({
-        id: "preview-social-proof",
+    ): SocialProofConfig => ({
+      id: "preview-social-proof",
 
-        // Base content fields
-        headline: mergedConfig.headline || "Join Thousands of Happy Customers",
-        subheadline: mergedConfig.subheadline,
-        buttonText: mergedConfig.buttonText || "Shop Now",
-        successMessage: mergedConfig.successMessage || "Success!",
-        failureMessage: mergedConfig.failureMessage,
-        ctaText: mergedConfig.ctaText,
+      // Base content fields
+      headline: mergedConfig.headline || "Join Thousands of Happy Customers",
+      subheadline: mergedConfig.subheadline,
+      buttonText: mergedConfig.buttonText || "Shop Now",
+      successMessage: mergedConfig.successMessage || "Success!",
+      failureMessage: mergedConfig.failureMessage,
+      ctaText: mergedConfig.ctaText,
 
-        // SocialProof-specific fields
-        enablePurchaseNotifications: mergedConfig.enablePurchaseNotifications ?? true,
-        enableVisitorNotifications: mergedConfig.enableVisitorNotifications ?? false,
-        enableReviewNotifications: mergedConfig.enableReviewNotifications ?? false,
-        purchaseMessageTemplate: mergedConfig.purchaseMessageTemplate,
-        visitorMessageTemplate: mergedConfig.visitorMessageTemplate,
-        reviewMessageTemplate: mergedConfig.reviewMessageTemplate,
-        cornerPosition: mergedConfig.cornerPosition || "bottom-left",
-        displayDuration: mergedConfig.displayDuration ?? 6,
-        rotationInterval: mergedConfig.rotationInterval ?? 8,
-        maxNotificationsPerSession: mergedConfig.maxNotificationsPerSession ?? 5,
-        minVisitorCount: mergedConfig.minVisitorCount,
-        minReviewRating: mergedConfig.minReviewRating,
-        messageTemplates: mergedConfig.messageTemplates,
-        showProductImage: mergedConfig.showProductImage ?? true,
-        showTimer: mergedConfig.showTimer ?? true,
+      // SocialProof-specific fields
+      enablePurchaseNotifications: mergedConfig.enablePurchaseNotifications ?? true,
+      enableVisitorNotifications: mergedConfig.enableVisitorNotifications ?? false,
+      enableReviewNotifications: mergedConfig.enableReviewNotifications ?? false,
+      purchaseMessageTemplate: mergedConfig.purchaseMessageTemplate,
+      visitorMessageTemplate: mergedConfig.visitorMessageTemplate,
+      reviewMessageTemplate: mergedConfig.reviewMessageTemplate,
+      cornerPosition: mergedConfig.cornerPosition || "bottom-left",
+      displayDuration: mergedConfig.displayDuration ?? 6,
+      rotationInterval: mergedConfig.rotationInterval ?? 8,
+      maxNotificationsPerSession: mergedConfig.maxNotificationsPerSession ?? 5,
+      minVisitorCount: mergedConfig.minVisitorCount,
+      minReviewRating: mergedConfig.minReviewRating,
+      messageTemplates: mergedConfig.messageTemplates,
+      showProductImage: mergedConfig.showProductImage ?? true,
+      showTimer: mergedConfig.showTimer ?? true,
 
-        // All common config (colors, typography, layout)
-        ...buildCommonConfig(mergedConfig, designConfig),
-      }),
+      // All common config (colors, typography, layout)
+      ...buildCommonConfig(mergedConfig, designConfig),
+    }),
   },
 
   [TemplateTypeEnum.SPIN_TO_WIN]: {
@@ -476,62 +536,61 @@ export const TEMPLATE_PREVIEW_REGISTRY: Record<string, TemplatePreviewEntry<any>
     buildConfig: (
       mergedConfig: Partial<SpinToWinConfig>,
       designConfig: Partial<PopupDesignConfig>
-    ): SpinToWinConfig =>
-      ({
-        id: "preview-spin-to-win",
+    ): SpinToWinConfig => ({
+      id: "preview-spin-to-win",
 
-        // Base content fields
-        headline: mergedConfig.headline || "Spin to Win!",
-        subheadline: mergedConfig.subheadline || "Try your luck for a discount",
-        buttonText: mergedConfig.buttonText || "Spin Now",
-        dismissLabel: mergedConfig.dismissLabel,
-        failureMessage: mergedConfig.failureMessage,
-        ctaText: mergedConfig.ctaText,
+      // Base content fields
+      headline: mergedConfig.headline || "Spin to Win!",
+      subheadline: mergedConfig.subheadline || "Try your luck for a discount",
+      buttonText: mergedConfig.buttonText || "Spin Now",
+      dismissLabel: mergedConfig.dismissLabel,
+      failureMessage: mergedConfig.failureMessage,
+      ctaText: mergedConfig.ctaText,
 
-        // SpinToWin-specific fields
-        spinButtonText: mergedConfig.spinButtonText || "Spin to Win!",
-        emailRequired: mergedConfig.emailRequired ?? true,
-        emailPlaceholder: mergedConfig.emailPlaceholder || "Enter your email",
-        emailLabel: mergedConfig.emailLabel,
-        wheelSegments: mergedConfig.wheelSegments || [],
-        maxAttemptsPerUser: mergedConfig.maxAttemptsPerUser ?? 1,
-        wheelSize: mergedConfig.wheelSize ?? 400,
-        wheelBorderWidth: mergedConfig.wheelBorderWidth ?? 2,
-        wheelBorderColor: mergedConfig.wheelBorderColor,
-        spinDuration: mergedConfig.spinDuration ?? 4000,
-        minSpins: mergedConfig.minSpins ?? 5,
-        loadingText: mergedConfig.loadingText,
+      // SpinToWin-specific fields
+      spinButtonText: mergedConfig.spinButtonText || "Spin to Win!",
+      emailRequired: mergedConfig.emailRequired ?? true,
+      emailPlaceholder: mergedConfig.emailPlaceholder || "Enter your email",
+      emailLabel: mergedConfig.emailLabel,
+      wheelSegments: mergedConfig.wheelSegments || [],
+      maxAttemptsPerUser: mergedConfig.maxAttemptsPerUser ?? 1,
+      wheelSize: mergedConfig.wheelSize ?? 400,
+      wheelBorderWidth: mergedConfig.wheelBorderWidth ?? 2,
+      wheelBorderColor: mergedConfig.wheelBorderColor,
+      spinDuration: mergedConfig.spinDuration ?? 4000,
+      minSpins: mergedConfig.minSpins ?? 5,
+      loadingText: mergedConfig.loadingText,
 
-        // Enhanced wheel styling (premium themes)
-        wheelGlowEnabled: mergedConfig.wheelGlowEnabled ?? false,
-        wheelGlowColor: mergedConfig.wheelGlowColor,
-        wheelCenterStyle: mergedConfig.wheelCenterStyle ?? "simple",
+      // Enhanced wheel styling (premium themes)
+      wheelGlowEnabled: mergedConfig.wheelGlowEnabled ?? false,
+      wheelGlowColor: mergedConfig.wheelGlowColor,
+      wheelCenterStyle: mergedConfig.wheelCenterStyle ?? "simple",
 
-        // Promotional badge
-        badgeEnabled: mergedConfig.badgeEnabled ?? false,
-        badgeText: mergedConfig.badgeText,
-        badgeIcon: mergedConfig.badgeIcon,
+      // Promotional badge
+      badgeEnabled: mergedConfig.badgeEnabled ?? false,
+      badgeText: mergedConfig.badgeText,
+      badgeIcon: mergedConfig.badgeIcon,
 
-        // Result state customization
-        showResultIcon: mergedConfig.showResultIcon ?? false,
-        resultIconType: mergedConfig.resultIconType ?? "trophy",
+      // Result state customization
+      showResultIcon: mergedConfig.showResultIcon ?? false,
+      resultIconType: mergedConfig.resultIconType ?? "trophy",
 
-        // Name & consent config (matching LeadCaptureConfig)
-        nameFieldEnabled: mergedConfig.nameFieldEnabled ?? false,
-        nameFieldRequired: mergedConfig.nameFieldRequired ?? false,
-        nameFieldLabel: mergedConfig.nameFieldLabel,
-        nameFieldPlaceholder: mergedConfig.nameFieldPlaceholder,
+      // Name & consent config (matching LeadCaptureConfig)
+      nameFieldEnabled: mergedConfig.nameFieldEnabled ?? false,
+      nameFieldRequired: mergedConfig.nameFieldRequired ?? false,
+      nameFieldLabel: mergedConfig.nameFieldLabel,
+      nameFieldPlaceholder: mergedConfig.nameFieldPlaceholder,
 
-        consentFieldEnabled: mergedConfig.consentFieldEnabled ?? false,
-        consentFieldRequired: mergedConfig.consentFieldRequired ?? false,
-        consentFieldText: mergedConfig.consentFieldText,
+      consentFieldEnabled: mergedConfig.consentFieldEnabled ?? false,
+      consentFieldRequired: mergedConfig.consentFieldRequired ?? false,
+      consentFieldText: mergedConfig.consentFieldText,
 
-        // All common config (colors, typography, layout, image settings)
-        ...buildCommonConfig(mergedConfig, designConfig),
-        // Preview-only layout tweak: keep popup anchored to top so the wheel
-        // doesn't visually jump when the prize box appears.
-        position: "top",
-      }),
+      // All common config (colors, typography, layout, image settings)
+      ...buildCommonConfig(mergedConfig, designConfig),
+      // Preview-only layout tweak: keep popup anchored to top so the wheel
+      // doesn't visually jump when the prize box appears.
+      position: "top",
+    }),
   },
 
   [TemplateTypeEnum.SCRATCH_CARD]: {
@@ -539,46 +598,45 @@ export const TEMPLATE_PREVIEW_REGISTRY: Record<string, TemplatePreviewEntry<any>
     buildConfig: (
       mergedConfig: Partial<ScratchCardConfig>,
       designConfig: Partial<PopupDesignConfig>
-    ): ScratchCardConfig =>
-      ({
-        id: "preview-scratch-card",
+    ): ScratchCardConfig => ({
+      id: "preview-scratch-card",
 
-        // Base content fields
-        headline: mergedConfig.headline || "Scratch to Reveal Your Discount",
-        subheadline: mergedConfig.subheadline || "Everyone wins!",
-        buttonText: mergedConfig.buttonText || "Claim Discount",
-        dismissLabel: mergedConfig.dismissLabel,
-        failureMessage: mergedConfig.failureMessage,
-        ctaText: mergedConfig.ctaText,
+      // Base content fields
+      headline: mergedConfig.headline || "Scratch to Reveal Your Discount",
+      subheadline: mergedConfig.subheadline || "Everyone wins!",
+      buttonText: mergedConfig.buttonText || "Claim Discount",
+      dismissLabel: mergedConfig.dismissLabel,
+      failureMessage: mergedConfig.failureMessage,
+      ctaText: mergedConfig.ctaText,
 
-        // ScratchCard-specific fields
-        scratchInstruction: mergedConfig.scratchInstruction || "Scratch to reveal your prize!",
-        emailRequired: mergedConfig.emailRequired ?? true,
-        emailPlaceholder: mergedConfig.emailPlaceholder || "Enter your email",
-        emailLabel: mergedConfig.emailLabel,
-        emailBeforeScratching: mergedConfig.emailBeforeScratching ?? false,
-        scratchThreshold: mergedConfig.scratchThreshold ?? 50,
-        scratchRadius: mergedConfig.scratchRadius ?? 20,
-        // Preview prizes: use configured prizes or default preview prizes
-        prizes:
-          mergedConfig.prizes && mergedConfig.prizes.length > 0
-            ? mergedConfig.prizes
-            : SCRATCH_CARD_PREVIEW_PRIZES,
+      // ScratchCard-specific fields
+      scratchInstruction: mergedConfig.scratchInstruction || "Scratch to reveal your prize!",
+      emailRequired: mergedConfig.emailRequired ?? true,
+      emailPlaceholder: mergedConfig.emailPlaceholder || "Enter your email",
+      emailLabel: mergedConfig.emailLabel,
+      emailBeforeScratching: mergedConfig.emailBeforeScratching ?? false,
+      scratchThreshold: mergedConfig.scratchThreshold ?? 50,
+      scratchRadius: mergedConfig.scratchRadius ?? 20,
+      // Preview prizes: use configured prizes or default preview prizes
+      prizes:
+        mergedConfig.prizes && mergedConfig.prizes.length > 0
+          ? mergedConfig.prizes
+          : SCRATCH_CARD_PREVIEW_PRIZES,
 
-        // Name field config
-        nameFieldEnabled: mergedConfig.nameFieldEnabled ?? false,
-        nameFieldRequired: mergedConfig.nameFieldRequired ?? false,
-        nameFieldLabel: mergedConfig.nameFieldLabel,
-        nameFieldPlaceholder: mergedConfig.nameFieldPlaceholder,
+      // Name field config
+      nameFieldEnabled: mergedConfig.nameFieldEnabled ?? false,
+      nameFieldRequired: mergedConfig.nameFieldRequired ?? false,
+      nameFieldLabel: mergedConfig.nameFieldLabel,
+      nameFieldPlaceholder: mergedConfig.nameFieldPlaceholder,
 
-        // Consent (GDPR-style checkbox)
-        consentFieldEnabled: mergedConfig.consentFieldEnabled ?? false,
-        consentFieldRequired: mergedConfig.consentFieldRequired ?? false,
-        consentFieldText: mergedConfig.consentFieldText,
+      // Consent (GDPR-style checkbox)
+      consentFieldEnabled: mergedConfig.consentFieldEnabled ?? false,
+      consentFieldRequired: mergedConfig.consentFieldRequired ?? false,
+      consentFieldText: mergedConfig.consentFieldText,
 
-        // All common config (colors, typography, layout, image settings)
-        ...buildCommonConfig(mergedConfig, designConfig),
-      }),
+      // All common config (colors, typography, layout, image settings)
+      ...buildCommonConfig(mergedConfig, designConfig),
+    }),
   },
 };
 
@@ -586,11 +644,12 @@ export const TEMPLATE_PREVIEW_REGISTRY: Record<string, TemplatePreviewEntry<any>
 TEMPLATE_PREVIEW_REGISTRY[TemplateTypeEnum.PRODUCT_UPSELL] = {
   component: ProductUpsellPopup,
   buildConfig: (
-    mergedConfig: Partial<ProductUpsellConfig>,
+    mergedConfig: Partial<ProductUpsellConfig> & { discountConfig?: Partial<AdminDiscountConfig> },
     designConfig: Partial<PopupDesignConfig>
   ): ProductUpsellConfig => {
-    // DEBUG: Log incoming mergedConfig.layout
-    console.log("[buildConfig][PRODUCT_UPSELL] mergedConfig.layout:", mergedConfig.layout);
+    // Extract tiered discount config if present
+    const dc = mergedConfig.discountConfig;
+
     return {
       id: "preview-product-upsell",
 
@@ -622,6 +681,21 @@ TEMPLATE_PREVIEW_REGISTRY[TemplateTypeEnum.PRODUCT_UPSELL] = {
       secondaryCtaLabel: mergedConfig.secondaryCtaLabel,
       currency: mergedConfig.currency || "USD",
 
+      // Premium Fullscreen layout specific fields
+      features: mergedConfig.features,
+      urgencyMessage: mergedConfig.urgencyMessage,
+
+      // Countdown Urgency layout specific fields
+      expiresInSeconds: mergedConfig.expiresInSeconds ?? 300,
+      socialProofMessage: mergedConfig.socialProofMessage,
+
+      // Bundle Deal layout specific fields
+      bundleHeaderText: mergedConfig.bundleHeaderText,
+      bundleSubheaderText: mergedConfig.bundleSubheaderText,
+
+      // Tiered discount configuration (for spend more, save more)
+      discountConfig: dc as ProductUpsellConfig["discountConfig"],
+
       // All common config (colors, typography, layout)
       ...buildCommonConfig(mergedConfig, designConfig),
     };
@@ -633,32 +707,31 @@ TEMPLATE_PREVIEW_REGISTRY[TemplateTypeEnum.ANNOUNCEMENT] = {
   buildConfig: (
     mergedConfig: Partial<AnnouncementConfig>,
     designConfig: Partial<PopupDesignConfig>
-  ): AnnouncementConfig =>
-    ({
-      id: "preview-announcement",
+  ): AnnouncementConfig => ({
+    id: "preview-announcement",
 
-      // Base content fields
-      headline: mergedConfig.headline || "Important Announcement",
-      subheadline: mergedConfig.subheadline || "Check out our latest updates",
-      buttonText: mergedConfig.buttonText || "Learn More",
-      dismissLabel: mergedConfig.dismissLabel,
-      successMessage: mergedConfig.successMessage || "Success!",
-      failureMessage: mergedConfig.failureMessage,
-      ctaText: mergedConfig.ctaText,
+    // Base content fields
+    headline: mergedConfig.headline || "Important Announcement",
+    subheadline: mergedConfig.subheadline || "Check out our latest updates",
+    buttonText: mergedConfig.buttonText || "Learn More",
+    dismissLabel: mergedConfig.dismissLabel,
+    successMessage: mergedConfig.successMessage || "Success!",
+    failureMessage: mergedConfig.failureMessage,
+    ctaText: mergedConfig.ctaText,
 
-      // Announcement-specific fields
-      sticky: mergedConfig.sticky ?? true,
-      icon: mergedConfig.icon,
-      ctaUrl: mergedConfig.ctaUrl,
-      ctaOpenInNewTab: mergedConfig.ctaOpenInNewTab ?? false,
-      colorScheme: mergedConfig.colorScheme || "custom",
+    // Announcement-specific fields
+    sticky: mergedConfig.sticky ?? true,
+    icon: mergedConfig.icon,
+    ctaUrl: mergedConfig.ctaUrl,
+    ctaOpenInNewTab: mergedConfig.ctaOpenInNewTab ?? false,
+    colorScheme: mergedConfig.colorScheme || "custom",
 
-      // All common config (colors, typography, layout)
-      ...buildCommonConfig(mergedConfig, designConfig),
+    // All common config (colors, typography, layout)
+    ...buildCommonConfig(mergedConfig, designConfig),
 
-      // Override position: announcements are banners, default to "top" not "center"
-      position: mergedConfig.position || designConfig.position || "top",
-    }),
+    // Override position: announcements are banners, default to "top" not "center"
+    position: mergedConfig.position || designConfig.position || "top",
+  }),
 };
 
 TEMPLATE_PREVIEW_REGISTRY[TemplateTypeEnum.FREE_SHIPPING] = {
@@ -666,89 +739,221 @@ TEMPLATE_PREVIEW_REGISTRY[TemplateTypeEnum.FREE_SHIPPING] = {
   buildConfig: (
     mergedConfig: Partial<FreeShippingConfig> & { discountConfig?: Partial<AdminDiscountConfig> },
     designConfig: Partial<PopupDesignConfig>
-  ): FreeShippingConfig =>
-    ({
-      id: "preview-free-shipping",
+  ): FreeShippingConfig => ({
+    id: "preview-free-shipping",
 
-      // FreeShipping-specific content fields
-      threshold: mergedConfig.threshold ?? 75,
-      currency: mergedConfig.currency || "$",
-      nearMissThreshold: mergedConfig.nearMissThreshold ?? 10,
-      emptyMessage: mergedConfig.emptyMessage || "Add items to unlock free shipping",
-      progressMessage: mergedConfig.progressMessage || "You're {remaining} away from free shipping",
-      nearMissMessage: mergedConfig.nearMissMessage || "Only {remaining} to go!",
-      unlockedMessage: mergedConfig.unlockedMessage || "You've unlocked free shipping! 🎉",
-      barPosition: mergedConfig.barPosition || "top",
-      dismissible: mergedConfig.dismissible ?? true,
-      dismissLabel: mergedConfig.dismissLabel,
-      showIcon: mergedConfig.showIcon ?? true,
-      celebrateOnUnlock: mergedConfig.celebrateOnUnlock ?? true,
-      animationDuration: mergedConfig.animationDuration ?? 500,
-      previewCartTotal: mergedConfig.previewCartTotal ?? 0,
+    // FreeShipping-specific content fields
+    threshold: mergedConfig.threshold ?? 75,
+    currency: mergedConfig.currency || "$",
+    nearMissThreshold: mergedConfig.nearMissThreshold ?? 10,
+    emptyMessage: mergedConfig.emptyMessage || "Add items to unlock free shipping",
+    progressMessage: mergedConfig.progressMessage || "You're {remaining} away from free shipping",
+    nearMissMessage: mergedConfig.nearMissMessage || "Only {remaining} to go!",
+    unlockedMessage: mergedConfig.unlockedMessage || "You've unlocked free shipping! 🎉",
+    barPosition: mergedConfig.barPosition || "top",
+    dismissible: mergedConfig.dismissible ?? true,
+    dismissLabel: mergedConfig.dismissLabel,
+    showIcon: mergedConfig.showIcon ?? true,
+    celebrateOnUnlock: mergedConfig.celebrateOnUnlock ?? true,
+    animationDuration: mergedConfig.animationDuration ?? 500,
+    previewCartTotal: mergedConfig.previewCartTotal ?? 0,
 
-      // Claim behavior (email gate)
-      requireEmailToClaim: mergedConfig.requireEmailToClaim ?? false,
-      claimButtonLabel: mergedConfig.claimButtonLabel || "Claim discount",
-      claimEmailPlaceholder: mergedConfig.claimEmailPlaceholder || "Enter your email",
-      claimSuccessMessage: mergedConfig.claimSuccessMessage || "Discount claimed!",
-      claimErrorMessage: mergedConfig.claimErrorMessage || "Failed to claim discount",
+    // Claim behavior (email gate)
+    requireEmailToClaim: mergedConfig.requireEmailToClaim ?? false,
+    claimButtonLabel: mergedConfig.claimButtonLabel || "Claim discount",
+    claimEmailPlaceholder: mergedConfig.claimEmailPlaceholder || "Enter your email",
+    claimSuccessMessage: mergedConfig.claimSuccessMessage || "Discount claimed!",
+    claimErrorMessage: mergedConfig.claimErrorMessage || "Failed to claim discount",
 
-      // Preview cart total mapping into component config
-      currentCartTotal: mergedConfig.previewCartTotal,
+    // Preview cart total mapping into component config
+    currentCartTotal: mergedConfig.previewCartTotal,
 
-      // Discount: transform admin config to storefront format
-      discount: transformDiscountConfig(mergedConfig.discountConfig, "FREESHIP") || mergedConfig.discount,
+    // Discount: transform admin config to storefront format
+    discount:
+      transformDiscountConfig(mergedConfig.discountConfig, "FREESHIP") || mergedConfig.discount,
 
-      // All common config (colors, typography, layout)
-      ...buildCommonConfig(mergedConfig, designConfig),
-    }),
+    // All common config (colors, typography, layout)
+    ...buildCommonConfig(mergedConfig, designConfig),
+  }),
 };
 
 TEMPLATE_PREVIEW_REGISTRY[TemplateTypeEnum.CART_ABANDONMENT] = {
   component: CartAbandonmentPopup,
   buildConfig: (
-    mergedConfig: Partial<CartAbandonmentConfig> & { discountConfig?: Partial<AdminDiscountConfig> },
+    mergedConfig: Partial<CartAbandonmentConfig> & {
+      discountConfig?: Partial<AdminDiscountConfig>;
+    },
     designConfig: Partial<PopupDesignConfig>
-  ): CartAbandonmentConfig =>
-    ({
-      id: "preview-cart-abandonment",
+  ): CartAbandonmentConfig => ({
+    id: "preview-cart-abandonment",
 
-      // Base content fields
-      headline: mergedConfig.headline || "Complete Your Purchase",
-      subheadline: mergedConfig.subheadline || "Your items are waiting",
-      buttonText: mergedConfig.buttonText || "Return to Cart",
-      successMessage: mergedConfig.successMessage || "Success!",
-      failureMessage: mergedConfig.failureMessage,
-      ctaText: mergedConfig.ctaText,
+    // Base content fields
+    headline: mergedConfig.headline || "Complete Your Purchase",
+    subheadline: mergedConfig.subheadline || "Your items are waiting",
+    buttonText: mergedConfig.buttonText || "Return to Cart",
+    successMessage: mergedConfig.successMessage || "Success!",
+    failureMessage: mergedConfig.failureMessage,
+    ctaText: mergedConfig.ctaText,
 
-      // CartAbandonment-specific fields
-      showCartItems: mergedConfig.showCartItems ?? true,
-      maxItemsToShow: mergedConfig.maxItemsToShow ?? 3,
-      showCartTotal: mergedConfig.showCartTotal ?? true,
-      showUrgency: mergedConfig.showUrgency ?? true,
-      urgencyTimer: mergedConfig.urgencyTimer ?? 300,
-      urgencyMessage: mergedConfig.urgencyMessage,
-      showStockWarnings: mergedConfig.showStockWarnings ?? false,
-      stockWarningMessage: mergedConfig.stockWarningMessage,
-      ctaUrl: mergedConfig.ctaUrl,
-      saveForLaterText: mergedConfig.saveForLaterText,
-      dismissLabel: mergedConfig.dismissLabel,
-      currency: mergedConfig.currency || "USD",
+    // CartAbandonment-specific fields
+    showCartItems: mergedConfig.showCartItems ?? true,
+    maxItemsToShow: mergedConfig.maxItemsToShow ?? 3,
+    showCartTotal: mergedConfig.showCartTotal ?? true,
+    showUrgency: mergedConfig.showUrgency ?? true,
+    urgencyTimer: mergedConfig.urgencyTimer ?? 300,
+    urgencyMessage: mergedConfig.urgencyMessage,
+    showStockWarnings: mergedConfig.showStockWarnings ?? false,
+    stockWarningMessage: mergedConfig.stockWarningMessage,
+    ctaUrl: mergedConfig.ctaUrl,
+    saveForLaterText: mergedConfig.saveForLaterText,
+    dismissLabel: mergedConfig.dismissLabel,
+    currency: mergedConfig.currency || "USD",
 
-      // Email recovery preview fields
-      enableEmailRecovery: mergedConfig.enableEmailRecovery ?? false,
-      emailPlaceholder: mergedConfig.emailPlaceholder,
-      emailSuccessMessage: mergedConfig.emailSuccessMessage,
-      emailErrorMessage: mergedConfig.emailErrorMessage,
-      emailButtonText: mergedConfig.emailButtonText,
-      requireEmailBeforeCheckout: mergedConfig.requireEmailBeforeCheckout ?? false,
+    // Email recovery preview fields
+    enableEmailRecovery: mergedConfig.enableEmailRecovery ?? false,
+    emailPlaceholder: mergedConfig.emailPlaceholder,
+    emailSuccessMessage: mergedConfig.emailSuccessMessage,
+    emailErrorMessage: mergedConfig.emailErrorMessage,
+    emailButtonText: mergedConfig.emailButtonText,
+    requireEmailBeforeCheckout: mergedConfig.requireEmailBeforeCheckout ?? false,
 
-      // Discount: transform admin config to storefront format
-      discount: transformDiscountConfig(mergedConfig.discountConfig, "SAVE"),
+    // Discount: transform admin config to storefront format
+    discount: transformDiscountConfig(mergedConfig.discountConfig, "SAVE"),
 
-      // All common config (colors, typography, layout)
-      ...buildCommonConfig(mergedConfig, designConfig),
-    }),
+    // All common config (colors, typography, layout)
+    ...buildCommonConfig(mergedConfig, designConfig),
+  }),
+};
+
+// =============================================================================
+// NEW UPSELL POPUP VARIANTS
+// =============================================================================
+
+TEMPLATE_PREVIEW_REGISTRY[TemplateTypeEnum.CLASSIC_UPSELL] = {
+  component: ClassicUpsellPopup,
+  buildConfig: (
+    mergedConfig: Record<string, unknown>,
+    designConfig: Partial<PopupDesignConfig>
+  ): ClassicUpsellConfig => ({
+    id: "preview-classic-upsell",
+    productSelectionMethod:
+      (mergedConfig.productSelectionMethod as "ai" | "manual" | "collection") || "manual",
+    headline: (mergedConfig.headline as string) || "You might also like",
+    subheadline: (mergedConfig.subheadline as string) || "Customers who bought this also loved",
+    buttonText: (mergedConfig.buttonText as string) || "Add to Cart",
+    secondaryCtaLabel: (mergedConfig.secondaryCtaLabel as string) || "No thanks",
+    successMessage: (mergedConfig.successMessage as string) || "Added to cart!",
+    showPrices: (mergedConfig.showPrices as boolean) ?? true,
+    showCompareAtPrice: (mergedConfig.showCompareAtPrice as boolean) ?? true,
+    showImages: (mergedConfig.showImages as boolean) ?? true,
+    showRatings: (mergedConfig.showRatings as boolean) ?? true,
+    discountPercent: (mergedConfig.discountPercent as number) ?? 15,
+    currency: (mergedConfig.currency as string) || "USD",
+    products:
+      (mergedConfig.products as typeof PRODUCT_UPSELL_PREVIEW_PRODUCTS) ||
+      PRODUCT_UPSELL_PREVIEW_PRODUCTS.slice(0, 1),
+    ...buildCommonConfig(mergedConfig, designConfig),
+    // Neutral color overrides for upsell templates
+    buttonColor: (mergedConfig.buttonColor as string) || designConfig.buttonColor || "#1A1A1A",
+    accentColor: (mergedConfig.accentColor as string) || designConfig.accentColor || "#1A1A1A",
+  }),
+};
+
+TEMPLATE_PREVIEW_REGISTRY[TemplateTypeEnum.MINIMAL_SLIDE_UP] = {
+  component: MinimalSlideUpPopup,
+  buildConfig: (
+    mergedConfig: Record<string, unknown>,
+    designConfig: Partial<PopupDesignConfig>
+  ): MinimalSlideUpConfig => ({
+    id: "preview-minimal-slide-up",
+    productSelectionMethod:
+      (mergedConfig.productSelectionMethod as "ai" | "manual" | "collection") || "ai",
+    headline: (mergedConfig.headline as string) || "Add this to your order?",
+    subheadline: (mergedConfig.subheadline as string) || "Special offer for you",
+    buttonText: (mergedConfig.buttonText as string) || "Add",
+    secondaryCtaLabel: (mergedConfig.secondaryCtaLabel as string) || "Continue shopping",
+    successMessage: (mergedConfig.successMessage as string) || "Added!",
+    showPrices: (mergedConfig.showPrices as boolean) ?? true,
+    showCompareAtPrice: (mergedConfig.showCompareAtPrice as boolean) ?? true,
+    showImages: (mergedConfig.showImages as boolean) ?? true,
+    currency: (mergedConfig.currency as string) || "USD",
+    products:
+      (mergedConfig.products as typeof PRODUCT_UPSELL_PREVIEW_PRODUCTS) ||
+      PRODUCT_UPSELL_PREVIEW_PRODUCTS.slice(0, 1),
+    ...buildCommonConfig(mergedConfig, designConfig),
+    // Neutral color overrides for upsell templates
+    buttonColor: (mergedConfig.buttonColor as string) || designConfig.buttonColor || "#1A1A1A",
+    accentColor: (mergedConfig.accentColor as string) || designConfig.accentColor || "#1A1A1A",
+  }),
+};
+
+TEMPLATE_PREVIEW_REGISTRY[TemplateTypeEnum.PREMIUM_FULLSCREEN] = {
+  component: PremiumFullscreenPopup,
+  buildConfig: (
+    mergedConfig: Record<string, unknown>,
+    designConfig: Partial<PopupDesignConfig>
+  ): PremiumFullscreenConfig => ({
+    id: "preview-premium-fullscreen",
+    productSelectionMethod:
+      (mergedConfig.productSelectionMethod as "ai" | "manual" | "collection") || "manual",
+    headline: (mergedConfig.headline as string) || "Exclusive Offer",
+    subheadline: (mergedConfig.subheadline as string) || "For our valued customers",
+    buttonText: (mergedConfig.buttonText as string) || "Claim This Offer",
+    secondaryCtaLabel: (mergedConfig.secondaryCtaLabel as string) || "Maybe later",
+    successMessage: (mergedConfig.successMessage as string) || "Added to cart!",
+    showPrices: (mergedConfig.showPrices as boolean) ?? true,
+    showCompareAtPrice: (mergedConfig.showCompareAtPrice as boolean) ?? true,
+    showImages: (mergedConfig.showImages as boolean) ?? true,
+    showRatings: (mergedConfig.showRatings as boolean) ?? true,
+    showReviewCount: (mergedConfig.showReviewCount as boolean) ?? true,
+    discountPercent: (mergedConfig.discountPercent as number) ?? 20,
+    currency: (mergedConfig.currency as string) || "USD",
+    features: (mergedConfig.features as string[]) || [
+      "Premium Quality",
+      "Fast Shipping",
+      "30-Day Returns",
+    ],
+    urgencyMessage: (mergedConfig.urgencyMessage as string) || "Limited time offer",
+    products:
+      (mergedConfig.products as typeof PRODUCT_UPSELL_PREVIEW_PRODUCTS) ||
+      PRODUCT_UPSELL_PREVIEW_PRODUCTS.slice(0, 1),
+    ...buildCommonConfig(mergedConfig, designConfig),
+    // Neutral color overrides for upsell templates
+    buttonColor: (mergedConfig.buttonColor as string) || designConfig.buttonColor || "#1A1A1A",
+    accentColor: (mergedConfig.accentColor as string) || designConfig.accentColor || "#1A1A1A",
+  }),
+};
+
+TEMPLATE_PREVIEW_REGISTRY[TemplateTypeEnum.COUNTDOWN_URGENCY] = {
+  component: CountdownUrgencyPopup,
+  buildConfig: (
+    mergedConfig: Record<string, unknown>,
+    designConfig: Partial<PopupDesignConfig>
+  ): CountdownUrgencyConfig => ({
+    id: "preview-countdown-urgency",
+    productSelectionMethod:
+      (mergedConfig.productSelectionMethod as "ai" | "manual" | "collection") || "manual",
+    headline: (mergedConfig.headline as string) || "Flash Deal!",
+    subheadline: (mergedConfig.subheadline as string) || "Offer expires soon",
+    buttonText: (mergedConfig.buttonText as string) || "Claim Now",
+    secondaryCtaLabel: (mergedConfig.secondaryCtaLabel as string) || "No thanks",
+    successMessage: (mergedConfig.successMessage as string) || "Deal claimed!",
+    showPrices: (mergedConfig.showPrices as boolean) ?? true,
+    showCompareAtPrice: (mergedConfig.showCompareAtPrice as boolean) ?? true,
+    showImages: (mergedConfig.showImages as boolean) ?? true,
+    discountPercent: (mergedConfig.discountPercent as number) ?? 25,
+    currency: (mergedConfig.currency as string) || "USD",
+    expiresInSeconds: (mergedConfig.expiresInSeconds as number) ?? 300,
+    socialProofMessage:
+      (mergedConfig.socialProofMessage as string) || "12 people viewing this deal",
+    products:
+      (mergedConfig.products as typeof PRODUCT_UPSELL_PREVIEW_PRODUCTS) ||
+      PRODUCT_UPSELL_PREVIEW_PRODUCTS.slice(0, 1),
+    ...buildCommonConfig(mergedConfig, designConfig),
+    // Neutral color overrides for upsell templates
+    buttonColor: (mergedConfig.buttonColor as string) || designConfig.buttonColor || "#1A1A1A",
+    accentColor: (mergedConfig.accentColor as string) || designConfig.accentColor || "#1A1A1A",
+  }),
 };
 
 /**

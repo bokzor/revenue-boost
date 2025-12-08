@@ -29,11 +29,7 @@ function areBackdropConfigsEqual(
 ): boolean {
   if (prev === next) return true;
   if (!prev || !next) return prev === next;
-  return (
-    prev.color === next.color &&
-    prev.opacity === next.opacity &&
-    prev.blur === next.blur
-  );
+  return prev.color === next.color && prev.opacity === next.opacity && prev.blur === next.blur;
 }
 
 /**
@@ -57,15 +53,13 @@ function areAnimationConfigsEqual(
  * Custom comparison function for PopupPortalProps
  * Performs shallow comparison for primitive props and deep comparison for object props
  */
-function arePropsEqual(
-  prevProps: PopupPortalProps,
-  nextProps: PopupPortalProps
-): boolean {
+function arePropsEqual(prevProps: PopupPortalProps, nextProps: PopupPortalProps): boolean {
   // Check primitive props
   if (
     prevProps.isVisible !== nextProps.isVisible ||
     prevProps.customCSS !== nextProps.customCSS ||
     prevProps.globalCustomCSS !== nextProps.globalCustomCSS ||
+    prevProps.designTokensCSS !== nextProps.designTokensCSS ||
     prevProps.position !== nextProps.position ||
     prevProps.size !== nextProps.size ||
     prevProps.mobilePresentationMode !== nextProps.mobilePresentationMode ||
@@ -134,6 +128,14 @@ export interface PopupPortalProps {
   children: React.ReactNode;
   customCSS?: string;
   globalCustomCSS?: string;
+
+  /**
+   * Pre-resolved CSS custom properties for design tokens.
+   * Format: "--rb-background: #fff; --rb-primary: #000; ..."
+   * Applied as inline styles on the popup container so child components
+   * can reference these variables (e.g., `var(--rb-primary)`).
+   */
+  designTokensCSS?: string;
 
   // Backdrop configuration
   backdrop?: BackdropConfig;
@@ -208,7 +210,7 @@ const ANIMATION_CHOREOGRAPHY = {
  * - visible -> exiting: when isVisible becomes false (or swipe dismiss)
  * - exiting -> unmounted: after exit animation completes
  */
-type AnimationState = 'unmounted' | 'entering' | 'visible' | 'exiting';
+type AnimationState = "unmounted" | "entering" | "visible" | "exiting";
 
 // Swipe-to-dismiss constants
 const SWIPE_THRESHOLD = 100; // px
@@ -221,6 +223,7 @@ const PopupPortalComponent: React.FC<PopupPortalProps> = ({
   children,
   customCSS,
   globalCustomCSS,
+  designTokensCSS,
   backdrop = {},
   animation = { type: "fade" },
   position = "center",
@@ -234,7 +237,7 @@ const PopupPortalComponent: React.FC<PopupPortalProps> = ({
   ariaDescribedBy,
 }) => {
   // Animation state machine
-  const [animationState, setAnimationState] = useState<AnimationState>('unmounted');
+  const [animationState, setAnimationState] = useState<AnimationState>("unmounted");
 
   // Swipe-to-dismiss state
   const [dragOffset, setDragOffset] = useState(0);
@@ -403,7 +406,7 @@ const PopupPortalComponent: React.FC<PopupPortalProps> = ({
       // Animate to bottom of screen then close
       setIsDragging(false);
       setDragOffset(window.innerHeight);
-      setAnimationState('exiting');
+      setAnimationState("exiting");
 
       // After swipe animation completes, trigger close
       setTimeout(() => {
@@ -503,7 +506,7 @@ const PopupPortalComponent: React.FC<PopupPortalProps> = ({
 
   // Calculate max animation duration
   const animationDuration = useMemo(() => {
-    if (animationType === 'none') return 0;
+    if (animationType === "none") return 0;
     return Math.max(
       backdropTiming.delay + backdropTiming.duration,
       contentTiming.delay + contentTiming.duration
@@ -518,17 +521,17 @@ const PopupPortalComponent: React.FC<PopupPortalProps> = ({
       animationTimerRef.current = null;
     }
 
-    if (isVisible && animationState === 'unmounted') {
+    if (isVisible && animationState === "unmounted") {
       // Start entering
-      setAnimationState('entering');
+      setAnimationState("entering");
 
       // Transition to visible after animation
       animationTimerRef.current = setTimeout(() => {
-        setAnimationState('visible');
+        setAnimationState("visible");
       }, animationDuration);
-    } else if (!isVisible && (animationState === 'visible' || animationState === 'entering')) {
+    } else if (!isVisible && (animationState === "visible" || animationState === "entering")) {
       // Start exiting
-      setAnimationState('exiting');
+      setAnimationState("exiting");
 
       // Reset drag state
       setDragOffset(0);
@@ -536,12 +539,12 @@ const PopupPortalComponent: React.FC<PopupPortalProps> = ({
 
       // Transition to unmounted after animation
       animationTimerRef.current = setTimeout(() => {
-        setAnimationState('unmounted');
+        setAnimationState("unmounted");
       }, animationDuration);
-    } else if (!isVisible && animationState === 'exiting') {
+    } else if (!isVisible && animationState === "exiting") {
       // Already exiting (from swipe), just wait for unmount timer
       animationTimerRef.current = setTimeout(() => {
-        setAnimationState('unmounted');
+        setAnimationState("unmounted");
       }, animationDuration);
     }
 
@@ -560,26 +563,27 @@ const PopupPortalComponent: React.FC<PopupPortalProps> = ({
 
   // Derive animation class from state machine
   // Backdrop always uses fade, content uses the configured animation type
-  const getAnimationClass = useCallback((forBackdrop: boolean = false) => {
-    if (effectiveAnimationType === "none") return "";
-    if (isDragging) return ""; // No animation class while dragging
+  const getAnimationClass = useCallback(
+    (forBackdrop: boolean = false) => {
+      if (effectiveAnimationType === "none") return "";
+      if (isDragging) return ""; // No animation class while dragging
 
-    const type = forBackdrop ? "fade" : effectiveAnimationType;
+      const type = forBackdrop ? "fade" : effectiveAnimationType;
 
-    switch (animationState) {
-      case 'entering':
-        return `popup-portal-${type}-enter`;
-      case 'exiting':
-        return `popup-portal-${type}-exit`;
-      default:
-        return ""; // 'visible' and 'unmounted' have no animation class
-    }
-  }, [effectiveAnimationType, animationState, isDragging]);
+      switch (animationState) {
+        case "entering":
+          return `popup-portal-${type}-enter`;
+        case "exiting":
+          return `popup-portal-${type}-exit`;
+        default:
+          return ""; // 'visible' and 'unmounted' have no animation class
+      }
+    },
+    [effectiveAnimationType, animationState, isDragging]
+  );
 
-  const backdropAnimationClass = getAnimationClass(true);  // Always fade
+  const backdropAnimationClass = getAnimationClass(true); // Always fade
   const contentAnimationClass = getAnimationClass(false); // Uses configured animation
-
-
 
   // Styles
   // In Shadow DOM, position: fixed doesn't work relative to viewport
@@ -616,7 +620,7 @@ const PopupPortalComponent: React.FC<PopupPortalProps> = ({
   );
 
   // Don't render when unmounted
-  if (animationState === 'unmounted') {
+  if (animationState === "unmounted") {
     return null;
   }
 
@@ -639,8 +643,31 @@ const PopupPortalComponent: React.FC<PopupPortalProps> = ({
         * {
           box-sizing: border-box;
         }
-        ${getAnimationKeyframes(position, mobilePresentationMode)}
+        ${getAnimationKeyframes(position, mobilePresentationMode, size)}
       `,
+        }}
+      />
+      {/* Design tokens as CSS custom properties (--rb-background, --rb-primary, etc.) */}
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
+            /* Default design token values (fallbacks) */
+            .popup-portal-root {
+              --rb-background: #ffffff;
+              --rb-foreground: #1a1a1a;
+              --rb-muted: rgba(26, 26, 26, 0.6);
+              --rb-primary: #000000;
+              --rb-primary-foreground: #ffffff;
+              --rb-surface: #f5f5f5;
+              --rb-border: rgba(26, 26, 26, 0.15);
+              --rb-success: #10B981;
+              --rb-font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+              --rb-heading-font-family: var(--rb-font-family);
+              --rb-radius: 8px;
+              --rb-popup-radius: 16px;
+              ${designTokensCSS || ""}
+            }
+          `,
         }}
       />
       {combinedCustomCSS && <style dangerouslySetInnerHTML={{ __html: combinedCustomCSS }} />}
@@ -652,13 +679,14 @@ const PopupPortalComponent: React.FC<PopupPortalProps> = ({
           ...backdropStyles,
           // Backdrop opacity follows drag distance
           // At 0px drag: full opacity (1), at 300px drag: zero opacity (0)
-          opacity: isDragging || (animationState === 'exiting' && dragOffset > 0)
-            ? Math.max(0, 1 - dragOffset / 300)
-            : undefined,
+          opacity:
+            isDragging || (animationState === "exiting" && dragOffset > 0)
+              ? Math.max(0, 1 - dragOffset / 300)
+              : undefined,
           // Smooth transition when snapping back, no transition while dragging
           transition: isDragging
             ? "none"
-            : animationState === 'exiting' && dragOffset > 0
+            : animationState === "exiting" && dragOffset > 0
               ? `opacity ${SWIPE_DISMISS_DURATION}ms ease-out`
               : "opacity 0.2s ease-out",
         }}
@@ -678,11 +706,11 @@ const PopupPortalComponent: React.FC<PopupPortalProps> = ({
           // No transition while dragging, smooth snap-back when releasing, slide out when exiting
           transition: isDragging
             ? "none"
-            : animationState === 'exiting' && dragOffset > 0
+            : animationState === "exiting" && dragOffset > 0
               ? `transform ${SWIPE_DISMISS_DURATION}ms ease-out, opacity ${SWIPE_DISMISS_DURATION}ms ease-out`
               : "transform 0.2s ease-out",
           // Fade out during swipe-triggered exit
-          opacity: animationState === 'exiting' && dragOffset > 0 ? 0 : undefined,
+          opacity: animationState === "exiting" && dragOffset > 0 ? 0 : undefined,
           // Allow touch gestures for swipe-to-dismiss
           touchAction: "pan-x pinch-zoom",
         }}
@@ -740,7 +768,8 @@ PopupPortal.displayName = "PopupPortal";
  */
 function getAnimationKeyframes(
   position: PopupPosition,
-  mobilePresentationMode: MobilePresentationMode
+  mobilePresentationMode: MobilePresentationMode,
+  size?: PopupSize
 ): string {
   // Map position to flexbox alignment
   const alignMap = {
@@ -758,6 +787,24 @@ function getAnimationKeyframes(
     left: "flex-start",
     right: "flex-end",
   };
+
+  // Fullscreen size styles (applied on all viewports)
+  const fullscreenStyles = size === "fullscreen" ? `
+    /* Fullscreen size - takes entire viewport */
+    .popup-portal-dialog-wrapper {
+      padding: 0 !important;
+      align-items: stretch !important;
+      justify-content: stretch !important;
+    }
+    .popup-portal-frame {
+      width: 100% !important;
+      max-width: 100% !important;
+      height: 100% !important;
+      max-height: 100% !important;
+      border-radius: 0 !important;
+      box-shadow: none !important;
+    }
+  ` : "";
 
   // Generate mobile-specific styles based on presentation mode
   const getMobileStyles = () => {
@@ -923,6 +970,12 @@ function getAnimationKeyframes(
       background: rgba(0, 0, 0, 0.2);
       border-radius: 2px;
     }
+
+    /* ========================================
+       FULLSCREEN SIZE STYLES
+       Applied when size="fullscreen" on all viewports
+       ======================================== */
+    ${fullscreenStyles}
 
     /* ========================================
        MOBILE STYLES (container < 520px)

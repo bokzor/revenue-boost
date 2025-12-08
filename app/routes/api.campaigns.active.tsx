@@ -29,6 +29,12 @@ import type { StoreSettings } from "~/domains/store/types/settings";
 import { PLAN_DEFINITIONS, type PlanTier } from "~/domains/billing/types/plan";
 import { parseContentConfig, parseDesignConfig } from "~/domains/campaigns/utils/json-helpers";
 import type { TemplateType } from "~/domains/campaigns/types/campaign";
+import {
+  resolveDesignTokens,
+  tokensToCSSString,
+  CampaignDesignSchema,
+  type DesignTokens,
+} from "~/domains/campaigns/types/design-tokens";
 
 // ============================================================================
 // TYPES
@@ -88,7 +94,7 @@ export async function loader(args: LoaderFunctionArgs) {
       const storeId = await getStoreIdFromShop(shop);
       const store = await prisma.store.findUnique({
         where: { id: storeId },
-        select: { settings: true, planTier: true },
+        select: { settings: true, planTier: true, accessToken: true },
       });
       const globalCustomCSS = extractGlobalCustomCss(store?.settings);
 
@@ -96,6 +102,38 @@ export async function loader(args: LoaderFunctionArgs) {
       const planTier = (store?.planTier || "FREE") as PlanTier;
       const planDefinition = PLAN_DEFINITIONS[planTier];
       const showBranding = !planDefinition.features.removeBranding;
+
+      // Get the store's default theme preset for "default"/"shopify" theme mode campaigns
+      // This is done once per request and reused for all campaigns
+      let defaultTokens: Partial<DesignTokens> | undefined;
+      try {
+        const { getDefaultPreset, presetToDesignTokens } = await import(
+          "~/domains/store/types/theme-preset"
+        );
+        const storeSettings = store?.settings as StoreSettings | undefined;
+        const customPresets = storeSettings?.customThemePresets || [];
+        const defaultPreset = getDefaultPreset(customPresets);
+
+        if (defaultPreset) {
+          defaultTokens = presetToDesignTokens(defaultPreset);
+          console.log(`[Active Campaigns API] Using default theme preset: ${defaultPreset.name}`);
+        } else {
+          // Fallback: fetch from Shopify theme if no default preset exists
+          const { fetchThemeSettings, themeSettingsToDesignTokens } = await import(
+            "~/lib/shopify/theme-settings.server"
+          );
+          if (store?.accessToken) {
+            const themeResult = await fetchThemeSettings(shop, store.accessToken);
+            if (themeResult.success && themeResult.settings) {
+              defaultTokens = themeSettingsToDesignTokens(themeResult.settings);
+              console.log(`[Active Campaigns API] Fallback: using Shopify theme settings`);
+            }
+          }
+        }
+      } catch (themeError) {
+        console.warn("[Active Campaigns API] Failed to get theme settings:", themeError);
+        // Continue without theme settings - campaigns will use defaults
+      }
 
       // If the store has exceeded its monthly impression cap, gracefully
       // return no campaigns instead of an error so storefronts fail soft.
@@ -195,6 +233,18 @@ export async function loader(args: LoaderFunctionArgs) {
           );
           const parsedDesignConfig = parseDesignConfig(campaignData.designConfig || {});
 
+          // Resolve design tokens for preview
+          let designTokensCSS: string | undefined;
+          try {
+            const designParsed = CampaignDesignSchema.safeParse(parsedDesignConfig);
+            if (designParsed.success) {
+              const resolvedTokens = resolveDesignTokens(designParsed.data, defaultTokens);
+              designTokensCSS = tokensToCSSString(resolvedTokens);
+            }
+          } catch (tokenError) {
+            console.warn(`[Active Campaigns API] Failed to resolve tokens for preview:`, tokenError);
+          }
+
           const formattedPreview: ApiCampaignData = {
             id: `preview-${previewToken}`,
             name: campaignData.name || "Preview Campaign",
@@ -202,6 +252,7 @@ export async function loader(args: LoaderFunctionArgs) {
             priority: campaignData.priority || 0,
             contentConfig: parsedContentConfig,
             designConfig: parsedDesignConfig,
+            designTokensCSS,
             targetRules: campaignData.targetRules || {},
             discountConfig: campaignData.discountConfig || {},
             experimentId: null,
@@ -286,6 +337,19 @@ export async function loader(args: LoaderFunctionArgs) {
         );
         const parsedDesignConfig = parseDesignConfig(campaign.designConfig);
 
+        // Resolve design tokens based on themeMode
+        // This enables "default"/"shopify" mode to automatically inherit store theme colors
+        let designTokensCSS: string | undefined;
+        try {
+          const designParsed = CampaignDesignSchema.safeParse(parsedDesignConfig);
+          if (designParsed.success) {
+            const resolvedTokens = resolveDesignTokens(designParsed.data, defaultTokens);
+            designTokensCSS = tokensToCSSString(resolvedTokens);
+          }
+        } catch (tokenError) {
+          console.warn(`[Active Campaigns API] Failed to resolve tokens for campaign ${campaign.id}:`, tokenError);
+        }
+
         return {
           id: campaign.id,
           name: campaign.name,
@@ -294,6 +358,8 @@ export async function loader(args: LoaderFunctionArgs) {
           contentConfig: parsedContentConfig,
           designConfig: parsedDesignConfig,
           customCSS: parsedDesignConfig.customCSS,
+          // CSS custom properties for design tokens (--rb-background, --rb-primary, etc.)
+          designTokensCSS,
           // Extract only client-side triggers
           clientTriggers: extractClientTriggers(campaign.targetRules),
           targetRules: {} as Record<string, unknown>,

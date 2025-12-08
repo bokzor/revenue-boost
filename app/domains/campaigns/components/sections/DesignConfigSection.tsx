@@ -10,7 +10,7 @@
  * - Switching templates preserves design values
  */
 
-import { useRef } from "react";
+import { useRef, useCallback, useMemo } from "react";
 import type { ChangeEvent } from "react";
 import {
   Card,
@@ -22,35 +22,24 @@ import {
   Button,
   RangeSlider,
 } from "@shopify/polaris";
+import { useFetcher } from "react-router";
 import { ColorField, FormGrid, CollapsibleSection, useCollapsibleSections } from "../form";
 import type { DesignConfig, TemplateType } from "~/domains/campaigns/types/campaign";
 import { type NewsletterThemeKey, resolveThemeForTemplate } from "~/config/color-presets";
 import {
   getBackgroundById,
   getBackgroundUrl,
-  getDefaultBackgroundForTheme,
   type BackgroundPreset,
 } from "~/config/background-presets";
 import { ThemePresetSelector } from "../shared/ThemePresetSelector";
 import { CustomPresetSelector } from "../shared/CustomPresetSelector";
+import { MatchThemeButton } from "../shared/MatchThemeButton";
 import { LayoutSelector, type LayoutOption } from "../shared/LayoutSelector";
 import { MobileLayoutSelector, type MobileLayoutOption } from "../shared/MobileLayoutSelector";
 import { getDesignCapabilities } from "~/domains/templates/registry/design-capabilities";
 import { useShopifyFileUpload } from "~/shared/hooks/useShopifyFileUpload";
 import type { ThemePresetInput } from "~/domains/store/types/theme-preset";
-import { loadGoogleFont } from "~/shared/utils/google-fonts";
-
-// Font family options for the typography selector
-const FONT_FAMILY_OPTIONS = [
-  { label: "System Default", value: "inherit" },
-  { label: "Inter", value: "Inter, system-ui, sans-serif" },
-  { label: "Roboto", value: "Roboto, system-ui, sans-serif" },
-  { label: "Open Sans", value: "'Open Sans', system-ui, sans-serif" },
-  { label: "Lato", value: "Lato, system-ui, sans-serif" },
-  { label: "Montserrat", value: "Montserrat, system-ui, sans-serif" },
-  { label: "Playfair Display (Serif)", value: "'Playfair Display', Georgia, serif" },
-  { label: "Merriweather (Serif)", value: "Merriweather, Georgia, serif" },
-];
+import { loadGoogleFont, getFontSelectOptionsFlat } from "~/shared/utils/google-fonts";
 
 export interface DesignConfigSectionProps {
   design: Partial<DesignConfig>;
@@ -80,6 +69,8 @@ export interface DesignConfigSectionProps {
    * Passed from loader via context.
    */
   availableBackgrounds?: BackgroundPreset[];
+  /** Optional callback to save a new theme preset to store settings */
+  onSaveThemePreset?: (preset: ThemePresetInput) => void;
 }
 
 /**
@@ -184,7 +175,51 @@ export function DesignConfigSection({
   onCustomPresetApply,
   onMobileLayoutChange,
   availableBackgrounds = [],
+  onSaveThemePreset,
 }: DesignConfigSectionProps) {
+  // Get font options including any custom font from current design
+  const fontFamilyOptions = useMemo(
+    () => getFontSelectOptionsFlat(design.fontFamily),
+    [design.fontFamily]
+  );
+
+  // Check if "My Store Theme" or similar preset already exists
+  const hasStoreThemePreset =
+    customThemePresets?.some(
+      (p) => p.id === "shopify-theme-auto" || p.name === "My Store Theme"
+    ) ?? false;
+
+  // Fetcher for saving theme presets to store settings
+  const presetSaveFetcher = useFetcher();
+
+  // Handle saving a new theme preset
+  const handleSaveThemePreset = useCallback(
+    (preset: ThemePresetInput) => {
+      // Build the updated presets array
+      const existingPresets = customThemePresets || [];
+      const updatedPresets = [preset, ...existingPresets];
+
+      // Submit to settings API
+      const formData = new FormData();
+      formData.append("actionType", "updateSettings");
+      formData.append(
+        "settings",
+        JSON.stringify({ customThemePresets: updatedPresets })
+      );
+
+      presetSaveFetcher.submit(formData, {
+        method: "post",
+        action: "/app/settings",
+      });
+
+      // Also call the optional callback if provided
+      if (onSaveThemePreset) {
+        onSaveThemePreset(preset);
+      }
+    },
+    [customThemePresets, presetSaveFetcher, onSaveThemePreset]
+  );
+
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // File upload
@@ -321,6 +356,32 @@ export function DesignConfigSection({
             </Text>
           </Banner>
         )}
+
+        <Divider />
+
+        {/* Match Your Theme - Import colors from Shopify theme */}
+        <MatchThemeButton
+          variant="card"
+          hasStoreThemePreset={hasStoreThemePreset}
+          onApply={(expandedConfig, _themeName) => {
+            // Apply the theme colors while preserving non-color fields
+            // Clear both built-in and custom theme selections
+            onChange({
+              ...design,
+              ...expandedConfig,
+              theme: undefined, // Clear built-in theme selection
+              customThemePresetId: "shopify-theme", // Mark as Shopify theme applied
+            });
+
+            // If callback provided (for Spin-to-Win wheel colors), call it
+            if (onCustomPresetApply && expandedConfig.buttonColor) {
+              onCustomPresetApply("shopify-theme", expandedConfig.buttonColor);
+            }
+          }}
+          onSaveAsPreset={(preset, _themeName) => {
+            handleSaveThemePreset(preset);
+          }}
+        />
 
         <Divider />
 
@@ -669,7 +730,7 @@ export function DesignConfigSection({
             <Select
               label="Font Family"
               value={design.fontFamily || "inherit"}
-              options={FONT_FAMILY_OPTIONS}
+              options={fontFamilyOptions}
               onChange={(value) => {
                 // Load the Google Font when selected
                 loadGoogleFont(value);

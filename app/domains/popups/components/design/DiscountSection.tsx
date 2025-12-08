@@ -146,8 +146,8 @@ export function DiscountSection({
                 label={getValueLabel()}
                 type="number"
                 suffix={getValueSuffix()}
-                value={config.value?.toString() || ""}
-                onChange={(value) => updateConfig({ value: parseFloat(value) || 0 })}
+                value={config.value?.toString() ?? ""}
+                onChange={(value) => updateConfig({ value: value === "" ? undefined : parseFloat(value) })}
                 placeholder={getRecommendedValue().toString()}
                 autoComplete="off"
                 min={0}

@@ -34,6 +34,12 @@ import type {
   ScratchCardContent,
   AnnouncementContent,
   ContentConfig,
+  // New upsell popup content types
+  ClassicUpsellContent,
+  MinimalSlideUpContent,
+  PremiumFullscreenContent,
+  BundleDealContent,
+  CountdownUrgencyContent,
 } from "../types/campaign";
 import type { LayoutConfig } from "~/domains/storefront/popups-new/types";
 
@@ -57,17 +63,18 @@ export type TemplateContentMap = {
   COUNTDOWN_TIMER: CountdownTimerContent;
   SCRATCH_CARD: ScratchCardContent;
   ANNOUNCEMENT: AnnouncementContent;
+  // New upsell popup template types
+  CLASSIC_UPSELL: ClassicUpsellContent;
+  MINIMAL_SLIDE_UP: MinimalSlideUpContent;
+  PREMIUM_FULLSCREEN: PremiumFullscreenContent;
+  COUNTDOWN_URGENCY: CountdownUrgencyContent;
 };
 
 // =============================================================================
 // RECIPE CATEGORIES
 // =============================================================================
 
-export type RecipeCategory =
-  | "email_leads"
-  | "sales_promos"
-  | "cart_recovery"
-  | "announcements";
+export type RecipeCategory = "email_leads" | "sales_promos" | "cart_recovery" | "announcements";
 
 export interface RecipeCategoryMeta {
   id: RecipeCategory;
@@ -314,6 +321,12 @@ export type PopupComponentName =
   // Product upsell
   | "ProductUpsell"
   | "ProductUpsellCarousel"
+  // New upsell popup variants
+  | "ClassicUpsellPopup"
+  | "MinimalSlideUpPopup"
+  | "PremiumFullscreenPopup"
+  | "BundleDealPopup"
+  | "CountdownUrgencyPopup"
   // Announcements
   | "AnnouncementBanner"
   | "AnnouncementModal";
@@ -333,7 +346,9 @@ export type PopupLayout =
   | "banner-bottom" // Bottom sticky bar
   | "sidebar" // Generic sidebar
   | "sidebar-left" // Slide-in from left
-  | "sidebar-right"; // Slide-in from right
+  | "sidebar-right" // Slide-in from right
+  // New upsell popup layouts
+  | "bottom-sheet"; // Compact bottom sheet for mobile
 
 // =============================================================================
 // STYLED RECIPE DEFAULTS (Generic)
@@ -588,6 +603,19 @@ export type ScratchCardRecipe = StyledRecipe<"SCRATCH_CARD">;
 /** Announcement recipe with type-safe AnnouncementContent */
 export type AnnouncementRecipe = StyledRecipe<"ANNOUNCEMENT">;
 
+// New upsell popup recipe types
+/** Classic Upsell recipe with type-safe ClassicUpsellContent */
+export type ClassicUpsellRecipe = StyledRecipe<"CLASSIC_UPSELL">;
+
+/** Minimal Slide-Up recipe with type-safe MinimalSlideUpContent */
+export type MinimalSlideUpRecipe = StyledRecipe<"MINIMAL_SLIDE_UP">;
+
+/** Premium Fullscreen recipe with type-safe PremiumFullscreenContent */
+export type PremiumFullscreenRecipe = StyledRecipe<"PREMIUM_FULLSCREEN">;
+
+/** Countdown Urgency recipe with type-safe CountdownUrgencyContent */
+export type CountdownUrgencyRecipe = StyledRecipe<"COUNTDOWN_URGENCY">;
+
 /**
  * Union type of all typed recipes.
  * Use this when you need to accept any recipe type.
@@ -602,7 +630,12 @@ export type AnyStyledRecipe =
   | SocialProofRecipe
   | CountdownTimerRecipe
   | ScratchCardRecipe
-  | AnnouncementRecipe;
+  | AnnouncementRecipe
+  | ClassicUpsellRecipe
+  | MinimalSlideUpRecipe
+  | PremiumFullscreenRecipe
+  | BundleDealRecipe
+  | CountdownUrgencyRecipe;
 
 // =============================================================================
 // REQUIRED CONFIG SECTIONS
@@ -630,6 +663,130 @@ export type RequiredConfigSection = "discount" | "targeting" | "schedule";
  * - inspiration: Visual/design-focused recipes for inspiration
  */
 export type RecipeType = "use_case" | "seasonal" | "inspiration";
+
+// =============================================================================
+// THEME MODE FOR RECIPES (Simplified Theme System)
+// =============================================================================
+
+import type { ThemeMode, CampaignDesignInput } from "~/domains/campaigns/types/design-tokens";
+
+/**
+ * Get the default theme mode for a recipe based on its recipeType.
+ *
+ * - use_case recipes: Use Shopify theme (functional, should match store branding)
+ * - seasonal recipes: Use preset design (artistic, have predefined seasonal look)
+ * - inspiration recipes: Use preset design (artistic, have predefined creative look)
+ *
+ * @param recipeType The type of recipe
+ * @returns The default theme mode for campaigns created from this recipe
+ */
+export function getThemeModeForRecipeType(recipeType: RecipeType | undefined): ThemeMode {
+  switch (recipeType) {
+    case "seasonal":
+    case "inspiration":
+      return "preset";
+    case "use_case":
+    default:
+      // Use "default" to inherit from store's default theme preset
+      return "default";
+  }
+}
+
+/**
+ * Inspiration recipe IDs that should always use preset designs.
+ * These are artistic/branded designs that shouldn't inherit the store theme.
+ *
+ * Note: Recipe IDs follow the pattern "{template}-{style}" e.g., "newsletter-bold-energy"
+ */
+export const INSPIRATION_RECIPE_IDS = [
+  // Newsletter inspiration (artistic designs with specific color schemes)
+  "newsletter-elegant-luxe",
+  "newsletter-street-style",
+  "newsletter-fresh-organic",
+  "newsletter-cafe-warm",
+  "newsletter-soft-glow",
+  "newsletter-spa-serenity",
+  "newsletter-cozy-comfort",
+  "newsletter-bold-energy",
+  "newsletter-active-life",
+  // Spin-to-Win inspiration
+  "spin-neon-nights",
+  "spin-retro-arcade",
+  // Scratch Card inspiration
+  "scratch-golden-ticket",
+] as const;
+
+/**
+ * Use-case recipe IDs that should inherit the store's Shopify theme.
+ * These are functional recipes focused on conversion, not artistic design.
+ */
+export const USE_CASE_RECIPE_IDS = [
+  // Newsletter use-cases (functional, should match store branding)
+  "newsletter-minimal-tech",
+  "newsletter-dark-mode",
+  "newsletter-scandinavian",
+  // Flash Sale use-cases
+  "flash-sale-basic",
+  "flash-sale-countdown",
+  // Cart recovery
+  "cart-recovery-basic",
+  "cart-recovery-urgent",
+  // Free shipping
+  "free-shipping-bar",
+  "free-shipping-progress",
+] as const;
+
+/**
+ * Seasonal recipe IDs that should always use preset designs.
+ */
+export const SEASONAL_RECIPE_IDS = [
+  // Flash Sale seasonal
+  "flash-sale-black-friday",
+  "flash-sale-cyber-monday",
+  "flash-sale-holiday",
+  "flash-sale-summer",
+  "flash-sale-spring",
+  "flash-sale-valentines",
+  "flash-sale-halloween",
+  "flash-sale-new-year",
+] as const;
+
+/**
+ * Get the preset ID for a recipe based on its ID.
+ * Returns undefined if the recipe should use Shopify theme.
+ *
+ * @param recipeId The recipe identifier
+ * @returns The preset ID to use, or undefined for Shopify theme mode
+ */
+export function getPresetIdForRecipe(recipeId: string): string | undefined {
+  // Check if it's an inspiration recipe
+  if ((INSPIRATION_RECIPE_IDS as readonly string[]).includes(recipeId)) {
+    return recipeId; // Preset ID matches recipe ID
+  }
+  // Check if it's a seasonal recipe
+  if ((SEASONAL_RECIPE_IDS as readonly string[]).includes(recipeId)) {
+    return recipeId; // Preset ID matches recipe ID
+  }
+  return undefined;
+}
+
+/**
+ * Build the CampaignDesign config for a recipe.
+ *
+ * @param recipe The styled recipe
+ * @returns CampaignDesign config with appropriate themeMode and presetId
+ */
+export function buildRecipeDesignConfig<T extends { id: string; recipeType?: RecipeType }>(
+  recipe: T
+): CampaignDesignInput {
+  const themeMode = getThemeModeForRecipeType(recipe.recipeType);
+  const presetId = themeMode === "preset" ? getPresetIdForRecipe(recipe.id) : undefined;
+
+  return {
+    themeMode,
+    presetId,
+  };
+}
 
 // =============================================================================
 // RECIPE CONTEXT (passed to build function)
@@ -664,6 +821,10 @@ export interface RecipeOutput {
   designConfig: Record<string, unknown>;
   discountConfig?: Record<string, unknown>;
   targetRules?: Record<string, unknown>;
+  /** Theme mode derived from recipe type */
+  themeMode: ThemeMode;
+  /** Preset ID for inspiration/seasonal recipes */
+  presetId?: string;
 }
 
 // =============================================================================

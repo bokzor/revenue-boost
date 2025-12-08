@@ -80,6 +80,33 @@ export async function loader({ request }: LoaderFunctionArgs) {
     );
     const backgroundsByLayout = await getBackgroundsByLayoutMap();
 
+    // Get default theme tokens for preview
+    // Priority: 1) Store's default theme preset, 2) Fallback to Shopify theme settings
+    const { getDefaultPreset, presetToDesignTokens } = await import(
+      "~/domains/store/types/theme-preset"
+    );
+    let defaultThemeTokens: import("~/domains/campaigns/types/design-tokens").DesignTokens | undefined;
+
+    // Try to get from store's default preset first
+    const customPresets = parsedSettings.success ? parsedSettings.data.customThemePresets : undefined;
+    if (customPresets && customPresets.length > 0) {
+      const defaultPreset = getDefaultPreset(customPresets);
+      if (defaultPreset) {
+        defaultThemeTokens = presetToDesignTokens(defaultPreset) as import("~/domains/campaigns/types/design-tokens").DesignTokens;
+      }
+    }
+
+    // Fallback: fetch from Shopify theme if no default preset
+    if (!defaultThemeTokens && session.shop && session.accessToken) {
+      const { fetchThemeSettings, themeSettingsToDesignTokens } = await import(
+        "~/lib/shopify/theme-settings.server"
+      );
+      const themeResult = await fetchThemeSettings(session.shop, session.accessToken);
+      if (themeResult.success && themeResult.settings) {
+        defaultThemeTokens = themeSettingsToDesignTokens(themeResult.settings);
+      }
+    }
+
     return data({
       storeId,
       shopDomain: session.shop,
@@ -91,6 +118,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
       advancedTargetingEnabled,
       experimentsEnabled,
       backgroundsByLayout,
+      defaultThemeTokens,
       success: true,
     });
   } catch (error) {
@@ -157,6 +185,7 @@ export default function NewCampaign() {
     advancedTargetingEnabled,
     experimentsEnabled,
     backgroundsByLayout,
+    defaultThemeTokens,
   } = loaderData as {
     storeId: string;
     shopDomain: string;
@@ -183,6 +212,7 @@ export default function NewCampaign() {
     advancedTargetingEnabled?: boolean;
     experimentsEnabled?: boolean;
     backgroundsByLayout?: Record<string, import("~/config/background-presets").BackgroundPreset[]>;
+    defaultThemeTokens?: import("~/domains/campaigns/types/design-tokens").DesignTokens;
     success: boolean;
   };
 
@@ -444,6 +474,7 @@ export default function NewCampaign() {
         advancedTargetingEnabled={advancedTargetingEnabled ?? false}
         experimentsEnabled={experimentsEnabled ?? false}
         backgroundsByLayout={backgroundsByLayout}
+        defaultThemeTokens={defaultThemeTokens}
         initialData={
           recipeInitialData
             ? (recipeInitialData as Parameters<typeof CampaignFormWithABTesting>[0]["initialData"])

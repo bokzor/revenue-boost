@@ -892,5 +892,231 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
     conversionRate: 1.8
   },
 
+  // ============================================================================
+  // NEW UPSELL POPUP TEMPLATES
+  // ============================================================================
+
+  // Classic Upsell Modal
+  {
+    name: "Classic Upsell Modal",
+    description: "Traditional centered modal with image, pricing, discount badge, and clear CTAs for single product offers",
+    category: "upsell",
+    templateType: "CLASSIC_UPSELL",
+    goals: ["INCREASE_REVENUE"],
+    contentConfig: {
+      headline: "Special Offer Just For You",
+      subheadline: "Don't miss out on this exclusive deal",
+      buttonText: "Add to Cart",
+      successMessage: "Added to cart!",
+      secondaryCtaLabel: "No thanks",
+      productSelectionMethod: "manual",
+      showPrices: true,
+      showCompareAtPrice: true,
+      showImages: true,
+      showRatings: true,
+      discountPercent: 15,
+      currency: "USD",
+    },
+    fields: [
+      { id: "headline", type: "text", label: "Headline", category: "content" },
+      { id: "subheadline", type: "text", label: "Subheadline", category: "content" },
+      { id: "buttonText", type: "text", label: "Button Text", category: "content" },
+      { id: "secondaryCtaLabel", type: "text", label: "Secondary Button Text", category: "content" },
+      { id: "discountPercent", type: "number", label: "Discount Percentage", category: "pricing" },
+      { id: "productSelectionMethod", type: "select", label: "Product Selection", category: "products" },
+    ],
+    targetRules: {
+      enhancedTriggers: {
+        add_to_cart: { enabled: true },
+        frequency_capping: getServerFrequencyCapping("PRODUCT_UPSELL"),
+      }
+    },
+    designConfig: {
+      backgroundColor: "#FFFFFF",
+      textColor: "#1A202C",
+      descriptionColor: "#4A5568",
+      buttonColor: "#10B981",
+      buttonTextColor: "#FFFFFF",
+      accentColor: "#10B981",
+      position: "center",
+      size: "medium",
+      borderRadius: 16,
+      animation: "scale",
+    },
+    isDefault: true,
+    priority: 17,
+    icon: "🎯",
+    conversionRate: 4.2
+  },
+
+  // Minimal Slide-Up
+  {
+    name: "Minimal Slide-Up",
+    description: "Compact bottom sheet ideal for mobile-first experiences with non-intrusive product suggestions",
+    category: "upsell",
+    templateType: "MINIMAL_SLIDE_UP",
+    goals: ["INCREASE_REVENUE"],
+    contentConfig: {
+      headline: "Complete Your Order",
+      subheadline: "Add this for just",
+      buttonText: "Quick Add",
+      successMessage: "Added to cart!",
+      secondaryCtaLabel: "Continue shopping",
+      productSelectionMethod: "ai",
+      showPrices: true,
+      showCompareAtPrice: true,
+      showImages: true,
+      currency: "USD",
+    },
+    fields: [
+      { id: "headline", type: "text", label: "Headline", category: "content" },
+      { id: "subheadline", type: "text", label: "Subheadline", category: "content" },
+      { id: "buttonText", type: "text", label: "Button Text", category: "content" },
+      { id: "secondaryCtaLabel", type: "text", label: "Secondary Button Text", category: "content" },
+      { id: "productSelectionMethod", type: "select", label: "Product Selection", category: "products" },
+    ],
+    targetRules: {
+      enhancedTriggers: {
+        add_to_cart: { enabled: true },
+        frequency_capping: getServerFrequencyCapping("PRODUCT_UPSELL"),
+      }
+    },
+    designConfig: {
+      backgroundColor: "#FFFFFF",
+      textColor: "#1A202C",
+      descriptionColor: "#6B7280",
+      buttonColor: "#3B82F6",
+      buttonTextColor: "#FFFFFF",
+      accentColor: "#3B82F6",
+      position: "bottom",
+      size: "small",
+      borderRadius: 24,
+      animation: "slide",
+    },
+    isDefault: true,
+    priority: 18,
+    icon: "📱",
+    conversionRate: 3.8
+  },
+
+  // Premium Fullscreen Experience
+  {
+    name: "Premium Fullscreen Experience",
+    description: "Immersive full-page takeover with features list, ratings, and urgency messaging for high-value products",
+    category: "upsell",
+    templateType: "PREMIUM_FULLSCREEN",
+    goals: ["INCREASE_REVENUE"],
+    contentConfig: {
+      headline: "Exclusive Offer",
+      subheadline: "Upgrade your experience with our premium selection",
+      buttonText: "Claim This Deal",
+      successMessage: "Added to cart!",
+      secondaryCtaLabel: "Maybe later",
+      productSelectionMethod: "manual",
+      showPrices: true,
+      showCompareAtPrice: true,
+      showImages: true,
+      showRatings: true,
+      showReviewCount: true,
+      discountPercent: 20,
+      currency: "USD",
+      features: [
+        "Premium quality materials",
+        "Free express shipping",
+        "30-day money-back guarantee",
+      ],
+      urgencyMessage: "🔥 Limited time offer - Only 3 left in stock!",
+    },
+    fields: [
+      { id: "headline", type: "text", label: "Headline", category: "content" },
+      { id: "subheadline", type: "text", label: "Subheadline", category: "content" },
+      { id: "buttonText", type: "text", label: "Button Text", category: "content" },
+      { id: "secondaryCtaLabel", type: "text", label: "Secondary Button Text", category: "content" },
+      { id: "discountPercent", type: "number", label: "Discount Percentage", category: "pricing" },
+      { id: "urgencyMessage", type: "text", label: "Urgency Message", category: "content" },
+      { id: "features", type: "array", label: "Features List", category: "content" },
+      { id: "productSelectionMethod", type: "select", label: "Product Selection", category: "products" },
+    ],
+    targetRules: {
+      enhancedTriggers: {
+        exit_intent: { enabled: true, sensitivity: "medium" },
+        frequency_capping: getServerFrequencyCapping("PRODUCT_UPSELL"),
+      }
+    },
+    designConfig: {
+      backgroundColor: "#0F172A",
+      textColor: "#F8FAFC",
+      descriptionColor: "#94A3B8",
+      buttonColor: "#F59E0B",
+      buttonTextColor: "#0F172A",
+      accentColor: "#F59E0B",
+      position: "center",
+      size: "fullscreen",
+      borderRadius: 0,
+      animation: "fade",
+    },
+    isDefault: true,
+    priority: 19,
+    icon: "💎",
+    conversionRate: 5.1
+  },
+
+
+  // Countdown Urgency
+  {
+    name: "Flash Deal Countdown",
+    description: "Time-limited offer with live countdown timer that creates urgency and auto-closes on expiry",
+    category: "upsell",
+    templateType: "COUNTDOWN_URGENCY",
+    goals: ["INCREASE_REVENUE"],
+    contentConfig: {
+      headline: "Flash Deal!",
+      subheadline: "This exclusive offer expires soon",
+      buttonText: "Claim This Deal Now",
+      successMessage: "Deal claimed!",
+      secondaryCtaLabel: "No thanks",
+      productSelectionMethod: "manual",
+      showPrices: true,
+      showCompareAtPrice: true,
+      showImages: true,
+      discountPercent: 25,
+      currency: "USD",
+      expiresInSeconds: 300,
+      socialProofMessage: "🔥 47 people are viewing this right now",
+    },
+    fields: [
+      { id: "headline", type: "text", label: "Headline", category: "content" },
+      { id: "subheadline", type: "text", label: "Subheadline", category: "content" },
+      { id: "buttonText", type: "text", label: "Button Text", category: "content" },
+      { id: "secondaryCtaLabel", type: "text", label: "Secondary Button Text", category: "content" },
+      { id: "discountPercent", type: "number", label: "Discount Percentage", category: "pricing" },
+      { id: "expiresInSeconds", type: "number", label: "Countdown Duration (seconds)", category: "behavior" },
+      { id: "socialProofMessage", type: "text", label: "Social Proof Message", category: "content" },
+      { id: "productSelectionMethod", type: "select", label: "Product Selection", category: "products" },
+    ],
+    targetRules: {
+      enhancedTriggers: {
+        add_to_cart: { enabled: true },
+        frequency_capping: getServerFrequencyCapping("PRODUCT_UPSELL"),
+      }
+    },
+    designConfig: {
+      backgroundColor: "#FFFFFF",
+      textColor: "#1A202C",
+      descriptionColor: "#4A5568",
+      buttonColor: "#EF4444",
+      buttonTextColor: "#FFFFFF",
+      accentColor: "#EF4444",
+      position: "center",
+      size: "medium",
+      borderRadius: 16,
+      animation: "scale",
+    },
+    isDefault: true,
+    priority: 21,
+    icon: "⏱️",
+    conversionRate: 5.5
+  },
+
 ];
 

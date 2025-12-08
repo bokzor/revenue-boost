@@ -39,6 +39,8 @@ export interface LivePreviewPanelProps {
   shopDomain?: string;
   campaignId?: string;
   globalCustomCSS?: string;
+  /** Default theme tokens for preview (from store's default preset or Shopify theme) */
+  defaultThemeTokens?: import("~/domains/campaigns/types/design-tokens").DesignTokens;
   /** Controlled device mode - when provided, overrides internal state */
   device?: PreviewDevice;
   /** Callback when device changes (for controlled mode) */
@@ -54,6 +56,7 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
   shopDomain,
   campaignId,
   globalCustomCSS,
+  defaultThemeTokens,
   device: controlledDevice,
   onDeviceChange,
 }) => {
@@ -368,6 +371,7 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
                   onPreviewElementReady={onPreviewElementReady}
                   campaignCustomCSS={designConfig?.customCSS as string | undefined}
                   globalCustomCSS={globalCustomCSS}
+                  defaultThemeTokens={defaultThemeTokens}
                 />
               </DeviceFrame>
             </div>

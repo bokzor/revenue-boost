@@ -24,6 +24,7 @@
 
 import React, { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { PopupPortal } from "./PopupPortal";
+import type { MobilePresentationMode } from "./PopupPortal";
 import type { PopupDesignConfig, Product } from "./types";
 import type { ProductUpsellContent } from "~/domains/campaigns/types/campaign";
 import {
@@ -31,7 +32,7 @@ import {
   getSizeDimensions,
   prefersReducedMotion,
 } from "app/domains/storefront/popups-new/utils/utils";
-import { PopupCloseButton } from "./components/shared";
+import { PopupCloseButton, PromotionDisplay } from "./components/shared";
 
 // Import custom hooks
 import { usePopupAnimation } from "./hooks";
@@ -43,6 +44,20 @@ interface RippleState {
   x: number;
   y: number;
   id: number;
+}
+
+/**
+ * Tiered discount configuration for spend-more-save-more promotions
+ */
+interface DiscountTier {
+  thresholdCents: number;
+  discount: { kind: string; value: number };
+}
+
+interface TieredDiscountConfig {
+  enabled?: boolean;
+  tiers?: DiscountTier[];
+  showInPreview?: boolean;
 }
 
 /**
@@ -75,6 +90,10 @@ export interface ProductUpsellConfig extends PopupDesignConfig, ProductUpsellCon
   enableParticles?: boolean;
   showSocialProof?: boolean;
   socialProofCount?: number;
+
+  // Tiered discount configuration (spend more, save more)
+  discountConfig?: TieredDiscountConfig;
+  currentCartTotal?: number; // Injected by storefront runtime
 
   // Note: headline, subheadline, layout, bundleDiscount, etc.
   // all come from ProductUpsellContent
@@ -1029,6 +1048,11 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
     return count > 0 ? `Add ${count} to Cart` : "Select Products";
   };
 
+  // Determine mobile presentation mode and size from config
+  // When mobileFullScreen is true, use fullscreen on all viewports
+  const mobilePresentationMode: MobilePresentationMode = config.mobileFullScreen ? "fullscreen" : "bottom-sheet";
+  const effectiveSize = config.mobileFullScreen ? "fullscreen" : (config.size || "medium");
+
   return (
     <PopupPortal
       isVisible={isVisible}
@@ -1040,7 +1064,8 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
       }}
       animation={{ type: config.animation || "fade" }}
       position={config.position || "center"}
-      size={config.size || "medium"}
+      size={effectiveSize}
+      mobilePresentationMode={mobilePresentationMode}
       closeOnEscape={config.closeOnEscape !== false}
       closeOnBackdropClick={config.closeOnOverlayClick !== false}
       previewMode={config.previewMode}
@@ -1049,6 +1074,7 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
       ariaDescribedBy={config.ariaDescribedBy}
       customCSS={config.customCSS}
       globalCustomCSS={config.globalCustomCSS}
+      designTokensCSS={config.designTokensCSS}
     >
       <style>{`
         /* ===== BASE CONTAINER ===== */
@@ -1065,8 +1091,8 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
           display: flex;
           flex-direction: column;
-          /* In preview mode, don't constrain height so entire popup is visible */
-          max-height: ${config.previewMode ? "none" : "calc(100vh - 3rem)"};
+          /* In preview mode, constrain to container; on storefront, use viewport */
+          max-height: ${config.previewMode ? "100%" : "calc(100vh - 3rem)"};
           container-type: inline-size;
           container-name: upsell;
 
@@ -1151,7 +1177,8 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           flex: 1;
           overflow-y: auto;
           padding: 1rem 1.5rem;
-          min-height: 0;
+          /* Ensure content area has minimum height on mobile */
+          min-height: 340px;
           display: flex;
           flex-direction: column;
         }
@@ -1183,8 +1210,10 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
         .upsell-carousel-container {
           position: relative;
           width: 100%;
-          height: 100%;
-          min-height: 0;
+          /* Use flex: 1 instead of height: 100% to properly fill flex parent */
+          flex: 1;
+          /* Base min-height ensures carousel never collapses too small */
+          min-height: 340px;
           overflow: hidden;
           padding: 0.5rem 0;
           display: flex;
@@ -2410,6 +2439,66 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           }
         }
 
+        /* ===== MOBILE BOTTOM-SHEET FIX ===== */
+        /* On mobile bottom-sheet mode, the popup must fill the parent frame's height
+           so that flex layout can distribute space between header, content, and footer.
+           The parent frame (PopupPortal) now uses display: flex, so we use flex: 1 to fill it.
+           This ensures the popup expands to fill available space while respecting max-height. */
+        @media (max-width: 519px) {
+          .upsell-popup {
+            /* Fill the flex parent frame */
+            flex: 1 1 auto;
+            min-height: 0; /* Allow shrinking below content size */
+            max-height: 100%; /* Don't exceed parent */
+            border-radius: 0;
+            /* Ensure flex layout is enforced for children */
+            display: flex;
+            flex-direction: column;
+            /* Prevent the popup itself from scrolling - let content area handle it */
+            overflow: hidden;
+          }
+          /* Header stays at natural size */
+          .upsell-header {
+            flex: 0 0 auto;
+          }
+          /* Content area fills remaining space and handles its own scroll */
+          .upsell-content {
+            flex: 1 1 0; /* Grow, shrink, with 0 basis to properly fill space */
+            min-height: 340px; /* Ensure content area has minimum height */
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+          }
+          /* Footer stays at natural size, never shrinks */
+          .upsell-footer {
+            flex: 0 0 auto;
+          }
+        }
+
+        /* Container query fallback for mobile - matches popup-viewport from PopupPortal */
+        @container popup-viewport (max-width: 519px) {
+          .upsell-popup {
+            flex: 1 1 auto;
+            min-height: 0;
+            max-height: 100%;
+            border-radius: 1.5rem 1.5rem 0 0;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+          }
+          .upsell-header {
+            flex: 0 0 auto;
+          }
+          .upsell-content {
+            flex: 1 1 0;
+            min-height: 340px; /* Ensure content area has minimum height */
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+          }
+          .upsell-footer {
+            flex: 0 0 auto;
+          }
+        }
+
         @container upsell (max-width: 380px) {
           .upsell-grid {
             grid-template-columns: 1fr;
@@ -2425,6 +2514,8 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           .upsell-carousel-container {
             --carousel-slide-width: 88%;
             --carousel-gap: 0.75rem;
+            /* Ensure carousel has minimum height on mobile to prevent collapsing */
+            min-height: 320px;
           }
           .upsell-carousel-info {
             padding: 1rem;
@@ -2443,6 +2534,8 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           .upsell-carousel-container {
             --carousel-slide-width: 92%;
             --carousel-gap: 0.5rem;
+            /* Slightly smaller min-height for very small screens */
+            min-height: 280px;
           }
         }
 
@@ -2520,8 +2613,23 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           {config.subheadline && <p className="upsell-subheadline">{config.subheadline}</p>}
         </div>
 
-        {/* Bundle discount banner */}
-        {config.bundleDiscount && config.bundleDiscount > 0 && (
+        {/* Tiered discount display (Spend More, Save More) */}
+        {config.discountConfig?.tiers && config.discountConfig.tiers.length > 0 && (
+          <div className="upsell-promotion" style={{ marginBottom: "1rem" }}>
+            <PromotionDisplay
+              tiers={config.discountConfig.tiers}
+              currentCartTotalCents={config.currentCartTotal ? Math.round(config.currentCartTotal * 100) : 0}
+              accentColor={accentColor}
+              textColor={textColor}
+              backgroundColor={baseBackground}
+              currency={config.currency || "USD"}
+              size="md"
+            />
+          </div>
+        )}
+
+        {/* Bundle discount banner (fallback if no tiered discount) */}
+        {!config.discountConfig?.tiers?.length && config.bundleDiscount && config.bundleDiscount > 0 && (
           <div
             className={`upsell-bundle-banner ${hasSelectedProducts ? "upsell-bundle-banner--active" : ""}`}
           >

@@ -5,7 +5,7 @@
  * Each recipe includes complete design, content, targeting, and prize configuration.
  */
 
-import type { StyledRecipe, RecipeTag } from "./styled-recipe-types";
+import type { SpinToWinRecipe, RecipeTag } from "./styled-recipe-types";
 
 // =============================================================================
 // HELPER: Common editable fields for spin-to-win recipes
@@ -71,7 +71,7 @@ const DEFAULT_SEGMENTS = [
 // 1. LUCKY FORTUNE (Casino Theme)
 // =============================================================================
 
-const luckyFortune: StyledRecipe = {
+const luckyFortune: SpinToWinRecipe = {
   id: "spin-to-win-lucky-fortune",
   name: "Lucky Fortune",
   tagline: "Spin Your Fortune!",
@@ -80,6 +80,7 @@ const luckyFortune: StyledRecipe = {
   category: "email_leads",
   goal: "ENGAGEMENT",
   templateType: "SPIN_TO_WIN",
+  recipeType: "inspiration", // Artistic design - uses preset colors
   tags: ["luxury", "dark", "bold"] as RecipeTag[],
   component: "SpinToWin",
   theme: "lucky-fortune",
@@ -157,7 +158,7 @@ const luckyFortune: StyledRecipe = {
 // 2. NEON NIGHTS (Cyberpunk/Gaming Theme)
 // =============================================================================
 
-const neonNights: StyledRecipe = {
+const neonNights: SpinToWinRecipe = {
   id: "spin-to-win-neon-nights",
   name: "Neon Nights",
   tagline: "SPIN FOR LOOT",
@@ -166,6 +167,7 @@ const neonNights: StyledRecipe = {
   category: "email_leads",
   goal: "ENGAGEMENT",
   templateType: "SPIN_TO_WIN",
+  recipeType: "inspiration", // Artistic design - uses preset colors
   tags: ["tech", "dark", "bold", "modern"] as RecipeTag[],
   component: "SpinToWin",
   theme: "neon-nights",
@@ -231,7 +233,7 @@ const neonNights: StyledRecipe = {
 // 3. PASTEL DREAM (Beauty/Feminine Theme)
 // =============================================================================
 
-const pastelDream: StyledRecipe = {
+const pastelDream: SpinToWinRecipe = {
   id: "spin-to-win-pastel-dream",
   name: "Pastel Dream",
   tagline: "Spin for Your Beauty Gift",
@@ -240,6 +242,7 @@ const pastelDream: StyledRecipe = {
   category: "email_leads",
   goal: "ENGAGEMENT",
   templateType: "SPIN_TO_WIN",
+  recipeType: "inspiration", // Artistic design - uses preset colors
   tags: ["beauty", "elegant", "playful"] as RecipeTag[],
   component: "SpinToWin",
   theme: "pastel-dream",
@@ -308,7 +311,7 @@ const pastelDream: StyledRecipe = {
 // 4. OCEAN BREEZE (Summer/Beach Theme)
 // =============================================================================
 
-const oceanBreeze: StyledRecipe = {
+const oceanBreeze: SpinToWinRecipe = {
   id: "spin-to-win-ocean-breeze",
   name: "Ocean Breeze",
   tagline: "Spin & Ride the Wave!",
@@ -317,6 +320,7 @@ const oceanBreeze: StyledRecipe = {
   category: "email_leads",
   goal: "ENGAGEMENT",
   templateType: "SPIN_TO_WIN",
+  recipeType: "inspiration", // Artistic design - uses preset colors
   tags: ["summer", "outdoor", "playful"] as RecipeTag[],
   component: "SpinToWin",
   theme: "ocean-breeze",
@@ -376,82 +380,10 @@ const oceanBreeze: StyledRecipe = {
 };
 
 // =============================================================================
-// 5. HOLIDAY CHEER (Seasonal Theme)
-// =============================================================================
-
-const holidayCheer: StyledRecipe = {
-  id: "spin-to-win-holiday-cheer",
-  name: "Holiday Cheer",
-  tagline: "Spin for Holiday Magic!",
-  description: "Festive wheel for seasonal campaigns and holiday promotions.",
-  icon: "🎄",
-  category: "email_leads",
-  goal: "ENGAGEMENT",
-  templateType: "SPIN_TO_WIN",
-  tags: ["holiday", "winter", "bold"] as RecipeTag[],
-  component: "SpinToWin",
-  theme: "holiday-cheer",
-  layout: "centered",
-  featured: true,
-  inputs: [TRIGGER_INPUT],
-  editableFields: SPIN_TO_WIN_EDITABLE_FIELDS,
-  defaults: {
-    contentConfig: {
-      headline: "Spin for Holiday Magic! 🎄",
-      subheadline: "Santa has a surprise for you",
-      spinButtonText: "SPIN THE WHEEL",
-      buttonText: "Open My Gift",
-      emailPlaceholder: "Your email",
-      emailRequired: true,
-      wheelSegments: [
-        { id: "prize-1", label: "10% OFF", probability: 0.3, color: "#DC2626" },
-        { id: "prize-2", label: "Free Gift", probability: 0.25, color: "#16A34A" },
-        { id: "prize-3", label: "15% OFF", probability: 0.2, color: "#DC2626" },
-        { id: "prize-4", label: "Try Again", probability: 0.15, color: "#16A34A" },
-        { id: "prize-5", label: "25% OFF", probability: 0.1, color: "#FCD34D" },
-      ],
-      nameFieldEnabled: false,
-      consentFieldEnabled: false,
-    },
-    designConfig: {
-      position: "center",
-      size: "large",
-      animation: "bounce",
-      backgroundColor: "#7F1D1D",
-      textColor: "#FFFFFF",
-      descriptionColor: "#FDE68A",
-      buttonColor: "#FCD34D",
-      buttonTextColor: "#7F1D1D",
-      inputBackgroundColor: "rgba(255,255,255,0.9)",
-      inputTextColor: "#7F1D1D",
-      inputBorderColor: "#FDE68A",
-      accentColor: "#FCD34D",
-      fontFamily: "'Playfair Display', Georgia, serif",
-      borderRadius: 16,
-      buttonBorderRadius: 8,
-      inputBorderRadius: 8,
-      textAlign: "center",
-      contentSpacing: "comfortable",
-    },
-    targetRules: {
-      enhancedTriggers: {
-        time_delay: { enabled: true, delay: 4000 },
-      },
-    },
-    discountConfig: {
-      enabled: true,
-      type: "single_use",
-      valueType: "PERCENTAGE",
-      value: 15,
-    },
-  },
-};
-
-// =============================================================================
 // 6. MINIMAL MONO (Clean Tech Theme)
 // =============================================================================
 
-const minimalMono: StyledRecipe = {
+const minimalMono: SpinToWinRecipe = {
   id: "spin-to-win-minimal-mono",
   name: "Minimal Mono",
   tagline: "Spin to Unlock",
@@ -460,6 +392,7 @@ const minimalMono: StyledRecipe = {
   category: "email_leads",
   goal: "ENGAGEMENT",
   templateType: "SPIN_TO_WIN",
+  recipeType: "use_case", // Functional design - inherits store theme
   tags: ["tech", "minimal", "modern"] as RecipeTag[],
   component: "SpinToWin",
   theme: "minimal-mono",
@@ -523,7 +456,7 @@ const minimalMono: StyledRecipe = {
 // 7. RETRO ARCADE (80s Theme)
 // =============================================================================
 
-const retroArcade: StyledRecipe = {
+const retroArcade: SpinToWinRecipe = {
   id: "spin-to-win-retro-arcade",
   name: "Retro Arcade",
   tagline: "INSERT COIN TO SPIN",
@@ -532,6 +465,7 @@ const retroArcade: StyledRecipe = {
   category: "email_leads",
   goal: "ENGAGEMENT",
   templateType: "SPIN_TO_WIN",
+  recipeType: "inspiration", // Artistic design - uses preset colors
   tags: ["playful", "bold", "dark"] as RecipeTag[],
   component: "SpinToWin",
   theme: "retro-arcade",
@@ -596,7 +530,7 @@ const retroArcade: StyledRecipe = {
 // 8. EARTHY ORGANIC (Natural/Artisan Theme)
 // =============================================================================
 
-const earthyOrganic: StyledRecipe = {
+const earthyOrganic: SpinToWinRecipe = {
   id: "spin-to-win-earthy-organic",
   name: "Earthy Organic",
   tagline: "Spin for Natural Rewards",
@@ -605,6 +539,7 @@ const earthyOrganic: StyledRecipe = {
   category: "email_leads",
   goal: "ENGAGEMENT",
   templateType: "SPIN_TO_WIN",
+  recipeType: "inspiration", // Artistic design - uses preset colors
   tags: ["wellness", "warm", "elegant"] as RecipeTag[],
   component: "SpinToWin",
   theme: "earthy-organic",
@@ -670,12 +605,11 @@ const earthyOrganic: StyledRecipe = {
 // EXPORT ALL RECIPES
 // =============================================================================
 
-export const SPIN_TO_WIN_DESIGN_RECIPES: StyledRecipe[] = [
+export const SPIN_TO_WIN_DESIGN_RECIPES: SpinToWinRecipe[] = [
   luckyFortune,
   neonNights,
   pastelDream,
   oceanBreeze,
-  holidayCheer,
   minimalMono,
   retroArcade,
   earthyOrganic,

@@ -17,9 +17,6 @@ const THEME_DISPLAY_NAMES: Record<NewsletterThemeKey, string> = {
   // Generic themes
   modern: "Modern",
   minimal: "Minimal",
-  elegant: "Elegant",
-  bold: "Bold",
-  glass: "Glass",
   dark: "Dark",
   gradient: "Gradient",
   luxury: "Luxury",
