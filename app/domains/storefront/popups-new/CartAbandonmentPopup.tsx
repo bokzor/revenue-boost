@@ -351,26 +351,18 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
     }
   }, [config.maxWidth, config.size]);
 
+  // Design tokens - use config values with --rb-* fallbacks
+  const bgColor = config.backgroundColor || "var(--rb-background, #ffffff)";
+  const textColor = config.textColor || "var(--rb-foreground, #111827)";
   const descriptionColor = config.descriptionColor || "var(--rb-muted, #6b7280)";
-
-  // CSS Custom Properties for dynamic theming
-  const cssVars = useMemo(
-    () => `
-    --cart-ab-bg: ${config.backgroundColor || "#ffffff"};
-    --cart-ab-text: ${config.textColor || "#111827"};
-    --cart-ab-desc: ${descriptionColor};
-    --cart-ab-btn-bg: ${config.buttonColor || "#3b82f6"};
-    --cart-ab-btn-text: ${config.buttonTextColor || "#ffffff"};
-    --cart-ab-accent: ${config.accentColor || "#f59e0b"};
-    --cart-ab-success: ${config.successColor || "var(--rb-success, #16a34a)"};
-    --cart-ab-border: ${config.inputBorderColor || "rgba(0,0,0,0.1)"};
-    --cart-ab-input-bg: ${config.inputBackgroundColor || "#ffffff"};
-    --cart-ab-input-text: ${config.inputTextColor || config.textColor || "#111827"};
-    --cart-ab-radius: ${borderRadiusValue};
-    --cart-ab-max-width: ${typeof cardMaxWidth === "number" ? `${cardMaxWidth}px` : cardMaxWidth};
-  `,
-    [config, descriptionColor, borderRadiusValue, cardMaxWidth]
-  );
+  const buttonBgColor = config.buttonColor || "var(--rb-primary, #3b82f6)";
+  const buttonTextColor = config.buttonTextColor || "var(--rb-primary-foreground, #ffffff)";
+  const accentColor = config.accentColor || "var(--rb-primary, #f59e0b)";
+  const successColor = config.successColor || "var(--rb-success, #16a34a)";
+  const inputBorderColor = config.inputBorderColor || "var(--rb-border, rgba(0,0,0,0.1))";
+  const inputBgColor = config.inputBackgroundColor || "var(--rb-surface, #ffffff)";
+  const inputTextColor = config.inputTextColor || config.textColor || "var(--rb-foreground, #111827)";
+  const maxWidthValue = typeof cardMaxWidth === "number" ? `${cardMaxWidth}px` : cardMaxWidth;
 
   // Auto-close timer (migrated from BasePopup)
   useEffect(() => {
@@ -407,11 +399,9 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
     >
       <style>{`
         /* ============================================
-         * CSS CUSTOM PROPERTIES (Container Theming)
+         * CSS CUSTOM PROPERTIES (Structural Only)
          * ============================================ */
         .cart-ab-popup-container {
-          ${cssVars}
-
           /* Responsive spacing using container-relative units */
           --cart-ab-padding-x: clamp(1rem, 5cqi, 2rem);
           --cart-ab-padding-y: clamp(1.25rem, 4cqi, 2rem);
@@ -425,6 +415,9 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
 
           /* Item image sizing */
           --cart-ab-img-size: clamp(3rem, 12cqi, 4.5rem);
+
+          /* Max width */
+          --cart-ab-max-width: ${maxWidthValue};
         }
 
         /* ============================================
@@ -432,8 +425,8 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
          * ============================================ */
         .cart-ab-popup-container {
           width: 100%;
-          background: var(--cart-ab-bg);
-          color: var(--cart-ab-text);
+          background: ${bgColor};
+          color: ${textColor};
           font-family: ${config.fontFamily || 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'};
 
           /* Bottom sheet style on mobile */
@@ -475,7 +468,7 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
             /* Responsive max-width */
 
             /* Card styling */
-            border-radius: var(--cart-ab-radius);
+            border-radius: ${borderRadiusValue};
             padding: var(--cart-ab-padding-y) var(--cart-ab-padding-x);
             box-shadow:
               0 25px 50px -12px rgba(0, 0, 0, 0.25),
@@ -519,14 +512,14 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
           line-height: 1.15;
           margin: 0 0 clamp(0.375rem, 1.5cqi, 0.625rem) 0;
           letter-spacing: -0.02em;
-          color: var(--cart-ab-text);
+          color: ${textColor};
         }
 
         .cart-ab-subtitle {
           margin: 0;
           font-size: var(--cart-ab-body-size);
           line-height: 1.5;
-          color: var(--cart-ab-desc);
+          color: ${descriptionColor};
         }
 
         /* Close button */
@@ -539,7 +532,7 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          color: var(--cart-ab-desc);
+          color: ${descriptionColor};
           transition: all 0.2s ease;
           flex-shrink: 0;
         }
@@ -550,7 +543,7 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
         }
 
         .cart-ab-close:focus-visible {
-          outline: 2px solid var(--cart-ab-btn-bg);
+          outline: 2px solid ${buttonBgColor};
           outline-offset: 2px;
         }
 
@@ -571,9 +564,9 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
           border-radius: clamp(0.5rem, 2cqi, 0.75rem);
           font-size: var(--cart-ab-small-size);
           font-weight: 600;
-          background: color-mix(in srgb, var(--cart-ab-accent) 8%, transparent);
-          color: var(--cart-ab-accent);
-          border: 1px solid color-mix(in srgb, var(--cart-ab-accent) 30%, transparent);
+          background: color-mix(in srgb, ${accentColor} 8%, transparent);
+          color: ${accentColor};
+          border: 1px solid color-mix(in srgb, ${accentColor} 30%, transparent);
           text-align: center;
           display: flex;
           align-items: center;
@@ -589,15 +582,15 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
           padding: clamp(0.875rem, 3cqi, 1.25rem);
           border-radius: clamp(0.75rem, 2.5cqi, 1rem);
           text-align: center;
-          background: color-mix(in srgb, var(--cart-ab-btn-bg) 6%, transparent);
-          border: 2px dashed color-mix(in srgb, var(--cart-ab-btn-bg) 40%, transparent);
+          background: color-mix(in srgb, ${buttonBgColor} 6%, transparent);
+          border: 2px dashed color-mix(in srgb, ${buttonBgColor} 40%, transparent);
         }
 
         .cart-ab-discount-label {
           margin: 0 0 clamp(0.25rem, 1cqi, 0.375rem) 0;
           font-size: var(--cart-ab-small-size);
           font-weight: 600;
-          color: var(--cart-ab-desc);
+          color: ${descriptionColor};
           text-transform: uppercase;
           letter-spacing: 0.05em;
         }
@@ -605,7 +598,7 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
         .cart-ab-discount-amount {
           font-size: clamp(1.25rem, 4.5cqi, 1.75rem);
           font-weight: 800;
-          color: var(--cart-ab-btn-bg);
+          color: ${buttonBgColor};
         }
 
         .cart-ab-discount-code {
@@ -618,14 +611,14 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
           font-family: ui-monospace, monospace;
           letter-spacing: 0.05em;
           background: rgba(255, 255, 255, 0.6);
-          border: 1px solid var(--cart-ab-border);
+          border: 1px solid ${inputBorderColor};
         }
 
         .cart-ab-discount-hint {
           margin: 0;
           margin-top: clamp(0.25rem, 1cqi, 0.375rem);
           font-size: var(--cart-ab-small-size);
-          color: var(--cart-ab-desc);
+          color: ${descriptionColor};
           font-style: italic;
         }
 
@@ -634,7 +627,7 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
          * ============================================ */
         .cart-ab-items {
           border-radius: clamp(0.75rem, 2.5cqi, 1rem);
-          border: 1px solid var(--cart-ab-border);
+          border: 1px solid ${inputBorderColor};
           padding: 0;
           max-height: clamp(180px, 35cqi, 280px);
           overflow-y: auto;
@@ -646,7 +639,7 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
           display: flex;
           gap: var(--cart-ab-item-gap);
           padding: var(--cart-ab-item-gap);
-          border-bottom: 1px solid var(--cart-ab-border);
+          border-bottom: 1px solid ${inputBorderColor};
           background: transparent;
           align-items: center;
         }
@@ -662,7 +655,7 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
           object-fit: cover;
           flex-shrink: 0;
           border: 1px solid rgba(0, 0, 0, 0.05);
-          background: var(--cart-ab-input-bg);
+          background: ${inputBgColor};
         }
 
         .cart-ab-item-main {
@@ -686,7 +679,7 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
 
         .cart-ab-item-meta {
           font-size: var(--cart-ab-small-size);
-          color: var(--cart-ab-desc);
+          color: ${descriptionColor};
         }
 
         .cart-ab-item-price {
@@ -712,7 +705,7 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
         }
 
         .cart-ab-price-new {
-          color: var(--cart-ab-success);
+          color: ${successColor};
           font-weight: 700;
         }
 
@@ -720,18 +713,18 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
           padding: clamp(0.5rem, 2cqi, 0.75rem);
           text-align: center;
           font-size: var(--cart-ab-small-size);
-          color: var(--cart-ab-desc);
+          color: ${descriptionColor};
           font-weight: 500;
-          background: color-mix(in srgb, var(--cart-ab-border) 50%, transparent);
-          border-top: 1px solid var(--cart-ab-border);
+          background: color-mix(in srgb, ${inputBorderColor} 50%, transparent);
+          border-top: 1px solid ${inputBorderColor};
         }
 
         /* ============================================
          * TOTAL SECTION
          * ============================================ */
         .cart-ab-total-section {
-          background: color-mix(in srgb, var(--cart-ab-accent) 5%, transparent);
-          border: 1px solid color-mix(in srgb, var(--cart-ab-accent) 20%, transparent);
+          background: color-mix(in srgb, ${accentColor} 5%, transparent);
+          border: 1px solid color-mix(in srgb, ${accentColor} 20%, transparent);
           border-radius: clamp(0.75rem, 2.5cqi, 1rem);
           padding: clamp(0.875rem, 3cqi, 1.25rem);
           display: flex;
@@ -758,12 +751,12 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
           align-items: center;
           font-size: clamp(1.125rem, 4cqi, 1.375rem);
           font-weight: 800;
-          color: var(--cart-ab-success);
+          color: ${successColor};
         }
 
         .cart-ab-savings {
           font-size: var(--cart-ab-small-size);
-          color: var(--cart-ab-success);
+          color: ${successColor};
           text-align: right;
           font-weight: 600;
         }
@@ -821,21 +814,21 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
           min-width: 0;
           padding: clamp(0.75rem, 2.5cqi, 1rem) clamp(0.875rem, 3cqi, 1.25rem);
           border-radius: clamp(0.5rem, 2cqi, 0.75rem);
-          border: 1px solid var(--cart-ab-border);
-          background: var(--cart-ab-input-bg);
-          color: var(--cart-ab-input-text);
+          border: 1px solid ${inputBorderColor};
+          background: ${inputBgColor};
+          color: ${inputTextColor};
           font-size: var(--cart-ab-body-size);
           transition: border-color 0.2s, box-shadow 0.2s;
         }
 
         .cart-ab-email-input:focus {
           outline: none;
-          border-color: var(--cart-ab-btn-bg);
-          box-shadow: 0 0 0 3px color-mix(in srgb, var(--cart-ab-btn-bg) 15%, transparent);
+          border-color: ${buttonBgColor};
+          box-shadow: 0 0 0 3px color-mix(in srgb, ${buttonBgColor} 15%, transparent);
         }
 
         .cart-ab-email-input::placeholder {
-          color: var(--cart-ab-desc);
+          color: ${descriptionColor};
         }
 
         /* Primary CTA Button */
@@ -845,9 +838,9 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
           font-size: clamp(0.9375rem, 3.5cqi, 1.125rem);
           font-weight: 700;
           border: none;
-          border-radius: var(--cart-ab-radius);
-          background: var(--cart-ab-btn-bg);
-          color: var(--cart-ab-btn-text);
+          border-radius: ${borderRadiusValue};
+          background: ${buttonBgColor};
+          color: ${buttonTextColor};
           cursor: pointer;
           transition: transform 0.15s ease, box-shadow 0.15s ease;
           box-shadow:
@@ -867,7 +860,7 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
         }
 
         .cart-ab-primary-button:focus-visible {
-          outline: 2px solid var(--cart-ab-text);
+          outline: 2px solid ${textColor};
           outline-offset: 2px;
         }
 
@@ -877,10 +870,10 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
           padding: clamp(0.75rem, 2.5cqi, 0.875rem) clamp(1rem, 4cqi, 1.5rem);
           font-size: var(--cart-ab-body-size);
           font-weight: 600;
-          border: 2px solid color-mix(in srgb, var(--cart-ab-text) 25%, transparent);
-          border-radius: var(--cart-ab-radius);
+          border: 2px solid color-mix(in srgb, ${textColor} 25%, transparent);
+          border-radius: ${borderRadiusValue};
           background: transparent;
-          color: var(--cart-ab-text);
+          color: ${textColor};
           cursor: pointer;
           transition: all 0.15s ease;
           opacity: 0.85;
@@ -888,12 +881,12 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
 
         .cart-ab-secondary-button:hover {
           opacity: 1;
-          border-color: color-mix(in srgb, var(--cart-ab-text) 50%, transparent);
-          background: color-mix(in srgb, var(--cart-ab-text) 5%, transparent);
+          border-color: color-mix(in srgb, ${textColor} 50%, transparent);
+          background: color-mix(in srgb, ${textColor} 5%, transparent);
         }
 
         .cart-ab-secondary-button:focus-visible {
-          outline: 2px solid var(--cart-ab-btn-bg);
+          outline: 2px solid ${buttonBgColor};
           outline-offset: 2px;
         }
 
@@ -904,7 +897,7 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
           padding: clamp(0.375rem, 1.5cqi, 0.5rem);
           margin-top: clamp(0.25rem, 1cqi, 0.5rem);
           font-size: var(--cart-ab-small-size);
-          color: var(--cart-ab-desc);
+          color: ${descriptionColor};
           text-decoration: none;
           cursor: pointer;
           align-self: center;
@@ -918,7 +911,7 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
         }
 
         .cart-ab-dismiss-button:focus-visible {
-          outline: 1px solid var(--cart-ab-desc);
+          outline: 1px solid ${descriptionColor};
           outline-offset: 2px;
         }
 

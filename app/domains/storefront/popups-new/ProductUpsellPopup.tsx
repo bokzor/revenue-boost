@@ -430,16 +430,18 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
     triggerHaptic(10);
   }, [triggerHaptic]);
 
-  // Design tokens
-  const accentColor = config.accentColor || config.buttonColor || "#6366F1";
+  // Design tokens - use config values with --rb-* fallbacks
+  const accentColor = config.accentColor || config.buttonColor || "var(--rb-primary, #6366F1)";
   const borderRadius =
     typeof config.borderRadius === "string"
       ? parseFloat(config.borderRadius) || 12
       : (config.borderRadius ?? 12);
-  const textColor = config.textColor || "#111827";
-  const secondaryBg = config.inputBackgroundColor || "#F9FAFB";
-  const borderColor = config.inputBorderColor || "#E5E7EB";
-  const baseBackground = config.backgroundColor || "#FFFFFF";
+  const textColor = config.textColor || "var(--rb-foreground, #111827)";
+  const mutedColor = config.descriptionColor || "var(--rb-muted, #6B7280)";
+  const secondaryBg = config.inputBackgroundColor || "var(--rb-surface, #F9FAFB)";
+  const borderColor = config.inputBorderColor || "var(--rb-border, #E5E7EB)";
+  const baseBackground = config.backgroundColor || "var(--rb-background, #FFFFFF)";
+  const successColor = config.successColor || "var(--rb-success, #10B981)";
 
   const { maxWidth: sizeMaxWidth } = getSizeDimensions(config.size || "medium", config.previewMode);
 
@@ -1095,16 +1097,6 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           max-height: ${config.previewMode ? "100%" : "calc(100vh - 3rem)"};
           container-type: inline-size;
           container-name: upsell;
-
-          /* CSS Custom Properties for theming */
-          --upsell-accent: ${accentColor};
-          --upsell-text: ${textColor};
-          --upsell-text-muted: ${config.descriptionColor || "var(--rb-muted, #6B7280)"};
-          --upsell-bg: ${baseBackground};
-          --upsell-bg-secondary: ${secondaryBg};
-          --upsell-border: ${borderColor};
-          --upsell-radius: ${borderRadius}px;
-          --upsell-success: ${config.successColor || "var(--rb-success, #10B981)"};
         }
 
         /* ===== CLOSE BUTTON ===== */
@@ -1122,12 +1114,12 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           background: rgba(0, 0, 0, 0.05);
           border: none;
           cursor: pointer;
-          color: var(--upsell-text-muted);
+          color: ${mutedColor};
           transition: background 0.2s, color 0.2s;
         }
         .upsell-close:hover {
           background: rgba(0, 0, 0, 0.1);
-          color: var(--upsell-text);
+          color: ${textColor};
         }
 
         /* ===== HEADER ===== */
@@ -1141,19 +1133,19 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           font-weight: 800;
           line-height: 1.2;
           margin: 0 0 0.5rem;
-          color: var(--upsell-text);
+          color: ${textColor};
         }
         .upsell-subheadline {
           font-size: 0.9375rem;
           line-height: 1.5;
-          color: var(--upsell-text-muted);
+          color: ${mutedColor};
           margin: 0;
         }
 
         /* ===== BUNDLE BANNER - Enhanced with shimmer ===== */
         .upsell-bundle-banner {
           position: relative;
-          background: linear-gradient(135deg, var(--upsell-accent) 0%, color-mix(in srgb, var(--upsell-accent), #000 15%) 100%);
+          background: linear-gradient(135deg, ${accentColor} 0%, color-mix(in srgb, ${accentColor}, #000 15%) 100%);
           color: #fff;
           padding: 0.75rem 1rem;
           text-align: center;
@@ -1191,7 +1183,7 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
         .upsell-empty {
           padding: 2.5rem 1rem;
           text-align: center;
-          color: var(--upsell-text-muted);
+          color: ${mutedColor};
         }
 
         /* ===== GRID LAYOUT ===== */
@@ -1262,9 +1254,9 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           display: flex;
           flex-direction: column;
           min-height: 0;
-          background: var(--upsell-bg);
-          border: 2px solid var(--upsell-border);
-          border-radius: var(--upsell-radius);
+          background: ${baseBackground};
+          border: 2px solid ${borderColor};
+          border-radius: ${borderRadius}px;
           overflow: hidden;
           transition: all 0.3s ease;
         }
@@ -1272,14 +1264,14 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           box-shadow: 0 8px 30px rgba(0,0,0,0.12);
         }
         .upsell-carousel-slide--selected .upsell-carousel-card {
-          border-color: var(--upsell-accent);
-          box-shadow: 0 0 0 3px color-mix(in srgb, var(--upsell-accent) 25%, transparent);
+          border-color: ${accentColor};
+          box-shadow: 0 0 0 3px color-mix(in srgb, ${accentColor} 25%, transparent);
         }
         .upsell-carousel-image {
           position: relative;
           flex: 1;
           min-height: 80px;
-          background: var(--upsell-bg-secondary);
+          background: ${secondaryBg};
           overflow: hidden;
         }
         .upsell-carousel-image img {
@@ -1295,14 +1287,14 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           font-size: 1.125rem;
           font-weight: 700;
           margin: 0 0 0.375rem;
-          color: var(--upsell-text);
+          color: ${textColor};
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
         }
         .upsell-carousel-desc {
           font-size: 0.8125rem;
-          color: var(--upsell-text-muted);
+          color: ${mutedColor};
           margin: 0 0 0.5rem;
           line-height: 1.4;
           display: -webkit-box;
@@ -1327,8 +1319,8 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           width: 100%;
           padding: 0.75rem;
           border: none;
-          border-radius: calc(var(--upsell-radius) - 4px);
-          background: var(--upsell-accent);
+          border-radius: calc(${borderRadius}px - 4px);
+          background: ${accentColor};
           color: #fff;
           font-size: 0.9375rem;
           font-weight: 600;
@@ -1340,7 +1332,7 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           transform: translateY(-1px);
         }
         .upsell-carousel-select--selected {
-          background: var(--upsell-success);
+          background: ${successColor};
         }
 
         /* Carousel navigation */
@@ -1353,8 +1345,8 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           height: 2.5rem;
           border: none;
           border-radius: 50%;
-          background: var(--upsell-bg);
-          color: var(--upsell-text);
+          background: ${baseBackground};
+          color: ${textColor};
           font-size: 1.5rem;
           cursor: pointer;
           box-shadow: 0 2px 8px rgba(0,0,0,0.15);
@@ -1364,7 +1356,7 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           justify-content: center;
         }
         .upsell-carousel-nav:hover {
-          background: var(--upsell-accent);
+          background: ${accentColor};
           color: #fff;
           transform: translateY(-50%) scale(1.1);
         }
@@ -1383,19 +1375,19 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           height: 0.5rem;
           border: none;
           border-radius: 50%;
-          background: var(--upsell-border);
+          background: ${borderColor};
           cursor: pointer;
           transition: all 0.2s ease;
         }
         .upsell-carousel-dot:hover {
-          background: var(--upsell-text-muted);
+          background: ${mutedColor};
         }
         .upsell-carousel-dot--active {
-          background: var(--upsell-accent);
+          background: ${accentColor};
           transform: scale(1.3);
         }
         .upsell-carousel-dot--selected {
-          box-shadow: 0 0 0 2px var(--upsell-success);
+          box-shadow: 0 0 0 2px ${successColor};
         }
 
         /* ============================================
@@ -1412,24 +1404,24 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           display: grid;
           grid-template-columns: 1fr 1fr;
           gap: 1.5rem;
-          background: var(--upsell-bg);
-          border: 2px solid var(--upsell-border);
-          border-radius: var(--upsell-radius);
+          background: ${baseBackground};
+          border: 2px solid ${borderColor};
+          border-radius: ${borderRadius}px;
           overflow: hidden;
           cursor: pointer;
           transition: all 0.3s ease;
         }
         .upsell-featured-hero:hover {
-          border-color: var(--upsell-accent);
+          border-color: ${accentColor};
           box-shadow: 0 8px 30px rgba(0,0,0,0.1);
         }
         .upsell-featured-hero--selected {
-          border-color: var(--upsell-accent);
-          box-shadow: 0 0 0 3px color-mix(in srgb, var(--upsell-accent) 25%, transparent);
+          border-color: ${accentColor};
+          box-shadow: 0 0 0 3px color-mix(in srgb, ${accentColor} 25%, transparent);
         }
         .upsell-featured-image {
           aspect-ratio: 1;
-          background: var(--upsell-bg-secondary);
+          background: ${secondaryBg};
           overflow: hidden;
         }
         .upsell-featured-image img {
@@ -1451,11 +1443,11 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           font-size: 1.5rem;
           font-weight: 700;
           margin: 0 0 0.75rem;
-          color: var(--upsell-text);
+          color: ${textColor};
         }
         .upsell-featured-desc {
           font-size: 0.9375rem;
-          color: var(--upsell-text-muted);
+          color: ${mutedColor};
           margin: 0 0 1rem;
           line-height: 1.6;
         }
@@ -1475,8 +1467,8 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
         .upsell-featured-select {
           padding: 1rem 1.5rem;
           border: none;
-          border-radius: calc(var(--upsell-radius) - 4px);
-          background: var(--upsell-accent);
+          border-radius: calc(${borderRadius}px - 4px);
+          background: ${accentColor};
           color: #fff;
           font-size: 1.0625rem;
           font-weight: 700;
@@ -1489,16 +1481,16 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         }
         .upsell-featured-select--selected {
-          background: var(--upsell-success);
+          background: ${successColor};
         }
         .upsell-featured-grid {
-          border-top: 1px solid var(--upsell-border);
+          border-top: 1px solid ${borderColor};
           padding-top: 1.5rem;
         }
         .upsell-featured-grid-title {
           font-size: 0.875rem;
           font-weight: 600;
-          color: var(--upsell-text-muted);
+          color: ${mutedColor};
           margin: 0 0 1rem;
           text-transform: uppercase;
           letter-spacing: 0.05em;
@@ -1523,9 +1515,9 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           width: 85%;
           max-width: 320px;
           transform: translateX(-50%) translateY(var(--stack-offset, 0)) rotate(var(--stack-rotate, 0));
-          background: var(--upsell-bg);
-          border: 2px solid var(--upsell-border);
-          border-radius: var(--upsell-radius);
+          background: ${baseBackground};
+          border: 2px solid ${borderColor};
+          border-radius: ${borderRadius}px;
           overflow: hidden;
           cursor: pointer;
           transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
@@ -1540,11 +1532,11 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           box-shadow: 0 16px 48px rgba(0,0,0,0.2);
         }
         .upsell-stack-card--selected {
-          border-color: var(--upsell-accent);
+          border-color: ${accentColor};
         }
         .upsell-stack-image {
           aspect-ratio: 16/9;
-          background: var(--upsell-bg-secondary);
+          background: ${secondaryBg};
           overflow: hidden;
         }
         .upsell-stack-image img {
@@ -1559,7 +1551,7 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           font-size: 1rem;
           font-weight: 600;
           margin: 0 0 0.5rem;
-          color: var(--upsell-text);
+          color: ${textColor};
         }
         .upsell-stack-price {
           display: flex;
@@ -1571,8 +1563,8 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           margin-top: 0.75rem;
           padding: 0.75rem;
           border: none;
-          border-radius: calc(var(--upsell-radius) - 4px);
-          background: var(--upsell-accent);
+          border-radius: calc(${borderRadius}px - 4px);
+          background: ${accentColor};
           color: #fff;
           font-size: 0.875rem;
           font-weight: 600;
@@ -1580,7 +1572,7 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           transition: all 0.2s ease;
         }
         .upsell-stack-select--selected {
-          background: var(--upsell-success);
+          background: ${successColor};
         }
         .upsell-stack-collapse {
           position: absolute;
@@ -1588,27 +1580,27 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           left: 50%;
           transform: translateX(-50%);
           padding: 0.5rem 1rem;
-          border: 2px solid var(--upsell-border);
+          border: 2px solid ${borderColor};
           border-radius: 2rem;
-          background: var(--upsell-bg);
-          color: var(--upsell-text);
+          background: ${baseBackground};
+          color: ${textColor};
           font-size: 0.8125rem;
           font-weight: 500;
           cursor: pointer;
           transition: all 0.2s ease;
         }
         .upsell-stack-collapse:hover {
-          background: var(--upsell-accent);
+          background: ${accentColor};
           color: #fff;
-          border-color: var(--upsell-accent);
+          border-color: ${accentColor};
         }
 
         /* ===== PRODUCT CARD - Enhanced 3D Effects ===== */
         .upsell-product-card {
           position: relative;
-          border: 2px solid var(--upsell-border);
-          border-radius: calc(var(--upsell-radius) - 2px);
-          background: var(--upsell-bg);
+          border: 2px solid ${borderColor};
+          border-radius: calc(${borderRadius}px - 2px);
+          background: ${baseBackground};
           overflow: hidden;
           cursor: pointer;
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -1617,18 +1609,18 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           perspective: 1000px;
         }
         .upsell-product-card:hover {
-          border-color: var(--upsell-accent);
+          border-color: ${accentColor};
           transform: perspective(1000px) rotateX(2deg) rotateY(-2deg) translateY(-4px);
           box-shadow:
             0 12px 24px -8px rgba(0, 0, 0, 0.15),
             0 4px 8px -2px rgba(0, 0, 0, 0.1),
-            0 0 0 1px var(--upsell-accent);
+            0 0 0 1px ${accentColor};
         }
         .upsell-product-card--selected {
-          border-color: var(--upsell-accent);
+          border-color: ${accentColor};
           transform: perspective(1000px) scale(1.02);
           box-shadow:
-            0 0 0 3px color-mix(in srgb, var(--upsell-accent) 30%, transparent),
+            0 0 0 3px color-mix(in srgb, ${accentColor} 30%, transparent),
             0 8px 20px -4px rgba(0, 0, 0, 0.12);
         }
         .upsell-product-card--selected:hover {
@@ -1640,7 +1632,7 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           position: absolute;
           inset: -2px;
           border-radius: inherit;
-          background: linear-gradient(135deg, var(--upsell-accent), color-mix(in srgb, var(--upsell-accent), #fff 30%));
+          background: linear-gradient(135deg, ${accentColor}, color-mix(in srgb, ${accentColor}, #fff 30%));
           opacity: 0.3;
           z-index: 0;
           animation: selectionGlow 1.5s ease-in-out infinite;
@@ -1654,7 +1646,7 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
         .upsell-ripple {
           position: absolute;
           border-radius: 50%;
-          background: var(--upsell-accent);
+          background: ${accentColor};
           opacity: 0.3;
           transform: translate(-50%, -50%) scale(0);
           animation: rippleEffect 0.6s ease-out forwards;
@@ -1676,7 +1668,7 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           width: 1.75rem;
           height: 1.75rem;
           border-radius: 50%;
-          background: var(--upsell-accent);
+          background: ${accentColor};
           color: #fff;
           display: flex;
           align-items: center;
@@ -1704,7 +1696,7 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
         .upsell-product-image {
           position: relative;
           aspect-ratio: 1;
-          background: var(--upsell-bg-secondary);
+          background: ${secondaryBg};
           overflow: hidden;
         }
         .upsell-product-image img {
@@ -1730,7 +1722,7 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           width: 40px;
           height: 40px;
           border-radius: 50%;
-          background: var(--upsell-accent);
+          background: ${accentColor};
           color: #fff;
           font-size: 1.5rem;
           font-weight: 300;
@@ -1757,7 +1749,7 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           padding: 0.875rem;
           position: relative;
           z-index: 1;
-          background: var(--upsell-bg);
+          background: ${baseBackground};
         }
 
         .upsell-product-title {
@@ -1765,7 +1757,7 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           font-weight: 600;
           line-height: 1.3;
           margin: 0 0 0.375rem;
-          color: var(--upsell-text);
+          color: ${textColor};
           display: -webkit-box;
           -webkit-line-clamp: 2;
           -webkit-box-orient: vertical;
@@ -1823,7 +1815,7 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
         }
         .upsell-rating-count {
           font-size: 0.6875rem;
-          color: var(--upsell-text-muted);
+          color: ${mutedColor};
         }
 
         /* ===== PRICE - Enhanced with savings callout ===== */
@@ -1838,11 +1830,11 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
         .upsell-price-current {
           font-size: 1.1rem;
           font-weight: 700;
-          color: var(--upsell-text);
+          color: ${textColor};
         }
         .upsell-price-compare {
           font-size: 0.8125rem;
-          color: var(--upsell-text-muted);
+          color: ${mutedColor};
           text-decoration: line-through;
           position: relative;
         }
@@ -1880,9 +1872,9 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           margin-top: 0.75rem;
           padding: 0.625rem 0.75rem;
           border: none;
-          border-radius: calc(var(--upsell-radius) - 4px);
-          background: var(--upsell-bg-secondary);
-          color: var(--upsell-text);
+          border-radius: calc(${borderRadius}px - 4px);
+          background: ${secondaryBg};
+          color: ${textColor};
           font-size: 0.8125rem;
           font-weight: 600;
           cursor: pointer;
@@ -1893,15 +1885,15 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         }
         .upsell-product-select:hover {
-          background: var(--upsell-accent);
+          background: ${accentColor};
           color: #fff;
           transform: translateY(-1px);
           box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         }
         .upsell-product-select--selected {
-          background: var(--upsell-accent);
+          background: ${accentColor};
           color: #fff;
-          box-shadow: 0 2px 8px color-mix(in srgb, var(--upsell-accent) 40%, transparent);
+          box-shadow: 0 2px 8px color-mix(in srgb, ${accentColor} 40%, transparent);
         }
         .upsell-select-icon {
           font-size: 1rem;
@@ -1919,18 +1911,18 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           align-items: center;
           gap: 0.875rem;
           padding: 0.75rem;
-          border: 2px solid var(--upsell-border);
-          border-radius: calc(var(--upsell-radius) - 2px);
-          background: var(--upsell-bg);
+          border: 2px solid ${borderColor};
+          border-radius: calc(${borderRadius}px - 2px);
+          background: ${baseBackground};
           cursor: pointer;
           transition: all 0.2s ease;
         }
         .upsell-list-item:hover {
-          border-color: var(--upsell-accent);
+          border-color: ${accentColor};
         }
         .upsell-list-item--selected {
-          border-color: var(--upsell-accent);
-          background: color-mix(in srgb, var(--upsell-accent) 5%, var(--upsell-bg));
+          border-color: ${accentColor};
+          background: color-mix(in srgb, ${accentColor} 5%, ${baseBackground});
         }
 
         .upsell-list-image {
@@ -1940,7 +1932,7 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           height: 4.5rem;
           border-radius: 0.5rem;
           overflow: hidden;
-          background: var(--upsell-bg-secondary);
+          background: ${secondaryBg};
         }
         .upsell-list-image img {
           width: 100%;
@@ -1967,7 +1959,7 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           font-size: 0.9375rem;
           font-weight: 600;
           margin: 0 0 0.25rem;
-          color: var(--upsell-text);
+          color: ${textColor};
         }
         .upsell-list-price {
           margin-top: 0.25rem;
@@ -1978,9 +1970,9 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           width: 2.5rem;
           height: 2.5rem;
           border-radius: 50%;
-          border: 2px solid var(--upsell-accent);
+          border: 2px solid ${accentColor};
           background: transparent;
-          color: var(--upsell-accent);
+          color: ${accentColor};
           font-size: 1.125rem;
           font-weight: 600;
           cursor: pointer;
@@ -1990,16 +1982,16 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           transition: all 0.2s ease;
         }
         .upsell-list-action--selected {
-          background: var(--upsell-accent);
+          background: ${accentColor};
           color: #fff;
         }
 
         /* ===== FOOTER - Enhanced ===== */
         .upsell-footer {
           position: relative;
-          border-top: 1px solid var(--upsell-border);
+          border-top: 1px solid ${borderColor};
           padding: 1rem 1.5rem;
-          background: var(--upsell-bg-secondary);
+          background: ${secondaryBg};
           flex-shrink: 0;
           transition: all 0.3s ease;
           overflow: hidden;
@@ -2072,9 +2064,9 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           height: 36px;
           border-radius: 6px;
           overflow: hidden;
-          border: 2px solid var(--upsell-bg);
+          border: 2px solid ${baseBackground};
           margin-left: -8px;
-          background: var(--upsell-bg-secondary);
+          background: ${secondaryBg};
           box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         .upsell-summary-thumb:first-child {
@@ -2091,8 +2083,8 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           justify-content: center;
           font-size: 0.625rem;
           font-weight: 700;
-          color: var(--upsell-text-muted);
-          background: var(--upsell-bg);
+          color: ${mutedColor};
+          background: ${baseBackground};
         }
         .upsell-summary-details {
           flex: 1;
@@ -2103,13 +2095,13 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           justify-content: space-between;
           align-items: center;
           font-size: 0.8125rem;
-          color: var(--upsell-text);
+          color: ${textColor};
         }
         .upsell-summary-row + .upsell-summary-row {
           margin-top: 0.25rem;
         }
         .upsell-summary-label {
-          color: var(--upsell-text-muted);
+          color: ${mutedColor};
         }
         .upsell-summary-original {
           text-decoration: line-through;
@@ -2126,7 +2118,7 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           font-weight: 700;
           padding-top: 0.5rem;
           margin-top: 0.5rem;
-          border-top: 1px solid var(--upsell-border);
+          border-top: 1px solid ${borderColor};
         }
         .upsell-total-price {
           display: flex;
@@ -2137,10 +2129,10 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           font-size: 0.875rem;
           font-weight: 400;
           text-decoration: line-through;
-          color: var(--upsell-text-muted);
+          color: ${mutedColor};
         }
         .upsell-total-current {
-          color: var(--upsell-accent);
+          color: ${accentColor};
         }
         .upsell-savings-highlight {
           margin-top: 0.5rem;
@@ -2154,7 +2146,7 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           100% { background: rgba(16, 185, 129, 0.1); transform: scale(1); }
         }
         .upsell-summary-savings {
-          color: var(--upsell-success);
+          color: ${successColor};
           font-weight: 600;
         }
 
@@ -2199,19 +2191,19 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
         .upsell-summary-compact-text {
           flex: 1;
           font-size: 0.8125rem;
-          color: var(--upsell-text);
+          color: ${textColor};
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
         }
         .upsell-summary-compact-savings {
-          color: var(--upsell-success);
+          color: ${successColor};
           font-weight: 500;
         }
         .upsell-summary-compact-total {
           font-size: 1rem;
           font-weight: 700;
-          color: var(--upsell-accent);
+          color: ${accentColor};
           flex-shrink: 0;
         }
         /* Success message */
@@ -2270,8 +2262,8 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           flex: 1;
           padding: 0.875rem 1rem;
           border: none;
-          border-radius: calc(var(--upsell-radius) - 2px);
-          background: var(--button-color, var(--upsell-accent));
+          border-radius: calc(${borderRadius}px - 2px);
+          background: var(--button-color, ${accentColor});
           color: var(--button-text-color, #fff);
           font-size: 0.9375rem;
           font-weight: 700;
@@ -2286,7 +2278,7 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
         .upsell-cta:hover:not(:disabled) {
           filter: brightness(1.1);
           transform: translateY(-2px);
-          box-shadow: 0 8px 20px color-mix(in srgb, var(--button-color, var(--upsell-accent)) 35%, transparent);
+          box-shadow: 0 8px 20px color-mix(in srgb, var(--button-color, ${accentColor}) 35%, transparent);
         }
         .upsell-cta:active:not(:disabled) {
           transform: translateY(0);
@@ -2335,19 +2327,19 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
         .upsell-dismiss {
           flex: 1;
           padding: 0.875rem 1rem;
-          border: 2px solid var(--upsell-border);
-          border-radius: calc(var(--upsell-radius) - 2px);
+          border: 2px solid ${borderColor};
+          border-radius: calc(${borderRadius}px - 2px);
           background: transparent;
-          color: var(--upsell-text-muted);
+          color: ${mutedColor};
           font-size: 0.9375rem;
           font-weight: 500;
           cursor: pointer;
           transition: all 0.25s ease;
         }
         .upsell-dismiss:hover {
-          background: var(--upsell-bg-secondary);
-          color: var(--upsell-text);
-          border-color: var(--upsell-text-muted);
+          background: ${secondaryBg};
+          color: ${textColor};
+          border-color: ${mutedColor};
         }
 
         /* ===== ANIMATIONS ===== */
