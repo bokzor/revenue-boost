@@ -1015,6 +1015,104 @@ export async function waitForPopupWithRetry(
 }
 
 /**
+ * Wait for Free Shipping bar with retry - handles timing issues.
+ * Free Shipping uses a different DOM structure (no Shadow DOM, renders directly to body).
+ */
+export async function waitForFreeShippingBarWithRetry(
+  page: Page,
+  options: {
+    timeout?: number;
+    retries?: number;
+    reloadOnRetry?: boolean;
+  } = {}
+): Promise<boolean> {
+  const { timeout = 10000, retries = 2, reloadOnRetry = true } = options;
+
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      // Free Shipping bar renders directly without Shadow DOM
+      const bar = page.locator('.free-shipping-bar, [data-rb-banner]');
+      await bar.waitFor({ state: "visible", timeout });
+      return true;
+    } catch {
+      if (attempt < retries && reloadOnRetry) {
+        console.log(`[Retry ${attempt}] Free shipping bar not visible, reloading page...`);
+        await page.reload();
+        await handlePasswordPage(page);
+        await page.waitForTimeout(2000);
+      }
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Check if text exists in the Free Shipping bar (no Shadow DOM).
+ */
+export async function hasTextInFreeShippingBar(page: Page, text: string): Promise<boolean> {
+  return page.evaluate((searchText) => {
+    const bar = document.querySelector('.free-shipping-bar, [data-rb-banner]');
+    if (!bar) return false;
+    return bar.textContent?.toLowerCase().includes(searchText.toLowerCase()) ?? false;
+  }, text);
+}
+
+/**
+ * Wait for discount success state in popup Shadow DOM.
+ * New single-click CTA flow shows "Discount applied!" message after claiming.
+ */
+export async function waitForDiscountSuccessState(
+  page: Page,
+  options: { timeout?: number } = {}
+): Promise<{ discountCode: string | null; hasSuccessState: boolean }> {
+  const { timeout = 10000 } = options;
+
+  try {
+    // Wait for success state indicators
+    await page.waitForFunction(() => {
+      const host = document.querySelector('#revenue-boost-popup-shadow-host');
+      if (!host?.shadowRoot) return false;
+      const html = host.shadowRoot.innerHTML.toLowerCase();
+      return html.includes('discount applied') ||
+             html.includes('your discount code') ||
+             html.includes('continue shopping');
+    }, { timeout });
+
+    // Extract the discount code if present
+    const discountCode = await page.evaluate(() => {
+      const host = document.querySelector('#revenue-boost-popup-shadow-host');
+      if (!host?.shadowRoot) return null;
+      // Look for discount code element
+      const codeEl = host.shadowRoot.querySelector('[class*="discount-code"], [class*="code"]');
+      return codeEl?.textContent?.trim() || null;
+    });
+
+    return { discountCode, hasSuccessState: true };
+  } catch {
+    return { discountCode: null, hasSuccessState: false };
+  }
+}
+
+/**
+ * Click "Continue Shopping" button in discount success state.
+ */
+export async function clickContinueShoppingButton(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    const host = document.querySelector('#revenue-boost-popup-shadow-host');
+    if (!host?.shadowRoot) return;
+    // Look for "Continue Shopping" button
+    const buttons = host.shadowRoot.querySelectorAll('button');
+    for (const btn of buttons) {
+      if (btn.textContent?.toLowerCase().includes('continue')) {
+        (btn as HTMLButtonElement).click();
+        return;
+      }
+    }
+  });
+}
+
+/**
  * Wait for API to reflect a newly created campaign.
  * This is necessary because Cloud Run may cache the campaign list
  * and take a few seconds to reflect new campaigns.

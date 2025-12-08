@@ -67,8 +67,8 @@ export const MinimalSlideUpPopup: React.FC<MinimalSlideUpPopupProps> = ({
       isVisible={isVisible}
       onClose={onClose}
       backdrop={{
-        color: config.overlayColor || "rgba(0,0,0,0.2)",
-        opacity: config.overlayOpacity ?? 0.2,
+        color: config.overlayColor || "rgba(0,0,0,0.1)",
+        opacity: config.overlayOpacity ?? 0.1,
       }}
       animation={{ type: "slide" }}
       position="bottom"
@@ -80,7 +80,7 @@ export const MinimalSlideUpPopup: React.FC<MinimalSlideUpPopupProps> = ({
       designTokensCSS={config.designTokensCSS}
     >
       <style>{`
-        /* Card container */
+        /* Card container - also serves as container query context */
         .minimal-upsell {
           background: ${bgColor};
           color: ${textColor};
@@ -88,9 +88,10 @@ export const MinimalSlideUpPopup: React.FC<MinimalSlideUpPopupProps> = ({
           max-width: 512px;
           overflow: hidden;
           border-radius: ${borderRadius}px;
+          container-type: inline-size;
         }
 
-        /* ===== MOBILE-FIRST: Start with vertical (column) layout ===== */
+        /* ===== MOBILE-FIRST: Vertical layout (image on TOP) ===== */
         .minimal-upsell-row {
           display: flex;
           flex-direction: column;
@@ -139,10 +140,9 @@ export const MinimalSlideUpPopup: React.FC<MinimalSlideUpPopupProps> = ({
         .minimal-upsell-add:disabled { opacity: 0.6; cursor: not-allowed; }
         .minimal-upsell-add--success { background: #10b981; }
 
-        /* ===== DESKTOP: Horizontal layout (image LEFT, content RIGHT) for wider viewports ===== */
-        /* Uses PopupPortal's container query context on .popup-portal-frame
-           Medium size = 520px max-width, so use 521px to ensure medium stays in mobile/column layout */
-        @container popup-viewport (min-width: 521px) {
+        /* ===== DESKTOP: Horizontal layout (image LEFT) when popup is wide enough ===== */
+        /* Container query on .minimal-upsell itself - more reliable than parent frame */
+        @container (min-width: 450px) {
           .minimal-upsell-row { flex-direction: row; }
           .minimal-upsell-image { width: 144px; height: auto; min-height: 120px; align-self: stretch; }
           .minimal-upsell-content { padding: 16px 20px; }

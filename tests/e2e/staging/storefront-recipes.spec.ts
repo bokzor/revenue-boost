@@ -10,7 +10,9 @@ import {
     handlePasswordPage,
     getTestPrefix,
     waitForPopupWithRetry,
+    waitForFreeShippingBarWithRetry,
     hasTextInShadowDOM,
+    hasTextInFreeShippingBar,
     fillEmailInShadowDOM,
     submitFormInShadowDOM,
     verifyNewsletterContent,
@@ -579,7 +581,9 @@ test.describe.serial('Recipe Use Cases', () => {
     // =========================================================================
 
     test.describe('Free Shipping Recipes', () => {
-        test('renders free shipping popup with threshold', async ({ page }) => {
+        test('renders free shipping bar with threshold', async ({ page }) => {
+            // Note: Free Shipping uses a banner-style popup that renders directly to document.body
+            // without Shadow DOM. It uses .free-shipping-bar or [data-rb-banner] selectors.
             const campaign = await (await factory.freeShipping().init())
                 .withPriority(MAX_TEST_PRIORITY)
                 .withThreshold(50)
@@ -591,16 +595,17 @@ test.describe.serial('Recipe Use Cases', () => {
             await page.goto(STORE_URL);
             await handlePasswordPage(page);
 
-            const popupVisible = await waitForPopupWithRetry(page, { timeout: 15000, retries: 3 });
-            expect(popupVisible).toBe(true);
+            // Free Shipping uses a different DOM structure (no Shadow DOM)
+            const barVisible = await waitForFreeShippingBarWithRetry(page, { timeout: 15000, retries: 3 });
+            expect(barVisible).toBe(true);
 
-            // Verify free shipping content
-            const hasFreeShipping = await hasTextInShadowDOM(page, 'free') ||
-                                   await hasTextInShadowDOM(page, 'shipping') ||
-                                   await hasTextInShadowDOM(page, '$50');
+            // Verify free shipping content (no Shadow DOM)
+            const hasFreeShipping = await hasTextInFreeShippingBar(page, 'free') ||
+                                   await hasTextInFreeShippingBar(page, 'shipping') ||
+                                   await hasTextInFreeShippingBar(page, '$50');
 
             expect(hasFreeShipping).toBe(true);
-            console.log('✅ Free Shipping recipe: Content rendered');
+            console.log('✅ Free Shipping recipe: Bar rendered with content');
         });
     });
 
@@ -648,12 +653,13 @@ test.describe.serial('Recipe Use Cases', () => {
     // =========================================================================
 
     test.describe('Announcement Recipes', () => {
-        test('renders announcement popup', async ({ page }) => {
+        test('renders store-wide sale announcement', async ({ page }) => {
             const campaign = await (await factory.announcement().init())
                 .withPriority(MAX_TEST_PRIORITY)
-                .withHeadline('New Collection Available!')
+                .withHeadline('🔥 SALE NOW ON — Up to 50% Off Everything!')
+                .withSubheadline('Limited time only. Don\'t miss out!')
                 .create();
-            console.log(`✅ Announcement campaign created: ${campaign.id}`);
+            console.log(`✅ Store-wide sale announcement created: ${campaign.id}`);
 
             await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
 
@@ -663,13 +669,166 @@ test.describe.serial('Recipe Use Cases', () => {
             const popupVisible = await waitForPopupWithRetry(page, { timeout: 15000, retries: 3 });
             expect(popupVisible).toBe(true);
 
-            // Verify announcement content
-            const hasAnnouncement = await hasTextInShadowDOM(page, 'new') ||
-                                   await hasTextInShadowDOM(page, 'collection') ||
-                                   await hasTextInShadowDOM(page, 'available');
+            // Verify sale announcement content
+            const hasSaleContent = await hasTextInShadowDOM(page, 'sale') ||
+                                   await hasTextInShadowDOM(page, '50%') ||
+                                   await hasTextInShadowDOM(page, 'off');
 
-            expect(hasAnnouncement).toBe(true);
-            console.log('✅ Announcement recipe: Content rendered');
+            expect(hasSaleContent).toBe(true);
+            console.log('✅ Store-wide sale announcement: Content rendered');
+        });
+
+        test('renders new collection announcement', async ({ page }) => {
+            const campaign = await (await factory.announcement().init())
+                .withPriority(MAX_TEST_PRIORITY)
+                .withHeadline('✨ New Collection Now Live')
+                .withSubheadline('Discover our latest arrivals')
+                .create();
+            console.log(`✅ New collection announcement created: ${campaign.id}`);
+
+            await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
+
+            await page.goto(STORE_URL);
+            await handlePasswordPage(page);
+
+            const popupVisible = await waitForPopupWithRetry(page, { timeout: 15000, retries: 3 });
+            expect(popupVisible).toBe(true);
+
+            // Verify new collection content
+            const hasCollectionContent = await hasTextInShadowDOM(page, 'new') ||
+                                         await hasTextInShadowDOM(page, 'collection') ||
+                                         await hasTextInShadowDOM(page, 'arrivals');
+
+            expect(hasCollectionContent).toBe(true);
+            console.log('✅ New collection announcement: Content rendered');
+        });
+
+        test('renders free shipping announcement', async ({ page }) => {
+            const campaign = await (await factory.announcement().init())
+                .withPriority(MAX_TEST_PRIORITY)
+                .withHeadline('🚚 Free Shipping on Orders Over $50')
+                .withSubheadline('Shop now and save on delivery')
+                .create();
+            console.log(`✅ Free shipping announcement created: ${campaign.id}`);
+
+            await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
+
+            await page.goto(STORE_URL);
+            await handlePasswordPage(page);
+
+            const popupVisible = await waitForPopupWithRetry(page, { timeout: 15000, retries: 3 });
+            expect(popupVisible).toBe(true);
+
+            // Verify free shipping content
+            const hasFreeShippingContent = await hasTextInShadowDOM(page, 'free') ||
+                                           await hasTextInShadowDOM(page, 'shipping') ||
+                                           await hasTextInShadowDOM(page, '$50');
+
+            expect(hasFreeShippingContent).toBe(true);
+            console.log('✅ Free shipping announcement: Content rendered');
+        });
+
+        test('renders black friday announcement', async ({ page }) => {
+            const campaign = await (await factory.announcement().init())
+                .withPriority(MAX_TEST_PRIORITY)
+                .withHeadline('🖤 BLACK FRIDAY — Up to 70% Off')
+                .withSubheadline('Our biggest sale of the year is here')
+                .create();
+            console.log(`✅ Black Friday announcement created: ${campaign.id}`);
+
+            await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
+
+            await page.goto(STORE_URL);
+            await handlePasswordPage(page);
+
+            const popupVisible = await waitForPopupWithRetry(page, { timeout: 15000, retries: 3 });
+            expect(popupVisible).toBe(true);
+
+            // Verify Black Friday content
+            const hasBlackFridayContent = await hasTextInShadowDOM(page, 'black') ||
+                                          await hasTextInShadowDOM(page, 'friday') ||
+                                          await hasTextInShadowDOM(page, '70%');
+
+            expect(hasBlackFridayContent).toBe(true);
+            console.log('✅ Black Friday announcement: Content rendered');
+        });
+    });
+
+    // =========================================================================
+    // SOCIAL PROOF RECIPE TESTS
+    // Tests social proof notification popups (corner notifications)
+    // =========================================================================
+
+    test.describe('Social Proof Recipes', () => {
+        test('renders recent purchases notification', async ({ page }) => {
+            const campaign = await (await factory.socialProof().init())
+                .withPriority(MAX_TEST_PRIORITY)
+                .withHeadline('People are shopping right now')
+                .create();
+            console.log(`✅ Recent purchases social proof created: ${campaign.id}`);
+
+            await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
+
+            await page.goto(STORE_URL);
+            await handlePasswordPage(page);
+
+            const popupVisible = await waitForPopupWithRetry(page, { timeout: 15000, retries: 3 });
+            expect(popupVisible).toBe(true);
+
+            // Verify social proof content
+            const hasSocialProofContent = await hasTextInShadowDOM(page, 'shopping') ||
+                                          await hasTextInShadowDOM(page, 'purchased') ||
+                                          await hasTextInShadowDOM(page, 'people');
+
+            expect(hasSocialProofContent).toBe(true);
+            console.log('✅ Recent purchases social proof: Content rendered');
+        });
+
+        test('renders urgency boost notification', async ({ page }) => {
+            const campaign = await (await factory.socialProof().init())
+                .withPriority(MAX_TEST_PRIORITY)
+                .withHeadline('Selling fast!')
+                .create();
+            console.log(`✅ Urgency boost social proof created: ${campaign.id}`);
+
+            await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
+
+            await page.goto(STORE_URL);
+            await handlePasswordPage(page);
+
+            const popupVisible = await waitForPopupWithRetry(page, { timeout: 15000, retries: 3 });
+            expect(popupVisible).toBe(true);
+
+            // Verify urgency content
+            const hasUrgencyContent = await hasTextInShadowDOM(page, 'selling') ||
+                                      await hasTextInShadowDOM(page, 'fast');
+
+            expect(hasUrgencyContent).toBe(true);
+            console.log('✅ Urgency boost social proof: Content rendered');
+        });
+
+        test('renders complete social proof notification', async ({ page }) => {
+            const campaign = await (await factory.socialProof().init())
+                .withPriority(MAX_TEST_PRIORITY)
+                .withHeadline('Join thousands of happy customers')
+                .create();
+            console.log(`✅ Complete social proof created: ${campaign.id}`);
+
+            await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
+
+            await page.goto(STORE_URL);
+            await handlePasswordPage(page);
+
+            const popupVisible = await waitForPopupWithRetry(page, { timeout: 15000, retries: 3 });
+            expect(popupVisible).toBe(true);
+
+            // Verify social proof content
+            const hasSocialProofContent = await hasTextInShadowDOM(page, 'join') ||
+                                          await hasTextInShadowDOM(page, 'customers') ||
+                                          await hasTextInShadowDOM(page, 'happy');
+
+            expect(hasSocialProofContent).toBe(true);
+            console.log('✅ Complete social proof: Content rendered');
         });
     });
 });

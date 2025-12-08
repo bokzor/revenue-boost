@@ -21,11 +21,13 @@ import {
   getThemeModeForRecipeType,
   getPresetIdForRecipe,
 } from "./styled-recipe-types";
+import { ANNOUNCEMENT_DESIGN_RECIPES } from "./announcement-design-recipes";
 import { CART_ABANDONMENT_DESIGN_RECIPES } from "./cart-abandonment-design-recipes";
 import { FLASH_SALE_DESIGN_RECIPES } from "./flash-sale-design-recipes";
 import { FREE_SHIPPING_DESIGN_RECIPES } from "./free-shipping-design-recipes";
 import { NEWSLETTER_DESIGN_RECIPES } from "./newsletter-design-recipes";
 import { SCRATCH_CARD_DESIGN_RECIPES } from "./scratch-card-design-recipes";
+import { SOCIAL_PROOF_DESIGN_RECIPES } from "./social-proof-design-recipes";
 import { SPIN_TO_WIN_DESIGN_RECIPES } from "./spin-to-win-design-recipes";
 import { UPSELL_RECIPES } from "./upsell-recipes";
 
@@ -158,6 +160,8 @@ const THRESHOLD_INPUT: QuickInput = {
 
 /** All styled recipes (existing + newsletter design recipes) */
 export const STYLED_RECIPES: StyledRecipe[] = [
+  // Announcement Design Recipes (store-wide banners)
+  ...ANNOUNCEMENT_DESIGN_RECIPES,
   // Cart Abandonment Design Recipes (cart recovery)
   ...CART_ABANDONMENT_DESIGN_RECIPES,
   // Flash Sale Design Recipes (sales & promos)
@@ -168,6 +172,8 @@ export const STYLED_RECIPES: StyledRecipe[] = [
   ...NEWSLETTER_DESIGN_RECIPES,
   // Scratch Card Design Recipes (gamified engagement)
   ...SCRATCH_CARD_DESIGN_RECIPES,
+  // Social Proof Design Recipes (trust & urgency)
+  ...SOCIAL_PROOF_DESIGN_RECIPES,
   // Spin To Win Design Recipes (wheel of fortune engagement)
   ...SPIN_TO_WIN_DESIGN_RECIPES,
   // Upsell & Cross-Sell Recipes

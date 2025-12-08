@@ -350,7 +350,7 @@ export const DEMO_CONFIGS: Record<
     design: {
       ...BASE_DESIGN,
       position: "bottom",
-      size: "small",
+      size: "medium",
       animation: "slide",
     },
   },

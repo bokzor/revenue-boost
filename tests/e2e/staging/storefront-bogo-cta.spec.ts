@@ -22,6 +22,8 @@ import {
     API_PROPAGATION_DELAY_MS,
     STORE_URL,
     verifyFlashSaleContent,
+    waitForDiscountSuccessState,
+    clickContinueShoppingButton,
 } from './helpers/test-helpers';
 
 // Extend FlashSaleBuilder with CTA methods
@@ -292,9 +294,11 @@ test.describe('BOGO & CTA Button Tests', () => {
             console.log(`✅ BOGO headline displayed: "${content?.headline}"`);
         });
 
-        test('BOGO two-step flow: claim discount then navigate', async ({ page }) => {
+        test('BOGO single-click flow: claim discount and show success state', async ({ page }) => {
+            // Note: Implementation changed from two-click to single-click flow with success state.
+            // The new flow: Click CTA -> Issue discount -> Show success state with code -> Navigate via "Continue Shopping"
             const campaign = await (await factory.flashSale().init())
-                .withName('BOGO-Two-Step')
+                .withName('BOGO-Single-Click')
                 .withPriority(MAX_TEST_PRIORITY)
                 .withBOGOContent()
                 .withCTA({
@@ -315,7 +319,7 @@ test.describe('BOGO & CTA Button Tests', () => {
             const popup = page.locator('#revenue-boost-popup-shadow-host');
             await expect(popup).toBeVisible({ timeout: 15000 });
 
-            // Step 1: Click CTA to claim discount
+            // Verify initial CTA label
             const initialLabel = await page.evaluate(() => {
                 const host = document.querySelector('#revenue-boost-popup-shadow-host');
                 if (!host?.shadowRoot) return null;
@@ -325,7 +329,7 @@ test.describe('BOGO & CTA Button Tests', () => {
             expect(initialLabel).toBe('Get My BOGO Deal');
             console.log(`✅ Initial CTA label: "${initialLabel}"`);
 
-            // Click to claim discount
+            // Click CTA to claim discount - this triggers single-click flow
             await page.evaluate(() => {
                 const host = document.querySelector('#revenue-boost-popup-shadow-host');
                 if (!host?.shadowRoot) return;
@@ -333,38 +337,34 @@ test.describe('BOGO & CTA Button Tests', () => {
                 ctaBtn?.click();
             });
 
-            // Wait for discount to be applied
-            await page.waitForTimeout(2000);
+            // Wait for success state with discount code
+            const { hasSuccessState, discountCode } = await waitForDiscountSuccessState(page, { timeout: 10000 });
+            expect(hasSuccessState).toBe(true);
+            console.log(`✅ Success state displayed with discount code: "${discountCode}"`);
 
-            // Step 2: Verify label changed to "Shop Now"
-            const updatedLabel = await page.evaluate(() => {
+            // Verify success message is shown
+            const hasSuccessMessage = await page.evaluate(() => {
                 const host = document.querySelector('#revenue-boost-popup-shadow-host');
-                if (!host?.shadowRoot) return null;
-                const ctaBtn = host.shadowRoot.querySelector('.flash-sale-cta, button[class*="cta"]');
-                return ctaBtn?.textContent?.trim();
+                if (!host?.shadowRoot) return false;
+                return host.shadowRoot.innerHTML.toLowerCase().includes('discount applied');
             });
+            expect(hasSuccessMessage).toBe(true);
+            console.log('✅ "Discount applied!" message shown');
 
-            // After discount claim, label should change to "Shop Now"
-            expect(updatedLabel).toBe('Shop Now');
-            console.log(`✅ CTA label updated after discount claim: "${updatedLabel}"`);
-
-            // Step 3: Click again to navigate
-            await page.evaluate(() => {
-                const host = document.querySelector('#revenue-boost-popup-shadow-host');
-                if (!host?.shadowRoot) return;
-                const ctaBtn = host.shadowRoot.querySelector('.flash-sale-cta, button[class*="cta"]') as HTMLButtonElement;
-                ctaBtn?.click();
-            });
+            // Click "Continue Shopping" to navigate
+            await clickContinueShoppingButton(page);
 
             // Should navigate to collection
             await page.waitForURL('**/collections/all**', { timeout: 10000 });
             expect(page.url()).toContain('/collections/all');
-            console.log('✅ Two-step BOGO flow completed successfully');
+            console.log('✅ Single-click BOGO flow completed successfully');
         });
     });
 
     test.describe('CTA with Discount Flow', () => {
-        test('applies discount before navigation', async ({ page }) => {
+        test('applies discount and shows success state before navigation', async ({ page }) => {
+            // Note: Implementation changed to single-click flow with success state.
+            // Click CTA -> Issue discount -> Show success state -> Navigate via "Continue Shopping"
             const campaign = await (await factory.flashSale().init())
                 .withName('CTA-Apply-Discount-First')
                 .withPriority(MAX_TEST_PRIORITY)
@@ -387,7 +387,7 @@ test.describe('BOGO & CTA Button Tests', () => {
             const popup = page.locator('#revenue-boost-popup-shadow-host');
             await expect(popup).toBeVisible({ timeout: 15000 });
 
-            // First click - should claim discount, NOT navigate
+            // Single click claims discount and shows success state
             await page.evaluate(() => {
                 const host = document.querySelector('#revenue-boost-popup-shadow-host');
                 if (!host?.shadowRoot) return;
@@ -395,23 +395,20 @@ test.describe('BOGO & CTA Button Tests', () => {
                 ctaBtn?.click();
             });
 
-            // Wait briefly for discount to be claimed
-            await page.waitForTimeout(2000);
+            // Wait for success state with discount code
+            const { hasSuccessState, discountCode } = await waitForDiscountSuccessState(page, { timeout: 10000 });
+            expect(hasSuccessState).toBe(true);
+            console.log(`✅ Success state shown with discount code: "${discountCode}"`);
 
-            // Should still be on the same page (discount was claimed, not navigated)
+            // Should still be on the same page (showing success state)
             expect(page.url()).not.toContain('/collections/all');
-            console.log('✅ First click claimed discount without navigating');
+            console.log('✅ Discount claimed, showing success state');
 
-            // Second click - should navigate
-            await page.evaluate(() => {
-                const host = document.querySelector('#revenue-boost-popup-shadow-host');
-                if (!host?.shadowRoot) return;
-                const ctaBtn = host.shadowRoot.querySelector('.flash-sale-cta, button[class*="cta"]') as HTMLButtonElement;
-                ctaBtn?.click();
-            });
+            // Click "Continue Shopping" to navigate
+            await clickContinueShoppingButton(page);
 
             await page.waitForURL('**/collections/all**', { timeout: 10000 });
-            console.log('✅ Second click navigated to collection');
+            console.log('✅ Continue Shopping navigated to collection');
         });
 
         test('skips discount when applyDiscountFirst is false', async ({ page }) => {

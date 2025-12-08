@@ -11,7 +11,9 @@ import {
     getTestPrefix,
     verifyFlashSaleContent,
     cleanupAllE2ECampaigns,
-    MAX_TEST_PRIORITY
+    MAX_TEST_PRIORITY,
+    waitForDiscountSuccessState,
+    clickContinueShoppingButton,
 } from './helpers/test-helpers';
 
 // Extend FlashSaleBuilder with CTA methods for Flash Sale CTA tests
@@ -446,7 +448,9 @@ test.describe.serial('Flash Sale Template', () => {
             console.log('✅ Secondary CTA dismissed Flash Sale popup');
         });
 
-        test('CTA with discount applies discount first, then navigates', async ({ page }) => {
+        test('CTA with discount shows success state then navigates', async ({ page }) => {
+            // Note: Implementation changed to single-click flow with success state.
+            // Click CTA -> Issue discount -> Show success state -> Navigate via "Continue Shopping"
             const campaign = await (await factory.flashSale().init())
                 .withPriority(MAX_TEST_PRIORITY)
                 .withHeadline('25% Off Everything!')
@@ -469,7 +473,7 @@ test.describe.serial('Flash Sale Template', () => {
             const popup = page.locator('#revenue-boost-popup-shadow-host');
             await expect(popup).toBeVisible({ timeout: 15000 });
 
-            // First click should claim discount
+            // Verify initial CTA label
             const initialLabel = await page.evaluate(() => {
                 const host = document.querySelector('#revenue-boost-popup-shadow-host');
                 if (!host?.shadowRoot) return null;
@@ -479,7 +483,7 @@ test.describe.serial('Flash Sale Template', () => {
             expect(initialLabel).toBe('Claim Discount');
             console.log(`✅ Initial CTA label: "${initialLabel}"`);
 
-            // Click to claim discount
+            // Single click claims discount and shows success state
             await page.evaluate(() => {
                 const host = document.querySelector('#revenue-boost-popup-shadow-host');
                 if (!host?.shadowRoot) return;
@@ -487,24 +491,21 @@ test.describe.serial('Flash Sale Template', () => {
                 ctaBtn?.click();
             });
 
-            // Wait for discount to be claimed
-            await page.waitForTimeout(2000);
+            // Wait for success state with discount code
+            const { hasSuccessState, discountCode } = await waitForDiscountSuccessState(page, { timeout: 10000 });
+            expect(hasSuccessState).toBe(true);
+            console.log(`✅ Success state shown with discount code: "${discountCode}"`);
 
-            // Should still be on same page after first click
+            // Should still be on same page (showing success state)
             expect(page.url()).not.toContain('/collections/all');
-            console.log('✅ First click claimed discount without navigating');
+            console.log('✅ Discount claimed, showing success state');
 
-            // Second click should navigate
-            await page.evaluate(() => {
-                const host = document.querySelector('#revenue-boost-popup-shadow-host');
-                if (!host?.shadowRoot) return;
-                const ctaBtn = host.shadowRoot.querySelector('.flash-sale-cta, button[class*="cta"]') as HTMLButtonElement;
-                ctaBtn?.click();
-            });
+            // Click "Continue Shopping" to navigate
+            await clickContinueShoppingButton(page);
 
             await page.waitForURL('**/collections/all**', { timeout: 10000 });
             expect(page.url()).toContain('/collections/all');
-            console.log('✅ Second click navigated to collection after discount was claimed');
+            console.log('✅ Continue Shopping navigated to collection after discount was claimed');
         });
 
         test('CTA navigates immediately when no discount is configured', async ({ page }) => {

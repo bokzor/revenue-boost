@@ -636,7 +636,7 @@ export const minimalSlideUp: MinimalSlideUpRecipe = {
     designConfig: {
       theme: "minimal",
       position: "bottom",
-      size: "small",
+      size: "medium",
       animation: "slide",
     },
     targetRules: {

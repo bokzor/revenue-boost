@@ -989,7 +989,7 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
       buttonTextColor: "#FFFFFF",
       accentColor: "#3B82F6",
       position: "bottom",
-      size: "small",
+      size: "medium",
       borderRadius: 24,
       animation: "slide",
     },
