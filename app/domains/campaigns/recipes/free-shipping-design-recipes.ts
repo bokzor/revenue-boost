@@ -52,11 +52,13 @@ const FREE_SHIPPING_EDITABLE_FIELDS = [
 // COMMON TARGETING CONFIGURATION FOR FREE SHIPPING
 // =============================================================================
 
-// Frequency capping - show frequently since it's a progress bar, not intrusive
+// Frequency capping - persistent bar that shows on every page until dismissed
+// This is NOT a popup - it's a helpful progress bar that motivates higher AOV
 const FREE_SHIPPING_FREQUENCY_CAPPING = {
-  max_triggers_per_session: 5,
-  max_triggers_per_day: 10,
-  cooldown_between_triggers: 60, // 1 minute in seconds
+  max_triggers_per_session: 999, // Essentially unlimited - show on every page
+  max_triggers_per_day: 999,
+  cooldown_between_triggers: 0, // No cooldown - show immediately on each page
+  dismiss_for_session: true, // Once user closes, stay closed for the session
 };
 
 // Page targeting - show on all shopping pages, exclude checkout

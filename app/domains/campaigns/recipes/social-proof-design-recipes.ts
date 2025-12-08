@@ -51,8 +51,8 @@ const SOCIAL_PROOF_EDITABLE_FIELDS: EditableField[] = [
 
 const SOCIAL_PROOF_FREQUENCY_CAPPING = {
   max_triggers_per_session: 10,
-  max_triggers_per_day: 20,
-  cooldown_between_triggers: 60, // 1 minute
+  max_triggers_per_day: 30,
+  cooldown_between_triggers: 8, // 8 seconds - matches rotationInterval for continuous activity feel
 };
 
 const SOCIAL_PROOF_PAGE_TARGETING = {
@@ -446,8 +446,8 @@ const urgencyBoost: SocialProofRecipe = {
         time_delay: { enabled: true, delay: 2000 },
         frequency_capping: {
           max_triggers_per_session: 20,
-          max_triggers_per_day: 30,
-          cooldown_between_triggers: 30,
+          max_triggers_per_day: 50,
+          cooldown_between_triggers: 5, // 5 seconds - fast rotation for maximum urgency
         },
       },
       pageTargeting: SOCIAL_PROOF_PAGE_TARGETING,

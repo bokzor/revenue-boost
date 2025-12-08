@@ -606,7 +606,7 @@ function buildSocialProofPreviewNotifications(
   config: Record<string, unknown>
 ): PreviewSocialProofNotification[] {
   const notifications: PreviewSocialProofNotification[] = [];
-  const now = new Date();
+  const now = Date.now();
 
   // Choose values that always satisfy any configured thresholds
   const visitorCount = Math.max(
@@ -629,6 +629,8 @@ function buildSocialProofPreviewNotifications(
       id: "preview-visitor-live",
       type: "visitor",
       count: visitorCount,
+      context: "viewing this product",
+      trending: false,
       timestamp: now,
     });
   }
@@ -640,7 +642,8 @@ function buildSocialProofPreviewNotifications(
     type: "visitor",
     count: 47,
     context: "bought this in the last 24 hours",
-    timestamp: new Date(now.getTime() - 10 * 60 * 1000),
+    trending: true,
+    timestamp: now - 10 * 60 * 1000,
   });
 
   // 3) Low stock alert (Tier 2)
@@ -650,7 +653,8 @@ function buildSocialProofPreviewNotifications(
     type: "visitor",
     count: 3,
     context: "left in stock!",
-    timestamp: new Date(now.getTime() - 20 * 60 * 1000),
+    trending: false,
+    timestamp: now - 20 * 60 * 1000,
   });
 
   // 4) Cart activity (Tier 2)
@@ -660,7 +664,8 @@ function buildSocialProofPreviewNotifications(
     type: "visitor",
     count: 5,
     context: "added to cart in the last hour",
-    timestamp: new Date(now.getTime() - 25 * 60 * 1000),
+    trending: false,
+    timestamp: now - 25 * 60 * 1000,
   });
 
   // 5) Recently viewed (Tier 2)
@@ -670,7 +675,8 @@ function buildSocialProofPreviewNotifications(
     type: "visitor",
     count: 15,
     context: "viewed this in the last hour",
-    timestamp: new Date(now.getTime() - 35 * 60 * 1000),
+    trending: false,
+    timestamp: now - 35 * 60 * 1000,
   });
 
   // 6) Review notification
@@ -678,9 +684,14 @@ function buildSocialProofPreviewNotifications(
     notifications.push({
       id: "preview-review-1",
       type: "review",
-      name: "Emily K.",
       rating: reviewRating,
-      timestamp: new Date(now.getTime() - 30 * 60 * 1000),
+      reviewCount: 127,
+      recentReview: {
+        author: "Emily K.",
+        text: "Great product! Highly recommend.",
+        verified: true,
+      },
+      timestamp: now - 30 * 60 * 1000,
     });
   }
 
@@ -690,18 +701,22 @@ function buildSocialProofPreviewNotifications(
       {
         id: "preview-purchase-1",
         type: "purchase",
-        name: "John D.",
+        customerName: "John D.",
         location: "New York, NY",
-        product: "Classic T-Shirt",
-        timestamp: new Date(now.getTime() - 2 * 60 * 1000),
+        productName: "Classic T-Shirt",
+        timeAgo: "2 minutes ago",
+        verified: true,
+        timestamp: now - 2 * 60 * 1000,
       },
       {
         id: "preview-purchase-2",
         type: "purchase",
-        name: "Sarah M.",
+        customerName: "Sarah M.",
         location: "Los Angeles, CA",
-        product: "Denim Jacket",
-        timestamp: new Date(now.getTime() - 5 * 60 * 1000),
+        productName: "Denim Jacket",
+        timeAgo: "5 minutes ago",
+        verified: true,
+        timestamp: now - 5 * 60 * 1000,
       }
     );
   }
@@ -711,8 +726,11 @@ function buildSocialProofPreviewNotifications(
     notifications.push({
       id: "preview-purchase-fallback",
       type: "purchase",
-      name: "Alex",
-      product: "Best-selling product",
+      customerName: "Alex",
+      location: "Nearby",
+      productName: "Best-selling product",
+      timeAgo: "Just now",
+      verified: true,
       timestamp: now,
     });
   }

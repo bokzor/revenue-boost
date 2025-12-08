@@ -8,6 +8,7 @@ import { describe, it, expect } from "vitest";
 import {
   parseThemeSettings,
   themeSettingsToDesignTokens,
+  themeSettingsToPresets,
   designTokensToCSSVariables,
   type ExtractedThemeSettings,
 } from "~/lib/shopify/theme-settings.server";
@@ -79,6 +80,59 @@ const LEGACY_SETTINGS_DATA = {
     colors_text: "#333333",
     colors_primary: "#0066cc",
     colors_accent: "#ff6600",
+  },
+};
+
+// =============================================================================
+// MOCK DATA: Heritage-like theme (multiple color schemes, dark & light)
+// =============================================================================
+
+const HERITAGE_SETTINGS_DATA = {
+  current: {
+    type_header_font: "cormorant_garamond_n4",
+    type_body_font: "instrument_sans_n4",
+    heading_scale: 100,
+    body_scale: 100,
+    buttons_radius: 0,
+    inputs_radius: 0,
+    popup_corner_radius: 0,
+    card_corner_radius: 0,
+    // Multiple color schemes (Heritage has 6)
+    color_schemes: {
+      "scheme-1": {
+        settings: {
+          background: "#202219", // Dark background
+          text: "#121212", // Dark text (BAD CONTRAST!)
+          button: "#121212",
+          button_label: "#FFFFFF",
+          shadow: "#000000",
+        },
+      },
+      "scheme-2": {
+        settings: {
+          background: "#ffffff", // Light background
+          text: "#1a1a1a", // Dark text (good contrast)
+          button: "#1a1a1a",
+          button_label: "#ffffff",
+        },
+      },
+      "scheme-3": {
+        settings: {
+          background: "#202219", // Dark background
+          text: "#f5f5dc", // Light text (good contrast)
+          button: "#f5f5dc",
+          button_label: "#202219",
+        },
+      },
+      "scheme-4": {
+        settings: {
+          background: "#8b7355", // Brown accent
+          text: "#ffffff",
+          button: "#ffffff",
+          button_label: "#8b7355",
+        },
+      },
+    },
   },
 };
 
@@ -211,6 +265,89 @@ describe("theme-settings.server", () => {
       for (const key of Object.keys(cssVars)) {
         expect(key).toMatch(/^--rb-/);
       }
+    });
+  });
+
+  describe("themeSettingsToPresets", () => {
+    it("should create multiple presets from OS 2.0 theme color schemes", () => {
+      const settings = parseThemeSettings("Dawn", DAWN_SETTINGS_DATA);
+      const presets = themeSettingsToPresets(settings);
+
+      // Dawn has 2 color schemes
+      expect(presets.length).toBe(2);
+      expect(presets.some((p) => p.name.includes("Dawn"))).toBe(true);
+    });
+
+    it("should mark the best contrast scheme as default", () => {
+      const settings = parseThemeSettings("Dawn", DAWN_SETTINGS_DATA);
+      const presets = themeSettingsToPresets(settings);
+
+      const defaultPreset = presets.find((p) => p.isDefault);
+      expect(defaultPreset).toBeDefined();
+    });
+
+    it("should filter out schemes with poor contrast", () => {
+      const settings = parseThemeSettings("Heritage", HERITAGE_SETTINGS_DATA);
+      const presets = themeSettingsToPresets(settings);
+
+      // Heritage has 4 schemes, but scheme-1 has dark text on dark bg (bad contrast)
+      // Should be filtered out, leaving 3 presets
+      expect(presets.length).toBeLessThan(4);
+
+      // None of the presets should have the bad contrast combo
+      const badPreset = presets.find(
+        (p) => p.backgroundColor === "#202219" && p.textColor === "#121212"
+      );
+      expect(badPreset).toBeUndefined();
+    });
+
+    it("should include valid dark theme presets", () => {
+      const settings = parseThemeSettings("Heritage", HERITAGE_SETTINGS_DATA);
+      const presets = themeSettingsToPresets(settings);
+
+      // scheme-3 is dark bg with light text (good contrast) - should be included
+      const darkPreset = presets.find(
+        (p) => p.backgroundColor === "#202219" && p.textColor === "#f5f5dc"
+      );
+      expect(darkPreset).toBeDefined();
+    });
+
+    it("should generate descriptive names for presets", () => {
+      const settings = parseThemeSettings("Heritage", HERITAGE_SETTINGS_DATA);
+      const presets = themeSettingsToPresets(settings);
+
+      // Should have Light and Dark variants
+      const hasLightOrDark = presets.some(
+        (p) => p.name.includes("Light") || p.name.includes("Dark") || p.name.includes("Accent")
+      );
+      expect(hasLightOrDark).toBe(true);
+    });
+
+    it("should include scheme key in description", () => {
+      const settings = parseThemeSettings("Dawn", DAWN_SETTINGS_DATA);
+      const presets = themeSettingsToPresets(settings);
+
+      // Each preset should reference its source scheme
+      expect(presets[0].description).toContain("scheme");
+    });
+
+    it("should create single preset for legacy themes", () => {
+      const settings = parseThemeSettings("Debut", LEGACY_SETTINGS_DATA);
+      const presets = themeSettingsToPresets(settings);
+
+      expect(presets.length).toBe(1);
+      expect(presets[0].isDefault).toBe(true);
+      expect(presets[0].name).toBe("Debut Theme");
+    });
+
+    it("should share typography across all presets", () => {
+      const settings = parseThemeSettings("Dawn", DAWN_SETTINGS_DATA);
+      const presets = themeSettingsToPresets(settings);
+
+      // All presets should have the same font
+      const fonts = presets.map((p) => p.fontFamily);
+      expect(new Set(fonts).size).toBe(1);
+      expect(fonts[0]).toContain("Montserrat");
     });
   });
 });

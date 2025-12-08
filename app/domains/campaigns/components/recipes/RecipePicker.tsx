@@ -21,15 +21,15 @@ import {
 } from "@shopify/polaris";
 import { ChevronRightIcon, XSmallIcon } from "@shopify/polaris-icons";
 import {
-  RECIPE_CATEGORIES,
   RECIPE_TAG_LABELS,
-  type RecipeCategory,
   type RecipeTag,
   type StyledRecipe,
 } from "../../recipes/styled-recipe-types";
 import type { DesignTokens } from "../../types/design-tokens";
 import { RecipeCard } from "./RecipeCard";
 import { PreviewProvider } from "./PreviewContext";
+import type { TemplateType } from "../../types/campaign";
+import { TEMPLATE_REGISTRY } from "~/domains/templates/registry/template-registry";
 
 // Industry tags for filtering newsletter design recipes
 const INDUSTRY_TAGS: RecipeTag[] = [
@@ -121,9 +121,9 @@ export function RecipePicker({
   defaultThemeTokens,
   selectedGoal = null,
 }: RecipePickerProps) {
-  // Track selected category (null = all)
-  const [selectedCategory, setSelectedCategory] = useState<RecipeCategory | "all">("all");
-  const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
+  // Track selected template type filter (null = all)
+  const [selectedTemplateType, setSelectedTemplateType] = useState<TemplateType | "all">("all");
+  const [hoveredTemplateType, setHoveredTemplateType] = useState<string | null>(null);
 
   // Track selected tags for filtering
   const [selectedTags, setSelectedTags] = useState<RecipeTag[]>([]);
@@ -138,31 +138,36 @@ export function RecipePicker({
   // Clear all tag filters
   const clearTags = () => setSelectedTags([]);
 
-  // Filter recipes by goal first (if a goal is selected)
+  // Filter recipes by external goal prop first (if passed from parent)
   const goalFilteredRecipes = useMemo(() => {
     if (!selectedGoal) return recipes;
     return recipes.filter((recipe) => recipe.goal === selectedGoal);
   }, [recipes, selectedGoal]);
 
-  // Group recipes by category (respecting goal filter)
-  const recipesByCategory = useMemo(() => {
-    const grouped: Record<RecipeCategory, StyledRecipe[]> = {
-      email_leads: [],
-      sales_promos: [],
-      cart_recovery: [],
-      announcements: [],
-    };
+  // Get unique template types from filtered recipes (preserves order)
+  const availableTemplateTypes = useMemo(() => {
+    const types = new Set<TemplateType>();
+    goalFilteredRecipes.forEach((recipe) => {
+      types.add(recipe.templateType);
+    });
+    return Array.from(types);
+  }, [goalFilteredRecipes]);
+
+  // Group recipes by template type
+  const recipesByTemplateType = useMemo(() => {
+    const grouped: Partial<Record<TemplateType, StyledRecipe[]>> = {};
 
     goalFilteredRecipes.forEach((recipe) => {
-      if (grouped[recipe.category]) {
-        grouped[recipe.category].push(recipe);
+      if (!grouped[recipe.templateType]) {
+        grouped[recipe.templateType] = [];
       }
+      grouped[recipe.templateType]!.push(recipe);
     });
 
-    // Sort each category: "Uses store theme" (use_case) first, then featured, then by name
+    // Sort each template type group: "Uses store theme" (use_case) first, then featured, then by name
     Object.keys(grouped).forEach((key) => {
-      const category = key as RecipeCategory;
-      grouped[category].sort((a, b) => {
+      const templateType = key as TemplateType;
+      grouped[templateType]!.sort((a, b) => {
         // "Uses store theme" recipes first
         const aUsesStoreTheme = a.recipeType === "use_case";
         const bUsesStoreTheme = b.recipeType === "use_case";
@@ -178,14 +183,14 @@ export function RecipePicker({
     return grouped;
   }, [goalFilteredRecipes]);
 
-  // Get filtered recipes based on selected category AND tags
+  // Get filtered recipes based on selected template type AND tags
   const filteredRecipes = useMemo(() => {
     let result: StyledRecipe[];
 
-    if (selectedCategory === "all") {
+    if (selectedTemplateType === "all") {
       result = [...goalFilteredRecipes];
     } else {
-      result = recipesByCategory[selectedCategory] || [];
+      result = recipesByTemplateType[selectedTemplateType] || [];
     }
 
     // Apply tag filters (AND logic - must match all selected tags)
@@ -207,40 +212,51 @@ export function RecipePicker({
       if (!a.featured && b.featured) return 1;
       return a.name.localeCompare(b.name);
     });
-  }, [selectedCategory, selectedTags, goalFilteredRecipes, recipesByCategory]);
+  }, [selectedTemplateType, selectedTags, goalFilteredRecipes, recipesByTemplateType]);
 
-  // Order of categories to display
-  const categoryOrder: RecipeCategory[] = [
-    "sales_promos",
-    "email_leads",
-    "cart_recovery",
-    "announcements",
-  ];
+  // Map template types to icons for display
+  const templateTypeIcons: Record<TemplateType, string> = {
+    NEWSLETTER: "📧",
+    SPIN_TO_WIN: "🎡",
+    SCRATCH_CARD: "🎟️",
+    FLASH_SALE: "⚡",
+    COUNTDOWN_TIMER: "⏱️",
+    FREE_SHIPPING: "🚚",
+    CART_ABANDONMENT: "🛒",
+    PRODUCT_UPSELL: "🛍️",
+    SOCIAL_PROOF: "👥",
+    ANNOUNCEMENT: "📢",
+    EXIT_INTENT: "🚪",
+    CLASSIC_UPSELL: "🎁",
+    MINIMAL_SLIDE_UP: "📱",
+    PREMIUM_FULLSCREEN: "✨",
+    COUNTDOWN_URGENCY: "🔥",
+  };
 
   return (
     <PreviewProvider>
     <div style={{ display: "flex", gap: "24px", minHeight: "600px" }}>
-      {/* Left Sidebar - Categories (sticky) */}
+      {/* Left Sidebar - Template Types (sticky) */}
       <div style={{ width: "240px", flexShrink: 0 }}>
         <div style={{ position: "sticky", top: "16px" }}>
         <Card>
           <BlockStack gap="100">
             <Text as="h3" variant="headingMd">
-              Categories
+              Popup Type
             </Text>
 
             <BlockStack gap="100">
               {/* All Recipes */}
               <div
                 style={{
-                  ...sidebarItemStyle(selectedCategory === "all"),
-                  ...(hoveredCategory === "all" && selectedCategory !== "all"
+                  ...sidebarItemStyle(selectedTemplateType === "all"),
+                  ...(hoveredTemplateType === "all" && selectedTemplateType !== "all"
                     ? sidebarItemHoverStyle
                     : {}),
                 }}
-                onClick={() => setSelectedCategory("all")}
-                onMouseEnter={() => setHoveredCategory("all")}
-                onMouseLeave={() => setHoveredCategory(null)}
+                onClick={() => setSelectedTemplateType("all")}
+                onMouseEnter={() => setHoveredTemplateType("all")}
+                onMouseLeave={() => setHoveredTemplateType(null)}
               >
                 <InlineStack align="space-between" blockAlign="center">
                   <InlineStack gap="200" blockAlign="center">
@@ -248,9 +264,9 @@ export function RecipePicker({
                     <Text
                       as="span"
                       variant="bodyMd"
-                      fontWeight={selectedCategory === "all" ? "semibold" : "regular"}
+                      fontWeight={selectedTemplateType === "all" ? "semibold" : "regular"}
                     >
-                      All Recipes
+                      All Types
                     </Text>
                   </InlineStack>
                   <Text as="span" variant="bodySm" tone="subdued">
@@ -259,35 +275,35 @@ export function RecipePicker({
                 </InlineStack>
               </div>
 
-              {/* Category items */}
-              {categoryOrder.map((category) => {
-                const categoryMeta = RECIPE_CATEGORIES[category];
-                const count = recipesByCategory[category].length;
-                const isActive = selectedCategory === category;
-                const isHovered = hoveredCategory === category;
+              {/* Template type items */}
+              {availableTemplateTypes.map((templateType) => {
+                const templateMeta = TEMPLATE_REGISTRY[templateType];
+                const count = recipesByTemplateType[templateType]?.length || 0;
+                const isActive = selectedTemplateType === templateType;
+                const isHovered = hoveredTemplateType === templateType;
 
                 if (count === 0) return null;
 
                 return (
                   <div
-                    key={category}
+                    key={templateType}
                     style={{
                       ...sidebarItemStyle(isActive),
                       ...(isHovered && !isActive ? sidebarItemHoverStyle : {}),
                     }}
-                    onClick={() => setSelectedCategory(category)}
-                    onMouseEnter={() => setHoveredCategory(category)}
-                    onMouseLeave={() => setHoveredCategory(null)}
+                    onClick={() => setSelectedTemplateType(templateType)}
+                    onMouseEnter={() => setHoveredTemplateType(templateType)}
+                    onMouseLeave={() => setHoveredTemplateType(null)}
                   >
                     <InlineStack align="space-between" blockAlign="center">
                       <InlineStack gap="200" blockAlign="center">
-                        <Text as="span">{categoryMeta.icon}</Text>
+                        <Text as="span">{templateTypeIcons[templateType] || "📄"}</Text>
                         <Text
                           as="span"
                           variant="bodyMd"
                           fontWeight={isActive ? "semibold" : "regular"}
                         >
-                          {categoryMeta.label}
+                          {templateMeta?.label || templateType}
                         </Text>
                       </InlineStack>
                       <Text as="span" variant="bodySm" tone="subdued">
@@ -313,11 +329,11 @@ export function RecipePicker({
                 <div
                   style={{
                     ...sidebarItemStyle(false),
-                    ...(hoveredCategory === "scratch" ? sidebarItemHoverStyle : {}),
+                    ...(hoveredTemplateType === "scratch" ? sidebarItemHoverStyle : {}),
                   }}
                   onClick={onBuildFromScratch}
-                  onMouseEnter={() => setHoveredCategory("scratch")}
-                  onMouseLeave={() => setHoveredCategory(null)}
+                  onMouseEnter={() => setHoveredTemplateType("scratch")}
+                  onMouseLeave={() => setHoveredTemplateType(null)}
                 >
                   <InlineStack gap="200" blockAlign="center">
                     <Text as="span">🛠️</Text>
@@ -339,9 +355,9 @@ export function RecipePicker({
           {/* Header */}
           <InlineStack align="space-between" blockAlign="center">
             <Text as="h2" variant="headingLg">
-              {selectedCategory === "all"
+              {selectedTemplateType === "all"
                 ? "All Recipes"
-                : RECIPE_CATEGORIES[selectedCategory].label}
+                : TEMPLATE_REGISTRY[selectedTemplateType]?.label || selectedTemplateType}
             </Text>
             <Text as="span" tone="subdued">
               {filteredRecipes.length} recipe{filteredRecipes.length !== 1 ? "s" : ""}

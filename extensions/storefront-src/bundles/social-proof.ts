@@ -2,7 +2,7 @@
  * Social Proof Popup Bundle
  */
 
-import { SocialProofPopup } from "../../../app/domains/storefront/notifications/social-proof/SocialProofPopup";
+import { SocialProofPopup } from "../../../app/domains/storefront/popups-new/SocialProofPopup";
 
 (function register() {
   const g = window as unknown as { RevenueBoostComponents?: Record<string, unknown>; console?: Console };

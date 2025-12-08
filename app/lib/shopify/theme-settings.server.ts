@@ -514,6 +514,197 @@ import type { ThemePresetInput } from "~/domains/store/types/theme-preset";
  * @deprecated This function maps to the old ThemePresetInput format.
  * Use themeSettingsToDesignTokens() for the new simplified token system.
  */
+/**
+ * Calculate relative luminance of a color for WCAG contrast calculations
+ */
+function getLuminance(hexColor: string): number {
+  const hex = hexColor.replace("#", "");
+  const r = parseInt(hex.slice(0, 2), 16) / 255;
+  const g = parseInt(hex.slice(2, 4), 16) / 255;
+  const b = parseInt(hex.slice(4, 6), 16) / 255;
+
+  const toLinear = (c: number) => (c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));
+
+  return 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b);
+}
+
+/**
+ * Calculate WCAG contrast ratio between two colors
+ * Returns a value between 1 (no contrast) and 21 (max contrast)
+ */
+function getContrastRatio(color1: string, color2: string): number {
+  const l1 = getLuminance(color1);
+  const l2 = getLuminance(color2);
+  const lighter = Math.max(l1, l2);
+  const darker = Math.min(l1, l2);
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
+/**
+ * Detect if a color scheme is "light" (light background) or "dark" (dark background)
+ */
+function isLightScheme(scheme: ExtractedColorScheme): boolean {
+  return getLuminance(scheme.background) > 0.5;
+}
+
+/**
+ * Generate a descriptive name for a color scheme based on its properties
+ */
+function generateSchemeName(
+  themeName: string,
+  schemeKey: string,
+  scheme: ExtractedColorScheme,
+  index: number,
+  totalSchemes: number
+): string {
+  const isLight = isLightScheme(scheme);
+  const luminance = getLuminance(scheme.background);
+
+  // Try to detect accent/brand schemes (colored backgrounds)
+  const bgLuminance = getLuminance(scheme.background);
+  const isNeutral = bgLuminance > 0.9 || bgLuminance < 0.1; // Very light or very dark = neutral
+
+  let suffix: string;
+  if (totalSchemes === 1) {
+    suffix = "";
+  } else if (!isNeutral && luminance > 0.2 && luminance < 0.8) {
+    suffix = " - Accent";
+  } else if (isLight) {
+    suffix = " - Light";
+  } else {
+    suffix = " - Dark";
+  }
+
+  // If there are multiple schemes of the same type, add a number
+  return `${themeName}${suffix}`;
+}
+
+/**
+ * Check if a color scheme has valid contrast (text readable on background)
+ * WCAG AA requires 4.5:1 for normal text
+ */
+function hasValidContrast(scheme: ExtractedColorScheme): boolean {
+  const contrast = getContrastRatio(scheme.background, scheme.text);
+  return contrast >= 3; // Slightly lower threshold to be more permissive
+}
+
+/**
+ * Convert a single color scheme to a ThemePresetInput
+ */
+function colorSchemeToPreset(
+  themeName: string,
+  schemeKey: string,
+  scheme: ExtractedColorScheme,
+  typography: ExtractedTypography,
+  borderRadius: ExtractedBorderRadius,
+  index: number,
+  totalSchemes: number,
+  options?: { isDefault?: boolean }
+): ThemePresetInput {
+  const timestamp = Date.now();
+  const name = generateSchemeName(themeName, schemeKey, scheme, index, totalSchemes);
+
+  return {
+    id: `theme-${schemeKey}-${timestamp}`,
+    name,
+    description: `Imported from ${themeName} theme (${schemeKey})`,
+    isDefault: options?.isDefault ?? false,
+    // Colors from this scheme
+    backgroundColor: scheme.background,
+    textColor: scheme.text,
+    brandColor: scheme.button,
+    primaryForegroundColor: scheme.buttonLabel || undefined,
+    surfaceColor: undefined, // Will be derived
+    mutedColor: undefined, // Will be derived
+    borderColor: undefined, // Will be derived
+    successColor: "#10B981",
+    // Typography (shared across all schemes)
+    fontFamily: typography.bodyFontStack || typography.headingFontStack || undefined,
+    headingFontFamily: typography.headingFontStack || undefined,
+    // Border radius (shared)
+    borderRadius: borderRadius?.buttons || 8,
+    popupBorderRadius: (borderRadius?.buttons || 8) * 2,
+    // Metadata
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+/**
+ * Convert extracted theme settings to multiple ThemePresetInputs (one per color scheme)
+ *
+ * This is the recommended function for importing theme colors.
+ * It creates a preset for each valid color scheme, allowing merchants to choose
+ * which scheme best matches their popup context.
+ *
+ * @returns Array of presets, with the "best" one marked as default
+ */
+export function themeSettingsToPresets(settings: ExtractedThemeSettings): ThemePresetInput[] {
+  const { themeName, colorSchemes, typography, borderRadius, colors } = settings;
+  const presets: ThemePresetInput[] = [];
+
+  // If we have multiple color schemes (OS 2.0 theme)
+  if (colorSchemes && Object.keys(colorSchemes).length > 0) {
+    const schemeEntries = Object.entries(colorSchemes);
+    let bestSchemeIndex = 0;
+    let bestContrast = 0;
+
+    // Find the scheme with the best contrast for the default
+    schemeEntries.forEach(([, scheme], index) => {
+      const contrast = getContrastRatio(scheme.background, scheme.text);
+      if (contrast > bestContrast) {
+        bestContrast = contrast;
+        bestSchemeIndex = index;
+      }
+    });
+
+    // Create presets for all schemes with valid contrast
+    schemeEntries.forEach(([schemeKey, scheme], index) => {
+      // Skip schemes with poor contrast
+      if (!hasValidContrast(scheme)) {
+        console.log(`[Theme Settings] Skipping ${schemeKey}: poor contrast (${getContrastRatio(scheme.background, scheme.text).toFixed(2)}:1)`);
+        return;
+      }
+
+      const preset = colorSchemeToPreset(
+        themeName,
+        schemeKey,
+        scheme,
+        typography,
+        borderRadius,
+        index,
+        schemeEntries.length,
+        { isDefault: index === bestSchemeIndex }
+      );
+      presets.push(preset);
+    });
+
+    console.log(`[Theme Settings] Generated ${presets.length} presets from ${schemeEntries.length} color schemes`);
+  }
+
+  // Fallback: if no valid schemes found, create one from the primary colors
+  if (presets.length === 0) {
+    presets.push({
+      id: `theme-${Date.now()}`,
+      name: `${themeName} Theme`,
+      description: "Imported from your Shopify theme",
+      isDefault: true,
+      backgroundColor: colors.background,
+      textColor: colors.text,
+      brandColor: colors.button,
+      primaryForegroundColor: colors.buttonLabel || undefined,
+      fontFamily: typography.bodyFontStack || typography.headingFontStack || undefined,
+      headingFontFamily: typography.headingFontStack || undefined,
+      borderRadius: borderRadius?.buttons || 8,
+      popupBorderRadius: (borderRadius?.buttons || 8) * 2,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+  }
+
+  return presets;
+}
+
 export function themeSettingsToPreset(
   settings: ExtractedThemeSettings,
   presetId?: string,
