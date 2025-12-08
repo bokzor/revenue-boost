@@ -9,6 +9,7 @@ import React, { useState } from "react";
 import { PopupPortal } from "./PopupPortal";
 import type { PopupDesignConfig, Product } from "./types";
 import type { BundleDealContent } from "~/domains/campaigns/types/campaign";
+import { getAdaptiveMutedColor } from "./utils/utils";
 
 export interface BundleDealConfig extends PopupDesignConfig, BundleDealContent {
   products?: Product[];
@@ -65,8 +66,9 @@ export const BundleDealPopup: React.FC<BundleDealPopupProps> = ({
 
   const accentColor = config.accentColor || config.buttonColor || "var(--rb-primary, #000)";
   const textColor = config.textColor || "var(--rb-foreground, #1f2937)";
-  const mutedColor = config.descriptionColor || "var(--rb-muted, #6b7280)";
   const bgColor = config.backgroundColor || "var(--rb-background, #ffffff)";
+  // Use adaptive muted color based on background for proper contrast
+  const mutedColor = config.descriptionColor || getAdaptiveMutedColor(bgColor);
   const borderRadius = config.borderRadius || 16;
 
   return (

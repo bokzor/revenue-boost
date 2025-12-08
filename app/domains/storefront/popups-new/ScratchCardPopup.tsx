@@ -22,6 +22,7 @@ import type { ScratchCardContent } from "~/domains/campaigns/types/campaign";
 import {
   getSizeDimensions,
   prefersReducedMotion,
+  getAdaptiveMutedColor,
 } from "app/domains/storefront/popups-new/utils/utils";
 import { POPUP_SPACING } from "app/domains/storefront/popups-new/utils/spacing";
 import { ScratchCardRenderer } from "./utils/scratch-canvas";
@@ -807,7 +808,7 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
           margin-top: 0.75rem;
           background: transparent;
           border: none;
-          color: ${config.descriptionColor || "rgba(15, 23, 42, 0.7)"};
+          color: ${config.descriptionColor || getAdaptiveMutedColor(config.backgroundColor)};
           font-size: 0.875rem;
           cursor: pointer;
         }
@@ -1342,7 +1343,7 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
                           <p
                             style={{
                               fontSize: "1rem",
-                              color: config.descriptionColor || "rgba(0,0,0,0.7)",
+                              color: config.descriptionColor || getAdaptiveMutedColor(config.backgroundColor),
                               lineHeight: 1.6,
                             }}
                           >
@@ -1538,7 +1539,7 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
           margin-top: 0.75rem;
           background: transparent;
           border: none;
-          color: ${config.descriptionColor || "rgba(15, 23, 42, 0.7)"};
+          color: ${config.descriptionColor || getAdaptiveMutedColor(config.backgroundColor)};
           font-size: 0.875rem;
           cursor: pointer;
         }

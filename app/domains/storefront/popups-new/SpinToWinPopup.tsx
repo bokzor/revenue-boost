@@ -16,7 +16,7 @@ import { PopupPortal } from "./PopupPortal";
 import { PopupGridContainer } from "app/domains/storefront/popups-new/components/shared/PopupGridContainer";
 import type { PopupDesignConfig, Prize } from "./types";
 import type { SpinToWinContent } from "~/domains/campaigns/types/campaign";
-import { prefersReducedMotion, debounce } from "app/domains/storefront/popups-new/utils/utils";
+import { prefersReducedMotion, debounce, getAdaptiveMutedColor } from "app/domains/storefront/popups-new/utils/utils";
 import { POPUP_SPACING } from "app/domains/storefront/popups-new/utils/spacing";
 
 // Import custom hooks
@@ -298,7 +298,8 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- config has dynamic fields
   const configRecord = config as any;
   const _successColor = (configRecord.successColor as string) || accentColor;
-  const descriptionColor = (configRecord.descriptionColor as string) || "var(--rb-muted, #6B7280)";
+  // Use adaptive muted color based on background for proper contrast
+  const descriptionColor = (configRecord.descriptionColor as string) || getAdaptiveMutedColor(baseBackground);
 
   // Optional extended behavior flags (storefront-only)
   const collectName = config.nameFieldEnabled ?? false;

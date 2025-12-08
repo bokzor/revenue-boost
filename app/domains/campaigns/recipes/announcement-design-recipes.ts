@@ -78,7 +78,7 @@ const storeWideSale: AnnouncementRecipe = {
   category: "announcements",
   goal: "ENGAGEMENT",
   templateType: "ANNOUNCEMENT",
-  recipeType: "use_case",
+  recipeType: "inspiration",
   tags: ["urgent", "bold", "discount", "high-converting"] as RecipeTag[],
   component: "AnnouncementBanner",
   theme: "urgent-sale",
@@ -126,13 +126,12 @@ const newCollectionLaunch: AnnouncementRecipe = {
   id: "announcement-new-collection",
   name: "New Collection Launch",
   tagline: "✨ New Arrivals",
-  description:
-    "Elegant announcement for new product launches and collection drops.",
+  description: "Elegant announcement for new product launches and collection drops.",
   icon: "✨",
   category: "announcements",
   goal: "ENGAGEMENT",
   templateType: "ANNOUNCEMENT",
-  recipeType: "use_case",
+  recipeType: "inspiration",
   tags: ["elegant", "modern", "fashion"] as RecipeTag[],
   component: "AnnouncementBanner",
   theme: "new-collection",
@@ -180,13 +179,12 @@ const freeShippingThreshold: AnnouncementRecipe = {
   id: "announcement-free-shipping",
   name: "Free Shipping Threshold",
   tagline: "🚚 Free Shipping",
-  description:
-    "Encourage higher order values by announcing free shipping thresholds.",
+  description: "Encourage higher order values by announcing free shipping thresholds.",
   icon: "🚚",
   category: "announcements",
   goal: "ENGAGEMENT",
   templateType: "ANNOUNCEMENT",
-  recipeType: "use_case",
+  recipeType: "inspiration",
   tags: ["free-shipping", "subtle", "high-converting"] as RecipeTag[],
   component: "AnnouncementBanner",
   theme: "free-shipping",
@@ -233,8 +231,7 @@ const holidayAnnouncement: AnnouncementRecipe = {
   id: "announcement-holiday",
   name: "Holiday Announcement",
   tagline: "🎄 Holiday Special",
-  description:
-    "Festive banner for holiday promotions and seasonal greetings.",
+  description: "Festive banner for holiday promotions and seasonal greetings.",
   icon: "🎄",
   category: "announcements",
   goal: "ENGAGEMENT",
@@ -286,13 +283,12 @@ const importantNotice: AnnouncementRecipe = {
   id: "announcement-important-notice",
   name: "Important Notice",
   tagline: "📢 Important Update",
-  description:
-    "Neutral banner for policy updates, shipping delays, or important information.",
+  description: "Neutral banner for policy updates, shipping delays, or important information.",
   icon: "📢",
   category: "announcements",
   goal: "ENGAGEMENT",
   templateType: "ANNOUNCEMENT",
-  recipeType: "use_case",
+  recipeType: "inspiration",
   tags: ["subtle", "modern"] as RecipeTag[],
   component: "AnnouncementBanner",
   theme: "notice",
@@ -331,7 +327,6 @@ const importantNotice: AnnouncementRecipe = {
   },
 };
 
-
 // =============================================================================
 // 6. BLACK FRIDAY (Seasonal)
 // =============================================================================
@@ -340,8 +335,7 @@ const blackFriday: AnnouncementRecipe = {
   id: "announcement-black-friday",
   name: "Black Friday",
   tagline: "🖤 BLACK FRIDAY",
-  description:
-    "Bold black and gold banner for Black Friday sales events.",
+  description: "Bold black and gold banner for Black Friday sales events.",
   icon: "🖤",
   category: "announcements",
   goal: "ENGAGEMENT",
@@ -394,8 +388,7 @@ const summerSale: AnnouncementRecipe = {
   id: "announcement-summer-sale",
   name: "Summer Sale",
   tagline: "☀️ Summer Sale",
-  description:
-    "Bright and cheerful banner for summer promotions.",
+  description: "Bright and cheerful banner for summer promotions.",
   icon: "☀️",
   category: "announcements",
   goal: "ENGAGEMENT",
@@ -447,13 +440,12 @@ const flashDeal: AnnouncementRecipe = {
   id: "announcement-flash-deal",
   name: "Flash Deal",
   tagline: "⚡ Flash Deal",
-  description:
-    "Time-sensitive banner for limited-time flash sales.",
+  description: "Time-sensitive banner for limited-time flash sales.",
   icon: "⚡",
   category: "announcements",
   goal: "ENGAGEMENT",
   templateType: "ANNOUNCEMENT",
-  recipeType: "use_case",
+  recipeType: "inspiration",
   tags: ["urgent", "bold", "discount", "time-delay"] as RecipeTag[],
   component: "AnnouncementBanner",
   theme: "flash-deal",

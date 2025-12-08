@@ -10,6 +10,106 @@ import type {
   PopupAnimation,
 } from "app/domains/storefront/popups-new/types";
 
+// =============================================================================
+// COLOR CONTRAST UTILITIES
+// =============================================================================
+
+/**
+ * Determines if a hex color is dark based on relative luminance.
+ * Uses the standard luminance formula for perceptual brightness.
+ *
+ * @param hexColor - Hex color string (with or without #)
+ * @returns true if the color is dark (luminance < 0.5)
+ *
+ * @example
+ * ```ts
+ * isColorDark("#000000"); // true
+ * isColorDark("#ffffff"); // false
+ * isColorDark("#111827"); // true (dark blue-gray)
+ * ```
+ */
+export function isColorDark(hexColor: string): boolean {
+  const hex = hexColor.replace("#", "");
+  // Handle shorthand hex (e.g., #fff -> #ffffff)
+  const fullHex = hex.length === 3
+    ? hex.split("").map(c => c + c).join("")
+    : hex;
+
+  const r = parseInt(fullHex.substring(0, 2), 16);
+  const g = parseInt(fullHex.substring(2, 4), 16);
+  const b = parseInt(fullHex.substring(4, 6), 16);
+
+  // Using relative luminance formula (ITU-R BT.709)
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance < 0.5;
+}
+
+/**
+ * Derives adaptive colors for UI elements based on background color.
+ * Ensures proper contrast for muted text, borders, and surfaces on both
+ * light and dark backgrounds.
+ *
+ * @param backgroundColor - The background color (hex format)
+ * @returns Object with derived color values
+ *
+ * @example
+ * ```tsx
+ * const colors = getDerivedColors("#ffffff"); // Light bg
+ * // Returns: { muted: "rgba(0, 0, 0, 0.5)", mutedBg: "rgba(0, 0, 0, 0.05)", ... }
+ *
+ * const colors = getDerivedColors("#111827"); // Dark bg
+ * // Returns: { muted: "rgba(255, 255, 255, 0.6)", mutedBg: "rgba(255, 255, 255, 0.1)", ... }
+ * ```
+ */
+export function getDerivedColors(backgroundColor: string): {
+  muted: string;
+  mutedBg: string;
+  border: string;
+  shadow: string;
+  primaryLight: string;
+  isDark: boolean;
+} {
+  const isDark = isColorDark(backgroundColor);
+
+  return {
+    // Muted text color - readable secondary text
+    muted: isDark ? "rgba(255, 255, 255, 0.6)" : "rgba(0, 0, 0, 0.5)",
+    // Muted background - subtle surface color
+    mutedBg: isDark ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.05)",
+    // Border color - subtle dividers
+    border: isDark ? "rgba(255, 255, 255, 0.15)" : "rgba(0, 0, 0, 0.1)",
+    // Shadow color - depth effect
+    shadow: isDark ? "rgba(0, 0, 0, 0.3)" : "rgba(0, 0, 0, 0.08)",
+    // Primary light - subtle accent background
+    primaryLight: isDark ? "rgba(255, 255, 255, 0.1)" : "rgba(23, 23, 23, 0.1)",
+    // Whether the background is dark (useful for conditional styling)
+    isDark,
+  };
+}
+
+/**
+ * Gets an adaptive muted/description color based on background.
+ * Shorthand for when you only need the muted text color.
+ *
+ * @param backgroundColor - The background color (hex format)
+ * @param fallback - Optional fallback if backgroundColor is not provided
+ * @returns RGBA string for muted text color
+ *
+ * @example
+ * ```tsx
+ * const descColor = getAdaptiveMutedColor(config.backgroundColor);
+ * // On light bg: "rgba(0, 0, 0, 0.5)"
+ * // On dark bg: "rgba(255, 255, 255, 0.6)"
+ * ```
+ */
+export function getAdaptiveMutedColor(
+  backgroundColor?: string,
+  fallback: string = "#ffffff"
+): string {
+  const bgColor = backgroundColor || fallback;
+  return getDerivedColors(bgColor).muted;
+}
+
 /**
  * Get size dimensions based on size prop
  *

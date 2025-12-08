@@ -19,6 +19,7 @@ import type {
   ReviewNotification,
 } from "~/domains/storefront/notifications/social-proof/types";
 import { buildScopedCss } from "~/domains/storefront/shared/css";
+import { getDerivedColors } from "./utils/utils";
 
 // =============================================================================
 // SVG ICONS (inline, no dependencies)
@@ -292,18 +293,23 @@ export const SocialProofPopup: React.FC<SocialProofPopupProps> = ({
     [config.customCSS, config.globalCustomCSS]
   );
 
+  // Derive colors based on background for proper contrast
+  const textColor = config.textColor || "#0a0a0a";
+  const bgColor = config.backgroundColor || "#ffffff";
+  const derived = getDerivedColors(bgColor);
+
   // Build CSS variables from config (matching mock's --sp-* naming)
   const cssVariables: React.CSSProperties = {
-    "--sp-background": config.backgroundColor || "#ffffff",
-    "--sp-foreground": config.textColor || "#0a0a0a",
-    "--sp-muted": "#737373",
-    "--sp-muted-bg": "#f5f5f5",
-    "--sp-border": "#e5e5e5",
-    "--sp-primary": config.textColor || "#171717",
-    "--sp-primary-light": "rgba(23, 23, 23, 0.1)",
+    "--sp-background": bgColor,
+    "--sp-foreground": textColor,
+    "--sp-muted": derived.muted,
+    "--sp-muted-bg": derived.mutedBg,
+    "--sp-border": derived.border,
+    "--sp-primary": textColor,
+    "--sp-primary-light": derived.primaryLight,
     "--sp-accent": config.accentColor || "#16a34a",
     "--sp-warning": "#f59e0b",
-    "--sp-shadow": "rgba(0, 0, 0, 0.08)",
+    "--sp-shadow": derived.shadow,
   } as React.CSSProperties;
 
   // Position class

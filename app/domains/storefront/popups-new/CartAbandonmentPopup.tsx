@@ -21,7 +21,7 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { PopupPortal } from "./PopupPortal";
 import type { PopupDesignConfig, CartItem, DiscountConfig } from "./types";
 import type { CartAbandonmentContent } from "~/domains/campaigns/types/campaign";
-import { formatCurrency } from "app/domains/storefront/popups-new/utils/utils";
+import { formatCurrency, getAdaptiveMutedColor } from "app/domains/storefront/popups-new/utils/utils";
 
 // Import custom hooks
 import { useCountdownTimer, useDiscountCode, usePopupForm } from "./hooks";
@@ -354,7 +354,8 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
   // Design tokens - use config values with --rb-* fallbacks
   const bgColor = config.backgroundColor || "var(--rb-background, #ffffff)";
   const textColor = config.textColor || "var(--rb-foreground, #111827)";
-  const descriptionColor = config.descriptionColor || "var(--rb-muted, #6b7280)";
+  // Use adaptive muted color based on background for proper contrast
+  const descriptionColor = config.descriptionColor || getAdaptiveMutedColor(bgColor);
   const buttonBgColor = config.buttonColor || "var(--rb-primary, #3b82f6)";
   const buttonTextColor = config.buttonTextColor || "var(--rb-primary-foreground, #ffffff)";
   const accentColor = config.accentColor || "var(--rb-primary, #f59e0b)";

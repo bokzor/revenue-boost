@@ -748,7 +748,7 @@ export const countdownUrgency: CountdownUrgencyRecipe = {
   layout: "centered",
   featured: true,
   new: true,
-  recipeType: "use_case",
+  recipeType: "inspiration",
   inputs: [
     {
       type: "select",

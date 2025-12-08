@@ -78,7 +78,7 @@ const recentPurchases: SocialProofRecipe = {
   category: "announcements",
   goal: "ENGAGEMENT",
   templateType: "SOCIAL_PROOF",
-  recipeType: "use_case",
+  recipeType: "inspiration",
   tags: ["high-converting", "subtle", "modern"] as RecipeTag[],
   component: "AnnouncementBanner",
   theme: "social-proof-default",
@@ -127,13 +127,12 @@ const visitorActivity: SocialProofRecipe = {
   id: "social-proof-visitor-activity",
   name: "Visitor Activity",
   tagline: "Show live traffic",
-  description:
-    "Display live visitor counts to show popularity and create urgency.",
+  description: "Display live visitor counts to show popularity and create urgency.",
   icon: "👀",
   category: "announcements",
   goal: "ENGAGEMENT",
   templateType: "SOCIAL_PROOF",
-  recipeType: "use_case",
+  recipeType: "inspiration", // Artistic dark theme - uses preset colors
   tags: ["urgent", "modern", "high-converting"] as RecipeTag[],
   component: "AnnouncementBanner",
   theme: "social-proof-visitors",
@@ -182,13 +181,12 @@ const reviewHighlights: SocialProofRecipe = {
   id: "social-proof-reviews",
   name: "Review Highlights",
   tagline: "Showcase 5-star reviews",
-  description:
-    "Display top customer reviews to build trust and social validation.",
+  description: "Display top customer reviews to build trust and social validation.",
   icon: "⭐",
   category: "announcements",
   goal: "ENGAGEMENT",
   templateType: "SOCIAL_PROOF",
-  recipeType: "use_case",
+  recipeType: "inspiration", // Artistic warm amber theme - uses preset colors
   tags: ["elegant", "subtle", "high-converting"] as RecipeTag[],
   component: "AnnouncementBanner",
   theme: "social-proof-reviews",
@@ -237,8 +235,7 @@ const completeSocialProof: SocialProofRecipe = {
   id: "social-proof-complete",
   name: "Complete Social Proof",
   tagline: "All notifications combined",
-  description:
-    "Show purchases, visitors, AND reviews in rotation for maximum impact.",
+  description: "Show purchases, visitors, AND reviews in rotation for maximum impact.",
   icon: "🔥",
   category: "announcements",
   goal: "ENGAGEMENT",
@@ -267,15 +264,6 @@ const completeSocialProof: SocialProofRecipe = {
       showTimer: true,
       dismissLabel: "×",
     },
-    designConfig: {
-      position: "bottom",
-      backgroundColor: "#FFFFFF",
-      textColor: "#1F2937",
-      accentColor: "#10B981",
-      fontFamily: "'Inter', system-ui, sans-serif",
-      borderRadius: 12,
-      boxShadow: "0 10px 40px rgba(0, 0, 0, 0.15)",
-    },
     targetRules: {
       enhancedTriggers: {
         time_delay: { enabled: true, delay: 4000 },
@@ -294,8 +282,7 @@ const minimalDark: SocialProofRecipe = {
   id: "social-proof-minimal-dark",
   name: "Minimal Dark",
   tagline: "Sleek dark mode",
-  description:
-    "Modern dark theme perfect for tech, gaming, or fashion stores.",
+  description: "Modern dark theme perfect for tech, gaming, or fashion stores.",
   icon: "🌙",
   category: "announcements",
   goal: "ENGAGEMENT",
@@ -348,8 +335,7 @@ const luxuryElegant: SocialProofRecipe = {
   id: "social-proof-luxury",
   name: "Luxury Elegant",
   tagline: "Premium brand feel",
-  description:
-    "Sophisticated design for luxury, fashion, or beauty brands.",
+  description: "Sophisticated design for luxury, fashion, or beauty brands.",
   icon: "✨",
   category: "announcements",
   goal: "ENGAGEMENT",
@@ -403,13 +389,12 @@ const urgencyBoost: SocialProofRecipe = {
   id: "social-proof-urgency",
   name: "Urgency Boost",
   tagline: "Maximum FOMO effect",
-  description:
-    "Fast-rotating notifications for flash sales and high-traffic events.",
+  description: "Fast-rotating notifications for flash sales and high-traffic events.",
   icon: "⚡",
   category: "announcements",
   goal: "ENGAGEMENT",
   templateType: "SOCIAL_PROOF",
-  recipeType: "use_case",
+  recipeType: "inspiration", // Artistic bold red theme - uses preset colors
   tags: ["urgent", "bold", "high-converting", "discount"] as RecipeTag[],
   component: "AnnouncementBanner",
   theme: "social-proof-urgency",
@@ -463,13 +448,12 @@ const productPageFocused: SocialProofRecipe = {
   id: "social-proof-product-page",
   name: "Product Page Focused",
   tagline: "Convert browsers to buyers",
-  description:
-    "Optimized for product pages with purchase and review notifications.",
+  description: "Optimized for product pages with purchase and review notifications.",
   icon: "📦",
   category: "announcements",
   goal: "ENGAGEMENT",
   templateType: "SOCIAL_PROOF",
-  recipeType: "use_case",
+  recipeType: "inspiration", // Artistic green theme - uses preset colors
   tags: ["high-converting", "subtle", "modern"] as RecipeTag[],
   component: "AnnouncementBanner",
   theme: "social-proof-product",
@@ -547,4 +531,3 @@ export function getFeaturedSocialProofRecipes(): SocialProofRecipe[] {
 export function getSocialProofRecipesByTag(tag: RecipeTag): SocialProofRecipe[] {
   return SOCIAL_PROOF_DESIGN_RECIPES.filter((r) => r.tags?.includes(tag));
 }
-
