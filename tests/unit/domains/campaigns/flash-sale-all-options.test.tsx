@@ -172,7 +172,7 @@ describe("FlashSaleContentSection - ALL Configuration Options", () => {
       expect(countdownCheckbox?.getAttribute("checked")).toBe("true");
     });
 
-    it("should show default countdown duration of 3600 seconds", () => {
+    it("should show default countdown duration of 3600 seconds via placeholder", () => {
       const onChange = vi.fn();
       const { container } = renderWithPolaris(
         <FlashSaleContentSection
@@ -183,7 +183,8 @@ describe("FlashSaleContentSection - ALL Configuration Options", () => {
 
       const durationField = container.querySelector('s-text-field[name="content.countdownDuration"]');
       expect(durationField).toBeTruthy();
-      expect(durationField?.getAttribute("value")).toBe("3600");
+      // Empty value with placeholder="3600" indicates the default
+      expect(durationField?.getAttribute("placeholder")).toBe("3600");
     });
 
     it("should allow custom countdown duration", () => {

@@ -43,11 +43,14 @@ describe("Flash Sale Design Recipes", () => {
       const contentConfig = recipe?.defaults.contentConfig as Record<string, unknown>;
       const cta = contentConfig?.cta as Record<string, unknown>;
       expect(cta?.action).toBe("add_to_cart");
-      expect(cta?.applyDiscountFirst).toBe(false);
+      // CTA adds free gift to cart
+      expect(cta?.quantity).toBe(1);
     });
 
-    it("has discount disabled (gift is the incentive)", () => {
-      expect(recipe?.defaults.discountConfig?.enabled).toBe(false);
+    it("has discount enabled for free gift", () => {
+      // Free gift uses discount system with 100% off the gift product
+      expect(recipe?.defaults.discountConfig?.enabled).toBe(true);
+      expect(recipe?.defaults.discountConfig?.freeGift).toBeDefined();
     });
   });
 

@@ -23,7 +23,7 @@ function renderWithPolaris(ui: React.ReactNode) {
 }
 
 describe("FlashSaleContentSection", () => {
-  it("enables countdown by default and shows default duration when content is empty", () => {
+  it("enables countdown by default and shows duration field with placeholder when content is empty", () => {
     const { container } = renderWithPolaris(
       <FlashSaleContentSection
         content={{}}
@@ -41,7 +41,8 @@ describe("FlashSaleContentSection", () => {
       's-text-field[name="content.countdownDuration"]',
     );
     expect(durationField).toBeTruthy();
-    expect(durationField?.getAttribute("value")).toBe("3600");
+    // Empty value with placeholder="3600" indicates the default
+    expect(durationField?.getAttribute("placeholder")).toBe("3600");
   });
 
   describe("Inventory Tracking Wiring", () => {

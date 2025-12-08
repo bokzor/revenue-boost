@@ -337,7 +337,7 @@ describe("SpinToWinContentSection - ALL Configuration Options", () => {
   // ========== WHEEL CONFIGURATION TESTS ==========
 
   describe("Wheel Configuration", () => {
-    it("should render wheelSize with default value", () => {
+    it("should render wheelSize with placeholder for default value", () => {
       const onChange = vi.fn();
       const { container } = renderWithPolaris(
         <SpinToWinContentSection
@@ -349,7 +349,8 @@ describe("SpinToWinContentSection - ALL Configuration Options", () => {
 
       const wheelSizeField = container.querySelector('s-text-field[name="content.wheelSize"]');
       expect(wheelSizeField).toBeTruthy();
-      expect(wheelSizeField?.getAttribute("value")).toBe("400");
+      // Empty value with placeholder="400" indicates the default
+      expect(wheelSizeField?.getAttribute("placeholder")).toBe("400");
     });
 
     it("should render custom wheelSize", () => {
@@ -367,7 +368,7 @@ describe("SpinToWinContentSection - ALL Configuration Options", () => {
       expect(wheelSizeField?.getAttribute("value")).toBe("300");
     });
 
-    it("should render wheelBorderWidth with default value", () => {
+    it("should render wheelBorderWidth with placeholder for default value", () => {
       const onChange = vi.fn();
       const { container } = renderWithPolaris(
         <SpinToWinContentSection
@@ -379,7 +380,8 @@ describe("SpinToWinContentSection - ALL Configuration Options", () => {
 
       const wheelBorderWidthField = container.querySelector('s-text-field[name="content.wheelBorderWidth"]');
       expect(wheelBorderWidthField).toBeTruthy();
-      expect(wheelBorderWidthField?.getAttribute("value")).toBe("2");
+      // Empty value with placeholder="2" indicates the default
+      expect(wheelBorderWidthField?.getAttribute("placeholder")).toBe("2");
     });
 
     it("should render custom wheelBorderWidth", () => {
@@ -412,7 +414,7 @@ describe("SpinToWinContentSection - ALL Configuration Options", () => {
       expect(wheelBorderColorField?.getAttribute("value")).toBe("#FF0000");
     });
 
-    it("should render spinDuration with default value", () => {
+    it("should render spinDuration with placeholder for default value", () => {
       const onChange = vi.fn();
       const { container } = renderWithPolaris(
         <SpinToWinContentSection
@@ -424,7 +426,8 @@ describe("SpinToWinContentSection - ALL Configuration Options", () => {
 
       const spinDurationField = container.querySelector('s-text-field[name="content.spinDuration"]');
       expect(spinDurationField).toBeTruthy();
-      expect(spinDurationField?.getAttribute("value")).toBe("4000");
+      // Empty value with placeholder="4000" indicates the default
+      expect(spinDurationField?.getAttribute("placeholder")).toBe("4000");
     });
 
     it("should render custom spinDuration", () => {
@@ -442,7 +445,7 @@ describe("SpinToWinContentSection - ALL Configuration Options", () => {
       expect(spinDurationField?.getAttribute("value")).toBe("5000");
     });
 
-    it("should render minSpins with default value", () => {
+    it("should render minSpins with placeholder for default value", () => {
       const onChange = vi.fn();
       const { container } = renderWithPolaris(
         <SpinToWinContentSection
@@ -454,7 +457,8 @@ describe("SpinToWinContentSection - ALL Configuration Options", () => {
 
       const minSpinsField = container.querySelector('s-text-field[name="content.minSpins"]');
       expect(minSpinsField).toBeTruthy();
-      expect(minSpinsField?.getAttribute("value")).toBe("5");
+      // Empty value with placeholder="5" indicates the default
+      expect(minSpinsField?.getAttribute("placeholder")).toBe("5");
     });
 
     it("should render custom minSpins", () => {

@@ -6,9 +6,7 @@
 export { BannerPopup } from "./BannerPopup";
 export type { BannerPopupProps } from "./BannerPopup";
 
-// Social proof notifications
-export { SocialProofNotificationComponent } from "./social-proof/SocialProofNotification";
-export { SocialProofPopup } from "./social-proof/SocialProofPopup";
+// Social proof types
 export type {
   SocialProofNotificationType,
   BaseSocialProofNotification,

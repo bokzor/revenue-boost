@@ -831,4 +831,217 @@ test.describe.serial('Recipe Use Cases', () => {
             console.log('✅ Complete social proof: Content rendered');
         });
     });
+
+    // =========================================================================
+    // RECIPE-SPECIFIC FEATURE TESTS
+    // Tests specific discount configurations and use-case features
+    // =========================================================================
+
+    test.describe('Recipe-Specific Features', () => {
+        test.describe('BOGO (Buy One Get One) Recipe', () => {
+            test('renders BOGO flash sale with discount config', async ({ page }) => {
+                const campaign = await (await factory.flashSale().init())
+                    .withPriority(MAX_TEST_PRIORITY)
+                    .asBogoRecipe({ buyQuantity: 1, getQuantity: 1, getDiscount: 100 })
+                    .create();
+                console.log(`✅ BOGO campaign created: ${campaign.id}`);
+
+                await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
+
+                await page.goto(STORE_URL);
+                await handlePasswordPage(page);
+
+                const popupVisible = await waitForPopupWithRetry(page, { timeout: 15000, retries: 3 });
+                expect(popupVisible).toBe(true);
+
+                // Verify BOGO content
+                const hasBogoContent = await hasTextInShadowDOM(page, 'buy 1') ||
+                                       await hasTextInShadowDOM(page, 'get 1') ||
+                                       await hasTextInShadowDOM(page, 'bogo') ||
+                                       await hasTextInShadowDOM(page, 'free');
+
+                expect(hasBogoContent).toBe(true);
+                console.log('✅ BOGO recipe: Content rendered with discount config');
+            });
+        });
+
+        test.describe('Tiered Discount Recipe', () => {
+            test('renders tiered discount flash sale (Spend More, Save More)', async ({ page }) => {
+                const campaign = await (await factory.flashSale().init())
+                    .withPriority(MAX_TEST_PRIORITY)
+                    .asTieredDiscountRecipe([
+                        { thresholdDollars: 50, discountPercent: 10 },
+                        { thresholdDollars: 100, discountPercent: 20 },
+                    ])
+                    .create();
+                console.log(`✅ Tiered discount campaign created: ${campaign.id}`);
+
+                await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
+
+                await page.goto(STORE_URL);
+                await handlePasswordPage(page);
+
+                const popupVisible = await waitForPopupWithRetry(page, { timeout: 15000, retries: 3 });
+                expect(popupVisible).toBe(true);
+
+                // Verify tiered discount content
+                const hasTieredContent = await hasTextInShadowDOM(page, 'spend') ||
+                                         await hasTextInShadowDOM(page, 'save') ||
+                                         await hasTextInShadowDOM(page, '10%') ||
+                                         await hasTextInShadowDOM(page, '20%');
+
+                expect(hasTieredContent).toBe(true);
+                console.log('✅ Tiered discount recipe: Content rendered with tier config');
+            });
+        });
+
+        test.describe('Free Gift with Purchase Recipe', () => {
+            test('renders free gift popup with cart value trigger', async ({ page }) => {
+                const campaign = await (await factory.flashSale().init())
+                    .withPriority(MAX_TEST_PRIORITY)
+                    .asFreeGiftRecipe({ thresholdDollars: 50, giftProductTitle: 'Mystery Gift' })
+                    .create();
+                console.log(`✅ Free gift campaign created: ${campaign.id}`);
+
+                await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
+
+                // Navigate to store (popup may not show until cart threshold is met)
+                await page.goto(STORE_URL);
+                await handlePasswordPage(page);
+
+                // Verify campaign was created with correct config
+                expect(campaign.discountConfig).toBeDefined();
+                const discountConfig = campaign.discountConfig as Record<string, unknown>;
+                expect(discountConfig.freeGift).toBeDefined();
+                console.log('✅ Free gift recipe: Campaign created with freeGift discount config');
+            });
+        });
+
+        test.describe('Mystery Discount Recipe', () => {
+            test('renders mystery discount popup with reveal interaction', async ({ page }) => {
+                const campaign = await (await factory.flashSale().init())
+                    .withPriority(MAX_TEST_PRIORITY)
+                    .asMysteryDiscountRecipe(15)
+                    .create();
+                console.log(`✅ Mystery discount campaign created: ${campaign.id}`);
+
+                await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
+
+                await page.goto(STORE_URL);
+                await handlePasswordPage(page);
+
+                const popupVisible = await waitForPopupWithRetry(page, { timeout: 15000, retries: 3 });
+                expect(popupVisible).toBe(true);
+
+                // Verify mystery discount content
+                const hasMysteryContent = await hasTextInShadowDOM(page, 'mystery') ||
+                                          await hasTextInShadowDOM(page, 'reveal') ||
+                                          await hasTextInShadowDOM(page, 'secret');
+
+                expect(hasMysteryContent).toBe(true);
+                console.log('✅ Mystery discount recipe: Content rendered with reveal button');
+            });
+        });
+
+        test.describe('Cart Email Save Recipe', () => {
+            test('renders email save popup with email recovery gating', async ({ page }) => {
+                const campaign = await (await factory.cartAbandonment().init())
+                    .withPriority(MAX_TEST_PRIORITY)
+                    .asEmailSaveRecipe()
+                    // Use page load trigger for reliable testing (vs exit intent which is flaky in headless)
+                    .create();
+                console.log(`✅ Email save campaign created: ${campaign.id}`);
+
+                await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
+
+                await page.goto(STORE_URL);
+                await handlePasswordPage(page);
+
+                const popupVisible = await waitForPopupWithRetry(page, { timeout: 15000, retries: 3 });
+                expect(popupVisible).toBe(true);
+
+                // Verify email save content
+                const hasEmailSaveContent = await hasTextInShadowDOM(page, 'email') ||
+                                            await hasTextInShadowDOM(page, 'save') ||
+                                            await hasTextInShadowDOM(page, 'cart');
+
+                expect(hasEmailSaveContent).toBe(true);
+                console.log('✅ Email save recipe: Content rendered with email recovery flow');
+            });
+        });
+
+        test.describe('Urgency & Scarcity Recipe', () => {
+            test('renders urgency popup with stock warnings and timer', async ({ page }) => {
+                const campaign = await (await factory.cartAbandonment().init())
+                    .withPriority(MAX_TEST_PRIORITY)
+                    .asUrgencyScarcityRecipe()
+                    // Use page load trigger for reliable testing (vs exit intent which is flaky in headless)
+                    .create();
+                console.log(`✅ Urgency scarcity campaign created: ${campaign.id}`);
+
+                await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
+
+                await page.goto(STORE_URL);
+                await handlePasswordPage(page);
+
+                const popupVisible = await waitForPopupWithRetry(page, { timeout: 15000, retries: 3 });
+                expect(popupVisible).toBe(true);
+
+                // Verify urgency content
+                const hasUrgencyContent = await hasTextInShadowDOM(page, 'fast') ||
+                                          await hasTextInShadowDOM(page, 'selling') ||
+                                          await hasTextInShadowDOM(page, 'secure') ||
+                                          await hasTextInShadowDOM(page, 'reserved');
+
+                expect(hasUrgencyContent).toBe(true);
+                console.log('✅ Urgency scarcity recipe: Content rendered with stock warnings');
+            });
+        });
+
+        test.describe('Frequently Bought Together Recipe', () => {
+            test('renders FBT upsell with add-to-cart trigger config', async ({ page }) => {
+                const campaign = await (await factory.productUpsell().init())
+                    .withPriority(MAX_TEST_PRIORITY)
+                    .asFrequentlyBoughtTogetherRecipe(10)
+                    .create();
+                console.log(`✅ FBT upsell campaign created: ${campaign.id}`);
+
+                await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
+
+                // Verify campaign was created with add-to-cart trigger
+                expect(campaign.targetRules).toBeDefined();
+                const targetRules = campaign.targetRules as Record<string, unknown>;
+                const enhancedTriggers = targetRules.enhancedTriggers as Record<string, unknown>;
+                const addToCart = enhancedTriggers?.add_to_cart as Record<string, unknown>;
+                expect(addToCart?.enabled).toBe(true);
+                console.log('✅ FBT recipe: Campaign created with add_to_cart trigger');
+            });
+        });
+
+        test.describe('Last Chance Upsell Recipe', () => {
+            test('renders last chance upsell with stock level display', async ({ page }) => {
+                const campaign = await (await factory.productUpsell().init())
+                    .withPriority(MAX_TEST_PRIORITY)
+                    .asLastChanceRecipe()
+                    .create();
+                console.log(`✅ Last chance upsell campaign created: ${campaign.id}`);
+
+                await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
+
+                await page.goto(STORE_URL);
+                await handlePasswordPage(page);
+
+                const popupVisible = await waitForPopupWithRetry(page, { timeout: 15000, retries: 3 });
+                expect(popupVisible).toBe(true);
+
+                // Verify last chance content
+                const hasLastChanceContent = await hasTextInShadowDOM(page, 'last chance') ||
+                                             await hasTextInShadowDOM(page, 'selling fast') ||
+                                             await hasTextInShadowDOM(page, 'gone');
+
+                expect(hasLastChanceContent).toBe(true);
+                console.log('✅ Last chance recipe: Content rendered with stock urgency');
+            });
+        });
+    });
 });

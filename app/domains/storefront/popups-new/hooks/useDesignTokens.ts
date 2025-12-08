@@ -20,7 +20,7 @@ import {
   type CampaignDesign,
   type DesignTokens,
   resolveDesignTokens,
-} from "~/domains/campaigns/types/design-tokens";
+} from "~/domains/campaigns/types/design-tokens-runtime";
 
 /**
  * CSS variable style object type

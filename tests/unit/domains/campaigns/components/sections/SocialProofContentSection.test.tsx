@@ -244,7 +244,7 @@ describe("SocialProofContentSection - ALL Configuration Options", () => {
   // ========== THRESHOLD OPTIONS TESTS ==========
 
   describe("Threshold Options", () => {
-    it("should render minVisitorCount with default value", () => {
+    it("should render minVisitorCount with placeholder for default value", () => {
       const onChange = vi.fn();
       const { container } = renderWithPolaris(
         <SocialProofContentSection
@@ -257,7 +257,8 @@ describe("SocialProofContentSection - ALL Configuration Options", () => {
         's-text-field[name="content.minVisitorCount"]',
       );
       expect(minVisitorField).toBeTruthy();
-      expect(minVisitorField?.getAttribute("value")).toBe("5");
+      // Empty value with placeholder="5" indicates the default
+      expect(minVisitorField?.getAttribute("placeholder")).toBe("5");
     });
 
     it("should render custom minVisitorCount", () => {
@@ -275,7 +276,7 @@ describe("SocialProofContentSection - ALL Configuration Options", () => {
       expect(minVisitorField?.getAttribute("value")).toBe("10");
     });
 
-    it("should render minReviewRating with default value", () => {
+    it("should render minReviewRating with placeholder for default value", () => {
       const onChange = vi.fn();
       const { container } = renderWithPolaris(
         <SocialProofContentSection
@@ -288,8 +289,8 @@ describe("SocialProofContentSection - ALL Configuration Options", () => {
         's-text-field[name="content.minReviewRating"]',
       );
       expect(minRatingField).toBeTruthy();
-      // Component uses toFixed(1) formatting, so "4" becomes "4.0"
-      expect(minRatingField?.getAttribute("value")).toBe("4.0");
+      // Empty value with placeholder="4.0" indicates the default
+      expect(minRatingField?.getAttribute("placeholder")).toBe("4.0");
     });
 
     it("should render custom minReviewRating", () => {
