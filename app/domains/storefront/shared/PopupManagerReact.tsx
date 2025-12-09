@@ -27,7 +27,6 @@ export interface CampaignPopupConfig extends PopupConfig {
   triggerType:
     | "add_to_cart"
     | "exit_intent"
-    | "time_delay"
     | "scroll_depth"
     | "checkout_start"
     | "page_load"

@@ -443,7 +443,7 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
     ],
     targetRules: {
       enhancedTriggers: {
-        time_delay: { enabled: true, delay: 5 },
+        page_load: { enabled: true, delay: 5000 },
         frequency_capping: getServerFrequencyCapping("SCRATCH_CARD"),
       }
     },

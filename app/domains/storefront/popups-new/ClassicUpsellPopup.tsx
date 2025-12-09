@@ -115,6 +115,10 @@ export const ClassicUpsellPopup: React.FC<ClassicUpsellPopupProps> = ({
         .classic-upsell-content { padding: 20px 24px 24px; }
         .classic-upsell-title { font-size: 18px; font-weight: 600; margin: 0 0 8px; color: ${textColor}; }
         .classic-upsell-desc { font-size: 14px; color: ${mutedColor}; margin: 0 0 16px; line-height: 1.5; }
+        .classic-upsell-ratings { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; font-size: 14px; }
+        .classic-rating-stars { color: #fbbf24; letter-spacing: 1px; }
+        .classic-rating-value { color: ${textColor}; margin-left: 4px; font-weight: 500; }
+        .classic-review-count { color: ${mutedColor}; font-size: 13px; }
         .classic-upsell-price { display: flex; align-items: baseline; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
         .classic-price-current { font-size: 24px; font-weight: 700; color: ${accentColor}; }
         .classic-price-compare { font-size: 16px; color: ${mutedColor}; text-decoration: line-through; }
@@ -181,21 +185,39 @@ export const ClassicUpsellPopup: React.FC<ClassicUpsellPopupProps> = ({
           <h3 className="classic-upsell-title">{product.title}</h3>
           {product.description && <p className="classic-upsell-desc">{product.description}</p>}
 
-          <div className="classic-upsell-price">
-            {/* Show discounted price as current price */}
-            <span className="classic-price-current">
-              {formatCurrency(displayPrice, config.currency)}
-            </span>
-            {/* Show original price as compare-at (struck through) */}
-            {compareAtPrice && compareAtPrice > displayPrice && (
-              <span className="classic-price-compare">
-                {formatCurrency(compareAtPrice, config.currency)}
+          {/* Ratings and review count */}
+          {(config.showRatings || config.showReviewCount) && (product.rating || product.reviewCount) && (
+            <div className="classic-upsell-ratings">
+              {config.showRatings && product.rating && (
+                <span className="classic-rating-stars">
+                  {"★".repeat(Math.round(product.rating))}{"☆".repeat(5 - Math.round(product.rating))}
+                  <span className="classic-rating-value">{product.rating.toFixed(1)}</span>
+                </span>
+              )}
+              {config.showReviewCount && product.reviewCount && (
+                <span className="classic-review-count">({product.reviewCount} reviews)</span>
+              )}
+            </div>
+          )}
+
+          {/* Price section - only show if showPrices is enabled */}
+          {config.showPrices !== false && (
+            <div className="classic-upsell-price">
+              {/* Show discounted price as current price */}
+              <span className="classic-price-current">
+                {formatCurrency(displayPrice, config.currency)}
               </span>
-            )}
-            {savingsPercent > 0 && (
-              <span className="classic-price-savings">Save {savingsPercent}%</span>
-            )}
-          </div>
+              {/* Show original price as compare-at (struck through) - only if showCompareAtPrice is enabled */}
+              {config.showCompareAtPrice !== false && compareAtPrice && compareAtPrice > displayPrice && (
+                <span className="classic-price-compare">
+                  {formatCurrency(compareAtPrice, config.currency)}
+                </span>
+              )}
+              {savingsPercent > 0 && (
+                <span className="classic-price-savings">Save {savingsPercent}%</span>
+              )}
+            </div>
+          )}
 
           <div className="classic-upsell-actions">
             <button
@@ -207,7 +229,7 @@ export const ClassicUpsellPopup: React.FC<ClassicUpsellPopupProps> = ({
                 ? "✓ Added to Cart"
                 : isLoading
                   ? "Adding..."
-                  : `Add to Cart — ${formatCurrency(displayPrice, config.currency)}`}
+                  : `${config.buttonText || "Add to Cart"} — ${formatCurrency(displayPrice, config.currency)}`}
             </button>
             <button className="classic-upsell-decline" onClick={onClose}>
               {config.secondaryCtaLabel || "No thanks, continue without"}

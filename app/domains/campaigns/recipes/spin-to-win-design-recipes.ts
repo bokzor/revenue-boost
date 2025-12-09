@@ -48,11 +48,11 @@ const TRIGGER_INPUT = {
   key: "triggerType",
   label: "When to show",
   options: [
-    { label: "After a few seconds", value: "time_delay" },
+    { label: "After a few seconds", value: "page_load" },
     { label: "When leaving the page", value: "exit_intent" },
     { label: "After scrolling", value: "scroll_depth" },
   ],
-  defaultValue: "time_delay",
+  defaultValue: "page_load",
 };
 
 // Top prize discount input - used to configure the best prize on the wheel
@@ -174,7 +174,7 @@ const luckyFortune: SpinToWinRecipe = {
     },
     targetRules: {
       enhancedTriggers: {
-        time_delay: { enabled: true, delay: 5000 },
+        page_load: { enabled: true, delay: 5000 },
         exit_intent: { enabled: true, sensitivity: "medium" },
         frequency_capping: SPIN_TO_WIN_FREQUENCY_CAPPING,
       },
@@ -252,7 +252,7 @@ const neonNights: SpinToWinRecipe = {
     },
     targetRules: {
       enhancedTriggers: {
-        time_delay: { enabled: true, delay: 5000 },
+        page_load: { enabled: true, delay: 5000 },
         scroll_depth: { enabled: true, depth_percentage: 30 },
         frequency_capping: SPIN_TO_WIN_FREQUENCY_CAPPING,
       },
@@ -332,7 +332,7 @@ const pastelDream: SpinToWinRecipe = {
     },
     targetRules: {
       enhancedTriggers: {
-        time_delay: { enabled: true, delay: 6000 },
+        page_load: { enabled: true, delay: 6000 },
         scroll_depth: { enabled: true, depth_percentage: 35 },
         frequency_capping: SPIN_TO_WIN_FREQUENCY_CAPPING,
       },
@@ -407,7 +407,7 @@ const oceanBreeze: SpinToWinRecipe = {
     },
     targetRules: {
       enhancedTriggers: {
-        time_delay: { enabled: true, delay: 5000 },
+        page_load: { enabled: true, delay: 5000 },
         frequency_capping: SPIN_TO_WIN_FREQUENCY_CAPPING,
       },
       pageTargeting: SPIN_TO_WIN_PAGE_TARGETING,
@@ -470,7 +470,7 @@ const minimalMono: SpinToWinRecipe = {
     },
     targetRules: {
       enhancedTriggers: {
-        time_delay: { enabled: true, delay: 8000 },
+        page_load: { enabled: true, delay: 8000 },
         exit_intent: { enabled: true, sensitivity: "medium" },
         frequency_capping: SPIN_TO_WIN_FREQUENCY_CAPPING,
       },
@@ -546,7 +546,7 @@ const retroArcade: SpinToWinRecipe = {
     },
     targetRules: {
       enhancedTriggers: {
-        time_delay: { enabled: true, delay: 5000 },
+        page_load: { enabled: true, delay: 5000 },
         scroll_depth: { enabled: true, depth_percentage: 25 },
         frequency_capping: SPIN_TO_WIN_FREQUENCY_CAPPING,
       },
@@ -623,7 +623,7 @@ const earthyOrganic: SpinToWinRecipe = {
     },
     targetRules: {
       enhancedTriggers: {
-        time_delay: { enabled: true, delay: 6000 },
+        page_load: { enabled: true, delay: 6000 },
         scroll_depth: { enabled: true, depth_percentage: 40 },
         frequency_capping: SPIN_TO_WIN_FREQUENCY_CAPPING,
       },

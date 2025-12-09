@@ -50,12 +50,11 @@ const TRIGGER_INPUT = {
   type: "select" as const,
   key: "triggerType",
   label: "When to show popup",
-  defaultValue: "time_delay",
+  defaultValue: "page_load",
   options: [
-    { value: "time_delay", label: "After a few seconds (recommended)" },
+    { value: "page_load", label: "After a few seconds (recommended)" },
     { value: "exit_intent", label: "When visitor is about to leave" },
     { value: "scroll_depth", label: "After scrolling down the page" },
-    { value: "page_load", label: "Immediately on page load" },
   ],
 };
 
@@ -152,7 +151,7 @@ const elegantLuxe: NewsletterRecipe = {
     },
     targetRules: {
       enhancedTriggers: {
-        time_delay: { enabled: true, delay: 8000 },
+        page_load: { enabled: true, delay: 8000 },
         exit_intent: { enabled: true, sensitivity: "medium" },
         frequency_capping: NEWSLETTER_FREQUENCY_CAPPING,
       },
@@ -232,7 +231,7 @@ const streetStyle: NewsletterRecipe = {
     },
     targetRules: {
       enhancedTriggers: {
-        time_delay: { enabled: true, delay: 5000 },
+        page_load: { enabled: true, delay: 5000 },
         scroll_depth: { enabled: true, depth_percentage: 25 },
         frequency_capping: NEWSLETTER_FREQUENCY_CAPPING,
       },
@@ -302,7 +301,7 @@ const minimalTech: NewsletterRecipe = {
     },
     targetRules: {
       enhancedTriggers: {
-        time_delay: { enabled: true, delay: 10000 },
+        page_load: { enabled: true, delay: 10000 },
         scroll_depth: { enabled: true, depth_percentage: 50 },
         frequency_capping: NEWSLETTER_FREQUENCY_CAPPING,
       },
@@ -373,7 +372,7 @@ const darkMode: NewsletterRecipe = {
     },
     targetRules: {
       enhancedTriggers: {
-        time_delay: { enabled: true, delay: 5000 },
+        page_load: { enabled: true, delay: 5000 },
         exit_intent: { enabled: true, sensitivity: "medium" },
         frequency_capping: NEWSLETTER_FREQUENCY_CAPPING,
       },
@@ -444,7 +443,7 @@ const freshOrganic: NewsletterRecipe = {
     },
     targetRules: {
       enhancedTriggers: {
-        time_delay: { enabled: true, delay: 6000 },
+        page_load: { enabled: true, delay: 6000 },
         scroll_depth: { enabled: true, depth_percentage: 30 },
         frequency_capping: NEWSLETTER_FREQUENCY_CAPPING,
       },
@@ -522,7 +521,7 @@ const cafeWarm: NewsletterRecipe = {
     },
     targetRules: {
       enhancedTriggers: {
-        time_delay: { enabled: true, delay: 5000 },
+        page_load: { enabled: true, delay: 5000 },
         frequency_capping: NEWSLETTER_FREQUENCY_CAPPING,
       },
       pageTargeting: NEWSLETTER_PAGE_TARGETING,
@@ -595,7 +594,7 @@ const softGlow: NewsletterRecipe = {
     },
     targetRules: {
       enhancedTriggers: {
-        time_delay: { enabled: true, delay: 7000 },
+        page_load: { enabled: true, delay: 7000 },
         scroll_depth: { enabled: true, depth_percentage: 40 },
         frequency_capping: NEWSLETTER_FREQUENCY_CAPPING,
       },
@@ -714,7 +713,7 @@ const spaSerenity: NewsletterRecipe = {
     },
     targetRules: {
       enhancedTriggers: {
-        time_delay: { enabled: true, delay: 8000 },
+        page_load: { enabled: true, delay: 8000 },
         exit_intent: { enabled: true, sensitivity: "medium" },
         frequency_capping: NEWSLETTER_FREQUENCY_CAPPING,
       },
@@ -792,7 +791,7 @@ const scandinavian: NewsletterRecipe = {
     },
     targetRules: {
       enhancedTriggers: {
-        time_delay: { enabled: true, delay: 6000 },
+        page_load: { enabled: true, delay: 6000 },
         scroll_depth: { enabled: true, depth_percentage: 35 },
         frequency_capping: NEWSLETTER_FREQUENCY_CAPPING,
       },
@@ -876,7 +875,7 @@ const cozyComfort: NewsletterRecipe = {
     },
     targetRules: {
       enhancedTriggers: {
-        time_delay: { enabled: true, delay: 5000 },
+        page_load: { enabled: true, delay: 5000 },
         scroll_depth: { enabled: true, depth_percentage: 25 },
         frequency_capping: NEWSLETTER_FREQUENCY_CAPPING,
       },
@@ -959,7 +958,7 @@ const boldEnergy: NewsletterRecipe = {
     },
     targetRules: {
       enhancedTriggers: {
-        time_delay: { enabled: true, delay: 4000 },
+        page_load: { enabled: true, delay: 4000 },
         scroll_depth: { enabled: true, depth_percentage: 20 },
         frequency_capping: NEWSLETTER_FREQUENCY_CAPPING,
       },
@@ -1039,7 +1038,7 @@ const activeLife: NewsletterRecipe = {
     },
     targetRules: {
       enhancedTriggers: {
-        time_delay: { enabled: true, delay: 6000 },
+        page_load: { enabled: true, delay: 6000 },
         scroll_depth: { enabled: true, depth_percentage: 30 },
         frequency_capping: NEWSLETTER_FREQUENCY_CAPPING,
       },

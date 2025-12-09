@@ -50,11 +50,11 @@ const TRIGGER_INPUT = {
   key: "triggerType",
   label: "When to show",
   options: [
-    { label: "After a few seconds", value: "time_delay" },
+    { label: "After a few seconds", value: "page_load" },
     { label: "When leaving the page", value: "exit_intent" },
     { label: "After scrolling", value: "scroll_depth" },
   ],
-  defaultValue: "time_delay",
+  defaultValue: "page_load",
 };
 
 // Top prize discount input - used to configure the best prize on the scratch card
@@ -184,7 +184,7 @@ const goldenReveal: ScratchCardRecipe = {
     },
     targetRules: {
       enhancedTriggers: {
-        time_delay: { enabled: true, delay: 5000 },
+        page_load: { enabled: true, delay: 5000 },
         exit_intent: { enabled: true, sensitivity: "medium" },
         frequency_capping: SCRATCH_CARD_FREQUENCY_CAPPING,
       },
@@ -272,7 +272,7 @@ const neonArcade: ScratchCardRecipe = {
     },
     targetRules: {
       enhancedTriggers: {
-        time_delay: { enabled: true, delay: 5000 },
+        page_load: { enabled: true, delay: 5000 },
         scroll_depth: { enabled: true, depth_percentage: 30 },
         frequency_capping: SCRATCH_CARD_FREQUENCY_CAPPING,
       },
@@ -357,7 +357,7 @@ const paperLuck: ScratchCardRecipe = {
     },
     targetRules: {
       enhancedTriggers: {
-        time_delay: { enabled: true, delay: 5000 },
+        page_load: { enabled: true, delay: 5000 },
         frequency_capping: SCRATCH_CARD_FREQUENCY_CAPPING,
       },
       pageTargeting: SCRATCH_CARD_PAGE_TARGETING,
@@ -448,7 +448,7 @@ const roseGoldDream: ScratchCardRecipe = {
     },
     targetRules: {
       enhancedTriggers: {
-        time_delay: { enabled: true, delay: 6000 },
+        page_load: { enabled: true, delay: 6000 },
         scroll_depth: { enabled: true, depth_percentage: 35 },
         frequency_capping: SCRATCH_CARD_FREQUENCY_CAPPING,
       },
@@ -520,7 +520,7 @@ const minimalSilver: ScratchCardRecipe = {
     },
     targetRules: {
       enhancedTriggers: {
-        time_delay: { enabled: true, delay: 8000 },
+        page_load: { enabled: true, delay: 8000 },
         exit_intent: { enabled: true, sensitivity: "medium" },
         frequency_capping: SCRATCH_CARD_FREQUENCY_CAPPING,
       },
@@ -615,7 +615,7 @@ const holidayMagic: ScratchCardRecipe = {
     },
     targetRules: {
       enhancedTriggers: {
-        time_delay: { enabled: true, delay: 5000 },
+        page_load: { enabled: true, delay: 5000 },
         frequency_capping: SCRATCH_CARD_FREQUENCY_CAPPING,
       },
       pageTargeting: SCRATCH_CARD_PAGE_TARGETING,
@@ -701,7 +701,7 @@ const woodArtisan: ScratchCardRecipe = {
     },
     targetRules: {
       enhancedTriggers: {
-        time_delay: { enabled: true, delay: 6000 },
+        page_load: { enabled: true, delay: 6000 },
         scroll_depth: { enabled: true, depth_percentage: 40 },
         frequency_capping: SCRATCH_CARD_FREQUENCY_CAPPING,
       },
@@ -796,7 +796,7 @@ const holographicHype: ScratchCardRecipe = {
     },
     targetRules: {
       enhancedTriggers: {
-        time_delay: { enabled: true, delay: 5000 },
+        page_load: { enabled: true, delay: 5000 },
         scroll_depth: { enabled: true, depth_percentage: 20 },
         frequency_capping: SCRATCH_CARD_FREQUENCY_CAPPING,
       },

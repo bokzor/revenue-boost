@@ -44,17 +44,19 @@ export function DiscountSettingsStep({
 
   // Initialize with defaults if not provided
   // IMPORTANT: Preserve advanced discount fields (bogo, tiers, freeGift) from incoming config
+  // Use nullish coalescing (??) instead of || to preserve 0 and other falsy values
   const config: DiscountConfig = {
     enabled: discountConfig?.enabled !== false,
     showInPreview: discountConfig?.showInPreview !== false,
-    type: discountConfig?.type || "shared",
-    valueType: discountConfig?.valueType || "PERCENTAGE",
-    value: discountConfig?.valueType === "FREE_SHIPPING" ? undefined : discountConfig?.value || 10,
+    strategy: discountConfig?.strategy ?? "simple",
+    type: discountConfig?.type ?? "shared",
+    valueType: discountConfig?.valueType ?? "PERCENTAGE",
+    value: discountConfig?.valueType === "FREE_SHIPPING" ? undefined : (discountConfig?.value ?? 10),
     minimumAmount: discountConfig?.minimumAmount,
     usageLimit: discountConfig?.usageLimit,
-    expiryDays: discountConfig?.expiryDays || 30,
-    prefix: discountConfig?.prefix || "WELCOME",
-    behavior: discountConfig?.behavior || "SHOW_CODE_AND_AUTO_APPLY",
+    expiryDays: discountConfig?.expiryDays ?? 30,
+    prefix: discountConfig?.prefix ?? "WELCOME",
+    behavior: discountConfig?.behavior ?? "SHOW_CODE_AND_AUTO_APPLY",
     // Preserve advanced discount structures
     bogo: discountConfig?.bogo,
     tiers: discountConfig?.tiers,

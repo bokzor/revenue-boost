@@ -268,3 +268,7 @@ Discount Strategy:
 ```
 
 **Priority**: Medium - Blocks "Spend More, Save More" recipe from working properly.
+
+
+POINTS TO CLARIFY
+BUNDLE DISCOUNT VS CLASSIC DISCOUNT => need to check how use it with auto suggested productsyes

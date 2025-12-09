@@ -17,7 +17,7 @@ import { MiniPopupPreview } from "./MiniPopupPreview";
 import { ShadowDomWrapper } from "./ShadowDomWrapper";
 import { TemplatePreview } from "~/domains/popups/components/preview/TemplatePreview";
 import { DeviceFrame } from "~/domains/popups/components/preview/DeviceFrame";
-import type { NewsletterThemeKey } from "~/config/color-presets";
+import { NEWSLETTER_THEMES, type NewsletterThemeKey } from "~/config/color-presets";
 import { getBackgroundById, getBackgroundUrl } from "~/config/background-presets";
 import { usePreviewContext } from "./PreviewContext";
 import { LazyLoad } from "~/components/LazyLoad";
@@ -402,6 +402,7 @@ function useRecipeDesignConfig(recipe: StyledRecipe) {
     // Use recipe's theme if specified, otherwise leave undefined
     // When undefined, the preview will use defaultThemeTokens (store's default theme)
     const theme = recipe.theme as NewsletterThemeKey | undefined;
+    const themeColors = theme ? NEWSLETTER_THEMES[theme] : undefined;
 
     let imageUrl: string | undefined;
     let backgroundImageMode: "none" | "preset" | "file" = "none";
@@ -433,6 +434,19 @@ function useRecipeDesignConfig(recipe: StyledRecipe) {
             ? "right"
             : "left");
 
+    // If recipe has a theme, apply its colors
+    // Otherwise, colors come from defaultThemeTokens passed to the preview
+    const themeColorConfig = themeColors
+      ? {
+          backgroundColor: themeColors.background,
+          textColor: themeColors.text,
+          primaryColor: themeColors.primary,
+          accentColor: themeColors.primary,
+          buttonColor: themeColors.ctaBg || themeColors.primary,
+          buttonTextColor: themeColors.ctaText || "#FFFFFF",
+        }
+      : {};
+
     return {
       // Only set theme if recipe has one - otherwise preview uses defaultThemeTokens
       ...(theme ? { theme } : {}),
@@ -445,7 +459,9 @@ function useRecipeDesignConfig(recipe: StyledRecipe) {
       imagePosition,
       backgroundOverlayOpacity: 0.6,
       previewMode: true,
-      // Use recipe's designConfig colors (if specified)
+      // Apply theme colors first (if any)
+      ...themeColorConfig,
+      // Then spread recipe's designConfig which may override colors
       ...recipe.defaults.designConfig,
     };
   }, [recipe]);

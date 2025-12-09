@@ -7,7 +7,6 @@ import {
   Text,
   BlockStack,
   InlineGrid,
-  Button,
   InlineStack,
   Box,
   EmptyState,
@@ -15,7 +14,7 @@ import {
   SkeletonBodyText,
   SkeletonDisplayText,
 } from "@shopify/polaris";
-import { PlusIcon, CalendarIcon, ChartVerticalFilledIcon } from "@shopify/polaris-icons";
+import { PlusIcon } from "@shopify/polaris-icons";
 import { authenticate } from "../shopify.server";
 import { CampaignService } from "~/domains/campaigns";
 import { CampaignIndexTable } from "~/domains/campaigns/components";
@@ -367,41 +366,6 @@ function GlobalMetricCard({
   );
 }
 
-function TemplateTile({
-  title,
-  description,
-  icon: Icon,
-  onSelect,
-}: {
-  title: string;
-  description: string;
-  icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
-  onSelect: () => void;
-}) {
-  return (
-    <Card>
-      <BlockStack gap="400">
-        <InlineStack align="space-between">
-          <Box background="bg-surface-secondary" padding="200" borderRadius="200">
-            <Icon width={24} />
-          </Box>
-        </InlineStack>
-        <BlockStack gap="200">
-          <Text as="h3" variant="headingMd">
-            {title}
-          </Text>
-          <Text as="p" tone="subdued">
-            {description}
-          </Text>
-        </BlockStack>
-        <Button onClick={onSelect} variant="primary">
-          Use this template
-        </Button>
-      </BlockStack>
-    </Card>
-  );
-}
-
 export default function Dashboard() {
   const { currency, themeEditorUrl, chargeId, recentUpgrade } = useLoaderData<typeof loader>();
 
@@ -582,33 +546,6 @@ export default function Dashboard() {
               </p>
             </EmptyState>
           </Layout.Section>
-          <Layout.Section>
-            <Text as="h2" variant="headingMd">
-              Popular Recipes
-            </Text>
-            <Box paddingBlockStart="400">
-              <InlineGrid columns={{ xs: 1, sm: 1, md: 2, lg: 3 }} gap="400">
-                <TemplateTile
-                  title="🎁 Welcome Discount"
-                  description="10% off for new subscribers"
-                  icon={CalendarIcon}
-                  onSelect={() => navigate("/app/campaigns/recipe")}
-                />
-                <TemplateTile
-                  title="⚡ Flash Sale"
-                  description="Limited time offers with countdown"
-                  icon={ChartVerticalFilledIcon}
-                  onSelect={() => navigate("/app/campaigns/recipe")}
-                />
-                <TemplateTile
-                  title="🎡 Spin to Win"
-                  description="Gamified email capture"
-                  icon={ChartVerticalFilledIcon}
-                  onSelect={() => navigate("/app/campaigns/recipe")}
-                />
-              </InlineGrid>
-            </Box>
-          </Layout.Section>
         </Layout>
       </Page>
     );
@@ -722,35 +659,6 @@ export default function Dashboard() {
               togglingCampaignId={togglingCampaignId}
             />
           )}
-        </Layout.Section>
-
-        {/* Template Quick Start (Bottom) */}
-        <Layout.Section>
-          <Text as="h2" variant="headingMd">
-            Start a new campaign
-          </Text>
-          <Box paddingBlockStart="400">
-            <InlineGrid columns={{ xs: 1, sm: 1, md: 2, lg: 3 }} gap="400">
-              <TemplateTile
-                title="🎁 Welcome Discount"
-                description="10% off for new subscribers"
-                icon={CalendarIcon}
-                onSelect={() => navigate("/app/campaigns/recipe")}
-              />
-              <TemplateTile
-                title="⚡ Flash Sale"
-                description="Limited time offers with countdown"
-                icon={ChartVerticalFilledIcon}
-                onSelect={() => navigate("/app/campaigns/recipe")}
-              />
-              <TemplateTile
-                title="🎡 Spin to Win"
-                description="Gamified email capture"
-                icon={ChartVerticalFilledIcon}
-                onSelect={() => navigate("/app/campaigns/recipe")}
-              />
-            </InlineGrid>
-          </Box>
         </Layout.Section>
       </Layout>
     </Page>

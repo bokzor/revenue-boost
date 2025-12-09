@@ -9,6 +9,7 @@
  */
 
 import { getShopifyRoot } from "./shopify";
+import { refreshCartDrawer } from "./cart";
 
 /**
  * Check if discount should be auto-applied based on behavior config
@@ -80,7 +81,9 @@ export async function applyDiscountToCart(
         totalDiscount: cart?.total_discount,
       });
       if (cart) {
-        document.dispatchEvent(new CustomEvent("cart:refresh", { detail: cart }));
+        // Refresh the cart drawer UI using Section Rendering API
+        // This ensures the cart visually updates to show the discount
+        await refreshCartDrawer(cart, root);
       }
     } catch {
       console.warn(`[${source}] ⚠️ Discount may have been applied, but failed to parse response`);

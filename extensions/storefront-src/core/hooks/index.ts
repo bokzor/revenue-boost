@@ -14,12 +14,14 @@ import { BackgroundImageHook } from './BackgroundImageHook';
 import { ProductDataHook } from './ProductDataHook';
 import { CartDataHook } from './CartDataHook';
 import { InventoryDataHook } from './InventoryDataHook';
+import { SocialProofDataHook } from './SocialProofDataHook';
 
 // Create hook instances
 const backgroundImageHook = new BackgroundImageHook();
 const productDataHook = new ProductDataHook();
 const cartDataHook = new CartDataHook();
 const inventoryDataHook = new InventoryDataHook();
+const socialProofDataHook = new SocialProofDataHook();
 
 // Register hooks for NEWSLETTER template
 HookRegistry.register('NEWSLETTER', backgroundImageHook);
@@ -57,7 +59,7 @@ HookRegistry.register('SPIN_TO_WIN', backgroundImageHook);
 // No pre-loading needed - banners just show progress
 
 // Register hooks for SOCIAL_PROOF template
-// Social proof typically doesn't need pre-loading
+HookRegistry.register('SOCIAL_PROOF', socialProofDataHook);
 
 console.log('[PreDisplayHook] Hook registry initialized');
 

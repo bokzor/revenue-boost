@@ -133,7 +133,7 @@ const flashSale: FlashSaleRecipe = {
     designConfig: { position: "center", size: "large" },
     targetRules: {
       enhancedTriggers: {
-        page_load: { enabled: true, delay: 3000 },
+        page_load: { enabled: true, delay: 3 },
         frequency_capping: FLASH_SALE_FREQUENCY_CAPPING,
       },
       pageTargeting: FLASH_SALE_PAGE_TARGETING,
@@ -199,7 +199,7 @@ const bogo: FlashSaleRecipe = {
     designConfig: { position: "center", size: "large" },
     targetRules: {
       enhancedTriggers: {
-        page_load: { enabled: true, delay: 3000 },
+        page_load: { enabled: true, delay: 3 },
         frequency_capping: FLASH_SALE_FREQUENCY_CAPPING,
       },
       pageTargeting: FLASH_SALE_PAGE_TARGETING,
@@ -279,7 +279,7 @@ const tieredDiscount: FlashSaleRecipe = {
     },
     targetRules: {
       enhancedTriggers: {
-        page_load: { enabled: true, delay: 4000 },
+        page_load: { enabled: true, delay: 4 },
         exit_intent: { enabled: true, sensitivity: "medium" },
         frequency_capping: FLASH_SALE_FREQUENCY_CAPPING,
       },
@@ -334,7 +334,7 @@ const firstPurchase: FlashSaleRecipe = {
     },
     targetRules: {
       enhancedTriggers: {
-        time_delay: { enabled: true, delay: 5000 },
+        page_load: { enabled: true, delay: 5000 },
         frequency_capping: FLASH_SALE_FREQUENCY_CAPPING,
       },
       pageTargeting: FLASH_SALE_PAGE_TARGETING,
@@ -439,7 +439,7 @@ const clearance: FlashSaleRecipe = {
     },
     targetRules: {
       enhancedTriggers: {
-        page_load: { enabled: true, delay: 3000 },
+        page_load: { enabled: true, delay: 3 },
         frequency_capping: FLASH_SALE_FREQUENCY_CAPPING,
       },
       pageTargeting: FLASH_SALE_PAGE_TARGETING,
@@ -485,7 +485,7 @@ const newArrival: FlashSaleRecipe = {
     },
     targetRules: {
       enhancedTriggers: {
-        page_load: { enabled: true, delay: 3000 },
+        page_load: { enabled: true, delay: 3 },
         frequency_capping: FLASH_SALE_FREQUENCY_CAPPING,
       },
       pageTargeting: FLASH_SALE_PAGE_TARGETING,
@@ -532,7 +532,7 @@ const mysteryDiscount: FlashSaleRecipe = {
     },
     targetRules: {
       enhancedTriggers: {
-        time_delay: { enabled: true, delay: 6000 },
+        page_load: { enabled: true, delay: 6000 },
         exit_intent: { enabled: true, sensitivity: "medium" },
         frequency_capping: FLASH_SALE_FREQUENCY_CAPPING,
       },
@@ -588,7 +588,7 @@ const blackFridaySale: FlashSaleRecipe = {
     },
     targetRules: {
       enhancedTriggers: {
-        page_load: { enabled: true, delay: 3000 },
+        page_load: { enabled: true, delay: 3 },
         frequency_capping: FLASH_SALE_FREQUENCY_CAPPING,
       },
       pageTargeting: FLASH_SALE_PAGE_TARGETING,
@@ -633,7 +633,7 @@ const cyberMondaySale: FlashSaleRecipe = {
     },
     targetRules: {
       enhancedTriggers: {
-        page_load: { enabled: true, delay: 3000 },
+        page_load: { enabled: true, delay: 3 },
         frequency_capping: FLASH_SALE_FREQUENCY_CAPPING,
       },
       pageTargeting: FLASH_SALE_PAGE_TARGETING,
@@ -679,7 +679,7 @@ const summerSale: FlashSaleRecipe = {
     },
     targetRules: {
       enhancedTriggers: {
-        page_load: { enabled: true, delay: 3000 },
+        page_load: { enabled: true, delay: 3 },
         frequency_capping: FLASH_SALE_FREQUENCY_CAPPING,
       },
       pageTargeting: FLASH_SALE_PAGE_TARGETING,
@@ -725,7 +725,7 @@ const holidaySale: FlashSaleRecipe = {
     },
     targetRules: {
       enhancedTriggers: {
-        page_load: { enabled: true, delay: 3000 },
+        page_load: { enabled: true, delay: 3 },
         frequency_capping: FLASH_SALE_FREQUENCY_CAPPING,
       },
       pageTargeting: FLASH_SALE_PAGE_TARGETING,
@@ -771,7 +771,7 @@ const valentineSale: FlashSaleRecipe = {
     },
     targetRules: {
       enhancedTriggers: {
-        page_load: { enabled: true, delay: 3000 },
+        page_load: { enabled: true, delay: 3 },
         frequency_capping: FLASH_SALE_FREQUENCY_CAPPING,
       },
       pageTargeting: FLASH_SALE_PAGE_TARGETING,
@@ -816,7 +816,7 @@ const easterSale: FlashSaleRecipe = {
     },
     targetRules: {
       enhancedTriggers: {
-        page_load: { enabled: true, delay: 3000 },
+        page_load: { enabled: true, delay: 3 },
         frequency_capping: FLASH_SALE_FREQUENCY_CAPPING,
       },
       pageTargeting: FLASH_SALE_PAGE_TARGETING,
@@ -863,7 +863,7 @@ const halloweenSale: FlashSaleRecipe = {
     },
     targetRules: {
       enhancedTriggers: {
-        page_load: { enabled: true, delay: 3000 },
+        page_load: { enabled: true, delay: 3 },
         frequency_capping: FLASH_SALE_FREQUENCY_CAPPING,
       },
       pageTargeting: FLASH_SALE_PAGE_TARGETING,
@@ -906,10 +906,11 @@ const thanksgivingSale: FlashSaleRecipe = {
       size: "large",
       backgroundOverlayOpacity: 0,
       leadCaptureLayout: { desktop: "overlay", mobile: "overlay" },
+      textColor: "#FFFFFF", // White text for orange background
     },
     targetRules: {
       enhancedTriggers: {
-        page_load: { enabled: true, delay: 3000 },
+        page_load: { enabled: true, delay: 3 },
         frequency_capping: FLASH_SALE_FREQUENCY_CAPPING,
       },
       pageTargeting: FLASH_SALE_PAGE_TARGETING,
@@ -955,7 +956,7 @@ const newYearSale: FlashSaleRecipe = {
     },
     targetRules: {
       enhancedTriggers: {
-        page_load: { enabled: true, delay: 3000 },
+        page_load: { enabled: true, delay: 3 },
         frequency_capping: FLASH_SALE_FREQUENCY_CAPPING,
       },
       pageTargeting: FLASH_SALE_PAGE_TARGETING,
@@ -1000,7 +1001,7 @@ const winterSale: FlashSaleRecipe = {
     },
     targetRules: {
       enhancedTriggers: {
-        page_load: { enabled: true, delay: 3000 },
+        page_load: { enabled: true, delay: 3 },
         frequency_capping: FLASH_SALE_FREQUENCY_CAPPING,
       },
       pageTargeting: FLASH_SALE_PAGE_TARGETING,
@@ -1045,7 +1046,7 @@ const backToSchoolSale: FlashSaleRecipe = {
     },
     targetRules: {
       enhancedTriggers: {
-        page_load: { enabled: true, delay: 3000 },
+        page_load: { enabled: true, delay: 3 },
         frequency_capping: FLASH_SALE_FREQUENCY_CAPPING,
       },
       pageTargeting: FLASH_SALE_PAGE_TARGETING,

@@ -138,6 +138,7 @@ export const REDIS_PREFIXES = {
   PAGE_VIEW: "pageview",
   STATS: "stats",
   SESSION: "session",
+  RECOMMENDATIONS: "recs", // Smart product recommendations cache
 } as const;
 
 /**

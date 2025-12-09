@@ -283,20 +283,29 @@ export function parseDiscountConfig(configString: unknown): DiscountConfig {
     const usageType: "shared" | "single_use" =
       parsedConfig.type === "single_use" ? "single_use" : "shared";
 
+    // Infer strategy from config if not explicitly set or if set to default "simple"
+    // This allows strategy to be auto-detected from bogo, freeGift, tiers, etc.
+    const inferredStrategy =
+      parsedConfig.tiers && parsedConfig.tiers.length > 0
+        ? "tiered"
+        : parsedConfig.bogo
+          ? "bogo"
+          : parsedConfig.freeGift
+            ? "free_gift"
+            : parsedConfig.applicability?.scope === "products"
+              ? "bundle"
+              : "simple";
+
+    // Use explicit strategy if set and not "simple", otherwise use inferred
+    const strategy =
+      parsedConfig.strategy && parsedConfig.strategy !== "simple"
+        ? parsedConfig.strategy
+        : inferredStrategy;
+
     const result: DiscountConfig = {
       enabled: parsedConfig.enabled ?? true,
       showInPreview: parsedConfig.showInPreview ?? true,
-      strategy:
-        parsedConfig.strategy ||
-        (parsedConfig.tiers && parsedConfig.tiers.length > 0
-          ? "tiered"
-          : parsedConfig.bogo
-            ? "bogo"
-            : parsedConfig.freeGift
-              ? "free_gift"
-              : parsedConfig.applicability?.scope === "products"
-                ? "bundle"
-                : "simple"),
+      strategy,
       type: usageType,
       valueType,
       // Only set value for non-FREE_SHIPPING discounts

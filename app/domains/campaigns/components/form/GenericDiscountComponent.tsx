@@ -139,18 +139,19 @@ export function GenericDiscountComponent({
   const [freeGiftVariants, setFreeGiftVariants] = useState<Array<{ id: string; title: string }>>();
 
   // Initialize with defaults if not provided
+  // Use nullish coalescing (??) instead of || to preserve 0 and other falsy values
   const config: DiscountConfig = {
     enabled: discountConfig?.enabled !== false,
     showInPreview: discountConfig?.showInPreview !== false,
-    strategy: discountConfig?.strategy || "simple",
-    type: discountConfig?.type || "shared",
-    valueType: discountConfig?.valueType || "PERCENTAGE",
-    value: discountConfig?.valueType === "FREE_SHIPPING" ? undefined : discountConfig?.value || 10,
+    strategy: discountConfig?.strategy ?? "simple",
+    type: discountConfig?.type ?? "shared",
+    valueType: discountConfig?.valueType ?? "PERCENTAGE",
+    value: discountConfig?.valueType === "FREE_SHIPPING" ? undefined : (discountConfig?.value ?? 10),
     minimumAmount: discountConfig?.minimumAmount,
     usageLimit: discountConfig?.usageLimit,
-    expiryDays: discountConfig?.expiryDays || 30,
-    prefix: discountConfig?.prefix || "WELCOME",
-    behavior: discountConfig?.behavior || "SHOW_CODE_AND_AUTO_APPLY",
+    expiryDays: discountConfig?.expiryDays ?? 30,
+    prefix: discountConfig?.prefix ?? "WELCOME",
+    behavior: discountConfig?.behavior ?? "SHOW_CODE_AND_AUTO_APPLY",
     // Enhanced fields
     applicability: discountConfig?.applicability,
     tiers: discountConfig?.tiers,
@@ -188,6 +189,9 @@ export function GenericDiscountComponent({
     config.strategy === "bogo" ||
     config.strategy === "free_gift"
   );
+
+  // Check if bundle strategy is active - hides "Applies to" since products are scoped dynamically at runtime
+  const isBundleStrategy = config.strategy === "bundle";
 
   // Tiered discount handlers
   const addTier = () => {
@@ -424,73 +428,87 @@ export function GenericDiscountComponent({
                 </Box>
               )}
 
-              {/* Applicability / Scope */}
-              <Box padding="300" background="bg-surface-secondary" borderRadius="200">
-                <BlockStack gap="300">
-                  <Text as="h4" variant="headingSm">
-                    Applies to
-                  </Text>
-                  <FormGrid columns={2}>
-                    <Select
-                      label="Discount applies to"
-                      options={[
-                        { label: "Entire store", value: "all" },
-                        { label: "Entire cart", value: "cart" },
-                        { label: "Specific products", value: "products" },
-                        { label: "Specific collections", value: "collections" },
-                      ]}
-                      value={config.applicability?.scope || "all"}
-                      onChange={(scope) => {
-                        const nextScope = scope as "all" | "cart" | "products" | "collections";
-                        const current = config.applicability || { scope: nextScope };
-                        updateConfig({
-                          applicability: {
-                            scope: nextScope,
-                            productIds:
-                              nextScope === "products" ? current.productIds || [] : undefined,
-                            collectionIds:
-                              nextScope === "collections" ? current.collectionIds || [] : undefined,
-                          },
-                        });
-                      }}
-                    />
-                  </FormGrid>
+              {/* Applicability / Scope - Hidden for bundle strategy since products are scoped dynamically */}
+              {isBundleStrategy ? (
+                <Box padding="300" background="bg-surface-secondary" borderRadius="200">
+                  <BlockStack gap="200">
+                    <Text as="h4" variant="headingSm">
+                      Applies to
+                    </Text>
+                    <Text as="p" variant="bodySm" tone="subdued">
+                      This discount will automatically apply to the upsell products selected or
+                      suggested above. No additional configuration needed.
+                    </Text>
+                  </BlockStack>
+                </Box>
+              ) : (
+                <Box padding="300" background="bg-surface-secondary" borderRadius="200">
+                  <BlockStack gap="300">
+                    <Text as="h4" variant="headingSm">
+                      Applies to
+                    </Text>
+                    <FormGrid columns={2}>
+                      <Select
+                        label="Discount applies to"
+                        options={[
+                          { label: "Entire store", value: "all" },
+                          { label: "Entire cart", value: "cart" },
+                          { label: "Specific products", value: "products" },
+                          { label: "Specific collections", value: "collections" },
+                        ]}
+                        value={config.applicability?.scope || "all"}
+                        onChange={(scope) => {
+                          const nextScope = scope as "all" | "cart" | "products" | "collections";
+                          const current = config.applicability || { scope: nextScope };
+                          updateConfig({
+                            applicability: {
+                              scope: nextScope,
+                              productIds:
+                                nextScope === "products" ? current.productIds || [] : undefined,
+                              collectionIds:
+                                nextScope === "collections" ? current.collectionIds || [] : undefined,
+                            },
+                          });
+                        }}
+                      />
+                    </FormGrid>
 
-                  {config.applicability?.scope === "products" && (
-                    <ProductPicker
-                      mode="product"
-                      selectionType="multiple"
-                      selectedIds={config.applicability?.productIds || []}
-                      onSelect={(items: ProductPickerSelection[]) =>
-                        updateConfig({
-                          applicability: {
-                            scope: "products",
-                            productIds: items.map((item) => item.id),
-                          },
-                        })
-                      }
-                      buttonLabel="Select products"
-                    />
-                  )}
+                    {config.applicability?.scope === "products" && (
+                      <ProductPicker
+                        mode="product"
+                        selectionType="multiple"
+                        selectedIds={config.applicability?.productIds || []}
+                        onSelect={(items: ProductPickerSelection[]) =>
+                          updateConfig({
+                            applicability: {
+                              scope: "products",
+                              productIds: items.map((item) => item.id),
+                            },
+                          })
+                        }
+                        buttonLabel="Select products"
+                      />
+                    )}
 
-                  {config.applicability?.scope === "collections" && (
-                    <ProductPicker
-                      mode="collection"
-                      selectionType="multiple"
-                      selectedIds={config.applicability?.collectionIds || []}
-                      onSelect={(items: ProductPickerSelection[]) =>
-                        updateConfig({
-                          applicability: {
-                            scope: "collections",
-                            collectionIds: items.map((item) => item.id),
-                          },
-                        })
-                      }
-                      buttonLabel="Select collections"
-                    />
-                  )}
-                </BlockStack>
-              </Box>
+                    {config.applicability?.scope === "collections" && (
+                      <ProductPicker
+                        mode="collection"
+                        selectionType="multiple"
+                        selectedIds={config.applicability?.collectionIds || []}
+                        onSelect={(items: ProductPickerSelection[]) =>
+                          updateConfig({
+                            applicability: {
+                              scope: "collections",
+                              collectionIds: items.map((item) => item.id),
+                            },
+                          })
+                        }
+                        buttonLabel="Select collections"
+                      />
+                    )}
+                  </BlockStack>
+                </Box>
+              )}
             </>
           )}
 
@@ -785,11 +803,11 @@ export function GenericDiscountComponent({
                       />
                     )}
 
-                    {/* Info banner explaining CTA behavior */}
+                    {/* Info banner explaining what the product selection is for */}
                     {config.bogo.get.ids && config.bogo.get.ids.length > 0 && (
                       <Banner tone="info">
                         <Text as="p" variant="bodySm">
-                          💡 When customers click the popup button, the first selected product will be automatically added to their cart with the BOGO discount applied.
+                          💡 These products are eligible for the "Get" portion of your BOGO discount. Customers must add them to their cart to receive the discount at checkout.
                         </Text>
                       </Banner>
                     )}

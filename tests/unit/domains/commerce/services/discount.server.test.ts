@@ -513,6 +513,7 @@ describe("DiscountService - getCampaignDiscountCode", () => {
       type: "shared" as const,
       valueType: "PERCENTAGE" as const,
       prefix: "TIER",
+      strategy: "tiered" as const, // Must explicitly set strategy to tiered
       tiers: [
         { thresholdCents: 0, discount: { kind: "percentage" as const, value: 10 } },
         { thresholdCents: 5000, discount: { kind: "percentage" as const, value: 15 } },

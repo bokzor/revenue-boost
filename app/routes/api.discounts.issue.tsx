@@ -320,6 +320,26 @@ export async function action({ request }: ActionFunctionArgs) {
       strategy: inferStrategy(discountConfig, undefined),
     };
 
+    // BUNDLE DISCOUNT (Product Upsell):
+    // If selectedProductIds are provided, scope discount to those specific products.
+    // This allows dynamic scoping for AI-suggested products at runtime.
+    // TODO: Add security validation to ensure productIds are valid for this campaign
+    if (selectedProductIds && selectedProductIds.length > 0) {
+      console.log("[Discount Issue] Bundle discount mode - scoping to selected products:", {
+        selectedProductIds,
+        count: selectedProductIds.length,
+      });
+
+      discountConfigWithStrategy = {
+        ...discountConfigWithStrategy,
+        strategy: "bundle",
+        applicability: {
+          scope: "products",
+          productIds: selectedProductIds,
+        },
+      };
+    }
+
     // CART-SCOPED DISCOUNT:
     // If scope is "cart" and cartProductIds are provided, convert to product-scoped discount
     if (

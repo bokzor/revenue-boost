@@ -70,17 +70,19 @@ export function DiscountSection({
     : allowedValueTypes[0];
 
   // Initialize with defaults if not provided
+  // Use nullish coalescing (??) instead of || to preserve 0 and other falsy values
   const config: DiscountConfig = {
     enabled: discountConfig?.enabled !== false,
     showInPreview: discountConfig?.showInPreview !== false,
-    type: discountConfig?.type || "shared",
-    valueType: discountConfig?.valueType || defaultValueType,
-    value: discountConfig?.valueType === "FREE_SHIPPING" ? undefined : discountConfig?.value || 10,
+    strategy: discountConfig?.strategy ?? "simple",
+    type: discountConfig?.type ?? "shared",
+    valueType: discountConfig?.valueType ?? defaultValueType,
+    value: discountConfig?.valueType === "FREE_SHIPPING" ? undefined : (discountConfig?.value ?? 10),
     minimumAmount: discountConfig?.minimumAmount,
     usageLimit: discountConfig?.usageLimit,
-    expiryDays: discountConfig?.expiryDays || 30,
-    prefix: discountConfig?.prefix || "FREESHIP",
-    behavior: discountConfig?.behavior || "SHOW_CODE_AND_AUTO_APPLY",
+    expiryDays: discountConfig?.expiryDays ?? 30,
+    prefix: discountConfig?.prefix ?? "FREESHIP",
+    behavior: discountConfig?.behavior ?? "SHOW_CODE_AND_AUTO_APPLY",
   };
 
   const updateConfig = (updates: Partial<DiscountConfig>) => {

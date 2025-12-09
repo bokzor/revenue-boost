@@ -59,6 +59,13 @@ const envSchema = z.object({
     .string()
     .optional()
     .transform((val) => val === "true"),
+
+  // Feature Flags
+  // Set to "true" to enable recommendation analytics tracking
+  ENABLE_RECOMMENDATION_ANALYTICS: z
+    .string()
+    .optional()
+    .transform((val) => val === "true"),
 });
 
 /**

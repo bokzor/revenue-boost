@@ -8,6 +8,7 @@
 import { useEffect, useState } from "react";
 import type { KeyboardEvent } from "react";
 import {
+  Banner,
   Card,
   BlockStack,
   Text,
@@ -140,60 +141,64 @@ export function ProductUpsellContentSection({
         <Divider />
 
         <BlockStack gap="400">
-          {/* Basic Content Section */}
-          <BlockStack gap="300">
-            <div
-              role="button"
-              tabIndex={0}
-              style={{ cursor: "pointer" }}
-              onClick={() => toggleSection("basicContent")}
-              onKeyDown={handleKeyDown("basicContent")}
-            >
-              <InlineStack gap="200" blockAlign="center">
-                <Button
-                  variant="plain"
-                  icon={openSections.basicContent ? ChevronUpIcon : ChevronDownIcon}
-                />
-                <Text as="h4" variant="headingSm">
-                  Basic Content
-                </Text>
-              </InlineStack>
-            </div>
-
-            <Collapsible
-              open={openSections.basicContent}
-              id="basic-content-section"
-              transition={{
-                duration: "200ms",
-                timingFunction: "ease-in-out",
-              }}
-            >
+          {/* Basic Content Section - hidden in singleProductMode since Classic Upsell uses product name/description */}
+          {!singleProductMode && (
+            <>
               <BlockStack gap="300">
-                <TextField
-                  label="Headline"
-                  name="content.headline"
-                  value={content.headline || ""}
-                  error={errors?.headline}
-                  required
-                  placeholder="Complete Your Order & Save 15%"
-                  helpText="Main headline"
-                  onChange={(value) => updateField("headline", value)}
-                />
+                <div
+                  role="button"
+                  tabIndex={0}
+                  style={{ cursor: "pointer" }}
+                  onClick={() => toggleSection("basicContent")}
+                  onKeyDown={handleKeyDown("basicContent")}
+                >
+                  <InlineStack gap="200" blockAlign="center">
+                    <Button
+                      variant="plain"
+                      icon={openSections.basicContent ? ChevronUpIcon : ChevronDownIcon}
+                    />
+                    <Text as="h4" variant="headingSm">
+                      Basic Content
+                    </Text>
+                  </InlineStack>
+                </div>
 
-                <TextField
-                  label="Subheadline"
-                  name="content.subheadline"
-                  value={content.subheadline || ""}
-                  error={errors?.subheadline}
-                  placeholder="These items pair perfectly together"
-                  helpText="Supporting text (optional)"
-                  onChange={(value) => updateField("subheadline", value)}
-                />
+                <Collapsible
+                  open={openSections.basicContent}
+                  id="basic-content-section"
+                  transition={{
+                    duration: "200ms",
+                    timingFunction: "ease-in-out",
+                  }}
+                >
+                  <BlockStack gap="300">
+                    <TextField
+                      label="Headline"
+                      name="content.headline"
+                      value={content.headline || ""}
+                      error={errors?.headline}
+                      required
+                      placeholder="Complete Your Order & Save 15%"
+                      helpText="Main headline"
+                      onChange={(value) => updateField("headline", value)}
+                    />
+
+                    <TextField
+                      label="Subheadline"
+                      name="content.subheadline"
+                      value={content.subheadline || ""}
+                      error={errors?.subheadline}
+                      placeholder="These items pair perfectly together"
+                      helpText="Supporting text (optional)"
+                      onChange={(value) => updateField("subheadline", value)}
+                    />
+                  </BlockStack>
+                </Collapsible>
               </BlockStack>
-            </Collapsible>
-          </BlockStack>
 
-          <Divider />
+              <Divider />
+            </>
+          )}
 
           {/* Product Selection Section */}
           <BlockStack gap="300">

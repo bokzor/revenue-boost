@@ -97,6 +97,7 @@ export function QuickInputField({ input, value, onChange }: QuickInputFieldProps
     case "product_picker":
     case "collection_picker": {
       const pickerMode = input.type === "product_picker" ? "product" : "collection";
+      const selectionType = input.multiSelect ? "multiple" : "single";
       const pickerValue = value as PickerValue | undefined;
       const selectedIds = pickerValue?.ids || [];
 
@@ -107,13 +108,17 @@ export function QuickInputField({ input, value, onChange }: QuickInputFieldProps
           </Text>
           <ProductPicker
             mode={pickerMode}
-            selectionType="multiple"
+            selectionType={selectionType}
             selectedIds={selectedIds}
             onSelect={(selections: ProductPickerSelection[]) => {
               const ids = selections.map((s) => s.id);
               onChange({ ids, selections } satisfies PickerValue);
             }}
-            buttonLabel={`Select ${pickerMode === "product" ? "products" : "collections"}`}
+            buttonLabel={
+              selectionType === "single"
+                ? `Select ${pickerMode === "product" ? "a product" : "a collection"}`
+                : `Select ${pickerMode === "product" ? "products" : "collections"}`
+            }
             showSelected={true}
           />
         </BlockStack>
@@ -135,4 +140,3 @@ export function QuickInputField({ input, value, onChange }: QuickInputFieldProps
       return null;
   }
 }
-

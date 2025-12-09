@@ -245,7 +245,12 @@ export function FormSections({
               onContentChange={onContentChange}
               onDesignChange={onDesignChange}
               onDiscountChange={onDiscountChange}
-              onComplete={() => onMarkComplete("content", "design")}
+              onComplete={() =>
+                onMarkComplete(
+                  "content",
+                  sections.some((s) => s.id === "design") ? "design" : "targeting"
+                )
+              }
             />
           )}
           {section.id === "design" && templateType && (
@@ -494,6 +499,9 @@ interface QuickConfigSectionWrapperProps {
   onComplete: () => void;
 }
 
+/** Templates that only support single product selection */
+const SINGLE_PRODUCT_TEMPLATES: TemplateType[] = ["CLASSIC_UPSELL", "COUNTDOWN_URGENCY"];
+
 function QuickConfigSectionWrapper({
   recipe,
   contextData,
@@ -501,6 +509,8 @@ function QuickConfigSectionWrapper({
   onContextDataChange,
   onComplete,
 }: QuickConfigSectionWrapperProps) {
+  // Determine if this recipe only supports single product selection based on its templateType
+  const isSingleProductMode = SINGLE_PRODUCT_TEMPLATES.includes(recipe.templateType);
   // Don't render if no inputs
   if (!recipe.inputs || recipe.inputs.length === 0) {
     return null;
@@ -550,7 +560,7 @@ function QuickConfigSectionWrapper({
             {hasManualSelection && (
               <ProductPicker
                 mode="product"
-                selectionType="multiple"
+                selectionType={isSingleProductMode ? "single" : "multiple"}
                 selectedIds={
                   Array.isArray(selectedProducts)
                     ? (selectedProducts as string[])
@@ -563,7 +573,7 @@ function QuickConfigSectionWrapper({
                     selections,
                   });
                 }}
-                buttonLabel="Select products to feature"
+                buttonLabel={isSingleProductMode ? "Select product to feature" : "Select products to feature"}
                 showSelected
               />
             )}
@@ -816,7 +826,7 @@ function ScheduleSectionWrapper({
       />
       {hasSaveActions ? (
         <InlineStack gap="300" align="end">
-          <Button onClick={onSaveDraft} disabled={isSaving}>
+          <Button onClick={onSaveDraft} disabled={isSaving} loading={isSaving}>
             {isEditMode ? "Save" : "Save Draft"}
           </Button>
           <Button

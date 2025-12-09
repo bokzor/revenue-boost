@@ -663,6 +663,8 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, tri
     cartTotal: (preloadedResources.cart as { total?: number } | undefined)?.total,
     // Pass preloaded inventory for Flash Sale
     inventoryTotal: (preloadedResources.inventory as { total?: number } | undefined)?.total,
+    // Pass preloaded notifications for Social Proof
+    notifications: (preloadedResources.socialProof as { notifications?: unknown[] } | undefined)?.notifications,
     onTrack: trackClick,
     // Pass onCtaClick for popups that use it (FlashSale, Announcement, etc.)
     onCtaClick: () => trackClick({ action: "cta_click" }),
@@ -682,9 +684,11 @@ export function renderPopup(
   onShow?: (campaignId: string) => void,
   triggerContext?: { productId?: string; [key: string]: unknown }
 ): () => void {
-  // Create container
+  // Create container with container-type for CSS container queries
+  // This enables responsive styles using @container in popup components (e.g., SocialProofPopup)
   const container = document.createElement("div");
   container.id = `revenue-boost-popup-${campaign.id}`;
+  container.style.containerType = "inline-size";
   document.body.appendChild(container);
 
   // Render popup

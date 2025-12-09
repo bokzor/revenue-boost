@@ -80,7 +80,7 @@ export function ExperimentSetupView({
               </InlineStack>
             </InlineStack>
             <InlineStack gap="300">
-              <Button onClick={onSaveDraft} disabled={isSaving || !canSaveDraft}>
+              <Button onClick={onSaveDraft} disabled={isSaving || !canSaveDraft} loading={isSaving}>
                 {isEditMode ? "Save" : "Save Draft"}
               </Button>
               <Button variant="primary" onClick={onContinue} disabled={!canProceed}>

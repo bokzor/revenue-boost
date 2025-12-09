@@ -369,14 +369,13 @@ class BaseBuilder<T extends BaseBuilder<T>> {
     }
 
     /**
-     * Set time delay trigger
+     * Set page load trigger with delay
      */
-    withTimeDelayTrigger(delaySeconds: number): T {
+    withPageLoadTrigger(delayMs: number): T {
         if (!this.config) throw new Error('Config not initialized');
-        this.config.targetRules.enhancedTriggers.time_delay = {
+        this.config.targetRules.enhancedTriggers.page_load = {
             enabled: true,
-            delay: delaySeconds,
-            immediate: false
+            delay: delayMs,
         };
         return this as unknown as T;
     }

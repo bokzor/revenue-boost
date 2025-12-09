@@ -93,27 +93,6 @@ export function TargetingConfigSection({ targetRules, onChange }: TargetingConfi
         )}
       </FormSection>
 
-      <FormSection title="Time Delay Trigger" collapsible defaultOpen={false}>
-        <CheckboxField
-          label="Enable Time Delay"
-          name="triggers.time_delay.enabled"
-          checked={triggers.time_delay?.enabled || false}
-          helpText="Show popup after specified time"
-          onChange={(checked) => updateTrigger("time_delay", { enabled: checked })}
-        />
-
-        {triggers.time_delay?.enabled && (
-          <TextField
-            label="Delay (seconds)"
-            name="triggers.time_delay.delay"
-            value={triggers.time_delay.delay?.toString() ?? ""}
-            placeholder="5"
-            helpText="Time to wait before showing popup"
-            onChange={(value) => updateTrigger("time_delay", { delay: value === "" ? undefined : parseInt(value) })}
-          />
-        )}
-      </FormSection>
-
       <FormSection title="Scroll Depth Trigger" collapsible defaultOpen={false}>
         <CheckboxField
           label="Enable Scroll Depth"

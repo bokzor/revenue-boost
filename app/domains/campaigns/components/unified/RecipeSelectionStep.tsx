@@ -511,18 +511,17 @@ function buildRecipeInitialData(
       page_load: { ...(enhancedTriggers.page_load as Record<string, unknown> || {}), enabled: false },
       exit_intent: { ...(enhancedTriggers.exit_intent as Record<string, unknown> || {}), enabled: false },
       scroll_depth: { ...(enhancedTriggers.scroll_depth as Record<string, unknown> || {}), enabled: false },
-      time_delay: { ...(enhancedTriggers.time_delay as Record<string, unknown> || {}), enabled: false },
     };
 
     // Enable the selected trigger
     if (triggerType === "page_load") {
-      updatedTriggers.page_load = { enabled: true };
+      // Use existing delay from recipe or default to 5000ms (5 seconds)
+      const existingDelay = (enhancedTriggers.page_load as Record<string, unknown> | undefined)?.delay;
+      updatedTriggers.page_load = { enabled: true, delay: existingDelay ?? 5000 };
     } else if (triggerType === "exit_intent") {
       updatedTriggers.exit_intent = { enabled: true, sensitivity: "medium" };
     } else if (triggerType === "scroll_depth") {
       updatedTriggers.scroll_depth = { enabled: true, threshold: 50 };
-    } else if (triggerType === "time_delay") {
-      updatedTriggers.time_delay = { enabled: true, delay: 5 };
     }
 
     targetRules.enhancedTriggers = updatedTriggers;

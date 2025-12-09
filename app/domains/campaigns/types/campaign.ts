@@ -513,7 +513,7 @@ export const SpinToWinContentSchema = SpinToWinBaseContentSchema.merge(
  * Only basic percentage discounts need discountPercentage in contentConfig
  */
 export const FlashSaleContentSchema = BaseContentConfigSchema.extend({
-  urgencyMessage: z.string().min(1, "Urgency message is required"),
+  urgencyMessage: z.string().optional(),
   discountPercentage: z.number().min(0).max(100).optional(), // Optional for BOGO/Tiered/FreeGift
   originalPrice: z.number().min(0).optional(),
   salePrice: z.number().min(0).optional(),
@@ -732,20 +732,38 @@ export const ProductUpsellContentSchema = BaseContentConfigSchema.extend({
  * Social Proof specific content fields
  */
 export const SocialProofContentSchema = BaseContentConfigSchema.extend({
+  // Core notification types (Tier 1)
   enablePurchaseNotifications: z.boolean().default(true),
   enableVisitorNotifications: z.boolean().default(false),
   enableReviewNotifications: z.boolean().default(false),
+
+  // Additional notification types (Tier 2) - all default to false (opt-in)
+  enableSalesCountNotifications: z.boolean().default(false), // "47 people bought this in last 24h"
+  enableLowStockAlerts: z.boolean().default(false), // "Only 3 left in stock!"
+  enableTrendingNotifications: z.boolean().default(false), // "🔥 Trending - 50+ views today"
+  enableCartActivityNotifications: z.boolean().default(false), // "3 people added to cart recently"
+  enableRecentlyViewedNotifications: z.boolean().default(false), // "15 people viewed this in last hour"
+
+  // Message templates
   purchaseMessageTemplate: z.string().optional(),
   visitorMessageTemplate: z.string().optional(),
   reviewMessageTemplate: z.string().optional(),
+
+  // Display settings
   cornerPosition: z
     .enum(["bottom-left", "bottom-right", "top-left", "top-right"])
     .default("bottom-left"),
   displayDuration: z.number().int().min(1).max(30).default(6), // seconds
   rotationInterval: z.number().int().min(1).max(60).default(8), // seconds
   maxNotificationsPerSession: z.number().int().min(1).max(20).default(5),
+
+  // Data thresholds
   minVisitorCount: z.number().int().min(1).optional(),
   minReviewRating: z.number().min(1).max(5).optional(),
+  lowStockThreshold: z.number().int().min(1).max(100).default(10), // Show "low stock" when <= this
+  purchaseLookbackHours: z.number().int().min(1).max(168).default(48), // Hours to look back for purchases
+
+  // Legacy message templates object
   messageTemplates: z
     .object({
       purchase: z.string().optional(),
@@ -753,6 +771,8 @@ export const SocialProofContentSchema = BaseContentConfigSchema.extend({
       review: z.string().optional(),
     })
     .optional(),
+
+  // Visual toggles
   showProductImage: z.boolean().default(true),
   showTimer: z.boolean().default(true),
 });
@@ -919,10 +939,15 @@ export const AnnouncementContentSchema = BaseContentConfigSchema.extend({
 
 /**
  * Classic Upsell - Traditional centered modal with image, pricing, and clear CTAs
+ * Note: This is a single-product upsell template - only one product can be selected
+ * Note: headline is optional because this template displays product.title as the main title
  */
 export const ClassicUpsellContentSchema = BaseContentConfigSchema.extend({
+  // Override: Classic Upsell uses product.title instead of custom headline
+  headline: z.string().optional(),
   productSelectionMethod: z.enum(["ai", "manual", "collection"]).default("manual"),
-  selectedProducts: z.array(z.string()).optional(),
+  // Single product selection - max 1 product allowed
+  selectedProducts: z.array(z.string()).max(1, "Classic Upsell only supports a single product").optional(),
   selectedCollection: z.string().optional(),
   showPrices: z.boolean().default(true),
   showCompareAtPrice: z.boolean().default(true),
@@ -937,8 +962,11 @@ export const ClassicUpsellContentSchema = BaseContentConfigSchema.extend({
 
 /**
  * Minimal Slide-Up - Compact bottom sheet for mobile-first experiences
+ * Note: headline is optional because this template displays product.title as the main title
  */
 export const MinimalSlideUpContentSchema = BaseContentConfigSchema.extend({
+  // Override: Minimal Slide-Up uses product.title instead of custom headline
+  headline: z.string().optional(),
   productSelectionMethod: z.enum(["ai", "manual", "collection"]).default("ai"),
   selectedProducts: z.array(z.string()).optional(),
   selectedCollection: z.string().optional(),
@@ -996,8 +1024,11 @@ export const BundleDealContentSchema = BaseContentConfigSchema.extend({
 
 /**
  * Countdown Urgency - Time-limited offer with live countdown timer
+ * Note: headline is optional because this template displays product.title as the main title
  */
 export const CountdownUrgencyContentSchema = BaseContentConfigSchema.extend({
+  // Override: Countdown Urgency uses product.title instead of custom headline
+  headline: z.string().optional(),
   productSelectionMethod: z.enum(["ai", "manual", "collection"]).default("manual"),
   selectedProducts: z.array(z.string()).optional(),
   selectedCollection: z.string().optional(),
@@ -1270,14 +1301,6 @@ export const EnhancedTriggersConfigSchema = z.object({
       mouse_movement_threshold: z.number().min(0).optional(),
       keyboard_activity: z.boolean().optional(),
       page_visibility: z.boolean().optional(),
-    })
-    .optional(),
-
-  time_delay: z
-    .object({
-      enabled: z.boolean(),
-      delay: z.number().min(0).optional(),
-      immediate: z.boolean().optional(),
     })
     .optional(),
 

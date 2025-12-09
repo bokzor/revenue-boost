@@ -153,7 +153,7 @@ const recentPurchases: SocialProofRecipe = {
     },
     targetRules: {
       enhancedTriggers: {
-        time_delay: { enabled: true, delay: 5000 },
+        page_load: { enabled: true, delay: 5000 },
         frequency_capping: SOCIAL_PROOF_FREQUENCY_CAPPING,
       },
       pageTargeting: SOCIAL_PROOF_PAGE_TARGETING,
@@ -206,7 +206,7 @@ const visitorActivity: SocialProofRecipe = {
     },
     targetRules: {
       enhancedTriggers: {
-        time_delay: { enabled: true, delay: 3000 },
+        page_load: { enabled: true, delay: 3000 },
         frequency_capping: SOCIAL_PROOF_FREQUENCY_CAPPING,
       },
       pageTargeting: SOCIAL_PROOF_PAGE_TARGETING,
@@ -259,7 +259,7 @@ const reviewHighlights: SocialProofRecipe = {
     },
     targetRules: {
       enhancedTriggers: {
-        time_delay: { enabled: true, delay: 10000 },
+        page_load: { enabled: true, delay: 10000 },
         frequency_capping: SOCIAL_PROOF_FREQUENCY_CAPPING,
       },
       pageTargeting: SOCIAL_PROOF_PAGE_TARGETING,
@@ -285,11 +285,12 @@ const completeSocialProof: SocialProofRecipe = {
   component: "AnnouncementBanner",
   layout: "sidebar-left",
   featured: true,
-  inputs: [NOTIFICATION_TYPE_INPUT, DISPLAY_FREQUENCY_INPUT, CORNER_POSITION_INPUT],
+  inputs: [{ ...NOTIFICATION_TYPE_INPUT, defaultValue: "all" }, DISPLAY_FREQUENCY_INPUT, CORNER_POSITION_INPUT],
   editableFields: SOCIAL_PROOF_EDITABLE_FIELDS,
   defaults: {
     contentConfig: {
       headline: "Join thousands of happy customers",
+      notificationType: "all", // Quick input value - ensures all types stay enabled
       enablePurchaseNotifications: true,
       enableVisitorNotifications: true,
       enableReviewNotifications: true,
@@ -305,7 +306,7 @@ const completeSocialProof: SocialProofRecipe = {
     },
     targetRules: {
       enhancedTriggers: {
-        time_delay: { enabled: true, delay: 4000 },
+        page_load: { enabled: true, delay: 4000 },
         frequency_capping: SOCIAL_PROOF_FREQUENCY_CAPPING,
       },
       pageTargeting: SOCIAL_PROOF_PAGE_TARGETING,
@@ -357,7 +358,7 @@ const minimalDark: SocialProofRecipe = {
     },
     targetRules: {
       enhancedTriggers: {
-        time_delay: { enabled: true, delay: 5000 },
+        page_load: { enabled: true, delay: 5000 },
         frequency_capping: SOCIAL_PROOF_FREQUENCY_CAPPING,
       },
       pageTargeting: SOCIAL_PROOF_PAGE_TARGETING,
@@ -410,7 +411,7 @@ const luxuryElegant: SocialProofRecipe = {
     },
     targetRules: {
       enhancedTriggers: {
-        time_delay: { enabled: true, delay: 6000 },
+        page_load: { enabled: true, delay: 6000 },
         frequency_capping: SOCIAL_PROOF_FREQUENCY_CAPPING,
       },
       pageTargeting: SOCIAL_PROOF_PAGE_TARGETING,
@@ -464,7 +465,7 @@ const urgencyBoost: SocialProofRecipe = {
     },
     targetRules: {
       enhancedTriggers: {
-        time_delay: { enabled: true, delay: 2000 },
+        page_load: { enabled: true, delay: 2000 },
         frequency_capping: {
           max_triggers_per_session: 20,
           max_triggers_per_day: 50,
@@ -521,7 +522,7 @@ const productPageFocused: SocialProofRecipe = {
     },
     targetRules: {
       enhancedTriggers: {
-        time_delay: { enabled: true, delay: 8000 },
+        page_load: { enabled: true, delay: 8000 },
         frequency_capping: SOCIAL_PROOF_FREQUENCY_CAPPING,
       },
       pageTargeting: {

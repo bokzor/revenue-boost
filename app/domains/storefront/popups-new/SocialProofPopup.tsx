@@ -393,8 +393,22 @@ export const SocialProofPopup: React.FC<SocialProofPopupProps> = ({
     return "Nearby";
   };
 
-  // Footer is always shown (matching mock design)
+  // Footer shown based on config and notification type
   const showFooter = config.showVerifiedBadge !== false;
+
+  // Get appropriate footer text based on notification type
+  const getFooterText = () => {
+    switch (currentNotification.type) {
+      case "purchase":
+        return "Verified purchase";
+      case "review":
+        return "Verified review";
+      case "visitor":
+        return "Live activity";
+      default:
+        return "Verified";
+    }
+  };
 
   return (
     <>
@@ -443,12 +457,12 @@ export const SocialProofPopup: React.FC<SocialProofPopupProps> = ({
             </div>
           </div>
 
-          {/* Verified badge footer - always shown like the mock */}
+          {/* Footer badge - text changes based on notification type */}
           {showFooter && (
             <div className="sp-notification__footer">
               <div className="sp-verified">
                 <CheckCircleIcon />
-                <span className="sp-verified__text">Verified purchase</span>
+                <span className="sp-verified__text">{getFooterText()}</span>
               </div>
             </div>
           )}

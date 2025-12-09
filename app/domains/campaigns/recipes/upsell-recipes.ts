@@ -64,6 +64,31 @@ export const UPSELL_EDITABLE_FIELDS: EditableField[] = [
   },
 ];
 
+// Classic Upsell uses product name & description, so no headline/subheadline fields needed
+export const CLASSIC_UPSELL_EDITABLE_FIELDS: EditableField[] = [
+  {
+    key: "buttonText",
+    type: "text",
+    label: "Add to Cart Button",
+    group: "content",
+    validation: { required: true, maxLength: 30 },
+  },
+  {
+    key: "secondaryCtaLabel",
+    type: "text",
+    label: "Decline Button Text",
+    group: "content",
+    validation: { maxLength: 50 },
+  },
+  {
+    key: "bundleDiscountText",
+    type: "text",
+    label: "Discount Badge Text",
+    group: "content",
+    validation: { maxLength: 50 },
+  },
+];
+
 // =============================================================================
 // SHARED QUICK INPUTS FOR UPSELL RECIPES
 // =============================================================================
@@ -101,6 +126,19 @@ const PRODUCT_SELECTION_INPUT: QuickInput = {
   key: "productSelectionMethod",
   label: "Product Selection",
   defaultValue: "ai",
+  options: [
+    { value: "ai", label: "AI-powered recommendations" },
+    { value: "manual", label: "Manually selected products" },
+    { value: "collection", label: "From a collection" },
+  ],
+};
+
+// Product selection input with manual as default (for single-product templates like Classic Upsell)
+const PRODUCT_SELECTION_INPUT_MANUAL_DEFAULT: QuickInput = {
+  type: "select",
+  key: "productSelectionMethod",
+  label: "Product Selection",
+  defaultValue: "manual",
   options: [
     { value: "ai", label: "AI-powered recommendations" },
     { value: "manual", label: "Manually selected products" },
@@ -359,7 +397,7 @@ export const frequentlyBoughtTogether: ProductUpsellRecipe = {
       enhancedTriggers: {
         page_load: {
           enabled: true,
-          delay: 3000,
+          delay: 3,
         },
         frequency_capping: UPSELL_FREQUENCY_CAPPING,
       },
@@ -438,7 +476,7 @@ export const postPurchaseCrossSell: ProductUpsellRecipe = {
       enhancedTriggers: {
         page_load: {
           enabled: true,
-          delay: 2000,
+          delay: 2,
         },
         frequency_capping: UPSELL_FREQUENCY_CAPPING,
       },
@@ -553,12 +591,11 @@ export const classicUpsellModal: ClassicUpsellRecipe = {
   featured: true,
   new: true,
   recipeType: "use_case",
-  inputs: [BUNDLE_DISCOUNT_INPUT, PRODUCT_SELECTION_INPUT],
-  editableFields: UPSELL_EDITABLE_FIELDS,
+  inputs: [BUNDLE_DISCOUNT_INPUT, PRODUCT_SELECTION_INPUT_MANUAL_DEFAULT],
+  editableFields: CLASSIC_UPSELL_EDITABLE_FIELDS,
   defaults: {
     contentConfig: {
-      headline: "Special Offer Just For You",
-      subheadline: "Don't miss out on this exclusive deal",
+      // headline/subheadline not used - Classic Upsell displays product.title & product.description
       buttonText: "Add to Cart",
       secondaryCtaLabel: "No thanks",
       productSelectionMethod: "manual",
@@ -608,8 +645,7 @@ export const minimalSlideUp: MinimalSlideUpRecipe = {
   editableFields: UPSELL_EDITABLE_FIELDS,
   defaults: {
     contentConfig: {
-      headline: "Complete Your Order",
-      subheadline: "Add this for just",
+      // headline/subheadline not used - Minimal Slide-Up displays product.title & product.description
       buttonText: "Quick Add",
       secondaryCtaLabel: "Continue shopping",
       productSelectionMethod: "ai",
@@ -729,7 +765,7 @@ export const countdownUrgency: CountdownUrgencyRecipe = {
   layout: "centered",
   featured: true,
   new: true,
-  recipeType: "inspiration",
+  recipeType: "use_case",
   inputs: [
     {
       type: "select",
@@ -759,8 +795,7 @@ export const countdownUrgency: CountdownUrgencyRecipe = {
   ],
   defaults: {
     contentConfig: {
-      headline: "Flash Deal!",
-      subheadline: "This exclusive offer expires soon",
+      // headline/subheadline not used - Countdown Urgency displays product.title & product.description
       buttonText: "Claim This Deal Now",
       secondaryCtaLabel: "No thanks",
       productSelectionMethod: "manual",
@@ -802,7 +837,11 @@ function ensureUpsellDiscountConfig(recipe: AnyStyledRecipe): AnyStyledRecipe {
       valueType?: "PERCENTAGE" | "FIXED_AMOUNT" | "FREE_SHIPPING";
       value?: number;
       behavior?: string;
-      applicability?: { scope: "all" | "cart" | "products" | "collections"; productIds?: string[]; collectionIds?: string[] };
+      applicability?: {
+        scope: "all" | "cart" | "products" | "collections";
+        productIds?: string[];
+        collectionIds?: string[];
+      };
       tiers?: unknown[];
       bogo?: unknown;
       freeGift?: unknown;
@@ -829,11 +868,10 @@ function ensureUpsellDiscountConfig(recipe: AnyStyledRecipe): AnyStyledRecipe {
                     ? "bundle"
                     : "simple"),
           valueType: existing.valueType || "PERCENTAGE",
-          value: existing.value ?? (bundleValue ?? 15),
+          value: existing.value ?? bundleValue ?? 15,
           behavior: existing.behavior || "SHOW_CODE_AND_AUTO_APPLY",
           applicability:
-            existing.applicability ||
-            (bundleValue ? { scope: "products" as const } : undefined),
+            existing.applicability || (bundleValue ? { scope: "products" as const } : undefined),
         }
       : {
           enabled: true,
