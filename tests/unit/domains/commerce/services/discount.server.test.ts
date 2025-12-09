@@ -80,6 +80,15 @@ describe("parseDiscountConfig strategy inference", () => {
     expect(result.strategy).toBe("bundle");
   });
 
+  it("defaults bundle value to 10 when missing", () => {
+    const result = parseDiscountConfig({
+      applicability: { scope: "products", productIds: ["gid://shopify/Product/1"] },
+      valueType: "PERCENTAGE",
+    });
+    expect(result.strategy).toBe("bundle");
+    expect(result.value).toBe(10);
+  });
+
   it("infers tiered when tiers are present", () => {
     const result = parseDiscountConfig({
       tiers: [{ thresholdCents: 5000, discount: { kind: "percentage", value: 10 } }],

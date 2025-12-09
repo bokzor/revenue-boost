@@ -18,6 +18,7 @@ import { CollapsibleSection } from "./CollapsibleSection";
 import { RecipeCard } from "../recipes/RecipeCard";
 import { PreviewProvider } from "../recipes/PreviewContext";
 import { QuickInputField } from "./QuickInputField";
+import { ProductPicker } from "../form/ProductPicker";
 import type { StyledRecipe, RecipeContext } from "../../recipes/styled-recipe-types";
 import type {
   ContentConfig,
@@ -34,7 +35,8 @@ import type { BackgroundPreset } from "~/config/background-presets";
 import type { GlobalFrequencyCappingSettings } from "~/domains/store/types/settings";
 
 // Import reusable step content components (same as wizard form)
-import { DesignContentStep, type ThemePreset } from "../steps/DesignContentStep";
+import { ContentOnlyStep } from "../steps/ContentOnlyStep";
+import { DesignOnlyStep, type ThemePreset } from "../steps/DesignOnlyStep";
 import { TargetingStepContent } from "../steps/TargetingStepContent";
 import { FrequencyStepContent } from "../steps/FrequencyStepContent";
 import { ScheduleStepContent } from "../steps/ScheduleStepContent";
@@ -229,12 +231,13 @@ export function FormSections({
             <QuickConfigSectionWrapper
               recipe={selectedRecipe}
               contextData={contextData || {}}
+              contentConfig={contentConfig}
               onContextDataChange={onContextDataChange}
               onComplete={() => onMarkComplete("quickConfig", "content")}
             />
           )}
           {section.id === "content" && templateType && (
-            <DesignSectionWrapper
+            <ContentSectionWrapper
               templateType={templateType}
               contentConfig={contentConfig}
               designConfig={designConfig}
@@ -242,7 +245,17 @@ export function FormSections({
               onContentChange={onContentChange}
               onDesignChange={onDesignChange}
               onDiscountChange={onDiscountChange}
-              onComplete={() => onMarkComplete("content", "targeting")}
+              onComplete={() => onMarkComplete("content", "design")}
+            />
+          )}
+          {section.id === "design" && templateType && (
+            <DesignSectionWrapper
+              templateType={templateType}
+              contentConfig={contentConfig}
+              designConfig={designConfig}
+              onContentChange={onContentChange}
+              onDesignChange={onDesignChange}
+              onComplete={() => onMarkComplete("design", "targeting")}
               customThemePresets={customThemePresets}
               backgroundsByLayout={backgroundsByLayout}
               globalCustomCSS={globalCustomCSS}
@@ -475,6 +488,8 @@ function BasicsSectionWrapper({
 interface QuickConfigSectionWrapperProps {
   recipe: StyledRecipe;
   contextData: RecipeContext;
+  /** Current content config so quick config can show dependent pickers */
+  contentConfig: Partial<ContentConfig>;
   onContextDataChange: (key: string, value: unknown) => void;
   onComplete: () => void;
 }
@@ -482,6 +497,7 @@ interface QuickConfigSectionWrapperProps {
 function QuickConfigSectionWrapper({
   recipe,
   contextData,
+  contentConfig,
   onContextDataChange,
   onComplete,
 }: QuickConfigSectionWrapperProps) {
@@ -506,6 +522,79 @@ function QuickConfigSectionWrapper({
         />
       ))}
 
+      {/* Quick product/collection selection for upsell-style templates */}
+      {(() => {
+        const productSelectionMethod =
+          (contextData.productSelectionMethod as string) ||
+          (contentConfig as Record<string, unknown>).productSelectionMethod;
+
+        const hasManualSelection =
+          productSelectionMethod === "manual" ||
+          (productSelectionMethod === undefined &&
+            (contentConfig as Record<string, unknown>).selectedProducts);
+
+        const hasCollectionSelection =
+          productSelectionMethod === "collection" ||
+          (productSelectionMethod === undefined &&
+            (contentConfig as Record<string, unknown>).selectedCollection);
+
+        const selectedProducts =
+          (contextData.selectedProducts as unknown) ||
+          (contentConfig as Record<string, unknown>).selectedProducts;
+        const selectedCollections =
+          (contextData.selectedCollection as unknown) ||
+          (contentConfig as Record<string, unknown>).selectedCollection;
+
+        return (
+          <>
+            {hasManualSelection && (
+              <ProductPicker
+                mode="product"
+                selectionType="multiple"
+                selectedIds={
+                  Array.isArray(selectedProducts)
+                    ? (selectedProducts as string[])
+                    : (selectedProducts as { ids?: string[] })?.ids || []
+                }
+                onSelect={(selections) => {
+                  onContextDataChange("productSelectionMethod", "manual");
+                  onContextDataChange("selectedProducts", {
+                    ids: selections.map((s) => s.id),
+                    selections,
+                  });
+                }}
+                buttonLabel="Select products to feature"
+                showSelected
+              />
+            )}
+            {hasCollectionSelection && (
+              <ProductPicker
+                mode="collection"
+                selectionType="single"
+                selectedIds={
+                  selectedCollections
+                    ? Array.isArray(selectedCollections)
+                      ? (selectedCollections as string[])
+                      : (selectedCollections as { ids?: string[] })?.ids || [
+                          selectedCollections as string,
+                        ]
+                    : []
+                }
+                onSelect={(selections) => {
+                  onContextDataChange("productSelectionMethod", "collection");
+                  onContextDataChange("selectedCollection", {
+                    ids: selections.map((s) => s.id),
+                    selections,
+                  });
+                }}
+                buttonLabel="Select collection"
+                showSelected
+              />
+            )}
+          </>
+        );
+      })()}
+
       <InlineStack align="end">
         <Button variant="primary" onClick={onComplete}>
           Continue to Content
@@ -516,10 +605,10 @@ function QuickConfigSectionWrapper({
 }
 
 // =============================================================================
-// DESIGN SECTION WRAPPER - Uses DesignContentStep for full feature parity
+// CONTENT SECTION WRAPPER - Template-specific content only
 // =============================================================================
 
-interface DesignSectionWrapperProps {
+interface ContentSectionWrapperProps {
   templateType: TemplateType;
   contentConfig: Partial<ContentConfig>;
   designConfig: Partial<DesignConfig>;
@@ -527,6 +616,50 @@ interface DesignSectionWrapperProps {
   onContentChange: (config: Partial<ContentConfig>) => void;
   onDesignChange: (config: Partial<DesignConfig>) => void;
   onDiscountChange?: (config: DiscountConfig) => void;
+  onComplete: () => void;
+}
+
+function ContentSectionWrapper({
+  templateType,
+  contentConfig,
+  designConfig,
+  discountConfig,
+  onContentChange,
+  onDesignChange,
+  onDiscountChange,
+  onComplete,
+}: ContentSectionWrapperProps) {
+  return (
+    <BlockStack gap="400">
+      <ContentOnlyStep
+        templateType={templateType}
+        contentConfig={contentConfig}
+        designConfig={designConfig}
+        discountConfig={discountConfig}
+        onContentChange={onContentChange}
+        onDesignChange={onDesignChange}
+        onDiscountChange={onDiscountChange}
+      />
+
+      <InlineStack align="end">
+        <Button variant="primary" onClick={onComplete}>
+          Continue
+        </Button>
+      </InlineStack>
+    </BlockStack>
+  );
+}
+
+// =============================================================================
+// DESIGN SECTION WRAPPER - Colors, themes, and styling (conditional)
+// =============================================================================
+
+interface DesignSectionWrapperProps {
+  templateType: TemplateType;
+  contentConfig: Partial<ContentConfig>;
+  designConfig: Partial<DesignConfig>;
+  onContentChange: (config: Partial<ContentConfig>) => void;
+  onDesignChange: (config: Partial<DesignConfig>) => void;
   onComplete: () => void;
   customThemePresets?: ThemePreset[];
   backgroundsByLayout?: Record<string, BackgroundPreset[]>;
@@ -538,10 +671,8 @@ function DesignSectionWrapper({
   templateType,
   contentConfig,
   designConfig,
-  discountConfig,
   onContentChange,
   onDesignChange,
-  onDiscountChange,
   onComplete,
   customThemePresets,
   backgroundsByLayout,
@@ -550,21 +681,19 @@ function DesignSectionWrapper({
 }: DesignSectionWrapperProps) {
   return (
     <BlockStack gap="400">
-      <DesignContentStep
+      <DesignOnlyStep
         templateType={templateType}
         contentConfig={contentConfig}
         designConfig={designConfig}
-        discountConfig={discountConfig}
         onContentChange={onContentChange}
         onDesignChange={onDesignChange}
-        onDiscountChange={onDiscountChange}
         customThemePresets={customThemePresets}
         backgroundsByLayout={backgroundsByLayout}
         globalCustomCSS={globalCustomCSS}
         onMobileLayoutChange={onMobileLayoutChange}
       />
       <Button variant="primary" onClick={onComplete}>
-        Save & Continue
+        Continue
       </Button>
     </BlockStack>
   );

@@ -26,7 +26,11 @@ import { ColorField } from "~/domains/campaigns/components/form";
 import { TemplatePreview } from "~/domains/popups/components/preview/TemplatePreview";
 import { Affix } from "~/shared/components/ui/Affix";
 import type { ThemePresetInput } from "../types/theme-preset";
-import { expandThemePreset, createEmptyThemePreset, getWheelColorsFromPreset } from "../types/theme-preset";
+import {
+  expandThemePreset,
+  createEmptyThemePreset,
+  getWheelColorsFromPreset,
+} from "../types/theme-preset";
 import { TemplateTypeEnum } from "~/domains/campaigns/types/campaign";
 
 // ============================================================================
@@ -71,9 +75,7 @@ export function ThemePresetEditor({
   isSaving = false,
 }: ThemePresetEditorProps) {
   // State
-  const [preset, setPreset] = useState<ThemePresetInput>(
-    initialPreset || createEmptyThemePreset()
-  );
+  const [preset, setPreset] = useState<ThemePresetInput>(initialPreset || createEmptyThemePreset());
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [previewTemplate, setPreviewTemplate] = useState<string>(TemplateTypeEnum.NEWSLETTER);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -199,24 +201,24 @@ export function ThemePresetEditor({
   }, [previewTemplate, wheelColors, preset.brandColor]);
 
   // Handlers
-  const updateField = useCallback(<K extends keyof ThemePresetInput>(
-    field: K,
-    value: ThemePresetInput[K]
-  ) => {
-    setPreset((prev) => ({
-      ...prev,
-      [field]: value,
-      updatedAt: new Date().toISOString(),
-    }));
-    // Clear error for this field
-    if (errors[field]) {
-      setErrors((prev) => {
-        const next = { ...prev };
-        delete next[field];
-        return next;
-      });
-    }
-  }, [errors]);
+  const updateField = useCallback(
+    <K extends keyof ThemePresetInput>(field: K, value: ThemePresetInput[K]) => {
+      setPreset((prev) => ({
+        ...prev,
+        [field]: value,
+        updatedAt: new Date().toISOString(),
+      }));
+      // Clear error for this field
+      if (errors[field]) {
+        setErrors((prev) => {
+          const next = { ...prev };
+          delete next[field];
+          return next;
+        });
+      }
+    },
+    [errors]
+  );
 
   const handleSave = useCallback(() => {
     // Validate
@@ -280,8 +282,8 @@ export function ThemePresetEditor({
                 Core Colors
               </Text>
               <Text as="p" tone="subdued">
-                Choose 3 colors that define your brand. The system will automatically
-                derive all other colors for buttons, inputs, and text.
+                Choose 3 colors that define your brand. The system will automatically derive all
+                other colors for buttons, inputs, and text.
               </Text>
               <Divider />
 
@@ -333,7 +335,9 @@ export function ThemePresetEditor({
               <Collapsible open={showAdvanced} id="advanced-options">
                 <BlockStack gap="400">
                   {/* Additional Colors */}
-                  <Text as="h3" variant="headingSm">Additional Colors</Text>
+                  <Text as="h3" variant="headingSm">
+                    Additional Colors
+                  </Text>
 
                   <ColorField
                     label="🔲 Surface Color"
@@ -394,7 +398,9 @@ export function ThemePresetEditor({
                   <Divider />
 
                   {/* Typography */}
-                  <Text as="h3" variant="headingSm">Typography</Text>
+                  <Text as="h3" variant="headingSm">
+                    Typography
+                  </Text>
 
                   <Select
                     label="📝 Body Font"
@@ -415,7 +421,9 @@ export function ThemePresetEditor({
                   <Divider />
 
                   {/* Border Radius */}
-                  <Text as="h3" variant="headingSm">Border Radius</Text>
+                  <Text as="h3" variant="headingSm">
+                    Border Radius
+                  </Text>
 
                   <TextField
                     label="🔘 Button/Input Radius"
@@ -511,16 +519,6 @@ export function ThemePresetEditor({
                   />
                 </div>
               </div>
-
-              {/* Banner with higher z-index to stay above preview */}
-              <div style={{ position: "relative", zIndex: 10 }}>
-                <Banner tone="info">
-                  <p>
-                    This preview shows how your theme will look. Colors are automatically
-                    derived from your core color choices.
-                  </p>
-                </Banner>
-              </div>
             </BlockStack>
           </Card>
         </Affix>
@@ -528,4 +526,3 @@ export function ThemePresetEditor({
     </Layout>
   );
 }
-

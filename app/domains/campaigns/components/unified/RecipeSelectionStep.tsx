@@ -188,6 +188,36 @@ function buildRecipeInitialData(
   // Build content config from recipe defaults and apply context values
   const contentConfig = { ...recipe.defaults.contentConfig } as Record<string, unknown>;
 
+  // Apply quick input values directly to matching content fields (e.g., productSelectionMethod)
+  Object.entries(contextData).forEach(([key, value]) => {
+    if (value === undefined) return;
+    if (key in contentConfig) {
+      contentConfig[key] = value;
+    }
+  });
+
+  // Apply quick product/collection selections if provided
+  if (contextData.selectedProducts) {
+    const productIds = Array.isArray(contextData.selectedProducts)
+      ? (contextData.selectedProducts as Array<string>)
+      : ((contextData.selectedProducts as { ids?: string[] }).ids || []);
+    if (productIds.length > 0) {
+      contentConfig.selectedProducts = productIds;
+      contentConfig.productSelectionMethod = "manual";
+    }
+  }
+
+  if (contextData.selectedCollection) {
+    const collectionIds = Array.isArray(contextData.selectedCollection)
+      ? (contextData.selectedCollection as Array<string>)
+      : ((contextData.selectedCollection as { ids?: string[] }).ids || []);
+    const collectionId = collectionIds[0];
+    if (collectionId) {
+      contentConfig.selectedCollection = collectionId;
+      contentConfig.productSelectionMethod = "collection";
+    }
+  }
+
   // Apply discount value to content if present
   if (contextData.discountValue !== undefined) {
     if (typeof contentConfig.subheadline === "string") {
@@ -322,13 +352,14 @@ function buildRecipeInitialData(
   // Build discount config
   // Start with recipe defaults, then override with modal state or input values
   const discountValue = contextData.discountValue as number | undefined;
+  const bundleDiscountValue = contextData.bundleDiscount as number | undefined;
   const recipeDiscountDefaults = recipe.defaults.discountConfig || {};
   let finalDiscountConfig: DiscountConfig | Record<string, unknown>;
 
   if (discountConfig) {
     // Full discount config provided (e.g., from parent or pre-configured)
     finalDiscountConfig = discountConfig;
-  } else if (discountValue !== undefined) {
+  } else if (discountValue !== undefined || bundleDiscountValue !== undefined) {
     // Merge recipe defaults with the discount value from input
     // This preserves applicability, behavior, etc. from recipe while allowing value override
     finalDiscountConfig = {
@@ -336,7 +367,7 @@ function buildRecipeInitialData(
       enabled: true,
       type: recipeDiscountDefaults.type || ("shared" as const),
       valueType: recipeDiscountDefaults.valueType || ("PERCENTAGE" as const),
-      value: discountValue,
+      value: discountValue ?? bundleDiscountValue,
       behavior: recipeDiscountDefaults.behavior || ("SHOW_CODE_AND_AUTO_APPLY" as const),
     };
   } else {

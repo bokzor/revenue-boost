@@ -646,7 +646,8 @@ TEMPLATE_PREVIEW_REGISTRY[TemplateTypeEnum.PRODUCT_UPSELL] = {
   ): ProductUpsellConfig => {
     // Extract tiered discount config if present
     const dc = mergedConfig.discountConfig;
-    const bundleValue = mergedConfig.bundleDiscount ?? 15;
+    const bundleValue =
+      dc?.strategy === "bundle" && typeof dc?.value === "number" ? dc.value : 15;
     const discountConfig: AdminDiscountConfig | undefined = dc
       ? {
           enabled: dc.enabled !== false,
@@ -708,8 +709,8 @@ TEMPLATE_PREVIEW_REGISTRY[TemplateTypeEnum.PRODUCT_UPSELL] = {
       showImages: mergedConfig.showImages ?? true,
       showRatings: mergedConfig.showRatings ?? false,
       showReviewCount: mergedConfig.showReviewCount ?? false,
-      bundleDiscount: mergedConfig.bundleDiscount ?? 15,
-      bundleDiscountText: mergedConfig.bundleDiscountText,
+      bundleDiscount: bundleValue,
+      bundleDiscountText: mergedConfig.bundleDiscountText ?? dc?.description,
       multiSelect: mergedConfig.multiSelect ?? true,
       secondaryCtaLabel: mergedConfig.secondaryCtaLabel,
       currency: mergedConfig.currency || "USD",

@@ -6,7 +6,7 @@
  * 2. Campaign Editor: 2-column layout with preview and form sections
  */
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import {
   Page,
   Layout,
@@ -17,8 +17,10 @@ import {
   Button,
   Box,
   Banner,
+  Popover,
+  ActionList,
 } from "@shopify/polaris";
-import { ArrowLeftIcon, SaveIcon } from "@shopify/polaris-icons";
+import { ArrowLeftIcon, SaveIcon, ViewIcon } from "@shopify/polaris-icons";
 import { FormSections, type TargetingConfig, type ScheduleConfig } from "./FormSections";
 import { RecipeSelectionStep, type RecipeSelectionResult } from "./RecipeSelectionStep";
 import {
@@ -51,9 +53,445 @@ import {
   toTargetRulesRecord,
   type SectionId,
 } from "./defaults";
+import type { RecipeContext } from "../../recipes/styled-recipe-types";
 
 /** Design tokens from the store's default theme preset (matches DesignTokens shape) */
 export type DefaultThemeTokens = import("~/domains/campaigns/types/design-tokens").DesignTokens;
+
+/**
+ * Extract product/collection IDs from quick config picker values
+ */
+function extractIds(value: unknown): string[] {
+  if (!value) return [];
+
+  if (Array.isArray(value)) {
+    if (value.length === 0) return [];
+    if (typeof value[0] === "string") {
+      return (value as string[]).filter(Boolean);
+    }
+    return (value as Array<{ id?: string }>).map((item) => item.id).filter(Boolean) as string[];
+  }
+
+  if (typeof value === "object" && value !== null && "ids" in value) {
+    const ids = (value as { ids?: string[] }).ids || [];
+    return ids.filter(Boolean);
+  }
+
+  return [];
+}
+
+interface QuickConfigApplyResult {
+  contentConfig: Partial<ContentConfig>;
+  designConfig: Partial<DesignConfig>;
+  targetingConfig: TargetingConfig;
+  discountConfig: DiscountConfig;
+  changed: {
+    content: boolean;
+    design: boolean;
+    targeting: boolean;
+    discount: boolean;
+  };
+}
+
+/**
+ * Apply quick configuration context data to the live campaign state.
+ * This keeps the preview and saved data in sync with quick inputs
+ * (discount sliders, selection method, product/collection pickers, etc.)
+ */
+function applyQuickConfigToState({
+  recipe,
+  contextData,
+  contentConfig,
+  designConfig,
+  targetingConfig,
+  discountConfig,
+}: {
+  recipe?: StyledRecipe;
+  contextData: RecipeContext;
+  contentConfig: Partial<ContentConfig>;
+  designConfig: Partial<DesignConfig>;
+  targetingConfig: TargetingConfig;
+  discountConfig: DiscountConfig;
+}): QuickConfigApplyResult {
+  const contentDefaults = (recipe?.defaults.contentConfig || {}) as Record<string, unknown>;
+  const recipeDiscountDefaults = (recipe?.defaults.discountConfig || {}) as Partial<DiscountConfig>;
+
+  const nextContent: Partial<ContentConfig> = { ...contentConfig };
+  const nextDesign: Partial<DesignConfig> = { ...designConfig };
+  const nextTargeting: TargetingConfig = {
+    audienceTargeting:
+      targetingConfig?.audienceTargeting || { enabled: false, shopifySegmentIds: [] },
+    geoTargeting:
+      targetingConfig?.geoTargeting || { enabled: false, mode: "include", countries: [] },
+    enhancedTriggers: targetingConfig?.enhancedTriggers || {},
+    pageTargeting: targetingConfig?.pageTargeting,
+  };
+  let nextDiscount: DiscountConfig = { ...DEFAULT_DISCOUNT_CONFIG, ...discountConfig };
+
+  let contentChanged = false;
+  let designChanged = false;
+  let targetingChanged = false;
+  let discountChanged = false;
+
+  const valuesAreEqual = (a: unknown, b: unknown) => {
+    if (Array.isArray(a) && Array.isArray(b)) {
+      if (a.length !== b.length) return false;
+      return a.every((item, idx) => item === b[idx]);
+    }
+    if (a && b && typeof a === "object" && typeof b === "object") {
+      try {
+        return JSON.stringify(a) === JSON.stringify(b);
+      } catch {
+        return false;
+      }
+    }
+    return a === b;
+  };
+
+  const contentHasKey = (key: string) =>
+    key in nextContent || key in contentDefaults || key in (recipe?.defaults.contentConfig || {});
+
+  const setContentField = (key: string, value: unknown) => {
+    if (!contentHasKey(key)) return;
+    if (!valuesAreEqual((nextContent as Record<string, unknown>)[key], value)) {
+      (nextContent as Record<string, unknown>)[key] = value as never;
+      contentChanged = true;
+    }
+  };
+
+  const ensureDiscountEnabled = () => {
+    discountChanged = true;
+    nextDiscount = {
+      ...nextDiscount,
+      enabled: true,
+      strategy: nextDiscount.strategy || recipeDiscountDefaults.strategy || "simple",
+      type: nextDiscount.type || recipeDiscountDefaults.type || "shared",
+      valueType: nextDiscount.valueType || recipeDiscountDefaults.valueType || "PERCENTAGE",
+      behavior:
+        nextDiscount.behavior ||
+        recipeDiscountDefaults.behavior ||
+        ("SHOW_CODE_AND_AUTO_APPLY" as const),
+      showInPreview: nextDiscount.showInPreview ?? true,
+    };
+  };
+
+  const setDiscountValue = (value: number | undefined) => {
+    if (value === undefined || Number.isNaN(value)) return;
+    ensureDiscountEnabled();
+    if (nextDiscount.value !== value) {
+      nextDiscount = { ...nextDiscount, value };
+    }
+  };
+
+  const updateTriggersFromType = (triggerType: string) => {
+    const triggers = {
+      ...(nextTargeting.enhancedTriggers as Record<string, unknown>),
+    };
+
+    const disableAll = () => {
+      ["page_load", "exit_intent", "scroll_depth", "time_delay"].forEach((key) => {
+        triggers[key] = { ...(triggers[key] as Record<string, unknown>), enabled: false };
+      });
+    };
+
+    disableAll();
+
+    if (triggerType === "page_load") {
+      triggers.page_load = { enabled: true };
+    } else if (triggerType === "exit_intent") {
+      triggers.exit_intent = { enabled: true, sensitivity: "medium" };
+    } else if (triggerType === "scroll_depth") {
+      triggers.scroll_depth = { enabled: true, threshold: 50 };
+    } else if (triggerType === "time_delay") {
+      const currentDelay =
+        (triggers.time_delay as Record<string, unknown> | undefined)?.delay || 5;
+      triggers.time_delay = { enabled: true, delay: currentDelay };
+    }
+
+    nextTargeting.enhancedTriggers = triggers as TargetingConfig["enhancedTriggers"];
+    targetingChanged = true;
+  };
+
+  const setCartValueTrigger = (minValue: number) => {
+    const triggers = {
+      ...(nextTargeting.enhancedTriggers as Record<string, unknown>),
+    };
+    triggers.cart_value = {
+      ...(triggers.cart_value as Record<string, unknown>),
+      enabled: true,
+      min_value: minValue,
+    };
+    nextTargeting.enhancedTriggers = triggers as TargetingConfig["enhancedTriggers"];
+    targetingChanged = true;
+  };
+
+  // Apply each recipe input
+  recipe?.inputs.forEach((input) => {
+    const value = contextData[input.key];
+    if (value === undefined) return;
+
+    switch (input.key) {
+      case "discountValue": {
+        const numericValue = typeof value === "string" ? parseFloat(value) : (value as number);
+        setDiscountValue(numericValue);
+        if (typeof nextContent.subheadline === "string") {
+          nextContent.subheadline = nextContent.subheadline.replace(/\d+%/, `${numericValue}%`);
+          contentChanged = true;
+        }
+        break;
+      }
+      case "bundleDiscount": {
+        const numericValue = typeof value === "string" ? parseFloat(value) : (value as number);
+        setContentField("bundleDiscount", numericValue);
+        setDiscountValue(numericValue);
+        break;
+      }
+      case "productSelectionMethod": {
+        const method = value as string;
+        setContentField("productSelectionMethod", method);
+        if (method === "ai") {
+          setContentField("selectedProducts", undefined);
+          setContentField("selectedCollection", undefined);
+        } else if (method === "collection") {
+          setContentField("selectedProducts", undefined);
+        }
+        break;
+      }
+      case "triggerType":
+        updateTriggersFromType(value as string);
+        break;
+      case "inventoryProducts": {
+        const ids = extractIds(value);
+        setContentField("inventory", {
+          ...((nextContent as Record<string, unknown>).inventory as Record<string, unknown>),
+          mode: "real",
+          productIds: ids,
+        });
+        break;
+      }
+      case "giftProduct": {
+        const ids = extractIds(value);
+        const selections =
+          (value as { selections?: Array<Record<string, unknown>> }).selections || [];
+        const firstSelection =
+          (selections[0] as { id?: string; handle?: string; variants?: Array<{ id: string }> }) ||
+          {};
+        const productId = firstSelection.id || ids[0];
+        if (productId) {
+          const variantId = firstSelection.variants?.[0]?.id;
+          setContentField("cta", {
+            ...((nextContent as Record<string, unknown>).cta as Record<string, unknown>),
+            productId,
+            productHandle: firstSelection.handle,
+            ...(variantId ? { variantId } : {}),
+          });
+
+          ensureDiscountEnabled();
+          nextDiscount = {
+            ...nextDiscount,
+            freeGift: {
+              ...(nextDiscount.freeGift || {}),
+              productId,
+              variantId: variantId || nextDiscount.freeGift?.variantId || "",
+              productTitle: (firstSelection as { title?: string }).title,
+              productImageUrl: (firstSelection as { images?: Array<{ originalSrc?: string }> })
+                .images?.[0]?.originalSrc,
+              quantity: nextDiscount.freeGift?.quantity || 1,
+              minSubtotalCents: nextDiscount.freeGift?.minSubtotalCents,
+            },
+          };
+        }
+        break;
+      }
+      case "threshold": {
+        const thresholdValue =
+          typeof value === "string" ? parseFloat(value) : (value as number | undefined);
+        if (thresholdValue !== undefined && !Number.isNaN(thresholdValue)) {
+          setCartValueTrigger(thresholdValue);
+          if (typeof nextContent.subheadline === "string") {
+            nextContent.subheadline = nextContent.subheadline.replace(
+              /\$\d+\+?/,
+              `$${thresholdValue}+`
+            );
+            contentChanged = true;
+          }
+          if (nextDiscount.minimumAmount !== thresholdValue) {
+            nextDiscount = { ...nextDiscount, minimumAmount: thresholdValue };
+            discountChanged = true;
+          }
+          if (nextDiscount.freeGift) {
+            nextDiscount = {
+              ...nextDiscount,
+              freeGift: {
+                ...nextDiscount.freeGift,
+                minSubtotalCents: thresholdValue * 100,
+              },
+            };
+            discountChanged = true;
+          }
+        }
+        break;
+      }
+      case "bannerPosition": {
+        const position = value as string;
+        if (nextDesign.position !== position) {
+          nextDesign.position = position as DesignConfig["position"];
+          designChanged = true;
+        }
+        break;
+      }
+      case "freeShippingThreshold": {
+        const thresholdValue =
+          typeof value === "string" ? parseFloat(value) : (value as number | undefined);
+        if (thresholdValue !== undefined && !Number.isNaN(thresholdValue)) {
+          if (typeof nextContent.subheadline === "string") {
+            nextContent.subheadline = nextContent.subheadline.replace(
+              /\$\d+/,
+              `$${thresholdValue}`
+            );
+            contentChanged = true;
+          }
+          if (typeof nextContent.headline === "string") {
+            nextContent.headline = nextContent.headline.replace(/\$\d+/, `$${thresholdValue}`);
+            contentChanged = true;
+          }
+          setContentField("threshold", thresholdValue);
+        }
+        break;
+      }
+      case "topPrize": {
+        const numericValue = typeof value === "string" ? parseFloat(value) : (value as number);
+        if (Array.isArray((nextContent as Record<string, unknown>).wheelSegments)) {
+          const segments = [
+            ...((nextContent as Record<string, unknown>).wheelSegments as Array<
+              Record<string, unknown>
+            >),
+          ];
+          if (segments[0]) {
+            segments[0] = {
+              ...segments[0],
+              label: `${numericValue}% OFF`,
+              discountConfig: {
+                ...(segments[0].discountConfig as Record<string, unknown>),
+                value: numericValue,
+              },
+            };
+            (nextContent as Record<string, unknown>).wheelSegments = segments;
+            contentChanged = true;
+          }
+        }
+        if (Array.isArray((nextContent as Record<string, unknown>).prizes)) {
+          const prizes = [
+            ...((nextContent as Record<string, unknown>).prizes as Array<Record<string, unknown>>),
+          ];
+          if (prizes[0]) {
+            prizes[0] = {
+              ...prizes[0],
+              label: `${numericValue}% OFF`,
+              discountConfig: {
+                ...(prizes[0].discountConfig as Record<string, unknown>),
+                value: numericValue,
+              },
+            };
+            (nextContent as Record<string, unknown>).prizes = prizes;
+            contentChanged = true;
+          }
+        }
+        break;
+      }
+      case "emailTiming": {
+        const timing = value as string;
+        setContentField("emailBeforeScratching", timing === "before");
+        break;
+      }
+      case "notificationType": {
+        const notificationType = value as string;
+        setContentField(
+          "enablePurchaseNotifications",
+          notificationType === "purchases" || notificationType === "all"
+        );
+        setContentField(
+          "enableVisitorNotifications",
+          notificationType === "visitors" || notificationType === "all"
+        );
+        setContentField(
+          "enableReviewNotifications",
+          notificationType === "reviews" || notificationType === "all"
+        );
+        break;
+      }
+      case "displayFrequency": {
+        const frequencyValue = parseInt(value as string, 10);
+        if (!Number.isNaN(frequencyValue)) {
+          setContentField("rotationInterval", frequencyValue);
+        }
+        break;
+      }
+      case "cornerPosition":
+        setContentField("cornerPosition", value);
+        break;
+      case "ctaUrl":
+        setContentField("ctaUrl", value);
+        break;
+      case "durationHours": {
+        const hours = typeof value === "string" ? parseFloat(value) : (value as number);
+        if (!Number.isNaN(hours)) {
+          if (
+            "countdownDuration" in nextContent ||
+            "countdownDuration" in (recipe?.defaults.contentConfig || {})
+          ) {
+            setContentField("countdownDuration", Math.round(hours * 3600));
+          }
+          if ((nextContent as Record<string, unknown>).timer) {
+            const timer = {
+              ...(nextContent as Record<string, unknown>).timer as Record<string, unknown>,
+              durationSeconds: Math.round(hours * 3600),
+            };
+            setContentField("timer", timer);
+          }
+        }
+        break;
+      }
+      default: {
+        // Generic mapping: if the content config has this key, set it
+        setContentField(input.key, value);
+      }
+    }
+  });
+
+  // Apply selected products/collections from quick pickers (outside recipe.inputs)
+  const selectedProducts = contextData.selectedProducts;
+  const selectedCollections = contextData.selectedCollection;
+
+  const productIds = extractIds(selectedProducts);
+  if (productIds.length > 0) {
+    setContentField("selectedProducts", productIds);
+    if (!contextData.productSelectionMethod) {
+      setContentField("productSelectionMethod", "manual");
+    }
+  }
+
+  const collectionIds = extractIds(selectedCollections);
+  if (collectionIds.length > 0) {
+    setContentField("selectedCollection", collectionIds[0]);
+    if (!contextData.productSelectionMethod) {
+      setContentField("productSelectionMethod", "collection");
+    }
+  }
+
+  return {
+    contentConfig: nextContent,
+    designConfig: nextDesign,
+    targetingConfig: nextTargeting,
+    discountConfig: nextDiscount,
+    changed: {
+      content: contentChanged,
+      design: designChanged,
+      targeting: targetingChanged,
+      discount: discountChanged,
+    },
+  };
+}
 
 export interface SingleCampaignFlowProps {
   onBack: () => void;
@@ -187,6 +625,40 @@ export function SingleCampaignFlow({
     return selectedRecipe?.inputs && selectedRecipe.inputs.length > 0;
   }, [selectedRecipe]);
 
+  // Keep core configs in sync with Quick Configuration inputs
+  useEffect(() => {
+    if (!selectedRecipe) return;
+
+    const applied = applyQuickConfigToState({
+      recipe: selectedRecipe,
+      contextData,
+      contentConfig,
+      designConfig,
+      targetingConfig,
+      discountConfig,
+    });
+
+    if (applied.changed.content) {
+      setContentConfig(applied.contentConfig);
+    }
+    if (applied.changed.design) {
+      setDesignConfig(applied.designConfig);
+    }
+    if (applied.changed.targeting) {
+      setTargetingConfig(applied.targetingConfig);
+    }
+    if (applied.changed.discount) {
+      setDiscountConfig(applied.discountConfig);
+    }
+  }, [
+    contextData,
+    selectedRecipe,
+    contentConfig,
+    designConfig,
+    targetingConfig,
+    discountConfig,
+  ]);
+
   // Filter visible sections (hide quickConfig if no inputs)
   const visibleSections = useMemo(() => {
     return EDITOR_SECTIONS.filter((section) => {
@@ -200,8 +672,6 @@ export function SingleCampaignFlow({
   // Handler for context data changes from QuickConfig section
   const handleContextDataChange = useCallback((key: string, value: unknown) => {
     setContextData((prev) => ({ ...prev, [key]: value }));
-    // TODO: Re-apply context data to contentConfig/discountConfig when values change
-    // This will be handled in FormSections when QuickConfig section is implemented
   }, []);
 
   // Handler for RecipeSelectionStep (step 1 → step 2)
@@ -439,6 +909,13 @@ export function SingleCampaignFlow({
         isSaving={isSaving}
         canPublish={(!!selectedRecipe || isEditMode) && !!campaignName}
         isEditMode={isEditMode}
+        // Preview on Store props
+        shopDomain={shopDomain}
+        templateType={templateType}
+        contentConfig={contentConfig as Record<string, unknown>}
+        designConfig={designConfig as Record<string, unknown>}
+        targetRules={toTargetRulesRecord(targetingConfig)}
+        discountConfig={discountConfig as Record<string, unknown>}
       />
 
       {/* Validation Errors/Warnings */}
@@ -558,6 +1035,13 @@ interface StickyHeaderProps {
   isSaving: boolean;
   canPublish: boolean;
   isEditMode?: boolean;
+  // Preview on Store props
+  shopDomain?: string;
+  templateType?: string;
+  contentConfig?: Record<string, unknown>;
+  designConfig?: Record<string, unknown>;
+  targetRules?: Record<string, unknown>;
+  discountConfig?: Record<string, unknown>;
 }
 
 function StickyHeader({
@@ -568,7 +1052,69 @@ function StickyHeader({
   isSaving,
   canPublish,
   isEditMode = false,
+  shopDomain,
+  templateType,
+  contentConfig,
+  designConfig,
+  targetRules,
+  discountConfig,
 }: StickyHeaderProps) {
+  const [isCreatingPreview, setIsCreatingPreview] = useState(false);
+  const [previewPopoverActive, setPreviewPopoverActive] = useState(false);
+
+  const togglePreviewPopover = useCallback(
+    () => setPreviewPopoverActive((active) => !active),
+    []
+  );
+
+  const handlePreviewOnStore = async (behavior: "instant" | "realistic" = "instant") => {
+    setPreviewPopoverActive(false);
+    if (!shopDomain || !templateType) {
+      console.error("Shop domain and template type are required for preview");
+      return;
+    }
+
+    setIsCreatingPreview(true);
+
+    try {
+      const previewData = {
+        name: (contentConfig as { name?: string })?.name || "Preview Campaign",
+        templateType,
+        contentConfig: contentConfig || {},
+        designConfig: designConfig || {},
+        targetRules: targetRules || {},
+        priority: 0,
+        discountConfig: discountConfig || {},
+      };
+
+      const response = await fetch("/api/preview/session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(previewData),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to create preview session");
+      }
+
+      const result = await response.json();
+
+      if (!result.success || !result.token) {
+        throw new Error("Invalid preview session response");
+      }
+
+      const storeUrl = `https://${shopDomain}?split_pop_preview_token=${result.token}&preview_behavior=${behavior}`;
+      window.open(storeUrl, "_blank");
+    } catch (error) {
+      console.error("Failed to create preview:", error);
+      alert("Failed to create preview. Please try again.");
+    } finally {
+      setIsCreatingPreview(false);
+    }
+  };
+
+  const canPreview = !!shopDomain && !!templateType;
+
   return (
     <div
       style={{
@@ -597,6 +1143,41 @@ function StickyHeader({
 
           {/* Right: Action buttons */}
           <InlineStack gap="300">
+            {/* Preview on Store button */}
+            {canPreview && (
+              <Popover
+                active={previewPopoverActive}
+                activator={
+                  <Button
+                    icon={ViewIcon}
+                    disclosure="down"
+                    onClick={togglePreviewPopover}
+                    loading={isCreatingPreview}
+                    disabled={isCreatingPreview}
+                  >
+                    Preview on Store
+                  </Button>
+                }
+                autofocusTarget="first-node"
+                onClose={togglePreviewPopover}
+              >
+                <ActionList
+                  actionRole="menuitem"
+                  items={[
+                    {
+                      content: "Quick Preview",
+                      helpText: "Shows popup immediately, bypassing triggers",
+                      onAction: () => handlePreviewOnStore("instant"),
+                    },
+                    {
+                      content: "Test with Triggers",
+                      helpText: "Evaluates triggers as configured (delays, scroll, etc.)",
+                      onAction: () => handlePreviewOnStore("realistic"),
+                    },
+                  ]}
+                />
+              </Popover>
+            )}
             <Button onClick={onSaveDraft} disabled={isSaving} icon={SaveIcon}>
               {isEditMode ? "Save" : "Save Draft"}
             </Button>

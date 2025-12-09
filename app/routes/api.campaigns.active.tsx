@@ -32,7 +32,6 @@ import type { TemplateType } from "~/domains/campaigns/types/campaign";
 import {
   resolveDesignTokens,
   tokensToCSSString,
-  CampaignDesignSchema,
   type DesignTokens,
 } from "~/domains/campaigns/types/design-tokens";
 
@@ -286,13 +285,6 @@ export async function loader(args: LoaderFunctionArgs) {
             templateType: campaignData.templateType,
             hasContentConfig: !!campaignData.contentConfig,
             hasDesignConfig: !!campaignData.designConfig,
-            rawDesignConfigColors: {
-              backgroundColor: campaignData.designConfig?.backgroundColor,
-              textColor: campaignData.designConfig?.textColor,
-              buttonColor: campaignData.designConfig?.buttonColor,
-              themeMode: campaignData.designConfig?.themeMode,
-              theme: campaignData.designConfig?.theme,
-            },
           });
 
           // Format preview campaign data
@@ -304,39 +296,30 @@ export async function loader(args: LoaderFunctionArgs) {
           const parsedDesignConfig = parseDesignConfig(campaignData.designConfig || {});
 
           // Resolve design tokens for preview and merge into designConfig
+          // Note: parsedDesignConfig comes from DesignConfigSchema, not CampaignDesignSchema
+          // We extract themeMode directly instead of re-parsing with a different schema
           let designTokensCSS: string | undefined;
           let mergedDesignConfig = parsedDesignConfig as Record<string, unknown>;
           try {
-            const designParsed = CampaignDesignSchema.safeParse(parsedDesignConfig);
-            console.log(`[Active Campaigns API] 🎨 Preview design parsing:`, {
-              success: designParsed.success,
-              themeMode: designParsed.success ? designParsed.data.themeMode : 'parse failed',
-              theme: designParsed.success ? designParsed.data.theme : 'parse failed',
-              hasDefaultTokens: !!defaultTokens,
-              defaultTokensBackground: defaultTokens?.background,
-            });
-            if (designParsed.success) {
-              const resolvedTokens = resolveDesignTokens(designParsed.data, defaultTokens);
-              console.log(`[Active Campaigns API] 🎨 Resolved tokens:`, {
-                background: resolvedTokens.background,
-                foreground: resolvedTokens.foreground,
-                primary: resolvedTokens.primary,
-              });
-              designTokensCSS = tokensToCSSString(resolvedTokens);
+            const themeMode = (parsedDesignConfig as { themeMode?: string }).themeMode;
 
-              // Merge resolved tokens into designConfig so popups receive direct color values
-              // This ensures "Preview on Store" shows the same colors as the admin preview
-              mergedDesignConfig = mergeTokensIntoDesignConfig(
-                parsedDesignConfig,
-                resolvedTokens,
-                designParsed.data.themeMode
-              );
-              console.log(`[Active Campaigns API] 🎨 Merged designConfig:`, {
-                backgroundColor: mergedDesignConfig.backgroundColor,
-                textColor: mergedDesignConfig.textColor,
-                buttonColor: mergedDesignConfig.buttonColor,
-              });
-            }
+            // Build a minimal design input for token resolution
+            const designForTokens = {
+              themeMode: themeMode as "default" | "shopify" | "preset" | "custom" | undefined,
+              presetId: (parsedDesignConfig as { presetId?: string }).presetId,
+              tokens: (parsedDesignConfig as { tokens?: Record<string, unknown> }).tokens as Partial<DesignTokens> | undefined,
+            };
+
+            const resolvedTokens = resolveDesignTokens(designForTokens, defaultTokens);
+            designTokensCSS = tokensToCSSString(resolvedTokens);
+
+            // Merge resolved tokens into designConfig so popups receive direct color values
+            // This ensures "Preview on Store" shows the same colors as the admin preview
+            mergedDesignConfig = mergeTokensIntoDesignConfig(
+              parsedDesignConfig,
+              resolvedTokens,
+              themeMode
+            );
           } catch (tokenError) {
             console.warn(`[Active Campaigns API] Failed to resolve tokens for preview:`, tokenError);
           }
@@ -435,22 +418,30 @@ export async function loader(args: LoaderFunctionArgs) {
 
         // Resolve design tokens based on themeMode
         // This enables "default"/"shopify" mode to automatically inherit store theme colors
+        // Note: parsedDesignConfig comes from DesignConfigSchema, not CampaignDesignSchema
+        // We extract themeMode directly instead of re-parsing with a different schema
         let designTokensCSS: string | undefined;
         let mergedDesignConfig = parsedDesignConfig as Record<string, unknown>;
         try {
-          const designParsed = CampaignDesignSchema.safeParse(parsedDesignConfig);
-          if (designParsed.success) {
-            const resolvedTokens = resolveDesignTokens(designParsed.data, defaultTokens);
-            designTokensCSS = tokensToCSSString(resolvedTokens);
+          const themeMode = (parsedDesignConfig as { themeMode?: string }).themeMode;
 
-            // Merge resolved tokens into designConfig so popups receive direct color values
-            // This ensures storefront popups show the correct theme colors
-            mergedDesignConfig = mergeTokensIntoDesignConfig(
-              parsedDesignConfig,
-              resolvedTokens,
-              designParsed.data.themeMode
-            );
-          }
+          // Build a minimal design input for token resolution
+          const designForTokens = {
+            themeMode: themeMode as "default" | "shopify" | "preset" | "custom" | undefined,
+            presetId: (parsedDesignConfig as { presetId?: string }).presetId,
+            tokens: (parsedDesignConfig as { tokens?: Record<string, unknown> }).tokens as Partial<DesignTokens> | undefined,
+          };
+
+          const resolvedTokens = resolveDesignTokens(designForTokens, defaultTokens);
+          designTokensCSS = tokensToCSSString(resolvedTokens);
+
+          // Merge resolved tokens into designConfig so popups receive direct color values
+          // This ensures storefront popups show the correct theme colors
+          mergedDesignConfig = mergeTokensIntoDesignConfig(
+            parsedDesignConfig,
+            resolvedTokens,
+            themeMode
+          );
         } catch (tokenError) {
           console.warn(`[Active Campaigns API] Failed to resolve tokens for campaign ${campaign.id}:`, tokenError);
         }

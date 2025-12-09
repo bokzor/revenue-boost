@@ -130,8 +130,14 @@ export const EDITOR_SECTIONS: SectionDef[] = [
   {
     id: "content",
     icon: "✏️",
-    title: "Content & Design",
-    subtitle: "Configure headlines, buttons, colors, and styling",
+    title: "Content",
+    subtitle: "Configure headlines, text, and messages",
+  },
+  {
+    id: "design",
+    icon: "🎨",
+    title: "Design & Colors",
+    subtitle: "Customize colors, themes, and styling",
   },
   {
     id: "targeting",

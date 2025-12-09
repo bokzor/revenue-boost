@@ -308,8 +308,6 @@ export function DesignStepContent({
                 }}
                 designConfig={designConfig}
                 targetRules={targetRules}
-                shopDomain={shopDomain}
-                campaignId={campaignId}
                 globalCustomCSS={globalCustomCSS}
                 defaultThemeTokens={defaultThemeTokens}
                 // Controlled device mode - switches to mobile when mobile layout is changed

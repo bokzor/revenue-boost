@@ -167,11 +167,14 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
     const inferredStrategy = dc.strategy || (dc.tiers?.length ? "tiered" : undefined);
     const isBundleStrategy = inferredStrategy === "bundle";
 
-    if (isBundleStrategy && dc.valueType === "PERCENTAGE" && typeof dc.value === "number") {
+    if (!isBundleStrategy) return undefined;
+
+    if (dc.valueType === "PERCENTAGE" && typeof dc.value === "number") {
       return dc.value;
     }
 
-    return undefined;
+    // Default preview/display percent when bundle strategy is selected but value is missing
+    return 15;
   }, [config.discountConfig]);
 
   // Create ripple effect on card

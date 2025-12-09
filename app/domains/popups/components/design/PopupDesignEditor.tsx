@@ -1448,8 +1448,6 @@ export const PopupDesignEditor: React.FC<PopupDesignEditorProps> = ({
                     }}
                     designConfig={{}}
                     onPreviewElementReady={setPreviewElement}
-                    shopDomain={shopDomain}
-                    campaignId={campaignId}
                   />
                 </div>
               </Affix>
