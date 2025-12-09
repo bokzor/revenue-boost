@@ -4,7 +4,7 @@
  * Individual campaign view with full details and management options
  */
 
-import { data, type LoaderFunctionArgs } from "react-router";
+import { data, type LoaderFunctionArgs, type ActionFunctionArgs } from "react-router";
 import { Outlet, useLoaderData, useLocation, useNavigate, useRevalidator } from "react-router";
 import { Frame, Toast } from "@shopify/polaris";
 import { useState } from "react";
@@ -146,6 +146,24 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       { status: 404 }
     );
   }
+}
+
+// ============================================================================
+// ACTION
+// ============================================================================
+
+export async function action({ request, params }: ActionFunctionArgs) {
+  // This route currently uses API routes for all mutations (via apiClient).
+  // This action stub exists to prevent React Router errors when forms or
+  // fetchers accidentally submit to this route without an explicit action.
+  const formData = await request.formData();
+  const intent = formData.get("intent");
+
+  console.warn(
+    `[CampaignDetail] Unexpected form submission to route. Intent: ${intent}, Campaign: ${params.campaignId}`
+  );
+
+  return data({ success: false, error: "Use API routes for campaign mutations" }, { status: 400 });
 }
 
 // ============================================================================

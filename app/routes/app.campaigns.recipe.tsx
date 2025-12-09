@@ -17,7 +17,7 @@
  * @see docs/RECIPE_SYSTEM_ARCHITECTURE.md
  */
 
-import React, { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { data, type LoaderFunctionArgs } from "react-router";
 import { useLoaderData, useNavigate, useSearchParams } from "react-router";
 import { Page, BlockStack, Text, Card, Banner } from "@shopify/polaris";
@@ -257,7 +257,7 @@ export default function RecipeCampaignCreation() {
               {variantLabel
                 ? `Selecting a recipe for ${variantLabel}. `
                 : ""}
-              Only showing recipes that match the Control variant's goal ({restrictToGoal.replace("_", " ").toLowerCase()}) for A/B test consistency.
+              Only showing recipes that match the Control variant&apos;s goal ({restrictToGoal.replace("_", " ").toLowerCase()}) for A/B test consistency.
             </Text>
           </Banner>
         )}
@@ -287,4 +287,3 @@ export default function RecipeCampaignCreation() {
     </Page>
   );
 }
-

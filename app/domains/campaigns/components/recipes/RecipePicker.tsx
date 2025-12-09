@@ -19,7 +19,6 @@ import {
   Tag,
   Divider,
 } from "@shopify/polaris";
-import { ChevronRightIcon, XSmallIcon } from "@shopify/polaris-icons";
 import {
   RECIPE_TAG_LABELS,
   type RecipeTag,
@@ -91,6 +90,10 @@ const sidebarItemStyle = (isActive: boolean): React.CSSProperties => ({
   backgroundColor: isActive ? "var(--p-color-bg-surface-selected)" : "transparent",
   border: isActive ? "1px solid var(--p-color-border-interactive)" : "1px solid transparent",
   transition: "all 0.15s ease",
+  width: "100%",
+  textAlign: "left",
+  appearance: "none",
+  outline: "none",
 });
 
 const sidebarItemHoverStyle: React.CSSProperties = {
@@ -235,7 +238,8 @@ export function RecipePicker({
 
                 <BlockStack gap="100">
                   {/* All Recipes */}
-                  <div
+                  <button
+                    type="button"
                     style={{
                       ...sidebarItemStyle(selectedTemplateType === "all"),
                       ...(hoveredTemplateType === "all" && selectedTemplateType !== "all"
@@ -245,6 +249,7 @@ export function RecipePicker({
                     onClick={() => setSelectedTemplateType("all")}
                     onMouseEnter={() => setHoveredTemplateType("all")}
                     onMouseLeave={() => setHoveredTemplateType(null)}
+                    aria-pressed={selectedTemplateType === "all"}
                   >
                     <InlineStack align="space-between" blockAlign="center">
                       <InlineStack gap="200" blockAlign="center">
@@ -261,7 +266,7 @@ export function RecipePicker({
                         {goalFilteredRecipes.length}
                       </Text>
                     </InlineStack>
-                  </div>
+                  </button>
 
                   {/* Template type items */}
                   {availableTemplateTypes.map((templateType) => {
@@ -273,7 +278,8 @@ export function RecipePicker({
                     if (count === 0) return null;
 
                     return (
-                      <div
+                      <button
+                        type="button"
                         key={templateType}
                         style={{
                           ...sidebarItemStyle(isActive),
@@ -282,6 +288,7 @@ export function RecipePicker({
                         onClick={() => setSelectedTemplateType(templateType)}
                         onMouseEnter={() => setHoveredTemplateType(templateType)}
                         onMouseLeave={() => setHoveredTemplateType(null)}
+                        aria-pressed={isActive}
                       >
                         <InlineStack align="space-between" blockAlign="center">
                           <InlineStack gap="200" blockAlign="center">
@@ -298,7 +305,7 @@ export function RecipePicker({
                             {count}
                           </Text>
                         </InlineStack>
-                      </div>
+                      </button>
                     );
                   })}
                 </BlockStack>
@@ -314,7 +321,8 @@ export function RecipePicker({
                         }}
                       />
                     </Box>
-                    <div
+                    <button
+                      type="button"
                       style={{
                         ...sidebarItemStyle(false),
                         ...(hoveredTemplateType === "scratch" ? sidebarItemHoverStyle : {}),
@@ -322,6 +330,7 @@ export function RecipePicker({
                       onClick={onBuildFromScratch}
                       onMouseEnter={() => setHoveredTemplateType("scratch")}
                       onMouseLeave={() => setHoveredTemplateType(null)}
+                      aria-pressed="false"
                     >
                       <InlineStack gap="200" blockAlign="center">
                         <Text as="span">🛠️</Text>
@@ -329,7 +338,7 @@ export function RecipePicker({
                           Build from scratch
                         </Text>
                       </InlineStack>
-                    </div>
+                    </button>
                   </>
                 )}
               </BlockStack>

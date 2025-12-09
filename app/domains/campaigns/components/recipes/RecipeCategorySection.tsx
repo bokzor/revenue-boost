@@ -5,7 +5,7 @@
  */
 
 import React from "react";
-import { Box, Text, InlineStack, BlockStack, Button } from "@shopify/polaris";
+import { Box, Text, InlineStack, Button } from "@shopify/polaris";
 import { ChevronDownIcon, ChevronUpIcon } from "@shopify/polaris-icons";
 import type { RecipeCategoryMeta, StyledRecipe } from "../../recipes/styled-recipe-types";
 import { RecipeCard } from "./RecipeCard";
@@ -145,4 +145,3 @@ export function RecipeCategorySection({
     </PreviewProvider>
   );
 }
-

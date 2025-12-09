@@ -944,9 +944,10 @@ export class SpinToWinBuilder extends BaseBuilder<SpinToWinBuilder> {
      */
     withGdprCheckbox(enabled: boolean, text?: string): this {
         if (!this.config) throw new Error('Config not initialized');
-        this.config.contentConfig.showGdprCheckbox = enabled;
+        // Use correct field names per LeadCaptureConfigSchema
+        this.config.contentConfig.consentFieldEnabled = enabled;
         if (text) {
-            this.config.contentConfig.gdprLabel = text;
+            this.config.contentConfig.consentFieldText = text;
         }
         return this;
     }
@@ -1223,9 +1224,10 @@ export class ScratchCardBuilder extends BaseBuilder<ScratchCardBuilder> {
      */
     withGdprCheckbox(enabled: boolean, text?: string): this {
         if (!this.config) throw new Error('Config not initialized');
-        this.config.contentConfig.showGdprCheckbox = enabled;
+        // Use correct field names per LeadCaptureConfigSchema
+        this.config.contentConfig.consentFieldEnabled = enabled;
         if (text) {
-            this.config.contentConfig.gdprLabel = text;
+            this.config.contentConfig.consentFieldText = text;
         }
         return this;
     }
@@ -2188,7 +2190,7 @@ export class ExperimentBuilder {
                         emailPlaceholder: 'Enter your email',
                         submitButtonText: 'Subscribe',
                         privacyPolicyText: 'We respect your privacy',
-                        showGdprCheckbox: false
+                        consentFieldEnabled: false
                     },
                     designConfig: {
                         size: 'MEDIUM',

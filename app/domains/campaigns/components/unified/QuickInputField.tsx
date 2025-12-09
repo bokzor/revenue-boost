@@ -6,8 +6,18 @@
  * duration_hours, text, select, datetime, product_picker, collection_picker
  */
 
-import { Text, TextField, Select, RangeSlider } from "@shopify/polaris";
+import { Text, TextField, Select, RangeSlider, BlockStack } from "@shopify/polaris";
 import type { QuickInput } from "../../recipes/styled-recipe-types";
+import {
+  ProductPicker,
+  type ProductPickerSelection,
+} from "../../components/form/ProductPicker";
+
+/** Value structure for product/collection picker inputs */
+export interface PickerValue {
+  ids: string[];
+  selections?: ProductPickerSelection[];
+}
 
 export interface QuickInputFieldProps {
   input: QuickInput;
@@ -85,19 +95,30 @@ export function QuickInputField({ input, value, onChange }: QuickInputFieldProps
       return null;
 
     case "product_picker":
-    case "collection_picker":
-      // Product/collection pickers require App Bridge context
-      // For now, show a placeholder - full implementation would use ProductPicker component
+    case "collection_picker": {
+      const pickerMode = input.type === "product_picker" ? "product" : "collection";
+      const pickerValue = value as PickerValue | undefined;
+      const selectedIds = pickerValue?.ids || [];
+
       return (
-        <TextField
-          label={input.label}
-          value=""
-          onChange={() => {}}
-          placeholder="Product selection available in full editor"
-          disabled
-          autoComplete="off"
-        />
+        <BlockStack gap="200">
+          <Text as="span" variant="bodyMd">
+            {input.label}
+          </Text>
+          <ProductPicker
+            mode={pickerMode}
+            selectionType="multiple"
+            selectedIds={selectedIds}
+            onSelect={(selections: ProductPickerSelection[]) => {
+              const ids = selections.map((s) => s.id);
+              onChange({ ids, selections } satisfies PickerValue);
+            }}
+            buttonLabel={`Select ${pickerMode === "product" ? "products" : "collections"}`}
+            showSelected={true}
+          />
+        </BlockStack>
       );
+    }
 
     case "datetime":
       return (

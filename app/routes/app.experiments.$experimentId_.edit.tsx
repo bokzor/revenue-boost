@@ -15,6 +15,7 @@ import { getStoreId } from "~/lib/auth-helpers.server";
 import { ExperimentService, CampaignService } from "~/domains/campaigns";
 import {
   ExperimentFlow,
+  CampaignErrorBoundary,
   type Experiment,
   type Variant,
   type SuccessMetric,
@@ -261,7 +262,7 @@ export default function ExperimentEditPage() {
     storeId,
     shopDomain,
     recipes,
-    globalCustomCSS,
+    globalCustomCSS: _globalCustomCSS,
     customThemePresets,
     advancedTargetingEnabled,
   } = useLoaderData<typeof loader>();
@@ -332,18 +333,20 @@ export default function ExperimentEditPage() {
 
   return (
     <Frame>
-      <ExperimentFlow
-        onBack={handleBack}
-        onSave={handleSave}
-        recipes={recipes}
-        storeId={storeId}
-        shopDomain={shopDomain}
-        advancedTargetingEnabled={advancedTargetingEnabled}
-        customThemePresets={customThemePresets}
-        isEditMode
-        initialExperiment={initialExperiment}
-        experimentId={experiment.id}
-      />
+      <CampaignErrorBoundary context="ExperimentEdit">
+        <ExperimentFlow
+          onBack={handleBack}
+          onSave={handleSave}
+          recipes={recipes}
+          storeId={storeId}
+          shopDomain={shopDomain}
+          advancedTargetingEnabled={advancedTargetingEnabled}
+          customThemePresets={customThemePresets}
+          isEditMode
+          initialExperiment={initialExperiment}
+          experimentId={experiment.id}
+        />
+      </CampaignErrorBoundary>
       {toastMarkup}
     </Frame>
   );

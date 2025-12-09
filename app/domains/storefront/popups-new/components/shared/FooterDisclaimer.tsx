@@ -8,8 +8,6 @@
  * - --rb-popup-fg: Text color (with opacity)
  */
 
-import React from "react";
-
 export interface FooterDisclaimerProps {
   /** Disclaimer text content */
   text: string;
@@ -46,4 +44,3 @@ export function FooterDisclaimer({
 }
 
 export default FooterDisclaimer;
-

@@ -5,21 +5,20 @@
  */
 
 import { useState, useCallback, useEffect } from "react";
-import { data, type LoaderFunctionArgs, type ActionFunctionArgs, redirect } from "react-router";
-import { useLoaderData, useNavigate, useSubmit } from "react-router";
+import { data, type LoaderFunctionArgs } from "react-router";
+import { useLoaderData, useNavigate } from "react-router";
 import { Frame, Toast, Modal, Text } from "@shopify/polaris";
 
 import { authenticate } from "~/shopify.server";
 import { getStoreId } from "~/lib/auth-helpers.server";
 import { CampaignService } from "~/domains/campaigns";
-import { SingleCampaignFlow, type CampaignData } from "~/domains/campaigns/components/unified";
+import { SingleCampaignFlow, CampaignErrorBoundary, type CampaignData } from "~/domains/campaigns/components/unified";
 import type { CampaignWithConfigs } from "~/domains/campaigns/types/campaign";
 import type { FrequencyCappingConfig } from "~/domains/targeting/components";
 import prisma from "~/db.server";
 import { StoreSettingsSchema, GLOBAL_FREQUENCY_BEST_PRACTICES } from "~/domains/store/types/settings";
 import { PlanGuardService } from "~/domains/billing/services/plan-guard.server";
 import { STYLED_RECIPES } from "~/domains/campaigns/recipes/styled-recipe-catalog";
-import { presetToDesignTokens, type ThemePresetInput } from "~/domains/store/types/theme-preset";
 import type { DesignTokens } from "~/domains/campaigns/types/design-tokens";
 
 // ============================================================================
@@ -488,23 +487,25 @@ export default function CampaignEditPage() {
 
   return (
     <Frame>
-      <SingleCampaignFlow
-        onBack={handleBack}
-        onSave={handleSave}
-        onSaveDraft={handleSaveDraft}
-        recipes={recipes}
-        storeId={storeId}
-        shopDomain={shopDomain}
-        advancedTargetingEnabled={advancedTargetingEnabled}
-        initialData={initialData}
-        isEditMode={true}
-        campaignId={campaign.id}
-        customThemePresets={customThemePresets}
-        backgroundsByLayout={backgroundsByLayout}
-        globalCustomCSS={globalCustomCSS}
-        globalFrequencyCapping={globalFrequencyCapping}
-        defaultThemeTokens={defaultThemeTokens}
-      />
+      <CampaignErrorBoundary context="CampaignEdit">
+        <SingleCampaignFlow
+          onBack={handleBack}
+          onSave={handleSave}
+          onSaveDraft={handleSaveDraft}
+          recipes={recipes}
+          storeId={storeId}
+          shopDomain={shopDomain}
+          advancedTargetingEnabled={advancedTargetingEnabled}
+          initialData={initialData}
+          isEditMode={true}
+          campaignId={campaign.id}
+          customThemePresets={customThemePresets}
+          backgroundsByLayout={backgroundsByLayout}
+          globalCustomCSS={globalCustomCSS}
+          globalFrequencyCapping={globalFrequencyCapping}
+          defaultThemeTokens={defaultThemeTokens}
+        />
+      </CampaignErrorBoundary>
 
       <Modal
         open={activatePromptOpen}

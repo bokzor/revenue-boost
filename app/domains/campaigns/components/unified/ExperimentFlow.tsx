@@ -13,7 +13,7 @@ import { Modal, Text, BlockStack } from "@shopify/polaris";
 import { VariantConfigurator } from "./experiment/VariantConfigurator";
 import { ExperimentSetupView } from "./experiment/ExperimentSetupView";
 import type { StyledRecipe } from "../../recipes/styled-recipe-types";
-import type { Experiment, Variant, TrafficAllocation, SuccessMetric } from "./types";
+import type { Experiment, Variant, TrafficAllocation } from "./types";
 export type { Experiment, Variant, TrafficAllocation, SuccessMetric } from "./types";
 
 // =============================================================================
@@ -81,7 +81,7 @@ export function ExperimentFlow({
   customThemePresets,
   isEditMode = false,
   initialExperiment,
-  experimentId,
+  experimentId: _experimentId,
 }: ExperimentFlowProps) {
   // In edit mode, determine starting step based on variant status
   const getInitialStep = (): "setup" | "configure" => {

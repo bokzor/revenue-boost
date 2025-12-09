@@ -13,7 +13,7 @@
  * - VariantCampaignEditor (when configuring A/B test variants)
  */
 
-import React, { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { BlockStack, Text, Card, Banner } from "@shopify/polaris";
 
 import { GoalFilter } from "../goals/GoalFilter";
@@ -68,7 +68,7 @@ export function RecipeSelectionStep({
   recipes,
   onRecipeSelected,
   onBuildFromScratch,
-  storeId,
+  storeId: _storeId,
   defaultThemeTokens,
   restrictToGoal,
   variantLabel,
@@ -137,7 +137,7 @@ export function RecipeSelectionStep({
         <Banner tone="info">
           <Text as="p">
             {variantLabel ? `Configuring ${variantLabel}. ` : ""}
-            Only showing recipes that match the Control variant's goal for A/B test consistency.
+            Only showing recipes that match the Control variant&apos;s goal for A/B test consistency.
           </Text>
         </Banner>
       )}
@@ -316,7 +316,7 @@ function buildRecipeInitialData(
   let finalDiscountConfig: DiscountConfig | Record<string, unknown>;
 
   if (discountConfig) {
-    // Modal state has full discount config (from requiredConfig: ["discount"])
+    // Full discount config provided (e.g., from parent or pre-configured)
     finalDiscountConfig = discountConfig;
   } else if (discountValue !== undefined) {
     // Merge recipe defaults with the discount value from input
@@ -497,4 +497,3 @@ function buildRecipeInitialData(
     discountConfig: finalDiscountConfig,
   };
 }
-

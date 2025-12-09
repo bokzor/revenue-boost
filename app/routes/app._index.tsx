@@ -468,10 +468,6 @@ export default function Dashboard() {
     navigate("/app/campaigns/create");
   };
 
-  const handleCreateFromScratch = () => {
-    navigate("/app/campaigns/create");
-  };
-
   const handleTimeRangeChange = (value: string) => {
     setSearchParams({ timeRange: value });
   };

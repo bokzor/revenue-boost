@@ -5,7 +5,7 @@
  * Supports navigation, cart actions, and discount application.
  */
 
-import { useState, useCallback } from "react";
+import { useCallback } from "react";
 import {
   BlockStack,
   TextField,
@@ -16,7 +16,7 @@ import {
   InlineStack,
   Badge,
 } from "@shopify/polaris";
-import { ProductPicker, type ProductPickerSelection } from "./ProductPicker";
+import { ProductPicker } from "./ProductPicker";
 import {
   type CTAConfig,
   type CTAAction,
@@ -39,9 +39,6 @@ export function CTAConfigEditor({
   allowedActions,
   showDiscountOptions = true,
 }: CTAConfigEditorProps) {
-  const [productName, setProductName] = useState<string>("");
-  const [collectionName, setCollectionName] = useState<string>("");
-
   // Filter actions if allowedActions is specified
   const availableActions = allowedActions
     ? CTA_ACTION_OPTIONS.filter((opt) => allowedActions.includes(opt.value))
@@ -49,6 +46,8 @@ export function CTAConfigEditor({
 
   const currentAction = config.action || "navigate_collection";
   const actionOption = getCTAActionOption(currentAction);
+  const successBehavior = config.successBehavior ?? {};
+  const secondaryAction = successBehavior.secondaryAction;
 
   const updateConfig = useCallback(
     (updates: Partial<CTAConfig>) => {
@@ -69,36 +68,6 @@ export function CTAConfigEditor({
         collectionHandle: undefined,
         variantId: undefined,
       });
-    },
-    [updateConfig]
-  );
-
-  const handleProductSelect = useCallback(
-    (selections: ProductPickerSelection[]) => {
-      if (selections.length > 0) {
-        const product = selections[0];
-        setProductName(product.title);
-        updateConfig({
-          productId: product.id,
-          productHandle: product.handle,
-          // If product has variants, use first one as default
-          variantId: product.variants?.[0]?.id,
-        });
-      }
-    },
-    [updateConfig]
-  );
-
-  const handleCollectionSelect = useCallback(
-    (selections: ProductPickerSelection[]) => {
-      if (selections.length > 0) {
-        const collection = selections[0];
-        setCollectionName(collection.title);
-        updateConfig({
-          collectionId: collection.id,
-          collectionHandle: collection.handle,
-        });
-      }
     },
     [updateConfig]
   );
@@ -161,13 +130,11 @@ export function CTAConfigEditor({
               onSelect={(selections) => {
                 if (selections.length > 0) {
                   const collection = selections[0];
-                  setCollectionName(collection.title);
                   updateConfig({
                     collectionId: collection.id,
                     collectionHandle: collection.handle,
                   });
                 } else {
-                  setCollectionName("");
                   updateConfig({ collectionId: undefined, collectionHandle: undefined });
                 }
               }}
@@ -187,13 +154,11 @@ export function CTAConfigEditor({
               onSelect={(selections) => {
                 if (selections.length > 0) {
                   const product = selections[0];
-                  setProductName(product.title);
                   updateConfig({
                     productId: product.id,
                     productHandle: product.handle,
                   });
                 } else {
-                  setProductName("");
                   updateConfig({ productId: undefined, productHandle: undefined });
                 }
               }}
@@ -215,14 +180,12 @@ export function CTAConfigEditor({
                   const product = selections[0];
                   // Get first variant from product for add-to-cart action
                   const firstVariant = product.variants?.[0];
-                  setProductName(product.title);
                   updateConfig({
                     productId: product.id,
                     productHandle: product.handle,
                     variantId: firstVariant?.id,
                   });
                 } else {
-                  setProductName("");
                   updateConfig({ productId: undefined, productHandle: undefined, variantId: undefined });
                 }
               }}
@@ -280,7 +243,7 @@ export function CTAConfigEditor({
             <TextField
               label="Auto-close delay (seconds)"
               type="number"
-              value={String(config.successBehavior?.autoCloseDelay ?? 5)}
+              value={String(successBehavior.autoCloseDelay ?? 5)}
               onChange={(value) =>
                 updateConfig({
                   successBehavior: {
@@ -298,7 +261,7 @@ export function CTAConfigEditor({
             <BlockStack gap="200">
               <Checkbox
                 label="Show secondary action button"
-                checked={!!config.successBehavior?.secondaryAction}
+                checked={!!secondaryAction}
                 onChange={(checked) =>
                   updateConfig({
                     successBehavior: {
@@ -312,18 +275,18 @@ export function CTAConfigEditor({
                 helpText="Add a button like 'View Cart' or 'Continue Shopping'"
               />
 
-              {config.successBehavior?.secondaryAction && (
+              {secondaryAction && (
                 <InlineStack gap="300" wrap={false}>
                   <Box minWidth="120px">
                     <TextField
                       label="Button Label"
-                      value={config.successBehavior.secondaryAction.label || ""}
+                      value={secondaryAction.label || ""}
                       onChange={(value) =>
                         updateConfig({
                           successBehavior: {
                             ...config.successBehavior,
                             secondaryAction: {
-                              ...config.successBehavior?.secondaryAction!,
+                              ...secondaryAction,
                               label: value,
                             },
                           },
@@ -336,13 +299,13 @@ export function CTAConfigEditor({
                   <Box minWidth="200px">
                     <TextField
                       label="URL"
-                      value={config.successBehavior.secondaryAction.url || ""}
+                      value={secondaryAction.url || ""}
                       onChange={(value) =>
                         updateConfig({
                           successBehavior: {
                             ...config.successBehavior,
                             secondaryAction: {
-                              ...config.successBehavior?.secondaryAction!,
+                              ...secondaryAction,
                               url: value,
                             },
                           },

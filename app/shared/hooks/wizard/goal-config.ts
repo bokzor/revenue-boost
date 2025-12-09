@@ -8,7 +8,7 @@
 
 import type { CampaignGoal, CampaignFormData, PopupDesignFormData } from "../useWizardState";
 import { getGoalDefaults } from "../../../lib/goal-defaults";
-import type { DiscountConfig } from "~/domains/commerce/services/discounts/discount.server";
+import type { DiscountConfig } from "~/domains/campaigns/types/campaign";
 
 // Build discount configuration from goal defaults
 export function buildDiscountConfig(

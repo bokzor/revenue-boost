@@ -15,7 +15,7 @@ import type {
   ColorTheme,
   ExtendedColorConfig,
 } from "~/domains/popups/color-customization.types";
-import type { DesignConfig } from "~/domains/campaigns/types/campaign";
+import type { DesignConfig, TemplateType } from "~/domains/campaigns/types/campaign";
 import {
   getDefaultBackgroundForTheme,
   getBackgroundUrl,
@@ -928,9 +928,6 @@ export function getFlashSaleThemeColors(
 // ============================================================================
 // TEMPLATE-SPECIFIC THEME BEHAVIOR
 // ============================================================================
-
-import type { TemplateType } from "~/domains/campaigns/types/campaign";
-
 /**
  * Defines how themes behave differently per template type.
  * For example, NEWSLETTER uses background images while SPIN_TO_WIN does not.

@@ -223,10 +223,6 @@ function parseShopifyFont(fontValue: string | undefined): {
  * Map Shopify font picker values to CSS font-family strings
  * @deprecated Use parseShopifyFont() instead for full font stack
  */
-function mapShopifyFont(fontValue: string | undefined): string | undefined {
-  return parseShopifyFont(fontValue).fontName;
-}
-
 // =============================================================================
 // THEME SETTINGS PARSING
 // =============================================================================
@@ -857,4 +853,3 @@ export function designTokensToCSSVariables(tokens: DesignTokens): Record<string,
     "--rb-popup-radius": `${tokens.popupBorderRadius}px`,
   };
 }
-

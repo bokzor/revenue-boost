@@ -43,111 +43,15 @@ import {
   validateCampaignCreateData,
   validateContentConfig,
 } from "../../validation/campaign-validation";
-
-// Default targeting configuration
-const DEFAULT_TARGETING_CONFIG: TargetingConfig = {
-  enhancedTriggers: {
-    enabled: true,
-    page_load: { enabled: true, delay: 3000 },
-  },
-  audienceTargeting: {
-    enabled: false,
-    shopifySegmentIds: [],
-  },
-  geoTargeting: {
-    enabled: false,
-    mode: "include",
-    countries: [],
-  },
-};
-
-// Default frequency capping configuration
-const DEFAULT_FREQUENCY_CONFIG: FrequencyCappingConfig = {
-  enabled: true,
-  max_triggers_per_session: 1,
-  max_triggers_per_day: 3,
-  cooldown_between_triggers: 300,
-  respectGlobalCap: true,
-};
-
-// Default schedule configuration
-const DEFAULT_SCHEDULE_CONFIG: ScheduleConfig = {
-  status: "DRAFT",
-  priority: 50,
-};
-
-// Default discount configuration
-const DEFAULT_DISCOUNT_CONFIG: DiscountConfig = {
-  enabled: false,
-  showInPreview: true,
-  type: "shared",
-  valueType: "PERCENTAGE",
-  value: 10,
-  expiryDays: 30,
-  prefix: "WELCOME",
-  behavior: "SHOW_CODE_AND_AUTO_APPLY",
-};
-
-// Section definitions (recipe is now a separate step, not a section)
-type SectionId =
-  | "recipe"
-  | "basics"
-  | "quickConfig"
-  | "content"
-  | "design"
-  | "discount"
-  | "targeting"
-  | "frequency"
-  | "schedule";
-
-interface SectionDef {
-  id: SectionId;
-  icon: string;
-  title: string;
-  subtitle: string;
-  /** If true, section is conditionally visible (e.g., quickConfig only shows if recipe has inputs) */
-  conditional?: boolean;
-}
-
-const EDITOR_SECTIONS: SectionDef[] = [
-  {
-    id: "basics",
-    icon: "📝",
-    title: "Campaign Name & Description",
-    subtitle: "Give your campaign a name and optional description",
-  },
-  {
-    id: "quickConfig",
-    icon: "⚙️",
-    title: "Quick Configuration",
-    subtitle: "Configure your offer details",
-    conditional: true,
-  },
-  {
-    id: "content",
-    icon: "✏️",
-    title: "Content & Design",
-    subtitle: "Configure headlines, buttons, colors, and styling",
-  },
-  {
-    id: "targeting",
-    icon: "🎯",
-    title: "Targeting & Triggers",
-    subtitle: "Define who sees your popup and when",
-  },
-  {
-    id: "frequency",
-    icon: "🔄",
-    title: "Frequency",
-    subtitle: "Control how often the popup appears",
-  },
-  {
-    id: "schedule",
-    icon: "📅",
-    title: "Schedule & Settings",
-    subtitle: "Set start/end dates and priority",
-  },
-];
+import {
+  DEFAULT_TARGETING_CONFIG,
+  DEFAULT_FREQUENCY_CONFIG,
+  DEFAULT_SCHEDULE_CONFIG,
+  DEFAULT_DISCOUNT_CONFIG,
+  EDITOR_SECTIONS,
+  toTargetRulesRecord,
+  type SectionId,
+} from "./defaults";
 
 /** Design tokens from the store's default theme preset (matches DesignTokens shape) */
 export type DefaultThemeTokens = import("~/domains/campaigns/types/design-tokens").DesignTokens;
@@ -201,7 +105,7 @@ export function SingleCampaignFlow({
   advancedTargetingEnabled,
   initialData,
   isEditMode = false,
-  campaignId,
+  campaignId: _campaignId,
   // New props for feature parity
   customThemePresets,
   backgroundsByLayout,
@@ -266,6 +170,16 @@ export function SingleCampaignFlow({
     setCompletedSections((prev) => (prev.includes(id) ? prev : [...prev, id]));
     if (nextSection) {
       setExpandedSections([nextSection]);
+      // Scroll to the newly expanded section after the Collapsible animation completes (200ms)
+      setTimeout(() => {
+        const sectionElement = document.querySelector(`[data-section-id="${nextSection}"]`);
+        if (sectionElement) {
+          const rect = sectionElement.getBoundingClientRect();
+          const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+          const targetY = scrollTop + rect.top - 100; // 100px offset for header
+          window.scrollTo({ top: targetY, behavior: "smooth" });
+        }
+      }, 250);
     }
   }, []);
 
@@ -448,6 +362,8 @@ export function SingleCampaignFlow({
       designConfig,
       targetingConfig,
       discountConfig,
+      isEditMode,
+      initialData?.templateType,
     ]
   );
 
@@ -741,7 +657,7 @@ function PreviewColumn({
               discountConfig,
             }}
             designConfig={designConfig}
-            targetRules={targetingConfig as unknown as Record<string, unknown>}
+            targetRules={toTargetRulesRecord(targetingConfig)}
             shopDomain={shopDomain}
             globalCustomCSS={globalCustomCSS}
             device={previewDevice}

@@ -7,8 +7,7 @@
  * - custom: Manual color configuration
  */
 
-import React from "react";
-import { BlockStack, Text, InlineStack } from "@shopify/polaris";
+import { BlockStack, Text } from "@shopify/polaris";
 import type { ThemeMode } from "~/domains/campaigns/types/design-tokens";
 
 interface ThemeModeOption {
@@ -104,4 +103,3 @@ export function ThemeModeSelector({ value, onChange, hidePreset = false }: Theme
 }
 
 export default ThemeModeSelector;
-

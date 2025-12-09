@@ -32,10 +32,10 @@ export function GoalFilter({
       {/* Header */}
       <BlockStack gap="100">
         <Text as="h2" variant="headingLg">
-          What's your goal?
+          What&apos;s your goal?
         </Text>
         <Text as="p" variant="bodyMd" tone="subdued">
-          Choose your objective and we'll show you the best recipes to achieve it
+          Choose your objective and we&apos;ll show you the best recipes to achieve it
         </Text>
       </BlockStack>
 
@@ -162,4 +162,3 @@ function GoalFilterCard({ option, isSelected, onClick, recipeCount }: GoalFilter
     </button>
   );
 }
-

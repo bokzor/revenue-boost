@@ -216,7 +216,6 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
     successBehavior,
     handleCtaClick,
     handleSecondaryCta,
-    setDiscountCode,
     cancelAutoClose,
     pendingNavigationUrl,
   } = useCTAHandler({

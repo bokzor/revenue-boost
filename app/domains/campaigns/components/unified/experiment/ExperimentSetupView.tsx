@@ -5,7 +5,7 @@
  * Configure experiment details, variants, and traffic allocation.
  */
 
-import { Card, BlockStack, InlineStack, Text, TextField, Select, Button, Box, InlineGrid } from "@shopify/polaris";
+import { Card, BlockStack, InlineStack, Text, TextField, Select, Button, InlineGrid } from "@shopify/polaris";
 import { ArrowLeftIcon, PlusIcon } from "@shopify/polaris-icons";
 import { VariantCard } from "./VariantCard";
 import { AddVariantCard } from "./AddVariantCard";
@@ -173,4 +173,3 @@ export function ExperimentSetupView({
     </div>
   );
 }
-

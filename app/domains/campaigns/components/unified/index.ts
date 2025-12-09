@@ -13,6 +13,7 @@ export { CollapsibleSection, type CollapsibleSectionProps } from "./CollapsibleS
 export { FormSections, type FormSectionsProps } from "./FormSections";
 export { ExperimentFlow, type ExperimentFlowProps } from "./ExperimentFlow";
 export { RecipeSelectionStep, type RecipeSelectionStepProps, type RecipeSelectionResult } from "./RecipeSelectionStep";
+export { CampaignErrorBoundary } from "./CampaignErrorBoundary";
 
 // Re-export types from types.ts
 export type { Experiment, Variant, TrafficAllocation, SuccessMetric } from "./types";

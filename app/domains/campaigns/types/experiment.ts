@@ -152,7 +152,7 @@ export const ExperimentCreateDataSchema = z.object({
 });
 
 export const ExperimentUpdateDataSchema = ExperimentCreateDataSchema.partial().extend({
-  id: z.string().cuid(),
+  id: z.string().cuid().optional(),
 });
 
 // ============================================================================

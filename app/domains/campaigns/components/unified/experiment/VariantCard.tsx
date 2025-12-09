@@ -5,7 +5,7 @@
  * Shows status, recipe info, and configuration state.
  */
 
-import { Card, BlockStack, InlineStack, Text, Badge, Box, Icon } from "@shopify/polaris";
+import { BlockStack, InlineStack, Text, Badge, Box, Icon } from "@shopify/polaris";
 import { CheckIcon, SettingsIcon } from "@shopify/polaris-icons";
 import type { Variant } from "../types";
 
@@ -19,7 +19,8 @@ export function VariantCard({ variant, isControl, onClick }: VariantCardProps) {
   const isConfigured = variant.status === "configured";
 
   return (
-    <div
+    <button
+      type="button"
       onClick={onClick}
       style={{
         cursor: "pointer",
@@ -30,7 +31,11 @@ export function VariantCard({ variant, isControl, onClick }: VariantCardProps) {
         backgroundColor: "var(--p-color-bg-surface)",
         overflow: "hidden",
         transition: "all 0.2s ease",
+        width: "100%",
+        textAlign: "left",
+        padding: 0,
       }}
+      aria-label={`Configure variant ${variant.name}`}
     >
       <Box padding="400">
         <BlockStack gap="300">
@@ -83,7 +88,6 @@ export function VariantCard({ variant, isControl, onClick }: VariantCardProps) {
           )}
         </BlockStack>
       </Box>
-    </div>
+    </button>
   );
 }
-

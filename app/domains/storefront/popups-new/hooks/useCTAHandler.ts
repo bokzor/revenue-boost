@@ -16,7 +16,7 @@
  * - Success state with auto-close countdown
  */
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 
 // =============================================================================
 // TYPES
@@ -224,19 +224,29 @@ export function useCTAHandler(options: UseCTAHandlerOptions): UseCTAHandlerRetur
   const isDisabled = hasExpired || isSoldOut;
 
   // Resolve success behavior from CTA config or defaults
-  const hasExplicitSuccessBehavior = !!cta?.successBehavior;
-  const resolvedSuccessBehavior: SuccessBehavior | null =
-    actionCompleted && (hasExplicitSuccessBehavior || (hasDiscount && !!discountCode))
-      ? {
-          showDiscountCode:
-            cta?.successBehavior?.showDiscountCode ?? (hasDiscount && !!discountCode),
-          // Only enable auto-close when successBehavior is explicitly configured
-          autoCloseDelay: hasExplicitSuccessBehavior
-            ? cta?.successBehavior?.autoCloseDelay ?? defaultAutoCloseDelay
-            : undefined,
-          secondaryAction: cta?.successBehavior?.secondaryAction,
-        }
-      : null;
+  const successBehaviorConfig = cta?.successBehavior;
+  const hasExplicitSuccessBehavior = !!successBehaviorConfig;
+  const resolvedSuccessBehavior: SuccessBehavior | null = useMemo(() => {
+    if (!actionCompleted || !(hasExplicitSuccessBehavior || (hasDiscount && !!discountCode))) {
+      return null;
+    }
+
+    return {
+      showDiscountCode: successBehaviorConfig?.showDiscountCode ?? (hasDiscount && !!discountCode),
+      // Only enable auto-close when successBehavior is explicitly configured
+      autoCloseDelay: hasExplicitSuccessBehavior
+        ? successBehaviorConfig?.autoCloseDelay ?? defaultAutoCloseDelay
+        : undefined,
+      secondaryAction: successBehaviorConfig?.secondaryAction,
+    };
+  }, [
+    actionCompleted,
+    hasExplicitSuccessBehavior,
+    hasDiscount,
+    discountCode,
+    successBehaviorConfig,
+    defaultAutoCloseDelay,
+  ]);
 
   // Success message comes from options (contentConfig.successMessage) or defaults
   const resolvedSuccessMessage = actionCompleted
@@ -301,7 +311,7 @@ export function useCTAHandler(options: UseCTAHandlerOptions): UseCTAHandlerRetur
         clearInterval(autoCloseTimerRef.current);
       }
     };
-  }, [actionCompleted, isPreview, resolvedSuccessBehavior?.autoCloseDelay, defaultAutoCloseDelay, onClose, pendingNavigationUrl, pendingNavigationNewTab]);
+  }, [actionCompleted, isPreview, resolvedSuccessBehavior, defaultAutoCloseDelay, onClose, pendingNavigationUrl, pendingNavigationNewTab]);
 
   const cancelAutoClose = useCallback(() => {
     if (autoCloseTimerRef.current) {
@@ -350,7 +360,7 @@ export function useCTAHandler(options: UseCTAHandlerOptions): UseCTAHandlerRetur
       // Step 1: Execute the CTA action FIRST (important for free gift discounts!)
       // The product must be in the cart before applying a product-scoped discount
       if (cta) {
-        const { action, variantId, quantity, openInNewTab } = cta;
+        const { action, variantId, quantity } = cta;
         console.log("[useCTAHandler] Executing action:", { action, variantId, quantity });
 
         // Handle cart actions BEFORE issuing discount
@@ -446,7 +456,6 @@ export function useCTAHandler(options: UseCTAHandlerOptions): UseCTAHandlerRetur
     getCartSubtotalCents,
     onCtaClick,
     failureMessage,
-    discountCode,
   ]);
 
   // Handle secondary CTA or "Continue" action when there's a pending navigation

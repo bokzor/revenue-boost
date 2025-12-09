@@ -7,7 +7,7 @@
  * - Extracted from TemplateSelector for better reusability and testability
  */
 
-import type { UnifiedTemplate } from "~/domains/popups/services/templates/unified-template-service.server";
+import type { TemplateWithConfigs as UnifiedTemplate } from "~/domains/templates/types/template";
 
 // ============================================================================
 // TYPES

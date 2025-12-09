@@ -45,15 +45,6 @@ const TEMPLATE_TYPES: TemplateType[] = [
   "EXIT_INTENT",
 ];
 
-// Group templates by category for organized display
-const CATEGORIES = {
-  "Lead Generation": ["NEWSLETTER", "EXIT_INTENT"],
-  "Gamification": ["SPIN_TO_WIN", "SCRATCH_CARD"],
-  "Sales & Urgency": ["FLASH_SALE", "COUNTDOWN_TIMER"],
-  "Conversion": ["FREE_SHIPPING", "CART_ABANDONMENT", "PRODUCT_UPSELL"],
-  "Trust & Communication": ["SOCIAL_PROOF", "ANNOUNCEMENT"],
-};
-
 export interface TemplateShowcaseGridProps {
   /** Filter to show only specific templates */
   templates?: TemplateType[];
@@ -100,6 +91,17 @@ export const TemplateShowcaseGrid: React.FC<TemplateShowcaseGridProps> = ({
     boxShadow: "0 8px 32px rgba(99, 102, 241, 0.2)",
   };
 
+  const handleCardKeyDown = (
+    event: React.KeyboardEvent<HTMLDivElement>,
+    templateType: TemplateType
+  ) => {
+    if (!onTemplateClick) return;
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      onTemplateClick(templateType);
+    }
+  };
+
   return (
     <div style={gridStyles}>
       {templates.map((templateType) => (
@@ -109,6 +111,9 @@ export const TemplateShowcaseGrid: React.FC<TemplateShowcaseGridProps> = ({
           onMouseEnter={() => setActiveTemplate(templateType)}
           onMouseLeave={() => setActiveTemplate(null)}
           onClick={() => onTemplateClick?.(templateType)}
+          onKeyDown={(event) => handleCardKeyDown(event, templateType)}
+          role={onTemplateClick ? "button" : undefined}
+          tabIndex={onTemplateClick ? 0 : -1}
         >
           <MarketingTemplatePreview
             templateType={templateType}
@@ -179,4 +184,3 @@ export const TemplateSpotlight: React.FC<{
 };
 
 export default TemplateShowcaseGrid;
-

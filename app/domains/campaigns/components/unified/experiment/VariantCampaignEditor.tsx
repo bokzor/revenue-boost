@@ -6,7 +6,7 @@
  * 2. Campaign Editor: 2-column layout with preview and form sections
  */
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { Layout, Card, BlockStack, Text, Box, Banner, Page, InlineStack, Button } from "@shopify/polaris";
 import { FormSections, type TargetingConfig, type ScheduleConfig } from "../FormSections";
 import { RecipeSelectionStep, type RecipeSelectionResult } from "../RecipeSelectionStep";
@@ -21,52 +21,16 @@ import type { CampaignData, DefaultThemeTokens } from "../SingleCampaignFlow";
 import type { BackgroundPreset } from "~/config/background-presets";
 import type { GlobalFrequencyCappingSettings } from "~/domains/store/types/settings";
 import type { ThemePreset } from "../../steps/DesignContentStep";
-
-// Default configs
-const DEFAULT_TARGETING_CONFIG: TargetingConfig = {
-  enhancedTriggers: { enabled: true, page_load: { enabled: true, delay: 3000 } },
-  audienceTargeting: { enabled: false, shopifySegmentIds: [] },
-  geoTargeting: { enabled: false, mode: "include", countries: [] },
-};
-
-const DEFAULT_FREQUENCY_CONFIG: FrequencyCappingConfig = {
-  enabled: true,
-  max_triggers_per_session: 1,
-  max_triggers_per_day: 3,
-  cooldown_between_triggers: 300,
-  respectGlobalCap: true,
-};
-
-const DEFAULT_SCHEDULE_CONFIG: ScheduleConfig = {
-  status: "DRAFT",
-  priority: 50,
-};
-
-const DEFAULT_DISCOUNT_CONFIG: DiscountConfig = {
-  enabled: false,
-  showInPreview: true,
-  type: "shared",
-  valueType: "PERCENTAGE",
-  value: 10,
-  expiryDays: 30,
-  prefix: "WELCOME",
-  behavior: "SHOW_CODE_AND_AUTO_APPLY",
-};
-
-type SectionId = "recipe" | "basics" | "quickConfig" | "content" | "design" | "discount" | "targeting" | "frequency" | "schedule";
-
-// Editor sections (recipe is now a separate step)
-// Note: "basics" is available for variants that need name editing, but variants typically use preset names
-// Note: For variants, we use "content" section (same as SingleCampaignFlow) which includes both content and design
-const EDITOR_SECTIONS: { id: SectionId; icon: string; title: string; subtitle: string }[] = [
-  { id: "content", icon: "✏️", title: "Content & Design", subtitle: "Configure headlines, buttons, colors, and styling" },
-  { id: "targeting", icon: "🎯", title: "Targeting & Triggers", subtitle: "Define who sees your popup and when" },
-  { id: "frequency", icon: "🔄", title: "Frequency", subtitle: "Control how often the popup appears" },
-  { id: "schedule", icon: "📅", title: "Schedule & Settings", subtitle: "Set start/end dates and priority" },
-];
-
-// Non-control variants don't see schedule (inherits from control)
-const VARIANT_SECTIONS = EDITOR_SECTIONS.filter((s) => s.id !== "schedule");
+import {
+  DEFAULT_TARGETING_CONFIG,
+  DEFAULT_FREQUENCY_CONFIG,
+  DEFAULT_SCHEDULE_CONFIG,
+  DEFAULT_DISCOUNT_CONFIG,
+  EDITOR_SECTIONS,
+  VARIANT_SECTIONS,
+  toTargetRulesRecord,
+  type SectionId,
+} from "../defaults";
 
 export interface VariantCampaignEditorProps {
   variant: Variant;
@@ -156,21 +120,60 @@ export function VariantCampaignEditor({
     setCompletedSections((prev) => (prev.includes(id) ? prev : [...prev, id]));
     if (nextSection) {
       setExpandedSections([nextSection]);
+      // Scroll to the newly expanded section after the Collapsible animation completes (200ms)
+      setTimeout(() => {
+        const sectionElement = document.querySelector(`[data-section-id="${nextSection}"]`);
+        if (sectionElement) {
+          const rect = sectionElement.getBoundingClientRect();
+          const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+          const targetY = scrollTop + rect.top - 100; // 100px offset for header
+          window.scrollTo({ top: targetY, behavior: "smooth" });
+        }
+      }, 250);
     }
   }, []);
 
-  // Build campaign data
-  const buildCampaignData = useCallback((): CampaignData => ({
-    name: variant.name,
-    recipe: selectedRecipe,
-    templateType: selectedRecipe?.templateType as TemplateType,
+  // Use ref to always have latest state for debounced saves (avoids stale closures)
+  const latestStateRef = useRef({
+    variant,
+    selectedRecipe,
     contentConfig,
     designConfig,
     discountConfig,
     targetingConfig,
     frequencyConfig,
     scheduleConfig,
-  }), [variant.name, selectedRecipe, contentConfig, designConfig, discountConfig, targetingConfig, frequencyConfig, scheduleConfig]);
+  });
+
+  // Keep ref in sync with state
+  useEffect(() => {
+    latestStateRef.current = {
+      variant,
+      selectedRecipe,
+      contentConfig,
+      designConfig,
+      discountConfig,
+      targetingConfig,
+      frequencyConfig,
+      scheduleConfig,
+    };
+  }, [variant, selectedRecipe, contentConfig, designConfig, discountConfig, targetingConfig, frequencyConfig, scheduleConfig]);
+
+  // Build campaign data (uses ref for debounced saves to avoid stale closures)
+  const buildCampaignData = useCallback((): CampaignData => {
+    const state = latestStateRef.current;
+    return {
+      name: state.variant.name,
+      recipe: state.selectedRecipe,
+      templateType: state.selectedRecipe?.templateType as TemplateType,
+      contentConfig: state.contentConfig,
+      designConfig: state.designConfig,
+      discountConfig: state.discountConfig,
+      targetingConfig: state.targetingConfig,
+      frequencyConfig: state.frequencyConfig,
+      scheduleConfig: state.scheduleConfig,
+    };
+  }, []);
 
   // Handler for RecipeSelectionStep (step 1 → step 2)
   const handleRecipeSelected = useCallback((result: RecipeSelectionResult) => {
@@ -225,22 +228,32 @@ export function VariantCampaignEditor({
     });
   }, [markComplete, onSave, variant.name, discountConfig, targetingConfig, frequencyConfig, scheduleConfig]);
 
-  // Back handler that respects the step
-  const handleBack = useCallback(() => {
-    if (step === "editor") {
-      // Go back to recipe selection
-      setStep("recipe");
-    } else if (onBack) {
-      // Go back to variant list
-      onBack();
-    }
-  }, [step, onBack]);
+  // Debounced save to prevent excessive saves on rapid form changes
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const DEBOUNCE_DELAY_MS = 500;
 
   const saveCurrentState = useCallback(() => {
-    if (selectedRecipe) {
-      onSave(buildCampaignData());
+    // Clear any pending save
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
     }
+
+    // Schedule a debounced save
+    saveTimeoutRef.current = setTimeout(() => {
+      if (selectedRecipe) {
+        onSave(buildCampaignData());
+      }
+    }, DEBOUNCE_DELAY_MS);
   }, [selectedRecipe, buildCampaignData, onSave]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const templateType = selectedRecipe?.templateType as TemplateType | undefined;
   const sectionsToShow = isControlVariant ? EDITOR_SECTIONS : VARIANT_SECTIONS;
@@ -299,7 +312,7 @@ export function VariantCampaignEditor({
                     discountConfig,
                   }}
                   designConfig={designConfig}
-                  targetRules={targetingConfig as unknown as Record<string, unknown>}
+                  targetRules={toTargetRulesRecord(targetingConfig)}
                   shopDomain={shopDomain}
                   device={previewDevice}
                   onDeviceChange={setPreviewDevice}

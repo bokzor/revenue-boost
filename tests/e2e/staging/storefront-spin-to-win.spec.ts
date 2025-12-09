@@ -427,22 +427,7 @@ test.describe.serial('Spin to Win Template', () => {
         console.log(`GDPR state: ${gdprState.debug}`);
 
         // GDPR checkbox should be present when enabled - check for either the checkbox element or consent text
-        // Note: If neither is found, this may indicate a real bug in the storefront extension
-        if (!gdprState.exists && !gdprState.hasConsentText) {
-            // Log the shadow DOM content for debugging
-            const shadowContent = await page.evaluate(() => {
-                const host = document.querySelector('#revenue-boost-popup-shadow-host');
-                return host?.shadowRoot?.innerHTML?.substring(0, 500) || 'no content';
-            });
-            console.log(`Shadow DOM preview: ${shadowContent}`);
-
-            // This is a known issue - the GDPR checkbox may not be rendering in the storefront extension
-            // TODO: Investigate why consentFieldEnabled is not being passed to the popup
-            console.log('⚠️ GDPR checkbox not found - this may be a storefront extension bug');
-            console.log('✅ Test completed - GDPR feature needs investigation');
-            return;
-        }
-
+        // HARD ASSERTION - The GDPR checkbox must be visible when consentFieldEnabled is true
         expect(gdprState.exists || gdprState.hasConsentText).toBe(true);
         console.log('✅ GDPR consent checkbox displayed');
     });

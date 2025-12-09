@@ -12,14 +12,21 @@
  */
 
 import { useState, useMemo } from "react";
-import { BlockStack, Text, InlineGrid, Box, Button, Card, InlineStack, TextField } from "@shopify/polaris";
+import { BlockStack, Text, InlineGrid, Box, Button, InlineStack, TextField } from "@shopify/polaris";
 import { useNavigate } from "react-router";
 import { CollapsibleSection } from "./CollapsibleSection";
 import { RecipeCard } from "../recipes/RecipeCard";
 import { PreviewProvider } from "../recipes/PreviewContext";
 import { QuickInputField } from "./QuickInputField";
 import type { StyledRecipe, RecipeContext } from "../../recipes/styled-recipe-types";
-import type { ContentConfig, DesignConfig, AudienceTargetingConfig, GeoTargetingConfig, CampaignGoal } from "../../types/campaign";
+import type {
+  ContentConfig,
+  DesignConfig,
+  AudienceTargetingConfig,
+  GeoTargetingConfig,
+  CampaignGoal,
+  DiscountConfig,
+} from "../../types/campaign";
 import type { TemplateType } from "~/shared/hooks/useWizardState";
 import type { EnhancedTriggerConfig } from "~/domains/targeting/types/enhanced-triggers.types";
 import type { FrequencyCappingConfig } from "~/domains/targeting/components";
@@ -31,8 +38,6 @@ import { DesignContentStep, type ThemePreset } from "../steps/DesignContentStep"
 import { TargetingStepContent } from "../steps/TargetingStepContent";
 import { FrequencyStepContent } from "../steps/FrequencyStepContent";
 import { ScheduleStepContent } from "../steps/ScheduleStepContent";
-import { DiscountSection as DiscountConfigPanel } from "~/domains/popups/components/design/DiscountSection";
-import type { DiscountConfig } from "../../types/campaign";
 
 type SectionId = "recipe" | "basics" | "quickConfig" | "content" | "design" | "discount" | "targeting" | "frequency" | "schedule";
 
@@ -168,7 +173,7 @@ export function FormSections({
   storeId,
   advancedTargetingEnabled,
   templateType,
-  campaignGoal,
+  campaignGoal: _campaignGoal,
   restrictRecipesToGoal,
   variantLabel,
   returnToPath,
@@ -699,62 +704,6 @@ function ScheduleSectionWrapper({
           Done
         </Button>
       )}
-    </BlockStack>
-  );
-}
-
-// =============================================================================
-// DISCOUNT SECTION
-// =============================================================================
-
-interface DiscountSectionWrapperProps {
-  discountConfig?: DiscountConfig;
-  onChange: (config: DiscountConfig) => void;
-  onComplete: () => void;
-  goal?: string;
-  hasEmailCapture?: boolean;
-}
-
-function DiscountSectionWrapper({
-  discountConfig,
-  onChange,
-  onComplete,
-  goal,
-  hasEmailCapture,
-}: DiscountSectionWrapperProps) {
-  // Default discount config
-  const config: DiscountConfig = discountConfig || {
-    enabled: false,
-    showInPreview: true,
-    type: "shared",
-    valueType: "PERCENTAGE",
-    value: 10,
-    expiryDays: 30,
-    prefix: "WELCOME",
-    behavior: "SHOW_CODE_AND_AUTO_APPLY",
-  };
-
-  return (
-    <BlockStack gap="400">
-      <Card>
-        <BlockStack gap="400">
-          <Text as="h3" variant="headingMd">
-            Discount Incentive
-          </Text>
-          <Text as="p" tone="subdued">
-            Offer a discount to encourage conversions. Configure how customers receive and use their codes.
-          </Text>
-          <DiscountConfigPanel
-            goal={goal}
-            discountConfig={config}
-            onConfigChange={onChange}
-            hasEmailCapture={hasEmailCapture}
-          />
-        </BlockStack>
-      </Card>
-      <Button variant="primary" onClick={onComplete}>
-        Save & Continue
-      </Button>
     </BlockStack>
   );
 }

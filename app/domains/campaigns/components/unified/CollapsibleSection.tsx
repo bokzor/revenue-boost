@@ -42,6 +42,7 @@ export function CollapsibleSection({
   subtitle,
 }: CollapsibleSectionProps) {
   return (
+    <div data-section-id={id}>
     <Card>
       {/* Header - clickable to toggle */}
       <div
@@ -136,6 +137,7 @@ export function CollapsibleSection({
         </Box>
       </Collapsible>
     </Card>
+    </div>
   );
 }
 

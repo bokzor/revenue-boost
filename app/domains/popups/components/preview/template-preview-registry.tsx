@@ -5,7 +5,7 @@
  * Eliminates the large switch statement in TemplatePreview.tsx
  */
 
-import React from "react";
+import type { ComponentType } from "react";
 import {
   NewsletterPopup,
   SpinToWinPopup,
@@ -20,7 +20,6 @@ import {
   ClassicUpsellPopup,
   MinimalSlideUpPopup,
   PremiumFullscreenPopup,
-  BundleDealPopup,
   CountdownUrgencyPopup,
 } from "~/domains/storefront/popups-new";
 
@@ -38,7 +37,6 @@ import type {
   ClassicUpsellConfig,
   MinimalSlideUpConfig,
   PremiumFullscreenConfig,
-  BundleDealConfig,
   CountdownUrgencyConfig,
   PopupDesignConfig,
   DiscountConfig as StorefrontDiscountConfig,
@@ -46,7 +44,7 @@ import type {
 
 import type { DiscountConfig as AdminDiscountConfig } from "~/domains/campaigns/types/campaign";
 
-import { TemplateTypeEnum } from "~/lib/template-types.enum";
+import { TemplateTypeEnum } from "~/domains/campaigns/types/campaign";
 
 // =============================================================================
 // DISCOUNT CONFIG TRANSFORMATION
@@ -186,9 +184,8 @@ export type ConfigBuilder<T = unknown> = (
  * have varying extra props (onSubmit, issueDiscount, etc.)
  */
 export interface TemplatePreviewEntry<TConfig = unknown> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Components have varying additional props
-  component: React.ComponentType<
-    { config: TConfig; isVisible: boolean; onClose: () => void } & Record<string, any>
+  component: ComponentType<
+    { config: TConfig; isVisible: boolean; onClose: () => void } & Record<string, unknown>
   >;
   buildConfig: ConfigBuilder<TConfig>;
 }

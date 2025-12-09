@@ -20,7 +20,7 @@
 import React, { useMemo, useCallback, useEffect, useState } from "react";
 import { BlockStack, InlineGrid, EmptyState } from "@shopify/polaris";
 import type { CampaignGoal } from "@prisma/client";
-import type { UnifiedTemplate as _UnifiedTemplate } from "~/domains/popups/services/templates/unified-template-service.server";
+import type { TemplateWithConfigs as _UnifiedTemplate } from "~/domains/templates/types/template";
 import { TemplateCard } from "./TemplateCard";
 import { useTemplates } from "../hooks/useTemplates";
 import { processTemplates } from "../utils/template-processing";

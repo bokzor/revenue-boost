@@ -14,13 +14,12 @@
  * - Premium reveal animations
  */
 
-import React, { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { PopupPortal } from "./PopupPortal";
 import type { MobilePresentationMode } from "./PopupPortal";
 import type { PopupDesignConfig, Prize, LayoutConfig } from "./types";
 import type { ScratchCardContent } from "~/domains/campaigns/types/campaign";
 import {
-  getSizeDimensions,
   prefersReducedMotion,
   getAdaptiveMutedColor,
 } from "app/domains/storefront/popups-new/utils/utils";

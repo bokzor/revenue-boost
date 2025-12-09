@@ -535,8 +535,11 @@ interface StyledRecipeBase {
   // Recipe type for categorization and priority
   recipeType?: RecipeType;
 
-  // Required configuration sections to show in recipe modal
-  // These sections are critical to the recipe and should be configured upfront
+  /**
+   * @deprecated No longer used - modal was removed.
+   * All configuration now happens inline in the editor's Content & Design section.
+   * Kept for backwards compatibility with existing recipe definitions.
+   */
   requiredConfig?: RequiredConfigSection[];
 }
 
@@ -635,14 +638,15 @@ export type AnyStyledRecipe =
   | CountdownUrgencyRecipe;
 
 // =============================================================================
-// REQUIRED CONFIG SECTIONS
+// REQUIRED CONFIG SECTIONS (DEPRECATED)
 // =============================================================================
 
 /**
- * Configuration sections that can be shown in the recipe modal.
- * When specified, the recipe modal will display these form sections
- * with the recipe's defaults pre-populated.
+ * @deprecated No longer used - the recipe modal was removed.
+ * All configuration now happens inline in the editor.
+ * Kept for backwards compatibility with existing recipe definitions.
  *
+ * Previously used to show configuration sections in a modal:
  * - "discount": Show discount configuration (BOGO, Tiered, basic percentage, etc.)
  * - "targeting": Show targeting configuration (triggers, audience)
  * - "schedule": Show scheduling configuration (start/end dates)
@@ -665,7 +669,7 @@ export type RecipeType = "use_case" | "seasonal" | "inspiration";
 // THEME MODE FOR RECIPES (Simplified Theme System)
 // =============================================================================
 
-import type { ThemeMode, CampaignDesignInput } from "~/domains/campaigns/types/design-tokens";
+import type { ThemeMode } from "~/domains/campaigns/types/design-tokens";
 
 /**
  * Get the default theme mode for a recipe based on its recipeType.

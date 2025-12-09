@@ -10,7 +10,6 @@
  * - --rb-popup-badge-radius: Border radius
  */
 
-import React from "react";
 import type { BadgeIcon } from "~/domains/campaigns/types/campaign";
 
 export interface TagBadgeProps {
@@ -111,4 +110,3 @@ export function TagBadge({
 }
 
 export default TagBadge;
-

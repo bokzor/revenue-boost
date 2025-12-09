@@ -5,10 +5,9 @@
  * Allows configuring each variant's campaign with tab navigation.
  */
 
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { InlineStack, Text, Button, Banner, Popover, ActionList } from "@shopify/polaris";
 import { ArrowLeftIcon, PlusIcon, DeleteIcon, MenuHorizontalIcon } from "@shopify/polaris-icons";
-import { useState } from "react";
 import { VariantCampaignEditor } from "./VariantCampaignEditor";
 import type { StyledRecipe } from "../../../recipes/styled-recipe-types";
 import type { Experiment, Variant } from "../types";
@@ -78,13 +77,10 @@ export function VariantConfigurator({
   // Get control variant's goal for filtering recipes in non-control variants
   const controlGoal = controlVariant?.recipe?.goal || controlVariant?.campaignData?.recipe?.goal;
 
-  if (!activeVariant) {
-    return <Banner tone="critical">Variant not found</Banner>;
-  }
-
   // Handler to update variant's campaign data
   const handleCampaignDataChange = useCallback(
     (data: CampaignData) => {
+      if (!activeVariant) return;
       onVariantUpdate({
         ...activeVariant,
         status: "configured",
@@ -101,6 +97,10 @@ export function VariantConfigurator({
     },
     [handleCampaignDataChange]
   );
+
+  if (!activeVariant) {
+    return <Banner tone="critical">Variant not found</Banner>;
+  }
 
   return (
     <div style={{ minHeight: "100vh", backgroundColor: "var(--p-color-bg-surface)" }}>
@@ -266,4 +266,3 @@ function VariantTabsHeader({
     </div>
   );
 }
-

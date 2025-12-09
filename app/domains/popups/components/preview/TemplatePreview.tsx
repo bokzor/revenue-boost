@@ -7,7 +7,7 @@
 
 import { useCallback, useMemo, memo, forwardRef, useImperativeHandle, useRef } from "react";
 
-import { TemplateTypeEnum } from "~/lib/template-types.enum";
+import { TemplateTypeEnum } from "~/domains/campaigns/types/campaign";
 import { getTemplatePreviewEntry } from "./template-preview-registry";
 import type {
   FlashSaleConfig,
@@ -371,12 +371,6 @@ const TemplatePreviewComponent = forwardRef<TemplatePreviewRef, TemplatePreviewP
         typeof freeShippingConfig.threshold === "number" && freeShippingConfig.threshold > 0
           ? freeShippingConfig.threshold
           : 75;
-
-      const nearMiss =
-        typeof freeShippingConfig.nearMissThreshold === "number" &&
-        freeShippingConfig.nearMissThreshold > 0
-          ? freeShippingConfig.nearMissThreshold
-          : 10;
 
       // Show progress state by default (60% of threshold) so users can see
       // the "in progress" bar instead of "goal already reached".

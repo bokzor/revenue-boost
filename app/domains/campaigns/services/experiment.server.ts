@@ -5,10 +5,11 @@
  * Lean implementation focused on essential experiment management
  */
 
+import type { Prisma } from "@prisma/client";
 import prisma from "~/db.server";
-import type { ExperimentCreateData, ExperimentWithVariants } from "../types/experiment.js";
-import { validateExperimentCreateData } from "../validation/campaign-validation.js";
-import { parseExperimentFields, prepareEntityJsonFields } from "../utils/json-helpers.js";
+import type { ExperimentCreateData, ExperimentUpdateData, ExperimentWithVariants } from "../types/experiment.js";
+import { validateExperimentCreateData, validateExperimentUpdateData } from "../validation/campaign-validation.js";
+import { parseExperimentFields, prepareEntityJsonFields, prepareJsonField } from "../utils/json-helpers.js";
 import { ExperimentServiceError } from "~/lib/errors.server";
 import {
   EXPERIMENT_CAMPAIGNS_INCLUDE,
@@ -190,6 +191,80 @@ export class ExperimentService {
       throw new ExperimentServiceError(
         "CREATE_EXPERIMENT_FAILED",
         "Failed to create experiment",
+        error
+      );
+    }
+  }
+
+  /**
+   * Update an existing experiment
+   */
+  static async updateExperiment(
+    id: string,
+    storeId: string,
+    updateData: ExperimentUpdateData
+  ): Promise<ExperimentWithVariants> {
+    // Validate input data
+    const validation = validateExperimentUpdateData(updateData);
+    if (!validation.success) {
+      throw new ExperimentServiceError(
+        "VALIDATION_FAILED",
+        "Experiment update validation failed",
+        validation.errors
+      );
+    }
+
+    try {
+      // First, verify the experiment exists and belongs to this store
+      const existing = await prisma.experiment.findFirst({
+        where: { id, storeId },
+      });
+
+      if (!existing) {
+        throw new ExperimentServiceError(
+          "NOT_FOUND",
+          "Experiment not found"
+        );
+      }
+
+      // Build update data, only including defined fields
+      const dataToUpdate: Partial<Prisma.ExperimentUpdateInput> = {};
+
+      if (updateData.name !== undefined) dataToUpdate.name = updateData.name;
+      if (updateData.description !== undefined) dataToUpdate.description = updateData.description;
+      if (updateData.hypothesis !== undefined) dataToUpdate.hypothesis = updateData.hypothesis;
+      if (updateData.trafficAllocation !== undefined) {
+        dataToUpdate.trafficAllocation = prepareJsonField(updateData.trafficAllocation);
+      }
+      if (updateData.statisticalConfig !== undefined) {
+        dataToUpdate.statisticalConfig = prepareJsonField(updateData.statisticalConfig);
+      }
+      if (updateData.successMetrics !== undefined) {
+        dataToUpdate.successMetrics = prepareJsonField(updateData.successMetrics);
+      }
+      if (updateData.startDate !== undefined) dataToUpdate.startDate = updateData.startDate;
+      if (updateData.endDate !== undefined) dataToUpdate.endDate = updateData.endDate;
+      if (updateData.plannedDurationDays !== undefined) dataToUpdate.plannedDurationDays = updateData.plannedDurationDays;
+
+      const experiment = await prisma.experiment.update({
+        where: { id },
+        data: dataToUpdate,
+        include: EXPERIMENT_CAMPAIGNS_INCLUDE,
+      });
+
+      const parsed = parseExperimentFields(experiment);
+
+      return {
+        ...parsed,
+        variants: mapCampaignsToVariants(experiment.campaigns, parsed.trafficAllocation),
+      };
+    } catch (error) {
+      if (error instanceof ExperimentServiceError) {
+        throw error;
+      }
+      throw new ExperimentServiceError(
+        "UPDATE_EXPERIMENT_FAILED",
+        "Failed to update experiment",
         error
       );
     }

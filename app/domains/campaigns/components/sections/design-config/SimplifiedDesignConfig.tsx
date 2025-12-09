@@ -9,7 +9,7 @@
  * For "shopify" mode, shows a preview of the inherited store theme.
  */
 
-import React, { useCallback } from "react";
+import { useCallback } from "react";
 import { BlockStack, Card, Text, Banner, Divider, InlineStack, Badge } from "@shopify/polaris";
 import { ThemeModeSelector } from "./ThemeModeSelector";
 import { PresetDesignSelector } from "./PresetDesignSelector";
@@ -89,7 +89,7 @@ export function SimplifiedDesignConfig({
             ) : (
               <Banner tone="info">
                 <Text as="p" variant="bodySm">
-                  Your store's theme colors will be loaded when previewing.
+                  Your store&apos;s theme colors will be loaded when previewing.
                 </Text>
               </Banner>
             )}
@@ -130,7 +130,7 @@ function ShopifyThemePreview({ tokens }: { tokens: Partial<DesignTokens> }) {
       </Text>
       <div style={{ color: tokens.foreground || "#1a1a1a", marginTop: "8px" }}>
         <Text as="p" variant="bodyMd">
-          Sample text in your store's colors
+          Sample text in your store&apos;s colors
         </Text>
       </div>
       <button
@@ -154,4 +154,3 @@ function ShopifyThemePreview({ tokens }: { tokens: Partial<DesignTokens> }) {
 }
 
 export default SimplifiedDesignConfig;
-

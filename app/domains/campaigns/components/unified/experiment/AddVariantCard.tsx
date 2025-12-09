@@ -13,7 +13,8 @@ interface AddVariantCardProps {
 
 export function AddVariantCard({ onClick }: AddVariantCardProps) {
   return (
-    <div
+    <button
+      type="button"
       onClick={onClick}
       style={{
         cursor: "pointer",
@@ -26,7 +27,11 @@ export function AddVariantCard({ onClick }: AddVariantCardProps) {
         alignItems: "center",
         justifyContent: "center",
         minHeight: "140px",
+        width: "100%",
+        background: "none",
+        padding: 0,
       }}
+      aria-label="Add experiment variant"
     >
       <Box padding="400">
         <BlockStack gap="200" inlineAlign="center">
@@ -49,7 +54,6 @@ export function AddVariantCard({ onClick }: AddVariantCardProps) {
           </Text>
         </BlockStack>
       </Box>
-    </div>
+    </button>
   );
 }
-

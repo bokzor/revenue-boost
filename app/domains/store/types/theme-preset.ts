@@ -272,6 +272,7 @@ export function expandThemePreset(preset: ThemePresetInput): Partial<DesignConfi
     borderRadius: borderRadius ?? 8,
     buttonBorderRadius: borderRadius ?? 8,
     inputBorderRadius: borderRadius ?? 8,
+    popupBorderRadius: popupBorderRadius ?? (borderRadius ?? 8),
   };
 }
 
@@ -536,4 +537,3 @@ function hslToHex(h: number, s: number, l: number): string {
 
   return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
 }
-

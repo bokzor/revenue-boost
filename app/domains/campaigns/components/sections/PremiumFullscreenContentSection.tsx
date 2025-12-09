@@ -18,7 +18,7 @@ import {
   Tag,
   TextField as PolarisTextField,
 } from "@shopify/polaris";
-import { ChevronDownIcon, ChevronUpIcon, PlusIcon, DeleteIcon } from "@shopify/polaris-icons";
+import { ChevronDownIcon, ChevronUpIcon, PlusIcon } from "@shopify/polaris-icons";
 import { TextField, CheckboxField, FormGrid } from "../form";
 import { ProductPicker, type ProductPickerSelection } from "../form/ProductPicker";
 import { useFieldUpdater } from "~/shared/hooks/useFieldUpdater";
@@ -200,12 +200,13 @@ export function PremiumFullscreenContentSection({
 
                 {/* Add new feature */}
                 <InlineStack gap="200" blockAlign="end">
-                  <div style={{ flex: 1 }} onKeyDown={handleFeatureKeyDown}>
+                  <div style={{ flex: 1 }}>
                     <PolarisTextField
                       label="Add feature"
                       labelHidden
                       value={newFeature}
                       onChange={setNewFeature}
+                      onKeyDown={handleFeatureKeyDown}
                       placeholder="e.g., Free express shipping"
                       autoComplete="off"
                     />
@@ -420,4 +421,3 @@ export function PremiumFullscreenContentSection({
     </Card>
   );
 }
-

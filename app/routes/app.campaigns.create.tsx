@@ -25,6 +25,7 @@ import {
   ModeSelector,
   SingleCampaignFlow,
   ExperimentFlow,
+  CampaignErrorBoundary,
   type CreationMode,
   type CampaignData,
   type Experiment,
@@ -429,18 +430,20 @@ export default function UnifiedCampaignCreate() {
   if (mode === "single") {
     return (
       <Frame>
-        <SingleCampaignFlow
-          onBack={handleBack}
-          onSave={handleSaveCampaign}
-          onSaveDraft={handleSaveDraft}
-          recipes={loaderData.recipes}
-          storeId={loaderData.storeId}
-          shopDomain={loaderData.shopDomain}
-          globalCustomCSS={loaderData.globalCustomCSS}
-          customThemePresets={loaderData.customThemePresets}
-          advancedTargetingEnabled={loaderData.advancedTargetingEnabled}
-          defaultThemeTokens={loaderData.defaultThemeTokens}
-        />
+        <CampaignErrorBoundary context="SingleCampaignFlow">
+          <SingleCampaignFlow
+            onBack={handleBack}
+            onSave={handleSaveCampaign}
+            onSaveDraft={handleSaveDraft}
+            recipes={loaderData.recipes}
+            storeId={loaderData.storeId}
+            shopDomain={loaderData.shopDomain}
+            globalCustomCSS={loaderData.globalCustomCSS}
+            customThemePresets={loaderData.customThemePresets}
+            advancedTargetingEnabled={loaderData.advancedTargetingEnabled}
+            defaultThemeTokens={loaderData.defaultThemeTokens}
+          />
+        </CampaignErrorBoundary>
         {toastMessage && (
           <Toast content={toastMessage} error={toastError} onDismiss={handleToastDismiss} />
         )}
@@ -451,15 +454,17 @@ export default function UnifiedCampaignCreate() {
   // Experiment flow
   return (
     <Frame>
-      <ExperimentFlow
-        onBack={handleBack}
-        onSave={handleSaveExperiment}
-        recipes={loaderData.recipes}
-        storeId={loaderData.storeId}
-        shopDomain={loaderData.shopDomain}
-        advancedTargetingEnabled={loaderData.advancedTargetingEnabled}
-        customThemePresets={loaderData.customThemePresets}
-      />
+      <CampaignErrorBoundary context="ExperimentFlow">
+        <ExperimentFlow
+          onBack={handleBack}
+          onSave={handleSaveExperiment}
+          recipes={loaderData.recipes}
+          storeId={loaderData.storeId}
+          shopDomain={loaderData.shopDomain}
+          advancedTargetingEnabled={loaderData.advancedTargetingEnabled}
+          customThemePresets={loaderData.customThemePresets}
+        />
+      </CampaignErrorBoundary>
       {toastMessage && (
         <Toast content={toastMessage} error={toastError} onDismiss={handleToastDismiss} />
       )}

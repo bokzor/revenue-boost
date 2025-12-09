@@ -13,8 +13,6 @@
  * - --rb-popup-input-focus-ring-width: Focus ring width
  */
 
-import React from "react";
-
 export interface StyledCheckboxProps {
   /** Whether the checkbox is checked */
   checked: boolean;
@@ -134,4 +132,3 @@ export function StyledCheckbox({
 }
 
 export default StyledCheckbox;
-

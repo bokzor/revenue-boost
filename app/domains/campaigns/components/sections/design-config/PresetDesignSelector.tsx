@@ -5,7 +5,6 @@
  * Shows color swatches and names for each preset.
  */
 
-import React from "react";
 import { BlockStack, Text, Tooltip } from "@shopify/polaris";
 import { PRESET_DESIGNS, type PresetDesign } from "~/domains/campaigns/types/design-tokens";
 
@@ -109,4 +108,3 @@ export function PresetDesignSelector({
 }
 
 export default PresetDesignSelector;
-

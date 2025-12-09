@@ -7,9 +7,8 @@
  * @see docs/RECIPE_SYSTEM_ARCHITECTURE.md
  */
 
-import React, { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo } from "react";
 import {
-  Box,
   Text,
   InlineStack,
   BlockStack,
@@ -377,4 +376,3 @@ export function RecipeQuickSetup({
     </BlockStack>
   );
 }
-

@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect } from "react";
 import { Text, Box, Badge, BlockStack } from "@shopify/polaris";
 import { getPopupTemplates } from "./PopupTemplateLibrary";
-import type { Template } from "~/domains/popups/services/templates.server";
+import type { TemplateWithConfigs as Template } from "~/domains/templates/types/template";
 import styles from "./TemplateSelector.module.css";
 import { parseTemplateContentConfig } from "~/domains/templates/types/template";
 

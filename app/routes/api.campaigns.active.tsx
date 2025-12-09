@@ -51,6 +51,52 @@ interface ActiveCampaignsResponse {
   showBranding?: boolean;
 }
 
+// ============================================================================
+// HELPERS
+// ============================================================================
+
+/**
+ * Merge resolved design tokens into designConfig as direct properties.
+ * This is necessary because popup components use direct properties like
+ * backgroundColor, textColor, etc. - not CSS variables.
+ *
+ * This mirrors the logic in TemplatePreview.tsx (lines 161-175) for admin preview.
+ */
+function mergeTokensIntoDesignConfig(
+  designConfig: Record<string, unknown>,
+  tokens: DesignTokens,
+  themeMode: string | undefined
+): Record<string, unknown> {
+  // Only apply token values for "default" or "shopify" theme modes
+  // where the designConfig doesn't have explicit color values
+  const shouldApplyTokens = !themeMode || themeMode === "default" || themeMode === "shopify";
+
+  if (!shouldApplyTokens) {
+    return designConfig;
+  }
+
+  // Map design tokens to popup config properties
+  // Only set values if they're not already explicitly set in designConfig
+  const tokenColors: Record<string, unknown> = {
+    backgroundColor: designConfig.backgroundColor || tokens.background,
+    textColor: designConfig.textColor || tokens.foreground,
+    descriptionColor: designConfig.descriptionColor || tokens.muted,
+    buttonColor: designConfig.buttonColor || tokens.primary,
+    buttonTextColor: designConfig.buttonTextColor || tokens.primaryForeground,
+    accentColor: designConfig.accentColor || tokens.primary,
+    successColor: designConfig.successColor || tokens.success,
+    fontFamily: designConfig.fontFamily || tokens.fontFamily,
+    borderRadius: designConfig.borderRadius ?? tokens.borderRadius,
+    inputBackgroundColor: designConfig.inputBackgroundColor || tokens.surface,
+    inputBorderColor: designConfig.inputBorderColor || tokens.border,
+  };
+
+  return {
+    ...designConfig,
+    ...tokenColors,
+  };
+}
+
 function extractGlobalCustomCss(settings: unknown): string | undefined {
   if (!settings || typeof settings !== "object") return undefined;
 
@@ -233,13 +279,22 @@ export async function loader(args: LoaderFunctionArgs) {
           );
           const parsedDesignConfig = parseDesignConfig(campaignData.designConfig || {});
 
-          // Resolve design tokens for preview
+          // Resolve design tokens for preview and merge into designConfig
           let designTokensCSS: string | undefined;
+          let mergedDesignConfig = parsedDesignConfig as Record<string, unknown>;
           try {
             const designParsed = CampaignDesignSchema.safeParse(parsedDesignConfig);
             if (designParsed.success) {
               const resolvedTokens = resolveDesignTokens(designParsed.data, defaultTokens);
               designTokensCSS = tokensToCSSString(resolvedTokens);
+
+              // Merge resolved tokens into designConfig so popups receive direct color values
+              // This ensures "Preview on Store" shows the same colors as the admin preview
+              mergedDesignConfig = mergeTokensIntoDesignConfig(
+                parsedDesignConfig,
+                resolvedTokens,
+                designParsed.data.themeMode
+              );
             }
           } catch (tokenError) {
             console.warn(`[Active Campaigns API] Failed to resolve tokens for preview:`, tokenError);
@@ -251,7 +306,7 @@ export async function loader(args: LoaderFunctionArgs) {
             templateType: campaignData.templateType,
             priority: campaignData.priority || 0,
             contentConfig: parsedContentConfig,
-            designConfig: parsedDesignConfig,
+            designConfig: mergedDesignConfig,
             designTokensCSS,
             targetRules: campaignData.targetRules || {},
             discountConfig: campaignData.discountConfig || {},
@@ -340,11 +395,20 @@ export async function loader(args: LoaderFunctionArgs) {
         // Resolve design tokens based on themeMode
         // This enables "default"/"shopify" mode to automatically inherit store theme colors
         let designTokensCSS: string | undefined;
+        let mergedDesignConfig = parsedDesignConfig as Record<string, unknown>;
         try {
           const designParsed = CampaignDesignSchema.safeParse(parsedDesignConfig);
           if (designParsed.success) {
             const resolvedTokens = resolveDesignTokens(designParsed.data, defaultTokens);
             designTokensCSS = tokensToCSSString(resolvedTokens);
+
+            // Merge resolved tokens into designConfig so popups receive direct color values
+            // This ensures storefront popups show the correct theme colors
+            mergedDesignConfig = mergeTokensIntoDesignConfig(
+              parsedDesignConfig,
+              resolvedTokens,
+              designParsed.data.themeMode
+            );
           }
         } catch (tokenError) {
           console.warn(`[Active Campaigns API] Failed to resolve tokens for campaign ${campaign.id}:`, tokenError);
@@ -356,7 +420,7 @@ export async function loader(args: LoaderFunctionArgs) {
           templateType: campaign.templateType,
           priority: campaign.priority,
           contentConfig: parsedContentConfig,
-          designConfig: parsedDesignConfig,
+          designConfig: mergedDesignConfig,
           customCSS: parsedDesignConfig.customCSS,
           // CSS custom properties for design tokens (--rb-background, --rb-primary, etc.)
           designTokensCSS,

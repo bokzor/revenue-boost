@@ -23,7 +23,6 @@ import {
   ClassicUpsellContentSchema,
   MinimalSlideUpContentSchema,
   PremiumFullscreenContentSchema,
-  BundleDealContentSchema,
   CountdownUrgencyContentSchema,
 } from "~/domains/campaigns/types/campaign";
 

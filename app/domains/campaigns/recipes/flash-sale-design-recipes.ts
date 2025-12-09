@@ -11,7 +11,7 @@
  * recipes are quick-start templates that apply a theme + copy to Flash Sale.
  */
 
-import type { FlashSaleRecipe, RecipeType } from "./styled-recipe-types";
+import type { FlashSaleRecipe } from "./styled-recipe-types";
 
 // =============================================================================
 // HELPER: Common editable fields for flash sale recipes
@@ -170,8 +170,8 @@ const bogo: FlashSaleRecipe = {
   theme: "gradient",
   layout: "centered",
   featured: true,
-  requiredConfig: ["discount"], // Show BOGO discount config in recipe modal
-  inputs: [], // No quick inputs - discount config is the main configuration
+  requiredConfig: ["discount"], // @deprecated - no longer used, kept for reference
+  inputs: [], // Discount config is edited inline in Content & Design section
   editableFields: FLASH_SALE_EDITABLE_FIELDS,
   defaults: {
     contentConfig: {
@@ -248,8 +248,8 @@ const tieredDiscount: FlashSaleRecipe = {
   component: "FlashSaleCentered",
   layout: "centered",
   featured: true,
-  requiredConfig: ["discount"], // Show tiered discount config in recipe modal
-  inputs: [],
+  requiredConfig: ["discount"], // @deprecated - no longer used, kept for reference
+  inputs: [], // Tiered discount config is edited inline in Content & Design section
   editableFields: FLASH_SALE_EDITABLE_FIELDS,
   defaults: {
     contentConfig: {

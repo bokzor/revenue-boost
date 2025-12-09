@@ -27,7 +27,7 @@ import { TemplatePreview } from "~/domains/popups/components/preview/TemplatePre
 import { Affix } from "~/shared/components/ui/Affix";
 import type { ThemePresetInput } from "../types/theme-preset";
 import { expandThemePreset, createEmptyThemePreset, getWheelColorsFromPreset } from "../types/theme-preset";
-import { TemplateTypeEnum } from "~/lib/template-types.enum";
+import { TemplateTypeEnum } from "~/domains/campaigns/types/campaign";
 
 // ============================================================================
 // TYPES

@@ -11,7 +11,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import type { FrequencyCappingConfig } from "~/domains/targeting/components";
-import type { DiscountConfig } from "~/domains/commerce/services/discounts/discount.server";
+import type { DiscountConfig } from "~/domains/campaigns/types/campaign";
 import { getTemplateMetadata } from "~/domains/templates/registry/template-registry";
 
 // Import comprehensive enhanced triggers types

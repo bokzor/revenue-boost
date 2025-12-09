@@ -285,6 +285,13 @@ function LargePreviewContent({
     1.0
   );
 
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      onClick();
+    }
+  };
+
   return (
     <div
       onMouseEnter={onMouseEnter}
@@ -293,6 +300,10 @@ function LargePreviewContent({
         e.stopPropagation();
         onClick();
       }}
+      onKeyDown={handleKeyDown}
+      role="button"
+      tabIndex={0}
+      aria-label="Select recipe from preview"
       style={{
         ...hoverPreviewOverlayStyle,
         top: previewPosition.top,
@@ -454,7 +465,7 @@ export function RecipeCard({
   isSelected = false,
   onSelect,
   showPreview = true,
-  size = "medium",
+  size: _size = "medium",
   hoverPreviewEnabled = true,
   defaultThemeTokens,
 }: RecipeCardProps) {
@@ -604,12 +615,6 @@ export function RecipeCard({
       }
     }, 100);
   }, [hoverPreviewEnabled, isHovered, closePreview]);
-
-  // Handle card click - always selects the recipe
-  // Preview is handled by the eye button
-  const handleCardClick = useCallback(() => {
-    onSelect();
-  }, [onSelect]);
 
   // Handle preview click (selects the recipe and closes preview)
   const handlePreviewClick = useCallback(() => {

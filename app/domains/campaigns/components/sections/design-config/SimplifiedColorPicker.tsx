@@ -5,8 +5,8 @@
  * Only shows the essential colors: background, foreground, primary, primaryForeground
  */
 
-import React, { useCallback } from "react";
-import { BlockStack, Text, Tooltip } from "@shopify/polaris";
+import { useCallback } from "react";
+import { BlockStack, Text } from "@shopify/polaris";
 import { ColorField } from "../../form";
 import type { DesignTokens } from "~/domains/campaigns/types/design-tokens";
 
@@ -115,4 +115,3 @@ export function SimplifiedColorPicker({ tokens, onChange }: SimplifiedColorPicke
 }
 
 export default SimplifiedColorPicker;
-

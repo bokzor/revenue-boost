@@ -11,7 +11,7 @@
  * - Container query based responsive design
  */
 
-import React, { useEffect } from "react";
+import { useEffect } from "react";
 import type { PopupDesignConfig, DiscountConfig, LayoutConfig } from "./types";
 import type { NewsletterContent } from "~/domains/campaigns/types/campaign";
 
@@ -24,10 +24,14 @@ import { SPACING_GUIDELINES } from "app/domains/storefront/popups-new/utils/spac
 import { usePopupForm, useDiscountCode, usePopupAnimation, useDesignVariables } from "./hooks";
 
 // Import shared components from Phase 1 & 2
-import { LeadCaptureForm, PopupHeader, SuccessState } from "./components/shared";
-
-// Import Phase C components (Spa Serenity Design System)
-import { TagBadge, FooterDisclaimer, ImageFloatingBadge } from "./components/shared";
+import {
+  LeadCaptureForm,
+  PopupHeader,
+  SuccessState,
+  TagBadge,
+  FooterDisclaimer,
+  ImageFloatingBadge,
+} from "./components/shared";
 
 // Import shared animations
 import "./components/shared/animations.css";

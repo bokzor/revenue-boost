@@ -7,7 +7,7 @@
  * Uses Intersection Observer for efficient viewport detection.
  */
 
-import React, { useRef, useState, useEffect, type ReactNode, type CSSProperties } from "react";
+import { useRef, useState, useEffect, type ReactNode, type CSSProperties } from "react";
 import { Spinner } from "@shopify/polaris";
 
 export interface LazyLoadProps {
@@ -138,4 +138,3 @@ export function LazyLoad({
 }
 
 export default LazyLoad;
-
