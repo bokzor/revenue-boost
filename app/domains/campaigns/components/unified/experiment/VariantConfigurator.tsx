@@ -27,6 +27,17 @@ export interface VariantConfiguratorProps {
   storeId: string;
   shopDomain?: string;
   advancedTargetingEnabled?: boolean;
+  /** Custom theme presets from store settings */
+  customThemePresets?: Array<{
+    id: string;
+    name: string;
+    brandColor: string;
+    backgroundColor: string;
+    textColor: string;
+    surfaceColor?: string;
+    successColor?: string;
+    fontFamily?: string;
+  }>;
 }
 
 export function VariantConfigurator({
@@ -41,6 +52,7 @@ export function VariantConfigurator({
   storeId,
   shopDomain,
   advancedTargetingEnabled,
+  customThemePresets,
 }: VariantConfiguratorProps) {
   const activeVariant = experiment.variants.find((v) => v.id === activeVariantId);
   const controlVariant = experiment.variants.find((v) => v.isControl);
@@ -96,6 +108,7 @@ export function VariantConfigurator({
         isControlVariant={activeVariant.isControl}
         controlGoal={controlGoal}
         onBackToVariants={onBack}
+        customThemePresets={customThemePresets}
       />
     </div>
   );

@@ -53,13 +53,13 @@ const DEFAULT_DISCOUNT_CONFIG: DiscountConfig = {
   behavior: "SHOW_CODE_AND_AUTO_APPLY",
 };
 
-type SectionId = "recipe" | "basics" | "design" | "discount" | "targeting" | "frequency" | "schedule";
+type SectionId = "recipe" | "basics" | "quickConfig" | "content" | "design" | "discount" | "targeting" | "frequency" | "schedule";
 
 // Editor sections (recipe is now a separate step)
 // Note: "basics" is available for variants that need name editing, but variants typically use preset names
+// Note: For variants, we use "content" section (same as SingleCampaignFlow) which includes both content and design
 const EDITOR_SECTIONS: { id: SectionId; icon: string; title: string; subtitle: string }[] = [
-  { id: "design", icon: "🎨", title: "Customize Design", subtitle: "Adjust colors, content, and styling" },
-  { id: "discount", icon: "🎁", title: "Discount & Incentives", subtitle: "Configure discount codes and rewards" },
+  { id: "content", icon: "✏️", title: "Content & Design", subtitle: "Configure headlines, buttons, colors, and styling" },
   { id: "targeting", icon: "🎯", title: "Targeting & Triggers", subtitle: "Define who sees your popup and when" },
   { id: "frequency", icon: "🔄", title: "Frequency", subtitle: "Control how often the popup appears" },
   { id: "schedule", icon: "📅", title: "Schedule & Settings", subtitle: "Set start/end dates and priority" },
@@ -141,8 +141,8 @@ export function VariantCampaignEditor({
     initialData?.scheduleConfig || DEFAULT_SCHEDULE_CONFIG
   );
 
-  // Section state (starts with design expanded since recipe selection is done)
-  const [expandedSections, setExpandedSections] = useState<SectionId[]>(["design"]);
+  // Section state (starts with content expanded since recipe selection is done)
+  const [expandedSections, setExpandedSections] = useState<SectionId[]>(["content"]);
   const [completedSections, setCompletedSections] = useState<SectionId[]>([]);
   const [previewDevice, setPreviewDevice] = useState<PreviewDevice>("tablet");
 
@@ -293,7 +293,11 @@ export function VariantCampaignEditor({
               {templateType ? (
                 <LivePreviewPanel
                   templateType={templateType}
-                  config={contentConfig}
+                  config={{
+                    ...contentConfig,
+                    // Pass discount config so preview can render discount badges/text correctly
+                    discountConfig,
+                  }}
                   designConfig={designConfig}
                   targetRules={targetingConfig as unknown as Record<string, unknown>}
                   shopDomain={shopDomain}

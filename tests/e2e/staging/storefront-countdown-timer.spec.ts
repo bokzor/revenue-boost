@@ -224,7 +224,7 @@ test.describe.serial('Countdown Timer Template', () => {
         const popup = page.locator(COUNTDOWN_POPUP_SELECTOR);
         await expect(popup).toBeVisible({ timeout: 15000 });
 
-        // Check for headline in content
+        // Check for headline in content - HARD ASSERTION
         const hasHeadline = await page.evaluate((text) => {
             const banner = document.querySelector('.countdown-banner[data-rb-banner], [data-rb-banner]');
             if (banner) return (banner.textContent || '').includes(text);
@@ -233,12 +233,8 @@ test.describe.serial('Countdown Timer Template', () => {
             return false;
         }, 'HURRY');
 
-        if (hasHeadline) {
-            console.log(`✅ Headline "${headline}" displayed`);
-        } else {
-            console.log('⚠️ Headline not found - content displayed');
-        }
-        console.log('✅ Countdown timer displayed');
+        expect(hasHeadline).toBe(true);
+        console.log(`✅ Headline "${headline}" displayed in countdown timer`);
     });
 
     test('timer counts down in real-time', async ({ page }) => {

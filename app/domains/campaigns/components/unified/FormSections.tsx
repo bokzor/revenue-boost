@@ -17,7 +17,8 @@ import { useNavigate } from "react-router";
 import { CollapsibleSection } from "./CollapsibleSection";
 import { RecipeCard } from "../recipes/RecipeCard";
 import { PreviewProvider } from "../recipes/PreviewContext";
-import type { StyledRecipe } from "../../recipes/styled-recipe-types";
+import { QuickInputField } from "./QuickInputField";
+import type { StyledRecipe, RecipeContext } from "../../recipes/styled-recipe-types";
 import type { ContentConfig, DesignConfig, AudienceTargetingConfig, GeoTargetingConfig, CampaignGoal } from "../../types/campaign";
 import type { TemplateType } from "~/shared/hooks/useWizardState";
 import type { EnhancedTriggerConfig } from "~/domains/targeting/types/enhanced-triggers.types";
@@ -33,13 +34,15 @@ import { ScheduleStepContent } from "../steps/ScheduleStepContent";
 import { DiscountSection as DiscountConfigPanel } from "~/domains/popups/components/design/DiscountSection";
 import type { DiscountConfig } from "../../types/campaign";
 
-type SectionId = "recipe" | "basics" | "design" | "discount" | "targeting" | "frequency" | "schedule";
+type SectionId = "recipe" | "basics" | "quickConfig" | "content" | "design" | "discount" | "targeting" | "frequency" | "schedule";
 
 interface SectionDef {
   id: SectionId;
   icon: string;
   title: string;
   subtitle: string;
+  /** If true, section is conditionally visible */
+  conditional?: boolean;
 }
 
 // Targeting configuration structure
@@ -71,6 +74,9 @@ export interface FormSectionsProps {
   campaignDescription?: string;
   onNameChange?: (name: string) => void;
   onDescriptionChange?: (description: string) => void;
+  // Quick configuration (recipe inputs)
+  contextData?: RecipeContext;
+  onContextDataChange?: (key: string, value: unknown) => void;
   // Content & Design
   contentConfig: Partial<ContentConfig>;
   designConfig: Partial<DesignConfig>;
@@ -123,6 +129,9 @@ export function FormSections({
   campaignDescription,
   onNameChange,
   onDescriptionChange,
+  // Quick configuration
+  contextData,
+  onContextDataChange,
   // Content & Design
   contentConfig,
   designConfig,
@@ -151,6 +160,8 @@ export function FormSections({
   globalFrequencyCapping,
   onMobileLayoutChange,
 }: FormSectionsProps) {
+  // Check if recipe has quick inputs
+  const hasQuickInputs = selectedRecipe?.inputs && selectedRecipe.inputs.length > 0;
   return (
     <BlockStack gap="400">
       {sections.map((section, index) => (
@@ -181,10 +192,18 @@ export function FormSections({
               campaignDescription={campaignDescription || ""}
               onNameChange={onNameChange}
               onDescriptionChange={onDescriptionChange}
-              onComplete={() => onMarkComplete("basics", "design")}
+              onComplete={() => onMarkComplete("basics", hasQuickInputs ? "quickConfig" : "content")}
             />
           )}
-          {section.id === "design" && templateType && (
+          {section.id === "quickConfig" && selectedRecipe && onContextDataChange && (
+            <QuickConfigSectionWrapper
+              recipe={selectedRecipe}
+              contextData={contextData || {}}
+              onContextDataChange={onContextDataChange}
+              onComplete={() => onMarkComplete("quickConfig", "content")}
+            />
+          )}
+          {section.id === "content" && templateType && (
             <DesignSectionWrapper
               templateType={templateType}
               contentConfig={contentConfig}
@@ -193,20 +212,11 @@ export function FormSections({
               onContentChange={onContentChange}
               onDesignChange={onDesignChange}
               onDiscountChange={onDiscountChange}
-              onComplete={() => onMarkComplete("design", "discount")}
+              onComplete={() => onMarkComplete("content", "targeting")}
               customThemePresets={customThemePresets}
               backgroundsByLayout={backgroundsByLayout}
               globalCustomCSS={globalCustomCSS}
               onMobileLayoutChange={onMobileLayoutChange}
-            />
-          )}
-          {section.id === "discount" && onDiscountChange && (
-            <DiscountSectionWrapper
-              discountConfig={discountConfig}
-              onChange={onDiscountChange}
-              onComplete={() => onMarkComplete("discount", "targeting")}
-              goal={campaignGoal}
-              hasEmailCapture={Boolean((contentConfig as Record<string, unknown>)?.emailRequired)}
             />
           )}
           {section.id === "targeting" && (
@@ -416,7 +426,54 @@ function BasicsSectionWrapper({
 
       <InlineStack align="end">
         <Button variant="primary" onClick={onComplete} disabled={!isValid}>
-          Continue to Design
+          Continue
+        </Button>
+      </InlineStack>
+    </BlockStack>
+  );
+}
+
+// =============================================================================
+// QUICK CONFIG SECTION WRAPPER - Recipe quick inputs
+// =============================================================================
+
+interface QuickConfigSectionWrapperProps {
+  recipe: StyledRecipe;
+  contextData: RecipeContext;
+  onContextDataChange: (key: string, value: unknown) => void;
+  onComplete: () => void;
+}
+
+function QuickConfigSectionWrapper({
+  recipe,
+  contextData,
+  onContextDataChange,
+  onComplete,
+}: QuickConfigSectionWrapperProps) {
+  // Don't render if no inputs
+  if (!recipe.inputs || recipe.inputs.length === 0) {
+    return null;
+  }
+
+  return (
+    <BlockStack gap="400">
+      <Text as="p" tone="subdued">
+        {recipe.description || "Configure the key settings for your campaign."}
+      </Text>
+
+      {/* Render each quick input */}
+      {recipe.inputs.map((input) => (
+        <QuickInputField
+          key={input.key}
+          input={input}
+          value={contextData[input.key]}
+          onChange={(value) => onContextDataChange(input.key, value)}
+        />
+      ))}
+
+      <InlineStack align="end">
+        <Button variant="primary" onClick={onComplete}>
+          Continue to Content
         </Button>
       </InlineStack>
     </BlockStack>

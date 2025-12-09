@@ -21,17 +21,28 @@ import {
 import { ArrowLeftIcon, SaveIcon } from "@shopify/polaris-icons";
 import { FormSections, type TargetingConfig, type ScheduleConfig } from "./FormSections";
 import { RecipeSelectionStep, type RecipeSelectionResult } from "./RecipeSelectionStep";
-import { LivePreviewPanel, type PreviewDevice } from "~/domains/popups/components/preview/LivePreviewPanel";
+import {
+  LivePreviewPanel,
+  type PreviewDevice,
+} from "~/domains/popups/components/preview/LivePreviewPanel";
 import { Affix } from "~/shared/components/ui/Affix";
-import type { StyledRecipe } from "../../recipes/styled-recipe-types";
+import type { StyledRecipe, RecipeContext } from "../../recipes/styled-recipe-types";
 import { getThemeModeForRecipeType, getPresetIdForRecipe } from "../../recipes/styled-recipe-types";
-import type { ContentConfig, DesignConfig, DiscountConfig, CampaignGoal } from "../../types/campaign";
+import type {
+  ContentConfig,
+  DesignConfig,
+  DiscountConfig,
+  CampaignGoal,
+} from "../../types/campaign";
 import type { TemplateType } from "~/shared/hooks/useWizardState";
 import type { FrequencyCappingConfig } from "~/domains/targeting/components/FrequencyCappingPanel";
 import type { BackgroundPreset } from "~/config/background-presets";
 import type { GlobalFrequencyCappingSettings } from "~/domains/store/types/settings";
 import type { ThemePreset } from "../steps/DesignContentStep";
-import { validateCampaignCreateData, validateContentConfig } from "../../validation/campaign-validation";
+import {
+  validateCampaignCreateData,
+  validateContentConfig,
+} from "../../validation/campaign-validation";
 
 // Default targeting configuration
 const DEFAULT_TARGETING_CONFIG: TargetingConfig = {
@@ -78,15 +89,64 @@ const DEFAULT_DISCOUNT_CONFIG: DiscountConfig = {
 };
 
 // Section definitions (recipe is now a separate step, not a section)
-type SectionId = "recipe" | "basics" | "design" | "discount" | "targeting" | "frequency" | "schedule";
+type SectionId =
+  | "recipe"
+  | "basics"
+  | "quickConfig"
+  | "content"
+  | "design"
+  | "discount"
+  | "targeting"
+  | "frequency"
+  | "schedule";
 
-const EDITOR_SECTIONS: { id: SectionId; icon: string; title: string; subtitle: string }[] = [
-  { id: "basics", icon: "📝", title: "Campaign Name & Description", subtitle: "Give your campaign a name and optional description" },
-  { id: "design", icon: "🎨", title: "Customize Design", subtitle: "Adjust colors, content, and styling" },
-  { id: "discount", icon: "🎁", title: "Discount & Incentives", subtitle: "Configure discount codes and rewards" },
-  { id: "targeting", icon: "🎯", title: "Targeting & Triggers", subtitle: "Define who sees your popup and when" },
-  { id: "frequency", icon: "🔄", title: "Frequency", subtitle: "Control how often the popup appears" },
-  { id: "schedule", icon: "📅", title: "Schedule & Settings", subtitle: "Set start/end dates and priority" },
+interface SectionDef {
+  id: SectionId;
+  icon: string;
+  title: string;
+  subtitle: string;
+  /** If true, section is conditionally visible (e.g., quickConfig only shows if recipe has inputs) */
+  conditional?: boolean;
+}
+
+const EDITOR_SECTIONS: SectionDef[] = [
+  {
+    id: "basics",
+    icon: "📝",
+    title: "Campaign Name & Description",
+    subtitle: "Give your campaign a name and optional description",
+  },
+  {
+    id: "quickConfig",
+    icon: "⚙️",
+    title: "Quick Configuration",
+    subtitle: "Configure your offer details",
+    conditional: true,
+  },
+  {
+    id: "content",
+    icon: "✏️",
+    title: "Content & Design",
+    subtitle: "Configure headlines, buttons, colors, and styling",
+  },
+  {
+    id: "targeting",
+    icon: "🎯",
+    title: "Targeting & Triggers",
+    subtitle: "Define who sees your popup and when",
+  },
+  {
+    id: "frequency",
+    icon: "🔄",
+    title: "Frequency",
+    subtitle: "Control how often the popup appears",
+  },
+  {
+    id: "schedule",
+    icon: "📅",
+    title: "Schedule & Settings",
+    subtitle: "Set start/end dates and priority",
+  },
 ];
 
 /** Design tokens from the store's default theme preset (matches DesignTokens shape) */
@@ -150,9 +210,15 @@ export function SingleCampaignFlow({
   // Campaign state
   const [campaignName, setCampaignName] = useState(initialData?.name || "");
   const [campaignDescription, setCampaignDescription] = useState(initialData?.description || "");
-  const [selectedRecipe, setSelectedRecipe] = useState<StyledRecipe | undefined>(initialData?.recipe);
-  const [contentConfig, setContentConfig] = useState<Partial<ContentConfig>>(initialData?.contentConfig || {});
-  const [designConfig, setDesignConfig] = useState<Partial<DesignConfig>>(initialData?.designConfig || {});
+  const [selectedRecipe, setSelectedRecipe] = useState<StyledRecipe | undefined>(
+    initialData?.recipe
+  );
+  const [contentConfig, setContentConfig] = useState<Partial<ContentConfig>>(
+    initialData?.contentConfig || {}
+  );
+  const [designConfig, setDesignConfig] = useState<Partial<DesignConfig>>(
+    initialData?.designConfig || {}
+  );
   const [discountConfig, setDiscountConfig] = useState<DiscountConfig>(
     initialData?.discountConfig || DEFAULT_DISCOUNT_CONFIG
   );
@@ -165,6 +231,9 @@ export function SingleCampaignFlow({
   const [scheduleConfig, setScheduleConfig] = useState<ScheduleConfig>(
     initialData?.scheduleConfig || DEFAULT_SCHEDULE_CONFIG
   );
+
+  // Recipe context data for quick configuration inputs
+  const [contextData, setContextData] = useState<RecipeContext>({});
 
   // Section state (starts with basics expanded since recipe selection is done)
   const [expandedSections, setExpandedSections] = useState<SectionId[]>(["basics"]);
@@ -193,9 +262,31 @@ export function SingleCampaignFlow({
     }
   }, []);
 
+  // Check if recipe has quick inputs
+  const hasQuickInputs = useMemo(() => {
+    return selectedRecipe?.inputs && selectedRecipe.inputs.length > 0;
+  }, [selectedRecipe]);
+
+  // Filter visible sections (hide quickConfig if no inputs)
+  const visibleSections = useMemo(() => {
+    return EDITOR_SECTIONS.filter((section) => {
+      if (section.id === "quickConfig" && !hasQuickInputs) {
+        return false;
+      }
+      return true;
+    });
+  }, [hasQuickInputs]);
+
+  // Handler for context data changes from QuickConfig section
+  const handleContextDataChange = useCallback((key: string, value: unknown) => {
+    setContextData((prev) => ({ ...prev, [key]: value }));
+    // TODO: Re-apply context data to contentConfig/discountConfig when values change
+    // This will be handled in FormSections when QuickConfig section is implemented
+  }, []);
+
   // Handler for RecipeSelectionStep (step 1 → step 2)
   const handleRecipeSelected = useCallback((result: RecipeSelectionResult) => {
-    const { recipe, initialData: recipeData } = result;
+    const { recipe, initialData: recipeData, contextData: recipeContextData } = result;
     setSelectedRecipe(recipe);
     setCampaignName(recipeData.name || "");
     setContentConfig(recipeData.contentConfig as Partial<ContentConfig>);
@@ -206,35 +297,46 @@ export function SingleCampaignFlow({
     if (recipeData.targetRules) {
       setTargetingConfig((prev) => ({
         ...prev,
-        enhancedTriggers: (recipeData.targetRules.enhancedTriggers as TargetingConfig["enhancedTriggers"]) || prev.enhancedTriggers,
+        enhancedTriggers:
+          (recipeData.targetRules.enhancedTriggers as TargetingConfig["enhancedTriggers"]) ||
+          prev.enhancedTriggers,
       }));
+    }
+    // Store context data for QuickConfig section
+    if (recipeContextData) {
+      setContextData(recipeContextData);
     }
     // Clear validation errors
     setValidationErrors([]);
     setValidationWarnings([]);
     // Move to editor step
     setStep("editor");
-    setExpandedSections(["basics"]);
+    // If recipe has quick inputs, expand quickConfig first; otherwise basics
+    const hasQuickInputs = recipe.inputs && recipe.inputs.length > 0;
+    setExpandedSections([hasQuickInputs ? "quickConfig" : "basics"]);
   }, []);
 
   // Legacy handler for FormSections (when changing recipe in editor)
-  const handleRecipeSelect = useCallback((recipe: StyledRecipe) => {
-    setSelectedRecipe(recipe);
-    setContentConfig(recipe.defaults.contentConfig || {});
+  const handleRecipeSelect = useCallback(
+    (recipe: StyledRecipe) => {
+      setSelectedRecipe(recipe);
+      setContentConfig(recipe.defaults.contentConfig || {});
 
-    // Determine theme mode based on recipe type
-    const themeMode = getThemeModeForRecipeType(recipe.recipeType);
-    const presetId = themeMode === "preset" ? getPresetIdForRecipe(recipe.id) : undefined;
+      // Determine theme mode based on recipe type
+      const themeMode = getThemeModeForRecipeType(recipe.recipeType);
+      const presetId = themeMode === "preset" ? getPresetIdForRecipe(recipe.id) : undefined;
 
-    setDesignConfig({
-      ...recipe.defaults.designConfig,
-      themeMode,
-      presetId,
-    });
-    markComplete("recipe", "design");
-    setValidationErrors([]);
-    setValidationWarnings([]);
-  }, [markComplete]);
+      setDesignConfig({
+        ...recipe.defaults.designConfig,
+        themeMode,
+        presetId,
+      });
+      markComplete("recipe", "design");
+      setValidationErrors([]);
+      setValidationWarnings([]);
+    },
+    [markComplete]
+  );
 
   // Back handler that respects the step
   const handleBack = useCallback(() => {
@@ -247,73 +349,97 @@ export function SingleCampaignFlow({
     }
   }, [step, onBack]);
 
-  const getCampaignData = useCallback((): CampaignData => ({
-    name: campaignName,
-    description: campaignDescription,
-    recipe: selectedRecipe,
-    templateType: selectedRecipe?.templateType as TemplateType | undefined,
-    contentConfig,
-    designConfig,
-    discountConfig,
-    targetingConfig,
-    frequencyConfig,
-    scheduleConfig,
-  }), [campaignName, campaignDescription, selectedRecipe, contentConfig, designConfig, discountConfig, targetingConfig, frequencyConfig, scheduleConfig]);
+  const getCampaignData = useCallback(
+    (): CampaignData => ({
+      name: campaignName,
+      description: campaignDescription,
+      recipe: selectedRecipe,
+      templateType: selectedRecipe?.templateType as TemplateType | undefined,
+      contentConfig,
+      designConfig,
+      discountConfig,
+      targetingConfig,
+      frequencyConfig,
+      scheduleConfig,
+    }),
+    [
+      campaignName,
+      campaignDescription,
+      selectedRecipe,
+      contentConfig,
+      designConfig,
+      discountConfig,
+      targetingConfig,
+      frequencyConfig,
+      scheduleConfig,
+    ]
+  );
 
   // Validate campaign data before saving
-  const validateCampaign = useCallback((forPublish: boolean): { valid: boolean; errors: string[]; warnings: string[] } => {
-    const errors: string[] = [];
-    const warnings: string[] = [];
+  const validateCampaign = useCallback(
+    (forPublish: boolean): { valid: boolean; errors: string[]; warnings: string[] } => {
+      const errors: string[] = [];
+      const warnings: string[] = [];
 
-    // Basic validation
-    if (!campaignName.trim()) {
-      errors.push("Campaign name is required");
-    }
-
-    if (!selectedRecipe) {
-      errors.push("Please select a recipe/template");
-    }
-
-    const templateType = selectedRecipe?.templateType as TemplateType | undefined;
-
-    // Content validation (template-specific)
-    if (templateType && contentConfig) {
-      const contentResult = validateContentConfig(templateType, contentConfig);
-      if (!contentResult.success && contentResult.errors) {
-        errors.push(...contentResult.errors);
+      // Basic validation
+      if (!campaignName.trim()) {
+        errors.push("Campaign name is required");
       }
-    }
 
-    // For publish, validate the full campaign data
-    if (forPublish && templateType) {
-      const campaignData = {
-        name: campaignName,
-        description: campaignDescription,
-        goal: selectedRecipe?.goal as CampaignGoal || "NEWSLETTER_SIGNUP",
-        templateType,
-        contentConfig,
-        designConfig,
-        targetRules: {
-          enhancedTriggers: targetingConfig.enhancedTriggers,
-          audienceTargeting: targetingConfig.audienceTargeting,
-          geoTargeting: targetingConfig.geoTargeting,
-        },
-        discountConfig,
-      };
-
-      const result = validateCampaignCreateData(campaignData);
-      if (!result.success && result.errors) {
-        // Filter out duplicates
-        const newErrors = result.errors.filter(e => !errors.includes(e));
-        errors.push(...newErrors);
+      if (!selectedRecipe) {
+        errors.push("Please select a recipe/template");
       }
-      if (result.warnings) {
-        warnings.push(...result.warnings);
-      }
-    }
 
-    return { valid: errors.length === 0, errors, warnings };
-  }, [campaignName, campaignDescription, selectedRecipe, contentConfig, designConfig, targetingConfig, discountConfig]);
+      const templateType = selectedRecipe?.templateType as TemplateType | undefined;
+
+      // Content validation (template-specific)
+      if (templateType && contentConfig) {
+        const contentResult = validateContentConfig(templateType, contentConfig);
+        if (!contentResult.success && contentResult.errors) {
+          errors.push(...contentResult.errors);
+        }
+      }
+
+      // For publish, validate the full campaign data
+      if (forPublish && templateType) {
+        const campaignData = {
+          name: campaignName,
+          description: campaignDescription,
+          goal: (selectedRecipe?.goal as CampaignGoal) || "NEWSLETTER_SIGNUP",
+          templateType,
+          contentConfig,
+          designConfig,
+          targetRules: {
+            enhancedTriggers: targetingConfig.enhancedTriggers,
+            audienceTargeting: targetingConfig.audienceTargeting,
+            geoTargeting: targetingConfig.geoTargeting,
+          },
+          discountConfig,
+        };
+
+        const result = validateCampaignCreateData(campaignData);
+        if (!result.success && result.errors) {
+          // Filter out duplicates
+          const newErrors = result.errors.filter((e) => !errors.includes(e));
+          errors.push(...newErrors);
+        }
+        if (result.warnings) {
+          warnings.push(...result.warnings);
+        }
+      }
+
+      return { valid: errors.length === 0, errors, warnings };
+    },
+    [
+      campaignName,
+      campaignDescription,
+      selectedRecipe,
+      contentConfig,
+      designConfig,
+      targetingConfig,
+      discountConfig,
+    ]
+  );
 
   const handleSave = useCallback(async () => {
     // Validate for publish
@@ -382,7 +508,7 @@ export function SingleCampaignFlow({
   // STEP 2: CAMPAIGN EDITOR
   // =============================================================================
   return (
-    <div style={{ minHeight: "100vh", backgroundColor: "var(--p-color-bg-surface)" }}>
+    <div style={{ minHeight: "100vh" }}>
       {/* Sticky Header */}
       <StickyHeader
         campaignName={campaignName}
@@ -411,11 +537,7 @@ export function SingleCampaignFlow({
               </Banner>
             )}
             {validationWarnings.length > 0 && (
-              <Banner
-                title="Warnings"
-                tone="warning"
-                onDismiss={() => setValidationWarnings([])}
-              >
+              <Banner title="Warnings" tone="warning" onDismiss={() => setValidationWarnings([])}>
                 <ul style={{ margin: 0, paddingLeft: "20px" }}>
                   {validationWarnings.map((warning, i) => (
                     <li key={i}>{warning}</li>
@@ -436,6 +558,7 @@ export function SingleCampaignFlow({
               templateType={templateType}
               contentConfig={contentConfig}
               designConfig={designConfig}
+              discountConfig={discountConfig}
               targetingConfig={targetingConfig}
               shopDomain={shopDomain}
               globalCustomCSS={globalCustomCSS}
@@ -448,7 +571,7 @@ export function SingleCampaignFlow({
           {/* Right Column - Form Sections (without recipe section) */}
           <Layout.Section variant="oneHalf">
             <FormSections
-              sections={EDITOR_SECTIONS}
+              sections={visibleSections}
               expandedSections={expandedSections}
               completedSections={completedSections}
               onToggle={toggleSection}
@@ -460,6 +583,9 @@ export function SingleCampaignFlow({
               campaignDescription={campaignDescription}
               onNameChange={setCampaignName}
               onDescriptionChange={setCampaignDescription}
+              // Quick configuration (recipe inputs)
+              contextData={contextData}
+              onContextDataChange={handleContextDataChange}
               // Content & Design
               contentConfig={contentConfig}
               designConfig={designConfig}
@@ -530,7 +656,9 @@ function StickyHeader({
           <InlineStack gap="400" blockAlign="center">
             <Button icon={ArrowLeftIcon} onClick={onBack} variant="tertiary" />
             <InlineStack gap="200" blockAlign="center">
-              <Text as="span" variant="headingMd">📣</Text>
+              <Text as="span" variant="headingMd">
+                📣
+              </Text>
               <Text as="h1" variant="headingLg">
                 {campaignName || "New Campaign"}
               </Text>
@@ -557,11 +685,11 @@ function StickyHeader({
   );
 }
 
-
 interface PreviewColumnProps {
   templateType?: TemplateType;
   contentConfig: Partial<ContentConfig>;
   designConfig: Partial<DesignConfig>;
+  discountConfig?: DiscountConfig;
   targetingConfig: TargetingConfig;
   shopDomain?: string;
   globalCustomCSS?: string;
@@ -574,6 +702,7 @@ function PreviewColumn({
   templateType,
   contentConfig,
   designConfig,
+  discountConfig,
   targetingConfig,
   shopDomain,
   globalCustomCSS,
@@ -587,7 +716,11 @@ function PreviewColumn({
         {templateType ? (
           <LivePreviewPanel
             templateType={templateType}
-            config={contentConfig}
+            config={{
+              ...contentConfig,
+              // Pass discount config so preview can render discount badges/text correctly
+              discountConfig,
+            }}
             designConfig={designConfig}
             targetRules={targetingConfig as unknown as Record<string, unknown>}
             shopDomain={shopDomain}
@@ -615,4 +748,3 @@ function PreviewColumn({
     </div>
   );
 }
-

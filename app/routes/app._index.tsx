@@ -97,7 +97,11 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   if (chargeId) {
     try {
       const billingContext = await BillingService.getBillingContextFromDbByDomain(session.shop);
-      if (billingContext && billingContext.planTier !== "FREE" && billingContext.hasActiveSubscription) {
+      if (
+        billingContext &&
+        billingContext.planTier !== "FREE" &&
+        billingContext.hasActiveSubscription
+      ) {
         recentUpgrade = {
           fromPlan: "FREE",
           toPlan: billingContext.planTier,
@@ -135,7 +139,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const currentStatus = formData.get("currentStatus") as string;
     const newStatus = currentStatus === "ACTIVE" ? "PAUSED" : "ACTIVE";
 
-    await CampaignService.updateCampaign(campaignId, storeId, { status: newStatus as CampaignStatus }, admin);
+    await CampaignService.updateCampaign(
+      campaignId,
+      storeId,
+      { status: newStatus as CampaignStatus },
+      admin
+    );
     return data({ success: true });
   }
 
@@ -394,12 +403,7 @@ function TemplateTile({
 }
 
 export default function Dashboard() {
-  const {
-    currency,
-    themeEditorUrl,
-    chargeId,
-    recentUpgrade,
-  } = useLoaderData<typeof loader>();
+  const { currency, themeEditorUrl, chargeId, recentUpgrade } = useLoaderData<typeof loader>();
 
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -474,7 +478,10 @@ export default function Dashboard() {
 
   const handleToggleStatus = (id: string, currentStatus: string) => {
     setTogglingCampaignId(id);
-    actionFetcher.submit({ intent: "toggle_status", campaignId: id, currentStatus }, { method: "post" });
+    actionFetcher.submit(
+      { intent: "toggle_status", campaignId: id, currentStatus },
+      { method: "post" }
+    );
   };
 
   const handleCampaignClick = (id: string) => {
@@ -549,7 +556,9 @@ export default function Dashboard() {
         <Layout>
           {/* Setup Status Banner - Show if setup incomplete OR if there are any issues */}
           {currentSetupStatus &&
-            (!currentSetupComplete || !currentSetupStatus.themeExtensionEnabled || !currentSetupStatus.appProxyOk) && (
+            (!currentSetupComplete ||
+              !currentSetupStatus.themeExtensionEnabled ||
+              !currentSetupStatus.appProxyOk) && (
               <Layout.Section>
                 <SetupStatus
                   status={currentSetupStatus}
@@ -568,10 +577,6 @@ export default function Dashboard() {
               action={{
                 content: "Browse campaign recipes",
                 onAction: handleCreateCampaign,
-              }}
-              secondaryAction={{
-                content: "Build from scratch",
-                onAction: handleCreateFromScratch,
               }}
               image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
             >
@@ -653,7 +658,9 @@ export default function Dashboard() {
       <Layout>
         {/* Setup Status Banner - Show if setup incomplete OR if there are any issues */}
         {currentSetupStatus &&
-          (!currentSetupComplete || !currentSetupStatus.themeExtensionEnabled || !currentSetupStatus.appProxyOk) && (
+          (!currentSetupComplete ||
+            !currentSetupStatus.themeExtensionEnabled ||
+            !currentSetupStatus.appProxyOk) && (
             <Layout.Section>
               <SetupStatus
                 status={currentSetupStatus}

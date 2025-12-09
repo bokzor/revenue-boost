@@ -92,7 +92,6 @@ const classicFreeShipping: FreeShippingRecipe = {
   templateType: "FREE_SHIPPING",
   recipeType: "use_case",
   component: "FreeShippingBar",
-  theme: "minimal",
   layout: "centered",
   featured: true,
   tags: ["free-shipping", "cart-recovery", "high-converting", "minimal"] as RecipeTag[],
@@ -148,4 +147,3 @@ const classicFreeShipping: FreeShippingRecipe = {
 // =============================================================================
 
 export const FREE_SHIPPING_DESIGN_RECIPES: FreeShippingRecipe[] = [classicFreeShipping];
-

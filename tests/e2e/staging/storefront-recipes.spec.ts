@@ -143,11 +143,9 @@ test.describe.serial('Recipe Use Cases', () => {
                 return !!host.shadowRoot.querySelector('input[type="checkbox"]');
             });
 
-            if (hasCheckbox) {
-                console.log('✅ Newsletter recipe: GDPR checkbox displayed');
-            } else {
-                console.log('⚠️ GDPR checkbox may render differently');
-            }
+            // HARD ASSERTION - GDPR checkbox should be present when enabled
+            expect(hasCheckbox).toBe(true);
+            console.log('✅ Newsletter recipe: GDPR checkbox displayed');
         });
 
         test('newsletter with percentage discount incentive', async ({ page }) => {
@@ -173,6 +171,46 @@ test.describe.serial('Recipe Use Cases', () => {
 
             expect(hasDiscount).toBe(true);
             console.log('✅ Newsletter recipe: Discount incentive displayed');
+        });
+
+        test('newsletter form submission workflow', async ({ page }) => {
+            const campaign = await (await factory.newsletter().init())
+                .withPriority(MAX_TEST_PRIORITY)
+                .withHeadline('Join Our Newsletter')
+                .withPercentageDiscount(10)
+                .create();
+            console.log(`✅ Newsletter form test campaign created: ${campaign.id}`);
+
+            await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
+
+            await page.goto(STORE_URL);
+            await handlePasswordPage(page);
+
+            const popupVisible = await waitForPopupWithRetry(page, { timeout: 15000, retries: 3 });
+            expect(popupVisible).toBe(true);
+
+            // Fill email in the form
+            const testEmail = `e2e-test-${Date.now()}@example.com`;
+            const emailFilled = await fillEmailInShadowDOM(page, testEmail);
+            expect(emailFilled).toBe(true);
+            console.log(`✅ Email filled: ${testEmail}`);
+
+            // Submit the form
+            const formSubmitted = await submitFormInShadowDOM(page);
+            expect(formSubmitted).toBe(true);
+            console.log('✅ Form submitted');
+
+            // Wait for success state (popup should show success message or discount code)
+            await page.waitForTimeout(2000);
+
+            // Check for success indication (could be success message, discount code, or thank you)
+            const hasSuccessState = await hasTextInShadowDOM(page, 'thank') ||
+                                    await hasTextInShadowDOM(page, 'success') ||
+                                    await hasTextInShadowDOM(page, 'code') ||
+                                    await hasTextInShadowDOM(page, '10%');
+
+            expect(hasSuccessState).toBe(true);
+            console.log('✅ Newsletter recipe: Form submission workflow complete');
         });
     });
 
@@ -234,11 +272,9 @@ test.describe.serial('Recipe Use Cases', () => {
                               await hasTextInShadowDOM(page, 'hurry') ||
                               await hasTextInShadowDOM(page, 'time');
 
-            if (hasUrgency) {
-                console.log('✅ Flash Sale recipe: Urgency message displayed');
-            } else {
-                console.log('⚠️ Urgency message may render in different format');
-            }
+            // HARD ASSERTION - urgency message should be present
+            expect(hasUrgency).toBe(true);
+            console.log('✅ Flash Sale recipe: Urgency message displayed');
         });
 
         test('flash sale with percentage discount', async ({ page }) => {
@@ -896,24 +932,73 @@ test.describe.serial('Recipe Use Cases', () => {
         });
 
         test.describe('Free Gift with Purchase Recipe', () => {
-            test('renders free gift popup with cart value trigger', async ({ page }) => {
+            test('renders free gift popup with page_load trigger', async ({ page }) => {
+                // Test the free gift popup renders correctly (using page_load for reliable testing)
                 const campaign = await (await factory.flashSale().init())
                     .withPriority(MAX_TEST_PRIORITY)
-                    .asFreeGiftRecipe({ thresholdDollars: 50, giftProductTitle: 'Mystery Gift' })
+                    .withHeadline('🎁 FREE Gift With Your Order!')
                     .create();
+
+                // Manually set freeGift config without overriding trigger
+                await prisma.campaign.update({
+                    where: { id: campaign.id },
+                    data: {
+                        discountConfig: {
+                            enabled: true,
+                            type: 'shared',
+                            showInPreview: true,
+                            freeGift: {
+                                thresholdCents: 5000,
+                                productTitle: 'Mystery Gift',
+                            },
+                        },
+                    },
+                });
                 console.log(`✅ Free gift campaign created: ${campaign.id}`);
 
                 await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
 
-                // Navigate to store (popup may not show until cart threshold is met)
                 await page.goto(STORE_URL);
                 await handlePasswordPage(page);
 
-                // Verify campaign was created with correct config
+                const popupVisible = await waitForPopupWithRetry(page, { timeout: 15000, retries: 3 });
+                expect(popupVisible).toBe(true);
+
+                // Verify free gift content is actually rendered
+                const hasFreeGiftContent = await hasTextInShadowDOM(page, 'free') ||
+                                           await hasTextInShadowDOM(page, 'gift') ||
+                                           await hasTextInShadowDOM(page, '🎁');
+
+                expect(hasFreeGiftContent).toBe(true);
+                console.log('✅ Free gift recipe: Popup rendered with free gift content');
+            });
+
+            test('verifies free gift discount config is correct', async ({ page }) => {
+                // This test verifies the recipe configuration for free gift discounts
+                // Cart value trigger testing would require adding items to cart
+                const campaign = await (await factory.flashSale().init())
+                    .withPriority(MAX_TEST_PRIORITY)
+                    .withFreeGiftDiscount({ thresholdCents: 5000, giftProductTitle: 'Mystery Gift' })
+                    .create();
+                console.log(`✅ Free gift config campaign created: ${campaign.id}`);
+
+                // Verify the discount config is correct
                 expect(campaign.discountConfig).toBeDefined();
                 const discountConfig = campaign.discountConfig as Record<string, unknown>;
                 expect(discountConfig.freeGift).toBeDefined();
-                console.log('✅ Free gift recipe: Campaign created with freeGift discount config');
+                const freeGift = discountConfig.freeGift as Record<string, unknown>;
+                expect(freeGift.thresholdCents).toBe(5000);
+                expect(freeGift.productTitle).toBe('Mystery Gift');
+
+                // Verify cart_value trigger is configured
+                expect(campaign.targetRules).toBeDefined();
+                const targetRules = campaign.targetRules as Record<string, unknown>;
+                const enhancedTriggers = targetRules.enhancedTriggers as Record<string, unknown>;
+                const cartValue = enhancedTriggers?.cart_value as Record<string, unknown>;
+                expect(cartValue?.enabled).toBe(true);
+                expect(cartValue?.min_value).toBe(50); // $50
+
+                console.log('✅ Free gift recipe: Discount and trigger config verified');
             });
         });
 
@@ -999,22 +1084,57 @@ test.describe.serial('Recipe Use Cases', () => {
         });
 
         test.describe('Frequently Bought Together Recipe', () => {
-            test('renders FBT upsell with add-to-cart trigger config', async ({ page }) => {
+            test('renders FBT upsell popup with bundle discount content', async ({ page }) => {
+                // Create FBT campaign with page_load trigger for testing
+                // (real FBT would use add_to_cart trigger but that requires product interaction)
                 const campaign = await (await factory.productUpsell().init())
                     .withPriority(MAX_TEST_PRIORITY)
-                    .asFrequentlyBoughtTogetherRecipe(10)
+                    .withHeadline('Frequently Bought Together')
+                    .withBundleDiscount(10)
                     .create();
                 console.log(`✅ FBT upsell campaign created: ${campaign.id}`);
 
                 await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
 
-                // Verify campaign was created with add-to-cart trigger
+                await page.goto(STORE_URL);
+                await handlePasswordPage(page);
+
+                const popupVisible = await waitForPopupWithRetry(page, { timeout: 15000, retries: 3 });
+                expect(popupVisible).toBe(true);
+
+                // Verify FBT content is rendered
+                const hasFbtContent = await hasTextInShadowDOM(page, 'frequently') ||
+                                      await hasTextInShadowDOM(page, 'bought') ||
+                                      await hasTextInShadowDOM(page, 'together') ||
+                                      await hasTextInShadowDOM(page, 'bundle') ||
+                                      await hasTextInShadowDOM(page, '10%');
+
+                expect(hasFbtContent).toBe(true);
+                console.log('✅ FBT recipe: Popup rendered with bundle discount content');
+            });
+
+            test('verifies add-to-cart trigger is configured correctly', async ({ page }) => {
+                // This test verifies the recipe configuration is correct for add-to-cart triggers
+                // Full add-to-cart trigger testing would require product page interaction
+                const campaign = await (await factory.productUpsell().init())
+                    .withPriority(MAX_TEST_PRIORITY)
+                    .asFrequentlyBoughtTogetherRecipe(10)
+                    .create();
+                console.log(`✅ FBT with add-to-cart trigger created: ${campaign.id}`);
+
+                // Verify the trigger configuration
                 expect(campaign.targetRules).toBeDefined();
                 const targetRules = campaign.targetRules as Record<string, unknown>;
                 const enhancedTriggers = targetRules.enhancedTriggers as Record<string, unknown>;
                 const addToCart = enhancedTriggers?.add_to_cart as Record<string, unknown>;
                 expect(addToCart?.enabled).toBe(true);
-                console.log('✅ FBT recipe: Campaign created with add_to_cart trigger');
+
+                // Verify discount config is also set
+                expect(campaign.discountConfig).toBeDefined();
+                const discountConfig = campaign.discountConfig as Record<string, unknown>;
+                expect(discountConfig.enabled).toBe(true);
+
+                console.log('✅ FBT recipe: add_to_cart trigger and discount properly configured');
             });
         });
 

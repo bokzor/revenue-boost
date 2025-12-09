@@ -81,7 +81,6 @@ const recentPurchases: SocialProofRecipe = {
   recipeType: "inspiration",
   tags: ["high-converting", "subtle", "modern"] as RecipeTag[],
   component: "AnnouncementBanner",
-  theme: "social-proof-default",
   layout: "sidebar-left",
   featured: true,
   inputs: [],
@@ -135,7 +134,6 @@ const visitorActivity: SocialProofRecipe = {
   recipeType: "inspiration", // Artistic dark theme - uses preset colors
   tags: ["urgent", "modern", "high-converting"] as RecipeTag[],
   component: "AnnouncementBanner",
-  theme: "social-proof-visitors",
   layout: "sidebar-left",
   inputs: [],
   editableFields: SOCIAL_PROOF_EDITABLE_FIELDS,
@@ -189,7 +187,6 @@ const reviewHighlights: SocialProofRecipe = {
   recipeType: "inspiration", // Artistic warm amber theme - uses preset colors
   tags: ["elegant", "subtle", "high-converting"] as RecipeTag[],
   component: "AnnouncementBanner",
-  theme: "social-proof-reviews",
   layout: "sidebar-left",
   inputs: [],
   editableFields: SOCIAL_PROOF_EDITABLE_FIELDS,
@@ -243,7 +240,6 @@ const completeSocialProof: SocialProofRecipe = {
   recipeType: "use_case",
   tags: ["high-converting", "bold", "modern"] as RecipeTag[],
   component: "AnnouncementBanner",
-  theme: "social-proof-complete",
   layout: "sidebar-left",
   featured: true,
   inputs: [],
@@ -290,7 +286,6 @@ const minimalDark: SocialProofRecipe = {
   recipeType: "inspiration",
   tags: ["dark", "minimal", "tech", "modern"] as RecipeTag[],
   component: "AnnouncementBanner",
-  theme: "social-proof-dark",
   layout: "sidebar-right",
   inputs: [],
   editableFields: SOCIAL_PROOF_EDITABLE_FIELDS,
@@ -343,7 +338,6 @@ const luxuryElegant: SocialProofRecipe = {
   recipeType: "inspiration",
   tags: ["elegant", "luxury", "fashion", "beauty"] as RecipeTag[],
   component: "AnnouncementBanner",
-  theme: "social-proof-luxury",
   layout: "sidebar-left",
   inputs: [],
   editableFields: SOCIAL_PROOF_EDITABLE_FIELDS,
@@ -397,7 +391,6 @@ const urgencyBoost: SocialProofRecipe = {
   recipeType: "inspiration", // Artistic bold red theme - uses preset colors
   tags: ["urgent", "bold", "high-converting", "discount"] as RecipeTag[],
   component: "AnnouncementBanner",
-  theme: "social-proof-urgency",
   layout: "sidebar-left",
   featured: true,
   inputs: [],
@@ -456,7 +449,6 @@ const productPageFocused: SocialProofRecipe = {
   recipeType: "inspiration", // Artistic green theme - uses preset colors
   tags: ["high-converting", "subtle", "modern"] as RecipeTag[],
   component: "AnnouncementBanner",
-  theme: "social-proof-product",
   layout: "sidebar-right",
   inputs: [],
   editableFields: SOCIAL_PROOF_EDITABLE_FIELDS,

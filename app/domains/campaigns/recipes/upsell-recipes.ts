@@ -138,7 +138,6 @@ export const completeTheLook: ProductUpsellRecipe = {
   templateType: "PRODUCT_UPSELL",
   tags: ["fashion", "elegant", "high-converting"],
   component: "ProductUpsell",
-  theme: "luxury",
   layout: "centered",
   featured: true,
   recipeType: "use_case",
@@ -162,7 +161,6 @@ export const completeTheLook: ProductUpsellRecipe = {
       multiSelect: true,
     },
     designConfig: {
-      theme: "luxury",
       position: "center",
       size: "medium",
       animation: "fade",
@@ -195,7 +193,6 @@ export const productPageCrossSell: ProductUpsellRecipe = {
   templateType: "PRODUCT_UPSELL",
   tags: ["minimal", "subtle"],
   component: "ProductUpsell",
-  theme: "minimal",
   layout: "sidebar-right",
   recipeType: "use_case",
   inputs: [
@@ -231,7 +228,6 @@ export const productPageCrossSell: ProductUpsellRecipe = {
       multiSelect: false,
     },
     designConfig: {
-      theme: "minimal",
       position: "right",
       size: "small",
       animation: "slide",
@@ -273,7 +269,6 @@ export const lastChanceUpsell: ProductUpsellRecipe = {
   templateType: "PRODUCT_UPSELL",
   tags: ["urgent", "exit-intent", "high-converting"],
   component: "ProductUpsell",
-  theme: "gradient",
   layout: "centered",
   recipeType: "use_case",
   inputs: [
@@ -302,7 +297,6 @@ export const lastChanceUpsell: ProductUpsellRecipe = {
       multiSelect: true,
     },
     designConfig: {
-      theme: "gradient",
       position: "center",
       size: "medium",
       animation: "bounce",
@@ -334,7 +328,6 @@ export const frequentlyBoughtTogether: ProductUpsellRecipe = {
   templateType: "PRODUCT_UPSELL",
   tags: ["minimal", "subtle", "high-converting"],
   component: "ProductUpsell",
-  theme: "modern",
   layout: "banner-bottom",
   recipeType: "use_case",
   inputs: [BUNDLE_DISCOUNT_INPUT, MAX_PRODUCTS_INPUT],
@@ -358,7 +351,6 @@ export const frequentlyBoughtTogether: ProductUpsellRecipe = {
       multiSelect: true,
     },
     designConfig: {
-      theme: "modern",
       position: "bottom",
       size: "medium",
       animation: "slide",
@@ -414,7 +406,6 @@ export const postPurchaseCrossSell: ProductUpsellRecipe = {
   templateType: "PRODUCT_UPSELL",
   tags: ["subtle", "high-converting"],
   component: "ProductUpsell",
-  theme: "modern",
   layout: "centered",
   featured: true,
   new: false,
@@ -439,7 +430,6 @@ export const postPurchaseCrossSell: ProductUpsellRecipe = {
       multiSelect: true,
     },
     designConfig: {
-      theme: "modern",
       position: "center",
       size: "medium",
       animation: "fade",
@@ -481,7 +471,6 @@ export const scrollBasedRecommendations: ProductUpsellRecipe = {
   templateType: "PRODUCT_UPSELL",
   tags: ["minimal", "subtle"],
   component: "ProductUpsell",
-  theme: "minimal",
   layout: "sidebar-right",
   recipeType: "use_case",
   inputs: [
@@ -518,7 +507,6 @@ export const scrollBasedRecommendations: ProductUpsellRecipe = {
       multiSelect: false,
     },
     designConfig: {
-      theme: "minimal",
       position: "right",
       size: "small",
       animation: "slide",
@@ -561,7 +549,6 @@ export const classicUpsellModal: ClassicUpsellRecipe = {
   templateType: "CLASSIC_UPSELL",
   tags: ["centered", "high-converting"],
   component: "ClassicUpsellPopup",
-  theme: "modern",
   layout: "centered",
   featured: true,
   new: true,
@@ -583,7 +570,6 @@ export const classicUpsellModal: ClassicUpsellRecipe = {
       currency: "USD",
     },
     designConfig: {
-      theme: "modern",
       position: "center",
       size: "medium",
       animation: "fade",
@@ -615,7 +601,6 @@ export const minimalSlideUp: MinimalSlideUpRecipe = {
   templateType: "MINIMAL_SLIDE_UP",
   tags: ["minimal", "subtle"],
   component: "MinimalSlideUpPopup",
-  theme: "minimal",
   layout: "bottom-sheet",
   new: true,
   recipeType: "use_case",
@@ -634,7 +619,6 @@ export const minimalSlideUp: MinimalSlideUpRecipe = {
       currency: "USD",
     },
     designConfig: {
-      theme: "minimal",
       position: "bottom",
       size: "medium",
       animation: "slide",
@@ -666,7 +650,6 @@ export const premiumFullscreen: PremiumFullscreenRecipe = {
   templateType: "PREMIUM_FULLSCREEN",
   tags: ["fullscreen", "elegant", "high-converting"],
   component: "PremiumFullscreenPopup",
-  theme: "luxury",
   layout: "fullscreen",
   featured: true,
   new: true,
@@ -711,7 +694,6 @@ export const premiumFullscreen: PremiumFullscreenRecipe = {
       urgencyMessage: "🔥 Limited time offer - Only 3 left in stock!",
     },
     designConfig: {
-      theme: "luxury",
       position: "center",
       size: "large",
       animation: "fade",
@@ -744,7 +726,6 @@ export const countdownUrgency: CountdownUrgencyRecipe = {
   templateType: "COUNTDOWN_URGENCY",
   tags: ["urgent", "high-converting"],
   component: "CountdownUrgencyPopup",
-  theme: "gradient",
   layout: "centered",
   featured: true,
   new: true,
@@ -792,7 +773,6 @@ export const countdownUrgency: CountdownUrgencyRecipe = {
       socialProofMessage: "🔥 47 people are viewing this right now",
     },
     designConfig: {
-      theme: "gradient",
       position: "center",
       size: "medium",
       animation: "fade",

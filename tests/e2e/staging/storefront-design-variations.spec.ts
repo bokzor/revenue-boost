@@ -100,14 +100,12 @@ test.describe('Popup Design Variations', () => {
                     };
                 });
 
-                if (sizeInfo) {
-                    console.log(`SMALL popup: width=${sizeInfo.width}, hasSmallClass=${sizeInfo.hasSmallClass}`);
-                    // Verify size configuration is applied (either via class or reasonable dimensions)
-                    expect(sizeInfo.width > 0 || sizeInfo.hasSmallClass).toBe(true);
-                    console.log('✅ SMALL popup rendered');
-                } else {
-                    console.log('⚠️ Could not measure popup');
-                }
+                // HARD ASSERTION - popup should be measurable
+                expect(sizeInfo).toBeTruthy();
+                console.log(`SMALL popup: width=${sizeInfo?.width}, hasSmallClass=${sizeInfo?.hasSmallClass}`);
+                // Verify size configuration is applied (either via class or reasonable dimensions)
+                expect(sizeInfo!.width > 0 || sizeInfo!.hasSmallClass).toBe(true);
+                console.log('✅ SMALL popup rendered');
 
             } finally {
                 await prisma.campaign.delete({ where: { id: campaign.id } });
@@ -277,10 +275,12 @@ test.describe('Popup Design Variations', () => {
                            html.includes('rgb(255, 87, 51)');
                 }, customColor);
 
+                // TODO: This should be a hard assertion once design config is fully implemented
+                // Currently the storefront extension may not apply custom colors
                 if (colorApplied) {
                     console.log('✅ Custom primary color applied');
                 } else {
-                    console.log('⚠️ Custom color not detected - may be using CSS variables');
+                    console.log('⚠️ Custom color not detected - design config may not be applied by storefront');
                 }
 
             } finally {
@@ -327,10 +327,12 @@ test.describe('Popup Design Variations', () => {
                     return false;
                 });
 
+                // TODO: This should be a hard assertion once background images are fully implemented
+                // Currently the storefront extension may not render background images
                 if (hasBgImage) {
                     console.log('✅ Background image rendered');
                 } else {
-                    console.log('⚠️ No background image detected');
+                    console.log('⚠️ No background image detected - design config may not be applied by storefront');
                 }
 
             } finally {
@@ -373,10 +375,12 @@ test.describe('Popup Design Variations', () => {
                     return false;
                 });
 
+                // TODO: This should be a hard assertion once corner radius is fully implemented
+                // Currently the storefront extension may not apply corner radius
                 if (hasRadius) {
                     console.log('✅ Corner radius applied');
                 } else {
-                    console.log('⚠️ Corner radius not detected');
+                    console.log('⚠️ Corner radius not detected - design config may not be applied by storefront');
                 }
 
             } finally {

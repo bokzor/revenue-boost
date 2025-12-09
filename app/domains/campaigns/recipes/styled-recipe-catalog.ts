@@ -13,14 +13,9 @@ import type {
   RecipeCategory,
   RecipeContext,
   RecipeOutput,
-  EditableField,
-  QuickInput,
   RecipeTag,
 } from "./styled-recipe-types";
-import {
-  getThemeModeForRecipeType,
-  getPresetIdForRecipe,
-} from "./styled-recipe-types";
+import { getThemeModeForRecipeType, getPresetIdForRecipe } from "./styled-recipe-types";
 import { ANNOUNCEMENT_DESIGN_RECIPES } from "./announcement-design-recipes";
 import { CART_ABANDONMENT_DESIGN_RECIPES } from "./cart-abandonment-design-recipes";
 import { FLASH_SALE_DESIGN_RECIPES } from "./flash-sale-design-recipes";
@@ -96,63 +91,6 @@ function createBuildFunction(
     };
   };
 }
-
-// =============================================================================
-// COMMON EDITABLE FIELDS
-// =============================================================================
-
-const HEADLINE_FIELD: EditableField = {
-  key: "headline",
-  type: "text",
-  label: "Headline",
-  placeholder: "Enter your headline...",
-  group: "content",
-  validation: { required: true, maxLength: 100 },
-};
-
-const SUBHEADLINE_FIELD: EditableField = {
-  key: "subheadline",
-  type: "text",
-  label: "Subheadline",
-  placeholder: "Enter subheadline...",
-  group: "content",
-  validation: { maxLength: 200 },
-};
-
-const BUTTON_TEXT_FIELD: EditableField = {
-  key: "buttonText",
-  type: "text",
-  label: "Button Text",
-  placeholder: "e.g., Shop Now",
-  group: "content",
-  validation: { required: true, maxLength: 30 },
-};
-
-const EMAIL_PLACEHOLDER_FIELD: EditableField = {
-  key: "emailPlaceholder",
-  type: "text",
-  label: "Email Placeholder",
-  placeholder: "e.g., Enter your email",
-  group: "content",
-};
-
-// =============================================================================
-// COMMON QUICK INPUTS
-// =============================================================================
-
-const DISCOUNT_PERCENTAGE_INPUT: QuickInput = {
-  type: "discount_percentage",
-  key: "discountValue",
-  label: "Discount Percentage",
-  defaultValue: 10,
-};
-
-const THRESHOLD_INPUT: QuickInput = {
-  type: "currency_amount",
-  key: "threshold",
-  label: "Free Shipping Threshold",
-  defaultValue: 50,
-};
 
 // =============================================================================
 // CATALOG EXPORT

@@ -67,6 +67,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
       advancedTargetingEnabled: planContext.definition.features.advancedTargeting,
       experimentsEnabled: planContext.definition.features.experiments,
       globalCustomCSS: parsedSettings.success ? parsedSettings.data.globalCustomCSS : undefined,
+      customThemePresets: parsedSettings.success ? parsedSettings.data.customThemePresets : undefined,
       defaultThemeTokens,
       success: true,
     });
@@ -79,6 +80,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
       advancedTargetingEnabled: false,
       experimentsEnabled: false,
       globalCustomCSS: undefined,
+      customThemePresets: undefined,
       defaultThemeTokens: undefined,
       success: false,
     });
@@ -204,6 +206,7 @@ export default function UnifiedCampaignCreate() {
           storeId={loaderData.storeId}
           shopDomain={loaderData.shopDomain}
           globalCustomCSS={loaderData.globalCustomCSS}
+          customThemePresets={loaderData.customThemePresets}
           advancedTargetingEnabled={loaderData.advancedTargetingEnabled}
           defaultThemeTokens={loaderData.defaultThemeTokens}
         />
@@ -224,6 +227,7 @@ export default function UnifiedCampaignCreate() {
         storeId={loaderData.storeId}
         shopDomain={loaderData.shopDomain}
         advancedTargetingEnabled={loaderData.advancedTargetingEnabled}
+        customThemePresets={loaderData.customThemePresets}
       />
       {toastMessage && (
         <Toast content={toastMessage} onDismiss={() => setToastMessage(null)} />

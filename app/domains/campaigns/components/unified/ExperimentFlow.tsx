@@ -27,6 +27,17 @@ export interface ExperimentFlowProps {
   storeId: string;
   shopDomain?: string;
   advancedTargetingEnabled?: boolean;
+  /** Custom theme presets from store settings */
+  customThemePresets?: Array<{
+    id: string;
+    name: string;
+    brandColor: string;
+    backgroundColor: string;
+    textColor: string;
+    surfaceColor?: string;
+    successColor?: string;
+    fontFamily?: string;
+  }>;
 }
 
 // =============================================================================
@@ -40,6 +51,7 @@ export function ExperimentFlow({
   storeId,
   shopDomain,
   advancedTargetingEnabled,
+  customThemePresets,
 }: ExperimentFlowProps) {
   const [step, setStep] = useState<"setup" | "configure">("setup");
   const [activeVariantId, setActiveVariantId] = useState<string | null>(null);
@@ -239,6 +251,7 @@ export function ExperimentFlow({
           storeId={storeId}
           shopDomain={shopDomain}
           advancedTargetingEnabled={advancedTargetingEnabled}
+          customThemePresets={customThemePresets}
         />
 
         {/* Delete Confirmation Modal */}

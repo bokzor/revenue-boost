@@ -770,24 +770,6 @@ export function getPresetIdForRecipe(recipeId: string): string | undefined {
   return undefined;
 }
 
-/**
- * Build the CampaignDesign config for a recipe.
- *
- * @param recipe The styled recipe
- * @returns CampaignDesign config with appropriate themeMode and presetId
- */
-export function buildRecipeDesignConfig<T extends { id: string; recipeType?: RecipeType }>(
-  recipe: T
-): CampaignDesignInput {
-  const themeMode = getThemeModeForRecipeType(recipe.recipeType);
-  const presetId = themeMode === "preset" ? getPresetIdForRecipe(recipe.id) : undefined;
-
-  return {
-    themeMode,
-    presetId,
-  };
-}
-
 // =============================================================================
 // RECIPE CONTEXT (passed to build function)
 // =============================================================================

@@ -246,7 +246,6 @@ const tieredDiscount: FlashSaleRecipe = {
   templateType: "FLASH_SALE",
   recipeType: "use_case",
   component: "FlashSaleCentered",
-  theme: "luxury",
   layout: "centered",
   featured: true,
   requiredConfig: ["discount"], // Show tiered discount config in recipe modal
@@ -320,7 +319,6 @@ const firstPurchase: FlashSaleRecipe = {
   templateType: "FLASH_SALE",
   recipeType: "use_case",
   component: "FlashSaleCentered",
-  theme: "modern",
   layout: "centered",
   featured: true,
   inputs: [{ ...DISCOUNT_PERCENTAGE_INPUT, defaultValue: 15 }],
@@ -369,7 +367,6 @@ const lastChance: FlashSaleRecipe = {
   templateType: "FLASH_SALE",
   recipeType: "use_case",
   component: "FlashSaleCentered",
-  theme: "gradient",
   layout: "centered",
   inputs: [
     {
@@ -427,7 +424,6 @@ const clearance: FlashSaleRecipe = {
   templateType: "FLASH_SALE",
   recipeType: "use_case",
   component: "FlashSaleCentered",
-  theme: "gradient",
   layout: "centered",
   inputs: [{ ...DISCOUNT_PERCENTAGE_INPUT, defaultValue: 50 }],
   editableFields: FLASH_SALE_EDITABLE_FIELDS,
@@ -475,7 +471,6 @@ const newArrival: FlashSaleRecipe = {
   templateType: "FLASH_SALE",
   recipeType: "use_case",
   component: "FlashSaleCentered",
-  theme: "luxury",
   layout: "centered",
   inputs: [{ ...DISCOUNT_PERCENTAGE_INPUT, defaultValue: 20 }],
   editableFields: FLASH_SALE_EDITABLE_FIELDS,
@@ -523,7 +518,6 @@ const mysteryDiscount: FlashSaleRecipe = {
   templateType: "FLASH_SALE",
   recipeType: "use_case",
   component: "FlashSaleCentered",
-  theme: "gradient",
   layout: "centered",
   inputs: [],
   editableFields: FLASH_SALE_EDITABLE_FIELDS,
@@ -1170,8 +1164,7 @@ const freeGiftWithPurchase: FlashSaleRecipe = {
         productId: "preview-free-gift-product", // Placeholder for preview
         variantId: "preview-free-gift-variant", // Placeholder for preview
         productTitle: "Premium Gift Box",
-        productImageUrl:
-          "https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=400&q=80",
+        productImageUrl: "https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=400&q=80",
         quantity: 1, // Limits discount to 1 item per order
         minSubtotalCents: 5000, // $50 minimum cart value
       },
@@ -1212,4 +1205,7 @@ export const SEASONAL_RECIPES: FlashSaleRecipe[] = [
 ];
 
 // Combined export - use cases first, then seasonal
-export const FLASH_SALE_DESIGN_RECIPES: FlashSaleRecipe[] = [...USE_CASE_RECIPES, ...SEASONAL_RECIPES];
+export const FLASH_SALE_DESIGN_RECIPES: FlashSaleRecipe[] = [
+  ...USE_CASE_RECIPES,
+  ...SEASONAL_RECIPES,
+];

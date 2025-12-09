@@ -45,13 +45,7 @@ const INDUSTRY_TAGS: RecipeTag[] = [
 ];
 
 // Style tags for filtering
-const STYLE_TAGS: RecipeTag[] = [
-  "minimal",
-  "luxury",
-  "warm",
-  "dark",
-  "modern",
-];
+const STYLE_TAGS: RecipeTag[] = ["minimal", "luxury", "warm", "dark", "modern"];
 
 // =============================================================================
 // TYPES
@@ -94,12 +88,8 @@ const sidebarItemStyle = (isActive: boolean): React.CSSProperties => ({
   padding: "12px 16px",
   borderRadius: "8px",
   cursor: "pointer",
-  backgroundColor: isActive
-    ? "var(--p-color-bg-surface-selected)"
-    : "transparent",
-  border: isActive
-    ? "1px solid var(--p-color-border-interactive)"
-    : "1px solid transparent",
+  backgroundColor: isActive ? "var(--p-color-bg-surface-selected)" : "transparent",
+  border: isActive ? "1px solid var(--p-color-border-interactive)" : "1px solid transparent",
   transition: "all 0.15s ease",
 });
 
@@ -195,9 +185,7 @@ export function RecipePicker({
 
     // Apply tag filters (AND logic - must match all selected tags)
     if (selectedTags.length > 0) {
-      result = result.filter((recipe) =>
-        selectedTags.every((tag) => recipe.tags?.includes(tag))
-      );
+      result = result.filter((recipe) => selectedTags.every((tag) => recipe.tags?.includes(tag)));
     }
 
     // Sort: "Uses store theme" (use_case) first, then featured, then by name
@@ -235,235 +223,237 @@ export function RecipePicker({
 
   return (
     <PreviewProvider>
-    <div style={{ display: "flex", gap: "24px", minHeight: "600px" }}>
-      {/* Left Sidebar - Template Types (sticky) */}
-      <div style={{ width: "240px", flexShrink: 0 }}>
-        <div style={{ position: "sticky", top: "16px" }}>
-        <Card>
-          <BlockStack gap="100">
-            <Text as="h3" variant="headingMd">
-              Popup Type
-            </Text>
+      <div style={{ display: "flex", gap: "24px", minHeight: "600px" }}>
+        {/* Left Sidebar - Template Types (sticky) */}
+        <div style={{ width: "240px", flexShrink: 0 }}>
+          <div style={{ position: "sticky", top: "16px" }}>
+            <Card>
+              <BlockStack gap="100">
+                <Text as="h3" variant="headingMd">
+                  Popup Type
+                </Text>
 
-            <BlockStack gap="100">
-              {/* All Recipes */}
-              <div
-                style={{
-                  ...sidebarItemStyle(selectedTemplateType === "all"),
-                  ...(hoveredTemplateType === "all" && selectedTemplateType !== "all"
-                    ? sidebarItemHoverStyle
-                    : {}),
-                }}
-                onClick={() => setSelectedTemplateType("all")}
-                onMouseEnter={() => setHoveredTemplateType("all")}
-                onMouseLeave={() => setHoveredTemplateType(null)}
-              >
-                <InlineStack align="space-between" blockAlign="center">
-                  <InlineStack gap="200" blockAlign="center">
-                    <Text as="span">📚</Text>
-                    <Text
-                      as="span"
-                      variant="bodyMd"
-                      fontWeight={selectedTemplateType === "all" ? "semibold" : "regular"}
-                    >
-                      All Types
-                    </Text>
-                  </InlineStack>
-                  <Text as="span" variant="bodySm" tone="subdued">
-                    {goalFilteredRecipes.length}
-                  </Text>
-                </InlineStack>
-              </div>
-
-              {/* Template type items */}
-              {availableTemplateTypes.map((templateType) => {
-                const templateMeta = TEMPLATE_REGISTRY[templateType];
-                const count = recipesByTemplateType[templateType]?.length || 0;
-                const isActive = selectedTemplateType === templateType;
-                const isHovered = hoveredTemplateType === templateType;
-
-                if (count === 0) return null;
-
-                return (
+                <BlockStack gap="100">
+                  {/* All Recipes */}
                   <div
-                    key={templateType}
                     style={{
-                      ...sidebarItemStyle(isActive),
-                      ...(isHovered && !isActive ? sidebarItemHoverStyle : {}),
+                      ...sidebarItemStyle(selectedTemplateType === "all"),
+                      ...(hoveredTemplateType === "all" && selectedTemplateType !== "all"
+                        ? sidebarItemHoverStyle
+                        : {}),
                     }}
-                    onClick={() => setSelectedTemplateType(templateType)}
-                    onMouseEnter={() => setHoveredTemplateType(templateType)}
+                    onClick={() => setSelectedTemplateType("all")}
+                    onMouseEnter={() => setHoveredTemplateType("all")}
                     onMouseLeave={() => setHoveredTemplateType(null)}
                   >
                     <InlineStack align="space-between" blockAlign="center">
                       <InlineStack gap="200" blockAlign="center">
-                        <Text as="span">{templateTypeIcons[templateType] || "📄"}</Text>
+                        <Text as="span">📚</Text>
                         <Text
                           as="span"
                           variant="bodyMd"
-                          fontWeight={isActive ? "semibold" : "regular"}
+                          fontWeight={selectedTemplateType === "all" ? "semibold" : "regular"}
                         >
-                          {templateMeta?.label || templateType}
+                          All Types
                         </Text>
                       </InlineStack>
                       <Text as="span" variant="bodySm" tone="subdued">
-                        {count}
+                        {goalFilteredRecipes.length}
                       </Text>
                     </InlineStack>
                   </div>
-                );
-              })}
-            </BlockStack>
 
-            {/* Build from scratch */}
-            {onBuildFromScratch && (
-              <>
-                <Box paddingBlockStart="400" paddingBlockEnd="200">
-                  <div
-                    style={{
-                      height: "1px",
-                      backgroundColor: "var(--p-color-border-secondary)",
-                    }}
-                  />
-                </Box>
-                <div
-                  style={{
-                    ...sidebarItemStyle(false),
-                    ...(hoveredTemplateType === "scratch" ? sidebarItemHoverStyle : {}),
-                  }}
-                  onClick={onBuildFromScratch}
-                  onMouseEnter={() => setHoveredTemplateType("scratch")}
-                  onMouseLeave={() => setHoveredTemplateType(null)}
-                >
-                  <InlineStack gap="200" blockAlign="center">
-                    <Text as="span">🛠️</Text>
-                    <Text as="span" variant="bodyMd">
-                      Build from scratch
-                    </Text>
+                  {/* Template type items */}
+                  {availableTemplateTypes.map((templateType) => {
+                    const templateMeta = TEMPLATE_REGISTRY[templateType];
+                    const count = recipesByTemplateType[templateType]?.length || 0;
+                    const isActive = selectedTemplateType === templateType;
+                    const isHovered = hoveredTemplateType === templateType;
+
+                    if (count === 0) return null;
+
+                    return (
+                      <div
+                        key={templateType}
+                        style={{
+                          ...sidebarItemStyle(isActive),
+                          ...(isHovered && !isActive ? sidebarItemHoverStyle : {}),
+                        }}
+                        onClick={() => setSelectedTemplateType(templateType)}
+                        onMouseEnter={() => setHoveredTemplateType(templateType)}
+                        onMouseLeave={() => setHoveredTemplateType(null)}
+                      >
+                        <InlineStack align="space-between" blockAlign="center">
+                          <InlineStack gap="200" blockAlign="center">
+                            <Text as="span">{templateTypeIcons[templateType] || "📄"}</Text>
+                            <Text
+                              as="span"
+                              variant="bodyMd"
+                              fontWeight={isActive ? "semibold" : "regular"}
+                            >
+                              {templateMeta?.label || templateType}
+                            </Text>
+                          </InlineStack>
+                          <Text as="span" variant="bodySm" tone="subdued">
+                            {count}
+                          </Text>
+                        </InlineStack>
+                      </div>
+                    );
+                  })}
+                </BlockStack>
+
+                {/* Build from scratch */}
+                {onBuildFromScratch && (
+                  <>
+                    <Box paddingBlockStart="400" paddingBlockEnd="200">
+                      <div
+                        style={{
+                          height: "1px",
+                          backgroundColor: "var(--p-color-border-secondary)",
+                        }}
+                      />
+                    </Box>
+                    <div
+                      style={{
+                        ...sidebarItemStyle(false),
+                        ...(hoveredTemplateType === "scratch" ? sidebarItemHoverStyle : {}),
+                      }}
+                      onClick={onBuildFromScratch}
+                      onMouseEnter={() => setHoveredTemplateType("scratch")}
+                      onMouseLeave={() => setHoveredTemplateType(null)}
+                    >
+                      <InlineStack gap="200" blockAlign="center">
+                        <Text as="span">🛠️</Text>
+                        <Text as="span" variant="bodyMd">
+                          Build from scratch
+                        </Text>
+                      </InlineStack>
+                    </div>
+                  </>
+                )}
+              </BlockStack>
+            </Card>
+          </div>
+        </div>
+
+        {/* Right Content - Recipe Cards */}
+        <div style={{ flex: 1 }}>
+          <BlockStack gap="400">
+            {/* Header */}
+            <InlineStack align="space-between" blockAlign="center">
+              <Text as="h2" variant="headingLg">
+                {selectedTemplateType === "all"
+                  ? "All Recipes"
+                  : TEMPLATE_REGISTRY[selectedTemplateType]?.label || selectedTemplateType}
+              </Text>
+              <Text as="span" tone="subdued">
+                {filteredRecipes.length} recipe{filteredRecipes.length !== 1 ? "s" : ""}
+              </Text>
+            </InlineStack>
+
+            {/* Tag Filters */}
+            <Card>
+              <BlockStack gap="300">
+                {/* Industry Tags */}
+                <BlockStack gap="200">
+                  <Text as="span" variant="bodySm" fontWeight="semibold">
+                    Industry
+                  </Text>
+                  <InlineStack gap="200" wrap>
+                    {INDUSTRY_TAGS.map((tag) => (
+                      <Tag key={tag} onClick={() => toggleTag(tag)}>
+                        <span
+                          style={{
+                            opacity: selectedTags.includes(tag) ? 1 : 0.6,
+                            fontWeight: selectedTags.includes(tag) ? 600 : 400,
+                          }}
+                        >
+                          {selectedTags.includes(tag) ? "✓ " : ""}
+                          {RECIPE_TAG_LABELS[tag]}
+                        </span>
+                      </Tag>
+                    ))}
                   </InlineStack>
-                </div>
-              </>
+                </BlockStack>
+
+                <Divider />
+
+                {/* Style Tags */}
+                <BlockStack gap="200">
+                  <Text as="span" variant="bodySm" fontWeight="semibold">
+                    Style
+                  </Text>
+                  <InlineStack gap="200" wrap>
+                    {STYLE_TAGS.map((tag) => (
+                      <Tag key={tag} onClick={() => toggleTag(tag)}>
+                        <span
+                          style={{
+                            opacity: selectedTags.includes(tag) ? 1 : 0.6,
+                            fontWeight: selectedTags.includes(tag) ? 600 : 400,
+                          }}
+                        >
+                          {selectedTags.includes(tag) ? "✓ " : ""}
+                          {RECIPE_TAG_LABELS[tag]}
+                        </span>
+                      </Tag>
+                    ))}
+                  </InlineStack>
+                </BlockStack>
+
+                {/* Clear filters */}
+                {selectedTags.length > 0 && (
+                  <InlineStack align="end">
+                    <Button variant="plain" onClick={clearTags}>
+                      {`Clear filters (${selectedTags.length})`}
+                    </Button>
+                  </InlineStack>
+                )}
+              </BlockStack>
+            </Card>
+
+            {/* Recipe Grid */}
+            <InlineGrid columns={{ xs: 1, sm: 2, md: 3, lg: 3 }} gap="400">
+              {filteredRecipes.map((recipe) => (
+                <RecipeCard
+                  key={recipe.id}
+                  recipe={recipe}
+                  isSelected={recipe.id === selectedRecipeId}
+                  onSelect={() => onSelect(recipe)}
+                  showPreview={showPreviews}
+                  hoverPreviewEnabled={hoverPreviewEnabled}
+                  size="medium"
+                  defaultThemeTokens={defaultThemeTokens}
+                />
+              ))}
+            </InlineGrid>
+
+            {/* Empty state */}
+            {filteredRecipes.length === 0 && (
+              <Box padding="800" background="bg-surface-secondary" borderRadius="200">
+                <BlockStack gap="200" inlineAlign="center">
+                  <Text as="p" variant="bodyMd" tone="subdued">
+                    {selectedTags.length > 0
+                      ? "No recipes match the selected filters."
+                      : "No recipes in this category yet."}
+                  </Text>
+                  <InlineStack gap="200">
+                    {selectedTags.length > 0 && <Button onClick={clearTags}>Clear filters</Button>}
+                    <Button
+                      onClick={() => {
+                        setSelectedTemplateType("all");
+                        clearTags();
+                      }}
+                    >
+                      View all recipes
+                    </Button>
+                  </InlineStack>
+                </BlockStack>
+              </Box>
             )}
           </BlockStack>
-        </Card>
         </div>
       </div>
-
-      {/* Right Content - Recipe Cards */}
-      <div style={{ flex: 1 }}>
-        <BlockStack gap="400">
-          {/* Header */}
-          <InlineStack align="space-between" blockAlign="center">
-            <Text as="h2" variant="headingLg">
-              {selectedTemplateType === "all"
-                ? "All Recipes"
-                : TEMPLATE_REGISTRY[selectedTemplateType]?.label || selectedTemplateType}
-            </Text>
-            <Text as="span" tone="subdued">
-              {filteredRecipes.length} recipe{filteredRecipes.length !== 1 ? "s" : ""}
-            </Text>
-          </InlineStack>
-
-          {/* Tag Filters */}
-          <Card>
-            <BlockStack gap="300">
-              {/* Industry Tags */}
-              <BlockStack gap="200">
-                <Text as="span" variant="bodySm" fontWeight="semibold">
-                  Industry
-                </Text>
-                <InlineStack gap="200" wrap>
-                  {INDUSTRY_TAGS.map((tag) => (
-                    <Tag
-                      key={tag}
-                      onClick={() => toggleTag(tag)}
-                    >
-                      <span style={{
-                        opacity: selectedTags.includes(tag) ? 1 : 0.6,
-                        fontWeight: selectedTags.includes(tag) ? 600 : 400,
-                      }}>
-                        {selectedTags.includes(tag) ? "✓ " : ""}{RECIPE_TAG_LABELS[tag]}
-                      </span>
-                    </Tag>
-                  ))}
-                </InlineStack>
-              </BlockStack>
-
-              <Divider />
-
-              {/* Style Tags */}
-              <BlockStack gap="200">
-                <Text as="span" variant="bodySm" fontWeight="semibold">
-                  Style
-                </Text>
-                <InlineStack gap="200" wrap>
-                  {STYLE_TAGS.map((tag) => (
-                    <Tag
-                      key={tag}
-                      onClick={() => toggleTag(tag)}
-                    >
-                      <span style={{
-                        opacity: selectedTags.includes(tag) ? 1 : 0.6,
-                        fontWeight: selectedTags.includes(tag) ? 600 : 400,
-                      }}>
-                        {selectedTags.includes(tag) ? "✓ " : ""}{RECIPE_TAG_LABELS[tag]}
-                      </span>
-                    </Tag>
-                  ))}
-                </InlineStack>
-              </BlockStack>
-
-              {/* Clear filters */}
-              {selectedTags.length > 0 && (
-                <InlineStack align="end">
-                  <Button variant="plain" onClick={clearTags}>
-                    {`Clear filters (${selectedTags.length})`}
-                  </Button>
-                </InlineStack>
-              )}
-            </BlockStack>
-          </Card>
-
-          {/* Recipe Grid */}
-          <InlineGrid columns={{ xs: 1, sm: 2, md: 3, lg: 3 }} gap="400">
-            {filteredRecipes.map((recipe) => (
-              <RecipeCard
-                key={recipe.id}
-                recipe={recipe}
-                isSelected={recipe.id === selectedRecipeId}
-                onSelect={() => onSelect(recipe)}
-                showPreview={showPreviews}
-                hoverPreviewEnabled={hoverPreviewEnabled}
-                size="medium"
-                defaultThemeTokens={defaultThemeTokens}
-              />
-            ))}
-          </InlineGrid>
-
-          {/* Empty state */}
-          {filteredRecipes.length === 0 && (
-            <Box padding="800" background="bg-surface-secondary" borderRadius="200">
-              <BlockStack gap="200" inlineAlign="center">
-                <Text as="p" variant="bodyMd" tone="subdued">
-                  {selectedTags.length > 0
-                    ? "No recipes match the selected filters."
-                    : "No recipes in this category yet."}
-                </Text>
-                <InlineStack gap="200">
-                  {selectedTags.length > 0 && (
-                    <Button onClick={clearTags}>Clear filters</Button>
-                  )}
-                  <Button onClick={() => { setSelectedCategory("all"); clearTags(); }}>
-                    View all recipes
-                  </Button>
-                </InlineStack>
-              </BlockStack>
-            </Box>
-          )}
-        </BlockStack>
-      </div>
-    </div>
     </PreviewProvider>
   );
 }
-

@@ -1441,7 +1441,11 @@ export const PopupDesignEditorV2: React.FC<PopupDesignEditorProps> = ({
                 <div className={styles.stickyPreviewScrollable} data-affix-scrollable>
                   <LivePreviewPanel
                     templateType={currentTemplateType}
-                    config={debouncedConfig as unknown as Record<string, unknown>}
+                    config={{
+                      ...(debouncedConfig as unknown as Record<string, unknown>),
+                      // Pass discount config so preview can render discount badges/text correctly
+                      discountConfig,
+                    }}
                     designConfig={{}}
                     onPreviewElementReady={setPreviewElement}
                     shopDomain={shopDomain}

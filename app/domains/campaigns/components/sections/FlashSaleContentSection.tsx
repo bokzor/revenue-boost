@@ -194,12 +194,36 @@ export function FlashSaleContentSection({
         </BlockStack>
       </Card>
 
+      {/* ========== DISCOUNT SECTION ========== */}
+      {onDiscountChange && (
+        <Card>
+          <BlockStack gap="400">
+            <BlockStack gap="200">
+              <Text as="h3" variant="headingMd">
+                💰 Discount Configuration
+              </Text>
+              <Text as="p" tone="subdued">
+                Configure advanced discount types: tiered discounts, BOGO deals, and free gifts
+              </Text>
+            </BlockStack>
+
+            <Divider />
+
+            <GenericDiscountComponent
+              goal="INCREASE_REVENUE"
+              discountConfig={discountConfig}
+              onConfigChange={onDiscountChange}
+            />
+          </BlockStack>
+        </Card>
+      )}
+
       {/* ========== ADVANCED FEATURES SECTION ========== */}
       <Card>
         <BlockStack gap="400">
           <BlockStack gap="200">
             <Text as="h3" variant="headingMd">
-              ⏱️ Timer Settings
+              {templateType === "COUNTDOWN_TIMER" ? "⏱️ Timer Settings" : "⚙️ Advanced Features"}
             </Text>
             <Text as="p" tone="subdued">
               {templateType === "COUNTDOWN_TIMER"
@@ -567,30 +591,6 @@ export function FlashSaleContentSection({
           )}
         </BlockStack>
       </Card>
-
-      {/* ========== DISCOUNT SECTION ========== */}
-      {onDiscountChange && (
-        <Card>
-          <BlockStack gap="400">
-            <BlockStack gap="200">
-              <Text as="h3" variant="headingMd">
-                💰 Discount Configuration
-              </Text>
-              <Text as="p" tone="subdued">
-                Configure advanced discount types: tiered discounts, BOGO deals, and free gifts
-              </Text>
-            </BlockStack>
-
-            <Divider />
-
-            <GenericDiscountComponent
-              goal="INCREASE_REVENUE"
-              discountConfig={discountConfig}
-              onConfigChange={onDiscountChange}
-            />
-          </BlockStack>
-        </Card>
-      )}
     </>
   );
 }

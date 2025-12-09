@@ -68,24 +68,7 @@ test.describe.serial('Discount Configurations', () => {
 
         await page.context().clearCookies();
 
-        // Mock lead submission to return discount code
-        await page.route('**/apps/revenue-boost/api/leads/submit*', async (route) => {
-            const postData = route.request().postData();
-            console.log(`Intercepting lead submission: ${route.request().url()}`);
-
-            // Parse the campaignId to return appropriate discount code
-            let discountCode = 'TESTCODE';
-            if (postData?.includes('Percentage-25')) discountCode = 'SAVE25';
-            else if (postData?.includes('Fixed-10')) discountCode = 'SAVE10';
-            else if (postData?.includes('FreeShip')) discountCode = 'FREESHIP';
-            else if (postData?.includes('Single-Code')) discountCode = 'WELCOME2024';
-
-            await route.fulfill({
-                status: 200,
-                contentType: 'application/json',
-                body: JSON.stringify({ success: true, discountCode })
-            });
-        });
+        // NO API MOCKING - tests use real lead submission API
     });
 
     test('displays discount code after email submission', async ({ page }) => {
@@ -100,14 +83,7 @@ test.describe.serial('Discount Configurations', () => {
         console.log(`✅ Campaign created: ${campaign.id}`);
         await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
 
-        // Mock lead submission to return this specific code
-        await page.route('**/apps/revenue-boost/api/leads/submit*', async (route) => {
-            await route.fulfill({
-                status: 200,
-                contentType: 'application/json',
-                body: JSON.stringify({ success: true, discountCode })
-            });
-        });
+        // NO API MOCKING - use real lead submission API
 
         await page.goto(STORE_URL);
         await handlePasswordPage(page);
@@ -128,22 +104,15 @@ test.describe.serial('Discount Configurations', () => {
         await submitFormInShadowDOM(page);
         console.log('✅ Form submitted');
 
-        // Wait for success state
+        // Wait for success state - HARD ASSERTION
         const success = await waitForFormSuccess(page, 10000);
+        expect(success).toBe(true);
+        console.log('✅ Form submission successful');
 
-        if (success) {
-            console.log('✅ Form submission successful');
-
-            // Verify discount code is displayed
-            const discountResult = await verifyDiscountCodeDisplayed(page, discountCode);
-            if (discountResult.found) {
-                console.log(`✅ Discount code "${discountCode}" displayed in popup`);
-            } else {
-                console.log('⚠️ Discount code not found in popup - may need different success state check');
-            }
-        } else {
-            console.log('⚠️ Form submission success state not detected');
-        }
+        // Verify discount code is displayed - HARD ASSERTION
+        const discountResult = await verifyDiscountCodeDisplayed(page, discountCode);
+        expect(discountResult.found).toBe(true);
+        console.log(`✅ Discount code "${discountCode}" displayed in popup`);
     });
 
     test('shows percentage discount value in popup content', async ({ page }) => {
@@ -163,7 +132,7 @@ test.describe.serial('Discount Configurations', () => {
         const popup = page.locator('#revenue-boost-popup-shadow-host');
         await expect(popup).toBeVisible({ timeout: 15000 });
 
-        // Verify the percentage is mentioned in popup content
+        // Verify the percentage is mentioned in popup content - HARD ASSERTION
         const hasPercentage = await page.evaluate(() => {
             const host = document.querySelector('#revenue-boost-popup-shadow-host');
             if (!host?.shadowRoot) return false;
@@ -171,13 +140,8 @@ test.describe.serial('Discount Configurations', () => {
                    host.shadowRoot.innerHTML.toLowerCase().includes('25 percent');
         });
 
-        if (hasPercentage) {
-            console.log('✅ 25% discount value displayed in popup');
-        } else {
-            // Check if headline is at least displayed
-            const verification = await verifyNewsletterContent(page, { headline: '25%' });
-            console.log(`Headline verification: ${verification.valid ? 'found' : verification.errors.join(', ')}`);
-        }
+        expect(hasPercentage).toBe(true);
+        console.log('✅ 25% discount value displayed in popup');
     });
 
     test('shows fixed amount discount in popup', async ({ page }) => {
@@ -197,7 +161,7 @@ test.describe.serial('Discount Configurations', () => {
         const popup = page.locator('#revenue-boost-popup-shadow-host');
         await expect(popup).toBeVisible({ timeout: 15000 });
 
-        // Verify the amount is mentioned in popup
+        // Verify the amount is mentioned in popup - HARD ASSERTION
         const hasAmount = await page.evaluate(() => {
             const host = document.querySelector('#revenue-boost-popup-shadow-host');
             if (!host?.shadowRoot) return false;
@@ -205,11 +169,8 @@ test.describe.serial('Discount Configurations', () => {
                    host.shadowRoot.innerHTML.includes('10 off');
         });
 
-        if (hasAmount) {
-            console.log('✅ $10 fixed discount displayed in popup');
-        } else {
-            console.log('⚠️ $10 amount not found in popup content');
-        }
+        expect(hasAmount).toBe(true);
+        console.log('✅ $10 fixed discount displayed in popup');
     });
 
     test('shows free shipping messaging', async ({ page }) => {
@@ -229,7 +190,7 @@ test.describe.serial('Discount Configurations', () => {
         const popup = page.locator('#revenue-boost-popup-shadow-host');
         await expect(popup).toBeVisible({ timeout: 15000 });
 
-        // Verify free shipping is mentioned
+        // Verify free shipping is mentioned - HARD ASSERTION
         const hasFreeShipping = await page.evaluate(() => {
             const host = document.querySelector('#revenue-boost-popup-shadow-host');
             if (!host?.shadowRoot) return false;
@@ -237,11 +198,8 @@ test.describe.serial('Discount Configurations', () => {
             return html.includes('free shipping') || html.includes('free delivery');
         });
 
-        if (hasFreeShipping) {
-            console.log('✅ Free shipping messaging displayed in popup');
-        } else {
-            console.log('⚠️ Free shipping text not found in popup');
-        }
+        expect(hasFreeShipping).toBe(true);
+        console.log('✅ Free shipping messaging displayed in popup');
     });
 
     test('copy button copies discount code to clipboard', async ({ page, context }) => {
@@ -259,14 +217,7 @@ test.describe.serial('Discount Configurations', () => {
         console.log(`✅ Campaign created: ${campaign.id}`);
         await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
 
-        // Mock lead submission
-        await page.route('**/apps/revenue-boost/api/leads/submit*', async (route) => {
-            await route.fulfill({
-                status: 200,
-                contentType: 'application/json',
-                body: JSON.stringify({ success: true, discountCode })
-            });
-        });
+        // NO API MOCKING - use real lead submission API
 
         await page.goto(STORE_URL);
         await handlePasswordPage(page);
@@ -275,75 +226,64 @@ test.describe.serial('Discount Configurations', () => {
         await expect(popup).toBeVisible({ timeout: 15000 });
 
         // Fill and submit form
-        await fillEmailInShadowDOM(page, `copy-test-${Date.now()}@example.com`);
+        const filled = await fillEmailInShadowDOM(page, `copy-test-${Date.now()}@example.com`);
+        expect(filled).toBe(true);
+
         await submitFormInShadowDOM(page);
 
-        // Wait for success state
+        // Wait for success state - HARD ASSERTION
         const success = await waitForFormSuccess(page, 10000);
+        expect(success).toBe(true);
+        console.log('✅ Form submission successful');
 
-        if (success) {
-            // Try to find and click copy button
-            const copyClicked = await page.evaluate(() => {
-                const host = document.querySelector('#revenue-boost-popup-shadow-host');
-                if (!host?.shadowRoot) return false;
+        // Try to find and click copy button
+        const copyClicked = await page.evaluate(() => {
+            const host = document.querySelector('#revenue-boost-popup-shadow-host');
+            if (!host?.shadowRoot) return false;
 
-                // Try various CSS selectors for copy button (no Playwright-specific selectors)
-                const selectors = [
-                    'button[class*="copy"]',
-                    '[data-copy]',
-                    '[data-action="copy"]',
-                    'button[title*="copy" i]',
-                    'button[aria-label*="copy" i]'
-                ];
+            // Try various CSS selectors for copy button (no Playwright-specific selectors)
+            const selectors = [
+                'button[class*="copy"]',
+                '[data-copy]',
+                '[data-action="copy"]',
+                'button[title*="copy" i]',
+                'button[aria-label*="copy" i]'
+            ];
 
-                let copyBtn: HTMLElement | null = null;
-                for (const selector of selectors) {
-                    const el = host.shadowRoot?.querySelector(selector);
-                    if (el instanceof HTMLElement) {
-                        copyBtn = el;
+            let copyBtn: HTMLElement | null = null;
+            for (const selector of selectors) {
+                const el = host.shadowRoot?.querySelector(selector);
+                if (el instanceof HTMLElement) {
+                    copyBtn = el;
+                    break;
+                }
+            }
+
+            // Fallback: find button with "copy" text content
+            if (!copyBtn) {
+                const buttons = host.shadowRoot?.querySelectorAll('button') || [];
+                for (const btn of buttons) {
+                    if (btn.textContent?.toLowerCase().includes('copy')) {
+                        copyBtn = btn as HTMLElement;
                         break;
                     }
                 }
-
-                // Fallback: find button with "copy" text content
-                if (!copyBtn) {
-                    const buttons = host.shadowRoot?.querySelectorAll('button') || [];
-                    for (const btn of buttons) {
-                        if (btn.textContent?.toLowerCase().includes('copy')) {
-                            copyBtn = btn as HTMLElement;
-                            break;
-                        }
-                    }
-                }
-
-                if (copyBtn) {
-                    copyBtn.click();
-                    return true;
-                }
-                return false;
-            });
-
-            if (copyClicked) {
-                // Try to verify clipboard content (may fail due to permissions)
-                try {
-                    const clipboardText = await page.evaluate(() => navigator.clipboard.readText());
-                    if (clipboardText.includes(discountCode)) {
-                        console.log(`✅ Discount code "${discountCode}" copied to clipboard`);
-                    } else {
-                        console.log(`⚠️ Clipboard content: "${clipboardText}" doesn't match expected code`);
-                    }
-                } catch (clipboardError) {
-                    console.log('⚠️ Could not read clipboard (permissions may be restricted)');
-                    console.log('✅ Copy button was clicked successfully');
-                }
-            } else {
-                console.log('⚠️ Copy button not found or not clickable');
             }
-        } else {
-            console.log('⚠️ Could not reach success state to test copy functionality');
-        }
 
-        // Test passes if campaign exists - clipboard is a soft verification
-        expect(campaign).toBeDefined();
+            if (copyBtn) {
+                copyBtn.click();
+                return true;
+            }
+            return false;
+        });
+
+        // HARD ASSERTION - Copy button must exist and be clickable
+        expect(copyClicked).toBe(true);
+        console.log('✅ Copy button clicked');
+
+        // Verify clipboard content
+        const clipboardText = await page.evaluate(() => navigator.clipboard.readText());
+        expect(clipboardText).toContain(discountCode);
+        console.log(`✅ Discount code "${discountCode}" copied to clipboard`);
     });
 });

@@ -409,10 +409,8 @@ test.describe.serial('Spin to Win Template', () => {
 
         console.log(`GDPR: exists=${gdprState.exists}, hasText=${gdprState.hasConsentText}`);
 
-        if (gdprState.exists || gdprState.hasConsentText) {
-            console.log('✅ GDPR consent checkbox displayed');
-        } else {
-            console.log('⚠️ GDPR checkbox not found - may be configured differently');
-        }
+        // HARD ASSERTION - GDPR checkbox should be present when enabled
+        expect(gdprState.exists || gdprState.hasConsentText).toBe(true);
+        console.log('✅ GDPR consent checkbox displayed');
     });
 });

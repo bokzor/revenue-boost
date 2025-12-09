@@ -17,7 +17,7 @@
  * - Better separation of concerns and single responsibility
  */
 
-import { useState, useCallback, useMemo, useEffect } from "react";
+import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { Page, Layout, Card, Banner, Text, BlockStack } from "@shopify/polaris";
 import { useWizardState } from "~/shared/hooks/useWizardState";
 import type { CampaignFormData } from "~/shared/hooks/useWizardState";
@@ -190,6 +190,9 @@ export function CampaignFormWithABTesting({
     campaignId || experimentId || initialData?.templateType || initialData?.goal ? 1 : 0
   );
 
+  // Ref for scrolling to wizard section on step change
+  const wizardSectionRef = useRef<HTMLDivElement>(null);
+
   // ============================================================================
   // STATE - A/B Testing
   // ============================================================================
@@ -351,9 +354,23 @@ export function CampaignFormWithABTesting({
   // HANDLERS - Navigation
   // ============================================================================
 
+  /**
+   * Scroll to wizard section if it's not visible in the viewport
+   */
+  const scrollToWizardSection = useCallback(() => {
+    if (wizardSectionRef.current) {
+      const rect = wizardSectionRef.current.getBoundingClientRect();
+      // Check if the top of the section is above the viewport
+      if (rect.top < 0) {
+        wizardSectionRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }
+  }, []);
+
   const handleStepChange = useCallback((stepIndex: number) => {
     setCurrentStep(stepIndex);
-  }, []);
+    scrollToWizardSection();
+  }, [scrollToWizardSection]);
 
   const handleNext = useCallback(() => {
     // Calculate effective steps length based on current A/B testing state
@@ -364,14 +381,16 @@ export function CampaignFormWithABTesting({
 
     if (currentStep < effectiveStepsLength - 1) {
       setCurrentStep(currentStep + 1);
+      scrollToWizardSection();
     }
-  }, [currentStep, abTestingEnabled, selectedVariant]);
+  }, [currentStep, abTestingEnabled, selectedVariant, scrollToWizardSection]);
 
   const handlePrevious = useCallback(() => {
     if (currentStep > 0) {
       setCurrentStep(currentStep - 1);
+      scrollToWizardSection();
     }
-  }, [currentStep]);
+  }, [currentStep, scrollToWizardSection]);
 
   // ============================================================================
   // HANDLERS - A/B Testing
@@ -406,8 +425,9 @@ export function CampaignFormWithABTesting({
       setSelectedVariant(nextVariant);
       // Reset to first step when switching variants
       setCurrentStep(0);
+      scrollToWizardSection();
     }
-  }, [selectedVariant, variantCount]);
+  }, [selectedVariant, variantCount, scrollToWizardSection]);
 
   // ============================================================================
   // HANDLERS - Save (refactored to use extracted hook)
@@ -569,7 +589,7 @@ export function CampaignFormWithABTesting({
         {/* Wizard Progress Indicator with integrated navigation */}
         <Layout.Section>
           <Card>
-            <div style={{ padding: "16px" }}>
+            <div ref={wizardSectionRef} style={{ padding: "16px" }}>
               <WizardProgressIndicator
                 steps={effectiveSteps}
                 currentStep={currentStep}

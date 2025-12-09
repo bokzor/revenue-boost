@@ -183,11 +183,9 @@ export function DesignConfigSection({
     [design.fontFamily]
   );
 
-  // Check if "My Store Theme" or similar preset already exists
-  const hasStoreThemePreset =
-    customThemePresets?.some(
-      (p) => p.id === "shopify-theme-auto" || p.name === "My Store Theme"
-    ) ?? false;
+  // Check if any custom theme preset already exists
+  // If custom themes exist, we hide "Match Your Theme" button since users already have saved themes
+  const hasStoreThemePreset = (customThemePresets?.length ?? 0) > 0;
 
   // Fetcher for saving theme presets to store settings
   const presetSaveFetcher = useFetcher();
@@ -360,30 +358,35 @@ export function DesignConfigSection({
         <Divider />
 
         {/* Match Your Theme - Import colors from Shopify theme */}
-        <MatchThemeButton
-          variant="card"
-          hasStoreThemePreset={hasStoreThemePreset}
-          onApply={(expandedConfig, _themeName) => {
-            // Apply the theme colors while preserving non-color fields
-            // Clear both built-in and custom theme selections
-            onChange({
-              ...design,
-              ...expandedConfig,
-              theme: undefined, // Clear built-in theme selection
-              customThemePresetId: "shopify-theme", // Mark as Shopify theme applied
-            });
+        {/* Hidden when custom themes already exist - use Custom Themes section instead */}
+        {!hasStoreThemePreset && (
+          <>
+            <MatchThemeButton
+              variant="card"
+              hasStoreThemePreset={hasStoreThemePreset}
+              onApply={(expandedConfig, _themeName) => {
+                // Apply the theme colors while preserving non-color fields
+                // Clear both built-in and custom theme selections
+                onChange({
+                  ...design,
+                  ...expandedConfig,
+                  theme: undefined, // Clear built-in theme selection
+                  customThemePresetId: "shopify-theme", // Mark as Shopify theme applied
+                });
 
-            // If callback provided (for Spin-to-Win wheel colors), call it
-            if (onCustomPresetApply && expandedConfig.buttonColor) {
-              onCustomPresetApply("shopify-theme", expandedConfig.buttonColor);
-            }
-          }}
-          onSaveAsPreset={(preset, _themeName) => {
-            handleSaveThemePreset(preset);
-          }}
-        />
+                // If callback provided (for Spin-to-Win wheel colors), call it
+                if (onCustomPresetApply && expandedConfig.buttonColor) {
+                  onCustomPresetApply("shopify-theme", expandedConfig.buttonColor);
+                }
+              }}
+              onSaveAsPreset={(preset, _themeName) => {
+                handleSaveThemePreset(preset);
+              }}
+            />
 
-        <Divider />
+            <Divider />
+          </>
+        )}
 
         {/* Custom Theme Presets (from store settings) */}
         {customThemePresets && customThemePresets.length > 0 && (
