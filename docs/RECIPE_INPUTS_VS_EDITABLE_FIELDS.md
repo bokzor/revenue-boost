@@ -459,30 +459,23 @@ After analysis, we chose a **hybrid approach** that balances simplicity with tem
 │ ├─ Only shown if recipe.inputs.length > 0                      │
 │ └─ Inline inputs: discountValue, triggerType, duration, etc.   │
 │                                                                  │
-│ Section 3: "Content & Template Settings" (template-specific)    │
-│ ├─ Reuses existing content sections (no refactoring needed)    │
-│ ├─ NewsletterContentSection for Newsletter                      │
-│ ├─ FlashSaleContentSection for Flash Sale                       │
-│ ├─ SpinToWinContentSection for Spin-to-Win                      │
-│ └─ Collapsibles inside for advanced features (timer, wheel)     │
+│ Section 3: "Content & Design" (template-specific + universal)   │
+│ ├─ Template-specific content (headlines, buttons, wheel, etc.) │
+│ ├─ Theme picker, layout picker, colors                          │
+│ ├─ Discount config is INCLUDED here (not a separate section)   │
+│ └─ Collapsibles for advanced features                           │
 │                                                                  │
-│ Section 4: "Design & Colors" (universal)                        │
-│ ├─ Theme picker                                                 │
-│ ├─ Layout picker                                                │
-│ ├─ Background presets                                           │
-│ └─ Color customization                                          │
-│                                                                  │
-│ Section 5: "Targeting & Triggers" (universal)                   │
+│ Section 4: "Targeting & Triggers" (universal)                   │
 │ ├─ Page targeting                                               │
 │ ├─ Device targeting                                             │
 │ └─ Enhanced triggers (exit intent, scroll, time delay)          │
 │                                                                  │
-│ Section 6: "Frequency" (universal)                              │
+│ Section 5: "Frequency" (universal)                              │
 │ ├─ Max triggers per session                                     │
 │ ├─ Max triggers per day                                         │
 │ └─ Cooldown between triggers                                    │
 │                                                                  │
-│ Section 7: "Schedule & Settings" (universal)                    │
+│ Section 6: "Schedule & Settings" (universal)                    │
 │ ├─ Start/end dates                                              │
 │ └─ Priority                                                     │
 └─────────────────────────────────────────────────────────────────┘
@@ -490,38 +483,39 @@ After analysis, we chose a **hybrid approach** that balances simplicity with tem
 
 ### Why Hybrid?
 
-1. **Fewer sections** - 7 max instead of 9
+1. **Fewer sections** - 6 max (with conditional quickConfig)
 2. **Reuse existing components** - No need to split FlashSaleContentSection, SpinToWinContentSection
 3. **Template complexity stays contained** - One dedicated section per template
 4. **Less implementation work** - Minimal refactoring needed
-5. **Can split later** - If users complain about long sections, we can refactor
+5. **No separate Discount section** - Discount config is part of Content & Design (for Spin-to-Win, it's in wheel segments; for Flash Sale, it's in the offer display)
 
 ### Section Numbering
 
 Sections are **dynamically numbered** based on visibility:
-- If `recipe.inputs.length === 0`: Skip Section 2, so Content becomes "2", Design becomes "3", etc.
+- If `recipe.inputs.length === 0`: Skip Quick Configuration, so Content becomes "2", Targeting becomes "3", etc.
 - Users always see 1, 2, 3... with no gaps
 
-### Files to Change
+### Files Changed
 
 | File | Change |
 |------|--------|
 | `RecipeSelectionStep.tsx` | Remove modal, call `onRecipeSelected` directly on recipe click |
-| `SingleCampaignFlow.tsx` | Update `EDITOR_SECTIONS` to include `quickConfig`, rename `design` to `content` |
-| `FormSections.tsx` | Add rendering for `quickConfig` section, handle conditional visibility |
-| (Optional) `QuickInputField.tsx` | Extract input renderer from RecipeSelectionStep for reuse |
+| `SingleCampaignFlow.tsx` | Update `EDITOR_SECTIONS`: 6 sections, removed `discount` |
+| `FormSections.tsx` | Add `quickConfig` section, updated navigation flow |
+| `QuickInputField.tsx` | NEW - extracted input renderer for reuse |
+| `app.campaigns.recipe.tsx` | Removed modal, simplified to direct navigation |
+| `styled-recipe-types.ts` | Made `theme` optional, `requiredConfig` is now unused |
 
-### Updated EDITOR_SECTIONS
+### Final EDITOR_SECTIONS
 
 ```tsx
 const EDITOR_SECTIONS = [
-  { id: "basics", icon: "📝", title: "Campaign Name & Description", subtitle: "Give your campaign a name and optional description" },
-  { id: "quickConfig", icon: "⚙️", title: "Quick Configuration", subtitle: "Configure your offer details", conditional: true },
-  { id: "content", icon: "✏️", title: "Content & Template Settings", subtitle: "Configure headlines, buttons, and template-specific features" },
-  { id: "design", icon: "🎨", title: "Design & Colors", subtitle: "Adjust colors, layout, and styling" },
-  { id: "targeting", icon: "🎯", title: "Targeting & Triggers", subtitle: "Define who sees your popup and when" },
-  { id: "frequency", icon: "🔄", title: "Frequency", subtitle: "Control how often the popup appears" },
-  { id: "schedule", icon: "📅", title: "Schedule & Settings", subtitle: "Set start/end dates and priority" },
+  { id: "basics", icon: "📝", title: "Campaign Name & Description", subtitle: "..." },
+  { id: "quickConfig", icon: "⚙️", title: "Quick Configuration", subtitle: "...", conditional: true },
+  { id: "content", icon: "✏️", title: "Content & Design", subtitle: "Configure headlines, buttons, colors, and styling" },
+  { id: "targeting", icon: "🎯", title: "Targeting & Triggers", subtitle: "..." },
+  { id: "frequency", icon: "🔄", title: "Frequency", subtitle: "..." },
+  { id: "schedule", icon: "📅", title: "Schedule & Settings", subtitle: "..." },
 ];
 ```
 
@@ -531,7 +525,8 @@ const EDITOR_SECTIONS = [
 
 | Decision | Choice |
 |----------|--------|
-| Discount section | TBD (keep separate for now) |
+| Discount section | **REMOVED** - merged into Content & Design |
+| `requiredConfig` | **DEPRECATED** - no longer used (was for modal) |
 | Recipes with no inputs | Skip Quick Configuration section entirely |
 | Section visibility | Conditional with dynamic numbering |
 | Split DesignStepContent | No - use hybrid approach instead |

@@ -161,6 +161,10 @@ export interface SingleCampaignFlowProps {
   shopDomain?: string;
   advancedTargetingEnabled?: boolean;
   initialData?: Partial<CampaignData>;
+  /** Edit mode skips recipe selection and changes UI labels */
+  isEditMode?: boolean;
+  /** Campaign ID for edit mode */
+  campaignId?: string;
   // === New props for feature parity ===
   /** Custom theme presets from store settings */
   customThemePresets?: ThemePreset[];
@@ -196,6 +200,8 @@ export function SingleCampaignFlow({
   shopDomain,
   advancedTargetingEnabled,
   initialData,
+  isEditMode = false,
+  campaignId,
   // New props for feature parity
   customThemePresets,
   backgroundsByLayout,
@@ -204,8 +210,9 @@ export function SingleCampaignFlow({
   defaultThemeTokens,
 }: SingleCampaignFlowProps) {
   // Flow step: "recipe" (selection) or "editor" (configuration)
-  // If initialData has a recipe, skip to editor
-  const [step, setStep] = useState<"recipe" | "editor">(initialData?.recipe ? "editor" : "recipe");
+  // If initialData has a recipe, templateType (edit mode), or isEditMode, skip to editor
+  const shouldSkipRecipeSelection = !!(initialData?.recipe || initialData?.templateType || isEditMode);
+  const [step, setStep] = useState<"recipe" | "editor">(shouldSkipRecipeSelection ? "editor" : "recipe");
 
   // Campaign state
   const [campaignName, setCampaignName] = useState(initialData?.name || "");
@@ -340,21 +347,22 @@ export function SingleCampaignFlow({
 
   // Back handler that respects the step
   const handleBack = useCallback(() => {
-    if (step === "editor") {
-      // Go back to recipe selection
+    if (step === "editor" && !isEditMode) {
+      // Go back to recipe selection (only in create mode)
       setStep("recipe");
     } else {
-      // Go back to mode selector / previous page
+      // Go back to mode selector / previous page / campaign list
       onBack();
     }
-  }, [step, onBack]);
+  }, [step, isEditMode, onBack]);
 
   const getCampaignData = useCallback(
     (): CampaignData => ({
       name: campaignName,
       description: campaignDescription,
       recipe: selectedRecipe,
-      templateType: selectedRecipe?.templateType as TemplateType | undefined,
+      // Use recipe's templateType, or fall back to initialData's templateType (for edit mode)
+      templateType: (selectedRecipe?.templateType || initialData?.templateType) as TemplateType | undefined,
       contentConfig,
       designConfig,
       discountConfig,
@@ -366,6 +374,7 @@ export function SingleCampaignFlow({
       campaignName,
       campaignDescription,
       selectedRecipe,
+      initialData?.templateType,
       contentConfig,
       designConfig,
       discountConfig,
@@ -386,11 +395,12 @@ export function SingleCampaignFlow({
         errors.push("Campaign name is required");
       }
 
-      if (!selectedRecipe) {
+      // In edit mode, we may not have a recipe but still have a templateType
+      if (!selectedRecipe && !isEditMode) {
         errors.push("Please select a recipe/template");
       }
 
-      const templateType = selectedRecipe?.templateType as TemplateType | undefined;
+      const templateType = (selectedRecipe?.templateType || initialData?.templateType) as TemplateType | undefined;
 
       // Content validation (template-specific)
       if (templateType && contentConfig) {
@@ -480,7 +490,7 @@ export function SingleCampaignFlow({
     }
   }, [onSaveDraft, getCampaignData, campaignName]);
 
-  const templateType = selectedRecipe?.templateType as TemplateType | undefined;
+  const templateType = (selectedRecipe?.templateType || initialData?.templateType) as TemplateType | undefined;
 
   // =============================================================================
   // STEP 1: RECIPE SELECTION
@@ -516,7 +526,8 @@ export function SingleCampaignFlow({
         onSaveDraft={handleSaveDraft}
         onPublish={handleSave}
         isSaving={isSaving}
-        canPublish={!!selectedRecipe && !!campaignName}
+        canPublish={(!!selectedRecipe || isEditMode) && !!campaignName}
+        isEditMode={isEditMode}
       />
 
       {/* Validation Errors/Warnings */}
@@ -610,6 +621,12 @@ export function SingleCampaignFlow({
               globalCustomCSS={globalCustomCSS}
               globalFrequencyCapping={globalFrequencyCapping}
               onMobileLayoutChange={() => setPreviewDevice("mobile")}
+              // Save/Publish actions for last section
+              onSaveDraft={handleSaveDraft}
+              onPublish={handleSave}
+              isSaving={isSaving}
+              canPublish={(!!selectedRecipe || isEditMode) && !!campaignName}
+              isEditMode={isEditMode}
             />
           </Layout.Section>
         </Layout>
@@ -629,6 +646,7 @@ interface StickyHeaderProps {
   onPublish: () => void;
   isSaving: boolean;
   canPublish: boolean;
+  isEditMode?: boolean;
 }
 
 function StickyHeader({
@@ -638,6 +656,7 @@ function StickyHeader({
   onPublish,
   isSaving,
   canPublish,
+  isEditMode = false,
 }: StickyHeaderProps) {
   return (
     <div
@@ -660,7 +679,7 @@ function StickyHeader({
                 📣
               </Text>
               <Text as="h1" variant="headingLg">
-                {campaignName || "New Campaign"}
+                {campaignName || (isEditMode ? "Edit Campaign" : "New Campaign")}
               </Text>
             </InlineStack>
           </InlineStack>
@@ -668,7 +687,7 @@ function StickyHeader({
           {/* Right: Action buttons */}
           <InlineStack gap="300">
             <Button onClick={onSaveDraft} disabled={isSaving} icon={SaveIcon}>
-              Save Draft
+              {isEditMode ? "Save" : "Save Draft"}
             </Button>
             <Button
               variant="primary"
@@ -676,7 +695,7 @@ function StickyHeader({
               disabled={isSaving || !canPublish}
               loading={isSaving}
             >
-              Publish
+              {isEditMode ? "Update & Publish" : "Publish"}
             </Button>
           </InlineStack>
         </InlineStack>

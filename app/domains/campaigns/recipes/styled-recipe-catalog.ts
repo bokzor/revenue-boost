@@ -35,7 +35,6 @@ function createBuildFunction(
 ): (context: RecipeContext) => RecipeOutput {
   return (context: RecipeContext): RecipeOutput => {
     const defaults = recipe.defaults;
-    const theme = context.selectedTheme || recipe.theme;
 
     // Determine theme mode based on recipe type
     const themeMode = getThemeModeForRecipeType(recipe.recipeType);
@@ -63,11 +62,15 @@ function createBuildFunction(
     }
 
     // Build design config
+    // Note: We intentionally do NOT include recipe.theme here because it's a recipe identifier
+    // (like "elegant-luxe"), not a valid schema theme value. Instead, recipes use
+    // themeMode: "preset" with presetId to apply their styling.
     const designConfig = {
-      theme,
       layout: recipe.layout,
       position: defaults.designConfig?.position || "center",
       size: defaults.designConfig?.size || "medium",
+      themeMode,
+      presetId,
       ...defaults.designConfig,
     };
 

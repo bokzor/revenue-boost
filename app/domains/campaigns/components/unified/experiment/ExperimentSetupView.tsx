@@ -22,7 +22,14 @@ export interface ExperimentSetupViewProps {
   onEqualSplit: () => void;
   onContinue: () => void;
   onSaveDraft: () => void;
+  onPublish: () => void;
   isSaving: boolean;
+  /** Whether at least one variant is configured (enables save draft) */
+  canSaveDraft: boolean;
+  /** Whether all variants are configured (enables publish) */
+  canPublish: boolean;
+  /** Edit mode shows "Edit Experiment" instead of "Create" */
+  isEditMode?: boolean;
 }
 
 export function ExperimentSetupView({
@@ -35,7 +42,11 @@ export function ExperimentSetupView({
   onEqualSplit,
   onContinue,
   onSaveDraft,
+  onPublish,
   isSaving,
+  canSaveDraft,
+  canPublish,
+  isEditMode = false,
 }: ExperimentSetupViewProps) {
   const canProceed =
     experiment.name.trim() !== "" && experiment.variants.some((v) => v.status !== "empty");
@@ -64,16 +75,25 @@ export function ExperimentSetupView({
               <InlineStack gap="200" blockAlign="center">
                 <span style={{ fontSize: "20px" }}>🧪</span>
                 <Text as="span" variant="headingMd">
-                  Create A/B Experiment
+                  {isEditMode ? "Edit Experiment" : "Create A/B Experiment"}
                 </Text>
               </InlineStack>
             </InlineStack>
             <InlineStack gap="300">
-              <Button onClick={onSaveDraft} loading={isSaving}>
-                Save Draft
+              <Button onClick={onSaveDraft} disabled={isSaving || !canSaveDraft}>
+                {isEditMode ? "Save" : "Save Draft"}
               </Button>
               <Button variant="primary" onClick={onContinue} disabled={!canProceed}>
                 Next →
+              </Button>
+              <Button
+                variant="primary"
+                tone="success"
+                onClick={onPublish}
+                disabled={isSaving || !canPublish}
+                loading={isSaving}
+              >
+                {isEditMode ? "Update & Publish" : "Publish"}
               </Button>
             </InlineStack>
           </InlineStack>

@@ -50,6 +50,14 @@ export interface TargetingConfig {
   enhancedTriggers: EnhancedTriggerConfig;
   audienceTargeting: AudienceTargetingConfig;
   geoTargeting: GeoTargetingConfig;
+  pageTargeting?: {
+    enabled: boolean;
+    pages: string[];
+    customPatterns: string[];
+    excludePages: string[];
+    productTags: string[];
+    collections: string[];
+  };
 }
 
 // Schedule configuration structure
@@ -114,6 +122,17 @@ export interface FormSectionsProps {
   globalFrequencyCapping?: GlobalFrequencyCappingSettings;
   /** Callback when mobile layout is changed (to switch preview device) */
   onMobileLayoutChange?: () => void;
+  // === Save/Publish actions for last section ===
+  /** Callback to save as draft */
+  onSaveDraft?: () => void;
+  /** Callback to publish */
+  onPublish?: () => void;
+  /** Whether save/publish is in progress */
+  isSaving?: boolean;
+  /** Whether publish is allowed */
+  canPublish?: boolean;
+  /** Whether in edit mode */
+  isEditMode?: boolean;
 }
 
 export function FormSections({
@@ -159,6 +178,12 @@ export function FormSections({
   globalCustomCSS,
   globalFrequencyCapping,
   onMobileLayoutChange,
+  // Save/Publish actions
+  onSaveDraft,
+  onPublish,
+  isSaving,
+  canPublish,
+  isEditMode,
 }: FormSectionsProps) {
   // Check if recipe has quick inputs
   const hasQuickInputs = selectedRecipe?.inputs && selectedRecipe.inputs.length > 0;
@@ -242,6 +267,11 @@ export function FormSections({
               scheduleConfig={scheduleConfig}
               onChange={onScheduleChange}
               onComplete={() => onMarkComplete("schedule")}
+              onSaveDraft={onSaveDraft}
+              onPublish={onPublish}
+              isSaving={isSaving}
+              canPublish={canPublish}
+              isEditMode={isEditMode}
             />
           )}
         </CollapsibleSection>
@@ -615,13 +645,31 @@ interface ScheduleSectionWrapperProps {
   scheduleConfig: ScheduleConfig;
   onChange: (config: ScheduleConfig) => void;
   onComplete: () => void;
+  /** Callback to save as draft */
+  onSaveDraft?: () => void;
+  /** Callback to publish */
+  onPublish?: () => void;
+  /** Whether save/publish is in progress */
+  isSaving?: boolean;
+  /** Whether publish is allowed */
+  canPublish?: boolean;
+  /** Whether in edit mode */
+  isEditMode?: boolean;
 }
 
 function ScheduleSectionWrapper({
   scheduleConfig,
   onChange,
   onComplete,
+  onSaveDraft,
+  onPublish,
+  isSaving,
+  canPublish,
+  isEditMode,
 }: ScheduleSectionWrapperProps) {
+  // If we have save/publish callbacks, show those buttons instead of "Done"
+  const hasSaveActions = onSaveDraft && onPublish;
+
   return (
     <BlockStack gap="400">
       <ScheduleStepContent
@@ -632,9 +680,25 @@ function ScheduleSectionWrapper({
         tags={scheduleConfig.tags || []}
         onConfigChange={onChange}
       />
-      <Button variant="primary" onClick={onComplete}>
-        Done
-      </Button>
+      {hasSaveActions ? (
+        <InlineStack gap="300" align="end">
+          <Button onClick={onSaveDraft} disabled={isSaving}>
+            {isEditMode ? "Save" : "Save Draft"}
+          </Button>
+          <Button
+            variant="primary"
+            onClick={onPublish}
+            disabled={isSaving || !canPublish}
+            loading={isSaving}
+          >
+            {isEditMode ? "Update & Publish" : "Publish"}
+          </Button>
+        </InlineStack>
+      ) : (
+        <Button variant="primary" onClick={onComplete}>
+          Done
+        </Button>
+      )}
     </BlockStack>
   );
 }

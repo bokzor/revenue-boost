@@ -46,6 +46,49 @@ const ANNOUNCEMENT_EDITABLE_FIELDS: EditableField[] = [
 ];
 
 // =============================================================================
+// QUICK INPUT DEFINITIONS
+// =============================================================================
+
+// Discount percentage for sale announcements
+const SALE_DISCOUNT_INPUT = {
+  type: "discount_percentage" as const,
+  key: "discountValue",
+  label: "Sale Discount",
+  defaultValue: 25,
+  min: 5,
+  max: 75,
+};
+
+// Button/CTA link input
+const CTA_URL_INPUT = {
+  type: "text" as const,
+  key: "ctaUrl",
+  label: "Button Link",
+  defaultValue: "/collections/sale",
+  placeholder: "/collections/sale",
+};
+
+// Banner position input
+const BANNER_POSITION_INPUT = {
+  type: "select" as const,
+  key: "bannerPosition",
+  label: "Banner Position",
+  options: [
+    { label: "Top of page", value: "top" },
+    { label: "Bottom of page", value: "bottom" },
+  ],
+  defaultValue: "top",
+};
+
+// Free shipping threshold input for free shipping announcements
+const FREE_SHIPPING_THRESHOLD_INPUT = {
+  type: "currency_amount" as const,
+  key: "freeShippingThreshold",
+  label: "Free Shipping Threshold ($)",
+  defaultValue: 50,
+};
+
+// =============================================================================
 // COMMON TARGETING CONFIGURATION FOR ANNOUNCEMENTS
 // =============================================================================
 
@@ -84,7 +127,7 @@ const storeWideSale: AnnouncementRecipe = {
   theme: "urgent-sale",
   layout: "banner-top",
   featured: true,
-  inputs: [],
+  inputs: [SALE_DISCOUNT_INPUT, CTA_URL_INPUT, BANNER_POSITION_INPUT],
   editableFields: ANNOUNCEMENT_EDITABLE_FIELDS,
   defaults: {
     contentConfig: {
@@ -137,7 +180,7 @@ const newCollectionLaunch: AnnouncementRecipe = {
   theme: "new-collection",
   layout: "banner-top",
   featured: true,
-  inputs: [],
+  inputs: [CTA_URL_INPUT, BANNER_POSITION_INPUT],
   editableFields: ANNOUNCEMENT_EDITABLE_FIELDS,
   defaults: {
     contentConfig: {
@@ -189,7 +232,7 @@ const freeShippingThreshold: AnnouncementRecipe = {
   component: "AnnouncementBanner",
   theme: "free-shipping",
   layout: "banner-top",
-  inputs: [],
+  inputs: [FREE_SHIPPING_THRESHOLD_INPUT, BANNER_POSITION_INPUT],
   editableFields: ANNOUNCEMENT_EDITABLE_FIELDS,
   defaults: {
     contentConfig: {
@@ -241,7 +284,7 @@ const holidayAnnouncement: AnnouncementRecipe = {
   component: "AnnouncementBanner",
   theme: "holiday",
   layout: "banner-top",
-  inputs: [],
+  inputs: [SALE_DISCOUNT_INPUT, CTA_URL_INPUT, BANNER_POSITION_INPUT],
   editableFields: ANNOUNCEMENT_EDITABLE_FIELDS,
   defaults: {
     contentConfig: {
@@ -293,7 +336,7 @@ const importantNotice: AnnouncementRecipe = {
   component: "AnnouncementBanner",
   theme: "notice",
   layout: "banner-top",
-  inputs: [],
+  inputs: [CTA_URL_INPUT, BANNER_POSITION_INPUT],
   editableFields: ANNOUNCEMENT_EDITABLE_FIELDS,
   defaults: {
     contentConfig: {
@@ -346,7 +389,7 @@ const blackFriday: AnnouncementRecipe = {
   theme: "black-friday",
   layout: "banner-top",
   featured: true,
-  inputs: [],
+  inputs: [SALE_DISCOUNT_INPUT, CTA_URL_INPUT, BANNER_POSITION_INPUT],
   editableFields: ANNOUNCEMENT_EDITABLE_FIELDS,
   defaults: {
     contentConfig: {
@@ -398,7 +441,7 @@ const summerSale: AnnouncementRecipe = {
   component: "AnnouncementBanner",
   theme: "summer",
   layout: "banner-top",
-  inputs: [],
+  inputs: [SALE_DISCOUNT_INPUT, CTA_URL_INPUT, BANNER_POSITION_INPUT],
   editableFields: ANNOUNCEMENT_EDITABLE_FIELDS,
   defaults: {
     contentConfig: {
@@ -450,7 +493,7 @@ const flashDeal: AnnouncementRecipe = {
   component: "AnnouncementBanner",
   theme: "flash-deal",
   layout: "banner-top",
-  inputs: [],
+  inputs: [SALE_DISCOUNT_INPUT, CTA_URL_INPUT, BANNER_POSITION_INPUT],
   editableFields: ANNOUNCEMENT_EDITABLE_FIELDS,
   defaults: {
     contentConfig: {

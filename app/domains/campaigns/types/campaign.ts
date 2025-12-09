@@ -330,8 +330,8 @@ export type BadgeIcon = z.infer<typeof BadgeIconSchema>;
 export const NewsletterContentSchema = BaseContentConfigSchema.merge(
   LeadCaptureConfigSchema
 ).extend({
-  // Newsletter-specific
-  submitButtonText: z.string(),
+  // Newsletter-specific - defaults to "Subscribe" if not provided
+  submitButtonText: z.string().default("Subscribe"),
   // Label shown above the discount code on success (e.g., "Your discount code:")
   discountCodeLabel: z.string().default("Your discount code:"),
 

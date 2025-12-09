@@ -57,6 +57,28 @@ const TRIGGER_INPUT = {
   defaultValue: "time_delay",
 };
 
+// Top prize discount input - used to configure the best prize on the scratch card
+const TOP_PRIZE_INPUT = {
+  type: "discount_percentage" as const,
+  key: "topPrize",
+  label: "Best Prize Discount",
+  defaultValue: 15,
+  min: 5,
+  max: 50,
+};
+
+// Email timing input - when to collect email relative to scratching
+const EMAIL_TIMING_INPUT = {
+  type: "select" as const,
+  key: "emailTiming",
+  label: "Email Collection",
+  options: [
+    { label: "Before scratching (more emails)", value: "before" },
+    { label: "After reveal (higher quality)", value: "after" },
+  ],
+  defaultValue: "before",
+};
+
 // =============================================================================
 // COMMON TARGETING CONFIGURATION FOR SCRATCH CARDS
 // =============================================================================
@@ -98,7 +120,7 @@ const goldenReveal: ScratchCardRecipe = {
   layout: "centered",
   imageUrl: "/recipes/scratch-card/golden-reveal-bg.jpg",
   featured: true,
-  inputs: [TRIGGER_INPUT],
+  inputs: [TRIGGER_INPUT, TOP_PRIZE_INPUT, EMAIL_TIMING_INPUT],
   editableFields: SCRATCH_CARD_EDITABLE_FIELDS,
   defaults: {
     contentConfig: {
@@ -196,7 +218,7 @@ const neonArcade: ScratchCardRecipe = {
   theme: "neon-arcade",
   layout: "centered",
   featured: true,
-  inputs: [TRIGGER_INPUT],
+  inputs: [TRIGGER_INPUT, TOP_PRIZE_INPUT, EMAIL_TIMING_INPUT],
   editableFields: SCRATCH_CARD_EDITABLE_FIELDS,
   defaults: {
     contentConfig: {
@@ -283,7 +305,7 @@ const paperLuck: ScratchCardRecipe = {
   component: "ScratchCardPopup",
   theme: "paper-luck",
   layout: "centered",
-  inputs: [TRIGGER_INPUT],
+  inputs: [TRIGGER_INPUT, TOP_PRIZE_INPUT, EMAIL_TIMING_INPUT],
   editableFields: SCRATCH_CARD_EDITABLE_FIELDS,
   defaults: {
     contentConfig: {
@@ -363,7 +385,7 @@ const roseGoldDream: ScratchCardRecipe = {
   layout: "centered",
   imageUrl: "/recipes/scratch-card/rose-gold-bg.jpg",
   featured: true,
-  inputs: [TRIGGER_INPUT],
+  inputs: [TRIGGER_INPUT, TOP_PRIZE_INPUT, EMAIL_TIMING_INPUT],
   editableFields: SCRATCH_CARD_EDITABLE_FIELDS,
   defaults: {
     contentConfig: {
@@ -459,7 +481,7 @@ const minimalSilver: ScratchCardRecipe = {
   component: "ScratchCardPopup",
   theme: "minimal-silver",
   layout: "centered",
-  inputs: [TRIGGER_INPUT],
+  inputs: [TRIGGER_INPUT, TOP_PRIZE_INPUT, EMAIL_TIMING_INPUT],
   editableFields: SCRATCH_CARD_EDITABLE_FIELDS,
   defaults: {
     contentConfig: {
@@ -534,7 +556,7 @@ const holidayMagic: ScratchCardRecipe = {
   layout: "centered",
   imageUrl: "/recipes/scratch-card/holiday-magic-bg.jpg",
   featured: true,
-  inputs: [TRIGGER_INPUT],
+  inputs: [TRIGGER_INPUT, TOP_PRIZE_INPUT, EMAIL_TIMING_INPUT],
   editableFields: SCRATCH_CARD_EDITABLE_FIELDS,
   defaults: {
     contentConfig: {
@@ -626,7 +648,7 @@ const woodArtisan: ScratchCardRecipe = {
   component: "ScratchCardPopup",
   theme: "wood-artisan",
   layout: "centered",
-  inputs: [TRIGGER_INPUT],
+  inputs: [TRIGGER_INPUT, TOP_PRIZE_INPUT, EMAIL_TIMING_INPUT],
   editableFields: SCRATCH_CARD_EDITABLE_FIELDS,
   defaults: {
     contentConfig: {
@@ -715,7 +737,7 @@ const holographicHype: ScratchCardRecipe = {
   layout: "centered",
   imageUrl: "/recipes/scratch-card/holographic-hype-bg.jpg",
   featured: true,
-  inputs: [TRIGGER_INPUT],
+  inputs: [TRIGGER_INPUT, TOP_PRIZE_INPUT, EMAIL_TIMING_INPUT],
   editableFields: SCRATCH_CARD_EDITABLE_FIELDS,
   defaults: {
     contentConfig: {

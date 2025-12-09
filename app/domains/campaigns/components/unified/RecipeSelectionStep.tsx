@@ -18,7 +18,7 @@ import { BlockStack, Text, Card, Banner } from "@shopify/polaris";
 
 import { GoalFilter } from "../goals/GoalFilter";
 import { RecipePicker } from "../recipes/RecipePicker";
-import { NEWSLETTER_THEMES, type NewsletterThemeKey } from "~/config/color-presets";
+import type { NewsletterThemeKey } from "~/config/color-presets";
 import { getBackgroundById, getBackgroundUrl } from "~/config/background-presets";
 import {
   getThemeModeForRecipeType,
@@ -179,7 +179,6 @@ function buildRecipeInitialData(
   discountConfig: DiscountConfig | null
 ) {
   const theme = (recipe.theme as NewsletterThemeKey) || "modern";
-  const themeColors = NEWSLETTER_THEMES[theme] || NEWSLETTER_THEMES.modern;
 
   // Build content config from recipe defaults and apply context values
   const contentConfig = { ...recipe.defaults.contentConfig } as Record<string, unknown>;
@@ -290,6 +289,10 @@ function buildRecipeInitialData(
   const recipeThemeMode = getThemeModeForRecipeType(recipe.recipeType);
   const recipePresetId = recipeThemeMode === "preset" ? getPresetIdForRecipe(recipe.id) : undefined;
 
+  // For "preset" mode (inspiration/seasonal recipes), the recipe's defaults.designConfig
+  // already contains the correct colors (e.g., Bold Energy has backgroundColor: "#0F0F0F").
+  // We should NOT overwrite these with themeColors lookup which may fail for custom theme names.
+  // For "default" mode (use_case recipes), colors come from the store's theme tokens at runtime.
   const designConfig = {
     theme,
     layout: recipe.layout,
@@ -300,15 +303,8 @@ function buildRecipeInitialData(
     imageUrl,
     imagePosition,
     backgroundOverlayOpacity: 0.6,
+    // Spread recipe's designConfig which includes colors for preset mode recipes
     ...recipe.defaults.designConfig,
-    ...(recipeThemeMode === "preset" ? {
-      backgroundColor: themeColors.background,
-      textColor: themeColors.text,
-      primaryColor: themeColors.primary,
-      accentColor: themeColors.primary,
-      buttonColor: themeColors.ctaBg || themeColors.primary,
-      buttonTextColor: themeColors.ctaText || "#FFFFFF",
-    } : {}),
     themeMode: recipeThemeMode,
     presetId: recipePresetId,
   };
@@ -372,6 +368,123 @@ function buildRecipeInitialData(
     if (typeof contentConfig.subheadline === "string") {
       contentConfig.subheadline = contentConfig.subheadline.replace(/\$\d+\+?/, `$${threshold}+`);
     }
+  }
+
+  // ==========================================================================
+  // SPIN-TO-WIN / SCRATCH CARD: Apply topPrize to first segment/prize
+  // ==========================================================================
+  if (contextData.topPrize !== undefined) {
+    const topPrizeValue = contextData.topPrize as number;
+
+    // For Spin-to-Win: update first wheelSegment's discount value
+    if (Array.isArray(contentConfig.wheelSegments)) {
+      const segments = [...(contentConfig.wheelSegments as Array<Record<string, unknown>>)];
+      if (segments.length > 0 && segments[0].discountConfig) {
+        segments[0] = {
+          ...segments[0],
+          label: `${topPrizeValue}% OFF`,
+          discountConfig: {
+            ...(segments[0].discountConfig as Record<string, unknown>),
+            value: topPrizeValue,
+          },
+        };
+        contentConfig.wheelSegments = segments;
+      }
+    }
+
+    // For Scratch Card: update first prize's discount value
+    if (Array.isArray(contentConfig.prizes)) {
+      const prizes = [...(contentConfig.prizes as Array<Record<string, unknown>>)];
+      if (prizes.length > 0 && prizes[0].discountConfig) {
+        prizes[0] = {
+          ...prizes[0],
+          label: `${topPrizeValue}% OFF`,
+          discountConfig: {
+            ...(prizes[0].discountConfig as Record<string, unknown>),
+            value: topPrizeValue,
+          },
+        };
+        contentConfig.prizes = prizes;
+      }
+    }
+  }
+
+  // ==========================================================================
+  // SCRATCH CARD: Apply emailTiming to emailBeforeScratching
+  // ==========================================================================
+  if (contextData.emailTiming !== undefined) {
+    contentConfig.emailBeforeScratching = contextData.emailTiming === "before";
+  }
+
+  // ==========================================================================
+  // SOCIAL PROOF: Apply notification type, frequency, and position
+  // ==========================================================================
+  if (contextData.notificationType !== undefined) {
+    const notificationType = contextData.notificationType as string;
+    contentConfig.enablePurchaseNotifications = notificationType === "purchases" || notificationType === "all";
+    contentConfig.enableVisitorNotifications = notificationType === "visitors" || notificationType === "all";
+    contentConfig.enableReviewNotifications = notificationType === "reviews" || notificationType === "all";
+  }
+
+  if (contextData.displayFrequency !== undefined) {
+    contentConfig.rotationInterval = parseInt(contextData.displayFrequency as string, 10);
+  }
+
+  if (contextData.cornerPosition !== undefined) {
+    contentConfig.cornerPosition = contextData.cornerPosition as string;
+  }
+
+  // ==========================================================================
+  // ANNOUNCEMENT: Apply ctaUrl, bannerPosition, and freeShippingThreshold
+  // ==========================================================================
+  if (contextData.ctaUrl !== undefined) {
+    contentConfig.ctaUrl = contextData.ctaUrl as string;
+  }
+
+  if (contextData.bannerPosition !== undefined) {
+    // Banner position affects the design config position
+    designConfig.position = contextData.bannerPosition === "top" ? "top" : "bottom";
+  }
+
+  if (contextData.freeShippingThreshold !== undefined) {
+    const threshold = contextData.freeShippingThreshold as number;
+    // Update subheadline with threshold value
+    if (typeof contentConfig.subheadline === "string") {
+      contentConfig.subheadline = contentConfig.subheadline.replace(/\$\d+/, `$${threshold}`);
+    }
+    if (typeof contentConfig.headline === "string") {
+      contentConfig.headline = contentConfig.headline.replace(/\$\d+/, `$${threshold}`);
+    }
+  }
+
+  // ==========================================================================
+  // TRIGGER TYPE: Apply trigger type to enhanced triggers
+  // ==========================================================================
+  if (contextData.triggerType !== undefined) {
+    const triggerType = contextData.triggerType as string;
+    const enhancedTriggers = (targetRules.enhancedTriggers || {}) as Record<string, unknown>;
+
+    // Disable all triggers first, then enable the selected one
+    const updatedTriggers: Record<string, unknown> = {
+      ...enhancedTriggers,
+      page_load: { ...(enhancedTriggers.page_load as Record<string, unknown> || {}), enabled: false },
+      exit_intent: { ...(enhancedTriggers.exit_intent as Record<string, unknown> || {}), enabled: false },
+      scroll_depth: { ...(enhancedTriggers.scroll_depth as Record<string, unknown> || {}), enabled: false },
+      time_delay: { ...(enhancedTriggers.time_delay as Record<string, unknown> || {}), enabled: false },
+    };
+
+    // Enable the selected trigger
+    if (triggerType === "page_load") {
+      updatedTriggers.page_load = { enabled: true };
+    } else if (triggerType === "exit_intent") {
+      updatedTriggers.exit_intent = { enabled: true, sensitivity: "medium" };
+    } else if (triggerType === "scroll_depth") {
+      updatedTriggers.scroll_depth = { enabled: true, threshold: 50 };
+    } else if (triggerType === "time_delay") {
+      updatedTriggers.time_delay = { enabled: true, delay: 5 };
+    }
+
+    targetRules.enhancedTriggers = updatedTriggers;
   }
 
   return {

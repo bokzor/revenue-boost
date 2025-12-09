@@ -651,7 +651,11 @@ test.describe.serial('Recipe Use Cases', () => {
     // =========================================================================
 
     test.describe('Countdown Timer Recipes', () => {
-        test('renders countdown timer popup', async ({ page }) => {
+        // Countdown Timer renders as a BANNER (not shadow DOM popup)
+        // It uses [data-rb-banner] attribute and renders directly to body
+        const BANNER_SELECTOR = '[data-rb-banner]';
+
+        test('renders countdown timer banner', async ({ page }) => {
             const campaign = await (await factory.countdownTimer().init())
                 .withPriority(MAX_TEST_PRIORITY)
                 .withHeadline('Sale Ends Soon!')
@@ -663,23 +667,20 @@ test.describe.serial('Recipe Use Cases', () => {
             await page.goto(STORE_URL);
             await handlePasswordPage(page);
 
-            const popupVisible = await waitForPopupWithRetry(page, { timeout: 15000, retries: 3 });
-            expect(popupVisible).toBe(true);
+            // Countdown Timer renders as a banner, not a shadow DOM popup
+            const banner = page.locator(BANNER_SELECTOR);
+            await expect(banner).toBeVisible({ timeout: 15000 });
 
-            // Verify countdown content
-            const hasCountdown = await page.evaluate(() => {
-                const host = document.querySelector('#revenue-boost-popup-shadow-host');
-                if (!host?.shadowRoot) return false;
-                const html = host.shadowRoot.innerHTML;
-                // Look for countdown format (00:00:00) or time-related words
-                return /\d{1,2}:\d{2}/.test(html) ||
-                       html.toLowerCase().includes('ends') ||
-                       html.toLowerCase().includes('hurry') ||
-                       html.toLowerCase().includes('soon');
-            });
+            // Verify countdown content in the banner
+            const bannerText = await banner.textContent() || '';
+            const hasCountdown = /\d{1,2}:\d{2}/.test(bannerText) ||
+                   bannerText.toLowerCase().includes('ends') ||
+                   bannerText.toLowerCase().includes('hurry') ||
+                   bannerText.toLowerCase().includes('soon') ||
+                   bannerText.toLowerCase().includes('sale');
 
             expect(hasCountdown).toBe(true);
-            console.log('✅ Countdown Timer recipe: Timer content rendered');
+            console.log('✅ Countdown Timer recipe: Banner with timer content rendered');
         });
     });
 

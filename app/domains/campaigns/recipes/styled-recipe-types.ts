@@ -505,7 +505,7 @@ interface StyledRecipeBase {
 
   // Rendering
   component: PopupComponentName;
-  theme: string; // Theme key from color-presets
+  theme?: string; // Theme key from color-presets (optional - uses store default if not set)
   layout: PopupLayout;
 
   // Background configuration

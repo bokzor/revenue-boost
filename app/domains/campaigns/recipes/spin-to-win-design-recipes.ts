@@ -55,6 +55,16 @@ const TRIGGER_INPUT = {
   defaultValue: "time_delay",
 };
 
+// Top prize discount input - used to configure the best prize on the wheel
+const TOP_PRIZE_INPUT = {
+  type: "discount_percentage" as const,
+  key: "topPrize",
+  label: "Top Prize Discount",
+  defaultValue: 20,
+  min: 10,
+  max: 50,
+};
+
 // =============================================================================
 // COMMON TARGETING CONFIGURATION FOR SPIN-TO-WIN
 // =============================================================================
@@ -80,7 +90,7 @@ const SPIN_TO_WIN_PAGE_TARGETING = {
 // DEFAULT WHEEL SEGMENTS (can be customized per recipe)
 // =============================================================================
 
-const DEFAULT_SEGMENTS = [
+const _DEFAULT_SEGMENTS = [
   { id: "prize-1", label: "10% OFF", probability: 0.3 },
   { id: "prize-2", label: "15% OFF", probability: 0.25 },
   { id: "prize-3", label: "Free Shipping", probability: 0.2 },
@@ -107,7 +117,7 @@ const luckyFortune: SpinToWinRecipe = {
   theme: "lucky-fortune",
   layout: "centered",
   featured: true,
-  inputs: [TRIGGER_INPUT],
+  inputs: [TRIGGER_INPUT, TOP_PRIZE_INPUT],
   editableFields: SPIN_TO_WIN_EDITABLE_FIELDS,
   defaults: {
     contentConfig: {
@@ -198,7 +208,7 @@ const neonNights: SpinToWinRecipe = {
   theme: "neon-nights",
   layout: "centered",
   featured: true,
-  inputs: [TRIGGER_INPUT],
+  inputs: [TRIGGER_INPUT, TOP_PRIZE_INPUT],
   editableFields: SPIN_TO_WIN_EDITABLE_FIELDS,
   defaults: {
     contentConfig: {
@@ -276,7 +286,7 @@ const pastelDream: SpinToWinRecipe = {
   theme: "pastel-dream",
   layout: "centered",
   featured: true,
-  inputs: [TRIGGER_INPUT],
+  inputs: [TRIGGER_INPUT, TOP_PRIZE_INPUT],
   editableFields: SPIN_TO_WIN_EDITABLE_FIELDS,
   defaults: {
     contentConfig: {
@@ -355,7 +365,7 @@ const oceanBreeze: SpinToWinRecipe = {
   component: "SpinToWin",
   theme: "ocean-breeze",
   layout: "centered",
-  inputs: [TRIGGER_INPUT],
+  inputs: [TRIGGER_INPUT, TOP_PRIZE_INPUT],
   editableFields: SPIN_TO_WIN_EDITABLE_FIELDS,
   defaults: {
     contentConfig: {
@@ -429,7 +439,7 @@ const minimalMono: SpinToWinRecipe = {
   component: "SpinToWin",
   theme: "minimal-mono",
   layout: "centered",
-  inputs: [TRIGGER_INPUT],
+  inputs: [TRIGGER_INPUT, TOP_PRIZE_INPUT],
   editableFields: SPIN_TO_WIN_EDITABLE_FIELDS,
   defaults: {
     contentConfig: {
@@ -494,7 +504,7 @@ const retroArcade: SpinToWinRecipe = {
   component: "SpinToWin",
   theme: "retro-arcade",
   layout: "centered",
-  inputs: [TRIGGER_INPUT],
+  inputs: [TRIGGER_INPUT, TOP_PRIZE_INPUT],
   editableFields: SPIN_TO_WIN_EDITABLE_FIELDS,
   defaults: {
     contentConfig: {
@@ -570,7 +580,7 @@ const earthyOrganic: SpinToWinRecipe = {
   component: "SpinToWin",
   theme: "earthy-organic",
   layout: "centered",
-  inputs: [TRIGGER_INPUT],
+  inputs: [TRIGGER_INPUT, TOP_PRIZE_INPUT],
   editableFields: SPIN_TO_WIN_EDITABLE_FIELDS,
   defaults: {
     contentConfig: {

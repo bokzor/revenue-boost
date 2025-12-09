@@ -1,22 +1,29 @@
 /**
  * Experiment Edit Page
  *
- * Edit A/B testing experiment with all variants
+ * Edit A/B testing experiment with all variants.
+ * Uses the unified ExperimentFlow component.
  */
 
 import { data, type LoaderFunctionArgs } from "react-router";
 import { useLoaderData, useNavigate } from "react-router";
 import { Frame, Toast } from "@shopify/polaris";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 import { authenticate } from "~/shopify.server";
 import { getStoreId } from "~/lib/auth-helpers.server";
 import { ExperimentService, CampaignService } from "~/domains/campaigns";
-import { CampaignFormWithABTesting } from "~/domains/campaigns/components/CampaignFormWithABTesting";
+import {
+  ExperimentFlow,
+  type Experiment,
+  type Variant,
+  type SuccessMetric,
+} from "~/domains/campaigns/components/unified";
+import type { CampaignData } from "~/domains/campaigns/components/unified/SingleCampaignFlow";
 import type { ExperimentWithVariants } from "~/domains/campaigns";
 import type { CampaignWithConfigs } from "~/domains/campaigns/types/campaign";
-import type { FrequencyCappingConfig } from "~/domains/targeting/components";
-import type { CampaignFormData } from "~/shared/hooks/useWizardState";
+import type { StyledRecipe } from "~/domains/campaigns/recipes/styled-recipe-types";
+import { STYLED_RECIPES } from "~/domains/campaigns/recipes/styled-recipe-catalog";
 import prisma from "~/db.server";
 import { StoreSettingsSchema } from "~/domains/store/types/settings";
 
@@ -29,9 +36,19 @@ interface LoaderData {
   variants: CampaignWithConfigs[];
   storeId: string;
   shopDomain: string;
-  selectedVariant?: string | null;
+  recipes: StyledRecipe[];
   globalCustomCSS?: string;
-  backgroundsByLayout?: Record<string, import("~/config/background-presets").BackgroundPreset[]>;
+  customThemePresets?: Array<{
+    id: string;
+    name: string;
+    brandColor: string;
+    backgroundColor: string;
+    textColor: string;
+    surfaceColor?: string;
+    successColor?: string;
+    fontFamily?: string;
+  }>;
+  advancedTargetingEnabled: boolean;
 }
 
 // ============================================================================
@@ -80,31 +97,25 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         return keyA.localeCompare(keyB);
       });
 
-    // Get the variant query parameter if provided
-    const url = new URL(request.url);
-    const variantParam = url.searchParams.get("variant");
-
     console.log("[Experiment Edit Loader] experimentId:", experimentId);
-    console.log("[Experiment Edit Loader] variantParam:", variantParam);
     console.log(
       "[Experiment Edit Loader] validVariants:",
       validVariants.map((v) => ({ id: v.id, variantKey: v.variantKey }))
     );
 
-    // Lazy-load background presets by layout from recipe service
-    const { getBackgroundsByLayoutMap } = await import(
-      "~/domains/campaigns/recipes/recipe-service.server"
-    );
-    const backgroundsByLayout = await getBackgroundsByLayoutMap();
+    // Get plan context for feature flags
+    const { PlanGuardService } = await import("~/domains/billing/services/plan-guard.server");
+    const planContext = await PlanGuardService.getPlanContext(storeId);
 
     return data<LoaderData>({
       experiment,
       variants: validVariants,
       storeId,
       shopDomain: session.shop,
-      selectedVariant: variantParam,
+      recipes: STYLED_RECIPES,
       globalCustomCSS: parsedSettings.success ? parsedSettings.data.globalCustomCSS : undefined,
-      backgroundsByLayout,
+      customThemePresets: parsedSettings.success ? parsedSettings.data.customThemePresets : undefined,
+      advancedTargetingEnabled: planContext.definition.features.advancedTargeting,
     });
   } catch (error) {
     console.error("Failed to load experiment for editing:", error);
@@ -115,7 +126,10 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         variants: [],
         storeId: "",
         shopDomain: "",
+        recipes: STYLED_RECIPES,
         globalCustomCSS: undefined,
+        customThemePresets: undefined,
+        advancedTargetingEnabled: false,
       },
       { status: 404 }
     );
@@ -123,48 +137,184 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 }
 
 // ============================================================================
+// HELPERS - Convert database types to ExperimentFlow types
+// ============================================================================
+
+/**
+ * Map database success metric to ExperimentFlow's SuccessMetric
+ */
+function mapSuccessMetric(dbMetric: string | undefined): SuccessMetric {
+  const metricMap: Record<string, SuccessMetric> = {
+    email_signups: "email_signups",
+    conversion_rate: "email_signups", // fallback
+    discount_redemptions: "discount_redemptions",
+    click_through_rate: "ctr",
+    revenue_per_visitor: "revenue",
+  };
+  return metricMap[dbMetric || ""] || "email_signups";
+}
+
+/**
+ * Convert CampaignWithConfigs to CampaignData for a variant
+ */
+function campaignToCampaignData(campaign: CampaignWithConfigs): CampaignData {
+  return {
+    name: campaign.name,
+    description: campaign.description || "",
+    templateType: campaign.templateType,
+    contentConfig: campaign.contentConfig || {},
+    designConfig: campaign.designConfig || {},
+    discountConfig: campaign.discountConfig,
+    targetingConfig: {
+      enhancedTriggers: campaign.targetRules?.enhancedTriggers || {},
+      audienceTargeting: campaign.targetRules?.audienceTargeting || {
+        enabled: false,
+        shopifySegmentIds: [],
+      },
+      geoTargeting: campaign.targetRules?.geoTargeting || {
+        enabled: false,
+        mode: "include" as const,
+        countries: [],
+      },
+      pageTargeting: campaign.targetRules?.pageTargeting,
+    },
+    frequencyConfig: {
+      enabled: !!campaign.targetRules?.enhancedTriggers?.frequency_capping,
+      max_triggers_per_session:
+        campaign.targetRules?.enhancedTriggers?.frequency_capping?.max_triggers_per_session || 1,
+      max_triggers_per_day:
+        campaign.targetRules?.enhancedTriggers?.frequency_capping?.max_triggers_per_day || 3,
+      cooldown_between_triggers:
+        campaign.targetRules?.enhancedTriggers?.frequency_capping?.cooldown_between_triggers || 300,
+      respectGlobalCap: true,
+    },
+    scheduleConfig: {
+      status: campaign.status,
+      priority: campaign.priority,
+      startDate: campaign.startDate?.toISOString(),
+      endDate: campaign.endDate?.toISOString(),
+    },
+  };
+}
+
+/**
+ * Convert database experiment + variants to ExperimentFlow's Experiment type
+ */
+function convertToExperimentFlowData(
+  dbExperiment: ExperimentWithVariants,
+  dbVariants: CampaignWithConfigs[],
+  recipes: StyledRecipe[]
+): Experiment {
+  // Map traffic allocation from { A: 50, B: 50 } to [{ variantId: "...", percentage: 50 }, ...]
+  const trafficAllocation = dbExperiment.variants.map((v) => ({
+    variantId: v.id,
+    percentage: (dbExperiment.trafficAllocation as Record<string, number>)?.[v.variantKey] || 50,
+  }));
+
+  // Map variants
+  const variants: Variant[] = dbExperiment.variants.map((expVariant) => {
+    const campaign = dbVariants.find((c) => c.id === expVariant.id);
+
+    // Try to find a matching recipe
+    const matchingRecipe = recipes.find(
+      (r) => campaign && r.templateType === campaign.templateType
+    );
+
+    return {
+      id: expVariant.id,
+      name: expVariant.variantKey,
+      status: campaign ? "configured" : "empty",
+      isControl: expVariant.isControl,
+      recipe: matchingRecipe,
+      campaignData: campaign ? campaignToCampaignData(campaign) : undefined,
+    };
+  });
+
+  // Map experiment status
+  const statusMap: Record<string, "draft" | "running" | "completed"> = {
+    DRAFT: "draft",
+    RUNNING: "running",
+    PAUSED: "running",
+    COMPLETED: "completed",
+    ARCHIVED: "completed",
+  };
+
+  return {
+    id: dbExperiment.id,
+    name: dbExperiment.name,
+    hypothesis: dbExperiment.hypothesis || "",
+    successMetric: mapSuccessMetric(dbExperiment.successMetrics?.primaryMetric),
+    variants,
+    trafficAllocation,
+    status: statusMap[dbExperiment.status] || "draft",
+  };
+}
+
+// ============================================================================
 // COMPONENT
 // ============================================================================
 
 export default function ExperimentEditPage() {
-  const { experiment, variants, storeId, shopDomain, selectedVariant, globalCustomCSS, backgroundsByLayout } =
-    useLoaderData<typeof loader>();
+  const {
+    experiment,
+    variants,
+    storeId,
+    shopDomain,
+    recipes,
+    globalCustomCSS,
+    customThemePresets,
+    advancedTargetingEnabled,
+  } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [toastError, setToastError] = useState(false);
 
-  const handleSave = async () => {
-    try {
-      // TODO: Implement experiment update logic
-      // This should update all variants and the experiment itself
+  // Show toast helper
+  const showToast = useCallback((message: string, isError = false) => {
+    setToastMessage(message);
+    setToastError(isError);
+  }, []);
 
-      setToastMessage("Experiment updated successfully!");
-      setToastError(false);
+  // Handle back navigation
+  const handleBack = useCallback(() => {
+    navigate(`/app/experiments/${experiment?.id || ""}`);
+  }, [experiment?.id, navigate]);
 
-      // Navigate back to experiment detail
-      setTimeout(() => {
-        navigate(`/app/experiments/${experiment?.id}`);
-      }, 1000);
-    } catch (error) {
-      console.error("Failed to save experiment:", error);
-      setToastMessage("Failed to save experiment. Please try again.");
-      setToastError(true);
-    }
-  };
+  // Handle save experiment
+  const handleSave = useCallback(
+    async (experimentData: Experiment) => {
+      if (!experiment) return;
 
-  const handleCancel = () => {
-    navigate(`/app/experiments/${experiment?.id}`);
-  };
+      try {
+        // Update the experiment via API
+        const response = await fetch(`/api/experiments/${experiment.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(experimentData),
+        });
 
-  // Toast component
-  const toastMarkup = toastMessage ? (
-    <Toast content={toastMessage} error={toastError} onDismiss={() => setToastMessage(null)} />
-  ) : null;
+        if (!response.ok) {
+          throw new Error("Failed to update experiment");
+        }
+
+        showToast("Experiment updated successfully!");
+
+        // Navigate back to experiment detail
+        setTimeout(() => {
+          navigate(`/app/experiments/${experiment.id}`);
+        }, 1000);
+      } catch (error) {
+        console.error("Failed to save experiment:", error);
+        showToast("Failed to save experiment. Please try again.", true);
+      }
+    },
+    [experiment, navigate, showToast]
+  );
 
   // If no experiment found, redirect back
   useEffect(() => {
     if (!experiment || variants.length === 0) {
-      navigate("/app/campaigns");
+      navigate("/app");
     }
   }, [experiment, variants, navigate]);
 
@@ -172,101 +322,27 @@ export default function ExperimentEditPage() {
     return null;
   }
 
-  // Determine which variant to display initially
-  // If a variant is specified in the query parameter, use that; otherwise use Variant A (or first variant if A doesn't exist)
-  const targetVariant = selectedVariant
-    ? variants.find((v) => v.variantKey === selectedVariant) || variants[0]
-    : variants.find((v) => v.variantKey === "A") || variants[0];
+  // Convert database experiment to ExperimentFlow format
+  const initialExperiment = convertToExperimentFlowData(experiment, variants, recipes);
 
-  console.log("[Experiment Edit Page] selectedVariant param:", selectedVariant);
-  console.log("[Experiment Edit Page] targetVariant:", {
-    id: targetVariant.id,
-    variantKey: targetVariant.variantKey,
-  });
-  console.log(
-    "[Experiment Edit Page] all variants:",
-    variants.map((v) => ({ id: v.id, variantKey: v.variantKey }))
-  );
-
-  const initialData: Partial<CampaignFormData> = {
-    name: experiment.name,
-    description: experiment.description || "",
-    templateType: targetVariant.templateType,
-    templateId: targetVariant.templateId || undefined,
-    goal: targetVariant.goal,
-    status: targetVariant.status,
-    priority: targetVariant.priority,
-    experimentId: experiment.id,
-    isControl: targetVariant.isControl,
-    variantKey: targetVariant.variantKey || "A",
-    contentConfig: targetVariant.contentConfig,
-    designConfig: targetVariant.designConfig,
-    enhancedTriggers: targetVariant.targetRules?.enhancedTriggers || {},
-    audienceTargeting: targetVariant.targetRules?.audienceTargeting || {
-      enabled: false,
-      shopifySegmentIds: [],
-    },
-    pageTargeting: targetVariant.targetRules?.pageTargeting || {
-      enabled: false,
-      pages: [],
-      customPatterns: [],
-      excludePages: [],
-      productTags: [],
-      collections: [],
-    },
-    // Load frequency capping from server format (already matches UI format)
-    frequencyCapping: {
-      enabled: !!targetVariant.targetRules?.enhancedTriggers?.frequency_capping,
-      max_triggers_per_session:
-        targetVariant.targetRules?.enhancedTriggers?.frequency_capping?.max_triggers_per_session,
-      max_triggers_per_day:
-        targetVariant.targetRules?.enhancedTriggers?.frequency_capping?.max_triggers_per_day,
-      cooldown_between_triggers:
-        targetVariant.targetRules?.enhancedTriggers?.frequency_capping?.cooldown_between_triggers,
-      respectGlobalCap: true,
-    } as FrequencyCappingConfig,
-    discountConfig: targetVariant.discountConfig || undefined,
-  };
-
-  // Prepare experiment data
-  const experimentData = {
-    id: experiment.id,
-    name: experiment.name,
-    description: experiment.description,
-    hypothesis: experiment.hypothesis,
-    successMetric: experiment.successMetrics?.primaryMetric || "conversion_rate",
-    trafficAllocation: experiment.trafficAllocation,
-    confidenceLevel: experiment.statisticalConfig?.confidenceLevel || 95,
-    minimumSampleSize: experiment.statisticalConfig?.minimumSampleSize,
-    minimumDetectableEffect: experiment.statisticalConfig?.minimumDetectableEffect || 5,
-    startDate: experiment.startDate ? new Date(experiment.startDate).toISOString() : null,
-    endDate: experiment.endDate ? new Date(experiment.endDate).toISOString() : null,
-    plannedDuration: experiment.plannedDurationDays,
-    status: experiment.status,
-  };
-
-  // Prepare all variants info
-  const allVariantsInfo = experiment.variants.map((v) => ({
-    id: v.id,
-    variantKey: v.variantKey,
-    name: v.name,
-    isControl: v.isControl,
-  }));
+  // Toast markup
+  const toastMarkup = toastMessage ? (
+    <Toast content={toastMessage} error={toastError} onDismiss={() => setToastMessage(null)} />
+  ) : null;
 
   return (
     <Frame>
-      <CampaignFormWithABTesting
+      <ExperimentFlow
+        onBack={handleBack}
+        onSave={handleSave}
+        recipes={recipes}
         storeId={storeId}
         shopDomain={shopDomain}
-        initialData={initialData}
-        globalCustomCSS={globalCustomCSS}
+        advancedTargetingEnabled={advancedTargetingEnabled}
+        customThemePresets={customThemePresets}
+        isEditMode
+        initialExperiment={initialExperiment}
         experimentId={experiment.id}
-        experimentData={experimentData}
-        allVariants={allVariantsInfo}
-        currentVariantKey={targetVariant.variantKey || "A"}
-        backgroundsByLayout={backgroundsByLayout}
-        onSave={handleSave}
-        onCancel={handleCancel}
       />
       {toastMarkup}
     </Frame>

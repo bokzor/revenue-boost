@@ -46,6 +46,49 @@ const SOCIAL_PROOF_EDITABLE_FIELDS: EditableField[] = [
 ];
 
 // =============================================================================
+// QUICK INPUT DEFINITIONS
+// =============================================================================
+
+// Notification type selection - what kind of social proof to show
+const NOTIFICATION_TYPE_INPUT = {
+  type: "select" as const,
+  key: "notificationType",
+  label: "Notification Type",
+  options: [
+    { label: "Recent purchases", value: "purchases" },
+    { label: "Visitor activity", value: "visitors" },
+    { label: "Customer reviews", value: "reviews" },
+    { label: "All types combined", value: "all" },
+  ],
+  defaultValue: "purchases",
+};
+
+// Display frequency - how often to show notifications
+const DISPLAY_FREQUENCY_INPUT = {
+  type: "select" as const,
+  key: "displayFrequency",
+  label: "Display Frequency",
+  options: [
+    { label: "Every 5 seconds (high)", value: "5" },
+    { label: "Every 8 seconds (recommended)", value: "8" },
+    { label: "Every 12 seconds (subtle)", value: "12" },
+  ],
+  defaultValue: "8",
+};
+
+// Corner position - where to show notifications
+const CORNER_POSITION_INPUT = {
+  type: "select" as const,
+  key: "cornerPosition",
+  label: "Position",
+  options: [
+    { label: "Bottom left", value: "bottom-left" },
+    { label: "Bottom right", value: "bottom-right" },
+  ],
+  defaultValue: "bottom-left",
+};
+
+// =============================================================================
 // COMMON TARGETING CONFIGURATION FOR SOCIAL PROOF
 // =============================================================================
 
@@ -83,7 +126,7 @@ const recentPurchases: SocialProofRecipe = {
   component: "AnnouncementBanner",
   layout: "sidebar-left",
   featured: true,
-  inputs: [],
+  inputs: [NOTIFICATION_TYPE_INPUT, DISPLAY_FREQUENCY_INPUT, CORNER_POSITION_INPUT],
   editableFields: SOCIAL_PROOF_EDITABLE_FIELDS,
   defaults: {
     contentConfig: {
@@ -135,7 +178,7 @@ const visitorActivity: SocialProofRecipe = {
   tags: ["urgent", "modern", "high-converting"] as RecipeTag[],
   component: "AnnouncementBanner",
   layout: "sidebar-left",
-  inputs: [],
+  inputs: [NOTIFICATION_TYPE_INPUT, DISPLAY_FREQUENCY_INPUT, CORNER_POSITION_INPUT],
   editableFields: SOCIAL_PROOF_EDITABLE_FIELDS,
   defaults: {
     contentConfig: {
@@ -188,7 +231,7 @@ const reviewHighlights: SocialProofRecipe = {
   tags: ["elegant", "subtle", "high-converting"] as RecipeTag[],
   component: "AnnouncementBanner",
   layout: "sidebar-left",
-  inputs: [],
+  inputs: [NOTIFICATION_TYPE_INPUT, DISPLAY_FREQUENCY_INPUT, CORNER_POSITION_INPUT],
   editableFields: SOCIAL_PROOF_EDITABLE_FIELDS,
   defaults: {
     contentConfig: {
@@ -242,7 +285,7 @@ const completeSocialProof: SocialProofRecipe = {
   component: "AnnouncementBanner",
   layout: "sidebar-left",
   featured: true,
-  inputs: [],
+  inputs: [NOTIFICATION_TYPE_INPUT, DISPLAY_FREQUENCY_INPUT, CORNER_POSITION_INPUT],
   editableFields: SOCIAL_PROOF_EDITABLE_FIELDS,
   defaults: {
     contentConfig: {
@@ -287,7 +330,7 @@ const minimalDark: SocialProofRecipe = {
   tags: ["dark", "minimal", "tech", "modern"] as RecipeTag[],
   component: "AnnouncementBanner",
   layout: "sidebar-right",
-  inputs: [],
+  inputs: [NOTIFICATION_TYPE_INPUT, DISPLAY_FREQUENCY_INPUT, CORNER_POSITION_INPUT],
   editableFields: SOCIAL_PROOF_EDITABLE_FIELDS,
   defaults: {
     contentConfig: {
@@ -339,7 +382,7 @@ const luxuryElegant: SocialProofRecipe = {
   tags: ["elegant", "luxury", "fashion", "beauty"] as RecipeTag[],
   component: "AnnouncementBanner",
   layout: "sidebar-left",
-  inputs: [],
+  inputs: [NOTIFICATION_TYPE_INPUT, DISPLAY_FREQUENCY_INPUT, CORNER_POSITION_INPUT],
   editableFields: SOCIAL_PROOF_EDITABLE_FIELDS,
   defaults: {
     contentConfig: {
@@ -393,7 +436,7 @@ const urgencyBoost: SocialProofRecipe = {
   component: "AnnouncementBanner",
   layout: "sidebar-left",
   featured: true,
-  inputs: [],
+  inputs: [NOTIFICATION_TYPE_INPUT, DISPLAY_FREQUENCY_INPUT, CORNER_POSITION_INPUT],
   editableFields: SOCIAL_PROOF_EDITABLE_FIELDS,
   defaults: {
     contentConfig: {
@@ -450,7 +493,7 @@ const productPageFocused: SocialProofRecipe = {
   tags: ["high-converting", "subtle", "modern"] as RecipeTag[],
   component: "AnnouncementBanner",
   layout: "sidebar-right",
-  inputs: [],
+  inputs: [NOTIFICATION_TYPE_INPUT, DISPLAY_FREQUENCY_INPUT, CORNER_POSITION_INPUT],
   editableFields: SOCIAL_PROOF_EDITABLE_FIELDS,
   defaults: {
     contentConfig: {

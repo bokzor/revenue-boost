@@ -4,7 +4,6 @@
  * Centralized exports for all campaign-related components
  */
 
-export { CampaignFormWithABTesting } from "./CampaignFormWithABTesting";
 export { CampaignList } from "./CampaignList";
 export { CampaignIndexTable } from "./CampaignIndexTable";
 export { CampaignDetail } from "./CampaignDetail";

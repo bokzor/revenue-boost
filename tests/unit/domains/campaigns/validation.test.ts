@@ -170,8 +170,7 @@ describe('Campaign Validation', () => {
 
     it('should reject invalid newsletter content', () => {
       const contentConfig = {
-        headline: 'Subscribe',
-        // Missing required fields like submitButtonText
+        // Missing required headline field (headline is required and has no default)
       };
 
       const result = validateContentConfig('NEWSLETTER', contentConfig);

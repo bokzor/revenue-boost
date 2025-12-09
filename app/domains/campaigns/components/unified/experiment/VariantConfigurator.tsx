@@ -23,6 +23,18 @@ export interface VariantConfiguratorProps {
   onAddVariant: () => void;
   /** Callback to delete a variant (only non-control variants can be deleted) */
   onDeleteVariant?: (variantId: string) => void;
+  /** Save as draft callback */
+  onSaveDraft: () => void;
+  /** Publish experiment callback */
+  onPublish: () => void;
+  /** Whether save/publish is in progress */
+  isSaving: boolean;
+  /** Whether at least one variant is configured (enables save draft) */
+  canSaveDraft: boolean;
+  /** Whether all variants are configured (enables publish) */
+  canPublish: boolean;
+  /** Edit mode shows different button labels */
+  isEditMode?: boolean;
   recipes: StyledRecipe[];
   storeId: string;
   shopDomain?: string;
@@ -48,6 +60,12 @@ export function VariantConfigurator({
   onVariantUpdate,
   onAddVariant,
   onDeleteVariant,
+  onSaveDraft,
+  onPublish,
+  isSaving,
+  canSaveDraft,
+  canPublish,
+  isEditMode = false,
   recipes,
   storeId,
   shopDomain,
@@ -94,6 +112,12 @@ export function VariantConfigurator({
         onVariantChange={onVariantChange}
         onAddVariant={onAddVariant}
         onDeleteVariant={onDeleteVariant}
+        onSaveDraft={onSaveDraft}
+        onPublish={onPublish}
+        isSaving={isSaving}
+        canSaveDraft={canSaveDraft}
+        canPublish={canPublish}
+        isEditMode={isEditMode}
       />
 
       {/* Embedded campaign editor for active variant */}
@@ -125,6 +149,12 @@ interface VariantTabsHeaderProps {
   onVariantChange: (variantId: string) => void;
   onAddVariant: () => void;
   onDeleteVariant?: (variantId: string) => void;
+  onSaveDraft: () => void;
+  onPublish: () => void;
+  isSaving: boolean;
+  canSaveDraft: boolean;
+  canPublish: boolean;
+  isEditMode?: boolean;
 }
 
 function VariantTabsHeader({
@@ -134,6 +164,12 @@ function VariantTabsHeader({
   onVariantChange,
   onAddVariant,
   onDeleteVariant,
+  onSaveDraft,
+  onPublish,
+  isSaving,
+  canSaveDraft,
+  canPublish,
+  isEditMode = false,
 }: VariantTabsHeaderProps) {
   const [popoverActiveId, setPopoverActiveId] = useState<string | null>(null);
 
@@ -149,6 +185,7 @@ function VariantTabsHeader({
     >
       <div style={{ maxWidth: "1400px", margin: "0 auto", padding: "12px 24px" }}>
         <InlineStack align="space-between" blockAlign="center">
+          {/* Left: Back + Title */}
           <InlineStack gap="400" blockAlign="center">
             <Button
               icon={ArrowLeftIcon}
@@ -161,6 +198,7 @@ function VariantTabsHeader({
             </Text>
           </InlineStack>
 
+          {/* Center: Variant Tabs */}
           <InlineStack gap="200">
             {variants.map((v) => (
               <InlineStack key={v.id} gap="100" blockAlign="center">
@@ -172,8 +210,8 @@ function VariantTabsHeader({
                   {v.isControl ? `${v.name} (Control)` : v.name}{" "}
                   {v.status === "configured" ? "✓" : ""}
                 </Button>
-                {/* Delete button for non-control variants */}
-                {!v.isControl && onDeleteVariant && variants.length > 2 && (
+                {/* Delete button for non-control variants (always available since control can't be deleted) */}
+                {!v.isControl && onDeleteVariant && (
                   <Popover
                     active={popoverActiveId === v.id}
                     activator={
@@ -207,6 +245,21 @@ function VariantTabsHeader({
             {variants.length < 4 && (
               <Button icon={PlusIcon} onClick={onAddVariant} size="slim" variant="tertiary" />
             )}
+          </InlineStack>
+
+          {/* Right: Save Draft + Publish */}
+          <InlineStack gap="300">
+            <Button onClick={onSaveDraft} disabled={isSaving || !canSaveDraft}>
+              {isEditMode ? "Save" : "Save Draft"}
+            </Button>
+            <Button
+              variant="primary"
+              onClick={onPublish}
+              disabled={isSaving || !canPublish}
+              loading={isSaving}
+            >
+              {isEditMode ? "Update & Publish" : "Publish"}
+            </Button>
           </InlineStack>
         </InlineStack>
       </div>

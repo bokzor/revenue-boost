@@ -331,7 +331,7 @@ const darkMode: NewsletterRecipe = {
   theme: "dark-mode",
   layout: "centered",
   useThemeBackground: true,
-  inputs: [],
+  inputs: [TRIGGER_INPUT],
   editableFields: NEWSLETTER_EDITABLE_FIELDS,
   defaults: {
     contentConfig: {
@@ -402,7 +402,7 @@ const freshOrganic: NewsletterRecipe = {
   theme: "fresh-organic",
   layout: "split-left",
   imageUrl: "/recipes/newsletter/fresh-organic.jpg",
-  inputs: [],
+  inputs: [TRIGGER_INPUT],
   editableFields: NEWSLETTER_EDITABLE_FIELDS,
   defaults: {
     contentConfig: {
@@ -477,7 +477,7 @@ const cafeWarm: NewsletterRecipe = {
   theme: "cafe-warm",
   layout: "hero",
   imageUrl: "/recipes/newsletter/cafe-warm.jpg",
-  inputs: [],
+  inputs: [TRIGGER_INPUT],
   editableFields: NEWSLETTER_EDITABLE_FIELDS,
   defaults: {
     contentConfig: {
@@ -827,7 +827,7 @@ const cozyComfort: NewsletterRecipe = {
   theme: "cozy-comfort",
   layout: "hero",
   imageUrl: "/recipes/newsletter/cozy-comfort.jpg",
-  inputs: [],
+  inputs: [TRIGGER_INPUT],
   editableFields: NEWSLETTER_EDITABLE_FIELDS,
   defaults: {
     contentConfig: {
