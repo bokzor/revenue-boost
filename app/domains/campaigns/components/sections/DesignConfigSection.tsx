@@ -247,6 +247,42 @@ export function DesignConfigSection({
     onChange({ ...design, [field]: value });
   };
 
+  // Color fields that should clear theme when edited
+  const COLOR_FIELDS: (keyof DesignConfig)[] = [
+    "backgroundColor",
+    "textColor",
+    "descriptionColor",
+    "accentColor",
+    "buttonColor",
+    "buttonTextColor",
+    "inputBackgroundColor",
+    "inputTextColor",
+    "inputBorderColor",
+    "imageBgColor",
+    "successColor",
+    "overlayColor",
+  ];
+
+  /**
+   * Update a color field and clear the theme selection.
+   * When user manually edits colors, they're no longer using a preset theme.
+   */
+  const updateColorField = <K extends keyof DesignConfig>(
+    field: K,
+    value: DesignConfig[K] | undefined
+  ) => {
+    // Only clear theme if this is a color field
+    if (COLOR_FIELDS.includes(field)) {
+      onChange({
+        ...design,
+        [field]: value,
+        theme: undefined, // Clear theme to indicate custom colors
+      });
+    } else {
+      onChange({ ...design, [field]: value });
+    }
+  };
+
   const imageMode = (design.backgroundImageMode ?? "none") as DesignConfig["backgroundImageMode"];
   const selectedPresetKey = design.backgroundImagePresetKey as NewsletterThemeKey | undefined;
   const previewImageUrl = design.imageUrl;
@@ -519,7 +555,7 @@ export function DesignConfigSection({
               value={design.backgroundColor || "#FFFFFF"}
               error={errors?.backgroundColor}
               helpText="Popup background color (supports gradients)"
-              onChange={(value) => updateField("backgroundColor", value)}
+              onChange={(value) => updateColorField("backgroundColor", value)}
             />
 
             {/* Background Image - Only show if template supports images and layout is not minimal */}
@@ -680,7 +716,7 @@ export function DesignConfigSection({
                 value={design.textColor || "#333333"}
                 error={errors?.textColor}
                 helpText="Heading and title text color"
-                onChange={(value) => updateField("textColor", value)}
+                onChange={(value) => updateColorField("textColor", value)}
               />
 
               <ColorField
@@ -689,7 +725,7 @@ export function DesignConfigSection({
                 value={design.descriptionColor || "#666666"}
                 error={errors?.descriptionColor}
                 helpText="Description and subheadline text color"
-                onChange={(value) => updateField("descriptionColor", value)}
+                onChange={(value) => updateColorField("descriptionColor", value)}
               />
             </FormGrid>
 
@@ -702,7 +738,7 @@ export function DesignConfigSection({
                   value={design.accentColor || "#007BFF"}
                   error={errors?.accentColor}
                   helpText="Accent and highlight color"
-                  onChange={(value) => updateField("accentColor", value)}
+                  onChange={(value) => updateColorField("accentColor", value)}
                 />
               )}
 
@@ -713,7 +749,7 @@ export function DesignConfigSection({
                   value={design.successColor || "#10b981"}
                   error={errors?.successColor}
                   helpText="Success state color"
-                  onChange={(value) => updateField("successColor", value)}
+                  onChange={(value) => updateColorField("successColor", value)}
                 />
               )}
             </FormGrid>
@@ -762,7 +798,7 @@ export function DesignConfigSection({
                   value={design.buttonColor || "#007BFF"}
                   error={errors?.buttonColor}
                   helpText="CTA button background"
-                  onChange={(value) => updateField("buttonColor", value)}
+                  onChange={(value) => updateColorField("buttonColor", value)}
                 />
 
                 <ColorField
@@ -771,7 +807,7 @@ export function DesignConfigSection({
                   value={design.buttonTextColor || "#FFFFFF"}
                   error={errors?.buttonTextColor}
                   helpText="CTA button text color"
-                  onChange={(value) => updateField("buttonTextColor", value)}
+                  onChange={(value) => updateColorField("buttonTextColor", value)}
                 />
               </FormGrid>
             </BlockStack>
@@ -796,7 +832,7 @@ export function DesignConfigSection({
                   value={design.inputBackgroundColor || "#FFFFFF"}
                   error={errors?.inputBackgroundColor}
                   helpText="Email/form input background (supports rgba)"
-                  onChange={(value) => updateField("inputBackgroundColor", value)}
+                  onChange={(value) => updateColorField("inputBackgroundColor", value)}
                 />
 
                 <ColorField
@@ -805,7 +841,7 @@ export function DesignConfigSection({
                   value={design.inputTextColor || "#333333"}
                   error={errors?.inputTextColor}
                   helpText="Email/form input text"
-                  onChange={(value) => updateField("inputTextColor", value)}
+                  onChange={(value) => updateColorField("inputTextColor", value)}
                 />
 
                 <ColorField
@@ -814,7 +850,7 @@ export function DesignConfigSection({
                   value={design.inputBorderColor || "#D1D5DB"}
                   error={errors?.inputBorderColor}
                   helpText="Email/form input border (supports rgba)"
-                  onChange={(value) => updateField("inputBorderColor", value)}
+                  onChange={(value) => updateColorField("inputBorderColor", value)}
                 />
               </FormGrid>
 
@@ -825,7 +861,7 @@ export function DesignConfigSection({
                   value={design.imageBgColor || "#F4F4F5"}
                   error={errors?.imageBgColor}
                   helpText="Background color for image placeholder (supports rgba)"
-                  onChange={(value) => updateField("imageBgColor", value)}
+                  onChange={(value) => updateColorField("imageBgColor", value)}
                 />
               </FormGrid>
             </BlockStack>
@@ -850,7 +886,7 @@ export function DesignConfigSection({
                   value={design.overlayColor || "#000000"}
                   error={errors?.overlayColor}
                   helpText="Background overlay color"
-                  onChange={(value) => updateField("overlayColor", value)}
+                  onChange={(value) => updateColorField("overlayColor", value)}
                 />
 
                 <Select

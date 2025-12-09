@@ -19,7 +19,7 @@ import {
 import { ChevronDownIcon, ChevronUpIcon } from "@shopify/polaris-icons";
 import { TextField, CheckboxField, FormGrid, GenericDiscountComponent } from "../form";
 import { useFieldUpdater } from "~/shared/hooks/useFieldUpdater";
-import type { DiscountConfig } from "~/domains/popups/services/discounts/discount.server";
+import type { DiscountConfig } from "../../types/campaign";
 
 export interface CartAbandonmentContent {
   headline?: string;

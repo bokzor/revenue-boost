@@ -434,10 +434,9 @@ const minimalMono: SpinToWinRecipe = {
   category: "email_leads",
   goal: "ENGAGEMENT",
   templateType: "SPIN_TO_WIN",
-  recipeType: "use_case", // Functional design - inherits store theme
+  recipeType: "use_case",
   tags: ["tech", "minimal", "modern"] as RecipeTag[],
   component: "SpinToWin",
-  theme: "minimal-mono",
   layout: "centered",
   inputs: [TRIGGER_INPUT, TOP_PRIZE_INPUT],
   editableFields: SPIN_TO_WIN_EDITABLE_FIELDS,

@@ -221,9 +221,9 @@ export function parseDesignConfig(jsonValue: unknown): DesignConfig {
     }
   }
 
+  // Note: theme is intentionally NOT defaulted - if not set, store defaults are used
   return parseJsonField(sanitized, DesignConfigSchema, {
     themeMode: "default",
-    theme: "modern",
     position: "center",
     size: "medium",
     borderRadius: 8,

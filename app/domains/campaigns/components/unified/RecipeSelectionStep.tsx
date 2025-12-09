@@ -18,14 +18,9 @@ import { BlockStack, Text, Card, Banner } from "@shopify/polaris";
 
 import { GoalFilter } from "../goals/GoalFilter";
 import { RecipePicker } from "../recipes/RecipePicker";
-import type { NewsletterThemeKey } from "~/config/color-presets";
+import { NEWSLETTER_THEMES, type NewsletterThemeKey } from "~/config/color-presets";
 import { getBackgroundById, getBackgroundUrl } from "~/config/background-presets";
-import {
-  getThemeModeForRecipeType,
-  getPresetIdForRecipe,
-  type StyledRecipe,
-  type RecipeContext,
-} from "../../recipes/styled-recipe-types";
+import type { StyledRecipe, RecipeContext } from "../../recipes/styled-recipe-types";
 import type { CampaignGoal, DiscountConfig } from "../../types/campaign";
 import type { DesignTokens } from "../../types/design-tokens";
 
@@ -173,12 +168,22 @@ export function RecipeSelectionStep({
 // HELPER: Build Initial Data from Recipe + Context
 // =============================================================================
 
+/**
+ * Build initial data for a campaign from a recipe.
+ *
+ * Theme handling (simplified model):
+ * - If recipe has a theme, copy its colors into designConfig fields and set theme reference
+ * - If recipe has no theme, leave colors undefined (will use store default at runtime)
+ * - The theme field is just a UI reference; individual color fields are the source of truth
+ */
 function buildRecipeInitialData(
   recipe: StyledRecipe,
   contextData: RecipeContext,
   discountConfig: DiscountConfig | null
 ) {
-  const theme = (recipe.theme as NewsletterThemeKey) || "modern";
+  // Use recipe's theme if specified, otherwise leave undefined
+  const theme = recipe.theme as NewsletterThemeKey | undefined;
+  const themeColors = theme ? NEWSLETTER_THEMES[theme] : undefined;
 
   // Build content config from recipe defaults and apply context values
   const contentConfig = { ...recipe.defaults.contentConfig } as Record<string, unknown>;
@@ -286,15 +291,20 @@ function buildRecipeInitialData(
      recipe.layout === "fullscreen" ? "full" :
      recipe.layout === "split-right" ? "right" : "left");
 
-  const recipeThemeMode = getThemeModeForRecipeType(recipe.recipeType);
-  const recipePresetId = recipeThemeMode === "preset" ? getPresetIdForRecipe(recipe.id) : undefined;
+  // If recipe has a theme, copy its colors into the individual fields
+  // Otherwise, colors come from store default at runtime
+  const themeColorConfig = themeColors ? {
+    backgroundColor: themeColors.background,
+    textColor: themeColors.text,
+    primaryColor: themeColors.primary,
+    accentColor: themeColors.primary,
+    buttonColor: themeColors.ctaBg || themeColors.primary,
+    buttonTextColor: themeColors.ctaText || "#FFFFFF",
+  } : {};
 
-  // For "preset" mode (inspiration/seasonal recipes), the recipe's defaults.designConfig
-  // already contains the correct colors (e.g., Bold Energy has backgroundColor: "#0F0F0F").
-  // We should NOT overwrite these with themeColors lookup which may fail for custom theme names.
-  // For "default" mode (use_case recipes), colors come from the store's theme tokens at runtime.
   const designConfig = {
-    theme,
+    // Only set theme if recipe has one
+    ...(theme ? { theme } : {}),
     layout: recipe.layout,
     position: recipe.defaults.designConfig?.position || "center",
     size: recipe.defaults.designConfig?.size || "medium",
@@ -303,10 +313,10 @@ function buildRecipeInitialData(
     imageUrl,
     imagePosition,
     backgroundOverlayOpacity: 0.6,
-    // Spread recipe's designConfig which includes colors for preset mode recipes
+    // Apply theme colors first (if any)
+    ...themeColorConfig,
+    // Then spread recipe's designConfig which may override colors
     ...recipe.defaults.designConfig,
-    themeMode: recipeThemeMode,
-    presetId: recipePresetId,
   };
 
   // Build discount config

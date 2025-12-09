@@ -60,40 +60,57 @@ interface ActiveCampaignsResponse {
  * This is necessary because popup components use direct properties like
  * backgroundColor, textColor, etc. - not CSS variables.
  *
- * This mirrors the logic in TemplatePreview.tsx (lines 161-175) for admin preview.
+ * Theme handling (simplified model):
+ * - If designConfig has explicit color values, use them (theme was copied into fields)
+ * - If designConfig doesn't have colors, apply store default tokens
+ * - themeMode is DEPRECATED but still supported for backward compatibility
+ *
+ * This mirrors the logic in TemplatePreview.tsx for admin preview.
  */
 function mergeTokensIntoDesignConfig(
   designConfig: Record<string, unknown>,
   tokens: DesignTokens,
   themeMode: string | undefined
 ): Record<string, unknown> {
-  // Only apply token values for "default" or "shopify" theme modes
-  // where the designConfig doesn't have explicit color values
+  // Apply token values as fallbacks when designConfig doesn't have explicit colors
+  // This handles both:
+  // 1. New simplified model: theme=undefined means use store default
+  // 2. Legacy themeMode: "default" or "shopify" means use store default
   const shouldApplyTokens = !themeMode || themeMode === "default" || themeMode === "shopify";
 
   if (!shouldApplyTokens) {
     return designConfig;
   }
 
-  // Map design tokens to popup config properties
-  // Only set values if they're not already explicitly set in designConfig
-  const tokenColors: Record<string, unknown> = {
-    backgroundColor: designConfig.backgroundColor || tokens.background,
-    textColor: designConfig.textColor || tokens.foreground,
-    descriptionColor: designConfig.descriptionColor || tokens.muted,
-    buttonColor: designConfig.buttonColor || tokens.primary,
-    buttonTextColor: designConfig.buttonTextColor || tokens.primaryForeground,
-    accentColor: designConfig.accentColor || tokens.primary,
-    successColor: designConfig.successColor || tokens.success,
-    fontFamily: designConfig.fontFamily || tokens.fontFamily,
-    borderRadius: designConfig.borderRadius ?? tokens.borderRadius,
-    inputBackgroundColor: designConfig.inputBackgroundColor || tokens.surface,
-    inputBorderColor: designConfig.inputBorderColor || tokens.border,
+  // Map design tokens to popup config properties (used as defaults/fallbacks)
+  const defaultTokenColors: Record<string, unknown> = {
+    backgroundColor: tokens.background,
+    textColor: tokens.foreground,
+    descriptionColor: tokens.muted,
+    buttonColor: tokens.primary,
+    buttonTextColor: tokens.primaryForeground,
+    accentColor: tokens.primary,
+    successColor: tokens.success,
+    fontFamily: tokens.fontFamily,
+    borderRadius: tokens.borderRadius,
+    inputBackgroundColor: tokens.surface,
+    inputBorderColor: tokens.border,
   };
 
+  // Filter out undefined/null values from designConfig so they don't override token defaults
+  // This is important because spreading { backgroundColor: undefined } would override the token value
+  const definedDesignConfig: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(designConfig)) {
+    if (value !== undefined && value !== null) {
+      definedDesignConfig[key] = value;
+    }
+  }
+
+  // Merge: tokens as defaults FIRST, then defined designConfig values override
+  // This matches the admin preview behavior in TemplatePreview.tsx
   return {
-    ...designConfig,
-    ...tokenColors,
+    ...defaultTokenColors,
+    ...definedDesignConfig,
   };
 }
 
@@ -269,6 +286,13 @@ export async function loader(args: LoaderFunctionArgs) {
             templateType: campaignData.templateType,
             hasContentConfig: !!campaignData.contentConfig,
             hasDesignConfig: !!campaignData.designConfig,
+            rawDesignConfigColors: {
+              backgroundColor: campaignData.designConfig?.backgroundColor,
+              textColor: campaignData.designConfig?.textColor,
+              buttonColor: campaignData.designConfig?.buttonColor,
+              themeMode: campaignData.designConfig?.themeMode,
+              theme: campaignData.designConfig?.theme,
+            },
           });
 
           // Format preview campaign data
@@ -284,8 +308,20 @@ export async function loader(args: LoaderFunctionArgs) {
           let mergedDesignConfig = parsedDesignConfig as Record<string, unknown>;
           try {
             const designParsed = CampaignDesignSchema.safeParse(parsedDesignConfig);
+            console.log(`[Active Campaigns API] 🎨 Preview design parsing:`, {
+              success: designParsed.success,
+              themeMode: designParsed.success ? designParsed.data.themeMode : 'parse failed',
+              theme: designParsed.success ? designParsed.data.theme : 'parse failed',
+              hasDefaultTokens: !!defaultTokens,
+              defaultTokensBackground: defaultTokens?.background,
+            });
             if (designParsed.success) {
               const resolvedTokens = resolveDesignTokens(designParsed.data, defaultTokens);
+              console.log(`[Active Campaigns API] 🎨 Resolved tokens:`, {
+                background: resolvedTokens.background,
+                foreground: resolvedTokens.foreground,
+                primary: resolvedTokens.primary,
+              });
               designTokensCSS = tokensToCSSString(resolvedTokens);
 
               // Merge resolved tokens into designConfig so popups receive direct color values
@@ -295,6 +331,11 @@ export async function loader(args: LoaderFunctionArgs) {
                 resolvedTokens,
                 designParsed.data.themeMode
               );
+              console.log(`[Active Campaigns API] 🎨 Merged designConfig:`, {
+                backgroundColor: mergedDesignConfig.backgroundColor,
+                textColor: mergedDesignConfig.textColor,
+                buttonColor: mergedDesignConfig.buttonColor,
+              });
             }
           } catch (tokenError) {
             console.warn(`[Active Campaigns API] Failed to resolve tokens for preview:`, tokenError);

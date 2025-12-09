@@ -16,13 +16,12 @@ import {
   Button,
   Collapsible,
   InlineStack,
-  Banner,
 } from "@shopify/polaris";
 import { ChevronDownIcon, ChevronUpIcon } from "@shopify/polaris-icons";
-import { TextField, CheckboxField, FormGrid } from "../form";
+import { TextField, CheckboxField, FormGrid, GenericDiscountComponent } from "../form";
 import { ProductPicker, type ProductPickerSelection } from "../form/ProductPicker";
 import { useFieldUpdater } from "~/shared/hooks/useFieldUpdater";
-import type { ProductUpsellContent } from "../../types/campaign";
+import type { DiscountConfig, ProductUpsellContent } from "../../types/campaign";
 
 export interface ProductUpsellContentSectionProps {
   content: Partial<ProductUpsellContent>;
@@ -30,6 +29,8 @@ export interface ProductUpsellContentSectionProps {
   onChange: (content: Partial<ProductUpsellContent>) => void;
   /** When true, only allows single product selection and hides multi-product options (layout, columns, maxProducts, multiSelect) */
   singleProductMode?: boolean;
+  discountConfig?: DiscountConfig;
+  onDiscountChange?: (config: DiscountConfig) => void;
 }
 
 export function ProductUpsellContentSection({
@@ -37,13 +38,14 @@ export function ProductUpsellContentSection({
   errors,
   onChange,
   singleProductMode = false,
+  discountConfig,
+  onDiscountChange,
 }: ProductUpsellContentSectionProps) {
   // Collapsible section state
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
     basicContent: true, // Basic content open by default for first-time setup
     productSelection: false,
     layoutDisplay: false,
-    bundleDiscount: false,
     behavior: false,
   });
 
@@ -402,83 +404,30 @@ export function ProductUpsellContentSection({
 
           <Divider />
 
-          {/* Bundle Discount Section */}
-          <BlockStack gap="300">
-            <div
-              role="button"
-              tabIndex={0}
-              style={{ cursor: "pointer" }}
-              onClick={() => toggleSection("bundleDiscount")}
-              onKeyDown={handleKeyDown("bundleDiscount")}
-            >
-              <InlineStack gap="200" blockAlign="center">
-                <Button
-                  variant="plain"
-                  icon={openSections.bundleDiscount ? ChevronUpIcon : ChevronDownIcon}
-                />
-                <Text as="h4" variant="headingSm">
-                  Bundle Discount
-                </Text>
-              </InlineStack>
-            </div>
-
-            <Collapsible
-              open={openSections.bundleDiscount}
-              id="bundle-discount-section"
-              transition={{
-                duration: "200ms",
-                timingFunction: "ease-in-out",
-              }}
-            >
+          {/* Discount Strategy Section */}
+          {onDiscountChange && (
+            <Card>
               <BlockStack gap="400">
-                <Banner tone="info">
-                  <BlockStack gap="200">
-                    <Text as="p" variant="bodyMd">
-                      <strong>How Bundle Discounts Work:</strong>
-                    </Text>
-                    <Text as="p" variant="bodySm">
-                      The bundle discount is automatically applied to <strong>any products the customer selects</strong> from the upsell popup.
-                      The discount only applies to the upsell items, not the entire cart.
-                    </Text>
-                    <Text as="p" variant="bodySm" tone="subdued">
-                      ✨ No additional discount configuration needed – the bundle discount is auto-created when customers add items.
-                    </Text>
-                  </BlockStack>
-                </Banner>
+                <BlockStack gap="200">
+                  <Text as="h3" variant="headingMd">
+                    💰 Discount Strategy
+                  </Text>
+                  <Text as="p" tone="subdued">
+                    Configure how the upsell discount is applied (bundle, tiered, BOGO, or free gift).
+                  </Text>
+                </BlockStack>
 
-                <FormGrid columns={2}>
-                  <TextField
-                    label="Bundle Discount (%)"
-                    name="content.bundleDiscount"
-                    value={content.bundleDiscount?.toString() ?? ""}
-                    placeholder="15"
-                    helpText="Discount applied to selected upsell products"
-                    onChange={(value) => updateField("bundleDiscount", (value === "" ? undefined : parseInt(value)) as number)}
-                  />
+                <Divider />
 
-                  <TextField
-                    label="Bundle Discount Text"
-                    name="content.bundleDiscountText"
-                    value={content.bundleDiscountText || ""}
-                    placeholder="Save 15% on selected items!"
-                    helpText="Promotional text shown to customers"
-                    onChange={(value) => updateField("bundleDiscountText", value)}
-                  />
-                </FormGrid>
-
-                <TextField
-                  label="Currency"
-                  name="content.currency"
-                  value={content.currency || "USD"}
-                  placeholder="USD"
-                  helpText="Currency code used for price display (e.g. USD, EUR)"
-                  onChange={(value) => updateField("currency", value.toUpperCase())}
+                <GenericDiscountComponent
+                  goal="PRODUCT_UPSELL"
+                  discountConfig={discountConfig}
+                  onConfigChange={onDiscountChange}
+                  allowedStrategies={["bundle", "basic", "tiered", "bogo", "free_gift"]}
                 />
               </BlockStack>
-            </Collapsible>
-          </BlockStack>
-
-          <Divider />
+            </Card>
+          )}
 
           {/* Behavior Section */}
           <BlockStack gap="300">
@@ -540,6 +489,15 @@ export function ProductUpsellContentSection({
                     onChange={(value) => updateField("secondaryCtaLabel", value)}
                   />
                 </FormGrid>
+
+                <TextField
+                  label="Currency"
+                  name="content.currency"
+                  value={content.currency || "USD"}
+                  placeholder="USD"
+                  helpText="Currency code used for price display (e.g. USD, EUR)"
+                  onChange={(value) => updateField("currency", value.toUpperCase())}
+                />
               </BlockStack>
             </Collapsible>
           </BlockStack>

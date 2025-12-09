@@ -21,8 +21,7 @@ import { Card, BlockStack, Text, Divider } from "@shopify/polaris";
 import { TextField } from "../form";
 import { LeadCaptureFormSection } from "./LeadCaptureFormSection";
 import { DiscountSection } from "~/domains/popups/components/design/DiscountSection";
-import type { NewsletterContentSchema } from "../../types/campaign";
-import type { DiscountConfig } from "~/domains/popups/services/discounts/discount.server";
+import type { NewsletterContentSchema, DiscountConfig } from "../../types/campaign";
 import { z } from "zod";
 import { useFieldUpdater } from "~/shared/hooks/useFieldUpdater";
 

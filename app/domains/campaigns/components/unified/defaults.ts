@@ -80,6 +80,7 @@ export const DEFAULT_SCHEDULE_CONFIG: ScheduleConfigDefaults = {
 export const DEFAULT_DISCOUNT_CONFIG: DiscountConfig = {
   enabled: false,
   showInPreview: true,
+  strategy: "simple",
   type: "shared",
   valueType: "PERCENTAGE",
   value: 10,
@@ -168,4 +169,3 @@ export const VARIANT_SECTIONS = EDITOR_SECTIONS.filter((s) => s.id !== "schedule
 export function toTargetRulesRecord(config: any): Record<string, unknown> {
   return config as Record<string, unknown>;
 }
-

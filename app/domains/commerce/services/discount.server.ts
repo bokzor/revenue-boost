@@ -191,6 +191,54 @@ const DISCOUNT_STRATEGIES: DiscountStrategy[] = [
   },
 ];
 
+type DiscountServiceStrategyName = (typeof DISCOUNT_STRATEGIES)[number]["name"];
+
+function orderStrategies(config: DiscountConfig): DiscountStrategy[] {
+  const strategyByName: Record<DiscountServiceStrategyName, DiscountStrategy> =
+    DISCOUNT_STRATEGIES.reduce(
+      (acc, strategy) => ({ ...acc, [strategy.name]: strategy }),
+      {} as Record<DiscountServiceStrategyName, DiscountStrategy>
+    );
+
+  const requested = config.strategy;
+  const preferred: DiscountServiceStrategyName[] = [];
+
+  // Always consider email-restricted strategy first when applicable
+  const baseOrder: DiscountServiceStrategyName[] = [
+    "emailAuthorized",
+    "bogo",
+    "freeGift",
+    "tiered",
+    "singleUse",
+    "shared",
+  ];
+
+  if (requested === "bogo") {
+    preferred.push("bogo");
+  } else if (requested === "free_gift") {
+    preferred.push("freeGift");
+  } else if (requested === "tiered") {
+    preferred.push("tiered");
+  } else if (requested === "bundle" || requested === "simple") {
+    preferred.push("singleUse", "shared");
+  }
+
+  const orderedNames = [...baseOrder];
+
+  // Insert preferred priorities right after emailAuthorized while keeping uniqueness
+  if (preferred.length > 0) {
+    orderedNames.splice(1, 0, ...preferred);
+  }
+
+  const uniqueNames = orderedNames.filter(
+    (name, index) => orderedNames.indexOf(name) === index
+  );
+
+  return uniqueNames
+    .map((name) => strategyByName[name])
+    .filter(Boolean);
+}
+
 // ============================================================================
 // UTILITY FUNCTIONS
 // ============================================================================
@@ -238,6 +286,17 @@ export function parseDiscountConfig(configString: unknown): DiscountConfig {
     const result: DiscountConfig = {
       enabled: parsedConfig.enabled ?? true,
       showInPreview: parsedConfig.showInPreview ?? true,
+      strategy:
+        parsedConfig.strategy ||
+        (parsedConfig.tiers && parsedConfig.tiers.length > 0
+          ? "tiered"
+          : parsedConfig.bogo
+            ? "bogo"
+            : parsedConfig.freeGift
+              ? "free_gift"
+              : parsedConfig.applicability?.scope === "products"
+                ? "bundle"
+                : "simple"),
       type: usageType,
       valueType,
       // Only set value for non-FREE_SHIPPING discounts
@@ -260,6 +319,7 @@ export function parseDiscountConfig(configString: unknown): DiscountConfig {
     return {
       enabled: true,
       showInPreview: true,
+      strategy: "simple",
       type: "shared",
       valueType: "PERCENTAGE",
       value: 10,
@@ -363,8 +423,10 @@ export async function getCampaignDiscountCode(
       cartSubtotalCents,
     };
 
+    const strategiesToTry = orderStrategies(config);
+
     // Try each strategy in order until one matches
-    for (const strategy of DISCOUNT_STRATEGIES) {
+    for (const strategy of strategiesToTry) {
       if (strategy.canHandle(context)) {
         console.log(`[Discount Service] Using strategy: ${strategy.name}`, {
           campaignId,

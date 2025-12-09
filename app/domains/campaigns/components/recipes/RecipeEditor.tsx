@@ -27,10 +27,6 @@ import type {
   RecipeContext,
   RecipeOutput,
 } from "../../recipes/styled-recipe-types";
-import {
-  getThemeModeForRecipeType,
-  getPresetIdForRecipe,
-} from "../../recipes/styled-recipe-types";
 import { LivePreviewPanel } from "~/domains/popups/components/preview/LivePreviewPanel";
 import { ThemePresetSelector } from "../shared/ThemePresetSelector";
 import { NEWSLETTER_THEMES, type NewsletterThemeKey } from "~/config/color-presets";
@@ -208,8 +204,9 @@ export function RecipeEditor({
   });
 
   // Track selected theme (can be changed from recipe default)
-  const [selectedTheme, setSelectedTheme] = useState<NewsletterThemeKey>(
-    (recipe.theme as NewsletterThemeKey) || "modern"
+  // If recipe has no theme, it uses store defaults - don't default to "modern"
+  const [selectedTheme, setSelectedTheme] = useState<NewsletterThemeKey | undefined>(
+    recipe.theme as NewsletterThemeKey | undefined
   );
 
   // Campaign name
@@ -238,8 +235,9 @@ export function RecipeEditor({
   }, [recipe.editableFields]);
 
   // Build design config for preview
+  // Theme handling: selectedTheme may be undefined (use store default) or a theme key
   const designConfig = useMemo(() => {
-    const themeColors = NEWSLETTER_THEMES[selectedTheme] || NEWSLETTER_THEMES.modern;
+    const themeColors = selectedTheme ? NEWSLETTER_THEMES[selectedTheme] : undefined;
 
     // Get background image if recipe has one
     let imageUrl: string | undefined;
@@ -255,51 +253,64 @@ export function RecipeEditor({
       }
     }
 
-    return {
-      theme: selectedTheme,
-      layout: recipe.layout,
-      position: recipe.defaults.designConfig?.position || "center",
-      size: recipe.defaults.designConfig?.size || "medium",
-      // Colors from theme
+    // If theme is selected, copy its colors into individual fields
+    const themeColorConfig = themeColors ? {
       backgroundColor: themeColors.background,
       textColor: themeColors.text,
       primaryColor: themeColors.primary,
       accentColor: themeColors.primary,
       buttonColor: themeColors.ctaBg || themeColors.primary,
       buttonTextColor: themeColors.ctaText || "#FFFFFF",
+    } : {};
+
+    return {
+      // Only set theme if one is selected
+      ...(selectedTheme ? { theme: selectedTheme } : {}),
+      layout: recipe.layout,
+      position: recipe.defaults.designConfig?.position || "center",
+      size: recipe.defaults.designConfig?.size || "medium",
+      // Apply theme colors first (if any)
+      ...themeColorConfig,
       // Background image settings (matching full flow format)
       backgroundImageMode,
       backgroundImagePresetKey,
       imageUrl,
       imagePosition: "full" as const,
       backgroundOverlayOpacity: 0.6,
+      // Then spread recipe's designConfig which may override colors
       ...recipe.defaults.designConfig,
     };
   }, [selectedTheme, recipe]);
 
   // Handle save
   const handleSave = useCallback(() => {
-    // Determine theme mode based on recipe type
-    const themeMode = getThemeModeForRecipeType(recipe.recipeType);
-    const presetId = themeMode === "preset" ? getPresetIdForRecipe(recipe.id) : undefined;
+    // If theme is selected, copy its colors into individual fields
+    const themeColors = selectedTheme ? NEWSLETTER_THEMES[selectedTheme] : undefined;
+    const themeColorConfig = themeColors ? {
+      backgroundColor: themeColors.background,
+      textColor: themeColors.text,
+      primaryColor: themeColors.primary,
+      accentColor: themeColors.primary,
+      buttonColor: themeColors.ctaBg || themeColors.primary,
+      buttonTextColor: themeColors.ctaText || "#FFFFFF",
+    } : {};
 
     const output: RecipeOutput = {
       name: campaignName,
       contentConfig: content,
       designConfig: {
-        theme: selectedTheme,
+        // Only set theme if one is selected
+        ...(selectedTheme ? { theme: selectedTheme } : {}),
         layout: recipe.layout,
         position: recipe.defaults.designConfig?.position || "center",
         size: recipe.defaults.designConfig?.size || "medium",
+        // Apply theme colors first (if any)
+        ...themeColorConfig,
+        // Then spread recipe's designConfig which may override colors
         ...recipe.defaults.designConfig,
-        // Include themeMode in designConfig so preview and storefront use correct theme
-        themeMode,
-        presetId,
       },
       discountConfig: recipe.defaults.discountConfig,
       targetRules: recipe.defaults.targetRules,
-      themeMode,
-      presetId,
     };
 
     // Apply context values to discount

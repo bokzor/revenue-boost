@@ -26,6 +26,7 @@ export function buildDiscountConfig(
     return {
       enabled: false,
       showInPreview: true,
+      strategy: "simple",
       type: "shared" as const,
       valueType: "PERCENTAGE" as const,
       value: 10,
@@ -38,6 +39,7 @@ export function buildDiscountConfig(
   return {
     enabled: defaults.discount.enabled,
     showInPreview: true,
+    strategy: "simple",
     type: defaults.discount.singleUse ? "single_use" : "shared",
     valueType: defaults.discount.type === "percentage" ? "PERCENTAGE" : "FIXED_AMOUNT",
     value: defaults.discount.value,

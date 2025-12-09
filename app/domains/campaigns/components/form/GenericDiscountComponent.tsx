@@ -37,12 +37,13 @@ import type {
 
 /**
  * Discount strategy types that can be shown in the component.
- * - basic: Simple percentage, fixed amount, or free shipping
+ * - basic: Simple percentage, fixed amount, or free shipping (storewide/cart)
+ * - bundle: Product-scoped percentage/fixed discount for selected upsell items
  * - tiered: Spend more, save more (e.g., $50 = 10%, $100 = 20%)
  * - bogo: Buy X, Get Y deals
  * - free_gift: Free gift with purchase
  */
-export type DiscountStrategy = "basic" | "tiered" | "bogo" | "free_gift";
+export type DiscountStrategyOption = "basic" | "bundle" | "tiered" | "bogo" | "free_gift";
 
 interface GenericDiscountComponentProps {
   goal?: string;
@@ -55,7 +56,7 @@ interface GenericDiscountComponentProps {
    * For gamified templates (Spin-to-Win, Scratch Card), use ['basic', 'free_gift']
    * since tiered and BOGO don't make sense for per-segment/prize discounts.
    */
-  allowedStrategies?: DiscountStrategy[];
+  allowedStrategies?: DiscountStrategyOption[];
   /**
    * Whether the campaign captures email addresses.
    * When true, enables the "Show Code + Assign to Email" behavior option.
@@ -63,23 +64,39 @@ interface GenericDiscountComponentProps {
   hasEmailCapture?: boolean;
 }
 
-const ALL_STRATEGIES: DiscountStrategy[] = ["basic", "tiered", "bogo", "free_gift"];
+const ALL_STRATEGIES: DiscountStrategyOption[] = [
+  "basic",
+  "bundle",
+  "tiered",
+  "bogo",
+  "free_gift",
+];
 
-const STRATEGY_OPTIONS: Record<DiscountStrategy, { label: string; value: string }> = {
+const STRATEGY_OPTIONS: Record<DiscountStrategyOption, { label: string; value: string }> = {
   basic: { label: "Basic Discount - Simple percentage or fixed amount", value: "basic" },
+  bundle: { label: "Bundle Discount - Specific upsell products only", value: "bundle" },
   tiered: { label: "Tiered Discounts - Spend more, save more", value: "tiered" },
   bogo: { label: "BOGO Deal - Buy X, Get Y", value: "bogo" },
   free_gift: { label: "Free Gift - Gift with purchase", value: "free_gift" },
 };
 
 // Tips and explanations for each discount strategy
-const STRATEGY_TIPS: Record<DiscountStrategy, { title: string; tips: string[] }> = {
+const STRATEGY_TIPS: Record<DiscountStrategyOption, { title: string; tips: string[] }> = {
   basic: {
     title: "💡 Basic Discount Tips",
     tips: [
       "10-15% off works well for welcome offers and newsletter signups",
       "20-30% creates urgency for flash sales",
       "Free shipping is highly effective - customers hate paying for shipping!",
+    ],
+  },
+  bundle: {
+    title: "🧺 Bundle Discount Tips",
+    tips: [
+      "Scope discounts to the exact upsell items to protect margins",
+      "Keep bundle offers simple (10-20%) so customers understand quickly",
+      "Pair with product-specific copy: “Save 15% on these add-ons”",
+      "Use product scoping so discounts don’t leak to the entire cart",
     ],
   },
   tiered: {
@@ -125,6 +142,7 @@ export function GenericDiscountComponent({
   const config: DiscountConfig = {
     enabled: discountConfig?.enabled !== false,
     showInPreview: discountConfig?.showInPreview !== false,
+    strategy: discountConfig?.strategy || "simple",
     type: discountConfig?.type || "shared",
     valueType: discountConfig?.valueType || "PERCENTAGE",
     value: discountConfig?.valueType === "FREE_SHIPPING" ? undefined : discountConfig?.value || 10,
@@ -162,7 +180,14 @@ export function GenericDiscountComponent({
   };
 
   // Check if any advanced discount type is active
-  const hasAdvancedDiscount = !!(config.tiers?.length || config.bogo || config.freeGift);
+  const hasAdvancedDiscount = !!(
+    config.tiers?.length ||
+    config.bogo ||
+    config.freeGift ||
+    config.strategy === "tiered" ||
+    config.strategy === "bogo" ||
+    config.strategy === "free_gift"
+  );
 
   // Tiered discount handlers
   const addTier = () => {
@@ -229,18 +254,32 @@ export function GenericDiscountComponent({
         <BlockStack gap="400">
           {/* Determine current strategy for tips */}
           {(() => {
-            const currentStrategy: DiscountStrategy =
-              config.bogo && allowedStrategies.includes("bogo") ? "bogo" :
-              config.freeGift && allowedStrategies.includes("free_gift") ? "free_gift" :
-              config.tiers?.length && allowedStrategies.includes("tiered") ? "tiered" :
-              "basic";
+            const inferredStrategy: DiscountStrategyOption =
+              config.strategy === "bundle"
+                ? "bundle"
+                : config.strategy === "tiered" || config.tiers?.length
+                  ? "tiered"
+                  : config.strategy === "bogo" || config.bogo
+                    ? "bogo"
+                    : config.strategy === "free_gift" || config.freeGift
+                      ? "free_gift"
+                      : "basic";
+
+            const currentStrategy: DiscountStrategyOption = allowedStrategies.includes(
+              inferredStrategy
+            )
+              ? inferredStrategy
+              : "basic";
+
             const tips = STRATEGY_TIPS[currentStrategy];
 
             return (
               <Banner tone="info" title={tips.title}>
                 <BlockStack gap="100">
                   {tips.tips.map((tip, index) => (
-                    <Text key={index} as="p" variant="bodySm">• {tip}</Text>
+                    <Text key={index} as="p" variant="bodySm">
+                      • {tip}
+                    </Text>
                   ))}
                 </BlockStack>
               </Banner>
@@ -258,22 +297,34 @@ export function GenericDiscountComponent({
                   label=""
                   options={allowedStrategies.map((strategy) => STRATEGY_OPTIONS[strategy])}
                   value={
-                    config.bogo && allowedStrategies.includes("bogo")
-                      ? "bogo"
-                      : config.freeGift && allowedStrategies.includes("free_gift")
-                        ? "free_gift"
-                        : config.tiers?.length && allowedStrategies.includes("tiered")
-                          ? "tiered"
-                          : "basic"
+                    config.strategy === "bundle" && allowedStrategies.includes("bundle")
+                      ? "bundle"
+                      : config.strategy === "tiered" && allowedStrategies.includes("tiered")
+                        ? "tiered"
+                        : config.strategy === "bogo" && allowedStrategies.includes("bogo")
+                          ? "bogo"
+                          : config.strategy === "free_gift" && allowedStrategies.includes("free_gift")
+                            ? "free_gift"
+                            : config.tiers?.length && allowedStrategies.includes("tiered")
+                              ? "tiered"
+                              : config.bogo && allowedStrategies.includes("bogo")
+                                ? "bogo"
+                                : config.freeGift && allowedStrategies.includes("free_gift")
+                                  ? "free_gift"
+                                  : "basic"
                   }
                   onChange={(value) => {
                   // Build a single new config to avoid stale merges across sequential updates
-                  const base = {
+                  const base: DiscountConfig = {
                     ...config,
                     tiers: undefined,
                     bogo: undefined,
                     freeGift: undefined,
-                  } as DiscountConfig;
+                    strategy:
+                      value === "basic"
+                        ? "simple"
+                        : (value as "bundle" | "tiered" | "bogo" | "free_gift"),
+                  };
 
                   if (value === "tiered") {
                     base.tiers = [
@@ -282,6 +333,14 @@ export function GenericDiscountComponent({
                         discount: { kind: "percentage" as const, value: 10 },
                       },
                     ];
+                  } else if (value === "bundle") {
+                    base.applicability = {
+                      scope: "products",
+                      productIds:
+                        config.applicability?.scope === "products"
+                          ? config.applicability.productIds || []
+                          : [],
+                    };
                   } else if (value === "bogo") {
                     base.bogo = {
                       buy: { scope: "any" as const, quantity: 1, ids: [] },

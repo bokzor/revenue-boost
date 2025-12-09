@@ -10,8 +10,7 @@ import { TextField, CheckboxField, FormGrid, SelectField } from "../form";
 import { RangeSlider, Text, BlockStack, Divider, Card } from "@shopify/polaris";
 import { useFieldUpdater } from "~/shared/hooks/useFieldUpdater";
 import { DiscountSection } from "~/domains/popups/components/design/DiscountSection";
-import type { DiscountConfig } from "~/domains/popups/services/discounts/discount.server";
-import type { DesignConfig } from "../../types/campaign";
+import type { DiscountConfig, DesignConfig } from "../../types/campaign";
 import {
   NEWSLETTER_THEMES,
   themeColorsToDesignConfig,

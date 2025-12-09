@@ -22,10 +22,7 @@ import {
 } from "@shopify/polaris";
 import { SettingsIcon } from "@shopify/polaris-icons";
 import { DiscountAdvancedSettings } from "~/domains/campaigns/components/DiscountSettingsStep";
-import type {
-  DiscountConfig,
-} from "~/domains/popups/services/discounts/discount.server";
-import type { DiscountBehavior } from "~/domains/campaigns/types/campaign";
+import type { DiscountConfig, DiscountBehavior } from "~/domains/campaigns/types/campaign";
 
 /**
  * Allowed discount value types for the DiscountSection component.

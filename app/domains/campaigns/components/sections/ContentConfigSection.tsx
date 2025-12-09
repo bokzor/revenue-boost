@@ -26,7 +26,7 @@ import { SocialProofContentSection } from "./SocialProofContentSection";
 import type { SocialProofContent as SPC } from "./SocialProofContentSection";
 import { AnnouncementContentSection } from "./AnnouncementContentSection";
 import type { AnnouncementContent } from "./AnnouncementContentSection";
-import type { DiscountConfig } from "~/domains/popups/services/discounts/discount.server";
+import type { DiscountConfig } from "../../types/campaign";
 
 export interface ContentConfigSectionProps {
   templateType: TemplateType;
@@ -114,23 +114,31 @@ export function ContentConfigSection({
             onChange={onChange}
             onDiscountChange={onDiscountChange}
           />
-        );
+    );
 
-      case "PRODUCT_UPSELL":
-        return (
-          <ProductUpsellContentSection content={content} errors={errors} onChange={onChange} />
-        );
+  case "PRODUCT_UPSELL":
+    return (
+      <ProductUpsellContentSection
+        content={content}
+        errors={errors}
+        onChange={onChange}
+        discountConfig={discountConfig}
+        onDiscountChange={onDiscountChange}
+      />
+    );
 
-      // Single-product upsell variant
-      case "CLASSIC_UPSELL":
-        return (
-          <ProductUpsellContentSection
-            content={content}
-            errors={errors}
-            onChange={onChange}
-            singleProductMode
-          />
-        );
+  // Single-product upsell variant
+  case "CLASSIC_UPSELL":
+    return (
+      <ProductUpsellContentSection
+        content={content}
+        errors={errors}
+        onChange={onChange}
+        singleProductMode
+        discountConfig={discountConfig}
+        onDiscountChange={onDiscountChange}
+      />
+    );
 
       // Countdown urgency - dedicated section with countdown-specific fields
       case "COUNTDOWN_URGENCY":

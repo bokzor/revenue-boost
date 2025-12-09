@@ -151,8 +151,11 @@ const TemplatePreviewComponent = forwardRef<TemplatePreviewRef, TemplatePreviewP
         return { ...config, ...designConfig, globalCustomCSS };
       }
 
-      // Apply default theme tokens when themeMode is "default" or "shopify"
-      // This ensures the preview uses the store's default theme colors
+      // Apply default theme tokens when designConfig doesn't have explicit colors
+      // Theme handling (simplified model):
+      // - If designConfig has colors (theme was copied into fields), use them
+      // - If designConfig doesn't have colors, apply store default tokens
+      // - themeMode is DEPRECATED but still supported for backward compatibility
       const themeMode = designConfig.themeMode as string | undefined;
       const shouldApplyDefaultTokens =
         (themeMode === "default" || themeMode === "shopify" || !themeMode) && defaultThemeTokens;

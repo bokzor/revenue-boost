@@ -18,7 +18,6 @@ import { TemplatePreview } from "~/domains/popups/components/preview/TemplatePre
 import { DeviceFrame } from "~/domains/popups/components/preview/DeviceFrame";
 import { ShadowDomWrapper } from "./ShadowDomWrapper";
 import type { StyledRecipe } from "../../recipes/styled-recipe-types";
-import { getThemeModeForRecipeType, getPresetIdForRecipe } from "../../recipes/styled-recipe-types";
 import type { DesignTokens } from "../../types/design-tokens";
 
 // iPhone 14 dimensions (used by DeviceFrame for mobile)
@@ -150,11 +149,9 @@ export function MiniPopupPreview({ recipe, scale, width, height, defaultThemeTok
 
   // Build design config from recipe
   const designConfig = useMemo(() => {
-    const theme = (recipe.theme as NewsletterThemeKey) || "modern";
-
-    // Determine theme mode based on recipe type
-    const themeMode = getThemeModeForRecipeType(recipe.recipeType);
-    const presetId = themeMode === "preset" ? getPresetIdForRecipe(recipe.id) : undefined;
+    // Use recipe's theme if specified, otherwise leave undefined
+    // When undefined, preview uses store's default theme colors via defaultThemeTokens
+    const theme = recipe.theme as NewsletterThemeKey | undefined;
 
     // Get background image if recipe has one
     let imageUrl: string | undefined;
@@ -188,7 +185,8 @@ export function MiniPopupPreview({ recipe, scale, width, height, defaultThemeTok
             : "left");
 
     const result = {
-      theme,
+      // Only set theme if recipe has one - otherwise preview uses defaultThemeTokens
+      ...(theme ? { theme } : {}),
       layout: recipe.layout,
       position: recipe.defaults.designConfig?.position || "center",
       size: recipe.defaults.designConfig?.size || "medium",
@@ -201,12 +199,8 @@ export function MiniPopupPreview({ recipe, scale, width, height, defaultThemeTok
       // Preview mode settings
       previewMode: true,
       disablePortal: true,
-      // For "preset" mode (inspiration/seasonal), use recipe's own colors from designConfig
-      // For "default" mode (use_case), don't set colors - they come from defaultThemeTokens
+      // Use recipe's designConfig colors (if specified)
       ...recipe.defaults.designConfig,
-      // Theme mode for the design token system
-      themeMode,
-      presetId,
     };
 
     return result;

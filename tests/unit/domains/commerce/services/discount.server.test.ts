@@ -39,6 +39,7 @@ import * as shopifyDiscountModule from "~/lib/shopify/discount.server";
 import {
   getCampaignDiscountCode,
   createEmailSpecificDiscount,
+  parseDiscountConfig,
 } from "~/domains/commerce/services/discount.server";
 import type { DiscountConfig } from "~/domains/campaigns/types/campaign";
 
@@ -55,9 +56,58 @@ function createDiscountConfig(overrides: Partial<DiscountConfig>): DiscountConfi
     enabled: false,
     showInPreview: true,
     behavior: "SHOW_CODE_AND_AUTO_APPLY",
+    strategy: "simple",
     ...overrides,
   };
 }
+
+// ==========================================================================
+// STRATEGY INFERENCE
+// ==========================================================================
+
+describe("parseDiscountConfig strategy inference", () => {
+  it("defaults to simple when nothing is provided", () => {
+    const result = parseDiscountConfig({});
+    expect(result.strategy).toBe("simple");
+  });
+
+  it("infers bundle when product-scoped", () => {
+    const result = parseDiscountConfig({
+      applicability: { scope: "products", productIds: ["gid://shopify/Product/1"] },
+      valueType: "PERCENTAGE",
+      value: 10,
+    });
+    expect(result.strategy).toBe("bundle");
+  });
+
+  it("infers tiered when tiers are present", () => {
+    const result = parseDiscountConfig({
+      tiers: [{ thresholdCents: 5000, discount: { kind: "percentage", value: 10 } }],
+    });
+    expect(result.strategy).toBe("tiered");
+  });
+
+  it("infers bogo when bogo is present", () => {
+    const result = parseDiscountConfig({
+      bogo: {
+        buy: { scope: "any", quantity: 1 },
+        get: { scope: "products", ids: ["gid://shopify/Product/2"], quantity: 1, discount: { kind: "free_product", value: 100 }, appliesOncePerOrder: true },
+      },
+    });
+    expect(result.strategy).toBe("bogo");
+  });
+
+  it("infers free_gift when freeGift is present", () => {
+    const result = parseDiscountConfig({
+      freeGift: {
+        productId: "gid://shopify/Product/3",
+        variantId: "gid://shopify/ProductVariant/3",
+        quantity: 1,
+      },
+    });
+    expect(result.strategy).toBe("free_gift");
+  });
+});
 
 // ==========================================================================
 // APPLICABILITY WIRING TESTS (existing tests)
@@ -883,4 +933,3 @@ describe("DiscountService - getCampaignDiscountCode", () => {
     });
   });
 });
-

@@ -98,6 +98,14 @@ export const DiscountBehaviorSchema = z.enum([
   "SHOW_CODE_AND_ASSIGN_TO_EMAIL",
 ]);
 
+export const DiscountStrategySchema = z.enum([
+  "simple",
+  "bundle",
+  "tiered",
+  "bogo",
+  "free_gift",
+]);
+
 // Content-level discount type enum (used in template content configs like SpinToWin, FlashSale)
 // Lowercase for UI display purposes
 export const ContentDiscountTypeSchema = z.enum(["percentage", "fixed_amount", "free_shipping"]);
@@ -110,6 +118,7 @@ export const TemplateTypeEnum = TemplateTypeSchema.enum;
 export type DiscountType = z.infer<typeof DiscountTypeSchema>;
 export type DiscountValueType = z.infer<typeof DiscountValueTypeSchema>;
 export type DiscountBehavior = z.infer<typeof DiscountBehaviorSchema>;
+export type DiscountStrategy = z.infer<typeof DiscountStrategySchema>;
 export type ContentDiscountType = z.infer<typeof ContentDiscountTypeSchema>;
 
 // ============================================================================
@@ -124,6 +133,7 @@ export type ContentDiscountType = z.infer<typeof ContentDiscountTypeSchema>;
 export const DiscountConfigSchema = z.object({
   enabled: z.boolean().default(false),
   showInPreview: z.boolean().default(true),
+  strategy: DiscountStrategySchema.default("simple"),
 
   // Discount type and value
   type: DiscountTypeSchema.optional(),
@@ -1048,15 +1058,20 @@ export type CountdownUrgencyContent = z.infer<typeof CountdownUrgencyContentSche
 
 /**
  * Design Configuration Schema
+ *
+ * Theme System (Simplified):
+ * - `theme`: Optional reference to which theme was used to populate colors (for UI display only)
+ *   - When set (e.g., "modern"): Shows that theme as selected in the UI
+ *   - When undefined: Shows "Custom" or "Store Default" in the UI
+ * - Individual color fields (backgroundColor, textColor, etc.): ALWAYS stored, used for rendering
+ * - When user selects a theme: Copy all theme colors into fields + set `theme`
+ * - When user edits any color: Clear `theme` to indicate custom colors
  */
 export const DesignConfigSchema = z.object({
-  // Theme Mode (new simplified design token system)
-  // "default" = use store's default theme preset, "shopify" = legacy (same as default),
-  // "preset" = use artistic preset, "custom" = manual colors
-  themeMode: z.enum(["default", "shopify", "preset", "custom"]).optional().default("default"),
-  presetId: z.string().optional(), // Preset ID when themeMode is "preset"
-
-  // Layout
+  // Theme reference (for UI display only)
+  // When set: indicates which theme colors were copied from
+  // When undefined: indicates custom colors or store default was used
+  // Note: themeMode is DEPRECATED - use theme instead
   theme: z
     .enum([
       // Generic themes
@@ -1075,8 +1090,13 @@ export const DesignConfigSchema = z.object({
       "valentine",
       "spring",
     ])
-    .optional(), // Optional when using a custom theme preset
+    .optional(),
   customThemePresetId: z.string().optional(), // ID of the applied custom theme preset
+
+  // DEPRECATED: themeMode is no longer used - kept for backward compatibility
+  // New campaigns should NOT set this field. Use `theme` field instead.
+  themeMode: z.enum(["default", "shopify", "preset", "custom"]).optional(),
+  presetId: z.string().optional(), // DEPRECATED: was used with themeMode: "preset"
   position: z.enum(["center", "top", "bottom", "left", "right"]).default("center"),
   size: z.enum(["small", "medium", "large", "fullscreen"]).default("medium"),
   popupSize: z.enum(["compact", "standard", "wide", "full"]).default("wide").optional(), // For FlashSale

@@ -807,10 +807,8 @@ export interface RecipeOutput {
   designConfig: Record<string, unknown>;
   discountConfig?: Record<string, unknown>;
   targetRules?: Record<string, unknown>;
-  /** Theme mode derived from recipe type */
-  themeMode: ThemeMode;
-  /** Preset ID for inspiration/seasonal recipes */
-  presetId?: string;
+  // Note: themeMode and presetId are DEPRECATED
+  // Theme colors are now stored directly in designConfig fields
 }
 
 // =============================================================================

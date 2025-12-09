@@ -17,7 +17,7 @@ import {
   InlineStack,
   Badge,
 } from "@shopify/polaris";
-import { DiscountConfig } from "~/domains/popups/services/discounts/discount.server";
+import type { DiscountConfig } from "~/domains/campaigns/types/campaign";
 import type { DiscountBehavior } from "~/domains/campaigns/types/campaign";
 
 interface DiscountSettingsStepProps {

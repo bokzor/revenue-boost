@@ -28,11 +28,7 @@ import { GoalFilter } from "~/domains/campaigns/components/goals/GoalFilter";
 import { STYLED_RECIPES } from "~/domains/campaigns/recipes/styled-recipe-catalog";
 import { NEWSLETTER_THEMES, type NewsletterThemeKey } from "~/config/color-presets";
 import { getBackgroundById, getBackgroundUrl } from "~/config/background-presets";
-import {
-  getThemeModeForRecipeType,
-  getPresetIdForRecipe,
-  type StyledRecipe,
-} from "~/domains/campaigns/recipes/styled-recipe-types";
+import type { StyledRecipe } from "~/domains/campaigns/recipes/styled-recipe-types";
 import type { CampaignGoal } from "~/domains/campaigns/types/campaign";
 import type { DesignTokens } from "~/domains/campaigns/types/design-tokens";
 import { getDefaultPreset, presetToDesignTokens, type ThemePresetInput } from "~/domains/store/types/theme-preset";
@@ -129,10 +125,16 @@ export default function RecipeCampaignCreation() {
    * Build initial data for the campaign form from recipe defaults.
    * Quick inputs and complex discount configs are handled in the editor's
    * QuickConfig and Content sections, not upfront in a modal.
+   *
+   * Theme handling (simplified model):
+   * - If recipe has a theme, copy its colors into designConfig fields and set theme reference
+   * - If recipe has no theme, leave colors undefined (will use store default at runtime)
+   * - The theme field is just a UI reference; individual color fields are the source of truth
    */
   const buildInitialData = useCallback((recipe: StyledRecipe) => {
-    const theme = (recipe.theme as NewsletterThemeKey) || "modern";
-    const themeColors = NEWSLETTER_THEMES[theme] || NEWSLETTER_THEMES.modern;
+    // Use recipe's theme if specified, otherwise leave undefined
+    const theme = recipe.theme as NewsletterThemeKey | undefined;
+    const themeColors = theme ? NEWSLETTER_THEMES[theme] : undefined;
 
     // Use recipe's content config defaults directly
     const contentConfig = { ...recipe.defaults.contentConfig };
@@ -163,13 +165,21 @@ export default function RecipeCampaignCreation() {
        recipe.layout === "fullscreen" ? "full" :
        recipe.layout === "split-right" ? "right" : "left");
 
-    // Determine theme mode based on recipe type
-    const recipeThemeMode = getThemeModeForRecipeType(recipe.recipeType);
-    const recipePresetId = recipeThemeMode === "preset" ? getPresetIdForRecipe(recipe.id) : undefined;
+    // Build design config
+    // If recipe has a theme, copy its colors into the individual fields
+    // Otherwise, colors come from store default at runtime
+    const themeColorConfig = themeColors ? {
+      backgroundColor: themeColors.background,
+      textColor: themeColors.text,
+      primaryColor: themeColors.primary,
+      accentColor: themeColors.primary,
+      buttonColor: themeColors.ctaBg || themeColors.primary,
+      buttonTextColor: themeColors.ctaText || "#FFFFFF",
+    } : {};
 
-    // Build design config - only apply hardcoded colors for "preset" mode recipes
     const designConfig = {
-      theme,
+      // Only set theme if recipe has one
+      ...(theme ? { theme } : {}),
       layout: recipe.layout,
       position: recipe.defaults.designConfig?.position || "center",
       size: recipe.defaults.designConfig?.size || "medium",
@@ -178,18 +188,10 @@ export default function RecipeCampaignCreation() {
       imageUrl,
       imagePosition,
       backgroundOverlayOpacity: 0.6,
+      // Apply theme colors first (if any)
+      ...themeColorConfig,
+      // Then spread recipe's designConfig which may override colors
       ...recipe.defaults.designConfig,
-      // Only apply preset colors when using "preset" mode (inspiration/seasonal recipes)
-      ...(recipeThemeMode === "preset" ? {
-        backgroundColor: themeColors.background,
-        textColor: themeColors.text,
-        primaryColor: themeColors.primary,
-        accentColor: themeColors.primary,
-        buttonColor: themeColors.ctaBg || themeColors.primary,
-        buttonTextColor: themeColors.ctaText || "#FFFFFF",
-      } : {}),
-      themeMode: recipeThemeMode,
-      presetId: recipePresetId,
     };
 
     // Use recipe's default discount config

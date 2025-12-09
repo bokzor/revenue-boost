@@ -26,7 +26,10 @@ import React, { useState, useCallback, useEffect, useMemo, useRef } from "react"
 import { PopupPortal } from "./PopupPortal";
 import type { MobilePresentationMode } from "./PopupPortal";
 import type { PopupDesignConfig, Product } from "./types";
-import type { ProductUpsellContent } from "~/domains/campaigns/types/campaign";
+import type {
+  DiscountConfig as AdminDiscountConfig,
+  ProductUpsellContent,
+} from "~/domains/campaigns/types/campaign";
 import {
   formatCurrency,
   getSizeDimensions,
@@ -44,20 +47,6 @@ interface RippleState {
   x: number;
   y: number;
   id: number;
-}
-
-/**
- * Tiered discount configuration for spend-more-save-more promotions
- */
-interface DiscountTier {
-  thresholdCents: number;
-  discount: { kind: string; value: number };
-}
-
-interface TieredDiscountConfig {
-  enabled?: boolean;
-  tiers?: DiscountTier[];
-  showInPreview?: boolean;
 }
 
 /**
@@ -91,8 +80,8 @@ export interface ProductUpsellConfig extends PopupDesignConfig, ProductUpsellCon
   showSocialProof?: boolean;
   socialProofCount?: number;
 
-  // Tiered discount configuration (spend more, save more)
-  discountConfig?: TieredDiscountConfig;
+  // Discount configuration (bundle, tiered, etc.)
+  discountConfig?: AdminDiscountConfig;
   currentCartTotal?: number; // Injected by storefront runtime
 
   // Note: headline, subheadline, layout, bundleDiscount, etc.
@@ -169,6 +158,21 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
     () => (config.maxProducts ? products.slice(0, config.maxProducts) : products),
     [config.maxProducts, products]
   );
+
+  const bundlePercent = useMemo(() => {
+    const dc = config.discountConfig;
+
+    if (!dc) return undefined;
+
+    const inferredStrategy = dc.strategy || (dc.tiers?.length ? "tiered" : undefined);
+    const isBundleStrategy = inferredStrategy === "bundle";
+
+    if (isBundleStrategy && dc.valueType === "PERCENTAGE" && typeof dc.value === "number") {
+      return dc.value;
+    }
+
+    return undefined;
+  }, [config.discountConfig]);
 
   // Create ripple effect on card
   const createRipple = useCallback(
@@ -311,12 +315,12 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
   // Calculate bundle discount (applies to any selected products)
   // The discount is scoped to only the selected products at checkout
   const calculateBundleSavings = useCallback(() => {
-    if (!config.bundleDiscount || !hasSelectedProducts) return null;
+    if (!bundlePercent || !hasSelectedProducts) return null;
 
     const total = calculateTotal();
-    const savings = total * (config.bundleDiscount / 100);
+    const savings = total * (bundlePercent / 100);
     return savings;
-  }, [hasSelectedProducts, config.bundleDiscount, calculateTotal]);
+  }, [hasSelectedProducts, bundlePercent, calculateTotal]);
 
   // Calculate total savings (compare-at + bundle)
   const calculateTotalSavings = useCallback(() => {
@@ -2621,12 +2625,12 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
         )}
 
         {/* Bundle discount banner (fallback if no tiered discount) */}
-        {!config.discountConfig?.tiers?.length && config.bundleDiscount && config.bundleDiscount > 0 && (
+        {!config.discountConfig?.tiers?.length && bundlePercent && bundlePercent > 0 && (
           <div
             className={`upsell-bundle-banner ${hasSelectedProducts ? "upsell-bundle-banner--active" : ""}`}
           >
             <span className="upsell-banner-text">
-              {config.bundleDiscountText || `Save ${config.bundleDiscount}% on selected items!`}
+              {config.bundleDiscountText || `Save ${bundlePercent}% on selected items!`}
             </span>
           </div>
         )}
@@ -2740,7 +2744,7 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
 
                     {calculateBundleSavings() && (
                       <div className="upsell-summary-row upsell-bundle-row">
-                        <span>{config.bundleDiscount}% bundle discount</span>
+                        <span>{bundlePercent}% bundle discount</span>
                         <span className="upsell-bundle-savings">
                           -{formatCurrency(calculateBundleSavings()!, config.currency)}
                         </span>

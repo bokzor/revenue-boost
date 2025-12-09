@@ -15,7 +15,6 @@ import type {
   RecipeOutput,
   RecipeTag,
 } from "./styled-recipe-types";
-import { getThemeModeForRecipeType, getPresetIdForRecipe } from "./styled-recipe-types";
 import { ANNOUNCEMENT_DESIGN_RECIPES } from "./announcement-design-recipes";
 import { CART_ABANDONMENT_DESIGN_RECIPES } from "./cart-abandonment-design-recipes";
 import { FLASH_SALE_DESIGN_RECIPES } from "./flash-sale-design-recipes";
@@ -30,15 +29,19 @@ import { UPSELL_RECIPES } from "./upsell-recipes";
 // HELPER: Build function factory
 // =============================================================================
 
+/**
+ * Create a build function for a recipe.
+ *
+ * Theme handling (simplified model):
+ * - Recipe's designConfig already contains colors if it has a theme
+ * - We just spread the designConfig directly
+ * - The theme field is just a UI reference; individual color fields are the source of truth
+ */
 function createBuildFunction(
   recipe: Omit<StyledRecipe, "build">
 ): (context: RecipeContext) => RecipeOutput {
   return (context: RecipeContext): RecipeOutput => {
     const defaults = recipe.defaults;
-
-    // Determine theme mode based on recipe type
-    const themeMode = getThemeModeForRecipeType(recipe.recipeType);
-    const presetId = themeMode === "preset" ? getPresetIdForRecipe(recipe.id) : undefined;
 
     // Merge context values into content config
     // Cast to Record to allow dynamic property access since contentConfig is a union type
@@ -62,15 +65,11 @@ function createBuildFunction(
     }
 
     // Build design config
-    // Note: We intentionally do NOT include recipe.theme here because it's a recipe identifier
-    // (like "elegant-luxe"), not a valid schema theme value. Instead, recipes use
-    // themeMode: "preset" with presetId to apply their styling.
+    // Recipe's designConfig already contains colors if it has a theme
     const designConfig = {
       layout: recipe.layout,
       position: defaults.designConfig?.position || "center",
       size: defaults.designConfig?.size || "medium",
-      themeMode,
-      presetId,
       ...defaults.designConfig,
     };
 
@@ -89,8 +88,6 @@ function createBuildFunction(
       designConfig,
       discountConfig,
       targetRules: defaults.targetRules,
-      themeMode,
-      presetId,
     };
   };
 }

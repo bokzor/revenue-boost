@@ -113,8 +113,8 @@ export function renderDesignStep(props: StepRendererProps) {
   const { globalCustomCSS } = props;
 
   // Convert wizard state designConfig to DesignConfig format
+  // Note: theme is intentionally NOT defaulted - if not set, store defaults are used
   const designConfig: Partial<import("~/domains/campaigns/types/campaign").DesignConfig> = {
-    theme: "modern",
     position: "center",
     size: "medium",
     borderRadius: 8,

@@ -788,6 +788,72 @@ export const countdownUrgency: CountdownUrgencyRecipe = {
 };
 
 // =============================================================================
+// NORMALIZE DISCOUNT CONFIG FOR ALL UPSELL RECIPES
+// =============================================================================
+
+function ensureUpsellDiscountConfig(recipe: AnyStyledRecipe): AnyStyledRecipe {
+  if (!("defaults" in recipe) || !recipe.defaults) return recipe;
+
+  const defaults = recipe.defaults as {
+    contentConfig?: { bundleDiscount?: number };
+    discountConfig?: Partial<{
+      enabled: boolean;
+      strategy?: "bundle" | "tiered" | "bogo" | "free_gift" | "simple";
+      valueType?: "PERCENTAGE" | "FIXED_AMOUNT" | "FREE_SHIPPING";
+      value?: number;
+      behavior?: string;
+      applicability?: { scope: "all" | "cart" | "products" | "collections"; productIds?: string[]; collectionIds?: string[] };
+      tiers?: unknown[];
+      bogo?: unknown;
+      freeGift?: unknown;
+    }>;
+  };
+
+  const bundleValue = defaults.contentConfig?.bundleDiscount;
+  const existing = defaults.discountConfig;
+
+  const nextDiscountConfig =
+    existing !== undefined
+      ? {
+          ...existing,
+          enabled: existing.enabled ?? true,
+          strategy:
+            existing.strategy ||
+            (existing.tiers && (existing.tiers as unknown[]).length > 0
+              ? "tiered"
+              : existing.bogo
+                ? "bogo"
+                : existing.freeGift
+                  ? "free_gift"
+                  : bundleValue
+                    ? "bundle"
+                    : "simple"),
+          valueType: existing.valueType || "PERCENTAGE",
+          value: existing.value ?? (bundleValue ?? 15),
+          behavior: existing.behavior || "SHOW_CODE_AND_AUTO_APPLY",
+          applicability:
+            existing.applicability ||
+            (bundleValue ? { scope: "products" as const } : undefined),
+        }
+      : {
+          enabled: true,
+          strategy: "bundle",
+          valueType: "PERCENTAGE" as const,
+          value: bundleValue ?? 15,
+          behavior: "SHOW_CODE_AND_AUTO_APPLY",
+          applicability: { scope: "products" as const },
+        };
+
+  return {
+    ...recipe,
+    defaults: {
+      ...defaults,
+      discountConfig: nextDiscountConfig,
+    },
+  };
+}
+
+// =============================================================================
 // EXPORT ALL UPSELL RECIPES
 // =============================================================================
 
@@ -804,4 +870,4 @@ export const UPSELL_RECIPES: AnyStyledRecipe[] = [
   minimalSlideUp,
   premiumFullscreen,
   countdownUrgency,
-];
+].map(ensureUpsellDiscountConfig);

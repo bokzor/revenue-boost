@@ -489,18 +489,20 @@ export function resolveDesignTokens(
       break;
     }
 
-    case "default":
-    case "shopify": {
-      // Both "default" and "shopify" use the store's default theme preset
-      baseTokens = defaultTokens
-        ? { ...DEFAULT_DESIGN_TOKENS, ...defaultTokens }
-        : DEFAULT_DESIGN_TOKENS;
+    case "custom": {
+      // Custom mode: use hardcoded defaults (no store defaults)
+      baseTokens = DEFAULT_DESIGN_TOKENS;
       break;
     }
 
-    case "custom":
+    case "default":
+    case "shopify":
     default: {
-      baseTokens = DEFAULT_DESIGN_TOKENS;
+      // "default", "shopify", or undefined/unset: use store's default theme
+      // This ensures recipes without explicit theme use store defaults
+      baseTokens = defaultTokens
+        ? { ...DEFAULT_DESIGN_TOKENS, ...defaultTokens }
+        : DEFAULT_DESIGN_TOKENS;
       break;
     }
   }

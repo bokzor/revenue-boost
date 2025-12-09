@@ -243,8 +243,10 @@ export function RecipeQuickSetup({
 
   // Build design config for preview
   const designConfig = useMemo(() => {
-    const theme = (recipe.theme as NewsletterThemeKey) || "modern";
-    const themeColors = NEWSLETTER_THEMES[theme] || NEWSLETTER_THEMES.modern;
+    // Use recipe's theme if specified, otherwise leave undefined
+    // When undefined, preview uses store's default theme colors
+    const theme = recipe.theme as NewsletterThemeKey | undefined;
+    const themeColors = theme ? NEWSLETTER_THEMES[theme] : undefined;
 
     // Get background image if recipe has one
     let imageUrl: string | undefined;
@@ -272,24 +274,34 @@ export function RecipeQuickSetup({
        recipe.layout === "fullscreen" ? "full" :
        recipe.layout === "split-right" ? "right" : "left");
 
-    return {
-      theme,
+    // Base config - only set theme if recipe has one
+    const baseConfig = {
+      ...(theme ? { theme } : {}),
       layout: recipe.layout,
       position: recipe.defaults.designConfig?.position || "center",
       size: recipe.defaults.designConfig?.size || "medium",
-      // Colors from theme
-      backgroundColor: themeColors.background,
-      textColor: themeColors.text,
-      primaryColor: themeColors.primary,
-      accentColor: themeColors.primary,
-      buttonColor: themeColors.ctaBg || themeColors.primary,
-      buttonTextColor: themeColors.ctaText || "#FFFFFF",
       // Background image settings (matching full flow format)
       backgroundImageMode,
       backgroundImagePresetKey,
       imageUrl,
       imagePosition,
       backgroundOverlayOpacity: 0.6,
+    };
+
+    // If recipe has a theme, apply its colors
+    // Otherwise, colors come from defaultThemeTokens in LivePreviewPanel
+    const themeColorConfig = themeColors ? {
+      backgroundColor: themeColors.background,
+      textColor: themeColors.text,
+      primaryColor: themeColors.primary,
+      accentColor: themeColors.primary,
+      buttonColor: themeColors.ctaBg || themeColors.primary,
+      buttonTextColor: themeColors.ctaText || "#FFFFFF",
+    } : {};
+
+    return {
+      ...baseConfig,
+      ...themeColorConfig,
       ...recipe.defaults.designConfig,
     };
   }, [recipe]);

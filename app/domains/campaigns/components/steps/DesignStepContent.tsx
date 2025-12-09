@@ -18,8 +18,7 @@ import { TemplateSelector, type SelectedTemplate } from "../TemplateSelector";
 import { LivePreviewPanel, type PreviewDevice } from "~/domains/popups/components/preview/LivePreviewPanel";
 import { Affix } from "~/shared/components/ui/Affix";
 import type { CampaignGoal, TemplateType } from "~/shared/hooks/useWizardState";
-import type { ContentConfig, DesignConfig , SpinToWinContent } from "~/domains/campaigns/types/campaign";
-import type { DiscountConfig } from "~/domains/popups/services/discounts/discount.server";
+import type { ContentConfig, DesignConfig, SpinToWinContent, DiscountConfig } from "~/domains/campaigns/types/campaign";
 import type { UnifiedTemplate } from "../../hooks/useTemplates";
 
 import { getSpinToWinSliceColors, getSpinToWinWheelBorder } from "~/config/color-presets";

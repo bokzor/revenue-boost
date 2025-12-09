@@ -646,6 +646,42 @@ TEMPLATE_PREVIEW_REGISTRY[TemplateTypeEnum.PRODUCT_UPSELL] = {
   ): ProductUpsellConfig => {
     // Extract tiered discount config if present
     const dc = mergedConfig.discountConfig;
+    const bundleValue = mergedConfig.bundleDiscount ?? 15;
+    const discountConfig: AdminDiscountConfig | undefined = dc
+      ? {
+          enabled: dc.enabled !== false,
+          strategy:
+            dc.strategy ||
+            (dc.tiers?.length
+              ? "tiered"
+              : dc.bogo
+                ? "bogo"
+                : dc.freeGift
+                  ? "free_gift"
+                  : "bundle"),
+          valueType: dc.valueType || "PERCENTAGE",
+          value:
+            typeof dc.value === "number"
+              ? dc.value
+              : dc.valueType === "FREE_SHIPPING"
+                ? undefined
+                : bundleValue,
+          behavior: dc.behavior || "SHOW_CODE_AND_AUTO_APPLY",
+          applicability:
+            dc.applicability ||
+            (dc.strategy === "bundle" ? { scope: "products" } : undefined),
+          tiers: dc.tiers,
+          bogo: dc.bogo,
+          freeGift: dc.freeGift,
+        }
+      : {
+          enabled: true,
+          strategy: "bundle",
+          valueType: "PERCENTAGE",
+          value: bundleValue,
+          behavior: "SHOW_CODE_AND_AUTO_APPLY",
+          applicability: { scope: "products" },
+        };
 
     return {
       id: "preview-product-upsell",
@@ -691,7 +727,7 @@ TEMPLATE_PREVIEW_REGISTRY[TemplateTypeEnum.PRODUCT_UPSELL] = {
       bundleSubheaderText: mergedConfig.bundleSubheaderText,
 
       // Tiered discount configuration (for spend more, save more)
-      discountConfig: dc as ProductUpsellConfig["discountConfig"],
+      discountConfig: discountConfig as ProductUpsellConfig["discountConfig"],
 
       // All common config (colors, typography, layout)
       ...buildCommonConfig(mergedConfig, designConfig),

@@ -18,6 +18,11 @@ import { handleApiError } from "~/lib/api-error-handler.server";
 import { PopupEventService } from "~/domains/analytics/popup-events.server";
 import { getCampaignDiscountCode } from "~/domains/commerce/services/discount.server";
 import { generatePreviewDiscountCode } from "~/lib/preview-discount.server";
+import {
+  DiscountConfigSchema,
+  type DiscountConfig,
+  type DiscountStrategy,
+} from "~/domains/campaigns/types/campaign";
 
 // Request validation schema
 const IssueDiscountRequestSchema = z.object({
@@ -38,14 +43,35 @@ const IssueDiscountRequestSchema = z.object({
     .optional(),
   // Product Upsell: selected product IDs for bundle discount scoping
   selectedProductIds: z.array(z.string()).optional(),
-  // Product Upsell: bundle discount from contentConfig (auto-sync mode)
-  bundleDiscountPercent: z.number().min(0).max(100).optional(),
   // Cart Abandonment: product IDs from cart for cart-scoped discounts
   cartProductIds: z.array(z.string()).optional(),
   // Bot detection fields
   popupShownAt: z.number().optional(),
   honeypot: z.string().optional(),
 });
+
+function inferStrategy(config: Partial<DiscountConfig>, bundleDiscount?: number): DiscountStrategy {
+  if (config.strategy) return config.strategy;
+  if (config.tiers?.length) return "tiered";
+  if (config.bogo) return "bogo";
+  if (config.freeGift) return "free_gift";
+  if (bundleDiscount || config.applicability?.scope === "products") return "bundle";
+  return "simple";
+}
+
+function normalizeDiscountConfig(raw: unknown, bundleDiscount?: number): DiscountConfig {
+  const parsed = DiscountConfigSchema.partial().parse(raw || {}) as Partial<DiscountConfig>;
+  const valueType = parsed.valueType || (parsed.value ? "PERCENTAGE" : undefined);
+
+  return {
+    ...parsed,
+    enabled: parsed.enabled ?? false,
+    showInPreview: parsed.showInPreview ?? true,
+    strategy: inferStrategy(parsed, bundleDiscount),
+    valueType,
+    behavior: parsed.behavior || "SHOW_CODE_AND_AUTO_APPLY",
+  } as DiscountConfig;
+}
 
 // Response types
 interface DiscountIssueResponse {
@@ -134,7 +160,6 @@ export async function action({ request }: ActionFunctionArgs) {
       sessionId,
       visitorId,
       selectedProductIds,
-      bundleDiscountPercent,
       cartProductIds,
       popupShownAt,
       honeypot,
@@ -275,66 +300,41 @@ export async function action({ request }: ActionFunctionArgs) {
       return data({ success: false, error: "Campaign not found or inactive" }, { status: 404 });
     }
 
-    // Parse discount config
-    let discountConfig =
+    // Parse discount config (no backward-compat bundle sync; require explicit config)
+    const rawDiscountConfig =
       typeof campaign.discountConfig === "string"
         ? JSON.parse(campaign.discountConfig)
         : campaign.discountConfig || {};
 
-    // Parse content config for bundle discount
-    const contentConfig =
-      typeof campaign.contentConfig === "string"
-        ? JSON.parse(campaign.contentConfig)
-        : campaign.contentConfig || {};
+    const discountConfig = normalizeDiscountConfig(rawDiscountConfig, undefined);
 
-    // BUNDLE DISCOUNT AUTO-SYNC:
-    // If bundleDiscountPercent is passed from storefront (Product Upsell),
-    // auto-create discount config if not explicitly configured
-    const bundleDiscount = bundleDiscountPercent ?? contentConfig.bundleDiscount;
-
-    if (bundleDiscount && bundleDiscount > 0 && selectedProductIds && selectedProductIds.length > 0) {
-      console.log("[Discount Issue] Bundle discount mode:", {
-        bundleDiscount,
-        selectedProductIds,
-        hasExplicitConfig: discountConfig?.enabled,
-      });
-
-      // Auto-create or enhance discount config for bundle
-      discountConfig = {
-        ...discountConfig,
-        enabled: true,
-        valueType: discountConfig.valueType || "PERCENTAGE",
-        value: discountConfig.value ?? bundleDiscount, // Use bundleDiscount if no explicit value
-        type: discountConfig.type || "single_use",
-        behavior: discountConfig.behavior || "SHOW_CODE_AND_AUTO_APPLY",
-        // Scope discount to only the selected products
-        applicability: {
-          scope: "products",
-          productIds: selectedProductIds,
-        },
-      };
-    } else if (!discountConfig?.enabled) {
+    if (!discountConfig?.enabled) {
       return data(
         { success: false, error: "Discount not enabled for this campaign" },
         { status: 400 }
       );
     }
 
+    let discountConfigWithStrategy = {
+      ...discountConfig,
+      strategy: inferStrategy(discountConfig, undefined),
+    };
+
     // CART-SCOPED DISCOUNT:
     // If scope is "cart" and cartProductIds are provided, convert to product-scoped discount
     if (
-      discountConfig?.applicability?.scope === "cart" &&
+      discountConfigWithStrategy?.applicability?.scope === "cart" &&
       cartProductIds &&
       cartProductIds.length > 0
     ) {
       console.log("[Discount Issue] Cart-scoped discount mode:", {
         cartProductIds,
-        originalScope: discountConfig.applicability.scope,
+        originalScope: discountConfigWithStrategy.applicability.scope,
       });
 
       // Override applicability to use product IDs from cart
-      discountConfig = {
-        ...discountConfig,
+      discountConfigWithStrategy = {
+        ...discountConfigWithStrategy,
         applicability: {
           scope: "products",
           productIds: cartProductIds,
@@ -353,7 +353,7 @@ export async function action({ request }: ActionFunctionArgs) {
       admin,
       campaign.storeId,
       campaign.id,
-      discountConfig,
+      discountConfigWithStrategy,
       undefined, // leadEmail - optional for now
       cartSubtotalCents // Pass cart subtotal for tier selection
     );
@@ -377,31 +377,34 @@ export async function action({ request }: ActionFunctionArgs) {
     };
 
     // Add tier info if applicable (from service result)
-    if (result.tierUsed !== undefined && discountConfig.tiers?.[result.tierUsed]) {
-      const tier = discountConfig.tiers[result.tierUsed];
+    if (
+      result.tierUsed !== undefined &&
+      discountConfigWithStrategy.tiers?.[result.tierUsed]
+    ) {
+      const tier = discountConfigWithStrategy.tiers[result.tierUsed];
       response.tierUsed = `Tier ${result.tierUsed + 1}: $${(tier.thresholdCents / 100).toFixed(2)}+`;
     }
 
     // Add applicability scope
-    if (discountConfig.applicability) {
+    if (discountConfigWithStrategy.applicability) {
       response.applicability = {
-        scope: discountConfig.applicability.scope || "all",
-        productIds: discountConfig.applicability.productIds,
-        collectionIds: discountConfig.applicability.collectionIds,
+        scope: discountConfigWithStrategy.applicability.scope || "all",
+        productIds: discountConfigWithStrategy.applicability.productIds,
+        collectionIds: discountConfigWithStrategy.applicability.collectionIds,
       };
     }
 
     // Add expiry if configured
-    if (discountConfig.expiryDays) {
+    if (discountConfigWithStrategy.expiryDays) {
       const expiryDate = new Date();
-      expiryDate.setDate(expiryDate.getDate() + discountConfig.expiryDays);
+      expiryDate.setDate(expiryDate.getDate() + discountConfigWithStrategy.expiryDays);
       response.expiresAt = expiryDate.toISOString();
     }
 
     // Add usage remaining if limited
-    if (discountConfig.usageLimit) {
+    if (discountConfigWithStrategy.usageLimit) {
       // TODO: Query Shopify for actual usage; for now, return configured limit
-      response.usageRemaining = discountConfig.usageLimit;
+      response.usageRemaining = discountConfigWithStrategy.usageLimit;
     }
 
     // Cache for idempotency (Redis with automatic TTL expiration)

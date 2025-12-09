@@ -102,7 +102,6 @@ const flashSale: FlashSaleRecipe = {
   templateType: "FLASH_SALE",
   recipeType: "use_case",
   component: "FlashSaleCentered",
-  theme: "gradient",
   layout: "centered",
   featured: true,
   inputs: [{ ...DISCOUNT_PERCENTAGE_INPUT, defaultValue: 30 }, DURATION_HOURS_INPUT],
@@ -167,7 +166,6 @@ const bogo: FlashSaleRecipe = {
   templateType: "FLASH_SALE",
   recipeType: "use_case",
   component: "FlashSaleCentered",
-  theme: "gradient",
   layout: "centered",
   featured: true,
   requiredConfig: ["discount"], // @deprecated - no longer used, kept for reference
@@ -1088,7 +1086,6 @@ const freeGiftWithPurchase: FlashSaleRecipe = {
   goal: "INCREASE_REVENUE",
   templateType: "FLASH_SALE",
   component: "FlashSaleCentered",
-  theme: "gradient",
   layout: "centered",
   featured: true,
   recipeType: "use_case",

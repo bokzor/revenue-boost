@@ -27,7 +27,7 @@ vi.mock("~/shared/hooks/useShopifyFileUpload", () => ({
 
 import { NewsletterContentSection } from "~/domains/campaigns/components/sections/NewsletterContentSection";
 import type { NewsletterContent } from "~/domains/campaigns/components/sections/NewsletterContentSection";
-import type { DiscountConfig } from "~/domains/popups/services/discounts/discount.server";
+import type { DiscountConfig } from "~/domains/campaigns/types/campaign";
 
 function renderWithPolaris(ui: React.ReactNode) {
   return render(<AppProvider i18n={en}>{ui}</AppProvider>);

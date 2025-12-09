@@ -11,7 +11,7 @@ import React, { useRef, useState, useCallback, useEffect } from "react";
 import { Text, InlineStack, Tooltip, Icon, Portal, Button } from "@shopify/polaris";
 import { ViewIcon } from "@shopify/polaris-icons";
 import type { StyledRecipe } from "../../recipes/styled-recipe-types";
-import { RECIPE_TAG_LABELS, getThemeModeForRecipeType, getPresetIdForRecipe } from "../../recipes/styled-recipe-types";
+import { RECIPE_TAG_LABELS } from "../../recipes/styled-recipe-types";
 import type { DesignTokens } from "../../types/design-tokens";
 import { MiniPopupPreview } from "./MiniPopupPreview";
 import { ShadowDomWrapper } from "./ShadowDomWrapper";
@@ -399,11 +399,9 @@ function LargePreviewContent({
 
 function useRecipeDesignConfig(recipe: StyledRecipe) {
   return React.useMemo(() => {
-    const theme = (recipe.theme as NewsletterThemeKey) || "modern";
-
-    // Determine theme mode based on recipe type
-    const themeMode = getThemeModeForRecipeType(recipe.recipeType);
-    const presetId = themeMode === "preset" ? getPresetIdForRecipe(recipe.id) : undefined;
+    // Use recipe's theme if specified, otherwise leave undefined
+    // When undefined, the preview will use defaultThemeTokens (store's default theme)
+    const theme = recipe.theme as NewsletterThemeKey | undefined;
 
     let imageUrl: string | undefined;
     let backgroundImageMode: "none" | "preset" | "file" = "none";
@@ -436,7 +434,8 @@ function useRecipeDesignConfig(recipe: StyledRecipe) {
             : "left");
 
     return {
-      theme,
+      // Only set theme if recipe has one - otherwise preview uses defaultThemeTokens
+      ...(theme ? { theme } : {}),
       layout: recipe.layout,
       position: recipe.defaults.designConfig?.position || "center",
       size: recipe.defaults.designConfig?.size || "medium",
@@ -446,12 +445,8 @@ function useRecipeDesignConfig(recipe: StyledRecipe) {
       imagePosition,
       backgroundOverlayOpacity: 0.6,
       previewMode: true,
-      // For "preset" mode (inspiration/seasonal), use recipe's own colors from designConfig
-      // For "default" mode (use_case), don't set colors - they come from defaultThemeTokens
+      // Use recipe's designConfig colors (if specified)
       ...recipe.defaults.designConfig,
-      // Theme mode for the design token system
-      themeMode,
-      presetId,
     };
   }, [recipe]);
 }

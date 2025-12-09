@@ -27,7 +27,6 @@ import {
 } from "~/domains/popups/components/preview/LivePreviewPanel";
 import { Affix } from "~/shared/components/ui/Affix";
 import type { StyledRecipe, RecipeContext } from "../../recipes/styled-recipe-types";
-import { getThemeModeForRecipeType, getPresetIdForRecipe } from "../../recipes/styled-recipe-types";
 import type {
   ContentConfig,
   DesignConfig,
@@ -238,19 +237,15 @@ export function SingleCampaignFlow({
   }, []);
 
   // Legacy handler for FormSections (when changing recipe in editor)
+  // Theme handling: recipe's designConfig already contains colors if it has a theme
   const handleRecipeSelect = useCallback(
     (recipe: StyledRecipe) => {
       setSelectedRecipe(recipe);
       setContentConfig(recipe.defaults.contentConfig || {});
 
-      // Determine theme mode based on recipe type
-      const themeMode = getThemeModeForRecipeType(recipe.recipeType);
-      const presetId = themeMode === "preset" ? getPresetIdForRecipe(recipe.id) : undefined;
-
+      // Use recipe's designConfig directly - it already contains theme colors if applicable
       setDesignConfig({
         ...recipe.defaults.designConfig,
-        themeMode,
-        presetId,
       });
       markComplete("recipe", "design");
       setValidationErrors([]);

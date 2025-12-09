@@ -237,7 +237,7 @@ async function createWelcomeCampaign(storeId: string) {
       },
       designConfig: {
         themeMode: "default", // Use store's default theme preset
-        theme: "modern",
+        // Note: theme is NOT set - uses store defaults when themeMode is "default"
         position: "center",
         size: "medium",
         borderRadius: 8,

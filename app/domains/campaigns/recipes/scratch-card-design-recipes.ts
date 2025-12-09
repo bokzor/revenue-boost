@@ -476,10 +476,9 @@ const minimalSilver: ScratchCardRecipe = {
   category: "email_leads",
   goal: "ENGAGEMENT",
   templateType: "SCRATCH_CARD",
-  recipeType: "use_case", // Functional design - inherits store theme
+  recipeType: "use_case",
   tags: ["tech", "minimal", "modern", "centered"] as RecipeTag[],
   component: "ScratchCardPopup",
-  theme: "minimal-silver",
   layout: "centered",
   inputs: [TRIGGER_INPUT, TOP_PRIZE_INPUT, EMAIL_TIMING_INPUT],
   editableFields: SCRATCH_CARD_EDITABLE_FIELDS,
