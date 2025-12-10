@@ -1,3 +1,5 @@
+import { logger } from "~/lib/logger.server";
+
 export async function getStoreCurrency(admin: { graphql: (query: string) => Promise<Response> }): Promise<string> {
   try {
     const response = await admin.graphql(`
@@ -10,7 +12,7 @@ export async function getStoreCurrency(admin: { graphql: (query: string) => Prom
     const data = await response.json();
     return data.data.shop.currencyCode;
   } catch (error) {
-    console.error("Failed to fetch store currency:", error);
+    logger.error({ error }, "Failed to fetch store currency:");
     return "USD"; // Fallback
   }
 }

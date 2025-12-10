@@ -221,15 +221,20 @@ export function parseDesignConfig(jsonValue: unknown): DesignConfig {
     }
   }
 
+  // Note: theme is intentionally NOT defaulted - if not set, store defaults are used
   return parseJsonField(sanitized, DesignConfigSchema, {
-    theme: "modern",
+    themeMode: "default",
     position: "center",
     size: "medium",
     borderRadius: 8,
-    imagePosition: "left",
     overlayOpacity: 0.8,
     animation: "fade",
     backgroundImageMode: "none",
+    leadCaptureLayout: {
+      desktop: "split-left",
+      mobile: "content-only",
+      visualSizeDesktop: "50%",
+    },
   });
 }
 
@@ -247,6 +252,7 @@ export function parseDiscountConfig(jsonValue: unknown): DiscountConfig {
   return parseJsonField(jsonValue, DiscountConfigSchema, {
     enabled: false,
     showInPreview: true,
+    strategy: "simple",
     behavior: "SHOW_CODE_AND_AUTO_APPLY",
   });
 }

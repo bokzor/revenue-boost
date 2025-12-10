@@ -8,6 +8,7 @@
  * - AI: Smart recommendations based on popularity and cart context
  */
 
+import { logger } from "~/lib/logger.server";
 import type { AdminApiContext } from "@shopify/shopify-app-react-router/server";
 import type { Product } from "~/domains/storefront/popups-new/types";
 
@@ -151,7 +152,7 @@ export async function fetchPopularProducts(
     // Return only the requested limit
     return filteredProducts.slice(0, limit);
   } catch (error) {
-    console.error("[Upsell Service] Failed to fetch popular products:", error);
+    logger.error({ error }, "[Upsell Service] Failed to fetch popular products:");
     return [];
   }
 }
@@ -231,7 +232,7 @@ async function fetchProductsByCollectionId(
       };
     });
   } catch (error) {
-    console.error("[Upsell Service] Failed to fetch collection by ID:", error);
+    logger.error({ error }, "[Upsell Service] Failed to fetch collection by ID:");
     return [];
   }
 }
@@ -285,7 +286,7 @@ async function fetchProductsByCollectionHandle(
       };
     });
   } catch (error) {
-    console.error("[Upsell Service] Failed to fetch collection by handle:", error);
+    logger.error({ error }, "[Upsell Service] Failed to fetch collection by handle:");
     return [];
   }
 }

@@ -42,11 +42,11 @@ model Store {
   updatedAt     DateTime @updatedAt
 
   // Global Store Settings
-  settings      Json     @default("{}") // StoreSettings
+  settings Json @default("{}") // StoreSettings
 
   // Timezone (cached from Shopify)
-  timezone           String    @default("UTC") // IANA timezone (e.g., "America/New_York")
-  timezoneUpdatedAt  DateTime? // Last time timezone was fetched from Shopify
+  timezone          String    @default("UTC") // IANA timezone (e.g., "America/New_York")
+  timezoneUpdatedAt DateTime? // Last time timezone was fetched from Shopify
 
   // Relations
   campaigns          Campaign[]
@@ -58,15 +58,15 @@ model Store {
   popupEvents        PopupEvent[]
 
   // Plan & Billing
-  planTier                   PlanTier   @default(FREE)
-  planStatus                 PlanStatus @default(TRIALING)
-  trialEndsAt                DateTime?
-  currentPeriodEnd           DateTime?
+  planTier                  PlanTier   @default(FREE)
+  planStatus                PlanStatus @default(TRIALING)
+  trialEndsAt               DateTime?
+  currentPeriodEnd          DateTime?
   // Shopify Subscription tracking
-  shopifySubscriptionId      String?    // Shopify AppSubscription GID (e.g., "gid://shopify/AppSubscription/123")
-  shopifySubscriptionStatus  String?    // Shopify subscription status (ACTIVE, CANCELLED, EXPIRED, etc.)
-  shopifySubscriptionName    String?    // Name of the subscribed plan for reference
-  billingLastSyncedAt        DateTime?  // Last time billing was synced from Shopify (for cache TTL)
+  shopifySubscriptionId     String? // Shopify AppSubscription GID (e.g., "gid://shopify/AppSubscription/123")
+  shopifySubscriptionStatus String? // Shopify subscription status (ACTIVE, CANCELLED, EXPIRED, etc.)
+  shopifySubscriptionName   String? // Name of the subscribed plan for reference
+  billingLastSyncedAt       DateTime? // Last time billing was synced from Shopify (for cache TTL)
 
   @@index([shopifyDomain, isActive])
   @@map("stores")
@@ -272,7 +272,7 @@ model Lead {
   phone             String?
   marketingConsent  Boolean   @default(false)
   consentedAt       DateTime? // GDPR: Timestamp when consent was given
-  consentText       String?   // GDPR: The exact consent text that was agreed to
+  consentText       String? // GDPR: The exact consent text that was agreed to
   sessionId         String
   visitorId         String?
   shopifyCustomerId BigInt? // Numeric Shopify customer ID
@@ -287,9 +287,9 @@ model Lead {
   utmMedium         String?
   utmCampaign       String?
   metadata          String? // JSON string
-  submittedAt       DateTime @default(now())
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  submittedAt       DateTime  @default(now())
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
   store       Store        @relation(fields: [storeId], references: [id], onDelete: Cascade)
   campaign    Campaign     @relation(fields: [campaignId], references: [id], onDelete: Cascade)
@@ -399,6 +399,11 @@ enum TemplateType {
   COUNTDOWN_TIMER
   SCRATCH_CARD
   ANNOUNCEMENT
+  // New upsell popup template types
+  CLASSIC_UPSELL
+  MINIMAL_SLIDE_UP
+  PREMIUM_FULLSCREEN
+  COUNTDOWN_URGENCY
 }
 
 enum PopupEventType {
@@ -412,25 +417,6 @@ enum PopupEventType {
 // ============================================================================
 // SECURITY MODELS
 // ============================================================================
-
-/// Challenge token for preventing discount code abuse
-/// Used in token-based authentication for discount generation
-model ChallengeToken {
-  id         String   @id @default(cuid())
-  token      String   @unique
-  campaignId String
-  sessionId  String
-  ip         String
-  used       Boolean  @default(false)
-  createdAt  DateTime @default(now())
-  expiresAt  DateTime
-
-  @@index([token])
-  @@index([campaignId])
-  @@index([expiresAt])
-  @@index([sessionId])
-  @@map("challenge_tokens")
-}
 
 /// Rate limiting log for API abuse prevention
 /// Tracks requests by key (IP, email, or session) for rate limit enforcement

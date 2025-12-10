@@ -377,6 +377,8 @@ export class ApiClient {
     selectedProductIds?: string[];
     // Product Upsell: bundle discount from contentConfig (auto-sync mode)
     bundleDiscountPercent?: number;
+    // Cart Abandonment: product IDs from cart for cart-scoped discounts
+    cartProductIds?: string[];
   }): Promise<{
     success: boolean;
     code?: string;

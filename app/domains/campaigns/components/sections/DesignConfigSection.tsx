@@ -10,40 +10,36 @@
  * - Switching templates preserves design values
  */
 
-import { useRef, useMemo } from "react";
+import { useRef, useCallback, useMemo } from "react";
 import type { ChangeEvent } from "react";
-import { Card, BlockStack, Text, Divider, Select, Banner, Button, RangeSlider } from "@shopify/polaris";
+import {
+  Card,
+  BlockStack,
+  Text,
+  Divider,
+  Select,
+  Banner,
+  Button,
+  RangeSlider,
+} from "@shopify/polaris";
+import { useFetcher } from "react-router";
 import { ColorField, FormGrid, CollapsibleSection, useCollapsibleSections } from "../form";
 import type { DesignConfig, TemplateType } from "~/domains/campaigns/types/campaign";
+import { type NewsletterThemeKey, resolveThemeForTemplate } from "~/config/color-presets";
 import {
-  themeColorsToDesignConfig,
-  type NewsletterThemeKey,
-  NEWSLETTER_BACKGROUND_PRESETS,
-  getNewsletterBackgroundUrl,
-} from "~/config/color-presets";
-import {
-  getThemeConfigForTemplate,
-  getThemeBackgroundUrl,
-  type ThemeKey,
-} from "~/config/theme-config";
+  getBackgroundById,
+  getBackgroundUrl,
+  type BackgroundPreset,
+} from "~/config/background-presets";
 import { ThemePresetSelector } from "../shared/ThemePresetSelector";
 import { CustomPresetSelector } from "../shared/CustomPresetSelector";
-import { getDesignCapabilities, type ImagePositionOption } from "~/domains/templates/registry/design-capabilities";
+import { MatchThemeButton } from "../shared/MatchThemeButton";
+import { LayoutSelector, type LayoutOption } from "../shared/LayoutSelector";
+import { MobileLayoutSelector, type MobileLayoutOption } from "../shared/MobileLayoutSelector";
+import { getDesignCapabilities } from "~/domains/templates/registry/design-capabilities";
 import { useShopifyFileUpload } from "~/shared/hooks/useShopifyFileUpload";
 import type { ThemePresetInput } from "~/domains/store/types/theme-preset";
-import { loadGoogleFont } from "~/shared/utils/google-fonts";
-
-// Font family options for the typography selector
-const FONT_FAMILY_OPTIONS = [
-  { label: "System Default", value: "inherit" },
-  { label: "Inter", value: "Inter, system-ui, sans-serif" },
-  { label: "Roboto", value: "Roboto, system-ui, sans-serif" },
-  { label: "Open Sans", value: "'Open Sans', system-ui, sans-serif" },
-  { label: "Lato", value: "Lato, system-ui, sans-serif" },
-  { label: "Montserrat", value: "Montserrat, system-ui, sans-serif" },
-  { label: "Playfair Display (Serif)", value: "'Playfair Display', Georgia, serif" },
-  { label: "Merriweather (Serif)", value: "Merriweather, Georgia, serif" },
-];
+import { loadGoogleFont, getFontSelectOptionsFlat } from "~/shared/utils/google-fonts";
 
 export interface DesignConfigSectionProps {
   design: Partial<DesignConfig>;
@@ -65,6 +61,113 @@ export interface DesignConfigSectionProps {
   onThemeChange?: (themeKey: NewsletterThemeKey) => void;
   /** Optional callback to apply wheel colors when custom preset is applied (for Spin-to-Win) */
   onCustomPresetApply?: (presetId: string, brandColor: string) => void;
+  /** Optional callback when mobile layout is changed - can be used to switch preview to mobile */
+  onMobileLayoutChange?: () => void;
+  /**
+   * Background presets available for the current layout.
+   * Derived from recipes that use the same layout (proven combinations).
+   * Passed from loader via context.
+   */
+  availableBackgrounds?: BackgroundPreset[];
+  /** Optional callback to save a new theme preset to store settings */
+  onSaveThemePreset?: (preset: ThemePresetInput) => void;
+  /**
+   * If true, renders content inline without Card wrapper and heading.
+   * Use when this component is rendered inside another container that already provides these.
+   */
+  inline?: boolean;
+}
+
+/**
+ * Maps LayoutOption to leadCaptureLayout config (preserving existing fine-tuning)
+ */
+function mapLayoutOptionToConfig(
+  layout: LayoutOption,
+  existing?: DesignConfig["leadCaptureLayout"]
+): DesignConfig["leadCaptureLayout"] {
+  // Preserve existing mobile/visualSize settings when changing desktop layout
+  const preservedMobile = existing?.mobile || "content-only";
+  const preservedVisualSize = existing?.visualSizeDesktop || "50%";
+  // Enable gradient when stacked (smooth image-to-form transition)
+  const needsGradient = preservedMobile === "stacked";
+
+  switch (layout) {
+    case "split-left":
+      return {
+        desktop: "split-left",
+        mobile: preservedMobile,
+        visualSizeDesktop: preservedVisualSize,
+        visualGradient: needsGradient,
+      };
+    case "split-right":
+      return {
+        desktop: "split-right",
+        mobile: preservedMobile,
+        visualSizeDesktop: preservedVisualSize,
+        visualGradient: needsGradient,
+      };
+    case "hero":
+      return {
+        desktop: "stacked",
+        mobile: "stacked",
+        visualSizeDesktop: "40%",
+        visualSizeMobile: "30%",
+        visualGradient: true,
+      };
+    case "full":
+      return { desktop: "overlay", mobile: "overlay", visualSizeDesktop: "100%" };
+    case "minimal":
+      return { desktop: "content-only", mobile: "content-only" };
+  }
+}
+
+/**
+ * Maps leadCaptureLayout config to LayoutOption for UI display
+ */
+function mapConfigToLayoutOption(config?: DesignConfig["leadCaptureLayout"]): LayoutOption {
+  if (!config) return "split-left"; // Default
+
+  switch (config.desktop) {
+    case "split-left":
+      return "split-left";
+    case "split-right":
+      return "split-right";
+    case "stacked":
+      return "hero";
+    case "overlay":
+      return "full";
+    case "content-only":
+      return "minimal";
+    default:
+      return "split-left";
+  }
+}
+
+/**
+ * Maps legacy imagePosition to leadCaptureLayout (for theme presets that still use it)
+ */
+function mapLegacyImagePositionToLayout(
+  imagePosition: "left" | "right" | "top" | "bottom" | "full" | "none"
+): DesignConfig["leadCaptureLayout"] {
+  switch (imagePosition) {
+    case "left":
+      return { desktop: "split-left", mobile: "content-only", visualSizeDesktop: "50%" };
+    case "right":
+      return { desktop: "split-right", mobile: "content-only", visualSizeDesktop: "50%" };
+    case "top":
+    case "bottom":
+      return {
+        desktop: "stacked",
+        mobile: "stacked",
+        visualSizeDesktop: "40%",
+        visualSizeMobile: "30%",
+      };
+    case "full":
+      return { desktop: "overlay", mobile: "overlay", visualSizeDesktop: "100%" };
+    case "none":
+    default:
+      return { desktop: "content-only", mobile: "content-only" };
+  }
 }
 
 export function DesignConfigSection({
@@ -75,7 +178,52 @@ export function DesignConfigSection({
   customThemePresets,
   onThemeChange,
   onCustomPresetApply,
+  onMobileLayoutChange,
+  availableBackgrounds = [],
+  onSaveThemePreset,
+  inline = false,
 }: DesignConfigSectionProps) {
+  // Get font options including any custom font from current design
+  const fontFamilyOptions = useMemo(
+    () => getFontSelectOptionsFlat(design.fontFamily),
+    [design.fontFamily]
+  );
+
+  // Check if any custom theme preset already exists
+  // If custom themes exist, we hide "Match Your Theme" button since users already have saved themes
+  const hasStoreThemePreset = (customThemePresets?.length ?? 0) > 0;
+
+  // Fetcher for saving theme presets to store settings
+  const presetSaveFetcher = useFetcher();
+
+  // Handle saving a new theme preset
+  const handleSaveThemePreset = useCallback(
+    (preset: ThemePresetInput) => {
+      // Build the updated presets array
+      const existingPresets = customThemePresets || [];
+      const updatedPresets = [preset, ...existingPresets];
+
+      // Submit to settings API
+      const formData = new FormData();
+      formData.append("actionType", "updateSettings");
+      formData.append(
+        "settings",
+        JSON.stringify({ customThemePresets: updatedPresets })
+      );
+
+      presetSaveFetcher.submit(formData, {
+        method: "post",
+        action: "/app/settings",
+      });
+
+      // Also call the optional callback if provided
+      if (onSaveThemePreset) {
+        onSaveThemePreset(preset);
+      }
+    },
+    [customThemePresets, presetSaveFetcher, onSaveThemePreset]
+  );
+
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // File upload
@@ -98,43 +246,6 @@ export function DesignConfigSection({
   // Resolve design capabilities for this template (gates which controls to show)
   const caps = templateType ? getDesignCapabilities(templateType as TemplateType) : undefined;
 
-  // Position/Size filtering based on capabilities
-  const ALL_POSITIONS = ["center", "top", "bottom", "left", "right"] as const;
-  const ALL_SIZES = ["small", "medium", "large"] as const;
-  const ALL_IMAGE_POSITIONS: ImagePositionOption[] = ["left", "right", "top", "bottom", "full", "none"];
-
-  const allowedPositions = caps?.supportsPosition ?? ALL_POSITIONS;
-  const allowedSizes = caps?.supportsSize ?? ALL_SIZES;
-  const allowedImagePositions = caps?.supportedImagePositions ?? ALL_IMAGE_POSITIONS;
-
-  // Build filtered option lists
-  const positionOptions = [
-    { label: "Center", value: "center" },
-    { label: "Top", value: "top" },
-    { label: "Bottom", value: "bottom" },
-    { label: "Left", value: "left" },
-    { label: "Right", value: "right" },
-  ].filter((opt) => allowedPositions.includes(opt.value as (typeof allowedPositions)[number]));
-
-  const sizeOptions = [
-    { label: "Small", value: "small" },
-    { label: "Medium", value: "medium" },
-    { label: "Large", value: "large" },
-  ].filter((opt) => allowedSizes.includes(opt.value as (typeof allowedSizes)[number]));
-
-  // Build filtered image position options
-  const imagePositionOptions = useMemo(() => {
-    const allOptions = [
-      { label: "Left side", value: "left" },
-      { label: "Right side", value: "right" },
-      { label: "Top", value: "top" },
-      { label: "Bottom", value: "bottom" },
-      { label: "Full background", value: "full" },
-      { label: "No image", value: "none" },
-    ];
-    return allOptions.filter((opt) => allowedImagePositions.includes(opt.value as ImagePositionOption));
-  }, [allowedImagePositions]);
-
   const updateField = <K extends keyof DesignConfig>(
     field: K,
     value: DesignConfig[K] | undefined
@@ -142,25 +253,54 @@ export function DesignConfigSection({
     onChange({ ...design, [field]: value });
   };
 
+  // Color fields that should clear theme when edited
+  const COLOR_FIELDS: (keyof DesignConfig)[] = [
+    "backgroundColor",
+    "textColor",
+    "descriptionColor",
+    "accentColor",
+    "buttonColor",
+    "buttonTextColor",
+    "inputBackgroundColor",
+    "inputTextColor",
+    "inputBorderColor",
+    "imageBgColor",
+    "successColor",
+    "overlayColor",
+  ];
+
+  /**
+   * Update a color field and clear the theme selection.
+   * When user manually edits colors, they're no longer using a preset theme.
+   */
+  const updateColorField = <K extends keyof DesignConfig>(
+    field: K,
+    value: DesignConfig[K] | undefined
+  ) => {
+    // Only clear theme if this is a color field
+    if (COLOR_FIELDS.includes(field)) {
+      onChange({
+        ...design,
+        [field]: value,
+        theme: undefined, // Clear theme to indicate custom colors
+      });
+    } else {
+      onChange({ ...design, [field]: value });
+    }
+  };
+
   const imageMode = (design.backgroundImageMode ?? "none") as DesignConfig["backgroundImageMode"];
   const selectedPresetKey = design.backgroundImagePresetKey as NewsletterThemeKey | undefined;
   const previewImageUrl = design.imageUrl;
-  const isFullBackground = design.imagePosition === "full";
+  const currentLayout = design.leadCaptureLayout;
+  const isFullBackground = currentLayout?.desktop === "overlay";
+  const isMinimalLayout = currentLayout?.desktop === "content-only";
 
   // Handle theme selection - applies all theme colors and template-specific overrides
   const handleThemeChange = (themeKey: NewsletterThemeKey) => {
-    // Get template-specific theme configuration
-    const resolvedTheme = getThemeConfigForTemplate(
-      themeKey as ThemeKey,
-      (templateType as TemplateType) ?? "NEWSLETTER"
-    );
-
-    // Convert base colors to design config format
-    const designConfig = themeColorsToDesignConfig(resolvedTheme.colors);
-
-    // Get the background image URL (will be undefined if template doesn't use images)
-    const backgroundUrl = getThemeBackgroundUrl(
-      themeKey as ThemeKey,
+    // Resolve theme with template-specific behavior
+    const resolved = resolveThemeForTemplate(
+      themeKey,
       (templateType as TemplateType) ?? "NEWSLETTER"
     );
 
@@ -171,38 +311,39 @@ export function DesignConfigSection({
       theme: themeKey,
       customThemePresetId: undefined, // Clear custom theme selection
 
-      // Colors from base theme
-      backgroundColor: designConfig.backgroundColor,
-      textColor: designConfig.textColor,
-      descriptionColor: designConfig.descriptionColor,
-      accentColor: resolvedTheme.accentColorOverride ?? designConfig.accentColor,
-      buttonColor: resolvedTheme.buttonColorOverride ?? designConfig.buttonColor,
-      buttonTextColor: designConfig.buttonTextColor,
-      inputBackgroundColor: designConfig.inputBackgroundColor,
-      inputTextColor: designConfig.inputTextColor,
-      inputBorderColor: designConfig.inputBorderColor,
-      imageBgColor: designConfig.imageBgColor,
-      successColor: designConfig.successColor,
+      // Colors from resolved theme
+      backgroundColor: resolved.colors.backgroundColor,
+      textColor: resolved.colors.textColor,
+      descriptionColor: resolved.colors.descriptionColor,
+      accentColor: resolved.colors.accentColor,
+      buttonColor: resolved.colors.buttonColor,
+      buttonTextColor: resolved.colors.buttonTextColor,
+      inputBackgroundColor: resolved.colors.inputBackgroundColor,
+      inputTextColor: resolved.colors.inputTextColor,
+      inputBorderColor: resolved.colors.inputBorderColor,
+      imageBgColor: resolved.colors.imageBgColor,
+      successColor: resolved.colors.successColor,
 
       // Typography
-      fontFamily: designConfig.fontFamily,
-      titleFontSize: designConfig.titleFontSize,
-      titleFontWeight: designConfig.titleFontWeight,
-      titleTextShadow: designConfig.titleTextShadow,
-      descriptionFontSize: designConfig.descriptionFontSize,
-      descriptionFontWeight: designConfig.descriptionFontWeight,
+      fontFamily: resolved.colors.fontFamily,
+      titleFontSize: resolved.colors.titleFontSize,
+      titleFontWeight: resolved.colors.titleFontWeight,
+      titleTextShadow: resolved.colors.titleTextShadow,
+      descriptionFontSize: resolved.colors.descriptionFontSize,
+      descriptionFontWeight: resolved.colors.descriptionFontWeight,
 
       // Input styling
-      inputBackdropFilter: designConfig.inputBackdropFilter,
-      inputBoxShadow: designConfig.inputBoxShadow,
+      inputBackdropFilter: resolved.colors.inputBackdropFilter,
+      inputBoxShadow: resolved.colors.inputBoxShadow,
 
       // Template-specific background image settings
-      backgroundImageMode: resolvedTheme.backgroundImageMode,
-      backgroundImagePresetKey: resolvedTheme.backgroundImagePresetKey,
+      backgroundImageMode: resolved.backgroundImageMode,
+      backgroundImagePresetKey: resolved.backgroundImagePresetKey,
       backgroundImageFileId: undefined,
-      imageUrl: backgroundUrl,
-      imagePosition: resolvedTheme.imagePosition,
-      backgroundOverlayOpacity: resolvedTheme.backgroundOverlayOpacity,
+      imageUrl: resolved.backgroundImageUrl,
+      // Map legacy defaultImagePosition to leadCaptureLayout
+      leadCaptureLayout: mapLegacyImagePositionToLayout(resolved.behavior.defaultImagePosition),
+      backgroundOverlayOpacity: resolved.behavior.defaultOverlayOpacity,
     });
 
     // Allow template-specific integrations (e.g., Spin-to-Win wheel colors)
@@ -236,27 +377,63 @@ export function DesignConfigSection({
     }
   };
 
-  return (
-    <Card>
-      <BlockStack gap="400">
-        <Text as="h3" variant="headingMd">
-          Design & Colors
-        </Text>
-        <Text as="p" tone="subdued">
-          Customize the visual appearance of your campaign
-        </Text>
+  // Content to render (shared between inline and Card-wrapped modes)
+  const content = (
+    <BlockStack gap="400">
+      {/* Heading & subtitle only shown in non-inline mode */}
+      {!inline && (
+        <>
+          <Text as="h3" variant="headingMd">
+            Design & Colors
+          </Text>
+          <Text as="p" tone="subdued">
+            Customize the visual appearance of your campaign
+          </Text>
+        </>
+      )}
 
-        {/* Info banner about gated controls */}
-        {templateType && caps && (
-          <Banner tone="info">
-            <Text as="p" variant="bodySm">
-              Some controls are hidden because this template doesn&#39;t use them. Your design
-              settings are preserved and will reappear if you switch templates.
-            </Text>
-          </Banner>
+      {/* Info banner about gated controls */}
+      {templateType && caps && (
+        <Banner tone="info">
+          <Text as="p" variant="bodySm">
+            Some controls are hidden because this template doesn&#39;t use them. Your design
+            settings are preserved and will reappear if you switch templates.
+          </Text>
+        </Banner>
+      )}
+
+      {!inline && <Divider />}
+
+        {/* Match Your Theme - Import colors from Shopify theme */}
+        {/* Hidden when custom themes already exist - use Custom Themes section instead */}
+        {!hasStoreThemePreset && (
+          <>
+            <MatchThemeButton
+              variant="card"
+              hasStoreThemePreset={hasStoreThemePreset}
+              onApply={(expandedConfig, _themeName) => {
+                // Apply the theme colors while preserving non-color fields
+                // Clear both built-in and custom theme selections
+                onChange({
+                  ...design,
+                  ...expandedConfig,
+                  theme: undefined, // Clear built-in theme selection
+                  customThemePresetId: "shopify-theme", // Mark as Shopify theme applied
+                });
+
+                // If callback provided (for Spin-to-Win wheel colors), call it
+                if (onCustomPresetApply && expandedConfig.buttonColor) {
+                  onCustomPresetApply("shopify-theme", expandedConfig.buttonColor);
+                }
+              }}
+              onSaveAsPreset={(preset, _themeName) => {
+                handleSaveThemePreset(preset);
+              }}
+            />
+
+            <Divider />
+          </>
         )}
-
-        <Divider />
 
         {/* Custom Theme Presets (from store settings) */}
         {customThemePresets && customThemePresets.length > 0 && (
@@ -296,30 +473,68 @@ export function DesignConfigSection({
 
         <Divider />
 
-        {/* Position & Size - only show if at least one option is available */}
-        {(positionOptions.length > 0 || sizeOptions.length > 0) && (
-          <FormGrid columns={positionOptions.length > 0 && sizeOptions.length > 0 ? 2 : 1}>
-            {positionOptions.length > 0 && (
-              <Select
-                label="Position"
-                value={design.position || "center"}
-                options={positionOptions}
-                onChange={(value) => updateField("position", value as DesignConfig["position"])}
-                helpText={
-                  caps?.supportsPosition ? "Position options filtered for this template" : undefined
-                }
-              />
-            )}
+        {/* Layout Selector - Visual layout picker with fine-tuning */}
+        {/* Hidden for templates with fixed layout (e.g., SpinToWin has wheel+form fixed) */}
+        {caps?.usesImage !== false && caps?.usesLayout !== false && (
+          <>
+            <LayoutSelector
+              title="Layout"
+              helpText="Choose how the image and form are arranged"
+              selected={mapConfigToLayoutOption(currentLayout)}
+              onSelect={(layout) => {
+                const newLayout = mapLayoutOptionToConfig(layout, currentLayout);
+                updateField("leadCaptureLayout", newLayout);
+              }}
+            />
 
-            {sizeOptions.length > 0 && (
-              <Select
-                label="Size"
-                value={design.size || "medium"}
-                options={sizeOptions}
-                onChange={(value) => updateField("size", value as DesignConfig["size"])}
-              />
+            {/* Fine-tuning controls - only show for layouts with visual area */}
+            {currentLayout && currentLayout.desktop !== "content-only" && (
+              <BlockStack gap="300">
+                {/* Visual Size Slider - only for split layouts */}
+                {(currentLayout.desktop === "split-left" ||
+                  currentLayout.desktop === "split-right") && (
+                  <RangeSlider
+                    label="Image width"
+                    value={parseInt(currentLayout.visualSizeDesktop || "50")}
+                    min={30}
+                    max={60}
+                    step={5}
+                    suffix={
+                      <Text as="span" variant="bodySm">
+                        {currentLayout.visualSizeDesktop || "50%"}
+                      </Text>
+                    }
+                    onChange={(value) => {
+                      updateField("leadCaptureLayout", {
+                        ...currentLayout,
+                        visualSizeDesktop: `${value}%`,
+                      });
+                    }}
+                  />
+                )}
+
+                {/* Mobile Layout Selector */}
+                {currentLayout.desktop !== "overlay" && (
+                  <MobileLayoutSelector
+                    selected={(currentLayout.mobile || "content-only") as MobileLayoutOption}
+                    onSelect={(value) => {
+                      updateField("leadCaptureLayout", {
+                        ...currentLayout,
+                        mobile: value,
+                        // Enable gradient when stacked (smooth image-to-form transition)
+                        visualGradient: value === "stacked" || currentLayout.desktop === "stacked",
+                      });
+                      // Switch preview to mobile mode so user can see the effect
+                      onMobileLayoutChange?.();
+                    }}
+                    title="Mobile Layout"
+                    helpText="How the popup appears on mobile devices"
+                  />
+                )}
+              </BlockStack>
             )}
-          </FormGrid>
+            <Divider />
+          </>
         )}
 
         {/* TODO: Add Animation selector here
@@ -329,70 +544,48 @@ export function DesignConfigSection({
          * Options: fade, slide, bounce, none
          */}
 
-        {/* Flash Sale specific popup size - only show for popup mode, not banner */}
-        {templateType === "FLASH_SALE" && design.displayMode !== "banner" && (
-          <Select
-            label="Popup size"
-            value={design.popupSize || "wide"}
-            options={[
-              { label: "Compact", value: "compact" },
-              { label: "Standard", value: "standard" },
-              { label: "Wide", value: "wide" },
-              { label: "Full width", value: "full" },
-            ]}
-            onChange={(value) => updateField("popupSize", value as DesignConfig["popupSize"])}
-            helpText="Controls the overall footprint of the Flash Sale popup."
-          />
-        )}
+        {/*
+         * Flash Sale popup size and display mode are recipe-controlled only.
+         * - Popup size (compact/standard/wide/full) is set via recipe defaults
+         * - Display mode (popup/banner) is set via recipe defaults
+         * These are intentionally hidden from the UI to simplify the design flow.
+         */}
 
-        {/* Flash Sale specific display mode */}
-        {/* Display Mode - Show for templates that support banner/popup toggle */}
-        {caps?.supportsDisplayMode && (
-          <Select
-            label="Display Mode"
-            value={design.displayMode || "popup"}
-            options={[
-              { label: "Popup (centered overlay)", value: "popup" },
-              { label: "Banner (top or bottom)", value: "banner" },
-            ]}
-            onChange={(value) => updateField("displayMode", value as DesignConfig["displayMode"])}
-            helpText="Choose whether this appears as a centered popup or as a top/bottom banner."
-          />
-        )}
+        {/* Background - Color and optional image */}
+        <CollapsibleSection
+          id="background-section"
+          title="Background"
+          isOpen={openSections.backgroundImage}
+          onToggle={() => toggle("backgroundImage")}
+        >
+          <BlockStack gap="400">
+            {/* Background Color */}
+            <ColorField
+              label="Background Color"
+              name="design.backgroundColor"
+              value={design.backgroundColor || "#FFFFFF"}
+              error={errors?.backgroundColor}
+              helpText="Popup background color (supports gradients)"
+              onChange={(value) => updateColorField("backgroundColor", value)}
+            />
 
-        <Divider />
-
-        {/* Image Configuration - Only show if template supports images */}
-        {caps?.usesImage !== false && (
-          <CollapsibleSection
-            id="background-image-section"
-            title="Background Image"
-            isOpen={openSections.backgroundImage}
-            onToggle={() => toggle("backgroundImage")}
-          >
-            <BlockStack gap="300">
-              <FormGrid columns={2}>
-                <Select
-                  label="Image position"
-                  value={design.imagePosition || (imagePositionOptions[0]?.value ?? "none")}
-                  options={imagePositionOptions}
-                  onChange={(value) =>
-                    updateField("imagePosition", value as DesignConfig["imagePosition"])
-                  }
-                  helpText={isFullBackground
-                    ? "Full background with overlay for better text readability"
-                    : "Position of the background image in the popup"}
-                />
-
-                <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+            {/* Background Image - Only show if template supports images and layout is not minimal */}
+            {caps?.usesImage !== false && !isMinimalLayout && (
+              <>
+                <Divider />
+                <Text as="h3" variant="headingSm">
+                  Background Image
+                </Text>
+                <FormGrid columns={2}>
                   <Select
                     label="Preset background"
                     value={imageMode === "preset" && selectedPresetKey ? selectedPresetKey : "none"}
                     options={[
                       { label: "No preset image", value: "none" },
-                      ...NEWSLETTER_BACKGROUND_PRESETS.map((preset) => ({
-                        label: preset.label,
-                        value: preset.key,
+                      // Show only backgrounds proven to work with this layout
+                      ...availableBackgrounds.map((preset) => ({
+                        label: preset.name,
+                        value: preset.id,
                       })),
                     ]}
                     onChange={(value) => {
@@ -407,28 +600,35 @@ export function DesignConfigSection({
                         return;
                       }
 
-                      const key = value as NewsletterThemeKey;
-                      const url = getNewsletterBackgroundUrl(key);
-                      onChange({
-                        ...design,
-                        backgroundImageMode: "preset",
-                        backgroundImagePresetKey: key,
-                        backgroundImageFileId: undefined,
-                        imageUrl: url,
-                      });
+                      const bgPreset = getBackgroundById(value);
+                      if (bgPreset) {
+                        onChange({
+                          ...design,
+                          backgroundImageMode: "preset",
+                          backgroundImagePresetKey: bgPreset.id,
+                          backgroundImageFileId: undefined,
+                          imageUrl: getBackgroundUrl(bgPreset),
+                        });
+                      }
                     }}
-                    helpText="Use one of the built-in background images"
+                    helpText={
+                      availableBackgrounds.length > 0
+                        ? "Backgrounds proven to work with this layout"
+                        : "No preset backgrounds for this layout - upload your own"
+                    }
                   />
 
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    style={{ display: "none" }}
-                    onChange={handleBackgroundFileChange}
-                  />
-
-                  <BlockStack gap="200">
+                  <BlockStack gap="100">
+                    <Text as="span" variant="bodySm" fontWeight="medium">
+                      Or upload your own
+                    </Text>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      style={{ display: "none" }}
+                      onChange={handleBackgroundFileChange}
+                    />
                     <Button
                       onClick={handleBackgroundFileClick}
                       loading={isUploadingBackground}
@@ -436,7 +636,7 @@ export function DesignConfigSection({
                     >
                       {imageMode === "file" && previewImageUrl
                         ? "Change background image"
-                        : "Upload image from your computer"}
+                        : "Upload image"}
                     </Button>
                     {uploadError && (
                       <Text as="p" variant="bodySm" tone="critical">
@@ -444,93 +644,90 @@ export function DesignConfigSection({
                       </Text>
                     )}
                   </BlockStack>
-                </div>
-              </FormGrid>
+                </FormGrid>
 
-              {/* Overlay opacity slider - only show for full background mode */}
-              {isFullBackground && previewImageUrl && design.imagePosition !== "none" && (
-                <BlockStack gap="200">
-                  <Text as="p" variant="bodySm" fontWeight="medium">
-                    Overlay Opacity: {Math.round((design.backgroundOverlayOpacity ?? 0.6) * 100)}%
-                  </Text>
-                  <RangeSlider
-                    label="Overlay opacity"
-                    labelHidden
-                    value={(design.backgroundOverlayOpacity ?? 0.6) * 100}
-                    min={0}
-                    max={100}
-                    step={5}
-                    onChange={(value) => updateField("backgroundOverlayOpacity", (value as number) / 100)}
-                    output
-                    suffix={<Text as="span" variant="bodySm">%</Text>}
-                  />
-                  <Text as="p" variant="bodySm" tone="subdued">
-                    Higher values make the overlay darker for better text readability
-                  </Text>
-                </BlockStack>
-              )}
-
-              {previewImageUrl && design.imagePosition !== "none" && (
-                <div
-                  style={{
-                    marginTop: "0.5rem",
-                    padding: "1rem",
-                    border: "1px solid #e1e3e5",
-                    borderRadius: "8px",
-                    backgroundColor: "#f6f6f7",
-                  }}
-                >
-                  <Text as="p" variant="bodySm" tone="subdued" fontWeight="semibold">
-                    Image preview:
-                  </Text>
-                  <div style={{ marginTop: "0.5rem", maxWidth: "200px" }}>
-                    <img
-                      src={previewImageUrl}
-                      alt="Background preview"
-                      style={{
-                        width: "100%",
-                        height: "auto",
-                        borderRadius: "4px",
-                        border: "1px solid #c9cccf",
-                      }}
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).style.display = "none";
-                      }}
+                {/* Overlay opacity slider - only show for full background mode */}
+                {isFullBackground && previewImageUrl && (
+                  <BlockStack gap="200">
+                    <Text as="p" variant="bodySm" fontWeight="medium">
+                      Overlay Opacity: {Math.round((design.backgroundOverlayOpacity ?? 0.6) * 100)}%
+                    </Text>
+                    <RangeSlider
+                      label="Overlay opacity"
+                      labelHidden
+                      value={(design.backgroundOverlayOpacity ?? 0.6) * 100}
+                      min={0}
+                      max={100}
+                      step={5}
+                      onChange={(value) =>
+                        updateField("backgroundOverlayOpacity", (value as number) / 100)
+                      }
+                      output
+                      suffix={
+                        <Text as="span" variant="bodySm">
+                          %
+                        </Text>
+                      }
                     />
+                    <Text as="p" variant="bodySm" tone="subdued">
+                      Higher values make the overlay darker for better text readability
+                    </Text>
+                  </BlockStack>
+                )}
+
+                {previewImageUrl && (
+                  <div
+                    style={{
+                      marginTop: "0.5rem",
+                      padding: "1rem",
+                      border: "1px solid #e1e3e5",
+                      borderRadius: "8px",
+                      backgroundColor: "#f6f6f7",
+                    }}
+                  >
+                    <Text as="p" variant="bodySm" tone="subdued" fontWeight="semibold">
+                      Image preview:
+                    </Text>
+                    <div style={{ marginTop: "0.5rem", maxWidth: "200px" }}>
+                      <img
+                        src={previewImageUrl}
+                        alt="Background preview"
+                        style={{
+                          width: "100%",
+                          height: "auto",
+                          borderRadius: "4px",
+                          border: "1px solid #c9cccf",
+                        }}
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = "none";
+                        }}
+                      />
+                    </div>
                   </div>
-                </div>
-              )}
-            </BlockStack>
-          </CollapsibleSection>
-        )}
+                )}
+              </>
+            )}
+          </BlockStack>
+        </CollapsibleSection>
 
-        {caps?.usesImage !== false && <Divider />}
+        <Divider />
 
-        {/* Main Colors - Always shown */}
+        {/* Text Colors - Heading, description, accent */}
         <CollapsibleSection
-          id="main-colors-section"
-          title="Main Colors"
+          id="text-colors-section"
+          title="Text Colors"
           isOpen={openSections.mainColors}
           onToggle={() => toggle("mainColors")}
         >
           <BlockStack gap="300">
-            <FormGrid columns={3}>
-              <ColorField
-                label="Background Color"
-                name="design.backgroundColor"
-                value={design.backgroundColor || "#FFFFFF"}
-                error={errors?.backgroundColor}
-                helpText="Popup background color (supports gradients)"
-                onChange={(value) => updateField("backgroundColor", value)}
-              />
-
+            <FormGrid columns={2}>
               <ColorField
                 label="Heading Text Color"
                 name="design.textColor"
                 value={design.textColor || "#333333"}
                 error={errors?.textColor}
                 helpText="Heading and title text color"
-                onChange={(value) => updateField("textColor", value)}
+                onChange={(value) => updateColorField("textColor", value)}
               />
 
               <ColorField
@@ -539,7 +736,7 @@ export function DesignConfigSection({
                 value={design.descriptionColor || "#666666"}
                 error={errors?.descriptionColor}
                 helpText="Description and subheadline text color"
-                onChange={(value) => updateField("descriptionColor", value)}
+                onChange={(value) => updateColorField("descriptionColor", value)}
               />
             </FormGrid>
 
@@ -552,7 +749,7 @@ export function DesignConfigSection({
                   value={design.accentColor || "#007BFF"}
                   error={errors?.accentColor}
                   helpText="Accent and highlight color"
-                  onChange={(value) => updateField("accentColor", value)}
+                  onChange={(value) => updateColorField("accentColor", value)}
                 />
               )}
 
@@ -563,7 +760,7 @@ export function DesignConfigSection({
                   value={design.successColor || "#10b981"}
                   error={errors?.successColor}
                   helpText="Success state color"
-                  onChange={(value) => updateField("successColor", value)}
+                  onChange={(value) => updateColorField("successColor", value)}
                 />
               )}
             </FormGrid>
@@ -583,7 +780,7 @@ export function DesignConfigSection({
             <Select
               label="Font Family"
               value={design.fontFamily || "inherit"}
-              options={FONT_FAMILY_OPTIONS}
+              options={fontFamilyOptions}
               onChange={(value) => {
                 // Load the Google Font when selected
                 loadGoogleFont(value);
@@ -612,7 +809,7 @@ export function DesignConfigSection({
                   value={design.buttonColor || "#007BFF"}
                   error={errors?.buttonColor}
                   helpText="CTA button background"
-                  onChange={(value) => updateField("buttonColor", value)}
+                  onChange={(value) => updateColorField("buttonColor", value)}
                 />
 
                 <ColorField
@@ -621,7 +818,7 @@ export function DesignConfigSection({
                   value={design.buttonTextColor || "#FFFFFF"}
                   error={errors?.buttonTextColor}
                   helpText="CTA button text color"
-                  onChange={(value) => updateField("buttonTextColor", value)}
+                  onChange={(value) => updateColorField("buttonTextColor", value)}
                 />
               </FormGrid>
             </BlockStack>
@@ -646,7 +843,7 @@ export function DesignConfigSection({
                   value={design.inputBackgroundColor || "#FFFFFF"}
                   error={errors?.inputBackgroundColor}
                   helpText="Email/form input background (supports rgba)"
-                  onChange={(value) => updateField("inputBackgroundColor", value)}
+                  onChange={(value) => updateColorField("inputBackgroundColor", value)}
                 />
 
                 <ColorField
@@ -655,7 +852,7 @@ export function DesignConfigSection({
                   value={design.inputTextColor || "#333333"}
                   error={errors?.inputTextColor}
                   helpText="Email/form input text"
-                  onChange={(value) => updateField("inputTextColor", value)}
+                  onChange={(value) => updateColorField("inputTextColor", value)}
                 />
 
                 <ColorField
@@ -664,7 +861,7 @@ export function DesignConfigSection({
                   value={design.inputBorderColor || "#D1D5DB"}
                   error={errors?.inputBorderColor}
                   helpText="Email/form input border (supports rgba)"
-                  onChange={(value) => updateField("inputBorderColor", value)}
+                  onChange={(value) => updateColorField("inputBorderColor", value)}
                 />
               </FormGrid>
 
@@ -675,7 +872,7 @@ export function DesignConfigSection({
                   value={design.imageBgColor || "#F4F4F5"}
                   error={errors?.imageBgColor}
                   helpText="Background color for image placeholder (supports rgba)"
-                  onChange={(value) => updateField("imageBgColor", value)}
+                  onChange={(value) => updateColorField("imageBgColor", value)}
                 />
               </FormGrid>
             </BlockStack>
@@ -700,7 +897,7 @@ export function DesignConfigSection({
                   value={design.overlayColor || "#000000"}
                   error={errors?.overlayColor}
                   helpText="Background overlay color"
-                  onChange={(value) => updateField("overlayColor", value)}
+                  onChange={(value) => updateColorField("overlayColor", value)}
                 />
 
                 <Select
@@ -726,6 +923,12 @@ export function DesignConfigSection({
           </CollapsibleSection>
         )}
       </BlockStack>
-    </Card>
-  );
+    );
+
+  // Return inline content or wrapped in Card
+  if (inline) {
+    return content;
+  }
+
+  return <Card>{content}</Card>;
 }

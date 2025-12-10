@@ -15,7 +15,6 @@ import {
   BlockStack,
   Box,
   Divider,
-  DescriptionList,
   Tabs,
   Banner,
   ProgressBar,
@@ -23,7 +22,21 @@ import {
   EmptyState,
   Spinner,
   Button,
+  InlineGrid,
+  Icon,
 } from "@shopify/polaris";
+import {
+  ViewIcon,
+  PersonIcon,
+  ChartVerticalIcon,
+  CashDollarIcon,
+  DiscountIcon,
+  CartIcon,
+  CursorIcon,
+  CalendarIcon,
+  ClockIcon,
+  TargetIcon,
+} from "@shopify/polaris-icons";
 import { useNavigate } from "react-router";
 
 import type {
@@ -32,8 +45,10 @@ import type {
   CampaignGoal,
   TemplateType,
 } from "~/domains/campaigns/types/campaign";
+import type { DesignTokens } from "~/domains/campaigns/types/design-tokens";
 import { getTemplateLabel } from "~/domains/templates/registry/template-registry";
 import { CampaignConfigurationSummary } from "./CampaignConfigurationSummary";
+import { CampaignPopupPreview } from "./CampaignPopupPreview";
 
 // ============================================================================
 // TYPES
@@ -63,6 +78,8 @@ interface CampaignDetailProps {
   aov?: number;
   clicks?: number;
   currency?: string;
+  /** Default theme tokens for preview (from store's default preset or Shopify theme) */
+  defaultThemeTokens?: DesignTokens;
 }
 
 interface CampaignMetrics {
@@ -96,6 +113,7 @@ export function CampaignDetail({
   aov,
   clicks,
   currency = "USD",
+  defaultThemeTokens,
 }: CampaignDetailProps) {
   const navigate = useNavigate();
 
@@ -271,9 +289,57 @@ export function CampaignDetail({
     },
   ];
 
+  // Metric card helper component
+  const MetricCard = ({
+    icon,
+    label,
+    value,
+    subValue,
+    tone = "base",
+  }: {
+    icon: typeof ViewIcon;
+    label: string;
+    value: string;
+    subValue?: string;
+    tone?: "base" | "success" | "critical";
+  }) => (
+    <Card>
+      <Box padding="400">
+        <BlockStack gap="300">
+          <InlineStack gap="200" blockAlign="center">
+            <Box
+              background={
+                tone === "success"
+                  ? "bg-fill-success-secondary"
+                  : tone === "critical"
+                    ? "bg-fill-critical-secondary"
+                    : "bg-fill-secondary"
+              }
+              borderRadius="200"
+              padding="200"
+            >
+              <Icon source={icon} tone={tone === "base" ? "subdued" : tone} />
+            </Box>
+            <Text as="span" variant="bodySm" tone="subdued">
+              {label}
+            </Text>
+          </InlineStack>
+          <Text as="p" variant="headingLg" fontWeight="bold">
+            {value}
+          </Text>
+          {subValue && (
+            <Text as="span" variant="bodySm" tone="subdued">
+              {subValue}
+            </Text>
+          )}
+        </BlockStack>
+      </Box>
+    </Card>
+  );
+
   // Overview tab content
   const overviewContent = (
-    <BlockStack gap="400">
+    <BlockStack gap="500">
       {/* Status Banner */}
       {isDraft && (
         <Banner tone="info">
@@ -287,104 +353,159 @@ export function CampaignDetail({
         </Banner>
       )}
 
-      {/* Basic Information */}
-      <Card>
-        <Box padding="400">
-          <BlockStack gap="400">
-            <Text variant="headingMd" as="h3">
-              Basic Information
-            </Text>
-            <Divider />
-
-            <DescriptionList
-              items={[
-                {
-                  term: "Campaign Name",
-                  description: campaign.name,
-                },
-                {
-                  term: "Description",
-                  description: campaign.description || "No description provided",
-                },
-                {
-                  term: "Goal",
-                  description: getGoalLabel(campaign.goal as CampaignGoal),
-                },
-                {
-                  term: "Template Type",
-                  description: getTemplateTypeLabel(campaign.templateType as TemplateType),
-                },
-                {
-                  term: "Priority",
-                  description: campaign.priority?.toString() || "Not set",
-                },
-                {
-                  term: "Status",
-                  description: <Badge {...statusBadge} />,
-                },
-                {
-                  term: "Created",
-                  description: formatDate(campaign.createdAt),
-                },
-                {
-                  term: "Last Updated",
-                  description: formatDate(campaign.updatedAt),
-                },
-              ]}
+      {/* Hero Section: Preview + Key Info */}
+      <InlineGrid columns={{ xs: 1, lg: ["twoThirds", "oneThird"] }} gap="400">
+        {/* Left: Large Popup Preview */}
+        <Card>
+          <Box padding="400">
+            <CampaignPopupPreview
+              campaign={campaign}
+              height={450}
+              showDeviceToggle
+              showRefresh
+              defaultThemeTokens={defaultThemeTokens}
             />
-          </BlockStack>
-        </Box>
-      </Card>
+          </Box>
+        </Card>
 
-      {/* Quick Metrics */}
-      <Card>
-        <Box padding="400">
-          <BlockStack gap="400">
-            <Text variant="headingMd" as="h3">
-              Performance Summary
-            </Text>
-            <Divider />
+        {/* Right: Campaign Info Card */}
+        <Card>
+          <Box padding="400">
+            <BlockStack gap="400">
+              <Text variant="headingMd" as="h3">
+                Campaign Details
+              </Text>
+              <Divider />
 
-            <InlineStack gap="400">
-              <BlockStack gap="200" align="center">
-                <Text variant="headingLg" as="p">
-                  {metrics.views.toLocaleString()}
-                </Text>
-                <Text variant="bodySm" tone="subdued" as="p">
-                  Views
-                </Text>
+              <BlockStack gap="300">
+                <InlineStack gap="200" blockAlign="start">
+                  <Box minWidth="20px">
+                    <Icon source={TargetIcon} tone="subdued" />
+                  </Box>
+                  <BlockStack gap="100">
+                    <Text as="span" variant="bodySm" tone="subdued">
+                      Goal
+                    </Text>
+                    <Text as="span" variant="bodyMd" fontWeight="semibold">
+                      {getGoalLabel(campaign.goal as CampaignGoal)}
+                    </Text>
+                  </BlockStack>
+                </InlineStack>
+
+                <InlineStack gap="200" blockAlign="start">
+                  <Box minWidth="20px">
+                    <Icon source={ViewIcon} tone="subdued" />
+                  </Box>
+                  <BlockStack gap="100">
+                    <Text as="span" variant="bodySm" tone="subdued">
+                      Template Type
+                    </Text>
+                    <Text as="span" variant="bodyMd" fontWeight="semibold">
+                      {getTemplateTypeLabel(campaign.templateType as TemplateType)}
+                    </Text>
+                  </BlockStack>
+                </InlineStack>
+
+                <InlineStack gap="200" blockAlign="start">
+                  <Box minWidth="20px">
+                    <Icon source={CalendarIcon} tone="subdued" />
+                  </Box>
+                  <BlockStack gap="100">
+                    <Text as="span" variant="bodySm" tone="subdued">
+                      Created
+                    </Text>
+                    <Text as="span" variant="bodyMd">
+                      {formatDate(campaign.createdAt)}
+                    </Text>
+                  </BlockStack>
+                </InlineStack>
+
+                <InlineStack gap="200" blockAlign="start">
+                  <Box minWidth="20px">
+                    <Icon source={ClockIcon} tone="subdued" />
+                  </Box>
+                  <BlockStack gap="100">
+                    <Text as="span" variant="bodySm" tone="subdued">
+                      Last Updated
+                    </Text>
+                    <Text as="span" variant="bodyMd">
+                      {formatDate(campaign.updatedAt)}
+                    </Text>
+                  </BlockStack>
+                </InlineStack>
               </BlockStack>
 
-              <BlockStack gap="200" align="center">
-                <Text variant="headingLg" as="p">
-                  {metrics.conversions}
-                </Text>
-                <Text variant="bodySm" tone="subdued" as="p">
-                  Conversions
-                </Text>
-              </BlockStack>
+              {campaign.description && (
+                <>
+                  <Divider />
+                  <BlockStack gap="200">
+                    <Text as="span" variant="bodySm" tone="subdued">
+                      Description
+                    </Text>
+                    <Text as="p" variant="bodyMd">
+                      {campaign.description}
+                    </Text>
+                  </BlockStack>
+                </>
+              )}
+            </BlockStack>
+          </Box>
+        </Card>
+      </InlineGrid>
 
-              <BlockStack gap="200" align="center">
-                <Text variant="headingLg" as="p">
-                  {metrics.conversionRate.toFixed(2)}%
-                </Text>
-                <Text variant="bodySm" tone="subdued" as="p">
-                  Conversion Rate
-                </Text>
-              </BlockStack>
-
-              <BlockStack gap="200" align="center">
-                <Text variant="headingLg" as="p">
-                  {formatCurrency(metrics.revenue)}
-                </Text>
-                <Text variant="bodySm" tone="subdued" as="p">
-                  Revenue (gross, attributed)
-                </Text>
-              </BlockStack>
-            </InlineStack>
-          </BlockStack>
-        </Box>
-      </Card>
+      {/* Performance Metrics Grid */}
+      <BlockStack gap="300">
+        <Text variant="headingMd" as="h3">
+          Performance at a Glance
+        </Text>
+        <InlineGrid columns={{ xs: 2, sm: 3, md: 4 }} gap="300">
+          <MetricCard
+            icon={ViewIcon}
+            label="Total Views"
+            value={metrics.views.toLocaleString()}
+            subValue="Impressions"
+          />
+          <MetricCard
+            icon={PersonIcon}
+            label="Conversions"
+            value={metrics.conversions.toLocaleString()}
+            subValue={`${metrics.conversionRate.toFixed(1)}% rate`}
+            tone={metrics.conversionRate > 5 ? "success" : "base"}
+          />
+          <MetricCard
+            icon={CashDollarIcon}
+            label="Revenue"
+            value={formatCurrency(metrics.revenue)}
+            subValue="Gross attributed"
+            tone={metrics.revenue > 0 ? "success" : "base"}
+          />
+          <MetricCard
+            icon={DiscountIcon}
+            label="Discount Given"
+            value={formatCurrency(metrics.discountGiven)}
+            subValue="Total value"
+          />
+          <MetricCard
+            icon={CartIcon}
+            label="Avg Order Value"
+            value={formatCurrency(metrics.aov)}
+            subValue="Per conversion"
+          />
+          <MetricCard
+            icon={CursorIcon}
+            label="Clicks"
+            value={metrics.clicks.toLocaleString()}
+            subValue={`${metrics.clickRate.toFixed(1)}% CTR`}
+          />
+          <MetricCard
+            icon={ChartVerticalIcon}
+            label="Conversion Rate"
+            value={`${metrics.conversionRate.toFixed(2)}%`}
+            subValue="Views → Leads"
+            tone={metrics.conversionRate > 5 ? "success" : "base"}
+          />
+        </InlineGrid>
+      </BlockStack>
 
       {/* Configuration Summary */}
       <CampaignConfigurationSummary campaign={campaign} />

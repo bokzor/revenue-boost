@@ -1,19 +1,27 @@
 /**
- * Newsletter Content Configuration Section
+ * Newsletter Content Configuration Section (Simplified)
  *
  * Template-specific content section for Newsletter campaigns.
- * Contains only Content and Discount subsections.
- * Design configuration is handled by the shared DesignConfigSection.
  *
- * Follows Interface Segregation Principle - specific to newsletter content needs
+ * SIMPLIFIED FORM STRUCTURE:
+ * - Essential text fields (headline, subheadline, button, success message)
+ * - Lead Capture Form block (email, name, consent - from shared component)
+ * - Discount configuration
+ *
+ * Design configuration is handled separately by:
+ * - Theme picker (provides colors, typography, effects)
+ * - Layout picker (image position)
+ * - Background picker (image selection)
+ *
+ * @see LeadCaptureFormSection for email/name/consent configuration
+ * @see CAMPAIGN_FORM_STRATEGY.md for architecture decisions
  */
 
 import { Card, BlockStack, Text, Divider } from "@shopify/polaris";
-import { TextField, FormGrid } from "../form";
-import { FieldConfigurationSection } from "./FieldConfigurationSection";
+import { TextField } from "../form";
+import { LeadCaptureFormSection } from "./LeadCaptureFormSection";
 import { DiscountSection } from "~/domains/popups/components/design/DiscountSection";
-import type { NewsletterContentSchema } from "../../types/campaign";
-import type { DiscountConfig } from "~/domains/popups/services/discounts/discount.server";
+import type { NewsletterContentSchema, DiscountConfig } from "../../types/campaign";
 import { z } from "zod";
 import { useFieldUpdater } from "~/shared/hooks/useFieldUpdater";
 
@@ -53,6 +61,7 @@ export function NewsletterContentSection({
           <Divider />
 
           <BlockStack gap="400">
+            {/* Essential Text Fields */}
             <TextField
               label="Headline"
               name="content.headline"
@@ -71,34 +80,22 @@ export function NewsletterContentSection({
               value={content.subheadline || ""}
               error={errors?.subheadline}
               placeholder="Join our newsletter for exclusive deals"
-              helpText="Supporting text (optional)"
+              helpText="Supporting text below headline (optional)"
               onChange={(value) => updateField("subheadline", value)}
               data-test-id="newsletter-subheadline"
             />
 
-            <FormGrid columns={2}>
-              <TextField
-                label="Button Text"
-                name="content.buttonText"
-                value={content.buttonText || "Subscribe"}
-                error={errors?.buttonText}
-                required
-                placeholder="Subscribe"
-                onChange={(value) => updateField("buttonText", value)}
-                data-test-id="newsletter-button-text"
-              />
-
-              <TextField
-                label="Email Label"
-                name="content.emailLabel"
-                value={content.emailLabel || ""}
-                error={errors?.emailLabel}
-                placeholder="Email"
-                helpText="Label shown above email field"
-                onChange={(value) => updateField("emailLabel", value)}
-                data-test-id="newsletter-email-label"
-              />
-            </FormGrid>
+            <TextField
+              label="Button Text"
+              name="content.submitButtonText"
+              value={content.submitButtonText || content.buttonText || "Subscribe"}
+              error={errors?.submitButtonText}
+              required
+              placeholder="Subscribe"
+              helpText="Text on the submit button"
+              onChange={(value) => updateField("submitButtonText", value)}
+              data-test-id="newsletter-button-text"
+            />
 
             <TextField
               label="Dismiss Button Text"
@@ -106,19 +103,9 @@ export function NewsletterContentSection({
               value={content.dismissLabel || ""}
               error={errors?.dismissLabel}
               placeholder="No thanks"
-              helpText="Secondary button text that closes the popup"
+              helpText="Text for the secondary 'close' button"
               onChange={(value) => updateField("dismissLabel", value)}
-            />
-
-            <TextField
-              label="Email Placeholder"
-              name="content.emailPlaceholder"
-              value={content.emailPlaceholder || "Enter your email"}
-              error={errors?.emailPlaceholder}
-              placeholder="Enter your email"
-              helpText="Placeholder text inside email field"
-              onChange={(value) => updateField("emailPlaceholder", value)}
-              data-test-id="newsletter-email-placeholder"
+              data-test-id="newsletter-dismiss-label"
             />
 
             <TextField
@@ -133,32 +120,28 @@ export function NewsletterContentSection({
               data-test-id="newsletter-success-message"
             />
 
-            <TextField
-              label="Failure Message"
-              name="content.failureMessage"
-              value={content.failureMessage || ""}
-              error={errors?.failureMessage}
-              placeholder="Something went wrong. Please try again."
-              helpText="Message shown if submission fails (optional)"
-              onChange={(value) => updateField("failureMessage", value)}
-              data-test-id="newsletter-failure-message"
-            />
+            <Divider />
 
-            {/* Field Configuration Section - Email, Name, GDPR */}
+            {/* Lead Capture Form - Email, Name, GDPR */}
             <BlockStack gap="300">
               <Text as="h4" variant="headingSm">
-                Field Configuration
+                📧 Lead Capture Form
               </Text>
-              <FieldConfigurationSection
+              <Text as="p" tone="subdued">
+                Configure email, name, and consent fields
+              </Text>
+              <LeadCaptureFormSection
                 emailRequired={content.emailRequired}
                 emailLabel={content.emailLabel}
                 emailPlaceholder={content.emailPlaceholder}
                 nameFieldEnabled={content.nameFieldEnabled}
                 nameFieldRequired={content.nameFieldRequired}
+                nameFieldLabel={content.nameFieldLabel}
                 nameFieldPlaceholder={content.nameFieldPlaceholder}
                 consentFieldEnabled={content.consentFieldEnabled}
                 consentFieldRequired={content.consentFieldRequired}
                 consentFieldText={content.consentFieldText}
+                privacyPolicyUrl={content.privacyPolicyUrl}
                 onChange={(updates) => onChange({ ...content, ...updates })}
                 errors={errors}
               />
@@ -186,6 +169,7 @@ export function NewsletterContentSection({
               goal="NEWSLETTER_SIGNUP"
               discountConfig={discountConfig}
               onConfigChange={onDiscountChange}
+              hasEmailCapture={true}
             />
           </BlockStack>
         </Card>

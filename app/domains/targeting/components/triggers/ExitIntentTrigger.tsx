@@ -52,9 +52,10 @@ export function ExitIntentTrigger({ config, onChange }: ExitIntentTriggerProps) 
           autoComplete="off"
           label="Delay (milliseconds)"
           type="number"
-          value={config.exit_intent?.delay?.toString() || "1000"}
-          onChange={(value) => updateConfig({ delay: parseInt(value) || 1000 })}
+          value={config.exit_intent?.delay?.toString() ?? ""}
+          onChange={(value) => updateConfig({ delay: value === "" ? undefined : parseInt(value) })}
           helpText="Minimum time before exit intent can trigger"
+          placeholder="1000"
         />
 
         <Checkbox

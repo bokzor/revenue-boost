@@ -676,7 +676,7 @@ describe("PlanGuardService", () => {
         planStatus: "ACTIVE",
         shopifySubscriptionStatus: "ACTIVE",
       } as any);
-      vi.mocked(prisma.popupEvent.count).mockResolvedValue(5000); // impressions
+      vi.mocked(prisma.popupEvent.count).mockResolvedValue(2500); // impressions
       vi.mocked(prisma.lead.count).mockResolvedValue(150); // leads
       vi.mocked(prisma.campaign.count).mockResolvedValue(3);
       vi.mocked(prisma.experiment.count).mockResolvedValue(1);
@@ -686,9 +686,9 @@ describe("PlanGuardService", () => {
       expect(summary.plan).toBe("GROWTH");
       expect(summary.planName).toBe("Growth");
       expect(summary.overageStrategy).toBe("SOFT_BLOCK");
-      expect(summary.usage.impressions.current).toBe(5000);
-      expect(summary.usage.impressions.max).toBe(100000);
-      expect(summary.usage.impressions.percentage).toBe(5);
+      expect(summary.usage.impressions.current).toBe(2500);
+      expect(summary.usage.impressions.max).toBe(50000); // GROWTH has 50000 cap
+      expect(summary.usage.impressions.percentage).toBe(5); // 2500/50000 = 5%
       expect(summary.usage.leads.current).toBe(150);
       expect(summary.usage.leads.max).toBe(2500);
       expect(summary.usage.activeCampaigns.current).toBe(3);
@@ -704,16 +704,16 @@ describe("PlanGuardService", () => {
         planStatus: "ACTIVE",
         shopifySubscriptionStatus: "ACTIVE",
       } as any);
-      vi.mocked(prisma.popupEvent.count).mockResolvedValue(500000); // impressions
+      vi.mocked(prisma.popupEvent.count).mockResolvedValue(250000); // impressions
       vi.mocked(prisma.lead.count).mockResolvedValue(50000); // leads
       vi.mocked(prisma.campaign.count).mockResolvedValue(50);
       vi.mocked(prisma.experiment.count).mockResolvedValue(20);
 
       const summary = await PlanGuardService.getUsageSummary("store-1");
 
-      // ENTERPRISE has: monthlyImpressionCap: 1000000, maxLeadsPerMonth: null
+      // ENTERPRISE has: monthlyImpressionCap: 500000, maxLeadsPerMonth: null
       // So impressions should have a percentage, leads should be null
-      expect(summary.usage.impressions.percentage).toBe(50); // 500000/1000000 = 50%
+      expect(summary.usage.impressions.percentage).toBe(50); // 250000/500000 = 50%
       expect(summary.usage.leads.percentage).toBeNull(); // Unlimited
     });
   });

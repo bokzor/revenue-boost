@@ -1,2 +1,8 @@
 [debug] [2025-11-30T10:32:34.790Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
 [debug] [2025-11-30T10:32:34.791Z] > authorizing via signed-in user (adrien@bokor.me)
+[debug] [2025-12-05T13:04:08.969Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2025-12-05T13:04:08.971Z] > authorizing via signed-in user (adrien@bokor.me)
+[debug] [2025-12-06T15:03:58.839Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2025-12-06T15:03:58.844Z] > authorizing via signed-in user (adrien@bokor.me)
+[debug] [2025-12-06T15:13:43.489Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2025-12-06T15:13:43.491Z] > authorizing via signed-in user (adrien@bokor.me)

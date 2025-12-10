@@ -38,18 +38,20 @@ export function IdleTimerTrigger({ config, onChange }: IdleTimerTriggerProps) {
           autoComplete="off"
           label="Idle duration (seconds)"
           type="number"
-          value={config.idle_timer?.idle_duration?.toString() || "30"}
-          onChange={(value) => updateConfig({ idle_duration: parseInt(value) || 30 })}
+          value={config.idle_timer?.idle_duration?.toString() ?? ""}
+          onChange={(value) => updateConfig({ idle_duration: value === "" ? undefined : parseInt(value) })}
           helpText="Time of inactivity before triggering"
+          placeholder="30"
         />
 
         <TextField
           autoComplete="off"
           label="Mouse movement threshold (pixels)"
           type="number"
-          value={config.idle_timer?.mouse_movement_threshold?.toString() || "10"}
-          onChange={(value) => updateConfig({ mouse_movement_threshold: parseInt(value) || 10 })}
+          value={config.idle_timer?.mouse_movement_threshold?.toString() ?? ""}
+          onChange={(value) => updateConfig({ mouse_movement_threshold: value === "" ? undefined : parseInt(value) })}
           helpText="Minimum mouse movement to reset idle timer"
+          placeholder="10"
         />
 
         <Checkbox

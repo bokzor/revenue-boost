@@ -8,7 +8,6 @@ import {
     STORE_DOMAIN,
     API_PROPAGATION_DELAY_MS,
     handlePasswordPage,
-    mockChallengeToken,
     getTestPrefix,
     verifyScratchCardContent,
     fillEmailInShadowDOM,
@@ -67,7 +66,6 @@ test.describe.serial('Scratch Card Template', () => {
         // Clean up ALL E2E campaigns to avoid priority conflicts
         await cleanupAllE2ECampaigns(prisma);
 
-        await mockChallengeToken(page);
         await page.context().clearCookies();
 
         // No bundle mocking - tests use deployed extension code

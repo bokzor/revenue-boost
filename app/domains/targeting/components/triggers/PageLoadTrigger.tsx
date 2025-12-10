@@ -38,11 +38,12 @@ export function PageLoadTrigger({ config, onChange }: PageLoadTriggerProps) {
           autoComplete="off"
           label="Delay (seconds)"
           type="number"
-          value={config.page_load?.delay?.toString() || "3"}
-          onChange={(value) => updateConfig({ delay: parseInt(value) || 3 })}
+          value={config.page_load?.delay?.toString() ?? ""}
+          onChange={(value) => updateConfig({ delay: value === "" ? undefined : parseInt(value) })}
           helpText="Seconds to wait after page loads (0 = immediate)"
           min={0}
           max={60}
+          placeholder="3"
         />
 
         <Checkbox

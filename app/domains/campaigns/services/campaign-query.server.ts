@@ -5,6 +5,7 @@
  * Single Responsibility: Query operations only
  */
 
+import { logger } from "~/lib/logger.server";
 import prisma from "~/db.server";
 import type { CampaignStatus, CampaignWithConfigs, TemplateType } from "../types/campaign.js";
 import { parseCampaignFields } from "../utils/json-helpers.js";
@@ -125,22 +126,24 @@ export class CampaignQueryService {
         );
 
         if (!withinSchedule) {
-          console.log(
-            `[CampaignQuery] Campaign "${campaign.name}" (${campaign.id}) excluded: outside schedule window`,
-            {
-              startDate: campaign.startDate,
-              endDate: campaign.endDate,
-              timezone,
-            }
-          );
+          logger.debug({
+            campaignId: campaign.id,
+            campaignName: campaign.name,
+            startDate: campaign.startDate,
+            endDate: campaign.endDate,
+            timezone,
+          }, "[CampaignQuery] Campaign excluded: outside schedule window");
         }
 
         return withinSchedule;
       });
 
-      console.log(
-        `[CampaignQuery] Active campaigns for store ${storeId}: ${activeCampaigns.length}/${parsedCampaigns.length} within schedule (timezone: ${timezone})`
-      );
+      logger.debug({
+        storeId,
+        activeCount: activeCampaigns.length,
+        totalCount: parsedCampaigns.length,
+        timezone,
+      }, "[CampaignQuery] Active campaigns filtered by schedule");
 
       return activeCampaigns;
     } catch (error) {

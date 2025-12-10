@@ -6,6 +6,7 @@
  * Sanitizes error messages in production to prevent information leakage
  */
 
+import { logger } from "~/lib/logger.server";
 import { data } from "react-router";
 import { z } from "zod";
 import { createApiResponse } from "~/lib/api-types";
@@ -76,15 +77,16 @@ function logError(error: unknown, context: string): void {
 
   if (isProd) {
     // In production, log to error monitoring service (e.g., Sentry)
-    // For now, log to console with sanitized output
-    console.error(`[API Error] ${context}:`, {
+    // For now, log with sanitized output
+    logger.error({
+      context,
       message: error instanceof Error ? error.message : String(error),
       type: error instanceof Error ? error.constructor.name : typeof error,
       // Don't log stack traces in production console
-    });
+    }, "[APIError] Error occurred");
   } else {
     // In development, log full error details
-    console.error(`[API Error] ${context}:`, error);
+    logger.error({ error }, "[API Error] ${context}:");
   }
 }
 

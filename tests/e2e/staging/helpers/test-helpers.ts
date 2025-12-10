@@ -1,4 +1,5 @@
 import type { Page } from "@playwright/test";
+import type { PrismaClient } from "@prisma/client";
 import "./load-staging-env";
 
 /**
@@ -8,6 +9,24 @@ import "./load-staging-env";
 export const STORE_URL = "https://revenue-boost-staging.myshopify.com";
 export const STORE_DOMAIN = "revenue-boost-staging.myshopify.com";
 export const STORE_PASSWORD = process.env.STORE_PASSWORD || "a";
+
+/**
+ * Get the store ID for the E2E testing store.
+ *
+ * IMPORTANT: There may be multiple stores in the staging database.
+ * This function finds the specific store that matches STORE_DOMAIN
+ * to ensure campaigns are created for the correct store.
+ */
+export async function getTestStoreId(prisma: PrismaClient): Promise<string> {
+  const store = await prisma.store.findFirst({
+    where: { shopifyDomain: STORE_DOMAIN },
+    select: { id: true },
+  });
+  if (!store) {
+    throw new Error(`E2E store not found in database. Expected: ${STORE_DOMAIN}`);
+  }
+  return store.id;
+}
 
 /**
  * Time to wait after creating a campaign before loading the page (in milliseconds)
@@ -133,20 +152,6 @@ export async function submitForm(page: Page) {
 export async function closePopup(page: Page) {
   const closeButton = page.locator('[aria-label="Close"], button.close, .close-button');
   await closeButton.click();
-}
-
-/**
- * Mock challenge token request to avoid rate limits
- */
-export async function mockChallengeToken(page: Page) {
-  await page.route("**/api/challenge/request", async (route) => {
-    const json = {
-      success: true,
-      challengeToken: "mock-challenge-token-" + Date.now(),
-      expiresAt: new Date(Date.now() + 600000).toISOString(),
-    };
-    await route.fulfill({ json });
-  });
 }
 
 /**
@@ -926,9 +931,6 @@ export async function setupTestEnvironment(
   // 2. Wait for cleanup to propagate
   await page.waitForTimeout(waitTime);
   console.log("[Test Setup] Waited for cleanup to propagate");
-
-  // 3. Mock challenge token
-  await mockChallengeToken(page);
 }
 
 /**
@@ -1029,6 +1031,104 @@ export async function waitForPopupWithRetry(
   }
 
   return false;
+}
+
+/**
+ * Wait for Free Shipping bar with retry - handles timing issues.
+ * Free Shipping uses a different DOM structure (no Shadow DOM, renders directly to body).
+ */
+export async function waitForFreeShippingBarWithRetry(
+  page: Page,
+  options: {
+    timeout?: number;
+    retries?: number;
+    reloadOnRetry?: boolean;
+  } = {}
+): Promise<boolean> {
+  const { timeout = 10000, retries = 2, reloadOnRetry = true } = options;
+
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      // Free Shipping bar renders directly without Shadow DOM
+      const bar = page.locator('.free-shipping-bar, [data-rb-banner]');
+      await bar.waitFor({ state: "visible", timeout });
+      return true;
+    } catch {
+      if (attempt < retries && reloadOnRetry) {
+        console.log(`[Retry ${attempt}] Free shipping bar not visible, reloading page...`);
+        await page.reload();
+        await handlePasswordPage(page);
+        await page.waitForTimeout(2000);
+      }
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Check if text exists in the Free Shipping bar (no Shadow DOM).
+ */
+export async function hasTextInFreeShippingBar(page: Page, text: string): Promise<boolean> {
+  return page.evaluate((searchText) => {
+    const bar = document.querySelector('.free-shipping-bar, [data-rb-banner]');
+    if (!bar) return false;
+    return bar.textContent?.toLowerCase().includes(searchText.toLowerCase()) ?? false;
+  }, text);
+}
+
+/**
+ * Wait for discount success state in popup Shadow DOM.
+ * New single-click CTA flow shows "Discount applied!" message after claiming.
+ */
+export async function waitForDiscountSuccessState(
+  page: Page,
+  options: { timeout?: number } = {}
+): Promise<{ discountCode: string | null; hasSuccessState: boolean }> {
+  const { timeout = 10000 } = options;
+
+  try {
+    // Wait for success state indicators
+    await page.waitForFunction(() => {
+      const host = document.querySelector('#revenue-boost-popup-shadow-host');
+      if (!host?.shadowRoot) return false;
+      const html = host.shadowRoot.innerHTML.toLowerCase();
+      return html.includes('discount applied') ||
+             html.includes('your discount code') ||
+             html.includes('continue shopping');
+    }, { timeout });
+
+    // Extract the discount code if present
+    const discountCode = await page.evaluate(() => {
+      const host = document.querySelector('#revenue-boost-popup-shadow-host');
+      if (!host?.shadowRoot) return null;
+      // Look for discount code element
+      const codeEl = host.shadowRoot.querySelector('[class*="discount-code"], [class*="code"]');
+      return codeEl?.textContent?.trim() || null;
+    });
+
+    return { discountCode, hasSuccessState: true };
+  } catch {
+    return { discountCode: null, hasSuccessState: false };
+  }
+}
+
+/**
+ * Click "Continue Shopping" button in discount success state.
+ */
+export async function clickContinueShoppingButton(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    const host = document.querySelector('#revenue-boost-popup-shadow-host');
+    if (!host?.shadowRoot) return;
+    // Look for "Continue Shopping" button
+    const buttons = host.shadowRoot.querySelectorAll('button');
+    for (const btn of buttons) {
+      if (btn.textContent?.toLowerCase().includes('continue')) {
+        (btn as HTMLButtonElement).click();
+        return;
+      }
+    }
+  });
 }
 
 /**

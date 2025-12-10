@@ -10,9 +10,11 @@ import React from "react";
 export interface DeviceFrameProps {
   device: "mobile" | "tablet" | "desktop";
   children: React.ReactNode;
+  /** Whether to show shadow around device (default: true) */
+  showShadow?: boolean;
 }
 
-export const DeviceFrame: React.FC<DeviceFrameProps> = ({ device, children }) => {
+export const DeviceFrame: React.FC<DeviceFrameProps> = ({ device, children, showShadow = true }) => {
   if (device === "mobile") {
     // iPhone 14/15 dimensions (390×844) - more representative of modern phones
     return (
@@ -23,7 +25,7 @@ export const DeviceFrame: React.FC<DeviceFrameProps> = ({ device, children }) =>
           border: "12px solid #1A1A1A",
           borderRadius: "44px",
           backgroundColor: "#FFFFFF",
-          boxShadow: "0 20px 60px rgba(0, 0, 0, 0.3)",
+          boxShadow: showShadow ? "0 20px 60px rgba(0, 0, 0, 0.3)" : "none",
           position: "relative",
           overflow: "hidden",
         }}
@@ -58,7 +60,8 @@ export const DeviceFrame: React.FC<DeviceFrameProps> = ({ device, children }) =>
             overflow: "hidden",
             position: "relative",
             backgroundColor: "#FFFFFF",
-          }}
+            containerType: "inline-size", // Enable CSS container queries
+          } as React.CSSProperties}
         >
           {/* Simulated page content */}
           <div
@@ -86,7 +89,7 @@ export const DeviceFrame: React.FC<DeviceFrameProps> = ({ device, children }) =>
           border: "12px solid #1A1A1A",
           borderRadius: "24px",
           backgroundColor: "#FFFFFF",
-          boxShadow: "0 20px 60px rgba(0, 0, 0, 0.3)",
+          boxShadow: showShadow ? "0 20px 60px rgba(0, 0, 0, 0.3)" : "none",
           position: "relative",
           overflow: "hidden",
         }}
@@ -121,7 +124,8 @@ export const DeviceFrame: React.FC<DeviceFrameProps> = ({ device, children }) =>
             overflow: "hidden",
             position: "relative",
             backgroundColor: "#FFFFFF",
-          }}
+            containerType: "inline-size", // Enable CSS container queries
+          } as React.CSSProperties}
         >
           {/* Simulated page content */}
           <div
@@ -151,7 +155,7 @@ export const DeviceFrame: React.FC<DeviceFrameProps> = ({ device, children }) =>
         border: "1px solid #E1E3E5",
         borderRadius: "8px",
         backgroundColor: "#FFFFFF",
-        boxShadow: "0 4px 16px rgba(0, 0, 0, 0.1)",
+        boxShadow: showShadow ? "0 4px 16px rgba(0, 0, 0, 0.1)" : "none",
         overflow: "hidden",
         display: "flex", // Use flexbox to ensure full width content
         flexDirection: "column",
@@ -201,7 +205,7 @@ export const DeviceFrame: React.FC<DeviceFrameProps> = ({ device, children }) =>
         {/* Address Bar */}
         <div
           style={{
-            flex: 1,
+            flex: "1",
             height: "28px",
             backgroundColor: "#FFFFFF",
             borderRadius: "6px",
@@ -234,12 +238,13 @@ export const DeviceFrame: React.FC<DeviceFrameProps> = ({ device, children }) =>
       {/* Content Area - Creates positioning context for popups */}
       <div
         style={{
-          flex: 1, // Take remaining height after browser chrome
+          flex: "1", // Take remaining height after browser chrome
           minHeight: "500px",
           backgroundColor: "#FFFFFF",
           position: "relative",
           overflow: "hidden",
-        }}
+          containerType: "inline-size", // Enable CSS container queries
+        } as React.CSSProperties}
       >
         {/* Simulated page content */}
         <div

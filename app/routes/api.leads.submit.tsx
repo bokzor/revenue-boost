@@ -15,7 +15,7 @@ import { getStoreIdFromShop, createAdminApiContext } from "~/lib/auth-helpers.se
 import { PopupEventService } from "~/domains/analytics/popup-events.server";
 import {
   getCampaignDiscountCode,
-  parseDiscountConfig,
+  normalizeDiscountConfig,
   shouldShowDiscountCode,
   getSuccessMessage,
 } from "~/domains/commerce/services/discount.server";
@@ -262,7 +262,7 @@ export async function action({ request }: ActionFunctionArgs) {
       }
 
       // Parse discount config to determine behavior
-      const discountConfig = parseDiscountConfig(campaign.discountConfig);
+      const discountConfig = normalizeDiscountConfig(campaign.discountConfig);
       const behavior = discountConfig.behavior || "SHOW_CODE_AND_AUTO_APPLY";
       const showCode = shouldShowDiscountCode(behavior);
 
@@ -365,7 +365,7 @@ export async function action({ request }: ActionFunctionArgs) {
     const admin = createAdminApiContext(campaign.store.shopifyDomain, campaign.store.accessToken);
 
     // Parse discount config
-    const discountConfig = parseDiscountConfig(campaign.discountConfig);
+    const discountConfig = normalizeDiscountConfig(campaign.discountConfig);
 
     // For email authorization, add the subscriber's email to the config
     if (discountConfig.behavior === "SHOW_CODE_AND_ASSIGN_TO_EMAIL") {
@@ -489,10 +489,10 @@ export async function action({ request }: ActionFunctionArgs) {
     const freeGiftData =
       freeGift && (freeGift.variantId || freeGift.productId)
         ? {
-            variantId: freeGift.variantId || "",
-            productId: freeGift.productId || "",
-            quantity: freeGift.quantity || 1,
-          }
+          variantId: freeGift.variantId || "",
+          productId: freeGift.productId || "",
+          quantity: freeGift.quantity || 1,
+        }
         : undefined;
 
     if (freeGiftData) {

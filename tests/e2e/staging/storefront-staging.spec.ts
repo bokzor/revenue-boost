@@ -1,7 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { PrismaClient } from '@prisma/client';
 import './helpers/load-staging-env';
-import { mockChallengeToken } from './helpers/test-helpers';
 
 
 const STORE_URL = 'https://revenue-boost-staging.myshopify.com';
@@ -42,7 +41,6 @@ test.describe('Staging Storefront E2E', () => {
     });
 
     test.beforeEach(async ({ page }) => {
-        await mockChallengeToken(page);
         // Clean up any existing test campaigns
         await prisma.campaign.deleteMany({
             where: {
@@ -143,7 +141,8 @@ test.describe('Staging Storefront E2E', () => {
             console.log('🔒 Password page detected, logging in...');
             await passwordInput.fill(STORE_PASSWORD);
             await page.click('button[type="submit"]');
-            await page.waitForLoadState('networkidle');
+            await page.waitForLoadState('domcontentloaded');
+            await page.waitForTimeout(2000);
         }
 
         // 4. Verify Popup

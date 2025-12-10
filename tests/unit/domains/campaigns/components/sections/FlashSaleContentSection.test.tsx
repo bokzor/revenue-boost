@@ -5,6 +5,14 @@ import { AppProvider } from "@shopify/polaris";
 import en from "@shopify/polaris/locales/en.json";
 import userEvent from "@testing-library/user-event";
 
+// Mock App Bridge before importing components that use it
+const mockResourcePicker = vi.fn();
+vi.mock('@shopify/app-bridge-react', () => ({
+  useAppBridge: () => ({
+    resourcePicker: mockResourcePicker,
+  }),
+}));
+
 import { FlashSaleContentSection } from "~/domains/campaigns/components/sections/FlashSaleContentSection";
 import { ContentConfigSection } from "~/domains/campaigns/components/sections/ContentConfigSection";
 import type { FlashSaleContent } from "~/domains/campaigns/components/sections/FlashSaleContentSection";
@@ -15,7 +23,7 @@ function renderWithPolaris(ui: React.ReactNode) {
 }
 
 describe("FlashSaleContentSection", () => {
-  it("enables countdown by default and shows default duration when content is empty", () => {
+  it("enables countdown by default and shows duration field with placeholder when content is empty", () => {
     const { container } = renderWithPolaris(
       <FlashSaleContentSection
         content={{}}
@@ -33,7 +41,8 @@ describe("FlashSaleContentSection", () => {
       's-text-field[name="content.countdownDuration"]',
     );
     expect(durationField).toBeTruthy();
-    expect(durationField?.getAttribute("value")).toBe("3600");
+    // Empty value with placeholder="3600" indicates the default
+    expect(durationField?.getAttribute("placeholder")).toBe("3600");
   });
 
   describe("Inventory Tracking Wiring", () => {

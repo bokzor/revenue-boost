@@ -22,8 +22,9 @@ import {
   Popover,
 } from "@shopify/polaris";
 import { ChevronDownIcon, ChevronUpIcon } from "@shopify/polaris-icons";
-import { TextField, CheckboxField, FormGrid, ProductPicker } from "../form";
+import { TextField, CheckboxField, FormGrid, ProductPicker, CTAConfigEditor } from "../form";
 import { GenericDiscountComponent } from "../form/GenericDiscountComponent";
+import type { CTAConfig } from "../../types/cta";
 import type { FlashSaleContentSchema } from "../../types/campaign";
 import type { DiscountConfig } from "~/domains/commerce/services/discount.server";
 import { z } from "zod";
@@ -52,7 +53,12 @@ export function FlashSaleContentSection({
   const updateField = useFieldUpdater(content, onChange);
 
   const [showAdvancedTimer, setShowAdvancedTimer] = useState(false);
-  const [showInventory, setShowInventory] = useState(false);
+  // Auto-expand inventory section if inventory mode is already configured
+  const [showInventory, setShowInventory] = useState(() => {
+    const inventory = content.inventory as Record<string, unknown> | undefined;
+    // Show if inventory has been configured (mode set, pseudoMax defined, or products selected)
+    return Boolean(inventory?.mode || inventory?.pseudoMax || (inventory?.productIds as string[] | undefined)?.length);
+  });
   const [showReservation, setShowReservation] = useState(false);
 
   // Nested field updaters for enhanced features
@@ -136,36 +142,33 @@ export function FlashSaleContentSection({
               onChange={(value) => updateField("subheadline", value)}
             />
 
+            {/* CTA Configuration */}
+            <BlockStack gap="200">
+              <Text as="h4" variant="headingSm">
+                Call-to-Action Button
+              </Text>
+              <CTAConfigEditor
+                config={(content.cta as Partial<CTAConfig>) || { label: "Shop Now", action: "navigate_collection" }}
+                onChange={(cta) => updateField("cta", cta as FlashSaleContent["cta"])}
+                showDiscountOptions={!!discountConfig?.enabled}
+              />
+            </BlockStack>
+
+            {/* Secondary CTA (Dismiss Button) */}
             <FormGrid columns={2}>
               <TextField
-                label="Button Text"
-                name="content.buttonText"
-                value={content.buttonText || "Shop Now"}
-                error={errors?.buttonText}
-                required
-                placeholder="Shop Now"
-                onChange={(value) => updateField("buttonText", value)}
-              />
-
-              <TextField
-                label="CTA URL"
-                name="content.ctaUrl"
-                value={content.ctaUrl || ""}
-                placeholder="/collections/sale"
-                helpText="Where to send users when they click the button"
-                onChange={(value) => updateField("ctaUrl", value)}
+                label="Dismiss Button Text"
+                name="content.secondaryCta.label"
+                value={content.secondaryCta?.label || "No thanks"}
+                error={errors?.dismissLabel}
+                placeholder="No thanks"
+                helpText="Secondary button that closes the popup"
+                onChange={(value) => {
+                  const secondaryCta = content.secondaryCta || { action: "dismiss" as const };
+                  updateField("secondaryCta", { ...secondaryCta, label: value });
+                }}
               />
             </FormGrid>
-
-            <TextField
-              label="Dismiss Button Text"
-              name="content.dismissLabel"
-              value={content.dismissLabel || ""}
-              error={errors?.dismissLabel}
-              placeholder="No thanks"
-              helpText="Secondary button text that closes the popup"
-              onChange={(value) => updateField("dismissLabel", value)}
-            />
 
             <TextField
               label="Success Message"
@@ -191,12 +194,36 @@ export function FlashSaleContentSection({
         </BlockStack>
       </Card>
 
+      {/* ========== DISCOUNT SECTION ========== */}
+      {onDiscountChange && (
+        <Card>
+          <BlockStack gap="400">
+            <BlockStack gap="200">
+              <Text as="h3" variant="headingMd">
+                💰 Discount Configuration
+              </Text>
+              <Text as="p" tone="subdued">
+                Configure advanced discount types: tiered discounts, BOGO deals, and free gifts
+              </Text>
+            </BlockStack>
+
+            <Divider />
+
+            <GenericDiscountComponent
+              goal="INCREASE_REVENUE"
+              discountConfig={discountConfig}
+              onConfigChange={onDiscountChange}
+            />
+          </BlockStack>
+        </Card>
+      )}
+
       {/* ========== ADVANCED FEATURES SECTION ========== */}
       <Card>
         <BlockStack gap="400">
           <BlockStack gap="200">
             <Text as="h3" variant="headingMd">
-              ⏱️ Timer Settings
+              {templateType === "COUNTDOWN_TIMER" ? "⏱️ Timer Settings" : "⚙️ Advanced Features"}
             </Text>
             <Text as="p" tone="subdued">
               {templateType === "COUNTDOWN_TIMER"
@@ -226,10 +253,10 @@ export function FlashSaleContentSection({
               <TextField
                 label="Countdown Duration (seconds)"
                 name="content.countdownDuration"
-                value={content.countdownDuration?.toString() || "3600"}
+                value={content.countdownDuration?.toString() ?? ""}
                 placeholder="3600"
                 helpText="Duration in seconds (default: 3600 = 1 hour)"
-                onChange={(value) => updateField("countdownDuration", parseInt(value) || 3600)}
+                onChange={(value) => updateField("countdownDuration", (value === "" ? undefined : parseInt(value)) as number)}
               />
             )}
 
@@ -282,12 +309,12 @@ export function FlashSaleContentSection({
                     value={
                       (
                         content.timer as Record<string, unknown>
-                      )?.personalWindowSeconds?.toString() || "1800"
+                      )?.personalWindowSeconds?.toString() ?? ""
                     }
                     placeholder="1800"
                     helpText="Countdown from first view (e.g., 1800 = 30 min)"
                     onChange={(value) =>
-                      updateTimerField("personalWindowSeconds", parseInt(value) || 1800)
+                      updateTimerField("personalWindowSeconds", value === "" ? undefined : parseInt(value))
                     }
                   />
                 )}
@@ -374,16 +401,16 @@ export function FlashSaleContentSection({
                       helpText="Use real inventory or simulated stock"
                     />
 
-                {(content.inventory as Record<string, unknown>)?.mode === "pseudo" && (
+                {((content.inventory as Record<string, unknown>)?.mode ?? "pseudo") === "pseudo" && (
                   <TextField
                     label="Pseudo Max Inventory"
                     name="inventory.pseudoMax"
                     value={
-                      (content.inventory as Record<string, unknown>)?.pseudoMax?.toString() || "8"
+                      (content.inventory as Record<string, unknown>)?.pseudoMax?.toString() ?? ""
                     }
                     placeholder="8"
                     helpText="Simulated stock count. Set below threshold to show 'Only X Left' message."
-                    onChange={(value) => updateInventoryField("pseudoMax", parseInt(value) || 8)}
+                    onChange={(value) => updateInventoryField("pseudoMax", value === "" ? undefined : parseInt(value))}
                   />
                 )}
 
@@ -437,13 +464,13 @@ export function FlashSaleContentSection({
                       label="Show Threshold"
                       name="inventory.showThreshold"
                       value={
-                        (content.inventory as Record<string, unknown>)?.showThreshold?.toString() ||
-                        "10"
+                        (content.inventory as Record<string, unknown>)?.showThreshold?.toString() ??
+                        ""
                       }
                       placeholder="10"
                       helpText="Show warning when ≤ this value"
                       onChange={(value) =>
-                        updateInventoryField("showThreshold", parseInt(value) || 10)
+                        updateInventoryField("showThreshold", value === "" ? undefined : parseInt(value))
                       }
                     />
                   )}
@@ -530,11 +557,11 @@ export function FlashSaleContentSection({
                       label="Reservation Minutes"
                       name="reserve.minutes"
                       value={
-                        (content.reserve as Record<string, unknown>)?.minutes?.toString() || "10"
+                        (content.reserve as Record<string, unknown>)?.minutes?.toString() ?? ""
                       }
                       placeholder="10"
                       helpText="Minutes to claim the reserved offer"
-                      onChange={(value) => updateReserveField("minutes", parseInt(value) || 10)}
+                      onChange={(value) => updateReserveField("minutes", value === "" ? undefined : parseInt(value))}
                     />
 
                     <TextField
@@ -564,30 +591,6 @@ export function FlashSaleContentSection({
           )}
         </BlockStack>
       </Card>
-
-      {/* ========== DISCOUNT SECTION ========== */}
-      {onDiscountChange && (
-        <Card>
-          <BlockStack gap="400">
-            <BlockStack gap="200">
-              <Text as="h3" variant="headingMd">
-                💰 Discount Configuration
-              </Text>
-              <Text as="p" tone="subdued">
-                Configure advanced discount types: tiered discounts, BOGO deals, and free gifts
-              </Text>
-            </BlockStack>
-
-            <Divider />
-
-            <GenericDiscountComponent
-              goal="INCREASE_REVENUE"
-              discountConfig={discountConfig}
-              onConfigChange={onDiscountChange}
-            />
-          </BlockStack>
-        </Card>
-      )}
     </>
   );
 }

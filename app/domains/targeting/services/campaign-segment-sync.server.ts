@@ -8,6 +8,7 @@
  * to not block the user experience.
  */
 
+import { logger } from "~/lib/logger.server";
 import type { AdminApiContext } from "@shopify/shopify-app-react-router/server";
 import type { TargetRulesConfig } from "~/domains/campaigns/types/campaign";
 import {
@@ -72,7 +73,7 @@ export function triggerCampaignSegmentSync(options: TriggerSyncOptions): void {
     forceSync,
   }).catch((error) => {
     // Log error but don't throw - this is background work
-    console.error("[CampaignSegmentSync] Background sync failed:", error);
+    logger.error({ error }, "[CampaignSegmentSync] Background sync failed:");
   });
 }
 
@@ -84,21 +85,18 @@ async function performSyncAsync(options: {
 }): Promise<void> {
   const { storeId, segmentIds, admin, forceSync } = options;
 
-  console.log(
-    `[CampaignSegmentSync] Checking sync for ${segmentIds.length} segment(s)`,
-    { storeId, segmentIds }
-  );
+  logger.debug({ storeId, segmentIds, count: segmentIds.length }, "[CampaignSegmentSync] Checking sync");
 
   // Check if we already have membership data for these segments
   if (!forceSync) {
     const hasData = await hasSegmentMembershipData({ storeId, segmentIds });
     if (hasData) {
-      console.log("[CampaignSegmentSync] Membership data already exists, skipping sync");
+      logger.debug("[CampaignSegmentSync] Membership data already exists, skipping sync");
       return;
     }
   }
 
-  console.log("[CampaignSegmentSync] Starting membership sync...");
+  logger.debug("[CampaignSegmentSync] Starting membership sync...");
   const startTime = Date.now();
 
   try {
@@ -109,11 +107,9 @@ async function performSyncAsync(options: {
     });
 
     const duration = Date.now() - startTime;
-    console.log(
-      `[CampaignSegmentSync] Sync completed in ${duration}ms for ${segmentIds.length} segment(s)`
-    );
+    logger.debug({ durationMs: duration, count: segmentIds.length }, "[CampaignSegmentSync] Sync completed");
   } catch (error) {
-    console.error("[CampaignSegmentSync] Sync failed:", error);
+    logger.error({ error }, "[CampaignSegmentSync] Sync failed:");
     throw error;
   }
 }

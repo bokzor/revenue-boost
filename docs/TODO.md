@@ -134,6 +134,24 @@ See `docs/INTEGRATIONS_PLAN.md` for full details and tag reference.
 
 ## 💎 P3 - Future / Backlog
 
+### [ ] Web Push Notifications
+**Impact:** 🔥🔥🔥 | **Effort:** High
+
+Inspired by Wisepops' multi-channel approach. Extends engagement beyond the current session.
+
+- [ ] Web Push opt-in popup/banner
+- [ ] Cart abandonment reminders via push
+- [ ] Flash sale / promotional push campaigns
+- [ ] Scheduled push notifications
+- [ ] Push analytics (delivery, clicks, conversions)
+
+**Why:** Re-engages visitors after they leave. Complements on-site popups. Key differentiator for retention.
+
+### [ ] New Popup Templates
+- [ ] Video popup (embed YouTube/Vimeo, product demos)
+- [ ] Survey popup (multi-question feedback, NPS scores)
+- [ ] Birthday Signup popup (collect DOB for birthday discounts)
+
 ### [ ] Custom Template Builder
 - [ ] Drag-and-drop element editor
 - [ ] Custom CSS injection

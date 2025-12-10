@@ -8,7 +8,6 @@
  * Phase 1: Foundation Components
  * - Icon components (CloseIcon, CheckmarkIcon, SpinnerIcon, ChevronIcon)
  * - LoadingSpinner component
- * - usePopupTheme hook
  * - Animation styles (animations.css)
  *
  * Phase 2: Core Components
@@ -58,9 +57,28 @@ export { CTAButton, type CTAButtonProps } from "./CTAButton";
 export { PopupCloseButton, type PopupCloseButtonProps } from "./PopupCloseButton";
 
 // ============================================
-// HOOKS
+// PHASE C COMPONENTS (Spa Serenity Design System)
 // ============================================
-export { usePopupTheme, type PopupTheme } from "./usePopupTheme";
+export { TagBadge, type TagBadgeProps } from "./TagBadge";
+export { FooterDisclaimer, type FooterDisclaimerProps } from "./FooterDisclaimer";
+export { ImageFloatingBadge, type ImageFloatingBadgeProps } from "./ImageFloatingBadge";
+export { StyledCheckbox, type StyledCheckboxProps } from "./StyledCheckbox";
+
+// ============================================
+// PROMOTION DISPLAY COMPONENT
+// ============================================
+export {
+  PromotionDisplay,
+  type PromotionDisplayProps,
+  type DiscountTier,
+  type FreeGiftConfig,
+  type BogoConfig,
+} from "./PromotionDisplay";
+
+// ============================================
+// PRODUCT IMAGE COMPONENT
+// ============================================
+export { ProductImage, type ProductImageProps } from "./ProductImage";
 
 // ============================================
 // STYLES

@@ -172,6 +172,7 @@ describe("CartAbandonmentPopup", () => {
       discount: {
         enabled: true,
         deliveryMode: "show_code_always",
+        percentage: 10, // Required for discount display section to render
       },
     });
 
@@ -239,6 +240,7 @@ describe("CartAbandonmentPopup", () => {
       discount: {
         enabled: true,
         deliveryMode: "show_code_always",
+        percentage: 10, // Required for discount display section to render
       },
     });
 
@@ -263,7 +265,9 @@ describe("CartAbandonmentPopup", () => {
 
     fireEvent.click(resumeButton);
 
-    expect(await screen.findByText(/cta10/i)).toBeTruthy();
+    await waitFor(() => {
+      expect(screen.getByText(/cta10/i)).toBeTruthy();
+    });
   });
 
 
@@ -303,7 +307,75 @@ describe("CartAbandonmentPopup", () => {
       expect(issueDiscount).toHaveBeenCalledTimes(1);
     });
 
-    expect(issueDiscount).toHaveBeenCalledWith({ cartSubtotalCents: 9998 });
+    // Empty cartItems means no cartProductIds passed
+    expect(issueDiscount).toHaveBeenCalledWith({
+      cartSubtotalCents: 9998,
+      cartProductIds: undefined,
+    });
+  });
+
+  it("passes cart product IDs to issueDiscount for cart-scoped discounts", async () => {
+    const config = createConfig({
+      ctaUrl: "/checkout",
+      discount: {
+        enabled: true,
+        code: "CART15",
+        deliveryMode: "show_code_fallback",
+      },
+    });
+
+    const issueDiscount = vi
+      .fn()
+      .mockResolvedValue({ code: "CART15", autoApplyMode: "ajax" });
+
+    render(
+      <CartAbandonmentPopup
+        config={config}
+        isVisible={true}
+        onClose={() => {}}
+        cartItems={[
+          {
+            id: "line-item-1",
+            productId: "gid://shopify/Product/123",
+            variantId: "gid://shopify/ProductVariant/456",
+            title: "Test Product",
+            price: "29.99",
+            quantity: 1,
+            imageUrl: "https://example.com/image.jpg",
+          },
+          {
+            id: "line-item-2",
+            productId: "gid://shopify/Product/789",
+            variantId: "gid://shopify/ProductVariant/012",
+            title: "Another Product",
+            price: "19.99",
+            quantity: 2,
+            imageUrl: "https://example.com/image2.jpg",
+          },
+        ]}
+        cartTotal={69.97}
+        issueDiscount={issueDiscount}
+      />,
+    );
+
+    const resumeButton = screen.getByRole("button", {
+      name: /resume checkout/i,
+    });
+
+    fireEvent.click(resumeButton);
+
+    await waitFor(() => {
+      expect(issueDiscount).toHaveBeenCalledTimes(1);
+    });
+
+    // Cart product IDs should be extracted and passed
+    expect(issueDiscount).toHaveBeenCalledWith({
+      cartSubtotalCents: 6997,
+      cartProductIds: [
+        "gid://shopify/Product/123",
+        "gid://shopify/Product/789",
+      ],
+    });
   });
 
 

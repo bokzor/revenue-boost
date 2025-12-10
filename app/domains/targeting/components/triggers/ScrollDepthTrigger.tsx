@@ -72,9 +72,10 @@ export function ScrollDepthTrigger({ config, onChange }: ScrollDepthTriggerProps
           autoComplete="off"
           label="Debounce time (milliseconds)"
           type="number"
-          value={config.scroll_depth?.debounce_time?.toString() || "500"}
-          onChange={(value) => updateConfig({ debounce_time: parseInt(value) || 500 })}
+          value={config.scroll_depth?.debounce_time?.toString() ?? ""}
+          onChange={(value) => updateConfig({ debounce_time: value === "" ? undefined : parseInt(value) })}
           helpText="Delay between scroll events to prevent excessive triggering"
+          placeholder="500"
         />
 
         <Checkbox

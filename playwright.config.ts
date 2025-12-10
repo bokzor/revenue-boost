@@ -1,23 +1,58 @@
-import { defineConfig, devices } from '@playwright/test';
-import path from 'path';
-import dotenv from 'dotenv';
+import { defineConfig, devices } from "@playwright/test";
+import path from "path";
+import dotenv from "dotenv";
 
 dotenv.config({
-  path: path.resolve(process.cwd(), '.env.staging.env'),
+  path: path.resolve(process.cwd(), ".env.staging.env"),
   override: true,
 });
 
 /**
  * Playwright Configuration for E2E Tests
  *
- * Supports two types of tests:
- * 1. Admin tests - Test the admin UI (use mock-bridge to avoid CAPTCHA)
- * 2. Storefront tests - Test the storefront extension (real E2E)
+ * =============================================================================
+ * TEST TYPES
+ * =============================================================================
+ *
+ * 1. STOREFRONT TESTS (storefront-*.spec.ts)
+ *    - Test popup rendering on real Shopify storefront
+ *    - No admin login required
+ *    - Works in CI
+ *
+ * 2. ADMIN TESTS (admin-*.spec.ts) - Two modes:
+ *
+ *    a) REAL SHOPIFY ADMIN (default, local testing)
+ *       - Tests run against real Shopify admin iframe
+ *       - Requires ADMIN_EMAIL/ADMIN_PASSWORD
+ *       - Run with: npm run test:e2e -- --project=admin --headed
+ *
+ *    b) TEST_MODE (CI, automated testing)
+ *       - Set TEST_MODE=true environment variable
+ *       - Tests run against local server (port 3001)
+ *       - No Shopify login required
+ *       - CI starts its own server, doesn't touch your dev server
+ *
+ * =============================================================================
+ * RUNNING TESTS
+ * =============================================================================
+ *
+ * # Storefront tests (works in CI)
+ * npm run test:e2e -- --project=storefront
+ *
+ * # Admin tests - real Shopify (local, manual)
+ * npm run test:e2e -- --project=admin --headed
+ *
+ * # Admin tests - TEST_MODE (CI, automated)
+ * # First start test server: npm run dev:test:ci
+ * # Then: TEST_MODE=true npm run test:e2e -- --project=admin-ci
  *
  * See https://playwright.dev/docs/test-configuration
  */
 export default defineConfig({
-  testDir: './tests/e2e',
+  testDir: "./tests/e2e",
+
+  // Run pre-flight checks before all tests
+  globalSetup: "./tests/e2e/global-setup.ts",
 
   // Maximum time one test can run for
   timeout: 60 * 1000,
@@ -47,50 +82,92 @@ export default defineConfig({
   // Shared settings for all the projects below
   use: {
     // Collect trace when retrying the failed test
-    trace: 'on-first-retry',
+    trace: "on-first-retry",
 
     // Screenshot on failure
-    screenshot: 'only-on-failure',
+    screenshot: "only-on-failure",
 
     // Video on failure for debugging
-    video: 'retain-on-failure',
+    video: "retain-on-failure",
+
+    launchOptions: {
+      args: [
+        '--start-minimized',  // Chromium
+        '--window-position=-2400,-2400',  // Position off-screen
+        '--no-startup-window'
+      ]
+    },
   },
 
-  // Configure projects for major browsers
+  // Configure projects for different test types
   projects: [
-    // Admin tests - run against mock Shopify admin
+    // =========================================================================
+    // ADMIN TESTS - Real Shopify Admin (for local/manual testing)
+    // =========================================================================
+    // Tests run against real Shopify admin with iframe.
+    // Requires: ADMIN_EMAIL, ADMIN_PASSWORD
+    // Usage: npm run test:e2e -- --project=admin --headed
     {
-      name: 'admin',
-      testMatch: '**/admin-*.spec.ts',
+      name: "admin",
+      testMatch: "**/staging/admin-*.spec.ts",
       use: {
-        ...devices['Desktop Chrome'],
-        // Admin tests use the mock admin URL (not the app URL directly)
-        baseURL: 'http://localhost:3080',
+        ...devices["Desktop Chrome"],
+        // No baseURL - tests navigate to Shopify admin directly
       },
     },
 
-    // Storefront tests - run against real Shopify store
-    // Uses single worker to avoid race conditions with shared staging environment
+    // =========================================================================
+    // ADMIN TESTS - TEST_MODE (for CI/automated testing)
+    // =========================================================================
+    // Tests run against local server with TEST_MODE=true (no Shopify auth).
+    // CI starts its own server on port 3001, doesn't touch your dev server.
+    // Usage: TEST_MODE=true npm run test:e2e -- --project=admin-ci
     {
-      name: 'storefront',
-      testMatch: '**/storefront-*.spec.ts',
+      name: "admin-ci",
+      testMatch: "**/staging/admin-*.spec.ts",
+      use: {
+        ...devices["Desktop Chrome"],
+        // Base URL for TEST_MODE - local server
+        baseURL: process.env.TEST_SERVER_URL || "http://localhost:3001",
+      },
+    },
+
+    // =========================================================================
+    // STOREFRONT TESTS - Real Shopify Storefront
+    // =========================================================================
+    // Tests run against real Shopify storefront (popup rendering).
+    // No admin login required - works in CI.
+    // Usage: npm run test:e2e -- --project=storefront
+    {
+      name: "storefront",
+      testMatch: "**/storefront-*.spec.ts",
       // Force single worker for storefront tests to avoid race conditions
       // The staging environment has caching that causes issues with parallel tests
       fullyParallel: false,
       use: {
-        ...devices['Desktop Chrome'],
+        ...devices["Desktop Chrome"],
         // Storefront tests don't use baseURL - they use STORE_URL directly
       },
     },
   ],
 
-  // Run your local dev server before starting the tests
-  // Commented out - start server manually before running tests
-  // This gives you more control and better debugging
-  // webServer: {
-  //   command: 'npm run dev',
-  //   url: 'http://localhost:56687',
-  //   reuseExistingServer: !process.env.CI,
-  //   timeout: 120 * 1000,
-  // },
+  // ===========================================================================
+  // WEB SERVER CONFIGURATION (for CI)
+  // ===========================================================================
+  // In CI, we start a local server with TEST_MODE before running admin tests.
+  // Your local dev server (npm run dev) is NOT affected.
+  // ===========================================================================
+  webServer: process.env.CI && process.env.TEST_MODE === "true"
+    ? {
+        command: "npm run start",
+        url: "http://localhost:3001",
+        reuseExistingServer: false,
+        timeout: 120 * 1000,
+        env: {
+          TEST_MODE: "true",
+          TEST_SHOP_DOMAIN: process.env.TEST_SHOP_DOMAIN || "revenue-boost-staging.myshopify.com",
+          PORT: "3001",
+        },
+      }
+    : undefined,
 });

@@ -369,14 +369,13 @@ class BaseBuilder<T extends BaseBuilder<T>> {
     }
 
     /**
-     * Set time delay trigger
+     * Set page load trigger with delay
      */
-    withTimeDelayTrigger(delaySeconds: number): T {
+    withPageLoadTrigger(delayMs: number): T {
         if (!this.config) throw new Error('Config not initialized');
-        this.config.targetRules.enhancedTriggers.time_delay = {
+        this.config.targetRules.enhancedTriggers.page_load = {
             enabled: true,
-            delay: delaySeconds,
-            immediate: false
+            delay: delayMs,
         };
         return this as unknown as T;
     }
@@ -410,13 +409,13 @@ class BaseBuilder<T extends BaseBuilder<T>> {
         if (!this.config) throw new Error('Config not initialized');
         this.config.discountConfig = {
             enabled: true,
-            type: 'generated',
+            type: 'single_use', // Valid values: 'shared' | 'single_use'
             valueType: 'PERCENTAGE',
             value: percent,
             prefix: prefix,
             expiryDays: 30,
             usageLimit: 1,
-            deliveryMode: 'show_code_always',
+            behavior: 'SHOW_CODE_AND_AUTO_APPLY', // Valid values: 'SHOW_CODE_AND_AUTO_APPLY' | 'SHOW_CODE_ONLY' | 'SHOW_CODE_AND_ASSIGN_TO_EMAIL'
             showInPreview: true
         };
         return this as unknown as T;
@@ -429,13 +428,13 @@ class BaseBuilder<T extends BaseBuilder<T>> {
         if (!this.config) throw new Error('Config not initialized');
         this.config.discountConfig = {
             enabled: true,
-            type: 'generated',
+            type: 'single_use', // Valid values: 'shared' | 'single_use'
             valueType: 'FIXED_AMOUNT',
             value: amount,
             prefix: prefix,
             expiryDays: 30,
             usageLimit: 1,
-            deliveryMode: 'show_code_always',
+            behavior: 'SHOW_CODE_AND_AUTO_APPLY', // Valid values: 'SHOW_CODE_AND_AUTO_APPLY' | 'SHOW_CODE_ONLY' | 'SHOW_CODE_AND_ASSIGN_TO_EMAIL'
             showInPreview: true
         };
         return this as unknown as T;
@@ -448,13 +447,13 @@ class BaseBuilder<T extends BaseBuilder<T>> {
         if (!this.config) throw new Error('Config not initialized');
         this.config.discountConfig = {
             enabled: true,
-            type: 'generated',
+            type: 'single_use', // Valid values: 'shared' | 'single_use'
             valueType: 'FREE_SHIPPING',
             value: 0,
             prefix: prefix,
             expiryDays: 30,
             usageLimit: 1,
-            deliveryMode: 'show_code_always',
+            behavior: 'SHOW_CODE_AND_AUTO_APPLY', // Valid values: 'SHOW_CODE_AND_AUTO_APPLY' | 'SHOW_CODE_ONLY' | 'SHOW_CODE_AND_ASSIGN_TO_EMAIL'
             showInPreview: true
         };
         return this as unknown as T;
@@ -468,8 +467,8 @@ class BaseBuilder<T extends BaseBuilder<T>> {
         this.config.discountConfig = {
             enabled: true,
             type: 'shared',
-            singleCode: code,
-            deliveryMode: 'show_code_always',
+            code: code, // Use 'code' instead of 'singleCode' per schema
+            behavior: 'SHOW_CODE_AND_AUTO_APPLY', // Valid values: 'SHOW_CODE_AND_AUTO_APPLY' | 'SHOW_CODE_ONLY' | 'SHOW_CODE_AND_ASSIGN_TO_EMAIL'
             showInPreview: true
         };
         return this as unknown as T;
@@ -748,6 +747,125 @@ class BaseBuilder<T extends BaseBuilder<T>> {
     }
 
     /**
+     * Configure BOGO (Buy One Get One) discount
+     * @param buyQuantity - Number of items customer must buy
+     * @param getQuantity - Number of free items customer gets
+     * @param getDiscount - Percentage off the free items (100 = completely free)
+     */
+    withBogoDiscount(options: {
+        buyQuantity?: number;
+        getQuantity?: number;
+        getDiscount?: number;
+        productIds?: string[];
+    } = {}): T {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.discountConfig = {
+            enabled: true,
+            type: 'shared',
+            showInPreview: true,
+            behavior: 'SHOW_CODE_AND_AUTO_APPLY',
+            bogo: {
+                buy: {
+                    scope: 'any',
+                    quantity: options.buyQuantity || 1,
+                },
+                get: {
+                    scope: options.productIds?.length ? 'products' : 'any',
+                    ids: options.productIds || [],
+                    quantity: options.getQuantity || 1,
+                    discount: { kind: 'free_product', value: options.getDiscount || 100 },
+                    appliesOncePerOrder: true,
+                },
+            },
+        };
+        return this as unknown as T;
+    }
+
+    /**
+     * Configure tiered discount (spend more, save more)
+     * @param tiers - Array of threshold/discount pairs
+     */
+    withTieredDiscount(tiers: Array<{
+        thresholdCents: number;
+        discountPercent: number;
+    }>): T {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.discountConfig = {
+            enabled: true,
+            type: 'shared',
+            showInPreview: true,
+            behavior: 'SHOW_CODE_AND_AUTO_APPLY',
+            tiers: tiers.map(tier => ({
+                thresholdCents: tier.thresholdCents,
+                discount: { kind: 'percentage', value: tier.discountPercent },
+            })),
+        };
+        return this as unknown as T;
+    }
+
+    /**
+     * Configure free gift with purchase discount
+     * @param thresholdCents - Minimum spend in cents to unlock free gift
+     * @param giftProductId - Product ID of the free gift
+     * @param giftVariantId - Variant ID of the free gift
+     */
+    withFreeGiftDiscount(options: {
+        thresholdCents: number;
+        giftProductId?: string;
+        giftVariantId?: string;
+        giftProductTitle?: string;
+    }): T {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.discountConfig = {
+            enabled: true,
+            type: 'shared',
+            showInPreview: true,
+            behavior: 'SHOW_CODE_AND_AUTO_APPLY',
+            freeGift: {
+                thresholdCents: options.thresholdCents,
+                productId: options.giftProductId,
+                variantId: options.giftVariantId,
+                productTitle: options.giftProductTitle || 'Free Gift',
+            },
+        };
+        // Also set up cart value trigger
+        this.config.targetRules.enhancedTriggers.cart_value = {
+            enabled: true,
+            min_value: options.thresholdCents / 100, // Convert cents to dollars
+        };
+        return this as unknown as T;
+    }
+
+    /**
+     * Configure CTA (Call to Action) behavior
+     */
+    withCtaAction(options: {
+        action: 'navigate_collection' | 'add_to_cart' | 'navigate_url' | 'dismiss';
+        label?: string;
+        collectionHandle?: string;
+        variantId?: string;
+        url?: string;
+        quantity?: number;
+    }): T {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.contentConfig.cta = {
+            label: options.label || 'Shop Now',
+            variant: 'primary',
+            action: options.action,
+            collectionHandle: options.collectionHandle,
+            variantId: options.variantId,
+            url: options.url,
+            quantity: options.quantity || 1,
+            openInNewTab: false,
+            successBehavior: {
+                showDiscountCode: true,
+                autoCloseDelay: 5,
+            },
+        };
+        return this as unknown as T;
+    }
+
+    /**
      * Create the campaign in the database
      */
     async create() {
@@ -773,7 +891,7 @@ export class SpinToWinBuilder extends BaseBuilder<SpinToWinBuilder> {
             ],
             emailRequired: true,
             collectName: false,
-            buttonText: 'Spin Now!',
+            spinButtonText: 'Spin to Win!', // Required field per SpinToWinContentSchema
         };
         return this;
     }
@@ -825,9 +943,10 @@ export class SpinToWinBuilder extends BaseBuilder<SpinToWinBuilder> {
      */
     withGdprCheckbox(enabled: boolean, text?: string): this {
         if (!this.config) throw new Error('Config not initialized');
-        this.config.contentConfig.showGdprCheckbox = enabled;
+        // Use correct field names per LeadCaptureConfigSchema
+        this.config.contentConfig.consentFieldEnabled = enabled;
         if (text) {
-            this.config.contentConfig.gdprLabel = text;
+            this.config.contentConfig.consentFieldText = text;
         }
         return this;
     }
@@ -969,6 +1088,66 @@ export class CartAbandonmentBuilder extends BaseBuilder<CartAbandonmentBuilder> 
         this.config.contentConfig.ctaUrl = url;
         return this;
     }
+
+    /**
+     * Configure as Email Save recipe (gate checkout behind email capture)
+     */
+    asEmailSaveRecipe(): this {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.contentConfig.headline = "Don't lose your cart! 📧";
+        this.config.contentConfig.subheadline = 'Enter your email and we\'ll save your cart for later.';
+        this.config.contentConfig.showCartItems = true;
+        this.config.contentConfig.maxItemsToShow = 2;
+        this.config.contentConfig.showCartTotal = true;
+        this.config.contentConfig.showUrgency = false;
+        this.config.contentConfig.enableEmailRecovery = true;
+        this.config.contentConfig.emailPlaceholder = 'Enter your email';
+        this.config.contentConfig.emailSuccessMessage = 'Cart saved! Check your inbox.';
+        this.config.contentConfig.emailButtonText = 'Save My Cart';
+        this.config.contentConfig.requireEmailBeforeCheckout = true;
+        return this;
+    }
+
+    /**
+     * Configure as Urgency & Scarcity recipe (stock warnings + timer)
+     */
+    asUrgencyScarcityRecipe(): this {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.contentConfig.headline = '⚠️ Your items are selling fast!';
+        this.config.contentConfig.subheadline = 'Other shoppers are viewing these items. Complete your order before they\'re gone!';
+        this.config.contentConfig.buttonText = 'Secure My Order';
+        this.config.contentConfig.showCartItems = true;
+        this.config.contentConfig.maxItemsToShow = 3;
+        this.config.contentConfig.showCartTotal = true;
+        this.config.contentConfig.showUrgency = true;
+        this.config.contentConfig.urgencyTimer = 300; // 5 minutes
+        this.config.contentConfig.urgencyMessage = 'Reserved for 5 minutes';
+        this.config.contentConfig.showStockWarnings = true;
+        this.config.contentConfig.stockWarningMessage = 'Low stock - only a few left!';
+        return this;
+    }
+
+    /**
+     * Enable stock warnings
+     */
+    withStockWarnings(enabled: boolean = true, message?: string): this {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.contentConfig.showStockWarnings = enabled;
+        if (message) {
+            this.config.contentConfig.stockWarningMessage = message;
+        }
+        return this;
+    }
+
+    /**
+     * Require email before showing checkout button
+     */
+    withRequireEmailBeforeCheckout(required: boolean = true): this {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.contentConfig.requireEmailBeforeCheckout = required;
+        this.config.contentConfig.enableEmailRecovery = required;
+        return this;
+    }
 }
 
 /**
@@ -1044,9 +1223,10 @@ export class ScratchCardBuilder extends BaseBuilder<ScratchCardBuilder> {
      */
     withGdprCheckbox(enabled: boolean, text?: string): this {
         if (!this.config) throw new Error('Config not initialized');
-        this.config.contentConfig.showGdprCheckbox = enabled;
+        // Use correct field names per LeadCaptureConfigSchema
+        this.config.contentConfig.consentFieldEnabled = enabled;
         if (text) {
-            this.config.contentConfig.gdprLabel = text;
+            this.config.contentConfig.consentFieldText = text;
         }
         return this;
     }
@@ -1147,6 +1327,61 @@ export class ProductUpsellBuilder extends BaseBuilder<ProductUpsellBuilder> {
         }
         return this;
     }
+
+    /**
+     * Configure as Frequently Bought Together recipe (shows after add-to-cart)
+     */
+    asFrequentlyBoughtTogetherRecipe(bundleDiscount: number = 10): this {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.contentConfig.headline = 'Frequently Bought Together';
+        this.config.contentConfig.subheadline = 'Complete your look with these items';
+        this.config.contentConfig.upsellType = 'frequently_bought_together';
+        this.config.contentConfig.bundleDiscount = bundleDiscount;
+        this.config.contentConfig.bundleDiscountText = `Bundle & Save ${bundleDiscount}%!`;
+        this.config.contentConfig.multiSelect = true;
+        // Trigger on add-to-cart instead of page load
+        this.config.targetRules.enhancedTriggers.page_load = { enabled: false };
+        this.config.targetRules.enhancedTriggers.add_to_cart = { enabled: true };
+        this.withPercentageDiscount(bundleDiscount, 'BUNDLE');
+        return this;
+    }
+
+    /**
+     * Configure as Thank You Upsell recipe (post-purchase)
+     */
+    asThankYouUpsellRecipe(): this {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.contentConfig.headline = 'Thank you for your order!';
+        this.config.contentConfig.subheadline = "Here's a special offer just for you";
+        this.config.contentConfig.layout = 'card';
+        this.config.contentConfig.maxProducts = 1;
+        // Target thank you page
+        this.config.targetRules.pageRules = ['thank_you'];
+        return this;
+    }
+
+    /**
+     * Configure as Last Chance Upsell recipe (low stock urgency)
+     */
+    asLastChanceRecipe(): this {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.contentConfig.headline = '⚡ Last Chance!';
+        this.config.contentConfig.subheadline = 'These items are selling fast - add them before they\'re gone';
+        this.config.contentConfig.showStockLevel = true;
+        this.config.contentConfig.stockWarningThreshold = 5;
+        this.config.contentConfig.urgencyMessage = 'Only {stock} left!';
+        return this;
+    }
+
+    /**
+     * Enable stock level display
+     */
+    withShowStockLevel(enabled: boolean = true, threshold: number = 5): this {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.contentConfig.showStockLevel = enabled;
+        this.config.contentConfig.stockWarningThreshold = threshold;
+        return this;
+    }
 }
 
 /**
@@ -1216,6 +1451,85 @@ export class FlashSaleBuilder extends BaseBuilder<FlashSaleBuilder> {
     withHeadline(headline: string): this {
         if (!this.config) throw new Error('Config not initialized');
         this.config.contentConfig.headline = headline;
+        return this;
+    }
+
+    /**
+     * Configure as BOGO (Buy One Get One) recipe
+     */
+    asBogoRecipe(options: {
+        buyQuantity?: number;
+        getQuantity?: number;
+        getDiscount?: number;
+    } = {}): this {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.contentConfig.headline = 'Buy 1 Get 1 FREE!';
+        this.config.contentConfig.subheadline = 'Limited time offer - double your order';
+        this.config.contentConfig.urgencyMessage = 'While supplies last';
+        this.withBogoDiscount({
+            buyQuantity: options.buyQuantity || 1,
+            getQuantity: options.getQuantity || 1,
+            getDiscount: options.getDiscount || 100,
+        });
+        return this;
+    }
+
+    /**
+     * Configure as Free Gift with Purchase recipe
+     */
+    asFreeGiftRecipe(options: {
+        thresholdDollars: number;
+        giftProductTitle?: string;
+    }): this {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.contentConfig.headline = `🎁 FREE Gift With Your Order!`;
+        this.config.contentConfig.subheadline = `Spend $${options.thresholdDollars}+ and get a FREE gift`;
+        this.config.contentConfig.urgencyMessage = 'While supplies last';
+        // Configure cart value trigger
+        this.config.targetRules.enhancedTriggers.page_load = { enabled: false };
+        this.config.targetRules.enhancedTriggers.cart_value = {
+            enabled: true,
+            min_value: options.thresholdDollars,
+            check_interval: 2000,
+        };
+        this.withFreeGiftDiscount({
+            thresholdCents: options.thresholdDollars * 100,
+            giftProductTitle: options.giftProductTitle || 'Free Gift',
+        });
+        return this;
+    }
+
+    /**
+     * Configure as Tiered Discount recipe (Spend More, Save More)
+     */
+    asTieredDiscountRecipe(tiers?: Array<{ thresholdDollars: number; discountPercent: number }>): this {
+        if (!this.config) throw new Error('Config not initialized');
+        const defaultTiers = [
+            { thresholdDollars: 50, discountPercent: 10 },
+            { thresholdDollars: 100, discountPercent: 20 },
+            { thresholdDollars: 150, discountPercent: 30 },
+        ];
+        const useTiers = tiers || defaultTiers;
+        this.config.contentConfig.headline = 'Spend More, Save More';
+        this.config.contentConfig.subheadline = 'Unlock bigger savings with every dollar you spend';
+        this.config.contentConfig.showCountdown = false;
+        this.withTieredDiscount(
+            useTiers.map(t => ({ thresholdCents: t.thresholdDollars * 100, discountPercent: t.discountPercent }))
+        );
+        return this;
+    }
+
+    /**
+     * Configure as Mystery Discount recipe
+     */
+    asMysteryDiscountRecipe(actualDiscount: number = 15): this {
+        if (!this.config) throw new Error('Config not initialized');
+        this.config.contentConfig.headline = 'Mystery Discount 🎁';
+        this.config.contentConfig.subheadline = 'Click to reveal your secret savings!';
+        this.config.contentConfig.buttonText = 'Reveal My Discount';
+        this.config.contentConfig.showCountdown = false;
+        this.config.contentConfig.mysteryReveal = true;
+        this.withPercentageDiscount(actualDiscount);
         return this;
     }
 }
@@ -1875,7 +2189,7 @@ export class ExperimentBuilder {
                         emailPlaceholder: 'Enter your email',
                         submitButtonText: 'Subscribe',
                         privacyPolicyText: 'We respect your privacy',
-                        showGdprCheckbox: false
+                        consentFieldEnabled: false
                     },
                     designConfig: {
                         size: 'MEDIUM',

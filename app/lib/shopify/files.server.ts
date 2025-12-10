@@ -1,3 +1,4 @@
+import { logger } from "~/lib/logger.server";
 import type { AdminApiContext } from "@shopify/shopify-app-react-router/server";
 
 interface StagedUploadParameter {
@@ -112,7 +113,7 @@ export async function createImageStagedUpload(
   const json = (await response.json()) as StagedUploadsCreateResponse;
 
   if (json.errors && json.errors.length > 0) {
-    console.error("[Shopify Files] stagedUploadsCreate GraphQL errors", json.errors);
+    logger.error({ errors: json.errors }, "[ShopifyFiles] stagedUploadsCreate GraphQL errors");
     throw new Error(json.errors.map((e) => e.message).join("; "));
   }
 
@@ -122,7 +123,7 @@ export async function createImageStagedUpload(
   }
 
   if (payload.userErrors && payload.userErrors.length > 0) {
-    console.error("[Shopify Files] stagedUploadsCreate userErrors", payload.userErrors);
+    logger.error({ userErrors: payload.userErrors }, "[ShopifyFiles] stagedUploadsCreate userErrors");
     throw new Error(payload.userErrors.map((e) => e.message).join("; "));
   }
 
@@ -155,7 +156,7 @@ export async function createImageFileFromStaged(
   const json = (await response.json()) as FileCreateResponse;
 
   if (json.errors && json.errors.length > 0) {
-    console.error("[Shopify Files] fileCreate GraphQL errors", json.errors);
+    logger.error({ errors: json.errors }, "[ShopifyFiles] fileCreate GraphQL errors");
     throw new Error(json.errors.map((e) => e.message).join("; "));
   }
 
@@ -165,7 +166,7 @@ export async function createImageFileFromStaged(
   }
 
   if (payload.userErrors && payload.userErrors.length > 0) {
-    console.error("[Shopify Files] fileCreate userErrors", payload.userErrors);
+    logger.error({ userErrors: payload.userErrors }, "[ShopifyFiles] fileCreate userErrors");
     throw new Error(payload.userErrors.map((e) => e.message).join("; "));
   }
 
@@ -183,10 +184,7 @@ export async function createImageFileFromStaged(
   const url = urlFromImage ?? urlFromPreview ?? options.resourceUrl;
 
   if (!urlFromImage && !urlFromPreview) {
-    console.warn(
-      "[Shopify Files] fileCreate returned a file without a processed image URL; falling back to staged resourceUrl",
-      { fileId: file.id, fileStatus: file.fileStatus }
-    );
+    logger.warn({ fileId: file.id, fileStatus: file.fileStatus }, "[ShopifyFiles] fileCreate returned file without processed image URL, falling back to staged resourceUrl");
   }
 
   return {

@@ -6,19 +6,21 @@ export function varsFromDesign(
 ): { style: React.CSSProperties; "data-size": string } {
   const actualSize = size || "medium";
 
+  // Use CSS variables as fallbacks - they're defined in design-tokens.css
+  // This ensures consistency with the single source of truth for default colors
   const style: React.CSSProperties = {
-    // Colors
-    "--rb-popup-bg": design.backgroundColor || "#ffffff",
-    "--rb-popup-fg": design.textColor || "#111827",
-    "--rb-popup-description-fg": design.descriptionColor || "#6b7280",
-    "--rb-popup-primary-bg": design.buttonColor || "#000000",
-    "--rb-popup-primary-fg": design.buttonTextColor || "#ffffff",
-    "--rb-popup-accent": design.accentColor || "#dbeafe",
-    "--rb-popup-success": design.successColor || "#16a34a",
-    "--rb-popup-error": "#b91c1c", // Standard error color
-    "--rb-popup-input-bg": design.inputBackgroundColor || "#ffffff",
-    "--rb-popup-input-fg": design.inputTextColor || design.textColor || "#111827",
-    "--rb-popup-input-border": design.inputBorderColor || "#e5e7eb",
+    // Colors - fallback to CSS variables which have defaults in design-tokens.css
+    "--rb-popup-bg": design.backgroundColor || "var(--rb-background, #FFFFFF)",
+    "--rb-popup-fg": design.textColor || "var(--rb-foreground, #1A1A1A)",
+    "--rb-popup-description-fg": design.descriptionColor || "var(--rb-muted, rgba(26, 26, 26, 0.6))",
+    "--rb-popup-primary-bg": design.buttonColor || "var(--rb-primary, #007BFF)",
+    "--rb-popup-primary-fg": design.buttonTextColor || "var(--rb-primary-foreground, #FFFFFF)",
+    "--rb-popup-accent": design.accentColor || "var(--rb-primary, #007BFF)",
+    "--rb-popup-success": design.successColor || "var(--rb-success, #10B981)",
+    "--rb-popup-error": "var(--rb-error, #EF4444)",
+    "--rb-popup-input-bg": design.inputBackgroundColor || "var(--rb-background, #FFFFFF)",
+    "--rb-popup-input-fg": design.inputTextColor || design.textColor || "var(--rb-foreground, #1A1A1A)",
+    "--rb-popup-input-border": design.inputBorderColor || "var(--rb-border, rgba(26, 26, 26, 0.15))",
 
     // Dimensions & Shape
     "--rb-popup-radius":

@@ -11,13 +11,30 @@ Before creating a new popup:
 
 ## Step-by-Step Guide
 
-### Step 1: Define Content Schema
+### Step 1: Add TemplateType to Prisma Schema
+
+First, add your new template type to the Prisma enum in `prisma/schema.prisma`:
+
+```prisma
+enum TemplateType {
+  // ... existing types
+  MY_TEMPLATE
+}
+```
+
+Then run the migration:
+```bash
+npx prisma migrate dev --name add_my_template_type
+```
+
+### Step 2: Define Content Schema
 
 Add your template's content schema to `app/domains/campaigns/types/campaign.ts`:
 
 ```typescript
 // 1. Define the content schema with Zod
 export const MyTemplateContentSchema = BaseContentConfigSchema.extend({
+  id: z.string().optional(),
   headline: z.string().min(1, "Headline is required"),
   subheadline: z.string().optional(),
   buttonText: z.string().default("Click Here"),
@@ -28,14 +45,14 @@ export const MyTemplateContentSchema = BaseContentConfigSchema.extend({
 // 2. Infer TypeScript type
 export type MyTemplateContent = z.infer<typeof MyTemplateContentSchema>;
 
-// 3. Add to TemplateType enum
+// 3. Add to TemplateType enum (must match Prisma enum)
 export const TemplateTypeSchema = z.enum([
   // ... existing types
   "MY_TEMPLATE",
 ]);
 ```
 
-### Step 2: Create Popup Component
+### Step 3: Create Popup Component
 
 Create `app/domains/storefront/popups-new/MyTemplatePopup.tsx`:
 
@@ -188,7 +205,16 @@ export const MyTemplatePopup: React.FC<MyTemplatePopupProps> = ({
 };
 ```
 
-### Step 3: Add Styling
+### Step 4: Export from Index
+
+Add your popup to `app/domains/storefront/popups-new/index.ts`:
+
+```typescript
+export { MyTemplatePopup } from "./MyTemplatePopup";
+export type { MyTemplateConfig, MyTemplatePopupProps } from "./MyTemplatePopup";
+```
+
+### Step 5: Add Styling
 
 Add CSS for your popup (inline in component or separate file):
 
@@ -229,7 +255,7 @@ Add CSS for your popup (inline in component or separate file):
 - Support `prefers-reduced-motion`
 - Use CSS custom properties for theming
 
-### Step 4: Create Content Section Component
+### Step 6: Create Content Section Component
 
 Create `app/domains/campaigns/components/content-sections/MyTemplateContent.tsx`:
 
@@ -292,7 +318,7 @@ export const MyTemplateContentSection: React.FC<MyTemplateContentProps> = ({
 };
 ```
 
-### Step 5: Register in Step Renderers
+### Step 7: Register in Step Renderers
 
 Add your content section to `app/domains/campaigns/utils/step-renderers.tsx`:
 
@@ -310,7 +336,139 @@ case "MY_TEMPLATE":
   );
 ```
 
-### Step 6: Seed Template Data
+### Step 8: Add to Template Preview Registry
+
+Add your popup to `app/domains/popups/components/preview/template-preview-registry.tsx`:
+
+```typescript
+import { MyTemplatePopup } from "~/domains/storefront/popups-new";
+import type { MyTemplateConfig } from "~/domains/storefront/popups-new";
+
+// Add to the registry
+TEMPLATE_PREVIEW_REGISTRY[TemplateTypeEnum.MY_TEMPLATE] = {
+  component: MyTemplatePopup,
+  buildConfig: (
+    mergedConfig: Record<string, unknown>,
+    designConfig: Partial<PopupDesignConfig>
+  ): MyTemplateConfig => ({
+    id: "preview-my-template",
+    headline: (mergedConfig.headline as string) || "Default Headline",
+    subheadline: (mergedConfig.subheadline as string) || "",
+    buttonText: (mergedConfig.buttonText as string) || "Click Here",
+    customField: (mergedConfig.customField as string) || "",
+    ...buildCommonConfig(mergedConfig, designConfig),
+  }),
+};
+```
+
+**⚠️ IMPORTANT: For product/upsell popups**, you MUST include mock products in the buildConfig:
+
+```typescript
+// For popups that display products, include mock data for preview:
+products: (mergedConfig.products as typeof PRODUCT_UPSELL_PREVIEW_PRODUCTS) || PRODUCT_UPSELL_PREVIEW_PRODUCTS.slice(0, 1),
+```
+
+The `PRODUCT_UPSELL_PREVIEW_PRODUCTS` constant is defined at the top of the registry file and contains mock product data for previews. Use `.slice(0, N)` to control how many products appear (e.g., bundle popups need 3+ products).
+
+### Step 8.1: Add Special Handling in TemplatePreview.tsx (If Needed)
+
+If your popup requires special callbacks (like `onAddToCart`, `onSubmit`, `issueDiscount`), you must add special handling in `app/domains/popups/components/preview/TemplatePreview.tsx`.
+
+**For upsell/product popups needing `onAddToCart`:**
+
+```typescript
+// 1. Import your config type at the top of the file
+import type { MyTemplateConfig } from "~/domains/storefront/popups-new";
+
+// 2. Add to the upsellVariantTypes array (if it's an upsell variant)
+const upsellVariantTypes = [
+  TemplateTypeEnum.CLASSIC_UPSELL,
+  TemplateTypeEnum.MINIMAL_SLIDE_UP,
+  // ... existing types
+  TemplateTypeEnum.MY_TEMPLATE,  // <-- Add here
+] as const;
+
+// OR for completely new template types, add a separate handler block:
+if (templateType === TemplateTypeEnum.MY_TEMPLATE) {
+  const myConfig = componentConfig as MyTemplateConfig;
+
+  const previewOnAddToCart = async (productIds: string[]): Promise<void> => {
+    console.log("[TemplatePreview][MyTemplate] Preview add to cart", { productIds });
+    await new Promise((resolve) => setTimeout(resolve, 400));
+  };
+
+  return (
+    <PreviewContainer scopedStylesNode={scopedStylesNode}>
+      <div ref={setPreviewElementRef} data-popup-preview style={{ display: "contents" }}>
+        <PreviewComponent
+          config={myConfig}
+          isVisible={externalIsVisible}
+          onClose={handleClose}
+          onAddToCart={previewOnAddToCart}
+        />
+      </div>
+    </PreviewContainer>
+  );
+}
+```
+
+**Common callbacks by popup type:**
+- **Email capture popups**: `onSubmit` - returns discount code or undefined
+- **Product upsell popups**: `onAddToCart` - adds products to cart
+- **Flash sale popups**: `issueDiscount` - issues discount code
+- **Free shipping popups**: `issueDiscount` + cart total mock data
+- **Social proof popups**: `notifications` - mock notification data
+
+### Step 9: Create Storefront Bundle
+
+Create `extensions/storefront-src/bundles/my-template.ts`:
+
+```typescript
+/**
+ * My Template Popup Bundle
+ * IIFE bundle that registers the popup component for storefront rendering.
+ */
+import { MyTemplatePopup } from "../../../app/domains/storefront/popups-new/MyTemplatePopup";
+
+(function register() {
+  const g = window as unknown as { RevenueBoostComponents?: Record<string, unknown> };
+  g.RevenueBoostComponents = g.RevenueBoostComponents || {};
+  g.RevenueBoostComponents["MY_TEMPLATE"] = MyTemplatePopup;
+})();
+```
+
+### Step 10: Update Component Loader
+
+Add your template type to `extensions/storefront-src/core/component-loader.ts`:
+
+```typescript
+export type TemplateType =
+  | "NEWSLETTER"
+  // ... existing types
+  | "MY_TEMPLATE";
+```
+
+### Step 11: Update Build Script
+
+Add your bundle to `scripts/build-storefront.js` in the `popupBundles` array:
+
+```javascript
+const popupBundles = [
+  // ... existing bundles
+  "my-template", // MY_TEMPLATE
+];
+```
+
+**Note:** The bundle name should be the kebab-case version of your template type (e.g., `MY_TEMPLATE` → `my-template`). This is what the component loader uses to map template types to bundle files.
+
+After updating, run the build to verify:
+```bash
+npm run build:storefront
+```
+
+You should see your new bundle in the output with a size (e.g., `my-template.bundle.js: 24.5 KB`).
+
+### Step 12: Seed Template Data
 
 Add template to `prisma/seed.ts` or template data file:
 
@@ -333,7 +491,7 @@ Add template to `prisma/seed.ts` or template data file:
 }
 ```
 
-### Step 7: Write Unit Tests
+### Step 12: Write Unit Tests
 
 Create `tests/unit/domains/storefront/popups-new/MyTemplatePopup.test.tsx`:
 
@@ -404,7 +562,7 @@ describe("MyTemplatePopup", () => {
 });
 ```
 
-### Step 8: Add E2E Tests (Optional)
+### Step 13: Add E2E Tests (Optional)
 
 Create `tests/e2e/staging/storefront-my-template.spec.ts` for critical flows.
 
@@ -414,17 +572,36 @@ Create `tests/e2e/staging/storefront-my-template.spec.ts` for critical flows.
 
 Before submitting your new popup:
 
-- [ ] Content schema defined in `campaign.ts`
+**Schema & Types:**
+- [ ] TemplateType added to Prisma schema and migration run
+- [ ] Content schema defined in `campaign.ts` with Zod
+
+**Popup Component:**
 - [ ] Popup component created with TypeScript types
+- [ ] Popup exported from `index.ts`
 - [ ] Shared components used where appropriate
 - [ ] Styling follows spacing guidelines
+
+**Admin UI:**
 - [ ] Content section component created
 - [ ] Registered in step renderers
+
+**Preview System:**
+- [ ] Added to template preview registry with correct buildConfig
+- [ ] Mock data included (e.g., `products` for upsell popups)
+- [ ] Special handling added in TemplatePreview.tsx (if callbacks needed)
+
+**Storefront Integration:**
+- [ ] Storefront bundle file created (`extensions/storefront-src/bundles/`)
+- [ ] Component loader updated with new template type
+- [ ] Build script updated (`scripts/build-storefront.js`)
+- [ ] `npm run build:storefront` produces the new bundle
+
+**Database & Testing:**
 - [ ] Template seeded in database
 - [ ] Unit tests written (>80% coverage)
 - [ ] E2E tests for critical flows
-- [ ] Documentation updated
-- [ ] All tests passing
+- [ ] All tests passing (`npm run typecheck && npm run lint`)
 
 ---
 
@@ -495,10 +672,41 @@ Before submitting your new popup:
 
 ## Troubleshooting
 
+### Issue: Popup shows blank/empty in preview
+**Most common cause:** Missing mock data or special handling.
+
+For product/upsell popups:
+1. Ensure `products` field is included in `buildConfig` in `template-preview-registry.tsx`:
+   ```typescript
+   products: (mergedConfig.products as typeof PRODUCT_UPSELL_PREVIEW_PRODUCTS) || PRODUCT_UPSELL_PREVIEW_PRODUCTS.slice(0, 1),
+   ```
+2. Add special handling in `TemplatePreview.tsx` to provide `onAddToCart` callback
+3. Check if your popup component returns `null` when `products` is empty
+
 ### Issue: Popup doesn't appear
 - Check `isVisible` prop is true
 - Verify `PopupPortal` is rendering
 - Check z-index conflicts
+
+### Issue: React warning "Cannot update a component while rendering"
+This occurs when calling callbacks (like `onClose`) inside state update functions:
+```typescript
+// ❌ BAD - calling onClose inside setTimeLeft callback
+setTimeLeft((prev) => {
+  if (prev <= 0) {
+    onClose(); // This causes the warning!
+    return 0;
+  }
+  return prev - 1;
+});
+
+// ✅ GOOD - use separate useEffect to handle side effects
+useEffect(() => {
+  if (timeLeft === 0 && isVisible) {
+    onClose();
+  }
+}, [timeLeft, isVisible, onClose]);
+```
 
 ### Issue: Form submission fails
 - Verify `onSubmit` handler is provided
@@ -509,6 +717,11 @@ Before submitting your new popup:
 - Check `PopupDesignConfig` values
 - Verify CSS specificity
 - Test in different viewports
+
+### Issue: Bundle not built for storefront
+- Verify bundle file exists in `extensions/storefront-src/bundles/`
+- Check bundle is added to `popupBundles` array in `scripts/build-storefront.js`
+- Run `npm run build:storefront` and check output
 
 ### Issue: Tests failing
 - Check test selectors match component structure

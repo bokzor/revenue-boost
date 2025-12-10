@@ -5,7 +5,7 @@
  */
 
 import { h, render, type ComponentType } from "preact";
-import { useState, useEffect, useRef } from "preact/hooks";
+import { useState, useEffect, useRef, useCallback } from "preact/hooks";
 import { ComponentLoader, type TemplateType } from "./component-loader";
 import type { ApiClient } from "./api";
 import { session } from "./session";
@@ -26,6 +26,12 @@ export interface StorefrontCampaign {
   templateType: TemplateType;
   contentConfig: Record<string, unknown>;
   designConfig: Record<string, unknown>;
+  /**
+   * Pre-resolved CSS custom properties for design tokens.
+   * Format: "--rb-background: #fff; --rb-primary: #000; ..."
+   * When present, applied as inline styles on the popup container.
+   */
+  designTokensCSS?: string;
   targetRules?: Record<string, unknown>;
   discountConfig?: Record<string, unknown>;
   experimentId?: string | null;
@@ -46,14 +52,31 @@ export interface PopupManagerProps {
   globalCustomCSS?: string;
 }
 
+// Exit animation duration in ms - should match PopupPortal's animation timing
+const EXIT_ANIMATION_DURATION_MS = 1600; // Max of backdrop + content animation
+
 export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, triggerContext }: PopupManagerProps) {
   const [Component, setComponent] = useState<ComponentType<Record<string, unknown>> | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [preloadedResources, setPreloadedResources] = useState<Record<string, unknown> | null>(null);
 
+  // Track visibility for exit animation
+  const [isVisible, setIsVisible] = useState(true);
+
   // Track when popup was shown (for bot detection timing validation)
   const popupShownAtRef = useRef<number>(Date.now());
+
+  // Handle close with exit animation
+  const handleCloseWithAnimation = useCallback(() => {
+    // Set invisible first - triggers exit animation in PopupPortal
+    setIsVisible(false);
+
+    // After exit animation completes, call the actual onClose
+    setTimeout(() => {
+      onClose();
+    }, EXIT_ANIMATION_DURATION_MS);
+  }, [onClose]);
 
   // Expose popupShownAt and visitorId as globals for popup components to use
   // This avoids passing these through props and keeps bundle size small
@@ -249,6 +272,7 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, tri
     cartSubtotalCents?: number;
     selectedProductIds?: string[];
     bundleDiscountPercent?: number;
+    cartProductIds?: string[];
   }) => {
     try {
       console.log("[PopupManager] Issuing discount for campaign:", campaign.id, options);
@@ -267,6 +291,7 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, tri
         cartSubtotalCents: options?.cartSubtotalCents,
         selectedProductIds: options?.selectedProductIds,
         bundleDiscountPercent: options?.bundleDiscountPercent,
+        cartProductIds: options?.cartProductIds,
       });
 
       if (!result.success) {
@@ -556,10 +581,19 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, tri
     });
   }
 
+  // Get transformed image URL from BackgroundImageHook if available
+  // This ensures preset background images use the correct App Proxy URL
+  const backgroundImageData = preloadedResources?.backgroundImage as
+    | { imageUrl?: string; preloaded?: boolean }
+    | undefined;
+  const transformedImageUrl = backgroundImageData?.imageUrl;
+
   const decoratedDesignConfig: Record<string, unknown> = {
     ...(campaign.designConfig as Record<string, unknown>),
     globalCustomCSS: campaign.globalCustomCSS,
     customCSS: (campaign.designConfig as Record<string, unknown>)?.customCSS,
+    // Override imageUrl with transformed URL from hook (for preset backgrounds)
+    ...(transformedImageUrl ? { imageUrl: transformedImageUrl } : {}),
   };
 
   if (decoratedDesignConfig.buttonUrl) {
@@ -590,9 +624,16 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, tri
       id: campaign.id,
       campaignId: campaign.id,
       currentCartTotal,
+      // Design tokens as CSS custom properties (--rb-background, --rb-primary, etc.)
+      // This enables theme-aware styling without complex token resolution client-side
+      designTokensCSS: campaign.designTokensCSS,
       // Show "Powered by Revenue Boost" branding for free tier
       showBranding: campaign.showBranding,
-      // Pass discount config if enabled
+      // Pass full discountConfig for advanced discount types (freeGift, bogo, tiers)
+      // FlashSalePopup uses discountConfig.freeGift, discountConfig.bogo, discountConfig.tiers
+      // for PromotionDisplay rendering
+      discountConfig: campaign.discountConfig?.enabled ? campaign.discountConfig : undefined,
+      // Pass simplified discount config for legacy templates that use the `discount` prop
       discount: campaign.discountConfig?.enabled ? {
         enabled: true,
         code: campaign.discountConfig.code || '',
@@ -610,8 +651,8 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, tri
       // Inject preloaded products if available
       ...(preloadedResources.products ? { products: preloadedResources.products } : {}),
     },
-    isVisible: true,
-    onClose,
+    isVisible,
+    onClose: handleCloseWithAnimation,
     onSubmit: handleSubmit,
     issueDiscount: handleIssueDiscount,
     campaignId: campaign.id,
@@ -622,6 +663,8 @@ export function PopupManagerPreact({ campaign, onClose, onShow, loader, api, tri
     cartTotal: (preloadedResources.cart as { total?: number } | undefined)?.total,
     // Pass preloaded inventory for Flash Sale
     inventoryTotal: (preloadedResources.inventory as { total?: number } | undefined)?.total,
+    // Pass preloaded notifications for Social Proof
+    notifications: (preloadedResources.socialProof as { notifications?: unknown[] } | undefined)?.notifications,
     onTrack: trackClick,
     // Pass onCtaClick for popups that use it (FlashSale, Announcement, etc.)
     onCtaClick: () => trackClick({ action: "cta_click" }),
@@ -641,9 +684,11 @@ export function renderPopup(
   onShow?: (campaignId: string) => void,
   triggerContext?: { productId?: string; [key: string]: unknown }
 ): () => void {
-  // Create container
+  // Create container with container-type for CSS container queries
+  // This enables responsive styles using @container in popup components (e.g., SocialProofPopup)
   const container = document.createElement("div");
   container.id = `revenue-boost-popup-${campaign.id}`;
+  container.style.containerType = "inline-size";
   document.body.appendChild(container);
 
   // Render popup

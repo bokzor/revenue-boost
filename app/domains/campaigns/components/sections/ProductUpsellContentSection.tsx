@@ -8,6 +8,7 @@
 import { useEffect, useState } from "react";
 import type { KeyboardEvent } from "react";
 import {
+  Banner,
   Card,
   BlockStack,
   Text,
@@ -16,31 +17,36 @@ import {
   Button,
   Collapsible,
   InlineStack,
-  Banner,
 } from "@shopify/polaris";
 import { ChevronDownIcon, ChevronUpIcon } from "@shopify/polaris-icons";
-import { TextField, CheckboxField, FormGrid } from "../form";
+import { TextField, CheckboxField, FormGrid, GenericDiscountComponent } from "../form";
 import { ProductPicker, type ProductPickerSelection } from "../form/ProductPicker";
 import { useFieldUpdater } from "~/shared/hooks/useFieldUpdater";
-import type { ProductUpsellContent } from "../../types/campaign";
+import type { DiscountConfig, ProductUpsellContent } from "../../types/campaign";
 
 export interface ProductUpsellContentSectionProps {
   content: Partial<ProductUpsellContent>;
   errors?: Record<string, string>;
   onChange: (content: Partial<ProductUpsellContent>) => void;
+  /** When true, only allows single product selection and hides multi-product options (layout, columns, maxProducts, multiSelect) */
+  singleProductMode?: boolean;
+  discountConfig?: DiscountConfig;
+  onDiscountChange?: (config: DiscountConfig) => void;
 }
 
 export function ProductUpsellContentSection({
   content,
   errors,
   onChange,
+  singleProductMode = false,
+  discountConfig,
+  onDiscountChange,
 }: ProductUpsellContentSectionProps) {
   // Collapsible section state
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
     basicContent: true, // Basic content open by default for first-time setup
     productSelection: false,
     layoutDisplay: false,
-    bundleDiscount: false,
     behavior: false,
   });
 
@@ -135,60 +141,64 @@ export function ProductUpsellContentSection({
         <Divider />
 
         <BlockStack gap="400">
-          {/* Basic Content Section */}
-          <BlockStack gap="300">
-            <div
-              role="button"
-              tabIndex={0}
-              style={{ cursor: "pointer" }}
-              onClick={() => toggleSection("basicContent")}
-              onKeyDown={handleKeyDown("basicContent")}
-            >
-              <InlineStack gap="200" blockAlign="center">
-                <Button
-                  variant="plain"
-                  icon={openSections.basicContent ? ChevronUpIcon : ChevronDownIcon}
-                />
-                <Text as="h4" variant="headingSm">
-                  Basic Content
-                </Text>
-              </InlineStack>
-            </div>
-
-            <Collapsible
-              open={openSections.basicContent}
-              id="basic-content-section"
-              transition={{
-                duration: "200ms",
-                timingFunction: "ease-in-out",
-              }}
-            >
+          {/* Basic Content Section - hidden in singleProductMode since Classic Upsell uses product name/description */}
+          {!singleProductMode && (
+            <>
               <BlockStack gap="300">
-                <TextField
-                  label="Headline"
-                  name="content.headline"
-                  value={content.headline || ""}
-                  error={errors?.headline}
-                  required
-                  placeholder="Complete Your Order & Save 15%"
-                  helpText="Main headline"
-                  onChange={(value) => updateField("headline", value)}
-                />
+                <div
+                  role="button"
+                  tabIndex={0}
+                  style={{ cursor: "pointer" }}
+                  onClick={() => toggleSection("basicContent")}
+                  onKeyDown={handleKeyDown("basicContent")}
+                >
+                  <InlineStack gap="200" blockAlign="center">
+                    <Button
+                      variant="plain"
+                      icon={openSections.basicContent ? ChevronUpIcon : ChevronDownIcon}
+                    />
+                    <Text as="h4" variant="headingSm">
+                      Basic Content
+                    </Text>
+                  </InlineStack>
+                </div>
 
-                <TextField
-                  label="Subheadline"
-                  name="content.subheadline"
-                  value={content.subheadline || ""}
-                  error={errors?.subheadline}
-                  placeholder="These items pair perfectly together"
-                  helpText="Supporting text (optional)"
-                  onChange={(value) => updateField("subheadline", value)}
-                />
+                <Collapsible
+                  open={openSections.basicContent}
+                  id="basic-content-section"
+                  transition={{
+                    duration: "200ms",
+                    timingFunction: "ease-in-out",
+                  }}
+                >
+                  <BlockStack gap="300">
+                    <TextField
+                      label="Headline"
+                      name="content.headline"
+                      value={content.headline || ""}
+                      error={errors?.headline}
+                      required
+                      placeholder="Complete Your Order & Save 15%"
+                      helpText="Main headline"
+                      onChange={(value) => updateField("headline", value)}
+                    />
+
+                    <TextField
+                      label="Subheadline"
+                      name="content.subheadline"
+                      value={content.subheadline || ""}
+                      error={errors?.subheadline}
+                      placeholder="These items pair perfectly together"
+                      helpText="Supporting text (optional)"
+                      onChange={(value) => updateField("subheadline", value)}
+                    />
+                  </BlockStack>
+                </Collapsible>
               </BlockStack>
-            </Collapsible>
-          </BlockStack>
 
-          <Divider />
+              <Divider />
+            </>
+          )}
 
           {/* Product Selection Section */}
           <BlockStack gap="300">
@@ -240,13 +250,13 @@ export function ProductUpsellContentSection({
                 {selectionMethod === "manual" && (
                   <ProductPicker
                     mode="product"
-                    selectionType="multiple"
+                    selectionType={singleProductMode ? "single" : "multiple"}
                     selectedIds={content.selectedProducts || []}
                     onSelect={(selections: ProductPickerSelection[]) => {
                       const productIds = selections.map((s) => s.id);
                       updateField("selectedProducts", productIds);
                     }}
-                    buttonLabel="Select products to feature"
+                    buttonLabel={singleProductMode ? "Select product to feature" : "Select products to feature"}
                     showSelected={true}
                   />
                 )}
@@ -265,15 +275,17 @@ export function ProductUpsellContentSection({
                   />
                 )}
 
-                <TextField
-                  label="Maximum Products to Display"
-                  name="content.maxProducts"
-                  value={content.maxProducts?.toString() || "3"}
-                  error={errors?.maxProducts}
-                  placeholder="3"
-                  helpText="Maximum number of products to show (1-12)"
-                  onChange={(value) => updateField("maxProducts", parseInt(value) || 3)}
-                />
+                {!singleProductMode && (
+                  <TextField
+                    label="Maximum Products to Display"
+                    name="content.maxProducts"
+                    value={content.maxProducts?.toString() ?? ""}
+                    error={errors?.maxProducts}
+                    placeholder="3"
+                    helpText="Maximum number of products to show (1-12)"
+                    onChange={(value) => updateField("maxProducts", (value === "" ? undefined : parseInt(value)) as number)}
+                  />
+                )}
               </BlockStack>
             </Collapsible>
           </BlockStack>
@@ -295,7 +307,7 @@ export function ProductUpsellContentSection({
                   icon={openSections.layoutDisplay ? ChevronUpIcon : ChevronDownIcon}
                 />
                 <Text as="h4" variant="headingSm">
-                  Layout & Display
+                  {singleProductMode ? "Display Options" : "Layout & Display"}
                 </Text>
               </InlineStack>
             </div>
@@ -309,43 +321,35 @@ export function ProductUpsellContentSection({
               }}
             >
               <BlockStack gap="300">
-                <FormGrid columns={2}>
-                  <Select
-                    label="Layout"
-                    name="content.layout"
-                    options={[
-                      { label: "Grid", value: "grid" },
-                      { label: "List", value: "card" },
-                      { label: "Carousel", value: "carousel" },
-                      { label: "Featured + Grid", value: "featured" },
-                      { label: "Stack", value: "stack" },
-                    ]}
-                    helpText={
-                      layout === "carousel"
-                        ? "One product at a time with swipe navigation - great for mobile"
-                        : layout === "featured"
-                          ? "First product highlighted as hero, others in smaller grid"
-                          : layout === "stack"
-                            ? "Overlapping cards - interactive and fun"
-                            : "Choose how upsell products are laid out"
-                    }
-                    value={layout}
-                    onChange={(value) =>
-                      updateField("layout", value as ProductUpsellContent["layout"])
-                    }
-                  />
-
-                  {layout === "grid" && (
-                    <TextField
-                      label="Number of Columns"
-                      name="content.columns"
-                      value={content.columns?.toString() || "2"}
-                      placeholder="2"
-                      helpText="Columns in grid layout (1-4)"
-                      onChange={(value) => updateField("columns", parseInt(value) || 2)}
+                {/* Layout options only for multi-product mode */}
+                {!singleProductMode && (
+                  <FormGrid columns={2}>
+                    <Select
+                      label="Layout"
+                      name="content.layout"
+                      options={[
+                        { label: "Grid", value: "grid" },
+                        { label: "List", value: "card" },
+                        { label: "Carousel", value: "carousel" },
+                        { label: "Featured + Grid", value: "featured" },
+                        { label: "Stack", value: "stack" },
+                      ]}
+                      helpText={
+                        layout === "carousel"
+                          ? "One product at a time with swipe navigation - great for mobile"
+                          : layout === "featured"
+                            ? "First product highlighted as hero, others in smaller grid"
+                            : layout === "stack"
+                              ? "Overlapping cards - interactive and fun"
+                              : "Choose how upsell products are laid out"
+                      }
+                      value={layout}
+                      onChange={(value) =>
+                        updateField("layout", value as ProductUpsellContent["layout"])
+                      }
                     />
-                  )}
-                </FormGrid>
+                  </FormGrid>
+                )}
 
                 <FormGrid columns={2}>
                   <CheckboxField
@@ -394,83 +398,30 @@ export function ProductUpsellContentSection({
 
           <Divider />
 
-          {/* Bundle Discount Section */}
-          <BlockStack gap="300">
-            <div
-              role="button"
-              tabIndex={0}
-              style={{ cursor: "pointer" }}
-              onClick={() => toggleSection("bundleDiscount")}
-              onKeyDown={handleKeyDown("bundleDiscount")}
-            >
-              <InlineStack gap="200" blockAlign="center">
-                <Button
-                  variant="plain"
-                  icon={openSections.bundleDiscount ? ChevronUpIcon : ChevronDownIcon}
-                />
-                <Text as="h4" variant="headingSm">
-                  Bundle Discount
-                </Text>
-              </InlineStack>
-            </div>
-
-            <Collapsible
-              open={openSections.bundleDiscount}
-              id="bundle-discount-section"
-              transition={{
-                duration: "200ms",
-                timingFunction: "ease-in-out",
-              }}
-            >
+          {/* Discount Strategy Section */}
+          {onDiscountChange && (
+            <Card>
               <BlockStack gap="400">
-                <Banner tone="info">
-                  <BlockStack gap="200">
-                    <Text as="p" variant="bodyMd">
-                      <strong>How Bundle Discounts Work:</strong>
-                    </Text>
-                    <Text as="p" variant="bodySm">
-                      The bundle discount is automatically applied to <strong>any products the customer selects</strong> from the upsell popup.
-                      The discount only applies to the upsell items, not the entire cart.
-                    </Text>
-                    <Text as="p" variant="bodySm" tone="subdued">
-                      ✨ No additional discount configuration needed – the bundle discount is auto-created when customers add items.
-                    </Text>
-                  </BlockStack>
-                </Banner>
+                <BlockStack gap="200">
+                  <Text as="h3" variant="headingMd">
+                    💰 Discount Strategy
+                  </Text>
+                  <Text as="p" tone="subdued">
+                    Configure how the upsell discount is applied (bundle, tiered, BOGO, or free gift).
+                  </Text>
+                </BlockStack>
 
-                <FormGrid columns={2}>
-                  <TextField
-                    label="Bundle Discount (%)"
-                    name="content.bundleDiscount"
-                    value={content.bundleDiscount?.toString() || "15"}
-                    placeholder="15"
-                    helpText="Discount applied to selected upsell products"
-                    onChange={(value) => updateField("bundleDiscount", parseInt(value) || 15)}
-                  />
+                <Divider />
 
-                  <TextField
-                    label="Bundle Discount Text"
-                    name="content.bundleDiscountText"
-                    value={content.bundleDiscountText || ""}
-                    placeholder="Save 15% on selected items!"
-                    helpText="Promotional text shown to customers"
-                    onChange={(value) => updateField("bundleDiscountText", value)}
-                  />
-                </FormGrid>
-
-                <TextField
-                  label="Currency"
-                  name="content.currency"
-                  value={content.currency || "USD"}
-                  placeholder="USD"
-                  helpText="Currency code used for price display (e.g. USD, EUR)"
-                  onChange={(value) => updateField("currency", value.toUpperCase())}
+                <GenericDiscountComponent
+                  goal="PRODUCT_UPSELL"
+                  discountConfig={discountConfig}
+                  onConfigChange={onDiscountChange}
+                  allowedStrategies={["bundle", "basic", "tiered", "bogo", "free_gift"]}
                 />
               </BlockStack>
-            </Collapsible>
-          </BlockStack>
-
-          <Divider />
+            </Card>
+          )}
 
           {/* Behavior Section */}
           <BlockStack gap="300">
@@ -501,13 +452,16 @@ export function ProductUpsellContentSection({
               }}
             >
               <BlockStack gap="300">
-                <CheckboxField
-                  label="Allow Multi-Select"
-                  name="content.multiSelect"
-                  checked={content.multiSelect !== false}
-                  helpText="Allow customers to select multiple products"
-                  onChange={(checked) => updateField("multiSelect", checked)}
-                />
+                {/* Multi-select only for multi-product mode */}
+                {!singleProductMode && (
+                  <CheckboxField
+                    label="Allow Multi-Select"
+                    name="content.multiSelect"
+                    checked={content.multiSelect !== false}
+                    helpText="Allow customers to select multiple products"
+                    onChange={(checked) => updateField("multiSelect", checked)}
+                  />
+                )}
 
                 <FormGrid columns={2}>
                   <TextField
@@ -529,6 +483,15 @@ export function ProductUpsellContentSection({
                     onChange={(value) => updateField("secondaryCtaLabel", value)}
                   />
                 </FormGrid>
+
+                <TextField
+                  label="Currency"
+                  name="content.currency"
+                  value={content.currency || "USD"}
+                  placeholder="USD"
+                  helpText="Currency code used for price display (e.g. USD, EUR)"
+                  onChange={(value) => updateField("currency", value.toUpperCase())}
+                />
               </BlockStack>
             </Collapsible>
           </BlockStack>

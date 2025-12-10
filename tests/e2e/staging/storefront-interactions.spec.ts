@@ -18,7 +18,7 @@ import {
     waitForPopupWithRetry,
     cleanupAllE2ECampaigns,
     MAX_TEST_PRIORITY,
-    mockChallengeToken
+    getTestStoreId,
 } from './helpers/test-helpers';
 import { CampaignFactory } from './factories/campaign-factory';
 
@@ -30,9 +30,8 @@ let storeId: string;
 
 test.describe('Popup Interactions', () => {
     test.beforeAll(async () => {
-        const store = await prisma.store.findFirst({ select: { id: true } });
-        if (!store) throw new Error('No store found in staging database');
-        storeId = store.id;
+        // Get store ID for the E2E testing store (revenue-boost-staging.myshopify.com)
+        storeId = await getTestStoreId(prisma);
         factory = new CampaignFactory(prisma, storeId, TEST_PREFIX);
     });
 
@@ -48,7 +47,6 @@ test.describe('Popup Interactions', () => {
         await cleanupAllE2ECampaigns(prisma);
         await context.clearCookies();
         // Mock challenge token to bypass bot protection
-        await mockChallengeToken(page);
     });
 
     test.describe('Close Button', () => {
@@ -296,16 +294,14 @@ test.describe('Popup Interactions', () => {
 
 test.describe('Form Validation', () => {
     test.beforeAll(async () => {
-        const store = await prisma.store.findFirst({ select: { id: true } });
-        if (!store) throw new Error('No store found');
-        storeId = store.id;
+        // Get store ID for the E2E testing store (revenue-boost-staging.myshopify.com)
+        storeId = await getTestStoreId(prisma);
         factory = new CampaignFactory(prisma, storeId, TEST_PREFIX);
     });
 
     test.beforeEach(async ({ context, page }) => {
         await context.clearCookies();
         // Mock challenge token to bypass bot protection
-        await mockChallengeToken(page);
     });
 
     test('shows error for invalid email format', async ({ page }) => {

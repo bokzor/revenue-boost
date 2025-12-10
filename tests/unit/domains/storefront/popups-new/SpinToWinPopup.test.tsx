@@ -87,9 +87,9 @@ function createConfig(overrides: Partial<any> = {}) {
     previewMode: true,
     emailRequired: false,
     emailPlaceholder: "Enter your email",
-    collectName: false,
+    nameFieldEnabled: false,
     nameFieldRequired: false,
-    showGdprCheckbox: false,
+    consentFieldEnabled: false,
     consentFieldRequired: false,
     challengeToken: "mock-challenge-token",
     wheelSegments: [
@@ -375,7 +375,7 @@ describe("SpinToWinPopup", () => {
     it("shows error when nameFieldRequired is true and name is empty", async () => {
       const config = createConfig({
         emailRequired: true,
-        collectName: true,
+        nameFieldEnabled: true,
         nameFieldRequired: true,
         previewMode: true,
       });
@@ -394,7 +394,7 @@ describe("SpinToWinPopup", () => {
     it("shows error when consentFieldRequired is true and GDPR checkbox is unchecked", async () => {
       const config = createConfig({
         emailRequired: true,
-        showGdprCheckbox: true,
+        consentFieldEnabled: true,
         consentFieldRequired: true,
         previewMode: true,
       });
@@ -413,9 +413,9 @@ describe("SpinToWinPopup", () => {
     it("validates all required fields together", async () => {
       const config = createConfig({
         emailRequired: true,
-        collectName: true,
+        nameFieldEnabled: true,
         nameFieldRequired: true,
-        showGdprCheckbox: true,
+        consentFieldEnabled: true,
         consentFieldRequired: true,
         previewMode: true,
       });

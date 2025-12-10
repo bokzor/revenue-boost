@@ -3,8 +3,12 @@
  *
  * Tests for revenue attribution logic in ORDERS_CREATE webhook:
  * - Discount code attribution (highest confidence)
- * - View-through attribution (customer-based)
+ * - View-through attribution via Lead lookup (requires actual user engagement)
  * - Edge cases and error handling
+ *
+ * Note: VIEW-only PopupEvent attribution was removed as passive views are
+ * not a strong enough signal for revenue attribution. Only Lead-based
+ * attribution (which requires form submission) is used for view-through.
  */
 
 import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
@@ -21,13 +25,36 @@ vi.mock("~/db.server", () => ({
     campaign: {
       findMany: vi.fn(),
     },
-    popupEvent: {
-      findFirst: vi.fn(),
-    },
     campaignConversion: {
       create: vi.fn(),
     },
   },
+}));
+
+// Mock normalizeDiscountConfig to return the config with prefix
+vi.mock("~/domains/commerce/services/discount.server", () => ({
+  normalizeDiscountConfig: vi.fn((cfg: any) => {
+    if (!cfg) return null;
+    // Handle JSON string input (as stored in DB)
+    let parsed = cfg;
+    if (typeof cfg === "string") {
+      try {
+        parsed = JSON.parse(cfg);
+      } catch {
+        return null;
+      }
+    }
+    return {
+      enabled: parsed.enabled ?? false,
+      type: parsed.type ?? "single_use",
+      valueType: parsed.valueType ?? "PERCENTAGE",
+      value: parsed.value ?? 10,
+      prefix: parsed.prefix ?? parsed.code ?? null, // Use code as prefix for static codes
+      behavior: parsed.behavior ?? "SHOW_CODE_AND_AUTO_APPLY",
+      showInPreview: parsed.showInPreview ?? true,
+      ...parsed,
+    };
+  }),
 }));
 
 import prisma from "~/db.server";
@@ -37,7 +64,6 @@ import { handleOrderCreate, type OrderPayload } from "~/webhooks/orders.create";
 const storeFindUniqueMock = prisma.store.findUnique as unknown as ReturnType<typeof vi.fn>;
 const leadFindFirstMock = prisma.lead.findFirst as unknown as ReturnType<typeof vi.fn>;
 const campaignFindManyMock = prisma.campaign.findMany as unknown as ReturnType<typeof vi.fn>;
-const popupEventFindFirstMock = prisma.popupEvent.findFirst as unknown as ReturnType<typeof vi.fn>;
 const conversionCreateMock = prisma.campaignConversion.create as unknown as ReturnType<typeof vi.fn>;
 
 // Test data factories
@@ -235,39 +261,7 @@ describe("Orders Create Webhook - handleOrderCreate", () => {
       });
     });
 
-    it("should attribute via popup event when no lead exists", async () => {
-      // Reset mocks for this specific test
-      vi.clearAllMocks();
-      storeFindUniqueMock.mockResolvedValue(createStore());
-      leadFindFirstMock.mockResolvedValue(null);
-
-      const popupEvent = {
-        id: "event-123",
-        storeId: "store-123",
-        campaignId: "campaign-popup",
-        eventType: "VIEW",
-        campaign: { id: "campaign-popup", status: "ACTIVE" },
-        createdAt: new Date(),
-      };
-      popupEventFindFirstMock.mockResolvedValue(popupEvent);
-      conversionCreateMock.mockResolvedValue({ id: "conversion-popup" });
-
-      const payload = createOrderPayload({
-        discount_codes: [],
-        customer: { id: 9876543210 },
-      });
-
-      await handleOrderCreate("test-store.myshopify.com", payload);
-
-      expect(conversionCreateMock).toHaveBeenCalledWith({
-        data: expect.objectContaining({
-          campaignId: "campaign-popup",
-          source: "view_through",
-        }),
-      });
-    });
-
-    it("should not attribute when no customer ID is available", async () => {
+    it("should not attribute when no customer ID is available (guest checkout)", async () => {
       // Reset mocks for this specific test
       vi.clearAllMocks();
       storeFindUniqueMock.mockResolvedValue(createStore());
@@ -281,16 +275,15 @@ describe("Orders Create Webhook - handleOrderCreate", () => {
       await handleOrderCreate("test-store.myshopify.com", payload);
 
       // Should not try view-through without customer ID
-      expect(popupEventFindFirstMock).not.toHaveBeenCalled();
+      // Lead lookup requires shopifyCustomerId which comes from customer.id
       expect(conversionCreateMock).not.toHaveBeenCalled();
     });
 
-    it("should not attribute when no matching lead or event found", async () => {
+    it("should not attribute when no matching lead found", async () => {
       // Reset mocks for this specific test
       vi.clearAllMocks();
       storeFindUniqueMock.mockResolvedValue(createStore());
       leadFindFirstMock.mockResolvedValue(null);
-      popupEventFindFirstMock.mockResolvedValue(null);
 
       const payload = createOrderPayload({
         discount_codes: [],
@@ -299,6 +292,7 @@ describe("Orders Create Webhook - handleOrderCreate", () => {
 
       await handleOrderCreate("test-store.myshopify.com", payload);
 
+      // No lead found = no attribution (we don't attribute VIEW-only events)
       expect(conversionCreateMock).not.toHaveBeenCalled();
     });
   });
@@ -306,7 +300,6 @@ describe("Orders Create Webhook - handleOrderCreate", () => {
   describe("Edge Cases", () => {
     it("should handle empty discount_codes array", async () => {
       leadFindFirstMock.mockResolvedValue(null);
-      popupEventFindFirstMock.mockResolvedValue(null);
 
       const payload = createOrderPayload({
         discount_codes: [],
@@ -321,7 +314,6 @@ describe("Orders Create Webhook - handleOrderCreate", () => {
 
     it("should handle undefined discount_codes", async () => {
       leadFindFirstMock.mockResolvedValue(null);
-      popupEventFindFirstMock.mockResolvedValue(null);
 
       const payload = createOrderPayload({
         customer: { id: 123 },
@@ -331,7 +323,7 @@ describe("Orders Create Webhook - handleOrderCreate", () => {
 
       await handleOrderCreate("test-store.myshopify.com", payload);
 
-      // Should still check view-through
+      // Should still check view-through via lead lookup
       expect(leadFindFirstMock).toHaveBeenCalled();
     });
 

@@ -17,12 +17,12 @@
 import React, { useState, useEffect, useRef } from "react";
 import type { PopupDesignConfig } from "./types";
 import type { CountdownTimerContent } from "~/domains/campaigns/types/campaign";
-import { POPUP_SPACING } from "./spacing";
+import { POPUP_SPACING } from "app/domains/storefront/popups-new/utils/spacing";
 
 // Import custom hooks
 import { useCountdownTimer, useColorScheme } from "./hooks";
 import { buildScopedCss } from "~/domains/storefront/shared/css";
-import { getBackgroundStyles } from "./utils";
+import { getBackgroundStyles } from "app/domains/storefront/popups-new/utils/utils";
 
 // Animation duration for banner enter/exit
 const BANNER_ANIMATION_DURATION = 300;
@@ -130,9 +130,9 @@ export const CountdownTimerPopup: React.FC<CountdownTimerPopupProps> = ({
   // Determine background (gradient for presets, solid for custom)
   const backgroundValue =
     config.colorScheme === "urgent"
-      ? "linear-gradient(135deg, #dc2626 0%, #f97316 100%)"
+      ? "linear-gradient(135deg, var(--rb-error, #dc2626) 0%, #f97316 100%)"
       : config.colorScheme === "success"
-        ? "linear-gradient(135deg, #10b981 0%, #14b8a6 100%)"
+        ? "linear-gradient(135deg, var(--rb-success, #10b981) 0%, #14b8a6 100%)"
         : config.colorScheme === "info"
           ? "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)"
           : schemeColors.backgroundColor;
@@ -143,7 +143,8 @@ export const CountdownTimerPopup: React.FC<CountdownTimerPopupProps> = ({
       ? "rgba(255, 255, 255, 0.2)"
       : config.inputBackgroundColor || "rgba(0, 0, 0, 0.08)";
   const timerText = config.colorScheme !== "custom" ? "#ffffff" : schemeColors.textColor;
-  const ctaBg = config.colorScheme !== "custom" ? "#ffffff" : config.buttonColor || schemeColors.accentColor;
+  const ctaBg =
+    config.colorScheme !== "custom" ? "#ffffff" : config.buttonColor || schemeColors.accentColor;
   const ctaText =
     config.colorScheme !== "custom"
       ? schemeColors.backgroundColor
@@ -153,7 +154,7 @@ export const CountdownTimerPopup: React.FC<CountdownTimerPopupProps> = ({
   const isPreview = (config as any).previewMode;
 
   // Check if using full background image (modal mode only)
-  const hasFullBgImage = config.imageUrl && config.imagePosition === "full";
+  const hasFullBgImage = config.imageUrl && config.leadCaptureLayout?.desktop === "overlay";
 
   // Popup/Modal display mode (centered overlay)
   if (displayMode === "popup") {
@@ -165,12 +166,15 @@ export const CountdownTimerPopup: React.FC<CountdownTimerPopupProps> = ({
           color: config.overlayColor || "#000000",
           opacity: config.overlayOpacity ?? 0.5,
         }}
-        animation={{ type: (config.animation as "fade" | "slide" | "zoom" | "bounce" | "none") || "fade" }}
+        animation={{
+          type: (config.animation as "fade" | "slide" | "zoom" | "bounce" | "none") || "fade",
+        }}
         position={config.position || "center"}
         size={config.size || "medium"}
         closeOnEscape
         closeOnBackdropClick
         previewMode={isPreview as boolean | undefined}
+        designTokensCSS={config.designTokensCSS}
       >
         <style>{`
           .countdown-modal {
@@ -414,7 +418,12 @@ export const CountdownTimerPopup: React.FC<CountdownTimerPopupProps> = ({
           position: "relative",
         };
 
-  const scopedCss = buildScopedCss(config.globalCustomCSS, config.customCSS, "data-rb-banner", "countdown");
+  const scopedCss = buildScopedCss(
+    config.globalCustomCSS,
+    config.customCSS,
+    "data-rb-banner",
+    "countdown"
+  );
 
   return (
     <>

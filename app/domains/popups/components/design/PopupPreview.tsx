@@ -70,6 +70,7 @@ export const PopupPreview = forwardRef<PopupPreviewRef, PopupPreviewProps>(
         small: { width: "300px", minHeight: "200px" },
         medium: { width: "400px", minHeight: "280px" },
         large: { width: "500px", minHeight: "350px" },
+        fullscreen: { width: "100%", minHeight: "100%" },
       };
       const size = sizeMap[config.size || "medium"];
       return {

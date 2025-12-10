@@ -196,18 +196,24 @@ export const NewsletterTemplateSchema = BaseTemplateSchema.extend({
   fields: z.array(TemplateFieldSchema).default([]),
   targetRules: TargetRulesConfigSchema.default({}),
   designConfig: DesignConfigSchema.default({
+    themeMode: "default",
     theme: "gradient",
     position: "center",
     size: "medium",
     borderRadius: 8,
-    imagePosition: "left",
     overlayOpacity: 0.8,
     backgroundImageMode: "none",
     animation: "fade",
+    leadCaptureLayout: {
+      desktop: "split-left",
+      mobile: "content-only",
+      visualSizeDesktop: "50%",
+    },
   }),
   discountConfig: DiscountConfigSchema.default({
     enabled: false,
     showInPreview: true,
+    strategy: "simple",
     valueType: "PERCENTAGE",
     value: 10,
     behavior: "SHOW_CODE_AND_AUTO_APPLY",
@@ -225,6 +231,7 @@ export const FlashSaleTemplateSchema = BaseTemplateSchema.extend({
   discountConfig: DiscountConfigSchema.default({
     enabled: true,
     showInPreview: true,
+    strategy: "simple",
     valueType: "PERCENTAGE",
     value: 20,
     behavior: "SHOW_CODE_ONLY",
@@ -239,34 +246,39 @@ export const SpinToWinTemplateSchema = BaseTemplateSchema.extend({
   fields: z.array(TemplateFieldSchema).default([]),
   targetRules: TargetRulesConfigSchema.default({}),
   designConfig: DesignConfigSchema.default({
+    themeMode: "default",
     theme: "gradient",
     position: "center",
     size: "medium",
     borderRadius: 8,
-    imagePosition: "none",
     overlayOpacity: 0.8,
     backgroundImageMode: "none",
     animation: "fade",
+    leadCaptureLayout: {
+      desktop: "content-only",
+      mobile: "content-only",
+    },
   }),
   discountConfig: DiscountConfigSchema.default({
     enabled: false,
     showInPreview: true,
+    strategy: "simple",
     behavior: "SHOW_CODE_AND_AUTO_APPLY",
   }),
 });
 
-// Free Shipping Template
+// Free Shipping Template (uses banner layout, not LeadCaptureLayout)
 export const FreeShippingTemplateSchema = BaseTemplateSchema.extend({
   templateType: z.literal("FREE_SHIPPING"),
   contentConfig: FreeShippingContentSchema,
   fields: z.array(TemplateFieldSchema).default([]),
   targetRules: TargetRulesConfigSchema.default({}),
   designConfig: DesignConfigSchema.default({
+    themeMode: "default",
     theme: "minimal",
     position: "top",
     size: "small",
     borderRadius: 0,
-    imagePosition: "left",
     overlayOpacity: 0,
     backgroundImageMode: "none",
     animation: "slide",
@@ -274,6 +286,7 @@ export const FreeShippingTemplateSchema = BaseTemplateSchema.extend({
   discountConfig: DiscountConfigSchema.default({
     enabled: true,
     showInPreview: true,
+    strategy: "simple",
     valueType: "FREE_SHIPPING",
     behavior: "SHOW_CODE_AND_AUTO_APPLY",
     expiryDays: 30,

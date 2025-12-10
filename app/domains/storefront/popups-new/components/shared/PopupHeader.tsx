@@ -96,6 +96,10 @@ export interface PopupHeaderProps {
    */
   subheadlineFontWeight?: string | number;
   /**
+   * Font family for headline (e.g., "Georgia, serif")
+   */
+  headlineFontFamily?: string;
+  /**
    * Text alignment
    * @default "center"
    */
@@ -140,18 +144,23 @@ export interface PopupHeaderProps {
 export const PopupHeader: React.FC<PopupHeaderProps> = ({
   headline,
   subheadline,
-  textColor = "#111827",
+  textColor,
   descriptionColor,
   headlineFontSize = "1.875rem",
   subheadlineFontSize = "1rem",
   headlineFontWeight = "700",
   subheadlineFontWeight = "400",
+  headlineFontFamily,
   align = "center",
   spacing = "0.75rem",
   marginBottom = "1.5rem",
   className,
   style,
 }) => {
+  // Use CSS variable with fallback to prop value for design token integration
+  const resolvedTextColor = textColor || "var(--rb-foreground, #111827)";
+  const resolvedDescColor = descriptionColor || "var(--rb-muted, rgba(0,0,0,0.7))";
+
   const containerStyles: React.CSSProperties = {
     textAlign: align,
     marginBottom,
@@ -162,7 +171,8 @@ export const PopupHeader: React.FC<PopupHeaderProps> = ({
     margin: 0,
     fontSize: headlineFontSize,
     fontWeight: headlineFontWeight,
-    color: textColor,
+    fontFamily: headlineFontFamily || "var(--rb-heading-font-family, var(--rb-font-family, inherit))",
+    color: resolvedTextColor,
     lineHeight: 1.2,
     marginBottom: subheadline ? spacing : 0,
   };
@@ -171,8 +181,8 @@ export const PopupHeader: React.FC<PopupHeaderProps> = ({
     margin: 0,
     fontSize: subheadlineFontSize,
     fontWeight: subheadlineFontWeight,
-    color: descriptionColor || textColor,
-    opacity: descriptionColor ? 1 : 0.85,
+    fontFamily: "var(--rb-font-family, inherit)",
+    color: resolvedDescColor,
     lineHeight: 1.6,
   };
 

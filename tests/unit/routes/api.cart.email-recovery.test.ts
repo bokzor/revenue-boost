@@ -20,7 +20,7 @@ vi.mock("~/db.server", () => ({
 
 vi.mock("~/domains/commerce/services/discount.server", () => ({
   getCampaignDiscountCode: vi.fn(),
-  parseDiscountConfig: vi.fn(),
+  normalizeDiscountConfig: vi.fn(),
   getSuccessMessage: vi.fn(),
   shouldShowDiscountCode: vi.fn(),
 }));
@@ -54,8 +54,8 @@ const campaignFindUniqueMock = prisma.campaign
 
 const getCampaignDiscountCodeMock =
   discountModule.getCampaignDiscountCode as unknown as ReturnType<typeof vi.fn>;
-const parseDiscountConfigMock =
-  discountModule.parseDiscountConfig as unknown as ReturnType<typeof vi.fn>;
+const normalizeDiscountConfigMock =
+  discountModule.normalizeDiscountConfig as unknown as ReturnType<typeof vi.fn>;
 const getSuccessMessageMock =
   discountModule.getSuccessMessage as unknown as ReturnType<typeof vi.fn>;
 const shouldShowDiscountCodeMock =
@@ -111,7 +111,7 @@ describe("api.cart.email-recovery action", () => {
       status: "ACTIVE",
     } as any);
 
-    parseDiscountConfigMock.mockImplementation((cfg: any) => ({
+    normalizeDiscountConfigMock.mockImplementation((cfg: any) => ({
       ...cfg,
       enabled: true,
       behavior: "SHOW_CODE_ONLY",
@@ -173,7 +173,7 @@ describe("api.cart.email-recovery action", () => {
       status: "ACTIVE",
     } as any);
 
-    parseDiscountConfigMock.mockImplementation((cfg: any) => ({
+    normalizeDiscountConfigMock.mockImplementation((cfg: any) => ({
       ...cfg,
       enabled: true,
       behavior: "SHOW_CODE_AND_ASSIGN_TO_EMAIL",
@@ -210,7 +210,6 @@ describe("api.cart.email-recovery action", () => {
     expect(discountCfg.authorizedEmail).toBe("locked@example.com");
     expect(discountCfg.requireEmailMatch).toBe(true);
   });
-});
 
   it("returns 400 when discount is disabled", async () => {
     appProxyMock.mockResolvedValue({
@@ -226,7 +225,7 @@ describe("api.cart.email-recovery action", () => {
       status: "ACTIVE",
     } as any);
 
-    parseDiscountConfigMock.mockImplementation((cfg: any) => ({
+    normalizeDiscountConfigMock.mockImplementation((cfg: any) => ({
       ...cfg,
       enabled: false,
     }));
@@ -253,5 +252,4 @@ describe("api.cart.email-recovery action", () => {
     expect(payload.success).toBe(false);
     expect(payload.error).toMatch(/discount not enabled/i);
   });
-
-
+});

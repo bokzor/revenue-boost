@@ -2,51 +2,195 @@
  * SocialProofPopup Component
  *
  * Social proof notification popup featuring:
- * - Multiple notification types (purchase/visitor/review)
- * - Notification rotation system
- * - Configurable display duration
- * - Position control (corners)
- * - Slide-in/slide-out animations
- * - Product images and details
- * - Real-time visitor counts
+ * - Modern card layout with avatar and footer
+ * - SVG icons (no emoji)
+ * - Verified purchase badge in footer
+ * - Responsive animations (slide up mobile, slide in desktop)
+ * - Uses --sp-* CSS variables for theming
  */
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import type { PopupDesignConfig } from "./types";
 import type { SocialProofContent } from "~/domains/campaigns/types/campaign";
-import { prefersReducedMotion } from "./utils";
-import { POPUP_SPACING } from "./spacing";
-
-// Import custom hooks
-import { usePopupAnimation } from "./hooks";
+import type {
+  SocialProofNotification,
+  PurchaseNotification,
+  VisitorNotification,
+  ReviewNotification,
+} from "~/domains/storefront/notifications/social-proof/types";
 import { buildScopedCss } from "~/domains/storefront/shared/css";
+import { getDerivedColors } from "./utils/utils";
 
-export interface SocialProofNotification {
-  id: string;
-  type: "purchase" | "visitor" | "review";
-  name?: string;
-  location?: string;
-  product?: string;
-  productImage?: string;
-  count?: number;
-  rating?: number;
-  timestamp?: Date;
-  // Extended fields used for Tier 2 / advanced variants
-  context?: string; // e.g. "left in stock", "added to cart in the last hour"
-  trending?: boolean;
+// =============================================================================
+// SVG ICONS (inline, no dependencies)
+// =============================================================================
+
+function ShoppingBagIcon() {
+  return (
+    <svg
+      className="sp-icon sp-icon--accent"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" />
+      <path d="M3 6h18" />
+      <path d="M16 10a4 4 0 0 1-8 0" />
+    </svg>
+  );
 }
 
-/**
- * SocialProofConfig - Extends both design config AND campaign content type
- * All content fields come from SocialProofContent
- * All design fields come from PopupDesignConfig
- */
+function UsersIcon() {
+  return (
+    <svg
+      className="sp-icon sp-icon--primary"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    </svg>
+  );
+}
+
+function StarIcon() {
+  return (
+    <svg
+      className="sp-icon sp-icon--warning sp-icon--filled"
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+    </svg>
+  );
+}
+
+function CloseIcon() {
+  return (
+    <svg
+      className="sp-icon"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M18 6 6 18" />
+      <path d="m6 6 12 12" />
+    </svg>
+  );
+}
+
+function CheckCircleIcon() {
+  return (
+    <svg
+      className="sp-icon sp-icon--small sp-icon--accent"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <circle cx="12" cy="12" r="10" />
+      <path d="m9 12 2 2 4-4" />
+    </svg>
+  );
+}
+
+function NotificationIcon({ type }: { type: "purchase" | "visitor" | "review" }) {
+  switch (type) {
+    case "purchase":
+      return <ShoppingBagIcon />;
+    case "visitor":
+      return <UsersIcon />;
+    case "review":
+      return <StarIcon />;
+  }
+}
+
+// =============================================================================
+// HELPERS
+// =============================================================================
+
+function getInitials(name: string): string {
+  return name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+}
+
+function formatTimeAgo(timestamp: number, timeAgoString?: string): string {
+  // If timeAgo string is provided (from API), use it directly
+  if (timeAgoString) return timeAgoString;
+
+  // Calculate from timestamp
+  const seconds = Math.floor((Date.now() - timestamp) / 1000);
+
+  if (seconds < 60) return "Just now";
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+  return `${Math.floor(seconds / 86400)}d ago`;
+}
+
+// Get customer name for purchase notifications
+function getCustomerName(notif: SocialProofNotification): string {
+  if (notif.type === "purchase") {
+    return (notif as PurchaseNotification).customerName || "Someone";
+  }
+  if (notif.type === "review") {
+    return (notif as ReviewNotification).recentReview?.author || "Customer";
+  }
+  return "Someone";
+}
+
+// Get product name for purchase notifications
+function getProductName(notif: SocialProofNotification): string {
+  if (notif.type === "purchase") {
+    return (notif as PurchaseNotification).productName || "an item";
+  }
+  return "an item";
+}
+
+// Get time ago string for notifications
+function getTimeAgoString(notif: SocialProofNotification): string {
+  if (notif.type === "purchase") {
+    const purchase = notif as PurchaseNotification;
+    return formatTimeAgo(purchase.timestamp, purchase.timeAgo);
+  }
+  return formatTimeAgo(notif.timestamp);
+}
+
+// =============================================================================
+// TYPES (re-export from canonical source)
+// =============================================================================
+
+// Re-export notification types from canonical source
+export type { SocialProofNotification, PurchaseNotification, VisitorNotification, ReviewNotification };
+
 export interface SocialProofConfig extends PopupDesignConfig, SocialProofContent {
-  // Storefront-specific fields only
-  // Note: displayDuration, messageTemplates, enablePurchaseNotifications, etc.
-  // all come from SocialProofContent
   customCSS?: string;
   globalCustomCSS?: string;
+  // Display toggles
+  showVerifiedBadge?: boolean;
+  showCloseButton?: boolean;
+  previewMode?: boolean;
 }
 
 export interface SocialProofPopupProps {
@@ -56,109 +200,69 @@ export interface SocialProofPopupProps {
   notifications?: SocialProofNotification[];
 }
 
+// =============================================================================
+// COMPONENT
+// =============================================================================
+
 export const SocialProofPopup: React.FC<SocialProofPopupProps> = ({
   config,
   isVisible,
   onClose,
   notifications = [],
 }) => {
-  // Use animation hook
-  const { showContent: _showContent } = usePopupAnimation({ isVisible });
-
-  // Component-specific state
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [isAnimating, setIsAnimating] = useState(false);
+  const [isEntering, setIsEntering] = useState(false);
+  const [isExiting, setIsExiting] = useState(false);
   const [shownCount, setShownCount] = useState(0);
 
   const rotationInterval = (config.rotationInterval || 8) * 1000;
 
-  console.log("[SocialProofPopup] render", {
-    isVisible,
-    notificationsLength: notifications.length,
-    rotationInterval,
-    currentIndex,
-    shownCount,
-    flags: {
-      enablePurchaseNotifications: config.enablePurchaseNotifications,
-      enableVisitorNotifications: config.enableVisitorNotifications,
-      enableReviewNotifications: config.enableReviewNotifications,
-      maxNotificationsPerSession: config.maxNotificationsPerSession,
-      minVisitorCount: config.minVisitorCount,
-      minReviewRating: config.minReviewRating,
-    },
-  });
-
   // Filter notifications based on config
-  const filteredNotifications = notifications.filter((notif) => {
-    if (notif.type === "purchase" && !config.enablePurchaseNotifications) return false;
-    if (notif.type === "visitor" && !config.enableVisitorNotifications) return false;
-    if (notif.type === "review" && !config.enableReviewNotifications) return false;
+  const filteredNotifications = useMemo(() => {
+    return notifications.filter((notif) => {
+      if (notif.type === "purchase" && !config.enablePurchaseNotifications) return false;
+      if (notif.type === "visitor" && !config.enableVisitorNotifications) return false;
+      if (notif.type === "review" && !config.enableReviewNotifications) return false;
 
-    if (notif.type === "visitor" && config.minVisitorCount && notif.count) {
-      if (notif.count < config.minVisitorCount) return false;
-    }
+      if (notif.type === "visitor" && config.minVisitorCount && notif.count) {
+        if (notif.count < config.minVisitorCount) return false;
+      }
 
-    if (notif.type === "review" && config.minReviewRating && notif.rating) {
-      if (notif.rating < config.minReviewRating) return false;
-    }
+      if (notif.type === "review" && config.minReviewRating && notif.rating) {
+        if (notif.rating < config.minReviewRating) return false;
+      }
 
-    return true;
-  });
-
-  console.log("[SocialProofPopup] filtered notifications", {
-    inputLength: notifications.length,
-    outputLength: filteredNotifications.length,
-  });
+      return true;
+    });
+  }, [notifications, config]);
 
   const currentNotification = filteredNotifications[currentIndex];
 
+  // Enter animation
+  useEffect(() => {
+    if (isVisible && filteredNotifications.length > 0) {
+      const timer = setTimeout(() => setIsEntering(true), 50);
+      return () => clearTimeout(timer);
+    }
+  }, [isVisible, filteredNotifications.length]);
+
   // Rotate notifications
   useEffect(() => {
-    if (!isVisible || filteredNotifications.length === 0) {
-      console.log("[SocialProofPopup] skipping rotation - not visible or no notifications", {
-        isVisible,
-        filteredLength: filteredNotifications.length,
-      });
-      return;
-    }
+    if (!isVisible || filteredNotifications.length === 0) return;
 
     if (config.maxNotificationsPerSession && shownCount >= config.maxNotificationsPerSession) {
-      console.log("[SocialProofPopup] maxNotificationsPerSession reached, closing", {
-        shownCount,
-        max: config.maxNotificationsPerSession,
-      });
       onClose();
       return;
     }
 
-    console.log("[SocialProofPopup] scheduling rotation timer", {
-      currentIndex,
-      shownCount,
-      filteredLength: filteredNotifications.length,
-      rotationInterval,
-    });
-
     const timer = setTimeout(() => {
-      setIsAnimating(true);
+      setIsExiting(true);
 
       setTimeout(() => {
-        setCurrentIndex((prev) => {
-          const nextIndex = (prev + 1) % filteredNotifications.length;
-          console.log("[SocialProofPopup] advancing notification", {
-            prevIndex: prev,
-            nextIndex,
-          });
-          return nextIndex;
-        });
-        setShownCount((prev) => {
-          const nextShown = prev + 1;
-          console.log("[SocialProofPopup] incrementing shownCount", {
-            prevShown: prev,
-            nextShown,
-          });
-          return nextShown;
-        });
-        setIsAnimating(false);
+        setCurrentIndex((prev) => (prev + 1) % filteredNotifications.length);
+        setShownCount((prev) => prev + 1);
+        setIsExiting(false);
+        setIsEntering(true);
       }, 300);
     }, rotationInterval);
 
@@ -173,95 +277,10 @@ export const SocialProofPopup: React.FC<SocialProofPopupProps> = ({
     onClose,
   ]);
 
-  const getPositionStyles = (): React.CSSProperties => {
-    const position = config.cornerPosition || "bottom-left";
-    // In preview mode, use absolute positioning to stay within the preview frame
-    // In storefront, use fixed positioning to anchor to viewport corners
-    const base: React.CSSProperties = {
-      position: config.previewMode ? "absolute" : "fixed",
-      zIndex: 10000,
-    };
-
-    switch (position) {
-      case "bottom-left":
-        return { ...base, bottom: "20px", left: "20px" };
-      case "bottom-right":
-        return { ...base, bottom: "20px", right: "20px" };
-      case "top-left":
-        return { ...base, top: "20px", left: "20px" };
-      case "top-right":
-        return { ...base, top: "20px", right: "20px" };
-      default:
-        return { ...base, bottom: "20px", left: "20px" };
-    }
-  };
-
-  const getMessage = useCallback(
-    (notification: SocialProofNotification): string => {
-      const templates = config.messageTemplates || {};
-
-      switch (notification.type) {
-        case "purchase": {
-          const purchaseTemplate =
-            templates.purchase || "{{name}} from {{location}} just purchased {{product}}";
-          return purchaseTemplate
-            .replace("{{name}}", notification.name || "Someone")
-            .replace("{{location}}", notification.location || "nearby")
-            .replace("{{product}}", notification.product || "this item");
-        }
-
-        case "visitor": {
-          const visitorTemplate =
-            templates.visitor || "{{count}} people are viewing this right now";
-
-          // Tier 2 / advanced variants can provide a custom context message
-          if (notification.context) {
-            // If context already contains a {{count}} placeholder, respect it
-            if (notification.context.includes("{{count}}")) {
-              return notification.context.replace("{{count}}", String(notification.count ?? 0));
-            }
-
-            // Otherwise build "<count> <context>" style messages, e.g.:
-            // "3 left in stock!", "5 added to cart in the last hour"
-            if (typeof notification.count === "number") {
-              return `${notification.count} ${notification.context}`;
-            }
-
-            // Fallback to raw context if count is missing
-            return notification.context;
-          }
-
-          return visitorTemplate.replace("{{count}}", String(notification.count || 0));
-        }
-
-        case "review": {
-          const reviewTemplate = templates.review || "{{name}} gave this {{rating}} stars";
-          return reviewTemplate
-            .replace("{{name}}", notification.name || "Someone")
-            .replace("{{rating}}", String(notification.rating || 5));
-        }
-
-        default:
-          return "";
-      }
-    },
-    [config.messageTemplates]
-  );
-
-  const getIcon = (type: string): string => {
-    switch (type) {
-      case "purchase":
-        return "🛍️";
-      case "visitor":
-        return "👀";
-      case "review":
-        return "⭐";
-      default:
-        return "✨";
-    }
-  };
-
-  const background = config.backgroundColor || "#111827";
+  const handleDismiss = useCallback(() => {
+    setIsExiting(true);
+    setTimeout(() => onClose(), 300);
+  }, [onClose]);
 
   const scopedCss = useMemo(
     () =>
@@ -269,105 +288,528 @@ export const SocialProofPopup: React.FC<SocialProofPopupProps> = ({
         config.globalCustomCSS,
         config.customCSS,
         "data-rb-social-proof",
-        "social-proof",
+        "social-proof"
       ),
-    [config.customCSS, config.globalCustomCSS],
+    [config.customCSS, config.globalCustomCSS]
   );
+
+  // Derive colors based on background for proper contrast
+  const bgColor = config.backgroundColor || "#ffffff";
+  const derived = getDerivedColors(bgColor);
+  // Auto-detect text color based on background darkness if not explicitly set
+  const textColor = config.textColor || (derived.isDark ? "#ffffff" : "#0a0a0a");
+
+  // Build CSS variables from config (matching mock's --sp-* naming)
+  const cssVariables: React.CSSProperties = {
+    "--sp-background": bgColor,
+    "--sp-foreground": textColor,
+    "--sp-muted": derived.muted,
+    "--sp-muted-bg": derived.mutedBg,
+    "--sp-border": derived.border,
+    "--sp-primary": textColor,
+    "--sp-primary-light": derived.primaryLight,
+    "--sp-accent": config.accentColor || "#16a34a",
+    "--sp-warning": "#f59e0b",
+    "--sp-shadow": derived.shadow,
+  } as React.CSSProperties;
+
+  // Position class
+  const getPositionClass = () => {
+    const position = config.cornerPosition || "bottom-left";
+    switch (position) {
+      case "bottom-right":
+        return "sp-position--bottom-right";
+      case "top-left":
+        return "sp-position--top-left";
+      case "top-right":
+        return "sp-position--top-right";
+      default:
+        return "sp-position--bottom-left";
+    }
+  };
 
   if (!isVisible || !currentNotification || filteredNotifications.length === 0) {
     return null;
   }
 
-  const containerStyles: React.CSSProperties = {
-    ...getPositionStyles(),
-    // Use `background` so both solid colors and gradients work
-    background,
-    color: config.textColor,
-    fontFamily: config.fontFamily || 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
-    borderRadius: `${config.borderRadius ?? 8}px`,
-    padding: POPUP_SPACING.component.card,
-    boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-    width: "calc(100% - 40px)", // Ensure it fits on mobile
-    maxWidth: "350px",
-    display: "flex",
-    gap: POPUP_SPACING.gap.sm,
-    alignItems: "center",
-    opacity: isAnimating ? 0 : 1,
-    transform: isAnimating ? "translateY(10px)" : "translateY(0)",
-    transition: prefersReducedMotion() ? "none" : "opacity 0.3s, transform 0.3s",
-    containerType: "inline-size",
-    containerName: "social-proof",
+  const containerClasses = [
+    "sp-notification",
+    getPositionClass(),
+    config.previewMode ? "sp-notification--preview" : "",
+    isExiting ? "sp-notification--exiting" : isEntering ? "sp-notification--entering" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  // Render message content
+  const renderMessage = () => {
+    switch (currentNotification.type) {
+      case "purchase": {
+        const purchase = currentNotification as PurchaseNotification;
+        return (
+          <>
+            <span className="sp-text--semibold">{purchase.customerName}</span>
+            <span className="sp-text--muted"> just purchased </span>
+            <span className="sp-text--medium">{purchase.productName}</span>
+          </>
+        );
+      }
+      case "visitor": {
+        const visitor = currentNotification as VisitorNotification;
+        const isLowStock = visitor.context?.includes("left in stock");
+        if (isLowStock) {
+          return (
+            <span className="sp-text--warning sp-text--semibold">
+              Only {visitor.count} left in stock!
+            </span>
+          );
+        }
+        return (
+          <>
+            <span className="sp-text--semibold">
+              {visitor.count} {visitor.count === 1 ? "person" : "people"}
+            </span>
+            <span className="sp-text--muted"> {visitor.context || "are viewing this right now"}</span>
+          </>
+        );
+      }
+      case "review": {
+        const review = currentNotification as ReviewNotification;
+        return (
+          <>
+            <span className="sp-text--semibold">{review.recentReview?.author || "Customer"}</span>
+            <span className="sp-text--muted"> left a </span>
+            <span className="sp-text--medium">{review.rating}-star review</span>
+          </>
+        );
+      }
+    }
   };
 
-  const closeButtonStyles: React.CSSProperties = {
-    background: "transparent",
-    border: "none",
-    color: config.textColor,
-    fontSize: "18px",
-    cursor: "pointer",
-    opacity: 0.6,
-    padding: "2px 6px",
-    lineHeight: 1,
-    flexShrink: 0,
-    alignSelf: "flex-start",
-    marginLeft: "8px",
+  // Get location from purchase notifications
+  const getLocation = (): string => {
+    if (currentNotification.type === "purchase") {
+      return (currentNotification as PurchaseNotification).location || "Nearby";
+    }
+    return "Nearby";
+  };
+
+  // Footer shown based on config and notification type
+  const showFooter = config.showVerifiedBadge !== false;
+
+  // Get appropriate footer text based on notification type
+  const getFooterText = () => {
+    switch (currentNotification.type) {
+      case "purchase":
+        return "Verified purchase";
+      case "review":
+        return "Verified review";
+      case "visitor":
+        return "Live activity";
+      default:
+        return "Verified";
+    }
   };
 
   return (
-    <div style={containerStyles} data-rb-social-proof>
-      {scopedCss ? <style dangerouslySetInnerHTML={{ __html: scopedCss }} /> : null}
-      {/* Icon */}
-      <div style={{ fontSize: "24px", flexShrink: 0 }}>{getIcon(currentNotification.type)}</div>
+    <>
+      <div className={containerClasses} style={cssVariables} data-rb-social-proof>
+        <div className="sp-notification__card">
+          <div className="sp-notification__body">
+            <div className="sp-notification__content">
+              {/* Avatar */}
+              <div className="sp-avatar">
+                {currentNotification.type === "purchase" &&
+                (currentNotification as PurchaseNotification).productImage &&
+                config.showProductImage ? (
+                  <img
+                    src={(currentNotification as PurchaseNotification).productImage}
+                    alt={getProductName(currentNotification)}
+                    className="sp-avatar__image"
+                  />
+                ) : (
+                  <span className="sp-avatar__initials">
+                    {getInitials(getCustomerName(currentNotification))}
+                  </span>
+                )}
+              </div>
 
-      {/* Product image */}
-      {config.showProductImage && currentNotification.productImage && (
-        <img
-          src={currentNotification.productImage}
-          alt={currentNotification.product || "Product"}
-          style={{
-            width: "50px",
-            height: "50px",
-            objectFit: "cover",
-            borderRadius: "6px",
-            flexShrink: 0,
-          }}
-        />
-      )}
+              {/* Content */}
+              <div className="sp-notification__text">
+                <p className="sp-notification__message">{renderMessage()}</p>
+                <div className="sp-notification__meta">
+                  <NotificationIcon type={currentNotification.type} />
+                  <span className="sp-meta__text">{getLocation()}</span>
+                  <span className="sp-meta__separator">•</span>
+                  <span className="sp-meta__text">{getTimeAgoString(currentNotification)}</span>
+                </div>
+              </div>
 
-      {/* Message */}
-      <div style={{ flex: 1, fontSize: "14px", lineHeight: 1.5, fontWeight: 600 }}>
-        {getMessage(currentNotification)}
-
-        {/* Timer */}
-        {config.showTimer && currentNotification.timestamp && (
-          <div style={{ fontSize: "12px", opacity: 0.7, marginTop: POPUP_SPACING.section.xs }}>
-            {getTimeAgo(currentNotification.timestamp)}
+              {/* Close button */}
+              {config.showCloseButton !== false && (
+                <button
+                  onClick={handleDismiss}
+                  className="sp-close-btn"
+                  aria-label="Dismiss notification"
+                >
+                  <CloseIcon />
+                </button>
+              )}
+            </div>
           </div>
-        )}
+
+          {/* Footer badge - text changes based on notification type */}
+          {showFooter && (
+            <div className="sp-notification__footer">
+              <div className="sp-verified">
+                <CheckCircleIcon />
+                <span className="sp-verified__text">{getFooterText()}</span>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Close button (pinned to the right) */}
-      {config.showCloseButton !== false && (
-        <button
-          onClick={onClose}
-          style={closeButtonStyles}
-          aria-label="Close notification"
-          onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
-          onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.6")}
-        >
-          ×
-        </button>
-      )}
-    </div>
+      {/* Custom CSS from config */}
+      {scopedCss ? <style dangerouslySetInnerHTML={{ __html: scopedCss }} /> : null}
+
+      {/* Component styles using --rb-* CSS variables */}
+      <style dangerouslySetInnerHTML={{ __html: SOCIAL_PROOF_STYLES }} />
+    </>
   );
 };
 
-// Helper function to get time ago
-function getTimeAgo(date: Date): string {
-  const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
+// =============================================================================
+// STYLES
+// =============================================================================
 
-  if (seconds < 60) return "Just now";
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
-  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
-  return `${Math.floor(seconds / 86400)}d ago`;
+const SOCIAL_PROOF_STYLES = `
+/* ========================================
+   Social Proof Notification
+   Uses --sp-* CSS variables for theming
+   (matching the mock design exactly)
+   ======================================== */
+
+/* Animations */
+@keyframes sp-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
+
+@keyframes sp-slide-out {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+}
+
+@keyframes sp-slide-in-tablet {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+@keyframes sp-slide-out-tablet {
+  from {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-50%) translateY(100%);
+  }
+}
+
+/* Container - Mobile first (full width) */
+.sp-notification {
+  position: fixed;
+  z-index: 9999;
+  bottom: 16px;
+  left: 16px;
+  right: 16px;
+  font-family: var(--sp-font-family, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
+}
+
+.sp-notification--preview {
+  position: absolute;
+}
+
+.sp-notification--entering {
+  animation: sp-slide-in 0.4s ease-out forwards;
+}
+
+.sp-notification--exiting {
+  animation: sp-slide-out 0.3s ease-in forwards;
+}
+
+/* Tablet: centered with max-width - using @media for broad compatibility */
+@media (min-width: 640px) {
+  .sp-notification:not(.sp-notification--preview) {
+    left: 50%;
+    right: auto;
+    width: 360px;
+    transform: translateX(-50%);
+  }
+
+  .sp-notification:not(.sp-notification--preview).sp-notification--entering {
+    animation: sp-slide-in-tablet 0.4s ease-out forwards;
+  }
+
+  .sp-notification:not(.sp-notification--preview).sp-notification--exiting {
+    animation: sp-slide-out-tablet 0.3s ease-in forwards;
+  }
+}
+
+/* Desktop: bottom-left fixed position - using @media for broad compatibility */
+@media (min-width: 768px) {
+  .sp-notification:not(.sp-notification--preview) {
+    left: 24px;
+    right: auto;
+    bottom: 24px;
+    width: 380px;
+    transform: none;
+  }
+
+  .sp-notification:not(.sp-notification--preview).sp-notification--entering {
+    animation: sp-slide-in 0.4s ease-out forwards;
+  }
+
+  .sp-notification:not(.sp-notification--preview).sp-notification--exiting {
+    animation: sp-slide-out 0.3s ease-in forwards;
+  }
+
+  /* Position variants for desktop */
+  .sp-notification:not(.sp-notification--preview).sp-position--bottom-left {
+    left: 24px;
+    right: auto;
+    bottom: 24px;
+  }
+
+  .sp-notification:not(.sp-notification--preview).sp-position--bottom-right {
+    left: auto;
+    right: 24px;
+    bottom: 24px;
+  }
+
+  .sp-notification:not(.sp-notification--preview).sp-position--top-left {
+    left: 24px;
+    right: auto;
+    top: 24px;
+    bottom: auto;
+  }
+
+  .sp-notification:not(.sp-notification--preview).sp-position--top-right {
+    left: auto;
+    right: 24px;
+    top: 24px;
+    bottom: auto;
+  }
+}
+
+/* Preview mode: use container queries for responsive behavior within DeviceFrame */
+@container (min-width: 640px) {
+  .sp-notification--preview {
+    left: 50%;
+    right: auto;
+    width: 360px;
+    transform: translateX(-50%);
+  }
+
+  .sp-notification--preview.sp-notification--entering {
+    animation: sp-slide-in-tablet 0.4s ease-out forwards;
+  }
+
+  .sp-notification--preview.sp-notification--exiting {
+    animation: sp-slide-out-tablet 0.3s ease-in forwards;
+  }
+}
+
+@container (min-width: 768px) {
+  .sp-notification--preview {
+    left: 24px;
+    right: auto;
+    bottom: 24px;
+    width: 380px;
+    transform: none;
+  }
+
+  .sp-notification--preview.sp-notification--entering {
+    animation: sp-slide-in 0.4s ease-out forwards;
+  }
+
+  .sp-notification--preview.sp-notification--exiting {
+    animation: sp-slide-out 0.3s ease-in forwards;
+  }
+}
+
+/* Card */
+.sp-notification__card {
+  background: var(--sp-background);
+  border: 1px solid var(--sp-border);
+  border-radius: 12px;
+  box-shadow: 0 4px 12px var(--sp-shadow);
+  overflow: hidden;
+}
+
+.sp-notification__body {
+  padding: 16px;
+}
+
+.sp-notification__content {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+/* Avatar */
+.sp-avatar {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: var(--sp-primary-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 0 2px var(--sp-background), 0 1px 3px var(--sp-shadow);
+}
+
+.sp-avatar__initials {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--sp-primary);
+}
+
+.sp-avatar__image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Text Content */
+.sp-notification__text {
+  flex: 1;
+  min-width: 0;
+}
+
+.sp-notification__message {
+  font-size: 14px;
+  line-height: 1.4;
+  margin: 0;
+  color: var(--sp-foreground);
+}
+
+.sp-text--semibold {
+  font-weight: 600;
+  color: var(--sp-foreground);
+}
+
+.sp-text--medium {
+  font-weight: 500;
+  color: var(--sp-foreground);
+}
+
+.sp-text--muted {
+  color: var(--sp-muted);
+}
+
+/* Meta Info */
+.sp-notification__meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.sp-meta__text {
+  font-size: 12px;
+  color: var(--sp-muted);
+}
+
+.sp-meta__separator {
+  font-size: 12px;
+  color: var(--sp-muted);
+}
+
+/* Icons */
+.sp-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.sp-icon--small {
+  width: 14px;
+  height: 14px;
+}
+
+.sp-icon--primary {
+  color: var(--sp-primary);
+}
+
+.sp-icon--accent {
+  color: var(--sp-accent);
+}
+
+.sp-icon--warning {
+  color: var(--sp-warning);
+}
+
+.sp-icon--filled {
+  fill: var(--sp-warning);
+}
+
+/* Close Button */
+.sp-close-btn {
+  flex-shrink: 0;
+  padding: 4px;
+  border: none;
+  background: transparent;
+  border-radius: 50%;
+  cursor: pointer;
+  color: var(--sp-muted);
+  transition: background-color 0.15s ease, color 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sp-close-btn:hover {
+  background-color: var(--sp-muted-bg);
+  color: var(--sp-foreground);
+}
+
+/* Footer / Verified Badge */
+.sp-notification__footer {
+  padding: 8px 16px;
+  background-color: var(--sp-muted-bg);
+  border-top: 1px solid var(--sp-border);
+}
+
+.sp-verified {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sp-verified__text {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--sp-muted);
+}
+`;

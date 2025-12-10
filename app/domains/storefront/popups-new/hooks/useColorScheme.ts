@@ -48,12 +48,12 @@ export function useColorScheme(
   customColors?: CustomColors
 ): ColorSchemeColors {
   return useMemo(() => {
-    // Custom color scheme - use provided colors or defaults
+    // Custom color scheme - use provided colors or CSS variable defaults
     if (colorScheme === "custom") {
       return {
-        backgroundColor: customColors?.backgroundColor || "#ffffff",
-        textColor: customColors?.textColor || "#111827",
-        accentColor: customColors?.accentColor || "#3b82f6",
+        backgroundColor: customColors?.backgroundColor || "var(--rb-background, #FFFFFF)",
+        textColor: customColors?.textColor || "var(--rb-foreground, #1A1A1A)",
+        accentColor: customColors?.accentColor || "var(--rb-primary, #007BFF)",
         borderColor: customColors?.borderColor,
       };
     }

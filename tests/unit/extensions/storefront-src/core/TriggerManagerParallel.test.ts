@@ -77,9 +77,9 @@ describe("TriggerManager Parallel Execution", () => {
             id: "test-campaign-or-delayed",
             clientTriggers: {
                 enhancedTriggers: {
-                    time_delay: {
+                    page_load: {
                         enabled: true,
-                        delay: 0.1, // 100ms
+                        delay: 100, // 100ms
                     },
                     scroll_depth: {
                         enabled: true,
@@ -92,7 +92,7 @@ describe("TriggerManager Parallel Execution", () => {
             },
         };
 
-        // Use real checkTimeDelay (it uses setTimeout)
+        // Use real checkPageLoad (it uses setTimeout)
 
         // Mock checkScrollDepth to HANG
         vi.spyOn(
@@ -105,7 +105,7 @@ describe("TriggerManager Parallel Execution", () => {
         const elapsed = Date.now() - start;
 
         expect(result).toBe(true);
-        expect(elapsed).toBeGreaterThanOrEqual(90); // Should wait for time delay
+        expect(elapsed).toBeGreaterThanOrEqual(90); // Should wait for page_load delay
     });
 
     it("should fail OR logic if all triggers fail (resolve to false)", async () => {

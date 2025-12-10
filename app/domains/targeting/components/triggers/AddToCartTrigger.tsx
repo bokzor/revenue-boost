@@ -71,9 +71,10 @@ export function AddToCartTrigger({ config, onChange }: AddToCartTriggerProps) {
           autoComplete="off"
           label="Delay (milliseconds)"
           type="number"
-          value={config.add_to_cart?.delay?.toString() || "500"}
-          onChange={(value) => updateConfig({ delay: parseInt(value) || 500 })}
+          value={config.add_to_cart?.delay?.toString() ?? ""}
+          onChange={(value) => updateConfig({ delay: value === "" ? undefined : parseInt(value) })}
           helpText="Time to wait after add-to-cart event before showing popup"
+          placeholder="500"
         />
 
         <Checkbox

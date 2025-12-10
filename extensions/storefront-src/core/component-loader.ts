@@ -18,7 +18,12 @@ export type TemplateType =
   | "SOCIAL_PROOF"
   | "COUNTDOWN_TIMER"
   | "SCRATCH_CARD"
-  | "ANNOUNCEMENT";
+  | "ANNOUNCEMENT"
+  // New upsell popup template types
+  | "CLASSIC_UPSELL"
+  | "MINIMAL_SLIDE_UP"
+  | "PREMIUM_FULLSCREEN"
+  | "COUNTDOWN_URGENCY";
 
 export type LoadedComponent = unknown; // Preact component
 
@@ -134,7 +139,9 @@ export class ComponentLoader {
    * Load from global registry created by IIFE bundles
    */
   private loadFromGlobal(key: string): LoadedComponent | null {
-    type GlobalWithRegistry = typeof globalThis & { RevenueBoostComponents?: Record<string, unknown> };
+    type GlobalWithRegistry = typeof globalThis & {
+      RevenueBoostComponents?: Record<string, unknown>;
+    };
     const g = globalThis as GlobalWithRegistry;
     const reg = g.RevenueBoostComponents;
     if (reg && reg[key]) {
@@ -151,7 +158,10 @@ export class ComponentLoader {
     // Consume param to satisfy lint
     void key;
     // Check if dynamic imports are enabled at build time
-    if (typeof __REVENUE_BOOST_DYNAMIC_IMPORT__ !== "undefined" && !__REVENUE_BOOST_DYNAMIC_IMPORT__) {
+    if (
+      typeof __REVENUE_BOOST_DYNAMIC_IMPORT__ !== "undefined" &&
+      !__REVENUE_BOOST_DYNAMIC_IMPORT__
+    ) {
       return null;
     }
 
@@ -201,4 +211,3 @@ export class ComponentLoader {
     return `${key.toLowerCase().replace(/_/g, "-")}.bundle.js`;
   }
 }
-

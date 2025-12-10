@@ -152,15 +152,6 @@ function buildTriggerSection(campaign: CampaignWithConfigs): ConfigSection {
     });
   }
 
-  // Time delay
-  if (triggers.time_delay?.enabled) {
-    const delay = triggers.time_delay.delay ?? 0;
-    items.push({
-      label: "Time Delay",
-      value: formatDelay(delay * 1000),
-    });
-  }
-
   // Idle timer
   if (triggers.idle_timer?.enabled) {
     const duration = triggers.idle_timer.idle_duration ?? 30;

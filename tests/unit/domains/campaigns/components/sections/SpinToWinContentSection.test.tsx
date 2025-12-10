@@ -40,9 +40,11 @@ describe("SpinToWinContentSection - ALL Configuration Options", () => {
         "~/domains/campaigns/types/campaign"
       );
       // Provide required base fields so schema validation passes and defaults are applied
+      // spinButtonText is required (no default)
       const parsed = SpinToWinContentSchema.parse({
         headline: "Test",
         buttonText: "Spin",
+        spinButtonText: "Spin Now",
       });
 
       expect(Array.isArray(parsed.wheelSegments)).toBe(true);
@@ -249,17 +251,17 @@ describe("SpinToWinContentSection - ALL Configuration Options", () => {
       expect(nameFieldEnabledCheckbox?.getAttribute("checked")).toBe("false");
     });
 
-    it("should render nameFieldEnabled checkbox as true when collectName is true", () => {
+    it("should render nameFieldEnabled checkbox as true when nameFieldEnabled is true", () => {
       const onChange = vi.fn();
       const { container } = renderWithPolaris(
         <SpinToWinContentSection
-          content={{ collectName: true }}
+          content={{ nameFieldEnabled: true }}
           errors={{}}
           onChange={onChange}
         />,
       );
 
-      // FieldConfigurationSection normalizes collectName to nameFieldEnabled
+      // FieldConfigurationSection handles nameFieldEnabled
       const nameFieldEnabledCheckbox = container.querySelector('s-checkbox[name="nameFieldEnabled"]');
       expect(nameFieldEnabledCheckbox).toBeTruthy();
       expect(nameFieldEnabledCheckbox?.getAttribute("checked")).toBe("true");
@@ -269,7 +271,7 @@ describe("SpinToWinContentSection - ALL Configuration Options", () => {
       const onChange = vi.fn();
       const { container } = renderWithPolaris(
         <SpinToWinContentSection
-          content={{ collectName: true, nameFieldRequired: true }}
+          content={{ nameFieldEnabled: true, nameFieldRequired: true }}
           errors={{}}
           onChange={onChange}
         />,
@@ -300,17 +302,17 @@ describe("SpinToWinContentSection - ALL Configuration Options", () => {
       expect(consentFieldEnabledCheckbox?.getAttribute("checked")).toBe("false");
     });
 
-    it("should render consentFieldEnabled checkbox as true when showGdprCheckbox is true", () => {
+    it("should render consentFieldEnabled checkbox as true when consentFieldEnabled is true", () => {
       const onChange = vi.fn();
       const { container } = renderWithPolaris(
         <SpinToWinContentSection
-          content={{ showGdprCheckbox: true }}
+          content={{ consentFieldEnabled: true }}
           errors={{}}
           onChange={onChange}
         />,
       );
 
-      // FieldConfigurationSection normalizes showGdprCheckbox to consentFieldEnabled
+      // FieldConfigurationSection handles consentFieldEnabled
       const consentFieldEnabledCheckbox = container.querySelector('s-checkbox[name="consentFieldEnabled"]');
       expect(consentFieldEnabledCheckbox).toBeTruthy();
       expect(consentFieldEnabledCheckbox?.getAttribute("checked")).toBe("true");
@@ -320,7 +322,7 @@ describe("SpinToWinContentSection - ALL Configuration Options", () => {
       const onChange = vi.fn();
       const { container } = renderWithPolaris(
         <SpinToWinContentSection
-          content={{ showGdprCheckbox: true, consentFieldRequired: true }}
+          content={{ consentFieldEnabled: true, consentFieldRequired: true }}
           errors={{}}
           onChange={onChange}
         />,
@@ -335,7 +337,7 @@ describe("SpinToWinContentSection - ALL Configuration Options", () => {
   // ========== WHEEL CONFIGURATION TESTS ==========
 
   describe("Wheel Configuration", () => {
-    it("should render wheelSize with default value", () => {
+    it("should render wheelSize with placeholder for default value", () => {
       const onChange = vi.fn();
       const { container } = renderWithPolaris(
         <SpinToWinContentSection
@@ -347,7 +349,8 @@ describe("SpinToWinContentSection - ALL Configuration Options", () => {
 
       const wheelSizeField = container.querySelector('s-text-field[name="content.wheelSize"]');
       expect(wheelSizeField).toBeTruthy();
-      expect(wheelSizeField?.getAttribute("value")).toBe("400");
+      // Empty value with placeholder="400" indicates the default
+      expect(wheelSizeField?.getAttribute("placeholder")).toBe("400");
     });
 
     it("should render custom wheelSize", () => {
@@ -365,7 +368,7 @@ describe("SpinToWinContentSection - ALL Configuration Options", () => {
       expect(wheelSizeField?.getAttribute("value")).toBe("300");
     });
 
-    it("should render wheelBorderWidth with default value", () => {
+    it("should render wheelBorderWidth with placeholder for default value", () => {
       const onChange = vi.fn();
       const { container } = renderWithPolaris(
         <SpinToWinContentSection
@@ -377,7 +380,8 @@ describe("SpinToWinContentSection - ALL Configuration Options", () => {
 
       const wheelBorderWidthField = container.querySelector('s-text-field[name="content.wheelBorderWidth"]');
       expect(wheelBorderWidthField).toBeTruthy();
-      expect(wheelBorderWidthField?.getAttribute("value")).toBe("2");
+      // Empty value with placeholder="2" indicates the default
+      expect(wheelBorderWidthField?.getAttribute("placeholder")).toBe("2");
     });
 
     it("should render custom wheelBorderWidth", () => {
@@ -410,7 +414,7 @@ describe("SpinToWinContentSection - ALL Configuration Options", () => {
       expect(wheelBorderColorField?.getAttribute("value")).toBe("#FF0000");
     });
 
-    it("should render spinDuration with default value", () => {
+    it("should render spinDuration with placeholder for default value", () => {
       const onChange = vi.fn();
       const { container } = renderWithPolaris(
         <SpinToWinContentSection
@@ -422,7 +426,8 @@ describe("SpinToWinContentSection - ALL Configuration Options", () => {
 
       const spinDurationField = container.querySelector('s-text-field[name="content.spinDuration"]');
       expect(spinDurationField).toBeTruthy();
-      expect(spinDurationField?.getAttribute("value")).toBe("4000");
+      // Empty value with placeholder="4000" indicates the default
+      expect(spinDurationField?.getAttribute("placeholder")).toBe("4000");
     });
 
     it("should render custom spinDuration", () => {
@@ -440,7 +445,7 @@ describe("SpinToWinContentSection - ALL Configuration Options", () => {
       expect(spinDurationField?.getAttribute("value")).toBe("5000");
     });
 
-    it("should render minSpins with default value", () => {
+    it("should render minSpins with placeholder for default value", () => {
       const onChange = vi.fn();
       const { container } = renderWithPolaris(
         <SpinToWinContentSection
@@ -452,7 +457,8 @@ describe("SpinToWinContentSection - ALL Configuration Options", () => {
 
       const minSpinsField = container.querySelector('s-text-field[name="content.minSpins"]');
       expect(minSpinsField).toBeTruthy();
-      expect(minSpinsField?.getAttribute("value")).toBe("5");
+      // Empty value with placeholder="5" indicates the default
+      expect(minSpinsField?.getAttribute("placeholder")).toBe("5");
     });
 
     it("should render custom minSpins", () => {
@@ -486,9 +492,9 @@ describe("SpinToWinContentSection - ALL Configuration Options", () => {
         loadingText: "Spinning...",
         emailRequired: true,
         emailPlaceholder: "Enter your email",
-        collectName: true,
+        nameFieldEnabled: true,
         nameFieldRequired: false,
-        showGdprCheckbox: true,
+        consentFieldEnabled: true,
         consentFieldRequired: true,
         wheelSize: 350,
         wheelBorderWidth: 3,
@@ -513,8 +519,8 @@ describe("SpinToWinContentSection - ALL Configuration Options", () => {
       // Verify all content sections are configured correctly
       expect(content.headline).toBe("Spin to Win a Discount!");
       expect(content.wheelSize).toBe(350);
-      expect(content.collectName).toBe(true);
-      expect(content.showGdprCheckbox).toBe(true);
+      expect(content.nameFieldEnabled).toBe(true);
+      expect(content.consentFieldEnabled).toBe(true);
       expect(content.wheelSegments?.length).toBe(3);
     });
   });
@@ -528,17 +534,19 @@ describe("SpinToWinContentSection - ALL Configuration Options", () => {
       );
 
       // Parse with minimal required fields - schema should apply defaults
+      // spinButtonText is required (no default)
       const parsed = SpinToWinContentSchema.parse({
         headline: "Test Spin",
         buttonText: "Spin",
+        spinButtonText: "Spin to Win!",
       });
 
       // Verify defaults are applied
       expect(parsed.spinButtonText).toBe("Spin to Win!");
       expect(parsed.emailRequired).toBe(true);
-      expect(parsed.emailPlaceholder).toBe("Enter your email to spin");
-      expect(parsed.collectName).toBe(false);
-      expect(parsed.showGdprCheckbox).toBe(false);
+      expect(parsed.emailPlaceholder).toBe("Enter your email"); // Default from LeadCaptureConfigSchema
+      expect(parsed.nameFieldEnabled).toBe(false);
+      expect(parsed.consentFieldEnabled).toBe(false);
       expect(parsed.wheelSize).toBe(400);
       expect(parsed.wheelBorderWidth).toBe(2);
       expect(parsed.spinDuration).toBe(4000);
@@ -558,9 +566,11 @@ describe("SpinToWinContentSection - ALL Configuration Options", () => {
         { id: "seg2", label: "10% OFF", probability: 0.5, color: "#00FF00" },
       ];
 
+      // spinButtonText is required (no default)
       const parsed = SpinToWinContentSchema.parse({
         headline: "Test Spin",
         buttonText: "Spin",
+        spinButtonText: "Spin Now",
         wheelSegments: customSegments,
       });
 

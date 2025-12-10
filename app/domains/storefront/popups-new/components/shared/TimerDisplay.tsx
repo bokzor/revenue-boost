@@ -142,8 +142,9 @@ export const TimerDisplay: React.FC<TimerDisplayProps> = ({
   format = "full",
   showDays = true,
   showLabels = true,
-  accentColor = "#ef4444",
-  textColor = "#ffffff",
+  // Colors use CSS variables as fallbacks - defaults defined in design-tokens.css
+  accentColor = "var(--rb-error, #EF4444)", // Error/urgency red for timers
+  textColor = "var(--rb-primary-foreground, #FFFFFF)",
   backgroundColor,
   fontSize = "1.5rem",
   fontWeight = "700",

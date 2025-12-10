@@ -8,7 +8,6 @@ import {
     STORE_DOMAIN,
     API_PROPAGATION_DELAY_MS,
     handlePasswordPage,
-    mockChallengeToken,
     getTestPrefix,
     verifyExitIntentContent,
     hasTextInShadowDOM,
@@ -72,7 +71,6 @@ test.describe.serial('Exit Intent Template', () => {
         // Clean up ALL E2E campaigns to avoid priority conflicts
         await cleanupAllE2ECampaigns(prisma);
 
-        await mockChallengeToken(page);
         await page.context().clearCookies();
 
         // No bundle mocking - tests use deployed extension code
@@ -256,15 +254,12 @@ test.describe.serial('Exit Intent Template', () => {
         const popup = page.locator('#revenue-boost-popup-shadow-host');
         await expect(popup).toBeVisible({ timeout: 10000 });
 
-        // Fill email
+        // Fill email - HARD ASSERTION
         const testEmail = `exit-test-${Date.now()}@example.com`;
         const filled = await fillEmailInShadowDOM(page, testEmail);
 
-        if (filled) {
-            console.log(`✅ Email "${testEmail}" filled successfully`);
-        } else {
-            console.log('⚠️ Could not fill email - input may not be present');
-        }
+        expect(filled).toBe(true);
+        console.log(`✅ Email "${testEmail}" filled successfully`);
     });
 });
 

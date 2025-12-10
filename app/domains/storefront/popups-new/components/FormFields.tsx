@@ -7,6 +7,7 @@
 
 import React from "react";
 import { useId } from "../hooks/useId";
+import { StyledCheckbox } from "./shared/StyledCheckbox";
 
 // Polyfill for CSS.escape (not available in Node.js SSR)
 const cssEscape = (value: string): string => {
@@ -41,24 +42,38 @@ export const EmailInput: React.FC<EmailInputProps> = ({
   error,
   required = true,
   disabled = false,
-  accentColor = "#4F46E5",
-  textColor = "#1F2937",
-  backgroundColor = "#FFFFFF",
-  borderColor = "#D1D5DB",
+  accentColor,
+  textColor,
+  backgroundColor,
+  borderColor,
   placeholderColor,
   className,
 }) => {
   // Generate unique ID for scoped placeholder styling (use polyfill for Preact compatibility)
   const inputId = useId();
-  const computedPlaceholderColor = placeholderColor || `${textColor}99`;
+  // Use CSS variable with fallback to prop value for design token integration
+  const resolvedTextColor = textColor || "var(--rb-foreground, #1F2937)";
+  const resolvedBgColor = backgroundColor || "var(--rb-surface, #FFFFFF)";
+  const resolvedBorderColor = borderColor || "var(--rb-border, #D1D5DB)";
+  const resolvedAccentColor = accentColor || "var(--rb-primary, #4F46E5)";
+  const computedPlaceholderColor = placeholderColor || "var(--rb-muted, rgba(0,0,0,0.5))";
 
   return (
-    <div style={{ marginBottom: "1rem" }}>
+    <div>
       <style>
         {`
           #${cssEscape(inputId)}::placeholder {
             color: ${computedPlaceholderColor};
             opacity: 1;
+          }
+          #${cssEscape(inputId)}:focus {
+            border-color: ${resolvedAccentColor};
+            box-shadow: 0 0 0 var(--rb-popup-input-focus-ring-width, 2px)
+                        var(--rb-popup-input-focus-ring-color, rgba(0,0,0,0.1));
+          }
+          #${cssEscape(inputId)}:not(:focus):hover:not(:disabled) {
+            border-color: var(--rb-primary, ${resolvedBorderColor});
+            opacity: 0.8;
           }
         `}
       </style>
@@ -69,11 +84,12 @@ export const EmailInput: React.FC<EmailInputProps> = ({
             marginBottom: "0.5rem",
             fontSize: "0.875rem",
             fontWeight: "500",
-            color: textColor,
+            color: resolvedTextColor,
+            fontFamily: "var(--rb-font-family, inherit)",
           }}
         >
           {label}
-          {required && <span style={{ color: "#EF4444" }}> *</span>}
+          {required && <span style={{ color: "var(--rb-error, #EF4444)" }}> *</span>}
         </label>
       )}
       <input
@@ -89,25 +105,18 @@ export const EmailInput: React.FC<EmailInputProps> = ({
         className={className}
         style={{
           width: "100%",
-          padding: "0.75rem",
-          fontFamily: "inherit",
+          padding: "0.875rem 1rem",
+          fontFamily: "var(--rb-font-family, inherit)",
           fontSize: "1rem",
-          border: error ? "2px solid #EF4444" : `1px solid ${borderColor}`,
-          borderRadius: "0.5rem",
-          backgroundColor,
-          color: textColor,
+          border: error
+            ? "2px solid var(--rb-error, #EF4444)"
+            : `var(--rb-popup-input-border-width, 1px) solid ${resolvedBorderColor}`,
+          borderRadius: "var(--rb-radius, 0.75rem)",
+          backgroundColor: resolvedBgColor,
+          color: resolvedTextColor,
           outline: "none",
-          transition: "border-color 0.2s",
-        }}
-        onFocus={(e) => {
-          if (!error) {
-            e.target.style.borderColor = accentColor;
-          }
-        }}
-        onBlur={(e) => {
-          if (!error) {
-            e.target.style.borderColor = borderColor;
-          }
+          transition: "border-color 0.2s, box-shadow 0.2s",
+          boxShadow: "var(--rb-popup-input-shadow, none)",
         }}
       />
       {error && (
@@ -117,7 +126,7 @@ export const EmailInput: React.FC<EmailInputProps> = ({
           style={{
             marginTop: "0.5rem",
             fontSize: "0.875rem",
-            color: "#EF4444",
+            color: "var(--rb-error, #EF4444)",
           }}
         >
           {error}
@@ -147,43 +156,60 @@ export const NameInput: React.FC<NameInputProps> = ({
   value,
   onChange,
   placeholder = "Enter your name",
-  label = "Name",
+  label,
   error,
   required = false,
   disabled = false,
-  accentColor = "#4F46E5",
-  textColor = "#1F2937",
-  backgroundColor = "#FFFFFF",
-  borderColor = "#D1D5DB",
+  accentColor,
+  textColor,
+  backgroundColor,
+  borderColor,
   placeholderColor,
   className,
 }) => {
   // Generate unique ID for scoped placeholder styling (use polyfill for Preact compatibility)
   const inputId = useId();
-  const computedPlaceholderColor = placeholderColor || `${textColor}99`;
+  // Use CSS variable with fallback to prop value for design token integration
+  const resolvedTextColor = textColor || "var(--rb-foreground, #1F2937)";
+  const resolvedBgColor = backgroundColor || "var(--rb-surface, #FFFFFF)";
+  const resolvedBorderColor = borderColor || "var(--rb-border, #D1D5DB)";
+  const resolvedAccentColor = accentColor || "var(--rb-primary, #4F46E5)";
+  const computedPlaceholderColor = placeholderColor || "var(--rb-muted, rgba(0,0,0,0.5))";
 
   return (
-    <div style={{ marginBottom: "1rem" }}>
+    <div>
       <style>
         {`
           #${cssEscape(inputId)}::placeholder {
             color: ${computedPlaceholderColor};
             opacity: 1;
           }
+          #${cssEscape(inputId)}:focus {
+            border-color: ${resolvedAccentColor};
+            box-shadow: 0 0 0 var(--rb-popup-input-focus-ring-width, 2px)
+                        var(--rb-popup-input-focus-ring-color, rgba(0,0,0,0.1));
+          }
+          #${cssEscape(inputId)}:not(:focus):hover:not(:disabled) {
+            border-color: var(--rb-primary, ${resolvedBorderColor});
+            opacity: 0.8;
+          }
         `}
       </style>
-      <label
-        style={{
-          display: "block",
-          marginBottom: "0.5rem",
-          fontSize: "0.875rem",
-          fontWeight: "500",
-          color: textColor,
-        }}
-      >
-        {label}
-        {required && <span style={{ color: "#EF4444" }}> *</span>}
-      </label>
+      {label && (
+        <label
+          style={{
+            display: "block",
+            marginBottom: "0.5rem",
+            fontSize: "0.875rem",
+            fontWeight: "500",
+            color: resolvedTextColor,
+            fontFamily: "var(--rb-font-family, inherit)",
+          }}
+        >
+          {label}
+          {required && <span style={{ color: "var(--rb-error, #EF4444)" }}> *</span>}
+        </label>
+      )}
       <input
         id={inputId}
         type="text"
@@ -197,25 +223,18 @@ export const NameInput: React.FC<NameInputProps> = ({
         className={className}
         style={{
           width: "100%",
-          padding: "0.75rem",
-          fontFamily: "inherit",
+          padding: "0.875rem 1rem",
+          fontFamily: "var(--rb-font-family, inherit)",
           fontSize: "1rem",
-          border: error ? "2px solid #EF4444" : `1px solid ${borderColor}`,
-          borderRadius: "0.5rem",
-          backgroundColor,
-          color: textColor,
+          border: error
+            ? "2px solid var(--rb-error, #EF4444)"
+            : `var(--rb-popup-input-border-width, 1px) solid ${resolvedBorderColor}`,
+          borderRadius: "var(--rb-radius, 0.75rem)",
+          backgroundColor: resolvedBgColor,
+          color: resolvedTextColor,
           outline: "none",
-          transition: "border-color 0.2s",
-        }}
-        onFocus={(e) => {
-          if (!error) {
-            e.target.style.borderColor = accentColor;
-          }
-        }}
-        onBlur={(e) => {
-          if (!error) {
-            e.target.style.borderColor = borderColor;
-          }
+          transition: "border-color 0.2s, box-shadow 0.2s",
+          boxShadow: "var(--rb-popup-input-shadow, none)",
         }}
       />
       {error && (
@@ -225,7 +244,7 @@ export const NameInput: React.FC<NameInputProps> = ({
           style={{
             marginTop: "0.5rem",
             fontSize: "0.875rem",
-            color: "#EF4444",
+            color: "var(--rb-error, #EF4444)",
           }}
         >
           {error}
@@ -257,11 +276,15 @@ export const GdprCheckbox: React.FC<GdprCheckboxProps> = ({
   error,
   required = false,
   disabled = false,
-  accentColor = "#4F46E5",
-  textColor = "#1F2937",
+  // Colors are optional - CSS variables provide defaults via design-tokens.css
+  accentColor,
+  textColor,
   privacyPolicyUrl,
   privacyPolicyLinkText = "Privacy Policy",
 }) => {
+  // Use CSS variables if no props provided
+  const effectiveAccentColor = accentColor || "var(--rb-primary)";
+  const effectiveTextColor = textColor || "var(--rb-foreground)";
   // Build the display text with optional privacy policy link
   const renderConsentText = () => {
     if (!privacyPolicyUrl) {
@@ -279,7 +302,7 @@ export const GdprCheckbox: React.FC<GdprCheckboxProps> = ({
             target="_blank"
             rel="noopener noreferrer"
             style={{
-              color: accentColor,
+              color: effectiveAccentColor,
               textDecoration: "underline",
             }}
             onClick={(e) => e.stopPropagation()}
@@ -300,7 +323,7 @@ export const GdprCheckbox: React.FC<GdprCheckboxProps> = ({
           target="_blank"
           rel="noopener noreferrer"
           style={{
-            color: accentColor,
+            color: effectiveAccentColor,
             textDecoration: "underline",
           }}
           onClick={(e) => e.stopPropagation()}
@@ -312,40 +335,35 @@ export const GdprCheckbox: React.FC<GdprCheckboxProps> = ({
   };
 
   return (
-    <div style={{ marginBottom: "1rem" }}>
+    <div>
       <label
         style={{
           display: "flex",
           alignItems: "flex-start",
           cursor: disabled ? "not-allowed" : "pointer",
-          gap: "0.5rem",
+          gap: "0.75rem",
         }}
       >
-        <input
-          type="checkbox"
-          checked={checked}
-          onChange={(e) => onChange(e.target.checked)}
-          required={required}
-          disabled={disabled}
-          aria-invalid={!!error}
-          aria-describedby={error ? "gdpr-error" : undefined}
-          style={{
-            marginTop: "0.25rem",
-            width: "1rem",
-            height: "1rem",
-            accentColor,
-            cursor: disabled ? "not-allowed" : "pointer",
-          }}
-        />
+        <div style={{ marginTop: "0.125rem" }}>
+          <StyledCheckbox
+            checked={checked}
+            onChange={onChange}
+            required={required}
+            disabled={disabled}
+            accentColor={effectiveAccentColor}
+            hasError={!!error}
+            ariaLabel={text}
+          />
+        </div>
         <span
           style={{
             fontSize: "0.875rem",
-            color: textColor,
+            color: effectiveTextColor,
             lineHeight: "1.5",
           }}
         >
           {renderConsentText()}
-          {required && <span style={{ color: "#EF4444" }}> *</span>}
+          {required && <span style={{ color: effectiveAccentColor, marginLeft: "0.25rem" }}>*</span>}
         </span>
       </label>
       {error && (
@@ -355,7 +373,7 @@ export const GdprCheckbox: React.FC<GdprCheckboxProps> = ({
           style={{
             marginTop: "0.5rem",
             fontSize: "0.875rem",
-            color: "#EF4444",
+            color: "var(--rb-error, #EF4444)",
           }}
         >
           {error}
@@ -390,13 +408,15 @@ export const SubmitButton: React.FC<SubmitButtonProps> = ({
   disabled = false,
   loading = false,
   buttonColor,
-  accentColor = "#4F46E5",
-  textColor = "#FFFFFF",
+  accentColor,
+  textColor,
   fullWidth = true,
 }) => {
   const isDisabled = disabled || loading;
+  // Use CSS variable with fallback to prop value for design token integration
   // Prefer buttonColor over accentColor for button background
-  const bgColor = buttonColor || accentColor;
+  const resolvedBgColor = buttonColor || accentColor || "var(--rb-primary, #4F46E5)";
+  const resolvedTextColor = textColor || "var(--rb-primary-foreground, #FFFFFF)";
 
   return (
     <>
@@ -415,13 +435,14 @@ export const SubmitButton: React.FC<SubmitButtonProps> = ({
         style={{
           width: fullWidth ? "100%" : "auto",
           padding: "0.875rem 1.5rem",
-          fontFamily: "inherit",
+          fontFamily: "var(--rb-font-family, inherit)",
           fontSize: "1rem",
           fontWeight: "600",
-          color: textColor,
-          backgroundColor: isDisabled ? "#9CA3AF" : bgColor,
+          color: resolvedTextColor,
+          backgroundColor: isDisabled ? "#9CA3AF" : resolvedBgColor,
           border: "none",
-          borderRadius: "0.5rem",
+          borderRadius: "var(--rb-radius, 0.5rem)",
+          boxShadow: "var(--rb-popup-button-shadow, none)",
           cursor: isDisabled ? "not-allowed" : "pointer",
           transition: "all 0.2s",
           opacity: isDisabled ? 0.6 : 1,

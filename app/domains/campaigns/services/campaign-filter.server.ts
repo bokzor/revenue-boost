@@ -14,6 +14,7 @@ import {
 } from "~/domains/targeting/services/segment-membership.server";
 import prisma from "~/db.server";
 import type { StoreSettings } from "~/domains/store/types/settings";
+import { logger } from "~/lib/logger.server";
 
 /**
  * Campaign Filter Service
@@ -28,14 +29,12 @@ export class CampaignFilterService {
     context: StorefrontContext
   ): CampaignWithConfigs[] {
     if (!context.deviceType) {
-      console.log("[Revenue Boost] ⚠️ No device type in context, skipping device filter");
+      logger.debug("[CampaignFilter] No device type in context, skipping device filter");
       return campaigns;
     }
 
     const device = context.deviceType!;
-    console.log(
-      `[Revenue Boost] 📱 Filtering campaigns by device type (enhancedTriggers.device_targeting): ${device}`
-    );
+    logger.debug({ device }, "[CampaignFilter] Filtering by device type");
 
     return campaigns.filter((campaign) => {
       const deviceTargeting = campaign.targetRules?.enhancedTriggers?.device_targeting;
@@ -53,13 +52,9 @@ export class CampaignFilterService {
       const matches = allowedDevices.includes(device);
 
       if (matches) {
-        console.log(
-          `[Revenue Boost] ✅ Campaign "${campaign.name}" (${campaign.id}): matches device targeting (${device})`
-        );
+        logger.debug({ campaignId: campaign.id, campaignName: campaign.name, device }, "[CampaignFilter] Device targeting matched");
       } else {
-        console.log(
-          `[Revenue Boost] ❌ Campaign "${campaign.name}" (${campaign.id}): does NOT match device targeting`
-        );
+        logger.debug({ campaignId: campaign.id, campaignName: campaign.name, device, allowedDevices }, "[CampaignFilter] Device targeting not matched");
       }
 
       return matches;
@@ -79,15 +74,11 @@ export class CampaignFilterService {
     const country = context.country?.toUpperCase();
 
     if (!country) {
-      console.log(
-        "[Revenue Boost] ⚠️ No country code in context, skipping geo targeting filter"
-      );
+      logger.debug("[CampaignFilter] No country code in context, skipping geo filter");
       return campaigns;
     }
 
-    console.log(
-      `[Revenue Boost] 🌍 Filtering campaigns by geographic targeting. Visitor country: ${country}`
-    );
+    logger.debug({ country }, "[CampaignFilter] Filtering by geo targeting");
 
     return campaigns.filter((campaign) => {
       const geoTargeting = campaign.targetRules?.geoTargeting;
@@ -101,9 +92,7 @@ export class CampaignFilterService {
 
       // If no countries specified, include campaign (no filter applied)
       if (!countries || countries.length === 0) {
-        console.log(
-          `[Revenue Boost] ⚠️ Campaign "${campaign.name}" (${campaign.id}): Geo targeting enabled but no countries specified, including`
-        );
+        logger.debug({ campaignId: campaign.id }, "[CampaignFilter] Geo targeting enabled but no countries specified");
         return true;
       }
 
@@ -111,21 +100,15 @@ export class CampaignFilterService {
       let matches: boolean;
 
       if (mode === "include") {
-        // Show only to visitors from selected countries
         matches = isInList;
       } else {
-        // Exclude mode: show to all except selected countries
         matches = !isInList;
       }
 
       if (matches) {
-        console.log(
-          `[Revenue Boost] ✅ Campaign "${campaign.name}" (${campaign.id}): Geo targeting matched (${mode} mode, country=${country})`
-        );
+        logger.debug({ campaignId: campaign.id, mode, country }, "[CampaignFilter] Geo targeting matched");
       } else {
-        console.log(
-          `[Revenue Boost] ❌ Campaign "${campaign.name}" (${campaign.id}): Geo targeting did NOT match (${mode} mode, country=${country}, countries=${countries.join(",")})`
-        );
+        logger.debug({ campaignId: campaign.id, mode, country, countries }, "[CampaignFilter] Geo targeting not matched");
       }
 
       return matches;
@@ -140,13 +123,11 @@ export class CampaignFilterService {
     context: StorefrontContext
   ): CampaignWithConfigs[] {
     if (!context.pageUrl) {
-      console.log("[Revenue Boost] ⚠️ No page URL in context, skipping page targeting filter");
+      logger.debug("[CampaignFilter] No page URL in context, skipping page filter");
       return campaigns;
     }
 
-    console.log(
-      `[Revenue Boost] 📄 Filtering campaigns by page targeting. Current page: ${context.pageUrl}`
-    );
+    logger.debug({ pageUrl: context.pageUrl }, "[CampaignFilter] Filtering by page targeting");
 
     return campaigns.filter((campaign) => {
       // Use dedicated pageTargeting config; legacy enhancedTriggers.page_targeting is no longer supported
@@ -170,9 +151,7 @@ export class CampaignFilterService {
         this.matchesPagePattern(pageUrl, pattern)
       );
       if (isExcluded) {
-        console.log(
-          `[Revenue Boost] ❌ Campaign "${campaign.name}" (${campaign.id}): Page is excluded by pattern`
-        );
+        logger.debug({ campaignId: campaign.id }, "[CampaignFilter] Page excluded by pattern");
         return false;
       }
 
@@ -187,7 +166,6 @@ export class CampaignFilterService {
       let tagsMatch = true;
       if (productTags.length > 0) {
         const ctxTags = Array.isArray(context.productTags) ? context.productTags : [];
-
         tagsMatch = ctxTags.length > 0 && productTags.some((tag) => ctxTags.includes(tag));
       }
 
@@ -209,13 +187,9 @@ export class CampaignFilterService {
       const matches = urlMatches && tagsMatch && collectionsMatch;
 
       if (matches) {
-        console.log(
-          `[Revenue Boost] ✅ Campaign "${campaign.name}" (${campaign.id}): Page targeting MATCHED`
-        );
+        logger.debug({ campaignId: campaign.id }, "[CampaignFilter] Page targeting matched");
       } else {
-        console.log(
-          `[Revenue Boost] ❌ Campaign "${campaign.name}" (${campaign.id}): Page targeting did NOT match`
-        );
+        logger.debug({ campaignId: campaign.id, urlMatches, tagsMatch, collectionsMatch }, "[CampaignFilter] Page targeting not matched");
       }
 
       return matches;
@@ -243,7 +217,7 @@ export class CampaignFilterService {
     context: StorefrontContext,
     storeId: string
   ): Promise<CampaignWithConfigs[]> {
-    console.log("[Revenue Boost] 👥 Filtering campaigns by audience targeting (Shopify segments)");
+    logger.debug({ campaignCount: campaigns.length }, "[CampaignFilter] Filtering by audience segments");
 
     if (!campaigns || campaigns.length === 0) {
       return [];
@@ -254,17 +228,12 @@ export class CampaignFilterService {
 
     if (customerIdStr) {
       try {
-        // Support either a plain numeric ID ("123") or a Shopify GID
-        // ("gid://shopify/Customer/123").
         const numericPart = customerIdStr.includes("/")
           ? customerIdStr.split("/").pop()!
           : customerIdStr;
         shopifyCustomerId = BigInt(numericPart);
       } catch (error) {
-        console.warn("[Revenue Boost] ⚠️ Failed to parse customerId as BigInt", {
-          customerIdStr,
-          error,
-        });
+        logger.warn({ customerIdStr, error }, "[CampaignFilter] Failed to parse customerId as BigInt");
       }
     }
 
@@ -274,11 +243,8 @@ export class CampaignFilterService {
     for (const campaign of campaigns) {
       const targeting = campaign.targetRules?.audienceTargeting;
 
-      // If no audience targeting, include campaign
       if (!targeting || !targeting.enabled) {
-        console.log(
-          `[Revenue Boost] ✅ Campaign "${campaign.name}" (${campaign.id}): Audience targeting disabled, including`
-        );
+        logger.debug({ campaignId: campaign.id }, "[CampaignFilter] Audience targeting disabled, including");
         result.push(campaign);
         continue;
       }
@@ -296,14 +262,10 @@ export class CampaignFilterService {
         }
 
         if (!hasData) {
-          console.log(
-            `[Revenue Boost] ⚠️ Campaign "${campaign.name}" (${campaign.id}): Shopify segments configured (${JSON.stringify(segmentIds)}) but no membership data found for store ${storeId}; ignoring segment filter (fail-open)`
-          );
+          logger.debug({ campaignId: campaign.id, segmentIds, storeId }, "[CampaignFilter] No segment membership data, fail-open");
           segmentsMatch = true;
         } else if (!shopifyCustomerId) {
-          console.log(
-            `[Revenue Boost] ❌ Campaign "${campaign.name}" (${campaign.id}): Shopify segments configured (${JSON.stringify(segmentIds)}) and membership data exists, but no valid customerId in context; excluding`
-          );
+          logger.debug({ campaignId: campaign.id, segmentIds }, "[CampaignFilter] No customerId in context, excluding");
           segmentsMatch = false;
         } else {
           const inAnySegment = await isCustomerInAnyShopifySegment({
@@ -315,13 +277,9 @@ export class CampaignFilterService {
           segmentsMatch = inAnySegment;
 
           if (segmentsMatch) {
-            console.log(
-              `[Revenue Boost] ✅ Campaign "${campaign.name}" (${campaign.id}): customer ${shopifyCustomerId.toString()} is in at least one required Shopify segment`
-            );
+            logger.debug({ campaignId: campaign.id, customerId: shopifyCustomerId.toString() }, "[CampaignFilter] Customer in segment");
           } else {
-            console.log(
-              `[Revenue Boost] ❌ Campaign "${campaign.name}" (${campaign.id}): customer ${shopifyCustomerId.toString()} is NOT in any of required Shopify segments ${JSON.stringify(segmentIds)}`
-            );
+            logger.debug({ campaignId: campaign.id, customerId: shopifyCustomerId.toString(), segmentIds }, "[CampaignFilter] Customer not in segments");
           }
         }
       }
@@ -330,15 +288,11 @@ export class CampaignFilterService {
         continue;
       }
 
-      console.log(
-        `[Revenue Boost] ✅ Campaign "${campaign.name}" (${campaign.id}): audience targeting matched`
-      );
+      logger.debug({ campaignId: campaign.id }, "[CampaignFilter] Audience targeting matched");
       result.push(campaign);
     }
 
-    console.log(
-      `[Revenue Boost] 👥 Audience targeting filter result: ${result.length} of ${campaigns.length} campaigns matched`
-    );
+    logger.debug({ matched: result.length, total: campaigns.length }, "[CampaignFilter] Audience filter result");
 
     return result;
   }
@@ -354,27 +308,24 @@ export class CampaignFilterService {
     context: StorefrontContext,
     storeSettings?: StoreSettings
   ): Promise<CampaignWithConfigs[]> {
-    console.log(`[FrequencyCap Filter] 🔍 Checking ${campaigns.length} campaigns`);
+    logger.debug({ campaignCount: campaigns.length }, "[FrequencyCap] Checking campaigns");
 
     const results = await Promise.all(
       campaigns.map(async (campaign) => {
-        console.log(`[FrequencyCap Filter] Checking campaign: ${campaign.name} (${campaign.id})`);
-
         const result = await FrequencyCapService.checkFrequencyCapping(
           campaign,
           context,
           storeSettings
         );
 
-        console.log(`[FrequencyCap Filter] ${campaign.name}: ${result.allowed ? '✅ ALLOWED' : '❌ BLOCKED'}`,
-          result.reason ? `(${result.reason})` : '');
+        logger.debug({ campaignId: campaign.id, allowed: result.allowed, reason: result.reason }, "[FrequencyCap] Result");
 
         return result.allowed ? campaign : null;
       })
     );
 
     const filtered = results.filter((campaign): campaign is CampaignWithConfigs => campaign !== null);
-    console.log(`[FrequencyCap Filter] Final: ${filtered.length}/${campaigns.length} campaigns passed`);
+    logger.debug({ passed: filtered.length, total: campaigns.length }, "[FrequencyCap] Final result");
 
     return filtered;
   }
@@ -389,7 +340,7 @@ export class CampaignFilterService {
     campaigns: CampaignWithConfigs[],
     context: StorefrontContext
   ): CampaignWithConfigs[] {
-    console.log("[Revenue Boost] 🧪 Filtering campaigns by variant assignment");
+    logger.debug({ campaignCount: campaigns.length }, "[CampaignFilter] Filtering by variant assignment");
 
     // Group campaigns by experimentId
     const experimentGroups = new Map<string, CampaignWithConfigs[]>();
@@ -409,31 +360,19 @@ export class CampaignFilterService {
     const selectedVariants: CampaignWithConfigs[] = [];
 
     experimentGroups.forEach((variants, experimentId) => {
-      console.log(
-        `[Revenue Boost] 🧪 Experiment ${experimentId}: ${variants.length} variants found`
-      );
-      console.log(
-        `[Revenue Boost] 📋 Variants:`,
-        variants.map((v) => `${v.name} (${v.variantKey})`)
-      );
+      logger.debug({ experimentId, variantCount: variants.length }, "[CampaignFilter] Experiment variants");
 
-      // Use visitor ID to deterministically select a variant
-      // This ensures the same visitor always sees the same variant
       const visitorId = context.visitorId || context.sessionId || "anonymous";
       const hash = this.hashString(visitorId + experimentId);
       const selectedIndex = hash % variants.length;
       const selected = variants[selectedIndex];
 
-      console.log(
-        `[Revenue Boost] ✅ Selected variant: ${selected.name} (${selected.variantKey}) for visitor ${visitorId.substring(0, 8)}...`
-      );
+      logger.debug({ experimentId, selectedVariant: selected.variantKey, visitorId: visitorId.substring(0, 8) }, "[CampaignFilter] Selected variant");
       selectedVariants.push(selected);
     });
 
     const result = [...standaloneCampaigns, ...selectedVariants];
-    console.log(
-      `[Revenue Boost] 🧪 After variant assignment: ${result.length} campaigns (${standaloneCampaigns.length} standalone + ${selectedVariants.length} experiment variants)\n`
-    );
+    logger.debug({ total: result.length, standalone: standaloneCampaigns.length, variants: selectedVariants.length }, "[CampaignFilter] Variant assignment result");
 
     return result;
   }
@@ -460,13 +399,7 @@ export class CampaignFilterService {
     context: StorefrontContext,
     storeId: string
   ): Promise<CampaignWithConfigs[]> {
-    console.log(
-      `[Revenue Boost] 🔍 Starting campaign filtering. Total campaigns: ${campaigns.length}`
-    );
-    console.log(
-      "[Revenue Boost] 📋 Campaign IDs:",
-      campaigns.map((c) => `${c.name} (${c.id})`)
-    );
+    logger.debug({ campaignCount: campaigns.length, campaignIds: campaigns.map((c) => c.id) }, "[CampaignFilter] Starting filtering");
 
     let filtered = campaigns;
 
@@ -477,57 +410,14 @@ export class CampaignFilterService {
     });
     const storeSettings = store?.settings as StoreSettings | undefined;
 
-    filtered = await this.runFilterStep(
-      "DEVICE TYPE",
-      (cs, ctx) => this.filterByDeviceType(cs, ctx),
-      filtered,
-      context
-    );
+    filtered = await this.runFilterStep("DEVICE_TYPE", (cs, ctx) => this.filterByDeviceType(cs, ctx), filtered, context);
+    filtered = await this.runFilterStep("GEO_TARGETING", (cs, ctx) => this.filterByGeoTargeting(cs, ctx), filtered, context);
+    filtered = await this.runFilterStep("PAGE_TARGETING", (cs, ctx) => this.filterByPageTargeting(cs, ctx), filtered, context);
+    filtered = await this.runFilterStep("AUDIENCE_SEGMENTS", (cs, ctx) => this.filterByAudienceSegments(cs, ctx, storeId), filtered, context);
+    filtered = await this.runFilterStep("VARIANT_ASSIGNMENT", (cs, ctx) => this.filterByVariantAssignment(cs, ctx), filtered, context);
+    filtered = await this.runFilterStep("FREQUENCY_CAPPING", (cs, ctx) => this.filterByFrequencyCapping(cs, ctx, storeSettings), filtered, context);
 
-    filtered = await this.runFilterStep(
-      "GEO TARGETING",
-      (cs, ctx) => this.filterByGeoTargeting(cs, ctx),
-      filtered,
-      context
-    );
-
-    filtered = await this.runFilterStep(
-      "PAGE TARGETING",
-      (cs, ctx) => this.filterByPageTargeting(cs, ctx),
-      filtered,
-      context
-    );
-
-    filtered = await this.runFilterStep(
-      "AUDIENCE SEGMENTS",
-      (cs, ctx) => this.filterByAudienceSegments(cs, ctx, storeId),
-      filtered,
-      context
-    );
-
-    filtered = await this.runFilterStep(
-      "VARIANT ASSIGNMENT",
-      (cs, ctx) => this.filterByVariantAssignment(cs, ctx),
-      filtered,
-      context
-    );
-
-    filtered = await this.runFilterStep(
-      "FREQUENCY CAPPING",
-      (cs, ctx) => this.filterByFrequencyCapping(cs, ctx, storeSettings),
-      filtered,
-      context
-    );
-
-    console.log(`[Revenue Boost] ✅ Filtering complete. Final campaigns: ${filtered.length}`);
-    if (filtered.length > 0) {
-      console.log(
-        "[Revenue Boost] 📋 Final campaign IDs:",
-        filtered.map((c) => `${c.name} (${c.id})`)
-      );
-    } else {
-      console.log("[Revenue Boost] ⚠️ No campaigns passed all filters");
-    }
+    logger.info({ finalCount: filtered.length, campaignIds: filtered.map((c) => c.id) }, "[CampaignFilter] Filtering complete");
 
     return filtered;
   }
@@ -544,24 +434,14 @@ export class CampaignFilterService {
     campaigns: CampaignWithConfigs[],
     context: StorefrontContext
   ): Promise<CampaignWithConfigs[]> {
-    console.log(`\n[Revenue Boost] === ${label} FILTER ===`);
-    console.log(`[Revenue Boost] Input: ${campaigns.length} campaigns -`, campaigns.map(c => c.name));
-
     const result = await filter(campaigns, context);
 
-    console.log(
-      `[Revenue Boost] After ${label.toLowerCase()} filter: ${result.length} campaigns remaining`
-    );
-
-    // DIAGNOSTIC: Show which campaigns were filtered out
     if (campaigns.length !== result.length) {
       const resultIds = new Set(result.map(c => c.id));
-      const excluded = campaigns.filter(c => !resultIds.has(c.id));
-      console.log(`[Revenue Boost] ❌ ${label} filtered out ${excluded.length} campaign(s):`,
-        excluded.map(c => c.name));
+      const excluded = campaigns.filter(c => !resultIds.has(c.id)).map(c => c.id);
+      logger.debug({ filter: label, input: campaigns.length, output: result.length, excluded }, "[CampaignFilter] Filter step");
     }
 
-    console.log(); // Empty line for readability
     return result;
   }
 

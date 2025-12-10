@@ -7,15 +7,16 @@ import {
   Text,
   BlockStack,
   InlineGrid,
-  Button,
   InlineStack,
   Box,
   EmptyState,
   Select,
   SkeletonBodyText,
   SkeletonDisplayText,
+  Banner,
+  Link,
 } from "@shopify/polaris";
-import { PlusIcon, CalendarIcon, ChartVerticalFilledIcon } from "@shopify/polaris-icons";
+import { PlusIcon } from "@shopify/polaris-icons";
 import { authenticate } from "../shopify.server";
 import { CampaignService } from "~/domains/campaigns";
 import { CampaignIndexTable } from "~/domains/campaigns/components";
@@ -76,11 +77,27 @@ interface MetricsApiResponse {
   hasCampaigns: boolean;
 }
 
+interface GrandfatheredCampaign {
+  id: string;
+  name: string;
+  templateType: string;
+  requiredPlan: string;
+}
+
+interface CampaignLimitStatus {
+  current: number;
+  max: number | null;
+  isOverLimit: boolean;
+  planName: string;
+}
+
 interface CampaignsApiResponse {
   success: boolean;
   data: {
     campaigns: CampaignDashboardRow[];
     experiments: ExperimentWithVariants[];
+    grandfatheredCampaigns?: GrandfatheredCampaign[];
+    campaignLimitStatus?: CampaignLimitStatus;
   };
 }
 
@@ -97,7 +114,11 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   if (chargeId) {
     try {
       const billingContext = await BillingService.getBillingContextFromDbByDomain(session.shop);
-      if (billingContext && billingContext.planTier !== "FREE" && billingContext.hasActiveSubscription) {
+      if (
+        billingContext &&
+        billingContext.planTier !== "FREE" &&
+        billingContext.hasActiveSubscription
+      ) {
         recentUpgrade = {
           fromPlan: "FREE",
           toPlan: billingContext.planTier,
@@ -135,7 +156,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const currentStatus = formData.get("currentStatus") as string;
     const newStatus = currentStatus === "ACTIVE" ? "PAUSED" : "ACTIVE";
 
-    await CampaignService.updateCampaign(campaignId, storeId, { status: newStatus as CampaignStatus }, admin);
+    await CampaignService.updateCampaign(
+      campaignId,
+      storeId,
+      { status: newStatus as CampaignStatus },
+      admin
+    );
     return data({ success: true });
   }
 
@@ -201,30 +227,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const campaignIds = JSON.parse(formData.get("campaignIds") as string);
     const results = await Promise.allSettled(
       campaignIds.map(async (id: string) => {
-        const campaign = await CampaignService.getCampaignById(id, storeId);
-        if (!campaign) throw new Error(`Campaign ${id} not found`);
-
-        // Extract only the fields needed for CampaignCreateData
-        const createData = {
-          name: `${campaign.name} (Copy)`,
-          description: campaign.description || undefined,
-          goal: campaign.goal,
-          status: "DRAFT" as CampaignStatus,
-          priority: campaign.priority,
-          templateId: campaign.templateId || undefined,
-          templateType: campaign.templateType,
-          contentConfig: campaign.contentConfig,
-          designConfig: campaign.designConfig,
-          targetRules: campaign.targetRules,
-          discountConfig: campaign.discountConfig,
-          experimentId: undefined, // Don't copy experiment association
-          variantKey: undefined,
-          isControl: undefined,
-          startDate: campaign.startDate || undefined,
-          endDate: campaign.endDate || undefined,
-        };
-
-        return CampaignService.createCampaign(storeId, createData, admin);
+        return CampaignService.duplicateCampaign(id, storeId, admin);
       })
     );
     const failed = results.filter((r) => r.status === "rejected").length;
@@ -242,32 +245,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       return data({ success: false, message: "Campaign ID is required" }, { status: 400 });
     }
 
-    const campaign = await CampaignService.getCampaignById(campaignId, storeId);
-    if (!campaign) {
-      return data({ success: false, message: "Campaign not found" }, { status: 404 });
-    }
-
-    // Extract only the fields needed for CampaignCreateData
-    const createData = {
-      name: `${campaign.name} (Copy)`,
-      description: campaign.description || undefined,
-      goal: campaign.goal,
-      status: "DRAFT" as CampaignStatus,
-      priority: campaign.priority,
-      templateId: campaign.templateId || undefined,
-      templateType: campaign.templateType,
-      contentConfig: campaign.contentConfig,
-      designConfig: campaign.designConfig,
-      targetRules: campaign.targetRules,
-      discountConfig: campaign.discountConfig,
-      experimentId: undefined, // Don't copy experiment association
-      variantKey: undefined,
-      isControl: undefined,
-      startDate: campaign.startDate || undefined,
-      endDate: campaign.endDate || undefined,
-    };
-
-    const newCampaign = await CampaignService.createCampaign(storeId, createData, admin);
+    const newCampaign = await CampaignService.duplicateCampaign(campaignId, storeId, admin);
     return data({ success: true, campaignId: newCampaign.id });
   }
 
@@ -358,48 +336,8 @@ function GlobalMetricCard({
   );
 }
 
-function TemplateTile({
-  title,
-  description,
-  icon: Icon,
-  onSelect,
-}: {
-  title: string;
-  description: string;
-  icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
-  onSelect: () => void;
-}) {
-  return (
-    <Card>
-      <BlockStack gap="400">
-        <InlineStack align="space-between">
-          <Box background="bg-surface-secondary" padding="200" borderRadius="200">
-            <Icon width={24} />
-          </Box>
-        </InlineStack>
-        <BlockStack gap="200">
-          <Text as="h3" variant="headingMd">
-            {title}
-          </Text>
-          <Text as="p" tone="subdued">
-            {description}
-          </Text>
-        </BlockStack>
-        <Button onClick={onSelect} variant="primary">
-          Use this template
-        </Button>
-      </BlockStack>
-    </Card>
-  );
-}
-
 export default function Dashboard() {
-  const {
-    currency,
-    themeEditorUrl,
-    chargeId,
-    recentUpgrade,
-  } = useLoaderData<typeof loader>();
+  const { currency, themeEditorUrl, chargeId, recentUpgrade } = useLoaderData<typeof loader>();
 
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -461,7 +399,7 @@ export default function Dashboard() {
 
   // --- Handlers ---
   const handleCreateCampaign = () => {
-    navigate("/app/campaigns/new");
+    navigate("/app/campaigns/create");
   };
 
   const handleTimeRangeChange = (value: string) => {
@@ -470,7 +408,10 @@ export default function Dashboard() {
 
   const handleToggleStatus = (id: string, currentStatus: string) => {
     setTogglingCampaignId(id);
-    actionFetcher.submit({ intent: "toggle_status", campaignId: id, currentStatus }, { method: "post" });
+    actionFetcher.submit(
+      { intent: "toggle_status", campaignId: id, currentStatus },
+      { method: "post" }
+    );
   };
 
   const handleCampaignClick = (id: string) => {
@@ -545,7 +486,9 @@ export default function Dashboard() {
         <Layout>
           {/* Setup Status Banner - Show if setup incomplete OR if there are any issues */}
           {currentSetupStatus &&
-            (!currentSetupComplete || !currentSetupStatus.themeExtensionEnabled || !currentSetupStatus.appProxyOk) && (
+            (!currentSetupComplete ||
+              !currentSetupStatus.themeExtensionEnabled ||
+              !currentSetupStatus.appProxyOk) && (
               <Layout.Section>
                 <SetupStatus
                   status={currentSetupStatus}
@@ -562,43 +505,16 @@ export default function Dashboard() {
             <EmptyState
               heading="Start turning visitors into customers"
               action={{
-                content: "Create your first campaign",
+                content: "Browse campaign recipes",
                 onAction: handleCreateCampaign,
               }}
               image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
             >
               <p>
                 Revenue Boost helps you capture leads and increase sales with high-converting
-                popups. Choose a template to get started in minutes.
+                popups. Pick a ready-made recipe to get started in minutes.
               </p>
             </EmptyState>
-          </Layout.Section>
-          <Layout.Section>
-            <Text as="h2" variant="headingMd">
-              Quick Start Templates
-            </Text>
-            <Box paddingBlockStart="400">
-              <InlineGrid columns={{ xs: 1, sm: 1, md: 2, lg: 3 }} gap="400">
-                <TemplateTile
-                  title="Newsletter Signup"
-                  description="Grow your email list with a classic popup."
-                  icon={CalendarIcon}
-                  onSelect={() => navigate("/app/campaigns/new?template=NEWSLETTER")}
-                />
-                <TemplateTile
-                  title="Flash Sale"
-                  description="Offer a discount to convert visitors."
-                  icon={ChartVerticalFilledIcon}
-                  onSelect={() => navigate("/app/campaigns/new?template=FLASH_SALE")}
-                />
-                <TemplateTile
-                  title="Spin to Win"
-                  description="Gamify your offers to boost engagement."
-                  icon={ChartVerticalFilledIcon}
-                  onSelect={() => navigate("/app/campaigns/new?template=SPIN_TO_WIN")}
-                />
-              </InlineGrid>
-            </Box>
           </Layout.Section>
         </Layout>
       </Page>
@@ -615,6 +531,8 @@ export default function Dashboard() {
 
   const campaigns = campaignsData?.data?.campaigns ?? [];
   const experiments = campaignsData?.data?.experiments ?? [];
+  const grandfatheredCampaigns = campaignsData?.data?.grandfatheredCampaigns ?? [];
+  const campaignLimitStatus = campaignsData?.data?.campaignLimitStatus;
 
   // --- Main Dashboard ---
   return (
@@ -645,7 +563,9 @@ export default function Dashboard() {
       <Layout>
         {/* Setup Status Banner - Show if setup incomplete OR if there are any issues */}
         {currentSetupStatus &&
-          (!currentSetupComplete || !currentSetupStatus.themeExtensionEnabled || !currentSetupStatus.appProxyOk) && (
+          (!currentSetupComplete ||
+            !currentSetupStatus.themeExtensionEnabled ||
+            !currentSetupStatus.appProxyOk) && (
             <Layout.Section>
               <SetupStatus
                 status={currentSetupStatus}
@@ -657,6 +577,35 @@ export default function Dashboard() {
               />
             </Layout.Section>
           )}
+
+        {/* Campaign Limit Exceeded Banner - Show when user has more active campaigns than plan allows */}
+        {campaignLimitStatus?.isOverLimit && campaignLimitStatus.max !== null && (
+          <Layout.Section>
+            <Banner tone="critical" title="Campaign Limit Exceeded">
+              <Text as="p" variant="bodyMd">
+                You have <strong>{campaignLimitStatus.current} active campaigns</strong>, but your{" "}
+                {campaignLimitStatus.planName} plan only allows <strong>{campaignLimitStatus.max}</strong>.
+                Your campaigns will continue running, but you cannot edit active campaigns or activate new ones.{" "}
+                <Link url="/app/billing">Upgrade your plan</Link> to unlock full access, or pause some campaigns.
+              </Text>
+            </Banner>
+          </Layout.Section>
+        )}
+
+        {/* Grandfathered Campaigns Banner - Show when user has active campaigns using locked templates */}
+        {grandfatheredCampaigns.length > 0 && (
+          <Layout.Section>
+            <Banner tone="warning">
+              <Text as="p" variant="bodyMd">
+                You have {grandfatheredCampaigns.length} active campaign
+                {grandfatheredCampaigns.length > 1 ? "s" : ""} using premium features (
+                {grandfatheredCampaigns.map((c) => c.name).join(", ")}). These will continue running,
+                but you cannot create new campaigns with these templates.{" "}
+                <Link url="/app/billing">Upgrade your plan</Link> to unlock full access.
+              </Text>
+            </Banner>
+          </Layout.Section>
+        )}
 
         {/* Global Metrics */}
         <Layout.Section>
@@ -711,35 +660,6 @@ export default function Dashboard() {
               togglingCampaignId={togglingCampaignId}
             />
           )}
-        </Layout.Section>
-
-        {/* Template Quick Start (Bottom) */}
-        <Layout.Section>
-          <Text as="h2" variant="headingMd">
-            Start a new campaign
-          </Text>
-          <Box paddingBlockStart="400">
-            <InlineGrid columns={{ xs: 1, sm: 1, md: 2, lg: 3 }} gap="400">
-              <TemplateTile
-                title="Newsletter Signup"
-                description="Grow your email list with a classic popup."
-                icon={CalendarIcon}
-                onSelect={() => navigate("/app/campaigns/new?template=NEWSLETTER")}
-              />
-              <TemplateTile
-                title="Flash Sale"
-                description="Offer a discount to convert visitors."
-                icon={ChartVerticalFilledIcon}
-                onSelect={() => navigate("/app/campaigns/new?template=FLASH_SALE")}
-              />
-              <TemplateTile
-                title="Spin to Win"
-                description="Gamify your offers to boost engagement."
-                icon={ChartVerticalFilledIcon}
-                onSelect={() => navigate("/app/campaigns/new?template=SPIN_TO_WIN")}
-              />
-            </InlineGrid>
-          </Box>
         </Layout.Section>
       </Layout>
     </Page>

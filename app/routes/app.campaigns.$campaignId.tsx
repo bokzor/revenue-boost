@@ -4,7 +4,7 @@
  * Individual campaign view with full details and management options
  */
 
-import { data, type LoaderFunctionArgs } from "react-router";
+import { data, type LoaderFunctionArgs, type ActionFunctionArgs } from "react-router";
 import { Outlet, useLoaderData, useLocation, useNavigate, useRevalidator } from "react-router";
 import { Frame, Toast } from "@shopify/polaris";
 import { useState } from "react";
@@ -14,10 +14,13 @@ import { getStoreId } from "~/lib/auth-helpers.server";
 import { CampaignService } from "~/domains/campaigns";
 import { CampaignDetail } from "~/domains/campaigns/components";
 import type { CampaignWithConfigs } from "~/domains/campaigns/types/campaign";
+import type { DesignTokens } from "~/domains/campaigns/types/design-tokens";
 import { apiClient, getErrorMessage } from "~/lib/api-client";
 import { CampaignAnalyticsService } from "~/domains/campaigns/services/campaign-analytics.server";
 import { PopupEventService } from "~/domains/analytics/popup-events.server";
 import { getStoreCurrency } from "~/lib/currency.server";
+import prisma from "~/db.server";
+import { StoreSettingsSchema } from "~/domains/store/types/settings";
 
 // ============================================================================
 // TYPES
@@ -41,6 +44,7 @@ interface LoaderData {
   aov: number;
   clicks: number;
   currency: string;
+  defaultThemeTokens?: DesignTokens;
 }
 
 // ============================================================================
@@ -72,8 +76,17 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     let aov = 0;
     let clicks = 0;
     let currency = "USD";
+    let defaultThemeTokens: DesignTokens | undefined;
 
     if (campaign) {
+      // Fetch store settings for theme tokens
+      const store = await prisma.store.findUnique({
+        where: { shopifyDomain: session.shop },
+        select: { settings: true },
+      });
+
+      const parsedSettings = StoreSettingsSchema.safeParse(store?.settings);
+
       const [statsMap, funnelMap, revenueStatsMap, clickMap, fetchedCurrency] = await Promise.all([
         CampaignAnalyticsService.getCampaignStats([campaign.id]),
         PopupEventService.getFunnelStatsByCampaign([campaign.id], {
@@ -115,6 +128,31 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
       currency = fetchedCurrency;
       clicks = clickEntry ?? 0;
+
+      // Load default theme tokens for preview
+      // Priority: 1) Store's default theme preset, 2) Fallback to Shopify theme settings
+      const { getDefaultPreset, presetToDesignTokens } = await import(
+        "~/domains/store/types/theme-preset"
+      );
+
+      const customPresets = parsedSettings.success ? parsedSettings.data.customThemePresets : undefined;
+      if (customPresets && customPresets.length > 0) {
+        const defaultPreset = getDefaultPreset(customPresets);
+        if (defaultPreset) {
+          defaultThemeTokens = presetToDesignTokens(defaultPreset) as DesignTokens;
+        }
+      }
+
+      // Fallback: fetch from Shopify theme if no default preset
+      if (!defaultThemeTokens && session.shop && session.accessToken) {
+        const { fetchThemeSettings, themeSettingsToDesignTokens } = await import(
+          "~/lib/shopify/theme-settings.server"
+        );
+        const themeResult = await fetchThemeSettings(session.shop, session.accessToken);
+        if (themeResult.success && themeResult.settings) {
+          defaultThemeTokens = themeSettingsToDesignTokens(themeResult.settings);
+        }
+      }
     }
 
     return data<LoaderData>({
@@ -127,6 +165,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       aov,
       clicks,
       currency,
+      defaultThemeTokens,
     });
   } catch (error) {
     console.error("Failed to load campaign:", error);
@@ -149,11 +188,29 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 }
 
 // ============================================================================
+// ACTION
+// ============================================================================
+
+export async function action({ request, params }: ActionFunctionArgs) {
+  // This route currently uses API routes for all mutations (via apiClient).
+  // This action stub exists to prevent React Router errors when forms or
+  // fetchers accidentally submit to this route without an explicit action.
+  const formData = await request.formData();
+  const intent = formData.get("intent");
+
+  console.warn(
+    `[CampaignDetail] Unexpected form submission to route. Intent: ${intent}, Campaign: ${params.campaignId}`
+  );
+
+  return data({ success: false, error: "Use API routes for campaign mutations" }, { status: 400 });
+}
+
+// ============================================================================
 // COMPONENT
 // ============================================================================
 
 export default function CampaignDetailPage() {
-  const { campaign, stats, funnel, revenue, discountGiven, aov, clicks, currency } =
+  const { campaign, stats, funnel, revenue, discountGiven, aov, clicks, currency, defaultThemeTokens } =
     useLoaderData<typeof loader>();
   const navigate = useNavigate();
   const revalidator = useRevalidator();
@@ -208,16 +265,8 @@ export default function CampaignDetailPage() {
     if (!campaign) return;
 
     try {
-      // Create duplicate with modified name
-      const duplicateData = {
-        ...campaign,
-        name: `${campaign.name} (Copy)`,
-        status: "DRAFT",
-      };
-
       const response = await apiClient.post<{ campaign: CampaignWithConfigs }>(
-        "/api/campaigns",
-        duplicateData
+        `/api/campaigns/${campaign.id}/duplicate`
       );
 
       const newCampaign = response.data?.campaign;
@@ -304,6 +353,7 @@ export default function CampaignDetailPage() {
         aov={aov}
         clicks={clicks}
         currency={currency}
+        defaultThemeTokens={defaultThemeTokens}
       />
       {toastMarkup}
     </Frame>

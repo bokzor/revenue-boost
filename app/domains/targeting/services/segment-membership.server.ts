@@ -1,3 +1,4 @@
+import { logger } from "~/lib/logger.server";
 import type { AdminApiContext } from "@shopify/shopify-app-react-router/server";
 import prisma from "~/db.server";
 
@@ -49,7 +50,7 @@ export async function syncSegmentMembershipsForSegment(opts: {
     const json = (await response.json()) as CustomerSegmentMembersResponse;
 
     if (json.errors && json.errors.length > 0) {
-      console.error("[SegmentMembership] GraphQL errors", json.errors);
+      logger.error({ errors: json.errors }, "[SegmentMembership] GraphQL errors");
       throw new Error(json.errors.map((e) => e.message).join("; "));
     }
 
@@ -80,10 +81,7 @@ export async function syncSegmentMembershipsForSegment(opts: {
             shopifyCustomerId: customerId,
           };
         } catch (error) {
-          console.warn("[SegmentMembership] Failed to parse customer GID", {
-            gid,
-            error,
-          });
+          logger.warn({ gid, error }, "[SegmentMembership] Failed to parse customer GID");
           return null;
         }
       })

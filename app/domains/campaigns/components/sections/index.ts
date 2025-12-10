@@ -55,10 +55,24 @@ export { DesignConfigSection, type DesignConfigSectionProps } from "./DesignConf
 
 export { TargetingConfigSection, type TargetingConfigSectionProps } from "./TargetingConfigSection";
 
-export { DiscountConfigSection, type DiscountConfigSectionProps } from "./DiscountConfigSection";
-
 export {
   ABTestingSection,
   type ABTestingSectionProps,
   type ABTestingConfig,
 } from "./ABTestingSection";
+
+// Lead Capture Form Section (for email/name/consent configuration)
+export {
+  LeadCaptureFormSection,
+  type LeadCaptureFormSectionProps,
+} from "./LeadCaptureFormSection";
+
+export {
+  CountdownUrgencyContentSection,
+  type CountdownUrgencyContentSectionProps,
+} from "./CountdownUrgencyContentSection";
+
+export {
+  PremiumFullscreenContentSection,
+  type PremiumFullscreenContentSectionProps,
+} from "./PremiumFullscreenContentSection";

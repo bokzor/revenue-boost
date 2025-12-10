@@ -1,10 +1,11 @@
 import { test, expect } from '@playwright/test';
 import { PrismaClient } from '@prisma/client';
+import path from 'path';
 import * as dotenv from 'dotenv';
-import { STORE_DOMAIN, handlePasswordPage, mockChallengeToken, getTestPrefix } from './helpers/test-helpers';
+import { STORE_DOMAIN, handlePasswordPage, getTestPrefix } from './helpers/test-helpers';
 import { CampaignFactory } from './factories/campaign-factory';
 
-dotenv.config({ path: '.env.staging.env' });
+dotenv.config({ path: path.resolve(process.cwd(), '.env.staging.env'), override: true });
 
 const TEST_PREFIX = getTestPrefix('storefront-minimal-test.spec.ts');
 
@@ -21,7 +22,12 @@ test.describe('Minimal Reproduction', () => {
     let store: { id: string };
 
     test.beforeAll(async () => {
+        console.log('[DEBUG] DATABASE_URL:', (process.env.DATABASE_URL || '').substring(0, 60));
         prisma = new PrismaClient();
+
+        // Verify which database we're connected to
+        const dbInfo = await prisma.$queryRaw`SELECT current_database(), current_user`;
+        console.log('[DEBUG] Connected to database:', dbInfo);
 
         const foundStore = await prisma.store.findUnique({
             where: { shopifyDomain: STORE_DOMAIN }
@@ -55,7 +61,6 @@ test.describe('Minimal Reproduction', () => {
     });
 
     test.beforeEach(async ({ page }) => {
-        await mockChallengeToken(page);
     });
 
     test('minimal campaign appears in API and on storefront', async ({ page }) => {
@@ -129,10 +134,10 @@ test.describe('Minimal Reproduction', () => {
             // Now visit again with clean state
             await page.goto(`https://${STORE_DOMAIN}`);
             await handlePasswordPage(page);
-            await page.waitForLoadState('networkidle');
+            await page.waitForLoadState('domcontentloaded');
 
             // Wait a bit for API call
-            await page.waitForTimeout(3000);
+            await page.waitForTimeout(4000);
 
             // Check if our campaign was returned
             console.log('\nStep 4: Checking API results...');

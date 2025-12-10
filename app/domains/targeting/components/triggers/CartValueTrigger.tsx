@@ -44,9 +44,10 @@ export function CartValueTrigger({ config, onChange }: CartValueTriggerProps) {
           label="Minimum cart value"
           type="number"
           prefix="$"
-          value={config.cart_value?.min_value?.toString() || "50"}
-          onChange={(value) => updateConfig({ min_value: parseFloat(value) || 50 })}
+          value={config.cart_value?.min_value?.toString() ?? ""}
+          onChange={(value) => updateConfig({ min_value: value === "" ? undefined : parseFloat(value) })}
           helpText="Minimum cart value to trigger popup"
+          placeholder="50"
         />
 
         <TextField
@@ -63,9 +64,10 @@ export function CartValueTrigger({ config, onChange }: CartValueTriggerProps) {
           autoComplete="off"
           label="Check interval (milliseconds)"
           type="number"
-          value={config.cart_value?.check_interval?.toString() || "2000"}
-          onChange={(value) => updateConfig({ check_interval: parseInt(value) || 2000 })}
+          value={config.cart_value?.check_interval?.toString() ?? ""}
+          onChange={(value) => updateConfig({ check_interval: value === "" ? undefined : parseInt(value) })}
           helpText="How often to check cart value"
+          placeholder="2000"
         />
       </FormLayout>
     </TriggerCard>

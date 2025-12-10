@@ -11,7 +11,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import type { FrequencyCappingConfig } from "~/domains/targeting/components";
-import type { DiscountConfig } from "~/domains/commerce/services/discounts/discount.server";
+import type { DiscountConfig } from "~/domains/campaigns/types/campaign";
 import { getTemplateMetadata } from "~/domains/templates/registry/template-registry";
 
 // Import comprehensive enhanced triggers types
@@ -186,12 +186,6 @@ const MAX_STEP_INDEX = 7 as const;
 export function useWizardState(initialData?: Partial<CampaignFormData>) {
   // Initialize state with fresh data (no sessionStorage persistence)
   const [state, setState] = useState<WizardState>(() => {
-    console.log("[USE_WIZARD_STATE] 🌱 Initializing with data:", {
-      hasInitialData: !!initialData,
-      hasInitialEnhancedTriggers: !!initialData?.enhancedTriggers,
-      initialEnhancedTriggers: initialData?.enhancedTriggers,
-    });
-
     return {
       data: createDefaultCampaignData(initialData),
       currentStep: 0,

@@ -180,6 +180,11 @@ export interface LeadCaptureFormProps {
    */
   inputBorderColor?: string;
   /**
+   * Input placeholder text color
+   * @default Uses --rb-muted CSS variable or falls back to a semi-transparent version of textColor
+   */
+  inputPlaceholderColor?: string;
+  /**
    * Optional extra fields to render between inputs and submit button
    * Useful for template-specific fields (e.g., phone number, custom questions)
    */
@@ -205,11 +210,11 @@ export interface LeadCaptureFormProps {
 
 /**
  * LeadCaptureForm Component
- * 
+ *
  * Reusable form component for capturing leads (email, name, GDPR consent).
  * Composes existing FormFields components with consistent styling and validation.
  * Integrates seamlessly with the usePopupForm hook.
- * 
+ *
  * @example
  * ```tsx
  * const {
@@ -221,7 +226,7 @@ export interface LeadCaptureFormProps {
  *   handleSubmit,
  *   isSubmitting,
  * } = usePopupForm({ config });
- * 
+ *
  * <LeadCaptureForm
  *   data={formState}
  *   errors={errors}
@@ -251,20 +256,22 @@ export const LeadCaptureForm: React.FC<LeadCaptureFormProps> = ({
   emailRequired = true,
   labels,
   placeholders,
-  accentColor = "#4F46E5",
+  // Colors are optional - CSS variables provide defaults via design-tokens.css
+  accentColor,
   buttonColor,
-  textColor = "#1F2937",
-  backgroundColor = "#FFFFFF",
-  buttonTextColor = "#FFFFFF",
+  textColor,
+  backgroundColor,
+  buttonTextColor,
   inputTextColor,
   inputBorderColor,
+  inputPlaceholderColor,
   extraFields,
   className,
   style,
   layout = "vertical",
   privacyPolicyUrl,
 }) => {
-  // Use buttonColor if provided, otherwise fall back to accentColor
+  // Use buttonColor if provided, otherwise fall back to accentColor, then CSS variable
   const effectiveButtonColor = buttonColor || accentColor;
   const isInline = layout === "inline";
 
@@ -275,7 +282,10 @@ export const LeadCaptureForm: React.FC<LeadCaptureFormProps> = ({
         onSubmit(e);
       }}
       className={className}
-      style={style}
+      style={{
+        textAlign: "var(--rb-popup-text-align, left)" as React.CSSProperties["textAlign"],
+        ...style,
+      }}
     >
       {isInline ? (
         // Inline layout: email + button on same line (responsive with CSS Grid)
@@ -284,7 +294,7 @@ export const LeadCaptureForm: React.FC<LeadCaptureFormProps> = ({
             display: "grid",
             gridTemplateColumns: "1fr auto",
             gap: "0.5rem",
-            alignItems: "end",
+            alignItems: "center",
           }}
         >
           <EmailInput
@@ -299,23 +309,28 @@ export const LeadCaptureForm: React.FC<LeadCaptureFormProps> = ({
             textColor={inputTextColor || textColor}
             backgroundColor={backgroundColor}
             borderColor={inputBorderColor}
+            placeholderColor={inputPlaceholderColor}
           />
-          <div style={{ marginBottom: "1rem" }}>
-            <SubmitButton
-              type="submit"
-              loading={isSubmitting}
-              disabled={isSubmitting}
-              buttonColor={effectiveButtonColor}
-              textColor={buttonTextColor}
-              fullWidth={false}
-            >
-              {labels?.submit || "Submit"}
-            </SubmitButton>
-          </div>
+          <SubmitButton
+            type="submit"
+            loading={isSubmitting}
+            disabled={isSubmitting}
+            buttonColor={effectiveButtonColor}
+            textColor={buttonTextColor}
+            fullWidth={false}
+          >
+            {labels?.submit || "Submit"}
+          </SubmitButton>
         </div>
       ) : (
-        // Vertical layout (default)
-        <>
+        // Vertical layout (default) - uses CSS variable for spacing
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "var(--rb-popup-gap, 1rem)",
+          }}
+        >
           {/* Email Input */}
           <EmailInput
             value={data.email}
@@ -329,6 +344,7 @@ export const LeadCaptureForm: React.FC<LeadCaptureFormProps> = ({
             textColor={inputTextColor || textColor}
             backgroundColor={backgroundColor}
             borderColor={inputBorderColor}
+            placeholderColor={inputPlaceholderColor}
           />
 
           {/* Name Input (optional) */}
@@ -337,7 +353,7 @@ export const LeadCaptureForm: React.FC<LeadCaptureFormProps> = ({
               value={data.name || ""}
               onChange={onNameChange}
               placeholder={placeholders?.name || "Enter your name"}
-              label={labels?.name || "Name"}
+              label={labels?.name}
               error={errors.name}
               required={nameRequired}
               disabled={isSubmitting}
@@ -345,6 +361,7 @@ export const LeadCaptureForm: React.FC<LeadCaptureFormProps> = ({
               textColor={inputTextColor || textColor}
               backgroundColor={backgroundColor}
               borderColor={inputBorderColor}
+              placeholderColor={inputPlaceholderColor}
             />
           )}
 
@@ -377,9 +394,8 @@ export const LeadCaptureForm: React.FC<LeadCaptureFormProps> = ({
           >
             {labels?.submit || "Submit"}
           </SubmitButton>
-        </>
+        </div>
       )}
     </form>
   );
 };
-

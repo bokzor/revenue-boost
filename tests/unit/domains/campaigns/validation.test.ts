@@ -61,6 +61,7 @@ describe('Campaign Validation', () => {
           headline: 'Subscribe Now',
           subheadline: 'Get updates',
           buttonText: 'Subscribe',
+          submitButtonText: 'Subscribe Now', // Required field in NewsletterContentSchema
           successMessage: 'Thank you for subscribing!',
           emailPlaceholder: 'Enter email',
         },
@@ -158,6 +159,7 @@ describe('Campaign Validation', () => {
         headline: 'Subscribe',
         subheadline: 'Get updates',
         buttonText: 'Subscribe Now',
+        submitButtonText: 'Subscribe Now', // Required field in NewsletterContentSchema
         successMessage: 'Thanks for subscribing!',
         emailPlaceholder: 'Your email',
       };
@@ -168,8 +170,7 @@ describe('Campaign Validation', () => {
 
     it('should reject invalid newsletter content', () => {
       const contentConfig = {
-        headline: 'Subscribe',
-        // Missing required fields like buttonText and successMessage
+        // Missing required headline field (headline is required and has no default)
       };
 
       const result = validateContentConfig('NEWSLETTER', contentConfig);

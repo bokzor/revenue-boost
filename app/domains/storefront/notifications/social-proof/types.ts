@@ -4,7 +4,7 @@
  * Type definitions for social proof notifications that build trust and credibility.
  */
 
-import type { SocialProofConfig as TemplateSocialProofConfig } from "~/lib/template-configs";
+import type { SocialProofContent as TemplateSocialProofConfig } from "~/domains/campaigns/types/campaign";
 
 export type SocialProofNotificationType = "purchase" | "visitor" | "review";
 

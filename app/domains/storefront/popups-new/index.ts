@@ -20,10 +20,18 @@ export type {
   BackdropConfig,
   AnimationConfig,
   AnimationType,
+  MobilePresentationMode,
 } from "./PopupPortal";
 
 export { BannerPortal } from "./BannerPortal";
 export type { BannerPortalProps, BannerPosition } from "./BannerPortal";
+
+// Layout components (shared across template families)
+export { LeadCaptureLayout } from "app/domains/storefront/popups-new/components/shared/LeadCaptureLayout";
+export type {
+  LeadCaptureLayoutProps,
+  LayoutSize,
+} from "app/domains/storefront/popups-new/components/shared/LeadCaptureLayout";
 
 // Newsletter components
 export { NewsletterPopup } from "./NewsletterPopup";
@@ -64,6 +72,22 @@ export type {
 export { AnnouncementPopup } from "./AnnouncementPopup";
 export type { AnnouncementConfig, AnnouncementPopupProps } from "./AnnouncementPopup";
 
+// New Upsell Popup Variants
+export { ClassicUpsellPopup } from "./ClassicUpsellPopup";
+export type { ClassicUpsellConfig, ClassicUpsellPopupProps } from "./ClassicUpsellPopup";
+
+export { MinimalSlideUpPopup } from "./MinimalSlideUpPopup";
+export type { MinimalSlideUpConfig, MinimalSlideUpPopupProps } from "./MinimalSlideUpPopup";
+
+export { PremiumFullscreenPopup } from "./PremiumFullscreenPopup";
+export type { PremiumFullscreenConfig, PremiumFullscreenPopupProps } from "./PremiumFullscreenPopup";
+
+export { BundleDealPopup } from "./BundleDealPopup";
+export type { BundleDealConfig, BundleDealPopupProps } from "./BundleDealPopup";
+
+export { CountdownUrgencyPopup } from "./CountdownUrgencyPopup";
+export type { CountdownUrgencyConfig, CountdownUrgencyPopupProps } from "./CountdownUrgencyPopup";
+
 // Shared types
 export type {
   PopupConfig, // @deprecated - Use PopupDesignConfig + content types instead
@@ -80,6 +104,10 @@ export type {
   Prize,
   ValidationRule,
   FormField,
+  // Layout types (Lead Capture family)
+  DesktopLayout,
+  MobileLayout,
+  LayoutConfig,
 } from "./types";
 
 // Utility functions
@@ -95,4 +123,4 @@ export {
   formatTimeRemaining,
   prefersReducedMotion,
   debounce,
-} from "./utils";
+} from "app/domains/storefront/popups-new/utils/utils";

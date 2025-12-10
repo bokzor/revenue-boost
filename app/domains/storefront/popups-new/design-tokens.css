@@ -1,0 +1,159 @@
+/**
+ * Design Tokens CSS Variables
+ *
+ * Base styles that consume the --rb-* CSS custom properties.
+ * These variables are set by the useDesignTokens hook based on:
+ * - Shopify theme settings (themeMode: "shopify")
+ * - Preset designs (themeMode: "preset")
+ * - Custom overrides (themeMode: "custom")
+ *
+ * Usage:
+ * 1. Apply tokens to container: style={designTokenStyles}
+ * 2. Child elements use: background-color: var(--rb-background);
+ */
+
+/* =============================================================================
+   DEFAULT TOKEN VALUES (fallbacks)
+
+   SINGLE SOURCE OF TRUTH for all popup default colors.
+   Both admin preview and storefront use these CSS fallback values.
+   ============================================================================= */
+
+.rb-popup-container {
+  /* Colors - Primary brand color is #007BFF (blue) */
+  --rb-background: #FFFFFF;
+  --rb-foreground: #1A1A1A;
+  --rb-muted: rgba(26, 26, 26, 0.6);
+  --rb-primary: #007BFF;
+  --rb-primary-foreground: #FFFFFF;
+  --rb-surface: #F5F5F5;
+  --rb-border: rgba(26, 26, 26, 0.15);
+  --rb-success: #10B981;
+  --rb-error: #EF4444;
+
+  /* Typography */
+  --rb-font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --rb-heading-font-family: var(--rb-font-family);
+
+  /* Border Radius */
+  --rb-radius: 8px;
+  --rb-popup-radius: 16px;
+
+  /* Spacing */
+  --rb-spacing-xs: 0.25rem;
+  --rb-spacing-sm: 0.5rem;
+  --rb-spacing-md: 1rem;
+  --rb-spacing-lg: 1.5rem;
+  --rb-spacing-xl: 2rem;
+}
+
+/* =============================================================================
+   BASE POPUP STYLES
+   ============================================================================= */
+
+.rb-popup-container {
+  font-family: var(--rb-font-family);
+  color: var(--rb-foreground);
+  background-color: var(--rb-background);
+  border-radius: var(--rb-popup-radius);
+}
+
+/* =============================================================================
+   BUTTON STYLES
+   ============================================================================= */
+
+.rb-button-primary {
+  background-color: var(--rb-primary);
+  color: var(--rb-primary-foreground);
+  border: none;
+  border-radius: var(--rb-radius);
+  padding: var(--rb-spacing-sm) var(--rb-spacing-lg);
+  font-family: var(--rb-font-family);
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.rb-button-primary:hover {
+  opacity: 0.9;
+}
+
+.rb-button-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.rb-button-secondary {
+  background-color: transparent;
+  color: var(--rb-primary);
+  border: 1px solid var(--rb-primary);
+  border-radius: var(--rb-radius);
+  padding: var(--rb-spacing-sm) var(--rb-spacing-lg);
+  font-family: var(--rb-font-family);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.rb-button-secondary:hover {
+  background-color: var(--rb-surface);
+}
+
+/* =============================================================================
+   INPUT STYLES
+   ============================================================================= */
+
+.rb-input {
+  background-color: var(--rb-surface);
+  color: var(--rb-foreground);
+  border: 1px solid var(--rb-border);
+  border-radius: var(--rb-radius);
+  padding: var(--rb-spacing-sm) var(--rb-spacing-md);
+  font-family: var(--rb-font-family);
+  font-size: 1rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.rb-input::placeholder {
+  color: var(--rb-muted);
+}
+
+.rb-input:focus {
+  outline: none;
+  border-color: var(--rb-primary);
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1);
+}
+
+/* =============================================================================
+   TEXT STYLES
+   ============================================================================= */
+
+.rb-heading {
+  font-family: var(--rb-heading-font-family);
+  color: var(--rb-foreground);
+  margin: 0;
+}
+
+.rb-text {
+  color: var(--rb-foreground);
+  margin: 0;
+}
+
+.rb-text-muted {
+  color: var(--rb-muted);
+  margin: 0;
+}
+
+/* =============================================================================
+   SUCCESS STATE
+   ============================================================================= */
+
+.rb-success {
+  color: var(--rb-success);
+}
+
+.rb-success-bg {
+  background-color: var(--rb-success);
+  color: white;
+}
+

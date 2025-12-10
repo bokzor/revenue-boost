@@ -93,7 +93,7 @@ describe("FreeShippingContentSection - ALL Configuration Options", () => {
       expect(currencyField?.getAttribute("value")).toBe("€");
     });
 
-    it("should render nearMissThreshold with default value", () => {
+    it("should render nearMissThreshold with placeholder for default value", () => {
       const onChange = vi.fn();
       const { container } = renderWithPolaris(
         <FreeShippingContentSection
@@ -104,7 +104,8 @@ describe("FreeShippingContentSection - ALL Configuration Options", () => {
 
       const nearMissField = container.querySelector('s-text-field[name="content.nearMissThreshold"]');
       expect(nearMissField).toBeTruthy();
-      expect(nearMissField?.getAttribute("value")).toBe("10");
+      // Empty value with placeholder="10" indicates the default
+      expect(nearMissField?.getAttribute("placeholder")).toBe("10");
     });
 
     it("should render custom nearMissThreshold value", () => {

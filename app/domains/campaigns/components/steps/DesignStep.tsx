@@ -12,7 +12,12 @@ import { ContentConfigSection } from "../sections/ContentConfigSection";
 import { DesignConfigSection } from "../sections/DesignConfigSection";
 import { LivePreviewPanel } from "~/domains/popups/components/preview/LivePreviewPanel";
 import type { DesignConfig, ContentConfig } from "~/domains/campaigns/types/campaign";
-import { useConfigField, useFormField, useStoreInfo } from "../../context/CampaignFormContext";
+import {
+  useConfigField,
+  useFormField,
+  useStoreInfo,
+  useAvailableBackgrounds,
+} from "../../context/CampaignFormContext";
 
 export function DesignStep() {
   // Use context hooks
@@ -21,6 +26,7 @@ export function DesignStep() {
   const [templateType] = useFormField("templateType");
   const [contentConfig, updateContentConfig] = useConfigField<ContentConfig>("contentConfig");
   const [designConfig, updateDesignConfig] = useConfigField<DesignConfig>("designConfig");
+  const availableBackgrounds = useAvailableBackgrounds();
 
   if (!goal || !templateType) {
     return (
@@ -72,6 +78,7 @@ export function DesignStep() {
               <DesignConfigSection
                 design={designConfig || {}}
                 templateType={templateType}
+                availableBackgrounds={availableBackgrounds}
                 onChange={(design) => {
                   updateDesignConfig({ ...designConfig, ...design });
                 }}

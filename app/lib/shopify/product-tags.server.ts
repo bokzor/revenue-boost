@@ -4,6 +4,7 @@
  * Uses the Admin GraphQL API to fetch product tags for the current shop.
  */
 
+import { logger } from "~/lib/logger.server";
 import type { AdminApiContext } from "@shopify/shopify-app-react-router/server";
 
 interface ProductTagsQueryResponse {
@@ -62,7 +63,7 @@ export async function listProductTags(
   const json = (await response.json()) as ProductTagsQueryResponse;
 
   if (json.errors && json.errors.length > 0) {
-    console.error("[Shopify Product Tags] GraphQL errors", json.errors);
+    logger.error({ errors: json.errors }, "[ShopifyProductTags] GraphQL errors");
     throw new Error(json.errors.map((e) => e.message).join("; "));
   }
 

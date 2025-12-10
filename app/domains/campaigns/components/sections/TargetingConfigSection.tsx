@@ -40,10 +40,10 @@ export function TargetingConfigSection({ targetRules, onChange }: TargetingConfi
             <TextField
               label="Delay (ms)"
               name="triggers.page_load.delay"
-              value={triggers.page_load.delay?.toString() || "0"}
+              value={triggers.page_load.delay?.toString() ?? ""}
               placeholder="0"
               helpText="Delay before showing popup"
-              onChange={(value) => updateTrigger("page_load", { delay: parseInt(value) || 0 })}
+              onChange={(value) => updateTrigger("page_load", { delay: value === "" ? undefined : parseInt(value) })}
             />
 
             <CheckboxField
@@ -93,27 +93,6 @@ export function TargetingConfigSection({ targetRules, onChange }: TargetingConfi
         )}
       </FormSection>
 
-      <FormSection title="Time Delay Trigger" collapsible defaultOpen={false}>
-        <CheckboxField
-          label="Enable Time Delay"
-          name="triggers.time_delay.enabled"
-          checked={triggers.time_delay?.enabled || false}
-          helpText="Show popup after specified time"
-          onChange={(checked) => updateTrigger("time_delay", { enabled: checked })}
-        />
-
-        {triggers.time_delay?.enabled && (
-          <TextField
-            label="Delay (seconds)"
-            name="triggers.time_delay.delay"
-            value={triggers.time_delay.delay?.toString() || "5"}
-            placeholder="5"
-            helpText="Time to wait before showing popup"
-            onChange={(value) => updateTrigger("time_delay", { delay: parseInt(value) || 5 })}
-          />
-        )}
-      </FormSection>
-
       <FormSection title="Scroll Depth Trigger" collapsible defaultOpen={false}>
         <CheckboxField
           label="Enable Scroll Depth"
@@ -127,11 +106,11 @@ export function TargetingConfigSection({ targetRules, onChange }: TargetingConfi
           <TextField
             label="Scroll Percentage"
             name="triggers.scroll_depth.depth_percentage"
-            value={triggers.scroll_depth.depth_percentage?.toString() || "50"}
+            value={triggers.scroll_depth.depth_percentage?.toString() ?? ""}
             placeholder="50"
             helpText="Percentage of page scrolled (0-100)"
             onChange={(value) =>
-              updateTrigger("scroll_depth", { depth_percentage: parseInt(value) || 50 })
+              updateTrigger("scroll_depth", { depth_percentage: value === "" ? undefined : parseInt(value) })
             }
           />
         )}
@@ -158,10 +137,10 @@ export function TargetingConfigSection({ targetRules, onChange }: TargetingConfi
           <TextField
             label="Minimum Cart Value"
             name="triggers.cart_value.minValue"
-            value={triggers.cart_value.minValue?.toString() || ""}
+            value={triggers.cart_value.minValue?.toString() ?? ""}
             placeholder="50.00"
             helpText="Minimum cart value to trigger popup"
-            onChange={(value) => updateTrigger("cart_value", { minValue: parseFloat(value) || 0 })}
+            onChange={(value) => updateTrigger("cart_value", { minValue: value === "" ? undefined : parseFloat(value) })}
           />
         )}
       </FormSection>

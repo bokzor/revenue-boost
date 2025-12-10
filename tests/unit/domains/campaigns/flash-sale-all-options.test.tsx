@@ -17,6 +17,14 @@ import { AppProvider } from "@shopify/polaris";
 import en from "@shopify/polaris/locales/en.json";
 import userEvent from "@testing-library/user-event";
 
+// Mock App Bridge before importing components that use it
+const mockResourcePicker = vi.fn();
+vi.mock('@shopify/app-bridge-react', () => ({
+  useAppBridge: () => ({
+    resourcePicker: mockResourcePicker,
+  }),
+}));
+
 import { FlashSaleContentSection } from "~/domains/campaigns/components/sections/FlashSaleContentSection";
 import type { FlashSaleContent } from "~/domains/campaigns/components/sections/FlashSaleContentSection";
 import type { DiscountConfig } from "~/domains/commerce/services/discount.server";
@@ -72,45 +80,47 @@ describe("FlashSaleContentSection - ALL Configuration Options", () => {
       expect(subheadlineField?.getAttribute("value")).toBe("Test subheadline");
     });
 
-    it("should render and update button text (required)", () => {
+    it("should render and update button text via CTA config", () => {
       const onChange = vi.fn();
-      const { container } = renderWithPolaris(
+      renderWithPolaris(
         <FlashSaleContentSection
-          content={{ buttonText: "Shop Now" }}
+          content={{ cta: { label: "Shop Now", action: "navigate_collection" } as FlashSaleContent["cta"] }}
           onChange={onChange}
         />
       );
 
-      const buttonTextField = container.querySelector('s-text-field[name="content.buttonText"]');
+      // CTAConfigEditor uses Polaris TextField, so we look for the input by label
+      const buttonTextField = screen.getByLabelText("Button Text");
       expect(buttonTextField).toBeTruthy();
-      expect(buttonTextField?.getAttribute("value")).toBe("Shop Now");
-      expect(buttonTextField?.getAttribute("required")).toBe("true");
+      expect(buttonTextField).toHaveValue("Shop Now");
     });
 
-    it("should render and update CTA URL (optional)", () => {
+    it("should render CTA URL field when action requires URL", () => {
       const onChange = vi.fn();
-      const { container } = renderWithPolaris(
+      renderWithPolaris(
         <FlashSaleContentSection
-          content={{ ctaUrl: "/collections/sale" }}
+          content={{ cta: { label: "Shop Now", action: "navigate_url", url: "/collections/sale" } as FlashSaleContent["cta"] }}
           onChange={onChange}
         />
       );
 
-      const ctaUrlField = container.querySelector('s-text-field[name="content.ctaUrl"]');
+      // CTAConfigEditor shows URL field when action is navigate_url
+      const ctaUrlField = screen.getByLabelText("Destination URL");
       expect(ctaUrlField).toBeTruthy();
-      expect(ctaUrlField?.getAttribute("value")).toBe("/collections/sale");
+      expect(ctaUrlField).toHaveValue("/collections/sale");
     });
 
     it("should render and update dismiss label (optional)", () => {
       const onChange = vi.fn();
       const { container } = renderWithPolaris(
         <FlashSaleContentSection
-          content={{ dismissLabel: "No thanks" }}
+          content={{ secondaryCta: { label: "No thanks", action: "dismiss" } }}
           onChange={onChange}
         />
       );
 
-      const dismissField = container.querySelector('s-text-field[name="content.dismissLabel"]');
+      // Dismiss button uses custom TextField with s-text-field
+      const dismissField = container.querySelector('s-text-field[name="content.secondaryCta.label"]');
       expect(dismissField).toBeTruthy();
       expect(dismissField?.getAttribute("value")).toBe("No thanks");
     });
@@ -162,7 +172,7 @@ describe("FlashSaleContentSection - ALL Configuration Options", () => {
       expect(countdownCheckbox?.getAttribute("checked")).toBe("true");
     });
 
-    it("should show default countdown duration of 3600 seconds", () => {
+    it("should show default countdown duration of 3600 seconds via placeholder", () => {
       const onChange = vi.fn();
       const { container } = renderWithPolaris(
         <FlashSaleContentSection
@@ -173,7 +183,8 @@ describe("FlashSaleContentSection - ALL Configuration Options", () => {
 
       const durationField = container.querySelector('s-text-field[name="content.countdownDuration"]');
       expect(durationField).toBeTruthy();
-      expect(durationField?.getAttribute("value")).toBe("3600");
+      // Empty value with placeholder="3600" indicates the default
+      expect(durationField?.getAttribute("placeholder")).toBe("3600");
     });
 
     it("should allow custom countdown duration", () => {

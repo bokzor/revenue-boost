@@ -146,9 +146,9 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
         frequency_capping: getServerFrequencyCapping("FLASH_SALE"),
       },
     },
-    // Summer sale theme with vibrant colors (matches theme-config.ts summer-sale)
+    // Summer theme with vibrant colors (from color-presets.ts)
     designConfig: {
-      theme: "summer-sale",
+      theme: "summer",
       position: "center",
       size: "medium",
       popupSize: "wide",
@@ -156,27 +156,27 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
       borderRadius: 8,
       animation: "fade",
 
-      // Summer sale theme colors (from theme-config.ts)
-      backgroundColor: "#FFFBEB",
-      textColor: "#1E3A5F",
-      descriptionColor: "#0F766E",
-      accentColor: "#38BDF8",
+      // Summer theme colors (from color-presets.ts)
+      backgroundColor: "linear-gradient(135deg, #FF6B6B 0%, #FFE66D 100%)",
+      textColor: "#FFFFFF",
+      descriptionColor: "#FFF9C4",
+      accentColor: "#4ECDC4",
 
-      // Button colors - summer sale orange
-      buttonColor: "#FF5733",
-      buttonTextColor: "#ffffff",
+      // Button colors - turquoise
+      buttonColor: "#FFFFFF",
+      buttonTextColor: "#FF6B6B",
 
-      // Input field colors - warm tints
-      inputBackgroundColor: "#FEF3C7",
-      inputTextColor: "#1E3A5F",
-      inputBorderColor: "#FBBF24",
+      // Input field colors
+      inputBackgroundColor: "rgba(255, 255, 255, 0.2)",
+      inputTextColor: "#FFFFFF",
+      inputBorderColor: "rgba(255, 255, 255, 0.3)",
 
-      // Image / surface colors with summer-sale preset background
-      imageBgColor: "#FEF9C3",
+      // Image / surface colors with summer preset background
+      imageBgColor: "rgba(255, 255, 255, 0.15)",
       imagePosition: "full",
       backgroundImageMode: "preset",
-      backgroundImagePresetKey: "summer-sale",
-      imageUrl: "/apps/revenue-boost/assets/newsletter-backgrounds/summer-sale.jpg",
+      backgroundImagePresetKey: "bg-summer",
+      imageUrl: "/apps/revenue-boost/assets/newsletter-backgrounds/summer.jpg",
       backgroundOverlayOpacity: 0.5,
 
       // State colors
@@ -224,9 +224,11 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
       ctaText: "Spin Now",
       emailRequired: true,
       emailPlaceholder: "Enter your email to spin",
-      collectName: true,
-      showGdprCheckbox: true,
-      gdprLabel: "I agree to receive marketing emails and accept the privacy policy",
+      nameFieldEnabled: true,
+      nameFieldRequired: false,
+      consentFieldEnabled: true,
+      consentFieldRequired: false,
+      consentFieldText: "I agree to receive marketing emails and accept the privacy policy",
       spinButtonText: "Spin to Win!",
       wheelBorderColor: "#ffffff",
       wheelBorderWidth: 7,
@@ -441,7 +443,7 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
     ],
     targetRules: {
       enhancedTriggers: {
-        time_delay: { enabled: true, delay: 5 },
+        page_load: { enabled: true, delay: 5000 },
         frequency_capping: getServerFrequencyCapping("SCRATCH_CARD"),
       }
     },
@@ -734,99 +736,6 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
     conversionRate: 4.9
   },
   // Product Page Cross-Sell
-  {
-    name: "Product Page Cross-Sell",
-    description: "Recommend complementary products on PDP",
-    category: "sales",
-    templateType: "PRODUCT_UPSELL",
-    goals: ["INCREASE_REVENUE"],
-    contentConfig: {
-      headline: "Customers also bought",
-      subheadline: "Complete the set with these picks",
-      buttonText: "Add {count} to Cart",
-      successMessage: "Added to cart!",
-      ctaText: "Add {count} to Cart",
-      productSelectionMethod: "ai",
-      layout: "grid",
-      columns: 2,
-      maxProducts: 3,
-      multiSelect: true,
-      showImages: true,
-      showPrices: true,
-      showCompareAtPrice: true,
-      bundleDiscount: 20,
-    },
-    fields: [
-      { id: "headline", type: "text", label: "Headline", category: "content" },
-      { id: "subheadline", type: "text", label: "Subheadline", category: "content" },
-      { id: "ctaText", type: "text", label: "Button Text", category: "content" }
-    ],
-    targetRules: {
-      enhancedTriggers: {
-        scroll_depth: { enabled: true, depth_percentage: 50 },
-        frequency_capping: getServerFrequencyCapping("PRODUCT_UPSELL"),
-      },
-      // Advanced targeting disabled by default so Free plan users can use this template
-      audienceTargeting: {
-        enabled: false,
-        shopifySegmentIds: [],
-        sessionRules: {
-          enabled: false,
-          conditions: [],
-          logicOperator: "AND",
-        },
-      },
-    },
-    designConfig: {
-      // Glass theme - frosted glass effect
-      theme: "glass",
-      position: "center",
-      size: "large",
-      popupSize: "wide",
-      borderRadius: 8,
-      animation: "fade",
-
-      // Main colors - glass effect
-      backgroundColor: "rgba(255, 255, 255, 0.7)",
-      textColor: "#18181b",
-      descriptionColor: "#52525b",
-      accentColor: "#6366f1",
-
-      // Button colors - indigo
-      buttonColor: "#6366f1",
-      buttonTextColor: "#ffffff",
-
-      // Input field colors - glass effect
-      inputBackgroundColor: "rgba(255, 255, 255, 0.5)",
-      inputTextColor: "#111827",
-      inputBorderColor: "rgba(212, 212, 216, 0.5)",
-      inputBackdropFilter: "blur(10px)",
-
-      // Image / surface colors
-      imageBgColor: "rgba(244, 244, 245, 0.8)",
-      imagePosition: "left",
-      backgroundImageMode: "preset",
-      backgroundImagePresetKey: "glass",
-      imageUrl: "/apps/revenue-boost/assets/newsletter-backgrounds/glass.jpg",
-
-      // State colors
-      successColor: "#10b981",
-
-      // Overlay
-      overlayOpacity: 0.5,
-
-      // Typography
-      fontFamily: "inherit",
-      titleFontSize: "1.875rem",
-      titleFontWeight: "700",
-      descriptionFontSize: "1rem",
-      descriptionFontWeight: "400",
-    },
-    isDefault: true,
-    priority: 12,
-    icon: "🔗",
-    conversionRate: 3.8
-  },
 
   // Social Proof Notifications
   {
@@ -981,6 +890,232 @@ export const GLOBAL_SYSTEM_TEMPLATES: TemplateSeedData[] = [
     priority: 16,
     icon: "📢",
     conversionRate: 1.8
+  },
+
+  // ============================================================================
+  // NEW UPSELL POPUP TEMPLATES
+  // ============================================================================
+
+  // Classic Upsell Modal
+  {
+    name: "Classic Upsell Modal",
+    description: "Traditional centered modal with image, pricing, discount badge, and clear CTAs for single product offers",
+    category: "upsell",
+    templateType: "CLASSIC_UPSELL",
+    goals: ["INCREASE_REVENUE"],
+    contentConfig: {
+      headline: "Special Offer Just For You",
+      subheadline: "Don't miss out on this exclusive deal",
+      buttonText: "Add to Cart",
+      successMessage: "Added to cart!",
+      secondaryCtaLabel: "No thanks",
+      productSelectionMethod: "manual",
+      showPrices: true,
+      showCompareAtPrice: true,
+      showImages: true,
+      showRatings: true,
+      bundleDiscount: 15,
+      currency: "USD",
+    },
+    fields: [
+      { id: "headline", type: "text", label: "Headline", category: "content" },
+      { id: "subheadline", type: "text", label: "Subheadline", category: "content" },
+      { id: "buttonText", type: "text", label: "Button Text", category: "content" },
+      { id: "secondaryCtaLabel", type: "text", label: "Secondary Button Text", category: "content" },
+      { id: "bundleDiscount", type: "number", label: "Discount Percentage", category: "pricing" },
+      { id: "productSelectionMethod", type: "select", label: "Product Selection", category: "products" },
+    ],
+    targetRules: {
+      enhancedTriggers: {
+        add_to_cart: { enabled: true },
+        frequency_capping: getServerFrequencyCapping("PRODUCT_UPSELL"),
+      }
+    },
+    designConfig: {
+      backgroundColor: "#FFFFFF",
+      textColor: "#1A202C",
+      descriptionColor: "#4A5568",
+      buttonColor: "#10B981",
+      buttonTextColor: "#FFFFFF",
+      accentColor: "#10B981",
+      position: "center",
+      size: "medium",
+      borderRadius: 16,
+      animation: "scale",
+    },
+    isDefault: true,
+    priority: 17,
+    icon: "🎯",
+    conversionRate: 4.2
+  },
+
+  // Minimal Slide-Up
+  {
+    name: "Minimal Slide-Up",
+    description: "Compact bottom sheet ideal for mobile-first experiences with non-intrusive product suggestions",
+    category: "upsell",
+    templateType: "MINIMAL_SLIDE_UP",
+    goals: ["INCREASE_REVENUE"],
+    contentConfig: {
+      headline: "Complete Your Order",
+      subheadline: "Add this for just",
+      buttonText: "Quick Add",
+      successMessage: "Added to cart!",
+      secondaryCtaLabel: "Continue shopping",
+      productSelectionMethod: "ai",
+      showPrices: true,
+      showCompareAtPrice: true,
+      showImages: true,
+      currency: "USD",
+    },
+    fields: [
+      { id: "headline", type: "text", label: "Headline", category: "content" },
+      { id: "subheadline", type: "text", label: "Subheadline", category: "content" },
+      { id: "buttonText", type: "text", label: "Button Text", category: "content" },
+      { id: "secondaryCtaLabel", type: "text", label: "Secondary Button Text", category: "content" },
+      { id: "productSelectionMethod", type: "select", label: "Product Selection", category: "products" },
+    ],
+    targetRules: {
+      enhancedTriggers: {
+        add_to_cart: { enabled: true },
+        frequency_capping: getServerFrequencyCapping("PRODUCT_UPSELL"),
+      }
+    },
+    designConfig: {
+      backgroundColor: "#FFFFFF",
+      textColor: "#1A202C",
+      descriptionColor: "#6B7280",
+      buttonColor: "#3B82F6",
+      buttonTextColor: "#FFFFFF",
+      accentColor: "#3B82F6",
+      position: "bottom",
+      size: "medium",
+      borderRadius: 24,
+      animation: "slide",
+    },
+    isDefault: true,
+    priority: 18,
+    icon: "📱",
+    conversionRate: 3.8
+  },
+
+  // Premium Fullscreen Experience
+  {
+    name: "Premium Fullscreen Experience",
+    description: "Immersive full-page takeover with features list, ratings, and urgency messaging for high-value products",
+    category: "upsell",
+    templateType: "PREMIUM_FULLSCREEN",
+    goals: ["INCREASE_REVENUE"],
+    contentConfig: {
+      headline: "Exclusive Offer",
+      subheadline: "Upgrade your experience with our premium selection",
+      buttonText: "Claim This Deal",
+      successMessage: "Added to cart!",
+      secondaryCtaLabel: "Maybe later",
+      productSelectionMethod: "manual",
+      showPrices: true,
+      showCompareAtPrice: true,
+      showImages: true,
+      showRatings: true,
+      showReviewCount: true,
+      bundleDiscount: 20,
+      currency: "USD",
+      features: [
+        "Premium quality materials",
+        "Free express shipping",
+        "30-day money-back guarantee",
+      ],
+      urgencyMessage: "🔥 Limited time offer - Only 3 left in stock!",
+    },
+    fields: [
+      { id: "headline", type: "text", label: "Headline", category: "content" },
+      { id: "subheadline", type: "text", label: "Subheadline", category: "content" },
+      { id: "buttonText", type: "text", label: "Button Text", category: "content" },
+      { id: "secondaryCtaLabel", type: "text", label: "Secondary Button Text", category: "content" },
+      { id: "bundleDiscount", type: "number", label: "Discount Percentage", category: "pricing" },
+      { id: "urgencyMessage", type: "text", label: "Urgency Message", category: "content" },
+      { id: "features", type: "array", label: "Features List", category: "content" },
+      { id: "productSelectionMethod", type: "select", label: "Product Selection", category: "products" },
+    ],
+    targetRules: {
+      enhancedTriggers: {
+        exit_intent: { enabled: true, sensitivity: "medium" },
+        frequency_capping: getServerFrequencyCapping("PRODUCT_UPSELL"),
+      }
+    },
+    designConfig: {
+      backgroundColor: "#0F172A",
+      textColor: "#F8FAFC",
+      descriptionColor: "#94A3B8",
+      buttonColor: "#F59E0B",
+      buttonTextColor: "#0F172A",
+      accentColor: "#F59E0B",
+      position: "center",
+      size: "fullscreen",
+      borderRadius: 0,
+      animation: "fade",
+    },
+    isDefault: true,
+    priority: 19,
+    icon: "💎",
+    conversionRate: 5.1
+  },
+
+
+  // Countdown Urgency
+  {
+    name: "Flash Deal Countdown",
+    description: "Time-limited offer with live countdown timer that creates urgency and auto-closes on expiry",
+    category: "upsell",
+    templateType: "COUNTDOWN_URGENCY",
+    goals: ["INCREASE_REVENUE"],
+    contentConfig: {
+      headline: "Flash Deal!",
+      subheadline: "This exclusive offer expires soon",
+      buttonText: "Claim This Deal Now",
+      successMessage: "Deal claimed!",
+      secondaryCtaLabel: "No thanks",
+      productSelectionMethod: "manual",
+      showPrices: true,
+      showCompareAtPrice: true,
+      showImages: true,
+      bundleDiscount: 25,
+      currency: "USD",
+      expiresInSeconds: 300,
+      socialProofMessage: "🔥 47 people are viewing this right now",
+    },
+    fields: [
+      { id: "headline", type: "text", label: "Headline", category: "content" },
+      { id: "subheadline", type: "text", label: "Subheadline", category: "content" },
+      { id: "buttonText", type: "text", label: "Button Text", category: "content" },
+      { id: "secondaryCtaLabel", type: "text", label: "Secondary Button Text", category: "content" },
+      { id: "bundleDiscount", type: "number", label: "Discount Percentage", category: "pricing" },
+      { id: "expiresInSeconds", type: "number", label: "Countdown Duration (seconds)", category: "behavior" },
+      { id: "socialProofMessage", type: "text", label: "Social Proof Message", category: "content" },
+      { id: "productSelectionMethod", type: "select", label: "Product Selection", category: "products" },
+    ],
+    targetRules: {
+      enhancedTriggers: {
+        add_to_cart: { enabled: true },
+        frequency_capping: getServerFrequencyCapping("PRODUCT_UPSELL"),
+      }
+    },
+    designConfig: {
+      backgroundColor: "#FFFFFF",
+      textColor: "#1A202C",
+      descriptionColor: "#4A5568",
+      buttonColor: "#EF4444",
+      buttonTextColor: "#FFFFFF",
+      accentColor: "#EF4444",
+      position: "center",
+      size: "medium",
+      borderRadius: 16,
+      animation: "scale",
+    },
+    isDefault: true,
+    priority: 21,
+    icon: "⏱️",
+    conversionRate: 5.5
   },
 
 ];

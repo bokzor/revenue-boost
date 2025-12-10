@@ -8,7 +8,6 @@ import {
     STORE_DOMAIN,
     API_PROPAGATION_DELAY_MS,
     handlePasswordPage,
-    mockChallengeToken,
     fillEmailInShadowDOM,
     submitFormInShadowDOM,
     hasTextInShadowDOM,
@@ -80,7 +79,6 @@ test.describe.serial('Newsletter Template', () => {
         await cleanupAllE2ECampaigns(prisma);
 
         await page.waitForTimeout(500);
-        await mockChallengeToken(page);
         await page.context().clearCookies();
 
         // No bundle mocking - tests use deployed extension code

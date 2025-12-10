@@ -35,32 +35,123 @@ import type {
   DiscountBehavior,
 } from "~/domains/commerce/services/discount.server";
 
+/**
+ * Discount strategy types that can be shown in the component.
+ * - basic: Simple percentage, fixed amount, or free shipping (storewide/cart)
+ * - bundle: Product-scoped percentage/fixed discount for selected upsell items
+ * - tiered: Spend more, save more (e.g., $50 = 10%, $100 = 20%)
+ * - bogo: Buy X, Get Y deals
+ * - free_gift: Free gift with purchase
+ */
+export type DiscountStrategyOption = "basic" | "bundle" | "tiered" | "bogo" | "free_gift";
+
 interface GenericDiscountComponentProps {
   goal?: string;
   discountConfig?: DiscountConfig;
   onConfigChange: (config: DiscountConfig) => void;
+  /**
+   * Which discount strategies to show in the selector.
+   * Defaults to all strategies: ['basic', 'tiered', 'bogo', 'free_gift']
+   *
+   * For gamified templates (Spin-to-Win, Scratch Card), use ['basic', 'free_gift']
+   * since tiered and BOGO don't make sense for per-segment/prize discounts.
+   */
+  allowedStrategies?: DiscountStrategyOption[];
+  /**
+   * Whether the campaign captures email addresses.
+   * When true, enables the "Show Code + Assign to Email" behavior option.
+   */
+  hasEmailCapture?: boolean;
 }
+
+const ALL_STRATEGIES: DiscountStrategyOption[] = [
+  "basic",
+  "bundle",
+  "tiered",
+  "bogo",
+  "free_gift",
+];
+
+const STRATEGY_OPTIONS: Record<DiscountStrategyOption, { label: string; value: string }> = {
+  basic: { label: "Basic Discount - Simple percentage or fixed amount", value: "basic" },
+  bundle: { label: "Bundle Discount - Specific upsell products only", value: "bundle" },
+  tiered: { label: "Tiered Discounts - Spend more, save more", value: "tiered" },
+  bogo: { label: "BOGO Deal - Buy X, Get Y", value: "bogo" },
+  free_gift: { label: "Free Gift - Gift with purchase", value: "free_gift" },
+};
+
+// Tips and explanations for each discount strategy
+const STRATEGY_TIPS: Record<DiscountStrategyOption, { title: string; tips: string[] }> = {
+  basic: {
+    title: "💡 Basic Discount Tips",
+    tips: [
+      "10-15% off works well for welcome offers and newsletter signups",
+      "20-30% creates urgency for flash sales",
+      "Free shipping is highly effective - customers hate paying for shipping!",
+    ],
+  },
+  bundle: {
+    title: "🧺 Bundle Discount Tips",
+    tips: [
+      "Scope discounts to the exact upsell items to protect margins",
+      "Keep bundle offers simple (10-20%) so customers understand quickly",
+      "Pair with product-specific copy: “Save 15% on these add-ons”",
+      "Use product scoping so discounts don’t leak to the entire cart",
+    ],
+  },
+  tiered: {
+    title: "📈 Tiered Discount Tips",
+    tips: [
+      "Set thresholds just above your average order value to encourage larger carts",
+      "Use 3 tiers maximum - more can confuse customers",
+      "Example: $50→10%, $100→20%, $150→30% works well for most stores",
+      "Display thresholds on your popup to motivate customers to add more",
+    ],
+  },
+  bogo: {
+    title: "🛍️ BOGO Tips",
+    tips: [
+      "\"Buy 1 Get 1 Free\" is one of the most compelling offers for customers",
+      "Great for moving excess inventory or introducing new products",
+      "Consider \"Buy 2 Get 1 Free\" for higher margins while still feeling generous",
+      "Limit to specific products/collections to protect your margins",
+    ],
+  },
+  free_gift: {
+    title: "🎁 Free Gift Tips",
+    tips: [
+      "Free gifts feel more valuable than equivalent discounts",
+      "Use low-cost, high-perceived-value items (samples, accessories)",
+      "Set a minimum purchase to protect margins and increase AOV",
+      "Great for product launches - give samples of new products",
+    ],
+  },
+};
 
 export function GenericDiscountComponent({
   goal = "NEWSLETTER_SIGNUP",
   discountConfig,
   onConfigChange,
+  allowedStrategies = ALL_STRATEGIES,
+  hasEmailCapture,
 }: GenericDiscountComponentProps) {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [freeGiftVariants, setFreeGiftVariants] = useState<Array<{ id: string; title: string }>>();
 
   // Initialize with defaults if not provided
+  // Use nullish coalescing (??) instead of || to preserve 0 and other falsy values
   const config: DiscountConfig = {
     enabled: discountConfig?.enabled !== false,
     showInPreview: discountConfig?.showInPreview !== false,
-    type: discountConfig?.type || "shared",
-    valueType: discountConfig?.valueType || "PERCENTAGE",
-    value: discountConfig?.valueType === "FREE_SHIPPING" ? undefined : discountConfig?.value || 10,
+    strategy: discountConfig?.strategy ?? "simple",
+    type: discountConfig?.type ?? "shared",
+    valueType: discountConfig?.valueType ?? "PERCENTAGE",
+    value: discountConfig?.valueType === "FREE_SHIPPING" ? undefined : (discountConfig?.value ?? 10),
     minimumAmount: discountConfig?.minimumAmount,
     usageLimit: discountConfig?.usageLimit,
-    expiryDays: discountConfig?.expiryDays || 30,
-    prefix: discountConfig?.prefix || "WELCOME",
-    behavior: discountConfig?.behavior || "SHOW_CODE_AND_AUTO_APPLY",
+    expiryDays: discountConfig?.expiryDays ?? 30,
+    prefix: discountConfig?.prefix ?? "WELCOME",
+    behavior: discountConfig?.behavior ?? "SHOW_CODE_AND_AUTO_APPLY",
     // Enhanced fields
     applicability: discountConfig?.applicability,
     tiers: discountConfig?.tiers,
@@ -90,7 +181,17 @@ export function GenericDiscountComponent({
   };
 
   // Check if any advanced discount type is active
-  const hasAdvancedDiscount = !!(config.tiers?.length || config.bogo || config.freeGift);
+  const hasAdvancedDiscount = !!(
+    config.tiers?.length ||
+    config.bogo ||
+    config.freeGift ||
+    config.strategy === "tiered" ||
+    config.strategy === "bogo" ||
+    config.strategy === "free_gift"
+  );
+
+  // Check if bundle strategy is active - hides "Applies to" since products are scoped dynamically at runtime
+  const isBundleStrategy = config.strategy === "bundle";
 
   // Tiered discount handlers
   const addTier = () => {
@@ -155,37 +256,79 @@ export function GenericDiscountComponent({
 
       {config.enabled !== false && (
         <BlockStack gap="400">
-          {/* Advanced Discount Type Selector */}
-          <Box padding="300" background="bg-surface-secondary" borderRadius="200">
-            <BlockStack gap="300">
-              <Text as="h4" variant="headingSm">
-                Discount Strategy
-              </Text>
-              <Select
-                label=""
-                options={[
-                  { label: "Basic Discount - Simple percentage or fixed amount", value: "basic" },
-                  { label: "Tiered Discounts - Spend more, save more", value: "tiered" },
-                  { label: "BOGO Deal - Buy X, Get Y", value: "bogo" },
-                  { label: "Free Gift - Gift with purchase", value: "free_gift" },
-                ]}
-                value={
-                  config.bogo
+          {/* Determine current strategy for tips */}
+          {(() => {
+            const inferredStrategy: DiscountStrategyOption =
+              config.strategy === "bundle"
+                ? "bundle"
+                : config.strategy === "tiered" || config.tiers?.length
+                  ? "tiered"
+                  : config.strategy === "bogo" || config.bogo
                     ? "bogo"
-                    : config.freeGift
+                    : config.strategy === "free_gift" || config.freeGift
                       ? "free_gift"
-                      : config.tiers?.length
+                      : "basic";
+
+            const currentStrategy: DiscountStrategyOption = allowedStrategies.includes(
+              inferredStrategy
+            )
+              ? inferredStrategy
+              : "basic";
+
+            const tips = STRATEGY_TIPS[currentStrategy];
+
+            return (
+              <Banner tone="info" title={tips.title}>
+                <BlockStack gap="100">
+                  {tips.tips.map((tip, index) => (
+                    <Text key={index} as="p" variant="bodySm">
+                      • {tip}
+                    </Text>
+                  ))}
+                </BlockStack>
+              </Banner>
+            );
+          })()}
+
+          {/* Advanced Discount Type Selector - only show if more than one strategy allowed */}
+          {allowedStrategies.length > 1 && (
+            <Box padding="300" background="bg-surface-secondary" borderRadius="200">
+              <BlockStack gap="300">
+                <Text as="h4" variant="headingSm">
+                  Discount Strategy
+                </Text>
+                <Select
+                  label=""
+                  options={allowedStrategies.map((strategy) => STRATEGY_OPTIONS[strategy])}
+                  value={
+                    config.strategy === "bundle" && allowedStrategies.includes("bundle")
+                      ? "bundle"
+                      : config.strategy === "tiered" && allowedStrategies.includes("tiered")
                         ? "tiered"
-                        : "basic"
-                }
-                onChange={(value) => {
+                        : config.strategy === "bogo" && allowedStrategies.includes("bogo")
+                          ? "bogo"
+                          : config.strategy === "free_gift" && allowedStrategies.includes("free_gift")
+                            ? "free_gift"
+                            : config.tiers?.length && allowedStrategies.includes("tiered")
+                              ? "tiered"
+                              : config.bogo && allowedStrategies.includes("bogo")
+                                ? "bogo"
+                                : config.freeGift && allowedStrategies.includes("free_gift")
+                                  ? "free_gift"
+                                  : "basic"
+                  }
+                  onChange={(value) => {
                   // Build a single new config to avoid stale merges across sequential updates
-                  const base = {
+                  const base: DiscountConfig = {
                     ...config,
                     tiers: undefined,
                     bogo: undefined,
                     freeGift: undefined,
-                  } as DiscountConfig;
+                    strategy:
+                      value === "basic"
+                        ? "simple"
+                        : (value as "bundle" | "tiered" | "bogo" | "free_gift"),
+                  };
 
                   if (value === "tiered") {
                     base.tiers = [
@@ -194,6 +337,16 @@ export function GenericDiscountComponent({
                         discount: { kind: "percentage" as const, value: 10 },
                       },
                     ];
+                  } else if (value === "bundle") {
+                    // Bundle strategy only supports PERCENTAGE discounts
+                    base.valueType = "PERCENTAGE";
+                    base.applicability = {
+                      scope: "products",
+                      productIds:
+                        config.applicability?.scope === "products"
+                          ? config.applicability.productIds || []
+                          : [],
+                    };
                   } else if (value === "bogo") {
                     base.bogo = {
                       buy: { scope: "any" as const, quantity: 1, ids: [] },
@@ -214,40 +367,52 @@ export function GenericDiscountComponent({
                     };
                   }
 
-                  onConfigChange(base);
-                }}
-                helpText="Choose your discount strategy"
-              />
-            </BlockStack>
-          </Box>
+                    onConfigChange(base);
+                  }}
+                  helpText="Choose your discount strategy"
+                />
+              </BlockStack>
+            </Box>
+          )}
 
           {/* Basic Discount Configuration */}
           {!hasAdvancedDiscount && (
             <>
               {/* Discount Type & Value - 2 Column Grid */}
               <FormGrid columns={2}>
-                <Select
-                  label="Discount Type"
-                  options={[
-                    { label: "Percentage Off", value: "PERCENTAGE" },
-                    { label: "Fixed Amount Off", value: "FIXED_AMOUNT" },
-                    { label: "Free Shipping", value: "FREE_SHIPPING" },
-                  ]}
-                  value={config.valueType}
-                  onChange={(valueType) => {
-                    const updates: Partial<DiscountConfig> = {
-                      valueType: valueType as "PERCENTAGE" | "FIXED_AMOUNT" | "FREE_SHIPPING",
-                    };
-                    // Clear value when switching to FREE_SHIPPING
-                    if (valueType === "FREE_SHIPPING") {
-                      updates.value = undefined;
-                    } else if (!config.value) {
-                      // Set default value when switching from FREE_SHIPPING
-                      updates.value = getRecommendedValue();
-                    }
-                    updateConfig(updates);
-                  }}
-                />
+                {/* Bundle strategy only supports percentage - show info instead of selector */}
+                {isBundleStrategy ? (
+                  <Box padding="300" background="bg-surface-secondary" borderRadius="200">
+                    <Text as="p" variant="bodySm">
+                      <strong>Percentage Off</strong>
+                      <br />
+                      Bundle discounts are always percentage-based.
+                    </Text>
+                  </Box>
+                ) : (
+                  <Select
+                    label="Discount Type"
+                    options={[
+                      { label: "Percentage Off", value: "PERCENTAGE" },
+                      { label: "Fixed Amount Off", value: "FIXED_AMOUNT" },
+                      { label: "Free Shipping", value: "FREE_SHIPPING" },
+                    ]}
+                    value={config.valueType}
+                    onChange={(valueType) => {
+                      const updates: Partial<DiscountConfig> = {
+                        valueType: valueType as "PERCENTAGE" | "FIXED_AMOUNT" | "FREE_SHIPPING",
+                      };
+                      // Clear value when switching to FREE_SHIPPING
+                      if (valueType === "FREE_SHIPPING") {
+                        updates.value = undefined;
+                      } else if (!config.value) {
+                        // Set default value when switching from FREE_SHIPPING
+                        updates.value = getRecommendedValue();
+                      }
+                      updateConfig(updates);
+                    }}
+                  />
+                )}
 
                 {/* Discount Value */}
                 {config.valueType !== "FREE_SHIPPING" && (
@@ -255,8 +420,8 @@ export function GenericDiscountComponent({
                     label={getValueLabel()}
                     type="number"
                     suffix={getValueSuffix()}
-                    value={config.value?.toString() || ""}
-                    onChange={(value) => updateConfig({ value: parseFloat(value) || 0 })}
+                    value={config.value?.toString() ?? ""}
+                    onChange={(value) => updateConfig({ value: value === "" ? undefined : parseFloat(value) })}
                     placeholder={getRecommendedValue().toString()}
                     autoComplete="off"
                     min={0}
@@ -276,77 +441,92 @@ export function GenericDiscountComponent({
                 </Box>
               )}
 
-              {/* Applicability / Scope */}
-              <Box padding="300" background="bg-surface-secondary" borderRadius="200">
-                <BlockStack gap="300">
-                  <Text as="h4" variant="headingSm">
-                    Applies to
-                  </Text>
-                  <FormGrid columns={2}>
-                    <Select
-                      label="Discount applies to"
-                      options={[
-                        { label: "Entire store", value: "all" },
-                        { label: "Specific products", value: "products" },
-                        { label: "Specific collections", value: "collections" },
-                      ]}
-                      value={config.applicability?.scope || "all"}
-                      onChange={(scope) => {
-                        const nextScope = scope as "all" | "products" | "collections";
-                        const current = config.applicability || { scope: nextScope };
-                        updateConfig({
-                          applicability: {
-                            scope: nextScope,
-                            productIds:
-                              nextScope === "products" ? current.productIds || [] : undefined,
-                            collectionIds:
-                              nextScope === "collections" ? current.collectionIds || [] : undefined,
-                          },
-                        });
-                      }}
-                    />
-                  </FormGrid>
+              {/* Applicability / Scope - Hidden for bundle strategy since products are scoped dynamically */}
+              {isBundleStrategy ? (
+                <Box padding="300" background="bg-surface-secondary" borderRadius="200">
+                  <BlockStack gap="200">
+                    <Text as="h4" variant="headingSm">
+                      Applies to
+                    </Text>
+                    <Text as="p" variant="bodySm" tone="subdued">
+                      This discount will automatically apply to the upsell products selected or
+                      suggested above. No additional configuration needed.
+                    </Text>
+                  </BlockStack>
+                </Box>
+              ) : (
+                <Box padding="300" background="bg-surface-secondary" borderRadius="200">
+                  <BlockStack gap="300">
+                    <Text as="h4" variant="headingSm">
+                      Applies to
+                    </Text>
+                    <FormGrid columns={2}>
+                      <Select
+                        label="Discount applies to"
+                        options={[
+                          { label: "Entire store", value: "all" },
+                          { label: "Entire cart", value: "cart" },
+                          { label: "Specific products", value: "products" },
+                          { label: "Specific collections", value: "collections" },
+                        ]}
+                        value={config.applicability?.scope || "all"}
+                        onChange={(scope) => {
+                          const nextScope = scope as "all" | "cart" | "products" | "collections";
+                          const current = config.applicability || { scope: nextScope };
+                          updateConfig({
+                            applicability: {
+                              scope: nextScope,
+                              productIds:
+                                nextScope === "products" ? current.productIds || [] : undefined,
+                              collectionIds:
+                                nextScope === "collections" ? current.collectionIds || [] : undefined,
+                            },
+                          });
+                        }}
+                      />
+                    </FormGrid>
 
-                  {config.applicability?.scope === "products" && (
-                    <ProductPicker
-                      mode="product"
-                      selectionType="multiple"
-                      selectedIds={config.applicability?.productIds || []}
-                      onSelect={(items: ProductPickerSelection[]) =>
-                        updateConfig({
-                          applicability: {
-                            scope: "products",
-                            productIds: items.map((item) => item.id),
-                          },
-                        })
-                      }
-                      buttonLabel="Select products"
-                    />
-                  )}
+                    {config.applicability?.scope === "products" && (
+                      <ProductPicker
+                        mode="product"
+                        selectionType="multiple"
+                        selectedIds={config.applicability?.productIds || []}
+                        onSelect={(items: ProductPickerSelection[]) =>
+                          updateConfig({
+                            applicability: {
+                              scope: "products",
+                              productIds: items.map((item) => item.id),
+                            },
+                          })
+                        }
+                        buttonLabel="Select products"
+                      />
+                    )}
 
-                  {config.applicability?.scope === "collections" && (
-                    <ProductPicker
-                      mode="collection"
-                      selectionType="multiple"
-                      selectedIds={config.applicability?.collectionIds || []}
-                      onSelect={(items: ProductPickerSelection[]) =>
-                        updateConfig({
-                          applicability: {
-                            scope: "collections",
-                            collectionIds: items.map((item) => item.id),
-                          },
-                        })
-                      }
-                      buttonLabel="Select collections"
-                    />
-                  )}
-                </BlockStack>
-              </Box>
+                    {config.applicability?.scope === "collections" && (
+                      <ProductPicker
+                        mode="collection"
+                        selectionType="multiple"
+                        selectedIds={config.applicability?.collectionIds || []}
+                        onSelect={(items: ProductPickerSelection[]) =>
+                          updateConfig({
+                            applicability: {
+                              scope: "collections",
+                              collectionIds: items.map((item) => item.id),
+                            },
+                          })
+                        }
+                        buttonLabel="Select collections"
+                      />
+                    )}
+                  </BlockStack>
+                </Box>
+              )}
             </>
           )}
 
           {/* ========== TIERED DISCOUNTS SECTION ========== */}
-          {config.tiers && config.tiers.length > 0 && (
+          {allowedStrategies.includes("tiered") && config.tiers && config.tiers.length > 0 && (
             <Box padding="400" background="bg-surface-secondary" borderRadius="200">
               <BlockStack gap="400">
                 <InlineStack align="space-between" blockAlign="center">
@@ -359,9 +539,21 @@ export function GenericDiscountComponent({
                 </InlineStack>
 
                 <Text as="p" variant="bodySm" tone="subdued">
-                  Reward higher spending with better discounts (e.g., &ldquo;Spend $50 get 10%, $100
-                  get 20%&rdquo;)
+                  The higher customers spend, the more they save. Great for increasing average order value!
                 </Text>
+
+                {/* Show preview of tiers */}
+                <Box padding="200" background="bg-surface" borderRadius="100">
+                  <InlineStack gap="200" wrap={false}>
+                    {config.tiers.map((tier, index) => (
+                      <Badge key={index} tone="success">
+                        {`$${tier.thresholdCents / 100} → ${tier.discount.kind === "free_shipping" ? "Free Ship" :
+                          tier.discount.kind === "percentage" ? `${tier.discount.value}% OFF` :
+                          `$${tier.discount.value} OFF`}`}
+                      </Badge>
+                    ))}
+                  </InlineStack>
+                </Box>
 
                 <BlockStack gap="300">
                   {config.tiers.map((tier, index) => (
@@ -375,7 +567,7 @@ export function GenericDiscountComponent({
                     >
                       <BlockStack gap="300">
                         <InlineStack align="space-between" blockAlign="center">
-                          <Badge tone="info">{`Tier ${index + 1}`}</Badge>
+                          <Badge tone="info">{`Tier ${index + 1}: Spend $${tier.thresholdCents / 100}+`}</Badge>
                           {config.tiers!.length > 1 && (
                             <Button
                               variant="plain"
@@ -424,10 +616,10 @@ export function GenericDiscountComponent({
                             <TextField
                               label="Discount Value"
                               type="number"
-                              value={tier.discount.value.toString()}
+                              value={tier.discount.value.toString() ?? ""}
                               onChange={(value) =>
                                 updateTier(index, {
-                                  discount: { ...tier.discount, value: parseFloat(value) || 0 },
+                                  discount: { ...tier.discount, value: value === "" ? 0 : parseFloat(value) },
                                 })
                               }
                               suffix={tier.discount.kind === "percentage" ? "%" : "$"}
@@ -447,16 +639,20 @@ export function GenericDiscountComponent({
           )}
 
           {/* ========== BOGO SECTION ========== */}
-          {config.bogo && (
+          {allowedStrategies.includes("bogo") && config.bogo && (
             <Box padding="400" background="bg-surface-secondary" borderRadius="200">
               <BlockStack gap="400">
-                <Text as="h4" variant="headingSm">
-                  🎁 BOGO Configuration
-                </Text>
-
-                <Text as="p" variant="bodySm" tone="subdued">
-                  Buy X Get Y deals (e.g., &ldquo;Buy 2 Get 1 Free&rdquo;)
-                </Text>
+                <InlineStack align="space-between" blockAlign="center">
+                  <Text as="h4" variant="headingSm">
+                    🎁 BOGO Configuration
+                  </Text>
+                  <Badge tone="success">
+                    {`Buy ${config.bogo.buy.quantity} Get ${config.bogo.get.quantity} ${
+                      config.bogo.get.discount.kind === "free_product" ? "FREE" :
+                      `${config.bogo.get.discount.value}% OFF`
+                    }`}
+                  </Badge>
+                </InlineStack>
 
                 {/* BUY Configuration */}
                 <Box
@@ -467,9 +663,14 @@ export function GenericDiscountComponent({
                   borderWidth="025"
                 >
                   <BlockStack gap="300">
-                    <Text as="h5" variant="headingSm">
-                      Buy Requirements
-                    </Text>
+                    <BlockStack gap="100">
+                      <Text as="h5" variant="headingSm">
+                        Step 1: What must customers buy?
+                      </Text>
+                      <Text as="p" variant="bodySm" tone="subdued">
+                        Define what products qualify for this BOGO deal
+                      </Text>
+                    </BlockStack>
 
                     <FormGrid columns={2}>
                       <Select
@@ -486,20 +687,35 @@ export function GenericDiscountComponent({
                       <TextField
                         label="Quantity"
                         type="number"
-                        value={config.bogo.buy.quantity.toString()}
-                        onChange={(value) => updateBogoField("buy.quantity", parseInt(value) || 1)}
+                        value={config.bogo.buy.quantity.toString() ?? ""}
+                        onChange={(value) => updateBogoField("buy.quantity", value === "" ? 1 : parseInt(value))}
                         min={1}
                         autoComplete="off"
                       />
                     </FormGrid>
 
-                    {config.bogo.buy.scope !== "any" && (
-                      <Banner tone="info">
-                        <Text as="p" variant="bodySm">
-                          Product/Collection IDs will be configurable via Shopify picker (coming
-                          soon). For now, use Advanced Settings to add GIDs manually.
-                        </Text>
-                      </Banner>
+                    {config.bogo.buy.scope === "products" && (
+                      <ProductPicker
+                        mode="product"
+                        selectionType="multiple"
+                        selectedIds={config.bogo.buy.ids || []}
+                        onSelect={(items: ProductPickerSelection[]) =>
+                          updateBogoField("buy.ids", items.map((item) => item.id))
+                        }
+                        buttonLabel="Select products to buy"
+                      />
+                    )}
+
+                    {config.bogo.buy.scope === "collections" && (
+                      <ProductPicker
+                        mode="collection"
+                        selectionType="multiple"
+                        selectedIds={config.bogo.buy.ids || []}
+                        onSelect={(items: ProductPickerSelection[]) =>
+                          updateBogoField("buy.ids", items.map((item) => item.id))
+                        }
+                        buttonLabel="Select collections to buy from"
+                      />
                     )}
 
                     <TextField
@@ -533,13 +749,18 @@ export function GenericDiscountComponent({
                   borderWidth="025"
                 >
                   <BlockStack gap="300">
-                    <Text as="h5" variant="headingSm">
-                      Get Reward
-                    </Text>
+                    <BlockStack gap="100">
+                      <Text as="h5" variant="headingSm">
+                        Step 2: What do they get?
+                      </Text>
+                      <Text as="p" variant="bodySm" tone="subdued">
+                        Define the reward customers receive
+                      </Text>
+                    </BlockStack>
 
                     <FormGrid columns={2}>
                       <Select
-                        label="Get From"
+                        label="Reward Products From"
                         value={config.bogo.get.scope}
                         options={[
                           { label: "Specific Products", value: "products" },
@@ -551,12 +772,58 @@ export function GenericDiscountComponent({
                       <TextField
                         label="Quantity"
                         type="number"
-                        value={config.bogo.get.quantity.toString()}
-                        onChange={(value) => updateBogoField("get.quantity", parseInt(value) || 1)}
+                        value={config.bogo.get.quantity.toString() ?? ""}
+                        onChange={(value) => updateBogoField("get.quantity", value === "" ? 1 : parseInt(value))}
                         min={1}
                         autoComplete="off"
                       />
                     </FormGrid>
+
+                    {config.bogo.get.scope === "products" && (
+                      <ProductPicker
+                        mode="product"
+                        selectionType="multiple"
+                        selectedIds={config.bogo.get.ids || []}
+                        onSelect={(items: ProductPickerSelection[]) => {
+                          // Store product IDs
+                          updateBogoField("get.ids", items.map((item) => item.id));
+                          // Store first variant ID for each product (for add-to-cart)
+                          const variantIds = items.map((item) =>
+                            item.variants?.[0]?.id || ""
+                          ).filter(Boolean);
+                          if (variantIds.length > 0) {
+                            updateBogoField("get.variantIds", variantIds);
+                          }
+                          // Store product handles (for navigation)
+                          const handles = items.map((item) => item.handle || "").filter(Boolean);
+                          if (handles.length > 0) {
+                            updateBogoField("get.productHandles", handles);
+                          }
+                        }}
+                        buttonLabel="Select products to get"
+                      />
+                    )}
+
+                    {config.bogo.get.scope === "collections" && (
+                      <ProductPicker
+                        mode="collection"
+                        selectionType="multiple"
+                        selectedIds={config.bogo.get.ids || []}
+                        onSelect={(items: ProductPickerSelection[]) =>
+                          updateBogoField("get.ids", items.map((item) => item.id))
+                        }
+                        buttonLabel="Select collections to get from"
+                      />
+                    )}
+
+                    {/* Info banner explaining what the product selection is for */}
+                    {config.bogo.get.ids && config.bogo.get.ids.length > 0 && (
+                      <Banner tone="info">
+                        <Text as="p" variant="bodySm">
+                          💡 These products are eligible for the "Get" portion of your BOGO discount. Customers must add them to their cart to receive the discount at checkout.
+                        </Text>
+                      </Banner>
+                    )}
 
                     <FormGrid columns={2}>
                       <Select
@@ -574,9 +841,9 @@ export function GenericDiscountComponent({
                         <TextField
                           label="Discount Value"
                           type="number"
-                          value={config.bogo.get.discount.value.toString()}
+                          value={config.bogo.get.discount.value.toString() ?? ""}
                           onChange={(value) =>
-                            updateBogoField("get.discount.value", parseFloat(value) || 0)
+                            updateBogoField("get.discount.value", value === "" ? 0 : parseFloat(value))
                           }
                           suffix={config.bogo.get.discount.kind === "percentage" ? "%" : "$"}
                           min={0}
@@ -599,7 +866,7 @@ export function GenericDiscountComponent({
           )}
 
           {/* ========== FREE GIFT SECTION ========== */}
-          {config.freeGift && (
+          {allowedStrategies.includes("free_gift") && config.freeGift && (
             <Box padding="400" background="bg-surface-secondary" borderRadius="200">
               <BlockStack gap="400">
                 <Text as="h4" variant="headingSm">
@@ -626,6 +893,13 @@ export function GenericDiscountComponent({
                     const first = items[0];
                     if (!first) return;
                     updateFreeGiftField("productId", first.id);
+                    // Store product title for storefront display
+                    updateFreeGiftField("productTitle", first.title);
+                    // Store first product image URL for storefront display
+                    const firstImageUrl = first.images?.[0]?.originalSrc;
+                    if (firstImageUrl) {
+                      updateFreeGiftField("productImageUrl", firstImageUrl);
+                    }
                     // If variants are present, default to the first one
                     const variants = (first.variants || []).map((v) => ({
                       id: v.id,
@@ -674,8 +948,8 @@ export function GenericDiscountComponent({
                   <TextField
                     label="Quantity"
                     type="number"
-                    value={config.freeGift.quantity.toString()}
-                    onChange={(value) => updateFreeGiftField("quantity", parseInt(value) || 1)}
+                    value={config.freeGift.quantity.toString() ?? ""}
+                    onChange={(value) => updateFreeGiftField("quantity", value === "" ? 1 : parseInt(value))}
                     min={1}
                     autoComplete="off"
                   />
@@ -825,6 +1099,7 @@ export function GenericDiscountComponent({
               onConfigChange={(newConfig) => {
                 onConfigChange(newConfig);
               }}
+              hasEmailCapture={hasEmailCapture}
             />
           </div>
         </Modal.Section>

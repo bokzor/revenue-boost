@@ -11,6 +11,7 @@ import type { CampaignFormData, TemplateType } from "~/shared/hooks/useWizardSta
 import type { CampaignGoal } from "@prisma/client";
 import type { UnifiedTemplate } from "../hooks/useTemplates";
 import type { GlobalFrequencyCappingSettings } from "~/domains/store/types/settings";
+import type { BackgroundPreset } from "~/config/background-presets";
 import {
   GoalStepContent,
   DesignStepContent,
@@ -58,6 +59,13 @@ export interface StepRendererProps {
   advancedTargetingEnabled?: boolean;
   /** Global frequency capping settings from store - displayed in Cross-Campaign Coordination card */
   globalFrequencyCapping?: GlobalFrequencyCappingSettings;
+  /**
+   * Map of layout -> proven background presets.
+   * Loaded once from recipe service, filtered by current layout in components.
+   */
+  backgroundsByLayout?: Record<string, BackgroundPreset[]>;
+  /** Default theme tokens for preview (from store's default preset or Shopify theme) */
+  defaultThemeTokens?: import("~/domains/campaigns/types/design-tokens").DesignTokens;
 }
 // ============================================================================
 // STEP RENDERERS
@@ -99,12 +107,14 @@ export function renderDesignStep(props: StepRendererProps) {
     setTemplateType,
     initialTemplates,
     customThemePresets,
+    backgroundsByLayout,
+    defaultThemeTokens,
   } = props;
   const { globalCustomCSS } = props;
 
   // Convert wizard state designConfig to DesignConfig format
+  // Note: theme is intentionally NOT defaulted - if not set, store defaults are used
   const designConfig: Partial<import("~/domains/campaigns/types/campaign").DesignConfig> = {
-    theme: "modern",
     position: "center",
     size: "medium",
     borderRadius: 8,
@@ -124,6 +134,14 @@ export function renderDesignStep(props: StepRendererProps) {
     pageTargeting: wizardState.pageTargeting || {},
   };
 
+  // Check if content is prefilled from a recipe (has headline or other meaningful content)
+  // If so, skip auto-selection to preserve the recipe data
+  const hasPrefilledContent = !!(
+    wizardState.contentConfig?.headline ||
+    wizardState.contentConfig?.subheadline ||
+    wizardState.contentConfig?.buttonText
+  );
+
   return (
     <DesignStepContent
       goal={wizardState.goal}
@@ -138,11 +156,14 @@ export function renderDesignStep(props: StepRendererProps) {
       targetRules={targetRules}
       globalCustomCSS={globalCustomCSS}
       customThemePresets={customThemePresets}
+      backgroundsByLayout={backgroundsByLayout}
+      defaultThemeTokens={defaultThemeTokens}
       onContentChange={(content) => updateData({ contentConfig: content })}
       onDesignChange={(design) => updateData({ designConfig: design })}
       onDiscountChange={(config) => updateData({ discountConfig: config })}
       initialTemplates={initialTemplates}
       preselectedTemplateType={wizardState.templateType}
+      skipAutoSelect={hasPrefilledContent}
       onTemplateSelect={(template) => {
         console.log("[step-renderers] Template selected:", {
           id: template.id,
@@ -169,6 +190,16 @@ export function renderDesignStep(props: StepRendererProps) {
         // Templates store triggers under targetRules.enhancedTriggers in the DB
         const enhancedFromTemplate = (template.targetRules as Record<string, unknown> | undefined)?.enhancedTriggers;
 
+        // Check if recipe already provided a discount config (source of truth)
+        // Recipe discount takes precedence - check for any meaningful discount configuration
+        const existingDiscountConfig = wizardState.discountConfig;
+        const hasRecipeDiscount = existingDiscountConfig?.enabled === true && (
+          existingDiscountConfig?.value !== undefined ||
+          existingDiscountConfig?.bogo !== undefined ||
+          existingDiscountConfig?.tiers !== undefined ||
+          existingDiscountConfig?.freeGift !== undefined
+        );
+
         const nextUpdate: Partial<CampaignFormData> = {
           templateId: template.id,
           templateType: template.templateType,
@@ -178,8 +209,9 @@ export function renderDesignStep(props: StepRendererProps) {
           designConfig: template.designConfig || {},
           // Apply template triggers so the Targeting step reflects the selection (e.g., Exit Intent)
           ...(enhancedFromTemplate ? { enhancedTriggers: enhancedFromTemplate } : {}),
-          // Apply template discount configuration if provided (e.g., Free Shipping defaults)
-          ...(template.discountConfig ? { discountConfig: template.discountConfig } : {}),
+          // Only apply template's discount config if recipe didn't provide one
+          // Recipe is source of truth for discount configuration
+          ...(!hasRecipeDiscount && template.discountConfig ? { discountConfig: template.discountConfig } : {}),
         };
 
         updateData(nextUpdate);

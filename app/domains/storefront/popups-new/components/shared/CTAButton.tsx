@@ -57,8 +57,9 @@ export const CTAButton: React.FC<CTAButtonProps> = ({
   openInNewTab = false,
   onClick,
   variant = "primary",
-  accentColor = "#3b82f6",
-  textColor = "#ffffff",
+  // Colors are optional - CSS variables provide defaults via design-tokens.css
+  accentColor,
+  textColor,
   className,
   style,
   disabled = false,
@@ -80,27 +81,34 @@ export const CTAButton: React.FC<CTAButtonProps> = ({
     }
   }, [url, openInNewTab, onClick, disabled]);
 
+  // Use CSS variables - fallbacks defined in design-tokens.css
   const baseStyles: React.CSSProperties = {
     padding: "0.75rem 1.5rem",
-    borderRadius: "0.5rem",
+    borderRadius: "var(--rb-radius, 0.5rem)",
     fontSize: "0.9375rem",
     fontWeight: 600,
+    fontFamily: "var(--rb-font-family, inherit)",
     cursor: disabled ? "not-allowed" : "pointer",
     border: "none",
     transition: "all 0.2s ease",
     opacity: disabled ? 0.5 : 1,
   };
 
+  // Colors: use prop if provided, otherwise CSS variable
+  // CSS variables have their fallbacks defined in design-tokens.css
+  const primaryBg = accentColor || "var(--rb-primary)";
+  const primaryText = textColor || "var(--rb-primary-foreground)";
+
   const variantStyles: React.CSSProperties =
     variant === "primary"
       ? {
-          backgroundColor: accentColor,
-          color: textColor,
+          backgroundColor: primaryBg,
+          color: primaryText,
         }
       : {
           backgroundColor: "transparent",
-          color: accentColor,
-          border: `2px solid ${accentColor}`,
+          color: primaryBg,
+          border: `2px solid ${primaryBg}`,
         };
 
   return (

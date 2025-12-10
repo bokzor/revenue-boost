@@ -1,3 +1,4 @@
+import { logger } from "~/lib/logger.server";
 import prisma, { Prisma } from "~/db.server";
 import {
   PLAN_DEFINITIONS,
@@ -39,7 +40,7 @@ export class PlanGuardService {
    * Get the plan context for a store, including validation of subscription status
    */
   static async getPlanContext(storeId: string): Promise<PlanContext> {
-    console.log(`[PlanGuardService] getPlanContext called with storeId: ${storeId}`);
+    logger.debug("[PlanGuardService] getPlanContext called with storeId: ${storeId}");
 
     const store = await prisma.store.findUnique({
       where: { id: storeId },
@@ -52,7 +53,7 @@ export class PlanGuardService {
       },
     });
 
-    console.log(`[PlanGuardService] Store found:`, store ? { id: store.id, domain: store.shopifyDomain, planTier: store.planTier, planStatus: store.planStatus } : 'NOT FOUND');
+    logger.debug({ store: store ? { id: store.id, domain: store.shopifyDomain, planTier: store.planTier, planStatus: store.planStatus } : null }, "[PlanGuardService] Store lookup result");
 
     if (!store) {
       throw new Error(`Store not found: ${storeId}`);
@@ -153,6 +154,35 @@ export class PlanGuardService {
         }
       );
     }
+  }
+
+  /**
+   * Check if user is over their active campaign limit.
+   * Returns limit info if over, null if within limit.
+   * Used to enforce editing restrictions on active campaigns when over limit.
+   */
+  static async getCampaignLimitStatus(storeId: string): Promise<{
+    isOverLimit: boolean;
+    current: number;
+    max: number | null;
+    planName: string;
+  }> {
+    const { definition } = await this.getPlanContext(storeId);
+    const limit = definition.limits.maxActiveCampaigns;
+
+    const activeCampaignsCount = await prisma.campaign.count({
+      where: {
+        storeId,
+        status: "ACTIVE",
+      },
+    });
+
+    return {
+      isOverLimit: limit !== null && activeCampaignsCount > limit,
+      current: activeCampaignsCount,
+      max: limit,
+      planName: definition.name,
+    };
   }
 
   static async assertCanCreateExperiment(storeId: string) {

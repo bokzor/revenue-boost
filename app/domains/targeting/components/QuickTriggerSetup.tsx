@@ -250,7 +250,7 @@ export const QuickTriggerSetup: React.FC<QuickTriggerSetupProps> = ({
     }
   };
 
-  const updateFrequency = (field: string, value: number) => {
+  const updateFrequency = (field: string, value: number | undefined) => {
     onChange({
       ...config,
       frequency_capping: {
@@ -260,7 +260,7 @@ export const QuickTriggerSetup: React.FC<QuickTriggerSetupProps> = ({
     });
   };
 
-  const updatePageLoadDelay = (delay: number) => {
+  const updatePageLoadDelay = (delay: number | undefined) => {
     onChange({
       ...config,
       page_load: {
@@ -351,12 +351,13 @@ export const QuickTriggerSetup: React.FC<QuickTriggerSetupProps> = ({
                 autoComplete="off"
                 label="Delay after page load (seconds)"
                 type="number"
-                value={config.page_load?.delay?.toString() || "3"}
-                onChange={(value) => updatePageLoadDelay(parseInt(value) || 3)}
+                value={config.page_load?.delay?.toString() ?? ""}
+                onChange={(value) => updatePageLoadDelay(value === "" ? undefined : parseInt(value))}
                 disabled={disabled}
                 helpText="How many seconds to wait after page loads before showing popup (0 = immediate)"
                 min={0}
                 max={60}
+                placeholder="3"
               />
             </BlockStack>
           </Box>
@@ -377,36 +378,39 @@ export const QuickTriggerSetup: React.FC<QuickTriggerSetupProps> = ({
                   autoComplete="off"
                   label="Max triggers per session"
                   type="number"
-                  value={config.frequency_capping?.max_triggers_per_session?.toString() || "1"}
+                  value={config.frequency_capping?.max_triggers_per_session?.toString() ?? ""}
                   onChange={(value) =>
-                    updateFrequency("max_triggers_per_session", parseInt(value) || 1)
+                    updateFrequency("max_triggers_per_session", value === "" ? undefined : parseInt(value))
                   }
                   disabled={disabled}
                   helpText="How many times to show popup per visitor session"
+                  placeholder="1"
                 />
 
                 <TextField
                   autoComplete="off"
                   label="Max triggers per day"
                   type="number"
-                  value={config.frequency_capping?.max_triggers_per_day?.toString() || "3"}
+                  value={config.frequency_capping?.max_triggers_per_day?.toString() ?? ""}
                   onChange={(value) =>
-                    updateFrequency("max_triggers_per_day", parseInt(value) || 3)
+                    updateFrequency("max_triggers_per_day", value === "" ? undefined : parseInt(value))
                   }
                   disabled={disabled}
                   helpText="Maximum times to show popup per visitor per day"
+                  placeholder="3"
                 />
 
                 <TextField
                   autoComplete="off"
                   label="Cooldown between triggers (seconds)"
                   type="number"
-                  value={config.frequency_capping?.cooldown_between_triggers?.toString() || "300"}
+                  value={config.frequency_capping?.cooldown_between_triggers?.toString() ?? ""}
                   onChange={(value) =>
-                    updateFrequency("cooldown_between_triggers", parseInt(value) || 300)
+                    updateFrequency("cooldown_between_triggers", value === "" ? undefined : parseInt(value))
                   }
                   disabled={disabled}
                   helpText="Wait time between popup displays"
+                  placeholder="300"
                 />
               </BlockStack>
             </BlockStack>

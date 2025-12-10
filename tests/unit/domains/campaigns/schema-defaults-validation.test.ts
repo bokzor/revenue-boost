@@ -76,7 +76,6 @@ describe("Schema Defaults Validation", () => {
 
       expect(parsed.productSelectionMethod).toBe("ai");
       expect(parsed.layout).toBe("grid");
-      expect(parsed.columns).toBe(2);
       expect(parsed.maxProducts).toBe(3);
     });
 
@@ -131,9 +130,11 @@ describe("Schema Defaults Validation", () => {
 
   describe("SpinToWinContentSchema", () => {
     // SpinToWin omits successMessage from BaseContentConfigSchema
+    // spinButtonText is required (no default)
     const SPIN_REQUIRED = {
       headline: "Test",
       buttonText: "Spin",
+      spinButtonText: "Spin Now",
     };
 
     it("should have correct defaults for wheel configuration", () => {
@@ -149,18 +150,20 @@ describe("Schema Defaults Validation", () => {
       const parsed = SpinToWinContentSchema.parse(SPIN_REQUIRED);
 
       expect(parsed.emailRequired).toBe(true);
-      expect(parsed.collectName).toBe(false);
+      expect(parsed.nameFieldEnabled).toBe(false);
       expect(parsed.nameFieldRequired).toBe(false);
-      expect(parsed.showGdprCheckbox).toBe(false);
+      expect(parsed.consentFieldEnabled).toBe(false);
       expect(parsed.consentFieldRequired).toBe(false);
     });
   });
 
   describe("ScratchCardContentSchema", () => {
     // ScratchCard also omits successMessage from BaseContentConfigSchema
+    // scratchInstruction is required (no default)
     const SCRATCH_REQUIRED = {
       headline: "Test",
       buttonText: "Reveal",
+      scratchInstruction: "Scratch to reveal your prize!",
     };
 
     it("should have correct defaults", () => {
@@ -170,15 +173,19 @@ describe("Schema Defaults Validation", () => {
       expect(parsed.emailBeforeScratching).toBe(false);
       expect(parsed.scratchThreshold).toBe(50);
       expect(parsed.scratchRadius).toBe(20);
-      expect(parsed.showGdprCheckbox).toBe(false);
+      expect(parsed.consentFieldEnabled).toBe(false);
     });
   });
 
   describe("NewsletterContentSchema", () => {
+    // submitButtonText is required (no default)
+    const NEWSLETTER_REQUIRED = {
+      ...BASE_REQUIRED_FIELDS,
+      submitButtonText: "Subscribe",
+    };
+
     it("should have correct defaults for form fields", () => {
-      const parsed = NewsletterContentSchema.parse({
-        ...BASE_REQUIRED_FIELDS,
-      });
+      const parsed = NewsletterContentSchema.parse(NEWSLETTER_REQUIRED);
 
       expect(parsed.emailRequired).toBe(true);
       expect(parsed.nameFieldEnabled).toBe(false);

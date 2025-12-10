@@ -9,7 +9,7 @@
 
 import { useState, useEffect } from "react";
 import type { CampaignGoal } from "@prisma/client";
-import type { UnifiedTemplate } from "~/domains/popups/services/templates/unified-template-service.server";
+import type { TemplateWithConfigs as UnifiedTemplate } from "~/domains/templates/types/template";
 import { apiClient, getErrorMessage } from "~/lib/api-client";
 
 export interface UseTemplatesResult {

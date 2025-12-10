@@ -8,6 +8,7 @@
  * - Inventory data (low stock alerts)
  */
 
+import { logger } from "~/lib/logger.server";
 import type { SocialProofNotification } from "~/domains/storefront/notifications/social-proof/types";
 import { ShopifyDataService } from "./shopify-data.server";
 import { VisitorTrackingService } from "./visitor-tracking.server";
@@ -58,8 +59,8 @@ export class SocialProofService {
       );
     }
 
-    // 2. Visitor Count Notifications (if enabled)
-    if (config.enableVisitorNotifications !== false) {
+    // 2. Visitor Count Notifications (Tier 1 - opt-in)
+    if (config.enableVisitorNotifications === true) {
       notificationPromises.push(
         VisitorTrackingService.getVisitorNotification({
           storeId,
@@ -69,8 +70,8 @@ export class SocialProofService {
       );
     }
 
-    // 3. Sales Count Notifications (24-hour window)
-    if (config.enableSalesCountNotifications !== false) {
+    // 3. Sales Count Notifications (Tier 2 - opt-in)
+    if (config.enableSalesCountNotifications === true) {
       notificationPromises.push(
         ShopifyDataService.getSalesCountNotification({
           storeId,
@@ -80,8 +81,8 @@ export class SocialProofService {
       );
     }
 
-    // 4. Low Stock Alerts (if enabled and productId present)
-    if (config.enableLowStockAlerts !== false && productId) {
+    // 4. Low Stock Alerts (Tier 2 - opt-in, requires productId)
+    if (config.enableLowStockAlerts === true && productId) {
       notificationPromises.push(
         ShopifyDataService.getLowStockNotification({
           storeId,
@@ -91,8 +92,8 @@ export class SocialProofService {
       );
     }
 
-    // 5. Trending Product Notifications (if enabled and productId present)
-    if (config.enableTrendingNotifications !== false && productId) {
+    // 5. Trending Product Notifications (Tier 2 - opt-in, requires productId)
+    if (config.enableTrendingNotifications === true && productId) {
       notificationPromises.push(
         VisitorTrackingService.getTrendingNotification({
           storeId,
@@ -101,8 +102,8 @@ export class SocialProofService {
       );
     }
 
-    // 6. Cart Activity Notifications (if enabled and productId present)
-    if (config.enableCartActivityNotifications !== false && productId) {
+    // 6. Cart Activity Notifications (Tier 2 - opt-in, requires productId)
+    if (config.enableCartActivityNotifications === true && productId) {
       notificationPromises.push(
         VisitorTrackingService.getCartActivityNotification({
           storeId,
@@ -111,8 +112,8 @@ export class SocialProofService {
       );
     }
 
-    // 7. Recently Viewed Notifications (if enabled and productId present)
-    if (config.enableRecentlyViewedNotifications !== false && productId) {
+    // 7. Recently Viewed Notifications (Tier 2 - opt-in, requires productId)
+    if (config.enableRecentlyViewedNotifications === true && productId) {
       notificationPromises.push(
         VisitorTrackingService.getRecentlyViewedNotification({
           storeId,
@@ -136,7 +137,7 @@ export class SocialProofService {
         }
       } else if (result.status === "rejected") {
         // Log errors but don't fail the entire request
-        console.error("[SocialProofService] Notification fetch failed:", result.reason);
+        logger.error({ reason: result.reason }, "[SocialProofService] Notification fetch failed");
       }
     }
 
