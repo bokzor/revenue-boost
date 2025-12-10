@@ -77,9 +77,28 @@ export function clearSetupStatusCache(): void {
 // SETUP STATUS CHECKS
 // ============================================================================
 
+// Extension UID from extensions/storefront-popup/shopify.extension.toml
+// This is the unique identifier for our theme app extension
+const EXTENSION_UID = "725cd6d8-2f2b-91cb-b1be-3983c340fe6376935e80";
+
+// Block handle from blocks/popup-embed.liquid filename
+const BLOCK_HANDLE = "popup-embed";
+
 /**
  * Check if theme extension is enabled using REST API
- * This is more reliable than the GraphQL appEmbed query
+ *
+ * According to Shopify documentation, app embed blocks appear in settings_data.json
+ * under current.blocks with the format:
+ * "type": "shopify://apps/{app_name}/blocks/{block_handle}/{extension_uid}"
+ *
+ * The extension_uid is the most reliable identifier since app names can vary
+ * across environments (dev, staging, production).
+ *
+ * When disabled is true, the embed is disabled.
+ * When disabled is false or undefined, it's enabled.
+ *
+ * Note: An app embed block is added to settings_data.json only AFTER it's enabled
+ * for the first time. If it's never been enabled, it won't appear at all.
  */
 export async function checkThemeExtensionEnabled({
   shop,
@@ -132,58 +151,77 @@ export async function checkThemeExtensionEnabled({
     const blocks = settings.current?.blocks || {};
 
     // Log all blocks for debugging
-    // App embed block type format from Shopify docs:
-    // shopify://apps/{app_name}/blocks/{block_name}/{unique_ID}
     const blockEntries = Object.entries(blocks);
-    logger.debug({
+    logger.info({
+      shop,
+      themeId: publishedTheme.id,
       blockCount: blockEntries.length,
-      blockTypes: blockEntries.map(([key, b]) => ({
+      allBlocks: blockEntries.map(([key, b]) => ({
         key,
         type: (b as { type?: string }).type,
         disabled: (b as { disabled?: boolean }).disabled
       }))
-    }, "[Setup] Theme blocks found");
+    }, "[Setup] Theme blocks found in settings_data.json");
 
     // Check if our app embed is enabled
-    // App embeds appear in settings_data.json under current.blocks with format:
-    // "type": "shopify://apps/{app_name}/blocks/{block_handle}/{extension_uid}"
-    //
-    // Our extension details:
-    // - Block handle: popup-embed (from blocks/popup-embed.liquid)
-    // - App name variations: revenue-boost, revenue_boost
+    // We match using multiple strategies for reliability:
+    // 1. Primary: Match by extension_uid (most reliable, unique per extension)
+    // 2. Secondary: Match by block_handle when combined with apps path
+    // 3. Fallback: Match by app name variations
     const appEmbedEnabled = Object.values(blocks).some((block: unknown) => {
       const b = block as { type?: string; disabled?: boolean };
       const blockType = b.type || "";
 
-      // Match our app embed by looking for identifying patterns:
-      // 1. Our app name variations (revenue-boost, revenue_boost)
-      // 2. Our block handle (popup-embed) combined with apps path
-      const isOurApp =
+      // Skip non-app blocks
+      if (!blockType.includes("shopify://apps/")) {
+        return false;
+      }
+
+      // Strategy 1: Match by extension UID (most reliable)
+      // Format: shopify://apps/{app_name}/blocks/{block_handle}/{extension_uid}
+      const matchesByUid = blockType.includes(EXTENSION_UID);
+
+      // Strategy 2: Match by block handle
+      const matchesByBlockHandle = blockType.includes(`/blocks/${BLOCK_HANDLE}/`);
+
+      // Strategy 3: Match by app name variations (fallback for different environments)
+      const matchesByAppName =
         blockType.includes("revenue-boost") ||
         blockType.includes("revenue_boost") ||
-        // Match our block handle when combined with apps path
-        (blockType.includes("shopify://apps/") && blockType.includes("/blocks/popup-embed/"));
+        blockType.includes("Revenue Boost") ||
+        blockType.includes("split-pop") || // Alternative app name
+        blockType.includes("splitpop");
+
+      const isOurApp = matchesByUid || matchesByBlockHandle || matchesByAppName;
 
       // An app embed is enabled when disabled is NOT true
-      // (disabled can be undefined, false, or true)
+      // Per Shopify docs: "disabled" is only set to true when merchant disables it.
+      // It can be false, undefined, or missing when enabled.
       const isEnabled = b.disabled !== true;
 
-      if (blockType.includes("shopify://apps/")) {
-        logger.debug({
-          blockType,
-          disabled: b.disabled,
-          isOurApp,
-          isEnabled
-        }, "[Setup] Found app embed block");
-      }
+      logger.info({
+        blockType,
+        disabled: b.disabled,
+        matchesByUid,
+        matchesByBlockHandle,
+        matchesByAppName,
+        isOurApp,
+        isEnabled
+      }, "[Setup] Checking app embed block");
 
       return isOurApp && isEnabled;
     });
 
-    logger.debug({ appEmbedEnabled }, "[Setup] App embed status");
+    logger.info({
+      shop,
+      appEmbedEnabled,
+      extensionUid: EXTENSION_UID,
+      blockHandle: BLOCK_HANDLE
+    }, "[Setup] App embed status result");
+
     return appEmbedEnabled;
   } catch (error) {
-    logger.error({ error }, "[Setup] Error checking theme extension:");
+    logger.error({ error, shop }, "[Setup] Error checking theme extension");
     return false;
   }
 }

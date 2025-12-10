@@ -89,12 +89,13 @@ describe("Setup Status Server Module", () => {
       expect(result).toBe(false);
     });
 
-    it("should return true when app embed is enabled", async () => {
+    it("should return true when app embed is enabled by extension UID", async () => {
       const settingsData = {
         current: {
           blocks: {
             "block1": {
-              type: "shopify://apps/revenue-boost/blocks/popup",
+              // Real extension UID from shopify.extension.toml
+              type: "shopify://apps/my-app/blocks/popup-embed/725cd6d8-2f2b-91cb-b1be-3983c340fe6376935e80",
               disabled: false,
             },
           },
@@ -119,6 +120,193 @@ describe("Setup Status Server Module", () => {
       });
 
       expect(result).toBe(true);
+    });
+
+    it("should return true when app embed is enabled by block handle", async () => {
+      const settingsData = {
+        current: {
+          blocks: {
+            "block1": {
+              type: "shopify://apps/some-app-name/blocks/popup-embed/some-uid",
+              disabled: false,
+            },
+          },
+        },
+      };
+
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ themes: [{ id: "123", role: "main" }] }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            asset: { value: JSON.stringify(settingsData) },
+          }),
+        });
+
+      const result = await checkThemeExtensionEnabled({
+        shop: "test-shop.myshopify.com",
+        accessToken: "test-token",
+      });
+
+      expect(result).toBe(true);
+    });
+
+    it("should return true when app embed is enabled by app name", async () => {
+      const settingsData = {
+        current: {
+          blocks: {
+            "block1": {
+              type: "shopify://apps/revenue-boost/blocks/other-block/some-uid",
+              disabled: false,
+            },
+          },
+        },
+      };
+
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ themes: [{ id: "123", role: "main" }] }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            asset: { value: JSON.stringify(settingsData) },
+          }),
+        });
+
+      const result = await checkThemeExtensionEnabled({
+        shop: "test-shop.myshopify.com",
+        accessToken: "test-token",
+      });
+
+      expect(result).toBe(true);
+    });
+
+    it("should return false when app embed is disabled", async () => {
+      const settingsData = {
+        current: {
+          blocks: {
+            "block1": {
+              type: "shopify://apps/revenue-boost/blocks/popup-embed/725cd6d8-2f2b-91cb-b1be-3983c340fe6376935e80",
+              disabled: true,
+            },
+          },
+        },
+      };
+
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ themes: [{ id: "123", role: "main" }] }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            asset: { value: JSON.stringify(settingsData) },
+          }),
+        });
+
+      const result = await checkThemeExtensionEnabled({
+        shop: "test-shop.myshopify.com",
+        accessToken: "test-token",
+      });
+
+      expect(result).toBe(false);
+    });
+
+    it("should return true when disabled is undefined (default enabled state)", async () => {
+      const settingsData = {
+        current: {
+          blocks: {
+            "block1": {
+              type: "shopify://apps/revenue-boost/blocks/popup-embed/some-uid",
+              // disabled is undefined - means enabled per Shopify docs
+            },
+          },
+        },
+      };
+
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ themes: [{ id: "123", role: "main" }] }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            asset: { value: JSON.stringify(settingsData) },
+          }),
+        });
+
+      const result = await checkThemeExtensionEnabled({
+        shop: "test-shop.myshopify.com",
+        accessToken: "test-token",
+      });
+
+      expect(result).toBe(true);
+    });
+
+    it("should return false when no blocks exist", async () => {
+      const settingsData = {
+        current: {
+          blocks: {},
+        },
+      };
+
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ themes: [{ id: "123", role: "main" }] }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            asset: { value: JSON.stringify(settingsData) },
+          }),
+        });
+
+      const result = await checkThemeExtensionEnabled({
+        shop: "test-shop.myshopify.com",
+        accessToken: "test-token",
+      });
+
+      expect(result).toBe(false);
+    });
+
+    it("should return false when only other apps are enabled", async () => {
+      const settingsData = {
+        current: {
+          blocks: {
+            "block1": {
+              type: "shopify://apps/other-app/blocks/some-block/some-uid",
+              disabled: false,
+            },
+          },
+        },
+      };
+
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ themes: [{ id: "123", role: "main" }] }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            asset: { value: JSON.stringify(settingsData) },
+          }),
+        });
+
+      const result = await checkThemeExtensionEnabled({
+        shop: "test-shop.myshopify.com",
+        accessToken: "test-token",
+      });
+
+      expect(result).toBe(false);
     });
   });
 
