@@ -3,7 +3,7 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 
 import { TemplatePreview } from "~/domains/popups/components/preview/TemplatePreview";
-import { TemplateTypeEnum } from "~/lib/template-types.enum";
+import { TemplateTypeEnum } from "~/domains/campaigns/types/campaign";
 
 function renderFlashSalePreview(
   configOverrides: Record<string, any> = {},

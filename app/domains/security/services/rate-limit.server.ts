@@ -5,6 +5,7 @@
  * Uses Redis for fast rate limiting with PostgreSQL fallback and audit logging.
  */
 
+import { logger } from "~/lib/logger.server";
 import prisma from "~/db.server";
 import { getRedis } from "~/lib/redis.server";
 import type { Redis } from "ioredis";
@@ -24,7 +25,6 @@ export interface RateLimitResult {
  * Common rate limit configurations
  */
 export const RATE_LIMITS = {
-  CHALLENGE_REQUEST: { maxRequests: 3, windowSeconds: 600 }, // 3 per 10 min
   DISCOUNT_GENERATION: { maxRequests: 5, windowSeconds: 3600 }, // 5 per hour
   LEAD_SUBMISSION: { maxRequests: 10, windowSeconds: 3600 }, // 10 per hour
   EMAIL_PER_CAMPAIGN: { maxRequests: 1, windowSeconds: 86400 }, // 1 per day per email per campaign
@@ -48,7 +48,7 @@ export async function checkRateLimit(
     try {
       return await checkRateLimitRedis(redis, key, action, config, resetAt);
     } catch (error) {
-      console.error("[Rate Limit] Redis check failed, falling back to PostgreSQL:", error);
+      logger.error({ error }, "[Rate Limit] Redis check failed, falling back to PostgreSQL:");
       // Fall through to PostgreSQL
     }
   }
@@ -163,7 +163,7 @@ export async function logRateLimitEvent(
       },
     });
   } catch (error) {
-    console.error("[Rate Limit] Audit logging failed:", error);
+    logger.error({ error }, "[Rate Limit] Audit logging failed:");
     // Don't throw - audit logging is best-effort
   }
 }

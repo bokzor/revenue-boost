@@ -1,3 +1,4 @@
+import { logger } from "~/lib/logger.server";
 import prisma from "~/db.server";
 import { BILLING_PLANS } from "~/shopify.server";
 import { PLAN_DEFINITIONS, type PlanTier } from "../types/plan";
@@ -88,7 +89,7 @@ export class BillingService {
         }
       `);
     } catch (error) {
-      console.error(`[BillingService] GraphQL request failed for ${shopDomain}:`, error);
+      logger.error({ error }, "[BillingService] GraphQL request failed for ${shopDomain}:");
       throw new BillingApiError(
         `Failed to query Shopify subscription API for ${shopDomain}: ${error instanceof Error ? error.message : "Unknown error"}`
       );
@@ -96,7 +97,7 @@ export class BillingService {
 
     // Check for HTTP errors
     if (!response.ok) {
-      console.error(`[BillingService] Shopify API returned ${response.status}`);
+      logger.error("[BillingService] Shopify API returned ${response.status}");
       throw new BillingApiError(
         `Shopify API returned status ${response.status}`,
         response.status >= 500 // 5xx errors are transient
@@ -108,13 +109,13 @@ export class BillingService {
     // Check for GraphQL errors
     if (data.errors && data.errors.length > 0) {
       const errorMessages = data.errors.map((e) => e.message).join(", ");
-      console.error("[BillingService] GraphQL errors:", errorMessages);
+      logger.error({ errors: data.errors }, "[BillingService] GraphQL errors");
       throw new BillingApiError(`GraphQL errors: ${errorMessages}`);
     }
 
     // Validate response structure
     if (!data.data?.currentAppInstallation) {
-      console.error("[BillingService] Unexpected response structure:", JSON.stringify(data));
+      logger.error({ response: data }, "[BillingService] Unexpected response structure");
       throw new BillingApiError("Unexpected GraphQL response structure");
     }
 
@@ -179,20 +180,17 @@ export class BillingService {
     } catch (error) {
       // On API error, fall back to database state to prevent accidental downgrades
       if (error instanceof BillingApiError) {
-        console.warn(
-          `[BillingService] API error for ${shopDomain}, falling back to cached state:`,
-          error.message
-        );
+        logger.warn({ shopDomain, errorMessage: error.message }, "[BillingService] API error, falling back to cached state");
 
         // Try to get cached billing context from database
         const cachedContext = await this.getBillingContextFromDbByDomain(shopDomain);
         if (cachedContext) {
-          console.log(`[BillingService] Using cached billing context for ${shopDomain}`);
+          logger.debug("[BillingService] Using cached billing context for ${shopDomain}");
           return cachedContext;
         }
 
         // If no cached context exists, this is likely a new store - return FREE
-        console.warn(`[BillingService] No cached context for ${shopDomain}, defaulting to FREE`);
+        logger.warn("[BillingService] No cached context for ${shopDomain}, defaulting to FREE");
         return {
           planTier: "FREE",
           hasActiveSubscription: false,
@@ -226,7 +224,7 @@ export class BillingService {
         },
       });
     } catch (dbError) {
-      console.error("[BillingService] Failed to sync subscription to database:", dbError);
+      logger.error({ error: dbError }, "[BillingService] Failed to sync subscription to database");
       // Return the billing context anyway - the sync failure shouldn't block the user
     }
 
@@ -374,7 +372,7 @@ export class BillingService {
     shopDomain: string
   ): Promise<BillingContext> {
     const billingBypassed = isBillingBypassed();
-    console.log(`[BillingService] getOrSyncBillingContext - billingBypassed: ${billingBypassed}, shop: ${shopDomain}`);
+    logger.debug("[BillingService] getOrSyncBillingContext - billingBypassed: ${billingBypassed}, shop: ${shopDomain}");
 
     // First, check if we have a recent cached value
     const store = await prisma.store.findFirst({
@@ -392,11 +390,11 @@ export class BillingService {
       },
     });
 
-    console.log(`[BillingService] Store found: ${!!store}, planTier: ${store?.planTier}, planStatus: ${store?.planStatus}`);
+    logger.debug("[BillingService] Store found: ${!!store}, planTier: ${store?.planTier}, planStatus: ${store?.planStatus}");
 
     // When billing is bypassed, always use database values (don't sync from Shopify)
     if (billingBypassed && store) {
-      console.log(`[BillingService] Billing bypassed - returning cached DB values for plan: ${store.planTier}`);
+      logger.debug("[BillingService] Billing bypassed - returning cached DB values for plan: ${store.planTier}");
       const planTier = store.planTier as PlanTier;
       const hasActiveSubscription =
         store.planStatus === "ACTIVE" || store.planStatus === "TRIALING";

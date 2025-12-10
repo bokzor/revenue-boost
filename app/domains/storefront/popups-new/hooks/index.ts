@@ -17,3 +17,20 @@ export type { UsePopupAnimationOptions } from "./usePopupAnimation";
 
 export { useColorScheme, getColorSchemeGradient } from "./useColorScheme";
 export type { ColorSchemeType, ColorSchemeColors, CustomColors } from "./useColorScheme";
+
+export { useDesignVariables } from "./useDesignVariables";
+export type { CSSVariables } from "./useDesignVariables";
+
+// New design tokens system (replaces useDesignVariables for simplified theming)
+export { useDesignTokens } from "./useDesignTokens";
+export type { TokenStyles, UseDesignTokensResult } from "./useDesignTokens";
+
+export { useCTAHandler } from "./useCTAHandler";
+export type {
+  CTAAction,
+  CTAConfig,
+  SecondaryCTAConfig,
+  SuccessBehavior,
+  UseCTAHandlerOptions,
+  UseCTAHandlerReturn,
+} from "./useCTAHandler";

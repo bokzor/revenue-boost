@@ -8,7 +8,6 @@ import {
     STORE_DOMAIN,
     API_PROPAGATION_DELAY_MS,
     handlePasswordPage,
-    mockChallengeToken,
     getTestPrefix,
     verifySpinToWinContent,
     fillEmailInShadowDOM,
@@ -72,7 +71,6 @@ test.describe.serial('Spin to Win Template', () => {
         // Clean up ALL E2E campaigns to avoid priority conflicts
         await cleanupAllE2ECampaigns(prisma);
 
-        await mockChallengeToken(page);
         await page.context().clearCookies();
 
         // No bundle mocking - tests use deployed extension code
@@ -394,27 +392,43 @@ test.describe.serial('Spin to Win Template', () => {
             return;
         }
 
-        // Check for GDPR checkbox
+        // Wait a bit for the form to fully render
+        await page.waitForTimeout(1000);
+
+        // Check for GDPR checkbox - look for the checkbox or consent text
+        // The StyledCheckbox has opacity:0 on the input but it should still be queryable
+        // Also look for the GdprCheckbox wrapper class or consent-related text
         const gdprState = await page.evaluate(() => {
             const host = document.querySelector('#revenue-boost-popup-shadow-host');
-            if (!host?.shadowRoot) return { exists: false };
+            if (!host?.shadowRoot) return { exists: false, hasConsentText: false, debug: 'no shadow root' };
 
-            const checkbox = host.shadowRoot.querySelector('input[type="checkbox"]') as HTMLInputElement;
-            const html = host.shadowRoot.innerHTML.toLowerCase();
+            const shadowRoot = host.shadowRoot;
+            const html = shadowRoot.innerHTML.toLowerCase();
+
+            // Look for checkbox input
+            const checkbox = shadowRoot.querySelector('input[type="checkbox"]') as HTMLInputElement;
+
+            // Look for the styled checkbox wrapper
+            const styledCheckbox = shadowRoot.querySelector('.rb-styled-checkbox');
+
+            // Look for consent-related text in the popup
+            const hasConsentText = html.includes('consent') ||
+                                   html.includes('marketing') ||
+                                   html.includes('agree') ||
+                                   html.includes('i consent');
 
             return {
-                exists: !!checkbox,
-                hasConsentText: html.includes('consent') || html.includes('marketing') || html.includes('agree'),
-                label: checkbox?.labels?.[0]?.textContent || ''
+                exists: !!checkbox || !!styledCheckbox,
+                hasConsentText,
+                debug: `checkbox=${!!checkbox}, styledCheckbox=${!!styledCheckbox}, consentText=${hasConsentText}`
             };
         });
 
-        console.log(`GDPR: exists=${gdprState.exists}, hasText=${gdprState.hasConsentText}`);
+        console.log(`GDPR state: ${gdprState.debug}`);
 
-        if (gdprState.exists || gdprState.hasConsentText) {
-            console.log('✅ GDPR consent checkbox displayed');
-        } else {
-            console.log('⚠️ GDPR checkbox not found - may be configured differently');
-        }
+        // GDPR checkbox should be present when enabled - check for either the checkbox element or consent text
+        // HARD ASSERTION - The GDPR checkbox must be visible when consentFieldEnabled is true
+        expect(gdprState.exists || gdprState.hasConsentText).toBe(true);
+        console.log('✅ GDPR consent checkbox displayed');
     });
 });

@@ -43,3 +43,10 @@ export {
   useCollapsibleSections,
   type CollapsibleSectionProps,
 } from "./CollapsibleSection";
+
+export {
+  GenericDiscountComponent,
+  type DiscountStrategyOption,
+} from "./GenericDiscountComponent";
+
+export { CTAConfigEditor } from "./CTAConfigEditor";

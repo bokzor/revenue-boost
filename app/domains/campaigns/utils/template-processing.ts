@@ -7,7 +7,7 @@
  * - Extracted from TemplateSelector for better reusability and testability
  */
 
-import type { UnifiedTemplate } from "~/domains/popups/services/templates/unified-template-service.server";
+import type { TemplateWithConfigs as UnifiedTemplate } from "~/domains/templates/types/template";
 
 // ============================================================================
 // TYPES
@@ -115,7 +115,7 @@ export function processTemplate(template: UnifiedTemplate): ProcessedTemplate {
     position: getStringField(design, "position", "center"),
     size: getStringField(design, "size", "medium"),
     showCloseButton: getBooleanField(design, "showCloseButton", true),
-    overlayOpacity: getNumberField(design, "overlayOpacity", 0.6),
+    overlayOpacity: getNumberField(design, "overlayOpacity", 0.5),
   };
 }
 

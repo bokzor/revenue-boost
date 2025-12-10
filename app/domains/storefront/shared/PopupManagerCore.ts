@@ -11,7 +11,6 @@ import { extractTriggerConfig } from "~/shared/utils/trigger-extraction";
 // Legacy trigger config structure used by PopupManagerCore
 interface LegacyTriggerConfig {
   type?:
-    | "time_delay"
     | "page_load"
     | "scroll_depth"
     | "exit_intent"
@@ -263,7 +262,6 @@ export class PopupManagerCore {
     removers: Array<() => void>
   ) {
     switch (triggerConfig.type) {
-      case "time_delay":
       case "page_load": {
         const t = setTimeout(() => this.showPopup(campaign), triggerConfig.delay || 0);
         removers.push(() => clearTimeout(t));

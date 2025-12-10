@@ -53,6 +53,12 @@ export type DesignCapabilities = {
    *  - "none": no image
    */
   supportedImagePositions?: ImagePositionOption[];
+
+  /** Whether template supports layout selection (affects Layout and Mobile Layout selectors)
+   *  - true or undefined: show layout selectors
+   *  - false: hide layout selectors (template has fixed layout)
+   */
+  usesLayout?: boolean;
 };
 
 /**
@@ -104,7 +110,7 @@ export const TEMPLATE_DESIGN_CAPABILITIES: Record<TemplateType, DesignCapabiliti
     supportsSize: [], // Full-width bar, size not applicable
   },
 
-  // Promotional modals (uses popupSize instead of size)
+  // Promotional modals - size and displayMode are recipe-controlled only
   FLASH_SALE: {
     usesButtons: true,
     usesInputs: false,
@@ -114,9 +120,11 @@ export const TEMPLATE_DESIGN_CAPABILITIES: Record<TemplateType, DesignCapabiliti
     usesAccent: true,
     usesSuccessWarning: true,
     supportsPosition: ["center", "top", "bottom"],
-    supportsSize: [], // Uses popupSize (compact/standard/wide/full) instead
-    supportsDisplayMode: true, // Show display mode toggle (banner vs popup)
+    supportsSize: [], // Size is controlled by recipes (popup vs banner mode)
+    supportsDisplayMode: false, // Display mode (popup/banner) is recipe-controlled only
     supportedImagePositions: ["full", "none"], // Only full background or no image
+    /** @note Layout/MobileLayout selectors are hidden - FlashSale only supports centered with optional overlay background */
+    usesLayout: false,
   },
 
   // Gamification templates
@@ -124,13 +132,17 @@ export const TEMPLATE_DESIGN_CAPABILITIES: Record<TemplateType, DesignCapabiliti
     usesButtons: true,
     usesInputs: true,
     usesOverlay: true,
-    usesImage: true, // Now supports full background image
+    usesImage: true, // Supports full background image behind wheel
     usesTypographyAdvanced: false,
     usesAccent: true,
     usesSuccessWarning: true,
     supportsPosition: ["center"],
     supportsSize: ["medium", "large"],
-    supportedImagePositions: ["full", "none"], // Only full background or no image
+    // Layout is fixed for SpinToWin (wheel left + form right on desktop, stacked on mobile)
+    // The wheel IS the visual element and cannot be repositioned like an image
+    supportedImagePositions: ["full", "none"], // Only full background or no image (layout selector hidden)
+    /** @note Layout/MobileLayout selectors are hidden because SpinToWin has a fixed layout */
+    usesLayout: false,
   },
 
   SCRATCH_CARD: {
@@ -210,6 +222,70 @@ export const TEMPLATE_DESIGN_CAPABILITIES: Record<TemplateType, DesignCapabiliti
     usesSuccessWarning: false,
     supportsPosition: ["top", "bottom"],
     supportsSize: [], // Full-width banner, size not applicable
+  },
+
+  // =============================================================================
+  // NEW UPSELL POPUP TEMPLATES
+  // =============================================================================
+
+  // Classic centered modal for single product upsells
+  CLASSIC_UPSELL: {
+    usesButtons: true,
+    usesInputs: false,
+    usesOverlay: true,
+    usesImage: true,
+    usesTypographyAdvanced: false,
+    usesAccent: true,
+    usesSuccessWarning: false,
+    supportsPosition: ["center"],
+    supportsSize: ["small", "medium", "large"],
+    supportedImagePositions: ["left", "right", "none"],
+    usesLayout: false, // Fixed layout
+  },
+
+  // Minimal slide-up bottom sheet for mobile
+  MINIMAL_SLIDE_UP: {
+    usesButtons: true,
+    usesInputs: false,
+    usesOverlay: true,
+    usesImage: true,
+    usesTypographyAdvanced: false,
+    usesAccent: true,
+    usesSuccessWarning: false,
+    supportsPosition: ["bottom"],
+    supportsSize: ["small", "medium"],
+    supportedImagePositions: ["left", "none"],
+    usesLayout: false, // Fixed bottom sheet layout
+  },
+
+  // Premium fullscreen takeover for high-value products
+  PREMIUM_FULLSCREEN: {
+    usesButtons: true,
+    usesInputs: false,
+    usesOverlay: true,
+    usesImage: true,
+    usesTypographyAdvanced: true,
+    usesAccent: true,
+    usesSuccessWarning: false,
+    supportsPosition: ["center"],
+    supportsSize: ["large"],
+    supportedImagePositions: ["left", "right", "full"],
+    usesLayout: false, // Fixed fullscreen layout
+  },
+
+  // Countdown urgency with timer
+  COUNTDOWN_URGENCY: {
+    usesButtons: true,
+    usesInputs: false,
+    usesOverlay: true,
+    usesImage: true,
+    usesTypographyAdvanced: false,
+    usesAccent: true,
+    usesSuccessWarning: true, // Uses warning colors for urgency
+    supportsPosition: ["center"],
+    supportsSize: ["medium", "large"],
+    supportedImagePositions: ["left", "right", "none"],
+    usesLayout: false, // Fixed countdown layout
   },
 };
 

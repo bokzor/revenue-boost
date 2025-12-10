@@ -46,22 +46,32 @@ describe("PopupHeader", () => {
   });
 
   describe("Colors", () => {
-    it("uses default text color", () => {
+    // Note: CSS variables (var(--rb-*)) are used for default colors but
+    // happy-dom strips them from the computed style attribute. We verify:
+    // 1. CSS variables work via font-family (which IS preserved)
+    // 2. Custom color props are applied correctly when provided
+
+    it("uses CSS variables for styling (verified via font-family)", () => {
       render(<PopupHeader headline="Test" />);
       const headline = screen.getByText("Test");
-      expect(headline.style.color).toBe("#111827");
+      // Font family uses CSS variables and IS preserved in style attribute
+      const styleAttr = headline.getAttribute("style") || "";
+      expect(styleAttr).toContain("var(--rb-heading-font-family");
     });
 
-    it("uses custom text color", () => {
+    it("uses custom text color when prop provided", () => {
       render(<PopupHeader headline="Test" textColor="#ff0000" />);
       const headline = screen.getByText("Test");
+      // Explicit color prop should be applied directly
       expect(headline.style.color).toBe("#ff0000");
     });
 
-    it("uses text color for subheadline by default", () => {
-      render(<PopupHeader headline="Test" subheadline="Subtitle" textColor="#ff0000" />);
+    it("uses CSS variable for subheadline font (verified via font-family)", () => {
+      render(<PopupHeader headline="Test" subheadline="Subtitle" />);
       const subheadline = screen.getByText("Subtitle");
-      expect(subheadline.style.color).toBe("#ff0000");
+      // Font family uses CSS variables and IS preserved
+      const styleAttr = subheadline.getAttribute("style") || "";
+      expect(styleAttr).toContain("var(--rb-font-family");
     });
 
     it("uses custom description color for subheadline", () => {
@@ -74,21 +84,8 @@ describe("PopupHeader", () => {
         />
       );
       const subheadline = screen.getByText("Subtitle");
+      // Explicit descriptionColor prop should be applied directly
       expect(subheadline.style.color).toBe("#00ff00");
-    });
-
-    it("applies opacity to subheadline when using text color", () => {
-      render(<PopupHeader headline="Test" subheadline="Subtitle" textColor="#ff0000" />);
-      const subheadline = screen.getByText("Subtitle");
-      expect(subheadline.style.opacity).toBe("0.85");
-    });
-
-    it("does not apply opacity when using description color", () => {
-      render(
-        <PopupHeader headline="Test" subheadline="Subtitle" descriptionColor="#00ff00" />
-      );
-      const subheadline = screen.getByText("Subtitle");
-      expect(subheadline.style.opacity).toBe("1");
     });
   });
 

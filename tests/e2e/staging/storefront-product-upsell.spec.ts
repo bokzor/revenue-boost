@@ -8,8 +8,6 @@ import {
     STORE_DOMAIN,
     API_PROPAGATION_DELAY_MS,
     handlePasswordPage,
-    mockChallengeToken,
-    mockUpsellProducts,
     getTestPrefix,
     cleanupAllE2ECampaigns,
     MAX_TEST_PRIORITY
@@ -29,7 +27,10 @@ const TEST_PREFIX = getTestPrefix('storefront-product-upsell.spec.ts');
  * - Bundle discount is displayed
  *
  * NOTE: These tests run against deployed extension code (no bundle mocking)
- * and real API endpoints (no API mocking).
+ * and real API endpoints (NO API MOCKING).
+ *
+ * LIMITATION: The "add to cart interaction" test verifies UI flow only,
+ * as real cart operations require products to be configured in the store.
  */
 
 test.describe.serial('Product Upsell Template', () => {
@@ -67,9 +68,7 @@ test.describe.serial('Product Upsell Template', () => {
         // Clean up ALL E2E campaigns to avoid priority conflicts
         await cleanupAllE2ECampaigns(prisma);
 
-        await mockChallengeToken(page);
-        // Mock upsell products API to bypass app proxy authentication
-        await mockUpsellProducts(page);
+        // NO API MOCKING - tests use real upsell products API
         await page.context().clearCookies();
     });
 
@@ -188,18 +187,12 @@ test.describe.serial('Product Upsell Template', () => {
 
         await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
 
-        // Intercept cart requests to verify they're made (mock successful response)
+        // Track cart requests WITHOUT mocking - let real Shopify cart handle the request
         const cartRequests: string[] = [];
-        await page.route('**/cart/add**', async route => {
-            cartRequests.push(route.request().url());
-            // Mock successful cart response since we're using fake variant IDs
-            await route.fulfill({
-                json: {
-                    items: [],
-                    item_count: 1,
-                    total_price: 2999,
-                }
-            });
+        page.on('request', (request) => {
+            if (request.url().includes('/cart/add')) {
+                cartRequests.push(request.url());
+            }
         });
 
         await page.goto(STORE_URL);
@@ -262,9 +255,9 @@ test.describe.serial('Product Upsell Template', () => {
 
         await page.waitForTimeout(1000);
 
-        // Verify cart request was made
+        // Verify cart request was made - real Shopify cart
         expect(cartRequests.length).toBeGreaterThan(0);
-        console.log('✅ Add to cart triggered API request');
+        console.log('✅ Add to cart triggered real Shopify cart API request');
     });
 
     test('displays product titles and descriptions', async ({ page }) => {

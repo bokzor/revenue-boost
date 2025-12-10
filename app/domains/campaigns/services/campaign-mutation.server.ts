@@ -5,6 +5,7 @@
  * Single Responsibility: Mutation operations only
  */
 
+import { logger } from "~/lib/logger.server";
 import prisma from "~/db.server";
 import type {
   CampaignCreateData,
@@ -17,6 +18,7 @@ import type { AdminApiContext } from "@shopify/shopify-app-react-router/server";
 import {
   validateCampaignCreateData,
   validateCampaignUpdateData,
+  validateCampaignForActivation,
 } from "../validation/campaign-validation.js";
 import { parseCampaignFields, prepareEntityJsonFields } from "../utils/json-helpers.js";
 import { CampaignServiceError } from "~/lib/errors.server";
@@ -233,16 +235,60 @@ export class CampaignMutationService {
       );
     }
 
-    // Enforce plan limits if activating
+    // Enforce plan limits and validate campaign if activating
     if (data.status === "ACTIVE") {
       const currentCampaign = await prisma.campaign.findUnique({
         where: { id },
-        select: { status: true },
+        select: {
+          status: true,
+          name: true,
+          templateType: true,
+          contentConfig: true,
+          designConfig: true,
+          discountConfig: true,
+          targetRules: true,
+        },
       });
 
       // Only check if we are changing status to ACTIVE (and it wasn't already)
       if (currentCampaign && currentCampaign.status !== "ACTIVE") {
+        // Check plan limits
         await PlanGuardService.assertCanCreateCampaign(storeId);
+
+        // Validate campaign is ready for activation
+        // Merge current campaign data with update data for validation
+        const campaignForValidation = {
+          id,
+          name: data.name || currentCampaign.name,
+          templateType: data.templateType || currentCampaign.templateType,
+          contentConfig: (data.contentConfig ||
+            currentCampaign.contentConfig ||
+            {}) as Record<string, unknown>,
+          designConfig: (data.designConfig ||
+            currentCampaign.designConfig ||
+            {}) as Record<string, unknown>,
+          discountConfig: (data.discountConfig || currentCampaign.discountConfig) as
+            | { enabled?: boolean; type?: string; valueType?: string; value?: number }
+            | undefined,
+          targetRules: (data.targetRules || currentCampaign.targetRules) as
+            | Record<string, unknown>
+            | undefined,
+        };
+
+        const activationValidation = validateCampaignForActivation(campaignForValidation);
+
+        if (!activationValidation.success) {
+          throw new CampaignServiceError(
+            "ACTIVATION_VALIDATION_FAILED",
+            "Campaign cannot be activated",
+            activationValidation.errors
+          );
+        }
+
+        // Log warnings but don't block activation
+        if (activationValidation.warnings && activationValidation.warnings.length > 0) {
+          logger.warn({ campaignId: id, warnings: activationValidation.warnings }, "[CampaignMutation] Activation warnings");
+        }
       }
     }
 
@@ -340,5 +386,48 @@ export class CampaignMutationService {
     } catch (error) {
       throw new CampaignServiceError("DELETE_CAMPAIGN_FAILED", "Failed to delete campaign", error);
     }
+  }
+  /**
+   * Duplicate a campaign
+   * Creates a clean copy detached from experiments and external syncing
+   */
+  static async duplicate(
+    id: string,
+    storeId: string,
+    admin?: AdminApiContext
+  ): Promise<CampaignWithConfigs> {
+    const original = await CampaignQueryService.getById(id, storeId);
+    if (!original) {
+      throw new CampaignServiceError("CAMPAIGN_NOT_FOUND", "Campaign not found");
+    }
+
+    // Create a copy of the data, explicitly excluding fields that shouldn't be copied
+    const duplicateData: CampaignCreateData = {
+      name: `${original.name} (Copy)`,
+      description: original.description || undefined,
+      goal: original.goal,
+      status: "DRAFT", // Always reset to DRAFT
+      priority: original.priority,
+      templateId: original.templateId || "", // Ensure string if null, though validation checks this
+      templateType: original.templateType,
+
+      // Copy configurations
+      contentConfig: original.contentConfig || {},
+      designConfig: original.designConfig || {},
+      targetRules: original.targetRules || {},
+      discountConfig: original.discountConfig,
+
+      // Explicitly set experiment fields to undefined/null
+      experimentId: undefined,
+      variantKey: undefined,
+      isControl: false,
+
+      // Reset dates
+      startDate: undefined,
+      endDate: undefined,
+    };
+
+    // We don't pass appUrl here because we don't want to sync DRAFT duplicates to Shopify Marketing Events yet
+    return this.create(storeId, duplicateData, admin);
   }
 }

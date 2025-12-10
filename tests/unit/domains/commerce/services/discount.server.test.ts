@@ -40,6 +40,7 @@ import {
   getCampaignDiscountCode,
   createEmailSpecificDiscount,
 } from "~/domains/commerce/services/discount.server";
+import { parseDiscountConfig } from "~/domains/campaigns/utils/json-helpers";
 import type { DiscountConfig } from "~/domains/campaigns/types/campaign";
 
 // ==========================================================================
@@ -55,9 +56,55 @@ function createDiscountConfig(overrides: Partial<DiscountConfig>): DiscountConfi
     enabled: false,
     showInPreview: true,
     behavior: "SHOW_CODE_AND_AUTO_APPLY",
+    strategy: "simple",
     ...overrides,
   };
 }
+
+// ==========================================================================
+// STRATEGY INFERENCE
+// ==========================================================================
+
+describe("parseDiscountConfig", () => {
+  it("returns default values for empty config", () => {
+    const result = parseDiscountConfig({});
+    expect(result.enabled).toBe(false);
+    expect(result.showInPreview).toBe(true);
+    expect(result.behavior).toBe("SHOW_CODE_AND_AUTO_APPLY");
+  });
+
+  it("parses enabled=true", () => {
+    const result = parseDiscountConfig({ enabled: true });
+    expect(result.enabled).toBe(true);
+  });
+
+  it("parses strategy when explicitly set", () => {
+    const result = parseDiscountConfig({ strategy: "bundle" });
+    expect(result.strategy).toBe("bundle");
+  });
+
+  it("parses tiered strategy when explicitly set", () => {
+    const result = parseDiscountConfig({ strategy: "tiered" });
+    expect(result.strategy).toBe("tiered");
+  });
+
+  it("parses value and valueType", () => {
+    const result = parseDiscountConfig({
+      enabled: true,
+      value: 15,
+      valueType: "PERCENTAGE",
+    });
+    expect(result.value).toBe(15);
+    expect(result.valueType).toBe("PERCENTAGE");
+  });
+
+  it("parses behavior", () => {
+    const result = parseDiscountConfig({
+      behavior: "SHOW_CODE_AND_ASSIGN_TO_EMAIL",
+    });
+    expect(result.behavior).toBe("SHOW_CODE_AND_ASSIGN_TO_EMAIL");
+  });
+});
 
 // ==========================================================================
 // APPLICABILITY WIRING TESTS (existing tests)
@@ -454,6 +501,7 @@ describe("DiscountService - getCampaignDiscountCode", () => {
       type: "shared" as const,
       valueType: "PERCENTAGE" as const,
       prefix: "TIER",
+      strategy: "tiered" as const, // Must explicitly set strategy to tiered
       tiers: [
         { thresholdCents: 0, discount: { kind: "percentage" as const, value: 10 } },
         { thresholdCents: 5000, discount: { kind: "percentage" as const, value: 15 } },
@@ -883,4 +931,3 @@ describe("DiscountService - getCampaignDiscountCode", () => {
     });
   });
 });
-

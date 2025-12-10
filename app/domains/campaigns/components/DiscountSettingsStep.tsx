@@ -17,7 +17,7 @@ import {
   InlineStack,
   Badge,
 } from "@shopify/polaris";
-import { DiscountConfig } from "~/domains/popups/services/discounts/discount.server";
+import type { DiscountConfig } from "~/domains/campaigns/types/campaign";
 import type { DiscountBehavior } from "~/domains/campaigns/types/campaign";
 
 interface DiscountSettingsStepProps {
@@ -43,17 +43,24 @@ export function DiscountSettingsStep({
       contentConfig?.enableEmailRecovery === true);
 
   // Initialize with defaults if not provided
+  // IMPORTANT: Preserve advanced discount fields (bogo, tiers, freeGift) from incoming config
+  // Use nullish coalescing (??) instead of || to preserve 0 and other falsy values
   const config: DiscountConfig = {
     enabled: discountConfig?.enabled !== false,
     showInPreview: discountConfig?.showInPreview !== false,
-    type: discountConfig?.type || "shared",
-    valueType: discountConfig?.valueType || "PERCENTAGE",
-    value: discountConfig?.valueType === "FREE_SHIPPING" ? undefined : discountConfig?.value || 10,
+    strategy: discountConfig?.strategy ?? "simple",
+    type: discountConfig?.type ?? "shared",
+    valueType: discountConfig?.valueType ?? "PERCENTAGE",
+    value: discountConfig?.valueType === "FREE_SHIPPING" ? undefined : (discountConfig?.value ?? 10),
     minimumAmount: discountConfig?.minimumAmount,
     usageLimit: discountConfig?.usageLimit,
-    expiryDays: discountConfig?.expiryDays || 30,
-    prefix: discountConfig?.prefix || "WELCOME",
-    behavior: discountConfig?.behavior || "SHOW_CODE_AND_AUTO_APPLY",
+    expiryDays: discountConfig?.expiryDays ?? 30,
+    prefix: discountConfig?.prefix ?? "WELCOME",
+    behavior: discountConfig?.behavior ?? "SHOW_CODE_AND_AUTO_APPLY",
+    // Preserve advanced discount structures
+    bogo: discountConfig?.bogo,
+    tiers: discountConfig?.tiers,
+    freeGift: discountConfig?.freeGift,
   };
 
   const updateConfig = (updates: Partial<DiscountConfig>) => {
@@ -129,19 +136,38 @@ export function DiscountSettingsStep({
     return 10;
   };
 
+  // Detect active advanced discount type
+  const hasAdvancedDiscount = config.bogo || config.tiers?.length || config.freeGift;
+  const advancedDiscountType = config.bogo ? "BOGO" :
+    config.tiers?.length ? "Tiered" :
+    config.freeGift ? "Free Gift" : null;
+
   return (
     <div data-testid="admin-discount-settings-step">
       <BlockStack gap="600">
         {/* Header */}
         <Card>
           <BlockStack gap="400">
-            <Text as="h3" variant="headingMd">
-              Discount Configuration
-            </Text>
+            <InlineStack align="space-between" blockAlign="center">
+              <Text as="h3" variant="headingMd">
+                Discount Configuration
+              </Text>
+              {hasAdvancedDiscount && advancedDiscountType && (
+                <Badge tone="success">{`${advancedDiscountType} Active`}</Badge>
+              )}
+            </InlineStack>
             <Text as="p" variant="bodyMd" tone="subdued">
               Configure discount settings to incentivize conversions. Choose how customers receive
               and use their discounts.
             </Text>
+
+            {/* Show banner when advanced discount is configured */}
+            {hasAdvancedDiscount && (
+              <Banner tone="info">
+                This campaign uses a <strong>{advancedDiscountType}</strong> discount strategy.
+                The settings below apply to code generation and delivery.
+              </Banner>
+            )}
 
             <div data-testid="discount-enabled">
               <Checkbox
@@ -156,14 +182,14 @@ export function DiscountSettingsStep({
 
         {config.enabled !== false && (
           <>
-            {/* Discount Type Settings */}
+            {/* Discount Code Settings - Always shown */}
             <Card>
               <BlockStack gap="400">
                 <Text as="h3" variant="headingMd">
-                  Discount Type
+                  Code Settings
                 </Text>
                 <Text as="p" variant="bodySm" tone="subdued">
-                  Choose how discount codes are generated and used.
+                  Configure how discount codes are generated and delivered.
                 </Text>
 
                 <FormLayout>
@@ -186,90 +212,95 @@ export function DiscountSettingsStep({
                     />
                   </div>
 
-                  <div data-testid="discount-value-type">
-                    <Select
-                      label="Discount Value Type"
-                      options={[
-                        { label: "Percentage Off", value: "PERCENTAGE" },
-                        { label: "Fixed Amount Off", value: "FIXED_AMOUNT" },
-                        { label: "Free Shipping", value: "FREE_SHIPPING" },
-                      ]}
-                      value={config.valueType}
-                      onChange={(valueType) => {
-                        const updates: Partial<DiscountConfig> = {
-                          valueType: valueType as "PERCENTAGE" | "FIXED_AMOUNT" | "FREE_SHIPPING",
-                        };
-                        // Clear value when switching to FREE_SHIPPING
-                        if (valueType === "FREE_SHIPPING") {
-                          updates.value = undefined;
-                        } else if (!config.value) {
-                          // Set default value when switching from FREE_SHIPPING to other types
-                          updates.value = 10;
-                        }
-                        updateConfig(updates);
-                      }}
-                    />
-                  </div>
+                  {/* Only show basic discount value settings when NOT using advanced strategies */}
+                  {!hasAdvancedDiscount && (
+                    <>
+                      <div data-testid="discount-value-type">
+                        <Select
+                          label="Discount Value Type"
+                          options={[
+                            { label: "Percentage Off", value: "PERCENTAGE" },
+                            { label: "Fixed Amount Off", value: "FIXED_AMOUNT" },
+                            { label: "Free Shipping", value: "FREE_SHIPPING" },
+                          ]}
+                          value={config.valueType}
+                          onChange={(valueType) => {
+                            const updates: Partial<DiscountConfig> = {
+                              valueType: valueType as "PERCENTAGE" | "FIXED_AMOUNT" | "FREE_SHIPPING",
+                            };
+                            // Clear value when switching to FREE_SHIPPING
+                            if (valueType === "FREE_SHIPPING") {
+                              updates.value = undefined;
+                            } else if (!config.value) {
+                              // Set default value when switching from FREE_SHIPPING to other types
+                              updates.value = 10;
+                            }
+                            updateConfig(updates);
+                          }}
+                        />
+                      </div>
 
-                  {config.valueType !== "FREE_SHIPPING" && (
-                    <div data-testid="discount-value">
-                      <TextField
-                        label={getValueLabel()}
-                        type="number"
-                        suffix={getValueSuffix()}
-                        value={config.value?.toString() || ""}
-                        onChange={(value) => updateConfig({ value: parseFloat(value) || 0 })}
-                        placeholder={getValuePlaceholder()}
-                        autoComplete="off"
-                        min={0}
-                        max={config.valueType === "PERCENTAGE" ? 100 : undefined}
-                        helpText={
-                          goal && (
-                            <span>
-                              Recommended for {goal.replace("_", " ").toLowerCase()}:{" "}
-                              {getRecommendedValue()}
-                              {getValueSuffix()}
-                            </span>
-                          )
-                        }
-                      />
-                    </div>
+                      {config.valueType !== "FREE_SHIPPING" && (
+                        <div data-testid="discount-value">
+                          <TextField
+                            label={getValueLabel()}
+                            type="number"
+                            suffix={getValueSuffix()}
+                            value={config.value?.toString() ?? ""}
+                            onChange={(value) => updateConfig({ value: value === "" ? undefined : parseFloat(value) })}
+                            placeholder={getValuePlaceholder()}
+                            autoComplete="off"
+                            min={0}
+                            max={config.valueType === "PERCENTAGE" ? 100 : undefined}
+                            helpText={
+                              goal && (
+                                <span>
+                                  Recommended for {goal.replace("_", " ").toLowerCase()}:{" "}
+                                  {getRecommendedValue()}
+                                  {getValueSuffix()}
+                                </span>
+                              )
+                            }
+                          />
+                        </div>
+                      )}
+
+                      {config.valueType === "FREE_SHIPPING" && (
+                        <div
+                          style={{
+                            padding: "12px",
+                            backgroundColor: "#F6F6F7",
+                            borderRadius: "4px",
+                          }}
+                        >
+                          <Text as="p" variant="bodySm">
+                            🚚 <strong>Free Shipping Discount</strong>
+                            <br />
+                            This discount will provide free shipping to customers. No discount value is
+                            needed.
+                          </Text>
+                        </div>
+                      )}
+
+                      <div data-testid="discount-minimum-amount">
+                        <TextField
+                          label="Minimum Order Amount (Optional)"
+                          type="number"
+                          prefix="$"
+                          value={config.minimumAmount?.toString() ?? ""}
+                          onChange={(value) =>
+                            updateConfig({
+                              minimumAmount: value === "" ? undefined : parseFloat(value),
+                            })
+                          }
+                          placeholder="0.00"
+                          autoComplete="off"
+                          min={0}
+                          helpText="Only apply discount if order total meets this minimum"
+                        />
+                      </div>
+                    </>
                   )}
-
-                  {config.valueType === "FREE_SHIPPING" && (
-                    <div
-                      style={{
-                        padding: "12px",
-                        backgroundColor: "#F6F6F7",
-                        borderRadius: "4px",
-                      }}
-                    >
-                      <Text as="p" variant="bodySm">
-                        🚚 <strong>Free Shipping Discount</strong>
-                        <br />
-                        This discount will provide free shipping to customers. No discount value is
-                        needed.
-                      </Text>
-                    </div>
-                  )}
-
-                  <div data-testid="discount-minimum-amount">
-                    <TextField
-                      label="Minimum Order Amount (Optional)"
-                      type="number"
-                      prefix="$"
-                      value={config.minimumAmount?.toString() || ""}
-                      onChange={(value) =>
-                        updateConfig({
-                          minimumAmount: parseFloat(value) || undefined,
-                        })
-                      }
-                      placeholder="0.00"
-                      autoComplete="off"
-                      min={0}
-                      helpText="Only apply discount if order total meets this minimum"
-                    />
-                  </div>
                 </FormLayout>
               </BlockStack>
             </Card>
@@ -365,8 +396,8 @@ export function DiscountSettingsStep({
                     <TextField
                       label="Expires After (Days)"
                       type="number"
-                      value={config.expiryDays?.toString() || "30"}
-                      onChange={(value) => updateConfig({ expiryDays: parseInt(value) || 30 })}
+                      value={config.expiryDays?.toString() ?? ""}
+                      onChange={(value) => updateConfig({ expiryDays: value === "" ? undefined : parseInt(value) })}
                       placeholder="30"
                       autoComplete="off"
                       min={1}
@@ -379,9 +410,9 @@ export function DiscountSettingsStep({
                       <TextField
                         label="Usage Limit (Optional)"
                         type="number"
-                        value={config.usageLimit?.toString() || ""}
+                        value={config.usageLimit?.toString() ?? ""}
                         onChange={(value) =>
-                          updateConfig({ usageLimit: parseInt(value) || undefined })
+                          updateConfig({ usageLimit: value === "" ? undefined : parseInt(value) })
                         }
                         placeholder="1000"
                         autoComplete="off"

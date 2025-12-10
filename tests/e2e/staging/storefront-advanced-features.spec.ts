@@ -1,12 +1,12 @@
 import { test, expect } from '@playwright/test';
 import { PrismaClient } from '@prisma/client';
+import path from 'path';
 import * as dotenv from 'dotenv';
 import {
     STORE_URL,
     STORE_DOMAIN,
     API_PROPAGATION_DELAY_MS,
     handlePasswordPage,
-    mockChallengeToken,
     mockUpsellProducts,
     getTestPrefix,
     waitForPopupWithRetry,
@@ -15,7 +15,7 @@ import {
 } from './helpers/test-helpers';
 import { CampaignFactory } from './factories/campaign-factory';
 
-dotenv.config({ path: '.env.staging.env' });
+dotenv.config({ path: path.resolve(process.cwd(), '.env.staging.env'), override: true });
 
 const TEST_PREFIX = getTestPrefix('storefront-advanced-features.spec.ts');
 
@@ -63,7 +63,6 @@ test.describe.serial('Advanced Features', () => {
         // Clean up ALL E2E campaigns to avoid priority conflicts
         await cleanupAllE2ECampaigns(prisma);
         await page.waitForTimeout(500);
-        await mockChallengeToken(page);
 
         page.on('console', msg => {
             const text = msg.text();

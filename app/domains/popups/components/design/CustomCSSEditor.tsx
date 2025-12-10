@@ -9,8 +9,10 @@ import {
   Tooltip,
   BlockStack,
   InlineStack,
+  Collapsible,
+  Icon,
 } from "@shopify/polaris";
-import { ViewIcon, ResetIcon } from "@shopify/polaris-icons";
+import { ViewIcon, ResetIcon, ChevronDownIcon, ChevronUpIcon } from "@shopify/polaris-icons";
 import { CustomCssSchema, CUSTOM_CSS_MAX_LENGTH } from "~/lib/css-guards";
 import {
   getCustomCssConfig,
@@ -40,6 +42,7 @@ export const CustomCSSEditor: React.FC<CustomCSSEditorProps> = ({
   disabled = false,
   templateType,
 }) => {
+  const [isOpen, setIsOpen] = useState(false);
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [validationErrors, setValidationErrors] = useState<CSSValidationError[]>([]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -293,103 +296,110 @@ export const CustomCSSEditor: React.FC<CustomCSSEditorProps> = ({
   const errorCount = validationErrors.filter((e) => e.severity === "error").length;
   const warningCount = validationErrors.filter((e) => e.severity === "warning").length;
 
+  const handleToggle = useCallback(() => setIsOpen((prev) => !prev), []);
+
   return (
     <Card>
       <Box padding="400">
         <BlockStack gap="400">
-          {/* Header */}
-          <InlineStack align="space-between">
-            <BlockStack gap="100">
-              <Text as="h3" variant="headingMd">
-                Custom CSS Editor
-              </Text>
-              <Text as="span" variant="bodySm">
-                Add custom styles to enhance your popup appearance
-              </Text>
-            </BlockStack>
+          {/* Collapsible Header */}
+          <div
+            onClick={handleToggle}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                handleToggle();
+              }
+            }}
+            role="button"
+            tabIndex={0}
+            style={{ cursor: "pointer" }}
+          >
+            <InlineStack align="space-between" blockAlign="center">
+              <InlineStack gap="200" blockAlign="center">
+                <Icon source={isOpen ? ChevronUpIcon : ChevronDownIcon} />
+                <BlockStack gap="100">
+                  <Text as="h3" variant="headingMd">
+                    Custom CSS Editor
+                  </Text>
+                  <Text as="span" variant="bodySm" tone="subdued">
+                    Add custom styles to enhance your popup appearance
+                  </Text>
+                </BlockStack>
+              </InlineStack>
 
-            <InlineStack gap="200">
-              <Badge tone="info">{`${value.length.toLocaleString()} / ${CUSTOM_CSS_MAX_LENGTH.toLocaleString()} chars`}</Badge>
+              <InlineStack gap="200">
+                {value.trim() && (
+                  <Badge tone="info">{`${value.length.toLocaleString()} chars`}</Badge>
+                )}
+                {validationErrors.length > 0 && (
+                  <InlineStack gap="100">
+                    {errorCount > 0 && (
+                      <Badge tone="critical">{`${String(errorCount)} errors`}</Badge>
+                    )}
+                    {warningCount > 0 && (
+                      <Badge tone="warning">{`${String(warningCount)} warnings`}</Badge>
+                    )}
+                  </InlineStack>
+                )}
+              </InlineStack>
+            </InlineStack>
+          </div>
 
+          <Collapsible open={isOpen} id="custom-css-editor-collapsible">
+            <BlockStack gap="400">
+              {/* Editor Controls */}
+              <InlineStack align="end" gap="200">
+                <Badge tone="info">{`${value.length.toLocaleString()} / ${CUSTOM_CSS_MAX_LENGTH.toLocaleString()} chars`}</Badge>
+
+                <Button
+                  icon={ViewIcon}
+                  onClick={handlePreviewToggle}
+                  pressed={isPreviewMode}
+                  disabled={disabled}
+                >
+                  {isPreviewMode ? "Edit" : "Preview"}
+                </Button>
+
+                <Button icon={ResetIcon} onClick={handleReset} disabled={disabled || !value.trim()}>
+                  Reset
+                </Button>
+              </InlineStack>
+
+              {/* Validation Errors */}
               {validationErrors.length > 0 && (
-                <InlineStack gap="100">
-                  {errorCount > 0 && (
-                    <Badge tone="critical">{`${String(errorCount)} errors`}</Badge>
-                  )}
-                  {warningCount > 0 && (
-                    <Badge tone="warning">{`${String(warningCount)} warnings`}</Badge>
-                  )}
-                </InlineStack>
+                <Banner
+                  tone={errorCount > 0 ? "critical" : "warning"}
+                  title={`${validationErrors.length} CSS ${validationErrors.length === 1 ? "issue" : "issues"} found`}
+                >
+                  <BlockStack gap="100">
+                    {validationErrors.slice(0, 5).map((error, index) => (
+                      <Text as="span" key={index} variant="bodySm">
+                        Line {error.line}: {error.message}
+                      </Text>
+                    ))}
+                    {validationErrors.length > 5 && (
+                      <Text as="span" variant="bodySm">
+                        ... and {validationErrors.length - 5} more
+                      </Text>
+                    )}
+                  </BlockStack>
+                </Banner>
               )}
 
-              <Button
-                icon={ViewIcon}
-                onClick={handlePreviewToggle}
-                pressed={isPreviewMode}
-                disabled={disabled}
-              >
-                {isPreviewMode ? "Edit" : "Preview"}
-              </Button>
+              {/* CSS Snippets */}
+              <Card background="bg-surface-secondary">
+                <Box padding="300">
+                  <BlockStack gap="300">
+                    <Text as="span" variant="bodyMd" fontWeight="semibold">
+                      CSS Snippets
+                    </Text>
 
-              <Button icon={ResetIcon} onClick={handleReset} disabled={disabled || !value.trim()}>
-                Reset
-              </Button>
-            </InlineStack>
-          </InlineStack>
-
-          {/* Validation Errors */}
-          {validationErrors.length > 0 && (
-            <Banner
-              tone={errorCount > 0 ? "critical" : "warning"}
-              title={`${validationErrors.length} CSS ${validationErrors.length === 1 ? "issue" : "issues"} found`}
-            >
-              <BlockStack gap="100">
-                {validationErrors.slice(0, 5).map((error, index) => (
-                  <Text as="span" key={index} variant="bodySm">
-                    Line {error.line}: {error.message}
-                  </Text>
-                ))}
-                {validationErrors.length > 5 && (
-                  <Text as="span" variant="bodySm">
-                    ... and {validationErrors.length - 5} more
-                  </Text>
-                )}
-              </BlockStack>
-            </Banner>
-          )}
-
-          {/* CSS Snippets */}
-          <Card background="bg-surface-secondary">
-            <Box padding="300">
-              <BlockStack gap="300">
-                <Text as="span" variant="bodyMd" fontWeight="semibold">
-                  CSS Snippets
-                </Text>
-
-                <Text as="span" tone="subdued" variant="bodySm">
-                  Shared
-                </Text>
-                <InlineStack gap="200" wrap>
-                  {sharedSnippets.map((snippet) => (
-                    <Tooltip key={snippet.id} content={snippet.description}>
-                      <Button
-                        size="micro"
-                        onClick={() => handleSnippetInsert(snippet)}
-                        disabled={disabled}
-                      >
-                        {snippet.name}
-                      </Button>
-                    </Tooltip>
-                  ))}
-                </InlineStack>
-
-                {templateSnippets.length > 0 && (
-                  <>
                     <Text as="span" tone="subdued" variant="bodySm">
-                      This template
+                      Shared
                     </Text>
                     <InlineStack gap="200" wrap>
-                      {templateSnippets.map((snippet) => (
+                      {sharedSnippets.map((snippet) => (
                         <Tooltip key={snippet.id} content={snippet.description}>
                           <Button
                             size="micro"
@@ -401,73 +411,94 @@ export const CustomCSSEditor: React.FC<CustomCSSEditorProps> = ({
                         </Tooltip>
                       ))}
                     </InlineStack>
-                  </>
-                )}
-              </BlockStack>
-            </Box>
-          </Card>
 
-          {/* CSS Editor */}
-          <Box>
-            {isPreviewMode ? (
-              <Card background="bg-surface-secondary">
-                <Box padding="400">
-                  <BlockStack gap="200">
-                    <Text as="span" variant="bodyMd" fontWeight="semibold">
-                      CSS Preview
-                    </Text>
-                    <div
-                      style={{
-                        fontFamily: 'Monaco, Consolas, "Courier New", monospace',
-                        fontSize: "14px",
-                        lineHeight: "1.5",
-                        whiteSpace: "pre-wrap",
-                        backgroundColor: "#f8f9fa",
-                        padding: "12px",
-                        borderRadius: "6px",
-                        border: "1px solid #e1e3e5",
-                      }}
-                      dangerouslySetInnerHTML={{
-                        __html: highlightCSS(value || "/* No custom CSS added yet */"),
-                      }}
-                    />
+                    {templateSnippets.length > 0 && (
+                      <>
+                        <Text as="span" tone="subdued" variant="bodySm">
+                          This template
+                        </Text>
+                        <InlineStack gap="200" wrap>
+                          {templateSnippets.map((snippet) => (
+                            <Tooltip key={snippet.id} content={snippet.description}>
+                              <Button
+                                size="micro"
+                                onClick={() => handleSnippetInsert(snippet)}
+                                disabled={disabled}
+                              >
+                                {snippet.name}
+                              </Button>
+                            </Tooltip>
+                          ))}
+                        </InlineStack>
+                      </>
+                    )}
                   </BlockStack>
                 </Box>
               </Card>
-            ) : (
-              <Box>
-                <textarea
-                  ref={textareaRef}
-                  value={value}
-                  onChange={(e) => handleCSSChange(e.target.value)}
-                  disabled={disabled}
-                  maxLength={CUSTOM_CSS_MAX_LENGTH}
-                  spellCheck={false}
-                  placeholder="/* Add your custom CSS here */&#10;[data-popup-card] {&#10;  /* Your styles */&#10;}"
-                  style={{
-                    width: "100%",
-                    minHeight: "300px",
-                    fontFamily: 'Monaco, Consolas, "Courier New", monospace',
-                    fontSize: "14px",
-                    lineHeight: "1.5",
-                    padding: "12px",
-                    border: "1px solid #c9cccf",
-                    borderRadius: "6px",
-                    backgroundColor: disabled ? "#f6f6f7" : "#ffffff",
-                    resize: "vertical",
-                  }}
-                />
-              </Box>
-            )}
-          </Box>
 
-          {/* Safety Notice */}
-          <Banner tone="info">
-            <Text as="span" variant="bodySm">
-              <strong>Safety Notice:</strong> Custom CSS is applied with limited scope to prevent
-              breaking the popup layout. Styles are automatically prefixed and validated for safety.
-            </Text>
-          </Banner>
+              {/* CSS Editor */}
+              <Box>
+                {isPreviewMode ? (
+                  <Card background="bg-surface-secondary">
+                    <Box padding="400">
+                      <BlockStack gap="200">
+                        <Text as="span" variant="bodyMd" fontWeight="semibold">
+                          CSS Preview
+                        </Text>
+                        <div
+                          style={{
+                            fontFamily: 'Monaco, Consolas, "Courier New", monospace',
+                            fontSize: "14px",
+                            lineHeight: "1.5",
+                            whiteSpace: "pre-wrap",
+                            backgroundColor: "#f8f9fa",
+                            padding: "12px",
+                            borderRadius: "6px",
+                            border: "1px solid #e1e3e5",
+                          }}
+                          dangerouslySetInnerHTML={{
+                            __html: highlightCSS(value || "/* No custom CSS added yet */"),
+                          }}
+                        />
+                      </BlockStack>
+                    </Box>
+                  </Card>
+                ) : (
+                  <Box>
+                    <textarea
+                      ref={textareaRef}
+                      value={value}
+                      onChange={(e) => handleCSSChange(e.target.value)}
+                      disabled={disabled}
+                      maxLength={CUSTOM_CSS_MAX_LENGTH}
+                      spellCheck={false}
+                      placeholder="/* Add your custom CSS here */&#10;[data-popup-card] {&#10;  /* Your styles */&#10;}"
+                      style={{
+                        width: "100%",
+                        minHeight: "300px",
+                        fontFamily: 'Monaco, Consolas, "Courier New", monospace',
+                        fontSize: "14px",
+                        lineHeight: "1.5",
+                        padding: "12px",
+                        border: "1px solid #c9cccf",
+                        borderRadius: "6px",
+                        backgroundColor: disabled ? "#f6f6f7" : "#ffffff",
+                        resize: "vertical",
+                      }}
+                    />
+                  </Box>
+                )}
+              </Box>
+
+              {/* Safety Notice */}
+              <Banner tone="info">
+                <Text as="span" variant="bodySm">
+                  <strong>Safety Notice:</strong> Custom CSS is applied with limited scope to prevent
+                  breaking the popup layout. Styles are automatically prefixed and validated for safety.
+                </Text>
+              </Banner>
+            </BlockStack>
+          </Collapsible>
         </BlockStack>
       </Box>
     </Card>

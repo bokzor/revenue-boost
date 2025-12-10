@@ -7,7 +7,7 @@
 
 import { useCallback, useMemo, memo, forwardRef, useImperativeHandle, useRef } from "react";
 
-import { TemplateTypeEnum } from "~/lib/template-types.enum";
+import { TemplateTypeEnum } from "~/domains/campaigns/types/campaign";
 import { getTemplatePreviewEntry } from "./template-preview-registry";
 import type {
   FlashSaleConfig,
@@ -17,6 +17,11 @@ import type {
   ProductUpsellConfig,
   SocialProofNotification as PreviewSocialProofNotification,
   SocialProofConfig,
+  ClassicUpsellConfig,
+  MinimalSlideUpConfig,
+  PremiumFullscreenConfig,
+  BundleDealConfig,
+  CountdownUrgencyConfig,
 } from "~/domains/storefront/popups-new";
 import type { ReactNode } from "react";
 
@@ -83,8 +88,12 @@ export interface TemplatePreviewProps {
   onPreviewElementReady?: (element: HTMLElement | null) => void;
   globalCustomCSS?: string;
   campaignCustomCSS?: string;
+  /** Default theme tokens for preview (from store's default preset or Shopify theme) */
+  defaultThemeTokens?: import("~/domains/campaigns/types/design-tokens").DesignTokens;
   /** Optional callback when popup is closed (for demo/marketing respawn behavior) */
   onClose?: () => void;
+  /** Controls popup visibility - when false, triggers exit animation */
+  isVisible?: boolean;
 }
 
 export interface TemplatePreviewRef {
@@ -100,7 +109,9 @@ const TemplatePreviewComponent = forwardRef<TemplatePreviewRef, TemplatePreviewP
       onPreviewElementReady,
       globalCustomCSS,
       campaignCustomCSS,
+      defaultThemeTokens,
       onClose: externalOnClose,
+      isVisible: externalIsVisible = true,
     },
     ref
   ) => {
@@ -135,14 +146,37 @@ const TemplatePreviewComponent = forwardRef<TemplatePreviewRef, TemplatePreviewP
     }, [externalOnClose]);
 
     // Memoize merged config to prevent re-renders with more stable dependencies
-  const mergedConfig: Record<string, unknown> = useMemo(() => {
-    if (!templateType) {
-      return { ...config, ...designConfig, globalCustomCSS };
-    }
+    const mergedConfig: Record<string, unknown> = useMemo(() => {
+      if (!templateType) {
+        return { ...config, ...designConfig, globalCustomCSS };
+      }
+
+      // SIMPLIFIED MODEL: Always apply store default tokens as base.
+      // Campaign's explicit colors (in designConfig) override them.
+      // themeMode is deprecated - no more conditional logic.
+      const defaultTokenColors = defaultThemeTokens
+        ? {
+            backgroundColor: defaultThemeTokens.background,
+            textColor: defaultThemeTokens.foreground,
+            descriptionColor: defaultThemeTokens.muted,
+            buttonColor: defaultThemeTokens.primary,
+            buttonTextColor: defaultThemeTokens.primaryForeground,
+            accentColor: defaultThemeTokens.primary,
+            successColor: defaultThemeTokens.success,
+            fontFamily: defaultThemeTokens.fontFamily,
+            borderRadius: defaultThemeTokens.borderRadius,
+            inputBackgroundColor: defaultThemeTokens.surface,
+            inputBorderColor: defaultThemeTokens.border,
+          }
+        : {};
 
       // For newsletter templates, ensure discount config is properly merged
-      const baseConfig = {
+      const baseConfig: Record<string, unknown> = {
+        // Apply default theme tokens first (lowest priority)
+        ...defaultTokenColors,
+        // Then content config
         ...config,
+        // Then design config (can override default tokens if explicitly set)
         ...designConfig,
         // Ensure popup is visible in preview
         isVisible: true,
@@ -151,6 +185,12 @@ const TemplatePreviewComponent = forwardRef<TemplatePreviewRef, TemplatePreviewP
         // Pass global custom CSS through so scoped injection works for all templates (including banners/social proof)
         globalCustomCSS,
       };
+
+      // IMPORTANT: For ProductUpsell, preserve the content's `layout` field (grid/card/carousel/etc.)
+      // which gets overwritten by designConfig.layout (centered/split-left/etc.) - different meanings!
+      if (templateType === TemplateTypeEnum.PRODUCT_UPSELL && config.layout) {
+        baseConfig.layout = config.layout;
+      }
 
       // If this is a newsletter template, merge discount configuration
       if (templateType.includes("newsletter")) {
@@ -168,7 +208,7 @@ const TemplatePreviewComponent = forwardRef<TemplatePreviewRef, TemplatePreviewP
       }
 
       return baseConfig;
-    }, [config, designConfig, templateType, globalCustomCSS]);
+    }, [config, designConfig, templateType, globalCustomCSS, defaultThemeTokens]);
 
     const scopedCss = useMemo(
       () => buildScopedStyles(globalCustomCSS, campaignCustomCSS),
@@ -227,7 +267,11 @@ const TemplatePreviewComponent = forwardRef<TemplatePreviewRef, TemplatePreviewP
         return (
           <PreviewContainer scopedStylesNode={scopedStylesNode}>
             <div ref={setPreviewElementRef} data-popup-preview style={{ display: "contents" }}>
-              <PreviewComponent config={componentConfig} isVisible={true} onClose={handleClose} />
+              <PreviewComponent
+                config={componentConfig}
+                isVisible={externalIsVisible}
+                onClose={handleClose}
+              />
             </div>
           </PreviewContainer>
         );
@@ -274,7 +318,7 @@ const TemplatePreviewComponent = forwardRef<TemplatePreviewRef, TemplatePreviewP
           <div ref={setPreviewElementRef} data-popup-preview style={{ display: "contents" }}>
             <PreviewComponent
               config={newsletterConfig}
-              isVisible={true}
+              isVisible={externalIsVisible}
               onClose={handleClose}
               onSubmit={previewOnSubmit}
             />
@@ -306,7 +350,7 @@ const TemplatePreviewComponent = forwardRef<TemplatePreviewRef, TemplatePreviewP
           <div ref={setPreviewElementRef} data-popup-preview style={{ display: "contents" }}>
             <PreviewComponent
               config={flashConfig}
-              isVisible={true}
+              isVisible={externalIsVisible}
               onClose={handleClose}
               issueDiscount={previewIssueDiscount}
             />
@@ -324,18 +368,12 @@ const TemplatePreviewComponent = forwardRef<TemplatePreviewRef, TemplatePreviewP
           ? freeShippingConfig.threshold
           : 75;
 
-      const nearMiss =
-        typeof freeShippingConfig.nearMissThreshold === "number" &&
-        freeShippingConfig.nearMissThreshold > 0
-          ? freeShippingConfig.nearMissThreshold
-          : 10;
-
-      // Start slightly above the threshold so the bar is unlocked and the
-      // discount issuance flow can be exercised reliably in preview.
+      // Show progress state by default (60% of threshold) so users can see
+      // the "in progress" bar instead of "goal already reached".
       const previewCartTotal =
         typeof freeShippingConfig.currentCartTotal === "number"
           ? freeShippingConfig.currentCartTotal
-          : threshold + nearMiss;
+          : Math.round(threshold * 0.6);
 
       const baseCode = freeShippingConfig.discount?.code || "FREESHIP";
       const amount = Math.round(threshold);
@@ -363,7 +401,7 @@ const TemplatePreviewComponent = forwardRef<TemplatePreviewRef, TemplatePreviewP
           <div ref={setPreviewElementRef} data-popup-preview style={{ display: "contents" }}>
             <PreviewComponent
               config={configWithCart}
-              isVisible={true}
+              isVisible={externalIsVisible}
               onClose={handleClose}
               cartTotal={previewCartTotal}
               issueDiscount={previewIssueDiscount}
@@ -386,14 +424,16 @@ const TemplatePreviewComponent = forwardRef<TemplatePreviewRef, TemplatePreviewP
           title: "Premium Hoodie",
           quantity: 1,
           price: 59.0,
-          imageUrl: "https://images.pexels.com/photos/7671166/pexels-photo-7671166.jpeg?auto=compress&cs=tinysrgb&w=150",
+          imageUrl:
+            "https://images.pexels.com/photos/7671166/pexels-photo-7671166.jpeg?auto=compress&cs=tinysrgb&w=150",
         },
         {
           id: "preview-item-2",
           title: "Classic Sneakers",
           quantity: 1,
           price: 89.0,
-          imageUrl: "https://images.pexels.com/photos/2529148/pexels-photo-2529148.jpeg?auto=compress&cs=tinysrgb&w=150",
+          imageUrl:
+            "https://images.pexels.com/photos/2529148/pexels-photo-2529148.jpeg?auto=compress&cs=tinysrgb&w=150",
         },
       ];
 
@@ -422,7 +462,7 @@ const TemplatePreviewComponent = forwardRef<TemplatePreviewRef, TemplatePreviewP
           <div ref={setPreviewElementRef} data-popup-preview style={{ display: "contents" }}>
             <PreviewComponent
               config={cartConfig}
-              isVisible={true}
+              isVisible={externalIsVisible}
               onClose={handleClose}
               cartItems={mockCartItems}
               cartTotal={previewCartTotal}
@@ -450,7 +490,43 @@ const TemplatePreviewComponent = forwardRef<TemplatePreviewRef, TemplatePreviewP
           <div ref={setPreviewElementRef} data-popup-preview style={{ display: "contents" }}>
             <PreviewComponent
               config={upsellConfig}
-              isVisible={true}
+              isVisible={externalIsVisible}
+              onClose={handleClose}
+              onAddToCart={previewOnAddToCart}
+            />
+          </div>
+        </PreviewContainer>
+      );
+    }
+
+    // Special handling for new upsell popup variants: provide mocked add-to-cart callback
+    const upsellVariantTypes = [
+      TemplateTypeEnum.CLASSIC_UPSELL,
+      TemplateTypeEnum.MINIMAL_SLIDE_UP,
+      TemplateTypeEnum.PREMIUM_FULLSCREEN,
+      TemplateTypeEnum.COUNTDOWN_URGENCY,
+    ] as const;
+
+    if (upsellVariantTypes.includes(templateType as (typeof upsellVariantTypes)[number])) {
+      type UpsellVariantConfig =
+        | ClassicUpsellConfig
+        | MinimalSlideUpConfig
+        | PremiumFullscreenConfig
+        | BundleDealConfig
+        | CountdownUrgencyConfig;
+      const upsellVariantConfig = componentConfig as UpsellVariantConfig;
+
+      const previewOnAddToCart = async (productIds: string[]): Promise<void> => {
+        console.log(`[TemplatePreview][${templateType}] Preview add to cart`, { productIds });
+        await new Promise((resolve) => setTimeout(resolve, 400));
+      };
+
+      return (
+        <PreviewContainer scopedStylesNode={scopedStylesNode}>
+          <div ref={setPreviewElementRef} data-popup-preview style={{ display: "contents" }}>
+            <PreviewComponent
+              config={upsellVariantConfig}
+              isVisible={externalIsVisible}
               onClose={handleClose}
               onAddToCart={previewOnAddToCart}
             />
@@ -473,7 +549,9 @@ const TemplatePreviewComponent = forwardRef<TemplatePreviewRef, TemplatePreviewP
         maxNotificationsPerSession: 0,
       } as SocialProofConfig;
 
-      const previewNotifications = buildSocialProofPreviewNotifications(socialProofConfig as unknown as Record<string, unknown>);
+      const previewNotifications = buildSocialProofPreviewNotifications(
+        socialProofConfig as unknown as Record<string, unknown>
+      );
 
       console.log("[TemplatePreview][SocialProof] Rendering social proof preview", {
         templateType,
@@ -491,7 +569,7 @@ const TemplatePreviewComponent = forwardRef<TemplatePreviewRef, TemplatePreviewP
           <div ref={setPreviewElementRef} data-popup-preview style={{ display: "contents" }}>
             <PreviewComponent
               config={socialProofConfig}
-              isVisible={true}
+              isVisible={externalIsVisible}
               onClose={handleClose}
               notifications={previewNotifications}
             />
@@ -503,7 +581,11 @@ const TemplatePreviewComponent = forwardRef<TemplatePreviewRef, TemplatePreviewP
     return (
       <PreviewContainer scopedStylesNode={scopedStylesNode}>
         <div ref={setPreviewElementRef} data-popup-preview style={{ display: "contents" }}>
-          <PreviewComponent config={componentConfig} isVisible={true} onClose={handleClose} />
+          <PreviewComponent
+            config={componentConfig}
+            isVisible={externalIsVisible}
+            onClose={handleClose}
+          />
         </div>
       </PreviewContainer>
     );
@@ -514,7 +596,7 @@ function buildSocialProofPreviewNotifications(
   config: Record<string, unknown>
 ): PreviewSocialProofNotification[] {
   const notifications: PreviewSocialProofNotification[] = [];
-  const now = new Date();
+  const now = Date.now();
 
   // Choose values that always satisfy any configured thresholds
   const visitorCount = Math.max(
@@ -537,6 +619,8 @@ function buildSocialProofPreviewNotifications(
       id: "preview-visitor-live",
       type: "visitor",
       count: visitorCount,
+      context: "viewing this product",
+      trending: false,
       timestamp: now,
     });
   }
@@ -548,7 +632,8 @@ function buildSocialProofPreviewNotifications(
     type: "visitor",
     count: 47,
     context: "bought this in the last 24 hours",
-    timestamp: new Date(now.getTime() - 10 * 60 * 1000),
+    trending: true,
+    timestamp: now - 10 * 60 * 1000,
   });
 
   // 3) Low stock alert (Tier 2)
@@ -558,7 +643,8 @@ function buildSocialProofPreviewNotifications(
     type: "visitor",
     count: 3,
     context: "left in stock!",
-    timestamp: new Date(now.getTime() - 20 * 60 * 1000),
+    trending: false,
+    timestamp: now - 20 * 60 * 1000,
   });
 
   // 4) Cart activity (Tier 2)
@@ -568,7 +654,8 @@ function buildSocialProofPreviewNotifications(
     type: "visitor",
     count: 5,
     context: "added to cart in the last hour",
-    timestamp: new Date(now.getTime() - 25 * 60 * 1000),
+    trending: false,
+    timestamp: now - 25 * 60 * 1000,
   });
 
   // 5) Recently viewed (Tier 2)
@@ -578,7 +665,8 @@ function buildSocialProofPreviewNotifications(
     type: "visitor",
     count: 15,
     context: "viewed this in the last hour",
-    timestamp: new Date(now.getTime() - 35 * 60 * 1000),
+    trending: false,
+    timestamp: now - 35 * 60 * 1000,
   });
 
   // 6) Review notification
@@ -586,9 +674,14 @@ function buildSocialProofPreviewNotifications(
     notifications.push({
       id: "preview-review-1",
       type: "review",
-      name: "Emily K.",
       rating: reviewRating,
-      timestamp: new Date(now.getTime() - 30 * 60 * 1000),
+      reviewCount: 127,
+      recentReview: {
+        author: "Emily K.",
+        text: "Great product! Highly recommend.",
+        verified: true,
+      },
+      timestamp: now - 30 * 60 * 1000,
     });
   }
 
@@ -598,18 +691,22 @@ function buildSocialProofPreviewNotifications(
       {
         id: "preview-purchase-1",
         type: "purchase",
-        name: "John D.",
+        customerName: "John D.",
         location: "New York, NY",
-        product: "Classic T-Shirt",
-        timestamp: new Date(now.getTime() - 2 * 60 * 1000),
+        productName: "Classic T-Shirt",
+        timeAgo: "2 minutes ago",
+        verified: true,
+        timestamp: now - 2 * 60 * 1000,
       },
       {
         id: "preview-purchase-2",
         type: "purchase",
-        name: "Sarah M.",
+        customerName: "Sarah M.",
         location: "Los Angeles, CA",
-        product: "Denim Jacket",
-        timestamp: new Date(now.getTime() - 5 * 60 * 1000),
+        productName: "Denim Jacket",
+        timeAgo: "5 minutes ago",
+        verified: true,
+        timestamp: now - 5 * 60 * 1000,
       }
     );
   }
@@ -619,8 +716,11 @@ function buildSocialProofPreviewNotifications(
     notifications.push({
       id: "preview-purchase-fallback",
       type: "purchase",
-      name: "Alex",
-      product: "Best-selling product",
+      customerName: "Alex",
+      location: "Nearby",
+      productName: "Best-selling product",
+      timeAgo: "Just now",
+      verified: true,
       timestamp: now,
     });
   }

@@ -63,8 +63,8 @@ jobs:
 
   deploy:
     name: 🚀 Deploy to Staging
-    needs: [tests]
-    if: always() && (needs.tests.result == 'success' || needs.tests.result == 'skipped')
+    # Run in parallel with tests for faster staging deployments
+    # Tests failure will be handled by notify-on-test-failure job
     runs-on: ubuntu-latest
     environment: staging
     permissions:
@@ -74,18 +74,6 @@ jobs:
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
-
-      - name: 📦 Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-
-      - name: 🔧 Install dependencies
-        run: npm ci
-
-      - name: 🏗️ Build application
-        run: npm run build
 
       - name: 🔐 Authenticate to Google Cloud
         id: 'auth'
@@ -101,9 +89,11 @@ jobs:
       - name: 🐳 Configure Docker for Artifact Registry
         run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev
 
-      - name: 🔨 Build and push Docker image
+      - name: 🐳 Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 🔍 Check Artifact Registry repository
         run: |
-          # Ensure Artifact Registry repository exists (one-time manual setup in GCP console)
           gcloud artifacts repositories describe ${{ env.SERVICE_NAME }} \
             --location=${{ env.REGION }} \
             >/dev/null 2>&1 || {
@@ -112,13 +102,17 @@ jobs:
               exit 1
             }
 
-          # Build with staging mode (minified but with console.log and sourcemaps)
-          docker build \
-            --build-arg BUILD_MODE=staging \
-            -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }} .
-          docker tag ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }} ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}/${{ env.SERVICE_NAME }}:latest
-          docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
-          docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}/${{ env.SERVICE_NAME }}:latest
+      - name: 🔨 Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
+            ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}/${{ env.SERVICE_NAME }}:latest
+          build-args: BUILD_MODE=staging
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: 🚀 Deploy to Cloud Run
         env:
@@ -170,6 +164,7 @@ jobs:
           RATE_LIMIT_BYPASS: "true"
           EOF
 
+          # Deploy with --no-traffic for zero-downtime (new revision doesn't receive traffic yet)
           gcloud run deploy ${{ env.SERVICE_NAME }} \
             --image ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}/${{ env.SERVICE_NAME }}:latest \
             --region ${{ env.REGION }} \
@@ -181,6 +176,7 @@ jobs:
             --max-instances 3 \
             --timeout 300 \
             --port 3000 \
+            --no-traffic \
             --env-vars-file env_vars.yaml
 
       - name: 🌐 Get service URL
@@ -218,9 +214,10 @@ jobs:
           RATE_LIMIT_BYPASS: "true"
           EOF
 
-            # Redeploy with the real URL
-            gcloud run services update ${{ env.SERVICE_NAME }} \
+            # Redeploy with the real URL (also with --no-traffic)
+            gcloud run deploy ${{ env.SERVICE_NAME }} \
               --region ${{ env.REGION }} \
+              --no-traffic \
               --env-vars-file env_vars.yaml
 
             echo "✅ Service updated with real URL"
@@ -228,11 +225,46 @@ jobs:
             echo "✅ Service already has correct URL: $CURRENT_APP_URL"
           fi
 
-      - name: 🏥 Health check
+      - name: 🏥 Health check (new revision)
+        id: health-check
         run: |
-          echo "⏳ Waiting for service to be ready..."
-          sleep 30
-          curl -f ${{ steps.service-url.outputs.url }}/api/health || echo "⚠️ Health check failed, but deployment completed"
+          echo "⏳ Checking new revision health..."
+          # Get the latest revision URL for health check
+          LATEST_REVISION=$(gcloud run revisions list \
+            --service=${{ env.SERVICE_NAME }} \
+            --region=${{ env.REGION }} \
+            --limit=1 \
+            --format='value(REVISION)')
+          echo "Latest revision: $LATEST_REVISION"
+
+          # Retry health check with shorter intervals
+          for i in {1..10}; do
+            if curl -sf "${{ steps.service-url.outputs.url }}/api/health" > /dev/null 2>&1; then
+              echo "✅ Health check passed on attempt $i"
+              echo "healthy=true" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+            echo "Attempt $i/10 failed, retrying in 3s..."
+            sleep 3
+          done
+          echo "⚠️ Health check failed after 10 attempts"
+          echo "healthy=false" >> $GITHUB_OUTPUT
+
+      - name: 🚦 Shift traffic to new revision
+        if: steps.health-check.outputs.healthy == 'true'
+        run: |
+          echo "🚦 Shifting 100% traffic to latest revision..."
+          gcloud run services update-traffic ${{ env.SERVICE_NAME }} \
+            --to-latest \
+            --region ${{ env.REGION }}
+          echo "✅ Traffic shifted to new revision"
+
+      - name: ⚠️ Rollback warning
+        if: steps.health-check.outputs.healthy != 'true'
+        run: |
+          echo "::warning::Health check failed! New revision deployed but NOT receiving traffic."
+          echo "Previous revision is still serving requests."
+          echo "To manually shift traffic: gcloud run services update-traffic ${{ env.SERVICE_NAME }} --to-latest --region ${{ env.REGION }}"
 
       - name: 📋 Deployment summary
         run: |
@@ -251,6 +283,24 @@ jobs:
           echo "- [Cloud Run Console](https://console.cloud.google.com/run/detail/${{ env.REGION }}/${{ env.SERVICE_NAME }})" >> $GITHUB_STEP_SUMMARY
           echo "- [Shopify Partners](https://partners.shopify.com/organizations)" >> $GITHUB_STEP_SUMMARY
 
+  # Notify if tests fail (since deploy runs in parallel)
+  notify-on-test-failure:
+    name: ⚠️ Test Failure Alert
+    needs: [tests, deploy]
+    if: always() && needs.tests.result == 'failure'
+    runs-on: ubuntu-latest
+    steps:
+      - name: ⚠️ Tests failed warning
+        run: |
+          echo "::warning::Tests FAILED but staging was deployed!"
+          echo "## ⚠️ Tests Failed!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Staging was deployed but tests failed." >> $GITHUB_STEP_SUMMARY
+          echo "Please investigate and fix the failing tests." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Author:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+
   # Optional E2E tests after deployment
   e2e-tests:
     name: E2E Staging Tests
@@ -261,3 +311,5 @@ jobs:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
       REDIS_URL: ${{ secrets.REDIS_URL }}
       STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+      SHOPIFY_API_KEY: ${{ secrets.SHOPIFY_API_KEY }}
+      SHOPIFY_API_SECRET: ${{ secrets.SHOPIFY_API_SECRET }}

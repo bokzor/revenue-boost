@@ -28,7 +28,6 @@ describe("ProductUpsellContentSchema Validation", () => {
         expect(result.data.productSelectionMethod).toBe("ai");
         expect(result.data.layout).toBe("grid");
         expect(result.data.maxProducts).toBe(3);
-        expect(result.data.columns).toBe(2);
         expect(result.data.showPrices).toBe(true);
         expect(result.data.showCompareAtPrice).toBe(true);
         expect(result.data.showImages).toBe(true);
@@ -50,7 +49,6 @@ describe("ProductUpsellContentSchema Validation", () => {
         selectedProducts: ["gid://shopify/Product/123", "gid://shopify/Product/456"],
         maxProducts: 5,
         layout: "grid" as const,
-        columns: 3,
         showPrices: true,
         showCompareAtPrice: true,
         showImages: true,
@@ -71,7 +69,6 @@ describe("ProductUpsellContentSchema Validation", () => {
         expect(result.data.selectedProducts).toEqual(["gid://shopify/Product/123", "gid://shopify/Product/456"]);
         expect(result.data.maxProducts).toBe(5);
         expect(result.data.layout).toBe("grid");
-        expect(result.data.columns).toBe(3);
         expect(result.data.bundleDiscount).toBe(20);
         expect(result.data.bundleDiscountText).toBe("Save 20% on bundle!");
         expect(result.data.currency).toBe("EUR");
@@ -259,68 +256,6 @@ describe("ProductUpsellContentSchema Validation", () => {
           buttonText: "Add",
           successMessage: "Done",
           maxProducts: 5.5,
-        };
-
-        const result = ProductUpsellContentSchema.safeParse(config);
-        expect(result.success).toBe(false);
-      });
-    });
-
-    describe("columns", () => {
-      it("accepts minimum value of 1", () => {
-        const config = {
-          headline: "Test",
-          buttonText: "Add",
-          successMessage: "Done",
-          columns: 1,
-        };
-
-        const result = ProductUpsellContentSchema.safeParse(config);
-        expect(result.success).toBe(true);
-      });
-
-      it("accepts maximum value of 4", () => {
-        const config = {
-          headline: "Test",
-          buttonText: "Add",
-          successMessage: "Done",
-          columns: 4,
-        };
-
-        const result = ProductUpsellContentSchema.safeParse(config);
-        expect(result.success).toBe(true);
-      });
-
-      it("rejects value less than 1", () => {
-        const config = {
-          headline: "Test",
-          buttonText: "Add",
-          successMessage: "Done",
-          columns: 0,
-        };
-
-        const result = ProductUpsellContentSchema.safeParse(config);
-        expect(result.success).toBe(false);
-      });
-
-      it("rejects value greater than 4", () => {
-        const config = {
-          headline: "Test",
-          buttonText: "Add",
-          successMessage: "Done",
-          columns: 5,
-        };
-
-        const result = ProductUpsellContentSchema.safeParse(config);
-        expect(result.success).toBe(false);
-      });
-
-      it("rejects non-integer values", () => {
-        const config = {
-          headline: "Test",
-          buttonText: "Add",
-          successMessage: "Done",
-          columns: 2.5,
         };
 
         const result = ProductUpsellContentSchema.safeParse(config);

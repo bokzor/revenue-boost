@@ -7,7 +7,6 @@
 
 import { ExitIntentDetector } from "../triggers/ExitIntentDetector";
 import { ScrollDepthTracker } from "../triggers/ScrollDepthTracker";
-import { TimeDelayHandler } from "../triggers/TimeDelayHandler";
 import { IdleTimer } from "../triggers/IdleTimer";
 import { CartEventListener } from "../triggers/CartEventListener";
 import { CustomEventHandler } from "../triggers/CustomEventHandler";
@@ -24,7 +23,6 @@ export interface EnhancedTriggers {
   exit_intent?: ExitIntentTrigger;
   scroll_depth?: ScrollDepthTrigger;
   idle_timer?: IdleTimerTrigger;
-  time_delay?: TimeDelayTrigger;
   add_to_cart?: AddToCartTrigger;
   cart_drawer_open?: CartDrawerOpenTrigger;
   cart_value?: CartValueTrigger;
@@ -62,18 +60,6 @@ export interface ScrollDepthTrigger {
 export interface IdleTimerTrigger {
   enabled: boolean;
   idle_duration?: number; // seconds
-}
-
-export interface TimeDelayTrigger {
-  enabled: boolean;
-  /**
-   * Time to wait in seconds before triggering.
-   */
-  delay?: number;
-  /**
-   * If true, ignore delay and trigger immediately when condition is met.
-   */
-  immediate?: boolean;
 }
 
 export interface AddToCartTrigger {
@@ -152,7 +138,6 @@ export class TriggerManager {
   private exitIntentDetector: ExitIntentDetector | null = null;
   private triggerContext: { productId?: string; [key: string]: unknown } = {};
   private scrollDepthTracker: ScrollDepthTracker | null = null;
-  private timeDelayHandler: TimeDelayHandler | null = null;
   private idleTimer: IdleTimer | null = null;
   private cartEventListener: CartEventListener | null = null;
   private customEventHandler: CustomEventHandler | null = null;
@@ -190,16 +175,6 @@ export class TriggerManager {
       );
     } else if (triggers.page_load) {
       console.log("[Revenue Boost] ⏭️ page_load trigger is disabled");
-    }
-
-    // Time Delay Trigger
-    if (triggers.time_delay?.enabled) {
-      console.log("[Revenue Boost] ⏳ Checking time_delay trigger:", triggers.time_delay);
-      triggerTasks.push(
-        this.runTrigger("time_delay", () => this.checkTimeDelay(triggers.time_delay!))
-      );
-    } else if (triggers.time_delay) {
-      console.log("[Revenue Boost] ⏭️ time_delay trigger is disabled");
     }
 
     // Scroll Depth Trigger
@@ -367,41 +342,6 @@ export class TriggerManager {
     console.log("[Revenue Boost] ✅ page_load trigger delay completed");
     return true;
 
-  }
-
-
-  /**
-   * Check time delay trigger
-   */
-  private async checkTimeDelay(trigger: TimeDelayTrigger): Promise<boolean> {
-    if (!trigger.enabled) {
-      console.log("[Revenue Boost] ⏭️ time_delay trigger is disabled");
-      return false;
-    }
-
-    const delaySeconds = trigger.delay ?? 0;
-    const immediate = trigger.immediate ?? false;
-
-    if (immediate || delaySeconds <= 0) {
-      console.log("[Revenue Boost] ✅ time_delay trigger passed immediately (no delay configured)");
-      return true;
-    }
-
-    const delayMs = delaySeconds * 1000;
-    console.log(
-      `[Revenue Boost] ⏳ time_delay trigger waiting ${delaySeconds}s (${delayMs}ms) before showing`,
-    );
-
-    return new Promise((resolve) => {
-      this.timeDelayHandler = new TimeDelayHandler({
-        delay: delayMs,
-      });
-
-      this.timeDelayHandler.start(() => {
-        console.log("[Revenue Boost] ✅ time_delay trigger delay completed");
-        resolve(true);
-      });
-    });
   }
 
   /**
@@ -1146,10 +1086,6 @@ export class TriggerManager {
     if (this.scrollDepthTracker) {
       this.scrollDepthTracker.destroy();
       this.scrollDepthTracker = null;
-    }
-    if (this.timeDelayHandler) {
-      this.timeDelayHandler.destroy();
-      this.timeDelayHandler = null;
     }
     if (this.idleTimer) {
       this.idleTimer.destroy();

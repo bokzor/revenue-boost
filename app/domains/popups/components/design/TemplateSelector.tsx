@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect } from "react";
 import { Text, Box, Badge, BlockStack } from "@shopify/polaris";
 import { getPopupTemplates } from "./PopupTemplateLibrary";
-import type { Template } from "~/domains/popups/services/templates.server";
+import type { TemplateWithConfigs as Template } from "~/domains/templates/types/template";
 import styles from "./TemplateSelector.module.css";
 import { parseTemplateContentConfig } from "~/domains/templates/types/template";
 
@@ -24,21 +24,6 @@ const THEME_DEFAULTS: Record<
     background: NEWSLETTER_THEMES.minimal.background,
     text: NEWSLETTER_THEMES.minimal.text,
     button: NEWSLETTER_THEMES.minimal.primary,
-  },
-  elegant: {
-    background: NEWSLETTER_THEMES.elegant.background,
-    text: NEWSLETTER_THEMES.elegant.text,
-    button: NEWSLETTER_THEMES.elegant.primary,
-  },
-  bold: {
-    background: NEWSLETTER_THEMES.bold.background,
-    text: NEWSLETTER_THEMES.bold.text,
-    button: NEWSLETTER_THEMES.bold.primary,
-  },
-  glass: {
-    background: NEWSLETTER_THEMES.glass.background,
-    text: NEWSLETTER_THEMES.glass.text,
-    button: NEWSLETTER_THEMES.glass.primary,
   },
   dark: {
     background: NEWSLETTER_THEMES.dark.background,
@@ -65,10 +50,31 @@ const THEME_DEFAULTS: Record<
     text: NEWSLETTER_THEMES.ocean.text,
     button: NEWSLETTER_THEMES.ocean.primary,
   },
-  "summer-sale": {
-    background: NEWSLETTER_THEMES["summer-sale"].background,
-    text: NEWSLETTER_THEMES["summer-sale"].text,
-    button: NEWSLETTER_THEMES["summer-sale"].primary,
+  // Seasonal themes
+  summer: {
+    background: NEWSLETTER_THEMES.summer.background,
+    text: NEWSLETTER_THEMES.summer.text,
+    button: NEWSLETTER_THEMES.summer.primary,
+  },
+  "black-friday": {
+    background: NEWSLETTER_THEMES["black-friday"].background,
+    text: NEWSLETTER_THEMES["black-friday"].text,
+    button: NEWSLETTER_THEMES["black-friday"].primary,
+  },
+  holiday: {
+    background: NEWSLETTER_THEMES.holiday.background,
+    text: NEWSLETTER_THEMES.holiday.text,
+    button: NEWSLETTER_THEMES.holiday.primary,
+  },
+  valentine: {
+    background: NEWSLETTER_THEMES.valentine.background,
+    text: NEWSLETTER_THEMES.valentine.text,
+    button: NEWSLETTER_THEMES.valentine.primary,
+  },
+  spring: {
+    background: NEWSLETTER_THEMES.spring.background,
+    text: NEWSLETTER_THEMES.spring.text,
+    button: NEWSLETTER_THEMES.spring.primary,
   },
 };
 

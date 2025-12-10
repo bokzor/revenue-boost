@@ -1,7 +1,13 @@
 /**
  * Color Presets Configuration
  *
- * Predefined color schemes for different template types
+ * Predefined color schemes for different template types.
+ * This is the single source of truth for theme colors.
+ *
+ * Background images are managed by background-presets.ts which provides:
+ * - getDefaultBackgroundForTheme(themeKey) - get primary background for a theme
+ * - getBackgroundsForTheme(themeKey) - get all compatible backgrounds
+ * - getBackgroundUrl(preset) - build the URL for a background
  */
 
 import type {
@@ -9,151 +15,11 @@ import type {
   ColorTheme,
   ExtendedColorConfig,
 } from "~/domains/popups/color-customization.types";
-import type { DesignConfig } from "~/domains/campaigns/types/campaign";
-
-/**
- * Default color presets
- */
-export const COLOR_PRESETS: ColorPreset[] = [
-  {
-    id: "modern-blue",
-    name: "Modern Blue",
-    description: "Clean and professional blue theme",
-    theme: "professional",
-    colors: {
-      backgroundColor: "#FFFFFF",
-      textColor: "#1A202C",
-      buttonColor: "#3B82F6",
-      buttonTextColor: "#FFFFFF",
-      accentColor: "#60A5FA",
-      overlayOpacity: 0.6,
-    },
-    isPopular: true,
-  },
-  {
-    id: "vibrant-purple",
-    name: "Vibrant Purple",
-    description: "Eye-catching purple gradient",
-    theme: "vibrant",
-    colors: {
-      backgroundColor: "#FFFFFF",
-      textColor: "#1F2937",
-      buttonColor: "#8B5CF6",
-      buttonTextColor: "#FFFFFF",
-      accentColor: "#A78BFA",
-      overlayOpacity: 0.7,
-    },
-    isPopular: true,
-  },
-  {
-    id: "elegant-dark",
-    name: "Elegant Dark",
-    description: "Sophisticated dark theme",
-    theme: "dark",
-    colors: {
-      backgroundColor: "#1F2937",
-      textColor: "#F9FAFB",
-      buttonColor: "#10B981",
-      buttonTextColor: "#FFFFFF",
-      accentColor: "#34D399",
-      overlayOpacity: 0.8,
-    },
-    isPopular: true,
-  },
-  {
-    id: "minimal-light",
-    name: "Minimal Light",
-    description: "Clean and minimal light theme",
-    theme: "minimal",
-    colors: {
-      backgroundColor: "#F9FAFB",
-      textColor: "#111827",
-      buttonColor: "#111827",
-      buttonTextColor: "#FFFFFF",
-      accentColor: "#6B7280",
-      overlayOpacity: 0.5,
-    },
-  },
-  {
-    id: "playful-orange",
-    name: "Playful Orange",
-    description: "Fun and energetic orange theme",
-    theme: "playful",
-    colors: {
-      backgroundColor: "#FFFFFF",
-      textColor: "#1F2937",
-      buttonColor: "#F59E0B",
-      buttonTextColor: "#FFFFFF",
-      accentColor: "#FBBF24",
-      overlayOpacity: 0.6,
-    },
-  },
-  {
-    id: "elegant-rose",
-    name: "Elegant Rose",
-    description: "Sophisticated rose gold theme",
-    theme: "elegant",
-    colors: {
-      backgroundColor: "#FFF1F2",
-      textColor: "#881337",
-      buttonColor: "#E11D48",
-      buttonTextColor: "#FFFFFF",
-      accentColor: "#FB7185",
-      overlayOpacity: 0.6,
-    },
-  },
-];
-
-/**
- * Template-specific color presets
- * Note: NEWSLETTER uses the new newsletter themes defined below
- */
-const TEMPLATE_PRESETS: Record<string, string[]> = {
-  NEWSLETTER: [], // Newsletter uses NEWSLETTER_THEMES instead
-  SPIN_TO_WIN: ["vibrant-purple", "playful-orange"],
-  FLASH_SALE: ["vibrant-purple", "playful-orange", "elegant-dark"],
-  EXIT_INTENT: ["modern-blue", "elegant-dark"],
-  CART_ABANDONMENT: ["playful-orange", "vibrant-purple"],
-  PRODUCT_UPSELL: ["modern-blue", "elegant-rose"],
-  SOCIAL_PROOF: ["minimal-light", "modern-blue"],
-  COUNTDOWN_TIMER: ["playful-orange", "vibrant-purple"],
-  SCRATCH_CARD: ["playful-orange", "vibrant-purple"],
-  ANNOUNCEMENT: ["modern-blue", "minimal-light"],
-};
-
-/**
- * Get color presets for a specific template type
- */
-export function getColorPresetsForTemplate(templateType?: string): ColorPreset[] {
-  if (!templateType) {
-    return COLOR_PRESETS;
-  }
-
-  // Newsletter templates use the new newsletter themes
-  if (templateType === "NEWSLETTER") {
-    return getNewsletterThemePresets();
-  }
-
-  // Flash Sale templates use the new flash sale themes
-  if (templateType === "FLASH_SALE") {
-    return getFlashSaleThemePresets();
-  }
-
-  const presetIds = TEMPLATE_PRESETS[templateType] || [];
-  const presets = presetIds
-    .map((id) => COLOR_PRESETS.find((p) => p.id === id))
-    .filter((p): p is ColorPreset => p !== undefined);
-
-  // If no specific presets, return all
-  return presets.length > 0 ? presets : COLOR_PRESETS;
-}
-
-/**
- * Get popular color presets
- */
-export function getPopularColorPresets(): ColorPreset[] {
-  return COLOR_PRESETS.filter((p) => p.isPopular);
-}
+import type { DesignConfig, TemplateType } from "~/domains/campaigns/types/campaign";
+import {
+  getDefaultBackgroundForTheme,
+  getBackgroundUrl,
+} from "./background-presets";
 
 // ============================================================================
 // NEWSLETTER-SPECIFIC THEMES
@@ -161,19 +27,23 @@ export function getPopularColorPresets(): ColorPreset[] {
 
 /**
  * Newsletter theme keys
+ * Includes both generic themes and seasonal themes for styled recipes
  */
 export type NewsletterThemeKey =
+  // Generic themes
   | "modern"
   | "minimal"
-  | "elegant"
-  | "bold"
-  | "glass"
   | "dark"
   | "gradient"
   | "luxury"
   | "neon"
   | "ocean"
-  | "summer-sale";
+  // Seasonal themes (for styled recipes)
+  | "summer"
+  | "black-friday"
+  | "holiday"
+  | "valentine"
+  | "spring";
 
 /**
  * Theme color configuration from mockup
@@ -261,79 +131,6 @@ export const NEWSLETTER_THEMES: Record<NewsletterThemeKey, ThemeColors> = {
     descriptionFontSize: "0.875rem",
     descriptionFontWeight: "400",
   },
-  elegant: {
-    background: "#fefce8",
-    text: "#44403c",
-    primary: "#a855f7",
-    secondary: "#fef3c7",
-    accent: "#f3e8ff",
-    border: "#e7e5e4",
-    success: "#a855f7",
-    warning: "#dc2626",
-    imageBg: "#fef3c7",
-    descColor: "#78716c",
-    // Typography
-    fontFamily: "serif",
-    titleFontSize: "1.875rem",
-    titleFontWeight: "700",
-    descriptionFontSize: "1rem",
-    descriptionFontWeight: "400",
-    inputBorder: "#e7e5e4",
-    timerBg: "rgba(168, 85, 247, 0.1)",
-    timerText: "#a855f7",
-    ctaBg: "#a855f7",
-    ctaText: "#ffffff",
-  },
-  bold: {
-    background: "linear-gradient(135deg, #ec4899 0%, #f59e0b 100%)",
-    text: "#ffffff",
-    primary: "#fde68a",
-    secondary: "rgba(255, 255, 255, 0.2)",
-    accent: "#fde68a",
-    border: "rgba(255, 255, 255, 0.3)",
-    success: "#10b981",
-    warning: "#fca5a5",
-    imageBg: "rgba(255, 255, 255, 0.15)",
-    descColor: "#fef3c7",
-    inputBorder: "rgba(255, 255, 255, 0.3)",
-    inputTextColor: "#ffffff",
-    timerBg: "rgba(255, 255, 255, 0.25)",
-    timerText: "#ffffff",
-    ctaBg: "#ffffff",
-    ctaText: "#ec4899",
-    // Typography
-    fontFamily: "inherit",
-    titleFontSize: "2rem",
-    titleFontWeight: "900",
-    descriptionFontSize: "1rem",
-    descriptionFontWeight: "500",
-  },
-  glass: {
-    background: "rgba(255, 255, 255, 0.7)",
-    text: "#18181b",
-    primary: "#6366f1",
-    secondary: "rgba(255, 255, 255, 0.5)",
-    accent: "rgba(99, 102, 241, 0.1)",
-    border: "rgba(255, 255, 255, 0.3)",
-    success: "#10b981",
-    warning: "#ef4444",
-    imageBg: "rgba(244, 244, 245, 0.8)",
-    descColor: "#52525b",
-    inputBorder: "rgba(212, 212, 216, 0.5)",
-    timerBg: "rgba(99, 102, 241, 0.15)",
-    timerText: "#6366f1",
-    ctaBg: "#6366f1",
-    ctaText: "#ffffff",
-    blur: true,
-    // Typography
-    fontFamily: "inherit",
-    titleFontSize: "1.875rem",
-    titleFontWeight: "700",
-    descriptionFontSize: "1rem",
-    descriptionFontWeight: "400",
-    // Input styling
-    inputBackdropFilter: "blur(10px)",
-  },
   dark: {
     background: "#111827",
     text: "#f9fafb",
@@ -400,7 +197,7 @@ export const NEWSLETTER_THEMES: Record<NewsletterThemeKey, ThemeColors> = {
     ctaBg: "#d4af37",
     ctaText: "#1a1a0a",
     // Typography
-    fontFamily: "serif",
+    fontFamily: "'Playfair Display', Georgia, serif",
     titleFontSize: "1.875rem",
     titleFontWeight: "700",
     descriptionFontSize: "1rem",
@@ -455,291 +252,133 @@ export const NEWSLETTER_THEMES: Record<NewsletterThemeKey, ThemeColors> = {
     descriptionFontSize: "1rem",
     descriptionFontWeight: "400",
   },
-  "summer-sale": {
-    background: "#FFFBEB", // Warm light yellow-cream background
-    text: "#1E3A5F", // Navy blue for headlines
-    primary: "#FF5733", // Vibrant orange
-    secondary: "#FEF3C7", // Light cream/yellow
-    accent: "#38BDF8", // Bright turquoise accent
-    border: "#FBBF24", // Golden yellow border
-    success: "#10B981",
-    warning: "#EF4444",
-    imageBg: "#FEF9C3", // Light yellow image background
-    descColor: "#0F766E", // Dark teal for description text
-    inputBorder: "#FBBF24", // Golden yellow
-    timerBg: "rgba(255, 87, 51, 0.1)", // Orange tint
-    timerText: "#FF5733", // Vibrant orange
-    ctaBg: "#FF5733", // Vibrant orange button
-    ctaText: "#FFFFFF", // White button text
-    // Typography
-    fontFamily: "inherit",
-    titleFontSize: "1.875rem",
-    titleFontWeight: "700",
-    descriptionFontSize: "1rem",
-    descriptionFontWeight: "400",
-  },
-};
 
-export const NEWSLETTER_BACKGROUND_PRESETS: {
-  key: NewsletterThemeKey;
-  label: string;
-}[] = [
-  { key: "modern", label: "Modern theme image" },
-  { key: "minimal", label: "Minimal theme image" },
-  { key: "elegant", label: "Elegant theme image" },
-  { key: "bold", label: "Bold theme image" },
-  { key: "glass", label: "Glass theme image" },
-  { key: "dark", label: "Dark theme image" },
-  { key: "gradient", label: "Gradient theme image" },
-  { key: "luxury", label: "Luxury theme image" },
-  { key: "neon", label: "Neon theme image" },
-  { key: "ocean", label: "Ocean theme image" },
-  { key: "summer-sale", label: "Summer Sale theme image" },
-];
+  // ==========================================================================
+  // SEASONAL THEMES (for styled recipes)
+  // ==========================================================================
 
-export function getNewsletterBackgroundUrl(key: NewsletterThemeKey): string {
-  return `/apps/revenue-boost/assets/newsletter-backgrounds/${key}.jpg`;
-}
-
-export const NEWSLETTER_THEMES_2: Record<NewsletterThemeKey, ThemeColors> = {
-  modern: NEWSLETTER_THEMES.modern,
-  minimal: {
-    background: "#fafafa",
-    text: "#18181b",
-    primary: "#18181b",
-    secondary: "#f4f4f5",
-    accent: "#e4e4e7",
-    border: "#e4e4e7",
-    success: "#22c55e",
-    warning: "#ef4444",
-    imageBg: "#f4f4f5",
-    descColor: "#71717a",
-    inputBorder: "#d4d4d8",
-    timerBg: "#f4f4f5",
-    timerText: "#18181b",
-    ctaBg: "#18181b",
-    ctaText: "#ffffff",
-    // Typography
-    fontFamily: "inherit",
-    titleFontSize: "1.5rem",
-    titleFontWeight: "300",
-    descriptionFontSize: "0.875rem",
-    descriptionFontWeight: "400",
-  },
-  elegant: {
-    background: "#fefce8",
-    text: "#44403c",
-    primary: "#a855f7",
-    secondary: "#fef3c7",
-    accent: "#f3e8ff",
-    border: "#e7e5e4",
-    success: "#a855f7",
-    warning: "#dc2626",
-    imageBg: "#fef3c7",
-    descColor: "#78716c",
-    // Typography
-    fontFamily: "serif",
-    titleFontSize: "1.875rem",
-    titleFontWeight: "700",
-    descriptionFontSize: "1rem",
-    descriptionFontWeight: "400",
-    inputBorder: "#e7e5e4",
-    timerBg: "rgba(168, 85, 247, 0.1)",
-    timerText: "#a855f7",
-    ctaBg: "#a855f7",
-    ctaText: "#ffffff",
-  },
-  bold: {
-    background: "linear-gradient(135deg, #ec4899 0%, #f59e0b 100%)",
-    text: "#ffffff",
-    primary: "#fde68a",
+  // Summer theme - warm, playful, coral/turquoise
+  summer: {
+    background: "linear-gradient(135deg, #FF6B6B 0%, #FFE66D 100%)",
+    text: "#FFFFFF",
+    primary: "#4ECDC4", // Turquoise
     secondary: "rgba(255, 255, 255, 0.2)",
-    accent: "#fde68a",
+    accent: "#FFE66D", // Yellow
     border: "rgba(255, 255, 255, 0.3)",
-    success: "#10b981",
-    warning: "#fca5a5",
+    success: "#4ECDC4",
+    warning: "#FF6B6B",
     imageBg: "rgba(255, 255, 255, 0.15)",
-    descColor: "#fef3c7",
+    descColor: "#FFF5E6",
     inputBorder: "rgba(255, 255, 255, 0.3)",
-    inputTextColor: "#ffffff",
+    inputTextColor: "#FFFFFF",
     timerBg: "rgba(255, 255, 255, 0.25)",
-    timerText: "#ffffff",
-    ctaBg: "#ffffff",
-    ctaText: "#ec4899",
-    // Typography
-    fontFamily: "inherit",
-    titleFontSize: "2rem",
-    titleFontWeight: "900",
-    descriptionFontSize: "1rem",
-    descriptionFontWeight: "500",
-  },
-  glass: {
-    background: "rgba(255, 255, 255, 0.7)",
-    text: "#18181b",
-    primary: "#6366f1",
-    secondary: "rgba(255, 255, 255, 0.5)",
-    accent: "rgba(99, 102, 241, 0.1)",
-    border: "rgba(255, 255, 255, 0.3)",
-    success: "#10b981",
-    warning: "#ef4444",
-    imageBg: "rgba(244, 244, 245, 0.8)",
-    descColor: "#52525b",
-    inputBorder: "rgba(212, 212, 216, 0.5)",
-    timerBg: "rgba(99, 102, 241, 0.15)",
-    timerText: "#6366f1",
-    ctaBg: "#6366f1",
-    ctaText: "#ffffff",
-    blur: true,
-    // Typography
-    fontFamily: "inherit",
-    titleFontSize: "1.875rem",
-    titleFontWeight: "700",
-    descriptionFontSize: "1rem",
-    descriptionFontWeight: "400",
-    // Input styling
-    inputBackdropFilter: "blur(10px)",
-  },
-  dark: {
-    background: "#111827",
-    text: "#f9fafb",
-    primary: "#3b82f6",
-    secondary: "#1f2937",
-    accent: "#374151",
-    border: "#374151",
-    success: "#10b981",
-    warning: "#ef4444",
-    imageBg: "#1f2937",
-    descColor: "#d1d5db",
-    inputBorder: "#4b5563",
-    timerBg: "#1f2937",
-    timerText: "#f9fafb",
-    ctaBg: "#3b82f6",
-    ctaText: "#ffffff",
-    // Typography
-    fontFamily: "inherit",
-    titleFontSize: "1.875rem",
-    titleFontWeight: "700",
-    descriptionFontSize: "1rem",
-    descriptionFontWeight: "400",
-  },
-  gradient: {
-    background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-    text: "#ffffff",
-    primary: "#e0e7ff",
-    secondary: "rgba(255, 255, 255, 0.15)",
-    accent: "#e0e7ff",
-    border: "rgba(255, 255, 255, 0.2)",
-    success: "#10b981",
-    warning: "#fca5a5",
-    imageBg: "rgba(255, 255, 255, 0.1)",
-    descColor: "#e0e7ff",
-    inputBorder: "rgba(255, 255, 255, 0.3)",
-    inputTextColor: "#ffffff",
-    timerBg: "rgba(255, 255, 255, 0.2)",
-    timerText: "#ffffff",
-    ctaBg: "#ffffff",
-    ctaText: "#667eea",
-    // Typography
-    fontFamily: "inherit",
-    titleFontSize: "2rem",
-    titleFontWeight: "700",
-    descriptionFontSize: "1rem",
-    descriptionFontWeight: "400",
-    // Input styling
-    inputBackdropFilter: "blur(10px)",
-  },
-  luxury: {
-    background: "#1a1a0a",
-    text: "#d4af37",
-    primary: "#d4af37",
-    secondary: "#2d2d1a",
-    accent: "#3d3d2a",
-    border: "#d4af37",
-    success: "#d4af37",
-    warning: "#dc2626",
-    imageBg: "#2d2d1a",
-    descColor: "#f5f5dc",
-    inputBorder: "#d4af37",
-    timerBg: "rgba(212, 175, 55, 0.1)",
-    timerText: "#d4af37",
-    ctaBg: "#d4af37",
-    ctaText: "#1a1a0a",
-    // Typography
-    fontFamily: "serif",
-    titleFontSize: "1.875rem",
-    titleFontWeight: "700",
-    descriptionFontSize: "1rem",
-    descriptionFontWeight: "400",
-  },
-  neon: {
-    background: "#0a0a1f",
-    text: "#00ffff",
-    primary: "#00ffff",
-    secondary: "#1a1a3a",
-    accent: "#ff00ff",
-    border: "rgba(0, 255, 255, 0.3)",
-    success: "#00ffff",
-    warning: "#ff00ff",
-    imageBg: "#1a1a3a",
-    descColor: "#00ffff",
-    inputBorder: "rgba(0, 255, 255, 0.5)",
-    timerBg: "rgba(0, 255, 255, 0.1)",
-    timerText: "#00ffff",
-    ctaBg: "#00ffff",
-    ctaText: "#0a0a1f",
-    // Typography
-    fontFamily: "inherit",
-    titleFontSize: "2rem",
-    titleFontWeight: "900",
-    titleTextShadow: "0 0 20px currentColor, 0 0 40px currentColor",
-    descriptionFontSize: "1rem",
-    descriptionFontWeight: "400",
-    // Input styling
-    inputBoxShadow: "0 0 10px rgba(0, 255, 255, 0.1)",
-  },
-  ocean: {
-    background: "#f0f9ff",
-    text: "#0c4a6e",
-    primary: "#0ea5e9",
-    secondary: "#e0f2fe",
-    accent: "#bae6fd",
-    border: "#7dd3fc",
-    success: "#14b8a6",
-    warning: "#ef4444",
-    imageBg: "#e0f2fe",
-    descColor: "#0369a1",
-    inputBorder: "#7dd3fc",
-    timerBg: "rgba(14, 165, 233, 0.1)",
-    timerText: "#0ea5e9",
-    ctaBg: "#0ea5e9",
-    ctaText: "#ffffff",
-    // Typography
-    fontFamily: "inherit",
-    titleFontSize: "1.875rem",
-    titleFontWeight: "700",
-    descriptionFontSize: "1rem",
-    descriptionFontWeight: "400",
-  },
-  "summer-sale": {
-    background: "#FFFBEB",
-    text: "#1E3A5F",
-    primary: "#FF5733",
-    secondary: "#FEF3C7",
-    accent: "#38BDF8",
-    border: "#FBBF24",
-    success: "#10B981",
-    warning: "#EF4444",
-    imageBg: "#FEF9C3",
-    descColor: "#0F766E",
-    inputBorder: "#FBBF24",
-    timerBg: "rgba(255, 87, 51, 0.1)",
-    timerText: "#FF5733",
-    ctaBg: "#FF5733",
+    timerText: "#FFFFFF",
+    ctaBg: "#4ECDC4",
     ctaText: "#FFFFFF",
-    // Typography
+    fontFamily: "inherit",
+    titleFontSize: "2rem",
+    titleFontWeight: "800",
+    descriptionFontSize: "1rem",
+    descriptionFontWeight: "500",
+  },
+
+  // Black Friday theme - urgent, high contrast, black/yellow
+  "black-friday": {
+    background: "#0A0A0A",
+    text: "#FFFFFF",
+    primary: "#FFD700", // Gold
+    secondary: "#1A1A1A",
+    accent: "#FFD700",
+    border: "#333333",
+    success: "#00FF00",
+    warning: "#FF0000",
+    imageBg: "#1A1A1A",
+    descColor: "#CCCCCC",
+    inputBorder: "#FFD700",
+    inputTextColor: "#FFFFFF",
+    timerBg: "#FFD700",
+    timerText: "#0A0A0A",
+    ctaBg: "#FFD700",
+    ctaText: "#0A0A0A",
+    fontFamily: "inherit",
+    titleFontSize: "2.5rem",
+    titleFontWeight: "900",
+    titleTextShadow: "0 0 20px rgba(255, 215, 0, 0.5)",
+    descriptionFontSize: "1.125rem",
+    descriptionFontWeight: "600",
+  },
+
+  // Holiday theme - festive, red/green/gold
+  holiday: {
+    background: "linear-gradient(135deg, #1A472A 0%, #2D5A3D 100%)", // Forest green
+    text: "#FFFFFF",
+    primary: "#C41E3A", // Christmas red
+    secondary: "rgba(255, 255, 255, 0.1)",
+    accent: "#FFD700", // Gold
+    border: "rgba(255, 215, 0, 0.3)",
+    success: "#228B22",
+    warning: "#C41E3A",
+    imageBg: "rgba(255, 215, 0, 0.1)",
+    descColor: "#E8E8E8",
+    inputBorder: "rgba(255, 215, 0, 0.4)",
+    inputTextColor: "#FFFFFF",
+    timerBg: "rgba(196, 30, 58, 0.3)",
+    timerText: "#FFD700",
+    ctaBg: "#C41E3A",
+    ctaText: "#FFFFFF",
+    fontFamily: "inherit",
+    titleFontSize: "2rem",
+    titleFontWeight: "700",
+    descriptionFontSize: "1rem",
+    descriptionFontWeight: "400",
+  },
+
+  // Valentine theme - romantic, pink/red
+  valentine: {
+    background: "linear-gradient(135deg, #FFB6C1 0%, #FF69B4 100%)",
+    text: "#8B0A50",
+    primary: "#FF1493", // Deep pink
+    secondary: "rgba(255, 255, 255, 0.3)",
+    accent: "#DC143C", // Crimson
+    border: "rgba(255, 20, 147, 0.3)",
+    success: "#FF1493",
+    warning: "#DC143C",
+    imageBg: "rgba(255, 255, 255, 0.2)",
+    descColor: "#A0204C",
+    inputBorder: "rgba(255, 20, 147, 0.4)",
+    inputTextColor: "#8B0A50",
+    timerBg: "rgba(255, 255, 255, 0.4)",
+    timerText: "#FF1493",
+    ctaBg: "#FF1493",
+    ctaText: "#FFFFFF",
+    fontFamily: "inherit",
+    titleFontSize: "2rem",
+    titleFontWeight: "600",
+    descriptionFontSize: "1rem",
+    descriptionFontWeight: "400",
+  },
+
+  // Spring theme - fresh, pastels, green/pink
+  spring: {
+    background: "linear-gradient(135deg, #E8F5E9 0%, #F3E5F5 100%)",
+    text: "#2E7D32",
+    primary: "#66BB6A", // Green
+    secondary: "#F8BBD9", // Light pink
+    accent: "#AB47BC", // Purple
+    border: "#C8E6C9",
+    success: "#4CAF50",
+    warning: "#FF9800",
+    imageBg: "#F1F8E9",
+    descColor: "#558B2F",
+    inputBorder: "#A5D6A7",
+    inputTextColor: "#2E7D32",
+    timerBg: "rgba(102, 187, 106, 0.2)",
+    timerText: "#2E7D32",
+    ctaBg: "#66BB6A",
+    ctaText: "#FFFFFF",
     fontFamily: "inherit",
     titleFontSize: "1.875rem",
-    titleFontWeight: "700",
+    titleFontWeight: "600",
     descriptionFontSize: "1rem",
     descriptionFontWeight: "400",
   },
@@ -760,22 +399,17 @@ export function getSpinToWinSliceColors(theme: NewsletterThemeKey, sliceCount: n
   const themeMap: Record<NewsletterThemeKey, string[]> = {
     modern: ["#3b82f6", "#2563eb", "#1d4ed8", "#1e40af", "#1e3a8a", "#60a5fa"],
     minimal: ["#6b7280", "#4b5563", "#374151", "#1f2937", "#9ca3af", "#d1d5db"],
-    elegant: ["#be185d", "#9f1239", "#831843", "#701a40", "#ec4899", "#f9a8d4"],
-    bold: ["#dc2626", "#ea580c", "#d97706", "#ca8a04", "#eab308", "#84cc16"],
-    glass: [
-      "rgba(59, 130, 246, 0.5)",
-      "rgba(99, 102, 241, 0.5)",
-      "rgba(139, 92, 246, 0.5)",
-      "rgba(168, 85, 247, 0.5)",
-      "rgba(236, 72, 153, 0.5)",
-      "rgba(244, 114, 182, 0.5)",
-    ],
     dark: ["#3b82f6", "#8b5cf6", "#ec4899", "#ef4444", "#f59e0b", "#10b981"],
     gradient: ["#a855f7", "#9333ea", "#7e22ce", "#6b21a8", "#581c87", "#c084fc"],
     luxury: ["#d97706", "#b45309", "#92400e", "#78350f", "#ca8a04", "#f59e0b"],
     neon: ["#06b6d4", "#8b5cf6", "#ec4899", "#f59e0b", "#10b981", "#6366f1"],
     ocean: ["#06b6d4", "#0891b2", "#0e7490", "#155e75", "#22d3ee", "#67e8f9"],
-    "summer-sale": ["#FF5733", "#FF7849", "#FBBF24", "#38BDF8", "#0EA5E9", "#F97316"],
+    // Seasonal themes
+    summer: ["#FF6B6B", "#FFE66D", "#4ECDC4", "#FF8E53", "#45B7D1", "#F7DC6F"],
+    "black-friday": ["#FFD700", "#FFC107", "#FFAB00", "#FF9100", "#FF6D00", "#FFD54F"],
+    holiday: ["#C41E3A", "#228B22", "#FFD700", "#DC143C", "#006400", "#B8860B"],
+    valentine: ["#FF1493", "#FF69B4", "#DC143C", "#FFB6C1", "#DB7093", "#C71585"],
+    spring: ["#66BB6A", "#AB47BC", "#81C784", "#BA68C8", "#A5D6A7", "#CE93D8"],
   };
 
   const base = themeMap[theme] || themeMap.modern;
@@ -801,15 +435,17 @@ export interface SpinToWinWheelBorder {
 const SPIN_TO_WIN_WHEEL_BORDER_DEFAULTS: Record<NewsletterThemeKey, SpinToWinWheelBorder> = {
   modern: { color: "#3b82f6", width: 3 },
   minimal: { color: "#d4d4d8", width: 2 },
-  elegant: { color: "#a855f7", width: 3 },
-  bold: { color: "#ffffff", width: 4 },
-  glass: { color: "rgba(99, 102, 241, 0.4)", width: 2 },
   dark: { color: "#3b82f6", width: 3 },
   gradient: { color: "#ffffff", width: 3 },
   luxury: { color: "#d4af37", width: 3 },
   neon: { color: "#00ffff", width: 3 },
   ocean: { color: "#0ea5e9", width: 3 },
-  "summer-sale": { color: "#FF5733", width: 3 },
+  // Seasonal themes
+  summer: { color: "#4ECDC4", width: 3 },
+  "black-friday": { color: "#FFD700", width: 4 },
+  holiday: { color: "#FFD700", width: 3 },
+  valentine: { color: "#FF1493", width: 3 },
+  spring: { color: "#66BB6A", width: 3 },
 };
 
 export function getSpinToWinWheelBorder(theme: NewsletterThemeKey): SpinToWinWheelBorder {
@@ -1136,7 +772,7 @@ export function getNewsletterThemePresets(): ColorPreset[] {
     description: getNewsletterThemeDescription(key as NewsletterThemeKey),
     colors: themeColorsToDesignConfig(theme),
     theme: getColorThemeForNewsletterTheme(key as NewsletterThemeKey),
-    isPopular: ["modern", "minimal", "elegant", "glass"].includes(key),
+    isPopular: ["modern", "minimal", "dark", "luxury"].includes(key),
   }));
 }
 
@@ -1147,15 +783,17 @@ function getColorThemeForNewsletterTheme(theme: NewsletterThemeKey): ColorTheme 
   const mapping: Record<NewsletterThemeKey, ColorTheme> = {
     modern: "professional",
     minimal: "minimal",
-    elegant: "elegant",
-    bold: "vibrant",
-    glass: "minimal",
     dark: "dark",
     gradient: "vibrant",
     luxury: "elegant",
     neon: "playful",
     ocean: "professional",
-    "summer-sale": "vibrant",
+    // Seasonal themes
+    summer: "playful",
+    "black-friday": "dark",
+    holiday: "vibrant",
+    valentine: "elegant",
+    spring: "playful",
   };
   return mapping[theme];
 }
@@ -1167,15 +805,17 @@ function getNewsletterThemeDescription(theme: NewsletterThemeKey): string {
   const descriptions: Record<NewsletterThemeKey, string> = {
     modern: "Clean black & white",
     minimal: "Ultra-light, subtle accents",
-    elegant: "Warm yellow tones",
-    bold: "Vibrant gradient",
-    glass: "Glassmorphism with blur",
     dark: "Dark mode optimized",
     gradient: "Purple gradient background",
     luxury: "Gold on black, premium feel",
     neon: "Cyberpunk glow effects",
     ocean: "Fresh blue/teal palette",
-    "summer-sale": "Sunny orange & turquoise",
+    // Seasonal themes
+    summer: "Warm coral & turquoise summer vibes",
+    "black-friday": "Bold black & gold urgency",
+    holiday: "Festive red, green & gold",
+    valentine: "Romantic pink & red",
+    spring: "Fresh pastels & greens",
   };
   return descriptions[theme] || "";
 }
@@ -1252,4 +892,136 @@ export function getFlashSaleThemeColors(
     ...baseTheme,
     ...customColors,
   };
+}
+
+// ============================================================================
+// TEMPLATE-SPECIFIC THEME BEHAVIOR
+// ============================================================================
+/**
+ * Defines how themes behave differently per template type.
+ * For example, NEWSLETTER uses background images while SPIN_TO_WIN does not.
+ */
+export interface TemplateThemeBehavior {
+  /** Whether this template uses background images */
+  usesBackgroundImage: boolean;
+  /** Default image position when background is enabled */
+  defaultImagePosition: "left" | "right" | "top" | "bottom" | "full" | "none";
+  /** Default background overlay opacity (0-1) */
+  defaultOverlayOpacity?: number;
+}
+
+/**
+ * Template-specific behavior configuration.
+ * Templates not listed here use default behavior (no background image).
+ */
+export const TEMPLATE_THEME_BEHAVIOR: Partial<Record<TemplateType, TemplateThemeBehavior>> = {
+  NEWSLETTER: {
+    usesBackgroundImage: true,
+    defaultImagePosition: "left",
+  },
+  SCRATCH_CARD: {
+    usesBackgroundImage: true,
+    defaultImagePosition: "left",
+  },
+  FLASH_SALE: {
+    usesBackgroundImage: false,
+    defaultImagePosition: "none",
+  },
+  SPIN_TO_WIN: {
+    usesBackgroundImage: false,
+    defaultImagePosition: "none",
+  },
+  ANNOUNCEMENT: {
+    usesBackgroundImage: false,
+    defaultImagePosition: "none",
+  },
+  COUNTDOWN_TIMER: {
+    usesBackgroundImage: false,
+    defaultImagePosition: "none",
+  },
+  FREE_SHIPPING: {
+    usesBackgroundImage: false,
+    defaultImagePosition: "none",
+  },
+  // Templates not listed default to no background image
+};
+
+/**
+ * Get the theme behavior for a specific template type.
+ * Returns sensible defaults for templates not explicitly configured.
+ */
+export function getTemplateThemeBehavior(templateType: TemplateType): TemplateThemeBehavior {
+  return TEMPLATE_THEME_BEHAVIOR[templateType] ?? {
+    usesBackgroundImage: false,
+    defaultImagePosition: "none",
+  };
+}
+
+/**
+ * Result of resolving a theme for a specific template.
+ * Contains colors, behavior settings, and any template-specific extras.
+ */
+export interface ResolvedThemeResult {
+  /** Converted design config colors */
+  colors: ReturnType<typeof themeColorsToDesignConfig>;
+  /** Template-specific behavior */
+  behavior: TemplateThemeBehavior;
+  /** Background image mode based on template behavior */
+  backgroundImageMode: "none" | "preset" | "file";
+  /** Background preset key (theme key) if template uses images */
+  backgroundImagePresetKey: string | undefined;
+  /** Background image URL if template uses images */
+  backgroundImageUrl: string | undefined;
+  /** Wheel border settings for Spin-to-Win */
+  wheelBorder: SpinToWinWheelBorder | undefined;
+}
+
+/**
+ * Resolve a theme for a specific template type.
+ * Combines base theme colors with template-specific behavior.
+ *
+ * This is the main function to use when applying a theme in the admin.
+ * Background images are looked up from background-presets.ts using getDefaultBackgroundForTheme().
+ */
+export function resolveThemeForTemplate(
+  themeKey: NewsletterThemeKey,
+  templateType: TemplateType
+): ResolvedThemeResult {
+  const themeColors = NEWSLETTER_THEMES[themeKey];
+  const behavior = getTemplateThemeBehavior(templateType);
+  const designColors = themeColorsToDesignConfig(themeColors);
+
+  // Determine background image settings based on template behavior
+  // Use background-presets.ts as the single source of truth for background images
+  let backgroundImageMode: "none" | "preset" = "none";
+  let backgroundImagePresetKey: string | undefined;
+  let backgroundImageUrl: string | undefined;
+
+  if (behavior.usesBackgroundImage) {
+    const defaultBackground = getDefaultBackgroundForTheme(themeKey);
+    if (defaultBackground) {
+      backgroundImageMode = "preset";
+      backgroundImagePresetKey = defaultBackground.id;
+      backgroundImageUrl = getBackgroundUrl(defaultBackground);
+    }
+  }
+
+  // Get wheel border for Spin-to-Win
+  const wheelBorder = templateType === "SPIN_TO_WIN" ? getSpinToWinWheelBorder(themeKey) : undefined;
+
+  return {
+    colors: designColors,
+    behavior,
+    backgroundImageMode,
+    backgroundImagePresetKey,
+    backgroundImageUrl,
+    wheelBorder,
+  };
+}
+
+/**
+ * Check if a template type uses background images.
+ */
+export function templateUsesBackgroundImage(templateType: TemplateType): boolean {
+  return getTemplateThemeBehavior(templateType).usesBackgroundImage;
 }

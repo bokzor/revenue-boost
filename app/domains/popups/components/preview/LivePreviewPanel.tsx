@@ -12,7 +12,7 @@
  *   correctly based on the *simulated* device size, not the *actual* panel width.
  */
 
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   Card,
   BlockStack,
@@ -21,12 +21,11 @@ import {
   Button,
   RangeSlider,
   InlineStack,
-  Popover,
-  ActionList,
 } from "@shopify/polaris";
-import { ViewIcon } from "@shopify/polaris-icons";
 import { DeviceFrame } from "./DeviceFrame";
 import { TemplatePreview } from "./TemplatePreview";
+
+export type PreviewDevice = "mobile" | "tablet" | "desktop";
 
 export interface LivePreviewPanelProps {
   templateType?: string;
@@ -34,9 +33,15 @@ export interface LivePreviewPanelProps {
   designConfig: Record<string, unknown>;
   targetRules?: Record<string, unknown>;
   onPreviewElementReady?: (element: HTMLElement | null) => void;
+  /** @deprecated No longer used - Preview on Store moved to header */
   shopDomain?: string;
-  campaignId?: string;
   globalCustomCSS?: string;
+  /** Default theme tokens for preview (from store's default preset or Shopify theme) */
+  defaultThemeTokens?: import("~/domains/campaigns/types/design-tokens").DesignTokens;
+  /** Controlled device mode - when provided, overrides internal state */
+  device?: PreviewDevice;
+  /** Callback when device changes (for controlled mode) */
+  onDeviceChange?: (device: PreviewDevice) => void;
 }
 
 export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
@@ -45,11 +50,16 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
   designConfig,
   targetRules,
   onPreviewElementReady,
-  shopDomain,
-  campaignId,
   globalCustomCSS,
+  defaultThemeTokens,
+  device: controlledDevice,
+  onDeviceChange,
 }) => {
-  const [device, setDevice] = useState<"mobile" | "tablet" | "desktop">("tablet");
+  const [internalDevice, setInternalDevice] = useState<PreviewDevice>("tablet");
+
+  // Support both controlled and uncontrolled modes
+  const device = controlledDevice ?? internalDevice;
+  const setDevice = onDeviceChange ?? setInternalDevice;
   const [zoom, setZoom] = useState(100);
 
   // ✅ KEY: Virtual viewport sizes - independent of physical container
@@ -57,10 +67,11 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
   // Desktop uses a wider logical viewport so overlays (like upsell bars)
   // don't appear to span the *entire* browser width in preview.
   // Mobile uses iPhone 14/15 dimensions (390×844) - more representative of modern phones.
+  // Desktop height increased to 768px to accommodate content-heavy popups like Product Upsell.
   const virtualViewports = {
     mobile: { width: 390, height: 844 },
     tablet: { width: 768, height: 800 },
-    desktop: { width: 1024, height: 600 },
+    desktop: { width: 1024, height: 768 },
   };
 
   const viewport = virtualViewports[device];
@@ -116,64 +127,6 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
 
   const scale = calculateScale();
 
-  const [isCreatingPreview, setIsCreatingPreview] = useState(false);
-  const [previewPopoverActive, setPreviewPopoverActive] = useState(false);
-
-  const togglePreviewPopover = useCallback(() => setPreviewPopoverActive((active) => !active), []);
-
-  const handlePreviewOnStore = async (behavior: "instant" | "realistic" = "instant") => {
-    setPreviewPopoverActive(false); // Close popover when action is triggered
-    if (!shopDomain) {
-      console.error("Shop domain is required for preview");
-      return;
-    }
-
-    setIsCreatingPreview(true);
-
-    try {
-      // Always use token-based preview sessions for consistency (saved and unsaved)
-      const previewData = {
-        name: config.name || "Preview Campaign",
-        templateType,
-        contentConfig: config,
-        designConfig,
-        targetRules: targetRules || {},
-        priority: 0,
-        discountConfig: config.discountConfig || {},
-        // Optional: reference to the underlying saved campaign, if any
-        sourceCampaignId: campaignId,
-      };
-
-      // Create preview session
-      const response = await fetch("/api/preview/session", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(previewData),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to create preview session");
-      }
-
-      const result = await response.json();
-
-      if (!result.success || !result.token) {
-        throw new Error("Invalid preview session response");
-      }
-
-      // Open storefront with preview token and behavior mode
-      const storeUrl = `https://${shopDomain}?split_pop_preview_token=${result.token}&preview_behavior=${behavior}`;
-      window.open(storeUrl, "_blank");
-    } catch (error) {
-      console.error("Failed to create preview:", error);
-      alert("Failed to create preview. Please try again.");
-    } finally {
-      setIsCreatingPreview(false);
-    }
-  };
-
   if (!templateType) {
     return (
       <Card>
@@ -206,62 +159,14 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
   return (
     <Card>
       <BlockStack gap="400">
-        {/* Header & Controls */}
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            flexWrap: "wrap",
-            gap: "12px",
-          }}
-        >
-          <div>
-            <Text as="h3" variant="headingMd">
-              Live Preview
-            </Text>
-            <Text as="p" variant="bodySm" tone="subdued">
-              See how your campaign will look
-            </Text>
-          </div>
-
-          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-            {shopDomain && (
-              <Popover
-                active={previewPopoverActive}
-                activator={
-                  <Button
-                    icon={ViewIcon}
-                    disclosure="down"
-                    onClick={togglePreviewPopover}
-                    size="slim"
-                    loading={isCreatingPreview}
-                    disabled={isCreatingPreview}
-                  >
-                    Preview on Store
-                  </Button>
-                }
-                autofocusTarget="first-node"
-                onClose={togglePreviewPopover}
-              >
-                <ActionList
-                  actionRole="menuitem"
-                  items={[
-                    {
-                      content: "Quick Preview",
-                      helpText: "Shows popup immediately, bypassing triggers",
-                      onAction: () => handlePreviewOnStore("instant"),
-                    },
-                    {
-                      content: "Test with Triggers",
-                      helpText: "Evaluates triggers as configured (delays, scroll, etc.)",
-                      onAction: () => handlePreviewOnStore("realistic"),
-                    },
-                  ]}
-                />
-              </Popover>
-            )}
-          </div>
+        {/* Header */}
+        <div>
+          <Text as="h3" variant="headingMd">
+            Live Preview
+          </Text>
+          <Text as="p" variant="bodySm" tone="subdued">
+            See how your campaign will look
+          </Text>
         </div>
 
         {/* Device & Zoom Controls */}
@@ -355,6 +260,7 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
                   onPreviewElementReady={onPreviewElementReady}
                   campaignCustomCSS={designConfig?.customCSS as string | undefined}
                   globalCustomCSS={globalCustomCSS}
+                  defaultThemeTokens={defaultThemeTokens}
                 />
               </DeviceFrame>
             </div>

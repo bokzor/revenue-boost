@@ -1,24 +1,25 @@
 /**
  * Campaign Edit Page
  *
- * Edit existing campaign with pre-populated form data
+ * Edit existing campaign with the unified SingleCampaignFlow component
  */
 
+import { useState, useCallback, useEffect } from "react";
 import { data, type LoaderFunctionArgs } from "react-router";
 import { useLoaderData, useNavigate } from "react-router";
-import { Frame, Toast, Modal, Text } from "@shopify/polaris";
-import { useState, useEffect } from "react";
+import { Frame, Toast, Modal, Text, Banner, Box, Link } from "@shopify/polaris";
 
 import { authenticate } from "~/shopify.server";
 import { getStoreId } from "~/lib/auth-helpers.server";
 import { CampaignService } from "~/domains/campaigns";
-import { CampaignFormWithABTesting } from "~/domains/campaigns/components/CampaignFormWithABTesting";
+import { SingleCampaignFlow, CampaignErrorBoundary, type CampaignData } from "~/domains/campaigns/components/unified";
 import type { CampaignWithConfigs } from "~/domains/campaigns/types/campaign";
-import type { CampaignFormData } from "~/shared/hooks/useWizardState";
 import type { FrequencyCappingConfig } from "~/domains/targeting/components";
 import prisma from "~/db.server";
 import { StoreSettingsSchema, GLOBAL_FREQUENCY_BEST_PRACTICES } from "~/domains/store/types/settings";
 import { PlanGuardService } from "~/domains/billing/services/plan-guard.server";
+import { STYLED_RECIPES } from "~/domains/campaigns/recipes/styled-recipe-catalog";
+import type { DesignTokens } from "~/domains/campaigns/types/design-tokens";
 
 // ============================================================================
 // TYPES
@@ -28,6 +29,7 @@ interface LoaderData {
   campaign: CampaignWithConfigs | null;
   storeId: string;
   shopDomain: string;
+  recipes: typeof STYLED_RECIPES;
   globalCustomCSS?: string;
   customThemePresets?: Array<{
     id: string;
@@ -47,6 +49,20 @@ interface LoaderData {
   };
   advancedTargetingEnabled: boolean;
   experimentsEnabled: boolean;
+  backgroundsByLayout?: Record<string, import("~/config/background-presets").BackgroundPreset[]>;
+  defaultThemeTokens?: DesignTokens;
+  /** True if campaign uses a template type the user's plan doesn't support (grandfathered) */
+  isTemplateLocked?: boolean;
+  /** Required plan name if template is locked */
+  requiredPlanName?: string;
+  /** True if user is over their campaign limit and campaign is ACTIVE (blocks editing) */
+  isOverCampaignLimit?: boolean;
+  /** Campaign limit info when over limit */
+  campaignLimitInfo?: {
+    current: number;
+    max: number;
+    planName: string;
+  };
 }
 
 // ============================================================================
@@ -99,15 +115,89 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     const campaign = await CampaignService.getCampaignById(campaignId, storeId);
     console.log("[Campaign Edit Loader] Campaign fetched:", campaign ? campaign.id : "null");
 
+    // Check if campaign uses a template type the user's plan doesn't support (grandfathered)
+    let isTemplateLocked = false;
+    let requiredPlanName: string | undefined;
+    if (campaign) {
+      const canUseTemplate = await PlanGuardService.canUseTemplateType(storeId, campaign.templateType);
+      if (!canUseTemplate) {
+        isTemplateLocked = true;
+        // Determine required plan name
+        const { GAMIFICATION_TEMPLATE_TYPES, SOCIAL_PROOF_TEMPLATE_TYPES, PLAN_DEFINITIONS } = await import(
+          "~/domains/billing/types/plan"
+        );
+        if ((GAMIFICATION_TEMPLATE_TYPES as readonly string[]).includes(campaign.templateType)) {
+          requiredPlanName = PLAN_DEFINITIONS.GROWTH.name;
+        } else if ((SOCIAL_PROOF_TEMPLATE_TYPES as readonly string[]).includes(campaign.templateType)) {
+          requiredPlanName = PLAN_DEFINITIONS.STARTER.name;
+        }
+      }
+    }
+
+    // Check if user is over campaign limit (blocks editing ACTIVE campaigns)
+    let isOverCampaignLimit = false;
+    let campaignLimitInfo: { current: number; max: number; planName: string } | undefined;
+    if (campaign && campaign.status === "ACTIVE") {
+      const limitStatus = await PlanGuardService.getCampaignLimitStatus(storeId);
+      if (limitStatus.isOverLimit && limitStatus.max !== null) {
+        isOverCampaignLimit = true;
+        campaignLimitInfo = {
+          current: limitStatus.current,
+          max: limitStatus.max,
+          planName: limitStatus.planName,
+        };
+      }
+    }
+
+    // Lazy-load background presets by layout from recipe service
+    const { getBackgroundsByLayoutMap } = await import(
+      "~/domains/campaigns/recipes/recipe-service.server"
+    );
+    const backgroundsByLayout = await getBackgroundsByLayoutMap();
+
+    // Get default theme tokens for preview
+    // Priority: 1) Store's default theme preset, 2) Fallback to Shopify theme settings
+    const { getDefaultPreset, presetToDesignTokens } = await import(
+      "~/domains/store/types/theme-preset"
+    );
+    let defaultThemeTokens: import("~/domains/campaigns/types/design-tokens").DesignTokens | undefined;
+
+    // Try to get from store's default preset first
+    const customPresets = parsedSettings.success ? parsedSettings.data.customThemePresets : undefined;
+    if (customPresets && customPresets.length > 0) {
+      const defaultPreset = getDefaultPreset(customPresets);
+      if (defaultPreset) {
+        defaultThemeTokens = presetToDesignTokens(defaultPreset) as import("~/domains/campaigns/types/design-tokens").DesignTokens;
+      }
+    }
+
+    // Fallback: fetch from Shopify theme if no default preset
+    if (!defaultThemeTokens && session.shop && session.accessToken) {
+      const { fetchThemeSettings, themeSettingsToDesignTokens } = await import(
+        "~/lib/shopify/theme-settings.server"
+      );
+      const themeResult = await fetchThemeSettings(session.shop, session.accessToken);
+      if (themeResult.success && themeResult.settings) {
+        defaultThemeTokens = themeSettingsToDesignTokens(themeResult.settings);
+      }
+    }
+
     return data<LoaderData>({
       campaign,
       storeId,
       shopDomain: session.shop,
+      recipes: STYLED_RECIPES,
       globalCustomCSS: parsedSettings.success ? parsedSettings.data.globalCustomCSS : undefined,
       customThemePresets: parsedSettings.success ? parsedSettings.data.customThemePresets : undefined,
       globalFrequencyCapping,
       advancedTargetingEnabled,
       experimentsEnabled,
+      backgroundsByLayout,
+      defaultThemeTokens,
+      isTemplateLocked,
+      requiredPlanName,
+      isOverCampaignLimit,
+      campaignLimitInfo,
     });
   } catch (error) {
     console.error("[Campaign Edit Loader] Failed to load campaign for editing:", error);
@@ -117,6 +207,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         campaign: null,
         storeId: "",
         shopDomain: "",
+        recipes: STYLED_RECIPES,
         globalCustomCSS: undefined,
         customThemePresets: undefined,
         globalFrequencyCapping: undefined,
@@ -129,84 +220,56 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 }
 
 // ============================================================================
-// COMPONENT
+// HELPERS
 // ============================================================================
 
-export default function CampaignEditPage() {
-  console.log("[Campaign Edit Page] Component rendering");
-  const { campaign, storeId, shopDomain, globalCustomCSS, customThemePresets, globalFrequencyCapping, advancedTargetingEnabled, experimentsEnabled } =
-    useLoaderData<typeof loader>();
-  console.log("[Campaign Edit Page] Loaded data - campaign:", campaign?.id, "storeId:", storeId);
-  const navigate = useNavigate();
-
-  // State for toast notifications
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const [toastError, setToastError] = useState(false);
-
-  // Post-save activation modal state
-  const [activatePromptOpen, setActivatePromptOpen] = useState(false);
-  const [activating, setActivating] = useState(false);
-  const [postSaveNavigateTo, setPostSaveNavigateTo] = useState<string | null>(null);
-
-  // Redirect to experiment edit page if campaign is part of an A/B test
-  useEffect(() => {
-    if (campaign?.experimentId) {
-      console.log(
-        `[Campaign Edit] Campaign ${campaign.id} is part of experiment ${campaign.experimentId}, redirecting...`
-      );
-      navigate(`/app/experiments/${campaign.experimentId}/edit`);
-    }
-  }, [campaign, navigate]);
-
-  // Helper function to show toast
-  const showToast = (message: string, isError = false) => {
-    setToastMessage(message);
-    setToastError(isError);
-  };
-
+/**
+ * Convert CampaignWithConfigs to CampaignData format for SingleCampaignFlow
+ */
+function campaignToCampaignData(
+  campaign: CampaignWithConfigs,
+  advancedTargetingEnabled: boolean
+): Partial<CampaignData> {
   // Default disabled audience targeting config for Free plan users
-  const defaultDisabledAudienceTargeting: {
-    enabled: boolean;
-    shopifySegmentIds: string[];
+  const defaultDisabledAudienceTargeting = {
+    enabled: false,
+    shopifySegmentIds: [] as string[],
     sessionRules: {
-      enabled: boolean;
-      conditions: Array<{
+      enabled: false,
+      conditions: [] as Array<{
         field: string;
         operator: "in" | "eq" | "ne" | "gt" | "gte" | "lt" | "lte" | "nin";
         value: string | number | boolean | string[];
-      }>;
-      logicOperator: "AND" | "OR";
-    };
-  } = {
-    enabled: false,
-    shopifySegmentIds: [],
-    sessionRules: {
-      enabled: false,
-      conditions: [],
-      logicOperator: "AND",
+      }>,
+      logicOperator: "AND" as const,
     },
   };
 
-  // Convert campaign to form data format
-  const getInitialFormData = (): Partial<CampaignFormData> | null => {
-    if (!campaign) return null;
+  // For Free plan users, always show disabled audience targeting
+  const audienceTargeting = advancedTargetingEnabled
+    ? campaign.targetRules?.audienceTargeting ?? defaultDisabledAudienceTargeting
+    : defaultDisabledAudienceTargeting;
 
-    // For Free plan users (advancedTargetingEnabled = false), always show disabled audience targeting
-    // This ensures they see a clean UI even if the campaign has stale advanced targeting config from before downgrade
-    const audienceTargeting = advancedTargetingEnabled
-      ? campaign.targetRules?.audienceTargeting ?? defaultDisabledAudienceTargeting
-      : defaultDisabledAudienceTargeting;
+  // Build frequency config from campaign data
+  const frequencyConfig: FrequencyCappingConfig = {
+    enabled: !!campaign.targetRules?.enhancedTriggers?.frequency_capping,
+    max_triggers_per_session:
+      campaign.targetRules?.enhancedTriggers?.frequency_capping?.max_triggers_per_session,
+    max_triggers_per_day:
+      campaign.targetRules?.enhancedTriggers?.frequency_capping?.max_triggers_per_day,
+    cooldown_between_triggers:
+      campaign.targetRules?.enhancedTriggers?.frequency_capping?.cooldown_between_triggers,
+    respectGlobalCap: true,
+  };
 
-    return {
-      name: campaign.name,
-      description: campaign.description || "",
-      goal: campaign.goal,
-      status: campaign.status,
-      priority: campaign.priority || 0,
-      templateId: campaign.templateId || "",
-      templateType: campaign.templateType,
-      contentConfig: campaign.contentConfig,
-      designConfig: campaign.designConfig,
+  return {
+    name: campaign.name,
+    description: campaign.description || "",
+    templateType: campaign.templateType,
+    contentConfig: campaign.contentConfig || {},
+    designConfig: campaign.designConfig || {},
+    discountConfig: campaign.discountConfig,
+    targetingConfig: {
       enhancedTriggers: campaign.targetRules?.enhancedTriggers || {},
       audienceTargeting,
       pageTargeting: campaign.targetRules?.pageTargeting || {
@@ -222,205 +285,13 @@ export default function CampaignEditPage() {
         mode: "include" as const,
         countries: [],
       },
-      // Load frequency capping from server format (already matches UI format)
-      frequencyCapping: {
-        enabled: !!campaign.targetRules?.enhancedTriggers?.frequency_capping,
-        max_triggers_per_session:
-          campaign.targetRules?.enhancedTriggers?.frequency_capping?.max_triggers_per_session,
-        max_triggers_per_day:
-          campaign.targetRules?.enhancedTriggers?.frequency_capping?.max_triggers_per_day,
-        cooldown_between_triggers:
-          campaign.targetRules?.enhancedTriggers?.frequency_capping?.cooldown_between_triggers,
-        respectGlobalCap: true, // Default to true
-      } as FrequencyCappingConfig,
-      discountConfig: campaign.discountConfig,
-      startDate: campaign.startDate ? campaign.startDate.toISOString() : "",
-      endDate: campaign.endDate ? campaign.endDate.toISOString() : "",
-      tags: [],
-      isSaving: false,
-      triggerType: "page_load",
-    };
+    },
+    frequencyConfig,
+    scheduleConfig: {
+      startDate: campaign.startDate ? campaign.startDate.toISOString() : undefined,
+      endDate: campaign.endDate ? campaign.endDate.toISOString() : undefined,
+    },
   };
-
-  // Handle save - update campaign via API
-  const handleSave = async (campaignData: CampaignFormData | CampaignFormData[]) => {
-    if (!campaign) {
-      showToast("Campaign not found", true);
-      return;
-    }
-
-    try {
-      // For editing, we only handle single campaigns (not A/B tests)
-      if (Array.isArray(campaignData)) {
-        showToast("A/B testing updates not supported in edit mode", true);
-        return;
-      }
-
-      // Extract frequency capping fields (already in server format)
-      const {
-        enabled,
-        max_triggers_per_session,
-        max_triggers_per_day,
-        cooldown_between_triggers,
-      } = campaignData.frequencyCapping;
-
-      // Only include frequency_capping if enabled
-      const frequency_capping = enabled
-        ? {
-            max_triggers_per_session,
-            max_triggers_per_day,
-            cooldown_between_triggers,
-          }
-        : undefined;
-
-      const updateData = {
-        name: campaignData.name,
-        description: campaignData.description,
-        goal: campaignData.goal,
-        status: campaignData.status,
-        priority: campaignData.priority,
-        templateType: campaignData.templateType,
-        contentConfig: campaignData.contentConfig,
-        designConfig: campaignData.designConfig,
-        targetRules: {
-          enhancedTriggers: {
-            ...campaignData.enhancedTriggers,
-            frequency_capping,
-          },
-          audienceTargeting: campaignData.audienceTargeting,
-          geoTargeting: campaignData.geoTargeting,
-          pageTargeting: campaignData.pageTargeting,
-        },
-        discountConfig: campaignData.discountConfig,
-        startDate: campaignData.startDate,
-        endDate: campaignData.endDate,
-        tags: campaignData.tags,
-      };
-
-      const response = await fetch(`/api/campaigns/${campaign.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updateData),
-      });
-
-      if (!response.ok) {
-        const planLimit = await tryParsePlanLimitError(response);
-        if (planLimit) {
-          showToast(planLimit.message, true);
-          return;
-        }
-        throw new Error("Failed to update campaign");
-      }
-
-      const needsActivationPrompt = campaign.status === "DRAFT" && campaignData.status === "DRAFT";
-
-      if (needsActivationPrompt) {
-        setPostSaveNavigateTo("/app");
-        setActivatePromptOpen(true);
-        showToast("Campaign updated successfully");
-        return;
-      }
-
-      showToast("Campaign updated successfully");
-      navigate("/app");
-    } catch (error) {
-      console.error("Failed to update campaign:", error);
-      showToast("Failed to update campaign", true);
-    }
-  };
-
-  const handleCancel = () => {
-    navigate("/app");
-  };
-
-  // Toast component
-  const toastMarkup = toastMessage ? (
-    <Toast content={toastMessage} error={toastError} onDismiss={() => setToastMessage(null)} />
-  ) : null;
-
-  // If no campaign found, redirect back
-  useEffect(() => {
-    if (!campaign) {
-      console.log("[Campaign Edit Page] No campaign found, redirecting to dashboard");
-      navigate("/app");
-    }
-  }, [campaign, navigate]);
-
-  if (!campaign) {
-    return null;
-  }
-
-  const initialData = getInitialFormData();
-  if (!initialData) {
-    console.log("[Campaign Edit Page] No initial data, returning null");
-    return null;
-  }
-
-  console.log("[Campaign Edit Page] Rendering form with campaign:", campaign.id);
-  return (
-    <Frame>
-      <CampaignFormWithABTesting
-        storeId={storeId}
-        shopDomain={shopDomain}
-        initialData={initialData}
-        campaignId={campaign?.id}
-        globalCustomCSS={globalCustomCSS}
-        customThemePresets={customThemePresets}
-        globalFrequencyCapping={globalFrequencyCapping}
-        advancedTargetingEnabled={advancedTargetingEnabled}
-        experimentsEnabled={experimentsEnabled}
-        onSave={handleSave}
-        onCancel={handleCancel}
-      />
-      <Modal
-        open={activatePromptOpen}
-        onClose={() => {
-          setActivatePromptOpen(false);
-          if (postSaveNavigateTo) navigate(postSaveNavigateTo);
-        }}
-        title="Activate Campaign"
-        primaryAction={{
-          content: "Activate now",
-          loading: activating,
-          onAction: async () => {
-            if (!campaign) return;
-            try {
-              setActivating(true);
-              await fetch(`/api/campaigns/${campaign.id}`, {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ status: "ACTIVE" }),
-              });
-              showToast("Campaign activated");
-            } catch (e) {
-              showToast("Failed to activate campaign", true);
-            } finally {
-              setActivating(false);
-              setActivatePromptOpen(false);
-              if (postSaveNavigateTo) navigate(postSaveNavigateTo);
-            }
-          },
-        }}
-        secondaryActions={[
-          {
-            content: "Not now",
-            onAction: () => {
-              setActivatePromptOpen(false);
-              if (postSaveNavigateTo) navigate(postSaveNavigateTo);
-            },
-          },
-        ]}
-      >
-        <div style={{ padding: 16 }}>
-          <Text as="p" variant="bodyMd">
-            This campaign is still a draft. Activate it now
-          </Text>
-        </div>
-      </Modal>
-
-      {toastMarkup}
-    </Frame>
-  );
 }
 
 interface PlanLimitErrorDetails {
@@ -434,10 +305,343 @@ async function tryParsePlanLimitError(
 ): Promise<{ message: string; details: PlanLimitErrorDetails } | null> {
   try {
     if (response.status !== 403) return null;
-    const body = await response.json() as { errorCode?: string; error?: string; errorDetails?: PlanLimitErrorDetails };
+    const body = (await response.json()) as {
+      errorCode?: string;
+      error?: string;
+      errorDetails?: PlanLimitErrorDetails;
+    };
     if (body?.errorCode !== "PLAN_LIMIT_EXCEEDED") return null;
     return { message: body.error ?? "Plan limit reached", details: body.errorDetails ?? {} };
   } catch {
     return null;
   }
+}
+
+// ============================================================================
+// COMPONENT
+// ============================================================================
+
+export default function CampaignEditPage() {
+  const {
+    campaign,
+    storeId,
+    shopDomain,
+    recipes,
+    globalCustomCSS,
+    customThemePresets,
+    globalFrequencyCapping,
+    advancedTargetingEnabled,
+    backgroundsByLayout,
+    defaultThemeTokens,
+    isTemplateLocked,
+    requiredPlanName,
+    isOverCampaignLimit,
+    campaignLimitInfo,
+  } = useLoaderData<typeof loader>();
+  const navigate = useNavigate();
+
+  // State for toast notifications
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [toastError, setToastError] = useState(false);
+
+  // Post-save activation modal state
+  const [activatePromptOpen, setActivatePromptOpen] = useState(false);
+  const [activating, setActivating] = useState(false);
+
+  // Redirect to experiment edit page if campaign is part of an A/B test
+  useEffect(() => {
+    if (campaign?.experimentId) {
+      navigate(`/app/experiments/${campaign.experimentId}/edit`);
+    }
+  }, [campaign, navigate]);
+
+  // If no campaign found, redirect back
+  useEffect(() => {
+    if (!campaign) {
+      navigate("/app");
+    }
+  }, [campaign, navigate]);
+
+  // Helper function to show toast
+  const showToast = useCallback((message: string, isError = false) => {
+    setToastMessage(message);
+    setToastError(isError);
+  }, []);
+
+  // Handle back navigation
+  const handleBack = useCallback(() => {
+    navigate("/app");
+  }, [navigate]);
+
+  // Handle save (publish) - update campaign via API with ACTIVE status
+  const handleSave = useCallback(
+    async (campaignData: CampaignData) => {
+      if (!campaign) {
+        showToast("Campaign not found", true);
+        return;
+      }
+
+      try {
+        // Build frequency_capping for server format
+        const { enabled, max_triggers_per_session, max_triggers_per_day, cooldown_between_triggers } =
+          campaignData.frequencyConfig || {};
+
+        const frequency_capping = enabled
+          ? { max_triggers_per_session, max_triggers_per_day, cooldown_between_triggers }
+          : undefined;
+
+        const updateData = {
+          name: campaignData.name,
+          description: campaignData.description,
+          goal: campaign.goal, // Preserve original goal
+          status: "ACTIVE", // Publish sets to ACTIVE
+          templateType: campaignData.templateType,
+          contentConfig: campaignData.contentConfig,
+          designConfig: campaignData.designConfig,
+          targetRules: {
+            enhancedTriggers: {
+              ...campaignData.targetingConfig?.enhancedTriggers,
+              frequency_capping,
+            },
+            audienceTargeting: campaignData.targetingConfig?.audienceTargeting,
+            geoTargeting: campaignData.targetingConfig?.geoTargeting,
+            pageTargeting: campaignData.targetingConfig?.pageTargeting,
+          },
+          discountConfig: campaignData.discountConfig,
+          startDate: campaignData.scheduleConfig?.startDate,
+          endDate: campaignData.scheduleConfig?.endDate,
+        };
+
+        const response = await fetch(`/api/campaigns/${campaign.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(updateData),
+        });
+
+        if (!response.ok) {
+          const planLimit = await tryParsePlanLimitError(response);
+          if (planLimit) {
+            showToast(planLimit.message, true);
+            return;
+          }
+          throw new Error("Failed to update campaign");
+        }
+
+        showToast("Campaign updated and published");
+        navigate("/app");
+      } catch (error) {
+        console.error("Failed to update campaign:", error);
+        showToast("Failed to update campaign", true);
+      }
+    },
+    [campaign, navigate, showToast]
+  );
+
+  // Handle save draft - update campaign via API keeping DRAFT status
+  const handleSaveDraft = useCallback(
+    async (campaignData: CampaignData) => {
+      if (!campaign) {
+        showToast("Campaign not found", true);
+        return;
+      }
+
+      try {
+        // Build frequency_capping for server format
+        const { enabled, max_triggers_per_session, max_triggers_per_day, cooldown_between_triggers } =
+          campaignData.frequencyConfig || {};
+
+        const frequency_capping = enabled
+          ? { max_triggers_per_session, max_triggers_per_day, cooldown_between_triggers }
+          : undefined;
+
+        const updateData = {
+          name: campaignData.name,
+          description: campaignData.description,
+          goal: campaign.goal, // Preserve original goal
+          status: campaign.status, // Preserve original status
+          templateType: campaignData.templateType,
+          contentConfig: campaignData.contentConfig,
+          designConfig: campaignData.designConfig,
+          targetRules: {
+            enhancedTriggers: {
+              ...campaignData.targetingConfig?.enhancedTriggers,
+              frequency_capping,
+            },
+            audienceTargeting: campaignData.targetingConfig?.audienceTargeting,
+            geoTargeting: campaignData.targetingConfig?.geoTargeting,
+            pageTargeting: campaignData.targetingConfig?.pageTargeting,
+          },
+          discountConfig: campaignData.discountConfig,
+          startDate: campaignData.scheduleConfig?.startDate,
+          endDate: campaignData.scheduleConfig?.endDate,
+        };
+
+        const response = await fetch(`/api/campaigns/${campaign.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(updateData),
+        });
+
+        if (!response.ok) {
+          const planLimit = await tryParsePlanLimitError(response);
+          if (planLimit) {
+            showToast(planLimit.message, true);
+            return;
+          }
+          throw new Error("Failed to update campaign");
+        }
+
+        // If campaign was a draft, offer to activate
+        if (campaign.status === "DRAFT") {
+          setActivatePromptOpen(true);
+          showToast("Campaign saved");
+          return;
+        }
+
+        showToast("Campaign saved");
+        navigate("/app");
+      } catch (error) {
+        console.error("Failed to save campaign:", error);
+        showToast("Failed to save campaign", true);
+      }
+    },
+    [campaign, navigate, showToast]
+  );
+
+  // Handle activation from modal
+  const handleActivate = useCallback(async () => {
+    if (!campaign) return;
+    try {
+      setActivating(true);
+      await fetch(`/api/campaigns/${campaign.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "ACTIVE" }),
+      });
+      showToast("Campaign activated");
+      navigate("/app");
+    } catch {
+      showToast("Failed to activate campaign", true);
+    } finally {
+      setActivating(false);
+      setActivatePromptOpen(false);
+    }
+  }, [campaign, navigate, showToast]);
+
+  // Toast component
+  const toastMarkup = toastMessage ? (
+    <Toast content={toastMessage} error={toastError} onDismiss={() => setToastMessage(null)} />
+  ) : null;
+
+  if (!campaign) {
+    return null;
+  }
+
+  // Block editing ACTIVE campaigns when over campaign limit
+  if (isOverCampaignLimit && campaignLimitInfo) {
+    return (
+      <Frame>
+        <Box padding="600">
+          <Banner tone="critical" title="Campaign Limit Exceeded">
+            <Box paddingBlockStart="200">
+              <Text as="p" variant="bodyMd">
+                You have <strong>{campaignLimitInfo.current} active campaigns</strong>, but your{" "}
+                {campaignLimitInfo.planName} plan only allows <strong>{campaignLimitInfo.max}</strong>.
+              </Text>
+              <Box paddingBlockStart="300">
+                <Text as="p" variant="bodyMd">
+                  To edit this campaign, you need to either:
+                </Text>
+                <Box paddingBlockStart="200" paddingInlineStart="400">
+                  <Text as="p" variant="bodyMd">
+                    • <Link url="/app/billing">Upgrade your plan</Link> to support more campaigns
+                  </Text>
+                  <Text as="p" variant="bodyMd">
+                    • <Link url="/app">Pause some campaigns</Link> to free up slots
+                  </Text>
+                </Box>
+              </Box>
+              <Box paddingBlockStart="400">
+                <Text as="p" variant="bodyMd" tone="subdued">
+                  Your existing active campaigns will continue running, but you cannot edit them until
+                  you&apos;re within your plan&apos;s limit.
+                </Text>
+              </Box>
+            </Box>
+          </Banner>
+        </Box>
+      </Frame>
+    );
+  }
+
+  const initialData = campaignToCampaignData(campaign, advancedTargetingEnabled);
+
+  return (
+    <Frame>
+      {/* Grandfathered campaign warning banner */}
+      {isTemplateLocked && requiredPlanName && (
+        <Box padding="400" paddingBlockEnd="0">
+          <Banner tone="warning">
+            <Text as="p" variant="bodyMd">
+              This campaign uses a template that requires the {requiredPlanName} plan.
+              It will continue running, but you cannot create new campaigns with this template.{" "}
+              <Link url="/app/billing">Upgrade to {requiredPlanName}</Link> to unlock full editing and
+              create new campaigns with this template type.
+            </Text>
+          </Banner>
+        </Box>
+      )}
+
+      <CampaignErrorBoundary context="CampaignEdit">
+        <SingleCampaignFlow
+          onBack={handleBack}
+          onSave={handleSave}
+          onSaveDraft={handleSaveDraft}
+          recipes={recipes}
+          storeId={storeId}
+          shopDomain={shopDomain}
+          advancedTargetingEnabled={advancedTargetingEnabled}
+          initialData={initialData}
+          isEditMode={true}
+          campaignId={campaign.id}
+          customThemePresets={customThemePresets}
+          backgroundsByLayout={backgroundsByLayout}
+          globalCustomCSS={globalCustomCSS}
+          globalFrequencyCapping={globalFrequencyCapping}
+          defaultThemeTokens={defaultThemeTokens}
+        />
+      </CampaignErrorBoundary>
+
+      <Modal
+        open={activatePromptOpen}
+        onClose={() => {
+          setActivatePromptOpen(false);
+          navigate("/app");
+        }}
+        title="Activate Campaign"
+        primaryAction={{
+          content: "Activate now",
+          loading: activating,
+          onAction: handleActivate,
+        }}
+        secondaryActions={[
+          {
+            content: "Not now",
+            onAction: () => {
+              setActivatePromptOpen(false);
+              navigate("/app");
+            },
+          },
+        ]}
+      >
+        <div style={{ padding: 16 }}>
+          <Text as="p" variant="bodyMd">
+            This campaign is still a draft. Activate it now to start showing it to customers.
+          </Text>
+        </div>
+      </Modal>
+
+      {toastMarkup}
+    </Frame>
+  );
 }

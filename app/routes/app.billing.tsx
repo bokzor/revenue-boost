@@ -25,6 +25,7 @@ import prisma from "../db.server";
 import {
   PLAN_DEFINITIONS,
   ENABLED_PLAN_ORDER,
+  DISPLAY_PLAN_ORDER,
   FEATURE_METADATA,
   getFeaturesByCategory,
   type PlanTier,
@@ -67,7 +68,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       currentPeriodEnd: store.currentPeriodEnd?.toISOString() || null,
       shopifyHasPayment: false,
       appSubscriptions: [],
-      plans: ENABLED_PLAN_ORDER.map((tier) => ({
+      plans: DISPLAY_PLAN_ORDER.map((tier) => ({
         tier,
         ...PLAN_DEFINITIONS[tier],
       })),
@@ -80,7 +81,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const billingContext = await BillingService.syncSubscriptionToDatabase(admin, session.shop);
 
   // Check current billing status using Shopify's billing API
-  const { hasActivePayment, appSubscriptions } = await billing.check();
+  const { hasActivePayment } = await billing.check();
 
   return {
     currentPlan: billingContext.planTier,
@@ -90,8 +91,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     trialEndsAt: billingContext.trialEndsAt?.toISOString() || null,
     currentPeriodEnd: billingContext.subscription?.currentPeriodEnd || null,
     shopifyHasPayment: hasActivePayment,
-    appSubscriptions,
-    plans: ENABLED_PLAN_ORDER.map((tier) => ({
+    plans: DISPLAY_PLAN_ORDER.map((tier) => ({
       tier,
       ...PLAN_DEFINITIONS[tier],
     })),
@@ -815,7 +815,7 @@ export default function BillingPage() {
                   <Collapsible open={isOpen} id={`feature-${category.name}`}>
                     <Box paddingBlock="200">
                       <InlineGrid columns={{ xs: 1, md: 3 }} gap="400">
-                        {ENABLED_PLAN_ORDER.map((tier) => (
+                        {DISPLAY_PLAN_ORDER.map((tier) => (
                           <Box key={tier} padding="200" background="bg-surface-secondary" borderRadius="200">
                             <BlockStack gap="200">
                               <Text as="span" variant="bodySm" fontWeight="bold">

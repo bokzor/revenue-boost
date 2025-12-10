@@ -13,7 +13,7 @@
  */
 
 import { useState, useCallback, useRef } from "react";
-import { validateEmail } from "../utils";
+import { validateEmail } from "app/domains/storefront/popups-new/utils/utils";
 
 export interface PopupFormConfig {
   emailRequired?: boolean;
@@ -183,7 +183,8 @@ export function usePopupForm(options: UsePopupFormOptions) {
         }
       } catch (error: unknown) {
         console.error("Form submission error:", error);
-        const errorMessage = error instanceof Error ? error.message : "Something went wrong. Please try again.";
+        const errorMessage =
+          error instanceof Error ? error.message : "Something went wrong. Please try again.";
         setErrors({
           email: errorMessage,
         });

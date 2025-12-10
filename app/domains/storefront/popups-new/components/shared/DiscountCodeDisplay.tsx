@@ -121,13 +121,16 @@ export const DiscountCodeDisplay: React.FC<DiscountCodeDisplayProps> = ({
   copied = false,
   label,
   variant = "dashed",
-  accentColor = "#3b82f6",
+  // Colors are optional - CSS variables provide defaults via design-tokens.css
+  accentColor,
   textColor,
   backgroundColor,
   size = "md",
   className,
   style,
 }) => {
+  // Use CSS variable if no prop provided
+  const effectiveAccentColor = accentColor || "var(--rb-primary)";
   // Size mappings
   const sizeMap = {
     sm: {
@@ -155,19 +158,20 @@ export const DiscountCodeDisplay: React.FC<DiscountCodeDisplayProps> = ({
 
   const sizeStyles = sizeMap[size];
 
-  // Variant-specific styles
+  // Variant-specific styles - use CSS variables with proper fallbacks
+  // Note: For CSS variable backgrounds, we use rgba with opacity instead of hex+alpha
   const variantStyles: Record<string, React.CSSProperties> = {
     dashed: {
-      border: `${sizeStyles.borderWidth} dashed ${accentColor}`,
-      backgroundColor: backgroundColor || `${accentColor}15`,
+      border: `${sizeStyles.borderWidth} dashed ${effectiveAccentColor}`,
+      backgroundColor: backgroundColor || "color-mix(in srgb, var(--rb-primary) 10%, transparent)",
     },
     solid: {
-      border: `${sizeStyles.borderWidth} solid ${accentColor}`,
-      backgroundColor: backgroundColor || `${accentColor}10`,
+      border: `${sizeStyles.borderWidth} solid ${effectiveAccentColor}`,
+      backgroundColor: backgroundColor || "color-mix(in srgb, var(--rb-primary) 8%, transparent)",
     },
     minimal: {
       border: "none",
-      backgroundColor: backgroundColor || `${accentColor}08`,
+      backgroundColor: backgroundColor || "color-mix(in srgb, var(--rb-primary) 5%, transparent)",
     },
   };
 
@@ -191,7 +195,7 @@ export const DiscountCodeDisplay: React.FC<DiscountCodeDisplayProps> = ({
     fontSize: sizeStyles.labelFontSize,
     fontWeight: 500,
     marginBottom: "0.25rem",
-    color: textColor || accentColor,
+    color: textColor || effectiveAccentColor,
     opacity: 0.8,
   };
 
@@ -220,7 +224,7 @@ export const DiscountCodeDisplay: React.FC<DiscountCodeDisplayProps> = ({
     fontSize: getResponsiveFontSize(),
     fontWeight: 700,
     letterSpacing: "0.025em",
-    color: textColor || accentColor,
+    color: textColor || effectiveAccentColor,
     display: "flex",
     alignItems: "center",
     justifyContent: "center",

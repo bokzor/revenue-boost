@@ -60,7 +60,7 @@ export interface MobileOptimizationConfig {
   enabled?: boolean;
   responsiveBreakpoint?: number;
   mobilePosition?: "top" | "bottom" | "center";
-  mobileSize?: "small" | "medium" | "large" | "full";
+  mobileSize?: "small" | "medium" | "large" | "full" | "fullscreen";
   hideOnMobile?: boolean;
   [key: string]: unknown;
 }

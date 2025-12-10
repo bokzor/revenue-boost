@@ -3,6 +3,8 @@
  *
  * Settings section for managing custom theme presets.
  * Displays a list of presets with options to create, edit, and delete.
+ * Includes an "Import from Shopify Theme" button to fetch colors from the store's theme.
+ * Supports importing multiple color schemes from OS 2.0 themes.
  */
 
 import { useState, useCallback, useMemo } from "react";
@@ -16,8 +18,15 @@ import {
   Modal,
   ResourceList,
   ResourceItem,
+  Banner,
+  Spinner,
+  ButtonGroup,
+  Badge,
+  Checkbox,
+  Divider,
 } from "@shopify/polaris";
-import { PlusIcon } from "@shopify/polaris-icons";
+import { PlusIcon, PaintBrushFlatIcon, StarFilledIcon } from "@shopify/polaris-icons";
+import { useFetcher } from "react-router";
 
 import type { StoreSettings, ThemePresetInput } from "../types/settings";
 import { ThemePresetEditor } from "./ThemePresetEditor";
@@ -40,9 +49,93 @@ export function ThemePresetsSettings({ settings, onChange }: ThemePresetsSetting
   const [editingPreset, setEditingPreset] = useState<ThemePresetInput | undefined>(undefined);
   const [deleteConfirmPresetId, setDeleteConfirmPresetId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [importSuccess, setImportSuccess] = useState(false);
+  const [importDismissed, setImportDismissed] = useState(false);
+  const [selectedImportPresets, setSelectedImportPresets] = useState<Set<string>>(new Set());
+
+  // Fetcher for importing theme from Shopify
+  const themeFetcher = useFetcher<{
+    presets?: ThemePresetInput[];
+    preset?: ThemePresetInput; // Legacy single preset
+    rawSettings?: { themeName?: string };
+    error?: string;
+  }>();
+  const isImporting = themeFetcher.state === "loading";
+
+  // Get available presets from API response (prefer new multi-preset, fallback to legacy single)
+  const availableImportPresets = useMemo(() => {
+    if (themeFetcher.data?.presets && themeFetcher.data.presets.length > 0) {
+      return themeFetcher.data.presets;
+    }
+    if (themeFetcher.data?.preset) {
+      return [themeFetcher.data.preset];
+    }
+    return [];
+  }, [themeFetcher.data]);
 
   // Memoize presets to avoid useCallback dependency warnings
   const presets = useMemo(() => settings.customThemePresets || [], [settings.customThemePresets]);
+
+  // Handle importing theme from Shopify
+  const handleImportFromShopify = useCallback(() => {
+    setImportSuccess(false);
+    setImportDismissed(false);
+    setSelectedImportPresets(new Set());
+    themeFetcher.load("/api/theme-settings");
+  }, [themeFetcher]);
+
+  // Initialize selection when presets are loaded (select the default one)
+  useMemo(() => {
+    if (availableImportPresets.length > 0 && selectedImportPresets.size === 0) {
+      const defaultPreset = availableImportPresets.find((p) => p.isDefault);
+      if (defaultPreset) {
+        setSelectedImportPresets(new Set([defaultPreset.id]));
+      } else {
+        setSelectedImportPresets(new Set([availableImportPresets[0].id]));
+      }
+    }
+  }, [availableImportPresets, selectedImportPresets.size]);
+
+  // Toggle selection of an import preset
+  const handleToggleImportPreset = useCallback((presetId: string) => {
+    setSelectedImportPresets((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(presetId)) {
+        newSet.delete(presetId);
+      } else {
+        newSet.add(presetId);
+      }
+      return newSet;
+    });
+  }, []);
+
+  // Select all presets
+  const handleSelectAllImportPresets = useCallback(() => {
+    setSelectedImportPresets(new Set(availableImportPresets.map((p) => p.id)));
+  }, [availableImportPresets]);
+
+  // Deselect all presets
+  const handleDeselectAllImportPresets = useCallback(() => {
+    setSelectedImportPresets(new Set());
+  }, []);
+
+  // Save selected imported presets
+  const handleSaveImportedPresets = useCallback(() => {
+    if (selectedImportPresets.size === 0) return;
+
+    const presetsToImport = availableImportPresets
+      .filter((p) => selectedImportPresets.has(p.id))
+      .map((p) => ({
+        ...p,
+        id: `store-theme-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      }));
+
+    // Add to existing presets
+    const updatedPresets = [...presetsToImport, ...presets];
+    onChange({ customThemePresets: updatedPresets });
+    setImportSuccess(true);
+    setSelectedImportPresets(new Set());
+  }, [selectedImportPresets, availableImportPresets, presets, onChange]);
 
   // Handlers
   const handleCreateNew = useCallback(() => {
@@ -96,23 +189,48 @@ export function ThemePresetsSettings({ settings, onChange }: ThemePresetsSetting
     setDeleteConfirmPresetId(null);
   }, [deleteConfirmPresetId, presets, onChange]);
 
+  // Set a preset as the default
+  const handleSetAsDefault = useCallback(
+    (presetId: string) => {
+      const updatedPresets = presets.map((p) => ({
+        ...p,
+        isDefault: p.id === presetId,
+      }));
+      onChange({ customThemePresets: updatedPresets });
+    },
+    [presets, onChange]
+  );
+
   // Render preset item
   const renderPresetItem = (preset: ThemePresetInput) => {
+    const isDefault = preset.isDefault === true;
+
+    // Build shortcut actions - only show "Set as Default" if not already default
+    const shortcutActions = [
+      {
+        content: "Edit",
+        onAction: () => handleEdit(preset),
+      },
+      ...(!isDefault
+        ? [
+            {
+              content: "Set as Default",
+              onAction: () => handleSetAsDefault(preset.id),
+            },
+          ]
+        : []),
+      {
+        content: "Delete",
+        onAction: () => setDeleteConfirmPresetId(preset.id),
+      },
+    ];
+
     return (
       <ResourceItem
         id={preset.id}
         onClick={() => handleEdit(preset)}
         accessibilityLabel={`Edit ${preset.name}`}
-        shortcutActions={[
-          {
-            content: "Edit",
-            onAction: () => handleEdit(preset),
-          },
-          {
-            content: "Delete",
-            onAction: () => setDeleteConfirmPresetId(preset.id),
-          },
-        ]}
+        shortcutActions={shortcutActions}
       >
         <InlineStack gap="400" align="start" blockAlign="center">
           {/* Color preview swatches */}
@@ -149,11 +267,18 @@ export function ThemePresetsSettings({ settings, onChange }: ThemePresetsSetting
             />
           </InlineStack>
 
-          {/* Name and description */}
+          {/* Name, description, and default badge */}
           <BlockStack gap="100">
-            <Text variant="bodyMd" fontWeight="semibold" as="span">
-              {preset.name}
-            </Text>
+            <InlineStack gap="200" blockAlign="center">
+              <Text variant="bodyMd" fontWeight="semibold" as="span">
+                {preset.name}
+              </Text>
+              {isDefault && (
+                <Badge tone="info" icon={StarFilledIcon}>
+                  Default
+                </Badge>
+              )}
+            </InlineStack>
             {preset.description && (
               <Text variant="bodySm" tone="subdued" as="span">
                 {preset.description}
@@ -178,18 +303,159 @@ export function ThemePresetsSettings({ settings, onChange }: ThemePresetsSetting
                 Create reusable color themes for your campaigns
               </Text>
             </BlockStack>
-            <Button icon={PlusIcon} onClick={handleCreateNew}>
-              Create Preset
-            </Button>
+            <ButtonGroup>
+              <Button
+                icon={PaintBrushFlatIcon}
+                onClick={handleImportFromShopify}
+                loading={isImporting}
+                disabled={isImporting}
+              >
+                Import from Theme
+              </Button>
+              <Button icon={PlusIcon} onClick={handleCreateNew}>
+                Create Preset
+              </Button>
+            </ButtonGroup>
           </InlineStack>
 
-          {presets.length === 0 ? (
+          {/* Import from Shopify Theme - Preview and Select Multiple Presets */}
+          {availableImportPresets.length > 0 && !importSuccess && !importDismissed && (
+            <Banner
+              title={`Found ${availableImportPresets.length} color scheme${availableImportPresets.length > 1 ? "s" : ""}`}
+              tone="info"
+              onDismiss={() => setImportDismissed(true)}
+            >
+              <BlockStack gap="400">
+                <Text as="p">
+                  Your &quot;{themeFetcher.data?.rawSettings?.themeName || "Shopify"}&quot; theme has{" "}
+                  {availableImportPresets.length > 1
+                    ? `${availableImportPresets.length} color schemes. Select which ones to import:`
+                    : "1 color scheme. Save it as a preset?"}
+                </Text>
+
+                {/* Selection controls for multiple presets */}
+                {availableImportPresets.length > 1 && (
+                  <InlineStack gap="200">
+                    <Button size="slim" onClick={handleSelectAllImportPresets}>
+                      Select All
+                    </Button>
+                    <Button size="slim" onClick={handleDeselectAllImportPresets}>
+                      Deselect All
+                    </Button>
+                  </InlineStack>
+                )}
+
+                {/* List of available presets with checkboxes */}
+                <BlockStack gap="200">
+                  {availableImportPresets.map((preset) => (
+                    <InlineStack key={preset.id} gap="300" blockAlign="center">
+                      <Checkbox
+                        label=""
+                        checked={selectedImportPresets.has(preset.id)}
+                        onChange={() => handleToggleImportPreset(preset.id)}
+                      />
+                      {/* Color preview swatches */}
+                      <InlineStack gap="100">
+                        <div
+                          style={{
+                            width: "20px",
+                            height: "20px",
+                            borderRadius: "4px",
+                            backgroundColor: preset.backgroundColor,
+                            border: "1px solid #E5E7EB",
+                          }}
+                          title="Background"
+                        />
+                        <div
+                          style={{
+                            width: "20px",
+                            height: "20px",
+                            borderRadius: "4px",
+                            backgroundColor: preset.textColor,
+                            border: "1px solid #E5E7EB",
+                          }}
+                          title="Text"
+                        />
+                        <div
+                          style={{
+                            width: "20px",
+                            height: "20px",
+                            borderRadius: "4px",
+                            backgroundColor: preset.brandColor,
+                            border: "1px solid #E5E7EB",
+                          }}
+                          title="Brand"
+                        />
+                      </InlineStack>
+                      {/* Preset name and default badge */}
+                      <Text as="span" variant="bodyMd">
+                        {preset.name}
+                      </Text>
+                      {preset.isDefault && (
+                        <Badge tone="info" size="small">
+                          Recommended
+                        </Badge>
+                      )}
+                    </InlineStack>
+                  ))}
+                </BlockStack>
+
+                <Divider />
+
+                <InlineStack gap="200">
+                  <Button
+                    variant="primary"
+                    onClick={handleSaveImportedPresets}
+                    disabled={selectedImportPresets.size === 0}
+                  >
+                    Import {selectedImportPresets.size > 0 ? `${selectedImportPresets.size} Preset${selectedImportPresets.size > 1 ? "s" : ""}` : "Selected"}
+                  </Button>
+                </InlineStack>
+              </BlockStack>
+            </Banner>
+          )}
+
+          {/* Success message */}
+          {importSuccess && (
+            <Banner
+              title="Theme presets imported!"
+              tone="success"
+              onDismiss={() => setImportSuccess(false)}
+            >
+              <Text as="p">
+                Your Shopify theme colors have been saved. You can now apply them to any campaign.
+              </Text>
+            </Banner>
+          )}
+
+          {/* Error message */}
+          {themeFetcher.data?.error && (
+            <Banner title="Failed to import theme" tone="critical">
+              <Text as="p">{themeFetcher.data.error}</Text>
+            </Banner>
+          )}
+
+          {/* Loading state */}
+          {isImporting && (
+            <InlineStack align="center" gap="200">
+              <Spinner size="small" />
+              <Text as="p" tone="subdued">
+                Fetching colors from your Shopify theme...
+              </Text>
+            </InlineStack>
+          )}
+
+          {presets.length === 0 && availableImportPresets.length === 0 ? (
             <EmptyState
               heading="No theme presets yet"
               image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
               action={{
                 content: "Create your first preset",
                 onAction: handleCreateNew,
+              }}
+              secondaryAction={{
+                content: "Import from your theme",
+                onAction: handleImportFromShopify,
               }}
             >
               <p>

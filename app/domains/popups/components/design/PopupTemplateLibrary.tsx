@@ -5,7 +5,8 @@
  * Provides backward compatibility for existing UI components.
  */
 
-import { TemplateService, type Template } from "~/domains/popups/services/templates.server";
+import { TemplateService } from "~/domains/templates/services/template.server";
+import type { TemplateWithConfigs as Template } from "~/domains/templates/types/template";
 
 /**
  * Simple template functions - all use TemplateService

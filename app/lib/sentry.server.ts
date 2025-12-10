@@ -4,6 +4,7 @@
  * Provides centralized error tracking for production debugging.
  */
 
+import { logger } from "~/lib/logger.server";
 import * as Sentry from "@sentry/node";
 import { isProduction } from "./env.server";
 
@@ -19,13 +20,13 @@ export function initSentry(): void {
 
   // Only initialize in production
   if (!isProduction()) {
-    console.log("[Sentry] Skipping initialization (not in production)");
+    logger.debug("[Sentry] Skipping initialization (not in production)");
     return;
   }
 
   const dsn = process.env.SENTRY_DSN;
   if (!dsn) {
-    console.warn("[Sentry] SENTRY_DSN not configured, error monitoring disabled");
+    logger.warn("[Sentry] SENTRY_DSN not configured, error monitoring disabled");
     return;
   }
 
@@ -38,9 +39,9 @@ export function initSentry(): void {
       sampleRate: 1.0,
     });
 
-    console.log("[Sentry] Initialized successfully");
+    logger.debug("[Sentry] Initialized successfully");
   } catch (error) {
-    console.error("[Sentry] Failed to initialize:", error);
+    logger.error({ error }, "[Sentry] Failed to initialize:");
   }
 }
 
@@ -52,7 +53,7 @@ export function captureException(
   context?: Record<string, unknown>
 ): void {
   if (!isInitialized) {
-    console.error("[Error]", error, context);
+    logger.error({ error, context }, "[Sentry] Error captured (Sentry not initialized)");
     return;
   }
 
@@ -73,7 +74,9 @@ export function captureMessage(
   context?: Record<string, unknown>
 ): void {
   if (!isInitialized) {
-    console.log(`[${level.toUpperCase()}]`, message, context);
+    // Map Sentry levels to pino logger methods (warning -> warn)
+    const loggerLevel = level === "warning" ? "warn" : level;
+    logger[loggerLevel]({ context }, `[Sentry] ${message} (Sentry not initialized)`);
     return;
   }
 

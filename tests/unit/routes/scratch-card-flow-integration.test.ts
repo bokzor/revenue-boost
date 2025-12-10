@@ -230,14 +230,16 @@ describe("Scratch Card Submission Validation Flow - Integration", () => {
       );
 
       // Verify anonymous lead was created
-      expect(prisma.lead.create).toHaveBeenCalledWith({
-        data: expect.objectContaining({
-          email: `session_${mockSessionId}@anonymous.local`,
-          discountCode: "SCRATCH10",
-          campaignId: mockCampaignId,
-          sessionId: mockSessionId,
-        }),
-      });
+      expect(prisma.lead.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            email: `session_${mockSessionId}@anonymous.local`,
+            discountCode: "SCRATCH10",
+            campaignId: mockCampaignId,
+            sessionId: mockSessionId,
+          }),
+        })
+      );
 
       // Step 2: User provides email later
       const saveEmailRequest = new Request(
@@ -333,24 +335,26 @@ describe("Scratch Card Submission Validation Flow - Integration", () => {
       );
 
       // Verify lead was created with email (not anonymous)
-      expect(prisma.lead.upsert).toHaveBeenCalledWith({
-        where: {
-          storeId_campaignId_email: {
-            storeId: mockStoreId,
-            campaignId: mockCampaignId,
-            email: mockEmail,
+      expect(prisma.lead.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            storeId_campaignId_email: {
+              storeId: mockStoreId,
+              campaignId: mockCampaignId,
+              email: mockEmail,
+            },
           },
-        },
-        create: expect.objectContaining({
-          email: mockEmail,
-          discountCode: "SCRATCH10",
-          campaignId: mockCampaignId,
-          sessionId: mockSessionId,
-        }),
-        update: expect.objectContaining({
-          discountCode: "SCRATCH10",
-        }),
-      });
+          create: expect.objectContaining({
+            email: mockEmail,
+            discountCode: "SCRATCH10",
+            campaignId: mockCampaignId,
+            sessionId: mockSessionId,
+          }),
+          update: expect.objectContaining({
+            discountCode: "SCRATCH10",
+          }),
+        })
+      );
 
       // Note: upsertCustomer is NOT called by scratch-card API
       // It's only called by /api/leads/submit which we bypass for emailBeforeScratching

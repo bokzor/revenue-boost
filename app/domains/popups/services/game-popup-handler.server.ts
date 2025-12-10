@@ -13,6 +13,7 @@
  * - Response formatting
  */
 
+import { logger } from "~/lib/logger.server";
 import { data } from "react-router";
 import { z } from "zod";
 import type { AdminApiContext } from "@shopify/shopify-app-react-router/server";
@@ -20,6 +21,7 @@ import { authenticate } from "~/shopify.server";
 import prisma from "~/db.server";
 import { getCampaignDiscountCode } from "~/domains/commerce/services/discount.server";
 import { formatZodErrors } from "~/lib/validation-helpers";
+import { PopupEventService } from "~/domains/analytics/popup-events.server";
 
 // ============================================================================
 // TYPES
@@ -189,7 +191,7 @@ export async function createPreviewResponse(
   config: GamePopupConfig,
   campaignId?: string
 ): Promise<ReturnType<typeof data>> {
-  console.log(`${config.logPrefix} ✅ Preview mode - returning mock prize (BYPASSING RATE LIMITS)`);
+  logger.debug("${config.logPrefix} ✅ Preview mode - returning mock prize (BYPASSING RATE LIMITS)");
 
   // Default preview values
   let prize = {
@@ -239,11 +241,11 @@ export async function createPreviewResponse(
             }
           }
 
-          console.log(`${config.logPrefix} 🎟️ Preview prize selected: ${prize.label} -> ${discountCode}`);
+          logger.debug("${config.logPrefix} 🎟️ Preview prize selected: ${prize.label} -> ${discountCode}");
         }
       }
     } catch (error) {
-      console.warn(`${config.logPrefix} Failed to fetch preview config:`, error);
+      logger.warn({ error, prefix: config.logPrefix }, "[GamePopupHandler] Failed to fetch preview config");
       // Continue with defaults
     }
   }
@@ -331,9 +333,7 @@ export async function validateSecurityRequest(
   if (!validation.valid) {
     if (validation.isBotLikely) {
       const ip = request.headers.get("x-forwarded-for")?.split(",")[0] || "unknown";
-      console.warn(
-        `${config.logPrefix} 🤖 Bot detected (${validation.reason}) for campaign ${validatedRequest.campaignId}, IP: ${ip}`
-      );
+      logger.warn({ reason: validation.reason, campaignId: validatedRequest.campaignId, ip, prefix: config.logPrefix }, "[GamePopupHandler] Bot detected");
       return createBotHoneypotResponse();
     }
     const error =
@@ -367,7 +367,7 @@ export async function checkGameRateLimit(
   );
 
   if (!rateLimitResult.allowed) {
-    console.warn(`${config.logPrefix} Rate limit exceeded for ${email}`);
+    logger.warn("${config.logPrefix} Rate limit exceeded for ${email}");
     return createErrorResponse("You've already played today", 429);
   }
 
@@ -469,7 +469,7 @@ export async function generateDiscountCode(
   );
 
   if (!result.success || !result.discountCode) {
-    console.error(`${config.logPrefix} Code generation failed:`, result.errors);
+    logger.error({ errors: result.errors, prefix: config.logPrefix }, "[GamePopupHandler] Code generation failed");
     return createErrorResponse(
       result.errors?.join(", ") || "Failed to generate discount code",
       500
@@ -491,6 +491,7 @@ export interface LeadMetadata {
 /**
  * Store lead with generated discount code
  * Handles both email and anonymous leads
+ * Returns the lead ID if created successfully
  */
 export async function storeLead(
   campaign: CampaignData,
@@ -500,7 +501,7 @@ export async function storeLead(
   sessionId: string,
   source: string,
   config: GamePopupConfig
-): Promise<void> {
+): Promise<{ id: string } | null> {
   try {
     const leadMetadata: LeadMetadata = {
       source,
@@ -512,7 +513,7 @@ export async function storeLead(
 
     if (email) {
       // If email provided, upsert by email
-      await prisma.lead.upsert({
+      const lead = await prisma.lead.upsert({
         where: {
           storeId_campaignId_email: {
             storeId: campaign.storeId,
@@ -533,11 +534,13 @@ export async function storeLead(
           metadata: JSON.stringify(leadMetadata),
           updatedAt: new Date(),
         },
+        select: { id: true },
       });
+      return lead;
     } else {
       // If no email, create anonymous lead record for this session
       const anonymousEmail = `session_${sessionId}@anonymous.local`;
-      await prisma.lead.create({
+      const lead = await prisma.lead.create({
         data: {
           email: anonymousEmail,
           campaignId: campaign.id,
@@ -546,11 +549,99 @@ export async function storeLead(
           sessionId,
           metadata: JSON.stringify(leadMetadata),
         },
+        select: { id: true },
       });
+      return lead;
     }
   } catch (error) {
-    console.error(`${config.logPrefix} Lead storage failed:`, error);
+    logger.error({ error }, "${config.logPrefix} Lead storage failed:");
     // Continue anyway - code was generated successfully
+    return null;
+  }
+}
+
+/**
+ * Record SUBMIT and COUPON_ISSUED events for game popup interactions
+ * This ensures game popups are tracked in analytics alongside newsletter submissions
+ */
+interface RecordGamePopupEventsParams {
+  storeId: string;
+  campaignId: string;
+  leadId?: string;
+  sessionId: string;
+  visitorId?: string;
+  discountCode: string;
+  email?: string;
+  prizeId: string;
+  prizeLabel: string;
+  source: string;
+  config: GamePopupConfig;
+}
+
+async function recordGamePopupEvents(params: RecordGamePopupEventsParams): Promise<void> {
+  const {
+    storeId,
+    campaignId,
+    leadId,
+    sessionId,
+    visitorId,
+    discountCode,
+    email,
+    prizeId,
+    prizeLabel,
+    source,
+    config,
+  } = params;
+
+  try {
+    // Record SUBMIT event (user completed the game interaction)
+    await PopupEventService.recordEvent({
+      storeId,
+      campaignId,
+      leadId: leadId ?? null,
+      sessionId,
+      visitorId: visitorId ?? null,
+      eventType: "SUBMIT",
+      pageUrl: null,
+      pageTitle: null,
+      referrer: null,
+      userAgent: null,
+      ipAddress: null,
+      deviceType: null,
+      metadata: {
+        email: email ?? null,
+        source,
+        prizeId,
+        prizeLabel,
+        gameType: config.type,
+      },
+    });
+
+    // Record COUPON_ISSUED event (discount code was generated)
+    await PopupEventService.recordEvent({
+      storeId,
+      campaignId,
+      leadId: leadId ?? null,
+      sessionId,
+      visitorId: visitorId ?? null,
+      eventType: "COUPON_ISSUED",
+      pageUrl: null,
+      userAgent: null,
+      ipAddress: null,
+      deviceType: null,
+      metadata: {
+        discountCode,
+        prizeId,
+        prizeLabel,
+        source,
+        gameType: config.type,
+      },
+    });
+
+    logger.debug("${config.logPrefix} Analytics events recorded (SUBMIT + COUPON_ISSUED)");
+  } catch (error) {
+    // Don't fail the request if analytics recording fails
+    logger.error({ error }, "${config.logPrefix} Failed to record analytics events:");
   }
 }
 
@@ -622,10 +713,7 @@ export async function handleGamePopupPrize(
 
   // Select winning prize
   const winningPrize = selectPrizeByProbability(prizes);
-  console.log(`${config.logPrefix} Server selected prize:`, {
-    prizeId: winningPrize.id,
-    label: winningPrize.label,
-  });
+  logger.debug({ prizeId: winningPrize.id, label: winningPrize.label, prefix: config.logPrefix }, "[GamePopupHandler] Server selected prize");
 
   // Generate discount code
   const discountResult = await generateDiscountCode(
@@ -641,7 +729,7 @@ export async function handleGamePopupPrize(
   const { discountCode } = discountResult;
 
   // Store lead
-  await storeLead(
+  const lead = await storeLead(
     campaign,
     winningPrize,
     discountCode,
@@ -650,6 +738,21 @@ export async function handleGamePopupPrize(
     leadSource,
     config
   );
+
+  // Record analytics events (SUBMIT and COUPON_ISSUED)
+  await recordGamePopupEvents({
+    storeId: campaign.storeId,
+    campaignId: campaign.id,
+    leadId: lead?.id,
+    sessionId,
+    visitorId: validatedRequest.visitorId,
+    discountCode,
+    email,
+    prizeId: winningPrize.id,
+    prizeLabel: winningPrize.label,
+    source: leadSource,
+    config,
+  });
 
   // Build and return success response
   const response = buildSuccessResponse(

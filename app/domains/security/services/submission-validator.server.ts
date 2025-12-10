@@ -1,12 +1,11 @@
 /**
  * Submission Validator Service
  *
- * Validates lead/discount submissions without requiring pre-fetched challenge tokens.
+ * Validates lead/discount submissions using zero-latency security checks.
  * Uses honeypot fields, timing validation, and impression verification for bot detection.
- *
- * Replaces the challenge token system with zero-latency security checks.
  */
 
+import { logger } from "~/lib/logger.server";
 import { getRedis, REDIS_PREFIXES } from "~/lib/redis.server";
 
 export interface SubmissionValidationInput {
@@ -53,7 +52,7 @@ export async function validateSubmission(
 
   // 1. Honeypot check - bots often fill hidden fields
   if (honeypot) {
-    console.log(`[Submission Validator] 🤖 Honeypot triggered for campaign ${campaignId}, IP: ${ip}`);
+    logger.debug("[Submission Validator] 🤖 Honeypot triggered for campaign ${campaignId}, IP: ${ip}");
     return { valid: false, reason: "honeypot", isBotLikely: true };
   }
 
@@ -63,17 +62,13 @@ export async function validateSubmission(
 
     // Too fast - likely a bot
     if (interactionTime < MIN_INTERACTION_TIME_MS) {
-      console.log(
-        `[Submission Validator] 🤖 Too fast (${interactionTime}ms) for campaign ${campaignId}, IP: ${ip}`
-      );
+      logger.debug({ interactionTime, campaignId, ip }, "[SubmissionValidator] Too fast - likely bot");
       return { valid: false, reason: "too_fast", isBotLikely: true };
     }
 
     // Too slow - session expired
     if (interactionTime > MAX_INTERACTION_TIME_MS) {
-      console.log(
-        `[Submission Validator] ⏰ Expired (${Math.round(interactionTime / 1000)}s) for campaign ${campaignId}`
-      );
+      logger.debug({ interactionTimeSeconds: Math.round(interactionTime / 1000), campaignId }, "[SubmissionValidator] Session expired");
       return { valid: false, reason: "session_expired" };
     }
   }
@@ -91,15 +86,12 @@ export async function validateSubmission(
         // Log the missing impression but DON'T block if popupShownAt is provided
         // popupShownAt is set client-side when popup renders, so it's a reliable indicator
         // that the user actually saw the popup
-        console.log(
-          `[Submission Validator] ⚠️ No impression record for visitor ${visitorId}, campaign ${campaignId} ` +
-          `(timing ${popupShownAt ? 'provided' : 'missing'})`
-        );
+        logger.debug({ visitorId, campaignId, hasPopupTiming: !!popupShownAt }, "[SubmissionValidator] No impression record");
 
         // Only block if BOTH impression AND timing are missing
         // This catches bots that submit directly without seeing the popup
         if (!popupShownAt) {
-          console.log(`[Submission Validator] 🤖 No impression + no timing = likely bot`);
+          logger.debug("[SubmissionValidator] No impression + no timing = likely bot");
           return { valid: false, reason: "no_impression", isBotLikely: true };
         }
         // If timing is provided but impression is missing, it's likely a network issue
@@ -107,7 +99,7 @@ export async function validateSubmission(
       }
     } catch (error) {
       // Don't fail validation if Redis check fails - log and continue
-      console.warn("[Submission Validator] Redis impression check failed:", error);
+      logger.warn({ error }, "[SubmissionValidator] Redis impression check failed");
     }
   }
 
@@ -129,7 +121,7 @@ export async function recordImpression(
     const impressionKey = `${REDIS_PREFIXES.VISITOR}:impression:${visitorId}:${campaignId}`;
     await redis.setex(impressionKey, IMPRESSION_TTL_SECONDS, Date.now().toString());
   } catch (error) {
-    console.warn("[Submission Validator] Failed to record impression:", error);
+    logger.warn({ error }, "[SubmissionValidator] Failed to record impression");
   }
 }
 
@@ -239,13 +231,11 @@ export async function handleBotDetection<TFakeSuccess, TError>(
       "unknown";
 
     if (validation.isBotLikely) {
-      console.warn(
-        `[${prefix}] 🤖 Bot detected (${validation.reason}) for campaign ${body.campaignId}, IP: ${ip}`
-      );
+      logger.warn({ reason: validation.reason, campaignId: body.campaignId, ip, prefix }, "[SubmissionValidator] Bot detected");
       return { response: options.fakeSuccess, isBot: true };
     }
 
-    console.warn(`[${prefix}] Validation failed: ${validation.reason}`);
+    logger.warn("[${prefix}] Validation failed: ${validation.reason}");
     const errorMessage =
       validation.reason === "session_expired"
         ? "Session expired. Please refresh the page."

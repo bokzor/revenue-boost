@@ -27,7 +27,7 @@ vi.mock("~/shared/hooks/useShopifyFileUpload", () => ({
 
 import { NewsletterContentSection } from "~/domains/campaigns/components/sections/NewsletterContentSection";
 import type { NewsletterContent } from "~/domains/campaigns/components/sections/NewsletterContentSection";
-import type { DiscountConfig } from "~/domains/popups/services/discounts/discount.server";
+import type { DiscountConfig } from "~/domains/campaigns/types/campaign";
 
 function renderWithPolaris(ui: React.ReactNode) {
   return render(<AppProvider i18n={en}>{ui}</AppProvider>);
@@ -46,8 +46,9 @@ describe("NewsletterContentSection - ALL Configuration Options", () => {
         />,
       );
 
+      // Button field is now named submitButtonText
       const buttonField = container.querySelector(
-        's-text-field[name="content.buttonText"]',
+        's-text-field[name="content.submitButtonText"]',
       );
       expect(buttonField).toBeTruthy();
       expect(buttonField?.getAttribute("value")).toBe("Subscribe");
@@ -117,22 +118,13 @@ describe("NewsletterContentSection - ALL Configuration Options", () => {
       expect(successField?.getAttribute("required")).toBe("true");
     });
 
-    it("should render and update failure message (optional)", () => {
-      const onChange = vi.fn();
-      const { container } = renderWithPolaris(
-        <NewsletterContentSection
-          content={{ failureMessage: "Oops! Something went wrong." }}
-          onChange={onChange}
-        />,
-      );
-
-      const failureField = container.querySelector('s-text-field[name="content.failureMessage"]');
-      expect(failureField).toBeTruthy();
-      expect(failureField?.getAttribute("value")).toBe("Oops! Something went wrong.");
-    });
+    // Note: failureMessage is not rendered in the simplified NewsletterContentSection
+    // It's an optional field in the schema but not exposed in the admin form
   });
 
   // ========== EMAIL FIELD CONFIGURATION TESTS ==========
+  // Note: Email fields are rendered by LeadCaptureFormSection which uses field names
+  // without the "content." prefix (e.g., "emailLabel" instead of "content.emailLabel")
 
   describe("Email Field Configuration", () => {
     it("should render email label field", () => {
@@ -144,7 +136,8 @@ describe("NewsletterContentSection - ALL Configuration Options", () => {
         />,
       );
 
-      const emailLabelField = container.querySelector('s-text-field[name="content.emailLabel"]');
+      // LeadCaptureFormSection uses "emailLabel" without "content." prefix
+      const emailLabelField = container.querySelector('s-text-field[name="emailLabel"]');
       expect(emailLabelField).toBeTruthy();
       expect(emailLabelField?.getAttribute("value")).toBe("Your Email");
     });
@@ -158,9 +151,10 @@ describe("NewsletterContentSection - ALL Configuration Options", () => {
         />,
       );
 
-      const emailPlaceholderField = container.querySelector('s-text-field[name="content.emailPlaceholder"]');
+      // LeadCaptureFormSection uses "emailPlaceholder" without "content." prefix
+      // Default value is empty string, placeholder attribute shows "Enter your email"
+      const emailPlaceholderField = container.querySelector('s-text-field[name="emailPlaceholder"]');
       expect(emailPlaceholderField).toBeTruthy();
-      expect(emailPlaceholderField?.getAttribute("value")).toBe("Enter your email");
     });
 
     it("should render custom email placeholder", () => {
@@ -172,7 +166,7 @@ describe("NewsletterContentSection - ALL Configuration Options", () => {
         />,
       );
 
-      const emailPlaceholderField = container.querySelector('s-text-field[name="content.emailPlaceholder"]');
+      const emailPlaceholderField = container.querySelector('s-text-field[name="emailPlaceholder"]');
       expect(emailPlaceholderField).toBeTruthy();
       expect(emailPlaceholderField?.getAttribute("value")).toBe("your.email@example.com");
     });
@@ -429,10 +423,12 @@ describe("NewsletterContentSection - ALL Configuration Options", () => {
       );
 
       // Parse with minimal required fields - schema should apply defaults
+      // submitButtonText is required (no default)
       const parsed = NewsletterContentSchema.parse({
         headline: "Test Newsletter",
         buttonText: "Subscribe",
         successMessage: "Thanks!",
+        submitButtonText: "Subscribe Now",
       });
 
       // Verify defaults are applied
@@ -440,7 +436,7 @@ describe("NewsletterContentSection - ALL Configuration Options", () => {
       expect(parsed.emailRequired).toBe(true);
       expect(parsed.nameFieldEnabled).toBe(false);
       expect(parsed.consentFieldEnabled).toBe(false);
-      expect(parsed.submitButtonText).toBe("Subscribe");
+      expect(parsed.submitButtonText).toBe("Subscribe Now");
     });
 
     it("should validate newsletter content with all optional fields", async () => {

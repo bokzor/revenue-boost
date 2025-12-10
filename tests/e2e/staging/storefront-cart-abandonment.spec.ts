@@ -3,7 +3,7 @@ import { PrismaClient } from '@prisma/client';
 import path from 'path';
 import * as dotenv from 'dotenv';
 import { CampaignFactory } from './factories/campaign-factory';
-import { STORE_URL, handlePasswordPage, mockChallengeToken, getTestPrefix } from './helpers/test-helpers';
+import { STORE_URL, handlePasswordPage, getTestPrefix } from './helpers/test-helpers';
 
 // Load staging environment variables
 dotenv.config({ path: path.resolve(process.cwd(), '.env.staging.env'), override: true });
@@ -66,7 +66,6 @@ test.describe.serial('Cart Abandonment Template - E2E', () => {
         });
 
         // Mock challenge token to avoid rate limits
-        await mockChallengeToken(page);
 
         // Log browser console messages
         page.on('console', msg => {

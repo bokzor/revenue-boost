@@ -29,18 +29,8 @@ async function loadPopupManager() {
   globalThis.localStorage = createMemoryStorage() as any;
   globalThis.sessionStorage = createMemoryStorage() as any;
 
-  // Mock fetch for challenge token requests
+  // Mock fetch for API requests
   globalThis.fetch = vi.fn().mockImplementation((url: string) => {
-    if (url.includes('/api/challenge/request')) {
-      return Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve({
-          success: true,
-          challengeToken: 'mock-token-123',
-          expiresAt: Date.now() + 3600000,
-        }),
-      });
-    }
     return Promise.reject(new Error(`Unmocked fetch: ${url}`));
   }) as any;
 

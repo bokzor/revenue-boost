@@ -3,7 +3,7 @@ import { PrismaClient } from '@prisma/client';
 import path from 'path';
 import * as dotenv from 'dotenv';
 import { CampaignFactory } from './factories/campaign-factory';
-import { STORE_URL, STORE_DOMAIN, API_PROPAGATION_DELAY_MS, handlePasswordPage, mockChallengeToken, getTestPrefix, cleanupAllE2ECampaigns, MAX_TEST_PRIORITY } from './helpers/test-helpers';
+import { STORE_URL, STORE_DOMAIN, API_PROPAGATION_DELAY_MS, handlePasswordPage, getTestPrefix, cleanupAllE2ECampaigns, MAX_TEST_PRIORITY } from './helpers/test-helpers';
 
 // Load staging environment variables
 dotenv.config({ path: path.resolve(process.cwd(), '.env.staging.env'), override: true });
@@ -51,7 +51,6 @@ test.describe('Trigger Combinations', () => {
         // Clean up ALL E2E campaigns to avoid priority conflicts
         await cleanupAllE2ECampaigns(prisma);
 
-        await mockChallengeToken(page);
         // Log browser console for debugging
         page.on('console', msg => {
             if (msg.type() === 'log' || msg.type() === 'error') {
@@ -138,13 +137,12 @@ test.describe('Trigger Combinations', () => {
     });
 
     test('shows popup after time delay', async ({ page }) => {
-        
+
         const builder = factory.newsletter();
         await builder.init();
         const campaign = await builder
             .withName('Time-Delay-Trigger')
-            .withTimeDelayTrigger(3) // 3 seconds
-            .withoutPageLoadTrigger()
+            .withPageLoadTrigger(3000) // 3 seconds delay (in milliseconds)
             .withPriority(MAX_TEST_PRIORITY)
             .create();
 
@@ -169,15 +167,14 @@ test.describe('Trigger Combinations', () => {
     });
 
     test('shows popup when all triggers pass (AND logic)', async ({ page }) => {
-        
+
         const builder = factory.newsletter();
         await builder.init();
         const campaign = await builder
             .withName('AND-Logic-Trigger')
             .withScrollDepthTrigger(30, 'down')
-            .withTimeDelayTrigger(3)
+            .withPageLoadTrigger(3000) // 3 seconds delay (in milliseconds)
             .withTriggerLogic('AND')
-            .withoutPageLoadTrigger()
             .withPriority(MAX_TEST_PRIORITY)
             .create();
 
@@ -220,15 +217,14 @@ test.describe('Trigger Combinations', () => {
     });
 
     test('shows popup when any trigger passes (OR logic)', async ({ page }) => {
-        
+
         const builder = factory.newsletter();
         await builder.init();
         const campaign = await builder
             .withName('OR-Logic-Trigger')
             .withScrollDepthTrigger(80, 'down')
-            .withTimeDelayTrigger(3)
+            .withPageLoadTrigger(3000) // 3 seconds delay (in milliseconds)
             .withTriggerLogic('OR')
-            .withoutPageLoadTrigger()
             .withPriority(MAX_TEST_PRIORITY)
             .create();
 

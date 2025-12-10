@@ -15,7 +15,7 @@ import {
     waitForPopupWithRetry,
     cleanupAllE2ECampaigns,
     MAX_TEST_PRIORITY,
-    mockChallengeToken
+    getTestStoreId,
 } from './helpers/test-helpers';
 import { CampaignFactory, ExperimentBuilder } from './factories/campaign-factory';
 
@@ -30,10 +30,8 @@ let storeId: string;
 
 test.describe('A/B Testing Experiments', () => {
     test.beforeAll(async () => {
-        // Get store ID from first store in staging DB
-        const store = await prisma.store.findFirst({ select: { id: true } });
-        if (!store) throw new Error('No store found in staging database');
-        storeId = store.id;
+        // Get store ID for the E2E testing store (revenue-boost-staging.myshopify.com)
+        storeId = await getTestStoreId(prisma);
         factory = new CampaignFactory(prisma, storeId, TEST_PREFIX);
     });
 
@@ -84,7 +82,6 @@ test.describe('A/B Testing Experiments', () => {
         }
 
         // Mock challenge token to bypass bot protection
-        await mockChallengeToken(page);
 
         // Intercept API calls to see what campaigns are returned
         let apiResponse: { campaigns: any[] } | null = null;
@@ -163,7 +160,6 @@ test.describe('A/B Testing Experiments', () => {
         console.log('🧪 Testing variant persistence across page reloads...');
 
         // Mock challenge token to bypass bot protection
-        await mockChallengeToken(page);
 
         const builder = factory.experiment();
         await builder.init();
@@ -262,7 +258,6 @@ test.describe('A/B Testing Experiments', () => {
                 const page = await context.newPage();
 
                 // Mock challenge token for this page
-                await mockChallengeToken(page);
 
                 await page.goto(STORE_URL);
                 await handlePasswordPage(page);
@@ -328,7 +323,6 @@ test.describe('A/B Testing Experiments', () => {
             const page = await context.newPage();
 
             // Mock challenge token to bypass bot protection
-            await mockChallengeToken(page);
 
             await page.goto(STORE_URL);
             await handlePasswordPage(page);
@@ -385,7 +379,6 @@ test.describe('A/B Testing Experiments', () => {
         console.log('🧪 Testing experiment metadata in popup...');
 
         // Mock challenge token to bypass bot protection
-        await mockChallengeToken(page);
 
         const builder = factory.experiment();
         await builder.init();
@@ -440,7 +433,6 @@ test.describe('A/B Testing Experiments', () => {
         console.log('🧪 Testing standalone campaign alongside experiment...');
 
         // Mock challenge token to bypass bot protection
-        await mockChallengeToken(page);
 
         // Create a standalone campaign (not part of experiment)
         const standaloneCampaign = await (await factory.newsletter().init())

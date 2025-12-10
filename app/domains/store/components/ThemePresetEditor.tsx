@@ -26,8 +26,12 @@ import { ColorField } from "~/domains/campaigns/components/form";
 import { TemplatePreview } from "~/domains/popups/components/preview/TemplatePreview";
 import { Affix } from "~/shared/components/ui/Affix";
 import type { ThemePresetInput } from "../types/theme-preset";
-import { expandThemePreset, createEmptyThemePreset, getWheelColorsFromPreset } from "../types/theme-preset";
-import { TemplateTypeEnum } from "~/lib/template-types.enum";
+import {
+  expandThemePreset,
+  createEmptyThemePreset,
+  getWheelColorsFromPreset,
+} from "../types/theme-preset";
+import { TemplateTypeEnum } from "~/domains/campaigns/types/campaign";
 
 // ============================================================================
 // TYPES
@@ -44,19 +48,7 @@ export interface ThemePresetEditorProps {
   isSaving?: boolean;
 }
 
-import { loadGoogleFont } from "~/shared/utils/google-fonts";
-
-// Font family options
-const FONT_OPTIONS = [
-  { label: "System Default", value: "inherit" },
-  { label: "Inter", value: "Inter, system-ui, sans-serif" },
-  { label: "Roboto", value: "Roboto, system-ui, sans-serif" },
-  { label: "Open Sans", value: "'Open Sans', system-ui, sans-serif" },
-  { label: "Lato", value: "Lato, system-ui, sans-serif" },
-  { label: "Montserrat", value: "Montserrat, system-ui, sans-serif" },
-  { label: "Playfair Display (Serif)", value: "'Playfair Display', Georgia, serif" },
-  { label: "Merriweather (Serif)", value: "Merriweather, Georgia, serif" },
-];
+import { loadGoogleFont, getFontSelectOptionsFlat } from "~/shared/utils/google-fonts";
 
 // Template options for preview
 const PREVIEW_TEMPLATE_OPTIONS = [
@@ -83,9 +75,7 @@ export function ThemePresetEditor({
   isSaving = false,
 }: ThemePresetEditorProps) {
   // State
-  const [preset, setPreset] = useState<ThemePresetInput>(
-    initialPreset || createEmptyThemePreset()
-  );
+  const [preset, setPreset] = useState<ThemePresetInput>(initialPreset || createEmptyThemePreset());
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [previewTemplate, setPreviewTemplate] = useState<string>(TemplateTypeEnum.NEWSLETTER);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -97,6 +87,12 @@ export function ThemePresetEditor({
 
   // Compute expanded design config for preview
   const expandedDesignConfig = useMemo(() => expandThemePreset(preset), [preset]);
+
+  // Get font options including any custom font from current preset
+  const fontOptions = useMemo(
+    () => getFontSelectOptionsFlat(preset.fontFamily),
+    [preset.fontFamily]
+  );
 
   // Generate wheel segment colors from the preset (recomputes when brandColor changes)
   const wheelColors = useMemo(
@@ -205,24 +201,24 @@ export function ThemePresetEditor({
   }, [previewTemplate, wheelColors, preset.brandColor]);
 
   // Handlers
-  const updateField = useCallback(<K extends keyof ThemePresetInput>(
-    field: K,
-    value: ThemePresetInput[K]
-  ) => {
-    setPreset((prev) => ({
-      ...prev,
-      [field]: value,
-      updatedAt: new Date().toISOString(),
-    }));
-    // Clear error for this field
-    if (errors[field]) {
-      setErrors((prev) => {
-        const next = { ...prev };
-        delete next[field];
-        return next;
-      });
-    }
-  }, [errors]);
+  const updateField = useCallback(
+    <K extends keyof ThemePresetInput>(field: K, value: ThemePresetInput[K]) => {
+      setPreset((prev) => ({
+        ...prev,
+        [field]: value,
+        updatedAt: new Date().toISOString(),
+      }));
+      // Clear error for this field
+      if (errors[field]) {
+        setErrors((prev) => {
+          const next = { ...prev };
+          delete next[field];
+          return next;
+        });
+      }
+    },
+    [errors]
+  );
 
   const handleSave = useCallback(() => {
     // Validate
@@ -286,8 +282,8 @@ export function ThemePresetEditor({
                 Core Colors
               </Text>
               <Text as="p" tone="subdued">
-                Choose 3 colors that define your brand. The system will automatically
-                derive all other colors for buttons, inputs, and text.
+                Choose 3 colors that define your brand. The system will automatically derive all
+                other colors for buttons, inputs, and text.
               </Text>
               <Divider />
 
@@ -338,12 +334,41 @@ export function ThemePresetEditor({
 
               <Collapsible open={showAdvanced} id="advanced-options">
                 <BlockStack gap="400">
+                  {/* Additional Colors */}
+                  <Text as="h3" variant="headingSm">
+                    Additional Colors
+                  </Text>
+
                   <ColorField
                     label="🔲 Surface Color"
                     name="surfaceColor"
                     value={preset.surfaceColor || "#F3F4F6"}
                     onChange={(value) => updateField("surfaceColor", value)}
                     helpText="Input fields and card backgrounds"
+                  />
+
+                  <ColorField
+                    label="📝 Muted Text Color"
+                    name="mutedColor"
+                    value={preset.mutedColor || ""}
+                    onChange={(value) => updateField("mutedColor", value || undefined)}
+                    helpText="Secondary text and descriptions (auto-derived if empty)"
+                  />
+
+                  <ColorField
+                    label="🔘 Button Text Color"
+                    name="primaryForegroundColor"
+                    value={preset.primaryForegroundColor || ""}
+                    onChange={(value) => updateField("primaryForegroundColor", value || undefined)}
+                    helpText="Text color on buttons (auto-contrast if empty)"
+                  />
+
+                  <ColorField
+                    label="📏 Border Color"
+                    name="borderColor"
+                    value={preset.borderColor || ""}
+                    onChange={(value) => updateField("borderColor", value || undefined)}
+                    helpText="Input borders and dividers (auto-derived if empty)"
                   />
 
                   <ColorField
@@ -354,12 +379,70 @@ export function ThemePresetEditor({
                     helpText="Success states and confirmations"
                   />
 
+                  <ColorField
+                    label="❌ Error Color"
+                    name="errorColor"
+                    value={preset.errorColor || "#EF4444"}
+                    onChange={(value) => updateField("errorColor", value)}
+                    helpText="Validation errors and alerts"
+                  />
+
+                  <ColorField
+                    label="🔵 Focus Ring Color"
+                    name="ringColor"
+                    value={preset.ringColor || ""}
+                    onChange={(value) => updateField("ringColor", value || undefined)}
+                    helpText="Focus ring for accessibility (auto-derived if empty)"
+                  />
+
+                  <Divider />
+
+                  {/* Typography */}
+                  <Text as="h3" variant="headingSm">
+                    Typography
+                  </Text>
+
                   <Select
-                    label="📝 Font Family"
-                    options={FONT_OPTIONS.map(({ label, value }) => ({ label, value }))}
+                    label="📝 Body Font"
+                    options={fontOptions}
                     value={preset.fontFamily || "inherit"}
                     onChange={(value) => updateField("fontFamily", value)}
-                    helpText="Typography for popup text"
+                    helpText="Font for body text"
+                  />
+
+                  <Select
+                    label="📰 Heading Font"
+                    options={fontOptions}
+                    value={preset.headingFontFamily || preset.fontFamily || "inherit"}
+                    onChange={(value) => updateField("headingFontFamily", value)}
+                    helpText="Font for headlines (defaults to body font)"
+                  />
+
+                  <Divider />
+
+                  {/* Border Radius */}
+                  <Text as="h3" variant="headingSm">
+                    Border Radius
+                  </Text>
+
+                  <TextField
+                    label="🔘 Button/Input Radius"
+                    type="number"
+                    value={String(preset.borderRadius ?? 8)}
+                    onChange={(value) => updateField("borderRadius", parseInt(value, 10) || 0)}
+                    suffix="px"
+                    helpText="Corner roundness for buttons and inputs (0-50)"
+                    autoComplete="off"
+                  />
+
+                  <TextField
+                    label="📦 Popup Radius"
+                    type="number"
+                    value={String(preset.popupBorderRadius ?? 16)}
+                    onChange={(value) => updateField("popupBorderRadius", parseInt(value, 10) || 0)}
+                    suffix="px"
+                    helpText="Corner roundness for the popup container (0-50)"
+                    autoComplete="off"
                   />
                 </BlockStack>
               </Collapsible>
@@ -436,16 +519,6 @@ export function ThemePresetEditor({
                   />
                 </div>
               </div>
-
-              {/* Banner with higher z-index to stay above preview */}
-              <div style={{ position: "relative", zIndex: 10 }}>
-                <Banner tone="info">
-                  <p>
-                    This preview shows how your theme will look. Colors are automatically
-                    derived from your core color choices.
-                  </p>
-                </Banner>
-              </div>
             </BlockStack>
           </Card>
         </Affix>
@@ -453,4 +526,3 @@ export function ThemePresetEditor({
     </Layout>
   );
 }
-

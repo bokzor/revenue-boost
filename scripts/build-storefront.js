@@ -60,6 +60,12 @@ const popupBundles = [
   "countdown-timer", // COUNTDOWN_TIMER
   "scratch-card", // SCRATCH_CARD
   "announcement", // ANNOUNCEMENT
+  // New upsell popup variants
+  "classic-upsell", // CLASSIC_UPSELL
+  "minimal-slide-up", // MINIMAL_SLIDE_UP
+  "premium-fullscreen", // PREMIUM_FULLSCREEN
+  "bundle-deal", // BUNDLE_DEAL
+  "countdown-urgency", // COUNTDOWN_URGENCY
 ];
 
 /**
@@ -185,6 +191,10 @@ async function build() {
                 const { h, Component, Fragment, render, createPortal, createContext } = window.RevenueBoostPreact;
                 const { useState, useEffect, useCallback, useRef, useMemo, useContext, useDebugValue } = window.RevenueBoostPreact.hooks;
                 const createElement = h;
+
+                // memo from preact/compat - uses the compat layer if available, otherwise simple passthrough
+                const memo = window.RevenueBoostPreact.compat?.memo || ((component) => component);
+
                 export {
                   h,
                   createElement,
@@ -200,6 +210,7 @@ async function build() {
                   useMemo,
                   useContext,
                   useDebugValue,
+                  memo,
                 };
                 export default {
                   h,
@@ -216,6 +227,7 @@ async function build() {
                   useMemo,
                   useContext,
                   useDebugValue,
+                  memo,
                 };
               `,
               loader: "js",

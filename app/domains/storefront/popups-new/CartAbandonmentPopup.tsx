@@ -21,7 +21,7 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { PopupPortal } from "./PopupPortal";
 import type { PopupDesignConfig, CartItem, DiscountConfig } from "./types";
 import type { CartAbandonmentContent } from "~/domains/campaigns/types/campaign";
-import { formatCurrency } from "./utils";
+import { formatCurrency, getAdaptiveMutedColor } from "app/domains/storefront/popups-new/utils/utils";
 
 // Import custom hooks
 import { useCountdownTimer, useDiscountCode, usePopupForm } from "./hooks";
@@ -34,6 +34,80 @@ import {
   PopupCloseButton,
 } from "./components/shared";
 
+// Tiered discount types (for "Spend more, save more" messaging)
+interface DiscountTier {
+  thresholdCents: number;
+  discount: { kind: string; value: number };
+}
+
+interface TieredDiscountConfig {
+  tiers?: DiscountTier[];
+}
+
+/**
+ * Get tiered discount messaging based on cart total
+ * Returns messaging like "Spend $20 more to get 20% off!"
+ */
+function getTieredDiscountInfo(
+  tiers: DiscountTier[] | undefined,
+  cartTotalCents: number,
+  currency?: string
+): { message: string; currentTier?: DiscountTier; nextTier?: DiscountTier } | null {
+  if (!tiers?.length) return null;
+
+  // Sort tiers by threshold (ascending)
+  const sortedTiers = [...tiers].sort((a, b) => a.thresholdCents - b.thresholdCents);
+
+  // Find current and next tiers
+  let currentTier: DiscountTier | undefined;
+  let nextTier: DiscountTier | undefined;
+
+  for (const tier of sortedTiers) {
+    if (cartTotalCents >= tier.thresholdCents) {
+      currentTier = tier;
+    } else if (!nextTier) {
+      nextTier = tier;
+      break;
+    }
+  }
+
+  // Format discount display
+  const formatDiscount = (tier: DiscountTier) => {
+    if (tier.discount.kind === "free_shipping") return "free shipping";
+    if (tier.discount.kind === "percentage") return `${tier.discount.value}% off`;
+    return `${formatCurrency(tier.discount.value, currency)} off`;
+  };
+
+  // Generate appropriate message
+  if (nextTier) {
+    const amountNeeded = (nextTier.thresholdCents - cartTotalCents) / 100;
+    const nextDiscount = formatDiscount(nextTier);
+    if (currentTier) {
+      // Already qualified for one tier, show upgrade message
+      return {
+        message: `Add ${formatCurrency(amountNeeded, currency)} more to get ${nextDiscount}!`,
+        currentTier,
+        nextTier,
+      };
+    } else {
+      // Not yet qualified for any tier
+      return {
+        message: `Spend ${formatCurrency(amountNeeded, currency)} more to get ${nextDiscount}!`,
+        nextTier,
+      };
+    }
+  } else if (currentTier) {
+    // Already at highest tier
+    const currentDiscount = formatDiscount(currentTier);
+    return {
+      message: `You qualify for ${currentDiscount}!`,
+      currentTier,
+    };
+  }
+
+  return null;
+}
+
 /**
  * CartAbandonmentConfig - Extends both design config AND campaign content type
  * All content fields come from CartAbandonmentContent
@@ -41,7 +115,7 @@ import {
  */
 export interface CartAbandonmentConfig extends PopupDesignConfig, CartAbandonmentContent {
   // Storefront-specific fields only
-  discount?: DiscountConfig;
+  discount?: DiscountConfig & TieredDiscountConfig;
 
   // Note: headline, subheadline, urgencyMessage, ctaUrl, etc.
   // all come from CartAbandonmentContent
@@ -58,6 +132,8 @@ export interface CartAbandonmentPopupProps {
   onEmailRecovery?: (email: string) => Promise<string | void> | string | void;
   issueDiscount?: (options?: {
     cartSubtotalCents?: number;
+    /** Product IDs from cart items - for cart-scoped discounts */
+    cartProductIds?: string[];
   }) => Promise<{ code?: string; behavior?: string } | null>;
   onTrack?: (metadata?: Record<string, unknown>) => void;
 }
@@ -114,6 +190,7 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
 
   // Component-specific state
   const [emailSuccessMessage, setEmailSuccessMessage] = useState<string | null>(null);
+  const [isResumeProcessing, setIsResumeProcessing] = useState(false);
 
   const discountBehavior = config.discount?.behavior || "SHOW_CODE_AND_AUTO_APPLY";
 
@@ -128,10 +205,16 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
   // Timer is now handled by useCountdownTimer hook
 
   const handleResumeCheckout = useCallback(async () => {
+    // Prevent double-clicks
+    if (isResumeProcessing) return;
+
     let shouldRedirect = true;
 
     try {
       if (config.discount?.enabled && typeof issueDiscount === "function" && !discountCode) {
+        // Start loading state before async operation
+        setIsResumeProcessing(true);
+
         let numericTotal: number | undefined;
         if (typeof cartTotal === "number") {
           numericTotal = cartTotal;
@@ -145,7 +228,15 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
         const cartSubtotalCents =
           typeof numericTotal === "number" ? Math.round(numericTotal * 100) : undefined;
 
-        const result = await issueDiscount(cartSubtotalCents ? { cartSubtotalCents } : undefined);
+        // Extract product IDs from cart items for cart-scoped discounts
+        const cartProductIds = cartItems
+          .map((item) => item.productId || item.id)
+          .filter((id): id is string => !!id);
+
+        const result = await issueDiscount({
+          cartSubtotalCents,
+          cartProductIds: cartProductIds.length > 0 ? cartProductIds : undefined,
+        });
 
         const code = result?.code;
         // All behaviors show the code, so show it if we have one
@@ -158,6 +249,8 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
       }
     } catch (err) {
       console.error("[CartAbandonmentPopup] Failed to issue discount on resume:", err);
+    } finally {
+      setIsResumeProcessing(false);
     }
 
     if (shouldRedirect) {
@@ -179,9 +272,11 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
   }, [
     config.discount?.enabled,
     config.ctaUrl,
+    cartItems,
     cartTotal,
     discountCode,
     discountBehavior,
+    isResumeProcessing,
     issueDiscount,
     onResumeCheckout,
     setDiscountCode,
@@ -228,6 +323,22 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
 
   const displayItems = cartItems.slice(0, config.maxItemsToShow || 3);
 
+  // Calculate cart total in cents for tiered discount calculation
+  const cartTotalCents = useMemo(() => {
+    if (typeof cartTotal === "number") return Math.round(cartTotal * 100);
+    if (typeof cartTotal === "string") {
+      const parsed = parseFloat(cartTotal.replace(/[^0-9.-]+/g, ""));
+      if (!Number.isNaN(parsed)) return Math.round(parsed * 100);
+    }
+    return 0;
+  }, [cartTotal]);
+
+  // Get tiered discount info (for "Spend more, save more" messaging)
+  const tieredInfo = useMemo(() => {
+    if (!config.discount?.tiers?.length) return null;
+    return getTieredDiscountInfo(config.discount.tiers, cartTotalCents, config.currency);
+  }, [config.discount?.tiers, cartTotalCents, config.currency]);
+
   const isEmailGateActive =
     !!config.enableEmailRecovery && !!config.requireEmailBeforeCheckout && !discountCode;
 
@@ -241,29 +352,28 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
   const cardMaxWidth = useMemo(() => {
     if (config.maxWidth) return config.maxWidth;
     switch (config.size) {
-      case "small": return "min(420px, 95cqi)";
-      case "large": return "min(520px, 95cqi)";
-      default: return "min(460px, 95cqi)";
+      case "small":
+        return "min(420px, 95cqi)";
+      case "large":
+        return "min(520px, 95cqi)";
+      default:
+        return "min(460px, 95cqi)";
     }
   }, [config.maxWidth, config.size]);
 
-  const descriptionColor = config.descriptionColor || "#6b7280";
-
-  // CSS Custom Properties for dynamic theming
-  const cssVars = useMemo(() => `
-    --cart-ab-bg: ${config.backgroundColor || "#ffffff"};
-    --cart-ab-text: ${config.textColor || "#111827"};
-    --cart-ab-desc: ${descriptionColor};
-    --cart-ab-btn-bg: ${config.buttonColor || "#3b82f6"};
-    --cart-ab-btn-text: ${config.buttonTextColor || "#ffffff"};
-    --cart-ab-accent: ${config.accentColor || "#f59e0b"};
-    --cart-ab-success: ${config.successColor || "#16a34a"};
-    --cart-ab-border: ${config.inputBorderColor || "rgba(0,0,0,0.1)"};
-    --cart-ab-input-bg: ${config.inputBackgroundColor || "#ffffff"};
-    --cart-ab-input-text: ${config.inputTextColor || config.textColor || "#111827"};
-    --cart-ab-radius: ${borderRadiusValue};
-    --cart-ab-max-width: ${typeof cardMaxWidth === "number" ? `${cardMaxWidth}px` : cardMaxWidth};
-  `, [config, descriptionColor, borderRadiusValue, cardMaxWidth]);
+  // Design tokens - use config values with --rb-* fallbacks
+  const bgColor = config.backgroundColor || "var(--rb-background, #ffffff)";
+  const textColor = config.textColor || "var(--rb-foreground, #111827)";
+  // Use adaptive muted color based on background for proper contrast
+  const descriptionColor = config.descriptionColor || getAdaptiveMutedColor(bgColor);
+  const buttonBgColor = config.buttonColor || "var(--rb-primary, #3b82f6)";
+  const buttonTextColor = config.buttonTextColor || "var(--rb-primary-foreground, #ffffff)";
+  const accentColor = config.accentColor || "var(--rb-primary, #f59e0b)";
+  const successColor = config.successColor || "var(--rb-success, #16a34a)";
+  const inputBorderColor = config.inputBorderColor || "var(--rb-border, rgba(0,0,0,0.1))";
+  const inputBgColor = config.inputBackgroundColor || "var(--rb-surface, #ffffff)";
+  const inputTextColor = config.inputTextColor || config.textColor || "var(--rb-foreground, #111827)";
+  const maxWidthValue = typeof cardMaxWidth === "number" ? `${cardMaxWidth}px` : cardMaxWidth;
 
   // Auto-close timer (migrated from BasePopup)
   useEffect(() => {
@@ -272,8 +382,6 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
     const timer = setTimeout(onClose, config.autoCloseDelay * 1000);
     return () => clearTimeout(timer);
   }, [isVisible, config.autoCloseDelay, onClose]);
-
-  if (!isVisible) return null;
 
   return (
     <PopupPortal
@@ -288,6 +396,8 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
         type: config.animation || "fade",
       }}
       position={config.position || "center"}
+      size={config.size || "medium"}
+      mobilePresentationMode="bottom-sheet"
       closeOnEscape={config.closeOnEscape !== false}
       closeOnBackdropClick={config.closeOnOverlayClick !== false}
       previewMode={config.previewMode}
@@ -296,14 +406,13 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
       ariaDescribedBy={config.ariaDescribedBy}
       customCSS={config.customCSS}
       globalCustomCSS={config.globalCustomCSS}
+      designTokensCSS={config.designTokensCSS}
     >
       <style>{`
         /* ============================================
-         * CSS CUSTOM PROPERTIES (Container Theming)
+         * CSS CUSTOM PROPERTIES (Structural Only)
          * ============================================ */
         .cart-ab-popup-container {
-          ${cssVars}
-
           /* Responsive spacing using container-relative units */
           --cart-ab-padding-x: clamp(1rem, 5cqi, 2rem);
           --cart-ab-padding-y: clamp(1.25rem, 4cqi, 2rem);
@@ -317,6 +426,9 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
 
           /* Item image sizing */
           --cart-ab-img-size: clamp(3rem, 12cqi, 4.5rem);
+
+          /* Max width */
+          --cart-ab-max-width: ${maxWidthValue};
         }
 
         /* ============================================
@@ -324,8 +436,8 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
          * ============================================ */
         .cart-ab-popup-container {
           width: 100%;
-          background: var(--cart-ab-bg);
-          color: var(--cart-ab-text);
+          background: ${bgColor};
+          color: ${textColor};
           font-family: ${config.fontFamily || 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'};
 
           /* Bottom sheet style on mobile */
@@ -334,24 +446,9 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
           padding-bottom: calc(var(--cart-ab-padding-y) + env(safe-area-inset-bottom, 0px));
           box-shadow: 0 -4px 25px rgba(0, 0, 0, 0.15);
 
-          /* Position at bottom on mobile */
-          position: fixed;
-          bottom: 0;
-          left: 0;
-          right: 0;
-          max-height: 90vh;
-          max-height: 90dvh;
-          overflow-y: auto;
-          overscroll-behavior: contain;
-          -webkit-overflow-scrolling: touch;
-
-          /* Smooth entrance animation */
-          animation: cart-ab-slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-          z-index: 10000;
-
-          /* Container query context */
-          container-type: inline-size;
-          container-name: cart-popup;
+          /* Let PopupPortal handle positioning - don't override with fixed positioning */
+          /* The cart items list (.cart-ab-items) handles its own scrolling */
+          overflow: visible;
         }
 
         @keyframes cart-ab-slideUp {
@@ -368,8 +465,9 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
         /* ============================================
          * TABLET+ LAYOUT (Container Query @ 420px)
          * Transforms to centered card
+         * Uses popup-viewport container from PopupPortal
          * ============================================ */
-        @container cart-popup (min-width: 420px) {
+        @container popup-viewport (min-width: 420px) {
           .cart-ab-popup-container {
             /* Center the card */
             position: relative;
@@ -379,10 +477,9 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
             margin: 0 auto;
 
             /* Responsive max-width */
-            max-width: var(--cart-ab-max-width);
 
             /* Card styling */
-            border-radius: var(--cart-ab-radius);
+            border-radius: ${borderRadiusValue};
             padding: var(--cart-ab-padding-y) var(--cart-ab-padding-x);
             box-shadow:
               0 25px 50px -12px rgba(0, 0, 0, 0.25),
@@ -426,14 +523,14 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
           line-height: 1.15;
           margin: 0 0 clamp(0.375rem, 1.5cqi, 0.625rem) 0;
           letter-spacing: -0.02em;
-          color: var(--cart-ab-text);
+          color: ${textColor};
         }
 
         .cart-ab-subtitle {
           margin: 0;
           font-size: var(--cart-ab-body-size);
           line-height: 1.5;
-          color: var(--cart-ab-desc);
+          color: ${descriptionColor};
         }
 
         /* Close button */
@@ -446,7 +543,7 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          color: var(--cart-ab-desc);
+          color: ${descriptionColor};
           transition: all 0.2s ease;
           flex-shrink: 0;
         }
@@ -457,7 +554,7 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
         }
 
         .cart-ab-close:focus-visible {
-          outline: 2px solid var(--cart-ab-btn-bg);
+          outline: 2px solid ${buttonBgColor};
           outline-offset: 2px;
         }
 
@@ -478,9 +575,9 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
           border-radius: clamp(0.5rem, 2cqi, 0.75rem);
           font-size: var(--cart-ab-small-size);
           font-weight: 600;
-          background: color-mix(in srgb, var(--cart-ab-accent) 8%, transparent);
-          color: var(--cart-ab-accent);
-          border: 1px solid color-mix(in srgb, var(--cart-ab-accent) 30%, transparent);
+          background: color-mix(in srgb, ${accentColor} 8%, transparent);
+          color: ${accentColor};
+          border: 1px solid color-mix(in srgb, ${accentColor} 30%, transparent);
           text-align: center;
           display: flex;
           align-items: center;
@@ -496,15 +593,15 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
           padding: clamp(0.875rem, 3cqi, 1.25rem);
           border-radius: clamp(0.75rem, 2.5cqi, 1rem);
           text-align: center;
-          background: color-mix(in srgb, var(--cart-ab-btn-bg) 6%, transparent);
-          border: 2px dashed color-mix(in srgb, var(--cart-ab-btn-bg) 40%, transparent);
+          background: color-mix(in srgb, ${buttonBgColor} 6%, transparent);
+          border: 2px dashed color-mix(in srgb, ${buttonBgColor} 40%, transparent);
         }
 
         .cart-ab-discount-label {
           margin: 0 0 clamp(0.25rem, 1cqi, 0.375rem) 0;
           font-size: var(--cart-ab-small-size);
           font-weight: 600;
-          color: var(--cart-ab-desc);
+          color: ${descriptionColor};
           text-transform: uppercase;
           letter-spacing: 0.05em;
         }
@@ -512,7 +609,7 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
         .cart-ab-discount-amount {
           font-size: clamp(1.25rem, 4.5cqi, 1.75rem);
           font-weight: 800;
-          color: var(--cart-ab-btn-bg);
+          color: ${buttonBgColor};
         }
 
         .cart-ab-discount-code {
@@ -525,14 +622,14 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
           font-family: ui-monospace, monospace;
           letter-spacing: 0.05em;
           background: rgba(255, 255, 255, 0.6);
-          border: 1px solid var(--cart-ab-border);
+          border: 1px solid ${inputBorderColor};
         }
 
         .cart-ab-discount-hint {
           margin: 0;
           margin-top: clamp(0.25rem, 1cqi, 0.375rem);
           font-size: var(--cart-ab-small-size);
-          color: var(--cart-ab-desc);
+          color: ${descriptionColor};
           font-style: italic;
         }
 
@@ -541,7 +638,7 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
          * ============================================ */
         .cart-ab-items {
           border-radius: clamp(0.75rem, 2.5cqi, 1rem);
-          border: 1px solid var(--cart-ab-border);
+          border: 1px solid ${inputBorderColor};
           padding: 0;
           max-height: clamp(180px, 35cqi, 280px);
           overflow-y: auto;
@@ -553,7 +650,7 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
           display: flex;
           gap: var(--cart-ab-item-gap);
           padding: var(--cart-ab-item-gap);
-          border-bottom: 1px solid var(--cart-ab-border);
+          border-bottom: 1px solid ${inputBorderColor};
           background: transparent;
           align-items: center;
         }
@@ -569,7 +666,7 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
           object-fit: cover;
           flex-shrink: 0;
           border: 1px solid rgba(0, 0, 0, 0.05);
-          background: var(--cart-ab-input-bg);
+          background: ${inputBgColor};
         }
 
         .cart-ab-item-main {
@@ -593,7 +690,7 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
 
         .cart-ab-item-meta {
           font-size: var(--cart-ab-small-size);
-          color: var(--cart-ab-desc);
+          color: ${descriptionColor};
         }
 
         .cart-ab-item-price {
@@ -619,7 +716,7 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
         }
 
         .cart-ab-price-new {
-          color: var(--cart-ab-success);
+          color: ${successColor};
           font-weight: 700;
         }
 
@@ -627,18 +724,18 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
           padding: clamp(0.5rem, 2cqi, 0.75rem);
           text-align: center;
           font-size: var(--cart-ab-small-size);
-          color: var(--cart-ab-desc);
+          color: ${descriptionColor};
           font-weight: 500;
-          background: color-mix(in srgb, var(--cart-ab-border) 50%, transparent);
-          border-top: 1px solid var(--cart-ab-border);
+          background: color-mix(in srgb, ${inputBorderColor} 50%, transparent);
+          border-top: 1px solid ${inputBorderColor};
         }
 
         /* ============================================
          * TOTAL SECTION
          * ============================================ */
         .cart-ab-total-section {
-          background: color-mix(in srgb, var(--cart-ab-accent) 5%, transparent);
-          border: 1px solid color-mix(in srgb, var(--cart-ab-accent) 20%, transparent);
+          background: color-mix(in srgb, ${accentColor} 5%, transparent);
+          border: 1px solid color-mix(in srgb, ${accentColor} 20%, transparent);
           border-radius: clamp(0.75rem, 2.5cqi, 1rem);
           padding: clamp(0.875rem, 3cqi, 1.25rem);
           display: flex;
@@ -665,12 +762,12 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
           align-items: center;
           font-size: clamp(1.125rem, 4cqi, 1.375rem);
           font-weight: 800;
-          color: var(--cart-ab-success);
+          color: ${successColor};
         }
 
         .cart-ab-savings {
           font-size: var(--cart-ab-small-size);
-          color: var(--cart-ab-success);
+          color: ${successColor};
           text-align: right;
           font-weight: 600;
         }
@@ -717,7 +814,7 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
         }
 
         /* Side-by-side email form on larger containers */
-        @container cart-popup (min-width: 380px) {
+        @container popup-viewport (min-width: 380px) {
           .cart-ab-email-row {
             flex-direction: row;
           }
@@ -728,21 +825,21 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
           min-width: 0;
           padding: clamp(0.75rem, 2.5cqi, 1rem) clamp(0.875rem, 3cqi, 1.25rem);
           border-radius: clamp(0.5rem, 2cqi, 0.75rem);
-          border: 1px solid var(--cart-ab-border);
-          background: var(--cart-ab-input-bg);
-          color: var(--cart-ab-input-text);
+          border: 1px solid ${inputBorderColor};
+          background: ${inputBgColor};
+          color: ${inputTextColor};
           font-size: var(--cart-ab-body-size);
           transition: border-color 0.2s, box-shadow 0.2s;
         }
 
         .cart-ab-email-input:focus {
           outline: none;
-          border-color: var(--cart-ab-btn-bg);
-          box-shadow: 0 0 0 3px color-mix(in srgb, var(--cart-ab-btn-bg) 15%, transparent);
+          border-color: ${buttonBgColor};
+          box-shadow: 0 0 0 3px color-mix(in srgb, ${buttonBgColor} 15%, transparent);
         }
 
         .cart-ab-email-input::placeholder {
-          color: var(--cart-ab-desc);
+          color: ${descriptionColor};
         }
 
         /* Primary CTA Button */
@@ -752,9 +849,9 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
           font-size: clamp(0.9375rem, 3.5cqi, 1.125rem);
           font-weight: 700;
           border: none;
-          border-radius: var(--cart-ab-radius);
-          background: var(--cart-ab-btn-bg);
-          color: var(--cart-ab-btn-text);
+          border-radius: ${borderRadiusValue};
+          background: ${buttonBgColor};
+          color: ${buttonTextColor};
           cursor: pointer;
           transition: transform 0.15s ease, box-shadow 0.15s ease;
           box-shadow:
@@ -774,8 +871,36 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
         }
 
         .cart-ab-primary-button:focus-visible {
-          outline: 2px solid var(--cart-ab-text);
+          outline: 2px solid ${textColor};
           outline-offset: 2px;
+        }
+
+        .cart-ab-primary-button:disabled {
+          cursor: not-allowed;
+          opacity: 0.7;
+        }
+
+        .cart-ab-primary-button--loading {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.5rem;
+        }
+
+        .cart-ab-button-spinner {
+          display: inline-block;
+          width: 1em;
+          height: 1em;
+          border: 2px solid currentColor;
+          border-right-color: transparent;
+          border-radius: 50%;
+          animation: cart-ab-spin 0.75s linear infinite;
+        }
+
+        @keyframes cart-ab-spin {
+          to {
+            transform: rotate(360deg);
+          }
         }
 
         /* Secondary CTA Button */
@@ -784,10 +909,10 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
           padding: clamp(0.75rem, 2.5cqi, 0.875rem) clamp(1rem, 4cqi, 1.5rem);
           font-size: var(--cart-ab-body-size);
           font-weight: 600;
-          border: 2px solid color-mix(in srgb, var(--cart-ab-text) 25%, transparent);
-          border-radius: var(--cart-ab-radius);
+          border: 2px solid color-mix(in srgb, ${textColor} 25%, transparent);
+          border-radius: ${borderRadiusValue};
           background: transparent;
-          color: var(--cart-ab-text);
+          color: ${textColor};
           cursor: pointer;
           transition: all 0.15s ease;
           opacity: 0.85;
@@ -795,12 +920,12 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
 
         .cart-ab-secondary-button:hover {
           opacity: 1;
-          border-color: color-mix(in srgb, var(--cart-ab-text) 50%, transparent);
-          background: color-mix(in srgb, var(--cart-ab-text) 5%, transparent);
+          border-color: color-mix(in srgb, ${textColor} 50%, transparent);
+          background: color-mix(in srgb, ${textColor} 5%, transparent);
         }
 
         .cart-ab-secondary-button:focus-visible {
-          outline: 2px solid var(--cart-ab-btn-bg);
+          outline: 2px solid ${buttonBgColor};
           outline-offset: 2px;
         }
 
@@ -811,7 +936,7 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
           padding: clamp(0.375rem, 1.5cqi, 0.5rem);
           margin-top: clamp(0.25rem, 1cqi, 0.5rem);
           font-size: var(--cart-ab-small-size);
-          color: var(--cart-ab-desc);
+          color: ${descriptionColor};
           text-decoration: none;
           cursor: pointer;
           align-self: center;
@@ -825,14 +950,14 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
         }
 
         .cart-ab-dismiss-button:focus-visible {
-          outline: 1px solid var(--cart-ab-desc);
+          outline: 1px solid ${descriptionColor};
           outline-offset: 2px;
         }
 
         /* ============================================
          * SMALL CONTAINER ADJUSTMENTS (< 360px)
          * ============================================ */
-        @container cart-popup (max-width: 360px) {
+        @container popup-viewport (max-width: 360px) {
           .cart-ab-item {
             flex-wrap: wrap;
           }
@@ -853,7 +978,7 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
         /* ============================================
          * LARGE CONTAINER ENHANCEMENTS (> 480px)
          * ============================================ */
-        @container cart-popup (min-width: 480px) {
+        @container popup-viewport (min-width: 480px) {
           .cart-ab-popup-container {
             --cart-ab-padding-x: clamp(1.5rem, 6cqi, 2.5rem);
             --cart-ab-padding-y: clamp(1.5rem, 5cqi, 2.5rem);
@@ -881,17 +1006,10 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
           }
         }
 
-        /* ============================================
-         * PREVIEW MODE
-         * Keep popup inside preview frame instead of viewport
-         * ============================================ */
-        .cart-ab-popup-container.cart-ab-preview-mode {
-          position: absolute;
-        }
       `}</style>
 
       <div
-        className={`cart-ab-popup-container${config.previewMode ? ' cart-ab-preview-mode' : ''}`}
+        className="cart-ab-popup-container"
         data-splitpop="true"
         data-template="cart-abandonment"
       >
@@ -947,18 +1065,60 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
             </div>
           )}
 
-          {/* Discount teaser - only show amount/percentage, not the code (code shown after CTA click) */}
-          {config.discount?.enabled && !discountCode && (config.discount.percentage || config.discount.value) && (
-            <div className="cart-ab-discount">
-              <p className="cart-ab-discount-label">Special offer for you!</p>
-              <div className="cart-ab-discount-amount">
-                {config.discount.percentage && `${config.discount.percentage}% OFF`}
-                {config.discount.value &&
-                  !config.discount.percentage &&
-                  `$${config.discount.value} OFF`}
-              </div>
-              <p className="cart-ab-discount-hint">Click below to claim your discount</p>
-            </div>
+          {/* Discount section - shows teaser OR generated code */}
+          {config.discount?.enabled && (
+            <>
+              {/* Tiered discount messaging */}
+              {tieredInfo && !discountCode && (
+                <div className="cart-ab-discount cart-ab-discount--tiered">
+                  <p className="cart-ab-discount-label">🎯 Spend more, save more!</p>
+                  <div className="cart-ab-discount-amount cart-ab-discount-tiered-msg">
+                    {tieredInfo.message}
+                  </div>
+                  {tieredInfo.currentTier && (
+                    <p className="cart-ab-discount-hint">
+                      Current discount:{" "}
+                      {tieredInfo.currentTier.discount.kind === "percentage"
+                        ? `${tieredInfo.currentTier.discount.value}% off`
+                        : tieredInfo.currentTier.discount.kind === "free_shipping"
+                          ? "Free shipping"
+                          : `${formatCurrency(tieredInfo.currentTier.discount.value, config.currency)} off`}
+                    </p>
+                  )}
+                </div>
+              )}
+              {/* Basic discount teaser (percentage or fixed amount) OR generated code */}
+              {!tieredInfo && (config.discount.percentage || config.discount.value || discountCode) && (
+                <div className="cart-ab-discount">
+                  {discountCode ? (
+                    <>
+                      <p className="cart-ab-discount-label">Your discount code:</p>
+                      <DiscountCodeDisplay
+                        code={discountCode}
+                        onCopy={handleCopyCode}
+                        copied={copiedCode}
+                        variant="minimal"
+                        backgroundColor="transparent"
+                        accentColor={config.accentColor || config.buttonColor}
+                        textColor={config.textColor}
+                        size="md"
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <p className="cart-ab-discount-label">Special offer for you!</p>
+                      <div className="cart-ab-discount-amount">
+                        {config.discount.percentage && `${config.discount.percentage}% OFF`}
+                        {config.discount.value &&
+                          !config.discount.percentage &&
+                          `${formatCurrency(config.discount.value, config.currency)} OFF`}
+                      </div>
+                      <p className="cart-ab-discount-hint">Click below to claim your discount</p>
+                    </>
+                  )}
+                </div>
+              )}
+            </>
           )}
 
           {config.showCartItems !== false && displayItems.length > 0 && (
@@ -1014,21 +1174,24 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
             <div className="cart-ab-total-section">
               <div className="cart-ab-total">
                 <span>Total:</span>
-                <span className={
-                  config.discount?.enabled &&
-                  discountCode &&
-                  (config.discount.percentage || config.discount.value) &&
-                  config.discount.type !== "free_shipping"
-                    ? "cart-ab-total-struck"
-                    : ""
-                }>
+                <span
+                  className={
+                    config.discount?.enabled &&
+                    discountCode &&
+                    (config.discount.percentage || config.discount.value) &&
+                    config.discount.type !== "free_shipping"
+                      ? "cart-ab-total-struck"
+                      : ""
+                  }
+                >
                   {typeof cartTotal === "number"
                     ? formatCurrency(cartTotal, config.currency)
                     : cartTotal}
                 </span>
               </div>
 
-              {config.discount?.enabled && discountCode &&
+              {config.discount?.enabled &&
+                discountCode &&
                 (() => {
                   // Case 1: Free Shipping
                   if (config.discount.type === "free_shipping") {
@@ -1122,28 +1285,21 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
               </div>
             )}
 
-            {discountCode && (
-              <div className="cart-ab-code-block">
-                <DiscountCodeDisplay
-                  code={discountCode}
-                  onCopy={handleCopyCode}
-                  copied={copiedCode}
-                  label="Your discount code:"
-                  variant="dashed"
-                  accentColor={config.accentColor || config.buttonColor}
-                  textColor={config.textColor}
-                  size="md"
-                />
-              </div>
-            )}
-
             {!isEmailGateActive && (
               <button
                 onClick={handleResumeCheckout}
-                className="cart-ab-primary-button"
+                className={`cart-ab-primary-button${isResumeProcessing ? " cart-ab-primary-button--loading" : ""}`}
                 type="button"
+                disabled={isResumeProcessing}
               >
-                {config.buttonText || config.ctaText || "Resume Checkout"}
+                {isResumeProcessing ? (
+                  <>
+                    <span className="cart-ab-button-spinner" aria-hidden="true" />
+                    {config.loadingText || "Processing..."}
+                  </>
+                ) : (
+                  config.buttonText || config.ctaText || "Resume Checkout"
+                )}
               </button>
             )}
 
@@ -1157,11 +1313,7 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
               </button>
             )}
 
-            <button
-              type="button"
-              onClick={onClose}
-              className="cart-ab-dismiss-button"
-            >
+            <button type="button" onClick={onClose} className="cart-ab-dismiss-button">
               {config.dismissLabel || "No thanks"}
             </button>
           </div>

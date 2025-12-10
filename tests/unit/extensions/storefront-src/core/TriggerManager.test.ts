@@ -290,30 +290,6 @@ describe("TriggerManager", () => {
     });
   });
 
-  describe("time_delay trigger", () => {
-    it("should wait for configured delay in seconds", async () => {
-      const campaign = {
-        id: "test-campaign",
-        clientTriggers: {
-          enhancedTriggers: {
-            time_delay: {
-              enabled: true,
-              delay: 0.05,
-              immediate: false,
-            },
-          },
-        },
-      };
-
-      const start = Date.now();
-      const result = await manager.evaluateTriggers(campaign as any);
-      const elapsed = Date.now() - start;
-
-      expect(result).toBe(true);
-      expect(elapsed).toBeGreaterThanOrEqual(40);
-    });
-  });
-
   describe("cart-based triggers", () => {
     it("should resolve when add_to_cart event is dispatched", async () => {
       const campaign = {

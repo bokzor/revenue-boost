@@ -411,14 +411,15 @@ describe('Flash Sale Campaign Integration Tests', () => {
   // ========== VALIDATION ERROR TESTS ==========
 
   describe('Validation Error Handling', () => {
-    it('should reject missing required fields', () => {
+    it('should accept minimal config with defaults', () => {
       const config = {
         headline: 'Sale!',
-        // Missing urgencyMessage, buttonText, successMessage
+        // Other fields are optional with defaults
       };
 
       const result = FlashSaleContentSchema.safeParse(config);
-      expect(result.success).toBe(false);
+      // FlashSaleContentSchema has optional fields with defaults
+      expect(result.success).toBe(true);
     });
 
     it('should reject invalid discount percentage', () => {

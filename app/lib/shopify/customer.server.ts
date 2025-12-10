@@ -4,6 +4,7 @@
  * Handles customer creation, lookup, and updates via Shopify Admin GraphQL API
  */
 
+import { logger } from "~/lib/logger.server";
 import type { AdminApiContext } from "@shopify/shopify-app-react-router/server";
 
 export interface ShopifyCustomer {
@@ -151,7 +152,7 @@ export async function findCustomerByEmail(
       customer: undefined,
     };
   } catch (error) {
-    console.error("[Shopify Customer] Error finding customer:", error);
+    logger.error({ error }, "[Shopify Customer] Error finding customer:");
     return {
       errors: [error instanceof Error ? error.message : "Failed to find customer"],
     };
@@ -196,11 +197,10 @@ export async function createCustomer(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- GraphQL response is dynamically typed
     const responseData: any = await response.json();
 
-    // Log full response for debugging
-    console.log("[Shopify Customer] GraphQL Response:", JSON.stringify(responseData, null, 2));
+    logger.debug({ response: responseData }, "[ShopifyCustomer] GraphQL response");
 
     if (responseData.data?.customerCreate?.userErrors?.length > 0) {
-      console.error("[Shopify Customer] User errors:", responseData.data.customerCreate.userErrors);
+      logger.error({ userErrors: responseData.data.customerCreate.userErrors }, "[ShopifyCustomer] User errors");
       return {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any -- userErrors from GraphQL
         errors: responseData.data.customerCreate.userErrors.map((error: any) => error.message),
@@ -209,7 +209,7 @@ export async function createCustomer(
 
     // Check for GraphQL errors
     if (responseData.errors) {
-      console.error("[Shopify Customer] GraphQL errors:", responseData.errors);
+      logger.error({ errors: responseData.errors }, "[ShopifyCustomer] GraphQL errors");
       return {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any -- errors from GraphQL
         errors: responseData.errors.map((error: any) => error.message),
@@ -232,12 +232,12 @@ export async function createCustomer(
       return { customer: mapped };
     }
 
-    console.error("[Shopify Customer] No customer in response");
+    logger.error("[Shopify Customer] No customer in response");
     return {
       errors: ["Failed to create customer"],
     };
   } catch (error) {
-    console.error("[Shopify Customer] Error creating customer:", error);
+    logger.error({ error }, "[Shopify Customer] Error creating customer:");
     return {
       errors: [error instanceof Error ? error.message : "Failed to create customer"],
     };
@@ -309,7 +309,7 @@ export async function updateCustomer(
       errors: ["Failed to update customer"],
     };
   } catch (error) {
-    console.error("[Shopify Customer] Error updating customer:", error);
+    logger.error({ error }, "[Shopify Customer] Error updating customer:");
     return {
       errors: [error instanceof Error ? error.message : "Failed to update customer"],
     };
@@ -407,7 +407,7 @@ export async function upsertCustomer(
       };
     }
   } catch (error) {
-    console.error("[Shopify Customer] Error upserting customer:", error);
+    logger.error({ error }, "[Shopify Customer] Error upserting customer:");
     return {
       success: false,
       errors: [error instanceof Error ? error.message : "Failed to upsert customer"],

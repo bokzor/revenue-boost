@@ -2,21 +2,48 @@ import React from "react";
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 
-import { SocialProofPopup } from "~/domains/storefront/popups-new/SocialProofPopup";
-import type { SocialProofNotification } from "~/domains/storefront/popups-new/SocialProofPopup";
+import { SocialProofPopup, SocialProofConfig } from "~/domains/storefront/popups-new/SocialProofPopup";
+import type { SocialProofNotification } from "~/domains/storefront/notifications/social-proof/types";
 
-function createConfig(overrides: Partial<any> = {}) {
-  const baseConfig: any = {
+function createConfig(overrides: Partial<SocialProofConfig> = {}): SocialProofConfig {
+  const baseConfig: SocialProofConfig = {
+    // PopupDesignConfig required fields
+    id: "test-config",
+    backgroundColor: "#111827",
+    textColor: "#ffffff",
+    buttonColor: "#10B981",
+    buttonTextColor: "#ffffff",
+    position: "center",
+    size: "medium",
+    animation: "fade",
+    borderRadius: "8px",
+    overlayOpacity: 0.5,
+    closeOnOverlayClick: true,
+    // BaseContentConfig required fields
+    headline: "Social Proof",
+    successMessage: "Thank you!",
+    // SocialProofContent fields - Core (Tier 1)
     enablePurchaseNotifications: false,
     enableVisitorNotifications: true,
     enableReviewNotifications: false,
+    // SocialProofContent fields - Additional (Tier 2)
+    enableSalesCountNotifications: false,
+    enableLowStockAlerts: false,
+    enableTrendingNotifications: false,
+    enableCartActivityNotifications: false,
+    enableRecentlyViewedNotifications: false,
+    // Display settings
     rotationInterval: 8,
-    maxNotificationsPerSession: undefined,
+    displayDuration: 6,
+    maxNotificationsPerSession: 5,
     minVisitorCount: 0,
     minReviewRating: 0,
+    lowStockThreshold: 10,
+    purchaseLookbackHours: 48,
     cornerPosition: "bottom-left",
-    backgroundColor: "#111827",
-    textColor: "#ffffff",
+    showProductImage: true,
+    showTimer: true,
+    showCloseButton: true,
   };
 
   return { ...baseConfig, ...overrides };
@@ -29,14 +56,20 @@ describe("SocialProofPopup", () => {
       {
         id: "p1",
         type: "purchase",
-        name: "Alice",
+        customerName: "Alice",
         location: "Paris",
-        product: "Hat",
+        productName: "Hat",
+        timeAgo: "2 minutes ago",
+        verified: true,
+        timestamp: Date.now(),
       },
       {
         id: "v1",
         type: "visitor",
         count: 5,
+        context: "viewing this product",
+        trending: false,
+        timestamp: Date.now(),
       },
     ];
 
@@ -49,9 +82,8 @@ describe("SocialProofPopup", () => {
       />,
     );
 
-    expect(
-      await screen.findByText(/5 people are viewing this right now/i),
-    ).toBeTruthy();
+    // The new design splits the text into separate spans
+    expect(await screen.findByText(/5 people/i)).toBeTruthy();
     expect(screen.queryByText(/just purchased/i)).toBeNull();
   });
 });

@@ -47,7 +47,7 @@ export function AnnouncementContentSection({
             value={content.headline || ""}
             error={errors?.headline}
             required
-            placeholder="🎉 Flash Sale: 25% OFF Everything - Today Only!"
+            placeholder="Flash Sale: 25% OFF Everything - Today Only!"
             helpText="Main announcement message"
             onChange={(value) => updateField("headline", value)}
           />
@@ -71,7 +71,7 @@ export function AnnouncementContentSection({
               label="Icon/Emoji"
               name="content.icon"
               value={content.icon || ""}
-              placeholder="🎉"
+              placeholder=""
               helpText="Emoji or icon to display (optional)"
               onChange={(value) => updateField("icon", value)}
             />

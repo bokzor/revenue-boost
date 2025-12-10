@@ -8,15 +8,48 @@
  */
 
 export type PopupPosition = "center" | "top" | "bottom" | "left" | "right";
-export type PopupSize = "small" | "medium" | "large";
+export type PopupSize = "small" | "medium" | "large" | "fullscreen";
 export type PopupAnimation = "fade" | "slide" | "bounce" | "none";
 export type DisplayMode = "popup" | "banner" | "slide-in" | "inline";
-export type ImagePosition = "left" | "right" | "top" | "bottom" | "full" | "none";
+
+// Layout types for Lead Capture family (Newsletter, Spin-to-Win, Scratch Card)
+export type DesktopLayout =
+  | "split-left"    // Visual left, form right (50/50)
+  | "split-right"   // Form left, visual right (50/50)
+  | "stacked"       // Visual top, form bottom
+  | "overlay"       // Full background, form overlays
+  | "content-only"; // No visual, just form
+
+export type MobileLayout =
+  | "stacked"       // Visual top, form bottom
+  | "overlay"       // Full background, form overlays
+  | "fullscreen"    // Visual fills entire viewport, minimal form floats on top
+  | "content-only"; // No visual, just form
+
+export interface LayoutConfig {
+  desktop: DesktopLayout;
+  mobile: MobileLayout;
+  /** Size of visual area on desktop (e.g., "50%", "45%") */
+  visualSizeDesktop?: string;
+  /** Size of visual area on mobile (e.g., "40%", "45%") */
+  visualSizeMobile?: string;
+  /** Negative margin to overlap content with visual (e.g., "-2rem") */
+  contentOverlap?: string;
+  /** Show gradient overlay on visual area */
+  visualGradient?: boolean;
+}
+
+
 
 /**
  * PopupDesignConfig - Pure design/visual properties
  * Does NOT include content fields (headline, buttonText, etc.)
  * Those come from campaign content types
+ *
+ * COLOR ARCHITECTURE:
+ * All color properties are OPTIONAL. When not provided, components should use
+ * CSS variables (e.g., var(--rb-primary)) which have defaults in design-tokens.css.
+ * This enables a single source of truth for default colors.
  */
 export interface PopupDesignConfig {
   id: string;
@@ -26,15 +59,16 @@ export interface PopupDesignConfig {
   utmSource?: string | null;
   utmMedium?: string | null;
 
-  // Design/Visual Properties
-  backgroundColor: string;
-  textColor: string;
+  // Design/Visual Properties - All optional, CSS variables provide defaults
+  backgroundColor?: string;
+  textColor?: string;
   descriptionColor?: string; // Specific color for description/subheadline text
-  buttonColor: string;
-  buttonTextColor: string;
+  buttonColor?: string;
+  buttonTextColor?: string;
   inputBackgroundColor?: string;
   inputTextColor?: string;
   inputBorderColor?: string;
+  inputPlaceholderColor?: string; // Explicit placeholder text color
   accentColor?: string;
   overlayColor?: string;
   overlayOpacity?: number;
@@ -57,6 +91,10 @@ export interface PopupDesignConfig {
   animation?: PopupAnimation;
   displayMode?: DisplayMode;
 
+  // Lead Capture Layout (Newsletter, Spin-to-Win, Scratch Card)
+  // Note: Named 'leadCaptureLayout' to avoid conflict with ProductUpsell's 'layout' field
+  leadCaptureLayout?: LayoutConfig;
+
   // Additional style/customization
   boxShadow?: string;
   fontFamily?: string;
@@ -64,11 +102,17 @@ export interface PopupDesignConfig {
   fontWeight?: string;
   customCSS?: string;
   globalCustomCSS?: string;
+  /**
+   * Pre-resolved CSS custom properties for design tokens.
+   * Format: "--rb-background: #fff; --rb-primary: #000; ..."
+   * Applied on the popup container so child components can use var(--rb-*).
+   */
+  designTokensCSS?: string;
   imageUrl?: string;
-  imagePosition?: ImagePosition;
   buttonUrl?: string;
 
   // Typography (template-specific)
+  headlineFontFamily?: string; // e.g., "serif", "sans-serif", or full font stack
   titleFontSize?: string;
   titleFontWeight?: string;
   titleTextShadow?: string;
@@ -78,6 +122,46 @@ export interface PopupDesignConfig {
   // Input styling (template-specific)
   inputBackdropFilter?: string;
   inputBoxShadow?: string;
+  inputBorderRadius?: string | number;
+  inputBorderWidth?: number; // 1 or 2
+  inputStyle?: "outlined" | "filled" | "underline";
+  inputFocusRingColor?: string; // Color for focus ring (e.g., "rgba(primary, 0.1)")
+  inputFocusRingWidth?: number; // Width of focus ring in pixels (e.g., 4)
+
+  // Button styling
+  buttonBorderRadius?: string | number;
+  buttonStyle?: "filled" | "outline" | "ghost";
+  buttonBoxShadow?: string;
+  secondaryButtonColor?: string;
+  secondaryButtonTextColor?: string;
+
+  // Badge/Tag styling (for promotional badges like "Exclusive offers inside")
+  badgeBackgroundColor?: string;
+  badgeTextColor?: string;
+  badgeBorderRadius?: number;
+
+  // Checkbox styling
+  checkboxBorderRadius?: number; // 4 for rounded, 999 for pill
+  checkboxSize?: number; // Size in pixels (default 20)
+
+  // Text alignment and spacing
+  textAlign?: "left" | "center" | "right";
+  contentSpacing?: "compact" | "comfortable" | "spacious";
+
+  // Image effects
+  imageFilter?: string; // CSS filter (e.g., "brightness(0.8) contrast(1.1)")
+  imageBorderRadius?: string | number;
+  imagePosition?: "left" | "right" | "top" | "bottom" | "full"; // Image layout position
+
+  // Scratch Card specific design properties (visual only - content fields come from ScratchCardContent)
+  scratchCardBackgroundColor?: string; // Background color of the prize reveal area
+  scratchCardTextColor?: string; // Text color in the prize reveal area
+  scratchOverlayColor?: string; // Color of the scratch overlay (fallback if no image)
+  scratchOverlayImage?: string; // URL of the scratch overlay texture image
+
+  // Mobile-specific settings
+  // When true, popup takes full viewport height on mobile (useful for Product Upsell, etc.)
+  mobileFullScreen?: boolean;
 
   // Behavior Properties
   previewMode?: boolean;
@@ -95,6 +179,9 @@ export interface PopupDesignConfig {
   // Accessibility
   ariaLabel?: string;
   ariaDescribedBy?: string;
+
+  // CSS Scoping (for mini previews to prevent style leakage)
+  scopeId?: string;
 }
 
 /**
@@ -160,6 +247,8 @@ export interface CartItem {
   quantity: number;
   imageUrl: string;
   variantId: string;
+  /** Shopify product GID (e.g., gid://shopify/Product/123) - used for cart-scoped discounts */
+  productId?: string;
   handle?: string;
 }
 

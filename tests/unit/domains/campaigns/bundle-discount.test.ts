@@ -87,6 +87,7 @@ describe("Bundle Discount Integration", () => {
       const expectedDiscountConfig = {
         enabled: true,
         showInPreview: true,
+        strategy: "bundle" as const,
         valueType: "PERCENTAGE" as const,
         value: 15,
         type: "single_use" as const,
@@ -361,4 +362,3 @@ describe("Bundle Discount Integration", () => {
     });
   });
 });
-

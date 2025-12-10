@@ -51,18 +51,20 @@ export function CartDrawerOpenTrigger({ config, onChange }: CartDrawerOpenTrigge
           autoComplete="off"
           label="Delay (milliseconds)"
           type="number"
-          value={config.cart_drawer_open?.delay?.toString() || "1000"}
-          onChange={(value) => updateConfig({ delay: parseInt(value) || 1000 })}
+          value={config.cart_drawer_open?.delay?.toString() ?? ""}
+          onChange={(value) => updateConfig({ delay: value === "" ? undefined : parseInt(value) })}
           helpText="Time to wait after drawer opens before showing popup"
+          placeholder="1000"
         />
 
         <TextField
           autoComplete="off"
           label="Max triggers per session"
           type="number"
-          value={config.cart_drawer_open?.max_triggers_per_session?.toString() || "2"}
-          onChange={(value) => updateConfig({ max_triggers_per_session: parseInt(value) || 2 })}
+          value={config.cart_drawer_open?.max_triggers_per_session?.toString() ?? ""}
+          onChange={(value) => updateConfig({ max_triggers_per_session: value === "" ? undefined : parseInt(value) })}
           helpText="Maximum times to trigger per session"
+          placeholder="2"
         />
       </FormLayout>
     </TriggerCard>

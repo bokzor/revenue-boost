@@ -17,7 +17,6 @@ const baseConfig: Partial<ProductUpsellConfig> = {
   subheadline: "Add these customer favorites to your order",
   previewMode: true,
   layout: "grid",
-  columns: 2,
   multiSelect: true,
   currency: "USD",
 };

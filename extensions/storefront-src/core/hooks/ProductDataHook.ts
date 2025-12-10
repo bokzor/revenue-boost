@@ -3,9 +3,17 @@
  *
  * Fetches product information before the popup is displayed,
  * eliminating loading states and skeleton screens.
+ *
+ * Enhanced for Smart Recommendations:
+ * - Detects current product ID from page context or trigger
+ * - Detects trigger type for context-aware recommendations (RELATED vs COMPLEMENTARY)
+ * - Fetches cart product IDs for cart-based recommendations
  */
 
 import type { PreDisplayHook, PreDisplayHookContext, PreDisplayHookResult } from '../PreDisplayHook';
+
+/** Trigger types recognized by the smart recommendations API */
+type TriggerType = 'product_view' | 'cart' | 'exit_intent' | 'scroll' | 'add_to_cart';
 
 export class ProductDataHook implements PreDisplayHook {
     readonly name = 'products';
@@ -22,32 +30,67 @@ export class ProductDataHook implements PreDisplayHook {
 
             console.log(`[ProductDataHook] Fetching products for ${templateType}`);
 
-            // Extract product ID from trigger context (if available)
+            // Extract product ID from trigger context (if available from add_to_cart trigger)
             const triggerProductId = triggerContext?.productId;
             if (triggerProductId) {
                 console.log('[ProductDataHook] Using product ID from trigger context:', triggerProductId);
             }
 
+            // Detect current product from page context (for product pages)
+            const pageProductId = this.detectCurrentProductId();
+            if (pageProductId) {
+                console.log('[ProductDataHook] Detected product from page:', pageProductId);
+            }
+
+            // Use trigger product ID if available, otherwise use page product ID
+            // Convert null to undefined for type compatibility
+            const currentProductId = triggerProductId || pageProductId || undefined;
+
+            // Detect trigger type from campaign's enhanced triggers
+            const triggerType = this.detectTriggerType(campaign);
+            console.log('[ProductDataHook] Detected trigger type:', triggerType);
+
+            // Get cart product IDs for cart-based recommendations
+            const cartProductIds = await this.getCartProductIds();
+            if (cartProductIds.length > 0) {
+                console.log('[ProductDataHook] Cart products:', cartProductIds.length);
+            }
+
             // eslint-disable-next-line @typescript-eslint/no-explicit-any -- products from API are dynamically typed
             let products: any[] = [];
 
-            if (templateType === 'PRODUCT_UPSELL') {
-                // Pass trigger product ID to exclude it from recommendations
-                products = await this.fetchUpsellProducts(campaign.id, triggerProductId);
+            // All upsell template types that require product data
+            const upsellTemplates = [
+                'PRODUCT_UPSELL',
+                'CLASSIC_UPSELL',
+                'MINIMAL_SLIDE_UP',
+                'PREMIUM_FULLSCREEN',
+                'BUNDLE_DEAL',
+                'COUNTDOWN_URGENCY',
+            ];
 
-                // In normal storefront mode, a Product Upsell popup should
+            if (upsellTemplates.includes(templateType)) {
+                // Pass full recommendation context for smart recommendations
+                products = await this.fetchUpsellProducts(
+                    campaign.id,
+                    currentProductId,
+                    triggerType,
+                    cartProductIds
+                );
+
+                // In normal storefront mode, an upsell popup should
                 // never render without real products. In preview, however,
                 // we fall back to mocked products so merchants can still see
                 // what the popup will look like.
                 if (!products || products.length === 0) {
                     if (previewMode) {
                         console.warn(
-                            `[ProductDataHook][Preview] No products available for Product Upsell campaign ${campaign.id}. Using mocked preview products instead.`,
+                            `[ProductDataHook][Preview] No products available for ${templateType} campaign ${campaign.id}. Using mocked preview products instead.`,
                         );
                         products = this.buildPreviewMockProducts(campaign);
                     } else {
                         console.warn(
-                            `[ProductDataHook] No products available for Product Upsell campaign ${campaign.id}. Popup will not display.`,
+                            `[ProductDataHook] No products available for ${templateType} campaign ${campaign.id}. Popup will not display.`,
                         );
                         return {
                             success: false,
@@ -67,6 +110,11 @@ export class ProductDataHook implements PreDisplayHook {
 
             console.log(`[ProductDataHook] Successfully loaded ${products.length} products`);
 
+            // Preload first 3 product images for instant display
+            if (products.length > 0) {
+                await this.preloadProductImages(products.slice(0, 3));
+            }
+
             return {
                 success: true,
                 data: products,
@@ -79,7 +127,15 @@ export class ProductDataHook implements PreDisplayHook {
             // In preview mode, fall back to mocked products even if the
             // network request failed so that the merchant still sees a
             // realistic popup.
-            if (previewMode && campaign.templateType === 'PRODUCT_UPSELL') {
+            const upsellTemplatesForFallback = [
+                'PRODUCT_UPSELL',
+                'CLASSIC_UPSELL',
+                'MINIMAL_SLIDE_UP',
+                'PREMIUM_FULLSCREEN',
+                'BUNDLE_DEAL',
+                'COUNTDOWN_URGENCY',
+            ];
+            if (previewMode && upsellTemplatesForFallback.includes(campaign.templateType)) {
                 console.warn(
                     '[ProductDataHook][Preview] Falling back to mocked products due to fetch error.',
                 );
@@ -98,16 +154,41 @@ export class ProductDataHook implements PreDisplayHook {
             };
         }
     }
+    /**
+     * Fetch upsell products with full recommendation context
+     *
+     * @param campaignId - Campaign ID
+     * @param currentProductId - Product being viewed or added to cart (for related/complementary recs)
+     * @param triggerType - Type of trigger (for intent selection: RELATED vs COMPLEMENTARY)
+     * @param cartProductIds - Products in cart (for cart-based recommendations)
+     */
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- products from API are dynamically typed
-    private async fetchUpsellProducts(campaignId: string, triggerProductId?: string): Promise<any[]> {
+    private async fetchUpsellProducts(
+        campaignId: string,
+        currentProductId?: string,
+        triggerType?: TriggerType,
+        cartProductIds?: string[]
+    ): Promise<any[]> {
         const params = new URLSearchParams({
             campaignId,
         });
 
-        // Add trigger product ID to exclude it from recommendations
-        if (triggerProductId) {
-            params.append('cartProductIds', triggerProductId);
-            console.log('[ProductDataHook] Excluding trigger product from recommendations:', triggerProductId);
+        // Add current product ID for context-aware recommendations
+        if (currentProductId) {
+            params.append('currentProductId', currentProductId);
+            console.log('[ProductDataHook] Smart recommendations: currentProductId =', currentProductId);
+        }
+
+        // Add trigger type for intent selection (RELATED vs COMPLEMENTARY)
+        if (triggerType) {
+            params.append('triggerType', triggerType);
+            console.log('[ProductDataHook] Smart recommendations: triggerType =', triggerType);
+        }
+
+        // Add cart product IDs for cart-based recommendations and exclusion
+        if (cartProductIds && cartProductIds.length > 0) {
+            params.append('cartProductIds', cartProductIds.join(','));
+            console.log('[ProductDataHook] Smart recommendations: cartProductIds =', cartProductIds.length);
         }
 
         const url = `/apps/revenue-boost/api/upsell-products?${params.toString()}`;
@@ -119,6 +200,12 @@ export class ProductDataHook implements PreDisplayHook {
         }
 
         const data = await response.json();
+
+        // Log recommendation source for debugging
+        if (data.source) {
+            console.log(`[ProductDataHook] Recommendations source: ${data.source} (cached: ${data.cached || false})`);
+        }
+
         return Array.isArray(data.products) ? data.products : [];
     }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- products from API are dynamically typed
@@ -163,7 +250,7 @@ export class ProductDataHook implements PreDisplayHook {
                 price: '59.00',
                 compareAtPrice: '79.00',
                 imageUrl:
-                    'https://images.pexels.com/photos/7671166/pexels-photo-7671166.jpeg?auto=compress&cs=tinysrgb&w=400',
+                    'https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=400&q=80',
                 handle: 'preview-hoodie',
                 rating: 4.8,
                 reviewCount: 128,
@@ -175,7 +262,7 @@ export class ProductDataHook implements PreDisplayHook {
                 price: '89.00',
                 compareAtPrice: '119.00',
                 imageUrl:
-                    'https://images.pexels.com/photos/2529148/pexels-photo-2529148.jpeg?auto=compress&cs=tinysrgb&w=400',
+                    'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&q=80',
                 handle: 'preview-sneakers',
                 rating: 4.9,
                 reviewCount: 212,
@@ -187,7 +274,7 @@ export class ProductDataHook implements PreDisplayHook {
                 price: '49.00',
                 compareAtPrice: '69.00',
                 imageUrl:
-                    'https://images.pexels.com/photos/1152077/pexels-photo-1152077.jpeg?auto=compress&cs=tinysrgb&w=400',
+                    'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400&q=80',
                 handle: 'preview-backpack',
                 rating: 4.6,
                 reviewCount: 87,
@@ -199,7 +286,7 @@ export class ProductDataHook implements PreDisplayHook {
                 price: '24.00',
                 compareAtPrice: '29.00',
                 imageUrl:
-                    'https://images.pexels.com/photos/1124465/pexels-photo-1124465.jpeg?auto=compress&cs=tinysrgb&w=400',
+                    'https://images.unsplash.com/photo-1588850561407-ed78c282e89b?w=400&q=80',
                 handle: 'preview-cap',
                 rating: 4.5,
                 reviewCount: 56,
@@ -207,5 +294,177 @@ export class ProductDataHook implements PreDisplayHook {
         ];
 
         return baseProducts.slice(0, maxProducts);
+    }
+
+    /**
+     * Detect current product ID from page context
+     * Uses multiple sources: REVENUE_BOOST_CONFIG, ShopifyAnalytics, meta tags, etc.
+     */
+    private detectCurrentProductId(): string | null {
+        try {
+            type W = typeof window & {
+                REVENUE_BOOST_CONFIG?: { productId?: string | number };
+                ShopifyAnalytics?: { meta?: { product?: { id?: string | number } } };
+                meta?: { product?: { id?: string | number } };
+                product?: { id?: string | number };
+            };
+            const w = window as unknown as W;
+
+            // 1. Check REVENUE_BOOST_CONFIG (set by theme app extension)
+            if (w.REVENUE_BOOST_CONFIG?.productId) {
+                return this.normalizeProductId(w.REVENUE_BOOST_CONFIG.productId);
+            }
+
+            // 2. Check ShopifyAnalytics.meta.product.id
+            if (w.ShopifyAnalytics?.meta?.product?.id) {
+                return this.normalizeProductId(w.ShopifyAnalytics.meta.product.id);
+            }
+
+            // 3. Check window.meta.product.id
+            if (w.meta?.product?.id) {
+                return this.normalizeProductId(w.meta.product.id);
+            }
+
+            // 4. Check window.product.id (older themes)
+            if (w.product?.id) {
+                return this.normalizeProductId(w.product.id);
+            }
+
+            // 5. Check data attribute on product element
+            const productEl = document.querySelector('[data-product-id]') as HTMLElement | null;
+            if (productEl) {
+                const attr = productEl.getAttribute('data-product-id');
+                if (attr) {
+                    return this.normalizeProductId(attr);
+                }
+            }
+
+            return null;
+        } catch {
+            return null;
+        }
+    }
+
+    /**
+     * Normalize product ID to Shopify GID format
+     */
+    private normalizeProductId(raw: unknown): string | null {
+        if (raw == null) return null;
+        const idStr = String(raw).trim();
+        if (!idStr) return null;
+
+        // Already a GID
+        if (idStr.startsWith('gid://shopify/Product/')) {
+            return idStr;
+        }
+
+        // Numeric ID - convert to GID
+        if (/^\d+$/.test(idStr)) {
+            return `gid://shopify/Product/${idStr}`;
+        }
+
+        return null;
+    }
+
+    /**
+     * Detect trigger type from campaign's enhanced triggers configuration
+     * Maps enabled triggers to our TriggerType enum
+     */
+    private detectTriggerType(campaign: { clientTriggers?: unknown; targetRules?: unknown }): TriggerType | undefined {
+        try {
+            // Enhanced triggers can be in clientTriggers or targetRules
+            const clientTriggers = campaign.clientTriggers as { enhancedTriggers?: Record<string, { enabled?: boolean }> } | undefined;
+            const targetRules = campaign.targetRules as { enhancedTriggers?: Record<string, { enabled?: boolean }> } | undefined;
+            const triggers = clientTriggers?.enhancedTriggers || targetRules?.enhancedTriggers;
+
+            if (!triggers) return undefined;
+
+            // Priority order for determining trigger type
+            // This determines which trigger is "primary" for intent selection
+            if (triggers.add_to_cart?.enabled) return 'add_to_cart';
+            if (triggers.product_view?.enabled) return 'product_view';
+            if (triggers.exit_intent?.enabled) return 'exit_intent';
+            if (triggers.scroll_depth?.enabled) return 'scroll';
+
+            // Check for cart-related triggers
+            if (triggers.cart_value?.enabled || triggers.cart_drawer_open?.enabled) return 'cart';
+
+            return undefined;
+        } catch {
+            return undefined;
+        }
+    }
+
+    /**
+     * Get product IDs from the current cart
+     * Uses Shopify's /cart.js endpoint
+     */
+    private async getCartProductIds(): Promise<string[]> {
+        try {
+            // First check if cart data is already available
+            type ShopifyGlobal = { Shopify?: { cart?: { items?: Array<{ product_id?: number }> } } };
+            const w = window as unknown as ShopifyGlobal;
+
+            if (w.Shopify?.cart?.items) {
+                return w.Shopify.cart.items
+                    .map((item) => item.product_id ? `gid://shopify/Product/${item.product_id}` : null)
+                    .filter((id): id is string => id !== null);
+            }
+
+            // Fetch cart data
+            const response = await fetch('/cart.js', { credentials: 'same-origin' });
+            if (!response.ok) return [];
+
+            const cart = await response.json() as { items?: Array<{ product_id?: number }> };
+            if (!cart.items || !Array.isArray(cart.items)) return [];
+
+            return cart.items
+                .map((item) => item.product_id ? `gid://shopify/Product/${item.product_id}` : null)
+                .filter((id): id is string => id !== null);
+        } catch {
+            return [];
+        }
+    }
+
+    /**
+     * Preload product images for instant display
+     * Uses Image() constructor to prefetch images into browser cache
+     *
+     * @param products - Array of products with imageUrl property
+     * @returns Promise that resolves when all images are loaded (or failed)
+     */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- products are dynamically typed
+    private async preloadProductImages(products: any[]): Promise<void> {
+        const imageUrls = products
+            .map((p) => p.imageUrl)
+            .filter((url): url is string => typeof url === 'string' && url.length > 0);
+
+        if (imageUrls.length === 0) return;
+
+        console.log(`[ProductDataHook] Preloading ${imageUrls.length} product images`);
+
+        const preloadPromises = imageUrls.map((url) => {
+            return new Promise<void>((resolve) => {
+                const img = new Image();
+                img.onload = () => {
+                    console.log(`[ProductDataHook] Preloaded: ${url.substring(0, 50)}...`);
+                    resolve();
+                };
+                img.onerror = () => {
+                    console.warn(`[ProductDataHook] Failed to preload: ${url.substring(0, 50)}...`);
+                    resolve(); // Resolve anyway to not block other images
+                };
+                img.src = url;
+            });
+        });
+
+        // Wait for all images with a timeout to prevent blocking too long
+        const timeoutPromise = new Promise<void>((resolve) => setTimeout(resolve, 2000));
+        await Promise.race([
+            Promise.all(preloadPromises),
+            timeoutPromise,
+        ]);
+
+        console.log('[ProductDataHook] Image preloading complete');
     }
 }

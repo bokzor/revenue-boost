@@ -9,6 +9,7 @@
  * - All functions are < 50 lines
  */
 
+import { logger } from "~/lib/logger.server";
 import prisma from "~/db.server";
 
 const TIMEZONE_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
@@ -40,7 +41,7 @@ export class ShopService {
       });
 
       if (!store) {
-        console.warn(`[ShopService] Store not found: ${storeId}, defaulting to UTC`);
+        logger.warn("[ShopService] Store not found: ${storeId}, defaulting to UTC");
         return "UTC";
       }
 
@@ -54,7 +55,7 @@ export class ShopService {
       }
 
       // Fetch fresh timezone from Shopify
-      console.log(`[ShopService] Fetching fresh timezone for store ${storeId}`);
+      logger.debug("[ShopService] Fetching fresh timezone for store ${storeId}");
       const shopDetails = await this.fetchShopDetails(admin);
 
       // Update cache in database
@@ -68,7 +69,7 @@ export class ShopService {
 
       return shopDetails.ianaTimezone;
     } catch (error) {
-      console.error("[ShopService] Error getting shop timezone:", error);
+      logger.error({ error }, "[ShopService] Error getting shop timezone:");
       // Fallback to cached timezone or UTC
       const store = await prisma.store.findUnique({
         where: { id: storeId },
@@ -104,7 +105,7 @@ export class ShopService {
     const { ianaTimezone, name } = data.data.shop;
 
     if (!ianaTimezone) {
-      console.warn("[ShopService] Shop ianaTimezone not available, using UTC");
+      logger.warn("[ShopService] Shop ianaTimezone not available, using UTC");
       return { ianaTimezone: "UTC", name };
     }
 
@@ -142,7 +143,7 @@ export class ShopService {
 
       return store?.timezone || "UTC";
     } catch (error) {
-      console.error(`[ShopService] Error fetching timezone for shop ${shopDomain}:`, error);
+      logger.error({ error }, "[ShopService] Error fetching timezone for shop ${shopDomain}:");
       return "UTC";
     }
   }

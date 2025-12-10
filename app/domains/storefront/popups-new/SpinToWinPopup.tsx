@@ -13,23 +13,23 @@
 
 import React, { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { PopupPortal } from "./PopupPortal";
-import { PopupGridContainer } from "./PopupGridContainer";
+import { PopupGridContainer } from "app/domains/storefront/popups-new/components/shared/PopupGridContainer";
 import type { PopupDesignConfig, Prize } from "./types";
 import type { SpinToWinContent } from "~/domains/campaigns/types/campaign";
-import { prefersReducedMotion, debounce } from "./utils";
-import { POPUP_SPACING } from "./spacing";
+import { prefersReducedMotion, debounce, getAdaptiveMutedColor } from "app/domains/storefront/popups-new/utils/utils";
+import { POPUP_SPACING } from "app/domains/storefront/popups-new/utils/spacing";
 
 // Import custom hooks
 import { usePopupForm, useDiscountCode, usePopupAnimation } from "./hooks";
 
 // Import canvas utilities
-import { WheelRenderer } from "./utils/canvas";
 
 // Import reusable components
 import { EmailInput, NameInput, GdprCheckbox } from "./components";
 
 // Import shared components from Phase 1 & 2
 import { DiscountCodeDisplay } from "./components/shared";
+import { WheelRenderer } from "app/domains/storefront/popups-new/utils/wheel-canvas";
 
 /**
  * Utility function to adjust color brightness
@@ -44,9 +44,9 @@ function adjustBrightness(hex: string, percent: number): string {
 
   // Parse hex
   const num = parseInt(cleanHex, 16);
-  const r = Math.min(255, Math.max(0, ((num >> 16) & 0xff) + Math.round(255 * percent / 100)));
-  const g = Math.min(255, Math.max(0, ((num >> 8) & 0xff) + Math.round(255 * percent / 100)));
-  const b = Math.min(255, Math.max(0, (num & 0xff) + Math.round(255 * percent / 100)));
+  const r = Math.min(255, Math.max(0, ((num >> 16) & 0xff) + Math.round((255 * percent) / 100)));
+  const g = Math.min(255, Math.max(0, ((num >> 8) & 0xff) + Math.round((255 * percent) / 100)));
+  const b = Math.min(255, Math.max(0, (num & 0xff) + Math.round((255 * percent) / 100)));
 
   return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
 }
@@ -63,8 +63,9 @@ const RESPONSIVE_CSS_VARS = `
      * ============================================ */
 
     /* Wheel Sizing - Uses cqi with aspect-ratio for square proportions */
-    --stw-wheel-size: clamp(200px, 45cqi, 380px);
-    --stw-wheel-size-mobile: clamp(180px, 55cqi, 280px);
+    /* Increased max sizes for more prominent wheel display */
+    --stw-wheel-size: clamp(280px, 55cqi, 440px);
+    --stw-wheel-size-mobile: clamp(220px, 70cqi, 340px);
 
     /* Center Button */
     --stw-center-btn-size: clamp(50px, 12cqi, 80px);
@@ -145,10 +146,10 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
   } = usePopupForm({
     config: {
       emailRequired: config.emailRequired,
-      emailErrorMessage: undefined, // SpinToWinContent doesn't have this field
-      nameFieldEnabled: config.collectName,
+      emailErrorMessage: config.emailErrorMessage,
+      nameFieldEnabled: config.nameFieldEnabled,
       nameFieldRequired: config.nameFieldRequired,
-      consentFieldEnabled: config.showGdprCheckbox,
+      consentFieldEnabled: config.consentFieldEnabled,
       consentFieldRequired: config.consentFieldRequired,
       campaignId: config.campaignId,
       previewMode: config.previewMode,
@@ -203,7 +204,8 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
   const _radius = wheelSize / 2;
   const segments = useMemo(() => config.wheelSegments || [], [config.wheelSegments]);
   const _segmentAngle = 360 / Math.max(1, segments.length);
-  const accentColor = config.accentColor || config.buttonColor || "#000000";
+  // Use CSS variable as fallback for accent color - defined in design-tokens.css
+  const accentColor = config.accentColor || config.buttonColor || "var(--rb-primary, #007BFF)";
   const borderRadius =
     typeof config.borderRadius === "string"
       ? parseFloat(config.borderRadius) || 16
@@ -271,6 +273,11 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
   const wheelBorderColor = config.wheelBorderColor || "#FFFFFF";
   const wheelBorderWidth = config.wheelBorderWidth ?? 3;
 
+  // Enhanced wheel styling (for premium themes like Lucky Fortune)
+  const wheelGlowEnabled = config.wheelGlowEnabled ?? false;
+  const wheelGlowColor = config.wheelGlowColor || accentColor;
+  const wheelCenterStyle = config.wheelCenterStyle || "simple";
+
   // Card background styling (supports gradient backgrounds from themes)
   const baseBackground = config.backgroundColor || "#FFFFFF";
   const _backgroundStyles: React.CSSProperties = baseBackground.startsWith("linear-gradient(")
@@ -286,18 +293,18 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
   const inputBackground = config.inputBackgroundColor || "#FFFFFF";
   const inputTextColor = config.inputTextColor || "#111827";
   const inputBorderColor = config.inputBorderColor || "#E5E7EB";
+  const inputPlaceholderColor = config.inputPlaceholderColor || `${inputTextColor}99`; // Default: inputTextColor with 60% opacity
 
   // Theme-aware colors for success/prize surfaces
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- config has dynamic fields
   const configRecord = config as any;
   const _successColor = (configRecord.successColor as string) || accentColor;
-  const descriptionColor = (configRecord.descriptionColor as string) || "#6B7280";
+  // Use adaptive muted color based on background for proper contrast
+  const descriptionColor = (configRecord.descriptionColor as string) || getAdaptiveMutedColor(baseBackground);
 
   // Optional extended behavior flags (storefront-only)
-  const collectName = config.collectName ?? false;
-  const showGdpr = config.showGdprCheckbox ?? false;
-  const gdprLabel =
-    config.gdprLabel || "I agree to receive marketing emails and accept the privacy policy";
+  const collectName = config.nameFieldEnabled ?? false;
+  const showGdpr = config.consentFieldEnabled ?? false;
 
   const resultMessage =
     hasSpun && wonPrize
@@ -321,7 +328,8 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
     try {
       // Lazy-init AudioContext (requires user interaction)
       if (!audioContextRef.current) {
-        audioContextRef.current = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+        audioContextRef.current = new (window.AudioContext ||
+          (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
       }
 
       const ctx = audioContextRef.current;
@@ -409,6 +417,10 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
       hasSpun,
       wonPrize,
       enableEnhancedStyle: true,
+      // Enhanced styling options
+      wheelGlowEnabled,
+      wheelGlowColor,
+      wheelCenterStyle,
     });
   }, [
     segments,
@@ -419,6 +431,9 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
     hasSpun,
     wonPrize,
     rotation,
+    wheelGlowEnabled,
+    wheelGlowColor,
+    wheelCenterStyle,
   ]);
 
   // Auto-close timer
@@ -659,7 +674,9 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
     color: config.buttonTextColor || "#FFFFFF",
     cursor: "pointer",
     transition: `all ${animDuration}ms cubic-bezier(0.4, 0, 0.2, 1)`,
-    fontFamily: config.fontFamily || 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    fontFamily:
+      config.fontFamily ||
+      'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
     textTransform: "uppercase",
     letterSpacing: "0.05em",
   };
@@ -668,19 +685,16 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
     ...buttonStyles,
     padding: POPUP_SPACING.component.buttonSecondary,
     backgroundColor: "transparent",
-    color: config.textColor || "#4B5563",
+    color: config.textColor || "var(--rb-muted, #4B5563)",
     boxShadow: "none",
     cursor: "pointer",
     textTransform: "none",
     letterSpacing: "normal",
   };
 
-  // Full background mode detection
-  const imagePosition = config.imagePosition || "none";
-  const isFullBackground = imagePosition === "full" && !!config.imageUrl;
+  // Full background mode detection (derive from leadCaptureLayout)
+  const isFullBackground = config.leadCaptureLayout?.desktop === "overlay" && !!config.imageUrl;
   const bgOverlayOpacity = config.backgroundOverlayOpacity ?? 0.6;
-
-  if (!isVisible) return null;
 
   return (
     <PopupPortal
@@ -697,6 +711,7 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
       }}
       position="center"
       size={config.size || "large"}
+      mobilePresentationMode="fullscreen"
       closeOnEscape={config.closeOnEscape !== false}
       closeOnBackdropClick={config.closeOnOverlayClick !== false}
       previewMode={config.previewMode}
@@ -705,6 +720,7 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
       ariaDescribedBy={config.ariaDescribedBy}
       customCSS={config.customCSS}
       globalCustomCSS={config.globalCustomCSS}
+      designTokensCSS={config.designTokensCSS}
     >
       {/* Inject container-relative CSS for truly responsive design */}
       <style>
@@ -1129,18 +1145,28 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
           .spin-confetti:nth-child(2) { background: #ec4899; left: 20%; top: 5%; animation: confettiFloat 1.3s ease-out 0.1s forwards; border-radius: 50%; }
           .spin-confetti:nth-child(3) { background: #8b5cf6; left: 30%; top: 15%; animation: confettiFloat 1.6s ease-out 0.2s forwards; }
           .spin-confetti:nth-child(4) { background: #06b6d4; left: 70%; top: 10%; animation: confettiFloat 1.4s ease-out 0.15s forwards; border-radius: 50%; }
-          .spin-confetti:nth-child(5) { background: #10b981; left: 80%; top: 5%; animation: confettiFloat 1.5s ease-out 0.05s forwards; }
+          .spin-confetti:nth-child(5) { background: var(--rb-success, #10b981); left: 80%; top: 5%; animation: confettiFloat 1.5s ease-out 0.05s forwards; }
           .spin-confetti:nth-child(6) { background: ${accentColor}; left: 90%; top: 15%; animation: confettiFloat 1.7s ease-out 0.25s forwards; border-radius: 50%; }
 
           /* Dynamic placeholder color - applies to all inputs in spin-input-wrapper */
           .spin-input-wrapper input::placeholder {
-            color: ${inputTextColor ? `${inputTextColor}99` : "rgba(107, 114, 128, 0.7)"};
+            color: ${inputPlaceholderColor};
             opacity: 1;
           }
 
           .spin-to-win-input::placeholder {
-            color: ${inputTextColor ? `${inputTextColor}99` : "rgba(107, 114, 128, 0.7)"};
+            color: ${inputPlaceholderColor};
             opacity: 1;
+          }
+
+          /* ============================================
+           * MOBILE STACKED: Even space distribution
+           * ============================================ */
+          .SpinToWinPopup .popup-grid-content {
+            /* Distribute space evenly: top - wheel - middle - form - bottom */
+            justify-content: space-around;
+            /* Ensure full height on mobile fullscreen */
+            min-height: 100%;
           }
 
           /* ============================================
@@ -1154,9 +1180,9 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
             overflow: visible;
             padding: var(--stw-gap-md);
             z-index: 10;
-            /* Mobile: Use container width for height calculation */
-            min-height: clamp(220px, 60cqi, 320px);
             width: 100%;
+            /* Let space-around handle vertical distribution */
+            flex: 0 0 auto;
           }
 
           /* ============================================
@@ -1167,11 +1193,12 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            /* Container-relative padding */
-            padding: var(--stw-padding-y) var(--stw-padding-x);
+            padding: var(--stw-gap-md) var(--stw-padding-x);
             z-index: 20;
             background-color: ${baseBackground};
             width: 100%;
+            /* Let space-around handle vertical distribution */
+            flex: 0 0 auto;
           }
 
           .spin-form-content {
@@ -1420,16 +1447,22 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
            * DESKTOP LAYOUT (Container Query @ 600px)
            * ============================================ */
           @container popup (min-width: 600px) {
-            .spin-wheel-cell {
-              justify-content: flex-end;
-              align-items: center;
+            /* Desktop: side-by-side layout, reset space-around */
+            .SpinToWinPopup .popup-grid-content {
+              justify-content: stretch;
               min-height: auto;
-              padding: var(--stw-gap-lg);
+            }
+
+            .spin-wheel-cell {
+              justify-content: center;
+              align-items: center;
+              padding: var(--stw-gap-xl);
             }
 
             .spin-form-cell {
-              padding: var(--stw-padding-y) var(--stw-padding-x);
+              padding: var(--stw-gap-lg) var(--stw-padding-x);
               background-color: transparent;
+              justify-content: center;
             }
 
             .spin-form-content {
@@ -1457,7 +1490,7 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
           @container popup (min-width: 800px) {
             .spin-wheel-wrapper {
               /* Max out wheel size on large containers */
-              width: clamp(320px, 40cqi, 400px);
+              width: clamp(340px, 48cqi, 460px);
               aspect-ratio: 1;
             }
 
@@ -1520,6 +1553,61 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
           <div className="spin-form-content">
             {/* Header - uses container-relative typography */}
             <div style={{ textAlign: "center", marginBottom: "var(--stw-gap-lg)" }}>
+              {/* Promotional Badge */}
+              {config.badgeEnabled && config.badgeText && !wonPrize && (
+                <div
+                  className="spin-badge"
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "0.5em",
+                    marginBottom: "var(--stw-gap-md)",
+                    padding: "0.5em 1em",
+                    backgroundColor: `${accentColor}20`,
+                    border: `1px solid ${accentColor}50`,
+                    borderRadius: "9999px",
+                    fontSize: "0.75rem",
+                    fontWeight: 600,
+                    color: accentColor,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.05em",
+                  }}
+                >
+                  {config.badgeIcon === "sparkles" && "✨"}
+                  {config.badgeIcon === "star" && "⭐"}
+                  {config.badgeIcon === "gift" && "🎁"}
+                  {config.badgeIcon === "fire" && "🔥"}
+                  {config.badgeIcon === "clock" && "⏰"}
+                  {config.badgeText}
+                </div>
+              )}
+
+              {/* Result Trophy Icon */}
+              {wonPrize && config.showResultIcon && (
+                <div
+                  className="spin-result-icon"
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    width: "4rem",
+                    height: "4rem",
+                    marginBottom: "var(--stw-gap-md)",
+                    backgroundColor: `${accentColor}20`,
+                    border: `2px solid ${accentColor}`,
+                    borderRadius: "50%",
+                    fontSize: "2rem",
+                    animation: "pulse 2s ease-in-out infinite",
+                  }}
+                >
+                  {config.resultIconType === "trophy" && "🏆"}
+                  {config.resultIconType === "gift" && "🎁"}
+                  {config.resultIconType === "star" && "⭐"}
+                  {config.resultIconType === "confetti" && "🎉"}
+                  {!config.resultIconType && "🏆"}
+                </div>
+              )}
+
               <h2
                 className="spin-headline"
                 style={{
@@ -1555,6 +1643,7 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
                       textColor={inputTextColor}
                       backgroundColor={inputBackground}
                       borderColor={inputBorderColor}
+                      placeholderColor={inputPlaceholderColor}
                     />
                   </div>
                 )}
@@ -1573,6 +1662,7 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
                       textColor={inputTextColor}
                       backgroundColor={inputBackground}
                       borderColor={inputBorderColor}
+                      placeholderColor={inputPlaceholderColor}
                     />
                   </div>
                 )}
@@ -1581,7 +1671,7 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
                   <GdprCheckbox
                     checked={formState.gdprConsent}
                     onChange={setGdprConsent}
-                    text={gdprLabel}
+                    text={config.consentFieldText}
                     error={errors.gdpr}
                     required={config.consentFieldRequired}
                     disabled={isSpinning || isGeneratingCode}
@@ -1690,10 +1780,17 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
 
                 {/* Prize announcement */}
                 {wonPrize?.generatedCode && (
-                  <div className={`spin-prize-label${
-                    (wonPrize.label?.length ?? 0) > 12 ? ' spin-prize-label--long' :
-                    (wonPrize.label?.length ?? 0) > 7 ? ' spin-prize-label--medium' : ''
-                  }`}>🎉 {wonPrize.label || "You Won!"}</div>
+                  <div
+                    className={`spin-prize-label${
+                      (wonPrize.label?.length ?? 0) > 12
+                        ? " spin-prize-label--long"
+                        : (wonPrize.label?.length ?? 0) > 7
+                          ? " spin-prize-label--medium"
+                          : ""
+                    }`}
+                  >
+                    {wonPrize.label || "You Won!"}
+                  </div>
                 )}
 
                 {wonPrize?.generatedCode ? (

@@ -14,21 +14,24 @@
  * - Premium reveal animations
  */
 
-import React, { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { PopupPortal } from "./PopupPortal";
-import type { PopupDesignConfig, Prize } from "./types";
+import type { MobilePresentationMode } from "./PopupPortal";
+import type { PopupDesignConfig, Prize, LayoutConfig } from "./types";
 import type { ScratchCardContent } from "~/domains/campaigns/types/campaign";
-import { getSizeDimensions, prefersReducedMotion } from "./utils";
-import { POPUP_SPACING } from "./spacing";
+import {
+  prefersReducedMotion,
+  getAdaptiveMutedColor,
+} from "app/domains/storefront/popups-new/utils/utils";
+import { POPUP_SPACING } from "app/domains/storefront/popups-new/utils/spacing";
+import { ScratchCardRenderer } from "./utils/scratch-canvas";
+import { LeadCaptureLayout } from "app/domains/storefront/popups-new/components/shared/LeadCaptureLayout";
 
 // Import custom hooks
-import { usePopupForm, useDiscountCode, usePopupAnimation } from "./hooks";
-
-// Import reusable components
-import { EmailInput, GdprCheckbox, SubmitButton } from "./components";
+import { usePopupForm, useDiscountCode, usePopupAnimation, useDesignVariables } from "./hooks";
 
 // Import shared components from Phase 1 & 2
-import { DiscountCodeDisplay } from "./components/shared";
+import { DiscountCodeDisplay, LeadCaptureForm } from "./components/shared";
 
 /**
  * Scratch particle system for visual feedback while scratching
@@ -42,300 +45,6 @@ interface ScratchParticle {
   opacity: number;
   color: string;
   life: number;
-}
-
-/**
- * Draw enhanced metallic foil overlay with holographic pattern
- */
-function drawMetallicOverlay(
-  ctx: CanvasRenderingContext2D,
-  width: number,
-  height: number,
-  baseColor: string,
-  instruction: string,
-  accentColor: string
-) {
-  // Create metallic gradient
-  const gradient = ctx.createLinearGradient(0, 0, width, height);
-  gradient.addColorStop(0, adjustBrightness(baseColor, 15));
-  gradient.addColorStop(0.2, adjustBrightness(baseColor, 30));
-  gradient.addColorStop(0.4, baseColor);
-  gradient.addColorStop(0.5, adjustBrightness(baseColor, 40));
-  gradient.addColorStop(0.6, baseColor);
-  gradient.addColorStop(0.8, adjustBrightness(baseColor, 25));
-  gradient.addColorStop(1, adjustBrightness(baseColor, 10));
-
-  ctx.fillStyle = gradient;
-  ctx.fillRect(0, 0, width, height);
-
-  // Add noise texture for realistic scratch surface
-  drawNoiseTexture(ctx, width, height, 0.03);
-
-  // Add holographic rainbow pattern
-  drawHolographicPattern(ctx, width, height, accentColor);
-
-  // Draw decorative corner elements
-  drawCornerDecorations(ctx, width, height, accentColor);
-
-  // Draw dashed border
-  drawDashedBorder(ctx, width, height);
-
-  // Draw instruction with icon
-  drawScratchInstruction(ctx, width, height, instruction);
-
-  // Draw ticket serial number
-  drawSerialNumber(ctx, width, height);
-}
-
-/**
- * Draw noise texture for realistic scratch surface
- */
-function drawNoiseTexture(
-  ctx: CanvasRenderingContext2D,
-  width: number,
-  height: number,
-  intensity: number
-) {
-  const imageData = ctx.getImageData(0, 0, width, height);
-  const pixels = imageData.data;
-
-  for (let i = 0; i < pixels.length; i += 4) {
-    const noise = (Math.random() - 0.5) * 255 * intensity;
-    pixels[i] = Math.max(0, Math.min(255, pixels[i] + noise));
-    pixels[i + 1] = Math.max(0, Math.min(255, pixels[i + 1] + noise));
-    pixels[i + 2] = Math.max(0, Math.min(255, pixels[i + 2] + noise));
-  }
-
-  ctx.putImageData(imageData, 0, 0);
-}
-
-/**
- * Draw holographic rainbow pattern
- */
-function drawHolographicPattern(
-  ctx: CanvasRenderingContext2D,
-  width: number,
-  height: number,
-  accentColor: string
-) {
-  ctx.save();
-  ctx.globalAlpha = 0.15;
-  ctx.globalCompositeOperation = "overlay";
-
-  // Create diagonal holographic stripes
-  const stripeWidth = 30;
-  const colors = [
-    "rgba(255, 0, 128, 0.3)",
-    "rgba(0, 255, 255, 0.3)",
-    "rgba(255, 255, 0, 0.3)",
-    "rgba(128, 0, 255, 0.3)",
-    accentColor + "40",
-  ];
-
-  for (let i = -height; i < width + height; i += stripeWidth) {
-    const colorIndex = Math.floor(Math.abs(i / stripeWidth)) % colors.length;
-    ctx.fillStyle = colors[colorIndex];
-    ctx.beginPath();
-    ctx.moveTo(i, 0);
-    ctx.lineTo(i + stripeWidth / 2, 0);
-    ctx.lineTo(i + stripeWidth / 2 + height, height);
-    ctx.lineTo(i + height, height);
-    ctx.closePath();
-    ctx.fill();
-  }
-
-  ctx.restore();
-
-  // Add sparkle dots
-  ctx.save();
-  ctx.globalAlpha = 0.5;
-  for (let i = 0; i < 40; i++) {
-    const x = Math.random() * width;
-    const y = Math.random() * height;
-    const size = Math.random() * 3 + 1;
-
-    const sparkleGradient = ctx.createRadialGradient(x, y, 0, x, y, size);
-    sparkleGradient.addColorStop(0, "rgba(255, 255, 255, 0.9)");
-    sparkleGradient.addColorStop(0.5, "rgba(255, 255, 255, 0.3)");
-    sparkleGradient.addColorStop(1, "rgba(255, 255, 255, 0)");
-
-    ctx.fillStyle = sparkleGradient;
-    ctx.beginPath();
-    ctx.arc(x, y, size, 0, Math.PI * 2);
-    ctx.fill();
-  }
-  ctx.restore();
-}
-
-/**
- * Draw ornate corner decorations
- */
-function drawCornerDecorations(
-  ctx: CanvasRenderingContext2D,
-  width: number,
-  height: number,
-  accentColor: string
-) {
-  ctx.save();
-  ctx.strokeStyle = accentColor;
-  ctx.lineWidth = 2;
-  ctx.globalAlpha = 0.6;
-
-  const cornerSize = 25;
-  const offset = 8;
-
-  // Top-left corner
-  ctx.beginPath();
-  ctx.moveTo(offset, offset + cornerSize);
-  ctx.lineTo(offset, offset);
-  ctx.lineTo(offset + cornerSize, offset);
-  ctx.stroke();
-
-  // Top-right corner
-  ctx.beginPath();
-  ctx.moveTo(width - offset - cornerSize, offset);
-  ctx.lineTo(width - offset, offset);
-  ctx.lineTo(width - offset, offset + cornerSize);
-  ctx.stroke();
-
-  // Bottom-left corner
-  ctx.beginPath();
-  ctx.moveTo(offset, height - offset - cornerSize);
-  ctx.lineTo(offset, height - offset);
-  ctx.lineTo(offset + cornerSize, height - offset);
-  ctx.stroke();
-
-  // Bottom-right corner
-  ctx.beginPath();
-  ctx.moveTo(width - offset - cornerSize, height - offset);
-  ctx.lineTo(width - offset, height - offset);
-  ctx.lineTo(width - offset, height - offset - cornerSize);
-  ctx.stroke();
-
-  // Add decorative dots at corners
-  ctx.fillStyle = accentColor;
-  const dotSize = 3;
-  ctx.beginPath();
-  ctx.arc(offset + 3, offset + 3, dotSize, 0, Math.PI * 2);
-  ctx.arc(width - offset - 3, offset + 3, dotSize, 0, Math.PI * 2);
-  ctx.arc(offset + 3, height - offset - 3, dotSize, 0, Math.PI * 2);
-  ctx.arc(width - offset - 3, height - offset - 3, dotSize, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.restore();
-}
-
-/**
- * Draw dashed border for ticket authenticity
- */
-function drawDashedBorder(
-  ctx: CanvasRenderingContext2D,
-  width: number,
-  height: number
-) {
-  ctx.save();
-  ctx.strokeStyle = "rgba(255, 255, 255, 0.4)";
-  ctx.lineWidth = 1;
-  ctx.setLineDash([6, 4]);
-
-  const inset = 4;
-  ctx.strokeRect(inset, inset, width - inset * 2, height - inset * 2);
-
-  ctx.restore();
-}
-
-/**
- * Draw scratch instruction with coin icon
- */
-function drawScratchInstruction(
-  ctx: CanvasRenderingContext2D,
-  width: number,
-  height: number,
-  instruction: string
-) {
-  ctx.save();
-
-  // Draw coin icon
-  const coinX = width / 2 - 80;
-  const coinY = height / 2;
-  const coinRadius = 14;
-
-  // Coin gradient
-  const coinGradient = ctx.createRadialGradient(
-    coinX - 3, coinY - 3, 0,
-    coinX, coinY, coinRadius
-  );
-  coinGradient.addColorStop(0, "#FFE066");
-  coinGradient.addColorStop(0.5, "#FFD700");
-  coinGradient.addColorStop(1, "#B8860B");
-
-  ctx.fillStyle = coinGradient;
-  ctx.beginPath();
-  ctx.arc(coinX, coinY, coinRadius, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Coin border
-  ctx.strokeStyle = "#B8860B";
-  ctx.lineWidth = 2;
-  ctx.stroke();
-
-  // Dollar sign on coin
-  ctx.fillStyle = "#8B6914";
-  ctx.font = "bold 14px system-ui";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText("$", coinX, coinY);
-
-  // Instruction text with shadow
-  ctx.shadowColor = "rgba(0, 0, 0, 0.5)";
-  ctx.shadowBlur = 4;
-  ctx.shadowOffsetX = 1;
-  ctx.shadowOffsetY = 2;
-
-  ctx.fillStyle = "#FFFFFF";
-  ctx.font = "600 24px system-ui, -apple-system, BlinkMacSystemFont, sans-serif";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText(instruction, width / 2 + 10, height / 2);
-
-  ctx.restore();
-}
-
-/**
- * Draw ticket serial number for authenticity
- */
-function drawSerialNumber(
-  ctx: CanvasRenderingContext2D,
-  width: number,
-  height: number
-) {
-  ctx.save();
-  ctx.globalAlpha = 0.4;
-  ctx.fillStyle = "#FFFFFF";
-  ctx.font = "10px monospace";
-  ctx.textAlign = "right";
-  ctx.textBaseline = "bottom";
-
-  // Generate pseudo-random serial
-  const serial = `#${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
-  ctx.fillText(serial, width - 12, height - 8);
-
-  ctx.restore();
-}
-
-/**
- * Utility function to adjust color brightness
- */
-function adjustBrightness(hex: string, percent: number): string {
-  if (hex.startsWith("rgb")) return hex;
-
-  const cleanHex = hex.replace("#", "");
-  const num = parseInt(cleanHex, 16);
-  const r = Math.min(255, Math.max(0, ((num >> 16) & 0xff) + Math.round(255 * percent / 100)));
-  const g = Math.min(255, Math.max(0, ((num >> 8) & 0xff) + Math.round(255 * percent / 100)));
-  const b = Math.min(255, Math.max(0, (num & 0xff) + Math.round(255 * percent / 100)));
-
-  return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
 }
 
 /**
@@ -379,6 +88,19 @@ export interface ScratchCardPopupProps {
   onReveal?: (prize: Prize) => void;
 }
 
+// =============================================================================
+// DEFAULT LAYOUT CONFIG
+// =============================================================================
+
+const DEFAULT_LAYOUT: LayoutConfig = {
+  desktop: "split-left",
+  mobile: "stacked", // Default to stacked on mobile (image + scratch card visible)
+  visualSizeDesktop: "50%",
+  visualSizeMobile: "30%",
+  contentOverlap: "0",
+  visualGradient: false,
+};
+
 export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
   config,
   isVisible,
@@ -390,6 +112,7 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
   const {
     formState,
     setEmail,
+    setName,
     setGdprConsent,
     errors,
     handleSubmit: _handleFormSubmit,
@@ -399,9 +122,11 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
   } = usePopupForm({
     config: {
       emailRequired: config.emailRequired,
-      emailErrorMessage: undefined,
-      consentFieldEnabled: config.showGdprCheckbox,
-      consentFieldRequired: config.showGdprCheckbox,
+      emailErrorMessage: config.emailErrorMessage,
+      nameFieldEnabled: config.nameFieldEnabled,
+      nameFieldRequired: config.nameFieldRequired,
+      consentFieldEnabled: config.consentFieldEnabled,
+      consentFieldRequired: config.consentFieldRequired,
       campaignId: config.campaignId,
       previewMode: config.previewMode,
     },
@@ -414,10 +139,18 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
   });
 
   // Use discount code hook
-  const { discountCode: _discountCode, setDiscountCode, copiedCode, handleCopyCode } = useDiscountCode();
+  const {
+    discountCode: _discountCode,
+    setDiscountCode,
+    copiedCode,
+    handleCopyCode,
+  } = useDiscountCode();
 
   // Use animation hook
   const { showContent: _showContent } = usePopupAnimation({ isVisible });
+
+  // Convert design config to CSS variables
+  const designVars = useDesignVariables(config);
 
   // Component-specific state
   const [emailSubmitted, setEmailSubmitted] = useState(false);
@@ -432,10 +165,18 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const prizeCanvasRef = useRef<HTMLCanvasElement>(null);
   const _particleCanvasRef = useRef<HTMLCanvasElement>(null);
+  const rendererRef = useRef<ScratchCardRenderer | null>(null);
   const isDrawingRef = useRef(false);
   const audioContextRef = useRef<AudioContext | null>(null);
   const lastScratchTimeRef = useRef(0);
   const animationFrameRef = useRef<number | null>(null);
+
+  // State for loaded overlay image
+  const [overlayImage, setOverlayImage] = useState<HTMLImageElement | null>(null);
+  const overlayImageLoadedRef = useRef(false);
+
+  // State for delayed email overlay appearance (wait for reveal animation)
+  const [showEmailOverlay, setShowEmailOverlay] = useState(false);
 
   const DEFAULT_CARD_WIDTH = 384;
   const DEFAULT_CARD_HEIGHT = 216;
@@ -451,6 +192,58 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
   const enableParticles = config.enableParticles !== false;
 
   // ============================================
+  // LOAD OVERLAY IMAGE (if provided)
+  // ============================================
+  useEffect(() => {
+    console.log("[ScratchCardPopup] scratchOverlayImage:", config.scratchOverlayImage);
+    if (!config.scratchOverlayImage || overlayImageLoadedRef.current) return;
+
+    const img = new Image();
+    img.crossOrigin = "anonymous"; // Allow CORS for canvas manipulation
+
+    img.onload = () => {
+      console.log(
+        "[ScratchCardPopup] Overlay image loaded successfully:",
+        config.scratchOverlayImage
+      );
+      setOverlayImage(img);
+      overlayImageLoadedRef.current = true;
+    };
+
+    img.onerror = () => {
+      console.warn(
+        "[ScratchCardPopup] Failed to load scratch overlay image:",
+        config.scratchOverlayImage
+      );
+      overlayImageLoadedRef.current = true; // Mark as loaded (failed) to prevent retries
+    };
+
+    img.src = config.scratchOverlayImage;
+
+    return () => {
+      img.onload = null;
+      img.onerror = null;
+    };
+  }, [config.scratchOverlayImage]);
+
+  // ============================================
+  // DELAYED EMAIL OVERLAY (wait for reveal animation)
+  // ============================================
+  useEffect(() => {
+    // Only show overlay for email-after-scratch flow when revealed
+    if (isRevealed && config.emailRequired && !config.emailBeforeScratching && !emailSubmitted) {
+      // Wait 1.5 seconds for the reveal celebration to complete
+      const timer = setTimeout(() => {
+        setShowEmailOverlay(true);
+      }, 1500);
+
+      return () => clearTimeout(timer);
+    } else {
+      setShowEmailOverlay(false);
+    }
+  }, [isRevealed, config.emailRequired, config.emailBeforeScratching, emailSubmitted]);
+
+  // ============================================
   // SCRATCH SOUND & HAPTIC FEEDBACK
   // ============================================
   const playScratchSound = useCallback(() => {
@@ -463,7 +256,8 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
 
     try {
       if (!audioContextRef.current) {
-        audioContextRef.current = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+        audioContextRef.current = new (window.AudioContext ||
+          (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
       }
 
       const ctx = audioContextRef.current;
@@ -518,30 +312,33 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
   // ============================================
   // PARTICLE SYSTEM
   // ============================================
-  const createParticles = useCallback((x: number, y: number) => {
-    if (!enableParticles || prefersReducedMotion()) return;
+  const createParticles = useCallback(
+    (x: number, y: number) => {
+      if (!enableParticles || prefersReducedMotion()) return;
 
-    const overlayColor = config.scratchOverlayColor || "#C0C0C0";
-    const newParticles: ScratchParticle[] = [];
-    const particleCount = 3 + Math.floor(Math.random() * 3);
+      const overlayColor = config.scratchOverlayColor || "#C0C0C0";
+      const newParticles: ScratchParticle[] = [];
+      const particleCount = 3 + Math.floor(Math.random() * 3);
 
-    for (let i = 0; i < particleCount; i++) {
-      const angle = Math.random() * Math.PI * 2;
-      const speed = 1 + Math.random() * 3;
-      newParticles.push({
-        x,
-        y,
-        vx: Math.cos(angle) * speed,
-        vy: Math.sin(angle) * speed - 2, // Bias upward
-        size: 2 + Math.random() * 4,
-        opacity: 0.8 + Math.random() * 0.2,
-        color: overlayColor,
-        life: 1,
-      });
-    }
+      for (let i = 0; i < particleCount; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 1 + Math.random() * 3;
+        newParticles.push({
+          x,
+          y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed - 2, // Bias upward
+          size: 2 + Math.random() * 4,
+          opacity: 0.8 + Math.random() * 0.2,
+          color: overlayColor,
+          life: 1,
+        });
+      }
 
-    setParticles(prev => [...prev.slice(-30), ...newParticles]); // Keep max 30 particles
-  }, [enableParticles, config.scratchOverlayColor]);
+      setParticles((prev) => [...prev.slice(-30), ...newParticles]); // Keep max 30 particles
+    },
+    [enableParticles, config.scratchOverlayColor]
+  );
 
   // Animate particles
   const hasParticles = particles.length > 0;
@@ -549,9 +346,9 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
     if (!hasParticles) return;
 
     const animate = () => {
-      setParticles(prev =>
+      setParticles((prev) =>
         prev
-          .map(p => ({
+          .map((p) => ({
             ...p,
             x: p.x + p.vx,
             y: p.y + p.vy,
@@ -559,7 +356,7 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
             life: p.life - 0.03,
             opacity: p.opacity * 0.95,
           }))
-          .filter(p => p.life > 0 && p.opacity > 0.1)
+          .filter((p) => p.life > 0 && p.opacity > 0.1)
       );
 
       animationFrameRef.current = requestAnimationFrame(animate);
@@ -683,166 +480,58 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
     [config.campaignId, config.previewMode, config.prizes]
   );
 
-  // Initialize canvases (prize + scratch overlay)
+  // Initialize canvases (prize + scratch overlay) using ScratchCardRenderer
   useEffect(() => {
     if (!canvasRef.current || !prizeCanvasRef.current) return;
     if (config.emailRequired && config.emailBeforeScratching && !emailSubmitted) return;
 
-    const canvas = canvasRef.current;
-    const prizeCanvas = prizeCanvasRef.current;
-    // Use willReadFrequently for better performance with getImageData (scratch percentage calculation)
-    const ctx = canvas.getContext("2d", { willReadFrequently: true });
-    const prizeCtx = prizeCanvas.getContext("2d");
-
-    if (!ctx || !prizeCtx) return;
-
-    // Reset transforms and clear previous content
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    prizeCtx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.clearRect(0, 0, cardWidth, cardHeight);
-    prizeCtx.clearRect(0, 0, cardWidth, cardHeight);
-
-    // Draw prize background (gradient similar to mockup)
-    if (config.scratchCardBackgroundColor) {
-      prizeCtx.fillStyle = config.scratchCardBackgroundColor;
-      prizeCtx.fillRect(0, 0, cardWidth, cardHeight);
+    // Create or update renderer
+    if (!rendererRef.current) {
+      rendererRef.current = new ScratchCardRenderer(
+        canvasRef.current,
+        prizeCanvasRef.current,
+        cardWidth,
+        cardHeight
+      );
     } else {
-      const gradient = prizeCtx.createLinearGradient(0, 0, cardWidth, cardHeight);
-      gradient.addColorStop(0, config.accentColor || config.buttonColor || "#4f46e5");
-      gradient.addColorStop(1, config.buttonColor || config.accentColor || "#ec4899");
-      prizeCtx.fillStyle = gradient;
-      prizeCtx.fillRect(0, 0, cardWidth, cardHeight);
+      rendererRef.current.setDimensions(cardWidth, cardHeight);
     }
 
-    // Select and draw prize label
-    if (wonPrize) {
-      prizeCtx.fillStyle =
-        config.scratchCardTextColor || config.buttonTextColor || config.textColor || "#ffffff";
-      prizeCtx.font = "bold 32px system-ui, -apple-system, BlinkMacSystemFont, sans-serif";
-      prizeCtx.textAlign = "center";
-      prizeCtx.textBaseline = "middle";
-      prizeCtx.fillText(wonPrize.label, cardWidth / 2, cardHeight / 2);
-    } else {
-      // Loading state - show a spinner instead of text
-      // Draw a simple spinner animation
-      prizeCtx.save();
-      prizeCtx.translate(cardWidth / 2, cardHeight / 2);
+    const renderer = rendererRef.current;
 
-      const spinnerRadius = 30;
-      const lineWidth = 4;
-      const numSegments = 8;
+    // Render options for both layers
+    const renderOptions = {
+      width: cardWidth,
+      height: cardHeight,
+      backgroundColor: config.scratchCardBackgroundColor,
+      textColor: config.scratchCardTextColor || config.buttonTextColor || config.textColor,
+      accentColor: config.accentColor || config.buttonColor || "var(--rb-primary, #007BFF)",
+      buttonColor: config.buttonColor,
+      overlayColor: config.scratchOverlayColor || "#C0C0C0",
+      instruction: config.scratchInstruction || "Scratch to reveal!",
+      enableMetallic: config.enableMetallicOverlay !== false,
+    };
 
-      for (let i = 0; i < numSegments; i++) {
-        const angle = (i / numSegments) * Math.PI * 2;
-        const opacity = (i + 1) / numSegments;
+    // Render prize layer (bottom)
+    renderer.renderPrizeLayer(wonPrize, renderOptions);
 
-        prizeCtx.strokeStyle = `rgba(255, 255, 255, ${opacity * 0.8})`;
-        prizeCtx.lineWidth = lineWidth;
-        prizeCtx.lineCap = "round";
+    // Render overlay layer (top - to be scratched)
+    renderer.renderOverlayLayer(renderOptions, overlayImage);
+  }, [emailSubmitted, config, cardWidth, cardHeight, wonPrize, overlayImage]);
 
-        prizeCtx.beginPath();
-        prizeCtx.moveTo(
-          Math.cos(angle) * (spinnerRadius - lineWidth),
-          Math.sin(angle) * (spinnerRadius - lineWidth)
-        );
-        prizeCtx.lineTo(Math.cos(angle) * spinnerRadius, Math.sin(angle) * spinnerRadius);
-        prizeCtx.stroke();
-      }
-
-      prizeCtx.restore();
-    }
-
-    // Draw scratch overlay (enhanced metallic or basic)
-    ctx.globalCompositeOperation = "source-over";
-
-    const enableMetallic = config.enableMetallicOverlay !== false; // Default to true
-    const overlayColor = config.scratchOverlayColor || "#C0C0C0";
-    const accentColor = config.accentColor || config.buttonColor || "#FFD700";
-    const instruction = config.scratchInstruction || "Scratch to reveal!";
-
-    if (enableMetallic) {
-      // Use enhanced metallic overlay with holographic effects
-      drawMetallicOverlay(ctx, cardWidth, cardHeight, overlayColor, instruction, accentColor);
-    } else {
-      // Basic overlay (fallback)
-      ctx.fillStyle = overlayColor;
-      ctx.fillRect(0, 0, cardWidth, cardHeight);
-
-      ctx.fillStyle = "#FFFFFF";
-      ctx.font = "600 28px system-ui, -apple-system, BlinkMacSystemFont, sans-serif";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText(instruction, cardWidth / 2, cardHeight / 2);
-
-      // Add sparkles
-      ctx.globalAlpha = 0.3;
-      ctx.fillStyle = accentColor;
-      for (let i = 0; i < 20; i++) {
-        const x = Math.random() * cardWidth;
-        const y = Math.random() * cardHeight;
-        ctx.beginPath();
-        ctx.arc(x, y, 2, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      ctx.globalAlpha = 1;
-    }
-
-    // Set composite operation for erasing
-    ctx.globalCompositeOperation = "destination-out";
-  }, [emailSubmitted, config, cardWidth, cardHeight, wonPrize]);
-
-  // Calculate scratch percentage
+  // Calculate scratch percentage using renderer
   const calculateScratchPercentage = useCallback(() => {
-    if (!canvasRef.current) return 0;
+    if (!rendererRef.current) return 0;
+    return rendererRef.current.calculateScratchPercentage();
+  }, []);
 
-    const canvas = canvasRef.current;
-    // Use willReadFrequently for better performance with repeated getImageData calls
-    const ctx = canvas.getContext("2d", { willReadFrequently: true });
-    if (!ctx) return 0;
-
-    const imageData = ctx.getImageData(0, 0, cardWidth, cardHeight);
-    const pixels = imageData.data;
-    let transparentPixels = 0;
-
-    for (let i = 3; i < pixels.length; i += 4) {
-      if (pixels[i] < 128) {
-        transparentPixels++;
-      }
-    }
-
-    return (transparentPixels / (cardWidth * cardHeight)) * 100;
-  }, [cardWidth, cardHeight]);
-
-  // Scratch function with enhanced effects
+  // Scratch function with enhanced effects using renderer
   const scratch = useCallback(
     (x: number, y: number) => {
-      if (!canvasRef.current) return;
+      if (!rendererRef.current) return;
 
-      const canvas = canvasRef.current;
-      // Use willReadFrequently for better performance (consistent with calculateScratchPercentage)
-      const ctx = canvas.getContext("2d", { willReadFrequently: true });
-      if (!ctx) return;
-
-      // Set composite operation to erase mode
-      ctx.globalCompositeOperation = "destination-out";
-
-      // Use irregular brush shape for more realistic scratch
-      const irregularity = 0.3;
-      const points = 8;
-      ctx.beginPath();
-      for (let i = 0; i <= points; i++) {
-        const angle = (i / points) * Math.PI * 2;
-        const radiusVariation = brushRadius * (1 + (Math.random() - 0.5) * irregularity);
-        const px = x + Math.cos(angle) * radiusVariation;
-        const py = y + Math.sin(angle) * radiusVariation;
-        if (i === 0) {
-          ctx.moveTo(px, py);
-        } else {
-          ctx.lineTo(px, py);
-        }
-      }
-      ctx.closePath();
-      ctx.fill();
+      // Use renderer to scratch
+      rendererRef.current.scratch(x, y, { radius: brushRadius });
 
       // Trigger feedback effects
       playScratchSound();
@@ -864,7 +553,18 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
         }
       }
     },
-    [brushRadius, calculateScratchPercentage, threshold, isRevealed, wonPrize, onReveal, playScratchSound, triggerHaptic, createParticles, enableHaptic]
+    [
+      brushRadius,
+      calculateScratchPercentage,
+      threshold,
+      isRevealed,
+      wonPrize,
+      onReveal,
+      playScratchSound,
+      triggerHaptic,
+      createParticles,
+      enableHaptic,
+    ]
   );
 
   // Mouse/touch event handlers
@@ -1034,45 +734,16 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
     }
   }, [wonPrize, setDiscountCode]);
 
-  const _inputStyles: React.CSSProperties = {
-    width: "100%",
-    padding: "12px 16px",
-    fontSize: "16px",
-    border: `1px solid ${config.inputBorderColor || "#D1D5DB"}`,
-    borderRadius: `${config.borderRadius ?? 8}px`,
-    backgroundColor: config.inputBackgroundColor || "#FFFFFF",
-    color: config.inputTextColor || config.textColor || "#1F2937",
-    outline: "none",
-  };
-
-  const _buttonStyles: React.CSSProperties = {
-    width: "100%",
-    padding: POPUP_SPACING.component.button,
-    fontSize: "16px",
-    fontWeight: 700,
-    border: "none",
-    borderRadius: `${config.borderRadius ?? 8}px`,
-    backgroundColor: config.buttonColor,
-    color: config.buttonTextColor,
-    cursor: "pointer",
-    textTransform: "uppercase",
-    letterSpacing: "0.05em",
-  };
-
   const showEmailForm = config.emailRequired && config.emailBeforeScratching && !emailSubmitted;
   const showScratchCard = !showEmailForm;
 
-  const imagePosition = config.imagePosition || "left";
-  const isFullBackground = imagePosition === "full" && !!config.imageUrl;
-  const showImage = !!config.imageUrl && imagePosition !== "none" && !isFullBackground;
-  const isVertical = imagePosition === "left" || imagePosition === "right";
-  const imageFirst = imagePosition === "left" || imagePosition === "top";
-  const bgOverlayOpacity = config.backgroundOverlayOpacity ?? 0.6;
+  // Get layout config from design config (or use default)
+  const layout = config.leadCaptureLayout || DEFAULT_LAYOUT;
 
-  const baseSizeDimensions = getSizeDimensions(config.size || "medium", config.previewMode);
-
-  const sizeDimensions =
-    showImage && isVertical ? getSizeDimensions("large", config.previewMode) : baseSizeDimensions;
+  // Background image configuration - only the decorative image goes in visualSlot
+  // The scratch card canvas always stays in formSlot (never hidden)
+  const imageUrl = config.imageUrl;
+  const hasVisual = !!imageUrl && layout.desktop !== "content-only";
 
   // Auto-close timer (migrated from BasePopup)
   useEffect(() => {
@@ -1082,7 +753,11 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
     return () => clearTimeout(timer);
   }, [isVisible, config.autoCloseDelay, onClose]);
 
-  if (!isVisible) return null;
+  // Infer mobile presentation mode from layout:
+  // - "fullscreen" layout → "fullscreen" presentation (fills viewport)
+  // - Other layouts → "bottom-sheet" presentation (slides from bottom)
+  const mobilePresentationMode: MobilePresentationMode =
+    layout.mobile === "fullscreen" ? "fullscreen" : "bottom-sheet";
 
   return (
     <PopupPortal
@@ -1097,6 +772,8 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
         type: config.animation || "fade",
       }}
       position={config.position || "center"}
+      size={config.size || "medium"}
+      mobilePresentationMode={mobilePresentationMode}
       closeOnEscape={config.closeOnEscape !== false}
       closeOnBackdropClick={config.closeOnOverlayClick !== false}
       previewMode={config.previewMode}
@@ -1105,47 +782,281 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
       ariaDescribedBy={config.ariaDescribedBy}
       customCSS={config.customCSS}
       globalCustomCSS={config.globalCustomCSS}
+      designTokensCSS={config.designTokensCSS}
     >
-      <div className="scratch-popup-container" data-splitpop="true" data-template="scratch-card">
-        {/* Full Background Mode */}
-        {isFullBackground && (
-          <>
-            <div className="scratch-full-bg-image">
-              <img src={config.imageUrl} alt="" aria-hidden="true" />
-            </div>
-            <div
-              className="scratch-full-bg-overlay"
+      {/* Scratch Card specific styles */}
+      <style>{`
+        /* Scratch Card Form Section */
+        .scratch-popup-form-section {
+          padding: 2rem 1.5rem;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          gap: 1rem;
+          width: 100%;
+          min-width: 0;
+        }
+
+        @container popup-viewport (min-width: 520px) {
+          .scratch-popup-form-section {
+            padding: 2.5rem 2rem;
+          }
+        }
+
+        .scratch-popup-dismiss-button {
+          margin-top: 0.75rem;
+          background: transparent;
+          border: none;
+          color: ${config.descriptionColor || getAdaptiveMutedColor(config.backgroundColor)};
+          font-size: 0.875rem;
+          cursor: pointer;
+        }
+
+        .scratch-popup-dismiss-button:hover {
+          text-decoration: underline;
+        }
+
+        .scratch-card-container {
+          position: relative;
+          width: 100%;
+          max-width: ${cardWidth}px;
+          margin: 0 auto 1.5rem;
+          border-radius: 0.75rem;
+          overflow: hidden;
+          box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.2);
+          aspect-ratio: ${cardWidth} / ${cardHeight};
+        }
+
+        .scratch-card-canvas {
+          position: absolute;
+          inset: 0;
+          cursor: pointer;
+          touch-action: none;
+        }
+
+        .scratch-popup-button {
+          width: 100%;
+          padding: ${POPUP_SPACING.component.button};
+          border-radius: 0.375rem;
+          border: none;
+          font-weight: 700;
+          cursor: pointer;
+          transition: all 0.2s;
+          font-size: 1rem;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+        }
+
+        .scratch-popup-button:hover:not(:disabled) {
+          transform: translateY(-2px);
+          box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+        }
+
+        .scratch-popup-button:active:not(:disabled) {
+          transform: translateY(0);
+        }
+
+        .scratch-popup-button:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+
+        .scratch-success-section {
+          text-align: center;
+          padding: 2rem 0;
+        }
+
+        .scratch-discount-wrapper {
+          margin-bottom: 0.5rem;
+        }
+
+        /* Email Capture Overlay (slides up after reveal) */
+        .scratch-email-overlay {
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          background: ${config.backgroundColor};
+          border-top: 1px solid rgba(0, 0, 0, 0.1);
+          padding: 1.5rem;
+          transform: translateY(100%);
+          animation: slideUp 0.4s ease-out forwards;
+          z-index: 10;
+        }
+
+        @keyframes slideUp {
+          to { transform: translateY(0); }
+        }
+
+        .scratch-email-overlay-content {
+          max-width: 400px;
+          margin: 0 auto;
+        }
+
+        /* Premium reveal animations */
+        @keyframes goldenShimmer {
+          0% { left: -150%; opacity: 0; }
+          50% { opacity: 1; }
+          100% { left: 150%; opacity: 0; }
+        }
+
+        @keyframes celebrationPop {
+          0% { opacity: 0; transform: scale(0.5); }
+          60% { transform: scale(1.1); }
+          80% { transform: scale(0.95); }
+          100% { opacity: 1; transform: scale(1); }
+        }
+
+        .revealed-animation {
+          animation: celebrationPop 0.6s ease-out forwards;
+        }
+
+        @keyframes glowPulse {
+          0%, 100% { box-shadow: 0 0 15px ${config.accentColor || config.buttonColor}40; }
+          50% { box-shadow: 0 0 30px ${config.accentColor || config.buttonColor}60, 0 0 45px ${config.accentColor || config.buttonColor}30; }
+        }
+
+        .revealed-animation .scratch-card-container {
+          animation: glowPulse 2s ease-in-out infinite;
+        }
+
+        /* Near threshold feedback */
+        .near-threshold .scratch-card-container {
+          animation: pulse 0.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.02); }
+        }
+
+        /* Scratching state */
+        .is-scratching .scratch-card-canvas {
+          cursor: grabbing;
+        }
+
+        /* Scratch sparkles */
+        @keyframes sparkleBurst {
+          0% { opacity: 0; transform: scaleY(0) rotate(var(--sparkle-angle)); }
+          30% { opacity: 1; transform: scaleY(1) rotate(var(--sparkle-angle)); }
+          100% { opacity: 0; transform: scaleY(0.5) translateY(-20px) rotate(var(--sparkle-angle)); }
+        }
+
+        .scratch-sparkle {
+          position: absolute;
+          width: 3px;
+          height: 60px;
+          background: linear-gradient(to top, transparent, ${config.accentColor || config.buttonColor}80, #FFD70080);
+          transform-origin: bottom center;
+          border-radius: 2px;
+          animation: sparkleBurst 0.8s ease-out forwards;
+          animation-delay: calc(var(--sparkle-angle) * 0.001s);
+        }
+
+        /* Star pop effects */
+        @keyframes starPop {
+          0% { opacity: 0; transform: scale(0) rotate(0deg); }
+          50% { opacity: 1; transform: scale(1.3) rotate(180deg); }
+          100% { opacity: 0; transform: scale(0.5) rotate(360deg); }
+        }
+
+        .scratch-star {
+          position: absolute;
+          font-size: 24px;
+          pointer-events: none;
+          z-index: 102;
+          animation: starPop 0.8s ease-out forwards;
+        }
+
+        .scratch-star:nth-of-type(1) { animation-delay: 0.2s; }
+        .scratch-star:nth-of-type(2) { animation-delay: 0.35s; }
+        .scratch-star:nth-of-type(3) { animation-delay: 0.5s; }
+
+        /* Prize canvas glow on reveal */
+        .revealed-animation .scratch-prize-canvas {
+          animation: prizeGlow 1.5s ease-in-out infinite;
+        }
+
+        @keyframes prizeGlow {
+          0%, 100% { filter: drop-shadow(0 0 5px ${config.accentColor || config.buttonColor}40); }
+          50% { filter: drop-shadow(0 0 15px ${config.accentColor || config.buttonColor}60) drop-shadow(0 0 30px #FFD70040); }
+        }
+
+        /* 3D flip reveal effect */
+        @keyframes flipReveal {
+          0% { transform: perspective(600px) rotateY(-90deg); opacity: 0; }
+          50% { transform: perspective(600px) rotateY(10deg); opacity: 1; }
+          100% { transform: perspective(600px) rotateY(0deg); opacity: 1; }
+        }
+
+        .revealed-animation .scratch-prize-canvas {
+          animation: flipReveal 0.6s ease-out forwards, prizeGlow 1.5s ease-in-out 0.6s infinite;
+        }
+
+        /* Reduced motion */
+        @media (prefers-reduced-motion: reduce) {
+          .revealed-animation,
+          .scratch-sparkle,
+          .scratch-star,
+          .scratch-email-overlay,
+          .near-threshold .scratch-card-container {
+            animation: none !important;
+            transition: none !important;
+          }
+          .scratch-email-overlay {
+            transform: translateY(0);
+          }
+        }
+      `}</style>
+
+      {/* Unified Layout using LeadCaptureLayout */}
+      <LeadCaptureLayout
+        desktopLayout={layout.desktop}
+        mobileLayout={layout.mobile}
+        visualSize={{
+          desktop: layout.visualSizeDesktop || "50%",
+          mobile: layout.visualSizeMobile || "30%",
+        }}
+        contentOverlap={layout.contentOverlap || "0"}
+        visualGradient={layout.visualGradient ?? false}
+        gradientColor={config.backgroundColor}
+        backgroundColor={config.backgroundColor}
+        borderRadius={typeof config.borderRadius === "number" ? config.borderRadius : 16}
+        overlayOpacity={config.backgroundOverlayOpacity ?? 0.6}
+        showCloseButton={config.showCloseButton !== false}
+        onClose={onClose}
+        className="ScratchCardPopup"
+        style={designVars as React.CSSProperties}
+        data-splitpop="true"
+        data-template="scratch-card"
+        visualSlot={
+          hasVisual ? (
+            <img
+              src={imageUrl}
+              alt=""
+              aria-hidden="true"
               style={{
-                background: config.backgroundColor || "#ffffff",
-                opacity: bgOverlayOpacity
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+                objectPosition: "center",
               }}
             />
-          </>
-        )}
-        <div
-          className={`scratch-popup-content ${
-            !showImage && !isFullBackground ? "single-column" : isVertical && !isFullBackground ? "vertical" : "horizontal"
-          } ${!imageFirst && showImage ? "reverse" : ""} ${isFullBackground ? "full-bg-mode" : ""}`}
-          style={isFullBackground ? { position: "relative", zIndex: 2 } : undefined}
-        >
-          {showImage && (
-            <div
-              className="scratch-popup-image"
-              style={{ background: config.imageBgColor || "#F3F4F6" }}
-            >
-              <img src={config.imageUrl} alt={config.headline || "Scratch Card"} />
-            </div>
-          )}
-
-          <div className="scratch-popup-form-section">
-            {/* Headline */}
-            <div style={{ textAlign: "center" }}>
+          ) : undefined
+        }
+        formSlot={
+          <div className="scratch-popup-form-section" style={{ position: "relative" }}>
+            {/* Headline - using best practices from PopupHeader component */}
+            <div style={{ textAlign: "center", marginBottom: "1.5rem" }}>
               <h2
                 style={{
-                  fontSize: config.titleFontSize || "28px",
+                  fontSize: config.titleFontSize || "1.875rem",
                   fontWeight: config.titleFontWeight || 700,
-                  margin: "0 0 8px 0",
+                  lineHeight: 1.2,
+                  margin: 0,
+                  marginBottom: config.subheadline || showEmailForm ? "0.75rem" : 0,
                   textShadow: config.titleTextShadow,
+                  color: config.textColor,
                 }}
               >
                 {config.headline}
@@ -1153,10 +1064,11 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
               {(config.subheadline || showEmailForm) && (
                 <p
                   style={{
-                    fontSize: config.descriptionFontSize || "16px",
+                    fontSize: config.descriptionFontSize || "1rem",
                     fontWeight: config.descriptionFontWeight || 400,
+                    lineHeight: 1.6,
                     margin: 0,
-                    opacity: 0.8,
+                    opacity: config.descriptionColor ? 1 : 0.85,
                     color: config.descriptionColor || config.textColor,
                   }}
                 >
@@ -1168,68 +1080,53 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
             </div>
 
             {showEmailForm ? (
-              // Email form
-              <form
-                onSubmit={handleEmailSubmit}
-                style={{
-                  width: "100%",
-                  maxWidth: "400px",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "16px",
-                  margin: "0 auto",
-                }}
-              >
-                <EmailInput
-                  value={formState.email}
-                  onChange={setEmail}
-                  placeholder={config.emailPlaceholder || "Enter your email"}
-                  label={config.emailLabel || "Email Address"}
-                  error={errors.email}
-                  required={true}
-                  disabled={isSubmitting}
+              // Lead capture form (before scratching)
+              <>
+                <LeadCaptureForm
+                  data={formState}
+                  errors={errors}
+                  onEmailChange={setEmail}
+                  onNameChange={setName}
+                  onGdprChange={setGdprConsent}
+                  onSubmit={handleEmailSubmit}
+                  isSubmitting={isSubmitting}
+                  showName={config.nameFieldEnabled}
+                  nameRequired={config.nameFieldRequired}
+                  showGdpr={config.consentFieldEnabled}
+                  gdprRequired={config.consentFieldRequired}
+                  labels={{
+                    email: config.emailLabel,
+                    name: config.nameFieldLabel,
+                    gdpr: config.consentFieldText,
+                    submit: config.buttonText || "Unlock Scratch Card",
+                  }}
+                  placeholders={{
+                    email: config.emailPlaceholder || "Enter your email",
+                    name: config.nameFieldPlaceholder,
+                  }}
                   accentColor={config.accentColor}
-                  textColor={config.inputTextColor || config.textColor}
-                  backgroundColor={config.inputBackgroundColor}
-                  borderColor={config.inputBorderColor}
-                />
-
-                {config.showGdprCheckbox && (
-                  <GdprCheckbox
-                    checked={formState.gdprConsent}
-                    onChange={setGdprConsent}
-                    text={config.gdprLabel || "I agree to receive promotional emails"}
-                    error={errors.gdpr}
-                    required={true}
-                    disabled={isSubmitting}
-                    accentColor={config.accentColor || config.buttonColor}
-                    textColor={config.textColor}
-                    privacyPolicyUrl={config.privacyPolicyUrl}
-                  />
-                )}
-
-                <SubmitButton
-                  type="submit"
-                  loading={isSubmitting}
-                  disabled={isSubmitting}
                   buttonColor={config.buttonColor}
-                  accentColor={config.accentColor}
-                  textColor={config.buttonTextColor}
-                >
-                  Unlock Scratch Card
-                </SubmitButton>
+                  textColor={config.textColor}
+                  backgroundColor={config.inputBackgroundColor}
+                  buttonTextColor={config.buttonTextColor}
+                  inputTextColor={config.inputTextColor}
+                  inputBorderColor={config.inputBorderColor}
+                  inputPlaceholderColor={config.inputPlaceholderColor}
+                  privacyPolicyUrl={config.privacyPolicyUrl}
+                  style={{
+                    width: "100%",
+                    maxWidth: "400px",
+                    margin: "0 auto",
+                  }}
+                />
 
                 {/* Dismiss button for email-before-scratching form */}
                 <div style={{ marginTop: "16px", textAlign: "center" }}>
-                  <button
-                    type="button"
-                    className="scratch-popup-dismiss-button"
-                    onClick={onClose}
-                  >
+                  <button type="button" className="scratch-popup-dismiss-button" onClick={onClose}>
                     {config.dismissLabel || "No thanks"}
                   </button>
                 </div>
-              </form>
+              </>
             ) : (
               showScratchCard && (
                 // Scratch card with enhanced effects
@@ -1278,7 +1175,16 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
 
                     {/* Scratch particles layer */}
                     {enableParticles && particles.length > 0 && (
-                      <div className="scratch-particles-layer" style={{ position: "absolute", inset: 0, zIndex: 3, pointerEvents: "none", overflow: "hidden" }}>
+                      <div
+                        className="scratch-particles-layer"
+                        style={{
+                          position: "absolute",
+                          inset: 0,
+                          zIndex: 3,
+                          pointerEvents: "none",
+                          overflow: "hidden",
+                        }}
+                      >
                         {particles.map((p, i) => (
                           <div
                             key={i}
@@ -1305,7 +1211,9 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
                       <div className="scratch-progress-indicator">
                         <div
                           className="scratch-progress-bar"
-                          style={{ width: `${Math.min(100, (scratchPercentage / threshold) * 100)}%` }}
+                          style={{
+                            width: `${Math.min(100, (scratchPercentage / threshold) * 100)}%`,
+                          }}
                         />
                       </div>
                     )}
@@ -1316,14 +1224,24 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
                         {/* Sparkle burst */}
                         <div className="scratch-sparkle-burst">
                           {[...Array(12)].map((_, i) => (
-                            <div key={i} className="scratch-sparkle" style={{ "--sparkle-angle": `${i * 30}deg` } as React.CSSProperties} />
+                            <div
+                              key={i}
+                              className="scratch-sparkle"
+                              style={{ "--sparkle-angle": `${i * 30}deg` } as React.CSSProperties}
+                            />
                           ))}
                         </div>
 
                         {/* Star effects */}
-                        <div className="scratch-star" style={{ left: "15%", top: "20%" }}>⭐</div>
-                        <div className="scratch-star" style={{ left: "85%", top: "25%" }}>✨</div>
-                        <div className="scratch-star" style={{ left: "50%", top: "10%" }}>🌟</div>
+                        <div className="scratch-star" style={{ left: "15%", top: "20%" }}>
+                          ⭐
+                        </div>
+                        <div className="scratch-star" style={{ left: "85%", top: "25%" }}>
+                          ✨
+                        </div>
+                        <div className="scratch-star" style={{ left: "50%", top: "10%" }}>
+                          🌟
+                        </div>
 
                         {/* Confetti particles */}
                         <div className="scratch-confetti" />
@@ -1338,73 +1256,41 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
                     {/* Code overlay inside card after reveal */}
                     {/* Scenario 2: Show code immediately (email not required) */}
                     {/* Note: For email BEFORE/AFTER flows, code is shown in success section below */}
-                    {isRevealed &&
-                      wonPrize &&
-                      wonPrize.discountCode &&
-                      !config.emailRequired && (
-                        <div
-                          className="scratch-card-code-overlay"
-                          style={{
-                            position: "absolute",
-                            inset: 0,
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            pointerEvents: "none",
-                            zIndex: 3,
-                          }}
-                        >
-                          <div style={{ pointerEvents: "auto" }}>
-                            <DiscountCodeDisplay
-                              code={wonPrize.discountCode}
-                              onCopy={handleCopyCode}
-                              copied={copiedCode}
-                              label="🎉 Your Code:"
-                              variant="dashed"
-                              size="md"
-                              accentColor="#ffffff"
-                              textColor="#ffffff"
-                              backgroundColor="rgba(255, 255, 255, 0.2)"
-                              style={{
-                                backdropFilter: "blur(10px)",
-                                border: "2px dashed rgba(255, 255, 255, 0.5)",
-                              }}
-                            />
-                          </div>
-                        </div>
-                      )}
-
-
-                  </div>
-
-                  {/* Progress indicator */}
-                  {scratchPercentage > 0 && scratchPercentage < threshold && (
-                    <div style={{ width: "100%", maxWidth: cardWidth, margin: "0 auto" }}>
+                    {isRevealed && wonPrize && wonPrize.discountCode && !config.emailRequired && (
                       <div
+                        className="scratch-card-code-overlay"
                         style={{
-                          height: "8px",
-                          backgroundColor: "#E5E7EB",
-                          borderRadius: "4px",
-                          overflow: "hidden",
+                          position: "absolute",
+                          inset: 0,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          pointerEvents: "none",
+                          zIndex: 3,
                         }}
                       >
-                        <div
-                          style={{
-                            height: "100%",
-                            width: `${scratchPercentage}%`,
-                            backgroundColor: config.accentColor || config.buttonColor,
-                            transition: "width 0.3s",
-                          }}
-                        />
+                        <div style={{ pointerEvents: "auto" }}>
+                          <DiscountCodeDisplay
+                            code={wonPrize.discountCode}
+                            onCopy={handleCopyCode}
+                            copied={copiedCode}
+                            label="Your Code:"
+                            variant="dashed"
+                            size="md"
+                            accentColor="#ffffff"
+                            textColor="#ffffff"
+                            backgroundColor="rgba(255, 255, 255, 0.2)"
+                            style={{
+                              backdropFilter: "blur(10px)",
+                              border: "2px dashed rgba(255, 255, 255, 0.5)",
+                            }}
+                          />
+                        </div>
                       </div>
-                      <p
-                        className="scratch-progress"
-                        style={{ fontSize: "12px", marginTop: "4px" }}
-                      >
-                        {Math.round(scratchPercentage)}% revealed
-                      </p>
-                    </div>
-                  )}
+                    )}
+                  </div>
+
+                  {/* Progress indicator removed - already shown inside the scratch card canvas */}
 
                   {/* Prize reveal fallback (non-discount prizes) */}
                   {isRevealed && wonPrize && !wonPrize.discountCode && (
@@ -1433,67 +1319,7 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
                     </div>
                   )}
 
-                  {/* Post-reveal email capture - Scenario 3: Email required after scratching */}
-                  {isRevealed &&
-                    config.emailRequired &&
-                    !config.emailBeforeScratching &&
-                    !emailSubmitted && (
-                      <form
-                        onSubmit={handleEmailSubmit}
-                        style={{
-                          marginTop: "1.5rem",
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: "1rem",
-                          maxWidth: "400px",
-                          marginLeft: "auto",
-                          marginRight: "auto",
-                        }}
-                      >
-                        <div>
-                          <EmailInput
-                            value={formState.email}
-                            onChange={setEmail}
-                            placeholder={config.emailPlaceholder || "Enter your email"}
-                            label={
-                              config.emailLabel || "Enter your email to receive your discount code"
-                            }
-                            error={errors.email}
-                            required={true}
-                            disabled={isSubmitting || isSubmittingEmail}
-                            accentColor={config.accentColor}
-                            textColor={config.inputTextColor || config.textColor}
-                            backgroundColor={config.inputBackgroundColor}
-                            borderColor={config.inputBorderColor}
-                          />
-
-                          {config.showGdprCheckbox && (
-                            <GdprCheckbox
-                              checked={formState.gdprConsent}
-                              onChange={setGdprConsent}
-                              text={config.gdprLabel || "I agree to receive promotional emails"}
-                              error={errors.gdpr}
-                              required={true}
-                              disabled={isSubmitting || isSubmittingEmail}
-                              accentColor={config.accentColor}
-                              textColor={config.textColor}
-                              privacyPolicyUrl={config.privacyPolicyUrl}
-                            />
-                          )}
-                        </div>
-
-                        <SubmitButton
-                          type="submit"
-                          loading={isSubmitting || isSubmittingEmail}
-                          disabled={isSubmitting || isSubmittingEmail}
-                          buttonColor={config.buttonColor}
-                          accentColor={config.accentColor}
-                          textColor={config.buttonTextColor}
-                        >
-                          {config.buttonText || "Get My Discount Code"}
-                        </SubmitButton>
-                      </form>
-                    )}
+                  {/* Post-reveal email capture moved to overlay panel below */}
 
                   {/* Success state after claiming prize - same pattern as SpinToWin */}
                   {isRevealed && emailSubmitted && (
@@ -1516,7 +1342,7 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
                           <p
                             style={{
                               fontSize: "1rem",
-                              color: config.descriptionColor || "rgba(0,0,0,0.7)",
+                              color: config.descriptionColor || getAdaptiveMutedColor(config.backgroundColor),
                               lineHeight: 1.6,
                             }}
                           >
@@ -1536,7 +1362,7 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
                           textTransform: "uppercase",
                           letterSpacing: "0.05em",
                           color: config.buttonTextColor || "#FFFFFF",
-                          backgroundColor: config.buttonColor || "#22c55e",
+                          backgroundColor: config.buttonColor || "var(--rb-success, #22c55e)",
                           border: "none",
                           borderRadius: "8px",
                           cursor: "pointer",
@@ -1556,109 +1382,79 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
                         className="scratch-popup-dismiss-button"
                         onClick={onClose}
                       >
-                        {isRevealed ? "Close" : (config.dismissLabel || "No thanks")}
+                        {isRevealed ? "Close" : config.dismissLabel || "No thanks"}
                       </button>
                     </div>
                   )}
                 </>
               )
             )}
+
+            {/* Email Capture Overlay Panel - slides up after reveal animation completes */}
+            {showEmailOverlay && (
+              <div className="scratch-email-overlay">
+                <div className="scratch-email-overlay-content">
+                  <h3
+                    style={{
+                      color: config.textColor,
+                      lineHeight: 1.2,
+                      margin: "0 0 0.5rem 0",
+                    }}
+                  >
+                    {wonPrize?.label || "You Won!"}
+                  </h3>
+                  <p
+                    style={{
+                      color: config.descriptionColor || config.textColor,
+                      lineHeight: 1.5,
+                      opacity: config.descriptionColor ? 1 : 0.85,
+                      margin: "0 0 1rem 0",
+                    }}
+                  >
+                    Enter your email to claim your prize
+                  </p>
+                  <LeadCaptureForm
+                    data={formState}
+                    errors={errors}
+                    onEmailChange={setEmail}
+                    onNameChange={setName}
+                    onGdprChange={setGdprConsent}
+                    onSubmit={handleEmailSubmit}
+                    isSubmitting={isSubmitting || isSubmittingEmail}
+                    showName={config.nameFieldEnabled}
+                    nameRequired={config.nameFieldRequired}
+                    showGdpr={config.consentFieldEnabled}
+                    gdprRequired={config.consentFieldRequired}
+                    labels={{
+                      email: config.emailLabel,
+                      name: config.nameFieldLabel,
+                      gdpr: config.consentFieldText,
+                      submit: config.buttonText || "Claim My Prize",
+                    }}
+                    placeholders={{
+                      email: config.emailPlaceholder || "Enter your email",
+                      name: config.nameFieldPlaceholder,
+                    }}
+                    accentColor={config.accentColor}
+                    buttonColor={config.buttonColor}
+                    textColor={config.textColor}
+                    backgroundColor={config.inputBackgroundColor}
+                    buttonTextColor={config.buttonTextColor}
+                    inputTextColor={config.inputTextColor}
+                    inputBorderColor={config.inputBorderColor}
+                    inputPlaceholderColor={config.inputPlaceholderColor}
+                    privacyPolicyUrl={config.privacyPolicyUrl}
+                  />
+                </div>
+              </div>
+            )}
           </div>
-        </div>
-
-        <style>{`
-        .scratch-popup-container {
-          position: relative;
-          width: ${sizeDimensions.width};
-          max-width: ${sizeDimensions.maxWidth};
-          margin: 0 auto;
-          border-radius: ${typeof config.borderRadius === "number" ? config.borderRadius : parseFloat(String(config.borderRadius || 16))}px;
-          overflow: hidden;
-          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-          background: ${config.backgroundColor};
-          color: ${config.textColor};
-          container-type: inline-size;
-          container-name: scratch-popup;
-          font-family: ${config.fontFamily || "inherit"};
         }
-
-        /* Full Background Mode Styles */
-        .scratch-full-bg-image {
-          position: absolute;
-          inset: 0;
-          z-index: 0;
-        }
-
-        .scratch-full-bg-image img {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-        }
-
-        .scratch-full-bg-overlay {
-          position: absolute;
-          inset: 0;
-          z-index: 1;
-        }
-
-        .scratch-popup-content.full-bg-mode {
-          position: relative;
-          z-index: 2;
-        }
-
-        @container scratch-popup (max-width: 640px) {
-          .scratch-popup-container {
-            width: 100%;
-            max-width: 100%;
-          }
-        }
-
-        .scratch-popup-content {
-          display: flex;
-          width: 100%;
-          height: 100%;
-          align-items: stretch;
-        }
-
-        .scratch-popup-content.horizontal {
-          flex-direction: column;
-        }
-
-        .scratch-popup-content.horizontal.reverse {
-          flex-direction: column-reverse;
-        }
-
-        .scratch-popup-content.vertical {
-          flex-direction: column;
-        }
-
-        .scratch-popup-content.vertical.reverse {
-          flex-direction: column;
-        }
-
-        .scratch-popup-content.single-column {
-          flex-direction: column;
-        }
-
-        .scratch-popup-image {
-          position: relative;
-          overflow: hidden;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          background: ${config.imageBgColor || config.inputBackgroundColor || "#f4f4f5"};
-          width: 100%;
-        }
-
-        .scratch-popup-image img {
-          position: absolute;
-          inset: 0;
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-        }
-
+      />
+      <style>{`
+        /* Scratch Card Specific Styles */
         .scratch-popup-form-section {
+          position: relative;
           padding: 2.5rem 2rem;
           display: flex;
           flex-direction: column;
@@ -1684,13 +1480,6 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
           touch-action: none;
         }
 
-        .scratch-progress {
-          font-size: 0.875rem;
-          text-align: center;
-          margin-top: 0.5rem;
-          opacity: 0.7;
-        }
-
         .scratch-popup-input {
           width: 100%;
           padding: 0.625rem 0.75rem;
@@ -1706,7 +1495,7 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
         }
 
         .scratch-popup-input.error {
-          border-color: #dc2626;
+          border-color: var(--rb-error, #dc2626);
         }
 
         .scratch-popup-checkbox {
@@ -1749,7 +1538,7 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
           margin-top: 0.75rem;
           background: transparent;
           border: none;
-          color: ${config.descriptionColor || "rgba(15, 23, 42, 0.7)"};
+          color: ${config.descriptionColor || getAdaptiveMutedColor(config.backgroundColor)};
           font-size: 0.875rem;
           cursor: pointer;
         }
@@ -1769,7 +1558,7 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
 
         .scratch-popup-error {
           font-size: 0.875rem;
-          color: #dc2626;
+          color: var(--rb-error, #dc2626);
           margin-top: 0.25rem;
         }
 
@@ -1874,7 +1663,7 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
         .scratch-confetti:nth-child(2) { width: 6px; height: 6px; background: #ec4899; left: 25%; top: 15%; animation: confettiDrop 1.4s ease-out 0.1s forwards; border-radius: 50%; }
         .scratch-confetti:nth-child(3) { width: 10px; height: 10px; background: #8b5cf6; left: 75%; top: 18%; animation: confettiDrop 1.3s ease-out 0.15s forwards; }
         .scratch-confetti:nth-child(4) { width: 7px; height: 7px; background: #06b6d4; left: 85%; top: 22%; animation: confettiDrop 1.5s ease-out 0.08s forwards; border-radius: 50%; }
-        .scratch-confetti:nth-child(5) { width: 9px; height: 9px; background: #10b981; left: 45%; top: 12%; animation: confettiDrop 1.25s ease-out 0.2s forwards; }
+        .scratch-confetti:nth-child(5) { width: 9px; height: 9px; background: var(--rb-success, #10b981); left: 45%; top: 12%; animation: confettiDrop 1.25s ease-out 0.2s forwards; }
         .scratch-confetti:nth-child(6) { width: 8px; height: 8px; background: ${config.accentColor || config.buttonColor}; left: 55%; top: 25%; animation: confettiDrop 1.35s ease-out 0.12s forwards; border-radius: 50%; }
 
         /* ============================================
@@ -1954,6 +1743,56 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
           border-radius: 2px;
           transition: width 0.1s ease-out;
           box-shadow: 0 0 8px ${config.accentColor || config.buttonColor}80;
+        }
+
+        /* Email Capture Overlay Panel */
+        .scratch-email-overlay {
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          background: ${config.backgroundColor || "#ffffff"}f0;
+          backdrop-filter: blur(16px);
+          -webkit-backdrop-filter: blur(16px);
+          border-top: 1px solid rgba(255,255,255,0.3);
+          border-radius: 20px 20px 0 0;
+          padding: 1.5rem;
+          z-index: 100;
+          animation: slideUpOverlay 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+          box-shadow: 0 -10px 40px rgba(0,0,0,0.2);
+        }
+
+        @keyframes slideUpOverlay {
+          from {
+            transform: translateY(100%);
+            opacity: 0;
+          }
+          to {
+            transform: translateY(0);
+            opacity: 1;
+          }
+        }
+
+        .scratch-email-overlay-content {
+          max-width: 400px;
+          margin: 0 auto;
+        }
+
+        .scratch-email-overlay h3 {
+          font-size: 1.25rem;
+          font-weight: 600;
+          text-align: center;
+        }
+
+        .scratch-email-overlay p {
+          font-size: 0.9375rem;
+          text-align: center;
+        }
+
+        .scratch-email-overlay form {
+          display: flex;
+          flex-direction: column;
+          gap: 0.75rem;
         }
 
         /* Holographic shimmer overlay animation */
@@ -2080,54 +1919,14 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
           animation: flipReveal 0.6s ease-out forwards, prizeGlow 1.5s ease-in-out 0.6s infinite;
         }
 
-        /* Container Query: Mobile layout (<480px container width)
-           Stack vertically with constrained image height. */
-        @container scratch-popup (max-width: 479px) {
-          .scratch-popup-content.horizontal .scratch-popup-image,
-          .scratch-popup-content.vertical .scratch-popup-image {
-            height: 12rem;
-          }
-        }
-
-        /* Container Query: Desktop-ish layout (≥480px container width)
-           Match NewsletterPopup behavior so left/right images go side-by-side
-           once the popup has enough width, even inside the editor preview. */
-        @container scratch-popup (min-width: 480px) {
-          .scratch-popup-content.vertical {
-            flex-direction: row;
-            min-height: 450px;
-          }
-
-          .scratch-popup-content.vertical.reverse {
-            flex-direction: row-reverse;
-          }
-
-          .scratch-popup-content.horizontal .scratch-popup-image {
-            height: 16rem;
-          }
-
-          .scratch-popup-content.vertical .scratch-popup-image {
-            flex: 1 1 50%;
-            height: auto;
-            min-height: 400px;
-          }
-
-          .scratch-popup-content.vertical .scratch-popup-form-section {
-            flex: 1 1 50%;
-          }
-
+        /* Responsive adjustments for form section padding */
+        @container popup-viewport (min-width: 520px) {
           .scratch-popup-form-section {
-            padding: 4rem 3.5rem;
-          }
-
-          .scratch-popup-content.single-column .scratch-popup-form-section {
-            max-width: 36rem;
-            margin: 0 auto;
+            padding: 3rem 2.5rem;
           }
         }
 
       `}</style>
-      </div>
     </PopupPortal>
   );
 };

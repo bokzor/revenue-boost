@@ -1,12 +1,12 @@
 import { test, expect } from '@playwright/test';
 import { PrismaClient } from '@prisma/client';
+import path from 'path';
 import * as dotenv from 'dotenv';
 import {
     STORE_URL,
     STORE_DOMAIN,
     API_PROPAGATION_DELAY_MS,
     handlePasswordPage,
-    mockChallengeToken,
     getTestPrefix,
     waitForPopupWithRetry,
     cleanupAllE2ECampaigns,
@@ -14,7 +14,7 @@ import {
 } from './helpers/test-helpers';
 import { CampaignFactory } from './factories/campaign-factory';
 
-dotenv.config({ path: '.env.staging.env' });
+dotenv.config({ path: path.resolve(process.cwd(), '.env.staging.env'), override: true });
 
 const TEST_PREFIX = getTestPrefix('storefront-cart-triggers.spec.ts');
 
@@ -69,7 +69,6 @@ test.describe.serial('Cart & Product Triggers', () => {
         // Wait for cache invalidation
         await page.waitForTimeout(500);
 
-        await mockChallengeToken(page);
 
         // Log browser console messages for debugging
         page.on('console', msg => {
@@ -192,8 +191,8 @@ test.describe.serial('Cart & Product Triggers', () => {
 
             await page.goto(`${STORE_URL}/collections/all`);
             await handlePasswordPage(page);
-            await page.waitForLoadState('networkidle');
-            await page.waitForTimeout(2000);
+            await page.waitForLoadState('domcontentloaded');
+            await page.waitForTimeout(3000);
 
             const popupHostEarly = page.locator('#revenue-boost-popup-shadow-host');
             const visibleEarly = await popupHostEarly.isVisible().catch(() => false);
@@ -249,7 +248,8 @@ test.describe.serial('Cart & Product Triggers', () => {
             // Navigate to collections page to find a product
             await page.goto(`${STORE_URL}/collections/all`);
             await handlePasswordPage(page);
-            await page.waitForLoadState('networkidle');
+            await page.waitForLoadState('domcontentloaded');
+            await page.waitForTimeout(2000);
 
             // Find visible product links (may need to scroll)
             const productLinks = page.locator('a[href*="/products/"]:visible');
@@ -264,7 +264,8 @@ test.describe.serial('Cart & Product Triggers', () => {
 
             // Click the first visible product
             await productLinks.first().click({ timeout: 10000 });
-            await page.waitForLoadState('networkidle');
+            await page.waitForLoadState('domcontentloaded');
+            await page.waitForTimeout(2000);
 
             // Verify we're on a product page
             expect(page.url()).toContain('/products/');

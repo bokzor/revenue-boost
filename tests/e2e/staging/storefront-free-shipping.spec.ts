@@ -8,7 +8,6 @@ import {
     STORE_DOMAIN,
     API_PROPAGATION_DELAY_MS,
     handlePasswordPage,
-    mockChallengeToken,
     getTestPrefix,
     cleanupAllE2ECampaigns,
     MAX_TEST_PRIORITY
@@ -64,7 +63,6 @@ test.describe.serial('Free Shipping Template', () => {
         // Clean up ALL E2E campaigns to avoid priority conflicts
         await cleanupAllE2ECampaigns(prisma);
 
-        await mockChallengeToken(page);
         await page.context().clearCookies();
 
         // Log browser console for debugging
@@ -129,13 +127,14 @@ test.describe.serial('Free Shipping Template', () => {
         await expect(banner).toBeVisible({ timeout: 15000 });
 
         // Check for progress bar element
+        // TODO: Make this a hard assertion once progress bar class is standardized
         const progressBar = banner.locator('.free-shipping-bar-progress');
         const hasProgressBar = await progressBar.isVisible().catch(() => false);
 
         if (hasProgressBar) {
             console.log('✅ Progress bar element displayed');
         } else {
-            console.log('⚠️ Progress bar not found - may use different styling');
+            console.log('⚠️ Progress bar not found - may use different class name');
         }
     });
 
@@ -160,13 +159,14 @@ test.describe.serial('Free Shipping Template', () => {
         await expect(banner).toBeVisible({ timeout: 15000 });
 
         // Verify currency symbol
+        // TODO: Make this a hard assertion once currency display is verified
         const bannerText = await banner.textContent();
         const hasCurrency = bannerText?.includes(currency);
 
         if (hasCurrency) {
             console.log(`✅ Currency symbol "${currency}" displayed`);
         } else {
-            console.log('⚠️ Currency symbol not found - may use default');
+            console.log('⚠️ Currency symbol not found - may use default format');
         }
     });
 
@@ -187,10 +187,9 @@ test.describe.serial('Free Shipping Template', () => {
         await expect(banner).toBeVisible({ timeout: 15000 });
 
         // Check for bottom positioning via data attribute
+        // TODO: Make this a hard assertion once position attribute is verified
         const position = await banner.getAttribute('data-position');
-        const hasBottomPosition = position === 'bottom';
-
-        if (hasBottomPosition) {
+        if (position === 'bottom') {
             console.log('✅ Bottom position styling detected');
         } else {
             console.log('✅ Free shipping bar rendered (position may be inline)');

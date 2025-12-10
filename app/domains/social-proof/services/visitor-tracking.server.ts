@@ -8,6 +8,7 @@
  * - Recently viewed products
  */
 
+import { logger } from "~/lib/logger.server";
 import type {
   VisitorNotification,
   SocialProofNotification,
@@ -70,7 +71,7 @@ export class VisitorTrackingService {
         timestamp: Date.now(),
       };
     } catch (error) {
-      console.error("[VisitorTrackingService] Error getting visitor count:", error);
+      logger.error({ error }, "[VisitorTrackingService] Error getting visitor count:");
       return this.generateFallbackVisitorNotification(productId);
     }
   }
@@ -112,7 +113,7 @@ export class VisitorTrackingService {
         await redis.expire(trendingKey, REDIS_TTL.HOUR);
       }
     } catch (error) {
-      console.error("[VisitorTrackingService] Error tracking visitor:", error);
+      logger.error({ error }, "[VisitorTrackingService] Error tracking visitor:");
     }
   }
 
@@ -144,7 +145,7 @@ export class VisitorTrackingService {
         timestamp: Date.now(),
       };
     } catch (error) {
-      console.error("[VisitorTrackingService] Error getting trending:", error);
+      logger.error({ error }, "[VisitorTrackingService] Error getting trending:");
       return null;
     }
   }
@@ -175,7 +176,7 @@ export class VisitorTrackingService {
       // Set expiry (1 hour)
       await redis.expire(key, REDIS_TTL.HOUR);
     } catch (error) {
-      console.error("[VisitorTrackingService] Error tracking cart activity:", error);
+      logger.error({ error }, "[VisitorTrackingService] Error tracking cart activity:");
     }
   }
 
@@ -206,7 +207,7 @@ export class VisitorTrackingService {
         timestamp: Date.now(),
       };
     } catch (error) {
-      console.error("[VisitorTrackingService] Error getting cart activity:", error);
+      logger.error({ error }, "[VisitorTrackingService] Error getting cart activity:");
       return null;
     }
   }
@@ -241,7 +242,7 @@ export class VisitorTrackingService {
         timestamp: Date.now(),
       };
     } catch (error) {
-      console.error("[VisitorTrackingService] Error getting recently viewed:", error);
+      logger.error({ error }, "[VisitorTrackingService] Error getting recently viewed:");
       return null;
     }
   }

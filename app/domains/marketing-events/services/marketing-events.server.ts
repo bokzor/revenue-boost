@@ -1,3 +1,4 @@
+import { logger } from "~/lib/logger.server";
 import type { AdminApiContext } from "@shopify/shopify-app-react-router/server";
 
 interface EngagementMetrics {
@@ -78,10 +79,7 @@ export class MarketingEventsService {
       const data = await response.json();
 
       if (data.data?.marketingActivityCreateExternal?.userErrors?.length > 0) {
-        console.error(
-          "Marketing Activity Create Errors:",
-          data.data.marketingActivityCreateExternal.userErrors
-        );
+        logger.error({ userErrors: data.data.marketingActivityCreateExternal.userErrors }, "[MarketingEvents] Activity create errors");
         return null;
       }
 
@@ -91,7 +89,7 @@ export class MarketingEventsService {
 
       return { marketingEventId, utmCampaign, utmSource, utmMedium };
     } catch (error) {
-      console.error("Failed to create marketing activity:", error);
+      logger.error({ error }, "Failed to create marketing activity:");
       return null;
     }
   }
@@ -136,16 +134,13 @@ export class MarketingEventsService {
       const data = await response.json();
 
       if (data.data?.marketingActivityUpdateExternal?.userErrors?.length > 0) {
-        console.error(
-          "Marketing Activity Update Errors:",
-          data.data.marketingActivityUpdateExternal.userErrors
-        );
+        logger.error({ userErrors: data.data.marketingActivityUpdateExternal.userErrors }, "[MarketingEvents] Activity update errors");
         return false;
       }
 
       return true;
     } catch (error) {
-      console.error("Failed to update marketing activity:", error);
+      logger.error({ error }, "Failed to update marketing activity:");
       return false;
     }
   }
@@ -176,16 +171,13 @@ export class MarketingEventsService {
       const data = await response.json();
 
       if (data.data?.marketingActivityDeleteExternal?.userErrors?.length > 0) {
-        console.error(
-          "Marketing Activity Delete Errors:",
-          data.data.marketingActivityDeleteExternal.userErrors
-        );
+        logger.error({ userErrors: data.data.marketingActivityDeleteExternal.userErrors }, "[MarketingEvents] Activity delete errors");
         return false;
       }
 
       return true;
     } catch (error) {
-      console.error("Failed to delete marketing activity:", error);
+      logger.error({ error }, "Failed to delete marketing activity:");
       return false;
     }
   }
@@ -239,16 +231,13 @@ export class MarketingEventsService {
       const data = await response.json();
 
       if (data.data?.marketingEngagementCreate?.userErrors?.length > 0) {
-        console.error(
-          "Marketing Engagement Sync Errors:",
-          data.data.marketingEngagementCreate.userErrors
-        );
+        logger.error({ userErrors: data.data.marketingEngagementCreate.userErrors }, "[MarketingEvents] Engagement sync errors");
         return false;
       }
 
       return true;
     } catch (error) {
-      console.error("Failed to sync engagement metrics:", error);
+      logger.error({ error }, "Failed to sync engagement metrics:");
       return false;
     }
   }

@@ -30,6 +30,10 @@ on:
         required: false
       STORE_PASSWORD:
         required: false
+      SHOPIFY_API_KEY:
+        required: true
+      SHOPIFY_API_SECRET:
+        required: true
 
 # Prevent concurrent E2E runs
 concurrency:
@@ -44,7 +48,7 @@ jobs:
     name: E2E Staging Tests
     runs-on: ubuntu-latest
     environment: staging
-    timeout-minutes: 30
+    timeout-minutes: 60
     
     steps:
       - name: 📥 Checkout code
@@ -136,12 +140,12 @@ jobs:
         run: |
           echo "## 🧪 E2E Staging Test Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          
+
           if [ -f "test-results/reports/results.json" ]; then
             PASSED=$(cat test-results/reports/results.json | jq '.stats.expected // 0')
             FAILED=$(cat test-results/reports/results.json | jq '.stats.unexpected // 0')
             SKIPPED=$(cat test-results/reports/results.json | jq '.stats.skipped // 0')
-            
+
             echo "| Status | Count |" >> $GITHUB_STEP_SUMMARY
             echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
             echo "| ✅ Passed | $PASSED |" >> $GITHUB_STEP_SUMMARY
@@ -150,8 +154,7 @@ jobs:
           else
             echo "⚠️ No test results found" >> $GITHUB_STEP_SUMMARY
           fi
-          
+
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**📅 Run at:** $(date)" >> $GITHUB_STEP_SUMMARY
           echo "**🔖 Git SHA:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
-

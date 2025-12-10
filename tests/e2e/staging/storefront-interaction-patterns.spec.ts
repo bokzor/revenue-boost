@@ -7,7 +7,6 @@ import {
     STORE_URL,
     API_PROPAGATION_DELAY_MS,
     handlePasswordPage,
-    mockChallengeToken,
     fillEmailInShadowDOM,
     submitFormInShadowDOM,
     checkGdprCheckbox,
@@ -79,7 +78,6 @@ test.describe.serial('Interaction Patterns - Cross-Template Tests', () => {
         // Wait for cache invalidation
         await page.waitForTimeout(500);
 
-        await mockChallengeToken(page);
 
         page.on('console', msg => {
             console.log(`[BROWSER] ${msg.type()}: ${msg.text()}`);

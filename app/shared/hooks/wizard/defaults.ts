@@ -116,6 +116,7 @@ export function getDefaultDiscountConfig(initialData?: Partial<CampaignFormData>
   return {
     enabled: false,
     showInPreview: true,
+    strategy: "simple",
     type: "shared" as const,
     valueType: "PERCENTAGE" as const,
     value: 10,

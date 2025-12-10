@@ -19,13 +19,16 @@ import type { FlashSaleContent } from "~/domains/campaigns/types/campaign";
 import { PopupPortal } from "./PopupPortal";
 import { BannerPortal } from "./BannerPortal";
 
-import { getContainerPadding, POPUP_SPACING } from "./spacing";
+import {
+  getContainerPadding,
+  POPUP_SPACING,
+} from "app/domains/storefront/popups-new/utils/spacing";
 
 // Import custom hooks
-import { useCountdownTimer, useDiscountCode } from "./hooks";
+import { useCountdownTimer, useDiscountCode, useCTAHandler } from "./hooks";
 
 // Import shared components
-import { DiscountCodeDisplay, PopupCloseButton, TimerDisplay } from "./components/shared";
+import { DiscountCodeDisplay, PopupCloseButton, TimerDisplay, PromotionDisplay, SuccessState } from "./components/shared";
 
 /**
  * FlashSale-specific configuration
@@ -40,12 +43,21 @@ interface DiscountTier {
 
 // Advanced discount config type
 interface AdvancedDiscountConfig {
+  enabled?: boolean;
   tiers?: DiscountTier[];
   bogo?: {
     buy: { quantity: number };
     get: { quantity: number; discount: { kind: string; value: number } };
   };
-  freeGift?: { enabled: boolean };
+  freeGift?: {
+    enabled?: boolean;
+    productId?: string;
+    variantId?: string;
+    productTitle?: string;
+    productImageUrl?: string;
+    quantity?: number;
+    minSubtotalCents?: number;
+  };
 }
 
 export interface FlashSaleConfig extends PopupDesignConfig, FlashSaleContent {
@@ -54,6 +66,7 @@ export interface FlashSaleConfig extends PopupDesignConfig, FlashSaleContent {
   discountConfig?: AdvancedDiscountConfig; // Legacy/advanced config (tiers, BOGO, free gift)
   discount?: StorefrontDiscountConfig; // Normalized storefront discount summary
   currentCartTotal?: number; // Injected by storefront runtime
+  // Note: cta and secondaryCta are inherited from FlashSaleContent
 }
 
 export interface FlashSalePopupProps {
@@ -77,7 +90,8 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
 }) => {
   // Respect both showCountdown and presentation.showTimer flags
   // showCountdown = top-level toggle, presentation.showTimer = presentation toggle
-  const shouldShowTimer = config.showCountdown !== false && config.presentation?.showTimer !== false;
+  const shouldShowTimer =
+    config.showCountdown !== false && config.presentation?.showTimer !== false;
 
   // Use countdown timer hook
   const timerMode = config.timer?.mode || "duration";
@@ -99,14 +113,11 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
     autoHideDelay: 1000,
   });
 
-  // Use discount code hook
-  const { discountCode, setDiscountCode, copiedCode, handleCopyCode } = useDiscountCode();
+  // Use discount code hook for copy functionality (discountCode comes from useCTAHandler)
+  const { copiedCode, handleCopyCode } = useDiscountCode();
 
   // Component-specific state
   const [inventoryTotal, setInventoryTotal] = useState<number | null>(null);
-  const [hasClaimedDiscount, setHasClaimedDiscount] = useState(false);
-  const [isClaimingDiscount, setIsClaimingDiscount] = useState(false);
-  const [_discountError, setDiscountError] = useState<string | null>(null);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- config has dynamic fields
   const configRecord = config as any;
@@ -174,8 +185,11 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
 
   const isPreview = configRecord.previewMode;
   const discount = config.discount as StorefrontDiscountConfig | undefined;
+  // Check both normalized discount and raw discountConfig (for BOGO, tiers, etc.)
+  const rawDiscountConfig = config.discountConfig;
   // In preview, always behave as if a discount exists so the full flow can be exercised
-  const hasDiscount = isPreview ? true : !!discount?.enabled;
+  // On storefront, check both normalized `discount` and raw `discountConfig.enabled`
+  const hasDiscount = isPreview ? true : (!!discount?.enabled || !!rawDiscountConfig?.enabled);
 
   const isSoldOut = inventoryTotal !== null && inventoryTotal <= 0;
   const isSoldOutAndMissed = isSoldOut && config.inventory?.soldOutBehavior === "missed_it";
@@ -188,65 +202,41 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
     return undefined;
   };
 
-  const getCtaLabel = () => {
-    if (hasExpired || isSoldOutAndMissed) {
-      return config.buttonText || config.ctaText || "Offer unavailable";
-    }
-    if (isClaimingDiscount) {
-      return "Applying...";
-    }
-    if (hasDiscount && !hasClaimedDiscount) {
-      return config.buttonText || config.ctaText || "Get this offer";
-    }
-    return config.buttonText || config.ctaText || "Shop Now";
-  };
-
-  const handleCtaClick = async () => {
-    const canClaimDiscount =
-      hasDiscount && !hasClaimedDiscount && !hasExpired && !isSoldOutAndMissed;
-
-    if (canClaimDiscount) {
-      setDiscountError(null);
-      setIsClaimingDiscount(true);
-      try {
-        if (issueDiscount) {
-          const cartSubtotalCents = getCartSubtotalCents();
-          const result = await issueDiscount(cartSubtotalCents ? { cartSubtotalCents } : undefined);
-          if (result?.code) {
-            setDiscountCode(result.code);
-          }
-          setHasClaimedDiscount(true);
-        }
-      } catch (error) {
-        console.error("[FlashSalePopup] Failed to claim discount:", error);
-        setDiscountError("Something went wrong applying your discount. Please try again.");
-      } finally {
-        setIsClaimingDiscount(false);
-      }
-
-      // First click used to claim discount only
-      return;
-    }
-
-    // In preview mode, never navigate away from the editor
-    if (isPreview) {
-      return;
-    }
-
-    if (onCtaClick) {
-      onCtaClick();
-    }
-
-    if (config.ctaUrl) {
-      if (config.ctaOpenInNewTab) {
-        window.open(config.ctaUrl, "_blank", "noopener,noreferrer");
-      } else {
-        window.location.href = config.ctaUrl;
-      }
-    }
-  };
-
-  if (!isVisible) return null;
+  // Use shared CTA handler hook (new single-click flow with success state)
+  const {
+    ctaLabel,
+    secondaryCtaLabel,
+    actionCompleted,
+    isProcessing,
+    discountCode,
+    actionError,
+    isCtaDisabled,
+    autoCloseCountdown,
+    successMessage,
+    successBehavior,
+    handleCtaClick,
+    handleSecondaryCta,
+    cancelAutoClose,
+    pendingNavigationUrl,
+  } = useCTAHandler({
+    cta: config.cta,
+    secondaryCta: config.secondaryCta,
+    buttonText: config.buttonText || config.ctaText,
+    ctaUrl: config.ctaUrl,
+    ctaOpenInNewTab: config.ctaOpenInNewTab,
+    dismissLabel: config.dismissLabel,
+    hasDiscount,
+    isPreview,
+    hasExpired: hasExpired || isSoldOutAndMissed,
+    isSoldOut: isSoldOutAndMissed,
+    issueDiscount,
+    getCartSubtotalCents,
+    onCtaClick,
+    onClose,
+    failureMessage: config.failureMessage,
+    defaultSuccessMessage: config.successMessage || "Deal claimed!",
+    defaultAutoCloseDelay: 5,
+  });
 
   if (isSoldOut && config.inventory?.soldOutBehavior === "hide") {
     return null;
@@ -292,13 +282,14 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
     return null;
   };
 
-  // Design tokens
-  const accentColor = config.accentColor || "#EF4444";
+  // Design tokens - accent falls back to error color (red) for flash sales
+  const accentColor = config.accentColor || "var(--rb-error, #EF4444)";
   const textColor = config.textColor || "#111827";
   const bgColor = config.backgroundColor || "#FFFFFF";
-  const borderRadius = typeof config.borderRadius === "number" 
-    ? config.borderRadius 
-    : parseFloat(config.borderRadius || "16");
+  const borderRadius =
+    typeof config.borderRadius === "number"
+      ? config.borderRadius
+      : parseFloat(config.borderRadius || "16");
 
   const discountMessage = getDiscountMessage();
 
@@ -579,6 +570,18 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
               {config.subheadline && (
                 <p className="flash-sale-banner-subheadline">{config.subheadline}</p>
               )}
+              {/* Success message after action completed */}
+              {actionCompleted && (successMessage || config.successMessage) && (
+                <div className="flash-sale-success-message" style={{ color: "var(--rb-success, #22c55e)" }}>
+                  {successMessage || config.successMessage}
+                </div>
+              )}
+              {/* Error message if action failed */}
+              {actionError && (
+                <div className="flash-sale-error-message" style={{ color: "var(--rb-error, #ef4444)" }}>
+                  {actionError}
+                </div>
+              )}
               {(discountCode || discountMessage) && (
                 <div className="flash-sale-banner-discount">
                   {discountCode ? (
@@ -589,7 +592,7 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
                       label="Use code at checkout:"
                       variant="minimal"
                       size="sm"
-                      accentColor={config.accentColor || "#ef4444"}
+                      accentColor={config.accentColor || "var(--rb-error, #ef4444)"}
                       textColor={config.textColor}
                     />
                   ) : (
@@ -616,7 +619,7 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
                       format="full"
                       showDays={timeRemaining.days > 0}
                       showLabels={true}
-                      accentColor={config.accentColor || "#ef4444"}
+                      accentColor={config.accentColor || "var(--rb-error, #ef4444)"}
                       textColor={config.textColor}
                       className="flash-sale-banner-timer"
                     />
@@ -643,7 +646,7 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
                 <button
                   className="flash-sale-banner-cta"
                   onClick={handleCtaClick}
-                  disabled={hasExpired || isSoldOutAndMissed || isClaimingDiscount}
+                  disabled={hasExpired || isSoldOutAndMissed || isProcessing}
                   style={{
                     background: config.buttonColor || config.accentColor || "#ffffff",
                     color: config.buttonTextColor || config.textColor || "#111827",
@@ -657,7 +660,7 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
                     gap: "0.5em",
                   }}
                 >
-                  {isClaimingDiscount && (
+                  {isProcessing && (
                     <span
                       style={{
                         width: "1em",
@@ -669,7 +672,7 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
                       }}
                     />
                   )}
-                  {getCtaLabel()}
+                  {isProcessing ? "Processing..." : ctaLabel}
                 </button>
               )}
             </div>
@@ -696,7 +699,8 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
   };
   const sizeDimensions = getFlashSaleSizeDimensions(config.popupSize);
   // Map popupSize to spacing: compact=small, standard/wide=medium, full=large
-  const sizeForPadding = config.popupSize === "compact" ? "small" : config.popupSize === "full" ? "large" : "medium";
+  const sizeForPadding =
+    config.popupSize === "compact" ? "small" : config.popupSize === "full" ? "large" : "medium";
   const containerPadding = getContainerPadding(sizeForPadding);
 
   return (
@@ -721,6 +725,7 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
       ariaDescribedBy={config.ariaDescribedBy}
       customCSS={config.customCSS}
       globalCustomCSS={config.globalCustomCSS}
+      designTokensCSS={config.designTokensCSS}
     >
       <style>{`
         .flash-sale-container {
@@ -1179,12 +1184,12 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
       `}</style>
 
       <div
-        className={`flash-sale-container${config.imageUrl && config.imagePosition === "full" ? " has-bg-image" : ""}`}
+        className={`flash-sale-container${config.imageUrl && config.leadCaptureLayout?.desktop === "overlay" ? " has-bg-image" : ""}`}
         data-splitpop="true"
         data-template="flash-sale"
       >
         {/* Background image with overlay */}
-        {config.imageUrl && config.imagePosition === "full" && (
+        {config.imageUrl && config.leadCaptureLayout?.desktop === "overlay" && (
           <>
             <div className="flash-sale-bg-image">
               <img src={config.imageUrl} alt="" aria-hidden="true" />
@@ -1204,23 +1209,41 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
 
         {isSoldOut && config.inventory?.soldOutBehavior === "missed_it" ? (
           <div className="flash-sale-sold-out">
-            <h3 style={{ marginBottom: "0.5em", fontWeight: "700" }}>
-              You Missed It!
-            </h3>
+            <h3 style={{ marginBottom: "0.5em", fontWeight: "700" }}>You Missed It!</h3>
             <p style={{ opacity: 0.8 }}>
               {config.inventory.soldOutMessage || "This deal is sold out. Check back later!"}
             </p>
           </div>
         ) : hasExpired ? (
           <div className="flash-sale-expired">
-            <h3 style={{ marginBottom: "0.5em", fontWeight: "700" }}>
-              Sale Ended
-            </h3>
+            <h3 style={{ marginBottom: "0.5em", fontWeight: "700" }}>Sale Ended</h3>
             <p style={{ opacity: 0.8 }}>
               {config.timer?.expiredMessage ||
                 "This flash sale has expired. Check back soon for more deals!"}
             </p>
           </div>
+        ) : actionCompleted ? (
+          /* SUCCESS STATE - Shows after CTA action completes */
+          <SuccessState
+            message={successMessage || "Deal claimed!"}
+            discountCode={successBehavior?.showDiscountCode ? (discountCode || undefined) : undefined}
+            onCopyCode={handleCopyCode}
+            copiedCode={copiedCode}
+            discountLabel="Your discount code:"
+            accentColor={accentColor}
+            successColor={accentColor}
+            textColor={textColor}
+            autoCloseIn={autoCloseCountdown}
+            onCancelAutoClose={cancelAutoClose}
+            secondaryAction={
+              // If there's a pending navigation (e.g., navigate_collection after showing discount), show "Continue" button
+              pendingNavigationUrl
+                ? { label: "Continue Shopping →", onClick: handleSecondaryCta }
+                : config.cta?.action === "add_to_cart"
+                  ? { label: "View Cart", onClick: () => window.location.href = "/cart" }
+                  : undefined
+            }
+          />
         ) : (
           <div className="flash-sale-content">
             {/* Centered Header: Badge + Headline */}
@@ -1233,22 +1256,34 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
               {config.subheadline || "Limited time offer - Don't miss out!"}
             </p>
 
-            {(discountCode || discountMessage) && (
+            {/* Error message if action failed */}
+            {actionError && (
+              <div className="flash-sale-error-message" style={{ color: "var(--rb-error, #ef4444)", marginBottom: "1rem" }}>
+                {actionError}
+              </div>
+            )}
+
+            {/* Promotion Display - Visual representation of discount type */}
+            {config.discountConfig && (
+              <div className="flash-sale-promotion" style={{ marginBottom: POPUP_SPACING.section.md }}>
+                <PromotionDisplay
+                  tiers={config.discountConfig.tiers}
+                  bogo={config.discountConfig.bogo}
+                  freeGift={config.discountConfig.freeGift}
+                  discountPercentage={config.discountPercentage}
+                  currentCartTotalCents={config.currentCartTotal ? Math.round(config.currentCartTotal * 100) : 0}
+                  accentColor={accentColor}
+                  textColor={textColor}
+                  backgroundColor={bgColor}
+                  size="md"
+                />
+              </div>
+            )}
+
+            {/* Fallback text message for simple discounts without visual display */}
+            {!config.discountConfig && discountMessage && (
               <div className="flash-sale-discount-message">
-                {discountCode ? (
-                  <DiscountCodeDisplay
-                    code={discountCode}
-                    onCopy={handleCopyCode}
-                    copied={copiedCode}
-                    label="Use code at checkout:"
-                    variant="minimal"
-                    size="sm"
-                    accentColor={config.accentColor || "#ef4444"}
-                    textColor={config.textColor}
-                  />
-                ) : (
-                  discountMessage
-                )}
+                {discountMessage}
               </div>
             )}
 
@@ -1263,7 +1298,7 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
                   format="full"
                   showDays={timeRemaining.days > 0}
                   showLabels={true}
-                  accentColor={config.accentColor || "#ef4444"}
+                  accentColor={config.accentColor || "var(--rb-error, #ef4444)"}
                   textColor={config.textColor}
                 />
               </div>
@@ -1290,16 +1325,16 @@ export const FlashSalePopup: React.FC<FlashSalePopupProps> = ({
 
             {/* Actions: CTA + Dismiss */}
             <div className="flash-sale-actions">
-              <button
-                onClick={handleCtaClick}
-                className="flash-sale-cta"
-                disabled={hasExpired || isSoldOutAndMissed || isClaimingDiscount}
-              >
-                {getCtaLabel()}
+              <button onClick={handleCtaClick} className="flash-sale-cta" disabled={isCtaDisabled}>
+                {isProcessing ? "Processing..." : ctaLabel}
               </button>
 
-              <button type="button" onClick={onClose} className="flash-sale-secondary-cta">
-                {config.dismissLabel || "No thanks"}
+              <button
+                type="button"
+                onClick={handleSecondaryCta}
+                className="flash-sale-secondary-cta"
+              >
+                {secondaryCtaLabel}
               </button>
             </div>
           </div>
