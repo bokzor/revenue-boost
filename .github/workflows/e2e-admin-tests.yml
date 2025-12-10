@@ -1,15 +1,18 @@
-name: 🔧 E2E Admin & Integration Tests (Manual)
+name: 🔧 E2E Admin & Integration Tests
 
 # =============================================================================
-# MANUAL ONLY - Admin E2E Tests with TEST_MODE
+# Admin E2E Tests with TEST_MODE
 # =============================================================================
 # This workflow runs admin campaign creation tests using TEST_MODE.
 # It starts a local server with Shopify auth bypassed, allowing automated testing.
 #
-# To run: Go to Actions → "E2E Admin & Integration Tests" → "Run workflow"
+# Triggers:
+# - Automatically after staging deploy (via workflow_call)
+# - Manually via Actions → "E2E Admin & Integration Tests" → "Run workflow"
 # =============================================================================
 
 on:
+  # Manual trigger
   workflow_dispatch:
     inputs:
       test_suite:
@@ -27,6 +30,33 @@ on:
         required: false
         default: ''
         type: string
+
+  # Can be called from other workflows (e.g., after staging deploy)
+  workflow_call:
+    inputs:
+      test_suite:
+        description: 'Test suite to run'
+        required: false
+        default: 'all'
+        type: string
+      test_filter:
+        description: 'Test filter pattern'
+        required: false
+        default: ''
+        type: string
+    outputs:
+      result:
+        description: 'E2E test result (success/failure)'
+        value: ${{ jobs.e2e-admin.result }}
+    secrets:
+      DATABASE_URL:
+        required: true
+      STORE_PASSWORD:
+        required: false
+      SHOPIFY_API_KEY:
+        required: true
+      SHOPIFY_API_SECRET:
+        required: true
 
 env:
   NODE_VERSION: '24'
@@ -137,7 +167,7 @@ jobs:
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: e2e-admin-integration-test-results
+          name: e2e-admin-integration-test-results-${{ github.run_id }}
           path: |
             test-results/
             playwright-report/

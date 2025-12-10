@@ -1,4 +1,4 @@
-name: 🧪 E2E Staging Tests (Optional)
+name: 🧪 E2E Staging Tests
 
 on:
   # Manual trigger
@@ -14,7 +14,7 @@ on:
         required: false
         default: false
         type: boolean
-  
+
   # Can be called from other workflows (e.g., after deploy)
   workflow_call:
     inputs:
@@ -23,6 +23,10 @@ on:
         required: false
         default: ''
         type: string
+    outputs:
+      result:
+        description: 'E2E test result (success/failure)'
+        value: ${{ jobs.e2e-staging.result }}
     secrets:
       DATABASE_URL:
         required: true
@@ -119,7 +123,7 @@ jobs:
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: e2e-test-results
+          name: e2e-storefront-test-results-${{ github.run_id }}
           path: |
             test-results/
             playwright-report/
