@@ -194,7 +194,8 @@ export default defineConfig({
   // ===========================================================================
   // WEB SERVER CONFIGURATION (for CI)
   // ===========================================================================
-  // In CI, we start a local server with TEST_MODE before running admin tests.
+  // In CI, Playwright starts the server with TEST_MODE before running tests.
+  // All required environment variables are passed through from CI secrets.
   // Your local dev server (npm run dev) is NOT affected.
   // ===========================================================================
   webServer: process.env.CI && process.env.TEST_MODE === "true"
@@ -204,9 +205,16 @@ export default defineConfig({
         reuseExistingServer: false,
         timeout: 120 * 1000,
         env: {
+          PORT: "3001",
           TEST_MODE: "true",
           TEST_SHOP_DOMAIN: process.env.TEST_SHOP_DOMAIN || "revenue-boost-staging.myshopify.com",
-          PORT: "3001",
+          DATABASE_URL: process.env.DATABASE_URL || "",
+          SHOPIFY_API_KEY: process.env.SHOPIFY_API_KEY || "",
+          SHOPIFY_API_SECRET: process.env.SHOPIFY_API_SECRET || "",
+          SHOPIFY_APP_URL: "http://localhost:3001",
+          SCOPES: "read_products,write_products",
+          SESSION_SECRET: "test-session-secret-for-ci-testing-minimum-32-chars",
+          INTERNAL_API_SECRET: "test-internal-api-secret-for-ci-testing-min-32",
         },
       }
     : undefined,
