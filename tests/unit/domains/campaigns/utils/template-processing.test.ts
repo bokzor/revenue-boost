@@ -107,7 +107,7 @@ describe("processTemplate", () => {
     expect(result.position).toBe("center");
     expect(result.size).toBe("medium");
     expect(result.showCloseButton).toBe(true);
-    expect(result.overlayOpacity).toBe(0.6);
+    expect(result.overlayOpacity).toBe(0.5);
   });
 
   it("should use default preview for missing preview", () => {
