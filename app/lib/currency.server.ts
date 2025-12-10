@@ -1,3 +1,5 @@
+import { logger } from "~/lib/logger.server";
+
 export async function getStoreCurrency(admin: { graphql: (query: string) => Promise<Response> }): Promise<string> {
   try {
     const response = await admin.graphql(`

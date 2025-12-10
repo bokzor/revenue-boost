@@ -408,11 +408,7 @@ export async function fetchThemeSettings(
     });
 
     if (!themesResponse.ok) {
-      console.error(
-        "[Theme Settings] Failed to fetch themes:",
-        themesResponse.status,
-        themesResponse.statusText
-      );
+      logger.error({ status: themesResponse.status, statusText: themesResponse.statusText }, "[ThemeSettings] Failed to fetch themes");
       return {
         success: false,
         error: `Failed to fetch themes: ${themesResponse.status}`,
@@ -440,11 +436,7 @@ export async function fetchThemeSettings(
     });
 
     if (!settingsResponse.ok) {
-      console.error(
-        "[Theme Settings] Failed to fetch settings_data.json:",
-        settingsResponse.status,
-        settingsResponse.statusText
-      );
+      logger.error({ status: settingsResponse.status, statusText: settingsResponse.statusText }, "[ThemeSettings] Failed to fetch settings_data.json");
       return {
         success: false,
         error: `Failed to fetch theme settings: ${settingsResponse.status}`,
@@ -467,23 +459,21 @@ export async function fetchThemeSettings(
     const settingsJson = JSON.parse(settingsValue) as Record<string, unknown>;
     const extractedSettings = parseThemeSettings(publishedTheme.name, settingsJson);
 
-    console.log(
-      `[Theme Settings] Successfully extracted settings from theme "${publishedTheme.name}"`,
-      {
-        isOS2Theme: extractedSettings.isOS2Theme,
-        colors: extractedSettings.colors,
-        typography: {
-          headingFont: extractedSettings.typography.headingFont,
-          bodyFont: extractedSettings.typography.bodyFont,
-          headingScale: extractedSettings.typography.headingScale,
-          bodyScale: extractedSettings.typography.bodyScale,
-        },
-        borderRadius: extractedSettings.borderRadius,
-        borders: extractedSettings.borders,
-        shadows: extractedSettings.shadows,
-        schemeCount: Object.keys(extractedSettings.colorSchemes || {}).length,
-      }
-    );
+    logger.debug({
+      themeName: publishedTheme.name,
+      isOS2Theme: extractedSettings.isOS2Theme,
+      colors: extractedSettings.colors,
+      typography: {
+        headingFont: extractedSettings.typography.headingFont,
+        bodyFont: extractedSettings.typography.bodyFont,
+        headingScale: extractedSettings.typography.headingScale,
+        bodyScale: extractedSettings.typography.bodyScale,
+      },
+      borderRadius: extractedSettings.borderRadius,
+      borders: extractedSettings.borders,
+      shadows: extractedSettings.shadows,
+      schemeCount: Object.keys(extractedSettings.colorSchemes || {}).length,
+    }, "[ThemeSettings] Successfully extracted settings");
 
     return {
       success: true,

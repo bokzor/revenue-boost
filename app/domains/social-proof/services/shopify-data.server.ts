@@ -175,9 +175,7 @@ export class ShopifyDataService {
       });
 
       if (!response.ok) {
-        console.error(
-          `[ShopifyDataService] Shopify API error: ${response.status} ${response.statusText}`
-        );
+        logger.error({ status: response.status, statusText: response.statusText }, "[ShopifyDataService] Shopify API error");
         return [];
       }
 
@@ -382,9 +380,7 @@ export class ShopifyDataService {
       });
 
       if (!response.ok) {
-        console.error(
-          `[ShopifyDataService] Shopify API error: ${response.status} ${response.statusText}`
-        );
+        logger.error({ status: response.status, statusText: response.statusText }, "[ShopifyDataService] Shopify API error");
         return null;
       }
 

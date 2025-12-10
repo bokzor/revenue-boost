@@ -287,10 +287,7 @@ export class CampaignMutationService {
 
         // Log warnings but don't block activation
         if (activationValidation.warnings && activationValidation.warnings.length > 0) {
-          console.warn(
-            `[Campaign Activation] Warnings for campaign ${id}:`,
-            activationValidation.warnings
-          );
+          logger.warn({ campaignId: id, warnings: activationValidation.warnings }, "[CampaignMutation] Activation warnings");
         }
       }
     }

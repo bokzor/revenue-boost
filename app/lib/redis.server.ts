@@ -27,7 +27,7 @@ function getRedisClient(): Redis | null {
   }
 
   try {
-    console.log("🔗 Initializing Redis connection to:", redisUrl.replace(/:\/\/[^@]+@/, "://***@"));
+    logger.info({ redisUrl: redisUrl.replace(/:\/\/[^@]+@/, "://***@") }, "[Redis] Initializing connection");
 
     redisClient = new Redis(redisUrl, {
       maxRetriesPerRequest: 3,

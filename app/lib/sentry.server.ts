@@ -53,7 +53,7 @@ export function captureException(
   context?: Record<string, unknown>
 ): void {
   if (!isInitialized) {
-    console.error("[Error]", error, context);
+    logger.error({ error, context }, "[Sentry] Error captured (Sentry not initialized)");
     return;
   }
 
@@ -74,7 +74,7 @@ export function captureMessage(
   context?: Record<string, unknown>
 ): void {
   if (!isInitialized) {
-    console.log(`[${level.toUpperCase()}]`, message, context);
+    logger[level]({ context }, `[Sentry] ${message} (Sentry not initialized)`);
     return;
   }
 

@@ -85,10 +85,7 @@ async function performSyncAsync(options: {
 }): Promise<void> {
   const { storeId, segmentIds, admin, forceSync } = options;
 
-  console.log(
-    `[CampaignSegmentSync] Checking sync for ${segmentIds.length} segment(s)`,
-    { storeId, segmentIds }
-  );
+  logger.debug({ storeId, segmentIds, count: segmentIds.length }, "[CampaignSegmentSync] Checking sync");
 
   // Check if we already have membership data for these segments
   if (!forceSync) {
@@ -110,9 +107,7 @@ async function performSyncAsync(options: {
     });
 
     const duration = Date.now() - startTime;
-    console.log(
-      `[CampaignSegmentSync] Sync completed in ${duration}ms for ${segmentIds.length} segment(s)`
-    );
+    logger.debug({ durationMs: duration, count: segmentIds.length }, "[CampaignSegmentSync] Sync completed");
   } catch (error) {
     logger.error({ error }, "[CampaignSegmentSync] Sync failed:");
     throw error;

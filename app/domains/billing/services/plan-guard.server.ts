@@ -54,7 +54,7 @@ export class PlanGuardService {
       },
     });
 
-    console.log(`[PlanGuardService] Store found:`, store ? { id: store.id, domain: store.shopifyDomain, planTier: store.planTier, planStatus: store.planStatus } : 'NOT FOUND');
+    logger.debug({ store: store ? { id: store.id, domain: store.shopifyDomain, planTier: store.planTier, planStatus: store.planStatus } : null }, "[PlanGuardService] Store lookup result");
 
     if (!store) {
       throw new Error(`Store not found: ${storeId}`);

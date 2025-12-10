@@ -197,11 +197,10 @@ export async function createCustomer(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- GraphQL response is dynamically typed
     const responseData: any = await response.json();
 
-    // Log full response for debugging
-    console.log("[Shopify Customer] GraphQL Response:", JSON.stringify(responseData, null, 2));
+    logger.debug({ response: responseData }, "[ShopifyCustomer] GraphQL response");
 
     if (responseData.data?.customerCreate?.userErrors?.length > 0) {
-      console.error("[Shopify Customer] User errors:", responseData.data.customerCreate.userErrors);
+      logger.error({ userErrors: responseData.data.customerCreate.userErrors }, "[ShopifyCustomer] User errors");
       return {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any -- userErrors from GraphQL
         errors: responseData.data.customerCreate.userErrors.map((error: any) => error.message),
@@ -210,7 +209,7 @@ export async function createCustomer(
 
     // Check for GraphQL errors
     if (responseData.errors) {
-      console.error("[Shopify Customer] GraphQL errors:", responseData.errors);
+      logger.error({ errors: responseData.errors }, "[ShopifyCustomer] GraphQL errors");
       return {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any -- errors from GraphQL
         errors: responseData.errors.map((error: any) => error.message),

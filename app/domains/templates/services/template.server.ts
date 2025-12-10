@@ -142,9 +142,7 @@ export class TemplateService {
 
       const result = templates.map(parseTemplateEntity);
 
-      console.log(
-        `[Performance] Template query took ${Date.now() - startTime}ms (${result.length} templates)`
-      );
+      logger.debug({ durationMs: Date.now() - startTime, count: result.length }, "[Template] Query completed");
 
       // Cache the result
       setCache(cacheKey, result);
@@ -204,9 +202,7 @@ export class TemplateService {
 
       const result = templates.map(parseTemplateEntity);
 
-      console.log(
-        `[Performance] Template query (type: ${templateType}) took ${Date.now() - startTime}ms (${result.length} templates)`
-      );
+      logger.debug({ templateType, durationMs: Date.now() - startTime, count: result.length }, "[Template] Query by type completed");
 
       // Cache the result
       setCache(cacheKey, result);

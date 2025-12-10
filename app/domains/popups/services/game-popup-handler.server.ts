@@ -245,7 +245,7 @@ export async function createPreviewResponse(
         }
       }
     } catch (error) {
-      console.warn(`${config.logPrefix} Failed to fetch preview config:`, error);
+      logger.warn({ error, prefix: config.logPrefix }, "[GamePopupHandler] Failed to fetch preview config");
       // Continue with defaults
     }
   }
@@ -333,9 +333,7 @@ export async function validateSecurityRequest(
   if (!validation.valid) {
     if (validation.isBotLikely) {
       const ip = request.headers.get("x-forwarded-for")?.split(",")[0] || "unknown";
-      console.warn(
-        `${config.logPrefix} 🤖 Bot detected (${validation.reason}) for campaign ${validatedRequest.campaignId}, IP: ${ip}`
-      );
+      logger.warn({ reason: validation.reason, campaignId: validatedRequest.campaignId, ip, prefix: config.logPrefix }, "[GamePopupHandler] Bot detected");
       return createBotHoneypotResponse();
     }
     const error =
@@ -471,7 +469,7 @@ export async function generateDiscountCode(
   );
 
   if (!result.success || !result.discountCode) {
-    console.error(`${config.logPrefix} Code generation failed:`, result.errors);
+    logger.error({ errors: result.errors, prefix: config.logPrefix }, "[GamePopupHandler] Code generation failed");
     return createErrorResponse(
       result.errors?.join(", ") || "Failed to generate discount code",
       500
@@ -715,10 +713,7 @@ export async function handleGamePopupPrize(
 
   // Select winning prize
   const winningPrize = selectPrizeByProbability(prizes);
-  console.log(`${config.logPrefix} Server selected prize:`, {
-    prizeId: winningPrize.id,
-    label: winningPrize.label,
-  });
+  logger.debug({ prizeId: winningPrize.id, label: winningPrize.label, prefix: config.logPrefix }, "[GamePopupHandler] Server selected prize");
 
   // Generate discount code
   const discountResult = await generateDiscountCode(

@@ -137,7 +137,7 @@ export class SocialProofService {
         }
       } else if (result.status === "rejected") {
         // Log errors but don't fail the entire request
-        console.error("[SocialProofService] Notification fetch failed:", result.reason);
+        logger.error({ reason: result.reason }, "[SocialProofService] Notification fetch failed");
       }
     }
 

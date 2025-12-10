@@ -95,11 +95,7 @@ export async function checkThemeExtensionEnabled({
     });
 
     if (!themesResponse.ok) {
-      console.error(
-        "[Setup] Failed to fetch themes:",
-        themesResponse.status,
-        themesResponse.statusText
-      );
+      logger.error({ status: themesResponse.status, statusText: themesResponse.statusText }, "[Setup] Failed to fetch themes");
       return false;
     }
 
@@ -120,11 +116,7 @@ export async function checkThemeExtensionEnabled({
     });
 
     if (!settingsResponse.ok) {
-      console.error(
-        "[Setup] Failed to fetch settings_data.json:",
-        settingsResponse.status,
-        settingsResponse.statusText
-      );
+      logger.error({ status: settingsResponse.status, statusText: settingsResponse.statusText }, "[Setup] Failed to fetch settings_data.json");
       return false;
     }
 
@@ -152,7 +144,7 @@ export async function checkThemeExtensionEnabled({
       return (isOurApp || isAppsBlock) && notDisabled;
     });
 
-    console.log("[Setup] App embed enabled:", appEmbedEnabled);
+    logger.debug({ appEmbedEnabled }, "[Setup] App embed status");
     return appEmbedEnabled;
   } catch (error) {
     logger.error({ error }, "[Setup] Error checking theme extension:");
@@ -214,7 +206,7 @@ export async function checkAppProxyReachable(
     // going through Shopify's proxy, which only works from the storefront
     const healthUrl = `${baseUrl}/api/health`;
 
-    console.log("[Setup] Testing app health endpoint:", healthUrl);
+    logger.debug({ healthUrl }, "[Setup] Testing app health endpoint");
 
     const response = await fetch(healthUrl, {
       method: "GET",
@@ -226,7 +218,7 @@ export async function checkAppProxyReachable(
     });
 
     if (!response.ok) {
-      console.error("[Setup] App health check failed:", response.status, response.statusText);
+      logger.error({ status: response.status, statusText: response.statusText }, "[Setup] App health check failed");
       return false;
     }
 
@@ -234,7 +226,7 @@ export async function checkAppProxyReachable(
     // Accept both "ok" and "degraded" as reachable - degraded means backend works but some non-critical services (like Redis) may be down
     const isReachable = data.status === "ok" || data.status === "degraded";
 
-    console.log("[Setup] App health check result:", isReachable ? "REACHABLE" : "ERROR", data);
+    logger.debug({ isReachable, data }, "[Setup] App health check result");
     return isReachable;
   } catch (error) {
     logger.error({ error }, "[Setup] Error checking app health:");

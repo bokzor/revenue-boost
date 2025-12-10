@@ -652,7 +652,7 @@ async function createSingleUseDiscount(
 ): Promise<CampaignDiscountResult> {
   const discountCode = generateUniqueDiscountCode(config.prefix || "SINGLE", leadEmail);
 
-  logger.debug("[Discount Service] Creating single-use discount: ${discountCode}");
+  logger.debug({ discountCode }, "[Discount] Creating single-use discount");
 
   const valueType = config.valueType || "PERCENTAGE";
   const discountInput: DiscountCodeInput = {
@@ -679,7 +679,7 @@ async function createSingleUseDiscount(
   const result = await createDiscountCode(admin, discountInput);
 
   if (result.errors) {
-    console.error("[Discount Service] Failed to create single-use discount:", result.errors);
+    logger.error({ errors: result.errors }, "[Discount] Failed to create single-use discount");
     return {
       success: false,
       isNewDiscount: false,
@@ -687,9 +687,7 @@ async function createSingleUseDiscount(
     };
   }
 
-  console.log(
-    `[Discount Service] ✅ Created single-use discount: ${discountCode} (${result.discount?.id})`
-  );
+  logger.info({ discountCode, discountId: result.discount?.id }, "[Discount] Created single-use discount");
 
   return {
     success: true,
@@ -835,9 +833,7 @@ async function getOrCreateTieredDiscount(
 
   // Create tier codes if needed
   if (needsRecreation) {
-    console.log(
-      `[Discount Service] Creating ${tiers.length} tier codes for campaign ${campaign.id}`
-    );
+    logger.debug({ tierCount: tiers.length, campaignId: campaign.id }, "[Discount] Creating tier codes");
 
     for (let i = 0; i < tiers.length; i++) {
       const tier = tiers[i];
@@ -873,7 +869,7 @@ async function getOrCreateTieredDiscount(
       const result = await createDiscountCode(admin, discountInput);
 
       if (result.errors || !result.discount) {
-        console.error(`[Discount Service] Failed to create tier ${i} code:`, result.errors);
+        logger.error({ tier: i, errors: result.errors }, "[Discount] Failed to create tier code");
         return {
           success: false,
           isNewDiscount: false,
@@ -888,7 +884,7 @@ async function getOrCreateTieredDiscount(
         code,
       });
 
-      logger.debug("[Discount Service] ✅ Created tier ${i} code: ${code} (${result.discount.id})");
+      logger.debug({ tier: i, code, discountId: result.discount.id }, "[Discount] Created tier code");
     }
 
     // Update campaign metadata
@@ -926,9 +922,7 @@ async function getOrCreateTieredDiscount(
     };
   }
 
-  console.log(
-    `[Discount Service] Selected tier ${selectedTierIndex} code: ${selectedTier.code} (threshold: $${(selectedTier.thresholdCents / 100).toFixed(2)}, cart: $${cartSubtotalCents ? (cartSubtotalCents / 100).toFixed(2) : "N/A"})`
-  );
+  logger.debug({ tier: selectedTierIndex, code: selectedTier.code, thresholdCents: selectedTier.thresholdCents, cartSubtotalCents }, "[Discount] Selected tier code");
 
   return {
     success: true,
@@ -975,13 +969,11 @@ async function getOrCreateBogoDiscount(
     DISCOUNT_CODE_CONFIG.BOGO_CAMPAIGN_NAME_LENGTH
   );
 
-  logger.debug("[Discount Service] Creating BOGO discount: ${code}");
+  logger.debug({ code }, "[Discount] Creating BOGO discount");
 
   // Validate that BOGO get has specific products/collections defined
   if (!bogo.get.ids || bogo.get.ids.length === 0) {
-    console.error(
-      `[Discount Service] BOGO discount requires specific product/collection IDs for 'get'`
-    );
+    logger.error("[Discount] BOGO discount requires specific product/collection IDs for 'get'");
     return {
       success: false,
       isNewDiscount: false,
@@ -1030,7 +1022,7 @@ async function getOrCreateBogoDiscount(
   const result = await createBxGyDiscountCode(admin, discountInput);
 
   if (result.errors || !result.discount) {
-    console.error(`[Discount Service] Failed to create BOGO discount:`, result.errors);
+    logger.error({ errors: result.errors }, "[Discount] Failed to create BOGO discount");
     return {
       success: false,
       isNewDiscount: false,
@@ -1044,7 +1036,7 @@ async function getOrCreateBogoDiscount(
     bogoDiscountCode: code,
   });
 
-  logger.debug("[Discount Service] ✅ Created BOGO discount: ${code} (${result.discount.id})");
+  logger.info({ code, discountId: result.discount.id }, "[Discount] Created BOGO discount");
 
   return {
     success: true,
@@ -1090,13 +1082,11 @@ async function getOrCreateFreeGiftDiscount(
     DISCOUNT_CODE_CONFIG.GIFT_CAMPAIGN_NAME_LENGTH
   );
 
-  logger.debug("[Discount Service] Creating free gift discount: ${code}");
+  logger.debug({ code }, "[Discount] Creating free gift discount");
 
   // Validate that free gift has either a product ID or variant ID defined
   if (!freeGift.productId && !freeGift.variantId) {
-    console.error(
-      `[Discount Service] Free gift discount requires either a product ID or variant ID`
-    );
+    logger.error("[Discount] Free gift discount requires either a product ID or variant ID");
     return {
       success: false,
       isNewDiscount: false,
@@ -1140,7 +1130,7 @@ async function getOrCreateFreeGiftDiscount(
   const result = await createDiscountCode(admin, discountInput);
 
   if (result.errors || !result.discount) {
-    console.error(`[Discount Service] Failed to create free gift discount:`, result.errors);
+    logger.error({ errors: result.errors }, "[Discount] Failed to create free gift discount");
     return {
       success: false,
       isNewDiscount: false,
@@ -1154,7 +1144,7 @@ async function getOrCreateFreeGiftDiscount(
     freeGiftDiscountCode: code,
   });
 
-  logger.debug("[Discount Service] ✅ Created free gift discount: ${code} (${result.discount.id})");
+  logger.info({ code, discountId: result.discount.id }, "[Discount] Created free gift discount");
 
   return {
     success: true,

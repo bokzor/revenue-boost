@@ -79,10 +79,7 @@ export class MarketingEventsService {
       const data = await response.json();
 
       if (data.data?.marketingActivityCreateExternal?.userErrors?.length > 0) {
-        console.error(
-          "Marketing Activity Create Errors:",
-          data.data.marketingActivityCreateExternal.userErrors
-        );
+        logger.error({ userErrors: data.data.marketingActivityCreateExternal.userErrors }, "[MarketingEvents] Activity create errors");
         return null;
       }
 
@@ -137,10 +134,7 @@ export class MarketingEventsService {
       const data = await response.json();
 
       if (data.data?.marketingActivityUpdateExternal?.userErrors?.length > 0) {
-        console.error(
-          "Marketing Activity Update Errors:",
-          data.data.marketingActivityUpdateExternal.userErrors
-        );
+        logger.error({ userErrors: data.data.marketingActivityUpdateExternal.userErrors }, "[MarketingEvents] Activity update errors");
         return false;
       }
 
@@ -177,10 +171,7 @@ export class MarketingEventsService {
       const data = await response.json();
 
       if (data.data?.marketingActivityDeleteExternal?.userErrors?.length > 0) {
-        console.error(
-          "Marketing Activity Delete Errors:",
-          data.data.marketingActivityDeleteExternal.userErrors
-        );
+        logger.error({ userErrors: data.data.marketingActivityDeleteExternal.userErrors }, "[MarketingEvents] Activity delete errors");
         return false;
       }
 
@@ -240,10 +231,7 @@ export class MarketingEventsService {
       const data = await response.json();
 
       if (data.data?.marketingEngagementCreate?.userErrors?.length > 0) {
-        console.error(
-          "Marketing Engagement Sync Errors:",
-          data.data.marketingEngagementCreate.userErrors
-        );
+        logger.error({ userErrors: data.data.marketingEngagementCreate.userErrors }, "[MarketingEvents] Engagement sync errors");
         return false;
       }
 

@@ -199,7 +199,7 @@ export class FrequencyCapService {
     _group: FrequencyCapGroup = "popup"
   ): Promise<FrequencyCapResult> {
     if (!redis) {
-      console.log('[FrequencyCap] ⚠️ checkCooldown: Redis not available, allowing');
+      logger.debug("[FrequencyCap] Redis not available, allowing");
       return {
         allowed: true,
         currentCounts: this.getEmptyCounts(),
@@ -209,17 +209,17 @@ export class FrequencyCapService {
     const cooldownKey = `${REDIS_PREFIXES.COOLDOWN}:${identifier}:${trackingKey}`;
     const cooldownUntil = await redis.get(cooldownKey);
 
-    console.log('[FrequencyCap] 🔍 checkCooldown:', {
+    logger.debug({
       cooldownKey,
       identifier,
       trackingKey,
       cooldownUntil: cooldownUntil ? new Date(parseInt(cooldownUntil)).toISOString() : null,
       now: new Date(now).toISOString(),
       isInCooldown: cooldownUntil && parseInt(cooldownUntil) > now,
-    });
+    }, "[FrequencyCap] checkCooldown");
 
     if (cooldownUntil && parseInt(cooldownUntil) > now) {
-      console.log('[FrequencyCap] ❌ In cooldown period, blocking campaign');
+      logger.debug("[FrequencyCap] In cooldown period, blocking campaign");
       return {
         allowed: false,
         reason: "In cooldown period",
@@ -248,24 +248,24 @@ export class FrequencyCapService {
     now: number
   ): Promise<void> {
     if (!redis || cooldownSeconds <= 0) {
-      console.log('[FrequencyCap] ⚠️ setCooldown skipped:', {
+      logger.debug({
         hasRedis: !!redis,
         cooldownSeconds,
         reason: !redis ? 'Redis not available' : 'cooldownSeconds <= 0',
-      });
+      }, "[FrequencyCap] setCooldown skipped");
       return;
     }
 
     const cooldownKey = `${REDIS_PREFIXES.COOLDOWN}:${identifier}:${trackingKey}`;
     const cooldownUntil = now + cooldownSeconds * 1000;
 
-    console.log('[FrequencyCap] 🔒 Setting cooldown:', {
+    logger.debug({
       cooldownKey,
       cooldownSeconds,
       cooldownUntil: new Date(cooldownUntil).toISOString(),
       identifier,
       trackingKey,
-    });
+    }, "[FrequencyCap] Setting cooldown");
 
     await redis.setex(cooldownKey, cooldownSeconds, cooldownUntil.toString());
   }
@@ -319,15 +319,14 @@ export class FrequencyCapService {
     counts: FrequencyCapResult["currentCounts"],
     rules: FrequencyCappingRule
   ): Pick<FrequencyCapResult, "allowed" | "reason"> {
-    // Diagnostic logging for debugging frequency capping issues
-    console.log('[FrequencyCap] Checking campaign limits:', {
+    logger.debug({
       sessionCount: counts.session,
       sessionLimit: rules.max_triggers_per_session,
       hourCount: counts.hour,
       hourLimit: rules.max_triggers_per_hour,
       dayCount: counts.day,
       dayLimit: rules.max_triggers_per_day,
-    });
+    }, "[FrequencyCap] Checking campaign limits");
 
     if (rules.max_triggers_per_session && counts.session >= rules.max_triggers_per_session) {
       logger.debug("[FrequencyCap] ❌ Session limit EXCEEDED: ${counts.session} >= ${rules.max_triggers_per_session}");

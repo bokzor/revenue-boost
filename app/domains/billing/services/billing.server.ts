@@ -110,13 +110,13 @@ export class BillingService {
     // Check for GraphQL errors
     if (data.errors && data.errors.length > 0) {
       const errorMessages = data.errors.map((e) => e.message).join(", ");
-      console.error("[BillingService] GraphQL errors:", errorMessages);
+      logger.error({ errors: data.errors }, "[BillingService] GraphQL errors");
       throw new BillingApiError(`GraphQL errors: ${errorMessages}`);
     }
 
     // Validate response structure
     if (!data.data?.currentAppInstallation) {
-      console.error("[BillingService] Unexpected response structure:", JSON.stringify(data));
+      logger.error({ response: data }, "[BillingService] Unexpected response structure");
       throw new BillingApiError("Unexpected GraphQL response structure");
     }
 
@@ -181,10 +181,7 @@ export class BillingService {
     } catch (error) {
       // On API error, fall back to database state to prevent accidental downgrades
       if (error instanceof BillingApiError) {
-        console.warn(
-          `[BillingService] API error for ${shopDomain}, falling back to cached state:`,
-          error.message
-        );
+        logger.warn({ shopDomain, errorMessage: error.message }, "[BillingService] API error, falling back to cached state");
 
         // Try to get cached billing context from database
         const cachedContext = await this.getBillingContextFromDbByDomain(shopDomain);
@@ -228,7 +225,7 @@ export class BillingService {
         },
       });
     } catch (dbError) {
-      console.error("[BillingService] Failed to sync subscription to database:", dbError);
+      logger.error({ error: dbError }, "[BillingService] Failed to sync subscription to database");
       // Return the billing context anyway - the sync failure shouldn't block the user
     }
 

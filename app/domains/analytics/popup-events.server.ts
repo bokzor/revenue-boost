@@ -72,10 +72,7 @@ export class PopupEventService {
         },
       });
     } catch (error) {
-      console.error("[Analytics] Failed to record popup event", {
-        input,
-        error,
-      });
+      logger.error({ input, error }, "[Analytics] Failed to record popup event");
       throw new ServiceError("POPUP_EVENT_CREATE_FAILED", "Failed to record popup event", error);
     }
   }

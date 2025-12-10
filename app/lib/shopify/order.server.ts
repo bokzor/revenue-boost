@@ -107,7 +107,7 @@ export async function createDraftOrder(
     const result = json.data?.draftOrderCreate;
 
     if (result?.userErrors?.length > 0) {
-      console.error("[Order Service] Draft order creation errors:", result.userErrors);
+      logger.error({ userErrors: result.userErrors }, "[OrderService] Draft order creation errors");
       return {
         success: false,
         errors: result.userErrors.map((e: { message: string }) => e.message),

@@ -64,9 +64,7 @@ export async function setupAppOnInstall(admin: any, shopDomain: string) {
 
     // 2. Note: Theme extension must be manually enabled by merchant in theme editor
     // We cannot enable it programmatically via GraphQL
-    console.log(
-      `[App Setup] Theme extension available - merchant needs to enable it in theme editor`
-    );
+    logger.debug("[AppSetup] Theme extension available - merchant needs to enable it in theme editor");
 
     // 3. Fetch and cache shop timezone - only if store exists
     if (store) {
@@ -183,12 +181,9 @@ async function setAppUrlMetafield(admin: any, shop: string) {
     const data = await response.json();
 
     if (data.data?.metafieldsSet?.userErrors?.length > 0) {
-      console.error(
-        "[App Setup] Failed to set app URL metafield:",
-        data.data.metafieldsSet.userErrors
-      );
+      logger.error({ userErrors: data.data.metafieldsSet.userErrors }, "[AppSetup] Failed to set app URL metafield");
     } else {
-      logger.debug("[App Setup] ✅ Successfully set app URL metafield for ${shop}");
+      logger.debug({ shop }, "[AppSetup] Successfully set app URL metafield");
     }
   } catch (error) {
     logger.error({ error }, "[App Setup] Error setting app URL metafield:");
@@ -303,7 +298,7 @@ async function createThemePresetFromShopifyTheme(
     const result = await fetchThemeSettings(shopDomain, accessToken);
 
     if (!result.success || !result.settings) {
-      console.warn("[App Setup] Could not fetch theme settings:", result.error);
+      logger.warn({ error: result.error }, "[AppSetup] Could not fetch theme settings");
       return;
     }
 
@@ -345,9 +340,7 @@ async function createThemePresetFromShopifyTheme(
       },
     });
 
-    console.log(
-      `[App Setup] ✅ Created "My Store Theme" preset from theme: ${result.settings.themeName}`
-    );
+    logger.info({ themeName: result.settings.themeName }, "[AppSetup] Created 'My Store Theme' preset");
   } catch (error) {
     logger.error({ error }, "[App Setup] Error creating theme preset:");
     // Don't throw - we want setup to continue even if this fails
@@ -374,7 +367,7 @@ async function createStoreRecord(admin: any, shopDomain: string) {
     // Extract numeric ID from GID (e.g., "gid://shopify/Shop/12345" -> 12345)
     const last = shopGid.split("/").pop();
     if (!last || !/^\d+$/.test(last)) {
-      console.error("[App Setup] Invalid shop GID format:", shopGid);
+      logger.error({ shopGid }, "[AppSetup] Invalid shop GID format");
       return null;
     }
     const shopNumericId = BigInt(last);

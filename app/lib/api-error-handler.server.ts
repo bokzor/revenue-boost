@@ -77,12 +77,13 @@ function logError(error: unknown, context: string): void {
 
   if (isProd) {
     // In production, log to error monitoring service (e.g., Sentry)
-    // For now, log to console with sanitized output
-    console.error(`[API Error] ${context}:`, {
+    // For now, log with sanitized output
+    logger.error({
+      context,
       message: error instanceof Error ? error.message : String(error),
       type: error instanceof Error ? error.constructor.name : typeof error,
       // Don't log stack traces in production console
-    });
+    }, "[APIError] Error occurred");
   } else {
     // In development, log full error details
     logger.error({ error }, "[API Error] ${context}:");
